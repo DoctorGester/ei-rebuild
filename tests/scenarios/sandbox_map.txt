@@ -1,7 +1,9 @@
-# Sandbox: start the game, load a multiplayer map as a local server, let it run, report, quit.
-# Exercises map loading, AI map refresh, footprints, path search, line of sight, lighting, scripts.
-wait 8000
-console server bz7g-lmp
-wait 25000
+# Sandbox: start a new single-player game, let zone1 run for a while, report, quit.
+# Exercises zone loading, AI map refresh, footprints, path search, line of sight, lighting, scripts,
+# and the save the game writes when a new game starts.
+wait 20000
+console thingamabob
+newgame
+wait 30000
 report
 quit

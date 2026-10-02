@@ -41,10 +41,20 @@ The log is written next to the DLL: `build\<config>\ei_hook.log`.
 
 ### Automated harness
 
-`harness.cmd <scenario>` runs a scenario on the vanilla install and exits with 0 when no verify check
-failed. It prints the per-function report (`build\verify\harness_report.txt`). Scenarios live in
-`tests/scenarios/`; steps are `wait <ms>`, `console <command>` (the game's developer console:
-`server <map>` starts a map, script expressions are evaluated), `report` and `quit`. See
-`tests/verify/harness.cpp`.
+`harness.cmd <scenario>` runs a scenario on the vanilla install and exits with 0 when it passes. It
+prints the report (`build\verify\harness_report.txt`): per-function verify counts, everything the
+game console printed, and any failed checks. Scenarios live in `tests/scenarios/`; the steps are
+listed at the top of `tests/verify/harness.cpp`. The main ones:
 
-    harness.cmd tests\scenarios\sandbox_map.txt
+- `newgame` starts a new single-player game (the hero on zone1); `load <slot>` loads a save.
+- `console <command>` types into the game's console. `console thingamabob` unlocks scripting; then
+  `@<command>` runs a world script command (e.g. `@AddUnitToServer(...)`, `@Attack(...)`) and
+  `#<expression>` prints a script expression.
+- `check <expression>` requires the expression to print nonzero; `expect`/`reject <text>` look for
+  console output.
+
+Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Harness runs
+keep their saves in `build\verify\harness_saves`, never in the game folder. When the game crashes,
+the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions.
+
+    harness.cmd tests\scenarios\sandbox_actions.txt

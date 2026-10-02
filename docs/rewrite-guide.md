@@ -75,6 +75,8 @@ Every replacement gets a verify wrapper in `tests/verify/`, registered with
   bit for bit with `ei::verify::Check(name, expected, actual, fmt, ...)`, return the original's
   result. `stolenBytes` must cover whole instructions at the function start, at least 5, with no
   relative operands (no CALL/JMP/Jcc in them); read them from the disassembly.
+  `python tools/check_stolen.py` checks every registration (a count that ends inside an instruction
+  crashes only when that function first runs, which can be deep into a game session).
 - **Functions that only write an output object:** run the original into a scratch copy, yours into the
   real one, compare (see `FindUnitsVerify`, `SetMorphVerify`).
 - **Stateful functions** (allocate, open files, change shared lists): run only yours (`stolenBytes`
