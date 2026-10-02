@@ -1,0 +1,205 @@
+#pragma once
+
+// A layout- and allocation-compatible subset of the STLport containers compiled into game.exe.
+//
+// Original code and rewritten code share these objects (for example the loaded-file maps inside
+// CMappedResource), so they must have STLport's exact layout, allocate from the game's own pooled
+// node allocator, and hash and order elements the way STLport does. Only what rewritten code needs
+// is implemented; each member names the original routine it mirrors.
+
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <new>
+
+namespace stlp {
+
+// The game's __node_alloc: 16 free lists for sizes up to 128 bytes, operator new above that.
+void* allocate(std::size_t bytes);                  // 00405950
+void deallocate(void* p, std::size_t bytes);        // 00404D70
+
+// basic_string<char>: three pointers, no small-string buffer. 12 bytes.
+class string {
+public:
+    string() = default;
+    string(const char* first, const char* last) { InitRange(first, last); }   // 0042A3D0
+    explicit string(const char* s) : string(s, s + std::strlen(s)) {}
+    string(const string& s) : string(s.start_, s.finish_) {}                   // 004A8930
+    string& operator=(const string&) = delete;
+    ~string() { Release(); }                                                   // 006727B0
+
+    // 00421800: empty string with room for `capacity` bytes (including the terminator).
+    static void Reserve(string& s, std::size_t capacity);
+    // 0042A4F0: replaces the contents with [first, last), reusing the buffer when possible.
+    void Assign(const char* first, const char* last);
+    // 0042B700: appends [first, last), growing to size + max(size, n) + 1 when full.
+    void Append(const char* first, const char* last);
+
+    const char* data() const { return start_; }
+    std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
+    bool operator==(const string& o) const {
+        return size() == o.size() && std::memcmp(start_, o.start_, size()) == 0;
+    }
+
+    // __stl_hash_string over the characters, which are signed in this build.
+    std::uint32_t Hash() const {
+        std::uint32_t h = 0;
+        for (const char* p = start_; p != finish_; ++p) h = h * 5 + static_cast<std::uint32_t>(static_cast<int>(*p));
+        return h;
+    }
+
+private:
+    void InitRange(const char* first, const char* last);
+    void Release() {
+        if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_));
+    }
+
+    char* start_ = nullptr;
+    char* finish_ = nullptr;
+    char* eos_ = nullptr;   // end of storage; STLport keeps the (empty) allocator in the same word
+};
+static_assert(sizeof(string) == 12);
+
+// Hash for pointer keys: the pointer value itself.
+struct PointerHash {
+    template <typename T> std::uint32_t operator()(T* p) const { return reinterpret_cast<std::uint32_t>(p); }
+};
+struct StringHash {
+    std::uint32_t operator()(const string& s) const { return s.Hash(); }
+};
+
+// Next STLport bucket count >= n (__stl_prime_list, 0073B914).
+std::size_t NextPrime(std::size_t n);
+
+// hashtable<pair<const Key, Value>, ...> as used by hash_map. 0x14 bytes:
+//   +0x00 hasher / key_equal / select1st (empty, one byte each)
+//   +0x04 vector<Node*> buckets (start, finish, end of storage)
+//   +0x10 element count
+template <typename Key, typename Value, typename Hash>
+class hash_map {
+public:
+    struct Node {
+        Node* next;
+        Key key;
+        Value value;
+    };
+
+    // Construction happens in the owner's constructor via InitBuckets (STLport has no default bucket count).
+    hash_map() = default;
+
+    // 006729E0 (_M_initialize_buckets): an empty table with NextPrime(n) buckets.
+    void InitBuckets(std::size_t n);
+
+    std::size_t BucketCount() const { return static_cast<std::size_t>(finish_ - buckets_); }
+    std::size_t Size() const { return count_; }
+
+    Node* Find(const Key& key) const {
+        for (Node* n = buckets_[Hash()(key) % BucketCount()]; n; n = n->next)
+            if (n->key == key) return n;
+        return nullptr;
+    }
+
+    // operator[]: resize for one more element, then find or insert at the head of the bucket.
+    Value& operator[](const Key& key) {
+        Resize(count_ + 1);
+        std::size_t b = Hash()(key) % BucketCount();
+        for (Node* n = buckets_[b]; n; n = n->next)
+            if (n->key == key) return n->value;
+        Node* n = static_cast<Node*>(allocate(sizeof(Node)));
+        n->next = nullptr;
+        new (&n->key) Key(key);
+        n->value = Value();
+        n->next = buckets_[b];
+        buckets_[b] = n;
+        ++count_;
+        return n->value;
+    }
+
+    // Visits nodes in iterator order: buckets in order, each chain from its head.
+    template <typename F> void ForEach(F f) const {
+        for (std::size_t i = 0; i < BucketCount(); ++i)
+            for (Node* n = buckets_[i]; n; n = n->next) f(n);
+    }
+
+    // erase(iterator): unlink and free one node.
+    void Erase(Node* node);
+
+    // clear(): free every node, keep the buckets.
+    void Clear();
+
+    // resize(hint): grow to the next prime and rehash, moving nodes to the head of new buckets.
+    void Resize(std::size_t hint);
+
+private:
+    std::uint8_t functors_[4];
+    Node** buckets_;
+    Node** finish_;
+    Node** eos_;
+    std::size_t count_;
+};
+
+template <typename K, typename V, typename H>
+void hash_map<K, V, H>::InitBuckets(std::size_t n) {
+    std::size_t buckets = NextPrime(n);
+    buckets_ = static_cast<Node**>(allocate(buckets * sizeof(Node*)));
+    std::memset(buckets_, 0, buckets * sizeof(Node*));
+    finish_ = eos_ = buckets_ + buckets;
+    count_ = 0;
+}
+
+template <typename K, typename V, typename H>
+void hash_map<K, V, H>::Erase(Node* node) {
+    if (!node) return;
+    Node** slot = &buckets_[H()(node->key) % BucketCount()];
+    if (*slot == node) {
+        *slot = node->next;
+    } else {
+        Node* prev = *slot;
+        while (prev->next && prev->next != node) prev = prev->next;
+        if (!prev->next) return;
+        prev->next = node->next;
+    }
+    node->key.~K();
+    deallocate(node, sizeof(Node));
+    --count_;
+}
+
+template <typename K, typename V, typename H>
+void hash_map<K, V, H>::Clear() {
+    for (std::size_t i = 0; i < BucketCount(); ++i) {
+        Node* n = buckets_[i];
+        while (n) {
+            Node* next = n->next;
+            n->key.~K();
+            deallocate(n, sizeof(Node));
+            n = next;
+        }
+        buckets_[i] = nullptr;
+    }
+    count_ = 0;
+}
+
+template <typename K, typename V, typename H>
+void hash_map<K, V, H>::Resize(std::size_t hint) {
+    std::size_t oldN = BucketCount();
+    if (hint <= oldN) return;
+    std::size_t n = NextPrime(hint);
+    if (n <= oldN) return;
+    Node** fresh = static_cast<Node**>(allocate(n * sizeof(Node*)));
+    std::memset(fresh, 0, n * sizeof(Node*));
+    for (std::size_t b = 0; b < oldN; ++b) {
+        while (Node* first = buckets_[b]) {
+            std::size_t nb = H()(first->key) % n;
+            buckets_[b] = first->next;
+            first->next = fresh[nb];
+            fresh[nb] = first;
+        }
+    }
+    Node** old = buckets_;
+    std::size_t oldBytes = static_cast<std::size_t>(eos_ - old) * sizeof(Node*);
+    buckets_ = fresh;
+    finish_ = eos_ = fresh + n;
+    if (old) deallocate(old, oldBytes);
+}
+
+} // namespace stlp

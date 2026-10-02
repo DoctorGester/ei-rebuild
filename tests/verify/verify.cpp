@@ -35,7 +35,11 @@ void Report(const char* name, bool match, const char* detail) {
         ++c.mismatches;
         if (c.mismatches <= 20) Log("MISMATCH %s: %s", name, detail);
     }
-    if (c.calls % 100000 == 0)
+    // Totals at 1k, 10k, 100k, ... calls: hot functions do not flood the log.
+    static constexpr unsigned long kMilestones[] = {1000ul, 10000ul, 100000ul, 1000000ul, 10000000ul, 100000000ul, 1000000000ul};
+    bool milestone = false;
+    for (unsigned long m : kMilestones) milestone |= c.calls == m;
+    if (milestone)
         Log("verify %s: %lu calls, %lu mismatches", name, c.calls, c.mismatches);
 }
 

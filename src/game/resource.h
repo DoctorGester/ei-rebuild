@@ -14,6 +14,11 @@
 
 #include <cstdint>
 
+#include "lib/stlp.h"
+
+// BOOL: these functions return 0/1 in the whole of EAX, and callers test all 32 bits.
+using BOOL = int;
+
 #pragma pack(push, 1)
 struct ResHeader {
     std::uint32_t magic;        // kResMagic
@@ -39,9 +44,11 @@ constexpr std::uint32_t kResMagic = 0x019CE23C;
 // A file mapped into memory with CreateFileMapping/MapViewOfFile. 16 bytes.
 class CMappedFile {
 public:
-    CMappedFile();                                    // 006756B0
+    CMappedFile();
+    CMappedFile* Construct();                         // 006756B0 (the constructor)
     void Close();                                     // 006756D0 (00675720 is an identical copy)
-    bool Open(const char* path, bool writable);       // 00675770
+    BOOL Open(const char* path, BOOL writable);       // 00675770
+    void Flush();                                     // 00675A50: write back, stamp modification time
 
     void* file_;         // +0x00 HANDLE, INVALID_HANDLE_VALUE when closed
     void* mapping_;      // +0x04 HANDLE
@@ -50,14 +57,24 @@ public:
 };
 static_assert(sizeof(CMappedFile) == 16);
 
+// A file loaded from an archive by CMappedResource::GetFile. 0x1C bytes, allocated with operator new.
+struct LoadedFile {
+    stlp::string name;      // +0x00 name as requested
+    void* data;             // +0x0C contents (operator new)
+    std::uint32_t size;     // +0x10
+    int refCount;           // +0x14 GetFile calls not yet matched by CloseFile
+    std::uint32_t offset;   // +0x18 offset in the archive, used to write the file back
+};
+static_assert(sizeof(LoadedFile) == 0x1C);
+
 // Reads an archive with low-level file I/O, loading individual files into memory on request.
 // vtable 007432E0.
 class CMappedResource {
 public:
     // Virtual methods, in vtable order.
     virtual ~CMappedResource();                                       // 0: 006713A0 / 006714A0
-    virtual bool OpenResource(const char* path, bool writable);       // 1: 00671730
-    virtual bool OpenFromMemory(const void* image);                   // 2: 00671A40
+    virtual BOOL OpenResource(const char* path, BOOL writable);       // 1: 00671730
+    virtual BOOL OpenFromMemory(const void* image);                   // 2: 00671A40
     virtual void CloseResource();                                     // 3: 00671AC0
     virtual void Slot4();                                             // 4: 00671390 (empty)
     virtual void* GetFile(const char* name, std::uint32_t* size);     // 5: 00671B40
@@ -75,16 +92,23 @@ public:
     int fd_;                     // +0x24 CRT file descriptor, -1 when closed
     const void* image_;          // +0x28 archive image when opened with OpenFromMemory
     std::uint32_t writable_;     // +0x2C
-    // +0x30 two STLport hash_maps tracking files loaded by GetFile (layout not recovered yet)
-    std::uint8_t loadedFiles_[0x28];
+    stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;         // +0x30
+    stlp::hash_map<stlp::string, LoadedFile*, stlp::StringHash> filesByName_;  // +0x44
 };
 static_assert(sizeof(CMappedResource) == 0x58);
 
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. vtable 00743300.
 class CMMIOResource : public CMappedResource {
 public:
-    // Overrides: 0: 006722D0 / 006722F0, 1: 006724E0, 2: 00672520, 3: 006725A0,
-    // 4: 006725D0 (forwards to file_), 5: 006725E0, 6: 00672640 (returns true), 7: 00672650 (empty).
+    // 0: 006722D0 / 006722F0 destructor (not rewritten yet)
+    BOOL OpenResource(const char* path, BOOL writable) override;      // 1: 006724E0
+    BOOL OpenFromMemory(const void* image) override;                  // 2: 00672520
+    void CloseResource() override;                                    // 3: 006725A0
+    void Slot4() override;                                            // 4: 006725D0 (flushes file_)
+    void* GetFile(const char* name, std::uint32_t* size) override;    // 5: 006725E0
+    bool CloseFile(void* data) override;                              // 6: 00672640 (nothing to free)
+    void FreeAllFiles() override;                                     // 7: 00672650 (empty)
+
     CMappedFile file_;           // +0x58
     const void* mappedImage_;    // +0x68 base of the mapped archive
 };
