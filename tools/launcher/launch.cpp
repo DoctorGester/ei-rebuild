@@ -119,6 +119,14 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring reportFile = Dir(dll) + L"\\harness_report.txt";
     while (WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
         if (harness.empty()) continue;
+        // Backstop for the harness's own time limit (default 60 s), e.g. if the game is hung so
+        // badly that its watchdog thread cannot run.
+        if (GetTickCount64() - started >= 5 * 60 * 1000) {
+            std::fwprintf(stderr, L"ei_launch: game still running after 5 minutes; terminating it\n");
+            TerminateProcess(pi.hProcess, 3);
+            WaitForSingleObject(pi.hProcess, 5000);
+            break;
+        }
         // The harness writes its report as soon as it loads; none after 30 s means it never started
         // (the game would otherwise sit in the main menu until someone closes it).
         if (GetTickCount64() - started >= 30000 &&

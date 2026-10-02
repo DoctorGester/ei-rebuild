@@ -1,12 +1,14 @@
 # Sandbox: start a new single-player game and let zone1 play through its intro at ~5.5x speed,
 # then report and quit. Exercises zone loading, AI map refresh, footprints, path search, line of
 # sight, lighting, scripts, and the save the game writes when a new game starts.
+# The zone1 intro runs on real time (~37 s), so this scenario needs more than the default 60 s.
+timeout 80
 wait 6000
 console thingamabob
 newgame
 speed 10
-waitfor 60 IsGreater(HP(GetLeader()),0)
-waitfor 60 Not(IsUnitBlocked(GetLeader()))
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 45 Not(IsUnitBlocked(GetLeader()))
 wait 10000
 report
 quit

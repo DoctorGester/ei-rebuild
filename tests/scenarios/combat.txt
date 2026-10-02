@@ -17,7 +17,7 @@ console thingamabob
 console filter all on
 newgame
 speed 10
-waitfor 60 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)
 
@@ -27,7 +27,7 @@ waitfor 10 IsAlive(GetObjectByName("Enemy1"))
 console @SetPlayer(GetObjectByName("Enemy1"),6)
 check IsEnemy(GetObjectByName("Enemy1"),0)
 console @Attack(GetLeader(),GetObjectByName("Enemy1"))
-waitfor 60 Not(IsAlive(GetObjectByName("Enemy1")))
+waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))
 # One expect per window: each expect only looks at output since the previous one.
 expect damage=
 check IsAlive(GetLeader())
@@ -42,13 +42,13 @@ check IsEnemy(GetObjectByName("Enemy2"),0)
 console @GSSetVar(0,"hp0",HP(GetLeader()))
 # The goblin attacks first: wait until it has hurt the hero (its attacks go through TakeHit on the hero).
 console @Attack(GetObjectByName("Enemy2"),GetLeader())
-waitfor 60 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
 expect was attacked by
 console #HP(GetLeader())
 # Heal the hero, then fight back until the goblin is dead.
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @Attack(GetLeader(),GetObjectByName("Enemy2"))
-waitfor 120 Not(IsAlive(GetObjectByName("Enemy2")))
+waitfor 20 Not(IsAlive(GetObjectByName("Enemy2")))
 console #HP(GetLeader())
 check IsAlive(GetLeader())
 report

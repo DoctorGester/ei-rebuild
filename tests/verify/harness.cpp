@@ -11,6 +11,8 @@
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
 //   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
+//   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
+//                             fails and the game is closed
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
 //   waitfor <seconds> <expression>
@@ -417,10 +419,11 @@ void RunSteps() {
 }
 
 // Watchdog thread: makes sure every harness run ends without Task Manager. After "quit" the game
-// gets 5 s to exit by itself (under Rebirth it hangs on the way out). If the scenario has not
-// finished within the sum of its waits plus 3 minutes (for example a modal message box blocks the
-// main thread), the report is written with a failure and the process ends.
-DWORD g_budget = 180000;
+// gets 5 s to exit by itself (under Rebirth it hangs on the way out). A scenario that has not
+// finished within its time limit (60 s from game start unless it says "timeout <seconds>") fails:
+// the report is written with the failure and the game is closed. Keep scenarios well inside it.
+constexpr DWORD kDefaultTimeLimitMs = 60000;
+DWORD g_budget = kDefaultTimeLimitMs;
 
 DWORD WINAPI Watchdog(void*) {
     const DWORD start = GetTickCount();
@@ -434,7 +437,10 @@ DWORD WINAPI Watchdog(void*) {
         if (GetTickCount() - start >= g_budget) {
             Log("harness: scenario timed out after %lu s (step %u of %u); terminating the game",
                 (GetTickCount() - start) / 1000, unsigned(g_next), unsigned(g_steps.size()));
-            g_failures.push_back("scenario timed out (the game stopped running steps; a message box?)");
+            char what[160];
+            std::snprintf(what, sizeof(what), "scenario exceeded its %lu s time limit at step %u of %u",
+                          g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
+            g_failures.push_back(what);
             WriteReport();
             TerminateProcess(GetCurrentProcess(), 1);
         }
@@ -462,8 +468,10 @@ bool LoadScenario(const char* path) {
         text = text.substr(start);
         std::size_t space = text.find(' ');
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
-        if (g_steps.back().verb == "wait") g_budget += std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
-        if (g_steps.back().verb == "waitfor") g_budget += 1000 * std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
+        if (g_steps.back().verb == "timeout") {
+            g_budget = 1000 * std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
+            g_steps.pop_back();
+        }
     }
     std::fclose(f);
     return true;

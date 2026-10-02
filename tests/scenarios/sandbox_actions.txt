@@ -6,7 +6,7 @@ wait 6000
 console thingamabob
 newgame
 speed 10
-waitfor 60 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)
 
@@ -31,7 +31,7 @@ console #DistanceUnitUnit(GetLeader(),GetObjectByName("Enemy1"))
 console @SetPlayer(GetObjectByName("Enemy1"),6)
 check IsEnemy(GetObjectByName("Enemy1"),0)
 console @Attack(GetLeader(),GetObjectByName("Enemy1"))
-waitfor 60 Not(IsAlive(GetObjectByName("Enemy1")))
+waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))
 check IsAlive(GetLeader())
 report
 quit
