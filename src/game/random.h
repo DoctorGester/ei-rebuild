@@ -13,6 +13,9 @@ public:
     // 0049EE70. Generates the next 256 results (reference isaac()).
     void Refill();
 
+    // 00488970 (effects.cpp). Next() * (max - min) * ~2^-32 + min, left unrounded in ST0.
+    float Range(float min, float max);
+
     // 0049F150 initialises the state (reference randinit()); not rewritten yet.
 
     std::uint32_t seeded_;          // +0x000 non-zero once seeded from results_

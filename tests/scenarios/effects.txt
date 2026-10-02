@@ -1,0 +1,45 @@
+# Effects: particle sources of the kinds whose callbacks are rewritten, placed around the hero
+# (smoke and fire: EmitSmoke/UpdateSmoke; PoisonFog: UpdateCloud; the spheres and Antimagic:
+# UpdateOrbit; Nuke: UpdateDebris/TickNuke; Mushroom: TickMushroom; every script source:
+# ScaleSize each tick), wind changes for the rain layer (CRainSnow::SetWind), a resize, then
+# deletion. CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show
+# what ran. The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @SetWind(1,0.5,0,0.8)
+console @CreateParticleSource(1,Add(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),1,"CampFire")
+console @CreateParticleSource(2,Sub(GetX(GetLeader()),3),GetY(GetLeader()),GetZ(GetLeader()),1,"Smoke")
+console @CreateParticleSource(3,GetX(GetLeader()),Add(GetY(GetLeader()),3),GetZ(GetLeader()),1,"Fire")
+console @CreateParticleSource(4,GetX(GetLeader()),Sub(GetY(GetLeader()),3),GetZ(GetLeader()),1,"PoisonFog")
+console @CreateParticleSource(5,Add(GetX(GetLeader()),3),Add(GetY(GetLeader()),3),GetZ(GetLeader()),1,"SphereFire")
+console @CreateParticleSource(6,Sub(GetX(GetLeader()),3),Add(GetY(GetLeader()),3),GetZ(GetLeader()),1,"Antimagic")
+console @CreateParticleSource(7,Add(GetX(GetLeader()),3),Sub(GetY(GetLeader()),3),GetZ(GetLeader()),1,"SphereElectricity")
+console @CreateParticleSource(8,Sub(GetX(GetLeader()),3),Sub(GetY(GetLeader()),3),GetZ(GetLeader()),1,"Tornado")
+wait 4000
+
+console @SetParticleSourceSize(1,2)
+console @CreateParticleSource(9,Add(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"Nuke")
+console @CreateParticleSource(10,Sub(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"Mushroom")
+wait 4000
+
+console @SetWind(0,1,0,0.2)
+console @DeleteParticleSource(1)
+console @DeleteParticleSource(2)
+console @DeleteParticleSource(3)
+console @DeleteParticleSource(4)
+console @DeleteParticleSource(5)
+console @DeleteParticleSource(6)
+console @DeleteParticleSource(7)
+console @DeleteParticleSource(8)
+console @DeleteParticleSource(9)
+console @DeleteParticleSource(10)
+wait 1500
+check IsAlive(GetLeader())
+report
+quit
