@@ -16,7 +16,7 @@ option(EI_VERIFY "Build ei_hook with differential verification wrappers" OFF)
 # re-rounded to float); /fp:precise inserts extra rounding stores the original never did.
 add_compile_options(/arch:IA32 /fp:fast /W4 /permissive- /utf-8)
 
-file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp)
+file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
 add_library(ei_hook SHARED
     src/hook/dllmain.cpp
