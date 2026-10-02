@@ -21,6 +21,7 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 add_library(ei_hook SHARED
     src/hook/dllmain.cpp
     src/hook/hook.cpp
+    src/hook/paths.cpp
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 if(EI_VERIFY)

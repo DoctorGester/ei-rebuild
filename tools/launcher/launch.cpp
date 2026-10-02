@@ -2,7 +2,7 @@
 // starter\Engine, working directory = game root), or <game>\game.exe for a plain install, and loads
 // ei_hook.dll into it before the game's own code runs. Nothing in the game folder is modified.
 //
-// usage: ei_launch [--game "F:\games\Evil Islands (Rebirth)"] [--dll path\to\ei_hook.dll] [game args...]
+// usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>] [game args...]
 #include <windows.h>
 
 #include <cstdio>
@@ -23,11 +23,13 @@ int wmain(int argc, wchar_t** argv) {
 
     std::wstring gameDir = L"F:\\games\\Evil Islands (Rebirth)";
     std::wstring dll = Dir(self) + L"\\ei_hook.dll";
+    std::wstring exeOverride;
     std::wstring gameArgs;
     for (int i = 1; i < argc; ++i) {
         std::wstring a = argv[i];
         if (a == L"--game" && i + 1 < argc) gameDir = argv[++i];
         else if (a == L"--dll" && i + 1 < argc) dll = argv[++i];
+        else if (a == L"--exe" && i + 1 < argc) exeOverride = argv[++i];
         else gameArgs += L" \"" + a + L"\"";
     }
     wchar_t full[MAX_PATH];
@@ -38,6 +40,12 @@ int wmain(int argc, wchar_t** argv) {
     // install (e.g. GOG) has game.exe in the root.
     std::wstring exe = gameDir + L"\\starter\\Engine\\game.exe";
     if (GetFileAttributesW(exe.c_str()) == INVALID_FILE_ATTRIBUTES) exe = gameDir + L"\\game.exe";
+    if (!exeOverride.empty()) {
+        // An exe outside the game folder (e.g. run\vanilla): tell ei_hook where the game data is,
+        // so the game's registry path lookups point there instead of at another install.
+        exe = exeOverride;
+        SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
+    }
     std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
 
     STARTUPINFOW si{sizeof(si)};
