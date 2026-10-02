@@ -137,6 +137,41 @@ static_assert(sizeof(ScriptBinding) == 12);
 
 class SSCCmd;
 
+// One token: its text and the line it starts on (8 bytes; CList element).
+struct ScriptToken {
+    // 004CFB70. Constructs the token the game uses as "no token": text "None", line -1.
+    ScriptToken* Construct();
+    // 004D0BD0. Assignment; returns this.
+    ScriptToken* Assign(const ScriptToken& other);
+    // 004D1D30. Copy constructor; returns this.
+    ScriptToken* CopyConstruct(const ScriptToken& other);
+
+    mfc::CString text;
+    int line;
+};
+static_assert(sizeof(ScriptToken) == 8);
+
+// CList<ScriptToken, ScriptToken&> (vtable 0073D424, 0x1C bytes). A POSITION is a node pointer.
+struct ScriptTokenList {
+    struct Node {
+        Node* next;
+        Node* prev;
+        ScriptToken data;
+    };
+    void* vtable;
+    Node* head;
+    Node* tail;
+    int count;
+    Node* free;
+    mfc::CPlex* blocks;
+    int blockSize;
+};
+static_assert(sizeof(ScriptTokenList) == 0x1C);
+
+// The parser's current position in the token list (null at the end).
+using ScriptPos = ScriptTokenList::Node*;
+
+
 // A named area for IsInArea (AddRectToArea / AddRoundToArea): one element of the area's array.
 struct ScriptAreaPart {
     std::uint8_t isRect;
@@ -158,6 +193,63 @@ public:
     MfcArray<ScriptAreaPart>* FindArea(int id);
 
     ScriptVars* Globals() { return reinterpret_cast<ScriptVars*>(reinterpret_cast<char*>(this) + 0xA0); }
+
+    // ---- Loader and parser (script_parse.cpp, script_parse_load.cpp) ----------------------------
+    // Every Load* function returns 1 on success; on failure it returns what Error returned (0).
+    // `pos` is the current token (CList POSITION); functions consume tokens through it.
+
+    // 004CF470 (Rebirth patches it; forwarder). Formats the message into the error text (+0x1EC)
+    // and sets the error code (+0x1F0) and line (+0x1F4). Returns 0. __cdecl with `this` first.
+    static int __cdecl Error(CScript* script, int line, int code, const char* format, ...);
+    // 004CF7A0. Splits the script text into tokens (see script.md, "Lexer").
+    BOOL Tokenize(const mfc::CString& text, ScriptTokenList* tokens);
+    // 004CF4D0. Consumes one token and requires its keyword id to be `id`.
+    BOOL ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id);
+    // 004D37F0. `name`, or "!<file>!<name>" when this is not the first file loaded (+0x1AC > 0).
+    mfc::CString* QualifyName(mfc::CString* out, const mfc::CString& name);
+    // 004D3780. Index of the script definition named `name`, retrying without each "!<n>!" prefix.
+    int FindScript(const char* name);
+    // 004CFBC0 (Rebirth patches it). Parses one call: `id` with parameter types `signature`
+    // (lower-case letters) into `cmd`. extraFloats: 2 = assignment (LoadAssignOperator; one
+    // parameter, no parentheses), scriptCall: one extra float and string slot (script calls).
+    BOOL LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id,
+                      ScriptVars* locals, const char* signature, BOOL assignment, BOOL scriptCall);
+    // 004D0BF0. Parses float functions up to ')' into `conditions`.
+    BOOL LoadConditions(MfcArray<SSCCmd>* conditions, ScriptPos* pos,
+                        const ScriptTokenList* tokens, ScriptVars* locals);
+    // 004D1030. Parses `if(...)then(...)` pairs up to ')' into the definition.
+    BOOL LoadScriptBody(struct ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens);
+    // 004D1D50. Parses `= value` assigned to global variable `name` into `cmd` (command 0x78).
+    BOOL LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
+                            ScriptVars* locals, const mfc::CString* name);
+    // 004D1FE0. Parses `name : type, ...)` declarations into the definition (parameters or
+    // GlobalVars). Returns 0 without an error when the tokens run out.
+    BOOL LoadVariableDeclarations(struct ScriptDefinition* script, ScriptPos* pos,
+                                  const ScriptTokenList* tokens, BOOL qualify);
+    // 004D1330 (Rebirth patches it). Parses commands up to ')' into `commands`; null `locals`
+    // means an empty variable set (For bodies).
+    BOOL LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens,
+                      ScriptVars* locals);
+    // 004D23A0. Loads a script text (the text is replaced by its #define-expanded form);
+    // `runWorldScript` starts the WorldScript block when one was loaded.
+    BOOL Load(mfc::CString* text, BOOL runWorldScript);
+    // 004D36F0. Reads a script file and loads it with the WorldScript started; error 0x11 when
+    // the file cannot be read.
+    BOOL LoadFile(const char* path);
+
+    // Not rewritten (forwarders).
+    struct ScriptDecl* NewCommandList();          // 004BF540: a command block owned by the script
+    MfcArray<SSCCmd>* NewWorldScript();           // 004BF900: the WorldScript block
+    void RunWorldScript(MfcArray<SSCCmd>* block); // 004BCC60
+
+    // Fields used by the loader.
+    MfcArray<struct ScriptDefinition>& Scripts() { return *reinterpret_cast<MfcArray<ScriptDefinition>*>(Field(0x8C)); }
+    int& LoadedFlag() { return *reinterpret_cast<int*>(Field(0x1A8)); }
+    int& FileCount() { return *reinterpret_cast<int*>(Field(0x1AC)); }
+    mfc::CString& ErrorText() { return *reinterpret_cast<mfc::CString*>(Field(0x1EC)); }
+    int& ErrorCode() { return *reinterpret_cast<int*>(Field(0x1F0)); }
+    int& ErrorLine() { return *reinterpret_cast<int*>(Field(0x1F4)); }
+    char* Field(int offset) { return reinterpret_cast<char*>(this) + offset; }
 };
 
 // Argument `argIndex` of a command is the result of the nested call `cmd`.
@@ -192,6 +284,13 @@ public:
     // The common start of the Calc functions (inlined in each): bind variables, evaluate nested calls.
     void PrepareArguments(CScript* script, ScriptVars* vars);
 
+    // 004D0A50. Constructor: array vtables set, everything empty; returns this.
+    SSCCmd* Construct();
+    // 004B5F70 (forwarder). Empties every array (nested calls are deleted); id and +0x90 become 0.
+    void Clear();
+    // 004BF640 (forwarder). Destructor body (frees the arrays and the nested calls).
+    void Destruct();
+
     int id;                                     // +0x00 ScriptKeyword::id
     MfcArray<float> floatArgs;                  // +0x04
     MfcArray<mfc::CString> stringArgs;          // +0x18
@@ -201,6 +300,7 @@ public:
     MfcArray<ScriptBinding> globalBindings;     // +0x68 to the global variables
     MfcArray<ScriptSubCall> subCalls;           // +0x7C
     struct ScriptDecl* calledScript;                // +0x90 called script (+0x14 is its index), or null
+                                                    // (the loader stores a For/ForIf body block here)
 };
 static_assert(sizeof(SSCCmd) == 0x94);
 static_assert(offsetof(SSCCmd, subCalls) == 0x7C);
@@ -216,3 +316,97 @@ struct ScriptKeyword {
     const char* command;    // commands: parameter types, else null
 };
 static_assert(sizeof(ScriptKeyword) == 16);
+
+// ---- Loader and parser (script_parse.cpp, script_parse_load.cpp) --------------------------------
+
+// Keyword ids of the punctuation, sections and literal tokens (ScriptKeyword::id).
+enum ScriptLexeme : int {
+    kLexOpen = 0x6D,          // (
+    kLexClose = 0x6E,         // )
+    kLexIf = 0x6F,
+    kLexThen = 0x70,
+    kLexComma = 0x71,         // ,
+    kLexAssign = 0x72,        // =
+    kLexColon = 0x73,         // :
+    kLexWorldScript = 0x74,
+    kLexScript = 0x75,
+    kLexDeclareScript = 0x76,
+    kLexGlobalVars = 0x77,
+    kLexNumber = 0x7A,        // not in the table: digits, '.', '-'
+    kLexString = 0x7B,        // not in the table: "..."
+};
+constexpr int kCmdAssign = 0x78;       // command id of `variable = value`
+constexpr int kCmdCallScript = 0x08;   // command id of a call to a declared script
+constexpr int kCmdFor = 0x6B;
+constexpr int kCmdForIf = 0x6C;
+
+// 004CF380. ConstructElements<ScriptToken>: zero, then each token "None" / -1.
+void __stdcall ConstructTokens(ScriptToken* tokens, int count);
+
+// A #define: name and replacement text (CList element, 8 bytes).
+struct ScriptDefine {
+    mfc::CString name;
+    mfc::CString value;
+};
+// CList<ScriptDefine, ScriptDefine&> (vtable 0073D4C0, 0x1C bytes).
+struct ScriptDefineList {
+    struct Node {
+        Node* next;
+        Node* prev;
+        ScriptDefine data;
+    };
+    void* vtable;
+    Node* head;
+    Node* tail;
+    int count;
+    Node* free;
+    mfc::CPlex* blocks;
+    int blockSize;
+};
+static_assert(sizeof(ScriptDefineList) == 0x1C);
+// 004D34F0. Inserts a define before the first one with a shorter name (else before the last one;
+// at the end only when the list is empty).
+void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
+// 004D33E0. Replaces every occurrence of each define's name in `line`, in list order.
+void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines);
+
+// 004CF600 (Rebirth patches it). Classifies a token: *id = number (7A), string (7B, closed quote)
+// or the id of the longest keyword the text starts with (case-insensitive; 0 if none), *rest =
+// characters after the matched part. Either output may be null.
+void __fastcall ClassifyToken(const char* text, int* id, int* rest);
+// 004D0B10 (Rebirth patches it). The parameter types of function `id` if it returns `type`
+// (1 'F', 2 'S', 3 'O', 4 'G'), else null.
+const char* __fastcall FunctionSignature(int id, int type);
+// 004D0BA0 (Rebirth patches it). The keyword's text, "Unknown command" if none.
+const char* __fastcall KeywordName(int id);
+// The keyword table in use: 0078BCA0, or the one Rebirth installs (read from ClassifyToken's code).
+const ScriptKeyword* KeywordTable();
+
+// The command block the loader creates for a then-section or a For body (CList node data in
+// CScript +0x70): the commands and the block's id (+0x14, saved with SSCCmd::calledScript).
+struct ScriptDecl {
+    MfcArray<SSCCmd> commands;
+    int id;
+};
+static_assert(sizeof(ScriptDecl) == 0x18);
+
+// One `if(...)then(...)` pair of a script definition.
+struct ScriptIfThen {
+    ScriptDecl* conditions;      // blocks from CScript::NewCommandList
+    ScriptDecl* commands;
+};
+static_assert(sizeof(ScriptIfThen) == 8);
+
+// A Script / DeclareScript definition (0xC0 bytes; CScript +0x8C holds CArray of them).
+// Constructed and destroyed by original code; the loader keeps one on its stack.
+struct ScriptDefinition {
+    // 004BB800. Adds a parameter variable and its type letter to `params`; 0 if the name exists.
+    BOOL AddParameter(const mfc::CString& name, int type);
+
+    int index;                          // +0x00 (0 after loading)
+    mfc::CString name;                  // +0x04 (qualified)
+    mfc::CString params;                // +0x08 parameter types, e.g. "fso"
+    MfcArray<ScriptIfThen> ifThen;      // +0x0C
+    ScriptVars vars;                    // +0x20 parameters and locals
+};
+static_assert(sizeof(ScriptDefinition) == 0xC0);
