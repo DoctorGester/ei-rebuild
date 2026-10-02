@@ -21,6 +21,11 @@ public:
     virtual const char* GetClassName();                // 11: e.g. "CTexture"
     virtual int GetClassId();                          // 12: e.g. 6 for CTexture
 
+    // Non-virtual helpers (object.cpp).
+    void* ManagerContext() const;   // 00455940: the owning manager's +0xAC
+    void* SetOwner(void* owner);    // 00455970: returns the previous owner
+    void DestructBase();            // 00455930: base destructor body
+
     int refCount_;          // +0x04
     std::uint32_t flags_;   // +0x08
     int id_;                // +0x0C
