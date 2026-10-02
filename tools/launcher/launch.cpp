@@ -1,6 +1,6 @@
 // ei_launch: starts the original game.exe the same way the Rebirth starter does (exe from
-// starter\Engine, working directory = game root) and loads ei_hook.dll into it before the game's
-// own code runs. Nothing in the game folder is modified.
+// starter\Engine, working directory = game root), or <game>\game.exe for a plain install, and loads
+// ei_hook.dll into it before the game's own code runs. Nothing in the game folder is modified.
 //
 // usage: ei_launch [--game "F:\games\Evil Islands (Rebirth)"] [--dll path\to\ei_hook.dll] [game args...]
 #include <windows.h>
@@ -34,7 +34,10 @@ int wmain(int argc, wchar_t** argv) {
     GetFullPathNameW(dll.c_str(), MAX_PATH, full, nullptr);
     dll = full;
 
+    // Rebirth keeps the engine in starter\Engine (with its addon loader next to it); a plain
+    // install (e.g. GOG) has game.exe in the root.
     std::wstring exe = gameDir + L"\\starter\\Engine\\game.exe";
+    if (GetFileAttributesW(exe.c_str()) == INVALID_FILE_ATTRIBUTES) exe = gameDir + L"\\game.exe";
     std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
 
     STARTUPINFOW si{sizeof(si)};
