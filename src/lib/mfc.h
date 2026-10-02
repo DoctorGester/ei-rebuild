@@ -63,6 +63,88 @@ private:
 };
 static_assert(sizeof(CFileFind) == 0x1C);
 
+// CPlex: the block allocator behind MFC's lists and maps.
+struct CPlex {
+    CPlex* next;
+    // followed by the block's elements
+};
+CPlex* __stdcall PlexCreate(CPlex*& head, unsigned count, unsigned elementSize);   // 006FE8EF
+void __fastcall PlexFreeDataChain(CPlex* head);                                    // 006FE90F
+
+// CTypedPtrList<CPtrList, T*> (0x1C bytes). The game inlines these operations; this mirrors MFC 4.2.
+template <typename T>
+struct CTypedPtrList {
+    struct Node {
+        Node* next;
+        Node* prev;
+        T* data;
+    };
+
+    void* vtable;
+    Node* head;
+    Node* tail;
+    int count;
+    Node* free;
+    CPlex* blocks;
+    int blockSize;
+
+    // NewNode: take a node from the free list, carving a new block of `blockSize` when empty.
+    Node* NewNode(Node* prev, Node* next) {
+        if (!free) {
+            CPlex* block = PlexCreate(blocks, blockSize, sizeof(Node));
+            Node* node = reinterpret_cast<Node*>(block + 1) + (blockSize - 1);
+            for (int i = blockSize - 1; i >= 0; --i, --node) {
+                node->next = free;
+                free = node;
+            }
+        }
+        Node* node = free;
+        free = free->next;
+        node->prev = prev;
+        node->next = next;
+        ++count;
+        node->data = nullptr;
+        return node;
+    }
+
+    // FreeNode: return to the free list; the last node frees all blocks (RemoveAll).
+    void FreeNode(Node* node) {
+        node->next = free;
+        free = node;
+        if (--count == 0) {
+            count = 0;
+            free = nullptr;
+            tail = nullptr;
+            head = nullptr;
+            PlexFreeDataChain(blocks);
+            blocks = nullptr;
+        }
+    }
+
+    Node* AddTail(T* value) {
+        Node* node = NewNode(tail, nullptr);
+        node->data = value;
+        if (tail) tail->next = node;
+        else head = node;
+        tail = node;
+        return node;
+    }
+
+    Node* Find(const T* value) const {
+        for (Node* n = head; n; n = n->next)
+            if (n->data == value) return n;
+        return nullptr;
+    }
+
+    void RemoveAt(Node* node) {
+        if (node == head) head = node->next;
+        else node->prev->next = node->next;
+        if (node == tail) tail = node->prev;
+        else node->next->prev = node->prev;
+        FreeNode(node);
+    }
+};
+
 CString __stdcall operator+(const CString& a, const char* b);   // 00700C05
 CString __stdcall operator+(const char* a, const CString& b);   // 00700C79
 CString __stdcall operator+(const CString& a, const CString& b); // 00700B9F

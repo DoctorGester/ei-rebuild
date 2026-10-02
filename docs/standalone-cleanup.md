@@ -28,6 +28,8 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `mfc::CFile`, `mfc::CFileFind` | `src/lib/mfc.*` | own file classes or Win32 directly. `CFile::fileName_` is a raw `char*` only because naked forwarders cannot construct members |
 | `CTextureDevice::ParseMmpHeader` 004E7C40, `FindFormat` 004E7DA0 | `src/game/texture.cpp` | rewrite |
 | `CTexture::CreateFromMmp` 00690430, `CTexture::LoadBmp` 00690260 | `src/game/texture.cpp` | rewrite |
+| `mfc::PlexCreate` 006FE8EF, `mfc::PlexFreeDataChain` 006FE90F | `src/lib/mfc.*` | own `CPlex` (block allocator behind `CTypedPtrList`) |
+| `CAIMap::MarkFootprint` 005B6A80, `CUnit::OnLeftSectorMap` 0050E930 | `src/game/sector_map.cpp` | rewrite |
 
 ## Indirections
 

@@ -10,12 +10,23 @@ constexpr int kClassUnit = 0x50;    // CEngineObject::GetClassId() of units (cre
 // A unit, as far as the AI map needs it. Name and layout provisional.
 class CUnit : public CEngineObject {
 public:
-    std::uint8_t unknown_1C[0x324 - 0x1C];
+    // 0050E930. Called when the unit leaves the sector map; not rewritten yet.
+    void OnLeftSectorMap();
+
+    float positionX;        // +0x1C
+    float positionY;        // +0x20
+    std::uint8_t unknown_24[0x1B8 - 0x24];
+    int sectorCellX;        // +0x1B8 cell the unit is registered in, -1 when not
+    int sectorCellY;        // +0x1BC
+    std::uint8_t unknown_1C0[0x324 - 0x1C0];
     int sizeClass;          // +0x324 selects the 4-bit passability field in each AI map cell
     std::uint8_t unknown_328[4];
     float standingHeight;   // +0x32C; deeper water or higher ground than (2 - height) * 16 blocks it
 };
+static_assert(offsetof(CUnit, sectorCellX) == 0x1B8);
 static_assert(offsetof(CUnit, sizeClass) == 0x324);
+
+constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 static_assert(offsetof(CUnit, standingHeight) == 0x32C);
 
 // One AI map cell (9 bytes): a 4-bit passability field per unit size class, then a height level.
@@ -38,6 +49,10 @@ public:
 
     // 005B79D0. Can `unit` stand on and enter cell (x, y)? Always true for non-units.
     bool IsPassable(CUnit* unit, int x, int y);
+
+    // 005B6A80. Stamps (remove = 0) or clears (remove = 1) the object's footprint in the grid;
+    // false if it does not fit. Not rewritten yet.
+    bool MarkFootprint(CEngineObject* object, int remove);
 
     std::uint8_t unknown_000[0x1F8];
     std::int8_t** waterDepth;           // +0x1F8 rows of per-cell water depth
