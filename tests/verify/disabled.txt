@@ -1,7 +1,4 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-006DB430  ChunkArchive::SerializeAcks: crashes at startup (in 0040A000), sent back for a fix
-006DB680  ChunkArchive::SerializeAcks2: same author/pattern as SerializeAcks, pending review
-006DB8D0  ChunkArchive::SerializeAcks3: same, pending review
-006D23A0  ChunkArchive::SerializePrints: same, pending review
-006D25F0  ChunkArchive::SerializePrints2: same, pending review
+006D41D0  PrintRecord::Serialize: verify wrapper crashes at startup (reads the archive twice?), sent back
+006D4270  PrintRecord2::Serialize: same pattern, pending review
