@@ -1,0 +1,350 @@
+// Script object references and groups (sets of object references). See script.h.
+#include "script.h"
+
+#include "ei/hook.h"
+#include "lib/crt.h"
+
+#include <cstdint>
+
+namespace {
+
+// The world's object registry (global at 007AFF60); FindObject looks an object up by its id.
+struct ObjectRegistry {
+    CEngineObject* FindObject(int id);   // 00593AA0
+};
+__declspec(naked) CEngineObject* ObjectRegistry::FindObject(int) EI_ORIGINAL(0x00593AA0)
+ObjectRegistry* Registry() { return reinterpret_cast<ObjectRegistry*>(0x007AFF60); }
+
+// The game's CRT.
+__declspec(naked) void __cdecl GameQsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*))
+    EI_ORIGINAL(0x006E88FC)
+__declspec(naked) void* __cdecl GameMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
+
+constexpr int kClassUnit = 0x50;          // CEngineObject::GetClassId() of units
+constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
+
+std::uintptr_t Address(const CEngineObject* object) { return reinterpret_cast<std::uintptr_t>(object); }
+
+void AddRef(CEngineObject* object) {
+    if (object) ++object->refCount_;
+}
+
+// Release and clear one slot, as the inlined ScriptObjectRef destructor does.
+void Clear(ScriptObjectRef* slot) {
+    if (slot->object) slot->object->Release();
+    slot->object = nullptr;
+}
+
+// Store `object` in `slot` after releasing what it held (Reset, then add a reference).
+void Store(ScriptObjectRef* slot, CEngineObject* object) {
+    Clear(slot);
+    AddRef(object);
+    slot->object = object;
+}
+
+// 004B2D80: orders by object address, unsigned.
+int __cdecl CompareObjectAddress(const void* a, const void* b) {
+    std::uintptr_t x = Address(static_cast<const ScriptObjectRef*>(a)->object);
+    std::uintptr_t y = Address(static_cast<const ScriptObjectRef*>(b)->object);
+    if (y > x) return -1;
+    return y < x ? 1 : 0;
+}
+
+} // namespace
+
+// ---- ScriptObjectRef ----------------------------------------------------------------------------
+
+void ScriptObjectRef::Reset() { Clear(this); }
+EI_REPLACE_METHOD(0x004B24B0, ScriptObjectRef::Reset);
+EI_REPLACE_METHOD(0x004B5AE0, ScriptObjectRef::Reset);
+
+void ScriptObjectRef::Assign(CEngineObject* newObject) { Store(this, newObject); }
+EI_REPLACE_METHOD(0x004B24D0, ScriptObjectRef::Assign);
+
+CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
+    CEngineObject* o = other.object;
+    object = o;
+    AddRef(o);
+    return o;
+}
+EI_REPLACE_METHOD(0x004B2500, ScriptObjectRef::Construct);
+
+CEngineObject* ScriptObjectRef::AsUnit() const {
+    CEngineObject* o = object;
+    if (o && o->GetClassId() == kClassUnit) return o;
+    return nullptr;
+}
+EI_REPLACE_METHOD(0x004B2530, ScriptObjectRef::AsUnit);
+
+void* ScriptObjectRef::GetUnitPerception() const {
+    CEngineObject* o = object;
+    if (o && o->GetClassId() == kClassUnit) return *reinterpret_cast<void**>(reinterpret_cast<char*>(o) + 0x240);
+    return nullptr;
+}
+EI_REPLACE_METHOD(0x004B2550, ScriptObjectRef::GetUnitPerception);
+
+void ScriptObjectRef::ReleaseIfDeleted() {
+    if (object && (object->flags_ & kDeleted)) {
+        object->Release();
+        object = nullptr;
+    }
+}
+EI_REPLACE_METHOD(0x004B2570, ScriptObjectRef::ReleaseIfDeleted);
+
+void ScriptObjectRef::Load(ScriptStream* stream) {
+    int id;
+    stream->Read(&id, 4);
+    if (id == -1) {
+        Clear(this);
+        return;
+    }
+    Store(this, Registry()->FindObject(id));
+}
+EI_REPLACE_METHOD(0x004B2590, ScriptObjectRef::Load);
+
+void ScriptObjectRef::Save(ScriptStream* stream) const {
+    int id = -1;
+    if (object) id = object->id_;
+    stream->Write(&id, 4);
+}
+EI_REPLACE_METHOD(0x004B25F0, ScriptObjectRef::Save);
+
+// ---- ScriptGroup --------------------------------------------------------------------------------
+
+__declspec(naked) void ScriptGroup::SetSize(int, int) EI_ORIGINAL(0x004C2050)
+
+void ScriptGroup::Resize(int newSize) {
+    if (newSize == 0) {
+        if (data) {
+            for (int i = 0; i < size; ++i) Clear(&data[i]);
+            gamecrt::operator_delete(data);
+            data = nullptr;
+        }
+        maxSize = 0;
+        size = 0;
+        return;
+    }
+    if (!data) {
+        data = static_cast<ScriptObjectRef*>(gamecrt::operator_new(newSize * 4));
+        for (int i = 0; i < newSize; ++i) data[i].object = nullptr;
+        maxSize = newSize;
+        size = newSize;
+        return;
+    }
+    if (newSize <= maxSize) {
+        if (size < newSize) {
+            for (int i = size; i < newSize; ++i) data[i].object = nullptr;
+        } else if (newSize < size) {
+            for (int i = newSize; i < size; ++i) Clear(&data[i]);
+        }
+        size = newSize;
+        return;
+    }
+    int grow = growBy;
+    if (grow == 0) {
+        grow = size / 8;
+        if (grow < 4) grow = 4;
+        else if (grow > 0x400) grow = 0x400;
+    }
+    int newMax = maxSize + grow;
+    if (newSize >= newMax) newMax = newSize;
+    auto* fresh = static_cast<ScriptObjectRef*>(gamecrt::operator_new(newMax * 4));
+    for (int i = 0; i < size; ++i) fresh[i] = data[i];
+    for (int i = size; i < newSize; ++i) fresh[i].object = nullptr;
+    gamecrt::operator_delete(data);
+    data = fresh;
+    size = newSize;
+    maxSize = newMax;
+}
+
+// The merges compare the arrays' objects as unsigned addresses. Each source element is read before
+// the destination slot is released, like the original (it matters only if `this` is a or b).
+void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
+    int aSize = a.size, bSize = b.size;
+    Resize(aSize + bSize);
+    int out = 0, i = 0, j = 0;
+    if (aSize > 0) {
+        do {
+            if (j >= bSize) {
+                while (i < aSize) {
+                    CEngineObject* x = a.data[i++].object;
+                    Store(&data[out++], x);
+                }
+                break;
+            }
+            CEngineObject* x = a.data[i].object;
+            CEngineObject* y = b.data[j].object;
+            if (x == y) {
+                Store(&data[out++], x);
+                ++i;
+                ++j;
+            } else if (Address(x) > Address(y)) {
+                Store(&data[out++], y);
+                ++j;
+            } else {
+                Store(&data[out++], x);
+                ++i;
+            }
+        } while (i < aSize);
+    }
+    while (j < bSize) {
+        CEngineObject* y = b.data[j++].object;
+        Store(&data[out++], y);
+    }
+    SetSize(out, -1);
+}
+EI_REPLACE_METHOD(0x004B2620, ScriptGroup::Union);
+
+void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
+    int aSize = a.size, bSize = b.size;
+    Resize(aSize);
+    int out = 0, i = 0, j = 0;
+    if (aSize > 0) {
+        do {
+            if (j >= bSize) {
+                while (i < aSize) {
+                    CEngineObject* x = a.data[i++].object;
+                    Store(&data[out++], x);
+                }
+                break;
+            }
+            CEngineObject* x = a.data[i].object;
+            CEngineObject* y = b.data[j].object;
+            if (x == y) {
+                ++i;
+                ++j;
+            } else if (Address(x) > Address(y)) {
+                ++j;
+            } else {
+                Store(&data[out++], x);
+                ++i;
+            }
+        } while (i < aSize);
+    }
+    SetSize(out, -1);
+}
+EI_REPLACE_METHOD(0x004B2920, ScriptGroup::Difference);
+
+void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
+    int aSize = a.size, bSize = b.size;
+    Resize(aSize > bSize ? aSize : bSize);
+    int out = 0, i = 0, j = 0;
+    if (aSize > 0) {
+        do {
+            if (j >= bSize) break;
+            CEngineObject* x = a.data[i].object;
+            CEngineObject* y = b.data[j].object;
+            if (x == y) {
+                Store(&data[out++], x);
+                ++i;
+                ++j;
+            } else if (Address(x) > Address(y)) {
+                ++j;
+            } else {
+                ++i;
+            }
+        } while (i < aSize);
+    }
+    SetSize(out, -1);
+}
+EI_REPLACE_METHOD(0x004B2B60, ScriptGroup::Intersection);
+
+void ScriptGroup::Sort() { GameQsort(data, size, 4, CompareObjectAddress); }
+EI_REPLACE_METHOD(0x004B2D60, ScriptGroup::Sort);
+
+int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
+    CEngineObject* o = ref.object;
+    for (int i = 0; i < size; ++i)
+        if (data[i].object == o) return i;
+    return -1;
+}
+EI_REPLACE_METHOD(0x004B2DA0, ScriptGroup::IndexOf);
+
+void ScriptGroup::Remove(CEngineObject* object) {
+    int i = 0;
+    for (; i < size; ++i)
+        if (data[i].object == object) break;
+    if (i >= size) return;
+    // RemoveAt(i, 1).
+    int after = size - i - 1;
+    Clear(&data[i]);
+    if (after != 0) GameMemmove(&data[i], &data[i + 1], after * 4);
+    --size;
+}
+EI_REPLACE_METHOD(0x004B2E60, ScriptGroup::Remove);
+
+void ScriptGroup::Insert(CEngineObject* object) {
+    int oldSize = size;
+    int low = 0;
+    int high = oldSize - 1;
+    if (!object) return;
+    if (high >= 0) {
+        do {
+            int middle = (high + low) / 2;
+            CEngineObject* current = data[middle].object;
+            if (object == current) return;
+            if (Address(object) > Address(current)) low = middle + 1;
+            else high = middle - 1;
+        } while (high - low >= 0);
+    }
+    // InsertAt(low, object).
+    Resize(oldSize + 1);
+    ScriptObjectRef* d = data;
+    if (low < oldSize) GameMemmove(&d[low + 1], &d[low], (oldSize - low) * 4);
+    d[low].object = nullptr;
+    ++object->refCount_;
+    d[low].object = object;
+}
+EI_REPLACE_METHOD(0x004B2EF0, ScriptGroup::Insert);
+
+void ScriptGroup::RemoveDeleted() {
+    int i = 0;
+    if (size <= 0) return;
+    do {
+        ScriptObjectRef* slot = &data[i];
+        if (slot->object && (slot->object->flags_ & kDeleted)) {
+            slot->object->Release();
+            slot->object = nullptr;
+        }
+        if (data[i].object) {
+            ++i;
+        } else {
+            int after = size - i - 1;
+            Clear(&data[i]);
+            if (after != 0) GameMemmove(&data[i], &data[i + 1], after * 4);
+            --size;
+        }
+    } while (i < size);
+}
+EI_REPLACE_METHOD(0x004B3110, ScriptGroup::RemoveDeleted);
+
+void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CEngineObject>* list) {
+    for (auto* node = list->head; node;) {
+        auto* current = node;
+        node = node->next;
+        Insert(current->data);
+    }
+}
+EI_REPLACE_METHOD(0x004B31D0, ScriptGroup::InsertAll);
+
+BOOL ScriptGroup::Contains(CEngineObject* object) const {
+    for (int i = 0; i < size; ++i)
+        if (data[i].object == object) return 1;
+    return 0;
+}
+EI_REPLACE_METHOD(0x004B3330, ScriptGroup::Contains);
+
+void ScriptGroup::Load(ScriptStream* stream) {
+    int count;
+    stream->Read(&count, 4);
+    Resize(count);
+    for (int i = 0; i < count; ++i) {
+        ScriptObjectRef* slot = &data[i];
+        int id;
+        stream->Read(&id, 4);
+        if (id == -1) Clear(slot);
+        else Store(slot, Registry()->FindObject(id));
+    }
+    GameQsort(data, size, 4, CompareObjectAddress);
+}
+EI_REPLACE_METHOD(0x004B3360, ScriptGroup::Load);
