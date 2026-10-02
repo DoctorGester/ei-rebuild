@@ -162,3 +162,12 @@ address,name,library,signature,notes
 006FC0B0,ostream::operator<<(char),iostream,,
 006FC9C6,ostream::operator<<(long),iostream,,
 006FC7FA,ostream::operator<<(double),iostream,,
+006EB35C,_open,CRT,"int __cdecl(const char*,int,...)",
+006EB284,_lseek,CRT,"long __cdecl(int,long,int)",
+006EB046,_read,CRT,"int __cdecl(int,void*,unsigned)",
+006EAF66,_close,CRT,int __cdecl(int),
+00405950,stlp_node_alloc::allocate,STLport,void* __fastcall(size_t),"pooled allocator: 16 free lists at 0079B224, chunk pointers at 0079B264..0079B26C; inside the game address range"
+00404D70,stlp_node_alloc::deallocate,STLport,"void __fastcall(void*,size_t)",
+00426450,stlp_node_alloc::deallocate_2,STLport,"void __cdecl(void*,size_t)",second instantiation
+00406B70,stlp_node_alloc::_S_chunk_alloc,STLport,,
+004060E0,stlp_node_alloc::_S_refill,STLport,,
