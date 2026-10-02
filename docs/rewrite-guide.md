@@ -43,7 +43,9 @@ comes from a bug we already hit.
    - Functions that set all of EAX to 0/1 return `BOOL` (int); ones that set only AL return `bool`.
 3. **Calling conventions:** `__thiscall` methods become C++ members registered with
    `EI_REPLACE_METHOD(addr, Class::Method)`. `__fastcall`/`__stdcall`/`__cdecl` free functions use
-   `EI_REPLACE(addr, Function)`. Count `RET n` to confirm stack arguments.
+   `EI_REPLACE(addr, Function)`. Count `RET n` to confirm stack arguments, and declare every one of
+   them even when the function never reads it (five loaders declared with one argument too few left
+   4 bytes on the caller's stack and crashed the game at startup).
 4. **Virtual methods** cannot be registered by member pointer (that yields a vtable thunk). Declare
    the virtuals in vtable order, implement the body, and register a shim:
    `bool __fastcall FooHook(Cls* self, void*, args...) { return self->Cls::Foo(args...); }`.
@@ -84,7 +86,10 @@ Every replacement gets a verify wrapper in `tests/verify/`, registered with
   `python tools/check_stolen.py` checks every registration (a count that ends inside an instruction
   crashes only when that function first runs, which can be deep into a game session).
 - **Functions that only write an output object:** run the original into a scratch copy, yours into the
-  real one, compare (see `FindUnitsVerify`, `SetMorphVerify`).
+  real one, compare (see `FindUnitsVerify`, `SetMorphVerify`). The scratch must be a valid object
+  for the original code: copy-construct members such as STLport strings (a default `stlp::string`
+  has null pointers, and the original's assign crashed on it). Watch for callers that pass the same
+  object for two outputs (`CTextManager::GetItemTexts`): alias the scratch copies the same way.
 - **Stateful functions** (allocate, open files, change shared lists): run only yours (`stolenBytes`
   0), then check the resulting state is consistent, ideally using the original's own read-only
   lookups (see `GetFileVerify`).
