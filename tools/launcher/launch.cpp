@@ -2,10 +2,12 @@
 // starter\Engine, working directory = game root), or <game>\game.exe for a plain install, and loads
 // ei_hook.dll into it before the game's own code runs. Nothing in the game folder is modified.
 //
-// usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>] [game args...]
+// usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>]
+//                  [--harness <scenario.txt>] [--wait] [game args...]
 #include <windows.h>
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 static std::wstring Dir(const std::wstring& path) {
@@ -24,12 +26,16 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring gameDir = L"F:\\games\\Evil Islands (Rebirth)";
     std::wstring dll = Dir(self) + L"\\ei_hook.dll";
     std::wstring exeOverride;
+    std::wstring harness;
+    bool wait = false;
     std::wstring gameArgs;
     for (int i = 1; i < argc; ++i) {
         std::wstring a = argv[i];
         if (a == L"--game" && i + 1 < argc) gameDir = argv[++i];
         else if (a == L"--dll" && i + 1 < argc) dll = argv[++i];
         else if (a == L"--exe" && i + 1 < argc) exeOverride = argv[++i];
+        else if (a == L"--harness" && i + 1 < argc) harness = argv[++i];
+        else if (a == L"--wait") wait = true;
         else gameArgs += L" \"" + a + L"\"";
     }
     wchar_t full[MAX_PATH];
@@ -45,6 +51,12 @@ int wmain(int argc, wchar_t** argv) {
         // so the game's registry path lookups point there instead of at another install.
         exe = exeOverride;
         SetEnvironmentVariableW(L"EI_GAME_ROOT", gameDir.c_str());
+    }
+    if (!harness.empty()) {
+        wchar_t scenario[MAX_PATH];
+        GetFullPathNameW(harness.c_str(), MAX_PATH, scenario, nullptr);
+        SetEnvironmentVariableW(L"EI_HARNESS", scenario);
+        wait = true;
     }
     std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
 
@@ -83,6 +95,29 @@ int wmain(int argc, wchar_t** argv) {
     ResumeThread(pi.hThread);
     std::wprintf(L"ei_launch: started game.exe (pid %lu) with %s\n", pi.dwProcessId, dll.c_str());
     CloseHandle(pi.hThread);
+    if (!wait) {
+        CloseHandle(pi.hProcess);
+        return 0;
+    }
+
+    // Wait for the game, then report the harness result (harness_report.txt next to the DLL).
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
     CloseHandle(pi.hProcess);
-    return 0;
+    if (harness.empty()) return static_cast<int>(code);
+    std::wstring reportPath = Dir(dll) + L"\\harness_report.txt";
+    FILE* report = nullptr;
+    if (_wfopen_s(&report, reportPath.c_str(), L"r") != 0 || !report) {
+        std::fwprintf(stderr, L"ei_launch: game exited (code %lu) without a harness report\n", code);
+        return 2;
+    }
+    char line[512];
+    bool pass = false;
+    while (std::fgets(line, sizeof(line), report)) {
+        std::fputs(line, stdout);
+        if (std::strncmp(line, "RESULT: PASS", 12) == 0) pass = true;
+    }
+    std::fclose(report);
+    return pass ? 0 : 1;
 }

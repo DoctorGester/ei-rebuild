@@ -27,9 +27,17 @@ struct Registry {
     }
 };
 
-void Report(const char* name, bool match, const char* detail) {
+Registry& GetRegistry() {
     static Registry registry;
-    Counts& c = registry.counts[name];
+    return registry;
+}
+
+void ForEachCount(const std::function<void(const char*, unsigned long, unsigned long)>& fn) {
+    for (auto& [name, c] : GetRegistry().counts) fn(name.c_str(), c.calls, c.mismatches);
+}
+
+void Report(const char* name, bool match, const char* detail) {
+    Counts& c = GetRegistry().counts[name];
     if (++c.calls == 1) Log("verify %s: first call", name);
     if (!match) {
         ++c.mismatches;

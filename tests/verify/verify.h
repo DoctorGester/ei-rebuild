@@ -5,12 +5,16 @@
 #include <cstdarg>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 
 namespace ei::verify {
 
 // Records one comparison. Mismatches are logged with the formatted context; totals are written
 // to ei_hook.log at 1k, 10k, 100k, ... calls and when the DLL unloads.
 void Report(const char* name, bool match, const char* detail);
+
+// Calls `fn(name, calls, mismatches)` for every function checked so far (harness reports).
+void ForEachCount(const std::function<void(const char*, unsigned long, unsigned long)>& fn);
 
 template <typename T>
 void Check(const char* name, const T& expected, const T& actual, const char* fmt, ...);

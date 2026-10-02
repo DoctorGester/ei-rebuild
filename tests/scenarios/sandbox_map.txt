@@ -1,0 +1,7 @@
+# Sandbox: start the game, load a multiplayer map as a local server, let it run, report, quit.
+# Exercises map loading, AI map refresh, footprints, path search, line of sight, lighting, scripts.
+wait 8000
+console server bz7g-lmp
+wait 25000
+report
+quit

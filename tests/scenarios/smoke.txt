@@ -1,0 +1,4 @@
+# Smoke test: start the game, sit in the main menu, then quit cleanly.
+wait 10000
+report
+quit

@@ -38,3 +38,13 @@ The log is written next to the DLL: `build\<config>\ei_hook.log`.
 ### Vanilla (no Rebirth)
 
 `launch-vanilla.cmd` runs the verify build against the plain GOG install in `F:\games\EvilIslands`. Functions that Rebirth patches in memory can be hooked there. On first use, `tools\setup_vanilla_run.cmd` builds `run\vanilla`: the GOG `game.exe` with Rebirth's dgVoodoo DLLs beside it. `run\` is not committed. The game's shared registry paths are redirected to the GOG folder for that process only.
+
+### Automated harness
+
+`harness.cmd <scenario>` runs a scenario on the vanilla install and exits with 0 when no verify check
+failed. It prints the per-function report (`builderify\harness_report.txt`). Scenarios live in
+`tests/scenarios/`; steps are `wait <ms>`, `console <command>` (the game's developer console:
+`server <map>` starts a map, script expressions are evaluated), `report` and `quit`. See
+`tests/verify/harness.cpp`.
+
+    harness.cmd tests\scenarios\sandbox_map.txt
