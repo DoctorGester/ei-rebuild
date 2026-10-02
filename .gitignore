@@ -1,0 +1,11 @@
+build/
+out/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.lib
+*.exp
+__pycache__/
+docs/ghidra_functions_initial.txt
