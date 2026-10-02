@@ -374,6 +374,16 @@ public:
     // 005156C0. Virtual slot 18: hit points below -5 times the maximum.
     BOOL IsOverkilled();
 
+    // map_object_companion.cpp (+0x1C is the map object it belongs to, map_object.h):
+    // 00515820. Virtual slot 6, the per-tick update: counts down the owner's effects and removes
+    // the expired ones. Returns 0.
+    int Update();
+    // 00515950. Copies 0x58 bytes of `data` to +0x20 and marks the owner's part 0 changed.
+    std::uintptr_t SetData(const void* data);
+    // 00515980. Virtual slot 20: applies a hit to +0x20 (00524FE0); a dead object loses its
+    // effects and gets flags_ bit 1. Returns 1 (0 if 00524FE0 refuses).
+    BOOL TakeHit(const void* hit);
+
     std::uint8_t unknown_1C[0x28 - 0x1C];
     float hitPoints;        // +0x28
     float maxHitPoints;     // +0x2C
@@ -388,6 +398,10 @@ public:
     BOOL IsDead();
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.
     BOOL IsOverkilled();
+
+    // 00510890 (map_object_companion.cpp). Virtual slot 6, the client's per-tick update: effect
+    // countdown and end sounds, looping effect sounds, the light following the object. Returns 1.
+    int Update();
 
     CUnit* object;          // +0x1C
 };
