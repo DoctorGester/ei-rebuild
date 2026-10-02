@@ -35,6 +35,9 @@ public:
     // 0042B700: appends [first, last), growing to size + max(size, n) + 1 when full.
     void Append(const char* first, const char* last);
 
+    // operator=: STLport assigns through assign(first, last).
+    void AssignFrom(const string& s) { Assign(s.start_, s.finish_); }
+
     const char* data() const { return start_; }
     std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
     bool operator==(const string& o) const {
@@ -59,6 +62,58 @@ private:
     char* eos_ = nullptr;   // end of storage; STLport keeps the (empty) allocator in the same word
 };
 static_assert(sizeof(string) == 12);
+
+// vector<T>: three pointers. Grows to size + max(size, 1) elements on overflow, copying elements
+// into the new block (_M_insert_overflow). T must provide copy construction and AssignFrom.
+template <typename T>
+class vector {
+public:
+    vector() = default;
+    vector(const vector&) = delete;
+
+    T* begin() const { return start_; }
+    T* end() const { return finish_; }
+    std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
+    T& back() const { return finish_[-1]; }
+
+    void push_back(const T& x) {
+        if (finish_ != eos_) {
+            new (finish_) T(x);
+            ++finish_;
+            return;
+        }
+        std::size_t old = size();
+        std::size_t len = old + (old > 1 ? old : 1);
+        T* fresh = static_cast<T*>(allocate(len * sizeof(T)));
+        T* out = fresh;
+        for (T* p = start_; p != finish_; ++p, ++out) new (out) T(*p);
+        new (out) T(x);
+        ++out;
+        for (T* p = start_; p != finish_; ++p) p->~T();
+        if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
+        start_ = fresh;
+        finish_ = out;
+        eos_ = fresh + len;
+    }
+
+    // clear(): destroy every element in order; keep the storage.
+    void clear() {
+        for (T* p = start_; p != finish_; ++p) p->~T();
+        finish_ = start_;
+    }
+
+    // erase(pos): shift the tail down by assignment, destroy the last element.
+    void erase(T* pos) {
+        for (T* p = pos; p + 1 != finish_; ++p) p->AssignFrom(p[1]);
+        --finish_;
+        finish_->~T();
+    }
+
+private:
+    T* start_ = nullptr;
+    T* finish_ = nullptr;
+    T* eos_ = nullptr;
+};
 
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {
