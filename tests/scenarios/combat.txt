@@ -1,0 +1,53 @@
+# Combat: start a new game (hero on zone1) and fight two spawned enemies, exercising the rewritten
+# CUnitServer combat code (combat.cpp): attack parameters, attack hit / damage roll, attack roll,
+# hit resolution, TakeHit and its log ("Unit 12 was attacked by 34 skill=... damage=... destHL=Body",
+# printed to the console, so the expects below see it), plus the range and weapon queries the AI
+# uses on the way. Each "check" must print a nonzero value; each "waitfor" waits until its condition
+# holds. The game runs ~5.5x faster (10 ms per world update).
+#
+# WolfTutor dies to the first hit. GoblinF1 (database.res: a level 1 goblin, the same base values
+# as WolfGreyF1, which has 25 where WolfTutor has 20 in its first stat field) is the sturdier enemy:
+# it attacks the hero first until the hero is hurt, then the hero fights back. If the goblin turns
+# out too strong for the starting hero, WolfGreyF1 is the next candidate; OgreTutor (80) is much
+# stronger.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 60 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# A weak enemy: the hero attacks, one or two hits.
+console @AddUnitToServer("Enemy1","WolfTutor","Enemy1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Enemy1"))
+console @SetPlayer(GetObjectByName("Enemy1"),6)
+check IsEnemy(GetObjectByName("Enemy1"),0)
+console @Attack(GetLeader(),GetObjectByName("Enemy1"))
+waitfor 60 Not(IsAlive(GetObjectByName("Enemy1")))
+expect was attacked by
+expect damage=
+check IsAlive(GetLeader())
+
+# A sturdier enemy that fights back.
+console #HP(GetLeader())
+console @AddUnitToServer("Enemy2","GoblinF1","Enemy2",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Enemy2"))
+console #HP(GetObjectByName("Enemy2"))
+console @SetPlayer(GetObjectByName("Enemy2"),6)
+check IsEnemy(GetObjectByName("Enemy2"),0)
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+# The goblin attacks first: wait until it has hurt the hero (its attacks go through TakeHit on the hero).
+console @Attack(GetObjectByName("Enemy2"),GetLeader())
+waitfor 60 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+expect was attacked by
+console #HP(GetLeader())
+# Heal the hero, then fight back until the goblin is dead.
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @Attack(GetLeader(),GetObjectByName("Enemy2"))
+waitfor 120 Not(IsAlive(GetObjectByName("Enemy2")))
+console #HP(GetLeader())
+check IsAlive(GetLeader())
+report
+quit
