@@ -9,7 +9,7 @@
 namespace ei::verify {
 
 // Records one comparison. Mismatches are logged with the formatted context; totals are written
-// to ei_hook.log every 1000 calls per function.
+// to ei_hook.log every 100,000 calls per function.
 void Report(const char* name, bool match, const char* detail);
 
 template <typename T>

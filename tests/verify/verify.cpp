@@ -26,7 +26,7 @@ void Report(const char* name, bool match, const char* detail) {
         ++c.mismatches;
         if (c.mismatches <= 20) Log("MISMATCH %s: %s", name, detail);
     }
-    if (c.calls % 1000 == 0)
+    if (c.calls % 100000 == 0)
         Log("verify %s: %lu calls, %lu mismatches", name, c.calls, c.mismatches);
 }
 
