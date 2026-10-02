@@ -375,11 +375,6 @@ EI_REPLACE_METHOD(0x005BC3E0, CAIMap::LineOfSight);
 // --- Free cell search ----------------------------------------------------------------------------
 
 namespace {
-// 005B0600, on the region map at CAIMap + 0x22F8: the region of cell (x, y) for a size class.
-struct CRegionMap;
-__declspec(naked) short __fastcall RegionAt(CRegionMap*, void*, int, int, int) EI_ORIGINAL(0x005B0600)
-CRegionMap* Regions(CAIMap* map) { return reinterpret_cast<CRegionMap*>(map->regions); }
-
 // The game's atexit (006E727B), for the function-local static in FindFreeCellNear.
 __declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 
@@ -426,7 +421,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
     int sizeClass = unit->sizeClass;
     int x = WorldToCell(from->x), y = WorldToCell(from->y);
     if (x < 1 || y < 1 || x >= width - 1 || y >= height - 1) return false;
-    short region = RegionAt(Regions(this), nullptr, sizeClass, x, y);
+    short region = static_cast<short>(Regions()->RegionAt(sizeClass, x, y));
 
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
     int count;
@@ -439,7 +434,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         int reason;
         if (!CanStandAt(unit, cx, cy, &reason)) continue;
         if (!((cells[cy][cx].passable >> ((sizeClass * 4) & 31)) & 0xF)) continue;
-        short r = RegionAt(Regions(this), nullptr, sizeClass, cx, cy);
+        short r = static_cast<short>(Regions()->RegionAt(sizeClass, cx, cy));
         if (region != 0 && r != region) continue;
         if (i != 0) {
             target->x = CellToWorld(cx);

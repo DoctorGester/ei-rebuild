@@ -96,12 +96,74 @@ struct FootprintPart {
 };
 static_assert(sizeof(FootprintPart) == 0x38);
 
+// The region map at CAIMap + 0x22F8: connected areas per size class. Not rewritten.
+struct CRegionMap {
+    // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
+    // original leaves it).
+    int RegionAt(int sizeClass, int x, int y);
+    // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
+    bool Reaches(int sizeClass, int x, int y, int region, void* marks);
+};
+
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
 // middle (negative steps down, positive up). Layout provisional.
 struct ClimbTable {
     int* costs;
     int count;
 };
+
+// A cell of a path (CList element, 8 bytes). Layout provisional.
+struct PathCell {
+    std::int16_t x, y;
+    std::uint16_t flags;        // 0x200 on a path that is a single cell
+    std::uint16_t unknown_6;
+};
+static_assert(sizeof(PathCell) == 8);
+
+// MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations.
+struct PathCellList {
+    struct Node {
+        Node* next;
+        Node* prev;
+        PathCell data;
+    };
+    void* vtable;
+    Node* head;         // +0x04
+    Node* tail;         // +0x08
+    int count;          // +0x0C
+    Node* free;         // +0x10
+    void* blocks;       // +0x14 CPlex chain
+    int blockSize;      // +0x18
+
+    // 005B1B70. Takes a node from the free list (allocating a block when empty) and counts it.
+    Node* NewNode(Node* prev, Node* next);
+    // 00556D40. Frees all nodes and blocks.
+    void RemoveAll();
+};
+static_assert(sizeof(PathCellList) == 0x1C);
+
+// A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
+struct AIPath {
+    // 005C7D50 / 005C7B00 / 005C7C70: not rewritten.
+    void Reset();
+    void Start(const Vector3* position, const Vector3* backwards, int count);
+    void SetTarget(float x, float y);
+
+    std::uint8_t unknown_00[0x20];
+    PathCellList steps;         // +0x20 the next cells to walk (at most 32)
+    PathCellList cells;         // +0x3C the rest of the path
+    float targetX, targetY;     // +0x58 in half-cells
+    Vector3 goal;               // +0x60 world position asked for
+    bool reached;               // +0x6C no cells left
+    bool failed;                // +0x6D the last search failed; search again
+    bool flag6E, flag6F;        // +0x6E, +0x6F
+    std::uint8_t unknown_70[0x84 - 0x70];
+    int smoothing;              // +0x84 from 005C46C0
+};
+static_assert(offsetof(AIPath, steps) == 0x20);
+static_assert(offsetof(AIPath, cells) == 0x3C);
+static_assert(offsetof(AIPath, goal) == 0x60);
+static_assert(offsetof(AIPath, smoothing) == 0x84);
 
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
 // Name from the game's error strings; layout provisional.
@@ -135,6 +197,19 @@ public:
     // and that lies in the unit's region; false if there is none. `target` is unchanged when its
     // own cell qualifies.
     bool FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target);
+
+    // 005BAC10. Moves `target` (world in, half-cell units out) to a cell `unit` can stand on: the
+    // target cell itself, else the first good cell walking back towards the unit, at least
+    // `minDistance` from the target. With `sameRegion`, only cells that reach the unit's region.
+    bool SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance);
+
+    // 005BB350. Plans a path for `unit` to `target` into `path`; `range` limits the search.
+    bool FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance);
+    // 005BB900. Searches again if the last search failed and nothing is left, else moves on along
+    // the path. True if the path had already been walked to the end.
+    bool ContinuePath(CUnit* unit, AIPath* path);
+    // 005BB190. Moves up to 32 cells from the path into the steps and points the unit at the next one.
+    void AdvancePath(CUnit* unit, AIPath* path);
 
     // 005BC3E0. Visibility from `from` to `to` (world positions): 0 when terrain blocks the line,
     // else the product of the transparencies of the objects it passes (at least 0.0001).
@@ -193,6 +268,8 @@ public:
     void Refresh(int minX, int maxX, int minY, int maxY);
     // 005B8350. Occupancy shape of a unit with standing height `height` (null below 0.2).
     void* UnitShape(float height);
+
+    CRegionMap* Regions() { return reinterpret_cast<CRegionMap*>(regions); }
 
     // Refresh the rectangle now, or add it to the dirty rectangle while batching.
     void QueueRefresh(int minX, int maxX, int minY, int maxY);
