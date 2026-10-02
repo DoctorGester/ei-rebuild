@@ -166,12 +166,9 @@ int __fastcall Priority50(AIMode* self, void*, AIBrain* brain);
 // 005D0AF0. Slot 6 of Guard, Patrol, Sentry, Follow and the abstract base: drop the action and
 // target, pick a new alertness decay (0.8 + 0.4 * random) and clear the controller's busy flag.
 void __fastcall EnterIdle(AIMode* self, void*, AIBrain* brain);
-// 005D0A50. Slot 6 of Fear's and Player's bases (and slot 4 of the abstract 0073D22C): drop the
+// 005D0A50. Slot 6 (Enter) of CorpseWatcher, Player and the abstract base 0073D22C: drop the
 // action and target.
 void __fastcall ClearAction(AIMode* self, void*, AIBrain* brain);
-// 005D0A90. Slot 5 of the abstract base 0073D15C: occasional idle remark, then the brain's
-// look-around (005CFE40).
-void __fastcall IdleExecute(AIMode* self, void*, AIBrain* brain);
 } // namespace aimode
 
 // Guard (vtable 0073D128, 0x20 bytes): stay near a point.
@@ -406,7 +403,7 @@ struct AIBrain {
     // 005D5F20. The Aggression mode's enemy while that mode is in charge, else null.
     CEngineObject* AggressionEnemy();
     // 005D50E0. Is `point` within `radius` of the segment from the previous to the current position
-    // (both 2D)? 0x101 / 1 for "near" (AL is what callers test), 0 otherwise.
+    // (both 2D)? The original sets only AL in one path; callers test AL.
     bool IsNearPath(const Vector3* point, float radius);
     // 005D5080. Sets the owner; on a change both remembered positions become "unset" (-1312, 0, 0).
     // Returns what the original leaves in EAX.
@@ -422,6 +419,19 @@ struct AIBrain {
     void UpdateAttack();
     // 005D7790. Drop the action and its target.
     void StopAction();
+    // 005D7AE0. Action 1: walk to `point`.
+    void Walk(const Vector3* point, int run, int unknown);
+    // 005D7B30. Action 1: turn towards `direction`.
+    void TurnTowards(const Vector3* direction, float time);
+    // 005D7DA0. Action 4 (when the spell cannot be cast now): cast `spell` at `point`.
+    void CastAt(int spell, const Vector3* point, int run);
+    // 005D7E40. Action 6: follow `object`.
+    void Follow(CEngineObject* object);
+    // 005D7E90. Something was noticed: remember `object` as seen, call allies to it (or to the unit
+    // itself when null) unless it is an ally, become alerted in alert mode 1, and remember a unit in
+    // the perception memory.
+    void SetSeen(CEngineObject* object);
+    void Remember(CUnit* self, CEngineObject* object);              // 005CBC80 on +0xD0
     // 005D7B50. Action 3 against `object` (run unless the player's order check says otherwise).
     void AttackTarget(CEngineObject* object);
     // 005D7C60. Action 3 against `object` with the given attack parameters; units of other sides

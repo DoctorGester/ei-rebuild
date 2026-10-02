@@ -144,11 +144,12 @@ int CountModes(const AIBrain* brain) {
 // reference, and without a mode there is no action.
 static void __fastcall ThinkVerify(AIBrain* self) {
     self->Think();
-    bool ok = self->corpses.head == nullptr && self->corpses.count == 0 && self->seen == nullptr;
-    bool inList = self->current == nullptr || self->modes.Find(self->current) != nullptr;
-    // Think returns early (before choosing) for an inactive controller; then nothing else is checked.
+    // Think returns early (before choosing) for an inactive controller; then nothing is checked.
+    bool ok = true;
     if (!(self->owner && self->owner->state == 5)) {
-        ok = ok && inList && (self->current == nullptr || self->current->refs > 0);
+        bool inList = self->current == nullptr || self->modes.Find(self->current) != nullptr;
+        ok = self->corpses.head == nullptr && self->corpses.count == 0 && self->seen == nullptr && inList &&
+             (self->current == nullptr || self->current->refs > 0);
     }
     ei::verify::Check("AIBrain::Think", true, ok, "brain %p: corpses %d, seen %p, current %p (%d modes), action %d", self,
                       self->corpses.count, self->seen, self->current, CountModes(self), self->action);
@@ -686,3 +687,37 @@ static void __fastcall UseOnVerify(AIBrain* self, void*, CEngineObject* object, 
     ei::verify::Check("AIBrain::UseOn", true, ok, "brain %p kind %d action %d", self, kind, self->action);
 }
 EI_VERIFY(0x005D7CE0, UseOnVerify, 0, s_unused);
+
+static void __fastcall WalkVerify(AIBrain* self, void*, const Vector3* point, int run, int unknown) {
+    self->Walk(point, run, unknown);
+    ei::verify::Check("AIBrain::Walk", true, self->action == AIBrain::kActionWalk, "brain %p", self);
+}
+EI_VERIFY(0x005D7AE0, WalkVerify, 0, s_unused);
+
+static void __fastcall TurnTowardsVerify(AIBrain* self, void*, const Vector3* direction, float time) {
+    self->TurnTowards(direction, time);
+    ei::verify::Check("AIBrain::TurnTowards", true, self->action == AIBrain::kActionWalk, "brain %p", self);
+}
+EI_VERIFY(0x005D7B30, TurnTowardsVerify, 0, s_unused);
+
+static void __fastcall CastAtVerify(AIBrain* self, void*, int spell, const Vector3* point, int run) {
+    int before = self->action;
+    self->CastAt(spell, point, run);
+    bool ok = self->actionTime == spell && (self->action == before || self->action == AIBrain::kActionCast);
+    ei::verify::Check("AIBrain::CastAt", true, ok, "brain %p spell %X action %d", self, spell, self->action);
+}
+EI_VERIFY(0x005D7DA0, CastAtVerify, 0, s_unused);
+
+static void __fastcall FollowVerify(AIBrain* self, void*, CEngineObject* object) {
+    self->Follow(object);
+    ei::verify::Check("AIBrain::Follow", true, self->action == AIBrain::kActionFollow && self->target == object, "brain %p", self);
+}
+EI_VERIFY(0x005D7E40, FollowVerify, 0, s_unused);
+
+static void __fastcall SetSeenVerify(AIBrain* self, void*, CEngineObject* object) {
+    bool alertWanted = self->alertMode == 1;
+    self->SetSeen(object);
+    bool ok = self->seen == object && (!alertWanted || self->alerted);
+    ei::verify::Check("AIBrain::SetSeen", true, ok, "brain %p object %p", self, object);
+}
+EI_VERIFY(0x005D7E90, SetSeenVerify, 0, s_unused);

@@ -608,3 +608,57 @@ void AIBrain::UseOn(CEngineObject* object, int kind, int a, int b) {
     }
 }
 EI_REPLACE_METHOD(0x005D7CE0, AIBrain::UseOn);
+
+void AIBrain::Walk(const Vector3* point, int run, int unknown) {
+    action = kActionWalk;
+    owner->MoveTo(point, run, unknown, 1000000.0f);    // 0x49742400
+}
+EI_REPLACE_METHOD(0x005D7AE0, AIBrain::Walk);
+
+void AIBrain::TurnTowards(const Vector3* direction, float time) {
+    action = kActionWalk;
+    owner->Turn(direction, time);
+}
+EI_REPLACE_METHOD(0x005D7B30, AIBrain::TurnTowards);
+
+void AIBrain::CastAt(int spell, const Vector3* point, int run) {
+    if (!owner->CanCast(spell)) action = kActionCast;
+    actionTime = spell;
+    owner->CastAt(spell, point, run);
+}
+EI_REPLACE_METHOD(0x005D7DA0, AIBrain::CastAt);
+
+void AIBrain::Follow(CEngineObject* object) {
+    action = kActionFollow;
+    HoldRef(target, object);
+}
+EI_REPLACE_METHOD(0x005D7E40, AIBrain::Follow);
+
+namespace {
+struct AIMemoryRemember {
+    void Remember(CUnit* self, CEngineObject* object);  // 005CBC80
+};
+__declspec(naked) void AIMemoryRemember::Remember(CUnit*, CEngineObject*) EI_ORIGINAL(0x005CBC80)
+const std::uint32_t* Diplomacy() { return reinterpret_cast<const std::uint32_t*>(0x007C2BC4); }
+} // namespace
+
+void AIBrain::Remember(CUnit* self, CEngineObject* object) {
+    reinterpret_cast<AIMemoryRemember*>(memory)->Remember(self, object);
+}
+
+void AIBrain::SetSeen(CEngineObject* object) {
+    HoldRef(seen, object);
+    if (object) {
+        bool allied = false;
+        if (seen && seen->GetClassId() == kClassUnit) {
+            std::uint32_t bit = 1u << (static_cast<CUnit*>(seen)->side & 31);
+            allied = (Diplomacy()[owner->unit->side] & bit) != 0;
+        }
+        if (!allied) CallAllies(reinterpret_cast<const Vector3*>(reinterpret_cast<char*>(object) + 0x1C));
+    } else {
+        CallAllies(reinterpret_cast<const Vector3*>(&owner->unit->positionX));
+    }
+    if (!alerted && alertMode == 1) alerted = 1;
+    if (object && object->GetClassId() == kClassUnit) Remember(owner->unit, object);
+}
+EI_REPLACE_METHOD(0x005D7E90, AIBrain::SetSeen);
