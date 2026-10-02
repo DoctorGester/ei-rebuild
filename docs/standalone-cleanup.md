@@ -24,7 +24,10 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `stlp` node allocator 00405950 / 00404D70 | `src/lib/stlp.cpp` | own pool or `std::allocator` (see below) |
 | `gamecrt::*` (operator new/delete, tolower, toupper, strnicmp, stricmp, strncpy, isalpha, sprintf, rand, open/lseek/read/write/close) | `src/lib/crt.*` | modern CRT, after confirming identical results (see below) |
 | `game::FatalError` 00480080, `game::DebugLog` 0044C470 | `src/lib/crt.*` | rewrite |
-| `mfc::CString` members and `operator+` | `src/lib/mfc.*` | own `CString` (MFC is not installed) |
+| `mfc::CString` members and `operator+`, `CString::Format` | `src/lib/mfc.*` | own `CString` (MFC is not installed) |
+| `mfc::CFile`, `mfc::CFileFind` | `src/lib/mfc.*` | own file classes or Win32 directly. `CFile::fileName_` is a raw `char*` only because naked forwarders cannot construct members |
+| `CTextureDevice::ParseMmpHeader` 004E7C40, `FindFormat` 004E7DA0 | `src/game/texture.cpp` | rewrite |
+| `CTexture::CreateFromMmp` 00690430, `CTexture::LoadBmp` 00690260 | `src/game/texture.cpp` | rewrite |
 
 ## Indirections
 
@@ -32,11 +35,19 @@ Each needs a real implementation, or the caller must be rewritten first.
   Standalone: call the APIs directly (or keep the header as a thin alias). Regenerate or delete
   `tools/gen_iat.py`.
 
+- `ei::VCall` (`include/ei/vcall.h`) calls virtual slots by number on classes whose interface is not
+  declared yet (e.g. `CTextureManager` slots 19/20). Replace with real virtual calls once the class
+  hierarchy (`CBaseManager` -> `CResourceManager` -> `CTextureManager`) is declared.
+- Globals read by address: game root `CString` at 0079BC90 and data path `char*` at 007AF460
+  (`src/game/texture.cpp`). They become ordinary globals.
+
 ## Placeholder names and partial layouts
 
 - `Vector3::Construct`, `CMappedFile::Construct`: these are the original constructors, written as
   methods returning `this` so they can be hooked. Turn them into real constructors.
-- `CMappedResource::Slot4`, `CMMIOResource::Slot4`: vtable slot 4 has no known name yet.
+- `CMappedResource::Slot4`, `CMMIOResource::Slot4`, `CEngineObject::Slot5/Slot6`: unnamed vtable slots.
+- `CEngineObject`, `CResourceManager`, `CTextureManager`, `CTexture`: provisional names and partial
+  layouts (`unknown_*` fields), no constructors declared.
 - `CResourceManager::vtable_` / `baseManager_`, `TerrainOwner::unknown_000`,
   `CMappedResource::unknown_1C/20`: opaque bytes until the base classes are recovered.
 - `using BOOL = int` in `src/game/resource.h`: return values the original sets in all of EAX.
@@ -58,6 +69,8 @@ Decide case by case whether the standalone build keeps them (behaviour-exact) or
 - `CMappedResource::CloseFile`: the write-failure message prints the data pointer as the file name.
 - `CMappedResource::GetFile`: leaks the data buffer when the read fails.
 - `CMappedResource::GetFile` on an in-memory archive does not report the size.
+- `CTextureManager::LoadTexture` / `LoadTextureFrom`: leak the file buffer when the .mmp header is
+  not recognised; the .bmp path reports format number 0 in its error message.
 
 ## Functions left original because Rebirth patches them
 

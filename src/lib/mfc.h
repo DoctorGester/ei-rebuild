@@ -3,7 +3,11 @@
 // MFC 4.2 classes statically linked into game.exe, used by rewritten code through the original
 // implementations (config/library.csv). Layouts match MFC so objects can be shared with original code.
 
+#include <cstdint>
+
 namespace mfc {
+
+using BOOL = int;
 
 // CString: a single pointer to the character data; the reference count, length and capacity live
 // in a header just before it. An empty string points at the shared afxEmptyString data.
@@ -16,12 +20,48 @@ public:
     const CString& operator=(const char* s);      // 00700AF9
     const CString& operator=(const CString& s);   // 00700AA9
 
+    // 006FDF5F. printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
+    void __cdecl Format(const char* format, ...);
+
     operator const char*() const { return data_; }
 
 private:
     char* data_;
 };
 static_assert(sizeof(CString) == 4);
+
+// CFile (0x10 bytes): vtable, OS handle, close-on-delete flag, file name. The game calls these
+// methods non-virtually, so the forwarders are plain members.
+class CFile {
+public:
+    enum OpenFlags { modeRead = 0 };
+
+    CFile();                                                        // 00701036
+    ~CFile();                                                       // 0070112B
+    BOOL Open(const char* path, unsigned flags, void* error);       // 007011E8
+    unsigned GetLength();                                           // 007014E2
+    unsigned Read(void* buffer, unsigned count);                    // 00701305
+    void Close();                                                   // 00701403
+
+private:
+    void* vtable_;
+    void* handle_;
+    BOOL closeOnDelete_;
+    char* fileName_;    // CString; raw here so the naked forwarders have no members to construct
+};
+static_assert(sizeof(CFile) == 0x10);
+
+// CFileFind (0x1C bytes).
+class CFileFind {
+public:
+    CFileFind();                                                    // 006E6370
+    ~CFileFind();                                                   // 006E63AD
+    BOOL FindFile(const char* pattern, unsigned long flags);       // 006E6433
+
+private:
+    std::uint8_t data_[0x1C - 0];
+};
+static_assert(sizeof(CFileFind) == 0x1C);
 
 CString __stdcall operator+(const CString& a, const char* b);   // 00700C05
 CString __stdcall operator+(const char* a, const CString& b);   // 00700C79

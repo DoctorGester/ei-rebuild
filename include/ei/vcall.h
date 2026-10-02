@@ -1,0 +1,15 @@
+#pragma once
+
+// Calls virtual method `slot` of an original game object through its own vtable, for classes whose
+// full virtual interface is not declared yet. All arguments must be 32-bit (pointers, ints).
+// __thiscall is called as __fastcall with an unused EDX, which has the same stack behaviour.
+
+namespace ei {
+
+template <typename R, typename... Args>
+R VCall(const void* object, int slot, Args... args) {
+    void* fn = (*reinterpret_cast<void* const* const*>(object))[slot];
+    return reinterpret_cast<R(__fastcall*)(const void*, void*, Args...)>(fn)(object, nullptr, args...);
+}
+
+} // namespace ei
