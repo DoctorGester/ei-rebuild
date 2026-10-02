@@ -74,12 +74,13 @@ static BOOL __fastcall GetItemTextsVerify(CTextManager* self, void*, CItem* item
     CursorState after = Save(self);
     Restore(self, before);
     BOOL actual = self->GetItemTexts(item, name, description, kind);
-    bool same = expected == actual && SameText(scratchName, *name) && SameText(scratchDescription, *description) &&
-                SameText(scratchKind, *kind) && SameState(after, Save(self));
-    ei::verify::Check("CTextManager::GetItemTexts", true, same, "kind %X id %08X: '%.40s'/'%.40s' vs '%.40s'/'%.40s'",
-                      item->type_, item->unknown_18, static_cast<const char*>(scratchName),
-                      static_cast<const char*>(scratchKind), static_cast<const char*>(*name),
-                      static_cast<const char*>(*kind));
+    bool sameName = SameText(scratchName, *name), sameDescription = SameText(scratchDescription, *description);
+    bool sameKind = SameText(scratchKind, *kind), sameState = SameState(after, Save(self));
+    bool same = expected == actual && sameName && sameDescription && sameKind && sameState;
+    ei::verify::Check("CTextManager::GetItemTexts", true, same,
+                      "kind %X id %08X: result %d/%d name %d description %d kind %d state %d; description '%.60s' vs '%.60s'",
+                      item->type_, item->unknown_18, expected, actual, sameName, sameDescription, sameKind, sameState,
+                      static_cast<const char*>(scratchDescription), static_cast<const char*>(*description));
     return expected;
 }
 EI_VERIFY(0x004E0150, GetItemTextsVerify, 7, s_getItemTexts);
