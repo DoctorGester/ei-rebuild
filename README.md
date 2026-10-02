@@ -54,6 +54,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   console output.
 - `waitfor <seconds> <expression>` waits until the expression is nonzero (fails after <seconds>);
   prefer it to fixed `wait`s.
+- `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window
+  (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
 

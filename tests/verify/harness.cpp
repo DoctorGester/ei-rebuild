@@ -9,6 +9,11 @@
 //                             world script command and "#<expression>" prints a script expression.
 //   newgame                   start a new single-player game, as the main menu does (no intro)
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
+//   key <key>                 press and release a key in the game window: a letter or digit,
+//                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus
+//   click <x> <y>, rclick <x> <y>, move <x> <y>
+//                             left/right click or move the mouse at (x, y) in the 800x600 layout every
+//                             interface screen is designed for (scaled to the window's client size)
 //   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
@@ -43,6 +48,7 @@
 #include <psapi.h>
 #include <intrin.h>
 
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -374,6 +380,48 @@ void JumpTo(std::uintptr_t from, const void* to) {
 // The clock the harness's waits and timeouts use.
 DWORD Now() { return g_deterministic ? g_virtualNow : GetTickCount(); }
 
+// Input for the interface screens: window messages to the game window (0079BC28; its window
+// procedure 00457970 handles the mouse and key messages).
+HWND GameWindow() { return *reinterpret_cast<HWND*>(0x0079BC28); }
+
+void PostKey(const std::string& name) {
+    UINT vk = 0;
+    if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
+    else if (name == "esc") vk = VK_ESCAPE;
+    else if (name == "enter") vk = VK_RETURN;
+    else if (name == "space") vk = VK_SPACE;
+    else if (name == "tab") vk = VK_TAB;
+    else if (name == "up") vk = VK_UP;
+    else if (name == "down") vk = VK_DOWN;
+    else if (name == "left") vk = VK_LEFT;
+    else if (name == "right") vk = VK_RIGHT;
+    else if (name == "plus") vk = VK_ADD;
+    else if (name == "minus") vk = VK_SUBTRACT;
+    else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
+    if (!vk) {
+        Log("harness: unknown key '%s'", name.c_str());
+        return;
+    }
+    UINT scan = MapVirtualKeyA(vk, MAPVK_VK_TO_VSC);
+    PostMessageA(GameWindow(), WM_KEYDOWN, vk, 1 | (scan << 16));
+    if (vk >= '0' && vk <= 'Z') PostMessageA(GameWindow(), WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
+    PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
+}
+
+void PostMouse(const std::string& verb, int x, int y) {
+    RECT client{};
+    GetClientRect(GameWindow(), &client);
+    LPARAM at = MAKELPARAM(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
+    if (verb == "click") {
+        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+    } else if (verb == "rclick") {
+        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
+        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+    }
+}
+
 void RunSteps() {
     g_showTutorial = 0;
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
@@ -450,6 +498,12 @@ void RunSteps() {
         } else if (s.verb == "load") {
             g_request.argument = s.argument.c_str();
             g_request.kind = 2;
+        } else if (s.verb == "key") {
+            PostKey(s.argument);
+        } else if (s.verb == "click" || s.verb == "rclick" || s.verb == "move") {
+            int x = 0, y = 0;
+            if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
+            else Log("harness: %s needs <x> <y>", s.verb.c_str());
         } else if (s.verb == "check") {
             g_checking = true;
             g_checkExpr = s.argument;
