@@ -30,11 +30,15 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `CTexture::CreateFromMmp` 00690430, `CTexture::LoadBmp` 00690260 | `src/game/texture.cpp` | rewrite |
 | `mfc::PlexCreate` 006FE8EF, `mfc::PlexFreeDataChain` 006FE90F | `src/lib/mfc.*` | own `CPlex` (block allocator behind `CTypedPtrList`) |
 | `CAIMap::MarkFootprint` 005B6A80, `CUnit::OnLeftSectorMap` 0050E930, `SpiralIndex` 005BF7D0 | `src/game/sector_map.cpp` | rewrite |
+| Script loader: `CScript::Error` 004CF470, command blocks 004BF540/004BF900, `RunWorldScript` 004BCC60, `SSCCmd::Clear`/destructor, `ScriptDefinition`/`ScriptVars` constructors, destructors and helpers, the CArray/CList members of the script types, CString Mid/Left/Right/Find/LockBuffer, CRT isdigit/isspace/strncmp/atof (full list in `docs/notes/script.md`, "Loader and parser") | `src/game/script_parse*.cpp`, `script_parse.h` | rewrite / own containers |
 
 ## Indirections
 
 - Calls routed through an original address so a mod's patch there still runs (e.g.
-  `DestroyAtOriginalAddress` in `src/game/resource.cpp`). Standalone: call the function directly.
+  `DestroyAtOriginalAddress` in `src/game/resource.cpp`, the `Original` forwarders between the
+  script loader functions in `src/game/script_parse_load.cpp`). Standalone: call the function directly.
+- `KeywordTable()` (`src/game/script_parse.cpp`) reads the script keyword table's address from the
+  code of 004CF600 (Rebirth points it at an extended table). Standalone: the table itself.
 
 - `src/lib/gameapi.h` calls Win32 through game.exe's import table so other mods' API hooks apply.
   Standalone: call the APIs directly (or keep the header as a thin alias). Regenerate or delete

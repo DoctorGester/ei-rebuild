@@ -1,0 +1,128 @@
+# Script parser: console lines go through CScript::Load ("@x" loads "WorldScript(x)", "#x" loads
+# "WorldScript( ConsoleFloat( x ))", "$x" loads "WorldScript( ConsoleString( x ))"). Covers nested
+# calls of every argument type, literals and comments, global and local variables, assignments,
+# script definitions and calls, and one deliberate error per parser message (checked with expect;
+# the console prints "Script error: <message>").
+#
+# Names a console line declares are qualified with the number of files loaded so far ("!N!name"),
+# and only a successful load counts a file. So definition lines end with a deliberate top-level error
+# (EndMarker...), and the very next line uses the names. Identifiers avoid keyword prefixes (the
+# lexer splits "Run1" into "Run" and "1").
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 60 IsGreater(HP(GetLeader()),0)
+
+# Nesting, literals (negative, leading '.', keywords in any case), strings, objects and groups.
+check IsEqual(Mul(Add(1,2),Sub(10,4)),18)
+check IsEqual(Div(Add(Mul(2,3),Sub(9,3)),Add(1,1)),6)
+check IsEqual(Add(-1.5,.5),-1)
+check isequal(ADD(1,2),3)
+check IsEqualString("a b","a b")
+check Not(IsEqualString("abc","abd"))
+check IsEqual(GetObjectID(GetLeader()),GetObjectID(GetLeader()))
+check GroupHas(GetPlayerUnits(GetPlayer(GetLeader())),GetLeader())
+check IsGreater(GroupSize(GroupAdd(GetPlayerUnits(GetPlayer(GetLeader())),GroupSub(GetPlayerUnits(0),GetPlayerUnits(0)))),0)
+# Comments: a quoted "*/" does not end a block comment; "1/*" splits into "1" and a comment.
+check IsEqual(Add(1,/* x "*/" y */2),3)
+check IsEqual(Add(1/* adjacent */,2),3)
+# A string literal keeps spaces, parentheses and commas.
+console $"a (b), c"
+expect a (b), c
+console @GSSetVar(0,"sp.a",Mul(Add(1,2),Sub(10,GetPlayer(GetLeader()))))
+check IsEqual(GSGetVar(0,"sp.a"),Mul(3,Sub(10,GetPlayer(GetLeader()))))
+
+# Global variables of every type, then assignments to them and bindings of them.
+console @) GlobalVars(gT:float, gU:string, gV:object, gW:group) EndMarkerG(
+expect Script error: Unexpected 'EndMarkerG'
+console @gT = Add(1000,234.5) gU = "sp.u" gV = GetLeader() gW = GetPlayerUnits(GetPlayer(GetLeader())) GSSetVar(0,"sp.t",gT) GSSetVar(0,gU,GetObjectID(gV)) GSSetVar(0,"sp.w",GroupSize(gW))
+check IsEqual(GSGetVar(0,"sp.t"),1234.5)
+check IsEqual(GSGetVar(0,"sp.u"),GetObjectID(GetLeader()))
+check IsGreater(GSGetVar(0,"sp.w"),0)
+
+# A script with parameters (local variables) and a For loop with a global loop counter, then a
+# call that starts it.
+console @GSSetVar(0,"sp.for",0)
+console @) GlobalVars(gC:object) Script PTestRun(n:float, s:string)( if(IsEqual(n,7)) then( ConsoleString(s) GSSetVar(0,"sp.run",Add(n,1)) For(gC,GetPlayerUnits(GetPlayer(GetLeader())))( GSSetVar(0,"sp.for",Add(GSGetVar(0,"sp.for"),1)) ) KillScript() ) ) EndMarkerS(
+expect Script error: Unexpected 'EndMarkerS'
+console @PTestRun(7,"script ran")
+waitfor 10 IsEqual(GSGetVar(0,"sp.run"),8)
+expect script ran
+check IsGreater(GSGetVar(0,"sp.for"),0)
+
+# DeclareScript, then the body of the declared script, then a call; an Any() condition with a
+# global loop counter.
+console @) DeclareScript PTestDecl(m:float) GlobalVars(gL:object) Script PTestDecl( if(Any(gL,GetPlayerUnits(GetPlayer(GetLeader())),IsAlive(gL))) then( GSSetVar(0,"sp.decl",Mul(m,5)) KillScript() ) ) EndMarkerD(
+expect Script error: Unexpected 'EndMarkerD'
+console @PTestDecl(2)
+waitfor 10 IsEqual(GSGetVar(0,"sp.decl"),10)
+
+# One error per message.
+console #Add 1,2)
+expect Script error: Expected '('
+console #Add(1 2)
+expect Script error: Expected ','
+console #Add(1)
+expect Script error: Not enough parameters
+console #Add(1,2,3)
+expect Script error: Too much parameters
+console #Add(GetLeader(),1)
+expect Script error: Parameter of type float expected
+console #IsEqualString(1,"a")
+expect Script error: Parameter of type string expected
+console #HP(1)
+expect Script error: Parameter of type object expected
+console #GroupSize(GetLeader())
+expect Script error: Parameter of type group expected
+console #Any(NoSuchVar,GetPlayerUnits(0),1)
+expect Script error: Only global variables are allowed to be loop counters
+console @NoSuchCommand(1)
+expect Script error: Unexpected token 'NoSuchCommand'
+console #1 // the comment swallows the closing brackets
+expect Script error: Unexpected end of file
+console #Add(1,/* never closed
+expect Script error: End of file before '*/'
+# "/**/" written as one token: the search for "*/" starts after the token.
+console #Add(1,/**/2)
+expect Script error: End of file before '*/'
+# A For whose header fails still parses its body: the '(' check reports the next token instead.
+console @For(NoSuchVar,GetPlayerUnits(0))( Sleep(1) )
+expect Script error: Wrong lexeme ,
+console @) WorldScript(
+expect Script error: Only one WorldScript() per file allowed
+console @) Sleep(1
+expect Script error: Unexpected 'Sleep'
+console @) Script PTestW x
+expect Script error: Wrong lexeme x
+console @) Script PTestF()( if(GetLeader()) then( Sleep(1) )
+expect Script error: Function returning float expected
+console @) Script PTestE()(
+expect should be at least one condtion
+console @) Script PTestI()( Sleep(1)
+expect Script error: expected if section
+console @) Script PTestJ()( if IsEqual(1,1)
+expect Script error: If section, ( expected
+console @) Script PTestK()( if(IsEqual(1,2)) Sleep(1)
+expect Script error: then expected after if
+console @) Script PTestL()( if(IsEqual(1,2)) then Sleep(1)
+expect Script error: Expected ( after then
+console @) DeclareScript PTestD1() DeclareScript PTestD1(
+expect Script error: Duplicate script PTestD1
+console @) Script PTestM()( if(IsEqual(1,2)) then( Sleep(1) ) ) Script PTestM(
+expect Script error: Multiple declaration of script
+console @) DeclareScript PTestP1(x:int
+expect Script error: Unknown parameter type
+console @) DeclareScript PTestP2(x:float,x:float
+expect Script error: Duplicate variable name x
+console @) DeclareScript PTestP3(x:float y:float
+expect Script error: Expected , or ) after variable
+console @) DeclareScript PTestP4(x float
+expect Script error: Wrong lexeme float
+console @) GlobalVars(gA:float) Script PTestA()( if(IsEqual(1,2)) then( gA 5 ) )
+expect Script error: Wrong lexeme 5
+
+# The game still parses and runs scripts after all the errors.
+check IsEqual(Add(2,2),4)
+report
+quit
