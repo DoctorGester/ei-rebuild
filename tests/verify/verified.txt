@@ -15,3 +15,5 @@
 006C85A0 Terrain::VertexAt          10M calls in map
 006BE3A0 PlaneHeight                1M calls in map
 00403F40 CBaseManager::FindObject   100k calls in map
+005B80F0 CAIMap::CanStandAt         10k calls in map
+005C0BD0 CSectorMap::FindUnitsInRadius 1k calls in map (list compare)
