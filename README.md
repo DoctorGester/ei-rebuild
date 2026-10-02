@@ -42,7 +42,7 @@ The log is written next to the DLL: `build\<config>\ei_hook.log`.
 ### Automated harness
 
 `harness.cmd <scenario>` runs a scenario on the vanilla install and exits with 0 when no verify check
-failed. It prints the per-function report (`builderify\harness_report.txt`). Scenarios live in
+failed. It prints the per-function report (`build\verify\harness_report.txt`). Scenarios live in
 `tests/scenarios/`; steps are `wait <ms>`, `console <command>` (the game's developer console:
 `server <map>` starts a map, script expressions are evaluated), `report` and `quit`. See
 `tests/verify/harness.cpp`.
