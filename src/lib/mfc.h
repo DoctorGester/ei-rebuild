@@ -23,6 +23,11 @@ public:
     // 006FDF5F. printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
     void __cdecl Format(const char* format, ...);
 
+    void Empty();                                 // 007008FB
+    void MakeUpper();                             // 00700EFE
+    void TrimRight(const char* targets);          // 006FE08A TrimRight(LPCTSTR)
+    const CString& operator+=(const CString& s);  // 00700D88
+
     operator const char*() const { return data_; }
 
 private:

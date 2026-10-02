@@ -1,0 +1,45 @@
+# Items: start a new game, then give the party money, weapons, a potion, a rune and quest items
+# through world script commands. Receiving an item shows its name, which goes through the item
+# text code (CTextManager::GetItemTexts / FormatItemName / GetString, 004E0000-004E15C0) for
+# each item kind: weapon (plain and with a spell), quick item (potion), spell container (rune),
+# quest item. The item strings are ones the game's own maps use.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 60 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+# Money.
+console @GSSetVar(0,"m0",GetMoney(0))
+console #GetMoney(0)
+console @GiveMoney(0,1000)
+waitfor 10 IsEqual(GetMoney(0),Add(GSGetVar(0,"m0"),1000))
+console #GetMoney(0)
+
+# Weapons: plain, another material, and one carrying a spell.
+console @GiveItem(0,"Axe.steel")
+wait 1000
+console @GiveItem(0,"battle axe.meteoric")
+wait 1000
+console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
+wait 1000
+
+# A potion (quick item without material) and a rune (spell container).
+console @GiveItem(0,"potion 1")
+wait 1000
+console @GiveItem(0,"rune.e2")
+wait 1000
+
+# Quest items.
+console @GiveQuestItem(0,"SackofGold")
+wait 1000
+console @GiveQuestItem(0,"Palantir")
+wait 1000
+
+# Still alive and the money unchanged by the items.
+check IsAlive(GetLeader())
+check IsEqual(GetMoney(0),Add(GSGetVar(0,"m0"),1000))
+report
+quit
