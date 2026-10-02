@@ -211,14 +211,14 @@ struct VectorView {
     char* start;
     char* finish;
 };
-template <void (ChunkArchive::*Fn)(int, void*)>
-void SerializeArrayVerify(const char* name, ChunkArchive* ar, int id, void* records, int size) {
+template <void (ChunkArchive::*Fn)(int, void*, void*)>
+void SerializeArrayVerify(const char* name, ChunkArchive* ar, int id, void* records, void* unused, int size) {
     int expected = -1;
     if (ar->loading_ && ar->EnterChunk(id)) {
         expected = ar->CountChunks(1);
         ar->LeaveChunk();
     }
-    (ar->*Fn)(id, records);
+    (ar->*Fn)(id, records, unused);
     if (expected >= 0) {
         auto* v = static_cast<VectorView*>(records);
         int actual = static_cast<int>(v->finish - v->start) / size;
@@ -227,24 +227,24 @@ void SerializeArrayVerify(const char* name, ChunkArchive* ar, int id, void* reco
 }
 } // namespace
 
-static void __fastcall SerializePrintsVerify(ChunkArchive* ar, void*, int id, void* records) {
-    SerializeArrayVerify<&ChunkArchive::SerializePrints>("ChunkArchive::SerializePrints", ar, id, records, 0x28);
+static void __fastcall SerializePrintsVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeArrayVerify<&ChunkArchive::SerializePrints>("ChunkArchive::SerializePrints", ar, id, records, unused, 0x28);
 }
 EI_VERIFY(0x006D23A0, SerializePrintsVerify, 0, s_unused);
-static void __fastcall SerializePrints2Verify(ChunkArchive* ar, void*, int id, void* records) {
-    SerializeArrayVerify<&ChunkArchive::SerializePrints2>("ChunkArchive::SerializePrints2", ar, id, records, 0x34);
+static void __fastcall SerializePrints2Verify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeArrayVerify<&ChunkArchive::SerializePrints2>("ChunkArchive::SerializePrints2", ar, id, records, unused, 0x34);
 }
 EI_VERIFY(0x006D25F0, SerializePrints2Verify, 0, s_unused);
-static void __fastcall SerializeAcksVerify(ChunkArchive* ar, void*, int id, void* records) {
-    SerializeArrayVerify<&ChunkArchive::SerializeAcks>("ChunkArchive::SerializeAcks", ar, id, records, 0x1C4);
+static void __fastcall SerializeAcksVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeArrayVerify<&ChunkArchive::SerializeAcks>("ChunkArchive::SerializeAcks", ar, id, records, unused, 0x1C4);
 }
 EI_VERIFY(0x006DB430, SerializeAcksVerify, 0, s_unused);
-static void __fastcall SerializeAcks2Verify(ChunkArchive* ar, void*, int id, void* records) {
-    SerializeArrayVerify<&ChunkArchive::SerializeAcks2>("ChunkArchive::SerializeAcks2", ar, id, records, 0x5C);
+static void __fastcall SerializeAcks2Verify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeArrayVerify<&ChunkArchive::SerializeAcks2>("ChunkArchive::SerializeAcks2", ar, id, records, unused, 0x5C);
 }
 EI_VERIFY(0x006DB680, SerializeAcks2Verify, 0, s_unused);
-static void __fastcall SerializeAcks3Verify(ChunkArchive* ar, void*, int id, void* records) {
-    SerializeArrayVerify<&ChunkArchive::SerializeAcks3>("ChunkArchive::SerializeAcks3", ar, id, records, 0x38);
+static void __fastcall SerializeAcks3Verify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeArrayVerify<&ChunkArchive::SerializeAcks3>("ChunkArchive::SerializeAcks3", ar, id, records, unused, 0x38);
 }
 EI_VERIFY(0x006DB8D0, SerializeAcks3Verify, 0, s_unused);
 

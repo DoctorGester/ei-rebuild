@@ -115,11 +115,12 @@ public:
 
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1
     // per record (`occurrence` selects the record); loading replaces the vector's contents.
-    void SerializePrints(int id, void* records);      // 006D23A0 vector<PrintRecord>
-    void SerializePrints2(int id, void* records);     // 006D25F0 vector<PrintRecord2>
-    void SerializeAcks(int id, void* records);        // 006DB430 (0x1C4-byte records)
-    void SerializeAcks2(int id, void* records);       // 006DB680 (0x5C-byte records)
-    void SerializeAcks3(int id, void* records);       // 006DB8D0 (0x38-byte records)
+    // The third argument (the callers pass the database file's data) is unused but popped: RET 0xC.
+    void SerializePrints(int id, void* records, void* unused);      // 006D23A0 vector<PrintRecord>
+    void SerializePrints2(int id, void* records, void* unused);     // 006D25F0 vector<PrintRecord2>
+    void SerializeAcks(int id, void* records, void* unused);        // 006DB430 (0x1C4-byte records)
+    void SerializeAcks2(int id, void* records, void* unused);       // 006DB680 (0x5C-byte records)
+    void SerializeAcks3(int id, void* records, void* unused);       // 006DB8D0 (0x38-byte records)
 
     std::uint8_t streams_[0x50];   // two CMemoryStreams (index, data); the data buffer is at +0x40
     ChunkNode* stack_;             // +0x50 list sentinel; stack_->prev is the current chunk

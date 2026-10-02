@@ -80,21 +80,21 @@ void SerializeArray(ChunkArchive* ar, int id, RawVector* v, int size, RecordFn d
 
 } // namespace
 
-void ChunkArchive::SerializePrints(int id, void* records) {
+void ChunkArchive::SerializePrints(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord), DestroyPrint, ResizePrints,
                    SerializeVirtual);
 }
-void ChunkArchive::SerializePrints2(int id, void* records) {
+void ChunkArchive::SerializePrints2(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord2), DestroyPrint2, ResizePrints2,
                    SerializeVirtual);
 }
-void ChunkArchive::SerializeAcks(int id, void* records) {
+void ChunkArchive::SerializeAcks(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), 0x1C4, DestroyAck, ResizeAcks, SerializeAck);
 }
-void ChunkArchive::SerializeAcks2(int id, void* records) {
+void ChunkArchive::SerializeAcks2(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), 0x5C, DestroyAck2, ResizeAcks2, SerializeAck2);
 }
-void ChunkArchive::SerializeAcks3(int id, void* records) {
+void ChunkArchive::SerializeAcks3(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), 0x38, DestroyAck3, ResizeAcks3, SerializeAck3);
 }
 EI_REPLACE_METHOD(0x006D23A0, ChunkArchive::SerializePrints);
