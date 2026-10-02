@@ -36,3 +36,12 @@ It does not repeat yet: the same scenario run twice on the original code diverge
   sound: unit heard unit" events feed AI hearing.
 Next steps would be: find what the loader waits on; make the sound thread's events land on frame
 boundaries (or disable sound in harness runs).
+
+## Rare Rebirth crash in the unit sort during new-game load (seen once, 2026-10-03)
+
+One of ~12 Rebirth runs of a new game crashed in the original `UnitOrderLess::Less` (00574300,
+called through the verify trampoline) reading `[0x880003C4+0x94]`: the sort at 005740D0 (called
+from 0056AFE0, client view update) passed it a garbage element. Three reruns of the same scenario
+passed. The comparator itself (rewritten and original) is a consistent strict ordering, so the bad
+element came from the array the caller sorts. Unknown whether this happens without our hooks; watch
+for it in run_all output (look for exceptions at 00574318).
