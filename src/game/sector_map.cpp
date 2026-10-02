@@ -6,9 +6,11 @@
 #include <cstring>
 
 __declspec(naked) void CUnit::OnLeftSectorMap() EI_ORIGINAL(0x0050E930)
-__declspec(naked) bool CAIMap::MarkFootprint(CEngineObject*, int) EI_ORIGINAL(0x005B6A80)
 
 namespace {
+// MarkFootprint through its original address, so the verify build's wrapper sees these calls.
+__declspec(naked) bool __fastcall MarkFootprint(CAIMap*, void*, CEngineObject*, bool) EI_ORIGINAL(0x005B6A80)
+
 // The world position of an object (+0x1C, +0x20; common to all objects in the sector map).
 float PosX(const CEngineObject* o) { return *reinterpret_cast<const float*>(reinterpret_cast<const char*>(o) + 0x1C); }
 float PosY(const CEngineObject* o) { return *reinterpret_cast<const float*>(reinterpret_cast<const char*>(o) + 0x20); }
@@ -27,7 +29,7 @@ bool CSectorMap::Add(CEngineObject* object) {
     bool isUnit = object->GetClassId() == kClassUnit;
     (isUnit ? sector.units : sector.objects).AddTail(object);
 
-    bool fits = aiMap->MarkFootprint(object, 0);
+    bool fits = MarkFootprint(aiMap, nullptr, object, false);
     if (fits) {
         ++added;
         object->flags_ |= kInSectorMap;
@@ -58,7 +60,7 @@ bool CSectorMap::Remove(CEngineObject* object) {
     if (!node) return false;
     list.RemoveAt(node);
 
-    bool cleared = aiMap->MarkFootprint(object, 1);
+    bool cleared = MarkFootprint(aiMap, nullptr, object, true);
     if (cleared) {
         unit->OnLeftSectorMap();
         unit->sectorCellX = -1;
@@ -121,12 +123,12 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
 
     // Lift the footprint, move, and stamp it again; put it back where it was if it does not fit.
     bool moved = false;
-    if (aiMap->MarkFootprint(object, 1)) {
+    if (MarkFootprint(aiMap, nullptr, object, true)) {
         std::memcpy(&current, position, sizeof(current));
-        moved = aiMap->MarkFootprint(object, 0);
+        moved = MarkFootprint(aiMap, nullptr, object, false);
         if (!moved) {
             std::memcpy(&current, &saved, sizeof(current));
-            aiMap->MarkFootprint(object, 0);
+            MarkFootprint(aiMap, nullptr, object, false);
         }
     }
     if (!moved) return false;
