@@ -53,3 +53,15 @@ static void __fastcall FindUnitsVerify(CSectorMap* self, void*, const Vector3* p
     if (expected.blocks) expected.RemoveAll();
 }
 EI_VERIFY(0x005C0BD0, FindUnitsVerify, 6, s_findUnits);
+
+static bool __fastcall MoveVerify(CSectorMap* self, void*, CEngineObject* object, const Vector3* position) {
+    Vector3 target = *position;
+    bool result = self->Move(object, position);
+    auto* u = static_cast<CUnit*>(object);
+    const Vector3& now = *reinterpret_cast<const Vector3*>(reinterpret_cast<const char*>(object) + 0x1C);
+    bool ok = !result || (now.x == target.x && now.y == target.y && now.z == target.z &&
+                          InList(self, object, u->sectorCellX, u->sectorCellY));
+    ei::verify::Check("CSectorMap::Move", true, ok, "result %d cell (%d,%d)", result, u->sectorCellX, u->sectorCellY);
+    return result;
+}
+EI_VERIFY(0x005C11D0, MoveVerify, 0, s_unused);

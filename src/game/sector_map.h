@@ -23,6 +23,10 @@ public:
     // nearest sectors first; each match is inserted at the head of the list.
     void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius);
 
+    // 005C11D0. Moves `object` to `position`, re-stamping its footprint (restored on failure) and
+    // moving it between sector lists when it crosses into another sector.
+    bool Move(CEngineObject* object, const Vector3* position);
+
     // 005C1010. Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CEngineObject* object);
 
