@@ -7,11 +7,22 @@
 #include <cstring>
 
 // Each original starts with 6-8 bytes of plain loads/moves (no relative operands).
+static Vector3*(__fastcall* s_construct)(Vector3*, void*, float, float, float);
 static float(__fastcall* s_length)(const Vector3*);
 static float(__fastcall* s_dot)(const Vector3*, const Vector3*);
 static void(__fastcall* s_fromAxisAngle)(Quaternion*, void*, const Vector3*, float);
 static std::uint32_t(__fastcall* s_next)(IsaacRandom*);
 static void(__fastcall* s_refill)(IsaacRandom*);
+
+static Vector3* __fastcall ConstructVerify(Vector3* v, void*, float x, float y, float z) {
+    Vector3 actual;
+    Vector3* actualRet = actual.Construct(x, y, z);
+    Vector3* expectedRet = s_construct(v, nullptr, x, y, z);
+    bool same = expectedRet == v && actualRet == &actual && std::memcmp(v, &actual, sizeof(actual)) == 0;
+    ei::verify::Check("Vector3::Vector3", true, same, "(%g, %g, %g)", x, y, z);
+    return expectedRet;
+}
+EI_VERIFY(0x00401DE0, ConstructVerify, 6, s_construct);
 
 static float __fastcall LengthVerify(const Vector3* v) {
     float expected = s_length(v);

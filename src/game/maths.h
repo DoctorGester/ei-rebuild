@@ -7,7 +7,8 @@
 struct Vector3 {
     float x, y, z;
 
-    void Set(float x_, float y_, float z_);         // 00401DE0
+    // 00401DE0. The constructor Vector3(x, y, z) in the original: callers use the returned `this`.
+    Vector3* Construct(float x_, float y_, float z_);
     float Length() const;                           // 00401E20
 };
 static_assert(sizeof(Vector3) == 12);
