@@ -33,6 +33,9 @@ Each needs a real implementation, or the caller must be rewritten first.
 
 ## Indirections
 
+- Calls routed through an original address so a mod's patch there still runs (e.g.
+  `DestroyAtOriginalAddress` in `src/game/resource.cpp`). Standalone: call the function directly.
+
 - `src/lib/gameapi.h` calls Win32 through game.exe's import table so other mods' API hooks apply.
   Standalone: call the APIs directly (or keep the header as a thin alias). Regenerate or delete
   `tools/gen_iat.py`.
@@ -83,6 +86,7 @@ Decide case by case whether the standalone build keeps them (behaviour-exact) or
 Rebirth's `addon.dll` (or another Rebirth component) patches these in memory, so the hybrid build cannot replace them. The
 standalone build still needs source for them (vanilla behaviour):
 
-- `CMappedResource::OpenResource` 00671730, `CMappedResource::~CMappedResource` 006714A0.
+- `CMappedResource::OpenResource` 00671730, `CMappedResource::~CMappedResource` 006714A0: now
+  rewritten and verified through the vanilla launch (`launch-vanilla.cmd`); skipped under Rebirth.
 - `CSectorMap::Move` 005C11D0: its first byte is patched in memory at runtime (not listed in
   addon.log, so probably `EI_Plugin.asi`). Source written in `src/game/sector_map.cpp`, never run.

@@ -81,14 +81,22 @@ public:
     virtual bool CloseFile(void* data);                               // 6: 00671E00
     virtual void FreeAllFiles();                                      // 7: 00672040
 
+    // 00671280. The constructor: empty, closed archive.
+    CMappedResource* Construct();
+    // 006714A0 (the destructor body) and 006713A0 (scalar deleting destructor).
+    void Destroy();
+    CMappedResource* DeletingDestroy(unsigned flags);
+
     // 00674850. Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(const char* name) const;
 
     ResHeader header_;           // +0x04
     ResEntry* entries_;          // +0x14
     char* names_;                // +0x18
-    std::uint32_t unknown_1C;    // +0x1C
-    std::uint32_t unknown_20;    // +0x20
+    // +0x1C, +0x20: accelerator table of the CResourceBase base class (vtable 00743324); freed by
+    // its destructor.
+    void* accelTable_;           // +0x1C
+    std::uint32_t accelCount_;   // +0x20
     int fd_;                     // +0x24 CRT file descriptor, -1 when closed
     const void* image_;          // +0x28 archive image when opened with OpenFromMemory
     std::uint32_t writable_;     // +0x2C

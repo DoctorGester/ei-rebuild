@@ -5,6 +5,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
+#include <cstring>
 #include <new>
 
 int CMappedResource::FindEntry(const char* name) const {
@@ -24,6 +25,68 @@ int CMappedResource::FindEntry(const char* name) const {
         index = static_cast<std::uint32_t>(entries_[index].next);
         if (index == 0xFFFFFFFF) return -1;
     }
+}
+
+CMappedResource* CMappedResource::Construct() {
+    // CResourceBase part.
+    *reinterpret_cast<std::uintptr_t*>(this) = 0x00743324;
+    header_ = ResHeader{};
+    entries_ = nullptr;
+    names_ = nullptr;
+    accelTable_ = nullptr;
+    accelCount_ = 0;
+    // The loaded-file maps, 193 buckets each (STLport's first prime >= 100).
+    std::memset(&filesByData_, 0, sizeof(filesByData_));
+    filesByData_.InitBuckets(100);
+    std::memset(&filesByName_, 0, sizeof(filesByName_));
+    filesByName_.InitBuckets(100);
+    *reinterpret_cast<std::uintptr_t*>(this) = 0x007432E0;
+    image_ = nullptr;
+    fd_ = -1;
+    writable_ = 0;
+    return this;
+}
+
+void CMappedResource::Destroy() {
+    *reinterpret_cast<std::uintptr_t*>(this) = 0x007432E0;
+    CMappedResource::FreeAllFiles();   // called directly, not through the vtable
+    if (fd_ >= 0) {
+        gamecrt::close(fd_);
+        fd_ = -1;
+    }
+    if (!image_) {
+        if (entries_) gamecrt::operator_delete(entries_);
+        if (!image_ && names_) gamecrt::operator_delete(names_);
+    }
+    entries_ = nullptr;
+    names_ = nullptr;
+    image_ = nullptr;
+    header_ = ResHeader{};
+    filesByName_.Destroy();
+    filesByData_.Destroy();
+
+    // ~CResourceBase.
+    *reinterpret_cast<std::uintptr_t*>(this) = 0x00743324;
+    header_ = ResHeader{};
+    entries_ = nullptr;
+    names_ = nullptr;
+    if (accelTable_) {
+        gamecrt::operator_delete(accelTable_);
+        accelTable_ = nullptr;
+        accelCount_ = 0;
+    }
+}
+
+namespace {
+// The destructor body at its original address: Rebirth patches it (it then runs Rebirth's version),
+// and in the vanilla launch the address leads to CMappedResource::Destroy.
+__declspec(naked) void __fastcall DestroyAtOriginalAddress(CMappedResource*) EI_ORIGINAL(0x006714A0)
+} // namespace
+
+CMappedResource* CMappedResource::DeletingDestroy(unsigned flags) {
+    DestroyAtOriginalAddress(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
 
 BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
@@ -199,6 +262,9 @@ void __fastcall FreeAllFilesHook(CMappedResource* self) { self->CMappedResource:
 } // namespace
 
 EI_REPLACE_METHOD(0x00674850, CMappedResource::FindEntry);
+EI_REPLACE_METHOD(0x00671280, CMappedResource::Construct);
+EI_REPLACE_METHOD(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
+EI_REPLACE_METHOD(0x006713A0, CMappedResource::DeletingDestroy);
 EI_REPLACE(0x00671730, OpenResourceHook);   // patched by Rebirth: installs in the vanilla launch only
 EI_REPLACE(0x00671A40, OpenFromMemoryHook);
 EI_REPLACE(0x00671AC0, CloseResourceHook);

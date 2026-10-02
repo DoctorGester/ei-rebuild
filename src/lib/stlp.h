@@ -186,6 +186,12 @@ public:
     // clear(): free every node, keep the buckets.
     void Clear();
 
+    // ~hashtable: free every node and the bucket array.
+    void Destroy() {
+        Clear();
+        if (buckets_) deallocate(buckets_, static_cast<std::size_t>(eos_ - buckets_) * sizeof(Node*));
+    }
+
     // resize(hint): grow to the next prime and rehash, moving nodes to the head of new buckets.
     void Resize(std::size_t hint);
 
