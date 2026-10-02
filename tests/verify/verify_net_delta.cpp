@@ -332,6 +332,68 @@ void __fastcall WritePosition2DVerify(DeltaField* self, void*, const float* posi
         [&](DeltaField* f) { f->WritePosition2D(position); return 0; }, [](int, int, DeltaField*) { return true; });
 }
 
+// Typed writers (on a field copy) and readers (into scratch output).
+template <typename Fn>
+void CheckWriter(const char* name, DeltaField* self, Fn call) {
+    CheckField(
+        name, self, [&](DeltaField* f) { call(f, true); return 0; }, [&](DeltaField* f) { call(f, false); return 0; },
+        [](int, int, DeltaField*) { return true; });
+}
+
+// 0047EF80: PUSH EBP (1), MOV EBP,ESP (2), FLD [EBP+0x10] (3).
+void(__fastcall* s_writeRanged)(DeltaField*, void*, float, float, float);
+void __fastcall WriteRangedVerify(DeltaField* self, void*, float value, float min, float max) {
+    CheckWriter("DeltaField::WriteRanged", self, [&](DeltaField* f, bool original) {
+        if (original) s_writeRanged(f, nullptr, value, min, max);
+        else f->WriteRanged(value, min, max);
+    });
+}
+
+// 0047F1E0: PUSH ECX (1), MOV EAX,[ESP+8] (4).
+void(__fastcall* s_writeFloat16)(DeltaField*, void*, std::uint32_t);
+void __fastcall WriteFloat16Verify(DeltaField* self, void*, std::uint32_t bits) {
+    CheckWriter("DeltaField::WriteFloat16", self, [&](DeltaField* f, bool original) {
+        if (original) s_writeFloat16(f, nullptr, bits);
+        else f->WriteFloat16(bits);
+    });
+}
+
+// 0047F4D0: SUB ESP,0xC (3), MOV EAX,[ESP+0x10] (4).
+void(__fastcall* s_writeFloat16x3)(DeltaField*, void*, const float*);
+void __fastcall WriteFloat16x3Verify(DeltaField* self, void*, const float* values) {
+    CheckWriter("DeltaField::WriteFloat16x3", self, [&](DeltaField* f, bool original) {
+        if (original) s_writeFloat16x3(f, nullptr, values);
+        else f->WriteFloat16x3(values);
+    });
+}
+
+// 0047F110: PUSH ECX (1), FLD [ESP+0x10] (4).
+void(__fastcall* s_readRanged)(DeltaField*, void*, float*, float, float);
+void __fastcall ReadRangedVerify(DeltaField* self, void*, float* value, float min, float max) {
+    CheckFieldRead(
+        "DeltaField::ReadRanged", self, value, sizeof(float),
+        [&](DeltaField* f, void* out) { s_readRanged(f, nullptr, static_cast<float*>(out), min, max); },
+        [&](void* out) { self->ReadRanged(static_cast<float*>(out), min, max); });
+}
+
+// 0047F3D0: PUSH ECX, PUSH EBX, PUSH EBP (3), MOV EBP,ECX (2).
+void(__fastcall* s_readFloat16)(DeltaField*, void*, float*);
+void __fastcall ReadFloat16Verify(DeltaField* self, void*, float* value) {
+    CheckFieldRead(
+        "DeltaField::ReadFloat16", self, value, sizeof(float),
+        [&](DeltaField* f, void* out) { s_readFloat16(f, nullptr, static_cast<float*>(out)); },
+        [&](void* out) { self->ReadFloat16(static_cast<float*>(out)); });
+}
+
+// 0047F7F0: PUSH ECX, PUSH EBX, PUSH EBP (3), MOV EBP,ECX (2).
+void(__fastcall* s_readFloat16x3)(DeltaField*, void*, float*);
+void __fastcall ReadFloat16x3Verify(DeltaField* self, void*, float* values) {
+    CheckFieldRead(
+        "DeltaField::ReadFloat16x3", self, values, 3 * sizeof(float),
+        [&](DeltaField* f, void* out) { s_readFloat16x3(f, nullptr, static_cast<float*>(out)); },
+        [&](void* out) { self->ReadFloat16x3(static_cast<float*>(out)); });
+}
+
 // 0047EAE0: PUSH ESI (1), MOV ESI,ECX (2), MOV ECX,[ESI+0x10] (3).
 int(__fastcall* s_getBit)(BitStream*);
 int __fastcall GetBitVerify(BitStream* reader) {
@@ -501,6 +563,12 @@ EI_VERIFY(0x0047E3A0, WritePositionVerify, 6, s_writePosition);
 EI_VERIFY(0x0047EAE0, GetBitVerify, 6, s_getBit);
 EI_VERIFY(0x0047EE00, ReadPosition2DVerify, 5, s_readPosition2D);
 EI_VERIFY(0x0047EBF0, WritePosition2DVerify, 6, s_writePosition2D);
+EI_VERIFY(0x0047EF80, WriteRangedVerify, 6, s_writeRanged);
+EI_VERIFY(0x0047F1E0, WriteFloat16Verify, 5, s_writeFloat16);
+EI_VERIFY(0x0047F4D0, WriteFloat16x3Verify, 7, s_writeFloat16x3);
+EI_VERIFY(0x0047F110, ReadRangedVerify, 5, s_readRanged);
+EI_VERIFY(0x0047F3D0, ReadFloat16Verify, 5, s_readFloat16);
+EI_VERIFY(0x0047F7F0, ReadFloat16x3Verify, 5, s_readFloat16x3);
 EI_VERIFY(0x0047EB20, ReadDiffVerify, 5, s_readDiff);
 EI_VERIFY(0x0047E310, ReadStringVerify, 0, s_unused);
 EI_VERIFY(0x0047FB70, ResetVerify, 6, s_reset);

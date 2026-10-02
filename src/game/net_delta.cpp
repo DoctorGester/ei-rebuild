@@ -359,7 +359,99 @@ void DeltaField::ReadPosition2D(float* position) {
 }
 EI_REPLACE_METHOD(0x0047EE00, DeltaField::ReadPosition2D);
 
+// Ranged values.
+namespace {
+constexpr float kRangeSteps = 65535.0f;                          // 0073CAA8
+const float kRangeStep = std::bit_cast<float>(0x37800080u);      // 0073CAAC (1 / 65535)
+} // namespace
+
+void DeltaField::WriteRanged(float value, float min, float max) {
+    int q = x87::fistp(StoreFloat((value - min) * (kRangeSteps / (max - min))));
+    WriteDelta(&q, 2);
+}
+EI_REPLACE_METHOD(0x0047EF80, DeltaField::WriteRanged);
+
+void DeltaField::ReadRanged(float* value, float min, float max) {
+    float step = StoreFloat((max - min) * kRangeStep);
+    std::uint16_t q = ReadWord();
+    *value = static_cast<float>(static_cast<int>(q)) * step + min;
+}
+EI_REPLACE_METHOD(0x0047F110, DeltaField::ReadRanged);
+
 #pragma float_control(pop)
+
+// --- 16-bit floats -----------------------------------------------------------------------------
+
+namespace delta {
+
+// Sign; exponent - 0x40 in 7 bits (0 when the exponent is below 0x40); the top 8 mantissa bits
+// rounded (a carry out of them is dropped, not added to the exponent).
+std::uint16_t PackFloat16(std::uint32_t u) {
+    auto h = static_cast<std::uint16_t>(((u >> 31) << 15) | (u & 0x7FFF));
+    if ((u & 0x7F800000) < 0x20000000) {
+        h &= 0x80FF;
+    } else {
+        std::uint32_t exponent = ((u >> 23) & 0xFF) << 8;
+        h ^= static_cast<std::uint16_t>(((exponent - 0x3F01) ^ h) & 0x7F00);
+    }
+    std::uint32_t mantissa = ((u & 0x7FFFFF) + 0x4000) >> 15;
+    h ^= static_cast<std::uint16_t>((mantissa ^ (h & 0xFF)) & 0xFF);
+    return h;
+}
+
+std::uint32_t UnpackFloat16(std::uint16_t q) {
+    std::uint32_t bits = q;
+    std::uint32_t a = ((bits & 0xFFFF8000u) << 16) | (bits & 0x7FFFFFFFu);
+    if (bits & 0x7F00) {
+        std::uint32_t exponent = (((bits >> 8) & 0x7F) + 0x40) << 23;
+        a ^= (exponent ^ a) & 0x7F800000;
+    } else {
+        a &= 0x807FFFFF;
+    }
+    return ((bits & 0xFF) << 15) | (a & 0xFF800000);
+}
+
+} // namespace delta
+
+namespace {
+// FLD + FSTP of a float, as the original copies it before packing (a signalling NaN comes out
+// quiet). Returns the bits.
+__declspec(naked) std::uint32_t __cdecl FpuCopyBits(const float* /*value*/) {
+    __asm {
+        mov eax, dword ptr [esp + 4]
+        fld dword ptr [eax]
+        push eax
+        fstp dword ptr [esp]
+        pop eax
+        ret
+    }
+}
+
+void StoreBits(float* out, std::uint32_t bits) { std::memcpy(out, &bits, sizeof(bits)); }
+} // namespace
+
+void DeltaField::WriteFloat16(std::uint32_t floatBits) {
+    std::uint16_t h = delta::PackFloat16(floatBits);
+    WriteDelta(&h, 2);
+}
+EI_REPLACE_METHOD(0x0047F1E0, DeltaField::WriteFloat16);
+
+// The result is never a NaN (the exponent is at most 0xBF), so its FLD/FSTP store is a copy.
+void DeltaField::ReadFloat16(float* value) { StoreBits(value, delta::UnpackFloat16(ReadWord())); }
+EI_REPLACE_METHOD(0x0047F3D0, DeltaField::ReadFloat16);
+
+void DeltaField::WriteFloat16x3(const float* values) {
+    for (int i = 0; i < 3; ++i) {
+        std::uint16_t h = delta::PackFloat16(FpuCopyBits(&values[i]));
+        WriteDelta(&h, 2);
+    }
+}
+EI_REPLACE_METHOD(0x0047F4D0, DeltaField::WriteFloat16x3);
+
+void DeltaField::ReadFloat16x3(float* values) {
+    for (int i = 0; i < 3; ++i) StoreBits(&values[i], delta::UnpackFloat16(ReadWord()));
+}
+EI_REPLACE_METHOD(0x0047F7F0, DeltaField::ReadFloat16x3);
 
 // --- DeltaState --------------------------------------------------------------------------------
 

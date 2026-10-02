@@ -79,6 +79,12 @@ bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStr
 
 } // namespace delta
 
+namespace delta {
+// The 16-bit float format of WriteFloat16 / ReadFloat16 (inline in the original).
+std::uint16_t PackFloat16(std::uint32_t floatBits);
+std::uint32_t UnpackFloat16(std::uint16_t packed);
+} // namespace delta
+
 // One numbered field of a DeltaState (0xA0 bytes).
 struct DeltaField {
     BitStream snapshot[2];   // +0x00, +0x28: per channel, the bytes last sent
@@ -116,7 +122,19 @@ struct DeltaField {
     // 0047EBF0 / 0047EE00. The same for a 2D position: (v + 32) * 60.234375; q * 0.0166018 - 32.
     void WritePosition2D(const float* position);
     void ReadPosition2D(float* position);
-    // The 16-bit read of ReadPosition / ReadPosition2D (inline in the original).
+    // 0047EF80 / 0047F110. A value in [min, max] as 16 bits: (v - min) * (65535 / (max - min)),
+    // rounded through a float and FISTP; read back as q * float((max - min) / 65535) + min.
+    void WriteRanged(float value, float min, float max);
+    void ReadRanged(float* value, float min, float max);
+    // 0047F1E0 / 0047F3D0. A float packed into 16 bits (sign, 7-bit exponent, 8-bit mantissa; see
+    // PackFloat16). The writer takes the float's bits (a stack argument).
+    void WriteFloat16(std::uint32_t floatBits);
+    void ReadFloat16(float* value);
+    // 0047F4D0 / 0047F7F0. Three of them (each float is first copied through the FPU).
+    void WriteFloat16x3(const float* values);
+    void ReadFloat16x3(float* values);
+    // The 16-bit read of the readers above (inline in the original; ReadDiff of 2 bytes, which
+    // some of them call instead, does the same).
     std::uint16_t ReadWord();
 };
 static_assert(offsetof(DeltaField, out) == 0x50);
