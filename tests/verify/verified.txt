@@ -17,3 +17,6 @@
 00403F40 CBaseManager::FindObject   100k calls in map
 005B80F0 CAIMap::CanStandAt         10k calls in map
 005C0BD0 CSectorMap::FindUnitsInRadius 1k calls in map (list compare)
+005C11D0 CSectorMap::Move           1.7k consistency checks (vanilla run)
+005C0DF0 CSectorMap::Add            4k+ consistency checks
+005C1010 CSectorMap::Remove         1k+ consistency checks
