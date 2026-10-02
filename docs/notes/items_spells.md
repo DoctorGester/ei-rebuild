@@ -134,3 +134,108 @@ global.
   destructors, refcount setters (006A5C00, 006841A0, ...) and the vector accessors
   006A5950..006A5A10: not rules, left for later.
 - STLport and list helpers in 0068C500..0068CD50, 006A7xxx..006B3xxx.
+
+# Item texts (004E0000-004E15C0)
+
+Code: `src/game/item_db_text.h/.cpp`. Verify: `tests/verify/verify_item_db.cpp`.
+Scenario: `tests/scenarios/items.txt` (money, weapons, potion, rune, quest items via script).
+
+## What lives in 004E0000-004F0000
+
+| Range | Contents |
+|---|---|
+| 004E0000-004E15C0 | item names/descriptions from the text resources (below) and the text manager's archive list |
+| 004E1770-004E5000 | CVisibilityFog ("VisionFog"), rain and snow ("RainSnow", nature_rain_circle.wav) |
+| 004E5E50-004F0000 | Direct3D / DirectDraw device, surfaces, display modes (CDXDirectDraw, CDXDirectDrawSurface) |
+
+Only the first part is item code. The item databases themselves are loaded elsewhere: the
+loaders that fill 007C86D8.. are 00456440 (patched by Rebirth), 0057CB50 and 0057DEE0, and the
+per-table readers around 006995E0-0069A780. The "can't parse color/percentage" strings at
+004A0xxx belong to a 3DS material chunk reader (004A0BA0 `Read3dsMaterial`: chunks 0xA000 name,
+0xA010/0xA020/0xA030 colours as 0x10 float or 0x11 byte RGB, 0xA040/0xA050 percentages,
+0xA200/0xA230 maps; 004A09E0 `Read3dsPercentage`: chunk 0x30 int16 / 0x31 float), not to the
+item database; not rewritten here (they read through a CFile and cannot run twice).
+
+## Structures
+
+- **CTextManager** (provisional name; the instance is `*(CTextManager**)0x007AF788`):
+  `+0x1C` STLport list of text archives (sentinel; node: next, prev, `+0x08` stlp::string name,
+  `+0x14` CMappedResource*), `+0x20` read cursor, `+0x24` start of the current text (null: none),
+  `+0x28` its size (written by GetFile). A lookup asks every archive's GetFile (vtable slot 5)
+  in turn; the first hit becomes the current text. `004DF8D0` reads a line from the cursor
+  (when advancing, it also skips the following lines that start with "##"), `004DFB80` reads up
+  to a '#'.
+- **Text keys of items** (the record's name CString with ' ' replaced by '_' (004DC400) and
+  upper-cased; material = material record +0x00, others = record +0x04):
+
+| Item kind | Key | Kind text key |
+|---|---|---|
+| 0x3004 weapon | `weapon NAME MATERIAL` | item_weapon |
+| 0x3005 armor | `armor NAME MATERIAL` | item_armor_upper (armor type 0-2) / item_armor_lower |
+| 0x3006 quick, prototype +0x10 "none" | `qitem NAME` | item_potion |
+| 0x3006 other | `qitem NAME MATERIAL` | category 5 only: item_wand, name + ": " + spell name ("Unknown" if the spell has no text); other categories get no kind |
+| 0x3007, +0x4C = 0 | `litem NAME` (table 007C8778) | item_loot |
+| 0x3007, +0x4C = 1 | `material MATERIAL` (+0x54) | item_material |
+| 0x3007, +0x4C = 2, +0x50 = 0/1/2 | `instr NAME` (weapon/armor/quick record +0x54) | item_weapon_shape / item_armor_shape_upper/_lower / item_wand_shape |
+| 0x3007, +0x4C = 2, +0x50 = 3 | `spell ` + spell record +0x04 CString | item_prototype |
+| 0x3007, +0x4C = 2, +0x50 = 4 | `modifier ` + modifier record +0x04 (inline code) | item_modifier |
+| 0x3008 spell container | `spell ` + its CSpell's prototype +0x04 (none without a spell) | item_spell |
+| 0x3009 | `questitem NAME` (table 007C8758) | item_quest |
+
+  The kind text is looked up as `string <kind key>` (GetString). The display name is
+  `format_item1` (kind, name) or, when the item's +0x48 (stack count) is above 1, `format_item2`
+  (kind, name, count).
+- **Naming correction for item.h/item_db.h:** this code shows 0x3007 is the loot item ("litem",
+  item_loot, with the CItemLoot kind at +0x4C) and its table 007C8778 (0x78) is the loot table,
+  while 0x3009 is the quest item ("questitem", item_quest) with table 007C8758 (0x7C). item.h
+  names them the other way round (`kItemQuest` = 0x3007, `QuestItems()` = 007C8778,
+  `kItemLoot` = 0x3009, `Loot()` = 007C8758); the code is right either way since names and
+  tables are swapped consistently, so they were left alone and commented where used.
+- Spell record +0x04 is a CString (the text key; what SpellCodeByName returns as "code").
+
+## Functions
+
+| Address | Name | Verification |
+|---|---|---|
+| 004E0000 | CTextManager::IsPastEnd | pure, side by side |
+| 004E0020 | CTextManager::GetString | original into a scratch copy of `out` (shares the buffer, so the name-is-out's-buffer case behaves the same), cursor state recorded and restored, ours into `out`; result, text and +0x20..+0x28 compared |
+| 004E0150 | CTextManager::GetItemTexts | same, three scratch CStrings |
+| 004E13E0 | CTextManager::FormatItemName | same, one scratch CString |
+| 004E1530 | TextSourceList::Begin | output-only: original into a scratch slot |
+| 004E1540 | TextSourceIterator::CopyTo | output-only |
+| 004E1550 | TextSourceList::Erase | ours only (frees): links of the neighbours, *out, the node on top of the 0x18 free list |
+| 004E1590 | TextSourceList::Insert | ours only (allocates): the new node is linked before `pos` |
+
+Renamed in Ghidra: the above, plus 004DF8D0 `CTextManager::ReadLine`, 004DFB80
+`CTextManager::ReadToHash`, 004DC400 `CString_ReplaceChar`, 004DEBC0 `TextSourceList::Find`,
+004A09E0 `Read3dsPercentage`, 004A0BA0 `Read3dsMaterial`.
+
+## Forwarders added
+
+- 004DF8D0 `CTextManager::ReadLine`, 004DFB80 `CTextManager::ReadToHash`, 004DC400 `ReplaceChar`
+  (__fastcall, `from` in DL), 004DEAB0 `FreeStringStorage` (stlp::string storage, thiscall),
+  004E15C0 `TextSourceList::CreateNode` (STLport node + pair copy).
+- `src/lib/mfc.h/.cpp`: CString::Empty (007008FB), MakeUpper (00700EFE), TrimRight(LPCTSTR)
+  (006FE08A), operator+=(const CString&) (00700D88).
+- Called directly (rewritten elsewhere, none patched by Rebirth): CItem::GetPrototype (006A0110),
+  CItem::GetCategory (006A4230), CSpell::GetPrototype (0068BA20), `_mbsicmp` (006E8767).
+- The STLport node free list for 0x18-byte nodes at 0079B22C is written directly (the original
+  inlines the deallocation).
+
+## Original bugs and oddities kept
+
+- Record lookups out of range give a null record whose name CString is then read (address 0 or
+  4): a fault, as in the original. The armor type (+0x0C) is read the same way.
+- GetItemTexts always returns 1, so FormatItemName's failure branch is dead.
+- FormatItemName reuses the description string for the format text.
+- GetString on a missing text copies the key name itself into `out` (shown as is in the UI).
+- Erase checks the node for null only after using it.
+- The text manager never closes the text files it gets from CMappedResource::GetFile, so their
+  reference counts only grow. In the verify build every lookup runs twice (original and ours),
+  so they grow twice as fast there; harmless since nothing closes them.
+
+## Skipped
+
+- 004DEBC0, 004DF8D0, 004DFB80, 004DC400, 004DE930 (add archive), 004DEAF0 (remove archive):
+  the rest of the text manager, below 004E0000 (another range).
+- 004E15C0 (node creation: STLport chunk allocation, string copy with exception handling).
