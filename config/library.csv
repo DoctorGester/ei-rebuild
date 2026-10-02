@@ -98,7 +98,7 @@ address,name,library,signature,notes
 006FDBD9,CString::Find(LPCTSTR),MFC,int __thiscall(LPCTSTR),
 006FDBE7,CString::Find(LPCTSTR int),MFC,"int __thiscall(LPCTSTR,int)",
 006FDBB7,CString::ReverseFind,MFC,int __thiscall(TCHAR),
-00700EFE,CString::MakeUpper,MFC,,
+00700EFE,CString::MakeLower,MFC,,
 006FE11F,CString::TrimRight(),MFC,,
 006FE0DD,CString::TrimRight(TCHAR),MFC,,
 006FE08A,CString::TrimRight(LPCTSTR),MFC,,

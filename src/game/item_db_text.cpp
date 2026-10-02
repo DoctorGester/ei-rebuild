@@ -65,11 +65,11 @@ const mfc::CString& StringAt(const char* record, int offset) {
     return *reinterpret_cast<const mfc::CString*>(reinterpret_cast<std::uintptr_t>(record) + offset);
 }
 
-// The record's name as used in keys: spaces become '_', upper case.
+// The record's name as used in keys: spaces become '_', lower case.
 void KeyName(mfc::CString& out, const char* record, int offset) {
     out = StringAt(record, offset);
     ReplaceChar(&out, ' ', '_');
-    out.MakeUpper();
+    out.MakeLower();
 }
 
 // Looks up `key`; when found, reads the name line and the description.

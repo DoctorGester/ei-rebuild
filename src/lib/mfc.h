@@ -24,7 +24,7 @@ public:
     void __cdecl Format(const char* format, ...);
 
     void Empty();                                 // 007008FB
-    void MakeUpper();                             // 00700EFE
+    void MakeLower();                             // 00700EFE (calls _mbslwr)
     void TrimRight(const char* targets);          // 006FE08A TrimRight(LPCTSTR)
     const CString& operator+=(const CString& s);  // 00700D88
 

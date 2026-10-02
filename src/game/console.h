@@ -26,7 +26,7 @@ struct Str : mfc::CString {
     void AssignChar(char c);                        // 006FD559 operator=(TCHAR)
     char* GetBuffer(int minLength);                 // 00700DA0
     void ReleaseBuffer(int newLength);              // 00700DEF
-    void MakeLower();                               // 00700EFE (lib/mfc.h names this address MakeUpper:
+    void MakeLower();                               // 00700EFE (also mfc::CString::MakeLower;
                                                     // it calls _mbslwr, MFC's MakeLower)
     void TrimLeft(char c);                          // 006FE1D3 TrimLeft(TCHAR)
     void TrimRight(char c);                         // 006FE0DD TrimRight(TCHAR)
