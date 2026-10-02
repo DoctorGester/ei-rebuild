@@ -119,6 +119,10 @@ private:
 struct PointerHash {
     template <typename T> std::uint32_t operator()(T* p) const { return reinterpret_cast<std::uint32_t>(p); }
 };
+// Hash for integer keys: the value itself.
+struct IntHash {
+    template <typename T> std::uint32_t operator()(T v) const { return static_cast<std::uint32_t>(v); }
+};
 struct StringHash {
     std::uint32_t operator()(const string& s) const { return s.Hash(); }
 };
