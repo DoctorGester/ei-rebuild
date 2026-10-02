@@ -80,16 +80,16 @@ EI_VERIFY(0x006A0770, GetDamageTypesVerify, 5, s_getDamageTypes);
 
 // 006A2DE0 draws from the global generator: snapshot it, run ours, restore, run the original,
 // compare the roll and the generator state. FLD [ECX+0x54]; FCOMP [0x0073B858] (9 bytes).
-static float(__fastcall* s_rollDamage)(CItemWeapon*);
-static float __fastcall RollDamageVerify(CItemWeapon* self) {
+static double(__fastcall* s_rollDamage)(CItemWeapon*);
+static double __fastcall RollDamageVerify(CItemWeapon* self) {
     auto* rng = reinterpret_cast<IsaacRandom*>(0x007A9D40);
     static IsaacRandom saved, after;
     std::memcpy(&saved, rng, sizeof(saved));
-    float actual = self->RollDamage();
+    double actual = self->RollDamage();
     std::memcpy(&after, rng, sizeof(after));
     std::memcpy(rng, &saved, sizeof(saved));
-    float expected = s_rollDamage(self);
-    bool same = Bits(expected) == Bits(actual) && std::memcmp(&after, rng, sizeof(after)) == 0;
+    double expected = s_rollDamage(self);
+    bool same = std::memcmp(&expected, &actual, sizeof(double)) == 0 && std::memcmp(&after, rng, sizeof(after)) == 0;
     ei::verify::Check("CItemWeapon::RollDamage", true, same, "damage %g spread %g: %g vs %g", self->damage_,
                       self->damageSpread_, expected, actual);
     return expected;

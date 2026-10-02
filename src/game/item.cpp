@@ -67,15 +67,17 @@ void CItemWeapon::GetDamageTypes(float* out) {
 }
 EI_REPLACE_METHOD(0x006A0770, CItemWeapon::GetDamageTypes);
 
-float CItemWeapon::RollDamage() {
+double CItemWeapon::RollDamage() {
     if (EqualOrUnordered(damageSpread_, kZero)) return damage_;
     volatile float high = damageSpread_ + damage_;   // stored as float in the original
-    float low = damage_;
+    volatile float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = GlobalRandom()->Next();
+    volatile std::int64_t roll64 = roll;               // FILD qword: exact
     // 0073C468: the double 0x3DF0000000100000, about 1 / (2^32 - 1).
     constexpr double kRollScale = 0x1.0000000100000p-32;
-    // Returned unrounded in ST0, like the original.
-    return static_cast<float>((high - low) * static_cast<double>(roll) * kRollScale + low);
+    // ((high - low) * roll) * scale + low, all on the FPU stack; returned unrounded in ST0.
+    return (static_cast<double>(high) - static_cast<double>(low)) * static_cast<double>(roll64) * kRollScale +
+           static_cast<double>(low);
 }
 EI_REPLACE_METHOD(0x006A2DE0, CItemWeapon::RollDamage);
 

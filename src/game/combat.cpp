@@ -572,7 +572,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         int value = face + face + 2;
         float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + kOne));
         std::memcpy(&out->unknown_20, &roll, sizeof(roll));
-        out->amount = weapon->RollDamage();
+        out->amount = static_cast<float>(weapon->RollDamage());   // FSTP float, as the original
     } else {
         std::memcpy(out->typeWeights, Combat().damageWeights, sizeof(out->typeWeights));
         out->unknown_1C = 0;

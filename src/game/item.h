@@ -65,8 +65,10 @@ public:
     void GetDamageTypes(float* out);
 
     // 006A2DE0. Damage roll: damage_ + random fraction of damageSpread_ (uses the global ISAAC
-    // generator).
-    float RollDamage();
+    // generator). Returned unrounded in ST0 like the original (callers round when they store it);
+    // declared double so the value is not rounded to float on return when the FPU runs at more
+    // than 24-bit precision (it does under Rebirth).
+    double RollDamage();
 
     // 006A06C0. Virtual slot 14: the same item as `other` (base comparison plus the weapon fields).
     BOOL IsSameAs(CItemWeapon* other);
