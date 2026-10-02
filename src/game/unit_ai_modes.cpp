@@ -582,6 +582,203 @@ EI_REPLACE_METHOD(0x005D36F0, FearMode::Save);
 
 // --- Player --------------------------------------------------------------------------------------
 
+__declspec(naked) void PlayerMode::UpdateCombat(AIBrain*) EI_ORIGINAL(0x005D4170)
+__declspec(naked) bool PlayerMode::StaysWithParty(AIBrain*, bool) EI_ORIGINAL(0x005D4860)
+__declspec(naked) void UnitController::Shout(int) EI_ORIGINAL(0x00552780)
+
+void PlayerMode::Execute(AIBrain* brain) {
+    CUnit* unit = brain->owner->unit;
+    // The player controls this unit directly (player + 0x20, +0x5120 == 2).
+    bool direct = false;
+    if (unit->player) direct = *reinterpret_cast<const int*>(*reinterpret_cast<char* const*>(unit->player + 0x20) + 0x5120) == 2;
+    if (brain->seen && unit->unknown_438 != 1) brain->owner->Shout(0x20);
+
+    switch (state) {
+    case kStateFollow: {
+        if (!leader && brain->action == AIBrain::kActionFollow) {
+            reinterpret_cast<AIRef*>(&brain->target)->Assign(nullptr);
+            brain->action = AIBrain::kActionNone;
+        }
+        int action = brain->action;
+        if (action == AIBrain::kActionAttack && !target) {
+            UpdateCombat(brain);
+            return;
+        }
+        if (action != AIBrain::kActionNone && (!leader || action != AIBrain::kActionFollow)) return;
+        CEngineObject* who = leader;
+        if (!who) {
+            UpdateCombat(brain);
+            return;
+        }
+        if (!direct) {
+            brain->action = AIBrain::kActionFollow;
+            if (who != brain->target) {
+                reinterpret_cast<AIRef*>(&brain->target)->Reset();
+                if (who) ++who->refCount_;
+                brain->target = who;
+            }
+        }
+        if (!leader) {
+            UpdateCombat(brain);
+            return;
+        }
+        // While the leader itself carries out a command (its Player mode in state 1), only follow.
+        auto* leaderBrain = reinterpret_cast<AIBrain*>(reinterpret_cast<char*>(static_cast<CUnit*>(leader)->controller) + 0x980);
+        for (auto* node = leaderBrain->modes.head; node;) {
+            AIMode* mode = node->data;     // 005D9830 (GetNext)
+            node = node->next;
+            if (mode->GetType() == kModePlayer) {
+                if (mode && static_cast<PlayerMode*>(mode)->state == kStateCommand) return;
+                UpdateCombat(brain);
+                return;
+            }
+        }
+        UpdateCombat(brain);
+        return;
+    }
+    case kStateCommand:
+        if (brain->action != AIBrain::kActionNone) return;
+        break;
+    case kStateMoveTo: {
+        constexpr std::uint32_t kOneBits = 0x3F800000u;
+        std::uint32_t walking;
+        std::memcpy(&walking, &point.z, 4);
+        if (walking == kOneBits) {
+            if (brain->action == AIBrain::kActionNone) {
+                state = kStateFollow;
+                ReleaseRef(brain->target);
+                brain->action = AIBrain::kActionNone;
+            } else if (!direct && !StaysWithParty(brain, true)) {
+                brain->owner->Shout(0x21);
+                std::memset(&point.z, 0, 4);
+                ReleaseRef(brain->target);
+                brain->action = AIBrain::kActionNone;
+            }
+        } else if (direct || StaysWithParty(brain, false)) {
+            std::memcpy(&point.z, &kOneBits, 4);
+            Vector3 to;
+            std::memcpy(&to.x, &point.x, 4);
+            std::memcpy(&to.y, &point.y, 4);
+            std::memcpy(&to.z, &kUnsetBits, 4);
+            brain->action = AIBrain::kActionWalk;
+            brain->owner->MoveTo(&to, 0, 0, kMoveTime);
+        }
+        if (state == kStateMoveTo) UpdateCombat(brain);
+        return;
+    }
+    default:
+        break;
+    }
+    state = kStateFollow;
+    ReleaseRef(brain->target);
+    brain->action = AIBrain::kActionNone;
+}
+EI_REPLACE_METHOD(0x005D4A90, PlayerMode::Execute);
+
+__declspec(naked) bool PlayerMode::PathClear(AIBrain*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005D37E0)
+
+namespace {
+// Does the player control the unit directly (player + 0x20, +0x5120 == 2)?
+bool DirectControl(const AIBrain* brain) {
+    const char* player = brain->owner->unit->player;
+    return player && *reinterpret_cast<const int*>(*reinterpret_cast<char* const*>(player + 0x20) + 0x5120) == 2;
+}
+
+// Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear),
+// the run flag, and the references dropped.
+void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, const Vector3* offset) {
+    std::memcpy(&self->point, to, sizeof(Vector3));
+    Vector3 shifted;
+    shifted.x = to->x + offset->x;      // FSTP float each
+    shifted.y = to->y + offset->y;
+    shifted.z = to->z + offset->z;
+    if (self->PathClear(brain, to, &shifted)) {
+        self->point.x = offset->x + self->point.x;
+        self->point.y = offset->y + self->point.y;
+        self->point.z = offset->z + self->point.z;
+    }
+    self->run = static_cast<std::uint8_t>(run);
+    if (!DirectControl(brain)) ReleaseRef(self->leader);
+    ReleaseRef(self->target);
+}
+} // namespace
+
+void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
+    state = kStateCommand;
+    PrepareWalk(this, brain, to, runArg, offset);
+    brain->action = AIBrain::kActionWalk;
+    brain->owner->MoveTo(&point, run, unknown, kMoveTime);
+}
+EI_REPLACE_METHOD(0x005D39E0, PlayerMode::CommandWalk);
+
+void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
+    state = kStateMoveTo;
+    PrepareWalk(this, brain, to, runArg, offset);
+    if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
+        std::memset(&point.z, 0, 4);
+        brain->owner->TurnTo(&point, unknown, 0, kMoveTime);
+        return;
+    }
+    constexpr std::uint32_t kOneBits = 0x3F800000u;
+    std::memcpy(&point.z, &kOneBits, 4);
+    brain->action = AIBrain::kActionWalk;
+    brain->owner->MoveTo(&point, run, unknown, kMoveTime);
+}
+EI_REPLACE_METHOD(0x005D3AE0, PlayerMode::CommandGoTo);
+
+void PlayerMode::CommandAttack(AIBrain* brain, CEngineObject* object, int how, int unknown) {
+    if (object == brain->owner->unit) return;
+    state = kStateFollow;
+    if (object != target) {
+        if (target) target->Release();
+        target = nullptr;
+        if (object) ++object->refCount_;
+        target = object;
+    }
+    if (brain->owner->unit->player == nullptr && object->GetClassId() == kClassUnit &&
+        brain->IsEnemy(brain->owner->unit, object) == 0)
+        return;
+    brain->action = AIBrain::kActionAttack;
+    if (object != brain->target) {
+        if (brain->target) brain->target->Release();
+        brain->target = nullptr;
+        if (object) ++object->refCount_;
+        brain->target = object;
+    }
+    brain->owner->Attack(brain->target, how, unknown, 2);
+}
+EI_REPLACE_METHOD(0x005D3C30, PlayerMode::CommandAttack);
+
+void PlayerMode::CommandUse(AIBrain* brain, CEngineObject* object, int kind, int a, int b) {
+    state = kStateFollow;
+    brain->UseOn(object, kind, a, b);
+}
+EI_REPLACE_METHOD(0x005D3CF0, PlayerMode::CommandUse);
+
+void PlayerMode::CommandCast(AIBrain* brain, int spell, CEngineObject* object, int) {
+    std::uint8_t running = run;
+    state = kStateFollow;
+    if (!brain->owner->CanCast(spell)) brain->action = AIBrain::kActionCast;
+    if (object != brain->target) {
+        if (brain->target) brain->target->Release();
+        brain->target = nullptr;
+        if (object) ++object->refCount_;
+        brain->target = object;
+    }
+    brain->actionTime = spell;
+    brain->owner->Cast(spell, object, running);
+}
+EI_REPLACE_METHOD(0x005D3D20, PlayerMode::CommandCast);
+
+void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int) {
+    std::uint8_t running = run;
+    state = kStateFollow;
+    if (!brain->owner->CanCast(spell)) brain->action = AIBrain::kActionCast;
+    brain->actionTime = spell;
+    brain->owner->CastAt(spell, at, running);
+}
+EI_REPLACE_METHOD(0x005D3D90, PlayerMode::CommandCastAt);
+
 void PlayerMode::OnObjectDeleted(CEngineObject* object) {
     if (target == object && target) ReleaseRef(target);
     if (leader == object && leader) ReleaseRef(leader);

@@ -59,6 +59,17 @@ struct UnitController {
     void Turn(const Vector3* direction, float time);        // 005546B0
     void Say(int what);                                     // 005AEA60 on this + 0xB10 (see Voice)
     void MoveTo(const Vector3* point, int run, int unused, float time);    // 00554740
+    void Shout(int message);                                // 00552780 (party units only)
+    // 00554B30. Starts attacking `target`.
+    void Attack(CEngineObject* target, int how, int unknown, int flags);
+    // 0054C8B0. Whether the player's order check accepts `order` (see AttackTarget).
+    bool CheckOrder(const void* order);
+    void CastAt(int spell, const Vector3* point, int run);  // 00554D00
+    void TurnTo(const Vector3* point, int time, int unused, float limit);   // 00554830
+    void UseOnPoint(CEngineObject* object, int a, int b);   // 00555570
+    void UseOnUnit(CEngineObject* unit, int b);             // 005553B0
+    void UseOnUnit2(CEngineObject* unit, int b);            // 00555480
+    void UseSpecial(CEngineObject* unit, int b);            // 00555630
     bool CanCast(int spell);                                // 0054B820
     void Cast(int spell, CEngineObject* target, int unused);    // 00554F50
 };
@@ -308,14 +319,42 @@ static_assert(offsetof(FearMode, flag) == 0x28);
 
 // Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
 struct PlayerMode : AIMode {
+    enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
+
+    // 005D4A90 (slot 5). State 0: follow the leader (unless the leader is moving itself) and fight
+    // (005D4170); state 1: wait for the commanded action to end; state 2: walk to `point` (staying
+    // with the party unless the player controls the unit directly) and fight on the way.
+    void Execute(AIBrain* brain);
     // 005D37A0 (slot 10). Drops either reference when it is the deleted object.
     void OnObjectDeleted(CEngineObject* object);
     // 005D4DB0 (slot 12).
     void Save(AIStream* stream);
 
+    // The player's commands (state 1 or 2: the unit does what it was told).
+    // 005D39E0. Walk to `to` + `offset` (just `to` when the way there is blocked); forgets the leader
+    // unless the player controls the unit directly.
+    void CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
+    // 005D3AE0. The same in state 2 (keep fighting on the way); when the unit would leave the party
+    // it only turns towards the point.
+    void CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
+    // 005D3C30. Attack `object`.
+    void CommandAttack(AIBrain* brain, CEngineObject* object, int how, int unknown);
+    // 005D3CF0. Use something on `object` (AIBrain::UseOn).
+    void CommandUse(AIBrain* brain, CEngineObject* object, int kind, int a, int b);
+    // 005D3D20. Cast spell `spell` at `object`.
+    void CommandCast(AIBrain* brain, int spell, CEngineObject* object, int unused);
+    // 005D3D90. Cast spell `spell` at `point`.
+    void CommandCastAt(AIBrain* brain, int spell, const Vector3* point, int unused);
+
+    // Not rewritten (forwarders).
+    void UpdateCombat(AIBrain* brain);                      // 005D4170
+    bool StaysWithParty(AIBrain* brain, bool moving);       // 005D4860
+    // 005D37E0. Can the unit get from `from` to `to` (path search with the unit moved to `from`)?
+    bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
+
     CEngineObject* target;          // +0x08
     CEngineObject* leader;          // +0x0C
-    Vector3 point;                  // +0x10
+    Vector3 point;                  // +0x10 (z: 1.0 while walking there in state 2)
     int state;                      // +0x1C
     std::uint8_t run;               // +0x20
     std::uint8_t unknown_21[3];
@@ -383,6 +422,14 @@ struct AIBrain {
     void UpdateAttack();
     // 005D7790. Drop the action and its target.
     void StopAction();
+    // 005D7B50. Action 3 against `object` (run unless the player's order check says otherwise).
+    void AttackTarget(CEngineObject* object);
+    // 005D7C60. Action 3 against `object` with the given attack parameters; units of other sides
+    // that are not enemies are not attacked unless the unit has a player.
+    void AttackWith(CEngineObject* object, int how, int unknown);
+    // 005D7CE0. Action 5: use something on `object` (kind 0 a point/object, 1 and 2 units, 0x18A95
+    // a special unit use).
+    void UseOn(CEngineObject* object, int kind, int a, int b);
 
     // Not rewritten (forwarders).
     void UpdateFollow();                                                // 005D6F90
@@ -392,8 +439,6 @@ struct AIBrain {
     bool FindStandPoint(const Vector3* point, float radius, Vector3* out);
     // 005D5990. Calls allied units near `point`.
     void CallAllies(const Vector3* point);
-    // 005D7B50. Action 3 against `object`.
-    void AttackTarget(CEngineObject* object);
     void LookAround(int unused);                                        // 005CFE40 on +0xA4
     void CurrentAttack(int* partAndObject);                             // 005CF220 on +0xA4
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4

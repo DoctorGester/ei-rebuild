@@ -115,11 +115,18 @@ __declspec(naked) void AIBrain::UpdateFollow() EI_ORIGINAL(0x005D6F90)
 __declspec(naked) void AIBrain::PlanLooks(AIMoveOrder*, const Vector3*, float, bool) EI_ORIGINAL(0x005D5B40)
 __declspec(naked) bool AIBrain::FindStandPoint(const Vector3*, float, Vector3*) EI_ORIGINAL(0x005D7F80)
 __declspec(naked) void AIBrain::CallAllies(const Vector3*) EI_ORIGINAL(0x005D5990)
-__declspec(naked) void AIBrain::AttackTarget(CEngineObject*) EI_ORIGINAL(0x005D7B50)
 
 __declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554740)
 __declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
 __declspec(naked) void UnitController::Cast(int, CEngineObject*, int) EI_ORIGINAL(0x00554F50)
+__declspec(naked) void UnitController::Attack(CEngineObject*, int, int, int) EI_ORIGINAL(0x00554B30)
+__declspec(naked) bool UnitController::CheckOrder(const void*) EI_ORIGINAL(0x0054C8B0)
+__declspec(naked) void UnitController::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x00554D00)
+__declspec(naked) void UnitController::TurnTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554830)
+__declspec(naked) void UnitController::UseOnPoint(CEngineObject*, int, int) EI_ORIGINAL(0x00555570)
+__declspec(naked) void UnitController::UseOnUnit(CEngineObject*, int) EI_ORIGINAL(0x005553B0)
+__declspec(naked) void UnitController::UseOnUnit2(CEngineObject*, int) EI_ORIGINAL(0x00555480)
+__declspec(naked) void UnitController::UseSpecial(CEngineObject*, int) EI_ORIGINAL(0x00555630)
 
 __declspec(naked) void AILookArray::Construct() EI_ORIGINAL(0x005573F0)
 __declspec(naked) void AILookArray::SetSize(int, int) EI_ORIGINAL(0x005D8EE0)
@@ -526,3 +533,78 @@ void AIBrain::StopAction() {
     action = kActionNone;
 }
 EI_REPLACE_METHOD(0x005D7790, AIBrain::StopAction);
+
+namespace {
+// Holds `object` in `ref` with a counted reference (the inlined assignment of the original).
+void HoldRef(CEngineObject*& ref, CEngineObject* object) {
+    if (object == ref) return;
+    if (ref) ref->Release();
+    ref = nullptr;
+    if (object) ++object->refCount_;
+    ref = object;
+}
+
+// The order the player's check (0054C8B0) is asked about before an attack.
+struct AttackOrder {
+    int kind;                       // +0x00 3
+    int what;                       // +0x04 6
+    CEngineObject* object;          // +0x08 counted
+    float point[3];                 // +0x0C left uninitialised by the original
+    std::uint8_t flag;              // +0x18
+    std::uint8_t unknown_19[3];
+};
+static_assert(sizeof(AttackOrder) == 0x1C);
+} // namespace
+
+void AIBrain::AttackTarget(CEngineObject* object) {
+    action = kActionAttack;
+    HoldRef(target, object);
+    int flags = 0x1C;
+    if (owner->unit->player) {
+        AttackOrder order{};
+        order.kind = 3;
+        order.what = 6;
+        order.object = nullptr;
+        order.flag = 0;
+        if (object) {
+            order.object = object;
+            ++object->refCount_;
+        }
+        if (owner->CheckOrder(&order)) flags = -1;
+        if (order.object) order.object->Release();
+        order.object = nullptr;
+    }
+    owner->Attack(target, 6, 0, flags);
+}
+EI_REPLACE_METHOD(0x005D7B50, AIBrain::AttackTarget);
+
+void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
+    if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && IsEnemy(owner->unit, object) == 0) return;
+    action = kActionAttack;
+    HoldRef(target, object);
+    owner->Attack(target, how, unknown, 2);
+}
+EI_REPLACE_METHOD(0x005D7C60, AIBrain::AttackWith);
+
+void AIBrain::UseOn(CEngineObject* object, int kind, int a, int b) {
+    if (!object) return;
+    action = kActionUse;
+    ReleaseRef(target);
+    switch (kind) {
+    case 0:
+        owner->UseOnPoint(object, a, b);
+        return;
+    case 1:
+        if (object->GetClassId() == kClassUnit) owner->UseOnUnit(object, b);
+        return;
+    case 2:
+        if (object->GetClassId() == kClassUnit) owner->UseOnUnit2(object, b);
+        return;
+    case 0x18A95:
+        if (object->GetClassId() == kClassUnit) owner->UseSpecial(object, b);
+        return;
+    default:
+        return;
+    }
+}
+EI_REPLACE_METHOD(0x005D7CE0, AIBrain::UseOn);

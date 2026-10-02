@@ -599,3 +599,90 @@ static void __fastcall AggressionExecuteVerify(AggressionMode* self, void*, AIBr
                       self->enemyPart);
 }
 EI_VERIFY(0x005D2580, AggressionExecuteVerify, 0, s_unused);
+
+// 005D4A90 Player::Execute: ours only. The state stays in 0..2, a following brain has a target,
+// and walking to a point (state 2, z = 1) means action 1 or a fight started on the way.
+static void __fastcall PlayerExecuteVerify(PlayerMode* self, void*, AIBrain* brain) {
+    int stateBefore = self->state;
+    self->Execute(brain);
+    bool ok = self->state >= 0 && self->state <= 2 && (brain->action != AIBrain::kActionFollow || brain->target != nullptr);
+    if (stateBefore != self->state) ok = ok && self->state == PlayerMode::kStateFollow;
+    ei::verify::Check("PlayerMode::Execute", true, ok, "mode %p state %d -> %d action %d target %p", self, stateBefore,
+                      self->state, brain->action, brain->target);
+}
+EI_VERIFY(0x005D4A90, PlayerExecuteVerify, 0, s_unused);
+
+// ---- Commands and attacks (ours only) ------------------------------------------------------------
+
+static void __fastcall CommandWalkVerify(PlayerMode* self, void*, AIBrain* brain, const Vector3* to, int unknown, int run,
+                                         const Vector3* offset) {
+    self->CommandWalk(brain, to, unknown, run, offset);
+    bool ok = self->state == PlayerMode::kStateCommand && brain->action == AIBrain::kActionWalk && self->target == nullptr &&
+              self->run == static_cast<std::uint8_t>(run);
+    ei::verify::Check("PlayerMode::CommandWalk", true, ok, "mode %p state %d action %d", self, self->state, brain->action);
+}
+EI_VERIFY(0x005D39E0, CommandWalkVerify, 0, s_unused);
+
+static void __fastcall CommandGoToVerify(PlayerMode* self, void*, AIBrain* brain, const Vector3* to, int unknown, int run,
+                                         const Vector3* offset) {
+    self->CommandGoTo(brain, to, unknown, run, offset);
+    std::uint32_t z;
+    std::memcpy(&z, &self->point.z, 4);
+    bool ok = self->state == PlayerMode::kStateMoveTo && self->target == nullptr &&
+              ((z == 0x3F800000u && brain->action == AIBrain::kActionWalk) || z == 0);
+    ei::verify::Check("PlayerMode::CommandGoTo", true, ok, "mode %p action %d z %08X", self, brain->action, z);
+}
+EI_VERIFY(0x005D3AE0, CommandGoToVerify, 0, s_unused);
+
+static void __fastcall CommandAttackVerify(PlayerMode* self, void*, AIBrain* brain, CEngineObject* object, int how, int unknown) {
+    bool self_ = object == brain->owner->unit;
+    self->CommandAttack(brain, object, how, unknown);
+    bool ok = self_ || (self->state == PlayerMode::kStateFollow && self->target == object &&
+                        (brain->action != AIBrain::kActionAttack || brain->target == object));
+    ei::verify::Check("PlayerMode::CommandAttack", true, ok, "mode %p object %p action %d", self, object, brain->action);
+}
+EI_VERIFY(0x005D3C30, CommandAttackVerify, 0, s_unused);
+
+static void __fastcall CommandUseVerify(PlayerMode* self, void*, AIBrain* brain, CEngineObject* object, int kind, int a, int b) {
+    self->CommandUse(brain, object, kind, a, b);
+    bool ok = self->state == PlayerMode::kStateFollow && (!object || (brain->action == AIBrain::kActionUse && !brain->target));
+    ei::verify::Check("PlayerMode::CommandUse", true, ok, "mode %p kind %d action %d", self, kind, brain->action);
+}
+EI_VERIFY(0x005D3CF0, CommandUseVerify, 0, s_unused);
+
+static void __fastcall CommandCastVerify(PlayerMode* self, void*, AIBrain* brain, int spell, CEngineObject* object, int unused) {
+    self->CommandCast(brain, spell, object, unused);
+    bool ok = self->state == PlayerMode::kStateFollow && brain->target == object && brain->actionTime == spell;
+    ei::verify::Check("PlayerMode::CommandCast", true, ok, "mode %p spell %X", self, spell);
+}
+EI_VERIFY(0x005D3D20, CommandCastVerify, 0, s_unused);
+
+static void __fastcall CommandCastAtVerify(PlayerMode* self, void*, AIBrain* brain, int spell, const Vector3* at, int unused) {
+    self->CommandCastAt(brain, spell, at, unused);
+    bool ok = self->state == PlayerMode::kStateFollow && brain->actionTime == spell;
+    ei::verify::Check("PlayerMode::CommandCastAt", true, ok, "mode %p spell %X", self, spell);
+}
+EI_VERIFY(0x005D3D90, CommandCastAtVerify, 0, s_unused);
+
+static void __fastcall AttackTargetVerify(AIBrain* self, void*, CEngineObject* object) {
+    self->AttackTarget(object);
+    ei::verify::Check("AIBrain::AttackTarget", true, self->action == AIBrain::kActionAttack && self->target == object,
+                      "brain %p object %p", self, object);
+}
+EI_VERIFY(0x005D7B50, AttackTargetVerify, 0, s_unused);
+
+static void __fastcall AttackWithVerify(AIBrain* self, void*, CEngineObject* object, int how, int unknown) {
+    int before = self->action;
+    self->AttackWith(object, how, unknown);
+    bool ok = (self->action == AIBrain::kActionAttack && self->target == object) || self->action == before;
+    ei::verify::Check("AIBrain::AttackWith", true, ok, "brain %p object %p action %d", self, object, self->action);
+}
+EI_VERIFY(0x005D7C60, AttackWithVerify, 0, s_unused);
+
+static void __fastcall UseOnVerify(AIBrain* self, void*, CEngineObject* object, int kind, int a, int b) {
+    int before = self->action;
+    self->UseOn(object, kind, a, b);
+    bool ok = object ? (self->action == AIBrain::kActionUse && self->target == nullptr) : self->action == before;
+    ei::verify::Check("AIBrain::UseOn", true, ok, "brain %p kind %d action %d", self, kind, self->action);
+}
+EI_VERIFY(0x005D7CE0, UseOnVerify, 0, s_unused);
