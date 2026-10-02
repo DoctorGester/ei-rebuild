@@ -18,10 +18,19 @@ void FormatContext(char* buf, std::size_t size, const char* fmt, void* args) {
     std::vsnprintf(buf, size, fmt, *static_cast<va_list*>(args));
 }
 
+// Totals are also written when the DLL unloads, so rarely called functions still show up.
+struct Registry {
+    std::map<std::string, Counts> counts;
+    ~Registry() {
+        for (auto& [name, c] : counts)
+            Log("verify total %s: %lu calls, %lu mismatches", name.c_str(), c.calls, c.mismatches);
+    }
+};
+
 void Report(const char* name, bool match, const char* detail) {
-    static std::map<std::string, Counts> counts;
-    Counts& c = counts[name];
-    ++c.calls;
+    static Registry registry;
+    Counts& c = registry.counts[name];
+    if (++c.calls == 1) Log("verify %s: first call", name);
     if (!match) {
         ++c.mismatches;
         if (c.mismatches <= 20) Log("MISMATCH %s: %s", name, detail);
