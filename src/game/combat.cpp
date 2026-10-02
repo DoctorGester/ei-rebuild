@@ -1,6 +1,7 @@
 // Combat: CUnitServer's weapon and spell queries, the attack hit (damage calculation), the attack
 // roll and hit resolution. See combat.h and docs/notes/combat.md.
 #include "combat.h"
+#include "combat_internal.h"
 
 #include "item.h"
 #include "object_tables.h"
@@ -161,30 +162,13 @@ __declspec(naked) void __fastcall WorldAwardKill(void*, void*, char*, int) EI_OR
 // 005D7E90. The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 __declspec(naked) void __fastcall RememberAttacker(void*, void*, CUnit*) EI_ORIGINAL(0x005D7E90)
 
-__declspec(naked) void CUnitServer::TriggerItemSpells(char) EI_ORIGINAL(0x0054F8E0)
-__declspec(naked) void CUnitServer::OnDamaged(CUnit*, int) EI_ORIGINAL(0x00553AC0)
-
-namespace {
-// The game's (MSVC 6 <iostream.h>) ostream; only the inserters used by the hit log.
-struct GameOstream {
-    GameOstream* Put(const char* text);     // 006FC31D
-    GameOstream* Put(long value);           // 006FC9C6
-    GameOstream* Put(double value);         // 006FC7FA
-    GameOstream* PutChar(int c);            // 006FC0B0
-    GameOstream* Apply(void* manipulator);  // 00434FE0: manipulator(*this)
-
-    // The hit log sets the dword at +4 to 1 before each number.
-    void SetField4() { *reinterpret_cast<int*>(reinterpret_cast<char*>(this) + 4) = 1; }
-};
 __declspec(naked) GameOstream* GameOstream::Put(const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) GameOstream* GameOstream::Put(long) EI_ORIGINAL(0x006FC9C6)
 __declspec(naked) GameOstream* GameOstream::Put(double) EI_ORIGINAL(0x006FC7FA)
 __declspec(naked) GameOstream* GameOstream::PutChar(int) EI_ORIGINAL(0x006FC0B0)
 __declspec(naked) GameOstream* GameOstream::Apply(void*) EI_ORIGINAL(0x00434FE0)
 
-// The game's log stream (global 007AF3E8) and the manipulator that ends a line (00435000).
-GameOstream* GameLog() { return *reinterpret_cast<GameOstream**>(0x007AF3E8); }
-void* const kLogEndLine = reinterpret_cast<void*>(0x00435000);
+namespace {
 
 // Names of the hit locations (DamageInfo +0x2C) in the log.
 const char* HitLocationName(int location) {
@@ -198,10 +182,6 @@ const char* HitLocationName(int location) {
     case 6: return "all";
     default: return "xz";
     }
-}
-
-void* ServerStatsOf(CUnit* unit) {
-    return *reinterpret_cast<char**>(reinterpret_cast<char*>(unit) + 0x170) + 0x20;
 }
 
 // CUnit + 0x350: what last damaged the unit: a weapon type, 0x10 + the attacking creature's
@@ -677,7 +657,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     if (!(static_cast<double>(mine.defence) > FloatAt(hit, 0x20))) {
         *reinterpret_cast<std::uint32_t*>(reinterpret_cast<char*>(&stats) + 0x6F8) |= 0x10;
         unit->MarkChanged(4);
-        TriggerItemSpells(1);
+        CallTriggerItemSpells(1);
         CEngineObject* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
         if (StatsApplyHit(&stats, nullptr, unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !(HasElementalDamage(hit) & 0xFF)) {
@@ -696,7 +676,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             unit->MarkChanged(0);
             unit->MarkChanged(4);
             if (!dead) {
-                OnDamaged(attacker, hit->unknown_30);
+                CallOnDamaged(attacker, hit->unknown_30);
                 if (ei::VCall<int>(unit, kUnitSlotIsDead) != 0 && source && source->player && !hadPlayer) {
                     if (IsMultiplayerClient() & 0xFF) {
                         WorldAwardKill(world, nullptr, nullptr, Field<int>(unit->GetPrototype(), 0x54));

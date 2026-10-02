@@ -78,8 +78,12 @@ struct CombatStats {
     int naturalWeapon;          // +0xAC weapon type of the natural attack (0x10: none / spells only)
     std::uint8_t unknown_B0[0xBC - 0xB0];
     float unknown_BC;           // +0xBC scales the world's +0x84 factor in the movement factors
-    std::uint8_t unknown_C0[0x110 - 0xC0];
+    std::uint8_t unknown_C0[0xFC - 0xC0];
+    float noise;                // +0xFC how loud the unit's attacks are (scaled by 2 for a hit,
+                                //       1.5 for a skill use, passed to 005C98C0 with kind 0x1A)
+    std::uint8_t unknown_100[0x110 - 0x100];
 };
+static_assert(offsetof(CombatStats, noise) == 0xFC);
 static_assert(offsetof(CombatStats, sizeClass) == 0x68);
 static_assert(offsetof(CombatStats, reach) == 0x70);
 static_assert(offsetof(CombatStats, unknown_BC) == 0xBC);
@@ -174,20 +178,92 @@ public:
     // 3, 7 or 15 by the unit's speed when idle, else 15).
     void UpdateMoveFactors();
 
-    // Not rewritten (forwarders):
-    // 0054F8E0. Casts the spells of carried items that trigger on being hit (or on attacking).
+    // combat_actions.cpp: the end of an action, missiles, item spells, death, healing, skills.
+    // 00549EC0. Called when the animation of the current order reaches its moment: an attack
+    // (kind 3) delivers pendingHit (and a hit at a body part the target lacks turns the order's
+    // location into "all", 6), a cast (4, 5) finishes, a skill or use (6) is applied, a quick item
+    // of category 2 (10) is used up. All but attacks then clear the order. The second argument is
+    // not read.
+    void FinishAction(int location, char unused);
+    // 0054F450. Delivers `hit` to `target`: a missile (world object 0x5B carrying the hit) for a
+    // bow or crossbow, else the target's hit slot (CUnit slot 31 -> TakeHit) directly; then the
+    // weapon's spell, and noise when the hit was not a backstab.
+    void DeliverAttack(CEngineObject* target, DamageInfo* hit);
+    // 0054F850. Casts the active weapon's spell (flag 0x10000) at `target` when its charge covers
+    // the cost.
+    void TriggerWeaponSpell(CEngineObject* target);
+    // 0054F8E0. Casts the spells of the armour pieces that trigger on being hit (`onHit`; spell
+    // prototype 0x18 triggers when not hit) and have the charge for it.
     void TriggerItemSpells(char onHit);
-    // 00553AC0. Reacts to damage: death (when the unit is now dead) or alarm, AI notifications.
+    // 00552C60. Takes `cost` from the item's charge and updates the party's copy of the item.
+    void UseItemCharge(CItem* item, float cost);
+    // 005543B0. Virtual slot 21: heals `amount` (UnitStats 00525900), recomputes and logs
+    // "Unit 12 was healed". Returns 1.
+    BOOL Heal(float amount);
+    // 00553AC0. Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility
+    // claims and the hit direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to
+    // death", the death animation, the AI notification and the party's reaction. Units of types
+    // outside 0x32..0x36 only get flags_ bit 1.
     void OnDamaged(CUnit* attacker, int hitKind);
+    // 005538D0. For each unit in `witnesses` (a CList of units) allied with this unit's side that
+    // saw `victim` (is in its controller's +0xA90 list): adds `murderer` to that list (logging
+    // "Unit 12 has seen murder and is forced to see unit 34") and makes the murderer hostile.
+    void WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer);
+    // 00552E00. When the unit's flags_ have 0x80000: clears it, adds its hostile mask to its
+    // claims (+0x97C) and swaps hostility claims (00552D00) with the allied units nearby.
+    void PropagateHostility();
+    // 005518F0. Where `attacker` stands relative to the unit: 0x800000 in front, 0x400000 behind,
+    // 0xC00000 / 0x1000000 to the sides; 0 without an attacker or with a non-zero `hitKind`.
+    std::uint32_t HitDirection(CUnit* attacker, int hitKind);
+    // 0054F000. Applies the skill of the current order to `target`: kind 6 with source 0x18A95
+    // (a talk / trade order: 005942D0 and 005935C0), else science (0) and stealing (1), logged
+    // "Unit12 is using skill science his_skill = ... target_skill = ...".
+    void UseSkill(CEngineObject* target);
+    // 00555180. Drops the queued order (+0x1B4) unless it is of kind 7 or 8 or there is no current
+    // order; the queued order ends up of kind 0 (sic).
+    void Idle();
+    // 00546720. Sets the unit's dead flag (+0x274) and re-registers it with the world's +0x294
+    // map; when dying, also removes and releases the effect object at +0x17C.
+    void SetDead(int dead);
+
+    // The same functions called through the game's addresses (EI_ORIGINAL), so that the verify
+    // build's wrappers see the calls between the rewrites.
+    void CallDeliverAttack(CEngineObject* target, DamageInfo* hit);
+    void CallTriggerWeaponSpell(CEngineObject* target);
+    void CallTriggerItemSpells(char onHit);
+    void CallUseItemCharge(CItem* item, float cost);
+    void CallOnDamaged(CUnit* attacker, int hitKind);
+    void CallWitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer);
+    void CallPropagateHostility();
+    std::uint32_t CallHitDirection(CUnit* attacker, int hitKind);
+    void CallUseSkill(CEngineObject* target);
+    void CallIdle();
+    void CallSetDead(int dead);
+    // The queued order's reset that Idle and FinishAction share: kind 9 and cleared, then kind 0.
+    void DropQueuedOrder();
+
+    // Not rewritten (forwarders):
+    // 0054EE10. Finishes the cast of the current order (kinds 4 and 5).
+    void FinishCast();
+    // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
+    void ClaimHostility(CUnit* claimant, std::uint32_t mask);
+    // 00550A80. Fills `animation` (a CArray of 0xC-byte entries) for death in `direction`.
+    void BuildDeathAnimation(void* animation, std::uint32_t direction, int a, int b);
 
     CUnit* unit;                    // +0x01C
-    std::uint8_t unknown_020[0x108 - 0x20];
+    std::uint8_t unknown_020;       // +0x020 cleared on death
+    std::uint8_t unknown_021;       // +0x021 cleared on death
+    std::uint8_t unknown_022[0x108 - 0x22];
     DamageInfo pendingHit;          // +0x108 the hit of the attack in progress
-    std::uint8_t unknown_144[0x164 - 0x144];
+    std::uint8_t keepHitDirection;  // +0x144 while set, OnDamaged leaves hitDirection alone
+    std::uint8_t unknown_145[0x160 - 0x145];
+    std::uint32_t hitDirection;     // +0x160 HitDirection of the last hit that did not kill
     int state;                      // +0x164 0 idle, 5 casting, ...
     MoveModeState moveMode;         // +0x168
     MoveModeState moveMode2;        // +0x170
-    std::uint8_t unknown_178[0x190 - 0x178];
+    std::uint8_t unknown_178[0x17C - 0x178];
+    CEngineObject* effectObject;    // +0x17C (referenced) removed from the world on death
+    std::uint8_t unknown_180[0x190 - 0x180];
     UnitAction action;              // +0x190
     UnitAction action2;             // +0x1B4
     std::uint8_t unknown_1D8[0x1E0 - 0x1D8];
@@ -196,7 +272,13 @@ public:
     float moveFactors[4];           // +0x8F8
     std::uint8_t unknown_908[0x914 - 0x908];
     int speedClass;                 // +0x914
-    // Further fields up to at least +0xA98 (lists of nearby units, animation state); not needed.
+    std::uint8_t unknown_918[0x97C - 0x918];
+    std::uint32_t claimedHostile;   // +0x97C players the unit has claimed as enemies
+    // +0x980 the AI brain (AIBrain in unit_ai.h, 0x190 bytes); combat_actions.cpp reads its
+    // +0x38 (claim radius), +0xD0 (perception memory), +0xF4 (CList of nearby units, head at
+    // +0xF8) and +0x110 (CList of units the unit watches).
+    std::uint8_t brain[0x190];
+    // +0xB10 the voice (005AEA60 Say). Further fields not needed.
 
     // +0x174 (moveMode2.flag4) is also read by the hit code: while it is set the unit cannot be
     // backstabbed (0054F580 on the target's controller, 00553DF0 on the defender).
@@ -212,3 +294,9 @@ static_assert(offsetof(CUnitServer, stats) == 0x1E0);
 static_assert(offsetof(CUnitServer, state) == 0x164);
 static_assert(offsetof(CUnitServer, moveFactors) == 0x8F8);
 static_assert(offsetof(CUnitServer, speedClass) == 0x914);
+static_assert(offsetof(CUnitServer, unknown_020) == 0x20);
+static_assert(offsetof(CUnitServer, keepHitDirection) == 0x144);
+static_assert(offsetof(CUnitServer, hitDirection) == 0x160);
+static_assert(offsetof(CUnitServer, effectObject) == 0x17C);
+static_assert(offsetof(CUnitServer, claimedHostile) == 0x97C);
+static_assert(offsetof(CUnitServer, brain) == 0x980);
