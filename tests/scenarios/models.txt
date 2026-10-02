@@ -1,0 +1,51 @@
+# Models and resources (src/game/model*.cpp). The databases (prints.db, acks.db: record and array
+# serialisers) and the link loader's archives (figures.res, menus.res) load at startup; the new game
+# loads zone1 and its figures (bounds, index buffers) and draws them (frustum clip test, viewport and
+# projection matrices). Spawning units of several different prototypes loads more figures. Script
+# SetWaterLevel drives the world's water level changes (TweenArray SetTarget / Tick, including the
+# removal of a finished entry). The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# Different prototypes in a ring 8-12 units around the hero (each loads its own figure, textures
+# and animations). They stay on their default (non-hostile) side.
+console @AddUnitToServer("M1","BoarTutor","M1",Add(GSGetVar(0,"hx"),8),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("M2","ToadTutor","M2",Sub(GSGetVar(0,"hx"),8),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("M3","GoblinF1","M3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),8),0)
+console @AddUnitToServer("M4","OgreTutor","M4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),10),0)
+console @AddUnitToServer("M5","BansheeTutor","M5",Add(GSGetVar(0,"hx"),9),Add(GSGetVar(0,"hy"),9),0)
+console @AddUnitToServer("M6","SkeletonF2","M6",Sub(GSGetVar(0,"hx"),9),Add(GSGetVar(0,"hy"),9),0)
+console @AddUnitToServer("M7","DeerF0","M7",Add(GSGetVar(0,"hx"),9),Sub(GSGetVar(0,"hy"),9),0)
+console @AddUnitToServer("M8","SpiderF10","M8",Sub(GSGetVar(0,"hx"),9),Sub(GSGetVar(0,"hy"),9),0)
+console @AddUnitToServer("M9","WolfGreyF1","M9",Add(GSGetVar(0,"hx"),12),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("M1"))
+waitfor 10 IsAlive(GetObjectByName("M2"))
+waitfor 10 IsAlive(GetObjectByName("M3"))
+waitfor 10 IsAlive(GetObjectByName("M4"))
+waitfor 10 IsAlive(GetObjectByName("M5"))
+waitfor 10 IsAlive(GetObjectByName("M6"))
+waitfor 10 IsAlive(GetObjectByName("M7"))
+waitfor 10 IsAlive(GetObjectByName("M8"))
+waitfor 10 IsAlive(GetObjectByName("M9"))
+# Let them be drawn for a while (clip tests from several view directions as the camera follows).
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),4),Add(GSGetVar(0,"hy"),4))
+wait 3000
+
+# Water level 0: a new change towards 0 (the entry is removed once it has run its steps), then a
+# second change to the same water while one is running.
+console @SetWaterLevel(0,0,20)
+wait 1000
+console @SetWaterLevel(0,0,10)
+console @SetWaterLevel(1,0,10)
+wait 3000
+check IsAlive(GetLeader())
+report
+quit
