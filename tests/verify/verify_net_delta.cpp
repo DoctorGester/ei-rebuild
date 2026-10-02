@@ -259,16 +259,17 @@ void __fastcall WriteStringVerify(DeltaField* self, void*, const char* text) {
 
 // --- DeltaField: readers -------------------------------------------------------------------------------
 
-// 0047E000: SUB ESP,0xC (3), MOV [ESP+8],ECX (4). The original reads into a scratch buffer. When the
-// snapshot read against is not part of this field it is copied too.
-void(__fastcall* s_readDelta)(DeltaField*, void*, void*, std::uint32_t);
-void __fastcall ReadDeltaVerify(DeltaField* self, void*, void* data, std::uint32_t size) {
+// Readers of a field: the original runs on a copy of the field, of the reader and (when it is not
+// part of this field) of the snapshot read against, writing its result into `expectedOut`; ours on
+// the real objects into `actualOut` (`size` bytes compared).
+template <typename Original, typename Ours>
+void CheckFieldRead(const char* name, DeltaField* self, void* actualOut, std::size_t size, Original original, Ours ours) {
     const Globals before = Globals::Save();
-    BitStream* outside = Inside(before.snapshot, self, sizeof(DeltaField)) ? nullptr : before.snapshot;
     if (!before.reader || !before.snapshot || size > 0x10000) {
-        self->ReadDelta(data, size);
+        ours(actualOut);
         return;
     }
+    BitStream* outside = Inside(before.snapshot, self, sizeof(DeltaField)) ? nullptr : before.snapshot;
     FieldCopy expected(self);
     StreamCopy reader(before.reader);
     StreamCopy* snapshotCopy = outside ? new StreamCopy(outside) : nullptr;
@@ -277,15 +278,83 @@ void __fastcall ReadDeltaVerify(DeltaField* self, void*, void* data, std::uint32
     scratch.reader = &reader.stream;
     scratch.snapshot = outside ? &snapshotCopy->stream : Map(before.snapshot, self, &expected.field, sizeof(DeltaField));
     scratch.Restore();
-    s_readDelta(&expected.field, nullptr, buffer, size);
+    original(&expected.field, buffer);
     before.Restore();
-    self->ReadDelta(data, size);
+    ours(actualOut);
     bool same = expected.Same(self) && SameStream(&reader.stream, before.reader) &&
-                (!outside || SameStream(&snapshotCopy->stream, outside)) && std::memcmp(buffer, data, size) == 0 &&
+                (!outside || SameStream(&snapshotCopy->stream, outside)) && std::memcmp(buffer, actualOut, size) == 0 &&
                 Globals::Save().snapshot == before.snapshot && Globals::Save().reader == before.reader;
-    ei::verify::Check("DeltaField::ReadDelta", true, same, "size %u", size);
+    ei::verify::Check(name, true, same, "size %u", static_cast<unsigned>(size));
     gamecrt::operator_delete(buffer);
     delete snapshotCopy;
+}
+
+// 0047E000: SUB ESP,0xC (3), MOV [ESP+8],ECX (4).
+void(__fastcall* s_readDelta)(DeltaField*, void*, void*, std::uint32_t);
+void __fastcall ReadDeltaVerify(DeltaField* self, void*, void* data, std::uint32_t size) {
+    CheckFieldRead(
+        "DeltaField::ReadDelta", self, data, size,
+        [&](DeltaField* f, void* out) { s_readDelta(f, nullptr, out, size); },
+        [&](void* out) { self->ReadDelta(out, size); });
+}
+
+// 0047E930: SUB ESP,8 (3), PUSH EBX (1), PUSH EBP (1).
+void(__fastcall* s_readPosition)(DeltaField*, void*, Vector3*);
+void __fastcall ReadPositionVerify(DeltaField* self, void*, Vector3* position) {
+    CheckFieldRead(
+        "DeltaField::ReadPosition", self, position, sizeof(Vector3),
+        [&](DeltaField* f, void* out) { s_readPosition(f, nullptr, static_cast<Vector3*>(out)); },
+        [&](void* out) { self->ReadPosition(static_cast<Vector3*>(out)); });
+}
+
+// 0047E3A0: PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0x14 (3).
+void(__fastcall* s_writePosition)(DeltaField*, void*, const Vector3*);
+void __fastcall WritePositionVerify(DeltaField* self, void*, const Vector3* position) {
+    CheckField(
+        "DeltaField::WritePosition", self, [&](DeltaField* f) { s_writePosition(f, nullptr, position); return 0; },
+        [&](DeltaField* f) { f->WritePosition(position); return 0; }, [](int, int, DeltaField*) { return true; });
+}
+
+// 0047EE00: SUB ESP,8 (3), PUSH EBX (1), PUSH EBP (1).
+void(__fastcall* s_readPosition2D)(DeltaField*, void*, float*);
+void __fastcall ReadPosition2DVerify(DeltaField* self, void*, float* position) {
+    CheckFieldRead(
+        "DeltaField::ReadPosition2D", self, position, 2 * sizeof(float),
+        [&](DeltaField* f, void* out) { s_readPosition2D(f, nullptr, static_cast<float*>(out)); },
+        [&](void* out) { self->ReadPosition2D(static_cast<float*>(out)); });
+}
+
+// 0047EBF0: PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0xC (3).
+void(__fastcall* s_writePosition2D)(DeltaField*, void*, const float*);
+void __fastcall WritePosition2DVerify(DeltaField* self, void*, const float* position) {
+    CheckField(
+        "DeltaField::WritePosition2D", self, [&](DeltaField* f) { s_writePosition2D(f, nullptr, position); return 0; },
+        [&](DeltaField* f) { f->WritePosition2D(position); return 0; }, [](int, int, DeltaField*) { return true; });
+}
+
+// 0047EAE0: PUSH ESI (1), MOV ESI,ECX (2), MOV ECX,[ESI+0x10] (3).
+int(__fastcall* s_getBit)(BitStream*);
+int __fastcall GetBitVerify(BitStream* reader) {
+    StreamCopy expected(reader);
+    int expectedBit = s_getBit(&expected.stream);
+    int actualBit = delta::GetBit(reader);
+    ei::verify::Check("delta::GetBit", true, expectedBit == actualBit && SameStream(&expected.stream, reader), "%d / %d",
+                      expectedBit, actualBit);
+    return actualBit;
+}
+
+// 0047EB20: PUSH EBP (1), MOV EBP,[ESP+0xC] (4). Only AL is the result.
+int(__fastcall* s_readDiff)(const void*, void*, std::uint32_t, BitStream*);
+bool __fastcall ReadDiffVerify(const void* old, void* data, std::uint32_t size, BitStream* reader) {
+    if (size > 0x10000) return delta::ReadDiff(old, data, size, reader);
+    StreamCopy expected(reader);
+    auto* buffer = static_cast<std::uint8_t*>(gamecrt::operator_new(size ? size : 1));
+    bool expectedRet = (s_readDiff(old, buffer, size, &expected.stream) & 0xFF) != 0;
+    bool actualRet = delta::ReadDiff(old, data, size, reader);
+    bool same = expectedRet == actualRet && SameStream(&expected.stream, reader) && std::memcmp(buffer, data, size) == 0;
+    ei::verify::Check("delta::ReadDiff", true, same, "size %u", size);
+    gamecrt::operator_delete(buffer);
+    return actualRet;
 }
 
 // 0047E170: MOV EDX,[ESP+8] (4), MOV ECX,[0x007A9798] (6).
@@ -427,6 +496,12 @@ EI_VERIFY(0x0047E140, WriteBothVerify, 5, s_writeBoth);
 EI_VERIFY(0x0047E2D0, WriteStringVerify, 7, s_writeString);
 EI_VERIFY(0x0047E000, ReadDeltaVerify, 7, s_readDelta);
 EI_VERIFY(0x0047E170, ReadRawVerify, 10, s_readRaw);
+EI_VERIFY(0x0047E930, ReadPositionVerify, 5, s_readPosition);
+EI_VERIFY(0x0047E3A0, WritePositionVerify, 6, s_writePosition);
+EI_VERIFY(0x0047EAE0, GetBitVerify, 6, s_getBit);
+EI_VERIFY(0x0047EE00, ReadPosition2DVerify, 5, s_readPosition2D);
+EI_VERIFY(0x0047EBF0, WritePosition2DVerify, 6, s_writePosition2D);
+EI_VERIFY(0x0047EB20, ReadDiffVerify, 5, s_readDiff);
 EI_VERIFY(0x0047E310, ReadStringVerify, 0, s_unused);
 EI_VERIFY(0x0047FB70, ResetVerify, 6, s_reset);
 EI_VERIFY(0x0047FBF0, BeginFieldVerify, 7, s_beginField);

@@ -8,6 +8,8 @@
 // only the changed words follow. Reading (the client) mirrors it through two globals set by
 // BeginField in the read modes. Names provisional; see docs/notes/unmapped_410_470.md.
 
+#include "maths.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -69,6 +71,12 @@ void __fastcall WriteDiff(const void* old, const void* data, std::uint32_t size,
 // 0047E6D0. All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
 void __fastcall WriteRaw(const void* data, std::uint32_t size, BitStream* out);
 
+// 0047EAE0. BitStream::GetBit as a function: 0 or 1 in EAX.
+int __fastcall GetBit(BitStream* reader);
+// 0047EB20. Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
+// otherwise the changed words from `reader` (returns true; the result is in AL only).
+bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStream* reader);
+
 } // namespace delta
 
 // One numbered field of a DeltaState (0xA0 bytes).
@@ -99,6 +107,17 @@ struct DeltaField {
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
     // 0047E310. Reads a CString from the reader; returns `cstring`.
     void* ReadString(void* cstring);
+    // 0047E3A0. Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
+    // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float and FISTP.
+    void WritePosition(const Vector3* position);
+    // 0047E930. Reads what WritePosition wrote: x, y = q * 0.0083009 - 16; z = q * 0.0029297 - 32.
+    // A changed value is also stored in snapshot[1].
+    void ReadPosition(Vector3* position);
+    // 0047EBF0 / 0047EE00. The same for a 2D position: (v + 32) * 60.234375; q * 0.0166018 - 32.
+    void WritePosition2D(const float* position);
+    void ReadPosition2D(float* position);
+    // The 16-bit read of ReadPosition / ReadPosition2D (inline in the original).
+    std::uint16_t ReadWord();
 };
 static_assert(offsetof(DeltaField, out) == 0x50);
 static_assert(sizeof(DeltaField) == 0xA0);

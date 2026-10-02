@@ -1,9 +1,13 @@
 // Delta replication of object state. See net_delta.h.
 #include "net_delta.h"
 
+#include "core_maths.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
 
+#include <bit>
 #include <cstring>
 
 // --- BitStream ---------------------------------------------------------------------------------
@@ -242,6 +246,120 @@ void* DeltaField::ReadString(void* cstring) {
     return cstring;
 }
 EI_REPLACE_METHOD(0x0047E310, DeltaField::ReadString);
+
+// --- Readers ------------------------------------------------------------------------------------
+
+namespace delta {
+
+int __fastcall GetBit(BitStream* reader) { return reader->GetBit() ? 1 : 0; }
+EI_REPLACE(0x0047EAE0, GetBit);
+
+bool __fastcall ReadDiff(const void* old, void* data, std::uint32_t size, BitStream* reader) {
+    if (reader->GetBit()) {
+        std::memcpy(data, old, size);
+        return false;
+    }
+    auto* p = static_cast<std::uint8_t*>(data);
+    std::uint32_t rest = size;
+    if (static_cast<int>(size) > 3) {
+        std::ptrdiff_t toOld = static_cast<const std::uint8_t*>(old) - p;
+        std::uint32_t words = size >> 2;
+        rest = size - words * 4;
+        do {
+            if (reader->GetBit()) std::memcpy(p, p + toOld, 4);
+            else reader->Read(p, 4);
+            p += 4;
+        } while (--words);
+    }
+    reader->Read(p, rest);
+    return true;
+}
+EI_REPLACE(0x0047EB20, ReadDiff);
+
+} // namespace delta
+
+// --- Positions ---------------------------------------------------------------------------------
+
+// The quantisation keeps the original's order of operations.
+#pragma float_control(precise, on, push)
+
+namespace {
+constexpr float kWriteOffsetXY = -16.0f;          // 0073CA8C
+constexpr float kWriteScaleXY = 120.46875f;       // 0073CA88
+constexpr float kWriteOffsetZ = -32.0f;           // 0073CA84
+constexpr float kWriteScaleZ = 341.328125f;       // 0073CA80
+const float kReadScaleXY = std::bit_cast<float>(0x3C080088u);   // 0073CA9C
+constexpr float kReadOffsetXY = 16.0f;            // 0073CA98
+const float kReadScaleZ = std::bit_cast<float>(0x3B4000C0u);    // 0073CA94
+constexpr float kReadOffsetZ = 32.0f;             // 0073CA90
+constexpr float kWriteOffset2D = -32.0f;          // 0073CA84
+constexpr float kWriteScale2D = 60.234375f;       // 0073CAA0
+const float kReadScale2D = std::bit_cast<float>(0x3C880088u);   // 0073CAA4
+constexpr float kReadOffset2D = 32.0f;            // 0073CA90
+
+int Quantize(float v, float offset, float scale) { return x87::fistp(StoreFloat((v - offset) * scale)); }
+
+float Dequantize(std::uint16_t q, float scale, float offset) { return static_cast<float>(static_cast<int>(q)) * scale - offset; }
+} // namespace
+
+void DeltaField::WritePosition(const Vector3* position) {
+    int q = Quantize(position->x, kWriteOffsetXY, kWriteScaleXY);
+    WriteDelta(&q, 2);
+    q = Quantize(position->y, kWriteOffsetXY, kWriteScaleXY);
+    WriteDelta(&q, 2);
+    q = Quantize(position->z, kWriteOffsetZ, kWriteScaleZ);
+    WriteDelta(&q, 2);
+}
+EI_REPLACE_METHOD(0x0047E3A0, DeltaField::WritePosition);
+
+void DeltaField::WritePosition2D(const float* position) {
+    int q = Quantize(position[0], kWriteOffset2D, kWriteScale2D);
+    WriteDelta(&q, 2);
+    q = Quantize(position[1], kWriteOffset2D, kWriteScale2D);
+    WriteDelta(&q, 2);
+}
+EI_REPLACE_METHOD(0x0047EBF0, DeltaField::WritePosition2D);
+
+// One 16-bit value with the bit read inline (unchanged: from the snapshot read against).
+std::uint16_t DeltaField::ReadWord() {
+    std::uint32_t at = delta::ReadSnapshot()->Position();
+    BitStream* reader = delta::Reader();
+    const std::uint8_t* current = delta::ReadSnapshot()->data_ + at;
+    std::uint16_t q;
+    if (reader->GetBit()) {
+        std::memcpy(&q, current, 2);
+    } else {
+        reader->Read(&q, 2);
+        snapshot[1].Seek(at);
+        snapshot[1].Write(&q, 2);
+    }
+    delta::ReadSnapshot()->Seek(at + 2);
+    return q;
+}
+
+void DeltaField::ReadPosition(Vector3* position) {
+    position->x = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
+    position->y = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
+    // z goes through ReadDiff.
+    std::uint32_t at = delta::ReadSnapshot()->Position();
+    BitStream* reader = delta::Reader();
+    std::uint16_t q;
+    if (delta::ReadDiff(delta::ReadSnapshot()->data_ + at, &q, 2, reader)) {
+        snapshot[1].Seek(at);
+        snapshot[1].Write(&q, 2);
+    }
+    delta::ReadSnapshot()->Seek(at + 2);
+    position->z = Dequantize(q, kReadScaleZ, kReadOffsetZ);
+}
+EI_REPLACE_METHOD(0x0047E930, DeltaField::ReadPosition);
+
+void DeltaField::ReadPosition2D(float* position) {
+    position[0] = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
+    position[1] = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
+}
+EI_REPLACE_METHOD(0x0047EE00, DeltaField::ReadPosition2D);
+
+#pragma float_control(pop)
 
 // --- DeltaState --------------------------------------------------------------------------------
 
