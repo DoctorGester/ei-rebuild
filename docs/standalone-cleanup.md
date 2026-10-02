@@ -20,7 +20,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 | Forwarder | Where | Replace with |
 |---|---|---|
 | `Terrain::HeightAt` 006C8680, `Terrain::GroundAndWaterDepth` 006C8930 | `src/game/terrain.cpp` | rewrite |
-| `ConstructMappedResource` 00671280 | `src/game/resource_manager.cpp` | real `CMappedResource` constructor |
+| `ConstructMappedResource` 00671280, `ConstructMmioResource` 006721D0 | `src/game/resource_manager.cpp` | real constructors |
 | `stlp` node allocator 00405950 / 00404D70 | `src/lib/stlp.cpp` | own pool or `std::allocator` (see below) |
 | `gamecrt::*` (operator new/delete, tolower, toupper, strnicmp, stricmp, strncpy, isalpha, sprintf, rand, open/lseek/read/write/close) | `src/lib/crt.*` | modern CRT, after confirming identical results (see below) |
 | `game::FatalError` 00480080, `game::DebugLog` 0044C470 | `src/lib/crt.*` | rewrite |
@@ -46,7 +46,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 - `Vector3::Construct`, `CMappedFile::Construct`: these are the original constructors, written as
   methods returning `this` so they can be hooked. Turn them into real constructors.
 - `CMappedResource::Slot4`, `CMMIOResource::Slot4`, `CEngineObject::Slot5/Slot6`: unnamed vtable slots.
-- `CEngineObject`, `CResourceManager`, `CTextureManager`, `CTexture`: provisional names and partial
+- `CEngineObject`, `CResourceManager`, `CTextureManager`, `CTexture`, `CAnimationNode`: provisional names and partial
   layouts (`unknown_*` fields), no constructors declared.
 - `CResourceManager::vtable_` / `baseManager_`, `TerrainOwner::unknown_000`,
   `CMappedResource::unknown_1C/20`: opaque bytes until the base classes are recovered.
