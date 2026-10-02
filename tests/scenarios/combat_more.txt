@@ -1,0 +1,56 @@
+# Combat, second part (src/game/combat_actions.cpp): the end of an attack order (FinishAction,
+# DeliverAttack), bow missiles, item spell triggers, damage reactions and death (OnDamaged,
+# HitDirection, PropagateHostility, WitnessMurder, SetDead: "Unit 12 damaged to death"), and
+# healing (Heal: "Unit 12 was healed"). Combat log lines go to a console stream that is filtered
+# out by default, so the filter is opened first. Each expect only looks at the output since the
+# previous expect. The skill code (science / stealing, UseSkill) has no script command that
+# reaches it; it runs only from the player's orders.
+#
+# The archer is the unit prototype "Human Gipath Brigand A1" from database.res: a level 1 bandit
+# whose first weapon is "bone short bow.decayed bones", so its attacks go through the missile
+# branch of DeliverAttack. WolfTutor dies to the first hit (as in combat.txt).
+reject Script error
+wait 6000
+console thingamabob
+console filter all on
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# A death: the hero kills a wolf.
+console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf1"))
+console @SetPlayer(GetObjectByName("Wolf1"),6)
+check IsEnemy(GetObjectByName("Wolf1"),0)
+console @Attack(GetLeader(),GetObjectByName("Wolf1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Wolf1")))
+expect damaged to death
+check IsAlive(GetLeader())
+
+# A ranged attack: the archer shoots the hero from 8 units away until the hero is hurt.
+console @AddUnitToServer("Archer1","Human Gipath Brigand A1","Archer1",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Archer1"))
+console @SetPlayer(GetObjectByName("Archer1"),6)
+check IsEnemy(GetObjectByName("Archer1"),0)
+console #HP(GetLeader())
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+console @Attack(GetObjectByName("Archer1"),GetLeader())
+waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+expect was attacked by
+console #HP(GetLeader())
+
+# Healing: the healing spell reaches CUnitServer slot 21 (Heal), which logs it.
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 2000
+expect was healed
+console #HP(GetLeader())
+
+# The hero fights back until the archer is dead.
+console @Attack(GetLeader(),GetObjectByName("Archer1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Archer1")))
+expect damaged to death
+check IsAlive(GetLeader())
+report
+quit
