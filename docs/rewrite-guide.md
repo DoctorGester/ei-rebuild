@@ -63,6 +63,9 @@ comes from a bug we already hit.
    operations exactly (it affects rounding). Use `x87::fsqrt/fsin/fcos` (not the modern CRT) and
    `x87::fistp` for FISTP (rounds to nearest; a C++ cast truncates). Copy floats that the original
    copies as dwords with `memcpy`.
+   The FPU does not always run at 24-bit precision: under Rebirth it runs higher, so a float the
+   original returns unrounded in ST0 must not be rounded on return (declare the function `double`
+   and let callers round when they store; see `CItemWeapon::RollDamage`).
 8. **x87 compare semantics:** `FCOM; TEST AH,0x41; JNZ` means "jump if <= or NaN"; `TEST AH,1` means
    "less or NaN". Write `!(a > b)` / `!(a >= b)` so NaN behaves the same.
 9. **Mods patch the original in memory.** The installer compares each function's whole body with the
