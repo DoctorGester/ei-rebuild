@@ -61,6 +61,9 @@ int wmain(int argc, wchar_t** argv) {
         SetEnvironmentVariableW(L"EI_HARNESS", scenario);
         wait = true;
     }
+    // A report left over from an earlier run must not pass for this one.
+    DeleteFileW((Dir(dll) + L"\\harness_quit").c_str());
+    if (!harness.empty()) DeleteFileW((Dir(dll) + L"\\harness_report.txt").c_str());
     std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
 
     STARTUPINFOW si{sizeof(si)};
@@ -103,8 +106,23 @@ int wmain(int argc, wchar_t** argv) {
         return 0;
     }
 
-    // Wait for the game, then report the harness result (harness_report.txt next to the DLL).
-    WaitForSingleObject(pi.hProcess, INFINITE);
+    // Wait for the game, then report the harness result (harness_report.txt next to the DLL). The
+    // harness writes harness_quit when its scenario quits; a game still running 10 s after that is
+    // hung on exit (Rebirth does this) and is terminated, so no run needs Task Manager.
+    std::wstring quitMarker = Dir(dll) + L"\\harness_quit";
+    ULONGLONG quitSeen = 0;
+    while (WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
+        if (harness.empty()) continue;
+        if (GetFileAttributesW(quitMarker.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
+        if (!quitSeen) quitSeen = GetTickCount64();
+        if (GetTickCount64() - quitSeen >= 10000) {
+            std::wprintf(L"ei_launch: game still running 10 s after the scenario quit; terminating it\n");
+            TerminateProcess(pi.hProcess, 0);
+            WaitForSingleObject(pi.hProcess, 5000);
+            break;
+        }
+    }
+    DeleteFileW(quitMarker.c_str());
     DWORD code = 0;
     GetExitCodeProcess(pi.hProcess, &code);
     CloseHandle(pi.hProcess);

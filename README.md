@@ -54,7 +54,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   console output.
 
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Harness runs
-keep their saves in `build\verify\harness_saves`, never in the game folder. When the game crashes,
+need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
+saves and `config\tutorial.ini` go to `build\verify\harness_saves`, settings are not written to the
+registry, and a game that hangs on exit (Rebirth) is ended 10 s after the scenario quits. When the game crashes,
 the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions.
 
     harness.cmd tests\scenarios\sandbox_actions.txt

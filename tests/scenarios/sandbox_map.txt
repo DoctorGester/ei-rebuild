@@ -1,7 +1,7 @@
 # Sandbox: start a new single-player game, let zone1 run for a while, report, quit.
 # Exercises zone loading, AI map refresh, footprints, path search, line of sight, lighting, scripts,
 # and the save the game writes when a new game starts.
-wait 20000
+wait 6000
 console thingamabob
 newgame
 wait 30000

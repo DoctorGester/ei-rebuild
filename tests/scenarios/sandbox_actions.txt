@@ -1,7 +1,7 @@
 # Sandbox actions: start a new game (hero on zone1), then move, take damage, heal, and fight a
 # spawned enemy, all through world script commands. Each "check" must print a nonzero value.
 reject Script error
-wait 20000
+wait 6000
 console thingamabob
 newgame
 wait 30000

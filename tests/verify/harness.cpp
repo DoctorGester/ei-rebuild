@@ -8,7 +8,6 @@
 //                             ...). After the cheat word ("console thingamabob"), "@<command>" runs a
 //                             world script command and "#<expression>" prints a script expression.
 //   newgame                   start a new single-player game, as the main menu does (no intro)
-//   zone <name>               go to a zone (e.g. zone1), as the game does between zones
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
 //   check <expression>      print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
@@ -21,6 +20,11 @@
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
 // (no verify mismatches, failed checks or rejected output) or "RESULT: FAIL"; ei_launch --wait turns
 // that into its exit code.
+//
+// Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
+// off, saves and config\tutorial.ini kept in harness_saves next to the DLL, no registry writes.
+// A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
+// ends a game that hangs after "quit".
 #include "verify.h"
 
 #include "../../src/hook/log.h"
@@ -58,7 +62,7 @@ struct Step {
 std::vector<Step> g_steps;
 std::size_t g_next = 0;
 DWORD g_waitUntil = 0;
-DWORD g_exitDeadline = 0;   // after "quit": exit the process if the console did not
+volatile bool g_quitting = false;
 bool g_running = false;
 bool g_inStep = false;
 char g_reportPath[MAX_PATH];
@@ -179,6 +183,13 @@ decltype(&::SetFileAttributesA) g_setFileAttributes;
 // itself when it has no such directory. `buffer` holds the rewritten path.
 const char* SavesPath(const char* path, char (&buffer)[MAX_PATH]) {
     if (!path) return path;
+    // config\tutorial.ini (which tutorial windows were shown) is rewritten on every exit; harness
+    // runs keep theirs in harness_saves too.
+    std::size_t length = std::strlen(path);
+    if (length >= 20 && _stricmp(path + length - 20, "\\config\\tutorial.ini") == 0) {
+        if (std::snprintf(buffer, MAX_PATH, "%s\\tutorial.ini", g_savesDir) >= MAX_PATH) return path;
+        return buffer;
+    }
     for (const char* p = path; (p = std::strchr(p, '\\')) != nullptr; ++p) {
         if (_strnicmp(p, "\\saves", 6) == 0 && (p[6] == '\\' || p[6] == '/' || p[6] == '\0')) {
             if (std::snprintf(buffer, MAX_PATH, "%s%s", g_savesDir, p + 6) >= MAX_PATH) return path;
@@ -193,6 +204,37 @@ HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSEC
     char b[MAX_PATH];
     return g_createFile(SavesPath(name, b), access, share, sa, disposition, flags, templ);
 }
+
+// Registry: harness runs never write the game's settings (it saves its options on exit).
+constexpr std::uintptr_t kRegSetValueExASlot = 0x0073B018;   // game.exe import table
+decltype(&::RegSetValueExA) g_regSetValue;
+
+LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWORD) {
+    static bool logged = false;
+    if (!logged) Log("harness: registry writes are skipped (first: %s)", name ? name : "(default)");
+    logged = true;
+    return ERROR_SUCCESS;
+}
+
+// The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
+// off, tutorial windows open only where the game forces them (005F86F0, 005F8A80). The harness
+// clears it every frame, since the options are reloaded when a game starts.
+int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
+
+// Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
+// GetPrivateProfileStringA. Harness runs read the "movies" keys as empty, so nothing plays.
+constexpr std::uintptr_t kGetPrivateProfileStringASlot = 0x0073B23C;   // game.exe import table
+decltype(&::GetPrivateProfileStringA) g_getProfileString;
+
+DWORD WINAPI HarnessGetProfileString(LPCSTR app, LPCSTR key, LPCSTR fallback, LPSTR out, DWORD size, LPCSTR file) {
+    std::size_t length = file ? std::strlen(file) : 0;
+    if (key && _stricmp(key, "movies") == 0 && length >= 9 && _stricmp(file + length - 9, "movie.ini") == 0) {
+        if (out && size) out[0] = '\0';
+        return 0;
+    }
+    return g_getProfileString(app, key, fallback, out, size, file);
+}
+
 BOOL WINAPI RedirectedDeleteFile(LPCSTR name) {
     char b[MAX_PATH];
     return g_deleteFile(SavesPath(name, b));
@@ -243,10 +285,7 @@ void WriteReport() {
 }
 
 void RunSteps() {
-    if (g_exitDeadline && GetTickCount() >= g_exitDeadline) {
-        Log("harness: console quit did not exit; exiting the process");
-        ExitProcess(0);
-    }
+    g_showTutorial = 0;
     if (g_checking) {
         // The script prints its value on a later frame; take the first new line.
         if (g_console.size() > g_checkFrom) {
@@ -277,9 +316,9 @@ void RunSteps() {
             // What the main menu's new-game button does after the intro movie (00632940).
             *reinterpret_cast<unsigned char*>(0x00784750) = 0;
             g_request.kind = 3;
-        } else if (s.verb == "zone" || s.verb == "load") {
+        } else if (s.verb == "load") {
             g_request.argument = s.argument.c_str();
-            g_request.kind = s.verb == "zone" ? 4 : 2;
+            g_request.kind = 2;
         } else if (s.verb == "check") {
             g_checking = true;
             g_checkExpr = s.argument;
@@ -300,11 +339,43 @@ void RunSteps() {
             WriteReport();
         } else if (s.verb == "quit") {
             WriteReport();
+            // The game can hang on the way out (Rebirth does). The quit console command calls exit(),
+            // which stops our watchdog thread too, so ei_launch ends the process when it sees
+            // harness_quit and the game is still running 10 s later.
+            char marker[MAX_PATH];
+            strcpy_s(marker, g_reportPath);
+            if (char* slash = std::strrchr(marker, '\\')) strcpy_s(slash + 1, marker + MAX_PATH - (slash + 1), "harness_quit");
+            if (FILE* f = nullptr; fopen_s(&f, marker, "w") == 0 && f) std::fclose(f);
+            g_quitting = true;
             ConsoleExecute("quit");
-            g_exitDeadline = GetTickCount() + 5000;
             return;
         } else {
             Log("harness: unknown step '%s'", s.verb.c_str());
+        }
+    }
+}
+
+// Watchdog thread: makes sure every harness run ends without Task Manager. After "quit" the game
+// gets 5 s to exit by itself (under Rebirth it hangs on the way out). If the scenario has not
+// finished within the sum of its waits plus 3 minutes (for example a modal message box blocks the
+// main thread), the report is written with a failure and the process ends.
+DWORD g_budget = 180000;
+
+DWORD WINAPI Watchdog(void*) {
+    const DWORD start = GetTickCount();
+    for (;;) {
+        Sleep(250);
+        if (g_quitting) {
+            Sleep(5000);
+            Log("harness: the game did not exit 5 s after quit; terminating it");
+            TerminateProcess(GetCurrentProcess(), 0);
+        }
+        if (GetTickCount() - start >= g_budget) {
+            Log("harness: scenario timed out after %lu s (step %u of %u); terminating the game",
+                (GetTickCount() - start) / 1000, unsigned(g_next), unsigned(g_steps.size()));
+            g_failures.push_back("scenario timed out (the game stopped running steps; a message box?)");
+            WriteReport();
+            TerminateProcess(GetCurrentProcess(), 1);
         }
     }
 }
@@ -330,6 +401,7 @@ bool LoadScenario(const char* path) {
         text = text.substr(start);
         std::size_t space = text.find(' ');
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
+        if (g_steps.back().verb == "wait") g_budget += std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
     }
     std::fclose(f);
     return true;
@@ -373,7 +445,10 @@ struct Harness {
         PatchSlot(kRemoveDirectoryASlot, &RedirectedRemoveDirectory, g_removeDirectory);
         PatchSlot(kGetFileAttributesASlot, &RedirectedGetFileAttributes, g_getFileAttributes);
         PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
+        PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
+        PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
         Log("harness: saves redirected to %s", g_savesDir);
+        if (HANDLE watchdog = CreateThread(nullptr, 0, &Watchdog, nullptr, 0, nullptr)) CloseHandle(watchdog);
         g_running = true;
         Log("harness: %u steps from %s", unsigned(g_steps.size()), path);
     }
