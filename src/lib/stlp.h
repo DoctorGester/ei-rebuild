@@ -180,6 +180,23 @@ public:
             for (Node* n = buckets_[i]; n; n = n->next) f(n);
     }
 
+    // begin() (e.g. 0059C020): the head of the first non-empty bucket, or null.
+    Node* First() const {
+        for (std::size_t b = 0; b < BucketCount(); ++b)
+            if (buckets_[b]) return buckets_[b];
+        return nullptr;
+    }
+
+    // iterator::operator++ (e.g. 0059B8A0): the next node of the chain, else the head of the next
+    // non-empty bucket after the one `node`'s key hashes to now (so a rehash while iterating moves
+    // the walk the way the original's does), or null.
+    Node* After(const Node* node) const {
+        if (node->next) return node->next;
+        for (std::size_t b = Hash()(node->key) % BucketCount() + 1; b < BucketCount(); ++b)
+            if (buckets_[b]) return buckets_[b];
+        return nullptr;
+    }
+
     // erase(iterator): unlink and free one node.
     void Erase(Node* node);
 

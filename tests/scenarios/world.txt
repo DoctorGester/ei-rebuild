@@ -1,0 +1,52 @@
+# World server tick (src/game/world_tick.cpp): every world update runs CWorldServer::Tick
+# (timed objects, missiles, countdowns, command queues) and wakes the units around each party
+# member (WakeUnitsAround). The scenario adds a timed spell effect and a spawned wolf, raises
+# alarms with InvokeAlarm (alarm slots, the AI units hearing it) and checks that the tick count
+# (AlarmTime stores it) moves on. The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# A wolf without a player next to the hero: woken with the hero's sector, hears the alarms.
+console @AddUnitToServer("WorldWolf","WolfTutor","WorldWolf",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("WorldWolf"))
+
+# Alarm 1, 20 units east of the hero: the slot records the point and the current tick.
+console @InvokeAlarm(1,Add(GSGetVar(0,"hx"),20),GSGetVar(0,"hy"))
+check IsAlarm(1)
+check IsEqual(AlarmPosX(1),Add(GSGetVar(0,"hx"),20))
+check IsEqual(AlarmPosY(1),GSGetVar(0,"hy"))
+check Not(IsAlarm(2))
+console @GSSetVar(0,"t1",AlarmTime(1))
+
+# Timed objects: a healing spell on the wounded hero lives in the tick's timed-object map.
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+console @InflictDamage(GetLeader(),10)
+waitfor 10 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+console @GSSetVar(0,"hp1",HP(GetLeader()))
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+waitfor 20 IsGreater(HP(GetLeader()),GSGetVar(0,"hp1"))
+
+# Ticks went by: alarm 2 is stamped later than alarm 1.
+console @InvokeAlarm(2,Sub(GSGetVar(0,"hx"),20),GSGetVar(0,"hy"))
+check IsAlarm(2)
+check IsGreater(AlarmTime(2),GSGetVar(0,"t1"))
+check IsAlarm(1)
+
+# Alarm 0 (the script always forces) clears the other four first.
+console @InvokeAlarm(0,GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),20))
+check IsAlarm(0)
+check Not(IsAlarm(1))
+check Not(IsAlarm(2))
+check IsEqual(AlarmPosY(0),Add(GSGetVar(0,"hy"),20))
+wait 2000
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("WorldWolf"))
+report
+quit

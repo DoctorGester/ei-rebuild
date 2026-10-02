@@ -89,11 +89,40 @@ public:
     float secondsPerTick_;                // +0x20
     std::uint8_t unknown_24[0x38 - 0x24];
     CEngineObject* players_;              // +0x38 player list (vtable slot 20 returns it)
-    std::uint8_t unknown_3C[0x64 - 0x3C];
+    std::uint8_t unknown_3C[0x60 - 0x3C];
+    void* unknown60_;                     // +0x60 replaced by 0055F410 when the game ends
     int tick_;                            // +0x64 game time in ticks
 };
 static_assert(offsetof(CWorld, players_) == 0x38);
+static_assert(offsetof(CWorld, unknown60_) == 0x60);
 static_assert(offsetof(CWorld, tick_) == 0x64);
+
+// One of the five alarms InvokeAlarm raises (CWorldServer + 0x8C, 16 bytes each; the script's
+// IsAlarm / AlarmTime / AlarmPosX / AlarmPosY read them).
+struct WorldAlarm {
+    std::uint8_t active;                  // +0x00
+    std::uint8_t unknown_01[3];
+    int time;                             // +0x04 tick it was raised
+    float x, y;                           // +0x08
+};
+static_assert(sizeof(WorldAlarm) == 16);
+
+// A missile in flight (0xA8 bytes, constructor 0067E510; created by 0058E670). Reference counted
+// through a 16-bit count at +4. Not rewritten.
+struct Projectile {
+    // 0067E6D0. Moves the missile one tick; 0 once it has hit or expired.
+    int Update();
+};
+// The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28).
+struct ProjectileList {
+    using Node = mfc::CTypedPtrList<Projectile>::Node;
+    // 0059C810. Releases the node's missile and returns the node to the free list (the last one
+    // frees every block).
+    void FreeNode(Node* node);
+
+    mfc::CTypedPtrList<Projectile> list;
+};
+static_assert(sizeof(ProjectileList) == 0x1C);
 
 // The game rules side (vtable 0073F928).
 class CWorldServer : public CWorld {
@@ -128,9 +157,28 @@ public:
     // 0058D5D0. Puts a unit in the update map (+0x104) and sets its update slot.
     void AddToUpdateMap(CEngineObject* unit);
 
+    // world_tick.cpp
+    // 0058DCD0. One world tick: advances the tick count, runs every timed object (spells,
+    // effects) and drops those that are done, advances the time wheel and the countdowns,
+    // moves the missiles, runs the script command queues (the first only while +0x160 is set or
+    // `force`) and then the units (0058D670).
+    void Tick(char force);
+    // 0058D3D0. Puts every unit in the sectors within `radius` of `position` (x, y) in the
+    // update map.
+    void WakeUnitsAround(const float* position, float radius);
+    // 00593FC0. Raises alarm `index` (0..4) at `point` (x, y) unless it is already raised
+    // (`force` raises it again; alarm 0 with `force` clears all five first), tells every AI unit
+    // without a player, and puts those that react in the update map. Script InvokeAlarm.
+    void InvokeAlarm(int index, const float* point, char force);
+    // 0058DC90. Records how the game ended (+0x138, only the first time); results 2 and 3 also
+    // replace +0x60 (0055F410) and call its slot 4.
+    void SetGameResult(int result);
+
     std::uint8_t unknown_068[0x6C - 0x68];
     std::uint8_t unknown6C_;              // +0x6C
-    std::uint8_t unknown_06D[0xDC - 0x6D];
+    std::uint8_t unknown_06D[0x70 - 0x6D];
+    std::uint8_t countdowns_[0x8C - 0x70]; // +0x070 countdown list (006D44E0 ticks it)
+    WorldAlarm alarms_[5];                // +0x08C
     int unknownDC_;                       // +0x0DC
     int unknownE0_;                       // +0x0E0
     int unknownE4_;                       // +0x0E4
@@ -140,20 +188,39 @@ public:
     int exitCount_;                       // +0x0F4
     std::uint8_t unknown_0F8[0x104 - 0xF8];
     ObjectIdMap updateMap_;               // +0x104
-    std::uint8_t unknown_11C[0x290 - 0x11C];
+    std::uint8_t unknown_11C[0x138 - 0x11C];
+    int gameResult_;                      // +0x138 0 while the game runs
+    std::uint8_t unknown_13C[0x160 - 0x13C];
+    int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
+    std::uint8_t unknown_164[0x290 - 0x164];
     float gridHeightScale_;               // +0x290
-    std::uint8_t unknown_294[0x280C - 0x294];
+    std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
     std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
     int gridWidth_;                       // +0x2810
     int gridHeight_;                      // +0x2814
-    std::uint8_t unknown_2818[0x12D70 - 0x2818];
+    std::uint8_t unknown_2818[0x2838 - 0x2818];
+    std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 time wheel (005C9530; size unknown)
+    std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
+    std::uint8_t commandsB_[0x12D70 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
     ObjectIdMap objects_;                 // +0x12D70 every world object by id
     std::uint8_t unknown_12D88[0x12DE8 - 0x12D88];
     ObjectIdMap timedObjects_;            // +0x12DE8
-    std::uint8_t unknown_12E00[0x12E64 - 0x12E00];
+    std::uint8_t unknown_12E00[0x12E28 - 0x12E00];
+    ProjectileList projectiles_;          // +0x12E28
+    std::uint8_t unknown_12E44[0x12E64 - 0x12E44];
     void* sharedObjects_;                 // +0x12E64 head of an MFC list of {object id, player}
 };
+static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
+static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
+static_assert(offsetof(CWorldServer, unknownDC_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xF0);
+static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
+static_assert(offsetof(CWorldServer, unknown160_) == 0x160);
+static_assert(offsetof(CWorldServer, sectorMap_) == 0x294);
+static_assert(offsetof(CWorldServer, timeWheel_) == 0x2838);
+static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
+static_assert(offsetof(CWorldServer, commandsB_) == 0x12A6C);
+static_assert(offsetof(CWorldServer, projectiles_) == 0x12E28);
 static_assert(offsetof(CWorldServer, updateMap_) == 0x104);
 static_assert(offsetof(CWorldServer, gridHeightScale_) == 0x290);
 static_assert(offsetof(CWorldServer, gridRows_) == 0x280C);
