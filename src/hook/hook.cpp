@@ -4,6 +4,8 @@
 #include <windows.h>
 
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include <iterator>
 #include <vector>
@@ -23,7 +25,33 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* 
     g_hooks = &entry;
 }
 
+// Functions listed in verified.txt (next to the DLL) have passed verification and run without
+// their verify wrapper: the plain replacement is installed instead. One hex address per line.
+static std::vector<std::uintptr_t> g_verified;
+
+static void LoadVerifiedList() {
+    char path[MAX_PATH];
+    HMODULE self = nullptr;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&LoadVerifiedList), &self);
+    GetModuleFileNameA(self, path, MAX_PATH);
+    if (char* slash = std::strrchr(path, '\\')) strcpy_s(slash + 1, path + MAX_PATH - (slash + 1), "verified.txt");
+    FILE* f = nullptr;
+    if (fopen_s(&f, path, "r") != 0 || !f) return;
+    char line[256];
+    while (std::fgets(line, sizeof(line), f)) {
+        unsigned long a = std::strtoul(line, nullptr, 16);
+        if (a) g_verified.push_back(a);
+    }
+    std::fclose(f);
+}
+
+static bool IsVerified(std::uintptr_t address) {
+    return std::find(g_verified.begin(), g_verified.end(), address) != g_verified.end();
+}
+
 static bool HasVerifyEntry(std::uintptr_t address) {
+    if (IsVerified(address)) return false;
     for (HookEntry* h = g_hooks; h; h = h->next)
         if (h->verify && h->address == address) return true;
     return false;
@@ -96,9 +124,12 @@ int InstallHooks() {
         return 0;
     }
 
+    LoadVerifiedList();
+    if (!g_verified.empty()) Log("%u function(s) marked verified: running without verify wrappers", unsigned(g_verified.size()));
+
     int installed = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
-        if (!h->verify && HasVerifyEntry(h->address)) continue;
+        if (h->verify ? IsVerified(h->address) : HasVerifyEntry(h->address)) continue;
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = FileBytesAt(file, h->address);
         std::uint32_t size = FunctionSizeAt(h->address);

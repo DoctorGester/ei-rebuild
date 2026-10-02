@@ -1,0 +1,11 @@
+# Functions that passed in-game verification. The verify build installs the plain replacement for
+# these instead of the side-by-side wrapper. One hex address per line; text after it is ignored.
+00401DE0 Vector3::Vector3        10M calls, 2026-10-02
+00401E00 Dot                     1M calls
+00401E20 Vector3::Length         100k calls
+0049ECC0 Quaternion::FromAxisAngle 10k calls
+00564070 TerrainOwner::SurfaceHeight 1M calls
+004667F0 IsaacRandom::Next       100k calls
+0049EE70 IsaacRandom::Refill     1k refills, full state compared
+00674850 CMappedResource::FindEntry 100k calls
+006725E0 CMMIOResource::GetFile  100k calls
