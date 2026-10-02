@@ -66,7 +66,8 @@ expect Script error: Expected ','
 console #Add(1)
 expect Script error: Not enough parameters
 console #Add(1,2,3)
-expect Script error: Too much parameters
+# Rebirth changes this check itself (its own parser patch), so only vanilla prints the message.
+vanilla expect Script error: Too much parameters
 console #Add(GetLeader(),1)
 expect Script error: Parameter of type float expected
 console #IsEqualString(1,"a")

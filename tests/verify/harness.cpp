@@ -22,6 +22,7 @@
 //   reject <text>             fail if <text> appears in the console output from now on
 //   report                    write the verify totals to harness_report.txt
 //   quit                      write the report and exit the game through the console
+//   vanilla <step>, rebirth <step>   run the step only in that install
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
@@ -357,7 +358,19 @@ void RunSteps() {
     }
     while (g_next < g_steps.size()) {
         if (GetTickCount() < g_waitUntil) return;
-        const Step& s = g_steps[g_next++];
+        Step s = g_steps[g_next++];
+        // "vanilla <step>" / "rebirth <step>": only in that install (Rebirth changes some behaviour
+        // itself, e.g. script error messages). Rebirth is recognised by its addon.dll.
+        if (s.verb == "vanilla" || s.verb == "rebirth") {
+            bool rebirth = GetModuleHandleA("addon.dll") != nullptr;
+            if ((s.verb == "rebirth") != rebirth) {
+                Log("harness: skipped (%s only): %s", s.verb.c_str(), s.argument.c_str());
+                continue;
+            }
+            std::size_t space = s.argument.find(' ');
+            s.verb = s.argument.substr(0, space);
+            s.argument = space == std::string::npos ? "" : s.argument.substr(space + 1);
+        }
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
         if (s.verb == "wait") {
             g_waitUntil = GetTickCount() + std::strtoul(s.argument.c_str(), nullptr, 10);
