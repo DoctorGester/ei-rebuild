@@ -20,3 +20,19 @@ Things to come back to. Remove an entry once it is resolved.
   window. Check `starter\Dumps` after an exit, and look again when startup/shutdown code is rewritten.
   The vanilla launch (`launch-vanilla.cmd`) exited cleanly with all hooks active on 2026-10-02, so
   the hang is likely Rebirth-specific.
+
+## Deterministic harness runs (parked, 2026-10-03)
+
+`deterministic` in a scenario (tests/verify/harness.cpp) makes timeGetTime/GetTickCount a virtual
+clock that advances four world updates per main-loop frame, fixes the date, and replaces the ISAAC
+seeding (0049F660, which seeds from timeGetTime and 0x400 bytes of a random file under C:\). The goal
+is `tools/compare.py`: run a scenario with and without hooks and diff the console output.
+
+It does not repeat yet: the same scenario run twice on the original code diverges. Seen so far:
+- A new game sometimes never finishes loading under the virtual clock (loading waits on something
+  real-time; the fallback advances the clock by 1 ms per 10000 off-loop reads), and otherwise takes
+  a different number of frames each run.
+- A second thread (sound, 006B5xxx-006BBxxx) reads the clock on its own schedule, and its "Delayed
+  sound: unit heard unit" events feed AI hearing.
+Next steps would be: find what the loader waits on; make the sound thread's events land on frame
+boundaries (or disable sound in harness runs).

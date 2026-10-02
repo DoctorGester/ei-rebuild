@@ -22,6 +22,7 @@
 //   reject <text>             fail if <text> appears in the console output from now on
 //   report                    write the verify totals to harness_report.txt
 //   quit                      write the report and exit the game through the console
+//   deterministic             virtual game clock, fixed seeds: runs repeat exactly (see below)
 //   vanilla <step>, rebirth <step>   run the step only in that install
 //   # comment
 //
@@ -40,6 +41,7 @@
 
 #include <windows.h>
 #include <psapi.h>
+#include <intrin.h>
 
 #include <cstdio>
 #include <cstring>
@@ -307,6 +309,71 @@ void WriteReport() {
     Log("harness: report written (%lu mismatches, %u failures)", mismatches, unsigned(g_failures.size()));
 }
 
+// Deterministic mode (a "deterministic" line anywhere in the scenario). The game's clock becomes
+// virtual: timeGetTime returns a counter that starts at a fixed value and advances by four world
+// updates each time the main loop reads it (004571DC), so every frame runs exactly four updates,
+// whatever the real frame rate. The random generators are seeded from timeGetTime too, so two runs
+// of the same scenario take the same course, and a run with and without hooks (tools/compare.py)
+// must print the same console output. The harness's own waits use the same clock.
+// EXPERIMENTAL: runs do not repeat yet. Zone loading still depends on real time (a new game sometimes
+// never finishes loading under the virtual clock) and the sound thread, which feeds AI hearing,
+// runs on its own; see docs/open-questions.md.
+constexpr std::uintptr_t kTimeGetTimeSlot = 0x0073B6A0;      // game.exe import table
+constexpr std::uintptr_t kMainLoopTimeReturn = 0x004571E2;   // after the main loop's timeGetTime call
+constexpr unsigned kUpdatesPerFrame = 4;                     // the main loop runs at most 5 per frame
+bool g_deterministic = false;
+volatile DWORD g_virtualNow = 1000000;
+volatile unsigned g_callsSinceFrame = 0;
+decltype(&::timeGetTime) g_timeGetTime;
+
+DWORD WINAPI VirtualTimeGetTime() {
+    if (reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kMainLoopTimeReturn) {
+        g_virtualNow += kUpdatesPerFrame * g_tickLength;
+        g_callsSinceFrame = 0;
+    } else if (++g_callsSinceFrame % 10000 == 0) {
+        ++g_virtualNow;   // a spin-wait outside the main loop (loading screens) still sees time pass
+    }
+    return g_virtualNow;
+}
+
+// The other clocks the game reads: GetTickCount (network, UI, sound) follows the virtual clock;
+// GetLocalTime/GetSystemTime (the main menu's time of day, save dates) return a fixed date.
+constexpr std::uintptr_t kGetTickCountSlot = 0x0073B344;
+constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;
+constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
+decltype(&::GetTickCount) g_getTickCount;
+decltype(&::GetLocalTime) g_getLocalTime;
+decltype(&::GetSystemTime) g_getSystemTime;
+DWORD WINAPI VirtualGetTickCount() { return g_virtualNow; }
+void WINAPI FixedTime(LPSYSTEMTIME t) {
+    *t = SYSTEMTIME{2001, 3, 1, 26, 12, 0, 0, 0};   // 2001-03-26 12:00, game.exe's build date
+}
+
+// 0049F660 seeds the ISAAC generator: srand(timeGetTime()), then 0x400 bytes from a randomly
+// chosen file under C:\ (!). In deterministic mode the results are a fixed sequence instead, and
+// rand() gets a fixed seed; 0049F150 then mixes them exactly as before.
+using SrandFn = void(__cdecl*)(unsigned);
+void __fastcall FixedIsaacSeed(void* isaac) {
+    reinterpret_cast<SrandFn>(0x006E77EA)(12345);
+    auto* results = reinterpret_cast<std::uint32_t*>(static_cast<char*>(isaac) + 8);
+    std::uint32_t x = 0x2001C0DE;
+    for (int i = 0; i < 256; ++i) results[i] = x = x * 1664525u + 1013904223u;
+}
+
+void JumpTo(std::uintptr_t from, const void* to) {
+    auto* p = reinterpret_cast<unsigned char*>(from);
+    DWORD old;
+    VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
+    p[0] = 0xE9;
+    std::int32_t rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(to) - (from + 5));
+    std::memcpy(p + 1, &rel, 4);
+    VirtualProtect(p, 5, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, 5);
+}
+
+// The clock the harness's waits and timeouts use.
+DWORD Now() { return g_deterministic ? g_virtualNow : GetTickCount(); }
+
 void RunSteps() {
     g_showTutorial = 0;
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
@@ -320,7 +387,7 @@ void RunSteps() {
             Log("harness: check %s -> %s (%s)", g_checkExpr.c_str(), out.c_str(), ok ? "ok" : "FAILED");
             if (!ok) g_failures.push_back("check " + g_checkExpr + " printed '" + out + "'");
             g_checking = false;
-        } else if (GetTickCount() >= g_checkDeadline) {
+        } else if (Now() >= g_checkDeadline) {
             Log("harness: check %s printed nothing", g_checkExpr.c_str());
             g_failures.push_back("check " + g_checkExpr + " printed nothing");
             g_checking = false;
@@ -329,7 +396,7 @@ void RunSteps() {
         }
     }
     if (g_waitingFor) {
-        DWORD now = GetTickCount();
+        DWORD now = Now();
         if (g_waitForPending && g_console.size() > g_waitForFrom) {
             const std::string& out = g_console[g_waitForFrom];
             char* end = nullptr;
@@ -357,7 +424,7 @@ void RunSteps() {
         }
     }
     while (g_next < g_steps.size()) {
-        if (GetTickCount() < g_waitUntil) return;
+        if (Now() < g_waitUntil) return;
         Step s = g_steps[g_next++];
         // "vanilla <step>" / "rebirth <step>": only in that install (Rebirth changes some behaviour
         // itself, e.g. script error messages). Rebirth is recognised by its addon.dll.
@@ -373,7 +440,7 @@ void RunSteps() {
         }
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
         if (s.verb == "wait") {
-            g_waitUntil = GetTickCount() + std::strtoul(s.argument.c_str(), nullptr, 10);
+            g_waitUntil = Now() + std::strtoul(s.argument.c_str(), nullptr, 10);
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());
         } else if (s.verb == "newgame") {
@@ -387,7 +454,7 @@ void RunSteps() {
             g_checking = true;
             g_checkExpr = s.argument;
             g_checkFrom = g_console.size();
-            g_checkDeadline = GetTickCount() + 3000;
+            g_checkDeadline = Now() + 3000;
             ConsoleExecute(("#" + s.argument).c_str());
             return;
         } else if (s.verb == "speed") {
@@ -399,7 +466,7 @@ void RunSteps() {
             g_waitingFor = true;
             g_waitForPending = false;
             g_waitForExpr = rest ? rest : "";
-            g_waitForStart = g_waitForNext = GetTickCount();
+            g_waitForStart = g_waitForNext = Now();
             g_waitForDeadline = g_waitForStart + seconds * 1000;
             return;
         } else if (s.verb == "expect") {
@@ -481,6 +548,11 @@ bool LoadScenario(const char* path) {
         text = text.substr(start);
         std::size_t space = text.find(' ');
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
+        if (g_steps.back().verb == "deterministic") {
+            g_deterministic = true;
+            g_steps.pop_back();
+            continue;
+        }
         if (g_steps.back().verb == "timeout") {
             g_budget = 1000 * std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
             g_steps.pop_back();
@@ -540,6 +612,14 @@ struct Harness {
         PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
         PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
         PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
+        if (g_deterministic) {
+            PatchSlot(kTimeGetTimeSlot, &VirtualTimeGetTime, g_timeGetTime);
+            PatchSlot(kGetTickCountSlot, &VirtualGetTickCount, g_getTickCount);
+            PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
+            PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
+            JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
+            Log("harness: deterministic mode (virtual clock, %u world updates per frame)", kUpdatesPerFrame);
+        }
         Log("harness: saves redirected to %s", g_savesDir);
         if (HANDLE watchdog = CreateThread(nullptr, 0, &Watchdog, nullptr, 0, nullptr)) CloseHandle(watchdog);
         g_running = true;
