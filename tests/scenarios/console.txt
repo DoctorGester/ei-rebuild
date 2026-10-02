@@ -1,0 +1,143 @@
+# Developer console (src/game/console*.cpp): the executor 005DC620, its tokenizer, the cheat word,
+# the "@"/"#"/"$" script lines and the command handlers, with their console output. Each "expect"
+# looks at the output since the previous one. The filter mask starts at 0 and ends there
+# ("filter none"); other settings only affect the display or network games.
+wait 6000
+
+# In the menu, before the cheat word: only the public commands (console, lastfps, exec, kick, ban,
+# fps, rate, localrate) exist; the others are unknown.
+console help
+expect Unknown command
+console lastfps
+expect Current FPS:
+# Commands are lower-cased; leading and repeated spaces are skipped; quotes stay in the token.
+console    LastFPS
+expect Current FPS:
+console "lastfps"
+expect Unknown command
+console fps
+expect Invalid number of parameters for command "FPS"
+console rate
+expect Rate has one parameter - connection rate in bytes per second
+console localrate 1 2
+expect LocalRate has one parameter - connection rate in bytes per second
+console rate 1000000
+console localrate 10
+console kick
+console ban "nobody"
+console exec
+expect usage: exec<ute> [input file name]
+# A quoted name keeps its spaces; the quotes are trimmed for opening, the message shows them.
+console exec "no such console file.txt"
+expect Cannot open file "no such console file.txt" for reading
+console console
+expect Invalid console position
+
+# The cheat word (any case); then the second command map.
+console THINGAMABOB
+expect Activated!
+console thingamabob
+expect Unknown command
+console help
+expect Commands are:
+console nosuchcommand 1 2
+expect Unknown command
+console filter
+expect AI: off
+console filter ai on
+console filter
+expect AI: on
+console filter all off
+console filter
+expect AI: off
+console filter event
+console filter
+expect EVENT: on
+console filter bogus
+expect Invalid parameters
+console filter net maybe
+expect Invalid parameters
+console filter none
+console days
+expect usage: days [ddmmyyyy] [DDMMYYYY]
+console days 01012000 11012000
+expect Your age: 10 days
+console days 3101197x 01012000
+expect usage: days
+console days 01131990 01012000
+expect usage: days
+console days 0101200 01012000
+expect usage: days
+console net
+expect net client 0/1 - show client traffic
+console net time 0
+
+# In a game: script lines (arguments are joined back with single spaces), interface settings,
+# players' variables and money.
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+check IsEqual(Add(1, 2), 3)
+console @GSSetVar(0,"cs.a",   Add(1, 2))
+check IsEqual(GSGetVar(0,"cs.a"),3)
+console @GSSetVar(0,"cs b",7)
+check IsEqual(GSGetVar(0,"cs b"),7)
+console $"a  b"
+expect a  b
+console @NoSuchCommandX(1)
+expect Script error: Unexpected token 'NoSuchCommandX'
+console lastfps
+expect Current FPS:
+console debuginfo
+expect Invalid debug info position
+console debuginfo nowhere
+expect Invalid debug info position
+console debuginfo righttop
+console debuginfo lt
+console console middle
+expect Invalid console position
+console console bottom
+console console c
+console console top
+console history
+expect Invalid parameters
+console history 60
+console show fps
+expect Invalid number of parameters for command "show"
+console show bogus on
+expect Invalid parameters in command 'show'
+console show fps on
+console show fps off
+console show world_data 1
+console show world_data 0
+console show fps sideways
+console fps on
+console fps off
+console give
+expect IMPORTANT: use only from global map
+console give 77 money 5
+expect Wrong player number
+console give 0 money 5
+console give 1 money 5
+console give 1 nothing 5
+console listvar
+expect usage: listvar [Nplayer] <[output file name]>
+console listvar 77
+expect Wrong player number
+console loadvar 1
+expect usage: loadvar [N player] [input file name]
+console loadvar 77 x
+expect Wrong player number
+console listvar 0
+console listvar 1
+# Files under ".\saves\" go to harness_saves.
+console listvar 0 .\saves\console_vars0.txt
+console listvar 1 .\saves\console_vars1.txt
+console loadvar 0 .\saves\console_vars0.txt
+console loadvar 1 .\saves\console_vars1.txt
+console fadeout
+expect FADEOUT nMillSec
+check IsAlive(GetLeader())
+report
+quit
