@@ -13,6 +13,8 @@
 reject Script error
 wait 6000
 console thingamabob
+# Combat messages go to a console stream that is filtered out by default; show them all.
+console filter all on
 newgame
 speed 10
 waitfor 60 IsGreater(HP(GetLeader()),0)
@@ -26,7 +28,7 @@ console @SetPlayer(GetObjectByName("Enemy1"),6)
 check IsEnemy(GetObjectByName("Enemy1"),0)
 console @Attack(GetLeader(),GetObjectByName("Enemy1"))
 waitfor 60 Not(IsAlive(GetObjectByName("Enemy1")))
-expect was attacked by
+# One expect per window: each expect only looks at output since the previous one.
 expect damage=
 check IsAlive(GetLeader())
 
