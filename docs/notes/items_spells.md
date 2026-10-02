@@ -199,7 +199,7 @@ item database; not rewritten here (they read through a CFile and cannot run twic
 |---|---|---|
 | 004E0000 | CTextManager::IsPastEnd | pure, side by side |
 | 004E0020 | CTextManager::GetString | original into a scratch copy of `out` (shares the buffer, so the name-is-out's-buffer case behaves the same), cursor state recorded and restored, ours into `out`; result, text and +0x20..+0x28 compared |
-| 004E0150 | CTextManager::GetItemTexts | same, three scratch CStrings |
+| 004E0150 | CTextManager::GetItemTexts | same, three scratch CStrings aliased like the real outputs (0063CEE0 and 0063E820 pass one CString as both description and kind, so the description ends up holding the kind text) |
 | 004E13E0 | CTextManager::FormatItemName | same, one scratch CString |
 | 004E1530 | TextSourceList::Begin | output-only: original into a scratch slot |
 | 004E1540 | TextSourceIterator::CopyTo | output-only |

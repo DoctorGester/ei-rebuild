@@ -69,7 +69,23 @@ static BOOL(__fastcall* s_getItemTexts)(CTextManager*, void*, CItem*, mfc::CStri
 static BOOL __fastcall GetItemTextsVerify(CTextManager* self, void*, CItem* item, mfc::CString* name,
                                           mfc::CString* description, mfc::CString* kind) {
     CursorState before = Save(self);
-    mfc::CString scratchName(*name), scratchDescription(*description), scratchKind(*kind);
+    // Some callers pass the same CString twice (0063CEE0 and 0063E820 use one string for the
+    // description and the kind, so the kind text overwrites the description): the scratch
+    // outputs must alias exactly where the real ones do.
+    mfc::CString scratch[3] = {*name, *description, *kind};
+    mfc::CString* outputs[3] = {name, description, kind};
+    mfc::CString* scratchOut[3];
+    for (int i = 0; i < 3; ++i) {
+        scratchOut[i] = &scratch[i];
+        for (int j = 0; j < i; ++j)
+            if (outputs[j] == outputs[i]) {
+                scratchOut[i] = scratchOut[j];
+                break;
+            }
+    }
+    mfc::CString& scratchName = *scratchOut[0];
+    mfc::CString& scratchDescription = *scratchOut[1];
+    mfc::CString& scratchKind = *scratchOut[2];
     BOOL expected = s_getItemTexts(self, nullptr, item, &scratchName, &scratchDescription, &scratchKind);
     CursorState after = Save(self);
     Restore(self, before);
