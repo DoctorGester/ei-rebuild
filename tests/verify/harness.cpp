@@ -9,8 +9,13 @@
 //                             world script command and "#<expression>" prints a script expression.
 //   newgame                   start a new single-player game, as the main menu does (no intro)
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
-//   check <expression>      print the script expression through the console ("#<expression>")
+//   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
+//   speed <ms>                run one world update per <ms> of real time (game default 55, its own
+//                             speed-up key 27; smaller is faster); 0 leaves it to the game
+//   waitfor <seconds> <expression>
+//                             evaluate the expression every 250 ms until it is nonzero; fail if
+//                             that takes longer than <seconds>
 //   expect <text>             require <text> in the console output since the previous expect
 //   reject <text>             fail if <text> appears in the console output from now on
 //   report                    write the verify totals to harness_report.txt
@@ -76,6 +81,15 @@ bool g_checking = false;
 std::string g_checkExpr;
 std::size_t g_checkFrom = 0;
 DWORD g_checkDeadline = 0;
+// A pending "waitfor": the expression, when it was last evaluated (its output starts at
+// g_waitForFrom), when to evaluate it next, and when to give up.
+bool g_waitingFor = false;
+bool g_waitForPending = false;
+std::string g_waitForExpr;
+std::size_t g_waitForFrom = 0;
+DWORD g_waitForNext = 0;
+DWORD g_waitForDeadline = 0;
+DWORD g_waitForStart = 0;
 
 int __fastcall ConsoleSync(void* self, void*) {
     OverflowFn overflow = (*reinterpret_cast<OverflowFn**>(self))[7];
@@ -221,6 +235,12 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
 // clears it every frame, since the options are reloaded when a game starts.
 int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
 
+// Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
+// default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
+// frame, since loading a zone resets it. 0 = leave it to the game.
+unsigned& g_tickLength = *reinterpret_cast<unsigned*>(0x0078FF34);
+unsigned g_heldTickLength = 0;
+
 // Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
 // GetPrivateProfileStringA. Harness runs read the "movies" keys as empty, so nothing plays.
 constexpr std::uintptr_t kGetPrivateProfileStringASlot = 0x0073B23C;   // game.exe import table
@@ -286,6 +306,7 @@ void WriteReport() {
 
 void RunSteps() {
     g_showTutorial = 0;
+    if (g_heldTickLength) g_tickLength = g_heldTickLength;
     if (g_checking) {
         // The script prints its value on a later frame; take the first new line.
         if (g_console.size() > g_checkFrom) {
@@ -301,6 +322,34 @@ void RunSteps() {
             g_failures.push_back("check " + g_checkExpr + " printed nothing");
             g_checking = false;
         } else {
+            return;
+        }
+    }
+    if (g_waitingFor) {
+        DWORD now = GetTickCount();
+        if (g_waitForPending && g_console.size() > g_waitForFrom) {
+            const std::string& out = g_console[g_waitForFrom];
+            char* end = nullptr;
+            double value = std::strtod(out.c_str(), &end);
+            g_waitForPending = false;
+            if (end != out.c_str() && value != 0) {
+                Log("harness: waitfor %s done after %lu ms", g_waitForExpr.c_str(), now - g_waitForStart);
+                g_waitingFor = false;
+            } else {
+                g_waitForNext = now + 250;
+            }
+        }
+        if (g_waitingFor && now >= g_waitForDeadline) {
+            Log("harness: waitfor %s timed out", g_waitForExpr.c_str());
+            g_failures.push_back("waitfor " + g_waitForExpr + " timed out");
+            g_waitingFor = false;
+        }
+        if (g_waitingFor) {
+            if (!g_waitForPending && now >= g_waitForNext) {
+                g_waitForFrom = g_console.size();
+                g_waitForPending = true;
+                ConsoleExecute(("#" + g_waitForExpr).c_str());
+            }
             return;
         }
     }
@@ -325,6 +374,18 @@ void RunSteps() {
             g_checkFrom = g_console.size();
             g_checkDeadline = GetTickCount() + 3000;
             ConsoleExecute(("#" + s.argument).c_str());
+            return;
+        } else if (s.verb == "speed") {
+            g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
+        } else if (s.verb == "waitfor") {
+            char* rest = nullptr;
+            unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+            while (rest && *rest == ' ') ++rest;
+            g_waitingFor = true;
+            g_waitForPending = false;
+            g_waitForExpr = rest ? rest : "";
+            g_waitForStart = g_waitForNext = GetTickCount();
+            g_waitForDeadline = g_waitForStart + seconds * 1000;
             return;
         } else if (s.verb == "expect") {
             bool found = false;
@@ -402,6 +463,7 @@ bool LoadScenario(const char* path) {
         std::size_t space = text.find(' ');
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
         if (g_steps.back().verb == "wait") g_budget += std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
+        if (g_steps.back().verb == "waitfor") g_budget += 1000 * std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
     }
     std::fclose(f);
     return true;

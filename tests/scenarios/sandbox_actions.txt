@@ -1,40 +1,37 @@
 # Sandbox actions: start a new game (hero on zone1), then move, take damage, heal, and fight a
-# spawned enemy, all through world script commands. Each "check" must print a nonzero value.
+# spawned enemy, all through world script commands. Each "check" must print a nonzero value; each
+# "waitfor" waits until its condition holds. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
 wait 6000
 console thingamabob
 newgame
-wait 30000
-check IsGreater(HP(GetLeader()),0)
+speed 10
+waitfor 60 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
 
 # Walk six units east.
 console @GSSetVar(0,"x0",GetX(GetLeader()))
 console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
-wait 6000
-check IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),3))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
 
 # Take damage, then heal with a spell.
 console @GSSetVar(0,"hp0",HP(GetLeader()))
 console @InflictDamage(GetLeader(),10)
-wait 500
-check IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+waitfor 10 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
 console @GSSetVar(0,"hp1",HP(GetLeader()))
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
-wait 3000
-check IsGreater(HP(GetLeader()),GSGetVar(0,"hp1"))
+waitfor 20 IsGreater(HP(GetLeader()),GSGetVar(0,"hp1"))
 
 # Spawn a wolf next to the hero, make it hostile, and fight it.
 console @AddUnitToServer("Enemy1","WolfTutor","Enemy1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
-wait 500
-check IsAlive(GetObjectByName("Enemy1"))
+waitfor 10 IsAlive(GetObjectByName("Enemy1"))
+console #HP(GetObjectByName("Enemy1"))
+console #DistanceUnitUnit(GetLeader(),GetObjectByName("Enemy1"))
 console @SetPlayer(GetObjectByName("Enemy1"),6)
 check IsEnemy(GetObjectByName("Enemy1"),0)
 console @Attack(GetLeader(),GetObjectByName("Enemy1"))
-# The fight ends at about 15 s; the margin keeps timing jitter from failing the run.
-wait 25000
-console #HP(GetObjectByName("Enemy1"))
-console #DistanceUnitUnit(GetLeader(),GetObjectByName("Enemy1"))
-check Not(IsAlive(GetObjectByName("Enemy1")))
+waitfor 60 Not(IsAlive(GetObjectByName("Enemy1")))
 check IsAlive(GetLeader())
 report
 quit

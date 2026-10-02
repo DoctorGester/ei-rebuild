@@ -52,6 +52,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `#<expression>` prints a script expression.
 - `check <expression>` requires the expression to print nonzero; `expect`/`reject <text>` look for
   console output.
+- `waitfor <seconds> <expression>` waits until the expression is nonzero (fails after <seconds>);
+  prefer it to fixed `wait`s.
+- `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
+  `speed 10` runs the game about 5.5x faster.
 
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Harness runs
 need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
