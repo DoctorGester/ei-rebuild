@@ -58,6 +58,9 @@ struct UnitController {
     void StopQueued();                                      // 00555200
     void Turn(const Vector3* direction, float time);        // 005546B0
     void Say(int what);                                     // 005AEA60 on this + 0xB10 (see Voice)
+    void MoveTo(const Vector3* point, int run, int unused, float time);    // 00554740
+    bool CanCast(int spell);                                // 0054B820
+    void Cast(int spell, CEngineObject* target, int unused);    // 00554F50
 };
 static_assert(offsetof(UnitController, unit) == 0x1C);
 static_assert(offsetof(UnitController, state) == 0x164);
@@ -67,6 +70,43 @@ static_assert(offsetof(UnitController, command) == 0x190);
 static_assert(offsetof(UnitController, commandTarget) == 0x198);
 static_assert(offsetof(UnitController, nextCommand) == 0x1B4);
 static_assert(offsetof(UnitController, nextTarget) == 0x1BC);
+
+// One remembered look direction of the current move (0x10 bytes).
+struct AILook {
+    float angle;                    // +0x00
+    float time;                     // +0x04 turning time
+    float wait;                     // +0x08 wait afterwards (game ticks)
+    std::uint8_t stopFirst;         // +0x0C
+    std::uint8_t unknown_0D[3];
+};
+static_assert(sizeof(AILook) == 0x10);
+
+// CArray<AILook> (0x14 bytes; vtable 0073D4B4, base 0073D460). The game's template code is used.
+struct AILookArray {
+    void Construct();                               // 005573F0 (base vtable, empty)
+    void SetSize(int size, int growBy);             // 005D8EE0
+    void Copy(const AILookArray* other);            // 005D8B60
+    void Destroy();                                 // 004CB770 (base vtable, frees the data)
+    void GetAt(AILook* out, int index) const;       // 005D9DE0
+
+    void* vtable;
+    AILook* data;                   // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(AILookArray) == 0x14);
+constexpr std::uintptr_t kLookArrayVtable = 0x0073D4B4;
+constexpr std::uintptr_t kLookArrayBaseVtable = 0x0073D460;
+
+// A move the modes prepare on the stack (0x20 bytes): where to go and what to look at there.
+struct AIMoveOrder {
+    void Reset();                                   // 00545B20 (point 0, looks emptied)
+
+    Vector3 point;                  // +0x00
+    AILookArray looks;              // +0x0C
+};
+static_assert(sizeof(AIMoveOrder) == 0x20);
 
 // Mode types (vtable slot 8), as the brain names them in its "new motivation" message.
 enum AIModeType {
@@ -127,6 +167,9 @@ void __fastcall IdleExecute(AIMode* self, void*, AIBrain* brain);
 struct GuardMode : AIMode {
     // 005D0B70. Sets the point and the two radii (negative: the globals 007C540C / 007C53FC).
     void Set(const Vector3* point, float radius, float wander);
+    // 005D0BE0 (slot 5). When idle: walk to a free place near the point (after 100 failures, near
+    // the unit) and look around there.
+    void Execute(AIBrain* brain);
     // 005D0EB0 / 005D0F00 (slots 11 / 12).
     void Load(AIStream* stream);
     void Save(AIStream* stream);
@@ -141,11 +184,7 @@ static_assert(sizeof(GuardMode) == 0x20);
 // One patrol point (0x20 bytes): position and a CArray of 0x10-byte look/wait entries.
 struct PatrolPoint {
     Vector3 position;               // +0x00
-    void* looksVtable;              // +0x0C CArray (vtable 0073D460)
-    void* looks;                    // +0x10
-    int lookCount;                  // +0x14
-    int lookMax;                    // +0x18
-    int lookGrowBy;                 // +0x1C
+    AILookArray looks;              // +0x0C
 };
 static_assert(sizeof(PatrolPoint) == 0x20);
 
@@ -154,6 +193,8 @@ struct PatrolMode : AIMode {
     // 005D16B0 (slot 4). 50; without points: FatalError "Unit %i has no patrol points, switching to
     // guard", a point at the unit's position, and -1000.
     int Evaluate(AIBrain* brain);
+    // 005D1700 (slot 5). When idle: on to the next point and its looks.
+    void Execute(AIBrain* brain);
     // 005D1690. The last point, or null.
     PatrolPoint* LastPoint();
     // 005D12B0. Appends a point (snapped to the AI map's half-cell grid). Not rewritten.
@@ -172,6 +213,8 @@ static_assert(sizeof(PatrolMode) == 0x20);
 struct SentryMode : AIMode {
     // 005D1B50. Sets the point.
     void Set(const Vector3* point);
+    // 005D1B70 (slot 5). When idle: back to the point and look around.
+    void Execute(AIBrain* brain);
     // 005D1DA0 / 005D1DC0 (slots 11 / 12).
     void Load(AIStream* stream);
     void Save(AIStream* stream);
@@ -198,6 +241,10 @@ struct SuspectionMode : AIMode {
     // 005D1E90 (slot 4). Remembers a non-allied seen object, then takes over the brain's noticed
     // point and level (the level only grows down to the noticed one while the point is the same).
     int Evaluate(AIBrain* brain);
+    // 005D1F80 (slot 5). Walk to the noticed point; near it the interest fades.
+    void Execute(AIBrain* brain);
+    // 005D21A0 (slot 6). Busy; walk to the point; remark 5.
+    void Enter(AIBrain* brain);
     // 005D2310 (slot 7). Clears busy; remark 3.
     void Leave(AIBrain* brain);
     // 005D2330 / 005D2360 (slots 11 / 12).
@@ -211,6 +258,11 @@ static_assert(sizeof(SuspectionMode) == 0x18);
 
 // Aggression (vtable 0073D260, 0x18 bytes): fight an enemy.
 struct AggressionMode : AIMode {
+    // 005D2390 (slot 4). 10000 while there is an enemy to fight (the script's, or the best one
+    // in sight), else -1000.
+    int Evaluate(AIBrain* brain);
+    // 005D2580 (slot 5). Attack the chosen enemy (or cast spell `enemyPart` at it).
+    void Execute(AIBrain* brain);
     // 005D26D0 (slot 6). Busy; drops action and target; remark 6.
     void Enter(AIBrain* brain);
     // 005D2710 (slot 7). Forgets the noticed level when the enemy is gone or dead, drops the enemy,
@@ -283,16 +335,6 @@ struct AIRef {
     CEngineObject* object;
 };
 
-// One remembered look direction of the current move (0x10 bytes).
-struct AILook {
-    float angle;                    // +0x00
-    float time;                     // +0x04 turning time
-    float wait;                     // +0x08 wait afterwards (game ticks)
-    std::uint8_t stopFirst;         // +0x0C
-    std::uint8_t unknown_0D[3];
-};
-static_assert(sizeof(AILook) == 0x10);
-
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
     // Actions (`action`).
@@ -344,6 +386,19 @@ struct AIBrain {
 
     // Not rewritten (forwarders).
     void UpdateFollow();                                                // 005D6F90
+    // 005D5B40. Plans the looks of a move to `order` (random directions around `direction`).
+    void PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool far);
+    // 005D7F80. A free place to stand within `radius` of `point`.
+    bool FindStandPoint(const Vector3* point, float radius, Vector3* out);
+    // 005D5990. Calls allied units near `point`.
+    void CallAllies(const Vector3* point);
+    // 005D7B50. Action 3 against `object`.
+    void AttackTarget(CEngineObject* object);
+    void LookAround(int unused);                                        // 005CFE40 on +0xA4
+    void CurrentAttack(int* partAndObject);                             // 005CF220 on +0xA4
+    void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
+    void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
+    bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
     void Perceive(UnitController* owner);                               // 005CB700 on +0xD0
     void Notice(const Vector3* point, int level, int kind);             // 005CBBE0 on +0xD0
     int IsEnemy(CUnit* self, CEngineObject* other);                     // 005CB7F0 on +0xD0
@@ -354,11 +409,7 @@ struct AIBrain {
     UnitController* owner;          // +0x000
     int action;                     // +0x004
     Vector3 actionPoint;            // +0x008
-    void* looksVtable;              // +0x014 CArray<AILook>
-    AILook* looks;                  // +0x018
-    int lookCount;                  // +0x01C
-    int lookMax;                    // +0x020
-    int lookGrowBy;                 // +0x024
+    AILookArray looks;              // +0x014 what to look at after arriving
     int actionTime;                 // +0x028 game time the current look ends (or kNoTime / kLookStarted)
     CEngineObject* target;          // +0x02C
     CEngineObject* seen;            // +0x030
@@ -391,7 +442,7 @@ struct AIBrain {
     std::uint8_t seesEnemy;         // +0x18C
     std::uint8_t unknown_18D[3];
 };
-static_assert(offsetof(AIBrain, looks) == 0x18);
+static_assert(offsetof(AIBrain, looks) == 0x14);
 static_assert(offsetof(AIBrain, actionTime) == 0x28);
 static_assert(offsetof(AIBrain, alertMode) == 0x3C);
 static_assert(offsetof(AIBrain, decay) == 0x4C);

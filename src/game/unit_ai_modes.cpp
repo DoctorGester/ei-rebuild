@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
@@ -22,7 +23,6 @@ constexpr float kZero = 0.0f;                                           // 0073B
 // 0073CCB0 (a double, 0.4 / 2^32) and 0073CCA8 (0.8f): the new alertness decay.
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
-constexpr std::uintptr_t kWorld = 0x007AFF60;
 // Diplomacy: one mask of allied sides per side (007C2BC4).
 const std::uint32_t* Diplomacy() { return reinterpret_cast<const std::uint32_t*>(0x007C2BC4); }
 
@@ -58,6 +58,69 @@ void WriteCopy(AIStream* stream, const T& value, unsigned size = sizeof(T)) {
 }
 
 float GlobalFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+
+constexpr float kMoveTime = 1000000.0f;                                 // 0x49742400
+constexpr float kNearX = 35.0f;                                         // 0073FEF8
+constexpr float kNearY = 80.0f;                                         // 0073FEF4
+constexpr float kHalf = 0.5f;                                           // 0073B86C
+constexpr float kNoWander = -1.0f;                                      // 0xBF800000
+constexpr float kStandRadius = 5.0f;                                    // 0x40A00000
+constexpr float kArrivedSq = std::bit_cast<float>(0x3E4CCCCDu);         // 0073BAD4 (0.2)
+constexpr float kCloseSq = 25.0f;                                       // 0073E124
+constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1312: no position yet
+constexpr int kRemarkIdle = 1;
+
+// The idle remark every mode's Execute starts with (1 in 1001).
+void MaybeRemark(AIBrain* brain, int what) {
+    if (GameRandom()->Next() % 1001 == 1) brain->owner->Say(what);
+}
+
+// An order on the stack: the looks array is constructed and given its derived vtable.
+void ConstructOrder(AIMoveOrder* order) {
+    order->looks.Construct();
+    order->looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
+}
+
+// The inlined destructor of the order's looks array.
+void DestroyLooks(AIMoveOrder* order) {
+    order->looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+    if (order->looks.data) gamecrt::operator_delete(order->looks.data);
+}
+
+// Common tail of the moves: drop the target, action 2 to the order's point with its looks.
+void StartMove(AIBrain* brain, AIMoveOrder* order) {
+    if (brain->target) {
+        reinterpret_cast<AIRef*>(&brain->target)->Reset();
+        brain->target = nullptr;
+    }
+    brain->action = AIBrain::kActionMove;
+    brain->actionTime = AIBrain::kNoTime;
+    std::memcpy(&brain->actionPoint, &order->point, sizeof(Vector3));
+    brain->looks.Copy(&order->looks);
+    brain->owner->MoveTo(&brain->actionPoint, 0, 0, kMoveTime);
+}
+
+// The brain's remembered positions after choosing a new place to be.
+void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY) {
+    brain->unknown_44 = nearX;
+    brain->unknown_48 = nearY;
+    std::memcpy(&brain->previousPosition, &brain->position, sizeof(Vector3));
+    std::memcpy(&brain->position, where, sizeof(Vector3));
+    std::uint32_t previous;
+    std::memcpy(&previous, &brain->previousPosition.x, 4);
+    if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
+}
+
+// The static candidate list of Aggression::Evaluate (007C54C8, guard bit 0 of 007C54E4).
+struct CandidateList {
+    void Construct(int blockSize);                  // 004C96A0
+};
+__declspec(naked) void CandidateList::Construct(int) EI_ORIGINAL(0x004C96A0)
+__declspec(naked) int __cdecl GameAtexit(void*) EI_ORIGINAL(0x006E727B)
+constexpr std::uintptr_t kCandidates = 0x007C54C8;
+constexpr std::uintptr_t kCandidatesGuard = 0x007C54E4;
+constexpr std::uintptr_t kCandidatesDestructor = 0x005D2570;
+
 } // namespace
 
 // --- Shared slots --------------------------------------------------------------------------------
@@ -98,6 +161,51 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
 }
 EI_REPLACE_METHOD(0x005D0B70, GuardMode::Set);
 
+void GuardMode::Execute(AIBrain* brain) {
+    MaybeRemark(brain, kRemarkIdle);
+    brain->LookAround(0);
+    if (brain->action != AIBrain::kActionNone) return;
+    // 35 + radius / 80 + radius, computed before the positions are copied.
+    float nearX = kNearX + radius;
+    float nearY = kNearY + radius;
+    SetPositions(brain, &point, nearX, nearY);
+
+    AIMoveOrder order;
+    ConstructOrder(&order);
+    order.Reset();
+    if (!brain->FindStandPoint(&point, radius, &order.point)) {
+        if (++failures <= 100) {
+            DestroyLooks(&order);
+            return;
+        }
+        if (!brain->FindStandPoint(reinterpret_cast<const Vector3*>(&brain->owner->unit->positionX), radius, &order.point)) {
+            order.looks.Destroy();
+            return;
+        }
+    }
+    failures = 0;
+    // Look away from the guarded point, scaled to half the radius.
+    volatile float dx = order.point.x - point.x;    // FSTP float each
+    volatile float dy = order.point.y - point.y;
+    volatile float dz = order.point.z - point.z;
+    Vector3 direction;
+    direction.x = dx;
+    direction.y = dy;
+    direction.z = dz;
+    // FCOMP 0; TEST AH,0x40: a radius equal to 0 (or unordered) leaves the direction unscaled.
+    if (radius < kZero || radius > kZero) {
+        double scale = x87::fsqrt(static_cast<double>(dz * dz + dy * dy) + static_cast<double>(dx * dx)) / radius * kHalf;
+        direction.x = static_cast<float>(dx * scale);
+        direction.y = static_cast<float>(direction.y * scale);
+        direction.z = static_cast<float>(direction.z * scale);
+    }
+    bool far = GameRandom()->Next() % 11 == 0;
+    brain->PlanLooks(&order, &direction, wander, far);
+    StartMove(brain, &order);
+    DestroyLooks(&order);
+}
+EI_REPLACE_METHOD(0x005D0BE0, GuardMode::Execute);
+
 void GuardMode::Load(AIStream* stream) {
     ReadField(stream, &radius);
     ReadField(stream, &wander);
@@ -127,6 +235,31 @@ int PatrolMode::Evaluate(AIBrain* brain) {
 }
 EI_REPLACE_METHOD(0x005D16B0, PatrolMode::Evaluate);
 
+void PatrolMode::Execute(AIBrain* brain) {
+    MaybeRemark(brain, kRemarkIdle);
+    brain->LookAround(0);
+    if (pointCount == 0 || brain->action != AIBrain::kActionNone) return;
+    if (++current >= pointCount) current = 0;
+    PatrolPoint* next = points + current;
+    AIMoveOrder order;
+    std::memcpy(&order.point, &next->position, sizeof(Vector3));
+    ConstructOrder(&order);
+    order.looks.SetSize(next->looks.size, -1);
+    for (int i = 0; i < next->looks.size; ++i) {
+        AILook look;
+        next->looks.GetAt(&look, i);
+        std::memcpy(&order.looks.data[i], &look, sizeof(AILook));
+    }
+    if (order.looks.size <= 0) {
+        Vector3 none{0.0f, 0.0f, 0.0f};
+        brain->PlanLooks(&order, &none, kNoWander, false);
+    }
+    StartMove(brain, &order);
+    SetPositions(brain, &order.point, kNearX, kNearY);
+    DestroyLooks(&order);
+}
+EI_REPLACE_METHOD(0x005D1700, PatrolMode::Execute);
+
 PatrolPoint* PatrolMode::LastPoint() {
     if (pointCount == 0) return nullptr;
     return points + (pointCount - 1);
@@ -137,6 +270,25 @@ EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 
 void SentryMode::Set(const Vector3* p) { std::memcpy(&point, p, sizeof(Vector3)); }
 EI_REPLACE_METHOD(0x005D1B50, SentryMode::Set);
+
+void SentryMode::Execute(AIBrain* brain) {
+    MaybeRemark(brain, kRemarkIdle);
+    brain->LookAround(0);
+    if (brain->action != AIBrain::kActionNone) return;
+    AIMoveOrder order;
+    ConstructOrder(&order);
+    order.looks.SetSize(0, -1);
+    std::memcpy(&order.point, &point, sizeof(Vector3));
+    bool far = GameRandom()->Next() % 11 == 0;
+    Vector3 none{0.0f, 0.0f, 0.0f};
+    // 007C53FC / 007C5400: the wander radii of a far and a near look-around.
+    float wanderRadius = far ? GlobalFloat(0x007C53FC) : GlobalFloat(0x007C5400);
+    brain->PlanLooks(&order, &none, wanderRadius, far);
+    StartMove(brain, &order);
+    SetPositions(brain, &order.point, kNearX, kNearY);
+    DestroyLooks(&order);
+}
+EI_REPLACE_METHOD(0x005D1B70, SentryMode::Execute);
 
 void SentryMode::Load(AIStream* stream) { stream->Read(&point, sizeof(Vector3)); }
 EI_REPLACE_METHOD(0x005D1DA0, SentryMode::Load);
@@ -198,11 +350,151 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
 }
 EI_REPLACE_METHOD(0x005D1E90, SuspectionMode::Evaluate);
 
+void SuspectionMode::Execute(AIBrain* brain) {
+    if (brain->action != AIBrain::kActionNone) {
+        Vector3 going;
+        std::memcpy(&going, &brain->actionPoint, sizeof(Vector3));
+        double dy = point.y - going.y;      // kept on the FPU stack
+        double dx = point.x - going.x;
+        // TEST AH,0x41: jump to a new move only when the distance is greater.
+        if (!(dx * dx + dy * dy > kArrivedSq)) {
+            // Still going to this point: near it, the interest fades.
+            const float* unit = &brain->owner->unit->positionX;
+            double ux = unit[0] - point.x;
+            double uy = unit[1] - point.y;
+            double uz = unit[2] - point.z;
+            if (!(uz * uz + uy * uy + ux * ux >= kCloseSq)) level -= 5;
+            return;
+        }
+    }
+    AIMoveOrder order;
+    ConstructOrder(&order);
+    order.Reset();
+    if (brain->action == AIBrain::kActionNone) {
+        if (brain->owner->inCombat) level -= 50;
+        if (!brain->FindStandPoint(&point, kStandRadius, &order.point)) {
+            level -= 5;
+            order.looks.Destroy();
+            return;
+        }
+    } else {
+        std::memcpy(&order.point, &point, sizeof(Vector3));
+    }
+    Vector3 none{0.0f, 0.0f, 0.0f};
+    brain->PlanLooks(&order, &none, kNoWander, false);
+    reinterpret_cast<AIRef*>(&brain->target)->Assign(nullptr);
+    brain->action = AIBrain::kActionMove;
+    brain->actionTime = AIBrain::kNoTime;
+    std::memcpy(&brain->actionPoint, &order.point, sizeof(Vector3));
+    brain->looks.Copy(&order.looks);
+    brain->owner->MoveTo(&brain->actionPoint, 0, 0, kMoveTime);
+    level = brain->noticedLevel;
+    DestroyLooks(&order);
+}
+EI_REPLACE_METHOD(0x005D1F80, SuspectionMode::Execute);
+
+void SuspectionMode::Enter(AIBrain* brain) {
+    brain->owner->busy = 1;
+    AIMoveOrder order;
+    ConstructOrder(&order);
+    order.point = Vector3{0.0f, 0.0f, 0.0f};
+    order.looks.SetSize(0, -1);
+    std::memcpy(&order.point, &point, sizeof(Vector3));
+    Vector3 none{0.0f, 0.0f, 0.0f};
+    brain->PlanLooks(&order, &none, kNoWander, false);
+    StartMove(brain, &order);
+    brain->owner->Say(5);
+    DestroyLooks(&order);
+}
+EI_REPLACE_METHOD(0x005D21A0, SuspectionMode::Enter);
+
 void SuspectionMode::Leave(AIBrain* brain) {
     brain->owner->busy = 0;
     brain->owner->Say(3);
 }
 EI_REPLACE_METHOD(0x005D2310, SuspectionMode::Leave);
+
+int AggressionMode::Evaluate(AIBrain* brain) {
+    chosen = nullptr;
+    if (fixed) {
+        if (enemy && IsGone(enemy) != 0) {
+            reinterpret_cast<AIRef*>(&enemy)->Assign(nullptr);
+            return kNoPriority;
+        }
+        if (!enemy) {
+            if (CEngineObject* seen = brain->seen) {
+                bool allied = false;
+                if (seen->GetClassId() == kClassUnit) {
+                    std::uint32_t bit = 1u << (static_cast<CUnit*>(brain->seen)->side & 31);
+                    allied = (Diplomacy()[brain->owner->unit->side] & bit) != 0;
+                }
+                if (!allied && seen != brain->owner->unit && !brain->IsReported(seen))
+                    reinterpret_cast<AIRef*>(&enemy)->Assign(seen);
+            }
+        }
+        if (!enemy) return kNoPriority;
+        if (IsGone(enemy) == 0 && enemy->GetClassId() == kClassUnit) {
+            if (brain->IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
+            enemyPart = -1;
+            chosen = enemy;
+            return chosen ? 10000 : kNoPriority;
+        }
+        if (enemy) {
+            reinterpret_cast<AIRef*>(&enemy)->Reset();
+            enemy = nullptr;
+        }
+        return kNoPriority;
+    }
+    if (!brain->seesEnemy) return kNoPriority;
+    auto* guard = reinterpret_cast<std::uint8_t*>(kCandidatesGuard);
+    if (!(*guard & 1)) {
+        *guard |= 1;
+        reinterpret_cast<CandidateList*>(kCandidates)->Construct(10);
+        GameAtexit(reinterpret_cast<void*>(kCandidatesDestructor));
+    }
+    CUnit* self = brain->owner->unit;
+    brain->CollectEnemies(self, reinterpret_cast<void*>(kCandidates));
+    brain->ChooseTarget(&enemyPart, reinterpret_cast<void*>(kCandidates), reinterpret_cast<const Vector3*>(&self->positionX), 0, 0);
+    CEngineObject* best = chosen;
+    if (best != enemy) {
+        if (enemy) enemy->Release();
+        enemy = nullptr;
+        if (best) ++best->refCount_;
+        enemy = best;
+    }
+    return chosen ? 10000 : kNoPriority;
+}
+EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
+
+void AggressionMode::Execute(AIBrain* brain) {
+    if (GameRandom()->Next() % 1001 == 1) brain->owner->Say(2);
+    if (!chosen) return;
+    brain->CallAllies(reinterpret_cast<const Vector3*>(reinterpret_cast<char*>(chosen) + 0x1C));
+    int attack[2] = {-1, 0};        // {part, object} the brain is attacking now
+    brain->CurrentAttack(attack);
+    if (reinterpret_cast<CEngineObject*>(attack[1]) == chosen && attack[0] == enemyPart) return;
+    if (!chosen) return;
+    attack[1] = 0;
+    attack[0] = -1;
+    brain->CurrentAttack(attack);
+    CEngineObject* object = chosen;
+    if (object == reinterpret_cast<CEngineObject*>(attack[1]) && enemyPart == attack[0]) return;
+    int part = enemyPart;
+    if (part == -1) {
+        brain->AttackTarget(object);
+        return;
+    }
+    if (!brain->owner->CanCast(part)) brain->action = AIBrain::kActionCast;
+    if (object != brain->target) {
+        if (brain->target) brain->target->Release();
+        brain->target = nullptr;
+        if (object) ++object->refCount_;
+        brain->target = object;
+    }
+    brain->actionTime = part;
+    brain->owner->Cast(part, object, 0);
+}
+EI_REPLACE_METHOD(0x005D2580, AggressionMode::Execute);
 
 void SuspectionMode::Load(AIStream* stream) {
     stream->Read(&point, sizeof(Vector3));

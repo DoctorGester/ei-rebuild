@@ -112,6 +112,21 @@ __declspec(naked) void AIRef::Load(AIStream*, void*) EI_ORIGINAL(0x0050E220)
 __declspec(naked) void AIRef::Save(AIStream*) EI_ORIGINAL(0x0050E290)
 
 __declspec(naked) void AIBrain::UpdateFollow() EI_ORIGINAL(0x005D6F90)
+__declspec(naked) void AIBrain::PlanLooks(AIMoveOrder*, const Vector3*, float, bool) EI_ORIGINAL(0x005D5B40)
+__declspec(naked) bool AIBrain::FindStandPoint(const Vector3*, float, Vector3*) EI_ORIGINAL(0x005D7F80)
+__declspec(naked) void AIBrain::CallAllies(const Vector3*) EI_ORIGINAL(0x005D5990)
+__declspec(naked) void AIBrain::AttackTarget(CEngineObject*) EI_ORIGINAL(0x005D7B50)
+
+__declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554740)
+__declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
+__declspec(naked) void UnitController::Cast(int, CEngineObject*, int) EI_ORIGINAL(0x00554F50)
+
+__declspec(naked) void AILookArray::Construct() EI_ORIGINAL(0x005573F0)
+__declspec(naked) void AILookArray::SetSize(int, int) EI_ORIGINAL(0x005D8EE0)
+__declspec(naked) void AILookArray::Copy(const AILookArray*) EI_ORIGINAL(0x005D8B60)
+__declspec(naked) void AILookArray::Destroy() EI_ORIGINAL(0x004CB770)
+__declspec(naked) void AILookArray::GetAt(AILook*, int) const EI_ORIGINAL(0x005D9DE0)
+__declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 
 // The perception memory at +0xD0, the report list at +0x164 and the corpse list at +0x148 are
 // separate objects; these forwarders pass the sub-object as `this`.
@@ -129,8 +144,26 @@ __declspec(naked) void AIMemory::Forget(CEngineObject*) EI_ORIGINAL(0x005CC020)
 
 struct AIReports {
     void Add(CEngineObject* object, int what);          // 005CC620
+    bool Contains(CEngineObject* object);               // 005CC560
 };
 __declspec(naked) void AIReports::Add(CEngineObject*, int) EI_ORIGINAL(0x005CC620)
+__declspec(naked) bool AIReports::Contains(CEngineObject*) EI_ORIGINAL(0x005CC560)
+
+// The brain's attention at +0xA4.
+struct AIAttention {
+    void LookAround(AIBrain* brain, int unused);        // 005CFE40
+    void Current(AIBrain* brain, int* partAndObject);   // 005CF220
+    void Choose(AIBrain* brain, int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030
+};
+__declspec(naked) void AIAttention::LookAround(AIBrain*, int) EI_ORIGINAL(0x005CFE40)
+__declspec(naked) void AIAttention::Current(AIBrain*, int*) EI_ORIGINAL(0x005CF220)
+__declspec(naked) void AIAttention::Choose(AIBrain*, int*, void*, const Vector3*, int, int) EI_ORIGINAL(0x005D0030)
+AIAttention* AttentionOf(AIBrain* brain) { return reinterpret_cast<AIAttention*>(reinterpret_cast<char*>(brain) + 0xA4); }
+
+struct AIMemoryLists {
+    void CollectEnemies(CUnit* self, void* list);       // 005CB260
+};
+__declspec(naked) void AIMemoryLists::CollectEnemies(CUnit*, void*) EI_ORIGINAL(0x005CB260)
 
 struct AICorpses {
     AIRef* PopHead(AIRef* out);                         // 005D8D50
@@ -148,6 +181,15 @@ void AIBrain::Report(CEngineObject* object, int what) {
     reinterpret_cast<AIReports*>(reports)->Add(object, what);
 }
 AIRef* AIBrain::PopCorpse(AIRef* out) { return reinterpret_cast<AICorpses*>(&corpses)->PopHead(out); }
+bool AIBrain::IsReported(CEngineObject* object) { return reinterpret_cast<AIReports*>(reports)->Contains(object); }
+void AIBrain::LookAround(int unused) { AttentionOf(this)->LookAround(this, unused); }
+void AIBrain::CurrentAttack(int* partAndObject) { AttentionOf(this)->Current(this, partAndObject); }
+void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
+    AttentionOf(this)->Choose(this, partAndObject, candidates, from, a, b);
+}
+void AIBrain::CollectEnemies(CUnit* self, void* list) {
+    reinterpret_cast<AIMemoryLists*>(memory)->CollectEnemies(self, list);
+}
 
 // --- Think ---------------------------------------------------------------------------------------
 
@@ -417,7 +459,7 @@ void AIBrain::UpdateMove() {
         }
     }
     if (actionTime == kNoTime) {
-        if (lookCount == 0) {
+        if (looks.size == 0) {
             if (target) {
                 reinterpret_cast<AIRef*>(&target)->Reset();
                 target = nullptr;
@@ -426,7 +468,7 @@ void AIBrain::UpdateMove() {
             return;
         }
         actionTime = kLookStarted;
-        AILook* look = looks;
+        AILook* look = looks.data;
         double angle = look->angle;
         Vector3 direction;
         direction.z = 0.0f;
@@ -436,12 +478,12 @@ void AIBrain::UpdateMove() {
         return;
     }
     if (actionTime == kLookStarted) {
-        if (looks->stopFirst) o->StopQueued();
-        volatile float end = static_cast<float>(GameTime()) + looks->wait;     // FILD + FADD, FSTP float
+        if (looks.data->stopFirst) o->StopQueued();
+        volatile float end = static_cast<float>(GameTime()) + looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
-        int remaining = lookCount - 1;
-        if (remaining != 0) GameMemmove(looks, looks + 1, static_cast<unsigned>(remaining) << 4);
-        --lookCount;
+        int remaining = looks.size - 1;
+        if (remaining != 0) GameMemmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);
+        --looks.size;
         return;
     }
     if (GameTime() > actionTime) actionTime = kNoTime;

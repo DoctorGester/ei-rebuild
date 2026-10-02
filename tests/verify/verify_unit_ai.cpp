@@ -241,12 +241,12 @@ EI_VERIFY(0x005D58D0, BrainObjectDeletedVerify, 0, s_unused);
 // 005D7520 UpdateMove: ours only. Afterwards the action is 0 or 2, the look count is not negative,
 // and a finished move (action 0) holds no target.
 static void __fastcall UpdateMoveVerify(AIBrain* self) {
-    int looksBefore = self->lookCount;
+    int looksBefore = self->looks.size;
     self->UpdateMove();
-    bool ok = (self->action == AIBrain::kActionNone || self->action == AIBrain::kActionMove) && self->lookCount >= 0 &&
-              self->lookCount >= looksBefore - 1 && (self->action != AIBrain::kActionNone || self->target == nullptr);
+    bool ok = (self->action == AIBrain::kActionNone || self->action == AIBrain::kActionMove) && self->looks.size >= 0 &&
+              self->looks.size >= looksBefore - 1 && (self->action != AIBrain::kActionNone || self->target == nullptr);
     ei::verify::Check("AIBrain::UpdateMove", true, ok, "brain %p action %d looks %d->%d time %d", self, self->action,
-                      looksBefore, self->lookCount, self->actionTime);
+                      looksBefore, self->looks.size, self->actionTime);
 }
 EI_VERIFY(0x005D7520, UpdateMoveVerify, 0, s_unused);
 
@@ -518,3 +518,84 @@ static void __fastcall PlayerSaveVerify(PlayerMode* self, void*, AIStream* strea
     SameSave("PlayerMode::Save", self, stream, [](PlayerMode* m, AIStream* s) { s_playerSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D4DB0, PlayerSaveVerify, 5, s_playerSave);
+
+// ---- Mode executes (ours only) -------------------------------------------------------------------
+
+namespace {
+// After an idle mode's Execute: a busy brain is left alone; an idle one either stays idle or has
+// started a move (action 2, no target, no look in progress).
+bool MoveStartedOrIdle(const AIBrain* brain, int actionBefore) {
+    if (actionBefore != AIBrain::kActionNone) return brain->action == actionBefore;
+    if (brain->action == AIBrain::kActionNone) return true;
+    return brain->action == AIBrain::kActionMove && brain->target == nullptr && brain->actionTime == AIBrain::kNoTime;
+}
+} // namespace
+
+static void __fastcall GuardExecuteVerify(GuardMode* self, void*, AIBrain* brain) {
+    int before = brain->action;
+    self->Execute(brain);
+    bool ok = MoveStartedOrIdle(brain, before) && self->failures >= 0;
+    ei::verify::Check("GuardMode::Execute", true, ok, "mode %p action %d -> %d failures %d", self, before, brain->action,
+                      self->failures);
+}
+EI_VERIFY(0x005D0BE0, GuardExecuteVerify, 0, s_unused);
+
+static void __fastcall PatrolExecuteVerify(PatrolMode* self, void*, AIBrain* brain) {
+    int before = brain->action;
+    self->Execute(brain);
+    bool ok = MoveStartedOrIdle(brain, before) && (self->pointCount == 0 || (self->current >= 0 && self->current < self->pointCount));
+    if (ok && before == AIBrain::kActionNone && self->pointCount != 0) {
+        // The move goes to the current point.
+        ok = brain->action == AIBrain::kActionMove &&
+             std::memcmp(&brain->actionPoint, &self->points[self->current].position, sizeof(Vector3)) == 0;
+    }
+    ei::verify::Check("PatrolMode::Execute", true, ok, "mode %p action %d -> %d point %d of %d", self, before, brain->action,
+                      self->current, self->pointCount);
+}
+EI_VERIFY(0x005D1700, PatrolExecuteVerify, 0, s_unused);
+
+static void __fastcall SentryExecuteVerify(SentryMode* self, void*, AIBrain* brain) {
+    int before = brain->action;
+    self->Execute(brain);
+    bool ok = MoveStartedOrIdle(brain, before);
+    if (ok && before == AIBrain::kActionNone) ok = brain->action == AIBrain::kActionMove;
+    ei::verify::Check("SentryMode::Execute", true, ok, "mode %p action %d -> %d", self, before, brain->action);
+}
+EI_VERIFY(0x005D1B70, SentryExecuteVerify, 0, s_unused);
+
+static void __fastcall SuspectionExecuteVerify(SuspectionMode* self, void*, AIBrain* brain) {
+    int before = brain->action;
+    self->Execute(brain);
+    // Either unchanged, or a (new) move without a target.
+    bool ok = brain->action == before || (brain->action == AIBrain::kActionMove && brain->target == nullptr);
+    ei::verify::Check("SuspectionMode::Execute", true, ok, "mode %p action %d -> %d level %d", self, before, brain->action,
+                      self->level);
+}
+EI_VERIFY(0x005D1F80, SuspectionExecuteVerify, 0, s_unused);
+
+static void __fastcall SuspectionEnterVerify(SuspectionMode* self, void*, AIBrain* brain) {
+    self->Enter(brain);
+    bool ok = brain->owner->busy == 1 && brain->action == AIBrain::kActionMove && brain->target == nullptr &&
+              brain->actionTime == AIBrain::kNoTime;
+    ei::verify::Check("SuspectionMode::Enter", true, ok, "mode %p action %d", self, brain->action);
+}
+EI_VERIFY(0x005D21A0, SuspectionEnterVerify, 0, s_unused);
+
+static int __fastcall AggressionEvaluateVerify(AggressionMode* self, void*, AIBrain* brain) {
+    int result = self->Evaluate(brain);
+    bool ok = (result == 10000 && self->chosen != nullptr && self->enemy == self->chosen) ||
+              (result == -1000 && self->chosen == nullptr);
+    ei::verify::Check("AggressionMode::Evaluate", true, ok, "mode %p result %d chosen %p enemy %p fixed %d", self, result,
+                      self->chosen, self->enemy, self->fixed);
+    return result;
+}
+EI_VERIFY(0x005D2390, AggressionEvaluateVerify, 0, s_unused);
+
+static void __fastcall AggressionExecuteVerify(AggressionMode* self, void*, AIBrain* brain) {
+    int before = brain->action;
+    self->Execute(brain);
+    bool ok = brain->action == before || brain->action == AIBrain::kActionAttack || brain->action == AIBrain::kActionCast;
+    ei::verify::Check("AggressionMode::Execute", true, ok, "mode %p action %d -> %d part %d", self, before, brain->action,
+                      self->enemyPart);
+}
+EI_VERIFY(0x005D2580, AggressionExecuteVerify, 0, s_unused);
