@@ -46,6 +46,31 @@ static void LoadVerifiedList() {
     std::fclose(f);
 }
 
+// Functions listed in disabled.txt (next to the DLL, from tests/verify/disabled.txt) are not hooked
+// at all: the original runs. For rewrites found broken in game, until they are fixed.
+static std::vector<std::uintptr_t> g_disabled;
+
+static void LoadDisabledList() {
+    char path[MAX_PATH];
+    HMODULE self = nullptr;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&LoadDisabledList), &self);
+    GetModuleFileNameA(self, path, MAX_PATH);
+    if (char* slash = std::strrchr(path, '\\')) strcpy_s(slash + 1, path + MAX_PATH - (slash + 1), "disabled.txt");
+    FILE* f = nullptr;
+    if (fopen_s(&f, path, "r") != 0 || !f) return;
+    char line[256];
+    while (std::fgets(line, sizeof(line), f)) {
+        unsigned long a = std::strtoul(line, nullptr, 16);
+        if (a) g_disabled.push_back(a);
+    }
+    std::fclose(f);
+}
+
+static bool IsDisabled(std::uintptr_t address) {
+    return std::find(g_disabled.begin(), g_disabled.end(), address) != g_disabled.end();
+}
+
 static bool IsVerified(std::uintptr_t address) {
     return std::find(g_verified.begin(), g_verified.end(), address) != g_verified.end();
 }
@@ -162,11 +187,14 @@ int InstallHooks() {
 
     DumpPatchedFunctions(file);
     LoadVerifiedList();
+    LoadDisabledList();
+    if (!g_disabled.empty()) Log("%u function(s) disabled (disabled.txt): the original runs", unsigned(g_disabled.size()));
     if (!g_verified.empty()) Log("%u function(s) marked verified: running without verify wrappers", unsigned(g_verified.size()));
 
     int installed = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
         if (h->verify ? IsVerified(h->address) : HasVerifyEntry(h->address)) continue;
+        if (IsDisabled(h->address)) continue;
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = FileBytesAt(file, h->address);
         std::uint32_t size = FunctionSizeAt(h->address);

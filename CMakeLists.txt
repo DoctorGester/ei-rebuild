@@ -35,6 +35,7 @@ target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
 add_executable(ei_launch tools/launcher/launch.cpp)
 target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
 
-# Functions already verified in game run without their verify wrappers.
+# Functions already verified in game run without their verify wrappers; disabled ones are not hooked.
 add_custom_command(TARGET ei_hook POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/tests/verify/verified.txt $<TARGET_FILE_DIR:ei_hook>/verified.txt)
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/tests/verify/verified.txt $<TARGET_FILE_DIR:ei_hook>/verified.txt
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/tests/verify/disabled.txt $<TARGET_FILE_DIR:ei_hook>/disabled.txt)
