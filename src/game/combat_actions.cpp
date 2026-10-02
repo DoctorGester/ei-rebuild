@@ -236,7 +236,6 @@ __declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, A
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 __declspec(naked) void __fastcall ActionClear(UnitAction*) EI_ORIGINAL(0x00545F40)
 
-__declspec(naked) void CUnitServer::FinishCast() EI_ORIGINAL(0x0054EE10)
 __declspec(naked) void CUnitServer::ClaimHostility(CUnit*, std::uint32_t) EI_ORIGINAL(0x00552D00)
 __declspec(naked) void CUnitServer::BuildDeathAnimation(void*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)
 
@@ -276,8 +275,9 @@ void CUnitServer::FinishAction(int location, char) {
         CEngineObject* target = action.target;
         if (!target || target->GetClassId() != kClassUnit) return;
         if (location >= 6) return;
-        // The kind (+0xE0 of the 0xF4-byte slot) of the target's body part `location`: 3 means
-        // the part is missing and the order's location becomes "all".
+        // The kind (+0xE0 of the 0xF4-byte slot) of the target's body part `location`: 3 means it
+        // can still be aimed at (OrderAttack aims at "all" otherwise); when it is no longer 3 the
+        // order aimed at it now aims at "all" (6).
         const char* slots = reinterpret_cast<const char*>(static_cast<CUnit*>(target)->controller) + 0x3D0;
         if (*reinterpret_cast<const int*>(slots + location * 0xF4) == 3) return;
         if (location != static_cast<int>(action.source)) return;
@@ -286,7 +286,7 @@ void CUnitServer::FinishAction(int location, char) {
     }
     case 4:
     case 5:
-        FinishCast();
+        CallFinishCast();
         break;
     case 6:
         CallUseSkill(action.target);

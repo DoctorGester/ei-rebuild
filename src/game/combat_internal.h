@@ -26,6 +26,15 @@ inline CEngineObject* ServerObjectOf(CUnit* unit) {
 }
 inline void* ServerStatsOf(CUnit* unit) { return reinterpret_cast<char*>(ServerObjectOf(unit)) + 0x20; }
 
+// Forwarders defined in combat_actions.cpp (__fastcall with the unused EDX for __thiscall).
+// 0058E850. CWorldServer: casts `spell` from `caster` at `from` on `target` at `at`.
+void __fastcall WorldCastSpell(void* world, void*, void* spell, CUnit* caster, const float* from,
+                               CEngineObject* target, const void* at, int);
+// 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
+void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code);
+// 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source`.
+void __fastcall AIEventsNoise(void* events, void*, CUnitServer* source, float loudness, int kind, int);
+
 // Forwarders defined in combat.cpp.
 // 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
 void __fastcall StatsRecompute(UnitStats*, void*, void*, CUnit*);

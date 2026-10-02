@@ -180,8 +180,8 @@ public:
 
     // combat_actions.cpp: the end of an action, missiles, item spells, death, healing, skills.
     // 00549EC0. Called when the animation of the current order reaches its moment: an attack
-    // (kind 3) delivers pendingHit (and a hit at a body part the target lacks turns the order's
-    // location into "all", 6), a cast (4, 5) finishes, a skill or use (6) is applied, a quick item
+    // (kind 3) delivers pendingHit (and when the target's body part `location` can no longer be
+    // aimed at, slot kind not 3, an order aimed at it aims at "all", 6), a cast (4, 5) finishes, a skill or use (6) is applied, a quick item
     // of category 2 (10) is used up. All but attacks then clear the order. The second argument is
     // not read.
     void FinishAction(int location, char unused);
@@ -226,6 +226,32 @@ public:
     // map; when dying, also removes and releases the effect object at +0x17C.
     void SetDead(int dead);
 
+    // 0054EE10. Finishes the cast of the current order (kinds 4 and 5): a carrier pays from its
+    // charge (not enough: nothing is cast), a party unit's spell from its mana (clamped to
+    // 0..maximum); the spell goes at the target (its aim point) or the order's point, with noise
+    // unless the spell's prototype +0x10 is 1. The order's source becomes -1.
+    void FinishCast();
+    // Order setters: each replaces the queued order (+0x1B4), as the AI and the player's commands
+    // ask for them (unit_ai.h names them from the caller's side).
+    // 005546B0. Kind 2 (turn) towards `direction`; +0x1C = `time`.
+    void OrderTurn(const float* direction, std::uint32_t time);
+    // 00554740. Kind 1 (move) to `point`: source = `walk` != 0 (low byte), +0x20 = `run` (low
+    // byte), the point's z replaced by `z` (sic). A party unit with a real point (z not -1312)
+    // either has +0x1C set to 1 (the world's +0x6C byte clear) or turns there (00554830).
+    void OrderMove(const float* point, int run, int walk, std::uint32_t z);
+    // 00554B30. Kind 3 (attack) on `target` (not null, not the unit itself) at body part
+    // `location` (6, all, unless the target's part kind is 3); +0x20 = `calledShot`. Dropped when
+    // the target is out of reach (message 0x0C to the party) or the planner (0054E600) refuses.
+    void OrderAttack(CEngineObject* target, int location, int calledShot, int planArg);
+    // 00554D00. Kind 4 (cast at a point). A scroll (quick item of category 8) is cast at once.
+    // A party unit needs the spell's skill (+0x50) for a spell of its own; message 0x13 if not,
+    // or while flags_ has 0x10000000.
+    void OrderCastAt(std::uint32_t source, const float* point, int run);
+    // 00554F50. Kind 5 (cast at `target`), as OrderCastAt.
+    void OrderCast(std::uint32_t source, CEngineObject* target, int run);
+    // 00555200. Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
+    void StopQueued();
+
     // The same functions called through the game's addresses (EI_ORIGINAL), so that the verify
     // build's wrappers see the calls between the rewrites.
     void CallDeliverAttack(CEngineObject* target, DamageInfo* hit);
@@ -242,9 +268,13 @@ public:
     // The queued order's reset that Idle and FinishAction share: kind 9 and cleared, then kind 0.
     void DropQueuedOrder();
 
+    void CallFinishCast();
+
     // Not rewritten (forwarders):
-    // 0054EE10. Finishes the cast of the current order (kinds 4 and 5).
-    void FinishCast();
+    // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
+    void TurnTo(const float* point, int walk, int run, std::uint32_t z);
+    // 0054E600. Plans the order `order` (paths, reach); false when it cannot be carried out.
+    bool PlanOrder(UnitAction* order, int arg);
     // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
     void ClaimHostility(CUnit* claimant, std::uint32_t mask);
     // 00550A80. Fills `animation` (a CArray of 0xC-byte entries) for death in `direction`.
