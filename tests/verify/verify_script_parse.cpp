@@ -13,6 +13,7 @@
 #include "../../src/game/script_parse.h"
 #include "../../src/lib/crt.h"
 
+#include <cstdarg>
 #include <cstring>
 #include <new>
 #include <string>
@@ -157,6 +158,21 @@ bool EndsWithClose(const ScriptTokenList* tokens, ScriptPos pos) {
 }
 
 } // namespace
+
+// ---- Errors -------------------------------------------------------------------------------------
+
+// 004CF470 (Rebirth patches it: vanilla only). Variadic, so ours only: the result is 0 and the
+// error fields hold the arguments.
+static int __cdecl ErrorVerify(CScript* self, int line, int code, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int result = ScriptErrorV(self, line, code, format, args);
+    va_end(args);
+    bool ok = result == 0 && self->ErrorLine() == line && self->ErrorCode() == code;
+    ei::verify::Check("CScript::Error", true, ok, "%d %d \"%s\"", line, code, static_cast<const char*>(self->ErrorText()));
+    return result;
+}
+EI_VERIFY(0x004CF470, ErrorVerify, 0, s_unused);
 
 // ---- Keyword lookup (Rebirth patches these: vanilla only) ----------------------------------------
 

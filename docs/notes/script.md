@@ -201,6 +201,7 @@ sized from the signature up front (the game's inlined CArray::SetSize).
 
 | Address | Name | Verification |
 |---|---|---|
+| 004CF470 | CScript::Error (Rebirth patches it: vanilla only) | ours only (variadic): result 0, code and line stored |
 | 004CF600 | ClassifyToken (Rebirth patches it: vanilla only) | pure, side by side (id, rest) |
 | 004D0B10 | FunctionSignature (Rebirth patches it) | pure |
 | 004D0BA0 | KeywordName (Rebirth patches it) | pure |
@@ -225,7 +226,7 @@ sized from the signature up front (the game's inlined CArray::SetSize).
 | 004D36F0 | CScript::LoadFile | ours only, as Load |
 
 Calls between loader functions go through the original addresses: under Rebirth the patched ones
-(LoadFunction, LoadCommands, the keyword lookups, Error) keep Rebirth's version, and in verify
+(Error, LoadFunction, LoadCommands, the keyword lookups) keep Rebirth's version, and in verify
 builds every callee runs through its own wrapper. LoadFunction calls itself directly (through its
 wrapper the tree would be parsed 2^depth times). The keyword table is read from ClassifyToken's code
 (the immediate at 004CF69B, which Rebirth points at its extended table); the vanilla value is
@@ -236,7 +237,7 @@ the second call writes the same text, code and line again.
 
 ## Forwarders added (standalone build must replace)
 
-- CScript: 004CF470 Error (Rebirth patches it), 004BF540 NewCommandList, 004BF900 NewWorldScript,
+- CScript: 004CF470 Error (called through its address: Rebirth patches it), 004BF540 NewCommandList, 004BF900 NewWorldScript,
   004BCC60 RunWorldScript; 004D5880 reads a text file (CStdioFile).
 - SSCCmd: 004B5F70 Clear, 004BF640 destructor. ScriptDefinition: 004BB800 AddParameter,
   004D3320 Reset, 004BE9D0 destructor. ScriptVars: 004C00D0 constructor, 004BE090 destructor,
@@ -270,7 +271,6 @@ the second call writes the same text, code and line again.
 
 ## Skipped
 
-- 004CF470 CScript::Error: Rebirth patches it; forwarder.
 - 004D3320 (definition reset) and the CArray/CList template members listed above.
 - 004D38F0 / 004D38B0 (strip the `!n!` prefix) and the script dumper 004D39D0, 004D41C0
   (Rebirth patches it), 004D4E80, 004D50C0, 004D5310, 004D53C0 (writes definitions back as text).

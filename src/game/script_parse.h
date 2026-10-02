@@ -36,6 +36,11 @@ inline int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(s
 // A string constant of game.exe (messages are passed by their original address).
 inline const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
+// 004CF470: formats the error message into the CScript's error text and sets code and line;
+// returns 0. (CScript::Error forwards to the original address.)
+int ScriptErrorV(CScript* script, int line, int code, const char* format, char* args);
+int __cdecl ScriptError(CScript* script, int line, int code, const char* format, ...);
+
 // Loader functions called through their original addresses.
 void __fastcall ClassifyAt(const char* text, int* id, int* rest);   // 004CF600
 const char* __fastcall SignatureAt(int id, int type);               // 004D0B10

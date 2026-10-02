@@ -10,6 +10,9 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
+
+#include <cstdarg>
 
 #include <cstring>
 #include <new>
@@ -71,6 +74,27 @@ typename List::Node* TakeNode(List* list) {
 }
 
 } // namespace
+
+// ---- Errors -------------------------------------------------------------------------------------
+
+int scriptparse::ScriptErrorV(CScript* script, int line, int code, const char* format, va_list args) {
+    char text[0x400];
+    gameapi::wvsprintfA(text, format, args);
+    script->ErrorLine() = line;
+    script->ErrorText() = text;
+    script->ErrorCode() = code;
+    return 0;
+}
+
+// 004CF470 (Rebirth patches it: vanilla only). CScript::Error calls the original address.
+int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int result = ScriptErrorV(script, line, code, format, args);
+    va_end(args);
+    return result;
+}
+EI_REPLACE(0x004CF470, ScriptError);
 
 // ---- Keyword table ------------------------------------------------------------------------------
 
