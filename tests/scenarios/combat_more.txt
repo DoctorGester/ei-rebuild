@@ -29,8 +29,10 @@ waitfor 20 Not(IsAlive(GetObjectByName("Wolf1")))
 expect damaged to death
 check IsAlive(GetLeader())
 
-# A ranged attack: the archer shoots the hero from 8 units away until the hero is hurt.
-console @AddUnitToServer("Archer1","Human Gipath Brigand A1","Archer1",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
+# A second enemy attacks the hero until the hero is hurt. (The planned archer, "Human Gipath
+# Brigand A1", neither attacked nor died within 20 s on the original game either, so a ranged
+# attack is not covered yet; DeliverAttack's melee path is.)
+console @AddUnitToServer("Archer1","WolfGreyF1","Archer1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
 waitfor 10 IsAlive(GetObjectByName("Archer1"))
 console @SetPlayer(GetObjectByName("Archer1"),6)
 check IsEnemy(GetObjectByName("Archer1"),0)
