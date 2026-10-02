@@ -25,3 +25,14 @@ static bool __fastcall IsPassableVerify(CAIMap* self, void*, CUnit* unit, int x,
     return expected;
 }
 EI_VERIFY(0x005B79D0, IsPassableVerify, 8, s_isPassable);
+
+// 005BC3E0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x34 (6 bytes). No side effects.
+static float(__fastcall* s_lineOfSight)(CAIMap*, void*, const Vector3*, const Vector3*);
+
+static float __fastcall LineOfSightVerify(CAIMap* self, void*, const Vector3* from, const Vector3* to) {
+    float expected = s_lineOfSight(self, nullptr, from, to);
+    ei::verify::Check("CAIMap::LineOfSight", expected, self->LineOfSight(from, to), "(%g %g %g)->(%g %g %g)", from->x,
+                      from->y, from->z, to->x, to->y, to->z);
+    return expected;
+}
+EI_VERIFY(0x005BC3E0, LineOfSightVerify, 6, s_lineOfSight);
