@@ -19,7 +19,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 
 | Forwarder | Where | Replace with |
 |---|---|---|
-| `Terrain::HeightAt` 006C8680, `Terrain::GroundAndWaterDepth` 006C8930 | `src/game/terrain.cpp` | rewrite |
+| `Terrain::SectorAt` 006C8140, `Terrain::GroundAndWaterDepth` 006C8930 | `src/game/terrain.cpp` | rewrite |
 | `ConstructMappedResource` 00671280, `ConstructMmioResource` 006721D0 | `src/game/resource_manager.cpp` | real constructors |
 | `stlp` node allocator 00405950 / 00404D70 | `src/lib/stlp.cpp` | own pool or `std::allocator` (see below) |
 | `gamecrt::*` (operator new/delete, tolower, toupper, strnicmp, stricmp, strncpy, isalpha, sprintf, rand, open/lseek/read/write/close) | `src/lib/crt.*` | modern CRT, after confirming identical results (see below) |
@@ -59,6 +59,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 - STLport `hash_map<void*, ...>` iteration order depends on pointer values, so allocation order can
   change the order in which `CMappedResource::FreeAllFiles` frees files. Harmless so far, but check
   before swapping allocators.
+- `x87::fistp` rounds with the FPU's current mode (used by `Terrain::HeightAt`); a C++ cast truncates.
 - x87 maths (`/arch:IA32 /fp:fast`, `include/ei/x87.h`) and the FPU control word the game runs with
   (Direct3D sets single precision) must stay the same, or float results drift.
 

@@ -26,4 +26,14 @@ __declspec(naked) inline double __cdecl fsqrt(double) {
     __asm ret
 }
 
+// FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default), unlike
+// a C++ cast, which truncates.
+__declspec(naked) inline int __cdecl fistp(float) {
+    __asm sub esp, 4
+    __asm fld dword ptr [esp + 8]
+    __asm fistp dword ptr [esp]
+    __asm pop eax
+    __asm ret
+}
+
 } // namespace x87
