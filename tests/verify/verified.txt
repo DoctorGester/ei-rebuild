@@ -11,3 +11,7 @@
 006725E0 CMMIOResource::GetFile  100k calls
 00671B40 CMappedResource::GetFile   1k+ map consistency checks in map
 00671E00 CMappedResource::CloseFile 1k+ map consistency checks in map
+006C8680 Terrain::HeightAt          1M calls in map
+006C85A0 Terrain::VertexAt          10M calls in map
+006BE3A0 PlaneHeight                1M calls in map
+00403F40 CBaseManager::FindObject   100k calls in map
