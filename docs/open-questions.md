@@ -18,3 +18,5 @@ Things to come back to. Remove an entry once it is resolved.
 - **Exit from the main menu hangs** when the game is launched through `ei_launch` (reported
   2026-10-02). Possibly a crash at shutdown with Rebirth's error box hidden behind the fullscreen
   window. Check `starter\Dumps` after an exit, and look again when startup/shutdown code is rewritten.
+  The vanilla launch (`launch-vanilla.cmd`) exited cleanly with all hooks active on 2026-10-02, so
+  the hang is likely Rebirth-specific.
