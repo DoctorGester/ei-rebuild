@@ -46,6 +46,9 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
+// Arranges for InstallHooks() to run when game.exe's WinMain is entered (after other mods patch).
+void InstallHooksAtWinMain();
+
 } // namespace ei
 
 // Replace the function at `addr` with a free function or static function.

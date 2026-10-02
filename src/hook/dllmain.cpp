@@ -32,8 +32,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         GetModuleFileNameA(module, ei::g_logPath, MAX_PATH);
         if (char* dot = strrchr(ei::g_logPath, '.')) strcpy_s(dot, 5, ".log");
         ei::Log("ei_hook loaded into pid %lu", GetCurrentProcessId());
-        int n = ei::InstallHooks();
-        ei::Log("%d hook(s) installed", n);
+        ei::InstallHooksAtWinMain();
     }
     return TRUE;
 }

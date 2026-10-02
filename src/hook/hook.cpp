@@ -4,6 +4,8 @@
 #include <windows.h>
 
 #include <cstdio>
+#include <algorithm>
+#include <iterator>
 #include <vector>
 
 namespace ei {
@@ -58,6 +60,21 @@ static bool ReadExeFromDisk(std::vector<unsigned char>& out) {
     return ok;
 }
 
+struct FunctionSize {
+    std::uintptr_t address;
+    std::uint32_t size;
+};
+static const FunctionSize kFunctionSizes[] = {
+#include "function_sizes.inc"
+};
+
+static std::uint32_t FunctionSizeAt(std::uintptr_t address) {
+    const FunctionSize* end = kFunctionSizes + std::size(kFunctionSizes);
+    const FunctionSize* it = std::lower_bound(kFunctionSizes, end, address,
+        [](const FunctionSize& f, std::uintptr_t a) { return f.address < a; });
+    return it != end && it->address == address ? it->size : 0;
+}
+
 // The .text section has identical file and virtual layout (raw 0x1000 == VA 0x1000).
 static const unsigned char* FileBytesAt(const std::vector<unsigned char>& file, std::uintptr_t va) {
     std::uintptr_t off = va - kImageBase;
@@ -84,10 +101,18 @@ int InstallHooks() {
         if (!h->verify && HasVerifyEntry(h->address)) continue;
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = FileBytesAt(file, h->address);
-        // Another mod (e.g. Rebirth's addon.dll) may already have patched this function.
-        if (!orig || std::memcmp(target, orig, 5) != 0) {
-            Log("SKIP %s at %08X: code in memory differs from game.exe on disk (patched by another mod?)",
-                h->name, static_cast<unsigned>(h->address));
+        std::uint32_t size = FunctionSizeAt(h->address);
+        if (!orig || size < 5) {
+            Log("SKIP %s at %08X: not a known function start", h->name, static_cast<unsigned>(h->address));
+            continue;
+        }
+        // Another mod (e.g. Rebirth's addon.dll) may have patched code anywhere in the body; replacing
+        // the function would silently drop that patch.
+        std::uint32_t diff = 0;
+        while (diff < size && target[diff] == orig[diff]) ++diff;
+        if (diff < size) {
+            Log("SKIP %s at %08X: byte +0x%X differs from game.exe on disk (patched by another mod)",
+                h->name, static_cast<unsigned>(h->address), diff);
             continue;
         }
         if (h->stolen > 0) {
@@ -109,6 +134,45 @@ int InstallHooks() {
         ++installed;
     }
     return installed;
+}
+
+// Hooks are installed when WinMain starts, not when the DLL loads: Rebirth's addon applies its own
+// patches from a hook on the WinMain call, and they must be in place before we compare bytes.
+static constexpr std::uintptr_t kWinMain = 0x00456440;
+static unsigned char g_winMainBytes[5];
+
+static void __stdcall OnWinMain() {
+    DWORD old;
+    auto* p = reinterpret_cast<unsigned char*>(kWinMain);
+    VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
+    std::memcpy(p, g_winMainBytes, 5);
+    VirtualProtect(p, 5, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, 5);
+    Log("%d hook(s) installed", InstallHooks());
+}
+
+__declspec(naked) static void WinMainStub() {
+    __asm {
+        pushad
+        pushfd
+        call OnWinMain
+        popfd
+        popad
+        mov eax, 0x00456440
+        jmp eax
+    }
+}
+
+void InstallHooksAtWinMain() {
+    auto* p = reinterpret_cast<unsigned char*>(kWinMain);
+    DWORD old;
+    VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
+    std::memcpy(g_winMainBytes, p, 5);
+    p[0] = 0xE9;
+    std::int32_t rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(&WinMainStub) - (kWinMain + 5));
+    std::memcpy(p + 1, &rel, 4);
+    VirtualProtect(p, 5, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, 5);
 }
 
 } // namespace ei
