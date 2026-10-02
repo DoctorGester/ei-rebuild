@@ -110,6 +110,12 @@ static const unsigned char* FileBytesAt(const std::vector<unsigned char>& file, 
 }
 
 int InstallHooks() {
+    // EI_NO_HOOKS=1 (ei_launch --no-hooks): run the original code only, as a baseline for harness runs.
+    char noHooks[4];
+    if (GetEnvironmentVariableA("EI_NO_HOOKS", noHooks, sizeof(noHooks)) && noHooks[0] == '1') {
+        Log("EI_NO_HOOKS set: running the original game code");
+        return 0;
+    }
     auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(kImageBase);
     auto* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(kImageBase + dos->e_lfanew);
     if (nt->FileHeader.TimeDateStamp != kExpectedTimestamp) {

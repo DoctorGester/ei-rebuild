@@ -29,7 +29,8 @@ if(EI_VERIFY)
     target_sources(ei_hook PRIVATE ${EI_VERIFY_SOURCES})
 endif()
 # Hooks register themselves via static objects; keep them even if nothing references them.
-target_link_options(ei_hook PRIVATE /OPT:NOREF)
+# /MAP: ei_hook.map lets the harness crash log (ei_hook+offset) be resolved to functions.
+target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
 
 add_executable(ei_launch tools/launcher/launch.cpp)
 target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)

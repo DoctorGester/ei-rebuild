@@ -184,7 +184,7 @@ static void __fastcall RefLoadVerify(ScriptObjectRef* self, void*, ScriptStream*
 EI_VERIFY(0x004B2590, RefLoadVerify, 7, s_refLoad);
 
 // Save: both write into capture streams; the original's bytes then go to the real stream.
-// 004B25F0: PUSH ECX; MOV EAX,[ECX]; MOV [ESP],-1 (10 bytes).
+// 004B25F0: PUSH ECX; MOV EAX,[ECX]; MOV [ESP+0],-1 (11 bytes; the last one has a disp8).
 static void(__fastcall* s_refSave)(const ScriptObjectRef*, void*, ScriptStream*);
 static void __fastcall RefSaveVerify(const ScriptObjectRef* self, void*, ScriptStream* stream) {
     CaptureStream expected, actual;
@@ -193,7 +193,7 @@ static void __fastcall RefSaveVerify(const ScriptObjectRef* self, void*, ScriptS
     ei::verify::Check("ScriptObjectRef::Save", true, expected.bytes == actual.bytes && expected.chunks == actual.chunks, "%p", self->object);
     expected.Forward(stream);
 }
-EI_VERIFY(0x004B25F0, RefSaveVerify, 10, s_refSave);
+EI_VERIFY(0x004B25F0, RefSaveVerify, 11, s_refSave);
 
 // ---- ScriptGroup --------------------------------------------------------------------------------
 
