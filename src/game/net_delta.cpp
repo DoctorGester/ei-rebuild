@@ -1,0 +1,307 @@
+// Delta replication of object state. See net_delta.h.
+#include "net_delta.h"
+
+#include "ei/hook.h"
+#include "ei/vcall.h"
+
+#include <cstring>
+
+// --- BitStream ---------------------------------------------------------------------------------
+
+namespace {
+constexpr int kSlotRead = 1;
+constexpr int kSlotWrite = 2;
+constexpr int kSlotSeek = 3;
+constexpr int kSlotSize = 4;
+constexpr int kSlotPosition = 5;
+
+std::uint32_t Word(const std::uint8_t* p) {
+    std::uint32_t w;
+    std::memcpy(&w, p, sizeof(w));
+    return w;
+}
+} // namespace
+
+std::uint32_t BitStream::Read(void* data, std::uint32_t size) { return ei::VCall<std::uint32_t>(this, kSlotRead, data, size); }
+void BitStream::Write(const void* data, std::uint32_t size) { ei::VCall<void>(this, kSlotWrite, data, size); }
+void BitStream::Seek(std::uint32_t position) { ei::VCall<void>(this, kSlotSeek, position); }
+std::uint32_t BitStream::Size() { return ei::VCall<std::uint32_t>(this, kSlotSize); }
+std::uint32_t BitStream::Position() { return ei::VCall<std::uint32_t>(this, kSlotPosition); }
+
+__declspec(naked) void BitStream::StartByte() EI_ORIGINAL(0x004A5610)
+__declspec(naked) void BitStream::EndBits() EI_ORIGINAL(0x004A5650)
+__declspec(naked) void BitStream::Resize(std::uint32_t) EI_ORIGINAL(0x004A54D0)
+__declspec(naked) void BitStream::ReadString(void*) EI_ORIGINAL(0x00461190)
+
+void BitStream::PutBit(bool bit) {
+    mask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(mask_) << 1);
+    if (mask_ > 0x80) StartByte();   // sets mask_ to 1
+    if (bit) bits_ |= static_cast<std::uint8_t>(mask_);
+}
+EI_REPLACE_METHOD(0x0047DFC0, BitStream::PutBit);
+
+bool BitStream::GetBit() {
+    mask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(mask_) << 1);
+    if (mask_ > 0x80) {
+        mask_ = 1;
+        Read(&bits_, 1);
+    }
+    return (mask_ & static_cast<std::int8_t>(bits_)) != 0;
+}
+
+// --- Channel writers ---------------------------------------------------------------------------
+
+namespace delta {
+
+void __fastcall WriteRaw(const void* data, std::uint32_t size, BitStream* out) {
+    const auto* p = static_cast<const std::uint8_t*>(data);
+    std::uint32_t rest = size;
+    out->PutBit(false);
+    if (static_cast<int>(size) > 3) {
+        std::uint32_t words = size >> 2;
+        rest = size - words * 4;
+        do {
+            out->PutBit(false);
+            out->Write(p, 4);
+            p += 4;
+        } while (--words);
+    }
+    out->Write(p, rest);
+}
+EI_REPLACE(0x0047E6D0, WriteRaw);
+
+void __fastcall WriteDiff(const void* old, const void* data, std::uint32_t size, BitStream* out) {
+    if (std::memcmp(old, data, size) == 0) {
+        out->PutBit(true);
+        return;
+    }
+    out->PutBit(false);
+    const auto* p = static_cast<const std::uint8_t*>(data);
+    std::uint32_t rest = size;
+    if (static_cast<int>(size) > 3) {
+        std::ptrdiff_t toOld = static_cast<const std::uint8_t*>(old) - p;
+        std::uint32_t words = size >> 2;
+        rest = size - words * 4;
+        do {
+            if (Word(p + toOld) == Word(p)) {
+                out->PutBit(true);
+            } else {
+                out->PutBit(false);
+                out->Write(p, 4);
+            }
+            p += 4;
+        } while (--words);
+    }
+    out->Write(p, rest);
+}
+EI_REPLACE(0x0047E5E0, WriteDiff);
+
+// Without a snapshot to compare with (it is shorter than position + size) everything is sent and
+// appended to the snapshot. Otherwise a 1 bit means "all unchanged"; else a 0 bit and, per 4-byte
+// word, 1 (unchanged) or 0 and the word, then the remaining bytes as they are. With
+// `keepSnapshot` the snapshot is updated in place; it is advanced past the bytes either way.
+void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+                                  BitStream* out) {
+    std::uint32_t end = snapshot->Position() + size;
+    if (snapshot->Size() < end) {
+        WriteRaw(data, size, out);
+        snapshot->Write(data, size);
+        return;
+    }
+    std::uint8_t* buffer = snapshot->data_;
+    std::uint8_t* current = buffer + snapshot->Position();
+    WriteDiff(current, data, size, out);
+    if (keepSnapshot) std::memcpy(current, data, size);
+    snapshot->Seek(snapshot->Position() + size);
+}
+EI_REPLACE(0x0047E740, WriteDeltaChannel);
+
+} // namespace delta
+
+// --- DeltaField --------------------------------------------------------------------------------
+
+namespace {
+void RewindAndEmpty(DeltaField* field) {
+    field->snapshot[0].Seek(0);
+    field->snapshot[1].Seek(0);
+    field->out[0].Resize(0);
+    field->out[1].Resize(0);
+}
+
+void SetKeep(int channel1Only) {
+    if (!channel1Only) {
+        delta::KeepSnapshot0() = 1;
+        delta::KeepSnapshot1() = 1;
+    } else {
+        delta::KeepSnapshot0() = 0;
+        delta::KeepSnapshot1() = 1;
+    }
+}
+
+void StartRead(DeltaField* field, int second, BitStream* reader) {
+    field->snapshot[0].Seek(0);
+    field->snapshot[1].Seek(0);
+    delta::ReadSnapshot() = second ? &field->snapshot[1] : &field->snapshot[0];
+    delta::Reader() = reader;
+}
+} // namespace
+
+int DeltaField::BeginWriteA(int channel1Only) {
+    RewindAndEmpty(this);
+    SetKeep(channel1Only);
+    return channel1Only ? channel1Only : 1;
+}
+EI_REPLACE_METHOD(0x0047DB70, DeltaField::BeginWriteA);
+
+DeltaField* DeltaField::BeginWriteB(int channel1Only) {
+    RewindAndEmpty(this);
+    SetKeep(channel1Only);
+    return this;
+}
+EI_REPLACE_METHOD(0x0047FA40, DeltaField::BeginWriteB);
+
+std::uintptr_t DeltaField::BeginReadA(int second, BitStream* reader) {
+    StartRead(this, second, reader);
+    return second ? static_cast<std::uintptr_t>(second) : reinterpret_cast<std::uintptr_t>(reader);
+}
+EI_REPLACE_METHOD(0x0047DBD0, DeltaField::BeginReadA);
+
+DeltaField* DeltaField::BeginReadB(int second, BitStream* reader) {
+    StartRead(this, second, reader);
+    return this;
+}
+EI_REPLACE_METHOD(0x0047FAA0, DeltaField::BeginReadB);
+
+void DeltaField::EndField() {
+    if (delta::ReadSnapshot()) {
+        delta::Reader()->EndBits();
+        delta::ReadSnapshot() = nullptr;
+        delta::Reader() = nullptr;
+        return;
+    }
+    out[0].EndBits();
+    out[1].EndBits();
+    if (delta::KeepSnapshot0()) snapshot[0].Resize(snapshot[0].Position());
+    if (delta::KeepSnapshot1()) snapshot[1].Resize(snapshot[1].Position());
+}
+EI_REPLACE_METHOD(0x0047DC20, DeltaField::EndField);
+EI_REPLACE_METHOD(0x0047FAF0, DeltaField::EndField);   // byte-identical copy
+
+void DeltaField::WriteDelta(const void* data, std::uint32_t size) {
+    delta::WriteDeltaChannel(&snapshot[0], data, size, delta::KeepSnapshot0(), &out[0]);
+    delta::WriteDeltaChannel(&snapshot[1], data, size, delta::KeepSnapshot1(), &out[1]);
+}
+EI_REPLACE_METHOD(0x0047DCA0, DeltaField::WriteDelta);
+
+// The bytes come from the snapshot read against (all unchanged, or per unchanged word) or from the
+// reader. When anything changed the result is also written to snapshot[1] at the same place.
+void DeltaField::ReadDelta(void* data, std::uint32_t size) {
+    std::uint32_t position = delta::ReadSnapshot()->Position();
+    BitStream* reader = delta::Reader();
+    const std::uint8_t* current = delta::ReadSnapshot()->data_ + position;
+    auto* p = static_cast<std::uint8_t*>(data);
+    if (reader->GetBit()) {
+        std::memcpy(p, current, size);
+    } else {
+        std::uint32_t rest = size;
+        if (static_cast<int>(size) > 3) {
+            std::ptrdiff_t toCurrent = current - p;
+            std::uint32_t words = size >> 2;
+            rest = size - words * 4;
+            do {
+                if (reader->GetBit()) std::memcpy(p, p + toCurrent, 4);
+                else reader->Read(p, 4);
+                p += 4;
+            } while (--words);
+        }
+        reader->Read(p, rest);
+        snapshot[1].Seek(position);
+        snapshot[1].Write(data, size);
+    }
+    delta::ReadSnapshot()->Seek(position + size);
+}
+EI_REPLACE_METHOD(0x0047E000, DeltaField::ReadDelta);
+
+void DeltaField::WriteBoth(const void* data, std::uint32_t size) {
+    out[0].Write(data, size);
+    out[1].Write(data, size);
+}
+EI_REPLACE_METHOD(0x0047E140, DeltaField::WriteBoth);
+
+void DeltaField::WriteStringBoth(const char* text) {
+    out[0].Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+    out[1].Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+}
+EI_REPLACE_METHOD(0x0047E2D0, DeltaField::WriteStringBoth);
+
+std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::Reader()->Read(data, size); }
+EI_REPLACE_METHOD(0x0047E170, DeltaField::ReadRaw);
+
+void* DeltaField::ReadString(void* cstring) {
+    delta::Reader()->ReadString(cstring);
+    return cstring;
+}
+EI_REPLACE_METHOD(0x0047E310, DeltaField::ReadString);
+
+// --- DeltaState --------------------------------------------------------------------------------
+
+void DeltaState::Reset() {
+    for (int i = 0; i < fieldCount_; ++i) {
+        DeltaField& field = fields_[i];
+        field.snapshot[0].Resize(0);
+        field.snapshot[1].Resize(0);
+        field.out[0].Resize(0);
+        field.out[1].Resize(0);
+    }
+    sentMask_ = 0;
+    lastMask_ = 0;
+    mask_ = 0;
+    reader_ = nullptr;
+    mode_ = kIdle;
+    header_[0].Resize(0);
+    header_[1].Resize(0);
+}
+EI_REPLACE_METHOD(0x0047FB70, DeltaState::Reset);
+
+DeltaField* DeltaState::BeginField(int index) {
+    if (!((1u << (index & 31)) & mask_)) return nullptr;
+    DeltaField* field = &fields_[index];
+    switch (mode_) {
+    case kWriteFull:
+        RewindAndEmpty(field);
+        delta::KeepSnapshot0() = 1;
+        delta::KeepSnapshot1() = 1;
+        break;
+    case kWriteDelta:
+        RewindAndEmpty(field);
+        delta::KeepSnapshot0() = 0;
+        delta::KeepSnapshot1() = 1;
+        break;
+    case kRead0:
+    case kRead1:
+        StartRead(field, mode_ == kRead1, reader_);
+        break;
+    default:
+        break;
+    }
+    return &fields_[index];
+}
+EI_REPLACE_METHOD(0x0047FBF0, DeltaState::BeginField);
+
+void DeltaState::SetWriteMode(int deltaOnly) {
+    if (!deltaOnly) {
+        mask_ = 0xFFFF;
+        mode_ = kWriteFull;
+    } else {
+        mode_ = kWriteDelta;
+    }
+}
+EI_REPLACE_METHOD(0x0047FD50, DeltaState::SetWriteMode);
+
+int DeltaState::BeginRead(int second, BitStream* reader) {
+    reader_ = reader;
+    reader->Read(&mask_, 2);
+    mode_ = second ? kRead1 : kRead0;
+    return second;
+}
+EI_REPLACE_METHOD(0x0047FD80, DeltaState::BeginRead);
