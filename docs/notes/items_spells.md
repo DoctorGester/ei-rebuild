@@ -239,3 +239,179 @@ Renamed in Ghidra: the above, plus 004DF8D0 `CTextManager::ReadLine`, 004DFB80
 - 004DEBC0, 004DF8D0, 004DFB80, 004DC400, 004DE930 (add archive), 004DEAF0 (remove archive):
   the rest of the text manager, below 004E0000 (another range).
 - 004E15C0 (node creation: STLport chunk allocation, string copy with exception handling).
+
+# Spell casting and effects (00680000-006A0000)
+
+Code: `src/game/spell_cast.cpp` (construction), `src/game/spell_effect.cpp` (effect hits); the
+classes are in `spell.h`. Verify: `tests/verify/verify_spell_cast.cpp`,
+`tests/verify/verify_spell_effect.cpp`. Scenario: `tests/scenarios/spells.txt` (healing, six buffs,
+lightning, arrow, acid ray, fireball, fire wall, acid fog; HP checks).
+
+Shared files touched: none. `spell.h` (this area's header) gained the classes below and named
+the bytes of `CSpellEffect` that were `unknown_00` (layout unchanged).
+
+## What lives in this range
+
+| Range | Contents |
+|---|---|
+| 0067E6D0 (just below) | `CSpellEffect::Update`: by state +0x30 runs 0067F870 (0: casting, 9 KB, per spell), 00681BB0 (1: missile flight), 00682650 (2: lasting effects), else ends the effect |
+| 0067F870-00683950 | the effect state machines (sounds, particles, the 00681B80 / 006835B0 / 00683600 / 00683730 hit helpers) |
+| 00683950-00684060 | GetDamage (done), CArchive serialisers of the effect (00683AF0, 00683B80, 00683D40, 00683EB0) |
+| 00684060-006842A0 | `CSpellConstructor` (vtable 007439C8) |
+| 00684390-00686000 | `CSpellManager`'s database load (00684550, patched by Rebirth) and its STLport containers |
+| 00686000-00688940 | STLport hash_map / vector instantiations of the spell tables |
+| 00688940-00689570 | `CSpellManager` (vtable 00743A14): object factory 00688CD0 (0x3002 CSpell, 0x3003 CSpellContainer), CreateSpellObject 00688EC0, CreateSpellFromText 00689030, CreateSpell 00689310, the name lookups (done) |
+| 0068B1F0-0068BC00 | `CSpell` (constructor 0068B1F0, Load/Save 0068B860/0068B920) |
+| 0068BA80-0068CED0 | `CSpellContainer` (vtable 00743AC8, constructor 0068BA80) and std::sort of its codes (0068CA10..0068CD50) |
+| 0068CF00-0068DE00 | `CLight` / `CLightManager` |
+| 0068DD00-00691A00 | `CMaterial`, `CMaterialManager` (0068E640 patched), `CTexture` |
+| 00691A00-00694500 | `CTextureManager` (00691500 patched), texture files |
+| 00694500-00699000 | `CFileRegistry`, ini/registry helpers (`CWinRegistry`) |
+| 00699000-006A0000 | item database readers ("instruction_armor", ...), item containers |
+
+Only the spell part was taken on here; textures, registry and the item readers are other areas.
+
+## How a cast builds its spell
+
+`CastSpellUnit("healing{e2;e2}", ...)` (script) and the other text casts go through
+CreateSpellFromText (00689030, not rewritten): the text before `{` is the prototype name, the
+`;`-separated codes inside are modifier names. It then does what CreateSpell (00689310) does
+with records: the context's (manager +0xAC) slot 17 gives the CSpellConstructor; SetManager(this);
+BeginConstruct(prototype) (a new container from manager slot 23 with class 0x3003, prototype
+at +0x1C); AddModifier for each modifier (at most 8 in CreateSpell): when the container's
+AllowsModifier accepts it (the prototype's flag bytes +0x78 r, +0x79 t, +0x7A a, +0x7B e,
++0x7C d; other letters always), the record is appended to the container's list and the spell is
+rebuilt; EndConstruct rebuilds once more; CSpell::Clone makes the result (CreateSpellObject(-1),
+CopyTo); SetManager(null).
+
+**Build** (0068BF60) recomputes the container's spell (+0x30) from scratch each time (offsets
+below are the spell's):
+
+- From the prototype: +0x30 <- +0x20, +0x34 <- +0x24 (range), +0x38 <- +0x34 (t), +0x3C flags
+  0x10000000 / 0x20000000 for kind 'u' / 't' (left alone otherwise), +0x40 <- +0x18 (mana), +0x44
+  <- +0x1C, +0x48 <- +0x0C (price), +0x4C <- +0x3C, +0x20 <- +0x38 (duration), +0x24 <- +0x2C
+  (effect), +0x28 <- +0x28 (area), +0x50 <- +0x44 (level); the packed id from the prototype's
+  index found again by its code (0068C820).
+- Per modifier record (+0x04 two code letters, +0x08 price, +0x10 mana, +0x14 strength, +0x18
+  level): `a` area += strength x prototype area, `e` effect, `m` mana, `r` range likewise (each
+  then clamped to > 0, NaN kept); `d` duration += trunc(prototype duration x strength), clamped
+  to >= 0; `t` +0x38 += trunc(prototype +0x34 x strength); `fe/ff/fg/fh/fl/fo` target flags 2, 1,
+  8, 4, 0x20, 0x10 (see CanAffect); `ic`/`it` cast flags 0x20000 / 0x10000. Every modifier also
+  adds 1 to +0x44, its level to +0x50, its mana to +0x40 and its price to +0x48, and appends its
+  index + 1 to the code string.
+- The area becomes a radius, sqrt(area / pi), when positive; the mana is at least the
+  prototype's; the code string is sorted and its first 8 bytes are the spell's modifier list.
+
+So the effect object's fields that GetDamage and the hit helpers read are this spell's:
+CSpellEffect +0x54 duration (named `targetCount`), +0x58 effect (`damage`), +0x5C radius.
+
+## Effect hits
+
+`CSpellEffect` embeds its CSpell at +0x34; +0x08 is the world (its sector map at +0x170 +
+0x124), +0x0C bit 0 "the caster is not credited", +0x10 the position, +0x1C the target, +0x20
+the caster. HitUnit (006835B0) skips units the spell may not affect (only checked with a
+caster) and calls CUnit slot 31 (the hit, the controller's TakeHit) with (hit, caster or null,
+caster). HitUnitsInRadius (00683600: the fireball's explosion) and HitUnitsAlong (00683730: the
+fire wall, every 4th tick) collect the units within the radius (FindUnitsInRadius into a stack
+CPtrList, vtable 0073D454, blocks of 10) and hit those IsSpellTarget accepts (size class set,
+or the unit prototype's +0x24 below 0.5); the wall only those within 0.5 of the vertical plane
+through the position along the given direction (the normal is built with length 2 and the
+distance compared with 1).
+
+## Functions rewritten
+
+| Address | Name | Verification |
+|---|---|---|
+| 00681B80 | IsSpellTarget (fastcall) | pure |
+| 006835B0 | CSpellEffect::HitUnit | ours only (deals damage); the effect's spell parameters (+0x4C..+0x60) unchanged |
+| 00683600 | CSpellEffect::HitUnitsInRadius | same |
+| 00683730 | CSpellEffect::HitUnitsAlong | same |
+| 0068B350 | CSpell::ClearModifiers (slot 3) | ours, modifiers restored, original; modifier bytes compared |
+| 0068B370 | CSpell::CopyTo | ours, target +0x18..+0x5C restored, original; bytes compared |
+| 0068B410 | CSpell::Clone | ours only (creates a spell): the copy's id, parameters and modifiers |
+| 0068BD80 | CSpellContainer::Reset (slot 2) | ours only (frees nodes): list empty, no prototype, result 1 |
+| 0068BDD0 | CSpellContainer::Shutdown (slot 3) | ours only: same |
+| 0068BC00 | CSpellContainer::NameField (slot 7) | pure |
+| 0068BE30 | CSpellContainer::AddModifier | ours only (allocates): the record is last in the list |
+| 0068BEC0 | CSpellContainer::AllowsModifier | pure (jump tables read from the exe) |
+| 0068BF60 | CSpellContainer::Build | ours, spell bytes +0x48..+0x8C restored, original; spell bytes and the code string compared |
+| 00688EB0 | CSpellManager::NewContainer | ours only (creates): null or a container vtable |
+| 00689310 | CSpellManager::CreateSpell | ours only: the spell's packed id names the prototype |
+| 00684120 | CSpellConstructor::Reset (slot 2) | ours only: both references cleared, result 1 |
+| 00684150 | CSpellConstructor::Detach (slot 3) | ours only: same |
+| 006841A0 | CSpellConstructor::SetManager | ours only: manager set, container released |
+| 006841E0 | CSpellConstructor::BeginConstruct | ours only: a container with the prototype |
+| 00684250 | CSpellConstructor::EndConstruct | ours only: 1 when manager and container exist |
+| 006842A0 | CSpellConstructor::AddModifier | ours only: 0, or 1 with the record last in the list |
+
+Build's verify double run is safe because Build empties the code string before refilling it
+(the second run reuses the buffer, possibly grown by the first). The rewrites call each other
+through their game addresses (`Call*` members and forwarders), so every nested call is checked.
+All the above and the state-machine entry points were renamed in Ghidra.
+
+The compiled x87 code of HitUnitsAlong and Build was read back (`dumpbin /disasm`): the
+distance sum is evaluated as (dy*ny + dz*nz) + dx*nx where the original has (dz*nz + dy*ny) +
+dx*nx (the same value: addition is commutative); the length 2 / sqrt(x^2 + y^2) passes its sum
+through a double (exact unless the FPU runs at 64-bit precision); Build's products and sums are
+single FMUL/FADD sequences stored once, as in the original. Build's `d`/`t` truncation and the
+area's sqrt(area / pi) are small naked helpers repeating the original's FILD qword / FMUL /
+`_ftol` and FLD / FDIV [00743A7C] / FSQRT exactly. The sort of the code string uses an insertion
+sort instead of the original's std::sort (introsort): sorting chars gives the same bytes.
+
+## Forwarders added
+
+- Not rewritten, this range: 0068C820 / 0068C920 (find a spell / modifier record by code through
+  the tables' name hash_maps; thiscall on 007C8510 / 007C8530), 0068C680 (STLport string
+  reserve), 0068C560 (list<char*> insert), 00688EC0 CSpellManager::CreateSpellObject.
+- `_ftol` 006E853C (through the naked helper), `game::FatalError` 00480080 (Rebirth patches it;
+  already a forwarder in lib/crt).
+- Called through their addresses (rewritten elsewhere, not patched): 005C0BD0
+  CSectorMap::FindUnitsInRadius, 0068B4C0 CSpell::CanAffect, 00683950 CSpellEffect::GetDamage.
+  Called directly: CUnit::GetPrototype (00530930).
+- Virtual calls: CEngineObject slots 2, 3, 4 (Release), 5; CUnit slot 31 (the hit); CBaseManager
+  slot 23 (create object); the manager context's slot 17 (spell constructor).
+- The STLport node free list for 16-byte blocks at 0079B228 is written directly (the original
+  inlines the deallocation of the 12-byte list nodes).
+- The fatal error texts are passed by their game addresses (00795858, 0079583C, 007958A4,
+  00795990, 0079595C, 0079593C, 007959F0 "Invalid rune").
+
+## Original bugs and oddities kept
+
+- Build leaves the target flags alone when the prototype's kind is neither 'u' nor 't', so they
+  accumulate across rebuilds until the spell is cleared (Reset clears it).
+- A modifier whose code is not found becomes code 0, which sorts first and empties the spell's
+  modifier list (the copy stops at the first zero).
+- BeginConstruct writes the prototype into the new container without checking that the manager
+  returned one.
+- AddModifier (container) reports a null record as "Invalid rune".
+- CopyTo tests the address of its modifier array for null (never true).
+- The constructor counts references to the manager (+4) and only ever decrements them, never
+  releasing it.
+
+## Skipped and why
+
+- 0067F870 (casting, 9 KB; starts in the range below), 00681BB0 (missile flight, 2.7 KB) and
+  00682650 (lasting effects, 3.9 KB): per-spell state machines that mostly start sounds,
+  particles and lights (0067F260, 0067F580, 0067F7C0, 00675D50) with pow() written as
+  F2XM1/FSCALE; their damage paths are the rewritten hit helpers. Next candidates, one spell
+  state at a time.
+- 00689030 CreateSpellFromText: CString/CStringArray parsing with STLport temporaries and EH
+  frames; it calls the rewritten constructor methods, so the scenario still covers them.
+- 006838E0 (hits the effect's target; no callers), 00684180 / 00684280 / 006842E0 / 00684310
+  (constructor helpers without callers).
+- 00684550 (spell database load) and 0068E640 / 00691500: patched by Rebirth.
+- 00688EC0 CreateSpellObject (hash_map of spell sequences), 00688990 / 00688B40 / 00688D70
+  (manager teardown), serialisation (00683AF0..00683EB0, 0068B860, 0068B920), constructors and
+  destructors: containers and lifetime, not rules.
+
+## Risks
+
+- The effect hit helpers and the construction methods are checked for consistency only; the
+  scenario's HP checks are what shows the damage arrives. The spell and unit names come from
+  the maps and the earlier scenarios, but none of the spells was run here: if a missile spell
+  needs a caster to fly, its waitfor fails (the wolf keeps its HP).
+- The scenario's wolves are placed 5 to 13 units from the hero on the start map without
+  checking the terrain; AddUnitToServer on blocked ground would fail the `IsAlive` waitfor.
+- `CSpellEffect` +0x54 is named `targetCount` (GetDamage splits the damage by it) and is the
+  spell's `d` value, called duration above; for attack spells it may be a target count. Names
+  only; the behaviour is copied.

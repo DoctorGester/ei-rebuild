@@ -1,0 +1,82 @@
+# Spells (src/game/spell_cast.cpp, src/game/spell_effect.cpp): every CastSpellUnit /
+# CastSpellPoint builds its spell through CSpellConstructor (SetManager, BeginConstruct,
+# AddModifier per modifier -> CSpellContainer::AllowsModifier / AddModifier / Build,
+# EndConstruct, CSpell::Clone -> CopyTo); the effects then deliver damage through
+# CSpellEffect::HitUnit (missiles, lightning), HitUnitsInRadius (fireball) and HitUnitsAlong
+# (the fire wall), and the lasting area spells test IsSpellTarget. The spell strings are taken
+# from the game's own maps. Spells cast by script have no caster, so CanAffect is not consulted
+# and no mana is spent (the script has no mana query); the checks look at hit points.
+#
+# The targets are WolfTutor wolves (one hit kills them, see combat.txt); a dead wolf's HP is
+# also below the stored value, so each waitfor holds whether the spell hurt or killed it.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Healing with four effect modifiers on a hurt hero.
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+console @InflictDamage(GetLeader(),10)
+waitfor 10 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+console @GSSetVar(0,"hp1",HP(GetLeader()))
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+waitfor 10 IsGreater(HP(GetLeader()),GSGetVar(0,"hp1"))
+
+# Buffs with duration, effect and cast-flag modifiers (strength, invisibility, infravision,
+# speed, fire protection, eagle sight).
+console @CastSpellUnit("strength{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("invisibility{d2;d2;d2;d2;d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("infravision{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("speed{d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("prot_fire{e1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("eagle_sight{ic}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+
+# Lightning with five effect modifiers (HitUnit).
+console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),5),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf1"))
+console @GSSetVar(0,"w1",HP(GetObjectByName("Wolf1")))
+console @CastSpellUnit("lightning{e2;e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf1"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf1")),GSGetVar(0,"w1"))
+
+# Missiles: an arrow and an acid ray (HitUnit on arrival).
+console @AddUnitToServer("Wolf2","WolfTutor","Wolf2",Add(GetX(GetLeader()),5),Add(GetY(GetLeader()),3),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf2"))
+console @GSSetVar(0,"w2",HP(GetObjectByName("Wolf2")))
+console @CastSpellUnit("arrow{e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf2"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf2")),GSGetVar(0,"w2"))
+
+console @AddUnitToServer("Wolf3","WolfTutor","Wolf3",Add(GetX(GetLeader()),5),Add(GetY(GetLeader()),6),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf3"))
+console @GSSetVar(0,"w3",HP(GetObjectByName("Wolf3")))
+console @CastSpellUnit("acid_ray{ee5}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf3"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf3")),GSGetVar(0,"w3"))
+
+# A fireball: the missile explodes and hits the units in its radius (HitUnitsInRadius).
+console @AddUnitToServer("Wolf4","WolfTutor","Wolf4",GetX(GetLeader()),Add(GetY(GetLeader()),10),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf4"))
+console @GSSetVar(0,"w4",HP(GetObjectByName("Wolf4")))
+console @CastSpellUnit("fireball{e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("Wolf4"))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf4")),GSGetVar(0,"w4"))
+
+# A fire wall along a line through a wolf, 12 units from the hero (duration and effect modifiers; HitUnitsAlong every few ticks).
+console @AddUnitToServer("Wolf5","WolfTutor","Wolf5",Add(GetX(GetLeader()),5),Add(GetY(GetLeader()),12),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf5"))
+console @GSSetVar(0,"w5",HP(GetObjectByName("Wolf5")))
+console @CastSpellPoint("firewall{d2;e2}",GetX(GetObjectByName("Wolf5")),GetY(GetObjectByName("Wolf5")),Add(GetX(GetObjectByName("Wolf5")),4),GetY(GetObjectByName("Wolf5")))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf5")),GSGetVar(0,"w5"))
+
+# An acid fog on a point (a lasting area spell: IsSpellTarget and HitUnit), eight modifiers.
+console @AddUnitToServer("Wolf6","WolfTutor","Wolf6",Add(GetX(GetLeader()),12),Add(GetY(GetLeader()),6),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf6"))
+console @CastSpellPoint("acid_fog{ee1;ee1;ee1;ee1;ee1;ee1;ee1;ee1}",GetX(GetObjectByName("Wolf6")),GetY(GetObjectByName("Wolf6")),GetX(GetObjectByName("Wolf6")),GetY(GetObjectByName("Wolf6")))
+wait 2000
+
+check IsAlive(GetLeader())
+report
+quit
