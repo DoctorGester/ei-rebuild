@@ -121,6 +121,24 @@ struct CTypedPtrList {
         }
     }
 
+    Node* AddHead(T* value) {
+        Node* node = NewNode(nullptr, head);
+        node->data = value;
+        if (head) head->prev = node;
+        else tail = node;
+        head = node;
+        return node;
+    }
+
+    void RemoveAll() {
+        count = 0;
+        free = nullptr;
+        tail = nullptr;
+        head = nullptr;
+        PlexFreeDataChain(blocks);
+        blocks = nullptr;
+    }
+
     Node* AddTail(T* value) {
         Node* node = NewNode(tail, nullptr);
         node->data = value;

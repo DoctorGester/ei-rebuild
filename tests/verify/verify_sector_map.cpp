@@ -34,3 +34,22 @@ static bool __fastcall RemoveVerify(CSectorMap* self, void*, CEngineObject* obje
     return result;
 }
 EI_VERIFY(0x005C1010, RemoveVerify, 0, s_unused);
+
+// FindUnitsInRadius only writes its output list: run the original into a scratch list and compare.
+// 005C0BD0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x18 (6 bytes).
+static void(__fastcall* s_findUnits)(CSectorMap*, void*, const Vector3*, mfc::CTypedPtrList<CEngineObject>*, float);
+
+static void __fastcall FindUnitsVerify(CSectorMap* self, void*, const Vector3* pos,
+                                       mfc::CTypedPtrList<CEngineObject>* result, float radius) {
+    mfc::CTypedPtrList<CEngineObject> expected{};
+    expected.vtable = result->vtable;
+    expected.blockSize = result->blockSize;
+    s_findUnits(self, nullptr, pos, &expected, radius);
+    self->FindUnitsInRadius(pos, result, radius);
+    bool same = expected.count == result->count;
+    for (auto *a = expected.head, *b = result->head; same && a; a = a->next, b = b->next) same = b && a->data == b->data;
+    ei::verify::Check("CSectorMap::FindUnitsInRadius", true, same, "r %g: %d vs %d units", radius, expected.count,
+                      result->count);
+    if (expected.blocks) expected.RemoveAll();
+}
+EI_VERIFY(0x005C0BD0, FindUnitsVerify, 6, s_findUnits);

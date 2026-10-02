@@ -19,6 +19,10 @@ public:
     // Undone again if the footprint does not fit.
     bool Add(CEngineObject* object);
 
+    // 005C0BD0. Fills `result` (cleared first) with the units within `radius` of `position`,
+    // nearest sectors first; each match is inserted at the head of the list.
+    void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius);
+
     // 005C1010. Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CEngineObject* object);
 

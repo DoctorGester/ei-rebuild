@@ -65,3 +65,40 @@ bool CSectorMap::Remove(CEngineObject* object) {
     return cleared;
 }
 EI_REPLACE_METHOD(0x005C1010, CSectorMap::Remove);
+
+namespace {
+// Spiral of sector offsets ordered by distance, with a radius-to-length table. Globals at
+// 007C2FC4 (lengths) and 007C2FFC (offset pairs); 005BF7D0 maps a radius to a table index.
+struct SpiralTable;
+__declspec(naked) int __fastcall SpiralIndex(SpiralTable*, void*, float) EI_ORIGINAL(0x005BF7D0)
+SpiralTable* Spiral() { return reinterpret_cast<SpiralTable*>(0x007C2FD8); }
+const int* SpiralLengths() { return *reinterpret_cast<const int* const*>(0x007C2FC4); }
+const std::int16_t* SpiralOffsets() { return *reinterpret_cast<const std::int16_t* const*>(0x007C2FFC); }
+} // namespace
+
+void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius) {
+    int length = SpiralLengths()[SpiralIndex(Spiral(), nullptr, radius * 0.03125f)];
+    const std::int16_t* offset = SpiralOffsets();
+    result->RemoveAll();
+
+    int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
+    int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
+    int sx = cellX / 32, sy = cellY / 32;
+    float radiusSquared = radius * radius;
+    float px = position->x, py = position->y;
+
+    // The units live in the AI map's own sector grid.
+    auto* grid = reinterpret_cast<CSectorMap*>(reinterpret_cast<char*>(aiMap) + 0x124);
+    for (int i = 0; i < length; ++i, offset += 2) {
+        int gx = offset[0] + sx, gy = offset[1] + sy;
+        if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
+        Sector& sector = grid->sectors[grid->width * gy + gx];
+        for (auto* node = sector.units.head; node;) {
+            CEngineObject* unit = node->data;
+            node = node->next;
+            float dx = PosX(unit) - px, dy = PosY(unit) - py;
+            if (!(dy * dy + dx * dx >= radiusSquared)) result->AddHead(unit);
+        }
+    }
+}
+EI_REPLACE_METHOD(0x005C0BD0, CSectorMap::FindUnitsInRadius);

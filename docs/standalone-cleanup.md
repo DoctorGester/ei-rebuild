@@ -29,7 +29,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `CTextureDevice::ParseMmpHeader` 004E7C40, `FindFormat` 004E7DA0 | `src/game/texture.cpp` | rewrite |
 | `CTexture::CreateFromMmp` 00690430, `CTexture::LoadBmp` 00690260 | `src/game/texture.cpp` | rewrite |
 | `mfc::PlexCreate` 006FE8EF, `mfc::PlexFreeDataChain` 006FE90F | `src/lib/mfc.*` | own `CPlex` (block allocator behind `CTypedPtrList`) |
-| `CAIMap::MarkFootprint` 005B6A80, `CUnit::OnLeftSectorMap` 0050E930 | `src/game/sector_map.cpp` | rewrite |
+| `CAIMap::MarkFootprint` 005B6A80, `CUnit::OnLeftSectorMap` 0050E930, `SpiralIndex` 005BF7D0 | `src/game/sector_map.cpp` | rewrite |
 
 ## Indirections
 
@@ -41,7 +41,10 @@ Each needs a real implementation, or the caller must be rewritten first.
   declared yet (e.g. `CTextureManager` slots 19/20). Replace with real virtual calls once the class
   hierarchy (`CBaseManager` -> `CResourceManager` -> `CTextureManager`) is declared.
 - Globals read by address: game root `CString` at 0079BC90 and data path `char*` at 007AF460
-  (`src/game/texture.cpp`). They become ordinary globals.
+  (`src/game/texture.cpp`); transparency table 00791744 (`src/game/ai_map.cpp`); spiral offset tables
+  007C2FC4 / 007C2FD8 / 007C2FFC (`src/game/sector_map.cpp`). They become ordinary globals.
+- `CSectorMap::FindUnitsInRadius` reaches the unit grid as `aiMap + 0x124`: the sector map appears to be
+  embedded in `CAIMap` there. Make it a real member once `CAIMap`'s layout is complete.
 
 ## Placeholder names and partial layouts
 
