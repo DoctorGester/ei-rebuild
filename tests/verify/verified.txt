@@ -9,3 +9,5 @@
 0049EE70 IsaacRandom::Refill     1k refills, full state compared
 00674850 CMappedResource::FindEntry 100k calls
 006725E0 CMMIOResource::GetFile  100k calls
+00671B40 CMappedResource::GetFile   1k+ map consistency checks in map
+00671E00 CMappedResource::CloseFile 1k+ map consistency checks in map

@@ -28,6 +28,13 @@ public:
     BOOL HasFile(const char* name);                               // 21: 006754E0
     void FreeAllFiles();                                          // 22: 00675530
 
+    // 005AA360: CFigureManager's slot 16, identical except that it opens memory-mapped archives.
+    BOOL AddMmioArchive(const char* path);
+
+private:
+    BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*));
+
+public:
     void* vtable_;
     std::uint8_t baseManager_[0xAC];      // CBaseManager members (+0x04..+0xAF)
     stlp::vector<ArchiveEntry> archives_; // +0xB0

@@ -6,8 +6,9 @@
 #include <cstring>
 
 namespace {
-// 00671280: CMappedResource constructor (not rewritten yet; it builds the STLport hash maps).
+// Archive constructors (not rewritten yet; they build the STLport hash maps).
 __declspec(naked) CMappedResource* __fastcall ConstructMappedResource(void*) EI_ORIGINAL(0x00671280)
+__declspec(naked) CMappedResource* __fastcall ConstructMmioResource(void*) EI_ORIGINAL(0x006721D0)
 
 bool SameName(const stlp::string& a, const char* b) {
     std::size_t n = std::strlen(b);
@@ -16,11 +17,19 @@ bool SameName(const stlp::string& a, const char* b) {
 } // namespace
 
 BOOL CResourceManager::AddArchive(const char* path) {
+    return AddArchiveOf(path, sizeof(CMappedResource), ConstructMappedResource);
+}
+
+BOOL CResourceManager::AddMmioArchive(const char* path) {
+    return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);
+}
+
+BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*)) {
     for (const ArchiveEntry& e : archives_)
         if (SameName(e.name, path)) return 1;
 
-    void* memory = gamecrt::operator_new(sizeof(CMappedResource));
-    CMappedResource* resource = memory ? ConstructMappedResource(memory) : nullptr;
+    void* memory = gamecrt::operator_new(size);
+    CMappedResource* resource = memory ? construct(memory) : nullptr;
     {
         stlp::string name(path);
         stlp::string copy(name);
@@ -74,6 +83,7 @@ void CResourceManager::FreeAllFiles() {
 }
 
 EI_REPLACE_METHOD(0x00675050, CResourceManager::AddArchive);
+EI_REPLACE_METHOD(0x005AA360, CResourceManager::AddMmioArchive);
 EI_REPLACE_METHOD(0x00675200, CResourceManager::RemoveArchive);
 EI_REPLACE_METHOD(0x00675340, CResourceManager::RemoveAllArchives);
 EI_REPLACE_METHOD(0x00675440, CResourceManager::GetFile);
