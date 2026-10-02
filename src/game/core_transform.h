@@ -23,6 +23,10 @@ public:
     // 17: 00401540. Reads the local transform from an MFC CFile (slot 13, Read).
     virtual void LoadTransform(void* file);
 
+    // 00453400 (object.cpp). Constructor body: base fields, identity rotations (positions left as
+    // they are), vtable 0073BA38; returns this.
+    CTransformObject* ConstructBase();
+
     Vector3 localPosition_;     // +0x1C
     Vector3 worldPosition_;     // +0x28
     Quaternion localRotation_;  // +0x34
