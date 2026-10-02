@@ -159,7 +159,7 @@ void SSCCmd::Save(ScriptStream* stream) const {
     }
 
     int scriptIndex = -1;
-    if (script) scriptIndex = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(script) + 0x14);
+    if (calledScript) scriptIndex = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(calledScript) + 0x14);
     stream->Write(&scriptIndex, 4);
 }
 EI_REPLACE_METHOD(0x004B6360, SSCCmd::Save);

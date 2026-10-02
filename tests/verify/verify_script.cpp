@@ -2,6 +2,7 @@
 // helpers (src/game/script*.cpp).
 #include "verify.h"
 
+#include "../../src/game/random.h"
 #include "../../src/game/script.h"
 #include "../../src/lib/crt.h"
 
@@ -409,3 +410,91 @@ static void __fastcall CmdSaveVerify(const SSCCmd* self, void*, ScriptStream* st
     expected.Forward(stream);
 }
 EI_VERIFY(0x004B6360, CmdSaveVerify, 6, s_cmdSave);
+
+// ---- Evaluation ---------------------------------------------------------------------------------
+
+// The Calc functions evaluate whole call trees. Apart from consuming random numbers (Random) and
+// allocating temporaries in the CScript, re-evaluating a tree gives the same result: object
+// variables set by Every/Any/Sum end on the same member, areas looked up are created once. So run
+// ours with the generator saved, restore it, run the original, and compare the results and the
+// generator state. The original's result is what the caller sees.
+namespace {
+IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+
+struct RandomSnapshot {
+    unsigned char bytes[sizeof(IsaacRandom)];
+    void Take() { std::memcpy(bytes, GameRandom(), sizeof(bytes)); }
+    void Restore() const { std::memcpy(GameRandom(), bytes, sizeof(bytes)); }
+    bool Matches() const { return std::memcmp(bytes, GameRandom(), sizeof(bytes)) == 0; }
+};
+} // namespace
+
+// 004B41E0: PUSH EBP; MOV EBP,ESP; PUSH -1 (5 bytes).
+static void(__fastcall* s_calcFloat)(SSCCmd*, void*, CScript*, ScriptVars*, float*);
+static void __fastcall CalcFloatVerify(SSCCmd* self, void*, CScript* script, ScriptVars* vars, float* result) {
+    RandomSnapshot before, afterOurs;
+    before.Take();
+    float actual = 0.0f;
+    self->CalcFloat(script, vars, &actual);
+    afterOurs.Take();
+    before.Restore();
+    s_calcFloat(self, nullptr, script, vars, result);
+    bool same = std::memcmp(&actual, result, 4) == 0 && afterOurs.Matches();
+    ei::verify::Check("SSCCmd::CalcFloat", true, same, "id %02X: %g vs %g", self->id, *result, actual);
+}
+EI_VERIFY(0x004B41E0, CalcFloatVerify, 5, s_calcFloat);
+
+// 004B56C0: PUSH EBP; MOV EBP,ESP; MOV EAX,[EBP+0xC] (6 bytes). Each run returns its own
+// temporary reference; their objects must match.
+static void(__fastcall* s_calcObject)(SSCCmd*, void*, CScript*, ScriptVars*, ScriptObjectRef**);
+static void __fastcall CalcObjectVerify(SSCCmd* self, void*, CScript* script, ScriptVars* vars, ScriptObjectRef** result) {
+    RandomSnapshot before, afterOurs;
+    before.Take();
+    ScriptObjectRef* actual = nullptr;
+    self->CalcObject(script, vars, &actual);
+    afterOurs.Take();
+    before.Restore();
+    s_calcObject(self, nullptr, script, vars, result);
+    bool same = actual && *result && actual->object == (*result)->object && afterOurs.Matches();
+    ei::verify::Check("SSCCmd::CalcObject", true, same, "id %02X: %p vs %p", self->id, *result ? (*result)->object : nullptr,
+                      actual ? actual->object : nullptr);
+}
+EI_VERIFY(0x004B56C0, CalcObjectVerify, 6, s_calcObject);
+
+// 004B4030: MOV EAX,[ESP+0xC]; MOV EDX,[EAX] (6 bytes). Compares the argument the call fills.
+static void(__fastcall* s_calcParameters)(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*);
+
+namespace {
+// What the evaluated argument holds: float bits, the referenced object, or a group's contents.
+std::vector<std::uint32_t> ArgumentValue(const SSCCmd* cmd, const ScriptSubCall* call) {
+    std::vector<std::uint32_t> v;
+    switch (call->type) {
+    case kScriptFloat: v.push_back(reinterpret_cast<const std::uint32_t*>(cmd->floatArgs.data)[call->argIndex]); break;
+    case kScriptObject: {
+        const ScriptObjectRef* ref = cmd->objectArgs.data[call->argIndex];
+        v.push_back(reinterpret_cast<std::uint32_t>(ref ? ref->object : nullptr));
+        break;
+    }
+    case kScriptGroup: {
+        const ScriptGroup* g = cmd->groupArgs.data[call->argIndex];
+        if (g)
+            for (int i = 0; i < g->size; ++i) v.push_back(reinterpret_cast<std::uint32_t>(g->data[i].object));
+        break;
+    }
+    }
+    return v;
+}
+} // namespace
+
+static void __fastcall CalcParametersVerify(SSCCmd* self, void*, CScript* script, ScriptVars* vars, const ScriptSubCall* call) {
+    RandomSnapshot before, afterOurs;
+    before.Take();
+    self->CalcParameters(script, vars, call);
+    std::vector<std::uint32_t> actual = ArgumentValue(self, call);
+    afterOurs.Take();
+    before.Restore();
+    s_calcParameters(self, nullptr, script, vars, call);
+    bool same = actual == ArgumentValue(self, call) && afterOurs.Matches();
+    ei::verify::Check("SSCCmd::CalcParameters", true, same, "type %d cmd %02X", call->type, call->cmd->id);
+}
+EI_VERIFY(0x004B4030, CalcParametersVerify, 6, s_calcParameters);

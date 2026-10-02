@@ -137,6 +137,29 @@ static_assert(sizeof(ScriptBinding) == 12);
 
 class SSCCmd;
 
+// A named area for IsInArea (AddRectToArea / AddRoundToArea): one element of the area's array.
+struct ScriptAreaPart {
+    std::uint8_t isRect;
+    std::uint8_t unknown_01[3];
+    float x;        // rectangle: x1, y1, x2, y2; circle: centre x, y and radius squared
+    float y;
+    float x2OrRadiusSquared;
+    float y2;
+};
+static_assert(sizeof(ScriptAreaPart) == 0x14);
+
+// The script interpreter state passed to every evaluation ("CScript" in the loader's messages; only
+// the parts the evaluator touches are known).
+class CScript {
+public:
+    // 004B59F0. Appends an empty object reference to the temporaries list (+0x1D0) and returns it.
+    ScriptObjectRef* NewTempObject();
+    // 004BCE10. The parts of area `id`, creating an empty area when it does not exist.
+    MfcArray<ScriptAreaPart>* FindArea(int id);
+
+    ScriptVars* Globals() { return reinterpret_cast<ScriptVars*>(reinterpret_cast<char*>(this) + 0xA0); }
+};
+
 // Argument `argIndex` of a command is the result of the nested call `cmd`.
 struct ScriptSubCall {
     int type;       // ScriptType of the result
@@ -155,6 +178,20 @@ public:
     // 004B6360. Writes the call tree (constants, bindings, nested calls) to a save game.
     void Save(ScriptStream* stream) const;
 
+    // Evaluation. Each first binds the variables (local, then global) and evaluates the nested
+    // calls into the arguments, then computes the function `id` into *result.
+    // 004B4030. Evaluates nested call `call` into the matching argument of this command.
+    void CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCall* call);
+    // 004B41E0. Functions returning a float (conditions are floats: 0 false, else true).
+    void CalcFloat(CScript* script, ScriptVars* vars, float* result);
+    // 004B56C0. Functions returning an object; *result is a new temporary of `script`.
+    void CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result);
+    // 004B5B00. Functions returning a group; not rewritten yet (forwarder).
+    void CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result);
+
+    // The common start of the Calc functions (inlined in each): bind variables, evaluate nested calls.
+    void PrepareArguments(CScript* script, ScriptVars* vars);
+
     int id;                                     // +0x00 ScriptKeyword::id
     MfcArray<float> floatArgs;                  // +0x04
     MfcArray<mfc::CString> stringArgs;          // +0x18
@@ -163,7 +200,7 @@ public:
     MfcArray<ScriptBinding> localBindings;      // +0x54 to the running script's variables
     MfcArray<ScriptBinding> globalBindings;     // +0x68 to the global variables
     MfcArray<ScriptSubCall> subCalls;           // +0x7C
-    struct ScriptDecl* script;                  // +0x90 called script (+0x14 is its index), or null
+    struct ScriptDecl* calledScript;                // +0x90 called script (+0x14 is its index), or null
 };
 static_assert(sizeof(SSCCmd) == 0x94);
 static_assert(offsetof(SSCCmd, subCalls) == 0x7C);
