@@ -44,6 +44,28 @@ constexpr float kMissMark = std::bit_cast<float>(0xFF7FFFFFu);      // 0073C1A8 
 constexpr float kMeleeFloor = std::bit_cast<float>(0x3F19999Au);    // 0.6
 constexpr float kMeleeFloorParty = std::bit_cast<float>(0x3E4CCCCEu); // 0.20000002 (sic)
 
+// Size classes (00552FB0) and movement factors (005536B0).
+constexpr float kHeroSizeCap = std::bit_cast<float>(0x3FF1EB85u);   // immediate (1.89)
+constexpr float kLoadOverloaded = 1.5f;                             // 0073C51C
+constexpr float kLoadHeavy = std::bit_cast<float>(0x3F59999Au);     // 0073CEB8 (0.85)
+constexpr float kSizeHeavy = std::bit_cast<float>(0x3FD9999Au);     // 0073F138 (1.7)
+constexpr float kSizeSmall = kPointSix;                             // 0073CDE0
+constexpr float kSizeMedium = std::bit_cast<float>(0x3F99999Au);    // 0073CDF4 (1.2)
+constexpr float kSizeLarge = std::bit_cast<float>(0x3FF33333u);     // 0073CF2C (1.9)
+constexpr float kSizeScale20 = kPointTwo;                           // 0073BAD4 (0.2)
+constexpr float kWorldFactorScale = kPercent;                       // 0073D09C (0.01)
+constexpr float kMode0Factor2 = 0.5f;                               // 0073EF04
+constexpr float kMode1Factor2 = 0.75f;                              // 0073EF08
+constexpr float kMode0Factor3 = 1.0f;                               // 0073EF14
+constexpr float kIdleMode0Factor0 = std::bit_cast<float>(0x3ECCCCCDu);  // 0073EF00 (0.4)
+constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0073EEFC (0.2)
+constexpr float kIdleMode3Scale = 2.0f;                             // 0073EEF4
+constexpr float kIdleMode3Factor1 = 0.5f;                           // 0073EF10
+constexpr float kCastingFactor2 = 1.5f;                             // 0073EF0C
+constexpr float kSpeedFast = kSizeMedium;                           // 0073CDF4 (1.2)
+constexpr float kSpeedSlow = std::bit_cast<float>(0x3E19999Au);     // 0073CD18 (0.15)
+constexpr int kUnitSlotSpeed = 59;      // CUnit vtable slot 59 (first output of 0052F920)
+
 constexpr int kClassQuickItem = 0x13;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 constexpr std::uint32_t kSkillOnTarget = 0x18A95;   // UnitAction::source of a skill used on a target
@@ -119,8 +141,11 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->
 // the unused EDX.
 // 00523D30. Scales a damage value by two of the unit's effect values (types 0x1D / 0x1E).
 __declspec(naked) float __fastcall StatsScaleDamage(UnitStats*, void*, CUnit*, float) EI_ORIGINAL(0x00523D30)
-// 00526C70. The skill bonus for weapon type `type`.
-__declspec(naked) float __fastcall StatsWeaponSkillBonus(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00526C70)
+// 00526C70. The skill bonus for weapon type `type`. Returned in ST0 unrounded: declared double.
+__declspec(naked) double __fastcall StatsWeaponSkillBonus(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00526C70)
+// 005304A0 / 00530560. The unit's load and size (2 * +0x14C), in ST0: declared double.
+__declspec(naked) double __fastcall UnitLoad(CUnit*) EI_ORIGINAL(0x005304A0)
+__declspec(naked) double __fastcall UnitSize(CUnit*) EI_ORIGINAL(0x00530560)
 // 0052E0D0. Scales AttackParams::attack and ::defence by the difficulty unless `keyed`.
 __declspec(naked) void __fastcall DifficultyScaleParams(AttackParams*, void*, int) EI_ORIGINAL(0x0052E0D0)
 // 00530A60. Is the unit behind `target` (facing test)? Only AL is meaningful.
@@ -693,3 +718,78 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     return 0;
 }
 EI_REPLACE_METHOD(0x00553F40, CUnitServer::TakeHit);
+
+namespace {
+// One size class of 00552FB0: by the load first, then by `size`.
+std::int16_t SizeClassOf(double size, float load) {
+    if (load > kLoadOverloaded) return 7;
+    if (load > kLoadHeavy) return size > kSizeHeavy ? 6 : 5;
+    if (LessOrUnordered(size, kSizeSmall)) return 1;
+    if (LessOrUnordered(size, kSizeMedium)) return 2;
+    return LessOrUnordered(size, kSizeLarge) ? 3 : 4;
+}
+} // namespace
+
+void CUnitServer::UpdateSizeClasses() {
+    CombatStats& combat = Combat();
+    if (combat.unknown_60 == 2) {
+        combat.sizeClass20 = 0;
+        combat.sizeClass = 0;
+        return;
+    }
+    float load = static_cast<float>(UnitLoad(unit));
+    const char* model = unit->GetPrototypeModel();
+    double size = UnitSize(unit) * Field<float>(model, 0x120);
+    if (unit->type_ == kUnitTypeHero) {
+        float uncapped = static_cast<float>(size);
+        size = LessOrUnordered(kHeroSizeCap, uncapped) ? kHeroSizeCap : uncapped;
+    }
+    combat.sizeClass = SizeClassOf(size, load);
+    combat.sizeClass20 = SizeClassOf(size * kSizeScale20, load);
+    combat.sizeClass60 = SizeClassOf(size * kSizeSmall, load);
+}
+EI_REPLACE_METHOD(0x00552FB0, CUnitServer::UpdateSizeClasses);
+
+void CUnitServer::UpdateMoveFactors() {
+    const char* world = static_cast<const char*>(ManagerContext());
+    double factor = Field<float>(world, 0x84);
+    double scaled = (factor * Combat().unknown_BC) * kWorldFactorScale;
+    moveFactors[0] = kOne;
+    moveFactors[2] = kOne;
+    moveFactors[1] = kOne;
+    double sum = scaled + (kOne - factor);
+    moveFactors[3] = static_cast<float>(sum);
+    moveFactors[3] = static_cast<float>(Field<float>(world, 0x88) * sum);
+    if (unit->moveMode == 0) {
+        moveFactors[2] = kMode0Factor2;
+        moveFactors[3] = kMode0Factor3 * moveFactors[3];
+    } else if (unit->moveMode == 1) {
+        moveFactors[2] = kMode1Factor2;
+    }
+    if (state == 0) {
+        if (unit->moveMode == 0) moveFactors[0] = kIdleMode0Factor0;
+        else if (unit->moveMode == 1) moveFactors[0] = kIdleMode1Factor0;
+        if (unit->moveMode == 3) {
+            moveFactors[0] = kIdleMode3Scale * moveFactors[0];
+            moveFactors[1] = kIdleMode3Factor1;
+        }
+    } else {
+        moveFactors[0] = kZero;
+    }
+    if (state == 5 && (action.kind == 4 || action.kind == 5)) {
+        void* spell = SpellOfSource(action.source);
+        if (spell && Field<int>(static_cast<CSpell*>(spell)->GetPrototype(), 0x10) != 1)
+            moveFactors[2] = kCastingFactor2 * moveFactors[2];
+    }
+    if (state != 0) {
+        speedClass = 15;
+        return;
+    }
+    float speed = ei::VCall<float>(unit, kUnitSlotSpeed);
+    if (speed > kSpeedFast) speedClass = 0;
+    else if (speed > kSizeSmall) speedClass = 1;
+    else if (speed > kPointThree) speedClass = 3;
+    else if (speed > kSpeedSlow) speedClass = 7;
+    else speedClass = 15;
+}
+EI_REPLACE_METHOD(0x005536B0, CUnitServer::UpdateMoveFactors);

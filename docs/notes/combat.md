@@ -47,8 +47,10 @@ CUnit + 0x240.
   start, which unit.h leaves unnamed, is the CombatStats overlay: +0x04 experience (level), +0x30
   a scale (15 / x), +0x70 reach, +0x74 attack, +0x78 attack spread, +0x7C defence, +0x80 speed,
   +0x84 damage, +0x88 damage spread, +0x8C, +0x90 seven damage weights, +0xAC natural weapon type
-  (0x10: none). Its dword +0x6F8 gets bit 0x10 when a hit lands (TakeHit).
-- `+0x8E4` a short from the attack stats (00553450), `+0x8F8..+0x914` movement factors (005536B0),
+  (0x10: none), +0x60 (2: no size classes), +0x68/+0x6C/+0x6E size classes, +0xBC a movement
+  factor scale. Its dword +0x6F8 gets bit 0x10 when a hit lands (TakeHit).
+- `+0x164` state (0 idle, 5 casting, ...), `+0x8E4` a short from the attack stats (00553450),
+  `+0x8F8..+0x904` movement factors and `+0x914` speed class (005536B0),
   `+0x95C` animation key, `+0x97C` claimed-hostile player mask, `+0x980` attacker memory
   (005D7E90), `+0xA78` list of nearby units.
 
@@ -74,8 +76,8 @@ How a melee/natural attack works, from the rewritten functions:
    called shot at the head or 10 at a limb (not the body); the hit lands unless the defender's
    defence (0 against a backstab) is greater.
 4. TakeHit logs it to the console ("Unit 12 was attacked by 34 skill=<+-FLT_MAX> damage=<+0x24>
-   destHL=Body", plus " backstab with power=" and " called shot" when they apply), refuses it for protected players, applies it through UnitStats::ApplyHit
-   (005254B0), records the damage source at CUnit +0x350, recomputes the stats, and calls
+   destHL=Body", plus " backstab with power=" and " called shot" when they apply), refuses it
+   for protected players, applies it through UnitStats::ApplyHit (005254B0), records the damage source at CUnit +0x350, recomputes the stats, and calls
    OnDamaged (00553AC0: death, alarms). A miss makes the victim hostile (CDiplomacy::OnAttack)
    and remembered.
 
@@ -108,6 +110,8 @@ weapon's stats plus the weapon skill bonus 00526C70, others their stats scaled b
 | 0054B520 | CUnitServer::GetMovePoint | output-only, 12 bytes and the result |
 | 00555A00 | CUnitServer::GetAttackParams (slot 50) | output-only, 0x20 bytes (scratch pre-filled: the damage type is left alone when no weight is set) |
 | 00553220 | CUnitServer::UpdateSpellBlockFlag (slot 49) | stateful: ours, the unit's flags_ saved and restored, original; flags compared |
+| 00552FB0 | CUnitServer::UpdateSizeClasses (slot 23) | stateful: ours, the 8 bytes at CombatStats +0x68 saved and restored, original; bytes compared |
+| 005536B0 | CUnitServer::UpdateMoveFactors (slot 45) | stateful, the 0x20 bytes at +0x8F8 likewise; the original runs through a hand-written trampoline (below) |
 | 00555BD0 | CUnitServer::AttackRoll | random: ours, generator state saved and restored, original; result bits and generator state compared |
 | 00553DF0 | CUnitServer::ResolveHit | random + state: the hit (0x3C bytes) and the generator, as above |
 | 0054F630 | CUnitServer::BuildAttackHit | random + state: the hit, ISAAC and rand()'s seed (_getptd + 0x14) |
@@ -119,10 +123,16 @@ functions (AttackRoll inside ResolveHit, BuildAttackHit inside PrepareAttack, Ro
 items area) that do the same, and each nested wrapper leaves the generator as one original run
 would.
 
+005536B0 begins with 4 bytes of PUSH/MOV and then a relative CALL, so no stolen-byte count works.
+Its wrapper (`stolenBytes` 0) calls `OriginalUpdateMoveFactors`, a naked stub in
+verify_combat.cpp that repeats PUSH ECX; PUSH ESI; MOV ESI,ECX, calls 00455940 through a register
+and jumps to 005536B9 (past the hook's 5 bytes; the code there writes EDX before reading it).
+
 All were renamed in Ghidra, together with the forwarders below and 005460C0/005460D0.
 
 Not verified offline: unlike units.md there is no scratch harness here. The compiled x87 code of
-AttackRoll, ResolveHit, BuildAttackHit, ScaledAttackValue and Level was read back from the object
+AttackRoll, ResolveHit, BuildAttackHit, ScaledAttackValue, Level, UpdateSizeClasses and
+UpdateMoveFactors was read back from the object
 file (`dumpbin /disasm`) and checked against the original's operation order (operands of each
 FADD/FSUB/FMUL/FDIV, float stores where the original stores, NaN behaviour of the compares). The
 wrappers only run in game (tests/scenarios/combat.txt).
@@ -147,7 +157,9 @@ points:
 
 - Unit range: 00523D30 `UnitStats::ScaleDamage` (returns a float in ST0), 00526C70
   `UnitStats::WeaponSkillBonus`, 0052E0D0 `AttackParams::ScaleByDifficulty`, 00530A60
-  `CUnit::IsBehind` (AL), 005254B0 `UnitStats::ApplyHit`, 00524560 `UnitStats::Recompute`.
+  `CUnit::IsBehind` (AL), 005254B0 `UnitStats::ApplyHit`, 00524560 `UnitStats::Recompute`,
+  005304A0 unit load and 00530560 unit size (2 * +0x14C). Forwarders whose ST0 result the
+  original keeps on the stack are declared `double` so the compiler does not round them.
 - This range, not rewritten: 0054F8E0 `CUnitServer::TriggerItemSpells`, 00553AC0
   `CUnitServer::OnDamaged`.
 - Elsewhere: 005911C0 `CWorldServer::AwardKill`, 005D7E90 attacker memory (CUnitServer + 0x980),
@@ -190,8 +202,8 @@ points:
   CString formatting): stateful with many callees; forwarded.
 - 005543B0 (heal, logs " was healed"): small but needs UnitStats 00525900 and the same log
   forwarders; next candidate.
-- 00552FB0 (slot 23, size category shorts), 005536B0 (slot 45, movement factors), 00553450 /
-  00553500 (stat refresh): stateful but self-contained; candidates for snapshot verification.
+- 00553450 / 00553500 (stat refresh), 005533B0 (slot 19, rescales a timer after a stats change):
+  stateful but self-contained; candidates for snapshot verification.
 - 0054BBC0, 0054BCB0, 0054C2F0, 0054C8B0, 0054C960, 0054CA40 (line of sight and target checks for
   orders; 0054C6B0 builds a path list): longer x87 code with AI map calls.
 - The order setters (00554450-00555840), the per-tick order machine (0054A900, 0054B390,

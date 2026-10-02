@@ -59,7 +59,13 @@ struct CombatStats {
     float unknown_04;           // +0x04 log-scaled into the level (00556760)
     std::uint8_t unknown_08[0x30 - 0x08];
     float unknown_30;           // +0x30 its ratio 15 / value scales item values (0054B760)
-    std::uint8_t unknown_34[0x70 - 0x34];
+    std::uint8_t unknown_34[0x60 - 0x34];
+    int unknown_60;             // +0x60 2: no size classes (00552FB0)
+    std::uint8_t unknown_64[4];
+    std::int16_t sizeClass;     // +0x68 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
+    std::int16_t unknown_6A;
+    std::int16_t sizeClass20;   // +0x6C the same for 0.2 times the size
+    std::int16_t sizeClass60;   // +0x6E and for 0.6 times the size
     float reach;                // +0x70 attack range without a weapon
     float attack;               // +0x74
     float attackSpread;         // +0x78
@@ -70,9 +76,13 @@ struct CombatStats {
     float unknown_8C;           // +0x8C
     float damageWeights[7];     // +0x90 natural attack, per damage type
     int naturalWeapon;          // +0xAC weapon type of the natural attack (0x10: none / spells only)
-    std::uint8_t unknown_B0[0x110 - 0xB0];
+    std::uint8_t unknown_B0[0xBC - 0xB0];
+    float unknown_BC;           // +0xBC scales the world's +0x84 factor in the movement factors
+    std::uint8_t unknown_C0[0x110 - 0xC0];
 };
+static_assert(offsetof(CombatStats, sizeClass) == 0x68);
 static_assert(offsetof(CombatStats, reach) == 0x70);
+static_assert(offsetof(CombatStats, unknown_BC) == 0xBC);
 static_assert(offsetof(CombatStats, damageWeights) == 0x90);
 static_assert(offsetof(CombatStats, naturalWeapon) == 0xAC);
 static_assert(sizeof(CombatStats) == 0x110);
@@ -156,6 +166,13 @@ public:
     // Returns 1 when damage was applied; on a miss the victim turns hostile and remembers the
     // attacker.
     BOOL TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
+    // 00552FB0. Virtual slot 23: the three size classes (CombatStats +0x68/+0x6C/+0x6E) from the
+    // unit's load (005304A0) and size (00530560 times the model's +0x120; heroes capped at 1.89).
+    void UpdateSizeClasses();
+    // 005536B0. Virtual slot 45: the movement factors (+0x8F8..+0x904) from the movement mode,
+    // the world's +0x84/+0x88 factors and the spell being cast, and the speed class (+0x914: 0, 1,
+    // 3, 7 or 15 by the unit's speed when idle, else 15).
+    void UpdateMoveFactors();
 
     // Not rewritten (forwarders):
     // 0054F8E0. Casts the spells of carried items that trigger on being hit (or on attacking).
@@ -166,7 +183,8 @@ public:
     CUnit* unit;                    // +0x01C
     std::uint8_t unknown_020[0x108 - 0x20];
     DamageInfo pendingHit;          // +0x108 the hit of the attack in progress
-    std::uint8_t unknown_144[0x168 - 0x144];
+    std::uint8_t unknown_144[0x164 - 0x144];
+    int state;                      // +0x164 0 idle, 5 casting, ...
     MoveModeState moveMode;         // +0x168
     MoveModeState moveMode2;        // +0x170
     std::uint8_t unknown_178[0x190 - 0x178];
@@ -174,6 +192,10 @@ public:
     UnitAction action2;             // +0x1B4
     std::uint8_t unknown_1D8[0x1E0 - 0x1D8];
     UnitStats stats;                // +0x1E0 (0x704 bytes; its +0x6F8 dword gets bit 0x10 on a hit)
+    std::uint8_t unknown_8E4[0x8F8 - 0x8E4];
+    float moveFactors[4];           // +0x8F8
+    std::uint8_t unknown_908[0x914 - 0x908];
+    int speedClass;                 // +0x914
     // Further fields up to at least +0xA98 (lists of nearby units, animation state); not needed.
 
     // +0x174 (moveMode2.flag4) is also read by the hit code: while it is set the unit cannot be
@@ -187,3 +209,6 @@ static_assert(offsetof(CUnitServer, moveMode2) == 0x170);
 static_assert(offsetof(CUnitServer, action) == 0x190);
 static_assert(offsetof(CUnitServer, action2) == 0x1B4);
 static_assert(offsetof(CUnitServer, stats) == 0x1E0);
+static_assert(offsetof(CUnitServer, state) == 0x164);
+static_assert(offsetof(CUnitServer, moveFactors) == 0x8F8);
+static_assert(offsetof(CUnitServer, speedClass) == 0x914);

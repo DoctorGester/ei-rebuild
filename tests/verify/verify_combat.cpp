@@ -274,6 +274,51 @@ static void __fastcall SpellBlockFlagVerify(CUnitServer* self) {
 }
 EI_VERIFY(0x00553220, SpellBlockFlagVerify, 5, s_spellBlockFlag);
 
+// Runs `ours`, keeps the `size` bytes at `fields`, restores them, runs `original` and reports
+// whether both left the same bytes (the original's stay).
+template <typename Ours, typename Original>
+void SameFieldWrites(const char* name, const CUnitServer* self, void* fields, int size, Ours ours,
+                     Original original) {
+    unsigned char saved[0x40];
+    unsigned char actual[0x40];
+    std::memcpy(saved, fields, size);
+    ours();
+    std::memcpy(actual, fields, size);
+    std::memcpy(fields, saved, size);
+    original();
+    int diff = FirstDifference(fields, actual, size);
+    ei::verify::Check(name, -1, diff, "unit %d: first difference at byte %d", UnitId(self), diff);
+}
+
+// 00552FB0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x10 (6 bytes). Slot 23; writes CombatStats +0x68..+0x6F.
+static void(__fastcall* s_sizeClasses)(CUnitServer*);
+static void __fastcall SizeClassesVerify(CUnitServer* self) {
+    SameFieldWrites("CUnitServer::UpdateSizeClasses", self, &self->Combat().sizeClass, 8,
+                    [&] { self->UpdateSizeClasses(); }, [&] { s_sizeClasses(self); });
+}
+EI_VERIFY(0x00552FB0, SizeClassesVerify, 6, s_sizeClasses);
+
+// 005536B0 (slot 45) starts PUSH ECX; PUSH ESI; MOV ESI,ECX (4 bytes), then CALL 00455940: no
+// 5-byte trampoline without a relative call. This stub replays those instructions with an
+// absolute call and continues at 005536B9 (which only writes EDX before reading it).
+__declspec(naked) static void __fastcall OriginalUpdateMoveFactors(CUnitServer*) {
+    __asm {
+        push ecx
+        push esi
+        mov esi, ecx
+        mov eax, 0x00455940
+        call eax
+        mov edx, 0x005536B9
+        jmp edx
+    }
+}
+static void* s_unusedMoveFactors;
+static void __fastcall MoveFactorsVerify(CUnitServer* self) {
+    SameFieldWrites("CUnitServer::UpdateMoveFactors", self, self->moveFactors, 0x20,
+                    [&] { self->UpdateMoveFactors(); }, [&] { OriginalUpdateMoveFactors(self); });
+}
+EI_VERIFY(0x005536B0, MoveFactorsVerify, 0, s_unusedMoveFactors);
+
 // 00555BD0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x50 (6 bytes). Draws from the ISAAC generator.
 static float(__fastcall* s_attackRoll)(CUnitServer*, void*, CUnitServer*, bool);
 static float __fastcall AttackRollVerify(CUnitServer* self, void*, CUnitServer* attacker, bool backstab) {
