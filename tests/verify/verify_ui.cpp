@@ -366,7 +366,7 @@ static void __fastcall UpdateRegionTipsVerify(CUiWindow* self, void*, int unused
     bool complete = count >= 0 && count <= kMax;
     if (complete) {
         POINT mouse{self->interface_->mouseX_, self->interface_->mouseY_};
-        self->interface_->CInterface3D::ScalePointFromScreen(&mouse);
+        self->interface_->CallScalePointFromScreen(&mouse);
         for (int i = 0; i < count; ++i) {
             CUiRegion* region = self->regions_.data_[i];
             tips[i] = region->tip_;

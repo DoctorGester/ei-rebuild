@@ -23,6 +23,10 @@ int DivideBy600Residue(int dividend) { return Mul(0x1B4E81B5, dividend); }
 
 // --- CInterface3D ----------------------------------------------------------------------------
 
+__declspec(naked) int CInterface3D::CallScaleRectToScreen(RECT*) const EI_ORIGINAL(0x005F7CA0)
+__declspec(naked) int CInterface3D::CallScalePointToScreen(POINT*) const EI_ORIGINAL(0x005F7D20)
+__declspec(naked) int CInterface3D::CallScalePointFromScreen(POINT*) const EI_ORIGINAL(0x005F7E00)
+
 int CInterface3D::ScaleRectToScreen(RECT* rect) const {
     rect->left = Mul(rect->left, width_) / kLayoutWidth;
     rect->top = Mul(height_, rect->top) / kLayoutHeight;
@@ -84,13 +88,13 @@ void CUiSurface::SetRect(int left, int top, int right, int bottom) {
     rect_.top = top;
     rect_.right = right;
     rect_.bottom = bottom;
-    interface_->ScaleRectToScreen(&rect_);
+    interface_->CallScaleRectToScreen(&rect_);
 }
 EI_REPLACE_METHOD(0x005FD3A0, CUiSurface::SetRect);
 
 void CUiSurface::MoveTo(int x, int y) {
     POINT point{x, y};
-    interface_->ScalePointToScreen(&point);
+    interface_->CallScalePointToScreen(&point);
     int width = rect_.right - rect_.left;
     int height = rect_.bottom - rect_.top;
     rect_.left = point.x;

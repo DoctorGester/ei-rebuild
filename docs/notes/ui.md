@@ -167,3 +167,11 @@ mismatches.
   the window classes are better known.
 - 005FC730 / 005FC6B0 tooltip creation ("tip_%d" text lookup, allocate 0x184 bytes): depend on
   the tooltip class.
+
+## Rebirth patches the scaling functions
+
+Rebirth's addon patches all five CInterface3D scaling functions (005F7CA0, 005F7D20, 005F7DA0,
+005F7E00, 005F7E30; widescreen support), so under Rebirth those hooks are skipped. Rewritten callers
+(RegionAt, ContainsPoint, UpdateRegionTips, CUiSurface::SetRect/MoveTo) therefore call them through
+the original addresses (`CInterface3D::CallScale*`); calling our versions directly made RegionAt
+disagree with the patched original in the Rebirth smoke run.

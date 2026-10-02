@@ -34,6 +34,13 @@ public:
     int ScalePointFromScreen(POINT* point) const;
     int ScalePointFromScreenCopy(POINT* point) const;
 
+    // Rewritten code calls the scaling functions through their original addresses: Rebirth patches
+    // all of them (widescreen), so in that install the hooks are skipped and the patched versions
+    // must still run (rewrite-guide rule 9). In the vanilla install these land on the rewrites above.
+    int CallScaleRectToScreen(RECT* rect) const;        // -> 005F7CA0
+    int CallScalePointToScreen(POINT* point) const;     // -> 005F7D20
+    int CallScalePointFromScreen(POINT* point) const;   // -> 005F7E00
+
     // 005F7590. The window on top of the active-window stack, or null.
     CUiWindow* GetActiveWindow() const;
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).

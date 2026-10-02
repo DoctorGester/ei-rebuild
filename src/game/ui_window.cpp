@@ -270,7 +270,7 @@ EI_REPLACE_METHOD(0x005FC880, CUiRegion::OnMouseMove);
 
 int CUiWindow::RegionAt(int x, int y) const {
     POINT point{x, y};
-    interface_->ScalePointFromScreen(&point);
+    interface_->CallScalePointFromScreen(&point);
     for (int i = 0; i < regions_.size_; ++i) {
         if (regions_.data_[i]->HitTest(point.x, point.y)) return i;
     }
@@ -280,14 +280,14 @@ EI_REPLACE_METHOD(0x005FFCC0, CUiWindow::RegionAt);
 
 BOOL CUiWindow::ContainsPoint(int x, int y) const {
     POINT point{x, y};
-    interface_->ScalePointFromScreen(&point);
+    interface_->CallScalePointFromScreen(&point);
     return gameapi::PtInRect(&rect_, point);
 }
 EI_REPLACE_METHOD(0x005FFD30, CUiWindow::ContainsPoint);
 
 void CUiWindow::UpdateRegionTips(int) {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
-    interface_->ScalePointFromScreen(&mouse);
+    interface_->CallScalePointFromScreen(&mouse);
     // Inlines CUiRegion::OnMouseMove for every region with a tooltip.
     for (int i = 0; i < regions_.size_; ++i) {
         CUiRegion* region = regions_.data_[i];
