@@ -150,3 +150,100 @@ dumpbin confirmed the generated tests.
 - One-instruction global getters/setters in the glue layer (00578D00, 00578D50, 00578E20, ...)
   and plain forwarding wrappers (005786A0, 00578980, 00578A40, ...): nothing to rewrite.
 - Platform/sky loading (00562F70), weather and camera glue (00578820, 00578760: calls CSectorMap::Move).
+
+# World tick, unit waking and alarms (second round)
+
+Code: `src/game/world_tick.cpp`; verify wrappers: `tests/verify/verify_world_tick.cpp`; scenario:
+`tests/scenarios/world.txt`. Shared files changed: `src/lib/stlp.h` gained two inline members of
+`hash_map` (`First`, `After`: STLport's begin() and iterator ++). `world.h` was extended (fields
+split out of unknown arrays, no offsets moved).
+
+## Map of the update path
+
+CWorldServer slot 6 (0058DFF0, the world update, once per world tick) does, in order: drop
+disconnected players; for every party unit of every player `WakeUnitsAround(unit + 0x1C,
+max(perception * factor, minimum) * 2 + 20)`; accept new players (0058DAF0); unless +0x6C is set,
+each player's 00665DE0 and then `Tick(0)`; each player's 0066E130; rebuilds the "Heroes" script
+group; each player's 0058B750 (player state; returns 0 to disconnect). 0057A060 also calls
+WakeUnitsAround and Tick.
+
+`Tick` (0058DCD0):
+
+1. `++tick_` (+0x64, the game clock at 007AFFC4); every 64 ticks (tick & 63 == 3) 0058CCD0
+   (weather: rain, lightning strikes, the day-time value at +0x84).
+2. Timed objects (+0x12DE8): walks the map in STLport iterator order calling each object's slot 6;
+   an object returning 0 has its id pushed on a local `list<unsigned>` and is released at once.
+   After the walk the ids are looked up again and erased.
+3. 005C9530 time wheel (+0x2838, 1024 x 16 slots) advanced to the tick.
+4. 006D44E0 countdown array (+0x70); when any countdown was running every player gets dirty bit
+   0x20.
+5. Missiles (+0x12E28, an MFC CList of counted pointers to 0xA8-byte objects created by
+   0058E670): 0067E6D0 moves one; on 0 the node is unlinked and freed (0059C810).
+6. Script command queues: +0x12874 only while +0x160 is set or `force`; +0x12A6C always (004BF000).
+7. 0058D670 runs the units in the update map (Rebirth patches it).
+
+Other structures recovered:
+
+- **Alarms** (+0x8C, five 16-byte `WorldAlarm`s: active byte, tick, x, y): script InvokeAlarm
+  (always with force), AIBrain::Think and the script's IsAlarm/AlarmTime/AlarmPosX/AlarmPosY
+  (script_eval.cpp reads them at 007AFFEC).
+- **+0x294 is a CSectorMap** (sector_map.h): 005C0930 returns sector (x, y)'s unit list
+  (Sector + 0x20). WakeUnitsAround uses its own static SpiralCache at 007AFF08.
+- +0x138 game result (0058DC90 sets it once), +0x160 enables the first command queue, +0x60 an
+  object replaced by 0055F410 at the end of the game.
+
+## Rewritten
+
+| Address | Name | Verification |
+|---|---|---|
+| 0058DCD0 | CWorldServer::Tick (RET 4, char force) | stateful, ours only: tick + 1, missile list links/tail/count consistent, no null timed object |
+| 0058D3D0 | CWorldServer::WakeUnitsAround (RET 8) | original first; its update-map entries recorded; map put back (new keys erased, old values and max id restored); ours; entries and max id compared |
+| 00593FC0 | CWorldServer::InvokeAlarm (RET 0xC, char force) | stateful (AI brains), ours only: all five alarm slots equal the expected bytes; when raised, every player-less unit whose brain byte +0x37 is set is in the update map |
+| 0058DC90 | CWorldServer::SetGameResult (RET 4) | ours only: +0x138 set only when it was 0 |
+
+Names are provisional and set in Ghidra, together with the callees below.
+
+The inline map insertions of WakeUnitsAround and InvokeAlarm (+0x174 slot, highest id, resize,
+find-or-insert at the bucket head, value) are exactly AddToUpdateMap (0058D5D0), which they call.
+Tick's local `list<unsigned>` reproduces the original's node pool traffic: head allocated before
+the walk, one 12-byte node per finished object, the hash nodes freed during the erase pass, the
+list nodes freed in order, the head at the very end (after 0058D670).
+
+Floating point: only WakeUnitsAround (radius * 1/32 rounded to float for SpiralCache::Get; sector
+= fistp(2x - 0.5 through a float) / 32, as GridHeight). Checked with dumpbin.
+
+## Forwarders added (standalone build must replace)
+
+- 0058CCD0 CWorldServer::UpdateWeather, 0058D670 CWorldServer::UpdateUnits (Rebirth-patched: must
+  stay a call to the original address), 0055F410 (replaces +0x60).
+- 005C9530 TimeWheel::Advance, 006D44E0 Countdowns::Tick (AL), 004BF000 CommandQueue::Run.
+- 0067E6D0 Projectile::Update, 0059C810 ProjectileList::FreeNode.
+- 005D5940 AIBrain::HearAlarm (brain = unit controller + 0x980).
+- 006E727B atexit (another local copy; ai_map.cpp and effects_weather.cpp have one each).
+- 005C0930 (sector unit list) is inlined (bounds check and address only).
+- Calls rewritten code directly: SpiralCache::Get, AddToUpdateMap, MarkPlayersDirty.
+
+## Original bugs and oddities kept
+
+- Tick reads the timed-object node's `next` after the object's slot 6 and Release ran; an object
+  that erases its own map entry while updating makes the original read a freed node (same here).
+- The missile walk saves `next` before Update; Update removing the next missile breaks the walk in
+  both.
+- InvokeAlarm stops walking the objects at the first map entry with a null object, and does not
+  check the unit's controller for null.
+- InvokeAlarm(0, ..., force) clears the five alarms, including the padding bytes, before raising
+  alarm 0.
+
+## Skipped
+
+- 0058DFF0 (slot 6 itself): SEH frames, script-group temporaries ("Heroes") and network player
+  handling; next candidate once ScriptGroup copies exist.
+- 0058CCD0 (weather, random-driven, float heavy), 0058B750 (player state, 3.5 KB), 0058DAF0
+  (accepting network players), 0058E670 (missile creation; reads its caller's frame).
+- 0058D340 / 00593AF0 (send a unit's sound / removal to every player whose selection holds the
+  unit): only network writes, nothing a verify could check.
+- 00594F30, 00595020, 005947E0 (shared/charged object lists): CList/CArray node code with
+  counted pointers.
+- 005939E0, 00595A70, 00595A90: no callers found. Save (0057ABA0), zone loading (0057C460,
+  0057BD10) and the state machine (0057C700) are on the Rebirth list; load (0057B3B0) and the zone
+  loader 0057BDF0 are large one-off functions, left for later.
