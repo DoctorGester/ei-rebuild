@@ -10,7 +10,18 @@ namespace ei {
 
 static char g_logPath[MAX_PATH];
 
+// ei_hook.log next to the DLL. Set on first use: static constructors (the harness) log before
+// DllMain runs.
+static void InitLogPath() {
+    HMODULE self = nullptr;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&InitLogPath), &self);
+    GetModuleFileNameA(self, g_logPath, MAX_PATH);
+    if (char* dot = strrchr(g_logPath, '.')) strcpy_s(dot, 5, ".log");
+}
+
 void Log(const char* fmt, ...) {
+    if (!g_logPath[0]) InitLogPath();
     FILE* f = nullptr;
     if (fopen_s(&f, g_logPath, "a") != 0 || !f) return;
     SYSTEMTIME t;
@@ -29,8 +40,6 @@ void Log(const char* fmt, ...) {
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         DisableThreadLibraryCalls(module);
-        GetModuleFileNameA(module, ei::g_logPath, MAX_PATH);
-        if (char* dot = strrchr(ei::g_logPath, '.')) strcpy_s(dot, 5, ".log");
         ei::Log("ei_hook loaded into pid %lu", GetCurrentProcessId());
         ei::RedirectGamePaths();
         ei::InstallHooksAtWinMain();

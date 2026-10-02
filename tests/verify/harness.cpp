@@ -474,17 +474,27 @@ struct Harness {
         char path[MAX_PATH];
         DWORD n = GetEnvironmentVariableA("EI_HARNESS", path, MAX_PATH);
         if (n == 0 || n >= MAX_PATH) return;
-        if (!LoadScenario(path)) {
-            Log("harness: cannot read scenario %s", path);
-            return;
-        }
-        // Report next to ei_hook.log.
+        // Report next to ei_hook.log. It exists from the start ("RESULT: RUNNING"), so ei_launch can
+        // tell a run whose harness never started from one that is still going.
         HMODULE self = nullptr;
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                            reinterpret_cast<LPCSTR>(&LoadScenario), &self);
         GetModuleFileNameA(self, g_reportPath, MAX_PATH);
         if (char* slash = std::strrchr(g_reportPath, '\\')) strcpy_s(slash + 1, g_reportPath + MAX_PATH - (slash + 1), "harness_report.txt");
-        std::remove(g_reportPath);
+        FILE* report = nullptr;
+        fopen_s(&report, g_reportPath, "w");
+        if (!LoadScenario(path)) {
+            Log("harness: cannot read scenario %s", path);
+            if (report) {
+                std::fprintf(report, "FAILED: cannot read scenario %s\nRESULT: FAIL\n", path);
+                std::fclose(report);
+            }
+            TerminateProcess(GetCurrentProcess(), 2);   // never leave a game waiting in the menu
+        }
+        if (report) {
+            std::fputs("RESULT: RUNNING\n", report);
+            std::fclose(report);
+        }
 
         MODULEINFO selfInfo{};
         GetModuleInformation(GetCurrentProcess(), self, &selfInfo, sizeof(selfInfo));

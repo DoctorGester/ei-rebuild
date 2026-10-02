@@ -58,6 +58,10 @@ int wmain(int argc, wchar_t** argv) {
     if (!harness.empty()) {
         wchar_t scenario[MAX_PATH];
         GetFullPathNameW(harness.c_str(), MAX_PATH, scenario, nullptr);
+        if (GetFileAttributesW(scenario) == INVALID_FILE_ATTRIBUTES) {
+            std::fwprintf(stderr, L"ei_launch: scenario %s not found\n", scenario);
+            return 2;
+        }
         SetEnvironmentVariableW(L"EI_HARNESS", scenario);
         wait = true;
     }
@@ -111,8 +115,19 @@ int wmain(int argc, wchar_t** argv) {
     // hung on exit (Rebirth does this) and is terminated, so no run needs Task Manager.
     std::wstring quitMarker = Dir(dll) + L"\\harness_quit";
     ULONGLONG quitSeen = 0;
+    const ULONGLONG started = GetTickCount64();
+    std::wstring reportFile = Dir(dll) + L"\\harness_report.txt";
     while (WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
         if (harness.empty()) continue;
+        // The harness writes its report as soon as it loads; none after 30 s means it never started
+        // (the game would otherwise sit in the main menu until someone closes it).
+        if (GetTickCount64() - started >= 30000 &&
+            GetFileAttributesW(reportFile.c_str()) == INVALID_FILE_ATTRIBUTES) {
+            std::fwprintf(stderr, L"ei_launch: the harness did not start in the game; terminating it\n");
+            TerminateProcess(pi.hProcess, 2);
+            WaitForSingleObject(pi.hProcess, 5000);
+            break;
+        }
         if (GetFileAttributesW(quitMarker.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
         if (!quitSeen) quitSeen = GetTickCount64();
         if (GetTickCount64() - quitSeen >= 10000) {
