@@ -14,7 +14,11 @@ comes from a bug we already hit.
   file offset == VA - 0x400000.
 - Build: `build.cmd verify` and `build.cmd release` (PowerShell: `cmd /c "<repo>\build.cmd verify"`).
   Both must build without errors or warnings in files you touched.
-- Do not launch the game. Integration runs happen centrally, one game at a time.
+- Do not launch the game. Integration runs happen centrally, one game at a time, with the harness
+  (`harness.cmd tests\scenarios\<scenario>.txt`, see README). You may add a scenario under
+  `tests/scenarios/` that exercises your area (script commands via `@...`, checks via `check` and
+  `waitfor`); it will be run at integration.
+- Run `python tools/check_stolen.py` before handing back.
 
 ## Where code goes
 
@@ -62,7 +66,9 @@ comes from a bug we already hit.
 9. **Mods patch the original in memory.** The installer compares each function's whole body with the
    exe on disk and skips patched ones (they install only in the vanilla launch). When rewritten code
    calls a function that a mod patches, call it through its original address (an `EI_ORIGINAL`
-   forwarder), not directly, so the mod's patch still runs.
+   forwarder), not directly, so the mod's patch still runs. `docs/rebirth-patched-functions.txt`
+   lists every function Rebirth patches; check it for each callee you call directly. (The UI
+   scaling functions are on it; calling our copies made `CUiWindow::RegionAt` disagree under Rebirth.)
 10. **Keep the original's bugs** (leaks, odd messages) and note them under "Original bugs kept on
     purpose" in your notes file.
 

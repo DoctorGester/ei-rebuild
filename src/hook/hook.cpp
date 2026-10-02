@@ -109,6 +109,36 @@ static const unsigned char* FileBytesAt(const std::vector<unsigned char>& file, 
     return off + 16 <= file.size() ? file.data() + off : nullptr;
 }
 
+// Writes patched_functions.txt next to the DLL: every game function whose code in memory differs
+// from game.exe on disk when hooks are installed, i.e. what other mods (Rebirth's addon.dll) patch.
+// Rewritten code must call those through their original addresses (rewrite-guide rule 9).
+static void DumpPatchedFunctions(const std::vector<unsigned char>& file) {
+    char path[MAX_PATH];
+    HMODULE self = nullptr;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&DumpPatchedFunctions), &self);
+    GetModuleFileNameA(self, path, MAX_PATH);
+    if (char* slash = std::strrchr(path, '\\')) strcpy_s(slash + 1, path + MAX_PATH - (slash + 1), "patched_functions.txt");
+    FILE* f = nullptr;
+    if (fopen_s(&f, path, "w") != 0 || !f) return;
+    std::fprintf(f, "# game functions whose code differs from game.exe on disk at WinMain (address, size, first differing offset)\n");
+    int count = 0;
+    for (const FunctionSize& fn : kFunctionSizes) {
+        const unsigned char* orig = FileBytesAt(file, fn.address);
+        if (!orig || fn.address + fn.size - kImageBase > file.size()) continue;
+        const auto* live = reinterpret_cast<const unsigned char*>(fn.address);
+        for (std::uint32_t i = 0; i < fn.size; ++i) {
+            if (live[i] != orig[i]) {
+                std::fprintf(f, "%08X %u +0x%X\n", static_cast<unsigned>(fn.address), fn.size, i);
+                ++count;
+                break;
+            }
+        }
+    }
+    std::fclose(f);
+    Log("%d game function(s) differ from game.exe on disk (patched_functions.txt)", count);
+}
+
 int InstallHooks() {
     // EI_NO_HOOKS=1 (ei_launch --no-hooks): run the original code only, as a baseline for harness runs.
     char noHooks[4];
@@ -130,6 +160,7 @@ int InstallHooks() {
         return 0;
     }
 
+    DumpPatchedFunctions(file);
     LoadVerifiedList();
     if (!g_verified.empty()) Log("%u function(s) marked verified: running without verify wrappers", unsigned(g_verified.size()));
 
