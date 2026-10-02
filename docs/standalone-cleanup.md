@@ -30,6 +30,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `CTexture::CreateFromMmp` 00690430, `CTexture::LoadBmp` 00690260 | `src/game/texture.cpp` | rewrite |
 | `mfc::PlexCreate` 006FE8EF, `mfc::PlexFreeDataChain` 006FE90F | `src/lib/mfc.*` | own `CPlex` (block allocator behind `CTypedPtrList`) |
 | `CAIMap::MarkFootprint` 005B6A80, `CUnit::OnLeftSectorMap` 0050E930, `SpiralIndex` 005BF7D0 | `src/game/sector_map.cpp` | rewrite |
+| Models: `ChunkArchive` Enter/Leave/Field/StringField/CountChunks (004098D0, 00409980, 004092B0, 00409470, 00409A60); record destructors and `vector::resize` of the prints/acks records (006D29A0, 006D29E0, 006D26E0, 006D2830, 006DC390, 006DC920, 006DCAF0, 006DB9C0, 006DBBD0, 006DBE20); acks record Serialize (006E3780, 006E3FD0, 006E3DC0); water level apply 006CC7F0; link loader list insert/erase (004FB2E0, 004FAE00); `ConstructMmioResource` 006721D0 (second copy) | `src/game/model*.cpp` | rewrite / own containers (see `docs/notes/models.md`) |
 | Script loader: `CScript::Error` 004CF470, command blocks 004BF540/004BF900, `RunWorldScript` 004BCC60, `SSCCmd::Clear`/destructor, `ScriptDefinition`/`ScriptVars` constructors, destructors and helpers, the CArray/CList members of the script types, CString Mid/Left/Right/Find/LockBuffer, CRT isdigit/isspace/strncmp/atof (full list in `docs/notes/script.md`, "Loader and parser") | `src/game/script_parse*.cpp`, `script_parse.h` | rewrite / own containers |
 
 ## Indirections
@@ -84,6 +85,10 @@ Decide case by case whether the standalone build keeps them (behaviour-exact) or
 - `CMappedResource::GetFile` on an in-memory archive does not report the size.
 - `CTextureManager::LoadTexture` / `LoadTextureFrom`: leak the file buffer when the .mmp header is
   not recognised; the .bmp path reports format number 0 in its error message.
+- `CLinkFigureLoader::AddArchive`: leaks the archive object when opening fails; its log message
+  passes the path string object by value to `%s`.
+- `TweenArray::Load` reads the count into the slot of its stream argument (a stream that wrote
+  nothing would leave the pointer value as the count).
 
 ## Functions left original because Rebirth patches them
 
