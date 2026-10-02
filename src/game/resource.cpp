@@ -26,6 +26,31 @@ int CMappedResource::FindEntry(const char* name) const {
     }
 }
 
+BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
+    CloseResource();
+    writable_ = writable;
+    fd_ = gamecrt::open(path, (writable ? 2 /* _O_RDWR */ : 0) | 0x8000 /* _O_BINARY */ | 0x10 /* _O_RANDOM */);
+    if (fd_ == -1)
+        return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + mfc::CString(path) + "\"");
+
+    if (gamecrt::lseek(fd_, 0, 0) != -1 && gamecrt::read(fd_, &header_, sizeof(header_)) == sizeof(header_)) {
+        if (header_.magic != kResMagic) {
+            game::FatalError("Wrong format resource file \"" + mfc::CString(path) + "\"");
+            CloseResource();
+            return 0;
+        }
+        unsigned tableSize = header_.count * sizeof(ResEntry);
+        entries_ = static_cast<ResEntry*>(gamecrt::operator_new(tableSize));
+        names_ = static_cast<char*>(gamecrt::operator_new(header_.namesSize));
+        if (gamecrt::lseek(fd_, static_cast<long>(header_.tableOffset), 0) != -1 &&
+            static_cast<unsigned>(gamecrt::read(fd_, entries_, tableSize)) == tableSize &&
+            static_cast<std::uint32_t>(gamecrt::read(fd_, names_, header_.namesSize)) == header_.namesSize)
+            return 1;
+    }
+    CloseResource();
+    return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + mfc::CString(path) + "\"");
+}
+
 BOOL CMappedResource::OpenFromMemory(const void* image) {
     CloseResource();
     image_ = image;
@@ -157,6 +182,9 @@ void CMappedResource::FreeAllFiles() {
 // Hooks. Virtual methods are installed through shims that call the body non-virtually; taking a
 // pointer to a virtual member would give a vtable-dispatch thunk instead.
 namespace {
+BOOL __fastcall OpenResourceHook(CMappedResource* self, void*, const char* path, BOOL writable) {
+    return self->CMappedResource::OpenResource(path, writable);
+}
 BOOL __fastcall OpenFromMemoryHook(CMappedResource* self, void*, const void* image) {
     return self->CMappedResource::OpenFromMemory(image);
 }
@@ -171,6 +199,7 @@ void __fastcall FreeAllFilesHook(CMappedResource* self) { self->CMappedResource:
 } // namespace
 
 EI_REPLACE_METHOD(0x00674850, CMappedResource::FindEntry);
+EI_REPLACE(0x00671730, OpenResourceHook);   // patched by Rebirth: installs in the vanilla launch only
 EI_REPLACE(0x00671A40, OpenFromMemoryHook);
 EI_REPLACE(0x00671AC0, CloseResourceHook);
 EI_REPLACE(0x00671B40, GetFileHook);

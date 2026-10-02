@@ -89,3 +89,14 @@ static void* __fastcall MmioGetFileVerify(CMMIOResource* self, void*, const char
     return expected;
 }
 EI_VERIFY(0x006725E0, MmioGetFileVerify, 6, s_mmioGetFile);
+
+// OpenResource opens a file and allocates, so it cannot run twice. Check the state it leaves.
+// Only installs in the vanilla launch (Rebirth patches the original).
+static BOOL __fastcall OpenResourceVerify(CMappedResource* self, void*, const char* path, BOOL writable) {
+    BOOL result = self->CMappedResource::OpenResource(path, writable);
+    bool ok = !result || (self->header_.magic == kResMagic && self->entries_ && self->names_ && self->fd_ >= 0 &&
+                          self->writable_ == static_cast<std::uint32_t>(writable));
+    ei::verify::Check("CMappedResource::OpenResource", true, ok, "\"%s\" result %d", path, result);
+    return result;
+}
+EI_VERIFY(0x00671730, OpenResourceVerify, 0, s_unused);
