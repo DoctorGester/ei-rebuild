@@ -146,6 +146,16 @@ int InstallHooks() {
                 h->name, static_cast<unsigned>(h->address), diff);
             continue;
         }
+        // A pointer to a virtual member function is a dispatch thunk (MOV EAX,[ECX]; JMP [EAX+n]),
+        // which would jump back into the hooked function forever.
+        const auto* code = static_cast<const unsigned char*>(h->replacement);
+        for (int hops = 0; code[0] == 0xE9 && hops < 4; ++hops)   // incremental-link jump stubs
+            code += 5 + *reinterpret_cast<const std::int32_t*>(code + 1);
+        if (code[0] == 0x8B && code[1] == 0x01 && code[2] == 0xFF && (code[3] == 0x20 || code[3] == 0x60 || code[3] == 0xA0)) {
+            Log("SKIP %s at %08X: replacement is a virtual-call thunk (register a non-virtual shim instead)",
+                h->name, static_cast<unsigned>(h->address));
+            continue;
+        }
         if (h->stolen > 0) {
             if (h->stolen < 5 || std::memcmp(target, orig, h->stolen) != 0 ||
                 !(*h->original = MakeTrampoline(h->address, h->stolen))) {

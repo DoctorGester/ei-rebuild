@@ -43,6 +43,10 @@ comes from a bug we already hit.
 4. **Virtual methods** cannot be registered by member pointer (that yields a vtable thunk). Declare
    the virtuals in vtable order, implement the body, and register a shim:
    `bool __fastcall FooHook(Cls* self, void*, args...) { return self->Cls::Foo(args...); }`.
+   Do not give a non-virtual method the same name and signature as a base-class virtual
+   (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently becomes
+   an override, and the hook lands on a dispatch thunk that loops forever. The installer now refuses
+   thunks and logs "virtual-call thunk".
 5. **Not-yet-rewritten callees** are forwarders: `__declspec(naked) R Cls::Fn(args) EI_ORIGINAL(0xADDR)`.
    Naked functions cannot have members with constructors/destructors in the class layout path; use raw
    pointers in layouts where needed (see `mfc::CFile`).

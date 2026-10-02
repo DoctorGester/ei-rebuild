@@ -13,7 +13,7 @@
 class CSpell : public CEngineObject {
 public:
     // 0068B320. Virtual slot 2: clears the parameters and the modifier list. Returns 1.
-    BOOL Create();
+    BOOL Clear();   // vtable slot 2; deliberately not named Create (that would override CEngineObject::Create)
 
     // 0068B430. Copies the parameters from a spell prototype record. Returns 1.
     BOOL InitFromPrototype(const char* prototype);

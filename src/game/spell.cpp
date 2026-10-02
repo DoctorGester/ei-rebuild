@@ -34,7 +34,7 @@ bool Regards(const SpellTargetUnit* a, const SpellTargetUnit* b) {
 }
 } // namespace
 
-BOOL CSpell::Create() {
+BOOL CSpell::Clear() {
     unknown_30 = 0;
     unknown_34 = 0;
     unknown_38 = 0;
@@ -47,7 +47,7 @@ BOOL CSpell::Create() {
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
-EI_REPLACE_METHOD(0x0068B320, CSpell::Create);
+EI_REPLACE_METHOD(0x0068B320, CSpell::Clear);
 
 BOOL CSpell::InitFromPrototype(const char* prototype) {
     auto dword = [prototype](int offset) { return *reinterpret_cast<const std::uint32_t*>(prototype + offset); };

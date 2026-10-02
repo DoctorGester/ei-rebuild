@@ -34,8 +34,8 @@ bool SameWrites(Obj* self, int from, int to, Ours ours, Original original, R& ex
 static BOOL(__fastcall* s_create)(CSpell*);
 static BOOL __fastcall CreateVerify(CSpell* self) {
     BOOL expected;
-    bool same = SameWrites(self, 0x30, 0x5C, [&] { return self->Create(); }, [&] { return s_create(self); }, expected);
-    ei::verify::Check("CSpell::Create", true, same, "spell %08X", self->unknown_18);
+    bool same = SameWrites(self, 0x30, 0x5C, [&] { return self->Clear(); }, [&] { return s_create(self); }, expected);
+    ei::verify::Check("CSpell::Clear", true, same, "spell %08X", self->unknown_18);
     return expected;
 }
 EI_VERIFY(0x0068B320, CreateVerify, 7, s_create);
