@@ -583,3 +583,14 @@ void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars);
 void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars);
 // 004C0020 (__thiscall, ScriptVars::RemoveAll). Every array of the set emptied.
 void __fastcall ScriptVarsClear(ScriptVars* vars);
+
+// ---- Assignment operators (script_copy.cpp) -----------------------------------------------------
+
+// __thiscall (const T& other), returning this. Arrays through the instantiations' SetSize / Copy;
+// floats copied through the FPU; SSCCmd's nested calls deep-copied (004C6D10).
+ScriptVars* __fastcall ScriptVarsAssign(ScriptVars* self, void* edx, const ScriptVars* other);   // 004CBAE0
+ScriptRun* __fastcall ScriptRunAssign(ScriptRun* self, void* edx, const ScriptRun* other);       // 004CB570
+SSCCmd* __fastcall ScriptCmdAssign(SSCCmd* self, void* edx, const SSCCmd* other);                // 004C6BC0
+ScriptDecl* __fastcall ScriptDeclAssign(ScriptDecl* self, void* edx, const ScriptDecl* other);   // 004CB2D0
+// 004CB220: the FX source list element (0x34 bytes; name CString at +0x08).
+void* __fastcall ScriptFxSourceAssign(void* self, void* edx, const void* other);

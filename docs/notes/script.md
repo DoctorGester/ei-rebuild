@@ -615,6 +615,27 @@ whole set, through the out-of-line SetSize(0) for every array but the groups.
 Original quirk kept: the copy loop runs over the other set's names, the values grow by its values
 (they are always equal in practice).
 
+# Assignment operators (004C6BC0, 004CB220, 004CB2D0, 004CB570, 004CBAE0)
+
+Code: `src/game/script_copy.cpp`. Verify: `tests/verify/verify_script_copy.cpp`. The compiler wrote
+them member by member through the CArray instantiations; all return `this`.
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004C6BC0 | 324 | ScriptCmdAssign (SSCCmd::operator=) | ours only: the source captured first (its SSCCmd::Save bytes, float bits after FLD / FSTP, strings, pointer arguments, bindings, called script), the destination must match |
+| 004CB570 | 181 | ScriptRunAssign | ours only: the five words and the variables (savers' bytes plus object and member pointers) |
+| 004CBAE0 | 149 | ScriptVarsAssign | ours only: as the run's variables |
+| 004CB220 | 101 | ScriptFxSourceAssign | ours only: the words and the name |
+| 004CB2D0 | 27 | ScriptDeclAssign | ours only: 004C1230's bytes before (source) and after (destination) |
+
+SSCCmd::operator=: id; float arguments resized (004C4410) and copied through the FPU; strings
+Copy (004C14A0); object and group argument pointers and both binding arrays resized (004C46F0,
+004C49F0, 004C4CE0) and copied as words; nested calls Copy (004C6D10, deep); the called script
+pointer. ScriptVars::operator=: floats resized (004C2880) and copied through the FPU, names and
+strings Copy (004C14A0), objects Copy (004C1290), groups Copy (004C1BE0). The run's operator= copies
+its five words first and inlines the variables'. Forwarders: the SetSize / Copy members above,
+004CC0C0, 00700AA9.
+
 # 004C0000-004E0000: what is left
 
 - Named in `config/library.csv` (237 functions): the CArray / CList instantiations of the script
@@ -627,12 +648,12 @@ Original quirk kept: the copy loop runs over the other set's names, the values g
 - Dead code: 004C01A0, 004C0520, 004C06F0, 004C09F0 (quest script builders) and the script dumper
   004D53C0 -> 004D39D0 / 004D50C0 -> 004D41C0 (Rebirth patches it) / 004D4E80 / 004D5310, plus
   004D38B0: no code or data reference in the exe.
-- Game code not rewritten: compiler-generated copy members of the script structs (SSCCmd copy /
-  operator= 004CE750 / 004C6BC0, ScriptSubCall copy 004CCAA0, ScriptDefinition copy / operator=
-  004CB460 / 004CB7E0, ScriptRun operator= 004CB570, ScriptVars operator= 004CBAE0 and its
-  per-type parts 004CBA00 / 004CBB80 / 004CBCA0 / 004CBDB0 / 004CBEF0, FX source copy 004CB220,
-  ScriptDecl operator= 004CB2D0) and element destructors (004CE1E0, 004CE210, 004CE230, 004CE270,
-  004CE2B0, 004CE2D0, 004C5480, 004C17E0, 004C81B0, 004C9AF0); ScriptVars constructor 004C00D0;
-  quest table lookup 004C9C90; 004CC600 (called from 006B1C90).
+- Game code not rewritten: compiler-generated copy members of the script structs (SSCCmd copy
+  constructor 004CE750, ScriptSubCall copy 004CCAA0, ScriptDefinition copy / operator= 004CB460 /
+  004CB7E0 and the per-type copy constructors 004CBA00 / 004CBB80 / 004CBCA0 / 004CBDB0 / 004CBEF0;
+  all only reached from CList RemoveHead / GetAt instantiations or dead code), element destructors
+  (004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004C5480, 004C17E0, 004C81B0,
+  004C9AF0), the ScriptVars constructor 004C00D0, the quest table lookup 004C9C90 and 004CC600
+  (called from 006B1C90).
 - 004D8000-004E0000 belongs to other subsystems (text manager 004DF8D0 / 004DFB80, map database
   loaders 004DF030 / 004DFCB0, renderer and AI map helpers, STLport instantiations); not touched.
