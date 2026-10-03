@@ -49,3 +49,15 @@ static void __fastcall TeardownZoneVerify(CWorldServer* self, void*) {
                       static_cast<unsigned>(self->timedObjects_.map.Size()));
 }
 EI_VERIFY(0x005957E0, TeardownZoneVerify, 0, s_unused);
+
+// 005951A0: afterwards every map object is still a world object, and none of them is in +0x12D88.
+static void __fastcall SendFreshObjectsVerify(CWorldServer* self, void*) {
+    self->SendFreshObjects();
+    auto& created = *reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(self) + 0x12D88);
+    bool ok = true;
+    for (auto* node = self->mapObjects_.map.First(); node && node->value && ok; node = self->mapObjects_.map.After(node))
+        ok = created.map.Find(node->key) == nullptr;
+    ei::verify::Check("CWorldServer::SendFreshObjects", true, ok, "map objects %u, moved %u",
+                      static_cast<unsigned>(self->mapObjects_.map.Size()), static_cast<unsigned>(created.map.Size()));
+}
+EI_VERIFY(0x005951A0, SendFreshObjectsVerify, 0, s_unused);

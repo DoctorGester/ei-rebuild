@@ -284,6 +284,10 @@ public:
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown (0055F890); the game result and kind are cleared.
     void TeardownZone();
+    // 005951A0. After a fresh zone is loaded: the map objects that are not part of the map
+    // (slot 29) move from the map-object maps to +0x12D88 and are sent, with the zone header
+    // (+0x12E00, reset first), through a temporary player.
+    void SendFreshObjects();
 
     // world_update.cpp
     // 0058DFF0, vtable slot 6. One world update: drops disconnected players and lets the others'

@@ -286,6 +286,93 @@ void CWorldServer::TeardownZone() {
     unknown12D64_ = 0;
 }
 
+// ---- SendFreshObjects -------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kObjectListVtable = 0x0073F530;
+
+__declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectListNewNode(
+    mfc::CTypedPtrList<CEngineObject>*, void*, mfc::CTypedPtrList<CEngineObject>::Node*,
+    mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x00573290)
+__declspec(naked) void __fastcall ObjectListRemoveAll(mfc::CTypedPtrList<CEngineObject>*, void*) EI_ORIGINAL(0x00570470)
+// 00599A80 (RET 4) / 00599AE0 (RET 4). An id map's erase(key) / lookup (pointer to the value or
+// null).
+__declspec(naked) void __fastcall IdMapErase(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599A80)
+__declspec(naked) CEngineObject** __fastcall IdMapLookup(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599AE0)
+// 0059CCE0 (RET 8). The aligned object array's SetAtGrow.
+__declspec(naked) void __fastcall AlignedArraySetAtGrow(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0059CCE0)
+// 0066C180. The player list creates a temporary player (returned).
+__declspec(naked) WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject*, void*) EI_ORIGINAL(0x0066C180)
+// 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
+__declspec(naked) void __fastcall StateObjectsAdded(void*, void*, void* /*objects*/) EI_ORIGINAL(0x0066D7F0)
+__declspec(naked) void __fastcall StateSendHeader(void*, void*, void* /*stream*/) EI_ORIGINAL(0x0066D230)
+
+constexpr int kSlotObjectStatic = 29;   // object slot 29 (+0x74, AL): part of the map itself
+constexpr int kSlotHeaderReset = 6;     // the header object at +0x12E00: slot 6 (+0x18)
+
+struct AlignedObjects {
+    CEngineObject** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+
+} // namespace
+
+void CWorldServer::SendFreshObjects() {
+    mfc::CTypedPtrList<CEngineObject> fresh;
+    fresh.vtable = reinterpret_cast<void*>(kObjectListVtable);
+    fresh.head = nullptr;
+    fresh.tail = nullptr;
+    fresh.count = 0;
+    fresh.free = nullptr;
+    fresh.blocks = nullptr;
+    fresh.blockSize = 10;
+    void* header = reinterpret_cast<std::uint8_t*>(this) + 0x12E00;
+    ei::VCall<void>(header, kSlotHeaderReset);
+
+    // The map objects that are not part of the map itself (slot 29): also kept in +0x12D88.
+    auto& created = *reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(this) + 0x12D88);
+    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
+        CEngineObject* object = node->value;
+        unsigned id = static_cast<unsigned>(object->id_);
+        if (!mapObjects_.map.Find(id)) continue;
+        if (ei::VCall<bool>(object, kSlotObjectStatic)) continue;
+        created.Set(static_cast<unsigned>(object->id_), object);
+        auto* entry = ObjectListNewNode(&fresh, nullptr, fresh.tail, nullptr);
+        entry->data = object;
+        if (fresh.tail) fresh.tail->next = entry;
+        else fresh.head = entry;
+        fresh.tail = entry;
+    }
+
+    // They stop being map objects and are sent to a temporary player, which is then dropped.
+    WorldPlayer* temporary = PlayerListCreateTemporary(players_, nullptr);
+    void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(temporary) + 0x20);
+    AlignedObjects objects{nullptr, 0, 0, 0};
+    for (auto* node = fresh.head; node;) {
+        auto* next = node->next;
+        CEngineObject* object = node->data;
+        unsigned id = static_cast<unsigned>(object->id_);
+        IdMapErase(&mapObjects_, nullptr, &id);
+        id = static_cast<unsigned>(object->id_);
+        if (IdMapLookup(&otherMapObjects_, nullptr, &id)) {
+            id = static_cast<unsigned>(object->id_);
+            IdMapErase(&otherMapObjects_, nullptr, &id);
+        }
+        AlignedArraySetAtGrow(&objects, nullptr, objects.size, object);
+        node = next;
+    }
+    StateObjectsAdded(state, nullptr, &objects);
+    StateSendHeader(state, nullptr, header);
+    PlayerListRelease(ei::VCall<CEngineObject*>(this, 20), nullptr, temporary);
+    if (objects.data) gamecrt::operator_delete(reinterpret_cast<void**>(objects.data)[-1]);
+    fresh.vtable = reinterpret_cast<void*>(kObjectListVtable);
+    ObjectListRemoveAll(&fresh, nullptr);
+}
+
 EI_REPLACE_METHOD(0x00595C70, CWorldServer::LoadMap);
 EI_REPLACE_METHOD(0x005957E0, CWorldServer::TeardownZone);
+EI_REPLACE_METHOD(0x005951A0, CWorldServer::SendFreshObjects);
 EI_REPLACE_METHOD(0x0058B250, CWorldServer::ResetZone);
