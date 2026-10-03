@@ -257,3 +257,22 @@ EI_EMIT_WRAPPER(EmitVulkan)
 EI_VERIFY(0x0048BD50, EmitVulkanVerify, 9, s_EmitVulkan);
 EI_UPDATE_WRAPPER(UpdateVulkan)
 EI_VERIFY(0x0048C010, UpdateVulkanVerify, 7, s_UpdateVulkan);
+
+// 00494950: MOV EAX,[ECX+8]; AND AL,0xFE; MOV [ECX+8],EAX (8). 004949B0: MOV EAX,[ESP+4];
+// MOV ECX,[EAX+0x50] (7). 004950B0: CMP DWORD [ECX+0x1C0],1 (7). 00495120: SUB ESP,0x24; PUSH EDI;
+// MOV EDI,ECX (6). 00494E00: MOV EDX,[ECX+0x1C0]; PUSH ESI (7). 00494F30: SUB ESP,0x10; PUSH ESI;
+// MOV ESI,[ESP+0x18] (8). 00492F40: MOV EAX,[ESP+4]; PUSH ESI; MOV ECX,[EAX+0x58] (8).
+EI_EMIT_WRAPPER(EmitFireStar)
+EI_VERIFY(0x00494950, EmitFireStarVerify, 8, s_EmitFireStar);
+EI_UPDATE_WRAPPER(UpdateFireStar)
+EI_VERIFY(0x004949B0, UpdateFireStarVerify, 7, s_UpdateFireStar);
+EI_EMIT_WRAPPER(EmitRegeneration)
+EI_VERIFY(0x004950B0, EmitRegenerationVerify, 7, s_EmitRegeneration);
+EI_UPDATE_WRAPPER(UpdateRegeneration)
+EI_VERIFY(0x00495120, UpdateRegenerationVerify, 6, s_UpdateRegeneration);
+EI_EMIT_WRAPPER(EmitVisionStar)
+EI_VERIFY(0x00494E00, EmitVisionStarVerify, 7, s_EmitVisionStar);
+EI_UPDATE_WRAPPER(UpdateVisionStar)
+EI_VERIFY(0x00494F30, UpdateVisionStarVerify, 8, s_UpdateVisionStar);
+EI_UPDATE_WRAPPER(UpdateZoneExit)
+EI_VERIFY(0x00492F40, UpdateZoneExitVerify, 8, s_UpdateZoneExit);

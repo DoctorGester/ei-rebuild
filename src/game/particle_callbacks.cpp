@@ -3287,3 +3287,194 @@ int CParticleSource::UpdateVulkan(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x0048C010, CParticleSource::UpdateVulkan);
+
+// --- FireStar / AcidStar (0x2042-ish), Regeneration, VisionStar and ZoneExit ----------------------
+
+// 00494950. FireStar: a single flash at the source (the source stops emitting at once) with the
+// source's lifetime as its frame and its size kept in +0x20.
+int CParticleSource::EmitFireStar(Particle* p, int) {
+    flags_ &= ~1u;
+    p->color = 0xFFFFFF;
+    p->life = 3;
+    p->frame = lifetime;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0);
+    std::memcpy(&p->velocity.x, &size, sizeof(float));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00494950, CParticleSource::EmitFireStar);
+
+// 004949B0. FireStar: shown for two ticks at the kept size (shrinking it by 0.9 each time), then
+// hidden and dropped.
+int CParticleSource::UpdateFireStar(Particle* p) {
+    if (--p->life <= 0) {
+        p->color = 0xFFFFFF;
+        SetBits(&p->size, 0);
+        return 0;
+    }
+    double shrunk = D(p->velocity.x) * D(GameFloat(0x0073CD70));    // 0.9
+    p->color = 0xFFFFFFFF;
+    std::memcpy(&p->size, &p->velocity.x, sizeof(float));
+    p->velocity.x = Store(shrunk);
+    return 1;
+}
+EI_REPLACE_METHOD(0x004949B0, CParticleSource::UpdateFireStar);
+
+// 004950B0. Regeneration: two particles at the source, +0x20 = -1 for the first and 1 for the
+// second (the sides they circle on).
+int CParticleSource::EmitRegeneration(Particle* p, int) {
+    if (particles.count > 1) return 0;
+    p->color = 0xFFFFFF;
+    p->frame = 3;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0);
+    p->velocity.x = static_cast<float>(particles.count != 0 ? 1 : -1);
+    return 1;
+}
+EI_REPLACE_METHOD(0x004950B0, CParticleSource::EmitRegeneration);
+
+// 00495120. Regeneration: once the source no longer emits (or has no carrier) its size shrinks by
+// a quarter per tick and the particles go below 0.02. Each particle eases (0.7 / 0.3) towards a
+// point beside the carrier: its own x axis (the first column of its orientation quaternion at
+// +0x34, w first) scaled by the carrier's size (+0x134), the particle's side and 0.65; a little
+// above, by 0.4 of the source's size. Its size flickers at random.
+int CParticleSource::UpdateRegeneration(Particle* p) {
+    if (!(flags_ & 1) || !attachedTo) {
+        double shrunk = D(size) * D(GameFloat(0x0073C524));          // 0.75
+        size = Store(shrunk);
+        if (shrunk < D(GameFloat(0x0073CCD8))) {                    // 0.02
+            SetBits(&p->size, 0);
+            p->color = 0xFFFFFF;
+            return 0;
+        }
+    }
+    p->color = 0xFFFFFFFF;
+    Vector3 target;
+    std::memcpy(&target, &origin, sizeof(Vector3));
+    if (attachedTo) {
+        const auto* carrier = static_cast<const std::uint8_t*>(attachedTo);
+        auto field = [carrier](int offset) { return D(*reinterpret_cast<const float*>(carrier + offset)); };
+        double w = field(0x34), x = field(0x38), y = field(0x3C), z = field(0x40);
+        double xx = x * x;
+        double axisX = w * w - (z * z + y * y + xx) + (xx + xx);
+        float axisY = Store((x * y + z * w) * 2.0);
+        float axisZ = Store((x * z - y * w) * 2.0);
+        float scale = Store(field(0x134) * D(p->velocity.x) * D(GameFloat(0x0073CE08)));    // 0.65
+        float offsetY = Store(D(axisY) * D(scale));
+        float offsetZ = Store(D(axisZ) * D(scale));
+        target.x = Store(axisX * D(scale) + D(target.x));
+        target.y = Store(D(offsetY) + D(target.y));
+        target.z = Store(D(offsetZ) + D(target.z));
+    }
+    p->size = Store((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
+                    D(GameFloat(0x0073C3B0)));                       // (0.8 + [0, 0.4)) * size / 4
+    double keep = D(GameFloat(0x0073C538));                          // 0.7
+    double pull = D(GameFloat(0x0073C54C));                          // 0.3
+    p->pos.x = Store(D(p->pos.x) * keep + D(target.x) * pull);
+    p->pos.y = Store(D(p->pos.y) * keep + D(target.y) * pull);
+    p->pos.z = Store(D(p->pos.z) * keep + D(size) * D(GameFloat(0x0073B868)) + D(target.z) * pull);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00495120, CParticleSource::UpdateRegeneration);
+
+namespace {
+
+// A running angle kept by the game (007A9BF8); VisionStar's satellites turn by it.
+float SpinAngle() { return *reinterpret_cast<const volatile float*>(0x007A9BF8); }
+
+} // namespace
+
+// 00494E00. VisionStar: up to five particles. With lifetime 1 they are a star (frame 1) at the
+// source and four satellites half a unit out, at the running angle times 0.2, 0.4, 0.6 and 0.8 (the
+// first at angle 0); with another lifetime (used as the frame) just the one particle.
+int CParticleSource::EmitVisionStar(Particle* p, int) {
+    int count = particles.count;
+    if (count > 4) return 0;
+    if (count > 0 && lifetime != 1) return 0;
+    p->color = 0xFFFFFF;
+    p->frame = lifetime;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0);
+    if (lifetime != 1) return 1;
+    if (count == 0) {
+        p->velocity.x = Store(x87::fcos(GameDouble(0x0073C340)));
+        p->velocity.y = Store(x87::fsin(GameDouble(0x0073C340)));
+        SetBits(&p->velocity.z, 0);
+    } else {
+        static const std::uintptr_t kRates[] = {0x0073CCA0, 0x0073CF6C, 0x0073CF68, 0x0073CF64};
+        double angle = D(SpinAngle()) * D(GameFloat(kRates[count - 1]));
+        p->velocity.x = Store(x87::fcos(angle));
+        p->velocity.y = Store(x87::fsin(angle));
+        SetBits(&p->velocity.z, 0);
+    }
+    double half = D(GameFloat(0x0073B86C));
+    p->velocity.x = Store(D(p->velocity.x) * half);
+    p->velocity.y = Store(D(p->velocity.y) * half);
+    p->velocity.z = Store(D(p->velocity.z) * half);
+    p->pos.x = Store(D(p->pos.x) + D(p->velocity.x));
+    p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00494E00, CParticleSource::EmitVisionStar);
+
+// 00494F30. VisionStar: the particles follow the source; with lifetime 1 their offsets turn by
+// 0.07 radians per tick (and they flicker less). VisionStar3 (0x204C) sits 0.7 higher. The size
+// eases (0.95) towards a random flicker of the source's size; once the source stops emitting (or
+// loses its carrier) the source's size is zeroed and the particles fade, dropped below 0.03.
+int CParticleSource::UpdateVisionStar(Particle* p) {
+    float oldSize = p->size;
+    p->color = 0xFFFFFFFF;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0x3F800000);
+    float flicker;
+    SetBits(&flicker, 0x3E99999A);     // 0.3
+    if (lifetime == 1) {
+        double c = x87::fcos(GameDouble(0x0073CF78));
+        SetBits(&flicker, 0x3E2E147B);     // 0.17
+        double s = x87::fsin(GameDouble(0x0073CF78));
+        float turnedY = Store(D(p->velocity.y) * c - D(p->velocity.x) * s);
+        double turnedX = c * D(p->velocity.x) + D(p->velocity.y) * s;
+        p->velocity.y = turnedY;
+        p->velocity.x = Store(turnedX);
+        p->pos.x = Store(D(p->pos.x) + D(p->velocity.x));
+        p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+        p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    }
+    if (type_ == 0x204C) p->pos.z = Store(D(p->pos.z) + D(GameFloat(0x0073C538)));
+    double eased = (Unsigned(Next()) * GameDouble(0x0073CF70) + D(GameFloat(0x0073B850))) * D(size) * D(flicker) *
+                       D(GameFloat(0x0073C52C)) +
+                   D(oldSize) * D(GameFloat(0x0073CD50));
+    p->size = Store(eased);
+    if ((flags_ & 1) && attachedTo) return 1;
+    p->size = Store(eased * D(GameFloat(0x0073CD50)));
+    SetBits(&size, 0);
+    if (p->size < GameFloat(0x0073CD74)) {
+        SetBits(&p->size, 0);
+        p->color = 0xFFFFFF;
+        return 0;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00494F30, CParticleSource::UpdateVisionStar);
+
+namespace {
+
+const std::int32_t* ZoneExitAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AA38); }    // by life
+
+} // namespace
+
+// 00492F40. ZoneExit: alpha by the life left (the table at 0078AA38), dropped past 0; rising 0.05
+// per tick, +0x2C slowing by 0.9, cycling through four frames, sized by +0x20.
+int CParticleSource::UpdateZoneExit(Particle* p) {
+    int life = p->life;
+    p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(ZoneExitAlpha()[life]) << 24);
+    p->life = --life;
+    if (life < 0) return 0;
+    p->pos.z = Store(D(p->pos.z) + D(GameFloat(0x0073C52C)));
+    p->unknown_2C = Store(D(p->unknown_2C) * D(GameFloat(0x0073CD70)));
+    p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
+    std::memcpy(&p->size, &p->velocity.x, sizeof(float));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00492F40, CParticleSource::UpdateZoneExit);

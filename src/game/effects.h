@@ -205,6 +205,13 @@ public:
     void TickFalling(ParticleElement* e);           // 0048F6F0
     int EmitVulkan(Particle* p, int index);         // 0048BD50 (VulcanSmoke, 0x2005)
     int UpdateVulkan(Particle* p);                  // 0048C010
+    int EmitFireStar(Particle* p, int index);       // 00494950 (FireStar, AcidStar)
+    int UpdateFireStar(Particle* p);                // 004949B0
+    int EmitRegeneration(Particle* p, int index);   // 004950B0 (Regeneration)
+    int UpdateRegeneration(Particle* p);            // 00495120
+    int EmitVisionStar(Particle* p, int index);     // 00494E00 (VisionStar1-3)
+    int UpdateVisionStar(Particle* p);              // 00494F30
+    int UpdateZoneExit(Particle* p);                // 00492F40 (ZoneExit)
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
