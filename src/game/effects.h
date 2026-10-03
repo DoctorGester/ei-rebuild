@@ -217,6 +217,10 @@ public:
     void TickFeetCloud(ParticleElement* e);         // 00495E00
     int EmitSilence(Particle* p, int index);        // 00495320 (Silence, 0x2048)
     int UpdateSilence(Particle* p);                 // 004955D0
+    int UpdateModifier(Particle* p);                // 00490990 (Modifier1-12)
+    void TickModifier(ParticleElement* e);          // 00490B00
+    int UpdateLightning(Particle* p);               // 00492B80 (LightningBlast, 0x2030)
+    void TickLightning(ParticleElement* e);         // 00492CC0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

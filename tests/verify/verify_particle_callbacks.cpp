@@ -290,3 +290,14 @@ EI_EMIT_WRAPPER(EmitSilence)
 EI_VERIFY(0x00495320, EmitSilenceVerify, 6, s_EmitSilence);
 EI_UPDATE_WRAPPER(UpdateSilence)
 EI_VERIFY(0x004955D0, UpdateSilenceVerify, 8, s_UpdateSilence);
+
+// 00490990 and 00490B00: MOV EDX,[ESP+4]; SUB ESP,0xC (7). 00492B80: MOV EDX,[ESP+4]; PUSH ESI;
+// MOV EAX,[EDX+0x50] (8). 00492CC0: MOV EAX,[ESP+4]; PUSH EBX (5).
+EI_UPDATE_WRAPPER(UpdateModifier)
+EI_VERIFY(0x00490990, UpdateModifierVerify, 7, s_UpdateModifier);
+EI_ELEMENT_WRAPPER(TickModifier)
+EI_VERIFY(0x00490B00, TickModifierVerify, 7, s_TickModifier);
+EI_UPDATE_WRAPPER(UpdateLightning)
+EI_VERIFY(0x00492B80, UpdateLightningVerify, 8, s_UpdateLightning);
+EI_ELEMENT_WRAPPER(TickLightning)
+EI_VERIFY(0x00492CC0, TickLightningVerify, 5, s_TickLightning);

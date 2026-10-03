@@ -3342,7 +3342,7 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
         double shrunk = D(size) * D(GameFloat(0x0073C524));          // 0.75
         size = Store(shrunk);
-        if (shrunk < D(GameFloat(0x0073CCD8))) {                    // 0.02
+        if (!(shrunk >= D(GameFloat(0x0073CCD8)))) {                    // 0.02
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3449,7 +3449,7 @@ int CParticleSource::UpdateVisionStar(Particle* p) {
     if ((flags_ & 1) && attachedTo) return 1;
     p->size = Store(eased * D(GameFloat(0x0073CD50)));
     SetBits(&size, 0);
-    if (p->size < GameFloat(0x0073CD74)) {
+    if (!(p->size >= GameFloat(0x0073CD74))) {
         SetBits(&p->size, 0);
         p->color = 0xFFFFFF;
         return 0;
@@ -3682,7 +3682,7 @@ EI_REPLACE_METHOD(0x00495320, CParticleSource::EmitSilence);
 int CParticleSource::UpdateSilence(Particle* p) {
     if (!(flags_ & 1) || !attachedTo) {
         if (p->state) size = Store(D(size) * D(GameFloat(0x0073CEB8)));    // 0.85
-        if (size < GameFloat(0x0073CCD8)) {                                 // 0.02
+        if (!(size >= GameFloat(0x0073CCD8))) {                                 // 0.02
             SetBits(&p->size, 0);
             p->color = 0xFFFFFF;
             return 0;
@@ -3736,3 +3736,147 @@ int CParticleSource::UpdateSilence(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x004955D0, CParticleSource::UpdateSilence);
+
+// --- Modifier1-12 (0x201B-0x2026): update and element tick; the emission is 00490130 ---------------
+
+namespace {
+
+const std::int32_t* ModifierAlphaIn() { return reinterpret_cast<const std::int32_t*>(0x0078A800); }     // by tick
+const std::int32_t* ModifierAlphaOut() { return reinterpret_cast<const std::int32_t*>(0x0078A88C); }    // by tick
+
+// x87 FCOMP's "below" (also taken when unordered).
+bool Below(double a, double b) { return !(a >= b); }
+
+} // namespace
+
+// 00490990. Modifier: the first twelve frames are the marker riding its element (state), its size
+// shrinking (negative source size) or growing, alpha by the element's tick. Later frames are
+// sparks stepping through the frames (back to 12 past the last), flying out by +0x20 plus their
+// spread (+0x2C, slowing by 0.9), fading by 48 per tick and shrinking by 0.9.
+int CParticleSource::UpdateModifier(Particle* p) {
+    if (--p->life == 0) return 0;
+    if (p->frame < 12) {
+        double oldSize = D(p->size);
+        const ParticleElement& e = elements[p->state];
+        std::memcpy(&p->pos, &e.pos, sizeof(Vector3));
+        SetBits(&p->size, 0x3F800000);
+        if (Below(D(size), D(EI_P_ZERO))) {
+            p->size = Store(oldSize * D(GameFloat(0x0073CEA8)));    // 1 / 1.07
+            p->color = (static_cast<std::uint32_t>(ModifierAlphaIn()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
+        } else {
+            p->size = Store(oldSize * D(GameFloat(0x0073CEA4)));    // 1.07
+            p->color = (static_cast<std::uint32_t>(ModifierAlphaOut()[elements[p->state].ticks]) << 24) | 0xFFFFFF;
+        }
+        return 1;
+    }
+    if (--p->frameTimer == 0) {
+        if (++p->frame >= frameCount) p->frame = 12;
+        p->frameTimer = frameDelay;
+    }
+    float* spread = &p->unknown_2C;
+    double slow = D(GameFloat(0x0073CD70));    // 0.9
+    for (int i = 0; i < 3; ++i) spread[i] = Store(D(spread[i]) * slow);
+    double oldSize = D(p->size);
+    double x = D(spread[0]) + D(p->velocity.x);
+    float y = Store(D(spread[1]) + D(p->velocity.y));
+    float z = Store(D(spread[2]) + D(p->velocity.z));
+    p->pos.y = y;
+    p->pos.x = Store(x);
+    p->pos.z = z;
+    std::int32_t a = static_cast<std::int32_t>(p->color >> 24) - 0x30;
+    if (a < 0) a = 0;
+    p->size = Store(oldSize * slow);
+    p->color = (static_cast<std::uint32_t>(a) << 24) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00490990, CParticleSource::UpdateModifier);
+
+// 00490B00. Modifier markers: for ten ticks (then the source stops emitting) each remembers its
+// position and moves to the source plus its offset (+0x18), raised by spreadMin.x; the offset
+// widens by 1.4 (negative source size) or narrows by 1/1.4 per tick.
+void CParticleSource::TickModifier(ParticleElement* e) {
+    int tick = e->ticks++;
+    if (tick >= 10) {
+        flags_ &= ~1u;
+        return;
+    }
+    std::memcpy(ElementFloat(e, 0x0C), &e->pos, sizeof(Vector3));
+    float* offset = ElementFloat(e, 0x18);
+    e->pos.x = Store(D(offset[0]) + D(origin.x));
+    e->pos.y = Store(D(offset[1]) + D(origin.y));
+    e->pos.z = Store(D(offset[2]) + D(origin.z));
+    e->pos.z = Store(D(spreadMin.x) + D(e->pos.z));
+    double k = Below(D(size), D(EI_P_ZERO)) ? D(GameFloat(0x0073CDF8)) : D(GameFloat(0x0073CEAC));    // 1.4 / 1 / 1.4
+    for (int i = 0; i < 3; ++i) offset[i] = Store(k * D(offset[i]));
+}
+EI_REPLACE_METHOD(0x00490B00, CParticleSource::TickModifier);
+
+// --- LightningBlast (0x2030): update and element tick; the emission is 004923B0 -------------------
+
+namespace {
+
+const std::int32_t* LightningAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A9F8); }    // by life
+
+bool ZeroOrNaN(float f) { return f == 0.0f || x87::IsNaN(f); }
+
+} // namespace
+
+// 00492B80. LightningBlast: bolts (state n) ride element n-1; a flash (state set, +0x4C set) shows
+// once (and makes the source emit 50 per tick), then goes. Sparks (state 0): alpha by the life
+// left (the table shifted by 22, as the original), size +0x2C (shrinking by 0.9); with +0x4C set
+// they jump to +0x20 and step a frame, else cycle four frames flying by +0x38 (slowing by 0.6).
+int CParticleSource::UpdateLightning(Particle* p) {
+    int life = --p->life;
+    if (life < 0) return 0;
+    if (p->state != 0) {
+        if (p->frameTimer != 0) {
+            if (ZeroOrNaN(p->size)) {
+                emitCount = 50;
+                std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+                return 1;
+            }
+            SetBits(&p->size, 0);
+            return 0;
+        }
+        std::memcpy(&p->pos, &elements[p->state - 1].pos, sizeof(Vector3));
+        std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+        return 1;
+    }
+    p->color = (static_cast<std::uint32_t>(LightningAlpha()[life]) << 22) | 0xFFFFFF;
+    if (p->frameTimer != 0) {
+        double shrunk = D(p->unknown_2C) * D(GameFloat(0x0073CD70));
+        ++p->frame;
+        std::memcpy(&p->pos, &p->velocity, sizeof(Vector3));
+        std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+        p->unknown_2C = Store(shrunk);
+        return 1;
+    }
+    p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
+    p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
+    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
+    std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+    p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
+    p->unknown_2C = Store(D(p->unknown_2C) * D(GameFloat(0x0073CD70)));
+    double slow = D(GameFloat(0x0073CDE0));    // 0.6
+    p->drift.x = Store(D(p->drift.x) * slow);
+    p->drift.y = Store(D(p->drift.y) * slow);
+    p->drift.z = Store(D(p->drift.z) * slow);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00492B80, CParticleSource::UpdateLightning);
+
+// 00492CC0. LightningBlast bolt heads: the source emits 50 per tick; each head remembers its
+// position (+0x18), moves by its speed (+0x0C), falls (its z speed dropping by 0.075), and the
+// source stops emitting from the tenth tick on.
+void CParticleSource::TickLightning(ParticleElement* e) {
+    emitCount = 50;
+    int tick = ++e->ticks;
+    std::memcpy(ElementFloat(e, 0x18), &e->pos, sizeof(Vector3));
+    const float* speed = ElementFloat(e, 0x0C);
+    e->pos.x = Store(D(speed[0]) + D(e->pos.x));
+    e->pos.y = Store(D(speed[1]) + D(e->pos.y));
+    e->pos.z = Store(D(speed[2]) + D(e->pos.z));
+    *ElementFloat(e, 0x14) = Store(D(speed[2]) - D(GameFloat(0x0073CF28)));
+    if (tick >= 10) flags_ &= ~1u;
+}
+EI_REPLACE_METHOD(0x00492CC0, CParticleSource::TickLightning);
