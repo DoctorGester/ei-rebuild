@@ -264,6 +264,13 @@ public:
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
 
+    // world_update.cpp
+    // 0058DFF0, vtable slot 6. One world update: drops disconnected players and lets the others'
+    // units wake what they hear, accepts new players, runs the players and the world tick (unless
+    // +0x6C), rebuilds the local players' "Heroes" group, synchronises every player (SyncPlayer;
+    // 0 drops it) and counts the update (+0x68). Returns 1.
+    int Update();
+
     // world_loot.cpp
     // 005942D0 (RET 8, AL). `player` takes what `object` holds: a shared loot record
     // (flags_ 0x20000000, removed afterwards) or what 00461CB0 collects (in a multiplayer client
@@ -308,7 +315,7 @@ public:
     // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
     int SendZone(WorldPlayer* player);
 
-    std::uint8_t unknown_068[0x6C - 0x68];
+    int updateCount_;                     // +0x068 world updates run (Update)
     std::uint8_t unknown6C_;              // +0x6C
     std::uint8_t unknown_06D[0x70 - 0x6D];
     std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D44E0 ticks it; a CArray)
