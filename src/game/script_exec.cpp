@@ -525,7 +525,7 @@ struct ObjectIterator {   // (list, node)
 __declspec(naked) void* ObjectIterator::First(void*) EI_ORIGINAL(0x00404920)
 __declspec(naked) void* ObjectIterator::Next() EI_ORIGINAL(0x00404960)
 
-// 0x7c? Damage description passed to InflictDamage / Kill (0x34 bytes used; 0x4C reserved).
+// Damage description for KillUnit (vtable +0x7C; 0x34 bytes used, the original reserves 0x4C).
 __declspec(naked) void __fastcall ResetDamageInfo(void*) EI_ORIGINAL(0x00522B40)
 
 // ---- Small accessors the original calls out of line (004B9F20-004BAA30) -------------------------
@@ -754,7 +754,7 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
     if (spell) ei::VCall<void>(spell, 4);   // Release
 }
 
-void UnitModes(const SSCCmd* cmd, int set) {
+void UnitModes(const SSCCmd* cmd) {
     // UMAg: aggression set 0..3 replaces modes 3, 4, 5 and 7.
     void* state = UnitStateArg(cmd);
     if (!state) return;
@@ -789,7 +789,6 @@ void UnitModes(const SSCCmd* cmd, int set) {
     default:
         break;
     }
-    (void)set;
 }
 
 } // namespace
@@ -1403,7 +1402,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xC8:   // UMAg(unit, level)
-            UnitModes(cmd, 0);
+            UnitModes(cmd);
             break;
         case 0x2C: {   // UMStandard: aggression, suspicion, corpse watcher
             void* state = UnitStateArg(cmd);
