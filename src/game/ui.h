@@ -421,14 +421,33 @@ public:
 };
 static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
 
-// A portrait slot's network player (0x78 bytes, array at CHudPortraits +0x158).
+// A portrait's state (0x78 bytes, array at CHudPortraits +0x158): the last hit points seen,
+// the face (rest orientation, current orientation and a random wobble), the face picture and
+// model, and the slot's network player.
 struct HudPortraitSlot {
-    std::uint8_t unknown_00[0x70];
+    int lastHitPoints_;              // +0x00 lowest hit points seen (a drop flashes the portrait)
+    float flash_;                    // +0x04 1 after a hit, fading out
+    Quaternion restA_;               // +0x08 the face's rest orientation is restA_ * restB_
+    Quaternion current_;             // +0x18 the face's orientation, eased towards the rest one
+    Quaternion restB_;               // +0x28
+    int wobbleKind_;                 // +0x38 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
+    float wobbleTime_;               // +0x3C starts negative (a delay)
+    char* faceName_;                 // +0x40 CString
+    int faceState_;                  // +0x44 picture shown (0 normal, 2 hit, 3 low mana, ...)
+    int faceMode_;                   // +0x48 1 / 2: a timed picture, 0 none
+    float faceTimer_;                // +0x4C
+    char* modelPrefix_;              // +0x50 CString: the face model is prefix + build + suffix,
+    char* modelSuffix_;              // +0x54 CString  build "th", "me" or "fa"
+    float build_;                    // +0x58 the unit's build the model was chosen for
+    Quaternion wobbleTarget_;        // +0x5C
+    float wobbleSpeed_;              // +0x6C
     bool hasPlayer_;                 // +0x70
     std::uint8_t unknown_71[3];
     int playerId_;                   // +0x74
 };
 static_assert(sizeof(HudPortraitSlot) == 0x78);
+static_assert(offsetof(HudPortraitSlot, wobbleKind_) == 0x38);
+static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 
 // Party portraits (constructor 0063FE70, vtables 00742A18 / 007429E4; 250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
@@ -436,6 +455,14 @@ public:
     void OnMouseDown(int buttons, int x, int y);   // 00641CE0
     void OnMouseUp(int buttons, int x, int y);     // 00641E20: selects the unit
     void OnMouseMove(int buttons, int x, int y);   // 00641EA0: shows the unit / sets the cursor
+    // 00641080 (slot 24, every frame): health and mana bars, the hit flash, the face picture and
+    // model, the face's wobble and the selection marker (ui_hud_portraits.cpp).
+    void Update();
+    // 00640670 (not rewritten). Draws face picture `state` for portrait `index`.
+    void ShowFace(int index, int state);
+    // 005FF460 (not rewritten). Replaces scene object `object` with a model loaded by `name`
+    // (keeping its placement); returns the new object or 0.
+    CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
