@@ -412,8 +412,8 @@ strings 00697FC0 taking a CString by value).
 
 ## Fifth round: the fake unit scene's helpers
 
-Files: `src/game/scene_registry.cpp` (0044B980), `src/game/scene_meshes.cpp` (0044CFF0); verify:
-`tests/verify/verify_scene_registry.cpp` (both).
+Files: `src/game/scene_registry.cpp` (0044B980), `src/game/scene_meshes.cpp` (0044CFF0),
+`src/game/scene_bones.cpp` (004492F0); verify: `tests/verify/verify_scene_registry.cpp` (all three).
 No new scenario: every scenario loads zone1, which loads the fake unit scenes. Shared files: none.
 
 ### Rewritten
@@ -422,6 +422,7 @@ No new scenario: every scenario loads zone1, which loads the fake unit scenes. S
 |---|---|---|
 | 0044B980 | `scene::LoadFigureRegistry` (__fastcall: unit, .reg path; RET 8) | original first; its results recorded (every mesh's texture coordinates and +0x184 / +0x188, the records it added to both arrays), the coordinates restored and the arrays cut back, then ours; all compared |
 | 0044CFF0 | `scene::IndexMeshCorners` (__fastcall: the mesh array) | original first, then ours over its results (the tables depend on the faces only); every mesh's +0x108 / +0x118 / +0x128 compared |
+| 004492F0 | `scene::BuildBone` (__fastcall: skeleton, bone; node, frames; RET 8; recursive) | ours only (it appends to the skeleton and creates the child bones): name, frame count, every array's size against the node's counts, the children's parent links |
 
 ### LoadFigureRegistry (0044B980)
 
@@ -451,6 +452,32 @@ array; "Undefined texture/material types" is logged otherwise.
 - Strings passed by value (00447F50, the registry's GetString default) are copied into a raw slot
   the callee destroys, as in options.cpp.
 
+### BuildBone (004492F0)
+
+Called for the scene's root node by 00449240 (which creates the root bone) and for every child.
+The bone (0x128 bytes, constructed by 00506710) is appended to the skeleton's list (+4, SetAtGrow
+00452C40) and takes the node's name (+4), the frame count (low word of the argument, +0x40), the
+rotation keys (node +0xA8 -> bone +0x58, 32 bytes: frame, frame + 1, the three floats, and at
++0x14 the step to the next key, b - a; the first key starts with the vector at 0079B9B0), the
+position keys (node +0xBC -> +0x44, 40 bytes: frame, frame + 1, the floats at +0x18, the node
+record's +8 dword at +0x24), a zeroed 12-byte array per normal (+0x6C), node +0x98..+0xA4 to
++0xE4 and +0x8C..+0x94 to +0xF4. With morph keys (node +0xD0): two zeroed point arrays the size of
+the first key's points (+0x100, +0xD4) and one morph frame (+0x84, 24 bytes: frame, frame + 1,
+points) per position key: frames before a key interpolate from the previous key ((f - prev) /
+(key - prev), FILD / FIDIV; the frames before the first key copy it), the frame at a key goes
+towards the next key through the vector helpers 0044A230 / 00448A10 / 0040CDC0 (the last key is
+copied, 0044F410). Without morph keys the frames are emptied (0044F7E0). Then the children (+0x20,
+node +0x110): a new bone each, its parent (+0x1C) set, built recursively (through 004492F0, so the
+verify wrapper sees every bone). A pivot (node +0x54) not (0, 0, 0) is fatal ("node %s have
+NONULL pivot", zero or NaN counts as 0).
+
+- The five inlined CArray::SetSize copies are three helpers (aligned arrays with 00452DA0 /
+  00452D80 / 00452C20; the 12-byte CArray zeroed by 00452DC0; the morph frames constructed by
+  00452E20 and destroyed by 00452DF0). The morph frame array is sized twice (key count + 1, then
+  the position key count), as in the original.
+- Each float operation is one x87 operation rounded to a float (`Store`); the frame ratio is a
+  naked FILD / FIDIV.
+
 ### IndexMeshCorners (0044CFF0)
 
 Per mesh (0x18C each): every face corner's key ((merged vertex << 16 | position) << 16 | texture
@@ -474,5 +501,6 @@ are inlined, after the pair list is freed.
 Forwarders: 00450750, 00447F50, 0044A2A0, 00453A30, 004553F0, 00454360, 00453C60, 00453B90,
 00453C00 (registry); 004540A0 / 00453FD0 / 00454040 / 00453F80, 004541C0 / 004540F0 / 00454160,
 004542E0 / 00454210 / 00454280, 00453CA0, 00453E00, 00452E90, 0044FA90, 00452FC0, 00452EB0,
-006E88FC (corners); the registry 00694520 / 00694540 / 006945A0 / 00694880 / 00694BE0 / 00694D20 / 006946B0
+006E88FC (corners); 00452C40, 00452DA0, 00452D80, 00452C20, 00452DC0, 00452E20, 00452DF0, 0044F7E0,
+0044F1D0, 0044F410, 0044F540, 0044A230, 00448A10, 0040CDC0, 00506710 (bones); the registry 00694520 / 00694540 / 006945A0 / 00694880 / 00694BE0 / 00694D20 / 006946B0
 (rewritten in registry.cpp, called through their addresses).

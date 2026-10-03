@@ -1,4 +1,5 @@
-// Checks for the figure registry of fake unit scenes (scene_registry.cpp).
+// Checks for the fake unit scene helpers: the figure registry (scene_registry.cpp), the mesh
+// corner tables (scene_meshes.cpp) and the skeleton's bones (scene_bones.cpp).
 #include "verify.h"
 
 #include "../../src/game/scene_loader.h"
@@ -134,3 +135,34 @@ static void __fastcall IndexMeshCornersVerify(scene::VtArray* meshes) {
     ei::verify::Check("IndexMeshCorners", true, expected == actual, "meshes %d", meshes->body.size);
 }
 EI_VERIFY(0x0044CFF0, IndexMeshCornersVerify, 7, s_corners);
+
+// --- 004492F0 ------------------------------------------------------------------------------------
+
+namespace scene {
+void __fastcall BuildBone(char* skeleton, char* bone, const char* node, int frames);
+}
+
+// 004492F0 adds the bone to the skeleton and builds its children (new bones): ours only. Checked
+// after the whole subtree: the name, the frame count, every array's size against the node's
+// counts, and the children's parent links.
+static void* s_bone;
+static void __fastcall BuildBoneVerify(char* skeleton, char* bone, const char* node, int frames) {
+    scene::BuildBone(skeleton, bone, node, frames);
+    char* n = const_cast<char*>(node);
+    auto count = [](char* p, std::size_t sizeOffset) { return At<int>(p, sizeOffset); };
+    int morphKeys = count(n, scene::node::kMorphKeys + 8);
+    bool ok = std::strcmp(At<mfc::CString>(bone, 4), At<mfc::CString>(n, scene::node::kName)) == 0 &&
+              At<int>(bone, 0x40) == static_cast<short>(frames) &&
+              count(bone, 0x58 + 4) == count(n, scene::node::kRotKeys + 8) &&
+              count(bone, 0x44 + 4) == count(n, scene::node::kPosKeys + 8) &&
+              count(bone, 0x6C + 8) == count(n, scene::node::kNormals + 8) &&
+              count(bone, 0x84 + 8) == (morphKeys ? count(n, scene::node::kPosKeys + 8) : 0) &&
+              count(bone, 0x20 + 4) == count(n, 0x114);
+    for (int i = 0; ok && i < count(bone, 0x24); ++i) {
+        ok = At<char*>(At<char**>(bone, 0x20)[i], 0x1C) == bone;
+    }
+    ei::verify::Check("BuildBone", true, ok, "node %s keys %d/%d morph %d children %d",
+                      static_cast<const char*>(At<mfc::CString>(n, scene::node::kName)), count(n, scene::node::kPosKeys + 8),
+                      count(n, scene::node::kRotKeys + 8), morphKeys, count(n, 0x114));
+}
+EI_VERIFY(0x004492F0, BuildBoneVerify, 0, s_bone);
