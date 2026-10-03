@@ -54,16 +54,53 @@ struct ParticleElement {
 };
 static_assert(sizeof(ParticleElement) == 0x38);
 
-// The object a source's particles come from (CParticleSource +0x14): a pool of free particles,
-// an MFC list at +0xB0 (taken from the head, returned to the tail).
+class CParticleSource;
+
+// The particle manager (a CBaseManager; CParticleSource +0x14 points to it): it owns the sources
+// (the manager's object list at +0x34) and keeps a pool of free particles, an MFC list at +0xB0
+// (taken from the head, returned to the tail).
 struct ParticlePool {
     Particle* Acquire();                            // 00498870: from the pool, else new (0x64 bytes)
     void Release(Particle* p);                      // 004987C0: back to the pool's tail
+    // particle_draw.cpp: draws every source back to front; 0 when a source failed to draw.
+    int DrawAll(void* renderer);                    // 00498940
 
-    std::uint8_t unknown_000[0xB0];
+    void* vtable;                                   // +0x000
+    int refCount;                                   // +0x004
+    std::uint8_t unknown_008[0x34 - 0x08];
+    mfc::CTypedPtrList<CParticleSource> sources;    // +0x034 the manager's objects
+    std::uint8_t unknown_050[0xB0 - 0x50];
     mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
 };
+static_assert(offsetof(ParticlePool, sources) == 0x34);
 static_assert(offsetof(ParticlePool, freeParticles) == 0xB0);
+
+// One entry of the draw order (particle_draw.cpp): the source's depth along the camera's view axis.
+struct ParticleDepth {
+    float depth;
+    CParticleSource* source;
+};
+
+// 007A9C50: the draw order, an MFC CArray<ParticleDepth> (vtable, data, size, max, grow by).
+struct ParticleDepthArray {
+    void SetAtGrow(int index, const ParticleDepth& entry);     // 00499200
+
+    void* vtable;
+    ParticleDepth* data;
+    int size;
+    int max;
+    int growBy;
+};
+
+// The draw order's sort: STLport's introsort on [first, last) with "greater depth first"
+// (far sources first), as instantiated in game.exe. All __fastcall (first, last in registers).
+void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
+                                 int compare);                                          // 00499380
+void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int compare);  // 004994E0
+void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int compare,
+                                void* distanceTag);                                     // 00499CD0
+void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
+                               ParticleDepth value, int compare, void* distanceTag);    // 00499C20
 
 class CParticleSource {
 public:
@@ -101,6 +138,9 @@ public:
     void TickGroundPlane(ParticleElement* e);       // 004934F0 (0x203A, 0x203B)
     void TickPortal(ParticleElement* e);            // 00494930 (Portal)
     void TickStartTrans(ParticleElement* e);        // 00496990 (StartTrans)
+
+    // particle_draw.cpp: the emission point in the world (attachment point plus the local position).
+    Vector3* WorldPosition(Vector3* out);           // 00484AE0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
