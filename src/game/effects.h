@@ -54,22 +54,65 @@ struct ParticleElement {
 };
 static_assert(sizeof(ParticleElement) == 0x38);
 
-// The object a source's particles come from (CParticleSource +0x14): a pool of free particles,
-// an MFC list at +0xB0 (taken from the head, returned to the tail).
+class CParticleSource;
+
+// The particle manager (a CBaseManager; CParticleSource +0x14 points to it): it owns the sources
+// (the manager's object list at +0x34) and keeps a pool of free particles, an MFC list at +0xB0
+// (taken from the head, returned to the tail).
 struct ParticlePool {
     Particle* Acquire();                            // 00498870: from the pool, else new (0x64 bytes)
     void Release(Particle* p);                      // 004987C0: back to the pool's tail
+    // particle_draw.cpp: draws every source back to front; 0 when a source failed to draw.
+    int DrawAll(void* renderer);                    // 00498940
 
-    std::uint8_t unknown_000[0xB0];
+    void* vtable;                                   // +0x000
+    int refCount;                                   // +0x004
+    std::uint8_t unknown_008[0x34 - 0x08];
+    mfc::CTypedPtrList<CParticleSource> sources;    // +0x034 the manager's objects
+    std::uint8_t unknown_050[0xB0 - 0x50];
     mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
 };
+static_assert(offsetof(ParticlePool, sources) == 0x34);
 static_assert(offsetof(ParticlePool, freeParticles) == 0xB0);
+
+// One entry of the draw order (particle_draw.cpp): the source's depth along the camera's view axis.
+struct ParticleDepth {
+    float depth;
+    CParticleSource* source;
+};
+
+// 007A9C50: the draw order, an MFC CArray<ParticleDepth> (vtable, data, size, max, grow by).
+struct ParticleDepthArray {
+    void SetAtGrow(int index, const ParticleDepth& entry);     // 00499200
+
+    void* vtable;
+    ParticleDepth* data;
+    int size;
+    int max;
+    int growBy;
+};
+
+// The draw order's sort: STLport's introsort on [first, last) with "greater depth first"
+// (far sources first), as instantiated in game.exe. All __fastcall (first, last in registers).
+void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
+                                 int compare);                                          // 00499380
+void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int compare);  // 004994E0
+void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int compare,
+                                void* distanceTag);                                     // 00499CD0
+void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
+                               ParticleDepth value, int compare, void* distanceTag);    // 00499C20
 
 class CParticleSource {
 public:
     // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
     // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
     int Draw(void* renderer);                       // 004976B0
+
+    // --- set-up (particle_create.cpp) ---
+    int CreateForType();                            // 00485540 (vtable slot 2): per-type parameters
+    void Reset();                                   // 004847E0: defaults, texture and elements dropped
+    void Clear();                                   // 00484710 (vtable slot 3): particles back to the pool, detach, Reset
+    void Destruct();                                // 00498310: destructor body (Clear, free, base)
 
     // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
     int Tick();                                     // 00496EB0: 1 while the source stays alive
@@ -96,6 +139,103 @@ public:
     void TickGroundPlane(ParticleElement* e);       // 004934F0 (0x203A, 0x203B)
     void TickPortal(ParticleElement* e);            // 00494930 (Portal)
     void TickStartTrans(ParticleElement* e);        // 00496990 (StartTrans)
+
+    // particle_draw.cpp: the emission point in the world (attachment point plus the local position).
+    Vector3* WorldPosition(Vector3* out);           // 00484AE0
+
+    // particle_callbacks.cpp
+    int EmitCasting(Particle* p, int index);        // 004918E0 (0x2027-0x202A)
+    int UpdateCasting(Particle* p);                 // 00492030
+    void TickCasting(ParticleElement* e);           // 004921D0
+    int EmitOrbit(Particle* p, int index);          // 0048E070 (0x2015-0x2017, 0x201A)
+    int EmitCastRing(Particle* p, int index);       // 00489320 (Casting, 0x200B)
+    int UpdateCastRing(Particle* p);                // 00489A50
+    void TickCastRing(ParticleElement* e);          // 00489B40
+    int EmitHealing(Particle* p, int index);        // 0048B630 (Healing, 0x2006)
+    int UpdateHealing(Particle* p);                 // 0048BBE0
+    void TickHealing(ParticleElement* e);           // 0048BCE0
+    int EmitCastSwirl(Particle* p, int index);      // 00490C10 (0x202B-0x202E)
+    int UpdateCastSwirl(Particle* p);               // 00491230
+    void TickCastSwirl(ParticleElement* e);         // 00491390
+    int EmitLink(Particle* p, int index);           // 0048D8D0 (Link, 0x2014)
+    int UpdateLink(Particle* p);                    // 0048DE30
+    void TickLink(ParticleElement* e);              // 0048E040
+    int EmitBlast(Particle* p, int index);          // 0048C090 (FireBlast, 0x2002)
+    int UpdateBlast(Particle* p);                   // 0048C590
+    void TickBlast(ParticleElement* e);             // 0048C760
+    int EmitPoisonFog(Particle* p, int index);      // 0048B080 (PoisonFog, 0x2007 / 0x2008)
+    int EmitGeyser(Particle* p, int index);         // 0048A8F0 (Geyser, 0x2009)
+    int UpdateGeyser(Particle* p);                  // 0048ADA0
+    void TickGeyser(ParticleElement* e);            // 0048AEC0
+    int EmitShower(Particle* p, int index);         // 0048EEA0 (0x200F, 0x2031-0x2033)
+    int UpdateShower(Particle* p);                  // 0048F300
+    void TickShower(ParticleElement* e);            // 0048F380
+    int EmitBag(Particle* p, int index);            // 00493560 (Bag, 0x203C)
+    int UpdateBag(Particle* p);                     // 00493770
+    void TickBag(ParticleElement* e);               // 004938C0
+    int EmitColumn(Particle* p, int index);         // 00491420 (0x202F)
+    int UpdateColumn(Particle* p);                  // 00491830
+    void TickColumn(ParticleElement* e);            // 004918D0
+    int EmitMushroom(Particle* p, int index);       // 004889D0 (Mushroom, Transform)
+    int UpdateMushroom(Particle* p);                // 00488DB0
+    int EmitStench(Particle* p, int index);         // 0048D420 (BlueGas, 0x2013)
+    int UpdateStench(Particle* p);                  // 0048D7F0
+    int EmitTornado(Particle* p, int index);        // 00489F70 (Tornado, CurseHolder)
+    int UpdateTornado(Particle* p);                 // 0048A310
+    void TickTornado(ParticleElement* e);           // 0048A560
+    int EmitPortalStar(Particle* p, int index);     // 00493D10 (PortalStar, 0x203D)
+    int UpdatePortalStar(Particle* p);              // 00493D50
+    int EmitCylinder(Particle* p, int index);       // 00493DE0 (Cylinder1/2, 0x203F / 0x2040)
+    int UpdateCylinder(Particle* p);                // 00494170
+    void TickCylinder(ParticleElement* e);          // 00494340
+    int EmitFireBall(Particle* p, int index);       // 0048C800 (FireBall, 0x2000)
+    int UpdateFireBall(Particle* p);                // 0048CAD0
+    int EmitArrowSmoke(Particle* p, int index);     // 0048CBA0 (FireArrow 0x2011, 0x204E)
+    int UpdateArrowSmoke(Particle* p);              // 0048CED0
+    int EmitBanshee(Particle* p, int index);        // 00489BE0 (Banshee, 0x200D)
+    int UpdateBanshee(Particle* p);                 // 00489EF0
+    void TickBanshee(ParticleElement* e);           // 00489F30
+    int EmitPortal(Particle* p, int index);         // 00494470 (Portal, 0x203E)
+    int EmitAcidRay(Particle* p, int index);        // 0048D050 (AcidRay, 0x2012)
+    int UpdateAcidRay(Particle* p);                 // 0048D330
+    int EmitSparks(Particle* p, int index);         // 00494A10 (Sparks, 0x2043)
+    int EmitClayRing(Particle* p, int index);       // 0048F7F0 (ClayRing, 0x2018)
+    int UpdateClayRing(Particle* p);                // 0048FAB0
+    void TickClayRing(ParticleElement* e);          // 0048FBE0
+    int EmitFalling(Particle* p, int index);        // 0048F3B0 (0x2034-0x2037)
+    void TickFalling(ParticleElement* e);           // 0048F6F0
+    int EmitVulkan(Particle* p, int index);         // 0048BD50 (VulcanSmoke, 0x2005)
+    int UpdateVulkan(Particle* p);                  // 0048C010
+    int EmitFireStar(Particle* p, int index);       // 00494950 (FireStar, AcidStar)
+    int UpdateFireStar(Particle* p);                // 004949B0
+    int EmitRegeneration(Particle* p, int index);   // 004950B0 (Regeneration)
+    int UpdateRegeneration(Particle* p);            // 00495120
+    int EmitVisionStar(Particle* p, int index);     // 00494E00 (VisionStar1-3)
+    int UpdateVisionStar(Particle* p);              // 00494F30
+    int UpdateZoneExit(Particle* p);                // 00492F40 (ZoneExit)
+    int UpdateFeebleMind(Particle* p);              // 00495950 (FeebleMind, 0x2049)
+    int UpdateFeetCloud(Particle* p);               // 00495C80 (FeetCloud, 0x2047)
+    void TickFeetCloud(ParticleElement* e);         // 00495E00
+    int EmitSilence(Particle* p, int index);        // 00495320 (Silence, 0x2048)
+    int UpdateSilence(Particle* p);                 // 004955D0
+    int UpdateModifier(Particle* p);                // 00490990 (Modifier1-12)
+    void TickModifier(ParticleElement* e);          // 00490B00
+    int UpdateLightning(Particle* p);               // 00492B80 (LightningBlast, 0x2030)
+    void TickLightning(ParticleElement* e);         // 00492CC0
+    int EmitTeleport(Particle* p, int index);       // 0048FDB0 (Teleport, 0x2019)
+    int UpdateTeleport(Particle* p);                // 00490060
+    void TickTeleport(ParticleElement* e);          // 00490110
+    int EmitCurseStars(Particle* p, int index);     // 00496270 (CurseStars)
+    int UpdateCurseStars(Particle* p);              // 004964B0
+    int EmitStartTrans(Particle* p, int index);     // 004965E0 (StartTrans)
+    int UpdateStartTrans(Particle* p);              // 00496840
+    int EmitNuke(Particle* p, int index);           // 00488F90 (Nuke)
+    int EmitTendril(Particle* p, int index);        // 0048ED60
+    int EmitGroundDust(Particle* p, int index);     // 00493300 (0x203A, 0x203B)
+    int EmitGlow(Particle* p, int index);           // 00492FC0 (ShapeChange, 0x2039)
+    void TickGlow(ParticleElement* e);              // 004932F0
+    int EmitStun(Particle* p, int index);           // 00495FB0 (Stun, 0x204D)
+    int UpdateStun(Particle* p);                    // 004961B0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
@@ -135,8 +275,8 @@ public:
     float emitSpacing;              // +0x0D4
     int maxParticles;               // +0x0D8
     int frameCount;                 // +0x0DC
-    int unknown_0E0;
-    int frameDelay;                 // +0x0E4
+    int frameColumns;               // +0x0E0 columns of the texture's frame grid
+    int frameDelay;                 // +0x0E4 (Tornado, CurseHolder: the particle colour)
     int hiddenTicks;                // +0x0E8 draws skipped off screen (the tick idles past 0x38 with flag 0x20)
     int lifetime;                   // +0x0EC
     Vector3 spreadMin;              // +0x0F0
@@ -169,8 +309,10 @@ public:
     Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
     std::uint8_t unknown_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
-    int frameBase;                  // +0x1D0 first texture frame of this source's sprites
-    std::uint8_t unknown_1D4[0x1E0 - 0x1D4];
+    int frameBase;                  // +0x1D0 address of the frame UV rectangles (16 bytes each, 32-byte aligned)
+    int frameRectCount;             // +0x1D4 (an MFC-style array: data, size, max, grow by)
+    int frameRectCapacity;          // +0x1D8
+    int frameRectGrowBy;            // +0x1DC
     void* emitFn;                   // +0x1E0
     void* updateFn;                 // +0x1E4
     void* elementFn;                // +0x1E8
@@ -187,6 +329,10 @@ static_assert(offsetof(CParticleSource, boundsHigh) == 0x19C);
 static_assert(offsetof(CParticleSource, particles) == 0x1B4);
 static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
 static_assert(sizeof(CParticleSource) == 0x1F0);
+
+// 004981B0. The class factory's creator for particle sources (particle_create.cpp): a new source of
+// `type` (the register arguments are unused), or null.
+CParticleSource* __fastcall NewParticleSource(void*, void*, int type);
 
 // 00488940. `out` = v / d, all three quotients computed before the first store. __fastcall (out in
 // ECX, v in EDX, d on the stack); returns out.
