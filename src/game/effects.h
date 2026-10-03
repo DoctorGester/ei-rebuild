@@ -182,6 +182,11 @@ public:
     int EmitTornado(Particle* p, int index);        // 00489F70 (Tornado, CurseHolder)
     int UpdateTornado(Particle* p);                 // 0048A310
     void TickTornado(ParticleElement* e);           // 0048A560
+    int EmitPortalStar(Particle* p, int index);     // 00493D10 (PortalStar, 0x203D)
+    int UpdatePortalStar(Particle* p);              // 00493D50
+    int EmitCylinder(Particle* p, int index);       // 00493DE0 (Cylinder1/2, 0x203F / 0x2040)
+    int UpdateCylinder(Particle* p);                // 00494170
+    void TickCylinder(ParticleElement* e);          // 00494340
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

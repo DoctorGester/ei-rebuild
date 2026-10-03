@@ -177,3 +177,17 @@ EI_UPDATE_WRAPPER(UpdateTornado)
 EI_VERIFY(0x0048A310, UpdateTornadoVerify, 6, s_UpdateTornado);
 EI_ELEMENT_WRAPPER(TickTornado)
 EI_VERIFY(0x0048A560, TickTornadoVerify, 7, s_TickTornado);
+
+// 00493D10: MOV EAX,[ESP+4]; XOR EDX,EDX (6). 00493D50: SUB ESP,8; PUSH ESI; MOV ESI,ECX (6).
+// 00493DE0: SUB ESP,0x34; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7). 00494170: MOV EAX,[ESP+4];
+// SUB ESP,0x10 (7). 00494340: MOV EAX,[ESP+4]; MOV EDX,[ECX+0x154] (10).
+EI_EMIT_WRAPPER(EmitPortalStar)
+EI_VERIFY(0x00493D10, EmitPortalStarVerify, 6, s_EmitPortalStar);
+EI_UPDATE_WRAPPER(UpdatePortalStar)
+EI_VERIFY(0x00493D50, UpdatePortalStarVerify, 6, s_UpdatePortalStar);
+EI_EMIT_WRAPPER(EmitCylinder)
+EI_VERIFY(0x00493DE0, EmitCylinderVerify, 7, s_EmitCylinder);
+EI_UPDATE_WRAPPER(UpdateCylinder)
+EI_VERIFY(0x00494170, UpdateCylinderVerify, 7, s_UpdateCylinder);
+EI_ELEMENT_WRAPPER(TickCylinder)
+EI_VERIFY(0x00494340, TickCylinderVerify, 10, s_TickCylinder);

@@ -2302,3 +2302,217 @@ void CParticleSource::TickTornado(ParticleElement* e) {
     }
 }
 EI_REPLACE_METHOD(0x0048A560, CParticleSource::TickTornado);
+
+// --- PortalStar (0x203D): one flickering star ------------------------------------------------------
+
+// 00493D10. PortalStar: the star at the source.
+int CParticleSource::EmitPortalStar(Particle* p, int) {
+    p->color = 0xFFFFFF;
+    p->life = 15;
+    p->frame = 0;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00493D10, CParticleSource::EmitPortalStar);
+
+// 00493D50. PortalStar: while the source emits, full colour and a random size of 0.8-1.2 times
+// the source's; dropped once it stops.
+int CParticleSource::UpdatePortalStar(Particle* p) {
+    if (!(flags_ & 1)) return 0;
+    p->color = 0xFFFFFFFF;
+    p->size = Store((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00493D50, CParticleSource::UpdatePortalStar);
+
+// --- Cylinder1 / Cylinder2 (0x203F, 0x2040): two stars circling the carrier --------------------
+//
+// Each element is a star: +0x00 its position (relative to the source), +0x0C its last step,
+// +0x18 / +0x1C the cosine and sine of its turn per tick, +0x24 the inverse of its orbit radius,
+// +0x28 the orbit radius, +0x2C its rise per tick, +0x34 its countdown (also indexing the alpha
+// table 0078AB18).
+
+namespace {
+
+#define EI_CYL_TURN GameFloat(0x0073CC74)            // 0.3
+#define EI_CYL_PI GameFloat(0x0073CAF0)              // pi
+#define EI_CYL_TURN_SCALE GameFloat(0x0073CF48)      // 0.1333
+#define EI_CYL_ORBIT GameFloat(0x0073C538)           // 0.7
+#define EI_CYL_LIFT GameFloat(0x0073BAD4)            // 0.2
+#define EI_CYL_TWO GameFloat(0x0073CDB8)             // 2.0
+#define EI_CYL_RISE GameFloat(0x0073CE90)            // 0.04
+#define EI_CYL_RISE_UP GameFloat(0x0073CF50)         // 1.25
+#define EI_CYL_TWIST GameFloat(0x0073CF4C)           // -0.01333
+#define EI_CYL_SPARK_PULL GameFloat(0x0073CDE0)      // 0.6
+#define EI_CYL_SPARK_SHRINK GameFloat(0x0073CD70)    // 0.9
+
+const std::int32_t* CylinderAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AB18); }
+
+// The stars on the carrier's orbit (the first emission).
+void SetUpCylinder(CParticleSource* s) {
+    Vector3 offset;
+    float radius;
+    s->AttachmentOffset(&offset, &radius);
+    double turn = D(EI_CYL_TURN) * D(EI_CYL_PI) * D(EI_CYL_TURN_SCALE);
+    if (s->type_ == 0x2040) turn = -turn;
+    float c = Store(x87::fcos(turn));
+    float sn = Store(x87::fsin(turn));
+    int count = s->elementCount;
+    for (int i = 0; i < s->elementCount; ++i) {
+        double orbit = D(radius) * D(EI_CYL_ORBIT);
+        double twice = static_cast<double>(2 * i);
+        ParticleElement& e = s->elements[i];
+        e.pos.x = Store(x87::fcos(twice * D(EI_CYL_PI) / static_cast<double>(count)) * orbit);
+        e.pos.y = Store(x87::fsin(twice * D(EI_CYL_PI) / static_cast<double>(s->elementCount)) * orbit);
+        e.pos.z = Store(D(radius) * D(EI_CYL_LIFT));
+        std::memset(ElementFloat(&e, 0x0C), 0, sizeof(Vector3));
+        *ElementFloat(&e, 0x18) = c;
+        *ElementFloat(&e, 0x1C) = sn;
+        e.ticks = 18;
+        *ElementFloat(&e, 0x2C) = Store(D(EI_CYL_TWO) / static_cast<double>(e.ticks) * D(radius) * D(EI_CYL_RISE));
+        *ElementFloat(&e, 0x24) = Store(D(EI_P_ONE) / orbit);
+        *ElementFloat(&e, 0x28) = Store(orbit);
+        count = s->elementCount;
+    }
+}
+
+} // namespace
+
+// 00493DE0. Cylinder: the first particles are the stars (state = their index; the first one
+// places them around the carrier); later ones are sparks along a random star's last step.
+int CParticleSource::EmitCylinder(Particle* p, int) {
+    p->color = 0xFFFFFF;
+    int count = particles.count;
+    int stars = elementCount;
+    if (count < stars) {
+        if (count == 0) SetUpCylinder(this);
+        p->frame = 0;
+        p->state = count;
+        const ParticleElement& e = elements[count];
+        p->pos.x = Store(D(e.pos.x) + D(origin.x));
+        p->pos.y = Store(D(e.pos.y) + D(origin.y));
+        p->pos.z = Store(D(e.pos.z) + D(origin.z));
+        SetBits(&p->size, 0);
+        return 1;
+    }
+    int j = static_cast<int>(Next() % static_cast<std::uint32_t>(stars));
+    const ParticleElement& e = elements[j];
+    int life = e.ticks + 6;
+    if (life > 14) life = 14;
+    p->life = life;
+    if (life < 0) return 0;
+    const float* step = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&e) + 0x0C);
+    auto isZero = [](float f) { return f == 0.0f || x87::IsNaN(f); };
+    if (isZero(step[0]) && isZero(step[1])) return 0;
+    p->frame = 1;
+    p->state = -1;
+    double u = Unsigned(Next()) * EI_P_SCALE_1 - D(EI_P_ONE);
+    float a = Store(u * D(step[0]));
+    float b = Store(u * D(step[1]));
+    double c = u * D(step[2]);
+    p->velocity.x = Store(D(a) + D(e.pos.x));
+    p->velocity.y = Store(D(b) + D(e.pos.y));
+    p->velocity.z = Store(c + D(e.pos.z));
+    std::memcpy(&p->unknown_2C, step, sizeof(Vector3));
+    double px = D(p->velocity.x) + D(origin.x);
+    float py = Store(D(origin.y) + D(p->velocity.y));
+    float pz = Store(D(origin.z) + D(p->velocity.z));
+    SetBits(&p->size, 0x3DCCCCCD);     // 0.1
+    p->pos.y = py;
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00493DE0, CParticleSource::EmitCylinder);
+
+// 00494170. Cylinder: a star follows its element and fades by its countdown (dropped
+// once the source stops); a spark fades by its life, drifts by its step, is held on its star's
+// orbit radius and spirals round it, shrinking.
+int CParticleSource::UpdateCylinder(Particle* p) {
+    int state = p->state;
+    if (state >= 0) {
+        if (!(flags_ & 1)) {
+            SetBits(&p->size, 0);
+            p->color = 0xFFFFFF;
+            return 0;
+        }
+        const ParticleElement& e = elements[state];
+        p->color = (static_cast<std::uint32_t>(CylinderAlpha()[e.ticks]) << 24) | 0xFFFFFF;
+        double px = D(origin.x) + D(e.pos.x);
+        float py = Store(D(origin.y) + D(e.pos.y));
+        float pz = Store(D(origin.z) + D(e.pos.z));
+        SetBits(&p->size, 0x3E99999A);     // 0.3
+        p->pos.y = py;
+        p->pos.x = Store(px);
+        p->pos.z = pz;
+        return 1;
+    }
+    ++p->frame;
+    int life = --p->life;
+    if (life <= 0) return 0;
+    p->color = (static_cast<std::uint32_t>(CylinderAlpha()[life]) << 24) | 0xFFFFFF;
+    float* step = &p->unknown_2C;
+    p->velocity.x = Store(D(p->velocity.x) + D(step[0]));
+    p->velocity.y = Store(D(step[1]) + D(p->velocity.y));
+    p->velocity.z = Store(D(step[2]) + D(p->velocity.z));
+    double x = D(p->velocity.x);
+    double y = D(p->velocity.y);
+    double k = D(*ElementFloat(elements, 0x28)) / x87::fsqrt(x * x + y * y);
+    float kx = Store(k * D(p->velocity.x));
+    p->velocity.x = kx;
+    double ky = k * D(p->velocity.y);
+    p->velocity.y = Store(ky);
+    double s0 = D(step[0]);
+    double s1 = D(step[1]);
+    double s2 = D(step[2]);
+    float reach = Store(x87::fsqrt(s0 * s0 + s1 * s1 + s2 * s2) * D(*ElementFloat(elements, 0x24)));
+    step[0] = Store(ky * D(reach) * D(EI_CYL_SPARK_PULL));
+    step[1] = Store(-D(kx) * D(reach) * D(EI_CYL_SPARK_PULL));
+    step[2] = Store(D(step[2]) * D(EI_CYL_SPARK_PULL));
+    double oldSize = D(p->size);
+    double px = D(p->velocity.x) + D(origin.x);
+    float py = Store(D(p->velocity.y) + D(origin.y));
+    float pz = Store(D(p->velocity.z) + D(origin.z));
+    p->pos.y = py;
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    p->size = Store(oldSize * D(EI_CYL_SPARK_SHRINK));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00494170, CParticleSource::UpdateCylinder);
+
+// 00494340. Cylinder stars: element 0 lowers the emission rate (by 2 on odd counts, 1 on even);
+// each star counts down (stopping the source at 0), turns by its rotation, rises (faster and
+// faster), and its rotation turns the other way, slowly.
+void CParticleSource::TickCylinder(ParticleElement* e) {
+    if (e == elements) {
+        if (e->ticks % 2 != 0) --emitCount;
+        --emitCount;
+    }
+    int t = e->ticks--;
+    if (t <= 0) {
+        flags_ &= ~1u;
+        return;
+    }
+    float* rotation = ElementFloat(e, 0x18);
+    float nx = Store(D(rotation[1]) * D(e->pos.y) + D(rotation[0]) * D(e->pos.x));
+    float ny = Store(D(rotation[0]) * D(e->pos.y) - D(rotation[1]) * D(e->pos.x));
+    float* rise = ElementFloat(e, 0x2C);
+    float nz = Store(D(e->pos.z) + D(*rise));
+    float* step = ElementFloat(e, 0x0C);
+    step[0] = Store(D(nx) - D(e->pos.x));
+    step[1] = Store(D(ny) - D(e->pos.y));
+    step[2] = Store(D(nz) - D(e->pos.z));
+    *rise = Store(D(*rise) * D(EI_CYL_RISE_UP));
+    e->pos = {nx, ny, nz};
+    double twist = D(EI_CYL_PI) * D(EI_CYL_TWIST);
+    if (type_ == 0x2040) twist = -twist;
+    float c = Store(x87::fcos(twist));
+    double s = x87::fsin(twist);
+    double a = s * D(rotation[1]) + D(c) * D(rotation[0]);
+    float b = Store(D(c) * D(rotation[1]) - s * D(rotation[0]));
+    rotation[0] = Store(a);
+    rotation[1] = b;
+}
+EI_REPLACE_METHOD(0x00494340, CParticleSource::TickCylinder);
