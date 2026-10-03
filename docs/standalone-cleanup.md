@@ -37,6 +37,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `NetGame::Step` 0057F190 (per-frame network step) | `src/game/net_session.cpp` | rewrite |
 | `BitStream::StartByte` 004A5610, `EndBits` 004A5650, `Resize` 004A54D0, `ReadString` 00461190 (CMemoryStream bit helpers) | `src/game/net_delta.cpp` | rewrite with CMemoryStream |
 | `WordArray::SetSize` 006FEEFA (MFC CWordArray of the clip work buffer at 0079B668) | `src/game/clip.cpp` | own array |
+| Interface screens: sound 005F7E60, help 005F86F0, window/container base slots (005FEB90, 005FECC0, 00600270, 006010E0, 00600EF0, 00601040, input defaults 00601110 / 00601570), surface/model/region helpers (005FD760, 005FC2F0, 005FC690), renderer flushes 004E7840 / 004E7A40, battle screen and panel helpers, save/load and options actions, local view orders 0066AE70 / 0066AED0, cursor 005E5200, server command 0041D260, sound setters 006B7740 / 006B7A00 / 006B78A0, display settings 00500960 (full list in `docs/notes/ui.md`, "Interface screens") | `src/game/ui_hud.cpp`, `ui_menus.cpp` | rewrite |
 
 ## Indirections
 
