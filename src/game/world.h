@@ -264,6 +264,13 @@ public:
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
 
+    // world_loot.cpp
+    // 005942D0 (RET 8, AL). `player` takes what `object` holds: a shared loot record
+    // (flags_ 0x20000000, removed afterwards) or what 00461CB0 collects (in a multiplayer client
+    // game quest items go to player 0); the gold is added to the player. False for no player, a
+    // living owned unit, or nothing to take.
+    bool Loot(CEngineObject* object, WorldPlayer* player);
+
     // world_weather.cpp
     // 0058CCD0. The weather, every 64 ticks: the day-time value (+0x84); in single player rain
     // starting / stopping (+0xE4 / +0xE8, 007C2DFC delay), lightning strikes in storms (+0xDC 3),
