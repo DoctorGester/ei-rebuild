@@ -1345,3 +1345,137 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
     return 0;
 }
 EI_REPLACE_METHOD(0x0048B080, CParticleSource::EmitPoisonFog);
+
+// --- Geyser (0x2009): three vents that erupt in turn -----------------------------------------------
+//
+// Each element is a vent: +0x00 / +0x04 the jet's direction angles (degrees off vertical, turned to
+// radians), +0x08 its strength, +0x30 the pause before the next eruption, +0x34 the eruption's
+// remaining ticks.
+
+namespace {
+
+#define EI_GEYSER_YAW_SCALE GameDouble(0x0073CD68)   // ~40 * 2^-32 (degrees)
+#define EI_GEYSER_YAW_LOW GameFloat(0x0073CCF8)      // 20.0
+#define EI_GEYSER_TILT_SCALE GameDouble(0x0073CD60)  // ~20 * 2^-32
+#define EI_GEYSER_TILT_LOW GameFloat(0x0073BAAC)     // 10.0
+#define EI_GEYSER_JET_SCALE GameDouble(0x0073CD58)   // ~0.2 * 2^-32
+#define EI_GEYSER_JET_LOW GameFloat(0x0073B850)      // 0.1
+#define EI_GEYSER_PI GameDouble(0x0073CAE8)          // pi
+#define EI_GEYSER_PER_DEGREE GameDouble(0x0073BA30)  // 1/180
+#define EI_GEYSER_DROP GameFloat(0x0073BAD4)         // 0.2
+#define EI_GEYSER_HALF GameFloat(0x0073B86C)         // 0.5
+#define EI_GEYSER_MIST GameFloat(0x0073C548)         // 0.01
+#define EI_GEYSER_MARK_SCALE GameDouble(0x0073CD78)  // ~0.0146 * 2^-32
+#define EI_GEYSER_MARK_BASE GameFloat(0x0073CD74)    // 0.03
+#define EI_GEYSER_SHRINK GameFloat(0x0073CD70)       // 0.9
+#define EI_GEYSER_GRAVITY GameFloat(0x0073CCB8)      // 0.06
+#define EI_GEYSER_ANGLE_SCALE GameDouble(0x0073CD90) // ~360 * 2^-32
+#define EI_GEYSER_TILT_RANGE GameDouble(0x0073CD88)  // ~10 * 2^-32
+#define EI_GEYSER_POWER_SCALE GameDouble(0x0073CD80) // ~0.6 * 2^-32
+#define EI_GEYSER_POWER_BASE GameFloat(0x0073B868)   // 0.4
+
+// A random value in [low, high) of the spread box component, added to `base` (the original's
+// order: the random part, the base, then the low end).
+float SpreadAround(float base, float low, float high) {
+    return Store(Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(base) + D(low));
+}
+
+} // namespace
+
+// 0048A8F0. Geyser: the first particle marks the source. Then a drop from a random vent: while
+// the vent erupts it flies along the vent's direction (jittered by up to 20 / 10 degrees) with the
+// vent's strength; otherwise a short-lived puff of mist near the source.
+int CParticleSource::EmitGeyser(Particle* p, int) {
+    int vent = static_cast<int>(Next() % static_cast<std::uint32_t>(elementCount));
+    p->color = 0xFFFFFFFF;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    if (particles.count == 0) {
+        SetBits(&p->size, 0);
+        p->state = 1;
+        p->frame = 15;
+        return 1;
+    }
+    p->state = 0;
+    p->frame = static_cast<int>(Next() % 12);
+    const ParticleElement& e = elements[vent];
+    float drop = Store(D(size) * D(EI_GEYSER_DROP));
+    p->life = 20;
+    p->size = drop;
+    if (e.ticks > 0) {
+        p->life = 0x7FFFFFFF;
+        double radian = EI_GEYSER_PI * EI_GEYSER_PER_DEGREE;
+        float yaw = Store((Unsigned(Next()) * EI_GEYSER_YAW_SCALE - D(EI_GEYSER_YAW_LOW)) * radian + D(e.pos.x));
+        float tilt = Store((Unsigned(Next()) * EI_GEYSER_TILT_SCALE - D(EI_GEYSER_TILT_LOW)) * radian + D(e.pos.y));
+        double power = Unsigned(Next()) * EI_GEYSER_JET_SCALE + D(e.pos.z) - D(EI_GEYSER_JET_LOW);
+        double sinTilt = x87::fsin(D(tilt));
+        p->drift.x = Store(x87::fsin(D(yaw)) * sinTilt * power * D(height));
+        p->drift.y = Store(x87::fcos(D(yaw)) * sinTilt * power * D(height));
+        p->drift.z = Store(x87::fcos(D(tilt)) * power * D(height));
+        p->pos.x = SpreadAround(p->pos.x, spreadMin.x, spreadMax.x);
+        p->pos.y = SpreadAround(p->pos.y, spreadMin.y, spreadMax.y);
+        float z = SpreadAround(p->pos.z, spreadMin.z, spreadMax.z);
+        SetBits(&p->size, 0);
+        p->velocity.x = drop;
+        p->pos.z = z;
+        return 1;
+    }
+    p->life = 1;
+    std::memset(&p->drift, 0, sizeof(Vector3));
+    float high = Store(D(spreadMax.x) * D(EI_GEYSER_HALF));
+    float low = Store(D(spreadMin.x) * D(EI_GEYSER_HALF));
+    p->pos.x = SpreadAround(p->pos.x, low, high);
+    low = Store(D(spreadMin.y) * D(EI_GEYSER_HALF));
+    high = Store(D(spreadMax.y) * D(EI_GEYSER_HALF));
+    p->pos.y = SpreadAround(p->pos.y, low, high);
+    p->size = Store(D(size) * D(EI_GEYSER_MIST));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048A8F0, CParticleSource::EmitGeyser);
+
+// 0048ADA0. Geyser: the marker flickers while the source emits (dropped once it stops); drops fly
+// by +0x38 (gravity pulling +0x40 down by 0.06 height per tick), fade 8 alpha per tick (dropped
+// below 10), shrink by 0.9 (+0x20 holds the size) and cycle 4 frames.
+int CParticleSource::UpdateGeyser(Particle* p) {
+    if (p->state != 0) {
+        if (!(flags_ & 1)) {
+            SetBits(&p->size, 0);
+            return 0;
+        }
+        p->size = Store((Unsigned(Next()) * EI_GEYSER_MARK_SCALE + D(EI_GEYSER_MARK_BASE)) * D(size));
+        return 1;
+    }
+    std::uint32_t a = p->color >> 24;
+    if (a <= 9) return 0;
+    if (--p->life <= 0) return 0;
+    double shrunk = D(p->velocity.x) * D(EI_GEYSER_SHRINK);
+    p->velocity.x = Store(shrunk);
+    p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
+    int frame = p->frame;
+    p->frame = (frame & ~3) | ((frame + 1) & 3);
+    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->pos.z) + D(p->drift.z));
+    p->size = Store(shrunk);
+    p->color = ((a << 24) - 0x08000001u) | 0xFFFFFF;
+    p->drift.z = Store(D(p->drift.z) - D(height) * D(EI_GEYSER_GRAVITY));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048ADA0, CParticleSource::UpdateGeyser);
+
+// 0048AEC0. Geyser vents: an eruption counts down, then a pause of 3..36 ticks, then a new
+// eruption of 1..7 ticks in a random direction (up to 10 degrees off vertical) and strength.
+void CParticleSource::TickGeyser(ParticleElement* e) {
+    if (e->ticks > 0) {
+        if (--e->ticks == 0) *ElementInt(e, 0x30) = static_cast<int>(Next() % 34) + 3;
+        return;
+    }
+    if (--*ElementInt(e, 0x30) > 0) return;
+    e->ticks = static_cast<int>(Next() % 7) + 1;
+    double radian = EI_GEYSER_PI * EI_GEYSER_PER_DEGREE;
+    float yaw = Store(Unsigned(Next()) * EI_GEYSER_ANGLE_SCALE * radian);
+    float tilt = Store(Unsigned(Next()) * EI_GEYSER_TILT_RANGE * radian);
+    float power = Store(Unsigned(Next()) * EI_GEYSER_POWER_SCALE + D(EI_GEYSER_POWER_BASE));
+    e->pos.x = yaw;
+    e->pos.y = tilt;
+    e->pos.z = power;
+}
+EI_REPLACE_METHOD(0x0048AEC0, CParticleSource::TickGeyser);

@@ -100,3 +100,12 @@ static int __fastcall EmitPoisonFogVerify(CParticleSource* self, void*, Particle
     return result;
 }
 EI_VERIFY(0x0048B080, EmitPoisonFogVerify, 0, s_unusedPoisonFog);
+
+// 0048A8F0: MOV EAX,[0x7A9D44]; SUB ESP,0x14 (8). 0048ADA0: SUB ESP,8; PUSH ESI; MOV ESI,[ESP+0x10] (8).
+// 0048AEC0: SUB ESP,0x14; PUSH ESI; MOV ESI,[ESP+0x1C] (8).
+EI_EMIT_WRAPPER(EmitGeyser)
+EI_VERIFY(0x0048A8F0, EmitGeyserVerify, 8, s_EmitGeyser);
+EI_UPDATE_WRAPPER(UpdateGeyser)
+EI_VERIFY(0x0048ADA0, UpdateGeyserVerify, 8, s_UpdateGeyser);
+EI_ELEMENT_WRAPPER(TickGeyser)
+EI_VERIFY(0x0048AEC0, TickGeyserVerify, 8, s_TickGeyser);

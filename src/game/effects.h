@@ -163,6 +163,9 @@ public:
     int UpdateBlast(Particle* p);                   // 0048C590
     void TickBlast(ParticleElement* e);             // 0048C760
     int EmitPoisonFog(Particle* p, int index);      // 0048B080 (PoisonFog, 0x2007 / 0x2008)
+    int EmitGeyser(Particle* p, int index);         // 0048A8F0 (Geyser, 0x2009)
+    int UpdateGeyser(Particle* p);                  // 0048ADA0
+    void TickGeyser(ParticleElement* e);            // 0048AEC0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
