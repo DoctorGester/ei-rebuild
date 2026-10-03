@@ -1,4 +1,4 @@
-// The options loader (0045B210). See options.h.
+// The options loader (0045B210) and writer (0045C560). See options.h.
 //
 // Every value is read through the game's registry key helper (006972A0-006988A0, not rewritten),
 // in the original's order; a value that is missing keeps the field's current value, which is
@@ -38,6 +38,14 @@ struct RegistryKey {
     double GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits);   // 00698750
     // 006988A0. Takes the default CString by value (and destroys it); see GetString below.
     mfc::CString GetStringRaw(const char* subkey, const char* name, RawString defaultValue);
+
+    // The writers: each opens `subkey` (RegCreateKeyExA), sets the value and closes it again.
+    // They return 1 on success.
+    mfc::BOOL SetDword(const char* subkey, const char* name, int value);          // 00697CA0 (REG_DWORD)
+    mfc::BOOL SetInt(const char* subkey, const char* name, int value);            // 00697D40 (same code)
+    mfc::BOOL SetFloat(const char* subkey, const char* name, std::uint32_t bits); // 00697E80 (REG_BINARY, 4 bytes)
+    // 00697FC0. Takes the value CString by value (and destroys it); see SetString below.
+    mfc::BOOL SetStringRaw(const char* subkey, const char* name, RawString value);
 };
 __declspec(naked) void RegistryKey::Construct() EI_ORIGINAL(0x006972A0)
 __declspec(naked) mfc::BOOL RegistryKey::Open(const char*, std::uint32_t) EI_ORIGINAL(0x00697340)
@@ -47,12 +55,23 @@ __declspec(naked) int RegistryKey::GetInt(const char*, const char*, int) EI_ORIG
 __declspec(naked) int RegistryKey::GetDword(const char*, const char*, int) EI_ORIGINAL(0x00698570)
 __declspec(naked) double RegistryKey::GetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00698750)
 __declspec(naked) mfc::CString RegistryKey::GetStringRaw(const char*, const char*, RawString) EI_ORIGINAL(0x006988A0)
+__declspec(naked) mfc::BOOL RegistryKey::SetDword(const char*, const char*, int) EI_ORIGINAL(0x00697CA0)
+__declspec(naked) mfc::BOOL RegistryKey::SetInt(const char*, const char*, int) EI_ORIGINAL(0x00697D40)
+__declspec(naked) mfc::BOOL RegistryKey::SetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00697E80)
+__declspec(naked) mfc::BOOL RegistryKey::SetStringRaw(const char*, const char*, RawString) EI_ORIGINAL(0x00697FC0)
 
 // The string value `name` of `subkey`, or `defaultValue`.
 mfc::CString GetString(RegistryKey& key, const char* subkey, const char* name, const mfc::CString& defaultValue) {
     RawString copy;
     new (&copy) mfc::CString(defaultValue);   // the callee destroys its argument
     return key.GetStringRaw(subkey, name, copy);
+}
+
+// Writes the string `value` as `name` of `subkey`.
+void SetString(RegistryKey& key, const char* subkey, const char* name, const mfc::CString& value) {
+    RawString copy;
+    new (&copy) mfc::CString(value);   // the callee destroys its argument
+    key.SetStringRaw(subkey, name, copy);
 }
 
 // CString members used here.
@@ -352,6 +371,64 @@ private:
     RegistryKey& key_;
 };
 
+// The writer: the same tables in the same order, each value through the setter matching its
+// getter (GetInt -> SetInt, GetDword -> SetDword).
+class Saver {
+public:
+    Saver(char* options, RegistryKey& key) : o_(options), key_(key) {}
+
+    const char* Key(std::size_t offset) const { return *reinterpret_cast<const char* const*>(o_ + offset); }
+    std::uint32_t Bits(std::size_t offset) const {
+        std::uint32_t v;
+        std::memcpy(&v, o_ + offset, 4);
+        return v;
+    }
+    const mfc::CString& String(std::size_t offset) const { return *reinterpret_cast<const mfc::CString*>(o_ + offset); }
+
+    void Write(const Value& v) {
+        switch (v.kind) {
+        case kInt: key_.SetInt(Key(v.key), GameText(v.name), static_cast<int>(Bits(v.field))); break;
+        case kDword: key_.SetDword(Key(v.key), GameText(v.name), static_cast<int>(Bits(v.field))); break;
+        case kFloat: key_.SetFloat(Key(v.key), GameText(v.name), Bits(v.field)); break;
+        }
+    }
+    template <std::size_t N>
+    void Write(const Value (&values)[N]) {
+        for (const Value& v : values) Write(v);
+    }
+    template <std::size_t N>
+    void Write(const StringValue (&values)[N]) {
+        for (const StringValue& v : values) SetString(key_, Key(v.key), GameText(v.name), String(v.field));
+    }
+
+    // 1 when the stored float is exactly -1 (compared as bits).
+    void WriteCameraFlip(std::size_t offset, std::uintptr_t name) {
+        key_.SetInt(Key(field::kKeyCamera), GameText(name), Bits(offset) == 0xBF800000u ? 1 : 0);
+    }
+
+    void WriteCameraShortcuts() {
+        char name[0x400];
+        for (unsigned i = 0; i < 4; ++i) {
+            std::size_t base = field::kCameraShortcuts + i * 0x18;
+            for (const auto& v : kShortcutValues) {
+                gamecrt::sprintf(name, GameText(v.format), i);
+                key_.SetFloat(Key(field::kKeyCamera), name, Bits(base + v.offset));
+            }
+        }
+    }
+
+    // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
+    void WriteLight(std::size_t offset, const std::uintptr_t (&names)[4]) {
+        for (int c = 0; c < 3; ++c)
+            key_.SetDword(Key(field::kKeyGame), GameText(names[c]), FtolProduct(o_ + offset + c * 4, kTimes255));
+        key_.SetDword(Key(field::kKeyGame), GameText(names[3]), Ftol(o_ + offset + 12));
+    }
+
+private:
+    char* o_;
+    RegistryKey& key_;
+};
+
 } // namespace
 
 void GameOptions::LoadFromRegistry(const char* path) {
@@ -397,5 +474,39 @@ void GameOptions::LoadFromRegistry(const char* path) {
     key.Destruct();
 }
 EI_REPLACE_METHOD(0x0045B210, GameOptions::LoadFromRegistry);
+
+void GameOptions::SaveToRegistry(const char* path) {
+    char* o = reinterpret_cast<char*>(this);
+    mfc::CString resolution;
+    RegistryKey key;
+    key.Construct();
+    key.Open(path, kCurrentUser);
+    Saver s(o, key);
+
+    s.Write(kPathValues);
+    s.Write(Value{kInt, 0x0C, 0x007854EC, 0x02C});   // DrawingTarget
+    resolution.Format(GameText(0x00785524), static_cast<int>(s.Bits(field::kResolutionX)),   // "%dx%d"
+                      static_cast<int>(s.Bits(field::kResolutionY)));
+    SetString(key, s.Key(field::kKeyVideo), GameText(0x007854DC), resolution);   // VideoResolution
+    s.Write(kVideoValues);
+    key.SetInt(s.Key(field::kKeyVideo), GameText(0x00785480), 0);   // Joystick
+    s.Write(kAudioToGeneralValues);
+    s.WriteCameraFlip(field::kCameraFlipX, 0x007851EC);   // CameraFlipXAxis
+    s.WriteCameraFlip(field::kCameraFlipY, 0x007851DC);   // CameraFlipYAxis
+    s.Write(kCameraValues);
+    s.WriteCameraShortcuts();
+    s.Write(kGameValues);
+    s.Write(kCdValues);
+    s.Write(kGameValues2);
+    s.WriteLight(field::kHeroLight, kHeroLightNames);
+    s.WriteLight(field::kQuestLight, kQuestLightNames);
+    key.SetDword(s.Key(field::kKeyGame), GameText(0x00784BB8), static_cast<int>(s.Bits(field::kDifficulty + 4)));
+    s.Write(kDefaultValues);
+    s.Write(kFogValues);
+    SetString(key, s.Key(field::kKeyNetwork), GameText(0x00784B50), s.String(field::kMasterServerName));
+    key.Close();
+    key.Destruct();
+}
+EI_REPLACE_METHOD(0x0045C560, GameOptions::SaveToRegistry);
 
 } // namespace options

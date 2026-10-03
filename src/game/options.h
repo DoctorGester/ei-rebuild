@@ -1,7 +1,7 @@
 #pragma once
 
-// The game options object (global at 0079BC70) and its loader from the Windows registry (0045B210,
-// called once by WinMain with the game's registry path). Names are provisional; see
+// The game options object (global at 0079BC70), its loader from the Windows registry (0045B210,
+// called once by WinMain with the game's registry path) and the matching writer (0045C560). Names are provisional; see
 // docs/notes/objects.md ("Options").
 //
 // The object starts with eight registry subkey names (CStrings) that the loader passes to the
@@ -57,6 +57,10 @@ public:
     // 0045B210. Reads every option from the registry under HKEY_CURRENT_USER\<path>\<subkey>; a
     // missing value keeps the current one (the defaults set before).
     void LoadFromRegistry(const char* path);
+    // 0045C560. Writes the same values back (WinMain calls it once, on exit). The camera flips
+    // are written as booleans, the light colours as 0..255, "Joystick" always as 0, and
+    // "Difficulty Level" from +0x254.
+    void SaveToRegistry(const char* path);
 };
 
 inline GameOptions* TheOptions() { return reinterpret_cast<GameOptions*>(0x0079BC70); }
