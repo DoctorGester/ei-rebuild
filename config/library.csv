@@ -171,3 +171,220 @@ address,name,library,signature,notes
 00426450,stlp_node_alloc::deallocate_2,STLport,"void __cdecl(void*,size_t)",second instantiation
 00406B70,stlp_node_alloc::_S_chunk_alloc,STLport,,
 004060E0,stlp_node_alloc::_S_refill,STLport,,
+00411850,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+0041F8B0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00420F10,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+004221E0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00422400,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+004225E0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00422800,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+004229E0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00422BE0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00422DC0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00422FE0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+004231C0,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00423440,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00423700,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00423990,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00423B80,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00423D70,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00423F50,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00424130,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00424320,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00424510,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00424750,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation: allocates the sentinel node from the node pool and links it to itself
+00411660,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation (another node size)
+0041FB10,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation (another node size)
+00421B20,stlp::list<T>::list,STLport,void __thiscall(const allocator&),instantiation (another node size)
+00411530,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+0041FCD0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00420390,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00420450,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00420550,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00420610,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004206E0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004207B0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004208A0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00420960,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00420C30,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00420CF0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004210C0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004210E0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004219F0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00422BA0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00422F90,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004236B0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00423950,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00423B40,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00423D30,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004242E0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+004244D0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+00478FE0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+0047A370,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+0047A3C0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+0047D4F0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+0047D540,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),instantiation: the sentinel node
+0041FCC0,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+00420280,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+00420380,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+004206D0,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+004207A0,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+004219E0,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+00422B90,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+00478FC0,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+00478FD0,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+0047A360,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),instantiation: sentinel->next
+00411630,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00421AF0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004221B0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004223D0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004225B0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004227D0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004229B0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00422BB0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00422D90,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00423190,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00423410,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00423960,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00423B50,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00423D40,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00423F20,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00424100,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004242F0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004244E0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00424720,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00425A80,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00425C10,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00426230,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00426370,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+004793B0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+0047A450,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+0047A480,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+0047D5A0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+0047D5D0,stlp::list<T>::insert,STLport,"iterator* __thiscall(iterator*,iterator,const T&)","instantiation: creates the node, links it before the position"
+00425710,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00425AF0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00425B80,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00425C40,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00425CD0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00425DA0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00425E70,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00426090,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00426160,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+004262A0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+0047A5C0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+0047D710,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation: 16-byte node from the pool free list at 0079B228
+00425250,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+00425360,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+004254B0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+004255C0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+004257E0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+00425930,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+00425F40,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+0047A4B0,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+0047D600,stlp::list<T>::_M_create_node,STLport,node* __thiscall(const T&),instantiation with an EH frame (non-trivial T)
+00420290,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00420460,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00422FA0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+004236C0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+004246E0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+004293B0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+004293F0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00429490,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+004294D0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00429510,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00429550,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00429590,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+004295D0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00429610,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00429650,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00429690,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+004296D0,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+0047A380,stlp::list<T>::erase,STLport,"iterator* (iterator*,iterator)","instantiation: unlinks, destroys the element, returns the node to the free list at 0079B228"
+00427100,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427140,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427180,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+004271C0,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427200,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427260,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+004272A0,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+004272E0,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427360,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+004273A0,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+004273E0,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427420,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427480,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+004274C0,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427500,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00427560,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+004275A0,stlp::list<T>::clear,STLport,void __thiscall(),"instantiation: destroys every element, frees the nodes"
+00411570,stlp::list<T>::clear,STLport,void __thiscall(),instantiation for trivially destructible elements
+004115D0,stlp::list<T>::clear,STLport,void __thiscall(),instantiation for trivially destructible elements
+0041FCE0,stlp::list<T>::clear,STLport,void __thiscall(),instantiation for trivially destructible elements
+0041FEE0,stlp::list<T>::clear,STLport,void __thiscall(),instantiation for trivially destructible elements
+00421CD0,stlp::list<T>::clear,STLport,void __thiscall(),instantiation for trivially destructible elements
+00421D20,stlp::list<T>::clear,STLport,void __thiscall(),instantiation for trivially destructible elements
+00420620,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+004208B0,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00420970,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00420A20,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00420AD0,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00420B80,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00420C40,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00420DB0,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00420E60,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+004210F0,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+00423370,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+004235F0,stlp::list<T>::~list,STLport,void __thiscall(),instantiation (EH frame)
+0041FA60,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+004202D0,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+004203A0,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+004204A0,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+00420560,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+004206F0,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+004207E0,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+00420D00,stlp::list<T>::~list,STLport,void __thiscall(),"instantiation (EH frame), RefPtr elements"
+00422390,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00422790,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00425470,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+004256D0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+004257A0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+004258F0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00425A40,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00425D60,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00425E30,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00425F00,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00426050,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00426120,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+004261F0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00426330,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,"void __stdcall(T*,size_t)","instantiation for 12-byte T: operator delete above 128 bytes, else the node pool free lists"
+00421E70,stlp::_Vector_base<T>::~_Vector_base,STLport,void __thiscall(),instantiation: frees the storage
+00422170,stlp::_Vector_base<T>::~_Vector_base,STLport,void __thiscall(),instantiation: frees the storage
+00424B60,stlp::_Vector_base<T>::~_Vector_base,STLport,void __thiscall(),instantiation: frees the storage
+00424BC0,stlp::_Vector_base<T>::~_Vector_base,STLport,void __thiscall(),instantiation: frees the storage
+0042AC20,stlp::_Vector_base<T>::~_Vector_base,STLport,void __thiscall(),instantiation: frees the storage
+0042B150,stlp::_Vector_base<T>::~_Vector_base,STLport,void __thiscall(),instantiation: frees the storage
+0041FF90,stlp::_Vector_base<T>::_Vector_base,STLport,void __thiscall(const allocator&),instantiation: null pointers (also _String_base)
+0041FFF0,stlp::_Vector_base<T>::_Vector_base,STLport,void __thiscall(const allocator&),instantiation: null pointers (also _String_base)
+004217E0,stlp::_Vector_base<T>::_Vector_base,STLport,void __thiscall(const allocator&),instantiation: null pointers (also _String_base)
+00424B40,stlp::_Vector_base<T>::_Vector_base,STLport,void __thiscall(const allocator&),instantiation: null pointers (also _String_base)
+00424BA0,stlp::_Vector_base<T>::_Vector_base,STLport,void __thiscall(const allocator&),instantiation: null pointers (also _String_base)
+00427C20,stlp::_Vector_base<T>::_Vector_base,STLport,void __thiscall(const allocator&),instantiation: null pointers (also _String_base)
+0042D310,stlp::_Vector_base<T>::_Vector_base,STLport,void __thiscall(const allocator&),instantiation: null pointers (also _String_base)
+004217C0,stlp::_Vector_base<T>::get_allocator,STLport,allocator* __thiscall(allocator*),instantiation
+00421D70,stlp::_Vector_base<T>::get_allocator,STLport,allocator* __thiscall(allocator*),instantiation
+00421EB0,stlp::_Vector_base<T>::get_allocator,STLport,allocator* __thiscall(allocator*),instantiation
+0042AC00,stlp::_Vector_base<T>::get_allocator,STLport,allocator* __thiscall(allocator*),instantiation
+0042B130,stlp::_Vector_base<T>::get_allocator,STLport,allocator* __thiscall(allocator*),instantiation
+0042BB30,stlp::_Vector_base<T>::get_allocator,STLport,allocator* __thiscall(allocator*),instantiation
+00425080,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,"void __thiscall(const allocator&,T*)",instantiation
+00425190,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,"void __thiscall(const allocator&,T*)",instantiation
+004251F0,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,"void __thiscall(const allocator&,T*)",instantiation
+004263D0,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,"void __thiscall(const allocator&,T*)",instantiation
+004793E0,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,"void __thiscall(const allocator&,T*)",instantiation
+0041F460,stlp::basic_string<char>::basic_string,STLport,void __thiscall(),empty string: 8-byte buffer from the node pool
+0041F4E0,stlp::basic_string<char>::operator=,STLport,basic_string& __thiscall(const basic_string&),
+004193D0,stlp::__copy_trivial,STLport,"T* __fastcall(const T*,const T*,T*)",memmove; returns the end of the destination
+004219A0,stlp::__Named_exception::__Named_exception,STLport,void __thiscall(const string&),vtable 0073B994; copies the message into a 256-byte buffer (strncpy)
+0041F740,exception scalar deleting destructor,CRT,void* __thiscall(unsigned),for the STLport exceptions (vtable 0073BE8C)
+0041F760,exception::~exception,CRT,void __thiscall(),inline copy of the CRT destructor body (vtable 00747290)
