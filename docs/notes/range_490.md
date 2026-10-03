@@ -267,7 +267,8 @@ types); new `particle_common.h` and `tests/verify/particle_verify.h`.
 
 ## Third pass: class templates and party records (004A5BD0-004A7E90)
 
-Code: `src/game/class_templates.cpp/.h`, `src/game/party_records.cpp/.h`. Verify:
+Code: `src/game/class_templates.cpp/.h`, `src/game/party_records.cpp/.h`. Scenario:
+`tests/scenarios/party_records.txt` (the party commands). Verify:
 `tests/verify/verify_class_templates.cpp`, `verify_party_records.cpp`. Every new game reaches both
 (004A88A0 / 004A88C0: parties reset, then the templates).
 
@@ -303,7 +304,7 @@ find_or_insert 004ACC10); allowed ones (+0x80 / +0x20) go to both +0x1D4 and +0x
 | Address | Size | Name | Verification |
 |---|---|---|---|
 | 004A7630 | 2147 | ClassTemplatesBuild | ours only: the vector holds the expected classes in order, each referenced once |
-| 004A7080 | 1009 | ClassTemplateFill | ours on the real template, the original on a scratch template (allocated and constructed the same way, with the real one's class, flags and weights); the two databases and the six vectors of both lists compared; the scratch deleted through its vtable |
+| 004A7080 | 1009 | ClassTemplateFill | ours on the real template, the original on a scratch template (allocated and constructed the same way, with the real one's class, flags and weights); the six vectors of both lists compared (each template has its own item and spell managers); the scratch deleted through its vtable |
 
 ### Party records
 

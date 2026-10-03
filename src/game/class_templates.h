@@ -18,8 +18,8 @@ struct ClassTemplate {
     std::uint8_t unknown_0E[2];
     std::uint32_t weights[9];       // +0x10..+0x30 floats (bit patterns)
     std::uint8_t unknown_34[0x3C - 0x34];
-    std::uint8_t items[0x70];       // +0x3C object whose slot 18 gives the item database
-    std::uint8_t spells[0x70];      // +0xAC object whose slot 22 gives the spell database
+    std::uint8_t items[0x70];       // +0x3C party object (00661050); slot 18: its item manager (+0x1C)
+    std::uint8_t spells[0x70];      // +0xAC party object; slot 22: its spell manager (+0x24)
     std::uint8_t allowed[0xB8];     // +0x11C everything the class may use (vectors at +0x08 armors,
                                     //   +0x14 weapons, +0x20 quick items, +0x2C the fourth kind
                                     //   (16-byte entries), +0x38 spells, +0x44 modifiers)

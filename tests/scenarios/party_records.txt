@@ -1,0 +1,25 @@
+# Party records (src/game/party_records.cpp) through the script commands: CreateParty (004A5E90),
+# AddLoot / CopyLoot (004A5E10 for both names; an unknown name finds the unnamed record),
+# RemoveParty (004A5FA0, including its skip after an erase: of two adjacent "zxA" records one is
+# left). A new game also runs the reset (004A5BD0) and the class templates (004A7630 / 004A7080).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @CreateParty(GetPlayer(GetLeader()),"zxA")
+console @CreateParty(GetPlayer(GetLeader()),"zxA")
+console @CreateParty(GetPlayer(GetLeader()),"zxB")
+console @AddLoot(GetPlayer(GetLeader()),"zxA","zxB")
+console @CopyLoot(GetPlayer(GetLeader()),"zxB","zxA")
+console @AddLoot(GetPlayer(GetLeader()),"zxB","zxMissing")
+console @RemoveParty(GetPlayer(GetLeader()),"zxA")
+console @RemoveParty(GetPlayer(GetLeader()),"zxA")
+console @RemoveParty(GetPlayer(GetLeader()),"zxB")
+console @RemoveParty(GetPlayer(GetLeader()),"zxMissing")
+check IsAlive(GetLeader())
+report
+quit

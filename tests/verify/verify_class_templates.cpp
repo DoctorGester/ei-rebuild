@@ -1,9 +1,11 @@
 // Differential checks for the class templates (src/game/class_templates.cpp).
 //
 // Fill (004A7080) runs ours on the real template and the original on a scratch template (allocated
-// and constructed like the real ones, with the real one's class, flags and weights); the database
-// pointers and every list the fill appends to must end equal. The name maps it reads through
-// operator[] gain the same null entries in either order. The scratch is then deleted.
+// and constructed like the real ones, with the real one's class, flags and weights); every list the
+// fill appends to must end equal. (Each template's constructor creates its own item and spell
+// managers, so the two runs list the names from different but identically built managers.) The
+// name maps it reads through operator[] gain the same null entries in either order. The scratch is
+// then deleted.
 // Build (004A7630) allocates templates: ours only, then the vector holds the expected classes,
 // each referenced once.
 #include "verify.h"
@@ -54,13 +56,10 @@ void __fastcall FillVerify(ClassTemplate* self) {
     ClassTemplateFill(self);
     s_fill(scratch);
 
-    bool sameDb = ei::VCall<void*>(scratch->items, 18) == ei::VCall<void*>(self->items, 18) &&
-                  ei::VCall<void*>(scratch->spells, 22) == ei::VCall<void*>(self->spells, 22);
     int allowed = ListDifference(scratch->allowed, self->allowed);
     int magic = ListDifference(scratch->magic, self->magic);
-    ei::verify::Check("ClassTemplateFill", true, sameDb && allowed < 0 && magic < 0,
-                      "class %d: databases %s, all-list vector +0x%X, magic-list vector +0x%X", self->type,
-                      sameDb ? "same" : "differ", allowed, magic);
+    ei::verify::Check("ClassTemplateFill", true, allowed < 0 && magic < 0,
+                      "class %d: all-list vector +0x%X, magic-list vector +0x%X", self->type, allowed, magic);
     ei::VCall<void>(scratch, 0, 1);   // scalar deleting destructor
 }
 
