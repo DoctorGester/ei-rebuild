@@ -39,6 +39,8 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `WordArray::SetSize` 006FEEFA (MFC CWordArray of the clip work buffer at 0079B668) | `src/game/clip.cpp` | own array |
 | Interface screens: screen base input handlers 00601110/006011F0/006012D0/00601820, sound 005F7E60, leave game 00581660, chat keys 005F7C60/005F7C80, cancel exchange 0041E3E0, region tooltip 005FC730, scroll bar 0065B090, hero panels 006229E0/00622A30/00622BC0, item predicates 005EE050-005EE110, CPtrArray `SetSize` 0062A390, model animation 005FC3B0/005FC3D0, hero screen 00616910/00616560, unit statistics 00527EB0/00523F50/00523CD0 and `_ftol` 006E853C (full list in `docs/notes/ui.md`, "Screens") | `src/game/ui_screens.cpp` | rewrite |
 | Interface screens: sound 005F7E60, help 005F86F0, window/container base slots (005FEB90, 005FECC0, 00600270, 006010E0, 00600EF0, 00601040, input defaults 00601110 / 00601570), surface/model/region helpers (005FD760, 005FC2F0, 005FC690), renderer flushes 004E7840 / 004E7A40, battle screen and panel helpers, save/load and options actions, local view orders 0066AE70 / 0066AED0, cursor 005E5200, server command 0041D260, sound setters 006B7740 / 006B7A00 / 006B78A0, display settings 00500960 (full list in `docs/notes/ui.md`, "Interface screens") | `src/game/ui_hud.cpp`, `ui_menus.cpp` | rewrite |
+| Effect objects: sound system 006B8600 / 006B92F0 / 006B94A0 / 006BA5E0 / 006BA7C0 / 006B9950 / 006B9A30 / 006B9AA0, light manager 006CA720 / 006CA5D0 / 006CA830, CLight 0068D010, particle source 00498400 / 00485480 / 004849F0 / 00485360, scorch 0056D4C0, camera shake 004113A0, bolt 004680D0 / 00467E10, reference assignment 00511B90 / 0056F1A0, world / unit helpers 00455950 / 0055FB00 / 00532860, net_delta methods through their addresses, 0047E340, CStringArray 006FE9B8 / 006773A0 / 004E5840 (full list in `docs/notes/range_660.md`) | `src/game/world_effect*.cpp` | rewrite / call directly |
+| Resources: `_access` 006EAF20, `_findfirst` 006EB832, `_splitpath` 006E8BEE, CStringArray `SetSize` 006FE9B8 / `SetAtGrow` 006FEBCE, CBaseManager constructor / slot 3 / destructor 00402B20 / 004031E0 / 00402DF0 | `src/game/resource_stream.cpp` | modern CRT / own containers / rewrite |
 
 ## Indirections
 
@@ -79,6 +81,10 @@ Each needs a real implementation, or the caller must be rewritten first.
 - STLport `hash_map<void*, ...>` iteration order depends on pointer values, so allocation order can
   change the order in which `CMappedResource::FreeAllFiles` frees files. Harmless so far, but check
   before swapping allocators.
+- The effect objects' naked x87 helpers (`StepFraction`, `SetLightRange`, `WallScorchShape`,
+  `RandomAngle`, `CopyThroughFpu` in `src/game/world_effect*.cpp`) repeat the original's FPU
+  sequences (unrounded intermediates, FILD qword, FLD / FSTP copies). Keep them or prove the plain
+  C++ gives the same bits at the FPU precision the game runs with.
 - `x87::fistp` rounds with the FPU's current mode (used by `Terrain::HeightAt`); a C++ cast truncates.
 - `StoreRatio` (`src/game/clip.cpp`, inline x87) stores the clip parameter as a float while comparing
   the unrounded quotient; `FpuCopyBits` (`net_delta.cpp`, `chunk_stream.cpp`) copies floats through
@@ -99,6 +105,9 @@ Decide case by case whether the standalone build keeps them (behaviour-exact) or
   passes the path string object by value to `%s`.
 - `TweenArray::Load` reads the count into the slot of its stream argument (a stream that wrote
   nothing would leave the pointer value as the count).
+- Effect objects and the sound file reader: see "Original bugs and oddities kept" in
+  `docs/notes/range_660.md` (a stopped sound is still moved, the ambient sound's count read into its
+  argument slot, `_findfirst` handle leak, Seek origins).
 - Delta replication, chunked files, clipper, network pump: see "Original bugs and oddities kept" in
   `docs/notes/unmapped_410_470.md` (e.g. the 16-bit float packing's mantissa carry, `ReadQuad`'s order).
 

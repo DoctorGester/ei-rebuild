@@ -102,6 +102,11 @@ public:
         finish_ = start_;
     }
 
+    // The destructor's release of the storage (the elements are already destroyed).
+    void FreeStorage() {
+        if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
+    }
+
     // erase(pos): shift the tail down by assignment, destroy the last element.
     void erase(T* pos) {
         for (T* p = pos; p + 1 != finish_; ++p) p->AssignFrom(p[1]);
