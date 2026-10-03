@@ -292,6 +292,23 @@ static void __fastcall StatsBuildVerify(CHeroStatsPanel* self, void*) {
 }
 EI_VERIFY(0x00622DB0, StatsBuildVerify, 0, s_unused);
 
+// --- Trade grid Build (006270A0) -------------------------------------------------------------------
+
+// Ours only: 16 cell regions, 32 sprites, 4 textures, 1 surface; the lists and kinds stored.
+static void __fastcall TradeGridBuildVerify(CTradeGrid* self, void*, void* bought, void* sold, int spells, int flag) {
+    Counts before = CountsOf(self);
+    self->Build(bought, sold, static_cast<char>(spells), static_cast<char>(flag));
+    Counts after = CountsOf(self);
+    bool kinds = static_cast<char>(spells) ? (self->buyKind_ == 0 && self->sellKind_ == 1)
+                                           : (self->buyKind_ == 4 && self->sellKind_ == 5);
+    bool ok = after.regions == before.regions + 16 && after.sceneObjects == before.sceneObjects + 32 &&
+              after.objects >= before.objects + 4 && after.surfaces == before.surfaces + 1 && kinds &&
+              self->bought_ == bought && self->sold_ == sold && self->rect_.left == 200 && self->rect_.bottom == 500;
+    ei::verify::Check("CTradeGrid::Build", true, ok, "regions %d->%d sprites %d->%d", before.regions, after.regions,
+                      before.sceneObjects, after.sceneObjects);
+}
+EI_VERIFY(0x006270A0, TradeGridBuildVerify, 0, s_unused);
+
 // --- Global map Update (0062F050) --------------------------------------------------------------------
 
 // Every frame; it draws the weather (whose animation advances with each call), so ours run alone:

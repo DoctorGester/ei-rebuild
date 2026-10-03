@@ -432,3 +432,47 @@ namespace {
 void __fastcall StatsBuild(CHeroStatsPanel* self, void*) { self->Build(); }
 } // namespace
 EI_REPLACE(0x00622DB0, StatsBuild);
+
+// --- 006270A0: the trade grid's Build ----------------------------------------------------------------
+
+void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
+    bought_ = bought;
+    rect_ = RECT{200, 100, 600, 500};
+    sold_ = sold;
+    buyKind_ = spells ? 0 : 4;
+    sellKind_ = spells ? 1 : 5;
+    flag_ = flag;
+    LoadTexture(GameText(0x00793EB4), 3, 0);   // trade1
+    LoadTexture(GameText(0x00793EAC), 3, 0);   // trade2
+    LoadTexture(GameText(0x00793EA4), 3, 0);   // trade3
+    LoadTexture(GameText(0x00793E9C), 3, 0);   // trade4
+    // Cells of 100 x 100; texels alternate between 0x1C and 0x80 across and down; each row's
+    // pictures lie twice as deep as their frames, and half as deep as the row above.
+    int u = 0x1C;
+    float depth = 32.0f;
+    int v = 0x1C;
+    for (int top = 100; top < 500; top += 100) {
+        float pictureDepth = Store(D(depth) + D(depth));
+        int bottom = top + 100;
+        for (int left = 200; left < 600; left += 100) {
+            CEngineObject* texture = top <= 200 ? (left <= 300 ? objects_.data_[0] : objects_.data_[1])
+                                                : (left <= 300 ? objects_.data_[2] : objects_.data_[3]);
+            int right = left + 100;
+            CUiMesh* picture = AddSprite(0);
+            picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+                                  static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
+            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(texture));
+            CUiMesh* frame = AddSprite(0);
+            Builder(frame)->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+                                   static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
+            SetSpriteField(frame, 0x280, reinterpret_cast<std::uint32_t>(texture));
+            AddRect(this, RECT{left, top, right, bottom});
+            u = 0x9C - u;
+        }
+        depth = Store(D(depth) * D(GameFloat(0x0073B86C)));   // * 0.5
+        v = 0x9C - v;
+    }
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 100, 600, 500, 5, 1) : nullptr);
+}
+EI_REPLACE_METHOD(0x006270A0, CTradeGrid::Build);

@@ -302,3 +302,25 @@ public:
 };
 static_assert(offsetof(CHeroEquipPanel, body_) == 0x150);
 static_assert(sizeof(CHeroEquipPanel) == 0x158);
+
+// --- Camp trade grid ----------------------------------------------------------------------------
+//
+// The 4 x 4 grid of item cells on the constructors' first pages (vtables 0074170C / 007416D8,
+// 0x164 bytes; ui_hero_panels.cpp).
+class CTradeGrid : public CUiWindow {
+public:
+    // 006270A0. Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
+    // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
+    // (0/1 for the spell constructor, 4/5 for the item one).
+    void Build(void* bought, void* sold, char spells, char flag);
+
+    std::uint8_t unknown_148[0x150 - 0x148];
+    void* bought_;                   // +0x150 an item list (+0x40 of a 00661050 list)
+    void* sold_;                     // +0x154
+    int buyKind_;                    // +0x158
+    int sellKind_;                   // +0x15C
+    char flag_;                      // +0x160
+    std::uint8_t unknown_161[3];
+};
+static_assert(offsetof(CTradeGrid, bought_) == 0x150);
+static_assert(sizeof(CTradeGrid) == 0x164);
