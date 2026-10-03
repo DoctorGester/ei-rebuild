@@ -1073,3 +1073,207 @@ void CParticleSource::TickLink(ParticleElement* e) {
     *ElementInt(e, 0x34) = cap < 0 ? 0 : cap;
 }
 EI_REPLACE_METHOD(0x0048E040, CParticleSource::TickLink);
+
+// --- FireBlast (0x2002): fifteen fragments flying out, flames and smoke at the centre ------------
+//
+// The fragments (elements, set up by Create): +0x00 position, +0x0C velocity, +0x18 / +0x1C the
+// flame radius and its growth (scaled by +0x20 each tick), +0x24 / +0x28 a random frame and size
+// factor, +0x30 the age in ticks.
+
+namespace {
+
+#define EI_BLAST_FLAME_SIZE GameFloat(0x0073CDE0)    // 0.6
+#define EI_BLAST_POINT_TWO GameFloat(0x0073BAD4)     // 0.2
+#define EI_BLAST_RISE_SCALE GameDouble(0x0073CDD8)   // ~0.35 * 2^-32
+#define EI_BLAST_RISE GameFloat(0x0073CDD4)          // 0.35
+#define EI_BLAST_RISE_BASE GameFloat(0x0073CDD0)     // 0.175
+#define EI_BLAST_HALF GameFloat(0x0073B86C)          // 0.5
+#define EI_BLAST_DEBRIS_SCALE GameDouble(0x0073C540) // ~0.4 * 2^-31
+#define EI_BLAST_POINT_SEVEN GameFloat(0x0073C538)   // 0.7
+#define EI_BLAST_POINT_15 GameFloat(0x0073CD18)      // 0.15
+#define EI_BLAST_POINT_THREE GameFloat(0x0073C54C)   // 0.3
+#define EI_BLAST_SEVENTH GameFloat(0x0073CDCC)       // 1/7
+#define EI_BLAST_POINT_EIGHT GameFloat(0x0073CCA8)   // 0.8
+#define EI_BLAST_SCALE_0_4 GameDouble(0x0073CCB0)    // ~0.4 * 2^-32
+#define EI_BLAST_CORE_SIZE GameFloat(0x0073CDEC)     // 2.3
+#define EI_BLAST_SWELL_LATE GameFloat(0x0073CDE8)    // 1.03
+#define EI_BLAST_SWELL_EARLY GameFloat(0x0073CD40)   // 1.01
+#define EI_BLAST_FRAME_ACCEL GameFloat(0x0073CDE4)   // 1.02
+#define EI_BLAST_DRAG GameFloat(0x0073CD74)          // 0.03
+#define EI_BLAST_SLOW GameFloat(0x0073C524)          // 0.75
+
+constexpr int kBlastCore = -1222;     // the core flash, emitted once at the start
+
+const std::int32_t* BlastAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A5DC); }
+
+// A flame's size and frame timing: the size from the fragments' radius, the frame step random.
+void BlastFlameTiming(CParticleSource* s, Particle* p) {
+    double jitter = Unsigned(Next()) * EI_BLAST_SCALE_0_4 + D(EI_BLAST_POINT_EIGHT);
+    p->unknown_2C = Store(D(*ElementFloat(s->elements, 0x18)) * D(s->size) * jitter * D(EI_BLAST_FLAME_SIZE));
+    p->unknown_30 = Store(static_cast<double>(p->frame));
+}
+
+} // namespace
+
+// 0048C090. FireBlast: a random kind per particle (state = Next() % 29 - 14). The first particle
+// after the fragments' first tick is the core flash. Negative kinds are flames inside the blast
+// (a random point in the ball scaled by the radius, moving outwards; the earlier in the blast and
+// the further out the more frames they skip); the others are smoke along fragment `state`'s path.
+int CParticleSource::EmitBlast(Particle* p, int) {
+    ParticleElement* fragments = elements;
+    int kind = static_cast<int>(Next() % 29) - 14;
+    p->color = 0xFFFFFFFF;
+    p->state = kind;
+    if (particles.count == 0 && *ElementInt(fragments, 0x30) == 1) {
+        p->state = kBlastCore;
+        std::memcpy(&p->pos, &origin, sizeof(Vector3));
+        p->frame = 15;
+        SetBits(&p->size, 0);
+        return 1;
+    }
+    if (kind < 0) {
+        p->life = 0;
+        float x, y, z;
+        RandomInBallZYX(x, y, z);
+        Vector3 v;
+        v.Construct(x, y, z);
+        double outside = D(EI_P_ONE) - (D(v.z) * D(v.z) + D(v.y) * D(v.y) + D(v.x) * D(v.x));
+        float outsideRounded = Store(outside);
+        double scale = D(size);
+        v.x = Store(scale * D(v.x));
+        v.y = Store(D(v.y) * scale);
+        v.z = Store(D(v.z) * scale);
+        double radius = D(*ElementFloat(elements, 0x18));
+        float ax = Store(D(v.x) * radius);
+        float ay = Store(D(v.y) * radius);
+        double az = radius * D(v.z);
+        double px = D(ax) + D(origin.x);
+        float py = Store(D(ay) + D(origin.y));
+        float pz = Store(az + D(origin.z));
+        SetBits(&p->size, 0x3F800000);
+        p->pos.y = py;
+        p->pos.x = Store(px);
+        p->pos.z = pz;
+        double spreadRate = D(*ElementFloat(elements, 0x1C));
+        p->velocity.x = Store(D(v.x) * spreadRate);
+        SetBits(&p->size, 0);
+        p->velocity.y = Store(D(v.y) * spreadRate);
+        p->velocity.z = Store(D(v.z) * spreadRate);
+        int age = *ElementInt(fragments, 0x30);
+        float threshold = Store(static_cast<double>(age / 7) + D(EI_BLAST_POINT_TWO));
+        if (!(outside >= D(threshold))) {
+            p->frame = 8;
+            BlastFlameTiming(this, p);
+            *ParticleFloat(p, 0x34) = Store(Unsigned(Next()) * EI_BLAST_RISE_SCALE + D(EI_BLAST_RISE));
+        } else {
+            p->frame = static_cast<int>(Next() % 3);
+            BlastFlameTiming(this, p);
+            double t = Unsigned(Next()) * EI_BLAST_RISE_SCALE * D(EI_BLAST_HALF);
+            *ParticleFloat(p, 0x34) =
+                Store(t + D(outsideRounded) * D(EI_BLAST_RISE) / D(threshold) + D(EI_BLAST_RISE_BASE));
+        }
+        return 1;
+    }
+
+    p->frame = static_cast<int>(Next() % 3);
+    ParticleElement* e = &fragments[kind];
+    if (*ElementFloat(e, 0x24) == 0.0f || x87::IsNaN(*ElementFloat(e, 0x24))) p->frame = 8;
+    float u = Store(Unsigned(Next()) * EI_P_SCALE_1);
+    float scale = size;
+    const float* velocity = ElementFloat(e, 0x0C);
+    double ux = D(u) * D(velocity[0]);
+    float uy = Store(D(u) * D(velocity[1]));
+    float uz = Store(D(u) * D(velocity[2]));
+    double sx = ux * D(scale);
+    double sy = D(uy) * D(scale);
+    double sz = D(uz) * D(scale);
+    float px = Store(D(e->pos.x) + D(origin.x));
+    float py = Store(D(origin.y) + D(e->pos.y));
+    Vector3 start;
+    start.Construct(Store(D(px) - sx), Store(D(py) - sy), Store(D(origin.z) + D(e->pos.z) - sz));
+    std::memcpy(&p->pos, &start, sizeof(Vector3));
+    SetBits(&p->size, 0x3F800000);
+    double g = Unsigned(Next()) * EI_BLAST_DEBRIS_SCALE + D(EI_BLAST_POINT_SEVEN);
+    double sized = g * (D(EI_BLAST_POINT_THREE) - D(u) * D(EI_BLAST_POINT_15)) *
+                   (D(*ElementFloat(e, 0x18)) * D(EI_BLAST_SEVENTH) + D(EI_BLAST_POINT_THREE));
+    p->size = Store(sized * D(*ElementFloat(e, 0x28)) * D(size));
+    Vector3 drift;
+    ScaleVector(&drift, *reinterpret_cast<const Vector3*>(velocity), size);
+    std::memcpy(&p->velocity, &drift, sizeof(Vector3));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048C090, CParticleSource::EmitBlast);
+
+// 0048C590. FireBlast particles. Smoke (state >= 0) drifts with a 0.7 drag, shrinks to 0.8 and
+// lasts until its frame reaches 7 (mod 8). The core flash (frame 15) grows once to 2.3 times the
+// source's size, then disappears; it keeps the source alive while the fragments are younger than
+// 3 ticks. Flames move by their velocity (slowing with the fragments' drag), swell, step through
+// frames at an accelerating rate and fade by the frame.
+int CParticleSource::UpdateBlast(Particle* p) {
+    ParticleElement* fragments = elements;
+    int state = p->state;
+    if (state >= 0) {
+        int frame = ++p->frame;
+        if ((frame & 7) == 7) return 0;
+        p->color = 0xFFFFFFFF;
+        p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
+        p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+        p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+        p->velocity.x = Store(D(p->velocity.x) * D(EI_BLAST_POINT_SEVEN));
+        p->velocity.y = Store(D(p->velocity.y) * D(EI_BLAST_POINT_SEVEN));
+        p->velocity.z = Store(D(p->velocity.z) * D(EI_BLAST_POINT_SEVEN));
+        p->size = Store(D(p->size) * D(EI_BLAST_POINT_EIGHT));
+        return 1;
+    }
+    int frame = p->frame;
+    if (frame >= 14) {
+        if (state != kBlastCore) return 0;
+        if (p->size == 0.0f || x87::IsNaN(p->size)) p->size = Store(D(size) * D(EI_BLAST_CORE_SIZE));
+        else SetBits(&p->size, 0);
+        return *ElementInt(fragments, 0x30) < 3;
+    }
+    p->pos.x = Store(D(p->pos.x) + D(p->velocity.x));
+    ++p->life;
+    p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    double flameSize = D(p->unknown_2C);
+    p->size = Store(flameSize);
+    p->size = Store(flameSize * D(frame > 7 ? EI_BLAST_SWELL_LATE : EI_BLAST_SWELL_EARLY));
+    float* step = ParticleFloat(p, 0x34);
+    p->unknown_30 = Store(D(p->unknown_30) + D(*step));
+    *step = Store(D(*step) * D(EI_BLAST_FRAME_ACCEL));
+    p->frame = x87::fistp(p->unknown_30);
+    std::memcpy(&p->unknown_2C, &p->size, sizeof(float));
+    double drag = D(*ElementFloat(elements, 0x20)) - D(EI_BLAST_DRAG);
+    p->velocity.x = Store(drag * D(p->velocity.x));
+    p->velocity.y = Store(drag * D(p->velocity.y));
+    p->velocity.z = Store(drag * D(p->velocity.z));
+    p->color = (static_cast<std::uint32_t>(BlastAlpha()[p->frame]) << 24) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048C590, CParticleSource::UpdateBlast);
+
+// 0048C760. FireBlast fragments: the flame radius grows (its growth decaying), the age counts up
+// (the emission stops after 6 ticks), the fragment flies by its velocity scaled by the source's
+// size, slowing to 3/4 per tick and falling 0.03 per tick.
+void CParticleSource::TickBlast(ParticleElement* e) {
+    float* radius = ElementFloat(e, 0x18);
+    float* growthRate = ElementFloat(e, 0x1C);
+    *radius = Store(D(*radius) + D(*growthRate));
+    int age = ++*ElementInt(e, 0x30);
+    *growthRate = Store(D(*ElementFloat(e, 0x20)) * D(*growthRate));
+    if (age > 6) flags_ &= ~1u;
+    double scale = D(size);
+    float* velocity = ElementFloat(e, 0x0C);
+    float dx = Store(scale * D(velocity[0]));
+    float dy = Store(scale * D(velocity[1]));
+    double dz = scale * D(velocity[2]);
+    e->pos.x = Store(D(dx) + D(e->pos.x));
+    e->pos.y = Store(D(dy) + D(e->pos.y));
+    e->pos.z = Store(dz + D(e->pos.z));
+    velocity[0] = Store(D(velocity[0]) * D(EI_BLAST_SLOW));
+    velocity[1] = Store(D(velocity[1]) * D(EI_BLAST_SLOW));
+    velocity[2] = Store(D(velocity[2]) * D(EI_BLAST_SLOW));
+    velocity[2] = Store(D(velocity[2]) - D(EI_BLAST_DRAG));
+}
+EI_REPLACE_METHOD(0x0048C760, CParticleSource::TickBlast);

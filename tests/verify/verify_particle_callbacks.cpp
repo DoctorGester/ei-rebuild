@@ -72,3 +72,12 @@ EI_UPDATE_WRAPPER(UpdateLink)
 EI_VERIFY(0x0048DE30, UpdateLinkVerify, 6, s_UpdateLink);
 EI_ELEMENT_WRAPPER(TickLink)
 EI_VERIFY(0x0048E040, TickLinkVerify, 7, s_TickLink);
+
+// 0048C090: SUB ESP,0x24; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7). 0048C590: PUSH EBP; MOV EBP,ESP;
+// PUSH ECX; MOV EDX,[EBP+8] (7). 0048C760: MOV EAX,[ESP+4]; SUB ESP,0xC (7).
+EI_EMIT_WRAPPER(EmitBlast)
+EI_VERIFY(0x0048C090, EmitBlastVerify, 7, s_EmitBlast);
+EI_UPDATE_WRAPPER(UpdateBlast)
+EI_VERIFY(0x0048C590, UpdateBlastVerify, 7, s_UpdateBlast);
+EI_ELEMENT_WRAPPER(TickBlast)
+EI_VERIFY(0x0048C760, TickBlastVerify, 7, s_TickBlast);

@@ -159,6 +159,9 @@ public:
     int EmitLink(Particle* p, int index);           // 0048D8D0 (Link, 0x2014)
     int UpdateLink(Particle* p);                    // 0048DE30
     void TickLink(ParticleElement* e);              // 0048E040
+    int EmitBlast(Particle* p, int index);          // 0048C090 (FireBlast, 0x2002)
+    int UpdateBlast(Particle* p);                   // 0048C590
+    void TickBlast(ParticleElement* e);             // 0048C760
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
