@@ -22,6 +22,8 @@
 //                             the same at the centre of clickable region <n> of the window on top
 //                             of the interface (its regions as the screen's code numbers them;
 //                             placed with the game's own scaling, so Rebirth's widescreen layout too)
+//   screen <id>               ask the server for interface screen <id> as the global map's buttons
+//                             do (4 the global map, 5 the camp; the battle screen is left)
 //   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
@@ -79,6 +81,12 @@ SyncFn g_sync;
 
 // 005DC620: the console's command executor; the command text is passed in ECX.
 __declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
+
+// 00578B00: the client asks the server for interface screen `id` (the server answers with message 7,
+// 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
+__declspec(naked) void __stdcall RequestScreen(int) EI_ORIGINAL(0x00578B00)
+// 00578560: sets player 0's "constr_current" (the constructor the camp opens with; 0 none).
+__declspec(naked) void __stdcall SetCurrentConstructor(float) EI_ORIGINAL(0x00578560)
 
 struct Step {
     std::string verb;
@@ -608,6 +616,12 @@ void RunSteps() {
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
+        } else if (s.verb == "screen") {
+            // What the global map's buttons do (0062F950): ask the server for interface screen <id>.
+            // For the camp (5) the map's button first sets "constr_current" to 0.
+            int id = std::atoi(s.argument.c_str());
+            if (id == 5) SetCurrentConstructor(0.0f);
+            RequestScreen(id);
         } else if (s.verb == "check") {
             g_checking = true;
             g_checkExpr = s.argument;
