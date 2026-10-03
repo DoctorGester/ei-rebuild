@@ -24,3 +24,17 @@ static int __fastcall SaveGameVerify(GameFlow* self, void*, const char* slot) {
     return result;
 }
 EI_VERIFY(0x0057B3B0, SaveGameVerify, 0, s_unused);
+
+int __stdcall EnterZone(std::uint8_t* records);   // world_game.cpp
+
+// 0057A060: 0 or 1 (a restored zone gives LoadSave's 1, which is 1 unless the AI graph is missing).
+static int __stdcall EnterZoneVerify(std::uint8_t* records) {
+    char zone[64] = "";
+    std::snprintf(zone, sizeof(zone), "%s", *reinterpret_cast<const char* const*>(records + 0x68));
+    int result = EnterZone(records);
+    auto* world = reinterpret_cast<CWorldServer*>(0x007AFF60);
+    bool ok = result == 0 || result == 1;
+    ei::verify::Check("EnterZone", true, ok, "%s -> %d, map %s", zone, result, world->mapName_ ? world->mapName_ : "");
+    return result;
+}
+EI_VERIFY(0x0057A060, EnterZoneVerify, 0, s_unused);
