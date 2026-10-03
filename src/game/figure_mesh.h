@@ -89,10 +89,17 @@ public:
     // 005A4D60 (slot 21 of class 0x41): the same, the last four buffers pointing into the data.
     void LoadOldShared(char** cursor, float s, float t, float u);
 
+    // 0059FDF0 (called by 00518100 for every part of a CObject3D): grows the world-space box
+    // [min, max] by the 8 corners of this part's box (bounds_) transformed by its matrix
+    // (00401570); nothing when the position is 1e4 or more from the origin. RET 0x18.
+    void ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const;
+
     void* vtable_;                      // +0x000
     std::uint8_t unknown_004[4];
     std::uint32_t flags_;               // +0x008 0x20: loaded
-    std::uint8_t unknown_00C[0x9C - 0x0C];
+    std::uint8_t unknown_00C[0x1C - 0x0C];
+    float position_[3];                 // +0x01C (CTransformObject)
+    std::uint8_t unknown_028[0x9C - 0x28];
     MeshBuffers buffers_;               // +0x09C
     std::uint8_t unknown_0CC[0x138 - 0xCC];
     AlignedArray<std::uint32_t> colorsA_;   // +0x138 4 per record

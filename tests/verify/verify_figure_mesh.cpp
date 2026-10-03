@@ -193,4 +193,21 @@ void __stdcall FigureBounds6Verify(ClipBounds* out, const float* data, float s, 
 }
 EI_VERIFY(0x005AB9A0, FigureBounds6Verify, 6, s_figureBounds6);
 
+// ---- 0059FDF0 ExtendWorldBox --------------------------------------------------------------------
+
+// PUSH EBP; MOV EBP,ESP; SUB ESP,0x84 (9 bytes). Output only: the original grows copies of the
+// six values, ours the caller's; compared bitwise.
+void(__fastcall* s_extendWorldBox)(const CFigureMesh*, void*, float*, float*, float*, float*, float*, float*);
+void __fastcall ExtendWorldBoxVerify(const CFigureMesh* self, void*, float* maxX, float* maxY, float* maxZ, float* minX,
+                                     float* minY, float* minZ) {
+    float theirs[6] = {*maxX, *maxY, *maxZ, *minX, *minY, *minZ};
+    s_extendWorldBox(self, nullptr, &theirs[0], &theirs[1], &theirs[2], &theirs[3], &theirs[4], &theirs[5]);
+    self->ExtendWorldBox(maxX, maxY, maxZ, minX, minY, minZ);
+    float ours[6] = {*maxX, *maxY, *maxZ, *minX, *minY, *minZ};
+    ei::verify::Check("CFigureMesh::ExtendWorldBox", true, std::memcmp(theirs, ours, sizeof(ours)) == 0,
+                      "max %g %g %g / %g %g %g, min %g %g %g / %g %g %g", theirs[0], theirs[1], theirs[2], ours[0], ours[1],
+                      ours[2], theirs[3], theirs[4], theirs[5], ours[3], ours[4], ours[5]);
+}
+EI_VERIFY(0x0059FDF0, ExtendWorldBoxVerify, 9, s_extendWorldBox);
+
 } // namespace

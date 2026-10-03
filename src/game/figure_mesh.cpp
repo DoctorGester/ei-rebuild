@@ -551,3 +551,59 @@ void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
     flags_ |= 0x20;
 }
 EI_REPLACE_METHOD(0x005A4D60, CFigureMesh::LoadOldShared);
+
+// ---- World-space box ----------------------------------------------------------------------------
+
+namespace {
+// 00401570 (not rewritten): the object-to-world matrix of a transform object (rotation from the
+// quaternion at +0x34, translation = position) into out[16]. __thiscall, RET 4.
+__declspec(naked) void __fastcall ObjectMatrix(const void* /*object*/, void*, float* /*out*/) EI_ORIGINAL(0x00401570)
+
+// The limit on the squared distance of the position from the origin (the float 1e8 at 0073FAFC).
+inline float FarLimit() { return *reinterpret_cast<const float*>(0x0073FAFC); }
+} // namespace
+
+#pragma float_control(precise, on, push)
+
+namespace {
+// Grows [min, max] by one transformed point. The original selects with the FCOMP status bit C0
+// ("less or unordered") as a mask on the float bits, so a NaN on either side takes the point.
+void Extend(float& max, float& min, float v) {
+    if (!(max >= v)) max = v;
+    if (!(v >= min)) min = v;
+}
+} // namespace
+
+void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
+    // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
+    double far = static_cast<double>(position_[0]) * position_[0] + static_cast<double>(position_[1]) * position_[1];
+    far = far + static_cast<double>(position_[2]) * position_[2];
+    if (far > FarLimit()) return;
+
+    float m[16];
+    std::memset(m, 0, sizeof(m));
+    ObjectMatrix(this, nullptr, m);
+
+    // The 8 corners of the box (centre + minimum / maximum), maximum x first; each sum stays on
+    // the FPU, each transformed coordinate is stored.
+    const float* c = bounds_.center;
+    const float* lo = bounds_.boxMin;
+    const float* hi = bounds_.boxMax;
+    for (int corner = 0; corner < 8; ++corner) {
+        const float* sx = (corner & 4) ? lo : hi;
+        const float* sy = (corner & 2) ? lo : hi;
+        const float* sz = (corner & 1) ? lo : hi;
+        double x = static_cast<double>(sx[0]) + c[0];
+        double y = static_cast<double>(sy[1]) + c[1];
+        double z = static_cast<double>(sz[2]) + c[2];
+        float wx = F(((z * m[8] + y * m[4]) + x * m[0]) + m[12]);
+        float wy = F(((z * m[9] + y * m[5]) + x * m[1]) + m[13]);
+        float wz = F(((z * m[10] + y * m[6]) + x * m[2]) + m[14]);
+        Extend(*maxX, *minX, wx);
+        Extend(*maxY, *minY, wy);
+        Extend(*maxZ, *minZ, wz);
+    }
+}
+EI_REPLACE_METHOD(0x0059FDF0, CFigureMesh::ExtendWorldBox);
+
+#pragma float_control(pop)
