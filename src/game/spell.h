@@ -217,6 +217,13 @@ public:
     // spell constructor. Returns the new spell, or a fatal error's result.
     CSpell* CreateSpell(char* prototype, SpellModifierNode** modifiers);
 
+    // 00689030. Builds a spell from text such as "healing{e2;e2}": the trimmed text before '{' is
+    // the prototype name, the ';'-separated names inside the braces are modifiers (empty ones
+    // skipped). Names are looked up in the name maps with operator[] / find_or_insert, so an
+    // unknown name is added to the map with a null record. Returns the new spell, or a fatal
+    // error's result.
+    CSpell* CreateSpellFromText(const char* text);
+
     std::uint8_t unknown_1C[0xAC - 0x1C];
     CEngineObject* context_;        // +0xAC its slot 17 gives the spell constructor
 };

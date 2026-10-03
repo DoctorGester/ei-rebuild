@@ -8,6 +8,8 @@
 #include "engine_object.h"
 #include "item_db.h"
 
+class CSpell;
+
 // CEngineObject::type_ of an item: which database its prototype lives in.
 enum ItemKind : int {
     kItemWeapon = 0x3004,
@@ -37,6 +39,18 @@ public:
 
     // 0069FE90. Virtual slot 14: the base comparison of two items (not rewritten; forwarder).
     BOOL IsSameAs(CItem* other);
+
+    // 006A0490. Virtual slot 13 of CItem (the subclasses call it first): takes the item's values
+    // from a database record (see CItemConstructor::Build): +0x34 price, +0x38, +0x3C, +0x40
+    // charge (current and maximum), +0x44, +0x48 (+0x20 and +0x24); charge rate 0.001.
+    void InitFromRecord(const char* record);
+
+    // 006A04D0. Attaches `spell` (counted; the previous one released), moving the price from the
+    // previous spell's to the new one's.
+    void AttachSpell(CSpell* spell);
+
+    // 006A0520. Attaches `spell` (counted; the previous one released); the price is left alone.
+    void SetSpell(CSpell* spell);
 
     std::uint32_t unknown_1C;
     std::uint32_t unknown_20;     // +0x20 both set from prototype +0x48
@@ -115,3 +129,74 @@ float __fastcall WeaponStat88(std::uint32_t packedId);      // 006A2D90
 
 // 006A3200. Armor prototype field +0xB8 by prototype index; 0 if out of range.
 int __fastcall ArmorFieldB8(std::uint32_t index);
+
+// --- Item construction (item_constructor.cpp) -------------------------------------------------
+
+// The item constructor (vtable 00744020, 0x34 bytes): the manager creates an item object
+// (BeginCreateItem), the caller names the prototype and material records and optionally a spell,
+// and EndCreateItem fills the item from a record combining them (Build).
+class CItemConstructor : public CEngineObject {
+public:
+    // 006A5B90. Virtual slot 2: forgets the manager (its count dropped), releases the item and
+    // clears the records and the spell. Returns 1.
+    BOOL Reset();
+
+    // 006A5BD0. Virtual slot 3: the same, no result.
+    void Detach();
+
+    // 006A5B20. The destructor body (vtable 00744020): Detach's work, then the base destructor.
+    void DestructBody();
+
+    // 006A5C00. Counts a reference to `manager` (+4), dropping the previous one's (no release).
+    void SetManager(CEngineObject* manager);
+
+    // 006A5C20. Adopts an existing item (counted; the previous one released); records cleared.
+    void SetItem(CItem* item);
+
+    // 006A5C50. Creates the item through the manager (slot 23 with `kind`, `key`): counted,
+    // records cleared, count 1, flag 8 set. Returns 1, or a fatal error's result.
+    BOOL BeginCreateItem(int kind, int key);
+
+    BOOL SetMaterial(char* material);       // 006A5CC0. Returns 1.
+    BOOL SetPrototype(char* prototype);     // 006A5CD0. Returns 1.
+    BOOL SetSpellObject(CSpell* spell); // 006A5CE0. Returns 1 (not counted).
+
+    // 006A5CF0. Builds the item. On failure releases it and returns null; otherwise hands it over
+    // (its count dropped without release, flag 8 cleared) and returns it.
+    CItem* EndCreateItem();
+
+    // 006A5D30. Releases the item; records and spell cleared. Returns 1.
+    BOOL Cancel();
+
+    // 006A5D60. Fills the item from a temporary database record: the prototype's values combined
+    // with the material's, then the item's slot 13 (InitFromRecord); attaches the prototype's
+    // spell (wands, category 8) or the given one; sets the packed id and the count. Returns 0
+    // for a weapon or armor without a material, else 1.
+    BOOL Build();
+
+    CEngineObject* manager_;  // +0x1C counted (+4) but never released
+    char* material_;          // +0x20 material record or null
+    char* prototype_;         // +0x24 prototype record
+    CItem* item_;             // +0x28 counted
+    CSpell* spell_;     // +0x2C
+    int count_;               // +0x30 copied to the item's +0x48
+};
+static_assert(sizeof(CItemConstructor) == 0x34);
+
+// --- Weapon model parts (item_parts.cpp)------------------------------------------------------
+
+namespace console {
+class CStringArray;
+} // namespace console
+namespace stlp {
+class string;
+template <typename T> class vector;
+} // namespace stlp
+
+// 006A0FF0. The names of the figure parts a weapon prototype (by index) is drawn with, replacing
+// the contents of `out`: "rh3.sword07" for a sword with number 7, the bow and crossbow pieces plus
+// the quiver and arrows. Nothing for an index out of range or an unknown weapon type.
+void __fastcall WeaponModelParts(std::uint32_t index, console::CStringArray* out);
+
+// 006A1780. The same names for a packed item id, appended to an STLport vector of strings.
+void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp::string>* out);
