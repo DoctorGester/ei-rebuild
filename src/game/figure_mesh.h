@@ -82,6 +82,12 @@ public:
     // 005A5C70 (slot 20 of class 0x41): the same, but only the vertices and records are copied;
     // the other buffers point into the file data.
     void LoadFigShared(char** cursor, float s, float t, float u);
+    // 005A3800 (slot 21 of classes 0x42-0x44): the older format without a FIG header, chosen by
+    // slot 19 (005A2490) when the data does not start with "FIG": 6 corner versions of the
+    // bounds and of every vertex, each array preceded by its count. RET 0x10.
+    void LoadOld(char** cursor, float s, float t, float u);
+    // 005A4D60 (slot 21 of class 0x41): the same, the last four buffers pointing into the data.
+    void LoadOldShared(char** cursor, float s, float t, float u);
 
     void* vtable_;                      // +0x000
     std::uint8_t unknown_004[4];

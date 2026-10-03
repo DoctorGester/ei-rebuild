@@ -154,4 +154,43 @@ void __fastcall LoadFigSharedVerify(CFigureMesh* self, void*, char** cursor, flo
 }
 EI_VERIFY(0x005A5C70, LoadFigSharedVerify, 6, s_loadFigShared);
 
+// PUSH EBP; MOV EBP,ESP; SUB ESP,0x60 (6 bytes) for both old-format loaders. (005A4D60 does not
+// test the loaded flag; CompareLoad then runs ours alone, as for the others.)
+LoadFn s_loadOld;
+void __fastcall LoadOldVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
+    CompareLoad("CFigureMesh::LoadOld", s_loadOld, &CFigureMesh::LoadOld, false, self, cursor, s, t, u);
+}
+EI_VERIFY(0x005A3800, LoadOldVerify, 6, s_loadOld);
+
+LoadFn s_loadOldShared;
+void __fastcall LoadOldSharedVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
+    CompareLoad("CFigureMesh::LoadOldShared", s_loadOldShared, &CFigureMesh::LoadOldShared, true, self, cursor, s, t, u);
+}
+EI_VERIFY(0x005A4D60, LoadOldSharedVerify, 6, s_loadOldShared);
+
+// ---- 005AAE60 / 005AB9A0: the figure loader's bounds --------------------------------------------
+
+// Output only: the original fills a copy of the bounds, ours the real ones; all 0x2C bytes compared.
+// 005AAE60: MOV EAX,[ESP+0x18]; SUB ESP,0x6C (7 bytes).
+void(__stdcall* s_figureBounds)(ClipBounds*, const float*, float, float, float, std::uint32_t);
+void __stdcall FigureBoundsVerify(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
+    ClipBounds theirs = *out;
+    s_figureBounds(&theirs, data, s, t, u, magic);
+    MorphFigureBounds(out, data, s, t, u, magic);
+    ei::verify::Check("MorphFigureBounds", true, std::memcmp(&theirs, out, sizeof(ClipBounds)) == 0,
+                      "magic %08X s %g t %g u %g", magic, s, t, u);
+}
+EI_VERIFY(0x005AAE60, FigureBoundsVerify, 7, s_figureBounds);
+
+// 005AB9A0: SUB ESP,0x54; PUSH EBX; PUSH EBP; PUSH ESI (6 bytes).
+void(__stdcall* s_figureBounds6)(ClipBounds*, const float*, float, float, float);
+void __stdcall FigureBounds6Verify(ClipBounds* out, const float* data, float s, float t, float u) {
+    ClipBounds theirs = *out;
+    s_figureBounds6(&theirs, data, s, t, u);
+    MorphFigureBounds6(out, data, s, t, u);
+    ei::verify::Check("MorphFigureBounds6", true, std::memcmp(&theirs, out, sizeof(ClipBounds)) == 0,
+                      "s %g t %g u %g", s, t, u);
+}
+EI_VERIFY(0x005AB9A0, FigureBounds6Verify, 6, s_figureBounds6);
+
 } // namespace

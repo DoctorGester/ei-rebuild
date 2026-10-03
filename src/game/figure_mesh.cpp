@@ -87,6 +87,50 @@ V3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
     return Add(Scale(diff, u), lower);
 }
 
+// One component of a 6-corner value (corner k at c[3 * k]), in the four roundings the original's
+// register allocation produced in the old-format loaders (each was read off the instruction
+// stream; see the notes):
+//   PerOp: every operation rounded (the inlined Vector3 operators).
+//   Kept:  the two s-blends stored, everything else on the FPU.
+//   StoredLower: s-blends and the lower t-blend stored; the upper t-step stored but added on the
+//          FPU; then per operation.
+//   PerOpKeptSum: per operation, except the upper sum b + step, which is not stored.
+//   PerOpKeptUpper: as PerOpKeptSum, and the upper step's difference (c5 - b) stays on the FPU.
+float LerpP(float a, float b, float s) { return F(F(F(b - a) * s) + a); }
+
+float CornerPerOp(const float* c, float s, float t, float u) {
+    return LerpP(LerpP(LerpP(c[0], c[3], s), c[6], t), LerpP(LerpP(c[9], c[12], s), c[15], t), u);
+}
+float CornerKept(const float* c, float s, float t, float u) {
+    float a = F((static_cast<double>(c[3]) - c[0]) * s + c[0]);
+    double lower = (static_cast<double>(c[6]) - a) * t + a;
+    float b = F((static_cast<double>(c[12]) - c[9]) * s + c[9]);
+    double upper = (static_cast<double>(c[15]) - b) * t + b;
+    return F((upper - lower) * u + lower);
+}
+float CornerStoredLower(const float* c, float s, float t, float u) {
+    float a = F((static_cast<double>(c[3]) - c[0]) * s + c[0]);
+    float lower = F((static_cast<double>(c[6]) - a) * t + a);
+    float b = F((static_cast<double>(c[12]) - c[9]) * s + c[9]);
+    float step = F((static_cast<double>(c[15]) - b) * t);
+    float diff = F((static_cast<double>(b) + step) - lower);
+    return F(F(diff * u) + lower);
+}
+float CornerPerOpKeptSum(const float* c, float s, float t, float u) {
+    float lower = LerpP(LerpP(c[0], c[3], s), c[6], t);
+    float b = LerpP(c[9], c[12], s);
+    float step = F(F(c[15] - b) * t);
+    float diff = F((static_cast<double>(b) + step) - lower);
+    return F(F(diff * u) + lower);
+}
+float CornerPerOpKeptUpper(const float* c, float s, float t, float u) {
+    float lower = LerpP(LerpP(c[0], c[3], s), c[6], t);
+    float b = LerpP(c[9], c[12], s);
+    float step = F((static_cast<double>(c[15]) - b) * t);
+    float diff = F((static_cast<double>(step) + b) - lower);
+    return F(F(diff * u) + lower);
+}
+
 // A scalar from 6 corners, kept on the FPU until the result.
 float MorphScalar6(const float* r, float s, float t, float u) {
     double a = (static_cast<double>(r[1]) - r[0]) * s + r[0];
@@ -233,6 +277,38 @@ __declspec(noinline) void MorphBlock(float* out, const float* v, float s, float 
     }
 }
 
+// One 16-byte block of an old-format vertex: 6 corner versions (6 x 4 floats), every blend on
+// the FPU.
+__declspec(noinline) void MorphBlock6(float* out, const float* v, float s, float t, float u) {
+    for (int k = 0; k < 4; ++k) {
+        double a = (static_cast<double>(v[4 + k]) - v[k]) * s + v[k];
+        double lower = (v[8 + k] - a) * t + a;
+        double b = (static_cast<double>(v[16 + k]) - v[12 + k]) * s + v[12 + k];
+        double upper = (v[20 + k] - b) * t + b;
+        out[k] = F((upper - lower) * u + lower);
+    }
+}
+
+using CornerFn = float (*)(const float*, float, float, float);
+
+// The old-format bounding volume (centre, box minimum, box maximum: 6 corners of 3 floats each;
+// radius: 6 floats), written straight into `bounds`. The two loaders round the x component and
+// the box minimum differently.
+void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float u, CornerFn minX, CornerFn minYZ) {
+    float c[3] = {CornerKept(p, s, t, u), CornerPerOp(p + 1, s, t, u), CornerPerOp(p + 2, s, t, u)};
+    const float* q = p + 0x12;
+    float mn[3] = {minX(q, s, t, u), minYZ(q + 1, s, t, u), minYZ(q + 2, s, t, u)};
+    q = p + 0x24;
+    float mx[3] = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
+    float radius = MorphScalar6(p + 0x36, s, t, u);
+    std::memcpy(bounds.center, c, 12);
+    bounds.flags |= 1;
+    bounds.radius = radius;
+    std::memcpy(bounds.boxMin, mn, 12);
+    std::memcpy(bounds.boxMax, mx, 12);
+    bounds.flags |= 2;
+}
+
 } // namespace
 
 #pragma float_control(pop)
@@ -365,3 +441,113 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     flags_ |= 0x20;
 }
 EI_REPLACE_METHOD(0x005A5C70, CFigureMesh::LoadFigShared);
+
+// ---- Old (non-FIG) format -----------------------------------------------------------------------
+
+namespace {
+
+// Reads the count in front of a block.
+int ReadCount(char** cursor) {
+    int n;
+    std::memcpy(&n, *cursor, 4);
+    *cursor += 4;
+    return n;
+}
+
+// The part both old-format loaders share: header words, bounds, vertices and records (the
+// records' second colour array is set to opaque black).
+void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, bool shared) {
+    mesh->unknown_158 = Read<std::uint32_t>(*cursor);
+    mesh->unknown_15C = Read<std::uint32_t>(*cursor);
+    if (shared)
+        MorphOldBounds(mesh->bounds_, reinterpret_cast<const float*>(*cursor), s, t, u, CornerKept, CornerPerOp);
+    else
+        MorphOldBounds(mesh->bounds_, reinterpret_cast<const float*>(*cursor), s, t, u, CornerStoredLower, CornerPerOpKeptUpper);
+    *cursor += 0xF0;
+
+    int count = ReadCount(cursor);
+    mesh->vertices_.SetSize(count);
+    for (int i = 0; i < count; ++i) {
+        MeshVertex& v = mesh->vertices_.data[i];
+        for (int b = 0; b < 3; ++b) {
+            MorphBlock6(v.block[b], reinterpret_cast<const float*>(*cursor), s, t, u);
+            *cursor += 0x60;
+        }
+        const std::uint32_t one = 0x3F800000;
+        for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
+    }
+    if (mesh->vertices_.size != 0) FitBounds(&mesh->bounds_, mesh->vertices_.data, mesh->vertices_.size);
+
+    count = ReadCount(cursor);
+    mesh->records_.SetSize(count);
+    mesh->colorsA_.SetSize(count * 4);
+    mesh->colorsB_.SetSize(count * 4);
+    if (count != 0) {
+        std::memcpy(mesh->records_.data, *cursor, static_cast<std::size_t>(count) * sizeof(MeshRecord40));
+        *cursor += count * 0x40;
+        for (int i = 0; i < mesh->colorsB_.size; ++i) mesh->colorsB_.data[i] = 0xFF000000;
+    }
+}
+
+// A block of 0x34-byte records the loaders skip.
+void SkipRecords34(char** cursor) {
+    int n = ReadCount(cursor);
+    *cursor += n * 0x34;
+}
+
+} // namespace
+
+void CFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
+    if (flags_ & 0x20) return;
+    LoadOldCommon(this, cursor, s, t, u, false);
+    LoadArray(pairs_, cursor, ReadCount(cursor));
+    SkipRecords34(cursor);
+    LoadArray(triangles_, cursor, ReadCount(cursor));
+    LoadArray(words_, cursor, ReadCount(cursor));
+    LoadArray(shorts_, cursor, ReadCount(cursor));   // 0044FA90 with growBy -1
+
+    buffers_.vertices = vertices_.data;
+    buffers_.vertexCount = vertices_.size;
+    buffers_.records = records_.data;
+    buffers_.recordCount = records_.size;
+    colorsA_.SetSize(records_.size * 4);
+    colorsB_.SetSize(records_.size * 4);
+    buffers_.pairs = pairs_.data;
+    buffers_.pairCount = pairs_.size;
+    buffers_.triangles = triangles_.data;
+    buffers_.triangleCount = triangles_.size;
+    buffers_.words = words_.data;
+    buffers_.wordCount = words_.size;
+    buffers_.shortCount = shorts_.size;
+    buffers_.shorts = shorts_.data;
+    flags_ |= 0x20;
+}
+EI_REPLACE_METHOD(0x005A3800, CFigureMesh::LoadOld);
+
+void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
+    // Unlike the other three loaders, this one does not test the loaded flag.
+    LoadOldCommon(this, cursor, s, t, u, true);
+    // The rest stays in the file data.
+    buffers_.pairCount = ReadCount(cursor);
+    buffers_.pairs = *cursor;
+    *cursor += buffers_.pairCount * 8;
+    SkipRecords34(cursor);
+    buffers_.triangleCount = ReadCount(cursor);
+    buffers_.triangles = *cursor;
+    *cursor += buffers_.triangleCount * 6;
+    buffers_.wordCount = ReadCount(cursor);
+    buffers_.words = *cursor;
+    *cursor += buffers_.wordCount * 4;
+    buffers_.shortCount = ReadCount(cursor);
+    buffers_.shorts = *cursor;
+    *cursor += buffers_.shortCount * 2;
+
+    buffers_.vertices = vertices_.data;
+    buffers_.vertexCount = vertices_.size;
+    buffers_.records = records_.data;
+    buffers_.recordCount = records_.size;
+    colorsA_.SetSize(records_.size * 4);
+    colorsB_.SetSize(records_.size * 4);
+    flags_ |= 0x20;
+}
+EI_REPLACE_METHOD(0x005A4D60, CFigureMesh::LoadOldShared);
