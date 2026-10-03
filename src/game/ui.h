@@ -42,6 +42,11 @@ public:
     int CallScalePointToScreen(POINT* point) const;     // -> 005F7D20
     int CallScalePointFromScreen(POINT* point) const;   // -> 005F7E00
 
+    // 005F57C0. Once per frame (main loop): closes the top window while a value is pending,
+    // closes all windows on request, activates a queued window, reads the mouse and updates the
+    // top window and the root (ui_interface_frame.cpp).
+    void Update();
+
     // 005F7590. The window on top of the active-window stack, or null.
     CUiWindow* GetActiveWindow() const;
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).

@@ -10,7 +10,9 @@
 //   newgame                   start a new single-player game, as the main menu does (no intro)
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
 //   key <key>                 press and release a key in the game window: a letter or digit,
-//                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus
+//                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus,
+//                             grave (the console key), backspace, delete, home, end, pgup, pgdn,
+//                             enterchar (Enter with its WM_CHAR, as text input such as the console needs)
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
 //                             interface screen is designed for (scaled to the window's client size)
@@ -400,7 +402,7 @@ void PostKey(const std::string& name) {
     UINT vk = 0;
     if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
     else if (name == "esc") vk = VK_ESCAPE;
-    else if (name == "enter") vk = VK_RETURN;
+    else if (name == "enter" || name == "enterchar") vk = VK_RETURN;
     else if (name == "space") vk = VK_SPACE;
     else if (name == "tab") vk = VK_TAB;
     else if (name == "up") vk = VK_UP;
@@ -409,14 +411,22 @@ void PostKey(const std::string& name) {
     else if (name == "right") vk = VK_RIGHT;
     else if (name == "plus") vk = VK_ADD;
     else if (name == "minus") vk = VK_SUBTRACT;
+    else if (name == "grave") vk = VK_OEM_3;   // the console key (scan code 0x29)
+    else if (name == "backspace") vk = VK_BACK;
+    else if (name == "delete") vk = VK_DELETE;
+    else if (name == "home") vk = VK_HOME;
+    else if (name == "end") vk = VK_END;
+    else if (name == "pgup") vk = VK_PRIOR;
+    else if (name == "pgdn") vk = VK_NEXT;
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
         Log("harness: unknown key '%s'", name.c_str());
         return;
     }
-    UINT scan = MapVirtualKeyA(vk, MAPVK_VK_TO_VSC);
+    UINT scan = vk == VK_OEM_3 ? 0x29 : MapVirtualKeyA(vk, MAPVK_VK_TO_VSC);
     PostMessageA(GameWindow(), WM_KEYDOWN, vk, 1 | (scan << 16));
     if (vk >= '0' && vk <= 'Z') PostMessageA(GameWindow(), WM_CHAR, std::tolower(static_cast<int>(vk)), 1 | (scan << 16));
+    if (name == "enterchar") PostMessageA(GameWindow(), WM_CHAR, 0x0D, 1 | (scan << 16));
     PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
 }
 
