@@ -357,3 +357,55 @@ LoadFigureRegistry, 0044C4A0 LinkNodes, 0044E3B0 PlaceMeshes, the RegistryKey ge
   calls / jumps), so they never run.
 - The template instantiations listed above (forwarders), and 00446BA0 (CFakeUnit slot 62, a short
   wrapper).
+
+## Fourth round: options writer, application helpers
+
+Files: `src/game/options.cpp` (0045C560 added), `src/game/app.h/.cpp`. Verify: `verify_options.cpp`
+(writer added), `verify_app.cpp`. No new scenario: every run starts the game (window procedure,
+input dispatch, message pump, StartFirstMap) and quits (the writer runs on exit).
+
+| Address | Size | Name | Verify |
+|---|---|---|---|
+| 0045C560 | 3650 | `GameOptions::SaveToRegistry` | both run: the RegCreateKeyExA / RegSetValueExA import slots point at recorders; the original's writes are only recorded, ours are passed on to whatever the slots held (the harness's skip stub); the event lists (subkey; name, type, data bytes) must match |
+| 00457D40 | 705 | `app::WindowProc` | ours only: WM_ACTIVATE flags (0079BC5C active, 0079BC5D seen), results of the handled messages |
+| 00457970 | 917 | `app::DispatchInput` | ours only: input messages return 1 |
+| 00458220 | 80 | `app::PumpMessages` | ours only, counted |
+| 00456140 | 537 | `app::StartFirstMap` | ours only: result 1 when no map is given on the command line |
+
+The writer uses the loader's value tables: every value goes through the setter matching its getter
+(GetInt -> SetInt 00697D40, GetDword -> SetDword 00697CA0, floats 00697E80 as REG_BINARY bits,
+strings 00697FC0 taking a CString by value).
+
+### Forwarders added (the standalone build must replace)
+
+- Registry setters 00697CA0 / 00697D40 / 00697E80 / 00697FC0.
+- Interface input (007C7D50): 005F5AB0, 005F76A0, 005F76E0, 005F7740, 005F7780, 005F77C0, 005F7800,
+  005F7840, 005F7880, 005F78C0, 005F7B40, 005F7BE0, 005F8C50. Console ostream 006FC14E (int),
+  006FC91C (long), 006FC0B0, 006FC31D, 00434FE0.
+- Activation: 005E5270, 004EEC60, 00504780, 0065EC70, 006B7320 / 006B7380, 005DAE70.
+- Start: 00581660, 0057C700 (Rebirth), 00595480 (Rebirth), 0058DC90, 00566CE0, 005699F0, 004D36F0
+  (rewritten; through its address), 00456360, FatalError 00480080 (Rebirth).
+
+### Original behaviour kept
+
+- Writer: "Joystick" is always written as 0; "Difficulty Level" from +0x254 (the loader fills both
+  +0x250 and +0x254); colours _ftol(value * 255) truncated.
+- WindowProc's WM_ACTIVATE passes 005DAE70 a second stack argument built from AL only: its upper
+  bytes are those of the device pointer (0x007AF080), which ours rebuilds. States above 2 are ignored.
+- DispatchInput logs every WM_SYSKEYUP to the console ("<key>:<lParam>"); Alt+Tab is turned into a
+  WM_ACTIVATE with the window's iconic state; keyboard positions use an arithmetic shift, mouse ones
+  a logical shift (as the original).
+- PumpMessages hands messages straight to WindowProc (no TranslateMessage / DispatchMessage).
+
+### Skipped (with reasons)
+
+- 0045A380 (3722, the options written to a .reg file) and 00459100: no references (dead).
+- 00458870 (GameOptions constructor): runs from a static initializer, before the hooks are
+  installed at WinMain, so a replacement would never run. 00458DA0 (defaults reset) is only reached
+  from 00455B50/00455BA0 (a 1% random branch in CPlayerClient::OnNewObject); not done.
+- 00458010 (frame present + screenshot), 00458270 (startup movies; the harness empties the list),
+  0045E310 (DirectX version probe), 00458570 (STLport hash_map registration): mapped (see the
+  disassembly notes in app.h's neighbours), not rewritten this round.
+- The skeleton / figure building callees of LoadFakeUnitScene (00448A40, 00449240, 004492F0,
+  0044EB60, 0044CFF0, 0044DCF0, 0044E3B0, 0044E8A0, 0044C4A0, 0044B980, 0044A2A0, 0044A7B0, 0044B060):
+  heavy x87 with inlined CArray SetSize; still forwarders. Largest remaining work in the range.

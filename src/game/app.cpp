@@ -1,0 +1,337 @@
+// Application helpers around WinMain: window procedure (00457D40), input dispatcher (00457970),
+// message pump (00458220) and the start of the first map (00456140). See app.h.
+//
+// Every callee is reached through its original address (several are patched by Rebirth:
+// 0057C700, 00595480, FatalError 00480080; 004D36F0 is rewritten and has a verify wrapper).
+#include "app.h"
+
+#include "ei/hook.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
+#include "lib/mfc.h"
+
+#include <cstdint>
+
+#pragma warning(disable : 4740) // naked forwarders
+
+namespace app {
+namespace {
+
+template <typename T>
+T& Global(std::uintptr_t address) {
+    return *reinterpret_cast<T*>(address);
+}
+
+HWND MainWindow() { return Global<HWND>(0x0079BC28); }
+bool QuitOnClose() { return Global<std::uint8_t>(0x00784751) != 0; }   // Alt+F4 / WM_DESTROY quit
+
+// The interface's input handler (007C7D50). Coordinates are passed as (wParam, x, y).
+struct Input {
+    void Update();                                   // 005F5AB0, called before and after each message
+    void LButtonDown(int keys, int x, int y);        // 005F76A0
+    void LButtonUp(int keys, int x, int y);          // 005F76E0
+    void LButtonDblClk(int keys, int x, int y);      // 005F7800
+    void RButtonDown(int keys, int x, int y);        // 005F7780
+    void RButtonUp(int keys, int x, int y);          // 005F77C0
+    void RButtonDblClk(int keys, int x, int y);      // 005F7840
+    void MouseMove(int keys, int x, int y);          // 005F7740
+    void Wheel(int keys, int delta, int x, int y);   // 005F7880
+    void KeyDown(int key, int repeat, int flags);    // 005F78C0
+    void Char(int key, int repeat, int flags);       // 005F7B40
+    void KeyUp(int key, int repeat, int flags);      // 005F7BE0
+    void Activate();                                 // 005F8C50
+};
+__declspec(naked) void Input::Update() EI_ORIGINAL(0x005F5AB0)
+__declspec(naked) void Input::LButtonDown(int, int, int) EI_ORIGINAL(0x005F76A0)
+__declspec(naked) void Input::LButtonUp(int, int, int) EI_ORIGINAL(0x005F76E0)
+__declspec(naked) void Input::LButtonDblClk(int, int, int) EI_ORIGINAL(0x005F7800)
+__declspec(naked) void Input::RButtonDown(int, int, int) EI_ORIGINAL(0x005F7780)
+__declspec(naked) void Input::RButtonUp(int, int, int) EI_ORIGINAL(0x005F77C0)
+__declspec(naked) void Input::RButtonDblClk(int, int, int) EI_ORIGINAL(0x005F7840)
+__declspec(naked) void Input::MouseMove(int, int, int) EI_ORIGINAL(0x005F7740)
+__declspec(naked) void Input::Wheel(int, int, int, int) EI_ORIGINAL(0x005F7880)
+__declspec(naked) void Input::KeyDown(int, int, int) EI_ORIGINAL(0x005F78C0)
+__declspec(naked) void Input::Char(int, int, int) EI_ORIGINAL(0x005F7B40)
+__declspec(naked) void Input::KeyUp(int, int, int) EI_ORIGINAL(0x005F7BE0)
+__declspec(naked) void Input::Activate() EI_ORIGINAL(0x005F8C50)
+Input* TheInput() { return reinterpret_cast<Input*>(0x007C7D50); }
+
+// The console's ostream (007C55A8).
+struct Ostream {
+    Ostream* PutInt(int value);              // 006FC14E
+    Ostream* PutLong(unsigned long value);   // 006FC91C
+    Ostream* PutChar(char c);                // 006FC0B0
+    Ostream* PutString(const char* text);    // 006FC31D
+    Ostream* Manipulate(void* manipulator);  // 00434FE0
+};
+__declspec(naked) Ostream* Ostream::PutInt(int) EI_ORIGINAL(0x006FC14E)
+__declspec(naked) Ostream* Ostream::PutLong(unsigned long) EI_ORIGINAL(0x006FC91C)
+__declspec(naked) Ostream* Ostream::PutChar(char) EI_ORIGINAL(0x006FC0B0)
+__declspec(naked) Ostream* Ostream::PutString(const char*) EI_ORIGINAL(0x006FC31D)
+__declspec(naked) Ostream* Ostream::Manipulate(void*) EI_ORIGINAL(0x00434FE0)
+Ostream* Console() { return reinterpret_cast<Ostream*>(0x007C55A8); }
+void* const kFlush = reinterpret_cast<void*>(0x00435000);
+
+// Objects told about activation changes.
+struct Renderer {          // 007C7BD8
+    void SetActive(int active);   // 005E5270
+};
+__declspec(naked) void Renderer::SetActive(int) EI_ORIGINAL(0x005E5270)
+struct Device {            // pointer at 007AF080 (flag byte +0x20 bit 0: full screen)
+    void Deactivate();     // 004EEC60
+};
+__declspec(naked) void Device::Deactivate() EI_ORIGINAL(0x004EEC60)
+struct DeviceHolder {      // 007AF060
+    void Restore();        // 00504780
+};
+__declspec(naked) void DeviceHolder::Restore() EI_ORIGINAL(0x00504780)
+struct Sound {             // pointer at 0079BA08
+    void SetActive(int active);   // 0065EC70
+};
+__declspec(naked) void Sound::SetActive(int) EI_ORIGINAL(0x0065EC70)
+struct Network {           // pointer at 007AF784
+    void Pause();          // 006B7320
+    void Resume();         // 006B7380
+};
+__declspec(naked) void Network::Pause() EI_ORIGINAL(0x006B7320)
+__declspec(naked) void Network::Resume() EI_ORIGINAL(0x006B7380)
+// 005DAE70 (__fastcall): resets the interface after the device was restored. The original pushes
+// the second stack argument from EAX after loading only AL, so its upper bytes are those of the
+// device pointer; the value below rebuilds them.
+__declspec(naked) void __fastcall ResetInterface(bool, void*, int, std::uint32_t)
+    EI_ORIGINAL(0x005DAE70)
+
+std::uint8_t& ActiveFlag() { return Global<std::uint8_t>(0x0079BC5C); }
+std::uint8_t& ActivationSeen() { return Global<std::uint8_t>(0x0079BC5D); }
+
+LRESULT OnActivate(WPARAM wParam) {
+    if ((wParam >> 16) != 0) {   // minimised
+        ActivationSeen() = 1;
+        ActiveFlag() = 0;
+        return 1;
+    }
+    auto* network = Global<Network*>(0x007AF784);
+    unsigned state = wParam & 0xFFFF;
+    auto* renderer = reinterpret_cast<Renderer*>(0x007C7BD8);
+    if (state == 0) {   // WA_INACTIVE
+        ActiveFlag() = 0;
+        ActivationSeen() = 1;
+        renderer->SetActive(0);
+        auto* device = Global<std::uint8_t*>(0x007AF080);
+        if (device && (device[0x20] & 1)) reinterpret_cast<Device*>(device)->Deactivate();
+        if (auto* sound = Global<Sound*>(0x0079BA08)) sound->SetActive(0);
+        if (network) network->Pause();
+        gameapi::ShowWindow(MainWindow(), SW_MINIMIZE);
+        return 1;
+    }
+    if (state > 2) return 1;
+    ActiveFlag() = 1;
+    ActivationSeen() = 1;
+    gameapi::ShowWindow(MainWindow(), SW_RESTORE);
+    if (auto* sound = Global<Sound*>(0x0079BA08)) sound->SetActive(1);
+    auto* device = Global<std::uint8_t*>(0x007AF080);
+    if (device && (device[0x20] & 1)) {
+        reinterpret_cast<DeviceHolder*>(0x007AF060)->Restore();
+        device = Global<std::uint8_t*>(0x007AF080);
+        if (device) {
+            std::uint32_t value = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
+                                  (Global<std::uint8_t>(0x00784756) == 0 ? 1u : 0u);
+            ResetInterface(Global<int>(0x0079BCF0) != 0, Global<void*>(0x0079BA08), 0, value);
+        }
+    }
+    renderer->SetActive(1);
+    if (network) network->Resume();
+    TheInput()->Activate();
+    return 1;
+}
+
+LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
+    unsigned command = wParam & 0xFFF0;
+    if (command == SC_HOTKEY || command == SC_NEXTWINDOW || command == SC_PREVWINDOW) {
+        Console()->PutString(reinterpret_cast<const char*>(0x007849E8))->PutChar('\n')->Manipulate(kFlush);   // "switch task"
+    } else if (command == SC_SCREENSAVE || command == SC_MONITORPOWER) {
+        return 0;
+    }
+    return gameapi::DefWindowProcA(window, WM_SYSCOMMAND, wParam, lParam);
+}
+
+// The "QueryCancelAutoPlay" message id, registered on first use (function-local static of the
+// original: guard bit 0 of 0079BA04, id 0079BA00).
+UINT AutoPlayMessage() {
+    auto& guard = Global<std::uint8_t>(0x0079BA04);
+    if (!(guard & 1)) {
+        guard |= 1;
+        Global<UINT>(0x0079BA00) = gameapi::RegisterWindowMessageA(reinterpret_cast<const char*>(0x007847B8));
+    }
+    return Global<UINT>(0x0079BA00);
+}
+
+LRESULT Handled() {
+    TheInput()->Update();
+    return 1;
+}
+
+int Low(LPARAM v) { return static_cast<int>(v & 0xFFFF); }
+int HighSigned(LPARAM v) { return static_cast<int>(v) >> 16; }              // SAR (keyboard)
+int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >> 16); }   // SHR (mouse)
+
+bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
+
+// The script loader of the mission script (007C27D4).
+__declspec(naked) int __fastcall LoadScriptFile(void*, void*, const char*) EI_ORIGINAL(0x004D36F0)
+// 00456360. Copies the script's error text, code and line.
+struct ScriptError {
+    char* text;   // CString
+    int code;
+    int line;
+};
+__declspec(naked) ScriptError* __fastcall GetScriptError(void*, void*, ScriptError*) EI_ORIGINAL(0x00456360)
+
+__declspec(naked) void __fastcall MenuPrepare(void*) EI_ORIGINAL(0x00581660)
+__declspec(naked) void __fastcall MenuOpen(void*) EI_ORIGINAL(0x0057C700)
+__declspec(naked) int __fastcall WorldLoadMap(void*, void*, const char*, const char*, int)
+    EI_ORIGINAL(0x00595480)
+__declspec(naked) void __fastcall WorldSetGameResult(void*, void*, int) EI_ORIGINAL(0x0058DC90)
+__declspec(naked) void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
+__declspec(naked) std::uint8_t* __fastcall ClientLocalView(void*) EI_ORIGINAL(0x005699F0)
+
+int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
+
+} // namespace
+
+LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+    case WM_PAINT: {
+        RECT rect;
+        if (!gameapi::GetUpdateRect(window, &rect, FALSE)) return 1;
+        PAINTSTRUCT paint;
+        gameapi::BeginPaint(window, &paint);
+        gameapi::EndPaint(window, &paint);
+        return 1;
+    }
+    case WM_DESTROY:
+        if (QuitOnClose()) gameapi::PostQuitMessage(0);
+        return 1;
+    case WM_ACTIVATE:
+        return OnActivate(wParam);
+    case WM_SETCURSOR:
+        gameapi::SetCursor(nullptr);
+        return 1;
+    case WM_SYSCOMMAND:
+        return OnSysCommand(window, wParam, lParam);
+    }
+    UINT autoPlay = AutoPlayMessage();
+    if (message != 0 && message == autoPlay) return 1;
+    return gameapi::DefWindowProcA(window, message, wParam, lParam);
+}
+EI_REPLACE(0x00457D40, WindowProc);
+
+LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
+    Input* input = TheInput();
+    input->Update();
+    int w = static_cast<int>(wParam);
+    switch (message) {
+    case WM_KEYDOWN:
+        input->KeyDown(w, Low(lParam), HighSigned(lParam));
+        return Handled();
+    case WM_KEYUP:
+        input->KeyUp(w, Low(lParam), HighSigned(lParam));
+        return Handled();
+    case WM_CHAR:
+        input->Char(w, Low(lParam), HighSigned(lParam));
+        return Handled();
+    case WM_SYSKEYDOWN:
+        if (wParam == VK_F4 && AltDown(lParam)) {
+            if (QuitOnClose()) gameapi::PostQuitMessage(0);
+            return Handled();
+        }
+        input->KeyDown(w, Low(lParam), HighSigned(lParam));
+        return Handled();
+    case WM_SYSKEYUP:
+        Console()->PutInt(w)->PutChar(':')->PutLong(static_cast<unsigned long>(lParam))->PutChar('\n')->Manipulate(kFlush);
+        if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
+            HWND window = MainWindow();
+            BOOL iconic = gameapi::IsIconic(window);
+            WindowProc(MainWindow(), WM_ACTIVATE, static_cast<WPARAM>(iconic) << 16, 0);
+            return Handled();
+        }
+        input->KeyUp(w, Low(lParam), HighSigned(lParam));
+        return Handled();
+    case WM_MOUSEMOVE:
+        input->MouseMove(w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case WM_LBUTTONDOWN:
+        input->LButtonDown(w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case WM_LBUTTONUP:
+        input->LButtonUp(w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case WM_LBUTTONDBLCLK:
+        input->LButtonDblClk(w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case WM_RBUTTONDOWN:
+        input->RButtonDown(w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case WM_RBUTTONUP:
+        input->RButtonUp(w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case WM_RBUTTONDBLCLK:
+        input->RButtonDblClk(w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case WM_MOUSEWHEEL:
+        input->Wheel(Low(static_cast<LPARAM>(wParam)), HighUnsigned(static_cast<LPARAM>(wParam)), Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    case 0xCC54:   // the game's own wheel message: wParam is the delta
+        input->Wheel(0, w, Low(lParam), HighUnsigned(lParam));
+        return Handled();
+    }
+    return WindowProc(MainWindow(), message, wParam, lParam);
+}
+EI_REPLACE(0x00457970, DispatchInput);
+
+void __cdecl PumpMessages() {
+    MSG msg;
+    while (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
+        WindowProc(MainWindow(), msg.message, msg.wParam, msg.lParam);
+}
+EI_REPLACE(0x00458220, PumpMessages);
+
+int __cdecl StartFirstMap() {
+    const auto& cmdMap = Global<mfc::CString>(0x0079BA10);    // map on the command line
+    const auto& cmdMode = Global<mfc::CString>(0x0079BA14);   // empty: main menu
+    const auto& cmdScript = Global<mfc::CString>(0x0079BA18);
+    mfc::CString map;
+    map = Length(cmdMap) != 0 ? cmdMap : Global<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
+    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
+                        reinterpret_cast<const unsigned char*>(0x0079B298)) == 0) {
+        MenuPrepare(reinterpret_cast<void*>(0x007AFE20));
+        MenuOpen(reinterpret_cast<void*>(0x007AFE20));
+        return 1;
+    }
+    void* world = reinterpret_cast<void*>(0x007AFF60);
+    if (!WorldLoadMap(world, nullptr, map, cmdMode, 0))
+        return game::FatalError(reinterpret_cast<const char*>(0x007847E4), static_cast<const char*>(map));   // "Can't load map '%s'"
+    WorldSetGameResult(world, nullptr, 1);
+    void* client = reinterpret_cast<void*>(0x007AF5B8);
+    ClientSetPlayer(client, nullptr, Global<int>(0x007AFFBC));
+    ClientLocalView(client)[0x85] = 0;
+    Global<int>(0x007C2CC4) = 7;
+    if (Length(cmdScript) == 0) return 1;
+    void* script = reinterpret_cast<void*>(0x007C27D4);
+    BOOL loaded;
+    {
+        mfc::CString root(Global<mfc::CString>(0x007AF460));
+        mfc::CString dir = root + reinterpret_cast<const char*>(0x007847D8);   // "Scripts\"
+        mfc::CString path = dir + cmdScript;
+        loaded = LoadScriptFile(script, nullptr, path);
+    }
+    if (loaded) return 1;
+    ScriptError error;
+    GetScriptError(script, nullptr, &error);
+    int result = game::FatalError(reinterpret_cast<const char*>(0x007847CC), error.text, error.line);   // "%s, line %i"
+    reinterpret_cast<mfc::CString*>(&error.text)->~CString();
+    return result;
+}
+EI_REPLACE(0x00456140, StartFirstMap);
+
+} // namespace app
