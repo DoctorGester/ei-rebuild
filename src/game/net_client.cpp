@@ -9,8 +9,6 @@
 
 #include <cstring>
 
-RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
-
 namespace net {
 
 namespace {
@@ -64,17 +62,9 @@ void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtabl
 
 void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
-// One registration as the constructor inlines it: a prototype of `size` bytes built by `construct`
-// (a counted reference held while the type id is looked up by its vtable), then the handler.
 void RegisterInline(ClientSession* client, std::size_t size, Message* (__fastcall* construct)(Message*),
                     int channel, std::uintptr_t handler) {
-    auto* memory = static_cast<Message*>(NewRefObject(size));
-    Message* prototype = memory ? construct(memory) : nullptr;
-    RefPtr ref;
-    RefPtrShareReturn(&ref, nullptr, reinterpret_cast<CRefObject*>(prototype));
-    int type = client->base.types.TypeOf(reinterpret_cast<const std::uint32_t*>(ref.ptr));
-    client->base.AddHandler(channel, static_cast<std::uint32_t>(type), Handler(handler));
-    ref.Destroy();
+    client->base.AddHandlerFor(size, construct, channel, Handler(handler));
 }
 
 } // namespace

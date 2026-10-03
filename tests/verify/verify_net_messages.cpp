@@ -89,8 +89,30 @@ Message* __fastcall Bcd0Verify(Message* self) {
     return CheckBuilt<0x18>("net::ConstructMessage73BCD0", s_bcd0, net::ConstructMessage73BCD0, self, {0xC});
 }
 
+// 004140B0: MOV EAX,ECX (2), XOR ECX,ECX (2), MOV [EAX+8],1 (7).
+CtorFn s_bc58;
+Message* __fastcall Bc58Verify(Message* self) {
+    return CheckPlain<0x14>("net::ConstructMessage73BC58", s_bc58, net::ConstructMessage73BC58, self);
+}
+
+// PUSH -1 (2), PUSH imm32 (5).
+CtorFn s_bbf8, s_bc28, s_bc40;
+Message* __fastcall Bbf8Verify(Message* self) {
+    return CheckBuilt<0x34>("net::ConstructMessage73BBF8", s_bbf8, net::ConstructMessage73BBF8, self, {0xC, 0x18});
+}
+Message* __fastcall Bc28Verify(Message* self) {
+    return CheckBuilt<0x18>("net::ConstructMessage73BC28", s_bc28, net::ConstructMessage73BC28, self, {0xC});
+}
+Message* __fastcall Bc40Verify(Message* self) {
+    return CheckBuilt<0x1C>("net::ConstructMessage73BC40", s_bc40, net::ConstructMessage73BC40, self, {0x10});
+}
+
 } // namespace
 
+EI_VERIFY(0x004140B0, Bc58Verify, 11, s_bc58);
+EI_VERIFY(0x00413350, Bbf8Verify, 7, s_bbf8);
+EI_VERIFY(0x004138A0, Bc28Verify, 7, s_bc28);
+EI_VERIFY(0x00413C90, Bc40Verify, 7, s_bc40);
 EI_VERIFY(0x00413250, NewRefObjectVerify, 0, s_unused);
 EI_VERIFY(0x004186E0, BaseVerify, 8, s_base);
 EI_VERIFY(0x0041C870, Bcb8Verify, 11, s_bcb8);

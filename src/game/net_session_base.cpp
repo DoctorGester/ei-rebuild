@@ -9,6 +9,8 @@
 
 #include <cstring>
 
+RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
+
 namespace net {
 
 namespace {
@@ -110,6 +112,17 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     ++v.end;
 }
 EI_REPLACE_METHOD(0x004377D0, SessionBase::AddHandler);
+
+void SessionBase::AddHandlerFor(std::size_t size, Message* (__fastcall* construct)(Message*), int channel,
+                                void* handler) {
+    auto* memory = static_cast<Message*>(NewRefObject(size));
+    Message* prototype = memory ? construct(memory) : nullptr;
+    RefPtr ref;
+    RefPtrShareReturn(&ref, nullptr, reinterpret_cast<CRefObject*>(prototype));
+    int type = types.TypeOf(reinterpret_cast<const std::uint32_t*>(ref.ptr));
+    AddHandler(channel, static_cast<std::uint32_t>(type), handler);
+    ref.Destroy();
+}
 
 void SessionBase::RegisterMessageTypes() {
     // The factories of message types 1..17 (each returns a new message with no references).

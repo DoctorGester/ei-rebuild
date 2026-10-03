@@ -27,6 +27,14 @@ struct HandlerVector {
 };
 static_assert(sizeof(HandlerVector) == 12);
 
+// An STLport string as the message classes embed it: start, finish, end of storage.
+struct StringRep {
+    char* start;
+    char* finish;
+    char* eos;
+};
+static_assert(sizeof(StringRep) == 12);
+
 // The type registry's hash tables (STLport hashtable, 0x14 bytes: functors, bucket vector, count).
 struct HashTable {
     std::uint32_t functors;   // +0x00 hasher / key_equal / select1st (empty)
@@ -98,6 +106,11 @@ struct SessionBase {
     void AddHandler(int channel, std::uint32_t type, void* handler);
     // 004142F0. Clears the flags of message types 1..17 and registers their factories.
     void RegisterMessageTypes();
+
+    // A handler registration as the session constructors inline it (not a function of its own in
+    // the original): a prototype message of `size` bytes built by `construct`, held through a
+    // counted reference while its type id is looked up by vtable, then AddHandler.
+    void AddHandlerFor(std::size_t size, Message* (__fastcall* construct)(Message*), int channel, void* handler);
 };
 static_assert(offsetof(SessionBase, time) == 0x20);
 static_assert(offsetof(SessionBase, clients) == 0x28);
@@ -154,6 +167,48 @@ struct ClientSession {
 
 // 0041C420: the 0x10-byte member at +0x25AC (a vector and a dword), all zero. Returns this.
 void* __fastcall ClientVectorConstruct(std::uint32_t* self);
+
+// The game server (vtable 0073BB70; server base 0073BBB4). 0x2600 bytes, pointer at 0079B5DC.
+struct ServerSession {
+    SessionBase base;                   // +0x0000
+    void* list_2568;                    // +0x2568 STLport list (0041FD30)
+    std::uint32_t unknown_256C;         // +0x256C not set
+    std::uint32_t unknown_2570;         // +0x2570 0
+    std::uint8_t unknown_2574;          // +0x2574 0
+    std::uint8_t unknown_2575[3];
+    std::uint32_t unknown_2578;         // +0x2578 0
+    std::uint32_t unknown_257C[4];      // +0x257C 0
+    std::uint32_t unknown_258C;         // +0x258C 0
+    void* list_2590;                    // +0x2590 STLport lists (00422400, 004225E0, 00422800, 004229E0)
+    void* list_2594;
+    void* list_2598;
+    void* list_259C;
+    std::uint32_t unknown_25A0;         // +0x25A0 0
+    void* list_25A4;                    // +0x25A4 STLport list (00422BE0)
+    std::uint32_t unknown_25A8;         // +0x25A8 0
+    void* list_25AC;                    // +0x25AC STLport lists (00422DC0 ... 00421B20)
+    void* list_25B0;
+    void* list_25B4;
+    void* list_25B8;
+    void* list_25BC;
+    void* list_25C0;
+    void* list_25C4;
+    StringRep string_25C8;              // +0x25C8 empty with 8 bytes of room (00421800)
+    StringRep string_25D4;              // +0x25D4
+    std::uint32_t unknown_25E0;         // +0x25E0 8; set by the creator (0057E740)
+    std::uint32_t unknown_25E4;         // +0x25E4 the constructor's argument
+    std::uint32_t unknown_25E8[5];      // +0x25E8 0
+    std::uint32_t unknown_25FC;         // +0x25FC set by the creator
+
+    // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
+    ServerSession* Construct(std::uint32_t arg);
+};
+static_assert(offsetof(ServerSession, list_2568) == 0x2568);
+static_assert(offsetof(ServerSession, list_2590) == 0x2590);
+static_assert(offsetof(ServerSession, list_25C4) == 0x25C4);
+static_assert(offsetof(ServerSession, string_25C8) == 0x25C8);
+static_assert(offsetof(ServerSession, unknown_25E0) == 0x25E0);
+static_assert(sizeof(ServerSession) == 0x2600);
 static_assert(offsetof(ClientSession, buffer) == 0x2578);
 static_assert(offsetof(ClientSession, list_25A8) == 0x25A8);
 static_assert(offsetof(ClientSession, list_25BC) == 0x25BC);
@@ -180,14 +235,6 @@ static_assert(sizeof(Message) == 12);
 
 constexpr std::uintptr_t kMessageVtable = 0x0073BC10;
 
-// An STLport string as the message classes embed it: start, finish, end of storage.
-struct StringRep {
-    char* start;
-    char* finish;
-    char* eos;
-};
-static_assert(sizeof(StringRep) == 12);
-
 // 00413250. operator new(size) with the CRefObject count cleared. No null check (as the original).
 void* __fastcall NewRefObject(std::size_t size);
 // 004186E0. The message base constructor body: vtable 0073BC10, kind 1. Returns this.
@@ -199,5 +246,9 @@ Message* __fastcall ConstructMessage73BC70(Message* self);   // 0041C680 (0x3C b
 Message* __fastcall ConstructMessage73BC88(Message* self);   // 0041C740 (0x20 bytes)
 Message* __fastcall ConstructMessage73BCA0(Message* self);   // 0041C7C0 (0x24 bytes)
 Message* __fastcall ConstructMessage73BCD0(Message* self);   // 00418C30 (0x18 bytes)
+Message* __fastcall ConstructMessage73BBF8(Message* self);   // 00413350 (0x34 bytes)
+Message* __fastcall ConstructMessage73BC28(Message* self);   // 004138A0 (0x18 bytes)
+Message* __fastcall ConstructMessage73BC40(Message* self);   // 00413C90 (0x1C bytes)
+Message* __fastcall ConstructMessage73BC58(Message* self);   // 004140B0 (0x14 bytes)
 
 } // namespace net

@@ -108,6 +108,48 @@ Message* __fastcall ConstructMessage73BCA0(Message* self) {
 }
 EI_REPLACE(0x0041C7C0, ConstructMessage73BCA0);
 
+// 00413350 (0x34 bytes): two strings, +0x24 = 0, +0x28 = 4, +0x2C = -1, +0x30 = 0.
+Message* __fastcall ConstructMessage73BBF8(Message* self) {
+    MessageConstructBase(self);
+    InitStringByBlock(StringAt(self, 0xC));
+    InitStringByBlock(StringAt(self, 0x18));
+    Field(self, 0x30) = 0;
+    SetVtable(self, 0x0073BBF8);
+    Byte(self, 0x24) = 0;
+    Field(self, 0x28) = 4;
+    Field(self, 0x2C) = 0xFFFFFFFFu;
+    return self;
+}
+EI_REPLACE(0x00413350, ConstructMessage73BBF8);
+
+// 004138A0 (0x18 bytes): one string.
+Message* __fastcall ConstructMessage73BC28(Message* self) {
+    MessageConstructBase(self);
+    InitStringInline(StringAt(self, 0xC));
+    SetVtable(self, 0x0073BC28);
+    return self;
+}
+EI_REPLACE(0x004138A0, ConstructMessage73BC28);
+
+// 00413C90 (0x1C bytes): a string at +0x10 (+0xC is not set).
+Message* __fastcall ConstructMessage73BC40(Message* self) {
+    MessageConstructBase(self);
+    InitStringInline(StringAt(self, 0x10));
+    SetVtable(self, 0x0073BC40);
+    return self;
+}
+EI_REPLACE(0x00413C90, ConstructMessage73BC40);
+
+// 004140B0 (0x14 bytes): two counted pointers, both null.
+Message* __fastcall ConstructMessage73BC58(Message* self) {
+    self->kind = 1;
+    Field(self, 0xC) = 0;
+    Field(self, 0x10) = 0;
+    SetVtable(self, 0x0073BC58);
+    return self;
+}
+EI_REPLACE(0x004140B0, ConstructMessage73BC58);
+
 // 00418C30 (0x18 bytes): one string.
 Message* __fastcall ConstructMessage73BCD0(Message* self) {
     MessageConstructBase(self);
