@@ -1,0 +1,361 @@
+// How the client dresses a unit: armour figure parts and the composed skin texture. See
+// unit_client_models.h and docs/notes/units.md ("Fourth round").
+#include "unit_client_models.h"
+
+#include "item_db.h"
+#include "unit.h"
+
+#include "lib/crt.h"
+#include "lib/mfc.h"
+
+#include "ei/hook.h"
+
+#include <cstring>
+#include <new>
+
+namespace {
+constexpr int kArmourSlotField = 0x0C;   // armour prototype: 0 helmet, 1 body, 2 trousers, ...
+constexpr int kArmourNumber = 0x18;      // armour prototype: the number in "armor<nn>"
+constexpr int kWeaponTypeField = 0x0C;   // weapon prototype: its type
+constexpr int kPrototypeHair = 0x10;     // unit prototype: the hair number, -1 none
+constexpr int kPrototypeSkin = 0x0C;     // unit prototype: the skin number
+constexpr std::uint32_t kNone = 0xFFFFFFFFu;
+constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed on to 00517240
+
+constexpr int kLayerSkin = 0x32;
+constexpr int kLayerArmour = 0x3005;
+constexpr int kLayerWeapon = 0x3004;
+constexpr int kDetailedLayers = 8;
+constexpr int kSimpleLayers = 2;
+constexpr int kFlagDetailed = 0x100;
+constexpr int kFlagSimple = 0x80;
+
+const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+const char* const kHair = Text(0x0078FB38);        // "hr"
+const char* const kHead = Text(0x0078AD74);        // "hd"
+
+// The armour row of armour slot `slot`, or -1 when the slot has no figure parts.
+int RowOfSlot(int slot) {
+    switch (slot) {
+    case 0: return 2;
+    case 1: return 0;
+    case 2: return 1;
+    default: return -1;
+    }
+}
+
+// The compiler-inlined strcmp of the original (bytes compared unsigned): zero when equal.
+bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
+
+const char* ArmourRecord(std::uint32_t type) { return itemdb::Armors().At(type, itemdb::kArmorSize); }
+
+// The figure manager (global 007AF5F4) and the texture manager (007AF744).
+void* FigureManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
+void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+
+// Not rewritten, forwarders:
+// 005AA5F0. Figure manager: the model named `name`.
+__declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) EI_ORIGINAL(0x005AA5F0)
+// 00516A80. 3D object: its figure part named `name`, or null.
+__declspec(naked) CEngineObject* __fastcall FindPart(CUnit*, void*, const char*) EI_ORIGINAL(0x00516A80)
+// 00517240. 3D object: adds the figure part `name` of `model`.
+__declspec(naked) void __fastcall AddPart(CUnit*, void*, const char*, void*, std::uint32_t) EI_ORIGINAL(0x00517240)
+// 005167E0. 3D object: removes figure part `part`.
+__declspec(naked) void __fastcall RemovePart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x005167E0)
+// 00539580. SkinLayerArray::SetSize.
+__declspec(naked) void __fastcall SetLayerCount(SkinLayerArray*, void*, int, int) EI_ORIGINAL(0x00539580)
+// 006A3480 / 006A0AA0. The texture name of an armour / weapon by type and number, into `out`.
+__declspec(naked) void __fastcall ArmourTexture(mfc::CString*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x006A3480)
+__declspec(naked) void __fastcall WeaponTexture(mfc::CString*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x006A0AA0)
+// 00693180. Texture manager: composes a skin.
+__declspec(naked) void* __fastcall ComposeTexture(void*, void*, void*, SkinRequest*, mfc::CString*, mfc::CString*, int,
+                                                  int, int) EI_ORIGINAL(0x00693180)
+// Rewritten elsewhere, through their game addresses: 00674850 CMappedResource::FindEntry,
+// 006A3200 ArmorFieldB8, 006A1780 AppendWeaponModelParts.
+__declspec(naked) int __fastcall FindEntry(void*, void*, const char*) EI_ORIGINAL(0x00674850)
+__declspec(naked) int __fastcall ArmourDrawOrder(std::uint32_t) EI_ORIGINAL(0x006A3200)
+__declspec(naked) void __fastcall AppendWeaponParts(std::uint32_t, stlp::vector<stlp::string>*) EI_ORIGINAL(0x006A1780)
+
+std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
+} // namespace
+
+// --- Armour figure parts ----------------------------------------------------------------------
+
+bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
+    if (itemId == kNone) return false;
+    std::uint32_t type = itemId >> 16;
+    if (type == 0xFFFF || (itemId & 0xFFFF) == 0xFFFF) return false;
+    std::uint32_t slot = Field<std::uint32_t>(ArmourRecord(type), kArmourSlotField);
+    if (slot >= 7) return false;
+    if (armourIds[slot] == itemId) return true;
+    armourIds[slot] = itemId;
+    void* manager = FigureManager();
+    int row = RowOfSlot(static_cast<int>(slot));
+    if (row < 0) return true;
+
+    void* model;
+    {
+        stlp::string name(unit->prototypeName);
+        model = FindModel(manager, nullptr, &name);
+    }
+    if (!model) return false;
+    const char* armour = ArmourRecord(type);
+    mfc::CString armourPart;
+    for (int i = 0; i < 7; ++i) {
+        const char* plain = ArmourPartNames()[row][i];
+        if (!plain[0]) break;
+        mfc::CString part(plain);
+        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(part)),
+                            reinterpret_cast<const unsigned char*>(kHair)) == 0) {
+            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18),
+                                                             unitdb::kPrototypeSize);
+            int hair = Field<int>(prototype, kPrototypeHair);
+            if (hair == -1) continue;
+            part.Format(Text(0x0078FB0C), hair);   // "hr.%.2d"
+        }
+        CEngineObject* current = FindPart(unit, nullptr, part);
+        armourPart.Format(Text(0x0078FB14), static_cast<const char*>(part), Field<int>(armour, kArmourNumber));
+        if (FindEntry(*static_cast<void**>(model), nullptr, armourPart) != -1) {
+            AddPart(unit, nullptr, armourPart, model, FiguresFlag(unit));
+            if (!SameName(plain, kHead)) RemovePart(unit, nullptr, current);
+        } else if (current) {
+            if (SameName(plain, kHair)) {
+                RemovePart(unit, nullptr, current);
+            } else if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(part)),
+                                       reinterpret_cast<const unsigned char*>(current->GetName())) != 0) {
+                AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+                RemovePart(unit, nullptr, current);
+            }
+        } else {
+            AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+        }
+    }
+    return true;
+}
+EI_REPLACE_METHOD(0x005381B0, CUnitClientSpecific::WearArmourModel);
+
+void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
+                                       const stlp::vector<std::uint32_t>* weaponIds,
+                                       stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames) {
+    char text[0x401];
+    for (const std::uint32_t* id = armourIds->begin(); id != armourIds->end(); ++id) {
+        const char* armour = ArmourRecord(*id >> 16);
+        if (!armour) continue;
+        int row = RowOfSlot(Field<int>(armour, kArmourSlotField));
+        if (row < 0) continue;
+        for (int i = 0; i < 7; ++i) {
+            const char* plain = ArmourPartNames()[row][i];
+            if (!plain[0]) break;
+            if (SameName(plain, kHair)) {
+                int hair = Field<int>(prototype, kPrototypeHair);
+                if (hair == -1) continue;
+                gamecrt::sprintf(text, Text(0x0078FB24), hair, Field<int>(armour, kArmourNumber));   // "hr.%.2d.armor%.2d"
+            } else {
+                gamecrt::sprintf(text, Text(0x0078FB14), plain, Field<int>(armour, kArmourNumber));  // "%s.armor%.2d"
+            }
+            stlp::string name(text);
+            names->push_back(name);
+        }
+    }
+    for (const std::uint32_t* id = weaponIds->begin(); id != weaponIds->end(); ++id) AppendWeaponParts(*id, names);
+
+    // Every plain part of the three rows. The original walks all seven names of each row (the
+    // test on the name's address never fails), so the empty names of the helmet row go in too.
+    for (int row = 0; row < 3; ++row) {
+        for (int i = 0; i < 7; ++i) {
+            const char* plain = ArmourPartNames()[row][i];
+            if (SameName(plain, kHair)) {
+                int hair = Field<int>(prototype, kPrototypeHair);
+                if (hair == -1) continue;
+                gamecrt::sprintf(text, Text(0x0078FB0C), hair);   // "hr.%.2d"
+                stlp::string name(text);
+                plainNames->push_back(name);
+            } else {
+                stlp::string name(plain);
+                plainNames->push_back(name);
+            }
+        }
+    }
+}
+EI_REPLACE(0x00535CB0, CollectArmourPartNames);
+
+// --- Skin -------------------------------------------------------------------------------------
+
+void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
+    const RecordTable& armours = itemdb::Armors();
+    if (!detailed) {
+        SetLayerCount(out, nullptr, 0, -1);
+        SetLayerCount(out, nullptr, kSimpleLayers, -1);
+        std::uint32_t id = armourIds[0];
+        if (id != kNone) {
+            if (const char* armour = armours.At(id >> 16, itemdb::kArmorSize)) {
+                out->data[0].id = id;
+                out->data[0].kind = kLayerArmour;
+                out->data[0].slot = Field<int>(armour, kArmourSlotField);
+            }
+        }
+        std::uint32_t hand = unit->activeWeapon;
+        if (hand < 4 && (id = weaponIds[hand]) != kNone) {
+            if (const char* weapon = itemdb::Weapons().At(id >> 16, itemdb::kWeaponSize)) {
+                out->data[1].id = id;
+                out->data[1].kind = kLayerWeapon;
+                out->data[1].slot = Field<int>(weapon, kWeaponTypeField);
+            }
+        }
+        return;
+    }
+    SetLayerCount(out, nullptr, 0, -1);
+    // The original inlines SetSize(8) here; the array is empty, so it allocates 8 fresh layers.
+    SetLayerCount(out, nullptr, kDetailedLayers, -1);
+    out->data[0].id = static_cast<std::uint32_t>(unit->unknown_18);
+    out->data[0].kind = kLayerSkin;
+    out->data[0].slot = -1;
+    for (int k = 0; k < 7; ++k) {
+        std::uint32_t id = armourIds[k];
+        if (id == kNone) continue;
+        const char* armour = armours.At(id >> 16, itemdb::kArmorSize);
+        if (!armour) continue;
+        out->data[k + 1].id = id;
+        out->data[k + 1].kind = kLayerArmour;
+        out->data[k + 1].slot = Field<int>(armour, kArmourSlotField);
+    }
+}
+EI_REPLACE_METHOD(0x00536300, CUnitClientSpecific::BuildSkinLayers);
+
+namespace {
+// SkinRequest's layer bytes grown to `bytes` (the original inlines the aligned CArray SetSize).
+void SetLayerBytes(SkinRequest& request, int bytes) {
+    if (bytes == 0) {
+        if (request.layers) {
+            gamecrt::operator_delete(reinterpret_cast<void**>(request.layers)[-1]);
+            request.layers = nullptr;
+        }
+        request.capacity = 0;
+        request.layerBytes = 0;
+        return;
+    }
+    auto allocate = [](int count) {
+        auto* block = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(count) + 0x24));
+        auto* data = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
+        reinterpret_cast<void**>(data)[-1] = block;
+        return data;
+    };
+    if (!request.layers) {
+        request.layers = allocate(bytes);
+        request.capacity = bytes;
+        request.layerBytes = bytes;
+        return;
+    }
+    if (bytes <= request.capacity) {
+        request.layerBytes = bytes;
+        return;
+    }
+    int grow = request.growBy;
+    if (grow == 0) {
+        grow = request.layerBytes / 8;
+        if (grow < 4) grow = 4;
+        else if (grow > 0x400) grow = 0x400;
+    }
+    int capacity = grow + request.capacity;
+    if (bytes >= capacity) capacity = bytes;
+    std::uint8_t* fresh = allocate(capacity);
+    std::memcpy(fresh, request.layers, static_cast<std::size_t>(request.layerBytes));
+    gamecrt::operator_delete(reinterpret_cast<void**>(request.layers)[-1]);
+    request.layers = fresh;
+    request.layerBytes = bytes;
+    request.capacity = capacity;
+}
+
+// "<prototype name><texture>.mmp" into `texture`, the way the original builds it.
+void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
+    mfc::CString named = mfc::operator+(unit->prototypeName, texture);
+    mfc::CString withExtension = mfc::operator+(named, Text(0x0078FB4C));   // ".mmp"
+    texture = withExtension;
+}
+
+void AddTexture(SkinRequest& request, const mfc::CString& texture) {
+    request.textures.SetAtGrow(request.textures.size_, texture);
+}
+
+void AddArmourTexture(SkinRequest& request, const CUnit* unit, mfc::CString& texture, std::uint32_t id) {
+    ArmourTexture(&texture, id >> 16, id & 0xFFFF);
+    AddPrototypePrefix(unit, texture);
+    AddTexture(request, texture);
+}
+} // namespace
+
+namespace {
+// The layer texture names and the two keys of a skin.
+void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest& request, mfc::CString& unitKey,
+                      mfc::CString& prototypeKey, mfc::CString& texture) {
+    const CUnit* unit = self->unit;
+    int id = unit->id_;
+    if (!detailed) {
+        unitKey.Format(Text(0x0078FB44), id);                    // "mo%ds"
+        prototypeKey.Format(Text(0x0078FB3C), unit->unknown_18);  // "prot%ds"
+        request.flags = kFlagSimple;
+        if (self->armourIds[0] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[0]);
+        std::uint32_t hand = unit->activeWeapon;
+        if (hand < 4 && self->weaponIds[hand] != kNone) {
+            WeaponTexture(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
+            AddPrototypePrefix(unit, texture);
+            AddTexture(request, texture);
+        }
+        return;
+    }
+    unitKey.Format(Text(0x0078FB7C), id);                    // "mo%dp"
+    prototypeKey.Format(Text(0x0078FB74), unit->unknown_18);  // "prot%dp"
+    request.flags = kFlagDetailed;
+    const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18), unitdb::kPrototypeSize);
+    if (prototype)
+        texture.Format(Text(0x0078FB64), unit->prototypeName, Field<int>(prototype, kPrototypeSkin));   // "%sskin_%.2d.mmp"
+    else
+        texture.Format(Text(0x0078FB54), unit->prototypeName);   // "%sskin_00.mmp"
+    AddTexture(request, texture);
+    for (int k = 3; k < 7; ++k)
+        if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
+    // Body armour and trousers, in the armours' drawing order (ArmorFieldB8).
+    std::uint32_t body = self->armourIds[1];
+    std::uint32_t legs = self->armourIds[2];
+    if (body == kNone || legs == kNone) {
+        std::uint32_t only = body != kNone ? body : legs;
+        if (only != kNone) AddArmourTexture(request, unit, texture, only);
+        return;
+    }
+    std::uint32_t bodyOrder = static_cast<std::uint32_t>(ArmourDrawOrder(body >> 16));
+    std::uint32_t legsOrder = static_cast<std::uint32_t>(ArmourDrawOrder(legs >> 16));
+    if (legsOrder < bodyOrder) {
+        AddArmourTexture(request, unit, texture, legs);
+        AddArmourTexture(request, unit, texture, body);
+    } else {
+        AddArmourTexture(request, unit, texture, body);
+        AddArmourTexture(request, unit, texture, legs);
+    }
+}
+} // namespace
+
+void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
+    void* textureManager = TextureManager();
+    SkinLayerArray layers{reinterpret_cast<void*>(0x0073EEA0), nullptr, 0, 0, 0};
+    void* result;
+    {
+        mfc::CString unitKey;
+        mfc::CString prototypeKey;
+        mfc::CString texture;   // the work string
+        // The request lives in raw storage so that its string array is destroyed before its
+        // layer bytes are freed and before the strings, as in the original.
+        alignas(SkinRequest) unsigned char storage[sizeof(SkinRequest)];
+        auto* request = new (storage) SkinRequest{nullptr, 0, 0, 0, {}, 0};
+        BuildSkinLayers(detailed, &layers);
+        int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
+        SetLayerBytes(*request, bytes);
+        std::memcpy(request->layers, layers.data, static_cast<std::size_t>(bytes));
+        NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
+        result = ComposeTexture(textureManager, nullptr, target, request, &unitKey, &prototypeKey, 3, 0, 0x5551);
+        request->textures.~CStringArray();
+        if (request->layers) gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);
+    }
+    if (layers.data) gamecrt::operator_delete(layers.data);
+    return result;
+}
+EI_REPLACE_METHOD(0x00536670, CUnitClientSpecific::ComposeSkin);
