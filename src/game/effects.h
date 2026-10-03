@@ -194,6 +194,9 @@ public:
     int EmitBanshee(Particle* p, int index);        // 00489BE0 (Banshee, 0x200D)
     int UpdateBanshee(Particle* p);                 // 00489EF0
     void TickBanshee(ParticleElement* e);           // 00489F30
+    int EmitPortal(Particle* p, int index);         // 00494470 (Portal, 0x203E)
+    int EmitAcidRay(Particle* p, int index);        // 0048D050 (AcidRay, 0x2012)
+    int UpdateAcidRay(Particle* p);                 // 0048D330
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

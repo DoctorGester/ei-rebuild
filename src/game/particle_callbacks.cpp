@@ -2800,3 +2800,162 @@ void CParticleSource::TickBanshee(ParticleElement* e) {
     *radius = Store((D(*radius) - target) * D(EI_BANSHEE_EASE) + target);
 }
 EI_REPLACE_METHOD(0x00489F30, CParticleSource::TickBanshee);
+
+// --- Portal (0x203E) emission; its update and element tick are in particle_emitters.cpp ------------
+
+namespace {
+
+#define EI_PORTAL_HEIGHT GameFloat(0x0073CC7C)       // 8.0
+#define EI_PORTAL_RADIUS GameFloat(0x0073CC78)       // 2.5
+#define EI_PORTAL_ANGLE GameDouble(0x0073CE88)       // ~2 pi * 2^-32
+#define EI_PORTAL_SPIN GameFloat(0x0073B850)         // 0.1
+#define EI_PORTAL_RISE GameFloat(0x0073CF54)         // 0.015
+#define EI_PORTAL_HALF_C GameFloat(0x0073B86C)       // 0.5
+#define EI_PORTAL_TWO GameFloat(0x0073CDB8)          // 2.0
+#define EI_PORTAL_SHRINK GameFloat(0x0073C54C)       // 0.3
+
+} // namespace
+
+// 00494470. Portal: the first particle is the glow above the portal (state 1). The others start
+// at a random point of the disc (denser near the edge), spin round it (four in eleven or so the
+// other way, with a different frame range) and rise.
+int CParticleSource::EmitPortal(Particle* p, int) {
+    if (particles.count == 0) {
+        std::memcpy(&p->pos, &origin, sizeof(Vector3));
+        SetBits(&p->size, 0);
+        p->pos.z = Store(D(EI_PORTAL_HEIGHT) * D(GameFloat(0x0073CCA8)) + D(p->pos.z));
+        p->color = 0x60FFFFFF;
+        p->state = 1;
+        p->frame = 15;
+        return 1;
+    }
+    p->state = 0;
+    p->color = 0x40FFFFFF;
+    p->life = lifetime;
+    p->frameTimer = frameDelay;
+    float radius = EI_PORTAL_RADIUS;
+    double t = Unsigned(Next()) * EI_P_SCALE_1;
+    float spread = Store((t + D(EI_P_ONE)) * t * D(EI_PORTAL_HALF_C));
+    float angle = Store(Unsigned(Next()) * EI_PORTAL_ANGLE);
+    double reach = D(spread) * D(radius);
+    double x = x87::fsin(D(angle)) * reach;
+    float y = Store(x87::fcos(D(angle)) * reach);
+    p->pos.x = Store(x + D(origin.x));
+    p->pos.y = Store(D(y) + D(origin.y));
+    p->pos.z = Store(D(origin.z));
+    SetBits(&p->size, 0);
+    p->unknown_30 = y;
+    *ParticleFloat(p, 0x34) = Store((D(EI_PORTAL_TWO) - D(spread)) * D(EI_PORTAL_SHRINK));
+    p->unknown_2C = Store(x);
+    float spin = Store(D(radius) / D(EI_PORTAL_RADIUS) * D(EI_PORTAL_SPIN));
+    if (Unsigned(Next()) * EI_P_SCALE_1 > D(spread)) {
+        p->frame = static_cast<int>(Next() % 11) + 4;
+    } else {
+        p->frame = static_cast<int>(Next() & 3);
+        spin = Store(-D(spin));
+    }
+    p->velocity.x = Store(x87::fcos(D(spin)));
+    p->velocity.y = Store(x87::fsin(D(spin)));
+    p->velocity.z = Store((D(EI_P_ONE) - D(spread) + D(GameFloat(0x0073BAA4))) * D(radius) * D(EI_PORTAL_RISE));
+    p->pos.z = Store((Unsigned(Next()) * EI_P_SCALE_1 - D(EI_PORTAL_HALF_C)) * D(p->velocity.z) + D(p->pos.z));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00494470, CParticleSource::EmitPortal);
+
+// --- AcidRay (0x2012) ---------------------------------------------------------------------------
+
+namespace {
+
+const float* AcidSpread() { return reinterpret_cast<const float*>(0x0078A61C); }    // by age
+const float* AcidSize() { return reinterpret_cast<const float*>(0x0078A668); }      // by age
+
+// Position: the start (+0x38) plus the velocity scaled by the source's size and the spread table.
+void PlaceAcid(CParticleSource* s, Particle* p, int age, Vector3& out) {
+    double size = D(s->size);
+    float sx = Store(size * D(p->velocity.x));
+    float sy = Store(size * D(p->velocity.y));
+    double sz = size * D(p->velocity.z);
+    float k = AcidSpread()[age];
+    Vector3 v;
+    v.Construct(Store(D(sx) * D(k)), Store(D(sy) * D(k)), Store(sz * D(k)));
+    out.Construct(Store(D(v.x) + D(p->drift.x)), Store(D(v.y) + D(p->drift.y)), Store(D(v.z) + D(p->drift.z)));
+}
+
+} // namespace
+
+// 0048D050. AcidRay: a drop at a random point of the last step (when moving), flying sideways by
+// the spread box along the side and up axes (or standing).
+int CParticleSource::EmitAcidRay(Particle* p, int) {
+    p->color = 0xFFFFFFFF;
+    p->life = lifetime;
+    p->frameTimer = frameDelay;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0x3F800000);
+    std::uint32_t r = Next();
+    p->state = 0;
+    float t = Store(Unsigned(r) * EI_P_SCALE_1 - D(EI_P_ONE));
+    p->frame = static_cast<int>(Next() & 1);
+    if (distance > EI_TRAIL_MOVING) {
+        double ax = D(t) * D(motion.x);
+        float ay = Store(D(t) * D(motion.y));
+        float az = Store(D(t) * D(motion.z));
+        double px = ax + D(p->pos.x);
+        p->pos.x = Store(px);
+        float py = Store(D(ay) + D(p->pos.y));
+        p->pos.y = py;
+        double pz = D(az) + D(p->pos.z);
+        p->drift.y = py;
+        p->pos.z = Store(pz);
+        p->drift.z = Store(pz);
+        p->drift.x = Store(px);
+        double q = Unsigned(Next()) * EI_P_SCALE_2 - D(EI_P_ONE);
+        p->velocity.x = Store(q * D(side.x));
+        p->velocity.y = Store(q * D(side.y));
+        p->velocity.z = Store(q * D(side.z));
+        double q2 = Unsigned(Next()) * EI_P_SCALE_2 - D(EI_P_ONE);
+        float a = Store(q2 * D(up.x));
+        float b = Store(q2 * D(up.y));
+        double c = q2 * D(up.z);
+        p->velocity.x = Store(D(a) + D(p->velocity.x));
+        p->velocity.y = Store(D(b) + D(p->velocity.y));
+        p->velocity.z = Store(c + D(p->velocity.z));
+    } else {
+        std::memset(&p->velocity, 0, sizeof(Vector3));
+        std::memcpy(&p->drift, &origin, sizeof(Vector3));
+    }
+    Vector3 start;
+    PlaceAcid(this, p, lifetime - p->life, start);
+    reinterpret_cast<Vector4*>(p)->FromPoint(start);
+    p->size = Store(D(AcidSize()[lifetime - p->life]) * D(size));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048D050, CParticleSource::EmitAcidRay);
+
+// 0048D330. AcidRay drops: fly out from their start by the velocity scaled by the source's size
+// and the spread table (by age), sized by the size table, through the frames.
+int CParticleSource::UpdateAcidRay(Particle* p) {
+    int life = --p->life;
+    if (life == 0) return 0;
+    double size_ = D(size);
+    float sx = Store(size_ * D(p->velocity.x));
+    float sy = Store(size_ * D(p->velocity.y));
+    double sz = size_ * D(p->velocity.z);
+    double k = D(AcidSpread()[lifetime - life]);
+    float ax = Store(D(sx) * k);
+    float ay = Store(D(sy) * k);
+    double az = sz * k;
+    double px = D(ax) + D(p->drift.x);
+    float py = Store(D(ay) + D(p->drift.y));
+    float pz = Store(az + D(p->drift.z));
+    p->pos.y = py;
+    SetBits(&p->size, 0x3F800000);
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    p->size = Store(D(AcidSize()[lifetime - life]) * D(size));
+    if (--p->frameTimer == 0) {
+        if (++p->frame >= frameCount) return 0;
+        p->frameTimer = frameDelay;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048D330, CParticleSource::UpdateAcidRay);

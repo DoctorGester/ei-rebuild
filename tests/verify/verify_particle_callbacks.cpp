@@ -212,3 +212,12 @@ EI_UPDATE_WRAPPER(UpdateBanshee)
 EI_VERIFY(0x00489EF0, UpdateBansheeVerify, 7, s_UpdateBanshee);
 EI_ELEMENT_WRAPPER(TickBanshee)
 EI_VERIFY(0x00489F30, TickBansheeVerify, 7, s_TickBanshee);
+
+// 00494470: SUB ESP,0x18; PUSH EBX; PUSH EDI; MOV EDI,ECX (7). 0048D050: SUB ESP,0x18; PUSH EBX;
+// PUSH EBP; PUSH ESI (6). 0048D330: MOV EAX,[ESP+4]; SUB ESP,0x18 (7).
+EI_EMIT_WRAPPER(EmitPortal)
+EI_VERIFY(0x00494470, EmitPortalVerify, 7, s_EmitPortal);
+EI_EMIT_WRAPPER(EmitAcidRay)
+EI_VERIFY(0x0048D050, EmitAcidRayVerify, 6, s_EmitAcidRay);
+EI_UPDATE_WRAPPER(UpdateAcidRay)
+EI_VERIFY(0x0048D330, UpdateAcidRayVerify, 7, s_UpdateAcidRay);
