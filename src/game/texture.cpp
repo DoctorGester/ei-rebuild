@@ -28,7 +28,7 @@ int BmpFormatFor(int type) {
 
 __declspec(naked) int CTextureDevice::ParseMmpHeader(const void*, PixelFormat*) EI_ORIGINAL(0x004E7C40)
 __declspec(naked) int CTextureDevice::FindFormat(int, PixelFormat*) EI_ORIGINAL(0x004E7DA0)
-__declspec(naked) int CTexture::CreateFromMmp(CTextureDevice*, const void*, unsigned) EI_ORIGINAL(0x00690430)
+__declspec(naked) int CTexture::CallCreateFromMmp(CTextureDevice*, const void*, unsigned) EI_ORIGINAL(0x00690430)
 __declspec(naked) int CTexture::LoadBmp(CTextureDevice*, const char*) EI_ORIGINAL(0x00690260)
 
 int CTextureManager::LoadTexture(CTexture* texture) {
@@ -66,7 +66,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         texture->format_ = format;
         unsigned mip = mipLevel_;
         if (mip >= header->mipCount) mip = header->mipCount - 1;
-        result = texture->CreateFromMmp(device_, data, mip);
+        result = texture->CallCreateFromMmp(device_, data, mip);
         ManagerCloseFile(this, data);
         return result;
     }
@@ -85,7 +85,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                 texture->GetName());
     texture->format_ = format;
-    texture->CreateFromMmp(device_, buffer, mipLevel_);
+    texture->CallCreateFromMmp(device_, buffer, mipLevel_);
     gamecrt::operator_delete(buffer);
     return 1;
 }
@@ -116,7 +116,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
         return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                 texture->GetName());
     texture->format_ = format;
-    texture->CreateFromMmp(device_, buffer, mipLevel_);
+    texture->CallCreateFromMmp(device_, buffer, mipLevel_);
     gamecrt::operator_delete(buffer);
     return 1;
 }
