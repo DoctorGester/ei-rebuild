@@ -18,6 +18,12 @@ std::uint32_t Bits(float f) {
     return u;
 }
 
+std::uint64_t Bits(double d) {
+    std::uint64_t u;
+    std::memcpy(&u, &d, sizeof(u));
+    return u;
+}
+
 // Runs `ours`, snapshots the first `size` bytes of the object (and the item's reference count),
 // restores both, runs `original`; reports whether both left the same bytes and returned the same
 // value. The buffers are on the stack: the original may call another verified function
@@ -273,10 +279,10 @@ static bool __fastcall HasRangedVerify(CUnit* self) {
 EI_VERIFY(0x00530FA0, HasRangedVerify, 10, s_hasRanged);
 
 // 005307B0: FLD [0x0073B858] (6 bytes).
-static float(__fastcall* s_totalWeight)(CUnit*);
-static float __fastcall TotalWeightVerify(CUnit* self) {
-    float expected = s_totalWeight(self);
-    float actual = self->TotalItemWeight();
+static double(__fastcall* s_totalWeight)(CUnit*);
+static double __fastcall TotalWeightVerify(CUnit* self) {
+    double expected = s_totalWeight(self);
+    double actual = self->TotalItemWeight();
     ei::verify::Check("CUnit::TotalItemWeight", Bits(expected), Bits(actual), "%g vs %g", expected, actual);
     return expected;
 }
@@ -319,50 +325,50 @@ static void __fastcall MoveSpeedsVerify(CUnit* self, void*, float* forward, floa
 EI_VERIFY(0x0052F920, MoveSpeedsVerify, 10, s_moveSpeeds);
 
 // 0052FA20 / 0052FAF0: PUSH ECX; XOR EAX,EAX; MOV AL,[ECX+0x344] (9 bytes).
-static float(__fastcall* s_moveSpeed2)(CUnit*);
-static float __fastcall MoveSpeed2Verify(CUnit* self) {
-    float expected = s_moveSpeed2(self);
-    float actual = self->MoveSpeed2();
+static double(__fastcall* s_moveSpeed2)(CUnit*);
+static double __fastcall MoveSpeed2Verify(CUnit* self) {
+    double expected = s_moveSpeed2(self);
+    double actual = self->MoveSpeed2();
     ei::verify::Check("CUnit::MoveSpeed2", Bits(expected), Bits(actual), "mode %d: %g vs %g", self->moveMode2, expected,
                       actual);
     return expected;
 }
 EI_VERIFY(0x0052FA20, MoveSpeed2Verify, 9, s_moveSpeed2);
 
-static float(__fastcall* s_moveSpeedFor)(CUnit*, void*, int);
-static float __fastcall MoveSpeedForVerify(CUnit* self, void*, int mode) {
-    float expected = s_moveSpeedFor(self, nullptr, mode);
-    float actual = self->MoveSpeedFor(mode);
+static double(__fastcall* s_moveSpeedFor)(CUnit*, void*, int);
+static double __fastcall MoveSpeedForVerify(CUnit* self, void*, int mode) {
+    double expected = s_moveSpeedFor(self, nullptr, mode);
+    double actual = self->MoveSpeedFor(mode);
     ei::verify::Check("CUnit::MoveSpeedFor", Bits(expected), Bits(actual), "mode %d: %g vs %g", mode, expected, actual);
     return expected;
 }
 EI_VERIFY(0x0052FAF0, MoveSpeedForVerify, 9, s_moveSpeedFor);
 
 // 0052FBC0: PUSH EBP; MOV EBP,ESP; SUB ESP,8 (6 bytes).
-static float(__fastcall* s_scaledValue)(CUnit*, void*, float);
-static float __fastcall ScaledValueVerify(CUnit* self, void*, float value) {
-    float expected = s_scaledValue(self, nullptr, value);
-    float actual = self->ScaledValue(value);
+static double(__fastcall* s_scaledValue)(CUnit*, void*, float);
+static double __fastcall ScaledValueVerify(CUnit* self, void*, float value) {
+    double expected = s_scaledValue(self, nullptr, value);
+    double actual = self->ScaledValue(value);
     ei::verify::Check("CUnit::ScaledValue", Bits(expected), Bits(actual), "value %g: %g vs %g", value, expected, actual);
     return expected;
 }
 EI_VERIFY(0x0052FBC0, ScaledValueVerify, 6, s_scaledValue);
 
 // 00530370: TEST byte [ECX+0x124],2 (7 bytes).
-static float(__fastcall* s_baseSpeed)(CUnit*);
-static float __fastcall BaseSpeedVerify(CUnit* self) {
-    float expected = s_baseSpeed(self);
-    float actual = self->BaseSpeed();
+static double(__fastcall* s_baseSpeed)(CUnit*);
+static double __fastcall BaseSpeedVerify(CUnit* self) {
+    double expected = s_baseSpeed(self);
+    double actual = self->BaseSpeed();
     ei::verify::Check("CUnit::BaseSpeed", Bits(expected), Bits(actual), "%g vs %g", expected, actual);
     return expected;
 }
 EI_VERIFY(0x00530370, BaseSpeedVerify, 7, s_baseSpeed);
 
 // 005302F0: PUSH ECX; PUSH ESI; MOV ESI,ECX; TEST byte [ESI+0x124],2 (11 bytes).
-static float(__fastcall* s_modeSpeed)(CUnit*);
-static float __fastcall ModeSpeedVerify(CUnit* self) {
-    float expected = s_modeSpeed(self);
-    float actual = self->ModeSpeed();
+static double(__fastcall* s_modeSpeed)(CUnit*);
+static double __fastcall ModeSpeedVerify(CUnit* self) {
+    double expected = s_modeSpeed(self);
+    double actual = self->ModeSpeed();
     ei::verify::Check("CUnit::ModeSpeed", Bits(expected), Bits(actual), "mode %d: %g vs %g", self->moveMode, expected,
                       actual);
     return expected;
@@ -434,20 +440,20 @@ static bool __fastcall AcceptsTargetVerify(CUnit* self, void*, const void* targe
 EI_VERIFY(0x00532DA0, AcceptsTargetVerify, 7, s_acceptsTarget);
 
 // 00532E00: PUSH ECX; PUSH ESI; MOV ESI,ECX; MOV EAX,[ESI+0x1B4] (10 bytes).
-static float(__fastcall* s_animationRatio)(CUnit*);
-static float __fastcall AnimationRatioVerify(CUnit* self) {
-    float expected = s_animationRatio(self);
-    float actual = self->AnimationRatio();
+static double(__fastcall* s_animationRatio)(CUnit*);
+static double __fastcall AnimationRatioVerify(CUnit* self) {
+    double expected = s_animationRatio(self);
+    double actual = self->AnimationRatio();
     ei::verify::Check("CUnit::AnimationRatio", Bits(expected), Bits(actual), "%g vs %g", expected, actual);
     return expected;
 }
 EI_VERIFY(0x00532E00, AnimationRatioVerify, 10, s_animationRatio);
 
 // 005271C0: PUSH ECX; XOR EAX,EAX; MOV AL,[ECX+0xE] (6 bytes).
-static float(__fastcall* s_period)(UnitParams*);
-static float __fastcall PeriodVerify(UnitParams* self) {
-    float expected = s_period(self);
-    float actual = self->Period();
+static double(__fastcall* s_period)(UnitParams*);
+static double __fastcall PeriodVerify(UnitParams* self) {
+    double expected = s_period(self);
+    double actual = self->Period();
     ei::verify::Check("UnitParams::Period", Bits(expected), Bits(actual), "rate %u", self->attackRate);
     return expected;
 }

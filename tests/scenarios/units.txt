@@ -1,0 +1,74 @@
+# Units: start a new game (hero on zone1) and exercise the rewritten unit code (docs/notes/units.md,
+# "Statistics in play"): raising base values and skills (UnitStats::RaiseStrength / Dexterity /
+# Intelligence / RaiseSkill / RaiseAttribute, then Recompute), the per-tick update and regeneration
+# of every unit (CUnit::Tick, UnitVitals::Regenerate), poses and movement modes (lie, crawl, stand,
+# rest), damage through the body slots and armour (UnitStats::ApplyHit / DamageSlot), a heal, and
+# a short fight with a kill (experience). Each "check" must print a nonzero value; each "waitfor"
+# waits until its condition holds. The game runs ~5.5x faster (10 ms per world update).
+#
+# Script signatures (game.exe command table): GiveStrength / GiveDexterity / GiveIntelligence
+# (unit, amount), GiveSkill (unit, "melee" | "archery" | ... | "science", amount), GiveItem / GiveMoney
+# (player, ...), Rest / Lie / Crawl / Stand (unit), InflictDamage (unit, amount).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Base values: strength raises the hit point maximum, dexterity the mana maximum (printed, not
+# checked: when MaxHP / MaxMana see the new maxima depends on code outside this area).
+console #MaxHP(GetLeader())
+console #MaxMana(GetLeader())
+console @GiveStrength(GetLeader(),3)
+wait 300
+console @GiveDexterity(GetLeader(),3)
+wait 300
+console @GiveIntelligence(GetLeader(),3)
+# Skills (RaiseSkill) and an attribute (science: RaiseAttribute); both book experience.
+console @GiveSkill(GetLeader(),"melee",2)
+console @GiveSkill(GetLeader(),"science",1)
+console #MaxHP(GetLeader())
+console #MaxMana(GetLeader())
+
+# Money and items for the party.
+console @GiveMoney(0,500)
+console @GiveItem(0,"Axe.steel")
+console @GiveItem(0,"potion 1")
+wait 500
+check IsAlive(GetLeader())
+
+# Poses and movement modes: lie down, crawl a few steps, stand up, rest.
+console @Lie(GetLeader())
+wait 1000
+console @Crawl(GetLeader())
+console @GSSetVar(0,"x0",GetX(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),3),GetY(GetLeader()))
+waitfor 15 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),2))
+console @Stand(GetLeader())
+wait 500
+console @Rest(GetLeader())
+wait 1000
+
+# Damage through the body slots and armour, then a heal (UnitStats::Heal through the spell).
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+console @InflictDamage(GetLeader(),15)
+waitfor 10 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+console @GSSetVar(0,"hp1",HP(GetLeader()))
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+waitfor 20 IsGreater(HP(GetLeader()),GSGetVar(0,"hp1"))
+
+# A short fight: a wolf attacks the hero, the hero kills it (hits, IsBehind, experience).
+console @AddUnitToServer("Enemy1","WolfTutor","Enemy1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Enemy1"))
+console @SetPlayer(GetObjectByName("Enemy1"),6)
+check IsEnemy(GetObjectByName("Enemy1"),0)
+console @Attack(GetObjectByName("Enemy1"),GetLeader())
+console @Attack(GetLeader(),GetObjectByName("Enemy1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))
+check IsAlive(GetLeader())
+console #HP(GetLeader())
+report
+quit

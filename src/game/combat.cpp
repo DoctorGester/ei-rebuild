@@ -592,7 +592,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->amount = StatsScaleDamage(&stats, nullptr, self, out->amount);
     out->unknown_2C = location;
     out->unknown_30 = 0;
-    if (backstab) out->unknown_34 = stats.Value6E9Arg(static_cast<int>(reinterpret_cast<std::uintptr_t>(self)));
+    if (backstab) out->unknown_34 = static_cast<float>(stats.Value6E9Arg(static_cast<int>(reinterpret_cast<std::uintptr_t>(self))));
     else out->unknown_34 = kOne;
     if (self->player && PlayerMode108(self->player) >= 2) ResetDamageInfo(out);
     out->unknown_38 = static_cast<std::uint8_t>(calledShot);

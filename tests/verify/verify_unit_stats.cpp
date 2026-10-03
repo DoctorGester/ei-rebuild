@@ -26,12 +26,18 @@ float CompareFloat(const char* name, float expected, float actual, Arg arg) {
     ei::verify::Check(name, Bits(expected), Bits(actual), "arg %d: %g vs %g", static_cast<int>(arg), expected, actual);
     return expected;
 }
+// The same for results the original leaves unrounded in ST0 (declared double).
+template <typename Arg>
+double CompareDouble(const char* name, double expected, double actual, Arg arg) {
+    ei::verify::Check(name, Bits(expected), Bits(actual), "arg %d: %g vs %g", static_cast<int>(arg), expected, actual);
+    return expected;
+}
 } // namespace
 
 // 00523CD0: FLD [0x0073E124] (6 bytes).
-static float(__fastcall* s_period20)(UnitStats*);
-static float __fastcall Period20Verify(UnitStats* self) {
-    return CompareFloat("UnitStats::Period20", s_period20(self), self->Period20(), 0);
+static double(__fastcall* s_period20)(UnitStats*);
+static double __fastcall Period20Verify(UnitStats* self) {
+    return CompareDouble("UnitStats::Period20", s_period20(self), self->Period20(), 0);
 }
 EI_VERIFY(0x00523CD0, Period20Verify, 6, s_period20);
 
@@ -50,17 +56,17 @@ static float __fastcall SkillBaseVerify(UnitStats* self, void*, int index) {
 EI_VERIFY(0x00527030, SkillBaseVerify, 6, s_skillBase);
 
 // 00525E10: MOV EAX,[ESP+4]; SUB EAX,0 (7 bytes).
-static float(__fastcall* s_attributeWithBonus)(UnitStats*, void*, int);
-static float __fastcall AttributeWithBonusVerify(UnitStats* self, void*, int index) {
-    return CompareFloat("UnitStats::AttributeWithBonus", s_attributeWithBonus(self, nullptr, index),
+static double(__fastcall* s_attributeWithBonus)(UnitStats*, void*, int);
+static double __fastcall AttributeWithBonusVerify(UnitStats* self, void*, int index) {
+    return CompareDouble("UnitStats::AttributeWithBonus", s_attributeWithBonus(self, nullptr, index),
                         self->AttributeWithBonus(index), index);
 }
 EI_VERIFY(0x00525E10, AttributeWithBonusVerify, 7, s_attributeWithBonus);
 
 // 00527050: MOV EDX,[0x007AF26C] (6 bytes).
-static float(__fastcall* s_skillWithBonus)(UnitStats*, void*, std::uint32_t);
-static float __fastcall SkillWithBonusVerify(UnitStats* self, void*, std::uint32_t index) {
-    return CompareFloat("UnitStats::SkillWithBonus", s_skillWithBonus(self, nullptr, index),
+static double(__fastcall* s_skillWithBonus)(UnitStats*, void*, std::uint32_t);
+static double __fastcall SkillWithBonusVerify(UnitStats* self, void*, std::uint32_t index) {
+    return CompareDouble("UnitStats::SkillWithBonus", s_skillWithBonus(self, nullptr, index),
                         self->SkillWithBonus(index), index);
 }
 EI_VERIFY(0x00527050, SkillWithBonusVerify, 6, s_skillWithBonus);
@@ -93,40 +99,40 @@ static char* __fastcall SkillLevelRecordVerify(UnitStats* self, void*, int index
 EI_VERIFY(0x00528270, SkillLevelRecordVerify, 11, s_skillLevelRecord);
 
 // 00524280: MOV AL,[ECX+0x6E8] (6 bytes).
-static float(__fastcall* s_value6E8)(UnitStats*);
-static float __fastcall Value6E8Verify(UnitStats* self) {
-    return CompareFloat("UnitStats::Value6E8", s_value6E8(self), self->Value6E8(), self->skillLevels[0x15]);
+static double(__fastcall* s_value6E8)(UnitStats*);
+static double __fastcall Value6E8Verify(UnitStats* self) {
+    return CompareDouble("UnitStats::Value6E8", s_value6E8(self), self->Value6E8(), self->skillLevels[0x15]);
 }
 EI_VERIFY(0x00524280, Value6E8Verify, 6, s_value6E8);
 
 // 00525CD0 and its copy 00525D60 (one unused argument): MOV AL,[ECX+0x6E9] (6 bytes).
-static float(__fastcall* s_value6E9)(UnitStats*);
-static float __fastcall Value6E9Verify(UnitStats* self) {
-    return CompareFloat("UnitStats::Value6E9", s_value6E9(self), self->Value6E9(), self->skillLevels[0x16]);
+static double(__fastcall* s_value6E9)(UnitStats*);
+static double __fastcall Value6E9Verify(UnitStats* self) {
+    return CompareDouble("UnitStats::Value6E9", s_value6E9(self), self->Value6E9(), self->skillLevels[0x16]);
 }
 EI_VERIFY(0x00525CD0, Value6E9Verify, 6, s_value6E9);
 
-static float(__fastcall* s_value6E9Arg)(UnitStats*, void*, int);
-static float __fastcall Value6E9ArgVerify(UnitStats* self, void*, int unused) {
-    return CompareFloat("UnitStats::Value6E9Arg", s_value6E9Arg(self, nullptr, unused), self->Value6E9Arg(unused),
+static double(__fastcall* s_value6E9Arg)(UnitStats*, void*, int);
+static double __fastcall Value6E9ArgVerify(UnitStats* self, void*, int unused) {
+    return CompareDouble("UnitStats::Value6E9Arg", s_value6E9Arg(self, nullptr, unused), self->Value6E9Arg(unused),
                         self->skillLevels[0x16]);
 }
 EI_VERIFY(0x00525D60, Value6E9ArgVerify, 6, s_value6E9Arg);
 
 // 005259B0 / 00524020: FLD [0x0073B858] (6 bytes).
-static float(__fastcall* s_reduce)(UnitStats*, void*, float);
-static float __fastcall ReduceVerify(UnitStats* self, void*, float value) {
-    float expected = s_reduce(self, nullptr, value);
-    float actual = self->Reduce(value);
+static double(__fastcall* s_reduce)(UnitStats*, void*, float);
+static double __fastcall ReduceVerify(UnitStats* self, void*, float value) {
+    double expected = s_reduce(self, nullptr, value);
+    double actual = self->Reduce(value);
     ei::verify::Check("UnitStats::Reduce", Bits(expected), Bits(actual), "value %g: %g vs %g", value, expected, actual);
     return expected;
 }
 EI_VERIFY(0x005259B0, ReduceVerify, 6, s_reduce);
 
-static float(__fastcall* s_reduceKind1)(UnitStats*, void*, float);
-static float __fastcall ReduceKind1Verify(UnitStats* self, void*, float value) {
-    float expected = s_reduceKind1(self, nullptr, value);
-    float actual = self->ReduceKind1(value);
+static double(__fastcall* s_reduceKind1)(UnitStats*, void*, float);
+static double __fastcall ReduceKind1Verify(UnitStats* self, void*, float value) {
+    double expected = s_reduceKind1(self, nullptr, value);
+    double actual = self->ReduceKind1(value);
     ei::verify::Check("UnitStats::ReduceKind1", Bits(expected), Bits(actual), "value %g: %g vs %g", value, expected,
                       actual);
     return expected;

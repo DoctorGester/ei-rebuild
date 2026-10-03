@@ -69,7 +69,7 @@ std::uintptr_t RemoveFromSlots(CUnit* unit, CEngineObject** slots, std::uint32_t
 } // namespace
 
 __declspec(naked) void* CUnit::World() EI_ORIGINAL(0x00455950)
-__declspec(naked) float CUnit::AnimationFactor(float) EI_ORIGINAL(0x00518D30)
+__declspec(naked) double CUnit::AnimationFactor(float) EI_ORIGINAL(0x00518D30)
 __declspec(naked) PartyUnitRecord* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
 
 // --- Change tracking -------------------------------------------------------------------------
@@ -283,7 +283,7 @@ bool CUnit::HasRangedWeapon() {
 }
 EI_REPLACE_METHOD(0x00530FA0, CUnit::HasRangedWeapon);
 
-float CUnit::TotalItemWeight() {
+double CUnit::TotalItemWeight() {
     double total = kZero;   // accumulated on the FPU stack in the original
     for (CEngineObject* item : weapons) {
         if (item) total += ItemWeight(item);
@@ -297,7 +297,7 @@ float CUnit::TotalItemWeight() {
     for (CEngineObject* item : armor) {
         if (item) total += ItemWeight(item);
     }
-    return static_cast<float>(total);
+    return total;   // unrounded (ST0)
 }
 EI_REPLACE_METHOD(0x005307B0, CUnit::TotalItemWeight);
 
@@ -354,7 +354,7 @@ EI_REPLACE_METHOD(0x0052F920, CUnit::GetMoveSpeeds);
 
 namespace {
 // Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
-float ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
+double ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
     double base = static_cast<float>(unit->baseSpeed) * kSpeedByteScale;   // kept on the FPU stack
     std::uint8_t speed;
     switch (mode) {
@@ -363,19 +363,19 @@ float ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
     case 2:
     case 4: speed = unit->modeSpeeds[1]; break;
     case 3: speed = unit->modeSpeeds[0]; break;
-    default: return static_cast<float>(base);
+    default: return base;
     }
-    return static_cast<float>(base * (static_cast<float>(speed) * kTwo) * kByteScale);
+    return base * (static_cast<float>(speed) * kTwo) * kByteScale;
 }
 } // namespace
 
-float CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
+double CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
 EI_REPLACE_METHOD(0x0052FA20, CUnit::MoveSpeed2);
 
-float CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
+double CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
 EI_REPLACE_METHOD(0x0052FAF0, CUnit::MoveSpeedFor);
 
-float CUnit::ScaledValue(float value) {
+double CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
     if (flags_ & 0x4000000) {
         float capped = !(value >= kTen) ? value : kTen;   // NaN is kept
@@ -385,14 +385,14 @@ float CUnit::ScaledValue(float value) {
 }
 EI_REPLACE_METHOD(0x0052FBC0, CUnit::ScaledValue);
 
-float CUnit::BaseSpeed() {
+double CUnit::BaseSpeed() {
     if (speedFlags & 2) return speed14C * kFastSpeedScale;
-    return static_cast<float>(speed134 * kWalkSpeedScale + speed130);
+    return speed134 * kWalkSpeedScale + speed130;
 }
 EI_REPLACE_METHOD(0x00530370, CUnit::BaseSpeed);
 
-float CUnit::ModeSpeed() {
-    volatile float speed = BaseSpeed();   // FSTP to a float local in the original
+double CUnit::ModeSpeed() {
+    volatile float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local in the original
     if (moveMode != 0 && ei::VCall<int>(this, 0xDC / 4) == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
         return speed;
@@ -449,13 +449,13 @@ bool CUnit::AcceptsTarget(const void* target) {
 }
 EI_REPLACE_METHOD(0x00532DA0, CUnit::AcceptsTarget);
 
-float CUnit::AnimationRatio() {
-    volatile float denominator = AnimationFactor(animation1B4);   // FSTP to a float local
+double CUnit::AnimationRatio() {
+    volatile float denominator = static_cast<float>(AnimationFactor(animation1B4));   // FSTP to a float local
     return AnimationFactor(animationCC) / denominator;
 }
 EI_REPLACE_METHOD(0x00532E00, CUnit::AnimationRatio);
 
-float UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }
+double UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }   // unrounded (ST0)
 EI_REPLACE_METHOD(0x005271C0, UnitParams::Period);
 
 // --- Map object state ------------------------------------------------------------------------
