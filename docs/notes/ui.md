@@ -950,14 +950,22 @@ container record 00613820, item factory 006AD000/006A04D0, carried weight 006608
 
 ## Scenario `tests/scenarios/ui_camp.txt`
 
-New game; the constructors are offered through `@GSSetVar(0,"i.onspellconstr",1)` and
-`i.onitemconstr`; `screen 5` opens the camp (Create, Draw, UpdateAction, the panels' Builds and
-ShowStats); regions 5-10 and 4 switch pages 1-6 and 0, regions 1/0 the hero arrows, 2/3 turn the
-hero; Esc (page 7) leaves the camp and the game resumes (the battle screen's Create runs again);
-`screen 4` opens the global map (Create, Update every frame), regions 0/1 turn it, Esc opens and
-closes the escape menu over it. About 40 s. The battle screen Create runs in every scenario.
+New game; `screen 5` opens the camp as the global map's camp button does ("constr.current" 0, no
+constructor: Create, Draw, UpdateAction, the stats/equipment/quick-strip Builds and ShowStats);
+regions 5-10 and 4 ask for pages 1-6 and 0 (2-6 are not offered and fall back), regions 1/0 the hero
+arrows, 2/3 turn the hero; Esc (page 7) leaves the camp and the game resumes (the battle screen's
+Create runs again); `screen 4` opens the global map (Create, Update every frame), regions 0/1 turn
+it, Esc opens and closes the escape menu over it. About 40 s. The battle screen Create runs in
+every scenario.
 
-Not reached by a scenario: CanMakeSpell / CanMakeItem (UpdateAction calls them only while a
-constructor slot holds a spell / part; the scenario puts nothing there) and probably CanEquip
-(slot 43; asked when an item is picked or dropped). The ui_camp run itself has not been made yet
-(runs are central): if `screen 5` misbehaves in zone1, the camp rows of the table are unreached too.
+The first version also set "i.onspellconstr" / "i.onitemconstr" to offer the constructor pages.
+That crashed the original too (00621377 in CUiItemStrip::RebuildList, reading 0x44): with
+"constr.current" 0 the camp's Create (0060C870) has no constructor record (+0x198 = 0), yet with
+those flags it creates the spell and part strips and gives them `+0x1C8 + 0x40` /
+`+0x1B4 + 0x40` as item lists (00621160); those fields are the record's +0xAC / +0x3C and stay 0
+without a record, so the lists are at address 0x40. The flags are only valid with a
+constructor, which the camp gets from a base's dialogue ("constrN" answers, 006064E0 -> 00578560(N)
+-> screen 5) in a "brief" zone; that path needs the briefing screen's dialogue and is not scripted.
+
+Not reached by a scenario: the constructor pages' Builds (006270A0, 006280C0, 00628CC0, 006279E0),
+CanMakeSpell / CanMakeItem, and probably CanEquip (slot 43; asked when an item is picked or dropped).
