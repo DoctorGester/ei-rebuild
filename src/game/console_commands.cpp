@@ -1,5 +1,6 @@
 // Console command handlers (game.exe 0x005DD920-0x005E0A8B). Each gets the command's arguments,
 // already lower-cased, in ECX. See docs/notes/console.md.
+#include "ei/x87.h"
 #include "console.h"
 
 #include "../lib/crt.h"
@@ -331,7 +332,7 @@ void __fastcall LastFps(CStringArray*) {
     GameOStream& os = Out() << GameText(0x00792710);
     using FrameTimeFn = unsigned(__thiscall*)(void*);
     unsigned ms = (*reinterpret_cast<FrameTimeFn**>(timer))[0x18 / 4](timer);
-    double fps = *reinterpret_cast<const float*>(0x0073C34C) / static_cast<double>(static_cast<__int64>(ms));
+    double fps = *reinterpret_cast<const float*>(0x0073C34C) / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
 }
 EI_REPLACE(0x005DEEE0, LastFps);

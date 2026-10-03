@@ -18,7 +18,8 @@ comes from a bug we already hit.
   (`harness.cmd tests\scenarios\<scenario>.txt`, see README). You may add a scenario under
   `tests/scenarios/` that exercises your area (script commands via `@...`, checks via `check` and
   `waitfor`); it will be run at integration.
-- Run `python tools/check_stolen.py` and `tools\check_signatures.cmd` (after `build.cmd verify`)
+- Run `python tools/check_stolen.py`, `python tools/check_x87.py` (after `build.cmd release`) and
+  `tools\check_signatures.cmd` (after `build.cmd verify`)
   before handing back. The second compares every hooked, forwarded or wrapped declaration's stack
   arguments with the original's RET n.
 
@@ -68,6 +69,8 @@ comes from a bug we already hit.
    The FPU does not always run at 24-bit precision: under Rebirth it runs higher, so a float the
    original returns unrounded in ST0 must not be rounded on return (declare the function `double`
    and let callers round when they store; see `CItemWeapon::RollDamage`).
+   Convert unsigned 32-bit values (random words, tick counts) with `x87::FromUnsigned`, never
+   `static_cast<double>`: MSVC adds 2^32 with an FADD that rounds; `tools/check_x87.py` checks this.
    Never test NaN with `v != v`: /fp:fast folds it to false. Use `x87::IsNaN` (a bit test). The
    `!(a > b)` idioms below do keep their NaN behaviour under /fp:fast (checked: MSVC emits
    FCOMP; FNSTSW; TEST AH,5/0x41; JNP).

@@ -1,4 +1,5 @@
 // The network pump. See net_session.h.
+#include "ei/x87.h"
 #include "net_session.h"
 
 #include "ei/hook.h"
@@ -25,7 +26,7 @@ void TickSession(void* session, std::uint32_t elapsed) {
     std::uint32_t flags = reinterpret_cast<const std::uint32_t*>(session)[1];
     if (flags & net::kSessionInactive) return;
     // FILD of the zero-extended 64-bit value, FMUL by the float constant, passed as a double.
-    double seconds = static_cast<double>(static_cast<std::int64_t>(elapsed)) * kMillisecondsToSeconds;
+    double seconds = x87::FromUnsigned(elapsed) * kMillisecondsToSeconds;
     ei::VCall<void>(session, net::kSlotTick, seconds);
 }
 

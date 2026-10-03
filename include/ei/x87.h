@@ -11,6 +11,15 @@
 
 namespace x87 {
 
+// An unsigned 32-bit value as a double, exactly as the original loads it (FILD of the zero-extended
+// qword). `static_cast<double>(u)` and even `static_cast<double>(static_cast<__int64>(u))` compile
+// to FILD dword + FADD 2^32 for values >= 2^31, and that FADD rounds at the FPU's precision (24 bits
+// in vanilla). tools/check_x87.py fails the build if that FADD appears anywhere.
+inline double FromUnsigned(std::uint32_t value) {
+    volatile std::int64_t wide = value;
+    return static_cast<double>(wide);
+}
+
 // NaN test on the bits. Under /fp:fast MSVC folds `v != v` to false, so the usual idiom silently
 // stops detecting NaN (found in the sort verify of world_client); use this instead.
 inline bool IsNaN(float v) {
