@@ -47,3 +47,11 @@ static void __fastcall CompleteBriefingVerify(CWorldServer* self, void*, int pla
                       name ? name : "", before, after);
 }
 EI_VERIFY(0x00592090, CompleteBriefingVerify, 0, s_unused);
+
+// 005911C0: the experience goes to units and records through original code; counted only (the
+// player's own counter is not a field of the world).
+static void __fastcall AwardExperienceVerify(CWorldServer* self, void*, WorldPlayer* player, float amount) {
+    self->AwardExperience(player, amount);
+    ei::verify::Check("CWorldServer::AwardExperience", true, true, "");
+}
+EI_VERIFY(0x005911C0, AwardExperienceVerify, 0, s_unused);

@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
 
 #include <cstring>
 
@@ -316,5 +317,173 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         for (int i = 0; i < 5; ++i) CommandQueueRun(commandsA_, nullptr);
 }
 
+// ---- AwardExperience --------------------------------------------------------------------------
+
+// The shares keep the original's operation order: no reassociation here.
+#pragma float_control(precise, on, push)
+
+namespace {
+
+constexpr std::uintptr_t kShareListVtable = 0x0073FAB0;   // CList<{controller, share}>
+constexpr std::uintptr_t kIdArrayVtable = 0x0073C3D0;     // CArray<int>
+constexpr int kTypeHero = 0x32;
+constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
+
+// A node of the list of shares (0x10 bytes): the unit's controller and its experience.
+struct ShareNode {
+    ShareNode* next;
+    ShareNode* prev;
+    std::uint8_t* controller;
+    float share;
+};
+struct ShareList {
+    void* vtable;
+    ShareNode* head;
+    ShareNode* tail;
+    int count;
+    void* free;
+    void* blocks;
+    int blockSize;
+};
+
+struct IdArray {
+    void* vtable;
+    int* data;
+    int size;
+    int capacity;
+    int growBy;
+};
+
+__declspec(naked) ShareNode* __fastcall ShareListNewNode(ShareList*, void*, ShareNode* /*prev*/, ShareNode* /*next*/)
+    EI_ORIGINAL(0x0059D5F0)
+__declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGINAL(0x0059D5C0)
+__declspec(naked) void __fastcall IdArraySetSize(IdArray*, void*, int, int) EI_ORIGINAL(0x0059C660)
+__declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int) EI_ORIGINAL(0x0055FB00)
+// 00553380 (RET 4). The unit controller gains experience.
+__declspec(naked) void __fastcall ControllerGainExperience(void*, void*, float) EI_ORIGINAL(0x00553380)
+// 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
+__declspec(naked) void __fastcall RecordGainExperience(void*, void*, float) EI_ORIGINAL(0x00523960)
+// 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
+__declspec(naked) void __fastcall StateUnitExperience(void*, void*, int /*unit id*/, float) EI_ORIGINAL(0x0066F2C0)
+__declspec(naked) void __fastcall StatePartyExperience(void*, void*, float) EI_ORIGINAL(0x0066F280)
+
+constexpr int kSlotIsDead = 55;
+
+// The weight of a unit in the shared experience: sqrt(+0x8E0 + +0x1E4) of its controller.
+double Weight(std::uint8_t* controller) {
+    return x87::fsqrt(static_cast<double>(*reinterpret_cast<float*>(controller + 0x8E0)) +
+                      *reinterpret_cast<float*>(controller + 0x1E4));
+}
+
+// Without a player: the single heroes of every player share `amount` in proportion to their
+// weights.
+void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
+    if (*reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(ei::VCall<CEngineObject*>(world, 20)) + 0x2C) == 0)
+        return;
+    ShareList list{reinterpret_cast<void*>(kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    auto soloUnit = [&](WorldPlayer* p) -> CEngineObject* {
+        if (!*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + 0x20) || p->mercCount != 1) return nullptr;
+        return WorldFindUnit(world, nullptr, *reinterpret_cast<int*>(p->mercs + 0x1C));
+    };
+
+    float total = 0.0f;
+    PlayerIterator it;
+    for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(world, 20)); p; p = it.Next()) {
+        CEngineObject* unit = soloUnit(p);
+        if (!unit) continue;
+        auto* controller = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
+        if (!controller) continue;
+        ShareNode* node = ShareListNewNode(&list, nullptr, list.tail, nullptr);
+        node->controller = controller;
+        std::uint32_t zero = 0;
+        std::memcpy(&node->share, &zero, 4);
+        if (list.tail) list.tail->next = node;
+        else list.head = node;
+        list.tail = node;
+        total = static_cast<float>(Weight(node->controller) + total);
+        volatile float stored = total;   // FSTP into the float total
+        total = stored;
+    }
+    float minimum;
+    std::memcpy(&minimum, &kMinimumWeight, 4);
+    float divisor = !(total >= minimum) ? minimum : total;   // the original's branch-free select
+
+    for (ShareNode* node = list.head; node;) {
+        ShareNode* next = node->next;
+        float share = static_cast<float>(Weight(node->controller) * amount / divisor);
+        volatile float stored = share;
+        node->share = stored;
+        ControllerGainExperience(node->controller, nullptr, stored);
+        node = next;
+    }
+    ShareNode* cursor = list.head;
+    for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(world, 20)); p; p = it.Next()) {
+        CEngineObject* unit = soloUnit(p);
+        if (!unit || !*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240)) continue;
+        ShareNode* node = cursor;
+        cursor = node->next;
+        RecordGainExperience(p->mercs + 0x20, nullptr, node->share);
+    }
+    for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(world, 20)); p; p = it.Next()) {
+        void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + 0x20);
+        if (!state) continue;
+        for (ShareNode* node = list.head; node; node = node->next) {
+            auto* unit = *reinterpret_cast<CEngineObject**>(node->controller + 0x1C);
+            StateUnitExperience(state, nullptr, unit->id_, node->share);
+        }
+    }
+    if (it.list) {
+        --it.list->refCount_;
+        it.list = nullptr;
+    }
+    list.vtable = reinterpret_cast<void*>(kShareListVtable);
+    ShareListRemoveAll(&list, nullptr);
+}
+
+// With a player: its living heroes share `amount` equally.
+void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
+    IdArray heroes{reinterpret_cast<void*>(kIdArrayVtable), nullptr, 0, 0, 0};
+    auto& units = *reinterpret_cast<stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>*>(
+        reinterpret_cast<std::uint8_t*>(player) + 0x40);
+    for (auto* node = units.First(); node && node->value; node = units.After(node)) {
+        CEngineObject* unit = node->value;
+        if (ei::VCall<int>(unit, kSlotIsDead) != 0 || unit->type_ != kTypeHero) continue;
+        int id = unit->id_;
+        int index = heroes.size;
+        IdArraySetSize(&heroes, nullptr, index + 1, -1);
+        heroes.data[index] = id;
+    }
+    int count = heroes.size;
+    if (count >= 1) {
+        float share = static_cast<float>(static_cast<double>(amount) / count);
+        volatile float stored = share;
+        share = stored;
+        for (int i = 0; i < heroes.size; ++i) {
+            CEngineObject* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
+            ControllerGainExperience(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240), nullptr,
+                                     share);
+            for (int j = 0; j < player->mercCount; ++j) {
+                std::uint8_t* record = player->mercs + j * 0x784;
+                if (*reinterpret_cast<int*>(record + 0x1C) == heroes.data[i])
+                    RecordGainExperience(record + 0x20, nullptr, share);
+            }
+        }
+        StatePartyExperience(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20), nullptr, share);
+    }
+    heroes.vtable = reinterpret_cast<void*>(kIdArrayVtable);
+    if (heroes.data) gamecrt::operator_delete(heroes.data);
+}
+
+} // namespace
+
+void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
+    if (!(amount < 0.0f || amount > 0.0f)) return;   // C3: zero or NaN
+    if (!player) ShareAmongSoloPlayers(this, amount);
+    else ShareAmongHeroes(this, player, amount);
+}
+
+#pragma float_control(pop)
+
 EI_REPLACE_METHOD(0x00591800, CWorldServer::UpdateMercBriefings);
+EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);

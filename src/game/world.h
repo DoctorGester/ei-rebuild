@@ -308,6 +308,11 @@ public:
     // and items, loses its quest items, its variables are set, and the scripts get
     // GSSetVar / #OnBriefingComplete (run at once in kind-3 games).
     void CompleteBriefing(int playerId, const char* name);
+    // 005911C0 (RET 8). Gives `amount` experience: with a player, shared equally by its living
+    // heroes (units and party records); without one, shared by the players that have a single
+    // hero, in proportion to sqrt(+0x8E0 + +0x1E4) of each hero's controller. Zero (or NaN) does
+    // nothing.
+    void AwardExperience(WorldPlayer* player, float amount);
 
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
