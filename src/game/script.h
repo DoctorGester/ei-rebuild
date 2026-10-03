@@ -575,3 +575,11 @@ void __fastcall ScriptObjectsAppend(ScriptNamedValues<ScriptObjectRef>* self, vo
                                     const ScriptNamedValues<ScriptObjectRef>* other);
 void __fastcall ScriptGroupsAppend(ScriptNamedValues<ScriptGroup>* self, void* edx,
                                    const ScriptNamedValues<ScriptGroup>* other);
+// 004C1650 / 004C16B0 / 004C1700 / 004C1760 (__thiscall). One type's values destroyed and freed
+// (strings destructed, references reset, groups destroyed), then the names emptied.
+void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars);
+void __fastcall ScriptStringsClear(ScriptNamedValues<mfc::CString>* vars);
+void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars);
+void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars);
+// 004C0020 (__thiscall, ScriptVars::RemoveAll). Every array of the set emptied.
+void __fastcall ScriptVarsClear(ScriptVars* vars);

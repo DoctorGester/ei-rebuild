@@ -138,3 +138,74 @@ void __fastcall ScriptGroupsAppend(ScriptNamedValues<ScriptGroup>* self, void*,
     }
 }
 EI_REPLACE(0x004C3DC0, ScriptGroupsAppend);
+
+// ---- Emptying a variable set ---------------------------------------------------------------------
+
+namespace {
+
+__declspec(naked) void __fastcall FloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
+__declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
+// 004B5EF0: a group's destructor body (references released, array freed).
+__declspec(naked) void __fastcall GroupDestruct(ScriptGroup*) EI_ORIGINAL(0x004B5EF0)
+
+// The value array's storage freed after `destroy` ran on its elements (CArray::SetSize(0) as the
+// game inlines it), then the names emptied.
+template <typename T, typename Destroy>
+void FreeValues(ScriptNamedValues<T>* vars, Destroy destroy) {
+    if (vars->values.data) {
+        destroy(vars->values.data, vars->values.size);
+        gamecrt::operator_delete(vars->values.data);
+        vars->values.data = nullptr;
+    }
+    vars->values.maxSize = 0;
+    vars->values.size = 0;
+    NamesSetSize(&vars->names, nullptr, 0, -1);
+}
+
+void DestroyGroups(ScriptGroup* groups, int count) {
+    for (int i = 0; i < count; ++i) GroupDestruct(&groups[i]);
+}
+
+} // namespace
+
+void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars) {
+    FreeValues(vars, [](float*, int) {});
+}
+EI_REPLACE(0x004C1650, ScriptFloatsClear);
+
+void __fastcall ScriptStringsClear(ScriptNamedValues<mfc::CString>* vars) {
+    FreeValues(vars, [](mfc::CString* strings, int count) { DestructStrings(strings, count); });
+}
+EI_REPLACE(0x004C16B0, ScriptStringsClear);
+
+void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars) {
+    FreeValues(vars, [](ScriptObjectRef* refs, int count) {
+        for (int i = 0; i < count; ++i) RefReset(&refs[i]);
+    });
+}
+EI_REPLACE(0x004C1700, ScriptObjectsClear);
+
+void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars) {
+    FreeValues(vars, DestroyGroups);
+}
+EI_REPLACE(0x004C1760, ScriptGroupsClear);
+
+// ScriptVars::RemoveAll: the out-of-line SetSize(0) of each array except the groups, whose
+// storage is freed inline (each group destroyed first).
+void __fastcall ScriptVarsClear(ScriptVars* vars) {
+    FloatsSetSize(&vars->floats, nullptr, 0, -1);
+    NamesSetSize(&vars->floatNames, nullptr, 0, -1);
+    NamesSetSize(&vars->strings, nullptr, 0, -1);
+    NamesSetSize(&vars->stringNames, nullptr, 0, -1);
+    GroupSetSize(reinterpret_cast<ScriptGroup*>(&vars->objects), nullptr, 0, -1);
+    NamesSetSize(&vars->objectNames, nullptr, 0, -1);
+    if (vars->groups.data) {
+        DestroyGroups(vars->groups.data, vars->groups.size);
+        gamecrt::operator_delete(vars->groups.data);
+        vars->groups.data = nullptr;
+    }
+    vars->groups.maxSize = 0;
+    vars->groups.size = 0;
+    NamesSetSize(&vars->groupNames, nullptr, 0, -1);
+}
+EI_REPLACE(0x004C0020, ScriptVarsClear);

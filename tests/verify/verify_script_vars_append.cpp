@@ -92,8 +92,43 @@ void __fastcall GroupsVerify(ScriptNamedValues<ScriptGroup>* self, void*, const 
     ei::verify::Check("ScriptGroupsAppend", true, ok, "%d + %d values", old, values);
 }
 
+// ---- Clears: ours only, then every array is empty with no storage ---------------------------------
+
+template <typename T>
+bool Empty(const MfcArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
+template <typename T>
+bool Empty(const ScriptNamedValues<T>* v) { return Empty(v->values) && Empty(v->names); }
+
+void __fastcall FloatsClearVerify(ScriptNamedValues<float>* self) {
+    ScriptFloatsClear(self);
+    ei::verify::Check("ScriptFloatsClear", true, Empty(self), "%p", self);
+}
+void __fastcall StringsClearVerify(ScriptNamedValues<mfc::CString>* self) {
+    ScriptStringsClear(self);
+    ei::verify::Check("ScriptStringsClear", true, Empty(self), "%p", self);
+}
+void __fastcall ObjectsClearVerify(ScriptNamedValues<ScriptObjectRef>* self) {
+    ScriptObjectsClear(self);
+    ei::verify::Check("ScriptObjectsClear", true, Empty(self), "%p", self);
+}
+void __fastcall GroupsClearVerify(ScriptNamedValues<ScriptGroup>* self) {
+    ScriptGroupsClear(self);
+    ei::verify::Check("ScriptGroupsClear", true, Empty(self), "%p", self);
+}
+void __fastcall VarsClearVerify(ScriptVars* self) {
+    ScriptVarsClear(self);
+    bool ok = Empty(self->floats) && Empty(self->floatNames) && Empty(self->strings) && Empty(self->stringNames) &&
+              Empty(self->objects) && Empty(self->objectNames) && Empty(self->groups) && Empty(self->groupNames);
+    ei::verify::Check("ScriptVarsClear", true, ok, "%p", self);
+}
+
 } // namespace
 
+EI_VERIFY(0x004C1650, FloatsClearVerify, 0, s_unused);
+EI_VERIFY(0x004C16B0, StringsClearVerify, 0, s_unused);
+EI_VERIFY(0x004C1700, ObjectsClearVerify, 0, s_unused);
+EI_VERIFY(0x004C1760, GroupsClearVerify, 0, s_unused);
+EI_VERIFY(0x004C0020, VarsClearVerify, 0, s_unused);
 EI_VERIFY(0x004C2B70, FloatsVerify, 0, s_unused);
 EI_VERIFY(0x004C2FE0, StringsVerify, 0, s_unused);
 EI_VERIFY(0x004C3450, ObjectsVerify, 0, s_unused);

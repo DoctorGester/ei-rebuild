@@ -623,3 +623,13 @@ address,name,library,signature,notes
 004CEDC0,ConstructElements<ScriptArea>,MFC,"void __stdcall(ScriptArea*,int)",instantiation
 004CEE20,ConstructElements<EventRecord28>,MFC,"void __stdcall(void*,int)",instantiation
 004CEE80,ConstructElements<QuestRecord12>,MFC,"void __stdcall(void*,int)",instantiation
+004C69B0,CList<ScriptDecl>::RemoveHead,MFC,ScriptDecl __thiscall(),instantiation: the head element copied out (SSCCmd::operator= each) and its node freed
+004C7A10,CList<ScriptDefinition>::RemoveHead,MFC,ScriptDefinition __thiscall(),instantiation (CScript reset)
+004C82B0,CList<ScriptRun>::RemoveHead,MFC,ScriptRun __thiscall(),instantiation (CScript reset)
+004C8AF0,CList<ScriptGroup>::RemoveTail,MFC,ScriptGroup __thiscall(),instantiation (CScript temporaries)
+004C9100,CList<ScriptObjectRef>::RemoveTail,MFC,ScriptObjectRef __thiscall(),instantiation (CScript temporaries)
+004CE110,"hash_map<string,T>::find_or_insert",STLport,"pair<const string,T>& __thiscall(const pair<const string,T>&)",instantiation (quest table 004C9C90): resize for one more then find or insert at the bucket head
+004CE460,"hash_map<string,T>::_M_new_node",STLport,"node* __cdecl(const pair<const string,T>&)",instantiation: node from the node allocator (0x18 bytes) with a copied key
+004CEF00,"hash_map<string,T>::resize",STLport,void __thiscall(size_t),instantiation: next prime bucket count and rehash
+004CF0F0,"vector<node*>::get_allocator",STLport,allocator __thiscall(),instantiation
+004CF160,"vector<node*>::vector(n, allocator)",STLport,"void __thiscall(size_t,const allocator&)",instantiation: buckets from the node allocator
