@@ -32,6 +32,9 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `CAIMap::MarkFootprint` 005B6A80, `CUnit::OnLeftSectorMap` 0050E930, `SpiralIndex` 005BF7D0 | `src/game/sector_map.cpp` | rewrite |
 | Models: `ChunkArchive` Enter/Leave/Field/StringField/CountChunks (004098D0, 00409980, 004092B0, 00409470, 00409A60); record destructors and `vector::resize` of the prints/acks records (006D29A0, 006D29E0, 006D26E0, 006D2830, 006DC390, 006DC920, 006DCAF0, 006DB9C0, 006DBBD0, 006DBE20); acks record Serialize (006E3780, 006E3FD0, 006E3DC0); water level apply 006CC7F0; link loader list insert/erase (004FB2E0, 004FAE00); `ConstructMmioResource` 006721D0 (second copy) | `src/game/model*.cpp` | rewrite / own containers (see `docs/notes/models.md`) |
 | Script loader: `CScript::Error` 004CF470, command blocks 004BF540/004BF900, `RunWorldScript` 004BCC60, `SSCCmd::Clear`/destructor, `ScriptDefinition`/`ScriptVars` constructors, destructors and helpers, the CArray/CList members of the script types, CString Mid/Left/Right/Find/LockBuffer, CRT isdigit/isspace/strncmp/atof (full list in `docs/notes/script.md`, "Loader and parser") | `src/game/script_parse*.cpp`, `script_parse.h` | rewrite / own containers |
+| `NetGame::Step` 0057F190 (per-frame network step) | `src/game/net_session.cpp` | rewrite |
+| `BitStream::StartByte` 004A5610, `EndBits` 004A5650, `Resize` 004A54D0, `ReadString` 00461190 (CMemoryStream bit helpers) | `src/game/net_delta.cpp` | rewrite with CMemoryStream |
+| `WordArray::SetSize` 006FEEFA (MFC CWordArray of the clip work buffer at 0079B668) | `src/game/clip.cpp` | own array |
 
 ## Indirections
 
@@ -73,6 +76,9 @@ Each needs a real implementation, or the caller must be rewritten first.
   change the order in which `CMappedResource::FreeAllFiles` frees files. Harmless so far, but check
   before swapping allocators.
 - `x87::fistp` rounds with the FPU's current mode (used by `Terrain::HeightAt`); a C++ cast truncates.
+- `StoreRatio` (`src/game/clip.cpp`, inline x87) stores the clip parameter as a float while comparing
+  the unrounded quotient; `FpuCopyBits` (`net_delta.cpp`, `chunk_stream.cpp`) copies floats through
+  FLD/FSTP so a signalling NaN comes out quiet, as in the original. Keep both or prove it cannot matter.
 - x87 maths (`/arch:IA32 /fp:fast`, `include/ei/x87.h`) and the FPU control word the game runs with
   (Direct3D sets single precision) must stay the same, or float results drift.
 
@@ -89,6 +95,8 @@ Decide case by case whether the standalone build keeps them (behaviour-exact) or
   passes the path string object by value to `%s`.
 - `TweenArray::Load` reads the count into the slot of its stream argument (a stream that wrote
   nothing would leave the pointer value as the count).
+- Delta replication, chunked files, clipper, network pump: see "Original bugs and oddities kept" in
+  `docs/notes/unmapped_410_470.md` (e.g. the 16-bit float packing's mantissa carry, `ReadQuad`'s order).
 
 ## Functions left original because Rebirth patches them
 

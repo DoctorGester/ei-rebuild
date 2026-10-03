@@ -20,6 +20,18 @@ void* s_unused;
 
 // --- Stream copies ---------------------------------------------------------------------------------
 
+// Only memory streams (the two CMemoryStream vtables) are copied: another stream class (e.g. one over
+// a file) would share its underlying resource with the copy. Anything else runs ours only.
+bool IsMemoryStream(const BitStream* s) {
+    std::uintptr_t vtable;
+    std::memcpy(&vtable, s, sizeof(vtable));
+    return vtable == 0x0073BD90 || vtable == 0x0073C960;
+}
+bool IsMemoryField(const DeltaField* f) {
+    return IsMemoryStream(&f->snapshot[0]) && IsMemoryStream(&f->snapshot[1]) && IsMemoryStream(&f->out[0]) &&
+           IsMemoryStream(&f->out[1]);
+}
+
 void CloneStream(BitStream* dst, const BitStream* src) {
     std::memcpy(dst, src, sizeof(BitStream));
     if (!src->data_) return;
@@ -120,6 +132,7 @@ bool SameGlobals(const Globals& expected, const Globals& actual, const DeltaFiel
 // 0047DFC0: MOV DL,[ESP+4] (4), PUSH EBX (1).
 void(__fastcall* s_putBit)(BitStream*, void*, int);
 void __fastcall PutBitVerify(BitStream* self, void*, int bit) {
+    if (!IsMemoryStream(self)) return self->PutBit((bit & 0xFF) != 0);
     StreamCopy expected(self);
     s_putBit(&expected.stream, nullptr, bit);
     self->PutBit((bit & 0xFF) != 0);
@@ -131,6 +144,7 @@ void __fastcall PutBitVerify(BitStream* self, void*, int bit) {
 // 0047E6D0: PUSH EBP (1), PUSH ESI (1), MOV ESI,[ESP+0xC] (4).
 void(__fastcall* s_writeRaw)(const void*, std::uint32_t, BitStream*);
 void __fastcall WriteRawVerify(const void* data, std::uint32_t size, BitStream* out) {
+    if (!IsMemoryStream(out)) return delta::WriteRaw(data, size, out);
     StreamCopy expected(out);
     s_writeRaw(data, size, &expected.stream);
     delta::WriteRaw(data, size, out);
@@ -140,6 +154,7 @@ void __fastcall WriteRawVerify(const void* data, std::uint32_t size, BitStream* 
 // 0047E5E0: MOV EAX,[ESP+4] (4), PUSH EBX (1).
 void(__fastcall* s_writeDiff)(const void*, const void*, std::uint32_t, BitStream*);
 void __fastcall WriteDiffVerify(const void* old, const void* data, std::uint32_t size, BitStream* out) {
+    if (!IsMemoryStream(out)) return delta::WriteDiff(old, data, size, out);
     StreamCopy expected(out);
     s_writeDiff(old, data, size, &expected.stream);
     delta::WriteDiff(old, data, size, out);
@@ -149,6 +164,7 @@ void __fastcall WriteDiffVerify(const void* old, const void* data, std::uint32_t
 // 0047E740: SUB ESP,0xC (3), PUSH EBX (1), PUSH EBP (1).
 void(__fastcall* s_writeChannel)(BitStream*, const void*, std::uint32_t, int, BitStream*);
 void __fastcall WriteChannelVerify(BitStream* snapshot, const void* data, std::uint32_t size, int keep, BitStream* out) {
+    if (!IsMemoryStream(snapshot) || !IsMemoryStream(out)) return delta::WriteDeltaChannel(snapshot, data, size, keep, out);
     StreamCopy expectedSnapshot(snapshot);
     StreamCopy expectedOut(out);
     s_writeChannel(&expectedSnapshot.stream, data, size, keep, &expectedOut.stream);
@@ -164,6 +180,10 @@ void __fastcall WriteChannelVerify(BitStream* snapshot, const void* data, std::u
 template <typename Original, typename Ours, typename SameRet>
 void CheckField(const char* name, DeltaField* self, Original original, Ours ours, SameRet sameRet) {
     const Globals before = Globals::Save();
+    if (!IsMemoryField(self) || (before.reader && !IsMemoryStream(before.reader))) {
+        ours(self);
+        return;
+    }
     FieldCopy expected(self);
     BitStream* realReader = before.reader;
     StreamCopy* readerCopy = realReader ? new StreamCopy(realReader) : nullptr;
@@ -265,7 +285,8 @@ void __fastcall WriteStringVerify(DeltaField* self, void*, const char* text) {
 template <typename Original, typename Ours>
 void CheckFieldRead(const char* name, DeltaField* self, void* actualOut, std::size_t size, Original original, Ours ours) {
     const Globals before = Globals::Save();
-    if (!before.reader || !before.snapshot || size > 0x10000) {
+    if (!before.reader || !before.snapshot || size > 0x10000 || !IsMemoryField(self) || !IsMemoryStream(before.reader) ||
+        !IsMemoryStream(before.snapshot)) {
         ours(actualOut);
         return;
     }
@@ -397,6 +418,7 @@ void __fastcall ReadFloat16x3Verify(DeltaField* self, void*, float* values) {
 // 0047EAE0: PUSH ESI (1), MOV ESI,ECX (2), MOV ECX,[ESI+0x10] (3).
 int(__fastcall* s_getBit)(BitStream*);
 int __fastcall GetBitVerify(BitStream* reader) {
+    if (!IsMemoryStream(reader)) return delta::GetBit(reader);
     StreamCopy expected(reader);
     int expectedBit = s_getBit(&expected.stream);
     int actualBit = delta::GetBit(reader);
@@ -408,7 +430,7 @@ int __fastcall GetBitVerify(BitStream* reader) {
 // 0047EB20: PUSH EBP (1), MOV EBP,[ESP+0xC] (4). Only AL is the result.
 int(__fastcall* s_readDiff)(const void*, void*, std::uint32_t, BitStream*);
 bool __fastcall ReadDiffVerify(const void* old, void* data, std::uint32_t size, BitStream* reader) {
-    if (size > 0x10000) return delta::ReadDiff(old, data, size, reader);
+    if (size > 0x10000 || !IsMemoryStream(reader)) return delta::ReadDiff(old, data, size, reader);
     StreamCopy expected(reader);
     auto* buffer = static_cast<std::uint8_t*>(gamecrt::operator_new(size ? size : 1));
     bool expectedRet = (s_readDiff(old, buffer, size, &expected.stream) & 0xFF) != 0;
@@ -423,7 +445,7 @@ bool __fastcall ReadDiffVerify(const void* old, void* data, std::uint32_t size, 
 std::uint32_t(__fastcall* s_readRaw)(DeltaField*, void*, void*, std::uint32_t);
 std::uint32_t __fastcall ReadRawVerify(DeltaField* self, void*, void* data, std::uint32_t size) {
     BitStream* realReader = delta::Reader();
-    if (!realReader || size > 0x10000) return self->ReadRaw(data, size);
+    if (!realReader || size > 0x10000 || !IsMemoryStream(realReader)) return self->ReadRaw(data, size);
     StreamCopy reader(realReader);
     auto* buffer = static_cast<std::uint8_t*>(gamecrt::operator_new(size ? size : 1));
     delta::Reader() = &reader.stream;
@@ -456,7 +478,9 @@ bool SameStateHeader(const DeltaState* a, const DeltaState* b) {
 // 0047FB70: PUSH EBX (1), PUSH EDI (1), MOV EDI,ECX (2), XOR EBX,EBX (2). The field array is copied.
 void(__fastcall* s_reset)(DeltaState*);
 void __fastcall ResetVerify(DeltaState* self) {
-    if (self->fieldCount_ < 0 || self->fieldCount_ > 64) {
+    bool memory = IsMemoryStream(&self->header_[0]) && IsMemoryStream(&self->header_[1]);
+    for (int i = 0; memory && self->fieldCount_ <= 64 && i < self->fieldCount_; ++i) memory = IsMemoryField(&self->fields_[i]);
+    if (self->fieldCount_ < 0 || self->fieldCount_ > 64 || !memory) {
         self->Reset();
         return;
     }
@@ -499,6 +523,7 @@ DeltaField* __fastcall BeginFieldVerify(DeltaState* self, void*, int index) {
         return actual;
     }
     DeltaField* real = &self->fields_[index];
+    if (!IsMemoryField(real)) return self->BeginField(index);
     alignas(4) unsigned char raw[kStateHeader];
     auto* state = reinterpret_cast<DeltaState*>(raw);
     std::memcpy(state, self, kStateHeader);
@@ -529,6 +554,7 @@ void __fastcall SetModeVerify(DeltaState* self, void*, int deltaOnly) {
 // 0047FD80: PUSH ESI (1), MOV ESI,ECX (2), MOV ECX,[ESP+0xC] (4). The reader is copied.
 int(__fastcall* s_beginRead)(DeltaState*, void*, int, BitStream*);
 int __fastcall BeginReadVerify(DeltaState* self, void*, int second, BitStream* reader) {
+    if (!IsMemoryStream(reader)) return self->BeginRead(second, reader);
     alignas(4) unsigned char raw[kStateHeader];
     auto* state = reinterpret_cast<DeltaState*>(raw);
     std::memcpy(state, self, kStateHeader);
