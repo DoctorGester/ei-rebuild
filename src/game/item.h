@@ -7,6 +7,7 @@
 
 #include "engine_object.h"
 #include "item_db.h"
+#include "../lib/mfc.h"
 
 class CSpell;
 
@@ -87,6 +88,15 @@ public:
     // 006A06C0. Virtual slot 14: the same item as `other` (base comparison plus the weapon fields).
     BOOL IsSameAs(CItemWeapon* other);
 
+    // Names built from the prototype (item_names.cpp; virtual slots 17-20). Slot 17: the model
+    // name "<type>_<number>.<material name>.<variant>" (type "sw", "ax", ...; empty without a
+    // prototype or material). Slot 18: the first string of the prototype's string list (+0x20),
+    // else "". Slot 19: "unhuma" + slot 17. Slot 20: the picture name "initwe<type><number>weapon".
+    mfc::CString ModelName();       // 006A0840
+    mfc::CString FirstListName();   // 006A0F70
+    mfc::CString FigureName();      // 006A2750
+    mfc::CString PictureName();     // 006A27E0
+
     std::uint32_t unknown_4C;
     float damage_;          // +0x50 prototype +0x90
     float damageSpread_;    // +0x54 prototype +0x94
@@ -102,6 +112,37 @@ public:
 
     // 006A31A0. 2 for armor types 0, 1 and 2, 1 for every other type.
     int GetTypeGroup();
+
+    // The same four names as CItemWeapon's (item_names.cpp), with the armor types ("hl", "pl",
+    // ...) and the picture name "initar<type><number>armor".
+    mfc::CString ModelName();       // 006A3240
+    mfc::CString FirstListName();   // 006A36A0
+    mfc::CString FigureName();      // 006A3720
+    mfc::CString PictureName();     // 006A37B0
+};
+
+// vtable 00743EAC, GetClassId 0x13 (potions, wands).
+class CItemQuick : public CItem {
+public:
+    // 006A3CD0. Slot 19: "qitem<number>.<material name>" when the prototype's +0x10 name is not
+    // "none" ("uq" for a material out of range), else "qitem<number>" (-1 without a prototype).
+    mfc::CString FigureName();
+    // 006A4040. Slot 20: "initqi<number>item".
+    mfc::CString PictureName();
+};
+
+// vtable 00743F04, GetClassId 0x14.
+class CItemQuest : public CItem {
+public:
+    mfc::CString FigureName();      // 006A45C0 "quitem<number>"
+    mfc::CString PictureName();     // 006A47B0 "initqu<number>item"
+};
+
+// vtable 00743FB4, GetClassId 0x16: a scroll (spell container).
+class CItemSpell : public CItem {
+public:
+    // 006A5820. Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
+    mfc::CString FigureName();
 };
 
 // vtable 00743F5C, GetClassId 0x15.
@@ -110,6 +151,15 @@ public:
     // 006A5470. Virtual slot 16: the base price. Depends on what the loot stands for (kind_):
     // itself (price_), a material, or a record of another database (recordType_).
     float GetPrice();
+
+    // 006A4B90. Slot 19, by kind_: a record's name ("<type>_<number>.<variant>" for weapons and
+    // armors, "qitem", "prototype" (spells, +0x60), "modifier" + number), "material<index>", or
+    // "litem<number>" for the loot itself.
+    mfc::CString FigureName();
+    // 006A5030. Slot 20, the picture: "initwe..." / "initar..." / "initqi..." for records,
+    // "initqi1item" for spells and modifiers, "initlimt<index>item" for materials,
+    // "initlitr<number>item" for the loot itself.
+    mfc::CString PictureName();
 
     std::uint32_t kind_;        // +0x4C 0 own price, 1 material, 2 record of recordType_
     std::uint32_t recordType_;  // +0x50 0 weapon, 1 armor, 2 quick item, 3 spell, 4 spell modifier

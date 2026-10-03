@@ -94,6 +94,10 @@ def stack_bytes(und):
     if conv == 'cdecl':
         return conv, 0
     sizes = [param_size(p) for p in params]
+    # A class returned by value (e.g. mfc::CString, which has a destructor) goes through a hidden
+    # pointer pushed after the arguments; the callee pops it with them (__thiscall, __stdcall).
+    if conv in ('thiscall', 'stdcall') and re.search(r'(?:^|\s)class\s+[\w:<>, ]+?\s+__' + conv + r'\b', und):
+        sizes.append(4)
     if None in sizes:
         return None
     if conv == 'fastcall':
