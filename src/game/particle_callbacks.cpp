@@ -4130,3 +4130,120 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00496840, CParticleSource::UpdateStartTrans);
+
+// --- Nuke emission; its update and element tick are 00489190 / 004892E0 ---------------------------
+
+namespace {
+
+// base ^ exponent as VC6 inlines pow for this call: FLDLN2; FLD base; FYL2X; FIMUL exponent;
+// FLDL2E; FMULP; then 2^x by FRNDINT / F2XM1 / FSCALE (left unrounded in ST0).
+__declspec(naked) double __cdecl PowInline(double /*base*/, int /*exponent*/) {
+    __asm {
+        fldln2
+        fld qword ptr [esp + 4]
+        fyl2x
+        fimul dword ptr [esp + 12]
+        fldl2e
+        fmulp st(1), st
+        fld st(0)
+        frndint
+        fxch st(1)
+        fsub st, st(1)
+        f2xm1
+        fld1
+        faddp st(1), st
+        fscale
+        fstp st(1)
+        ret
+    }
+}
+
+} // namespace
+
+// 00488F90. Nuke: a puff at a random point of the disc of a fifth of the source's size, at a
+// random height up to twice the size, drifting outwards and up (less as the blast ages: element
+// 0's tick); later puffs live shorter, start at a later frame and are more opaque (4 ^ tick * 4,
+// capped at 255).
+int CParticleSource::EmitNuke(Particle* p, int) {
+    int tick = elements[0].ticks;
+    int rise = 11 - tick;
+    float fifth = Store(D(size) * D(GameFloat(0x0073BAD4)));
+    float reach = Store(Unsigned(Next()) * D(fifth) * EI_P_SCALE_1);
+    float turn = Store(GameDouble(0x0073CAE8) + GameDouble(0x0073CAE8));    // 2 pi
+    double angle = Unsigned(Next()) * D(turn) * EI_P_SCALE_1;
+    volatile double s = x87::fsin(angle);    // kept as a double, as the original
+    p->pos.x = Store(D(reach) * s + D(origin.x));
+    volatile double c = x87::fcos(angle);
+    p->pos.y = Store(D(reach) * c + D(origin.y));
+    float top = Store(D(size) + D(size));
+    p->pos.z = Store(Unsigned(Next()) * D(top) * EI_P_SCALE_1 + D(origin.z));
+    p->size = Store(D(size) * D(GameFloat(0x0073BAD4)));
+    p->drift.x = Store(s);
+    p->drift.y = Store(c);
+    p->drift.z = Store(static_cast<double>(rise) * D(size) * D(GameFloat(0x0073B850)));
+    p->life = rise + 30;
+    p->frame = elements[0].ticks / 3;
+    std::uint32_t a = static_cast<std::uint32_t>(
+        GameFtol(PowInline(D(GameFloat(0x0073CB24)), elements[0].ticks) * GameDouble(0x0073CCE8)));
+    if (a > 0xFF) a = 0xFF;
+    p->state = 0;
+    p->color = (a << 24) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00488F90, CParticleSource::EmitNuke);
+
+// --- Tendril emission (EmitSmoke spread over the extent and laid on the ground) ------------------
+
+// 0048ED60. A smoke puff (EmitSmoke), moved by one random amount in [-1, 1) times the extent in x
+// and y, and set its own height above the ground there.
+int CParticleSource::EmitTendril(Particle* p, int index) {
+    if (!EmitSmoke(p, index)) return 0;
+    double u = Unsigned(Next()) * EI_P_SCALE_2 - D(EI_P_ONE);
+    p->pos.x = Store(u * D(extent.x) + D(p->pos.x));
+    p->pos.y = Store(u * D(extent.y) + D(p->pos.y));
+    double ground = GroundHeight(p->pos.x, p->pos.y);
+    p->pos.z = Store(D(p->pos.z) - D(origin.z) + ground);
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048ED60, CParticleSource::EmitTendril);
+
+// --- Ground dust (0x203A / 0x203B) emission ------------------------------------------------------
+
+namespace {
+
+const float* DustAxisX() { return reinterpret_cast<const float*>(0x0078AAB8); }    // (+-0.707) by quadrant
+const float* DustAxisY() { return reinterpret_cast<const float*>(0x0078AAC8); }
+
+} // namespace
+
+// 00493300. Ground dust: the first 128 particles of a tick run out on a circle (index * 0.049
+// radians, step 0.1); the others along the four diagonals (by 32, step index * 1/310). All at the
+// source, in element 0's colour, 6 ticks.
+int CParticleSource::EmitGroundDust(Particle* p, int index) {
+    float a, b;
+    if (index >= 128) {
+        int j = index - 128;
+        int diagonal = j / 32;
+        double fu = static_cast<double>(j & 31) * D(GameFloat(0x0073CF3C));
+        float f = Store(fu);
+        a = Store(fu * D(DustAxisX()[diagonal]));
+        b = Store(D(f) * D(DustAxisY()[diagonal]));
+    } else {
+        double fu = static_cast<double>(index) * D(GameFloat(0x0073CF38));
+        float f = Store(fu);
+        a = Store(x87::fsin(fu) * GameDouble(0x0073CF30));
+        b = Store(x87::fcos(D(f)) * GameDouble(0x0073CF30));
+    }
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0);
+    p->life = 6;
+    p->velocity.x = a;
+    p->frame = 15;
+    p->velocity.y = b;
+    SetBits(&p->velocity.z, 0);
+    SetBits(&p->unknown_2C, 0x3D8F5C29);     // 0.07
+    p->color = static_cast<std::uint32_t>(*ElementInt(elements, 0x30));
+    SetBits(&p->unknown_30, 0x3F800000);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00493300, CParticleSource::EmitGroundDust);

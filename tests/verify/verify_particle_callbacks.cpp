@@ -333,3 +333,12 @@ EI_EMIT_WRAPPER(EmitStartTrans)
 EI_VERIFY(0x004965E0, EmitStartTransVerify, 5, s_EmitStartTrans);
 EI_UPDATE_WRAPPER(UpdateStartTrans)
 EI_VERIFY(0x00496840, UpdateStartTransVerify, 8, s_UpdateStartTrans);
+
+// 00488F90: SUB ESP,0x20; PUSH EBX; PUSH EBP (5). 0048ED60: MOV EAX,[ESP+8]; SUB ESP,8 (7).
+// 00493300: MOV EAX,[ESP+8]; SUB ESP,0xC (7).
+EI_EMIT_WRAPPER(EmitNuke)
+EI_VERIFY(0x00488F90, EmitNukeVerify, 5, s_EmitNuke);
+EI_EMIT_WRAPPER(EmitTendril)
+EI_VERIFY(0x0048ED60, EmitTendrilVerify, 7, s_EmitTendril);
+EI_EMIT_WRAPPER(EmitGroundDust)
+EI_VERIFY(0x00493300, EmitGroundDustVerify, 7, s_EmitGroundDust);

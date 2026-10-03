@@ -228,6 +228,9 @@ public:
     int UpdateCurseStars(Particle* p);              // 004964B0
     int EmitStartTrans(Particle* p, int index);     // 004965E0 (StartTrans)
     int UpdateStartTrans(Particle* p);              // 00496840
+    int EmitNuke(Particle* p, int index);           // 00488F90 (Nuke)
+    int EmitTendril(Particle* p, int index);        // 0048ED60
+    int EmitGroundDust(Particle* p, int index);     // 00493300 (0x203A, 0x203B)
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
