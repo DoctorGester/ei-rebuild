@@ -1,4 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-# CreateForType: type 0x2005 differs at source +0x1EC (texture) in 1 of ~90 calls; sent back
-00485540  CParticleSource::CreateForType
