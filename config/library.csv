@@ -2782,3 +2782,13 @@ address,name,library,signature,notes
 00598E40,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),instantiation: {0; table}
 00598E60,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),instantiation: {0; table}
 0059BAD0,stlp::_Ht_iterator::_M_skip_to_next,STLport,node* __thiscall(),instantiation
+0059B8F0,CArray<CRefPtr>::Copy,MFC,void __thiscall(const CArray&),instantiation (vtable 0073FAC8): SetSize then element-wise counted assignment
+0059C890,DestructElements<CRefPtr>,MFC,"void __stdcall(CRefPtr*,int)",instantiation: releases each pointer (slot 4)
+0059CA60,CList<SharedObject>::NewNode,MFC,"node* __thiscall(node*,node*)",instantiation (0x28-byte nodes; ConstructElements 0059E330)
+0059CAD0,CList<SharedObject>::FreeNode,MFC,void __thiscall(node*),instantiation (DestructElements 00594950; RemoveAll when the count drops to 0)
+00599FA0,CList<CRefPtr>::AddTail,MFC,node* __thiscall(CEngineObject*),instantiation (world counted_ list): NewNode inline and a counted assignment
+0059CB50,CArray<T*>::SetSize,MFC,"void __thiscall(int,int)",instantiation (plain elements)
+0059CCE0,CArray<T*>::SetSize,MFC,"void __thiscall(int,int)",instantiation (plain elements)
+0059C510,CArray<Placement>::SetAtGrow,MFC,"void __thiscall(int,const Placement&)",instantiation (0x28-byte elements; ConstructElements 004CEE20)
+0059C810,CList<T>::FreeNode,MFC,void __thiscall(node*),instantiation (DestructElements 0059B4B0)
+0059D5F0,CList<T>::NewNode,MFC,"node* __thiscall(node*,node*)",instantiation (ConstructElements 0059E390)
