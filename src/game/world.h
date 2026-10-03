@@ -280,6 +280,10 @@ public:
     // exits, command queues, missiles, counted objects, the players' zone data, every object
     // (slot 5 then the maps), timed objects, the zone names and three managers.
     void ResetZone();
+    // 005957E0. Before every game state request: every player leaves, the shared objects, .mob
+    // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
+    // base class's teardown (0055F890); the game result and kind are cleared.
+    void TeardownZone();
 
     // world_update.cpp
     // 0058DFF0, vtable slot 6. One world update: drops disconnected players and lets the others'

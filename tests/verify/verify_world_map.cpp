@@ -36,3 +36,16 @@ static void __fastcall ResetZoneVerify(CWorldServer* self, void*) {
                       static_cast<unsigned>(self->timedObjects_.map.Size()));
 }
 EI_VERIFY(0x0058B250, ResetZoneVerify, 0, s_unused);
+
+// 005957E0: afterwards no player is left, the missile list and the timed objects are empty and the
+// game kind is 0.
+static void __fastcall TeardownZoneVerify(CWorldServer* self, void*) {
+    self->TeardownZone();
+    PlayerIterator it;
+    bool noPlayers = it.First(self->players_) == nullptr;
+    bool ok = noPlayers && !self->projectiles_.list.head && self->timedObjects_.map.Size() == 0 &&
+              self->unknown12D64_ == 0 && self->gameResult_ == 0;
+    ei::verify::Check("CWorldServer::TeardownZone", true, ok, "players gone %d, timed %u", noPlayers,
+                      static_cast<unsigned>(self->timedObjects_.map.Size()));
+}
+EI_VERIFY(0x005957E0, TeardownZoneVerify, 0, s_unused);

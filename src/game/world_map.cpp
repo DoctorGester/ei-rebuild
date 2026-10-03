@@ -32,8 +32,8 @@ __declspec(naked) void __fastcall RefRelease(void*, void*) EI_ORIGINAL(0x0040A3A
 // Rewritten elsewhere, through their addresses: ClearMapObjects / LoadMapObjects (world_zone).
 __declspec(naked) void __fastcall ClearMapObjectsAt(CWorldServer*, void*) EI_ORIGINAL(0x00596C60)
 __declspec(naked) int __fastcall LoadMapObjectsAt(CWorldServer*, void*, const char*, int) EI_ORIGINAL(0x00596030)
-// 0058B250. Saves the current zone's state (saves\current) before another .mob is loaded.
-__declspec(naked) void __fastcall SaveZoneState(CWorldServer*, void*) EI_ORIGINAL(0x0058B250)
+// 0058B250. ResetZone (rewritten below), through its address.
+__declspec(naked) void __fastcall ResetZoneAt(CWorldServer*, void*) EI_ORIGINAL(0x0058B250)
 // 005951A0. A fresh zone's start (players placed, scripts started).
 __declspec(naked) void __fastcall StartFreshZone(CWorldServer*, void*) EI_ORIGINAL(0x005951A0)
 
@@ -100,7 +100,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fr
         *LoadedFresh(this) = fromSave == 0;
         *reinterpret_cast<int*>(raw + 0x2804) = 0;
     } else {
-        SaveZoneState(this, nullptr);
+        ResetZoneAt(this, nullptr);
         *KeepsState(this) = true;
         *LoadedFresh(this) = fromSave == 0;
     }
@@ -223,5 +223,69 @@ void CWorldServer::ResetZone() {
     if (manager44_) ManagerClear(manager44_, nullptr);
 }
 
+// ---- TeardownZone -----------------------------------------------------------------------------
+
+namespace {
+
+__declspec(naked) void __fastcall PlayerDisconnect(WorldPlayer*, void*) EI_ORIGINAL(0x00665A10)
+__declspec(naked) void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*) EI_ORIGINAL(0x0066C1D0)
+// 0059A100. The shared-object element's object array destructor.
+__declspec(naked) void __fastcall ObjectPtrArrayDestruct(void*, void*) EI_ORIGINAL(0x0059A100)
+// 0055F890. CWorld's own teardown (base class).
+__declspec(naked) void __fastcall WorldBaseTeardown(CWorldServer*, void*) EI_ORIGINAL(0x0055F890)
+
+} // namespace
+
+void CWorldServer::TeardownZone() {
+    // Every player leaves (the list is walked from its start again after each one).
+    PlayerIterator it;
+    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player;
+         player = it.First(ei::VCall<CEngineObject*>(this, 20))) {
+        PlayerDisconnect(player, nullptr);
+        PlayerListRelease(ei::VCall<CEngineObject*>(this, 20), nullptr, player);
+        if (it.list) --it.list->refCount_;
+        it.list = nullptr;
+    }
+    if (it.list) --it.list->refCount_;
+    it.list = nullptr;
+    unknown15C_ = 0;
+
+    auto& shared = *reinterpret_cast<mfc::CTypedPtrList<void>*>(reinterpret_cast<std::uint8_t*>(this) + 0x12E60);
+    for (auto* node = shared.head; node; node = node->next)
+        ObjectPtrArrayDestruct(reinterpret_cast<std::uint8_t*>(node) + 0x14, nullptr);
+    shared.count = 0;
+    shared.free = nullptr;
+    shared.tail = nullptr;
+    shared.head = nullptr;
+    mfc::PlexFreeDataChain(shared.blocks);
+    shared.blocks = nullptr;
+    StringArraySetSize(&mobFiles_, nullptr, 0, -1);
+    aiMap_[2] = 0;   // CAIMap +0x172: refreshes off
+    CommandQueueReset(commandsA_, nullptr);
+    CommandQueueReset(commandsB_, nullptr);
+    DiplomacyReset(diplomacy_, nullptr);
+    ClearMapObjectsAt(this, nullptr);
+
+    // The missiles' counted pointers, released inline (16-bit count at +4, slot 0 deletes).
+    auto& missiles = projectiles_.list;
+    for (auto* node = missiles.head; node; node = node->next) {
+        auto* missile = reinterpret_cast<std::uint8_t*>(node->data);
+        if (missile && --*reinterpret_cast<std::int16_t*>(missile + 4) == 0 && missile)
+            ei::VCall<void>(missile, 0, 1u);
+    }
+    missiles.count = 0;
+    missiles.free = nullptr;
+    missiles.tail = nullptr;
+    missiles.head = nullptr;
+    mfc::PlexFreeDataChain(missiles.blocks);
+    missiles.blocks = nullptr;
+
+    EndTimedObjects(this);
+    WorldBaseTeardown(this, nullptr);
+    gameResult_ = 0;
+    unknown12D64_ = 0;
+}
+
 EI_REPLACE_METHOD(0x00595C70, CWorldServer::LoadMap);
+EI_REPLACE_METHOD(0x005957E0, CWorldServer::TeardownZone);
 EI_REPLACE_METHOD(0x0058B250, CWorldServer::ResetZone);
