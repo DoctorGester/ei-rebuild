@@ -15,6 +15,10 @@ def main():
             sizes[int(m.group(1), 16)] = int(m.group(2))
     game = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'functions.csv')))
             if r['kind'] == 'game'}
+    # Library code identified later (STLport/MFC/CRT instantiations named in config/library.csv) is not
+    # game code to port: the standalone build links its own runtime.
+    library = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'library.csv')))}
+    game -= library
     game_bytes = sum(sizes.get(a, 0) for a in game)
 
     replaced = set()
