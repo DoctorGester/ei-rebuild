@@ -10,6 +10,7 @@
 #include "../../src/game/map_object.h"
 #include "../../src/game/unit.h"
 
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 
 #include <bit>
@@ -223,6 +224,29 @@ static int __fastcall ClientUpdateVerify(CMapObjectClientSpecific* self) {
 EI_VERIFY(0x00510890, ClientUpdateVerify, 0, s_unusedClientUpdate);
 
 // --- Effects ---------------------------------------------------------------------------------
+
+// 0050F1E0. Ours only (grows the array, calls the object's slots): the effect appended as the last
+// record (or, with Rebirth's FixSpellEffectsOverflow, older duplicates removed, and a 21st effect
+// dropped), part 3 changed, the object dirty.
+static void* s_unusedAddEffect;
+static std::uintptr_t __fastcall AddEffectVerify(CMapObject* self, void*, const MapEffect* effect) {
+    int before = self->effectCount;
+    MapEffect copy;
+    std::memcpy(&copy, effect, sizeof(copy));
+    std::uintptr_t result = self->AddEffect(effect);
+    int after = self->effectCount;
+    bool ok;
+    if (after == before) {
+        ok = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow) && before >= 20;
+    } else {
+        ok = after >= 1 && after <= before + 1 && std::memcmp(&self->effects[after - 1], &copy, sizeof(copy)) == 0 &&
+             (self->changedParts & 8) && (self->flags_ & 2);
+    }
+    ei::verify::Check("CMapObject::AddEffect", true, ok, "object %d type %X: effects %d -> %d", self->id_, copy.type,
+                      before, after);
+    return result;
+}
+EI_VERIFY(0x0050F1E0, AddEffectVerify, 0, s_unusedAddEffect);
 
 // 0050F5B0. Ours only (frees the array): no effects left, part 3 changed, the object dirty.
 static void* s_unusedClearEffects;

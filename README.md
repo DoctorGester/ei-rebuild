@@ -64,7 +64,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
 
-Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Harness runs
+Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
+`--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
+code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to the DLL does the same
+permanently, and a scenario can ask with `rebirthflags <names>`. Harness runs
 need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, settings are not written to the
 registry, and a game that hangs on exit (Rebirth) is ended 10 s after the scenario quits. When the game crashes,

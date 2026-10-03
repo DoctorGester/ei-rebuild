@@ -6,6 +6,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -289,6 +290,70 @@ __declspec(naked) int __cdecl GameFtol(double) {
 }
 
 } // namespace
+
+// 0060FAB0: prices (slot 54); CanEquip follows.
+
+// The products and differences keep the original's order (no reassociation under /fp:fast).
+#pragma float_control(precise, on, push)
+
+namespace {
+constexpr float kPriceZero = 0.0f;   // 0073B858
+constexpr float kPriceOne = 1.0f;    // 0073B84C
+
+// Slot 16 of an item: its base price, left unrounded in ST0.
+double ItemPrice(const std::uint8_t* item) {
+    using PriceFn = double(__thiscall*)(const std::uint8_t*);
+    void** vtable;
+    std::memcpy(&vtable, item, sizeof(vtable));
+    return reinterpret_cast<PriceFn>(vtable[16])(item);
+}
+
+float Field(const void* object, int offset) {
+    float v;
+    std::memcpy(&v, static_cast<const char*>(object) + offset, sizeof(v));
+    return v;
+}
+
+// How worn the item is: 1 - durability (+0x20) / maximum (+0x24). Rebirth's FixRepairPrice treats a
+// negative (or NaN) durability or maximum as 0 and clamps the result to [0, 1] (NaN stays).
+float WornFraction(const std::uint8_t* item) {
+    float durability = Field(item, 0x20), maximum = Field(item, 0x24);
+    if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
+        return static_cast<float>(static_cast<double>(kPriceOne) - static_cast<double>(durability) / maximum);
+    float a = kPriceZero < durability ? durability : kPriceZero;
+    float b = kPriceZero < maximum ? maximum : kPriceZero;
+    double worn = static_cast<double>(kPriceOne) - static_cast<double>(a) / b;
+    if (worn > kPriceOne) return kPriceOne;
+    if (worn < kPriceZero) return kPriceZero;
+    return static_cast<float>(worn);
+}
+} // namespace
+
+int CCampPages::Price(std::uint8_t* item, int kind) {
+    const float* multipliers = reinterpret_cast<const float*>(reinterpret_cast<const char*>(this) + 0x21C);
+    float repair = kPriceZero;
+    int type = ItemType(item);
+    if (type == 0x3004 || type == 0x3005 || kind == 8) {
+        float worn = WornFraction(item);
+        repair = static_cast<float>(ItemPrice(item) * multipliers[8] * worn);
+        if (kind == 8) {
+            if (!(worn < kPriceZero || worn > kPriceZero)) return 0;                // FCOMP; TEST AH,0x40
+            if (!(multipliers[8] < kPriceZero || multipliers[8] > kPriceZero)) return 0;
+            int price = GameFtol(D(repair));
+            return price > 0 ? price : 1;
+        }
+    }
+    if (type == 0x3004 || type == 0x3005) return GameFtol(ItemPrice(item) * multipliers[kind] - repair);
+    return GameFtol(ItemPrice(item) * multipliers[kind]);
+}
+
+#pragma float_control(pop)
+
+namespace {
+int __fastcall CampPrice(CCampPages* self, void*, std::uint8_t* item, int kind) { return self->Price(item, kind); }
+} // namespace
+EI_REPLACE(0x0060FAB0, CampPrice);
+EI_REBIRTH_IMPLEMENTS(0x0060FAB0, ei::rebirth::Patch::FixRepairPrice);
 
 bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
     CampKinds* kinds = reinterpret_cast<CampKinds*>(this);

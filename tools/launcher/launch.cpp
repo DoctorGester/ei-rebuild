@@ -3,9 +3,11 @@
 // ei_hook.dll into it before the game's own code runs. Nothing in the game folder is modified.
 //
 // usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>]
-//                  [--harness <scenario.txt>] [--wait] [--no-hooks] [game args...]
+//                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [game args...]
 // --no-hooks loads ei_hook.dll (so the harness still runs) but installs none of the rewritten
 // functions: a baseline run of the original code.
+// --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
+// "all", or patch names separated by commas, each optionally =0/=1.
 #include <windows.h>
 
 #include <cstdio>
@@ -39,6 +41,7 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--harness" && i + 1 < argc) harness = argv[++i];
         else if (a == L"--wait") wait = true;
         else if (a == L"--no-hooks") SetEnvironmentVariableW(L"EI_NO_HOOKS", L"1");
+        else if (a == L"--rebirth" && i + 1 < argc) SetEnvironmentVariableW(L"EI_REBIRTH", argv[++i]);
         else gameArgs += L" \"" + a + L"\"";
     }
     wchar_t full[MAX_PATH];

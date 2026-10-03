@@ -1,6 +1,7 @@
 #include "sector_map.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 
 #include <cstring>
@@ -17,6 +18,7 @@ float PosY(const CEngineObject* o) { return *reinterpret_cast<const float*>(rein
 CUnit* AsUnit(CEngineObject* o) { return static_cast<CUnit*>(o); }
 
 constexpr float kCellSize = 1.0f;   // 0073FDD0
+constexpr float kZero = 0.0f;
 } // namespace
 
 bool CSectorMap::Add(CEngineObject* object) {
@@ -114,6 +116,10 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
 EI_REPLACE_METHOD(0x005C0BD0, CSectorMap::FindUnitsInRadius);
 
 bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
+    // Rebirth's FixMoveObject runs before the original: no move to a negative (or NaN) x or y.
+    // (It also logs the refusal and failed moves to addon.log; nothing the game shows.)
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= kZero) || !(position->y >= kZero)))
+        return false;
     CUnit* unit = AsUnit(object);
     Vector3& current = *reinterpret_cast<Vector3*>(reinterpret_cast<char*>(object) + 0x1C);
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
@@ -152,3 +158,4 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
     return true;
 }
 EI_REPLACE_METHOD(0x005C11D0, CSectorMap::Move);
+EI_REBIRTH_IMPLEMENTS(0x005C11D0, ei::rebirth::Patch::FixMoveObject);

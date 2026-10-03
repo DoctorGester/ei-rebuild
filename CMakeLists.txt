@@ -22,6 +22,7 @@ add_library(ei_hook SHARED
     src/hook/dllmain.cpp
     src/hook/hook.cpp
     src/hook/paths.cpp
+    src/hook/rebirth_hook.cpp
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 if(EI_VERIFY)

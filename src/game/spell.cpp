@@ -1,6 +1,7 @@
 #include "spell.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -116,11 +117,15 @@ bool CSpell::IsOffensive() {
     case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8:
     case 0x11: case 0x13: case 0x19: case 0x1E: case 0x20: case 0x22: case 0x24: case 0x26:
         return true;
+    case 0x28: case 0x29:   // Rebirth's new spells (its table runs to 0x29)
+        return ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting);
     default:
         return false;
     }
 }
 EI_REPLACE_METHOD(0x0068B770, CSpell::IsOffensive);
+// Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit (00638EF0, original).
+EI_REBIRTH_IMPLEMENTS(0x0068B770, ei::rebirth::Patch::FixSpellSelfCasting);
 
 bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) {
     std::uint32_t flags = targetFlags_ & 0xFFFF;

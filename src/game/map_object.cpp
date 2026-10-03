@@ -3,6 +3,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 
 #include <bit>
@@ -48,6 +49,67 @@ int CMapObject::Update() {
 EI_REPLACE_METHOD(0x0050F1C0, CMapObject::Update);
 
 // --- Effects ---------------------------------------------------------------------------------
+
+namespace {
+// 0050FE70: CArray<MapEffect>::SetSize(newSize, growBy) (thiscall on the array at +0x194).
+struct EffectArray {
+    void SetSize(int size, int growBy);
+};
+__declspec(naked) void EffectArray::SetSize(int, int) EI_ORIGINAL(0x0050FE70)
+
+constexpr int kRebirthMaxEffects = 20;
+constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
+
+float FloatBits(std::uint32_t bits) { return std::bit_cast<float>(bits); }
+
+// Rebirth (addon.dll 100181D5): after adding `effect`, older effects (not the new last one) of
+// the same type and end flag whose +0x0C is within 0.001 of the new one's, that last no longer and
+// whose value is not above it, are removed. The loop steps on after a removal (the next record,
+// moved into the gap, is not looked at) and reads the count each time.
+void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
+    for (int i = 0; i < object->effectCount - 1; ++i) {
+        MapEffect* e = &object->effects[i];
+        if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
+        if (!(FloatBits(effect->value) >= FloatBits(e->value))) continue;   // FCOMPP; TEST AH,1
+        if (e->ending != effect->ending) continue;
+        float difference = FloatBits(e->unknown_0C) - FloatBits(effect->unknown_0C);
+        float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
+        if (!(static_cast<double>(distance) < kRebirthSameStrength)) continue;
+        std::memmove(e, e + 1, (object->effectCount - i - 1) * sizeof(MapEffect));
+        --object->effectCount;
+    }
+}
+} // namespace
+
+std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
+    bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
+    if (rebirth && effectCount >= kRebirthMaxEffects) return 0;   // addon.dll drops it (and logs)
+    int count = effectCount;
+    reinterpret_cast<EffectArray*>(&effectsVtable)->SetSize(count + 1, -1);
+    std::memcpy(&effects[count], effect, sizeof(MapEffect));
+    changedParts = static_cast<std::uint16_t>(changedParts | 8);   // part 3
+    flags_ |= kFlagDirty;
+    if (refCount_ != 0) {
+        if (void* world = World()) changeStamp = *reinterpret_cast<const int*>(static_cast<const char*>(world) + 0x68);
+    }
+    // The original keeps the flag in the low byte of its argument's stack slot and passes the whole
+    // dword to slot 33.
+    int type = effect->type;
+    bool scales = type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
+                  type == mapeffect::kShrink;
+    std::uint32_t argument = (static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(effect)) & ~0xFFu) | (scales ? 1u : 0u);
+    ei::VCall<int>(this, mapslot::kScaleEffectChanged, argument);
+    if (effect->type == mapeffect::kStun || effect->type == mapeffect::kStun2) ei::VCall<int>(this, mapslot::kSetStunned, 1);
+    std::uintptr_t result = ei::VCall<std::uintptr_t>(this, mapslot::kEffectsChanged);
+    if (scales) result = ei::VCall<std::uintptr_t>(this, mapslot::kRecomputeScale);
+    else result &= ~0xFFu;   // MOV AL,[ESP+0x14] (the flag, 0)
+    if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
+    return result;
+}
+EI_REPLACE_METHOD(0x0050F1E0, CMapObject::AddEffect);
+// Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is
+// in CWorldServer::UpdateUnits (0058D670, original).
+EI_REBIRTH_IMPLEMENTS(0x0050F1E0, ei::rebirth::Patch::FixSpellEffectsOverflow);
 
 std::uintptr_t CMapObject::ClearEffects() {
     if (effects) {
