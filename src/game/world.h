@@ -264,11 +264,15 @@ public:
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
 
+    // world_game.cpp
+    // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
+    mfc::CString* ZoneNameInto(mfc::CString* out);
+
     // world_map.cpp
     // 00595C70 (RET 0x10). Loads map `map` (when it changed; CAIMap 005B43C0) and the AI layer
     // state from `graph`, then the zone: the same .mob again starts it over (queues, diplomacy,
-    // map objects, missiles and timed objects cleared), another one first saves the current
-    // zone's state (0058B250); every player is marked dirty; the .mob objects are loaded (fresh
+    // map objects, missiles and timed objects cleared), another one first empties the
+    // world (ResetZone 0058B250); every player is marked dirty; the .mob objects are loaded (fresh
     // zones start, 005951A0). From a save the loaded objects are cleared again (the save holds
     // them). Returns 1, 0 when the map or the objects cannot be loaded.
     int LoadMap(const char* map, const char* mob, void* graph, char fromSave);

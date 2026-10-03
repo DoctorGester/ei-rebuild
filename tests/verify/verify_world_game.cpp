@@ -40,6 +40,40 @@ static int __stdcall EnterZoneVerify(std::uint8_t* records) {
 }
 EI_VERIFY(0x0057A060, EnterZoneVerify, 0, s_unused);
 
+using ZoneNameFn = mfc::CString*(__fastcall*)(CWorldServer*, void*, mfc::CString*);
+static ZoneNameFn s_originalZoneName;
+
+// 0057AA80: the original copies into a scratch CString; both share the zone name's buffer.
+static mfc::CString* __fastcall ZoneNameVerify(CWorldServer* self, void*, mfc::CString* out) {
+    alignas(4) unsigned char storage[sizeof(mfc::CString)];
+    auto* scratch = reinterpret_cast<mfc::CString*>(storage);
+    mfc::CString* expected = s_originalZoneName(self, nullptr, scratch);
+    mfc::CString* result = self->ZoneNameInto(out);
+    const char* a = *scratch;
+    const char* b = *out;
+    ei::verify::Check("CWorldServer::ZoneNameInto", reinterpret_cast<std::uintptr_t>(a), reinterpret_cast<std::uintptr_t>(b),
+                      "%s", b);
+    ei::verify::Check("CWorldServer::ZoneNameInto(result)", expected == scratch, result == out, "");
+    scratch->~CString();
+    return result;
+}
+EI_VERIFY(0x0057AA80, ZoneNameVerify, 6, s_originalZoneName);
+
+int __stdcall LeaveZone(std::uint8_t* records);   // world_game.cpp
+
+// 0057A780: a reported save has its saves\current\<zone>.sav.
+static int __stdcall LeaveZoneVerify(std::uint8_t* records) {
+    auto* world = reinterpret_cast<CWorldServer*>(0x007AFF60);
+    char path[MAX_PATH];
+    std::snprintf(path, sizeof(path), "%ssaves\\current\\%s.sav", *reinterpret_cast<char* const*>(0x007AF460),
+                  world->zoneName_ ? world->zoneName_ : "");
+    int result = LeaveZone(records);
+    bool exists = GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    ei::verify::Check("LeaveZone", true, result == 0 || exists, "%s -> %d", path, result);
+    return result;
+}
+EI_VERIFY(0x0057A780, LeaveZoneVerify, 0, s_unused);
+
 int __stdcall StartNetworkZone(const char* zone);   // world_game.cpp
 
 // 0057BDF0: on success every exit of the world leads to "MPGame1".

@@ -669,6 +669,87 @@ int __stdcall StartNetworkZone(const char* zone) {
     return 1;
 }
 
+// ---- LeaveZone --------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kCantWrite = 0x007905A0;   // "Can`t write to %s"
+
+// 00410860 (RET 4). The globals (0079B2A8) note the campaign's progress.
+__declspec(naked) void __fastcall GlobalsSetStage(void*, void*, int) EI_ORIGINAL(0x00410860)
+// 005956E0. CWorldServer: prepares the zone for saving.
+__declspec(naked) void __fastcall WorldBeforeSave(CWorldServer*, void*) EI_ORIGINAL(0x005956E0)
+// 0057AA80 (RET 4). CWorldServer::ZoneNameInto (rewritten below), through its address.
+__declspec(naked) mfc::CString* __fastcall ZoneNameAt(CWorldServer*, void*, mfc::CString*) EI_ORIGINAL(0x0057AA80)
+// 00460BC0 (RET 8). Named float table Set.
+__declspec(naked) void __fastcall VariableSetAt(void*, void*, const char*, float) EI_ORIGINAL(0x00460BC0)
+
+} // namespace
+
+mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
+    new (out) mfc::CString(*reinterpret_cast<const mfc::CString*>(&zoneName_));
+    return out;
+}
+
+// 0057A060's counterpart (__stdcall, RET 4; from the state machine): saves the current zone into
+// saves\current\<zone>.sav (SaveWorld, header 0x102) and records in the party's variables that
+// it was visited (zs.<zone> = 1) and when it was left (zt.<zone> = gtime). Returns 1, 0 when the
+// file cannot be written (after FatalError).
+int __stdcall LeaveZone(std::uint8_t* records) {
+    LocalFileStream file;
+    mfc::CString path;   // [0x04]
+    alignas(4) unsigned char zoneStorage[sizeof(mfc::CString)];
+    mfc::CString& zone = *ZoneNameAt(World(), nullptr, reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
+    struct ZoneOwner {
+        mfc::CString* s;
+        ~ZoneOwner() { s->~CString(); }
+    } zoneOwner{&zone};
+    // `path` must be destroyed after `zone`, as the original does: it is declared first.
+
+    if (Campaign() == 1) GlobalsSetStage(kGlobals, nullptr, 7);
+    else if (Campaign() == 3) GlobalsSetStage(kGlobals, nullptr, 6);
+    path.Format(Text(kCurrentFolder), GameFolder());
+    {
+        mfc::CString fileName = zone + Text(kSaveExtension);
+        path += fileName;
+    }
+    if (!file.Open(path, kOpenWrite, 0)) {
+        game::FatalError(Text(kCantWrite), static_cast<const char*>(path));
+        return 0;
+    }
+    WorldBeforeSave(World(), nullptr);
+    CMemoryStream data;
+    std::memset(&data, 0, sizeof(data));
+    data.unknown_8 = kStreamLimit;
+    data.ok_ = 1;
+    data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    data.data_ = nullptr;
+    data.Reset();
+    data.unknown_8 = static_cast<std::uint32_t>(SaveVersion());
+    SaveWorldAt(World(), nullptr, &data);
+    WriteSaveFile(&file.stream, kMagicMission, SaveVersion(), &data);
+    file.Close();
+
+    void* variables = records + kRecordsVariables;
+    {
+        mfc::CString prefix(Text(kVisitedPrefix));
+        mfc::CString variable = prefix + static_cast<const char*>(zone);
+        VariableSetAt(variables, nullptr, variable, 1.0f);
+    }
+    float now = StoreFloat(static_cast<float>(VariableGet(variables, nullptr, Text(kGTime))));
+    {
+        mfc::CString prefix(Text(kLeftPrefix));
+        mfc::CString variable = prefix + zone;
+        VariableSetAt(variables, nullptr, variable, now);
+    }
+    data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    if (data.data_) gamecrt::operator_delete(data.data_);
+    data.vtable_ = reinterpret_cast<void*>(kStreamVtable);
+    return 1;
+}
+
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
+EI_REPLACE_METHOD(0x0057AA80, CWorldServer::ZoneNameInto);
+EI_REPLACE(0x0057A780, LeaveZone);
 EI_REPLACE(0x0057A060, EnterZone);
 EI_REPLACE(0x0057BDF0, StartNetworkZone);
