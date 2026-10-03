@@ -59,6 +59,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
   `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
   window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
+- `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the
+  global map, 5 the camp); the camp's Esc returns to the game.
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
 
