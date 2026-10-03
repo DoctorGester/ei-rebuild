@@ -560,6 +560,11 @@ options windows), `src/game/ui_objectives.cpp` (objectives window), `COptionsWin
   (keys released, nodes to the 16-byte free list bucket by bucket, then the bucket storage).
 - Exits come from the map database record (+0x4C, 0x3C bytes, rectangle at +4..+0x10, target at
   +0x28), not the world's ZoneExit layout.
+- RefreshQuests (0064E8B0 -> 0064DC60, the selected quest's description) trims the sprites and
+  regions to 21 + exits and 9 + exits and then adds one sprite and one region per place of the
+  quest (8-byte points at +0x1CC..+0x1D0); it returns before that when there is no such quest.
+  The first verify wrapper expected exactly 21 + exits and 9 + exits and so reported a quest
+  with a place (gz1g, Rebirth run) as a mismatch; the wrappers now allow those places.
 
 ### Minimap (CHudMap)
 
