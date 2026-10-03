@@ -1,0 +1,118 @@
+# Battle HUD and Esc menu: start a new game, then move over and click the HUD panels (weapon bar,
+# top panel, unit panel, map, movement panel, portraits) and walk through the Esc menu's Options,
+# Load and Save windows, leaving each with Cancel or Esc. Coordinates are the 800x600 layout of the
+# original game (see docs/notes/ui.md, "Battle HUD"). Nothing here saves, loads, quits or plays a
+# movie; spell, action and quick-item buttons only get mouse moves (a click there would start a
+# targeting mode that the Esc key would then cancel instead of opening the menu).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+wait 1500
+
+# Mouse moves over every panel (each panel's move handler and the tooltips).
+move 100 560
+move 545 525
+move 545 575
+move 780 300
+move 20 300
+move 400 560
+move 400 50
+move 700 80
+move 90 120
+move 760 560
+move 40 560
+move 400 300
+wait 300
+
+# Weapon bar: slots 0 and 1, then back to 0.
+click 100 560
+wait 300
+click 140 560
+wait 300
+click 100 560
+wait 300
+
+# Top panel: page buttons 1 and 2 (back to 1), then the sling button twice.
+click 200 10
+wait 300
+click 230 10
+wait 300
+click 200 10
+wait 300
+click 400 10
+wait 1200
+click 400 10
+wait 1200
+
+# Unit panel: body parts head..legs, then the sling button twice.
+click 10 115
+wait 200
+click 10 145
+wait 200
+click 10 175
+wait 200
+click 10 205
+wait 200
+click 10 15
+wait 1200
+click 10 15
+wait 1200
+
+# Map: the two view buttons, ending on the first.
+click 790 145
+wait 300
+click 790 115
+wait 300
+
+# Movement panel: the inner button twice (toggles a flag and back), then a movement mode.
+click 10 590
+wait 300
+click 10 590
+wait 300
+click 48 568
+wait 300
+
+# Portraits: the hero (centred at x 400).
+click 400 560
+wait 300
+move 400 300
+wait 300
+check IsAlive(GetLeader())
+
+# Esc menu (rectangles from menus.reg in Res\menus.res): Options, Load, Save, then Resume.
+# Options: the second option group, then Cancel (puts the settings back and closes).
+key esc
+wait 800
+move 395 260
+click 395 260
+wait 1000
+click 175 192
+wait 300
+click 550 550
+wait 800
+# Load window: the first list row (selects a save when harness_saves has one), then Cancel.
+click 395 187
+wait 1000
+click 240 120
+wait 300
+click 600 550
+wait 800
+# Save window: closed with Esc.
+click 395 120
+wait 1000
+key esc
+wait 800
+click 392 333
+wait 800
+
+# The game runs on after the menu.
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+check IsAlive(GetLeader())
+console @InflictDamage(GetLeader(),5)
+waitfor 10 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+report
+quit
