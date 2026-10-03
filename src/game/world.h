@@ -507,6 +507,16 @@ float __stdcall LocalPlayerVariable(const char* name);
 // of the server otherwise (0 without that player).
 float __stdcall PlayerZeroVariable(const char* name);
 
+// The game flow object (007AFE20). Only the functions rewritten here are declared.
+struct GameFlow {
+    // 0057B3B0 (RET 4). Saves the game into saves\<slot>\ (single player only, 007B0098 == 1):
+    // empties the folder, copies the visited zones' files from saves\current, writes scenario.sav
+    // (the party records, input and scripts state) and, outside the cutscene zones, mission.sav
+    // (the world, SaveWorld). Without scenario.sav the game goes back to the main menu. Returns 1
+    // when saved.
+    int SaveGame(const char* slot);
+};
+
 CWorldServer* WorldServer();   // 007AFF60
 CWorldClient* WorldClient();   // 007AF5B8
 
