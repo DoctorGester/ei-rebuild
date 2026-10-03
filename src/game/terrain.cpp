@@ -12,7 +12,6 @@ bool LessOrUnordered(float v) { return !(v >= 0.0f); }
 
 // Not rewritten yet: forward to the original code.
 __declspec(naked) TerrainSector* Terrain::SectorAt(int, int, int, int) EI_ORIGINAL(0x006C8140)
-__declspec(naked) void Terrain::GroundAndWaterDepth(float, float, float*, float*) EI_ORIGINAL(0x006C8930)
 
 const float* Terrain::VertexAt(int ix, int iy, int layer) {
     if (ix < 0 || iy < 0) return nullptr;
