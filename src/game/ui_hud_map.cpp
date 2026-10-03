@@ -382,3 +382,228 @@ void CHudMap::BuildMarkers() {
     mesh->Commit();
 }
 EI_REPLACE_METHOD(0x00643DC0, CHudMap::BuildMarkers);
+
+// --- 00642E80 ----------------------------------------------------------------------------------
+
+namespace {
+
+// FPATAN: atan2(y, x) left unrounded in ST0.
+__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
+    __asm fld qword ptr [esp + 4]
+    __asm fld qword ptr [esp + 12]
+    __asm fpatan
+    __asm ret
+}
+
+// The camera (global 007AF7C8; its rotation at +0x34) and the ground point it looks at.
+const CTransformObject* Camera() { return *reinterpret_cast<CTransformObject* const*>(0x007AF7C8); }
+std::uint32_t CameraTargetXBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079B388); }
+std::uint32_t CameraTargetYBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079B38C); }
+
+void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
+
+// Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two
+// points), as the original's four compares decide it (NaN counts as below the line).
+bool Crosses(float prev, float cur, float edge) {
+    return (!(prev >= edge) && cur > edge) || (prev > edge && !(cur >= edge));
+}
+
+// One Sutherland-Hodgman step as the original does it in place: walking the polygon, the point
+// where an edge crosses the line is inserted before the edge's end (which is then skipped);
+// afterwards the points outside are removed.
+template <typename Cut, typename Outside>
+void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
+    int count = points.size_;
+    for (int i = 0; i < count; ++i) {
+        UiPointF cur = points.data_[i];
+        UiPointF prev = points.data_[i == 0 ? count - 1 : i - 1];
+        UiPointF cross;
+        if (!cut(prev, cur, &cross)) continue;
+        int size = points.size_;
+        if (i < size) {
+            points.SetSize(size + 1, -1);
+            std::memmove(&points.data_[i + 1], &points.data_[i], (size - i) * sizeof(UiPointF));
+        } else {
+            points.SetSize(i + 1, -1);
+        }
+        points.data_[i] = cross;
+        ++i;
+        ++count;
+    }
+    for (int i = 0; i < count; ++i) {
+        if (!outside(points.data_[i])) continue;
+        int tail = points.size_ - i - 1;
+        if (tail != 0) std::memmove(&points.data_[i], &points.data_[i + 1], tail * sizeof(UiPointF));
+        --points.size_;
+        --i;
+        --count;
+    }
+}
+
+} // namespace
+
+__declspec(naked) void CUiMesh::SetUvCount(int) EI_ORIGINAL(0x005EA380)
+__declspec(naked) void UiPointArray::SetSize(int, int) EI_ORIGINAL(0x00453100)
+
+void CHudMap::UpdateView() {
+    // Follow the camera: the map is centred on its target and turns with its facing.
+    if (const CTransformObject* camera = Camera()) {
+        SetBits(&centreX_, CameraTargetXBits());
+        SetBits(&centreY_, CameraTargetYBits());
+        Vector3 axis;
+        camera->localRotation_.AxisZ(&axis);
+        facingX_ = axis.x;
+        camera->localRotation_.AxisZ(&axis);
+        facingY_ = axis.y;
+    }
+    double length2 = D(facingX_) * D(facingX_) + D(facingY_) * D(facingY_);
+    if (length2 >= kTinyLength2) {
+        double length = x87::fsqrt(length2);
+        facingX_ = Store(D(facingX_) / length);
+        facingY_ = Store(D(facingY_) / length);
+    } else {
+        facingX_ = 0.0f;
+        facingY_ = 1.0f;
+    }
+    // The compass needle (scene object 10) turns about z.
+    float angle = Store(Fpatan(-D(facingX_), -D(facingY_)));
+    Vector3 up = {0.0f, 0.0f, 1.0f};
+    Quaternion turn;
+    turn.SetAxisAngle(up, angle);
+    std::memcpy(reinterpret_cast<std::uint8_t*>(sceneObjects_.data_[10]) + 0x34, &turn, sizeof(turn));
+
+    // The view polygon in world units.
+    auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[1]);
+    UiPointArray& points = visibleArea_;
+    int count = viewPolygonCount_;
+    points.SetSize(count, -1);   // the original inlines the same code
+    for (int i = 0; i < count; ++i) {
+        const UiPointF& v = viewPolygon_[i];
+        double x = D(v.x) / D(zoom_);
+        float y = Store(D(v.y) / D(zoom_));
+        points.data_[i].x = Store(x / D(scale_) + D(centreX_));
+        points.data_[i].y = Store(D(centreY_) - D(y) / D(scale_));
+    }
+
+    // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
+    ClipPass(points,
+             [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+                 if (!Crosses(p.x, c.x, 0.0f)) return false;
+                 out->x = 0.0f;
+                 out->y = Store(D(p.y) - (D(c.y) - D(p.y)) * D(p.x) / (D(c.x) - D(p.x)));
+                 return true;
+             },
+             [](const UiPointF& v) { return !(v.x >= 0.0f); });
+    ClipPass(points,
+             [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+                 if (!Crosses(p.y, c.y, 0.0f)) return false;
+                 out->x = Store(D(p.x) - (D(c.x) - D(p.x)) * D(p.y) / (D(c.y) - D(p.y)));
+                 out->y = 0.0f;
+                 return true;
+             },
+             [](const UiPointF& v) { return !(v.y >= 0.0f); });
+    float width = worldWidth_;
+    float height = worldHeight_;
+    ClipPass(points,
+             [width](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+                 if (!Crosses(p.x, c.x, width)) return false;
+                 out->x = width;
+                 out->y = Store((D(width) - D(p.x)) * (D(c.y) - D(p.y)) / (D(c.x) - D(p.x)) + D(p.y));
+                 return true;
+             },
+             [width](const UiPointF& v) { return v.x > width; });
+    ClipPass(points,
+             [height](const UiPointF& p, const UiPointF& c, UiPointF* out) {
+                 if (!Crosses(p.y, c.y, height)) return false;
+                 out->x = Store((D(height) - D(p.y)) * (D(c.x) - D(p.x)) / (D(c.y) - D(p.y)) + D(p.x));
+                 out->y = height;
+                 return true;
+             },
+             [height](const UiPointF& v) { return v.y > height; });
+
+    // The visible-area mesh: a fan over the clipped polygon, textured by world position.
+    count = points.size_;
+    area->SetVertexCount(count);
+    for (int i = 0; i < count; ++i) {
+        area->vertices_[i].position = static_cast<std::int16_t>(i);
+        area->vertices_[i].frame = static_cast<std::int16_t>(i);
+    }
+    area->SetUvCount(count);
+    for (int i = 0; i < count; ++i) {
+        area->uvs_[i * 2] = Store(D(points.data_[i].x) / D(textureSize_));
+        area->uvs_[i * 2 + 1] = Store(D(points.data_[i].y) / D(textureSize_));
+    }
+    if (count > 2) {
+        area->SetIndexCount((count - 2) * 3);
+        for (int k = 0; k < count - 2; ++k) {
+            area->indices_[k * 3] = 0;
+            area->indices_[k * 3 + 1] = static_cast<std::uint16_t>(k + 2);
+            area->indices_[k * 3 + 2] = static_cast<std::uint16_t>(k + 1);
+        }
+    } else {
+        area->SetIndexCount(0);
+    }
+    // Positions go in blocks of four: the polygon is padded with copies of its first point.
+    int quads = count / 4;
+    if (count % 4 != 0) {
+        ++quads;
+        UiPointF first = points.data_[0];
+        for (int k = 4 - count % 4; k > 0; --k) {
+            int size = points.size_;
+            points.SetSize(size + 1, -1);
+            points.data_[size] = first;
+        }
+    }
+    area->SetQuadCount(quads);
+    for (int q = 0; q < quads; ++q) {
+        for (int k = 0; k < 4; ++k) {
+            const UiPointF& v = points.data_[q * 4 + k];
+            double x = (D(v.x) - D(centreX_)) * D(scale_);
+            float y = Store(-((D(v.y) - D(centreY_)) * D(scale_)));
+            float mapY = Store(D(y) * D(zoom_));
+            area->quads_[q].x[k] = Store(x * D(zoom_));
+            area->quads_[q].y[k] = mapY;
+        }
+    }
+    area->Commit();
+
+    // The world's bounds (scene object 0), clamped to the map square [-1, 1].
+    auto* bounds = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0]);
+    float left = Store(-D(centreX_) * D(scale_));
+    float top = Store(-(-D(centreY_) * D(scale_)));
+    double rightRaw = (D(worldWidth_) - D(centreX_)) * D(scale_);
+    float right = Store(rightRaw);
+    float bottom = Store(-((D(worldHeight_) - D(centreY_)) * D(scale_)));
+    if (!(left >= -1.0f)) left = -1.0f;
+    if (top > 1.0f) top = 1.0f;
+    if (rightRaw > 1.0f) right = 1.0f;   // the original compares the value still on the FPU stack
+    if (!(bottom >= -1.0f)) bottom = -1.0f;
+    if (left >= right || bottom >= top) {
+        bounds->visible_ = 0;
+        return;
+    }
+    bounds->visible_ = 1;
+    UiQuadBlock& b = bounds->quads_[0];
+    b.x[0] = left;
+    b.y[0] = bottom;
+    b.x[1] = left;
+    b.y[1] = top;
+    b.x[2] = right;
+    b.y[2] = bottom;
+    b.x[3] = right;
+    b.y[3] = top;
+    float u0 = Store((D(left) / D(scale_) + D(centreX_)) / D(textureSize_));
+    float vTop = Store(D(Store(D(centreY_) - D(top) / D(scale_))) / D(textureSize_));
+    float u1 = Store((D(right) / D(scale_) + D(centreX_)) / D(textureSize_));
+    float vBottom = Store(D(Store(D(centreY_) - D(bottom) / D(scale_))) / D(textureSize_));
+    float* uv = bounds->uvs_;
+    uv[0] = u0;
+    uv[1] = vBottom;
+    uv[2] = u0;
+    uv[3] = vTop;
+    uv[4] = u1;
+    uv[5] = vBottom;
+    uv[6] = u1;
+    uv[7] = vTop;
+}
+EI_REPLACE_METHOD(0x00642E80, CHudMap::UpdateView);

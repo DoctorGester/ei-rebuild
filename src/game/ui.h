@@ -467,6 +467,7 @@ public:
     void SetQuadCount(int count);
     void SetVertexCount(int count);
     void SetIndexCount(int count);
+    void SetUvCount(int count);      // 005EA380 texture coordinates (8 bytes each)
     int Commit();
 
     std::uint8_t unknown_000[0x1C0];
@@ -478,10 +479,33 @@ public:
     std::uint8_t unknown_1E8[0x200 - 0x1E8];
     std::uint16_t* indices_;         // +0x200
     int indexCount_;                 // +0x204
+    std::uint8_t unknown_208[0x210 - 0x208];
+    float* uvs_;                     // +0x210 u, v per vertex
+    int uvCount_;                    // +0x214
+    std::uint8_t unknown_218[0x220 - 0x218];
+    int visible_;                    // +0x220
 };
 static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);
+static_assert(offsetof(CUiMesh, uvs_) == 0x210);
+static_assert(offsetof(CUiMesh, visible_) == 0x220);
+
+// A growable array of 2D points with the interface arrays' 32-byte alignment.
+struct UiPointF {
+    float x;
+    float y;
+};
+struct UiPointArray {
+    // 00453100 (not rewritten). Sets the size; `growBy` -1 keeps the growth step.
+    void SetSize(int size, int growBy);
+
+    UiPointF* data_;
+    int size_;
+    int capacity_;
+    int growBy_;
+};
+static_assert(sizeof(UiPointArray) == 0x10);
 
 // Map (set up by 00641F20, vtables 00742660 / 0074262C; 615..800 x 0..165). Regions: 0 the
 // sling button, 1 the round map, 2 the map area, 3 and 4 the two view buttons, 5 a button
@@ -494,22 +518,34 @@ public:
     // party and other units, the marked objects, the zone exits and the other players
     // (ui_hud_map.cpp).
     void BuildMarkers();
+    // 00642E80 (every frame, before BuildMarkers). Follows the camera (centre and facing, the
+    // compass needle scene object 10), clips the view polygon to the world rectangle and builds
+    // the visible-area mesh (scene object 1) and the world-bounds quad (scene object 0).
+    void UpdateView();
 
     CBattleScreen* owner_;           // +0x148
     float centreX_;                  // +0x14C world point at the map's centre (the camera's)
     float centreY_;                  // +0x150
     float facingX_;                  // +0x154 view direction (normalised by 00642E80)
     float facingY_;                  // +0x158
-    std::uint8_t unknown_15C[0x168 - 0x15C];
+    float worldWidth_;               // +0x15C the zone's extent (clipping rectangle 0..width)
+    float worldHeight_;              // +0x160
+    float textureSize_;              // +0x164 world units per map texture (texture coordinates)
     float scale_;                    // +0x168 world units to map units
     float zoom_;                     // +0x16C 1 .. zoomMax_ (the view buttons change it)
     float zoomMax_;                  // +0x170
-    std::uint8_t unknown_174[0x1AC - 0x174];
+    std::uint8_t unknown_174[4];
+    UiPointF* viewPolygon_;          // +0x178 the round map's outline in map units
+    int viewPolygonCount_;           // +0x17C
+    std::uint8_t unknown_180[0x188 - 0x180];
+    UiPointArray visibleArea_;       // +0x188 the outline in world units, clipped to the world
+    std::uint8_t unknown_198[0x1AC - 0x198];
     int view_;                       // +0x1AC 1 or 2 (scene objects 6 and 7 are the buttons)
 };
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
 static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
+static_assert(offsetof(CHudMap, visibleArea_) == 0x188);
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
 
 // Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
