@@ -23,45 +23,54 @@ struct AlignedArray {
     // original inlines in every loader (and 005A6E70 / 0044FA90 / 004F57B0 out of line with a
     // growBy argument, -1 = keep).
     void SetSize(int count);
+    // 005A6E70 for uint32 (the colour arrays): SetSize with a new growth step (-1 = keep). RET 8.
+    void Resize(int count, int newGrowBy) {
+        if (newGrowBy != -1) growBy = newGrowBy;
+        SetSize(count);
+    }
 
     static T* Allocate(int count);
     static void Free(T* data);
 };
 
-// A vertex of a mesh: three 16-byte blocks (position, normal and a third block) and a fourth
-// block the loaders set to 1.0. 0x40 bytes.
-struct MeshVertex {
+// Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the
+// loaders set w to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2 (005A0CD0).
+// 0x40 bytes.
+struct VertexPacket {
     float block[4][4];
 };
-static_assert(sizeof(MeshVertex) == 0x40);
+static_assert(sizeof(VertexPacket) == 0x40);
 
-// The other per-element records the loaders copy verbatim.
-struct MeshRecord40 {
+// Four normals in the same SoA form (mirrored together with the positions by 005A4B30 /
+// 005A4BF0); the loaders copy them verbatim.
+struct NormalPacket {
     std::uint32_t w[16];
 };
-struct MeshRecord8 {
+// A texture coordinate (u, v); 005A0E80 scales them to fixed point.
+struct TexCoord {
     std::uint32_t w[2];
 };
-struct MeshTriangle {
+// A triangle corner: position index, a second index (normal?) and texture coordinate index.
+struct MeshCorner {
     std::uint16_t index[3];
 };
-static_assert(sizeof(MeshRecord40) == 0x40 && sizeof(MeshRecord8) == 8 && sizeof(MeshTriangle) == 6);
+static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 
 // What the renderer draws from (+0x9C): pointers and counts of the mesh's arrays (class 0x41 points
 // the last four into the loaded file data instead).
 struct MeshBuffers {
-    void* vertices;     // +0x00 (+0x9C)
-    int vertexCount;
-    void* records;      // +0x08 (+0xA4)
-    int recordCount;
-    void* pairs;        // +0x10 (+0xAC) 8-byte elements
-    int pairCount;
-    void* triangles;    // +0x18 (+0xB4)
-    int triangleCount;
-    void* words;        // +0x20 (+0xBC) 4-byte elements
+    void* vertices;     // +0x00 (+0x9C) VertexPacket
+    int vertexCount;    //               packets
+    void* normals;      // +0x08 (+0xA4) NormalPacket
+    int normalCount;
+    void* texCoords;    // +0x10 (+0xAC) TexCoord
+    int texCoordCount;
+    void* corners;      // +0x18 (+0xB4) MeshCorner
+    int cornerCount;
+    void* words;        // +0x20 (+0xBC) 4-byte elements, unknown
     int wordCount;
-    void* shorts;       // +0x28 (+0xC4) 2-byte elements
-    int shortCount;
+    void* indices;      // +0x28 (+0xC4) uint16 corner indices, 3 per triangle
+    int indexCount;
 };
 static_assert(sizeof(MeshBuffers) == 0x30);
 
@@ -94,6 +103,24 @@ public:
     // (00401570); nothing when the position is 1e4 or more from the origin. RET 0x18.
     void ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const;
 
+    // 005A4B30 (vtable slot 22) / 005A4BF0 (slot 23): mirror the mesh in x / y (negates that
+    // component of every vertex and normal) and swap the first two corners of every triangle.
+    void MirrorX();
+    void MirrorY();
+    // 005A6D40: points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
+    // (one per normal).
+    void RefreshBuffers();
+    // 005A0B10: copies `offsets` (any {Vector3* data; int count} pair) into offsets_. RET 4.
+    struct OffsetList {
+        const Vector3* data;
+        int count;
+    };
+    void SetOffsets(const OffsetList* offsets);
+    // 005A0CD0: draws through `pipelineOwner` (+0xC: the transform pipeline, slot 29) with the
+    // vertices moved by offsets_ when there are any (into the shared buffer at 007C2E18). Returns
+    // the vertex count (4 per packet). RET 0x10.
+    int DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* arg3);
+
     void* vtable_;                      // +0x000
     std::uint8_t unknown_004[4];
     std::uint32_t flags_;               // +0x008 0x20: loaded
@@ -101,9 +128,10 @@ public:
     float position_[3];                 // +0x01C (CTransformObject)
     std::uint8_t unknown_028[0x9C - 0x28];
     MeshBuffers buffers_;               // +0x09C
-    std::uint8_t unknown_0CC[0x138 - 0xCC];
-    AlignedArray<std::uint32_t> colorsA_;   // +0x138 4 per record
-    AlignedArray<std::uint32_t> colorsB_;   // +0x148 4 per record
+    std::uint8_t unknown_0CC[0x128 - 0xCC];
+    AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
+    AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
+    AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
     std::uint32_t unknown_158;          // +0x158 from the file header
     std::uint32_t unknown_15C;          // +0x15C from the file header
     Vector3 center_;                    // +0x160
@@ -112,13 +140,13 @@ public:
     float radius_;                      // +0x184
     ClipBounds bounds_;                 // +0x188
     std::uint8_t unknown_1B4[0x1C0 - 0x1B4];
-    AlignedArray<MeshVertex> vertices_;     // +0x1C0
-    AlignedArray<MeshRecord40> records_;    // +0x1D0
+    AlignedArray<VertexPacket> vertices_;     // +0x1C0
+    AlignedArray<NormalPacket> normals_;    // +0x1D0
     // Class 0x41 ends here (0x1E0 bytes).
-    AlignedArray<MeshTriangle> triangles_;  // +0x1E0
+    AlignedArray<MeshCorner> corners_;  // +0x1E0
     AlignedArray<std::uint32_t> words_;     // +0x1F0
-    AlignedArray<std::uint16_t> shorts_;    // +0x200
-    AlignedArray<MeshRecord8> pairs_;       // +0x210
+    AlignedArray<std::uint16_t> indices_;    // +0x200
+    AlignedArray<TexCoord> texCoords_;       // +0x210
 };
 static_assert(offsetof(CFigureMesh, flags_) == 0x08);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
@@ -128,8 +156,8 @@ static_assert(offsetof(CFigureMesh, center_) == 0x160);
 static_assert(offsetof(CFigureMesh, radius_) == 0x184);
 static_assert(offsetof(CFigureMesh, bounds_) == 0x188);
 static_assert(offsetof(CFigureMesh, vertices_) == 0x1C0);
-static_assert(offsetof(CFigureMesh, triangles_) == 0x1E0);
-static_assert(offsetof(CFigureMesh, pairs_) == 0x210);
+static_assert(offsetof(CFigureMesh, corners_) == 0x1E0);
+static_assert(offsetof(CFigureMesh, texCoords_) == 0x210);
 static_assert(sizeof(CFigureMesh) == 0x220);
 
 // The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element
@@ -137,10 +165,10 @@ static_assert(sizeof(CFigureMesh) == 0x220);
 struct FigHeader {
     std::uint32_t magic;
     int vertexCount;
-    int recordCount;
-    int pairCount;
-    int shortCount;
-    int triangleCount;
+    int normalCount;
+    int texCoordCount;
+    int indexCount;
+    int cornerCount;
     int wordCount;
     std::uint32_t unknown_1C;
 };

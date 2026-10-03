@@ -16,7 +16,7 @@ namespace {
 __declspec(naked) void* __cdecl Display() EI_ORIGINAL(0x00500960)
 
 // Slot 7 of the transform pipeline (in 3DfpFPU.dll): fits `bounds` to the vertices.
-void FitBounds(ClipBounds* bounds, MeshVertex* vertices, int count) {
+void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
     char* display = static_cast<char*>(Display());
     void* pipeline = *reinterpret_cast<void**>(*reinterpret_cast<char**>(display + 8) + 0xC);
     ei::VCall<void>(pipeline, 7, bounds, vertices, count);
@@ -317,11 +317,11 @@ namespace {
 
 // The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
 // each), morphed; other versions hold the three blocks once. The fourth block is set to 1.0.
-void LoadVertices(AlignedArray<MeshVertex>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
+void LoadVertices(AlignedArray<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
     const std::uint32_t one = 0x3F800000;
     if (magic == kFig8Magic) {
         for (int i = 0; i < vertices.size; ++i) {
-            MeshVertex& v = vertices.data[i];
+            VertexPacket& v = vertices.data[i];
             for (int b = 0; b < 3; ++b) {
                 MorphBlock(v.block[b], reinterpret_cast<const float*>(*cursor), s, t, u);
                 *cursor += 0x80;
@@ -331,7 +331,7 @@ void LoadVertices(AlignedArray<MeshVertex>& vertices, char** cursor, std::uint32
         return;
     }
     for (int i = 0; i < vertices.size; ++i) {
-        MeshVertex& v = vertices.data[i];
+        VertexPacket& v = vertices.data[i];
         for (int b = 0; b < 3; ++b) {
             std::memcpy(v.block[b], *cursor, 16);
             *cursor += 0x10;
@@ -367,30 +367,30 @@ void CFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
     if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
 
-    records_.SetSize(header.recordCount);
-    colorsA_.SetSize(header.recordCount * 4);
-    colorsB_.SetSize(header.recordCount * 4);
-    if (header.recordCount != 0) {
-        std::memcpy(records_.data, *cursor, static_cast<std::size_t>(header.recordCount) * sizeof(MeshRecord40));
-        *cursor += header.recordCount * 0x40;
+    normals_.SetSize(header.normalCount);
+    colorsA_.SetSize(header.normalCount * 4);
+    colorsB_.SetSize(header.normalCount * 4);
+    if (header.normalCount != 0) {
+        std::memcpy(normals_.data, *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
+        *cursor += header.normalCount * 0x40;
     }
-    LoadArray(pairs_, cursor, header.pairCount);
-    LoadArray(shorts_, cursor, header.shortCount);
-    LoadArray(triangles_, cursor, header.triangleCount);
+    LoadArray(texCoords_, cursor, header.texCoordCount);
+    LoadArray(indices_, cursor, header.indexCount);
+    LoadArray(corners_, cursor, header.cornerCount);
     LoadArray(words_, cursor, header.wordCount);
 
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
-    buffers_.records = records_.data;
-    buffers_.recordCount = records_.size;
-    colorsA_.SetSize(records_.size * 4);   // 005A6E70 with growBy -1
-    colorsB_.SetSize(records_.size * 4);
-    buffers_.pairs = pairs_.data;
-    buffers_.pairCount = pairs_.size;
-    buffers_.shorts = shorts_.data;
-    buffers_.shortCount = shorts_.size;
-    buffers_.triangles = triangles_.data;
-    buffers_.triangleCount = triangles_.size;
+    buffers_.normals = normals_.data;
+    buffers_.normalCount = normals_.size;
+    colorsA_.SetSize(normals_.size * 4);   // 005A6E70 with growBy -1
+    colorsB_.SetSize(normals_.size * 4);
+    buffers_.texCoords = texCoords_.data;
+    buffers_.texCoordCount = texCoords_.size;
+    buffers_.indices = indices_.data;
+    buffers_.indexCount = indices_.size;
+    buffers_.corners = corners_.data;
+    buffers_.cornerCount = corners_.size;
     buffers_.wordCount = words_.size;
     buffers_.words = words_.data;
     flags_ |= 0x20;
@@ -411,33 +411,33 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
     if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
 
-    records_.SetSize(header.recordCount);
-    colorsA_.SetSize(header.recordCount * 4);
-    colorsB_.SetSize(header.recordCount * 4);
-    if (header.recordCount != 0) {
-        std::memcpy(records_.data, *cursor, static_cast<std::size_t>(header.recordCount) * sizeof(MeshRecord40));
-        *cursor += header.recordCount * 0x40;
+    normals_.SetSize(header.normalCount);
+    colorsA_.SetSize(header.normalCount * 4);
+    colorsB_.SetSize(header.normalCount * 4);
+    if (header.normalCount != 0) {
+        std::memcpy(normals_.data, *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
+        *cursor += header.normalCount * 0x40;
     }
     // The rest stays in the file data.
-    buffers_.pairs = *cursor;
-    buffers_.pairCount = header.pairCount;
-    *cursor += header.pairCount * 8;
-    buffers_.shorts = *cursor;
-    buffers_.shortCount = header.shortCount;
-    *cursor += header.shortCount * 2;
-    buffers_.triangles = *cursor;
-    buffers_.triangleCount = header.triangleCount;
-    *cursor += header.triangleCount * 6;
+    buffers_.texCoords = *cursor;
+    buffers_.texCoordCount = header.texCoordCount;
+    *cursor += header.texCoordCount * 8;
+    buffers_.indices = *cursor;
+    buffers_.indexCount = header.indexCount;
+    *cursor += header.indexCount * 2;
+    buffers_.corners = *cursor;
+    buffers_.cornerCount = header.cornerCount;
+    *cursor += header.cornerCount * 6;
     buffers_.words = *cursor;
     buffers_.wordCount = header.wordCount;
     *cursor += header.wordCount * 4;
 
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
-    buffers_.records = records_.data;
-    buffers_.recordCount = records_.size;
-    colorsA_.SetSize(records_.size * 4);
-    colorsB_.SetSize(records_.size * 4);
+    buffers_.normals = normals_.data;
+    buffers_.normalCount = normals_.size;
+    colorsA_.SetSize(normals_.size * 4);
+    colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
 EI_REPLACE_METHOD(0x005A5C70, CFigureMesh::LoadFigShared);
@@ -468,7 +468,7 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
     int count = ReadCount(cursor);
     mesh->vertices_.SetSize(count);
     for (int i = 0; i < count; ++i) {
-        MeshVertex& v = mesh->vertices_.data[i];
+        VertexPacket& v = mesh->vertices_.data[i];
         for (int b = 0; b < 3; ++b) {
             MorphBlock6(v.block[b], reinterpret_cast<const float*>(*cursor), s, t, u);
             *cursor += 0x60;
@@ -479,11 +479,11 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
     if (mesh->vertices_.size != 0) FitBounds(&mesh->bounds_, mesh->vertices_.data, mesh->vertices_.size);
 
     count = ReadCount(cursor);
-    mesh->records_.SetSize(count);
+    mesh->normals_.SetSize(count);
     mesh->colorsA_.SetSize(count * 4);
     mesh->colorsB_.SetSize(count * 4);
     if (count != 0) {
-        std::memcpy(mesh->records_.data, *cursor, static_cast<std::size_t>(count) * sizeof(MeshRecord40));
+        std::memcpy(mesh->normals_.data, *cursor, static_cast<std::size_t>(count) * sizeof(NormalPacket));
         *cursor += count * 0x40;
         for (int i = 0; i < mesh->colorsB_.size; ++i) mesh->colorsB_.data[i] = 0xFF000000;
     }
@@ -500,26 +500,26 @@ void SkipRecords34(char** cursor) {
 void CFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     if (flags_ & 0x20) return;
     LoadOldCommon(this, cursor, s, t, u, false);
-    LoadArray(pairs_, cursor, ReadCount(cursor));
+    LoadArray(texCoords_, cursor, ReadCount(cursor));
     SkipRecords34(cursor);
-    LoadArray(triangles_, cursor, ReadCount(cursor));
+    LoadArray(corners_, cursor, ReadCount(cursor));
     LoadArray(words_, cursor, ReadCount(cursor));
-    LoadArray(shorts_, cursor, ReadCount(cursor));   // 0044FA90 with growBy -1
+    LoadArray(indices_, cursor, ReadCount(cursor));   // 0044FA90 with growBy -1
 
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
-    buffers_.records = records_.data;
-    buffers_.recordCount = records_.size;
-    colorsA_.SetSize(records_.size * 4);
-    colorsB_.SetSize(records_.size * 4);
-    buffers_.pairs = pairs_.data;
-    buffers_.pairCount = pairs_.size;
-    buffers_.triangles = triangles_.data;
-    buffers_.triangleCount = triangles_.size;
+    buffers_.normals = normals_.data;
+    buffers_.normalCount = normals_.size;
+    colorsA_.SetSize(normals_.size * 4);
+    colorsB_.SetSize(normals_.size * 4);
+    buffers_.texCoords = texCoords_.data;
+    buffers_.texCoordCount = texCoords_.size;
+    buffers_.corners = corners_.data;
+    buffers_.cornerCount = corners_.size;
     buffers_.words = words_.data;
     buffers_.wordCount = words_.size;
-    buffers_.shortCount = shorts_.size;
-    buffers_.shorts = shorts_.data;
+    buffers_.indexCount = indices_.size;
+    buffers_.indices = indices_.data;
     flags_ |= 0x20;
 }
 EI_REPLACE_METHOD(0x005A3800, CFigureMesh::LoadOld);
@@ -528,26 +528,26 @@ void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
     // Unlike the other three loaders, this one does not test the loaded flag.
     LoadOldCommon(this, cursor, s, t, u, true);
     // The rest stays in the file data.
-    buffers_.pairCount = ReadCount(cursor);
-    buffers_.pairs = *cursor;
-    *cursor += buffers_.pairCount * 8;
+    buffers_.texCoordCount = ReadCount(cursor);
+    buffers_.texCoords = *cursor;
+    *cursor += buffers_.texCoordCount * 8;
     SkipRecords34(cursor);
-    buffers_.triangleCount = ReadCount(cursor);
-    buffers_.triangles = *cursor;
-    *cursor += buffers_.triangleCount * 6;
+    buffers_.cornerCount = ReadCount(cursor);
+    buffers_.corners = *cursor;
+    *cursor += buffers_.cornerCount * 6;
     buffers_.wordCount = ReadCount(cursor);
     buffers_.words = *cursor;
     *cursor += buffers_.wordCount * 4;
-    buffers_.shortCount = ReadCount(cursor);
-    buffers_.shorts = *cursor;
-    *cursor += buffers_.shortCount * 2;
+    buffers_.indexCount = ReadCount(cursor);
+    buffers_.indices = *cursor;
+    *cursor += buffers_.indexCount * 2;
 
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
-    buffers_.records = records_.data;
-    buffers_.recordCount = records_.size;
-    colorsA_.SetSize(records_.size * 4);
-    colorsB_.SetSize(records_.size * 4);
+    buffers_.normals = normals_.data;
+    buffers_.normalCount = normals_.size;
+    colorsA_.SetSize(normals_.size * 4);
+    colorsB_.SetSize(normals_.size * 4);
     flags_ |= 0x20;
 }
 EI_REPLACE_METHOD(0x005A4D60, CFigureMesh::LoadOldShared);
@@ -605,5 +605,126 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
     }
 }
 EI_REPLACE_METHOD(0x0059FDF0, CFigureMesh::ExtendWorldBox);
+
+// ---- Mirroring, buffers, vertex offsets ---------------------------------------------------------
+
+namespace {
+// Negates one component block of every packet (FLD / FCHS / FSTP in the original).
+template <typename Packet>
+void NegateBlock(AlignedArray<Packet>& packets, int block) {
+    for (int i = 0; i < packets.size; ++i) {
+        float* v = reinterpret_cast<float*>(&packets.data[i]) + block * 4;
+        for (int k = 0; k < 4; ++k) v[k] = -v[k];
+    }
+}
+
+// Swaps the first two corners of every triangle (reverses the winding after a mirror).
+void ReverseWinding(AlignedArray<std::uint16_t>& indices) {
+    std::uint16_t* p = indices.data;
+    for (int i = 0; i < indices.size; i += 3, p += 3) {
+        std::uint16_t first = p[0];
+        p[0] = p[1];
+        p[1] = first;
+    }
+}
+
+// The shared buffer DrawOffset moves the vertices into (a function-less global at 007C2E18).
+AlignedArray<VertexPacket>& OffsetVertices() { return *reinterpret_cast<AlignedArray<VertexPacket>*>(0x007C2E18); }
+} // namespace
+
+void CFigureMesh::MirrorX() {
+    NegateBlock(vertices_, 0);
+    NegateBlock(normals_, 0);
+    ReverseWinding(indices_);
+}
+EI_REPLACE_METHOD(0x005A4B30, CFigureMesh::MirrorX);
+
+void CFigureMesh::MirrorY() {
+    NegateBlock(vertices_, 1);
+    NegateBlock(normals_, 1);
+    ReverseWinding(indices_);
+}
+EI_REPLACE_METHOD(0x005A4BF0, CFigureMesh::MirrorY);
+
+EI_REPLACE_METHOD(0x005A6E70, AlignedArray<std::uint32_t>::Resize);
+
+void CFigureMesh::RefreshBuffers() {
+    buffers_.vertices = vertices_.data;
+    buffers_.vertexCount = vertices_.size;
+    buffers_.normals = normals_.data;
+    buffers_.normalCount = normals_.size;
+    // 005A6E70 through its address (the verify build checks it there).
+    using ResizeFn = void(__fastcall*)(AlignedArray<std::uint32_t>*, void*, int, int);
+    reinterpret_cast<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
+    reinterpret_cast<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
+    buffers_.texCoords = texCoords_.data;
+    buffers_.texCoordCount = texCoords_.size;
+    buffers_.corners = corners_.data;
+    buffers_.cornerCount = corners_.size;
+    buffers_.words = words_.data;
+    buffers_.wordCount = words_.size;
+    buffers_.indices = indices_.data;
+    buffers_.indexCount = indices_.size;
+}
+EI_REPLACE_METHOD(0x005A6D40, CFigureMesh::RefreshBuffers);
+
+void CFigureMesh::SetOffsets(const OffsetList* offsets) {
+    offsets_.SetSize(offsets->count);
+    std::memcpy(offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3));
+}
+EI_REPLACE_METHOD(0x005A0B10, CFigureMesh::SetOffsets);
+
+int CFigureMesh::DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* arg3) {
+    void* vertices = buffers_.vertices;
+    if (offsets_.size != 0) {
+        const VertexPacket* source = static_cast<const VertexPacket*>(buffers_.vertices);
+        AlignedArray<VertexPacket>& moved = OffsetVertices();
+        // Sized like SetSize, except that a larger buffer is not given the old contents (they are
+        // all rewritten below) and 0 allocates an empty buffer instead of freeing it.
+        int packets = buffers_.vertexCount;
+        if (!moved.data) {
+            moved.data = AlignedArray<VertexPacket>::Allocate(packets);
+            moved.capacity = packets;
+            moved.size = packets;
+        } else if (packets <= moved.capacity) {
+            moved.size = packets;
+        } else {
+            int step = moved.growBy;
+            if (step == 0) {
+                step = moved.size / 8;
+                if (step < 4) step = 4;
+                else if (step > 0x400) step = 0x400;
+            }
+            int newCapacity = moved.capacity + step;
+            if (packets >= newCapacity) newCapacity = packets;
+            VertexPacket* fresh = AlignedArray<VertexPacket>::Allocate(newCapacity);
+            AlignedArray<VertexPacket>::Free(moved.data);
+            moved.data = fresh;
+            moved.size = packets;
+            moved.capacity = newCapacity;
+        }
+        // Vertex i is component i & 3 of packet i >> 2; each coordinate is offset + source.
+        for (int i = 0; i < moved.size * 4; ++i) {
+            const float* from = &source[i >> 2].block[0][i & 3];
+            float* to = &moved.data[i >> 2].block[0][i & 3];
+            if (i < offsets_.size) {
+                const Vector3& d = offsets_.data[i];
+                to[0] = d.x + from[0];
+                to[4] = d.y + from[4];
+                to[8] = d.z + from[8];
+            } else {
+                // Copied as dwords.
+                std::memcpy(&to[0], &from[0], 4);
+                std::memcpy(&to[4], &from[4], 4);
+                std::memcpy(&to[8], &from[8], 4);
+            }
+        }
+        vertices = moved.data;
+    }
+    void* pipeline = *reinterpret_cast<void**>(static_cast<char*>(pipelineOwner) + 0xC);
+    ei::VCall<void>(pipeline, 29, arg1, vertices, arg2, buffers_.vertexCount, arg3);
+    return buffers_.vertexCount << 2;
+}
+EI_REPLACE_METHOD(0x005A0CD0, CFigureMesh::DrawOffset);
 
 #pragma float_control(pop)

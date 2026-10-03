@@ -502,3 +502,98 @@ iterator {0, map}). No floating point.
 `world_load.txt` (~40 s): new game (zone load, autosave), eight AddUnitToServer wolves, one name
 added twice (same id), three RemoveObjectFromServer, `load savea` (waits until a spawned wolf is
 gone and the hero is back), one more AddUnitToServer in the loaded zone.
+
+# Figure meshes (0x0059F000-0x005AC200, sixth round)
+
+Code: `src/game/figure_mesh.h/.cpp`; verify wrappers: `tests/verify/verify_figure_mesh.cpp`. No
+shared files changed. The 0x005A0000-0x005B0000 range is not AI code: it is the game-side figure
+part mesh (classes 0x41-0x44 of the factory 005AA8E0) and the figure loader (005AC010).
+
+## Structures recovered
+
+- **CFigureMesh** (class 0x42, 0x220 bytes, vtable 0073C1C4; 0x43 (0073FC48) and 0x44 derive and
+  share the loaders; class 0x41 (0x1E0 bytes, vtable 0073FBF0) has the same layout up to +0x1E0
+  and its own loaders). A CTransformObject (+0x1C position, +0x34 quaternion), +0x08 flags (0x20
+  loaded), +0x9C MeshBuffers (pointer/count pairs the renderer draws from), +0x128 vertex offsets,
+  +0x138/+0x148 colour arrays (one per normal), +0x158/+0x15C header words, +0x160 centre,
+  +0x16C/+0x178 box, +0x184 radius, +0x188 ClipBounds, +0x1C0 vertex packets, +0x1D0 normal
+  packets, +0x1E0 corners (position / ? / texcoord indices), +0x1F0 unknown dwords, +0x200 corner
+  indices (3 per triangle), +0x210 texture coordinates.
+- **AlignedArray<T>** {data, size, capacity, growBy}: 32-byte aligned storage (operator_new block
+  stored at data[-1]); every loader inlines its SetSize (005A6E70, 0044FA90, 004F57B0 out of line).
+- **VertexPacket** (0x40): 4 vertices in SoA form x[4], y[4], z[4], w[4]=1.0. Vertex i is
+  component i & 3 of packet i >> 2.
+- Vtable slot 19 (005A2490 / 005A4CF0) picks slot 20 (FIG data, "FIG" + version byte) or slot 21
+  (older format) by the first dword of the data.
+- FIG data: 8-dword header (magic, counts), two words, the bounds (FIG8: centre, box min, box max
+  as 8 Vector3 versions each, then 8 radii; others: one of each), then 3 blocks of 8 float4
+  versions per vertex packet (FIG8) or one, then the other arrays verbatim. FIG8 morphs trilinearly
+  by the figure's three coefficients (s, t, u): lerp(lerp(lerp(v0,v1,s), lerp(v2,v3,s), t),
+  lerp(lerp(v4,v5,s), lerp(v6,v7,s), t), u). The old format holds 6 corners (as the bones,
+  figure.h) and every array is preceded by its count; a block of 0x34-byte records is skipped.
+
+## Rewritten
+
+| Address | Name | Verification |
+|---|---|---|
+| 005A18E0 | CFigureMesh::LoadBounds (RET 0x14) | original on a copy of the object bytes and the cursor; +0x160..+0x1B4 and cursor compared |
+| 005A2500 | CFigureMesh::LoadFig (slot 20, RET 0x10) | original on a copy whose arrays start empty, ours on the object; every array (size, step, contents, capacity when ours started empty), bounds, header words, flags, cursor, buffer descriptor compared; the copy's arrays freed |
+| 005A5C70 | CFigureMesh::LoadFigShared (class 0x41) | same |
+| 005A3800 | CFigureMesh::LoadOld (slot 21) | same |
+| 005A4D60 | CFigureMesh::LoadOldShared (class 0x41) | same |
+| 005AAE60 | MorphFigureBounds (__stdcall, RET 0x18; ECX unused) | output: original into a copy of the ClipBounds |
+| 005AB9A0 | MorphFigureBounds6 (__stdcall, RET 0x14) | same |
+| 0059FDF0 | CFigureMesh::ExtendWorldBox (RET 0x18) | output: original grows copies of the six values |
+| 005A4B30 / 005A4BF0 | CFigureMesh::MirrorX / MirrorY (slots 22 / 23) | ours, then the original must undo it exactly (snapshot), then ours again |
+| 005A6E70 | AlignedArray<uint32>::Resize (RET 8) | original on a copy with its own buffer |
+| 005A6D40 | CFigureMesh::RefreshBuffers | ours only: descriptor equals the arrays, colour arrays 4 per normal |
+| 005A0B10 | CFigureMesh::SetOffsets (RET 4) | ours only: offsets equal the source |
+| 005A0CD0 | CFigureMesh::DrawOffset (RET 0x10) | ours only: result, shared buffer size and first moved coordinate |
+
+## Floating point (how it was checked)
+
+Every loader rounds differently per component because of VC6's register allocation (the x
+component of a FIG8 vertex block stays on the FPU, y/z/w are stored after each blend; in the old
+format each bounds component has its own pattern; FST-then-FSUB keeps some sums unrounded). The
+patterns were read off with a symbolic x87 trace of the original instructions, and every rewrite
+was then run against the original in an x86/x87 emulator (Python, scratch only) on random inputs at
+24-bit and 53-bit precision, comparing every output bit: the whole loaders (allocation, growth from
+existing arrays, cursor, descriptor), the bounds functions, ExtendWorldBox (including NaNs), the
+mirrors, Resize/RefreshBuffers/SetOffsets/DrawOffset. All matched on the release and verify
+objects. 64-bit precision is not covered (doubles spilled by MSVC would round).
+
+## Forwarders added (standalone build must replace)
+
+- 00500960 display object (pipeline at +8 -> +0xC, slot 7 fits bounds to the vertices), 00401570
+  object matrix (CTransformObject), the pipeline's slot 29 (draw) via ei::VCall.
+- 005A18E0 and 005A6E70 are called through their own addresses from our loaders so their verify
+  wrappers see the calls. ClipBounds::SetBox (model.cpp) is called directly.
+- Globals: 0073FAFC (1e8, far limit), 007C2E18 (DrawOffset's shared vertex buffer).
+
+## Original bugs and oddities kept
+
+- 005A4D60 does not test the loaded flag (the other three loaders do).
+- DrawOffset's shared buffer grows without copying the old contents and allocates an empty block
+  for 0 vertices instead of freeing.
+- The old-format loader with class 0x42 and 0x41 round the box minimum differently (compiled from
+  the same source, different register allocation).
+- Plain float copies through FLD/FSTP (radius into the ClipBounds, the ExtendWorldBox selects)
+  quiet a signalling NaN in the original; ours may copy the bits (only differs for SNaN input).
+
+## Skipped
+
+- 005A7A70 (4.2 KB, the mesh draw: SEH, STLport strings, lights, 004E9010/004E9A50), 005A7640,
+  005A7290, 005A0E80 (software corner/texcoord path), 0059F8F0 / 0059F710 (Load/Save to a CFile;
+  no caller found), 0059F510 (SetTransform, quaternion maths), 0059F3F0, 005ACE80, 005AC010 (figure
+  loader), the figure manager 005AA5F0.. and 005A8B00/005A8FB0/005A9310 (screen rectangles).
+- World server: 0058B750, 0058EF20, 00596E70, 00597BD0, 0057B3B0, 00591800 (mercenary variables),
+  005942D0, 0058E850: network / script / MFC list heavy; next candidates after the above.
+- 005C2xxx-005C46xx local search and path smoothing (005C46C0 reads the precomputed transition
+  tables at 007C3058; next candidate in the AI range).
+
+## Scenario
+
+None added: figure meshes are loaded whenever a unit or object is created on the client, so
+`world`, `world_load` and `sandbox_*` already reach the FIG loaders, LoadBounds and the figure
+bounds; ExtendWorldBox runs when an object's box is recomputed (00518100). The old-format loaders
+and MorphFigureBounds6 run only for figures without a FIG header (possibly none in the data).
