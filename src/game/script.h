@@ -410,3 +410,58 @@ struct ScriptDefinition {
     ScriptVars vars;                    // +0x20 parameters and locals
 };
 static_assert(sizeof(ScriptDefinition) == 0xC0);
+
+// ---- Command execution (script_exec.cpp, script_exec_run.cpp) -----------------------------------
+
+// A running command block (0xB4 bytes): the WorldScript, a then-section, or a For body (For runs
+// its body in the same ScriptRun, saving and restoring the first four fields). Runs that are not
+// finished after one Execute are kept in the CScript's run list (+0x15C) and continue each tick.
+struct ScriptRun {
+    // 004B6760 (Rebirth patches it: vanilla only). Runs commands from `index` until one waits
+    // (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block ends. Counts the call in
+    // `ticks`. Returns 0 when the block had already ended (index past the end) on entry, else 1.
+    BOOL Execute(CScript* script);
+
+    ScriptDecl* block;      // +0x00 the commands
+    int index;              // +0x04 next command
+    int ticks;              // +0x08 Execute calls so far (Sleep and WaitSegment count these)
+    int sleepStart;         // +0x0C ticks when the running Sleep started, -1 when none
+    int* killFlag;          // +0x10 the script instance's flag (its +0), null for the WorldScript
+    ScriptVars vars;        // +0x14 a copy of the instance's variables
+};
+static_assert(sizeof(ScriptRun) == 0xB4);
+
+// Observer of ScriptRun::Execute (null in normal builds): `before` runs once a command's arguments
+// are evaluated, `after` once it ran (`cont` 0: the run waits on it), before the temporaries are
+// freed. The verify build installs one to check each command's effect.
+struct ScriptCommandObserver {
+    void (*before)(ScriptRun* run, CScript* script, SSCCmd* cmd);
+    void (*after)(ScriptRun* run, CScript* script, SSCCmd* cmd, int cont);
+};
+extern ScriptCommandObserver* g_scriptCommandObserver;
+
+// Script instances (CScript +0x140, CList nodes of 0xC8 bytes) are copies of their definition;
+// the copy's `index` (+0) is the instance's "killed" flag (KillScript sets it) and `vars` hold the
+// call's arguments.
+// 004BB6A0. Copies a script call's arguments (all but the first float and string, which name the
+// script) into the instance's variables; FatalError when a type's count does not match.
+void __fastcall ScriptBindCall(ScriptDefinition* instance, void* edx, const SSCCmd* call);
+
+// 004BB520. Evaluates the conditions in the instance's variables (temporaries freed after each);
+// when all are nonzero, runs the commands block (CScript::RunCommands). __thiscall on the pair.
+void __fastcall ScriptIfThenRun(const ScriptIfThen* pair, void* edx, CScript* script,
+                                ScriptDefinition* instance);
+
+// CScript members of the runtime, reached through these free functions (__thiscall on the script).
+// 004BC420. Runs `block` once in a new ScriptRun (with a copy of the instance's variables, the
+// instance's kill flag); when it is not finished, adds the run at the head of the run list.
+void __fastcall ScriptRunCommands(CScript* script, void* edx, ScriptDecl* block,
+                                  ScriptDefinition* instance);
+// 004BEC80. Outside For loops (+0x1E8 == 0): frees the evaluation temporaries, keeping one empty
+// group (+0x1B0 list) and one released object reference (+0x1CC list).
+void __fastcall ScriptFreeTemporaries(CScript* script);
+// 004BF000. One script tick when a script is loaded (+0x1A8): continues every waiting run, runs
+// every instance's if-then pairs (dropping killed instances), drops deleted objects from the
+// globals, then the timed effects: FX sources (respawn), point lights (move, expire) and particle
+// sources (move, expire); finally frees the temporaries.
+void __fastcall ScriptTick(CScript* script);

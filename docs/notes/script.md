@@ -104,8 +104,9 @@ None of the rewritten functions lies in Rebirth's patched range 0x004CF4A2-0x004
 
 - 004B5B00 SSCCmd::CalcGroup: the PlayerSee case walks a hash container through iterator helpers
   (00455830/00455890/004558B0) with an unclear frame; left for later.
-- 004B6760 SSCCmd::Execute (14 KB command switch). The CScript loader 004CF4D0-004D53C0 was
-  rewritten later: see "Loader and parser" below.
+- 004B6760 SSCCmd::Execute (14 KB command switch), rewritten later as ScriptRun::Execute: see
+  "Command execution and runtime" below. The CScript loader 004CF4D0-004D53C0 was rewritten
+  later: see "Loader and parser" below.
 - 004B5FE0 SSCCmd::Load, 004B3AD0 ScriptVars::Load, 004B3360's siblings (CArray SetSize/Serialize
   template instantiations 004C1xxx-004CExxx): MFC template code.
 - 004B3A70 (copy all values from another ScriptVars): no callers found.
@@ -278,3 +279,169 @@ the second call writes the same text, code and line again.
 - 004BFCC0, 004C01A0, 004C06F0, 004C09F0: build quest scripts from generated text with the same
   parser functions ("Symbols behind conditions list" etc.); not rewritten.
 - 004C0000-004CF000: mostly CArray/CList template instantiations of the script types.
+
+# Command execution and runtime (004B6760, 004BB520-004BF000)
+
+Code: `src/game/script_exec.cpp` (ScriptRun::Execute, the command switch),
+`src/game/script_exec_run.cpp` (instances, if-then pairs, runs, temporaries, the tick); types in
+`script.h` (ScriptRun, ScriptCommandObserver, the runtime entry points). Verify wrappers:
+`tests/verify/verify_script_exec.cpp`. In-game scenario: `tests/scenarios/script_exec.txt`.
+
+## How scripts run
+
+The world calls `ScriptTick` (004BF000, "CommandQueue::Run") every world update for its two
+CScripts (world +0x12874, and +0x12A6C = 007C29CC, the mission script the console uses). A tick,
+when a script is loaded (+0x1A8):
+
+1. Every waiting **run** (CList<ScriptRun> at +0x15C, nodes 0xBC) is continued with
+   `ScriptRun::Execute`; a run that returns 0 (it had already reached its end) is removed.
+2. Every **script instance** (CList at +0x140, nodes 0xC8: a copy of the ScriptDefinition whose
+   +0 is the "killed" flag) drops deleted objects from its variables, then runs its if-then pairs
+   in order (`ScriptIfThenRun`) until one kills it; killed instances are removed.
+3. Global object variables and groups drop deleted objects.
+4. Timed effects: FX sources (+0x30) respawn their effect when their countdown runs out (new
+   countdown `Next() % (max - min + 1) + min`, new effect object of class 0x48 at a random offset
+   within the source's radius); point lights (+0x04, 256 slots of 0x20) move for their remaining
+   steps, then stop (and are removed when MovePointLight asked for it); particle sources (+0x14)
+   move, count down their lifetime and are removed at 0 (or after the move when flagged).
+5. `ScriptFreeTemporaries`.
+
+`ScriptIfThenRun` (004BB520) evaluates the conditions with CalcFloat in the instance's variables,
+freeing the temporaries after each; the first zero (or NaN) condition ends it. When all hold,
+`ScriptRunCommands` (004BC420) runs the commands block once in a new ScriptRun (index 0, a copy of
+the instance's variable values, kill flag = the instance); if that Execute returns 1 (it waits, or
+ran to the end) a copy goes to the head of the run list. The WorldScript (and every console `@`
+line) is added to the run list by RunWorldScript (004BCC60, not rewritten) and first runs on the
+next tick (the console runs one tick right after loading).
+
+`ScriptRun::Execute` (004B6760): counts the call (+8); returns 0 if the block had already ended;
+otherwise drops deleted objects from the run's variables and runs commands: bind local and global
+variables (SetParameters), evaluate the nested calls (CalcParameters), run the command, free the
+temporaries, advance. A waiting command leaves the index on itself and Execute returns 1:
+
+- Sleep(n): the first time it records the tick count (+0xC); waits while `ticks - start < n`
+  (FISTP), then resets +0xC to -1. So it waits n further Execute calls, i.e. world updates.
+- WaitSegment(n): waits while the run has been executed fewer than n times in total.
+- SleepUntil(c): while c is 0 or NaN. SleepUntilIdle(unit): while the unit's brain has an action
+  (+0x240 object +0x984).
+
+For(counter, group)(body) / ForIf(counter, group, condition)(body) walk the group from the last
+member to the first (size read once), store the member in the loop counter (a global object
+variable), and run the body block (SSCCmd +0x90) in the same ScriptRun: block, index, ticks and
+sleep start are saved, set to body/0/0/-1, Execute is called recursively, and restored (a Sleep in
+the body therefore ends the body for that member). ForIf evaluates its first float nested call
+(the condition) for each member and skips the member when argument float 0 is zero or NaN.
+CScript +0x1E8 counts the For nesting; FreeTemporaries does nothing while it is positive.
+
+A script call (command 8) appends an instance of definition `float 0` (AddTail 004C7C90),
+`ScriptBindCall` (004BB6A0) copies the arguments after the first float and string into its
+variables (FatalError "Wrong number of script %s float parameters" etc. when a count differs), and
+the instance's killed flag is cleared. The instance runs its pairs from the same tick on (the
+instance loop reaches it when it was added at the tail).
+
+Assignment (command 0x78): float 1 = type - 1 selects floats (copied as bits), strings (CString
+assignment), objects (reference) or groups (CArray Copy 004C1290); float 0 = variable index.
+
+## Data structures recovered
+
+- **ScriptRun** (0xB4): block (ScriptDecl*), index, ticks, sleep start, kill flag (int*, the
+  instance; null for the WorldScript), ScriptVars copy at +0x14.
+- **CScript** runtime fields: +0x04 point lights (CArray, 256 slots of 0x20 set up by the
+  constructor 004BDE40: object, id, remove-when-done, active, steps left, step dx dy dz),
+  +0x14 particle sources (CList; node +0x08 source, +0x0C id, +0x10 delete after move, +0x14
+  moving, +0x18 steps, +0x1C step, +0x28 lifetime), +0x30 FX sources (CList; node +0x08 effect,
+  +0x0C id, +0x10 name, +0x14 x y z, +0x20 / +0x24 copied to the effect's +0x24C / +0x250, +0x28
+  disabled, +0x2C radius, +0x30 / +0x34 min / max delay, +0x38 countdown), +0x4C lightning (CList;
+  node +0x0C id), +0x140 instances, +0x15C runs, +0x178 WorldScript blocks, +0x194 areas,
+  +0x1B0 / +0x1CC temporary groups / object references (CLists that always keep one entry; the
+  constructor adds it), +0x1E8 For depth.
+- Units: +0x240 server state (its +0x980 is the AI brain, +0x1E0 the skills/stats, +0x1C the
+  owner object), +0x244 hostile mask, +0x250 side, +0x4A0 / +0x4A4 quest items. flags_ bits:
+  0x800000 blocked (IsUnitBlocked), 0x10000 hidden, 0x80000 trap active (units: "changed").
+- Players: +0x20 quest variable / music / zone object, +0x70 and +0x9C party data, +0xC0 money,
+  +0x108 god mode byte.
+
+## Rewritten functions
+
+| Address | Name | Verification |
+|---|---|---|
+| 004B6760 | ScriptRun::Execute (Rebirth patches it: vanilla only) | ours only. Run: ticks +1; block, kill flag and For depth unchanged; result 0 only when the run was already at its end; otherwise it stops only at the end or on a waiting command. Per command (observer, after each command, before the temporaries are freed): the run's position and tick count unchanged, sleep start unchanged except by Sleep, only waiting commands stop, For depth restored; plus the effect: Sleep/WaitSegment/SleepUntil/SleepUntilIdle stop exactly when they should and Sleep's start is kept/reset; KillScript sets the flag; a script call adds a live instance with the call's floats; assignments hold the value (float bits, string, object, group members); AddObject leaves the group sorted and containing the object, RemoveObject without it; BlockUnit/HideObject/ActivateTrap flag bits; SetPlayer side (+0x250); SetEnemy bit in the hostile mask; GodMode byte |
+| 004BB6A0 | ScriptBindCall | ours only: when the counts match, every parameter equals its argument |
+| 004BB520 | ScriptIfThenRun | ours only: temporaries freed, run list well formed |
+| 004BC420 | ScriptRunCommands | ours only: run list grew by at most one; a new run has the block, the kill flag, ticks 1, a waiting command at its index, and the instance's variable counts |
+| 004BEC80 | ScriptFreeTemporaries | ours only: inside For nothing changes, else one empty group and one empty reference left; lists well formed |
+| 004BF000 | ScriptTick | ours only: run, instance and particle lists well formed, no killed instance left, no deleted object in the globals, temporaries freed |
+
+Every callee is called through its original address (`EI_ORIGINAL` forwarders, named in the .cpp
+files): CalcParameters, CalcFloat, FatalError, 005935C0 and Execute itself are patched by Rebirth,
+and the rewritten runtime functions call each other through their original addresses too, so each
+runs through its verify wrapper in the verify build. For bodies recurse through 004B6760.
+
+## Forwarders added (standalone build must replace)
+
+All in `script_exec.cpp` / `script_exec_run.cpp`:
+- Script: 004C7C90 instance AddTail, 004CDAB0 / 004CD9B0 run / instance FreeNode, 004CECB0 /
+  004CB570 ScriptRun ConstructElements / operator=, 004C00D0 / 004BE090 ScriptVars, 004C1A80 /
+  004C14A0 / 004C1290 / 004C1BE0 value array Copy, 004C2200 group RemoveAt, 004C2050 SetSize,
+  004CC7D0 reference DestructElements, 004C8AF0 / 004C9100 temporaries RemoveTail, 004C6040 /
+  004C6370 / 004C6680 particle / FX / lightning RemoveAt.
+- Command helpers not rewritten: 004BD6A0 CreatePointLight, 004BD820 MovePointLight, 004BD920
+  DeletePointLight, 004BD9A0 CreateParticleSource, 004BDBB0 MoveParticleSource, 004BCFF0
+  CreateLightning, 004BD260 CreateFX, 004BD310 CreateFXSource, 004BCF30 DeleteArea, 004B1ED0 /
+  004B2070 area AddRect / AddRound, 004BAA40 QStart, 004BAAB0 QFinish (builds a script text and
+  loads it), 004BAE10 quest objective, 004BAEC0 party records of a "party name", unit mode
+  constructors 004BA1C0 / 004BA360 / 004BA450 / 004BA610 / 004BA710 / 004BA830 / 004BA920 /
+  005D0F60 / 005D2850 / 005D3760, 004BA1A0 patrol look, 004BA9D0 console float, 004BA120
+  background colour, 004BA0E0 / 004BA100 / 004BA0A0 / 004BA0C0 / 004BA090 AI map sector helpers.
+- World (007AFF60): 00594180 GetPlayer, 00594220 GridHeight, 00593FC0 InvokeAlarm, 005910A0 add
+  unit, 005935C0 remove object, 00591800, 0058EE20 wind, 0058EEE0 / 0058EEA0 time speed / time,
+  00593FA0 water level, 00595AB0 AddMob, 00594AB0 / 00594BC0 item / spell by name, 00590A40 /
+  00590700 redeploy, 005911C0 award kill, 0058E850 cast spell, 0058E5D0 / 0058E520 timed objects;
+  the object factory at 007AFFA8 (vtable +0x5C).
+- AI brain 005D7AE0 Walk, 005D7B30 TurnTowards, 005D7E40 Follow, 005D7B50 AttackTarget,
+  005D7DA0 CastAt, 005D7C30, 005D4DF0 clear modes, 005D7790 StopAction, 005D6230 Guard, 005D64E0
+  Sentry, 005D5F60 add mode, 005D5E30 patrol mode, 005D6140 remove mode; 005D12B0 / 005D1690
+  patrol points; 004C9970 / 004CDCB0 their arrays. Unit server 00555700 / 00555270 / 00555200 /
+  00554450. Units 0052E970 / 00530120 / 0052E940 / 005300D0 / 00531220 / 005313B0 / 00531820 /
+  0050E9F0; levers 0052B7A0 / 0052BAD0 / 0052BB20; skills 00528AB0 / 00528DA0 / 00529090 /
+  00529220 / 00529400; 00522B40 damage info.
+- Players 00665470 / 00665780, player state 0066EE10 / 0066EE80 / 0066EF30 / 0066EB90 /
+  0066F310 / 0066EF80; party records 006621B0 / 006628D0 / 006620F0 / 00660500; parties
+  (007AA5A0 +0x24) 004A5E10 / 004A5E90 / 004A5FA0, party 00661DB0 / 00661F30, party manager
+  004A8890 / 004A8880 / 004A88E0; diplomacy 004554E0 / 00455660; network 0057F440 / 0057FB90;
+  game server 00419730 / 004197D0 / 004198D0 with STLport strings 004217E0 / 00428F10 / 00425040
+  / 0040C5A0 / 0040C720 / 0041F770 / 0040C760; events (007AFF98) 0066C340 / 0066C3C0; spells
+  00689030; particles 00679280 / 006792B0; console ostream 006FC31D / 00434FE0 (endl 004BA9F0);
+  camera 00578820, movies 00578DC0 / 005DB3F0, renderer 00500960; quest table 004C9C90;
+  lists 004C96A0 / 004C96F0, 004C98C0 / 004C98F0 / 00427830, 004BB000 / 004BB020; object
+  iterator 00404920 / 00404960; 00675CA0 effect moved; 004667F0 random; 00461360 name key.
+- The small accessors 004B9F20-004BAA30 that the original calls out of line are inlined (field
+  reads and flag writes).
+
+## Original bugs and oddities kept
+
+- SetSpellAggression (0x42) only reads the unit's +0x170 and does nothing.
+- KillScript in the WorldScript (no instance) reports a FatalError and then writes through a null
+  pointer.
+- A run keeps a pointer to its instance's killed flag after the instance is removed (a KillScript
+  after a Sleep writes into freed memory). The scenario's script kills itself before it sleeps.
+- SleepUntilIdle dereferences the unit's +0x240 object without a null check.
+- The mode commands write the reference count (+4) of the new mode before testing operator new's
+  result.
+- Sleep counts Execute calls, so a Sleep inside a For body ends the body for that member and the
+  loop goes on; WaitSegment counts from the run's start (in a For body: from that member's start).
+- SetDiplomacy maps a NaN value to neutral (FCOM C3), as the flag commands treat NaN as zero.
+- The ForIf condition is evaluated before every member; a For loop counter is a global, so nested
+  loops on the same counter overwrite it.
+- The tick saves each node's successor before running it, so instances added by script calls
+  during the instance loop run in the same tick only when added after the current node.
+
+## Skipped
+
+- The command helpers listed under forwarders (point lights, particles, lightning, FX, areas,
+  quests, party records): self-contained, still original code.
+- 004BCC60 RunWorldScript, 004BB800 AddParameter, an instance-run loop in an undefined region
+  around 004BBC60 (calls 004BC420), 004BED90 / 004BEB00 / 004BE6E0 (CScript reset and
+  destruction), 004BDE40 CScript constructor.
+- The multiplayer branches of GSSetVar, GSSetVarMax, GSDelVar and QuestComplete are rewritten
+  but only reachable in multiplayer (not exercised by the scenario).

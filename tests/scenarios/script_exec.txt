@@ -1,0 +1,148 @@
+# Script command execution (ScriptRun::Execute and the script runtime): runs as many world script
+# commands as possible through "@..." console lines and checks their effects. Every command also
+# goes through the verify build's per-command checks (tests/verify/verify_script_exec.cpp).
+#
+# Global variables and scripts declared by a console line can only be used by the very next line,
+# and only when the declaring line failed (see script_parse.txt): those pairs come first, before
+# "reject Script error". Names avoid keyword prefixes (the lexer splits "Run1" into "Run" and "1").
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+# Assignments to globals of every type, then AddObject / RemoveObject on the group.
+console @) GlobalVars(gZf:float, gZs:string, gZo:object, gZg:group) EndMarkerA(
+expect Script error: Unexpected 'EndMarkerA'
+console @gZf = 12.5 gZs = "zx.s" gZo = GetLeader() gZg = GetPlayerUnits(GetPlayer(GetLeader())) GSSetVar(0,"zx.f",gZf) GSSetVar(0,gZs,GetObjectID(gZo)) GSSetVar(0,"zx.g",GroupSize(gZg)) RemoveObject(gZg,GetLeader()) GSSetVar(0,"zx.g1",GroupHas(gZg,GetLeader())) AddObject(gZg,GetLeader()) GSSetVar(0,"zx.g2",GroupHas(gZg,GetLeader()))
+check IsEqual(GSGetVar(0,"zx.f"),12.5)
+check IsEqual(GSGetVar(0,"zx.s"),GetObjectID(GetLeader()))
+check IsGreater(GSGetVar(0,"zx.g"),0)
+check IsEqual(GSGetVar(0,"zx.g1"),0)
+check IsEqual(GSGetVar(0,"zx.g2"),1)
+
+# For: once per member of the hero's units.
+console @GSSetVar(0,"zx.for",0)
+console @) GlobalVars(gZc:object) EndMarkerB(
+expect Script error: Unexpected 'EndMarkerB'
+console @For(gZc,GetPlayerUnits(GetPlayer(GetLeader())))( GSSetVar(0,"zx.for",Add(GSGetVar(0,"zx.for"),1)) )
+check IsEqual(GSGetVar(0,"zx.for"),GroupSize(GetPlayerUnits(GetPlayer(GetLeader()))))
+
+# ForIf: only the members the condition holds for (the hero).
+console @GSSetVar(0,"zx.forif",0)
+console @) GlobalVars(gZd:object) EndMarkerC(
+expect Script error: Unexpected 'EndMarkerC'
+console @ForIf(gZd,GetPlayerUnits(GetPlayer(GetLeader())),IsEqual(GetObjectID(gZd),GetObjectID(GetLeader())))( GSSetVar(0,"zx.forif",Add(GSGetVar(0,"zx.forif"),1)) )
+check IsEqual(GSGetVar(0,"zx.forif"),1)
+
+# A script instance with one parameter of each type: KillScript first (the instance is removed in
+# the same tick), then a Sleep, so the rest runs from the run list in later ticks.
+console @) Script ZxRun(n:float, s:string, u:object, w:group)( if(IsGreater(n,0)) then( KillScript() GSSetVar(0,"zx.r1",n) Sleep(20) GSSetVar(0,"zx.r2",GetObjectID(u)) GSSetVar(0,"zx.r3",GroupSize(w)) ConsoleString(s) ) ) EndMarkerD(
+expect Script error: Unexpected 'EndMarkerD'
+console @ZxRun(4,"zx run done",GetLeader(),GetPlayerUnits(GetPlayer(GetLeader())))
+waitfor 10 IsEqual(GSGetVar(0,"zx.r2"),GetObjectID(GetLeader()))
+expect zx run done
+check IsEqual(GSGetVar(0,"zx.r1"),4)
+check IsEqual(GSGetVar(0,"zx.r3"),GroupSize(GetPlayerUnits(GetPlayer(GetLeader()))))
+
+reject Script error
+
+# Waiting commands: Sleep, WaitSegment, SleepUntil.
+console @GSSetVar(0,"zw.a",1) Sleep(200) GSSetVar(0,"zw.a",2)
+check IsEqual(GSGetVar(0,"zw.a"),1)
+waitfor 10 IsEqual(GSGetVar(0,"zw.a"),2)
+console @WaitSegment(60) GSSetVar(0,"zw.b",1)
+waitfor 10 IsEqual(GSGetVar(0,"zw.b"),1)
+console @SleepUntil(IsGreater(GSGetVar(0,"zw.c"),0)) GSSetVar(0,"zw.d",1)
+check IsEqual(GSGetVar(0,"zw.d"),0)
+console @GSSetVar(0,"zw.c",1)
+waitfor 5 IsEqual(GSGetVar(0,"zw.d"),1)
+
+# Quest variables: GSSetVarMax keeps the larger value, GSDelVar removes the variable.
+console @GSSetVar(0,"zv.a",5) GSSetVarMax(0,"zv.a",3)
+check IsEqual(GSGetVar(0,"zv.a"),5)
+console @GSSetVarMax(0,"zv.a",9)
+check IsEqual(GSGetVar(0,"zv.a"),9)
+console @GSDelVar(0,"zv.a")
+check IsEqual(GSGetVar(0,"zv.a"),0)
+
+# Diplomacy between two unused players: allied, enemies, neutral.
+console @SetDiplomacy(5,6,1)
+check IsEqual(GetDiplomacy(5,6),1)
+console @SetDiplomacy(5,6,-1)
+check IsEqual(GetDiplomacy(5,6),-1)
+console @SetDiplomacy(5,6,0)
+check IsEqual(GetDiplomacy(5,6),0)
+
+# Money, god mode, world time, alarms, areas, wind and background colour.
+console @GSSetVar(0,"zm.a",GetMoney(0)) GiveMoney(0,100)
+check IsEqual(GetMoney(0),Add(GSGetVar(0,"zm.a"),100))
+console @GodMode(0,1) GodMode(0,0)
+console @FixWorldTime(10)
+check IsEqual(GetWorldTime(),10)
+console @RunWorldTime(10)
+console @InvokeAlarm(4,123.5,77.25)
+check IsEqual(AlarmPosX(4),123.5)
+check IsEqual(AlarmPosY(4),77.25)
+console @AddRectToArea(907,10,20,30,40) AddRoundToArea(908,100,100,5)
+check IsInArea(907,15,35)
+check Not(IsInArea(907,50,50))
+check IsInArea(908,101,101)
+check Not(IsInArea(908,110,100))
+console @DeleteArea(907) DeleteArea(908)
+check Not(IsInArea(907,15,35))
+console @SetWind(1,0,0,1) SetBackGroundColor(40,60,80)
+
+# Effect lists: a point light that moves for 20 ticks and is then removed; lookups of ids that do
+# not exist in the particle, lightning and FX source lists.
+console @GSSetVar(0,"zu.x",GetX(GetLeader())) GSSetVar(0,"zu.y",GetY(GetLeader()))
+console @CreatePointLight(901,GSGetVar(0,"zu.x"),GSGetVar(0,"zu.y"),3,6,255,200,120) MovePointLight(901,Add(GSGetVar(0,"zu.x"),2),GSGetVar(0,"zu.y"),3,20,1)
+console @DeleteParticleSource(902) AttachParticleSource(902,1) AttachParticles(902,GetLeader()) SetParticleSourceSize(902,2) DeleteLightning(903) DeleteFXSource(904) DeletePointLight(905)
+console $"zx text"
+expect zx text
+
+# A wolf on the hero's side: player, enemies, blocking, hiding, orders and unit modes.
+console @AddUnitToServer("ZxWolf","WolfTutor","ZxWolf",Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),0)
+waitfor 10 IsAlive(GetObjectByName("ZxWolf"))
+console @SetPlayer(GetObjectByName("ZxWolf"),6) SetEnemy(GetObjectByName("ZxWolf"),5)
+check IsEqual(GetPlayer(GetObjectByName("ZxWolf")),6)
+console @SetPlayer(GetObjectByName("ZxWolf"),0)
+check IsEqual(GetPlayer(GetObjectByName("ZxWolf")),0)
+console @BlockUnit(GetObjectByName("ZxWolf"),1)
+check IsUnitBlocked(GetObjectByName("ZxWolf"))
+console @BlockUnit(GetObjectByName("ZxWolf"),0)
+check Not(IsUnitBlocked(GetObjectByName("ZxWolf")))
+console @HideObject(GetObjectByName("ZxWolf"),1) HideObject(GetObjectByName("ZxWolf"),0)
+console @MoveToPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y"))
+waitfor 15 IsLess(DistanceUnitPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y")),1.5)
+console @RotateTo(GetObjectByName("ZxWolf"),GSGetVar(0,"zu.x"),Add(GSGetVar(0,"zu.y"),5)) Stand(GetObjectByName("ZxWolf")) Run(GetObjectByName("ZxWolf")) Walk(GetObjectByName("ZxWolf")) Rest(GetObjectByName("ZxWolf"))
+console @MoveToObject(GetObjectByName("ZxWolf"),GetLeader()) Follow(GetObjectByName("ZxWolf"),GetLeader()) ResetTarget(GetObjectByName("ZxWolf")) Idle(GetObjectByName("ZxWolf"))
+console @Guard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) Sentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) Idle(GetObjectByName("ZxWolf"))
+console @UMClear(GetObjectByName("ZxWolf")) UMSentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) UMGuard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) UMGuardEx(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4,8) UMFollow(GetObjectByName("ZxWolf"),GetLeader())
+console @UMClear(GetObjectByName("ZxWolf")) UMPatrol(GetObjectByName("ZxWolf")) UMPatrolAddPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) UMPatrolAddPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),4),GSGetVar(0,"zu.y")) UMPatrolAddPointLook(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),5),GSGetVar(0,"zu.y"),0)
+console @UMPatrolClear(GetObjectByName("ZxWolf")) UMClear(GetObjectByName("ZxWolf")) UMAg(GetObjectByName("ZxWolf"),0) UMAg(GetObjectByName("ZxWolf"),1) UMAg(GetObjectByName("ZxWolf"),2) UMAg(GetObjectByName("ZxWolf"),3)
+console @UMClear(GetObjectByName("ZxWolf")) UMStandard(GetObjectByName("ZxWolf")) UMAggression(GetObjectByName("ZxWolf")) UMRevenge(GetObjectByName("ZxWolf")) UMFear(GetObjectByName("ZxWolf"),1) UMSuspection(GetObjectByName("ZxWolf")) UMCorpseWatcher(GetObjectByName("ZxWolf")) UMClear(GetObjectByName("ZxWolf")) Idle(GetObjectByName("ZxWolf"))
+
+# Damage and death.
+console @GSSetVar(0,"zu.hp",HP(GetObjectByName("ZxWolf"))) InflictDamage(GetObjectByName("ZxWolf"),5)
+waitfor 10 IsLess(HP(GetObjectByName("ZxWolf")),GSGetVar(0,"zu.hp"))
+console @KillUnit(GetObjectByName("ZxWolf"))
+waitfor 10 Not(IsAlive(GetObjectByName("ZxWolf")))
+
+# A second wolf: placed with SetCPFast and SetCP, then removed from the server.
+console @AddUnitToServer("ZxWolfB","WolfTutor","ZxWolfB",Add(GSGetVar(0,"zu.x"),3),Add(GSGetVar(0,"zu.y"),2),0)
+waitfor 10 IsAlive(GetObjectByName("ZxWolfB"))
+console @SetPlayer(GetObjectByName("ZxWolfB"),0) SetCPFast(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),5),GSGetVar(0,"zu.y"),GetZ(GetObjectByName("ZxWolfB")))
+check IsLess(DistanceUnitPoint(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),5),GSGetVar(0,"zu.y")),1)
+console @SetCP(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),4),GSGetVar(0,"zu.y"),GetZ(GetObjectByName("ZxWolfB")))
+check IsLess(DistanceUnitPoint(GetObjectByName("ZxWolfB"),Add(GSGetVar(0,"zu.x"),4),GSGetVar(0,"zu.y")),1)
+console @RemoveUnitFromServer(GetObjectByName("ZxWolfB"))
+waitfor 10 Not(IsAlive(GetObjectByName("ZxWolfB")))
+
+# SleepUntilIdle: the hero walks one unit; the run continues once the walk is over.
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"zu.x"),1),GSGetVar(0,"zu.y")) SleepUntilIdle(GetLeader()) GSSetVar(0,"zw.idle",1)
+waitfor 15 IsEqual(GSGetVar(0,"zw.idle"),1)
+check IsAlive(GetLeader())
+report
+quit
