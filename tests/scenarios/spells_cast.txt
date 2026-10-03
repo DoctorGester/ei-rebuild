@@ -1,0 +1,34 @@
+# Spell casting (src/game/spell_effect_start.cpp): CSpellEffect::Start for the spell types that
+# spells.txt does not cast, through the create helpers (particle, sound, sound sequence, point
+# light, lightning, SetVisual) and UpdateFootprint (the light wall). The spell names are the ones
+# the game's maps use (inv_lit, acid_column, litnwall, clairvoyence, vision_fog). Script casts have
+# no caster, so vision fog ends at once (it needs a caster and a target).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+# The lightning strike (type 4) on a wolf 12 units away: hits every unit in its radius at once.
+console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),12),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf1"))
+console @GSSetVar(0,"w1",HP(GetObjectByName("Wolf1")))
+console @CastSpellPoint("inv_lit{ee3}",GetX(GetLeader()),GetY(GetLeader()),GetX(GetObjectByName("Wolf1")),GetY(GetObjectByName("Wolf1")))
+waitfor 10 IsLess(HP(GetObjectByName("Wolf1")),GSGetVar(0,"w1"))
+
+# The acid column (type 5) and the light wall (type 7, a lightning between the wall's ends and an
+# AI map footprint) on points 12 units away; they only need to start and run for a while.
+console @CastSpellPoint("acid_column{r2}",GetX(GetLeader()),GetY(GetLeader()),Add(GetX(GetLeader()),12),Add(GetY(GetLeader()),4))
+console @CastSpellPoint("litnwall{ee1}",GetX(GetLeader()),GetY(GetLeader()),GetX(GetLeader()),Add(GetY(GetLeader()),12))
+wait 2000
+
+# Clairvoyance (type 0x14) on a point and vision fog (0x17) on the hero.
+console @CastSpellPoint("clairvoyence{d2}",GetX(GetLeader()),GetY(GetLeader()),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+console @CastSpellUnit("vision_fog{d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 2000
+
+check IsAlive(GetLeader())
+report
+quit
