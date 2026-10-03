@@ -664,7 +664,18 @@ struct GameFlow {
     // zone with "z.MPGame1" = 1 and redeployed; the flow loads that zone (state 4) and the
     // client's game state request becomes kind 1.
     void BeginMultiplayerGame();
+    // 0057FF40 (RET 4; world_briefing.cpp). The local player has seen `briefing`: for a name
+    // ending in "_N" the zone's quests are loaded first (005809D0 with the name without "_N"),
+    // then BriefingVariableInto's variable is set to 1.
+    void MarkBriefing(const char* briefing);
 };
+
+// world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
+// the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
+// into `out`. 0057FDE0 (RET 8): the briefing's variable, "b.<speaker>.<briefing>" or, without a
+// speaker, "b.elder.<briefing>".
+mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
+mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing);
 
 CWorldServer* WorldServer();   // 007AFF60
 CWorldClient* WorldClient();   // 007AF5B8
