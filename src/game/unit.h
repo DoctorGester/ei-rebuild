@@ -665,6 +665,11 @@ struct UnitStats {
     // better; when the hit point maximum of the curve (before and after, both above 1) changes,
     // the slots are healed by what keeps the hit points in proportion (00525800).
     void LearnSkill(const void* database, const void* record);
+    // unit_create_stats.cpp. 00526C70. The attack skill for weapon type `type` (0-4 use skill 0,
+    // 5 and 6 skill 1, 8 the bonused skill 0; others 0): for text-key units the skill byte, the
+    // weapon prototype's bonus (+0x7B / +0x7C) and the stat the skill's name starts with minus 25,
+    // plus the level value of skill `type`. Unrounded (ST0).
+    double WeaponSkillBonus(int type, CUnit* unit);
 
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.

@@ -3,7 +3,9 @@
 // ("Fourth round").
 #include "unit_create.h"
 
+#include "item.h"
 #include "map_object.h"
+#include "object_tables.h"
 #include "unit.h"
 
 #include "lib/crt.h"
@@ -580,6 +582,56 @@ void UnitStats::LearnSkill(const void* database, const void* record) {
     HealSlotsAt(this, nullptr, newMaximum, heal);
 }
 EI_REPLACE_METHOD(0x00526450, UnitStats::LearnSkill);
+
+namespace {
+constexpr float kStatBase = 25.0f;   // 0073E124
+constexpr int kSkillRecordSize = 0x18;
+
+// 00527050 UnitStats::SkillWithBonus of unit_stats.cpp, through its game address; ST0.
+__declspec(naked) double __fastcall SkillWithBonusAt(UnitStats*, void*, std::uint32_t) EI_ORIGINAL(0x00527050)
+
+// The level value of skill `index` stored to a float (FILD qword, FSTP float); 0 without one.
+float LevelAsFloat(const UnitStats* stats, int index) {
+    std::uint8_t level = reinterpret_cast<const std::uint8_t*>(stats)[0x6D3 + index];   // unchecked
+    if (level == 0) return kZero;
+    const char* record =
+        unitdb::SkillLevels().At(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
+    if (!record) return kZero;
+    return static_cast<float>(LevelOf(record));
+}
+
+// The bonus byte (+0x7B for skill 0, +0x7C for skill 1) of the unit's weapon in hand, or 0.
+float WeaponBonus(CUnit* unit, int offset) {
+    CEngineObject* weapon = unit->GetWeapon(unit->activeWeapon);
+    if (!weapon) return kZero;
+    return static_cast<float>(static_cast<int>(Read<std::uint8_t>(static_cast<CItem*>(weapon)->GetPrototype(), offset)));
+}
+} // namespace
+
+double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
+    if (type < 5 || type == 5 || type == 6) {
+        int skill = type >= 5 ? 1 : 0;
+        float level = LevelAsFloat(this, type);
+        if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
+        float weapon = WeaponBonus(unit, 0x7B + skill);
+        float value = static_cast<float>(static_cast<int>(skills[skill]));
+        const char* record = unitdb::Skills().At(static_cast<std::uint32_t>(skill), kSkillRecordSize);
+        char stat = **Read<const char* const*>(record, 0xC);   // the skill's name
+        double base;
+        if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
+        else if (stat == 'i') base = static_cast<double>(stat20) - kStatBase;
+        else if (stat == 'd') base = static_cast<double>(stat18) - kStatBase;
+        else return (static_cast<double>(value) + weapon) + level;
+        return ((base + value) + weapon) + level;
+    }
+    if (type == 8) {
+        if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[0]));
+        float weapon = WeaponBonus(unit, 0x7B);
+        return SkillWithBonusAt(this, nullptr, 0) + weapon;
+    }
+    return kZero;
+}
+EI_REPLACE_METHOD(0x00526C70, UnitStats::WeaponSkillBonus);
 
 // --- Applying a prototype ---------------------------------------------------------------------
 

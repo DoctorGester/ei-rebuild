@@ -244,6 +244,16 @@ static void __fastcall LearnSkillVerify(UnitStats* self, void*, const void* data
 }
 EI_VERIFY(0x00526450, LearnSkillVerify, 9, s_learnSkill);
 
+// 00526C70: MOV EAX,[ESP+4]; SUB ESP,8 (7 bytes). Pure: both, the doubles compared bit for bit.
+static double(__fastcall* s_weaponSkillBonus)(UnitStats*, void*, int, CUnit*);
+static double __fastcall WeaponSkillBonusVerify(UnitStats* self, void*, int type, CUnit* unit) {
+    double expected = s_weaponSkillBonus(self, nullptr, type, unit);
+    double actual = self->WeaponSkillBonus(type, unit);
+    ei::verify::Check("UnitStats::WeaponSkillBonus", expected, actual, "type %d: %g vs %g", type, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x00526C70, WeaponSkillBonusVerify, 7, s_weaponSkillBonus);
+
 // 00513B60. Ours only (hands statistics to the object, rescales it): returns 1 and the
 // prototype index is -1 or a valid index.
 static int __fastcall ApplyPrototypeVerify(UnitStatsBuilder* self, void*, CEngineObject* object, const char* name) {
