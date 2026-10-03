@@ -105,6 +105,8 @@ and CSectorMap methods.
   005B61B0 AddOccluder, 005B6380 ClearOccluder, 005B8FA0 Refresh, 005B8350 UnitShape,
   005B36B0 / 005B3890 unit layer add/remove, 005B9690 BuildLocalPath, 005B9C90 PlanPath (A*),
   005BA400 SteerAlong, 005BD200 AddPathCell, 005C2420 / 005C35F0 local search and its reset.
+  (005B8350, 005B36B0 / 005B3890 and 005BA400 were rewritten in the second pass below; the
+  forwarders now land on those rewrites.)
 - Outside the range: 004D9AA0 quaternion to matrix, 00560E10 matrix * vector, 004698A0
   CStringArray element copy, 00517990 object FindPart, 0040F560 facing direction of a quaternion,
   00539980 ConstructElements<PathCell>, 00556D40 CList::RemoveAll, 005C46C0 path smoothing,
@@ -154,3 +156,161 @@ and CSectorMap methods.
   original's call; the capture is keyed on the AI map and set addresses.
 - The verify build's deep-copy checks for AddTop/AddBottom make object stamping slower (a copy
   per sample, capped at 4096 cells).
+
+# Motion, movement checks and unit layers (0x005A0000-0x005D0000, second pass)
+
+Code: `src/game/ai_motion.*` (the AIPath order header and the unit trajectory),
+`src/game/ai_movement.cpp` (blocking unit, step speeds, cheap-cell test, visible cells, unit
+shapes), `src/game/ai_unit_layer.*` (unit occupancy layers), `CSectorMap::UnitsAt` in
+`sector_map.cpp`. Verify wrappers: `tests/verify/verify_ai_motion.cpp`, `verify_ai_movement.cpp`,
+`verify_ai_unit_layer.cpp`, `verify_sector_map.cpp`. Scenario: `tests/scenarios/movement.txt`.
+
+## How a unit moves (the per-tick path)
+
+The unit movement tick 00547890 (controller `this`, outside the range) does, for a moving unit:
+`UnitMotion::Sample` (005C7430) on the unit's trajectory at CUnit + 0x27C with the controller's
+order (controller + 0x3C, the AIPath) and the world time -> next position, direction and speed;
+`CSectorMap::Remove`; `CanStandAtFromHere` at the new cell; `BlockingUnitAt` (005B7BB0) when it
+cannot stand there; `CSectorMap::Add`; then `CSectorMap::Move` (patched by Rebirth), which lifts and
+re-stamps the unit through `MarkFootprint` -> `UnitShape` (005B8350) and the unit layers
+(005B36B0 / 005B3890, whose virtual callbacks write the cell levels). When the path needs new
+steps, `ContinuePath` / `AdvancePath` refill them and `SetStepSpeeds` (005BA400) prices them;
+0052E9D0 then rebuilds the trajectory with `UnitMotion::Build` (005C67D0). 00548520 at the end of
+the tick asks `StandsOnCheapCell` (005BA5A0).
+
+## Structures recovered
+
+Names provisional; offsets `static_assert`ed in the headers.
+
+- **MotionOrder** (the first 0x20 bytes of AIPath): kind (0 stand at (x, y) facing `angle`, 1 turn
+  to direction arg5 at rate arg6, 2 follow the steps to target (arg5, arg6), 3 track object arg5
+  between times arg6..arg7, 4 turn to direction arg5), x, y (half-cells), angle, start time.
+  AIPath + 0x74 is a buffer freed by `AIPath::Clear`.
+- **UnitMotion** (CUnit + 0x27C, 0xA4 bytes): three MFC CArrays — trajectory points (0x1C: x, y,
+  direction, speed, path cell), waypoints (0x0C: x, y, number of path cells up to it) and step
+  speeds (float, the steps' speed words); +0x3C speed scale, +0x40 base turn rate, +0x44 turn rate,
+  +0x48 start angle, +0x4C turn to make first; +0x50..+0x74 the cached segment (ends, directions,
+  length, speed); +0x78 / +0x88 cubic Hermite coefficients for x and y; +0x98 / +0x9C segment
+  start/end time; +0xA0 segment index (-1 none).
+- **Trajectory build**: waypoints at the order start, at corners of the step path (direction table
+  00791988, indexed by dy * 3 + dx from its middle; a corner is a direction change of more than 45
+  degrees; cardinal moves add the cell corner, diagonal moves at corners add an edge midpoint), and
+  at the target; each segment is split into one point per path cell (the first starts half a cell
+  early, the last ends half a cell late), speed = step speed * scale / 512; points slow down where
+  turning to the next direction takes longer than the way (`LimitSpeeds`); the unit first turns in
+  place unless the first direction is within acos(0.9) of its facing.
+- **Sampling**: time before the turn time -> turning in place (`turning` set, only the facing
+  changes); then the segments are walked (time accumulated unrounded on the FPU, as the original)
+  and the cached segment is fitted with two Hermite cubics in the segment's length parameter.
+- **CUnitLayer** (CAIMap + 0x27C small units, + 0x12A4 large units; 0x1028 bytes): vtable, an MFC
+  CList holding every node ever allocated, 1024 hash buckets by (block x * 17 + block y), a free
+  list, the owning CAIMap at +0x1024. Nodes (0x1C): next, key (block y << 16 | block x), 4x4 signed
+  levels, owner unit. Slot 0 (Set) / slot 1 (Merge) write the cells' `level` byte (small layer,
+  unsigned max) or the signed bytes at CAIMap + 0x1F8 (large layer, signed max) — so +0x1F8 is not
+  only water depth; the name `waterDepth` is kept until its other writers are known.
+- **PassCostContext** (005B9510, 0x18): cost table (CAIMap + 0x14, per passability nibble), climb
+  table middle, nibble shift, three constants (0.1, 10, 0.1). CAIMap + 0x94 is a second per-nibble
+  table used for step speeds.
+- **VisibilityGrid** (0x18): origin, data, row pointers, width, height; grown by 005C8D40.
+- **Shape cache** (007C2F70 owner, STLport hash_map at 007C2F78): unit occupancy shapes keyed by
+  standing height rounded up to tenths; a shape's 16x16 signed levels start at + 8.
+
+## Functions rewritten
+
+| Address | Name | Verification |
+|---|---|---|
+| 005C7430 | UnitMotion::Sample (every tick, moving units) | original on a copy of the motion object with scratch outputs; result, all outputs and the 0xA4 bytes compared |
+| 005C6FC0 | UnitMotion::SamplePath | same |
+| 005C67D0 | UnitMotion::Build | deep copy (own game-heap arrays): original on the copy, ours on the real one; arrays (size, capacity, growth, elements) and scalars compared |
+| 005C6750 | UnitMotion::AssignCells | deep copy, as Build |
+| 005C66C0 | UnitMotion::Subdivide | deep copy |
+| 005C6370 | UnitMotion::SubdivideSegment | deep copy, step index compared |
+| 005C6290 | UnitMotion::LimitSpeeds | deep copy |
+| 005C6270 | UnitMotion::Clear | copy; bytes and EAX (0) compared |
+| 005C73B0 | MotionCubic::Fit | output: original into a copy, 16 bytes compared |
+| 005C7410 | MotionCubic::Slope | pure (double) |
+| 005C7B00 | AIPath::Start | original on a copy of the path with empty lists; result, header and the real steps list (emptied) checked |
+| 005C7D50 | AIPath::Reset | same; EAX (0) compared |
+| 005B23A0 | AIPath::Clear | copy with empty lists and no buffer; all 0x88 bytes compared |
+| 005C7C00 / 005C7C40 / 005C7C20 / 005C7C70 / 005C7CB0 | AIPath::SetTurn / SetTurnUntil / SetTrack / SetTarget / ShiftTime | original on a copy; header compared |
+| 005C7C90 | AIPath::ForgetObject | ours only (3-byte prologue before a JNZ): arg5 cleared exactly when kind 3 tracks the id |
+| 005C7CE0 | AIPath::SetStepSpeeds | ours only: every step carries the speed, EAX 0 |
+| 005C7D00 | AIPath::Destination | output; vector and returned pointer compared |
+| 005B7BB0 | CAIMap::BlockingUnitAt (every tick when a unit cannot stand at its next cell) | pure (temporary list; the shape cache fill is idempotent) |
+| 005B8350 | CAIMap::UnitShape (every unit footprint stamp) | pure (the original may create the cache entry, ours then finds it): same shape object |
+| 005B9510 | CAIMap::CostContext | output; struct and EAX compared |
+| 005BA400 | CAIMap::SetStepSpeeds (was the `SteerAlong` forwarder) | the original runs, its step words are recorded and put back, ours runs, words compared |
+| 005BA5A0 | CAIMap::StandsOnCheapCell (every movement tick) | pure (AL) |
+| 005BC970 | CAIMap::MarkVisibleCells | the original marks a copy of the grid with its own buffers, ours the real one; origin, size and marks compared |
+| 005B36B0 | CUnitLayer::Add | ours only (it calls the layer's virtual callbacks): each non-empty 4x4 block of the placed shape is the bucket head with the unit, the key and exactly those levels |
+| 005B3890 | CUnitLayer::Remove | ours only: none of the unit's nodes left in the 5x5 blocks |
+| 005B39D0 / 005B3A70 | small layer Set / Merge (vtable 0073FD74 slots 0 / 1) | original first, its 16 map bytes recorded and restored, then ours; bytes compared |
+| 005B3B20 / 005B3B90 | large layer Set / Merge (vtable 0073FD6C) | same |
+| 005C0930 | CSectorMap::UnitsAt | pure |
+
+None of these is in docs/rebirth-patched-functions.txt; the only patched function in the area that
+our code reaches is CSectorMap::Move (005C11D0), already rewritten earlier and installed only in the
+vanilla run. The callbacks are virtual: registered as free `__fastcall` functions at their addresses
+(rule 4), and called through the vtable (`ei::VCall`).
+
+Shared headers changed (additive except where noted): `ai_map.h` — AIPath gained the order methods
+(`Reset` now returns int 0 and `Start` returns bool, both as the original's EAX; the forwarders in
+`ai_path.cpp` were removed), CAIMap gained `BlockingUnitAt`, `SetStepSpeeds`, `CostContext`,
+`StandsOnCheapCell`, `MarkVisibleCells` (the `UnitShape` declaration moved to that block), and the
+structs `PassCostContext` and `VisibilityGrid`; `sector_map.h` — `CSectorMap::UnitsAt`.
+`ai_footprint.cpp` now includes `ai_unit_layer.h` (its local `struct CUnitLayer;` was removed) and
+no longer defines the `UnitShape` forwarder.
+
+## Forwarders added (EI_ORIGINAL; the standalone build must replace these)
+
+- CArray template instantiations of the trajectory: 005C8400 (waypoints Add), 005C87F0 (waypoints
+  SetAtGrow), 005C8950 (step speeds SetAtGrow), 005C8560 (points SetSize).
+- 004E5660 cubic value (outside the range).
+- 005BE7B0 CList<UnitLayerNode>::NewNode.
+- Shape cache: 005BCCB0 handle init, 005BD7F0 cache Get (used inline by BlockingUnitAt), 005BE320
+  hash find, 005BE450 iterator init, 005BE370 / 005BE280 pair construct / destroy, 005BE730 insert,
+  and the cache object's slot 0 (create) through `ei::VCall`.
+- 005B8BA0 cell passability at a level (StandsOnCheapCell), 005C8D40 VisibilityGrid::Include.
+- Called through original addresses so verify wrappers see them: 005C0BD0 FindUnitsInRadius,
+  005BC3E0 LineOfSight (its ST0 is taken unrounded), and the existing 005BA400 / 005B36B0 /
+  005B3890 forwarders in `ai_path.cpp` / `ai_footprint.cpp`.
+- Globals by address: direction table 00791988, class heights 007912BC, shape cache 007C2F70 /
+  007C2F78, list vtable 0073D454.
+
+## Original bugs and oddities kept on purpose
+
+- `Sample` kind 3 and `SamplePath` normalise angles with `while` loops that never end on NaN
+  (the original's FCOM treats NaN as "less than -pi"); reproduced.
+- `UnitMotion::Build` reads the first trajectory point even when there is none (a path with no
+  steps); same in ours.
+- `SamplePath` compares the time with |turn / rate| twice before the path, the second time with
+  a rate just copied from the first: the inner test cannot fail.
+- `SetStepSpeeds` and `StandsOnCheapCell` ask the unit for its movement speeds (0052F920) and never
+  use them (SetStepSpeeds also divides by one); the getter has no side effects, so ours skips it.
+- `CUnitLayer::Add` copies an uninitialised stack element into each newly allocated node, and
+  `Remove` passes its callback a record whose first dword is uninitialised; ours uses zeros (the
+  fields are overwritten / never read).
+- The small layer's Set/Merge and the large layer's check only the block's first cell against the
+  map size and write all 16.
+
+## Skipped and why
+
+- 005B7EF0 (unit water shape add/remove, a function-local static allocated with atexit),
+  005B8BA0 (passability of a cell at a level, 1 KB, also used by Refresh), 005C8D40 (grid growth),
+  the 005C1xxx-005C46xx local search / path smoothing (005C2420, 005C46C0, 005C25D0 ...), the
+  region map (005AFxxx-005B0xxx), 005B43C0 Load (Rebirth-patched) and the 005A0000-005AF000 range
+  (AI helpers of other systems: voice, groups) were not reached in this pass. 005C8xxx/005C9xxx
+  above 005C8D40 (time wheel, misc containers) are not movement code.
+- 005C6E30 (waypoint constructor) is inlined; it has no other callers worth hooking.
+
+## Risks
+
+- The trajectory code keeps x87 intermediates as `double`: identical when the FPU runs at 24 or
+  53 bits; at 64-bit precision (Rebirth may raise it) a spill of an intermediate could differ in
+  the last bit. The deep-copy verifies compare every float bit of the trajectory, so drift would
+  show up as mismatches.
+- `Sample` kind 3 calls the world's slot 0xA0/4 and the tracked object's slot 0xD0/4 or 0xD4/4 for
+  the original and again for ours in the verify build; assumed free of side effects.
+- The unit layers and `ForgetObject` / `SetStepSpeeds` are verified only by consistency checks.
+- `UnitShape`'s create path (first use of a height) follows the original's helper calls one by
+  one; the verify compares only the returned object (the original runs first and creates it).
