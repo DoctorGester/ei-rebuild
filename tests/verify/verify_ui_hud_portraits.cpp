@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace {
@@ -88,7 +89,22 @@ static void __fastcall PortraitsUpdateVerify(CHudPortraits* self, void*) {
         part = "marker";
         offset = 0;
     }
-    ei::verify::Check("CHudPortraits::Update", -1, offset, "%s differ at +0x%X", part, offset);
+    // Both values of the differing dword; for the slots also the slot and the offset in it.
+    std::uint32_t was = 0, now = 0;
+    const std::vector<std::uint8_t>* e = nullptr;
+    const std::vector<std::uint8_t>* a = nullptr;
+    if (part == std::string("slots")) e = &expected.slots, a = &actual.slots;
+    else if (part == std::string("random")) e = &expected.random, a = &actual.random;
+    else if (part == std::string("objects")) e = &expected.objects, a = &actual.objects;
+    int aligned = offset & ~3;
+    if (e && aligned >= 0 && static_cast<std::size_t>(aligned) + 4 <= e->size() &&
+        static_cast<std::size_t>(aligned) + 4 <= a->size()) {
+        std::memcpy(&was, e->data() + aligned, 4);
+        std::memcpy(&now, a->data() + aligned, 4);
+    }
+    int slot = offset >= 0 ? offset / static_cast<int>(sizeof(HudPortraitSlot)) : -1;
+    ei::verify::Check("CHudPortraits::Update", -1, offset, "%s differ at +0x%X (slot %d +0x%X) %08X/%08X", part, offset,
+                      slot, offset >= 0 ? offset % static_cast<int>(sizeof(HudPortraitSlot)) : 0, was, now);
 }
 // PUSH EBP; MOV EBP,ESP; PUSH -1: 5 bytes.
 EI_VERIFY(0x00641080, PortraitsUpdateVerify, 5, s_portraitsUpdate);

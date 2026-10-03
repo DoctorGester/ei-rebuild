@@ -599,7 +599,10 @@ options windows), `src/game/ui_objectives.cpp` (objectives window), `COptionsWin
   started with probability dt/3 per frame (RNG 007A9D40), then the marker over the selected unit
   (0079B3C4). Three quaternion products are inlined, each with its own operand order; the rewrite
   has one function per product. The RNG's double scales (0073C468, 00742760, 0073C508) are not
-  exact powers of two and are read from the exe.
+  exact powers of two and are read from the exe. The random words are loaded like the original's
+  FILD qword (exact): MSVC's unsigned-to-double (FILD dword, then FADD 2^32 for words of 2^31 and
+  up) rounds in that FADD at the game's 24-bit precision, which changed the wobble delay
+  (slot +0x3C) in 4 of 5304 calls before the fix.
 
 ### Builders and the Esc menu click
 

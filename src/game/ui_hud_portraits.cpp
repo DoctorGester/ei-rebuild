@@ -147,8 +147,21 @@ Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
 }
 
 // A random rotation angle in [-1, 1) * WobbleAngle() / 12 (two of them build a wobble target).
+// A random word as the original loads it: FILD of the zero-extended qword, exact in ST0. (MSVC's
+// own unsigned-to-double is FILD dword plus 2^32, an FADD the FPU rounds to its precision: under
+// the game's 24-bit precision that changed words of 2^31 and up.)
+__declspec(naked) double __cdecl Exact(std::uint32_t) {
+    __asm {
+        push 0
+        push dword ptr [esp + 8]
+        fild qword ptr [esp]
+        add esp, 8
+        ret
+    }
+}
+
 float RandomTilt(std::uint32_t r) {
-    return Store((static_cast<double>(r) * RandomScale31() - 1.0f) * D(WobbleAngle()) * kTwelfth);
+    return Store((Exact(r) * RandomScale31() - 1.0f) * D(WobbleAngle()) * kTwelfth);
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -259,15 +272,15 @@ void CHudPortraits::Update() {
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind_ == 0 && dt > 0.0f) {
             std::uint32_t roll = Random()->Next();
-            if (D(dt) * kWobbleRate > static_cast<double>(roll) * RandomScale32()) {
-                slot.wobbleTime_ = Store(static_cast<double>(Random()->Next()) * RandomDelayScale());
+            if (D(dt) * kWobbleRate > Exact(roll) * RandomScale32()) {
+                slot.wobbleTime_ = Store(Exact(Random()->Next()) * RandomDelayScale());
                 slot.wobbleKind_ = 3;
                 std::uint32_t r1 = Random()->Next();
                 std::uint32_t r2 = Random()->Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = Store(static_cast<double>(Random()->Next()) * RandomScale31() + 1.0f);
+                slot.wobbleSpeed_ = Store(Exact(Random()->Next()) * RandomScale31() + 1.0f);
             }
         }
         if (slot.wobbleKind_ != 0) {
