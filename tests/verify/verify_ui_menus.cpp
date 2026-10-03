@@ -264,3 +264,20 @@ static void __fastcall ScrollUpdateVerify(CUiScrollbar* self, void*) {
     ei::verify::Check("CUiScrollbar::Update", true, ok, "state %d rest %g", self->state_, rest);
 }
 EI_VERIFY(0x0065B360, ScrollUpdateVerify, 0, s_unused);
+
+// --- Tooltip -----------------------------------------------------------------------------------------
+
+// Ours only (drawing): returns 1 either way (the base drawing returns 1 too).
+static BOOL __fastcall TooltipDrawVerify(CUiTooltip* self, void*, int pass) {
+    BOOL result = self->CUiTooltip::Draw(pass);
+    ei::verify::Check("CUiTooltip::Draw", 1, result, "state %d", self->state_);
+    return result;
+}
+EI_VERIFY(0x0065EA50, TooltipDrawVerify, 0, s_unused);
+
+static void __fastcall TooltipRedrawVerify(CUiTooltip* self, void*) {
+    int state = self->state_;
+    self->CUiTooltip::Redraw();
+    ei::verify::Check("CUiTooltip::Redraw", state, self->state_, "");
+}
+EI_VERIFY(0x0065EA80, TooltipRedrawVerify, 0, s_unused);

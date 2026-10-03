@@ -366,6 +366,17 @@ static void __fastcall MovePanelUpdateVerify(CHudMovePanel* self, void*) {
 }
 EI_VERIFY(0x00649550, MovePanelUpdateVerify, 0, s_unused);
 
+// Ours only (it formats tooltip texts): nothing else of the panel may change.
+static void __fastcall QuickItemsUpdateVerify(CHudQuickItems* self, void*) {
+    int items[8];
+    std::memcpy(items, self->regionItem_, sizeof(items));
+    CUnit* unit = self->unit_;
+    self->CHudQuickItems::Update();
+    bool ok = self->unit_ == unit && std::memcmp(items, self->regionItem_, sizeof(items)) == 0;
+    ei::verify::Check("CHudQuickItems::Update", true, ok, "unit %p", unit);
+}
+EI_VERIFY(0x0063D9D0, QuickItemsUpdateVerify, 0, s_unused);
+
 // --- Drawing: the render states are restored ------------------------------------------------------
 
 namespace {

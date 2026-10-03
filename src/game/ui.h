@@ -113,6 +113,12 @@ struct CUiTooltip {
     int state_;                      // +0x180 0, 1: idle/hovered; other values: shown
     // 0065E580. Tracks the mouse (layout coordinates).
     void OnMouseMove(int x, int y);
+    // 0065EA50 (window slot 20; the tooltip is a CUiWindow, vtable 00742F64). Draws only while
+    // shown; returns 1 otherwise. (ui_menus.cpp)
+    BOOL Draw(int pass);
+    // 0065EA80 (slot 22). Redraws (005FECC0, the window's base slot 22) only while shown.
+    void Redraw();
+    bool Shown() const { return state_ != 1 && state_ != 0; }
 };
 static_assert(offsetof(CUiTooltip, state_) == 0x180);
 
@@ -140,6 +146,8 @@ public:
     void OnMouseMove(int x, int y);
     // 005FC600 (not rewritten). Releases the tooltip and the vertex storage.
     void ReleaseContents();
+    // 005FC690 (not rewritten). Sets the tooltip's text (when there is a tooltip).
+    void SetTipText(const char* text);
 
     CInterface3D* interface_;        // +0x00
     UiPoint* points_;                // +0x04 polygon vertices (aligned storage)
@@ -251,6 +259,8 @@ public:
     // 005FEB90 (not rewritten). Base drawing (virtual slot 20): draws the scene objects and the
     // models; returns 1.
     BOOL DrawBase(int pass);
+    // 005FECC0 (not rewritten). Base slot 22 (redraw).
+    void RedrawBase();
 
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98
@@ -358,6 +368,10 @@ public:
     void OnDoubleClick(int buttons, int x, int y); // 0063DAE0
     void OnMouseMove(int buttons, int x, int y);   // 0063E270
     BOOL Draw(int pass);                           // 0063CDC0
+    // 0063D9D0 (slot 24, every frame). Fills the tooltip of each quick item slot that shows one.
+    void Update();
+    // 0063CEE0 (not rewritten). The tooltip text of quick item `index` into `text` (a CString).
+    void ItemTip(unsigned index, void* text);
     // Item of the region at `index` (-1: empty). The original indexes this with the result of
     // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
@@ -365,7 +379,10 @@ public:
     }
 
     CBattleScreen* owner_;           // +0x148
-    std::uint8_t unknown_14C[0x16C - 0x14C];
+    int unknown_14C;                 // +0x14C
+    int selected_;                   // +0x150
+    CUnit* unit_;                    // +0x154
+    std::uint8_t unknown_158[0x16C - 0x158];
     int regionItem_[8];              // +0x16C
 };
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);

@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 #include "unit.h"
 #include "world.h"
 
@@ -111,6 +112,8 @@ __declspec(naked) void UiRenderer::FlushBatchB() EI_ORIGINAL(0x004E7A40)
 __declspec(naked) void CBattleScreen::SelectUnit(CUnit*, int, int) EI_ORIGINAL(0x00638EF0)
 __declspec(naked) void CBattleScreen::HoverUnit(CUnit*, int, int) EI_ORIGINAL(0x00639EF0)
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
+__declspec(naked) void CHudQuickItems::ItemTip(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
+__declspec(naked) void CUiRegion::SetTipText(const char*) EI_ORIGINAL(0x005FC690)
 __declspec(naked) void CHudSpellColumn::Click(int) EI_ORIGINAL(0x0063EC90)
 __declspec(naked) void CHudSpellColumn::ClickAlternate(int) EI_ORIGINAL(0x0063EF60)
 __declspec(naked) void CHudActionColumn::Select(int) EI_ORIGINAL(0x0063FB50)
@@ -221,6 +224,18 @@ void CHudQuickItems::OnMouseMove(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) >= 0) inputHandled_ = true;
 }
 UI_INPUT_HANDLER(0x0063E270, CHudQuickItems, OnMouseMove);
+
+void CHudQuickItems::Update() {
+    mfc::CString text;
+    if (!unit_) return;
+    for (unsigned i = 0; i < 4; ++i) {
+        if (!unit_->GetQuickItem(i)) continue;
+        if (!regions_.data_[i]->HasActiveTip()) continue;
+        ItemTip(i, &text);
+        regions_.data_[i]->SetTipText(text);
+    }
+}
+EI_REPLACE_METHOD(0x0063D9D0, CHudQuickItems::Update);
 
 // --- Spell column ------------------------------------------------------------------------------
 

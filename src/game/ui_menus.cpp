@@ -70,6 +70,7 @@ __declspec(naked) double CUiContainer::FrameTime() EI_ORIGINAL(0x00600270)
 __declspec(naked) void CUiContainer::UpdateBase() EI_ORIGINAL(0x006010E0)
 __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void CUiContainer::RedrawContainer() EI_ORIGINAL(0x00601040)
+__declspec(naked) void CUiWindow::RedrawBase() EI_ORIGINAL(0x005FECC0)
 __declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, int) EI_ORIGINAL(0x00601110)
 __declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
 __declspec(naked) bool UiSpinValue::GetValue(int*) EI_ORIGINAL(0x0065BEB0)
@@ -420,3 +421,17 @@ EI_REPLACE_METHOD(0x0065B090, CUiScrollbar::TakePosition);
 EI_REPLACE_METHOD(0x0065B360, CUiScrollbar::Update);
 EI_REPLACE(0x0065B240, ScrollbarMouseDown);
 EI_REPLACE(0x0065B340, ScrollbarMouseUp);
+
+// --- Tooltip -----------------------------------------------------------------------------------
+
+BOOL CUiTooltip::Draw(int pass) {
+    if (!Shown()) return 1;
+    return reinterpret_cast<CUiWindow*>(this)->DrawBase(pass);
+}
+
+void CUiTooltip::Redraw() {
+    if (Shown()) reinterpret_cast<CUiWindow*>(this)->RedrawBase();
+}
+
+EI_REPLACE_METHOD(0x0065EA50, CUiTooltip::Draw);
+EI_REPLACE_METHOD(0x0065EA80, CUiTooltip::Redraw);
