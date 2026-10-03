@@ -119,7 +119,7 @@ __declspec(naked) void __fastcall ProjectShadow(void*, void*, const float*, cons
 // 00501AF0. Texture stages: binds a texture.
 __declspec(naked) void __fastcall SetTexture(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x00501AF0)
 // 006CB020. Light manager: is the point lit, AL.
-__declspec(naked) bool __fastcall IsLit(void*, void*, const float*) EI_ORIGINAL(0x006CB020)
+__declspec(naked) std::uint8_t __fastcall IsLit(void*, void*, const float*) EI_ORIGINAL(0x006CB020)
 // 004EA4A0. Device: draws the shadow geometry.
 __declspec(naked) void __fastcall DrawGeometry(void*, void*, void*, void*, int, void*, int, std::uint32_t,
                                                std::uint32_t, int, std::uint32_t) EI_ORIGINAL(0x004EA4A0)
@@ -600,7 +600,7 @@ int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
-    bool lit = IsLit(LightManager(), nullptr, object->position);
+    std::uint8_t lit = IsLit(LightManager(), nullptr, object->position);
     DrawGeometry(RenderDevice(), nullptr, vertices, indices, vertexCount, texCoords, primitiveCount, colour,
                  static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, 0, kDrawDepth);
     return 1;

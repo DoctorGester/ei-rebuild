@@ -46,8 +46,20 @@ public:
     // Returns 1, or a fatal error's result when the texture or the surface cannot be had.
     int DrawShadow(ShadowDrawContext* context);
 
+    // 0051B7E0 (map_object_draw.cpp). Draws the object (`context` as above; `dirty` receives the screen rectangle the
+    // parts flagged 0x40 covered, or null): the object's state is updated (its slot 26) and its
+    // animation (0050D450), the lights of 007AF748 within their range + 10 are collected, the
+    // object's matrix (and its extra scale +0xF0) pushed, and every part of the two part sets
+    // (+0x20 / +0x24, the first with the texture +0xDC) within sqrt(1e9) drawn through the
+    // context's slot 13 with those lights. A figure whose parts are all static (part flags 0x10)
+    // becomes static (object flags 0x400; +0xEC the time it did, flags_ bit 8). Returns 1, or
+    // a fatal error's result.
+    int Draw(ShadowDrawContext* context, void* dirty);
+
     CObject3D* object;              // +0x1C
-    CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key
+    CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the
+                                    //       first of the two part sets Draw walks (+0x24 the
+                                    //       second)
     std::uint8_t unknown_24[0x4C - 0x24];
     void* vertices;                 // +0x4C \ the projected shadow (0056C750 fills them,
     int vertexCount;                // +0x50 |  004EA4A0 draws them)

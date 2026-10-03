@@ -125,3 +125,16 @@ static int __fastcall DrawShadowVerify(CObject3DClientSpecific* self, void*, Sha
     return result;
 }
 EI_VERIFY(0x0051CE60, DrawShadowVerify, 0, s_unused);
+
+// 0051B7E0. Ours only (draws): returns 1 and the scene's three matrix stacks end as deep as they
+// started.
+static int __fastcall DrawVerify(CObject3DClientSpecific* self, void*, ShadowDrawContext* context, void* dirty) {
+    auto depth = [&](int index) { return *reinterpret_cast<int*>(static_cast<char*>(context->scene) + 0x18 + 8 * index); };
+    int before[3] = {depth(1), depth(2), depth(3)};
+    int result = self->Draw(context, dirty);
+    bool ok = result == 1 && depth(1) == before[0] && depth(2) == before[1] && depth(3) == before[2];
+    ei::verify::Check("CObject3DClientSpecific::Draw", true, ok, "result %d, stacks %d %d %d -> %d %d %d", result,
+                      before[0], before[1], before[2], depth(1), depth(2), depth(3));
+    return result;
+}
+EI_VERIFY(0x0051B7E0, DrawVerify, 0, s_unused);
