@@ -655,6 +655,12 @@ struct UnitStats {
     // Then the hit points. Returns whether any damage passed.
     int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon);
 
+    // unit_create_stats.cpp. 00524CD0. The current values from the bases plus the skills (15:
+    // valuesB0[1] by its percentage; 23-25: the stats; unknown_044 = -2), the slot maxima from
+    // the hit point curve (current values clamped to them), `load`, the capacity, the legs and
+    // arms factors and the rate. NPC statistics are built with it (scale 1).
+    void ResetToBase(float load);
+
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.
     void Pack(CUnit* unused, UnitParams* params);

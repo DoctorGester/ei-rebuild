@@ -292,6 +292,20 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
 }
 EI_REPLACE_METHOD(0x00517700, CObject3D::SetFigureScale);
 
+// --- Parts ------------------------------------------------------------------------------------
+
+int CObject3D::AddPart(FigurePart* part) {
+    for (int k = 0; k < parts.size; ++k)
+        if (parts.data[k] == part) return 1;
+    parts.SetAtGrow(parts.size, part);   // inlined in the original (allocating through 0051A170)
+    ++part->refCount_;
+    SetPartOwner(part, nullptr, this);
+    if (animation) AnimationAddPart(animation, nullptr, part);
+    if (!attached) return 1;
+    return ei::VCall<int>(attached, kAttachedPartAdded, part);
+}
+EI_REPLACE_METHOD(0x005164B0, CObject3D::AddPart);
+
 // --- Loading ----------------------------------------------------------------------------------
 
 int CObject3D::LoadFigures() {

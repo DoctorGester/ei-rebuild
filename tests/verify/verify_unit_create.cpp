@@ -197,6 +197,35 @@ static int __stdcall BuildNpcStatsVerify(UnitStats* stats, const char* name) {
 }
 EI_VERIFY(0x00513DA0, BuildNpcStatsVerify, 6, s_buildNpcStats);
 
+// 00513240: MOV EAX,[ESP+4]; PUSH ESI (5 bytes). Pure but for the lookup's insertion of an
+// unknown name, which the second run then finds: both run, results compared.
+static int(__stdcall* s_prototypeObjectClass)(const char*);
+static int __stdcall PrototypeObjectClassVerify(const char* name) {
+    int expected = s_prototypeObjectClass(name);
+    int actual = PrototypeObjectClass(name);
+    ei::verify::Check("PrototypeObjectClass", expected, actual, "%s", name);
+    return expected;
+}
+EI_VERIFY(0x00513240, PrototypeObjectClassVerify, 5, s_prototypeObjectClass);
+
+// 00524CD0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x14 (6 bytes). Writes only the statistics: ours,
+// snapshot, restore, the original; the 0x704 bytes compared.
+static void(__fastcall* s_resetToBase)(UnitStats*, void*, float);
+static void __fastcall ResetToBaseVerify(UnitStats* self, void*, float load) {
+    unsigned char before[sizeof(UnitStats)];
+    unsigned char ours[sizeof(UnitStats)];
+    std::memcpy(before, self, sizeof(before));
+    self->ResetToBase(load);
+    std::memcpy(ours, self, sizeof(ours));
+    std::memcpy(self, before, sizeof(before));
+    s_resetToBase(self, nullptr, load);
+    int diff = -1;
+    for (int i = 0; i < static_cast<int>(sizeof(ours)) && diff < 0; ++i)
+        if (ours[i] != reinterpret_cast<unsigned char*>(self)[i]) diff = i;
+    ei::verify::Check("UnitStats::ResetToBase", true, diff < 0, "first difference at +0x%X", diff);
+}
+EI_VERIFY(0x00524CD0, ResetToBaseVerify, 6, s_resetToBase);
+
 // 00513B60. Ours only (hands statistics to the object, rescales it): returns 1 and the
 // prototype index is -1 or a valid index.
 static int __fastcall ApplyPrototypeVerify(UnitStatsBuilder* self, void*, CEngineObject* object, const char* name) {

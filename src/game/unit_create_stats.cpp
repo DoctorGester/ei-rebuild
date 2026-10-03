@@ -431,6 +431,122 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
 }
 EI_REPLACE(0x00513DA0, BuildNpcStats);
 
+int __stdcall PrototypeObjectClass(const char* name) {
+    constexpr int kDefaultClass = 0x33;
+    const char* prototype = FindPrototypeAt(&unitdb::PrototypeTable(), nullptr, name);
+    if (!prototype) return kDefaultClass;
+    const char* model = ModelOf(prototype);
+    if (!model) return kDefaultClass;
+    return Read<int>(model, 4);
+}
+EI_REPLACE(0x00513240, PrototypeObjectClass);
+
+// --- Statistics from their bases -----------------------------------------------------------------
+
+namespace {
+constexpr float kZero = 0.0f;                                     // 0073B858
+constexpr float kOneF = 1.0f;                                     // 0073B84C
+constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // 0073C548 / 0073D09C (0.01)
+constexpr float kTwelve = 12.0f;                                  // 0073E138
+constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);    // 0073BAD4
+constexpr float kTenF = 10.0f;                                    // 0073BAAC
+constexpr std::uint32_t kMinusTwo = 0xC0000000u;
+constexpr int kSkillBodyB0 = 15;
+constexpr int kSkillHitPoints = 16;
+constexpr int kSkillRate = 20;
+constexpr int kSkillCapacity = 21;
+constexpr int kSkillStat10 = 23;
+constexpr int kSkillStat18 = 24;
+constexpr int kSkillStat20 = 25;
+
+float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+
+// 007C5460 ^ (ln(experience / 007C545C) / ln(007C5464)): FYL2X with FLDLN2 and the CRT's
+// _CIpow (006E81A0), as the original computes it. Unrounded.
+__declspec(naked) double __cdecl HitPointExperienceCurve(const float* /*experience*/) {
+    __asm {
+        mov eax, 0x007C5460
+        fld dword ptr [eax]
+        mov eax, [esp + 4]
+        fld dword ptr [eax]
+        mov eax, 0x007C545C
+        fdiv dword ptr [eax]
+        fldln2
+        fxch st(1)
+        fyl2x
+        mov eax, 0x007C5464
+        fld dword ptr [eax]
+        fldln2
+        fxch st(1)
+        fyl2x
+        fdivp st(1), st
+        mov eax, 0x006E81A0
+        call eax
+        ret
+    }
+}
+
+// A level record's value (+0x34, unsigned) as the original's FILD of a zero-extended qword.
+double LevelOf(const char* record) {
+    volatile std::int64_t wide = Field<std::uint32_t>(record, 0x34);
+    return static_cast<double>(wide);
+}
+double LevelOrZero(UnitStats* stats, int skill) {
+    const char* record = stats->SkillLevelRecord(skill);
+    return record ? LevelOf(record) : kZero;
+}
+
+// 00524060 / 00524110 (unit_vitals.cpp), through their game addresses.
+__declspec(naked) float __fastcall LegsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524060)
+__declspec(naked) float __fastcall ArmsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524110)
+} // namespace
+
+void UnitStats::ResetToBase(float newLoad) {
+    std::memcpy(&stat10, &stat10Base, 4);
+    std::memcpy(&stat18, &stat18Base, 4);
+    std::memcpy(&stat20, &stat20Base, 4);
+    for (int i = 0; i < 6; ++i) {
+        std::memcpy(&valuesB0[i].current, &valuesB0[i].base, 4);
+        std::memcpy(&valuesE0[i].current, &valuesE0[i].base, 4);
+    }
+    double bonus = kZero;
+    if (const char* record = SkillLevelRecord(kSkillBodyB0)) {
+        double level = LevelOf(record);
+        if (level < kZero || level > kZero) bonus = level * valuesB0[1].current * kPercent;
+    }
+    valuesB0[1].current = static_cast<float>(bonus + valuesB0[1].current);
+    stat10 = static_cast<float>(LevelOrZero(this, kSkillStat10) + stat10);
+    stat18 = static_cast<float>(LevelOrZero(this, kSkillStat18) + stat18);
+    std::memcpy(&unknown_044, &kMinusTwo, 4);
+    stat20 = static_cast<float>(LevelOrZero(this, kSkillStat20) + stat20);
+
+    // The slot maxima from the hit point curve; current values clamped to them.
+    double curve = HitPointExperienceCurve(&experience);
+    float hitPoints = static_cast<float>(
+        curve * (static_cast<double>(stat10) / Global(0x007C5454) * Global(0x007C5458)));
+    float perShare = static_cast<float>(
+        (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].unknown_EC);
+    for (UnitStatSlot& slot : slots) {
+        if (slot.kind <= 0) continue;
+        float maximum = static_cast<float>(static_cast<double>(perShare) * slot.unknown_EC);
+        slot.maximum = maximum;
+        std::uint32_t current = std::bit_cast<std::uint32_t>(slot.current);
+        std::uint32_t chosen = !(maximum >= slot.current) ? std::bit_cast<std::uint32_t>(maximum) : current;
+        slot.current = std::bit_cast<float>(chosen);
+    }
+
+    std::memcpy(&load, &newLoad, 4);   // a dword copy
+    float strengthCapacity = static_cast<float>(static_cast<double>(stat10) * kTwelve);
+    capacity = static_cast<float>((LevelOrZero(this, kSkillCapacity) * kPercent + kOneF) * strengthCapacity);
+    float legs = LegsFactorAt(this, nullptr, 1);
+    loadFactor = legs;
+    speed = static_cast<float>(static_cast<double>(legs) * speedBase);
+    armsFactor = ArmsFactorAt(this, nullptr, 1);
+    rateBase = static_cast<float>(static_cast<double>(stat18) * kPointTwo + kTenF);
+    rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
+}
+EI_REPLACE_METHOD(0x00524CD0, UnitStats::ResetToBase);
+
 // --- Applying a prototype ---------------------------------------------------------------------
 
 int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {

@@ -85,6 +85,11 @@ public:
     // flags_ 0x80. Returns 1 (also when already loaded).
     int LoadFigures();
 
+    // 005164B0. Adds `part` to the parts unless it is there: referenced, told its owner, announced
+    // to the animation and to the attached object (whose slot 13 result is returned). Returns 1
+    // otherwise.
+    int AddPart(FigurePart* part);
+
     float position[3];              // +0x01C
     std::uint8_t unknown_028[0x94 - 0x28];
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)

@@ -73,6 +73,10 @@ struct UnitStatsBuilder {
 // around a refill of the slots. Returns 1.
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
 
+// 00513240. The object class (+0x04 of its model record) of prototype `name`; 0x33 without a
+// prototype or model.
+int __stdcall PrototypeObjectClass(const char* name);
+
 // The map object manager ("map_objects", vtable 0073DCD8). Only its object factory.
 struct CMapObjectManager {
     // 00512730. Virtual slot 14: a new object of class id `classId` (0x32..0x34 units, 0x35..0x3C
