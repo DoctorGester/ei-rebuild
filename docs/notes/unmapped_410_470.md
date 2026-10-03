@@ -230,3 +230,75 @@ the compiler cannot load them into the FPU.
 - Everything else is covered by the existing new-game scenarios (`sandbox_actions.txt`,
   `sandbox_map.txt`, `combat.txt`, `effects.txt`, ...): zone load (chunk reader), streams, the pump,
   and replication / clipping if a single-player game uses them.
+
+## Second round: 00430000-00444000 and compression
+
+Files: `src/game/net_coder.h/.cpp` (buffers, bit cursors, the LZ coder); verify
+`tests/verify/verify_net_coder.cpp`. `CoderState` moved from `core_streams.h` to `net_coder.h`
+with its real field layout (core_streams.h now includes net_coder.h; the constructor 0042FCA0
+stays in core_streams.cpp, same behaviour, field names updated).
+
+### Map of 00430000-00444000
+
+| Range | Contents |
+|---|---|
+| 0042FAE0 | startup initialiser (from .data 007830C0): fills the coder's code tables 0079B6B0 / 0079B738 (offsets 0..0x21: bit counts / codes) and 0079B7BC / 0079B844 (lengths 0..0x22) |
+| 0042FCA0-00431070 | **LZ coder** (CoderState, 0x2828 bytes): constructor 0042FCA0, EncodeMatch 0042FD10, Compress 00430450, Decompress 00430960; cursor helpers PutBits 004301E0, WriteBytes 00430930, ReadBytes 00430F60, EndWrite 00430F90, Reset 00430FC0, GetBits 00430FE0, GetBit 00431040 |
+| 00431070-00432D20 | **dead code**: a key exchange and stream cipher (RIPEMD-128-like compression function 004319E0, 4.8 KB; big-number multiply / modular reduction 00431370 / 004315B0 / 00431487; key setup 00431090 / 00431110, keystream XOR 00431220, 00431300). Only 00431070 (an atexit registration from the .data initialiser list) is referenced; nothing calls 00431090-00431300 (scanned for CALL/JMP rel32 and absolute references). Not rewritten. |
+| 00432DA0-00436000 | lobby record containers: classes with vtables 0073BF38-0073BF5C on the CRefObject roots (00433060 / 00433320 / 004334E0 constructors and copies), their STLport list / hash_map instantiations (00433710-00439D80, the 666-byte functions 0043BBC0 ... 0043D040 are hashtable copies), serialisers over BufferCursor (004355B0 / 00435820 write / read records, called from the lobby record classes 00412AC0-00416850; 00435A00 / 00435F30 whole tables) |
+| 00436000-00440000 | network session base (vtables 0073BBB4 / 0073BE30 / 0073BF64-0073BF94): 00436770 base constructor (called by the server 00412D80 and client 0041BC40 constructors), 00436CF0 remove client ("REMOVE client"), 00437080 update from a host ("ERROR: Update from unknown host"), 00437370 receive ("ZERO length packet received", "TIMEOUT client drop"), more STLport instantiations up to 0043FE90; 0043D830 / 0043FE90 are generic containers also used far outside (004F5090, 005E0E90, 005FAB80) |
+| 00440000-00444000 | session / driver glue: 00440440 (called from save / load code 0057BDF0, 0057E740 and 0061C2E0), 004409A0 (sessions' constructors), client base slots 004418F0 ("Normal update when not in game"), 00441940 / 00441B40 / 00441D40, 004420E0 ("CONNECTION LOST"), 00442300 / 00442590 (from the menus 0061B2C0 / 0061C2E0), server base slots 00443080 (patched by Rebirth), 004434F0, 00443590 (called by the server Tick 004182E0) |
+
+### Compression
+
+Buffers (`GameBuffer`, 0x1C bytes: vtable, begin, cur, end, high, base, flags): the growing buffer
+0073D624 (constructor 004DA7F0, grows to (base - begin + cur + n) * 2 + 0x40) and the fixed view
+0073CA64 over memory owned elsewhere. A `BufferCursor` (0x18 bytes: p, reserved byte pointer, bit
+accumulator, bit count, sink buffer, start) is bound to a buffer by 004DA450 / 004DA490 (read /
+write; forwarders) and commits its position to the buffer's `cur` at the end (slot 2, empty in
+both classes). Bits go LSB first; a byte is reserved in the output when a field starts in a new
+byte, so literal bytes and bit fields interleave in the stream.
+
+Format: int32 uncompressed size; per item a 0 bit and a literal byte, or a 1 bit, a length (2..0xE1:
+table codes up to 0x22, else 0x17/5 bits + 6 bits, 0x3F/6 bits + 7 bits) and an offset - 1 in a
+1 KB window (table codes below 0x22, then prefixes 2/3, 6/3, 3/2 with 6, 8, 10 bits). The
+compressor hashes (previous byte << 2) ^ byte into 0x400 chains of distances, takes the first
+2-byte match within 0x31E and extends it greedily, switching to an earlier string that repeats the
+match plus the new byte. Callers: save game write 00579B80 (compresses, then decompresses the
+result and compares it with the input; with a checksum at version > 0x6B) and read 00579830,
+multiplayer map transfer 00662AC0 / 00662DD0, network messages 0047D7F0 / 0047D970, the client
+0041D600. So every save (the new game's autosave) and load in single player runs it.
+
+Rewritten:
+
+| Address | Name | Verify |
+|---|---|---|
+| 00430450 | `CoderState::Compress` | original on a scratch coder into a clone of the output buffer; input header saved / restored; input header, output header and bytes, coder state compared |
+| 00430960 | `CoderState::Decompress` | same |
+| 0042FD10 | `CoderState::EncodeMatch` | original on a scratch holding the fields after the tables; those compared |
+| 004301E0 / 00430FE0 | `BufferCursor::PutBits` / `GetBits` | original on a cursor copy; cursor (and value) compared |
+| 00431040 | `BufferCursor::GetBit` | a copy of the 44-byte body (CMP / JAE at the start: no trampoline) runs as the original |
+| 00430930 / 00430F60 | `BufferCursor::WriteBytes` / `ReadBytes` | cursor copy; bytes compared (reads over 64 bytes: ours only) |
+| 00430F90 / 0041D930 / 0041D960 | `BufferCursor::EndWrite` / `End`, `CoderEndOutput` | ours only (virtual commit): no pending bits, the sink's cursor is ours, the return value |
+
+Notes: `End` returns EAX as the original leaves it (the commit's result, or `this` without a
+sink; 00579830 returns it with AL cleared). The compressor's decoder tables and the bit masks
+(0078DB24) are read from the game's memory. Reset (00430FC0) and FlushBits (00442570) are tiny
+and only used internally (not hooked).
+
+Original oddities kept: exactly 8 pending bits are not stored until more bits arrive; the
+decompressor writes the window without its mirror half (the compressor keeps both); the length
+codes above 0xE2 and offsets from 0x562 have branches that cannot be reached.
+
+Coverage: `world_load.txt` (autosave on a new game, then loading it) and every scenario that
+starts a new game (its autosave) reach Compress / Decompress and the cursor helpers.
+No new scenario.
+
+### Skipped in this round
+
+- 00431070-00432D20: dead (above).
+- 00443080 (patched by Rebirth), 0041ECC0 (patched).
+- The session / lobby classes 00432DA0-00444000 and the server / client constructors 00412D80 /
+  0041BC40: multiplayer only, mostly STLport containers with EH frames; next candidates are the
+  record serialisers 004355B0 / 00435820 (over BufferCursor, reached by the lobby scenario) and
+  the server Tick's 00443590.
