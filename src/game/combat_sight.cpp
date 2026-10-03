@@ -36,8 +36,6 @@ constexpr float kPi = std::bit_cast<float>(0x40490FDBu);            // 0073EEBC
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0073C548 (0.01)
 constexpr float kNearSq = 10.0f;                                    // immediate 0x41200000
 constexpr double kFrontCosine = 0.5;                                // 0073CC88
-constexpr double kCastDelayScale = 15.0;                            // 0073F0A8
-constexpr double kCastDelayBias = 3.0;                              // 0073F0A0
 constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with flag18
 constexpr std::uint32_t kFarBits = 0x7E967699u;                     // 1e38: the plan's initial range
 constexpr std::uint32_t kBestStartBits = 0x7149F2CAu;               // 1e30
@@ -97,10 +95,29 @@ __declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
     }
 }
 
-// The game's _ftol (006E853C): truncation, the low 32 bits of the 64-bit result.
-__declspec(naked) int __cdecl GameFtol(double) {
+// _ftol (006E853C) of a / b with the quotient left unrounded in ST0, as the original divides
+// and truncates (storing the quotient as a double first can round it up to the next integer).
+__declspec(naked) int __cdecl FtolQuotient(double /*a*/, double /*b*/) {
     __asm {
         fld qword ptr [esp + 4]
+        fdiv qword ptr [esp + 12]
+        mov eax, 0x006E853C
+        call eax
+        ret
+    }
+}
+
+// The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15.0 / flight - 3.0), on the FPU
+// stack throughout (the double constants at 0073F0A8 / 0073F0A0).
+__declspec(naked) int __cdecl CastDelayTicks(double /*distanceSq*/, double /*flight*/) {
+    __asm {
+        fld qword ptr [esp + 4]
+        fsqrt
+        mov eax, 0x0073F0A8
+        fmul qword ptr [eax]
+        fdiv qword ptr [esp + 12]
+        mov eax, 0x0073F0A0
+        fsub qword ptr [eax]
         mov eax, 0x006E853C
         call eax
         ret
@@ -440,10 +457,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             if (OrderSpell(this, order->source, &missile) && missile &&
                 (Get<std::uint32_t>(missile, 0x3C) & kSpellNoTarget)) {
                 float flight = Get<float>(missile, 0x30);
-                if (Greater(flight, kZero)) {
-                    double travel = x87::fsqrt(distanceSq) * kCastDelayScale;
-                    castDelay = GameFtol(travel / flight - kCastDelayBias);
-                }
+                if (Greater(flight, kZero)) castDelay = CastDelayTicks(distanceSq, flight);
             }
         }
     }
@@ -478,7 +492,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 double angle = turn;
                 if (Greater(turn, kPi)) angle = static_cast<double>(kPi) + kPi - turn;
                 if (!Greater(angle, kPercent)) facingIt = true;
-                else if (GameFtol(angle / turnSpeed) + 1 <= tick) facingIt = true;
+                else if (FtolQuotient(angle, turnSpeed) + 1 <= tick) facingIt = true;
             }
             if (facingIt) {
                 if (!CallCanActFrom(order, &aim.x, tick + duration + now)) break;
