@@ -136,3 +136,89 @@ void __fastcall PartyRecordsRemove(PartyRecordList* list, void*, const char* nam
     }
 }
 EI_REPLACE(0x004A5FA0, PartyRecordsRemove);
+
+// ---- The party manager (007AA5A0) -----------------------------------------------------------------
+
+namespace {
+
+// Through their addresses (the rewritten ones run their verify wrappers).
+__declspec(naked) void __fastcall RecordsResetOrig(void*) EI_ORIGINAL(0x004A5BD0)
+__declspec(naked) void __fastcall TemplatesBuildOrig(void*, void*, unsigned) EI_ORIGINAL(0x004A7630)
+// 004A6050 / 004A6360 (not rewritten): copy the redeployed players' party into / out of the
+// current record through a memory stream.
+__declspec(naked) void __fastcall RecordsBeginRedeploy(void*, void*, void*) EI_ORIGINAL(0x004A6050)
+__declspec(naked) void __fastcall RecordsEndRedeploy(void*, void*, void*) EI_ORIGINAL(0x004A6360)
+// The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
+__declspec(naked) void __fastcall PartyCopyFrom(void*, void*, const void*) EI_ORIGINAL(0x00661300)
+__declspec(naked) void __fastcall PartyReset(void*, void*, int, int) EI_ORIGINAL(0x00661700)
+// 004A91B0: hash_map<int, Party>::operator[] (inserts a default party for a new key).
+__declspec(naked) void* __fastcall PartyMapAt(void*, void*, const int*) EI_ORIGINAL(0x004A91B0)
+
+char* Field(void* manager, std::size_t offset) { return static_cast<char*>(manager) + offset; }
+
+// The node of `key` in an STLport hash_map<int, Party> (buckets +0x04..+0x08; node: next, key,
+// value at +8), null if none.
+struct MapNode {
+    MapNode* next;
+    int key;
+};
+MapNode* FindNode(const void* map, int key) {
+    auto* buckets = *reinterpret_cast<MapNode* const* const*>(static_cast<const char*>(map) + 4);
+    auto* bucketsEnd = *reinterpret_cast<MapNode* const* const*>(static_cast<const char*>(map) + 8);
+    unsigned count = static_cast<unsigned>(bucketsEnd - buckets);
+    for (MapNode* node = buckets[static_cast<unsigned>(key) % count]; node; node = node->next)
+        if (node->key == key) return node;
+    return nullptr;
+}
+void* NodeValue(MapNode* node) { return reinterpret_cast<char*>(node) + 8; }
+
+} // namespace
+
+void __fastcall PartyManagerNewGame(void* manager) {
+    RecordsResetOrig(Field(manager, 0x24));
+    TemplatesBuildOrig(Field(manager, 0x38), nullptr, 0);
+}
+EI_REPLACE(0x004A88A0, PartyManagerNewGame);
+
+void __fastcall PartyManagerNewGameFour(void* manager) {
+    RecordsResetOrig(Field(manager, 0x24));
+    TemplatesBuildOrig(Field(manager, 0x38), nullptr, 1);
+}
+EI_REPLACE(0x004A88C0, PartyManagerNewGameFour);
+
+void __fastcall PartyManagerBeginRedeploy(void* manager, void*, void* players) {
+    RecordsBeginRedeploy(Field(manager, 0x24), nullptr, players);
+}
+EI_REPLACE(0x004A8890, PartyManagerBeginRedeploy);
+
+void __fastcall PartyManagerEndRedeploy(void* manager, void*, void* players) {
+    RecordsEndRedeploy(Field(manager, 0x24), nullptr, players);
+}
+EI_REPLACE(0x004A8880, PartyManagerEndRedeploy);
+
+int __stdcall PartyNextId(int* out) {
+    int& counter = *reinterpret_cast<int*>(0x0078B0E8);
+    *out = counter;
+    return ++counter;
+}
+EI_REPLACE(0x004A8910, PartyNextId);
+
+bool __fastcall PartyMapLoad(const void* map, void*, int, int, const int* key, void* target) {
+    if (*key == 0) {
+        PartyReset(target, nullptr, 1, 0);
+        return true;
+    }
+    MapNode* node = FindNode(map, *key);
+    if (!node) return false;
+    PartyCopyFrom(target, nullptr, NodeValue(node));
+    return true;
+}
+EI_REPLACE(0x004A8790, PartyMapLoad);
+
+bool __fastcall PartyMapStore(void* map, void*, const int* key, const void* source) {
+    MapNode* node = FindNode(map, *key);
+    void* value = node ? NodeValue(node) : PartyMapAt(map, nullptr, key);
+    PartyCopyFrom(value, nullptr, source);
+    return true;
+}
+EI_REPLACE(0x004A8800, PartyMapStore);

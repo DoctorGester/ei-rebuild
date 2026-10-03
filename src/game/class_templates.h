@@ -46,3 +46,9 @@ void __fastcall ClassTemplateFill(ClassTemplate* t);
 // 4, 5) when `fourClasses` (low byte) is set (004A88C0, called from 0057F280), else five (1 to 5,
 // the fifth with zero weights; 004A88A0).
 void __fastcall ClassTemplatesBuild(ClassTemplateVector* v, void* edx, unsigned fourClasses);
+
+// 004A74F0 (__thiscall). The first template of class `type`, null if none.
+ClassTemplate* __fastcall ClassTemplatesFind(const ClassTemplateVector* v, void* edx, int type);
+// 004A88E0 (__thiscall on the party manager 007AA5A0, the script's quest completion): sets byte
+// +0x38 of every template (+0x38 vector). Leaves the template count in EAX.
+unsigned __fastcall ClassTemplatesQuestCompleted(void* manager);

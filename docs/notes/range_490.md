@@ -323,6 +323,26 @@ else of the last unnamed one. Add constructs a record (the constructor is inline
 00661050 on +8, the empty string at +0x78, vtable 0073C360, party slot 2) and names it. Remove
 erases each matching record (counted assignment down the tail, last slot released with 004A5D70).
 
+### The party manager's small members
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004A8800 | 124 | PartyMapStore | ours only: the key is stored afterwards (bucket walk in the wrapper), result true |
+| 004A8790 | 105 | PartyMapLoad | ours only: result = key 0 or the key is stored |
+| 004A74F0 | 55 | ClassTemplatesFind | pure, both |
+| 004A88E0 | 44 | ClassTemplatesQuestCompleted (script's quest completion) | ours only: every template's +0x38 set, count returned |
+| 004A8910 | 25 | PartyNextId | ours only: old counter written out, counter raised and returned |
+| 004A88A0 / 004A88C0 | 23 / 23 | PartyManagerNewGame / NewGameFour | ours only: one record, five / four templates |
+| 004A8890 / 004A8880 | 16 / 16 | PartyManagerBeginRedeploy / EndRedeploy | ours only: record count unchanged |
+
+PartyMapLoad / PartyMapStore work on an STLport hash_map<int, Party> (buckets at +4 / +8; node:
+next, key, the 0x70-byte party at +8; bucket = key % bucket count, unsigned): Load (four stack
+arguments, the first two unused) resets the target for key 0 (00661700(1, 0)), else copies the
+stored party into it (00661300) or returns false; Store copies the source into map[key] (004A91B0
+inserts a missing key). Both set only AL. NewGame / NewGameFour reset the records, then build
+the templates (flag 0 / 1); Begin / EndRedeploy pass their argument to 004A6050 / 004A6360 on the
+records (not rewritten).
+
 Original bugs kept: Remove advances its index after an erase, so a matching record moved into the
 erased slot is skipped. Operator new's result is written through before its null test (dword +4) in
 both the template and the record constructors.

@@ -59,8 +59,75 @@ void __fastcall ResetVerify(PartyRecordList* self) {
     ei::verify::Check("PartyRecordsReset", true, ok, "%d records", Count(self));
 }
 
+// ---- The party manager: ours only ---------------------------------------------------------------
+
+int Records(void* manager) { return Count(reinterpret_cast<PartyRecordList*>(static_cast<char*>(manager) + 0x24)); }
+int Templates(void* manager) {
+    auto* v = reinterpret_cast<void**>(static_cast<char*>(manager) + 0x38);
+    return static_cast<int>(static_cast<void**>(v[1]) - static_cast<void**>(v[0]));
+}
+
+void __fastcall NewGameVerify(void* manager) {
+    PartyManagerNewGame(manager);
+    ei::verify::Check("PartyManagerNewGame", true, Records(manager) == 1 && Templates(manager) == 5, "%d records, %d templates",
+                      Records(manager), Templates(manager));
+}
+void __fastcall NewGameFourVerify(void* manager) {
+    PartyManagerNewGameFour(manager);
+    ei::verify::Check("PartyManagerNewGameFour", true, Records(manager) == 1 && Templates(manager) == 4,
+                      "%d records, %d templates", Records(manager), Templates(manager));
+}
+void __fastcall BeginRedeployVerify(void* manager, void*, void* players) {
+    int before = Records(manager);
+    PartyManagerBeginRedeploy(manager, nullptr, players);
+    ei::verify::Check("PartyManagerBeginRedeploy", before, Records(manager), "records");
+}
+void __fastcall EndRedeployVerify(void* manager, void*, void* players) {
+    int before = Records(manager);
+    PartyManagerEndRedeploy(manager, nullptr, players);
+    ei::verify::Check("PartyManagerEndRedeploy", before, Records(manager), "records");
+}
+
+int __stdcall NextIdVerify(int* out) {
+    int before = *reinterpret_cast<int*>(0x0078B0E8);
+    int r = PartyNextId(out);
+    bool ok = *out == before && r == before + 1 && *reinterpret_cast<int*>(0x0078B0E8) == r;
+    ei::verify::Check("PartyNextId", true, ok, "%d -> %d", before, r);
+    return r;
+}
+
+// Whether the map stores `key` (the bucket chain walked independently of the rewrite).
+bool Stored(const void* map, int key) {
+    auto* buckets = *reinterpret_cast<int* const* const*>(static_cast<const char*>(map) + 4);
+    auto* end = *reinterpret_cast<int* const* const*>(static_cast<const char*>(map) + 8);
+    unsigned count = static_cast<unsigned>(end - buckets);
+    if (count == 0) return false;
+    for (const int* node = buckets[static_cast<unsigned>(key) % count]; node; node = reinterpret_cast<const int*>(node[0]))
+        if (node[1] == key) return true;
+    return false;
+}
+
+bool __fastcall MapLoadVerify(const void* map, void*, int a, int b, const int* key, void* target) {
+    bool expected = *key == 0 || Stored(map, *key);
+    bool r = PartyMapLoad(map, nullptr, a, b, key, target);
+    ei::verify::Check("PartyMapLoad", expected, r, "key %d", *key);
+    return r;
+}
+bool __fastcall MapStoreVerify(void* map, void*, const int* key, const void* source) {
+    bool r = PartyMapStore(map, nullptr, key, source);
+    ei::verify::Check("PartyMapStore", true, r && Stored(map, *key), "key %d", *key);
+    return r;
+}
+
 } // namespace
 
+EI_VERIFY(0x004A88A0, NewGameVerify, 0, s_unused);
+EI_VERIFY(0x004A88C0, NewGameFourVerify, 0, s_unused);
+EI_VERIFY(0x004A8890, BeginRedeployVerify, 0, s_unused);
+EI_VERIFY(0x004A8880, EndRedeployVerify, 0, s_unused);
+EI_VERIFY(0x004A8910, NextIdVerify, 0, s_unused);
+EI_VERIFY(0x004A8790, MapLoadVerify, 0, s_unused);
+EI_VERIFY(0x004A8800, MapStoreVerify, 0, s_unused);
 EI_VERIFY(0x004A5E10, FindVerify, 6, s_find);
 EI_VERIFY(0x004A5E90, AddVerify, 0, s_unused);
 EI_VERIFY(0x004A5FA0, RemoveVerify, 0, s_unused);

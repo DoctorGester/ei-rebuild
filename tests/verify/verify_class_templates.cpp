@@ -80,7 +80,27 @@ void __fastcall BuildVerify(ClassTemplateVector* self, void*, unsigned fourClass
     ei::verify::Check("ClassTemplatesBuild", true, ok, "%d templates (expected %d)", count, expected);
 }
 
+// 004A74F0: MOV EAX,[ECX+4]; PUSH EBX; PUSH ESI (5 bytes). Pure.
+ClassTemplate*(__fastcall* s_find)(const ClassTemplateVector*, void*, int);
+ClassTemplate* __fastcall FindVerify(const ClassTemplateVector* self, void*, int type) {
+    ClassTemplate* expected = s_find(self, nullptr, type);
+    ei::verify::Check("ClassTemplatesFind", expected, ClassTemplatesFind(self, nullptr, type), "class %d", type);
+    return expected;
+}
+
+// 004A88E0: ours only; every template flagged, the count returned.
+unsigned __fastcall QuestCompletedVerify(void* manager) {
+    unsigned r = ClassTemplatesQuestCompleted(manager);
+    auto* v = reinterpret_cast<ClassTemplateVector*>(static_cast<char*>(manager) + 0x38);
+    bool ok = r == static_cast<unsigned>(v->finish - v->start);
+    for (ClassTemplate** t = v->start; ok && t != v->finish; ++t) ok = reinterpret_cast<std::uint8_t*>(*t)[0x38] == 1;
+    ei::verify::Check("ClassTemplatesQuestCompleted", true, ok, "%u templates", r);
+    return r;
+}
+
 } // namespace
 
+EI_VERIFY(0x004A74F0, FindVerify, 5, s_find);
+EI_VERIFY(0x004A88E0, QuestCompletedVerify, 0, s_unused);
 EI_VERIFY(0x004A7080, FillVerify, 7, s_fill);
 EI_VERIFY(0x004A7630, BuildVerify, 0, s_unused);

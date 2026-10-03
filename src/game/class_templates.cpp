@@ -231,3 +231,24 @@ void __fastcall ClassTemplatesBuild(ClassTemplateVector* v, void*, unsigned four
     }
 }
 EI_REPLACE(0x004A7630, ClassTemplatesBuild);
+
+// ---- Small members ----------------------------------------------------------------------------------
+
+ClassTemplate* __fastcall ClassTemplatesFind(const ClassTemplateVector* v, void*, int type) {
+    unsigned count = static_cast<unsigned>(v->finish - v->start);
+    for (unsigned i = 0; i < count; ++i)
+        if (v->start[i]->type == type) return v->start[i];
+    return nullptr;
+}
+EI_REPLACE(0x004A74F0, ClassTemplatesFind);
+
+unsigned __fastcall ClassTemplatesQuestCompleted(void* manager) {
+    auto* v = reinterpret_cast<ClassTemplateVector*>(static_cast<char*>(manager) + 0x38);
+    unsigned i = 0;
+    while (i < static_cast<unsigned>(v->finish - v->start)) {
+        ++i;
+        reinterpret_cast<std::uint8_t*>(v->start[i - 1])[0x38] = 1;
+    }
+    return i;
+}
+EI_REPLACE(0x004A88E0, ClassTemplatesQuestCompleted);
