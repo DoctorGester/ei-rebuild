@@ -274,6 +274,31 @@ memory streams 0047A200 / 00468C20, the record array reset 0047FB70, the unit's 
 0052E230 / 005C6270) only set fields, so running the original on a copy is safe; nested
 constructors (CUnit -> CMapObject -> CObject3D) each run through their own wrapper.
 
+### Drawing (CObject3DClientSpecific::Draw, 0051B7E0)
+
+The object's slot 26 and its animation (0050D450) bring it up to date; the lights of 007AF748
+(other than the context's own, +0x1C) whose range +0xE0 plus 10 reaches the object go into an
+aligned list (0051EF90 / 0051EE50; a moving light, flag 0x100, makes the object non-static); the
+object's matrix and, unless all 1, its extra scale (+0xF0..+0xF8) are pushed on the scene's view
+(2) and world (1) stacks and, for non-static objects, the object stack (3, inlined); then each part
+of the two part sets (+0x20, +0x24: material, groups of parts) within sqrt(1e9) is drawn through
+the context's slot 13 (part, lights, the group's material, the light test's AL, the dirty
+rectangle or null, 0, 0), the first set with the texture +0xDC. A figure whose drawn parts all
+have flag 0x10 becomes static (object flag 0x400, +0xEC the time, flags_ bit 8); the object's
+flag 0x20 tells whether a part flagged 0x40 was drawn; the dirty rectangle (+0xC8) is copied to
+the object's +0x100 and the caller's.
+
+### Animation tracks and cages
+
+- AnimationTrack (0050ACD0 Evaluate): key frames of positions (+0x24 count / +0x28), rotations
+  (+0x2C / +0x30, Quaternion::Slerp 0049ED20) and morph vertex sets (+0x34 vertices, +0x38 frames,
+  +0x3C count, output +0x68); the frame is the CRT's modf of the time rounded with FISTP; values
+  at +0x4C / +0x58, the time at +0x48; past the last frame its values, without frames the
+  defaults at 007AF110 / 007AF100.
+- CageInterpolator (0050B8C0 cube of 8 points, 0050BC00 prism of 6; called by the figure
+  manager's 005ACB80): a point at (t, u, w) (+0x68..+0x70) into +0x5C, the point records read
+  from a stream that advances by 0x60 / 0x48.
+
 ### Other functions rewritten (second round)
 
 | Address | Name | Verification |
@@ -286,6 +311,9 @@ constructors (CUnit -> CMapObject -> CObject3D) each run through their own wrapp
 | 005164B0 | CObject3D::AddPart | ours only: the part in the list |
 | 00519E80 / 00519D70 | AlignedPtrArray::SetAtGrow / SetSize | ours only: value stored, size and alignment |
 | 0051CE60 | CObject3DClientSpecific::DrawShadow | ours only: result 1 |
+| 0051B7E0 | CObject3DClientSpecific::Draw | ours only: result 1, the scene's three matrix stacks as deep as before |
+| 0050ACD0 | AnimationTrack::Evaluate | ours, the track's values and morph vertices saved and restored, the original; compared |
+| 0050B8C0 / 0050BC00 | CageInterpolator::InterpolateCube / InterpolatePrism | ours, the point and the stream saved and restored, the original; compared |
 
 The x87 code of ComputeBounds and the shadow's light sum, tilt, rotation matrix, ground quad and
 shadow point was read back (`dumpbin /disasm`): operand order, float stores where the original
@@ -316,10 +344,18 @@ stores, unrounded values kept as doubles, NaN behaviour of the compares (`a >= b
   quad's first corner rounds its x and y to float before adding the position, the other three
   only y (the original builds a Vector3 for the first).
 - The client companion's destructor releases its light after assigning it null (a no-op).
+- Draw passes the context's slot 13 the light test's result as a dword whose upper three bytes are
+  stack garbage in the original (the byte was stored with MOV BYTE); ours zero-extends it.
+- Draw starts its light list with SetSize(16) and SetSize(0) (room for 16, empty); the paths for
+  an existing list cannot run.
+- The forwarders and helpers of the second round also include 0050D450 (animation update),
+  0051EF90 / 0051EE50 (light list), 004D9B80 / 0051C110 (scene matrix stack push / pop), 004EB170
+  (device texture), 00457720, the CRT's modf 006EAD0B, and through their addresses 0049ED20,
+  00410750 / 00448A10 / 0044A230 (the cage's vector helpers are inlined as float steps).
 
 ### Skipped (second round) and why
 
-- 0051B7E0 (CObject3DClientSpecific::Draw, 2352 bytes), 005179E0 / 00516DA0 (animated figures),
+- 0050C230 (the bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures),
   00510B80 / 005114D0 (the client's effect particles and sounds), 0051C3D0 (wounds texture),
   0050EAF0 / 0050EC30 (network state): drawing and stateful; next candidates.
 - 00500000-0050E000 (device and animation code): not looked at in detail.

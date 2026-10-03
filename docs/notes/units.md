@@ -502,6 +502,18 @@ gives the object its prototype (00513B60, ECX = an object the builders never use
 - 00524CD0 (UnitStats::ResetToBase): current values from the bases, skill 15 raises valuesB0[1]
   by its percentage, skills 23-25 the stats, unknown_044 = -2, slot maxima from the hit point
   curve (current clamped), the load (its argument), capacity, legs / arms factors, rate.
+- The skill database (007AF268: skills, 0x18 each, +0x0C -> the name; level records 0x44 each at
+  +0x0C, index = skill * 3 + level - 1): LearnSkill (00526450) sets a skill's level from a level
+  record (0051FF00 finds its index) and, when the curve's hit point maximum is above 1 before and
+  after, heals the slots so the hit points keep their proportion; CanLearn (005260A0) checks the
+  record's learnable byte (+0x40), stat minima (+0x24..+0x2C), required attribute (+0x14 name,
+  +0x18 index, +0x20 value) and skill level (+0x0C, by name through 0051FE80), that no level of
+  the same skill id (+0x10) is known in another skill, and that the level is new.
+- WeaponSkillBonus (00526C70; GetAttackParams uses it): weapon types 0-4 use skill 0, 5-6 skill
+  1: for text-key units skill byte + the weapon prototype's +0x7B / +0x7C + (the stat named by the
+  skill's first letter - 25) + the level value of skill `type`; others the skill byte + that
+  level value. Type 8: SkillWithBonus(0) + the weapon's +0x7B (the byte alone without a text key);
+  other types 0.
 
 ### The client's armour models (CUnitClientSpecific, class id 0x3D)
 
@@ -530,6 +542,9 @@ Armour slots 0 / 1 / 2 use rows 2 / 0 / 1.
 | 005136D0 | UnitStatsBuilder::BuildFromPrototype | output only (vitals 0x58, statistics 0x704) |
 | 00513DA0 | BuildNpcStats (stdcall) | output only (statistics) |
 | 00524CD0 | UnitStats::ResetToBase | ours, snapshot, restore, original; 0x704 bytes |
+| 00526450 | UnitStats::LearnSkill | the same |
+| 00526C70 | UnitStats::WeaponSkillBonus | pure (double bits) |
+| 005260A0 | UnitStats::CanLearn | pure (EAX) |
 | 00513B60 | UnitStatsBuilder::ApplyPrototype | ours only: result 1, index -1 or valid |
 | 00512730 | CMapObjectManager::CreateObject | ours only: an object with a vtable for the known ids, else null |
 | 00552F40 | CUnitServer::SetStats | ours only: companion's hit points / mana at their maxima, part 4, result the companion |
