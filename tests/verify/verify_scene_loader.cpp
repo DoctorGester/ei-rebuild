@@ -188,8 +188,11 @@ void CompareNode(Diff& d, int i, const void* a, const void* b) {
     }
 }
 
+// +0x64..+0x8B of a helper is a container its constructor (0068DBC0) builds on the heap; the loader
+// does not touch it, so it is left out.
 void CompareHelper(Diff& d, int i, const void* a, const void* b) {
-    CompareBytes(d, "helper", i, a, b, helper::kSize, {helper::kName, helper::kName2, helper::kName3});
+    CompareBytes(d, "helper", i, a, b, 0x64, {helper::kName});
+    CompareBytes(d, "helper", i, At(a, 0x8C), At(b, 0x8C), helper::kSize - 0x8C, {helper::kName2 - 0x8C, helper::kName3 - 0x8C});
     CompareString(d, "helper name", i, At(a, helper::kName), At(b, helper::kName));
     CompareString(d, "helper name2", i, At(a, helper::kName2), At(b, helper::kName2));
     CompareString(d, "helper name3", i, At(a, helper::kName3), At(b, helper::kName3));
