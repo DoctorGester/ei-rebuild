@@ -231,6 +231,10 @@ public:
     int EmitNuke(Particle* p, int index);           // 00488F90 (Nuke)
     int EmitTendril(Particle* p, int index);        // 0048ED60
     int EmitGroundDust(Particle* p, int index);     // 00493300 (0x203A, 0x203B)
+    int EmitGlow(Particle* p, int index);           // 00492FC0 (ShapeChange, 0x2039)
+    void TickGlow(ParticleElement* e);              // 004932F0
+    int EmitStun(Particle* p, int index);           // 00495FB0 (Stun, 0x204D)
+    int UpdateStun(Particle* p);                    // 004961B0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

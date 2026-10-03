@@ -342,3 +342,40 @@ EI_EMIT_WRAPPER(EmitTendril)
 EI_VERIFY(0x0048ED60, EmitTendrilVerify, 7, s_EmitTendril);
 EI_EMIT_WRAPPER(EmitGroundDust)
 EI_VERIFY(0x00493300, EmitGroundDustVerify, 7, s_EmitGroundDust);
+
+// 00492FC0: SUB ESP,0x20; PUSH EBX; MOV EBX,ECX (6). 004932F0: MOV EAX,[ECX+8]; AND AL,0xFE (5).
+// 00495FB0: SUB ESP,0x38; LEA EAX,[ESP+8] (7). 004961B0: SUB ESP,8; PUSH ESI; MOV ESI,[ESP+0x10] (8).
+// Stun lets its source go (Attach) without a carrier or once the carrier's stun is over (asked
+// here through the carrier's vtable slot 55 first): ours only then.
+EI_SETUP_EMIT_WRAPPER(EmitGlow)
+EI_VERIFY(0x00492FC0, EmitGlowVerify, 6, s_EmitGlow);
+EI_ELEMENT_WRAPPER(TickGlow)
+EI_VERIFY(0x004932F0, TickGlowVerify, 5, s_TickGlow);
+static EmitFn s_EmitStun;
+static int __fastcall EmitStunVerify(CParticleSource* self, void*, Particle* p, int index) {
+    void* unit = self->attachedTo;
+    using Fn = int(__thiscall*)(void*);
+    if (!unit || (*static_cast<Fn**>(unit))[55](unit)) {
+        int result = self->CParticleSource::EmitStun(p, index);
+        ei::verify::Check("CParticleSource::EmitStun", true, (self->flags_ & 5u) == 0 && result == (unit ? 1 : 0),
+                          "flags %X result %d", self->flags_, result);
+        return result;
+    }
+    return RunBothEmit("CParticleSource::EmitStun", self, p, index,
+                       [](CParticleSource* s, Particle* q, int i) { return s->CParticleSource::EmitStun(q, i); },
+                       s_EmitStun);
+}
+EI_VERIFY(0x00495FB0, EmitStunVerify, 7, s_EmitStun);
+static UpdateFn s_UpdateStun;
+static int __fastcall UpdateStunVerify(CParticleSource* self, void*, Particle* p) {
+    if (!self->attachedTo) {
+        int life = p->life;
+        int result = self->CParticleSource::UpdateStun(p);
+        ei::verify::Check("CParticleSource::UpdateStun", true, life <= 0 || (self->flags_ & 5u) == 0, "flags %X",
+                          self->flags_);
+        return result;
+    }
+    return RunBoth("CParticleSource::UpdateStun", self, p, [&] { return self->CParticleSource::UpdateStun(p); },
+                   [&] { return s_UpdateStun(self, nullptr, p); });
+}
+EI_VERIFY(0x004961B0, UpdateStunVerify, 8, s_UpdateStun);

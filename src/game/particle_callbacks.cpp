@@ -4247,3 +4247,166 @@ int CParticleSource::EmitGroundDust(Particle* p, int index) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00493300, CParticleSource::EmitGroundDust);
+
+// --- ShapeChange glow (0x2039) emission and element tick; the update is UpdateGlow ---------------
+
+namespace {
+
+// Not rewritten (forwarders through the objects' vtables and the original address): the unit's
+// point `index` (vtable slot 52), the terrain's height (007AF5B8, slot 28) and the platforms'
+// surface height over it (00560F00 on 007AF78C), all left unrounded in ST0.
+Vector3* UnitPoint(void* unit, Vector3* out, int index) {
+    using Fn = Vector3*(__thiscall*)(void*, Vector3*, int);
+    return (*static_cast<Fn**>(unit))[52](unit, out, index);
+}
+double TerrainHeight(float x, float y) {
+    void* terrain = reinterpret_cast<void*>(0x007AF5B8);
+    using Fn = double(__thiscall*)(void*, float, float);
+    return (*static_cast<Fn**>(terrain))[28](terrain, x, y);
+}
+double PlatformHeight(const Vector3* at, float ground) {
+    using Fn = double(__thiscall*)(void*, const Vector3*, float);
+    return reinterpret_cast<Fn>(0x00560F00)(reinterpret_cast<void*>(0x007AF78C), at, ground);
+}
+
+// FCOMP's "equal" (also taken when unordered).
+bool SameOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
+
+} // namespace
+
+// 00492FC0. ShapeChange: on the first call one element: the last point (-1, -1, -1) and the colour
+// by the alpha field (0 grey, 1 green, 2 orange). Then one glow per point of the carrying unit (up
+// to +0x11C points, from the global offset 007AF61C), on the ground or platform under it, unless
+// the point is where the last one was; the point's index goes in +0x4C and the life is -10 (set
+// by UpdateGlow).
+int CParticleSource::EmitGlow(Particle* p, int index) {
+    void* unit = attachedTo;
+    if (elementCount == 0) {
+        SetElementCount(this, 1);
+        float* mark = ElementFloat(elements, 0x18);
+        SetBits(&mark[0], 0xBF800000);
+        SetBits(&mark[1], 0xBF800000);
+        SetBits(&mark[2], 0xBF800000);
+        if (alpha == 0.0f || x87::IsNaN(alpha)) {
+            *ElementInt(elements, 0x30) = 0xB0B0B0;
+        } else if (Bits(&alpha) == 0x3F800000) {
+            *ElementInt(elements, 0x30) = 0x40FF40;
+        } else if (Bits(&alpha) == 0x40000000) {
+            *ElementInt(elements, 0x30) = 0xFF8028;
+        }
+    }
+    if (!unit) return 0;
+    if (static_cast<double>(index) > D(unknown_11C)) return 0;
+    Vector3 scratch;
+    Vector3 point = *UnitPoint(unit, &scratch, index + *reinterpret_cast<const int*>(0x007AF61C));
+    float* mark = ElementFloat(elements, 0x18);
+    if (SameOrNaN(mark[0], point.x) && SameOrNaN(mark[1], point.y) && SameOrNaN(mark[2], point.z)) return 0;
+    std::memcpy(mark, &point, sizeof(Vector3));
+    Vector3 under;
+    std::memcpy(&under.x, &point.x, sizeof(float));
+    std::memcpy(&under.y, &point.y, sizeof(float));
+    SetBits(&under.z, 0);
+    float ground = Store(TerrainHeight(point.x, point.y));
+    double top = PlatformHeight(&under, ground);
+    p->pos.y = point.y;
+    SetBits(&p->size, 0x3D8F5C29);     // 0.07
+    p->pos.x = point.x;
+    p->frame = 15;
+    p->life = -10;
+    p->pos.z = Store(top + D(GameFloat(0x0073CD18)));
+    p->frameTimer = index;
+    p->color = static_cast<std::uint32_t>(*ElementInt(elements, 0x30));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00492FC0, CParticleSource::EmitGlow);
+
+// 004932F0. ShapeChange: one tick of emission only.
+void CParticleSource::TickGlow(ParticleElement*) {
+    flags_ &= ~1u;
+}
+EI_REPLACE_METHOD(0x004932F0, CParticleSource::TickGlow);
+
+// --- Stun (0x204D) -------------------------------------------------------------------------------
+
+namespace {
+
+// Not rewritten (forwarder through the unit's vtable, slot 55): nonzero once the stun is over.
+int UnitStunOver(void* unit) {
+    using Fn = int(__thiscall*)(void*);
+    return (*static_cast<Fn**>(unit))[55](unit);
+}
+
+} // namespace
+
+// 00495FB0. Stun: a star at a random point of the ball of 0.8 times the carrier figure's radius
+// (00485280) around the source, for 20 ticks, with a random size factor in +0x20. A unit carrier
+// in state 3 (+0x264) gets four stars a tick living 5 ticks, else one; once the carrier is gone
+// (nothing emitted) or its stun is over (vtable slot 55) the source stops and lets it go.
+int CParticleSource::EmitStun(Particle* p, int) {
+    Vector3 offset;
+    float radius;
+    AttachmentOffset(&offset, &radius);
+    p->color = 0xFFFFFF;
+    p->frame = 3;
+    float x, y, z;
+    for (int tries = 10;;) {
+        x = SignedUnit();
+        y = SignedUnit();
+        double zu = Range(-1.0f, 1.0f);
+        z = Store(zu);
+        if (!(zu * D(z) + D(y) * D(y) + D(x) * D(x) >= D(EI_P_ONE))) break;
+        if (!(--tries > 0)) break;
+    }
+    Vector3 v;
+    v.Construct(x, y, z);
+    double k = D(radius) * D(GameFloat(0x0073CCA8));    // 0.8
+    float a = Store(D(v.x) * k);
+    float b = Store(D(v.y) * k);
+    double c = k * D(v.z);
+    double px = D(a) + D(origin.x);
+    float py = Store(D(b) + D(origin.y));
+    double pz = c + D(origin.z);
+    SetBits(&p->size, 0);
+    p->pos.y = py;
+    p->pos.z = Store(pz);
+    p->pos.x = Store(px);
+    p->life = 20;
+    p->velocity.x = Store(Unsigned(Next()) * GameDouble(0x0073CE10) + D(GameFloat(0x0073C538)));
+    void* unit = attachedTo;
+    if (!unit) {
+        flags_ &= ~5u;
+        Attach(nullptr);
+        return 0;
+    }
+    if (*reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(unit) + 0x264) == 3) {
+        emitCount = 4;
+        p->life = 5;
+    } else {
+        emitCount = 1;
+    }
+    if (UnitStunOver(unit)) {
+        flags_ &= ~5u;
+        Attach(nullptr);
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00495FB0, CParticleSource::EmitStun);
+
+// 004961B0. Stun stars: hidden and dropped past their life; else flickering at a random size of
+// the source's times +0x20. Without a carrier the source stops and is let go.
+int CParticleSource::UpdateStun(Particle* p) {
+    if (--p->life < 0) {
+        p->color = 0xFFFFFF;
+        SetBits(&p->size, 0);
+        return 0;
+    }
+    p->color = 0xFFFFFFFF;
+    p->size = Store((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
+                    D(p->velocity.x));
+    if (!attachedTo) {
+        flags_ &= ~5u;
+        Attach(nullptr);
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x004961B0, CParticleSource::UpdateStun);
