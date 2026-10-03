@@ -582,3 +582,38 @@ memory notice), 00554450 (controller re-place), `_ftol` 006E853C, MFC CString / 
 
 - 0067F360 (no callers), 0067E510 / 0067E5D0 (constructor / destructor), 0067E7D0 / 0067E960
   (save / load), 00683A90 / 00683AB0 (counted-pointer assign, reproduced inline by `Assign`).
+
+## Quest database load (006AE8E0)
+
+Files: `src/game/quest_database.cpp`, `tests/verify/verify_quest_database.cpp`. Shared files: none.
+
+| Address | Name | Verify |
+|---|---|---|
+| 006AE8E0 | `QuestDatabaseLoad` (thiscall on the database 007C87A8, RET 4; returns bool in AL) | the original loads the same image into a fresh database (constructor 006AE0F0, destructor 006ADF40), ours into the real one; the records ours appended must equal the original's whose names the real database did not have yet (all fields, the places and the six string lists as text) |
+
+Reached by the quest registration 005810A0 ("<name>.quest.reg" through the text manager), so by
+every scenario that registers quests (new game in zone1).
+
+The database (0x40 bytes): +0 the quests (STLport vector of 0x38-byte records), +0xC their index
+(hash map by name: functors, buckets +0x10, count +0x1C), +0x20 the briefings (0x6C-byte
+records), +0x2C their index. The registry image is attached (00694610; not a registry: false).
+
+- Quest record: name ("quest" / "name"), +0xC exp, +0x10 0, +0x14 money (GetFloat, rounded to
+  float), +0x18 "zone index", +0x1C "order" (GetInt 00694B90), +0x20 vector<float> of the
+  "questplaces" strings "{x;y}" (TrimLeft '{', TrimRight '}', split at ';' by 004DBE40; with two
+  parts atof of each is appended, push_back inlined), +0x2C a string never set. Added unless the
+  index has the name with a record (find 006B0870); after push_back (006B0710) the index is cleared
+  (006B0520) and rebuilt over the whole vector (0064EE90).
+- One briefing record (+0 name, +0xC exp, +0x10 money, six vector<CString>: give items, remove
+  items, give quests, complete quests, available zones, complete zones, +0x5C a string, +0x68 0)
+  is filled three times: "briefing receive" (all six lists read inline: the first three emptied
+  with erase(begin, end) 006AFB60, the others with clear 0052E010, then reserve 006B02B0 and every
+  non-empty string pushed 006AF790; added like the quest, with 006B07C0 / 006B0780 / 006B0590 /
+  004297A0), "briefing reject" (the two item lists inline with clear, the other four by 006AE740;
+  added by 006B0600, also unless the name is there) and "briefing complete" (the name assigned as a
+  C string 0041F550, all six lists by 006AE740, added by 006B0600).
+- All containers go through the original members; the records are raw blocks with the original
+  layouts. Strings passed by value are copied into a raw slot the callee destroys.
+
+Risk: ours has no unwinding for the raw records if a member throws (the original's EH would
+destroy them).
