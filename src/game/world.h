@@ -288,6 +288,10 @@ public:
     // exits, command queues, missiles, counted objects, the players' zone data, every object
     // (slot 5 then the maps), timed objects, the zone names and three managers.
     void ResetZone();
+    // 0058B600. ResetZone, then the map name, diplomacy, both command queues and the AI map are
+    // reset and the game state cleared: +0x15C, the day-time value, alarms, the kind, the start
+    // position, the day factor (1), loaded_ and +0x13C.
+    void ResetState();
     // 005957E0. Before every game state request: every player leaves, the shared objects, .mob
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown (0055F890); the game result and kind are cleared.
@@ -435,7 +439,7 @@ public:
     std::uint8_t unknown_140[0x15C - 0x140];
     int unknown15C_;                      // +0x15C cleared when a .mob file fails to load
     int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
-    std::uint8_t unknown_164[0x170 - 0x164];
+    float startPosition_[3];              // +0x164 where joining players start (0058DAF0)
     std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
     float gridHeightScale_;               // +0x290
     std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)

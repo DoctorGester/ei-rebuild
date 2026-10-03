@@ -37,6 +37,18 @@ static void __fastcall ResetZoneVerify(CWorldServer* self, void*) {
 }
 EI_VERIFY(0x0058B250, ResetZoneVerify, 0, s_unused);
 
+// 0058B600: afterwards the kind, alarms, start position and map name are cleared and the day
+// factor is 1.
+static void __fastcall ResetStateVerify(CWorldServer* self, void*) {
+    self->ResetState();
+    bool ok = self->unknown12D64_ == 0 && self->loaded_ == 0 && self->unknown88_ == 0x3F800000u &&
+              self->mapName_ && self->mapName_[0] == 0 && self->startPosition_[0] == 0.0f &&
+              self->startPosition_[1] == 0.0f && self->startPosition_[2] == 0.0f;
+    for (const WorldAlarm& alarm : self->alarms_) ok = ok && alarm.active == 0 && alarm.time == 0;
+    ei::verify::Check("CWorldServer::ResetState", true, ok, "kind %d", self->unknown12D64_);
+}
+EI_VERIFY(0x0058B600, ResetStateVerify, 0, s_unused);
+
 // 005957E0: afterwards no player is left, the missile list and the timed objects are empty and the
 // game kind is 0.
 static void __fastcall TeardownZoneVerify(CWorldServer* self, void*) {
