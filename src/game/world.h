@@ -115,12 +115,25 @@ class CWorld : public CEngineObject {
 public:
     float timeBase_;                      // +0x1C
     float secondsPerTick_;                // +0x20
-    std::uint8_t unknown_24[0x38 - 0x24];
+    std::uint8_t unknown24_[12];          // +0x24 saved and loaded as they are
+    std::uint32_t unknown30_;             // +0x30 saved and loaded
+    void* unknown34_;                     // +0x34 (slot 23 returns it)
     CEngineObject* players_;              // +0x38 player list (vtable slot 20 returns it)
-    std::uint8_t unknown_3C[0x60 - 0x3C];
+    CEngineObject* manager3C_;            // +0x3C (slot 15)
+    CEngineObject* manager40_;            // +0x40 map objects by id (slot 19; its slot 23 creates one)
+    CEngineObject* manager44_;            // +0x44 (slot 21)
+    CEngineObject* manager48_;            // +0x48 the timed objects (spells, effects; slot 14)
+    CEngineObject* manager4C_;            // +0x4C (slot 22)
+    CEngineObject* manager50_;            // +0x50 (slot 17)
+    CEngineObject* itemManager_;          // +0x54 items (slot 18)
+    CEngineObject* manager58_;            // +0x58 (slot 16)
+    std::uint8_t unknown_5C[4];
     void* unknown60_;                     // +0x60 replaced by 0055F410 when the game ends
     int tick_;                            // +0x64 game time in ticks
 };
+static_assert(offsetof(CWorld, unknown24_) == 0x24);
+static_assert(offsetof(CWorld, manager40_) == 0x40);
+static_assert(offsetof(CWorld, itemManager_) == 0x54);
 static_assert(offsetof(CWorld, players_) == 0x38);
 static_assert(offsetof(CWorld, unknown60_) == 0x60);
 static_assert(offsetof(CWorld, tick_) == 0x64);
@@ -151,6 +164,17 @@ struct ProjectileList {
     mfc::CTypedPtrList<Projectile> list;
 };
 static_assert(sizeof(ProjectileList) == 0x1C);
+
+// The stream the world's save and load code reads and writes (the CMemoryStream holding
+// mission.sav): slot 1 Read, slot 2 Write; +0x08 the save format version.
+struct WorldStream {
+    virtual void Slot0() = 0;
+    virtual int Read(void* buffer, unsigned size) = 0;          // 1
+    virtual void Write(const void* buffer, unsigned size) = 0;   // 2
+
+    int unknown_04;
+    int version;            // +0x08
+};
 
 // The game rules side (vtable 0073F928).
 class CWorldServer : public CWorld {
@@ -222,10 +246,29 @@ public:
     // object's own Save (slot 10) and its two flag words; -1 ends the list.
     void SaveMapObjects(void* stream);
 
+    // world_save.cpp
+    // 00596E70 (RET 8). Restores the world from a mission save: zone names, settings, alarms and
+    // clock, the zone itself (LoadMap with the saved AI-graph state), the managers' objects, the
+    // map objects, timed objects, missiles, time wheel, script state, players, shared objects;
+    // units that cannot stand where they were saved are moved to a free cell or removed. `map`
+    // replaces the saved map name when not null. Returns 1, 0 when the AI graph cannot be read,
+    // or what FatalError returns when the zone cannot be loaded.
+    int LoadSave(WorldStream* stream, const char* map);
+    // 00597BD0 (RET 4). Writes what LoadSave reads.
+    void SaveWorld(WorldStream* stream);
+    // 00596900 (RET 4). Reads the map objects SaveMapObjects wrote, registers them in the id maps
+    // and wakes them.
+    void LoadSavedMapObjects(WorldStream* stream);
+    // 0058D280 (RET 4). Adds the time each player missed since its last update (plus `offset`) to
+    // its "gtime" variable.
+    void UpdatePlayerTimes(float offset);
+
     std::uint8_t unknown_068[0x6C - 0x68];
     std::uint8_t unknown6C_;              // +0x6C
     std::uint8_t unknown_06D[0x70 - 0x6D];
-    std::uint8_t countdowns_[0x8C - 0x70]; // +0x070 countdown list (006D44E0 ticks it)
+    std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D44E0 ticks it; a CArray)
+    std::uint32_t unknown84_;             // +0x084 the day-time value (0058CCD0)
+    std::uint32_t unknown88_;             // +0x088
     WorldAlarm alarms_[5];                // +0x08C
     int unknownDC_;                       // +0x0DC
     int unknownE0_;                       // +0x0E0
@@ -236,15 +279,19 @@ public:
     int exitCount_;                       // +0x0F4
     int exitCapacity_;                    // +0x0F8
     int exitGrowBy_;                      // +0x0FC
-    std::uint8_t unknown_100[0x104 - 0x100];
+    std::uint8_t loaded_;                 // +0x100 0 while LoadSave runs
+    std::uint8_t unknown_101[0x104 - 0x101];
     ObjectIdMap updateMap_;               // +0x104
-    std::uint8_t unknown_11C[0x124 - 0x11C];
+    std::uint8_t unknown_11C[0x120 - 0x11C];
+    char* zoneName_;                      // +0x120 CString: the zone's map database name
     StringArray mobFiles_;                // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
-    std::uint8_t unknown_13C[0x15C - 0x13C];
+    std::uint32_t unknown13C_;            // +0x13C saved and loaded
+    std::uint8_t unknown_140[0x15C - 0x140];
     int unknown15C_;                      // +0x15C cleared when a .mob file fails to load
     int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
-    std::uint8_t unknown_164[0x290 - 0x164];
+    std::uint8_t unknown_164[0x170 - 0x164];
+    std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
     float gridHeightScale_;               // +0x290
     std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
     std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
@@ -253,11 +300,16 @@ public:
     std::uint8_t unknown_2818[0x2838 - 0x2818];
     std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 time wheel (005C9530; size unknown)
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
-    std::uint8_t commandsB_[0x12D70 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
+    std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
+    std::uint8_t diplomacy_[0x12D64 - 0x12C64]; // +0x12C64 CDiplomacy (object_diplomacy.h)
+    int unknown12D64_;                    // +0x12D64 1 or 3: SaveWorld updates the players' "gtime" first
+    char* mobName_;                       // +0x12D68 CString: the zone's .mob file
+    char* mapName_;                       // +0x12D6C CString: the zone's map
     ObjectIdMap objects_;                 // +0x12D70 every world object by id
     std::uint8_t unknown_12D88[0x12DA0 - 0x12D88];
     ObjectIdMap mapObjects_;              // +0x12DA0 objects saved with the zone (SaveMapObjects)
-    std::uint8_t unknown_12DB8[0x12DE8 - 0x12DB8];
+    ObjectIdMap otherMapObjects_;         // +0x12DB8 the map objects that are not units
+    ObjectIdMap namedObjects_;            // +0x12DD0 objects with a second name (+0x1A8)
     ObjectIdMap timedObjects_;            // +0x12DE8
     std::uint8_t unknown_12E00[0x12E28 - 0x12E00];
     ProjectileList projectiles_;          // +0x12E28
@@ -266,6 +318,16 @@ public:
     void* sharedObjects_;                 // +0x12E64 head of an MFC list of {object id, player}
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
+static_assert(offsetof(CWorldServer, unknown84_) == 0x84);
+static_assert(offsetof(CWorldServer, loaded_) == 0x100);
+static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
+static_assert(offsetof(CWorldServer, unknown13C_) == 0x13C);
+static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
+static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
+static_assert(offsetof(CWorldServer, unknown12D64_) == 0x12D64);
+static_assert(offsetof(CWorldServer, mapName_) == 0x12D6C);
+static_assert(offsetof(CWorldServer, otherMapObjects_) == 0x12DB8);
+static_assert(offsetof(CWorldServer, namedObjects_) == 0x12DD0);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
 static_assert(offsetof(CWorldServer, unknownDC_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xF0);

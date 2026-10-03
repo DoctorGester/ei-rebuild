@@ -1,0 +1,112 @@
+// Checks for the world's save and load (src/game/world_save.cpp).
+//
+// SaveWorld only writes a stream (its side effects, the players' "gtime" update and releasing the
+// managers' unreferenced objects, do nothing the second time), so the original writes into a
+// scratch memory stream first and ours into the real one; the bytes are compared. The loaders
+// create objects and read the stream, so only ours runs and the resulting state is checked.
+#include "verify.h"
+
+#include "../../src/game/core_streams.h"
+#include "../../src/game/object.h"
+#include "../../src/game/world.h"
+
+#include <cstring>
+
+namespace {
+void* s_unused;
+
+using SaveWorldFn = void(__fastcall*)(CWorldServer*, void*, WorldStream*);
+SaveWorldFn s_originalSaveWorld;
+
+bool IsMemoryStream(const void* stream) {
+    return *static_cast<void* const*>(stream) == reinterpret_cast<void*>(kMemoryStreamVtable);
+}
+
+// The objects the map-object walk reaches (it stops at the first empty entry).
+std::size_t ReachableObjects(const ObjectIdMap& map) {
+    std::size_t n = 0;
+    for (auto* node = map.map.First(); node && node->value; node = map.map.After(node)) ++n;
+    return n;
+}
+
+// Whether every map object (as far as the walk reaches) is registered by its id in the world.
+bool MapObjectsRegistered(CWorldServer* world) {
+    for (auto* node = world->mapObjects_.map.First(); node && node->value; node = world->mapObjects_.map.After(node)) {
+        auto* found = world->objects_.map.Find(static_cast<unsigned>(node->value->id_));
+        if (!found || found->value != node->value || static_cast<unsigned>(node->value->id_) != node->key) return false;
+    }
+    return true;
+}
+} // namespace
+
+// 00597BD0: the original into a scratch memory stream, ours into the real one; bytes compared.
+static void __fastcall SaveWorldVerify(CWorldServer* self, void*, WorldStream* stream) {
+    if (!IsMemoryStream(stream)) {
+        self->SaveWorld(stream);
+        return;
+    }
+    auto* real = reinterpret_cast<CMemoryStream*>(stream);
+    alignas(4) std::uint8_t storage[sizeof(CMemoryStream)];
+    auto* scratch = MemoryStreamConstruct(reinterpret_cast<CMemoryStream*>(storage));
+    scratch->unknown_8 = real->unknown_8;   // the save version
+    s_originalSaveWorld(self, nullptr, reinterpret_cast<WorldStream*>(scratch));
+
+    std::uint32_t before = real->position_;
+    self->SaveWorld(stream);
+    std::uint32_t written = real->position_ - before;
+    bool sameSize = written == scratch->position_;
+    std::uint32_t firstDifference = 0xFFFFFFFFu;
+    if (sameSize && written) {
+        for (std::uint32_t i = 0; i < written; ++i) {
+            if (real->data_[before + i] != scratch->data_[i]) {
+                firstDifference = i;
+                break;
+            }
+        }
+    }
+    ei::verify::Check("CWorldServer::SaveWorld", true, sameSize && firstDifference == 0xFFFFFFFFu,
+                      "original %u bytes, ours %u, first difference at %d", scratch->position_, written,
+                      static_cast<int>(firstDifference));
+    MemoryStreamDestruct(scratch);
+}
+EI_VERIFY(0x00597BD0, SaveWorldVerify, 7, s_originalSaveWorld);
+
+// 00596E70: returns 1 for a save that loads, without reading past the end of the stream; the
+// world is marked loaded and the map objects are all registered.
+static int __fastcall LoadSaveVerify(CWorldServer* self, void*, WorldStream* stream, const char* map) {
+    int result = self->LoadSave(stream, map);
+    bool memory = IsMemoryStream(stream);
+    auto* ms = reinterpret_cast<CMemoryStream*>(stream);
+    bool ok = result == 1 && self->loaded_ == 1 && (!memory || ms->ok_) && MapObjectsRegistered(self);
+    ei::verify::Check("CWorldServer::LoadSave", true, ok, "result %d loaded %d stream ok %d at %u of %u, version %d", result,
+                      self->loaded_, memory ? ms->ok_ : -1, memory ? ms->position_ : 0u, memory ? ms->size_ : 0u,
+                      stream->version);
+    return result;
+}
+EI_VERIFY(0x00596E70, LoadSaveVerify, 0, s_unused);
+
+// 00596900: afterwards the map objects are registered by id in the world's object map, and no
+// read ran past the end of a memory stream.
+static void __fastcall LoadSavedMapObjectsVerify(CWorldServer* self, void*, WorldStream* stream) {
+    std::size_t before = ReachableObjects(self->mapObjects_);
+    self->LoadSavedMapObjects(stream);
+    bool memory = IsMemoryStream(stream);
+    bool streamOk = !memory || reinterpret_cast<CMemoryStream*>(stream)->ok_;
+    std::size_t after = ReachableObjects(self->mapObjects_);
+    ei::verify::Check("CWorldServer::LoadSavedMapObjects", true, streamOk && MapObjectsRegistered(self),
+                      "map objects %u -> %u, stream ok %d", static_cast<unsigned>(before), static_cast<unsigned>(after),
+                      streamOk);
+}
+EI_VERIFY(0x00596900, LoadSavedMapObjectsVerify, 0, s_unused);
+
+// 0058D280: every player's last tick is the world's tick afterwards.
+static void __fastcall UpdatePlayerTimesVerify(CWorldServer* self, void*, float offset) {
+    self->UpdatePlayerTimes(offset);
+    bool ok = true;
+    int players = 0;
+    PlayerIterator it;
+    for (WorldPlayer* player = it.First(self->players_); player; player = it.Next(), ++players)
+        ok = ok && player->lastTick == self->tick_;
+    ei::verify::Check("CWorldServer::UpdatePlayerTimes", true, ok, "%d players, tick %d", players, self->tick_);
+}
+EI_VERIFY(0x0058D280, UpdatePlayerTimesVerify, 0, s_unused);
