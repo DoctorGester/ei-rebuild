@@ -182,6 +182,27 @@ static const char* __fastcall OptionsHelpTopicVerify(COptionsWindow* self, void*
 }
 EI_VERIFY(0x00650900, OptionsHelpTopicVerify, 6, s_optionsHelpTopic);
 
+// Ours only (it applies volumes and gamma): the slide as for the save/load window, and every
+// setting whose scroll bar moved takes the bar's position (the bar's moved flag is consumed).
+static void __fastcall OptionsUpdateVerify(COptionsWindow* self, void*) {
+    bool sliding = self->sliding_;
+    float slide = self->slide_;
+    bool moved[26];
+    for (int i = 0; i < 26; ++i) moved[i] = self->settings_[i].bar_ && self->settings_[i].bar_->moved_;
+    self->COptionsWindow::Update();
+    bool ok = sliding ? self->slide_ >= slide && (self->sliding_ || self->slide_ > 1.0f) : !self->sliding_;
+    int bad = -1;
+    for (int i = 0; i < 26 && bad < 0; ++i) {
+        CUiScrollbar* bar = self->settings_[i].bar_;
+        if (!bar) continue;
+        if (bar->moved_ || (moved[i] && self->settings_[i].value_ != bar->position_)) bad = i;
+    }
+    ok = ok && bad < 0;
+    ei::verify::Check("COptionsWindow::Update", true, ok, "sliding %d slide %g->%g setting %d", sliding, slide,
+                      self->slide_, bad);
+}
+EI_VERIFY(0x00650A30, OptionsUpdateVerify, 0, s_unused);
+
 // --- Scroll bar --------------------------------------------------------------------------------------
 
 // 0065B090: MOV EDX,[ESP+4]; MOV EAX,[ECX+0x150] (10 bytes). The original on the real object,

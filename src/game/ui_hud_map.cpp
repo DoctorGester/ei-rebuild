@@ -607,3 +607,42 @@ void CHudMap::UpdateView() {
     uv[7] = vTop;
 }
 EI_REPLACE_METHOD(0x00642E80, CHudMap::UpdateView);
+
+// --- 00645640 ----------------------------------------------------------------------------------
+
+namespace {
+// 2.5^(delta / 1200): _CIpow (006E81A0) of the double at 00742AD0 and delta * 0.00083333335f,
+// left unrounded.
+double WheelZoomFactor(int delta) {
+    double result;
+    __asm {
+        fld qword ptr ds:[0x00742AD0]
+        fild delta
+        fmul dword ptr ds:[0x00742AC8]
+        mov eax, 0x006E81A0
+        call eax
+        fstp result
+    }
+    return result;
+}
+} // namespace
+
+BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
+    int region = RegionAt(x, y);
+    if (region < 0) return 1;
+    if (region == 0) {
+        double zoom = WheelZoomFactor(static_cast<short>(delta)) * D(zoom_);
+        zoom_ = Store(zoom);
+        if (zoom > D(zoomMax_)) std::memcpy(&zoom_, &zoomMax_, sizeof(zoom_));
+        if (!(zoom_ >= 1.0f)) zoom_ = 1.0f;
+    }
+    inputHandled_ = true;
+    return 1;
+}
+
+namespace {
+BOOL __fastcall HudMapWheel(void* input, void*, int buttons, int delta, int x, int y) {
+    return reinterpret_cast<CHudMap*>(static_cast<std::uint8_t*>(input) - 0x94)->OnWheel(buttons, delta, x, y);
+}
+} // namespace
+EI_REPLACE(0x00645640, HudMapWheel);

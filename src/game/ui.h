@@ -469,6 +469,9 @@ public:
     void SetIndexCount(int count);
     void SetUvCount(int count);      // 005EA380 texture coordinates (8 bytes each)
     int Commit();
+    // 005E6FA0 (Rebirth-patched, not rewritten). Puts the sprite at layout point (x, y) at
+    // `depth` in front of the interface camera (sets the local position +0x1C).
+    void Place(float x, float y, float depth);
 
     std::uint8_t unknown_000[0x1C0];
     UiQuadBlock* quads_;             // +0x1C0
@@ -514,6 +517,8 @@ class CHudMap : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00645060: the view buttons
     void OnMouseMove(int buttons, int x, int y);   // 00645610
+    // 00645640: over region 0 the wheel zooms the map by 2.5^(delta / 1200) (ui_hud_map.cpp).
+    BOOL OnWheel(int buttons, int delta, int x, int y);
     // 00643DC0 (every frame, from 00642B40). Rebuilds the marker mesh (scene object 2): the
     // party and other units, the marked objects, the zone exits and the other players
     // (ui_hud_map.cpp).
@@ -572,7 +577,18 @@ class CHudClock : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00648D30
     void OnMouseMove(int buttons, int x, int y);   // 00649160
+    // 006488E0 (slot 24, every frame): turns the face with the time of day, the hand and the
+    // speed dial (scene objects 1-5), blinks while the game is paused (ui_hud_frame.cpp).
+    void Update();
+
+    std::uint8_t unknown_148[4];
+    float blink_;                    // +0x14C 0..1, the pause blink phase
+    float dial_;                     // +0x150 speed dial angle (wraps at pi / 6)
+    int fast_;                       // +0x154 fast game speed (copied to CInterface3D +0x94)
+    bool highlight_;                 // +0x158 the pause button pulses (scene object 6)
 };
+static_assert(offsetof(CHudClock, blink_) == 0x14C);
+static_assert(offsetof(CHudClock, highlight_) == 0x158);
 
 // Movement panel (set up by 00649190, vtables 00742530 / 007424FC; 0..80 x 520..600). Region 0
 // toggles the units' +0x438 flag, regions 1-4 set their movement mode 0-3 (+0x268).
@@ -604,10 +620,16 @@ public:
     BOOL OnWheel(int buttons, int delta, int x, int y);   // 0064A2F0
     // 0064A320 (not rewritten). Shows page `page_`.
     void ShowPage();
+    // 00649FF0 (slot 24, every frame): slides the panel in or out (ui_hud_frame.cpp).
+    void Update();
+    // 00649E20 (not rewritten). Places the panel's parts at the current slide offset.
+    void Layout();
 
     CBattleScreen* owner_;           // +0x148
     int sliding_;                    // +0x14C
-    std::uint8_t unknown_150[0x15C - 0x150];
+    int offset_;                     // +0x150 current slide offset in pixels
+    int travel_;                     // +0x154 full slide distance
+    float slide_;                    // +0x158 0 (out) .. 1 (in)
     float slideDirection_;           // +0x15C
     int page_;                       // +0x160
 };
@@ -739,6 +761,16 @@ static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
 static_assert(offsetof(CSaveLoadWindow, cursor_) == 0x190);
 static_assert(sizeof(CSaveLoadWindow) == 0x194);
 
+// A setting of the options window (0x14 bytes, 26 of them at +0x378).
+struct OptionSetting {
+    const int* definition_;          // +0x00 its first int is the setting's id
+    int value_;                      // +0x04
+    CUiScrollbar* bar_;              // +0x08 or null
+    UiSpinValue* spin_;              // +0x0C or null
+    std::uint8_t unknown_10[4];
+};
+static_assert(sizeof(OptionSetting) == 0x14);
+
 // A row of the options window: a key binding or a spin control.
 struct OptionRow {
     void* binding_;
@@ -755,6 +787,9 @@ public:
     void Redraw();                                     // 00650A20 (slot 22): not while sliding
     void OnDialogResult(int result);                   // 006508E0 (slot 27)
     const char* HelpTopic();                           // 00650900 (slot 41)
+    // 00650A30 (slot 24): updates the children, the slide-in, and applies the settings whose
+    // scroll bar or spin control changed (volumes, the display's gamma at once).
+    void Update();
 
     // Not rewritten.
     void RefreshRows();      // 00651350
@@ -769,14 +804,20 @@ public:
 
     std::uint8_t unknown_164[0x364 - 0x164];
     int selectedRow_;                // +0x364
-    std::uint8_t unknown_368[0x384 - 0x368];
+    std::uint8_t unknown_368[0x378 - 0x368];
+    struct OptionSetting* settings_; // +0x378 26 settings
+    std::uint8_t unknown_37C[0x384 - 0x37C];
     OptionRow rows_[14];             // +0x384
     bool waitingForKey_;             // +0x3F4 a key binding row waits for the new key
     bool sliding_;                   // +0x3F5
     std::uint8_t unknown_3F6[2];
     float slide_;                    // +0x3F8
-    std::uint8_t unknown_3FC[0x418 - 0x3FC];
+    std::uint8_t unknown_3FC[0x410 - 0x3FC];
+    bool displayModeChanged_;        // +0x410 a display mode setting (7-9) changed
+    std::uint8_t unknown_411[0x418 - 0x411];
 };
+static_assert(offsetof(COptionsWindow, settings_) == 0x378);
+static_assert(offsetof(COptionsWindow, displayModeChanged_) == 0x410);
 static_assert(offsetof(COptionsWindow, selectedRow_) == 0x364);
 static_assert(offsetof(COptionsWindow, rows_) == 0x384);
 static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);

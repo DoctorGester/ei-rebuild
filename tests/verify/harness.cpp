@@ -14,6 +14,8 @@
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
 //                             interface screen is designed for (scaled to the window's client size)
+//   wheel <x> <y> <delta>     turn the mouse wheel by <delta> (120 a notch; negative: towards the
+//                             user) with the mouse at (x, y) in the 800x600 layout
 //   clickregion <n>, rclickregion <n>, moveregion <n>
 //                             the same at the centre of clickable region <n> of the window on top
 //                             of the interface (its regions as the screen's code numbers them;
@@ -427,6 +429,16 @@ void PostMouse(const std::string& verb, int x, int y) {
     }
 }
 
+// A wheel turn at (x, y) in the 800x600 layout. WM_MOUSEWHEEL carries screen coordinates.
+void PostWheel(int x, int y, int delta) {
+    RECT client{};
+    GetClientRect(GameWindow(), &client);
+    POINT point{x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600};
+    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
+    ClientToScreen(GameWindow(), &point);
+    PostMessageA(GameWindow(), WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
+}
+
 // The centre of region `index` of the top interface window, posted as a mouse event. The region's
 // layout rectangle (plus the offset its hit test subtracts) goes through the game's layout-to-screen
 // scaling (005F7D20, patched by Rebirth) and then to the window's client size.
@@ -560,6 +572,10 @@ void RunSteps() {
             int x = 0, y = 0;
             if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());
+        } else if (s.verb == "wheel") {
+            int x = 0, y = 0, delta = 0;
+            if (sscanf_s(s.argument.c_str(), "%d %d %d", &x, &y, &delta) == 3) PostWheel(x, y, delta);
+            else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
         } else if (s.verb == "check") {

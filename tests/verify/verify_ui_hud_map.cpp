@@ -170,3 +170,38 @@ static void __fastcall UpdateViewVerify(CHudMap* self, void*) {
 }
 // MOV EAX,[0x007AF7C8]: 5 bytes.
 EI_VERIFY(0x00642E80, UpdateViewVerify, 5, s_updateView);
+
+// CHudMap::OnWheel (input slot 12), side by side: the zoom and the handled flag are put back
+// after the original ran, then ours runs; zoom, flag and result are compared.
+namespace {
+using WheelFn = BOOL(__fastcall*)(void*, void*, int, int, int, int);
+WheelFn s_mapWheel;
+
+struct WheelState {
+    float zoom;
+    int handled;
+    BOOL result;
+};
+} // namespace
+
+static BOOL __fastcall MapWheelVerify(void* input, void*, int buttons, int delta, int x, int y) {
+    auto* map = reinterpret_cast<CHudMap*>(static_cast<std::uint8_t*>(input) - 0x94);
+    float zoom;
+    std::memcpy(&zoom, &map->zoom_, 4);
+    bool handled = map->inputHandled_;
+    WheelState expected;
+    expected.result = s_mapWheel(input, nullptr, buttons, delta, x, y);
+    std::memcpy(&expected.zoom, &map->zoom_, 4);
+    expected.handled = map->inputHandled_;
+    std::memcpy(&map->zoom_, &zoom, 4);
+    map->inputHandled_ = handled;
+    WheelState actual;
+    actual.result = map->CHudMap::OnWheel(buttons, delta, x, y);
+    std::memcpy(&actual.zoom, &map->zoom_, 4);
+    actual.handled = map->inputHandled_;
+    ei::verify::Check("CHudMap::OnWheel", expected, actual, "(%d,%d) delta %d handled %d/%d", x, y, delta,
+                      expected.handled, actual.handled);
+    return expected.result;
+}
+// MOV EAX,[ESP+0x10]; PUSH ESI: 5 bytes.
+EI_VERIFY(0x00645640, MapWheelVerify, 5, s_mapWheel);

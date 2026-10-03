@@ -67,6 +67,14 @@ click 790 145
 wait 300
 click 790 115
 wait 300
+# Map: the wheel zooms while the mouse is over region 0 (the sling button, 00645640): in, then out
+# past the limit; elsewhere on the map it is only taken.
+wheel 790 15 120
+wait 300
+wheel 790 15 -360
+wait 300
+wheel 700 80 120
+wait 300
 
 # Movement panel: the inner button twice (toggles a flag and back), then a movement mode.
 click 10 590
