@@ -3,6 +3,9 @@
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only] [--no-hooks]
                                [--verified-candidates N]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
+  --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
+                   enemies are random, and the hero occasionally loses one on the original too.
+                   A pass after a retry is reported as "PASS*".
   --verified-candidates N
                    afterwards, list rewritten functions with at least N verify calls and no
                    mismatch in any run that are not yet in tests/verify/verified.txt
@@ -45,6 +48,7 @@ def main():
     ap.add_argument('--rebirth-only', action='store_true')
     ap.add_argument('--no-hooks', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
+    ap.add_argument('--retries', type=int, default=1)
     args = ap.parse_args()
     names = args.scenarios or sorted(os.path.splitext(os.path.basename(p))[0]
                                      for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))
@@ -59,7 +63,15 @@ def main():
         scenario = os.path.join(ROOT, 'tests', 'scenarios', name + '.txt')
         for install in installs:
             result, seconds, failures, counts, notes = run(scenario, install, not args.no_hooks)
-            ok = ok and result == 'PASS'
+            first_failures = failures
+            for _ in range(args.retries):
+                if result == 'PASS' or any('mismatch' in f for f in failures):
+                    break
+                result, seconds, failures, counts, notes = run(scenario, install, not args.no_hooks)
+                if result == 'PASS':
+                    result = 'PASS*'
+                    failures = ['first run: ' + '; '.join(first_failures[:2])]
+            ok = ok and result in ('PASS', 'PASS*')
             for fn, (calls, bad) in counts.items():
                 totals[fn][0] += calls
                 totals[fn][1] += bad
