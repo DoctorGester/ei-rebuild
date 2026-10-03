@@ -167,3 +167,13 @@ EI_SETUP_EMIT_WRAPPER(EmitStench)
 EI_VERIFY(0x0048D420, EmitStenchVerify, 6, s_EmitStench);
 EI_UPDATE_WRAPPER(UpdateStench)
 EI_VERIFY(0x0048D7F0, UpdateStenchVerify, 5, s_UpdateStench);
+
+// 00489F70: PUSH EBP; MOV EBP,ESP; SUB ESP,0x28 (6). 0048A310: PUSH EBP; MOV EBP,ESP; SUB ESP,0xC (6).
+// 0048A560: MOV EAX,[ESP+4]; SUB ESP,0x24 (7). (Its Attach(null) on a free source has no effect
+// outside the source, so it runs both ways.)
+EI_EMIT_WRAPPER(EmitTornado)
+EI_VERIFY(0x00489F70, EmitTornadoVerify, 6, s_EmitTornado);
+EI_UPDATE_WRAPPER(UpdateTornado)
+EI_VERIFY(0x0048A310, UpdateTornadoVerify, 6, s_UpdateTornado);
+EI_ELEMENT_WRAPPER(TickTornado)
+EI_VERIFY(0x0048A560, TickTornadoVerify, 7, s_TickTornado);

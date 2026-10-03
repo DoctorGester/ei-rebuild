@@ -2090,3 +2090,215 @@ int CParticleSource::UpdateStench(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x0048D7F0, CParticleSource::UpdateStench);
+
+// --- Tornado (0x200A) and CurseHolder (0x2050): a funnel of rings ---------------------------------
+//
+// The elements are the funnel's rings (bottom to top): their centres, relative to the source.
+// Element 0 also holds +0x24 the funnel's height, +0x28 its bend (0: the rings sway with the
+// source's motion; otherwise they lean along it) and +0x2C the particles' spin damping.
+// A particle: +0x20 its angle, +0x24 its radius, +0x2C its height (0..1), +0x30 its alpha,
+// +0x38 its turn per tick, +0x3C the radius factor per tick, +0x40 its rise per tick.
+
+namespace {
+
+#define EI_FUNNEL_PI_F GameFloat(0x0073BF34)         // 5.0: rings per unit height
+#define EI_FUNNEL_PI GameDouble(0x0073CAE8)          // pi
+#define EI_FUNNEL_R_SCALE GameDouble(0x0073CD30)     // ~1.2 * 2^-32
+#define EI_FUNNEL_R_BASE GameFloat(0x0073CCA8)       // 0.8
+#define EI_FUNNEL_R_ADD GameFloat(0x0073BAD4)        // 0.2
+#define EI_FUNNEL_TURN_HIGH GameDouble(0x0073CD28)   // 0.07 (times pi)
+#define EI_FUNNEL_TURN_LOW GameDouble(0x0073CD20)    // 0.06 (times pi)
+#define EI_FUNNEL_TURN_TOP GameFloat(0x0073BAC4)     // 1.1
+#define EI_FUNNEL_TURN_SCALE GameFloat(0x0073C51C)   // 1.5
+#define EI_FUNNEL_SIZE GameFloat(0x0073C54C)         // 0.3
+#define EI_FUNNEL_DUST GameFloat(0x0073CD18)         // 0.15
+#define EI_FUNNEL_RISE GameFloat(0x0073CD44)         // 0.0001
+#define EI_FUNNEL_SPIN_UP GameFloat(0x0073CD40)      // 1.01
+#define EI_FUNNEL_ALPHA GameDouble(0x0073CD38)       // 255.0
+#define EI_FUNNEL_FADE GameFloat(0x0073B850)         // 0.1
+#define EI_FUNNEL_SWAY GameFloat(0x0073CD50)         // 0.95
+#define EI_FUNNEL_HALF_ARC GameDouble(0x0073CC88)    // 0.5
+#define EI_FUNNEL_LEAN GameFloat(0x0073CCF8)         // 20.0
+#define EI_FUNNEL_BACK GameFloat(0x0073B854)         // -1.0
+#define EI_FUNNEL_HALF GameFloat(0x0073B86C)         // 0.5
+#define EI_FUNNEL_MAX_LEAN GameFloat(0x0073C548)     // 0.01
+#define EI_FUNNEL_ONE GameDouble(0x0073BAC8)         // 1.0
+#define EI_FUNNEL_BEND GameDouble(0x0073CD48)        // 0.4
+
+// The funnel's centre at height h (0..1): between ring k and k+1 (h * 5 rings), with the x and y
+// blends in the original's two orders; y is returned unrounded.
+double FunnelCentre(const CParticleSource* s, double h, float& x) {
+    int k = GameFtol(h);
+    if (k >= s->elementCount - 2) k = s->elementCount - 2;
+    float f = Store(h - static_cast<double>(k));
+    float t = PickIfLess(f, 1.0f);
+    double u = D(EI_P_ONE) - D(t);
+    const ParticleElement& a = s->elements[k];
+    const ParticleElement& b = s->elements[k + 1];
+    x = Store(D(t) * D(b.pos.x) + u * D(a.pos.x));
+    return u * D(a.pos.y) + D(t) * D(b.pos.y);
+}
+
+} // namespace
+
+// 00489F70. Tornado: a particle at a random height of the funnel (around the ring centres there),
+// with a radius growing towards the top and a turn rate larger near the bottom; one in three is
+// dust (state 0, frames 12-15), the others debris sized by their radius.
+int CParticleSource::EmitTornado(Particle* p, int) {
+    float height01 = Store(Unsigned(Next()) * EI_P_SCALE_1);
+    p->state = static_cast<int>(Next() % 3);
+    p->color = static_cast<std::uint32_t>(frameDelay);
+    std::memcpy(&p->pos, &origin, 2 * sizeof(float));
+    p->pos.z = Store(D(origin.z) + D(elements[0].pos.z));
+    p->life = static_cast<int>(Next() % 9) + 100;
+    float scaled = Store(D(height01) * D(EI_FUNNEL_PI_F));
+    int k = x87::fistp(scaled);
+    if (k >= elementCount - 2) k = elementCount - 2;
+    float f = Store(D(scaled) - static_cast<double>(k));
+    float t = PickIfLess(f, 1.0f);
+    double u = D(EI_P_ONE) - D(t);
+    const ParticleElement& a = elements[k];
+    const ParticleElement& b = elements[k + 1];
+    float cx = Store(D(t) * D(b.pos.x) + u * D(a.pos.x));
+    float cy = Store(u * D(a.pos.y) + D(t) * D(b.pos.y));
+    float high = Store(EI_FUNNEL_PI);
+    float low = Store(-EI_FUNNEL_PI);
+    std::uint32_t r = Next();
+    SetBits(&p->unknown_30, 0x3DCCCCCD);     // 0.1
+    p->unknown_2C = height01;
+    float angle = Store(Unsigned(r) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low));
+    double w = D(EI_P_ONE) - D(height01);
+    float wRounded = Store(w);
+    double w2 = w * w;
+    float w4 = Store(w2 * w2);
+    p->velocity.x = angle;
+    float radius = Store((Unsigned(Next()) * EI_FUNNEL_R_SCALE + D(EI_FUNNEL_R_BASE)) * (D(w4) + D(EI_FUNNEL_R_ADD)) * 2.0);
+    p->velocity.y = radius;
+    float turnHigh = Store(EI_FUNNEL_PI * EI_FUNNEL_TURN_HIGH);
+    float turnLow = Store(EI_FUNNEL_PI * EI_FUNNEL_TURN_LOW);
+    double turn = Unsigned(Next()) * (D(turnHigh) - D(turnLow)) * EI_P_SCALE_1 + D(turnLow);
+    p->drift.x = Store(turn * (D(EI_FUNNEL_TURN_TOP) - D(wRounded) * D(wRounded)) * D(EI_FUNNEL_TURN_SCALE));
+    SetBits(&p->drift.z, 0);
+    std::memcpy(&p->drift.y, ElementFloat(elements, 0x2C), sizeof(float));
+    p->pos.x = Store(x87::fsin(D(angle)) * D(radius) + D(p->pos.x) + D(cx));
+    p->pos.y = Store(x87::fcos(D(angle)) * D(radius) + D(cy) + D(p->pos.y));
+    p->pos.z = Store(D(height01) * D(*ElementFloat(elements, 0x24)) + D(p->pos.z));
+    if (p->state != 0) {
+        p->size = Store((D(radius) + D(EI_FUNNEL_SIZE)) * D(size));
+        p->frame = static_cast<int>(Next() % 12);
+    } else {
+        p->frame = static_cast<int>(Next() & 3) + 12;
+        p->size = Store(D(size) * D(EI_FUNNEL_DUST));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00489F70, CParticleSource::EmitTornado);
+
+// 0048A310. Tornado particles rise (dropped above the top), turn around the funnel's centre at
+// their height (faster and faster), fade in, fade by the height, and animate.
+int CParticleSource::UpdateTornado(Particle* p) {
+    if (--p->life == 0) return 0;
+    p->unknown_2C = Store(D(p->unknown_2C) + D(p->drift.z));
+    p->drift.z = Store(D(p->drift.z) + D(EI_FUNNEL_RISE));
+    if (p->unknown_2C > 1.0f) return 0;
+    double scaled = D(p->unknown_2C) * D(EI_FUNNEL_PI_F);
+    float cx;
+    double cy = FunnelCentre(this, scaled, cx);
+    p->velocity.x = Store(D(p->velocity.x) + D(p->drift.x));
+    p->drift.x = Store(D(p->drift.x) * D(EI_FUNNEL_SPIN_UP));
+    float angle = p->velocity.x;
+    p->velocity.y = Store(D(p->drift.y) * D(p->velocity.y));
+    float radius = p->velocity.y;
+    p->pos.x = Store(x87::fsin(D(angle)) * D(radius) + D(origin.x) + D(cx));
+    p->pos.y = Store(x87::fcos(D(angle)) * D(radius) + D(origin.y) + cy);
+    double base = D(elements[0].pos.z) + D(origin.z);
+    p->pos.z = Store(base);
+    p->pos.z = Store(D(*ElementFloat(elements, 0x24)) * D(p->unknown_2C) + base);
+    if (p->life > 8) p->unknown_30 = PickIfLess(Store(D(p->unknown_30) + D(EI_FUNNEL_FADE)), 1.0f);
+    else p->unknown_30 = !(0.1f >= p->unknown_30) ? p->unknown_30 : 0.1f;
+    int a = x87::fistp(Store(x87::fsqrt(D(EI_P_ONE) - D(p->unknown_2C)) * D(p->unknown_30) * EI_FUNNEL_ALPHA));
+    p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);
+    if (p->state != 0) {
+        p->frame = (p->frame + 1) % 12;
+        p->size = Store((D(radius) + D(EI_FUNNEL_SIZE)) * D(size));
+    } else {
+        p->frame = ((p->frame + 1) & 3) + 12;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048A310, CParticleSource::UpdateTornado);
+
+// 0048A560. Tornado rings (all updated from element 0's call). Without a bend the rings sway with
+// the source's motion (damped 0.95, a half cosine up the funnel); with one they lean along the
+// motion (at most 0.01 per tick) and bend with the height. The bottom ring sits 1 above the ground.
+// A free source that lost its bend and still has particles stops and keeps going until they die.
+void CParticleSource::TickTornado(ParticleElement* e) {
+    if (e != elements) return;
+    ParticleElement* bottom = elements;
+    float bend;
+    std::memcpy(&bend, ElementFloat(bottom, 0x28), sizeof(float));
+    if (bend == 0.0f || x87::IsNaN(bend)) {
+        Vector3 sway;
+        sway.Construct(Store(D(bottom->pos.x) - D(motion.x)), Store(D(bottom->pos.y) - D(motion.y)),
+                       Store(D(bottom->pos.z) - D(motion.z)));
+        sway.x = Store(D(sway.x) * D(EI_FUNNEL_SWAY));
+        SetBits(&sway.z, 0);
+        sway.y = Store(D(sway.y) * D(EI_FUNNEL_SWAY));
+        for (int i = 0; i < elementCount; ++i) {
+            double c = x87::fcos(static_cast<double>(i) / static_cast<double>(elementCount - 1) * EI_FUNNEL_PI *
+                                 EI_FUNNEL_HALF_ARC);
+            ParticleElement& ring = elements[i];
+            float x = Store(D(sway.x) * c);
+            float y = Store(D(sway.y) * c);
+            ring.pos = {x, y, Store(c * D(sway.z))};
+        }
+        elements[0].pos.z = Store(GroundHeight(origin.x, origin.y) - D(origin.z) + D(EI_P_ONE));
+    } else {
+        elements[0].pos.z = Store(GroundHeight(origin.x, origin.y) - D(origin.z) + D(EI_P_ONE));
+        double mx = D(motion.x) * D(EI_FUNNEL_LEAN);
+        float my = Store(D(motion.y) * D(EI_FUNNEL_LEAN));
+        float mz = Store(D(motion.z) * D(EI_FUNNEL_LEAN));
+        const ParticleElement& b0 = elements[0];
+        double sx = mx + D(b0.pos.x);
+        float sy = Store(D(my) + D(b0.pos.y));
+        float sz = Store(D(mz) + D(b0.pos.z));
+        float ax = Store(sx * D(EI_FUNNEL_BACK));
+        float ay = Store(D(sy) * D(EI_FUNNEL_BACK));
+        float az = Store(D(sz) * D(EI_FUNNEL_BACK));
+        Vector3 n = {ax, ay, az};
+        double length = x87::fsqrt(D(az) * D(az) + D(ay) * D(ay) + D(ax) * D(ax));
+        if (!(length == 0.0 || x87::IsNaN(Store(length)))) {
+            double inverse = D(EI_P_ONE) / length;
+            n.x = Store(D(ax) * inverse);
+            n.y = Store(D(ay) * inverse);
+            n.z = Store(D(az) * inverse);
+        }
+        double lean = length * D(EI_FUNNEL_HALF);
+        if (lean > D(EI_FUNNEL_MAX_LEAN)) lean = D(EI_FUNNEL_MAX_LEAN);
+        Vector3 d;
+        d.Construct(Store(D(n.x) * lean), Store(D(n.y) * lean), Store(D(n.z) * lean));
+        const ParticleElement& b1 = elements[0];
+        float gx = Store(D(d.x) + D(b1.pos.x));
+        float gy = Store(D(d.y) + D(b1.pos.y));
+        float gz = Store(D(d.z) + D(b1.pos.z));
+        for (int i = 0; i < elementCount; ++i) {
+            double f = static_cast<double>(i) / static_cast<double>(elementCount - 1);
+            double c = x87::fcos(f * EI_FUNNEL_PI);
+            double k = (c + (D(EI_P_ONE) - f) * D(*ElementFloat(elements, 0x28)) + EI_FUNNEL_ONE) * EI_FUNNEL_BEND;
+            ParticleElement& ring = elements[i];
+            float x = Store(D(gx) * k);
+            float y = Store(D(gy) * k);
+            float z = Store(D(gz) * k);
+            ring.pos = {x, y, z};
+        }
+    }
+    if (!attachedTo) {
+        float b;
+        std::memcpy(&b, ElementFloat(elements, 0x28), sizeof(float));
+        if ((b == 0.0f || x87::IsNaN(b)) && particles.count != 0) {
+            flags_ &= ~5u;
+            Attach(nullptr);
+        }
+    }
+}
+EI_REPLACE_METHOD(0x0048A560, CParticleSource::TickTornado);
