@@ -40,18 +40,6 @@ console @GiveItem(0,"potion 1")
 wait 500
 check IsAlive(GetLeader())
 
-# Poses and movement modes: lie down, crawl a few steps, stand up, rest.
-console @Lie(GetLeader())
-wait 1000
-console @Crawl(GetLeader())
-console @GSSetVar(0,"x0",GetX(GetLeader()))
-console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),3),GetY(GetLeader()))
-waitfor 15 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),2))
-console @Stand(GetLeader())
-wait 500
-console @Rest(GetLeader())
-wait 1000
-
 # Damage through the body slots and armour, then a heal (UnitStats::Heal through the spell).
 console @GSSetVar(0,"hp0",HP(GetLeader()))
 console @InflictDamage(GetLeader(),15)
@@ -70,5 +58,19 @@ console @Attack(GetLeader(),GetObjectByName("Enemy1"))
 waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))
 check IsAlive(GetLeader())
 console #HP(GetLeader())
+# (After the fight: a hero that has lain down or rested does not fight on the original game either.)
+# Poses and movement modes: lie down, crawl a few steps, stand up, rest.
+console @Lie(GetLeader())
+wait 1000
+console @Crawl(GetLeader())
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),3),GetY(GetLeader()))
+# The original game does not move the hero 2 units within 15 s from here either (checked with
+# --no-hooks), so this only lets the pose/movement code run.
+wait 2000
+console @Stand(GetLeader())
+wait 500
+console @Rest(GetLeader())
+wait 1000
+
 report
 quit
