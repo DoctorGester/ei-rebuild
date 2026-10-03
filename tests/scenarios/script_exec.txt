@@ -117,7 +117,7 @@ console @HideObject(GetObjectByName("ZxWolf"),1) HideObject(GetObjectByName("ZxW
 console @MoveToPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y"))
 waitfor 15 IsLess(DistanceUnitPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y")),1.5)
 console @RotateTo(GetObjectByName("ZxWolf"),GSGetVar(0,"zu.x"),Add(GSGetVar(0,"zu.y"),5)) Stand(GetObjectByName("ZxWolf")) Run(GetObjectByName("ZxWolf")) Walk(GetObjectByName("ZxWolf")) Rest(GetObjectByName("ZxWolf"))
-console @MoveToObject(GetObjectByName("ZxWolf"),GetLeader()) Follow(GetObjectByName("ZxWolf"),GetLeader()) ResetTarget(GetObjectByName("ZxWolf")) Idle(GetObjectByName("ZxWolf"))
+console @MoveToObject(GetObjectByName("ZxWolf"),GetLeader()) Follow(GetObjectByName("ZxWolf"),GetLeader()) Idle(GetObjectByName("ZxWolf"))
 console @Guard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) Sentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) Idle(GetObjectByName("ZxWolf"))
 console @UMClear(GetObjectByName("ZxWolf")) UMSentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) UMGuard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) UMGuardEx(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4,8) UMFollow(GetObjectByName("ZxWolf"),GetLeader())
 console @UMClear(GetObjectByName("ZxWolf")) UMPatrol(GetObjectByName("ZxWolf")) UMPatrolAddPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) UMPatrolAddPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),4),GSGetVar(0,"zu.y")) UMPatrolAddPointLook(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),5),GSGetVar(0,"zu.y"),0)
