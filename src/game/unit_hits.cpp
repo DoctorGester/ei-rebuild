@@ -6,6 +6,7 @@
 #include "unit.h"
 
 #include "object_tables.h"
+#include "item.h"
 #include "spell.h"
 
 #include "ei/hook.h"
@@ -24,6 +25,7 @@ constexpr int kAllLocations = 6;
 constexpr int kLocations = 7;
 constexpr int kDamageTypes = 7;
 constexpr int kClassUnitServer = 0x3E;
+constexpr float kHalfBack = -0.5f;                 // 0073CDC8
 
 // Remarks (party messages through CUnitServer 00552780) when an item wears out or breaks.
 constexpr int kRemarkArmourBroken = 0x23;
@@ -253,3 +255,45 @@ BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00524FE0, UnitVitals::TakeHit);
+
+BOOL CUnit::IsBehind(const CEngineObject* target) {
+    if (!player) return 0;
+    const char* t = reinterpret_cast<const char*>(target);
+    volatile float dx = Field<float>(t, 0x1C) - positionX;
+    volatile float dy = Field<float>(t, 0x20) - positionY;
+    volatile float dz = Field<float>(t, 0x24) - positionZ;
+    double length = x87::fsqrt(dz * dz + dy * dy + dx * dx);
+    if (length > kZero) {
+        dx = static_cast<float>(dx / length);
+        dy = static_cast<float>(dy / length);
+        dz = static_cast<float>(dz / length);
+    }
+    // A bow or a crossbow in hand: never behind.
+    std::uint32_t slot = activeWeapon;
+    CEngineObject* weapon = nullptr;
+    if (controller->GetClassId() == kClassPartyController) {
+        PartyUnitRecord* record = player ? reinterpret_cast<PartyRecords*>(player + 0x70)->Find(id_) : nullptr;
+        if (record && slot < record->weaponCount) weapon = record->weapons[slot];
+    } else if (slot < 4) {
+        weapon = weapons[slot];
+    }
+    if (weapon) {
+        if (static_cast<CItemWeapon*>(weapon)->GetType() == 5) return 0;
+        if (static_cast<CItemWeapon*>(weapon)->GetType() == 6) return 0;
+    }
+    // The target's facing from its orientation quaternion (a, b, c, d at +0x34).
+    float a = Field<float>(t, 0x34);
+    float b = Field<float>(t, 0x38);
+    float c = Field<float>(t, 0x3C);
+    float d = Field<float>(t, 0x40);
+    double x = c * b - a * d;
+    x = x + x;
+    double cc = c * c;
+    double rest = a * a - ((d * d + b * b) + cc);
+    volatile float y = static_cast<float>(cc + cc + rest);
+    double z = a * b + c * d;
+    z = z + z;
+    double facing = (z * dz + y * dy) + x * dx;
+    return !(facing >= kHalfBack) ? 1 : 0;
+}
+EI_REPLACE_METHOD(0x00530A60, CUnit::IsBehind);

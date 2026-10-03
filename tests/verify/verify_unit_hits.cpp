@@ -92,3 +92,12 @@ static BOOL __fastcall TakeHitVerify(UnitVitals* self, void*, const DamageInfo* 
     return expected;
 }
 EI_VERIFY(0x00524FE0, TakeHitVerify, 6, s_takeHit);
+
+// 00530A60: SUB ESP,0x18; PUSH ESI; MOV ESI,ECX (6 bytes). Pure.
+static BOOL(__fastcall* s_isBehind)(CUnit*, void*, const CEngineObject*);
+static BOOL __fastcall IsBehindVerify(CUnit* self, void*, const CEngineObject* target) {
+    BOOL expected = s_isBehind(self, nullptr, target);
+    ei::verify::Check("CUnit::IsBehind", expected, self->IsBehind(target), "unit %d target %d", self->id_, target->id_);
+    return expected;
+}
+EI_VERIFY(0x00530A60, IsBehindVerify, 6, s_isBehind);

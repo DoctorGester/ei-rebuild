@@ -150,3 +150,12 @@ static void __fastcall SetFromStatsVerify(CUnit* self, void*, UnitStats* stats) 
              [&] { s_setFromStats(self, nullptr, stats); });
 }
 EI_VERIFY(0x00532A20, SetFromStatsVerify, 8, s_setFromStats);
+
+// 00532D40: PUSH ESI; MOV ESI,ECX; MOV ECX,[ESI+0xC] (6 bytes). Pure.
+static int(__fastcall* s_level)(CUnit*);
+static int __fastcall LevelVerify(CUnit* self) {
+    int expected = s_level(self);
+    ei::verify::Check("CUnit::Level", expected, self->Level(), "unit %d", self->id_);
+    return expected;
+}
+EI_VERIFY(0x00532D40, LevelVerify, 6, s_level);

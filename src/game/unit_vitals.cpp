@@ -167,6 +167,11 @@ __declspec(naked) void __fastcall CallScaleSlotMaxima(UnitStats*, void*, float) 
 // 00524060 / 00524110.
 __declspec(naked) float __fastcall CallLegsFactor(UnitStats*, void*, int) EI_ORIGINAL(0x00524060)
 __declspec(naked) float __fastcall CallArmsFactor(UnitStats*, void*, int) EI_ORIGINAL(0x00524110)
+// 00524560 / 00523F50 / 00523DB0 / 005282D0.
+__declspec(naked) void __fastcall CallRecompute(UnitStats*, void*, UnitVitals*, CUnit*) EI_ORIGINAL(0x00524560)
+__declspec(naked) double __fastcall CallManaCurve(UnitStats*) EI_ORIGINAL(0x00523F50)
+__declspec(naked) double __stdcall CallHitPointEffectScale(CUnit*) EI_ORIGINAL(0x00523DB0)
+__declspec(naked) double __fastcall CallSkillLevelValueCopy(UnitStats*, void*, int) EI_ORIGINAL(0x005282D0)
 
 namespace {
 double EffectScale(CUnit* unit, float k) {
@@ -516,21 +521,161 @@ EI_REPLACE_METHOD(0x00523960, UnitStats::AddScaledExperience);
 void UnitStats::TakePendingExperience(float amount) { pendingExperience = pendingExperience - amount; }
 EI_REPLACE_METHOD(0x00523C20, UnitStats::TakePendingExperience);
 
+namespace {
+// The hit point and mana maxima after the experience or a base value changed: the curves with
+// the skill levels' percentages (each product rounded once), the strengthen / weaken scale, the
+// slots scaled along and the hit points. As GainExperience, RaiseIntelligence and RaiseSkill do.
+void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
+    double curve = ExperienceCurve(GlobalPtr(kHpBase), &stats->experience, GlobalPtr(kHpExpDivisor),
+                                   GlobalPtr(kHpLogBase));
+    double scaled = curve * (stats->stat10 / Global(kHpStatDivisor) * Global(kHpStatScale));
+    float maxHitPoints = static_cast<float>((LevelValueOf(stats, kSkillHitPoints) * kPercent + kOne) * scaled);
+    float limit = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
+    vitals->maxHitPoints = limit;
+    curve = ExperienceCurve(GlobalPtr(kManaBase), &stats->experience, GlobalPtr(kManaExpDivisor),
+                            GlobalPtr(kManaLogBase));
+    scaled = curve * (stats->stat18 / Global(kManaStatDivisor) * Global(kManaStatScale));
+    vitals->maxMana = static_cast<float>((LevelValueOf(stats, kSkillMana) * kPercent + kOne) * scaled);
+    CallScaleSlotMaxima(stats, nullptr, limit);
+    vitals->hitPoints = static_cast<float>(stats->Reduce(vitals->maxHitPoints));
+}
+
+// 1.61 (the double at 0073E140) ^ (level / 007C5480) * 007C547C through _CIpow, unrounded: the
+// experience a skill or attribute level is worth.
+__declspec(naked) double __cdecl LevelWorth(int /*level*/) {
+    __asm {
+        mov eax, 0x0073E140
+        fld qword ptr [eax]
+        fild dword ptr [esp + 4]
+        mov eax, 0x007C5480
+        fdiv dword ptr [eax]
+        mov eax, 0x006E81A0
+        call eax
+        mov eax, 0x007C547C
+        fmul dword ptr [eax]
+        ret
+    }
+}
+
+// The game's _ftol (006E853C): truncation to 64 bits, low dword in EAX.
+__declspec(naked) int __cdecl GameFtol(double) {
+    __asm {
+        fld qword ptr [esp + 4]
+        mov eax, 0x006E853C
+        call eax
+        ret
+    }
+}
+
+// Raises `levels[index]` by `amount` (a byte) and books what the new level is worth over the old
+// one as experience (into the spent experience too). Then the maxima and a recomputation.
+bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, CUnit* unit) {
+    CEngineObject* server = ServerObjectOf(unit);
+    if (server->GetClassId() != kClassServerObject) return false;
+    UnitVitals* vitals = VitalsOf(server);
+    std::uint8_t old = levels[index];
+    int raised = (amount & 0xFF) + old;
+    volatile float worthNew = static_cast<float>(LevelWorth(raised));
+    double worthOld = LevelWorth(old);
+    levels[index] = static_cast<std::uint8_t>(old + amount);
+    int cost = GameFtol(worthNew - worthOld);
+    double total = static_cast<double>(cost) + stats->pendingExperience;
+    stats->pendingExperience = static_cast<float>(total);
+    if (total > kZero) {
+        stats->experience = static_cast<float>(total + stats->experience);
+        stats->pendingExperience = kZero;
+        stats->spentExperience = static_cast<float>(total + stats->spentExperience);
+    }
+    RefreshMaxima(stats, vitals, unit);
+    CallRecompute(stats, nullptr, vitals, unit);
+    return true;
+}
+
+float* BaseScale(CUnit* unit) { return reinterpret_cast<float*>(reinterpret_cast<char*>(unit) + 0x1AC); }
+float* FigureScale(CUnit* unit) { return reinterpret_cast<float*>(reinterpret_cast<char*>(unit) + 0xC4); }
+} // namespace
+
 void UnitStats::GainExperience(CUnit* unit, float amount) {
     CEngineObject* server = ServerObjectOf(unit);
     if (server->GetClassId() != kClassServerObject) return;
-    UnitVitals* vitals = VitalsOf(server);
     AddPending(this, IntelligenceFactor(&stat20) * amount);
-
-    double curve = ExperienceCurve(GlobalPtr(kHpBase), &experience, GlobalPtr(kHpExpDivisor), GlobalPtr(kHpLogBase));
-    double scaled = curve * (stat10 / Global(kHpStatDivisor) * Global(kHpStatScale));
-    float maxHitPoints = static_cast<float>((LevelValueOf(this, kSkillHitPoints) * kPercent + kOne) * scaled);
-    float limit = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
-    vitals->maxHitPoints = limit;
-    curve = ExperienceCurve(GlobalPtr(kManaBase), &experience, GlobalPtr(kManaExpDivisor), GlobalPtr(kManaLogBase));
-    scaled = curve * (stat18 / Global(kManaStatDivisor) * Global(kManaStatScale));
-    vitals->maxMana = static_cast<float>((LevelValueOf(this, kSkillMana) * kPercent + kOne) * scaled);
-    CallScaleSlotMaxima(this, nullptr, limit);
-    vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
+    RefreshMaxima(this, VitalsOf(server), unit);
 }
 EI_REPLACE_METHOD(0x005239B0, UnitStats::GainExperience);
+
+bool UnitStats::RaiseSkill(int skill, int amount, CUnit* unit) { return RaiseLevel(this, skills, skill, amount, unit); }
+EI_REPLACE_METHOD(0x00528AB0, UnitStats::RaiseSkill);
+
+bool UnitStats::RaiseAttribute(int index, int amount, CUnit* unit) {
+    return RaiseLevel(this, attributes, index, amount, unit);
+}
+EI_REPLACE_METHOD(0x00528DA0, UnitStats::RaiseAttribute);
+
+bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
+    CEngineObject* server = ServerObjectOf(unit);
+    if (server->GetClassId() != kClassServerObject) return false;
+    UnitVitals* vitals = VitalsOf(server);
+    stat10Base = static_cast<float>(static_cast<double>(amount) + stat10Base);
+    double curve = ExperienceCurve(GlobalPtr(kHpBase), &experience, GlobalPtr(kHpExpDivisor), GlobalPtr(kHpLogBase));
+    volatile float scaled = static_cast<float>(curve * (stat10 / Global(kHpStatDivisor) * Global(kHpStatScale)));
+    const char* record = SkillLevelRecord(kSkillHitPoints);
+    volatile float maxHitPoints =
+        static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
+    vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
+    vitals->maxMana = static_cast<float>(CallManaCurve(this));
+    CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
+    vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
+    BaseScale(unit)[0] = BaseScale(unit)[0] + kPointTwo;
+    FigureScale(unit)[0] = FigureScale(unit)[0] + kPointTwo;
+    unit->MarkChanged(1);
+    CallRecompute(this, nullptr, vitals, unit);
+    unit->MarkChanged(4);
+    return true;
+}
+EI_REPLACE_METHOD(0x00529090, UnitStats::RaiseStrength);
+
+bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
+    CEngineObject* server = ServerObjectOf(unit);
+    if (server->GetClassId() != kClassServerObject) return false;
+    UnitVitals* vitals = VitalsOf(server);
+    stat18Base = static_cast<float>(static_cast<double>(amount) + stat18Base);
+    double curve = ExperienceCurve(GlobalPtr(kHpBase), &experience, GlobalPtr(kHpExpDivisor), GlobalPtr(kHpLogBase));
+    volatile float scaled = static_cast<float>(curve * (stat10 / Global(kHpStatDivisor) * Global(kHpStatScale)));
+    volatile float maxHitPoints =
+        static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillHitPoints) * kPercent + kOne) * scaled);
+    volatile float boosted = static_cast<float>(CallHitPointEffectScale(unit) * maxHitPoints);
+    float one = kOne;
+    float b = boosted;
+    vitals->maxHitPoints = LessOrUnordered(one, b, b, one);
+    curve = ExperienceCurve(GlobalPtr(kManaBase), &experience, GlobalPtr(kManaExpDivisor), GlobalPtr(kManaLogBase));
+    scaled = static_cast<float>(curve * (stat18 / Global(kManaStatDivisor) * Global(kManaStatScale)));
+    vitals->maxMana =
+        static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillMana) * kPercent + kOne) * scaled);
+    CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
+    vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
+    volatile float lowered = BaseScale(unit)[1] - kPointTwo;
+    float l = lowered;
+    BaseScale(unit)[1] = LessOrUnordered(kZero, l, l, kZero);
+    lowered = FigureScale(unit)[1] - kPointTwo;
+    l = lowered;
+    FigureScale(unit)[1] = LessOrUnordered(kZero, l, l, kZero);
+    unit->MarkChanged(1);
+    CallRecompute(this, nullptr, vitals, unit);
+    unit->MarkChanged(4);
+    return true;
+}
+EI_REPLACE_METHOD(0x00529220, UnitStats::RaiseDexterity);
+
+bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
+    CEngineObject* server = ServerObjectOf(unit);
+    if (server->GetClassId() != kClassServerObject) return false;
+    UnitVitals* vitals = VitalsOf(server);
+    stat20Base = static_cast<float>(static_cast<double>(amount) + stat20Base);
+    RefreshMaxima(this, vitals, unit);
+    CallRecompute(this, nullptr, vitals, unit);
+    return true;
+}
+EI_REPLACE_METHOD(0x00529400, UnitStats::RaiseIntelligence);
+
+double UnitStats::SkillLevelValueCopy(int skill) { return LevelValueOf(this, skill); }
+EI_REPLACE_METHOD(0x005282D0, UnitStats::SkillLevelValueCopy);

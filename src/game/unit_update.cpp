@@ -24,6 +24,7 @@ constexpr int kControllerFiguresLoaded = 13;
 constexpr int kControllerScaleEffect = 19;
 constexpr int kControllerStatsChanged = 22;
 constexpr int kControllerSizeClasses = 23;
+constexpr int kControllerLevel = 24;
 constexpr int kControllerScaleChanged = 44;
 constexpr int kControllerEffectsChanged = 49;
 
@@ -178,3 +179,10 @@ void CUnit::SetFromStats(UnitStats* stats) {
     hitPoints = static_cast<std::int16_t>(GameFtol(stats->Reduce(limit)));
 }
 EI_REPLACE_METHOD(0x00532A20, CUnit::SetFromStats);
+
+int CUnit::Level() {
+    if (IsTextKey(id_) & 0xFF) return ei::VCall<int>(controller, kControllerLevel);
+    const char* prototype = unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize);
+    return Field<int>(prototype, 0x50);
+}
+EI_REPLACE_METHOD(0x00532D40, CUnit::Level);

@@ -204,6 +204,16 @@ public:
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
+    // 00532D40. The unit's level: the controller's (slot 24) for text-key units, else the
+    // prototype's +0x50 (faults reading 0x50 without a prototype).
+    int Level();
+
+    // unit_hits.cpp.
+    // 00530A60. For units with a player and no bow or crossbow in hand: is this unit behind
+    // `target` (the direction to it against the target's facing from its orientation quaternion
+    // at +0x34, below -0.5)? 0/1 in EAX.
+    BOOL IsBehind(const CEngineObject* target);
+
     // unit_items.cpp.
     // 00530730. Puts armour piece `item` (condition +0x20 rounding above 0) into the armour slot
     // of its type (referenced; the controller's slot 26 gets its id) and releases the piece
@@ -571,6 +581,21 @@ struct UnitStats {
     // 005239B0. For a unit with a server object: AddScaledExperience, then the maxima of its
     // vitals from the curves (the slots scaled along) and its hit points.
     void GainExperience(CUnit* unit, float amount);
+    // 00528AB0 / 00528DA0. GiveSkill: raises skill `skill` (+0x6CB) / attribute `index` (+0x6C8)
+    // by the low byte of `amount`; what the new level is worth over the old one (1.61 ^ (level /
+    // 007C5480) * 007C547C, truncated) is booked as experience and as spent experience. Then the
+    // maxima and Recompute. False (AL) when the unit has no server object.
+    bool RaiseSkill(int skill, int amount, CUnit* unit);
+    bool RaiseAttribute(int index, int amount, CUnit* unit);
+    // 00529090 / 00529220 / 00529400. GiveStrength / GiveDexterity / GiveIntelligence: the base
+    // value grows by `amount`, the maxima are recomputed (each its own way), strength makes the
+    // unit 0.2 wider and dexterity 0.2 less high (base scale +0x1AC and figure scale +0xC4), then
+    // Recompute. False (AL) when the unit has no server object.
+    bool RaiseStrength(int amount, CUnit* unit);
+    bool RaiseDexterity(int amount, CUnit* unit);
+    bool RaiseIntelligence(int amount, CUnit* unit);
+    // 005282D0. A copy of SkillLevelValue (exact, ST0).
+    double SkillLevelValueCopy(int skill);
 
     // unit_hits.cpp.
     // 005254B0. Applies `hit` (from `weapon`'s attack, may be null): flags 2 (head) / 4, the

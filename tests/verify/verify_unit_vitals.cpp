@@ -36,26 +36,34 @@ constexpr int kMaxBlock = static_cast<int>(sizeof(UnitStats));
 // Runs `ours`, snapshots the blocks, restores them, runs `original`; reports whether both left
 // the same bytes and results. `R` is the result type compared (use int for void functions).
 template <typename R, typename Ours, typename Original>
-R SameBlocks(const char* name, Block a, Block b, Ours ours, Original original) {
-    unsigned char savedA[kMaxBlock], savedB[kMaxBlock], afterA[kMaxBlock], afterB[kMaxBlock];
-    std::memcpy(savedA, a.at, a.size);
-    if (b.at) std::memcpy(savedB, b.at, b.size);
+R SameBlocks3(const char* name, Block a, Block b, Block c, Ours ours, Original original) {
+    const Block blocks[3] = {a, b, c};
+    unsigned char saved[3][kMaxBlock];
+    unsigned char after[3][kMaxBlock];
+    for (int k = 0; k < 3; ++k)
+        if (blocks[k].at) std::memcpy(saved[k], blocks[k].at, blocks[k].size);
     R actual = ours();
-    std::memcpy(afterA, a.at, a.size);
-    if (b.at) std::memcpy(afterB, b.at, b.size);
+    for (int k = 0; k < 3; ++k)
+        if (blocks[k].at) std::memcpy(after[k], blocks[k].at, blocks[k].size);
     // Restore in reverse order: overlapping blocks get their original bytes either way.
-    if (b.at) std::memcpy(b.at, savedB, b.size);
-    std::memcpy(a.at, savedA, a.size);
+    for (int k = 2; k >= 0; --k)
+        if (blocks[k].at) std::memcpy(blocks[k].at, saved[k], blocks[k].size);
     R expected = original();
-    int diffA = -1, diffB = -1;
-    for (int i = 0; i < a.size && diffA < 0; ++i)
-        if (afterA[i] != static_cast<unsigned char*>(a.at)[i]) diffA = i;
-    for (int i = 0; b.at && i < b.size && diffB < 0; ++i)
-        if (afterB[i] != static_cast<unsigned char*>(b.at)[i]) diffB = i;
-    bool same = std::memcmp(&expected, &actual, sizeof(R)) == 0 && diffA < 0 && diffB < 0;
-    ei::verify::Check(name, true, same, "first difference: block A +0x%X, block B +0x%X; result %s", diffA, diffB,
-                      std::memcmp(&expected, &actual, sizeof(R)) == 0 ? "same" : "differs");
+    int diff[3] = {-1, -1, -1};
+    for (int k = 0; k < 3; ++k) {
+        for (int i = 0; blocks[k].at && i < blocks[k].size && diff[k] < 0; ++i)
+            if (after[k][i] != static_cast<unsigned char*>(blocks[k].at)[i]) diff[k] = i;
+    }
+    bool sameResult = std::memcmp(&expected, &actual, sizeof(R)) == 0;
+    bool same = sameResult && diff[0] < 0 && diff[1] < 0 && diff[2] < 0;
+    ei::verify::Check(name, true, same, "first difference: +0x%X / +0x%X / +0x%X; result %s", diff[0], diff[1], diff[2],
+                      sameResult ? "same" : "differs");
     return expected;
+}
+
+template <typename R, typename Ours, typename Original>
+R SameBlocks(const char* name, Block a, Block b, Ours ours, Original original) {
+    return SameBlocks3<R>(name, a, b, Block{nullptr, 0}, ours, original);
 }
 
 Block StatsBlock(UnitStats* stats) { return {stats, static_cast<int>(sizeof(UnitStats))}; }
@@ -395,3 +403,62 @@ static int __fastcall ClearOuterLayersVerify(UnitStats* self) {
                            [&](void* scratch) { return s_clearOuterLayers(static_cast<UnitStats*>(scratch)); });
 }
 EI_VERIFY(0x005232B0, ClearOuterLayersVerify, 9, s_clearOuterLayers);
+
+// --- Raising skills and base values (stateful: stats, the server object's vitals, the unit) ---
+
+namespace {
+Block UnitBlock(CUnit* unit) { return {unit, static_cast<int>(sizeof(CUnit))}; }
+} // namespace
+
+// 00528AB0 / 00528DA0: PUSH EBP; MOV EBP,ESP; SUB ESP,0xC (6 bytes). AL only.
+static bool(__fastcall* s_raiseSkill)(UnitStats*, void*, int, int, CUnit*);
+static bool __fastcall RaiseSkillVerify(UnitStats* self, void*, int skill, int amount, CUnit* unit) {
+    return SameBlocks3<bool>("UnitStats::RaiseSkill", StatsBlock(self), ServerVitalsBlock(unit), UnitBlock(unit),
+                             [&] { return self->RaiseSkill(skill, amount, unit); },
+                             [&] { return s_raiseSkill(self, nullptr, skill, amount, unit); });
+}
+EI_VERIFY(0x00528AB0, RaiseSkillVerify, 6, s_raiseSkill);
+
+static bool(__fastcall* s_raiseAttribute)(UnitStats*, void*, int, int, CUnit*);
+static bool __fastcall RaiseAttributeVerify(UnitStats* self, void*, int index, int amount, CUnit* unit) {
+    return SameBlocks3<bool>("UnitStats::RaiseAttribute", StatsBlock(self), ServerVitalsBlock(unit), UnitBlock(unit),
+                             [&] { return self->RaiseAttribute(index, amount, unit); },
+                             [&] { return s_raiseAttribute(self, nullptr, index, amount, unit); });
+}
+EI_VERIFY(0x00528DA0, RaiseAttributeVerify, 6, s_raiseAttribute);
+
+// 00529090: PUSH EBP; MOV EBP,ESP; SUB ESP,8 (6 bytes). 00529220: PUSH EBP; MOV EBP,ESP; PUSH ECX;
+// PUSH EBX (5 bytes). 00529400: PUSH EBP; MOV EBP,ESP; SUB ESP,0x14 (6 bytes).
+static bool(__fastcall* s_raiseStrength)(UnitStats*, void*, int, CUnit*);
+static bool __fastcall RaiseStrengthVerify(UnitStats* self, void*, int amount, CUnit* unit) {
+    return SameBlocks3<bool>("UnitStats::RaiseStrength", StatsBlock(self), ServerVitalsBlock(unit), UnitBlock(unit),
+                             [&] { return self->RaiseStrength(amount, unit); },
+                             [&] { return s_raiseStrength(self, nullptr, amount, unit); });
+}
+EI_VERIFY(0x00529090, RaiseStrengthVerify, 6, s_raiseStrength);
+
+static bool(__fastcall* s_raiseDexterity)(UnitStats*, void*, int, CUnit*);
+static bool __fastcall RaiseDexterityVerify(UnitStats* self, void*, int amount, CUnit* unit) {
+    return SameBlocks3<bool>("UnitStats::RaiseDexterity", StatsBlock(self), ServerVitalsBlock(unit), UnitBlock(unit),
+                             [&] { return self->RaiseDexterity(amount, unit); },
+                             [&] { return s_raiseDexterity(self, nullptr, amount, unit); });
+}
+EI_VERIFY(0x00529220, RaiseDexterityVerify, 5, s_raiseDexterity);
+
+static bool(__fastcall* s_raiseIntelligence)(UnitStats*, void*, int, CUnit*);
+static bool __fastcall RaiseIntelligenceVerify(UnitStats* self, void*, int amount, CUnit* unit) {
+    return SameBlocks3<bool>("UnitStats::RaiseIntelligence", StatsBlock(self), ServerVitalsBlock(unit),
+                             UnitBlock(unit), [&] { return self->RaiseIntelligence(amount, unit); },
+                             [&] { return s_raiseIntelligence(self, nullptr, amount, unit); });
+}
+EI_VERIFY(0x00529400, RaiseIntelligenceVerify, 6, s_raiseIntelligence);
+
+// 005282D0: pure (exact, compared as double). MOV EDX,[ESP+4]; SUB ESP,8 (7 bytes).
+static double(__fastcall* s_levelValueCopy)(UnitStats*, void*, int);
+static double __fastcall LevelValueCopyVerify(UnitStats* self, void*, int skill) {
+    double expected = s_levelValueCopy(self, nullptr, skill);
+    double actual = self->SkillLevelValueCopy(skill);
+    ei::verify::Check("UnitStats::SkillLevelValueCopy", Bits(expected), Bits(actual), "skill %d", skill);
+    return expected;
+}
+EI_VERIFY(0x005282D0, LevelValueCopyVerify, 7, s_levelValueCopy);
