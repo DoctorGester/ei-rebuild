@@ -80,7 +80,9 @@ static int __fastcall CreateForTypeVerify(CParticleSource* self, void*) {
     int expected = s_create(scratch, nullptr);
     CreateState theirs;
     theirs.Capture(scratch);
-    ReleaseTexture(scratch->texture);
+    // The scratch's texture reference is kept until ours has loaded: released first, a texture no
+    // other source holds is freed and ours gets a new one at another address (type 0x2005 "Vulkan").
+    void* theirTexture = scratch->texture;
     FreeAligned(scratch->elements);
     FreeAligned(reinterpret_cast<void*>(static_cast<std::uintptr_t>(scratch->frameBase)));
 
@@ -88,6 +90,7 @@ static int __fastcall CreateForTypeVerify(CParticleSource* self, void*) {
     g_seedElements = &theirs.elements;
     int actual = self->CParticleSource::CreateForType();
     g_seedElements = nullptr;
+    ReleaseTexture(theirTexture);
     CreateState mine;
     mine.Capture(self);
 
