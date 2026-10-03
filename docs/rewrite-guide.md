@@ -77,7 +77,10 @@ comes from a bug we already hit.
    exe on disk and skips patched ones (they install only in the vanilla launch). When rewritten code
    calls a function that a mod patches, call it through its original address (an `EI_ORIGINAL`
    forwarder), not directly, so the mod's patch still runs. `docs/rebirth-patched-functions.txt`
-   lists every function Rebirth patches; check it for each callee you call directly. (The UI
+   lists every function Rebirth patches; check it for each callee you call directly. Rebirth also
+   overwrites some data constants in the exe at startup (00742B08, the interface's 800-pixel layout
+   width, becomes its widescreen width): read constants from the exe's memory, as the original
+   does, instead of compiling their values in. (The UI
    scaling functions are on it; calling our copies made `CUiWindow::RegionAt` disagree under Rebirth.)
 10. **Keep the original's bugs** (leaks, odd messages) and note them under "Original bugs kept on
     purpose" in your notes file.
