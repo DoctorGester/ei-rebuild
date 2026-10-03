@@ -124,3 +124,18 @@ static int __fastcall EmitLightningVerify(CParticleSource* self, void*, Particle
     return RunBothEmit("CParticleSource::EmitLightning", self, p, index, ours, s_emitLightning);
 }
 EI_VERIFY(0x004923B0, EmitLightningVerify, 6, s_emitLightning);
+
+// 00490130: PUSH EBP; MOV EBP,ESP; SUB ESP,0x58 (6 bytes).
+static EmitFn s_emitModifier;
+static int __fastcall EmitModifierVerify(CParticleSource* self, void*, Particle* p, int index) {
+    auto ours = [](CParticleSource* s, Particle* q, int i) { return s->CParticleSource::EmitModifier(q, i); };
+    if (self->elementCount == 0) {
+        if (!self->elements) return RunBothSetup("CParticleSource::EmitModifier", self, p, index, ours, s_emitModifier);
+        int result = ours(self, p, index);
+        ei::verify::Check("CParticleSource::EmitModifier setup", true, self->elementCount > 0 || !self->attachedTo,
+                          "%d points", self->elementCount);
+        return result;
+    }
+    return RunBothEmit("CParticleSource::EmitModifier", self, p, index, ours, s_emitModifier);
+}
+EI_VERIFY(0x00490130, EmitModifierVerify, 6, s_emitModifier);

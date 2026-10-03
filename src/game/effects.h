@@ -81,6 +81,10 @@ public:
 
     // particle_emitters.cpp
     int EmitLightning(Particle* p, int index);      // 004923B0 (LightningBlast)
+    int EmitModifier(Particle* p, int index);       // 00490130 (Modifier1-12)
+
+    // Not rewritten (forwarder): offset and radius of the attachment's figure.
+    Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
 
     // --- per-element callbacks (+0x1E8) ---
     void TickNuke(ParticleElement* e);              // 004892E0

@@ -232,6 +232,136 @@ int EmitSpark(CParticleSource* s, Particle* p) {
     return 1;
 }
 
+// --- Modifier1-12 (0x201B-0x2026) ---------------------------------------------------------------
+
+// Points scattered around the carrier (the source's elements).
+struct ModifierPoint {
+    Vector3 pos;                // +0x00 world position
+    Vector3 start;              // +0x0C copy of pos
+    Vector3 offset;             // +0x18 from the emission point
+    std::uint8_t unknown_24[0x10];
+    int fade;                   // +0x34 point 0: index into the alpha table 0078A774
+};
+static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));
+
+#define EI_TEN GameFloat(0x0073BAAC)               // 10.0
+#define EI_ZERO GameFloat(0x0073B858)              // 0.0
+#define EI_SMALL_RING GameFloat(0x0073CEA0)        // 1/23
+#define EI_JITTER GameFloat(0x0073CE90)            // 0.04
+#define EI_SCALE_0_08 GameDouble(0x0073CE98)       // ~0.08 * 2^-32
+
+const std::int32_t* FadeAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A774); }
+const char* NoCarrierMessage() { return reinterpret_cast<const char*>(0x0078AFA4); }
+
+// 0044C470: the game's debug message (cdecl, one argument).
+__declspec(naked) void __cdecl DebugMessage(const char*) EI_ORIGINAL(0x0044C470)
+
+// The game's _ftol (006E853C): truncation.
+__declspec(naked) int __cdecl GameFtol(double) {
+    __asm {
+        fld qword ptr [esp + 4]
+        mov eax, 0x006E853C
+        call eax
+        ret
+    }
+}
+
+float AbsBits(float f) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &f, sizeof(bits));
+    bits &= 0x7FFFFFFF;
+    std::memcpy(&f, &bits, sizeof(f));
+    return f;
+}
+
+bool LessOrUnordered(double a, double b) { return !(a >= b); }
+
+// FCOM; TEST AH,0x40 not taken: neither equal nor unordered.
+bool NonZero(double v) { return v < 0.0 || v > 0.0; }
+
+void SetBits(void* dst, std::uint32_t bits) { std::memcpy(dst, &bits, sizeof(bits)); }
+
+// The axis the points are spread around (their offsets are perpendicular to it); some types also
+// raise or lower the ring (spreadMin.x holds the height).
+Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
+    Vector3 axis;
+    std::memset(&axis, 0, sizeof(axis));
+    switch (s->type_ - 0x201B) {
+    case 0:
+        SetBits(&axis.z, 0x3F800000);
+        break;
+    case 1:
+    case 2:
+        s->spreadMin.x = Store(D(twiceRadius) * D(EI_POINT_FOUR) + D(s->spreadMin.x));
+        SetBits(&axis.z, 0x3F800000);
+        break;
+    case 3:
+        s->spreadMin.x = Store(D(s->spreadMin.x) - D(twiceRadius) * D(EI_POINT_FOUR));
+        SetBits(&axis.z, 0x3F800000);
+        break;
+    case 4:
+    case 5:
+    case 6:
+    case 7: {
+        Vector3 y;
+        reinterpret_cast<const Quaternion*>(static_cast<const std::uint8_t*>(s->attachedTo) + 0x34)->AxisY(&y);
+        std::memcpy(&axis, &y, sizeof(axis));
+        break;
+    }
+    default:
+        break;
+    }
+    return axis;
+}
+
+// Each point: a random direction with its component along the axis removed (retried while that
+// leaves nothing), scaled to the ring's radius (much smaller for a negative size), around the
+// emission point, at the ring's height.
+void PlaceModifierPoints(CParticleSource* s) {
+    Vector3 unused;
+    float radius;
+    s->AttachmentOffset(&unused, &radius);
+    std::memcpy(&s->spreadMin.x, &radius, sizeof(float));
+    float twice = Store(D(radius) + D(radius));
+    Vector3 axis = ModifierAxis(s, twice);
+    for (int i = 0; i < s->elementCount; ++i) {
+        reinterpret_cast<ModifierPoint*>(s->elements)[i].fade = 0;
+        float x, y;
+        double z, lengthSq;
+        for (;;) {
+            x = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
+            y = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
+            z = Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE);
+            double dot = (D(axis.z) * z + D(axis.y) * D(y)) + D(axis.x) * D(x);
+            float px = Store(D(axis.x) * dot);
+            float py = Store(D(axis.y) * dot);
+            double pz = dot * D(axis.z);
+            x = Store(D(x) - D(px));
+            y = Store(D(y) - D(py));
+            z = z - pz;
+            lengthSq = (z * z + D(y) * D(y)) + D(x) * D(x);
+            if (NonZero(lengthSq)) break;
+        }
+        double scale = D(twice) / x87::fsqrt(lengthSq);
+        if (LessOrUnordered(s->size, EI_ZERO)) scale = scale * D(EI_SMALL_RING);
+        ModifierPoint& point = reinterpret_cast<ModifierPoint*>(s->elements)[i];
+        float ex = Store(scale * D(x));
+        float ey = Store(scale * D(y));
+        float ez = Store(scale * z);
+        point.offset.x = ex;
+        point.offset.y = ey;
+        point.offset.z = ez;
+        float wx = Store(D(ex) + D(s->origin.x));
+        float wy = Store(D(ey) + D(s->origin.y));
+        float wz = Store(D(ez) + D(s->origin.z));
+        point.pos.x = wx;
+        point.pos.y = wy;
+        point.pos.z = wz;
+        point.pos.z = Store(D(s->spreadMin.x) + D(point.pos.z));
+        std::memcpy(&point.start, &point.pos, sizeof(Vector3));
+    }
+}
+
 } // namespace
 
 // 00497EB0. Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
@@ -261,3 +391,68 @@ int CParticleSource::EmitLightning(Particle* p, int) {
     return EmitSpark(this, p);
 }
 EI_REPLACE_METHOD(0x004923B0, CParticleSource::EmitLightning);
+
+__declspec(naked) Vector3* CParticleSource::AttachmentOffset(Vector3*, float*) EI_ORIGINAL(0x00485280)
+
+// 00490130. Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least
+// one) are scattered on a ring around the carrier. Then one particle per point while the fade has
+// not started (frame = the modifier's number), then drifting sparks between a random point and
+// its starting place.
+int CParticleSource::EmitModifier(Particle* p, int index) {
+    p->color = 0xFFFFFFFF;
+    p->life = lifetime;
+    p->frameTimer = frameDelay;
+    if (elementCount == 0) {
+        if (!attachedTo) {
+            DebugMessage(NoCarrierMessage());
+            return 0;
+        }
+        int count = GameFtol(D(AbsBits(size)) * D(EI_TEN));
+        if (count < 1) count = 1;
+        SetElementCount(this, count);
+        PlaceModifierPoints(this);
+    }
+    ModifierPoint* points = reinterpret_cast<ModifierPoint*>(elements);
+    p->color = (static_cast<std::uint32_t>(FadeAlpha()[points[0].fade]) << 24) | 0xFFFFFF;
+    if (points[0].fade == 0 && index < elementCount) {
+        unsigned kind = static_cast<unsigned>(type_ - 0x201B);
+        if (kind <= 11) p->frame = static_cast<int>(kind);
+        p->state = index;
+        std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
+        SetBits(&p->size, 0x3F800000);
+        SetBits(&p->size, LessOrUnordered(size, EI_ZERO) ? 0x3E4CCCCDu : 0x3E000000u);   // 0.2 / 0.125
+        p->life = 25;
+        return 1;
+    }
+
+    std::uint32_t count = static_cast<std::uint32_t>(elementCount);
+    std::uint32_t pick = GlobalRandom().Next() % count;
+    float u = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_1);
+    std::uint32_t frameRoll = GlobalRandom().Next();
+    double w = D(EI_ONE) - D(u);
+    p->life = 5;
+    p->frame = static_cast<int>((frameRoll & 3) + 12);
+    const ModifierPoint& e = reinterpret_cast<ModifierPoint*>(elements)[pick];
+    float b0 = Store(w * D(e.start.x));
+    float b1 = Store(w * D(e.start.y));
+    double b2 = w * D(e.start.z);
+    double a0 = D(u) * D(e.pos.x);
+    float a1 = Store(D(u) * D(e.pos.y));
+    float a2 = Store(D(u) * D(e.pos.z));
+    p->velocity.x = Store(a0 + D(b0));
+    p->velocity.y = Store(D(a1) + D(b1));
+    p->velocity.z = Store(D(a2) + b2);
+    std::uint32_t ra = GlobalRandom().Next();
+    std::uint32_t rb = GlobalRandom().Next();
+    std::uint32_t rc = GlobalRandom().Next();
+    float jx = Store(Unsigned(rc) * EI_SCALE_0_08 - D(EI_JITTER));
+    float jy = Store(Unsigned(rb) * EI_SCALE_0_08 - D(EI_JITTER));
+    float jz = Store(Unsigned(ra) * EI_SCALE_0_08 - D(EI_JITTER));
+    std::memcpy(&p->unknown_2C, &jx, sizeof(float));
+    std::memcpy(&p->unknown_30, &jy, sizeof(float));
+    std::memcpy(&p->unknown_34, &jz, sizeof(float));
+    std::memcpy(&p->pos, &reinterpret_cast<ModifierPoint*>(elements)[pick].start, sizeof(Vector3));
+    SetBits(&p->size, 0x3D75C28F);   // 0.06
+    return 1;
+}
+EI_REPLACE_METHOD(0x00490130, CParticleSource::EmitModifier);
