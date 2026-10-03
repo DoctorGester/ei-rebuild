@@ -10,6 +10,9 @@
 #include <cstddef>
 #include <cstdint>
 
+struct UnitStats;
+struct UnitParams;
+
 constexpr int kClassUnit = 0x50;    // CEngineObject::GetClassId() of units (creatures)
 
 // CEngineObject::type_ of the player's own units (other kinds: 0x33 ...).
@@ -105,21 +108,21 @@ public:
     // (the latter scaled by the global 007C5438).
     void GetMoveSpeeds(float* forward, float* backward);
     // 0052FA20. The speed of movement mode 2 (+0x268).
-    float MoveSpeed2();
+    double MoveSpeed2();
     // 0052FAF0. The speed of movement mode `mode` (0..4; other values: the base speed).
-    float MoveSpeedFor(int mode);
+    double MoveSpeedFor(int mode);
     // 0052FBC0. 3 * value + 10 for units without a player (value capped at 10 when flags_ has
     // 0x4000000), else 1000000.
-    float ScaledValue(float value);
+    double ScaledValue(float value);
 
     // 005302F0. The base speed (BaseSpeed) scaled by the movement mode: x0.2 when standing or
     // inactive, x0.7 in mode 1.
-    float ModeSpeed();
+    double ModeSpeed();
     // 00530370. 1.8 * +0x14C when flag 2 of +0x124 is set, else 0.7 * +0x134 + +0x130.
-    float BaseSpeed();
+    double BaseSpeed();
 
     // 005307B0. Sum of +0x34 (weight) over all carried items.
-    float TotalItemWeight();
+    double TotalItemWeight();
 
     // 00530930. The unit's prototype record (index unknown_18), or null.
     char* GetPrototype();
@@ -161,13 +164,50 @@ public:
     bool AcceptsTarget(const void* target);
 
     // 00532E00. Ratio of the 00518D30 values at +0xCC and +0x1B4.
-    float AnimationRatio();
+    double AnimationRatio();
+
+    // unit_update.cpp: virtual slots (registered by address; the vtable is not declared).
+    // 0052F7D0. Slot 6, the per-tick update: the controller's update (its slot 6), then the map
+    // object's (0050F1C0). Returns 1.
+    int Tick();
+    // 00532A80. Slot 27: the map object's scale recomputation (0050F2D0), then the controller's
+    // slot 44. Returns what that leaves in EAX.
+    std::uintptr_t RecomputeUnitScale();
+    // 00532AB0. Slot 28 (effects changed): the controller's slot 49.
+    std::uintptr_t EffectsChanged();
+    // 00532AA0. Slot 30: the figures take the base scale (+0x1AC) again (00517700).
+    std::uintptr_t ResetUnitScale();
+    // 0052E910. Slot 26: loads the figures (00517500, unless flags_ has 0x80) and tells the
+    // controller (its slot 13). Returns the loader's result, or 1.
+    std::uintptr_t LoadUnitFigures();
+    // 0052E870. Slot 19: a companion of type 0x48 becomes the controller (the old one is
+    // detached and released; returns the new reference count); others go to the map object's
+    // 0050E890.
+    std::uintptr_t AttachCompanion(CEngineObject* companion);
+    // 0052EB50. Slot 32 (statistics changed): the map object's 0050E970 (packs the server
+    // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
+    int StatsChanged();
+    // 0052EB30. Slot 33: the controller's slot 19 with `value` (0 without a controller).
+    std::uintptr_t ScaleEffectChanged(int value);
+    // 00530A20. Slot 35: a server controller (class 0x3E) copies `stats` in (00552F40). Returns
+    // what is left in EAX (the controller's class id when it is not one).
+    std::uintptr_t SetServerStats(const UnitStats* stats);
+    // 00530A50. Slot 37: the controller's slot 23.
+    std::uintptr_t UpdateSizeClasses();
+    // 005303A0. Slot 48: `out` = the position with z = the ground (or water surface) height plus
+    // the mode speed (ModeSpeed as a float). Returns `out`.
+    float* StandPoint(float* out);
+    // 0052F740. Slot 51: stores `offset` (+0x320) and puts the unit on the ground (or, for
+    // movement kind 2, on the water surface plus its z or the offset).
+    void PlaceUnitOnGround(float offset);
+    // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
+    void SetFromStats(UnitStats* stats);
 
     // Not rewritten (forwarders):
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     void* World();
     // 00518D30. An animation time factor (1 for no animation).
-    float AnimationFactor(float time);
+    double AnimationFactor(float time);
 
     float positionX;                // +0x01C
     float positionY;                // +0x020
@@ -214,7 +254,10 @@ public:
     int moveMode;                   // +0x264 0..4
     int moveMode2;                  // +0x268
     std::uint32_t activeWeapon;     // +0x26C slot of the weapon in use
-    std::uint8_t unknown_270[0x324 - 0x270];
+    int unknown_270;
+    int dead;                       // +0x274 (virtual slot 55 returns it; CUnitServer::SetDead)
+    std::uint8_t unknown_278[0x320 - 0x278];
+    float heightOffset;             // +0x320 height above the water surface (PlaceOnGround)
     int sizeClass;                  // +0x324 selects the 4-bit passability field in each AI map cell
     std::uint8_t unknown_328[4];
     float standingHeight;           // +0x32C; deeper water or higher ground than (2 - height) * 16 blocks it
@@ -257,18 +300,78 @@ static_assert(offsetof(CUnit, weapons) == 0x440);
 static_assert(offsetof(CUnit, armor) == 0x480);
 static_assert(offsetof(CUnit, carried) == 0x4A0);
 static_assert(offsetof(CUnit, resistances) == 0x4B0);
+static_assert(offsetof(CUnit, dead) == 0x274);
+static_assert(offsetof(CUnit, heightOffset) == 0x320);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 
-// The unit's parameter block (CUnit + 0x330); only the byte read by 005271C0.
+// A body slot as UnitParams keeps it (0x1C bytes; UnitStatSlot rounded).
+struct UnitParamsSlot {
+    int type;                       // +0x00
+    std::uint8_t vitalMask;         // +0x04
+    std::uint8_t unknown_05;
+    std::int16_t protection[7];     // +0x06 the three layers' absorb values summed, per damage type
+    int kind;                       // +0x14
+    std::int16_t current;           // +0x18
+    std::int16_t maximum;           // +0x1A
+};
+static_assert(sizeof(UnitParamsSlot) == 0x1C);
+
+// The unit's parameter block (CUnit + 0x330, 0x108 bytes): UnitStats rounded to bytes and
+// shorts (00522CE0 writes it), what the client and the saved games see. Names provisional.
 struct UnitParams {
     // 005271C0. 25 / attackRate.
-    float Period();
+    double Period();
+    // 00523550. Zeroes the block; the slot types become 4 and +0x20 7. Returns 0 (EAX).
+    int Reset();
 
-    std::uint8_t unknown_00[0x0E];
-    std::uint8_t attackRate;        // +0x0E
+    std::uint8_t unknown_00[4];
+    int experience;                 // +0x04
+    int unspentExperience;          // +0x08 experience + pending - spent
+    std::uint8_t stat10;            // +0x0C
+    std::uint8_t stat18;            // +0x0D
+    std::uint8_t attackRate;        // +0x0E (UnitStats::stat20 rounded)
+    std::uint8_t movementKind;      // +0x0F (UnitStats +0x60)
+    std::uint8_t modeSpeeds[4];     // +0x10 (UnitStats +0x34.. * 255 / 2, at most 255)
+    std::uint8_t baseSpeed;         // +0x14 (UnitStats::speed * 25.5, at most 255)
+    std::uint8_t rate;              // +0x15
+    std::int16_t capacity;          // +0x16
+    std::uint8_t combat[5];         // +0x18 reach, attack, attack spread, defence, speed
+    std::uint8_t damage;            // +0x1D (truncated)
+    std::uint8_t damageSpread;      // +0x1E (truncated)
+    std::uint8_t naturalWeapon;     // +0x1F
+    std::int16_t unknown_20;        // +0x20 7 after Reset
+    std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current
+    std::uint8_t valuesE0[6];       // +0x28 UnitStats::valuesE0[i].current
+    std::uint8_t unknown_2E[2];
+    UnitParamsSlot slots[6];        // +0x30
+    std::uint8_t attributes[3];     // +0xD8
+    std::uint8_t skills[8];         // +0xDB
+    std::uint8_t skillLevels[0x24]; // +0xE3
+    std::uint8_t flags;             // +0x107 (UnitStats::flags, low byte)
 };
+static_assert(offsetof(UnitParams, attackRate) == 0x0E);
+static_assert(offsetof(UnitParams, combat) == 0x18);
+static_assert(offsetof(UnitParams, slots) == 0x30);
+static_assert(offsetof(UnitParams, attributes) == 0xD8);
+static_assert(offsetof(UnitParams, flags) == 0x107);
+static_assert(sizeof(UnitParams) == 0x108);
+
+// The hit points, mana and protection rounded (CUnit + 0x17C, 0x18 bytes; 00522C50 writes it).
+struct UnitVitalsPacked {
+    // 005233B0. Zeroes it. Returns 0 (EAX).
+    int Reset();
+
+    std::uint8_t unknown_00;
+    std::uint8_t unknown_01;
+    std::int16_t hitPoints;         // +0x02
+    std::int16_t maxHitPoints;      // +0x04
+    std::int16_t mana;              // +0x06
+    std::int16_t maxMana;           // +0x08
+    std::int16_t protection[7];     // +0x0A
+};
+static_assert(sizeof(UnitVitalsPacked) == 0x18);
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {
@@ -282,30 +385,91 @@ inline const RecordTable& Skills() { return *reinterpret_cast<const RecordTable*
 inline const RecordTable& SkillLevels() { return *reinterpret_cast<const RecordTable*>(0x007AF274); }
 } // namespace unitdb
 
-// One of the six slots of UnitStats (0xF4 bytes); only the tail fields are read here.
+// One of the three protection layers of a body slot (0x48 bytes): what each of the seven damage
+// types loses to it.
+struct UnitStatLayer {
+    // 005236A0. Zeroes it but unknown_20. Returns 0 (EAX).
+    int Reset();
+
+    int unknown_00;
+    float absorb[7];                // +0x04 per damage type
+    float unknown_20[7];            // +0x20
+    int state;                      // +0x3C > 1: the layer is there
+    int unknown_40;
+    int unknown_44;
+};
+static_assert(sizeof(UnitStatLayer) == 0x48);
+
+// One of the six body slots of UnitStats (0xF4 bytes; 0 head, 1 body, 2/3 hands, 4/5 legs, as
+// the hit locations). Names provisional.
 struct UnitStatSlot {
-    std::uint8_t unknown_00[0xE0];
-    int kind;                       // +0xE0 0 unused; 1 a proportional reduction
-    float current;                  // +0xE4
+    // 00523600. Type 4, the rest 0 but the layers' unknown_20, unknown_EC and factor. Returns 0
+    // (EAX).
+    int Reset();
+
+    int type;                       // +0x00 2 arms, 3 legs (00524110 / 00524060); reset to 4
+    std::uint32_t vitalMask;        // +0x04 damage types whose full hit severs the slot
+    UnitStatLayer layers[3];        // +0x08
+    int kind;                       // +0xE0 0 unused, 1 severed, 2 disabled, 3 working (> 1: counts)
+    float current;                  // +0xE4 its hit points
     float maximum;                  // +0xE8
     float unknown_EC;
-    float factor;                   // +0xF0
+    float factor;                   // +0xF0 its share of the unit's hit points
 };
 static_assert(sizeof(UnitStatSlot) == 0xF4);
+static_assert(offsetof(UnitStatSlot, kind) == 0xE0);
+
+// A value and what it currently is after modifiers.
+struct UnitStatPair {
+    float base;
+    float current;
+};
+
+struct UnitStats;
+
+// The hit points, mana and protection of a unit as the server keeps them (CMapObjectServer +
+// 0x20, 0x58 bytes; party records keep one at +0x20 of theirs too). Names provisional.
+struct UnitVitals {
+    // 00523740 (unit_vitals.cpp). Called every world update for living units: every 15th call
+    // mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns AL: 1 when
+    // something may have changed.
+    bool Regenerate(UnitStats* stats, CUnit* unit, char inCombat);
+    // 00523370. Zeroes everything but the dword at +0. Returns what the original leaves in EAX
+    // (the end of the block).
+    void* Reset();
+    // 00522C50. The rounded (FISTP) values into `out`. Returns the end of `out`'s protection
+    // (EAX).
+    void* Pack(UnitVitalsPacked* out);
+
+    int unknown_00;
+    int regenTicks;                 // +0x04 counts 1..15
+    float hitPoints;                // +0x08
+    float maxHitPoints;             // +0x0C
+    float hitPointRegen;            // +0x10 fraction of the maximum per regeneration
+    float mana;                     // +0x14
+    float maxMana;                  // +0x18
+    float manaRegen;                // +0x1C
+    UnitStatPair protection[7];     // +0x20 per damage type (current: what a hit loses to it)
+};
+static_assert(offsetof(UnitVitals, hitPoints) == 0x08);
+static_assert(offsetof(UnitVitals, protection) == 0x20);
+static_assert(sizeof(UnitVitals) == 0x58);
 
 // A creature's computed statistics (0x704 bytes; built from the unit's parameters, often
 // as a stack copy). Only the fields read here; names provisional.
 struct UnitStats {
+    // The float results below are returned unrounded in ST0 like the original (declared double:
+    // the FPU runs above 24-bit precision under Rebirth, see CItemWeapon::RollDamage).
     // 00523CD0. 25 / unknown_20.
-    float Period20();
+    double Period20();
     // 00525DF0. Attribute byte `index` (+0x6C8) as a float.
     float AttributeBase(int index);
     // 00525E10. Attribute `index` (0..2) with the bonus of the stat it depends on (stat - 25).
-    float AttributeWithBonus(int index);
+    double AttributeWithBonus(int index);
     // 00527030. Skill byte `index` (+0x6CB) as a float.
     float SkillBase(int index);
     // 00527050. Skill `index` plus (stat - 25) of the stat its name starts with ('s', 'd', 'i').
-    float SkillWithBonus(std::uint32_t index);
+    double SkillWithBonus(std::uint32_t index);
     // 00526780. The weapon skill for weapon type `type`.
     float WeaponSkill(int type);
     // 005267E0. +0x34 of the level record of skill `index` (0 without one), exact in ST0.
@@ -313,34 +477,126 @@ struct UnitStats {
     // 00528270. The level record of skill `index` (level byte at +0x6D3), or null.
     char* SkillLevelRecord(int index);
     // 00524280. stat10 * 12 scaled by (1 + 0.01 * level value) of the level byte at +0x6E8.
-    float Value6E8();
+    double Value6E8();
     // 00525CD0. global 007C5430 + 0.01 * level value of the byte at +0x6E9.
-    float Value6E9();
+    double Value6E9();
     // 00525D60. The same with an unused argument (RET 4).
-    float Value6E9Arg(int unused);
+    double Value6E9Arg(int unused);
     // 005259B0. `value` minus what the six slots take from it (by their kind, current, maximum
     // and factor).
-    float Reduce(float value);
+    double Reduce(float value);
     // 00524020. `value` minus value * factor of each slot record of kind 1.
-    float ReduceKind1(float value);
+    double ReduceKind1(float value);
     // 00528840. Two factors from stat10 and stat18 (relative to 15, over the global 007AF280).
     // The third argument is not used.
     void GetFactors(float* a, float* b, int unused);
 
-    std::uint8_t unknown_000[0x10];
+    // unit_vitals.cpp: recomputation, regeneration, experience.
+    // 00524560. Recomputes the current values from the bases, the skill levels, the unit's
+    // effects (`unit` may be null for some; the text-key test reads its id), the carried weight
+    // and the slots; writes the maxima and hit points into `vitals`.
+    void Recompute(UnitVitals* vitals, CUnit* unit);
+    // 005243D0. Only the hit point maximum and the hit points (and flag 8 when alive).
+    void RecomputeHitPoints(UnitVitals* vitals, CUnit* unit);
+    // 00525800. Heals the working-or-disabled slots below their maximum by `amount`, spread by
+    // their factors over `scale` (the unit's maximum); a slot back above 0.001 works again.
+    // Returns AL = 1.
+    bool HealSlots(float scale, float amount);
+    // 00525900. HealSlots(vitals' maximum, amount), then the hit points. Returns 1.
+    BOOL Heal(UnitVitals* vitals, float amount);
+    // 00525930. Working slots regenerate vitals' rate of their maximum; then the hit points.
+    // Returns 1.
+    BOOL RegenerateSlots(UnitVitals* vitals);
+    // 00525A00. Each used slot's maximum becomes `maxHitPoints` times its share relative to the
+    // body's (slot 1); the current value is clamped to it.
+    void SetSlotMaxima(float maxHitPoints);
+    // 00525A70. The same, keeping each slot's current value in proportion.
+    void ScaleSlotMaxima(float maxHitPoints);
+    // 00525AF0. Slots of kind 2 or more are healed fully. Returns EAX (the end of the slots).
+    void* RefillSlots();
+    // 00523C80. Every used slot works again at its maximum. Returns EAX (the end of the slots).
+    void* RestoreSlots();
+    // 00524060 / 00524110. The lowest current / maximum ratio of the used leg (type 3) / arm
+    // (type 2) slots mapped to a factor: <= 007C5444 gives 007C5448, <= 007C543C gives 007C5440,
+    // else 1. The argument is not used.
+    float LegsFactor(int unused);
+    float ArmsFactor(int unused);
+    // 005241C0. 2 when `checkLoad` and the load exceeds the capacity, 1 when a leg is below
+    // 007C544C of its maximum, else 0.
+    int MovementState(char checkLoad);
+    // 00523E80 / 00523F50. The hit point / mana maximum from the experience curve (007C5454..
+    // / 007C5468..), strength / dexterity and skill levels 16 / 17. Unrounded (ST0).
+    double HitPointCurve();
+    double ManaCurve();
+    // 00524320. (dexterity * 0.2 + 10) scaled by the arms and skill level 20. Unrounded (ST0).
+    double RateValue();
+    // 00523920. Adds `amount` to the pending experience; a positive total moves into the
+    // experience.
+    void AddExperience(float amount);
+    // 00523960. The same with `amount` scaled by 1.04 ^ (intelligence - 25).
+    void AddScaledExperience(float amount);
+    // 00523C20. Takes `amount` off the pending experience.
+    void TakePendingExperience(float amount);
+    // 005239B0. For a unit with a server object: AddScaledExperience, then the maxima of its
+    // vitals from the curves (the slots scaled along) and its hit points.
+    void GainExperience(CUnit* unit, float amount);
+
+    // unit_stats_pack.cpp.
+    // 00522CE0. The rounded values into `params`. The first argument is not used.
+    void Pack(CUnit* unused, UnitParams* params);
+    // 005233E0. Resets the values that the builders fill. Returns 0 (EAX).
+    int Reset();
+    // 005232B0. Clears layers 1 and 2 of every slot. Returns 0 (EAX).
+    int ClearOuterLayers();
+
+    std::uint32_t unknown_000;
+    float experience;               // +0x004
+    float spentExperience;          // +0x008
+    float stat10Base;               // +0x00C
     float stat10;                   // +0x010 's'
-    float unknown_14;
+    float stat18Base;               // +0x014
     float stat18;                   // +0x018 'd'
-    float unknown_1C;
+    float stat20Base;               // +0x01C
     float stat20;                   // +0x020 'i'
-    std::uint8_t unknown_024[0x110 - 0x24];
+    float speedBase;                // +0x024
+    float speed;                    // +0x028 speedBase * loadFactor
+    float rateBase;                 // +0x02C 15, or dexterity * 0.2 + 10 for text-key units
+    float rate;                     // +0x030 at least 1
+    float modeSpeeds[4];            // +0x034
+    float unknown_044;              // +0x044 -2 for text-key units
+    std::uint8_t unknown_048[8];
+    float load;                     // +0x050 carried weight
+    float capacity;                 // +0x054
+    float loadFactor;               // +0x058 LegsFactor when +0x60 is 1, else 1
+    float armsFactor;               // +0x05C
+    int unknown_060;                // +0x060 1 has body slots; 2 no size classes (combat.h)
+    std::uint8_t unknown_064[0xB0 - 0x64];  // the combat values (combat.h CombatStats)
+    UnitStatPair valuesB0[6];       // +0x0B0
+    UnitStatPair valuesE0[6];       // +0x0E0
     UnitStatSlot slots[6];          // +0x110
     std::uint8_t attributes[3];     // +0x6C8
     std::uint8_t skills[8];         // +0x6CB
     std::uint8_t skillLevels[0x25]; // +0x6D3 1-based level per skill, 0 none
-    float unknown_6F8[3];           // +0x6F8 (+0x700 accumulates experience?)
+    std::uint32_t flags;            // +0x6F8 1 multiplied hit, 2 hit at the head, 4, 8 alive
+                                    //        after a recomputation, 0x10 hit landed (combat)
+    float fixedMaxHitPoints;        // +0x6FC the maximum of units without a text key
+    float pendingExperience;        // +0x700
 };
+static_assert(offsetof(UnitStats, speedBase) == 0x24);
+static_assert(offsetof(UnitStats, load) == 0x50);
+static_assert(offsetof(UnitStats, valuesB0) == 0xB0);
 static_assert(offsetof(UnitStats, slots) == 0x110);
+static_assert(offsetof(UnitStats, flags) == 0x6F8);
+
+// unit_vitals.cpp. Scales by the unit's strengthen / weaken effects (types 0x1D / 0x1E):
+// (1 + strengthen * k) / (1 + weaken * k), 1 without a unit. __stdcall (some callers set ECX to
+// the stats, which is not read).
+// 00523D30. `value` scaled with k = 0.003, at least 1.
+float __stdcall ScaleDamageByEffects(CUnit* unit, float value);
+// 00523DB0. The scale itself with k = 0.005, unrounded (ST0).
+double __stdcall HitPointEffectScale(CUnit* unit);
+// 00523E00. `value` scaled with k = 0.005, at least 1.
+float __stdcall ScaleHitPointsByEffects(CUnit* unit, float value);
 static_assert(offsetof(UnitStats, attributes) == 0x6C8);
 static_assert(offsetof(UnitStats, skillLevels) == 0x6D3);
 static_assert(sizeof(UnitStats) == 0x704);

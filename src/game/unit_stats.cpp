@@ -50,13 +50,13 @@ double LevelValue(const char* record) {
 }
 } // namespace
 
-float UnitStats::Period20() { return kStatBase / stat20; }
+double UnitStats::Period20() { return kStatBase / stat20; }
 EI_REPLACE_METHOD(0x00523CD0, UnitStats::Period20);
 
 float UnitStats::AttributeBase(int index) { return static_cast<float>(Bytes(this)[0x6C8 + index]); }
 EI_REPLACE_METHOD(0x00525DF0, UnitStats::AttributeBase);
 
-float UnitStats::AttributeWithBonus(int index) {
+double UnitStats::AttributeWithBonus(int index) {
     switch (index) {
     case 0: return (stat18 - kStatBase) + static_cast<float>(attributes[0]);
     case 1: return (stat18 - kStatBase) + static_cast<float>(attributes[1]);
@@ -69,7 +69,7 @@ EI_REPLACE_METHOD(0x00525E10, UnitStats::AttributeWithBonus);
 float UnitStats::SkillBase(int index) { return static_cast<float>(Bytes(this)[0x6CB + index]); }
 EI_REPLACE_METHOD(0x00527030, UnitStats::SkillBase);
 
-float UnitStats::SkillWithBonus(std::uint32_t index) {
+double UnitStats::SkillWithBonus(std::uint32_t index) {
     float skill = static_cast<float>(Bytes(this)[0x6CB + index]);
     // The skill's name (via the record's +0x0C) picks the stat; a missing record faults.
     const char* record = unitdb::Skills().At(index, unitdb::kSkillSize);
@@ -108,37 +108,36 @@ double UnitStats::SkillLevelValue(int index) {
 }
 EI_REPLACE_METHOD(0x005267E0, UnitStats::SkillLevelValue);
 
-float UnitStats::Value6E8() {
+double UnitStats::Value6E8() {
     double strength = stat10 * kTwelve;   // kept on the FPU stack in the original
     std::uint8_t level = skillLevels[0x6E8 - 0x6D3];
     if (level != 0) {
         const char* record = LevelRecord(level + kLevelBase6E8);
         if (record) {
-            return static_cast<float>(
-                (LevelValue(record) * kPercent + kOne) * strength);
+            return (LevelValue(record) * kPercent + kOne) * strength;
         }
     }
-    return static_cast<float>((kZero * kPercent + kOne) * strength);
+    return (kZero * kPercent + kOne) * strength;
 }
 EI_REPLACE_METHOD(0x00524280, UnitStats::Value6E8);
 
-float UnitStats::Value6E9() {
+double UnitStats::Value6E9() {
     double base = Global7C5430();
     std::uint8_t level = skillLevels[0x6E9 - 0x6D3];
     if (level != 0) {
         const char* record = LevelRecord(level + kLevelBase6E9);
         if (record) {
-            return static_cast<float>(LevelValue(record) * kPercent + base);
+            return LevelValue(record) * kPercent + base;
         }
     }
-    return static_cast<float>(kZero * kPercent + base);
+    return kZero * kPercent + base;
 }
 EI_REPLACE_METHOD(0x00525CD0, UnitStats::Value6E9);
 
-float UnitStats::Value6E9Arg(int) { return Value6E9(); }
+double UnitStats::Value6E9Arg(int) { return Value6E9(); }
 EI_REPLACE_METHOD(0x00525D60, UnitStats::Value6E9Arg);
 
-float UnitStats::Reduce(float value) {
+double UnitStats::Reduce(float value) {
     double taken = kZero;   // accumulated on the FPU stack in the original
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind < 1) continue;
@@ -148,16 +147,16 @@ float UnitStats::Reduce(float value) {
             taken = (slot.maximum - slot.current) / slot.maximum * slot.factor * value + taken;
         }
     }
-    return static_cast<float>(value - taken);
+    return value - taken;   // unrounded (ST0)
 }
 EI_REPLACE_METHOD(0x005259B0, UnitStats::Reduce);
 
-float UnitStats::ReduceKind1(float value) {
+double UnitStats::ReduceKind1(float value) {
     double taken = kZero;
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind == 1) taken = value * slot.factor + taken;
     }
-    return static_cast<float>(value - taken);
+    return value - taken;   // unrounded (ST0)
 }
 EI_REPLACE_METHOD(0x00524020, UnitStats::ReduceKind1);
 
