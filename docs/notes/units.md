@@ -222,8 +222,9 @@ UnitVitalsPacked / UnitParams (full layout, 0x108 bytes) / UnitParamsSlot added,
 
 ### ST0 results are now returned as double
 
-Under Rebirth the FPU runs above 24-bit precision (see `CItemWeapon::RollDamage`), and the
-original returns float results unrounded in ST0. Rounding them to float at the return changed what
+Under Rebirth the FPU was thought to run above 24-bit precision (see `CItemWeapon::RollDamage`;
+not confirmed: measured 24-bit at every frame boundary in both installs, docs/notes/rebirth.md), and
+the original returns float results unrounded in ST0. Rounding them to float at the return changed what
 callers that keep using ST0 compute: 00532A20 truncates `Reduce`'s result with `_ftol` for the
 displayed hit points. These first-round functions now return `double` (bits compared as 64-bit
 doubles by their wrappers): UnitStats Period20, AttributeWithBonus, SkillWithBonus, Value6E8,

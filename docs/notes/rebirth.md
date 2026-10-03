@@ -17,8 +17,9 @@ game was run.
 
 - **addon.dll** has 52 patches in four tables (plus 35 mod-only ones that need a mod with an
   `[Addon]` section, not used here). In this install 34 are applied and 18 are logged as disabled.
-  addon.log names 218 patch sites (plus its own WinMain hook); two more are written without a log
-  line (FixProcessLogin at 004433D6, SetEiPluginMode at 0073AF10).
+  addon.log names 218 patch sites (plus its own WinMain hook); three more are written without a log
+  line (FixProcessLogin at 004433D6, FixRepairPrice's second site at 0060FB87, SetEiPluginMode at
+  0073AF10). A Rebirth launch now lists any other changed range in rebirth_unknown_diffs.txt.
 - By group (applied / all): bug fixes 10/10, widescreen/rendering 3/4, scripting/console 8/8,
   multiplayer 5/9, resources/paths 6/12, crash handling/infrastructure 2/9.
 - Single player: 28 of the 34 applied patches change single-player behaviour or presentation; the
@@ -31,9 +32,9 @@ game was run.
 - The four "unexplained" functions of the patched list are addon's: 00443080 is FixProcessLogin
   (the unlogged JMP at 004433D6), and 005F7DA0, 005F7E00, 005F7E30 are covered by WideScreen #93,
   a 194-byte write starting at 005F7D9E. No patched function is left without an addon site.
-- **FPU precision**: no code in addon.dll, EI_Plugin.asi or the loader sets the x87 precision
-  persistently. The one component that differs and runs on the main thread around D3D setup is
-  Miles: Rebirth ships MSS 6.0h, GOG 5.0p. A trace is in the harness to settle it (below).
+- **FPU precision**: measured 24 bits on the main thread at every frame boundary in both installs
+  (027F until Direct3D starts, 007F after); nothing in Rebirth sets it. The verify wrappers now log
+  any function they see running at a higher precision (below).
 - game.exe itself differs from GOG's by one byte (00456BB5, JE to JMP: the CD check).
 
 ## How Rebirth gets into the process
@@ -150,9 +151,11 @@ Sites are listed in full in the CSV.
   new rewrite `CUnitServer::IsFighting` (src/game/combat.cpp).
 - **FixRepairPrice** - the camp's price function (0060FAB0, slot 54 of the camp pages): the wear
   fraction 1 - durability / maximum is computed with negative (or NaN) values as 0 and clamped to
-  [0, 1]. Vanilla gives negative repair prices for over-full durability and huge ones for negative
-  durability. Context hook at 0060FADC. *Implemented* as a new rewrite `CCampPages::Price`
-  (src/game/ui_camp.cpp).
+  [0, 1] (context hook at 0060FADC); and when a weapon or armour is taken apart in the item
+  constructor (deal kind 7) the repair cost of its wear is added to the price instead of subtracted
+  (a JMP at 0060FB87 that addon writes directly, without an addon.log line). Vanilla gives negative
+  repair prices for over-full durability and huge ones for negative durability. *Implemented* as a
+  new rewrite `CCampPages::Price` (src/game/ui_camp.cpp).
 - **FixRemoveMapObject** - `CWorldServer::RemoveObject` (005935C0): an id that is not in the object
   map is logged and the function returns, instead of dereferencing null. Needs 005935C0 (1 KB).
 - **FixCreateItem** - the item factory (006AC970): an unknown prototype or an invalid
@@ -291,27 +294,42 @@ patches nothing before WinMain.
 
 ## FPU precision
 
-What was checked:
+Measured (harness runs of every scenario, both installs, after this round's trace): the control word
+is 027F (53-bit, the CRT default) at WinMain and still 027F before `AIL_startup`; it is 007F (24-bit,
+round to nearest, all exceptions masked) the first time the message loop runs, i.e. after Direct3D
+(dgVoodoo) created the device; and it does not change between frames afterwards. Vanilla and Rebirth
+are the same at every frame boundary.
+
+Statically, nothing in Rebirth raises it:
 
 - addon.dll and EI_Plugin.asi use a VS2010-2013 static CRT. Their DLL init calls `_cinit(0)`, so
   `_fpmath` only does FNCLEX (`_setdefaultprecision` is not called for DLLs). Every FLDCW in them
-  (Ghidra listing) is a save/restore inside a CRT maths routine (fabs, the transcendental
-  dispatchers, `_ftol` variants) or EI_Plugin's float-to-int helper. No `_controlfp`/`_control87`
-  call outside the CRT, no FNINIT. The loader (dinput.dll) has no FPU code.
-- game.exe never changes the precision persistently: its own `_control87` calls (006C3A00,
-  006C89xx, 006C957D) raise it to 64 bits around maths and restore it.
-- Both mss32.dll versions load every `*.asi` from `AIL_startup` (Ghidra call graph: the "*.asi"
-  scan is called only from `_AIL_startup@0`), and mp3dec.asi's VC CRT runs `_setdefaultprecision`
-  (_PC_53) when it loads; both Miles versions do the same for themselves at process start.
-- What differs: Rebirth's game root has MSS 6.0h (2000-06-12), GOG has MSS 5.0p (1999-04-27). It
-  is the only differing component that runs on the main thread around graphics and sound
-  initialisation, and EI_Plugin's loading depends on its `AIL_startup` timing.
+  (Ghidra listing) is a save/restore inside a CRT maths routine (fabs and the like set 0x133F through
+  `_ctrlfp` and put the caller's word back on every exit path; the transcendental dispatchers load
+  027F only if it differs and restore it in `__math_exit`) or EI_Plugin's float-to-int helper (RC
+  only). No `_controlfp`/`_control87` outside the CRT, no FNINIT. The loader (dinput.dll) has no
+  FPU code. The handlers that run in game paths (the context hooks of FixSpellEffectsOverflow #0,
+  FixRepairPrice, the console and script hooks, the WideScreen replacements) only save the integer
+  registers and flags (PUSHAD/PUSHFD), not the FPU state, and change no control word.
+- game.exe's own `_control87` calls (006C3A00 terrain lighting, 006C8990, 006C9560) switch the
+  rounding mode (chop, down) for a while and restore the whole word; they never change precision.
+- Both mss32.dll versions call `_controlfp` only from `_setdefaultprecision` at their own load, and
+  load every `*.asi` (mp3dec.asi, EI_Plugin.asi) in `AIL_startup`, where mp3dec's VC CRT also sets
+  _PC_53. That happens before Direct3D, which then sets 24 bits. Rebirth ships MSS 6.0h, GOG 5.0p;
+  this does not change the outcome.
+- Other threads start at 027F (53-bit): Miles' timer/mixer threads, the game's stream and MIDI
+  threads, EI_Plugin's master-server and updater threads. Game code that runs there (the sound
+  manager's callbacks) computes at 53 bits in both installs.
 
-So the static answer is "not addon, not EI_Plugin; most likely Miles 6.0h's startup order or code
-leaving 53-bit precision in place after Direct3D set 24 bits". To settle it, ei_hook now logs the
-control word at WinMain ("FPU control word at WinMain"), and the verify build's harness logs it
-before and after `AIL_startup` and whenever it changes between frames on the main thread
-("harness: FPU control word ..."). One vanilla and one Rebirth run of any scenario answer it.
+So the earlier conclusion ("under Rebirth the FPU runs higher", drawn from a CItemWeapon::RollDamage
+mismatch) is not confirmed: the main thread runs at 24 bits in both installs at frame boundaries,
+and no Rebirth component is known to raise it within a frame. Possible explanations of that mismatch:
+the then rewrite's own operation order (/fp:fast reassociation changes results at 24 bits too), or
+a transient raise not found statically. To catch the latter, every verify wrapper now checks the
+control word when it reports: a function seen at 53 or 64 bits is logged once ("FPU precision ...
+in <function> on the main / another thread; stack: ..."; at most 30 lines) and listed in
+harness_report.txt. Returning ST0 results as `double` stays right either way (exact at 24 and 53
+bits, and required where callers keep using ST0).
 
 ## Flags in the rebuild
 
@@ -389,7 +407,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixPlaingBattleMusicFromAntimagic | new: CUnitServer::IsFighting 0054B580 (combat.cpp) | pure wrapper (10 stolen bytes), vanilla and Rebirth |
 | FixRepairPrice | new: CCampPages::Price 0060FAB0 (ui_camp.cpp) | pure wrapper (6 stolen bytes), vanilla and Rebirth |
 | FixProgressNames | new: SelectLoadingMovie 00595080 (world_zone.cpp) | wrapper (7 stolen bytes) runs both on the same starting value and compares the chosen movie names as text |
-| FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | ours only: the effect appended as the last record (or dropped at 20), part 3 changed, object dirty |
+| FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
 (newgame for the loading movie, combat and spells for IsFighting and AddEffect, ui_camp for prices).
@@ -402,6 +420,17 @@ comparisons (the +0x0C difference rounded to float, its absolute value against t
 and steps past the record moved into a removed one's place, as addon does. Not reproduced: addon's
 log lines (addon.log, or the console only with a mod's LogErrorsIn* options) and the FSTP ST(0) its
 AddEffect wrapper executes on an empty FPU stack.
+
+### Fixed after the first Rebirth run
+
+- The detection counted MoviesPatch (an import slot) as applied in every launch, because the
+  loader writes every import slot: vanilla runs were treated as Rebirth launches and FollowAddon
+  switched the scenario's flags off. Import slots now count only when they point into addon.dll,
+  and nothing counts without addon.dll loaded.
+- CCampPages::Price was skipped in Rebirth ("byte +0xD7 differs"): FixRepairPrice's unlogged
+  second site, now in the inventory and implemented.
+- The first AddEffect wrapper only checked ours and treated a re-applied effect that replaced its
+  older copy (count unchanged) as an error; it now compares with the original as above.
 
 ### Remaining work
 

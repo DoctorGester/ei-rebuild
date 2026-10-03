@@ -68,9 +68,13 @@ comes from a bug we already hit.
    operations exactly (it affects rounding). Use `x87::fsqrt/fsin/fcos` (not the modern CRT) and
    `x87::fistp` for FISTP (rounds to nearest; a C++ cast truncates). Copy floats that the original
    copies as dwords with `memcpy`.
-   The FPU does not always run at 24-bit precision: under Rebirth it runs higher, so a float the
-   original returns unrounded in ST0 must not be rounded on return (declare the function `double`
-   and let callers round when they store; see `CItemWeapon::RollDamage`).
+   The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at
+   every frame boundary in both installs; other threads run at 53 bits). Still, a float the original
+   returns unrounded in ST0 must not be rounded on return: declare the function `double` and let
+   callers round when they store (see `CItemWeapon::RollDamage`); it is exact at 24 and 53 bits and
+   callers that keep using ST0 need it. The verify build logs any wrapped function it sees running
+   above 24 bits ("FPU precision ..." in ei_hook.log, listed in harness_report.txt); see
+   docs/notes/rebirth.md.
    Convert unsigned 32-bit values (random words, tick counts) with `x87::FromUnsigned`, never
    `static_cast<double>`: MSVC adds 2^32 with an FADD that rounds; `tools/check_x87.py` checks this.
    Never test NaN with `v != v`: /fp:fast folds it to false. Use `x87::IsNaN` (a bit test). The
