@@ -516,3 +516,48 @@ void __fastcall ScriptObjectsSave(const ScriptNamedValues<ScriptObjectRef>* vars
 void __fastcall ScriptGroupsSave(const ScriptNamedValues<ScriptGroup>* vars, void* edx, ScriptStream* stream);
 // 004CAEC0 (__fastcall). The areas: count, then per area its id, part count and parts (0x14 bytes).
 void __fastcall ScriptAreasSave(const MfcArray<ScriptArea>* areas, ScriptStream* stream);
+
+// ---- Loading (script_load.cpp) ------------------------------------------------------------------
+
+// 004C0D00 (CScript::Load, the savegame): reads what ScriptSave wrote, in the same order. Sets
+// 007AA620 to the script while loading (the run loader looks its instances up there); the areas
+// are read only from stream version (+8) 0x57 on.
+void __fastcall ScriptLoad(CScript* script, void* edx, ScriptStream* stream);
+// 004C2D40 / 004C3200 / 004C36B0 / 004C40D0 (__thiscall on the value array): the count, the values
+// and names resized to it, then per variable its value (float bits; string; object id, found with
+// the world's FindObject; group size and member ids, then sorted) and its name.
+void __fastcall ScriptFloatsLoad(ScriptNamedValues<float>* vars, void* edx, ScriptStream* stream);
+void __fastcall ScriptStringsLoad(ScriptNamedValues<mfc::CString>* vars, void* edx, ScriptStream* stream);
+void __fastcall ScriptObjectsLoad(ScriptNamedValues<ScriptObjectRef>* vars, void* edx, ScriptStream* stream);
+void __fastcall ScriptGroupsLoad(ScriptNamedValues<ScriptGroup>* vars, void* edx, ScriptStream* stream);
+// 004C57C0 (__fastcall). A command block's commands (count, SSCCmd::Load each); the caller reads the id.
+void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream);
+// 004CA000 (__fastcall). A definition's if-then pairs: per pair two block ids, resolved in the
+// block lists of the saved script 007C27D4 (negative: WorldScript blocks).
+void __fastcall ScriptIfThenLoad(MfcArray<ScriptIfThen>* pairs, ScriptStream* stream);
+// List loaders (__fastcall on the CList): the count, that many default nodes appended, then every
+// node read from the head. 004CA480 particle sources (+0x14), 004CA5D0 FX sources (+0x30),
+// 004CA720 lightning (+0x4C), 004CA810 WorldScript blocks (+0x178), 004CA980 instances (+0x140),
+// 004CAC00 runs (+0x15C).
+// MFC CList header (0x1C bytes) and node (next, prev, then the element) of the script's lists.
+struct ScriptListNode {
+    ScriptListNode* next;
+    ScriptListNode* prev;
+    char* Data() { return reinterpret_cast<char*>(this + 1); }
+};
+struct ScriptList {
+    void* vtable;
+    ScriptListNode* head;   // +0x04
+    ScriptListNode* tail;   // +0x08
+    int count;              // +0x0C
+    ScriptListNode* free;   // +0x10
+    mfc::CPlex* blocks;     // +0x14
+    int blockSize;          // +0x18
+};
+static_assert(sizeof(ScriptList) == 0x1C);
+void __fastcall ScriptParticlesLoad(ScriptList* list, ScriptStream* stream);
+void __fastcall ScriptFxSourcesLoad(ScriptList* list, ScriptStream* stream);
+void __fastcall ScriptLightningLoad(ScriptList* list, ScriptStream* stream);
+void __fastcall ScriptWorldBlocksLoad(ScriptList* list, ScriptStream* stream);
+void __fastcall ScriptInstancesLoad(ScriptList* list, ScriptStream* stream);
+void __fastcall ScriptRunsLoad(ScriptList* list, ScriptStream* stream);

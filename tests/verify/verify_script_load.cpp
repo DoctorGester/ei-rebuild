@@ -1,0 +1,426 @@
+// Differential checks for the script savegame loaders (src/game/script_load.cpp).
+//
+// Record / replay: the original reads the real stream into a fresh, empty scratch object (every
+// Read recorded: size, result, bytes), ours replays the recording into the real object. Both must
+// make the same reads, and the objects must end equal; the scratch is then destroyed (its object
+// references released). This needs the real object to be empty on entry (it always is when a save
+// is loaded: the world is new); otherwise ours runs alone on the real stream and only the shape is
+// checked. Command blocks, definitions and runs are compared through their savers (bytes written).
+// Nested loaders run through their own wrappers in both runs. CScript::Load itself runs ours only.
+#include "verify.h"
+
+#include "../../src/game/script.h"
+#include "../../src/lib/crt.h"
+
+#include "ei/vcall.h"
+
+#include <cstdio>
+#include <cstring>
+#include <vector>
+
+#pragma warning(disable : 4740) // naked forwarders
+
+namespace {
+void* s_unused;
+
+// ---- Streams ----------------------------------------------------------------------------------------
+
+// Laid out like the game's stream (vtable: slot 0, Read returning the bytes read, Write; then +4
+// and the version at +8, which the loaders read).
+class LoadStream {
+public:
+    virtual void Slot0() {}
+    virtual int Read(void* buffer, unsigned size) = 0;
+    virtual void Write(const void*, unsigned) {}
+    explicit LoadStream(const ScriptStream* real) {
+        std::memcpy(&unknown_04, reinterpret_cast<const char*>(real) + 4, 8);
+    }
+    ScriptStream* AsScript() { return reinterpret_cast<ScriptStream*>(this); }
+    int unknown_04;
+    int version;
+};
+
+class RecordStream : public LoadStream {
+public:
+    explicit RecordStream(ScriptStream* real) : LoadStream(real), real_(real) {}
+    int Read(void* buffer, unsigned size) override {
+        int result = ei::VCall<int>(real_, 1, buffer, size);
+        ops.push_back({size, result, bytes.size()});
+        auto* p = static_cast<const unsigned char*>(buffer);
+        bytes.insert(bytes.end(), p, p + size);
+        return result;
+    }
+    struct Op {
+        unsigned size;
+        int result;
+        std::size_t at;
+    };
+    std::vector<Op> ops;
+    std::vector<unsigned char> bytes;
+
+private:
+    ScriptStream* real_;
+};
+
+class ReplayStream : public LoadStream {
+public:
+    ReplayStream(const ScriptStream* real, const RecordStream& record) : LoadStream(real), record_(record) {}
+    int Read(void* buffer, unsigned size) override {
+        if (next_ >= record_.ops.size() || record_.ops[next_].size != size) {
+            mismatch_ = true;
+            std::memset(buffer, 0, size);
+            return 0;
+        }
+        const RecordStream::Op& op = record_.ops[next_++];
+        std::memcpy(buffer, record_.bytes.data() + op.at, size);
+        return op.result;
+    }
+    bool Same() const { return !mismatch_ && next_ == record_.ops.size(); }
+    std::size_t Reads() const { return next_; }
+
+private:
+    const RecordStream& record_;
+    std::size_t next_ = 0;
+    bool mismatch_ = false;
+};
+
+class CaptureStream : public ScriptStream {
+public:
+    void Slot0() override {}
+    void Read(void*, unsigned) override {}
+    void Write(const void* buffer, unsigned size) override {
+        auto* p = static_cast<const unsigned char*>(buffer);
+        bytes.insert(bytes.end(), p, p + size);
+    }
+    std::vector<unsigned char> bytes;
+};
+
+// ---- Original helpers used to compare and to destroy scratch objects ---------------------------------
+
+__declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
+__declspec(naked) void __fastcall CmdsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD2B0)
+__declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
+__declspec(naked) void __stdcall DestructRefs(void*, int) EI_ORIGINAL(0x004CC7D0)
+__declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
+__declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
+__declspec(naked) void __fastcall VarsDestruct(void*) EI_ORIGINAL(0x004BE090)
+// Savers (through their addresses).
+__declspec(naked) void __fastcall DeclSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C1230)
+__declspec(naked) void __fastcall DefinitionSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004BBFE0)
+__declspec(naked) void __fastcall RunSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004BB320)
+
+template <typename Save>
+std::vector<unsigned char> Saved(Save save, const void* object) {
+    CaptureStream capture;
+    save(object, nullptr, &capture);
+    return capture.bytes;
+}
+
+template <typename T>
+bool Empty(const MfcArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
+template <typename T>
+MfcArray<T> EmptyLike(const MfcArray<T>& a) {
+    MfcArray<T> e{};
+    e.vtable = a.vtable;
+    e.growBy = a.growBy;
+    return e;
+}
+bool Empty(const ScriptList& l) { return !l.head && !l.tail && l.count == 0; }
+ScriptList EmptyLike(const ScriptList& l) {
+    ScriptList e{};
+    e.vtable = l.vtable;
+    e.blockSize = l.blockSize;
+    return e;
+}
+
+// Walked node count equals the count field, and the prev links match.
+bool WellFormed(const ScriptList& l) {
+    int n = 0;
+    const ScriptListNode* prev = nullptr;
+    for (const ScriptListNode* node = l.head; node; node = node->next) {
+        if (node->prev != prev || ++n > l.count) return false;
+        prev = node;
+    }
+    return n == l.count && l.tail == prev;
+}
+
+template <typename T>
+bool SameShape(const MfcArray<T>& a, const MfcArray<T>& b) { return a.size == b.size && a.maxSize == b.maxSize; }
+
+bool SameString(const mfc::CString& a, const mfc::CString& b) {
+    return std::strcmp(static_cast<const char*>(a), static_cast<const char*>(b)) == 0;
+}
+bool SameNames(const MfcArray<mfc::CString>& a, const MfcArray<mfc::CString>& b) {
+    if (!SameShape(a, b)) return false;
+    for (int i = 0; i < a.size; ++i)
+        if (!SameString(a.data[i], b.data[i])) return false;
+    return true;
+}
+
+void FreeNames(MfcArray<mfc::CString>& names) { NamesSetSize(&names, nullptr, 0, -1); }
+
+void Release(CEngineObject* object) {
+    if (object) object->Release();
+}
+
+void Report(const char* name, bool same, const ReplayStream& replay, const RecordStream& record, const char* what) {
+    ei::verify::Check(name, true, same && replay.Same(), "%s; reads %u of %u%s", what, unsigned(replay.Reads()),
+                      unsigned(record.ops.size()), replay.Same() ? "" : " (read sequence differs)");
+}
+
+// ---- Variables ----------------------------------------------------------------------------------------
+
+template <typename T>
+using VarsLoadFn = void(__fastcall*)(ScriptNamedValues<T>*, void*, ScriptStream*);
+
+// Runs the record / replay check for one variable loader; `same` compares the values, `destroy`
+// frees the scratch values (the names are freed here).
+template <typename T, typename Same, typename Destroy>
+void VarsVerify(const char* name, VarsLoadFn<T> original, VarsLoadFn<T> ours, ScriptNamedValues<T>* self,
+                ScriptStream* stream, Same same, Destroy destroy) {
+    if (!Empty(self->values) || !Empty(self->names)) {
+        ours(self, nullptr, stream);
+        ei::verify::Check(name, true, self->values.size == self->names.size, "ours only: %d values, %d names",
+                          self->values.size, self->names.size);
+        return;
+    }
+    ScriptNamedValues<T> scratch{EmptyLike(self->values), EmptyLike(self->names)};
+    RecordStream record(stream);
+    original(&scratch, nullptr, record.AsScript());
+    ReplayStream replay(stream, record);
+    ours(self, nullptr, replay.AsScript());
+    bool ok = SameShape(scratch.values, self->values) && SameNames(scratch.names, self->names);
+    for (int i = 0; ok && i < self->values.size; ++i) ok = same(scratch.values.data[i], self->values.data[i]);
+    char what[64];
+    std::snprintf(what, sizeof(what), "%d vs %d values", scratch.values.size, self->values.size);
+    Report(name, ok, replay, record, what);
+    destroy(scratch.values);
+    FreeNames(scratch.names);
+}
+
+// 004C2D40: SUB ESP,0xC; PUSH EBX; PUSH EBP; PUSH ESI (6 bytes).
+VarsLoadFn<float> s_floats;
+void __fastcall FloatsLoadVerify(ScriptNamedValues<float>* self, void*, ScriptStream* stream) {
+    VarsVerify<float>(
+        "ScriptFloatsLoad", s_floats, &ScriptFloatsLoad, self, stream,
+        [](const float& a, const float& b) { return std::memcmp(&a, &b, 4) == 0; },
+        [](MfcArray<float>& a) { gamecrt::operator_delete(a.data); });
+}
+
+// 004C3200: SUB ESP,0xC; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7 bytes).
+VarsLoadFn<mfc::CString> s_strings;
+void __fastcall StringsLoadVerify(ScriptNamedValues<mfc::CString>* self, void*, ScriptStream* stream) {
+    VarsVerify<mfc::CString>(
+        "ScriptStringsLoad", s_strings, &ScriptStringsLoad, self, stream, SameString,
+        [](MfcArray<mfc::CString>& a) { FreeNames(a); });
+}
+
+// 004C36B0: SUB ESP,0xC; PUSH EBX; PUSH EBP (5 bytes).
+VarsLoadFn<ScriptObjectRef> s_objects;
+void __fastcall ObjectsLoadVerify(ScriptNamedValues<ScriptObjectRef>* self, void*, ScriptStream* stream) {
+    VarsVerify<ScriptObjectRef>(
+        "ScriptObjectsLoad", s_objects, &ScriptObjectsLoad, self, stream,
+        [](const ScriptObjectRef& a, const ScriptObjectRef& b) { return a.object == b.object; },
+        [](MfcArray<ScriptObjectRef>& a) {
+            if (a.data) {
+                DestructRefs(a.data, a.size);
+                gamecrt::operator_delete(a.data);
+            }
+        });
+}
+
+// 004C40D0: SUB ESP,0xC; PUSH EBX; PUSH EBP (5 bytes).
+VarsLoadFn<ScriptGroup> s_groups;
+void __fastcall GroupsLoadVerify(ScriptNamedValues<ScriptGroup>* self, void*, ScriptStream* stream) {
+    VarsVerify<ScriptGroup>(
+        "ScriptGroupsLoad", s_groups, &ScriptGroupsLoad, self, stream,
+        [](const ScriptGroup& a, const ScriptGroup& b) {
+            if (a.size != b.size || a.maxSize != b.maxSize || a.growBy != b.growBy) return false;
+            for (int k = 0; k < a.size; ++k)
+                if (a.data[k].object != b.data[k].object) return false;
+            return true;
+        },
+        [](MfcArray<ScriptGroup>& a) {
+            if (a.data) {
+                for (int i = 0; i < a.size; ++i) GroupDestroy(&a.data[i], nullptr, 0);
+                gamecrt::operator_delete(a.data);
+            }
+        });
+}
+
+// ---- Command blocks and if-then pairs -------------------------------------------------------------------
+
+// 004C57C0: SUB ESP,0x10; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7 bytes).
+void(__fastcall* s_declCommands)(ScriptDecl*, ScriptStream*);
+void __fastcall DeclCommandsVerify(ScriptDecl* self, ScriptStream* stream) {
+    if (!Empty(self->commands)) {
+        ScriptDeclCommandsLoad(self, stream);
+        ei::verify::Check("ScriptDeclCommandsLoad", true, self->commands.size >= 0, "ours only");
+        return;
+    }
+    ScriptDecl scratch{EmptyLike(self->commands), self->id};
+    RecordStream record(stream);
+    s_declCommands(&scratch, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptDeclCommandsLoad(self, replay.AsScript());
+    bool ok = SameShape(scratch.commands, self->commands) && Saved(DeclSave, &scratch) == Saved(DeclSave, self);
+    char what[64];
+    std::snprintf(what, sizeof(what), "block %d: %d vs %d commands", self->id, scratch.commands.size, self->commands.size);
+    Report("ScriptDeclCommandsLoad", ok, replay, record, what);
+    CmdsSetSize(&scratch.commands, nullptr, 0, -1);
+}
+
+// 004CA000: SUB ESP,0x10; PUSH EBX; PUSH EBP (5 bytes).
+void(__fastcall* s_ifThen)(MfcArray<ScriptIfThen>*, ScriptStream*);
+void __fastcall IfThenVerify(MfcArray<ScriptIfThen>* self, ScriptStream* stream) {
+    if (!Empty(*self)) {
+        ScriptIfThenLoad(self, stream);
+        ei::verify::Check("ScriptIfThenLoad", true, self->size >= 0, "ours only");
+        return;
+    }
+    MfcArray<ScriptIfThen> scratch = EmptyLike(*self);
+    RecordStream record(stream);
+    s_ifThen(&scratch, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptIfThenLoad(self, replay.AsScript());
+    bool ok = SameShape(scratch, *self) &&
+              (self->size <= 0 || std::memcmp(scratch.data, self->data, self->size * sizeof(ScriptIfThen)) == 0);
+    char what[64];
+    std::snprintf(what, sizeof(what), "%d vs %d pairs", scratch.size, self->size);
+    Report("ScriptIfThenLoad", ok, replay, record, what);
+    gamecrt::operator_delete(scratch.data);
+}
+
+// ---- Lists ------------------------------------------------------------------------------------------------
+
+using ListLoadFn = void(__fastcall*)(ScriptList*, ScriptStream*);
+
+// Record / replay for a list loader: `same` compares two nodes' elements, `destroy` frees one
+// scratch element; the scratch's blocks are freed here.
+template <typename Same, typename Destroy>
+void ListVerify(const char* name, ListLoadFn original, ListLoadFn ours, ScriptList* self, ScriptStream* stream,
+                Same same, Destroy destroy) {
+    if (!Empty(*self)) {
+        ours(self, stream);
+        ei::verify::Check(name, true, WellFormed(*self), "ours only: list of %d not well formed", self->count);
+        return;
+    }
+    ScriptList scratch = EmptyLike(*self);
+    RecordStream record(stream);
+    original(&scratch, record.AsScript());
+    ReplayStream replay(stream, record);
+    ours(self, replay.AsScript());
+    bool ok = scratch.count == self->count && WellFormed(scratch) && WellFormed(*self);
+    int index = 0;
+    for (ScriptListNode *a = scratch.head, *b = self->head; ok && a && b; a = a->next, b = b->next, ++index)
+        ok = same(a->Data(), b->Data());
+    char what[64];
+    std::snprintf(what, sizeof(what), "%d vs %d nodes, node %d", scratch.count, self->count, index);
+    Report(name, ok, replay, record, what);
+    for (ScriptListNode* node = scratch.head; node; node = node->next) destroy(node->Data());
+    mfc::PlexFreeDataChain(scratch.blocks);
+}
+
+template <typename T>
+T& At(char* base, std::size_t offset) { return *reinterpret_cast<T*>(base + offset); }
+
+// 004CA480: PUSH -1; PUSH 0x7197D8 (7 bytes).
+ListLoadFn s_particles;
+void __fastcall ParticlesVerify(ScriptList* self, ScriptStream* stream) {
+    ListVerify("ScriptParticlesLoad", s_particles, &ScriptParticlesLoad, self, stream,
+               [](char* a, char* b) { return std::memcmp(a, b, 0x24) == 0; },
+               [](char* d) { Release(At<CEngineObject*>(d, 0)); });
+}
+
+// 004CA5D0: PUSH -1; PUSH 0x719800 (7 bytes).
+ListLoadFn s_fx;
+void __fastcall FxSourcesVerify(ScriptList* self, ScriptStream* stream) {
+    ListVerify("ScriptFxSourcesLoad", s_fx, &ScriptFxSourcesLoad, self, stream,
+               [](char* a, char* b) {
+                   return std::memcmp(a, b, 8) == 0 && SameString(At<mfc::CString>(a, 8), At<mfc::CString>(b, 8)) &&
+                          std::memcmp(a + 0xC, b + 0xC, 0x28) == 0;
+               },
+               [](char* d) {
+                   Release(At<CEngineObject*>(d, 0));
+                   At<mfc::CString>(d, 8).~CString();
+               });
+}
+
+// 004CA720: MOV EAX,FS:[0] (6 bytes).
+ListLoadFn s_lightning;
+void __fastcall LightningVerify(ScriptList* self, ScriptStream* stream) {
+    ListVerify("ScriptLightningLoad", s_lightning, &ScriptLightningLoad, self, stream,
+               [](char* a, char* b) { return std::memcmp(a, b, 8) == 0; },
+               [](char* d) { Release(At<CEngineObject*>(d, 0)); });
+}
+
+// 004CA810: PUSH -1; PUSH 0x719840 (7 bytes).
+ListLoadFn s_worldBlocks;
+void __fastcall WorldBlocksVerify(ScriptList* self, ScriptStream* stream) {
+    ListVerify("ScriptWorldBlocksLoad", s_worldBlocks, &ScriptWorldBlocksLoad, self, stream,
+               [](char* a, char* b) {
+                   auto* x = reinterpret_cast<ScriptDecl*>(a);
+                   auto* y = reinterpret_cast<ScriptDecl*>(b);
+                   return SameShape(x->commands, y->commands) && Saved(DeclSave, x) == Saved(DeclSave, y);
+               },
+               [](char* d) { CmdsSetSize(&reinterpret_cast<ScriptDecl*>(d)->commands, nullptr, 0, -1); });
+}
+
+// 004CA980: MOV EAX,FS:[0] (6 bytes).
+ListLoadFn s_instances;
+void __fastcall InstancesVerify(ScriptList* self, ScriptStream* stream) {
+    ListVerify("ScriptInstancesLoad", s_instances, &ScriptInstancesLoad, self, stream,
+               [](char* a, char* b) {
+                   auto* x = reinterpret_cast<ScriptDefinition*>(a);
+                   auto* y = reinterpret_cast<ScriptDefinition*>(b);
+                   return SameShape(x->ifThen, y->ifThen) && Saved(DefinitionSave, x) == Saved(DefinitionSave, y);
+               },
+               [](char* d) { DefinitionDestruct(d); });
+}
+
+// 004CAC00: MOV EAX,FS:[0] (6 bytes). The run saver finds the instance index through 007AA620,
+// which CScript::Load sets.
+ListLoadFn s_runs;
+void __fastcall RunsVerify(ScriptList* self, ScriptStream* stream) {
+    ListVerify("ScriptRunsLoad", s_runs, &ScriptRunsLoad, self, stream,
+               [](char* a, char* b) {
+                   auto* x = reinterpret_cast<ScriptRun*>(a);
+                   auto* y = reinterpret_cast<ScriptRun*>(b);
+                   return std::memcmp(x, y, 0x14) == 0 && Saved(RunSave, x) == Saved(RunSave, y);
+               },
+               [](char* d) { VarsDestruct(d + 0x14); });
+}
+
+// ---- CScript::Load -----------------------------------------------------------------------------------------
+
+// Ours only: the loading pointer is cleared again and every list is well formed.
+void __fastcall LoadVerify(CScript* self, void*, ScriptStream* stream) {
+    ScriptLoad(self, nullptr, stream);
+    char* base = reinterpret_cast<char*>(self);
+    bool ok = *reinterpret_cast<CScript**>(0x007AA620) == nullptr;
+    const int lists[] = {0x14, 0x30, 0x4C, 0x70, 0x140, 0x15C, 0x178};
+    int bad = 0;
+    for (int offset : lists) {
+        if (!WellFormed(*reinterpret_cast<ScriptList*>(base + offset))) {
+            ok = false;
+            bad = offset;
+        }
+    }
+    ei::verify::Check("ScriptLoad", true, ok, "list +0x%X not well formed or 007AA620 left set", bad);
+}
+
+} // namespace
+
+EI_VERIFY(0x004C0D00, LoadVerify, 0, s_unused);
+EI_VERIFY(0x004C2D40, FloatsLoadVerify, 6, s_floats);
+EI_VERIFY(0x004C3200, StringsLoadVerify, 7, s_strings);
+EI_VERIFY(0x004C36B0, ObjectsLoadVerify, 5, s_objects);
+EI_VERIFY(0x004C40D0, GroupsLoadVerify, 5, s_groups);
+EI_VERIFY(0x004C57C0, DeclCommandsVerify, 7, s_declCommands);
+EI_VERIFY(0x004CA000, IfThenVerify, 5, s_ifThen);
+EI_VERIFY(0x004CA480, ParticlesVerify, 7, s_particles);
+EI_VERIFY(0x004CA5D0, FxSourcesVerify, 7, s_fx);
+EI_VERIFY(0x004CA720, LightningVerify, 6, s_lightning);
+EI_VERIFY(0x004CA810, WorldBlocksVerify, 7, s_worldBlocks);
+EI_VERIFY(0x004CA980, InstancesVerify, 6, s_instances);
+EI_VERIFY(0x004CAC00, RunsVerify, 6, s_runs);
