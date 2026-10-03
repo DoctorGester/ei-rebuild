@@ -134,16 +134,18 @@ records are serialised through their vtable. None of these is Rebirth-patched.
 ## Renderer (00500B70-005053FF)
 
 Files: `src/game/renderer_init.cpp`, `src/game/renderer_strip.cpp`, `src/game/renderer_sprites.cpp`,
-`tests/verify/verify_renderer_init.cpp`, `verify_renderer_strip.cpp`, `verify_renderer_sprites.cpp`.
+`src/game/device_mesh.cpp`, `tests/verify/verify_renderer_init.cpp`, `verify_renderer_strip.cpp`,
+`verify_renderer_sprites.cpp`, `verify_device_mesh.cpp`.
 Shared headers: none changed (`clip.h` gives `TLVertex` and the clipper).
 
 The renderer is the global at 007AF060 (vtable 0073D93C). +8 is the transform pipeline (matrix
 stacks as aligned arrays of 64-byte matrices: data/count at +0x14, +0x1C, +0x24, +0x3C, +0x44,
 +0x4C, +0x54; +0xC the transform object, whose slots project and clip vertices), +0x20 the counted
 device holder (004E5E50: +8 the last HRESULT, +0xC DirectDraw, +0x14 the primary surface, +0x18 the
-render target (+0x14 width, +0x18 height), +0x54 the IDirect3DDevice7, +0xAC -> +0xC a tracker that
-sees every vertex batch when +0x158 is set, +0x16C / +0x170 / +0x174 vertex, triangle and call
-counters), +0x24 the counted state-block helper (004FCA60).
+render target (+0x14 width, +0x18 height), +0x54 the IDirect3DDevice7, +0xAC the pipeline again
+(its transform object's slot 35 sees every vertex batch when +0x158 is set), +0x150 the override
+colour of the mesh draws, +0xE0 vertices sent to vertex buffers, +0x16C / +0x170 / +0x174 vertex,
+triangle and call counters), +0x24 the counted state-block helper (004FCA60).
 
 ### Rewritten
 
@@ -158,10 +160,13 @@ counters), +0x24 the counted state-block helper (004FCA60).
 | 00503680 | `DrawIndexed` (holder thiscall, RET 0x1C) | ours only; call counter + 1 |
 | 00503710 | `SpriteRadixPass` | original into a scratch list, lists compared |
 | 005037D0 | `SpriteMergePass` | same |
+| 004E9010 | `DeviceDrawMesh` (device thiscall, RET 0x48) | ours only; drawn vertices are the corners (position, colours, plain uv), or clipped: the corners' outcodes copied |
+| 004E9A50 | `DeviceDrawMesh2` (two textures, RET 0x50) | same |
 
 All run in every game: 00500B70 once at start-up; 00502CA0 / 00503680 / 00503710 / 005037D0 for
 particles (004976B0: spell effects, fires; scenarios `spells_cast`, `spells`); 00501D90 and its
-helpers for ribbons (lightning-type spell effects, `spells_cast`). Names are provisional.
+helpers for ribbons (lightning-type spell effects, `spells_cast`); 004E9010 / 004E9A50 for every
+figure and 3D-library mesh on screen (any scenario). Names are provisional.
 
 ### Creation (00500B70)
 
@@ -201,8 +206,29 @@ largest power of two below the count down to 1. Both give larger keys first. The
 sprite, (0, 2, 1) and (0, 3, 2), each through the screen clipper (0042D910) when the transform said
 so. With the additive flag the blend is source alpha + one for the call.
 
+### Mesh draws (004E9010, 004E9A50)
+
+Identical code; 004E9A50 has two texture arguments in front and draws through 004EB370 instead of
+004EB550. The positions come in blocks of four vertices (64 bytes, x x x x y y y y ...); the
+transform object projects them into 007AEE10 (16 bytes per vertex: slot 14 with the stack top at
++0x1C, or with flag 2 slot 9 with the stack at +0x24 and an outcode byte per vertex in 007AEE30) and
+returns 0 (on screen), 1 (crossing an edge) or 2 (nothing visible: returned as is). Flag 4 first
+overwrites the mesh's colours with the device's +0x150 and its speculars with the alpha byte << 24
+(4 * colourCount entries each: the mesh's own arrays change). Each corner (three words: position,
+colour, texture coordinate) becomes a TL vertex in 007AEE00; the texture coordinate is moved by the
+u / v offsets unless both compare equal to 0 (NaN counts as equal). On screen: flag 1 collects the
+screen bounds (004E8900), the slot 35 observer, then the draw. Crossing: buffers for ten times the
+corners and indices, the corners' outcodes (007AEE20), the clipper (slot 37: vertices, outcodes,
+indices in, 007AEDE0 out, both counts), nothing more when either count is 0, else the counts set, the
+vertices projected (slot 34), the observer, flag 1 bounds of the clipped vertices (004E86B0), the
+draw. The vertex buffer path (004E7820) is dead: it always returns null. Returns 1 when drawn on
+screen, else the transform's result.
+
 ### Floating point
 
+- 004E9010 / 004E9A50: positions and texture coordinates are copied with FILD / FISTP qword (exact,
+  memcpy here); the offset add is FLD offset, FADD coordinate, FSTP (`AddOffset`, naked so that the
+  operand order and the offset's own bits are kept).
 - 00502AC0 and the ribbon's first cross section: naked transcriptions (see above).
 - 00501D90: the u step is a double division rounded once to float; the "length equals 0" test is
   `!(a < 0) && !(a > 0)` (FCOMP / C3 semantics, NaN counts as equal).
