@@ -257,3 +257,103 @@ exact unless the FPU runs at 64-bit precision). All names are set in Ghidra.
 - Animation loading (00446C10-0044C470, `CFakeUnit` scene loading via slot 62 at 00446BA0; scene
   files, .bon/.anm splitting), the map database loader 0045EA20, the map-editor specs (00469630+)
   and networking: not touched this round.
+
+## Third round: scene loading, options, map database, unit record
+
+Files: `src/game/scene_loader.h/.cpp` (00471B10, 00446C10), `src/game/options.h/.cpp` (0045B210),
+`src/game/map_database.h/.cpp` (0045EA20), `src/game/unit_record.h/.cpp` (00477B00). Verify:
+`tests/verify/verify_scene_loader.cpp`, `verify_options.cpp`, `verify_map_database.cpp`,
+`verify_unit_record.cpp`. No new scenario: every scenario starts the game and loads zone1, which
+reaches all of these.
+
+Shared files changed (additive): `src/lib/mfc.h/.cpp` (`CString::GetBufferSetLength`, 00700E17),
+`src/game/object_tables.h` (`CMapDatabase::Load` declaration).
+
+### What the functions are
+
+| Address | Size | What |
+|---|---|---|
+| 00446C10 | 4.9 KB | `LoadFakeUnitScene(file, regFile, unit)` (__stdcall; the caller, CFakeUnit slot 62 at 00446BA0, also passes the unit in ECX, unused): opens the .amf scene, loads it (00471B10), requires exactly one top-level node ("Scene ... have more then one top-level object", fatal), reads the figure's .reg (`Ini's\<name>.reg` for scenes under `scenes\`, 0044B980), links the nodes (0044C4A0), builds one figure (0x220 bytes, unit +0x530) per mesh, the skeleton (00448A40; "Model File Name" fatal error), bone links (+0x558), matrices and index arrays, the textures named in the .reg (".bmp" stripped) and their links, then registers the figures and the skin |
+| 00471B10 | 12.6 KB | `SceneInfo::Load(file, meshes, helpers, nodes)`: the binary scene reader. Header (0x14: version, record count, skipped count, helper count, a flags word for `this`); per record (0x2C header) a node (0x120: names, offset, rotation / position keys, normals in version 0x1468FCCA, morph keys with a full point set each) and a mesh (0x18C: name, faces, material groups, merged vertices: one vertex per (position, texture) index pair per group, built with two CMap<DWORD,DWORD>; the morph keys are then reordered to the merged vertices); then the skipped records (read and dropped) and the helpers (0x3E header, three names) |
+| 0046F1F0 | 10.4 KB | an older copy of 00471B10 (no version check); no references in the exe: not rewritten |
+| 0045B210 | 4.9 KB | `GameOptions::LoadFromRegistry(path)` (options object 0079BC70, called once by WinMain): ~120 values under HKCU\<path>\<subkey> through the game's registry key helper (006972A0-006988A0), each with the field's current value as the default |
+| 00459100 | 4.7 KB | the same options from a .reg file (reader 00695B80); no references: not rewritten |
+| 0045EA20 | 4.1 KB | `CMapDatabase::Load(file)`: map.txt / map-LMP.txt (0045EA00 loads both; 005810A0 loads one) read through the text manager (007AF788); the directives are listed in map_database.h |
+| 00477B00 | 0.8 KB | `UnitRecord::ApplyTo(unit)`: the world server's unit record (005927C0): stats, controller fields, protection from the prototype model, quick / carried items, spells, armour, weapons. A record without stats (+0x10 / +0x14 floats 0 and +4 0, or +0x110 0) only gives the items |
+
+### Rewritten
+
+| Address | Name | Verify |
+|---|---|---|
+| 00471B10 | `scene::SceneInfo::Load` | recorded file: ours reads through a proxy that records every Read (slot 13); the original then runs on empty copies of the three arrays against a replaying proxy (same sizes in the same order); meshes, nodes and helpers compared in depth (all bytes but heap pointers; names, vertex / face / group / key arrays by content; the never-written tail +0x24..+0x33 of mesh faces skipped). Arrays not empty on entry: ours only |
+| 00446C10 | `scene::LoadFakeUnitScene` | ours only: one figure and one bone-link array per mesh, figure names equal to the mesh names, unit +0x1C = (0, 0, 500) |
+| 0045B210 | `options::GameOptions::LoadFromRegistry` | original on a copy of the 0x26C loaded bytes (CString fields copy-constructed, destroyed afterwards), ours on the real object; bytes and string texts compared |
+| 0045EA20 | `CMapDatabase::Load` | a shadow database (original constructor 0045E820) loaded by the original alongside the real one on every call, compared in depth (allods with their map lists, maps with their exits, strings by text). A database first seen non-empty: ours only |
+| 00477B00 | `unitrecord::UnitRecord::ApplyTo` | ours only: the byte blocks the record sets (controller +0x270, +0x8A8); its other fields can be recomputed by the equipment calls that follow |
+
+All names are provisional and set in Ghidra (also 00448A40 BuildSkeleton, 0044B980
+LoadFigureRegistry, 0044C4A0 LinkNodes, 0044E3B0 PlaceMeshes, the RegistryKey getters).
+
+### How the code is organised
+
+- The scene loader's inlined `CArray::SetSize` is one helper (`SetSizeInline`, given the
+  instantiation's ConstructElements / DestructElements forwarders) plus `SetSizeAligned` for the
+  32-byte aligned vertex arrays (allocators 00477250 / 00452C20 / 00476EF0 / 00406B50). The template
+  code the original calls out of line (SetAtGrow, Add, Copy, CMap GetAssocAt 00477340 and
+  operator[] 00476050, the local arrays' constructors and destructors) is reached through the
+  original addresses. The inlined `CMap::operator[]` is the same code as 00476050 (InitHashTable on
+  first use, NewAssoc), which is called instead.
+- Floats the original copies through the FPU (FLD / FSTP) go through `FpuCopyBits`; products the
+  original keeps on the FPU are stored by small naked helpers (`StoreUnsignedProduct`,
+  `StoreRadians`, `StoreScaledTwice`) so they are rounded once, as in the original.
+- `LoadFakeUnitScene` calls the scene loader through 00471B10, so the verify wrapper sees it.
+- Registry value names, map.txt directives and message formats are passed by their original
+  addresses.
+
+### Forwarders added (the standalone build must replace)
+
+- Scene: element helpers 004545C0 / 00476F50 / 00454F80 / 00477100 / 00477130 / 00477160 /
+  00477190 / 00454DB0 / 00476F20 / 004771C0 / 004771F0 / 00477220 / 00477530 / 00454ED0 / 00454F00 /
+  00452DC0 / 00454F30 / 00453700 / 00477380; arrays 00452AF0, 0044F410, 0044F1D0, 00474C70,
+  0044F1B0, 00476DD0, 0044FBB0, 00474C80, 00453100, 0044FB90, 004773F0, 00476640, 00476780,
+  00474DB0, 00474C50, 00453550, 006FF29A; maps 00477340, 00476050, 00476140; local destructors
+  00474F30, 00475110, 004752F0, 00454CE0, 00475680, 004759E0, 00475D40, 00476AB0, 004763C0; skipped
+  records 00475500, 00475860, 00475BC0, 00476930, 00475520, 00475880, 00476950, 00475BE0, 00475F10,
+  00475F40, 00475F20.
+- LoadFakeUnitScene: 00453240 / 00453210, 004534F0 / 004534C0, 00406B50, 00450370, 0044FCD0,
+  00450F20, 0044F960, 004543E0, 0044C490, 00694520 / 00694540, 00455940, 0070AC94 (AfxMessageBox),
+  0044B980, 0044C4A0, 00448A40 (__fastcall: meshes, nodes, frame count, skin), 0044E3B0, 0044DCF0,
+  0044CFF0, 0044E8A0, 0051B2F0, 0051B470, 0068EAF0, 005A6D40, 005164B0, 00508BF0, 00508990;
+  CString Find / Left / Right (006FDBD9 / 006FDAE9 / 006FDA6D; 006FDA6D is `Right`, not `Mid`).
+- Options: 006972A0 / 00697340 / 006973A0 / 006972B0 (registry key), 00698610 / 00698570 (int; two
+  identical copies, each called where the original calls it), 00698750 (float in ST0), 006988A0
+  (string; takes the default CString by value and destroys it), 00700E91 (Find(TCHAR)), 006E80D8
+  (atoi), 006E853C (_ftol, inside a helper).
+- Map database: text manager 004DEFC0 / 004DF030 / 004DFCB0 / 004DF020, 00460720 / 004606F0,
+  004607E0 / 004607B0, 004606A0 / 00460670, 00460500, 006E911A (atof), 006E80D8.
+- Unit record: 005315B0, 00530970, 00531180, 00531220, 00531820, 00530730, 00531070, 00525A00,
+  00525AF0, 006AC970 (patched by Rebirth), 006AD1E0, 006E79A0 (memmove).
+
+### Original behaviour kept
+
+- `LoadFakeUnitScene` passes the scene flags to 00448A40 as a dword minus one whose upper word the
+  original never initialises (ours: 0). Every consumer reads only the low word (MOVSX), which is the
+  same.
+- The scene loader allocates one CMap per material group and never uses them; the skipped records
+  read only their names, keys, normals and morph keys (non-zero point / texture / face / group
+  counts there would desynchronise the file).
+- `LoadFakeUnitScene` builds three CStrings, a CStringArray and a CFileRegistry it never uses.
+- Options: "Joystick" always defaults to 0; "LightingFreq" is read under two subkeys into two
+  fields; the light colours are converted 0..1 <-> 0..255 with a truncating `_ftol`; the camera
+  flips are stored as -1 / 1 floats; "Difficulty Level" goes to both +0x250 and +0x254.
+- Map database: the map index continues from the last map of the earlier file (lines before the
+  first "#zone" go to it), the exit index restarts with every "#zone"; "#allod" reads word 0 of its
+  five following lines even when a line has no words; "#view" / "#deployangle" append a "0" word so
+  an empty line gives 0.
+
+### Skipped
+
+- 0046F1F0 and 00459100: no references in game.exe (searched for absolute addresses and relative
+  calls / jumps), so they never run.
+- The template instantiations listed above (forwarders), and 00446BA0 (CFakeUnit slot 62, a short
+  wrapper).
