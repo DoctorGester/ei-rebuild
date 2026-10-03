@@ -30,3 +30,13 @@ static void __fastcall CreateUnitsVerify(CWorldServer* self, void*, void* player
                       array->size, created, placements != nullptr, player != nullptr);
 }
 EI_VERIFY(0x0058EF20, CreateUnitsVerify, 0, s_unused);
+
+// 0058ECE0: the effect object is created (the world has no fewer objects afterwards).
+static void __fastcall UseQuickItemVerify(CWorldServer* self, void*, void* item, CEngineObject* unit) {
+    std::size_t before = self->objects_.map.Size();
+    self->UseQuickItem(item, unit);
+    std::size_t after = self->objects_.map.Size();
+    ei::verify::Check("CWorldServer::UseQuickItem", true, after >= before, "objects %u -> %u",
+                      static_cast<unsigned>(before), static_cast<unsigned>(after));
+}
+EI_VERIFY(0x0058ECE0, UseQuickItemVerify, 0, s_unused);

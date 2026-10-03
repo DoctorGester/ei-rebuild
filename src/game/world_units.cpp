@@ -429,6 +429,42 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
     if (player) CommandQueueAdd(commandsA_, nullptr, &script, 1);
 }
 
+// ---- UseQuickItem -------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kQuickEffectPrototype = 0x007908D0;   // "st.tr.130"
+constexpr std::uintptr_t kQuickEffectModel = 0x007908C8;       // "unhuma"
+constexpr std::uintptr_t kQuickEffectVtable = 0x0073FA58;      // the base message (0046A5C0) with no members of its own
+constexpr std::size_t kBaseMessageSize = 0x8C;
+constexpr int kQuickEffectType = 9;
+constexpr std::uint32_t kQuickEffectFlags = 0x3010;
+constexpr std::uint32_t kFlagsNewEffect = 0x180000;            // 00529D20
+
+__declspec(naked) void* __fastcall BaseMessageConstruct(void*, void*) EI_ORIGINAL(0x0046A5C0)
+
+} // namespace
+
+void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
+    alignas(4) std::uint8_t message[kBaseMessageSize];
+    BaseMessageConstruct(message, nullptr);
+    At<std::uintptr_t>(message, 0) = kQuickEffectVtable;
+    At<int>(message, 0x48) = kQuickEffectType;
+    At<mfc::CString>(message, 0x54) = reinterpret_cast<const char*>(kQuickEffectPrototype);
+    At<int>(message, 0x18) = -1;
+    At<mfc::CString>(message, 0x70) = reinterpret_cast<const char*>(kQuickEffectModel);
+    At<std::uint32_t>(message, 0x50) = kQuickEffectFlags;
+    At<int>(message, 0x64) = 0;
+    // At the unit's position, on the ground.
+    std::memcpy(message + 0x20, reinterpret_cast<std::uint8_t*>(unit) + 0x1C, 12);
+    At<std::uint32_t>(message, 0x28) = 0;
+    int id = CreateObject(this, nullptr, message);
+    CEngineObject* effect = ei::VCall<CEngineObject*>(this, kSlotFindObject, id);
+    effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
+    MessageDestructBase(message, nullptr);
+}
+
 #pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0058EF20, CWorldServer::CreateUnits);
+EI_REPLACE_METHOD(0x0058ECE0, CWorldServer::UseQuickItem);
