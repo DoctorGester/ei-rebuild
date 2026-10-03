@@ -315,6 +315,9 @@ public:
     // game quest items go to player 0); the gold is added to the player. False for no player, a
     // living owned unit, or nothing to take.
     bool Loot(CEngineObject* object, WorldPlayer* player);
+    // 00593D60. The local player (id 0) loots every dead unit, which is then removed (both
+    // through the global server 007AFF60). Nothing without a local player.
+    void LootDeadUnits();
 
     // world_weather.cpp
     // 0058CCD0. The weather, every 64 ticks: the day-time value (+0x84); in single player rain

@@ -177,4 +177,87 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
     return found;
 }
 
+// ---- LootDeadUnits ----------------------------------------------------------------------------
+
+namespace {
+
+// 005942D0 / 005935C0 (RET 4, patched by Rebirth): called on the global server (007AFF60), not
+// on `this`.
+__declspec(naked) bool __fastcall LootAt(CWorldServer*, void*, CEngineObject*, WorldPlayer*) EI_ORIGINAL(0x005942D0)
+__declspec(naked) void __fastcall RemoveObjectAt(CWorldServer*, void*, unsigned) EI_ORIGINAL(0x005935C0)
+
+// STLport list<unsigned> on the game's node pool (12-byte nodes {next, prev, value}); the
+// constructor (00404A70) allocates the head node, the destructor frees the nodes (00404D10) and
+// the head (00498C40). As in world_tick.cpp.
+class IdList {
+public:
+    struct Node {
+        Node* next;
+        Node* prev;
+        unsigned value;
+    };
+
+    IdList() {
+        head_ = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+        head_->next = head_->prev = head_;
+    }
+    ~IdList() {
+        for (Node* node = head_->next; node != head_;) {
+            Node* next = node->next;
+            stlp::deallocate(node, sizeof(Node));
+            node = next;
+        }
+        head_->next = head_->prev = head_;
+        stlp::deallocate(head_, sizeof(Node));
+    }
+    IdList(const IdList&) = delete;
+    IdList& operator=(const IdList&) = delete;
+
+    // insert(end(), value): 004049D0 creates the node, 00404A40 links it.
+    void PushBack(unsigned value) {
+        auto* node = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+        node->value = value;
+        node->next = head_;
+        node->prev = head_->prev;
+        head_->prev->next = node;
+        head_->prev = node;
+    }
+    Node* Begin() const { return head_->next; }
+    Node* End() const { return head_; }
+
+private:
+    Node* head_;
+};
+
+} // namespace
+
+void CWorldServer::LootDeadUnits() {
+    // The walk starts before the player is looked up; unlike most walks it does not stop at an
+    // empty entry.
+    auto* node = objects_.map.First();
+    CEngineObject* object = node ? node->value : nullptr;
+    WorldPlayer* local = nullptr;
+    {
+        PlayerIterator it;
+        for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next())
+            if (player->id == 0) {
+                local = player;
+                break;
+            }
+    }
+    if (!local) return;
+
+    IdList dead;
+    while (node) {
+        if (object->GetClassId() == world::kClassUnit && ei::VCall<int>(object, kSlotIsDead)) {
+            LootAt(WorldServer(), nullptr, object, local);
+            dead.PushBack(static_cast<unsigned>(object->id_));
+        }
+        node = objects_.map.After(node);
+        object = node ? node->value : nullptr;
+    }
+    for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) RemoveObjectAt(WorldServer(), nullptr, id->value);
+}
+
 EI_REPLACE_METHOD(0x005942D0, CWorldServer::Loot);
+EI_REPLACE_METHOD(0x00593D60, CWorldServer::LootDeadUnits);

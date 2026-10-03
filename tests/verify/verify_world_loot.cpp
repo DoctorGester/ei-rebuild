@@ -1,9 +1,11 @@
-// Checks for CWorldServer::Loot (src/game/world_loot.cpp). Looting moves items into a player's
-// inventory, so only ours runs; afterwards a shared loot record of the object is gone and the
-// player's gold did not decrease.
+// Checks for CWorldServer::Loot and LootDeadUnits (src/game/world_loot.cpp). Looting moves items
+// into a player's inventory, so only ours runs; afterwards a shared loot record of the object is
+// gone and the player's gold did not decrease.
 #include "verify.h"
 
 #include "../../src/game/world.h"
+
+#include "ei/vcall.h"
 
 namespace {
 void* s_unused;
@@ -34,3 +36,24 @@ static bool __fastcall LootVerify(CWorldServer* self, void*, CEngineObject* obje
     return result;
 }
 EI_VERIFY(0x005942D0, LootVerify, 0, s_unused);
+
+namespace {
+int DeadUnits(CWorldServer* world) {
+    int n = 0;
+    for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
+        CEngineObject* object = node->value;
+        if (object && object->GetClassId() == world::kClassUnit && ei::VCall<int>(object, 55)) ++n;
+    }
+    return n;
+}
+} // namespace
+
+// 00593D60: the dead units are removed (through the patched 005935C0), so there are no more of
+// them afterwards than before.
+static void __fastcall LootDeadUnitsVerify(CWorldServer* self, void*) {
+    int before = DeadUnits(self);
+    self->LootDeadUnits();
+    int after = DeadUnits(self);
+    ei::verify::Check("CWorldServer::LootDeadUnits", true, after <= before, "dead units %d -> %d", before, after);
+}
+EI_VERIFY(0x00593D60, LootDeadUnitsVerify, 0, s_unused);
