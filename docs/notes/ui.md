@@ -505,3 +505,133 @@ Cancel (600,550); Save (395,120) -> Esc; Resume (392,333); finally the hero must
 world runs again). Spell, action and quick-item buttons get only mouse moves: a click there starts
 a targeting mode, and the Esc that follows would cancel it instead of opening the menu. Nothing
 saves, loads, quits or starts a movie.
+
+# Large interface functions (second pass over 005E0000-00660000)
+
+Files: `src/game/ui_hud_map.cpp` (minimap), `src/game/ui_hud_frame.cpp` (clock and top panel),
+`src/game/ui_hud_portraits.cpp` (portraits), `src/game/ui_layouts.cpp` (Esc menu, save/load and
+options windows), `COptionsWindow::Update` in `ui_menus.cpp`; wrappers in
+`tests/verify/verify_ui_hud_map.cpp`, `verify_ui_hud_frame.cpp`, `verify_ui_hud_portraits.cpp`,
+`verify_ui_menus.cpp`, `verify_ui_screens.cpp`. Declarations were added to `ui.h` and `ui_screens.h`.
+
+## Rewritten
+
+| Address | Size | Name | Verify |
+|---|---|---|---|
+| 00643DC0 | 4142 | `CHudMap::BuildMarkers` (every frame) | side by side: mesh arrays and renderer fields, byte for byte |
+| 00642E80 | 3897 | `CHudMap::UpdateView` (every frame) | side by side: centre/facing (put back between the runs), needle rotation, clipped polygon, area mesh, bounds quad |
+| 00641080 | 3162 | `CHudPortraits::Update` (every frame) | side by side, slots and the game RNG put back between the runs: slots, RNG, face rotations, bars, flash, marker |
+| 00653DD0 | 1629 | `CSaveLoadWindow::Build` (slot 25) | ours: counts of what is added, selection and offered name |
+| 006503C0 | 1291 | `COptionsWindow::Build` (slot 25) | ours: counts, group titles, flags |
+| 006488E0 | 1095 | `CHudClock::Update` (every frame) | side by side (phases put back): phases, interface field, sprite rotations/positions/tints, hand flag |
+| 0062AE90 | 694 | `CEscMenu::OnLButtonDown` | ours: the window opened on top (vtable, save flag), resume's pending value |
+| 00649FF0 | 453 | `CHudTopPanel::Update` (every frame) | side by side (slide state put back): slide, offset, sling sprite, interface fields |
+| 00650A30 | 446 | `COptionsWindow::Update` | ours: slide rule; settings take the moved bars' positions |
+| 0062AB20 | 361 | `CEscMenu::Build` (slot 25) | ours: one model and five regions added |
+| 00645640 | 159 | `CHudMap::OnWheel` (input slot 12) | side by side: zoom, handled flag, result |
+
+11 functions, about 17.3 KB.
+
+### Minimap (CHudMap)
+
+- Fields: +0x14C/+0x150 the camera's ground point (0079B388), +0x154/+0x158 facing, +0x15C/+0x160
+  world size, +0x164 world units per map texture, +0x168 scale, +0x16C zoom (1 .. +0x170), +0x178/
+  +0x17C the round map's outline (map units), +0x188 the outline clipped to the world (8-byte point
+  array, SetSize 00453100). Scene objects: 0 world-bounds quad, 1 visible-area fan, 2 markers, 10
+  compass needle.
+- The interface sprites are meshes (`CUiMesh`): quads as blocks of four x then four y floats
+  (+0x1C0), 6-byte vertex records (+0x1E0: vertex number, frame), 16-bit indices (+0x200), texture
+  coordinates (+0x210), visible flag (+0x220); 005EA150 hands the arrays to the renderer.
+- Markers: party members and listed units (local view +0x50D8) as arrows (frame 0 party, 1
+  neutral, 2 hostile by both relation masks; unit 0xA2C2A counts as hostile in zone gz20g),
+  marked objects (the manager at 007AF748, list +0xD4) as squares (frame 3), zone exits that lead
+  somewhere as squares (frame 1), other players in multiplayer as diamonds (frame 0). Units with a
+  squared map distance over 0.56 are hidden; other markers use the zoomed place inside 0.6 and
+  otherwise the unzoomed one when it lies on the rim (squared distance at least 0.68, both
+  coordinates within 0.97); hidden entries keep their old positions and get cleared vertex records.
+- UpdateView clips the outline against x >= 0, y >= 0, x <= width, y <= height in place (insert
+  the crossing before the edge's end, then remove the outside points), pads it to a multiple of
+  four with its first point and fans it. The needle angle is FPATAN(-x, -y) of the facing.
+- The wheel zooms by 2.5^(delta/1200) (_CIpow) only over region 0 (the sling button,
+  780..800 x 0..30): RegionAt returns the first region containing the point. Kept.
+
+### Clock, top panel, portraits
+
+- Clock: +0x14C blink phase (wraps at 1), +0x150 dial angle (wraps at pi/6), +0x154 fast speed
+  (copied to CInterface3D +0x94), +0x158 pause highlight. The time of day is (ticks 007AF61C *
+  007AF5D8 + 007AF5D4) mod 24 through _CIfmod (inline asm, as WorldTimeOfDay in script_eval.cpp).
+- Top panel: +0x150 offset (ftol of travel * eased slide), +0x154 travel, +0x158 slide; the sling
+  sprite (object 2) turns over while sliding out. Writes CInterface3D +0x8A (shown) and +0x90 (page).
+- Portraits (`HudPortraitSlot`, 0x78 bytes, now named in ui.h): bars (objects 5i+2/5i+3) by health
+  and mana, the hit flash (5i+5, alpha in +0xD4), the face picture state (00640670: 0 normal, 2 hit
+  for 2 s, 1 for 4 s, 3 mana under a quarter), the face model by the unit's build +0xC8 ("th" under
+  0.2, "fa" over 0.8, else "me"; 005FF460 replaces the scene object, so the rewrite re-reads the
+  object array after it), the face easing (Slerp by 2*dt towards restA*restB) and a random wobble
+  started with probability dt/3 per frame (RNG 007A9D40), then the marker over the selected unit
+  (0079B3C4). Three quaternion products are inlined, each with its own operand order; the rewrite
+  has one function per product. The RNG's double scales (0073C468, 00742760, 0073C508) are not
+  exact powers of two and are read from the exe.
+
+### Builders and the Esc menu click
+
+- Save/load (0x194 bytes) and options (0x418) windows are constructed inline by the Esc menu
+  click (container constructor 00600B20, member vectors 0062B550/0062B570/0062B5E0, CStringArray,
+  vtables 00741388/00741354 and 00741FAC/00741F78) and pushed with 005F7350. The quit box is
+  00634650 ("quit_msg"). Save opens with +0x178 set, load without; both slide in.
+- Builders: textures 005FEF20/005FF0B0, sprites 005FF3C0 + 005E70E0 (rectangle) / 005E7D60
+  (frame), regions with tooltips 005FC730 (by id) / 005FC6B0 (by text), surface 005FCC00, scroll
+  bar 0065AEA0 (RECT by value), model 005FC1F0 ("unmoco1", "escMenu00", "escMenu00labels") turned
+  about x by a global angle (007C81C8 save/load, 007C81A0 options, 007C7FB0 Esc menu).
+- The Esc menu takes its five rectangles from 007C80A8.. (menus.reg) through CopyRect and 0062AC90
+  (SetRect with a RECT by value); the rewrite calls SetRect's original address directly.
+
+## Rebirth
+
+CUiRegion::SetRect (005FC9E0) and AddPoint (005FCA70) are Rebirth-patched, as are 005E70E0,
+005E7D60 and 005E6FA0 (sprite placement): every new caller goes through the original addresses
+(`CUiRegion::CallSetRect`, `CUiMesh::SetRectangle/SetFrame/Place` forwarders).
+
+## Forwarders added (standalone build must replace)
+
+Meshes 005EA210/005EA600/005EA4C0/005EA380/005EA150, 8-byte point array SetSize 00453100,
+sprite placement 005E6FA0/005E70E0/005E7D60, sprite position 005E7010, frame time 00600270 (as a
+free function), panel layout 00649E20, face picture 00640670, scene object replacement 005FF460,
+textures 005FEF20/005FF0B0, sprites 005FF3C0, region tooltips 005FC730/005FC6B0, SetRect
+005FC9E0 (original address), surface and scroll bar constructors 005FCC00/0065AEA0, container
+constructor 00600B20, AddChild 00600D30, member vector constructors 0062B550/0062B570/0062B5E0,
+message box 00634650, window activation 005F7350, model load and parts 005FC1F0/005FC4F0/005FC4C0,
+save list 00655D40, options tables 00651940/00652200/00651600, text lookup 004DEFC0, the game's
+_ftol 006E853C, _CIfmod 006E95AA and _CIpow 006E81A0 (inline asm), FPATAN (naked).
+
+## Original bugs and quirks kept
+
+- The Esc menu click stores the save/options flags through the new window without checking the
+  allocation, and activates a null quit box (FatalError) when that allocation fails.
+- BuildMarkers reads a zone exit's target through a copy of the exit record (CString copy and
+  release); the rewrite reads the target directly (same string).
+- The options window's Build appends the 11 group titles without clearing the array first.
+- Hidden minimap entries keep stale positions; the wheel zooms only over the sling button.
+- Copies the original makes through FLD/FSTP (bar y values written back unchanged) are skipped.
+
+## Harness and scenario
+
+New harness step `wheel <x> <y> <delta>` (WM_MOUSEWHEEL with screen coordinates after a mouse
+move). `tests/scenarios/ui_hud.txt` turns the wheel over the map's sling button (in, then out
+past the limit) and over the map. The every-frame functions (markers, view, clock, portraits, top
+panel) run throughout ui_hud and ui_screens; the Esc menu, save/load and options builders and the
+Esc menu click run in ui_hud's menu walk, the Esc menu build also in ui_screens.
+
+## Mapped, not rewritten
+
+- 0062D350 (6.7 KB) is the global map's Create (slot 25 of 00740B3C): zone and allod pictures,
+  the paths and quests between zones from the player's variables (a hash map copy 00578B70 walked
+  with 004614C0/005E0DB0), exits, the clock text (`save_day`, gtime), weather by island. Only
+  reached through a zone exit, which no scenario takes.
+- 00604C50 (4.5 KB): a briefing/dialogue script step (`#show`, `#hide`, `#phrase`, `#camera`,
+  `#animation`, reward texts `brief_get_*`).
+- 005F1590 (4.9 KB): the camp's skill/item description text drawing.
+- 0064BE80 / 0064CC10 (3.4 KB each): the objectives window's Create and zone page (TAB opens it;
+  zone exits, quests from the player's variables sorted with STLport introsort); good next targets
+  now that the builders' callees have forwarders.
+- 00635250 (2.6 KB): the battle screen's setup (creates the HUD panels; reads the save stream when
+  loading).
