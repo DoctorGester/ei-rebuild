@@ -1,0 +1,63 @@
+# Camp, global map and the battle screen's Create (docs/notes/ui.md, "Camp, global map and
+# battle screen setup"). The camp and the global map are asked for with the harness's "screen"
+# step, as the global map's buttons ask the server for them (a zone exit is not needed).
+reject Script error
+wait 6000
+console thingamabob
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+# The camp (screen 5), as the global map's camp button opens it ("constr.current" 0: no constructor,
+# so the constructor pages 2-6 are not offered and ShowPage falls back to the current page). Do not
+# force "i.onspellconstr"/"i.onitemconstr": without a constructor record the camp's Create gives
+# the constructor strips the list at record+0x40 of a null record, and the original crashes in
+# CUiItemStrip::RebuildList (00621377). Regions 4-10 are pages 0-6 (0060E9E0); 0/1 the previous /
+# next hero, 2/3 turn the hero while held.
+screen 5
+wait 3000
+clickregion 5
+wait 500
+clickregion 6
+wait 500
+clickregion 7
+wait 500
+clickregion 8
+wait 500
+clickregion 9
+wait 500
+clickregion 10
+wait 500
+clickregion 4
+wait 500
+clickregion 1
+wait 300
+clickregion 0
+wait 300
+clickregion 2
+wait 300
+clickregion 3
+wait 300
+# Esc is page 7: the camp closes and the game goes on (the battle screen's Create runs again).
+key esc
+wait 3000
+waitfor 15 IsGreater(HP(GetLeader()),0)
+
+# The global map (screen 4): its Create (0062D350) and every-frame update; regions 0/1 turn it.
+screen 4
+wait 4000
+clickregion 0
+wait 300
+clickregion 1
+wait 300
+moveregion 2
+wait 300
+# Esc opens the escape menu over the map, Esc closes it.
+key esc
+wait 1000
+key esc
+wait 1000
+report
+quit

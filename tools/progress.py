@@ -18,7 +18,11 @@ def main():
     # Library code identified later (STLport/MFC/CRT instantiations named in config/library.csv) is not
     # game code to port: the standalone build links its own runtime.
     library = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'library.csv')))}
-    game -= library
+    # Dead code (config/dead_code.csv: nothing in the exe or Rebirth's binaries reaches it) needs no port.
+    dead = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'dead_code.csv')))}
+    lib_bytes = sum(sizes.get(a, 0) for a in game & library)
+    dead_bytes = sum(sizes.get(a, 0) for a in (game - library) & dead)
+    game -= library | dead
     game_bytes = sum(sizes.get(a, 0) for a in game)
 
     replaced = set()
@@ -33,9 +37,13 @@ def main():
         if m:
             verified.add(int(m.group(1), 16))
 
+    # Only rewrites of counted game code count; hooks on library or dead code are listed separately.
+    other = replaced - game
+    replaced &= game
     rb = sum(sizes.get(a, 0) for a in replaced)
-    print(f'game functions: {len(game)} ({game_bytes:,} bytes)')
-    print(f'rewritten:      {len(replaced)} ({rb:,} bytes, {100 * rb / game_bytes:.2f}% of game code)')
+    print(f'game functions: {len(game)} ({game_bytes:,} bytes; excluded: library {lib_bytes:,}, dead {dead_bytes:,})')
+    print(f'rewritten:      {len(replaced)} ({rb:,} bytes, {100 * rb / game_bytes:.2f}% of game code)'
+          f' + {len(other)} library/dead/other')
     print(f'verified:       {len(verified & replaced)} of them listed in tests/verify/verified.txt')
 
 if __name__ == '__main__':
