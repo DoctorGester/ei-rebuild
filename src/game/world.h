@@ -264,6 +264,13 @@ public:
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
 
+    // world_weather.cpp
+    // 0058CCD0. The weather, every 64 ticks: the day-time value (+0x84); in single player rain
+    // starting / stopping (+0xE4 / +0xE8, 007C2DFC delay), lightning strikes in storms (+0xDC 3),
+    // bolts in the sky while it rains; the day factor (+0x88); every object's slot 57; the
+    // players' "gtime".
+    void UpdateWeather();
+
     // world_quests.cpp
     // 00591800. For every player and the ten mercenary slots ("merc1".."merc10"), sets the
     // briefing variables b.mercN.n1/n2/n3/n8/n9/n10/n11_N (and clears amerc_N) from whether the
