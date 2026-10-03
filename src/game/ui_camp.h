@@ -178,13 +178,22 @@ public:
     // money (or experience on the trade page) and draws them on surface 0; shades the two action
     // buttons by whether they can be pressed.
     void UpdateAction();
+    // 0060F050 (slot 20). Finds what is under the mouse (a page button's help, an item of a
+    // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
+    // the action, draws the children and, on the equipment page, the hero. Returns 1.
+    BOOL Draw(int pass);
 
-    std::uint8_t unknown_148[0x190 - 0x148];
+    std::uint8_t unknown_148[0x164 - 0x148];
+    CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
+    std::uint8_t* hoveredItem_;      // +0x168 the item under the mouse (set by Draw)
+    std::uint8_t unknown_16C[0x190 - 0x16C];
     int page_;                       // +0x190
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // +0x195 the spell constructor's pages are offered
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
-    std::uint8_t unknown_197[0x1B0 - 0x197];
+    std::uint8_t unknown_197[0x1A0 - 0x197];
+    std::uint8_t** heroes_;          // +0x1A0 the party's heroes (data of an array)
+    std::uint8_t unknown_1A4[0x1B0 - 0x1A4];
     int hero_;                       // +0x1B0 the hero shown
     // Item lists (0x70 bytes each, 00661050): the constructors' parts and what they made.
     void* itemParts_[3];             // +0x1B4 (the constructor's +0x3C), +0x1B8, +0x1BC
@@ -216,7 +225,9 @@ public:
     char** pageTitles_;              // +0x244 CStringArray data
     std::uint8_t unknown_248[0x254 - 0x248];
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
-    std::uint8_t unknown_255[0x260 - 0x255];
+    std::uint8_t unknown_255[0x258 - 0x255];
+    std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
+    std::uint8_t unknown_25C[0x260 - 0x25C];
 };
 static_assert(offsetof(CCampPages, page_) == 0x190);
 static_assert(offsetof(CCampPages, hero_) == 0x1B0);

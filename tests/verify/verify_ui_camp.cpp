@@ -191,3 +191,18 @@ static void __fastcall CampUpdateActionVerify(CCampPages* self, void*) {
                       actual.shown);
 }
 EI_VERIFY(0x00611930, CampUpdateActionVerify, 7, s_campUpdateAction);
+
+// --- Camp Draw (0060F050) ----------------------------------------------------------------------------
+
+// Every frame; ours only: returns 1, the page and the hero unchanged, no item found over a page
+// button whose help is shown (the search stops at a help topic).
+static BOOL __fastcall CampDrawVerify(CCampPages* self, void*, int pass) {
+    int page = self->page_, hero = self->hero_;
+    int region = self->RegionAt(*reinterpret_cast<const int*>(0x007C7C50), *reinterpret_cast<const int*>(0x007C7C54));
+    BOOL result = self->Draw(pass);
+    bool alwaysTopic = region == 4 || region == 5 || region == 11;
+    bool ok = result == 1 && self->page_ == page && self->hero_ == hero && !(alwaysTopic && self->hoveredItem_);
+    ei::verify::Check("CCampPages::Draw", true, ok, "page %d region %d item %p", page, region, self->hoveredItem_);
+    return result;
+}
+EI_VERIFY(0x0060F050, CampDrawVerify, 0, s_unused);

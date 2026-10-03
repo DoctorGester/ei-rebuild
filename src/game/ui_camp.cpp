@@ -618,3 +618,97 @@ void CCampPages::UpdateAction() {
     SetShadeOf(sceneObjects_.data_[1], actionShown_);
 }
 EI_REPLACE_METHOD(0x00611930, CCampPages::UpdateAction);
+
+// --- 0060F050: Draw ------------------------------------------------------------------------------
+
+namespace {
+
+// What the statistics under the mouse are (filled by the trade and stats panels, read by the
+// description panel 005F1590): kind (-1 none), index, stats pointer at +0x10, a text.
+struct HoverInfo {
+    int kind = -1;
+    int index = 0;
+    std::uint8_t unknown_08[8] = {};
+    void* stats = nullptr;
+    mfc::CString text;
+};
+static_assert(sizeof(HoverInfo) == 0x18);
+
+struct HoverAt {
+    void TradeInfo(int x, int y, HoverInfo* info);   // 00625690 (trade panel)
+    void StatsInfo(int x, int y, HoverInfo* info);   // 00624CB0 (stats panel)
+    void Describe(HoverInfo* info);                   // 005F1590 (description panel)
+    void DrawHero(int pass, void* hero, std::uint32_t turn, float depth, int flag);   // 005EC300 (the camp)
+};
+__declspec(naked) void HoverAt::TradeInfo(int, int, HoverInfo*) EI_ORIGINAL(0x00625690)
+__declspec(naked) void HoverAt::StatsInfo(int, int, HoverInfo*) EI_ORIGINAL(0x00624CB0)
+__declspec(naked) void HoverAt::Describe(HoverInfo*) EI_ORIGINAL(0x005F1590)
+__declspec(naked) void HoverAt::DrawHero(int, void*, std::uint32_t, float, int) EI_ORIGINAL(0x005EC300)
+
+// A panel's or strip's item under (x, y) (slot 25, +0x64); also gives a help topic.
+std::uint8_t* ItemUnder(void* panel, int x, int y, int* topic) {
+    using Fn = std::uint8_t*(__thiscall*)(void*, int, int, int*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(panel))[25])(panel, x, y, topic);
+}
+
+} // namespace
+
+BOOL CCampPages::Draw(int pass) {
+    int x = *reinterpret_cast<const int*>(0x007C7C50);   // the mouse in screen pixels
+    int y = *reinterpret_cast<const int*>(0x007C7C54);
+    hoveredItem_ = nullptr;
+    int topic = 0;
+    // The page buttons' help topics.
+    switch (RegionAt(x, y)) {
+    case 4: topic = 0x69; break;
+    case 5: topic = 0x6A; break;
+    case 6: if (spellConstructor_) topic = 0x65; break;
+    case 7: if (spellConstructor_ && !noConstructor_) topic = 0x67; break;
+    case 8: if (itemConstructor_) topic = 100; break;
+    case 9: if (itemConstructor_ && !noConstructor_) topic = 0x66; break;
+    case 10: if (itemConstructor_) topic = 0x68; break;
+    case 11: topic = 0x6B; break;
+    default: break;
+    }
+    // The items under the mouse, panel by panel until one is found or a topic is set.
+    auto probe = [&](void* panel) {
+        if (!hoveredItem_ && topic == 0) hoveredItem_ = ItemUnder(panel, x, y, &topic);
+    };
+    probe(equipment_);
+    probe(equipment2_);
+    probe(itemStrip_);
+    if (spellConstructor_) {
+        probe(spellConstructor1_);
+        probe(spellConstructor2_);
+        probe(spellStrip_);
+    }
+    if (itemConstructor_) {
+        probe(itemConstructor1_);
+        probe(itemConstructor2_);
+        probe(itemConstructor3_);
+        probe(partStrip_);
+    }
+
+    if (hoveredItem_) {
+        if (descPanel_) reinterpret_cast<HelpAt*>(descPanel_)->Describe(hoveredItem_);
+    } else if (topic != 0) {
+        if (descPanel_) reinterpret_cast<HelpAt*>(descPanel_)->ShowHelp(topic);
+    } else {
+        // The statistics under the mouse: the trade panel's, else the stats panel's.
+        HoverInfo info;
+        if (trade_->enabled_ == 0 || (reinterpret_cast<HoverAt*>(trade_)->TradeInfo(x, y, &info), info.kind < 0)) {
+            if (statsPanel_->enabled_ != 0) reinterpret_cast<HoverAt*>(statsPanel_)->StatsInfo(x, y, &info);
+        }
+        if (descPanel_) reinterpret_cast<HoverAt*>(descPanel_)->Describe(&info);
+    }
+    UpdateAction();
+    reinterpret_cast<CUiContainer*>(this)->DrawContainer(pass);
+    if (page_ == 0)
+        reinterpret_cast<HoverAt*>(this)->DrawHero(pass, heroes_[hero_], heroTurn_, 400.0f, 1);
+    return 1;
+}
+
+namespace {
+BOOL __fastcall CampDraw(CCampPages* self, void*, int pass) { return self->Draw(pass); }
+} // namespace
+EI_REPLACE(0x0060F050, CampDraw);
