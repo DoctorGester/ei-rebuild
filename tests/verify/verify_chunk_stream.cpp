@@ -153,17 +153,23 @@ std::uintptr_t VtableOf(const Chunk* c) {
 void SetVtable(Chunk* c, const void* vtable) { std::memcpy(&c->vtable_, &vtable, sizeof(vtable)); }
 
 // The chain from a chunk up to its root.
+// With `toFileOwner` the chain ends at the first chunk whose slot 1 is not the base one (0042BF40):
+// that chunk owns the file. Without an owner (a base chunk without parent at the end) it is empty.
+constexpr std::uintptr_t kBaseFileSlot = 0x0042BF40;
+
 struct Chain {
     Chunk* links[kMaxDepth];
     int depth = 0;
-    explicit Chain(Chunk* self) {
+    explicit Chain(Chunk* self, bool toFileOwner = false) {
         for (Chunk* c = self; c; c = c->parent_) {
             if (depth == kMaxDepth) {
                 depth = 0;
                 return;
             }
             links[depth++] = c;
+            if (toFileOwner && reinterpret_cast<std::uintptr_t const*>(VtableOf(c))[1] != kBaseFileSlot) return;
         }
+        if (toFileOwner) depth = 0;
     }
     Chunk* Root() const { return links[depth - 1]; }
 };
@@ -201,7 +207,7 @@ bool g_busy;   // file checks do not nest (ForEachChild runs ours only)
 // replaying one. Returns false when the check could not run (ours has run then).
 template <typename Ours, typename Original>
 bool RunRecorded(const char* name, Chunk* self, Ours ours, Original original) {
-    Chain chain(self);
+    Chain chain(self, true);
     void* file = chain.depth && !g_busy ? ei::VCall<void*>(chain.Root(), 1) : nullptr;
     if (!file) {
         ours();
