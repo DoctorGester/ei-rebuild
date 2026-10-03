@@ -313,6 +313,10 @@ public:
     // hero, in proportion to sqrt(+0x8E0 + +0x1E4) of each hero's controller. Zero (or NaN) does
     // nothing.
     void AwardExperience(WorldPlayer* player, float amount);
+    // 00590C70 (RET 4). Brings the player's party records (+0x70) up to date with its living
+    // units: the player's own items, then every record's quick, worn and belt items and spells
+    // rebuilt from the unit (each item's +0x1C record pointing at its entry) and the statistics.
+    void SyncPartyRecords(WorldPlayer* player);
 
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit

@@ -484,6 +484,146 @@ void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
 
 #pragma float_control(pop)
 
+// ---- SyncPartyRecords -------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kRecordArrayVtable = 0x0073FAA4;   // CArray<record*>
+constexpr std::uintptr_t kItemRecordVtable = 0x0073FA88;
+constexpr int kQuickSlots = 4;
+constexpr int kWornSlots = 7;
+constexpr int kBeltSlots = 4;
+constexpr int kSpellSlots = 8;
+constexpr int kSlotRecordFromItem = 24;   // the party records (WorldPlayer + 0x70): slot 24 (+0x60)
+
+struct RecordArray {
+    void* vtable;
+    std::uint8_t** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+
+__declspec(naked) void __fastcall PartyAddItem(void* /*records*/, void*, void* /*item*/, int, int) EI_ORIGINAL(0x00661DB0)
+__declspec(naked) void __fastcall RecordArraySetAtGrow(RecordArray*, void*, int, std::uint8_t*) EI_ORIGINAL(0x0059D2E0)
+// The unit record's lists: remove the first entry of quick items (00660E10), items (00660A50),
+// spells (00660FF0), worn items (00660C30); add an entry (006608D0, 00660C90, 00660AB0,
+// 00660E70; they return the record entry).
+__declspec(naked) void __fastcall RecordRemoveQuick(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660E10)
+__declspec(naked) void __fastcall RecordRemoveItem(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660A50)
+__declspec(naked) void __fastcall RecordRemoveSpell(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660FF0)
+__declspec(naked) void __fastcall RecordRemoveWorn(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660C30)
+__declspec(naked) std::uint8_t* __fastcall RecordAddQuick(std::uint8_t*, void*, void*) EI_ORIGINAL(0x006608D0)
+__declspec(naked) std::uint8_t* __fastcall RecordAddWorn(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660C90)
+__declspec(naked) std::uint8_t* __fastcall RecordAddBelt(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660AB0)
+__declspec(naked) std::uint8_t* __fastcall RecordAddSpell(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660E70)
+// The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
+__declspec(naked) CEngineObject* __fastcall UnitQuickItem(CEngineObject*, void*, int) EI_ORIGINAL(0x005318B0)
+__declspec(naked) CEngineObject* __fastcall UnitWornItem(CEngineObject*, void*, int) EI_ORIGINAL(0x00530830)
+__declspec(naked) CEngineObject* __fastcall UnitBeltItem(CEngineObject*, void*, int) EI_ORIGINAL(0x00531920)
+__declspec(naked) CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int) EI_ORIGINAL(0x005319A0)
+// 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
+__declspec(naked) void __fastcall ControllerStoreStats(void*, void*, void*) EI_ORIGINAL(0x00553360)
+__declspec(naked) void* __fastcall ItemRecordConstruct(void*, void*) EI_ORIGINAL(0x0058FBB0)
+__declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
+__declspec(naked) void __fastcall RefPtrAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
+__declspec(naked) void __fastcall RefRelease(void*, void*) EI_ORIGINAL(0x0040A3A0)
+
+// The record entry for `item` from the party records, with a reference held across `add`.
+template <typename Add>
+std::uint8_t* AddToRecord(void* records, std::uint8_t* record, CEngineObject* item, Add add) {
+    auto* entry = ei::VCall<CEngineObject*>(records, kSlotRecordFromItem, item);
+    if (entry) ++entry->refCount_;
+    std::uint8_t* added = add(record, nullptr, entry);
+    if (entry) entry->Release();
+    return added;
+}
+
+// A fresh 12-byte item record (+0x08 = the record entry's +0x0C) for the item's +0x1C.
+void* NewItemRecord(bool refValueBase) {
+    void* memory = gamecrt::operator_new(0xC);
+    *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(memory) + 4) = 0;   // before the null test
+    if (!memory) return nullptr;
+    if (!refValueBase) return ItemRecordConstruct(memory, nullptr);
+    RefValueConstruct(memory, nullptr);
+    *static_cast<void**>(memory) = reinterpret_cast<void*>(kItemRecordVtable);
+    return memory;
+}
+
+void SyncRecord(std::uint8_t* records, std::uint8_t* record, CEngineObject* unit) {
+    void* controller = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
+    auto count = [&](int offset) { return *reinterpret_cast<int*>(record + offset); };
+    auto first = [&](int offset) { return **reinterpret_cast<void***>(record + offset); };
+    while (count(0x754)) RecordRemoveQuick(record, nullptr, first(0x750));
+    while (count(0x734)) RecordRemoveItem(record, nullptr, first(0x730));
+    while (count(0x764)) RecordRemoveSpell(record, nullptr, first(0x760));
+    while (count(0x744)) RecordRemoveWorn(record, nullptr, first(0x740));
+
+    for (int slot = 0; slot < kQuickSlots; ++slot) {
+        CEngineObject* item = UnitQuickItem(unit, nullptr, slot);
+        if (!item) continue;
+        std::uint8_t* entry = AddToRecord(records, record, item, RecordAddQuick);
+        void* ref = NewItemRecord(false);
+        *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(ref) + 8) = *reinterpret_cast<std::uint32_t*>(entry + 0xC);
+        RefPtrAssign(reinterpret_cast<std::uint8_t*>(item) + 0x1C, nullptr, ref);
+    }
+    for (int slot = 0; slot < kWornSlots; ++slot) {
+        CEngineObject* item = UnitWornItem(unit, nullptr, slot);
+        if (!item) continue;
+        std::uint8_t* entry = AddToRecord(records, record, item, RecordAddWorn);
+        void* ref = NewItemRecord(true);
+        *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(ref) + 8) = *reinterpret_cast<std::uint32_t*>(entry + 0xC);
+        RefPtrAssign(reinterpret_cast<std::uint8_t*>(item) + 0x1C, nullptr, ref);
+    }
+    for (int slot = 0; slot < kBeltSlots; ++slot) {
+        CEngineObject* item = UnitBeltItem(unit, nullptr, slot);
+        if (!item || *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48) <= 0) continue;
+        auto* entry = ei::VCall<CEngineObject*>(records, kSlotRecordFromItem, item);
+        *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(entry) + 0x48) =
+            *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48);   // before the null test
+        if (entry) ++entry->refCount_;
+        std::uint8_t* added = RecordAddBelt(record, nullptr, entry);
+        if (entry) entry->Release();
+        void* ref = NewItemRecord(true);
+        *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(ref) + 8) = *reinterpret_cast<std::uint32_t*>(added + 0xC);
+        // The counted pointer's assignment, inlined (16-bit count at +4).
+        void*& slotRef = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(item) + 0x1C);
+        void* old = slotRef;
+        slotRef = ref;
+        if (ref) ++*reinterpret_cast<std::int16_t*>(static_cast<std::uint8_t*>(ref) + 4);
+        if (old) RefRelease(old, nullptr);
+    }
+    for (int slot = 0; slot < kSpellSlots; ++slot) {
+        CEngineObject* spell = UnitSpell(unit, nullptr, slot);
+        if (!spell) continue;
+        AddToRecord(records, record, spell, RecordAddSpell);
+    }
+    ControllerStoreStats(controller, nullptr, record + 0x20);
+}
+
+} // namespace
+
+void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
+    std::uint8_t* records = reinterpret_cast<std::uint8_t*>(player) + 0x70;
+    for (auto* node = *reinterpret_cast<mfc::CTypedPtrList<void>::Node**>(reinterpret_cast<std::uint8_t*>(player) + 0xE4);
+         node;) {
+        auto* next = node->next;
+        PartyAddItem(records, nullptr, node->data, 1, 1);
+        node = next;
+    }
+    RecordArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
+    for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrow(&list, nullptr, list.size, player->mercs + i * 0x784);
+    for (int i = 0; i < list.size; ++i) {
+        std::uint8_t* record = list.data[i];
+        CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(record + 0x1C));
+        if (!unit || ei::VCall<int>(unit, kSlotIsDead) != 0) continue;
+        SyncRecord(records, record, unit);
+    }
+    list.vtable = reinterpret_cast<void*>(kRecordArrayVtable);
+    if (list.data) gamecrt::operator_delete(list.data);
+}
+
 EI_REPLACE_METHOD(0x00591800, CWorldServer::UpdateMercBriefings);
+EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);

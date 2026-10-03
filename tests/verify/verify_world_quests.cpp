@@ -55,3 +55,15 @@ static void __fastcall AwardExperienceVerify(CWorldServer* self, void*, WorldPla
     ei::verify::Check("CWorldServer::AwardExperience", true, true, "");
 }
 EI_VERIFY(0x005911C0, AwardExperienceVerify, 0, s_unused);
+
+// 00590C70: the records' list counts stay sane (each list's count not negative).
+static void __fastcall SyncPartyRecordsVerify(CWorldServer* self, void*, WorldPlayer* player) {
+    self->SyncPartyRecords(player);
+    bool ok = true;
+    for (int i = 0; i < player->mercCount && ok; ++i) {
+        std::uint8_t* record = player->mercs + i * 0x784;
+        for (int offset : {0x734, 0x744, 0x754, 0x764}) ok = ok && *reinterpret_cast<int*>(record + offset) >= 0;
+    }
+    ei::verify::Check("CWorldServer::SyncPartyRecords", true, ok, "player %d, %d records", player->id, player->mercCount);
+}
+EI_VERIFY(0x00590C70, SyncPartyRecordsVerify, 0, s_unused);
