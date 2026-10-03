@@ -2792,3 +2792,18 @@ address,name,library,signature,notes
 0059C510,CArray<Placement>::SetAtGrow,MFC,"void __thiscall(int,const Placement&)",instantiation (0x28-byte elements; ConstructElements 004CEE20)
 0059C810,CList<T>::FreeNode,MFC,void __thiscall(node*),instantiation (DestructElements 0059B4B0)
 0059D5F0,CList<T>::NewNode,MFC,"node* __thiscall(node*,node*)",instantiation (ConstructElements 0059E390)
+00573740,"stlp::__introsort_loop<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0
+005756F0,"stlp::__median<Entry,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0
+005759B0,"stlp::__unguarded_partition<Entry*,Entry,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0
+00575BC0,"stlp::__insertion_sort<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0
+00576D40,"stlp::__unguarded_insertion_sort_aux<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0
+005769C0,"stlp::__partial_sort<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0
+00577920,"stlp::__make_heap<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0 (heap sort of __introsort_loop)
+00577360,"stlp::__pop_heap<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0 (heap sort of __introsort_loop)
+00577C10,"stlp::__adjust_heap<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0 (__partial_sort)
+005781A0,"stlp::__pop_heap<Entry*,DepthLess>",STLport,,instantiation over 24-byte draw entries with DepthLess (00573A60 and its manager lookups inlined); called from 00565790 / 005659D0 (__partial_sort)
+00577FC0,"stlp::__make_heap<CEngineObject**,UnitOrderLess>",STLport,,instantiation over CEngineObject* with UnitOrderLess (00574300 inlined); only reached from 005740D0, which is rewritten (world_client_view.cpp)
+00577730,"stlp::__pop_heap<CEngineObject**,UnitOrderLess>",STLport,,instantiation over CEngineObject* with UnitOrderLess (00574300 inlined); only reached from 005740D0, which is rewritten (world_client_view.cpp)
+00575E50,"stlp::vector<string>::_M_range_insert",STLport,,instantiation (12-byte elements; node allocator)
+00587480,"stlp::vector<T>::_M_insert_overflow",STLport,,instantiation (12-byte elements of two CStrings and a dword)
+005993A0,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,instantiation (0x54-byte elements with a vtable; raw Read/Write of the data)
