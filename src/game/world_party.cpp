@@ -278,6 +278,39 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
 
 #pragma float_control(pop)
 
+// ---- CopyItem ---------------------------------------------------------------------------------
+
+namespace {
+
+// 006AD000 (RET 0x10). The item factory (world slot 18) makes an item: type, record index, the
+// two halves of the item's +0x18, -1.
+__declspec(naked) CEngineObject* __fastcall FactoryMakeItem(void*, void*, int, int, int, int) EI_ORIGINAL(0x006AD000)
+// 00599FA0 (RET 4). CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
+__declspec(naked) void __fastcall CountedAddTail(void*, void*, CEngineObject*) EI_ORIGINAL(0x00599FA0)
+
+constexpr int kSlotItemFactory = 18;   // world slot 18 (+0x48)
+constexpr int kSlotManager4C = 22;     // world slot 22 (+0x58)
+constexpr int kSlotItemCopyTo = 15;    // item slot 15 (+0x3C): copies itself into an item
+
+} // namespace
+
+CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
+    // The original also builds and frees two empty CPtrLists (vtable 0073B8D4) here, unused.
+    auto packed = At<std::uint32_t>(item, 0x18);
+    int type = At<int>(item, 0x10);
+    void* factory = ei::VCall<void*>(this, kSlotItemFactory);
+    CEngineObject* copy = FactoryMakeItem(factory, nullptr, type, static_cast<int>(packed >> 16),
+                                          static_cast<int>(packed & 0xFFFF), -1);
+    ei::VCall<void>(item, kSlotItemCopyTo, copy, ei::VCall<void*>(this, kSlotManager4C));
+    At<std::uint32_t>(copy, 0x28) = At<std::uint32_t>(item, 0x28);
+    // An item below its maximum (+0x2C > +0x28) is kept on the counted list (once).
+    float current = At<float>(item, 0x28);
+    float maximum = At<float>(item, 0x2C);
+    if (maximum > current && copy && !counted_.Find(copy)) CountedAddTail(&counted_, nullptr, copy);
+    return copy;
+}
+
+EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
 EI_REPLACE_METHOD(0x005901E0, CWorldServer::TakeZoneQuestItems);
 EI_REPLACE_METHOD(0x00590460, CWorldServer::RestorePlayerItems);
 EI_REPLACE_METHOD(0x00590700, CWorldServer::Redeploy);

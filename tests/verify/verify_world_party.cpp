@@ -70,6 +70,17 @@ static void __fastcall RestorePlayerItemsVerify(CWorldServer* self, void*, World
 }
 EI_VERIFY(0x00590460, RestorePlayerItemsVerify, 0, s_unused);
 
+// 00594CE0: the copy has the item's type (+0x10), record (+0x18) and count (+0x28).
+static CEngineObject* __fastcall CopyItemVerify(CWorldServer* self, void*, CEngineObject* item) {
+    CEngineObject* copy = self->CopyItem(item);
+    auto field = [](CEngineObject* o, int offset) { return *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(o) + offset); };
+    bool ok = copy && field(copy, 0x10) == field(item, 0x10) && field(copy, 0x18) == field(item, 0x18) &&
+              field(copy, 0x28) == field(item, 0x28);
+    ei::verify::Check("CWorldServer::CopyItem", true, ok, "type %u record %08X", field(item, 0x10), field(item, 0x18));
+    return copy;
+}
+EI_VERIFY(0x00594CE0, CopyItemVerify, 0, s_unused);
+
 // 00590700: when the party is deployed (single player or kind 3, with +0x15C) the player's last
 // tick becomes the world's; otherwise it is left alone.
 static void __fastcall RedeployVerify(CWorldServer* self, void*, WorldPlayer* player, void* placements, char runScripts) {

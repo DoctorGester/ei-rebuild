@@ -372,6 +372,10 @@ public:
     // the map centre or along the exit's heading, the player state gets the start; `runScripts`
     // runs the script command queue five times.
     void Redeploy(WorldPlayer* player, void* placements, char runScripts);
+    // 00594CE0 (slot 24, RET 4). A new item like `item`: made by the item factory (slot 18) from
+    // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
+    // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
+    CEngineObject* CopyItem(CEngineObject* item);
 
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
