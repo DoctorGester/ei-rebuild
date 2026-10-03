@@ -141,3 +141,17 @@ static void __fastcall CampShowPageVerify(CCampPages* self, void*, int page) {
                       page, previous, shown, panels, self->itemStrip_->slots_, shades);
 }
 EI_VERIFY(0x0060E9E0, CampShowPageVerify, 0, s_unused);
+
+// --- Camp CanEquip (006100E0) ------------------------------------------------------------------------
+
+// 006100E0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x14; PUSH EBX; PUSH ESI (8 bytes). A predicate: the
+// original and ours side by side, AL compared (the list refresh of page 5 runs in both).
+static bool(__fastcall* s_campCanEquip)(CCampPages*, void*, std::uint8_t*, int);
+static bool __fastcall CampCanEquipVerify(CCampPages* self, void*, std::uint8_t* item, int mode) {
+    bool expected = s_campCanEquip(self, nullptr, item, mode);
+    bool actual = self->CanEquip(item, mode);
+    ei::verify::Check("CCampPages::CanEquip", expected, actual, "page %d mode %d type %x", self->page_, mode,
+                      *reinterpret_cast<const int*>(item + 0x10));
+    return expected;
+}
+EI_VERIFY(0x006100E0, CampCanEquipVerify, 8, s_campCanEquip);

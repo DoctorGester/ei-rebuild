@@ -168,6 +168,11 @@ public:
     // camp does not offer falls back to the current page. Page 7 gives the constructors' unused
     // items back, puts the constructed items into the strips and leaves the camp.
     void ShowPage(int page);
+    // 006100E0 (virtual slot 43). Whether `item` may go where the strip with action `mode` puts
+    // it on the current page: weapons and armour on the equipment page, spells the party can cast,
+    // the parts and spells each constructor accepts (skill and mana of the best hero, at most
+    // eight modifiers, matching blueprints). Returns AL.
+    bool CanEquip(std::uint8_t* item, int mode);
 
     std::uint8_t unknown_148[0x190 - 0x148];
     int page_;                       // +0x190
@@ -195,7 +200,9 @@ public:
     CUiWindow* itemConstructor1_;    // +0x200 (vtable 0074170C)
     CUiWindow* itemConstructor2_;    // +0x204 (vtable 007415D4)
     CUiWindow* itemConstructor3_;    // +0x208 (vtable 00741538)
-    std::uint8_t unknown_20C[0x244 - 0x20C];
+    std::uint8_t unknown_20C[0x214 - 0x20C];
+    std::uint8_t* container_;        // +0x214 the spell container being filled (item constructor), or null
+    std::uint8_t unknown_218[0x244 - 0x218];
     char** pageTitles_;              // +0x244 CStringArray data
     std::uint8_t unknown_248[0x254 - 0x248];
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden

@@ -5,10 +5,14 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+
+#pragma float_control(precise, on)
 
 namespace {
 
@@ -218,3 +222,198 @@ void CCampPages::ShowPage(int page) {
     interface_->ShowHelp(0);
 }
 EI_REPLACE_METHOD(0x0060E9E0, CCampPages::ShowPage);
+
+// --- 006100E0: CanEquip ----------------------------------------------------------------------------
+
+namespace {
+
+// The camp's item predicates (thiscall on the camp, which they do not read; AL).
+struct CampKinds {
+    bool IsSpellContainer(const std::uint8_t* item);   // 005EE0B0
+    bool IsSpell(const std::uint8_t* item);            // 005EE050
+    bool IsModifier(const std::uint8_t* item);         // 005EE080
+    bool IsPart(const std::uint8_t* item);             // 005EE0D0
+    bool IsKindOne(const std::uint8_t* item);          // 005EE110
+    bool IsBlueprint(const std::uint8_t* item);        // 005EE130
+};
+__declspec(naked) bool CampKinds::IsSpellContainer(const std::uint8_t*) EI_ORIGINAL(0x005EE0B0)
+__declspec(naked) bool CampKinds::IsSpell(const std::uint8_t*) EI_ORIGINAL(0x005EE050)
+__declspec(naked) bool CampKinds::IsModifier(const std::uint8_t*) EI_ORIGINAL(0x005EE080)
+__declspec(naked) bool CampKinds::IsPart(const std::uint8_t*) EI_ORIGINAL(0x005EE0D0)
+__declspec(naked) bool CampKinds::IsKindOne(const std::uint8_t*) EI_ORIGINAL(0x005EE110)
+__declspec(naked) bool CampKinds::IsBlueprint(const std::uint8_t*) EI_ORIGINAL(0x005EE130)
+
+// 0068B7C0 (thiscall on the spell): the spell has a cast-flag modifier.
+__declspec(naked) bool __fastcall SpellHasCastFlag(const std::uint8_t*) EI_ORIGINAL(0x0068B7C0)
+
+// The item databases' record tables ({begin, end}): the record `index`, or null past the end
+// (the original then reads through null).
+const std::uint8_t* RecordAt(std::uintptr_t table, std::uint32_t index, int stride) {
+    const std::uint8_t* begin = *reinterpret_cast<std::uint8_t* const*>(table);
+    const std::uint8_t* end = *reinterpret_cast<std::uint8_t* const*>(table + 4);
+    std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(end - begin) / stride);
+    return index < count ? begin + index * stride : nullptr;
+}
+std::uint32_t Index(const std::uint8_t* item) { return *reinterpret_cast<const std::uint32_t*>(item + 0x54); }
+const std::uint8_t* SpellRecord(const std::uint8_t* item) { return RecordAt(0x007C8510, Index(item), 0x84); }
+const std::uint8_t* ModifierRecord(const std::uint8_t* item) { return RecordAt(0x007C8530, Index(item), 0x24); }
+const std::uint8_t* BlueprintRecord(const std::uint8_t* item) { return RecordAt(0x007C86D8, Index(item), 0x50); }
+
+template <typename T>
+T Read(const std::uint8_t* p, int offset) {
+    T v;
+    std::memcpy(&v, p + offset, sizeof(T));
+    return v;
+}
+
+int ItemType(const std::uint8_t* item) { return Read<int>(item, 0x10); }
+
+// An item list's entry `i` (00661050 lists: data at +0x40, count at +0x44).
+std::uint8_t* Entry(void* list, int i) { return static_cast<std::uint8_t*>(static_cast<ItemList*>(list)->first[i]); }
+int CountOf(void* list) { return static_cast<ItemList*>(list)->count; }
+
+double D(float f) { return f; }
+float Store(double v) {
+    volatile float r = static_cast<float>(v);
+    return r;
+}
+__declspec(naked) int __cdecl GameFtol(double) {
+    __asm {
+        fld qword ptr [esp + 4]
+        mov eax, 0x006E853C
+        call eax
+        ret
+    }
+}
+
+} // namespace
+
+bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
+    CampKinds* kinds = reinterpret_cast<CampKinds*>(this);
+    // Slot 45: the party's best skill in a school and most mana units (00610020).
+    using BestFn = void(__thiscall*)(CCampPages*, int, int*, int*);
+    BestFn best = reinterpret_cast<BestFn>(vtable_[45]);
+    switch (page_) {
+    case 0: {   // equipment: weapons, armour, spell containers (worn-out ones not to a hero)
+        int type = ItemType(item);
+        if ((type == 0x3004 || type == 0x3005) && x87::fistp(Read<float>(item, 0x20)) <= 0 && mode == 1) return false;
+        return type == 0x3004 || type == 0x3005 || type == 0x3006;
+    }
+    case 1: {   // trade: a spell container only for a hero who can cast its spell
+        if (mode != 1) return true;
+        if (!kinds->IsSpellContainer(item)) return false;
+        char* spell = Read<char*>(item, 0x44);
+        using HeroFn = char*(__thiscall*)(CCampPages*);
+        char* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);   // +0xCC
+        return HeroCanUseSpell(hero + 0x20, spell);
+    }
+    case 2:     // the spell constructor
+        return kinds->IsSpellContainer(item) || kinds->IsSpell(item) || kinds->IsModifier(item);
+    case 3: {   // the spell being built: a container, one spell, up to eight modifiers
+        if (mode != 1 && mode != 2) return mode == 6;
+        if (kinds->IsSpellContainer(item)) return CountOf(spellResults_) <= 0;
+        if (kinds->IsSpell(item)) {
+            if (CountOf(spellResults_) > 0) return false;
+            const std::uint8_t* record = SpellRecord(item);
+            int skill = 0, mana = 0;
+            best(this, Read<int>(record, 0x14), &skill, &mana);
+            if (mana < GameFtol(D(Read<float>(record, 0x18)))) return false;
+            return skill >= Read<int>(record, 0x44);
+        }
+        if (!kinds->IsModifier(item)) return false;
+        int modifiers = 0, skillSum = 0;
+        float manaSum = 0.0f;
+        bool hasSpell = false;
+        int school = 0;
+        for (int i = 0; i < CountOf(spellResults_); ++i) {
+            if (kinds->IsSpellContainer(Entry(spellResults_, i))) return false;
+            if (kinds->IsSpell(Entry(spellResults_, i))) {
+                hasSpell = true;
+                const std::uint8_t* record = SpellRecord(Entry(spellResults_, i));
+                skillSum += Read<int>(record, 0x44);
+                school = Read<int>(record, 0x14);
+                manaSum = Store(D(manaSum) + D(Read<float>(record, 0x18)));
+                // The modifier must suit the spell (its kind +0xC, flags at +0x78 of the spell).
+                std::uint32_t kind = Read<std::uint32_t>(ModifierRecord(item), 0x0C);
+                if (kind < 5 && record[0x78 + kind] == 0) return false;
+            } else if (kinds->IsModifier(Entry(spellResults_, i))) {
+                ++modifiers;
+                const std::uint8_t* modifier = ModifierRecord(Entry(spellResults_, i));
+                manaSum = Store(D(manaSum) + D(Read<float>(modifier, 0x10)));
+                skillSum += Read<int>(modifier, 0x18);
+            }
+        }
+        if (!hasSpell || modifiers >= 8) return false;
+        const std::uint8_t* modifier = ModifierRecord(item);
+        float manaTotal = Store(D(manaSum) + D(Read<float>(modifier, 0x10)));
+        int skillTotal = skillSum + Read<int>(modifier, 0x18);
+        int skill = 0, mana = 0;
+        best(this, school, &skill, &mana);
+        if (skill < skillTotal) return false;
+        return mana >= GameFtol(D(manaTotal));
+    }
+    case 4:     // the item constructor: anything but quest items and magic
+        if (ItemType(item) == 0x3009) return false;
+        if (kinds->IsSpellContainer(item) || kinds->IsSpell(item)) return false;
+        return !kinds->IsModifier(item);
+    case 5: {   // the item being built: a blueprint, its parts, a container's spell
+        if (mode != 1 && mode != 3) return mode == 7;
+        if (kinds->IsPart(item) || kinds->IsBlueprint(item)) return CountOf(itemResults_) <= 0;
+        if (kinds->IsKindOne(item)) {
+            using SlotFn = void(__thiscall*)(void*);
+            void** listVtable = *static_cast<void***>(itemResults_);
+            reinterpret_cast<SlotFn>(listVtable[18])(itemResults_);   // +0x48
+            listVtable = *static_cast<void***>(itemResults_);
+            reinterpret_cast<SlotFn>(listVtable[22])(itemResults_);   // +0x58
+            std::uint32_t kindOnes = 0;
+            const std::uint8_t* part = nullptr;
+            const std::uint8_t* firstKindOne = nullptr;
+            if (CountOf(itemResults_) <= 0) return false;
+            for (int i = 0; i < CountOf(itemResults_); ++i) {
+                if (kinds->IsBlueprint(Entry(itemResults_, i))) return false;
+                if (kinds->IsPart(Entry(itemResults_, i))) {
+                    const std::uint8_t* entry = Entry(itemResults_, i);
+                    switch (Read<int>(entry, 0x50)) {
+                    case 0: part = RecordAt(0x007C86F8, Index(entry), 0xB4); break;
+                    case 1: part = RecordAt(0x007C8718, Index(entry), 200); break;
+                    case 2: part = RecordAt(0x007C8738, Index(entry), 0x8C); break;
+                    default: break;
+                    }
+                } else if (kinds->IsKindOne(Entry(itemResults_, i))) {
+                    ++kindOnes;
+                    if (!firstKindOne) firstKindOne = BlueprintRecord(Entry(itemResults_, i));
+                }
+            }
+            if (!part) return false;
+            const std::uint8_t* own = BlueprintRecord(item);
+            if (firstKindOne) return own == firstKindOne && kindOnes < Read<std::uint32_t>(part, 0x4C);
+            return gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(own, 0x04)) == 0;
+        }
+        if (!kinds->IsSpellContainer(item)) return false;
+        if (!container_) return false;
+        std::uint8_t* spell = Read<std::uint8_t*>(item, 0x44);
+        if (!spell) return false;
+        if (ItemType(container_) != 0x3006 && !SpellHasCastFlag(spell)) return false;
+        if (Read<std::uint32_t>(spell, 0x50) > Read<std::uint32_t>(container_, 0x40)) return false;
+        // FCOMPP / TEST AH,1: the container's +0x2C below the spell's +0x40 (or unordered) fails.
+        float need = Read<float>(spell, 0x40);
+        float room = Read<float>(container_, 0x2C);
+        if (!(room >= need)) return false;
+        for (int i = 0; i < CountOf(itemResults_); ++i)
+            if (kinds->IsSpellContainer(Entry(itemResults_, i))) return false;
+        return true;
+    }
+    case 6: {   // repair: worn weapons and armour
+        int type = ItemType(item);
+        if (type != 0x3004 && type != 0x3005) return false;
+        return Read<float>(item, 0x24) > Read<float>(item, 0x20);
+    }
+    default:
+        return false;
+    }
+}
+
+namespace {
+bool __fastcall CampCanEquip(CCampPages* self, void*, std::uint8_t* item, int mode) { return self->CanEquip(item, mode); }
+} // namespace
+EI_REPLACE(0x006100E0, CampCanEquip);
