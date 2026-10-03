@@ -1595,3 +1595,178 @@ void CParticleSource::TickShower(ParticleElement* e) {
     }
 }
 EI_REPLACE_METHOD(0x0048F380, CParticleSource::TickShower);
+
+// --- Bag (0x203C): eighty coloured balls bouncing around the carrier ------------------------------
+//
+// Each element is a ball: +0x00 position, +0x0C its last step, +0x18 velocity, +0x30 its age
+// (indexing the size table 007A9BFC and, for the first three, the colour table 0073CBA4),
+// +0x34 the ticks until it is thrown again (-13: no carrier, the ball is gone).
+
+namespace {
+
+#define EI_BAG_SHRINK GameFloat(0x0073CF40)          // 0.93 per age
+#define EI_BAG_SPREAD_LOW GameFloat(0x0073CF44)      // -0.2
+#define EI_BAG_SPREAD_HIGH GameFloat(0x0073BAD4)     // 0.2
+#define EI_BAG_SPARK_SIZE GameFloat(0x0073B850)      // 0.1
+#define EI_BAG_BALL_SIZE GameFloat(0x0073CD18)       // 0.15
+#define EI_BAG_KICK GameFloat(0x0073C52C)            // 0.05
+
+float* BagSizes() { return reinterpret_cast<float*>(0x007A9BFC); }     // 12 entries
+const std::int32_t* BagColours() { return reinterpret_cast<const std::int32_t*>(0x0073CBA4); }   // r, g, b
+const std::int32_t* BagAlpha() { return reinterpret_cast<const std::int32_t*>(0x0073CC34); }
+constexpr int kBagGone = -13;
+
+std::uint32_t BagRgb(int kind) {
+    const std::int32_t* c = BagColours() + kind * 3;
+    return ((static_cast<std::uint32_t>(c[0]) << 8 | static_cast<std::uint32_t>(c[1])) << 8) | static_cast<std::uint32_t>(c[2]);
+}
+
+// A random value of the throw box (+-0.2 of the size... from -0.2 * size to 0.2 * size).
+double BagSpread(const CParticleSource* s, float& low, float& high) {
+    high = Store(D(s->size) * D(EI_BAG_SPREAD_HIGH));
+    low = Store(D(s->size) * D(EI_BAG_SPREAD_LOW));
+    return Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1;
+}
+
+} // namespace
+
+// 00493560. Bag: the first 80 particles are the balls (state = their index; the first one fills the
+// size table: 0.93 to the power of the age); later ones are sparks along a random ball's last step,
+// in the ball's colour.
+int CParticleSource::EmitBag(Particle* p, int index) {
+    if (particles.count < 80) {
+        if (index == 0) {
+            double t = D(EI_P_ONE);
+            for (int k = 0; k < 12; ++k) {
+                BagSizes()[k] = Store(t);
+                t = t * D(EI_BAG_SHRINK);
+            }
+        }
+        std::uint32_t r = Next();
+        p->state = particles.count;
+        p->color = 0xFFFFFF;
+        p->life = 15;
+        p->frame = static_cast<int>(r & 3);
+        std::memcpy(&p->pos, &origin, sizeof(Vector3));
+        SetBits(&p->size, 0);
+        return 1;
+    }
+    const ParticleElement& ball = elements[Next() % 80];
+    int age = *reinterpret_cast<const std::int32_t*>(reinterpret_cast<const std::uint8_t*>(&ball) + 0x30);
+    p->color = BagRgb(age);
+    int life = ball.ticks + 1;
+    if (life > 5) life = 5;
+    p->life = life;
+    p->frame = 4;
+    p->state = -1;
+    double u = Unsigned(Next()) * EI_P_SCALE_1 - D(EI_P_ONE);
+    const float* step = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&ball) + 0x0C);
+    float ax = Store(u * D(step[0]));
+    float ay = Store(u * D(step[1]));
+    double az = u * D(step[2]);
+    double px = D(ax) + D(ball.pos.x);
+    float py = Store(D(ay) + D(ball.pos.y));
+    float pz = Store(az + D(ball.pos.z));
+    SetBits(&p->size, 0x3F800000);
+    p->pos.y = py;
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    p->size = Store(D(BagSizes()[age]) * D(size) * D(EI_BAG_SPARK_SIZE));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00493560, CParticleSource::EmitBag);
+
+// 00493770. Bag: a spark fades by its life and steps a frame; a ball follows its element (dropped
+// once the ball is gone), cycles 4 frames, takes the colour and size of its age, and while the
+// ball rests (no last step) its previous position is pinned to the current one.
+int CParticleSource::UpdateBag(Particle* p) {
+    int state = p->state;
+    if (state < 0) {
+        int life = --p->life;
+        if (life <= 0) return 0;
+        ++p->frame;
+        p->color = (static_cast<std::uint32_t>(BagAlpha()[life]) << 24) + (p->color & 0xFFFFFF);
+        return 1;
+    }
+    ParticleElement* ball = &elements[state];
+    if (ball->ticks == kBagGone) return 0;
+    p->frame = (p->frame + 1) & 3;
+    std::memcpy(&p->pos, &ball->pos, sizeof(Vector3));
+    SetBits(&p->size, 0x3F800000);
+    int age = *ElementInt(ball, 0x30);
+    p->size = Store(D(BagSizes()[age]) * D(size) * D(EI_BAG_BALL_SIZE));
+    int fade = p->life > 9 ? 9 : p->life;
+    p->color = (static_cast<std::uint32_t>(BagAlpha()[fade]) << 24) | BagRgb(age);
+    const float* step = ElementFloat(ball, 0x0C);
+    auto isZero = [](float f) { return f == 0.0f || x87::IsNaN(f); };
+    if (isZero(step[0]) && isZero(step[1]) && isZero(step[2])) {
+        std::memcpy(&p->prevPos, &p->pos, sizeof(Vector3) + sizeof(float));
+        p->prevColor = p->color;
+        p->size = Store(D(size) * D(EI_BAG_BALL_SIZE));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00493770, CParticleSource::UpdateBag);
+
+// 004938C0. Bag balls: when a ball's countdown runs out it is thrown again from the source (a
+// random kind 0-2, a random offset, a random velocity of 0.2 size) and rests 7-9 ticks; while
+// flying it ages, now and then gets a random kick, and moves (its step is kept). Without a
+// carrier the ball is gone.
+void CParticleSource::TickBag(ParticleElement* e) {
+    if (--e->ticks < 0) {
+        if (!attachedTo) {
+            e->ticks = kBagGone;
+            return;
+        }
+        *ElementInt(e, 0x30) = static_cast<int>(Next() % 3);
+        std::memcpy(&e->pos, &origin, sizeof(Vector3));
+        float low, high;
+        double r = BagSpread(this, low, high);
+        e->pos.x = Store(r + D(e->pos.x) + D(low));
+        r = BagSpread(this, low, high);
+        e->pos.y = Store(r + D(low) + D(e->pos.y));
+        r = BagSpread(this, low, high);
+        e->pos.z = Store(r + D(e->pos.z) + D(low));
+        float x, y, z;
+        RandomInBallZYX(x, y, z);
+        Vector3 v;
+        v.Construct(x, y, z);
+        double scale = D(size);
+        float sx = Store(D(v.x) * scale);
+        float sy = Store(D(v.y) * scale);
+        Vector3 velocity;
+        velocity.Construct(Store(D(sx) * D(EI_BAG_SPREAD_HIGH)), Store(D(sy) * D(EI_BAG_SPREAD_HIGH)),
+                           Store(scale * D(v.z) * D(EI_BAG_SPREAD_HIGH)));
+        std::memcpy(ElementFloat(e, 0x18), &velocity, sizeof(Vector3));
+        e->ticks = static_cast<int>(Next() % 3) + 7;
+        std::memset(ElementFloat(e, 0x0C), 0, sizeof(Vector3));
+        return;
+    }
+    ++*ElementInt(e, 0x30);
+    if (Next() % 6 == 0) {
+        float x, y, z;
+        for (int tries = 10;;) {
+            x = Store(Range(-1.0f, 1.0f));
+            y = Store(Range(-1.0f, 1.0f));
+            z = Store(Range(-1.0f, 1.0f));
+            double lengthSquared = D(y) * D(y) + D(x) * D(x) + D(z) * D(z);
+            if (!(lengthSquared >= D(EI_P_ONE))) break;
+            if (!(--tries > 0)) break;
+        }
+        Vector3 v;
+        v.Construct(x, y, z);
+        double scale = D(size);
+        Vector3 w;
+        w.Construct(Store(D(v.x) * scale), Store(D(v.y) * scale), Store(D(v.z) * scale));
+        Vector3 kick;
+        kick.Construct(Store(D(w.x) * D(EI_BAG_KICK)), Store(D(w.y) * D(EI_BAG_KICK)), Store(D(w.z) * D(EI_BAG_KICK)));
+        float* velocity = ElementFloat(e, 0x18);
+        velocity[0] = Store(D(kick.x) + D(velocity[0]));
+        velocity[1] = Store(D(kick.y) + D(velocity[1]));
+        velocity[2] = Store(D(kick.z) + D(velocity[2]));
+    }
+    const Vector3& velocity = *reinterpret_cast<const Vector3*>(ElementFloat(e, 0x18));
+    e->pos.AddInPlace(velocity);
+    std::memcpy(ElementFloat(e, 0x0C), &velocity, sizeof(Vector3));
+}
+EI_REPLACE_METHOD(0x004938C0, CParticleSource::TickBag);

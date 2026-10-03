@@ -135,3 +135,14 @@ static void __fastcall TickShowerVerify(CParticleSource* self, void*, ParticleEl
                    [](CParticleSource* s, ParticleElement* x) { s->CParticleSource::TickShower(x); }, s_TickShower);
 }
 EI_VERIFY(0x0048F380, TickShowerVerify, 7, s_TickShower);
+
+// 00493560: SUB ESP,0xC; PUSH EBP; MOV EBP,ECX (6); its first call fills the size table 007A9BFC,
+// which the state compare does not see (the elements and particles that use it do).
+// 00493770: MOV EDX,[ESP+4]; PUSH ESI; MOV EAX,[EDX+0x54] (8). 004938C0: SUB ESP,0x30; PUSH EBX;
+// PUSH EBP; PUSH ESI (6).
+EI_EMIT_WRAPPER(EmitBag)
+EI_VERIFY(0x00493560, EmitBagVerify, 6, s_EmitBag);
+EI_UPDATE_WRAPPER(UpdateBag)
+EI_VERIFY(0x00493770, UpdateBagVerify, 8, s_UpdateBag);
+EI_ELEMENT_WRAPPER(TickBag)
+EI_VERIFY(0x004938C0, TickBagVerify, 6, s_TickBag);

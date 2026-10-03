@@ -169,6 +169,9 @@ public:
     int EmitShower(Particle* p, int index);         // 0048EEA0 (0x200F, 0x2031-0x2033)
     int UpdateShower(Particle* p);                  // 0048F300
     void TickShower(ParticleElement* e);            // 0048F380
+    int EmitBag(Particle* p, int index);            // 00493560 (Bag, 0x203C)
+    int UpdateBag(Particle* p);                     // 00493770
+    void TickBag(ParticleElement* e);               // 004938C0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
