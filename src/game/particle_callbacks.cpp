@@ -2959,3 +2959,60 @@ int CParticleSource::UpdateAcidRay(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x0048D330, CParticleSource::UpdateAcidRay);
+
+// --- Sparks (0x2043) emission; the update is UpdateSparks (particle_emitters.cpp) ----------------
+
+// 00494A10. Sparks: the first particle marks the source (state 1); after it the source stops
+// emitting and each further one is a spark flying in a random direction (a random point of the
+// unit ball, normalised) with a random speed (squared) and a random part of its first step done.
+int CParticleSource::EmitSparks(Particle* p, int) {
+    if (particles.count == 0) {
+        p->color = 0xFFFFFFFF;
+        std::memcpy(&p->pos, &origin, sizeof(Vector3));
+        SetBits(&p->size, 0);
+        p->frame = 0;
+        p->state = 1;
+        return 1;
+    }
+    flags_ &= ~1u;
+    p->color = 0xFFFFFFFF;
+    float speed = Store(Unsigned(Next()) * GameDouble(0x0073CE10) + D(GameFloat(0x0073CCA8)));
+    float x, y, z;
+    double lengthSquared;
+    for (int tries = 10;;) {
+        x = SignedUnit();
+        y = Store(Range(-1.0f, 1.0f));
+        double zu = Range(-1.0f, 1.0f);
+        z = Store(zu);
+        lengthSquared = zu * D(z) + D(y) * D(y) + D(x) * D(x);
+        if (!(lengthSquared >= D(EI_P_ONE))) break;
+        if (!(--tries > 0)) break;
+    }
+    float length = Store(x87::fsqrt(lengthSquared));
+    Vector3 v;
+    v.Construct(x, y, z);
+    Vector3 direction;
+    DivideVector(&direction, v, length);
+    double k = D(speed) * D(size) * D(speed) * D(GameFloat(0x0073BAD4));
+    p->drift.x = Store(D(direction.x) * k);
+    p->drift.y = Store(D(direction.y) * k);
+    p->drift.z = Store(D(direction.z) * k);
+    double t = Unsigned(Next()) * EI_P_SCALE_1;
+    float a = Store(t * D(p->drift.x));
+    float b = Store(t * D(p->drift.y));
+    double c = t * D(p->drift.z);
+    double px = D(a) + D(origin.x);
+    float py = Store(D(b) + D(origin.y));
+    float pz = Store(c + D(origin.z));
+    SetBits(&p->size, 0x3F800000);
+    p->pos.y = py;
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    p->size = Store((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
+                    D(GameFloat(0x0073BAD4)));
+    p->life = 6;
+    p->state = 0;
+    p->frame = static_cast<int>(Next() % 3) + 1;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00494A10, CParticleSource::EmitSparks);

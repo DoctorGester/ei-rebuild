@@ -221,3 +221,7 @@ EI_EMIT_WRAPPER(EmitAcidRay)
 EI_VERIFY(0x0048D050, EmitAcidRayVerify, 6, s_EmitAcidRay);
 EI_UPDATE_WRAPPER(UpdateAcidRay)
 EI_VERIFY(0x0048D330, UpdateAcidRayVerify, 7, s_UpdateAcidRay);
+
+// 00494A10: SUB ESP,0x28; PUSH EBP; PUSH ESI; MOV ESI,ECX (7).
+EI_EMIT_WRAPPER(EmitSparks)
+EI_VERIFY(0x00494A10, EmitSparksVerify, 7, s_EmitSparks);
