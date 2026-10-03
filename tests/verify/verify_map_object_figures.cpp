@@ -7,6 +7,7 @@
 #include "verify.h"
 
 #include "../../src/game/map_object_figures.h"
+#include "../../src/game/map_object_shadow.h"
 
 #include <bit>
 #include <cstring>
@@ -103,3 +104,14 @@ static void __fastcall SetSizeVerify(AlignedPtrArray* self, void*, int size, int
     ei::verify::Check("AlignedPtrArray::SetSize", true, ok, "size %d", size);
 }
 EI_VERIFY(0x00519D70, SetSizeVerify, 0, s_unused);
+
+// --- The shadow (map_object_shadow.cpp) ---------------------------------------------------------
+
+// 0051CE60. Ours only (renders into textures and draws): returns 1 (the failure paths end in a
+// fatal error).
+static int __fastcall DrawShadowVerify(CObject3DClientSpecific* self, void*, ShadowDrawContext* context) {
+    int result = self->DrawShadow(context);
+    ei::verify::Check("CObject3DClientSpecific::DrawShadow", 1, result, "flags %X", self->flags_);
+    return result;
+}
+EI_VERIFY(0x0051CE60, DrawShadowVerify, 0, s_unused);
