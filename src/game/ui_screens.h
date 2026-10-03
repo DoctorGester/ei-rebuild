@@ -280,6 +280,12 @@ public:
     void OnKeyDown(int key, int repeat, int flags);   // 0062B300
     // 0062ACC0. Virtual slot 27: a message box this menu opened was closed with `result`.
     void OnMessageResult(int result);
+    // 0062AB20 (slot 25, the menu's Create): the stone model and the five regions, whose
+    // rectangles come from menus.reg (007C80A8..007C80E8; ui_layouts.cpp).
+    void Build();
+    // 0062AE90 (input slot 2): opens the save window (region 0), the load window (1; neither in
+    // multiplayer), resumes (2), asks to quit (3) or opens the options (4) (ui_layouts.cpp).
+    void OnLButtonDown(int buttons, int x, int y);
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];

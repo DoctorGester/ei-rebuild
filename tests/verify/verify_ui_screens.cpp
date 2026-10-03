@@ -6,6 +6,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui_screens.h"
+#include "../../src/game/world.h"
 
 #include <cstring>
 
@@ -337,6 +338,47 @@ static void __fastcall EscKeyDownVerify(void* input, void*, int key, int repeat,
         ei::verify::Check("CEscMenu::OnKeyDown", true, true, "");
 }
 EI_VERIFY(0x0062B300, EscKeyDownVerify, 0, s_unused);
+
+// The menu's Create (ui_layouts.cpp), ours only: one model and the five regions are added, the
+// window covers the layout.
+static void __fastcall EscBuildVerify(CEscMenu* self, void*) {
+    int models = self->window.models_.size_;
+    int regions = self->window.regions_.size_;
+    self->CEscMenu::Build();
+    bool ok = self->window.models_.size_ == models + 1 && self->window.regions_.size_ == regions + 5 &&
+              self->window.rect_.right == 800 && self->window.rect_.bottom == 600;
+    ei::verify::Check("CEscMenu::Build", true, ok, "models %d->%d regions %d->%d", models,
+                      self->window.models_.size_, regions, self->window.regions_.size_);
+}
+EI_VERIFY(0x0062AB20, EscBuildVerify, 0, s_unused);
+
+// The menu's clicks (ui_layouts.cpp), ours only: the window the region opens is on top of the
+// interface afterwards (save/load 00741388 with the save flag, options 00741FAC, the quit box
+// 00742348), resume leaves pending value 0, other points open nothing.
+static void __fastcall EscLButtonDownVerify(void* input, void*, int buttons, int x, int y) {
+    auto* self = WindowFromInput<CEscMenu>(input);
+    CInterface3D* ui = self->window.interface_;
+    int region = self->window.RegionAt(x, y);
+    bool multiplayer = IsMultiplayerClient() != 0;
+    CUiWindow* top = ui->GetActiveWindow();
+    self->CEscMenu::OnLButtonDown(buttons, x, y);
+    CUiWindow* now = ui->GetActiveWindow();
+    auto vtableOf = [](CUiWindow* w) { return w ? reinterpret_cast<std::uintptr_t>(w->vtable_) : 0u; };
+    bool ok;
+    if ((region == 0 || region == 1) && !multiplayer)
+        ok = now != top && vtableOf(now) == 0x00741388 &&
+             reinterpret_cast<CSaveLoadWindow*>(now)->isSave_ == (region == 0);
+    else if (region == 2)
+        ok = ui->pendingFlag_ && ui->pendingValue_ == 0;
+    else if (region == 3)
+        ok = now != top && vtableOf(now) == 0x00742348;
+    else if (region == 4)
+        ok = now != top && vtableOf(now) == 0x00741FAC;
+    else
+        ok = now == top;
+    ei::verify::Check("CEscMenu::OnLButtonDown", true, ok, "(%d,%d) region %d top %p->%p", x, y, region, top, now);
+}
+EI_VERIFY(0x0062AE90, EscLButtonDownVerify, 0, s_unused);
 
 static void __fastcall EscMessageVerify(CEscMenu* self, void*, int result) {
     CInterface3D* ui = self->window.interface_;

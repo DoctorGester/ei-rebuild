@@ -182,6 +182,82 @@ static const char* __fastcall OptionsHelpTopicVerify(COptionsWindow* self, void*
 }
 EI_VERIFY(0x00650900, OptionsHelpTopicVerify, 6, s_optionsHelpTopic);
 
+// Ours only (it applies volumes and gamma): the slide as for the save/load window, and every
+// setting whose scroll bar moved takes the bar's position (the bar's moved flag is consumed).
+static void __fastcall OptionsUpdateVerify(COptionsWindow* self, void*) {
+    bool sliding = self->sliding_;
+    float slide = self->slide_;
+    bool moved[26];
+    for (int i = 0; i < 26; ++i) moved[i] = self->settings_[i].bar_ && self->settings_[i].bar_->moved_;
+    self->COptionsWindow::Update();
+    bool ok = sliding ? self->slide_ >= slide && (self->sliding_ || self->slide_ > 1.0f) : !self->sliding_;
+    int bad = -1;
+    for (int i = 0; i < 26 && bad < 0; ++i) {
+        CUiScrollbar* bar = self->settings_[i].bar_;
+        if (!bar) continue;
+        if (bar->moved_ || (moved[i] && self->settings_[i].value_ != bar->position_)) bad = i;
+    }
+    ok = ok && bad < 0;
+    ei::verify::Check("COptionsWindow::Update", true, ok, "sliding %d slide %g->%g setting %d", sliding, slide,
+                      self->slide_, bad);
+}
+EI_VERIFY(0x00650A30, OptionsUpdateVerify, 0, s_unused);
+
+// --- Layout builders (ui_layouts.cpp): ours only; what they add is counted ------------------------
+
+namespace {
+struct WindowCounts {
+    int objects, sceneObjects, surfaces, regions, models, children;
+};
+WindowCounts CountsOf(CUiContainer* w) {
+    return WindowCounts{w->objects_.size_, w->sceneObjects_.size_, w->surfaces_.size_, w->regions_.size_,
+                        w->models_.size_, w->children_.size_};
+}
+bool HasChild(CUiContainer* w, CUiWindow* child) {
+    for (int i = 0; i < w->children_.size_; ++i)
+        if (w->children_.data_[i] == child) return true;
+    return false;
+}
+} // namespace
+
+// The save/load window: 2 textures (and the screenshot FillEntries may take), 11 sprites, 1 surface, 19 regions (3 buttons, 16 rows), the
+// model, the scroll bar as a child; the selection and the offered name as the original sets them.
+static void __fastcall SaveLoadBuildVerify(CSaveLoadWindow* self, void*) {
+    WindowCounts before = CountsOf(self);
+    self->CSaveLoadWindow::Build();
+    WindowCounts after = CountsOf(self);
+    int count = self->EntryCount();
+    bool ok = after.objects >= before.objects + 2 && after.sceneObjects == before.sceneObjects + 11 &&
+              after.surfaces == before.surfaces + 1 && after.regions == before.regions + 19 &&
+              after.models == before.models + 1 && self->scrollbar_ && HasChild(self, self->scrollbar_) &&
+              self->rect_.right == 800 && self->rect_.bottom == 600;
+    if (self->isSave_)
+        ok = ok && self->selected_ == 0 &&
+             (count == 0 || self->cursor_ == static_cast<int>(std::strlen(self->name_)));
+    else
+        ok = ok && self->selected_ == (count ? 0 : -1);
+    ei::verify::Check("CSaveLoadWindow::Build", true, ok, "save %d entries %d regions %d->%d sprites %d->%d",
+                      self->isSave_, count, before.regions, after.regions, before.sceneObjects, after.sceneObjects);
+}
+EI_VERIFY(0x00653DD0, SaveLoadBuildVerify, 0, s_unused);
+
+// The options window: 16 sprites, 27 regions (OK, cancel, 11 groups, 14 rows), 1 surface, the
+// model, 11 more group titles; the key wait and the display flag cleared.
+static void __fastcall OptionsBuildVerify(COptionsWindow* self, void*) {
+    WindowCounts before = CountsOf(self);
+    int titles = *reinterpret_cast<const int*>(self->groupNames_ + 8);   // CStringArray size
+    self->COptionsWindow::Build();
+    WindowCounts after = CountsOf(self);
+    int titlesAfter = *reinterpret_cast<const int*>(self->groupNames_ + 8);
+    bool ok = after.objects >= before.objects + 2 && after.sceneObjects == before.sceneObjects + 16 &&
+              after.surfaces == before.surfaces + 1 && after.regions == before.regions + 27 &&
+              after.models == before.models + 1 && titlesAfter == titles + 11 && !self->waitingForKey_ &&
+              !self->displayModeChanged_ && self->rect_.right == 800 && self->rect_.bottom == 600;
+    ei::verify::Check("COptionsWindow::Build", true, ok, "regions %d->%d sprites %d->%d titles %d->%d",
+                      before.regions, after.regions, before.sceneObjects, after.sceneObjects, titles, titlesAfter);
+}
+EI_VERIFY(0x006503C0, OptionsBuildVerify, 0, s_unused);
+
 // --- Scroll bar --------------------------------------------------------------------------------------
 
 // 0065B090: MOV EDX,[ESP+4]; MOV EAX,[ECX+0x150] (10 bytes). The original on the real object,

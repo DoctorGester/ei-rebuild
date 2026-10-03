@@ -317,6 +317,71 @@ const char* COptionsWindow::HelpTopic() {
     return waitingForKey_ ? nullptr : reinterpret_cast<const char*>(0x00794848);
 }
 
+// The settings the window applies while it is open (their ids, the first int of the definition).
+namespace {
+constexpr int kSettingVolumeA = 0;     // \ volumes, applied at once
+constexpr int kSettingVolumeB = 1;     //  |
+constexpr int kSettingVolumeC = 2;     // /
+constexpr int kSettingGammaFirst = 14; // the display's three gamma values (settings 14-16)
+constexpr int kSettingGammaLast = 16;
+constexpr int kSettingCount = 26;
+constexpr float kGammaScale = 0.02f;   // 00742B80: value * 0.02 - 1
+constexpr float kSlideSeconds = 0.5f;  // 00742B74
+} // namespace
+
+#pragma float_control(precise, on, push)
+namespace {
+float StoreRounded(double v) {
+    volatile float r = static_cast<float>(v);
+    return r;
+}
+} // namespace
+
+void COptionsWindow::Update() {
+    UpdateBase();
+    if (sliding_) {
+        double slide = FrameTime() / kSlideSeconds + static_cast<double>(slide_);
+        slide_ = StoreRounded(slide);
+        if (slide > 1.0f) {
+            sliding_ = false;
+            interface_->ShowHelp(0);
+        }
+    }
+    for (int i = 0; i < kSettingCount; ++i) {
+        int value;
+        if (settings_[i].bar_ && settings_[i].bar_->TakePosition(&value)) {
+            settings_[i].value_ = value;
+            unsigned id = static_cast<unsigned>(*settings_[i].definition_);
+            if (id == kSettingVolumeA) {
+                Global<UiSoundSystem*>(0x007AF784)->SetVolumeA(value);
+            } else if (id == kSettingVolumeB) {
+                Global<UiSoundSystem*>(0x007AF784)->SetVolumeB(value);
+            } else if (id == kSettingVolumeC) {
+                Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(value);
+            } else if (id >= kSettingGammaFirst && id <= kSettingGammaLast) {
+                const OptionSetting* gamma = settings_ + kSettingGammaFirst;
+                float r = StoreRounded(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
+                float g = StoreRounded(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
+                float b = StoreRounded(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
+                UiDisplaySettings* display = DisplaySettings();
+                using Fn = void(__thiscall*)(UiDisplaySettings*, float, float, float);
+                reinterpret_cast<Fn>(display->vtable_[22])(display, r, g, b);
+            }
+        }
+        if (settings_[i].spin_ && settings_[i].spin_->GetValue(&value)) {
+            settings_[i].value_ = value;
+            int id = *settings_[i].definition_;
+            if (id >= 7) {
+                if (id <= 9)
+                    displayModeChanged_ = true;
+                else if (id == 0x18)   // the sound system's +0x8A4 switch
+                    *reinterpret_cast<int*>(Global<std::uint8_t*>(0x007AF784) + 0x8A4) = value != 0;
+            }
+        }
+    }
+}
+#pragma float_control(pop)
+
 namespace {
 void __fastcall OptionsMouseDown(void* input, void*, int buttons, int x, int y) {
     FromInput<COptionsWindow>(input)->OnMouseDown(buttons, x, y);
@@ -338,6 +403,7 @@ EI_REPLACE(0x00650920, OptionsDraw);
 EI_REPLACE(0x00650A20, OptionsRedraw);
 EI_REPLACE(0x006508E0, OptionsDialogResult);
 EI_REPLACE(0x00650900, OptionsHelpTopic);
+EI_REPLACE_METHOD(0x00650A30, COptionsWindow::Update);
 
 // --- Scroll bar --------------------------------------------------------------------------------
 
