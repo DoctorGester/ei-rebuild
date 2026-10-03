@@ -25,3 +25,14 @@ static int __fastcall LoadMapVerify(CWorldServer* self, void*, const char* map, 
     return result;
 }
 EI_VERIFY(0x00595C70, LoadMapVerify, 0, s_unused);
+
+// 0058B250: afterwards the id maps, the missile and counted lists are empty.
+static void __fastcall ResetZoneVerify(CWorldServer* self, void*) {
+    self->ResetZone();
+    bool ok = self->objects_.map.Size() == 0 && self->mapObjects_.map.Size() == 0 && self->timedObjects_.map.Size() == 0 &&
+              self->updateMap_.map.Size() == 0 && !self->projectiles_.list.head && self->projectiles_.list.count == 0 &&
+              !self->counted_.head && self->counted_.count == 0 && self->exitCount_ == 0 && self->mobFiles_.size == 0;
+    ei::verify::Check("CWorldServer::ResetZone", true, ok, "objects %u timed %u", static_cast<unsigned>(self->objects_.map.Size()),
+                      static_cast<unsigned>(self->timedObjects_.map.Size()));
+}
+EI_VERIFY(0x0058B250, ResetZoneVerify, 0, s_unused);

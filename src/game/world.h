@@ -272,6 +272,10 @@ public:
     // zones start, 005951A0). From a save the loaded objects are cleared again (the save holds
     // them). Returns 1, 0 when the map or the objects cannot be loaded.
     int LoadMap(const char* map, const char* mob, void* graph, char fromSave);
+    // 0058B250. Empties the world of the current zone: shared objects, .mob files, countdowns,
+    // exits, command queues, missiles, counted objects, the players' zone data, every object
+    // (slot 5 then the maps), timed objects, the zone names and three managers.
+    void ResetZone();
 
     // world_update.cpp
     // 0058DFF0, vtable slot 6. One world update: drops disconnected players and lets the others'

@@ -138,4 +138,90 @@ int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fr
     return 1;
 }
 
+// ---- ResetZone --------------------------------------------------------------------------------
+
+namespace {
+
+// 0059DDE0 (RET 4) / 0059DD90 (RET 4). Destructors of a shared-object element and of a missile's
+// counted pointer (flags 0: in place).
+__declspec(naked) void* __fastcall SharedObjectDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DDE0)
+__declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
+// 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
+__declspec(naked) void __stdcall CountedRangeRelease(void*, int) EI_ORIGINAL(0x0059C890)
+__declspec(naked) void __fastcall StringArraySetSize(void*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
+__declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
+__declspec(naked) void __fastcall PlayerClear(WorldPlayer*, void*) EI_ORIGINAL(0x00665200)
+// 0047B670. The object map's clear (every object id hash map; nodes freed).
+__declspec(naked) void __fastcall ObjectMapClear(void*, void*) EI_ORIGINAL(0x0047B670)
+// 0059D6D0. The other id maps' clear.
+__declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D0)
+// 00404410. A manager's clear.
+__declspec(naked) void __fastcall ManagerClear(CEngineObject*, void*) EI_ORIGINAL(0x00404410)
+
+constexpr int kSlotObjectEnd = 5;
+
+template <typename T>
+void FreeListBlocks(mfc::CTypedPtrList<T>& list) {
+    list.count = 0;
+    list.free = nullptr;
+    list.tail = nullptr;
+    list.head = nullptr;
+    mfc::PlexFreeDataChain(list.blocks);
+    list.blocks = nullptr;
+}
+
+void ClearMissilePointers(CWorldServer* world) {
+    auto& list = world->projectiles_.list;
+    for (auto* node = list.head; node; node = node->next) MissilePtrDestruct(&node->data, nullptr, 0);
+    FreeListBlocks(list);
+}
+
+} // namespace
+
+void CWorldServer::ResetZone() {
+    auto& shared = *reinterpret_cast<mfc::CTypedPtrList<void>*>(reinterpret_cast<std::uint8_t*>(this) + 0x12E60);
+    for (auto* node = shared.head; node; node = node->next) SharedObjectDestruct(&node->data, nullptr, 0);
+    FreeListBlocks(shared);
+    StringArraySetSize(&mobFiles_, nullptr, 0, -1);
+    CountdownsClear(countdowns_, nullptr);
+    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->SetSize(0, -1);
+    CommandQueueReset(commandsA_, nullptr);
+    CommandQueueReset(commandsB_, nullptr);
+    ClearMissilePointers(this);
+    for (auto* node = counted_.head; node; node = node->next) CountedRangeRelease(&node->data, 1);
+    FreeListBlocks(counted_);
+
+    if (ei::VCall<CEngineObject*>(this, 20)) {
+        auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
+        if (it) it->list = nullptr;
+        for (WorldPlayer* player = it->First(ei::VCall<CEngineObject*>(this, 20)); player; player = it->Next())
+            PlayerClear(player, nullptr);
+        if (it) {
+            if (it->list) {
+                --it->list->refCount_;
+                it->list = nullptr;
+            }
+            gamecrt::operator_delete(it);
+        }
+    }
+
+    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
+        ei::VCall<void>(node->value, kSlotObjectEnd);
+    ObjectMapClear(&objects_, nullptr);
+    ObjectIdMap* const maps[] = {reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(this) + 0x12D88),
+                                 &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
+    for (ObjectIdMap* map : maps) {
+        IdMapClear(map, nullptr);
+        map->maxId = 0;
+    }
+    ClearMissilePointers(this);
+    EndTimedObjects(this);
+    *reinterpret_cast<mfc::CString*>(&mobName_) = EmptyText();
+    *reinterpret_cast<mfc::CString*>(&zoneName_) = EmptyText();
+    if (manager3C_) ManagerClear(manager3C_, nullptr);
+    if (manager40_) ManagerClear(manager40_, nullptr);
+    if (manager44_) ManagerClear(manager44_, nullptr);
+}
+
 EI_REPLACE_METHOD(0x00595C70, CWorldServer::LoadMap);
+EI_REPLACE_METHOD(0x0058B250, CWorldServer::ResetZone);
