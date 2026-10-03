@@ -74,7 +74,7 @@ with the original's branch-free select (NaN kept).
 | Address | Name | Verification |
 |---|---|---|
 | 0050F1C0 | CMapObject::Update (slot 6, per tick) | ours only: returns 1 (the companion's update is verified on its own) |
-| 00515820 | CMapObjectServer::Update (slot 6, per tick) | ours only: the effect list must end as predicted (every count - 1, the ones at 0 removed, order kept) |
+| 00515820 | CMapObjectServer::Update (slot 6, per tick) | when no effect runs out (the common case: it only counts down): ours, effect records and tracked bytes restored, original; compared. Otherwise ours only: the effect list must end as predicted (every count - 1, the ones at 0 removed, order kept) |
 | 00510890 | CMapObjectClientSpecific::Update (slot 6, per tick) | ours only: positive effect counts - 1, stench timers - 1 (16 after going negative), others unchanged, a shown light unchanged or at the object + (0, 0, 2) |
 | 0050F5B0 | CMapObject::ClearEffects | ours only: no array, count and capacity 0, part 3 changed, dirty |
 | 0050F690 | CMapObject::EffectValue | pure (float bits) |
@@ -161,6 +161,29 @@ CMapObject and let CUnit inherit them (CUnit should then derive from CMapObject;
   the perks database (0051F340-00522000).
 - Trivial bodies too short for the 5-byte jump (`MOV AL,1; RET`, `RET`, `XOR EAX,EAX; RET`, FLD
   constant; RET).
+
+## Rebirth combat report (all 18 in tests/verify/disabled.txt)
+
+With these hooked, combat.txt's goblin fight was lost in 2 of 5 Rebirth runs (13 of 13 won
+without them). Reviewed again against the disassembly without finding a divergence:
+- Precision: no rewrite rounds a value the original keeps in ST0. EffectValue only loads stored
+  floats (exact at any precision); GroundPoint/PlaceOnGround keep the ground height unrounded
+  (VCall<double>, no spill); RecomputeScale's 0.4 product is exact and the sums are stored to float
+  where the original stores; the client's light code only feeds a zero test and float stores.
+- Slot 33's argument: every receiver reads only the byte (005533B0 `MOV AL,[EBP+8]`; the base
+  controller's slot 19 00533BD0 and the map object base 0050E960 ignore it).
+- Rebirth: addon.dll / EI_Plugin.asi reference none of the 18 bodies except EffectValue, called
+  through a plain thiscall helper whose result is stored to a float; their patch-address tables
+  hit neighbours (AddEffect, Create, net state, client particles/sounds), not these functions. No
+  game.exe jump lands inside the 5 bytes the hooks overwrite.
+- TakeHit (slot 20) has no caller in the combat path; crippling (00525070) does not use the effect
+  list.
+To get evidence instead of a consistency check, CMapObjectServer::Update now runs both versions
+differentially on every tick in which no effect runs out. Suggested bisection: re-enable the pure
+and differential ones first (EffectValue, GetPosition/GetPosition2, GroundPoint, PlaceOnGround,
+ResetScale, the flag getters, SetServerData, SetData, CMapObjectServer::Update), then the
+ours-only ones (CMapObject::Update, ClearEffects, AttachCompanion, TakeHit, RecomputeScale,
+CMapObjectClientSpecific::Update).
 
 ## Risks
 

@@ -85,10 +85,15 @@ static int __fastcall UpdateVerify(CMapObject* self) {
 }
 EI_VERIFY(0x0050F1C0, UpdateVerify, 0, s_unusedUpdate);
 
-// 00515820. Ours only (counts the effects down). The list must end as the old one with every
+// 00515820: SUB ESP,8; PUSH EBP; PUSH ESI (5 bytes). When no effect runs out, the update only
+// counts down (no calls besides 00688530), so both versions run: ours, the effect records and the
+// owner's tracked bytes saved, restored, the original; compared. When an effect runs out (slots
+// with side effects are called) only ours runs, and the list must end as the old one with every
 // count one lower and the effects that reached 0 removed, in order.
-static void* s_unusedServerUpdate;
-static int __fastcall ServerUpdateVerify(CMapObjectServer* self) {
+static int(__fastcall* s_serverUpdate)(CMapObjectServer*);
+
+// Ours only, checked against the predicted list.
+static int ServerUpdateOursOnly(CMapObjectServer* self) {
     CMapObject* owner = OwnerOf(self);
     int before = owner->effectCount;
     bool checked = before >= 0 && before <= kMaxEffects;
@@ -111,7 +116,34 @@ static int __fastcall ServerUpdateVerify(CMapObjectServer* self) {
                       owner->id_, before, owner->effectCount, expectedCount, result);
     return result;
 }
-EI_VERIFY(0x00515820, ServerUpdateVerify, 0, s_unusedServerUpdate);
+
+static int __fastcall ServerUpdateVerify(CMapObjectServer* self) {
+    CMapObject* owner = OwnerOf(self);
+    int count = owner->effectCount;
+    bool expires = count < 0 || count > kMaxEffects;
+    for (int i = 0; i < count && !expires; ++i) expires = owner->effects[i].ticksLeft <= 1;
+    if (expires) return ServerUpdateOursOnly(self);
+
+    MapEffect before[kMaxEffects];
+    MapEffect after[kMaxEffects];
+    std::size_t bytes = static_cast<std::size_t>(count) * sizeof(MapEffect);
+    if (bytes) std::memcpy(before, owner->effects, bytes);
+    int result = SameWrites<int>(
+        "CMapObjectServer::Update", owner->id_, owner, kTrackedSize, nullptr, 0, true,
+        [&] {
+            int r = self->Update();
+            if (bytes) {
+                std::memcpy(after, owner->effects, bytes);
+                std::memcpy(owner->effects, before, bytes);
+            }
+            return r;
+        },
+        [&] { return s_serverUpdate(self); });
+    bool same = !bytes || std::memcmp(after, owner->effects, bytes) == 0;
+    ei::verify::Check("CMapObjectServer::Update (effects)", true, same, "object %d: %d effects", owner->id_, count);
+    return result;
+}
+EI_VERIFY(0x00515820, ServerUpdateVerify, 5, s_serverUpdate);
 
 // 00510890. Ours only (sounds, random numbers). Every positive effect count is one lower, each
 // stench timer one lower (16 after it went negative), and a shown light is either where it was
