@@ -23,16 +23,38 @@ void FreeAligned(void* p) {
 
 __declspec(naked) void __stdcall OriginalDestroyRecords(SectorVertex*, int) EI_ORIGINAL(0x006C4EE0)
 
+// A private copy of an array block; `count` / `capacity` in elements of `elementSize` bytes.
 template <typename T>
-T* CopyBlock(const T* src, int count, int capacity) {
+T* CopyBlock(const T* src, int count, int capacity, std::size_t elementSize) {
     if (!src) return nullptr;
-    T* p = static_cast<T*>(gamecrt::operator_new(capacity * sizeof(T) + 1));
-    std::memcpy(p, src, count * sizeof(T));
+    T* p = static_cast<T*>(gamecrt::operator_new(capacity * elementSize + 1));
+    std::memcpy(p, src, count * elementSize);
     return p;
 }
 
+char g_detail[160];
+
+// First differing dword in [offset, offset + size) of two objects, as "+off ours=X original=Y".
+const char* DiffDword(const char* what, const void* a, const void* b, std::size_t offset, std::size_t size) {
+    for (std::size_t o = offset; o + 4 <= offset + size; o += 4) {
+        std::uint32_t x, y;
+        std::memcpy(&x, static_cast<const char*>(a) + o, 4);
+        std::memcpy(&y, static_cast<const char*>(b) + o, 4);
+        if (x != y) {
+            float fx, fy;
+            std::memcpy(&fx, &x, 4);
+            std::memcpy(&fy, &y, 4);
+            std::snprintf(g_detail, sizeof(g_detail), "%s +0x%X ours=%08X (%g) original=%08X (%g)", what,
+                          static_cast<unsigned>(o), x, fx, y, fy);
+            return g_detail;
+        }
+    }
+    std::snprintf(g_detail, sizeof(g_detail), "%s (bytes)", what);
+    return g_detail;
+}
+
 void Report(const char* name, bool ok, const char* what, const SectorData* s) {
-    char detail[160];
+    char detail[256];
     std::snprintf(detail, sizeof(detail), "%s (sector %d,%d)", what, s->sx, s->sy);
     ei::verify::Report(name, ok, ok ? "" : detail);
 }
@@ -63,19 +85,25 @@ long long EntryKey(const SectorData* s, const TileVertex* p) {
 
 const char* CompareBuild(const SectorData* a, const SectorData* b, bool lists) {
     // a = ours (real), b = the original's (scratch)
-    if (std::memcmp(reinterpret_cast<const char*>(a) + 4, reinterpret_cast<const char*>(b) + 4, 0x15C - 4)) return "scalars / boxes";
+    if (std::memcmp(reinterpret_cast<const char*>(a) + 4, reinterpret_cast<const char*>(b) + 4, 0x15C - 4))
+        return DiffDword("sector field", a, b, 4, 0x15C - 4);
     if (a->unknown_170 != b->unknown_170 || a->unknown_174 != b->unknown_174 || a->unknown_178 != b->unknown_178) return "+0x170";
     if (a->waterMaterials.size != b->waterMaterials.size ||
         (a->waterMaterials.size && std::memcmp(a->waterMaterials.data, b->waterMaterials.data, a->waterMaterials.size)))
         return "water materials";
-    if (a->vertices.size != b->vertices.size || std::memcmp(a->vertices.data, b->vertices.data, a->vertices.size * 12)) return "vertices";
+    if (a->vertices.size != b->vertices.size) return "vertex count";
+    if (std::memcmp(a->vertices.data, b->vertices.data, a->vertices.size * 12))
+        return DiffDword("vertices", a->vertices.data, b->vertices.data, 0, a->vertices.size * 12);
     if (a->records.size != b->records.size) return "record count";
     for (int i = 0; i < a->records.size; ++i) {
         const SectorVertex& ra = a->records.data[i];
         const SectorVertex& rb = b->records.data[i];
         const char* pa = reinterpret_cast<const char*>(&ra);
         const char* pb = reinterpret_cast<const char*>(&rb);
-        if (std::memcmp(pa + 0x19, pb + 0x19, 0x37 - 0x19) || std::memcmp(pa + 0x43, pb + 0x43, 0x50 - 0x43)) return "record";
+        if (std::memcmp(pa + 0x19, pb + 0x19, 0x37 - 0x19) || std::memcmp(pa + 0x43, pb + 0x43, 0x50 - 0x43)) {
+            std::snprintf(g_detail, sizeof(g_detail), "record %d", i);
+            return DiffDword(g_detail, pa, pb, 0x19, 0x37 - 0x19);
+        }
         if (lists) {
             const LightRef* la = ra.lights;
             const LightRef* lb = rb.lights;
@@ -113,7 +141,7 @@ const char* CompareBuild(const SectorData* a, const SectorData* b, bool lists) {
         if (EntryKey(a, x.vertices) != EntryKey(b, y.vertices)) return "animated tile";
         if (std::memcmp(&x.rotation, &y.rotation, 0x14)) return "animated fields";
     }
-    if (std::memcmp(&a->lastUsed, &b->lastUsed, 0x394 - 0x384)) return "+0x384";
+    if (std::memcmp(&a->lastUsed, &b->lastUsed, 0x394 - 0x384)) return DiffDword("sector field", a, b, 0x384, 0x10);
     return nullptr;
 }
 
@@ -129,8 +157,9 @@ static void __fastcall BuildVerify(SectorData* s, void*) {
     bool freshRecords = s->records.data == nullptr;
     auto* scratch = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
     std::memcpy(scratch, s, sizeof(SectorData));
-    scratch->vertices.data = CopyBlock(s->vertices.data, s->vertices.size, s->vertices.capacity);
-    scratch->waterMaterials.data = CopyBlock(s->waterMaterials.data, s->waterMaterials.size, s->waterMaterials.capacity);
+    // The vertex array's size and capacity count (x, y, z) vertices of 12 bytes.
+    scratch->vertices.data = CopyBlock(s->vertices.data, s->vertices.size, s->vertices.capacity, 12);
+    scratch->waterMaterials.data = CopyBlock(s->waterMaterials.data, s->waterMaterials.size, s->waterMaterials.capacity, 1);
     scratch->records.data = nullptr;
     scratch->records.size = scratch->records.capacity = 0;
     for (InlineArray<int>* a : {&scratch->tileTextures, &scratch->classCounts}) {
