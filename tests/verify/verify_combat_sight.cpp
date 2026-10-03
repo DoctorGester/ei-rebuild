@@ -64,8 +64,9 @@ EI_VERIFY(0x0054C2F0, CanActFromVerify, 6, s_canAct);
 
 // 0054CA40: PUSH EBP; MOV EBP,ESP; PUSH -1 (5 bytes).
 static bool __fastcall PlanActionVerify(CUnitServer* self, void*, const UnitAction* order, OrderPlan* plan) {
-    OrderPlan scratch;
+    OrderPlan scratch, beforePlan;
     CopyPlan(&scratch, plan);
+    CopyPlan(&beforePlan, plan);
     RandomState before, afterOurs, afterOriginal;
     before.Save();
     bool actual = self->PlanAction(order, plan);
@@ -75,17 +76,31 @@ static bool __fastcall PlanActionVerify(CUnitServer* self, void*, const UnitActi
     afterOriginal.Save();
     int diff = PlanDifference(&scratch, plan);
     bool same = expected == actual && diff < 0 && afterOurs.SameAs(afterOriginal);
-    std::uint32_t was = 0, now = 0;
-    if (diff >= 0 && diff < static_cast<int>(sizeof(OrderPlan))) {
-        int at = diff & ~3;
-        std::memcpy(&was, reinterpret_cast<const char*>(&scratch) + at, 4);
-        std::memcpy(&now, reinterpret_cast<const char*>(plan) + at, 4);
+    if (same) {
+        ei::verify::Check("CUnitServer::PlanAction", true, true, "");
+    } else {
+        // What ours saw; then ours once more from the original's starting state: a rerun that
+        // agrees with the original means the first run changed state the second one read.
+        PlanTrace trace = LastPlanTrace();
+        OrderPlan again;
+        CopyPlan(&again, &beforePlan);
+        before.Restore();
+        bool rerun = self->PlanAction(order, &again);
+        afterOriginal.Restore();
+        int at = scratch.startTime - trace.now;
+        const PlanTrace::Tick* t = at >= 0 && at < 64 ? &trace.at[at] : nullptr;
+        ei::verify::Check("CUnitServer::PlanAction", true, false,
+                          "u%d k%d %d/%d +0x%X start %d/%d rerun %d/%d now %d dur %d n %d pr %d hd %.8g ts %.8g "
+                          "r2 %.8g o2 %.8g t%d d2 %.8g turn %.8g q %d p%d%s",
+                          UnitId(self), order->kind, expected, actual, diff, scratch.startTime, plan->startTime, rerun,
+                          again.startTime, trace.now, trace.duration, trace.ticks, trace.predict, trace.heading,
+                          trace.turnSpeed, trace.reachSq, trace.outerSq, at, t ? t->distanceSq : 0.0f,
+                          t ? t->turn : 0.0f, t ? t->turnTicks : 0, t ? t->path : 0,
+                          afterOurs.SameAs(afterOriginal) ? "" : " rnd");
+        FreeSteps(&again.animation);
     }
-    ei::verify::Check("CUnitServer::PlanAction", true, same,
-                      "unit %d kind %d: %d vs %d, plan difference at +0x%X (original %08X / %d, ours %08X / %d)%s",
-                      UnitId(self), order->kind, expected, actual, diff, was, static_cast<int>(was), now,
-                      static_cast<int>(now), afterOurs.SameAs(afterOriginal) ? "" : ", random state differs");
     FreeSteps(&scratch.animation);
+    FreeSteps(&beforePlan.animation);
     return expected;
 }
 EI_VERIFY(0x0054CA40, PlanActionVerify, 5, s_plan);
