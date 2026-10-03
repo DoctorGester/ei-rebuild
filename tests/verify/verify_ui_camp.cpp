@@ -275,6 +275,23 @@ static void __fastcall EquipBuildVerify(CHeroEquipPanel* self, void*, int body) 
 }
 EI_VERIFY(0x00622000, EquipBuildVerify, 0, s_unused);
 
+// --- Statistics panel Build (00622DB0) ------------------------------------------------------------
+
+// Ours only: 2 regions, 1 surface, 12 sprites, 8 more texts; the rectangle and the two fields.
+static void __fastcall StatsBuildVerify(CHeroStatsPanel* self, void*) {
+    Counts before = CountsOf(self);
+    int texts = *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self) + 0x164);
+    self->Build();
+    Counts after = CountsOf(self);
+    int textsAfter = *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self) + 0x164);
+    bool ok = after.regions == before.regions + 2 && after.surfaces == before.surfaces + 1 &&
+              after.sceneObjects == before.sceneObjects + 12 && textsAfter == texts + 8 && self->rect_.top == 100 &&
+              self->rect_.bottom == 400 && self->unknown_174_ == -1 && self->unknown_178_ == 0;
+    ei::verify::Check("CHeroStatsPanel::Build", true, ok, "regions %d->%d sprites %d->%d texts %d->%d",
+                      before.regions, after.regions, before.sceneObjects, after.sceneObjects, texts, textsAfter);
+}
+EI_VERIFY(0x00622DB0, StatsBuildVerify, 0, s_unused);
+
 // --- Global map Update (0062F050) --------------------------------------------------------------------
 
 // Every frame; it draws the weather (whose animation advances with each call), so ours run alone:

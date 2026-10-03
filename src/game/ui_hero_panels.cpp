@@ -6,14 +6,17 @@
 // operation order is kept and NaN compares stay as written. Constants are read from memory.
 #include "ui_camp.h"
 
+#include "console.h"
 #include "item_db_text.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 
 #pragma float_control(precise, on)
 
@@ -393,3 +396,39 @@ namespace {
 void __fastcall EquipBuild(CHeroEquipPanel* self, void*, int body) { self->Build(static_cast<std::uint8_t>(body) != 0); }
 } // namespace
 EI_REPLACE(0x00622000, EquipBuild);
+
+// --- 00622DB0: the statistics panel's Build (slot 18) ---------------------------------------------
+
+void CHeroStatsPanel::Build() {
+    rect_ = RECT{0, 100, 200, 400};
+    AddRect(this, RECT{0, 0x7D, 0x1E, 0x91});      // previous hero
+    AddRect(this, RECT{0xAA, 0x7D, 200, 0x91});    // next hero
+    {
+        void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+        AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 0, 100, 200, 400, 5, 1) : nullptr);
+    }
+    // The arrows and the hero's frame.
+    AddSprite(0)->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
+    AddSprite(0)->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
+    AddSprite(0)->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
+    AddSprite(0)->SetRectangle(6.0f, 100.0f, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
+    // The new hero page's -/+ buttons (scene objects 4-11, shown only there).
+    const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
+                                 {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
+    for (const auto& b : buttons) AddSprite(0)->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
+    // The texts the panel draws (CStringArray at +0x15C).
+    CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
+    mfc::CString text;
+    auto* array = reinterpret_cast<console::CStringArray*>(reinterpret_cast<std::uint8_t*>(this) + 0x15C);
+    for (std::uintptr_t key : {0x00793D80u, 0x00793D74u, 0x00793D68u, 0x00793D5Cu, 0x00793D50u, 0x00793D40u, 0x00793D30u,
+                               0x00793D20u}) {   // infounit_3 4 9 14 17, lmp_points_left, lmp_pers_tall, magic_skills
+        texts->GetString(GameText(key), &text);
+        array->SetAtGrow(array->GetSize(), text);
+    }
+    unknown_174_ = -1;
+    unknown_178_ = 0;
+}
+namespace {
+void __fastcall StatsBuild(CHeroStatsPanel* self, void*) { self->Build(); }
+} // namespace
+EI_REPLACE(0x00622DB0, StatsBuild);

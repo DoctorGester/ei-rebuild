@@ -261,6 +261,9 @@ public:
     void ShowStats(int page);
     // 00623880. Draws the statistics into surface 0.
     void DrawStats();
+    // 00622DB0 (slot 18). Builds the panel: the hero arrows' regions, a surface, the arrow,
+    // frame and -/+ button sprites, and the texts (CStringArray at +0x15C).
+    void Build();
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C
@@ -271,7 +274,8 @@ public:
     char** texts_;                   // +0x160 CStringArray data: weapon labels, the points texts, ...
     std::uint8_t unknown_164[0x170 - 0x164];
     int points_;                     // +0x170 skill points left (page 10)
-    std::uint8_t unknown_174[0x17C - 0x174];
+    int unknown_174_;                // +0x174 -1
+    int unknown_178_;                // +0x178 0
 };
 static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
 static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);
