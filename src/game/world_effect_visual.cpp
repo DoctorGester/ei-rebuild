@@ -1,0 +1,810 @@
+// The visible effects: CEffectPointLight, CEffectParticle, CEffectWall, CEffectLightning. See
+// world_effect.h and docs/notes/range_660.md.
+
+#include "world_effect_internal.h"
+
+
+#include <cstring>
+
+using namespace effect;
+
+namespace {
+
+// The light manager (*007AF738), thiscall.
+__declspec(naked) void __fastcall RemoveLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA720)
+__declspec(naked) void __fastcall AddLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA5D0)
+__declspec(naked) void __fastcall MoveLight(void*, void*, CEngineObject* /*light*/, const Vector3* /*delta*/) EI_ORIGINAL(0x006CA830)
+// 0068D010 (CLight): sets the colour and the position.
+__declspec(naked) void __fastcall SetLightColorPosition(CEngineObject* /*light*/, void*, const Vector3* /*color*/, const Vector3* /*position*/) EI_ORIGINAL(0x0068D010)
+// 00511B90 / 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
+__declspec(naked) void __fastcall AssignLight(CEngineObject** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00511B90)
+__declspec(naked) void __fastcall AssignSource(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
+
+// CParticleSource (effects.cpp, through the game addresses).
+__declspec(naked) void* __fastcall CreateSource(void* /*manager*/, void*, int /*type*/) EI_ORIGINAL(0x00498400)
+__declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
+__declspec(naked) void __fastcall AttachSource(void* /*source*/, void*, void* /*object*/) EI_ORIGINAL(0x004849F0)
+__declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
+// 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
+__declspec(naked) void __fastcall AddScorch(void*, void*, std::uint32_t /*x*/, std::uint32_t /*y*/, std::uint32_t /*outer*/, std::uint32_t /*inner*/, std::uint32_t /*angle*/, std::uint32_t /*alpha*/) EI_ORIGINAL(0x0056D4C0)
+// 004113A0 (camera.cpp): a camera shake from an event at `at`.
+__declspec(naked) void __fastcall ShakeCamera(void* /*camera*/, void*, const Vector3* /*at*/, std::uint32_t /*strength*/, std::uint32_t /*duration*/, std::uint32_t /*decay*/) EI_ORIGINAL(0x004113A0)
+// The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
+__declspec(naked) std::uint32_t __fastcall RandomNext(void* /*random*/) EI_ORIGINAL(0x004667F0)
+__declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
+void* TheRandom() { return reinterpret_cast<void*>(0x007A9D40); }
+
+// The drawn lightning bolt: 004680D0 starts it, 00467E10 moves its ends.
+__declspec(naked) void __fastcall StartBolt(CEngineObject* /*bolt*/, void*, const Vector3* /*from*/, const Vector3* /*to*/, std::uint32_t /*width*/, std::uint32_t /*flag*/) EI_ORIGINAL(0x004680D0)
+__declspec(naked) void __fastcall MoveBolt(CEngineObject* /*bolt*/, void*, const Vector3* /*from*/, const Vector3* /*to*/)
+    EI_ORIGINAL(0x00467E10)
+
+// CEffectParticle methods the wall calls directly (through their game addresses).
+__declspec(naked) int __fastcall ParticleUnpackAt(CEffectParticle*, void*, int /*update*/, DeltaField* /*field*/)
+    EI_ORIGINAL(0x00678D30)
+__declspec(naked) void __fastcall ParticleLoadAt(CEffectParticle*, void*, void* /*stream*/) EI_ORIGINAL(0x006793E0)
+__declspec(naked) void __fastcall ParticleSpawnAt(CEffectParticle*) EI_ORIGINAL(0x00678EC0)
+__declspec(naked) void __fastcall ParticleAttachAt(CEffectParticle*) EI_ORIGINAL(0x00679350)
+
+void ClearBase(CEffect* e) {
+    e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
+    EmptyField(&e->state_);
+    e->velocity_ = Vector3{0.0f, 0.0f, 0.0f};
+    e->startTick_ = 0;
+    e->moving_ = 0;
+    e->changeStamp_ = -1;
+}
+
+// The light's range fields: +0xE0 = range, +0x100 = range^2, +0x104 = 1 / range^2 with the square
+// left unrounded in ST0 for the division (FMUL, FST, FDIV ST,ST(1)).
+__declspec(naked) void __fastcall SetLightRange(CEngineObject* /*light*/, std::uint32_t /*rangeBits*/) {
+    __asm {
+        mov dword ptr [ecx + 0E0h], edx
+        push edx
+        fld dword ptr [esp]
+        fmul dword ptr [esp]
+        fst dword ptr [ecx + 100h]
+        fld dword ptr ds:[0073B84Ch]
+        fdiv st, st(1)
+        fstp dword ptr [ecx + 104h]
+        fstp st(0)
+        pop edx
+        ret
+    }
+}
+
+// The light's flags (+0x08).
+std::uint32_t& LightFlags(CEngineObject* light) { return light->flags_; }
+Vector3& LightPosition(CEngineObject* light) { return *reinterpret_cast<Vector3*>(reinterpret_cast<char*>(light) + 0x1C); }
+
+// The particle tick's step towards the target, in the original's x87 order: speed = |velocity|
+// ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
+// otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
+__declspec(naked) int __fastcall StepFraction(const Vector3* /*velocity*/, const float* /*dxdy*/, float* /*t*/) {
+    __asm {
+        fld dword ptr [ecx + 8]
+        fld dword ptr [ecx + 4]
+        fld dword ptr [ecx]
+        fld st(0)
+        fmul st, st(1)
+        fld st(2)
+        fmul st, st(3)
+        faddp st(1), st
+        fld st(3)
+        fmul st, st(4)
+        faddp st(1), st
+        fsqrt
+        fstp st(3)
+        fstp st(0)
+        fstp st(0)
+        // ST0 = speed. dxdy = {dx, dy}.
+        fld dword ptr [edx + 4]
+        fmul dword ptr [edx + 4]
+        fld dword ptr [edx]
+        fmul dword ptr [edx]
+        faddp st(1), st
+        fsqrt
+        fcom dword ptr ds:[0073B858h]
+        fnstsw ax
+        test ah, 41h
+        jne skip
+        fcom st(1)
+        fnstsw ax
+        test ah, 1
+        je keep
+        fstp st(0)
+        fld st(0)
+    keep:
+        fxch st(1)
+        fdiv st, st(1)
+        mov eax, dword ptr [esp + 4]
+        fstp dword ptr [eax]
+        fstp st(0)
+        mov eax, 1
+        ret 4
+    skip:
+        fstp st(0)
+        fstp st(0)
+        xor eax, eax
+        ret 4
+    }
+}
+
+// Particle types that play once (no warm-up limit, a lifetime of 60 ticks; 0x2019: 120).
+bool IsOneShotType(int type) {
+    switch (type) {
+    case 0x2002: case 0x2006: case 0x200B: case 0x200C: case 0x200D: case 0x200E: case 0x200F:
+    case 0x2018: case 0x2019: case 0x201B: case 0x201C: case 0x201D: case 0x201E: case 0x201F:
+    case 0x2020: case 0x2021: case 0x2022: case 0x2023: case 0x2024: case 0x2025: case 0x2026:
+    case 0x2030: case 0x2031: case 0x2032: case 0x2033: case 0x203F: case 0x2040: case 0x2041:
+    case 0x2042: case 0x2043:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// The scorch mark's angle: a random value times the constant at 0073FFD0, the value loaded with
+// FILD qword (exact; a dword load plus 2^32 would round at 24-bit precision), FMUL qword, rounded
+// to float.
+__declspec(naked) float __cdecl RandomAngle(std::uint32_t /*random*/) {
+    __asm {
+        push 0
+        push dword ptr [esp + 8]
+        fild qword ptr [esp]
+        fmul qword ptr ds:[0073FFD0h]
+        fstp dword ptr [esp]
+        fld dword ptr [esp]
+        add esp, 8
+        ret
+    }
+}
+
+// The ISAAC Next the 0x2030 scorch inlines (same as 004667F0).
+std::uint32_t InlineRandom() {
+    auto* count = reinterpret_cast<std::uint32_t*>(0x007A9D44);
+    std::uint32_t index = (*count)--;
+    if (index == 0) {
+        RandomRefill(TheRandom());
+        *count = 0xFF;
+    }
+    return reinterpret_cast<const std::uint32_t*>(0x007A9D48)[*count];
+}
+
+// The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
+// sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in the original's x87 order.
+__declspec(naked) void __fastcall WallScorchShape(const Vector3* /*direction*/, const float* /*half*/,
+                                                  float* /*angleAndOuter*/) {
+    __asm {
+        mov eax, dword ptr [esp + 4]
+        fld dword ptr [ecx + 4]
+        fld dword ptr [ecx]
+        fpatan
+        fstp dword ptr [eax]
+        fld dword ptr [ecx + 4]
+        fld dword ptr [ecx]
+        fld st(0)
+        fmul st, st(1)
+        fld st(2)
+        fmul st, st(3)
+        faddp st(1), st
+        fsqrt
+        fstp st(2)
+        fstp st(0)
+        fadd dword ptr [edx]
+        fadd dword ptr ds:[0073C54Ch]
+        fstp dword ptr [eax + 4]
+        ret 4
+    }
+}
+
+} // namespace
+
+// --- CEffectPointLight ---------------------------------------------------------------------------
+
+void CEffectPointLight::Reset() {
+    ClearBase(this);
+    if (light_ != nullptr) {
+        RemoveLight(LightManager(), nullptr, light_);
+        CEngineObject* old = light_;
+        light_ = nullptr;
+        if (old != nullptr) effect::Release(old);
+    }
+    color_ = Vector3{0.0f, 0.0f, 0.0f};
+    range_ = 0.0f;
+    lightFlags_ = 0;
+}
+
+int CEffectPointLight::Tick() {
+    if (moving_ == 0) return 1;
+    float x = localPosition_.x + velocity_.x;
+    float y = localPosition_.y + velocity_.y;
+    float z = localPosition_.z + velocity_.z;
+    localPosition_.x = x;
+    localPosition_.y = y;
+    localPosition_.z = z;
+    if (light_ == nullptr) return 1;
+    Vector3 delta;
+    std::memcpy(&delta, &velocity_, sizeof(Vector3));
+    if ((FrameCounter() & 0xF) == 0) {
+        // Every 16th frame the light is re-registered at its new place.
+        RemoveLight(LightManager(), nullptr, light_);
+        std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+        AddLight(LightManager(), nullptr, light_);
+        return 1;
+    }
+    MoveLight(LightManager(), nullptr, light_, &delta);
+    std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+    return 1;
+}
+
+void CEffectPointLight::Start(int update) {
+    if (update == 0) {
+        void* created = ei::VCall<void*>(LightFactory(), 23, 0x31, -1);
+        AssignLight(&light_, nullptr, created);
+        Vector3 position;
+        CopyThroughFpu(&position.x, &localPosition_.x);
+        CopyThroughFpu(&position.y, &localPosition_.y);
+        CopyThroughFpu(&position.z, &localPosition_.z);
+        Vector3 color;
+        CopyThroughFpu(&color.x, &color_.x);
+        CopyThroughFpu(&color.y, &color_.y);
+        CopyThroughFpu(&color.z, &color_.z);
+        SetLightColorPosition(light_, nullptr, &color, &position);
+        SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
+        LightFlags(light_) |= lightFlags_;
+        AddLight(LightManager(), nullptr, light_);
+        if (moving_ != 0) LightFlags(light_) |= 0x100;
+    } else {
+        auto* light = reinterpret_cast<char*>(light_);
+        CopyThroughFpu(reinterpret_cast<float*>(light + 0x98), &color_.x);
+        CopyThroughFpu(reinterpret_cast<float*>(light + 0x9C), &color_.y);
+        CopyThroughFpu(reinterpret_cast<float*>(light + 0xA0), &color_.z);
+        float range = FromBits(Bits(range_) & 0x7FFFFFFFu);
+        float shownRange;
+        std::memcpy(&shownRange, light + 0xE0, 4);
+        float change = FromBits(Bits(StoreFloat(shownRange - range)) & 0x7FFFFFFFu);
+        if (!(change >= ConstAt(kRangeEpsilon))) {
+            // The range is (nearly) the same: move the light.
+            Vector3& at = LightPosition(light_);
+            Vector3 delta;
+            delta.z = StoreFloat(localPosition_.z - at.z);
+            delta.y = StoreFloat(localPosition_.y - at.y);
+            delta.x = StoreFloat(localPosition_.x - at.x);
+            MoveLight(LightManager(), nullptr, light_, &delta);
+            std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+        } else {
+            RemoveLight(LightManager(), nullptr, light_);
+            std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+            SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
+            AddLight(LightManager(), nullptr, light_);
+        }
+    }
+    // A negative range (or NaN) sets flag 0x400.
+    if (!(range_ >= ConstAt(kZero)))
+        LightFlags(light_) |= 0x400;
+    else
+        LightFlags(light_) &= ~0x400u;
+}
+
+int CEffectPointLight::Unpack(int update, DeltaField* field) {
+    Vector3 position;
+    ReadPosition(field, nullptr, &position);
+    ReadFloat16x3(field, nullptr, &color_);
+    ReadFloat16(field, nullptr, &range_);
+    ReadFloat16x3(field, nullptr, &velocity_);
+    ReadDelta(field, nullptr, &lightFlags_, 4);
+    moving_ = IsMoving(velocity_);
+    if (!SnapshotReadToEnd()) return 0;
+    localPosition_ = position;
+    CallStart(this, update);
+    return 1;
+}
+
+void CEffectPointLight::Pack(DeltaField* field) {
+    Vector3 position = localPosition_;
+    WritePosition(field, nullptr, &position);
+    WriteFloat16x3(field, nullptr, &color_);
+    WriteFloat16(field, nullptr, Bits(range_));
+    WriteFloat16x3(field, nullptr, &velocity_);
+    WriteDelta(field, nullptr, &lightFlags_, 4);
+}
+
+void CEffectPointLight::LoadState(void* stream) {
+    Read(stream, &localPosition_, 12);
+    Read(stream, &color_, 12);
+    Read(stream, &range_, 4);
+    Read(stream, &velocity_, 12);
+    moving_ = IsMoving(velocity_);
+    if (Version(stream) < 0x67) return;
+    Read(stream, &lightFlags_, 4);
+}
+
+void CEffectPointLight::SaveState(void* stream) {
+    Write(stream, &localPosition_, 12);
+    Write(stream, &color_, 12);
+    WriteCopy(stream, &range_);
+    Write(stream, &velocity_, 12);
+    WriteCopy(stream, &lightFlags_);
+}
+
+double CEffectPointLight::Radius() { return static_cast<double>(ConstAt(kDefaultRadius)) + range_; }
+
+// --- CEffectParticle -----------------------------------------------------------------------------
+
+void CEffectParticle::Reset() {
+    ClearBase(this);
+    if (source_ != nullptr) {
+        StopSource(source_);
+        void* old = source_;
+        source_ = nullptr;
+        if (old != nullptr) effect::Release(old);
+    }
+    size_ = 1.0f;
+    alpha_ = 1.0f;
+    param164_ = 1.0f;
+    target_ = Vector3{0.0f, 0.0f, 0.0f};
+    type_ = 0;
+    attachedTo_ = -1;
+    unitId_ = -1;
+}
+
+Vector3* CEffectParticle::Position(void* group) {
+    if (attachedTo_ == -1) return &localPosition_;
+    auto* object = static_cast<CEngineObject*>(ObjectById(effect::ManagerContext(this), attachedTo_));
+    if (object == nullptr) return &localPosition_;
+    if (GroupContains(group, nullptr, object) == 0) {
+        // Not in the group: far away.
+        worldPosition_.x = FromBits(0xC9742400u);   // -1e6
+        worldPosition_.y = FromBits(0xC9742400u);
+        worldPosition_.z = 0.0f;
+        return &worldPosition_;
+    }
+    const Vector3& at = *reinterpret_cast<const Vector3*>(reinterpret_cast<const char*>(object) + 0x1C);
+    float x = localPosition_.x + at.x;
+    float y = at.y + localPosition_.y;
+    float z = at.z + localPosition_.z;
+    worldPosition_.x = x;
+    worldPosition_.y = y;
+    worldPosition_.z = z;
+    return &worldPosition_;
+}
+
+void CEffectParticle::Start(int update) {
+    if (update == 0 && source_ != nullptr) {
+        StopSource(source_);
+        void* old = source_;
+        source_ = nullptr;
+        if (old != nullptr) effect::Release(old);
+    }
+    ParticleSpawnAt(this);
+}
+
+int CEffectParticle::Unpack(int update, DeltaField* field) {
+    Vector3 position;
+    ReadPosition(field, nullptr, &position);
+    ReadDelta(field, nullptr, &startTick_, 4);
+    ReadDelta(field, nullptr, &type_, 4);
+    ReadFloat16(field, nullptr, &size_);
+    ReadDelta(field, nullptr, &attachedTo_, 4);
+    ReadFloat16x3(field, nullptr, &velocity_);
+    ReadPosition(field, nullptr, &target_);
+    ReadDelta(field, nullptr, &unitId_, 4);
+    ReadFloat16(field, nullptr, &alpha_);
+    ReadFloat16(field, nullptr, &param164_);
+    moving_ = IsMoving(velocity_);
+    // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
+    if (ClassId(this) == 0x4A && !SnapshotReadToEnd()) return 0;
+    if (unitId_ != -1) {
+        void* unit = FindUnit(World(this), nullptr, unitId_);
+        if (unit != nullptr) {
+            Vector3 point;
+            std::memcpy(&position, UnitEffectPoint(unit, nullptr, &point), sizeof(Vector3));
+        }
+    }
+    localPosition_ = position;
+    CallStart(this, update);
+    return 1;
+}
+
+void CEffectParticle::Spawn() {
+    if (source_ != nullptr) {
+        // Already running: follow the effect.
+        std::memcpy(reinterpret_cast<char*>(source_) + 0x1C, &localPosition_, sizeof(Vector3));
+        float baseSize;
+        std::memcpy(&baseSize, static_cast<char*>(source_) + 0x128, 4);
+        ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
+        CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x118), &alpha_);
+        CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x11C), &param164_);
+        ParticleAttachAt(this);
+        return;
+    }
+
+    AssignSource(&source_, nullptr, CreateSource(ParticleManager(), nullptr, type_));
+    std::memcpy(static_cast<char*>(source_) + 0x1C, &localPosition_, sizeof(Vector3));
+    float baseSize;
+    std::memcpy(&baseSize, static_cast<char*>(source_) + 0x128, 4);
+    ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
+    AttachSource(source_, nullptr, nullptr);
+    CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x118), &alpha_);
+    CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x11C), &param164_);
+    ParticleAttachAt(this);
+
+    // Catch up with the ticks since the effect began (at most 30 for lasting types).
+    int age = GameTick() - startTick_;
+    if (!IsOneShotType(type_) && age >= 30) age = 30;
+    if (age > 1) {
+        for (int left = age - 1; left != 0; --left) ei::VCall<int>(source_, 6);
+    }
+
+    if (type_ == 0x2002) {
+        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
+        std::uint32_t radius = Bits(param164_);
+        float angle = RandomAngle(RandomNext(TheRandom()));
+        AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
+    }
+    if (type_ == 0x2030) {
+        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
+        std::uint32_t random = InlineRandom();
+        std::uint32_t radius = Bits(size_);
+        float angle = RandomAngle(random);
+        AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
+        ShakeCamera(CameraObject(), nullptr, &localPosition_, Bits(size_), 0x40000000u /* 2.0 */, 0x3E800000u /* 0.25 */);
+    }
+}
+
+void CEffectParticle::Pack(DeltaField* field) {
+    Vector3 position = localPosition_;
+    WritePosition(field, nullptr, &position);
+    int value = startTick_;
+    WriteDelta(field, nullptr, &value, 4);
+    WriteDelta(field, nullptr, &type_, 4);
+    WriteFloat16(field, nullptr, Bits(size_));
+    value = attachedTo_;
+    WriteDelta(field, nullptr, &value, 4);
+    WriteFloat16x3(field, nullptr, &velocity_);
+    WritePosition(field, nullptr, &target_);
+    value = unitId_;
+    WriteDelta(field, nullptr, &value, 4);
+    WriteFloat16(field, nullptr, Bits(alpha_));
+    WriteFloat16(field, nullptr, Bits(param164_));
+}
+
+void CEffectParticle::SetAttachedTo(int objectId) {
+    attachedTo_ = objectId;
+    MarkChanged();
+}
+
+void CEffectParticle::SetSize(float size) {
+    std::memcpy(&size_, &size, 4);
+    MarkChanged();
+}
+
+void CEffectParticle::SetColors(float a, float b) {
+    std::memcpy(&alpha_, &a, 4);
+    std::memcpy(&param164_, &b, 4);
+    MarkChanged();
+}
+
+void CEffectParticle::SetTarget(const Vector3* target) {
+    std::memcpy(&target_, target, sizeof(Vector3));
+    MarkChanged();
+}
+
+void CEffectParticle::Attach() {
+    // Nothing to do when the source already follows that object, or follows none and none is set.
+    // Without a source the original goes on and reads through the null pointer.
+    if (source_ != nullptr) {
+        auto* followed = *reinterpret_cast<CEngineObject**>(static_cast<char*>(source_) + 0x94);
+        if (followed != nullptr) {
+            if (followed->id_ == attachedTo_) return;
+        } else if (attachedTo_ == -1) {
+            return;
+        }
+    }
+    void* object = FindObject(ObjectManager(), nullptr, attachedTo_);
+    Vector3 saved;
+    std::memcpy(&saved, static_cast<char*>(source_) + 0x1C, sizeof(Vector3));
+    AttachSource(source_, nullptr, object);
+    if (object == nullptr) std::memcpy(static_cast<char*>(source_) + 0x1C, &saved, sizeof(Vector3));
+}
+
+void CEffectParticle::LoadState(void* stream) {
+    Read(stream, &localPosition_, 12);
+    Read(stream, &type_, 4);
+    Read(stream, &size_, 4);
+    Read(stream, &attachedTo_, 4);
+    Read(stream, &velocity_, 12);
+    moving_ = IsMoving(velocity_);
+    Read(stream, &startTick_, 4);
+    Read(stream, &target_, 12);
+    if (Version(stream) < 0x43) return;
+    Read(stream, &unitId_, 4);
+    if (Version(stream) < 0x58) return;
+    Read(stream, &alpha_, 4);
+    Read(stream, &param164_, 4);
+}
+
+void CEffectParticle::SaveState(void* stream) {
+    Write(stream, &localPosition_, 12);
+    Write(stream, &type_, 4);
+    WriteCopy(stream, &size_);
+    WriteCopy(stream, &attachedTo_);
+    Write(stream, &velocity_, 12);
+    WriteCopy(stream, &startTick_);
+    Write(stream, &target_, 12);
+    WriteCopy(stream, &unitId_);
+    WriteCopy(stream, &alpha_);
+    WriteCopy(stream, &param164_);
+}
+
+int CEffectParticle::Tick() {
+    unitId_ = -1;
+    if (moving_ != 0) {
+        float d[3];
+        d[0] = StoreFloat(target_.x - localPosition_.x);
+        d[1] = StoreFloat(target_.y - localPosition_.y);
+        d[2] = StoreFloat(target_.z - localPosition_.z);
+        float t;
+        if (StepFraction(&velocity_, d, &t) != 0) {
+            // Keeps the target's height above the ground while moving towards it.
+            float aboveGround = StoreFloat(static_cast<float>(target_.z - GroundHeight(World(this), target_.x, target_.y)));
+            float stepY = StoreFloat(t * d[1]);
+            float stepZ = StoreFloat(d[2] * t);
+            float x = StoreFloat(t * d[0] + localPosition_.x);
+            float y = StoreFloat(stepY + localPosition_.y);
+            float z = StoreFloat(stepZ + localPosition_.z);
+            float floor = StoreFloat(static_cast<float>(GroundHeight(World(this), x, y) + aboveGround));
+            std::uint32_t zBits = !(z >= floor) ? Bits(floor) : Bits(z);
+            localPosition_.x = x;
+            localPosition_.y = y;
+            std::memcpy(&localPosition_.z, &zBits, 4);
+            if (source_ != nullptr) std::memcpy(static_cast<char*>(source_) + 0x1C, &localPosition_, sizeof(Vector3));
+        }
+    }
+    if (!IsOneShotType(type_)) return 1;
+    int lifetime = type_ == 0x2019 ? 0x78 : 0x3C;
+    int now = *reinterpret_cast<const int*>(static_cast<const char*>(World(this)) + 0x64);
+    return now > startTick_ + lifetime ? 0 : 1;
+}
+
+// --- CEffectWall ---------------------------------------------------------------------------------
+
+void CEffectWall::Reset() {
+    localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
+    EmptyField(&state_);
+    startTick_ = 0;
+    velocity_ = Vector3{0.0f, 0.0f, 0.0f};
+    moving_ = 0;
+    changeStamp_ = -1;
+    if (source_ != nullptr) {
+        StopSource(source_);
+        void* old = source_;
+        source_ = nullptr;
+        if (old != nullptr) effect::Release(old);
+    }
+    size_ = 1.0f;
+    alpha_ = 1.0f;
+    param164_ = 1.0f;
+    attachedTo_ = -1;
+    target_ = Vector3{0.0f, 0.0f, 0.0f};
+    type_ = 0;
+    unitId_ = -1;
+    direction_ = Vector3{0.0f, 0.0f, 0.0f};
+}
+
+void CEffectWall::SetDirection(const Vector3* direction) {
+    std::memcpy(&direction_, direction, sizeof(Vector3));
+    MarkChanged();
+}
+
+int CEffectWall::Unpack(int update, DeltaField* field) {
+    if (ParticleUnpackAt(this, nullptr, update, field) == 0) return 0;
+    ReadFloat16x3(field, nullptr, &direction_);
+    if (!SnapshotReadToEnd()) return 0;
+    if (source_ != nullptr) std::memcpy(static_cast<char*>(source_) + 0x130, &direction_, sizeof(Vector3));
+    if (update == 0 && type_ == 0x2010) {
+        // A scorch mark under the new wall: as long as the wall, as wide as half its size.
+        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
+        float half = StoreFloat(size_ * ConstAt(kHalf));
+        float shape[2];   // angle, outer
+        WallScorchShape(&direction_, &half, shape);
+        float inner = StoreFloat(half + ConstAt(kScorchMargin));
+        AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), Bits(shape[1]), Bits(inner),
+                  Bits(shape[0]), alpha);
+    }
+    return 1;
+}
+
+void CEffectWall::Pack(DeltaField* field) {
+    Vector3 position = localPosition_;
+    WritePosition(field, nullptr, &position);
+    int value = startTick_;
+    WriteDelta(field, nullptr, &value, 4);
+    WriteDelta(field, nullptr, &type_, 4);
+    WriteFloat16(field, nullptr, Bits(size_));
+    value = attachedTo_;
+    WriteDelta(field, nullptr, &value, 4);
+    WriteFloat16x3(field, nullptr, &velocity_);
+    WritePosition(field, nullptr, &target_);
+    value = unitId_;
+    WriteDelta(field, nullptr, &value, 4);
+    WriteFloat16(field, nullptr, Bits(alpha_));
+    WriteFloat16(field, nullptr, Bits(param164_));
+    WriteFloat16x3(field, nullptr, &direction_);
+}
+
+void CEffectWall::LoadState(void* stream) {
+    ParticleLoadAt(this, nullptr, stream);
+    Read(stream, &direction_, 12);
+}
+
+void CEffectWall::SaveState(void* stream) {
+    CEffectParticle::SaveState(stream);
+    Write(stream, &direction_, 12);
+}
+
+// --- CEffectLightning ----------------------------------------------------------------------------
+
+void CEffectLightning::Reset() {
+    ClearBase(this);
+    width_ = 1.0f;
+    from_ = Vector3{0.0f, 0.0f, 0.0f};
+    toObject_ = -1;
+    fromObject_ = -1;
+    to_ = Vector3{0.0f, 0.0f, 0.0f};
+    CEngineObject* old = bolt_;
+    bolt_ = nullptr;
+    if (old != nullptr) effect::Release(old);
+    flag_ = 0;
+}
+
+void CEffectLightning::UpdateEnds() {
+    auto* target = static_cast<CEngineObject*>(ObjectById(World(this), toObject_));
+    if (target != nullptr) {
+        std::memcpy(&to_, reinterpret_cast<char*>(target) + 0x1C, sizeof(Vector3));
+        to_.z = to_.z + ConstAt(kOne);
+    }
+    auto* source = static_cast<CEngineObject*>(ObjectById(World(this), fromObject_));
+    if (source != nullptr && ClassId(source) == 0x50 && IsClientSide(effect::ManagerContext(this)) == 0) {
+        Vector3 point;
+        std::memcpy(&from_, UnitEffectPoint(source, nullptr, &point), sizeof(Vector3));
+    }
+}
+
+void CEffectLightning::Start(int update) {
+    if (update != 0) return;
+    auto* created = ei::VCall<CEngineObject*>(BoltFactory(), 23, 0, -1);
+    CEngineObject* old = bolt_;
+    bolt_ = created;
+    if (created != nullptr) ++created->refCount_;
+    if (old != nullptr) effect::Release(old);
+    UpdateEnds();
+    StartBolt(bolt_, nullptr, &from_, &to_, Bits(width_), flag_);
+}
+
+int CEffectLightning::Unpack(int update, DeltaField* field) {
+    Vector3 position;
+    ReadPosition(field, nullptr, &position);
+    ReadPosition(field, nullptr, &from_);
+    ReadPosition(field, nullptr, &to_);
+    ReadFloat16(field, nullptr, &width_);
+    ReadDelta(field, nullptr, &flag_, 1);
+    ReadDelta(field, nullptr, &toObject_, 4);
+    ReadDelta(field, nullptr, &fromObject_, 4);
+    if (!SnapshotReadToEnd()) return 0;
+    UpdateEnds();
+    localPosition_ = position;
+    CallStart(this, update);
+    return 1;
+}
+
+void CEffectLightning::Pack(DeltaField* field) {
+    Vector3 position = localPosition_;
+    WritePosition(field, nullptr, &position);
+    WritePosition(field, nullptr, &from_);
+    WritePosition(field, nullptr, &to_);
+    WriteFloat16(field, nullptr, Bits(width_));
+    WriteDelta(field, nullptr, &flag_, 1);
+    int value = toObject_;
+    WriteDelta(field, nullptr, &value, 4);
+    value = fromObject_;
+    WriteDelta(field, nullptr, &value, 4);
+}
+
+void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float width) {
+    std::memcpy(&from_, from, sizeof(Vector3));
+    std::memcpy(&to_, to, sizeof(Vector3));
+    std::memcpy(&width_, &width, 4);
+    // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
+    float half = ConstAt(kHalf);
+    float sumY = StoreFloat(from_.y + to_.y);
+    float sumZ = StoreFloat(from_.z + to_.z);
+    localPosition_.x = StoreFloat((to_.x + from_.x) * half);
+    localPosition_.y = StoreFloat(sumY * half);
+    localPosition_.z = StoreFloat(sumZ * half);
+    MarkChanged();
+}
+
+void CEffectLightning::LoadState(void* stream) {
+    Read(stream, &localPosition_, 12);
+    Read(stream, &from_, 12);
+    Read(stream, &to_, 12);
+    Read(stream, &width_, 4);
+    Read(stream, &toObject_, 4);
+    Read(stream, &fromObject_, 4);
+    if (Version(stream) < 100) return;
+    Read(stream, &flag_, 1);
+}
+
+void CEffectLightning::SaveState(void* stream) {
+    Write(stream, &localPosition_, 12);
+    Write(stream, &from_, 12);
+    Write(stream, &to_, 12);
+    WriteCopy(stream, &width_);
+    WriteCopy(stream, &toObject_);
+    WriteCopy(stream, &fromObject_);
+    Write(stream, &flag_, 1);
+}
+
+void CEffectLightning::SetObjects(int fromObject, int toObject) {
+    toObject_ = toObject;
+    fromObject_ = fromObject;
+    MarkChanged();
+}
+
+void CEffectLightning::SetFlag(std::uint8_t flag) {
+    flag_ = flag;
+    MarkChanged();
+}
+
+int CEffectLightning::Tick() {
+    if (bolt_ == nullptr || (toObject_ == -1 && fromObject_ == -1)) return 1;
+    UpdateEnds();
+    MoveBolt(bolt_, nullptr, &from_, &to_);
+    return 1;
+}
+
+// --- Hooks ---------------------------------------------------------------------------------------
+
+EI_REPLACE_METHOD(0x006780C0, CEffectPointLight::Reset);
+EI_REPLACE_METHOD(0x006781B0, CEffectPointLight::Tick);
+EI_REPLACE_METHOD(0x006782D0, CEffectPointLight::Start);
+EI_REPLACE_METHOD(0x00678520, CEffectPointLight::Unpack);
+EI_REPLACE_METHOD(0x00678610, CEffectPointLight::Pack);
+EI_REPLACE_METHOD(0x00678690, CEffectPointLight::LoadState);
+EI_REPLACE_METHOD(0x00678740, CEffectPointLight::SaveState);
+EI_REPLACE_METHOD(0x00677F70, CEffectPointLight::Radius);
+
+EI_REPLACE_METHOD(0x00678A90, CEffectParticle::Reset);
+EI_REPLACE_METHOD(0x00678BA0, CEffectParticle::Position);
+EI_REPLACE_METHOD(0x00678CF0, CEffectParticle::Start);
+EI_REPLACE_METHOD(0x00678D30, CEffectParticle::Unpack);
+EI_REPLACE_METHOD(0x00678EC0, CEffectParticle::Spawn);
+EI_REPLACE_METHOD(0x006791A0, CEffectParticle::Pack);
+EI_REPLACE_METHOD(0x00679280, CEffectParticle::SetAttachedTo);
+EI_REPLACE_METHOD(0x006792B0, CEffectParticle::SetSize);
+EI_REPLACE_METHOD(0x006792E0, CEffectParticle::SetColors);
+EI_REPLACE_METHOD(0x00679310, CEffectParticle::SetTarget);
+EI_REPLACE_METHOD(0x00679350, CEffectParticle::Attach);
+EI_REPLACE_METHOD(0x006793E0, CEffectParticle::LoadState);
+EI_REPLACE_METHOD(0x006794E0, CEffectParticle::SaveState);
+EI_REPLACE_METHOD(0x006795C0, CEffectParticle::Tick);
+
+EI_REPLACE_METHOD(0x00679AF0, CEffectWall::Reset);
+EI_REPLACE_METHOD(0x00679C30, CEffectWall::SetDirection);
+EI_REPLACE_METHOD(0x00679C70, CEffectWall::Unpack);
+EI_REPLACE_METHOD(0x00679DB0, CEffectWall::Pack);
+EI_REPLACE_METHOD(0x00679EA0, CEffectWall::LoadState);
+EI_REPLACE_METHOD(0x00679ED0, CEffectWall::SaveState);
+
+EI_REPLACE_METHOD(0x0067A1B0, CEffectLightning::Reset);
+EI_REPLACE_METHOD(0x0067A370, CEffectLightning::Start);
+EI_REPLACE_METHOD(0x0067A490, CEffectLightning::Unpack);
+EI_REPLACE_METHOD(0x0067A600, CEffectLightning::Pack);
+EI_REPLACE_METHOD(0x0067A6B0, CEffectLightning::SetEnds);
+EI_REPLACE_METHOD(0x0067A770, CEffectLightning::LoadState);
+EI_REPLACE_METHOD(0x0067A7F0, CEffectLightning::SaveState);
+EI_REPLACE_METHOD(0x0067A890, CEffectLightning::SetObjects);
+EI_REPLACE_METHOD(0x0067A8C0, CEffectLightning::SetFlag);
+EI_REPLACE_METHOD(0x0067A8F0, CEffectLightning::Tick);

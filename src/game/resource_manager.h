@@ -31,6 +31,14 @@ public:
     // 005AA360: CFigureManager's slot 16, identical except that it opens memory-mapped archives.
     BOOL AddMmioArchive(const char* path);
 
+    // resource_stream.cpp: 00674D90 constructor (returns this), 00674DF0 destructor body, 00674DD0
+    // scalar deleting destructor, 00674F40 slot 3 (closes and deletes every archive, then the
+    // CBaseManager part's slot 3, 004031E0).
+    CResourceManager* Construct();
+    void Destruct();
+    CResourceManager* DeletingDestruct(unsigned flags);
+    void DestroyManager();
+
 private:
     BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*));
 

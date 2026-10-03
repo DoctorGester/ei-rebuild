@@ -89,6 +89,10 @@ public:
 
     // 00674850. Index of the entry named `name` (case-insensitive), or -1.
     int FindEntry(const char* name) const;
+    // 00674AC0 (resource_stream.cpp). Fills an MFC CStringArray with the names of the entries that
+    // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
+    // with every name when `pattern` is null.
+    void ListFiles(void* stringArray, const char* pattern) const;
 
     ResHeader header_;           // +0x04
     ResEntry* entries_;          // +0x14
@@ -108,6 +112,12 @@ static_assert(sizeof(CMappedResource) == 0x58);
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. vtable 00743300.
 class CMMIOResource : public CMappedResource {
 public:
+    // 006721D0 / 006722F0 / 006722D0 (resource_stream.cpp): constructor, destructor body and
+    // scalar deleting destructor.
+    CMMIOResource* Construct();
+    void Destroy();
+    CMMIOResource* DeletingDestroy(unsigned flags);
+
     // 0: 006722D0 / 006722F0 destructor (not rewritten yet)
     BOOL OpenResource(const char* path, BOOL writable) override;      // 1: 006724E0
     BOOL OpenFromMemory(const void* image) override;                  // 2: 00672520
