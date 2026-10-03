@@ -461,7 +461,24 @@ void PostRegionMouse(const std::string& verb, int index) {
     }
 }
 
+// Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
+// the game (and Rebirth) install their own filters, which can leave a crashed game hanging.
+LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
+    char what[96];
+    std::snprintf(what, sizeof(what), "the game crashed: exception %08lX at %08lX (stack in ei_hook.log)",
+                  e->ExceptionRecord->ExceptionCode, static_cast<unsigned long>(e->ContextRecord->Eip));
+    Log("harness: %s", what);
+    g_failures.push_back(what);
+    if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
+        WaitForSingleObject(writer, 3000);
+        CloseHandle(writer);
+    }
+    TerminateProcess(GetCurrentProcess(), 3);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
 void RunSteps() {
+    SetUnhandledExceptionFilter(&HarnessUnhandled);
     g_showTutorial = 0;
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
     if (g_checking) {
