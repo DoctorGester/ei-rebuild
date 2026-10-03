@@ -46,6 +46,8 @@ public:
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).
     void SetPendingValue(std::uint32_t value);
 
+    // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
+    void ShowHelp(int flag);
     // 005F7E60 (not rewritten). Plays an interface sound (`name`, e.g. "buttons\battle\click.wav");
     // the interface object itself is not used. Returns what the sound system returns.
     int PlaySound(const char* name, int flag);
@@ -166,6 +168,9 @@ public:
     void MoveTo(int x, int y);
     // 005FD120 (not rewritten). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
+    // 005FD760 (not rewritten). Sets (`frozen`) or clears flag 4 of +0x0C; setting it saves the
+    // surface's contents when it has any (005FD7A0), clearing it restores them when `restore`.
+    void Freeze(int frozen, int restore);
 
     void* vtable_;
     CInterface3D* interface_;        // +0x04
@@ -183,6 +188,8 @@ public:
     void SetScreenPosition(float x, float y, float depth);
     // 005FC1D0 (not rewritten). Releases the object.
     void ReleaseObject();
+    // 005FC2F0 (not rewritten). Draws the object.
+    void Draw(int pass);
 
     CTransformObject* object_;
 };
@@ -499,3 +506,147 @@ public:
 };
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
 static_assert(offsetof(CHudTopPanel, page_) == 0x160);
+
+// --- Screens with child windows: the save/load and options windows (ui_menus.cpp) -----------
+
+// Base of the screens that hold child windows and extra input handlers (vtable 00741008,
+// constructor 00600B20): the Esc menu, the save/load and options windows, the battle screen.
+// Its input side's default handlers (00601110 button down, 006011F0 up, 006012D0 move,
+// 00601570 double click, 00601820 key) pass the event on to the handlers and children.
+class CUiContainer : public CUiWindow {
+public:
+    // 00600270 (not rewritten). Time since the last frame in seconds (timer ticks * 0.001f),
+    // left unrounded in ST0.
+    double FrameTime();
+    // 006010E0 (not rewritten). Base update (slot 24): updates the children.
+    void UpdateBase();
+    // 00600EF0 (not rewritten). Base drawing (slot 20); returns 1.
+    BOOL DrawContainer(int pass);
+    // 00601040 (not rewritten). Base slot 22 (redraws the window and its children).
+    void RedrawContainer();
+
+    UiPtrArray<CUiWindow> children_;          // +0x148
+    void** inputsBegin_;                      // +0x158 extra input sides (STLport vector)
+    void** inputsEnd_;                        // +0x15C
+    void** inputsCapacity_;                   // +0x160
+};
+static_assert(sizeof(CUiContainer) == 0x164);
+
+// The default handlers of a container's input side (`input` = window + 0x94).
+void __fastcall UiContainerMouseDown(void* input, void* unused, int buttons, int x, int y);    // 00601110
+void __fastcall UiContainerDoubleClick(void* input, void* unused, int buttons, int x, int y);  // 00601570
+
+// The save/load window's scroll bar (vtable 00742C18, constructor 0065AEA0).
+struct UiScrollbar {
+    // 0065B090 (not rewritten). The position (+0x150); returns 1 and clears the flag at +0x180
+    // when it moved since the last call.
+    BOOL TakePosition(int* position);
+};
+
+// A spin control of the options window (its +0x0C value object).
+struct UiSpinValue {
+    // 0065BEB0 / 0065BEE0 (not rewritten). Value access.
+    bool GetValue(int* value);
+    void SetValue(int value);
+};
+struct UiSpin {
+    std::uint8_t unknown_00[0x0C];
+    UiSpinValue* value_;             // +0x0C
+};
+
+// A saved game in the save/load list (0x44 bytes, STLport vector at +0x164).
+struct SaveEntry {
+    char* title_;                    // +0x00 CString shown in the list
+    char* folder_;                   // +0x04 CString folder name under saves\ ("saveq" quick save,
+                                     //       "savea"/"saveb" automatic saves)
+    std::uint8_t unknown_08[0x44 - 0x08];
+};
+static_assert(sizeof(SaveEntry) == 0x44);
+
+// The save/load window (vtables 00741388 / 00741354, 0x194 bytes, opened from the Esc menu).
+// Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
+class CSaveLoadWindow : public CUiContainer {
+public:
+    void OnMouseDown(int buttons, int x, int y);       // 00654660
+    void OnDoubleClick(int buttons, int x, int y);     // 006547B0
+    BOOL Draw(int pass);                               // 006544A0 (slot 20): slides in
+    void Update();                                     // 006545E0 (slot 24)
+    void CloseDialog();                                // 00654430 (slot 26)
+    void OnDialogResult(int result);                   // 00654450 (slot 27)
+
+    // Not rewritten.
+    void Confirm();          // 00655290 OK: asks before overwriting, or loads
+    void AskDelete();        // 00655380
+    void SaveGame();         // 00655550
+    void DeleteSave();       // 00655B20 deletes the selected save's folder
+    void RefreshList();      // 006567A0 (Rebirth-patched)
+    void ShowPicture();      // 00656E10 the selected save's picture
+
+    int EntryCount() const { return static_cast<int>(entriesEnd_ - entriesBegin_); }
+    // The selected save's title becomes the name being edited.
+    void TakeSelectedTitle();
+
+    SaveEntry* entriesBegin_;        // +0x164
+    SaveEntry* entriesEnd_;          // +0x168
+    SaveEntry* entriesCapacity_;     // +0x16C
+    int selected_;                   // +0x170
+    int firstVisible_;               // +0x174 list scroll position
+    bool isSave_;                    // +0x178 save (not load) window
+    bool sliding_;                   // +0x179 sliding in; input is ignored meanwhile
+    std::uint8_t unknown_17A[2];
+    float slide_;                    // +0x17C 0..1
+    UiScrollbar* scrollbar_;         // +0x180
+    CEngineObject* dialog_;          // +0x184 open message box (released through slot 4)
+    char* name_;                     // +0x188 CString: the save name being edited
+    bool nameTyped_;                 // +0x18C
+    std::uint8_t unknown_18D[3];
+    int cursor_;                     // +0x190 caret position in name_
+};
+static_assert(offsetof(CSaveLoadWindow, selected_) == 0x170);
+static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
+static_assert(offsetof(CSaveLoadWindow, cursor_) == 0x190);
+static_assert(sizeof(CSaveLoadWindow) == 0x194);
+
+// A row of the options window: a key binding or a spin control.
+struct OptionRow {
+    void* binding_;
+    UiSpin* spin_;
+};
+
+// The options window (vtables 00741FAC / 00741F78, 0x418 bytes). Regions: 0 OK, 1 cancel, 2-12
+// the option groups (100..250 x 156..420), 13.. the rows of the shown group.
+class COptionsWindow : public CUiContainer {
+public:
+    void OnMouseDown(int buttons, int x, int y);       // 00650C20
+    void OnDoubleClick(int buttons, int x, int y);     // 00650D70
+    BOOL Draw(int pass);                               // 00650920 (slot 20): slides in
+    void Redraw();                                     // 00650A20 (slot 22): not while sliding
+    void OnDialogResult(int result);                   // 006508E0 (slot 27)
+    const char* HelpTopic();                           // 00650900 (slot 41)
+
+    // Not rewritten.
+    void RefreshRows();      // 00651350
+    void ShowGroup(int group);   // 00651D70
+    void CommitBinding();    // 00652000
+    void Apply();            // 006524A0 OK: applies and stores the settings
+    // Cancel: puts back the volumes and the display settings the window started with.
+    static void RestoreSettings();
+
+    // Row of region `region` (13 and up).
+    OptionRow& RegionRow(int region) { return rows_[region - 13]; }
+
+    std::uint8_t unknown_164[0x364 - 0x164];
+    int selectedRow_;                // +0x364
+    std::uint8_t unknown_368[0x384 - 0x368];
+    OptionRow rows_[14];             // +0x384
+    bool waitingForKey_;             // +0x3F4 a key binding row waits for the new key
+    bool sliding_;                   // +0x3F5
+    std::uint8_t unknown_3F6[2];
+    float slide_;                    // +0x3F8
+    std::uint8_t unknown_3FC[0x418 - 0x3FC];
+};
+static_assert(offsetof(COptionsWindow, selectedRow_) == 0x364);
+static_assert(offsetof(COptionsWindow, rows_) == 0x384);
+static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
+static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
+static_assert(sizeof(COptionsWindow) == 0x418);

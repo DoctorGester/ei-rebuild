@@ -1,0 +1,339 @@
+// The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
+// drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
+#include "ui.h"
+
+#include "ei/hook.h"
+#include "lib/mfc.h"
+
+#include <cstdint>
+
+namespace {
+constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";   // 007937E4
+constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";           // 00793A88
+constexpr const char* kSoundSelect = "buttons\\save\\select.wav";      // 00793A60
+
+// Pending values a window hands the interface when it closes (CInterface3D::SetPendingValue):
+// the low word 1 closes the top window, the high word is the result its parent receives.
+constexpr std::uint32_t kCloseSaveLoad = 0x100001;
+constexpr std::uint32_t kCloseSaveLoadLoad = 0x100002;
+constexpr std::uint32_t kCloseOptions = 0x110001;
+
+// Results of the save/load window's message boxes (slot 27).
+constexpr int kResultDelete = 0x10001;
+constexpr int kResultOverwrite = 0x20001;
+constexpr int kResultLoad = 0x30001;
+
+// The windows slide in: the model's y goes from 700 to its resting place with an ease-in-out
+// curve over the slide (0..1). x87, unrounded until the float argument is stored.
+double Ease(float slide) {
+    if (!(slide >= 0.5f)) {
+        double s = slide;
+        double e = s * s;
+        return e + e;
+    }
+    double r = 1.0f - static_cast<double>(slide);
+    double e = r * r;
+    e = e + e;
+    return 1.0f - e;
+}
+
+// The sound system (global pointer at 007AF784) and the display settings object (007AF060), as
+// the options window's cancel puts their settings back.
+struct UiSoundSystem {
+    void SetVolumeA(int value);   // 006B7740
+    void SetVolumeB(int value);   // 006B7A00
+    void SetVolumeC(int value);   // 006B78A0
+};
+__declspec(naked) void UiSoundSystem::SetVolumeA(int) EI_ORIGINAL(0x006B7740)
+__declspec(naked) void UiSoundSystem::SetVolumeB(int) EI_ORIGINAL(0x006B7A00)
+__declspec(naked) void UiSoundSystem::SetVolumeC(int) EI_ORIGINAL(0x006B78A0)
+
+struct UiDisplaySettings {
+    void** vtable_;   // slot 22: applies three values (gamma and two more)
+};
+// 00500960 (not rewritten). Returns the display settings object (007AF060).
+__declspec(naked) UiDisplaySettings* DisplaySettings() EI_ORIGINAL(0x00500960)
+
+template <typename T>
+T Global(std::uintptr_t address) {
+    return *reinterpret_cast<T*>(address);
+}
+} // namespace
+
+// --- Forwarders --------------------------------------------------------------------------------
+
+__declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
+__declspec(naked) void CUiSurface::Freeze(int, int) EI_ORIGINAL(0x005FD760)
+__declspec(naked) void CUiModel::Draw(int) EI_ORIGINAL(0x005FC2F0)
+__declspec(naked) double CUiContainer::FrameTime() EI_ORIGINAL(0x00600270)
+__declspec(naked) void CUiContainer::UpdateBase() EI_ORIGINAL(0x006010E0)
+__declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
+__declspec(naked) void CUiContainer::RedrawContainer() EI_ORIGINAL(0x00601040)
+__declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, int) EI_ORIGINAL(0x00601110)
+__declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
+__declspec(naked) BOOL UiScrollbar::TakePosition(int*) EI_ORIGINAL(0x0065B090)
+__declspec(naked) bool UiSpinValue::GetValue(int*) EI_ORIGINAL(0x0065BEB0)
+__declspec(naked) void UiSpinValue::SetValue(int) EI_ORIGINAL(0x0065BEE0)
+__declspec(naked) void CSaveLoadWindow::Confirm() EI_ORIGINAL(0x00655290)
+__declspec(naked) void CSaveLoadWindow::AskDelete() EI_ORIGINAL(0x00655380)
+__declspec(naked) void CSaveLoadWindow::SaveGame() EI_ORIGINAL(0x00655550)
+__declspec(naked) void CSaveLoadWindow::DeleteSave() EI_ORIGINAL(0x00655B20)
+__declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
+__declspec(naked) void CSaveLoadWindow::ShowPicture() EI_ORIGINAL(0x00656E10)
+__declspec(naked) void COptionsWindow::RefreshRows() EI_ORIGINAL(0x00651350)
+__declspec(naked) void COptionsWindow::ShowGroup(int) EI_ORIGINAL(0x00651D70)
+__declspec(naked) void COptionsWindow::CommitBinding() EI_ORIGINAL(0x00652000)
+__declspec(naked) void COptionsWindow::Apply() EI_ORIGINAL(0x006524A0)
+
+// --- Save/load window --------------------------------------------------------------------------
+
+void CSaveLoadWindow::TakeSelectedTitle() {
+    int selected = selected_;
+    if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
+    nameTyped_ = false;
+    *reinterpret_cast<mfc::CString*>(&name_) = *reinterpret_cast<mfc::CString*>(&entriesBegin_[selected].title_);
+    cursor_ = reinterpret_cast<const int*>(name_)[-2];   // CString length
+}
+
+void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
+    if (sliding_) return;
+    int region = RegionAt(x, y);
+    switch (region) {
+    case 0:
+        Confirm();
+        break;
+    case 1:
+        interface_->PlaySound(kSoundCancel, 0);
+        interface_->SetPendingValue(kCloseSaveLoad);
+        break;
+    case 2:
+        AskDelete();
+        break;
+    default:
+        if (region >= 3) {
+            unsigned index = static_cast<unsigned>(firstVisible_ + region - 3);
+            if (index < static_cast<unsigned>(EntryCount())) {
+                interface_->PlaySound(kSoundSelect, 0);
+                if (static_cast<int>(index) != selected_) {
+                    selected_ = static_cast<int>(index);
+                    TakeSelectedTitle();
+                }
+                RefreshList();
+                ShowPicture();
+            }
+        }
+        break;
+    }
+    UiContainerMouseDown(InputSide(), nullptr, buttons, x, y);
+}
+
+void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
+    if (sliding_) return;
+    int region = RegionAt(x, y);
+    if (region >= 3) {
+        unsigned index = static_cast<unsigned>(firstVisible_ + region - 3);
+        if (index < static_cast<unsigned>(EntryCount())) {
+            if (static_cast<int>(index) != selected_) {
+                selected_ = static_cast<int>(index);
+                TakeSelectedTitle();
+            }
+            Confirm();
+        }
+    }
+    UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+}
+
+BOOL CSaveLoadWindow::Draw(int pass) {
+    if (!sliding_) {
+        surfaces_.data_[0]->Freeze(1, 0);
+        models_.data_[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
+        DrawContainer(pass);
+        return 1;
+    }
+    surfaces_.data_[0]->Freeze(0, 0);
+    double e = Ease(slide_);
+    CUiModel* model = models_.data_[0];
+    if (!model) return 1;
+    double y = isSave_ ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
+    model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
+    model->Draw(pass);
+    return 1;
+}
+
+void CSaveLoadWindow::Update() {
+    UpdateBase();
+    if (sliding_) {
+        double slide = FrameTime() / 0.5f + slide_;
+        slide_ = static_cast<float>(slide);
+        if (slide > 1.0f) {
+            sliding_ = false;
+            interface_->ShowHelp(0);
+        }
+    }
+    int position;
+    if (scrollbar_->TakePosition(&position)) {
+        firstVisible_ = position;
+        RefreshList();
+    }
+}
+
+void CSaveLoadWindow::CloseDialog() {
+    if (dialog_) dialog_->Release();
+    dialog_ = nullptr;
+}
+
+void CSaveLoadWindow::OnDialogResult(int result) {
+    if (result == kResultDelete)
+        DeleteSave();
+    else if (result == kResultOverwrite)
+        SaveGame();
+    else if (result == kResultLoad)
+        interface_->SetPendingValue(kCloseSaveLoadLoad);
+}
+
+namespace {
+template <typename W>
+W* FromInput(void* input) {
+    return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - 0x94);
+}
+
+void __fastcall SaveLoadMouseDown(void* input, void*, int buttons, int x, int y) {
+    FromInput<CSaveLoadWindow>(input)->OnMouseDown(buttons, x, y);
+}
+void __fastcall SaveLoadDoubleClick(void* input, void*, int buttons, int x, int y) {
+    FromInput<CSaveLoadWindow>(input)->OnDoubleClick(buttons, x, y);
+}
+BOOL __fastcall SaveLoadDraw(CSaveLoadWindow* self, void*, int pass) { return self->CSaveLoadWindow::Draw(pass); }
+void __fastcall SaveLoadUpdate(CSaveLoadWindow* self, void*) { self->CSaveLoadWindow::Update(); }
+void __fastcall SaveLoadCloseDialog(CSaveLoadWindow* self, void*) { self->CSaveLoadWindow::CloseDialog(); }
+void __fastcall SaveLoadDialogResult(CSaveLoadWindow* self, void*, int result) {
+    self->CSaveLoadWindow::OnDialogResult(result);
+}
+} // namespace
+
+EI_REPLACE(0x00654660, SaveLoadMouseDown);
+EI_REPLACE(0x006547B0, SaveLoadDoubleClick);
+EI_REPLACE(0x006544A0, SaveLoadDraw);
+EI_REPLACE(0x006545E0, SaveLoadUpdate);
+EI_REPLACE(0x00654430, SaveLoadCloseDialog);
+EI_REPLACE(0x00654450, SaveLoadDialogResult);
+
+// --- Options window ----------------------------------------------------------------------------
+
+void COptionsWindow::RestoreSettings() {
+    // The values the window saved when it opened (0079BCC4..0079BD04).
+    Global<UiSoundSystem*>(0x007AF784)->SetVolumeA(Global<int>(0x0079BCC8));
+    Global<UiSoundSystem*>(0x007AF784)->SetVolumeB(Global<int>(0x0079BCC4));
+    Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(Global<int>(0x0079BCCC));
+    UiDisplaySettings* display = DisplaySettings();
+    using Fn = void(__thiscall*)(UiDisplaySettings*, std::uint32_t, std::uint32_t, std::uint32_t);
+    reinterpret_cast<Fn>(display->vtable_[22])(display, Global<std::uint32_t>(0x0079BCFC),
+                                               Global<std::uint32_t>(0x0079BD00), Global<std::uint32_t>(0x0079BD04));
+}
+
+void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
+    if (sliding_) return;
+    int region = RegionAt(x, y);
+    if (region == 0 || region == 1) {
+        const char* sound;
+        if (region == 0) {
+            Apply();
+            sound = kSoundOk;
+        } else {
+            RestoreSettings();
+            sound = kSoundCancel;
+        }
+        interface_->PlaySound(sound, 0);
+        interface_->SetPendingValue(kCloseOptions);
+    } else {
+        if (region >= 2 && region < 13) {
+            interface_->PlaySound(kSoundSelect, 0);
+            waitingForKey_ = false;
+            ShowGroup(region - 2);
+        }
+        if (region >= 13) {
+            OptionRow& row = RegionRow(region);
+            if (row.binding_ || row.spin_) {
+                interface_->PlaySound(kSoundSelect, 0);
+                selectedRow_ = region - 13;
+                waitingForKey_ = false;
+                RefreshRows();
+            }
+        }
+    }
+    UiContainerMouseDown(InputSide(), nullptr, buttons, x, y);
+}
+
+void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
+    if (sliding_) return;
+    int region = RegionAt(x, y);
+    if (region >= 13) {
+        OptionRow& row = RegionRow(region);
+        if (row.binding_) {
+            interface_->PlaySound(kSoundSelect, 0);
+            selectedRow_ = region - 13;
+            waitingForKey_ = true;
+            RefreshRows();
+        } else if (row.spin_ && row.spin_->value_) {
+            int value;
+            row.spin_->value_->GetValue(&value);
+            RegionRow(region).spin_->value_->SetValue(value + 1);
+            interface_->PlaySound(kSoundOk, 0);
+            RefreshRows();
+        }
+    }
+    UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+}
+
+BOOL COptionsWindow::Draw(int pass) {
+    if (!sliding_) {
+        surfaces_.data_[0]->Freeze(1, 0);
+        models_.data_[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
+        DrawContainer(pass);
+        return 1;
+    }
+    surfaces_.data_[0]->Freeze(0, 0);
+    double e = Ease(slide_);
+    CUiModel* model = models_.data_[0];
+    if (!model) return 1;
+    double y = (480.0f - 700.0f) * e + 700.0f;
+    model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
+    model->Draw(pass);
+    return 1;
+}
+
+void COptionsWindow::Redraw() {
+    if (!sliding_) RedrawContainer();
+}
+
+void COptionsWindow::OnDialogResult(int result) {
+    if (result == 0x10001) CommitBinding();
+    RefreshRows();
+}
+
+const char* COptionsWindow::HelpTopic() {
+    // "options" (00794848) unless a key binding waits for its key.
+    return waitingForKey_ ? nullptr : reinterpret_cast<const char*>(0x00794848);
+}
+
+namespace {
+void __fastcall OptionsMouseDown(void* input, void*, int buttons, int x, int y) {
+    FromInput<COptionsWindow>(input)->OnMouseDown(buttons, x, y);
+}
+void __fastcall OptionsDoubleClick(void* input, void*, int buttons, int x, int y) {
+    FromInput<COptionsWindow>(input)->OnDoubleClick(buttons, x, y);
+}
+BOOL __fastcall OptionsDraw(COptionsWindow* self, void*, int pass) { return self->COptionsWindow::Draw(pass); }
+void __fastcall OptionsRedraw(COptionsWindow* self, void*) { self->COptionsWindow::Redraw(); }
+void __fastcall OptionsDialogResult(COptionsWindow* self, void*, int result) {
+    self->COptionsWindow::OnDialogResult(result);
+}
+const char* __fastcall OptionsHelpTopic(COptionsWindow* self, void*) { return self->COptionsWindow::HelpTopic(); }
+} // namespace
+
+EI_REPLACE(0x00650C20, OptionsMouseDown);
+EI_REPLACE(0x00650D70, OptionsDoubleClick);
+EI_REPLACE(0x00650920, OptionsDraw);
+EI_REPLACE(0x00650A20, OptionsRedraw);
+EI_REPLACE(0x006508E0, OptionsDialogResult);
+EI_REPLACE(0x00650900, OptionsHelpTopic);
