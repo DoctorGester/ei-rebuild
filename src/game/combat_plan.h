@@ -65,3 +65,27 @@ struct SightTarget {
     CUnit* unit;                // +0x14 the target unit, or null for a point
 };
 static_assert(sizeof(SightTarget) == 0x18);
+
+// What CUnitServer::PlanAction (combat_sight.cpp) saw on its last run, for the verify build's
+// mismatch reports. Written on every run; nothing in the game reads it.
+struct PlanTrace {
+    int now;
+    int duration;
+    int ticks;
+    int castDelay;
+    float heading;
+    float turnSpeed;
+    float reachSq;
+    float outerSq;
+    std::uint8_t predict;
+    struct Tick {
+        float distanceSq;   // the stored (float) squared distance
+        float turn;         // the turn angle (0 when not computed)
+        int turnTicks;      // _ftol(angle / turnSpeed), -1 when not computed
+        std::uint8_t path;  // 0 waited (closer), 1 gave up, 2 tried, 3 waited (turning), 4 refused
+    } at[64];
+};
+inline PlanTrace& LastPlanTrace() {
+    static PlanTrace trace;
+    return trace;
+}
