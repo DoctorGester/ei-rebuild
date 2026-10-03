@@ -791,3 +791,181 @@ and `enterchar` (Enter plus its WM_CHAR, which the console's character input nee
 `tests/scenarios/console.txt` now opens the console window in game, types "lastxfps", moves the caret,
 deletes the x, runs it with Enter (expects "Current FPS:"), walks the command history, scrolls and closes
 the window. CInterface3D::Update runs every frame in every scenario.
+
+# Camp, global map and battle screen setup (00600000-00660000, fourth pass)
+
+Files: `src/game/ui_camp.h` (new; the classes below), `src/game/ui_battle_setup.cpp`,
+`src/game/ui_global_map.cpp`, `src/game/ui_camp.cpp`, `src/game/ui_hero_panels.cpp`; wrappers in
+`tests/verify/verify_ui_camp.cpp`; scenario `tests/scenarios/ui_camp.txt`. Shared files changed:
+`tests/verify/harness.cpp` (new `screen <id>` step, two forwarders) and one line in `README.md`. No
+shared header was changed (`ui_camp.h` includes `ui.h`, `ui_screens.h` and `object_tables.h`).
+
+## How the screens open (corrections to "Screens" above)
+
+- `CInterface3D::CreateScreen` (005F5BA0) is called by the client's message 7 handler (00669D50,
+  slot 7 of the table set up by 00667230) with the id the server sends: 1 the battle screen
+  (vtables 00740764 / 00740730, Create 00635250), 2 (00740688), 3 the briefing / base screen
+  (007405AC), 4 the global map, 5 the camp, 7, 8, 9.
+- The client asks for a screen with message 4 (`00578B00(id)` -> 0066B280; it also sets the client
+  player's +0x20 to 3). The server's handler (00670CE0, slot 4 of the table at 0066CBE7) accepts it
+  only in state 1 (in the world): it removes the party from the world (00590A40), moves to state 2
+  and answers with message 7. Message 5 (`00578B20` -> 0066B2C0, needs client state 3; the camp's
+  page 7) brings the party back (00670DA0: state 2 -> 1). So the global map's camp button works
+  only where the map is the world's own screen (a "brief" zone).
+- `LeaveToZone(player, zone, exit)` (0066F310, server side) sends message 8; the client (00669EB0)
+  sets the game request kind 4 and the main loop loads `zone` directly (0057C460). The zone's type in
+  map.txt decides the mode: `game` 0 (mode 1, the battle screen), `brief` 1 (mode 4, a base such as
+  bz1g, the briefing screen), `edge` 2 (mode 3). The global map is not shown on the way.
+- The harness's new `screen <id>` step does what the global map's buttons do (for 5 it first sets
+  "constr.current" to 0, as 0062FE60 does) from the battle screen of zone1.
+
+## Rewritten
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 0062D350 | 6721 | `CGlobalMap::Create` (slot 25) | ours: marker counts and arrays, 13 + markers sprites, 3 + links regions, 2 surfaces + backdrop, links point at zones, fixed fields | ui_camp (`screen 4`) |
+| 00635250 | 2596 | `CBattleScreenSetup::Create` (slot 25) | ours: 11 panels appended in order with their vtables and owner, 2 input handlers, textures, reset fields, hero id | every scenario |
+| 0062F050 | 2302 | `CGlobalMap::Update` (slot 24) | ours: bob time = stored FrameTime + old, selection refresh done, w >= 0 after a turn | ui_camp |
+| 00611930 | 2361 | `CCampPages::UpdateAction` | side by side (original first; ours releases what it made): cost, flags, made-or-not, button shades | ui_camp (every camp frame) |
+| 006100E0 | 2078 | `CCampPages::CanEquip` (slot 43) | side by side, AL | ui_camp (strips) |
+| 00623880 | 2645 | `CHeroStatsPanel::DrawStats` | ours: state untouched (GDI text only) | ui_camp, ui_screens (hero screen) |
+| 0060E9E0 | 1609 | `CCampPages::ShowPage` | ours: the shown page's panels exactly enabled, strip slots, button shades; page 7 leaves | ui_camp |
+| 006233C0 | 1207 | `CHeroStatsPanel::ShowStats` | ours: 2 + 9 / 13 / 8 regions, page, objects 4.. shown on page 10 only | ui_camp |
+| 00622DB0 | 1307 | `CHeroStatsPanel::Build` (slot 18) | ours: counts, 8 texts, fields | ui_camp, ui_screens |
+| 0060F050 | 998 | `CCampPages::Draw` (slot 20) | ours: returns 1, page/hero unchanged | ui_camp |
+| 00612600 | 946 | `CCampPages::CanMakeItem` | ours: result iff a new item is held (with its reference) | ui_camp (page 5) |
+| 00612290 | 622 | `CCampPages::CanMakeSpell` | ours: result implies a held container | ui_camp (page 3) |
+| 00622000 | 1041 | `CHeroEquipPanel::Build` | ours: counts by `body`, rectangle, selection | ui_camp, ui_screens |
+| 006280C0 | 980 | `CConstructorPage::BuildSpellMaker` | ours: counts, texts, fields | ui_camp |
+| 006270A0 | 744 | `CTradeGrid::Build` | ours: 16 regions, 32 sprites, textures, surface, kinds | ui_camp |
+| 00628CC0 | 696 | `CConstructorPage::BuildItemMaker` | ours: counts, fields | ui_camp |
+| 006279E0 | 682 | `CRepairGrid::Build` | ours: as the trade grid | ui_camp |
+| 00622A80 | 312 | `CHeroQuickStrip::Build` | ours: 8 regions, 2 sprites, y | ui_camp |
+
+18 functions, about 32.5 KB. All are hooked as one function each (helpers such as the cell grid of
+006270A0 / 006279E0 are shared C++ code). None is Rebirth-patched; every Rebirth-patched callee
+(005E70E0, 005E7680, 005E6FA0, 005E7D60, 005FDE20, 005FC9E0, the panel builders 0063BAB0 ...
+00648520, the price slot 54 0060FAB0) is called through its original address or the vtable.
+
+### Details
+
+- Battle screen Create: when a game is loaded it reads the screen's part of the save (007AFDF8:
+  hero id count and ids into +0x1DC, the map zoom, the server flag byte, from version 0x47 an int
+  and a string that is appended to the top panel's text and, on page 0, to the message log; from
+  0x62 +0x18C and +0x188), else remembers the local player's first hero. Panels: weapon bar,
+  quick items, spells, actions, portraits by their constructors; unit panel, map, clock, movement
+  panel, top panel built inline (window constructor 005FE700, owner +0x148, vtables) and set up by
+  their builders with the interface's saved settings (+0x89/+0x8C, +0x8B, +0x94, +0x8A/+0x90);
+  the message log 0065CC00. The "pers <name>" texts go into the map<int, CString> at +0x1F0 by
+  the name's text key (insert with hint 00609E70).
+- Global map: positions on the island model are `centre + turn(local)` where the centre is the
+  layout point (400, 280) at depth 10 in camera space (`(x * 0.0025 - 1) * 0.48157 * depth`, each
+  stored) and `turn` the quaternion at +0x1EC (spin about z by +0x1FC times a tilt of 0.8 pi about
+  x; the product is inlined with its own operand order, TurnProduct). Markers: zones of the allod
+  with a figure (state = "z.<zone>"), the quests "q.<zone>.<quest>" = 1 (bit compare with 1.0f),
+  the ways out whose "z.<way>" equals 2 (FCOMP: unordered counts as equal) with a region each
+  (20 either side, 25 above, 10 below the sprite's layout position, truncated with _ftol). The
+  clock text is "<save_day>  <day>,  <h>:<mm>" from gtime * 60 minutes. Fog colours by allod
+  (ingos, suslanger), +0x278 for gipat. Arrived from anything but the camp (screen 5) it autosaves
+  to "saveb" when 0079BE7C is set.
+- Global map Update: while turning (+0x174) or dragging (+0x264) the angle grows by
+  `FrameTime * dir * pi * k + angle` (stored), wrapped with _CIfmod by 007C8020; the markers and
+  the link regions follow. Always: the arrow bobs (`0.5 - cos(t * k) * a + z`, t unrounded), the
+  three layers' texture frames take the fraction of `t * rate`, the weather (00499F10) is drawn
+  into texture 4's locked surface under the interface's critical section 007AEE78.
+- Camp pages (CCampPages = the camp screen's fields): page buttons are regions 4-11 (page 7
+  leaves); constructor pages need +0x195 (spell) / +0x196 (item), their second pages also
+  `!+0x254` ("i.noconstr"). ShowPage disables every page's panels, enables the page's, sets the
+  item strip's slot count (9; 1 on page 2; 5 on page 4), draws the page title (surface 1) and
+  shades the page buttons; an unoffered page shows the current one again (recursively, the tail
+  then runs twice, as in the original).
+- UpdateAction (every frame from Draw): page 0 repair-all of the hero's weapons (+0x730) and armour
+  (+0x750) where the item constructor works; page 1 the level-up (trade panel 00625510/
+  00625560/00625530, experience shown instead of money); pages 2/4 trade (price slot 54 times count
+  +0x48, bought minus sold); pages 3/5 take apart a finished container / blueprint or make (CanMake*),
+  the help panel describing it; page 6 repair. Money below the cost disables the button.
+- CanEquip: the strips' filter per page (see the code): weapons and armour on page 0 (worn-out ones
+  not to a hero: FISTP of +0x20 <= 0), spell containers a hero can cast on page 1 (HeroCanUseSpell),
+  the spell constructor's container / one spell / up to eight modifiers fitting the spell (kind
+  flags at +0x78) within the party's best skill and mana (slot 45; mana summed as stored floats),
+  the item constructor's blueprint, parts by blueprint (name compare) and containers whose spell
+  fits the item made (+0x40 / +0x2C), repairs where +0x24 > +0x20.
+- Statistics panel: the new hero page shows strength, dexterity, intelligence (FTOL of +0xC/+0x14/
+  +0x1C), points left `ftol(75 - (float)sum)` and -/+ buttons coloured by `value > 15` and
+  `stored < 35 && points > 0`; other pages the values (+0x10, +0x18, +0x20, hit points 00523E80,
+  mana 00523F50, +0x30, experience +0x700 + +4 unrounded) and the encumbrance (00660840, or the hero
+  screen's slot 53 on page 11) against +0x54, red when over; page 0 the armour by body part and the
+  weapon's figures (unit +0x240 slot 50).
+
+## Forwarders added (standalone build must replace)
+
+Panel constructors and builders 0063BAB0, 0063C800, 0063E2A0, 0063F300, 0063FE70, 0065CC00,
+006456E0, 00641F20, 00648520, 00649AF0, 0064A7A0, 0065CF30, 005EACB0, window constructor 005FE700,
+container inputs 00600CC0, DWORD array SetSize 0059C660, party array SetSize 005EBDB0, save stream
+004A5490/004A54D0/00461190 (vtable slot 1 Read), game helpers 00578D10/005786A0/00578950, text
+tables 004DEFA0/004DEFC0/004DF8D0, map insert 00609E70. Global map: 00631110, 00630E00, 00631030,
+00630F50, 00630CC0, 00630860, 0062EE90, 00630670, arrays 00631CC0/00631E70/00631FF0 and element
+assignment 00632490/006324E0, rotation 0046A4B0, sprite scale/position 005E7060/005E7010, hash map
+00581790/004614C0/005E0DB0/00578B70, Split 004DBE40, 00499DC0/00499EE0/00499F10 weather,
+006B4F70, autosave 006570E0, FatalDirectX 004800E0, cursor 005E5200, _CIfmod 006E95AA (inline asm).
+Camp: help panel 005F2910/005EE6C0, trade panel 006255A0/00625860/00625510/00625560/00625530/
+00625690, stats panel 006233C0 (rewritten, called through its address)/00624CB0/006242E0/00624590,
+description 005F1590, hero preview 005EC300, item predicates 005EE050/005EE080/005EE0B0/005EE0D0/
+005EE110/005EE130, item moves 005EE2C0/005EE1B0/00621570, back to the world 00578B20, spell
+constructor 006841A0/006841E0/006842A0/00684250, item constructor 006A5C00/006A5C50/006A5CC0/
+006A5CD0/006A5CE0/006A5CF0, spell clone 0068B410, cast flag 0068B7C0, RefPtr assign 0052C690,
+container record 00613820, item factory 006AD000/006A04D0, carried weight 00660840, sprites
+005E8450/005E7680. Harness: 00578B00 (screen request), 00578560 (constr.current).
+
+## Original quirks kept
+
+- Global map: the marker arrays' templates have uninitialised numbers in the original (they are
+  overwritten right after); the rewrite's are 0.
+- Camp Draw: the hover info passed to 005F1590 has uninitialised bytes +4..+0x13 unless a panel
+  fills them (005F1590 returns before reading them when the kind is -1); the rewrite zeroes them.
+- CanMakeSpell keeps the modifiers in an 8-entry stack array without a bound (CanEquip allows at
+  most eight); the rewrite's array is larger, so more than eight would differ only where the
+  original overwrites its frame.
+- CanEquip on page 1 reads the container's spell (+0x44) without a null check; CanMakeItem's item
+  type stays unset without a part (never used then).
+- The ShowPage fallback for an unoffered page runs the whole tail twice.
+
+## Not rewritten (mapped)
+
+- The credits (0062B7D0 Create: parses outro.res credits.scr, a RichEdit window 0065ED30 and a
+  bink movie 005DBA50): the scenario must not play movies, so no scenario reaches it.
+- 00612CF0 (camp slot 39, 1776 bytes): fills the constructors with every blueprint and part
+  ("Instruction_Weapon", "Instruction_Armor"; a debug fill). No caller found besides the vtable.
+- 00625880 / 006261A0 (the trade panel's skill and perk lists, STL vectors of 0x18-byte entries),
+  00624F10 (trade panel build), 00626920 (its click), the drawing slots 20 of the panels (00622420,
+  00622C10, 00627390, 006284A0, 00628F80, 00627C90), 00624A60 / 00624790 (stats update and click),
+  00610AD0 (camp slot 42, item chosen), 00611220 / 00611760 (the action buttons), 0060E6B0 /
+  0060E3E0 / 0060FCA0 / 0060FE40 (camp slots 26 / 47 ...). Good next targets: all are reached by
+  ui_camp.
+- The exchange window (0062C250 Create, 0062C9C0) and the multiplayer lobby screens (0061C430,
+  0061C700, 0061D470, 0061E2F0 ..., 00617050 the hero screen's click, 00618A10, 00617A50,
+  00616AC0, 006159E0): need a network session; no scenario.
+- The briefing screen's functions (00604C50, 00604130, 006064E0, 006024B0, 006034A0 ...) belong to
+  the base screen (CreateScreen 3); not in this pass.
+
+## Scenario `tests/scenarios/ui_camp.txt`
+
+New game; `screen 5` opens the camp as the global map's camp button does ("constr.current" 0, no
+constructor: Create, Draw, UpdateAction, the stats/equipment/quick-strip Builds and ShowStats);
+regions 5-10 and 4 ask for pages 1-6 and 0 (2-6 are not offered and fall back), regions 1/0 the hero
+arrows, 2/3 turn the hero; Esc (page 7) leaves the camp and the game resumes (the battle screen's
+Create runs again); `screen 4` opens the global map (Create, Update every frame), regions 0/1 turn
+it, Esc opens and closes the escape menu over it. About 40 s. The battle screen Create runs in
+every scenario.
+
+The first version also set "i.onspellconstr" / "i.onitemconstr" to offer the constructor pages.
+That crashed the original too (00621377 in CUiItemStrip::RebuildList, reading 0x44): with
+"constr.current" 0 the camp's Create (0060C870) has no constructor record (+0x198 = 0), yet with
+those flags it creates the spell and part strips and gives them `+0x1C8 + 0x40` /
+`+0x1B4 + 0x40` as item lists (00621160); those fields are the record's +0xAC / +0x3C and stay 0
+without a record, so the lists are at address 0x40. The flags are only valid with a
+constructor, which the camp gets from a base's dialogue ("constrN" answers, 006064E0 -> 00578560(N)
+-> screen 5) in a "brief" zone; that path needs the briefing screen's dialogue and is not scripted.
+
+Not reached by a scenario: the constructor pages' Builds (006270A0, 006280C0, 00628CC0, 006279E0),
+CanMakeSpell / CanMakeItem, and probably CanEquip (slot 43; asked when an item is picked or dropped).

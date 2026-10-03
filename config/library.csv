@@ -2621,3 +2621,161 @@ address,name,library,signature,notes
 006E02B0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
 006E0440,stlp::vector<T>::_M_allocate_and_copy,STLport,,"inventory sweep: node-pool allocate n, copy [first,last); loose-family member of 004081F0 (reviewed)"
 006E2ED0,stlp::allocator<T>::allocate,STLport,,inventory sweep: n*sizeof(T) from the node pool or operator new above 128 bytes; loose-family member of 004FF9A0 (reviewed)
+004C1290,CArray<ScriptObjectRef>::Copy,MFC,"void __thiscall(const CArray&)","instantiation (script groups): SetSize inlined, each reference copied (004C21E0)"
+004C1480,CArray<CString> subclass::CArray,MFC,void __thiscall(),"instantiation (vtable 0073D2D4, script variable names)"
+004C14A0,CArray<CString>::Copy,MFC,"void __thiscall(const CArray&)",instantiation: SetSize inlined (006FE268 / 006FE296) then element assignment
+004C1840,ScriptGroup scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D110 slot 1)
+004C1860,CArray<CString> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D2D4 slot 1)
+004C18A0,CArray<ScriptGroup> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D304 slot 1)
+004C18C0,CArray<SSCCmd> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D3DC slot 1)
+004C18E0,CArray<SSCCmd> subclass::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D3DC): every command's arrays destroyed
+004C1A00,CArray<ScriptIfThen> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D430 slot 1)
+004C1A20,CArray<ScriptPointLight> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D394 slot 1)
+004C1A40,CArray<ScriptDefinition> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D358 slot 1)
+004C1A60,CArray<ScriptArea> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D334 slot 1)
+004C1A80,CArray<float>::Copy,MFC,"void __thiscall(const CArray&)",instantiation (script float variables)
+004C1BE0,CArray<ScriptGroup>::Copy,MFC,"void __thiscall(const CArray&)",instantiation: each group resized and its references copied
+004C2030,CArray<ScriptObjectRef>::CArray,MFC,void __thiscall(),instantiation (vtable 0073D11C)
+004C2050,CArray<ScriptObjectRef>::SetSize,MFC,"void __thiscall(int,int)","instantiation (ScriptGroup::SetSize, called through its address from script_group.cpp)"
+004C21E0,CArray<ScriptObjectRef>::GetAt,MFC,"ScriptObjectRef __thiscall(int)",instantiation: returns a referenced copy (004CC7A0)
+004C2200,CArray<ScriptObjectRef>::RemoveAt,MFC,"void __thiscall(int,int)",instantiation (group RemoveAt)
+004C2290,CArray<ScriptObjectRef>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D11C)
+004C2310,ScriptGroup::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtables 0073D110 / 0073D11C slot 2)
+004C24F0,CArray<CString>::CArray,MFC,void __thiscall(),instantiation (vtable 0073D2F8)
+004C2510,CArray<CString>::SetSize,MFC,"void __thiscall(int,int)",instantiation (script names and strings)
+004C2670,CArray<4-byte>::ElementAt,MFC,"T& __thiscall(int)",instantiation used by SSCCmd::Execute
+004C2680,CArray<CString>::GetAt,MFC,"CString __thiscall(int)",instantiation: returns a copy (004CC840)
+004C26A0,CArray<CString>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D2F8)
+004C2700,CArray<CString>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtables 0073D2D4 / 0073D2F8 slot 2)
+004C3B00,CArray<ScriptGroup>::GetAt,MFC,"ScriptGroup __thiscall(int)",instantiation: returns a copy (004CC890)
+004C3B20,CArray<ScriptGroup>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D310)
+004C4550,CArray<4-byte>::ElementAt,MFC,"T& __thiscall(int)",instantiation used by SSCCmd::Execute
+004C4830,CArray<4-byte>::ElementAt,MFC,"T& __thiscall(int)",instantiation used by SSCCmd::Execute
+004C4FD0,CArray<ScriptSubCall>::SetSize,MFC,"void __thiscall(int,int)",instantiation: dropped elements delete their nested SSCCmd
+004C5180,CArray<ScriptSubCall>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D418): nested commands deleted
+004C52A0,CArray<ScriptSubCall>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtables 0073D418 / 0073D4A8 slot 2)
+004C54A0,CArray<SSCCmd>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D3D0)
+004C59A0,CArray<ScriptIfThen>::CArray,MFC,void __thiscall(),instantiation (vtable 0073D3AC)
+004C59C0,CArray<ScriptIfThen>::SetSize,MFC,"void __thiscall(int,int)",instantiation
+004C5AF0,CArray<ScriptIfThen>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D3AC)
+004C5B10,CArray<ScriptIfThen>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtables 0073D3AC / 0073D430 slot 2)
+004C5CB0,CArray<ScriptPointLight>::SetSize,MFC,"void __thiscall(int,int)",instantiation: dropped lights' objects released (RemoveTimedObject)
+004C6030,CList<ScriptParticleSource>::GetNext,MFC,"T& __stdcall(POSITION&)",instantiation (no this)
+004C6040,CList<ScriptParticleSource>::RemoveAt,MFC,void __thiscall(POSITION),instantiation: the element's object released (RemoveTimedObject)
+004C6120,CList<ScriptParticleSource>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D388)
+004C61C0,CList<ScriptParticleSource>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D388 slot 2)
+004C6370,CList<ScriptFxSource>::RemoveAt,MFC,void __thiscall(POSITION),instantiation (element destructor 004BD540)
+004C6410,CList<ScriptFxSource>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D37C)
+004C64C0,CList<ScriptFxSource>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D37C slot 2)
+004C6670,CList<ScriptLightning>::GetNext,MFC,"T& __stdcall(POSITION&)",instantiation (no this)
+004C6680,CList<ScriptLightning>::RemoveAt,MFC,void __thiscall(POSITION),instantiation: the element's object released (RemoveTimedObject)
+004C6760,CList<ScriptLightning>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D370)
+004C6800,CList<ScriptLightning>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D370 slot 2)
+004C6D10,CArray<ScriptSubCall>::Copy,MFC,"void __thiscall(const CArray&)",instantiation: nested commands deep-copied
+004C6F80,"CArray<float,float>::Copy",MFC,"void __thiscall(const CArray&)",instantiation (SSCCmd float arguments)
+004C70E0,CArray<ScriptObjectRef*>::Copy,MFC,"void __thiscall(const CArray&)",instantiation
+004C7240,CArray<ScriptGroup*>::Copy,MFC,"void __thiscall(const CArray&)",instantiation
+004C73A0,CArray<ScriptBinding>::Copy,MFC,"void __thiscall(const CArray&)",instantiation
+004C7510,CArray<ScriptSubCall>::GetAt,MFC,"ScriptSubCall __thiscall(int)",instantiation: returns a deep copy (004CCAA0)
+004C7550,CList<ScriptDecl>::GetNext,MFC,"T& __stdcall(POSITION&)",instantiation (no this)
+004C7560,CList<ScriptDecl>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D364)
+004C7640,CList<ScriptDecl>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D364 slot 2)
+004C7C90,CList<ScriptDefinition>::AddTail,MFC,POSITION __thiscall(const ScriptDefinition&),instantiation (script instances)
+004C7E20,CList<ScriptDefinition>::GetNext,MFC,"T& __stdcall(POSITION&)",instantiation (no this)
+004C7E30,CList<ScriptDefinition>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D34C)
+004C7F60,CList<ScriptDefinition>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D34C slot 2)
+004C8510,CList<ScriptRun>::GetNext,MFC,"T& __stdcall(POSITION&)",instantiation (no this)
+004C8520,CList<ScriptRun>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D340)
+004C8640,CList<ScriptRun>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D340 slot 2)
+004C8AC0,CList<ScriptGroup>::CList,MFC,void __thiscall(int),instantiation (vtable 0073D43C; temporary groups)
+004C8CE0,CList<ScriptGroup>::AddHead,MFC,POSITION __thiscall(const ScriptGroup&),instantiation
+004C8D80,CList<ScriptGroup>::AddTail,MFC,POSITION __thiscall(const ScriptGroup&),instantiation (CScript temporaries)
+004C8E20,CList<ScriptGroup>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D43C)
+004C8F00,CList<ScriptGroup>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D43C slot 2)
+004C90D0,CList<ScriptObjectRef>::CList,MFC,void __thiscall(int),instantiation (vtable 0073D448; temporary references)
+004C9210,CList<ScriptObjectRef>::AddTail,MFC,POSITION __thiscall(const ScriptObjectRef&),instantiation
+004C92C0,CList<ScriptObjectRef>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D448)
+004C9350,CList<ScriptObjectRef>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D448 slot 2)
+004C94F0,CArray<EventRecord28>::GetSize,MFC,int __thiscall(),instantiation
+004C9500,CArray<EventRecord28>::ElementAt,MFC,"T& __thiscall(int)",instantiation (0x28-byte elements)
+004C96D0,CList<void*>::GetHeadPosition,MFC,POSITION __thiscall(),instantiation
+004C96E0,CList<void*>::GetNext,MFC,"T& __stdcall(POSITION&)",instantiation (no this)
+004C9870,CArray<0x784-byte>::GetSize,MFC,int __thiscall(),instantiation
+004C9880,CArray<0x784-byte>::ElementAt,MFC,"T& __thiscall(int)",instantiation
+004C98A0,CList<T>::GetHeadPosition,MFC,POSITION __thiscall(),instantiation used by SSCCmd::Execute
+004CA260,CList<ScriptToken>::~CList,MFC,void __thiscall(),instantiation (vtable 0073D424)
+004CA2E0,CList<ScriptToken>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073D424 slot 2)
+004CAFB0,CArray<ScriptObjectRef> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D11C slot 1)
+004CAFD0,CArray<CString> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D2F8 slot 1)
+004CB010,CArray<ScriptGroup> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D310 slot 1)
+004CB0D0,CArray<ScriptSubCall> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D418 slot 1)
+004CB0F0,CArray<SSCCmd> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D3D0 slot 1)
+004CB110,CArray<ScriptIfThen> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D3AC slot 1)
+004CB130,CArray<ScriptPointLight> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D3A0 slot 1)
+004CB150,CArray<ScriptPointLight>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D3A0): the lights' objects released (RemoveTimedObject)
+004CB1E0,CList<ScriptParticleSource> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D388 slot 1)
+004CB200,CList<ScriptFxSource> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D37C slot 1)
+004CB290,CList<ScriptLightning> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D370 slot 1)
+004CB2B0,CList<ScriptDecl> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D364 slot 1)
+004CB2F0,CArray<ScriptDefinition> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D3B8 slot 1)
+004CB310,CArray<ScriptDefinition>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D3B8)
+004CB440,CList<ScriptDefinition> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D34C slot 1)
+004CB550,CList<ScriptRun> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D340 slot 1)
+004CB630,CArray<ScriptArea> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D3C4 slot 1)
+004CB650,CArray<ScriptArea>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D3C4)
+004CB6B0,CList<ScriptGroup> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D43C slot 1)
+004CB6D0,CList<ScriptObjectRef> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D448 slot 1)
+004CB7B0,CList<ScriptToken> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D424 slot 1)
+004CB7D0,CString::~CString (thunk),MFC,void __thiscall(),JMP 00700970
+004CC0C0,CArray<SSCCmd>::Copy,MFC,"void __thiscall(const CArray&)",instantiation: commands copied with SSCCmd::operator=
+004CC3C0,CArray<ScriptIfThen> subclass copy constructor,MFC,"void __thiscall(const CArray&)",instantiation (vtable 0073D430)
+004CC4A0,CArray<ScriptIfThen>::Copy,MFC,"void __thiscall(const CArray&)",instantiation
+004CC7A0,CArray<ScriptObjectRef>::GetAt helper,MFC,"ScriptObjectRef* __thiscall(ScriptObjectRef*,int)",instantiation: copy-constructs element i into the result
+004CC7D0,DestructElements<ScriptObjectRef>,MFC,"void __stdcall(ScriptObjectRef*,int)",instantiation: each object released and cleared
+004CC840,CArray<CString>::GetAt helper,MFC,"CString* __thiscall(CString*,int)",instantiation: copy-constructs element i into the result
+004CC870,ConstructElements<float>,MFC,"void __stdcall(float*,int)",instantiation: zero fill
+004CC890,CArray<ScriptGroup>::GetAt helper,MFC,"ScriptGroup* __thiscall(ScriptGroup*,int)",instantiation: copy-constructs group i into the result
+004CC980,DestructElements<ScriptGroup>,MFC,"void __stdcall(ScriptGroup*,int)",instantiation (004B5EF0 each)
+004CC9B0,ConstructElements<ScriptGroup>,MFC,"void __stdcall(ScriptGroup*,int)","instantiation: zero fill, vtable 0073D110"
+004CCA10,ConstructElements<ScriptObjectRef*>,MFC,"void __stdcall(void*,int)",instantiation: zero fill
+004CCA30,ConstructElements<ScriptGroup*>,MFC,"void __stdcall(void*,int)",instantiation: zero fill
+004CCA50,ConstructElements<ScriptBinding>,MFC,"void __stdcall(ScriptBinding*,int)",instantiation: zero fill
+004CCCB0,CArray<ScriptBinding> subclass copy constructor,MFC,"void __thiscall(const CArray&)",instantiation (vtable 0073D49C)
+004CCD90,CArray<ScriptSubCall> subclass copy constructor,MFC,"void __thiscall(const CArray&)",instantiation (vtable 0073D4A8)
+004CCF50,CArray<ScriptSubCall> subclass scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073D4A8 slot 1)
+004CCF70,CArray<ScriptSubCall> subclass::~CArray,MFC,void __thiscall(),instantiation (vtable 0073D4A8)
+004CD0E0,DestructElements<pointer> (empty),MFC,"void __stdcall(void*,int)",instantiation: RET 8
+004CD0F0,DestructElements<ScriptSubCall>,MFC,"void __stdcall(ScriptSubCall*,int)",instantiation: each nested SSCCmd destroyed and deleted
+004CD130,ConstructElements<ScriptSubCall>,MFC,"void __stdcall(ScriptSubCall*,int)",instantiation
+004CD2B0,CArray<SSCCmd>::SetSize,MFC,"void __thiscall(int,int)",instantiation
+004CD450,CArray<SSCCmd>::GetAt,MFC,"SSCCmd __thiscall(int)",instantiation: returns a copy (004CE750)
+004CD470,DestructElements<SSCCmd>,MFC,"void __stdcall(SSCCmd*,int)",instantiation (004BF640 each)
+004CD4A0,ConstructElements<ScriptIfThen>,MFC,"void __stdcall(ScriptIfThen*,int)",instantiation: zero fill
+004CD4F0,ConstructElements<ScriptPointLight>,MFC,"void __stdcall(void*,int)",instantiation
+004CD540,CList<ScriptParticleSource>::NewNode,MFC,"CNode* __thiscall(CNode*,CNode*)",instantiation (0x2C-byte nodes)
+004CD5B0,CList<ScriptFxSource>::NewNode,MFC,"CNode* __thiscall(CNode*,CNode*)",instantiation
+004CD620,CList<ScriptLightning>::NewNode,MFC,"CNode* __thiscall(CNode*,CNode*)",instantiation
+004CD6D0,CList<ScriptDecl>::NewNode,MFC,"CNode* __thiscall(CNode*,CNode*)",instantiation
+004CD900,DestructElements<ScriptDefinition>,MFC,"void __stdcall(ScriptDefinition*,int)",instantiation (004BE9D0 each)
+004CD930,CList<ScriptDefinition>::NewNode,MFC,"CNode* __thiscall(CNode*,CNode*)",instantiation
+004CD9B0,CList<ScriptDefinition>::FreeNode,MFC,void __thiscall(CNode*),instantiation
+004CDA30,CList<ScriptRun>::NewNode,MFC,"CNode* __thiscall(CNode*,CNode*)",instantiation
+004CDAB0,CList<ScriptRun>::FreeNode,MFC,void __thiscall(CNode*),instantiation
+004CDE10,ConstructElements<16-byte>,MFC,"void __stdcall(void*,int)",instantiation: zero fill
+004CE2F0,CArray<ScriptAreaPart>::Copy,MFC,"void __thiscall(const CArray&)",instantiation
+004CE5C0,CopyElements<ScriptAreaPart>,MFC,"void __stdcall(ScriptAreaPart*,const ScriptAreaPart*,int)",instantiation
+004CE920,ConstructElements<SSCCmd>,MFC,"void __stdcall(SSCCmd*,int)",instantiation: zero fill and the argument arrays' vtables
+004CEA10,CArray<ScriptIfThen>::GetAt,MFC,"ScriptIfThen __thiscall(int)",instantiation
+004CEA30,ConstructElements<ScriptParticleSource>,MFC,"void __stdcall(void*,int)",instantiation
+004CEA80,ConstructElements<ScriptFxSource>,MFC,"void __stdcall(void*,int)",instantiation
+004CEAD0,ConstructElements<ScriptLightning>,MFC,"void __stdcall(void*,int)",instantiation
+004CEB80,ConstructElements<ScriptDefinition>,MFC,"void __stdcall(ScriptDefinition*,int)",instantiation
+004CEC80,DestructElements<ScriptRun>,MFC,"void __stdcall(ScriptRun*,int)",instantiation (004BCAE0 each)
+004CECB0,ConstructElements<ScriptRun>,MFC,"void __stdcall(ScriptRun*,int)",instantiation
+004CEE20,ConstructElements<EventRecord28>,MFC,"void __stdcall(void*,int)",instantiation
+004CEE80,ConstructElements<QuestRecord12>,MFC,"void __stdcall(void*,int)",instantiation
+004C69B0,CList<ScriptDecl>::RemoveHead,MFC,ScriptDecl __thiscall(),instantiation: the head element copied out (SSCCmd::operator= each) and its node freed
+004C7A10,CList<ScriptDefinition>::RemoveHead,MFC,ScriptDefinition __thiscall(),instantiation (CScript reset)
+004C82B0,CList<ScriptRun>::RemoveHead,MFC,ScriptRun __thiscall(),instantiation (CScript reset)
+004C8AF0,CList<ScriptGroup>::RemoveTail,MFC,ScriptGroup __thiscall(),instantiation (CScript temporaries)
+004C9100,CList<ScriptObjectRef>::RemoveTail,MFC,ScriptObjectRef __thiscall(),instantiation (CScript temporaries)
