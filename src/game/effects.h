@@ -71,6 +71,11 @@ public:
     // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
     int Draw(void* renderer);                       // 004976B0
 
+    // --- set-up (particle_create.cpp) ---
+    int CreateForType();                            // 00485540 (vtable slot 2): per-type parameters
+    void Reset();                                   // 004847E0: defaults, texture and elements dropped
+    void Clear();                                   // 00484710 (vtable slot 3): particles back to the pool, detach, Reset
+
     // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
     int Tick();                                     // 00496EB0: 1 while the source stays alive
     void AddParticle(Particle* p);                  // 00496A20: prev = current, bounds, list tail
@@ -135,8 +140,8 @@ public:
     float emitSpacing;              // +0x0D4
     int maxParticles;               // +0x0D8
     int frameCount;                 // +0x0DC
-    int unknown_0E0;
-    int frameDelay;                 // +0x0E4
+    int frameColumns;               // +0x0E0 columns of the texture's frame grid
+    int frameDelay;                 // +0x0E4 (Tornado, CurseHolder: the particle colour)
     int hiddenTicks;                // +0x0E8 draws skipped off screen (the tick idles past 0x38 with flag 0x20)
     int lifetime;                   // +0x0EC
     Vector3 spreadMin;              // +0x0F0
@@ -169,8 +174,10 @@ public:
     Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
     std::uint8_t unknown_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
-    int frameBase;                  // +0x1D0 first texture frame of this source's sprites
-    std::uint8_t unknown_1D4[0x1E0 - 0x1D4];
+    int frameBase;                  // +0x1D0 address of the frame UV rectangles (16 bytes each, 32-byte aligned)
+    int frameRectCount;             // +0x1D4 (an MFC-style array: data, size, max, grow by)
+    int frameRectCapacity;          // +0x1D8
+    int frameRectGrowBy;            // +0x1DC
     void* emitFn;                   // +0x1E0
     void* updateFn;                 // +0x1E4
     void* elementFn;                // +0x1E8

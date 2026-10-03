@@ -15,6 +15,8 @@
 #include <cstring>
 #include <vector>
 
+extern const std::vector<unsigned char>* g_seedElements;   // defined below
+
 namespace {
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
@@ -64,10 +66,6 @@ const char* PartName(int part) {
     return names[part];
 }
 
-// While the original runs the first emission on its scratch source, the element array it allocates
-// starts with the bytes ours' array held: the bytes neither writes (padding such as +0x24..+0x30 of
-// each point) then match, and a byte only the original writes still shows.
-const std::vector<unsigned char>* g_seedElements = nullptr;
 
 using EmitFn = int(__fastcall*)(CParticleSource*, void*, Particle*, int);
 using UpdateFn = int(__fastcall*)(CParticleSource*, void*, Particle*);
@@ -139,6 +137,12 @@ int RunBothSetup(const char* name, CParticleSource* self, Particle* p, int index
 }
 
 } // namespace
+
+// While the original runs the first emission on its scratch source, the element array it allocates
+// starts with the bytes ours' array held: the bytes neither writes (padding such as +0x24..+0x30 of
+// each point) then match, and a byte only the original writes still shows. CreateForType's verify
+// (verify_particle_create.cpp) seeds ours' arrays from the original's the same way.
+const std::vector<unsigned char>* g_seedElements = nullptr;
 
 // 00497EB0: ours only (allocates). The block's address sits below the 32-byte aligned result.
 static void* s_unusedAllocate;
