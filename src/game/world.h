@@ -264,6 +264,12 @@ public:
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
 
+    // world_quests.cpp
+    // 00591800. For every player and the ten mercenary slots ("merc1".."merc10"), sets the
+    // briefing variables b.mercN.n1/n2/n3/n8/n9/n10/n11_N (and clears amerc_N) from whether the
+    // mercenary is in the party, was hired (amerc_N), and how many others are alive.
+    void UpdateMercBriefings();
+
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
     // records; an existing object with the record's id is removed first), at its entry in
