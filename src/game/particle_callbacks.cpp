@@ -1987,3 +1987,106 @@ int CParticleSource::UpdateMushroom(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00488DB0, CParticleSource::UpdateMushroom);
+
+// --- BlueGas (Stench, 0x2013): gas swirling up around the carrier -------------------------------
+//
+// Element 0: +0x00 the carrier's figure offset, +0x18 the gas radius, +0x20 the carrier's height.
+
+namespace {
+
+#define EI_GAS_RADIUS GameFloat(0x0073C54C)          // 0.3
+#define EI_GAS_RATE GameFloat(0x0073BF34)            // 5.0
+#define EI_GAS_ROUND GameFloat(0x0073B86C)           // 0.5
+#define EI_GAS_LOW GameFloat(0x0073CDFC)             // -0.3
+#define EI_GAS_RISE_LOW GameFloat(0x0073CCD8)        // 0.02
+#define EI_GAS_RISE_HIGH GameFloat(0x0073CD74)       // 0.03
+#define EI_GAS_SIZE GameFloat(0x0073C538)            // 0.7
+#define EI_GAS_SPEED_UP GameFloat(0x0073CDE4)        // 1.02
+#define EI_GAS_SWELL GameFloat(0x0073CD40)           // 1.01
+
+const char* NoCarrierGas() { return reinterpret_cast<const char*>(0x0078AF7C); }
+
+} // namespace
+
+// 0048D420. BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff
+// starts at a random point of the disc around the carrier's figure, turning about the axis faster
+// the nearer it is, and rising.
+int CParticleSource::EmitStench(Particle* p, int) {
+    if (elementCount == 0) {
+        if (!attachedTo) {
+            DebugMessage(NoCarrierGas());
+            return 0;
+        }
+        Vector3 offset;
+        float radius;
+        AttachmentOffset(&offset, &radius);
+        double r = D(radius);
+        float gasRadius = Store(r * D(EI_GAS_RADIUS));
+        float carrierHeight = Store(r + r);
+        SetElementCount(this, 1);
+        std::memcpy(&elements[0].pos, &offset, sizeof(Vector3));
+        *ElementFloat(elements, 0x18) = gasRadius;
+        *ElementFloat(elements, 0x20) = carrierHeight;
+        int rate = GameFtol(D(size) * D(EI_GAS_RATE) + D(EI_GAS_ROUND));
+        emitCount = rate < 1 ? 1 : rate;
+    }
+    float radius = *ElementFloat(elements, 0x18);
+    float carrierHeight = *ElementFloat(elements, 0x20);
+    float t = Store(Unsigned(Next()) * D(radius) * EI_P_SCALE_1);
+    float twoPi = Store(GameDouble(0x0073CAE8) + GameDouble(0x0073CAE8));
+    double angle = Unsigned(Next()) * D(twoPi) * EI_P_SCALE_1;
+    p->color = 0xFFFFFFFF;
+    p->frame = 0;
+    p->life = lifetime;
+    p->frameTimer = frameDelay;
+    float turn = Store(D(t) * D(EI_GAS_RADIUS) / D(radius));
+    float low = Store(D(radius) * D(EI_GAS_LOW));
+    float vx = Store(x87::fsin(angle) * D(t));
+    float vy = Store(x87::fcos(angle) * D(t));
+    float vz = Store(Unsigned(Next()) * (D(radius) * D(EI_GAS_RADIUS) - D(low)) * EI_P_SCALE_1 + D(low));
+    p->velocity = {vx, vy, vz};
+    float riseLow = Store(D(carrierHeight) * D(EI_GAS_RISE_LOW));
+    std::uint32_t r4 = Next();
+    p->drift.x = Store(x87::fsin(D(turn)));
+    p->drift.y = Store(x87::fcos(D(turn)));
+    p->drift.z = Store(Unsigned(r4) * (D(carrierHeight) * D(EI_GAS_RISE_HIGH) - D(riseLow)) * EI_P_SCALE_1 + D(riseLow));
+    const ParticleElement& e = elements[0];
+    double cx = D(origin.x) + D(e.pos.x);
+    float cy = Store(D(origin.y) + D(e.pos.y));
+    float cz = Store(D(origin.z) + D(e.pos.z));
+    Vector3 start;
+    start.x = Store(cx + D(p->velocity.x));
+    start.y = Store(D(cy) + D(p->velocity.y));
+    start.z = Store(D(cz) + D(p->velocity.z));
+    reinterpret_cast<Vector4*>(p)->FromPoint(start);
+    p->size = Store(D(radius) * D(EI_GAS_SIZE));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048D420, CParticleSource::EmitStench);
+
+// 0048D7F0. BlueGas puffs: step through the frames (dropped after the last), turn their offset
+// about the axis, rise faster and faster, swell, and fade over the last 8 ticks.
+int CParticleSource::UpdateStench(Particle* p) {
+    int life = --p->life;
+    if (life == 0) return 0;
+    if (--p->frameTimer == 0) {
+        if (++p->frame >= frameCount) return 0;
+        p->frameTimer = frameDelay;
+    }
+    p->pos.x = Store(D(p->pos.x) - D(p->velocity.x));
+    p->pos.y = Store(D(p->pos.y) - D(p->velocity.y));
+    p->pos.z = Store(D(p->pos.z) - D(p->velocity.z));
+    double turnedY = D(p->velocity.x) * D(p->drift.x) + D(p->velocity.y) * D(p->drift.y);
+    double turnedX = D(p->drift.y) * D(p->velocity.x) - D(p->velocity.y) * D(p->drift.x);
+    p->velocity.x = Store(turnedX);
+    p->velocity.y = Store(turnedY);
+    p->velocity.z = Store(D(p->drift.z) + D(p->velocity.z));
+    p->drift.z = Store(D(p->drift.z) * D(EI_GAS_SPEED_UP));
+    p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
+    p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    p->size = Store(D(p->size) * D(EI_GAS_SWELL));
+    if (life < 8) p->color = ((p->color & 0xFF000000u) - 0x1F000001u) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048D7F0, CParticleSource::UpdateStench);

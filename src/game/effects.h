@@ -177,6 +177,8 @@ public:
     void TickColumn(ParticleElement* e);            // 004918D0
     int EmitMushroom(Particle* p, int index);       // 004889D0 (Mushroom, Transform)
     int UpdateMushroom(Particle* p);                // 00488DB0
+    int EmitStench(Particle* p, int index);         // 0048D420 (BlueGas, 0x2013)
+    int UpdateStench(Particle* p);                  // 0048D7F0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

@@ -161,3 +161,9 @@ EI_SETUP_EMIT_WRAPPER(EmitMushroom)
 EI_VERIFY(0x004889D0, EmitMushroomVerify, 7, s_EmitMushroom);
 EI_UPDATE_WRAPPER(UpdateMushroom)
 EI_VERIFY(0x00488DB0, UpdateMushroomVerify, 7, s_UpdateMushroom);
+
+// 0048D420: SUB ESP,0x2C; PUSH EBX; MOV EBX,ECX (6). 0048D7F0: MOV EAX,[ESP+4]; PUSH ESI (5).
+EI_SETUP_EMIT_WRAPPER(EmitStench)
+EI_VERIFY(0x0048D420, EmitStenchVerify, 6, s_EmitStench);
+EI_UPDATE_WRAPPER(UpdateStench)
+EI_VERIFY(0x0048D7F0, UpdateStenchVerify, 5, s_UpdateStench);
