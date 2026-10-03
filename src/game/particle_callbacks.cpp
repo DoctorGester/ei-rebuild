@@ -3016,3 +3016,130 @@ int CParticleSource::EmitSparks(Particle* p, int) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00494A10, CParticleSource::EmitSparks);
+
+// --- ClayRing (0x2018): ten points running out from the source along the ground ---------------
+//
+// Each element (set up by Create): +0x00 the point on the ground, +0x0C its previous position,
+// +0x18 its direction (turning a little each tick), +0x34 the countdown (14).
+
+namespace {
+
+#define EI_CLAY_SCATTER_SCALE GameDouble(0x0073CD58)  // ~0.2 * 2^-32
+#define EI_CLAY_SCATTER_LOW GameFloat(0x0073B850)     // 0.1
+#define EI_CLAY_SLOW GameFloat(0x0073CD70)            // 0.9
+#define EI_CLAY_COS GameFloat(0x0073CD50)             // 0.95
+#define EI_CLAY_SIN GameFloat(0x0073CE78)             // 0.31225
+
+const std::int32_t* ClayAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A734); }
+const float* ClayReach() { return reinterpret_cast<const float*>(0x0078A6F4); }
+// The reach read backwards from 0078A72C (for a positive size).
+float ClayReachBackwards(int t) { return *reinterpret_cast<const float*>(0x0078A72C - 4 * t); }
+
+} // namespace
+
+// 0048F7F0. ClayRing: in the first tick (countdown 13) one marker per point; then clods between a
+// random point's previous and current position, flying off at random.
+int CParticleSource::EmitClayRing(Particle* p, int index) {
+    p->color = (static_cast<std::uint32_t>(ClayAlpha()[elements[0].ticks]) << 24) | 0xFFFFFF;
+    p->life = lifetime;
+    p->frame = 1;
+    p->frameTimer = frameDelay;
+    if (elements[0].ticks == 13 && index < elementCount) {
+        std::memset(&p->velocity, 0, sizeof(Vector3));
+        std::memcpy(&p->pos, &elements[index].pos, sizeof(Vector3));
+        SetBits(&p->size, 0x3E4CCCCD);     // 0.2
+        p->frame = 0;
+        p->state = index;
+        return 1;
+    }
+    int j = static_cast<int>(Next() % static_cast<std::uint32_t>(elementCount));
+    double t = Unsigned(Next()) * EI_P_SCALE_1;
+    p->life = 5;
+    const ParticleElement& e = elements[j];
+    const float* previous = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&e) + 0x0C);
+    double u = D(EI_P_ONE) - t;
+    float a = Store(u * D(previous[0]));
+    float b = Store(u * D(previous[1]));
+    float c = Store(u * D(previous[2]));
+    float d = Store(t * D(e.pos.x));
+    float f = Store(t * D(e.pos.y));
+    double g = t * D(e.pos.z);
+    p->velocity.x = Store(D(d) + D(a));
+    p->velocity.y = Store(D(f) + D(b));
+    p->velocity.z = Store(g + D(c));
+    float sx = Store(Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - D(EI_CLAY_SCATTER_LOW));
+    float sy = Store(Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - D(EI_CLAY_SCATTER_LOW));
+    float sz = Store(Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - D(EI_CLAY_SCATTER_LOW));
+    p->unknown_2C = sy;
+    p->unknown_30 = sx;
+    *ParticleFloat(p, 0x34) = sz;
+    std::memcpy(&p->pos, previous, sizeof(Vector3));
+    SetBits(&p->size, 0x3DCCCCCD);     // 0.1
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048F7F0, CParticleSource::EmitClayRing);
+
+// 0048FAB0. ClayRing: markers stay on their point (alpha by the countdown); clods step through the
+// frames, fly out (their scatter slowing by 0.9), fade by 48 per tick and shrink.
+int CParticleSource::UpdateClayRing(Particle* p) {
+    if (--p->life == 0) return 0;
+    if (p->frame == 0) {
+        p->color = (static_cast<std::uint32_t>(ClayAlpha()[elements[0].ticks]) << 24) | 0xFFFFFF;
+        std::memcpy(&p->pos, &elements[p->state].pos, sizeof(Vector3));
+        SetBits(&p->size, 0x3E4CCCCD);     // 0.2
+        return 1;
+    }
+    if (--p->frameTimer == 0) {
+        if (++p->frame >= frameCount) return 0;
+        p->frameTimer = frameDelay;
+    }
+    float* scatter = &p->unknown_2C;
+    for (int i = 0; i < 3; ++i) scatter[i] = Store(D(scatter[i]) * D(EI_CLAY_SLOW));
+    double oldSize = D(p->size);
+    double px = D(p->velocity.x) + D(scatter[0]);
+    float py = Store(D(p->velocity.y) + D(scatter[1]));
+    float pz = Store(D(p->velocity.z) + D(scatter[2]));
+    p->pos.y = py;
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    std::int32_t a = static_cast<std::int32_t>(p->color >> 24) - 0x30;
+    if (a < 0) a = 0;
+    p->size = Store(oldSize * D(EI_CLAY_SLOW));
+    p->color = (static_cast<std::uint32_t>(a) << 24) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048FAB0, CParticleSource::UpdateClayRing);
+
+// 0048FBE0. ClayRing points: count down (stopping the emission past 0), remember the previous
+// position, move out from the source along their direction by the reach table (read backwards for
+// a non-negative size), sit on the ground, and turn their direction a little.
+void CParticleSource::TickClayRing(ParticleElement* e) {
+    int t = --e->ticks;
+    if (t < 0) {
+        flags_ &= ~1u;
+        return;
+    }
+    float* previous = ElementFloat(e, 0x0C);
+    std::memcpy(previous, &e->pos, sizeof(Vector3));
+    float* direction = ElementFloat(e, 0x18);
+    double s = D(size);
+    float a = Store(s * D(direction[0]));
+    float b = Store(s * D(direction[1]));
+    double c = s * D(direction[2]);
+    double k = !(size >= 0.0f) ? D(ClayReach()[t]) : D(ClayReachBackwards(t));
+    float ka = Store(D(a) * k);
+    float kb = Store(D(b) * k);
+    double kc = c * k;
+    float px = Store(D(ka) + D(origin.x));
+    float py = Store(D(kb) + D(origin.y));
+    float pz = Store(kc + D(origin.z));
+    e->pos = {px, py, pz};
+    e->pos.z = Store(GroundHeight(e->pos.x, e->pos.y) + D(EI_P_ONE));
+    double turnedX = D(direction[1]) * D(EI_CLAY_COS) - D(direction[0]) * D(EI_CLAY_SIN);
+    double turnedY = D(direction[0]) * D(EI_CLAY_COS) + D(direction[1]) * D(EI_CLAY_SIN);
+    direction[0] = Store(turnedY);
+    direction[1] = Store(turnedX);
+    auto isZero = [](float f) { return f == 0.0f || x87::IsNaN(f); };
+    if (isZero(previous[0]) && isZero(previous[1])) std::memcpy(previous, &e->pos, sizeof(Vector3));
+}
+EI_REPLACE_METHOD(0x0048FBE0, CParticleSource::TickClayRing);

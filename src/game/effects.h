@@ -198,6 +198,9 @@ public:
     int EmitAcidRay(Particle* p, int index);        // 0048D050 (AcidRay, 0x2012)
     int UpdateAcidRay(Particle* p);                 // 0048D330
     int EmitSparks(Particle* p, int index);         // 00494A10 (Sparks, 0x2043)
+    int EmitClayRing(Particle* p, int index);       // 0048F7F0 (ClayRing, 0x2018)
+    int UpdateClayRing(Particle* p);                // 0048FAB0
+    void TickClayRing(ParticleElement* e);          // 0048FBE0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

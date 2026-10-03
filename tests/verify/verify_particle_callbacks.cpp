@@ -225,3 +225,12 @@ EI_VERIFY(0x0048D330, UpdateAcidRayVerify, 7, s_UpdateAcidRay);
 // 00494A10: SUB ESP,0x28; PUSH EBP; PUSH ESI; MOV ESI,ECX (7).
 EI_EMIT_WRAPPER(EmitSparks)
 EI_VERIFY(0x00494A10, EmitSparksVerify, 7, s_EmitSparks);
+
+// 0048F7F0: SUB ESP,0x24; PUSH EBX; MOV EBX,ECX; PUSH ESI (7). 0048FAB0: MOV EAX,[ESP+4];
+// SUB ESP,0xC (7). 0048FBE0: SUB ESP,0x24; PUSH ESI; MOV ESI,[ESP+0x2C] (8).
+EI_EMIT_WRAPPER(EmitClayRing)
+EI_VERIFY(0x0048F7F0, EmitClayRingVerify, 7, s_EmitClayRing);
+EI_UPDATE_WRAPPER(UpdateClayRing)
+EI_VERIFY(0x0048FAB0, UpdateClayRingVerify, 7, s_UpdateClayRing);
+EI_ELEMENT_WRAPPER(TickClayRing)
+EI_VERIFY(0x0048FBE0, TickClayRingVerify, 8, s_TickClayRing);
