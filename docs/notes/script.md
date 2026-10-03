@@ -480,7 +480,7 @@ autosave of every new game (world_load also loads it back).
 | 004C4330 | ~220 | ScriptGroupsSave |
 | 004CAEC0 | ~170 | ScriptAreasSave (__fastcall) |
 
-CScript::Save order: point lights (+0x04, 004B1940 each), particle / FX / lightning lists (+0x14,
+CScript::Save order: point lights (the CArray at +0x00, data +0x04, size +0x08; 004B1940 each), particle / FX / lightning lists (+0x14,
 +0x30, +0x4C; 004B1A80 / 004B1C50 / 004B1DB0), +0x68, +0x6C, command blocks (+0x70) and WorldScript
 blocks (+0x178), definitions (+0x8C, 004BBFE0), globals (+0xA0, four savers), instances (+0x140,
 004BBFE0), runs (+0x15C, 004BB320, which finds the run's instance through 007AA620), +0x1A8,
