@@ -247,3 +247,134 @@ Floating point: only WakeUnitsAround (radius * 1/32 rounded to float for SpiralC
 - 005939E0, 00595A70, 00595A90: no callers found. Save (0057ABA0), zone loading (0057C460,
   0057BD10) and the state machine (0057C700) are on the Rebirth list; load (0057B3B0) and the zone
   loader 0057BDF0 are large one-off functions, left for later.
+
+# World client: per-frame view code (third round)
+
+Code: `src/game/world_client_view.cpp`; verify wrappers: `tests/verify/verify_world_client.cpp`;
+scenario: `tests/scenarios/world_client.txt`. Shared files changed: `world.h` only (three method
+declarations in CWorldClient, and the sort entry points and ModelUseLess appended at the end).
+
+## Map of the client frame
+
+CWorldClient slot 6 (005641F0, per tick) and the draw path 00569E40 -> 0056AFE0 are patched by
+Rebirth, so they stay original. 0056AFE0 (the draw pass) does, per frame:
+
+1. Clears eleven global `vector<CEngineObject*>` (0056E870 = erase(begin, end)): 007AF508 objects
+   whose model should stay loaded; visible lists 007AF568 (class 0x52), 578 (units, 0x50),
+   588 (0x5D), 598 (every other class), 5A8 (0x54); shadow lists 007AF518 (0x52), 528 (units),
+   538 (0x5D), 548 (other), 558 (0x54).
+2. Clamps the camera footprint to the terrain and walks the sector grid (+0x124 rows, +0x138..+0x14C
+   bounds and cursor) calling **CollectVisible** (0056A990) for each sector's object list with
+   `animateUnits` 0: units are only queued on the deferred list 007AF5B4 (an STLport list of counted
+   pointers). Then once for 007AF5B4 itself (units animated through slot 25 and filed), and once for
+   +0xB4 (with `withScripted`). The deferred list is then emptied (00575510 releases, 0056F700 frees).
+3. Sorts 007AF508 by model use (00573D50 + 00573F10, most recent first) and clears flag 0x400 on
+   the first max(10, n/8) of them; sorts the visible and shadow lists with UnitOrderLess
+   (005740D0 + 00574390; nine call pairs) and draws them through the 005726D0 / 005726F0 functors.
+
+The view matrix CollectVisible gets is the top of the render device's view stack (device global
+007AF068: +0x5C matrices, +0x60 depth); 0056AFE0 does not check the depth (see the crash below).
+
+CollectVisible, for each object with a model (+0x94): units of type 0x32 (heroes) with a text-key
+id are skipped unless `withScripted`; on the first pass units go to the deferred list; on the
+others they get slot 25 (game time) and, in a multiplayer spectator view (0079BE6C set and session
++0x100 == 1), only units with flag 0x400000 go on. Then: the object-to-world matrix at +0x54 from
+the orientation quaternion (+0x34, 004D9AA0) with the position as last column, pushed on the
+device's object stack (+0x24/+0x28, multiplied by 004D9880); the bounding volume (+0x124) tested
+with 004F16A0 (2 = outside); the stack popped. In view: flag 0x20, the view-space position at +0x28
+(three rows of the view matrix, no translation, each `(a + b) + c` rounded to float), the visible
+and shadow list of its class, and the touched-model list when flag 0x200 is set and `now` minus
+the model's last use (+0xEC) exceeds 0079BD24 (the return value counts those). Out of view: flag
+0x20 cleared; when the model's shadow volume is in view (0051E300) the figure state at +0x98
+applies a pending change (0050D450) and the object goes on its class's shadow list.
+
+Cursor picking: **PickGround** (0056BF30) and **PickSurface** (0056C350) invert the current view
+(the view stack's top pushed on the device's picking stack +0x14/+0x18) for screen pixel (x, y),
+giving the ray x = a z + b, y = c z + d, then iterate z = height(x, y) from half the terrain's
+height range (+0x114) up to 100 times until |dz| <= 0.01, then fall back to up to 100 bisection
+steps; x and y are clamped at 0. With an empty view stack they return the vector at 007AFDB0.
+PickSurface uses the client's slot 29 (platforms included), PickGround Terrain::HeightAt. Callers:
+the interface (00638EF0 / 00639EF0, eight calls) and 005EB940.
+
+## Rewritten
+
+| Address | Name | Verification |
+|---|---|---|
+| 0056A990 | CWorldClient::CollectVisible (RET 0x18) | ours only (it animates units, takes references and applies one-shot figure changes): the return value equals the touched-model entries appended; every visible entry has flag 0x20, belongs to its class's lists and is appended to that class's shadow list in the same order; deferred entries are units and appear only on the first pass. Also logs draws with an empty view stack |
+| 0056BF30 | CWorldClient::PickGround (RET 0xC, returns out) | output: original into a scratch vector, ours into the caller's; 12 bytes compared |
+| 0056C350 | CWorldClient::PickSurface (RET 0xC, returns out) | same |
+| 005740D0 | IntroSortByModel (STLport __introsort_loop, RET 0xC) | original on a copy of the range, ours on the range; every element compared. Ranges with a null element, no model or a NaN depth are logged and left to the original alone |
+| 00574390 | FinalSortByModel (__final_insertion_sort, RET 4) | same |
+| 00573D50 | IntroSortByModelUse (RET 0xC) | copy and range, compared |
+| 00573F10 | FinalSortByModelUse (RET 4) | same |
+| 00573EE0 | ModelUseLess::Less (0/1 in EAX) | pure |
+
+The four sort entry points share one template (`PtrSort`) that reproduces STLport's algorithms:
+median of three, the unguarded Hoare partition, recursion on the right part, heap sort at the depth
+limit (make_heap 00577FC0 / pop_heap 00577730, and 00577E90 / 005782F0 for the other ordering),
+insertion sort of the first 16 and unguarded insertion of the rest. The original inlines the
+comparator in places and calls it in others; all copies have the same semantics (UnitOrderLess
+treats a null rank pointer as rank 0). The original's recursive call lands on our verify wrapper,
+so in the verify build every recursion level is checked on its own.
+
+## Floating point
+
+Compiled under `#pragma float_control(precise, on)` and read back with dumpbin: no reassociation;
+values the original stores to float go through StoreFloat. CollectVisible's view-space rows keep
+the original's operation order. In the picking, the values the original keeps on the FPU stack
+(the screen coordinates and the determinant) are doubles; MSVC spills the determinant and some
+matrix entries to 64-bit stack slots. That is exact while the FPU runs at 24 or 53 bits; at 64-bit
+precision the determinant would be rounded to 53 bits and a, b, c, d could differ in the last bit
+(the verify compares bitwise, so it would show as PickGround / PickSurface mismatches). The first
+height result is used unrounded, as the original adds ST0 directly (forwarder to 006C8680 declared
+double, VCall<double>); later ones are rounded to float where the original stores them.
+
+## The rare Rebirth crash in the unit sort (docs/open-questions.md)
+
+UnitOrderLess's last test is `FLD a.depth; FCOMP b.depth; TEST AH,1` ("less or unordered"), so
+when an object's view depth (+0x30) is NaN, Less(x, x) is true, and Less(pivot, y) is true for
+every y of the same rank and +0xF0. STLport's partition is unguarded: `while (Less(pivot, *--last))`
+then walks below the start of the vector and hands the comparator whatever lies before it as its
+second argument. That matches the crash: 00574318 is `MOV ECX,[ESI+0x94]` on the second argument.
+The final unguarded insertion sort fails the same way. Null elements or elements without a model
+are not dangerous by themselves (they compare false both ways, which keeps the partition's
+sentinels), but they break transitivity and can also make the final insertion run off the front.
+
+NaN depths come from a NaN view matrix or object position. One way to get them during a new-game
+load: 0056AFE0 takes the view matrix as `viewStack + (depth - 1) * 64` without checking the depth,
+so a frame drawn before the camera pushes its matrix reads the 64 bytes before the stack buffer.
+This is not confirmed by a run. The verify build now logs both cases to ei_hook.log ("not
+orderable" from the sorts, with the element's depth and position bits; "view stack depth" from
+CollectVisible). The rewritten sort behaves exactly like the original here, crash included.
+
+## Forwarders added (standalone build must replace)
+
+- 004F16A0 RenderDevice::Classify (frustum test), 004D9880 Matrix4::Multiply, 004D9AA0 quaternion
+  to matrix, 0051E300 ObjectModel::ShadowInView, 0050D450 FigureState::ApplyPending.
+- 00571B00 vector<CEngineObject*>::_M_insert_overflow, 0056E8A0 list insert (node from 0056F680,
+  which takes a reference). push_back (0056E840) is written out, as the original mostly inlines it.
+- 006C8680 Terrain::HeightAt through a double-returning forwarder (not patched by Rebirth; it
+  lands on the rewrite in terrain.cpp).
+- Called directly: IsTextKey (object_tables), UnitOrderLess::Less, StoreFloat. Virtual calls:
+  GetClassId, Release, unit slot 25, client slot 29.
+
+## Original bugs and oddities kept
+
+- The sort crash above (comparator not a strict weak ordering for NaN depths; unchecked view stack
+  depth in 0056AFE0, which stays original).
+- The view-space position uses only the 3x3 part of the view matrix (no translation).
+- CollectVisible's first pass takes the deferred list's reference through a temporary (+1, insert
+  +1, release -1); the SEH frame protecting the temporary is not reproduced.
+- When |dz| never drops to 0.01 the picking runs 100 fixed-point steps and then 100 bisection steps
+  (200 height queries for one cursor position).
+
+## Skipped
+
+- 0056AFE0, 00569E40, 005641F0, 00567AB0: patched by Rebirth.
+- The sorts' heap helpers (00577FC0, 00577730, 00577E90, 005782F0) and the copy_backward /
+  unguarded_linear_insert instantiations (005776A0, 005776D0, 005778A0, 00577F90): their logic is
+  in the template, but they are not hooked separately.
+- 005677F0 (whether a group's units all stand in the same zone exit; glue 00578A20), 00566F70
+  (hero portraits "hr%2d"), 00568800 / 005683D0 (skins "%sskin%2d.mmp"), 00566360 / 00567500 /
+  00567680 (per-frame manager updates, large), 00565090 / 00564E70 (clearing the sector grids),
+  005647E0 / 00564BE0 (adding and removing objects in the client's maps): next candidates.

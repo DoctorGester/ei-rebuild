@@ -1,0 +1,68 @@
+# World client view (src/game/world_client_view.cpp). Every frame the client files the objects of
+# each map sector in view into the frame's draw lists (CWorldClient::CollectVisible), sorts them
+# (IntroSortByModel / FinalSortByModel, IntroSortByModelUse / FinalSortByModelUse), and the
+# interface picks the point under the cursor (PickSurface, PickGround). The scenario spawns wolves
+# in and out of view, hides, shows and removes them, moves and clicks the mouse over the scene and
+# walks the hero so objects enter and leave the view. The verify totals show what ran. The game
+# runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# The cursor over the scene: the interface picks the point under it.
+move 400 250
+wait 200
+move 250 200
+wait 200
+move 550 380
+wait 200
+
+# Two wolves appear next to the hero (in view), a third 25 units east (out of view).
+console @AddUnitToServer("ViewWolf1","WolfTutor","ViewWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("ViewWolf2","WolfTutor","ViewWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+console @AddUnitToServer("ViewWolf3","WolfTutor","ViewWolf3",Add(GSGetVar(0,"hx"),25),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("ViewWolf1"))
+waitfor 10 IsAlive(GetObjectByName("ViewWolf2"))
+waitfor 10 IsAlive(GetObjectByName("ViewWolf3"))
+wait 500
+
+# Clicks on the scene around the hero (a wolf there is picked; on the ground the hero walks).
+click 430 300
+wait 400
+click 400 270
+wait 400
+rclick 400 300
+wait 300
+move 420 300
+wait 200
+
+# Hidden and shown again, then removed.
+console @HideObject(GetObjectByName("ViewWolf1"),1)
+wait 500
+console @HideObject(GetObjectByName("ViewWolf1"),0)
+wait 500
+console @RemoveUnitFromServer(GetObjectByName("ViewWolf2"))
+wait 500
+
+# The hero walks east towards the third wolf (it comes into view) and back.
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),12),GSGetVar(0,"hy"))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"hx"),7))
+move 300 300
+wait 200
+click 380 280
+wait 300
+console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"))
+waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"hx"),4))
+console @RemoveUnitFromServer(GetObjectByName("ViewWolf3"))
+wait 500
+check IsAlive(GetLeader())
+check IsAlive(GetObjectByName("ViewWolf1"))
+report
+quit

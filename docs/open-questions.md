@@ -45,3 +45,9 @@ from 0056AFE0, client view update) passed it a garbage element. Three reruns of 
 passed. The comparator itself (rewritten and original) is a consistent strict ordering, so the bad
 element came from the array the caller sorts. Unknown whether this happens without our hooks; watch
 for it in run_all output (look for exceptions at 00574318).
+Likely cause (from reading the code, not yet confirmed by a run; docs/notes/world.md, "The rare
+Rebirth crash in the unit sort"): the comparator's depth test treats NaN as "less", so an object
+with a NaN view depth (+0x30) makes Less(x, x) true and STLport's unguarded partition walks off the
+front of the vector. 0056AFE0 also reads the view matrix from an unchecked view stack depth, a
+possible source of NaN depths while a new game loads. The verify build logs both ("not orderable",
+"view stack depth" in ei_hook.log).
