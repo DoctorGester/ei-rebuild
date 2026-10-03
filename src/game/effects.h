@@ -3,7 +3,7 @@
 // Weather, visibility fog and particles: the per-frame simulation parts.
 //
 // - CParticleSource (vtable 0073CFD0, class name from 004982D0): one emitter. Its tick (slot 6,
-//   00496EB0, not rewritten) runs the per-type callbacks the constructor (slot 2, 00485540) stores
+//   00496EB0, particle_tick.cpp) runs the per-type callbacks the constructor (slot 2, 00485540) stores
 //   at +0x1E0 (emit one particle), +0x1E4 (update one particle; 0 kills it) and +0x1E8 (update one
 //   element of the source's own array at +0x154). The callbacks are __thiscall on the source.
 // - CRainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
@@ -15,6 +15,7 @@
 
 #include "maths.h"
 
+#include "lib/mfc.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
@@ -53,8 +54,27 @@ struct ParticleElement {
 };
 static_assert(sizeof(ParticleElement) == 0x38);
 
+// The object a source's particles come from (CParticleSource +0x14): a pool of free particles,
+// an MFC list at +0xB0 (taken from the head, returned to the tail).
+struct ParticlePool {
+    Particle* Acquire();                            // 00498870: from the pool, else new (0x64 bytes)
+    void Release(Particle* p);                      // 004987C0: back to the pool's tail
+
+    std::uint8_t unknown_000[0xB0];
+    mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
+};
+static_assert(offsetof(ParticlePool, freeParticles) == 0xB0);
+
 class CParticleSource {
 public:
+    // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
+    // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
+    int Draw(void* renderer);                       // 004976B0
+
+    // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
+    int Tick();                                     // 00496EB0: 1 while the source stays alive
+    void AddParticle(Particle* p);                  // 00496A20: prev = current, bounds, list tail
+
     // --- per-particle callbacks (+0x1E4 update, +0x1E0 emit), __thiscall, return 0 to drop ---
     int UpdateFalling(Particle* p);                 // 0048F670 (types 0x2034-0x2037)
     int UpdateCloud(Particle* p);                   // 0048B570 (PoisonFog and similar)
@@ -62,6 +82,23 @@ public:
     int EmitSmoke(Particle* p, int index);          // 0048E9E0
     int UpdateDebris(Particle* p);                  // 00489190 (Nuke)
     int UpdateOrbit(Particle* p);                   // 0048E7C0 (Antimagic, spheres, 0x2014)
+
+    // particle_emitters.cpp
+    int EmitLightning(Particle* p, int index);      // 004923B0 (LightningBlast)
+    int EmitModifier(Particle* p, int index);       // 00490130 (Modifier1-12)
+    int EmitZoneExit(Particle* p, int index);       // 00492D30 (ZoneExit)
+    int EmitFeebleMind(Particle* p, int index);     // 004957E0 (FeebleMind)
+    int EmitFeetCloud(Particle* p, int index);      // 00495A30 (FeetCloud1/2)
+    int UpdateGlow(Particle* p);                    // 00493280 (0x2039)
+    int UpdateGroundDust(Particle* p);              // 004933F0 (0x203A, 0x203B)
+    int UpdatePortal(Particle* p);                  // 00494770 (Portal)
+    int UpdateSparks(Particle* p);                  // 00494CD0 (Sparks)
+    void TickGroundPlane(ParticleElement* e);       // 004934F0 (0x203A, 0x203B)
+    void TickPortal(ParticleElement* e);            // 00494930 (Portal)
+    void TickStartTrans(ParticleElement* e);        // 00496990 (StartTrans)
+
+    // Not rewritten (forwarder): offset and radius of the attachment's figure.
+    Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
 
     // --- per-element callbacks (+0x1E8) ---
     void TickNuke(ParticleElement* e);              // 004892E0
@@ -76,6 +113,7 @@ public:
 
     // Not rewritten (forwarders).
     void Attach(void* object);                      // 004849F0
+    Vector3* AttachmentPoint(Vector3* out, void* object);   // 00484C00
 
     void* vtable_;                  // +0x000
     int refCount_;                  // +0x004
@@ -89,7 +127,9 @@ public:
     void* attachedTo;               // +0x094
     Vector3 origin;                 // +0x098 world emission point
     Vector3 motion;                 // +0x0A4 movement since the last tick
-    std::uint8_t unknown_0B0[0xCC - 0xB0];
+    Vector3 side;                   // +0x0B0 unit, motion x (0, 0, 1) (zero while still)
+    Vector3 up;                     // +0x0BC unit, motion x side
+    float distance;                 // +0x0C8 length of motion
     int emitChance;                 // +0x0CC percent per try
     int emitCount;                  // +0x0D0 tries per tick
     float emitSpacing;              // +0x0D4
@@ -97,7 +137,7 @@ public:
     int frameCount;                 // +0x0DC
     int unknown_0E0;
     int frameDelay;                 // +0x0E4
-    int unknown_0E8;
+    int hiddenTicks;                // +0x0E8 draws skipped off screen (the tick idles past 0x38 with flag 0x20)
     int lifetime;                   // +0x0EC
     Vector3 spreadMin;              // +0x0F0
     Vector3 spreadMax;              // +0x0FC
@@ -118,23 +158,78 @@ public:
     float unknown_150;
     ParticleElement* elements;      // +0x154
     int elementCount;               // +0x158
-    std::uint8_t unknown_15C[0x1E0 - 0x15C];
+    int elementCapacity;            // +0x15C (elements is an MFC-style array: data, size, max, grow by)
+    int elementGrowBy;              // +0x160
+    Vector3 boundsMin;              // +0x164 over the particles, rebuilt every tick
+    Vector3 boundsMax;              // +0x170
+    std::uint32_t boundsFlags;      // +0x17C bit 1 set by the tick
+    Vector3 boundsCenter;           // +0x180
+    std::uint32_t unknown_18C;
+    Vector3 boundsLow;              // +0x190 boundsMin - boundsCenter
+    Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
+    std::uint8_t unknown_1A8[0x1B4 - 0x1A8];
+    mfc::CTypedPtrList<Particle> particles;     // +0x1B4
+    int frameBase;                  // +0x1D0 first texture frame of this source's sprites
+    std::uint8_t unknown_1D4[0x1E0 - 0x1D4];
     void* emitFn;                   // +0x1E0
     void* updateFn;                 // +0x1E4
     void* elementFn;                // +0x1E8
-    void* unknown_1EC;
+    void* texture;                  // +0x1EC texture holder (bound by 00497CE0)
 };
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
 static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
 static_assert(offsetof(CParticleSource, size) == 0x10C);
 static_assert(offsetof(CParticleSource, extent) == 0x130);
 static_assert(offsetof(CParticleSource, elements) == 0x154);
+static_assert(offsetof(CParticleSource, distance) == 0xC8);
+static_assert(offsetof(CParticleSource, boundsFlags) == 0x17C);
+static_assert(offsetof(CParticleSource, boundsHigh) == 0x19C);
+static_assert(offsetof(CParticleSource, particles) == 0x1B4);
 static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
 static_assert(sizeof(CParticleSource) == 0x1F0);
 
 // 00488940. `out` = v / d, all three quotients computed before the first store. __fastcall (out in
 // ECX, v in EDX, d on the stack); returns out.
 Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d);
+
+// The particle renderer's shared arrays (particle_render.cpp). One vertex (position and size,
+// interpolated between the last two ticks) and one sprite (colour, texture frame) per particle.
+struct ParticleVertex {
+    float x, y, z, size;
+};
+struct ParticleSprite {
+    std::uint32_t color;            // ARGB
+    int frame;                      // texture frame index (+ the source's base +0x1D0)
+};
+// 007A9BD0: data 32-byte aligned (00468F70), the block address below it.
+struct ParticleVertexArray {
+    ParticleVertex* data;
+    int size;
+    int max;
+    int growBy;
+};
+// 007A9BE0: an MFC-style array with a vtable (0073C584, constructor 00468D60).
+struct ParticleSpriteArray {
+    void SetSize(int count, int growBy);            // 00497D50 (-1 keeps the grow step)
+
+    void* vtable;
+    ParticleSprite* data;
+    int size;
+    int max;
+    int growBy;
+};
+
+// 00497D40. The list position's particle, advancing the position (MFC GetNext); __thiscall on the
+// list, which it does not use.
+Particle** __fastcall NextParticle(void* list, void*, mfc::CTypedPtrList<Particle>::Node** position);
+
+// 00497CE0. Makes sure the texture in `holder` is loaded (00500970) and binds it to `stage`
+// through the renderer (slot 11). __thiscall on the renderer.
+int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** holder);
+
+// 00497EB0 (particle_emitters.cpp). Room for `count` elements, 32-byte aligned, the allocated block
+// stored just below; __fastcall.
+ParticleElement* __fastcall AllocateElements(int count);
 
 // The world's rain/snow layer. Only the fields the fade uses.
 class CRainSnow {

@@ -1,0 +1,44 @@
+# Particles (range 0x490000-0x4B0000): sources whose callbacks are rewritten in
+# particle_emitters.cpp, placed around the hero, and a few buffs on the hero (spell modifiers
+# carry Modifier particles), then deleted. Every source runs CParticleSource::Tick, AddParticle
+# and the particle pool (particle_tick.cpp) each world update; the camera and units use the
+# quaternion helpers (quaternion.cpp); the new game seeds the generator (IsaacRandom::Init).
+# CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show what ran.
+# The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @CreateParticleSource(21,Add(GetX(GetLeader()),4),GetY(GetLeader()),GetZ(GetLeader()),1,"LightningBlast")
+console @CreateParticleSource(22,Sub(GetX(GetLeader()),4),GetY(GetLeader()),GetZ(GetLeader()),1,"ZoneExit")
+console @CreateParticleSource(23,GetX(GetLeader()),Add(GetY(GetLeader()),4),GetZ(GetLeader()),1,"Portal")
+console @CreateParticleSource(24,GetX(GetLeader()),Sub(GetY(GetLeader()),4),GetZ(GetLeader()),1,"Sparks")
+console @CreateParticleSource(25,Add(GetX(GetLeader()),4),Add(GetY(GetLeader()),4),GetZ(GetLeader()),1,"FeebleMind")
+console @CreateParticleSource(26,Sub(GetX(GetLeader()),4),Add(GetY(GetLeader()),4),GetZ(GetLeader()),1,"FeetCloud1")
+console @CreateParticleSource(27,Add(GetX(GetLeader()),4),Sub(GetY(GetLeader()),4),GetZ(GetLeader()),1,"StartTrans")
+console @CreateParticleSource(28,Sub(GetX(GetLeader()),4),Sub(GetY(GetLeader()),4),GetZ(GetLeader()),1,"Modifier1")
+console @CastSpellUnit("strength{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 4000
+
+console @SetParticleSourceSize(23,2)
+console @CreateParticleSource(29,Add(GetX(GetLeader()),7),GetY(GetLeader()),GetZ(GetLeader()),2,"LightningBlast")
+wait 3000
+
+console @DeleteParticleSource(21)
+console @DeleteParticleSource(22)
+console @DeleteParticleSource(23)
+console @DeleteParticleSource(24)
+console @DeleteParticleSource(25)
+console @DeleteParticleSource(26)
+console @DeleteParticleSource(27)
+console @DeleteParticleSource(28)
+console @DeleteParticleSource(29)
+wait 1500
+check IsAlive(GetLeader())
+report
+quit
