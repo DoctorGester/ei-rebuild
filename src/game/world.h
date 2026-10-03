@@ -271,6 +271,19 @@ public:
     // 0 drops it) and counts the update (+0x68). Returns 1.
     int Update();
 
+    // world_spells.cpp
+    // 0058E850 (RET 0x18). Casts `spell` from `caster` (or from `from`): one missile at `target` /
+    // `to`, or, for a spell with several targets (+0x38) or area flags, at the nearest living units
+    // within its radius (+0x34) the caster may hit (its heroes group, friends or diplomacy), the
+    // requested target first. Network clients cast nothing with a caster.
+    void CastSpell(const void* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target,
+                   const Vector3* to, int extra);
+    // 0058E670 (RET 0x20). One missile of `spell` from the caster (or `from`) to the target (or
+    // `to`, on the ground there); kept on the missile list unless its first update ends it. A
+    // hostile spell turns the target unit against the caster.
+    void CreateMissile(const void* spell, CEngineObject* caster, Vector3 from, CEngineObject* target, const Vector3* to,
+                       int extra);
+
     // world_loot.cpp
     // 005942D0 (RET 8, AL). `player` takes what `object` holds: a shared loot record
     // (flags_ 0x20000000, removed afterwards) or what 00461CB0 collects (in a multiplayer client
