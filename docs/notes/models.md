@@ -295,3 +295,31 @@ what those slots usually hold.
   invariants, not side by side; the pure helpers are compared with the original.
 - 00502CA0's radix and merge passes compare only when a batch has more than 128 (radix) or 2..128
   (merge) visible particles; a big fire or a long spell gives both.
+
+## Unit skins (00568800)
+
+Files: `src/game/unit_skins.cpp`, `tests/verify/verify_unit_skins.cpp`. Shared files: none.
+
+| Address | Name | Verify |
+|---|---|---|
+| 00568800 | `BuildUnitSkins` (thiscall on the zone client object, RET 8: others, dressed) | ours only (texture cache and figure maker side effects): the two record vectors are left as they were |
+
+Called by the zone load 00567AB0 (Rebirth-patched for its map paths; this function is not), so by
+every zone load. `this` +0x18C is the texture cache, +0x34 the figure maker.
+
+- Dressed units (the second argument, 0x24-byte records: +0 the prototype index into 007AF358
+  (0x120 bytes, +8 the model index into 007AF398, 0x168 bytes, +0xE8 its texture prefix), +4 the
+  item ids (7 dwords: 0 head, 1 / 2 the weapons, 3..6 the armour), +0x10 / +0x1C a weapon list and
+  an index byte, +0x20 the unit number or -1): the texture records (005683D0 with 1) are copied
+  into the set's byte array (SetSize inlined), the names are "<prefix>skin_NN.mmp" (NN the
+  prototype's +0xC; "skin_00" without a prototype), each armour piece and the weapons
+  "<prefix><item>.mmp" (006A3480; the weapon whose armour record +0xB8 is lower first when both
+  are there), and the set (size 256) is composed by the cache (00693180, name "mo<n>p" or
+  "prot<prototype>p") and registered (00693F10, kind 1); then the records again with 0, the head
+  item and the extra weapon (weapon 0056E440 and material 0056E400 records, 006A0BF0), size 128,
+  "mo<n>s" / "prot<n>s", kind 2. The names are built with the original's inlined strcpy / strcat
+  into 256-byte buffers.
+- Other units (the first argument, 0x3C-byte records): their texture names (from the prototype,
+  00535CB0, when the record's name list +0x30 is empty, else the record's names appended to a
+  vector<string> after an inlined reserve) are joined with the second list (00575E50) and given
+  to the figure maker's slot 3 with the model prefix and the record's +0x24 / +0x28 / +0x2C.
