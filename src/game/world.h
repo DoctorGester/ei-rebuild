@@ -18,6 +18,7 @@ using BOOL = int;
 
 struct ScriptGroup;
 class Terrain;
+struct Float4;   // chunk_stream.h: four floats passed by value
 
 namespace world {
 constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
@@ -115,12 +116,25 @@ class CWorld : public CEngineObject {
 public:
     float timeBase_;                      // +0x1C
     float secondsPerTick_;                // +0x20
-    std::uint8_t unknown_24[0x38 - 0x24];
+    std::uint8_t unknown24_[12];          // +0x24 saved and loaded as they are
+    std::uint32_t unknown30_;             // +0x30 saved and loaded
+    void* unknown34_;                     // +0x34 (slot 23 returns it)
     CEngineObject* players_;              // +0x38 player list (vtable slot 20 returns it)
-    std::uint8_t unknown_3C[0x60 - 0x3C];
+    CEngineObject* manager3C_;            // +0x3C (slot 15)
+    CEngineObject* manager40_;            // +0x40 map objects by id (slot 19; its slot 23 creates one)
+    CEngineObject* manager44_;            // +0x44 (slot 21)
+    CEngineObject* manager48_;            // +0x48 the timed objects (spells, effects; slot 14)
+    CEngineObject* manager4C_;            // +0x4C (slot 22)
+    CEngineObject* manager50_;            // +0x50 (slot 17)
+    CEngineObject* itemManager_;          // +0x54 items (slot 18)
+    CEngineObject* manager58_;            // +0x58 (slot 16)
+    std::uint8_t unknown_5C[4];
     void* unknown60_;                     // +0x60 replaced by 0055F410 when the game ends
     int tick_;                            // +0x64 game time in ticks
 };
+static_assert(offsetof(CWorld, unknown24_) == 0x24);
+static_assert(offsetof(CWorld, manager40_) == 0x40);
+static_assert(offsetof(CWorld, itemManager_) == 0x54);
 static_assert(offsetof(CWorld, players_) == 0x38);
 static_assert(offsetof(CWorld, unknown60_) == 0x60);
 static_assert(offsetof(CWorld, tick_) == 0x64);
@@ -151,6 +165,17 @@ struct ProjectileList {
     mfc::CTypedPtrList<Projectile> list;
 };
 static_assert(sizeof(ProjectileList) == 0x1C);
+
+// The stream the world's save and load code reads and writes (the CMemoryStream holding
+// mission.sav): slot 1 Read, slot 2 Write; +0x08 the save format version.
+struct WorldStream {
+    virtual void Slot0() = 0;
+    virtual int Read(void* buffer, unsigned size) = 0;          // 1
+    virtual void Write(const void* buffer, unsigned size) = 0;   // 2
+
+    int unknown_04;
+    int version;            // +0x08
+};
 
 // The game rules side (vtable 0073F928).
 class CWorldServer : public CWorld {
@@ -222,10 +247,184 @@ public:
     // object's own Save (slot 10) and its two flag words; -1 ends the list.
     void SaveMapObjects(void* stream);
 
-    std::uint8_t unknown_068[0x6C - 0x68];
+    // world_save.cpp
+    // 00596E70 (RET 8). Restores the world from a mission save: zone names, settings, alarms and
+    // clock, the zone itself (LoadMap with the saved AI-graph state), the managers' objects, the
+    // map objects, timed objects, missiles, time wheel, script state, players, shared objects;
+    // units that cannot stand where they were saved are moved to a free cell or removed. `map`
+    // replaces the saved map name when not null. Returns 1, 0 when the AI graph cannot be read,
+    // or what FatalError returns when the zone cannot be loaded.
+    int LoadSave(WorldStream* stream, const char* map);
+    // 00597BD0 (RET 4). Writes what LoadSave reads.
+    void SaveWorld(WorldStream* stream);
+    // 00596900 (RET 4). Reads the map objects SaveMapObjects wrote, registers them in the id maps
+    // and wakes them.
+    void LoadSavedMapObjects(WorldStream* stream);
+    // 0058D280 (RET 4). Adds the time each player missed since its last update (plus `offset`) to
+    // its "gtime" variable.
+    void UpdatePlayerTimes(float offset);
+    // 005947E0 (RET 0x10). Puts a new entry at the head of the shared-object list (+0x12E60):
+    // `id`, the session player's +0x30 for that id in a multiplayer game (else -1), `value`, and
+    // references to the objects of `objects` (a CPtrList). The second argument is unused.
+    void AddSharedObject(int id, int unused, std::uint32_t value, void* objects);
+    // 005956E0. Before a save: every living unit among the map objects (the walk stops at an
+    // empty entry) refills its controller's slots (00525AF0 on +0x1E0) and runs the controller's
+    // slot 19 with 0.
+    void PrepareSave();
+
+    // world_game.cpp
+    // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
+    mfc::CString* ZoneNameInto(mfc::CString* out);
+
+    // world_map.cpp
+    // 00595C70 (RET 0x10). Loads map `map` (when it changed; CAIMap 005B43C0) and the AI layer
+    // state from `graph`, then the zone: the same .mob again starts it over (queues, diplomacy,
+    // map objects, missiles and timed objects cleared), another one first empties the
+    // world (ResetZone 0058B250); every player is marked dirty; the .mob objects are loaded (fresh
+    // zones start, 005951A0). From a save the loaded objects are cleared again (the save holds
+    // them). Returns 1, 0 when the map or the objects cannot be loaded.
+    int LoadMap(const char* map, const char* mob, void* graph, char fromSave);
+    // 0058B250. Empties the world of the current zone: shared objects, .mob files, countdowns,
+    // exits, command queues, missiles, counted objects, the players' zone data, every object
+    // (slot 5 then the maps), timed objects, the zone names and three managers.
+    void ResetZone();
+    // 0058B600. ResetZone, then the map name, diplomacy, both command queues and the AI map are
+    // reset and the game state cleared: +0x15C, the day-time value, alarms, the kind, the start
+    // position, the day factor (1), loaded_ and +0x13C.
+    void ResetState();
+    // 005957E0. Before every game state request: every player leaves, the shared objects, .mob
+    // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
+    // base class's teardown (0055F890); the game result and kind are cleared.
+    void TeardownZone();
+    // 005951A0. After a fresh zone is loaded: the map objects that are not part of the map
+    // (slot 29) move from the map-object maps to +0x12D88 and are sent, with the zone header
+    // (+0x12E00, reset first), through a temporary player.
+    void SendFreshObjects();
+
+    // world_update.cpp
+    // 0058DFF0, vtable slot 6. One world update: drops disconnected players and lets the others'
+    // units wake what they hear, accepts new players, runs the players and the world tick (unless
+    // +0x6C), rebuilds the local players' "Heroes" group, synchronises every player (SyncPlayer;
+    // 0 drops it) and counts the update (+0x68). Returns 1.
+    int Update();
+
+    // world_spells.cpp
+    // 0058E850 (RET 0x18). Casts `spell` from `caster` (or from `from`): one missile at `target` /
+    // `to`, or, for a spell with several targets (+0x38) or area flags, at the nearest living units
+    // within its radius (+0x34) the caster may hit (its heroes group, friends or diplomacy), the
+    // requested target first. Network clients cast nothing with a caster.
+    void CastSpell(const void* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target,
+                   const Vector3* to, int extra);
+    // 0058E670 (RET 0x20). One missile of `spell` from the caster (or `from`) to the target (or
+    // `to`, on the ground there); kept on the missile list unless its first update ends it. A
+    // hostile spell turns the target unit against the caster.
+    void CreateMissile(const void* spell, CEngineObject* caster, Vector3 from, CEngineObject* target, const Vector3* to,
+                       int extra);
+
+    // world_loot.cpp
+    // 005942D0 (RET 8, AL). `player` takes what `object` holds: a shared loot record
+    // (flags_ 0x20000000, removed afterwards) or what 00461CB0 collects (in a multiplayer client
+    // game quest items go to player 0); the gold is added to the player. False for no player, a
+    // living owned unit, or nothing to take.
+    bool Loot(CEngineObject* object, WorldPlayer* player);
+    // 00593D60. The local player (id 0) loots every dead unit, which is then removed (both
+    // through the global server 007AFF60). Nothing without a local player.
+    void LootDeadUnits();
+
+    // world_weather.cpp
+    // 0058CCD0. The weather, every 64 ticks: the day-time value (+0x84); in single player rain
+    // starting / stopping (+0xE4 / +0xE8, 007C2DFC delay), lightning strikes in storms (+0xDC 3),
+    // bolts in the sky while it rains; the day factor (+0x88); every object's slot 57; the
+    // players' "gtime".
+    void UpdateWeather();
+
+    // world_quests.cpp
+    // 00591800. For every player and the ten mercenary slots ("merc1".."merc10"), sets the
+    // briefing variables b.mercN.n1/n2/n3/n8/n9/n10/n11_N (and clears amerc_N) from whether the
+    // mercenary is in the party, was hired (amerc_N), and how many others are alive.
+    void UpdateMercBriefings();
+    // 00592090 (RET 8). Briefing `name` ("a.b.<record>") is complete for player `playerId`: a
+    // network client asks the server; otherwise the player gets the record's experience, gold
+    // and items, loses its quest items, its variables are set, and the scripts get
+    // GSSetVar / #OnBriefingComplete (run at once in kind-3 games).
+    void CompleteBriefing(int playerId, const char* name);
+    // 00591DE0 (RET 8). The mercenary side of a completed briefing `name`: for the ten slots,
+    // b.mercN.n8_N clears that variable, n10_N removes the mercenary from the party and the
+    // world, n2_N from the party, n1_N / n3_N hire it (amerc_N = 2, added to the party with its
+    // unit's prototype or "Human Hero"); then UpdateMercBriefings.
+    void ApplyMercBriefing(WorldPlayer* player, const char* name);
+    // 005911C0 (RET 8). Gives `amount` experience: with a player, shared equally by its living
+    // heroes (units and party records); without one, shared by the players that have a single
+    // hero, in proportion to sqrt(+0x8E0 + +0x1E4) of each hero's controller. Zero (or NaN) does
+    // nothing.
+    void AwardExperience(WorldPlayer* player, float amount);
+    // 00590C70 (RET 4). Brings the player's party records (+0x70) up to date with its living
+    // units: the player's own items, then every record's quick, worn and belt items and spells
+    // rebuilt from the unit (each item's +0x1C record pointing at its entry) and the statistics.
+    void SyncPartyRecords(WorldPlayer* player);
+    // 0058FD90 (RET 0xC). Before a zone change: every record of `records` (CArray of record
+    // pointers) notes its unit's leader, gets a placement (if `placements`), is rebuilt from its
+    // unit through `partyRecords`, and the unit is removed (a dead one just loses its owner).
+    void StoreParty(void* records, void* partyRecords, void* placements);
+    // 00590A40 (RET 8). The player's party leaves the zone: gtime, its items, then (single player
+    // and kind 3, with +0x15C) its records without a unit are dropped and the rest stored
+    // (StoreParty).
+    void CollectParty(WorldPlayer* player, void* placements);
+
+    // world_party.cpp
+    // 005901E0 (RET 8). Moves quest items (class 0x14) from `itemArray` (a CArray of item
+    // pointers) to `list` (CPtrList): in single player only those whose description names this
+    // zone or whose id an object of the zone asks for (object slots 38/40); otherwise all.
+    void TakeZoneQuestItems(void* itemArray, void* list);
+    // 00590460 (RET 4). Gives the player fresh copies of the items it brings into the zone (all
+    // of them on a client, the zone's quest items otherwise; nothing in a network game).
+    void RestorePlayerItems(WorldPlayer* player);
+    // 00590700 (RET 0xC). The party arrives in the zone (single player and kind 3, with +0x15C):
+    // its units are created at the entrance's centre (the target zone's exit), facing away from
+    // the map centre or along the exit's heading, the player state gets the start; `runScripts`
+    // runs the script command queue five times.
+    void Redeploy(WorldPlayer* player, void* placements, char runScripts);
+    // 00594CE0 (slot 24, RET 4). A new item like `item`: made by the item factory (slot 18) from
+    // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
+    // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
+    CEngineObject* CopyItem(CEngineObject* item);
+    // 00594F30 (RET 4). Puts `item` (an item whose state changed) on counted_, once; null is
+    // ignored.
+    void AddCounted(CEngineObject* item);
+    // 00594AB0 (RET 4). The item manager's (007AFFB4) new item named `name` (006AC970).
+    CEngineObject* CreateItemNamed(const char* name);
+    // 00594BC0 (RET 4). The item manager's new spell named `name` (006AD1E0, with slot 22).
+    CEngineObject* CreateSpellNamed(const char* name);
+
+    // world_units.cpp
+    // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
+    // records; an existing object with the record's id is removed first), at its entry in
+    // `placements` (CArray of 0x28-byte {id, position, rotation, two values}) or in a line from
+    // `position` along `rotation`, moved to a free cell, under `player`'s control, with its items,
+    // spells and AI; heroes get their figure parts. Followers are given their leaders; with a
+    // player the units are added to the "Heroes" script group.
+    void CreateUnits(void* player, void* records, const Vector3* position, Float4 rotation, void* placements);
+    // 0058ECE0 (RET 8). A quick item (potion) is used by `unit`: the effect object "st.tr.130"
+    // (model "unhuma", type 9, flags 0x3010) is created at the unit's position on the ground and
+    // flagged new (00529D20: flags_ |= 0x180000). `item` is not used.
+    void UseQuickItem(void* item, CEngineObject* unit);
+
+    // world_sync.cpp
+    // 0058B750 (RET 4). Brings `player`'s view up to date (once per world update): the zone when
+    // it changed (SendZone), weather, time, wind and countdowns when dirty, then the map objects
+    // and timed objects it should see compared with what it was sent. Returns what the player
+    // state's flush returns (0 drops the player), 1 for a player that is leaving.
+    int SyncPlayer(WorldPlayer* player);
+    // 0058C890 (RET 4). Sends `player` the zone to load (tick, map and .mob names, exits, the
+    // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
+    int SendZone(WorldPlayer* player);
+
+    int updateCount_;                     // +0x068 world updates run (Update)
     std::uint8_t unknown6C_;              // +0x6C
     std::uint8_t unknown_06D[0x70 - 0x6D];
-    std::uint8_t countdowns_[0x8C - 0x70]; // +0x070 countdown list (006D44E0 ticks it)
+    std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D44E0 ticks it; a CArray)
+    std::uint32_t unknown84_;             // +0x084 the day-time value (0058CCD0)
+    std::uint32_t unknown88_;             // +0x088
     WorldAlarm alarms_[5];                // +0x08C
     int unknownDC_;                       // +0x0DC
     int unknownE0_;                       // +0x0E0
@@ -236,15 +435,19 @@ public:
     int exitCount_;                       // +0x0F4
     int exitCapacity_;                    // +0x0F8
     int exitGrowBy_;                      // +0x0FC
-    std::uint8_t unknown_100[0x104 - 0x100];
+    std::uint8_t loaded_;                 // +0x100 0 while LoadSave runs
+    std::uint8_t unknown_101[0x104 - 0x101];
     ObjectIdMap updateMap_;               // +0x104
-    std::uint8_t unknown_11C[0x124 - 0x11C];
+    std::uint8_t unknown_11C[0x120 - 0x11C];
+    char* zoneName_;                      // +0x120 CString: the zone's map database name
     StringArray mobFiles_;                // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
-    std::uint8_t unknown_13C[0x15C - 0x13C];
+    std::uint32_t unknown13C_;            // +0x13C saved and loaded
+    std::uint8_t unknown_140[0x15C - 0x140];
     int unknown15C_;                      // +0x15C cleared when a .mob file fails to load
     int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
-    std::uint8_t unknown_164[0x290 - 0x164];
+    float startPosition_[3];              // +0x164 where joining players start (0058DAF0)
+    std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
     float gridHeightScale_;               // +0x290
     std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
     std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
@@ -253,11 +456,16 @@ public:
     std::uint8_t unknown_2818[0x2838 - 0x2818];
     std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 time wheel (005C9530; size unknown)
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
-    std::uint8_t commandsB_[0x12D70 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
+    std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
+    std::uint8_t diplomacy_[0x12D64 - 0x12C64]; // +0x12C64 CDiplomacy (object_diplomacy.h)
+    int unknown12D64_;                    // +0x12D64 1 or 3: SaveWorld updates the players' "gtime" first
+    char* mobName_;                       // +0x12D68 CString: the zone's .mob file
+    char* mapName_;                       // +0x12D6C CString: the zone's map
     ObjectIdMap objects_;                 // +0x12D70 every world object by id
     std::uint8_t unknown_12D88[0x12DA0 - 0x12D88];
     ObjectIdMap mapObjects_;              // +0x12DA0 objects saved with the zone (SaveMapObjects)
-    std::uint8_t unknown_12DB8[0x12DE8 - 0x12DB8];
+    ObjectIdMap otherMapObjects_;         // +0x12DB8 the map objects that are not units
+    ObjectIdMap namedObjects_;            // +0x12DD0 objects with a second name (+0x1A8)
     ObjectIdMap timedObjects_;            // +0x12DE8
     std::uint8_t unknown_12E00[0x12E28 - 0x12E00];
     ProjectileList projectiles_;          // +0x12E28
@@ -266,6 +474,16 @@ public:
     void* sharedObjects_;                 // +0x12E64 head of an MFC list of {object id, player}
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
+static_assert(offsetof(CWorldServer, unknown84_) == 0x84);
+static_assert(offsetof(CWorldServer, loaded_) == 0x100);
+static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
+static_assert(offsetof(CWorldServer, unknown13C_) == 0x13C);
+static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
+static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
+static_assert(offsetof(CWorldServer, unknown12D64_) == 0x12D64);
+static_assert(offsetof(CWorldServer, mapName_) == 0x12D6C);
+static_assert(offsetof(CWorldServer, otherMapObjects_) == 0x12DB8);
+static_assert(offsetof(CWorldServer, namedObjects_) == 0x12DD0);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
 static_assert(offsetof(CWorldServer, unknownDC_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xF0);
@@ -425,8 +643,108 @@ float __stdcall LocalPlayerVariable(const char* name);
 // of the server otherwise (0 without that player).
 float __stdcall PlayerZeroVariable(const char* name);
 
+// The game flow object (007AFE20). Only the functions rewritten here are declared.
+struct GameFlow {
+    // 0057B3B0 (RET 4). Saves the game into saves\<slot>\ (single player only, 007B0098 == 1):
+    // empties the folder, copies the visited zones' files from saves\current, writes scenario.sav
+    // (the party records, input and scripts state) and, outside the cutscene zones, mission.sav
+    // (the world, SaveWorld). Without scenario.sav the game goes back to the main menu. Returns 1
+    // when saved.
+    int SaveGame(const char* slot);
+    // 0057F190 (each network step). The local player's "z.MPGame1" variable, set to 1 or
+    // removed: on a client, set unless the client session's +0x25EC is active; on the host, set
+    // when more than one player is in (with +0x80) or unless the client's +0x25F4 is active.
+    // Nothing without an active client session.
+    void UpdateMultiplayerVariable();
+    // 0057E6B0 (RET 4). The multiplayer start zone for the client session's game type (+0x261C):
+    // "bz2mpg".."bz4mpg" for 1..3, else "bz1mpg"; constructed into `out`, returned.
+    mfc::CString* MultiplayerZoneInto(mfc::CString* out);
+    // 0057F280. Starts a multiplayer game: the party manager (007AA5A0) is reset, a single party
+    // record gets the unit id 0x3B9AF5CE, the party outside a game (007C82B0) is sent to the start
+    // zone with "z.MPGame1" = 1 and redeployed; the flow loads that zone (state 4) and the
+    // client's game state request becomes kind 1.
+    void BeginMultiplayerGame();
+    // 0057FF40 (RET 4; world_briefing.cpp). The local player has seen `briefing`: for a name
+    // ending in "_N" the zone's quests are loaded first (005809D0 with the name without "_N"),
+    // then BriefingVariableInto's variable is set to 1.
+    void MarkBriefing(const char* briefing);
+    // 0057F0F0. With an active client session: the local player's party is copied into the party
+    // outside a game (007C82B0), redeployed by the party manager, its map transfer sent
+    // (00662AC0 with 007C82A0), then the flow's update (005800C0).
+    void ReturnLocalParty();
+    // 0057F150. With an active client session: the flow's update, then an answered game state
+    // request (kind 3) becomes a new one of kind 0.
+    void UpdateAndAcknowledge();
+    // 0057FB60 (RET 4). A multiplayer client asks the server to complete `briefing` (session
+    // command 1).
+    void RequestBriefing(const char* briefing);
+    // 00580040 (RET 4; world_briefing.cpp). Removes the local player's variable of `briefing`.
+    void ForgetBriefing(const char* briefing);
+    // 0057F390. Replaces the game client session (0079B5D8) with a new one (0041BC40), releasing
+    // the old one.
+    void RecreateClientSession();
+    // 00581610 (RET 4). SaveGame through its address (a thunk the menus call).
+    int SaveGameThunk(const char* slot);
+    // 00581660. Releases both network sessions (server 0079B5DC, then client 0079B5D8), clears
+    // 007C7DD8 and sets the state to 1.
+    void CloseSessions();
+    // 00580840 (RET 4; world_briefing.cpp). A player variable changed (event +8: the record,
+    // name at +0x0C, value at +0x18): "q." variables go to the quest log (007C7D50) and the
+    // client world.
+    void OnVariableChanged(const void* event);
+    // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
+    // zone or save name (+4), +0x78 and, for 5 and 6, a copy of a party (+8, 00661300).
+    void RequestState3();                                            // 005816C0
+    void RequestLoad(const char* name, char flag);                   // 005816D0 (RET 8): 2, +0x78 = flag != 0
+    void RequestZoneChange(const char* zone, int entrance);          // 00581700 (RET 8): 4, +0x78 = entrance
+    void RequestPartyZone5(const char* zone, const void* party);     // 00581730 (RET 8)
+    void RequestPartyZone6(const char* zone, const void* party);     // 00581760 (RET 8)
+};
+
+// 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
+// (0066B1B0); returns what that returns.
+int __stdcall RequestZone(const char* zone, int entrance);
+
+// 00580F10 (world_briefing.cpp). With the briefing texts loaded (007AF788): every quest text file
+// loaded so far (007AFDD0) is unloaded and the list emptied.
+void UnloadQuestTexts();
+
+// 0057F820 (ECX = list, EDX = name; world_game.cpp). Whether `name` is in `list` (an array of
+// names ended by an empty one), compared case-insensitively.
+bool __fastcall NameInList(const char* const* list, const char* name);
+
+// world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
+// the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
+// into `out`. 0057FDE0 (RET 8): the briefing's variable, "b.<speaker>.<briefing>" or, without a
+// speaker, "b.elder.<briefing>".
+mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
+mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing);
+// 00595080. Chooses the loading movie (the name at 00791EE0) for zone `zone` (may be null) by its
+// allod in the map database: progres2.bik for gipat, progres3.bik for ingos, progres4.bik for
+// suslanger, else progres.bik (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for
+// jigran); the zones gz1g and bz7g (case-insensitive) take progres1.bik.
+void __stdcall SelectLoadingMovie(const char* zone);
+
 CWorldServer* WorldServer();   // 007AFF60
 CWorldClient* WorldClient();   // 007AF5B8
+
+// 00589CA0 (thiscall on a shared-object entry, RET 4; world_save.cpp). Reads an entry of the
+// shared-object list: id, player, value, then object ids resolved by the item manager (007AFFB4);
+// each found object is appended with a reference.
+void __fastcall LoadSharedObject(void* entry, void*, WorldStream* stream);
+
+// 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A
+// lightning strike from `from` to `to`, as a script line on the queue at 007C29CC: one time in
+// four only a thunder sound, otherwise a point light at the middle, a sound and two bolts.
+void __fastcall ShowBolt(void* glue, void*, Vector3 from, Vector3 to);
+
+// world_guard.cpp. 005790E0 (thiscall on the client glue 007AFEA4, unused; RET 4): with `plain`
+// 0 the players' gold, party records (0x704 bytes from +0x20) and, on the server, their units'
+// controller statistics (0x704 bytes from +0x1E0) are XORed with a new random key (007AFECC),
+// with 1 they are XORed back; also the party records outside a game (007C82B0). Nothing when
+// the state (0079026C) is already `plain`. 005791C0 (RET 4) does one player list.
+void __fastcall GuardPlayerData(void* glue, void*, char plain);
+void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key);
 
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
 // 0056AFE0 (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers

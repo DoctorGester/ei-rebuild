@@ -24,7 +24,8 @@ public:
     void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius);
 
     // 005C11D0. Moves `object` to `position`, re-stamping its footprint (restored on failure) and
-    // moving it between sector lists when it crosses into another sector.
+    // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
+    // first refuses a position with x or y below 0 (or NaN).
     bool Move(CEngineObject* object, const Vector3* position);
 
     // 005C0930. The unit list of sector (sx, sy), null outside the map.

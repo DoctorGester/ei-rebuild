@@ -115,3 +115,21 @@ static void __fastcall SaveMapObjectsVerify(CWorldServer* self, void*, void* str
                       static_cast<unsigned>(self->mapObjects_.map.Size()));
 }
 EI_VERIFY(0x00596730, SaveMapObjectsVerify, 0, s_unused);
+
+// 00595080: PUSH -1; PUSH 0x007263F8 (7 bytes). Writes only the loading movie name (00791EE0): the
+// original runs first, ours from the same starting value, and the chosen names are compared as text
+// (addon.dll's FixProgressNames points at its own copies). With the flag on in a Rebirth launch this
+// compares with the patched original.
+static void(__stdcall* s_selectLoadingMovie)(const char*);
+static void __stdcall SelectLoadingMovieVerify(const char* zone) {
+    const char*& movie = *reinterpret_cast<const char**>(0x00791EE0);
+    const char* before = movie;
+    s_selectLoadingMovie(zone);
+    const char* expected = movie;
+    movie = before;
+    SelectLoadingMovie(zone);
+    bool same = expected && movie && std::strcmp(expected, movie) == 0;
+    ei::verify::Check("SelectLoadingMovie", true, same, "zone %s: %s vs %s", zone ? zone : "(null)",
+                      expected ? expected : "(null)", movie ? movie : "(null)");
+}
+EI_VERIFY(0x00595080, SelectLoadingMovieVerify, 7, s_selectLoadingMovie);
