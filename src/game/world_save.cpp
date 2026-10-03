@@ -236,7 +236,7 @@ __declspec(naked) void __fastcall StreamWriteDiff(WorldStream*, void*, CMemorySt
 __declspec(naked) void __fastcall AILayerSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005B1380)
 // 00595C70 (RET 0x10). LoadMap: loads the terrain when the map changed, then the zone (the AI
 // graph state in `graph`); 0 on failure.
-__declspec(naked) int __fastcall LoadMap(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
+__declspec(naked) int __fastcall LoadMapAt(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
                                          CMemoryStream* /*graph*/, char /*fromSave*/) EI_ORIGINAL(0x00595C70)
 // 00596900. LoadSavedMapObjects, through its address (rewritten here) so its verify sees the call.
 __declspec(naked) void __fastcall LoadSavedMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596900)
@@ -581,7 +581,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     } else {
         MemoryStreamApplyDiff(&graph.stream, nullptr, &savedGraph.stream, stream);
         ShowLoadProgress(kProgressZone);
-        if (!LoadMap(this, nullptr, mapName, mobName, &graph.stream, 1)) {
+        if (!LoadMapAt(this, nullptr, mapName, mobName, &graph.stream, 1)) {
             result = game::FatalError(reinterpret_cast<const char*>(kCantLoadMap));
         } else {
             // The map objects' identities: id, type and +0x18 (created by the manager at +0x40).

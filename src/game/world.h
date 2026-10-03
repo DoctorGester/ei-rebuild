@@ -264,6 +264,15 @@ public:
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
 
+    // world_map.cpp
+    // 00595C70 (RET 0x10). Loads map `map` (when it changed; CAIMap 005B43C0) and the AI layer
+    // state from `graph`, then the zone: the same .mob again starts it over (queues, diplomacy,
+    // map objects, missiles and timed objects cleared), another one first saves the current
+    // zone's state (0058B250); every player is marked dirty; the .mob objects are loaded (fresh
+    // zones start, 005951A0). From a save the loaded objects are cleared again (the save holds
+    // them). Returns 1, 0 when the map or the objects cannot be loaded.
+    int LoadMap(const char* map, const char* mob, void* graph, char fromSave);
+
     // world_update.cpp
     // 0058DFF0, vtable slot 6. One world update: drops disconnected players and lets the others'
     // units wake what they hear, accepts new players, runs the players and the world tick (unless
