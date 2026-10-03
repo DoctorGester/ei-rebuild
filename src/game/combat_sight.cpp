@@ -126,14 +126,6 @@ char* SpellPrototypeOf(void* spell) { return static_cast<CSpell*>(spell)->GetPro
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 00530280. CUnit: the height of the ground (or water surface) under (x, y) for the unit, in ST0.
 __declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
-// 0054F970 / 00550100 / 00550620. The animation of an attack on `target`, of an order of `kind`
-// with `source`, and of a cast of `kind` with `value`; each sets *duration.
-__declspec(naked) void __fastcall BuildAttackSteps(CUnitServer*, void*, OrderPlan*, AnimationSteps*, int*,
-                                                   CEngineObject*) EI_ORIGINAL(0x0054F970)
-__declspec(naked) void __fastcall BuildOrderSteps(CUnitServer*, void*, AnimationSteps*, int*, int,
-                                                  std::uint32_t) EI_ORIGINAL(0x00550100)
-__declspec(naked) void __fastcall BuildCastSteps(CUnitServer*, void*, AnimationSteps*, int*, int, int)
-    EI_ORIGINAL(0x00550620)
 // 00557B80. CArray::SetSize of an AnimationSteps list.
 __declspec(naked) void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
 // 00455950. The world an object lives in.
@@ -369,14 +361,14 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     int duration = 0;
     int kind = order->kind;
     if (kind == kOrderAttack) {
-        BuildAttackSteps(this, nullptr, plan, &steps, &duration, order->target);
+        CallBuildAttackSteps(plan, &steps, &duration, order->target);
     } else if (kind < kOrderCast || kind > kOrderCastAt) {
-        BuildOrderSteps(this, nullptr, &steps, &duration, kind, order->source);
+        CallBuildOrderSteps(&steps, &duration, kind, order->source);
     } else {
         spell = SpellOfSource(order->source);
         int value = 0;
         if (spell) value = CastValue(this, spell);
-        BuildCastSteps(this, nullptr, &steps, &duration, order->kind, value);
+        CallBuildCastSteps(&steps, &duration, order->kind, value);
     }
     if (duration <= 0) duration = 1;
 

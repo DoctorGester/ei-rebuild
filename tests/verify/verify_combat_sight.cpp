@@ -6,46 +6,17 @@
 // a deep copy of the plan as it was); results, plans and generator states are compared.
 #include "verify.h"
 
-#include "../../src/game/combat.h"
-#include "../../src/game/combat_plan.h"
-#include "../../src/game/random.h"
-#include "../../src/lib/crt.h"
+#include "combat_verify_util.h"
 
 #include <cstring>
 
 namespace {
-// The CRT's per-thread data (_getptd, 006F00D1); +0x14 is rand()'s seed.
-__declspec(naked) char* __cdecl GamePtd() EI_ORIGINAL(0x006F00D1)
-
-struct RandomState {
-    IsaacRandom isaac;
-    std::uint32_t holdrand;
-
-    void Save() {
-        std::memcpy(&isaac, reinterpret_cast<const void*>(0x007A9D40), sizeof(isaac));
-        std::memcpy(&holdrand, GamePtd() + 0x14, sizeof(holdrand));
-    }
-    void Restore() const {
-        std::memcpy(reinterpret_cast<void*>(0x007A9D40), &isaac, sizeof(isaac));
-        std::memcpy(GamePtd() + 0x14, &holdrand, sizeof(holdrand));
-    }
-    bool SameAs(const RandomState& other) const {
-        return holdrand == other.holdrand && std::memcmp(&isaac, &other.isaac, sizeof(isaac)) == 0;
-    }
-};
-
-int UnitId(const CUnitServer* self) { return self->unit ? self->unit->id_ : -1; }
+using namespace combatverify;
 
 // A deep copy of a plan (its own steps array of the same capacity).
 void CopyPlan(OrderPlan* copy, const OrderPlan* plan) {
     std::memcpy(copy, plan, sizeof(OrderPlan));
-    copy->animation.steps = nullptr;
-    if (plan->animation.steps && plan->animation.capacity > 0) {
-        copy->animation.steps = static_cast<AnimationStep*>(
-            gamecrt::operator_new(static_cast<std::size_t>(plan->animation.capacity) * sizeof(AnimationStep)));
-        std::memcpy(copy->animation.steps, plan->animation.steps,
-                    static_cast<std::size_t>(plan->animation.count) * sizeof(AnimationStep));
-    }
+    CopySteps(&copy->animation, &plan->animation);
 }
 
 // Plans compared without the steps pointer: everything from the count on, and the steps.
@@ -54,10 +25,7 @@ int PlanDifference(const OrderPlan* a, const OrderPlan* b) {
     const auto* pb = reinterpret_cast<const unsigned char*>(b);
     for (int i = 8; i < static_cast<int>(sizeof(OrderPlan)); ++i)
         if (pa[i] != pb[i]) return i;
-    int count = a->animation.count;
-    if (count > 0 && std::memcmp(a->animation.steps, b->animation.steps, static_cast<std::size_t>(count) * sizeof(AnimationStep)))
-        return 0x100;
-    return -1;
+    return StepsDifference(a->animation.steps, b->animation.steps, a->animation.count) < 0 ? -1 : 0x100;
 }
 
 using FindSightFn = bool(__fastcall*)(CUnitServer*, void*, const UnitAction*, SightTarget*);
@@ -110,7 +78,7 @@ static bool __fastcall PlanActionVerify(CUnitServer* self, void*, const UnitActi
     ei::verify::Check("CUnitServer::PlanAction", true, same, "unit %d kind %d: %d vs %d, plan difference at +0x%X%s",
                       UnitId(self), order->kind, expected, actual, diff,
                       afterOurs.SameAs(afterOriginal) ? "" : ", random state differs");
-    if (scratch.animation.steps) gamecrt::operator_delete(scratch.animation.steps);
+    FreeSteps(&scratch.animation);
     return expected;
 }
 EI_VERIFY(0x0054CA40, PlanActionVerify, 5, s_plan);

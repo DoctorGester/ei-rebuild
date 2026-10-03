@@ -299,6 +299,33 @@ public:
     bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);
     bool CallFindSightTarget(const UnitAction* order, struct SightTarget* out);
 
+    // combat_steps.cpp (third round): the animation steps of an order. The unit's animation
+    // entries are looked up by a key of weapon, movement and action bits (CUnit 005301B0).
+    // 00551A40 / 00551A90. The duration / the moment of the action of animation entry `index`, in
+    // ticks: the entry's +0x20 / +0x40 divided by the unit's speed factor for it (005327D0),
+    // truncated; 0 without the entry.
+    int AnimationDuration(std::uint32_t index);
+    int AnimationMoment(std::uint32_t index);
+    // 005516D0. The step that changes the movement mode `from` into `to` (only heroes, or a change
+    // involving mode 4); false when there is none.
+    bool BuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
+    // 00550100. The steps of an order of `kind` with `source` (for kind 3 `source` is the attack key
+    // from BuildAttackSteps): the animation, framed by stepping out of and back into the movement
+    // mode for skills; *duration = the ticks until the action happens.
+    void BuildOrderSteps(struct AnimationSteps* steps, int* duration, int kind, std::uint32_t source);
+    // 00550620. The steps of a cast taking `value` ticks; draws a random number for heroes.
+    void BuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
+    // 0054F970. The steps of an attack on `target`: the hit location (plan +0x2C) and the height of
+    // the blow from both units' heights and the distance. Draws random numbers. Returns 1.
+    bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
+    // The same through the game's addresses.
+    bool CallBuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
+    void CallBuildOrderSteps(struct AnimationSteps* steps, int* duration, int kind, std::uint32_t source);
+    void CallBuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
+    bool CallBuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
+    int CallAnimationDuration(std::uint32_t index);
+    int CallAnimationMoment(std::uint32_t index);
+
     // Not rewritten (forwarders):
     // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
     void TurnTo(const float* point, int walk, int run, std::uint32_t z);

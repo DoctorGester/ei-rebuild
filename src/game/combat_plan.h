@@ -8,9 +8,16 @@
 #include <cstddef>
 #include <cstdint>
 
-// One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620).
+// One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620). 00550A60
+// constructs a blank one: animation 0xFF, +1 0xFF, +2 0, duration -1, +8 0. It never sets byte 3,
+// so the original's steps carry a stack byte there; ours carry 0.
 struct AnimationStep {
-    std::uint32_t data[3];
+    std::uint8_t animation;     // +0x00 index of the unit's animation entry (0xFF: a pause)
+    std::uint8_t unknown_01;    // +0x01 0xFF
+    std::uint8_t unknown_02;    // +0x02 0
+    std::uint8_t unknown_03;    // +0x03 not initialised by the original
+    int duration;               // +0x04 game ticks
+    int unknown_08;             // +0x08
 };
 static_assert(sizeof(AnimationStep) == 0xC);
 
