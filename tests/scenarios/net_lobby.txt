@@ -1,0 +1,11 @@
+# Network lobby: after the cheat word, "server <map>" opens a multiplayer lobby (no units), which
+# creates the game server and game client sessions (0079B5DC / 0079B5D8). The network pump
+# (004122D0, net_session.cpp) then ticks both every frame, the lobby's records go through memory
+# streams (core_streams.cpp) and the RefPtr copies (refptr_copies.cpp). About 25 s.
+reject Script error
+wait 6000
+console thingamabob
+console server bz7g-lmp
+wait 15000
+report
+quit
