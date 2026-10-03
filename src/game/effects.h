@@ -156,6 +156,9 @@ public:
     int EmitCastSwirl(Particle* p, int index);      // 00490C10 (0x202B-0x202E)
     int UpdateCastSwirl(Particle* p);               // 00491230
     void TickCastSwirl(ParticleElement* e);         // 00491390
+    int EmitLink(Particle* p, int index);           // 0048D8D0 (Link, 0x2014)
+    int UpdateLink(Particle* p);                    // 0048DE30
+    void TickLink(ParticleElement* e);              // 0048E040
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

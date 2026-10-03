@@ -902,3 +902,174 @@ void CParticleSource::TickCastSwirl(ParticleElement* e) {
     e->pos.z = pz;
 }
 EI_REPLACE_METHOD(0x00491390, CParticleSource::TickCastSwirl);
+
+// --- Link (0x2014): a beam of sparks from the source along its extent (+0x130) ------------------
+//
+// Element 0: +0x18 the beam's length, +0x1C its inverse, +0x34 the alpha cap (255, falling by 16
+// per tick once the source stops). Elements 1-3 hold the beam's frame at +0x18: 1 the unit
+// direction, 2 a unit side vector, 3 the unit cross product of the extent and the side.
+
+namespace {
+
+#define EI_LINK_DEGENERATE GameDouble(0x0073CE00)   // 1e-10
+#define EI_LINK_TWIST GameFloat(0x0073BAD4)         // 0.2
+#define EI_LINK_HALF GameFloat(0x0073B86C)          // 0.5
+#define EI_LINK_QUARTER GameFloat(0x0073C3B0)       // 0.25
+#define EI_LINK_BULGE GameFloat(0x0073CD70)         // 0.9
+#define EI_LINK_ALPHA GameFloat(0x0073C34C)         // 1000.0
+
+inline float F(std::uint32_t bits) {
+    float f;
+    std::memcpy(&f, &bits, sizeof(f));
+    return f;
+}
+
+// The beam's frame from the extent (the first emission).
+void SetUpLink(CParticleSource* s) {
+    SetElementCount(s, 4);
+    const Vector3& x = s->extent;
+    *ElementFloat(s->elements, 0x18) = Store(x87::fsqrt(D(x.x) * D(x.x) + D(x.y) * D(x.y) + D(x.z) * D(x.z)));
+    *ElementFloat(s->elements, 0x1C) = Store(D(EI_P_ONE) / D(*ElementFloat(s->elements, 0x18)));
+
+    // A side vector: (ey, -ex, 0), or (ey - ez, -ex, ex) when the extent is (nearly) vertical.
+    Vector3 side;
+    double zero = EI_P_ZERO;
+    side.Construct(Store(D(x.y) - zero), Store(zero - D(x.x)), 0.0f);
+    double length = x87::fsqrt(D(side.z) * D(side.z) + D(side.y) * D(side.y) + D(side.x) * D(side.x));
+    if (!(length >= EI_LINK_DEGENERATE)) {
+        float ex = x.x;
+        Vector3 other;
+        other.Construct(Store(D(x.y) - D(x.z)), Store(-D(ex)), ex);
+        length = x87::fsqrt(D(other.x) * D(other.x) + D(other.y) * D(other.y) + D(other.z) * D(other.z));
+        side = other;
+    }
+    double inverse = D(EI_P_ONE) / length;
+    side.x = Store(inverse * D(side.x));
+    side.y = Store(D(side.y) * inverse);
+    side.z = Store(D(side.z) * inverse);
+
+    Vector3 cross;
+    cross.Construct(Store(D(side.z) * D(x.y) - D(side.y) * D(x.z)), Store(D(side.x) * D(x.z) - D(side.z) * D(x.x)),
+                    Store(D(side.y) * D(x.x) - D(side.x) * D(x.y)));
+    double crossInverse =
+        D(EI_P_ONE) / x87::fsqrt(D(cross.z) * D(cross.z) + D(cross.y) * D(cross.y) + D(cross.x) * D(cross.x));
+    cross.x = Store(crossInverse * D(cross.x));
+    cross.y = Store(D(cross.y) * crossInverse);
+    cross.z = Store(D(cross.z) * crossInverse);
+
+    double extentLength = x87::fsqrt(D(x.x) * D(x.x) + D(x.y) * D(x.y) + D(x.z) * D(x.z));
+    Vector3 direction;
+    direction.Construct(Store(D(x.x) / extentLength), Store(D(x.y) / extentLength), Store(D(x.z) / extentLength));
+    std::memcpy(ElementFloat(&s->elements[1], 0x18), &direction, sizeof(Vector3));
+    std::memcpy(ElementFloat(&s->elements[2], 0x18), &side, sizeof(Vector3));
+    std::memcpy(ElementFloat(&s->elements[3], 0x18), &cross, sizeof(Vector3));
+    *ElementInt(s->elements, 0x34) = 0xFF;
+}
+
+} // namespace
+
+// 0048D8D0. Link: a spark at the source with a random offset across the beam (from the spread
+// box), a twist rate from its distance to the axis and a random speed along the beam (fast and
+// large sparks near the axis now and then).
+int CParticleSource::EmitLink(Particle* p, int) {
+    if (elementCount == 0) SetUpLink(this);
+    p->color = 0xFFFFFF;
+    float a = SignedUnit();
+    float b = SignedUnit();
+    double c = Unsigned(Next()) * (D(spreadMax.z) - D(spreadMin.z)) * EI_P_SCALE_1 + D(spreadMin.z);
+    p->velocity.x = Store(D(a) * D(spreadMin.x));
+    p->velocity.y = Store(D(b) * D(spreadMin.y));
+    p->velocity.z = Store(c);
+    double reach = x87::fsqrt(D(b) * D(b) + D(a) * D(a));
+    float reachRounded = Store(reach);
+    double twist = reach * D(EI_LINK_TWIST);
+    p->unknown_2C = Store(x87::fcos(twist));
+    p->unknown_30 = Store(x87::fsin(twist));
+    Vector3 start;
+    start.Construct(Store(D(p->velocity.x) + D(origin.x)), Store(D(origin.y) + D(p->velocity.y)),
+                    Store(D(origin.z) + D(p->velocity.z)));
+    reinterpret_cast<Vector4*>(p)->FromPoint(start);
+    double factor;
+    if ((Next() & 3) == 0 && !(D(reachRounded) >= D(EI_LINK_HALF))) {
+        *ParticleFloat(p, 0x3C) = Store(Range(F(0x3DCCCCCD), F(0x3DF5C28F)));     // 0.1 .. 0.12
+        factor = Range(F(0x3E051EB8), F(0x3E23D70A));                           // 0.13 .. 0.16
+    } else {
+        *ParticleFloat(p, 0x3C) = Store(Range(F(0x3E2E147B), F(0x3E800000)));     // 0.17 .. 0.25
+        factor = Range(F(0x3CF5C28F), F(0x3D4CCCCD));                           // 0.03 .. 0.05
+    }
+    *ParticleFloat(p, 0x40) = Store(factor * D(size));
+    SetBits(ParticleFloat(p, 0x38), 0);
+    std::memcpy(&p->size, ParticleFloat(p, 0x40), sizeof(float));
+    p->frame = static_cast<int>(Next() % static_cast<std::uint32_t>(frameCount + 1));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048D8D0, CParticleSource::EmitLink);
+
+// 0048DE30. Link sparks run along the beam (+0x38 the distance travelled, +0x3C the speed),
+// spinning around the axis; the beam bulges in the middle and the alpha peaks there (capped by
+// element 0). Dropped past the beam's end.
+int CParticleSource::UpdateLink(Particle* p) {
+    p->frame = (p->frame + 1) % frameCount;
+    double travelled = D(*ParticleFloat(p, 0x3C)) + D(*ParticleFloat(p, 0x38));
+    *ParticleFloat(p, 0x38) = Store(travelled);
+    ParticleElement* e = elements;
+    float along = Store(travelled * D(*ElementFloat(e, 0x1C)));
+    if (travelled > D(*ElementFloat(e, 0x18))) return 0;
+
+    double c = D(p->unknown_2C);
+    double s = D(p->unknown_30);
+    double turnedY = D(p->velocity.y) * c + D(p->velocity.x) * s;
+    double turnedX = c * D(p->velocity.x) - D(p->velocity.y) * s;
+    p->velocity.x = Store(turnedX);
+    p->velocity.y = Store(turnedY);
+    float ax = Store(D(along) * D(extent.x));
+    float ay = Store(D(along) * D(extent.y));
+    float az = Store(D(along) * D(extent.z));
+    const float* direction = ElementFloat(&elements[1], 0x18);
+    const float* sideAxis = ElementFloat(&elements[2], 0x18);
+    const float* cross = ElementFloat(&elements[3], 0x18);
+    double q = D(p->velocity.z);
+    float dx = Store(q * D(direction[0]));
+    float dy = Store(q * D(direction[1]));
+    float dz = Store(q * D(direction[2]));
+    float cx = Store(turnedY * D(cross[0]));
+    float cy = Store(turnedY * D(cross[1]));
+    double cz = turnedY * D(cross[2]);
+    double vx = D(p->velocity.x);
+    float sx = Store(vx * D(sideAxis[0]));
+    float sy = Store(vx * D(sideAxis[1]));
+    double sz = vx * D(sideAxis[2]);
+    float bx = Store(D(sx) + D(origin.x));
+    float by = Store(D(sy) + D(origin.y));
+    Vector3 p1;
+    p1.Construct(Store(D(bx) + D(cx)), Store(D(by) + D(cy)), Store(sz + D(origin.z) + cz));
+    Vector3 p2;
+    p2.Construct(Store(D(p1.x) + D(dx)), Store(D(p1.y) + D(dy)), Store(D(p1.z) + D(dz)));
+    Vector3 p3;
+    p3.Construct(Store(D(p2.x) + D(ax)), Store(D(p2.y) + D(ay)), Store(D(p2.z) + D(az)));
+    std::memcpy(&p->pos, &p3, sizeof(Vector3));
+
+    double h = D(along) - D(EI_LINK_HALF);
+    SetBits(&p->size, 0x3F800000);
+    std::memcpy(&p->size, ParticleFloat(p, 0x40), sizeof(float));
+    p->pos.z = Store((D(EI_LINK_QUARTER) - h * h) * D(*ElementFloat(elements, 0x18)) * D(EI_LINK_BULGE) + D(p3.z));
+    float hr = Store(h);
+    std::uint32_t absBits = Bits(&hr) & 0x7FFFFFFFu;
+    float offCentre;
+    std::memcpy(&offCentre, &absBits, sizeof(float));
+    std::uint32_t fade = static_cast<std::uint32_t>(GameFtol((D(EI_LINK_HALF) - D(offCentre)) * D(EI_LINK_ALPHA)));
+    std::uint32_t cap = static_cast<std::uint32_t>(*ElementInt(elements, 0x34));
+    if (cap < fade) fade = cap;
+    p->color = (fade << 24) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048DE30, CParticleSource::UpdateLink);
+
+// 0048E040. Link element 0: once the source stops emitting the alpha cap falls by 16 per tick
+// (not below 0). (The other elements' caps are unused.)
+void CParticleSource::TickLink(ParticleElement* e) {
+    if (!(flags_ & 1)) *ElementInt(e, 0x34) -= 16;
+    std::int32_t cap = *ElementInt(e, 0x34);
+    *ElementInt(e, 0x34) = cap < 0 ? 0 : cap;
+}
+EI_REPLACE_METHOD(0x0048E040, CParticleSource::TickLink);

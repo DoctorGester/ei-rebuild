@@ -63,3 +63,12 @@ EI_UPDATE_WRAPPER(UpdateHealing)
 EI_VERIFY(0x0048BBE0, UpdateHealingVerify, 5, s_UpdateHealing);
 EI_ELEMENT_WRAPPER(TickHealing)
 EI_VERIFY(0x0048BCE0, TickHealingVerify, 7, s_TickHealing);
+
+// 0048D8D0: SUB ESP,0x2C; PUSH EBX; MOV EBX,ECX (6). 0048DE30: PUSH EBP; MOV EBP,ESP; SUB ESP,0x3C (6).
+// 0048E040: MOV AL,[ECX+8]; MOV ECX,[ESP+4] (7).
+EI_SETUP_EMIT_WRAPPER(EmitLink)
+EI_VERIFY(0x0048D8D0, EmitLinkVerify, 6, s_EmitLink);
+EI_UPDATE_WRAPPER(UpdateLink)
+EI_VERIFY(0x0048DE30, UpdateLinkVerify, 6, s_UpdateLink);
+EI_ELEMENT_WRAPPER(TickLink)
+EI_VERIFY(0x0048E040, TickLinkVerify, 7, s_TickLink);
