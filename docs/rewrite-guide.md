@@ -38,7 +38,9 @@ comes from a bug we already hit.
 
 ## The rules
 
-1. **Read the disassembly, not just the decompiler.** Ghidra misreads calling conventions, misses
+1. **Read the disassembly, not just the decompiler.** The Ghidra MCP disassembly listing can also
+   drop instructions (it omitted an FNSTSW in 006C1C00, making a min-select look like a bit test):
+   when a sequence looks odd, check the raw bytes in game.exe (capstone) before reproducing it. Ghidra misreads calling conventions, misses
    register arguments and drops return values.
 2. **Return values:** check what the original leaves in EAX/AL/ST0 and what callers read.
    - A "void" setter that ends with `MOV EAX,ECX` returns `this` (the Vector3 constructor crashed the
