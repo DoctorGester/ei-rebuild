@@ -409,3 +409,46 @@ strings 00697FC0 taking a CString by value).
 - The skeleton / figure building callees of LoadFakeUnitScene (00448A40, 00449240, 004492F0,
   0044EB60, 0044CFF0, 0044DCF0, 0044E3B0, 0044E8A0, 0044C4A0, 0044B980, 0044A2A0, 0044A7B0, 0044B060):
   heavy x87 with inlined CArray SetSize; still forwarders. Largest remaining work in the range.
+
+## Fifth round: the fake unit scene's helpers
+
+Files: `src/game/scene_registry.cpp` (0044B980); verify: `tests/verify/verify_scene_registry.cpp`.
+No new scenario: every scenario loads zone1, which loads the fake unit scenes. Shared files: none.
+
+### Rewritten
+
+| Address | Name | Verify |
+|---|---|---|
+| 0044B980 | `scene::LoadFigureRegistry` (__fastcall: unit, .reg path; RET 8) | original first; its results recorded (every mesh's texture coordinates and +0x184 / +0x188, the records it added to both arrays), the coordinates restored and the arrays cut back, then ours; all compared |
+
+### LoadFigureRegistry (0044B980)
+
+The scene's .reg file (CFileRegistry through its game addresses; "Can't open .reg file" is
+fatal, no sections returns 0). For every mesh (unit +0x544, 0x18C each) a local CMap<DWORD,DWORD>
+(vtable 0073C16C, 17 buckets) remembers the texture coordinates already moved. Each face group
+(mesh +0x148) named exactly like a helper (unit +0x56C, name +0x1C, `_mbscmp`): the texture
+section is the file section equal (ignoring case, 00447F50) to the helper's +0x8C name, its "Main
+Texture Name" (default "none") names the mapping section; the texture size is "Dimentions"
+Width / Height (default 256). An empty mapping name gives the rectangle (0, 0, 0, 0); a mapping
+with any of X, Y, Width, Height missing (-1) logs "CorrectMappings ..." (message box with the debug
+flag 0x10000 of 007AF5C0) and gives (0, 0, 0, 0) too. Each corner's texture coordinate (face +0xC
+indices into +0xE8) not yet in the map becomes u = (w / W) u + x / W, v = 1 - ((h / H)(1 - v) +
+y / H) and is marked. After the groups, the material type of the last group name seen (0044A2A0;
+the name carries over from the previous mesh when a mesh has no groups) goes to the mesh (+0x188
+type, +0x184 value) and, once each, to the caller's (type, value) array and (type, texture name)
+array; "Undefined texture/material types" is logged otherwise.
+
+- The coordinate formula is a naked transcription (the quotients and products stay on the FPU;
+  its x87 sequence was compared with the original's); the integers become floats once (FILD /
+  FSTP).
+- The map's operator[] is inlined twice by the original (once through GetAssocAt 00453C60, once
+  with its own bucket search); both are kept, with InitHashTable 00453B90 / NewAssoc 00453C00. Its
+  destructor is inlined: the table deleted (even when null), the blocks freed (006FE90F).
+- The (type, name) array's SetSize is the inlined MFC CArray one (elements constructed by
+  004553F0, destroyed by 00454360); the (type, value) array's is called (00453A30).
+- Strings passed by value (00447F50, the registry's GetString default) are copied into a raw slot
+  the callee destroys, as in options.cpp.
+
+Forwarders: 00450750, 00447F50, 0044A2A0, 00453A30, 004553F0, 00454360, 00453C60, 00453B90,
+00453C00; the registry 00694520 / 00694540 / 006945A0 / 00694880 / 00694BE0 / 00694D20 / 006946B0
+(rewritten in registry.cpp, called through their addresses).

@@ -1,0 +1,101 @@
+// Checks for the figure registry of fake unit scenes (scene_registry.cpp).
+#include "verify.h"
+
+#include "../../src/game/scene_loader.h"
+
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <vector>
+
+namespace scene {
+int __fastcall LoadFigureRegistry(char* unit, const mfc::CString* path, VtArray* links, VtArray* names);
+}
+
+namespace {
+
+template <typename T>
+T& At(void* base, std::size_t offset) {
+    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
+}
+
+// What the call changes: every mesh's texture coordinates and material fields, the records added to
+// the two arrays.
+struct Outcome {
+    int result = 0;
+    std::vector<std::vector<std::uint8_t>> texCoords;
+    std::vector<std::uint32_t> material;
+    std::vector<std::uint32_t> links;
+    std::vector<std::pair<int, std::string>> names;
+};
+
+std::vector<std::vector<std::uint8_t>> TexCoords(char* unit) {
+    std::vector<std::vector<std::uint8_t>> out;
+    char* meshes = At<char*>(unit, 0x548);
+    for (int m = 0; m < At<int>(unit, 0x54C); ++m) {
+        char* mesh = meshes + m * scene::mesh::kSize;
+        const auto* data = At<const std::uint8_t*>(mesh, scene::mesh::kTexCoords);
+        int count = At<int>(mesh, scene::mesh::kTexCoords + 4);
+        out.emplace_back(data, data + (data ? count * 8 : 0));
+    }
+    return out;
+}
+
+void RestoreTexCoords(char* unit, const std::vector<std::vector<std::uint8_t>>& saved) {
+    char* meshes = At<char*>(unit, 0x548);
+    for (int m = 0; m < At<int>(unit, 0x54C); ++m) {
+        char* mesh = meshes + m * scene::mesh::kSize;
+        if (!saved[m].empty()) std::memcpy(At<std::uint8_t*>(mesh, scene::mesh::kTexCoords), saved[m].data(), saved[m].size());
+    }
+}
+
+Outcome Capture(int result, char* unit, scene::VtArray* links, int linksFrom, scene::VtArray* names, int namesFrom) {
+    Outcome o;
+    o.result = result;
+    o.texCoords = TexCoords(unit);
+    char* meshes = At<char*>(unit, 0x548);
+    for (int m = 0; m < At<int>(unit, 0x54C); ++m) {
+        o.material.push_back(At<std::uint32_t>(meshes + m * scene::mesh::kSize, 0x184));
+        o.material.push_back(At<std::uint32_t>(meshes + m * scene::mesh::kSize, 0x188));
+    }
+    const auto* pairs = static_cast<const std::uint32_t*>(links->body.data);
+    for (int i = linksFrom; i < links->body.size; ++i) {
+        o.links.push_back(pairs[i * 2]);
+        o.links.push_back(pairs[i * 2 + 1]);
+    }
+    const auto* records = static_cast<const char*>(names->body.data);
+    for (int i = namesFrom; i < names->body.size; ++i) {
+        o.names.emplace_back(At<int>(const_cast<char*>(records), i * 8),
+                             static_cast<const char*>(At<mfc::CString>(const_cast<char*>(records), i * 8 + 4)));
+    }
+    return o;
+}
+
+} // namespace
+
+// 0044B980: PUSH -1; PUSH 007136AF (7 bytes). The original runs first; its results are recorded,
+// the texture coordinates restored and the two arrays cut back to their sizes (the original's new
+// name records leak), then ours runs and everything is compared.
+static int(__fastcall* s_registry)(char*, const mfc::CString*, scene::VtArray*, scene::VtArray*);
+static int __fastcall LoadFigureRegistryVerify(char* unit, const mfc::CString* path, scene::VtArray* links,
+                                               scene::VtArray* names) {
+    auto saved = TexCoords(unit);
+    int linksSize = links->body.size;
+    int namesSize = names->body.size;
+    Outcome expected = Capture(s_registry(unit, path, links, names), unit, links, linksSize, names, namesSize);
+    RestoreTexCoords(unit, saved);
+    links->body.size = linksSize;
+    names->body.size = namesSize;
+    Outcome actual = Capture(scene::LoadFigureRegistry(unit, path, links, names), unit, links, linksSize, names,
+                             namesSize);
+    ei::verify::Check("LoadFigureRegistry.result", expected.result, actual.result, "");
+    ei::verify::Check("LoadFigureRegistry.texCoords", true, expected.texCoords == actual.texCoords, "meshes %d",
+                      static_cast<int>(saved.size()));
+    ei::verify::Check("LoadFigureRegistry.material", true, expected.material == actual.material, "");
+    ei::verify::Check("LoadFigureRegistry.links", true, expected.links == actual.links, "added %d",
+                      static_cast<int>(expected.links.size() / 2));
+    ei::verify::Check("LoadFigureRegistry.names", true, expected.names == actual.names, "added %d",
+                      static_cast<int>(expected.names.size()));
+    return actual.result;
+}
+EI_VERIFY(0x0044B980, LoadFigureRegistryVerify, 7, s_registry);
