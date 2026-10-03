@@ -112,6 +112,7 @@ public:
     int CreateForType();                            // 00485540 (vtable slot 2): per-type parameters
     void Reset();                                   // 004847E0: defaults, texture and elements dropped
     void Clear();                                   // 00484710 (vtable slot 3): particles back to the pool, detach, Reset
+    void Destruct();                                // 00498310: destructor body (Clear, free, base)
 
     // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
     int Tick();                                     // 00496EB0: 1 while the source stays alive
@@ -328,6 +329,10 @@ static_assert(offsetof(CParticleSource, boundsHigh) == 0x19C);
 static_assert(offsetof(CParticleSource, particles) == 0x1B4);
 static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
 static_assert(sizeof(CParticleSource) == 0x1F0);
+
+// 004981B0. The class factory's creator for particle sources (particle_create.cpp): a new source of
+// `type` (the register arguments are unused), or null.
+CParticleSource* __fastcall NewParticleSource(void*, void*, int type);
 
 // 00488940. `out` = v / d, all three quotients computed before the first store. __fastcall (out in
 // ECX, v in EDX, d on the stack); returns out.

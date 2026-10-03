@@ -140,3 +140,27 @@ static void __fastcall ClearVerify(CParticleSource* self, void*) {
                       "type %X: %d particles left", self->type_, self->particles.count);
 }
 EI_VERIFY(0x00484710, ClearVerify, 0, s_unusedClear);
+
+// 004981B0 and 00498310 allocate / free: ours only. The new source has its vtable, type, an empty
+// particle list in blocks of 10 and Reset's defaults; the destroyed one has an empty, block-less
+// particle list.
+static void* s_unusedFactory;
+static CParticleSource* __fastcall NewParticleSourceVerify(void* ecx, void* edx, int type) {
+    CParticleSource* s = NewParticleSource(ecx, edx, type);
+    ei::verify::Check("NewParticleSource", true,
+                      !s || (*reinterpret_cast<std::uintptr_t*>(s) == 0x0073CFD0 && s->type_ == type &&
+                             s->particles.count == 0 && !s->particles.head && s->particles.blockSize == 10 &&
+                             !s->elements && !s->texture && s->lifetime == -1 && s->frameCount == 1),
+                      "type %X", type);
+    return s;
+}
+EI_VERIFY(0x004981B0, NewParticleSourceVerify, 0, s_unusedFactory);
+
+static void* s_unusedDestruct;
+static void __fastcall DestructVerify(CParticleSource* self, void*) {
+    self->CParticleSource::Destruct();
+    ei::verify::Check("CParticleSource::Destruct", true,
+                      self->particles.count == 0 && !self->particles.head && !self->particles.blocks,
+                      "%d particles left", self->particles.count);
+}
+EI_VERIFY(0x00498310, DestructVerify, 0, s_unusedDestruct);

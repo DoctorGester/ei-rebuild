@@ -945,3 +945,82 @@ int CParticleSource::CreateForType() {
     return 1;
 }
 EI_REPLACE_METHOD(0x00485540, CParticleSource::CreateForType);
+
+
+// --- Factory and destructor ----------------------------------------------------------------------
+
+namespace {
+
+// Not rewritten (forwarders): the engine object's base constructor (vtable 0073B8E0, id -1, the
+// rest zero) and its base destructor body.
+__declspec(naked) void __fastcall EngineObjectConstruct(void* /*object*/) EI_ORIGINAL(0x0040CB20)
+__declspec(naked) void __fastcall EngineObjectDestructBase(void* /*object*/) EI_ORIGINAL(0x00455930)
+
+constexpr std::uintptr_t kTransformObjectVtable = 0x0073BA38;
+constexpr std::uintptr_t kParticleSourceVtable = 0x0073CFD0;
+constexpr std::uintptr_t kParticleListVtable = 0x0073D018;     // CTypedPtrList<CPtrList, Particle*>
+
+void SetVtableAt(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
+
+} // namespace
+
+// 004981B0. The class factory's creator (in the table at 0073F67C; the register arguments are not
+// used, `type` is the source type): a new 0x1F0-byte source on the game's heap (null when that
+// fails) with the engine object and transform bases (two identity rotations at +0x34 / +0x44), an
+// empty element array, bounds, particle list (blocks of 10), frame rectangles and texture holder,
+// then Reset and the type. The original's EH frame only unwinds the member constructors, none of
+// which can throw.
+CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
+    void* memory = gamecrt::operator_new(sizeof(CParticleSource));
+    if (!memory) return nullptr;
+    auto* bytes = static_cast<std::uint8_t*>(memory);
+    auto* s = static_cast<CParticleSource*>(memory);
+    EngineObjectConstruct(s);
+    reinterpret_cast<Quaternion*>(bytes + 0x34)->SetIdentity();
+    reinterpret_cast<Quaternion*>(bytes + 0x44)->SetIdentity();
+    SetVtableAt(s, kTransformObjectVtable);
+    s->elements = nullptr;
+    s->elementGrowBy = 0;
+    s->elementCapacity = 0;
+    s->elementCount = 0;
+    std::memset(bytes + offsetof(CParticleSource, boundsFlags), 0, 0x38);
+    SetVtableAt(&s->particles, kParticleListVtable);
+    s->particles.count = 0;
+    s->particles.free = nullptr;
+    s->particles.tail = nullptr;
+    s->particles.head = nullptr;
+    s->particles.blocks = nullptr;
+    s->particles.blockSize = 10;
+    // 00498E20 (the frame rectangle array) and 004983F0 (the texture holder) only zero their fields.
+    s->frameBase = 0;
+    s->frameRectGrowBy = 0;
+    s->frameRectCapacity = 0;
+    s->frameRectCount = 0;
+    s->texture = nullptr;
+    SetVtableAt(s, kParticleSourceVtable);
+    s->Reset();
+    s->type_ = type;
+    return s;
+}
+EI_REPLACE(0x004981B0, NewParticleSource);
+
+// 00498310. The destructor body: Clear (particles back to the pool, detached, Reset), release the
+// texture and free the frame rectangles if any are left, empty the particle list and free its
+// blocks, free the element array, then the engine object's base destructor.
+void CParticleSource::Destruct() {
+    SetVtableAt(this, kParticleSourceVtable);
+    Clear();
+    if (texture) (*static_cast<void(__fastcall***)(void*, void*)>(texture))[4](texture, nullptr);
+    if (frameBase) gamecrt::operator_delete(reinterpret_cast<void**>(static_cast<std::uintptr_t>(frameBase))[-1]);
+    SetVtableAt(&particles, kParticleListVtable);
+    particles.count = 0;
+    particles.free = nullptr;
+    particles.tail = nullptr;
+    particles.head = nullptr;
+    mfc::PlexFreeDataChain(particles.blocks);
+    particles.blocks = nullptr;
+    if (elements) gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
+    SetVtableAt(this, kTransformObjectVtable);
+    EngineObjectDestructBase(this);
+}
+EI_REPLACE_METHOD(0x00498310, CParticleSource::Destruct);
