@@ -17,6 +17,7 @@
 #include <windows.h>
 
 class CUiWindow;
+class CUiMesh;
 
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
@@ -148,6 +149,12 @@ public:
     void ReleaseContents();
     // 005FC690 (not rewritten). Sets the tooltip's text (when there is a tooltip).
     void SetTipText(const char* text);
+    // 005FC730 (not rewritten). Gives the region the tooltip with text "tip_<id>" (0: none).
+    void SetTip(int textId, int a, int b);
+    // 005FC6B0 (not rewritten). Gives the region a tooltip showing `text`.
+    void SetTipString(const char* text, int a, int b);
+    // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
+    void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0
 
     CInterface3D* interface_;        // +0x00
     UiPoint* points_;                // +0x04 polygon vertices (aligned storage)
@@ -179,6 +186,9 @@ public:
     // 005FD760 (not rewritten). Sets (`frozen`) or clears flag 4 of +0x0C; setting it saves the
     // surface's contents when it has any (005FD7A0), clearing it restores them when `restore`.
     void Freeze(int frozen, int restore);
+    // 005FCC00 (not rewritten). Constructor: a surface of the layout rectangle (left, top,
+    // right, bottom) with format `format`; returns this.
+    CUiSurface* Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
 
     void* vtable_;
     CInterface3D* interface_;        // +0x04
@@ -198,6 +208,11 @@ public:
     void ReleaseObject();
     // 005FC2F0 (not rewritten). Draws the object.
     void Draw(int pass);
+    // Not rewritten: 005FC1F0 loads the model (`name`, its layout and label parts), 005FC4F0
+    // shows or hides all its parts, 005FC4C0 one part by name.
+    void Load(const char* name, const char* layout, const char* labels);
+    void ShowAllParts(int show);
+    void ShowPart(const char* name, int show);
 
     CTransformObject* object_;
 };
@@ -259,6 +274,12 @@ public:
     // 005FEB90 (not rewritten). Base drawing (virtual slot 20): draws the scene objects and the
     // models; returns 1.
     BOOL DrawBase(int pass);
+    // Layout helpers (not rewritten): 005FEF20 loads a texture into the referenced objects,
+    // 005FF0B0 creates an empty one, 005FF3C0 adds a scene object (`model` 0: a new interface
+    // sprite, see CUiMesh) and returns it.
+    int LoadTexture(const char* name, int a, int b);
+    CEngineObject* CreateTexture(int width, int height, int format);
+    CUiMesh* AddSprite(int model);
     // 005FECC0 (not rewritten). Base slot 22 (redraw).
     void RedrawBase();
 
@@ -499,6 +520,13 @@ public:
     // 005E6FA0 (Rebirth-patched, not rewritten). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
     void Place(float x, float y, float depth);
+    // 005E70E0 / 005E7D60 (Rebirth-patched, not rewritten). Make the sprite a textured
+    // rectangle (layout left, top, right, bottom at `depth`; texels u0, v0 .. u1, v1) or a
+    // framed one (`border` wide).
+    void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
+                      int u1, int v1);
+    void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
+                  int u0, int v0, int u1, int v1);
 
     std::uint8_t unknown_000[0x1C0];
     UiQuadBlock* quads_;             // +0x1C0
@@ -680,6 +708,8 @@ public:
     BOOL DrawContainer(int pass);
     // 00601040 (not rewritten). Base slot 22 (redraws the window and its children).
     void RedrawContainer();
+    // 00600D30 (not rewritten). Adds a child window (null is ignored).
+    void AddChild(CUiWindow* child);
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     void** inputsBegin_;                      // +0x158 extra input sides (STLport vector)
@@ -705,6 +735,9 @@ public:
     void OnMouseUp(int buttons, int x, int y);     // 0065B340
     // Virtual slot 25 (0065B0C0 for the plain scroll bar): moves to `position`, clamped.
     void CallSetPosition(int position);
+    // 0065AEA0 (not rewritten). Constructor: a bar over the layout rectangle `rect` (passed by
+    // value), scrolling `speed` lines per second; returns this.
+    CUiScrollbar* Construct(CInterface3D* ui, RECT rect, float speed, int a, float b);
 
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
@@ -762,6 +795,9 @@ public:
     void DeleteSave();       // 00655B20 deletes the selected save's folder
     void RefreshList();      // 006567A0 (Rebirth-patched)
     void ShowPicture();      // 00656E10 the selected save's picture
+    void FillEntries();      // 00655D40 reads the saves into the entry list
+    // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
+    void Build();
 
     int EntryCount() const { return static_cast<int>(entriesEnd_ - entriesBegin_); }
     // The selected save's title becomes the name being edited.
@@ -825,6 +861,13 @@ public:
     void Apply();            // 006524A0 OK: applies and stores the settings
     // Cancel: puts back the volumes and the display settings the window started with.
     static void RestoreSettings();
+    // 00651940 / 00652200 / 00651600 (not rewritten): the settings table (+0x378), their current
+    // values, the key binding rows.
+    void BuildSettings();
+    void LoadSettings();
+    void BuildBindings();
+    // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
+    void Build();
 
     // Row of region `region` (13 and up).
     OptionRow& RegionRow(int region) { return rows_[region - 13]; }
@@ -839,9 +882,10 @@ public:
     bool sliding_;                   // +0x3F5
     std::uint8_t unknown_3F6[2];
     float slide_;                    // +0x3F8
-    std::uint8_t unknown_3FC[0x410 - 0x3FC];
+    std::uint8_t groupNames_[0x14];  // +0x3FC CStringArray: the option groups' titles
     bool displayModeChanged_;        // +0x410 a display mode setting (7-9) changed
-    std::uint8_t unknown_411[0x418 - 0x411];
+    std::uint8_t unknown_411[3];
+    int unknown_414;                 // +0x414 cleared by Build
 };
 static_assert(offsetof(COptionsWindow, settings_) == 0x378);
 static_assert(offsetof(COptionsWindow, displayModeChanged_) == 0x410);
