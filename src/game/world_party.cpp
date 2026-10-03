@@ -310,7 +310,30 @@ CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
     return copy;
 }
 
+// ---- Items and spells by name -------------------------------------------------------------------
+
+namespace {
+
+// 006AC970 (RET 4, patched by Rebirth). The item manager makes an item by name.
+__declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
+// 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
+__declspec(naked) CEngineObject* __fastcall ManagerCreateSpell(void*, void*, const char*, void*) EI_ORIGINAL(0x006AD1E0)
+
+void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
+
+} // namespace
+
+// As in CopyItem, the original also builds and frees two empty CPtrLists around the call.
+CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ManagerCreateItem(ItemManager(), nullptr, name); }
+
+CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
+    void* manager = ItemManager();   // read before slot 22, as in the original
+    return ManagerCreateSpell(manager, nullptr, name, ei::VCall<void*>(this, kSlotManager4C));
+}
+
 EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
+EI_REPLACE_METHOD(0x00594AB0, CWorldServer::CreateItemNamed);
+EI_REPLACE_METHOD(0x00594BC0, CWorldServer::CreateSpellNamed);
 EI_REPLACE_METHOD(0x005901E0, CWorldServer::TakeZoneQuestItems);
 EI_REPLACE_METHOD(0x00590460, CWorldServer::RestorePlayerItems);
 EI_REPLACE_METHOD(0x00590700, CWorldServer::Redeploy);

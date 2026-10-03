@@ -981,6 +981,29 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     }
 }
 
+// ---- PrepareSave --------------------------------------------------------------------------------
+
+namespace {
+
+// 00525AF0. UnitStats::RefillSlots (unit_vitals.cpp), on the controller's stats (+0x1E0).
+__declspec(naked) void __fastcall StatsRefillSlots(void*, void*) EI_ORIGINAL(0x00525AF0)
+
+constexpr int kSlotUnitDead = 55;         // unit slot 55 (+0xDC): non-zero when dead
+constexpr int kSlotControllerReset = 19;  // controller slot 19 (+0x4C), called with 0
+
+} // namespace
+
+void CWorldServer::PrepareSave() {
+    for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
+        CEngineObject* unit = node->value;
+        if (unit->GetClassId() != world::kClassUnit || ei::VCall<int>(unit, kSlotUnitDead)) continue;
+        void* controller = At<void*>(unit, 0x240);
+        StatsRefillSlots(static_cast<std::uint8_t*>(controller) + 0x1E0, nullptr);
+        ei::VCall<void>(controller, kSlotControllerReset, 0);
+    }
+}
+
+EI_REPLACE_METHOD(0x005956E0, CWorldServer::PrepareSave);
 EI_REPLACE(0x00589CA0, LoadSharedObject);
 EI_REPLACE_METHOD(0x005947E0, CWorldServer::AddSharedObject);
 EI_REPLACE_METHOD(0x00596E70, CWorldServer::LoadSave);

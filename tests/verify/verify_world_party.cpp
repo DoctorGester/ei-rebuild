@@ -81,6 +81,21 @@ static CEngineObject* __fastcall CopyItemVerify(CWorldServer* self, void*, CEngi
 }
 EI_VERIFY(0x00594CE0, CopyItemVerify, 0, s_unused);
 
+// 00594AB0 / 00594BC0: the managers create objects, so only ours runs; logged.
+static CEngineObject* __fastcall CreateItemNamedVerify(CWorldServer* self, void*, const char* name) {
+    CEngineObject* item = self->CreateItemNamed(name);
+    ei::verify::Check("CWorldServer::CreateItemNamed", true, true, "%s -> %s", name ? name : "", item ? "item" : "none");
+    return item;
+}
+EI_VERIFY(0x00594AB0, CreateItemNamedVerify, 0, s_unused);
+
+static CEngineObject* __fastcall CreateSpellNamedVerify(CWorldServer* self, void*, const char* name) {
+    CEngineObject* spell = self->CreateSpellNamed(name);
+    ei::verify::Check("CWorldServer::CreateSpellNamed", true, true, "%s -> %s", name ? name : "", spell ? "spell" : "none");
+    return spell;
+}
+EI_VERIFY(0x00594BC0, CreateSpellNamedVerify, 0, s_unused);
+
 // 00590700: when the party is deployed (single player or kind 3, with +0x15C) the player's last
 // tick becomes the world's; otherwise it is left alone.
 static void __fastcall RedeployVerify(CWorldServer* self, void*, WorldPlayer* player, void* placements, char runScripts) {

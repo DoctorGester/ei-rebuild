@@ -174,3 +174,11 @@ static void __fastcall AddSharedObjectVerify(CWorldServer* self, void*, int id, 
                       head->player, head->size, before, list.count);
 }
 EI_VERIFY(0x005947E0, AddSharedObjectVerify, 0, s_unused);
+
+// 005956E0: refills units through original code; the map objects stay registered.
+static void __fastcall PrepareSaveVerify(CWorldServer* self, void*) {
+    self->PrepareSave();
+    ei::verify::Check("CWorldServer::PrepareSave", true, MapObjectsRegistered(self), "%u map objects",
+                      static_cast<unsigned>(ReachableObjects(self->mapObjects_)));
+}
+EI_VERIFY(0x005956E0, PrepareSaveVerify, 0, s_unused);

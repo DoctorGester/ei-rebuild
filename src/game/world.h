@@ -267,6 +267,10 @@ public:
     // `id`, the session player's +0x30 for that id in a multiplayer game (else -1), `value`, and
     // references to the objects of `objects` (a CPtrList). The second argument is unused.
     void AddSharedObject(int id, int unused, std::uint32_t value, void* objects);
+    // 005956E0. Before a save: every living unit among the map objects (the walk stops at an
+    // empty entry) refills its controller's slots (00525AF0 on +0x1E0) and runs the controller's
+    // slot 19 with 0.
+    void PrepareSave();
 
     // world_game.cpp
     // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
@@ -380,6 +384,10 @@ public:
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
     CEngineObject* CopyItem(CEngineObject* item);
+    // 00594AB0 (RET 4). The item manager's (007AFFB4) new item named `name` (006AC970).
+    CEngineObject* CreateItemNamed(const char* name);
+    // 00594BC0 (RET 4). The item manager's new spell named `name` (006AD1E0, with slot 22).
+    CEngineObject* CreateSpellNamed(const char* name);
 
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
