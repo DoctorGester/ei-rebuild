@@ -3,7 +3,7 @@
 // Weather, visibility fog and particles: the per-frame simulation parts.
 //
 // - CParticleSource (vtable 0073CFD0, class name from 004982D0): one emitter. Its tick (slot 6,
-//   00496EB0, not rewritten) runs the per-type callbacks the constructor (slot 2, 00485540) stores
+//   00496EB0, particle_tick.cpp) runs the per-type callbacks the constructor (slot 2, 00485540) stores
 //   at +0x1E0 (emit one particle), +0x1E4 (update one particle; 0 kills it) and +0x1E8 (update one
 //   element of the source's own array at +0x154). The callbacks are __thiscall on the source.
 // - CRainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
@@ -15,6 +15,7 @@
 
 #include "maths.h"
 
+#include "lib/mfc.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
@@ -53,8 +54,23 @@ struct ParticleElement {
 };
 static_assert(sizeof(ParticleElement) == 0x38);
 
+// The object a source's particles come from (CParticleSource +0x14): a pool of free particles,
+// an MFC list at +0xB0 (taken from the head, returned to the tail).
+struct ParticlePool {
+    Particle* Acquire();                            // 00498870: from the pool, else new (0x64 bytes)
+    void Release(Particle* p);                      // 004987C0: back to the pool's tail
+
+    std::uint8_t unknown_000[0xB0];
+    mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
+};
+static_assert(offsetof(ParticlePool, freeParticles) == 0xB0);
+
 class CParticleSource {
 public:
+    // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
+    int Tick();                                     // 00496EB0: 1 while the source stays alive
+    void AddParticle(Particle* p);                  // 00496A20: prev = current, bounds, list tail
+
     // --- per-particle callbacks (+0x1E4 update, +0x1E0 emit), __thiscall, return 0 to drop ---
     int UpdateFalling(Particle* p);                 // 0048F670 (types 0x2034-0x2037)
     int UpdateCloud(Particle* p);                   // 0048B570 (PoisonFog and similar)
@@ -76,6 +92,7 @@ public:
 
     // Not rewritten (forwarders).
     void Attach(void* object);                      // 004849F0
+    Vector3* AttachmentPoint(Vector3* out, void* object);   // 00484C00
 
     void* vtable_;                  // +0x000
     int refCount_;                  // +0x004
@@ -89,7 +106,9 @@ public:
     void* attachedTo;               // +0x094
     Vector3 origin;                 // +0x098 world emission point
     Vector3 motion;                 // +0x0A4 movement since the last tick
-    std::uint8_t unknown_0B0[0xCC - 0xB0];
+    Vector3 side;                   // +0x0B0 unit, motion x (0, 0, 1) (zero while still)
+    Vector3 up;                     // +0x0BC unit, motion x side
+    float distance;                 // +0x0C8 length of motion
     int emitChance;                 // +0x0CC percent per try
     int emitCount;                  // +0x0D0 tries per tick
     float emitSpacing;              // +0x0D4
@@ -118,7 +137,17 @@ public:
     float unknown_150;
     ParticleElement* elements;      // +0x154
     int elementCount;               // +0x158
-    std::uint8_t unknown_15C[0x1E0 - 0x15C];
+    std::uint8_t unknown_15C[0x164 - 0x15C];
+    Vector3 boundsMin;              // +0x164 over the particles, rebuilt every tick
+    Vector3 boundsMax;              // +0x170
+    std::uint32_t boundsFlags;      // +0x17C bit 1 set by the tick
+    Vector3 boundsCenter;           // +0x180
+    std::uint32_t unknown_18C;
+    Vector3 boundsLow;              // +0x190 boundsMin - boundsCenter
+    Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
+    std::uint8_t unknown_1A8[0x1B4 - 0x1A8];
+    mfc::CTypedPtrList<Particle> particles;     // +0x1B4
+    std::uint8_t unknown_1D0[0x1E0 - 0x1D0];
     void* emitFn;                   // +0x1E0
     void* updateFn;                 // +0x1E4
     void* elementFn;                // +0x1E8
@@ -129,6 +158,10 @@ static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
 static_assert(offsetof(CParticleSource, size) == 0x10C);
 static_assert(offsetof(CParticleSource, extent) == 0x130);
 static_assert(offsetof(CParticleSource, elements) == 0x154);
+static_assert(offsetof(CParticleSource, distance) == 0xC8);
+static_assert(offsetof(CParticleSource, boundsFlags) == 0x17C);
+static_assert(offsetof(CParticleSource, boundsHigh) == 0x19C);
+static_assert(offsetof(CParticleSource, particles) == 0x1B4);
 static_assert(offsetof(CParticleSource, emitFn) == 0x1E0);
 static_assert(sizeof(CParticleSource) == 0x1F0);
 
