@@ -510,15 +510,18 @@ saves, loads, quits or starts a movie.
 
 Files: `src/game/ui_hud_map.cpp` (minimap), `src/game/ui_hud_frame.cpp` (clock and top panel),
 `src/game/ui_hud_portraits.cpp` (portraits), `src/game/ui_layouts.cpp` (Esc menu, save/load and
-options windows), `COptionsWindow::Update` in `ui_menus.cpp`; wrappers in
-`tests/verify/verify_ui_hud_map.cpp`, `verify_ui_hud_frame.cpp`, `verify_ui_hud_portraits.cpp`,
-`verify_ui_menus.cpp`, `verify_ui_screens.cpp`. Declarations were added to `ui.h` and `ui_screens.h`.
+options windows), `src/game/ui_objectives.cpp` (objectives window), `COptionsWindow::Update` in
+`ui_menus.cpp`; wrappers in `tests/verify/verify_ui_hud_map.cpp`, `verify_ui_hud_frame.cpp`,
+`verify_ui_hud_portraits.cpp`, `verify_ui_objectives.cpp`, `verify_ui_menus.cpp`,
+`verify_ui_screens.cpp`. Declarations were added to `ui.h` and `ui_screens.h`.
 
 ## Rewritten
 
 | Address | Size | Name | Verify |
 |---|---|---|---|
 | 00643DC0 | 4142 | `CHudMap::BuildMarkers` (every frame) | side by side: mesh arrays and renderer fields, byte for byte |
+| 0064BE80 | 3459 | `CObjectivesWindow::Build` (slot 25) | ours: 3 objective texts, the scroll bar, and the zone page's structure (below) |
+| 0064CC10 | 3412 | `CObjectivesWindow::ShowZone` | ours: 9 + n regions, 21 + n sprites, n exits = the zone's exits that lead somewhere; the shown zone's name |
 | 00642E80 | 3897 | `CHudMap::UpdateView` (every frame) | side by side: centre/facing (put back between the runs), needle rotation, clipped polygon, area mesh, bounds quad |
 | 00641080 | 3162 | `CHudPortraits::Update` (every frame) | side by side, slots and the game RNG put back between the runs: slots, RNG, face rotations, bars, flash, marker |
 | 00653DD0 | 1629 | `CSaveLoadWindow::Build` (slot 25) | ours: counts of what is added, selection and offered name |
@@ -530,7 +533,33 @@ options windows), `COptionsWindow::Update` in `ui_menus.cpp`; wrappers in
 | 0062AB20 | 361 | `CEscMenu::Build` (slot 25) | ours: one model and five regions added |
 | 00645640 | 159 | `CHudMap::OnWheel` (input slot 12) | side by side: zoom, handled flag, result |
 
-11 functions, about 17.3 KB.
+13 functions, about 24.2 KB.
+
+### Objectives window (CObjectivesWindow, 0x1F0 bytes)
+
+- TAB (keyboard.ini `obj`) creates it for the current zone (0063A560 -> constructor 0063B5D0, then
+  0064BE40 sets the zone name +0x170 and +0x174/+0x178/+0x17C). Esc or Enter (with one button)
+  close it.
+- Build: alpha reference render state 1 (the old value kept at +0x1EC), the texts obj_0..obj_2,
+  the quest log (0065CC00) and the list's scroll bar as children, textures "saveload" and
+  "cross", three surfaces, scene objects 0-20 (buttons, highlight, picture placeholder 3, shades,
+  frames, the zone arrows 14/15, five row markers) and regions 0-8 (buttons, arrows, rows). Then
+  the zone page for the zone, or with +0x17C the zones of the zone's allod in which the player
+  holds quests (variables "q.<zone>.<quest>" = 1; in multiplayer any allod), starting at the zone
+  of the interface's current quest (+0xAC); several zones show the arrows.
+- ShowZone drops the previous page's objects (beyond 2 textures, 21 sprites, 9 regions), puts the
+  zone picture in a 300x300 square around (580, 190), adds a triangle marker (005E99D0, Rebirth-
+  patched) and a region per exit that leads somewhere, turned and pushed 10 pixels towards the
+  side it lies on, with the distances from +0x178 (a map<int, float> the global map passes) or
+  the zone variable "z.<target>" otherwise; then the quests: the variables "q.<zone>.<quest>" not
+  0, sorted, listed, and the one named by the global CString 007C8178 (or the interface's +0xAC)
+  selected; then the zone's title and description ("zone <name>") on surface 1.
+- The player's variables are copied into a local hash_map<CString, float> (00609C10 constructor,
+  00578B70 copy by prefix) and walked in STLport order (buckets, chains; the next bucket from the
+  key's hash 00460BA0). The rewrite frees it the way the original's inlined destructor does
+  (keys released, nodes to the 16-byte free list bucket by bucket, then the bucket storage).
+- Exits come from the map database record (+0x4C, 0x3C bytes, rectangle at +4..+0x10, target at
+  +0x28), not the world's ZoneExit layout.
 
 ### Minimap (CHudMap)
 
@@ -601,7 +630,12 @@ textures 005FEF20/005FF0B0, sprites 005FF3C0, region tooltips 005FC730/005FC6B0,
 constructor 00600B20, AddChild 00600D30, member vector constructors 0062B550/0062B570/0062B5E0,
 message box 00634650, window activation 005F7350, model load and parts 005FC1F0/005FC4F0/005FC4C0,
 save list 00655D40, options tables 00651940/00652200/00651600, text lookup 004DEFC0, the game's
-_ftol 006E853C, _CIfmod 006E95AA and _CIpow 006E81A0 (inline asm), FPATAN (naked).
+_ftol 006E853C, _CIfmod 006E95AA and _CIpow 006E81A0 (inline asm), FPATAN (naked). Objectives
+window: hash_map constructor 00609C10, variable copy by prefix 00578B70, string hash 00460BA0,
+Split 004DBE40, vector<CString> insert overflow 0051F790, sort pieces 0064F310/0064F9A0/0064FBD0,
+exit array 0064EFD0/0064F160, rb-tree increment 0043DBE0, surface text 005FDC00/005FE2F0/
+005FDE20 (Rebirth)/005FDC60, triangle sprite 005E99D0 (Rebirth), sprite scale 005E70B0, scroll bar
+range 0065AFE0, text log constructor 0065CC00, exit selection 0064E990, quest list 0064E8B0.
 
 ## Original bugs and quirks kept
 
@@ -619,7 +653,10 @@ New harness step `wheel <x> <y> <delta>` (WM_MOUSEWHEEL with screen coordinates 
 move). `tests/scenarios/ui_hud.txt` turns the wheel over the map's sling button (in, then out
 past the limit) and over the map. The every-frame functions (markers, view, clock, portraits, top
 panel) run throughout ui_hud and ui_screens; the Esc menu, save/load and options builders and the
-Esc menu click run in ui_hud's menu walk, the Esc menu build also in ui_screens.
+Esc menu click run in ui_hud's menu walk, the Esc menu build also in ui_screens. ui_hud also
+opens the objectives window with TAB (its Create and zone page), moves the quest selection and
+closes it with Esc. The objectives window's +0x17C zone list and the global map's distance table
+(+0x178) are not reached by a scenario (they need the global map or the camp).
 
 ## Mapped, not rewritten
 
@@ -630,8 +667,7 @@ Esc menu click run in ui_hud's menu walk, the Esc menu build also in ui_screens.
 - 00604C50 (4.5 KB): a briefing/dialogue script step (`#show`, `#hide`, `#phrase`, `#camera`,
   `#animation`, reward texts `brief_get_*`).
 - 005F1590 (4.9 KB): the camp's skill/item description text drawing.
-- 0064BE80 / 0064CC10 (3.4 KB each): the objectives window's Create and zone page (TAB opens it;
-  zone exits, quests from the player's variables sorted with STLport introsort); good next targets
-  now that the builders' callees have forwarders.
+- The objectives window's other methods: key handler 0064E5A0, quest list 0064E8B0, exit
+  selection 0064E990, clicks 0064E330, update 0064E760.
 - 00635250 (2.6 KB): the battle screen's setup (creates the HUD panels; reads the save stream when
   loading).
