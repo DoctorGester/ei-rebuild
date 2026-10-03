@@ -65,7 +65,7 @@ def main():
             result, seconds, failures, counts, notes = run(scenario, install, not args.no_hooks)
             first_failures = failures
             for _ in range(args.retries):
-                if result == 'PASS' or any('mismatch' in f for f in failures):
+                if result == 'PASS' or any(bad for _, bad in counts.values()):   # never retry away a mismatch
                     break
                 result, seconds, failures, counts, notes = run(scenario, install, not args.no_hooks)
                 if result == 'PASS':
