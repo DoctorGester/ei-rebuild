@@ -388,3 +388,11 @@ address,name,library,signature,notes
 004219A0,stlp::__Named_exception::__Named_exception,STLport,void __thiscall(const string&),vtable 0073B994; copies the message into a 256-byte buffer (strncpy)
 0041F740,exception scalar deleting destructor,CRT,void* __thiscall(unsigned),for the STLport exceptions (vtable 0073BE8C)
 0041F760,exception::~exception,CRT,void __thiscall(),inline copy of the CRT destructor body (vtable 00747290)
+00468C50,CArray<LightningPoint>::SetSize,MFC,"void __thiscall(int,int)","instantiation: 16-byte elements in a buffer aligned to 32 (raw block kept at data[-1]); no construction"
+00468F70,CArray<LightningPoint> allocate,MFC,void* __fastcall(int),"instantiation helper: operator new(n*16+0x24), aligned to 32, raw pointer stored before the data"
+00468D60,CArray<8-byte>::CArray,MFC,void __thiscall(),"instantiation (vtable 0073C584): data, size, capacity, growBy = 0"
+00468D80,CArray<8-byte>::~CArray,MFC,void __thiscall(),instantiation (vtable 0073C584)
+00468F50,CArray<8-byte> scalar deleting destructor,MFC,"void* __thiscall(unsigned)",instantiation (vtable 0073C584 slot 0)
+00468DA0,CArray<8-byte>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073C584): count then raw bytes
+00468F90,ConstructElements<8-byte>,MFC,"void __cdecl(void*,int)",instantiation: zero fill
+00468FE0,ConstructElements<RefPtr>,MFC,"void __cdecl(void**,int)",instantiation: zero fill (twice)
