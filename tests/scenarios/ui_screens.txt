@@ -1,0 +1,59 @@
+# Interface screens (docs/notes/ui.md, "Screens"): the multiplayer hero screen from the main menu,
+# then in a game the escape menu and its quit box. Regions are clicked by number (clickregion,
+# moveregion): the screens' code numbers them, and the harness finds their place on screen.
+reject Script error
+wait 6000
+console thingamabob
+
+# Main menu region 5: Multiplayer -> the hero list (mode 9). Nothing here touches the network.
+clickregion 5
+wait 2000
+# Up/down move the selection (00618FF0 keeps it in the list; with no heroes it settles at -1).
+key down
+key down
+key up
+# Regions 2/3 rotate the hero preview while held; the button-up handler (006177D0) releases it.
+clickregion 2
+wait 300
+clickregion 3
+wait 300
+# Esc leaves for the main menu.
+key esc
+wait 5000
+
+# A game: the escape menu.
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+key esc
+wait 1000
+# Hovering the stones plays their animations (0062AD10); off the stones stops them.
+moveregion 0
+wait 200
+moveregion 2
+wait 200
+moveregion 4
+wait 200
+move 400 20
+wait 200
+# Region 2 resumes the game.
+clickregion 2
+wait 1000
+# Esc opens the menu again and Esc closes it (0062B300).
+key esc
+wait 1000
+key esc
+wait 1000
+# Region 3 asks to quit; Esc on the box cancels it (the menu gets result 0x10002, 0062ACC0).
+key esc
+wait 1000
+clickregion 3
+wait 1000
+key esc
+wait 1000
+key esc
+wait 1000
+check IsAlive(GetLeader())
+report
+quit
