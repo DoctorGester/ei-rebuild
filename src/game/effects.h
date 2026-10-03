@@ -79,6 +79,9 @@ public:
     int UpdateDebris(Particle* p);                  // 00489190 (Nuke)
     int UpdateOrbit(Particle* p);                   // 0048E7C0 (Antimagic, spheres, 0x2014)
 
+    // particle_emitters.cpp
+    int EmitLightning(Particle* p, int index);      // 004923B0 (LightningBlast)
+
     // --- per-element callbacks (+0x1E8) ---
     void TickNuke(ParticleElement* e);              // 004892E0
     void TickTendril(ParticleElement* e);           // 0048EE20 (0x2010)
@@ -137,7 +140,8 @@ public:
     float unknown_150;
     ParticleElement* elements;      // +0x154
     int elementCount;               // +0x158
-    std::uint8_t unknown_15C[0x164 - 0x15C];
+    int elementCapacity;            // +0x15C (elements is an MFC-style array: data, size, max, grow by)
+    int elementGrowBy;              // +0x160
     Vector3 boundsMin;              // +0x164 over the particles, rebuilt every tick
     Vector3 boundsMax;              // +0x170
     std::uint32_t boundsFlags;      // +0x17C bit 1 set by the tick
@@ -168,6 +172,10 @@ static_assert(sizeof(CParticleSource) == 0x1F0);
 // 00488940. `out` = v / d, all three quotients computed before the first store. __fastcall (out in
 // ECX, v in EDX, d on the stack); returns out.
 Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d);
+
+// 00497EB0 (particle_emitters.cpp). Room for `count` elements, 32-byte aligned, the allocated block
+// stored just below; __fastcall.
+ParticleElement* __fastcall AllocateElements(int count);
 
 // The world's rain/snow layer. Only the fields the fade uses.
 class CRainSnow {
