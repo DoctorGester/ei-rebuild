@@ -333,6 +333,11 @@ public:
     // and items, loses its quest items, its variables are set, and the scripts get
     // GSSetVar / #OnBriefingComplete (run at once in kind-3 games).
     void CompleteBriefing(int playerId, const char* name);
+    // 00591DE0 (RET 8). The mercenary side of a completed briefing `name`: for the ten slots,
+    // b.mercN.n8_N clears that variable, n10_N removes the mercenary from the party and the
+    // world, n2_N from the party, n1_N / n3_N hire it (amerc_N = 2, added to the party with its
+    // unit's prototype or "Human Hero"); then UpdateMercBriefings.
+    void ApplyMercBriefing(WorldPlayer* player, const char* name);
     // 005911C0 (RET 8). Gives `amount` experience: with a player, shared equally by its living
     // heroes (units and party records); without one, shared by the players that have a single
     // hero, in proportion to sqrt(+0x8E0 + +0x1E4) of each hero's controller. Zero (or NaN) does

@@ -6,6 +6,7 @@
 #include "../../src/game/world.h"
 
 #include <cstdio>
+#include <cstring>
 
 namespace {
 void* s_unused;
@@ -98,3 +99,16 @@ static void __fastcall CollectPartyVerify(CWorldServer* self, void*, WorldPlayer
     ei::verify::Check("CWorldServer::CollectParty", true, after <= before && after >= 0, "records %d -> %d", before, after);
 }
 EI_VERIFY(0x00590A40, CollectPartyVerify, 0, s_unused);
+
+// 00591DE0: one briefing name changes the player's records by at most one, and not at all unless
+// it is a mercenary briefing variable ("b.merc...").
+static void __fastcall ApplyMercBriefingVerify(CWorldServer* self, void*, WorldPlayer* player, const char* name) {
+    int before = player->mercCount;
+    self->ApplyMercBriefing(player, name);
+    int change = player->mercCount - before;
+    bool merc = name && _strnicmp(name, "b.merc", 6) == 0;   // the names are compared case-insensitively
+    bool ok = merc ? (change >= -1 && change <= 1) : change == 0;
+    ei::verify::Check("CWorldServer::ApplyMercBriefing", true, ok, "%s: records %d -> %d", name ? name : "",
+                      before, player->mercCount);
+}
+EI_VERIFY(0x00591DE0, ApplyMercBriefingVerify, 0, s_unused);

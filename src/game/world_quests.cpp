@@ -317,6 +317,70 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         for (int i = 0; i < 5; ++i) CommandQueueRun(commandsA_, nullptr);
 }
 
+// ---- ApplyMercBriefing ------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kHumanHero = 0x0078B0FC;   // "Human Hero"
+constexpr std::uintptr_t kEmptyText = 0x0079B298;   // ""
+
+// 0055FB00 (RET 4). CWorld: the unit object with a text key.
+__declspec(naked) CEngineObject* __fastcall FindUnitByKey(CWorldServer*, void*, unsigned) EI_ORIGINAL(0x0055FB00)
+// 00530930. The unit's prototype record; its first field is the prototype name.
+__declspec(naked) const char** __fastcall UnitPrototype(CEngineObject*, void*) EI_ORIGINAL(0x00530930)
+// 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
+// (name, prototype, extra), remove the member with a text key.
+__declspec(naked) void __fastcall PartyAddMember(void*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
+__declspec(naked) void __fastcall PartyRemoveMember(void*, void*, unsigned) EI_ORIGINAL(0x006620F0)
+// 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
+__declspec(naked) void __fastcall RemoveObjectAt(CWorldServer*, void*, unsigned) EI_ORIGINAL(0x005935C0)
+__declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)
+
+// One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
+// n2, n8, n9, n3, n1, merc.
+struct MercNames {
+    mfc::CString merc, n1, n3, n9, n8, n2, n10, hired;
+};
+
+} // namespace
+
+void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
+    void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20);
+    void* party = reinterpret_cast<std::uint8_t*>(player) + 0x70;
+    auto is = [name](const mfc::CString& variable) {
+        return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(variable)),
+                                reinterpret_cast<const unsigned char*>(name)) == 0;
+    };
+    for (int slot = 1; slot <= kMercSlots; ++slot) {
+        MercNames v;
+        v.merc.Format(Text(kMercName), slot);
+        unsigned key = TextKey(v.merc);
+        v.n8.Format(Text(kVarN8), static_cast<const char*>(v.merc), slot);
+        v.n1.Format(Text(kVarN1), static_cast<const char*>(v.merc), slot);
+        v.n2.Format(Text(kVarN2), static_cast<const char*>(v.merc), slot);
+        v.n3.Format(Text(kVarN3), static_cast<const char*>(v.merc), slot);
+        v.n9.Format(Text(kVarN9), static_cast<const char*>(v.merc), slot);
+        v.n10.Format(Text(kVarN10), static_cast<const char*>(v.merc), slot);
+        v.hired.Format(Text(kVarHired), slot);
+        CEngineObject* unit = FindUnitByKey(this, nullptr, key);
+
+        if (is(v.n8)) StateSetVariable(state, nullptr, v.n8, 0.0f);
+        // n10: the mercenary leaves the party and the world; n2: the party.
+        if (is(v.n10)) {
+            PartyRemoveMember(party, nullptr, key);
+            RemoveObjectAt(this, nullptr, key);
+        }
+        if (is(v.n2)) PartyRemoveMember(party, nullptr, key);
+        // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
+        if (is(v.n1) || is(v.n3)) {
+            StateSetVariable(state, nullptr, v.hired, 2.0f);
+            const char* prototype = unit ? *UnitPrototype(unit, nullptr) : Text(kHumanHero);
+            PartyAddMember(party, nullptr, v.merc, prototype, Text(kEmptyText));
+        }
+    }
+    UpdateMercBriefingsAt(this, nullptr);
+}
+
 // ---- AwardExperience --------------------------------------------------------------------------
 
 // The shares keep the original's operation order: no reassociation here.
@@ -767,3 +831,4 @@ EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);
 EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);
+EI_REPLACE_METHOD(0x00591DE0, CWorldServer::ApplyMercBriefing);
