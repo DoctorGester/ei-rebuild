@@ -56,3 +56,23 @@ static void __fastcall MarkBriefingVerify(GameFlow* self, void*, const char* bri
     variable->~CString();
 }
 EI_VERIFY(0x0057FF40, MarkBriefingVerify, 0, s_unused);
+
+// 00580040: afterwards the briefing's variable reads 0 for the local player.
+static void __fastcall ForgetBriefingVerify(GameFlow* self, void*, const char* briefing) {
+    self->ForgetBriefing(briefing);
+    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+    mfc::CString* variable = BriefingVariableInto(reinterpret_cast<mfc::CString*>(storage), briefing);
+    auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
+    double value = VariableGetAt(player->variables, nullptr, *variable);
+    ei::verify::Check("GameFlow::ForgetBriefing", true, value == 0.0, "%s = %g", static_cast<const char*>(*variable), value);
+    variable->~CString();
+}
+EI_VERIFY(0x00580040, ForgetBriefingVerify, 0, s_unused);
+
+// 00580F10: afterwards no quest text file is listed.
+static void UnloadQuestTextsVerify() {
+    UnloadQuestTexts();
+    auto* files = reinterpret_cast<std::uint8_t* const*>(0x007AFDD0);
+    ei::verify::Check("UnloadQuestTexts", true, files[0] == files[1], "%d left", static_cast<int>((files[1] - files[0]) / 12));
+}
+EI_VERIFY(0x00580F10, UnloadQuestTextsVerify, 0, s_unused);

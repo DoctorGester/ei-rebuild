@@ -118,6 +118,52 @@ void GameFlow::MarkBriefing(const char* briefing) {
     variable.Get().~CString();
 }
 
+// ---- Forgetting briefings, unloading quest texts --------------------------------------------------
+
+namespace {
+
+// 00460DB0 (RET 4). Named float table Remove.
+__declspec(naked) void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)
+// 004DEDD0 (RET 4). The briefing texts forget a loaded file.
+__declspec(naked) void __fastcall TextsUnload(void*, void*, const char*) EI_ORIGINAL(0x004DEDD0)
+// 0040C720. STLport string destructor.
+__declspec(naked) void __fastcall RawStringDestroy(void*, void*) EI_ORIGINAL(0x0040C720)
+
+// The quest text files loaded so far (007AFDD0: an STLport vector of 12-byte strings).
+struct LoadedFile {
+    const char* start;
+    const char* finish;
+    const char* end;
+};
+struct LoadedFiles {
+    LoadedFile* start;
+    LoadedFile* finish;
+    LoadedFile* end;
+};
+LoadedFiles& QuestFiles() { return *reinterpret_cast<LoadedFiles*>(0x007AFDD0); }
+
+} // namespace
+
+void GameFlow::ForgetBriefing(const char* briefing) {
+    auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
+    StringSlot variable;
+    BriefingVariableAt(variable.Raw(), briefing);
+    VariableRemove(player->variables, nullptr, variable.Get());
+    variable.Get().~CString();
+}
+
+void UnloadQuestTexts() {
+    void* texts = BriefingTexts();
+    if (!texts) return;
+    LoadedFiles& files = QuestFiles();
+    for (LoadedFile* file = files.start; file != files.finish; ++file) TextsUnload(texts, nullptr, file->start);
+    // clear(): the original's inlined erase(begin(), end()) moves nothing and destroys them all.
+    for (LoadedFile* file = files.start; file != files.finish; ++file) RawStringDestroy(file, nullptr);
+    files.finish = files.start;
+}
+
 EI_REPLACE(0x0057FC90, BriefingSpeakerInto);
+EI_REPLACE_METHOD(0x00580040, GameFlow::ForgetBriefing);
+EI_REPLACE(0x00580F10, UnloadQuestTexts);
 EI_REPLACE(0x0057FDE0, BriefingVariableInto);
 EI_REPLACE_METHOD(0x0057FF40, GameFlow::MarkBriefing);

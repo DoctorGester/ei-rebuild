@@ -189,3 +189,14 @@ static void __fastcall RequestBriefingVerify(GameFlow* self, void*, const char* 
     ei::verify::Check("GameFlow::RequestBriefing", true, true, "%s", briefing ? briefing : "");
 }
 EI_VERIFY(0x0057FB60, RequestBriefingVerify, 0, s_unused);
+
+// 0057F390: afterwards a new client session is held (at least one reference).
+static void __fastcall RecreateClientSessionVerify(GameFlow* self, void*) {
+    auto* before = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    self->RecreateClientSession();
+    auto* session = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    int refs = session ? *reinterpret_cast<std::uint16_t*>(session + 4) : -1;
+    ei::verify::Check("GameFlow::RecreateClientSession", true, session && refs >= 1, "%p -> %p, references %d", before,
+                      session, refs);
+}
+EI_VERIFY(0x0057F390, RecreateClientSessionVerify, 0, s_unused);

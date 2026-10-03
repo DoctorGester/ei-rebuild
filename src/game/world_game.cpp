@@ -878,6 +878,33 @@ void GameFlow::RequestBriefing(const char* briefing) {
     if (Active(client)) SessionCommand(client, nullptr, kCommandBriefing, briefing);
 }
 
+namespace {
+
+// 0041BC40. The game client session's constructor (0x2700 bytes).
+__declspec(naked) std::uint8_t* __fastcall ClientSessionConstruct(void*, void*) EI_ORIGINAL(0x0041BC40)
+constexpr std::size_t kClientSessionSize = 0x2700;
+
+// The sessions' reference count is the low word at +4; the last reference deletes (slot 0 with 1).
+void ReleaseSession(std::uint8_t* session) {
+    if (session && --At<std::uint16_t>(session, 4) == 0) ei::VCall<void*>(session, 0, 1);
+}
+
+} // namespace
+
+void GameFlow::RecreateClientSession() {
+    auto& global = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    std::uint8_t* old = global;
+    global = nullptr;
+    ReleaseSession(old);
+    auto* memory = static_cast<std::uint8_t*>(gamecrt::operator_new(kClientSessionSize));
+    At<std::uint32_t>(memory, 4) = 0;
+    std::uint8_t* session = memory ? ClientSessionConstruct(memory, nullptr) : nullptr;
+    std::uint8_t* previous = global;
+    global = session;
+    if (session) ++At<std::uint16_t>(session, 4);
+    ReleaseSession(previous);
+}
+
 bool __fastcall NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
         if (gamecrt::stricmp(*list, name) == 0) return true;
@@ -889,6 +916,7 @@ EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);
 EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
 EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
 EI_REPLACE(0x0057F820, NameInList);
+EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);

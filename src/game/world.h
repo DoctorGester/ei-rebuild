@@ -678,7 +678,16 @@ struct GameFlow {
     // 0057FB60 (RET 4). A multiplayer client asks the server to complete `briefing` (session
     // command 1).
     void RequestBriefing(const char* briefing);
+    // 00580040 (RET 4; world_briefing.cpp). Removes the local player's variable of `briefing`.
+    void ForgetBriefing(const char* briefing);
+    // 0057F390. Replaces the game client session (0079B5D8) with a new one (0041BC40), releasing
+    // the old one.
+    void RecreateClientSession();
 };
+
+// 00580F10 (world_briefing.cpp). With the briefing texts loaded (007AF788): every quest text file
+// loaded so far (007AFDD0) is unloaded and the list emptied.
+void UnloadQuestTexts();
 
 // 0057F820 (ECX = list, EDX = name; world_game.cpp). Whether `name` is in `list` (an array of
 // names ended by an empty one), compared case-insensitively.
