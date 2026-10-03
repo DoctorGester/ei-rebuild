@@ -270,6 +270,14 @@ public:
 
     void CallFinishCast();
 
+    // combat_save.cpp (third round).
+    // 00555D10. Virtual slot 9 (Load): the controller's state (animation lists, the motion and
+    // plan objects, both orders, the stats copy, movement factors, the brain, the voice, the
+    // effect object and the attackers list), version dependent from 0x44 on.
+    void LoadServer(UnitStream* stream);
+    // 005561C0. Virtual slot 10 (Save): the same in the same order, at the current version.
+    void SaveServer(UnitStream* stream);
+
     // Not rewritten (forwarders):
     // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
     void TurnTo(const float* point, int walk, int run, std::uint32_t z);
