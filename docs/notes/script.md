@@ -491,9 +491,148 @@ zero byte when the name array is shorter than the value array.
 Forwarders: 004B1940, 004B1A80, 004B1C50, 004B1DB0, 004BBFE0, 004BB320, SSCCmd::Save 004B6360;
 the savers of this file call each other through their addresses (verify wrappers run).
 
-Skipped: 004C0D00 (CScript::Load, 654) and its loaders (004C5CB0, 004CA480 / 004CA5D0 / 004CA720,
+Skipped at first (rewritten since, see "Savegame reader"): 004C0D00 (CScript::Load, 654) and its loaders (004C5CB0, 004CA480 / 004CA5D0 / 004CA720,
 004C57C0, 004CA810, 004CD770, 004CA000, 004C2D40 / 004C3200 / 004C36B0 / 004C40D0, 004CA980,
 004CAC00, 004CDB30, 004CC640): mapped, not rewritten (a save/load round trip does not reproduce the
 bytes when objects are missing, so they need record/replay verification). Areas are read only for
 stream versions >= 0x57. 004C01A0, 004C0520, 004C06F0, 004C09F0 (quest script builders): no
 references in the exe (dead). The rest of 004C0000-004CF000 is CArray / CList template code.
+
+# Savegame reader (004C0D00 and its parts)
+
+Code: `src/game/script_load.cpp` (the loaders), `script_array.h` (the inlined `CArray::SetSize`
+shared with the variable appends), declarations in `script.h`. Verify:
+`tests/verify/verify_script_load.cpp`. Reached by every save load (`world_load.txt`): the world
+(0059749D) loads only its first script, 007C27D4 (world +0x12874).
+
+## How a script is read
+
+`ScriptLoad` (CScript::Load) mirrors ScriptSave: 007AA620 = the script; point lights (count, the
+array's out-of-line SetSize 004C5CB0, then 004B18B0 per 0x20-byte slot), particle / FX / lightning
+lists, +0x68, +0x6C, the command blocks (the count, that many `NewCommandList` 004BF540 calls,
+then for every block of the +0x70 list its id and `ScriptDeclCommandsLoad`), the WorldScript
+blocks, the definitions (count, SetSize 004CD770, then per definition +0 (4 bytes), name and
+parameter string through 004B3D10, `ScriptIfThenLoad`, `ScriptVars::Load` 004B3AD0), the globals
+(the four variable loaders), instances, runs, +0x1A8, +0x1AC; 007AA620 = 0; then, from stream
+version (+8) 0x57 on, the areas (count, SetSize 004CDB30, per area its id, part count, SetSize
+004CC640 and 0x14 bytes per part).
+
+The list loaders read the count, append that many default nodes (the list's NewNode, element
+copied from a stack temporary, linked at the tail), then read every node of the list from the
+head, so a list that was not empty would have its old nodes read again (never the case: the world
+is new). Particle sources: object id (looked up in the registry at *007AFFA8 (00403F40), reference
+count raised; -1 = none), then +0x0C, +0x10, +0x14, +0x18, 12 bytes, +0x28. Lightning: object id,
++0x0C. FX sources: 004B1B40 per node. WorldScript blocks: id, count, the command array's SetSize
+004CD2B0, SSCCmd::Load 004B5FE0 each. Instances: +0 (killed flag), name and parameters (004B3D10),
+if-then pair count, SetSize 004C59C0, 004BB590 per pair, then the four variable loaders. Runs: block
+id, index, ticks, sleep start, the instance index (the n-th node of the loading script's (007AA620)
+instance list, 0 when out of range), ScriptVars::Load.
+
+Block ids resolve in the lists of 007C27D4, not of the script being loaded (`FindBlock`): negative
+ids in the WorldScript blocks (+0x178), others in the command blocks (+0x70); the block's id is its
++0x14. Unknown ids give null.
+
+Variables: the count, the values resized (inlined SetSize with the instantiation's construct /
+destruct helpers), the names resized to the count (004C2510), then per value index its value and
+its name (004B3D10): float bits; a string (004B3D10); an object id looked up with the world's
+FindObject (00593AA0) after which the slot's old reference is released and the object referenced;
+a group's size (ScriptGroup::SetSize 004C2050), each member id assigned in place (Assign 004B24D0,
+missing objects stay null), then Sort (004B2D60).
+
+## Rewritten functions
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004C0D00 | 654 | ScriptLoad (CScript::Load) | ours only: 007AA620 cleared, the seven lists well formed (count matches the walk, prev links); every part runs through its own wrapper |
+| 004CAC00 | 693 | ScriptRunsLoad | record / replay on an empty scratch list; per node block, index, ticks, sleep start, kill flag compared and both runs saved with 004BB320 (bytes compared) |
+| 004CA980 | 638 | ScriptInstancesLoad | record / replay; nodes compared through the definition saver 004BBFE0 and the pair array's size and capacity |
+| 004CA000 | 595 | ScriptIfThenLoad | record / replay on an empty scratch array; size, capacity and pair pointers |
+| 004C40D0 | 603 | ScriptGroupsLoad | record / replay on empty scratch arrays; sizes, capacities, every group's members, size, capacity, growBy; names |
+| 004C36B0 | 523 | ScriptObjectsLoad | as groups (object pointers) |
+| 004C57C0 | 476 | ScriptDeclCommandsLoad | record / replay on an empty scratch block; size, capacity and both saved with 004C1230 |
+| 004C3200 | 443 | ScriptStringsLoad | as groups (string contents) |
+| 004C2D40 | 424 | ScriptFloatsLoad | as groups (float bits) |
+| 004CA480 | 321 | ScriptParticlesLoad | record / replay on an empty scratch list; the 0x24-byte elements |
+| 004CA5D0 | 330 | ScriptFxSourcesLoad | record / replay; object, id, name, the other 0x28 bytes |
+| 004CA720 | 228 | ScriptLightningLoad | record / replay; object, id |
+| 004CA810 | 368 | ScriptWorldBlocksLoad | record / replay; blocks compared through 004C1230 |
+
+Record / replay: the original reads the real stream into a fresh empty scratch object through a
+recording stream (each Read's size, result and bytes; the version at +8 copied), ours replays the
+recording into the real object; the reads must match in order and size and all be consumed. The
+scratch is then destroyed with the game's own helpers (SetSize(0), DestructElements, the element
+destructors 004BE9D0 / 004BE090, references released, 006FE90F for list blocks). When the real
+object is not empty on entry the wrapper runs ours alone and checks only the shape. Nested loaders
+run through their wrappers in both runs (the stream they get is the recording or replaying one).
+
+## Forwarders added (standalone build must replace)
+
+In `script_load.cpp`: 004B18B0 / 004B1B40 point light / FX source loaders, 004B3AD0
+ScriptVars::Load, 004B5FE0 SSCCmd::Load, 004BB590 instance pair loader, 004B3D10 string loader,
+004BF540 NewCommandList, 00403F40 registry lookup, 00593AA0 FindObject; the rewritten 004B24B0 /
+004B24D0 / 004B2D60 / 004C2050 through their addresses; CArray members 004C2510, 004C5CB0,
+004CD770, 004CDB30, 004CC640, 004CD2B0, 004C59C0, copies 004CC0C0 / 004CC4A0 / 004CBAE0, ScriptVars
+constructor / destructor 004C00D0 / 004BE090, element helpers 004CC870, 006FE268, 006FE296,
+004CC800, 004CC7D0, 004CC9B0, 004CC980, 004CE920, 004CD4A0, 004CE1E0, 004CE210, 004BF620; list
+NewNode 004CD540 / 004CD5B0 / 004CD620 / 004CD6D0 / 004CD930 / 004CDA30. The loaders of this file
+call each other through their addresses.
+
+## Original behaviour kept
+
+- Block ids are resolved in the first world script's lists (007C27D4) whatever script is loaded.
+- The first block id of an if-then pair reads into a variable preset to -1, the second into the same
+  variable without a preset.
+- List loaders re-read nodes that were in the list before the load.
+- Instance names are read with 00461190 into a temporary and assigned (004B3D10 does exactly that).
+
+# Variable appends and clears (004C2B70-004C3DC0, 004C0020, 004C1650-004C1760)
+
+Code: `src/game/script_vars_append.cpp`. Verify: `tests/verify/verify_script_vars_append.cpp`.
+
+`ScriptVars::AppendFrom` (004B3900, the loader's GlobalVars) calls one append per type: the values
+grow by the other set's value count (inlined SetSize, `script_array.h`), the names to the old size
+plus the other set's name count (004C2510); then for each of the other set's names, its name
+(GetAt 004C2680 into a temporary, assigned) and the value of the same index go into the new slots:
+floats copied through the FPU (FLD / FSTP: a signalling NaN becomes quiet), strings by GetAt and
+assignment, objects by GetAt (a referenced copy; the new slot's null object released, the object
+referenced again, the copy released), groups by GetAt (a copy), the new group sized (004C2050) and
+each member copied in place (Reset 004B24B0 then Construct 004B2500), the copy destroyed.
+
+The clears (CScript reset 004BE6E0, the loader's `VarsAt::Clear`) free one type's values (strings
+destructed, references reset, groups destroyed with 004B5EF0) and empty the names; 004C0020 does the
+whole set, through the out-of-line SetSize(0) for every array but the groups.
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004C3DC0 | 782 | ScriptGroupsAppend | ours only: the other set captured first (it may be the same set); sizes, names, every new group's members |
+| 004C3450 | 607 | ScriptObjectsAppend | ours only: as groups, object pointers |
+| 004C2FE0 | 532 | ScriptStringsAppend | ours only: as groups, string contents |
+| 004C2B70 | 451 | ScriptFloatsAppend | ours only: as groups, float bits after FLD / FSTP |
+| 004C0020 | 174 | ScriptVarsClear | ours only: all eight arrays empty without storage |
+| 004C1760 / 004C1700 | 87 / 87 | ScriptGroupsClear / ScriptObjectsClear | ours only: both arrays empty |
+| 004C16B0 / 004C1650 | 67 / 54 | ScriptStringsClear / ScriptFloatsClear | ours only: both arrays empty |
+
+Original quirk kept: the copy loop runs over the other set's names, the values grow by its values
+(they are always equal in practice).
+
+# 004C0000-004E0000: what is left
+
+- Named in `config/library.csv` (237 functions): the CArray / CList instantiations of the script
+  types between 004C1290 and 004CEE80 (vtables 0073D110-0073D4C0: constructors, destructors,
+  scalar deleting destructors, Serialize, SetSize, Copy, GetAt helpers, RemoveAt, RemoveHead /
+  RemoveTail, AddHead / AddTail, GetNext, NewNode / FreeNode, Construct / DestructElements) and the
+  quest table's STLport hash_map members (004CE110, 004CE460, 004CEF00, 004CF0F0, 004CF160).
+  Each "subclass" vtable is the derived class the game declares over a CArray (its destructor
+  falls back to the base vtable).
+- Dead code: 004C01A0, 004C0520, 004C06F0, 004C09F0 (quest script builders) and the script dumper
+  004D53C0 -> 004D39D0 / 004D50C0 -> 004D41C0 (Rebirth patches it) / 004D4E80 / 004D5310, plus
+  004D38B0: no code or data reference in the exe.
+- Game code not rewritten: compiler-generated copy members of the script structs (SSCCmd copy /
+  operator= 004CE750 / 004C6BC0, ScriptSubCall copy 004CCAA0, ScriptDefinition copy / operator=
+  004CB460 / 004CB7E0, ScriptRun operator= 004CB570, ScriptVars operator= 004CBAE0 and its
+  per-type parts 004CBA00 / 004CBB80 / 004CBCA0 / 004CBDB0 / 004CBEF0, FX source copy 004CB220,
+  ScriptDecl operator= 004CB2D0) and element destructors (004CE1E0, 004CE210, 004CE230, 004CE270,
+  004CE2B0, 004CE2D0, 004C5480, 004C17E0, 004C81B0, 004C9AF0); ScriptVars constructor 004C00D0;
+  quest table lookup 004C9C90; 004CC600 (called from 006B1C90).
+- 004D8000-004E0000 belongs to other subsystems (text manager 004DF8D0 / 004DFB80, map database
+  loaders 004DF030 / 004DFCB0, renderer and AI map helpers, STLport instantiations); not touched.

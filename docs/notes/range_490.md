@@ -250,7 +250,7 @@ and the heap helpers are called by draw-all through their addresses.
   list / hash_map / vector and introsort instantiations (0049BB70, 0049C*, 0049D*, 0049E0D0..).
   Reproducing it exactly means rewriting those container instantiations with the game's node
   allocator and its exact iteration order; left for a separate task.
-- 004A7630 / 004A7080 (new-game class templates): long exception-state chains over STLport
+- 004A7630 / 004A7080 (new-game class templates): rewritten since (third pass). Were: long exception-state chains over STLport
   strings and vectors; not attempted.
 
 ### Risks (second pass)
@@ -264,3 +264,84 @@ and the heap helpers are called by draw-all through their addresses.
 Shared headers changed (additive): `effects.h` (callback, factory and destructor declarations,
 field renames frameColumns / frameRect*, ParticlePool refCount / sources / DrawAll, depth-sort
 types); new `particle_common.h` and `tests/verify/particle_verify.h`.
+
+## Third pass: class templates and party records (004A5BD0-004A7E90)
+
+Code: `src/game/class_templates.cpp/.h`, `src/game/party_records.cpp/.h`. Verify:
+`tests/verify/verify_class_templates.cpp`, `verify_party_records.cpp`. Every new game reaches both
+(004A88A0 / 004A88C0: parties reset, then the templates).
+
+The object at 007AA5A0 holds at +0x24 the party records (STLport vector of counted pointers to
+0x7C-byte records: vtable 0073C360, word reference count at +4, a party object at +8 built by
+00661050, its name CString at +0x78), two CStrings after it (+0x30 / +0x34 of the object), and at
++0x38 the class templates (vector of counted pointers to 0x28C-byte templates, vtable 0073D0C4).
+
+### Class templates
+
+004A7630 (thiscall, a byte flag) releases the vector's templates (erase 004A9A00) and builds new
+ones. Flag set (004A88C0, from 0057F280): classes 1, 3, 4, 5. Flag clear (004A88A0): classes 1 to 5,
+the first with byte +0x0D = 0, the second with +0x0C = 0, the fifth with all nine weights zero. A
+template: operator new(0x28C), dword +4 = 0 before the constructor 004A6580, class at +8, bytes
++0x0C / +0x0D, nine float weights +0x10..+0x30 (1, .5, .2, .1, 1, .5, .2, .1, .2), then 004A7080,
+then push_back through a temporary counted pointer (the copy constructor is 004ABE30 for the first
+seven, 004A5D50 for the last two: identical code), the temporary released.
+
+004A7080 fills the template's lists: the item database (template +0x3C, slot 18 = its +0x1C) lists
+the weapon, armor, quick item and fourth-kind names into a CStringArray (006AD2F0 / 006AD380 /
+006AD410 / 006AD260); each name is looked up (weapons 004AB720 in 007C86F8 and armors 004AB820 in
+007C8718 by char*; quick items 004ABBD0 in 007C8744 and the fourth kind 004ABAA0 in 007C86E4 by
+operator[] on an STLport string key, which inserts a null record for unknown names) and a record
+whose class mask (+0x64; +0x4C for the fourth kind) has bit (class - 1) goes into the template's
+list +0x11C (00699080 armors, 006990E0 weapons, 00699140 quick items, 00699260 fourth kind with
+the counts 0x14 / 0x32). The spell database (+0xAC, slot 22 = its +0x24) lists spells (00689570)
+and modifiers (00689610); the name's code (SpellCodeByName 006893F0 / SpellModifierCodeByName
+006894B0, through their addresses) keys the spell map 007C851C (004ABD00) and the modifier map
+007C853C (operator[] inlined: a string assigned the code, a (key, null) pair copied from it,
+find_or_insert 004ACC10); allowed ones (+0x80 / +0x20) go to both +0x1D4 and +0x11C (006991A0 /
+00699200). Each list add appends unless the record is already there.
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004A7630 | 2147 | ClassTemplatesBuild | ours only: the vector holds the expected classes in order, each referenced once |
+| 004A7080 | 1009 | ClassTemplateFill | ours on the real template, the original on a scratch template (allocated and constructed the same way, with the real one's class, flags and weights); the two databases and the six vectors of both lists compared; the scratch deleted through its vtable |
+
+### Party records
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004A5BD0 | 380 | PartyRecordsReset | ours only: one unnamed record referenced once, both strings empty |
+| 004A5E90 | 268 | PartyRecordsAdd | ours only: one more record, named as asked, referenced once |
+| 004A5FA0 | 164 | PartyRecordsRemove | ours only: the pointers left equal the original walk simulated beforehand |
+| 004A5E10 | 119 | PartyRecordsFind | both, result compared |
+
+Reset erases every record (copy 004AB910 of [end, end) to begin, then 004AB960 on the old tail),
+empties the two strings, appends a new unnamed record and gives its party the member "Hero" /
+"Human Hero" (006628D0), the text "gz1g" at party +0x68, 0 at +0x6C and the variable "gtime" = 6
+(00460BC0 on party +0x54). Find returns the party (+8) of the first record with the name (_mbscmp),
+else of the last unnamed one. Add constructs a record (the constructor is inlined: vtable 0073BB68,
+00661050 on +8, the empty string at +0x78, vtable 0073C360, party slot 2) and names it. Remove
+erases each matching record (counted assignment down the tail, last slot released with 004A5D70).
+
+Original bugs kept: Remove advances its index after an erase, so a matching record moved into the
+erased slot is skipped. Operator new's result is written through before its null test (dword +4) in
+both the template and the record constructors.
+
+Forwarders added: 004A6580 template constructor, 004A9A00 / 004AB520 / 004ABE30 / 004A5D50 /
+004AB910 / 004AB960 / 004A5D70 / 004AB320 counted-pointer vector members, the item / spell
+database list functions above, the hash lookups 004AB720 / 004AB820 / 004ABBD0 / 004ABAA0 /
+004ABD00 / 004ACC10, STLport string members 0040C5A0 / 004217E0 / 00428F10 / 004A8930 / 0040C720
+/ 00425040, the template list adders 00699080-00699260, 00661050 party constructor, 006628D0 /
+00460BC0 party members, 00700AF9 CString assignment, 006E848B _mbscmp. None is on the Rebirth list.
+
+### Left in 004A5700-004B0000
+
+- 004A8310 / 004A8560 (the party records' and templates' save and load through a chunk archive
+  built on the stack, from 0057ABA0 (Rebirth patches the caller) / 0057B3B0), 004A64B0 (the record
+  vector's serializer), 004A6050 / 004A6360 (copy a party between records through a memory stream),
+  004A5AF0 (record serializer): not rewritten (stack-built serializer objects; next candidates).
+- 004A5700 / 004A5870 / 004A5950 / 004A5A30 (destructor / constructor pieces of the 007AA5A0
+  object, called from code outside Ghidra functions), 004A6580 / 004A66C0 / 004A6A90 (template
+  constructor / list constructor / destructor), 004A6DF0 / 004A6F60 / 004A6DC0 (from 0060DD2E):
+  constructor / destructor code, not rewritten.
+- 004A8B70-004AFFF0: STLport vector / hash_map / string instantiations for the maps above (not
+  named individually yet).
