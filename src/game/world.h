@@ -659,6 +659,14 @@ void __fastcall LoadSharedObject(void* entry, void*, WorldStream* stream);
 // four only a thunder sound, otherwise a point light at the middle, a sound and two bolts.
 void __fastcall ShowBolt(void* glue, void*, Vector3 from, Vector3 to);
 
+// world_guard.cpp. 005790E0 (thiscall on the client glue 007AFEA4, unused; RET 4): with `plain`
+// 0 the players' gold, party records (0x704 bytes from +0x20) and, on the server, their units'
+// controller statistics (0x704 bytes from +0x1E0) are XORed with a new random key (007AFECC),
+// with 1 they are XORed back; also the party records outside a game (007C82B0). Nothing when
+// the state (0079026C) is already `plain`. 005791C0 (RET 4) does one player list.
+void __fastcall GuardPlayerData(void* glue, void*, char plain);
+void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key);
+
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
 // 0056AFE0 (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers
 // with CWorldClient::CollectVisible and sorts some of them with STLport's sort, instantiated for
