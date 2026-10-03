@@ -44,7 +44,7 @@ bool SameRange(const void* a, const void* b, std::size_t from, std::size_t to) {
 // 00496EB0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x6C (6 bytes).
 static int(__fastcall* s_tick)(CParticleSource*);
 static int __fastcall TickVerify(CParticleSource* self) {
-    if (self->unknown_0E8 > 0x38 && (self->flags_ & 0x20)) return self->CParticleSource::Tick();
+    if (self->hiddenTicks > 0x38 && (self->flags_ & 0x20)) return self->CParticleSource::Tick();
     bool detaching = self->attachedTo && (static_cast<const std::uint8_t*>(self->attachedTo)[8] & 1);
 
     alignas(16) unsigned char before[sizeof(CParticleSource)];

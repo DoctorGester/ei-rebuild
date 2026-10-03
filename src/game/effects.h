@@ -67,6 +67,10 @@ static_assert(offsetof(ParticlePool, freeParticles) == 0xB0);
 
 class CParticleSource {
 public:
+    // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
+    // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
+    int Draw(void* renderer);                       // 004976B0
+
     // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
     int Tick();                                     // 00496EB0: 1 while the source stays alive
     void AddParticle(Particle* p);                  // 00496A20: prev = current, bounds, list tail
@@ -133,7 +137,7 @@ public:
     int frameCount;                 // +0x0DC
     int unknown_0E0;
     int frameDelay;                 // +0x0E4
-    int unknown_0E8;
+    int hiddenTicks;                // +0x0E8 draws skipped off screen (the tick idles past 0x38 with flag 0x20)
     int lifetime;                   // +0x0EC
     Vector3 spreadMin;              // +0x0F0
     Vector3 spreadMax;              // +0x0FC
@@ -165,11 +169,12 @@ public:
     Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
     std::uint8_t unknown_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
-    std::uint8_t unknown_1D0[0x1E0 - 0x1D0];
+    int frameBase;                  // +0x1D0 first texture frame of this source's sprites
+    std::uint8_t unknown_1D4[0x1E0 - 0x1D4];
     void* emitFn;                   // +0x1E0
     void* updateFn;                 // +0x1E4
     void* elementFn;                // +0x1E8
-    void* unknown_1EC;
+    void* texture;                  // +0x1EC texture holder (bound by 00497CE0)
 };
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
 static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
@@ -186,6 +191,41 @@ static_assert(sizeof(CParticleSource) == 0x1F0);
 // 00488940. `out` = v / d, all three quotients computed before the first store. __fastcall (out in
 // ECX, v in EDX, d on the stack); returns out.
 Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d);
+
+// The particle renderer's shared arrays (particle_render.cpp). One vertex (position and size,
+// interpolated between the last two ticks) and one sprite (colour, texture frame) per particle.
+struct ParticleVertex {
+    float x, y, z, size;
+};
+struct ParticleSprite {
+    std::uint32_t color;            // ARGB
+    int frame;                      // texture frame index (+ the source's base +0x1D0)
+};
+// 007A9BD0: data 32-byte aligned (00468F70), the block address below it.
+struct ParticleVertexArray {
+    ParticleVertex* data;
+    int size;
+    int max;
+    int growBy;
+};
+// 007A9BE0: an MFC-style array with a vtable (0073C584, constructor 00468D60).
+struct ParticleSpriteArray {
+    void SetSize(int count, int growBy);            // 00497D50 (-1 keeps the grow step)
+
+    void* vtable;
+    ParticleSprite* data;
+    int size;
+    int max;
+    int growBy;
+};
+
+// 00497D40. The list position's particle, advancing the position (MFC GetNext); __thiscall on the
+// list, which it does not use.
+Particle** __fastcall NextParticle(void* list, void*, mfc::CTypedPtrList<Particle>::Node** position);
+
+// 00497CE0. Makes sure the texture in `holder` is loaded (00500970) and binds it to `stage`
+// through the renderer (slot 11). __thiscall on the renderer.
+int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** holder);
 
 // 00497EB0 (particle_emitters.cpp). Room for `count` elements, 32-byte aligned, the allocated block
 // stored just below; __fastcall.
