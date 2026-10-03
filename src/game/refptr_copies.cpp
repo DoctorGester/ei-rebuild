@@ -58,3 +58,20 @@ EI_REPLACE(0x0047A430, RefPtrRelease);
 EI_REPLACE(0x0047CA80, RefPtrRelease);
 EI_REPLACE(0x0047D170, RefPtrRelease);
 EI_REPLACE(0x0047D7B0, RefPtrRelease);
+
+// The owning pointer's constructor from a raw pointer (RefPtr::Share, 00418BE0, which returns
+// nothing) as the instantiations emit it out of line: the same body, returning the holder.
+// __fastcall shim of a thiscall with one stack argument. 9 copies.
+RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object) {
+    self->Share(object);
+    return self;
+}
+EI_REPLACE(0x004292F0, RefPtrShareReturn);
+EI_REPLACE(0x00429350, RefPtrShareReturn);
+EI_REPLACE(0x00429430, RefPtrShareReturn);
+EI_REPLACE(0x00429710, RefPtrShareReturn);
+EI_REPLACE(0x00429930, RefPtrShareReturn);
+EI_REPLACE(0x00429990, RefPtrShareReturn);
+EI_REPLACE(0x004299F0, RefPtrShareReturn);
+EI_REPLACE(0x00429A50, RefPtrShareReturn);
+EI_REPLACE(0x00429AB0, RefPtrShareReturn);
