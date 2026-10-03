@@ -98,6 +98,9 @@ Every replacement gets a verify wrapper in `tests/verify/`, registered with
   for the original code: copy-construct members such as STLport strings (a default `stlp::string`
   has null pointers, and the original's assign crashed on it). Watch for callers that pass the same
   object for two outputs (`CTextManager::GetItemTexts`): alias the scratch copies the same way.
+  Fresh allocations contain leftover heap bytes: when both versions allocate, either seed the
+  original's allocation with ours' bytes (`verify_particle_emitters.cpp`) or compare only what the
+  function writes (`verify_figure_mesh.cpp`); otherwise never-written bytes show as mismatches.
 - **Stateful functions** (allocate, open files, change shared lists): run only yours (`stolenBytes`
   0), then check the resulting state is consistent, ideally using the original's own read-only
   lookups (see `GetFileVerify`).
