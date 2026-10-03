@@ -155,3 +155,9 @@ EI_UPDATE_WRAPPER(UpdateColumn)
 EI_VERIFY(0x00491830, UpdateColumnVerify, 7, s_UpdateColumn);
 EI_ELEMENT_WRAPPER(TickColumn)
 EI_VERIFY(0x004918D0, TickColumnVerify, 7, s_TickColumn);
+
+// 004889D0: SUB ESP,0x1C; PUSH EBX; PUSH EBP; MOV EBX,ECX (7). 00488DB0: MOV EDX,[ESP+4]; SUB ESP,8 (7).
+EI_SETUP_EMIT_WRAPPER(EmitMushroom)
+EI_VERIFY(0x004889D0, EmitMushroomVerify, 7, s_EmitMushroom);
+EI_UPDATE_WRAPPER(UpdateMushroom)
+EI_VERIFY(0x00488DB0, UpdateMushroomVerify, 7, s_UpdateMushroom);

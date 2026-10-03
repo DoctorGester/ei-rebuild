@@ -67,6 +67,14 @@ __declspec(naked) inline int __cdecl GameFtol(double) {
     }
 }
 
+// The CRT's log as inlined by VC6: FLDLN2; FLD x; FYL2X (left unrounded in ST0).
+__declspec(naked) inline double __cdecl Ln(double) {
+    __asm fldln2
+    __asm fld qword ptr [esp + 4]
+    __asm fyl2x
+    __asm ret
+}
+
 // 00564070 TerrainOwner::SurfaceHeight(x, y) on the terrain owner 007AF5B8; leaves ST0 unrounded.
 __declspec(naked) inline double __fastcall SurfaceHeight(void* /*owner*/, void*, float /*x*/, float /*y*/) EI_ORIGINAL(0x00564070)
 inline double GroundHeight(float x, float y) { return SurfaceHeight(reinterpret_cast<void*>(0x007AF5B8), nullptr, x, y); }

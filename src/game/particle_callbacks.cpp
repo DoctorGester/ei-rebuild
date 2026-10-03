@@ -1880,3 +1880,110 @@ EI_REPLACE_METHOD(0x00491830, CParticleSource::UpdateColumn);
 // 004918D0. 0x202F: element 0 ages.
 void CParticleSource::TickColumn(ParticleElement* e) { ++e->ticks; }
 EI_REPLACE_METHOD(0x004918D0, CParticleSource::TickColumn);
+
+// --- Mushroom and Transform (0x200E, 0x2052): the cloud of the mushroom ---------------------------
+//
+// Element 0 (its tick is TickMushroom, effects.cpp): +0x00 the spread of new puffs, +0x08 the cap's
+// height, +0x18 the stem's foot, +0x34 the age.
+
+namespace {
+
+#define EI_MUSHROOM_ONE GameDouble(0x0073BAC8)       // 1.0
+#define EI_MUSHROOM_SPREAD GameDouble(0x0073CCD0)    // 0.2
+#define EI_MUSHROOM_W_SCALE GameDouble(0x0073CCB0)   // ~0.4 * 2^-32
+#define EI_MUSHROOM_W_BASE GameFloat(0x0073CCA8)     // 0.8
+#define EI_MUSHROOM_UP_SCALE GameDouble(0x0073CCC8)  // ~0.9 * 2^-32
+#define EI_MUSHROOM_UP_BASE GameFloat(0x0073B850)    // 0.1
+#define EI_MUSHROOM_UP GameFloat(0x0073CCC0)         // 0.12
+#define EI_MUSHROOM_GROW GameFloat(0x0073CCBC)       // 0.008 per tick of age
+#define EI_MUSHROOM_SPEED GameFloat(0x0073CCB8)      // 0.06
+#define EI_MUSHROOM_SWELL GameFloat(0x0073BAC4)      // 1.1
+#define EI_MUSHROOM_DRAG GameFloat(0x0073C538)       // 0.7
+#define EI_MUSHROOM_PULL GameFloat(0x0073CCD8)       // 0.02
+
+} // namespace
+
+// 004889D0. Mushroom: a puff from the source in a random upward direction (a fixed spread of 0,
+// as ln 1 = 0), sized and framed by the cloud's age.
+int CParticleSource::EmitMushroom(Particle* p, int) {
+    if (elementCount == 0) {
+        SetElementCount(this, 1);
+        ParticleElement* e = elements;
+        e->ticks = 0;
+        e->pos.x = Store(Ln(EI_MUSHROOM_ONE) * EI_MUSHROOM_SPREAD * D(size));
+        SetBits(&elements[0].pos.z, 0);
+        std::memcpy(ElementFloat(elements, 0x18), &origin, sizeof(Vector3));
+    }
+    float spread = Store((Unsigned(Next()) * EI_MUSHROOM_W_SCALE + D(EI_MUSHROOM_W_BASE)) * D(elements[0].pos.x));
+    float a = SignedUnit();
+    float b = SignedUnit();
+    double c = Unsigned(Next()) * EI_MUSHROOM_UP_SCALE + D(EI_MUSHROOM_UP_BASE);
+    double k = EI_MUSHROOM_ONE / x87::fsqrt(c * c + D(b) * D(b) + D(a) * D(a));
+    float dx = Store(k * D(a));
+    p->drift.x = dx;
+    float dy = Store(k * D(b));
+    p->drift.y = dy;
+    double dz = k * c + D(EI_MUSHROOM_UP);
+    p->drift.z = Store(dz);
+    p->pos.x = Store(D(dx) * D(spread) + D(origin.x));
+    p->pos.y = Store(D(dy) * D(spread) + D(origin.y));
+    p->pos.z = Store(dz * D(spread) + D(origin.z) + D(elements[0].pos.z));
+    p->size = Store(static_cast<double>(elements[0].ticks) * D(EI_MUSHROOM_GROW) + D(EI_MUSHROOM_UP_BASE));
+    p->drift.x = Store(D(dx) * D(size) * D(EI_MUSHROOM_SPEED));
+    p->drift.y = Store(D(dy) * D(size) * D(EI_MUSHROOM_SPEED));
+    p->drift.z = Store(dz * D(size) * D(EI_MUSHROOM_SPEED));
+    p->size = Store(D(size) * D(p->size));
+    p->life = static_cast<int>(Next() & 3) + 16;
+    int bump = static_cast<int>(Next() % 3);
+    p->frameTimer = 2;
+    p->color = 0x40FFFFFF;
+    int frame = elements[0].ticks / 10 + bump - 1;
+    p->frame = frame < 0 ? 0 : frame;
+    return 1;
+}
+EI_REPLACE_METHOD(0x004889D0, CParticleSource::EmitMushroom);
+
+// 00488DB0. Mushroom puffs: step a frame every other tick up to frame 14 (swelling 10% per tick
+// before frame 8), fade in by 64 per tick then out by 63 over the last 4 ticks, drift with a 0.7
+// drag, and while below the cap's height get pulled towards the stem.
+int CParticleSource::UpdateMushroom(Particle* p) {
+    int life = --p->life;
+    if (life == 0) return 0;
+    if (p->frame < 14) {
+        int frame = p->frame;
+        if (--p->frameTimer == 0) {
+            p->frameTimer = 1;
+            p->frame = frame + 1;
+        }
+        if (p->frame < 8) p->size = Store(D(p->size) * D(EI_MUSHROOM_SWELL));
+    }
+    std::uint32_t color = p->color;
+    if (life > 4) {
+        std::uint32_t a = (color >> 24) + 0x40;
+        if (a > 0xFF) a = 0xFF;
+        color = a << 24;
+    } else {
+        color = (color & 0xFF000000u) - 0x3F000001u;
+    }
+    p->color = color | 0xFFFFFF;
+    p->pos.x = Store(D(p->pos.x) + D(p->drift.x));
+    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
+    double vx = D(p->drift.x) * D(EI_MUSHROOM_DRAG);
+    p->drift.x = Store(vx);
+    float vy = Store(D(p->drift.y) * D(EI_MUSHROOM_DRAG));
+    p->drift.y = vy;
+    p->drift.z = Store(D(p->drift.z) * D(EI_MUSHROOM_DRAG));
+    const float* stem = ElementFloat(elements, 0x18);
+    double dx = D(p->pos.x) - D(stem[0]);
+    double dyu = D(p->pos.y) - D(stem[1]);
+    float dy = Store(dyu);
+    float reach = Store(x87::fsqrt(dyu * D(dy) + dx * dx));
+    double dz = D(p->pos.z) - D(stem[2]);
+    if (D(elements[0].pos.z) > dz) {
+        p->drift.x = Store(vx - dx * D(size) * D(EI_MUSHROOM_PULL) / D(reach));
+        p->drift.y = Store(D(vy) - D(dy) * D(size) * D(EI_MUSHROOM_PULL) / D(reach));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00488DB0, CParticleSource::UpdateMushroom);
