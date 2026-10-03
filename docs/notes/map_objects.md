@@ -198,3 +198,170 @@ CMapObjectClientSpecific::Update).
   moves those classes must take them along.
 - The scenario's spell strings ("speed{d1}", "shrink{e2;e2;d2;d1}") were taken from database.res
   without running them; CastSpellUnit with them only exercises the effect tick if they parse.
+
+## Second round: figures, shadows, lifetime
+
+Code: `src/game/map_object_figures.h/.cpp` (CObject3D: figure parts, scale, bounds),
+`src/game/map_object_shadow.h/.cpp` (CObject3DClientSpecific::DrawShadow),
+`src/game/map_object_lifetime.cpp` (constructors and destructor bodies of the family),
+`src/game/map_object.cpp` (slots 19 / 32). Verify: `tests/verify/verify_map_object_figures.cpp`,
+`verify_map_object_lifetime.cpp`, `verify_map_object.cpp`. Scenario `tests/scenarios/unit_create.txt`
+(also world_load, models and every spawn reach this code). units.md "Fourth round" has the unit
+side (prototypes, the factory, the client's armour models).
+
+Shared files touched, additive: `map_object.h` (CMapObject::AttachObject, PackVitals, Construct,
+DestructBody). `map_object_figures.h` and `map_object_shadow.h` are new.
+
+### Figures (CObject3D)
+
+Layout (0x170): +0x34 / +0x44 two orientations, +0x94 the attached object (type 0x46; slot 13
+"part added", slot 21 "figure loaded", slot 26), +0x98 the animation state, +0xA4 the figure's
+name, +0xA8 an MFC CPtrList, +0xC4 the scale, +0xD0 the parts and +0xE0 the pending parts
+(AlignedPtrArray: 32-byte aligned storage with the block at data[-1]; SetAtGrow 00519E80, SetSize
+00519D70), +0xF0 the figure (counted; slot 0 deletes), +0x110 a CStringArray, +0x124 bounds flags,
++0x128 the centre (= CMapObject::pointOffset), +0x134 radius, +0x138 / +0x144 the half extents
+below / above it, +0x15C a CArray of 0x38-byte animation frames. A part (FigurePart, a scene
+node) keeps its position at +0x1C and the piece's offset and box at +0x18C..+0x1B0; the figure's
+piece map (figure + 0x14, an STLport map<string, piece>, find 005197B0) supplies them.
+
+- LoadFigures (00517500, slot 26): the model named +0xA4 (figure manager = ManagerContext slot
+  15, 005AA5F0), each pending part built (005AC2F0) and added like AddPart (005164B0: referenced,
+  owner set 0059F3D0, animation 0050D0E0, attached slot 13); non-units mark their parts static.
+- SetFigureScale (00517700): only when the scale changes (ordered compare): the figure is
+  rebuilt at the new scale by the cache (ManagerContext slot 23, slot 6), the parts take their
+  pieces' records, the animation is rescaled (0050D7C0), the bounds recomputed.
+- ComputeBounds (00518310): the box of the parts within sqrt(1e9) of the object (NaN counts as
+  near) and of the pending parts (their positions are zeroed first), with the original's
+  branch-free min / max selects; the radius keeps the low x half extent unrounded.
+
+### Shadows (CObject3DClientSpecific::DrawShadow, 0051CE60)
+
+Fields of the client 3D object: +0x08 bit 8 "render the shadow again", +0x1C the object, +0x20
+-> material (+0x60 the colour key when its flags have 0x2000), +0x4C / +0x50 / +0x5C / +0x6C /
++0x70 the projected geometry (filled by 0056C750, drawn by 004EA4A0), +0x7C the 64x64 shadow
+texture ("SR<id>", created by 00692010), +0x80 the bounds in the light's view, +0x90 the bounding
+sphere (scene object's slot 7) and its centre relative to the object.
+
+When 0079BD0C > 0 and the class's switch is on (units 0079BD14, class 0x52 0079BD1C, others
+0079BD18), the object is shown and the shadow must be rendered again (not a static figure, or
+bit 8): the lights of 007AF748 are summed (point lights 0x31: direction from the light times
+brightness 0.1 b + 0.6 g + 0.3 r times 1 - falloff * distance squared, ten times for flag
+0x800, only within range; others: their direction times brightness), normalised and tilted to
+at least 20 degrees below the horizontal (FPATAN against pi / 180 * 20); the object is turned to
+the light (004F15C0, Quaternion::PreMultiply and back), its parts projected (figure slot 13, or
+CFigureMesh::DrawOffset 005A0CD0) into the point buffer (007AF1F8), mapped to texture pixels
+(scale 63 / extent, FISTP) in 007AF1E0, rasterised into the locked render surface (figure slot
+14 or 005A0E80; blurred twice through the device's slots 11 / 12 when 0079BD0C is 2), copied to
+the texture (the D3D device's slot 43 under the lock at 007AEE78) and the texture's square laid
+on the ground (0056C750 with the quad in 007AF208). Then the geometry is drawn with alpha 0x80
+(units: their controller's +0x78 times 128).
+
+### Lifetime
+
+| Address | Name | Verification |
+|---|---|---|
+| 00515BD0 | CObject3D::Construct | the original on a scratch copy of the raw memory, ours on the object: 0x170 bytes and both results compared |
+| 0050E2D0 | CMapObject::Construct | the same, 0x238 bytes |
+| 0052E110 | CUnit::Construct | the same, 0x4DC bytes |
+| 00515610 | CMapObjectServer::Construct | the same, 0x94 bytes (its allocation size) |
+| 00510450 | CMapObjectClientSpecific::Construct | the same, 0x54 bytes (allocated 0x58) |
+| 0052E5B0 | CUnit::Reset | ours only: the blank state |
+| 00515D70 / 0050E660 / 0052E310 / 00515720 / 00510560 / 00546230 | destructor bodies | ours only: the engine object's base state (vtable 0073B8E0, no owner) |
+| 0052E2A0 | CUnit::DeletingDestructor (slot 0) | ours only (the memory may be gone): counted |
+
+The constructors allocate nothing: their sub-constructors (quaternion identity, CStringArray,
+memory streams 0047A200 / 00468C20, the record array reset 0047FB70, the unit's 004CD080 /
+0052E230 / 005C6270) only set fields, so running the original on a copy is safe; nested
+constructors (CUnit -> CMapObject -> CObject3D) each run through their own wrapper.
+
+### Drawing (CObject3DClientSpecific::Draw, 0051B7E0)
+
+The object's slot 26 and its animation (0050D450) bring it up to date; the lights of 007AF748
+(other than the context's own, +0x1C) whose range +0xE0 plus 10 reaches the object go into an
+aligned list (0051EF90 / 0051EE50; a moving light, flag 0x100, makes the object non-static); the
+object's matrix and, unless all 1, its extra scale (+0xF0..+0xF8) are pushed on the scene's view
+(2) and world (1) stacks and, for non-static objects, the object stack (3, inlined); then each part
+of the two part sets (+0x20, +0x24: material, groups of parts) within sqrt(1e9) is drawn through
+the context's slot 13 (part, lights, the group's material, the light test's AL, the dirty
+rectangle or null, 0, 0), the first set with the texture +0xDC. A figure whose drawn parts all
+have flag 0x10 becomes static (object flag 0x400, +0xEC the time, flags_ bit 8); the object's
+flag 0x20 tells whether a part flagged 0x40 was drawn; the dirty rectangle (+0xC8) is copied to
+the object's +0x100 and the caller's.
+
+### Animation tracks and cages
+
+- AnimationTrack (0050ACD0 Evaluate): key frames of positions (+0x24 count / +0x28), rotations
+  (+0x2C / +0x30, Quaternion::Slerp 0049ED20) and morph vertex sets (+0x34 vertices, +0x38 frames,
+  +0x3C count, output +0x68); the frame is the CRT's modf of the time rounded with FISTP; values
+  at +0x4C / +0x58, the time at +0x48; past the last frame its values, without frames the
+  defaults at 007AF110 / 007AF100.
+- CageInterpolator (0050B8C0 cube of 8 points, 0050BC00 prism of 6; called by the figure
+  manager's 005ACB80): a point at (t, u, w) (+0x68..+0x70) into +0x5C, the point records read
+  from a stream that advances by 0x60 / 0x48.
+
+### Other functions rewritten (second round)
+
+| Address | Name | Verification |
+|---|---|---|
+| 0050E890 | CMapObject::AttachObject (slot 19) | ours only: a type 0x47 object attached both ways with the returned count |
+| 0050E970 | CMapObject::PackVitals (slot 32) | ours, snapshot of the tracked bytes, original; EAX too |
+| 00518310 | CObject3D::ComputeBounds | ours, the bounds saved and restored, the original; +0x124..+0x150 and EAX |
+| 00517700 | CObject3D::SetFigureScale | ours only: the scale as given; after a change with parts valid bounds and EAX = the centre's z |
+| 00517500 | CObject3D::LoadFigures | ours only: loaded, nothing pending, every pending part in the list |
+| 005164B0 | CObject3D::AddPart | ours only: the part in the list |
+| 00519E80 / 00519D70 | AlignedPtrArray::SetAtGrow / SetSize | ours only: value stored, size and alignment |
+| 0051CE60 | CObject3DClientSpecific::DrawShadow | ours only: result 1 |
+| 0051B7E0 | CObject3DClientSpecific::Draw | ours only: result 1, the scene's three matrix stacks as deep as before |
+| 0050ACD0 | AnimationTrack::Evaluate | ours, the track's values and morph vertices saved and restored, the original; compared |
+| 0050B8C0 / 0050BC00 | CageInterpolator::InterpolateCube / InterpolatePrism | ours, the point and the stream saved and restored, the original; compared |
+
+The x87 code of ComputeBounds and the shadow's light sum, tilt, rotation matrix, ground quad and
+shadow point was read back (`dumpbin /disasm`): operand order, float stores where the original
+stores, unrounded values kept as doubles, NaN behaviour of the compares (`a >= b`, `!(a >= b)`,
+`a < b || a > b`) as the original's FCOMP tests.
+
+### Forwarders added (second round)
+
+- Figures: 005AA5F0, 005AC2F0, 0059F3D0, 0050D0E0, 0050D7C0, 005197B0, 00516080 (release the
+  parts), 00516D50 (CObject3D slot 19).
+- Shadows: 00692010, 004F1440, 004F15C0, 004D9880, 004D9AA0, 004545A0 / 004F65B0 / 00452E70
+  (aligned buffers), 005A0E80, 00692140 / 00690FC0 / 00691030 (render surface), 0056C750,
+  00501AF0, 006CB020, 004EA4A0; through their addresses 004018A0 and 005A0CD0; Win32
+  Enter/LeaveCriticalSection through the import table; globals 0079BD0C..0079BD1C, 007AF060,
+  007AF080, 007AF1E0, 007AF1F8, 007AF208, 007AF230, 007AF5B8, 007AF738, 007AF744, 007AF748,
+  007AEE78.
+- Lifetime: 0040CB00, 006FE925 / 006FE958 / 006FE9B8 (CStringArray), 00468C20, 0047A200,
+  0047FB70, 00510340, 005121B0, 006CA720, 00511FB0, 00511B90; through their addresses 005233B0,
+  00523370, 00523550, 00455930 and the constructors / destructor bodies themselves.
+
+### Original bugs and oddities kept (second round)
+
+- SetFigureScale returns the FPU status word in AX when the scale did not change; ours returns 0.
+  ComputeBounds returns the centre's z bits (0 without parts), which SetFigureScale passes on.
+- LoadFigures drops the pending parts' reference without the release check.
+- DrawShadow: the point and pixel buffers grow without keeping their contents; the rasteriser's
+  work area (its first 0x30 bytes) is uninitialised stack in the original (ours zero); the shadow
+  quad's first corner rounds its x and y to float before adding the position, the other three
+  only y (the original builds a Vector3 for the first).
+- The client companion's destructor releases its light after assigning it null (a no-op).
+- Draw passes the context's slot 13 the light test's result as a dword whose upper three bytes are
+  stack garbage in the original (the byte was stored with MOV BYTE); ours zero-extends it.
+- Draw starts its light list with SetSize(16) and SetSize(0) (room for 16, empty); the paths for
+  an existing list cannot run.
+- The forwarders and helpers of the second round also include 0050D450 (animation update),
+  0051EF90 / 0051EE50 (light list), 004D9B80 / 0051C110 (scene matrix stack push / pop), 004EB170
+  (device texture), 00457720, the CRT's modf 006EAD0B, and through their addresses 0049ED20,
+  00410750 / 00448A10 / 0044A230 (the cage's vector helpers are inlined as float steps).
+
+### Skipped (second round) and why
+
+- 0050C230 (the bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures),
+  00510B80 / 005114D0 (the client's effect particles and sounds), 0051C3D0 (wounds texture),
+  0050EAF0 / 0050EC30 (network state): drawing and stateful; next candidates.
+- 00500000-0050E000 (device and animation code): not looked at in detail.
+
+### Risks (second round)
+
+- DrawShadow and the figure loading run for every visible object and every spawn; they are
+  checked ours-only (DrawShadow only for its result), so a wrong shadow shows only on screen.
+- ApplyPrototype's statistics start from zeroed stack copies (units.md, "Fourth round").

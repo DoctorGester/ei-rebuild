@@ -251,6 +251,32 @@ public:
     // 00530920. unknown_23C = `index`. Returns `index` (EAX).
     int SetPrototype23CIndex(int index);
 
+    // map_object_lifetime.cpp.
+    // 0052E110. The constructor: the map object (0050E2D0), the name, the AI memory sub-object
+    // at +0x27C (005C6270), the carried array (vtable 0073EB84), then the vtable 0073EA8C and
+    // Reset. Returns this.
+    CUnit* Construct();
+    // 0052E310. The destructor body: release (the vtable's slot 5 function, called directly),
+    // the map object's Destroy (0050E840), Reset, the arrays and the name freed, then the map
+    // object's destructor body.
+    void DestructBody();
+    // 0052E2A0. Virtual slot 0, the scalar deleting destructor: DestructBody, then the memory
+    // freed when bit 0 of `flags` is set. Returns this.
+    CUnit* DeletingDestructor(std::uint32_t flags);
+    // 0052E5B0. Back to a blank unit: no name, prototypes, controller (released), relations,
+    // player, side, items (the slots cleared without releasing) or carried array; standard
+    // sizes and movement modes, the parameter block cleared (00523550), the network records
+    // reset (0047FB70) and +0x438 = 1.
+    void Reset();
+
+    // unit_create.cpp (fourth round).
+    // 00532AC0. After a hit: armour pieces and weapons whose condition (+0x20) rounds to 0 or
+    // less leave their slots (armour: the controller's slot 27 with the type; weapons: message
+    // 0x16 to the player, the slots above move down, the controller's slot 25 with -1 at the
+    // end) and go to the owning player (00665470), then lose the unit's reference. Units without
+    // a player keep everything.
+    void DropBrokenEquipment();
+
     // unit_save.cpp (third round).
     // 00531A80. Virtual slot 9 (Load): the map object part, the controller, the unit's name,
     // relations, player, movement fields, items by id (counted references), the carried items,
@@ -629,6 +655,28 @@ struct UnitStats {
     // Then the hit points. Returns whether any damage passed.
     int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon);
 
+    // unit_create_stats.cpp. 00524CD0. The current values from the bases plus the skills (15:
+    // valuesB0[1] by its percentage; 23-25: the stats; unknown_044 = -2), the slot maxima from
+    // the hit point curve (current values clamped to them), `load`, the capacity, the legs and
+    // arms factors and the rate. NPC statistics are built with it (scale 1).
+    void ResetToBase(float load);
+    // unit_create_stats.cpp. 00526450. Learns the skill level `record` of the skill database
+    // (index / 3 is the skill, index % 3 + 1 the level) unless the unit knows it at that level or
+    // better; when the hit point maximum of the curve (before and after, both above 1) changes,
+    // the slots are healed by what keeps the hit points in proportion (00525800).
+    void LearnSkill(const void* database, const void* record);
+    // unit_create_stats.cpp. 00526C70. The attack skill for weapon type `type` (0-4 use skill 0,
+    // 5 and 6 skill 1, 8 the bonused skill 0; others 0): for text-key units the skill byte, the
+    // weapon prototype's bonus (+0x7B / +0x7C) and the stat the skill's name starts with minus 25,
+    // plus the level value of skill `type`. Unrounded (ST0).
+    double WeaponSkillBonus(int type, CUnit* unit);
+    // unit_create_stats.cpp. 005260A0. Can the unit learn skill level `record` of the
+    // skill database: learnable (+0x40), the three stats at least the record's, the required
+    // attribute (+0x14 name, +0x18 index, +0x20 value) and skill level (+0x0C name) present unless
+    // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
+    // record's own level (by its name, +0x04) above the one known. 0/1 in EAX.
+    BOOL CanLearn(const void* database, const char* record);
+
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.
     void Pack(CUnit* unused, UnitParams* params);
@@ -722,6 +770,11 @@ BOOL __fastcall HasElementalDamage(const DamageInfo* info);
 // vtable 0073DD6C). Only the hit points.
 class CMapObjectServer : public CEngineObject {
 public:
+    // map_object_lifetime.cpp. 00515610 / 00515720: constructor (the engine object fields, two
+    // names, a string array, vtable 0073DD6C, vitals reset; returns this) and destructor body.
+    CMapObjectServer* Construct();
+    void DestructBody();
+
     // 005156A0. Virtual slot 17: hit points rounded (FISTP) to a 16-bit value are <= 0.
     BOOL IsDead();
     // 005156C0. Virtual slot 18: hit points below -5 times the maximum.
@@ -747,6 +800,12 @@ static_assert(offsetof(CMapObjectServer, hitPoints) == 0x28);
 // 0073DBEC); +0x1C is the object it belongs to (a unit for these two).
 class CMapObjectClientSpecific : public CEngineObject {
 public:
+    // map_object_lifetime.cpp. 00510450: constructor (the engine object fields, the particle and
+    // sound arrays, no light, vtable 0073DBEC; returns this). 00510560: destructor body (the
+    // particles and the light removed, the arrays freed).
+    CMapObjectClientSpecific* Construct();
+    void DestructBody();
+
     // 005104D0. Virtual slot 17: the unit's hit points <= 0.
     BOOL IsDead();
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.

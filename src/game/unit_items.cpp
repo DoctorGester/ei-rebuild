@@ -38,7 +38,8 @@ void ReleaseSlots(CUnit* unit, CEngineObject** slots, int count) {
 }
 } // namespace
 
-// 00514930: the unit prototype table's record named `name` (not rewritten).
+// 00514930: the unit prototype table's record named `name`; UnitPrototypeTable::FindByName in
+// unit_create.cpp, called through its address.
 __declspec(naked) char* __fastcall FindUnitPrototype(const void* /*table*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x00514930)
 

@@ -46,6 +46,16 @@ constexpr int kShrink = 0x26;          // scale down
 
 class CMapObject : public CEngineObject {
 public:
+    // map_object_lifetime.cpp.
+    // 0050E2D0. The constructor: the 3D object (00515BD0), the effect array (vtable 0073DBA0),
+    // the second name, the network record array and its two memory streams (+0x1C4), then the
+    // vtable 0073DAA0, no companion, packed vitals cleared, no sector cell, +0x178 = 1. Returns
+    // this.
+    CMapObject* Construct();
+    // 0050E660. The destructor body: the streams' buffers, the network records (00510340), the
+    // second name and the effects freed, then the 3D object's destructor body.
+    void DestructBody();
+
     // --- Rewritten (map_object.cpp) ---
 
     // 0050F1C0. Virtual slot 6, the per-tick update: lets the companion (+0x170) update (its slot
@@ -88,6 +98,15 @@ public:
     // 0050E8F0. Replaces the companion (+0x170): the old one is detached (its +0x1C cleared) and
     // released, the new one points back here and gains a reference.
     void AttachCompanion(CEngineObject* companion);
+
+    // 0050E890. Virtual slot 19: an object of type 0x47 becomes the companion (as AttachCompanion,
+    // but a null or other object goes to the 3D object's slot 19, 00516D50, which takes type 0x46
+    // objects at +0x94). Returns the companion's new reference count, or what 00516D50 leaves.
+    std::uintptr_t AttachObject(CEngineObject* object);
+
+    // 0050E970. Virtual slot 32 (statistics changed): a CMapObjectServer companion packs its
+    // vitals (00522C50) into +0x17C. Returns 1, or 0 for another companion.
+    int PackVitals();
 
     // 0050FA10 / 0050FA20 / 0050E430. Bits 16 (invisible: set by the client for effect 0x0F),
     // 18 (stunned: effect 0x19) and 17 of flags_. 0050FA10 and 0050E430 are virtual slots 21 / 29.
