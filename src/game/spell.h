@@ -125,27 +125,96 @@ struct CSpellEffect {
     // Forwarders to the game's entries (so the verify wrappers see the calls).
     BOOL CallGetDamage(DamageInfo* out);
 
+    // spell_effect_start.cpp: the casting state (state 0) and the effect objects it creates.
+    // 0067F870. Starts spell `type` (the prototype index): creates its sounds, particles, lights
+    // and lightning, delivers the instant hits, and sets the next state (1 missile, 2 lasting,
+    // 3 done; some failed casts leave it at 0) and the timer. Ends with UpdateFootprint(type, 1).
+    void Start(int type);
+    // 0067EF40. Replaces the visual (+0x90): the old one leaves the world's timed objects and is
+    // released, the new one is counted and added to them.
+    void SetVisual(CEngineObject* visual);
+    // 0067EFC0. The walls (6 fire wall, 7 light wall) and the area clouds (8, 0x27) block the AI
+    // map while they last: builds the footprint and stamps it (`stamp`) or clears it. Nothing
+    // without a visual or for other types.
+    void UpdateFootprint(int type, int stamp);
+    // 0067F170. A missile (CEffectArrow, class 0x4E) from `from` at `target` with the flight
+    // sound `sound` and a light of `color` / `range`; it becomes the visual.
+    void CreateArrow(const Vector3* from, CEngineObject* target, int particleType, float power, const char* sound,
+                     const Vector3* color, float range);
+    // 0067F260. A particle source (class 0x4A; types 0x2010 and 0x2014 are walls, class 0x5A),
+    // optionally attached to `attachTo`. `keep`: it becomes the visual, else it is only added to
+    // the world's timed objects. Returns it.
+    CEngineObject* CreateParticle(int keep, int particleType, const Vector3* position, float size, float alpha,
+                                  const Vector3* velocity, CEngineObject* attachTo);
+    // 0067F410. A lightning bolt (class 0x4D) from `from` to `target` (nothing without a target);
+    // it becomes the visual. `flag` is a byte.
+    void CreateLightning(const Vector3* from, CEngineObject* target, CEngineObject* source, float power, int flag);
+    // 0067F580. A positional sound (class 0x48). `keep`: it becomes the sound (+0x94).
+    void CreateSound(int keep, const char* name, const Vector3* position, const Vector3* velocity, float volume,
+                     float radius);
+    // 0067F660. A sound sequence (class 99): `first`, then `pattern` itself (count < 1) or
+    // `pattern` formatted with 1..count. It becomes the sound (+0x94).
+    void CreateSoundSequence(const Vector3* position, const Vector3* velocity, const char* first,
+                             const char* pattern, int count, float volume, float radius);
+    // 0067F7C0. A point light (class 0x4B, light flags 0x840); it becomes the light (+0x98).
+    void CreatePointLight(const Vector3* position, const Vector3* color, float range, const Vector3* velocity);
+
+    // spell_effect_update.cpp: the later states.
+    // 0067E6D0. One tick: state 0 Start, 1 UpdateMissile, 2 UpdateLasting (all with the spell's
+    // prototype index); any other state clears the footprint and drops the visual, sound and light
+    // and returns 0 (the world then removes the effect). 0 also without a world; else 1.
+    int Update();
+    // 00681BB0. State 1: the fire arrow (0, 0x28) and acid ray (2) hit their target when the
+    // missile reports a hit; the fireball (3) explodes when its timer runs out.
+    void UpdateMissile(int type);
+    // 00682650. State 2: the lasting effects (walls and clouds hit every 4th tick, fireworks scare,
+    // clairvoyance and possession reveal, teleport moves the caster, link and vision fog end when
+    // their units do); every case counts the timer down and ends the effect (state 3).
+    void UpdateLasting(int type);
+    // 0067EE00 / 0067EE40 / 0067EE80. Drop the visual / sound / light (leave the timed objects,
+    // release).
+    void ReleaseVisual();
+    void ReleaseSound();
+    void ReleaseLight();
+
     std::uint8_t unknown_00[0x08];
-    char* world;                // +0x08 its sector map is at +0x170 + 0x124
+    char* world;                // +0x08 the world server; its sector map is at +0x170 + 0x124
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
     CEngineObject* target;      // +0x1C
     CEngineObject* caster;      // +0x20
-    std::uint8_t unknown_24[0x34 - 0x24];
+    Vector3 targetPoint;        // +0x24
+    int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
     std::uint8_t spell_[0x18];  // +0x34 the CSpell (vtable .. +0x17 of it)
     std::uint32_t spellId;      // +0x4C prototype index << 16
-    std::uint32_t unknown_50;
+    std::uint32_t unknown_50;   // +0x50 the spell's +0x1C (index byte, ...)
     int targetCount;            // +0x54
     float damage;               // +0x58
     float radius;               // +0x5C
+    std::uint32_t unknown_60;
+    float speed;                // +0x64 the spell's +0x30: missile speed
+    std::uint8_t unknown_68[0x90 - 0x68];
+    CEngineObject* visual;      // +0x90 particle source, wall, lightning or missile (counted)
+    CEngineObject* sound;       // +0x94 (counted)
+    CEngineObject* light;       // +0x98 (counted)
+    std::uint8_t footprintStamped;  // +0x9C
+    std::uint8_t unknown_9D[3];
+    int timer;                  // +0xA0 ticks left in the next state
+    std::uint8_t unknown_A4;    // +0xA4 copied into the buff record; healing: skip when at full health
+    std::uint8_t unknown_A5[3];
 
     CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
 };
 static_assert(offsetof(CSpellEffect, world) == 0x08);
 static_assert(offsetof(CSpellEffect, caster) == 0x20);
+static_assert(offsetof(CSpellEffect, state) == 0x30);
 static_assert(offsetof(CSpellEffect, spell_) == 0x34);
 static_assert(offsetof(CSpellEffect, damage) == 0x58);
 static_assert(offsetof(CSpellEffect, radius) == 0x5C);
+static_assert(offsetof(CSpellEffect, speed) == 0x64);
+static_assert(offsetof(CSpellEffect, visual) == 0x90);
+static_assert(offsetof(CSpellEffect, timer) == 0xA0);
+static_assert(sizeof(CSpellEffect) == 0xA8);
 
 // 00681B80. __fastcall. Whether area spells hit `unit`: units with a size class (+0x324), and
 // those whose prototype's +0x24 is below 0.5 (or NaN). Returns 0/1 in EAX.

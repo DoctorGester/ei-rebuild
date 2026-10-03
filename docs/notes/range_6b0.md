@@ -108,7 +108,7 @@ is called through `game::FatalError`.
 
 ## Skipped
 
-- 006BFF40 and the other draw functions (R above): Direct3D submission.
+- The other draw functions (R above): Direct3D submission. (006BFF40 was done later, see below.)
 - 006C68B0 map loader (Rebirth-patched; also the ambient sounds), 006D0630 / 006D7620 database loaders
   (Rebirth-patched).
 - 006C8140 SectorAt (the cache: stateful, evicts and deletes sectors; next candidate, verify by
@@ -132,3 +132,43 @@ skip.
   generator (as the original), so a mistake there would shift later random draws.
 - Build's verify allocates and frees a scratch sector each call (game heap); the light reference
   nodes of the scratch go back to the shared pool, so node addresses differ from a plain run.
+
+## The sector page draw (006BFF40), later round
+
+Code: `src/game/terrain_draw.cpp` (`DrawSectorPage`, __fastcall for the thiscall with four stack
+arguments: the draw context, an unused one, the texture page, an unused one). Verify:
+`tests/verify/verify_terrain_draw.cpp` (ours only: result 0 / 1, the vertex buffer's size within its
+capacity and a multiple of 4). Reached by every scenario (the terrain pass 006C6460 draws every
+visible sector page each frame). Shared files changed: none (`terrain_sector.h` is only included).
+
+What it does for `SectorData` `s` and page `p`:
+
+- Returns 1 at once when `s` +0x60 is 2. Constructs the function-local statics on first use (guard
+  byte 007C88A0: the 32-byte vertex buffer 007C8890, the index CWordArray 007C8878, the clipped index
+  CWordArray 007C8860, the per-vertex CByteArray 007C8848; each registers its exit handler
+  006C1370 / 006C1360 / 006C1350 / 006C1340 with the game's atexit). Applies pending water levels
+  (006C30E0) when the sector has water.
+- For each quarter whose mode (+0x144) is not 2: the page's tile entries (`tiles[q][p]`, 9 per tile)
+  at the level of detail +0x170 (9, 6 or 4 vertices and 8, 4 or 2 triangles per tile, tables
+  0079699C / 007969A8 read from the exe): the vertex buffer is sized to 4 x the vertex count (its
+  element is 32 bytes, so it is four times larger than needed, as in the original), the byte array
+  likewise, the index arrays to 3 x triangles and 12 x triangles. Each vertex is the record's first
+  16 bytes, its 8 bytes at +0x11 and the entry's (u, v) (the original copies the qwords with FILD /
+  FISTP, which is exact); the record's byte +0x10 goes to the byte array. Level 1 uses entries
+  0, 2, 3, 5, 6, 8 of each tile, level 2 the corners 0, 2, 6, 8.
+- Indices per tile from fixed patterns; when +0x174 or +0x178 is set (a coarser neighbour) the tile
+  edge flags `tileFlags[q][p]` pick variants without the triangles of that edge (level 0: bit 0 with
+  +0x174, bit 1 with +0x178, 21 indices instead of 24; level 1: bit 2 / bit 3, 9 instead of 12).
+  The patterns were checked against the raw instructions (a script over the disassembly), not only
+  Ghidra's listing.
+- Mode 1 (crossing the view): the context's clipper (arg +8 -> +0xC) slot 37 clips into the clipped
+  index array and updates both counts; the vertices the clipped triangles use are kept in order and
+  the indices renumbered (static aligned arrays 007C88B8 words / 007C88A8 bytes, guard 007C88C8, exit
+  handlers 006C1320 / 006C1300; these two do not keep their contents when they grow).
+- With indices: clipper slot 34 (vertices, count), render state 0x1D on (the device at
+  *007AF080 + 0x54, IDirect3DDevice7 slot 20), the context's slot 12 draws (0: return 0 at once,
+  the state stays on), render state 0x1D off.
+
+Risks: not run in game; every frame goes through it, so a mistake shows at once (missing or
+garbled terrain, or a crash). The level of detail outside 0..2 reads past the tables as the
+original does.

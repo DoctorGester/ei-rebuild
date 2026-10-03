@@ -472,3 +472,113 @@ Code: `src/game/item_parts.cpp`, `item_constructor.cpp`, `item_names.cpp`, `spel
   0069B5B0 (save load), 00690970 / 00690B30 (surface lock copies), the STLport vector instantiations
   in 006A6xxx-006ACxxx, CWinRegistry (006972A0-006990E0, plain Win32 registry wrappers: next candidate).
 - Rebirth-patched: 00691500, 006A67A0, 006AC970, 006AE3A0.
+
+# Spell effect state machines (0067E6D0-00683560)
+
+Code: `src/game/spell_effect_start.cpp` (state 0 and the effect-object helpers),
+`src/game/spell_effect_update.cpp` (Update, states 1 and 2, the release helpers),
+`src/game/spell_effect_internal.h` (forwarders, x87 sequences, accessors shared by both). Verify:
+`tests/verify/verify_spell_effect.cpp`. Scenarios: `tests/scenarios/spells.txt` (arrow, lightning,
+acid ray, fireball, fire wall, acid fog, healing, buffs) and the new `tests/scenarios/spells_cast.txt`
+(inv_lit = the light strike, acid_column, litnwall = the light wall, clairvoyence, vision_fog;
+spell names from the maps' .mob files).
+
+Shared files changed: `spell.h` only (this area's header): the `CSpellEffect` bytes +0x24..+0x34
+and +0x60..+0xA8 named (target point, state, speed, visual / sound / light, footprint flag, timer,
++0xA4) and the new methods declared; layout unchanged, `sizeof == 0xA8` asserted.
+
+## The object
+
+`CSpellEffect` (vtable 0074399C, 0xA8 bytes; world.h calls it `Projectile`) is one cast spell.
+The world server ticks it through `Update` (0067E6D0); +0x30 is the state: 0 casting (`Start`),
+1 missile in flight (`UpdateMissile`), 2 lasting (`UpdateLasting`), anything else ends it (the
+footprint is cleared, the three effect objects are dropped, Update returns 0 and the world removes
+it). Every state is a switch on the spell's prototype index (+0x4C >> 16). The effect keeps three
+counted effect objects that are also in the world's timed-object list: +0x90 the visual (missile,
+particle source, wall or lightning), +0x94 the sound, +0x98 the light; replacing one removes the
+old one from the timed objects and releases it (`Assign` in the header; the original repeats it
+inline in every helper). +0xA0 is the state's timer.
+
+Spell types (from the sounds and the maps' spell names): 0 / 0x28 fire arrow, 1 / 0x29 lightning,
+2 acid ray, 3 fireball, 4 light strike (inv_lit), 5 acid column, 6 fire wall, 7 light wall
+(litnwall), 8 poison cloud (acid_fog), 9-0x11, 0x13, 0x19, 0x1A, 0x1D-0x22, 0x25, 0x26 buffs (the
+target's slot 45 gets a 0x14-byte record: the spell's +0x1C..+0x2F with byte 1 = trunc(power x 16)
+and byte 0x10 = +0xA4), 0x12 fireworks, 0x14 clairvoyance, 0x15 possession, 0x17 vision fog,
+0x18 healing, 0x1B link, 0x1C teleport, 0x24 charm, 0x27 a counting area cloud.
+
+The "power" factor that scales most sizes is inlined about twenty times:
+`pow(clamp(damage / prototype effect, 1, 8), 0.33) - 0.2`, or 1 when the prototype's effect
+(+0x2C) compares equal to 0 (NaN included). The clamps select float bits on FCOMP's C0 (so NaN
+passes through), the pow is FYL2X / F2XM1 / FSCALE with the 0.33 from the double at 007439A8. It
+is one naked helper (`ClampPowCore`, `PowerCore`) with wrappers that round to float, multiply by
+a constant first, or truncate with the game's `_ftol`. The fireball's blast uses the same curve on
+`(r * r * pi) / prototype area`.
+
+## Functions rewritten
+
+| Address | Name | Verification | Scenario |
+|---|---|---|---|
+| 0067F870 | CSpellEffect::Start (8.8 KB) | ours only: state 0..3 after, spell parameters +0x4C..+0x60 unchanged | spells, spells_cast |
+| 0067EF40 | SetVisual | ours only: visual == object | spells_cast (light strike, light wall, vision fog) |
+| 0067EFC0 | UpdateFootprint | ours only: the stamped flag follows `stamp` for 6, 7, 8, 0x27 | spells (fire wall, acid fog), spells_cast |
+| 0067F170 | CreateArrow | ours only: visual is class 0x4E with the type | spells (arrow, acid ray) |
+| 0067F260 | CreateParticle | ours only: class 0x4A / 0x5A, type, kept as visual | all |
+| 0067F410 | CreateLightning | ours only: visual class 0x4D with a target | spells (lightning) |
+| 0067F580 | CreateSound | ours only: kept sound has the class and name | all |
+| 0067F660 | CreateSoundSequence | ours only: class 99, max(count, 1) names | spells (fireball, fire wall, acid fog), spells_cast |
+| 0067F7C0 | CreatePointLight | ours only: class 0x4B, flags 0x840 | all |
+| 0067E6D0 | CSpellEffect::Update | ours only: result 1 while in states 0..2, else 0 with nothing kept | all |
+| 00681BB0 | UpdateMissile (2.6 KB) | ours only: state 1..3, parameters unchanged | spells (arrow, acid ray, fireball) |
+| 00682650 | UpdateLasting (3.8 KB) | ours only: state 2..3, parameters unchanged | spells, spells_cast |
+| 0067EE00 / 0067EE40 / 0067EE80 | ReleaseVisual / ReleaseSound / ReleaseLight | ours only: pointer null | all |
+
+All are stateful (they create world objects, deal damage, move units), so only ours runs. The hits
+themselves were already checked (HitUnit / HitUnitsInRadius / HitUnitsAlong above); the scenarios'
+HP checks show the damage arrives.
+
+## x87 notes
+
+Everything with more than one floating-point operation before a store is a naked helper repeating
+the original's instructions (MSVC's /fp:fast may reassociate or spill otherwise): the power curve,
+the heights (`HeightPlus` / `HeightMinus` / `HeightPlusProduct`: the world's slot 27 / 28 result is
+used from ST0), the fireball's planar distance, flight ticks (FISTP of the rounded float) and
+velocity scale, the walls' span (the normal (-d.y, d.x, 0) scaled to the radius), the light wall's
+half span for the footprint (x keeps the difference unrounded before halving, y and z do not), the
+area curve, `DivideMultiply` (the acid ray / fireball light rise: the quotient is scaled before
+rounding, unlike the fire arrow's), `FrightLevel` (FILD / FIDIV / FMUL 250 / FADD 50 / `_ftol`) and
+`MultiplyAdd` (possession's wake radius). Single operations stored to float are plain C++. The
+compiled helpers were read back with dumpbin (FDIVRP encodes as DE F1 as in the original).
+Constants are read from the exe's memory except the immediates the original pushes.
+
+## Forwarders (through the game addresses)
+
+Rewritten elsewhere: 0058E520 / 0058E5D0 (timed objects), 00675D50 (SetVelocity), 00679280,
+006792E0, 00679310 (particle setters), 00679C30 (wall direction), 0067A6B0 / 0067A890 / 0067A8C0
+(lightning), 0068BA20 (GetPrototype), 00683950 / 006835B0 / 00683600 / 00683730 / 00681B80 (damage
+helpers), 005C0BD0 (FindUnitsInRadius), 005B7820 / 005B78F0 (AI map stamp / clear), 005B7A40
+(IsPassableWithoutSelf), 0058D3D0 (WakeUnitsAround), 004B2EF0 / 004B31D0 (ScriptGroup insert),
+005302F0 (CUnit::ModeSpeed), 00552780 (controller remark). Rebirth-patched: 005C11D0
+(CSectorMap::Move, the teleport). Not rewritten: 0067AC70 (missile target), 0067C640
+(CEffectShowVisibility ids), 00688510 (buff record constructor), 004C96A0 / 004C96F0 (CPtrList),
+00551AE0 (tame), 005B2A00 / 005B2760 (footprint builders), 005C98C0 (AI noise), 005CBBE0 (AI
+memory notice), 00554450 (controller re-place), `_ftol` 006E853C, MFC CString / CStringArray.
+
+## Original bugs and oddities kept
+
+- Lightning (1) builds its light at the target's slot-48 position without checking the target;
+  healing (0x18) and charm (0x24) call the target's class id without a null check; the impact of
+  the arrow and the acid ray reads the target after the hit without a check; the light's
+  SetVelocity in state 2 does not check the light.
+- Charm with a target or caster that is not a unit returns without changing the state, so the
+  effect stays in state 0 and is started again the next tick.
+- The light strike (4) uses the constant -7 as the bolt width factor; the wall cases compute the
+  wall's normal with a z of 0 * k.
+- Fireworks, clairvoyance and possession collect units into a list that the original keeps on the
+  stack for the whole function; it is emptied at the end (the CPtrList destructor inlined).
+- The CString constructed from afxEmptyString at the start of Start is never used (its destructor
+  is a no-op on the shared empty data); not reproduced.
+
+## Skipped
+
+- 0067F360 (no callers), 0067E510 / 0067E5D0 (constructor / destructor), 0067E7D0 / 0067E960
+  (save / load), 00683A90 / 00683AB0 (counted-pointer assign, reproduced inline by `Assign`).

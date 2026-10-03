@@ -559,3 +559,75 @@ ResistanceTo), truncated.
   precision, not under 64-bit); operand orders follow the disassembly.
 - Save's checks run the nested saves (map object, controller, brain) twice into capture streams;
   they only write through the stream's virtual Write.
+
+## Movement tick (00547890)
+
+Code: `src/game/unit_motion_tick.cpp`. Verify: `tests/verify/verify_unit_motion_tick.cpp`.
+Scenarios: `movement.txt`, `combat.txt`, `unit_ai.txt` (every moving unit runs it each tick).
+Shared files changed: none.
+
+| Address | Name | Verification |
+|---|---|---|
+| 00547890 | `UpdateMotion` (__fastcall on the controller, called twice by 005499F0) | ours only: the controller keeps its unit, the "waiting for" link (+0x1D8 / +0x1DC) is set with a unit or clear, the obstacle flag (CUnit +0x278) is 0 or 1 |
+
+What it does, per tick, for the controller `c` (CUnitServer) of unit `u`:
+
+1. Samples the motion order (+0x3C) with UnitMotion::Sample (u + 0x27C) at the world's time
+   (ManagerContext +0x64, FILD / FSTP float): the position comes back in half-cells and is scaled
+   back (factor 1 / (0073EEE4 * 0.5), then 0073EEE4 * 0.5, unrounded in between: naked helpers).
+2. Not turning and +0x147 clear: the order's next animation (00551400) goes into the queue (+0x24,
+   an AnimationSteps whose `extra` +0x38 is the start time; -1 becomes the world's time), the queue
+   restarts (00546B40, 00546C10), +0x147 = 1.
+3. A pending hit (+0x160 != -1): while turning on the spot the death / hit animation of the blow is
+   played when it fits (00549D00 on its duration; the queue is copied to +0x148 first) and the tick
+   ends; otherwise, unless the queue's first animation is an attack still running (entry flags
+   0x200000 under 0x3C0000, its +0x20 plus the start beyond the world's time, unsigned), the
+   current animation (005511A0) is copied step by step behind the fall of the blow (pauses as
+   emotes, open steps through AddStep, others SetAtGrow) and assigned to the queue (twice).
+4. With a reached cell: off the sector map, CanStandAtFromHere on it. If not, the blocking unit
+   (BlockingUnitAt) decides: a party member that follows this unit as its brain's leader (for 2
+   frames after +0x93C), or the unit already waited for (+0x1DC): wait (2). Both attacking / casting
+   at the same target with the same side and size class, the target more than sqrt(0073F090) away
+   ((dz^2 + dy^2) + dx^2 unrounded) and the other not casting: wait behind it (counted link), unless
+   the links lead back to this unit: both links cleared, replan (1) with the units around lifted.
+   Otherwise a slower blocker (virtual slot 59 below this unit's, rounded to float) with reason 2
+   (water) makes it replan with the units lifted. Back on the sector map.
+5. An idle unit in a kind-3 occluder (while +0x4C is below the world's +0x2804 and +0x174 is clear)
+   replans. Otherwise a standable cell and CSectorMap::Move: the unit is an obstacle (+0x278) only
+   while idle, faces the sampled direction (00402220), and when the motion is over a turn order
+   (+0xA8) or the path's end stops it facing backwards (AxisY negated, AIPath::Start) or the path
+   continues (ContinuePath), else the idle animation.
+6. Replan: the pending step list (+0x78, CList) emptied, FindPath to +0x9C within +0xA4 (u +0x43C
+   saved around it; the order's +0x6E flag set for units without a player), the units around the
+   step lifted around it (005B7EF0) when asked; no path: 00547280, 00547090(6), +0x145 = (+0xA9 == 1).
+   Wait: +0x21 (mode +0x240 == 2) or +0x20 set, and the unit stops being an obstacle.
+7. Running party units (both move modes 2, +0x16D, the player's +0x108 clear, game mode 007C2CC4
+   not 3) drain stamina: the server stats' +0x14 -= +0x18 * (double)0073F088; below 0 (unrounded,
+   FST then FCOMP) they get message 0x1D, stamina 0 and walk (+0x268 from +0x170, MarkChanged 6);
+   MarkChanged 0. At 0 stamina only the mode is reset. Then 00548520.
+
+### Original quirks kept
+
+- The "blocked" local is not initialised: when no cell was reached (cell x < 0) or the cell lies
+  outside the AI map (CanStandAtFromHere returns before writing the reason) and the move then fails
+  (or an idle unit stands in an occluder), the original decides on whatever the stack held there.
+  The rewrite reads the same stack dword (entry ESP - 0x98) in a naked entry before its own frame
+  exists, and the verify wrapper does the same.
+- The animation key passed to 00530240 keeps the queue count's upper 24 bits (MOV AL over EAX).
+- An emote step is passed as the misaligned dword at step + 1.
+- The fall animation is assigned to the queue twice.
+
+### Forwarders
+
+00455940 / 00455950, 005C7430 (Sample), 00551400, 00546B40, 00546C10, 00549D00, 00546C40,
+005511A0, 00550F30, 00547280, 00547090, 005467B0, 00548520, 00550A80, the AnimationSteps helpers
+00556850 / 00557E70 / 005483C0 / 00556950 / 00544E40 / 00558920 / 00544D50 / 00544CE0 / 00558950,
+00530240, 0050E9F0, 0052E9D0, 00402220, 005C1010 / 005C0DF0 / 005C11D0 (Move: patched by Rebirth),
+005B81B0, 005B7BB0, 005BBDB0, 005BB350, 005BB900, 005B7EF0, 005B23A0, 005C7B00, 0040F560,
+00402200, 005D5E90, 0066D6E0, MFC CPlex::FreeDataChain.
+
+### Risks
+
+- Not run in game. It runs for every moving unit every tick; a mistake shows in movement.txt.
+- The stale-local trick depends on nothing between the hook's JMP and the entry touching the stack
+  below ESP (true for the 5-byte JMP).
