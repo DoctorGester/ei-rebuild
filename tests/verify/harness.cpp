@@ -726,9 +726,11 @@ unsigned short FpuControlWord() {
 }
 void TraceFpu(const char* where) {
     static unsigned short last = 0xFFFF;
+    static int changes = 0;
     unsigned short cw = FpuControlWord();
     if (cw == last) return;
-    Log("harness: FPU control word %04X (was %04X) %s", cw, last, where);
+    if (++changes <= 20) Log("harness: FPU control word %04X (was %04X) %s", cw, last, where);
+    else if (changes == 21) Log("harness: FPU control word keeps changing; no more reports");
     last = cw;
 }
 using AilStartupFn = int(WINAPI*)();
