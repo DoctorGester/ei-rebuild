@@ -1,2 +1,10 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+# Script savers (script_save.cpp): ScriptSave crashes in its first callee (004B1940) at autosave; sent back
+004C0F90  script save
+004C1230  script save
+004C2EF0  script save
+004C33C0  script save
+004C38C0  script save
+004C4330  script save
+004CAEC0  script save
