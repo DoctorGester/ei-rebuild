@@ -4,7 +4,7 @@
 // generator (007A9D40). Ours runs first; that state is captured, the state before is restored, the
 // original runs, and both results are compared (the original's stand). Calls that allocate the
 // element array (the first emission of a source) run ours only, checked for the array's size.
-#include "verify.h"
+#include "particle_verify.h"
 
 #include "../../src/game/effects.h"
 #include "../../src/game/random.h"
@@ -15,128 +15,7 @@
 #include <cstring>
 #include <vector>
 
-extern const std::vector<unsigned char>* g_seedElements;   // defined below
-
-namespace {
-
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
-
-struct EmitState {
-    unsigned char source[sizeof(CParticleSource)];
-    unsigned char particle[sizeof(Particle)];
-    unsigned char random[sizeof(IsaacRandom)];
-    std::vector<unsigned char> elements;
-
-    void Capture(const CParticleSource* s, const Particle* p) {
-        std::memcpy(source, s, sizeof(source));
-        std::memcpy(particle, p, sizeof(particle));
-        std::memcpy(random, &GlobalRandom(), sizeof(random));
-        std::size_t n = s->elements ? static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement) : 0;
-        elements.assign(reinterpret_cast<const unsigned char*>(s->elements),
-                        reinterpret_cast<const unsigned char*>(s->elements) + n);
-    }
-    void Restore(CParticleSource* s, Particle* p) const {
-        std::memcpy(s, source, sizeof(source));
-        std::memcpy(p, particle, sizeof(particle));
-        std::memcpy(&GlobalRandom(), random, sizeof(random));
-        if (!elements.empty()) std::memcpy(s->elements, elements.data(), elements.size());
-    }
-    // 0 same, 1 source, 2 particle, 3 generator, 4 elements; `offset` gets the first differing byte.
-    int Difference(const EmitState& o, int* offset) const {
-        auto first = [offset](const unsigned char* a, const unsigned char* b, std::size_t n) {
-            for (std::size_t i = 0; i < n; ++i)
-                if (a[i] != b[i]) {
-                    *offset = static_cast<int>(i);
-                    return true;
-                }
-            return false;
-        };
-        *offset = -1;
-        if (first(source, o.source, sizeof(source))) return 1;
-        if (first(particle, o.particle, sizeof(particle))) return 2;
-        if (first(random, o.random, sizeof(random))) return 3;
-        if (elements.size() != o.elements.size()) return 4;
-        if (first(elements.data(), o.elements.data(), elements.size())) return 4;
-        return 0;
-    }
-};
-
-const char* PartName(int part) {
-    static const char* const names[] = {"nothing", "source", "particle", "generator", "elements"};
-    return names[part];
-}
-
-
-using EmitFn = int(__fastcall*)(CParticleSource*, void*, Particle*, int);
-using UpdateFn = int(__fastcall*)(CParticleSource*, void*, Particle*);
-using ElementFn = void(__fastcall*)(CParticleSource*, void*, ParticleElement*);
-
-// `ours` and `original` take no arguments (they capture them) and return the callback's result.
-template <typename Ours, typename Original>
-int RunBoth(const char* name, CParticleSource* self, Particle* p, Ours ours, Original original) {
-    EmitState before, mine, theirs;
-    before.Capture(self, p);
-    int actual = ours();
-    mine.Capture(self, p);
-    before.Restore(self, p);
-    int expected = original();
-    theirs.Capture(self, p);
-    int offset;
-    int part = mine.Difference(theirs, &offset);
-    ei::verify::Check(name, true, part == 0 && actual == expected,
-                      "type %X result %d vs %d, differs in %s at +0x%X", self->type_, expected, actual,
-                      PartName(part), offset);
-    return expected;
-}
-
-template <typename Ours>
-int RunBothEmit(const char* name, CParticleSource* self, Particle* p, int index, Ours ours, EmitFn original) {
-    return RunBoth(name, self, p, [&] { return ours(self, p, index); },
-                   [&] { return original(self, nullptr, p, index); });
-}
-
-// Element callbacks: the element lives in the captured array; a dummy particle stands in.
-template <typename Ours>
-void RunBothElement(const char* name, CParticleSource* self, ParticleElement* e, Ours ours, ElementFn original) {
-    Particle dummy{};
-    RunBoth(name, self, &dummy, [&] { ours(self, e); return 0; }, [&] { original(self, nullptr, e); return 0; });
-}
-
-// The first emission of a source with no element array yet: ours runs on the real source (its
-// array stays); the original then runs on a scratch copy of the source as it was (allocating its
-// own array, freed afterwards) with the particle and generator as they were. Everything is
-// compared except the array's address; ours' particle and generator are put back.
-template <typename Ours>
-int RunBothSetup(const char* name, CParticleSource* self, Particle* p, int index, Ours ours, EmitFn original) {
-    EmitState before, mine, theirs;
-    before.Capture(self, p);
-    int actual = ours(self, p, index);
-    mine.Capture(self, p);
-
-    alignas(16) unsigned char scratchBytes[sizeof(CParticleSource)];
-    std::memcpy(scratchBytes, before.source, sizeof(scratchBytes));
-    auto* scratch = reinterpret_cast<CParticleSource*>(scratchBytes);
-    std::memcpy(p, before.particle, sizeof(before.particle));
-    std::memcpy(&GlobalRandom(), before.random, sizeof(before.random));
-    g_seedElements = &mine.elements;
-    int expected = original(scratch, nullptr, p, index);
-    g_seedElements = nullptr;
-    theirs.Capture(scratch, p);
-    if (scratch->elements) gamecrt::operator_delete(reinterpret_cast<void**>(scratch->elements)[-1]);
-    std::memcpy(theirs.source + offsetof(CParticleSource, elements), mine.source + offsetof(CParticleSource, elements),
-                sizeof(void*));
-    int offset;
-    int part = mine.Difference(theirs, &offset);
-    ei::verify::Check(name, true, part == 0 && actual == expected,
-                      "type %X setup: result %d vs %d, differs in %s at +0x%X", self->type_, expected, actual,
-                      PartName(part), offset);
-
-    std::memcpy(p, mine.particle, sizeof(mine.particle));
-    std::memcpy(&GlobalRandom(), mine.random, sizeof(mine.random));
-    return actual;
-}
-
-} // namespace
+using namespace particle_verify;
 
 // While the original runs the first emission on its scratch source, the element array it allocates
 // starts with the bytes ours' array held: the bytes neither writes (padding such as +0x24..+0x30 of
@@ -192,28 +71,6 @@ static int __fastcall EmitModifierVerify(CParticleSource* self, void*, Particle*
 EI_VERIFY(0x00490130, EmitModifierVerify, 6, s_emitModifier);
 
 // --- Smaller callbacks: all run both ways -------------------------------------------------------
-
-#define EI_EMIT_WRAPPER(Method)                                                              \
-    static EmitFn s_##Method;                                                                                \
-    static int __fastcall Method##Verify(CParticleSource* self, void*, Particle* p, int index) {             \
-        return RunBothEmit("CParticleSource::" #Method, self, p, index,                                      \
-                           [](CParticleSource* s, Particle* q, int i) { return s->CParticleSource::Method(q, i); }, \
-                           s_##Method);                                                                      \
-    }
-
-#define EI_UPDATE_WRAPPER(Method)                                                            \
-    static UpdateFn s_##Method;                                                                              \
-    static int __fastcall Method##Verify(CParticleSource* self, void*, Particle* p) {                        \
-        return RunBoth("CParticleSource::" #Method, self, p, [&] { return self->CParticleSource::Method(p); }, \
-                       [&] { return s_##Method(self, nullptr, p); });                                        \
-    }
-
-#define EI_ELEMENT_WRAPPER(Method)                                                           \
-    static ElementFn s_##Method;                                                                             \
-    static void __fastcall Method##Verify(CParticleSource* self, void*, ParticleElement* e) {                \
-        RunBothElement("CParticleSource::" #Method, self, e,                                                 \
-                       [](CParticleSource* s, ParticleElement* x) { s->CParticleSource::Method(x); }, s_##Method); \
-    }
 
 // Prologues (whole instructions, no relative operands):
 // 00492D30, 004933F0, 00494770, 004957E0, 00495A30: PUSH EBP; MOV EBP,ESP; SUB ESP,imm8 (6 bytes).

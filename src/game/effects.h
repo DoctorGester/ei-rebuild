@@ -142,6 +142,11 @@ public:
     // particle_draw.cpp: the emission point in the world (attachment point plus the local position).
     Vector3* WorldPosition(Vector3* out);           // 00484AE0
 
+    // particle_callbacks.cpp
+    int EmitCasting(Particle* p, int index);        // 004918E0 (0x2027-0x202A)
+    int UpdateCasting(Particle* p);                 // 00492030
+    void TickCasting(ParticleElement* e);           // 004921D0
+
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
 
