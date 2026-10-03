@@ -124,9 +124,10 @@ Sites are listed in full in the CSV.
   object with 20 effects gets no more (the first ten refusals are logged), and after adding an effect
   that lasts more than one tick, every older effect of the same type and end flag whose +0x0C is
   within 0.001, that lasts no longer and whose value is not higher is removed. (#0) In
-  `CWorldServer::UpdateUnits` (0058D670) a context hook first walks the world's unit list (007C2D00)
-  and, for units flagged neither 1 nor without effects, with +0x170 set and +0x174 <= 0 (units the
-  update skips), counts every effect down by one tick and removes the expired ones. *#1 implemented*
+  `CWorldServer::UpdateUnits` (0058D670) a context hook first walks the world's object list
+  (007C2D00) and, for each object that is referenced, not flagged 1, has effects, a companion
+  (+0x170) and +0x174 <= 0 (objects the update does not tick), counts every effect down by one tick
+  and removes the expired ones. *#1 implemented*
   (src/game/map_object.cpp); #0 needs UpdateUnits.
 - **FixProgressNames** - the loading movie (00595080): after the original picks progres.bik for an
   allod other than gipat/ingos/suslanger, addon picks progres2.bik for "gipat2" and progres5.bik for
