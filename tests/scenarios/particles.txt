@@ -1,5 +1,5 @@
 # Particles (range 0x490000-0x4B0000): sources whose callbacks are rewritten in
-# particle_emitters.cpp, placed around the hero, and a few buffs on the hero (spell modifiers
+# particle_emitters.cpp and particle_callbacks.cpp, placed around the hero, and a few buffs on the hero (spell modifiers
 # carry Modifier particles), then deleted. Every source runs CParticleSource::Tick, AddParticle
 # and the particle pool (particle_tick.cpp) each world update; the camera and units use the
 # quaternion helpers (quaternion.cpp); the new game seeds the generator (IsaacRandom::Init).
@@ -38,6 +38,51 @@ console @DeleteParticleSource(26)
 console @DeleteParticleSource(27)
 console @DeleteParticleSource(28)
 console @DeleteParticleSource(29)
+
+# Second batch: the other source types whose callbacks are rewritten (particle_callbacks.cpp).
+console @CreateParticleSource(30,Add(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"Fire")
+console @CreateParticleSource(31,Sub(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"VulcanSmoke")
+console @CreateParticleSource(32,GetX(GetLeader()),Add(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Healing")
+console @CreateParticleSource(33,GetX(GetLeader()),Sub(GetY(GetLeader()),6),GetZ(GetLeader()),1,"PoisonFog")
+console @CreateParticleSource(34,Add(GetX(GetLeader()),6),Add(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Geyser")
+console @CreateParticleSource(35,Sub(GetX(GetLeader()),6),Add(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Tornado")
+console @CreateParticleSource(36,Add(GetX(GetLeader()),6),Sub(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Casting")
+console @CreateParticleSource(37,Sub(GetX(GetLeader()),6),Sub(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Nuke")
+console @CreateParticleSource(38,Add(GetX(GetLeader()),9),GetY(GetLeader()),GetZ(GetLeader()),1,"Mushroom")
+console @CreateParticleSource(39,Sub(GetX(GetLeader()),9),GetY(GetLeader()),GetZ(GetLeader()),1,"AcidRay")
+console @CreateParticleSource(40,GetX(GetLeader()),Add(GetY(GetLeader()),9),GetZ(GetLeader()),1,"Link")
+console @CreateParticleSource(41,GetX(GetLeader()),Sub(GetY(GetLeader()),9),GetZ(GetLeader()),1,"ClayRing")
+console @CreateParticleSource(42,Add(GetX(GetLeader()),9),Add(GetY(GetLeader()),9),GetZ(GetLeader()),1,"Teleport")
+console @CreateParticleSource(43,Sub(GetX(GetLeader()),9),Add(GetY(GetLeader()),9),GetZ(GetLeader()),1,"Cylinder1")
+console @CreateParticleSource(44,Add(GetX(GetLeader()),9),Sub(GetY(GetLeader()),9),GetZ(GetLeader()),1,"FireStar")
+console @CreateParticleSource(45,Sub(GetX(GetLeader()),9),Sub(GetY(GetLeader()),9),GetZ(GetLeader()),1,"VisionStar1")
+console @CreateParticleSource(46,Add(GetX(GetLeader()),12),GetY(GetLeader()),GetZ(GetLeader()),1,"Regeneration")
+console @CreateParticleSource(47,Sub(GetX(GetLeader()),12),GetY(GetLeader()),GetZ(GetLeader()),1,"Silence")
+console @CreateParticleSource(48,GetX(GetLeader()),Add(GetY(GetLeader()),12),GetZ(GetLeader()),1,"CurseStars")
+console @CreateParticleSource(49,GetX(GetLeader()),Sub(GetY(GetLeader()),12),GetZ(GetLeader()),1,"Transform")
+wait 3000
+
+console @DeleteParticleSource(30)
+console @DeleteParticleSource(31)
+console @DeleteParticleSource(32)
+console @DeleteParticleSource(33)
+console @DeleteParticleSource(34)
+console @DeleteParticleSource(35)
+console @DeleteParticleSource(36)
+console @DeleteParticleSource(37)
+console @DeleteParticleSource(38)
+console @DeleteParticleSource(39)
+console @DeleteParticleSource(40)
+console @DeleteParticleSource(41)
+console @DeleteParticleSource(42)
+console @DeleteParticleSource(43)
+console @DeleteParticleSource(44)
+console @DeleteParticleSource(45)
+console @DeleteParticleSource(46)
+console @DeleteParticleSource(47)
+console @DeleteParticleSource(48)
+console @DeleteParticleSource(49)
+
 wait 1500
 check IsAlive(GetLeader())
 report
