@@ -14,6 +14,17 @@ struct UnitStats;
 struct UnitParams;
 struct DamageInfo;   // spell.h
 
+// The stream the game's Load / Save slots read and write (the same interface as unit_ai.h's
+// AIStream): slot 1 reads, slot 2 writes; +0x08 is the format version of a stream being loaded.
+struct UnitStream {
+    virtual void Slot0() = 0;
+    virtual int Read(void* buffer, unsigned size) = 0;          // 1: nonzero when read
+    virtual void Write(const void* buffer, unsigned size) = 0;   // 2
+
+    int unknown_04;
+    int version;            // +0x08
+};
+
 constexpr int kClassUnit = 0x50;    // CEngineObject::GetClassId() of units (creatures)
 
 // CEngineObject::type_ of the player's own units (other kinds: 0x33 ...).
@@ -239,6 +250,15 @@ public:
     std::uint32_t SetPrototype23CByName(const char* name);
     // 00530920. unknown_23C = `index`. Returns `index` (EAX).
     int SetPrototype23CIndex(int index);
+
+    // unit_save.cpp (third round).
+    // 00531A80. Virtual slot 9 (Load): the map object part, the controller, the unit's name,
+    // relations, player, movement fields, items by id (counted references), the carried items,
+    // and from version 0x4D the prototype names (unknown_18 / prototype23C).
+    void LoadUnit(UnitStream* stream);
+    // 005321C0. Virtual slot 10 (Save): the same fields in the same order (the active weapon
+    // twice), items as ids (-1 for none), the prototype names as zero-terminated strings.
+    void SaveUnit(UnitStream* stream);
 
     // Not rewritten (forwarders):
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.

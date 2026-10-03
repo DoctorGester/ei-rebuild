@@ -26,6 +26,13 @@ struct UnitAction {
     int unknown_1C;
     std::uint8_t unknown_20;
     std::uint8_t unknown_21[3];
+
+    // combat_tick.cpp. 0054B320: copies `from` (the target referenced); returns this.
+    UnitAction* Assign(const UnitAction* from);
+    // 0054B230: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
+    void Reset();
+    UnitAction* CallAssign(const UnitAction* from);
+    void CallReset();
 };
 static_assert(sizeof(UnitAction) == 0x24);
 
@@ -270,6 +277,95 @@ public:
 
     void CallFinishCast();
 
+    // combat_save.cpp (third round).
+    // 00555D10. Virtual slot 9 (Load): the controller's state (animation lists, the motion and
+    // plan objects, both orders, the stats copy, movement factors, the brain, the voice, the
+    // effect object and the attackers list), version dependent from 0x44 on.
+    void LoadServer(UnitStream* stream);
+    // 005561C0. Virtual slot 10 (Save): the same in the same order, at the current version.
+    void SaveServer(UnitStream* stream);
+
+    // combat_sight.cpp (third round): can an order be carried out from here, and when.
+    // 0054BCB0. What a cast (kinds 4, 5) or an order on a unit must see: false for a point order
+    // with flag18, a missing spell, a spell whose prototype +0x40 is 0, or (other kinds) a target
+    // that is not a unit. Callers test AL.
+    bool FindSightTarget(const UnitAction* order, struct SightTarget* out);
+    // 0054C2F0. Can the unit carry out `order` at `time` with its target at `point`: in range for
+    // AI units, no living unit in the way of a melee or skill order, and a line of sight when the
+    // order needs one. Callers test AL.
+    bool CanActFrom(const UnitAction* order, const float* point, int time);
+    // 0054CA40. Plans `order`: builds its animation (0054F970 / 00550100 / 00550620, which draw
+    // random numbers), then looks for the first moment at which the target is in reach, the unit
+    // can turn to it in time, and CanActFrom holds; fills `plan` and returns true then.
+    bool PlanAction(const UnitAction* order, struct OrderPlan* plan);
+    // 0054C6B0. PlanAction into a scratch plan, with the target unit's flags_ bit 0x8000000 set
+    // meanwhile. Callers test AL.
+    bool CanPlanAction(const UnitAction* order);
+    // The same through the game's addresses (for the verify build's wrappers).
+    bool CallCanActFrom(const UnitAction* order, const float* point, int time);
+    bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);
+    bool CallFindSightTarget(const UnitAction* order, struct SightTarget* out);
+
+    // combat_steps.cpp (third round): the animation steps of an order. The unit's animation
+    // entries are looked up by a key of weapon, movement and action bits (CUnit 005301B0).
+    // 00551A40 / 00551A90. The duration / the moment of the action of animation entry `index`, in
+    // ticks: the entry's +0x20 / +0x40 divided by the unit's speed factor for it (005327D0),
+    // truncated; 0 without the entry.
+    int AnimationDuration(std::uint32_t index);
+    int AnimationMoment(std::uint32_t index);
+    // 005516D0. The step that changes the movement mode `from` into `to` (only heroes, or a change
+    // involving mode 4); false when there is none.
+    bool BuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
+    // 00550100. The steps of an order of `kind` with `source` (for kind 3 `source` is the attack key
+    // from BuildAttackSteps): the animation, framed by stepping out of and back into the movement
+    // mode for skills; *duration = the ticks until the action happens.
+    void BuildOrderSteps(struct AnimationSteps* steps, int* duration, int kind, std::uint32_t source);
+    // 00550620. The steps of a cast taking `value` ticks; draws a random number for heroes.
+    void BuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
+    // 0054F970. The steps of an attack on `target`: the hit location (plan +0x2C) and the height of
+    // the blow from both units' heights and the distance. Draws random numbers. Returns 1.
+    bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
+    // The same through the game's addresses.
+    bool CallBuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
+    void CallBuildOrderSteps(struct AnimationSteps* steps, int* duration, int kind, std::uint32_t source);
+    void CallBuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
+    bool CallBuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
+    int CallAnimationDuration(std::uint32_t index);
+    int CallAnimationMoment(std::uint32_t index);
+
+    // combat_tick.cpp (third round): the per-tick order machine.
+    // 0054B390. Every tick: takes over the queued order, else follows the path and continues the
+    // current order (ContinueAction for actions; a finished move or animation lets the queue on).
+    void UpdateOrders();
+    // 0054A900. Takes over the queued order (+0x1B4) by its kind; true when it started.
+    bool StartQueuedOrder();
+    // The move part of StartQueuedOrder (kind 1): plans a path with the units near the goal lifted
+    // off the sector map; done orders let the next one start.
+    bool StartMove();
+    // 0054DD70. Continues an action order while its target is valid and seen, else ends it
+    // (party messages 0x0B / 0x0E / 0x12) and calls 00549690.
+    void ContinueAction();
+    // 0054D960. Plans the action (PlanAction); when it can start, rolls an attack's hit and starts
+    // the action (005494D0), else closes in (ApproachTarget) or drops the order.
+    void ExecuteOrder();
+    // 0054D140. Closes in on the order's target or point: waits when in reach, else plans a path
+    // to where the target will be.
+    void ApproachTarget();
+    // 0054A620. The movement records (+0x168 / +0x170) from the unit's modes and the order.
+    void SyncMoveModes();
+    // 0054A6E0. Takes over the queued order (an inlined copy of StartQueuedOrder's common start).
+    void TakeQueuedOrder();
+    // 00546830. The unit's second movement mode, marking it changed.
+    void SetUnitMoveMode2(int mode);
+    bool CallStartQueuedOrder();
+    void CallSyncMoveModes();
+    void CallExecuteOrder();
+    void CallApproachTarget();
+    void CallContinueAction();
+    void CallTakeQueuedOrder();
+    void CallSetUnitMoveMode2(int mode);
+    bool CallCanPlanAction(const UnitAction* order);
+
     // Not rewritten (forwarders):
     // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
     void TurnTo(const float* point, int walk, int run, std::uint32_t z);
@@ -277,8 +373,11 @@ public:
     bool PlanOrder(UnitAction* order, int arg);
     // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
     void ClaimHostility(CUnit* claimant, std::uint32_t mask);
-    // 00550A80. Fills `animation` (a CArray of 0xC-byte entries) for death in `direction`.
-    void BuildDeathAnimation(void* animation, std::uint32_t direction, int a, int b);
+    // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
+    // (HitDirection's bits): `dying` adds the death bits, `fall` (lying down) stops the steps with
+    // +8 = 2 and may pick a side at random. Only the low bytes of `dying` and `fall` count.
+    void BuildDeathAnimation(struct AnimationSteps* steps, std::uint32_t direction, int dying, int fall);
+    void CallBuildDeathAnimation(void* steps, std::uint32_t direction, int dying, int fall);
 
     CUnit* unit;                    // +0x01C
     std::uint8_t unknown_020;       // +0x020 cleared on death
