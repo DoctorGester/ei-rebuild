@@ -520,3 +520,75 @@ namespace {
 void __fastcall QuickStripBuild(CHeroQuickStrip* self, void*, int top) { self->Build(static_cast<std::uint8_t>(top) != 0); }
 } // namespace
 EI_REPLACE(0x00622A80, QuickStripBuild);
+
+// --- 006280C0 / 00628CC0: the constructors' second pages ---------------------------------------------
+
+namespace {
+// The pages' common part: the 2 x 4 grid of regions over 400..600 x 100..500 (column by column),
+// the four quarter pictures (textures 0-3) and a hidden highlight frame.
+void BuildMakerPage(CConstructorPage* page) {
+    for (int left = 400; left < 600; left += 100)
+        for (int top = 100; top < 500; top += 100) AddRect(page, RECT{left, top, left + 100, top + 100});
+}
+void AddMakerPictures(CConstructorPage* page) {
+    const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
+    for (int i = 0; i < 4; ++i) {
+        CUiMesh* picture = page->AddSprite(0);
+        picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
+                              0xE4, 0xE4);
+        SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(page->objects_.data_[i]));
+    }
+    CUiMesh* frame = page->AddSprite(0);
+    Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    SetSpriteField(frame, 0xD4, 0x96FFFFFF);
+    SetPlainFlag(frame);
+    SetSpriteField(frame, 0x280, 0);
+    SetSpriteField(frame, 0x220, 0);
+}
+} // namespace
+
+void CConstructorPage::BuildSpellMaker(void* slots) {
+    rect_ = RECT{200, 100, 600, 500};
+    kind_ = 6;
+    slots_ = slots;
+    LoadTexture(GameText(0x00793F0C), 3, 0);   // constrspell1
+    LoadTexture(GameText(0x00793EFC), 3, 0);   // constrspell2
+    LoadTexture(GameText(0x00793EEC), 3, 0);   // constrspell3
+    LoadTexture(GameText(0x00793EDC), 3, 0);   // constrspell4
+    AddRect(this, RECT{200, 250, 300, 350});   // the container
+    AddRect(this, RECT{300, 250, 400, 350});   // the spell
+    BuildMakerPage(this);
+    AddRect(this, RECT{200, 450, 400, 470});
+    AddRect(this, RECT{200, 470, 400, 490});
+    AddMakerPictures(this);
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 450, 400, 490, 5, 1) : nullptr);
+    selected_ = 0;
+    // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
+    CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
+    auto* array = reinterpret_cast<console::CStringArray*>(reinterpret_cast<std::uint8_t*>(this) + 0x158);
+    mfc::CString text;
+    for (int key : {0x23, 0x24}) {
+        text.Format(GameText(0x00792ED8), key);   // "infoitem_%d"
+        texts->GetString(text, &text);
+        array->SetAtGrow(array->GetSize(), text);
+    }
+}
+EI_REPLACE_METHOD(0x006280C0, CConstructorPage::BuildSpellMaker);
+
+void CConstructorPage::BuildItemMaker(void* slots) {
+    rect_ = RECT{200, 100, 600, 500};
+    kind_ = 7;
+    slots_ = slots;
+    LoadTexture(GameText(0x00793F4C), 3, 0);   // constritem1
+    LoadTexture(GameText(0x00793F40), 3, 0);   // constritem2
+    LoadTexture(GameText(0x00793F34), 3, 0);   // constritem3
+    LoadTexture(GameText(0x00793F28), 3, 0);   // constritem4
+    AddRect(this, RECT{200, 250, 300, 350});   // the blueprint
+    AddRect(this, RECT{300, 200, 400, 300});   // the parts
+    AddRect(this, RECT{300, 300, 400, 400});
+    BuildMakerPage(this);
+    AddMakerPictures(this);
+    selected_ = 0;
+}
+EI_REPLACE_METHOD(0x00628CC0, CConstructorPage::BuildItemMaker);

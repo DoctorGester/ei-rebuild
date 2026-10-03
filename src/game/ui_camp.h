@@ -354,3 +354,21 @@ public:
 };
 static_assert(offsetof(CHeroQuickStrip, y_) == 0x150);
 static_assert(sizeof(CHeroQuickStrip) == 0x158);
+
+// The constructors' second pages: the spell maker (vtables 00741670 / 0074163C, 0x16C bytes) and the
+// item maker (007415D4 / 007415A0, 0x158 bytes): the slots of what is being made beside a 2 x 4 grid.
+class CConstructorPage : public CUiWindow {
+public:
+    // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
+    // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
+    void BuildSpellMaker(void* slots);
+    // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
+    // (constritem1..4) and a highlight frame.
+    void BuildItemMaker(void* slots);
+
+    int kind_;                       // +0x148 6 spell maker, 7 item maker
+    std::uint8_t unknown_14C[4];
+    void* slots_;                    // +0x150
+    int selected_;                   // +0x154 0
+};
+static_assert(offsetof(CConstructorPage, slots_) == 0x150);

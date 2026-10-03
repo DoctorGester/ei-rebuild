@@ -336,6 +336,33 @@ static void __fastcall QuickStripBuildVerify(CHeroQuickStrip* self, void*, int t
 }
 EI_VERIFY(0x00622A80, QuickStripBuildVerify, 0, s_unused);
 
+// --- Constructor pages (006280C0 / 00628CC0) -------------------------------------------------------
+
+static void __fastcall SpellMakerBuildVerify(CConstructorPage* self, void*, void* slots) {
+    Counts before = CountsOf(self);
+    int texts = *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self) + 0x160);
+    self->BuildSpellMaker(slots);
+    Counts after = CountsOf(self);
+    int textsAfter = *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self) + 0x160);
+    bool ok = after.regions == before.regions + 12 && after.sceneObjects == before.sceneObjects + 5 &&
+              after.surfaces == before.surfaces + 1 && after.objects >= before.objects + 4 && textsAfter == texts + 2 &&
+              self->kind_ == 6 && self->slots_ == slots && self->selected_ == 0;
+    ei::verify::Check("CConstructorPage::BuildSpellMaker", true, ok, "regions %d->%d sprites %d->%d", before.regions,
+                      after.regions, before.sceneObjects, after.sceneObjects);
+}
+EI_VERIFY(0x006280C0, SpellMakerBuildVerify, 0, s_unused);
+
+static void __fastcall ItemMakerBuildVerify(CConstructorPage* self, void*, void* slots) {
+    Counts before = CountsOf(self);
+    self->BuildItemMaker(slots);
+    Counts after = CountsOf(self);
+    bool ok = after.regions == before.regions + 11 && after.sceneObjects == before.sceneObjects + 5 &&
+              after.objects >= before.objects + 4 && self->kind_ == 7 && self->slots_ == slots && self->selected_ == 0;
+    ei::verify::Check("CConstructorPage::BuildItemMaker", true, ok, "regions %d->%d sprites %d->%d", before.regions,
+                      after.regions, before.sceneObjects, after.sceneObjects);
+}
+EI_VERIFY(0x00628CC0, ItemMakerBuildVerify, 0, s_unused);
+
 // --- Global map Update (0062F050) --------------------------------------------------------------------
 
 // Every frame; it draws the weather (whose animation advances with each call), so ours run alone:
