@@ -54,6 +54,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   console output.
 - `waitfor <seconds> <expression>` waits until the expression is nonzero (fails after <seconds>);
   prefer it to fixed `wait`s.
+  `waitline <seconds> <text>` waits until the console has printed <text> (e.g. `Saved savea`).
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
   `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the

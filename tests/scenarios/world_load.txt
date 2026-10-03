@@ -10,6 +10,9 @@ console thingamabob
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
+# The new game autosaves to savea on its first interface frame; spawning before that puts the
+# wolves into the save and the load below would keep them (a race seen under Rebirth).
+waitline 15 Saved savea
 console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))

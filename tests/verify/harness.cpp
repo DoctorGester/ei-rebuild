@@ -24,6 +24,7 @@
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
 //                             fails and the game is closed
+//   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
 //   waitfor <seconds> <expression>
@@ -101,6 +102,10 @@ std::size_t g_checkFrom = 0;
 DWORD g_checkDeadline = 0;
 // A pending "waitfor": the expression, when it was last evaluated (its output starts at
 // g_waitForFrom), when to evaluate it next, and when to give up.
+// A pending "waitline": the text to find anywhere in the console output so far, and when to give up.
+bool g_waitingLine = false;
+std::string g_waitLineText;
+DWORD g_waitLineDeadline = 0;
 bool g_waitingFor = false;
 bool g_waitForPending = false;
 std::string g_waitForExpr;
@@ -539,6 +544,21 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingLine) {
+        bool found = false;
+        for (const std::string& line : g_console)
+            if (line.find(g_waitLineText) != std::string::npos) { found = true; break; }
+        if (found) {
+            Log("harness: waitline '%s' found", g_waitLineText.c_str());
+            g_waitingLine = false;
+        } else if (Now() >= g_waitLineDeadline) {
+            Log("harness: waitline '%s' timed out", g_waitLineText.c_str());
+            g_failures.push_back("waitline " + g_waitLineText + " timed out");
+            g_waitingLine = false;
+        } else {
+            return;
+        }
+    }
     while (g_next < g_steps.size()) {
         if (Now() < g_waitUntil) return;
         Step s = g_steps[g_next++];
@@ -587,6 +607,14 @@ void RunSteps() {
             return;
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
+        } else if (s.verb == "waitline") {
+            char* rest = nullptr;
+            unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+            while (rest && *rest == ' ') ++rest;
+            g_waitingLine = true;
+            g_waitLineText = rest ? rest : "";
+            g_waitLineDeadline = Now() + seconds * 1000;
+            return;
         } else if (s.verb == "waitfor") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
