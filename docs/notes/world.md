@@ -411,9 +411,10 @@ arrays, no offsets moved: +0xEC exit CArray header, +0x124 `mobFiles_`, +0x15C, 
   (00596140, "CWorldServer::LoadMap. Can't load AIGraph"), clears the alarms, then **LoadMap**
   00595C70: loads the terrain when the map changed (005B43C0, Rebirth-patched); when the .mob file
   is the current one it tears the zone down (ClearMapObjects, the timed objects, the missiles),
-  otherwise it saves the current zone's state (0058B250); marks every player dirty; then
-  **LoadMapObjects** 00596030 for the .mob file and 005951A0 for a new zone. 00595B50 (glue)
-  reloads only when the map or the .mob name (+0x12D6C / +0x12D68) changed.
+  otherwise it empties the world of the zone (ResetZone 0058B250; called a state save here
+  before the seventh round); marks every player dirty; then **LoadMapObjects** 00596030 for the
+  .mob file and 005951A0 for a new zone. 00595B50 (glue) reloads only when the map or the .mob
+  name (+0x12D6C / +0x12D68) changed.
 - **LoadMapObjects** 00596030: a root chunk (vtable 0073FAD4, the 0073BE9C layout: Chunk + MFC
   CFile at +0x18) opened on the full path (00595BA0: the name as is with a drive letter, else under
   the game folder) with flags 0x8020; 00481660 reads the objects (chunk_stream.cpp handles the
@@ -490,7 +491,7 @@ iterator {0, map}). No floating point.
   0057ABA0 (load), 0057C460, 0057C700, 00595BA0.
 - 00595C70 LoadMap, 005957E0 zone teardown, 00596E70 LoadSave (3.4 KB), 00596900 map objects
   load, 00597BD0 world save (2 KB), 0057B3B0 save game, 0058EF20 unit creation (3 KB, float-heavy
-  placement), 0058B250 (zone state save), 00596140 AI graph load, 005951A0: large and full of
+  placement), 0058B250 (ResetZone), 00596140 AI graph load, 005951A0: large and full of
   network / script state. Next candidates: 00596900 (the counterpart of SaveMapObjects) and
   005957E0.
 - 00595B50 (glue: reload when the map or .mob name changed): two compares around patched calls.
@@ -598,23 +599,33 @@ None added: figure meshes are loaded whenever a unit or object is created on the
 bounds; ExtendWorldBox runs when an object's box is recomputed (00518100). The old-format loaders
 and MorphFigureBounds6 run only for figures without a FIG header (possibly none in the data).
 
-# Save and load, player sync, game flow, spells (seventh round)
+# Save and load, player sync, game flow, party, briefings (seventh round)
 
-Code: `src/game/world_save.cpp` (mission.sav), `world_sync.cpp` (SyncPlayer, SendZone),
-`world_units.cpp` (CreateUnits), `world_game.cpp` (the game flow object 007AFE20: SaveGame, and the
-__stdcall zone starters), `world_quests.cpp` (merc briefings, briefing rewards, experience, party
-records), `world_weather.cpp`, `world_loot.cpp`, `world_update.cpp` (slot 6), `world_spells.cpp`.
-Verify wrappers: `tests/verify/verify_world_{save,sync,units,game,quests,weather,loot,update,spells}.cpp`.
+Code: `src/game/world_save.cpp` (mission.sav, the shared-object list, PrepareSave),
+`world_sync.cpp` (SyncPlayer, SendZone), `world_units.cpp` (CreateUnits, UseQuickItem),
+`world_game.cpp` (the game flow object 007AFE20: SaveGame, the zone starters, the multiplayer
+start, the flow's requests and session glue), `world_quests.cpp` (merc briefings, briefing
+rewards, experience, party records), `world_party.cpp` (Redeploy, the quest items carried between
+zones, item copies), `world_briefing.cpp` (the briefing speaker and variables, quest texts),
+`world_guard.cpp` (the player data guard), `world_weather.cpp` (+ ShowBolt), `world_loot.cpp`,
+`world_update.cpp` (slot 6), `world_spells.cpp`, `world_map.cpp` (LoadMap, ResetZone,
+TeardownZone, SendFreshObjects, ResetState). Verify wrappers:
+`tests/verify/verify_world_{save,sync,units,game,quests,party,briefing,guard,weather,loot,update,spells,map}.cpp`.
 
 Shared files changed (additive): `world.h` only. Fields split out of unknown arrays (no offsets
 moved): CWorld +0x24..+0x34, the managers +0x3C..+0x58 (`manager40_` map objects, `manager48_`
-timed objects, `manager4C_`, `itemManager_` +0x54 = slot 18); CWorldServer +0x68 `updateCount_`,
-`countdowns_` now 0x14 bytes with +0x84 / +0x88 after it, +0x100 `loaded_`, +0x120 `zoneName_`,
-+0x13C, +0x170 `aiMap_` (CAIMap, extent unknown), `commandsB_` ends at +0x12C64 followed by
-`diplomacy_`, +0x12D64 `unknown12D64_` (game kind: 1 single player, 3 no range test), +0x12D68
-`mobName_`, +0x12D6C `mapName_`, +0x12DB8 `otherMapObjects_`, +0x12DD0 `namedObjects_`. New:
-`WorldStream` (the save stream: slot 1 Read, 2 Write, +8 version), `GameFlow`, `struct Float4;`
-forward declaration, and the method declarations below.
+timed objects, `manager4C_` = slot 22, `itemManager_` +0x54 = slot 18); CWorldServer +0x68
+`updateCount_`, `countdowns_` now 0x14 bytes with +0x84 / +0x88 after it, +0x100 `loaded_`,
++0x120 `zoneName_`, +0x13C, +0x164 `startPosition_` (three floats), +0x170 `aiMap_` (CAIMap,
+extent unknown), `commandsB_` ends at +0x12C64 followed by `diplomacy_`, +0x12D64
+`unknown12D64_` (game kind: 1 single player, 3 no range test, 4 network), +0x12D68 `mobName_`,
++0x12D6C `mapName_`, +0x12DB8 `otherMapObjects_`, +0x12DD0 `namedObjects_`. New: `WorldStream`
+(the save stream: slot 1 Read, 2 Write, +8 version), `GameFlow` (its methods below), `struct
+Float4;` forward declaration, the method declarations below and the free functions
+LoadSharedObject, ShowBolt, GuardPlayerData / GuardPlayers, BriefingSpeakerInto /
+BriefingVariableInto, UnloadQuestTexts, NameInList, RequestZone. Also `config/library.csv` (rows
+listed under Skipped) and the fifth round's text about 0058B250, which is ResetZone (it empties
+the world of the zone), not a zone state save.
 
 ## Map
 
@@ -634,14 +645,45 @@ forward declaration, and the method declarations below.
   them, others removed. LoadSavedMapObjects 00596900 is SaveMapObjects' counterpart (registers
   each object in +0x12D70, +0x12DA0, +0x12DB8 (non-units), +0x12DD0 (named), copies a unit's six
   model dwords at +0x4B0 from its prototype's model record, marks parts changed, wakes it).
-- **Game flow** (007AFE20): SaveGame 0057B3B0 (empties saves\<slot>, copies the visited zones'
-  files kept for the save, writes scenario.sav (party, input, scripts, globals; header 0xDEAD)
-  and, for zone kinds 0 and 2, mission.sav (SaveWorld; header 0x102), prints "Saved <slot>").
+  PrepareSave 005956E0 (before a save): every living unit refills its controller's slots.
+- **The shared-object list** (+0x12E60, CList of 0x20-byte {id, player, value, CArray<CRefPtr>}):
+  AddSharedObject 005947E0 puts a new head (from 0066F4C0, a multiplayer client's corpse loot:
+  the player of the session record for the id, the gold, the objects); LoadSharedObject 00589CA0
+  reads an entry (object ids resolved by the item manager 007AFFB4).
+- **Game flow** (007AFE20; +0 state, +4 zone or save name, +8 a party, +0x78, +0x7C, +0x80):
+  SaveGame 0057B3B0 (empties saves\<slot>, copies the visited zones' files kept for the save,
+  writes scenario.sav (party, input, scripts, globals; header 0xDEAD) and, for zone kinds 0 and 2,
+  mission.sav (SaveWorld; header 0x102), prints "Saved <slot>"); 00581610 is a thunk to it.
   EnterZone 0057A060 (__stdcall; from 0057C460): plays the pending dcity movie, then restores a
   visited zone (zs.<zone>) from saves\current and lets the world catch up (one Tick per elapsed
   gtime unit since zt.<zone>, at most 1000, waking units within 70 of the entrance), else loads
   it fresh (NewZone, gz6g frozen/thawed map, time 4); then the zone's scripts and exits.
-  StartNetworkZone 0057BDF0 (__stdcall; state machine and 0057ED60) is its network counterpart.
+  StartNetworkZone 0057BDF0 (__stdcall; state machine and 0057ED60) is its network counterpart;
+  LeaveZone 0057A780 the way out. The requests the flow's update (005800C0, Rebirth) acts on:
+  state 2 load (005816D0), 3 (005816C0), 4 go to a zone (00581700, also BeginMultiplayerGame),
+  5 / 6 with a party copy (00581730 / 00581760). Multiplayer: BeginMultiplayerGame 0057F280
+  (start zone bz1mpg..bz4mpg by the client's game type, 0057E6B0; the outside party gets unit id
+  0x3B9AF5CE when alone and "z.MPGame1"), UpdateMultiplayerVariable 0057F190 (each network step:
+  "z.MPGame1" set or removed by the sessions' peers), ReturnLocalParty 0057F0F0,
+  UpdateAndAcknowledge 0057F150, RecreateClientSession 0057F390 and CloseSessions 00581660 (the
+  sessions' refcount is the low word at +4), RequestZone 00581630.
+- **Briefings** (client side): the speaker of a briefing is the second word of the first "#show"
+  line of section "briefing <name>" in the briefing texts (007AF788) that is not "Hero"
+  (0057FC90); its variable is "b.<speaker>.<name>" or "b.elder.<name>" (0057FDE0); MarkBriefing
+  0057FF40 sets it (loading the zone's quests first for "<zone>_N" names, 005809D0 Rebirth),
+  ForgetBriefing 00580040 removes it; OnVariableChanged 00580840 passes "q." variables to the
+  quest log (007C7D50) and the client world; UnloadQuestTexts 00580F10. Server side:
+  CompleteBriefing 00592090 -> ApplyMercBriefing 00591DE0 (b.mercN.n8 cleared, n10 / n2 the
+  mercenary leaves (and n10 its unit is removed), n1 / n3 hired: amerc_N = 2 and added to the
+  party), UpdateMercBriefings 00591800; RequestBriefing 0057FB60 on a client.
+- **Party between zones**: CollectParty 00590A40 / StoreParty 0058FD90 on leaving, Redeploy
+  00590700 on arrival: RestorePlayerItems 00590460 gives back fresh copies (CopyItem 00594CE0 =
+  world slot 24) of the items the player brings (all on a client; in single player the quest
+  items of this zone, TakeZoneQuestItems 005901E0: their description names the zone or an object
+  asks for their id), then the units are created at the target exit's centre (+0xDC of the
+  player picks the exit of zone +0xD8; a lost game goes back to this zone's exit 0) facing away
+  from the map centre (FPATAN) unless the exit has a heading, the player state gets the start
+  (0066ED30) and kind 3 updates the merc briefings; runScripts runs the first command queue 5x.
 - **Per-player sync** (Update -> SyncPlayer 0058B750 for every player): zone (SendZone 0058C890),
   weather, time, wind, countdowns when dirty; then the map objects the player should see (camera
   range from 0073F91C, own units, named objects, the units its units can hear: max(perception *
@@ -653,9 +695,23 @@ forward declaration, and the method declarations below.
   ("hr" -> "hr.NN" hair style from the prototype record), placement from the placement array or
   a line along the rotation's heading; 005927C0 (Rebirth) creates the unit; then AI (player
   mode), free cell, controller, items, spells, the "WorldScript( AddObject( Heroes, ... ) )" line.
-- **Update** (slot 6) 0058DFF0, **UpdateWeather** 0058CCD0 (Tick, every 64 ticks), **CastSpell**
-  0058E850 / **CreateMissile** 0058E670, **Loot** 005942D0, **UpdateMercBriefings** 00591800,
-  **CompleteBriefing** 00592090, **AwardExperience** 005911C0, **SyncPartyRecords** 00590C70.
+  UseQuickItem 0058ECE0 creates the "st.tr.130" effect (base message 0046A5C0, vtable 0073FA58)
+  where a potion is drunk.
+- **The player data guard** (005790E0, from WinMain on (de)activation): with `plain` 0 the
+  players' gold (+0xC0), party records (0x704 bytes from +0x20 of each 0x784-byte record) and, on
+  the server, their units' controller statistics (0x704 bytes from +0x1E0) are XORed with a new
+  random key (007AFECC), with 1 XORed back; also the party outside a game (007C82B0); state at
+  0079026C. 005791C0 does one player list.
+- **Zone reset**: ResetZone 0058B250 empties the world of the zone; ResetState 0058B600 adds the
+  map name, diplomacy, command queues, AI map and the game state fields; TeardownZone 005957E0;
+  LoadMap 00595C70; SendFreshObjects 005951A0.
+- **Update** (slot 6) 0058DFF0, **UpdateWeather** 0058CCD0 (Tick, every 64 ticks; lightning
+  strikes through ShowBolt 00578E30: a script line on the queue 007C29CC, one time in four only a
+  thunder sound), **CastSpell** 0058E850 / **CreateMissile** 0058E670, **Loot** 005942D0 and
+  LootDeadUnits 00593D60 (the local player loots every dead unit, then they are removed),
+  **AwardExperience** 005911C0, **SyncPartyRecords** 00590C70, CreateItemNamed 00594AB0 /
+  CreateSpellNamed 00594BC0 (the scripts' item / spell by name), AddCounted 00594F30 (an item
+  whose state changed goes on counted_ once).
 
 ## Rewritten
 
@@ -665,36 +721,81 @@ forward declaration, and the method declarations below.
 | 00597BD0 | CWorldServer::SaveWorld (RET 4) | differential: the original writes into a scratch CMemoryStream first, ours into the real one; size and bytes compared (its side effects repeat harmlessly: gtime +0, nothing left to release) |
 | 00596900 | CWorldServer::LoadSavedMapObjects (RET 4) | ours only: stream not overrun, map objects registered |
 | 0058D280 | CWorldServer::UpdatePlayerTimes (RET 4) | ours only: every player's last tick is the world's |
+| 005956E0 | CWorldServer::PrepareSave | ours only: map objects still registered |
+| 00589CA0 | LoadSharedObject (thiscall on the entry, RET 4) | differential on a memory stream and a fresh entry: the original reads into a scratch entry first (its references released), the stream is rewound; fields, objects and bytes read compared |
+| 005947E0 | CWorldServer::AddSharedObject (RET 0x10) | ours only: one more entry, at the head, with the id, value and one object per list element |
 | 0058B750 | CWorldServer::SyncPlayer (RET 4) | ours only: the collected array consistent, 1 for a leaving player |
 | 0058C890 | CWorldServer::SendZone (RET 4) | ours only: 1 when the player is not playing |
 | 0058EF20 | CWorldServer::CreateUnits (RET 0x20) | ours only: every record's id names a unit afterwards |
+| 0058ECE0 | CWorldServer::UseQuickItem (RET 8) | ours only: the world has no fewer objects |
 | 0057B3B0 | GameFlow::SaveGame (RET 4) | ours only: a reported save has its scenario.sav, single player only |
+| 00581610 | GameFlow::SaveGameThunk (RET 4) | ours only: 0 or 1 |
 | 0057A060 | EnterZone (__stdcall, RET 4) | ours only: 0 or 1 |
 | 0057BDF0 | StartNetworkZone (__stdcall, RET 4) | ours only: on success every exit leads to MPGame1 |
+| 0057A780 | LeaveZone (__stdcall, RET 4) | ours only: a reported save has its saves\current\<zone>.sav |
+| 0057AA80 | CWorldServer::ZoneNameInto (RET 4) | differential: the original copies into a scratch CString; both share the zone name's buffer |
+| 0057F190 | GameFlow::UpdateMultiplayerVariable | ours, then the original must leave "z.MPGame1" as ours set it |
+| 0057E6B0 | GameFlow::MultiplayerZoneInto (RET 4) | differential: the same name |
+| 0057F280 | GameFlow::BeginMultiplayerGame | ours only: state 4, the flow's and the party's zone equal, 007C7DD8 set |
+| 0057F0F0 | GameFlow::ReturnLocalParty | logged (effects in original code) |
+| 0057F150 | GameFlow::UpdateAndAcknowledge | ours only: an active client's request is not left at kind 3 |
+| 0057FB60 | GameFlow::RequestBriefing (RET 4) | logged |
+| 0057F390 | GameFlow::RecreateClientSession | ours only: a client session with a reference |
+| 00581660 | GameFlow::CloseSessions | ours only: both sessions gone, state 1 |
+| 00581630 | RequestZone (__stdcall, RET 8) | logged |
+| 005816C0, 005816D0, 00581700, 00581730, 00581760 | GameFlow::RequestState3 / RequestLoad / RequestZoneChange / RequestPartyZone5 / RequestPartyZone6 | ours only: state, name and +0x78 as asked |
+| 0057F820 | NameInList (fastcall, AL) | differential: the same answer |
+| 0057FC90 | BriefingSpeakerInto (__stdcall, RET 8) | differential: the original into a scratch string first; strings compared |
+| 0057FDE0 | BriefingVariableInto (__stdcall, RET 8) | differential, same |
+| 0057FF40 | GameFlow::MarkBriefing (RET 4) | ours only: the variable reads 1 |
+| 00580040 | GameFlow::ForgetBriefing (RET 4) | ours only: the variable reads 0 |
+| 00580840 | GameFlow::OnVariableChanged (RET 4) | logged |
+| 00580F10 | UnloadQuestTexts | ours only: the list is empty |
+| 005790E0 | GuardPlayerData (thiscall on 007AFEA4, RET 4) | ours only: the guard state is as asked |
+| 005791C0 | GuardPlayers (fastcall + key, RET 4) | involution: ours, then the original with the same key must restore the checksum of every guarded dword, then ours again |
 | 00591800 | CWorldServer::UpdateMercBriefings | ours only: per slot at most one of n1/n3/n9 set |
 | 00592090 | CWorldServer::CompleteBriefing (RET 8) | ours only: the player's gold does not go down |
+| 00591DE0 | CWorldServer::ApplyMercBriefing (RET 8) | ours only: the records change by at most one, and only for "b.merc" names |
 | 005911C0 | CWorldServer::AwardExperience (RET 8) | counted (effects are in original code) |
 | 00590C70 | CWorldServer::SyncPartyRecords (RET 4) | ours only: record list counts sane |
+| 0058FD90 | CWorldServer::StoreParty (RET 0xC) | ours only: no stored record's unit is still an owned unit |
+| 00590A40 | CWorldServer::CollectParty (RET 8) | ours only: records not more than before |
+| 00590700 | CWorldServer::Redeploy (RET 0xC) | ours only: a deployed player's last tick is the world's, others untouched |
+| 00590460 | CWorldServer::RestorePlayerItems (RET 4) | ours only: in a network game the carried items are untouched |
+| 005901E0 | CWorldServer::TakeZoneQuestItems (RET 8) | differential: the original on a copy of the array into a scratch list first; arrays and moved items compared |
+| 00594CE0 | CWorldServer::CopyItem (slot 24, RET 4) | ours only: type, record and count copied |
+| 00594AB0 / 00594BC0 | CWorldServer::CreateItemNamed / CreateSpellNamed (RET 4) | logged |
+| 00594F30 | CWorldServer::AddCounted (RET 4) | ours, then the original must find the item and change nothing |
 | 0058CCD0 | CWorldServer::UpdateWeather | ours only: day factor matches rain, no null timed object |
+| 00578E30 | ShowBolt (thiscall on 007AFEA4, RET 0x18) | ours only: exactly two random numbers drawn |
 | 005942D0 | CWorldServer::Loot (RET 8, AL) | ours only: gold not lower, a looted shared record removed |
+| 00593D60 | CWorldServer::LootDeadUnits | ours only: no more dead units than before |
 | 0058DFF0 | CWorldServer::Update (slot 6) | ours only: returns 1 and counts one update |
 | 0058E850 | CWorldServer::CastSpell (RET 0x18) | ours only: missile list links consistent |
 | 0058E670 | CWorldServer::CreateMissile (RET 0x20) | same |
+| 00595C70 | CWorldServer::LoadMap (RET 0x10) | ours only: 0, or 1 with the map and .mob names set and +0x11D / +0x11E set |
+| 0058B250 | CWorldServer::ResetZone | ours only: id maps, missiles, counted list, exits and .mob files empty |
+| 0058B600 | CWorldServer::ResetState | ours only: kind, alarms, start position, map name cleared, day factor 1 |
+| 005957E0 | CWorldServer::TeardownZone | ours only: no player left, missiles and timed objects empty, kind and result 0 |
+| 005951A0 | CWorldServer::SendFreshObjects | ours only: every map object still a world object, none left in +0x12D88 |
 
 Calls between these functions go through their original addresses (forwarders) so each verify
 wrapper sees its calls; the Rebirth-patched callees (00595080, 005927C0, 005935C0, 00595480,
-0057C460, 006AC970) are always called at their original address.
+0057C460, 006AC970, 005800C0, 005809D0) are always called at their original address.
 
 ## Floating point
 
 Files with float code are compiled under `#pragma float_control(precise, on)` (world_units,
-world_weather, world_update, world_spells, parts of world_save and world_quests) and were read
-back with dumpbin: stores to float where the original stores (StoreFloat; `static_cast<float>`
-alone was dropped by /fp:fast in two places, now StoreFloat), values the original keeps on the
-FPU as doubles, NaN branches as the original's FCOMP tests (C3-only tests written as
-`!(a < b) && !(a > b)`, C0 tests as `!(a >= b)`). Random words are converted with
-x87::FromUnsigned; truncations use the game's _ftol (006E853C). MSVC spills some extended
-intermediates to qwords (exact at 24/53-bit precision, not at 64-bit; same caveat as before).
+world_weather, world_update, world_spells, world_party, parts of world_save and world_quests) and
+were read back with dumpbin: stores to float where the original stores (StoreFloat;
+`static_cast<float>` alone was dropped by /fp:fast in two places, now StoreFloat), values the
+original keeps on the FPU as doubles, NaN branches as the original's FCOMP tests (C3-only tests
+written as `!(a < b) && !(a > b)`, C0 tests as `!(a >= b)`). Random words are converted with
+x87::FromUnsigned; truncations use the game's _ftol (006E853C). Redeploy's facing uses FPATAN
+through a naked helper; its differences (start - centre) are spilled to qwords, exact for float
+operands. ShowBolt sums x and y into floats but keeps z on the FPU, as the original. MSVC spills
+some extended intermediates to qwords (exact at 24/53-bit precision, not at 64-bit; same caveat
+as before).
 
 ## Forwarders added (standalone build must replace)
 
@@ -702,18 +803,24 @@ All are file-local EI_ORIGINAL forwarders. Notable ones: save streams (00461190 
 004A50D0 / 004A4DA0 stream diffs, 00579830 / 00579B80 save file read/write, 00596140 AI graph,
 005B1380), managers (004047E0 / 00404860 changed objects, 004048F0 release unused, 00403F40),
 missiles (0067E510, 0067E7D0, 0067E960, 0067ECB0, 0067E6D0, 0059C7A0), player state messages
-(0066D100 .. 0066F450, 0066EBD0, 0066ED30, 0066EE10, 0066EE80, 0066F280, 0066F2C0), party
-records (00661050 / 006611D0 / 00661DB0 / 006618C0 / 00661C10, 006608D0 .. 00660E70, 004A8xxx),
-the creation message (0046C010, 0046AEB0, 006E859F), CAIMap (005B8B30/80, 005BA830, 005BA9D0,
-005BBE40, 005BBC70, 005BC750, 005BA790), the sector map (005C0BD0, 005C0DF0, 005C1010), MFC /
-STLport instantiations of this range (0059C660, 0059CA60, 0059CC60, 0059D2E0, 0059D5F0,
-0059D5C0, 005985C0 .. 0059B510, 00598790 .. 005986B0, 0052CEF0, 005588A0, 004621A0, ...),
-the CRT _CIacos (006E7320) and _ftol (006E853C), gethostname (006E6100).
+(0066D100 .. 0066F450, 0066EBD0, 0066ED30, 0066EE10, 0066EE80, 0066F280, 0066F2C0, 00665470,
+00665780, 0066B1B0), party records (00661050 / 006611D0 / 00661300 / 00661DB0 / 006618C0 /
+00661C10 / 006620F0 / 006628D0 / 00662AC0, 006608D0 .. 00660E70, 004A8890 / 004A88C0), the
+creation messages (0046C010, 0046A5C0, 0046AEB0, 006E859F), the item factory (006AD000,
+006AD1E0, 006A0110), CAIMap (005B8B30/80, 005BA830, 005BA9D0, 005BBE40, 005BBC70, 005BC750,
+005BA790), the sector map (005C0BD0, 005C0DF0, 005C1010), the sessions (0041A2E0, 0041BC40,
+0041D260), the briefing texts (004DEFC0, 004DF030, 004DFCB0, 004DEDD0), the quest log
+(005F7FC0, 00565380), MFC / STLport instantiations of this range (0059C660, 0059CA60, 0059CC60,
+0059D2E0, 0059D5F0, 0059D5C0, 005985C0 .. 0059B510, 00598790 .. 005986B0, 0059B8F0, 0059C890,
+0059C8C0, 0059CB50, 0059C3D0, 0059D450, 005719B0, 00599FA0, 0052CEF0, 005588A0, 004621A0,
+00429F10, 00427830, 0040C720, ...), CString members (006FDAE9 Left), the CRT _CIacos (006E7320)
+and _ftol (006E853C), gethostname (006E6100).
 
 ## Original bugs and oddities kept
 
 - LoadSave: the shared-object elements are copied from a local whose first three dwords are
-  never written (the element's Load overwrites them; ours zeroes them); LoadSave reads the
+  never written (the element's Load overwrites them; ours zeroes them); AddSharedObject does the
+  same for its new head (ours does not copy them; they are set right after). LoadSave reads the
   player list's iterator from the heap (operator_new(8)), as SaveWorld does.
 - LoadSavedMapObjects marks every part changed when any change was saved (it tests the bit
   `1 << i` itself, not `changed & bit`), and uses the object before its null test.
@@ -721,17 +828,45 @@ the CRT _CIacos (006E7320) and _ftol (006E853C), gethostname (006E6100).
   the setting); ours passes it zero-extended.
 - CreateUnits places a unit on a free cell near the requested position, not near its line
   position.
-- CastSpell / Loot / CreateMissile / record syncs write +4 of a new allocation before testing it
-  for null; Update reuses one player iterator for every loop; SaveGame and EnterZone reuse
-  argument slots as temporaries (not observable).
+- CastSpell / Loot / CreateMissile / record syncs / RecreateClientSession write +4 of a new
+  allocation before testing it for null; CopyItem writes the copy's count before its null test;
+  Update reuses one player iterator for every loop; SaveGame, EnterZone, MarkBriefing and
+  BriefingVariableInto reuse argument slots as temporaries (not observable).
 - AwardExperience's solo branch needs the player list's +0x2C to be non-zero.
+- AddSharedObject's second argument is unused, and the session player looked up is the entry's
+  id (the caller passes a unit id twice).
+- CopyItem, CreateItemNamed and CreateSpellNamed build and free two empty CPtrLists (vtable
+  0073B8D4) around the call; the three FreeDataChain(null) calls are not kept.
+- LootDeadUnits does not stop its walk at an empty map entry (most walks do) and calls Loot and
+  RemoveObject on the global server, not on `this`.
+- UnloadQuestTexts clears its vector through an inlined erase(begin, end) whose copy loop runs
+  over no elements.
+- GameFlow's MultiplayerZoneInto maps game types above 3 (unsigned) to bz1mpg.
 
 ## Skipped
 
 - Rebirth-patched: 0057ABA0 (load game), 0057C460, 0057C700, 005927C0, 005935C0, 00595480,
   00595BA0, 0058D670, 0057EB10, 0057F560, 005800C0, 005809D0, 005812F0, 005813A0, 00595080.
-- 0059F8F0 / 0059F710: CFigureMesh Load/Save to a CFile, only reachable through vtables (no call
-  seen); left with the figure mesh area.
-- The 580-byte functions 00574680..005870F0, 0059A710, 0059AB10, 0059D800 (and other 0x59xxxx
-  helpers): STLport hashtable resize / MFC CList / CArray instantiations; added to
-  config/library.csv where identified.
+- Lifetime code: the CWorldServer constructor 00589ED0, destructor body 0058AAD0, Create
+  0058AE10, the command queue and AI map destructors 0058A140 / 0058A450, vector deleting
+  destructors without callers (00570730, 005709F0, 0058A960), the database tables' destructors
+  called by the database reload 0057DEE0 (0057D030, 0057D1D0, 0057D500, 0057D670, 0057D810,
+  0057D9B0, 0057DBB0, 0057E1A0, 0057E2F0, 0057E3D0, 0057E510, 00582030, 00582730, 0058C650 ...),
+  the coder classes at 00580DD0..00580EE0 (vtables 0073F8C8 / 0073F8A4, used by the
+  Rebirth-patched 005809D0), the copy constructor 00580900.
+- Static initializers (run before the hooks are installed at WinMain): 0057F480, 005809A0,
+  00581070.
+- Not done (large, or network / file code best done with their neighbours): 0057F850 (random
+  picks over STLport lists), 0057EE10 (the flow's zone switch), 0057E740 (starting a server),
+  0058DAF0 (accepting players), 00596140 / 00596350 (AI graph file checks), 00579830 / 00579B80
+  (save file read / write with the coder), 00579E60, 005810A0 / 005814C0 (quest registration),
+  0057AAB0 (emptying a save folder), 0059F8F0 / 0059F710 (CFigureMesh Load/Save to a CFile, only
+  reachable through vtables), 0059F510 / 0059F0F0 / 0059A4A0 and the 0x582000-0x585000 STLport
+  list / map helpers of 0057F850.
+- Library instantiations added to `config/library.csv` this round: the STLport sort internals of
+  the draw lists (00573740, 005756F0, 005759B0, 00575BC0, 00576D40, 005769C0, 00577920,
+  00577360, 00577C10, 005781A0 with DepthLess; 00577FC0, 00577730 with UnitOrderLess, only
+  reached from the rewritten 005740D0), 00575E50, 00587480, 00581860 (STLport vector
+  members), 00581030 (char_traits move), 005993A0 (CArray Serialize), the MFC collections
+  0059B8F0, 0059C890, 0059CA60, 0059CAD0, 00599FA0, 0059CB50, 0059CCE0, 0059C510, 0059C810,
+  0059D5F0, and (earlier) vector<T*>::reserve and hashtable instantiations.
