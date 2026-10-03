@@ -6,4 +6,3 @@
 005A5C70  CFigureMesh::LoadFigShared
 005A4D60  CFigureMesh::LoadOldShared
 # BuildDeathAnimation: 8 of 45 calls differ (round 9); sent back
-00550A80  CUnitServer::BuildDeathAnimation

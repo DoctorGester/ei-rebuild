@@ -641,7 +641,8 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
 
     char* animation = UnitFindAnimation(unit, nullptr, key, 1);
     bool add;
-    if (isFall) {
+    if (isDying) {
+        // (The original reads the dying argument here: after its PUSH ESI, [ESP+0x28] is it.)
         if (!animation) animation = UnitFindAnimation(unit, nullptr, key & kKeyNoSide, 1);
         add = animation != nullptr;
     } else {

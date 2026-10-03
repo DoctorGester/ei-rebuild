@@ -49,9 +49,17 @@ void CompareSteps(const char* name, CUnitServer* self, AnimationSteps* steps, in
     afterOurs.Restore();
     bool same = actual == expected && SameSteps(steps, &scratch) && (!duration || *duration == scratchDuration) &&
                 afterOurs.SameAs(afterOriginal);
-    ei::verify::Check(name, true, same, "unit %d (%d): result %d/%d, %d/%d steps, duration %d/%d%s", UnitId(self), detail,
-                      expected, actual, scratch.count, steps->count, duration ? scratchDuration : 0,
-                      duration ? *duration : 0, afterOurs.SameAs(afterOriginal) ? "" : ", random state differs");
+    int step = steps->count == scratch.count ? StepsDifference(scratch.steps, steps->steps, steps->count) : -2;
+    const AnimationStep* a = step >= 0 ? &scratch.steps[step] : nullptr;
+    const AnimationStep* b = step >= 0 ? &steps->steps[step] : nullptr;
+    ei::verify::Check(name, true, same,
+                      "unit %d (%d): result %d/%d, steps %d/%d cap %d/%d extra %d/%d, duration %d/%d, first step "
+                      "difference %d (anim %u/%u dur %d/%d +8 %d/%d)%s",
+                      UnitId(self), detail, expected, actual, scratch.count, steps->count, scratch.capacity,
+                      steps->capacity, scratch.extra, steps->extra, duration ? scratchDuration : 0,
+                      duration ? *duration : 0, step, a ? a->animation : 0u, b ? b->animation : 0u,
+                      a ? a->duration : 0, b ? b->duration : 0, a ? a->unknown_08 : 0, b ? b->unknown_08 : 0,
+                      afterOurs.SameAs(afterOriginal) ? "" : ", random state differs");
     FreeSteps(&scratch);
 }
 } // namespace
@@ -163,6 +171,6 @@ static void __fastcall BuildDeathAnimationVerify(CUnitServer* self, void*, Anima
             s_death(self, nullptr, scratch, direction, dying, fall);
             return true;
         },
-        static_cast<int>(direction >> 22));
+        static_cast<int>((direction >> 22) * 100 + (dying & 0xFF) * 10 + (fall & 0xFF)));
 }
 EI_VERIFY(0x00550A80, BuildDeathAnimationVerify, 5, s_death);
