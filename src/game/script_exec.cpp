@@ -1156,7 +1156,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             std::memcpy(&damage[9], &f[0], 4);   // +0x24 amount
             damage[10] = 0x3F800000u;   // +0x28 1.0
             damage[11] = 1;             // +0x2C
-            ei::VCall<void>(state, 0x50 / 4, static_cast<void*>(damage), 0);
+            // TakeHit(hit, attacker, source): three arguments (the original pushes the first 0 early).
+            ei::VCall<void>(state, 0x50 / 4, static_cast<void*>(damage), 0, 0);
             break;
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)

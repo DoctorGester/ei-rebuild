@@ -431,6 +431,12 @@ All in `script_exec.cpp` / `script_exec_run.cpp`:
 - A run keeps a pointer to its instance's killed flag after the instance is removed (a KillScript
   after a Sleep writes into freed memory). The scenario's script kills itself before it sleeps.
 - SleepUntilIdle dereferences the unit's +0x240 object without a null check.
+- ResetTarget (0xE8) on a unit without a current target can crash the original (005D6630 reads
+  through a null pointer, seen on a freshly spawned wolf after Follow/Idle); the scenario does not
+  use it.
+- InflictDamage calls the unit state's TakeHit (vtable +0x50) with three arguments (hit, 0, 0); the
+  original pushes the first 0 before building the hit, which is easy to miss (a two-argument call
+  unbalanced the stack and crashed the first in-game run).
 - The mode commands write the reference count (+4) of the new mode before testing operator new's
   result.
 - Sleep counts Execute calls, so a Sleep inside a For body ends the body for that member and the
