@@ -143,15 +143,15 @@ EI_REPLACE_METHOD(0x0047B620, AlignedObjectArray::Clear);
 // --- Coder state -------------------------------------------------------------------------------
 
 CoderState* CoderState::Construct() {
-    value = 0;
-    dirty = 0;
-    out = nullptr;
-    sink = nullptr;
-    unknown_2824 = 0;
-    unknown_281C = -1;
-    unknown_2818 = 0;
-    windowSize = 0x400;
-    std::memset(table, 0, sizeof(table));
+    out.p = nullptr;
+    out.bits = 0;
+    out.bytePtr = nullptr;
+    out.sink = nullptr;
+    prev = 0;
+    matchPos = -1;
+    pos = 0;
+    chain[0] = 0x400;
+    std::memset(head, 0, sizeof(head));
     window[0] = 0;
     window[0x400] = 0;
     window[0x3FF] = 0;
