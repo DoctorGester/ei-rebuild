@@ -1277,3 +1277,71 @@ void CParticleSource::TickBlast(ParticleElement* e) {
     velocity[2] = Store(D(velocity[2]) - D(EI_BLAST_DRAG));
 }
 EI_REPLACE_METHOD(0x0048C760, CParticleSource::TickBlast);
+
+// --- PoisonFog (0x2007, 0x2008): a disc of cloud puffs laid on the ground ------------------------
+
+namespace {
+
+#define EI_FOG_CELL GameFloat(0x0073CB34)            // 1.0: the grid spacing
+#define EI_FOG_QUARTER GameFloat(0x0073C3B0)         // 0.25
+#define EI_FOG_JITTER_LOW GameFloat(0x0073CDA8)      // -0.25
+#define EI_FOG_SIZE_SCALE GameDouble(0x0073CDA0)     // ~0.5 * 2^-32
+#define EI_FOG_SIZE_BASE GameFloat(0x0073CB30)       // 1.0
+#define EI_FOG_ALPHA GameFloat(0x0073CD98)           // 160.0
+
+} // namespace
+
+// 0048B080. PoisonFog: emits nothing itself. When the source has no particles it lays one puff
+// per grid cell (jittered by a quarter cell) inside the disc of radius `size` around its position,
+// on the ground, straight into its list (from the pool), and grows the bounds. Always 0.
+int CParticleSource::EmitPoisonFog(Particle*, int) {
+    if (particles.count != 0) return 0;
+    float radius = size;
+    int n = GameFtol((D(size) + D(EI_P_ONE)) / D(EI_FOG_CELL));
+    for (int i = -n; i <= n; ++i) {
+        float row = Store(static_cast<double>(i));
+        float radiusSquared = Store(D(radius) * D(radius));
+        for (int j = -n; j <= n; ++j) {
+            float x = Store(static_cast<double>(j) * D(EI_FOG_CELL));
+            float y = Store(D(row) * D(EI_FOG_CELL));
+            float high = Store(D(EI_FOG_CELL) * D(EI_FOG_QUARTER));
+            float low = Store(D(EI_FOG_CELL) * D(EI_FOG_JITTER_LOW));
+            x = Store(Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low) + D(x));
+            double yu = Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low) + D(y);
+            y = Store(yu);
+            if (yu * D(y) + D(x) * D(x) >= D(radiusSquared)) continue;
+            Particle* q = static_cast<ParticlePool*>(owner_)->Acquire();
+            if (!q) continue;
+            double px = D(x) + D(position.x);
+            x = Store(px);
+            y = Store(D(y) + D(position.y));
+            q->pos.x = Store(px);
+            q->pos.y = y;
+            q->size = Store(Unsigned(Next()) * EI_FOG_SIZE_SCALE + D(EI_FOG_SIZE_BASE) - D(EI_FOG_QUARTER));
+            q->pos.z = Store(GroundHeight(x, y) + D(q->size));
+            if (type_ == 0x2008) {
+                q->color = 0xFFFFAF7F;
+            } else {
+                int a = x87::fistp(Store(D(alpha) * D(EI_FOG_ALPHA)));
+                if (a > 255) a = 255;
+                q->color = (static_cast<std::uint32_t>(a) << 24) | 0xFFFFFF;
+            }
+            q->life = lifetime;
+            q->frame = static_cast<int>(Next() % static_cast<std::uint32_t>(frameCount));
+            q->frameTimer = frameDelay;
+            std::memcpy(&q->prevPos, &q->pos, sizeof(Vector3) + sizeof(float));
+            q->dead = 0;
+            q->prevColor = q->color;
+            q->prevFrame = q->frame;
+            boundsMin.x = PickIfLess(q->pos.x, boundsMin.x);
+            boundsMin.y = PickIfLess(q->pos.y, boundsMin.y);
+            boundsMin.z = PickIfLess(q->pos.z, boundsMin.z);
+            boundsMax.x = !(boundsMax.x >= q->pos.x) ? q->pos.x : boundsMax.x;
+            boundsMax.y = !(boundsMax.y >= q->pos.y) ? q->pos.y : boundsMax.y;
+            boundsMax.z = !(boundsMax.z >= q->pos.z) ? q->pos.z : boundsMax.z;
+            particles.AddTail(q);
+        }
+    }
+    return 0;
+}
+EI_REPLACE_METHOD(0x0048B080, CParticleSource::EmitPoisonFog);

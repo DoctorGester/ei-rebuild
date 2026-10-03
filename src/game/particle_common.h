@@ -67,6 +67,13 @@ __declspec(naked) inline int __cdecl GameFtol(double) {
     }
 }
 
+// 00564070 TerrainOwner::SurfaceHeight(x, y) on the terrain owner 007AF5B8; leaves ST0 unrounded.
+__declspec(naked) inline double __fastcall SurfaceHeight(void* /*owner*/, void*, float /*x*/, float /*y*/) EI_ORIGINAL(0x00564070)
+inline double GroundHeight(float x, float y) { return SurfaceHeight(reinterpret_cast<void*>(0x007AF5B8), nullptr, x, y); }
+
+// x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
+inline float PickIfLess(float a, float b) { return !(a >= b) ? a : b; }
+
 // 0044C470: the game's debug message (cdecl, one argument; compiled out, other mods may hook it).
 __declspec(naked) inline void __cdecl DebugMessage(const char*) EI_ORIGINAL(0x0044C470)
 

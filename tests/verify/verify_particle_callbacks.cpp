@@ -81,3 +81,22 @@ EI_UPDATE_WRAPPER(UpdateBlast)
 EI_VERIFY(0x0048C590, UpdateBlastVerify, 7, s_UpdateBlast);
 EI_ELEMENT_WRAPPER(TickBlast)
 EI_VERIFY(0x0048C760, TickBlastVerify, 7, s_TickBlast);
+
+// 0048B080: ours only (it takes particles from the shared pool into the source's list): nothing
+// is emitted, and every particle of a freshly laid disc lies inside the bounds.
+static EmitFn s_unusedPoisonFog;
+static int __fastcall EmitPoisonFogVerify(CParticleSource* self, void*, Particle* p, int index) {
+    int before = self->particles.count;
+    int result = self->CParticleSource::EmitPoisonFog(p, index);
+    bool inside = true;
+    if (before == 0)
+        for (auto* node = self->particles.head; node; node = node->next) {
+            const Vector3& q = node->data->pos;
+            inside = inside && !(q.x < self->boundsMin.x) && !(q.y < self->boundsMin.y) && !(q.z < self->boundsMin.z) &&
+                     !(q.x > self->boundsMax.x) && !(q.y > self->boundsMax.y) && !(q.z > self->boundsMax.z);
+        }
+    ei::verify::Check("CParticleSource::EmitPoisonFog", true, result == 0 && inside && (before == 0 || self->particles.count == before),
+                      "type %X: %d -> %d particles", self->type_, before, self->particles.count);
+    return result;
+}
+EI_VERIFY(0x0048B080, EmitPoisonFogVerify, 0, s_unusedPoisonFog);
