@@ -692,6 +692,13 @@ struct GameFlow {
     // name at +0x0C, value at +0x18): "q." variables go to the quest log (007C7D50) and the
     // client world.
     void OnVariableChanged(const void* event);
+    // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
+    // zone or save name (+4), +0x78 and, for 5 and 6, a copy of a party (+8, 00661300).
+    void RequestState3();                                            // 005816C0
+    void RequestLoad(const char* name, char flag);                   // 005816D0 (RET 8): 2, +0x78 = flag != 0
+    void RequestZoneChange(const char* zone, int entrance);          // 00581700 (RET 8): 4, +0x78 = entrance
+    void RequestPartyZone5(const char* zone, const void* party);     // 00581730 (RET 8)
+    void RequestPartyZone6(const char* zone, const void* party);     // 00581760 (RET 8)
 };
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`

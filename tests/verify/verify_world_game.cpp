@@ -225,3 +225,46 @@ static void __fastcall CloseSessionsVerify(GameFlow* self, void*) {
     ei::verify::Check("GameFlow::CloseSessions", true, ok, "");
 }
 EI_VERIFY(0x00581660, CloseSessionsVerify, 0, s_unused);
+
+namespace {
+// The request fields after a request: state, name (+4), +0x78.
+bool RequestIs(GameFlow* flow, int state, const char* name) {
+    auto* raw = reinterpret_cast<std::uint8_t*>(flow);
+    return *reinterpret_cast<int*>(raw) == state &&
+           (!name || std::strcmp(*reinterpret_cast<const char**>(raw + 4), name) == 0);
+}
+int Field78(GameFlow* flow) { return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(flow) + 0x78); }
+} // namespace
+
+// 005816C0 .. 00581760: afterwards the request holds what was asked.
+static void __fastcall RequestState3Verify(GameFlow* self, void*) {
+    self->RequestState3();
+    ei::verify::Check("GameFlow::RequestState3", true, RequestIs(self, 3, nullptr), "");
+}
+EI_VERIFY(0x005816C0, RequestState3Verify, 0, s_unused);
+
+static void __fastcall RequestLoadVerify(GameFlow* self, void*, const char* name, char flag) {
+    self->RequestLoad(name, flag);
+    ei::verify::Check("GameFlow::RequestLoad", true, RequestIs(self, 2, name) && Field78(self) == (flag != 0), "%s %d", name,
+                      flag);
+}
+EI_VERIFY(0x005816D0, RequestLoadVerify, 0, s_unused);
+
+static void __fastcall RequestZoneChangeVerify(GameFlow* self, void*, const char* zone, int entrance) {
+    self->RequestZoneChange(zone, entrance);
+    ei::verify::Check("GameFlow::RequestZoneChange", true, RequestIs(self, 4, zone) && Field78(self) == entrance, "%s %d",
+                      zone, entrance);
+}
+EI_VERIFY(0x00581700, RequestZoneChangeVerify, 0, s_unused);
+
+static void __fastcall RequestPartyZone5Verify(GameFlow* self, void*, const char* zone, const void* party) {
+    self->RequestPartyZone5(zone, party);
+    ei::verify::Check("GameFlow::RequestPartyZone5", true, RequestIs(self, 5, zone), "%s", zone);
+}
+EI_VERIFY(0x00581730, RequestPartyZone5Verify, 0, s_unused);
+
+static void __fastcall RequestPartyZone6Verify(GameFlow* self, void*, const char* zone, const void* party) {
+    self->RequestPartyZone6(zone, party);
+    ei::verify::Check("GameFlow::RequestPartyZone6", true, RequestIs(self, 6, zone), "%s", zone);
+}
+EI_VERIFY(0x00581760, RequestPartyZone6Verify, 0, s_unused);

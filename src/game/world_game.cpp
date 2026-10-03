@@ -933,6 +933,34 @@ void GameFlow::CloseSessions() {
     At<int>(this, 0) = 1;   // the state
 }
 
+// The flow's requests: the state (+0) its update (005800C0) acts on next, the zone or save name
+// (+4, a CString), +0x78, and a party (+8) for states 5 and 6.
+void GameFlow::RequestState3() { At<int>(this, 0) = 3; }
+
+void GameFlow::RequestLoad(const char* name, char flag) {
+    At<int>(this, 0) = 2;
+    At<mfc::CString>(this, 4) = name;
+    At<int>(this, 0x78) = flag != 0;
+}
+
+void GameFlow::RequestZoneChange(const char* zone, int entrance) {
+    At<int>(this, 0) = 4;
+    At<mfc::CString>(this, 4) = zone;
+    At<int>(this, 0x78) = entrance;
+}
+
+void GameFlow::RequestPartyZone5(const char* zone, const void* party) {
+    At<int>(this, 0) = 5;
+    At<mfc::CString>(this, 4) = zone;
+    PartyCopyFrom(reinterpret_cast<std::uint8_t*>(this) + 8, nullptr, party);
+}
+
+void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
+    At<int>(this, 0) = 6;
+    At<mfc::CString>(this, 4) = zone;
+    PartyCopyFrom(reinterpret_cast<std::uint8_t*>(this) + 8, nullptr, party);
+}
+
 bool __fastcall NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
         if (gamecrt::stricmp(*list, name) == 0) return true;
@@ -948,6 +976,11 @@ EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
 EI_REPLACE(0x00581630, RequestZone);
 EI_REPLACE_METHOD(0x00581660, GameFlow::CloseSessions);
+EI_REPLACE_METHOD(0x005816C0, GameFlow::RequestState3);
+EI_REPLACE_METHOD(0x005816D0, GameFlow::RequestLoad);
+EI_REPLACE_METHOD(0x00581700, GameFlow::RequestZoneChange);
+EI_REPLACE_METHOD(0x00581730, GameFlow::RequestPartyZone5);
+EI_REPLACE_METHOD(0x00581760, GameFlow::RequestPartyZone6);
 EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);
