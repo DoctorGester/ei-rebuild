@@ -351,6 +351,20 @@ public:
     // (StoreParty).
     void CollectParty(WorldPlayer* player, void* placements);
 
+    // world_party.cpp
+    // 005901E0 (RET 8). Moves quest items (class 0x14) from `itemArray` (a CArray of item
+    // pointers) to `list` (CPtrList): in single player only those whose description names this
+    // zone or whose id an object of the zone asks for (object slots 38/40); otherwise all.
+    void TakeZoneQuestItems(void* itemArray, void* list);
+    // 00590460 (RET 4). Gives the player fresh copies of the items it brings into the zone (all
+    // of them on a client, the zone's quest items otherwise; nothing in a network game).
+    void RestorePlayerItems(WorldPlayer* player);
+    // 00590700 (RET 0xC). The party arrives in the zone (single player and kind 3, with +0x15C):
+    // its units are created at the entrance's centre (the target zone's exit), facing away from
+    // the map centre or along the exit's heading, the player state gets the start; `runScripts`
+    // runs the script command queue five times.
+    void Redeploy(WorldPlayer* player, void* placements, char runScripts);
+
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
     // records; an existing object with the record's id is removed first), at its entry in
