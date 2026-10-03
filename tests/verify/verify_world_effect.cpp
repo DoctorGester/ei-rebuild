@@ -290,9 +290,13 @@ EI_VERIFY(0x006768F0, DefaultRadiusVerify, 6, s_defaultRadius);
     EI_VERIFY(addr, RadiusVerify_##Class, 6, s_radius_##Class)
 
 EI_RADIUS_VERIFY(0x00676050, CEffectSound, "CEffectSound::Radius");
+EI_VERIFY(0x00676050, RadiusVerify_CEffectSound, 6, s_radius_CEffectSound);
 EI_RADIUS_VERIFY(0x00676930, CEffectSoundSeq, "CEffectSoundSeq::Radius");
+EI_VERIFY(0x00676930, RadiusVerify_CEffectSoundSeq, 6, s_radius_CEffectSoundSeq);
 EI_RADIUS_VERIFY(0x00677690, CEffectAmbientSound, "CEffectAmbientSound::Radius");
+EI_VERIFY(0x00677690, RadiusVerify_CEffectAmbientSound, 6, s_radius_CEffectAmbientSound);
 EI_RADIUS_VERIFY(0x00677F70, CEffectPointLight, "CEffectPointLight::Radius");
+EI_VERIFY(0x00677F70, RadiusVerify_CEffectPointLight, 6, s_radius_CEffectPointLight);
 
 // --- Pack, Load, Save (every class) ----------------------------------------------------------------
 
@@ -305,12 +309,19 @@ EI_RADIUS_VERIFY(0x00677F70, CEffectPointLight, "CEffectPointLight::Radius");
     EI_VERIFY(addr, PackVerify_##Class, stolen, s_pack_##Class)
 
 EI_PACK_VERIFY(0x00676550, CEffectSound, 6, "CEffectSound::Pack");
+EI_VERIFY(0x00676550, PackVerify_CEffectSound, 6, s_pack_CEffectSound);
 EI_PACK_VERIFY(0x00677180, CEffectSoundSeq, 5, "CEffectSoundSeq::Pack");
+EI_VERIFY(0x00677180, PackVerify_CEffectSoundSeq, 5, s_pack_CEffectSoundSeq);
 EI_PACK_VERIFY(0x00677B20, CEffectAmbientSound, 5, "CEffectAmbientSound::Pack");
+EI_VERIFY(0x00677B20, PackVerify_CEffectAmbientSound, 5, s_pack_CEffectAmbientSound);
 EI_PACK_VERIFY(0x00678610, CEffectPointLight, 6, "CEffectPointLight::Pack");
+EI_VERIFY(0x00678610, PackVerify_CEffectPointLight, 6, s_pack_CEffectPointLight);
 EI_PACK_VERIFY(0x006791A0, CEffectParticle, 6, "CEffectParticle::Pack");
+EI_VERIFY(0x006791A0, PackVerify_CEffectParticle, 6, s_pack_CEffectParticle);
 EI_PACK_VERIFY(0x00679DB0, CEffectWall, 6, "CEffectWall::Pack");
+EI_VERIFY(0x00679DB0, PackVerify_CEffectWall, 6, s_pack_CEffectWall);
 EI_PACK_VERIFY(0x0067A600, CEffectLightning, 6, "CEffectLightning::Pack");
+EI_VERIFY(0x0067A600, PackVerify_CEffectLightning, 6, s_pack_CEffectLightning);
 
 #define EI_SAVE_VERIFY(addr, Class, stolen, label)                                                  \
     static void(__fastcall* s_save_##Class)(Class*, void*, void*);                                  \
@@ -322,12 +333,19 @@ EI_PACK_VERIFY(0x0067A600, CEffectLightning, 6, "CEffectLightning::Pack");
     EI_VERIFY(addr, SaveVerify_##Class, stolen, s_save_##Class)
 
 EI_SAVE_VERIFY(0x006766D0, CEffectSound, 5, "CEffectSound::SaveState");
+EI_VERIFY(0x006766D0, SaveVerify_CEffectSound, 5, s_save_CEffectSound);
 EI_SAVE_VERIFY(0x00677430, CEffectSoundSeq, 5, "CEffectSoundSeq::SaveState");
+EI_VERIFY(0x00677430, SaveVerify_CEffectSoundSeq, 5, s_save_CEffectSoundSeq);
 EI_SAVE_VERIFY(0x00677C60, CEffectAmbientSound, 5, "CEffectAmbientSound::SaveState");
+EI_VERIFY(0x00677C60, SaveVerify_CEffectAmbientSound, 5, s_save_CEffectAmbientSound);
 EI_SAVE_VERIFY(0x00678740, CEffectPointLight, 5, "CEffectPointLight::SaveState");
+EI_VERIFY(0x00678740, SaveVerify_CEffectPointLight, 5, s_save_CEffectPointLight);
 EI_SAVE_VERIFY(0x006794E0, CEffectParticle, 5, "CEffectParticle::SaveState");
+EI_VERIFY(0x006794E0, SaveVerify_CEffectParticle, 5, s_save_CEffectParticle);
 EI_SAVE_VERIFY(0x00679ED0, CEffectWall, 5, "CEffectWall::SaveState");
+EI_VERIFY(0x00679ED0, SaveVerify_CEffectWall, 5, s_save_CEffectWall);
 EI_SAVE_VERIFY(0x0067A7F0, CEffectLightning, 5, "CEffectLightning::SaveState");
+EI_VERIFY(0x0067A7F0, SaveVerify_CEffectLightning, 5, s_save_CEffectLightning);
 
 #define EI_LOAD_VERIFY(addr, Class, stolen, label)                                                  \
     static void(__fastcall* s_load_##Class)(void*, void*, void*);                                   \
@@ -339,10 +357,15 @@ EI_SAVE_VERIFY(0x0067A7F0, CEffectLightning, 5, "CEffectLightning::SaveState");
     EI_VERIFY(addr, LoadVerify_##Class, stolen, s_load_##Class)
 
 EI_LOAD_VERIFY(0x006765F0, CEffectSound, 6, "CEffectSound::LoadState");
+EI_VERIFY(0x006765F0, LoadVerify_CEffectSound, 6, s_load_CEffectSound);
 EI_LOAD_VERIFY(0x00678690, CEffectPointLight, 6, "CEffectPointLight::LoadState");
+EI_VERIFY(0x00678690, LoadVerify_CEffectPointLight, 6, s_load_CEffectPointLight);
 EI_LOAD_VERIFY(0x006793E0, CEffectParticle, 6, "CEffectParticle::LoadState");
+EI_VERIFY(0x006793E0, LoadVerify_CEffectParticle, 6, s_load_CEffectParticle);
 EI_LOAD_VERIFY(0x0067A770, CEffectLightning, 5, "CEffectLightning::LoadState");
+EI_VERIFY(0x0067A770, LoadVerify_CEffectLightning, 5, s_load_CEffectLightning);
 EI_LOAD_VERIFY(0x00679EA0, CEffectWall, 6, "CEffectWall::LoadState");
+EI_VERIFY(0x00679EA0, LoadVerify_CEffectWall, 6, s_load_CEffectWall);
 
 // The string-array loaders read through helpers that use more of the stream: ours only.
 static void __fastcall SoundSeqLoadVerify(CEffectSoundSeq* self, void*, void* stream) { self->LoadState(stream); }
@@ -361,11 +384,17 @@ EI_VERIFY(0x00677BF0, AmbientLoadVerify, 0, s_unused);
     EI_VERIFY(addr, UnpackVerify_##Class, 0, s_unused)
 
 EI_UNPACK_VERIFY(0x00676430, CEffectSound, "CEffectSound::Unpack");
+EI_VERIFY(0x00676430, UnpackVerify_CEffectSound, 0, s_unused);
 EI_UNPACK_VERIFY(0x006779D0, CEffectAmbientSound, "CEffectAmbientSound::Unpack");
+EI_VERIFY(0x006779D0, UnpackVerify_CEffectAmbientSound, 0, s_unused);
 EI_UNPACK_VERIFY(0x00678520, CEffectPointLight, "CEffectPointLight::Unpack");
+EI_VERIFY(0x00678520, UnpackVerify_CEffectPointLight, 0, s_unused);
 EI_UNPACK_VERIFY(0x00678D30, CEffectParticle, "CEffectParticle::Unpack");
+EI_VERIFY(0x00678D30, UnpackVerify_CEffectParticle, 0, s_unused);
 EI_UNPACK_VERIFY(0x00679C70, CEffectWall, "CEffectWall::Unpack");
+EI_VERIFY(0x00679C70, UnpackVerify_CEffectWall, 0, s_unused);
 EI_UNPACK_VERIFY(0x0067A490, CEffectLightning, "CEffectLightning::Unpack");
+EI_VERIFY(0x0067A490, UnpackVerify_CEffectLightning, 0, s_unused);
 
 static void __fastcall SoundStartVerify(CEffectSound* self, void*, int update) { self->Start(update); }
 EI_VERIFY(0x006763A0, SoundStartVerify, 0, s_unused);

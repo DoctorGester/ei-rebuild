@@ -2,8 +2,9 @@
 
 Code: `src/game/world_effect.h`, `world_effect_internal.h`, `world_effect.cpp` (base and sounds),
 `world_effect_visual.cpp` (light, particles, wall, lightning), `src/game/resource_stream.h/.cpp`
-(the rest of the resource code). Verify: `tests/verify/verify_world_effect.cpp`,
-`tests/verify/verify_resource_stream.cpp`. Names are provisional (class names are the game's
+(the rest of the resource code), `src/game/player_messages.h/.cpp` (CPlayerServer's message
+writers, the party record lookup). Verify: `tests/verify/verify_world_effect.cpp`,
+`tests/verify/verify_resource_stream.cpp`, `tests/verify/verify_player_messages.cpp`. Names are provisional (class names are the game's
 GetClassName strings). The earlier resource work (CMappedResource, CMMIOResource methods,
 CResourceManager slots 16-22, CMappedFile) is in `resource.cpp` / `resource_manager.cpp`.
 
@@ -65,6 +66,19 @@ readable loose file first (`_access`, `_findfirst` for the size, `mmioOpen`), th
 entry. The archive part is dead code: its Open (00674310, which builds the accelerator with
 00674910) and the by-number open 006745C0 have no callers, so +0x14 / +0x18 stay null.
 
+### CPlayerServer's messages
+
+The server side of each player's connection (the single-player game has one too) queues messages
+for its client in the CMemoryStream at +0x48: a type byte and a fixed payload. The world player
+(+0x1C) keeps the dirty bits the state messages clear (+0x130: 1 state 0x02, 2 0x70, 4 0x71, 8
+0x72, 0x10 game time 0x07, 0x20 0x73), the script variables (+0xC4, a NamedFloatTable) and +0x100.
+The per-tick player update 0058B750 sends 0x70 / 0x71 / 0x72 / 0x73 / 0x07 when their dirty bits
+are set and sets state 4 (disconnect); 0058D280 writes every player's "gtime" variable (0x81); scripts set
+and delete variables (GSSetVar 0x81, GSSetVarMax, GSDelVar 0x82); unit code sends 0x0B (22 callers),
+0x04 / 0x0F positions (also remembered at +0x38), 0x0A / 0x14 / 0x0C object ids with their +0x28
+float. `PartyRecords::Find` 006621B0 finds a party unit's 0x784-byte record (its items) by unit id;
+CUnit::GetWeapon / GetSpell call it.
+
 ### What "model / animation names" in this range are
 
 The hr. / rh3. / mo%d strings are only used by 00667EC0, the client's handler for an object the
@@ -106,6 +120,9 @@ multiplayer only).
 | 00674CE0 | WildcardMatch | pure |
 | 00674AC0 | CMappedResource::ListFiles | original into a scratch CStringArray (MFC constructor / destructor 006FE925 / 006FE958), names compared |
 | 006721D0 / 006722F0 / 006722D0 | CMMIOResource constructor / destructor / deleting destructor | ours only (constructor: vtable, closed handles) |
+| 0066EE10, 0066EF30, 0066F180, 0066EBD0, 0066EC10, 0066EC70, 0066ECD0, 0066ED30, 0066EDA0, 0066EA10, 0066EA30, 0066EA70, 0066EAC0, 0066EB40, 0066EB90, 0066F1F0, 0066F280, 0066F2C0, 0066D6A0, 0066D6E0, 0066D770, 0066D7B0, 0066D250, 0066D260 | CPlayerServer SetVariable, DeleteVariable, SendGameTime, SendState02 / 70 / 71 / 72, SendPosition04 / 0F, Send17, SendObject0A, SendPair16, SendObjects0C, SendObject14, SendText0D / 08, SendValue15, SendPair18, SendObject43 / 0B, SendText13, SendText, SetDisconnect, SetFlag70 | ours into the stream, the stream (header and bytes), +0x1C..+0x48, +0x70 and the player's dirty bits saved, restored, original; compared with the result (skipped when ours grew the buffer; the variable table is set to the same value twice) |
+| 0066EE80, 0066F240, 0066D230 | CPlayerServer SetVariableMax, SendState73, WriteTo | ours only (they read what they change or call other objects' writers) |
+| 006621B0 | PartyRecords::Find | pure |
 | 00674D90 / 00674DF0 / 00674DD0 / 00674F40 | CResourceManager constructor / destructor / deleting destructor / slot 3 | ours only |
 
 All renamed in Ghidra where they were functions there.
@@ -137,8 +154,10 @@ contains; net_delta methods (0047FA40, 0047FAA0, 0047FAF0, 004A54D0, 0047E3A0, 0
 0047E310, 0047F3D0, 0047F7F0); MFC CStringArray SetSize 006FE9B8 / SetAtGrow 006FEBCE, the
 save-stream string readers 006773A0 / 004E5840; the particle methods the wall calls (00678D30,
 006793E0, 00678EC0, 00679350). Resources: `_access` 006EAF20, `_findfirst` 006EB832, `_splitpath`
-006E8BEE, FindEntry 00674850, CBaseManager 00402B20 / 004031E0 / 00402DF0. Effect virtual slots
-and the stream / world slots go through `ei::VCall`.
+006E8BEE, FindEntry 00674850, CBaseManager 00402B20 / 004031E0 / 00402DF0. Player messages: the
+variables table 00460BC0 (set) / 00460AF0 (get, object_tables.cpp) / 00460DB0 (delete), 0047DA80
+(state payload), 006D4570 (an object writes its state). Effect virtual slots, the streams' slot 2
+and the world slots go through `ei::VCall`.
 
 None of the callees is on the Rebirth list. `CMMIOResource::Destroy` calls our
 `CMappedResource::Destroy` directly: the original has an inline copy of that destructor, not a
@@ -158,11 +177,11 @@ call to the Rebirth-patched 006714A0.
 
 ## Skipped and why
 
-- The player classes (CParty, CPlayer, CPlayerClient, CPlayerServer, 00660000-00671280): network
-  packets, party records and their CString / CArray / hash_map members; mostly multiplayer. The
-  single-player parts run through the per-tick 00665DE0 / 0066E130 and the script-facing player
-  state calls (0066EE10..0066F310), which write into the client stream. Good next candidates:
-  `PartyRecords::Find` 006621B0 (pure), 0066EE10 / 0066D6E0 (fixed message layouts).
+- The rest of the player classes (CParty, CPlayer, CPlayerClient, CPlayerServer, 00660000-00671280):
+  packet dispatchers, compression and sending, party records and their CString / CArray / hash_map
+  members, the client's handlers; mostly multiplayer. The per-tick 00665DE0 / 0066E130 and the
+  zone-exit state 0066F310 are the next candidates. 0066D730 (message 0x12) writes one
+  uninitialised stack byte, so it cannot be reproduced exactly.
 - 00667EC0 (object from the server, the model / weapon names): multiplayer, 3 KB, see above.
 - Effect constructors and destructors (00675DD0, 006760A0, 00676760, 00676980, 00677510,
   006776E0, 00677D30, 00677FC0, 006787B0, 00678990, 006797E0, 006799E0, 00679FC0, 0067A0B0), the
@@ -181,8 +200,10 @@ No new scenario. `effects.txt` (CreateParticleSource: CEffectParticle Unpack / S
 Pack / setters, DeleteParticleSource: Reset), `spells.txt` (casts create sounds, sound sequences,
 lights, particles, the fire wall and lightning through 0067F170-0067F7C0; their Tick, Pack, Unpack,
 Start, Reset), `sandbox_actions.txt` (its healing spell goes through the same casting code, so
-probably its sounds and particles). `combat.txt`, `models.txt` and `units.txt` reach only the
-resource code. Every scenario reaches the resource code (archives open at startup, the
+probably its sounds and particles). `combat.txt`, `models.txt` and `units.txt` reach the resource code, the
+party record lookup (party units' weapons) and probably the player messages (0058B750 runs for
+every player every world tick and sends the state messages whose dirty bits are set;
+`sandbox_actions.txt`'s GSSetVar calls SetVariable). Every scenario reaches the resource code (archives open at startup, the
 sound file reader at every sound) and the CResourceManager constructors; destructors run at exit.
 Save / Load of effects only runs when a game with live effects is saved or loaded (none of the
 scenarios does that).
