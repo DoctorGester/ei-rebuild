@@ -12,6 +12,7 @@
 
 struct UnitStats;
 struct UnitParams;
+struct DamageInfo;   // spell.h
 
 constexpr int kClassUnit = 0x50;    // CEngineObject::GetClassId() of units (creatures)
 
@@ -203,6 +204,32 @@ public:
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
+    // unit_items.cpp.
+    // 00530730. Puts armour piece `item` (condition +0x20 rounding above 0) into the armour slot
+    // of its type (referenced; the controller's slot 26 gets its id) and releases the piece
+    // that was there. Returns that piece (null for an item that does not qualify).
+    CEngineObject* EquipArmour(CEngineObject* item);
+    // 00530840. Empties armour slot `slot` (the controller's slot 27 gets the piece's type, the
+    // piece is released). Returns the piece (released).
+    CEngineObject* UnequipArmour(int slot);
+    // 005315B0. Releases every item (weapons, armour with the controller's slots 27 and 28, quick
+    // items, spells, the carried ones) and frees the carried array.
+    void ReleaseAllItems();
+    // 00531220. Adds `item` (referenced) to the carried items (an MFC CArray grown like
+    // CArray::SetSize).
+    void AddCarried(CEngineObject* item);
+    // 005313B0. Releases carried item `index` and closes the gap.
+    // Returns the new count (EAX).
+    int RemoveCarried(int index);
+    // 00531110. Sends the equipment ids to the controller (slot 32: the 7 armour ids, slot 33:
+    // the 4 weapon ids). Returns what slot 33 leaves in EAX.
+    std::uintptr_t SendEquipment();
+    // 005308D0. unknown_23C = the index of the unit prototype named `name` (00514930), or -1.
+    // Returns what the original leaves in EAX (-1, or the low half of its division product).
+    std::uint32_t SetPrototype23CByName(const char* name);
+    // 00530920. unknown_23C = `index`. Returns `index` (EAX).
+    int SetPrototype23CIndex(int index);
+
     // Not rewritten (forwarders):
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     void* World();
@@ -276,7 +303,8 @@ public:
     std::uint32_t unknown_49C;
     CEngineObject** carried;        // +0x4A0 CArray of further items
     int carriedCount;               // +0x4A4
-    std::uint8_t unknown_4A8[0x4B0 - 0x4A8];
+    int carriedCapacity;            // +0x4A8
+    int carriedGrowBy;              // +0x4AC (0: an eighth of the count, 4..1024)
     float resistances[6];           // +0x4B0 per damage type (see ResistanceTo)
     std::uint8_t unknown_4C8[0x4DC - 0x4C8];
 };
@@ -434,6 +462,9 @@ struct UnitVitals {
     // mana (unless `inCombat`) and hit points (through the slots) regenerate. Returns AL: 1 when
     // something may have changed.
     bool Regenerate(UnitStats* stats, CUnit* unit, char inCombat);
+    // 00524FE0 (unit_hits.cpp). A hit on a map object that is not a creature: each damage type
+    // beyond the protection comes off the hit points, not below -5 times the maximum. Returns 1.
+    BOOL TakeHit(const DamageInfo* hit);
     // 00523370. Zeroes everything but the dword at +0. Returns what the original leaves in EAX
     // (the end of the block).
     void* Reset();
@@ -541,6 +572,18 @@ struct UnitStats {
     // vitals from the curves (the slots scaled along) and its hit points.
     void GainExperience(CUnit* unit, float amount);
 
+    // unit_hits.cpp.
+    // 005254B0. Applies `hit` (from `weapon`'s attack, may be null): flags 2 (head) / 4, the
+    // vitals' protection (scaled by the difficulty for units without a player), wear of the
+    // weapon, then the hit location's slot (DamageSlot) or, for location 6, every slot by its
+    // share. Returns whether a slot took damage (0 when nothing passed the protection).
+    int ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon);
+    // 00525070. The slot of the hit's location takes each damage type through its armour layers
+    // (text-key units; each layer's armour piece wears), the weapon wears, a slot may be
+    // severed (-5 times its maximum) or disabled; every damage type is logged (stream 007AF284).
+    // Then the hit points. Returns whether any damage passed.
+    int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon);
+
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.
     void Pack(CUnit* unused, UnitParams* params);
@@ -587,6 +630,15 @@ static_assert(offsetof(UnitStats, load) == 0x50);
 static_assert(offsetof(UnitStats, valuesB0) == 0xB0);
 static_assert(offsetof(UnitStats, slots) == 0x110);
 static_assert(offsetof(UnitStats, flags) == 0x6F8);
+
+// unit_hits.cpp.
+// 005253E0 (__fastcall). Wears `item` by `amount` (shared by its +0x48 pieces); the owner says
+// `brokenRemark` when its condition rounds to 0 or less, `wornRemark` when it drops below
+// 007C549C of its maximum.
+void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
+// 00525720 (__stdcall; ECX is not read). Text-key units: the armour pieces covering hit location
+// `location` at layer `layer` (1 or 2) wear by `amount`.
+void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);
 
 // unit_vitals.cpp. Scales by the unit's strengthen / weaken effects (types 0x1D / 0x1E):
 // (1 + strengthen * k) / (1 + weaken * k), 1 without a unit. __stdcall (some callers set ECX to
