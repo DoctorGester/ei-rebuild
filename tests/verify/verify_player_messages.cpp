@@ -136,8 +136,8 @@ EI_VERIFY(0x0066D6A0, Verify_0x0066D6A0, 5, s_orig_0x0066D6A0);
 EI_MESSAGE_VERIFY(0x0066D6E0, 7, "CPlayerServer::SendObject0B", (CPlayerServer* self, void*, const void* o, std::uint32_t v),
                   (self, nullptr, o, v), SendObject0B(o, v));
 EI_VERIFY(0x0066D6E0, Verify_0x0066D6E0, 7, s_orig_0x0066D6E0);
-EI_MESSAGE_VERIFY(0x0066D770, 5, "CPlayerServer::SendText13", (CPlayerServer* self, void*, const char* t, std::uint32_t u),
-                  (self, nullptr, t, u), SendText13(t, u));
+EI_MESSAGE_VERIFY(0x0066D770, 5, "CPlayerServer::SendText13", (CPlayerServer* self, void*, std::uint32_t u, const char* t),
+                  (self, nullptr, u, t), SendText13(u, t));
 EI_VERIFY(0x0066D770, Verify_0x0066D770, 5, s_orig_0x0066D770);
 EI_MESSAGE_VERIFY(0x0066D7B0, 7, "CPlayerServer::SendText", (CPlayerServer* self, void*, std::uint32_t type, const char* t),
                   (self, nullptr, type, t), SendText(static_cast<std::uint8_t>(type), t));

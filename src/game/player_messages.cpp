@@ -221,7 +221,7 @@ void CPlayerServer::SendObject0B(const void* object, std::uint32_t value) {
     Write(&out_, payload, 8);
 }
 
-void CPlayerServer::SendText13(const char* text, std::uint32_t) {
+void CPlayerServer::SendText13(std::uint32_t, const char* text) {
     WriteByte(&out_, 0x13);
     WriteText(&out_, text);
 }
