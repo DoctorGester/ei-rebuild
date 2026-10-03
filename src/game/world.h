@@ -78,9 +78,37 @@ struct ZoneExit {
 
     // 004E59F0. Whether (x, y) lies inside the exit area; not rewritten.
     bool Contains(float x, float y) const;
+    // 004608B0. Scalar deleting destructor (flags & 1: free the record too); returns this.
+    ZoneExit* DeletingDestructor(unsigned flags);
 };
 static_assert(sizeof(ZoneExit) == 0x3C);
 static_assert(offsetof(ZoneExit, target) == 0x28);
+
+// MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
+struct ZoneExitArray {
+    void* vtable;
+    ZoneExit* data;                       // +0x04
+    int size;                             // +0x08
+    int capacity;                         // +0x0C
+    int growBy;                           // +0x10
+
+    // 00573080. CArray::SetSize(size, growBy) (-1 keeps growBy); new records are constructed.
+    void SetSize(int newSize, int newGrowBy);
+};
+static_assert(sizeof(ZoneExitArray) == 0x14);
+
+// MFC CStringArray (vtable, data, size, capacity, growBy).
+struct StringArray {
+    void* vtable;
+    char** data;                          // +0x04 CStrings
+    int size;                             // +0x08
+    int capacity;                         // +0x0C
+    int growBy;                           // +0x10
+
+    // 006FEBCE. CStringArray::SetAtGrow(index, text).
+    void SetAtGrow(int index, const char* text);
+};
+static_assert(sizeof(StringArray) == 0x14);
 
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
@@ -174,6 +202,26 @@ public:
     // replace +0x60 (0055F410) and call its slot 4.
     void SetGameResult(int result);
 
+    // world_zone.cpp
+    // 005915E0 (RET 4). Replaces the zone exits (+0xEC) with copies of `source`'s records that
+    // lead somewhere (target not ""); an exit without an entrance must lead to "none".
+    void SetZoneExits(const ZoneExitArray* source);
+    // 005910A0 (RET 0x10). Script AddUnitToServer: builds a unit record for prototype
+    // `prototype` named `name` (006628D0), gives it the id `id` (the name's text key) and creates
+    // it at `position` with the default rotation (0058EF20).
+    void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position);
+    // 00596030 (RET 8). Reads the objects of a .mob file (chunked, 00481660). Returns 1, or what
+    // FatalError returns when the file cannot be opened or read.
+    int LoadMapObjects(const char* file, int keepIds);
+    // 00595AB0 (RET 4). Loads .mob file `file` once (the loaded names are kept at +0x124).
+    int LoadMobFile(const char* file);
+    // 00596C60. Removes every map object (+0x12DA0) from the server, releases the missiles and
+    // the counted objects at +0x12E44 and clears the countdowns.
+    void ClearMapObjects();
+    // 00596730 (RET 4). Writes every map object to a save stream: id, prototype name, the
+    // object's own Save (slot 10) and its two flag words; -1 ends the list.
+    void SaveMapObjects(void* stream);
+
     std::uint8_t unknown_068[0x6C - 0x68];
     std::uint8_t unknown6C_;              // +0x6C
     std::uint8_t unknown_06D[0x70 - 0x6D];
@@ -183,14 +231,18 @@ public:
     int unknownE0_;                       // +0x0E0
     int unknownE4_;                       // +0x0E4
     float unknownE8_;                     // +0x0E8
-    std::uint8_t unknown_0EC[0xF0 - 0xEC];
+    void* exitsVtable_;                   // +0x0EC CArray<ZoneExit> (ZoneExitArray) from here
     ZoneExit* exits_;                     // +0x0F0
     int exitCount_;                       // +0x0F4
-    std::uint8_t unknown_0F8[0x104 - 0xF8];
+    int exitCapacity_;                    // +0x0F8
+    int exitGrowBy_;                      // +0x0FC
+    std::uint8_t unknown_100[0x104 - 0x100];
     ObjectIdMap updateMap_;               // +0x104
-    std::uint8_t unknown_11C[0x138 - 0x11C];
+    std::uint8_t unknown_11C[0x124 - 0x11C];
+    StringArray mobFiles_;                // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
-    std::uint8_t unknown_13C[0x160 - 0x13C];
+    std::uint8_t unknown_13C[0x15C - 0x13C];
+    int unknown15C_;                      // +0x15C cleared when a .mob file fails to load
     int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
     std::uint8_t unknown_164[0x290 - 0x164];
     float gridHeightScale_;               // +0x290
@@ -203,11 +255,14 @@ public:
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
     std::uint8_t commandsB_[0x12D70 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
     ObjectIdMap objects_;                 // +0x12D70 every world object by id
-    std::uint8_t unknown_12D88[0x12DE8 - 0x12D88];
+    std::uint8_t unknown_12D88[0x12DA0 - 0x12D88];
+    ObjectIdMap mapObjects_;              // +0x12DA0 objects saved with the zone (SaveMapObjects)
+    std::uint8_t unknown_12DB8[0x12DE8 - 0x12DB8];
     ObjectIdMap timedObjects_;            // +0x12DE8
     std::uint8_t unknown_12E00[0x12E28 - 0x12E00];
     ProjectileList projectiles_;          // +0x12E28
-    std::uint8_t unknown_12E44[0x12E64 - 0x12E44];
+    mfc::CTypedPtrList<CEngineObject> counted_; // +0x12E44 counted references (released on clear)
+    std::uint8_t unknown_12E60[0x12E64 - 0x12E60];
     void* sharedObjects_;                 // +0x12E64 head of an MFC list of {object id, player}
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
@@ -227,6 +282,11 @@ static_assert(offsetof(CWorldServer, gridRows_) == 0x280C);
 static_assert(offsetof(CWorldServer, objects_) == 0x12D70);
 static_assert(offsetof(CWorldServer, timedObjects_) == 0x12DE8);
 static_assert(offsetof(CWorldServer, sharedObjects_) == 0x12E64);
+static_assert(offsetof(CWorldServer, exitsVtable_) == 0xEC);
+static_assert(offsetof(CWorldServer, mobFiles_) == 0x124);
+static_assert(offsetof(CWorldServer, unknown15C_) == 0x15C);
+static_assert(offsetof(CWorldServer, mapObjects_) == 0x12DA0);
+static_assert(offsetof(CWorldServer, counted_) == 0x12E44);
 
 // One walkable platform (bridge, deck) the client tests positions against. 0x4C bytes, stored in
 // an MFC-style singly linked list (next pointer first, then the record).

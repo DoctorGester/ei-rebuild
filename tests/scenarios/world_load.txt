@@ -1,0 +1,58 @@
+# World server zone loading, map objects and unit creation (src/game/world_zone.cpp). A new game
+# loads zone1 (zone exits, the .mob objects through LoadMapObjects, ClearMapObjects on the way) and
+# autosaves into harness_saves\savea (SaveMapObjects). Then many units are created with
+# AddUnitToServer (one name twice: the old unit is removed first) and removed again, and the
+# autosave is loaded back (ClearMapObjects, SetZoneExits, the saved map objects). The game runs
+# ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# Eight wolves around the hero.
+console @AddUnitToServer("ZoneWolf1","WolfTutor","ZoneWolf1",Add(GSGetVar(0,"hx"),8),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("ZoneWolf2","WolfTutor","ZoneWolf2",Sub(GSGetVar(0,"hx"),8),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("ZoneWolf3","WolfTutor","ZoneWolf3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),8),0)
+console @AddUnitToServer("ZoneWolf4","WolfTutor","ZoneWolf4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),8),0)
+console @AddUnitToServer("ZoneWolf5","WolfTutor","ZoneWolf5",Add(GSGetVar(0,"hx"),10),Add(GSGetVar(0,"hy"),10),0)
+console @AddUnitToServer("ZoneWolf6","WolfTutor","ZoneWolf6",Sub(GSGetVar(0,"hx"),10),Add(GSGetVar(0,"hy"),10),0)
+console @AddUnitToServer("ZoneWolf7","WolfTutor","ZoneWolf7",Add(GSGetVar(0,"hx"),10),Sub(GSGetVar(0,"hy"),10),0)
+console @AddUnitToServer("ZoneWolf8","WolfTutor","ZoneWolf8",Sub(GSGetVar(0,"hx"),10),Sub(GSGetVar(0,"hy"),10),0)
+waitfor 10 IsAlive(GetObjectByName("ZoneWolf8"))
+check IsAlive(GetObjectByName("ZoneWolf1"))
+check IsAlive(GetObjectByName("ZoneWolf4"))
+check IsAlive(GetObjectByName("ZoneWolf7"))
+
+# The same name again: the existing ZoneWolf1 is removed and a new one created elsewhere.
+console @GSSetVar(0,"w1",GetObjectID(GetObjectByName("ZoneWolf1")))
+console @AddUnitToServer("ZoneWolf1","WolfTutor","ZoneWolf1",Add(GSGetVar(0,"hx"),12),Add(GSGetVar(0,"hy"),4),0)
+check IsAlive(GetObjectByName("ZoneWolf1"))
+check IsEqual(GetObjectID(GetObjectByName("ZoneWolf1")),GSGetVar(0,"w1"))
+
+# Removing units.
+console @RemoveObjectFromServer(GetObjectByName("ZoneWolf2"))
+console @RemoveObjectFromServer(GetObjectByName("ZoneWolf5"))
+console @RemoveObjectFromServer(GetObjectByName("ZoneWolf6"))
+check Not(IsAlive(GetObjectByName("ZoneWolf2")))
+check Not(IsAlive(GetObjectByName("ZoneWolf6")))
+check IsAlive(GetObjectByName("ZoneWolf3"))
+wait 1000
+
+# Load the new game's autosave: the spawned wolves are gone, the hero is back.
+load savea
+waitfor 20 Mul(Not(IsAlive(GetObjectByName("ZoneWolf3"))),IsGreater(HP(GetLeader()),0))
+console @BlockUnit(GetLeader(),0)
+check Not(IsAlive(GetObjectByName("ZoneWolf1")))
+check Not(IsAlive(GetObjectByName("ZoneWolf8")))
+
+# Units can be created in the loaded zone too.
+console @AddUnitToServer("ZoneWolf9","WolfTutor","ZoneWolf9",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("ZoneWolf9"))
+check IsAlive(GetLeader())
+report
+quit

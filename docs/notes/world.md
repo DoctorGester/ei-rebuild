@@ -378,3 +378,114 @@ CollectVisible). The rewritten sort behaves exactly like the original here, cras
   (hero portraits "hr%2d"), 00568800 / 005683D0 (skins "%sskin%2d.mmp"), 00566360 / 00567500 /
   00567680 (per-frame manager updates, large), 00565090 / 00564E70 (clearing the sector grids),
   005647E0 / 00564BE0 (adding and removing objects in the client's maps): next candidates.
+
+# Zone loading, map objects, AddUnitToServer, saving the map objects (fifth round)
+
+Code: `src/game/world_zone.cpp`; verify wrappers: `tests/verify/verify_world_zone.cpp`; scenario:
+`tests/scenarios/world_load.txt`. Shared files changed: `world.h` (fields split out of unknown
+arrays, no offsets moved: +0xEC exit CArray header, +0x124 `mobFiles_`, +0x15C, +0x12DA0
+`mapObjects_`, +0x12E44 `counted_`; `ZoneExit::DeletingDestructor`; new `ZoneExitArray` and
+`StringArray`; six CWorldServer method declarations), `docs/standalone-cleanup.md` (one row).
+
+## Map of zone loading, saving and loading
+
+- **State machine** 0057C700 (Rebirth-patched; the request at 007AFE20): every request first runs
+  005957E0 (zone teardown: each player's view reset, the +0x12E64 list, `mobFiles_` emptied, script
+  state, **ClearMapObjects**, the missiles, the +0x12DE8 timed objects, 0055F890). Kind 3 (new
+  game) empties saves\current (0057AAB0) and starts zone1 through 0057C460 (Rebirth-patched);
+  kind 2 (load) calls 0057ABA0 (Rebirth-patched).
+- **NewZone** 00595480 (Rebirth-patched): checks the map / .mob paths, reads the AI graph
+  (00596140, "CWorldServer::LoadMap. Can't load AIGraph"), clears the alarms, then **LoadMap**
+  00595C70: loads the terrain when the map changed (005B43C0, Rebirth-patched); when the .mob file
+  is the current one it tears the zone down (ClearMapObjects, the timed objects, the missiles),
+  otherwise it saves the current zone's state (0058B250); marks every player dirty; then
+  **LoadMapObjects** 00596030 for the .mob file and 005951A0 for a new zone. 00595B50 (glue)
+  reloads only when the map or the .mob name (+0x12D6C / +0x12D68) changed.
+- **LoadMapObjects** 00596030: a root chunk (vtable 0073FAD4, the 0073BE9C layout: Chunk + MFC
+  CFile at +0x18) opened on the full path (00595BA0: the name as is with a drive letter, else under
+  the game folder) with flags 0x8020; 00481660 reads the objects (chunk_stream.cpp handles the
+  chunks); the file is closed through CFile slot 19. **LoadMobFile** 00595AB0 (script AddMob, and
+  the multiplayer zone loader 0057BDF0) loads extra .mob files once per zone; the byte 007C554C is
+  set while it runs.
+- **SetZoneExits** 005915E0: the zone record's exits (map database entry +0x48, a CArray of 0x3C
+  records) are copied to the server's CArray at +0xEC, skipping exits with an empty target; an exit
+  with a negative entrance must lead to "none" (FatalError otherwise). Called by the zone loaders
+  0057A060 / 0057BDF0 and by the load 0057ABA0.
+- **Saving** (0057B3B0; autosave into "savea" when a zone is entered and the option at 0079BE7C is
+  on, 006360F0 -> 006570E0 -> 00581610): the files of saves\current are copied into saves\<slot>\,
+  scenario.sav gets the global state and mission.sav the world (00597BD0: zone names, settings,
+  alarms, players, script state, the id maps, **SaveMapObjects** 00596730, the missiles, the time
+  wheel, diplomacy...). **Loading** (0057ABA0): scenario.sav, the files copied back into
+  saves\current, then the zone (0057C460) or mission.sav (00579E60 -> 00596E70 LoadSave, which
+  reads the map objects back with 00596900) and SetZoneExits. Every path is the game folder plus
+  "saves\", so the harness redirection to `harness_saves` covers all of it; `load savea` after
+  `newgame` loads the autosave the new game just wrote (0057ABA0 only refuses in the multiplayer
+  modes 2 and 3 of 007B0098; a missing scenario.sav sends the game to the main menu).
+- **Map objects** (+0x12DA0, an ObjectIdMap): the objects that belong to the zone and are saved
+  with it. RemoveObjectFromServer erases an object from +0x12D70, +0x12DD0, +0x12D88, +0x12DA0 and
+  +0x12DB8. +0x12E44 is an MFC list of counted references (released through slot 4).
+- **AddUnitToServer** 005910A0 (script command 0x88): the script passes the name's text key
+  (00461360) as the id. A 0x70-byte unit record builder (00661050 / 006628D0 / 006611D0) is filled
+  from the prototype; its 0x784-byte unit record (+0x30) gets the id at +0x1C and goes, alone in a
+  CArray of pointers (vtable 0073FAA4), to 0058EF20, which removes an existing object with that id,
+  creates the unit (005927C0, Rebirth-patched) near the position with the rotation at 007C2DE0, and
+  sets it up (items, spells, AI).
+
+## Rewritten
+
+| Address | Name | Verification |
+|---|---|---|
+| 005915E0 | CWorldServer::SetZoneExits (RET 4) | ours only: the exits equal the source records with a target, in order (bytes, target text) |
+| 005910A0 | CWorldServer::AddUnitToServer (RET 0x10) | ours only: afterwards FindObject(id) is a unit |
+| 00596030 | CWorldServer::LoadMapObjects (RET 8) | ours only (reads a file, creates objects): returns 1 |
+| 00595AB0 | CWorldServer::LoadMobFile (RET 4) | ours only: returns 1 and the name is on `mobFiles_` |
+| 00596C60 | CWorldServer::ClearMapObjects | ours only: no map object left (or the walk stopped at an empty entry), missile and counted lists empty, countdowns cleared |
+| 00596730 | CWorldServer::SaveMapObjects (RET 4) | ours only (calls every object's Save): on a memory stream the position moved by at least 4 and the last word written is -1 |
+
+The local list of ClearMapObjects (vtable 0073F530, block size 10) is `mfc::CTypedPtrList`, whose
+inline NewNode / AddTail / RemoveAll do what 00573290 and 00570470 do. The map walks use
+`stlp::hash_map::First` / `After`, which are 0059C020 / 0059DB90 (00598E40 only builds the end
+iterator {0, map}). No floating point.
+
+## Forwarders added (standalone build must replace)
+
+- 0058EF20 CreateUnits (RET 0x20; the rotation is 16 bytes by value), 005935C0
+  RemoveObjectFromServer and 00595BA0 the map path (both Rebirth-patched: original address).
+- 0042D160 root chunk Open (the path CString by value: its data pointer is passed and the callee
+  destroys it), 0042D270 root chunk destructor, 00481660 .mob object reader (AL).
+- 00661050 / 006628D0 / 006611D0 unit record builder; 005719B0 CArray<void*>::SetSize; 00573080
+  CArray<ZoneExit>::SetSize; 004608B0 ZoneExit deleting destructor; 006FEBCE
+  CStringArray::SetAtGrow.
+- 0040A3A0 CRefObject::Release (missiles), 0059DDB0 counted pointer destructor, 006D43E0 countdown
+  array clear, 00530930 CUnit::GetPrototype (they land on rewrites or plain originals).
+- Virtual calls: CFile slot 19 (Close), stream slot 2 (Write), object slots 10 (Save) / 12.
+
+## Original bugs and oddities kept
+
+- ClearMapObjects and SaveMapObjects stop at the first map entry with a null object.
+- ClearMapObjects reads each object's id when it removes it; an earlier removal that freed a later
+  object would make both read freed memory.
+- LoadMapObjects / LoadMobFile return what FatalError returns on failure (LoadMobFile treats a
+  non-zero FatalError result as success and lists the file).
+- SetZoneExits re-reads the source's size every iteration.
+- The SEH frames of AddUnitToServer, LoadMapObjects and ClearMapObjects (destroying the temporaries
+  on an exception) are not reproduced.
+
+## Skipped
+
+- Rebirth-patched: 00595480 NewZone, 00595080, 005927C0 (object creation), 005935C0 (removal),
+  0057ABA0 (load), 0057C460, 0057C700, 00595BA0.
+- 00595C70 LoadMap, 005957E0 zone teardown, 00596E70 LoadSave (3.4 KB), 00596900 map objects
+  load, 00597BD0 world save (2 KB), 0057B3B0 save game, 0058EF20 unit creation (3 KB, float-heavy
+  placement), 0058B250 (zone state save), 00596140 AI graph load, 005951A0: large and full of
+  network / script state. Next candidates: 00596900 (the counterpart of SaveMapObjects) and
+  005957E0.
+- 00595B50 (glue: reload when the map or .mob name changed): two compares around patched calls.
+- The scenario does not reach LoadMobFile: zone1's scripts use no AddMob, and loading another
+  zone's .mob into zone1 is not safe to try blind.
+
+## Scenario
+
+`world_load.txt` (~40 s): new game (zone load, autosave), eight AddUnitToServer wolves, one name
+added twice (same id), three RemoveObjectFromServer, `load savea` (waits until a spawned wolf is
+gone and the hero is back), one more AddUnitToServer in the loaded zone.
