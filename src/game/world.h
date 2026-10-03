@@ -642,6 +642,11 @@ CWorldClient* WorldClient();   // 007AF5B8
 // each found object is appended with a reference.
 void __fastcall LoadSharedObject(void* entry, void*, WorldStream* stream);
 
+// 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A
+// lightning strike from `from` to `to`, as a script line on the queue at 007C29CC: one time in
+// four only a thunder sound, otherwise a point light at the middle, a sound and two bolts.
+void __fastcall ShowBolt(void* glue, void*, Vector3 from, Vector3 to);
+
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
 // 0056AFE0 (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers
 // with CWorldClient::CollectVisible and sorts some of them with STLport's sort, instantiated for

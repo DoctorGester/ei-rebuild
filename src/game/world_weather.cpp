@@ -64,7 +64,7 @@ __declspec(naked) void __fastcall LightningSetPath(void*, void*, const Vector3*,
 // 00675CA0. Marks an object new.
 __declspec(naked) void __fastcall MarkNew(void*, void*) EI_ORIGINAL(0x00675CA0)
 // 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
-__declspec(naked) void __fastcall ShowBolt(void*, void*, Vector3 /*from*/, Vector3 /*to*/) EI_ORIGINAL(0x00578E30)
+__declspec(naked) void __fastcall ShowBoltAt(void*, void*, Vector3 /*from*/, Vector3 /*to*/) EI_ORIGINAL(0x00578E30)
 // 0058B6D0 / 0058D280. MarkPlayersDirty / UpdatePlayerTimes, through their addresses.
 __declspec(naked) void __fastcall MarkPlayersDirtyAt(CWorldServer*, void*, std::uint32_t) EI_ORIGINAL(0x0058B6D0)
 __declspec(naked) void __fastcall UpdatePlayerTimesAt(CWorldServer*, void*, float) EI_ORIGINAL(0x0058D280)
@@ -147,7 +147,7 @@ void ShowRainBolt(CWorldServer* world) {
     float fromZ = StoreFloat(static_cast<float>(static_cast<double>(z) + BoltHeight()));
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};
-    ShowBolt(reinterpret_cast<void*>(0x007AFEA4), nullptr, from, to);
+    ShowBoltAt(reinterpret_cast<void*>(0x007AFEA4), nullptr, from, to);
 }
 
 } // namespace
@@ -170,6 +170,52 @@ void CWorldServer::UpdateWeather() {
     if (unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
 }
 
+// ---- ShowBolt ---------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kThunderScript = 0x007904A8;
+// "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
+constexpr std::uintptr_t kLightningScript = 0x00790394;
+// "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
+//  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
+constexpr std::uintptr_t kScriptQueue = 0x007C29CC;   // a command queue (004D23A0 adds a line)
+
+// 004D23A0 (RET 8). Adds a script line to a command queue.
+__declspec(naked) void __fastcall QueueAddLine(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+
+float Half() { return GameFloat(0x0073B86C); }   // 0.5
+
+} // namespace
+
+void __fastcall ShowBolt(void* /*glue*/, void*, Vector3 from, Vector3 to) {
+    mfc::CString prefix;   // stays empty
+    mfc::CString text;
+    // The middle: x and y are summed into floats first, z is not.
+    float sumY = StoreFloat(to.y + from.y);
+    float sumX = StoreFloat(to.x + from.x);
+    float midZ = StoreFloat(static_cast<float>((static_cast<double>(to.z) + from.z) * Half()));
+    float midY = StoreFloat(sumY * Half());
+    float midX = StoreFloat(sumX * Half());
+    double fx = from.x, fy = from.y, fz = from.z;
+    double tx = to.x, ty = to.y, tz = to.z;
+    if ((Random().Next() & 3) == 0) {
+        // Thunder only: one of four sounds at `from`.
+        unsigned sound = (Random().Next() & 3) + 1;
+        text.Format(reinterpret_cast<const char*>(kThunderScript), fx, fy, fz, sound);
+        mfc::CString line = prefix + text;
+        QueueAddLine(reinterpret_cast<void*>(kScriptQueue), nullptr, &line, 1);
+    } else {
+        // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
+        unsigned sound = Random().Next() % 3 + 1;
+        text.Format(reinterpret_cast<const char*>(kLightningScript), static_cast<double>(midX),
+                    static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
+                    tz, fx, fy, fz, tx, ty, tz);
+        QueueAddLine(reinterpret_cast<void*>(kScriptQueue), nullptr, &text, 1);
+    }
+}
+
 #pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0058CCD0, CWorldServer::UpdateWeather);
+EI_REPLACE(0x00578E30, ShowBolt);

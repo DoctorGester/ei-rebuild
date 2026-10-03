@@ -23,3 +23,13 @@ static void __fastcall UpdateWeatherVerify(CWorldServer* self, void*) {
                       *reinterpret_cast<const std::uint32_t*>(&self->unknownE8_), factor);
 }
 EI_VERIFY(0x0058CCD0, UpdateWeatherVerify, 0, s_unused);
+
+// 00578E30: a strike draws exactly two random numbers (a script line is only queued).
+static void __fastcall ShowBoltVerify(void* glue, void*, Vector3 from, Vector3 to) {
+    auto& count = *reinterpret_cast<std::uint32_t*>(0x007A9D44);   // IsaacRandom::count_
+    std::uint32_t expected = count;
+    for (int i = 0; i < 2; ++i) expected = expected == 0 ? 255 : expected - 1;
+    ShowBolt(glue, nullptr, from, to);
+    ei::verify::Check("ShowBolt", true, count == expected, "random count %u (expected %u)", count, expected);
+}
+EI_VERIFY(0x00578E30, ShowBoltVerify, 0, s_unused);
