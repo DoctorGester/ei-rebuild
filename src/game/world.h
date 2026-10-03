@@ -668,7 +668,21 @@ struct GameFlow {
     // ending in "_N" the zone's quests are loaded first (005809D0 with the name without "_N"),
     // then BriefingVariableInto's variable is set to 1.
     void MarkBriefing(const char* briefing);
+    // 0057F0F0. With an active client session: the local player's party is copied into the party
+    // outside a game (007C82B0), redeployed by the party manager, its map transfer sent
+    // (00662AC0 with 007C82A0), then the flow's update (005800C0).
+    void ReturnLocalParty();
+    // 0057F150. With an active client session: the flow's update, then an answered game state
+    // request (kind 3) becomes a new one of kind 0.
+    void UpdateAndAcknowledge();
+    // 0057FB60 (RET 4). A multiplayer client asks the server to complete `briefing` (session
+    // command 1).
+    void RequestBriefing(const char* briefing);
 };
+
+// 0057F820 (ECX = list, EDX = name; world_game.cpp). Whether `name` is in `list` (an array of
+// names ended by an empty one), compared case-insensitively.
+bool __fastcall NameInList(const char* const* list, const char* name);
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed

@@ -147,3 +147,45 @@ static void __fastcall BeginMultiplayerVerify(GameFlow* self, void*) {
     ei::verify::Check("GameFlow::BeginMultiplayerGame", true, ok, "zone %s, party zone %s", zone, partyZone);
 }
 EI_VERIFY(0x0057F280, BeginMultiplayerVerify, 0, s_unused);
+
+namespace {
+using NameInListFn = bool(__fastcall*)(const char* const*, const char*);
+NameInListFn s_originalNameInList;
+
+std::uint8_t* ActiveClient() {
+    auto* client = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    return client && !(*reinterpret_cast<std::uint32_t*>(client + 4) & 0x80000000u) ? client : nullptr;
+}
+} // namespace
+
+// 0057F820: pure, compared with the original.
+static bool __fastcall NameInListVerify(const char* const* list, const char* name) {
+    bool expected = s_originalNameInList(list, name);
+    bool result = NameInList(list, name);
+    ei::verify::Check("NameInList", expected, result, "%s", name ? name : "");
+    return result;
+}
+EI_VERIFY(0x0057F820, NameInListVerify, 6, s_originalNameInList);
+
+// 0057F150: afterwards an active client's request is not left answered (kind 3).
+static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {
+    self->UpdateAndAcknowledge();
+    std::uint8_t* client = ActiveClient();
+    int kind = client ? *reinterpret_cast<int*>(*reinterpret_cast<std::uint8_t**>(client + 0x2600) + 0x28) : -1;
+    ei::verify::Check("GameFlow::UpdateAndAcknowledge", true, kind != 3, "request kind %d", kind);
+}
+EI_VERIFY(0x0057F150, UpdateAndAcknowledgeVerify, 0, s_unused);
+
+// 0057F0F0 / 0057FB60: network and party side effects through original code; logged.
+static void __fastcall ReturnLocalPartyVerify(GameFlow* self, void*) {
+    bool client = ActiveClient() != nullptr;
+    self->ReturnLocalParty();
+    ei::verify::Check("GameFlow::ReturnLocalParty", true, true, "client %d", client);
+}
+EI_VERIFY(0x0057F0F0, ReturnLocalPartyVerify, 0, s_unused);
+
+static void __fastcall RequestBriefingVerify(GameFlow* self, void*, const char* briefing) {
+    self->RequestBriefing(briefing);
+    ei::verify::Check("GameFlow::RequestBriefing", true, true, "%s", briefing ? briefing : "");
+}
+EI_VERIFY(0x0057FB60, RequestBriefingVerify, 0, s_unused);

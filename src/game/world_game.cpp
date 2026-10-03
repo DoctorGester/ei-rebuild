@@ -837,7 +837,58 @@ void GameFlow::BeginMultiplayerGame() {
     *reinterpret_cast<char*>(0x007C7DD8) = 1;
 }
 
+// ---- Small glue of the flow -----------------------------------------------------------------------
+
+namespace {
+
+// 00661300 (RET 4). Party::CopyFrom. 00662AC0 (RET 4): the party sends its map transfer.
+__declspec(naked) void __fastcall PartyCopyFrom(void*, void*, const void*) EI_ORIGINAL(0x00661300)
+__declspec(naked) void __fastcall PartySendTransfer(void*, void*, int) EI_ORIGINAL(0x00662AC0)
+// 005800C0. The flow's update (patched by Rebirth: original address).
+__declspec(naked) void __fastcall FlowUpdate(GameFlow*, void*) EI_ORIGINAL(0x005800C0)
+// 0041D260 (RET 8). A session command (0 zone, 1 briefing, 2 kick, 3 ban).
+__declspec(naked) void __fastcall SessionCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041D260)
+
+constexpr int kCommandBriefing = 1;
+constexpr int kRequestDone = 3;   // the client's game state request: answered
+
+} // namespace
+
+void GameFlow::ReturnLocalParty() {
+    if (!Active(ClientSession())) return;
+    auto* player = *reinterpret_cast<std::uint8_t**>(WorldClient()->LocalView() + 0x1C);
+    void* party = player + 0x70;
+    PartyCopyFrom(GlobalParty(), nullptr, party);
+    PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
+    PartySendTransfer(GlobalParty(), nullptr, *reinterpret_cast<int*>(0x007C82A0));
+    FlowUpdate(this, nullptr);
+}
+
+void GameFlow::UpdateAndAcknowledge() {
+    if (!Active(ClientSession())) return;
+    FlowUpdate(this, nullptr);
+    std::uint8_t* request = At<std::uint8_t*>(ClientSession(), 0x2600);
+    if (At<int>(request, 0x28) != kRequestDone) return;
+    At<int>(request, 0x28) = 0;
+    ++At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 8);
+}
+
+void GameFlow::RequestBriefing(const char* briefing) {
+    std::uint8_t* client = ClientSession();
+    if (Active(client)) SessionCommand(client, nullptr, kCommandBriefing, briefing);
+}
+
+bool __fastcall NameInList(const char* const* list, const char* name) {
+    for (; *list[0] != 0; ++list)
+        if (gamecrt::stricmp(*list, name) == 0) return true;
+    return false;
+}
+
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
+EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);
+EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
+EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
+EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);
