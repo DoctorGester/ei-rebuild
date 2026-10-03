@@ -1,6 +1,6 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
 # BuildDeathAnimation: 8 of 45 calls differ (round 9); sent back
-# Rebirth-only mismatches (round 10 interface): clock sprites, objectives window build; sent back
-006488E0  CHudClock::Update
+# Rebirth-only mismatch (round 10 interface): objectives window build, 1 of 2 calls; cause not found
+# yet, the wrapper now names the failing check (run Rebirth ui_hud once with this line removed)
 0064BE80  CObjectivesWindow::Build

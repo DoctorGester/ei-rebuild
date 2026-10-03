@@ -616,6 +616,12 @@ options windows), `src/game/ui_objectives.cpp` (objectives window), `COptionsWin
 
 ## Rebirth
 
+Rebirth's addon.dll also rewrites data the original reads at run time: it stores its widescreen
+layout width into 00742B08 (the clock's x centre, 800 in the exe). The first CHudClock::Update
+compiled that constant in and mismatched under Rebirth; it now reads all its constants from
+memory as the original does. A scan of addon.dll and EI_Plugin.asi for the other constant
+addresses and code ranges of this pass found no further writes.
+
 CUiRegion::SetRect (005FC9E0) and AddPoint (005FCA70) are Rebirth-patched, as are 005E70E0,
 005E7D60 and 005E6FA0 (sprite placement): every new caller goes through the original addresses
 (`CUiRegion::CallSetRect`, `CUiMesh::SetRectangle/SetFrame/Place` forwarders).

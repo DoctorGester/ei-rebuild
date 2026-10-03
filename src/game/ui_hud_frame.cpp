@@ -36,22 +36,25 @@ float FloatFromBits(std::uint32_t bits) {
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 float Pi() { return GameFloat(0x007423F8); }
 float BlinkRate() { return GameFloat(0x007C8140); }   // radians per blink phase unit (a global)
+// The original reads its constants from memory at run time; Rebirth rewrites some of them
+// (00742B08, the clock's x, for its widescreen layout), so they are read the same way.
+float PausedHand() { return GameFloat(0x00742B18); }   // hand angle while paused, in pi
+float FastHand() { return GameFloat(0x00742B14); }   // at fast speed
+float NormalHand() { return GameFloat(0x0073C524); }   // at normal speed
+float Half() { return GameFloat(0x0073B86C); }   // 0.5
+float DialStep() { return GameFloat(0x0073CE40); }   // dial notches, in pi
+float FaceStep() { return GameFloat(0x00741438); }   // one hour of the face, in pi
+float FaceOffset() { return GameFloat(0x0073C518); }   // 15 hours
+float HandRadius() { return GameFloat(0x00742B10); }   // 73
+float DialRadius() { return GameFloat(0x0073BAF0); }   // 30
+float CentreX() { return GameFloat(0x00742B08); }   // the clock centre (800; Rebirth writes the widescreen width here)
+float CentreY() { return GameFloat(0x00742B0C); }   // 600
+float BlinkBase() { return GameFloat(0x0073CDF8); }   // 1.4
+float PulseAmplitude() { return GameFloat(0x0073C54C); }   // 0.3
+float PulseMiddle() { return GameFloat(0x0073C538); }   // 0.7
+float SlideTime() { return GameFloat(0x00742428); }   // 0.3 seconds for a full slide
 bool GamePaused() { return *reinterpret_cast<const volatile bool*>(0x007AF624); }   // 00578D50
 
-constexpr float kPausedHand = 0.9166667f;   // 00742B18 hand angle while paused, in pi
-constexpr float kFastHand = 0.5833333f;     // 00742B14 ... at fast speed
-constexpr float kNormalHand = 0.75f;        // 0073C524 ... at normal speed
-constexpr float kHalf = 0.5f;               // 0073B86C
-constexpr float kDialStep = 0.16666667f;    // 0073CE40 dial notches, in pi
-constexpr float kFaceStep = 0.083333336f;   // 00741438 one hour of the face, in pi
-constexpr float kFaceOffset = 15.0f;        // 0073C518 hours
-constexpr float kHandRadius = 73.0f;        // 00742B10
-constexpr float kDialRadius = 30.0f;        // 0073BAF0
-constexpr float kCentreX = 800.0f;          // 00742B08 the clock's centre (screen corner)
-constexpr float kCentreY = 600.0f;          // 00742B0C
-constexpr float kBlinkBase = 1.4f;          // 0073CDF8
-constexpr float kPulseAmplitude = 0.3f;     // 0073C54C
-constexpr float kPulseMiddle = 0.7f;        // 0073C538
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
 constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, the top panel sling
 
@@ -126,58 +129,58 @@ void CHudClock::Update() {
             blink_ = Store(next);
         } while (next >= 1.0f);
     }
-    float pulse = Store(x87::fcos(D(BlinkRate()) * D(blink_)) * kPulseAmplitude + kPulseMiddle);
+    float pulse = Store(x87::fcos(D(BlinkRate()) * D(blink_)) * PulseAmplitude() + PulseMiddle());
 
     float handAngle;
     if (GamePaused()) {
-        SetTint(face, Store(kBlinkBase - D(pulse)));
-        handAngle = Store(D(Pi()) * kPausedHand);
-        Sprite(objects[1])->visible_ = blink_ > kHalf ? 1 : 0;
+        SetTint(face, Store(BlinkBase() - D(pulse)));
+        handAngle = Store(D(Pi()) * PausedHand());
+        Sprite(objects[1])->visible_ = blink_ > Half() ? 1 : 0;
     } else {
         SetTint(face, 1.0f);
         double step;
         if (fast_ != 0) {
-            handAngle = Store(D(Pi()) * kFastHand);
+            handAngle = Store(D(Pi()) * FastHand());
             step = WindowFrameTime(this);
         } else {
-            handAngle = Store(D(Pi()) * kNormalHand);
-            step = WindowFrameTime(this) * kHalf;
+            handAngle = Store(D(Pi()) * NormalHand());
+            step = WindowFrameTime(this) * Half();
         }
         dial_ = Store(step + D(dial_));
         Sprite(objects[1])->visible_ = 1;
     }
 
     // The dial turns by whole notches' worth and wraps.
-    float notch = Store(D(Pi()) * kDialStep);
+    float notch = Store(D(Pi()) * DialStep());
     if (dial_ > notch) {
         double next;
         do {
             next = D(dial_) - D(notch);
             dial_ = Store(next);
-            notch = Store(D(Pi()) * kDialStep);
+            notch = Store(D(Pi()) * DialStep());
         } while (next > notch);
     }
 
     // The hand (object 1) about -z, placed on its circle.
     Turn(objects[1], -1.0f, handAngle);
     double handSin = x87::fsin(handAngle);
-    float handY = Store(kCentreY - handSin * kHandRadius);
-    float handX = Store(x87::fcos(handAngle) * kHandRadius + kCentreX);
+    float handY = Store(CentreY() - handSin * HandRadius());
+    float handX = Store(x87::fcos(handAngle) * HandRadius() + CentreX());
     Sprite(objects[1])->Place(handX, handY, FloatFromBits(kHandDepth));
 
     // The face turns with the time of day.
-    Turn(face, 1.0f, Store((D(hours) + kFaceOffset) * D(Pi()) * kFaceStep));
+    Turn(face, 1.0f, Store((D(hours) + FaceOffset()) * D(Pi()) * FaceStep()));
 
     // The four dial marks (objects 2-5), a notch apart.
-    float angle = Store(D(dial_) - D(Pi()) * kFaceStep);
+    float angle = Store(D(dial_) - D(Pi()) * FaceStep());
     for (int k = 2; k < 6; ++k) {
         CEngineObject* mark = objects[k];
         Turn(mark, 1.0f, angle);
         double c = x87::fcos(angle);
-        float y = Store(kCentreY - c * kDialRadius);
-        float x = Store(x87::fsin(angle) * kDialRadius + kCentreX);
+        float y = Store(CentreY() - c * DialRadius());
+        float x = Store(x87::fsin(angle) * DialRadius() + CentreX());
         Sprite(mark)->Place(x, y, FloatFromBits(kSpriteDepth));
-        angle = Store(D(angle) - D(Pi()) * kDialStep);
+        angle = Store(D(angle) - D(Pi()) * DialStep());
     }
 
     SetTint(objects[6], highlight_ ? pulse : 1.0f);
@@ -189,7 +192,6 @@ EI_REPLACE_METHOD(0x006488E0, CHudClock::Update);
 __declspec(naked) void CHudTopPanel::Layout() EI_ORIGINAL(0x00649E20)
 
 namespace {
-constexpr float kSlideTime = 0.3f;              // 00742428 seconds for a full slide
 constexpr float kSlingX = 400.0f;               // the sling button's place: x
 constexpr float kSlingInY = -52.0f;             // y while the panel slides out (turned over)
 constexpr float kSlingOutY = 83.0f;             // y otherwise
@@ -199,7 +201,7 @@ const void* SlingRestRotation() { return reinterpret_cast<const void*>(0x007C815
 
 void CHudTopPanel::Update() {
     if (sliding_) {
-        double slide = WindowFrameTime(this) * D(slideDirection_) / kSlideTime + D(slide_);
+        double slide = WindowFrameTime(this) * D(slideDirection_) / SlideTime() + D(slide_);
         slide_ = Store(slide);
         if (slide > 1.0f) slide_ = 1.0f;
         if (!(slide_ >= 0.0f)) slide_ = 0.0f;
