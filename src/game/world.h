@@ -285,6 +285,22 @@ public:
     // (gipat/ingos/suslanger), night (0x100) or day (0x80), and two world settings.
     std::uint32_t EnvironmentFlags(CEngineObject* unit);
 
+    // world_client_view.cpp
+    // 0056A990 (RET 0x18). Walks one object list (a map sector's, the deferred unit list at
+    // 007AF5B4 or +0xB4), tests each object with a model against the view frustum and files it in
+    // the frame's draw lists (world_client_view.cpp). `view` is the camera matrix (rows of 4 floats),
+    // `animTime` the game time handed to units' slot 25, `now` the timeGetTime() of the frame.
+    // With `animateUnits` 0 units are only queued on the deferred list; otherwise they are animated
+    // (slot 25) and filed like other objects. `withScripted` lets heroes with a text-key id
+    // through. Returns how many objects were queued for the model-touch list (007AF508).
+    int CollectVisible(void* list, const float* view, float animTime, std::uint32_t now, char animateUnits,
+                       char withScripted);
+    // 0056BF30 (RET 0xC). The ground point under screen pixel (x, y): inverts the current view
+    // matrix and iterates on the terrain height (Terrain::HeightAt). Returns out (x, y, z).
+    float* PickGround(float* out, int x, int y);
+    // 0056C350 (RET 0xC). Same with the client's surface height (slot 29: platforms included).
+    float* PickSurface(float* out, int x, int y);
+
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
@@ -351,3 +367,25 @@ float __stdcall PlayerZeroVariable(const char* name);
 
 CWorldServer* WorldServer();   // 007AFF60
 CWorldClient* WorldClient();   // 007AF5B8
+
+// ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
+// 0056AFE0 (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers
+// with CWorldClient::CollectVisible and sorts some of them with STLport's sort, instantiated for
+// two orderings. The entry points keep STLport's internal calling convention: first in ECX, last
+// in EDX, then a dummy value-type pointer, the depth limit and the (empty) comparator on the stack.
+
+// 005740D0 (RET 0xC). STLport __introsort_loop with UnitOrderLess (model rank, +0xF0, view depth).
+void __fastcall IntroSortByModel(CEngineObject** first, CEngineObject** last, void* valueType, int depthLimit,
+                                 int comp);
+// 00574390 (RET 4). STLport __final_insertion_sort with UnitOrderLess.
+void __fastcall FinalSortByModel(CEngineObject** first, CEngineObject** last, int comp);
+// 00573D50 (RET 0xC). __introsort_loop ordering objects by their model's last use (+0x94 -> +0xEC),
+// most recent first.
+void __fastcall IntroSortByModelUse(CEngineObject** first, CEngineObject** last, void* valueType, int depthLimit,
+                                    int comp);
+// 00573F10 (RET 4). __final_insertion_sort with the same ordering.
+void __fastcall FinalSortByModelUse(CEngineObject** first, CEngineObject** last, int comp);
+// 00573EE0. The comparator of that ordering: b's model used before a's (0/1 in EAX).
+struct ModelUseLess {
+    BOOL Less(CEngineObject* a, CEngineObject* b);
+};
