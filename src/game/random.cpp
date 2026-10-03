@@ -48,3 +48,53 @@ void IsaacRandom::Refill() {
     a_ = a;
 }
 EI_REPLACE_METHOD(0x0049EE70, IsaacRandom::Refill);
+
+__declspec(naked) void IsaacRandom::Seed() EI_ORIGINAL(0x0049F660)
+
+namespace {
+
+// The reference ISAAC mix of the eight randinit words.
+struct InitMix {
+    std::uint32_t a, b, c, d, e, f, g, h;
+
+    void Mix() {
+        a ^= b << 11; d += a; b += c;
+        b ^= c >> 2;  e += b; c += d;
+        c ^= d << 8;  f += c; d += e;
+        d ^= e >> 16; g += d; e += f;
+        e ^= f << 10; h += e; f += g;
+        f ^= g >> 4;  a += f; g += h;
+        g ^= h << 8;  b += g; h += a;
+        h ^= a >> 9;  c += h; a += b;
+    }
+
+    // One pass over memory: add eight words of `source`, mix, store into memory.
+    void Pass(const std::uint32_t* source, std::uint32_t* memory) {
+        for (int i = 0; i < 256; i += 8) {
+            a += source[i]; b += source[i + 1]; c += source[i + 2]; d += source[i + 3];
+            e += source[i + 4]; f += source[i + 5]; g += source[i + 6]; h += source[i + 7];
+            Mix();
+            memory[i] = a; memory[i + 1] = b; memory[i + 2] = c; memory[i + 3] = d;
+            memory[i + 4] = e; memory[i + 5] = f; memory[i + 6] = g; memory[i + 7] = h;
+        }
+    }
+};
+
+} // namespace
+
+void IsaacRandom::Init() {
+    if (seeded_ != 0) return;
+    Seed();
+    c_ = 0;
+    b_ = 0;
+    a_ = 0;
+    constexpr std::uint32_t kGolden = 0x9E3779B9;
+    InitMix m{kGolden, kGolden, kGolden, kGolden, kGolden, kGolden, kGolden, kGolden};
+    for (int i = 0; i < 4; ++i) m.Mix();
+    m.Pass(results_, memory_);
+    m.Pass(memory_, memory_);
+    Refill();
+    count_ = 256;
+    seeded_ = 1;
+}
+EI_REPLACE_METHOD(0x0049F150, IsaacRandom::Init);

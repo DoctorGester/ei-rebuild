@@ -16,7 +16,12 @@ public:
     // 00488970 (effects.cpp). Next() * (max - min) * ~2^-32 + min, left unrounded in ST0.
     float Range(float min, float max);
 
-    // 0049F150 initialises the state (reference randinit()); not rewritten yet.
+    // 0049F150. Once (while seeded_ is 0): seeds results_ (0049F660: 1 KB of a random file on C:\,
+    // mixed with rand()), then the reference randinit(ctx, TRUE) and the first Refill.
+    void Init();
+
+    // 0049F660, not rewritten: fills results_ with seed material.
+    void Seed();
 
     std::uint32_t seeded_;          // +0x000 non-zero once seeded from results_
     std::uint32_t count_;           // +0x004 results left (randcnt)
