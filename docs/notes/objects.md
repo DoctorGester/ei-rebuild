@@ -178,3 +178,82 @@ positions uninitialised; both are only used from constructors, so these are not 
   map-editor specs and CLightning: larger, stateful, and mostly built on CString/CArray/stream code
   that is not rewritten yet. Good next candidates: the map database loader (0045EA20) once CStringArray
   parsing exists; CFakeUnit construction (004466D0) with the CArray classes.
+
+## Second round: lightning bolts (00466190-00468A00)
+
+Files: `src/game/lightning.h/.cpp`; verify: `tests/verify/verify_lightning.cpp`; scenario:
+`tests/scenarios/objects_more.txt` (three `CreateLightning` bolts with power 5, 0 and -7 drawn for
+3 s, then the lightning spell on a wolf).
+
+### Classes
+
+- `CLightning` (class id 0x1E, vtable 0073C550, 0x514 bytes, created by `CLightningManager` slot 14
+  at 00468680): +0x1C / +0x20 two texture references, +0x24 bounds for the renderer (kind 3, centre
+  +0x28, radius +0x34, box +0x38 / +0x44 relative to the centre, +0x50 a cleared vector), +0x5C the
+  main segment, +0x104 six branches (0xA8 each), +0x4F4 where each branch leaves the main segment
+  (0..1), +0x50C power (sign selects the look; 0 = six parallel bolts), +0x510 sway amplitude.
+  Vtable slot 2 (00466EA0) resets and registers the bolt, slot 3 (00468790) resets it; 00468810 is
+  the destructor body, 004680D0 the initialiser (power, branches, textures "SmtgLight"/"Lightning" or
+  "DemonLight"/"DemonLightning" through 00500A00), 00467AD0 draws, 00467590 draws a glow sprite.
+- `LightningSegment` (0xA8): start, two displacement axes (`side` +0x0C, `up` +0x18, scaled to the
+  bolt's thickness), step, two sets of three noise keys (+0x30, +0x60, newest first), the key time
+  +0x90, an aligned CArray of 16-byte points +0x94 (`SetSize` 00468C50 is a library instantiation),
+  width +0xA4.
+- `NoiseKey` (16 bytes): two rows of the noise table and their weights. The table (0079CE78, 32 rows
+  of 400 floats) is built at start-up by 004660B0 / 00465EE0; rows 16..31 belong to the key drawn
+  fresh for every sample. `SampleNoise` blends three stored keys and the fresh one with uniform
+  B-spline weights of the fraction since the newest key; `LightningSegment::Animate` subtracts the
+  straight line between the curve's first and last values so the noise is zero at both ends. The
+  curves go through the globals 0079C1F8 / 0079C838 (400 floats each).
+- `CLightningManager` (vtable 0073F5B8): its object list (CBaseManager +0x34) holds the bolts; a
+  second `CTypedPtrList` at +0xB0 holds a reference to each bolt registered since the last frame.
+  00468940 (`DrawAll`, called by the renderer at 0056A252) draws every bolt and drops those
+  references. Slot 2 (004689D0) runs the Rebirth-patched 00468A00 once.
+- Callers: `CreateLightning` (script, 004BCFF0) and the weather create a client object (class 0x4D,
+  setter 0067A6B0); its update 0067A8F0 calls `SetEndpoints` every frame while the bolt follows
+  units (lightning spell).
+
+### Rewritten
+
+| Address | Name | Verify |
+|---|---|---|
+| 00466190 | `NoiseKey::Randomize` | random state saved; original on a copy, state restored, ours; key and generator state compared |
+| 004662C0 | `LightningSegment::SampleNoise` | as above, original into scratch curves; segment, both curves, generator compared |
+| 00466CE0 | `LightningSegment::Animate` | as above on a segment copy with its own point buffer; points, segment, generator and the global curves compared |
+| 00466820 | `LightningSegment::Init` | original on a segment copy (own buffer, capacity 400, so SetSize never reallocates); segment fields and size compared (not the points: a grown array is uninitialised) |
+| 00466FD0 | `CLightning::ExpandBounds` | original on a copy of the first 0x50 bytes; box compared |
+| 00467150 | `CLightning::UpdateBounds` | original on a byte copy (points shared, read only); whole object compared |
+| 004672E0 | `CLightning::Animate` | random state saved; original on a deep copy (seven own point buffers); bolt, all points, generator and global curves compared |
+| 00467E10 | `CLightning::SetEndpoints` | as Animate; the points and bounds are compared only when they cannot hold uninitialised elements (the bolt animated, or no real array grew past its capacity), otherwise the fields outside the bounds and every segment's fields |
+| 00466EA0 | `CLightning::Register` (slot 2) | ours only: bolt is the new tail of the manager's list, list count and reference count +1, textures cleared, power 1 |
+| 00468790 | `CLightning::Reset` (slot 3) | ours only: textures cleared, power 1, amplitude 0.1 |
+| 00468940 | `CLightningManager::DrawAll` | ours only: returns 1 and the new-bolt list is empty |
+
+Slots 2 and 3 are non-virtual members with their own names (`Register`, `Reset`) so they do not
+override `CEngineObject::Create` / `Destroy`. The x87 code keeps the original's float stores
+(`Store`) and holds the values the original keeps on the FPU stack in `double` (spilled as 53-bit,
+exact unless the FPU runs at 64-bit precision). All names are set in Ghidra.
+
+### Forwarders and globals
+
+- 00468C50 `LightningPointArray::SetSize` (library, in `config/library.csv` with the other
+  CArray instantiations of this block: 00468D60 / 00468D80 / 00468F50 / 00468DA0 an 8-byte CArray
+  with vtable 0073C584, 00468F70 aligned allocation, 00468F90 / 00468FE0 ConstructElements).
+- 00467AD0 `CLightning::Draw`.
+- Globals: random generator 007A9D40, noise table 0079CE78, noise curves 0079C1F8 / 0079C838, branch
+  sway frequencies 00787C8C (six pairs), world clock 007AF61C (ticks) / 007AFCA8 (fraction).
+
+### Original behaviour kept
+
+- `LightningSegment::Animate` reads the curve value before the first one (0079C1F4) when the segment
+  has no points.
+- `SampleNoise` caps the keys added per call at 100 but leaves the key time behind by the rest.
+
+### Skipped (next candidates)
+
+- 004680D0 `CLightning::Init` (random branch layout, texture loading through 00500A00), the factory
+  00468680 and destructor body 00468810 (eh vector constructor / destructor iterators), the drawing
+  00467AD0 / 00467590 (renderer virtuals), 00466E60 (a copy of `Reset` without callers).
+- Animation loading (00446C10-0044C470, `CFakeUnit` scene loading via slot 62 at 00446BA0; scene
+  files, .bon/.anm splitting), the map database loader 0045EA20, the map-editor specs (00469630+)
+  and networking: not touched this round.
