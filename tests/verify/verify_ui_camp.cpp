@@ -155,3 +155,39 @@ static bool __fastcall CampCanEquipVerify(CCampPages* self, void*, std::uint8_t*
     return expected;
 }
 EI_VERIFY(0x006100E0, CampCanEquipVerify, 8, s_campCanEquip);
+
+// --- Camp UpdateAction (00611930) --------------------------------------------------------------------
+
+namespace {
+struct ActionState {
+    int cost;
+    bool enabled, shown, deconstructing, itemMade, spellMade;
+    std::uint32_t shade0, shade1;
+};
+ActionState ActionOf(CCampPages* c) {
+    ActionState s{c->cost_, c->actionEnabled_, c->actionShown_, c->deconstructing_, c->itemMade_ != nullptr,
+                  c->spellMade_ != nullptr, 0, 0};
+    std::memcpy(&s.shade0, reinterpret_cast<std::uint8_t*>(c->sceneObjects_.data_[0]) + 0x224, 4);
+    std::memcpy(&s.shade1, reinterpret_cast<std::uint8_t*>(c->sceneObjects_.data_[1]) + 0x224, 4);
+    return s;
+}
+} // namespace
+
+// 00611930: PUSH -1; PUSH 0x72B8D0 (7 bytes). Side by side: the original first, then ours (which
+// releases what the original's constructor check made and makes it again); the cost, the flags,
+// whether something would be made and the buttons' shades compared.
+static void(__fastcall* s_campUpdateAction)(CCampPages*, void*);
+static void __fastcall CampUpdateActionVerify(CCampPages* self, void*) {
+    s_campUpdateAction(self, nullptr);
+    ActionState expected = ActionOf(self);
+    self->UpdateAction();
+    ActionState actual = ActionOf(self);
+    bool same = expected.cost == actual.cost && expected.enabled == actual.enabled && expected.shown == actual.shown &&
+                expected.deconstructing == actual.deconstructing && expected.itemMade == actual.itemMade &&
+                expected.spellMade == actual.spellMade && expected.shade0 == actual.shade0 &&
+                expected.shade1 == actual.shade1;
+    ei::verify::Check("CCampPages::UpdateAction", true, same, "page %d cost %d/%d enabled %d/%d shown %d/%d",
+                      self->page_, expected.cost, actual.cost, expected.enabled, actual.enabled, expected.shown,
+                      actual.shown);
+}
+EI_VERIFY(0x00611930, CampUpdateActionVerify, 7, s_campUpdateAction);

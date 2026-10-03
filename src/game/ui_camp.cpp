@@ -2,11 +2,13 @@
 // global map and battle screen setup").
 #include "ui_camp.h"
 
+#include "item_db_text.h"
 #include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -390,14 +392,14 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
             return gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(own, 0x04)) == 0;
         }
         if (!kinds->IsSpellContainer(item)) return false;
-        if (!container_) return false;
+        if (!itemMade_) return false;
         std::uint8_t* spell = Read<std::uint8_t*>(item, 0x44);
         if (!spell) return false;
-        if (ItemType(container_) != 0x3006 && !SpellHasCastFlag(spell)) return false;
-        if (Read<std::uint32_t>(spell, 0x50) > Read<std::uint32_t>(container_, 0x40)) return false;
+        if (ItemType(itemMade_) != 0x3006 && !SpellHasCastFlag(spell)) return false;
+        if (Read<std::uint32_t>(spell, 0x50) > Read<std::uint32_t>(itemMade_, 0x40)) return false;
         // FCOMPP / TEST AH,1: the container's +0x2C below the spell's +0x40 (or unordered) fails.
         float need = Read<float>(spell, 0x40);
-        float room = Read<float>(container_, 0x2C);
+        float room = Read<float>(itemMade_, 0x2C);
         if (!(room >= need)) return false;
         for (int i = 0; i < CountOf(itemResults_); ++i)
             if (kinds->IsSpellContainer(Entry(itemResults_, i))) return false;
@@ -417,3 +419,202 @@ namespace {
 bool __fastcall CampCanEquip(CCampPages* self, void*, std::uint8_t* item, int mode) { return self->CanEquip(item, mode); }
 } // namespace
 EI_REPLACE(0x006100E0, CampCanEquip);
+
+// --- 00611930: UpdateAction ------------------------------------------------------------------------
+
+namespace {
+
+// The trade panel's experience trade (thiscall on the panel).
+struct TradeAt {
+    bool CanLevelUp();     // 00625510
+    int LevelUpCost();     // 00625560
+    int Experience();      // 00625530
+};
+__declspec(naked) bool TradeAt::CanLevelUp() EI_ORIGINAL(0x00625510)
+__declspec(naked) int TradeAt::LevelUpCost() EI_ORIGINAL(0x00625560)
+__declspec(naked) int TradeAt::Experience() EI_ORIGINAL(0x00625530)
+
+// The help panel: 005EE6C0 describes an item (null: nothing), 005F2910 shows "camphelp<topic>".
+struct HelpAt {
+    void Describe(const void* item);
+    void ShowHelp(int topic);
+};
+__declspec(naked) void HelpAt::Describe(const void*) EI_ORIGINAL(0x005EE6C0)
+__declspec(naked) void HelpAt::ShowHelp(int) EI_ORIGINAL(0x005F2910)
+
+// Whether the constructors can make something from their slots (they also set spellMade_ /
+// itemMade_; thiscall on the camp, AL).
+struct MakeAt {
+    bool CanMakeSpell();   // 00612290
+    bool CanMakeItem();    // 00612600
+};
+__declspec(naked) bool MakeAt::CanMakeSpell() EI_ORIGINAL(0x00612290)
+__declspec(naked) bool MakeAt::CanMakeItem() EI_ORIGINAL(0x00612600)
+
+// Whether an item has a "used" record flag (+0x1C record, its +0x10).
+bool Flagged(const std::uint8_t* item) {
+    const std::uint8_t* record = Read<const std::uint8_t*>(item, 0x1C);
+    return record && record[0x10];
+}
+int Count(const std::uint8_t* item) { return Read<int>(item, 0x48); }
+
+void SetShadeOf(CEngineObject* object, bool full) { SetShade(object, full ? 0x3F800000 : 0x3F000000); }
+
+} // namespace
+
+void CCampPages::UpdateAction() {
+    mfc::CString action;
+    mfc::CString label(GameText(0x0079388C));   // "camp_current_money"
+    cost_ = 0;
+    actionEnabled_ = false;
+    actionShown_ = false;
+    // Slot 54 (+0xD8, Rebirth-patched 0060FAB0): the price of `item` for deal `kind`.
+    using PriceFn = int(__thiscall*)(CCampPages*, void*, int);
+    auto price = [this](void* item, int kind) { return reinterpret_cast<PriceFn>(vtable_[54])(this, item, kind); };
+    CampKinds* kinds = reinterpret_cast<CampKinds*>(this);
+    HelpAt* help = reinterpret_cast<HelpAt*>(helpPanel_);
+    MakeAt* make = reinterpret_cast<MakeAt*>(this);
+
+    // A trade page: what the camp buys (`buy`) minus what it sells (`sell`).
+    auto trade = [&](void* bought, int buyKind, void* sold, int sellKind, std::uintptr_t text) {
+        if (CountOf(bought) <= 0 && CountOf(sold) <= 0) return;
+        action = GameText(text);
+        actionEnabled_ = true;
+        actionShown_ = true;
+        for (int i = 0; i < CountOf(bought); ++i) {
+            std::uint8_t* item = Entry(bought, i);
+            int count = Count(item);
+            cost_ += price(item, buyKind) * count;
+        }
+        for (int i = 0; i < CountOf(sold); ++i) {
+            std::uint8_t* item = Entry(sold, i);
+            int count = Count(item);
+            cost_ -= price(item, sellKind) * count;
+        }
+    };
+    // A constructor's page: its slots' cost; a finished item in the slots is taken apart,
+    // otherwise the constructor makes what the slots allow.
+    auto construct = [&](std::uint8_t*& made, void* slots, int slotKind, int recordKind, int apartKind,
+                         bool (CampKinds::*isFinished)(const std::uint8_t*),
+                         bool (CampKinds::*isMaterial)(const std::uint8_t*), bool (MakeAt::*canMake)(),
+                         std::uintptr_t apartText, std::uintptr_t makeText, int topic) {
+        if (made) reinterpret_cast<CEngineObject*>(made)->Release();
+        made = nullptr;
+        deconstructing_ = false;
+        bool described = false;
+        if (CountOf(slots) > 0) {
+            actionShown_ = true;
+            for (int i = 0; i < CountOf(slots); ++i) {
+                std::uint8_t* item = Entry(slots, i);
+                cost_ += price(item, slotKind);
+                if (Flagged(item)) cost_ += price(item, recordKind);
+                if ((kinds->*isFinished)(item)) {
+                    actionEnabled_ = true;
+                    cost_ = price(item, apartKind);
+                    if (Flagged(item)) cost_ += price(item, recordKind);
+                    deconstructing_ = true;
+                    help->Describe(item);
+                    described = true;
+                    action = GameText(apartText);
+                    break;
+                }
+                if ((kinds->*isMaterial)(item)) {
+                    actionEnabled_ = (make->*canMake)();
+                    help->Describe(made);
+                    described = made != nullptr;
+                    if (actionEnabled_) action = GameText(makeText);
+                }
+            }
+            if (!actionEnabled_) cost_ = 0;
+            if (described) return;
+        }
+        help->ShowHelp(topic);
+    };
+
+    switch (page_) {
+    case 0:
+        // Repair all the hero's weapons and armour (where the item constructor works).
+        if (itemConstructor_ && !noConstructor_) {
+            using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+            std::uint8_t* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);   // +0xCC
+            for (int i = 0; i < Read<int>(hero, 0x734); ++i) cost_ += price(Read<void**>(hero, 0x730)[i], 8);
+            for (int i = 0; i < Read<int>(hero, 0x754); ++i) cost_ += price(Read<void**>(hero, 0x750)[i], 8);
+            actionEnabled_ = cost_ > 0;
+            if (actionEnabled_) action = GameText(0x0079387C);   // "camp_repair_all"
+        }
+        break;
+    case 1: {
+        TradeAt* panel = reinterpret_cast<TradeAt*>(trade_);
+        bool up = panel->CanLevelUp();
+        actionShown_ = up;
+        actionEnabled_ = up;
+        cost_ = panel->LevelUpCost();
+        if (actionEnabled_) action = GameText(0x0079386C);   // "camp_level_up"
+        label = GameText(0x00793858);                       // "camp_current_exp"
+        break;
+    }
+    case 2:
+        trade(spellParts_[1], 0, spellParts_[2], 1, 0x007936FC);   // "camp_spell_trade"
+        break;
+    case 3:
+        construct(spellMade_, spellResults_, 2, 0, 3, &CampKinds::IsSpellContainer, &CampKinds::IsSpell,
+                  &MakeAt::CanMakeSpell, 0x00793844, 0x007936E8, 0x67);   // "camp_spell_deconstr", "camp_spell_constr"
+        break;
+    case 4:
+        trade(itemParts_[1], 4, itemParts_[2], 5, 0x007936D8);     // "camp_item_trade"
+        break;
+    case 5:
+        construct(itemMade_, itemResults_, 6, 4, 7, &CampKinds::IsBlueprint, &CampKinds::IsPart,
+                  &MakeAt::CanMakeItem, 0x0079381C, 0x007936C4, 0x66);    // "camp_item_deconstr", "camp_item_constr"
+        break;
+    case 6:
+        if (CountOf(itemExtra_) > 0) {
+            action = GameText(0x00793830);   // "camp_item_repair"
+            actionEnabled_ = true;
+            actionShown_ = true;
+            for (int i = 0; i < CountOf(itemExtra_); ++i) {
+                std::uint8_t* item = Entry(itemExtra_, i);
+                int count = Count(item);
+                cost_ += price(item, 8) * count;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+    int amount;
+    if (page_ == 1) {
+        amount = reinterpret_cast<TradeAt*>(trade_)->Experience();
+    } else {
+        amount = Read<int>(LocalPlayerData(), 0x50);   // money
+        if (Read<int>(LocalPlayerData(), 0x50) < cost_) actionEnabled_ = false;
+    }
+
+    mfc::CString text;
+    mfc::CString line;
+    CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
+    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data_[0]);
+    draw->Begin();
+    draw->Clear();
+    if (reinterpret_cast<const int*>(static_cast<const char*>(action))[-2] != 0) {
+        texts->GetString(action, &text);
+        RECT name = {0, 30, 200, 50};
+        draw->Text(text, &name, 1, 0xFFFFFF, 1, 1);
+        if (cost_ != 0)
+            text.Format(GameText(0x00793818), -cost_);   // "%+d"
+        else
+            text = GameText(0x007856B8);                 // "0"
+        RECT value = {0, 50, 200, 70};
+        draw->Text(text, &value, 1, 0xFFFFFF, 1, 1);
+    }
+    texts->GetString(label, &text);
+    line.Format(GameText(0x00792F14), static_cast<const char*>(text), amount);   // "%s %d"
+    RECT top = {0, 10, 200, 30};
+    draw->Text(line, &top, 1, 0xFFFFFF, 1, 1);
+    draw->End();
+
+    SetShadeOf(sceneObjects_.data_[0], actionEnabled_);
+    SetShadeOf(sceneObjects_.data_[1], actionShown_);
+}
+EI_REPLACE_METHOD(0x00611930, CCampPages::UpdateAction);

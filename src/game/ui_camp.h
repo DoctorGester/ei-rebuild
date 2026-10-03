@@ -173,6 +173,11 @@ public:
     // the parts and spells each constructor accepts (skill and mana of the best hero, at most
     // eight modifiers, matching blueprints). Returns AL.
     bool CanEquip(std::uint8_t* item, int mode);
+    // 00611930 (every frame from the camp's draw, and on the hero arrows). Works out the page's
+    // action (repair all, level up, trade, construct, take apart, repair), its cost against the
+    // money (or experience on the trade page) and draws them on surface 0; shades the two action
+    // buttons by whether they can be pressed.
+    void UpdateAction();
 
     std::uint8_t unknown_148[0x190 - 0x148];
     int page_;                       // +0x190
@@ -200,9 +205,14 @@ public:
     CUiWindow* itemConstructor1_;    // +0x200 (vtable 0074170C)
     CUiWindow* itemConstructor2_;    // +0x204 (vtable 007415D4)
     CUiWindow* itemConstructor3_;    // +0x208 (vtable 00741538)
-    std::uint8_t unknown_20C[0x214 - 0x20C];
-    std::uint8_t* container_;        // +0x214 the spell container being filled (item constructor), or null
-    std::uint8_t unknown_218[0x244 - 0x218];
+    int cost_;                       // +0x20C what the action costs (negative: earns)
+    bool actionEnabled_;             // +0x210 the action button can be pressed
+    bool actionShown_;               // +0x211
+    bool deconstructing_;            // +0x212 the constructor takes an item apart
+    std::uint8_t unknown_213;
+    std::uint8_t* itemMade_;         // +0x214 the item the item constructor would make, or null
+    std::uint8_t* spellMade_;        // +0x218 the spell the spell constructor would make, or null
+    std::uint8_t unknown_21C[0x244 - 0x21C];
     char** pageTitles_;              // +0x244 CStringArray data
     std::uint8_t unknown_248[0x254 - 0x248];
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
