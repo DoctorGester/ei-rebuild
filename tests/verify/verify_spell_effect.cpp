@@ -166,3 +166,61 @@ static void __fastcall CreatePointLightVerify(CSpellEffect* self, void*, const V
     ei::verify::Check("CSpellEffect::CreatePointLight", true, ok, "range %g", static_cast<double>(range));
 }
 EI_VERIFY(0x0067F7C0, CreatePointLightVerify, 0, s_light);
+
+// --- The later states (spell_effect_update.cpp): ours only, then the state is checked -----------
+
+// 0067E6D0: 1 while running; 0 (with nothing left) once ended or without a world.
+static void* s_update;
+static int __fastcall UpdateVerify(CSpellEffect* self) {
+    int state = self->state;
+    bool hadWorld = self->world != nullptr;
+    int result = self->Update();
+    bool ok = hadWorld ? (result == ((state >= 0 && state <= 2) ? 1 : 0)) : result == 0;
+    if (hadWorld && result == 0) ok = ok && !self->visual && !self->sound && !self->light;
+    ei::verify::Check("CSpellEffect::Update", true, ok, "state %d result %d", state, result);
+    return result;
+}
+EI_VERIFY(0x0067E6D0, UpdateVerify, 0, s_update);
+
+// 00681BB0 / 00682650: the spell parameters are left alone and the state stays within 1..3 / 2..3.
+static void* s_missile;
+static void __fastcall UpdateMissileVerify(CSpellEffect* self, void*, int type) {
+    EffectState before(self);
+    self->UpdateMissile(type);
+    bool ok = self->state >= 1 && self->state <= 3 && EffectState(self) == before;
+    ei::verify::Check("CSpellEffect::UpdateMissile", true, ok, "type %d state %d timer %d", type, self->state,
+                      self->timer);
+}
+EI_VERIFY(0x00681BB0, UpdateMissileVerify, 0, s_missile);
+
+static void* s_lasting;
+static void __fastcall UpdateLastingVerify(CSpellEffect* self, void*, int type) {
+    EffectState before(self);
+    self->UpdateLasting(type);
+    bool ok = self->state >= 2 && self->state <= 3 && EffectState(self) == before;
+    ei::verify::Check("CSpellEffect::UpdateLasting", true, ok, "type %d state %d timer %d", type, self->state,
+                      self->timer);
+}
+EI_VERIFY(0x00682650, UpdateLastingVerify, 0, s_lasting);
+
+// 0067EE00 / 0067EE40 / 0067EE80: the pointer is cleared.
+static void* s_releaseVisual;
+static void __fastcall ReleaseVisualVerify(CSpellEffect* self) {
+    self->ReleaseVisual();
+    ei::verify::Check("CSpellEffect::ReleaseVisual", static_cast<CEngineObject*>(nullptr), self->visual, "");
+}
+EI_VERIFY(0x0067EE00, ReleaseVisualVerify, 0, s_releaseVisual);
+
+static void* s_releaseSound;
+static void __fastcall ReleaseSoundVerify(CSpellEffect* self) {
+    self->ReleaseSound();
+    ei::verify::Check("CSpellEffect::ReleaseSound", static_cast<CEngineObject*>(nullptr), self->sound, "");
+}
+EI_VERIFY(0x0067EE40, ReleaseSoundVerify, 0, s_releaseSound);
+
+static void* s_releaseLight;
+static void __fastcall ReleaseLightVerify(CSpellEffect* self) {
+    self->ReleaseLight();
+    ei::verify::Check("CSpellEffect::ReleaseLight", static_cast<CEngineObject*>(nullptr), self->light, "");
+}
+EI_VERIFY(0x0067EE80, ReleaseLightVerify, 0, s_releaseLight);

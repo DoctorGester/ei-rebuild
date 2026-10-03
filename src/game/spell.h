@@ -159,6 +159,24 @@ struct CSpellEffect {
     // 0067F7C0. A point light (class 0x4B, light flags 0x840); it becomes the light (+0x98).
     void CreatePointLight(const Vector3* position, const Vector3* color, float range, const Vector3* velocity);
 
+    // spell_effect_update.cpp: the later states.
+    // 0067E6D0. One tick: state 0 Start, 1 UpdateMissile, 2 UpdateLasting (all with the spell's
+    // prototype index); any other state clears the footprint and drops the visual, sound and light
+    // and returns 0 (the world then removes the effect). 0 also without a world; else 1.
+    int Update();
+    // 00681BB0. State 1: the fire arrow (0, 0x28) and acid ray (2) hit their target when the
+    // missile reports a hit; the fireball (3) explodes when its timer runs out.
+    void UpdateMissile(int type);
+    // 00682650. State 2: the lasting effects (walls and clouds hit every 4th tick, fireworks scare,
+    // clairvoyance and possession reveal, teleport moves the caster, link and vision fog end when
+    // their units do); every case counts the timer down and ends the effect (state 3).
+    void UpdateLasting(int type);
+    // 0067EE00 / 0067EE40 / 0067EE80. Drop the visual / sound / light (leave the timed objects,
+    // release).
+    void ReleaseVisual();
+    void ReleaseSound();
+    void ReleaseLight();
+
     std::uint8_t unknown_00[0x08];
     char* world;                // +0x08 the world server; its sector map is at +0x170 + 0x124
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
