@@ -633,6 +633,49 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
 }
 EI_REPLACE_METHOD(0x00526C70, UnitStats::WeaponSkillBonus);
 
+namespace {
+// 0051FE80. Skill database: the index of the level record named `name` by _mbsicmp, or -1.
+__declspec(naked) int __fastcall SkillRecordIndexByName(const void*, void*, const char*) EI_ORIGINAL(0x0051FE80)
+
+// A CString field of a record: is it set, and not "none"?
+bool NamesRequirement(const char* record, int offset) {
+    const char* text = Read<const char*>(record, offset);
+    if (reinterpret_cast<const int*>(text)[-2] == 0) return false;   // its length
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(text),
+                           reinterpret_cast<const unsigned char*>(0x007846F0)) != 0;   // "none"
+}
+} // namespace
+
+BOOL UnitStats::CanLearn(const void* database, const char* record) {
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(this);
+    if (!Read<std::uint8_t>(record, 0x40)) return 0;
+    if (!(stat10 >= Read<float>(record, 0x24))) return 0;   // NaN fails too
+    if (!(stat18 >= Read<float>(record, 0x28))) return 0;
+    if (!(stat20 >= Read<float>(record, 0x2C))) return 0;
+    if (NamesRequirement(record, 0x14)) {
+        int attribute = Read<int>(record, 0x18);
+        if (attribute == 0x7FFFFFFF) return 0;
+        if (static_cast<std::uint32_t>(bytes[0x6CB + attribute]) < Read<std::uint32_t>(record, 0x20)) return 0;
+    }
+    if (NamesRequirement(record, 0x0C)) {
+        int required = SkillRecordIndexByName(database, nullptr, Read<const char*>(record, 0x0C));
+        if (bytes[0x6D3 + required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
+    }
+    // No level of the same skill id may be known in another skill.
+    int group = SkillRecordIndex(database, nullptr, record) / 3;
+    for (int k = 0; k < 26; ++k) {
+        std::uint8_t level = bytes[0x6D3 + k];
+        if (level == 0) continue;
+        const char* known =
+            unitdb::SkillLevels().At(static_cast<std::uint32_t>(3 * k + level - 1), unitdb::kSkillLevelSize);
+        if (!known || Read<int>(known, 0x10) != Read<int>(record, 0x10)) continue;
+        if (SkillRecordIndex(database, nullptr, known) / 3 != group) return 0;
+    }
+    int own = SkillRecordIndexByName(database, nullptr, Read<const char*>(record, 0x04));
+    return own % 3 > static_cast<int>(bytes[0x6D3 + own / 3]) - 1 ? 1 : 0;
+}
+EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);
+
 // --- Applying a prototype ---------------------------------------------------------------------
 
 int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {

@@ -254,6 +254,16 @@ static double __fastcall WeaponSkillBonusVerify(UnitStats* self, void*, int type
 }
 EI_VERIFY(0x00526C70, WeaponSkillBonusVerify, 7, s_weaponSkillBonus);
 
+// 005260A0: SUB ESP,0xC; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7 bytes). Pure: both, EAX.
+static BOOL(__fastcall* s_canLearn)(UnitStats*, void*, const void*, const char*);
+static BOOL __fastcall CanLearnVerify(UnitStats* self, void*, const void* database, const char* record) {
+    BOOL expected = s_canLearn(self, nullptr, database, record);
+    BOOL actual = self->CanLearn(database, record);
+    ei::verify::Check("UnitStats::CanLearn", expected, actual, "");
+    return expected;
+}
+EI_VERIFY(0x005260A0, CanLearnVerify, 7, s_canLearn);
+
 // 00513B60. Ours only (hands statistics to the object, rescales it): returns 1 and the
 // prototype index is -1 or a valid index.
 static int __fastcall ApplyPrototypeVerify(UnitStatsBuilder* self, void*, CEngineObject* object, const char* name) {

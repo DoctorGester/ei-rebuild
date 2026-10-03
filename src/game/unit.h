@@ -670,6 +670,12 @@ struct UnitStats {
     // weapon prototype's bonus (+0x7B / +0x7C) and the stat the skill's name starts with minus 25,
     // plus the level value of skill `type`. Unrounded (ST0).
     double WeaponSkillBonus(int type, CUnit* unit);
+    // unit_create_stats.cpp. 005260A0. Can the unit learn skill level `record` of the
+    // skill database: learnable (+0x40), the three stats at least the record's, the required
+    // attribute (+0x14 name, +0x18 index, +0x20 value) and skill level (+0x0C name) present unless
+    // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
+    // record's own level (by its name, +0x04) above the one known. 0/1 in EAX.
+    BOOL CanLearn(const void* database, const char* record);
 
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.
