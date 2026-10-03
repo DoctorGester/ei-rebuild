@@ -102,10 +102,21 @@ void RunBothElement(const char* name, CParticleSource* self, ParticleElement* e,
     RunBoth(name, self, &dummy, [&] { ours(self, e); return 0; }, [&] { original(self, nullptr, e); return 0; });
 }
 
-// The first emission of a source with no element array yet: ours runs on the real source (its
-// array stays); the original then runs on a scratch copy of the source as it was (allocating its
-// own array, freed afterwards) with the particle and generator as they were. Everything is
-// compared except the array's address; ours' particle and generator are put back.
+// A private copy of the element array captured in `state` (32-byte aligned like 00497EB0's, the
+// block below it), with room for `capacity` elements.
+inline ParticleElement* CopyElements(const std::vector<unsigned char>& bytes, int capacity) {
+    auto* raw = static_cast<unsigned char*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 0x38 + 0x24));
+    auto* aligned = reinterpret_cast<unsigned char*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
+    reinterpret_cast<void**>(aligned)[-1] = raw;
+    if (!bytes.empty()) std::memcpy(aligned, bytes.data(), bytes.size());
+    return reinterpret_cast<ParticleElement*>(aligned);
+}
+
+// A call that (re)allocates the element array (the first emission of a source, or one that grows
+// the array): ours runs on the real source (its array stays); the original then runs on a scratch
+// copy of the source as it was, with a private copy of the array (or none), with the particle and
+// generator as they were; the scratch's array is freed afterwards. Everything is compared except
+// the array's address; ours' particle and generator are put back.
 template <typename Ours>
 int RunBothSetup(const char* name, CParticleSource* self, Particle* p, int index, Ours ours, EmitFn original) {
     EmitState before, mine, theirs;
@@ -116,6 +127,7 @@ int RunBothSetup(const char* name, CParticleSource* self, Particle* p, int index
     alignas(16) unsigned char scratchBytes[sizeof(CParticleSource)];
     std::memcpy(scratchBytes, before.source, sizeof(scratchBytes));
     auto* scratch = reinterpret_cast<CParticleSource*>(scratchBytes);
+    if (scratch->elements) scratch->elements = CopyElements(before.elements, scratch->elementCapacity);
     std::memcpy(p, before.particle, sizeof(before.particle));
     std::memcpy(&GlobalRandom(), before.random, sizeof(before.random));
     g_seedElements = &mine.elements;

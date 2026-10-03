@@ -25,3 +25,32 @@ EI_UPDATE_WRAPPER(UpdateCasting)
 EI_VERIFY(0x00492030, UpdateCastingVerify, 5, s_UpdateCasting);
 EI_ELEMENT_WRAPPER(TickCasting)
 EI_VERIFY(0x004921D0, TickCastingVerify, 8, s_TickCasting);
+
+// 0048E070: PUSH EBP; MOV EBP,ESP; SUB ESP,0x2C (6).
+EI_SETUP_EMIT_WRAPPER(EmitOrbit)
+EI_VERIFY(0x0048E070, EmitOrbitVerify, 6, s_EmitOrbit);
+
+// 00489320: SUB ESP,0x2C; PUSH EBX; MOV EBX,ECX (6). 00489A50: MOV EAX,[ESP+4]; PUSH ESI (5).
+// 00489B40: MOV EAX,[ESP+4]; MOV EDX,[EAX+0x34] (7).
+EI_SETUP_EMIT_WRAPPER(EmitCastRing)
+EI_VERIFY(0x00489320, EmitCastRingVerify, 6, s_EmitCastRing);
+EI_UPDATE_WRAPPER(UpdateCastRing)
+EI_VERIFY(0x00489A50, UpdateCastRingVerify, 5, s_UpdateCastRing);
+EI_ELEMENT_WRAPPER(TickCastRing)
+EI_VERIFY(0x00489B40, TickCastRingVerify, 7, s_TickCastRing);
+
+// 00490C10: SUB ESP,0x30; PUSH EBX; MOV EBX,ECX (6). Each emission adds an element until there are
+// `lifetime` of them (the array may grow): those calls run the original on a scratch source.
+static EmitFn s_EmitCastSwirl;
+static int __fastcall EmitCastSwirlVerify(CParticleSource* self, void*, Particle* p, int index) {
+    auto ours = [](CParticleSource* s, Particle* q, int i) { return s->CParticleSource::EmitCastSwirl(q, i); };
+    if (self->elementCount < self->lifetime)
+        return RunBothSetup("CParticleSource::EmitCastSwirl", self, p, index, ours, s_EmitCastSwirl);
+    return RunBothEmit("CParticleSource::EmitCastSwirl", self, p, index, ours, s_EmitCastSwirl);
+}
+EI_VERIFY(0x00490C10, EmitCastSwirlVerify, 6, s_EmitCastSwirl);
+// 00491230: SUB ESP,8; PUSH ESI; MOV ESI,[ESP+0x10] (8). 00491390: SUB ESP,0xC; MOV EAX,[ESP+0x10] (7).
+EI_UPDATE_WRAPPER(UpdateCastSwirl)
+EI_VERIFY(0x00491230, UpdateCastSwirlVerify, 8, s_UpdateCastSwirl);
+EI_ELEMENT_WRAPPER(TickCastSwirl)
+EI_VERIFY(0x00491390, TickCastSwirlVerify, 7, s_TickCastSwirl);
