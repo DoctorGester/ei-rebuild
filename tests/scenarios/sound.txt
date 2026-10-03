@@ -22,7 +22,7 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 
 # Music: a piece from Stream\ (victory.mp3); the zone's calm / combat choice waits until it ends.
-console @PlayMusic("victory")
+console @PlayMusic(0,"victory")
 wait 1000
 
 # A positional sound effect next to the hero (the game's own thunder strike uses the same call).

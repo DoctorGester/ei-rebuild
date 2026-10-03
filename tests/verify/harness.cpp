@@ -616,7 +616,12 @@ DWORD WINAPI Watchdog(void*) {
             std::snprintf(what, sizeof(what), "scenario exceeded its %lu s time limit at step %u of %u",
                           g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
             g_failures.push_back(what);
-            WriteReport();
+            // Write the report from another thread and end the game whether or not that finishes:
+            // a crashed or deadlocked main thread may hold a lock the report needs.
+            if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
+                WaitForSingleObject(writer, 3000);
+                CloseHandle(writer);
+            }
             TerminateProcess(GetCurrentProcess(), 1);
         }
     }
@@ -689,6 +694,9 @@ struct Harness {
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
+        // A crash must end the run: no Windows Error Reporting dialog, which freezes every thread
+        // (the watchdog included) until someone closes it.
+        SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX | SEM_FAILCRITICALERRORS);
 
         strcpy_s(g_savesDir, g_reportPath);
         if (char* slash = std::strrchr(g_savesDir, '\\')) strcpy_s(slash + 1, g_savesDir + MAX_PATH - (slash + 1), "harness_saves");
