@@ -99,3 +99,38 @@ static int __fastcall LoadFigureRegistryVerify(char* unit, const mfc::CString* p
     return actual.result;
 }
 EI_VERIFY(0x0044B980, LoadFigureRegistryVerify, 7, s_registry);
+
+// --- 0044CFF0 ------------------------------------------------------------------------------------
+
+namespace scene {
+void __fastcall IndexMeshCorners(VtArray* meshes);
+}
+
+namespace {
+// Every mesh's corner table (+0x108, 6 bytes each), pairs (+0x118, 4) and corner indices (+0x128, 2).
+std::vector<std::vector<std::uint8_t>> MeshTables(scene::VtArray* meshes) {
+    std::vector<std::vector<std::uint8_t>> out;
+    for (int m = 0; m < meshes->body.size; ++m) {
+        char* mesh = static_cast<char*>(meshes->body.data) + m * scene::mesh::kSize;
+        const std::pair<std::size_t, int> arrays[] = {{0x108, 6}, {0x118, 4}, {0x128, 2}};
+        for (const auto& [offset, element] : arrays) {
+            const auto* data = At<const std::uint8_t*>(mesh, offset);
+            int count = At<int>(mesh, offset + 4);
+            out.emplace_back(data, data + (data ? count * element : 0));
+        }
+    }
+    return out;
+}
+} // namespace
+
+// 0044CFF0: PUSH -1; PUSH 0071374C (7 bytes). The tables are rebuilt from the faces alone, so the
+// original runs first, then ours over its results; the tables are compared.
+static void(__fastcall* s_corners)(scene::VtArray*);
+static void __fastcall IndexMeshCornersVerify(scene::VtArray* meshes) {
+    s_corners(meshes);
+    auto expected = MeshTables(meshes);
+    scene::IndexMeshCorners(meshes);
+    auto actual = MeshTables(meshes);
+    ei::verify::Check("IndexMeshCorners", true, expected == actual, "meshes %d", meshes->body.size);
+}
+EI_VERIFY(0x0044CFF0, IndexMeshCornersVerify, 7, s_corners);

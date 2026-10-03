@@ -412,7 +412,8 @@ strings 00697FC0 taking a CString by value).
 
 ## Fifth round: the fake unit scene's helpers
 
-Files: `src/game/scene_registry.cpp` (0044B980); verify: `tests/verify/verify_scene_registry.cpp`.
+Files: `src/game/scene_registry.cpp` (0044B980), `src/game/scene_meshes.cpp` (0044CFF0); verify:
+`tests/verify/verify_scene_registry.cpp` (both).
 No new scenario: every scenario loads zone1, which loads the fake unit scenes. Shared files: none.
 
 ### Rewritten
@@ -420,6 +421,7 @@ No new scenario: every scenario loads zone1, which loads the fake unit scenes. S
 | Address | Name | Verify |
 |---|---|---|
 | 0044B980 | `scene::LoadFigureRegistry` (__fastcall: unit, .reg path; RET 8) | original first; its results recorded (every mesh's texture coordinates and +0x184 / +0x188, the records it added to both arrays), the coordinates restored and the arrays cut back, then ours; all compared |
+| 0044CFF0 | `scene::IndexMeshCorners` (__fastcall: the mesh array) | original first, then ours over its results (the tables depend on the faces only); every mesh's +0x108 / +0x118 / +0x128 compared |
 
 ### LoadFigureRegistry (0044B980)
 
@@ -449,6 +451,28 @@ array; "Undefined texture/material types" is logged otherwise.
 - Strings passed by value (00447F50, the registry's GetString default) are copied into a raw slot
   the callee destroys, as in options.cpp.
 
+### IndexMeshCorners (0044CFF0)
+
+Per mesh (0x18C each): every face corner's key ((merged vertex << 16 | position) << 16 | texture
+vertex, 64 bits) goes into a CMap (vtable 0073C190, 64-bit values); its entries, in the map's
+iteration order, become 16-byte records (the three low words as ints and the running index; a
+second map 0073C184 maps the keys to those indices, never read), qsort-ed with 0044CF00 (by the
+three ints) into the mesh's corner table (+0x108, three words per entry, SetSize inlined with
+00452E90). Each face corner's position in that table (-1 when absent; linear search) is appended
+to +0x128 (cleared first). The distinct (merged vertex << 16 | position) pairs (third map,
+0073C178) become dwords with the two words swapped, qsort-ed with 0044CF60 (unsigned words),
+padded to a multiple of four with the last vertex and positions counting up from the last one,
+and copied to +0x118. The record list (CArray, vtable 0073C19C) is shared by all meshes (SetSize 0
+per mesh) and deleted at the end; the first map's destructor is called (00453F80), the other two
+are inlined, after the pair list is freed.
+
+- The maps are walked with GetNextAssoc inlined (the next association is found before the current
+  one is used); their GetAssocAt / InitHashTable / NewAssoc are the original instantiations, so the
+  hashing and the iteration order are the original's. qsort is the game's (006E88FC) with the
+  original comparators by address.
+
 Forwarders: 00450750, 00447F50, 0044A2A0, 00453A30, 004553F0, 00454360, 00453C60, 00453B90,
-00453C00; the registry 00694520 / 00694540 / 006945A0 / 00694880 / 00694BE0 / 00694D20 / 006946B0
+00453C00 (registry); 004540A0 / 00453FD0 / 00454040 / 00453F80, 004541C0 / 004540F0 / 00454160,
+004542E0 / 00454210 / 00454280, 00453CA0, 00453E00, 00452E90, 0044FA90, 00452FC0, 00452EB0,
+006E88FC (corners); the registry 00694520 / 00694540 / 006945A0 / 00694880 / 00694BE0 / 00694D20 / 006946B0
 (rewritten in registry.cpp, called through their addresses).
