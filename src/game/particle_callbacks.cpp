@@ -3143,3 +3143,147 @@ void CParticleSource::TickClayRing(ParticleElement* e) {
     if (isZero(previous[0]) && isZero(previous[1])) std::memcpy(previous, &e->pos, sizeof(Vector3));
 }
 EI_REPLACE_METHOD(0x0048FBE0, CParticleSource::TickClayRing);
+
+// --- Falling (0x2034-0x2037): leaves or flakes drifting down from the carrier -------------------
+//
+// The elements are gusts: +0x0C the gust's reach, +0x10 its direction (degrees turned to
+// radians, truncated), +0x30 its age.
+
+namespace {
+
+#define EI_FALL_SIZE_SCALE GameDouble(0x0073CE68)    // ~0.1 * 2^-32
+#define EI_FALL_SIZE_BASE GameFloat(0x0073B850)      // 0.1
+#define EI_FALL_HALF GameFloat(0x0073B86C)           // 0.5
+#define EI_FALL_PI GameDouble(0x0073CAE8)            // pi
+#define EI_FALL_PER_DEGREE GameDouble(0x0073BA30)    // 1/180
+#define EI_FALL_TEN GameDouble(0x0073CD10)           // 10.0
+#define EI_FALL_DROP_SCALE GameDouble(0x0073CE60)    // ~0.12 * 2^-32
+#define EI_FALL_DROP GameFloat(0x0073CCB8)           // 0.06
+#define EI_FALL_SPIN_SCALE GameDouble(0x0073CE58)    // ~0.4 * 2^-32
+#define EI_FALL_SPIN GameFloat(0x0073CDE0)           // 0.6
+#define EI_FALL_REACH_SCALE GameDouble(0x0073CE70)   // ~0.2 * 2^-32
+#define EI_FALL_TURN GameDouble(0x0073CDC0)          // 360.0
+
+} // namespace
+
+// 0048F3B0. Falling: a leaf at the source blown by a random gust (a random reach up to the gust's,
+// a random direction around it (the original's spread is ftol(10 degrees) = 0)), falling and
+// spinning at random rates.
+int CParticleSource::EmitFalling(Particle* p, int) {
+    p->color = 0xFFFFFFFF;
+    p->frame = 12;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    p->size = Store(Unsigned(Next()) * EI_FALL_SIZE_SCALE + D(EI_FALL_SIZE_BASE));
+    const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(elementCount)];
+    const float* g = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&gust) + 0x0C);
+    float reach = Store(D(g[0]) * D(EI_FALL_HALF));
+    int spread = GameFtol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TEN);
+    float turn = Store(static_cast<double>(spread) * D(g[1]));
+    float lowReach = Store(-D(reach));
+    float x = Store(Unsigned(Next()) * (D(reach) - D(lowReach)) * EI_P_SCALE_1 + D(g[0]) + D(lowReach));
+    float lowTurn = Store(-D(turn));
+    double angle = Unsigned(Next()) * (D(turn) - D(lowTurn)) * EI_P_SCALE_1 + D(g[1]) + D(lowTurn);
+    SetBits(&p->velocity.x, 0x3F800000);
+    SetBits(&p->velocity.z, 0xBDF5C28F);     // -0.12
+    p->drift.x = Store(x87::fsin(angle) * D(x));
+    p->drift.y = Store(x87::fcos(angle) * D(x));
+    SetBits(&p->drift.z, 0);
+    p->velocity.z = Store(Unsigned(Next()) * EI_FALL_DROP_SCALE + D(p->velocity.z) - D(EI_FALL_DROP));
+    p->velocity.y = Store(Unsigned(Next()) * EI_FALL_SPIN_SCALE - D(EI_FALL_SPIN));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048F3B0, CParticleSource::EmitFalling);
+
+// 0048F6F0. Falling gusts: a new gust gets a random reach and direction (truncated to whole
+// radians); from the second tick on the source stops emitting and lets go of its carrier.
+void CParticleSource::TickFalling(ParticleElement* e) {
+    int age = *ElementInt(e, 0x30);
+    if (age == 0) {
+        *ElementFloat(e, 0x0C) = Store(Unsigned(Next()) * EI_FALL_REACH_SCALE + D(EI_FALL_SIZE_BASE));
+        float whole = Store(static_cast<double>(GameFtol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN)));
+        *ElementFloat(e, 0x10) = Store(Unsigned(Next()) * D(whole) * EI_P_SCALE_1);
+        age = *ElementInt(e, 0x30);
+    }
+    if (age > 0) {
+        flags_ &= ~1u;
+        Attach(nullptr);
+    }
+    ++*ElementInt(e, 0x30);
+}
+EI_REPLACE_METHOD(0x0048F6F0, CParticleSource::TickFalling);
+
+// --- VulcanSmoke (0x2005): lava drops and smoke from a vent ---------------------------------------
+
+namespace {
+
+#define EI_VULKAN_LOW GameFloat(0x0073CDC8)          // -0.5
+#define EI_VULKAN_HALF GameFloat(0x0073B86C)         // 0.5
+#define EI_VULKAN_SMOKE GameFloat(0x0073C54C)        // 0.3
+
+} // namespace
+
+// 0048BD50. VulcanSmoke: three in five are drops (state 8: 8 ticks per frame) thrown up at a
+// random height in a random direction; the others smoke (state 4) at a random point of the vent,
+// rising by the source's height.
+int CParticleSource::EmitVulkan(Particle* p, int) {
+    p->color = 0xFFFFFFFF;
+    p->frame = 0;
+    double radian = EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN;
+    if (Next() % 100 + 1 <= 60) {
+        p->state = 8;
+        p->life = lifetime * 8;
+        p->frameTimer = 8;
+        std::memcpy(&p->pos, &origin, 2 * sizeof(float));
+        float low = Store(D(spreadMin.y) * D(EI_VULKAN_LOW));
+        float high = Store(D(spreadMin.y) * D(EI_VULKAN_HALF));
+        p->pos.z = Store(Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(spreadMax.y) + D(origin.z) + D(low));
+        std::memcpy(&p->size, &size, sizeof(float));
+        std::memcpy(&p->velocity.x, &growth, sizeof(float));
+        SetBits(&p->velocity.y, 0x3F770A3D);     // 0.965
+        float reach = spreadMin.x;
+        float span = Store(radian);
+        std::uint32_t r = Next();
+        SetBits(&p->drift.z, 0);
+        double angle = Unsigned(r) * D(span) * EI_P_SCALE_1;
+        p->drift.x = Store(x87::fsin(angle) * D(reach));
+        p->drift.y = Store(x87::fcos(angle) * D(reach));
+        return 1;
+    }
+    p->state = 4;
+    p->life = lifetime * 4;
+    p->frameTimer = 4;
+    float reach = Store(Unsigned(Next()) * D(spreadMax.x) * EI_P_SCALE_1);
+    float span = Store(radian);
+    double angle = Unsigned(Next()) * D(span) * EI_P_SCALE_1;
+    p->pos.x = Store(x87::fsin(angle) * D(reach) + D(origin.x));
+    p->pos.y = Store(x87::fcos(angle) * D(reach) + D(origin.y));
+    std::memcpy(&p->pos.z, &origin.z, sizeof(float));
+    p->size = Store(D(size) * D(EI_VULKAN_SMOKE));
+    SetBits(&p->velocity.x, 0x3F828F5C);     // 1.02
+    SetBits(&p->velocity.y, 0x3F800000);
+    SetBits(&p->drift.x, 0);
+    SetBits(&p->drift.y, 0);
+    std::memcpy(&p->drift.z, &height, sizeof(float));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048BD50, CParticleSource::EmitVulkan);
+
+// 0048C010. VulcanSmoke: frames at the particle's own pace (state ticks per frame; dropped after
+// the last), moving by +0x38, growing by +0x20 and slowing by +0x24.
+int CParticleSource::UpdateVulkan(Particle* p) {
+    if (--p->life == 0) return 0;
+    if (--p->frameTimer == 0) {
+        if (++p->frame >= frameCount) return 0;
+        p->frameTimer = p->state;
+    }
+    p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
+    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
+    p->size = Store(D(p->velocity.x) * D(p->size));
+    double keep = D(p->velocity.y);
+    p->drift.x = Store(keep * D(p->drift.x));
+    p->drift.y = Store(keep * D(p->drift.y));
+    p->drift.z = Store(keep * D(p->drift.z));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048C010, CParticleSource::UpdateVulkan);

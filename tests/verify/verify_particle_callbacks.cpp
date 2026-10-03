@@ -234,3 +234,26 @@ EI_UPDATE_WRAPPER(UpdateClayRing)
 EI_VERIFY(0x0048FAB0, UpdateClayRingVerify, 7, s_UpdateClayRing);
 EI_ELEMENT_WRAPPER(TickClayRing)
 EI_VERIFY(0x0048FBE0, TickClayRingVerify, 8, s_TickClayRing);
+
+// 0048F3B0: SUB ESP,0x18; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7). 0048F6F0: SUB ESP,8; PUSH ESI;
+// MOV ESI,[ESP+0x10] (8); from the second tick it detaches the source (shared state): ours only.
+// 0048BD50: SUB ESP,0xC; PUSH EBX; PUSH ESI; MOV ESI,[ESP+0x18] (9). 0048C010: MOV EAX,[ESP+4];
+// MOV EDX,[EAX+0x50] (7).
+EI_EMIT_WRAPPER(EmitFalling)
+EI_VERIFY(0x0048F3B0, EmitFallingVerify, 7, s_EmitFalling);
+static ElementFn s_TickFalling;
+static void __fastcall TickFallingVerify(CParticleSource* self, void*, ParticleElement* e) {
+    if (reinterpret_cast<const std::int32_t*>(e)[0x30 / 4] > 0) {
+        self->CParticleSource::TickFalling(e);
+        ei::verify::Check("CParticleSource::TickFalling", true, (self->flags_ & 1u) == 0 && !self->attachedTo,
+                          "flags %X", self->flags_);
+        return;
+    }
+    RunBothElement("CParticleSource::TickFalling", self, e,
+                   [](CParticleSource* s, ParticleElement* x) { s->CParticleSource::TickFalling(x); }, s_TickFalling);
+}
+EI_VERIFY(0x0048F6F0, TickFallingVerify, 8, s_TickFalling);
+EI_EMIT_WRAPPER(EmitVulkan)
+EI_VERIFY(0x0048BD50, EmitVulkanVerify, 9, s_EmitVulkan);
+EI_UPDATE_WRAPPER(UpdateVulkan)
+EI_VERIFY(0x0048C010, UpdateVulkanVerify, 7, s_UpdateVulkan);

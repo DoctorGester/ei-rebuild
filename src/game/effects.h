@@ -201,6 +201,10 @@ public:
     int EmitClayRing(Particle* p, int index);       // 0048F7F0 (ClayRing, 0x2018)
     int UpdateClayRing(Particle* p);                // 0048FAB0
     void TickClayRing(ParticleElement* e);          // 0048FBE0
+    int EmitFalling(Particle* p, int index);        // 0048F3B0 (0x2034-0x2037)
+    void TickFalling(ParticleElement* e);           // 0048F6F0
+    int EmitVulkan(Particle* p, int index);         // 0048BD50 (VulcanSmoke, 0x2005)
+    int UpdateVulkan(Particle* p);                  // 0048C010
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
