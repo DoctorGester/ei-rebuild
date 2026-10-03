@@ -347,6 +347,19 @@ This is not confirmed by a run. The verify build now logs both cases to ei_hook.
 orderable" from the sorts, with the element's depth and position bits; "view stack depth" from
 CollectVisible). The rewritten sort behaves exactly like the original here, crash included.
 
+The full run confirmed the overrun: the verify logged a range with first > last ("element 41 of
+-11"), which only the original's own recursive call can produce (0056AFE0 passes vector bounds).
+With a NaN pivot depth the left scan `while (Less(*first, pivot))` runs past `last`, the returned
+cut lies beyond it, the recursive call on (cut, last) returns at once (signed size test), and the
+loop goes on with `last = cut`, partitioning memory past the vector (garbage pointers can be swapped
+into it). The first verify missed this: its NaN test `x != x` was folded to false by /fp:fast, so
+the range was sorted on a scratch copy whose overrun read other memory, giving the one
+"MISMATCH IntroSortByModel: n 49" (in 937,548 calls). Rechecked the template step by step against
+005740D0, 00574390, 00577FC0 and 00577730 without finding a difference. The verify now tests NaN
+on the bits, sends reversed and NaN ranges to the original alone (logged), and on a mismatch logs
+the first difference with its keys (rank, +0xF0, depth bits) and, for the first three, the whole
+range (input, original's order, ours).
+
 ## Forwarders added (standalone build must replace)
 
 - 004F16A0 RenderDevice::Classify (frustum test), 004D9880 Matrix4::Multiply, 004D9AA0 quaternion

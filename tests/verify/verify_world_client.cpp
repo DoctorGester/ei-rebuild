@@ -6,6 +6,7 @@
 #include "../../src/hook/log.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -25,12 +26,20 @@ using Obj = CEngineObject*;
 // non-NaN view depth (+0x30): its depth test is FCOM + TEST AH,1, so with a NaN depth
 // Less(x, x) is true and STLport's unguarded scans run past the array (the rare Rebirth crash at
 // 00574318, see docs/notes/world.md). Such ranges are logged and left to the original alone, on
-// the real array: a scratch copy would read different memory past its ends.
+// the real array: a scratch copy would read (and swap) different memory past its ends. A range
+// with first > last is what the original's own recursion passes after its partition ran past the
+// end; the original returns at once there.
+// NaN is tested on the bits: under /fp:fast the compiler folded `x != x` to false (it did, so the
+// first version of this check never fired for NaN).
+bool IsNanBits(std::uint32_t bits) { return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0; }
+
+constexpr int kReversed = -2;
+
 int Suspicious(Obj* first, Obj* last) {
+    if (last < first) return kReversed;
     for (Obj* p = first; p != last; ++p) {
         if (!*p || !At<void*>(*p, 0x94)) return static_cast<int>(p - first);
-        float depth = At<float>(*p, 0x30);
-        if (depth != depth) return static_cast<int>(p - first);
+        if (IsNanBits(At<std::uint32_t>(*p, 0x30))) return static_cast<int>(p - first);
     }
     return -1;
 }
@@ -39,6 +48,11 @@ void ReportSuspicious(const char* name, Obj* first, Obj* last, int index) {
     static int s_logged = 0;
     if (s_logged >= 20) return;
     ++s_logged;
+    if (index == kReversed) {
+        ei::Log("%s: reversed range (first %p, last %p, %d elements): a partition ran past the end", name,
+                static_cast<void*>(first), static_cast<void*>(last), static_cast<int>(last - first));
+        return;
+    }
     Obj o = first[index];
     void* model = o ? At<void*>(o, 0x94) : nullptr;
     std::uint32_t depthBits = o ? At<std::uint32_t>(o, 0x30) : 0;
@@ -47,8 +61,30 @@ void ReportSuspicious(const char* name, Obj* first, Obj* last, int index) {
             o ? At<std::uint32_t>(o, 0x1C) : 0, o ? At<std::uint32_t>(o, 0x20) : 0, o ? At<std::uint32_t>(o, 0x24) : 0);
 }
 
+// The keys each ordering compares, for mismatch reports.
+void DescribeByModel(Obj o, char* out, std::size_t size) {
+    if (!o) {
+        std::snprintf(out, size, "null");
+        return;
+    }
+    void* model = At<void*>(o, 0x94);
+    std::uint32_t* rank = model ? At<std::uint32_t*>(model, 0x20) : nullptr;
+    std::snprintf(out, size, "%p rank %u f0 %u depth %08X", static_cast<void*>(o), rank ? *rank : 0u,
+                  At<std::uint32_t>(o, 0xF0), At<std::uint32_t>(o, 0x30));
+}
+void DescribeByModelUse(Obj o, char* out, std::size_t size) {
+    void* model = o ? At<void*>(o, 0x94) : nullptr;
+    std::snprintf(out, size, "%p use %u", static_cast<void*>(o), model ? At<std::uint32_t>(model, 0xEC) : 0u);
+}
+
 template <typename Original, typename Ours>
-void CompareSort(const char* name, Obj* first, Obj* last, Original original, Ours ours) {
+void CompareSort(const char* name, Obj* first, Obj* last, Original original, Ours ours,
+                 void (*describe)(Obj, char*, std::size_t)) {
+    if (last < first) {   // the original returns at once; nothing to compare
+        original(first, last);
+        return;
+    }
+    std::vector<Obj> input(first, last);
     std::vector<Obj> scratch(first, last);
     Obj* s = scratch.data();
     original(s, s + scratch.size());
@@ -59,7 +95,26 @@ void CompareSort(const char* name, Obj* first, Obj* last, Original original, Our
             mismatch = static_cast<int>(i);
             break;
         }
-    ei::verify::Check(name, -1, mismatch, "n %d", static_cast<int>(last - first));
+    char expected[96] = "", actual[96] = "";
+    if (mismatch >= 0) {
+        describe(scratch[mismatch], expected, sizeof(expected));
+        describe(first[mismatch], actual, sizeof(actual));
+        // The whole range (input, the original's order, ours) for the first few mismatches.
+        static int s_dumps = 0;
+        if (s_dumps < 3) {
+            ++s_dumps;
+            ei::Log("%s mismatch: %d elements, first difference at %d", name, static_cast<int>(input.size()), mismatch);
+            for (std::size_t i = 0; i < input.size(); ++i) {
+                char a[96], b[96], c[96];
+                describe(input[i], a, sizeof(a));
+                describe(scratch[i], b, sizeof(b));
+                describe(first[i], c, sizeof(c));
+                ei::Log("  %2u in: %s | original: %s | ours: %s", static_cast<unsigned>(i), a, b, c);
+            }
+        }
+    }
+    ei::verify::Check(name, -1, mismatch, "n %d, first difference at %d: original %s, ours %s",
+                      static_cast<int>(last - first), mismatch, expected, actual);
 }
 } // namespace
 
@@ -74,7 +129,7 @@ static void __fastcall IntroByModelVerify(Obj* first, Obj* last, void* valueType
     }
     CompareSort(
         "IntroSortByModel", first, last, [&](Obj* f, Obj* l) { s_introByModel(f, l, valueType, depth, comp); },
-        [&](Obj* f, Obj* l) { IntroSortByModel(f, l, valueType, depth, comp); });
+        [&](Obj* f, Obj* l) { IntroSortByModel(f, l, valueType, depth, comp); }, DescribeByModel);
 }
 EI_VERIFY(0x005740D0, IntroByModelVerify, 5, s_introByModel);
 
@@ -89,7 +144,7 @@ static void __fastcall FinalByModelVerify(Obj* first, Obj* last, int comp) {
     }
     CompareSort(
         "FinalSortByModel", first, last, [&](Obj* f, Obj* l) { s_finalByModel(f, l, comp); },
-        [&](Obj* f, Obj* l) { FinalSortByModel(f, l, comp); });
+        [&](Obj* f, Obj* l) { FinalSortByModel(f, l, comp); }, DescribeByModel);
 }
 EI_VERIFY(0x00574390, FinalByModelVerify, 5, s_finalByModel);
 
@@ -99,7 +154,7 @@ static void(__fastcall* s_introByUse)(Obj*, Obj*, void*, int, int);
 static void __fastcall IntroByUseVerify(Obj* first, Obj* last, void* valueType, int depth, int comp) {
     CompareSort(
         "IntroSortByModelUse", first, last, [&](Obj* f, Obj* l) { s_introByUse(f, l, valueType, depth, comp); },
-        [&](Obj* f, Obj* l) { IntroSortByModelUse(f, l, valueType, depth, comp); });
+        [&](Obj* f, Obj* l) { IntroSortByModelUse(f, l, valueType, depth, comp); }, DescribeByModelUse);
 }
 EI_VERIFY(0x00573D50, IntroByUseVerify, 6, s_introByUse);
 
@@ -108,7 +163,7 @@ static void(__fastcall* s_finalByUse)(Obj*, Obj*, int);
 static void __fastcall FinalByUseVerify(Obj* first, Obj* last, int comp) {
     CompareSort(
         "FinalSortByModelUse", first, last, [&](Obj* f, Obj* l) { s_finalByUse(f, l, comp); },
-        [&](Obj* f, Obj* l) { FinalSortByModelUse(f, l, comp); });
+        [&](Obj* f, Obj* l) { FinalSortByModelUse(f, l, comp); }, DescribeByModelUse);
 }
 EI_VERIFY(0x00573F10, FinalByUseVerify, 5, s_finalByUse);
 

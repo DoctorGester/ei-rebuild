@@ -51,3 +51,23 @@ with a NaN view depth (+0x30) makes Less(x, x) true and STLport's unguarded part
 front of the vector. 0056AFE0 also reads the view matrix from an unchecked view stack depth, a
 possible source of NaN depths while a new game loads. The verify build logs both ("not orderable",
 "view stack depth" in ei_hook.log).
+
+Update (2026-10-03, full run): the diagnostic logged "IntroSortByModel: element 41 of -11 is not
+orderable" (a range with first > last) and one "MISMATCH IntroSortByModel: n 49" in 937,548 calls.
+Both follow from the NaN case, not from a caller: 0056AFE0's nine calls pass begin/end of the
+frame's vectors (never reversed). A reversed range is what 005740D0's own recursive call
+(00574274) passes when its partition's left scan `while (Less(*first, pivot))` ran past `last`:
+with a NaN pivot depth, Less(x, pivot) is true for every element of the same rank and +0xF0, so
+the scan runs into the memory after the vector, and the cut it returns lies beyond `last`. The
+original then returns at once from the reversed call (its size test is signed), but the scans have
+already read pointers from outside the array and dereferenced them (+0x94): that is the crash, and
+it is an original bug (kept). Worse, the loop then continues with `last = cut`, beyond the real
+end, so it partitions the memory past the vector too: garbage words can be swapped into the vector
+(the garbage element the comparator then crashes on) and vector entries into the memory after it. The verify missed it because its NaN test `x != x` was folded to false by /fp:fast;
+the range was sorted on a scratch copy, whose overrun read different memory than ours on the real
+vector, hence the mismatch. Fixed in the verify (NaN tested on the bits; reversed ranges and
+NaN ranges go to the original alone and are logged; mismatches now log keys and both orders).
+The algorithm was rechecked step by step against 005740D0, 00574390, 00577FC0 and 00577730
+(median of three, unguarded partition, recursion on the right part, depth limit, heap fallback,
+insertion threshold 16) with no difference found. Still open: where the NaN depths come from
+(look for "view stack depth" and the depth/position bits of "not orderable" lines).
