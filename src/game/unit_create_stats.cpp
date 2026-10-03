@@ -136,7 +136,7 @@ __declspec(naked) void* __fastcall RefillSlotsAt(UnitStats*) EI_ORIGINAL(0x00525
 // 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
 __declspec(naked) void* __fastcall FindSkill(void*, void*, const void*) EI_ORIGINAL(0x0051FE00)
 // 00526450. Statistics: learns `skill` of the skill database. Not rewritten.
-__declspec(naked) void __fastcall LearnSkill(UnitStats*, void*, void*, void*) EI_ORIGINAL(0x00526450)
+__declspec(naked) void __fastcall LearnSkillAt(UnitStats*, void*, void*, void*) EI_ORIGINAL(0x00526450)
 // 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
 __declspec(naked) void __fastcall RecomputeAt(UnitStats*, void*, std::uint32_t) EI_ORIGINAL(0x00524CD0)
 // This file's functions through their addresses, so their verify wrappers stay in the path.
@@ -233,7 +233,7 @@ void LearnNpcSkills(UnitStats* stats, const char* npcRecord) {
     for (char* const* name = Read<char* const*>(npcRecord, npc::kSkillNames);
          name != Read<char* const*>(npcRecord, npc::kSkillNames + 4); ++name) {
         void* skill = FindSkill(reinterpret_cast<void*>(kSkillDatabase), nullptr, *name);
-        if (skill) LearnSkill(stats, nullptr, reinterpret_cast<void*>(kSkillDatabase), skill);
+        if (skill) LearnSkillAt(stats, nullptr, reinterpret_cast<void*>(kSkillDatabase), skill);
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }
@@ -496,7 +496,7 @@ double LevelOrZero(UnitStats* stats, int skill) {
     return record ? LevelOf(record) : kZero;
 }
 
-// 00524060 / 00524110 (unit_vitals.cpp), through their game addresses.
+// 00524060 / 00524110 of unit_vitals.cpp, through their game addresses.
 __declspec(naked) float __fastcall LegsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524060)
 __declspec(naked) float __fastcall ArmsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524110)
 } // namespace
@@ -546,6 +546,40 @@ void UnitStats::ResetToBase(float newLoad) {
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }
 EI_REPLACE_METHOD(0x00524CD0, UnitStats::ResetToBase);
+
+namespace {
+// 005259B0 UnitStats::Reduce and 00525800 UnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
+// through their game addresses. Reduce leaves its result unrounded in ST0.
+__declspec(naked) double __fastcall ReduceAt(UnitStats*, void*, float) EI_ORIGINAL(0x005259B0)
+__declspec(naked) bool __fastcall HealSlotsAt(UnitStats*, void*, float, float) EI_ORIGINAL(0x00525800)
+// 0051FF00. Skill database: the index of `record` in its level records, or -1. Not rewritten.
+__declspec(naked) int __fastcall SkillRecordIndex(const void*, void*, const void*) EI_ORIGINAL(0x0051FF00)
+
+// The hit point maximum of the experience curve with skill 16 (the level byte read now).
+float CurveHitPoints(UnitStats* stats) {
+    double curve = HitPointExperienceCurve(&stats->experience);
+    double scaled = curve * (static_cast<double>(stats->stat10) / Global(0x007C5454) * Global(0x007C5458));
+    return static_cast<float>((LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled);
+}
+} // namespace
+
+void UnitStats::LearnSkill(const void* database, const void* record) {
+    float oldMaximum = CurveHitPoints(this);
+    float oldHitPoints = static_cast<float>(ReduceAt(this, nullptr, oldMaximum));
+    int index = SkillRecordIndex(database, nullptr, record);
+    int skill = index / 3;
+    int level = index % 3;
+    std::uint8_t& known = reinterpret_cast<std::uint8_t*>(this)[0x6D3 + skill];   // unchecked, as the original
+    if (known != 0 && level <= known - 1) return;
+    known = static_cast<std::uint8_t>(level + 1);
+    float newMaximum = CurveHitPoints(this);
+    if (!(oldMaximum > kOneF)) return;   // NaN returns too
+    if (!(newMaximum > kOneF)) return;
+    double newHitPoints = ReduceAt(this, nullptr, newMaximum);
+    float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
+    HealSlotsAt(this, nullptr, newMaximum, heal);
+}
+EI_REPLACE_METHOD(0x00526450, UnitStats::LearnSkill);
 
 // --- Applying a prototype ---------------------------------------------------------------------
 

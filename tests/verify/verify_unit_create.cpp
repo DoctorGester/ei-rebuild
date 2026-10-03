@@ -226,6 +226,24 @@ static void __fastcall ResetToBaseVerify(UnitStats* self, void*, float load) {
 }
 EI_VERIFY(0x00524CD0, ResetToBaseVerify, 6, s_resetToBase);
 
+// 00526450: SUB ESP,0x14; FLD [0x007C5460] (9 bytes). Writes only the statistics: snapshot
+// compare as above.
+static void(__fastcall* s_learnSkill)(UnitStats*, void*, const void*, const void*);
+static void __fastcall LearnSkillVerify(UnitStats* self, void*, const void* database, const void* record) {
+    unsigned char before[sizeof(UnitStats)];
+    unsigned char ours[sizeof(UnitStats)];
+    std::memcpy(before, self, sizeof(before));
+    self->LearnSkill(database, record);
+    std::memcpy(ours, self, sizeof(ours));
+    std::memcpy(self, before, sizeof(before));
+    s_learnSkill(self, nullptr, database, record);
+    int diff = -1;
+    for (int i = 0; i < static_cast<int>(sizeof(ours)) && diff < 0; ++i)
+        if (ours[i] != reinterpret_cast<unsigned char*>(self)[i]) diff = i;
+    ei::verify::Check("UnitStats::LearnSkill", true, diff < 0, "first difference at +0x%X", diff);
+}
+EI_VERIFY(0x00526450, LearnSkillVerify, 9, s_learnSkill);
+
 // 00513B60. Ours only (hands statistics to the object, rescales it): returns 1 and the
 // prototype index is -1 or a valid index.
 static int __fastcall ApplyPrototypeVerify(UnitStatsBuilder* self, void*, CEngineObject* object, const char* name) {

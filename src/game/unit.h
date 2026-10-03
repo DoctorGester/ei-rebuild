@@ -660,6 +660,11 @@ struct UnitStats {
     // the hit point curve (current values clamped to them), `load`, the capacity, the legs and
     // arms factors and the rate. NPC statistics are built with it (scale 1).
     void ResetToBase(float load);
+    // unit_create_stats.cpp. 00526450. Learns the skill level `record` of the skill database
+    // (index / 3 is the skill, index % 3 + 1 the level) unless the unit knows it at that level or
+    // better; when the hit point maximum of the curve (before and after, both above 1) changes,
+    // the slots are healed by what keeps the hit points in proportion (00525800).
+    void LearnSkill(const void* database, const void* record);
 
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.
