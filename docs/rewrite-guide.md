@@ -66,6 +66,9 @@ comes from a bug we already hit.
    The FPU does not always run at 24-bit precision: under Rebirth it runs higher, so a float the
    original returns unrounded in ST0 must not be rounded on return (declare the function `double`
    and let callers round when they store; see `CItemWeapon::RollDamage`).
+   Never test NaN with `v != v`: /fp:fast folds it to false. Use `x87::IsNaN` (a bit test). The
+   `!(a > b)` idioms below do keep their NaN behaviour under /fp:fast (checked: MSVC emits
+   FCOMP; FNSTSW; TEST AH,5/0x41; JNP).
 8. **x87 compare semantics:** `FCOM; TEST AH,0x41; JNZ` means "jump if <= or NaN"; `TEST AH,1` means
    "less or NaN". Write `!(a > b)` / `!(a >= b)` so NaN behaves the same.
 9. **Mods patch the original in memory.** The installer compares each function's whole body with the

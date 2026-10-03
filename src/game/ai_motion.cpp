@@ -104,7 +104,7 @@ double TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
         return static_cast<double>(m->startAngle) + m->turn;
     }
     *final = false;
-    float sign = m->turn < 0.0f || m->turn != m->turn ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
+    float sign = m->turn < 0.0f || x87::IsNaN(m->turn) ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
     return static_cast<double>(sign) * elapsed * m->turnRate + m->startAngle;
 }
 } // namespace
@@ -374,7 +374,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             if (!(ratio >= time)) {
                 angle = static_cast<double>(startAngle) + turn;
             } else {
-                float sign = turn < 0.0f || turn != turn ? kMinusOne : (turn > 0.0f ? kOne : kZero);
+                float sign = turn < 0.0f || x87::IsNaN(turn) ? kMinusOne : (turn > 0.0f ? kOne : kZero);
                 angle = static_cast<double>(sign) * turnRate * time + startAngle;
             }
             direction[0] = Store(x87::fcos(angle));

@@ -195,7 +195,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             float dy = Store(static_cast<double>(cell.y) - eye->y);
             float dz = Store(-static_cast<double>(eye->z));
             float distance = Store(x87::fsqrt(static_cast<double>(dy) * dy + static_cast<double>(dx) * dx));
-            if (radius < distance || radius != radius || distance != distance) continue;
+            if (radius < distance || x87::IsNaN(radius) || x87::IsNaN(distance)) continue;
             if (!anyDirection) {
                 double dot = static_cast<double>(dz) * look->z + static_cast<double>(dy) * look->y;
                 dot = dot + static_cast<double>(dx) * look->x;
