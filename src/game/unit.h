@@ -251,6 +251,14 @@ public:
     // 00530920. unknown_23C = `index`. Returns `index` (EAX).
     int SetPrototype23CIndex(int index);
 
+    // unit_create.cpp (fourth round).
+    // 00532AC0. After a hit: armour pieces and weapons whose condition (+0x20) rounds to 0 or
+    // less leave their slots (armour: the controller's slot 27 with the type; weapons: message
+    // 0x16 to the player, the slots above move down, the controller's slot 25 with -1 at the
+    // end) and go to the owning player (00665470), then lose the unit's reference. Units without
+    // a player keep everything.
+    void DropBrokenEquipment();
+
     // unit_save.cpp (third round).
     // 00531A80. Virtual slot 9 (Load): the map object part, the controller, the unit's name,
     // relations, player, movement fields, items by id (counted references), the carried items,

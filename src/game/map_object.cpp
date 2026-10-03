@@ -180,6 +180,34 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x0050E8F0, CMapObject::AttachCompanion);
 
+namespace {
+constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions slot 19 accepts
+
+// 00516D50. The 3D object's slot 19 (attaches type 0x46 objects at +0x94). Not rewritten.
+__declspec(naked) std::uintptr_t __fastcall Object3DAttach(CMapObject*, void*, CEngineObject*) EI_ORIGINAL(0x00516D50)
+// 00522C50. UnitVitals::Pack (unit_stats_pack.cpp), through its game address.
+__declspec(naked) void* __fastcall PackVitalsAt(void*, void*, void*) EI_ORIGINAL(0x00522C50)
+} // namespace
+
+std::uintptr_t CMapObject::AttachObject(CEngineObject* object) {
+    if (!object || object->type_ != kTypeMapCompanion) return Object3DAttach(this, nullptr, object);
+    if (companion) {
+        CompanionOwner(companion) = nullptr;
+        companion->Release();
+    }
+    companion = object;
+    CompanionOwner(object) = this;
+    return static_cast<std::uintptr_t>(++companion->refCount_);
+}
+EI_REPLACE_METHOD(0x0050E890, CMapObject::AttachObject);
+
+int CMapObject::PackVitals() {
+    if (companion->GetClassId() != kClassMapObjectServer) return 0;
+    PackVitalsAt(reinterpret_cast<char*>(companion) + 0x20, nullptr, reinterpret_cast<char*>(this) + 0x17C);
+    return 1;
+}
+EI_REPLACE_METHOD(0x0050E970, CMapObject::PackVitals);
+
 // --- Flags -----------------------------------------------------------------------------------
 
 std::uint32_t CMapObject::IsInvisible() { return (flags_ >> 16) & 1; }

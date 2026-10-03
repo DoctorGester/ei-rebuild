@@ -393,6 +393,28 @@ static void __fastcall AttachCompanionVerify(CMapObject* self, void*, CEngineObj
 }
 EI_VERIFY(0x0050E8F0, AttachCompanionVerify, 0, s_unusedAttach);
 
+// 0050E890. Ours only (releases the old companion). A type 0x47 object ends attached both ways
+// with the returned reference count; other objects go to 00516D50 (not rewritten, not checked).
+static void* s_unusedAttachObject;
+static std::uintptr_t __fastcall AttachObjectVerify(CMapObject* self, void*, CEngineObject* object) {
+    bool companionType = object && object->type_ == 0x47;
+    std::uintptr_t result = self->AttachObject(object);
+    bool ok = !companionType || (self->companion == object && CompanionOwner(object) == self &&
+                                 result == static_cast<std::uintptr_t>(object->refCount_));
+    ei::verify::Check("CMapObject::AttachObject", true, ok, "object %d", self->id_);
+    return result;
+}
+EI_VERIFY(0x0050E890, AttachObjectVerify, 0, s_unusedAttachObject);
+
+// 0050E970: PUSH ESI; PUSH EDI; MOV EDI,ECX; MOV ESI,[EDI+0x170] (10 bytes). Writes only the
+// packed vitals at +0x17C: ours, snapshot of the tracked bytes, restore, original; EAX too.
+static int(__fastcall* s_packVitals)(CMapObject*);
+static int __fastcall PackVitalsVerify(CMapObject* self) {
+    return SameWrites<int>("CMapObject::PackVitals", self->id_, self, kTrackedSize, nullptr, 0, true,
+                           [&] { return self->PackVitals(); }, [&] { return s_packVitals(self); });
+}
+EI_VERIFY(0x0050E970, PackVitalsVerify, 10, s_packVitals);
+
 // --- Flags (pure): MOV EAX,[ECX+8]; SHR EAX,n (6 bytes) ----------------------------------------
 
 static std::uint32_t(__fastcall* s_isInvisible)(CMapObject*);

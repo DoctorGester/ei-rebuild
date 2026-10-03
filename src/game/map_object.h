@@ -89,6 +89,15 @@ public:
     // released, the new one points back here and gains a reference.
     void AttachCompanion(CEngineObject* companion);
 
+    // 0050E890. Virtual slot 19: an object of type 0x47 becomes the companion (as AttachCompanion,
+    // but a null or other object goes to the 3D object's slot 19, 00516D50, which takes type 0x46
+    // objects at +0x94). Returns the companion's new reference count, or what 00516D50 leaves.
+    std::uintptr_t AttachObject(CEngineObject* object);
+
+    // 0050E970. Virtual slot 32 (statistics changed): a CMapObjectServer companion packs its
+    // vitals (00522C50) into +0x17C. Returns 1, or 0 for another companion.
+    int PackVitals();
+
     // 0050FA10 / 0050FA20 / 0050E430. Bits 16 (invisible: set by the client for effect 0x0F),
     // 18 (stunned: effect 0x19) and 17 of flags_. 0050FA10 and 0050E430 are virtual slots 21 / 29.
     std::uint32_t IsInvisible();
