@@ -42,6 +42,11 @@ public:
     int CallScalePointToScreen(POINT* point) const;     // -> 005F7D20
     int CallScalePointFromScreen(POINT* point) const;   // -> 005F7E00
 
+    // 005F57C0. Once per frame (main loop): closes the top window while a value is pending,
+    // closes all windows on request, activates a queued window, reads the mouse and updates the
+    // top window and the root (ui_interface_frame.cpp).
+    void Update();
+
     // 005F7590. The window on top of the active-window stack, or null.
     CUiWindow* GetActiveWindow() const;
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).
@@ -181,6 +186,12 @@ public:
     void SetRect(int left, int top, int right, int bottom);
     // 005FE400. Moves the screen rectangle so its top-left is the layout point (x, y).
     void MoveTo(int x, int y);
+    // 005FDFA0. Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and
+    // '\n') and draws up to `maxLines` lines one rect height apart with 005FDE20 (`font`,
+    // `colour`, `format`, `flag` passed on). The DC must be acquired. Returns the line count
+    // (ui_text.cpp).
+    int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
+                        int flag);
     // 005FD120 (not rewritten). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (not rewritten). Sets (`frozen`) or clears flag 4 of +0x0C; setting it saves the

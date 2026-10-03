@@ -155,10 +155,20 @@ public:
     void SetRect(const int* rect);   // 005E3E90 (800x600 coordinates)
     void SetHistory(int lines);      // 005E3F90
     void AddText(const char* text);  // 005E4090 (continues the last line; '\n' starts a new one)
+    // Drawing and input (ui_console_window.cpp):
+    void Show(bool shown);                     // 005E3FD0 creates or releases the surface
+    void OnKeyDown(int key, int repeat, int flags);   // 005E4180 editing and scrolling keys
+    void DrawLines();                          // 005E4800 the lines above the input line
+    void DrawInput();                          // 005E4A10 the input line, selection and caret
 
     int* screen_;                    // +0x00 the 3D interface; [0] width, [1] height in pixels
-    void* surface_;                  // +0x04 while shown
-    std::uint8_t unknown_8[0x28];
+    void* surface_;                  // +0x04 CUiSurface while shown
+    void* font_;                     // +0x08 CFont (selected into the surface's CDC)
+    CStringArray commands_;          // +0x0C commands entered (input history)
+    int commandIndex_;               // +0x20 the one shown by up/down (-1 or size: none)
+    mfc::CString input_;             // +0x24 the line being typed
+    int caret_;                      // +0x28 caret position (characters)
+    int anchor_;                     // +0x2C other end of the selection (== caret_: none)
     int width_;                      // +0x30 pixels, at least 76
     int height_;                     // +0x34 pixels, at least 69
     int rect_[4];                    // +0x38 the window in 800x600 coordinates (after clamping)
@@ -167,11 +177,14 @@ public:
     int history_;                    // +0x6C lines kept
     int visibleLines_;               // +0x70
     int scroll_;                     // +0x74 lines scrolled back (0 = at the end)
-    std::uint8_t unknown_78[2];
+    bool ctrl_;                      // +0x78 Ctrl held (set by key down 0x11)
+    bool shift_;                     // +0x79 Shift held (0x10): the selection grows
     bool shown_;                     // +0x7A
     std::uint8_t unknown_7B;
 };
 static_assert(offsetof(ConsoleWindow, lines_) == 0x58 && offsetof(ConsoleWindow, shown_) == 0x7A);
+static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWindow, input_) == 0x24 &&
+              offsetof(ConsoleWindow, width_) == 0x30 && offsetof(ConsoleWindow, ctrl_) == 0x78);
 
 inline ConsoleWindow* TheConsoleWindow() { return *reinterpret_cast<ConsoleWindow**>(0x007C7D50 + 0x14); }
 
