@@ -73,6 +73,30 @@ struct FootprintPart {
 };
 static_assert(sizeof(FootprintPart) == 0x38);
 
+// The passability cost tables of one size class, filled by CAIMap::CostContext (005B9510).
+struct PassCostContext {
+    const int* costs;       // CAIMap + 0x14: cost per passability nibble
+    const int* climb;       // middle of the climb table of the size class
+    int shift;              // size class * 4: the nibble in AIMapCell::passable
+    float unknown_0C;       // 0.1
+    float unknown_10;       // 10
+    float unknown_14;       // 0.1
+};
+static_assert(sizeof(PassCostContext) == 0x18);
+
+// A growable square of byte marks over map cells (0x18 bytes), filled by MarkVisibleCells.
+struct VisibilityGrid {
+    // 005C8D40 (forwarder). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first
+    // call (x = 0x7FFFFFFF) sizes and clears it.
+    void Include(int x, int y, int n);
+
+    int originX, originY;       // cell of data[0]; 0x7FFFFFFF before the first Include
+    std::uint8_t* data;         // +0x08 width * height
+    std::uint8_t** rows;        // +0x0C rows[i] = data + i * width
+    int width, height;          // +0x10
+};
+static_assert(sizeof(VisibilityGrid) == 0x18);
+
 // The region map at CAIMap + 0x22F8: connected areas per size class. Not rewritten.
 struct CRegionMap {
     // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
@@ -253,6 +277,26 @@ public:
     void BeginRefresh();
     // 005B8B80. Refreshes the collected dirty rectangle.
     void EndRefresh();
+
+    // src/game/ai_movement.cpp:
+    // 005B7BB0. The first unit near world `position` (within the sum of standing heights) whose
+    // occupancy shape blocks `unit` there; null if none.
+    CUnit* BlockingUnitAt(CUnit* unit, const Vector3* position);
+    // 005BA400. Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.
+    void SetStepSpeeds(CUnit* unit, PathCellList* steps);
+    // 005B9510. The passability cost tables for size class `sizeClass`; returns the climb table's
+    // middle (EAX, as the original).
+    const int* CostContext(int sizeClass, struct PassCostContext* out);
+    // 005BA5A0. Is the cell under `unit` passable for it at a cost below 12000? (A cell with a
+    // kind-3 occluder is evaluated at the size class's level through 005B8BA0.) Only AL is set
+    // when the unit is outside the map.
+    bool StandsOnCheapCell(CUnit* unit);
+    // 005BC970. Marks in `grid` the cells within `radius` of `eye` that it sees: inside the cone
+    // around `look` (cos >= `cosLimit`; none when cosLimit <= -1) and, unless `targetHeight` is
+    // below -100, with a line of sight to the cell's ground raised by `targetHeight` that reaches
+    // at least `radius` * visibility.
+    void MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit, float targetHeight,
+                          struct VisibilityGrid* grid);
 
     // Not rewritten (forwarders):
     // 005B6740. Applies or clears the bridge decks of a footprint.

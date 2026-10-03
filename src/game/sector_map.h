@@ -27,6 +27,9 @@ public:
     // moving it between sector lists when it crosses into another sector.
     bool Move(CEngineObject* object, const Vector3* position);
 
+    // 005C0930. The unit list of sector (sx, sy), null outside the map.
+    mfc::CTypedPtrList<CEngineObject>* UnitsAt(int sx, int sy);
+
     // 005C1010. Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CEngineObject* object);
 

@@ -49,6 +49,12 @@ bool CSectorMap::Add(CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x005C0DF0, CSectorMap::Add);
 
+mfc::CTypedPtrList<CEngineObject>* CSectorMap::UnitsAt(int sx, int sy) {
+    if (sx < 0 || sy < 0 || sx >= width || sy >= height) return nullptr;
+    return &sectors[width * sy + sx].units;
+}
+EI_REPLACE_METHOD(0x005C0930, CSectorMap::UnitsAt);
+
 bool CSectorMap::Remove(CEngineObject* object) {
     CUnit* unit = AsUnit(object);
     int sx = unit->sectorCellX / 32, sy = unit->sectorCellY / 32;
