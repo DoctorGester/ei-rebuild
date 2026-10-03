@@ -134,8 +134,9 @@ records are serialised through their vtable. None of these is Rebirth-patched.
 ## Renderer (00500B70-005053FF)
 
 Files: `src/game/renderer_init.cpp`, `src/game/renderer_strip.cpp`, `src/game/renderer_sprites.cpp`,
-`src/game/device_mesh.cpp`, `tests/verify/verify_renderer_init.cpp`, `verify_renderer_strip.cpp`,
-`verify_renderer_sprites.cpp`, `verify_device_mesh.cpp`.
+`src/game/device_mesh.cpp`, `src/game/figure_part_draw.cpp`, `tests/verify/verify_renderer_init.cpp`,
+`verify_renderer_strip.cpp`, `verify_renderer_sprites.cpp`, `verify_device_mesh.cpp`,
+`verify_figure_part_draw.cpp`.
 Shared headers: none changed (`clip.h` gives `TLVertex` and the clipper).
 
 The renderer is the global at 007AF060 (vtable 0073D93C). +8 is the transform pipeline (matrix
@@ -162,6 +163,7 @@ triangle and call counters), +0x24 the counted state-block helper (004FCA60).
 | 005037D0 | `SpriteMergePass` | same |
 | 004E9010 | `DeviceDrawMesh` (device thiscall, RET 0x48) | ours only; drawn vertices are the corners (position, colours, plain uv), or clipped: the corners' outcodes copied |
 | 004E9A50 | `DeviceDrawMesh2` (two textures, RET 0x50) | same |
+| 005A7A70 | `DrawFigurePart` (node thiscall, RET 0x1C) | ours only, after the (pure) clip test: result 1; hidden or outside the view: not marked drawn; else lit unless flat |
 
 All run in every game: 00500B70 once at start-up; 00502CA0 / 00503680 / 00503710 / 005037D0 for
 particles (004976B0: spell effects, fires; scenarios `spells_cast`, `spells`); 00501D90 and its
@@ -224,8 +226,45 @@ vertices projected (slot 34), the observer, flag 1 bounds of the clipped vertice
 draw. The vertex buffer path (004E7820) is dead: it always returns null. Returns 1 when drawn on
 screen, else the transform's result.
 
+### Figure parts (005A7A70)
+
+Thiscall on a figure part's scene node (+8 flags, +0x1C the CFigureMesh, +0x20 its screen
+rectangle) with the device, the lights ({data, count}), the material (+8 flag 0x10, +0x50 a
+vector), an alpha byte, an optional RECT* and two textures (+0x5C each). The mesh's +8 flags: 0x40
+drawn (cleared first), 0x80 hidden (nothing more, not even the finishing call), 0x10 lit, 0x100
+flat colours; +0x98 the owner (CObject3D), whose figure (+0xF0) draws the mesh when there is one;
++0xCC / +0xD0 the texture offsets, +0xD4 / +0xD8 the flat colour and specular, +0x128 / +0x12C
+per-vertex offsets, +0x138 / +0x148 the colour and specular arrays (4 per normal packet), +0x15C
+the mesh type, +0x188 the clip bounds.
+
+1. The clip test (004F16A0 on the device's pipeline); 2 = outside: return.
+2. Types 13..16: the node's flags take 00790C0C and 005A7160 animates it to ticks + fraction.
+3. Flat meshes: the figure's slot 7 (name, colour, specular, the arrays) or both arrays sized and
+   filled. Unlit meshes: the inverse of the model matrix (the pipeline's stack at +0x2C) moves each
+   light's position (+0x1C -> +0x28) and the sun's (007AF07C) negated direction (+0xD4 -> +0x108)
+   into the mesh's space; 0068D280 sets each light's colours for the material; the sun goes to
+   the transform object (slot 2); the figure (slot 8) or the transform object (slot 40) lights the
+   mesh. With 0079BD28 set the mesh named "crown" has every colour pulled halfway to the average.
+   The speculars become alpha << 24 unless the material has flag 0x10; the mesh is marked lit.
+4. Draw flags: 2 crossing the view, 1 rectangle wanted, 8 the material's flag 0x10. With a figure:
+   slot 11 / 9 (with the offsets array) or 12 / 10, textured first, each with the mesh's name as
+   an STLport string; the rectangle from the figure's piece of that name; drawn (0x40) unless the
+   slot returns 2. Without: the offsets are added into a copy of the positions (007C2E48), then
+   004E9A50 (both textures) or 004E9010; with a rectangle: empty when the draw returned 2, else the
+   device's +0x15C, and only then the drawn flag.
+5. 005A7290 with the renderer.
+
+Quirks kept: without a rectangle the device path never sets the drawn flag; the string members
+are called with the original's allocator and tag arguments. A singular (or NaN) model matrix leaves
+the original's inverse in uninitialised stack slots: ours uses the previous call's inverse, which is
+what those slots usually hold.
+
 ### Floating point
 
+- 005A7A70: the inverse, the light and sun transforms, the crown blend (the red sum reaches the
+  first colour unrounded, the others reload it rounded) and the offset adds are naked
+  transcriptions; their x87 sequences were compared with the original's instruction by instruction
+  (same opcodes and register operands). The time is FILD ticks + fraction, rounded once.
 - 004E9010 / 004E9A50: positions and texture coordinates are copied with FILD / FISTP qword (exact,
   memcpy here); the offset add is FLD offset, FADD coordinate, FSTP (`AddOffset`, naked so that the
   operand order and the offset's own bits are kept).
