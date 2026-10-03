@@ -150,6 +150,9 @@ public:
     int EmitCastRing(Particle* p, int index);       // 00489320 (Casting, 0x200B)
     int UpdateCastRing(Particle* p);                // 00489A50
     void TickCastRing(ParticleElement* e);          // 00489B40
+    int EmitHealing(Particle* p, int index);        // 0048B630 (Healing, 0x2006)
+    int UpdateHealing(Particle* p);                 // 0048BBE0
+    void TickHealing(ParticleElement* e);           // 0048BCE0
     int EmitCastSwirl(Particle* p, int index);      // 00490C10 (0x202B-0x202E)
     int UpdateCastSwirl(Particle* p);               // 00491230
     void TickCastSwirl(ParticleElement* e);         // 00491390

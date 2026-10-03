@@ -54,3 +54,12 @@ EI_UPDATE_WRAPPER(UpdateCastSwirl)
 EI_VERIFY(0x00491230, UpdateCastSwirlVerify, 8, s_UpdateCastSwirl);
 EI_ELEMENT_WRAPPER(TickCastSwirl)
 EI_VERIFY(0x00491390, TickCastSwirlVerify, 7, s_TickCastSwirl);
+
+// 0048B630: PUSH EBP; MOV EBP,ESP; SUB ESP,0x2C (6). 0048BBE0: MOV EAX,[ESP+4]; PUSH ESI (5).
+// 0048BCE0: MOV EAX,[ESP+4]; MOV EDX,[EAX+0x34] (7).
+EI_SETUP_EMIT_WRAPPER(EmitHealing)
+EI_VERIFY(0x0048B630, EmitHealingVerify, 6, s_EmitHealing);
+EI_UPDATE_WRAPPER(UpdateHealing)
+EI_VERIFY(0x0048BBE0, UpdateHealingVerify, 5, s_UpdateHealing);
+EI_ELEMENT_WRAPPER(TickHealing)
+EI_VERIFY(0x0048BCE0, TickHealingVerify, 7, s_TickHealing);

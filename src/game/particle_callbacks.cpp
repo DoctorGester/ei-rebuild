@@ -393,11 +393,12 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
 }
 EI_REPLACE_METHOD(0x0048E070, CParticleSource::EmitOrbit);
 
-// --- Casting (0x200B): three rings of fire rising around the caster -------------------------------
+// --- Casting (0x200B) and Healing (0x2006): rings of flames rising around the caster -------------
 //
 // Each element is a ring: +0x00 its centre (relative to the source), +0x0C its radius, +0x10 the
 // angle of its leading flame, +0x14 its rise per tick, +0x18 its starting centre, +0x34 its
-// countdown. +0x12C counts the ring particles emitted after the set-up (one per ring).
+// countdown. +0x12C counts the flames emitted after the set-up (one per ring). The two types share
+// the shapes; they differ in the ring count, timings, sizes and the spark pattern.
 
 namespace {
 
@@ -415,37 +416,40 @@ namespace {
 #define EI_FADE_SIZE GameFloat(0x0073CD0C)          // 1/1.3
 #define EI_TURN_SPEED GameDouble(0x0073CD10)        // 10.0 (degrees per tick)
 #define EI_TENTH_B GameFloat(0x0073B850)            // 0.1
+#define EI_HEAL_RINGS GameFloat(0x0073BA98)         // 6.0 rings per unit of size
+#define EI_HEAL_RINGS_BASE GameFloat(0x0073CDB8)    // 2.0
+#define EI_HEAL_GROWTH GameFloat(0x0073CDB4)        // 1/144
+#define EI_HEAL_SPREAD GameFloat(0x0073CD18)        // 0.15
+#define EI_HEAL_SPARK_SIZE GameFloat(0x0073CDB0)    // 0.07
 
 const char* NoCarrierRing() { return reinterpret_cast<const char*>(0x0078AF24); }
+const char* NoCarrierHealing() { return reinterpret_cast<const char*>(0x0078AF50); }
 constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's last phase)
 
-// The first emission: three rings stacked around the carrier, their flames spaced 120 degrees.
-bool SetUpCastRing(CParticleSource* s) {
-    if (!s->attachedTo) {
-        DebugMessage(NoCarrierRing());
-        return false;
-    }
-    s->emitCount = 3;
-    SetElementCount(s, 3);
+// The rings around the carrier (emitCount of them, already allocated): stacked from the carrier's
+// feet with a random lift, their flames spaced evenly around the circle; the source's height is
+// the radius growth per tick (Healing also sets the flame growth). Each ring counts down from
+// `countdown`.
+void PlaceRings(CParticleSource* s, int countdown) {
     float step = Store(EI_PI * EI_PER_DEGREE * (D(EI_FULL_TURN) / static_cast<double>(s->emitCount)));
     Vector3 offset;
     float radius;
     s->AttachmentOffset(&offset, &radius);
     double fullRadius = D(radius);
-    SetBits(&s->growth, 0);
     float angle = 0.0f;
     offset.z = Store(D(offset.z) - fullRadius);
     radius = Store(fullRadius * D(EI_RING_WIDEN));
     float diameter = Store(fullRadius + fullRadius);
     double rise = D(radius) * D(EI_PER_36);
     s->height = Store(rise + rise);
+    if (s->type_ == 0x2006) s->growth = Store((D(s->size) + D(EI_P_ONE)) * D(EI_HEAL_GROWTH));
     if (s->emitCount > 0) {
         float low = Store(D(diameter) * D(EI_RISE_LOW));
         float high = Store(D(diameter) * D(EI_RISE_HIGH));
         for (int i = 0; i < s->emitCount; ++i) {
             ParticleElement* e = &s->elements[i];
             *ElementInt(e, 0x30) = 0;
-            *ElementInt(e, 0x34) = 45;
+            *ElementInt(e, 0x34) = countdown;
             double lift = Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low);
             float* start = ElementFloat(e, 0x18);
             std::memcpy(start, &offset, sizeof(Vector3));
@@ -458,38 +462,93 @@ bool SetUpCastRing(CParticleSource* s) {
         }
     }
     SetBits(&s->unknown_12C, 0);
-    s->emitCount *= 9;
+}
+
+// The flame phase: one flame per ring (state = the ring), then one call that only ends the phase
+// (result 0). False once the phase is over.
+bool EmitRingFlame(CParticleSource* s, Particle* p, int& result) {
+    int emitted = static_cast<int>(Bits(&s->unknown_12C));
+    if (emitted > s->elementCount) return false;
+    SetBits(&s->unknown_12C, static_cast<std::uint32_t>(emitted + 1));
+    if (emitted == s->elementCount) {
+        result = 0;
+        return true;
+    }
+    p->color = 0xFFFFFFFF;
+    p->frame = 0;
+    p->life = 36;
+    p->frameTimer = 1;
+    p->state = emitted;
+    const ParticleElement& ring = s->elements[emitted];
+    p->pos.x = Store(D(ring.pos.x) + D(s->origin.x));
+    p->pos.y = Store(D(ring.pos.y) + D(s->origin.y));
+    p->pos.z = Store(D(ring.pos.z) + D(s->origin.z));
+    if (s->type_ == 0x2006) p->size = Store((D(s->size) + D(EI_P_ONE)) * D(EI_TENTH_B));
+    else p->size = Store(D(s->size) * D(EI_FLAME_SIZE));
+    result = 1;
     return true;
+}
+
+// A spark in a box of +-spread around a ring's centre (`spread` computed unrounded by the caller).
+// The original's z uses -spread for both the range and the offset.
+void PlaceRingSpark(CParticleSource* s, Particle* p, const ParticleElement& ring, double spreadUnrounded) {
+    float spread = Store(spreadUnrounded);
+    float low = Store(-spreadUnrounded);
+    double x = Unsigned(Next()) * (D(spread) - D(low)) * EI_P_SCALE_1 + D(ring.pos.x) + D(s->origin.x) + D(low);
+    p->pos.x = Store(x);
+    double y = Unsigned(Next()) * (D(spread) - D(low)) * EI_P_SCALE_1 + D(ring.pos.y) + D(s->origin.y) + D(low);
+    p->pos.y = Store(y);
+    p->pos.z = Store(D(ring.pos.z) - Unsigned(Next()) * D(low) * EI_P_SCALE_1 + D(s->origin.z) + D(low));
+}
+
+float RingRadius(const ParticleElement& ring) {
+    float r;
+    std::memcpy(&r, reinterpret_cast<const std::uint8_t*>(&ring) + 0x0C, sizeof(float));
+    return r;
+}
+
+// Moves a flame with its ring.
+void FollowRing(CParticleSource* s, Particle* p, int ring) {
+    const ParticleElement& e = s->elements[ring];
+    p->pos.x = Store(D(s->origin.x) + D(e.pos.x));
+    p->pos.y = Store(D(s->origin.y) + D(e.pos.y));
+    p->pos.z = Store(D(s->origin.z) + D(e.pos.z));
+}
+
+// Turns a ring's flame point 10 degrees around its centre; the ring rises.
+void TurnRing(ParticleElement* e) {
+    float* radius = ElementFloat(e, 0x0C);
+    float* angle = ElementFloat(e, 0x10);
+    double turned = EI_PI * EI_PER_DEGREE * EI_TURN_SPEED + D(*angle);
+    *angle = Store(turned);
+    e->pos.x = Store(x87::fsin(turned) * D(*radius) + D(*ElementFloat(e, 0x18)));
+    e->pos.y = Store(x87::fcos(D(*angle)) * D(*radius) + D(*ElementFloat(e, 0x1C)));
+    e->pos.z = Store(D(*ElementFloat(e, 0x14)) + D(e->pos.z));
 }
 
 } // namespace
 
-// 00489320. Casting (0x200B): after the set-up one flame per ring (one more
-// call ends that phase); then, while ring 0 is young, sparks scattered around ring 0's circle
-// (72 per tick), else sparks around a random ring's centre.
+// 00489320. Casting (0x200B): the first call places three rings (needs a carrier); then one flame
+// per ring; then, while ring 0 is young, sparks scattered around ring 0's circle (72 per tick),
+// else sparks around a random ring's centre.
 int CParticleSource::EmitCastRing(Particle* p, int) {
-    if (elementCount == 0 && !SetUpCastRing(this)) return 0;
-    int emitted = Bits(&unknown_12C);
-    if (emitted <= elementCount) {
-        SetBits(&unknown_12C, static_cast<std::uint32_t>(emitted + 1));
-        if (emitted == elementCount) return 0;
-        p->color = 0xFFFFFFFF;
-        p->frame = 0;
-        p->life = 36;
-        p->frameTimer = 1;
-        p->state = emitted;
-        const ParticleElement& ring = elements[emitted];
-        p->pos.x = Store(D(ring.pos.x) + D(origin.x));
-        p->pos.y = Store(D(ring.pos.y) + D(origin.y));
-        p->pos.z = Store(D(ring.pos.z) + D(origin.z));
-        p->size = Store(D(size) * D(EI_FLAME_SIZE));
-        return 1;
+    if (elementCount == 0) {
+        if (!attachedTo) {
+            DebugMessage(NoCarrierRing());
+            return 0;
+        }
+        emitCount = 3;
+        SetElementCount(this, 3);
+        SetBits(&growth, 0);
+        PlaceRings(this, 45);
+        emitCount *= 9;
     }
+    int result;
+    if (EmitRingFlame(this, p, result)) return result;
     if (elements[0].ticks < 9) {
         // On ring 0's circle, between the ring and a spread that narrows with the height.
         emitCount = 72;
-        float ringRadius;
-        std::memcpy(&ringRadius, ElementFloat(elements, 0x0C), sizeof(float));
+        float ringRadius = RingRadius(elements[0]);
         float twoPi = Store(EI_PI + EI_PI);
         std::uint32_t r = Next();
         p->color = 0xFFFFFFFF;
@@ -514,16 +573,7 @@ int CParticleSource::EmitCastRing(Particle* p, int) {
         p->frameTimer = 1;
         p->color = 0xFFFFFFFF;
         p->state = -1;
-        double spreadUnrounded = D(*reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&ring) + 0x0C)) *
-                                     D(EI_TENTH_B) + D(EI_SPARK_SPREAD);
-        float spread = Store(spreadUnrounded);
-        float low = Store(-spreadUnrounded);
-        double x = Unsigned(Next()) * (D(spread) - D(low)) * EI_P_SCALE_1 + D(ring.pos.x) + D(origin.x) + D(low);
-        p->pos.x = Store(x);
-        double y = Unsigned(Next()) * (D(spread) - D(low)) * EI_P_SCALE_1 + D(ring.pos.y) + D(origin.y) + D(low);
-        p->pos.y = Store(y);
-        // The original's z uses -spread for both the range and the offset.
-        p->pos.z = Store(D(ring.pos.z) - Unsigned(Next()) * D(low) * EI_P_SCALE_1 + D(origin.z) + D(low));
+        PlaceRingSpark(this, p, ring, D(RingRadius(ring)) * D(EI_TENTH_B) + D(EI_SPARK_SPREAD));
     }
     p->size = Store(D(size) * D(EI_TENTH_B));
     return 1;
@@ -554,17 +604,14 @@ int CParticleSource::UpdateCastRing(Particle* p) {
     p->frameTimer = 1;
     if (life < 36 && life >= 18) p->size = Store(D(p->size) - D(growth));
     else p->size = Store(D(growth) + D(p->size));
-    const ParticleElement& e = elements[ring];
-    p->pos.x = Store(D(origin.x) + D(e.pos.x));
-    p->pos.y = Store(D(origin.y) + D(e.pos.y));
-    p->pos.z = Store(D(origin.z) + D(e.pos.z));
+    FollowRing(this, p, ring);
     return 1;
 }
 EI_REPLACE_METHOD(0x00489A50, CParticleSource::UpdateCastRing);
 
 // 00489B40. Casting rings: each counts down (stopping the emission at 0); the radius grows by the
 // source's height for 18 ticks, then shrinks, then eases towards 20 times the height; while
-// above 9 ticks the flame point turns 10 degrees per tick around the centre and the ring rises.
+// above 9 ticks the flame point turns around the centre and the ring rises.
 void CParticleSource::TickCastRing(ParticleElement* e) {
     int t = --e->ticks;
     if (t == 0) {
@@ -580,16 +627,79 @@ void CParticleSource::TickCastRing(ParticleElement* e) {
         double target = D(height) * D(EI_TWENTY);
         *radius = Store((D(*radius) - target) * D(EI_HALF) + target);
     }
-    if (t >= 9) {
-        float* angle = ElementFloat(e, 0x10);
-        double turned = EI_PI * EI_PER_DEGREE * EI_TURN_SPEED + D(*angle);
-        *angle = Store(turned);
-        e->pos.x = Store(x87::fsin(turned) * D(*radius) + D(*ElementFloat(e, 0x18)));
-        e->pos.y = Store(x87::fcos(D(*angle)) * D(*radius) + D(*ElementFloat(e, 0x1C)));
-        e->pos.z = Store(D(*ElementFloat(e, 0x14)) + D(e->pos.z));
-    }
+    if (t >= 9) TurnRing(e);
 }
 EI_REPLACE_METHOD(0x00489B40, CParticleSource::TickCastRing);
+
+// 0048B630. Healing (0x2006): the first call places 6 * size + 2 rings (needs a carrier); then
+// one flame per ring; then sparks around a random ring's centre.
+int CParticleSource::EmitHealing(Particle* p, int) {
+    if (elementCount == 0) {
+        if (!attachedTo) {
+            DebugMessage(NoCarrierHealing());
+            return 0;
+        }
+        emitCount = x87::fistp(Store(D(size) * D(EI_HEAL_RINGS) + D(EI_HEAL_RINGS_BASE)));
+        SetElementCount(this, emitCount);
+        PlaceRings(this, 36);
+        emitCount *= 3;
+    }
+    int result;
+    if (EmitRingFlame(this, p, result)) return result;
+    const ParticleElement& ring = elements[Next() % static_cast<std::uint32_t>(elementCount)];
+    p->color = 0xFFFFFFFF;
+    p->frame = 8;
+    p->life = 8;
+    p->frameTimer = 1;
+    p->state = -1;
+    PlaceRingSpark(this, p, ring, D(RingRadius(ring)) * D(EI_HEAL_SPREAD));
+    p->size = Store((D(size) + D(EI_P_ONE)) * D(EI_HEAL_SPARK_SIZE));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048B630, CParticleSource::EmitHealing);
+
+// 0048BBE0. Healing particles: like Casting's, but a flame cycles 8 frames, grows for its first
+// 18 ticks of life and shrinks after, and burns out without shrinking.
+int CParticleSource::UpdateHealing(Particle* p) {
+    int life = --p->life;
+    if (life == 0) {
+        if (p->state < 0 || p->state == kFlameState) return 0;
+        p->state = kFlameState;
+        p->life = 8;
+        return 1;
+    }
+    int ring = p->state;
+    if (ring == kFlameState) {
+        p->color = ((p->color & 0xFF000000u) - 0x1E000001u) | 0xFFFFFF;
+        return 1;
+    }
+    if (ring < 0) {
+        ++p->frame;
+        return 1;
+    }
+    if (++p->frame >= 8) p->frame = 0;
+    p->frameTimer = 1;
+    if (life >= 18) p->size = Store(D(growth) + D(p->size));
+    else p->size = Store(D(p->size) - D(growth));
+    FollowRing(this, p, ring);
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048BBE0, CParticleSource::UpdateHealing);
+
+// 0048BCE0. Healing rings: each counts down (stopping the emission at 0); the radius grows by the
+// source's height for 18 ticks, then shrinks; the flame point keeps turning and the ring rising.
+void CParticleSource::TickHealing(ParticleElement* e) {
+    int t = --e->ticks;
+    if (t == 0) {
+        flags_ &= ~1u;
+        return;
+    }
+    float* radius = ElementFloat(e, 0x0C);
+    if (t >= 18) *radius = Store(D(height) + D(*radius));
+    else *radius = Store(D(*radius) - D(height));
+    TurnRing(e);
+}
+EI_REPLACE_METHOD(0x0048BCE0, CParticleSource::TickHealing);
 
 // --- CastingIllusion, Domination, Enchantment, Healing (0x202B-0x202E): orbiting lights ---------
 //
