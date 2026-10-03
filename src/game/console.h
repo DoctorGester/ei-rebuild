@@ -41,6 +41,7 @@ public:
     ~CStringArray();                                    // 006FE958
     void SetSize(int size, int growBy);                 // 006FE9B8
     void SetAtGrow(int index, const mfc::CString& s);   // 006FEBFA
+    void SetAtGrow(int index, const char* s);           // 006FEBCE
     void RemoveAt(int index, int count);                // 006FED3C
 
     int GetSize() const { return size_; }

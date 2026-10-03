@@ -29,6 +29,7 @@ __declspec(naked) CStringArray::CStringArray() EI_ORIGINAL(0x006FE925)
 __declspec(naked) CStringArray::~CStringArray() EI_ORIGINAL(0x006FE958)
 __declspec(naked) void CStringArray::SetSize(int, int) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void CStringArray::SetAtGrow(int, const mfc::CString&) EI_ORIGINAL(0x006FEBFA)
+__declspec(naked) void CStringArray::SetAtGrow(int, const char*) EI_ORIGINAL(0x006FEBCE)
 __declspec(naked) void CStringArray::RemoveAt(int, int) EI_ORIGINAL(0x006FED3C)
 
 __declspec(naked) CStdioFile::CStdioFile() EI_ORIGINAL(0x00701B79)

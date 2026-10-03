@@ -415,3 +415,60 @@ sort instead of the original's std::sort (introsort): sorting chars gives the sa
 - `CSpellEffect` +0x54 is named `targetCount` (GetDamage splits the damage by it) and is the
   spell's `d` value, called duration above; for attack spells it may be a target count. Names
   only; the behaviour is copied.
+
+# Items, textures, registry and settings (00690000-006B0000), round 2
+
+Code: `src/game/item_parts.cpp`, `item_constructor.cpp`, `item_names.cpp`, `spell_text.cpp`,
+`texture_mmp.cpp`, `registry.h/.cpp`, `ini_file.h/.cpp`. Verify: `tests/verify/verify_item_parts.cpp`,
+`verify_item_constructor.cpp`, `verify_item_names.cpp`, `verify_texture_mmp.cpp`, `verify_registry.cpp`,
+`verify_ini_file.cpp`.
+
+## Functions
+
+| Address | Name | Verification |
+|---|---|---|
+| 006A0FF0 | WeaponModelParts (fastcall index, CStringArray*) | output: original into a scratch CStringArray |
+| 006A1780 | AppendWeaponModelParts (fastcall packed id, vector<string>*) | output: original into an empty scratch vector |
+| 006A0490 | CItem::InitFromRecord (slot 13) | item bytes +0x20..+0x47 compared |
+| 006A04D0 / 006A0520 | CItem::AttachSpell / SetSpell | ours only: spell and price |
+| 006A5B20, 006A5B90, 006A5BD0, 006A5C00, 006A5C20, 006A5C50, 006A5CF0, 006A5D30 | CItemConstructor destructor body, Reset, Detach, SetManager, SetItem, BeginCreateItem, EndCreateItem, Cancel | ours only, state checked |
+| 006A5CC0 / 006A5CD0 / 006A5CE0 | CItemConstructor::SetMaterial / SetPrototype / SetSpellObject | object bytes compared |
+| 006A5D60 | CItemConstructor::Build | ours only: result, packed id, count |
+| 00689030 | CSpellManager::CreateSpellFromText | ours only: a spell with an index in range |
+| 006A0840, 006A0F70, 006A2750, 006A27E0 | CItemWeapon ModelName / FirstListName / FigureName / PictureName (slots 17-20) | text compared |
+| 006A3240, 006A36A0, 006A3720, 006A37B0 | the same for CItemArmor | text |
+| 006A3CD0, 006A4040 / 006A45C0, 006A47B0 / 006A5820 | CItemQuick, CItemQuest, CItemSpell names | text |
+| 006A4B90, 006A5030 | CItemLoot FigureName / PictureName | text |
+| 00690430 | CTexture::CreateFromMmp | ours only: loaded, surface, size, extra block |
+| 006908E0 | MmpHeader::MipOffset | pure |
+| 006928C0 | CTextureManager::LoadMmpExtra | ours only |
+| 00694520, 00694540, 006945A0, 00694610, 00694660, 006946B0 | CFileRegistry construct / destroy / open / attach / IsValid / close | ours only |
+| 006946D0 | CFileRegistry::FindData | pure (pointer and scalar flag) |
+| 00694880, 00694B90, 00694BE0, 00694C80, 00694D20, 00694DC0, 00695410, 00695600, 006958E0 | CFileRegistry getters | both run, outputs into scratch objects |
+| 00695B80, 00695B90, 00695BF0 | CIniFile construct / with path / SetPath | ours only |
+| 00695D10, 00695F00, 00695F20, 00695F60, 00695F80, 00696030, 00696090 | CIniFile readers | both run (ini reads repeat), compared |
+| 006961D0, 006963F0, 00696610, 00696830, 006969F0, 00696B20, 00696C50, 00696D80 | CIniFile integer lists into aligned / MFC arrays | scratch arrays |
+| 00696E60, 00696F30, 00696F50, 00696FE0, 00697070, 00697100, 00697190 | CIniFile writers | not wrapped (they write files) |
+
+## Notes
+
+- Build's temporary record is constructed like the game's record classes (vtables
+  00744054..00744068); the extra members of the quick/quest/loot records leak as in the original.
+- FP: Build reads operands into locals before multiplying so no partial result leaves the FPU
+  (checked with dumpbin); products are (a*b)*c as in the original. InitFromRecord copies +0x40/+0x48
+  through FLD/FSTP (inline asm) so a signalling NaN is quieted the same way. CIniFile::GetDouble
+  stores atof's result as a double before returning, as the original does.
+- Name builders with an unknown weapon/armor type: the original formats an uninitialised 4-byte
+  stack buffer; ours uses "" (no such types in the databases).
+- Shared files changed: `console.h/.cpp` (CStringArray::SetAtGrow(int, const char*) forwarder
+  006FEBCE), `spell.h` (CreateSpellFromText), `texture.h` (CTexture / CTextureManager fields,
+  MmpHeader, CDXSurface, AlignedBuffer), `tools/check_signatures.py` (class return by hidden pointer;
+  double parameters were counted as 4 bytes because the regex held backspace characters).
+
+## Skipped
+
+- 006AE8E0 (quest database load), 0069AE20 / 0069A780 / 006995E0.. (trader and random loot
+  generation over STLport containers and rand), 00693180 / 00693970 (write .mmp caches to disk),
+  0069B5B0 (save load), 00690970 / 00690B30 (surface lock copies), the STLport vector instantiations
+  in 006A6xxx-006ACxxx, CWinRegistry (006972A0-006990E0, plain Win32 registry wrappers: next candidate).
+- Rebirth-patched: 00691500, 006A67A0, 006AC970, 006AE3A0.

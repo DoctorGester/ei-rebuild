@@ -80,7 +80,7 @@ def param_size(p):
         return 4
     if not BUILTIN.match(p.strip()):
         return None
-    if re.search(r'double|__int64|long long', p):
+    if re.search(r'\bdouble\b|\b__int64\b|long long', p):
         return 8
     return 4
 
@@ -94,6 +94,10 @@ def stack_bytes(und):
     if conv == 'cdecl':
         return conv, 0
     sizes = [param_size(p) for p in params]
+    # A class returned by value (e.g. mfc::CString, which has a destructor) goes through a hidden
+    # pointer pushed after the arguments; the callee pops it with them (__thiscall, __stdcall).
+    if conv in ('thiscall', 'stdcall') and re.search(r'(?:^|\s)class\s+[\w:<>, ]+?\s+__' + conv + r'\b', und):
+        sizes.append(4)
     if None in sizes:
         return None
     if conv == 'fastcall':
