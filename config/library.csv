@@ -396,3 +396,35 @@ address,name,library,signature,notes
 00468DA0,CArray<8-byte>::Serialize,MFC,void __thiscall(CArchive&),instantiation (vtable 0073C584): count then raw bytes
 00468F90,ConstructElements<8-byte>,MFC,"void __cdecl(void*,int)",instantiation: zero fill
 00468FE0,ConstructElements<RefPtr>,MFC,"void __cdecl(void**,int)",instantiation: zero fill (twice)
+00574680,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00574A10,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00574DA0,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00575130,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00584C50,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00584EC0,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00585110,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00585360,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+005855B0,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00585800,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00585B90,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00585F20,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+005862B0,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00586640,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+005869D0,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+00586D60,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+005870F0,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+0059A710,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+0059AB10,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+0059D800,stlp::vector<T*>::reserve,STLport,void __thiscall(size_t),instantiation (pointer elements; node allocator for blocks up to 0x80 bytes)
+0059E3C0,stlp::hashtable<unsigned;T*>::resize,STLport,void __thiscall(size_t),instantiation (world id maps)
+0059E6C0,stlp::hashtable<unsigned;T*>::resize,STLport,void __thiscall(size_t),instantiation (world id maps)
+0059D660,stlp::hashtable<unsigned;T*>::find_or_insert,STLport,value_type& __thiscall(const value_type&),instantiation: resize(count + 1) then insert at the bucket head
+0059D730,stlp::hashtable<unsigned;T*>::find_or_insert,STLport,value_type& __thiscall(const value_type&),instantiation: resize(count + 1) then insert at the bucket head
+0059C020,stlp::hashtable<unsigned;T*>::begin,STLport,iterator __thiscall(),instantiation
+0059C0A0,stlp::hashtable<unsigned;T*>::begin,STLport,iterator __thiscall(),instantiation
+00598E40,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),instantiation: {0; table}
+00598E60,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),instantiation: {0; table}
+0059DB90,stlp::_Ht_iterator::_M_skip_to_next,STLport,node* __thiscall(),instantiation
+0059DD10,stlp::_Ht_iterator::_M_skip_to_next,STLport,node* __thiscall(),instantiation
+0059BAD0,stlp::_Ht_iterator::_M_skip_to_next,STLport,node* __thiscall(),instantiation
+0059C660,CArray<int>::SetSize,MFC,"void __thiscall(int,int)",instantiation (vtable 0073C3D0)
