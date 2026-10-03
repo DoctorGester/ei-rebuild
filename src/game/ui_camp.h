@@ -187,6 +187,11 @@ public:
     // party's skill and mana suffice for the spell). Return AL.
     bool CanMakeSpell();
     bool CanMakeItem();
+    // 0060FAB0 (virtual slot 54). The price of `item` for deal `kind` (8: repair): the item's base
+    // price (its slot 16) times the camp's multiplier for the kind (+0x21C floats); weapons and
+    // armour also lose the repair cost of their wear (1 - durability / maximum). A repair costs at
+    // least 1, or 0 for an unworn item. Rebirth's FixRepairPrice clamps the wear to [0, 1].
+    int Price(std::uint8_t* item, int kind);
     // 0060F050 (slot 20). Finds what is under the mouse (a page button's help, an item of a
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.

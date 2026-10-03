@@ -1,6 +1,10 @@
 # Game functions Rebirth (addon.dll + EI_Plugin.asi) patches in memory, dumped by ei_hook at WinMain
 # under Rebirth (build/verify/patched_functions.txt). Rewritten code must call these through their
 # original address (EI_ORIGINAL forwarder), never a rewritten version directly: rewrite-guide rule 9.
+# Every entry is covered by an addon.dll site (docs/notes/rebirth.md, config/rebirth_patches.csv):
+# 00443080 is FixProcessLogin (written without an addon.log line), 005F7DA0/005F7E00/005F7E30 lie in
+# WideScreen #93 (194 bytes from 005F7D9E). EI_Plugin.asi patches after WinMain, so its changes are
+# not in this list (see the same note).
 # address size first-differing-offset
 0040ECD0 730 +0x73
 0041ECC0 590 +0x76

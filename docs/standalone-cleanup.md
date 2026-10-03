@@ -128,5 +128,16 @@ standalone build still needs source for them (vanilla behaviour):
 
 - `CMappedResource::OpenResource` 00671730, `CMappedResource::~CMappedResource` 006714A0: now
   rewritten and verified through the vanilla launch (`launch-vanilla.cmd`); skipped under Rebirth.
-- `CSectorMap::Move` 005C11D0: its first byte is patched in memory at runtime (not listed in
-  addon.log, so probably `EI_Plugin.asi`). Source written in `src/game/sector_map.cpp`, never run.
+- `CSectorMap::Move` 005C11D0: addon.dll's FixMoveObject replaces it (addon.log lists the site;
+  docs/notes/rebirth.md). The rewrite reproduces the patch behind its flag, so with the flag on (as
+  FollowAddon sets it in a Rebirth launch) it is hooked there too.
+
+## Rebirth patch flags
+
+- `ei::rebirth` (`include/ei/rebirth.h`, `src/lib/rebirth.cpp`): the flags are plain data read from
+  `ei_rebirth.ini` next to the DLL; the standalone exe should read it next to itself (call
+  `LoadSettings` first thing). `FollowAddon` and everything in `src/hook/rebirth_hook.cpp` (site
+  table, detection of addon.dll / EI_Plugin.asi, trampoline re-targeting) only exist for the hook DLL.
+- `EI_REBIRTH_IMPLEMENTS` declarations are only read by the hook installer; they can stay or go.
+- Forwarder `EffectArray::SetSize` (map_object.cpp) -> 0050FE70 CArray<MapEffect>::SetSize.
+- `CCampPages::Price` calls the item's price through its vtable (slot 16); fine standalone.

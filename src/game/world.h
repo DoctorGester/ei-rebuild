@@ -719,6 +719,11 @@ bool __fastcall NameInList(const char* const* list, const char* name);
 // speaker, "b.elder.<briefing>".
 mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing);
+// 00595080. Chooses the loading movie (the name at 00791EE0) for zone `zone` (may be null) by its
+// allod in the map database: progres2.bik for gipat, progres3.bik for ingos, progres4.bik for
+// suslanger, else progres.bik (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for
+// jigran); the zones gz1g and bz7g (case-insensitive) take progres1.bik.
+void __stdcall SelectLoadingMovie(const char* zone);
 
 CWorldServer* WorldServer();   // 007AFF60
 CWorldClient* WorldClient();   // 007AF5B8

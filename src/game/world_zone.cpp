@@ -4,11 +4,13 @@
 #include "world.h"
 
 #include "chunk_stream.h"
+#include "object_tables.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 
 #include <cstring>
@@ -272,9 +274,49 @@ void CWorldServer::SaveMapObjects(void* stream) {
     ei::VCall<void>(stream, kSlotStreamWrite, static_cast<const void*>(&end), 4u);
 }
 
+// ---- Loading movie (00595080) -------------------------------------------------------------------
+
+namespace {
+const char*& LoadingMovie() { return *reinterpret_cast<const char**>(0x00791EE0); }
+bool SameName(const char* a, const char* b) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+}
+// "progres5.bik" is not among the game's strings; addon.dll points the name at its own copy.
+constexpr const char* kProgres5 = "progres5.bik";
+} // namespace
+
+void __stdcall SelectLoadingMovie(const char* zone) {
+    mfc::CString allod;
+    if (zone) {
+        MapRecord* map = reinterpret_cast<CMapDatabase*>(0x0079BF00)->FindMap(zone);
+        if (map) allod = *reinterpret_cast<const mfc::CString*>(reinterpret_cast<const char*>(map) + 4);
+    }
+    if (SameName(allod, "gipat")) {
+        LoadingMovie() = Text(0x00790A9C);   // progres2.bik
+    } else if (SameName(allod, "ingos")) {
+        LoadingMovie() = Text(0x00790A8C);   // progres3.bik
+    } else {
+        bool suslanger = SameName(allod, "suslanger");
+        LoadingMovie() = Text(0x00790A7C);   // progres4.bik
+        if (!suslanger) {
+            LoadingMovie() = Text(0x00790A70);   // progres.bik
+            if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
+                if (SameName(allod, "gipat2")) LoadingMovie() = Text(0x00790A9C);
+                else if (SameName(allod, "jigran")) LoadingMovie() = kProgres5;
+            }
+        }
+    }
+    if (zone) {
+        if (gamecrt::stricmp(zone, "gz1g") == 0) LoadingMovie() = Text(0x00790A60);   // progres1.bik
+        if (gamecrt::stricmp(zone, "bz7g") == 0) LoadingMovie() = Text(0x00790A60);
+    }
+}
+
 EI_REPLACE_METHOD(0x005915E0, CWorldServer::SetZoneExits);
 EI_REPLACE_METHOD(0x005910A0, CWorldServer::AddUnitToServer);
 EI_REPLACE_METHOD(0x00596030, CWorldServer::LoadMapObjects);
 EI_REPLACE_METHOD(0x00595AB0, CWorldServer::LoadMobFile);
 EI_REPLACE_METHOD(0x00596C60, CWorldServer::ClearMapObjects);
 EI_REPLACE_METHOD(0x00596730, CWorldServer::SaveMapObjects);
+EI_REPLACE(0x00595080, SelectLoadingMovie);
+EI_REBIRTH_IMPLEMENTS(0x00595080, ei::rebirth::Patch::FixProgressNames);

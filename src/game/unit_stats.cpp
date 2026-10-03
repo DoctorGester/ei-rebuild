@@ -5,6 +5,7 @@
 #include "spell.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 
 #include <bit>
 #include <cstring>
@@ -173,9 +174,16 @@ BOOL LockKey::Opens(const LockKey* lock) {
     if (common == 0) return 0;
     if ((common & 8) == 8 && id == lock->id) return 1;
     if ((common & 7) == 0) return 0;
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::FixLeversActivate)) {
+        // Rebirth: levels compared signed; a lock of level 0 gives the key's level + 1 (its INC EAX),
+        // so a key of level -1 (0xFFFFFFFF) no longer opens it.
+        if (lock->level == 0) return static_cast<BOOL>(level + 1);
+        return static_cast<std::int32_t>(level) < static_cast<std::int32_t>(lock->level) ? 0 : 1;
+    }
     return level >= lock->level ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x00522A80, LockKey::Opens);
+EI_REBIRTH_IMPLEMENTS(0x00522A80, ei::rebirth::Patch::FixLeversActivate);
 
 std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
     constexpr std::uint32_t kLarge = 0x7C23D70A;
