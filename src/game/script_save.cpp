@@ -148,8 +148,8 @@ EI_REPLACE(0x004CAEC0, ScriptAreasSave);
 void __fastcall ScriptSave(CScript* script, void*, ScriptStream* stream) {
     SavingScript() = script;
 
-    // Point lights (+0x04: CArray of 0x20-byte slots).
-    const auto& lights = Field<MfcArray<std::uint8_t[0x20]>>(script, 0x04);
+    // Point lights: the CArray at +0x00 (data +0x04, size +0x08; 0x20-byte slots).
+    const auto& lights = Field<MfcArray<std::uint8_t[0x20]>>(script, 0x00);
     WriteInt(stream, lights.size);
     for (int i = 0; i < lights.size; ++i) PointLightSave(lights.data[i], nullptr, stream);
 
