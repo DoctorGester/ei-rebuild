@@ -656,6 +656,14 @@ struct GameFlow {
     // when more than one player is in (with +0x80) or unless the client's +0x25F4 is active.
     // Nothing without an active client session.
     void UpdateMultiplayerVariable();
+    // 0057E6B0 (RET 4). The multiplayer start zone for the client session's game type (+0x261C):
+    // "bz2mpg".."bz4mpg" for 1..3, else "bz1mpg"; constructed into `out`, returned.
+    mfc::CString* MultiplayerZoneInto(mfc::CString* out);
+    // 0057F280. Starts a multiplayer game: the party manager (007AA5A0) is reset, a single party
+    // record gets the unit id 0x3B9AF5CE, the party outside a game (007C82B0) is sent to the start
+    // zone with "z.MPGame1" = 1 and redeployed; the flow loads that zone (state 4) and the
+    // client's game state request becomes kind 1.
+    void BeginMultiplayerGame();
 };
 
 CWorldServer* WorldServer();   // 007AFF60

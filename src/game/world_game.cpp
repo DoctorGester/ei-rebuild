@@ -784,8 +784,63 @@ void GameFlow::UpdateMultiplayerVariable() {
     else set(!Active(At<std::uint8_t*>(ClientSession(), 0x25F4)));
 }
 
+// ---- Starting a multiplayer game ------------------------------------------------------------------
+
+namespace {
+
+// The multiplayer start zones by the client session's game type (+0x261C): 1..3 -> bz2mpg ..
+// bz4mpg, anything else bz1mpg.
+constexpr std::uintptr_t kMultiplayerZones[] = {0x00790690, 0x007906A8, 0x007906A0, 0x00790698};
+
+// The party manager (007AA5A0): 004A88C0 resets it, 004A8890 (RET 4) begins a redeploy of a
+// party.
+__declspec(naked) void __fastcall PartyManagerReset(void*, void*) EI_ORIGINAL(0x004A88C0)
+__declspec(naked) void __fastcall PartyManagerBeginRedeploy(void*, void*, void* /*party*/) EI_ORIGINAL(0x004A8890)
+__declspec(naked) mfc::CString* __fastcall MultiplayerZoneAt(GameFlow*, void*, void* /*out*/) EI_ORIGINAL(0x0057E6B0)
+
+void* PartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
+// The party outside a game (007C82B0, laid out like WorldPlayer + 0x70): records +0x30, count
+// +0x34, variables +0x54, target zone +0x68 (a CString).
+std::uint8_t* GlobalParty() { return reinterpret_cast<std::uint8_t*>(0x007C82B0); }
+constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
+
+} // namespace
+
+mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
+    unsigned type = At<unsigned>(ClientSession(), 0x261C);
+    return new (out) mfc::CString(Text(kMultiplayerZones[type <= 3 ? type : 0]));
+}
+
+void GameFlow::BeginMultiplayerGame() {
+    PartyManagerReset(PartyManager(), nullptr);
+    if (At<int>(GlobalParty(), 0x34) == 1) At<std::uint32_t>(At<std::uint8_t*>(GlobalParty(), 0x30), 0x1C) = kMultiplayerHeroId;
+    {
+        alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+        mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);
+        At<mfc::CString>(GlobalParty(), 0x68) = *zone;
+        zone->~CString();
+    }
+    VariableSetAt(GlobalParty() + 0x54, nullptr, Text(kMultiplayerVariable), 1.0f);
+    PartyManagerBeginRedeploy(PartyManager(), nullptr, GlobalParty());
+    {
+        alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+        mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);
+        At<int>(this, 0) = 4;   // the state: load the zone
+        At<mfc::CString>(this, 4) = static_cast<const char*>(*zone);
+        At<int>(this, 0x78) = 0;
+        zone->~CString();
+    }
+    At<char>(this, 0x80) = 0;
+    // The client's game state request (+0x2600): kind 1, a new request.
+    At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 0x28) = 1;
+    ++At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 8);
+    *reinterpret_cast<char*>(0x007C7DD8) = 1;
+}
+
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
 EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
+EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
+EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);
 EI_REPLACE_METHOD(0x0057AA80, CWorldServer::ZoneNameInto);
 EI_REPLACE(0x0057A780, LeaveZone);
 EI_REPLACE(0x0057A060, EnterZone);

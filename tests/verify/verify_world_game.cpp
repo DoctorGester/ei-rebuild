@@ -116,3 +116,34 @@ static void __fastcall UpdateMultiplayerVerify(GameFlow* self, void*) {
                       original);
 }
 EI_VERIFY(0x0057F190, UpdateMultiplayerVerify, 5, s_originalUpdateMultiplayer);
+
+namespace {
+using MultiplayerZoneFn = mfc::CString*(__fastcall*)(GameFlow*, void*, mfc::CString*);
+MultiplayerZoneFn s_originalMultiplayerZone;
+}
+
+// 0057E6B0: the same name as the original's.
+static mfc::CString* __fastcall MultiplayerZoneVerify(GameFlow* self, void*, mfc::CString* out) {
+    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+    auto* original = s_originalMultiplayerZone(self, nullptr, reinterpret_cast<mfc::CString*>(storage));
+    mfc::CString* result = self->MultiplayerZoneInto(out);
+    bool ok = result == out && std::strcmp(*result, *original) == 0;
+    ei::verify::Check("GameFlow::MultiplayerZoneInto", true, ok, "%s (original %s)", static_cast<const char*>(*result),
+                      static_cast<const char*>(*original));
+    original->~CString();
+    return result;
+}
+EI_VERIFY(0x0057E6B0, MultiplayerZoneVerify, 6, s_originalMultiplayerZone);
+
+// 0057F280: afterwards the flow loads the start zone (state 4) and the party outside a game is
+// sent there.
+static void __fastcall BeginMultiplayerVerify(GameFlow* self, void*) {
+    self->BeginMultiplayerGame();
+    auto* raw = reinterpret_cast<std::uint8_t*>(self);
+    const char* zone = *reinterpret_cast<const char**>(raw + 4);
+    const char* partyZone = *reinterpret_cast<const char**>(0x007C8318);
+    bool ok = *reinterpret_cast<int*>(raw) == 4 && raw[0x80] == 0 && *reinterpret_cast<char*>(0x007C7DD8) == 1 &&
+              std::strcmp(zone, partyZone) == 0;
+    ei::verify::Check("GameFlow::BeginMultiplayerGame", true, ok, "zone %s, party zone %s", zone, partyZone);
+}
+EI_VERIFY(0x0057F280, BeginMultiplayerVerify, 0, s_unused);
