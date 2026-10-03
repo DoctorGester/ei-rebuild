@@ -347,6 +347,41 @@ void SetPlainFlag(CUiMesh* sprite) {
     std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x08, &flags, 4);
 }
 
+// The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids (006270A0,
+// 006279E0 inline it): a picture (textures 0-3 by quarter) and a frame per cell, a region per
+// cell, then the surface. Texels alternate between 0x1C and 0x80 across and down; each row's
+// pictures lie twice as deep as their frames, and half as deep as the row above.
+void BuildCellGrid(CUiWindow* window) {
+    int u = 0x1C;
+    float depth = 32.0f;
+    int v = 0x1C;
+    for (int top = 100; top < 500; top += 100) {
+        float pictureDepth = Store(D(depth) + D(depth));
+        int bottom = top + 100;
+        for (int left = 200; left < 600; left += 100) {
+            CEngineObject** textures = window->objects_.data_;
+            CEngineObject* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
+                                                : (left <= 300 ? textures[2] : textures[3]);
+            int right = left + 100;
+            CUiMesh* picture = window->AddSprite(0);
+            picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+                                  static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
+            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(texture));
+            CUiMesh* frame = window->AddSprite(0);
+            Builder(frame)->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
+                                   static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
+            SetSpriteField(frame, 0x280, reinterpret_cast<std::uint32_t>(texture));
+            AddRect(window, RECT{left, top, right, bottom});
+            u = 0x9C - u;
+        }
+        depth = Store(D(depth) * D(GameFloat(0x0073B86C)));   // * 0.5
+        v = 0x9C - v;
+    }
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    window->AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(window->interface_, 200, 100, 600, 500, 5, 1)
+                              : nullptr);
+}
+
 } // namespace
 
 void CHeroEquipPanel::Build(bool body) {
@@ -446,33 +481,42 @@ void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
     LoadTexture(GameText(0x00793EAC), 3, 0);   // trade2
     LoadTexture(GameText(0x00793EA4), 3, 0);   // trade3
     LoadTexture(GameText(0x00793E9C), 3, 0);   // trade4
-    // Cells of 100 x 100; texels alternate between 0x1C and 0x80 across and down; each row's
-    // pictures lie twice as deep as their frames, and half as deep as the row above.
-    int u = 0x1C;
-    float depth = 32.0f;
-    int v = 0x1C;
-    for (int top = 100; top < 500; top += 100) {
-        float pictureDepth = Store(D(depth) + D(depth));
-        int bottom = top + 100;
-        for (int left = 200; left < 600; left += 100) {
-            CEngineObject* texture = top <= 200 ? (left <= 300 ? objects_.data_[0] : objects_.data_[1])
-                                                : (left <= 300 ? objects_.data_[2] : objects_.data_[3]);
-            int right = left + 100;
-            CUiMesh* picture = AddSprite(0);
-            picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
-                                  static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
-            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(texture));
-            CUiMesh* frame = AddSprite(0);
-            Builder(frame)->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
-                                   static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
-            SetSpriteField(frame, 0x280, reinterpret_cast<std::uint32_t>(texture));
-            AddRect(this, RECT{left, top, right, bottom});
-            u = 0x9C - u;
-        }
-        depth = Store(D(depth) * D(GameFloat(0x0073B86C)));   // * 0.5
-        v = 0x9C - v;
-    }
-    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 100, 600, 500, 5, 1) : nullptr);
+    BuildCellGrid(this);
 }
 EI_REPLACE_METHOD(0x006270A0, CTradeGrid::Build);
+
+// --- 006279E0: the repair grid's Build ---------------------------------------------------------------
+
+void CRepairGrid::Build(void* items) {
+    rect_ = RECT{200, 100, 600, 500};
+    unknown_148 = 8;
+    items_ = items;
+    LoadTexture(GameText(0x00793ED4), 3, 0);   // repair1
+    LoadTexture(GameText(0x00793ECC), 3, 0);   // repair2
+    LoadTexture(GameText(0x00793EC4), 3, 0);   // repair3
+    LoadTexture(GameText(0x00793EBC), 3, 0);   // repair4
+    BuildCellGrid(this);
+}
+EI_REPLACE_METHOD(0x006279E0, CRepairGrid::Build);
+
+// --- 00622A80: the quick strip's Build -------------------------------------------------------------
+
+void CHeroQuickStrip::Build(bool top) {
+    y_ = top ? 0 : 500;
+    rect_ = RECT{0, y_, 800, y_ + 100};
+    unknown_148 = 0;
+    for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y_, x + 100, y_ + 100});
+    CUiMesh* frame = AddSprite(0);
+    Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+    SetSpriteField(frame, 0xD4, 0xFF8B8B37);
+    SetPlainFlag(frame);
+    SetSpriteField(frame, 0x280, 0);
+    SetSpriteField(frame, 0x220, 0);
+    Builder(AddSprite(0))->Cells(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
+                                 0x8E, 0x72, 0xF2, 8, 1);
+    selected_ = -1;
+}
+namespace {
+void __fastcall QuickStripBuild(CHeroQuickStrip* self, void*, int top) { self->Build(static_cast<std::uint8_t>(top) != 0); }
+} // namespace
+EI_REPLACE(0x00622A80, QuickStripBuild);

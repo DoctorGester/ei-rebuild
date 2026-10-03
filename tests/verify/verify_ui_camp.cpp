@@ -309,6 +309,33 @@ static void __fastcall TradeGridBuildVerify(CTradeGrid* self, void*, void* bough
 }
 EI_VERIFY(0x006270A0, TradeGridBuildVerify, 0, s_unused);
 
+// --- Repair grid (006279E0) and quick strip (00622A80) Builds -------------------------------------------
+
+static void __fastcall RepairGridBuildVerify(CRepairGrid* self, void*, void* items) {
+    Counts before = CountsOf(self);
+    self->Build(items);
+    Counts after = CountsOf(self);
+    bool ok = after.regions == before.regions + 16 && after.sceneObjects == before.sceneObjects + 32 &&
+              after.objects >= before.objects + 4 && after.surfaces == before.surfaces + 1 && self->items_ == items &&
+              self->unknown_148 == 8;
+    ei::verify::Check("CRepairGrid::Build", true, ok, "regions %d->%d sprites %d->%d", before.regions, after.regions,
+                      before.sceneObjects, after.sceneObjects);
+}
+EI_VERIFY(0x006279E0, RepairGridBuildVerify, 0, s_unused);
+
+static void __fastcall QuickStripBuildVerify(CHeroQuickStrip* self, void*, int top) {
+    Counts before = CountsOf(self);
+    bool atTop = static_cast<std::uint8_t>(top) != 0;
+    self->Build(atTop);
+    Counts after = CountsOf(self);
+    int y = atTop ? 0 : 500;
+    bool ok = after.regions == before.regions + 8 && after.sceneObjects == before.sceneObjects + 2 && self->y_ == y &&
+              self->rect_.top == y && self->rect_.bottom == y + 100 && self->selected_ == -1;
+    ei::verify::Check("CHeroQuickStrip::Build", true, ok, "top %d regions %d->%d", atTop, before.regions,
+                      after.regions);
+}
+EI_VERIFY(0x00622A80, QuickStripBuildVerify, 0, s_unused);
+
 // --- Global map Update (0062F050) --------------------------------------------------------------------
 
 // Every frame; it draws the weather (whose animation advances with each call), so ours run alone:

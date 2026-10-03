@@ -324,3 +324,33 @@ public:
 };
 static_assert(offsetof(CTradeGrid, bought_) == 0x150);
 static_assert(sizeof(CTradeGrid) == 0x164);
+
+// The repair page's grid (vtables 00741538 / 00741504, 0x154 bytes): the same cells as the trade
+// grid with textures repair1..4.
+class CRepairGrid : public CUiWindow {
+public:
+    // 006279E0. Builds the grid for the item list `items`.
+    void Build(void* items);
+
+    int unknown_148;                 // +0x148 8
+    std::uint8_t unknown_14C[4];
+    void* items_;                    // +0x150
+};
+static_assert(offsetof(CRepairGrid, items_) == 0x150);
+static_assert(sizeof(CRepairGrid) == 0x154);
+
+// The quick item strip of the hero panels (vtables 00741844 / 00741810, 0x158 bytes): eight
+// cells along the top (camp) or the bottom of the screen.
+class CHeroQuickStrip : public CUiWindow {
+public:
+    // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
+    // and the cells.
+    void Build(bool top);
+
+    int unknown_148;                 // +0x148 0
+    std::uint8_t unknown_14C[4];
+    int y_;                          // +0x150
+    int selected_;                   // +0x154 -1
+};
+static_assert(offsetof(CHeroQuickStrip, y_) == 0x150);
+static_assert(sizeof(CHeroQuickStrip) == 0x158);
