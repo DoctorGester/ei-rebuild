@@ -2,11 +2,15 @@
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md (seventh round).
 #include "world.h"
 
+#include "console.h"
+
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+
+#include <cstring>
 
 namespace {
 
@@ -136,4 +140,181 @@ void CWorldServer::UpdateMercBriefings() {
     }
 }
 
+// ---- CompleteBriefing -------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kBriefingScript = 0x007909EC;
+// "WorldScript( GSSetVar( %i,"%s",2 ) #OnBriefingComplete( %i, "%s" ) )"
+constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;
+constexpr int kKindNoRangeTest = 3;
+constexpr int kClassQuestItem = 0x14;
+
+// The briefing records by name (007C87D4: hash_map<string, record*>). A record: +0x0C experience
+// (float), +0x10 gold (float), then vectors of names (begin, end): +0x14 items to give, +0x20
+// quest items to take, +0x2C / +0x44 variables raised to 1, +0x38 / +0x50 variables set to 2.
+struct NameVector {
+    const char** begin;
+    const char** end;
+    const char** capacity;
+};
+
+struct RawString {
+    std::uint8_t bytes[12];
+};
+__declspec(naked) void __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) void __fastcall RawStringDestroy(RawString*, void*) EI_ORIGINAL(0x0040C720)
+__declspec(naked) std::uint8_t** __fastcall BriefingMapAt(void*, void*, const RawString*) EI_ORIGINAL(0x004297A0)
+// 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
+__declspec(naked) void __fastcall Split(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
+// 0057FB60 (RET 4). The client asks the server to complete briefing `name` (ECX = 007AFE20).
+__declspec(naked) void __fastcall RequestBriefing(void*, void*, const char*) EI_ORIGINAL(0x0057FB60)
+// 00591DE0 (RET 8). CWorldServer: the player's part of completing a briefing.
+__declspec(naked) void __fastcall BriefingNotify(CWorldServer*, void*, WorldPlayer*, const char*) EI_ORIGINAL(0x00591DE0)
+// 005911C0 (RET 8). CWorldServer: experience for `player` (float bits).
+__declspec(naked) void __fastcall AwardExperience(CWorldServer*, void*, WorldPlayer*, std::uint32_t) EI_ORIGINAL(0x005911C0)
+// The game's _ftol (006E853C).
+__declspec(naked) int __cdecl GameFtol(double) {
+    __asm {
+        fld qword ptr [esp + 4]
+        mov eax, 0x006E853C
+        call eax
+        ret
+    }
+}
+// 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
+__declspec(naked) CEngineObject* __fastcall CreateItemByName(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
+// 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
+// item creation, unused.
+__declspec(naked) void __fastcall TempListConstruct(void*, void*, int /*blockSize*/) EI_ORIGINAL(0x00598EC0)
+__declspec(naked) void __fastcall TempListDestruct(void*, void*) EI_ORIGINAL(0x00405130)
+__declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(
+    mfc::CTypedPtrList<CEngineObject>*, void*, mfc::CTypedPtrList<CEngineObject>::Node*,
+    mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x004621A0)
+__declspec(naked) void __fastcall PlayerGiveItems(WorldPlayer*, void*, mfc::CTypedPtrList<CEngineObject>*, int)
+    EI_ORIGINAL(0x00665470)
+__declspec(naked) void __fastcall PlayerEraseQuestItem(WorldPlayer*, void*, int) EI_ORIGINAL(0x00665780)
+__declspec(naked) void __fastcall StateSetVariableMax(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
+// 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.
+__declspec(naked) void __fastcall CommandQueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+__declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
+
+void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
+
+// The item named `name`, with the original's unused temporary lists around the creation (built
+// in the order `firstAt`, then the other).
+CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
+    alignas(4) std::uint8_t lists[2][0x1C];
+    void* first = fromSecond ? lists[0] : lists[1];
+    void* second = fromSecond ? lists[1] : lists[0];
+    TempListConstruct(first, nullptr, 10);
+    TempListConstruct(second, nullptr, 10);
+    CEngineObject* item = CreateItemByName(ItemManager(), nullptr, name);
+    TempListDestruct(second, nullptr);
+    TempListDestruct(first, nullptr);
+    return item;
+}
+
+// The rewards of a briefing record for `player`.
+void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, std::uint8_t* record) {
+    float experience = *reinterpret_cast<float*>(record + 0x0C);
+    if (experience < 0.0f || experience > 0.0f) {
+        std::uint32_t bits;
+        std::memcpy(&bits, &experience, 4);
+        AwardExperience(world, nullptr, player, bits);
+    }
+    *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(player) + 0xC0) +=
+        GameFtol(*reinterpret_cast<float*>(record + 0x10));
+
+    mfc::CTypedPtrList<CEngineObject> items;
+    items.vtable = reinterpret_cast<void*>(kPtrListVtable);
+    items.head = nullptr;
+    items.tail = nullptr;
+    items.count = 0;
+    items.free = nullptr;
+    items.blocks = nullptr;
+    items.blockSize = 10;
+    auto& give = *reinterpret_cast<NameVector*>(record + 0x14);
+    for (const char** name = give.begin; name != give.end; ++name) {
+        CEngineObject* item = CreateNamedItem(*name, true);
+        if (!item) continue;
+        auto* node = PtrListNewNode(&items, nullptr, items.tail, nullptr);
+        node->data = item;
+        if (items.tail) items.tail->next = node;
+        else items.head = node;
+        items.tail = node;
+    }
+    if (items.count) PlayerGiveItems(player, nullptr, &items, 0);
+
+    auto& take = *reinterpret_cast<NameVector*>(record + 0x20);
+    for (const char** name = take.begin; name != take.end; ++name) {
+        CEngineObject* item = CreateNamedItem(*name, false);
+        if (!item) continue;
+        ++item->refCount_;
+        if (item->GetClassId() == kClassQuestItem)
+            PlayerEraseQuestItem(player, nullptr, *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x4C));
+        item->Release();
+    }
+
+    void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20);
+    for (const char** name = reinterpret_cast<NameVector*>(record + 0x2C)->begin;
+         name != reinterpret_cast<NameVector*>(record + 0x2C)->end; ++name)
+        StateSetVariableMax(state, nullptr, *name, 1.0f);
+    for (const char** name = reinterpret_cast<NameVector*>(record + 0x38)->begin;
+         name != reinterpret_cast<NameVector*>(record + 0x38)->end; ++name)
+        StateSetVariable(state, nullptr, *name, 2.0f);
+    for (const char** name = reinterpret_cast<NameVector*>(record + 0x44)->begin;
+         name != reinterpret_cast<NameVector*>(record + 0x44)->end; ++name)
+        StateSetVariableMax(state, nullptr, *name, 1.0f);
+    for (const char** name = reinterpret_cast<NameVector*>(record + 0x50)->begin;
+         name != reinterpret_cast<NameVector*>(record + 0x50)->end; ++name)
+        StateSetVariable(state, nullptr, *name, 2.0f);
+
+    // The list's inlined destructor (its nodes are dropped, the items stay with the player).
+    items.vtable = reinterpret_cast<void*>(kPtrListVtable);
+    items.RemoveAll();
+}
+
+} // namespace
+
+void CWorldServer::CompleteBriefing(int playerId, const char* name) {
+    if (IsMultiplayerClient()) {
+        console::CStringArray parts;
+        Split(name, &parts, '.');
+        if (parts.GetSize() == 3) RequestBriefing(reinterpret_cast<void*>(0x007AFE20), nullptr, parts[2]);
+        return;
+    }
+    console::CStringArray parts;
+    Split(name, &parts, '.');
+    std::uint8_t* record = nullptr;
+    if (parts.GetSize() == 3) {
+        RawString key;
+        char allocator;
+        RawStringInit(&key, nullptr, parts[2], &allocator);
+        record = *BriefingMapAt(reinterpret_cast<void*>(0x007C87D4), nullptr, &key);
+        RawStringDestroy(&key, nullptr);
+    }
+    WorldPlayer* player = nullptr;
+    {
+        PlayerIterator it;
+        for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(this, 20)); p; p = it.Next()) {
+            if (p->id == playerId) {
+                player = p;
+                break;
+            }
+        }
+    }
+    if (player) {
+        BriefingNotify(this, nullptr, player, name);
+        if (record) GiveBriefingRewards(this, player, record);
+    }
+
+    mfc::CString script;
+    script.Format(reinterpret_cast<const char*>(kBriefingScript), playerId, name, playerId, name);
+    CommandQueueAdd(commandsA_, nullptr, &script, 1);
+    if (unknown12D64_ == kKindNoRangeTest)
+        for (int i = 0; i < 5; ++i) CommandQueueRun(commandsA_, nullptr);
+}
+
 EI_REPLACE_METHOD(0x00591800, CWorldServer::UpdateMercBriefings);
+EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);

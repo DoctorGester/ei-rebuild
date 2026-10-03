@@ -36,3 +36,14 @@ static void __fastcall UpdateMercBriefingsVerify(CWorldServer* self, void*) {
     ei::verify::Check("CWorldServer::UpdateMercBriefings", true, ok, "%d players", players);
 }
 EI_VERIFY(0x00591800, UpdateMercBriefingsVerify, 0, s_unused);
+
+// 00592090: gives rewards and queues a script line; afterwards no player's gold went down.
+static void __fastcall CompleteBriefingVerify(CWorldServer* self, void*, int playerId, const char* name) {
+    WorldPlayer* player = self->GetPlayer(playerId);
+    int before = player ? *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(player) + 0xC0) : 0;
+    self->CompleteBriefing(playerId, name);
+    int after = player ? *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(player) + 0xC0) : 0;
+    ei::verify::Check("CWorldServer::CompleteBriefing", true, after >= before, "player %d %s gold %d -> %d", playerId,
+                      name ? name : "", before, after);
+}
+EI_VERIFY(0x00592090, CompleteBriefingVerify, 0, s_unused);

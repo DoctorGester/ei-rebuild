@@ -283,6 +283,11 @@ public:
     // briefing variables b.mercN.n1/n2/n3/n8/n9/n10/n11_N (and clears amerc_N) from whether the
     // mercenary is in the party, was hired (amerc_N), and how many others are alive.
     void UpdateMercBriefings();
+    // 00592090 (RET 8). Briefing `name` ("a.b.<record>") is complete for player `playerId`: a
+    // network client asks the server; otherwise the player gets the record's experience, gold
+    // and items, loses its quest items, its variables are set, and the scripts get
+    // GSSetVar / #OnBriefingComplete (run at once in kind-3 games).
+    void CompleteBriefing(int playerId, const char* name);
 
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
