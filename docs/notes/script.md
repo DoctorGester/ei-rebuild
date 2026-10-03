@@ -368,9 +368,15 @@ assignment), objects (reference) or groups (CArray Copy 004C1290); float 0 = var
 | 004B6760 | ScriptRun::Execute (Rebirth patches it: vanilla only) | ours only. Run: ticks +1; block, kill flag and For depth unchanged; result 0 only when the run was already at its end; otherwise it stops only at the end or on a waiting command. Per command (observer, after each command, before the temporaries are freed): the run's position and tick count unchanged, sleep start unchanged except by Sleep, only waiting commands stop, For depth restored; plus the effect: Sleep/WaitSegment/SleepUntil/SleepUntilIdle stop exactly when they should and Sleep's start is kept/reset; KillScript sets the flag; a script call adds a live instance with the call's floats; assignments hold the value (float bits, string, object, group members); AddObject leaves the group sorted and containing the object, RemoveObject without it; BlockUnit/HideObject/ActivateTrap flag bits; SetPlayer side (+0x250); SetEnemy bit in the hostile mask; GodMode byte |
 | 004BB6A0 | ScriptBindCall | ours only: when the counts match, every parameter equals its argument |
 | 004BB520 | ScriptIfThenRun | ours only: temporaries freed, run list well formed |
-| 004BC420 | ScriptRunCommands | ours only: run list grew by at most one; a new run has the block, the kill flag, ticks 1, a waiting command at its index, and the instance's variable counts |
+| 004BC420 | ScriptRunCommands | ours only: run list grew by at most one; a new run has the block, the kill flag, ticks 1, a waiting command at its index (or the block's end), and the instance's variable counts |
 | 004BEC80 | ScriptFreeTemporaries | ours only: inside For nothing changes, else one empty group and one empty reference left; lists well formed |
 | 004BF000 | ScriptTick | ours only: run, instance and particle lists well formed, no killed instance left, no deleted object in the globals, temporaries freed |
+| 004B1ED0 | ScriptAreaAddRect (`script_exec_helpers.cpp`) | output: original appends to a copy of the parts array; sizes, capacity and parts compared |
+| 004B2070 | ScriptAreaAddRound | as AddRect (the circle's unused fourth value is left out: the original leaves stack garbage there, ours 0) |
+| 004BCF30 | ScriptDeleteArea | ours only: the areas without the id are left, in order, with their parts |
+| 004BD6A0 | ScriptCreatePointLight | ours only: the slot with the id holds the new object at the point with the radius, not moving |
+| 004BD820 | ScriptMovePointLight | output: original on a copy of the light array (a stand-in script with only +0x04/+0x08); the arrays compared bytewise (the step is computed with the original's mixed precision: the x difference stays in the FPU) |
+| 004BD920 | ScriptDeletePointLight | ours only: the first light with the id has no object |
 
 Every callee is called through its original address (`EI_ORIGINAL` forwarders, named in the .cpp
 files): CalcParameters, CalcFloat, FatalError, 005935C0 and Execute itself are patched by Rebirth,
@@ -385,10 +391,8 @@ All in `script_exec.cpp` / `script_exec_run.cpp`:
   004C14A0 / 004C1290 / 004C1BE0 value array Copy, 004C2200 group RemoveAt, 004C2050 SetSize,
   004CC7D0 reference DestructElements, 004C8AF0 / 004C9100 temporaries RemoveTail, 004C6040 /
   004C6370 / 004C6680 particle / FX / lightning RemoveAt.
-- Command helpers not rewritten: 004BD6A0 CreatePointLight, 004BD820 MovePointLight, 004BD920
-  DeletePointLight, 004BD9A0 CreateParticleSource, 004BDBB0 MoveParticleSource, 004BCFF0
-  CreateLightning, 004BD260 CreateFX, 004BD310 CreateFXSource, 004BCF30 DeleteArea, 004B1ED0 /
-  004B2070 area AddRect / AddRound, 004BAA40 QStart, 004BAAB0 QFinish (builds a script text and
+- Command helpers not rewritten: 004BD9A0 CreateParticleSource, 004BDBB0 MoveParticleSource,
+  004BCFF0 CreateLightning, 004BD260 CreateFX, 004BD310 CreateFXSource, 004BAA40 QStart, 004BAAB0 QFinish (builds a script text and
   loads it), 004BAE10 quest objective, 004BAEC0 party records of a "party name", unit mode
   constructors 004BA1C0 / 004BA360 / 004BA450 / 004BA610 / 004BA710 / 004BA830 / 004BA920 /
   005D0F60 / 005D2850 / 005D3760, 004BA1A0 patrol look, 004BA9D0 console float, 004BA120
@@ -433,13 +437,19 @@ All in `script_exec.cpp` / `script_exec_run.cpp`:
 - SetDiplomacy maps a NaN value to neutral (FCOM C3), as the flag commands treat NaN as zero.
 - The ForIf condition is evaluated before every member; a For loop counter is a global, so nested
   loops on the same counter overwrite it.
+- CreatePointLight stops at the first free slot, so a light with the same id after a free slot is
+  not replaced (two lights share the id); with all 256 slots used and no match it writes one slot
+  past the array. The replaced light's object is released but its slot is reused at once.
+- DeleteArea leaves the moved-out last entry in memory (the size shrinks; MFC style).
 - The tick saves each node's successor before running it, so instances added by script calls
   during the instance loop run in the same tick only when added after the current node.
 
 ## Skipped
 
-- The command helpers listed under forwarders (point lights, particles, lightning, FX, areas,
-  quests, party records): self-contained, still original code.
+- The command helpers listed under forwarders (particles, lightning, FX, quests, party records):
+  self-contained, still original code. Execute calls the area and point light helpers through
+  their original addresses as well (they are rewritten in `script_exec_helpers.cpp`; 004BCF10, the
+  area destructor, and 006E79A0 memmove are forwarders there).
 - 004BCC60 RunWorldScript, 004BB800 AddParameter, an instance-run loop in an undefined region
   around 004BBC60 (calls 004BC420), 004BED90 / 004BEB00 / 004BE6E0 (CScript reset and
   destruction), 004BDE40 CScript constructor.

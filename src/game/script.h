@@ -465,3 +465,16 @@ void __fastcall ScriptFreeTemporaries(CScript* script);
 // globals, then the timed effects: FX sources (respawn), point lights (move, expire) and particle
 // sources (move, expire); finally frees the temporaries.
 void __fastcall ScriptTick(CScript* script);
+
+// Command helpers (script_exec_helpers.cpp), __thiscall on the area / the script.
+// 004B1ED0 / 004B2070. Append a rectangle (x1, y1, x2, y2) / a circle (centre, radius; stored
+// squared) to an area's parts (CScript::FindArea).
+void __fastcall ScriptAreaAddRect(MfcArray<ScriptAreaPart>* area, void* edx, float x1, float y1, float x2, float y2);
+void __fastcall ScriptAreaAddRound(MfcArray<ScriptAreaPart>* area, void* edx, float x, float y, float radius);
+// 004BCF30. Removes every area with the id (CScript +0x194).
+void __fastcall ScriptDeleteArea(CScript* script, void* edx, int id);
+// 004BD6A0 / 004BD820 / 004BD920. Point lights (CScript +0x04, 256 slots of 0x20): create
+// (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when done), delete (id).
+void __fastcall ScriptCreatePointLight(CScript* script, void* edx, const SSCCmd* cmd);
+void __fastcall ScriptMovePointLight(CScript* script, void* edx, const SSCCmd* cmd);
+void __fastcall ScriptDeletePointLight(CScript* script, void* edx, const SSCCmd* cmd);

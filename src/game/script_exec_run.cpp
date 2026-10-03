@@ -121,7 +121,7 @@ float FxOffset(float radius, std::uint32_t random) {
     }
     return result;
 }
-float FxOffsetPlus(float radius, std::uint32_t random, float base) {
+float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
     std::uint32_t wide[2] = {random, 0};
     float negative;
     float result;
@@ -135,7 +135,7 @@ float FxOffsetPlus(float radius, std::uint32_t random, float base) {
         fmulp st(1), st
         fmul qword ptr ds:[0x0073C468]
         fadd negative
-        fadd base
+        fadd origin
         fstp result
     }
     return result;

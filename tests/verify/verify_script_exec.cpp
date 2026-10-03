@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -290,8 +291,10 @@ static void __fastcall RunCommandsVerify(CScript* script, void*, ScriptDecl* blo
     bool ok = (added == 0 || added == 1) && ListConsistent(script->Field(0x15C));
     if (ok && added == 1) {
         auto* run = reinterpret_cast<ScriptRun*>(Field<ListNode*>(script, 0x160) + 1);
+        // Execute returns 1 also when it ran to the end; such a run ends on the next tick.
         ok = run->block == block && run->killFlag == reinterpret_cast<int*>(instance) && run->ticks == 1 &&
-             run->index < block->commands.size && IsWait(block->commands.data[run->index].id);
+             (run->index == block->commands.size ||
+              (run->index < block->commands.size && IsWait(block->commands.data[run->index].id)));
         if (ok && instance)
             ok = run->vars.floats.size == instance->vars.floats.size && run->vars.strings.size == instance->vars.strings.size &&
                  run->vars.objects.size == instance->vars.objects.size && run->vars.groups.size == instance->vars.groups.size;
@@ -337,3 +340,122 @@ static void __fastcall TickVerify(CScript* script) {
     ei::verify::Check("ScriptTick", true, ok, "%d runs, %d instances", Field<int>(script, 0x168), Field<int>(script, 0x14C));
 }
 EI_VERIFY(0x004BF000, TickVerify, 0, s_unused);
+
+// ---- Command helpers ----------------------------------------------------------------------------
+
+namespace {
+
+// A copy of an area's parts with its own data block, for the original to append to.
+MfcArray<ScriptAreaPart> CloneParts(const MfcArray<ScriptAreaPart>& parts) {
+    MfcArray<ScriptAreaPart> copy = parts;
+    if (parts.data) {
+        copy.data = static_cast<ScriptAreaPart*>(gamecrt::operator_new(parts.maxSize * sizeof(ScriptAreaPart)));
+        std::memcpy(copy.data, parts.data, parts.size * sizeof(ScriptAreaPart));
+    }
+    return copy;
+}
+
+// Same counts and parts; a circle leaves its fourth value unset.
+bool SameParts(const MfcArray<ScriptAreaPart>& a, const MfcArray<ScriptAreaPart>& b) {
+    if (a.size != b.size || a.maxSize != b.maxSize || a.growBy != b.growBy) return false;
+    for (int i = 0; i < a.size; ++i) {
+        const ScriptAreaPart& p = a.data[i];
+        const ScriptAreaPart& q = b.data[i];
+        if (p.isRect != q.isRect || std::memcmp(&p.x, &q.x, 12) != 0) return false;
+        if (p.isRect && std::memcmp(&p.y2, &q.y2, 4) != 0) return false;
+    }
+    return true;
+}
+
+void(__fastcall* s_addRect)(MfcArray<ScriptAreaPart>*, void*, float, float, float, float);
+void(__fastcall* s_addRound)(MfcArray<ScriptAreaPart>*, void*, float, float, float);
+void(__fastcall* s_moveLight)(CScript*, void*, const SSCCmd*);
+
+int FindLight(CScript* script, int id) {
+    char* lights = Field<char*>(script, 0x04);
+    for (int i = 0; i < Field<int>(script, 0x08); ++i)
+        if (Field<void*>(lights + i * 0x20, 0) && Field<int>(lights + i * 0x20, 4) == id) return i;
+    return -1;
+}
+
+} // namespace
+
+// 004B1ED0: SUB ESP,0x14; PUSH EBX; MOV EBX,ECX (6 bytes). The original appends to a copy.
+static void __fastcall AddRectVerify(MfcArray<ScriptAreaPart>* area, void*, float x1, float y1, float x2, float y2) {
+    MfcArray<ScriptAreaPart> copy = CloneParts(*area);
+    s_addRect(&copy, nullptr, x1, y1, x2, y2);
+    ScriptAreaAddRect(area, nullptr, x1, y1, x2, y2);
+    ei::verify::Check("ScriptAreaAddRect", true, SameParts(copy, *area), "%d parts", area->size);
+    if (copy.data) gamecrt::operator_delete(copy.data);
+}
+EI_VERIFY(0x004B1ED0, AddRectVerify, 6, s_addRect);
+
+// 004B2070: SUB ESP,0x14; PUSH EBX; PUSH EBP (5 bytes).
+static void __fastcall AddRoundVerify(MfcArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
+    MfcArray<ScriptAreaPart> copy = CloneParts(*area);
+    s_addRound(&copy, nullptr, x, y, radius);
+    ScriptAreaAddRound(area, nullptr, x, y, radius);
+    ei::verify::Check("ScriptAreaAddRound", true, SameParts(copy, *area), "%d parts", area->size);
+    if (copy.data) gamecrt::operator_delete(copy.data);
+}
+EI_VERIFY(0x004B2070, AddRoundVerify, 5, s_addRound);
+
+// Ours only (frees the areas' parts): the areas without the id are left, in order.
+static void __fastcall DeleteAreaVerify(CScript* script, void*, int id) {
+    std::vector<std::pair<int, void*>> expected;
+    for (int i = 0; i < Field<int>(script, 0x19C); ++i) {
+        char* area = Field<char*>(script, 0x198) + i * 0x18;
+        if (Field<int>(area, 0x14) != id) expected.push_back({Field<int>(area, 0x14), Field<void*>(area, 4)});
+    }
+    ScriptDeleteArea(script, nullptr, id);
+    bool ok = Field<int>(script, 0x19C) == static_cast<int>(expected.size());
+    for (int i = 0; ok && i < Field<int>(script, 0x19C); ++i) {
+        char* area = Field<char*>(script, 0x198) + i * 0x18;
+        ok = Field<int>(area, 0x14) == expected[i].first && Field<void*>(area, 4) == expected[i].second;
+    }
+    ei::verify::Check("ScriptDeleteArea", true, ok, "id %d, %d left", id, Field<int>(script, 0x19C));
+}
+EI_VERIFY(0x004BCF30, DeleteAreaVerify, 0, s_unused);
+
+// Ours only (creates an effect object): the light with the id holds the new object at the point,
+// with the radius, not moving.
+static void __fastcall CreateLightVerify(CScript* script, void*, const SSCCmd* cmd) {
+    ScriptCreatePointLight(script, nullptr, cmd);
+    const float* f = cmd->floatArgs.data;
+    int i = FindLight(script, x87::fistp(f[0]));
+    bool ok = i >= 0;
+    if (ok) {
+        char* light = Field<char*>(script, 0x04) + i * 0x20;
+        char* object = Field<char*>(light, 0);
+        static const std::uint32_t zeros[5] = {};
+        ok = std::memcmp(light + 8, zeros, 8) == 0 && std::memcmp(light + 0x10, zeros, 16) == 0 &&
+             std::memcmp(object + 0x1C, &f[1], 12) == 0 && std::memcmp(object + 0x158, &f[4], 4) == 0;
+    }
+    ei::verify::Check("ScriptCreatePointLight", true, ok, "slot %d", i);
+}
+EI_VERIFY(0x004BD6A0, CreateLightVerify, 0, s_unused);
+
+// 004BD820: PUSH EBP; MOV EBP,ESP; SUB ESP,0x1C (6 bytes). Writes only the light's slot: the
+// original runs on a copy of the light array (a stand-in script holding only +0x04 / +0x08).
+static void __fastcall MoveLightVerify(CScript* script, void*, const SSCCmd* cmd) {
+    int count = Field<int>(script, 0x08);
+    char* lights = Field<char*>(script, 0x04);
+    std::vector<char> copy(lights, lights + count * 0x20);
+    alignas(4) char standIn[0x10] = {};
+    Field<char*>(standIn, 0x04) = copy.data();
+    Field<int>(standIn, 0x08) = count;
+    s_moveLight(reinterpret_cast<CScript*>(standIn), nullptr, cmd);
+    ScriptMovePointLight(script, nullptr, cmd);
+    bool ok = std::memcmp(copy.data(), Field<char*>(script, 0x04), count * 0x20) == 0;
+    ei::verify::Check("ScriptMovePointLight", true, ok, "id %d", x87::fistp(cmd->floatArgs.data[0]));
+}
+EI_VERIFY(0x004BD820, MoveLightVerify, 6, s_moveLight);
+
+// Ours only (releases the object): the first light with the id is gone.
+static void __fastcall DeleteLightVerify(CScript* script, void*, const SSCCmd* cmd) {
+    int i = FindLight(script, x87::fistp(cmd->floatArgs.data[0]));
+    ScriptDeletePointLight(script, nullptr, cmd);
+    bool ok = i < 0 || Field<void*>(Field<char*>(script, 0x04) + i * 0x20, 0) == nullptr;
+    ei::verify::Check("ScriptDeletePointLight", true, ok, "slot %d", i);
+}
+EI_VERIFY(0x004BD920, DeleteLightVerify, 0, s_unused);
