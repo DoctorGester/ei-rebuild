@@ -70,6 +70,10 @@ __declspec(naked) void __fastcall GroupsCopy(void*, void*, const void*) EI_ORIGI
 __declspec(naked) void __stdcall RunConstructElements(ScriptRun*, int) EI_ORIGINAL(0x004CECB0)
 __declspec(naked) void __fastcall RunAssign(ScriptRun*, void*, const ScriptRun*) EI_ORIGINAL(0x004CB570)
 __declspec(naked) void __fastcall RunListFreeNode(void*, void*, ListNode*) EI_ORIGINAL(0x004CDAB0)
+// The run list's NewNode(prev, next): a node from the free list, its ScriptRun constructed.
+__declspec(naked) ListNode* __fastcall RunListNewNode(void*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CDA30)
+// ScriptVars::operator= (all eight arrays).
+__declspec(naked) void __fastcall VarsAssign(ScriptVars*, void*, const ScriptVars*) EI_ORIGINAL(0x004CBAE0)
 __declspec(naked) void __fastcall InstanceListFreeNode(void*, void*, ListNode*) EI_ORIGINAL(0x004CD9B0)
 
 // The world (007AFF60): timed objects (effects that update every tick).
@@ -392,6 +396,34 @@ void __fastcall ScriptRunCommands(CScript* script, void*, ScriptDecl* block, Scr
     VarsDestruct(&run->vars);
 }
 EI_REPLACE(0x004BC420, ScriptRunCommands);
+
+void __fastcall ScriptRunWorldScript(CScript* script, void*, ScriptDecl* block) {
+    alignas(4) unsigned char storage[sizeof(ScriptRun)];
+    auto* run = reinterpret_cast<ScriptRun*>(storage);
+    run->block = nullptr;
+    run->index = 0;
+    run->ticks = 0;
+    run->killFlag = nullptr;
+    VarsConstruct(&run->vars);
+    run->block = block;
+    run->index = 0;
+    run->ticks = 0;
+    run->sleepStart = -1;
+    // A new run at the head of the run list (+0x15C), not executed yet.
+    ListNode* node = RunListNewNode(script->Field(0x15C), nullptr, nullptr, Field<ListNode*>(script, 0x160));
+    ScriptRun* copy = NodeData<ScriptRun>(node);
+    copy->block = run->block;
+    copy->index = run->index;
+    copy->ticks = run->ticks;
+    copy->sleepStart = run->sleepStart;
+    copy->killFlag = run->killFlag;
+    VarsAssign(&copy->vars, nullptr, &run->vars);
+    if (Field<ListNode*>(script, 0x160)) Field<ListNode*>(script, 0x160)->prev = node;
+    else Field<ListNode*>(script, 0x164) = node;
+    Field<ListNode*>(script, 0x160) = node;
+    VarsDestruct(&run->vars);
+}
+EI_REPLACE(0x004BCC60, ScriptRunWorldScript);
 
 void __fastcall ScriptFreeTemporaries(CScript* script) {
     if (Field<int>(script, 0x1E8) > 0) return;

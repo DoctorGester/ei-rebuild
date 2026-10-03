@@ -457,6 +457,9 @@ void __fastcall ScriptIfThenRun(const ScriptIfThen* pair, void* edx, CScript* sc
 // instance's kill flag); when it is not finished, adds the run at the head of the run list.
 void __fastcall ScriptRunCommands(CScript* script, void* edx, ScriptDecl* block,
                                   ScriptDefinition* instance);
+// 004BCC60 (CScript::RunWorldScript). Adds a run of `block` (empty variables, no kill flag) at
+// the head of the run list; it first executes on the next tick.
+void __fastcall ScriptRunWorldScript(CScript* script, void* edx, ScriptDecl* block);
 // 004BEC80. Outside For loops (+0x1E8 == 0): frees the evaluation temporaries, keeping one empty
 // group (+0x1B0 list) and one released object reference (+0x1CC list).
 void __fastcall ScriptFreeTemporaries(CScript* script);

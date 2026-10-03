@@ -125,7 +125,7 @@ console @UMPatrolClear(GetObjectByName("ZxWolf")) UMClear(GetObjectByName("ZxWol
 console @UMClear(GetObjectByName("ZxWolf")) UMStandard(GetObjectByName("ZxWolf")) UMAggression(GetObjectByName("ZxWolf")) UMRevenge(GetObjectByName("ZxWolf")) UMFear(GetObjectByName("ZxWolf"),1) UMSuspection(GetObjectByName("ZxWolf")) UMCorpseWatcher(GetObjectByName("ZxWolf")) UMClear(GetObjectByName("ZxWolf")) Idle(GetObjectByName("ZxWolf"))
 
 # Damage and death.
-console @GSSetVar(0,"zu.hp",HP(GetObjectByName("ZxWolf"))) InflictDamage(GetObjectByName("ZxWolf"),5)
+console @GSSetVar(0,"zu.hp",HP(GetObjectByName("ZxWolf"))) InflictDamage(GetObjectByName("ZxWolf"),10)
 waitfor 10 IsLess(HP(GetObjectByName("ZxWolf")),GSGetVar(0,"zu.hp"))
 console @KillUnit(GetObjectByName("ZxWolf"))
 waitfor 10 Not(IsAlive(GetObjectByName("ZxWolf")))

@@ -239,7 +239,7 @@ the second call writes the same text, code and line again.
 ## Forwarders added (standalone build must replace)
 
 - CScript: 004CF470 Error (called through its address: Rebirth patches it), 004BF540 NewCommandList, 004BF900 NewWorldScript,
-  004BCC60 RunWorldScript; 004D5880 reads a text file (CStdioFile).
+  004BCC60 RunWorldScript (rewritten since, ScriptRunWorldScript); 004D5880 reads a text file (CStdioFile).
 - SSCCmd: 004B5F70 Clear, 004BF640 destructor. ScriptDefinition: 004BB800 AddParameter,
   004D3320 Reset, 004BE9D0 destructor. ScriptVars: 004C00D0 constructor, 004BE090 destructor,
   004C0020 remove all, 004B3900 append another set; ResetValues/HasVariable/FindVariable are called
@@ -311,7 +311,7 @@ freeing the temporaries after each; the first zero (or NaN) condition ends it. W
 `ScriptRunCommands` (004BC420) runs the commands block once in a new ScriptRun (index 0, a copy of
 the instance's variable values, kill flag = the instance); if that Execute returns 1 (it waits, or
 ran to the end) a copy goes to the head of the run list. The WorldScript (and every console `@`
-line) is added to the run list by RunWorldScript (004BCC60, not rewritten) and first runs on the
+line) is added to the run list by `ScriptRunWorldScript` (004BCC60) and first runs on the
 next tick (the console runs one tick right after loading).
 
 `ScriptRun::Execute` (004B6760): counts the call (+8); returns 0 if the block had already ended;
@@ -369,6 +369,7 @@ assignment), objects (reference) or groups (CArray Copy 004C1290); float 0 = var
 | 004BB6A0 | ScriptBindCall | ours only: when the counts match, every parameter equals its argument |
 | 004BB520 | ScriptIfThenRun | ours only: temporaries freed, run list well formed |
 | 004BC420 | ScriptRunCommands | ours only: run list grew by at most one; a new run has the block, the kill flag, ticks 1, a waiting command at its index (or the block's end), and the instance's variable counts |
+| 004BCC60 | ScriptRunWorldScript (CScript::RunWorldScript) | ours only: one more run, at the head, at the block's start (ticks 0, sleep -1, no kill flag, empty variables) |
 | 004BEC80 | ScriptFreeTemporaries | ours only: inside For nothing changes, else one empty group and one empty reference left; lists well formed |
 | 004BF000 | ScriptTick | ours only: run, instance and particle lists well formed, no killed instance left, no deleted object in the globals, temporaries freed |
 | 004B1ED0 | ScriptAreaAddRect (`script_exec_helpers.cpp`) | output: original appends to a copy of the parts array; sizes, capacity and parts compared |
@@ -450,7 +451,7 @@ All in `script_exec.cpp` / `script_exec_run.cpp`:
   self-contained, still original code. Execute calls the area and point light helpers through
   their original addresses as well (they are rewritten in `script_exec_helpers.cpp`; 004BCF10, the
   area destructor, and 006E79A0 memmove are forwarders there).
-- 004BCC60 RunWorldScript, 004BB800 AddParameter, an instance-run loop in an undefined region
+- 004BB800 AddParameter, an instance-run loop in an undefined region
   around 004BBC60 (calls 004BC420), 004BED90 / 004BEB00 / 004BE6E0 (CScript reset and
   destruction), 004BDE40 CScript constructor.
 - The multiplayer branches of GSSetVar, GSSetVarMax, GSDelVar and QuestComplete are rewritten

@@ -303,6 +303,21 @@ static void __fastcall RunCommandsVerify(CScript* script, void*, ScriptDecl* blo
 }
 EI_VERIFY(0x004BC420, RunCommandsVerify, 0, s_unused);
 
+// The new run is at the head of the run list, at the block's start, with empty variables.
+static void __fastcall RunWorldScriptVerify(CScript* script, void*, ScriptDecl* block) {
+    int runs = Field<int>(script, 0x168);
+    ScriptRunWorldScript(script, nullptr, block);
+    bool ok = Field<int>(script, 0x168) == runs + 1 && ListConsistent(script->Field(0x15C));
+    if (ok) {
+        auto* run = reinterpret_cast<ScriptRun*>(Field<ListNode*>(script, 0x160) + 1);
+        ok = run->block == block && run->index == 0 && run->ticks == 0 && run->sleepStart == -1 && !run->killFlag &&
+             run->vars.floats.size == 0 && run->vars.strings.size == 0 && run->vars.objects.size == 0 &&
+             run->vars.groups.size == 0;
+    }
+    ei::verify::Check("ScriptRunWorldScript", true, ok, "%d runs", Field<int>(script, 0x168));
+}
+EI_VERIFY(0x004BCC60, RunWorldScriptVerify, 0, s_unused);
+
 // Outside For loops the temporaries are down to one empty entry each; inside nothing changes.
 static void __fastcall FreeTemporariesVerify(CScript* script) {
     int depth = Field<int>(script, 0x1E8);
