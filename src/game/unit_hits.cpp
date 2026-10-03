@@ -84,9 +84,9 @@ UnitLogStream* HitLog() { return *reinterpret_cast<UnitLogStream**>(0x007AF284);
 void* const kEndLine = reinterpret_cast<void*>(0x00435000);
 } // namespace
 
-// CUnitServer 00552780: says remark `code` to the party (combat range, not rewritten).
+// CUnitServer 00552780: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
 __declspec(naked) void __fastcall ControllerRemark(CEngineObject*, void*, int) EI_ORIGINAL(0x00552780)
-// 00532AC0 (CUnit): after a hit on the statistics. Not rewritten.
+// 00532AC0, CUnit::DropBrokenEquipment: after a hit on the statistics. unit_create.cpp.
 __declspec(naked) void __fastcall UnitAfterHit(CUnit*) EI_ORIGINAL(0x00532AC0)
 // Called through their game addresses (rewritten here) so their verify wrappers see the calls.
 __declspec(naked) void __fastcall CallWearItem(CEngineObject*, CUnit*, float, int, int) EI_ORIGINAL(0x005253E0)

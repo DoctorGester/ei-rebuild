@@ -40,15 +40,17 @@ CEngineObject* WorldOf(CUnit* unit) { return static_cast<CEngineObject*>(unit->W
 // wrappers in the path.
 __declspec(naked) int __fastcall CallMapObjectUpdate(CUnit*) EI_ORIGINAL(0x0050F1C0)
 __declspec(naked) std::uintptr_t __fastcall CallRecomputeScale(CUnit*) EI_ORIGINAL(0x0050F2D0)
-// 00517700 (CObject3D): sets the figures' scale from `scale` (three floats). Not rewritten.
+// 00517700, CObject3D::SetFigureScale: the figures' scale from `scale`, three floats. Rewritten in
+// map_object_figures.cpp, called through its address.
 __declspec(naked) std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const float*) EI_ORIGINAL(0x00517700)
-// 00517500 (CObject3D slot 26): loads the figures. Not rewritten.
+// 00517500, CObject3D::LoadFigures, slot 26: loads the figures. map_object_figures.cpp.
 __declspec(naked) std::uintptr_t __fastcall CallLoadFigures(CUnit*) EI_ORIGINAL(0x00517500)
-// 0050E890 (CMapObject slot 19): attaches a companion of another type. Not rewritten.
+// 0050E890, CMapObject::AttachObject, slot 19: attaches a companion of another type. map_object.cpp.
 __declspec(naked) std::uintptr_t __fastcall CallAttachCompanion(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x0050E890)
-// 0050E970 (CMapObject slot 32): packs the server object's vitals into +0x17C. Not rewritten.
+// 0050E970, CMapObject::PackVitals, slot 32: packs the server object's vitals into +0x17C.
+// map_object.cpp.
 __declspec(naked) int __fastcall CallMapObjectStatsChanged(CUnit*) EI_ORIGINAL(0x0050E970)
-// 00552F40 (CUnitServer): copies `stats` into its own copy. Not rewritten (combat range).
+// 00552F40, CUnitServer::SetStats: copies `stats` into its own copy. unit_create.cpp.
 __declspec(naked) std::uintptr_t __fastcall CallServerSetStats(CEngineObject*, void*, const UnitStats*)
     EI_ORIGINAL(0x00552F40)
 // 00522CE0 / 00523E80 / 00523E00 (unit_vitals.cpp, unit_stats_pack.cpp).

@@ -454,3 +454,148 @@ scenario saves (new game autosave) and loads.
 Oddities kept: the active weapon is saved twice (the second read wins); Save copies the prototype
 name from address 0 when the index is out of range (crashes as the original would); the name lookup
 through 005335E0 inserts unknown names into the prototype name map.
+
+## Fourth round: creation, prototypes, lifetime, the client's armour models
+
+Code: `src/game/unit_create.h/.cpp` (prototype name index, CUnitServer::SetStats / Shout, broken
+equipment), `src/game/unit_create_stats.cpp` (starting statistics from the prototype records,
+applying a prototype to a new object, the map object factory, UnitStats::ResetToBase),
+`src/game/unit_client_models.h/.cpp` (CUnitClientSpecific: armour figure parts and the composed
+skin), `src/game/map_object_lifetime.cpp` (constructors and destructor bodies; see
+map_objects.md "Lifetime"). Verify: `tests/verify/verify_unit_create.cpp`,
+`verify_unit_client_models.cpp`, `verify_map_object_lifetime.cpp`. Scenario:
+`tests/scenarios/unit_create.txt` (spawns eight prototypes, replaces one, kills and removes).
+
+Shared files touched, additive declarations only: `unit.h` (CUnit::DropBrokenEquipment,
+Construct, DestructBody, DeletingDestructor, Reset; UnitStats::ResetToBase;
+CMapObjectServer / CMapObjectClientSpecific::Construct / DestructBody), `combat.h`
+(CUnitServer::SetStats, Shout, DestructBody), `map_object.h` (see map_objects.md). Comments of the
+forwarders in unit_update.cpp / unit_items.cpp / unit_hits.cpp now name the rewrites.
+
+### How a unit is made
+
+The map object manager's factory (vtable 0073DCD8 slot 14, 00512730) allocates and constructs by
+class id: 0x32-0x34 units (CUnit, 0x4DC, 0052E110), 0x35-0x38 (0x238: 005296E0 / 005297C0 /
+005298A0 / 00529980), 0x39 (0x580, 004466D0), 0x3A (0x23C, 0052BEE0), 0x3B (0x290, 00529DD0),
+0x3C (0x264, 0052B1F0), 0x300D (0x78, 0050C5F0), 0x3010 (0x23C, 00529A80). The zone loader then
+gives the object its prototype (00513B60, ECX = an object the builders never use but pass on):
+
+- The unit prototype table 007AF358 is a vector of 0x120-byte records plus, at +0x0C, an STLport
+  hash_map<string, record*> from names to records; 00514930 and its copy 005144D0 are operator[]
+  on it (an unknown name is inserted with a null record). The NPC table 007AF378 is laid out the
+  same way (005145D0, its own instantiation 00514A20). 00513240 gives a prototype's object class
+  (its model record's +0x04, 0x33 without one).
+- Without a prototype: defaults (005134F0: statistics 50, values 100, slots of type 1 working at
+  100; or, without statistics, vitals 1000 / regeneration 10 / protection 100), slot 33 (0),
+  prototype index 0 and the debug line "Can't find prototype %s for object %d".
+- Units: vitals and statistics from the records (005136D0): hit points and mana from the
+  prototype (+0x48 / +0x4C), regeneration from the model (+0x08 / +0x0C), protection = the model's
+  seven values times the prototype's +0x58; stats from the NPC record or a third of the hit points
+  / mana (and 25), mode speeds, values, size classes, slots (type and vital mask from the skill
+  level record of the slot's index), combat values and damage weights; attributes and skills
+  from the NPC record or rounded from the prototype; the NPC's experience (AddScaledExperience)
+  and skills (00526450). The object gets them through CMapObject::SetServerData and its slot 35,
+  stands lower by the model's +0x104 (+0xF4..+0xFC), takes the prototype's scale (00517700, the
+  base scale +0x1AC, slot 30) and its second prototype (005308A0).
+- 00513DA0 builds an NPC's statistics alone (stdcall; a fatal error without a prototype, a debug
+  line without an NPC record), then ResetToBase (00524CD0, scale 1) around RefillSlots.
+- 00524CD0 (UnitStats::ResetToBase): current values from the bases, skill 15 raises valuesB0[1]
+  by its percentage, skills 23-25 the stats, unknown_044 = -2, slot maxima from the hit point
+  curve (current clamped), the load (its argument), capacity, legs / arms factors, rate.
+
+### The client's armour models (CUnitClientSpecific, class id 0x3D)
+
++0x1C the unit, +0xA0 the packed ids of the seven armour slots, +0xBC the four weapons. The figure
+part names of the three armour rows (0073EC24, char[4] each): body armour "bd", "rh1".."lh3";
+trousers "hp", "rl1".."ll3"; helmet "hr" (hair, "hr.<nn>" with the prototype's +0x10) and "hd".
+Armour slots 0 / 1 / 2 use rows 2 / 0 / 1.
+
+- 005381B0 (slot 26) WearArmourModel: an armour piece replaces each part of its row by
+  "<part>.armor<nn>" when the unit's figure has that entry, else restores the plain part.
+- 00535CB0 (fastcall) collects the same names for a prototype, armour ids and weapons
+  (006A1780), and every plain part of the three rows.
+- 00536300 / 00536670 compose the skin texture of party units through the texture manager
+  (007AF744, 00693180): layers 0x32 (the skin), 0x3005 (armour), 0x3004 (weapon); textures
+  "<prototype>skin_<nn>.mmp" and "<prototype><armour or weapon texture>.mmp"; names
+  "mo<id>p" / "prot<prototype>p" (detailed) or ...s (two layers only).
+
+### Functions rewritten (fourth round)
+
+| Address | Name | Verification |
+|---|---|---|
+| 00514930 / 005144D0 | UnitPrototypeTable::FindByName | name indexed: both, same record and count; else ours only, the name then indexed with null |
+| 005145D0 | NpcPrototypeTable::FindByName | the same |
+| 00513240 | PrototypeObjectClass (stdcall) | both (the second run finds what the first inserted) |
+| 005134F0 | UnitStatsBuilder::SetDefaults | output only: the original into scratch copies; bytes and EAX |
+| 005136D0 | UnitStatsBuilder::BuildFromPrototype | output only (vitals 0x58, statistics 0x704) |
+| 00513DA0 | BuildNpcStats (stdcall) | output only (statistics) |
+| 00524CD0 | UnitStats::ResetToBase | ours, snapshot, restore, original; 0x704 bytes |
+| 00513B60 | UnitStatsBuilder::ApplyPrototype | ours only: result 1, index -1 or valid |
+| 00512730 | CMapObjectManager::CreateObject | ours only: an object with a vtable for the known ids, else null |
+| 00552F40 | CUnitServer::SetStats | ours only: companion's hit points / mana at their maxima, part 4, result the companion |
+| 00552780 | CUnitServer::Shout | ours only (counted) |
+| 00532AC0 | CUnit::DropBrokenEquipment | ours only: no broken piece left, weapons packed as predicted; untouched without a player |
+| 005381B0 | CUnitClientSpecific::WearArmourModel | ours only: a worn piece is in an armour slot |
+| 00535CB0 | CollectArmourPartNames (fastcall) | output only: the original into fresh vectors, the appended strings compared |
+| 00536300 | CUnitClientSpecific::BuildSkinLayers | output only: the original into a fresh array |
+| 00536670 | CUnitClientSpecific::ComposeSkin | ours only (counted) |
+| 0052E110 / 0052E310 / 0052E2A0 / 0052E5B0 | CUnit constructor, destructor body, deleting destructor, Reset | see map_objects.md "Lifetime" |
+| 00546230 | CUnitServer::DestructBody | ours only: base state (combat.md called it the constructor) |
+
+The x87 code of BuildFromPrototype (the cosines are computed at run time: pi / 180 and 90 are
+volatile so the products are not folded at compile time) and ResetToBase was read back
+(`dumpbin /disasm`): stores to float where the original stores, the original's operand order.
+
+### Forwarders added (fourth round; the standalone build must replace these)
+
+- Unit range: 00526450 (learn a skill), 0051FE00 (skill database lookup), 0052E230 / 004CD080 /
+  005C6270 / 0047FB70 / 00510340 (sub-object constructors / record reset and destructor),
+  0052E740 (CUnit slot 5, called through the vtable entry 0073EAA0), 0050E840 (CMapObject
+  Destroy).
+- Elsewhere: 00665470 (the player receives items), 00539580 (skin layer array SetSize),
+  006A3480 / 006A0AA0 (armour / weapon texture names), 00693180 (texture manager: compose),
+  005AA5F0 (figure manager: model by name), 00516A80 / 00517240 / 005167E0 (find / add / remove
+  a figure part), the CUnitServer member destructors of 00546230 (00546480, 005D4F70,
+  00545CB0, 00557410, 00557890, 0040A3A0, 005575F0, 0052B030, 004CB770, 00557E70, 00558020,
+  00539890), the game's `_ftol` (006E853C) and `_CIpow` (006E81A0, the hit point curve).
+- Called through their addresses (rewritten elsewhere): 00525AF0 RefillSlots, 00523370 /
+  005233E0 / 00523550 / 005233B0 resets, 00523960 AddScaledExperience, 00524060 / 00524110,
+  0050F050 SetServerData, 005308A0, 0066EA70 / 0066D6E0 player messages, 006A1780, 006A3200,
+  00674850, 00455930.
+- Globals by address: the prototype / model / NPC / skill tables (007AF358, 007AF378, 007AF398,
+  007AF268, 007AF3B8), the armour part names 0073EC24, the figure manager 007AF5F4, the texture
+  manager 007AF744, the hit point curve constants 007C5454..007C5464, format strings
+  0078FB0C..0078FB7C, 0078F22C / 0078F258 / 0078F288.
+
+### Original bugs and oddities kept (fourth round)
+
+- The prototype name lookups insert unknown names (null record).
+- BuildNpcStats reads the prototype's model index before testing the prototype for null.
+- ApplyPrototype hands the object vitals and statistics built in uninitialised stack copies: what
+  the builders leave alone (the vitals' and statistics' first dword, then OR 1; statistics +0x58,
+  +0x5C, the last skill level byte) is stack garbage in the original. Ours start from zero:
+  **a known divergence** in fields nothing seen reads before they are recomputed.
+- CollectArmourPartNames pushes the five empty names of the helmet row into the plain names (its
+  loop tests the name's address, never null).
+- WearArmourModel stores the id even for armour slots 3-6, which have no figure parts.
+- DropBrokenEquipment gives broken pieces to the player and releases the unit's reference after;
+  the weapons above a broken one move down.
+- The unit's Reset clears the item slots without releasing the items.
+
+### Skipped (fourth round) and why
+
+- 0050E9B0 (CMapObject slot 34): packs vitals the builder never fills when the prototype exists
+  (stack garbage).
+- 0052EB70 (CUnit slot 34) and the other UnitStats builders (005260A0, 00526860, 00526C70,
+  005271E0, 00527850): next candidates, all output-only.
+- 0052E400 / 0052E590 / 0050E770 (Create / Destroy slots), 0052EF90 / 0052EC70 (network state):
+  stream classes and many callees.
+
+### Risks (fourth round)
+
+- The constructors run for every object made; their verify compares every byte with the
+  original's run on a copy, so a difference is reported at once. The destructors and the
+  factory run ours only.
+- ComposeSkin and WearArmourModel build CString / STLport temporaries in the original's order
+  (the allocations match); not run in game yet.
+

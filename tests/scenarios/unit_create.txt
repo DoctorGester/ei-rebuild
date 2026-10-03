@@ -1,0 +1,56 @@
+# Unit creation and destruction (src/game/unit_create*.cpp, map_object_lifetime.cpp,
+# map_object_figures.cpp, map_object_shadow.cpp; docs/notes/units.md, "Fourth round"): units of
+# several prototypes are spawned (the map object factory, the CUnit / CMapObject / CObject3D
+# constructors, ApplyPrototype with BuildFromPrototype and the NPC statistics, the prototype name
+# lookups, the figures loaded and scaled), drawn with their shadows for a while, then killed or
+# removed from the server (the destructor bodies, the companions' destructors). The verify totals
+# in the report show what ran. The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# Eight creatures of different prototypes around the hero.
+console @AddUnitToServer("C1","WolfTutor","C1",Add(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("C2","BoarTutor","C2",Sub(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("C3","GoblinF1","C3",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),6),0)
+console @AddUnitToServer("C4","ToadTutor","C4",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),6),0)
+console @AddUnitToServer("C5","SkeletonF2","C5",Add(GSGetVar(0,"hx"),7),Add(GSGetVar(0,"hy"),7),0)
+console @AddUnitToServer("C6","DeerF0","C6",Sub(GSGetVar(0,"hx"),7),Add(GSGetVar(0,"hy"),7),0)
+console @AddUnitToServer("C7","SpiderF10","C7",Add(GSGetVar(0,"hx"),7),Sub(GSGetVar(0,"hy"),7),0)
+console @AddUnitToServer("C8","OgreTutor","C8",Sub(GSGetVar(0,"hx"),9),Sub(GSGetVar(0,"hy"),9),0)
+waitfor 15 IsAlive(GetObjectByName("C8"))
+check IsAlive(GetObjectByName("C1"))
+check IsAlive(GetObjectByName("C3"))
+check IsAlive(GetObjectByName("C5"))
+check IsGreater(HP(GetObjectByName("C2")),0)
+check IsGreater(HP(GetObjectByName("C7")),0)
+# Let them be drawn (figures, shadows) for a moment.
+wait 2000
+
+# The same name twice: the old unit goes first.
+console @AddUnitToServer("C1","WolfGreyF1","C1",Add(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),2),0)
+waitfor 10 IsAlive(GetObjectByName("C1"))
+
+# Killed (their bodies stay), then removed from the server (destroyed).
+console @InflictDamage(GetObjectByName("C2"),5000)
+console @InflictDamage(GetObjectByName("C4"),5000)
+waitfor 10 Not(IsAlive(GetObjectByName("C4")))
+console @RemoveUnitFromServer(GetObjectByName("C5"))
+console @RemoveUnitFromServer(GetObjectByName("C6"))
+console @RemoveUnitFromServer(GetObjectByName("C2"))
+wait 1500
+
+# More of the same prototype after the removals.
+console @AddUnitToServer("C9","GoblinF1","C9",Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),3),0)
+waitfor 10 IsAlive(GetObjectByName("C9"))
+console @RemoveUnitFromServer(GetObjectByName("C9"))
+console @RemoveUnitFromServer(GetObjectByName("C8"))
+wait 1500
+report
+quit
