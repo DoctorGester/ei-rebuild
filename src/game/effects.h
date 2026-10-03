@@ -82,6 +82,16 @@ public:
     // particle_emitters.cpp
     int EmitLightning(Particle* p, int index);      // 004923B0 (LightningBlast)
     int EmitModifier(Particle* p, int index);       // 00490130 (Modifier1-12)
+    int EmitZoneExit(Particle* p, int index);       // 00492D30 (ZoneExit)
+    int EmitFeebleMind(Particle* p, int index);     // 004957E0 (FeebleMind)
+    int EmitFeetCloud(Particle* p, int index);      // 00495A30 (FeetCloud1/2)
+    int UpdateGlow(Particle* p);                    // 00493280 (0x2039)
+    int UpdateGroundDust(Particle* p);              // 004933F0 (0x203A, 0x203B)
+    int UpdatePortal(Particle* p);                  // 00494770 (Portal)
+    int UpdateSparks(Particle* p);                  // 00494CD0 (Sparks)
+    void TickGroundPlane(ParticleElement* e);       // 004934F0 (0x203A, 0x203B)
+    void TickPortal(ParticleElement* e);            // 00494930 (Portal)
+    void TickStartTrans(ParticleElement* e);        // 00496990 (StartTrans)
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

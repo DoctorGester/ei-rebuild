@@ -50,20 +50,36 @@ struct EmitState {
 };
 
 using EmitFn = int(__fastcall*)(CParticleSource*, void*, Particle*, int);
+using UpdateFn = int(__fastcall*)(CParticleSource*, void*, Particle*);
+using ElementFn = void(__fastcall*)(CParticleSource*, void*, ParticleElement*);
 
-template <typename Ours>
-int RunBothEmit(const char* name, CParticleSource* self, Particle* p, int index, Ours ours, EmitFn original) {
+// `ours` and `original` take no arguments (they capture them) and return the callback's result.
+template <typename Ours, typename Original>
+int RunBoth(const char* name, CParticleSource* self, Particle* p, Ours ours, Original original) {
     EmitState before, mine, theirs;
     before.Capture(self, p);
-    int actual = ours(self, p, index);
+    int actual = ours();
     mine.Capture(self, p);
     before.Restore(self, p);
-    int expected = original(self, nullptr, p, index);
+    int expected = original();
     theirs.Capture(self, p);
     int part = mine.Difference(theirs);
     ei::verify::Check(name, true, part == 0 && actual == expected, "type %X result %d vs %d, differs in %d",
                       self->type_, expected, actual, part);
     return expected;
+}
+
+template <typename Ours>
+int RunBothEmit(const char* name, CParticleSource* self, Particle* p, int index, Ours ours, EmitFn original) {
+    return RunBoth(name, self, p, [&] { return ours(self, p, index); },
+                   [&] { return original(self, nullptr, p, index); });
+}
+
+// Element callbacks: the element lives in the captured array; a dummy particle stands in.
+template <typename Ours>
+void RunBothElement(const char* name, CParticleSource* self, ParticleElement* e, Ours ours, ElementFn original) {
+    Particle dummy{};
+    RunBoth(name, self, &dummy, [&] { ours(self, e); return 0; }, [&] { original(self, nullptr, e); return 0; });
 }
 
 // The first emission of a source with no element array yet: ours runs on the real source (its
@@ -139,3 +155,66 @@ static int __fastcall EmitModifierVerify(CParticleSource* self, void*, Particle*
     return RunBothEmit("CParticleSource::EmitModifier", self, p, index, ours, s_emitModifier);
 }
 EI_VERIFY(0x00490130, EmitModifierVerify, 6, s_emitModifier);
+
+// --- Smaller callbacks: all run both ways -------------------------------------------------------
+
+#define EI_EMIT_WRAPPER(Method)                                                              \
+    static EmitFn s_##Method;                                                                                \
+    static int __fastcall Method##Verify(CParticleSource* self, void*, Particle* p, int index) {             \
+        return RunBothEmit("CParticleSource::" #Method, self, p, index,                                      \
+                           [](CParticleSource* s, Particle* q, int i) { return s->CParticleSource::Method(q, i); }, \
+                           s_##Method);                                                                      \
+    }
+
+#define EI_UPDATE_WRAPPER(Method)                                                            \
+    static UpdateFn s_##Method;                                                                              \
+    static int __fastcall Method##Verify(CParticleSource* self, void*, Particle* p) {                        \
+        return RunBoth("CParticleSource::" #Method, self, p, [&] { return self->CParticleSource::Method(p); }, \
+                       [&] { return s_##Method(self, nullptr, p); });                                        \
+    }
+
+#define EI_ELEMENT_WRAPPER(Method)                                                           \
+    static ElementFn s_##Method;                                                                             \
+    static void __fastcall Method##Verify(CParticleSource* self, void*, ParticleElement* e) {                \
+        RunBothElement("CParticleSource::" #Method, self, e,                                                 \
+                       [](CParticleSource* s, ParticleElement* x) { s->CParticleSource::Method(x); }, s_##Method); \
+    }
+
+// Prologues (whole instructions, no relative operands):
+// 00492D30, 004933F0, 00494770, 004957E0, 00495A30: PUSH EBP; MOV EBP,ESP; SUB ESP,imm8 (6 bytes).
+// 00493280: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ESI (5). 004934F0: PUSH ESI; MOV ESI,[ESP+8] (5).
+// 00494930: PUSH ESI; MOV ESI,ECX; FLD [ESI+0x10C] (9). 00494CD0: SUB ESP,8; PUSH ESI; MOV ESI,[ESP+0x10] (8).
+EI_EMIT_WRAPPER(EmitZoneExit)
+EI_VERIFY(0x00492D30, EmitZoneExitVerify, 6, s_EmitZoneExit);
+EI_EMIT_WRAPPER(EmitFeebleMind)
+EI_VERIFY(0x004957E0, EmitFeebleMindVerify, 6, s_EmitFeebleMind);
+EI_EMIT_WRAPPER(EmitFeetCloud)
+EI_VERIFY(0x00495A30, EmitFeetCloudVerify, 6, s_EmitFeetCloud);
+EI_UPDATE_WRAPPER(UpdateGlow)
+EI_VERIFY(0x00493280, UpdateGlowVerify, 5, s_UpdateGlow);
+EI_UPDATE_WRAPPER(UpdateGroundDust)
+EI_VERIFY(0x004933F0, UpdateGroundDustVerify, 6, s_UpdateGroundDust);
+EI_UPDATE_WRAPPER(UpdatePortal)
+EI_VERIFY(0x00494770, UpdatePortalVerify, 6, s_UpdatePortal);
+EI_UPDATE_WRAPPER(UpdateSparks)
+EI_VERIFY(0x00494CD0, UpdateSparksVerify, 8, s_UpdateSparks);
+EI_ELEMENT_WRAPPER(TickGroundPlane)
+EI_VERIFY(0x004934F0, TickGroundPlaneVerify, 5, s_TickGroundPlane);
+EI_ELEMENT_WRAPPER(TickPortal)
+EI_VERIFY(0x00494930, TickPortalVerify, 9, s_TickPortal);
+
+// 00496990: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ESI; PUSH EDI (6 bytes). When the countdown has
+// run out the source detaches (shared state): ours only, the flags checked.
+static ElementFn s_TickStartTrans;
+static void __fastcall TickStartTransVerify(CParticleSource* self, void*, ParticleElement* e) {
+    if (e->ticks < 0) {
+        self->CParticleSource::TickStartTrans(e);
+        ei::verify::Check("CParticleSource::TickStartTrans", true, (self->flags_ & 5u) == 0 && !self->attachedTo,
+                          "flags %X", self->flags_);
+        return;
+    }
+    RunBothElement("CParticleSource::TickStartTrans", self, e,
+                   [](CParticleSource* s, ParticleElement* x) { s->CParticleSource::TickStartTrans(x); },
+                   s_TickStartTrans);
+}
+EI_VERIFY(0x00496990, TickStartTransVerify, 6, s_TickStartTrans);
