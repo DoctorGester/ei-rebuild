@@ -1,6 +1,7 @@
 # Battle HUD and Esc menu: start a new game, then move over and click the HUD panels (weapon bar,
-# top panel, unit panel, map, movement panel, portraits) and walk through the Esc menu's Options,
-# Load and Save windows, leaving each with Cancel or Esc. Coordinates are the 800x600 layout of the
+# top panel, unit panel, map and its wheel zoom, movement panel, portraits), open the objectives
+# window (TAB) and walk through the Esc menu's Options, Load and Save windows, leaving each with
+# Cancel or Esc. Coordinates are the 800x600 layout of the
 # original game (see docs/notes/ui.md, "Battle HUD"). Nothing here saves, loads, quits or plays a
 # movie; spell, action and quick-item buttons only get mouse moves (a click there would start a
 # targeting mode that the Esc key would then cancel instead of opening the menu).
@@ -89,6 +90,18 @@ click 400 560
 wait 300
 move 400 300
 wait 300
+check IsAlive(GetLeader())
+
+# Objectives (TAB in config\keyboard.ini): the zone page with its exits and quests (0064BE80,
+# 0064CC10); up and down move the quest selection; Esc closes the window.
+key tab
+wait 1000
+key down
+wait 200
+key up
+wait 200
+key esc
+wait 800
 check IsAlive(GetLeader())
 
 # Esc menu (rectangles from menus.reg in Res\menus.res): Options, Load, Save, then Resume.

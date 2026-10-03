@@ -834,6 +834,63 @@ struct OptionSetting {
 };
 static_assert(sizeof(OptionSetting) == 0x14);
 
+// An exit shown on the objectives window's zone picture (0x1C bytes, CArray at +0x188).
+struct ObjectiveExit {
+    bool flag_;                      // +0x00 a known distance (global map), or the zone variable is not 1
+    std::uint8_t unknown_01[3];
+    int exit_;                       // +0x04 index in the zone's exit list
+    float distance_;                 // +0x08
+    float x_;                        // +0x0C centre of the exit rectangle (world units)
+    float y_;                        // +0x10
+    float mapX_;                     // +0x14 on the picture (layout)
+    float mapY_;                     // +0x18
+};
+static_assert(sizeof(ObjectiveExit) == 0x1C);
+
+// The objectives window (vtables 007411BC / 00741188, 0x1F0 bytes, constructor 0063B5D0; TAB in a
+// zone opens it for the current zone). Left: the quests of the zone (rows), the log; right: the
+// zone picture with its exits; the arrows switch between zones when it lists several.
+class CObjectivesWindow : public CUiContainer {
+public:
+    // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
+    void Build();
+    // 0064CC10: shows zone `zone`: picture, exits, quests and description.
+    void ShowZone(const char* zone);
+    // Not rewritten.
+    void SelectExit(int index);      // 0064E990
+    void RefreshQuests();            // 0064E8B0
+
+    char** zonesBegin_;              // +0x164 STLport vector<CString> of the zones listed
+    char** zonesEnd_;                // +0x168
+    char** zonesCapacity_;           // +0x16C
+    char* zoneName_;                 // +0x170 CString: the zone it was opened for
+    int twoButtons_;                 // +0x174 OK on the left and a second button (else OK centred)
+    void* exitDistances_;            // +0x178 STLport map<int, float>* (exit -> distance) or null
+    int listZones_;                  // +0x17C list the zones of the zone's allod with quests
+    int zoneIndex_;                  // +0x180 the zone shown
+    char* shownZone_;                // +0x184 CString
+    void* exitsVtable_;              // +0x188 CArray<ObjectiveExit>
+    ObjectiveExit* exits_;           // +0x18C
+    int exitCount_;                  // +0x190
+    int exitCapacity_;               // +0x194
+    int exitGrowBy_;                 // +0x198
+    int nearestExit_;                // +0x19C
+    int selectedQuest_;              // +0x1A0 row of the quest named by the global at 007C8178
+    int unknown_1A4;                 // +0x1A4
+    std::uint8_t quests_[0x14];      // +0x1A8 CStringArray (data +0x1AC, size +0x1B0)
+    CUiScrollbar* bar_;              // +0x1BC
+    int unknown_1C0;                 // +0x1C0
+    float markerScale_;              // +0x1C4
+    int unknown_1C8;                 // +0x1C8
+    std::uint8_t unknown_1CC[0x1D8 - 0x1CC];
+    std::uint8_t objectiveTexts_[0x14];   // +0x1D8 CStringArray of obj_0..obj_2
+    std::uint32_t savedAlphaRef_;    // +0x1EC
+};
+static_assert(offsetof(CObjectivesWindow, zonesBegin_) == 0x164);
+static_assert(offsetof(CObjectivesWindow, exits_) == 0x18C);
+static_assert(offsetof(CObjectivesWindow, bar_) == 0x1BC);
+static_assert(sizeof(CObjectivesWindow) == 0x1F0);
+
 // A row of the options window: a key binding or a spin control.
 struct OptionRow {
     void* binding_;
