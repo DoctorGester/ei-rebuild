@@ -263,6 +263,16 @@ public:
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
 
+    // world_sync.cpp
+    // 0058B750 (RET 4). Brings `player`'s view up to date (once per world update): the zone when
+    // it changed (SendZone), weather, time, wind and countdowns when dirty, then the map objects
+    // and timed objects it should see compared with what it was sent. Returns what the player
+    // state's flush returns (0 drops the player), 1 for a player that is leaving.
+    int SyncPlayer(WorldPlayer* player);
+    // 0058C890 (RET 4). Sends `player` the zone to load (tick, map and .mob names, exits, the
+    // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
+    int SendZone(WorldPlayer* player);
+
     std::uint8_t unknown_068[0x6C - 0x68];
     std::uint8_t unknown6C_;              // +0x6C
     std::uint8_t unknown_06D[0x70 - 0x6D];
