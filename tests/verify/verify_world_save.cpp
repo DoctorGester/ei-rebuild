@@ -9,6 +9,7 @@
 #include "../../src/game/core_streams.h"
 #include "../../src/game/object.h"
 #include "../../src/game/world.h"
+#include "../../src/lib/crt.h"
 
 #include <cstring>
 
@@ -110,3 +111,66 @@ static void __fastcall UpdatePlayerTimesVerify(CWorldServer* self, void*, float 
     ei::verify::Check("CWorldServer::UpdatePlayerTimes", true, ok, "%d players, tick %d", players, self->tick_);
 }
 EI_VERIFY(0x0058D280, UpdatePlayerTimesVerify, 0, s_unused);
+
+namespace {
+// A shared-object entry (0x20 bytes): id, player, value, CArray<CRefPtr> of objects.
+struct SharedEntry {
+    int id;
+    int player;
+    std::uint32_t value;
+    void* arrayVtable;
+    CEngineObject** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+static_assert(sizeof(SharedEntry) == 0x20);
+
+using LoadSharedFn = void(__fastcall*)(void*, void*, WorldStream*);
+LoadSharedFn s_originalLoadShared;
+} // namespace
+
+// 00589CA0: on a memory stream and a fresh entry, the original first reads into a scratch entry
+// (its references are released afterwards) and the stream is rewound; the fields, the objects and
+// the bytes read are compared.
+static void __fastcall LoadSharedObjectVerify(void* entryArg, void*, WorldStream* stream) {
+    auto* entry = static_cast<SharedEntry*>(entryArg);
+    if (!IsMemoryStream(stream) || entry->data || entry->size) {
+        LoadSharedObject(entry, nullptr, stream);
+        return;
+    }
+    auto* ms = reinterpret_cast<CMemoryStream*>(stream);
+    std::uint32_t start = ms->position_;
+    std::uint8_t okBefore = ms->ok_;
+    SharedEntry scratch = *entry;
+    s_originalLoadShared(&scratch, nullptr, stream);
+    std::uint32_t originalEnd = ms->position_;
+    ms->position_ = start;
+    ms->ok_ = okBefore;
+    LoadSharedObject(entry, nullptr, stream);
+
+    bool ok = ms->position_ == originalEnd && scratch.id == entry->id && scratch.player == entry->player &&
+              scratch.value == entry->value && scratch.size == entry->size;
+    for (int i = 0; ok && i < entry->size; ++i) ok = scratch.data[i] == entry->data[i];
+    ei::verify::Check("LoadSharedObject", true, ok, "id %d player %d, %d objects (original %d), %u bytes (original %u)",
+                      entry->id, entry->player, entry->size, scratch.size, ms->position_ - start, originalEnd - start);
+    for (int i = 0; i < scratch.size; ++i)
+        if (scratch.data[i]) scratch.data[i]->Release();
+    if (scratch.data) gamecrt::operator_delete(scratch.data);
+}
+EI_VERIFY(0x00589CA0, LoadSharedObjectVerify, 5, s_originalLoadShared);
+
+// 005947E0: afterwards the list has one more entry, at its head, with the id, the value and one
+// object per element of the source list.
+static void __fastcall AddSharedObjectVerify(CWorldServer* self, void*, int id, int unused, std::uint32_t value,
+                                             void* objects) {
+    auto& list = *reinterpret_cast<mfc::CTypedPtrList<void>*>(reinterpret_cast<std::uint8_t*>(self) + 0x12E60);
+    int before = list.count;
+    int sourceCount = static_cast<mfc::CTypedPtrList<CEngineObject>*>(objects)->count;
+    self->AddSharedObject(id, unused, value, objects);
+    auto* head = reinterpret_cast<SharedEntry*>(reinterpret_cast<std::uint8_t*>(list.head) + 8);
+    bool ok = list.count == before + 1 && head->id == id && head->value == value && head->size == sourceCount;
+    ei::verify::Check("CWorldServer::AddSharedObject", true, ok, "id %d player %d, %d objects, list %d -> %d", id,
+                      head->player, head->size, before, list.count);
+}
+EI_VERIFY(0x005947E0, AddSharedObjectVerify, 0, s_unused);

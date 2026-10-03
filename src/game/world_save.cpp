@@ -5,6 +5,7 @@
 #include "world.h"
 
 #include "core_streams.h"
+#include "net_session.h"
 #include "object.h"
 
 #include "lib/crt.h"
@@ -901,6 +902,87 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     current.vtable_ = reinterpret_cast<void*>(kStreamVtable);
 }
 
+// ---- The shared-object list -------------------------------------------------------------------
+
+namespace {
+
+// 0041A2E0 (RET 4). The game server session's player record with +0x2C == id, or null.
+__declspec(naked) std::uint8_t* __fastcall SessionFindPlayer(void*, void*, int) EI_ORIGINAL(0x0041A2E0)
+// 0059B8F0 (RET 4). CArray<CRefPtr>::Copy.
+__declspec(naked) void __fastcall ObjectPtrArrayCopy(ObjectPtrArray*, void*, const ObjectPtrArray*) EI_ORIGINAL(0x0059B8F0)
+// 0059C8C0 (RET 8). CArray<CRefPtr>::SetSize(size, growBy); the same code the original inlines
+// in LoadSharedObject.
+__declspec(naked) void __fastcall ObjectPtrArraySetSize(ObjectPtrArray*, void*, int, int) EI_ORIGINAL(0x0059C8C0)
+// 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
+__declspec(naked) void __stdcall CountedRangeRelease(CEngineObject**, int) EI_ORIGINAL(0x0059C890)
+// 00403F40 (RET 4). The item manager's (007AFFB4) object by id, or null.
+__declspec(naked) CEngineObject* __fastcall ManagerObjectById(void*, void*, int) EI_ORIGINAL(0x00403F40)
+
+constexpr std::uintptr_t kObjectPtrArrayVtable = 0x0073FAC8;
+constexpr std::uintptr_t kObjectPtrArrayBaseVtable = 0x0073FABC;   // set by the destructor
+constexpr std::uintptr_t kItemManager = 0x007AFFB4;                 // pointer
+
+// SetAtGrow(size, object) on a CArray<CRefPtr>: the new slot holds a reference.
+void Append(ObjectPtrArray& array, CEngineObject* object) {
+    int index = array.size;
+    ObjectPtrArraySetSize(&array, nullptr, index + 1, -1);
+    CEngineObject* old = array.data[index];
+    array.data[index] = object;
+    if (object) ++object->refCount_;
+    if (old) old->Release();
+}
+
+} // namespace
+
+void __fastcall LoadSharedObject(void* entryArg, void*, WorldStream* stream) {
+    auto* entry = static_cast<SharedObject*>(entryArg);
+    stream->Read(&entry->objectId, 4);
+    stream->Read(&entry->player, 4);
+    stream->Read(&entry->unknown_08, 4);
+    int count = ReadValue<int>(stream);
+    for (int i = 0; i < count; ++i) {
+        int id = ReadValue<int>(stream);
+        CEngineObject* object = ManagerObjectById(*reinterpret_cast<void**>(kItemManager), nullptr, id);
+        if (object) Append(entry->objects, object);   // the original inlines the SetSize
+    }
+}
+
+void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, void* objectsArg) {
+    // The entry's player: the session player record's +0x30 in a multiplayer game, else -1.
+    int player = -1;
+    auto* session = static_cast<std::uint8_t*>(net::GameServerSession());
+    if (session && !(At<std::uint32_t>(session, 4) & net::kSessionInactive))
+        if (std::uint8_t* record = SessionFindPlayer(session, nullptr, id)) player = At<int>(record, 0x30);
+
+    // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
+    // original leaves unset; they are overwritten below).
+    SharedObjectList& shared = SharedObjects(this);
+    ObjectPtrArray empty{reinterpret_cast<void*>(kObjectPtrArrayVtable), nullptr, 0, 0, 0};
+    SharedObjectNode* node = shared.NewNode(nullptr, shared.head);
+    ObjectPtrArrayCopy(&node->value.objects, nullptr, &empty);
+    if (shared.head) shared.head->prev = node;
+    else shared.tail = node;
+    shared.head = node;
+    empty.vtable = reinterpret_cast<void*>(kObjectPtrArrayBaseVtable);
+    if (empty.data) {
+        CountedRangeRelease(empty.data, empty.size);
+        gamecrt::operator_delete(empty.data);
+    }
+
+    SharedObject& entry = shared.head->value;
+    entry.objectId = id;
+    entry.player = player;
+    entry.unknown_08 = value;
+    auto* objects = static_cast<mfc::CTypedPtrList<CEngineObject>*>(objectsArg);
+    for (auto* it = objects->head; it;) {
+        auto* next = it->next;
+        Append(entry.objects, it->data);
+        it = next;
+    }
+}
+
+EI_REPLACE(0x00589CA0, LoadSharedObject);
+EI_REPLACE_METHOD(0x005947E0, CWorldServer::AddSharedObject);
 EI_REPLACE_METHOD(0x00596E70, CWorldServer::LoadSave);
 EI_REPLACE_METHOD(0x00597BD0, CWorldServer::SaveWorld);
 EI_REPLACE_METHOD(0x00596900, CWorldServer::LoadSavedMapObjects);

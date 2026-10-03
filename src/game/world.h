@@ -263,6 +263,10 @@ public:
     // 0058D280 (RET 4). Adds the time each player missed since its last update (plus `offset`) to
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
+    // 005947E0 (RET 0x10). Puts a new entry at the head of the shared-object list (+0x12E60):
+    // `id`, the session player's +0x30 for that id in a multiplayer game (else -1), `value`, and
+    // references to the objects of `objects` (a CPtrList). The second argument is unused.
+    void AddSharedObject(int id, int unused, std::uint32_t value, void* objects);
 
     // world_game.cpp
     // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
@@ -632,6 +636,11 @@ struct GameFlow {
 
 CWorldServer* WorldServer();   // 007AFF60
 CWorldClient* WorldClient();   // 007AF5B8
+
+// 00589CA0 (thiscall on a shared-object entry, RET 4; world_save.cpp). Reads an entry of the
+// shared-object list: id, player, value, then object ids resolved by the item manager (007AFFB4);
+// each found object is appended with a reference.
+void __fastcall LoadSharedObject(void* entry, void*, WorldStream* stream);
 
 // ---- Client draw lists and their sorting (world_client_view.cpp) --------------------------------
 // 0056AFE0 (the client's draw pass, patched by Rebirth) fills per-frame vectors of object pointers
