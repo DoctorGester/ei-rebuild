@@ -81,6 +81,24 @@ static CEngineObject* __fastcall CopyItemVerify(CWorldServer* self, void*, CEngi
 }
 EI_VERIFY(0x00594CE0, CopyItemVerify, 0, s_unused);
 
+namespace {
+using AddCountedFn = void(__fastcall*)(CWorldServer*, void*, CEngineObject*);
+AddCountedFn s_originalAddCounted;
+}
+
+// 00594F30: ours adds the item at most once; the original run afterwards must find it there and
+// change nothing.
+static void __fastcall AddCountedVerify(CWorldServer* self, void*, CEngineObject* item) {
+    int before = self->counted_.count;
+    self->AddCounted(item);
+    int ours = self->counted_.count;
+    s_originalAddCounted(self, nullptr, item);
+    int original = self->counted_.count;
+    bool ok = original == ours && (item ? self->counted_.Find(item) != nullptr && ours - before <= 1 : ours == before);
+    ei::verify::Check("CWorldServer::AddCounted", true, ok, "counted %d -> %d (original %d)", before, ours, original);
+}
+EI_VERIFY(0x00594F30, AddCountedVerify, 5, s_originalAddCounted);
+
 // 00594AB0 / 00594BC0: the managers create objects, so only ours runs; logged.
 static CEngineObject* __fastcall CreateItemNamedVerify(CWorldServer* self, void*, const char* name) {
     CEngineObject* item = self->CreateItemNamed(name);

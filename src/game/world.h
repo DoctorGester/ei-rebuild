@@ -388,6 +388,9 @@ public:
     // its type (+0x10) and record (+0x18), filled by the item's slot 15 (with slot 22), with its
     // count (+0x28); one below its maximum (+0x2C) goes on counted_ once.
     CEngineObject* CopyItem(CEngineObject* item);
+    // 00594F30 (RET 4). Puts `item` (an item whose state changed) on counted_, once; null is
+    // ignored.
+    void AddCounted(CEngineObject* item);
     // 00594AB0 (RET 4). The item manager's (007AFFB4) new item named `name` (006AC970).
     CEngineObject* CreateItemNamed(const char* name);
     // 00594BC0 (RET 4). The item manager's new spell named `name` (006AD1E0, with slot 22).

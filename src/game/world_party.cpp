@@ -331,7 +331,13 @@ CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
     return ManagerCreateSpell(manager, nullptr, name, ei::VCall<void*>(this, kSlotManager4C));
 }
 
+void CWorldServer::AddCounted(CEngineObject* item) {
+    if (!item || counted_.Find(item)) return;
+    CountedAddTail(&counted_, nullptr, item);   // the original inlines the same AddTail
+}
+
 EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
+EI_REPLACE_METHOD(0x00594F30, CWorldServer::AddCounted);
 EI_REPLACE_METHOD(0x00594AB0, CWorldServer::CreateItemNamed);
 EI_REPLACE_METHOD(0x00594BC0, CWorldServer::CreateSpellNamed);
 EI_REPLACE_METHOD(0x005901E0, CWorldServer::TakeZoneQuestItems);
