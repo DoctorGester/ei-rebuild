@@ -186,6 +186,12 @@ public:
     void SetRect(int left, int top, int right, int bottom);
     // 005FE400. Moves the screen rectangle so its top-left is the layout point (x, y).
     void MoveTo(int x, int y);
+    // 005FDFA0. Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and
+    // '\n') and draws up to `maxLines` lines one rect height apart with 005FDE20 (`font`,
+    // `colour`, `format`, `flag` passed on). The DC must be acquired. Returns the line count
+    // (ui_text.cpp).
+    int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
+                        int flag);
     // 005FD120 (not rewritten). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (not rewritten). Sets (`frozen`) or clears flag 4 of +0x0C; setting it saves the

@@ -680,3 +680,109 @@ closes it with Esc. The objectives window's +0x17C zone list and the global map'
   selection 0064E990, clicks 0064E330, update 0064E760.
 - 00635250 (2.6 KB): the battle screen's setup (creates the HUD panels; reads the save stream when
   loading).
+
+# Interface base (005E0000-00610000, third pass)
+
+Files: `src/game/ui_console_window.cpp` (console window drawing and keys), `src/game/ui_interface_frame.cpp`
+(CInterface3D's frame update), `src/game/ui_text.cpp` (word-wrapped text), `src/game/ui_gdi.h` (the game's MFC
+CDC/CPen as the interface uses them); wrappers in `tests/verify/verify_ui_base.cpp`. Shared headers: `ui.h`
+(declarations of `CInterface3D::Update` and `CUiSurface::DrawWrappedText`), `console.h` (the console window's
+fields +0x08..+0x2C and +0x78/+0x79 named, four method declarations).
+
+## What the range holds
+
+- 005E0B20-005E1580: STLport map/tree templates of the console command maps (library code).
+- 005E18E0 (2959): `CFlyingHitPoints::Draw` (damage numbers over units; called from 00569E40, Rebirth-patched),
+  float-heavy vertex building, left for later. 005E25B0 removes an entry.
+- 005E26F0-005E3930: the chat/message window (005E2A30, 2045 bytes: MBCS word wrap of a message with the
+  text extent 005F8340; 005E3230 its key handler (vtable 007400CC); 005E3700 drawing, Rebirth-patched).
+- 005E3CE0-005E4D25: the console window (below). 005E44A0 (character input) is Rebirth-patched.
+- 005E4E00-005E6990: the mouse cursor (005E5200 SetShape on 007C7BD8; 005E5690/005E5C40 draw and blit it into
+  locked surfaces), sprite loading 005E63F0 (49 callers).
+- 005E6D90-005EA850: interface sprites/meshes (`CUiMesh`): 005E6FA0/005E70E0/005E7680/005E7D60/005E99D0
+  Rebirth-patched; 005E8450/005E8C60/005E91F0 further rectangle/frame builders (same shape, not patched).
+- 005EADD0-005EBFB0: camera and pick input of the battle view (vtables 0074021x).
+- 005EC020-005F3000: item, spell and unit preview and description drawing for the camp and hero screens
+  (005ECA10, 005ED7B0, 005EE760 description dispatcher with 005EF300/005EF5D0/005EFD90/005F0370/005F0B90/
+  005F1130, 005F1590 the camp's skill/stat description): CString formatting into 005FDE20/005FDFA0.
+- 005F3000-005F4990 and 005F9810-005FC010: STLport/MFC containers (layout maps, CArchive serialisation
+  005FB120/005FB380/005FB5F0).
+- 005F4990-005F9000: CInterface3D: Create 005F4990 (Rebirth), destroy 005F4F90, Draw 005F5320 (Rebirth),
+  Update 005F57C0, CreateScreen 005F5BA0, window activation 005F71C0/005F7350, keys 005F78C0/005F7B40,
+  scaling, script commands 005F8070 (Rebirth), text extent 005F8340 (Rebirth), help 005F86F0, message
+  boxes 005F8A80.
+- 005FC1D0-00601B70: CUiModel, CUiRegion, CUiSurface (DC 005FDC00/005FDC60, text 005FDE20 (Rebirth), wrapped
+  text 005FDFA0, fill 005FE2F0, save/restore 005FD7A0), CUiWindow and the container base.
+- 00601B70-00610000: briefing / dialogue screen (vtables 00740580..: 006024B0 Create, 006030F0 click,
+  006034A0 keys, 00604C50 the script step `#show/#hide/#phrase/#camera/#animation`, 006064E0, 00608450) and
+  the camp screen's first methods (0060C870 Create, Rebirth).
+
+## Rewritten
+
+| Address | Size | Name | Verify |
+|---|---|---|---|
+| 005F57C0 | 748 | `CInterface3D::Update` (every frame) | ours only: the mouse copy (+0x68/+0x6C from 007C7C50) |
+| 005FDFA0 | 838 | `CUiSurface::DrawWrappedText` | side by side: line count and the surface's pixels through GDI (the caller holds the DC): recorded, the original's result recorded and the old pixels put back, ours compared |
+| 005E4A10 | 789 | `ConsoleWindow::DrawInput` | side by side: caret/anchor clamp and the surface's pixels (DirectDraw lock); before ours the pixels are put back with the input strip's rows inverted, so anything ours leaves undrawn shows |
+| 005E4180 | 709 | `ConsoleWindow::OnKeyDown` | side by side: input text, caret, anchor, command index, scroll, Ctrl/Shift (restored between the runs) |
+| 005E4800 | 524 | `ConsoleWindow::DrawLines` | as DrawInput (rows above the input strip); runs on every console message (without a surface: the scroll clamp only) |
+| 005E3FD0 | 182 | `ConsoleWindow::Show` | ours only: flag, surface exactly while shown |
+
+6 functions, 3790 bytes.
+
+### Details
+
+- Update: while a value is pending (+0x4C) the top window gets input slot 1 (cancel), slot 26 and its
+  deleting destructor and is popped; messages are pumped (00458220); backdrop state 4 swaps in +0x58
+  (005FD7A0 saves it); with one window left the backdrop and +0x5C are freed and +0x60 goes to the world
+  server's +0x6C (00578D10, not in a network client); the new top gets slots 19(1) and 27(value); 0x990001
+  sets close-all and leaves the game (0057ECA0, 00581660); the capture +0x0C is cleared. Then +0x81 polls
+  slot 35, close-all (+0x44) pops every window and calls 005F8C50, a queued window (+0x40) is activated
+  (005F71C0), the mouse is copied, a network client that lost the server (+0x88) gets the "disconnect"
+  message box (00634650, 0x990000), else the top window's slot 24 runs; last the root (+0x1C) slot 24.
+- Console window fields: +0x08 font, +0x0C CStringArray of entered commands, +0x20 index into it, +0x24 input,
+  +0x28 caret, +0x2C anchor, +0x78 Ctrl, +0x79 Shift. Keys: PgUp/PgDn a line (Ctrl: a page), Home/End the
+  caret (Ctrl: first/last page), Left/Right, Up/Down through the commands, Delete. Drawing: background
+  0x282828, lines 0xB4B4B4 bottom up 15 px apart (DT_NOPREFIX), "+" marks (0x787BD8) at the right, the input
+  after "> " (0x792DE0) in white, selection 0x505050 clipped at width - 16, a 2-pixel caret pen.
+- DrawWrappedText: the text plus "\n" is walked with the game's `_ismbblead`/`isleadbyte`/`_mbsinc`; a word
+  ends at ' ' or '\n'; when line + word is wider than the rectangle (005F8340 with the font argument) the
+  line is stored and the word starts the next; '\n' stores the line (and the word on its own line when it
+  did not fit). Lines are drawn with 005FDE20, each one rect height lower; the full line count is returned.
+- 005F8340 takes a CString by value; a naked forwarder cannot declare one (C3068), so the data pointer is
+  handed over and the local detached (`TextMetricsAt::TextExtent` in ui_text.cpp).
+
+## Forwarders added (standalone build must replace)
+
+MFC CDC FillSolidRect 0070BB04, SetBkMode 007090C2, SelectObject(CPen*) 00708F5A, MoveTo 00709613, LineTo
+0070965F, CPen constructor 0070A0E2, CGdiObject::DeleteObject 0070A0CC, CString::Left 006FDAE9; CDC virtual
+slots 10 (SelectObject(CFont*)), 12 (SetTextColor), 26 (DrawText). Surface GetDC/ReleaseDC 005FDC00/005FDC60,
+surface constructor 005FCDD0 and destructor body 005FD120, save 005FD7A0, text 005FDE20 and extent 005F8340
+(both Rebirth-patched), cursor 005E5200, message pump 00458220, session 0057F440/0057ECA0/00581660, world
+server flag 00578D10, activation 005F71C0/005F7350, close-all 005F8C50, message box 00634650, `_ismbblead`/
+`isleadbyte`/`_mbsinc`.
+
+## Original quirks kept
+
+- The console's Up key increases the command index; Down stops at -1. Delete with no selection at the end
+  of the input does nothing (no redraw).
+- DrawWrappedText stores a word that did not fit before a '\n' on a line of its own (even an empty one).
+
+## Skipped
+
+- Rebirth-patched: 005E3700, 005E44A0, 005E6FA0, 005E70E0, 005E7680, 005E7D60, 005E99D0, 005EB210, 005F4990,
+  005F5320, 005F8070, 005F8340, 005FDE20, 0060C870, 0060FAB0 (and the scaling/region functions above).
+- Not reached by any scenario (camp, hero screen descriptions, briefing dialogue): 005F1590, 00604C50,
+  005ECA10, 005EE760 and its parts, 006064E0, 00604130. Mapped above; good targets once a scenario reaches
+  the camp or a dialogue.
+- 005E18E0 flying hit points (float vertex building), 005E5690/005E5C40 cursor blits (surface locking),
+  005E2A30 chat word wrap: left for a later pass.
+- Template code (005E0B20-005E1580, 005F3000-005F4990, 005F9810-005FC010, 0060A320-0060BD70).
+
+## Harness and scenario
+
+New key names `grave` (the console key, scan 0x29), `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`,
+and `enterchar` (Enter plus its WM_CHAR, which the console's character input needs).
+`tests/scenarios/console.txt` now opens the console window in game, types "lastxfps", moves the caret,
+deletes the x, runs it with Enter (expects "Current FPS:"), walks the command history, scrolls and closes
+the window. CInterface3D::Update runs every frame in every scenario.

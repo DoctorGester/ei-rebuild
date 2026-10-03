@@ -177,6 +177,71 @@ void __fastcall ShowVerify(ConsoleWindow* self, void*, bool shown) {
 }
 EI_VERIFY(0x005E3FD0, ShowVerify, 0, s_unused);
 
+// ---- Text layout -------------------------------------------------------------------------------
+
+// The caller holds the surface's DC (+0x08) while it draws text, so the pixels are read and put
+// back through GDI (a DirectDraw lock would collide with the DC).
+struct GdiPixels {
+    std::vector<std::uint32_t> bits;
+};
+
+bool CopySurfaceDC(HDC dc, int width, int height, GdiPixels* read, const GdiPixels* write) {
+    if (!dc || width <= 0 || height <= 0) return false;
+    HDC mem = CreateCompatibleDC(dc);
+    BITMAPINFO info{};
+    info.bmiHeader.biSize = sizeof(info.bmiHeader);
+    info.bmiHeader.biWidth = width;
+    info.bmiHeader.biHeight = -height;
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = 32;
+    void* bits = nullptr;
+    HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+    bool ok = mem && bitmap;
+    if (ok) {
+        HGDIOBJ old = SelectObject(mem, bitmap);
+        auto* pixels = static_cast<std::uint32_t*>(bits);
+        std::size_t count = static_cast<std::size_t>(width) * height;
+        if (write) {
+            std::memcpy(pixels, write->bits.data(), count * 4);
+            ok = BitBlt(dc, 0, 0, width, height, mem, 0, 0, SRCCOPY) != 0;
+        } else {
+            ok = BitBlt(mem, 0, 0, width, height, dc, 0, 0, SRCCOPY) != 0;
+            GdiFlush();
+            read->bits.assign(pixels, pixels + count);
+        }
+        SelectObject(mem, old);
+    }
+    if (bitmap) DeleteObject(bitmap);
+    if (mem) DeleteDC(mem);
+    return ok;
+}
+
+// 005FDFA0: PUSH -1; PUSH imm32 (7). Side by side: the surface's pixels are recorded, the
+// original draws, its pixels are recorded and the old ones put back, ours draws; the line counts
+// and the pixels are compared.
+int(__thiscall* s_drawWrapped)(CUiSurface*, const char*, const RECT*, int, int, COLORREF, int, int);
+int __fastcall DrawWrappedVerify(CUiSurface* self, void*, const char* text, const RECT* rect, int maxLines, int font,
+                                 COLORREF colour, int format, int flag) {
+    HDC dc = *reinterpret_cast<HDC*>(reinterpret_cast<std::uint8_t*>(self) + 0x08);
+    int width = self->rect_.right - self->rect_.left;
+    int height = self->rect_.bottom - self->rect_.top;
+    std::string copy = text ? text : "";
+    RECT rectCopy = *rect;
+    GdiPixels before, expected, actual;
+    bool pixels = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(self) + 0x10) &&
+                  CopySurfaceDC(dc, width, height, &before, nullptr);
+    int result = s_drawWrapped(self, copy.c_str(), &rectCopy, maxLines, font, colour, format, flag);
+    if (pixels) pixels = CopySurfaceDC(dc, width, height, &expected, nullptr) && CopySurfaceDC(dc, width, height, nullptr, &before);
+    rectCopy = *rect;
+    int mine = self->DrawWrappedText(copy.c_str(), &rectCopy, maxLines, font, colour, format, flag);
+    bool same = true;
+    if (pixels && CopySurfaceDC(dc, width, height, &actual, nullptr)) same = expected.bits == actual.bits;
+    ei::verify::Check("CUiSurface::DrawWrappedText", true, result == mine && same, "'%.80s' lines %d/%d pixels %d",
+                      copy.c_str(), result, mine, same);
+    return result;
+}
+EI_VERIFY(0x005FDFA0, DrawWrappedVerify, 7, s_drawWrapped);
+
 // ---- Interface frame ---------------------------------------------------------------------------
 
 // 005F57C0: ours only (it closes, deletes and activates windows). Checked afterwards: the mouse
