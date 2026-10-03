@@ -315,3 +315,81 @@ void CHeroStatsPanel::DrawStats() {
     draw->End();
 }
 EI_REPLACE_METHOD(0x00623880, CHeroStatsPanel::DrawStats);
+
+// --- 00622000: the equipment panel's Build ---------------------------------------------------------
+
+namespace {
+
+// Sprite builders (CUiMesh): 005E8450 a framed rectangle (not patched), 005E7680 a strip of
+// `count` framed cells (Rebirth-patched; called through its address).
+struct SpriteBuild {
+    void Framed(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
+                int v0, int u1, int v1);   // 005E8450
+    void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
+               int v1, int count, int flag);   // 005E7680
+};
+__declspec(naked) void SpriteBuild::Framed(float, float, float, float, float, float, float, int, int, int, int)
+    EI_ORIGINAL(0x005E8450)
+__declspec(naked) void SpriteBuild::Cells(float, float, float, float, float, float, int, int, int, int, int, int)
+    EI_ORIGINAL(0x005E7680)
+SpriteBuild* Builder(CUiMesh* sprite) { return reinterpret_cast<SpriteBuild*>(sprite); }
+
+void SetSpriteField(CUiMesh* sprite, int offset, std::uint32_t value) {
+    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + offset, &value, 4);
+}
+void SetPlainFlag(CUiMesh* sprite) {
+    std::uint32_t flags;
+    std::memcpy(&flags, reinterpret_cast<std::uint8_t*>(sprite) + 0x08, 4);
+    flags |= 0x100;
+    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x08, &flags, 4);
+}
+
+} // namespace
+
+void CHeroEquipPanel::Build(bool body) {
+    body_ = body;
+    rect_ = RECT{0, 0, 800, body ? 500 : 100};
+    unknown_148 = 0;
+    for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
+    // Two hidden highlight frames.
+    for (int i = 0; i < 2; ++i) {
+        CUiMesh* frame = AddSprite(0);
+        Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
+        SetPlainFlag(frame);
+        SetSpriteField(frame, 0xD4, 0xFF8B8B37);
+        SetSpriteField(frame, 0x280, 0);
+        SetSpriteField(frame, 0x220, 0);
+    }
+    // The slots' frames: four on the left half, four on the right, each half with its strip.
+    float cell = GameFloat(0x0073BAB0);   // 100
+    for (int i = 0; i < 4; ++i)
+        Builder(AddSprite(0))->Framed(8.0f, 100.0f, Store(static_cast<double>(i) * D(cell)), 0.0f,
+                                      Store(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);
+    Builder(AddSprite(0))->Cells(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
+    for (int i = 4; i < 8; ++i)
+        Builder(AddSprite(0))->Framed(8.0f, 100.0f, Store(static_cast<double>(i) * D(cell)), 0.0f,
+                                      Store(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
+    Builder(AddSprite(0))->Cells(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
+    if (body_) {
+        // The body's slots: 100x100 around the centres of two tables (00741EC4 x, 00741EE0 y).
+        const int* xs = reinterpret_cast<const int*>(0x00741EC4);
+        const int* ys = reinterpret_cast<const int*>(0x00741EE0);
+        for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
+        LoadTexture(GameText(0x00793D00), 3, 0);   // camp1
+        LoadTexture(GameText(0x00793CF8), 3, 0);   // camp2
+        LoadTexture(GameText(0x00793CF0), 3, 0);   // camp3
+        LoadTexture(GameText(0x00793CE8), 3, 0);   // camp4
+        const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
+        for (int i = 0; i < 4; ++i) {
+            CUiMesh* picture = AddSprite(0);
+            picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
+                                  0x1C, 0xE4, 0xE4);
+            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(objects_.data_[i + 1]));
+        }
+    }
+    selected_ = -1;
+}
+namespace {
+void __fastcall EquipBuild(CHeroEquipPanel* self, void*, int body) { self->Build(static_cast<std::uint8_t>(body) != 0); }
+} // namespace
+EI_REPLACE(0x00622000, EquipBuild);

@@ -1,15 +1,9 @@
-# Camp, global map, credits and the battle screen's Create (docs/notes/ui.md, "Camp, global map and
+# Camp, global map and the battle screen's Create (docs/notes/ui.md, "Camp, global map and
 # battle screen setup"). The camp and the global map are asked for with the harness's "screen"
 # step, as the global map's buttons ask the server for them (a zone exit is not needed).
 reject Script error
 wait 6000
 console thingamabob
-
-# Main menu region 4: the credits (their Create, 0062B7D0); Esc closes them.
-clickregion 4
-wait 2500
-key esc
-wait 2500
 
 newgame
 speed 10

@@ -257,6 +257,24 @@ static void __fastcall StatsDrawVerify(CHeroStatsPanel* self, void*) {
 }
 EI_VERIFY(0x00623880, StatsDrawVerify, 0, s_unused);
 
+// --- Equipment panel Build (00622000) ----------------------------------------------------------------
+
+// Ours only: 8 slot regions and 12 sprites, with the body 7 more regions, 4 textures and 4 pictures;
+// the rectangle 800 x 500 (body) or 100; nothing selected.
+static void __fastcall EquipBuildVerify(CHeroEquipPanel* self, void*, int body) {
+    Counts before = CountsOf(self);
+    bool withBody = static_cast<std::uint8_t>(body) != 0;
+    self->Build(withBody);
+    Counts after = CountsOf(self);
+    bool ok = after.regions == before.regions + (withBody ? 15 : 8) &&
+              after.sceneObjects == before.sceneObjects + (withBody ? 16 : 12) &&
+              after.objects >= before.objects + (withBody ? 4 : 0) && self->rect_.right == 800 &&
+              self->rect_.bottom == (withBody ? 500 : 100) && self->selected_ == -1 && self->body_ == withBody;
+    ei::verify::Check("CHeroEquipPanel::Build", true, ok, "body %d regions %d->%d sprites %d->%d", withBody,
+                      before.regions, after.regions, before.sceneObjects, after.sceneObjects);
+}
+EI_VERIFY(0x00622000, EquipBuildVerify, 0, s_unused);
+
 // --- Global map Update (0062F050) --------------------------------------------------------------------
 
 // Every frame; it draws the weather (whose animation advances with each call), so ours run alone:

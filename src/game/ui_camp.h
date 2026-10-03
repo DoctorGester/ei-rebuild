@@ -278,3 +278,23 @@ static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);
 static_assert(offsetof(CHeroStatsPanel, texts_) == 0x160);
 static_assert(offsetof(CHeroStatsPanel, points_) == 0x170);
 static_assert(sizeof(CHeroStatsPanel) == 0x17C);
+
+// --- Hero equipment panel -----------------------------------------------------------------------
+//
+// The hero's equipment (vtables 007418E0 / 007418AC, 0x158 bytes; ui_hero_panels.cpp): the eight
+// quick slots along the top, and in the camp the body with its seven equipment slots.
+class CHeroEquipPanel : public CUiWindow {
+public:
+    // 00622000. Builds the panel: eight slot regions and their frames along the strip, two
+    // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
+    // regions and the four body pictures (textures camp1..camp4).
+    void Build(bool body);
+
+    int unknown_148;                 // +0x148 0
+    std::uint8_t unknown_14C[4];
+    bool body_;                      // +0x150
+    std::uint8_t unknown_151[3];
+    int selected_;                   // +0x154 -1
+};
+static_assert(offsetof(CHeroEquipPanel, body_) == 0x150);
+static_assert(sizeof(CHeroEquipPanel) == 0x158);
