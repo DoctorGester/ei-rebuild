@@ -636,6 +636,57 @@ strings Copy (004C14A0), objects Copy (004C1290), groups Copy (004C1BE0). The ru
 its five words first and inlines the variables'. Forwarders: the SetSize / Copy members above,
 004CC0C0, 00700AA9.
 
+# Text manager line reader (004DEFC0-004DFFFF)
+
+Code: `src/game/text_reader.cpp/.h` (on `CTextManager`, `item_db_text.h`). Verify:
+`tests/verify/verify_text_reader.cpp`. Used by the interface (54 callers of Open), the map database
+loader (FindLine / Split) and the item texts (ReadLine / ReadToHash); reached by every new game.
+
+The manager's cursor (+0x20) walks the current text (+0x24, +0x28 bytes); every end test is
+`(p - text) < length`, signed. Characters are MBCS: the code is (signed lead << 8) + signed trail
+when `_ismbblead` (on the unsigned byte) says so, else the signed byte; a character is appended to a
+string as one or two bytes by `isleadbyte` on the signed byte (through a temporary CString).
+
+- Open (004DEFC0): clears the current text, asks each archive (vtable slot 5, GetFile(key, &length))
+  in list order; cursor = text = the first hit; true when found and length != 0.
+- PeekWord (004DF770): out = the first word at the cursor (spaces and LFs before it skipped; it
+  ends at a space or LF after it started, or at CR or TAB at any time); the cursor does not move.
+- SkipLine (004DF6E0): past the next LF; 0 and the cursor at the end when there is none.
+- NextLine (004DF510): past the current line, then past every line whose first word starts "##".
+- ReadLine (004DF8D0): out = up to CR / LF; with `advance` as NextLine (the first move's end test
+  through IsPastEnd 004E0000). ReadToHash (004DFB80): out = up to '#'; `advance` puts the cursor
+  there. Split (004DFCB0): the line's words (space / tab separated) through SetAtGrow; a word still
+  open when the text ends is dropped; `advance` as ReadLine.
+- FindLine (004DF030, the map loader's "NextLine"): key null = the next line whose first word starts
+  with "#" but not "##"; a one-word key = the next line whose first word equals it (comment lines
+  skipped while moving); several words (004DBE40 splits the key at spaces) = the next line (Split)
+  whose first words, each lower-cased (CString::MakeLower 00700EFE), equal the key's words (the key
+  is not lower-cased). Returns 1 when found, else 0 with the cursor at the end.
+
+The original inlines the "move past the next LF" loop in five variants (end tests inline or through
+IsPastEnd, character codes inline or through 004DF4E0); `Advance` takes the variant, so the same
+calls happen.
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004DF030 | 1186 | TextFindLine | original first, state recorded and restored, then ours; result and cursor compared |
+| 004DFCB0 | 848 | TextSplit | as FindLine, the original into a scratch array; words compared |
+| 004DF8D0 | 674 | TextReadLine | as FindLine, the original into a scratch copy of the output; string compared |
+| 004DF510 | 450 | TextNextLine | as FindLine |
+| 004DF770 | 349 | TextPeekWord | as ReadLine |
+| 004DFB80 | 302 | TextReadToHash | as ReadLine |
+| 004DF6E0 | 139 | TextSkipLine | as FindLine |
+| 004DEFC0 | 95 | TextOpen | as FindLine (GetFile runs twice; the archive raises the file's reference count twice, as in `verify_item_db.cpp`) |
+| 004DF4E0 | 38 | TextCharCode | pure |
+| 004DF020 | 14 | TextClose | ours only: text and cursor cleared, result 1 |
+
+Forwarders: CRT 006E99F2 `_ismbblead`, 006E9A6C `isleadbyte`, 006E9947 `_mbsinc`, 006E848B
+`_mbscmp`; CString 006FD559 `operator=(TCHAR)`, 00700D73 `operator+=(TCHAR)`, 006FDAE9 `Left`;
+004DBE40 text split; the reader functions themselves and 004E0000 / 004DF4E0 where the original
+calls them. Not rewritten here: 004DEC40 (Rebirth patches it), the archive list helpers 004DEB60 /
+004DED40 / 004DEDE0 (release every archive and free the nodes), 004DEBC0 (list find, also inlined
+by Open), 004DECE0 (no callers), 004DED20 (locale setup), the thunks 004DEDB0 / 004DEDD0 / 004DEFA0.
+
 # 004C0000-004E0000: what is left
 
 - Named in `config/library.csv` (237 functions): the CArray / CList instantiations of the script
@@ -655,5 +706,5 @@ its five words first and inlines the variables'. Forwarders: the SetSize / Copy 
   (004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004C5480, 004C17E0, 004C81B0,
   004C9AF0), the ScriptVars constructor 004C00D0, the quest table lookup 004C9C90 and 004CC600
   (called from 006B1C90).
-- 004D8000-004E0000 belongs to other subsystems (text manager 004DF8D0 / 004DFB80, map database
-  loaders 004DF030 / 004DFCB0, renderer and AI map helpers, STLport instantiations); not touched.
+- 004D8000-004DEFFF belongs to other subsystems (renderer and AI map helpers, the text manager's
+  archive list, STLport instantiations); apart from the line reader above, not touched.
