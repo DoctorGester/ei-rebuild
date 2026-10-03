@@ -21,7 +21,7 @@ DestroyManager`), `src/lib/stlp.h` (`vector::FreeStorage`), `docs/standalone-cle
 | 006620F0-00662AC0 | party records: 0x784-byte records of the party's units (items, stats), `PartyRecords::Find` 006621B0 (by unit id; units call it for their weapons), record read / write 006621F0 / 006625B0, 006628D0 |
 | 00662AC0-00663000 | multiplayer map transfer: 00662AC0 writes/reads "temp.mp", 00662DD0, 00662FB0 ("\*.mp" list; patched by Rebirth) |
 | 006632B0-00664D00 | STLport hash_map / vector instantiations of the player tables (6636D0 bucket init, ...) |
-| 00664DE0-00666170 | **CPlayer** (vtable 00743104, 16 slots): constructor 00664E20, slots 2/3 00665010/006650E0, slot 14/15 00666170/00666050; items: 00665470 receive items, 00665640 HasItem (script), 00665780, 00665BE0 item changed; units: 00665A70 / 00665B50 remove; 00665DE0 per-tick (drops dead references from the list at +0x118, then the slot 21 of +0x20) |
+| 00664DE0-00666170 | **CPlayer** (vtable 00743104, 16 slots): constructor 00664E20, slots 2/3 00665010/006650E0, slot 14/15 00666170/00666050; items: 00665470 receive items, 00665640 HasItem (script), 00665780, 00665BE0 item changed; units: 00665A70 / 00665B50 remove; 00665DE0 per-tick (ticks the objects whose ids are in the list at +0x114, slot 6, dropping those gone or finished, then slot 21 of the connection at +0x20) |
 | 00666EE0-0066C700 | **CPlayerClient** (vtable 00743180, 48 slots): slots 2/3/6 00667230/00667510/00667680 (per frame; "Very top secret"/"Tango" are the cipher keys of the session), 00667810 send ("client to server, size =", " squeezed size ="), 00667BA0 slot 14 (receive: packet dispatcher, "Wrong packet ID", "Pkt read error"), handlers 00667EC0-0066C1E0: 00667EC0 creates an object the server announced (unit prototype "unmogo" gets rh3.axeth00 / rh3.sword00 and rh3.pike00 or sling; "unmowi" gets particle 0x204D; humans' "hr.%.2d" model part from the party record; "mo%dp" / "mo%ds" model and skeleton names of non-unit objects by +0x0C), 00669A30 "party received on client", 0066AE70 / 0066AED0 local view orders (weapon, movement mode) |
 | 0066C730-00671080 | **CPlayerServer** (vtable 00743280, 24 slots): slots 2/3 0066C9A0/0066CC50, 0066D270 (slot 23), 0066D6E0 message 0x0B to the client, 0066E130 per tick (rebuilds the "Heroes" group), 0066E430/0066E7D0 (slot 17: send, "server to client, size =", " squeezed to "), variables and state 0066EE10 (0x81 set variable) / 0066EE80 / 0066EF30 / 0066EB90 / 0066EF80 / 0066F310, 0066F450 "Resending party of player", 0066F4C0 slot 20 (receive: "Serv wrong packet ID", "SrvErrMsg", "WrongClientVersion"); command handlers 0066F840-00671060: 0066FFF0 walk, 00670190 attack, 00670310 group action, 00670C20 zone exit, 00670DA0, 00670E00 / 00670EB0 (variables), 00670F50 (party), 00671060 |
 | 006710A0-00671280 | CArray / aligned-array helpers |
@@ -123,6 +123,7 @@ multiplayer only).
 | 0066EE10, 0066EF30, 0066F180, 0066EBD0, 0066EC10, 0066EC70, 0066ECD0, 0066ED30, 0066EDA0, 0066EA10, 0066EA30, 0066EA70, 0066EAC0, 0066EB40, 0066EB90, 0066F1F0, 0066F280, 0066F2C0, 0066D6A0, 0066D6E0, 0066D770, 0066D7B0, 0066D250, 0066D260 | CPlayerServer SetVariable, DeleteVariable, SendGameTime, SendState02 / 70 / 71 / 72, SendPosition04 / 0F, Send17, SendObject0A, SendPair16, SendObjects0C, SendObject14, SendText0D / 08, SendValue15, SendPair18, SendObject43 / 0B, SendText13, SendText, SetDisconnect, SetFlag70 | ours into the stream, the stream (header and bytes), +0x1C..+0x48, +0x70 and the player's dirty bits saved, restored, original; compared with the result (skipped when ours grew the buffer; the variable table is set to the same value twice) |
 | 0066EE80, 0066F240, 0066D230 | CPlayerServer SetVariableMax, SendState73, WriteTo | ours only (they read what they change or call other objects' writers) |
 | 006621B0 | PartyRecords::Find | pure |
+| 00665DE0 | CPlayer::Tick (every world tick, each player) | ours only (it ticks objects): the object list is consistent afterwards (count, links, tail) |
 | 00674D90 / 00674DF0 / 00674DD0 / 00674F40 | CResourceManager constructor / destructor / deleting destructor / slot 3 | ours only |
 
 All renamed in Ghidra where they were functions there.
@@ -179,8 +180,8 @@ call to the Rebirth-patched 006714A0.
 
 - The rest of the player classes (CParty, CPlayer, CPlayerClient, CPlayerServer, 00660000-00671280):
   packet dispatchers, compression and sending, party records and their CString / CArray / hash_map
-  members, the client's handlers; mostly multiplayer. The per-tick 00665DE0 / 0066E130 and the
-  zone-exit state 0066F310 are the next candidates. 0066D730 (message 0x12) writes one
+  members, the client's handlers; mostly multiplayer. The per-tick 0066E130 ("Heroes" group) and
+  the zone-exit state 0066F310 are the next candidates. 0066D730 (message 0x12) writes one
   uninitialised stack byte, so it cannot be reproduced exactly.
 - 00667EC0 (object from the server, the model / weapon names): multiplayer, 3 KB, see above.
 - Effect constructors and destructors (00675DD0, 006760A0, 00676760, 00676980, 00677510,

@@ -173,3 +173,19 @@ static std::uint8_t* __fastcall FindRecordVerify(const PartyRecords* self, void*
     return expected;
 }
 EI_VERIFY(0x006621B0, FindRecordVerify, 5, s_findRecord);
+
+// 00665DE0. Ours only (it ticks objects): the list is consistent afterwards (count = nodes, links
+// both ways).
+static void __fastcall PlayerTickVerify(CPlayer* self) {
+    self->Tick();
+    int nodes = 0;
+    bool links = true;
+    decltype(self->objects_.head) previous = nullptr;
+    for (auto* n = self->objects_.head; n != nullptr && nodes <= self->objects_.count; n = n->next, ++nodes) {
+        links = links && n->prev == previous;
+        previous = n;
+    }
+    bool ok = nodes == self->objects_.count && links && self->objects_.tail == previous;
+    ei::verify::Check("CPlayer::Tick", true, ok, "player %p: %d nodes, count %d", self, nodes, self->objects_.count);
+}
+EI_VERIFY(0x00665DE0, PlayerTickVerify, 0, s_unused);

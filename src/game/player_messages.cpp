@@ -245,6 +245,26 @@ std::uint8_t* PartyRecords::Find(int unitId) const {
     return nullptr;
 }
 
+// --- CPlayer ------------------------------------------------------------------------------------
+
+namespace {
+// 00403F40 (base_manager.cpp), through its game address.
+__declspec(naked) void* __fastcall FindObjectAt(void* /*manager*/, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
+} // namespace
+
+void CPlayer::Tick() {
+    auto* node = objects_.head;
+    while (node != nullptr) {
+        auto* current = node;
+        node = node->next;
+        int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
+        void* manager = ei::VCall<void*>(&party_, 18, id);
+        void* object = FindObjectAt(manager, nullptr, id);
+        if (object == nullptr || ei::VCall<int>(object, 6) == 0) objects_.RemoveAt(current);
+    }
+    ei::VCall<void>(connection_, 21);
+}
+
 // --- Hooks ---------------------------------------------------------------------------------------
 
 EI_REPLACE_METHOD(0x0066EE10, CPlayerServer::SetVariable);
@@ -275,3 +295,4 @@ EI_REPLACE_METHOD(0x0066D230, CPlayerServer::WriteTo);
 EI_REPLACE_METHOD(0x0066D250, CPlayerServer::SetDisconnect);
 EI_REPLACE_METHOD(0x0066D260, CPlayerServer::SetFlag70);
 EI_REPLACE_METHOD(0x006621B0, PartyRecords::Find);
+EI_REPLACE_METHOD(0x00665DE0, CPlayer::Tick);

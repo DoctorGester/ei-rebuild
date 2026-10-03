@@ -10,6 +10,8 @@
 #include "maths.h"
 #include "net_delta.h"
 
+#include "lib/mfc.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -70,3 +72,21 @@ struct PartyRecords {
     int count;                      // +0x34
 };
 static_assert(offsetof(PartyRecords, records) == 0x30);
+
+// A world player (vtable 00743104; "CPlayer"). Only what its per-tick update uses.
+class CPlayer {
+public:
+    // 00665DE0. Ticks the objects in the list at +0x114 (slot 6; looked up by id through the
+    // party's slot 18 manager) and drops the ones that are gone or whose tick returned 0, then runs
+    // slot 21 of the connection at +0x20.
+    void Tick();
+
+    std::uint8_t unknown_00[0x20];
+    void* connection_;                          // +0x20 CPlayerServer / CPlayerClient
+    std::uint8_t unknown_24[0x70 - 0x24];
+    void* party_;                               // +0x70 an embedded object (vtable); slot 18 gives a manager
+    std::uint8_t unknown_74[0x114 - 0x74];
+    mfc::CTypedPtrList<void> objects_;          // +0x114 object ids (stored as the node data)
+};
+static_assert(offsetof(CPlayer, party_) == 0x70);
+static_assert(offsetof(CPlayer, objects_) == 0x114);
