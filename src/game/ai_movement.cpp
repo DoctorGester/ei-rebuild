@@ -1,0 +1,281 @@
+// Per-tick movement checks on the AI map: which unit blocks a moving unit, and the speed costs of
+// the steps a unit is about to walk.
+#include "ai_map.h"
+
+#include "core_refcount.h"
+#include "ei/hook.h"
+#include "ei/vcall.h"
+#include "ei/x87.h"
+#include "lib/mfc.h"
+
+#include <cstring>
+
+namespace {
+// The sector map through its original address (rewritten in sector_map.cpp), so the verify build's
+// wrapper sees the call.
+__declspec(naked) void __fastcall FindUnitsInRadius(void*, void*, const Vector3*,
+                                                    mfc::CTypedPtrList<CEngineObject>*, float) EI_ORIGINAL(0x005C0BD0)
+
+// A handle into the cache of unit occupancy shapes (the global at 007C2F70), keyed by standing
+// height rounded to 0.1. 16x16 signed levels start at shape + 8.
+struct ShapeHandle {
+    void* cache;
+    CRefObject* ref;
+    std::uint32_t key;
+    float height;
+};
+__declspec(naked) ShapeHandle* __fastcall ShapeHandleInit(ShapeHandle*, void*) EI_ORIGINAL(0x005BCCB0)
+__declspec(naked) const std::int8_t* __fastcall ShapeCacheGet(void*, void*, ShapeHandle*) EI_ORIGINAL(0x005BD7F0)
+void* ShapeCache() { return reinterpret_cast<void*>(0x007C2F70); }
+
+// 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
+// occluders); the cost is at out[3].
+__declspec(naked) int __fastcall CellPassability(CAIMap*, void*, std::uint32_t*, int, int, int, int) EI_ORIGINAL(0x005B8BA0)
+// Standing height of each size class (007912BC).
+const float* ClassHeights() { return reinterpret_cast<const float*>(0x007912BC); }
+
+// LineOfSight through its original address (rewritten in ai_map.cpp), its ST0 taken unrounded.
+__declspec(naked) double __fastcall LineOfSightRaw(CAIMap*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC3E0)
+
+float Store(double v) {
+    volatile float r = static_cast<float>(v);
+    return r;
+}
+
+// World coordinate to cell as the original computes it here: (x / (cell size 1.0 * 0.5) - 0.5)
+// rounded to float, then FISTP.
+int CellOf(float world) { return x87::fistp(Store(2.0 * world - 0.5f)); }
+
+constexpr float kShapeMinHeight = 0.2f;     // 0073BAD4
+constexpr int kExpensive = 12000;           // cost above which a step is flagged 2
+} // namespace
+
+CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
+    mfc::CTypedPtrList<CEngineObject> nearby{};
+    nearby.vtable = reinterpret_cast<void*>(0x0073D454);
+    nearby.blockSize = 10;
+    float unitHeight = unit->standingHeight;
+    FindUnitsInRadius(reinterpret_cast<char*>(this) + 0x124, nullptr, position, &nearby, 10.0f);
+
+    CUnit* blocker = nullptr;
+    for (auto* node = nearby.head; node;) {
+        CUnit* other = static_cast<CUnit*>(node->data);
+        node = node->next;
+        if (other == unit) continue;
+        double reach = static_cast<double>(other->standingHeight) + unitHeight;
+        double dy = static_cast<double>(position->y) - other->positionY;
+        double dx = static_cast<double>(position->x) - other->positionX;
+        if (dx * dx + dy * dy >= reach * reach) continue;
+        if (ei::VCall<int>(other, 0xDC / 4) != 0) continue;
+
+        int unitX = CellOf(unit->positionX);
+        int unitY = CellOf(unit->positionY);
+        int otherX = CellOf(other->positionX);
+        int otherY = CellOf(other->positionY);
+        float otherHeight = other->standingHeight;
+        ShapeHandle handle;
+        ShapeHandleInit(&handle, nullptr);
+        const std::int8_t* shape = nullptr;
+        if (!(otherHeight > kShapeMinHeight)) {
+            if (handle.ref) handle.ref->Release();
+        } else {
+            int tenths = x87::fistp(Store(static_cast<double>(otherHeight) * 10.0f + 1.0f));
+            handle.height = Store(static_cast<double>(tenths) * 0.1f);
+            std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
+            shape = ShapeCacheGet(ShapeCache(), nullptr, &handle);
+            if (CRefObject* ref = handle.ref) {
+                if (--ref->refs_ == 0) ei::VCall<void>(ref, 0, 1);
+            }
+        }
+
+        int level = x87::fistp(Store((2.0f - static_cast<double>(unit->standingHeight)) * 16.0f));
+        int minLevel = level < 0 ? 0 : (level & 0xFF);
+        int dxCells = unitX - otherX + 8;
+        int dyCells = unitY - otherY + 8;
+        if (!shape || dxCells < 0 || dyCells < 0 || dxCells >= 16 || dyCells >= 16 ||
+            shape[8 + dyCells * 16 + dxCells] >= minLevel) {
+            blocker = other;
+            break;
+        }
+    }
+    nearby.vtable = reinterpret_cast<void*>(0x0073D454);
+    nearby.RemoveAll();
+    return blocker;
+}
+EI_REPLACE_METHOD(0x005B7BB0, CAIMap::BlockingUnitAt);
+
+const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
+    std::uint32_t tenth = 0x3DCCCCCD;   // 0.1f
+    std::memcpy(&out->unknown_14, &tenth, sizeof(tenth));
+    std::memcpy(&out->unknown_0C, &tenth, sizeof(tenth));
+    out->unknown_10 = 10.0f;
+    out->shift = sizeClass * 4;
+    const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
+    out->costs = reinterpret_cast<const int*>(unknown_014);
+    out->climb = climb.costs + climb.count / 2;
+    return out->climb;
+}
+EI_REPLACE_METHOD(0x005B9510, CAIMap::CostContext);
+
+void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
+    // The original also asks the unit for its movement speeds twice (0052F920) and divides by one
+    // of them, but never uses the results; the getter has no side effects.
+    int shift = unit->sizeClass * 4;
+    const ClimbTable& climbTable = shift == 0 ? climbSmall : climbLarge;
+    const int* climb = climbTable.costs + climbTable.count / 2;
+    const int* stepCosts = reinterpret_cast<const int*>(unknown_014 + 0x80);  // CAIMap + 0x94
+    PassCostContext context;
+    CostContext(unit->sizeClass, &context);
+
+    PathCellList::Node* node = steps->head;
+    if (!node) return;
+    for (;;) {
+        PathCellList::Node* next = node->next;
+        const AIMapCell& cell = cells[node->data.y][node->data.x];
+        if (!next) {
+            int cost = context.costs[(cell.passable >> (context.shift & 31)) & 0xF];
+            node->data.unknown_6 =
+                static_cast<std::uint16_t>((cell.flags >> 7) + (cost > kExpensive ? 2 : 0));
+            return;
+        }
+        const AIMapCell& to = cells[next->data.y][next->data.x];
+        int cost = stepCosts[(to.passable >> (shift & 31)) & 0xF];
+        int contextCost = context.costs[(to.passable >> (context.shift & 31)) & 0xF];
+        if (cost < 0) cost = 0x400;
+        int climbCost = climb[static_cast<int>(to.groundLevel) - static_cast<int>(cell.groundLevel)];
+        int speed = climbCost < 0 ? 0x200 : static_cast<int>(static_cast<unsigned>(cost) << 9) / climbCost;
+        node->data.flags = static_cast<std::uint16_t>(speed);
+        node->data.unknown_6 = static_cast<std::uint16_t>((to.flags >> 7) + (contextCost > kExpensive ? 2 : 0));
+        node = next;
+    }
+}
+EI_REPLACE_METHOD(0x005BA400, CAIMap::SetStepSpeeds);
+
+bool CAIMap::StandsOnCheapCell(CUnit* unit) {
+    PassCostContext context;
+    CostContext(unit->sizeClass, &context);
+    // The original also asks the unit for its movement speeds (0052F920) and ignores them.
+    int x = CellOf(unit->positionX);
+    int y = CellOf(unit->positionY);
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    if (HasKind3Occluder(x, y)) {
+        int sizeClass = unit->sizeClass;
+        int level = x87::fistp(Store(static_cast<double>(ClassHeights()[sizeClass]) * heightScale));
+        std::uint32_t passability[6];
+        CellPassability(this, nullptr, passability, sizeClass, level, x, y);
+        return static_cast<int>(passability[3]) < kExpensive;
+    }
+    int cost = context.costs[(cells[y][x].passable >> (context.shift & 31)) & 0xF];
+    return cost > 0 && cost < kExpensive;
+}
+EI_REPLACE_METHOD(0x005BA5A0, CAIMap::StandsOnCheapCell);
+
+__declspec(naked) void VisibilityGrid::Include(int, int, int) EI_ORIGINAL(0x005C8D40)
+
+void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
+                              float targetHeight, VisibilityGrid* grid) {
+    int eyeX = CellOf(eye->x);
+    int eyeY = CellOf(eye->y);
+    int reach = CellOf(radius) + 1;
+    grid->Include(eyeX, eyeY, reach);
+    bool anyDirection = !(cosLimit > -1.0f);
+    bool noLineOfSight = !(targetHeight >= -100.0f);    // 0073FDC4
+
+    const double half = 1.0f * 0.5f;    // cell size * 0.5
+    for (int y = eyeY - reach; y < eyeY + reach; ++y) {
+        for (int x = eyeX - reach; x < eyeX + reach; ++x) {
+            int gx = x - grid->originX;
+            int gy = y - grid->originY;
+            if (x * 9 < 0 || y < 0 || x >= width || y >= height) continue;
+            Vector3 cell;
+            cell.x = Store(static_cast<double>(x) * half);
+            cell.y = Store(static_cast<double>(y) * half);
+            cell.z = 0.0f;
+            float dx = Store(static_cast<double>(cell.x) - eye->x);
+            float dy = Store(static_cast<double>(cell.y) - eye->y);
+            float dz = Store(-static_cast<double>(eye->z));
+            float distance = Store(x87::fsqrt(static_cast<double>(dy) * dy + static_cast<double>(dx) * dx));
+            if (radius < distance || radius != radius || distance != distance) continue;
+            if (!anyDirection) {
+                double dot = static_cast<double>(dz) * look->z + static_cast<double>(dy) * look->y;
+                dot = dot + static_cast<double>(dx) * look->x;
+                if (static_cast<double>(distance) * cosLimit > dot) continue;
+            }
+            if (!noLineOfSight) {
+                cell.z = Store(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
+                double seen = LineOfSightRaw(this, nullptr, eye, &cell) * radius;
+                if (!(seen >= distance)) continue;
+            }
+            grid->rows[gy][gx] = 1;
+        }
+    }
+}
+EI_REPLACE_METHOD(0x005BC970, CAIMap::MarkVisibleCells);
+
+namespace {
+// The shape cache: an STLport hash_map<ShapeHandle, RefPtr> at 007C2F78 owned by the cache object
+// at 007C2F70 (its slot 0 creates the shape for a handle). Node: {next, handle (0x10), value}.
+struct ShapeCacheIterator {
+    void* node;
+    void* map;
+};
+void* ShapeMap() { return reinterpret_cast<void*>(0x007C2F78); }
+__declspec(naked) ShapeCacheIterator* __fastcall ShapeMapFind(void*, void*, ShapeCacheIterator*, const ShapeHandle*)
+    EI_ORIGINAL(0x005BE320)
+__declspec(naked) ShapeCacheIterator* __fastcall ShapeIteratorInit(ShapeCacheIterator*, void*, void*, void*)
+    EI_ORIGINAL(0x005BE450)
+// pair<const ShapeHandle, RefPtr> (0x14 bytes): construct from a handle and a RefPtr, destroy.
+struct ShapePair {
+    std::uint32_t bytes[5];
+};
+__declspec(naked) ShapePair* __fastcall ShapePairInit(ShapePair*, void*, const ShapeHandle*, const RefPtr*)
+    EI_ORIGINAL(0x005BE370)
+__declspec(naked) void __fastcall ShapePairDestroy(ShapePair*, void*) EI_ORIGINAL(0x005BE280)
+// hash_map insert_unique_noresize-style lookup or insert; returns &node->handle (value at + 0x10).
+__declspec(naked) char* __fastcall ShapeMapInsert(void*, void*, const ShapePair*) EI_ORIGINAL(0x005BE730)
+
+void ReleaseHandle(ShapeHandle* handle) {
+    if (CRefObject* ref = handle->ref) {
+        if (--ref->refs_ == 0 && ref) ei::VCall<void>(ref, 0, 1);
+    }
+}
+} // namespace
+
+void* CAIMap::UnitShape(float standingHeight) {
+    ShapeHandle handle;
+    handle.cache = nullptr;
+    handle.ref = nullptr;
+    handle.key = 0xFFFFFFFF;
+    if (!(standingHeight > kShapeMinHeight)) return nullptr;
+    int tenths = x87::fistp(Store(static_cast<double>(standingHeight) * 10.0f + 1.0f));
+    handle.height = Store(static_cast<double>(tenths) * 0.1f);
+    std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
+
+    CRefObject* shape;
+    ShapeCacheIterator found, end;
+    ShapeMapFind(ShapeMap(), nullptr, &found, &handle);
+    ShapeIteratorInit(&end, nullptr, nullptr, ShapeMap());
+    if (found.node != end.node) {
+        shape = *reinterpret_cast<CRefObject**>(static_cast<char*>(found.node) + 0x14);
+        handle.cache = ShapeCache();
+        reinterpret_cast<RefPtr*>(&handle.ref)->Assign(shape);
+    } else {
+        // Not cached yet: create it and store it under the handle.
+        shape = ei::VCall<CRefObject*>(ShapeCache(), 0, &handle);
+        RefPtr none = {nullptr};
+        ShapePair pair;
+        ShapePairInit(&pair, nullptr, &handle, &none);
+        RefPtr* slot = reinterpret_cast<RefPtr*>(ShapeMapInsert(ShapeMap(), nullptr, &pair) + 0x10);
+        ShapePairDestroy(&pair, nullptr);
+        none.Destroy();
+        if (shape != slot->ptr) {
+            slot->Destroy();
+            slot->Share(shape);
+        }
+        handle.cache = ShapeCache();
+        reinterpret_cast<RefPtr*>(&handle.ref)->Assign(shape);
+    }
+    ReleaseHandle(&handle);
+    return shape;
+}
+EI_REPLACE_METHOD(0x005B8350, CAIMap::UnitShape);

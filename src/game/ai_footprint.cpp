@@ -1,6 +1,7 @@
 // Object footprints in the AI map: collecting the cells an object's model parts cover, stamping
 // them into the occluder grid, and refreshing passability around them.
 #include "ai_map.h"
+#include "ai_unit_layer.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -120,11 +121,10 @@ __declspec(naked) bool CAIMap::ApplyBridges(FootprintCellSet*, bool) EI_ORIGINAL
 __declspec(naked) bool CAIMap::AddOccluder(FootprintCell*) EI_ORIGINAL(0x005B61B0)
 __declspec(naked) bool CAIMap::ClearOccluder(FootprintCell*) EI_ORIGINAL(0x005B6380)
 __declspec(naked) void CAIMap::Refresh(int, int, int, int) EI_ORIGINAL(0x005B8FA0)
-__declspec(naked) void* CAIMap::UnitShape(float) EI_ORIGINAL(0x005B8350)
 
 namespace {
-// The unit occupancy layers at CAIMap + 0x27C and + 0x12A4.
-struct CUnitLayer;
+// The unit occupancy layers at CAIMap + 0x27C and + 0x12A4 (ai_unit_layer.cpp), through their
+// original addresses so the verify build's wrappers see the calls.
 __declspec(naked) void __fastcall UnitLayerAdd(CUnitLayer*, void*, CUnit*, void*, int, int)
     EI_ORIGINAL(0x005B36B0)
 __declspec(naked) void __fastcall UnitLayerRemove(CUnitLayer*, void*, CUnit*, int, int) EI_ORIGINAL(0x005B3890)

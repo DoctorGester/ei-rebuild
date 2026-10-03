@@ -13,9 +13,6 @@
 __declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
 __declspec(naked) bool CRegionMap::Reaches(int, int, int, int, void*) EI_ORIGINAL(0x005B07C0)
 __declspec(naked) void PathCellList::RemoveAll() EI_ORIGINAL(0x00556D40)
-__declspec(naked) void AIPath::Reset() EI_ORIGINAL(0x005C7D50)
-__declspec(naked) void AIPath::Start(const Vector3*, const Vector3*, int) EI_ORIGINAL(0x005C7B00)
-__declspec(naked) void AIPath::SetTarget(float, float) EI_ORIGINAL(0x005C7C70)
 
 namespace {
 // 005BD200: appends a copy of `cell` to the list.
@@ -36,7 +33,8 @@ __declspec(naked) bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int
 // 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
 __declspec(naked) int __fastcall SmoothPath(void*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
     EI_ORIGINAL(0x005C46C0)
-// 005BA400: steers the unit along the steps.
+// 005BA400 (CAIMap::SetStepSpeeds, ai_movement.cpp): the steps' speed words. Called through the
+// original address so the verify build's wrapper sees it.
 __declspec(naked) void __fastcall SteerAlong(CAIMap*, void*, CUnit*, PathCellList*) EI_ORIGINAL(0x005BA400)
 
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify

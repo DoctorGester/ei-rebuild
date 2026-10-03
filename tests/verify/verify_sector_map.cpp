@@ -65,3 +65,13 @@ static bool __fastcall MoveVerify(CSectorMap* self, void*, CEngineObject* object
     return result;
 }
 EI_VERIFY(0x005C11D0, MoveVerify, 0, s_unused);
+
+// 005C0930: MOV EDX,[ESP+4]; PUSH ESI (5 bytes). Pure.
+static mfc::CTypedPtrList<CEngineObject>*(__fastcall* s_unitsAt)(CSectorMap*, void*, int, int);
+static mfc::CTypedPtrList<CEngineObject>* __fastcall UnitsAtVerify(CSectorMap* self, void*, int sx, int sy) {
+    auto* expected = s_unitsAt(self, nullptr, sx, sy);
+    auto* actual = self->UnitsAt(sx, sy);
+    ei::verify::Check("CSectorMap::UnitsAt", expected, actual, "(%d,%d)", sx, sy);
+    return actual;
+}
+EI_VERIFY(0x005C0930, UnitsAtVerify, 5, s_unitsAt);
