@@ -334,11 +334,18 @@ static void __fastcall SetListenerVerify(CSoundManager* self, void*, const float
 EI_VERIFY(0x006B9750, SetListenerVerify, 6, s_setListener);
 
 // 006B7A00: ours only (0 stops the stream). The level must be what the original's Recalc gives.
+// The wrapper holds the stream lock so the stream thread's fade cannot run in between.
 static IntFn s_unusedMusicVolume;
 static void __fastcall SetMusicVolumeVerify(CSoundManager* self, void*, int volume) {
+    if (self->enabled == 0 || s_faderRecalc == nullptr) {
+        self->CSoundManager::SetMusicVolume(volume);
+        return;
+    }
+    CRITICAL_SECTION* lock = reinterpret_cast<CRITICAL_SECTION*>(self->streamLock);
+    gameapi::EnterCriticalSection(lock);
     self->CSoundManager::SetMusicVolume(volume);
-    if (self->enabled == 0) return;
     SoundFader expected = self->musicFader;
+    gameapi::LeaveCriticalSection(lock);
     s_faderRecalc(&expected, nullptr);
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     ei::verify::Check("CSoundManager::SetMusicVolume", true, self->musicFader.volume == v && self->musicFader.level == expected.level,
@@ -602,3 +609,35 @@ static int __fastcall UpdateMusicVerify(CMusicSystem* self, void*) {
     return r;
 }
 EI_VERIFY(0x006B5350, UpdateMusicVerify, 0, s_unusedUpdateMusic);
+
+// --- The per-frame tick: ours only ------------------------------------------------------------------
+
+// 006B5CD0: ours only (ends the voice).
+using SlotEndFn = void(__fastcall*)(SoundSlot*, void*, CSoundManager*);
+static SlotEndFn s_unusedSlotEnd;
+static void __fastcall SlotEndVerify(SoundSlot* self, void*, CSoundManager* manager) {
+    self->SoundSlot::End(manager);
+    ei::verify::Check("SoundSlot::End", true, self->playing == 0, "handle %d", self->handle);
+}
+EI_VERIFY(0x006B5CD0, SlotEndVerify, 0, s_unusedSlotEnd);
+
+// 006B9B10 (every world frame): ours only (starts sounds, deletes deferred records, draws random
+// numbers). Afterwards every active sequence's id names its slot and the emitter clock is not ahead
+// of GetTickCount. (Starting a looping sequence sound may defer it, so the deferred count can grow;
+// it is only logged.)
+static VoidFn s_unusedTick;
+static void __fastcall TickVerify(CSoundManager* self, void*) {
+    int deferredBefore = self->enabled != 0 ? self->deferred.count : 0;
+    self->CSoundManager::Tick();
+    if (self->enabled == 0) {
+        ei::verify::Check("CSoundManager::Tick", true, true, "");
+        return;
+    }
+    bool ok = true;
+    for (int k = 0; k < 8; ++k)
+        if (self->sequences[k].active != 0 && (self->sequences[k].id & 0xFF) != k) ok = false;
+    std::uint32_t now = gameapi::GetTickCount();
+    if (now - self->emitterTick > 0x7FFFFFFFu) ok = false;
+    ei::verify::Check("CSoundManager::Tick", true, ok, "deferred %d -> %d", deferredBefore, self->deferred.count);
+}
+EI_VERIFY(0x006B9B10, TickVerify, 0, s_unusedTick);

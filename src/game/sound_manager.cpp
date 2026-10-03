@@ -1,8 +1,8 @@
 // The sound manager (CSoundManager, *007AF784): voice volumes and pans from the listener,
-// the per-handle controls, ambient emitters, 3D sound sequences and the music stream requests
-// (006B69E0-006BB240). The Miles calls go through game.exe's import table; wave loading, the
-// voice allocation (006B7D10), Play2D / Play3D (006B8250 / 006B8600) and the per-frame tick
-// (006B9B10) stay original.
+// the per-handle controls, ambient emitters, 3D sound sequences, the per-frame tick and the music
+// stream requests (006B5CD0-006BB240). The Miles calls go through game.exe's import table; wave
+// loading (006B89F0), the voice allocation (006B7D10), Play2D / Play3D (006B8250 / 006B8600) and
+// the stream / MIDI threads stay original.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
@@ -56,6 +56,8 @@ constexpr float kHundred = 100.0f;       // 0073BAB0
 constexpr float kMilesScale = std::bit_cast<float>(0x3C5013A9u);  // 0074413C (0.0127)
 constexpr float kLevelMax = 127.0f;      // 0073D06C
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // 0073D09C (0.01)
+constexpr float kEmitterMargin = std::bit_cast<float>(0x3A83126Fu);  // 0073CCF4 (0.001)
+constexpr float kEmitterMaxScale = 255.0f;                         // 0073C370
 
 // pi (007440D8) and pi / 2 (007C8808, set by a static initialiser).
 float Pi() { return *reinterpret_cast<const volatile float*>(0x007440D8); }
@@ -76,6 +78,16 @@ SampleIntFn AilSetSamplePan() { return *reinterpret_cast<SampleIntFn*>(0x0073B77
 SampleFn AilEndSample() { return *reinterpret_cast<SampleFn*>(0x0073B7D8); }
 SampleFn AilStopSample() { return *reinterpret_cast<SampleFn*>(0x0073B784); }
 SampleFn AilResumeSample() { return *reinterpret_cast<SampleFn*>(0x0073B780); }
+SampleFn AilInitSample() { return *reinterpret_cast<SampleFn*>(0x0073B808); }
+SampleFn AilStartSample() { return *reinterpret_cast<SampleFn*>(0x0073B76C); }
+SampleIntFn AilSetSampleLoopCount() { return *reinterpret_cast<SampleIntFn*>(0x0073B778); }
+SampleIntFn AilSetSamplePosition() { return *reinterpret_cast<SampleIntFn*>(0x0073B790); }
+using EosFn = void(__stdcall*)(void*, void*);
+EosFn AilRegisterEosCallback() { return *reinterpret_cast<EosFn*>(0x0073B75C); }
+using ReverbFn = void(__stdcall*)(void*, float, float, float);
+ReverbFn AilSetSampleReverb() { return *reinterpret_cast<ReverbFn*>(0x0073B764); }
+// The end-of-sample callback every started voice gets (sets the slot's finished flag).
+void* EndOfSampleCallback() { return reinterpret_cast<void*>(0x006B75E0); }
 
 // _CIacos: the CRT's x87 intrinsic (argument and result in ST0).
 __declspec(naked) double __cdecl CIacos(double) {
@@ -123,6 +135,17 @@ __declspec(naked) int __fastcall DeferredErase(DeferredMap*, void*, const std::i
 __declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x006B72E0)
 // CStringArray::Copy.
 __declspec(naked) void __fastcall CopyNames(SoundNameArray*, void*, const SoundNameArray*) EI_ORIGINAL(0x006FEB61)
+// The deferred map's STLport iteration: begin(), the next node in a later bucket, operator[]
+// (which may rehash first), erase(key).
+struct DeferredIter {
+    DeferredNode* node;
+    DeferredMap* map;
+};
+__declspec(naked) DeferredIter* __fastcall DeferredBegin(DeferredMap*, void*, DeferredIter*) EI_ORIGINAL(0x006BC3E0)
+__declspec(naked) DeferredNode* __fastcall DeferredNextBucket(DeferredIter*) EI_ORIGINAL(0x006BCFB0)
+// Returns the address of the {key, value} pair.
+__declspec(naked) std::int32_t* __fastcall DeferredIndex(DeferredMap*, void*, const std::int32_t* /*pair*/)
+    EI_ORIGINAL(0x006BCFF0)
 
 int ClampLevel(int v) { return v < 0 ? 0 : (v > 0x7F ? 0x7F : v); }
 
@@ -635,6 +658,150 @@ int CSoundManager::RemoveSequence(std::uint32_t id) {
 }
 EI_REPLACE_METHOD(0x006BA7C0, CSoundManager::RemoveSequence);
 
+// --- The per-frame tick ---------------------------------------------------------------------------
+
+// 006B5CD0. Ends the voice if it plays (the sequences' check in Tick).
+void SoundSlot::End(CSoundManager* manager) {
+    if (playing == 0) return;
+    manager->EndSlot(this);
+}
+EI_REPLACE_METHOD(0x006B5CD0, SoundSlot::End);
+
+// 006B9B10 (every world frame, from 005641F0). Frees the voices whose sample ended, restarts the
+// highest-priority deferred sounds in free voices, starts the next sound of every sequence whose
+// sound is over, and every 100 ms (GetTickCount) lets the ambient emitters near the listener play a
+// random name of theirs. Emitters and random sequences draw from the game's random generator
+// (007A9D40) on the wall clock's schedule.
+void CSoundManager::Tick() {
+    if (enabled == 0) return;
+    for (int i = 0; i < 15; ++i) {
+        SoundSlot* slot = &slots[i];
+        if (slot->finished == 0 || slot->playing == 0) continue;
+        std::uint8_t** entry = CacheEntry(cache, nullptr, slot);
+        --*reinterpret_cast<std::int32_t*>(*entry + 0x20);
+        AilEndSample()(slot->sample);
+        slot->handle = -1;
+        slot->playing = 0;
+        slot->finished = 0;
+    }
+
+    for (int i = 0; i < 15; ++i) {
+        if (deferred.count == 0) break;
+        if (slots[i].playing != 0) continue;
+        // The highest priority (the first one met on ties).
+        DeferredIter it;
+        DeferredBegin(&deferred, nullptr, &it);
+        std::int32_t best = it.node->value->priority;
+        DeferredBegin(&deferred, nullptr, &it);
+        std::int32_t key = it.node->value->handle;
+        DeferredBegin(&deferred, nullptr, &it);
+        while (it.node != nullptr) {
+            DeferredSound* candidate = it.node->value;
+            if (candidate->priority > best) {
+                best = candidate->priority;
+                key = candidate->handle;
+            }
+            DeferredNode* next = it.node->next;
+            if (next == nullptr) next = DeferredNextBucket(&it);
+            it.node = next;
+        }
+        std::int32_t pair[2] = {key, 0};
+        DeferredSound* rec = reinterpret_cast<DeferredSound*>(DeferredIndex(&deferred, nullptr, pair)[1]);
+        DeferredErase(&deferred, nullptr, &key);
+
+        SoundSlot* slot = &slots[i];
+        slot->volume = rec->volume;
+        slot->baseVolume = rec->baseVolume;
+        slot->pan = rec->pan;
+        slot->priority = rec->priority;
+        slot->speech = rec->speech;
+        slot->looping = 1;
+        std::memcpy(&slot->length, &rec->length, 4);
+        slot->flat = rec->flat;
+        slot->heightFade = rec->heightFade;
+        std::memcpy(slot->position, rec->position, sizeof(slot->position));
+        std::memcpy(&slot->nearDistance, &rec->nearDistance, 4);
+        std::memcpy(&slot->farDistance, &rec->farDistance, 4);
+        AilInitSample()(slot->sample);
+        // A flat sound's level is recomputed from its saved Miles level as if that were 0..100.
+        if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
+        else UpdatePositional(slot);
+        if (LoadSample(slot, i, reinterpret_cast<const char*>(rec->name[0]), 0) != 0) {
+            slot->handle = rec->handle;
+            AilSetSampleLoopCount()(slot->sample, 0);
+            ApplyVolumePan(slot);
+            AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
+            if (reverbOn != 0) AilSetSampleReverb()(slot->sample, reverb[0], reverb[1], reverb[2]);
+            AilSetSamplePosition()(slot->sample, rec->samplePosition);
+            AilStartSample()(slot->sample);
+        }
+        if (rec != nullptr) {
+            FreeStringStorage(rec);
+            gamecrt::operator_delete(rec);
+        }
+    }
+
+    for (int k = 0; k < 8; ++k) {
+        SoundSequence* s = &sequences[k];
+        if (s->active == 0) continue;
+        int handle = s->handle;
+        if (handle != -1) {
+            if (enabled != 0) {
+                SoundSlot* slot = SlotForHandle(handle);
+                if (slot != nullptr) {
+                    if (slot->finished == 0) continue;
+                    slot->End(this);
+                }
+            }
+            if (FindDeferred(static_cast<std::uint32_t>(handle)) != nullptr) continue;
+        }
+        if (s->PlayNext(this) == 0) {
+            s->id = -1;
+            s->active = 0;
+        }
+    }
+
+    std::uint32_t now = gameapi::GetTickCount();
+    if (now - emitterTick < 100) return;
+    emitterTick = now;
+    IsaacRandom& random = GlobalRandom();
+    for (int k = 0; k < 16; ++k) {
+        SoundEmitter* e = &emitters[k];
+        if (e->active == 0) continue;
+        double dx = D(listener[0]) - e->position[0];
+        double dy = D(listener[1]) - e->position[1];
+        double dist = x87::fsqrt(dy * dy + dx * dx);
+        float distF = Store(dist);
+        std::uint32_t minInterval, maxInterval;
+        if (!(dist >= e->innerRadius)) {
+            minInterval = static_cast<std::uint32_t>(e->minInterval);
+            maxInterval = static_cast<std::uint32_t>(e->maxInterval);
+        } else {
+            // Out of earshot past outerRadius - 0.001 (NaN too).
+            if (!(D(e->outerRadius) - kEmitterMargin >= distF)) continue;
+            double t = (D(e->outerRadius) - e->innerRadius) / (D(e->outerRadius) - distF);
+            float tF = Store(t);
+            if (t > kEmitterMaxScale) continue;
+            minInterval = static_cast<std::uint32_t>(x87::fistp(Store(I(e->minInterval) * tF)));
+            maxInterval = static_cast<std::uint32_t>(x87::fistp(Store(I(e->maxInterval) * tF)));
+        }
+        std::uint32_t elapsed = now - e->lastPlayed;
+        if (elapsed < minInterval) continue;
+        if (elapsed < maxInterval) {
+            std::uint32_t span = (maxInterval - minInterval) / 100;
+            if (span > 1 && random.Next() % span != 0) continue;
+        }
+        e->lastPlayed = now;
+        std::uint32_t index = 0;
+        if (e->names.size > 1) index = random.Next() % static_cast<std::uint32_t>(e->names.size);
+        std::uint32_t panRoll = random.Next();
+        std::uint32_t volumeRoll = random.Next();
+        Play2D(static_cast<const char*>(e->names.data[index]), 1, static_cast<int>(volumeRoll % 51 + 50),
+               static_cast<int>(panRoll % 101), 0, 0, 0, 0);
+    }
+}
+EI_REPLACE_METHOD(0x006B9B10, CSoundManager::Tick);
+
 // --- Music stream ---------------------------------------------------------------------------------
 
 // 006BAFA0 / 006BAFE0. Starts a fade of the stream (no lock, as in the original).
@@ -859,3 +1026,5 @@ EI_REPLACE_METHOD(0x006B5EE0, SoundFader::Update);
 __declspec(naked) mfc::CString CSoundManager::CurrentStreamName() EI_ORIGINAL(0x006BAEA0)
 __declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)
 __declspec(naked) int CSoundManager::Play3D(const char*, int, const float*, float, float, int, int) EI_ORIGINAL(0x006B8600)
+__declspec(naked) int CSoundManager::Play2D(const char*, int, int, int, int, int, int, int) EI_ORIGINAL(0x006B8250)
+__declspec(naked) int CSoundManager::LoadSample(SoundSlot*, int, const char*, int) EI_ORIGINAL(0x006B89F0)

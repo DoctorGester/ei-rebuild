@@ -49,6 +49,8 @@ struct SoundSlot {
     float nearDistance;         // +0x48 full volume inside
     float farDistance;          // +0x4C silent outside
     std::int32_t handle;        // +0x50 sound handle (-1: free)
+
+    void End(struct CSoundManager* manager);  // 006B5CD0
 };
 static_assert(sizeof(SoundSlot) == 0x54);
 static_assert(offsetof(SoundSlot, finished) == 0x30 && offsetof(SoundSlot, handle) == 0x50);
@@ -62,7 +64,7 @@ struct DeferredSound {
     std::int32_t pan;           // +0x14
     std::int32_t priority;      // +0x18
     std::int32_t speech;        // +0x1C
-    std::int32_t unknown20;     // +0x20
+    float length;               // +0x20
     std::int32_t flat;          // +0x24
     std::int32_t heightFade;    // +0x28
     float position[3];          // +0x2C
@@ -206,6 +208,7 @@ struct CSoundManager {
     int MoveSequence(std::uint32_t id, const float* position);                           // 006BA400
     int UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count);  // 006BA5E0
     int RemoveSequence(std::uint32_t id);                                                 // 006BA7C0
+    void Tick();                                                                          // 006B9B10
     void FadeOutStream();                                                                 // 006BAFA0
     void FadeInStream();                                                                  // 006BAFE0
     int RequestStream(const char* name, int mode);                                       // 006BB020
@@ -222,6 +225,9 @@ struct CSoundManager {
     void StreamNotify(int mode);                                                          // 006BBAC0 (empty)
     int Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
                int speech);                                                               // 006B8600
+    int Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
+               int cached);                                                              // 006B8250
+    int LoadSample(SoundSlot* slot, int index, const char* name, int cached);             // 006B89F0
 };
 static_assert(offsetof(CSoundManager, streamState) == 0x100);
 static_assert(offsetof(CSoundManager, musicFader) == 0x144);
