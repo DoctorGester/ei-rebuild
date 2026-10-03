@@ -14,6 +14,10 @@
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
 //                             interface screen is designed for (scaled to the window's client size)
+//   clickregion <n>, rclickregion <n>, moveregion <n>
+//                             the same at the centre of clickable region <n> of the window on top
+//                             of the interface (its regions as the screen's code numbers them;
+//                             placed with the game's own scaling, so Rebirth's widescreen layout too)
 //   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
@@ -43,6 +47,7 @@
 
 #include "../../src/hook/log.h"
 #include "../../src/lib/mfc.h"
+#include "../../src/game/ui.h"
 
 #include <windows.h>
 #include <psapi.h>
@@ -422,6 +427,40 @@ void PostMouse(const std::string& verb, int x, int y) {
     }
 }
 
+// The centre of region `index` of the top interface window, posted as a mouse event. The region's
+// layout rectangle (plus the offset its hit test subtracts) goes through the game's layout-to-screen
+// scaling (005F7D20, patched by Rebirth) and then to the window's client size.
+void PostRegionMouse(const std::string& verb, int index) {
+    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    CUiWindow* window = ui->GetActiveWindow();
+    if (!window || index < 0 || index >= window->regions_.size_ || !window->regions_.data_[index]) {
+        Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window,
+            window ? window->regions_.size_ : 0);
+        return;
+    }
+    const CUiRegion* region = window->regions_.data_[index];
+    POINT point{(region->bounds_.left + region->bounds_.right) / 2 + region->offsetX_,
+                (region->bounds_.top + region->bounds_.bottom) / 2 + region->offsetY_};
+    Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window,
+        region->bounds_.left, region->bounds_.top, region->bounds_.right, region->bounds_.bottom, region->enabled_);
+    ui->CallScalePointToScreen(&point);
+    RECT client{};
+    GetClientRect(GameWindow(), &client);
+    if (ui->width_ > 0 && ui->height_ > 0) {
+        point.x = point.x * (client.right - client.left) / ui->width_;
+        point.y = point.y * (client.bottom - client.top) / ui->height_;
+    }
+    LPARAM at = MAKELPARAM(point.x, point.y);
+    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
+    if (verb == "clickregion") {
+        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+    } else if (verb == "rclickregion") {
+        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
+        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+    }
+}
+
 void RunSteps() {
     g_showTutorial = 0;
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
@@ -504,6 +543,8 @@ void RunSteps() {
             int x = 0, y = 0;
             if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());
+        } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
+            PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
         } else if (s.verb == "check") {
             g_checking = true;
             g_checkExpr = s.argument;

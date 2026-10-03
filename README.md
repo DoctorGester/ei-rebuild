@@ -56,6 +56,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   prefer it to fixed `wait`s.
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
+  `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
+  window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
 
