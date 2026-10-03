@@ -152,10 +152,12 @@ __declspec(naked) int CUnitServer::CallAnimationDuration(std::uint32_t) EI_ORIGI
 __declspec(naked) int CUnitServer::CallAnimationMoment(std::uint32_t) EI_ORIGINAL(0x00551A90)
 
 namespace {
-// The game's _ftol (006E853C).
-__declspec(naked) int __cdecl GameFtol(double) {
+// _ftol (006E853C) of a / b with the quotient left unrounded in ST0, as the original divides
+// and truncates (storing the quotient as a double first can round it up to the next integer).
+__declspec(naked) int __cdecl FtolQuotient(double /*a*/, double /*b*/) {
     __asm {
         fld qword ptr [esp + 4]
+        fdiv qword ptr [esp + 12]
         mov eax, 0x006E853C
         call eax
         ret
@@ -171,7 +173,7 @@ int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
     volatile std::int64_t wide = Get<std::uint32_t>(entry, offset);
     volatile float frames = static_cast<float>(wide);
     double speed = UnitAnimationSpeed(unit, nullptr, entry);
-    return GameFtol(frames / speed);
+    return FtolQuotient(frames, speed);
 }
 
 // Appends the first step of `steps` (as the original copies it) to `out`.

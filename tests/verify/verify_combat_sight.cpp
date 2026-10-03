@@ -75,9 +75,16 @@ static bool __fastcall PlanActionVerify(CUnitServer* self, void*, const UnitActi
     afterOriginal.Save();
     int diff = PlanDifference(&scratch, plan);
     bool same = expected == actual && diff < 0 && afterOurs.SameAs(afterOriginal);
-    ei::verify::Check("CUnitServer::PlanAction", true, same, "unit %d kind %d: %d vs %d, plan difference at +0x%X%s",
-                      UnitId(self), order->kind, expected, actual, diff,
-                      afterOurs.SameAs(afterOriginal) ? "" : ", random state differs");
+    std::uint32_t was = 0, now = 0;
+    if (diff >= 0 && diff < static_cast<int>(sizeof(OrderPlan))) {
+        int at = diff & ~3;
+        std::memcpy(&was, reinterpret_cast<const char*>(&scratch) + at, 4);
+        std::memcpy(&now, reinterpret_cast<const char*>(plan) + at, 4);
+    }
+    ei::verify::Check("CUnitServer::PlanAction", true, same,
+                      "unit %d kind %d: %d vs %d, plan difference at +0x%X (original %08X / %d, ours %08X / %d)%s",
+                      UnitId(self), order->kind, expected, actual, diff, was, static_cast<int>(was), now,
+                      static_cast<int>(now), afterOurs.SameAs(afterOriginal) ? "" : ", random state differs");
     FreeSteps(&scratch.animation);
     return expected;
 }
