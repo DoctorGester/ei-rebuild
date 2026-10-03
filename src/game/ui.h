@@ -444,6 +444,45 @@ public:
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 
+// A 2D mesh of the interface (the sprite objects 005E70E0 and its siblings set up). Positions
+// are kept per quad as four x then four y floats; each vertex has a 6-byte record (the position
+// it uses and a frame of the texture); indices are 16 bits. The arrays grow like UiPtrArray.
+struct UiQuadBlock {
+    float x[4];
+    float y[4];
+    std::uint8_t unknown_20[0x20];
+};
+static_assert(sizeof(UiQuadBlock) == 0x40);
+struct UiMeshVertex {
+    std::int16_t position;           // +0 vertex number
+    std::int16_t unknown_2;
+    std::int16_t frame;              // +4 texture frame (the minimap's marker kinds)
+};
+static_assert(sizeof(UiMeshVertex) == 6);
+class CUiMesh {
+public:
+    // Not rewritten: array sizes (005EA210 quads, 005EA600 vertices, 005EA4C0 indices) and
+    // Commit (005EA150), which hands the arrays to the renderer fields (+0x9C..+0xC8) and
+    // returns the index count.
+    void SetQuadCount(int count);
+    void SetVertexCount(int count);
+    void SetIndexCount(int count);
+    int Commit();
+
+    std::uint8_t unknown_000[0x1C0];
+    UiQuadBlock* quads_;             // +0x1C0
+    int quadCount_;                  // +0x1C4
+    std::uint8_t unknown_1C8[0x1E0 - 0x1C8];
+    UiMeshVertex* vertices_;         // +0x1E0
+    int vertexCount_;                // +0x1E4
+    std::uint8_t unknown_1E8[0x200 - 0x1E8];
+    std::uint16_t* indices_;         // +0x200
+    int indexCount_;                 // +0x204
+};
+static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
+static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
+static_assert(offsetof(CUiMesh, indices_) == 0x200);
+
 // Map (set up by 00641F20, vtables 00742660 / 0074262C; 615..800 x 0..165). Regions: 0 the
 // sling button, 1 the round map, 2 the map area, 3 and 4 the two view buttons, 5 a button
 // above them, 6 the whole panel.
@@ -451,11 +490,26 @@ class CHudMap : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00645060: the view buttons
     void OnMouseMove(int buttons, int x, int y);   // 00645610
+    // 00643DC0 (every frame, from 00642B40). Rebuilds the marker mesh (scene object 2): the
+    // party and other units, the marked objects, the zone exits and the other players
+    // (ui_hud_map.cpp).
+    void BuildMarkers();
 
     CBattleScreen* owner_;           // +0x148
-    std::uint8_t unknown_14C[0x1AC - 0x14C];
+    float centreX_;                  // +0x14C world point at the map's centre (the camera's)
+    float centreY_;                  // +0x150
+    float facingX_;                  // +0x154 view direction (normalised by 00642E80)
+    float facingY_;                  // +0x158
+    std::uint8_t unknown_15C[0x168 - 0x15C];
+    float scale_;                    // +0x168 world units to map units
+    float zoom_;                     // +0x16C 1 .. zoomMax_ (the view buttons change it)
+    float zoomMax_;                  // +0x170
+    std::uint8_t unknown_174[0x1AC - 0x174];
     int view_;                       // +0x1AC 1 or 2 (scene objects 6 and 7 are the buttons)
 };
+static_assert(offsetof(CHudMap, centreX_) == 0x14C);
+static_assert(offsetof(CHudMap, scale_) == 0x168);
+static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
 
 // Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
