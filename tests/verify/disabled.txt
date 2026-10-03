@@ -1,2 +1,22 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+# Map objects (map_object*.cpp): with these hooked, the hero loses combat.txt's goblin fight under
+# Rebirth in 2 of 5 runs (0 of 7 without hooks, 0 of 6 with these disabled); sent back for a fix.
+0050F1C0  map objects
+0050F5B0  map objects
+0050F690  map objects
+0050F2D0  map objects
+0050E440  map objects
+0050E4B0  map objects
+0050E4D0  map objects
+0050F730  map objects
+0050F020  map objects
+0050F050  map objects
+0050E8F0  map objects
+0050FA10  map objects
+0050FA20  map objects
+0050E430  map objects
+00515820  map objects
+00515950  map objects
+00515980  map objects
+00510890  map objects
