@@ -1,0 +1,49 @@
+# Sound and music (src/game/sound_manager.cpp, sound_music.cpp). A new game enters zone1:
+# CMusicSystem::SetZoneMode picks the allod's theme, UpdateMusic and CSoundManager::Tick run every
+# world frame, CCamera::Update hands the listener to SetListener, and loading sets the option
+# volumes. Then:
+# - PlayMusic plays a one-off piece (CMusicSystem::PlayJingle, the stream request / stop on the
+#   sound manager);
+# - CreateFX starts a positional sound object (Play3D, SetSoundPosition / StopSound on its handle,
+#   UpdatePositional);
+# - a fight with two goblins switches the music to a combat track (UpdateMusic: RequestStream mode
+#   3) and makes the AI hear each other: the brain's delayed sounds (AIMemory, 005CC9D0) print
+#   "Unit N hear delayed sound: ..." (a hostility claim) or "Delayed sound: ..." (a call for help)
+#   on the console stream that "filter all" opens. The expect below matches both spellings.
+# The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+console filter all on
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Music: a piece from Stream\ (victory.mp3); the zone's calm / combat choice waits until it ends.
+console @PlayMusic("victory")
+wait 1000
+
+# A positional sound effect next to the hero (the game's own thunder strike uses the same call).
+console @CreateFX(GetX(GetLeader()),GetY(GetLeader()),0,60,150,"nature\thunder\1.wav")
+wait 1000
+
+# Combat: one goblin attacks the hero, a second one stands by and hears the fight.
+console @AddUnitToServer("Snd1","GoblinF1","Snd1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+console @AddUnitToServer("Snd2","GoblinF1","Snd2",Add(GetX(GetLeader()),6),Add(GetY(GetLeader()),2),0)
+waitfor 10 IsAlive(GetObjectByName("Snd2"))
+console @SetPlayer(GetObjectByName("Snd1"),6)
+console @SetPlayer(GetObjectByName("Snd2"),6)
+check IsEnemy(GetObjectByName("Snd1"),0)
+console @GSSetVar(0,"hp0",HP(GetLeader()))
+console @Attack(GetObjectByName("Snd1"),GetLeader())
+waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
+# The hero fights back (healed first) until the first goblin is dead.
+console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @Attack(GetLeader(),GetObjectByName("Snd1"))
+waitfor 20 Not(IsAlive(GetObjectByName("Snd1")))
+expect elayed sound
+check IsAlive(GetLeader())
+report
+quit

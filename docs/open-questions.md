@@ -32,10 +32,16 @@ It does not repeat yet: the same scenario run twice on the original code diverge
 - A new game sometimes never finishes loading under the virtual clock (loading waits on something
   real-time; the fallback advances the clock by 1 ms per 10000 off-loop reads), and otherwise takes
   a different number of frames each run.
-- A second thread (sound, 006B5xxx-006BBxxx) reads the clock on its own schedule, and its "Delayed
-  sound: unit heard unit" events feed AI hearing.
-Next steps would be: find what the loader waits on; make the sound thread's events land on frame
-boundaries (or disable sound in harness runs).
+- A second thread (sound, 006B5xxx-006BBxxx) reads the clock on its own schedule. Mapped since
+  (docs/notes/sound.md): the sound threads draw no random numbers and touch no game state; the
+  "Delayed sound" / "hear delayed sound" events are the AI brain's own countdowns (005CB700 ->
+  005CC9D0, world thread). What does shift the shared random generator (007A9D40) between runs is
+  main-thread sound code driven by the wall clock: CSoundManager::Tick's ambient emitters (every
+  100 ms of GetTickCount), the music's calm delay and track choice (timeGetTime), random sound
+  sequences, Play2D/Play3D's random start position and the terrain ambience 006CB390.
+Next steps would be: find what the loader waits on; keep the virtual clock for GetTickCount /
+timeGetTime on the main thread too, or run harness games with sound disabled (CSoundManager +0x898
+= 0 makes all of the above return early).
 
 ## Rare Rebirth crash in the unit sort during new-game load (seen once, 2026-10-03)
 

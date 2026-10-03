@@ -20,6 +20,7 @@ __declspec(naked) void CString::Empty() EI_ORIGINAL(0x007008FB)
 __declspec(naked) void CString::MakeLower() EI_ORIGINAL(0x00700EFE)
 __declspec(naked) void CString::TrimRight(const char*) EI_ORIGINAL(0x006FE08A)
 __declspec(naked) const CString& CString::operator+=(const CString&) EI_ORIGINAL(0x00700D88)
+__declspec(naked) const CString& CString::operator+=(const char*) EI_ORIGINAL(0x00700D4C)
 
 __declspec(naked) CFile::CFile() EI_ORIGINAL(0x00701036)
 __declspec(naked) CFile::~CFile() EI_ORIGINAL(0x0070112B)

@@ -2,6 +2,8 @@
 
 #include "../../src/hook/log.h"
 
+#include <windows.h>
+
 #include <cstdarg>
 #include <cstdio>
 #include <map>
@@ -32,11 +34,18 @@ Registry& GetRegistry() {
     return registry;
 }
 
+// Wrappers also run on the game's other threads (the sound manager's stream thread): the counts
+// are kept under a lock.
+SRWLOCK g_countsLock = SRWLOCK_INIT;
+
 void ForEachCount(const std::function<void(const char*, unsigned long, unsigned long)>& fn) {
+    AcquireSRWLockExclusive(&g_countsLock);
     for (auto& [name, c] : GetRegistry().counts) fn(name.c_str(), c.calls, c.mismatches);
+    ReleaseSRWLockExclusive(&g_countsLock);
 }
 
 void Report(const char* name, bool match, const char* detail) {
+    AcquireSRWLockExclusive(&g_countsLock);
     Counts& c = GetRegistry().counts[name];
     if (++c.calls == 1) Log("verify %s: first call", name);
     if (!match) {
@@ -49,6 +58,7 @@ void Report(const char* name, bool match, const char* detail) {
     for (unsigned long m : kMilestones) milestone |= c.calls == m;
     if (milestone)
         Log("verify %s: %lu calls, %lu mismatches", name, c.calls, c.mismatches);
+    ReleaseSRWLockExclusive(&g_countsLock);
 }
 
 } // namespace ei::verify
