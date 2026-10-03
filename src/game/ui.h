@@ -893,7 +893,11 @@ public:
     int unknown_1C0;                 // +0x1C0
     float markerScale_;              // +0x1C4
     int unknown_1C8;                 // +0x1C8
-    std::uint8_t unknown_1CC[0x1D8 - 0x1CC];
+    // +0x1CC STLport vector of the selected quest's places (8-byte points); RefreshQuests
+    // (0064DC60) gives each a sprite and a region after the exits'.
+    UiPointF* questPlacesBegin_;     // +0x1CC
+    UiPointF* questPlacesEnd_;       // +0x1D0
+    std::uint8_t unknown_1D4[0x1D8 - 0x1D4];
     std::uint8_t objectiveTexts_[0x14];   // +0x1D8 CStringArray of obj_0..obj_2
     std::uint32_t savedAlphaRef_;    // +0x1EC
 };

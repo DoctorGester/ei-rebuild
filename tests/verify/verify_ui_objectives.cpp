@@ -1,7 +1,10 @@
 // Checks for the objectives window (ui_objectives.cpp). Both functions build parts of the
 // window (sprites, regions, textures, child windows), so ours run alone and the wrapper checks
-// the structure they leave: the 21 fixed sprites and 9 fixed regions plus one marker sprite and
-// one region per exit that leads somewhere, and the exit list matching the zone's exits.
+// the structure they leave: the 21 fixed sprites and 9 fixed regions, one marker sprite and one
+// region per exit that leads somewhere (the exit list matching the zone's exits), then one sprite
+// and one region per place of the selected quest. The quest places come from the original's
+// RefreshQuests (0064DC60), which may also return before adding them (no such quest), leaving the
+// list from earlier: so the extra count is either 0 or the list's length.
 #include "verify.h"
 
 #include "../../src/game/object_tables.h"
@@ -27,10 +30,16 @@ int ExpectedExits(const char* name) {
     return shown;
 }
 
-bool PageMatches(CObjectivesWindow* w, int expected) {
-    return w->exitCount_ == expected && w->regions_.size_ == 9 + expected &&
-           w->sceneObjects_.size_ == 0x15 + expected;
+int QuestPlaces(const CObjectivesWindow* w) { return static_cast<int>(w->questPlacesEnd_ - w->questPlacesBegin_); }
+
+// Regions and sprites beyond the fixed ones and the exits' must be the quest places' (or none).
+bool ExtrasMatch(const CObjectivesWindow* w, int exits) {
+    int regions = w->regions_.size_ - 9 - exits;
+    int sprites = w->sceneObjects_.size_ - 0x15 - exits;
+    return regions == sprites && (regions == 0 || regions == QuestPlaces(w));
 }
+
+bool PageMatches(CObjectivesWindow* w, int expected) { return w->exitCount_ == expected && ExtrasMatch(w, expected); }
 } // namespace
 
 static void __fastcall ObjectivesBuildVerify(CObjectivesWindow* self, void*) {
@@ -54,17 +63,15 @@ static void __fastcall ObjectivesBuildVerify(CObjectivesWindow* self, void*) {
             failed = "zone not in the map database";
         else if (self->exitCount_ != expected)
             failed = "exit count";
-        else if (self->regions_.size_ != 9 + expected)
-            failed = "regions";
-        else if (self->sceneObjects_.size_ != 0x15 + expected)
-            failed = "sprites";
+        else if (!ExtrasMatch(self, expected))
+            failed = "regions/sprites";
     }
     ei::verify::Check("CObjectivesWindow::Build", true, *failed == 0,
-                      "%s: zone %s list %d texts %d->%d exits %d/%d regions %d->%d sprites %d->%d pending %d->%d "
-                      "(value %X)",
+                      "%s: zone %s list %d texts %d->%d exits %d/%d quest places %d regions %d->%d sprites %d->%d "
+                      "pending %d->%d (value %X)",
                       failed, self->shownZone_ ? self->shownZone_ : "?", self->listZones_, texts, textsAfter, expected,
-                      self->exitCount_, regionsBefore, self->regions_.size_, spritesBefore, self->sceneObjects_.size_,
-                      pendingBefore, ui->pendingFlag_, ui->pendingValue_);
+                      self->exitCount_, QuestPlaces(self), regionsBefore, self->regions_.size_, spritesBefore,
+                      self->sceneObjects_.size_, pendingBefore, ui->pendingFlag_, ui->pendingValue_);
 }
 EI_VERIFY(0x0064BE80, ObjectivesBuildVerify, 0, s_unused);
 
@@ -76,7 +83,7 @@ static void __fastcall ObjectivesShowZoneVerify(CObjectivesWindow* self, void*, 
     CInterface3D* ui = self->interface_;
     bool ok = expected < 0 ? ui->pendingFlag_ && ui->pendingValue_ == 0
                            : PageMatches(self, expected) && _stricmp(self->shownZone_, name) == 0;
-    ei::verify::Check("CObjectivesWindow::ShowZone", true, ok, "exits %d/%d regions %d sprites %d", expected,
-                      self->exitCount_, self->regions_.size_, self->sceneObjects_.size_);
+    ei::verify::Check("CObjectivesWindow::ShowZone", true, ok, "exits %d/%d quest places %d regions %d sprites %d",
+                      expected, self->exitCount_, QuestPlaces(self), self->regions_.size_, self->sceneObjects_.size_);
 }
 EI_VERIFY(0x0064CC10, ObjectivesShowZoneVerify, 0, s_unused);
