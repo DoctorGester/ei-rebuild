@@ -1770,3 +1770,113 @@ void CParticleSource::TickBag(ParticleElement* e) {
     std::memcpy(ElementFloat(e, 0x0C), &velocity, sizeof(Vector3));
 }
 EI_REPLACE_METHOD(0x004938C0, CParticleSource::TickBag);
+
+// --- 0x202F: sparks rising in a ring around the carrier ------------------------------------------
+//
+// Element 0: +0x18 the ring radius, +0x20 the carrier's height, +0x24 the ring's offset (z below
+// the carrier's centre), +0x34 its age.
+
+namespace {
+
+#define EI_COLUMN_FOOT GameFloat(0x0073C54C)         // 0.3
+#define EI_COLUMN_RADIUS GameFloat(0x0073CCA8)       // 0.8
+#define EI_COLUMN_RISE_SCALE GameDouble(0x0073CE10)  // ~0.03 * 2^-32
+#define EI_COLUMN_RISE_BASE GameFloat(0x0073C538)    // 0.7
+#define EI_COLUMN_RISE GameFloat(0x0073B850)         // 0.1
+#define EI_COLUMN_RING_SCALE GameDouble(0x0073CED8)  // ~0.2 * 2^-32
+#define EI_COLUMN_RING_BASE GameFloat(0x0073CD70)    // 0.9
+#define EI_COLUMN_ANGLE_SCALE GameDouble(0x0073CED0) // ~2 pi * 2^-32
+#define EI_COLUMN_SIZE_SCALE GameDouble(0x0073CEB0)  // ~0.8 * 2^-32
+#define EI_COLUMN_SIZE_BASE GameFloat(0x0073CDE0)    // 0.6
+#define EI_COLUMN_SIZE GameFloat(0x0073C3B0)         // 0.25
+#define EI_COLUMN_SHRINK GameFloat(0x0073CEC8)       // 0.97
+#define EI_COLUMN_SPEED_UP GameFloat(0x0073CEE0)     // 1.05
+
+// The alpha by remaining life, read backwards from 0078A960.
+std::uint32_t ColumnAlpha(int life) {
+    return static_cast<std::uint32_t>(*reinterpret_cast<const std::int32_t*>(0x0078A960 - 4 * life));
+}
+
+// The ring from the carrier's figure (the first emission). False without a carrier.
+bool SetUpColumn(CParticleSource* s) {
+    if (!s->attachedTo) {
+        DebugMessage(NoCarrierCasting());
+        return false;
+    }
+    Vector3 offset;
+    float radius;
+    s->AttachmentOffset(&offset, &radius);
+    float height = Store(D(radius) + D(radius));
+    float foot = Store(-D(offset.z) - D(height) * D(EI_COLUMN_FOOT));
+    radius = Store(D(radius) * D(EI_COLUMN_RADIUS));
+    double ring = ClassOf(s->attachedTo) == kUnitClass ? UnitScale(s->attachedTo) : D(radius);
+    radius = Store(ring + ring);
+    SetElementCount(s, 1);
+    ParticleElement* e = s->elements;
+    *ElementInt(e, 0x30) = 0;
+    *ElementFloat(e, 0x18) = radius;
+    SetBits(ElementFloat(e, 0x1C), 0);
+    *ElementFloat(e, 0x20) = height;
+    SetBits(ElementFloat(e, 0x24), 0);
+    SetBits(ElementFloat(e, 0x28), 0);
+    *ElementFloat(e, 0x2C) = foot;
+    e->ticks = 1;
+    return true;
+}
+
+} // namespace
+
+// 00491420. 0x202F: a spark on a ring of random radius around the carrier (0.9-1.1 of the ring),
+// at a random height of the spread box above the ring's foot, rising faster and faster.
+int CParticleSource::EmitColumn(Particle* p, int) {
+    if (elementCount == 0 && !SetUpColumn(this)) return 0;
+    p->color = 0xFFFFFFFF;
+    p->frame = 1;
+    p->life = 13;
+    p->frameTimer = 1;
+    *ParticleFloat(p, 0x34) = Store((Unsigned(Next()) * EI_COLUMN_RISE_SCALE + D(EI_COLUMN_RISE_BASE)) *
+                                    D(*ElementFloat(elements, 0x20)) * D(EI_COLUMN_RISE));
+    float ring = Store(Unsigned(Next()) * EI_COLUMN_RING_SCALE + D(EI_COLUMN_RING_BASE));
+    double angle = Unsigned(Next()) * EI_COLUMN_ANGLE_SCALE;
+    p->velocity.x = Store(x87::fsin(angle) * D(ring));
+    p->velocity.y = Store(x87::fcos(angle) * D(ring));
+    double z = Unsigned(Next()) * (D(spreadMax.z) - D(spreadMin.z)) * EI_P_SCALE_1 + D(spreadMin.z);
+    p->velocity.z = Store(z);
+    p->velocity.z = Store(z + D(*ElementFloat(elements, 0x2C)));
+    double px = D(origin.x) + D(p->velocity.x);
+    float py = Store(D(p->velocity.y) + D(origin.y));
+    float pz = Store(D(p->velocity.z) + D(origin.z));
+    SetBits(&p->size, 0x3F800000);
+    p->pos.y = py;
+    p->pos.z = pz;
+    p->pos.x = Store(px);
+    p->size = Store((Unsigned(Next()) * EI_COLUMN_SIZE_SCALE + D(EI_COLUMN_SIZE_BASE)) * D(size) * D(EI_COLUMN_SIZE));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00491420, CParticleSource::EmitColumn);
+
+// 00491830. 0x202F sparks: fade by life, step a frame, follow the source at their offset, shrink
+// to 0.97 per tick and rise (the rise growing by 5% per tick).
+int CParticleSource::UpdateColumn(Particle* p) {
+    int life = --p->life;
+    if (life == 0) return 0;
+    double oldSize = D(p->size);
+    p->color = (ColumnAlpha(life) << 24) | 0xFFFFFF;
+    ++p->frame;
+    double px = D(origin.x) + D(p->velocity.x);
+    float py = Store(D(origin.y) + D(p->velocity.y));
+    float pz = Store(D(origin.z) + D(p->velocity.z));
+    p->pos.y = py;
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    p->size = Store(oldSize * D(EI_COLUMN_SHRINK));
+    float* rise = ParticleFloat(p, 0x34);
+    p->velocity.z = Store(D(p->velocity.z) + D(*rise));
+    *rise = Store(D(*rise) * D(EI_COLUMN_SPEED_UP));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00491830, CParticleSource::UpdateColumn);
+
+// 004918D0. 0x202F: element 0 ages.
+void CParticleSource::TickColumn(ParticleElement* e) { ++e->ticks; }
+EI_REPLACE_METHOD(0x004918D0, CParticleSource::TickColumn);

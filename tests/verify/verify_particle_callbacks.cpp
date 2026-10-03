@@ -146,3 +146,12 @@ EI_UPDATE_WRAPPER(UpdateBag)
 EI_VERIFY(0x00493770, UpdateBagVerify, 8, s_UpdateBag);
 EI_ELEMENT_WRAPPER(TickBag)
 EI_VERIFY(0x004938C0, TickBagVerify, 6, s_TickBag);
+
+// 00491420: SUB ESP,0x2C; PUSH EBX; PUSH EBP; MOV EBX,ECX (7). 00491830: MOV EAX,[ESP+4]; SUB ESP,0xC (7).
+// 004918D0: MOV EAX,[ESP+4]; INC DWORD PTR [EAX+0x34] (7).
+EI_SETUP_EMIT_WRAPPER(EmitColumn)
+EI_VERIFY(0x00491420, EmitColumnVerify, 7, s_EmitColumn);
+EI_UPDATE_WRAPPER(UpdateColumn)
+EI_VERIFY(0x00491830, UpdateColumnVerify, 7, s_UpdateColumn);
+EI_ELEMENT_WRAPPER(TickColumn)
+EI_VERIFY(0x004918D0, TickColumnVerify, 7, s_TickColumn);

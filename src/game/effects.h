@@ -172,6 +172,9 @@ public:
     int EmitBag(Particle* p, int index);            // 00493560 (Bag, 0x203C)
     int UpdateBag(Particle* p);                     // 00493770
     void TickBag(ParticleElement* e);               // 004938C0
+    int EmitColumn(Particle* p, int index);         // 00491420 (0x202F)
+    int UpdateColumn(Particle* p);                  // 00491830
+    void TickColumn(ParticleElement* e);            // 004918D0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
