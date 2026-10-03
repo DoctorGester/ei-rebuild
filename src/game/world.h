@@ -18,6 +18,7 @@ using BOOL = int;
 
 struct ScriptGroup;
 class Terrain;
+struct Float4;   // chunk_stream.h: four floats passed by value
 
 namespace world {
 constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
@@ -262,6 +263,15 @@ public:
     // 0058D280 (RET 4). Adds the time each player missed since its last update (plus `offset`) to
     // its "gtime" variable.
     void UpdatePlayerTimes(float offset);
+
+    // world_units.cpp
+    // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit
+    // records; an existing object with the record's id is removed first), at its entry in
+    // `placements` (CArray of 0x28-byte {id, position, rotation, two values}) or in a line from
+    // `position` along `rotation`, moved to a free cell, under `player`'s control, with its items,
+    // spells and AI; heroes get their figure parts. Followers are given their leaders; with a
+    // player the units are added to the "Heroes" script group.
+    void CreateUnits(void* player, void* records, const Vector3* position, Float4 rotation, void* placements);
 
     // world_sync.cpp
     // 0058B750 (RET 4). Brings `player`'s view up to date (once per world update): the zone when
