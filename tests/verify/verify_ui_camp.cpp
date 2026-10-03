@@ -89,7 +89,9 @@ static void __fastcall GlobalMapCreateVerify(CGlobalMap* self, void*) {
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
                                      0x77, 0xF8};
     bool fields = std::memcmp(self->weatherTable_, kWeather, sizeof(kWeather)) == 0 && self->weatherIndex_ == 17 &&
-                  self->selectPending_ == 1 && !self->autosave_ && self->depth_ == 10.0f && self->centreX_ == 400.0f &&
+                  // Create sets +0x20C to 1, then its last step runs Update (slot 24), which refreshes the
+                  // selection (00630670) and clears it.
+                  self->selectPending_ == 0 && !self->autosave_ && self->depth_ == 10.0f && self->centreX_ == 400.0f &&
                   self->centreY_ == 280.0f && self->weather_ && !self->dragging_;
     bool ok = counts && layout && links_ok && fields;
     ei::verify::Check("CGlobalMap::Create", true, ok,
