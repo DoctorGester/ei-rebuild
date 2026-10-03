@@ -102,3 +102,14 @@ static void __fastcall MarkVisibleVerify(CAIMap* self, void*, const Vector3* eye
     if (copy.rows) gamecrt::operator_delete(copy.rows);
 }
 EI_VERIFY(0x005BC970, MarkVisibleVerify, 6, s_markVisible);
+
+// 005B8350: PUSH EBP; MOV EBP,ESP; PUSH -1 (5 bytes). A cache lookup: the original may create the
+// entry, after which ours finds it; the shapes returned must be the same object.
+static void*(__fastcall* s_unitShape)(CAIMap*, void*, float);
+static void* __fastcall UnitShapeVerify(CAIMap* self, void*, float height) {
+    void* expected = s_unitShape(self, nullptr, height);
+    void* actual = self->UnitShape(height);
+    ei::verify::Check("CAIMap::UnitShape", expected, actual, "height %g: %p vs %p", height, expected, actual);
+    return actual;
+}
+EI_VERIFY(0x005B8350, UnitShapeVerify, 5, s_unitShape);

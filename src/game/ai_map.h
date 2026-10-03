@@ -279,6 +279,9 @@ public:
     void EndRefresh();
 
     // src/game/ai_movement.cpp:
+    // 005B8350. Occupancy shape of a unit with standing height `height` (null at 0.2 or below):
+    // the shape cache entry for the height rounded up to tenths (created on first use).
+    void* UnitShape(float standingHeight);
     // 005B7BB0. The first unit near world `position` (within the sum of standing heights) whose
     // occupancy shape blocks `unit` there; null if none.
     CUnit* BlockingUnitAt(CUnit* unit, const Vector3* position);
@@ -306,8 +309,6 @@ public:
     bool ClearOccluder(FootprintCell* cell);
     // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).
     void Refresh(int minX, int maxX, int minY, int maxY);
-    // 005B8350. Occupancy shape of a unit with standing height `height` (null below 0.2).
-    void* UnitShape(float height);
 
     CRegionMap* Regions() { return reinterpret_cast<CRegionMap*>(regions); }
 

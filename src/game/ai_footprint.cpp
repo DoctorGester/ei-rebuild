@@ -121,7 +121,6 @@ __declspec(naked) bool CAIMap::ApplyBridges(FootprintCellSet*, bool) EI_ORIGINAL
 __declspec(naked) bool CAIMap::AddOccluder(FootprintCell*) EI_ORIGINAL(0x005B61B0)
 __declspec(naked) bool CAIMap::ClearOccluder(FootprintCell*) EI_ORIGINAL(0x005B6380)
 __declspec(naked) void CAIMap::Refresh(int, int, int, int) EI_ORIGINAL(0x005B8FA0)
-__declspec(naked) void* CAIMap::UnitShape(float) EI_ORIGINAL(0x005B8350)
 
 namespace {
 // The unit occupancy layers at CAIMap + 0x27C and + 0x12A4 (ai_unit_layer.cpp), through their
