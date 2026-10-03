@@ -3,6 +3,7 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -71,7 +72,6 @@ __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void CUiContainer::RedrawContainer() EI_ORIGINAL(0x00601040)
 __declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, int) EI_ORIGINAL(0x00601110)
 __declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
-__declspec(naked) BOOL UiScrollbar::TakePosition(int*) EI_ORIGINAL(0x0065B090)
 __declspec(naked) bool UiSpinValue::GetValue(int*) EI_ORIGINAL(0x0065BEB0)
 __declspec(naked) void UiSpinValue::SetValue(int) EI_ORIGINAL(0x0065BEE0)
 __declspec(naked) void CSaveLoadWindow::Confirm() EI_ORIGINAL(0x00655290)
@@ -337,3 +337,86 @@ EI_REPLACE(0x00650920, OptionsDraw);
 EI_REPLACE(0x00650A20, OptionsRedraw);
 EI_REPLACE(0x006508E0, OptionsDialogResult);
 EI_REPLACE(0x00650900, OptionsHelpTopic);
+
+// --- Scroll bar --------------------------------------------------------------------------------
+
+BOOL CUiScrollbar::TakePosition(int* position) {
+    *position = position_;
+    if (!moved_) return 0;
+    moved_ = false;
+    return 1;
+}
+
+void CUiScrollbar::CallSetPosition(int position) {
+    using Fn = void(__thiscall*)(CUiScrollbar*, int);
+    reinterpret_cast<Fn>(vtable_[25])(this, position);
+}
+
+void CUiScrollbar::Update() {
+    if (state_ == 2 || state_ == 3) {
+        // The container's FrameTime does not use the window; the original calls it the same way.
+        double step = reinterpret_cast<CUiContainer*>(this)->FrameTime() * speed_ * 16.0f;
+        if (state_ == 2) step = -step;
+        accumulated_ = static_cast<float>(step + accumulated_);
+    }
+    int steps = 0;
+    if (accumulated_ > 0.0f) {   // zero, negative and NaN take the other branch
+        if (!(accumulated_ >= 1.0f)) return;
+        // Whole steps; subtracting 1 is exact, so the register precision does not matter.
+        double rest = accumulated_;
+        do {
+            rest -= 1.0f;
+            ++steps;
+        } while (!(rest < 1.0f));
+        accumulated_ = static_cast<float>(rest);
+    } else {
+        if (accumulated_ > -1.0f) return;
+        double rest;
+        do {
+            rest = accumulated_ + 1.0;
+            --steps;
+            accumulated_ = static_cast<float>(rest);
+        } while (!(rest > -1.0f));
+    }
+    if (steps != 0) CallSetPosition(position_ + steps);
+}
+
+void CUiScrollbar::OnMouseDown(int, int x, int y) {
+    POINT point{x, y};
+    interface_->CallScalePointFromScreen(&point);
+    if (gameapi::PtInRect(&thumb_, point)) {
+        CaptureMouse();
+        state_ = 1;
+        grabX_ = point.x - (thumb_.left + thumb_.right) / 2;
+        grabY_ = point.y - (thumb_.top + thumb_.bottom) / 2;
+        inputHandled_ = true;
+        return;
+    }
+    int region = RegionAt(x, y);
+    if (region != 0 && region != 1) return;
+    CaptureMouse();
+    state_ = region == 0 ? 2 : 3;
+    accumulated_ = 0.0f;
+    inputHandled_ = true;
+}
+
+void CUiScrollbar::OnMouseUp(int, int, int) {
+    state_ = 0;
+    interface_->mouseCapture_ = nullptr;
+    accumulated_ = 0.0f;
+    inputHandled_ = true;
+}
+
+namespace {
+void __fastcall ScrollbarMouseDown(void* input, void*, int buttons, int x, int y) {
+    FromInput<CUiScrollbar>(input)->OnMouseDown(buttons, x, y);
+}
+void __fastcall ScrollbarMouseUp(void* input, void*, int buttons, int x, int y) {
+    FromInput<CUiScrollbar>(input)->OnMouseUp(buttons, x, y);
+}
+} // namespace
+
+EI_REPLACE_METHOD(0x0065B090, CUiScrollbar::TakePosition);
+EI_REPLACE_METHOD(0x0065B360, CUiScrollbar::Update);
+EI_REPLACE(0x0065B240, ScrollbarMouseDown);
+EI_REPLACE(0x0065B340, ScrollbarMouseUp);

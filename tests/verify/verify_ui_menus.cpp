@@ -181,3 +181,86 @@ static const char* __fastcall OptionsHelpTopicVerify(COptionsWindow* self, void*
     return expected;
 }
 EI_VERIFY(0x00650900, OptionsHelpTopicVerify, 6, s_optionsHelpTopic);
+
+// --- Scroll bar --------------------------------------------------------------------------------------
+
+// 0065B090: MOV EDX,[ESP+4]; MOV EAX,[ECX+0x150] (10 bytes). The original on the real object,
+// then the moved flag put back and ours run.
+static BOOL(__fastcall* s_takePosition)(CUiScrollbar*, void*, int*);
+static BOOL __fastcall TakePositionVerify(CUiScrollbar* self, void*, int* position) {
+    bool moved = self->moved_;
+    int expectedPosition = 0;
+    BOOL expected = s_takePosition(self, nullptr, &expectedPosition);
+    bool expectedMoved = self->moved_;
+    self->moved_ = moved;
+    BOOL actual = self->CUiScrollbar::TakePosition(position);
+    bool same = expected == actual && expectedPosition == *position && expectedMoved == self->moved_;
+    ei::verify::Check("CUiScrollbar::TakePosition", true, same, "moved %d result %d/%d", moved, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x0065B090, TakePositionVerify, 10, s_takePosition);
+
+namespace {
+// Everything the scroll bar's button handlers change.
+struct ScrollInput {
+    void* capture;
+    std::uint32_t handled;
+    int state;
+    int grabX;
+    int grabY;
+    float accumulated;
+};
+ScrollInput TakeScrollInput(CUiScrollbar* w) {
+    return ScrollInput{w->interface_->mouseCapture_, w->inputHandled_ ? 1u : 0u, w->state_, w->grabX_, w->grabY_,
+                       w->accumulated_};
+}
+void PutScrollInput(CUiScrollbar* w, const ScrollInput& s) {
+    w->interface_->mouseCapture_ = s.capture;
+    w->inputHandled_ = s.handled != 0;
+    w->state_ = s.state;
+    w->grabX_ = s.grabX;
+    w->grabY_ = s.grabY;
+    w->accumulated_ = s.accumulated;
+}
+
+using ScrollHandler = void(__fastcall*)(void*, void*, int, int, int);
+
+template <typename Ours>
+void ScrollSideBySide(const char* name, ScrollHandler original, void* input, int buttons, int x, int y, Ours ours) {
+    auto* w = FromInput<CUiScrollbar>(input);
+    ScrollInput before = TakeScrollInput(w);
+    original(input, nullptr, buttons, x, y);
+    ScrollInput expected = TakeScrollInput(w);
+    PutScrollInput(w, before);
+    ours(w);
+    ScrollInput actual = TakeScrollInput(w);
+    ei::verify::Check(name, expected, actual, "(%d,%d) state %d->%d/%d", x, y, before.state, expected.state,
+                      actual.state);
+}
+} // namespace
+
+// 0065B240: PUSH EBX; MOV EBX,[ESP+0xC] (5 bytes).
+static ScrollHandler s_scrollMouseDown;
+static void __fastcall ScrollMouseDownVerify(void* input, void*, int buttons, int x, int y) {
+    ScrollSideBySide("CUiScrollbar::OnMouseDown", s_scrollMouseDown, input, buttons, x, y,
+                     [&](CUiScrollbar* w) { w->CUiScrollbar::OnMouseDown(buttons, x, y); });
+}
+EI_VERIFY(0x0065B240, ScrollMouseDownVerify, 5, s_scrollMouseDown);
+
+// 0065B340: XOR EAX,EAX; MOV [ECX+0xF0],EAX (8 bytes).
+static ScrollHandler s_scrollMouseUp;
+static void __fastcall ScrollMouseUpVerify(void* input, void*, int buttons, int x, int y) {
+    ScrollSideBySide("CUiScrollbar::OnMouseUp", s_scrollMouseUp, input, buttons, x, y,
+                     [&](CUiScrollbar* w) { w->CUiScrollbar::OnMouseUp(buttons, x, y); });
+}
+EI_VERIFY(0x0065B340, ScrollMouseUpVerify, 8, s_scrollMouseUp);
+
+// Ours only (it moves the position through a virtual call): what is left over afterwards is less
+// than one step either way.
+static void __fastcall ScrollUpdateVerify(CUiScrollbar* self, void*) {
+    self->CUiScrollbar::Update();
+    float rest = self->accumulated_;
+    bool ok = rest < 1.0f && rest > -1.0f;
+    ei::verify::Check("CUiScrollbar::Update", true, ok, "state %d rest %g", self->state_, rest);
+}
+EI_VERIFY(0x0065B360, ScrollUpdateVerify, 0, s_unused);

@@ -536,12 +536,37 @@ static_assert(sizeof(CUiContainer) == 0x164);
 void __fastcall UiContainerMouseDown(void* input, void* unused, int buttons, int x, int y);    // 00601110
 void __fastcall UiContainerDoubleClick(void* input, void* unused, int buttons, int x, int y);  // 00601570
 
-// The save/load window's scroll bar (vtable 00742C18, constructor 0065AEA0).
-struct UiScrollbar {
-    // 0065B090 (not rewritten). The position (+0x150); returns 1 and clears the flag at +0x180
-    // when it moved since the last call.
+// A scroll bar (vtables 00742C18 / 00742BE4, constructor 0065AEA0; the battle screen's message
+// log 0065CC00 derives from it). Regions: 0 the up arrow, 1 the down arrow, 2 the track.
+class CUiScrollbar : public CUiWindow {
+public:
+    // 0065B090. The position; returns 1 (and clears the flag) when it moved since the last call.
     BOOL TakePosition(int* position);
+    // 0065B360 (slot 24, every frame). Scrolls while an arrow is held: whole steps of the
+    // accumulated amount move the position (virtual slot 25, SetPosition).
+    void Update();
+    void OnMouseDown(int buttons, int x, int y);   // 0065B240: thumb drag or an arrow
+    void OnMouseUp(int buttons, int x, int y);     // 0065B340
+    // Virtual slot 25 (0065B0C0 for the plain scroll bar): moves to `position`, clamped.
+    void CallSetPosition(int position);
+
+    int maxPosition_;                // +0x148
+    float speed_;                    // +0x14C lines per second while an arrow is held (/16)
+    int position_;                   // +0x150
+    std::uint8_t unknown_154[0x164 - 0x154];
+    RECT thumb_;                     // +0x164 layout coordinates
+    int grabX_;                      // +0x174 mouse offset from the thumb centre while dragging
+    int grabY_;                      // +0x178
+    float unknown_17C;               // +0x17C
+    bool moved_;                     // +0x180
+    std::uint8_t unknown_181[3];
+    int state_;                      // +0x184 0 idle, 1 dragging the thumb, 2 up, 3 down
+    float accumulated_;              // +0x188 scrolled amount not yet applied
 };
+static_assert(offsetof(CUiScrollbar, position_) == 0x150);
+static_assert(offsetof(CUiScrollbar, thumb_) == 0x164);
+static_assert(offsetof(CUiScrollbar, state_) == 0x184);
+static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
 // A spin control of the options window (its +0x0C value object).
 struct UiSpinValue {
@@ -595,7 +620,7 @@ public:
     bool sliding_;                   // +0x179 sliding in; input is ignored meanwhile
     std::uint8_t unknown_17A[2];
     float slide_;                    // +0x17C 0..1
-    UiScrollbar* scrollbar_;         // +0x180
+    CUiScrollbar* scrollbar_;        // +0x180
     CEngineObject* dialog_;          // +0x184 open message box (released through slot 4)
     char* name_;                     // +0x188 CString: the save name being edited
     bool nameTyped_;                 // +0x18C
