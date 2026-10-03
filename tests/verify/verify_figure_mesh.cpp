@@ -62,6 +62,28 @@ bool SameArray(const AlignedArray<T>& theirs, const AlignedArray<T>& ours, bool 
     return theirs.size <= 0 || std::memcmp(theirs.data, ours.data, static_cast<std::size_t>(theirs.size) * sizeof(T)) == 0;
 }
 
+// Size, step and capacity only: for arrays the loaders size but never write (the colours of FIG
+// meshes, colorsA_ of old-format ones) the contents are whatever the fresh heap block held, which
+// differs between the two runs.
+template <typename T>
+bool SameShape(const AlignedArray<T>& theirs, const AlignedArray<T>& ours, bool compareCapacity) {
+    return theirs.size == ours.size && theirs.growBy == ours.growBy && !theirs.data == !ours.data &&
+           (!compareCapacity || theirs.capacity == ours.capacity);
+}
+
+// The first differing dword of two arrays of equal size (-1 if none), for the mismatch message.
+template <typename T>
+int FirstDifference(const AlignedArray<T>& theirs, const AlignedArray<T>& ours, std::uint32_t* a, std::uint32_t* b) {
+    if (!theirs.data || !ours.data) return -1;
+    int words = static_cast<int>(theirs.size * sizeof(T) / 4);
+    for (int i = 0; i < words; ++i) {
+        std::memcpy(a, reinterpret_cast<const char*>(theirs.data) + 4 * i, 4);
+        std::memcpy(b, reinterpret_cast<const char*>(ours.data) + 4 * i, 4);
+        if (*a != *b) return i;
+    }
+    return -1;
+}
+
 // The buffer descriptor points at the object's own arrays (or, for class 0x41, into the file
 // data, where both must point at the same place).
 bool SameBuffers(const CFigureMesh* theirs, const CFigureMesh* ours, bool shared) {
@@ -83,7 +105,7 @@ using LoadFn = void(__fastcall*)(CFigureMesh*, void*, char**, float, float, floa
 // The original loads into a copy of the object whose arrays start empty, ours into the object;
 // the loaded state is compared and the copy's arrays are freed.
 void CompareLoad(const char* name, LoadFn original, void (CFigureMesh::*ours)(char**, float, float, float), bool shared,
-                 CFigureMesh* self, char** cursor, float s, float t, float u) {
+                 bool fillsColorsB, CFigureMesh* self, char** cursor, float s, float t, float u) {
     if (self->flags_ & 0x20) {
         (self->*ours)(cursor, s, t, u);
         return;
@@ -121,14 +143,19 @@ void CompareLoad(const char* name, LoadFn original, void (CFigureMesh::*ours)(ch
     else if (std::memcmp(scratch.bytes + 0x160, reinterpret_cast<unsigned char*>(self) + 0x160, 0x1B4 - 0x160) != 0) what = "bounds";
     else if (!SameArray(copy->vertices_, self->vertices_, hadNone)) what = "vertices";
     else if (!SameArray(copy->normals_, self->normals_, hadNone)) what = "records";
-    else if (!SameArray(copy->colorsA_, self->colorsA_, hadNone) || !SameArray(copy->colorsB_, self->colorsB_, hadNone)) what = "colour arrays";
+    else if (!SameShape(copy->colorsA_, self->colorsA_, hadNone) || !SameShape(copy->colorsB_, self->colorsB_, hadNone)) what = "colour array sizes";
+    else if (fillsColorsB && !SameArray(copy->colorsB_, self->colorsB_, hadNone)) what = "colour B contents";
     else if (!shared && (!SameArray(copy->corners_, self->corners_, hadNone) || !SameArray(copy->words_, self->words_, hadNone) ||
                          !SameArray(copy->indices_, self->indices_, hadNone) || !SameArray(copy->texCoords_, self->texCoords_, hadNone)))
         what = "index arrays";
     else if (!SameBuffers(copy, self, shared)) what = "buffers";
-    ei::verify::Check(name, true, what == nullptr, "magic %08X vertices %d s %g t %g u %g read %d/%d: %s differs", magic,
-                      vertexCount, s, t, u, static_cast<int>(theirs - start), static_cast<int>(*cursor - start),
-                      what ? what : "");
+    std::uint32_t valueA = 0, valueB = 0;
+    int at = -1;
+    if (what && std::strcmp(what, "vertices") == 0) at = FirstDifference(copy->vertices_, self->vertices_, &valueA, &valueB);
+    else if (what && std::strcmp(what, "colour B contents") == 0) at = FirstDifference(copy->colorsB_, self->colorsB_, &valueA, &valueB);
+    ei::verify::Check(name, true, what == nullptr, "magic %08X vertices %d s %g t %g u %g read %d/%d: %s differs (dword %d: %08X / %08X)",
+                      magic, vertexCount, s, t, u, static_cast<int>(theirs - start), static_cast<int>(*cursor - start),
+                      what ? what : "", at, valueA, valueB);
 
     FreeArray(copy->colorsA_);
     FreeArray(copy->colorsB_);
@@ -145,13 +172,13 @@ void CompareLoad(const char* name, LoadFn original, void (CFigureMesh::*ours)(ch
 // SUB ESP,0x44; PUSH EBP; MOV EBP,ECX (6 bytes) for both.
 LoadFn s_loadFig;
 void __fastcall LoadFigVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
-    CompareLoad("CFigureMesh::LoadFig", s_loadFig, &CFigureMesh::LoadFig, false, self, cursor, s, t, u);
+    CompareLoad("CFigureMesh::LoadFig", s_loadFig, &CFigureMesh::LoadFig, false, false, self, cursor, s, t, u);
 }
 EI_VERIFY(0x005A2500, LoadFigVerify, 6, s_loadFig);
 
 LoadFn s_loadFigShared;
 void __fastcall LoadFigSharedVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
-    CompareLoad("CFigureMesh::LoadFigShared", s_loadFigShared, &CFigureMesh::LoadFigShared, true, self, cursor, s, t, u);
+    CompareLoad("CFigureMesh::LoadFigShared", s_loadFigShared, &CFigureMesh::LoadFigShared, true, false, self, cursor, s, t, u);
 }
 EI_VERIFY(0x005A5C70, LoadFigSharedVerify, 6, s_loadFigShared);
 
@@ -159,13 +186,13 @@ EI_VERIFY(0x005A5C70, LoadFigSharedVerify, 6, s_loadFigShared);
 // test the loaded flag; CompareLoad then runs ours alone, as for the others.)
 LoadFn s_loadOld;
 void __fastcall LoadOldVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
-    CompareLoad("CFigureMesh::LoadOld", s_loadOld, &CFigureMesh::LoadOld, false, self, cursor, s, t, u);
+    CompareLoad("CFigureMesh::LoadOld", s_loadOld, &CFigureMesh::LoadOld, false, true, self, cursor, s, t, u);
 }
 EI_VERIFY(0x005A3800, LoadOldVerify, 6, s_loadOld);
 
 LoadFn s_loadOldShared;
 void __fastcall LoadOldSharedVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
-    CompareLoad("CFigureMesh::LoadOldShared", s_loadOldShared, &CFigureMesh::LoadOldShared, true, self, cursor, s, t, u);
+    CompareLoad("CFigureMesh::LoadOldShared", s_loadOldShared, &CFigureMesh::LoadOldShared, true, true, self, cursor, s, t, u);
 }
 EI_VERIFY(0x005A4D60, LoadOldSharedVerify, 6, s_loadOldShared);
 

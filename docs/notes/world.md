@@ -537,7 +537,7 @@ part mesh (classes 0x41-0x44 of the factory 005AA8E0) and the figure loader (005
 | Address | Name | Verification |
 |---|---|---|
 | 005A18E0 | CFigureMesh::LoadBounds (RET 0x14) | original on a copy of the object bytes and the cursor; +0x160..+0x1B4 and cursor compared |
-| 005A2500 | CFigureMesh::LoadFig (slot 20, RET 0x10) | original on a copy whose arrays start empty, ours on the object; every array (size, step, contents, capacity when ours started empty), bounds, header words, flags, cursor, buffer descriptor compared; the copy's arrays freed |
+| 005A2500 | CFigureMesh::LoadFig (slot 20, RET 0x10) | original on a copy whose arrays start empty, ours on the object; every array (size, step, contents, capacity when ours started empty; the colour arrays by shape only, except colorsB_ of the old format, which is filled with 0xFF000000: the loaders size them without writing, so their contents are leftover heap bytes that differed in game), bounds, header words, flags, cursor, buffer descriptor compared; the copy's arrays freed |
 | 005A5C70 | CFigureMesh::LoadFigShared (class 0x41) | same |
 | 005A3800 | CFigureMesh::LoadOld (slot 21) | same |
 | 005A4D60 | CFigureMesh::LoadOldShared (class 0x41) | same |
