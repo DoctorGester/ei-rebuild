@@ -3647,7 +3647,7 @@ int CParticleSource::EmitSilence(Particle* p, int) {
         y = Store(Range(-1.0f, 1.0f));
         double zu = Range(-1.0f, 1.0f);
         z = Store(zu);
-        if (zu * D(z) + D(y) * D(y) + D(x) * D(x) < D(EI_P_ONE)) break;
+        if (!(zu * D(z) + D(y) * D(y) + D(x) * D(x) >= D(EI_P_ONE))) break;
         if (!(--tries > 0)) break;
     }
     Vector3 v;
@@ -3880,3 +3880,253 @@ void CParticleSource::TickLightning(ParticleElement* e) {
     if (tick >= 10) flags_ &= ~1u;
 }
 EI_REPLACE_METHOD(0x00492CC0, CParticleSource::TickLightning);
+
+// --- Teleport (0x2019) -----------------------------------------------------------------------------
+
+// 0048FDB0. Teleport: a spark at a random point of a disc of the source's size (denser near the
+// edge), a little below the source and lifted by its first z step. With a positive size it is
+// opaque and fades out (state -19 per tick) while its step grows by 1.2; else it starts clear and
+// fades in (state 19) while its step shrinks by 1/1.2.
+int CParticleSource::EmitTeleport(Particle* p, int) {
+    p->color = 0xFFFFFFFF;
+    p->frame = 0;
+    p->life = lifetime;
+    p->frameTimer = frameDelay;
+    float magnitude;
+    SetBits(&magnitude, Bits(&size) & 0x7FFFFFFFu);
+    double t = Unsigned(Next()) * EI_P_SCALE_1;
+    float spread = Store((t + D(EI_P_ONE)) * t * D(GameFloat(0x0073B86C)));
+    double angle = Unsigned(Next()) * GameDouble(0x0073CE88);    // 2 pi * 2^-32
+    double reach = D(magnitude) * D(spread);
+    float sx = Store(x87::fsin(angle) * reach);
+    double cy = x87::fcos(angle) * reach;
+    p->pos.y = Store(cy + D(origin.y));
+    p->pos.x = Store(D(sx) + D(origin.x));
+    std::memcpy(&p->pos.z, &origin.z, sizeof(float));
+    SetBits(&p->size, 0);
+    p->pos.z = Store((Unsigned(Next()) * GameDouble(0x0073CD58) - D(GameFloat(0x0073B868))) * D(magnitude) +
+                     D(p->pos.z));    // [-0.4, -0.2) * |size|
+    p->unknown_2C = Store((D(GameFloat(0x0073CDB8)) - D(spread)) * D(GameFloat(0x0073BAD4)));    // (2 - spread) / 5
+    if (Unsigned(Next()) * EI_P_SCALE_1 > D(spread)) {
+        p->frame = static_cast<int>(Next() % 12) + 4;
+    } else {
+        p->frame = static_cast<int>(Next() & 3);
+    }
+    double rise = D(EI_P_ONE) - D(spread) + D(GameFloat(0x0073BAA4));    // 1 - spread + 3
+    if (size > EI_P_ZERO) {
+        SetBits(&p->velocity.x, 0x3F99999A);     // 1.2
+        p->state = -19;
+        p->velocity.z = Store(rise * D(magnitude) * D(GameFloat(0x0073CE80)));    // 0.15
+    } else {
+        p->color = 0xFFFFFF;
+        SetBits(&p->velocity.x, 0x3F555555);     // 1 / 1.2
+        p->state = 19;
+        p->velocity.z = Store(rise * D(magnitude) * D(GameFloat(0x0073CE7C)));    // 2.25
+    }
+    p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048FDB0, CParticleSource::EmitTeleport);
+
+// 00490060. Teleport sparks: frames 0-3 cycle (and 4-15 run on back to 4); the z step (+0x28) is
+// redone scaled by +0x20; shown at +0x2C (hidden in the last tick); alpha moves by the state per
+// tick, an unsigned sum capped at 255 (so a fade out below 19 jumps back to 255, as the original).
+int CParticleSource::UpdateTeleport(Particle* p) {
+    int life = --p->life;
+    if (life == 0) return 0;
+    if (--p->frameTimer == 0) {
+        if (++p->frame == 4) p->frame = 0;
+        if (p->frame == 16) p->frame = 4;
+        p->frameTimer = frameDelay;
+    }
+    p->pos.z = Store(D(p->pos.z) - D(p->velocity.z));
+    double step = D(p->velocity.x) * D(p->velocity.z);
+    p->velocity.z = Store(step);
+    p->pos.z = Store(step + D(p->pos.z));
+    if (life == 1) {
+        SetBits(&p->size, 0);
+    } else {
+        std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+    }
+    std::uint32_t a = (p->color >> 24) + static_cast<std::uint32_t>(p->state);
+    if (a >= 0xFF) a = 0xFF;
+    p->color = (a << 24) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00490060, CParticleSource::UpdateTeleport);
+
+// 00490110. Teleport: the source stops emitting after 35 ticks.
+void CParticleSource::TickTeleport(ParticleElement* e) {
+    if (++e->ticks > 35) flags_ &= ~1u;
+}
+EI_REPLACE_METHOD(0x00490110, CParticleSource::TickTeleport);
+
+// --- CurseStars (0x2050) and StartTrans (0x2051) -------------------------------------------------
+
+namespace {
+
+const std::int32_t* CurseAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AC98); }    // by life
+const std::int32_t* TransAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078ACF8); }    // by life
+
+// A random point of the unit ball (ten tries, the last one kept), each coordinate rounded.
+void RandomInBall(float& x, float& y, float& z, double& lengthSquared) {
+    for (int tries = 10;;) {
+        x = SignedUnit();
+        y = SignedUnit();
+        z = Store(Range(-1.0f, 1.0f));
+        lengthSquared = D(y) * D(y) + D(z) * D(z) + D(x) * D(x);
+        if (!(lengthSquared >= D(EI_P_ONE))) break;
+        if (!(--tries > 0)) break;
+    }
+}
+
+} // namespace
+
+// 00496270. CurseStars: a star at a random point of the ball of the source's size around the
+// source, drifting outwards (a tenth of the size per tick), for 20 ticks.
+int CParticleSource::EmitCurseStars(Particle* p, int) {
+    p->color = 0xFFFFFF;
+    p->frame = static_cast<int>(Next() & 15);
+    float x, y, z;
+    double unused;
+    RandomInBall(x, y, z, unused);
+    Vector3 v;
+    v.Construct(x, y, z);
+    double s = D(size);
+    float a = Store(D(v.x) * s);
+    float b = Store(D(v.y) * s);
+    double c = s * D(v.z);
+    double px = D(a) + D(origin.x);
+    float py = Store(D(b) + D(origin.y));
+    float pz = Store(c + D(origin.z));
+    SetBits(&p->size, 0);
+    p->pos.y = py;
+    p->pos.x = Store(px);
+    p->pos.z = pz;
+    double length = x87::fsqrt(c * c + D(b) * D(b) + D(a) * D(a));
+    float lengthF = Store(length);
+    p->life = 20;
+    if (length > D(EI_P_ZERO)) {
+        double k = D(size) * D(GameFloat(0x0073B850));    // 0.1
+        float ak = Store(D(a) * k);
+        float bk = Store(D(b) * k);
+        double ck = c * k;
+        p->drift.x = Store(D(ak) / D(lengthF));
+        p->drift.y = Store(D(bk) / D(lengthF));
+        p->drift.z = Store(ck / D(lengthF));
+    } else {
+        std::memset(&p->drift, 0, sizeof(Vector3));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00496270, CParticleSource::EmitCurseStars);
+
+// 004964B0. CurseStars: alpha by the life left (hidden and dropped past 0); a star's size starts
+// as a random part of the source's (0.04 of it, flickering) and shrinks by 0.95; it drifts (slowing
+// by 0.9). Without a carrier the source stops emitting and is let go (Attach(nullptr)).
+int CParticleSource::UpdateCurseStars(Particle* p) {
+    int life = --p->life;
+    if (life < 0) {
+        p->color = 0xFFFFFF;
+        SetBits(&p->size, 0);
+        return 0;
+    }
+    p->color = (static_cast<std::uint32_t>(CurseAlpha()[life]) << 24) | 0xFFFFFF;
+    if (p->size == 0.0f || x87::IsNaN(p->size)) {
+        p->size = Store((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
+                        D(GameFloat(0x0073CE90)));
+    } else {
+        p->size = Store(D(p->size) * D(GameFloat(0x0073CD50)));
+    }
+    p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
+    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
+    double slow = D(GameFloat(0x0073CD70));
+    p->drift.x = Store(D(p->drift.x) * slow);
+    p->drift.y = Store(D(p->drift.y) * slow);
+    p->drift.z = Store(D(p->drift.z) * slow);
+    if (!attachedTo) {
+        flags_ &= ~5u;
+        Attach(nullptr);
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x004964B0, CParticleSource::UpdateCurseStars);
+
+// 004965E0. StartTrans: the first particle is the glow (state 1, frame 12, 4 ticks); the others
+// (15 ticks) start in a random direction at the source's size from it and come back in 18 ticks.
+int CParticleSource::EmitStartTrans(Particle* p, int) {
+    if (particles.count == 0) {
+        p->life = 4;
+        p->state = 1;
+        p->frame = 12;
+        std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    } else {
+        p->life = 15;
+        p->state = 0;
+        p->frame = static_cast<int>(Next() % 12);
+        float x, y, z;
+        double lengthSquared;
+        RandomInBall(x, y, z, lengthSquared);
+        float length = Store(x87::fsqrt(lengthSquared));
+        Vector3 v;
+        v.Construct(x, y, z);
+        Vector3 direction;
+        DivideVector(&direction, v, length);
+        double s = D(size);
+        p->velocity.x = Store(D(direction.x) * s);
+        p->velocity.y = Store(D(direction.y) * s);
+        p->velocity.z = Store(D(direction.z) * s);
+        double px = D(p->velocity.x) + D(origin.x);
+        float py = Store(D(p->velocity.y) + D(origin.y));
+        double pz = D(p->velocity.z) + D(origin.z);
+        p->pos.y = py;
+        p->pos.x = Store(px);
+        p->pos.z = Store(pz);
+        float ticks = static_cast<float>(p->life + 3);
+        float nx = Store(-D(p->velocity.x));
+        float ny = Store(-D(p->velocity.y));
+        float nz = Store(-D(p->velocity.z));
+        p->drift.x = Store(D(nx) / D(ticks));
+        p->drift.y = Store(D(ny) / D(ticks));
+        p->drift.z = Store(D(nz) / D(ticks));
+        p->unknown_2C = Store(D(size) * D(GameFloat(0x0073C52C)));    // 0.05
+    }
+    p->color = 0xFFFFFF;
+    SetBits(&p->size, 0);
+    return 1;
+}
+EI_REPLACE_METHOD(0x004965E0, CParticleSource::EmitStartTrans);
+
+// 00496840. StartTrans: the glow flickers at element 0's +0x18 while carried, then fades (by the
+// life table, size times 0.6); the others come in, cycling four frames at +0x2C, fading out over
+// their last ticks (capped at 4 once the carrier is gone).
+int CParticleSource::UpdateStartTrans(Particle* p) {
+    if (p->state != 0) {
+        if (!attachedTo) {
+            int life = --p->life;
+            if (life < 0) return 0;
+            p->color = (static_cast<std::uint32_t>(TransAlpha()[life]) << 24) | 0xFFFFFF;
+            p->size = Store(D(p->size) * D(GameFloat(0x0073CDE0)));    // 0.6
+            return 1;
+        }
+        p->color = 0xFFFFFFFF;
+        p->size = Store((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) *
+                        D(*ElementFloat(elements, 0x18)));
+        return 1;
+    }
+    int life = --p->life;
+    if (life < 0) return 0;
+    if (!attachedTo) {
+        if (life >= 4) life = 4;
+        p->life = life;
+    }
+    p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
+    p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
+    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
+    std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+    p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
+    p->color = (static_cast<std::uint32_t>(TransAlpha()[p->life]) << 24) | 0xFFFFFF;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00496840, CParticleSource::UpdateStartTrans);

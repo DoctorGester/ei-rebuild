@@ -301,3 +301,35 @@ EI_UPDATE_WRAPPER(UpdateLightning)
 EI_VERIFY(0x00492B80, UpdateLightningVerify, 8, s_UpdateLightning);
 EI_ELEMENT_WRAPPER(TickLightning)
 EI_VERIFY(0x00492CC0, TickLightningVerify, 5, s_TickLightning);
+
+// 0048FDB0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x14 (6). 00490060: MOV EAX,[ESP+4]; PUSH ESI;
+// MOV EDX,[EAX+0x50] (8). 00490110: MOV EAX,[ESP+4]; MOV EDX,[EAX+0x34] (7). 00496270: SUB ESP,0x28;
+// PUSH EBX; PUSH ESI (5). 004964B0: SUB ESP,8; PUSH ESI; MOV ESI,[ESP+0x10] (8); without a carrier
+// it lets the source go (Attach): ours only. 004965E0: SUB ESP,0x28; PUSH EBP; PUSH ESI (5).
+// 00496840: SUB ESP,8; PUSH ESI; MOV ESI,[ESP+0x10] (8).
+EI_EMIT_WRAPPER(EmitTeleport)
+EI_VERIFY(0x0048FDB0, EmitTeleportVerify, 6, s_EmitTeleport);
+EI_UPDATE_WRAPPER(UpdateTeleport)
+EI_VERIFY(0x00490060, UpdateTeleportVerify, 8, s_UpdateTeleport);
+EI_ELEMENT_WRAPPER(TickTeleport)
+EI_VERIFY(0x00490110, TickTeleportVerify, 7, s_TickTeleport);
+EI_EMIT_WRAPPER(EmitCurseStars)
+EI_VERIFY(0x00496270, EmitCurseStarsVerify, 5, s_EmitCurseStars);
+static UpdateFn s_UpdateCurseStars;
+static int __fastcall UpdateCurseStarsVerify(CParticleSource* self, void*, Particle* p) {
+    if (!self->attachedTo) {
+        int life = p->life;
+        int result = self->CParticleSource::UpdateCurseStars(p);
+        ei::verify::Check("CParticleSource::UpdateCurseStars", true,
+                          life <= 0 || (result == 1 && (self->flags_ & 5u) == 0), "flags %X", self->flags_);
+        return result;
+    }
+    return RunBoth("CParticleSource::UpdateCurseStars", self, p,
+                   [&] { return self->CParticleSource::UpdateCurseStars(p); },
+                   [&] { return s_UpdateCurseStars(self, nullptr, p); });
+}
+EI_VERIFY(0x004964B0, UpdateCurseStarsVerify, 8, s_UpdateCurseStars);
+EI_EMIT_WRAPPER(EmitStartTrans)
+EI_VERIFY(0x004965E0, EmitStartTransVerify, 5, s_EmitStartTrans);
+EI_UPDATE_WRAPPER(UpdateStartTrans)
+EI_VERIFY(0x00496840, UpdateStartTransVerify, 8, s_UpdateStartTrans);

@@ -221,6 +221,13 @@ public:
     void TickModifier(ParticleElement* e);          // 00490B00
     int UpdateLightning(Particle* p);               // 00492B80 (LightningBlast, 0x2030)
     void TickLightning(ParticleElement* e);         // 00492CC0
+    int EmitTeleport(Particle* p, int index);       // 0048FDB0 (Teleport, 0x2019)
+    int UpdateTeleport(Particle* p);                // 00490060
+    void TickTeleport(ParticleElement* e);          // 00490110
+    int EmitCurseStars(Particle* p, int index);     // 00496270 (CurseStars)
+    int UpdateCurseStars(Particle* p);              // 004964B0
+    int EmitStartTrans(Particle* p, int index);     // 004965E0 (StartTrans)
+    int UpdateStartTrans(Particle* p);              // 00496840
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
