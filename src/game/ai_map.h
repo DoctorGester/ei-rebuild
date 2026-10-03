@@ -121,10 +121,29 @@ static_assert(sizeof(PathCellList) == 0x1C);
 
 // A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
 struct AIPath {
-    // 005C7D50 / 005C7B00 / 005C7C70: not rewritten.
-    void Reset();
-    void Start(const Vector3* position, const Vector3* backwards, int count);
+    // The order in the first 0x20 bytes (MotionOrder, ai_motion.h); src/game/ai_motion.cpp.
+    // 005C7D50. Stand still at (0, 0); the steps are emptied. Returns 0 (EAX, as the original).
+    int Reset();
+    // 005C7B00. Stand at world `position` facing `direction` from world time `time`; the steps are
+    // emptied. False if the unit already stood there that way.
+    bool Start(const Vector3* position, const Vector3* direction, int time);
+    // 005C7C70. Follow the steps to (x, y) (half-cells).
     void SetTarget(float x, float y);
+    // 005C7C00 / 005C7C40. Turn to `direction` (kind 1 at `rate`, kind 4 until `until`).
+    void SetTurn(const Vector3* direction, float rate);
+    void SetTurnUntil(const Vector3* direction, int arg6, int arg7);
+    // 005C7C20. Track object `id` between `from` and `to`.
+    void SetTrack(int id, int from, int to);
+    // 005C7C90. Forget a tracked object.
+    void ForgetObject(int id);
+    // 005C7CB0. Shifts the order's times by `delta`.
+    void ShiftTime(int delta);
+    // 005C7CE0. Sets the speed word of every step. Returns 0 (EAX, as the original).
+    int SetStepSpeeds(std::uint16_t speed);
+    // 005C7D00. Where the order leads (world); returns `out`.
+    Vector3* Destination(Vector3* out);
+    // 005B23A0. Empties the path, the steps and the order.
+    void Clear();
 
     std::uint8_t unknown_00[0x20];
     PathCellList steps;         // +0x20 the next cells to walk (at most 32)

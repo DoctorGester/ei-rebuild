@@ -13,9 +13,6 @@
 __declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
 __declspec(naked) bool CRegionMap::Reaches(int, int, int, int, void*) EI_ORIGINAL(0x005B07C0)
 __declspec(naked) void PathCellList::RemoveAll() EI_ORIGINAL(0x00556D40)
-__declspec(naked) void AIPath::Reset() EI_ORIGINAL(0x005C7D50)
-__declspec(naked) void AIPath::Start(const Vector3*, const Vector3*, int) EI_ORIGINAL(0x005C7B00)
-__declspec(naked) void AIPath::SetTarget(float, float) EI_ORIGINAL(0x005C7C70)
 
 namespace {
 // 005BD200: appends a copy of `cell` to the list.
