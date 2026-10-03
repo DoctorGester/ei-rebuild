@@ -21,6 +21,62 @@
 #include <cstdint>
 
 class CItem;
+class CItemInfoPanel;
+
+// --- The item screens' model view (005ECA10; ui_item_view.cpp) ------------------------------------
+
+// An item drawn as a turning model in a cell (005ECA10's argument, 0x18 bytes).
+struct ItemCell {
+    CItem* item;     // +0x00
+    float x;         // +0x04 the cell's centre (layout)
+    float y;         // +0x08
+    float depth;     // +0x0C
+    float size;      // +0x10 the cell (100 in the strips and grids, 120 in the description panel)
+    int mode;        // +0x14 the strip's action mode; 9: greyed out, never shaded as unusable
+};
+static_assert(sizeof(ItemCell) == 0x18);
+
+// A cache of the item screens (0x10 bytes at +0x170 and +0x180): an STLport map from a name
+// (stlp::string) to {object, time of last use}, and how many entries it keeps (30; 20 when
+// 00784754 is set). 005F2F20 / 005F2F90 release the least recently used objects beyond that.
+struct ItemObjectCache {
+    struct Node {
+        std::uint8_t unknown_00[0x10];   // colour, parent, left, right
+        std::uint8_t key[0x0C];          // +0x10 stlp::string
+        void* object;                    // +0x1C
+        std::uint32_t lastUse;           // +0x20 timeGetTime
+    };
+    Node* header;
+    std::uint32_t count;
+    std::uint32_t unknown_08;
+    std::uint32_t limit;             // +0x0C
+};
+static_assert(sizeof(ItemObjectCache) == 0x10);
+
+// The item screens (the camp, the multiplayer hero screen and the exchange window share these
+// fields; 005EDD80 sets the caches up): the description panel, the item under the mouse, and the
+// caches of item models (by the item's slot 20 name) and figure textures (slot 19 name).
+class CItemScreen : public CUiWindow {
+public:
+    // 005ECA10 (RET 8). Draws `cell`'s item: its model (cached, created by 005EBFB0) with its
+    // texture (cached, 005EC020) turning while the mouse is on it, a glow in the colour of the
+    // carried spell's school, a frame behind it, the modifier marks of a spell container, and a
+    // shade over items the strip's mode cannot take (virtual slot 43, CanEquip).
+    void DrawItem(int pass, ItemCell* cell);
+    // The cached model of `item` (the model cache's entry for its slot 20 name), or null; leaves
+    // the cache untouched. For the verify wrapper.
+    std::uint8_t* CachedModel(CItem* item);
+
+    std::uint8_t unknown_148[0x164 - 0x148];
+    CItemInfoPanel* descPanel_;      // +0x164
+    CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
+    CUiWindow* iconWindow_;          // +0x16C (005EDD80)
+    ItemObjectCache models_;         // +0x170
+    ItemObjectCache textures_;       // +0x180
+};
+static_assert(offsetof(CItemScreen, hoveredItem_) == 0x168);
+static_assert(offsetof(CItemScreen, models_) == 0x170);
+static_assert(offsetof(CItemScreen, textures_) == 0x180);
 
 // What the statistics under the mouse are (0x18 bytes; filled by the stats panel 00624CB0 and the
 // trade panel 00625690, read by DescribeStats).
@@ -64,6 +120,9 @@ public:
     // shown while it is held.
     void OnKeyDown(int key, int repeat, int flags);
     void OnKeyUp(int key, int repeat, int flags);
+    // 005EE5C0 (slot 20). Draws the described item's model at (x + 100, y + 200), size 120,
+    // greyed (mode 9) through the owner's DrawItem; returns 1 (ui_item_view.cpp).
+    BOOL Draw(int pass);
 
     // The described item (005EE720 inlined): the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }

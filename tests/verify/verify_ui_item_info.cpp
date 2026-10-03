@@ -174,6 +174,118 @@ static void __fastcall ShowHelpVerify(CItemInfoPanel* self, void*, int topic) {
 }
 EI_VERIFY(0x005F2910, ShowHelpVerify, 7, s_showHelp);
 
+// --- The model view (ui_item_view.cpp) ---------------------------------------------------------------
+
+namespace {
+
+// What DrawItem leaves on the item's model: flags (+0x08), position (+0x1C..+0x27), orientation
+// (+0x34..+0x43), colours (+0xD4, +0xD8, +0x224..+0x22F), scale (+0x23C, +0x250, +0x264), +0x27C
+// and the texture (+0x280); and the item's turning state (angle, speed, flag, glow).
+struct ModelState {
+    std::uint8_t bytes[4 + 12 + 16 + 8 + 12 + 12 + 8] = {};
+    ModelState() = default;
+    explicit ModelState(const std::uint8_t* m) {
+        std::uint8_t* out = bytes;
+        auto take = [&](int offset, int size) {
+            std::memcpy(out, m + offset, size);
+            out += size;
+        };
+        take(0x08, 4);
+        take(0x1C, 12);
+        take(0x34, 16);
+        take(0xD4, 8);
+        take(0x224, 12);
+        take(0x23C, 4);
+        take(0x250, 4);
+        take(0x264, 4);
+        take(0x27C, 8);
+    }
+    void Restore(std::uint8_t* m) const {
+        const std::uint8_t* in = bytes;
+        auto put = [&](int offset, int size) {
+            std::memcpy(m + offset, in, size);
+            in += size;
+        };
+        put(0x08, 4);
+        put(0x1C, 12);
+        put(0x34, 16);
+        put(0xD4, 8);
+        put(0x224, 12);
+        put(0x23C, 4);
+        put(0x250, 4);
+        put(0x264, 4);
+        put(0x27C, 8);
+    }
+    bool operator==(const ModelState& o) const { return std::memcmp(bytes, o.bytes, sizeof(bytes)) == 0; }
+};
+
+struct TurnState {
+    std::uint8_t bytes[0x10];   // +0x08 .. +0x17 of the turning state
+    explicit TurnState(const std::uint8_t* t) { std::memcpy(bytes, t + 8, sizeof(bytes)); }
+    void Restore(std::uint8_t* t) const { std::memcpy(t + 8, bytes, sizeof(bytes)); }
+    bool operator==(const TurnState& o) const { return std::memcmp(bytes, o.bytes, sizeof(bytes)) == 0; }
+};
+
+std::uint8_t* TurnOf(CItem* item) { return *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(item) + 0x1C); }
+
+} // namespace
+
+// 005ECA10 (PUSH EBP; MOV EBP,ESP; PUSH -1: 5). Side by side when the item already has its turning
+// state: the original draws, the model's fields and the turning state are recorded and put back,
+// ours draws (it finds the model and texture the original cached), and both must agree; the
+// scene objects added for the frame, the marks and the shade must be gone again after each run.
+// Without a turning state ours runs alone (the original would make one from the game's random
+// generator) and must leave one (vtable 007403F8). Both runs draw: the item is drawn twice.
+static void(__thiscall* s_drawItem)(CItemScreen*, int, ItemCell*);
+static void __fastcall DrawItemVerify(CItemScreen* self, void*, int pass, ItemCell* cell) {
+    CItem* item = cell->item;
+    int sceneObjects = self->sceneObjects_.size_;
+    std::uint8_t* turn = TurnOf(item);
+    if (!turn) {
+        self->DrawItem(pass, cell);
+        turn = TurnOf(item);
+        bool ok = turn && *reinterpret_cast<std::uintptr_t*>(turn) == 0x007403F8 && self->sceneObjects_.size_ == sceneObjects;
+        ei::verify::Check("CItemScreen::DrawItem", true, ok, "new turning state %p, scene objects %d -> %d", turn,
+                          sceneObjects, self->sceneObjects_.size_);
+        return;
+    }
+    TurnState turnBefore(turn);
+    std::uint8_t* model = self->CachedModel(item);
+    bool hadModel = model != nullptr;
+    ModelState modelBefore;
+    if (hadModel) modelBefore = ModelState(model);
+    s_drawItem(self, pass, cell);
+    int sceneAfterOriginal = self->sceneObjects_.size_;
+    model = self->CachedModel(item);
+    if (!model) {
+        // No model could be made: both return before drawing.
+        self->DrawItem(pass, cell);
+        ei::verify::Check("CItemScreen::DrawItem", true, TurnState(turn) == turnBefore, "no model, turning state changed");
+        return;
+    }
+    ModelState expected(model);
+    TurnState expectedTurn(turn);
+    turnBefore.Restore(turn);
+    if (hadModel) modelBefore.Restore(model);
+    self->DrawItem(pass, cell);
+    ModelState actual(model);
+    TurnState actualTurn(turn);
+    bool ok = expected == actual && expectedTurn == actualTurn && sceneAfterOriginal == sceneObjects &&
+              self->sceneObjects_.size_ == sceneObjects;
+    ei::verify::Check("CItemScreen::DrawItem", true, ok, "kind %x mode %d: model %d turn %d scene objects %d/%d/%d",
+                      KindOf(item), cell->mode, expected == actual, expectedTurn == actualTurn, sceneObjects,
+                      sceneAfterOriginal, self->sceneObjects_.size_);
+}
+EI_VERIFY(0x005ECA10, DrawItemVerify, 5, s_drawItem);
+
+// 005EE5C0 (slot 20): ours only (it draws through DrawItem, whose wrapper compares); returns 1.
+static BOOL __fastcall InfoPanelDrawVerify(CItemInfoPanel* self, void*, int pass) {
+    BOOL result = self->Draw(pass);
+    ei::verify::Check("CItemInfoPanel::Draw", 1, result, "result %d", result);
+    return result;
+}
+EI_VERIFY(0x005EE5C0, InfoPanelDrawVerify, 0, s_unused);
+
 // 005EE6C0: ours only (the list keeps a copy of the item, and a second run would find it there).
 // Afterwards: nothing changed when the item was already the described one (its slot 14 says so),
 // else the list holds one item (a null item: none).
