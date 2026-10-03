@@ -1,2 +1,10 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+# Terrain sectors (terrain_sector.cpp): Build mismatches on every call and the original crashes at 006C1F39 under the wrapper; sent back
+006C1C00  terrain sector
+006C13A0  terrain sector
+006C30E0  terrain sector
+006C3DD0  terrain sector
+006C53C0  terrain sector
+006C8D40  terrain sector
+006C8930  terrain sector
