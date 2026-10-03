@@ -26,6 +26,13 @@ struct UnitAction {
     int unknown_1C;
     std::uint8_t unknown_20;
     std::uint8_t unknown_21[3];
+
+    // combat_tick.cpp. 0054B320: copies `from` (the target referenced); returns this.
+    UnitAction* Assign(const UnitAction* from);
+    // 0054B230: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
+    void Reset();
+    UnitAction* CallAssign(const UnitAction* from);
+    void CallReset();
 };
 static_assert(sizeof(UnitAction) == 0x24);
 
@@ -325,6 +332,39 @@ public:
     bool CallBuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
     int CallAnimationDuration(std::uint32_t index);
     int CallAnimationMoment(std::uint32_t index);
+
+    // combat_tick.cpp (third round): the per-tick order machine.
+    // 0054B390. Every tick: takes over the queued order, else follows the path and continues the
+    // current order (ContinueAction for actions; a finished move or animation lets the queue on).
+    void UpdateOrders();
+    // 0054A900. Takes over the queued order (+0x1B4) by its kind; true when it started.
+    bool StartQueuedOrder();
+    // The move part of StartQueuedOrder (kind 1): plans a path with the units near the goal lifted
+    // off the sector map; done orders let the next one start.
+    bool StartMove();
+    // 0054DD70. Continues an action order while its target is valid and seen, else ends it
+    // (party messages 0x0B / 0x0E / 0x12) and calls 00549690.
+    void ContinueAction();
+    // 0054D960. Plans the action (PlanAction); when it can start, rolls an attack's hit and starts
+    // the action (005494D0), else closes in (ApproachTarget) or drops the order.
+    void ExecuteOrder();
+    // 0054D140. Closes in on the order's target or point: waits when in reach, else plans a path
+    // to where the target will be.
+    void ApproachTarget();
+    // 0054A620. The movement records (+0x168 / +0x170) from the unit's modes and the order.
+    void SyncMoveModes();
+    // 0054A6E0. Takes over the queued order (an inlined copy of StartQueuedOrder's common start).
+    void TakeQueuedOrder();
+    // 00546830. The unit's second movement mode, marking it changed.
+    void SetUnitMoveMode2(int mode);
+    bool CallStartQueuedOrder();
+    void CallSyncMoveModes();
+    void CallExecuteOrder();
+    void CallApproachTarget();
+    void CallContinueAction();
+    void CallTakeQueuedOrder();
+    void CallSetUnitMoveMode2(int mode);
+    bool CallCanPlanAction(const UnitAction* order);
 
     // Not rewritten (forwarders):
     // 00554830. Turns towards / plans the way to `point` for a party unit's move order.

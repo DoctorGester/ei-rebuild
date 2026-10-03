@@ -123,6 +123,7 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, void** spell) {
 char* SpellPrototypeOf(void* spell) { return static_cast<CSpell*>(spell)->GetPrototype(); }
 } // namespace
 
+namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 00530280. CUnit: the height of the ground (or water surface) under (x, y) for the unit, in ST0.
 __declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
@@ -138,8 +139,11 @@ __declspec(naked) double __fastcall UnitModeHeight(CUnit*) EI_ORIGINAL(0x005302F
 __declspec(naked) double __fastcall OrderDistance(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C070)
 __declspec(naked) double __fastcall MapLineOfSight(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC3E0)
 
+} // namespace
+
 __declspec(naked) bool CUnitServer::CallCanActFrom(const UnitAction*, const float*, int) EI_ORIGINAL(0x0054C2F0)
 __declspec(naked) bool CUnitServer::CallPlanAction(const UnitAction*, OrderPlan*) EI_ORIGINAL(0x0054CA40)
+__declspec(naked) bool CUnitServer::CallCanPlanAction(const UnitAction*) EI_ORIGINAL(0x0054C6B0)
 __declspec(naked) bool CUnitServer::CallFindSightTarget(const UnitAction*, SightTarget*) EI_ORIGINAL(0x0054BCB0)
 
 // --- What must be seen -----------------------------------------------------------------------

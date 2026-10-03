@@ -430,3 +430,27 @@ inline assembly. Not run in game yet.
   C++ callers in other areas: combat.cpp (`Period20`, `Value6E9Arg`), unit.cpp.
 - The scenario prints MaxHP / MaxMana around the stat raises instead of checking them: when the
   displayed maxima follow the server's depends on code outside this area.
+
+## Third round: Load / Save
+
+Code: `src/game/unit_save.cpp`; verify `tests/verify/verify_unit_save.cpp`. unit.h gained
+`UnitStream` (slot 1 Read, slot 2 Write, version at +8) and `CUnit::LoadUnit` / `SaveUnit`.
+
+| Address | Name | Verification |
+|---|---|---|
+| 005321C0 | CUnit::SaveUnit (slot 10) | both into capture streams; bytes and sizes compared |
+| 00531A80 | CUnit::LoadUnit (slot 9) | ours only: item slots referenced, carried array consistent, prototype indices valid |
+
+Format: the map object part (0050F7A0 / 0050F900), the controller (slot 9 / 10), the name (+0x238,
+zero-terminated), relations, the player's id (+0x24 of the player, -1), side, +0x254, +0x255,
++0x258..+0x278 (the active weapon among them), the +0x27C sub-object (005C7860 / 005C79B0), +0x320,
++0x324, +0x328, the active weapon again, weapons / quick items / spells / armour as item ids, +0x4C8
+(0x14 bytes), +0x248, the carried items, +0x32C, +0x438 (version 0x49), the prototype names
+(version 0x4D; the second from 0x6A, before that looked up by the first name with 00514930). Load
+resolves items in the world's item manager (ManagerContext slot 18), moves the unit between players
+(00665B50 / 00665A70, MarkChanged(0xB), controller slot 18), and calls slot 32. The world_load
+scenario saves (new game autosave) and loads.
+
+Oddities kept: the active weapon is saved twice (the second read wins); Save copies the prototype
+name from address 0 when the index is out of range (crashes as the original would); the name lookup
+through 005335E0 inserts unknown names into the prototype name map.

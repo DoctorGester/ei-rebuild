@@ -440,3 +440,122 @@ The compiled x87 code of HitDirection, PropagateHostility and FinishCast was rea
   (through the game's addresses).
 - FinishCast's clamps select through float loads where the original selects dwords with masks:
   only a signalling NaN in the mana could differ.
+
+## Third round: Load/Save, sight checks, the planner, animation steps, the order machine
+
+Code: `src/game/combat_save.cpp` (Load/Save), `combat_sight.cpp` (what an order must see, whether
+it can be carried out from a point, the planner), `combat_steps.cpp` (animation steps of orders,
+casts, attacks, transitions, death), `combat_tick.cpp` (the per-tick order machine), structures in
+`combat_plan.h` (AnimationStep, AnimationSteps, OrderPlan at +0xC4, SightTarget). Verify:
+`tests/verify/verify_combat_save.cpp`, `verify_combat_sight.cpp`, `verify_combat_steps.cpp`,
+`verify_combat_tick.cpp`, helpers `combat_verify_util.h`, `unit_capture_stream.h`.
+
+Shared files touched: combat.h (method declarations, UnitAction::Assign/Reset; the death animation
+forwarder renamed `CallBuildDeathAnimation`, its one caller in combat_actions.cpp updated). unit.h
+gained `UnitStream` (the Load/Save stream interface) and two CUnit declarations (units.md).
+
+### Functions rewritten (third round)
+
+| Address | Name | Verification |
+|---|---|---|
+| 005561C0 | CUnitServer::SaveServer (slot 10) | both into capture streams, bytes and write sizes compared, the original's writes forwarded |
+| 00555D10 | CUnitServer::LoadServer (slot 9) | ours only: +0x918 cleared, effect object referenced, attackers list count matches its nodes |
+| 0054BCB0 | CUnitServer::FindSightTarget | output only: original into a scratch SightTarget; bytes and AL |
+| 0054C2F0 | CUnitServer::CanActFrom | pure (AL) |
+| 0054CA40 | CUnitServer::PlanAction | random + state: generators saved, ours into the real plan, restored, original into a deep copy; result, plan (steps without byte 3) and generator state compared |
+| 0054C6B0 | CUnitServer::CanPlanAction | random: result, the target's flags and generator state |
+| 00551A40 / 00551A90 | CUnitServer::AnimationDuration / AnimationMoment | pure |
+| 005516D0 | CUnitServer::BuildTransition | random + output (as PlanAction; ours stands) |
+| 00550100 | CUnitServer::BuildOrderSteps | the same, plus the duration |
+| 00550620 | CUnitServer::BuildCastSteps | the same |
+| 0054F970 | CUnitServer::BuildAttackSteps | the same, plus plan +0x2C and the target's reference count |
+| 00550A80 | CUnitServer::BuildDeathAnimation | the same |
+| 0054B320 / 0054B230 | UnitAction::Assign / Reset | ours only: fields as copied / kind 9 and no target |
+| 00546830 | CUnitServer::SetUnitMoveMode2 | ours only |
+| 0054A620 | CUnitServer::SyncMoveModes | ours, snapshot of +0x168..+0x177, restore, original, compare |
+| 0054A6E0 | CUnitServer::TakeQueuedOrder | ours only: the queued order is empty afterwards |
+| 0054A900 | CUnitServer::StartQueuedOrder | ours only: never true with an empty queue |
+| 0054B390 | CUnitServer::UpdateOrders (every tick) | ours only (counted) |
+| 0054DD70 | CUnitServer::ContinueAction | ours only (counted) |
+| 0054D960 | CUnitServer::ExecuteOrder | ours only (counted) |
+| 0054D140 | CUnitServer::ApproachTarget | ours only (counted) |
+
+### How an order runs
+
+Every tick the controller calls UpdateOrders: StartQueuedOrder takes the queued order over by kind
+(0 stand, 1 move with a path planned around lifted nearby units, 2 turn, 3-6 ExecuteOrder, 7 play
+animation +0x1C, 8 emote, 10 use (plan from BuildOrderSteps(6, 0)), 11 stop); else action orders
+go through ContinueAction (target alive and seen) to ExecuteOrder. ExecuteOrder plans the action
+(PlanAction into +0xC4): when it plans, the attack interval (+0x184) is advanced, the hit is built
+and resolved for attacks (backstab unless ranged or the defender's +0x174), and 005494D0 starts
+the action; when it does not, ApproachTarget closes in: waits when the target is in reach (or
+comes into reach before the next attack), else plans a path to where the (party leader's) target
+will be in 2..64 ticks.
+
+PlanAction builds the order's animation (BuildAttackSteps / BuildOrderSteps / BuildCastSteps),
+then steps through the ticks of a half turn plus 3 for the first moment the target (predicted for
+moving targets and missile spells) is in reach, the unit can turn to it in time, and CanActFrom
+holds: AI units only within 1.05 times their sight range, melee and skill orders not with a living
+unit in the way (0.1..0.9 along, 0.3 aside), and a line of sight (CAIMap) from the eye height when
+the target is beyond FindSightTarget's minimum distance.
+
+Animation keys (005301B0 looks a unit's animation up): weapon bit (1 << weapon type, natural
+weapons below 7), movement bits (0x30000 / 0x20000 / 0x10000 / 0x8000 by mode), action bits
+(0x90000 attack with the height band 0x1000000 high / 0x2000000 middle / 0x3000000 low | 0x800000,
+0x40000 skill, 0xC0000 cast, 0x240000 mode transition, 0x6000000 death...). A step is {animation,
+0xFF, 0, uninitialised, duration, +8}; the duration is the entry's frames (+0x20; +0x40 the
+action's moment) over the unit's speed factor for it (005327D0, which the first round named
+ResistanceTo), truncated.
+
+### Forwarders added (third round)
+
+- Containers and helpers: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0 AddStep,
+  00544DD0, 00544D50, 00544E70, 00545110, 0054B260 / 00557E70 copy / destroy, 005582A0 / 00558420
+  list load / save, 0052CA10 CPtrList RemoveAll, 00545F40 UnitAction::Clear.
+- Not rewritten in this range: 0054A150 follow path, 00550F30 idle animation, 00546C40, 00547280,
+  00547090, 005474B0, 0054EB30, 005467B0, 00548700 path to a point, 005468D0, 005494D0 start the
+  action, 00548DE0 / 00548FA0 play a list by value, 00549690, 0054C760, 0054C8B0 (AL may be the FPU
+  status: always called through its address), 00552780 shout, 00544EF0 / 00544F60 plan load/save,
+  005585F0 / 00545430 attackers list.
+- Unit range: 005301B0 / 00530240 animation lookup / entry, 00525B20 pick a hit location, 00530560
+  height, 00530280 ground height, 0052E9D0, 00530570, 005287A0 / 00528800 stats load/save.
+- Elsewhere: 005B2430 / 005B2570 / 005B1DE0 / 005B23A0 / 005C7B00 motion, 0050E220 / 0050E290
+  counted references, 005D8310 / 005D8860 brain, 005AEC40 / 005AEC80 voice, 005BBC70 map cell flag,
+  005C1010 / 005C0DF0 sector map (also the global one at 007B01F4), 0058E5D0, 005CB7F0, 0066E110,
+  0066D6E0. Rewritten ones called through their addresses: ActionDistance, CanReachTarget, CanCast,
+  BuildAttackHit, ResolveHit, CUnit::BaseSpeed / ModeSpeed / ScaledValue / IsBehind / ResistanceTo,
+  CAIMap::LineOfSight, FindObject, UnitParams::Reset.
+- Globals: 007A9D40 ISAAC, 007AFFC4 frame, 007B00D2 path flag, 007AFF60 world, 007AFFA0 unit
+  manager, 0078FD48 the "can't find animation" text.
+
+### Original bugs and oddities kept on purpose (third round)
+
+- LoadServer *writes* +0x93C for version 0x73 and later instead of reading it.
+- Save writes the constant 2 after +0x180; Load reads it into a local.
+- BuildOrderSteps uses the address of the step list as the source of an unknown skill (kind 6).
+- BuildAttackSteps reads the plan's address as a float for an invalid hit location.
+- Steps carry an uninitialised byte 3 (00550A60); ours write 0 and the checks ignore it.
+- CanActFrom's "in the way" test divides by the squared distance, not the distance.
+- PlanAction's duration local is not initialised by the original (the builders always set it).
+- StartMove passes the goal's z as the path search's range.
+- ApproachTarget returns with the path flag (007B00D2) cleared when the goal is under 0.1 away.
+- ExecuteOrder passes 005494D0 dwords whose upper bytes are the time / garbage (only bytes read).
+
+### Skipped and why (third round)
+
+- 0054E600 PlanOrder, 00554830 TurnTo, 0054A150 path following, 00547890 (2.8 KB), 00552300
+  (tick slot), 00549160 / 00549690 / 005499F0 (animation step and the end of an order), 00550F30
+  idle animation, 00551AE0 taming, 00552D00 claims: next candidates; their callees are now known.
+- 0054C8B0 / 0054C960: return the FPU status word in AX on one path (callers test AL).
+- 00536670 / 00535CB0 / 005381B0 (CUnitClientSpecific figure and armour model lists: CString and
+  STLport vector building, model loading): not done this round.
+
+### Risks (third round)
+
+- The order machine (UpdateOrders, ContinueAction, ExecuteOrder, ApproachTarget, StartQueuedOrder)
+  runs every tick for every unit and is checked for consistency only; the scenarios combat,
+  combat_more, unit_ai and units exercise it. None of it has run in game yet.
+- x87: values the original keeps on the FPU stack are double locals (exact under 24/53-bit
+  precision, not under 64-bit); operand orders follow the disassembly.
+- Save's checks run the nested saves (map object, controller, brain) twice into capture streams;
+  they only write through the stream's virtual Write.

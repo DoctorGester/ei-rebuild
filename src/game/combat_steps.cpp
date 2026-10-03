@@ -115,6 +115,7 @@ AnimationStep BlankStep() {
 }
 } // namespace
 
+namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 005301B0. CUnit: the animation record for `key` (falling back to coarser keys; with `any`, a
 // random one of the closest group).
@@ -138,6 +139,8 @@ __declspec(naked) void __fastcall StepsSetField8(AnimationSteps*, void*, int) EI
 // speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.
 __declspec(naked) double __fastcall UnitAnimationSpeed(CUnit*, void*, const void*) EI_ORIGINAL(0x005327D0)
 __declspec(naked) double __fastcall StepsOrderDistance(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C070)
+
+} // namespace
 
 __declspec(naked) bool CUnitServer::CallBuildAttackSteps(OrderPlan*, AnimationSteps*, int*, CEngineObject*)
     EI_ORIGINAL(0x0054F970)
