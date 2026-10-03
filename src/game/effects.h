@@ -212,6 +212,11 @@ public:
     int EmitVisionStar(Particle* p, int index);     // 00494E00 (VisionStar1-3)
     int UpdateVisionStar(Particle* p);              // 00494F30
     int UpdateZoneExit(Particle* p);                // 00492F40 (ZoneExit)
+    int UpdateFeebleMind(Particle* p);              // 00495950 (FeebleMind, 0x2049)
+    int UpdateFeetCloud(Particle* p);               // 00495C80 (FeetCloud, 0x2047)
+    void TickFeetCloud(ParticleElement* e);         // 00495E00
+    int EmitSilence(Particle* p, int index);        // 00495320 (Silence, 0x2048)
+    int UpdateSilence(Particle* p);                 // 004955D0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

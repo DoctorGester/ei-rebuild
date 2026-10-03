@@ -276,3 +276,17 @@ EI_UPDATE_WRAPPER(UpdateVisionStar)
 EI_VERIFY(0x00494F30, UpdateVisionStarVerify, 8, s_UpdateVisionStar);
 EI_UPDATE_WRAPPER(UpdateZoneExit)
 EI_VERIFY(0x00492F40, UpdateZoneExitVerify, 8, s_UpdateZoneExit);
+
+// 00495950: MOV EAX,[ESP+4]; MOV ECX,[EAX+0x50] (7). 00495C80: MOV EAX,[ESP+4]; SUB ESP,0x24 (7).
+// 00495E00: SUB ESP,0x24; PUSH EBX; MOV EBX,ECX (6). 00495320: SUB ESP,0x34; PUSH EBX; MOV EBX,ECX
+// (6). 004955D0: SUB ESP,0xC; PUSH ESI; MOV ESI,[ESP+0x14] (8).
+EI_UPDATE_WRAPPER(UpdateFeebleMind)
+EI_VERIFY(0x00495950, UpdateFeebleMindVerify, 7, s_UpdateFeebleMind);
+EI_UPDATE_WRAPPER(UpdateFeetCloud)
+EI_VERIFY(0x00495C80, UpdateFeetCloudVerify, 7, s_UpdateFeetCloud);
+EI_ELEMENT_WRAPPER(TickFeetCloud)
+EI_VERIFY(0x00495E00, TickFeetCloudVerify, 6, s_TickFeetCloud);
+EI_EMIT_WRAPPER(EmitSilence)
+EI_VERIFY(0x00495320, EmitSilenceVerify, 6, s_EmitSilence);
+EI_UPDATE_WRAPPER(UpdateSilence)
+EI_VERIFY(0x004955D0, UpdateSilenceVerify, 8, s_UpdateSilence);

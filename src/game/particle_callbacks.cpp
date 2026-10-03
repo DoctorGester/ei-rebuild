@@ -3478,3 +3478,261 @@ int CParticleSource::UpdateZoneExit(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00492F40, CParticleSource::UpdateZoneExit);
+
+// --- FeebleMind (0x2049) update ----------------------------------------------------------------
+
+namespace {
+
+const std::int32_t* FeebleAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078ABB8); }    // by life
+
+} // namespace
+
+// 00495950. FeebleMind: alpha by the life left (dropped past 0); the particle circles: its offset
+// (+0x20) is taken off, turned by 0.07 radians and grown by 1.1, then put back with a rise of
+// 0.05. The size is +0x34 (growing by 1.04 per tick), the frame cycles through 16.
+int CParticleSource::UpdateFeebleMind(Particle* p) {
+    int life = --p->life;
+    if (life < 0) return 0;
+    float nextSize = *ParticleFloat(p, 0x34);
+    p->color = (static_cast<std::uint32_t>(FeebleAlpha()[life]) << 24) | 0xFFFFFF;
+    int frame = (p->frame + 1) & 15;
+    p->pos.x = Store(D(p->pos.x) - D(p->velocity.x));
+    p->pos.y = Store(D(p->pos.y) - D(p->velocity.y));
+    p->pos.z = Store(D(p->pos.z) - D(p->velocity.z));
+    double c = x87::fcos(GameDouble(0x0073CF78));
+    double s = x87::fsin(GameDouble(0x0073CF78));
+    float turnedY = Store(D(p->velocity.y) * c - D(p->velocity.x) * s);
+    double turnedX = c * D(p->velocity.x) + D(p->velocity.y) * s;
+    double grow = D(GameFloat(0x0073BAC4));                          // 1.1
+    p->velocity.x = Store(turnedX * grow);
+    p->velocity.y = Store(D(turnedY) * grow);
+    p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
+    p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+    double z = D(p->velocity.z) + D(p->pos.z);
+    p->size = nextSize;
+    p->frame = frame;
+    p->pos.z = Store(z + D(GameFloat(0x0073C52C)));
+    *ParticleFloat(p, 0x34) = Store(D(*ParticleFloat(p, 0x34)) * D(GameFloat(0x0073CF98)));    // 1.04
+    return 1;
+}
+EI_REPLACE_METHOD(0x00495950, CParticleSource::UpdateFeebleMind);
+
+// --- FeetCloud (0x2047): puffs at the carrier's feet; the emission is EmitFeetCloud --------------
+
+namespace {
+
+const std::int32_t* FeetAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AC18); }    // by life
+
+// Not rewritten (forwarders): the figure part named `name` (00516A80, null if none) and a part's
+// world position (005188B0).
+void* FindFigurePart(void* unit, const char* name) {
+    using Fn = void*(__thiscall*)(void*, const char*);
+    return reinterpret_cast<Fn>(0x00516A80)(unit, name);
+}
+Vector3* FigurePartPosition(void* unit, Vector3* out, void* part) {
+    using Fn = Vector3*(__thiscall*)(void*, Vector3*, void*);
+    return reinterpret_cast<Fn>(0x005188B0)(unit, out, part);
+}
+
+const char* kLeftFoot = reinterpret_cast<const char*>(0x0078B008);     // "ll3"
+const char* kRightFoot = reinterpret_cast<const char*>(0x0078B004);    // "rl3"
+const char* kBody = reinterpret_cast<const char*>(0x0078AD38);         // "bd"
+
+} // namespace
+
+// 00495C80. FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting
+// or loses its carrier; dropped past 0), the source's lifetime as the colour. The puff's offset
+// (+0x2C) grows by its speed (+0x38, slowing by 0.9) and the puff eases (+0x24 of the way, which
+// shrinks by 0.98) towards its foot (the element of +0x54) plus the offset; its size is +0x20
+// (shrinking by 0.8).
+int CParticleSource::UpdateFeetCloud(Particle* p) {
+    int life = --p->life;
+    if (life < 0) return 0;
+    if (!(flags_ & 1) || !attachedTo) {
+        if (life > 8) life = 8;
+        p->life = life;
+    }
+    p->color = (static_cast<std::uint32_t>(FeetAlpha()[life]) << 24) + static_cast<std::uint32_t>(lifetime);
+    float* offset = &p->unknown_2C;
+    offset[0] = Store(D(p->drift.x) + D(offset[0]));
+    offset[1] = Store(D(p->drift.y) + D(offset[1]));
+    offset[2] = Store(D(p->drift.z) + D(offset[2]));
+    float oldY = p->pos.y, oldZ = p->pos.z;
+    double oldX = D(p->pos.x);
+    float pull = p->velocity.y;
+    const ParticleElement& foot = elements[p->state];
+    double targetX = D(offset[0]) + D(foot.pos.x);
+    float targetY = Store(D(offset[1]) + D(foot.pos.y));
+    float targetZ = Store(D(offset[2]) + D(foot.pos.z));
+    float towardX = Store(targetX * D(pull));
+    float towardY = Store(D(targetY) * D(pull));
+    float towardZ = Store(D(targetZ) * D(pull));
+    double keep = D(EI_P_ONE) - D(pull);
+    float keepF = Store(keep);
+    double x = oldX * keep + D(towardX);
+    float keptY = Store(D(keepF) * D(oldY));
+    float keptZ = Store(D(keepF) * D(oldZ));
+    p->pos.y = Store(D(keptY) + D(towardY));
+    std::memcpy(&p->size, &p->velocity.x, sizeof(float));
+    p->pos.x = Store(x);
+    p->pos.z = Store(D(keptZ) + D(towardZ));
+    p->velocity.x = Store(D(p->velocity.x) * D(GameFloat(0x0073CCA8)));    // 0.8
+    p->velocity.y = Store(D(p->velocity.y) * D(GameFloat(0x0073CF9C)));    // 0.98
+    double slow = D(GameFloat(0x0073CD70));                                 // 0.9
+    p->drift.x = Store(D(p->drift.x) * slow);
+    p->drift.y = Store(D(p->drift.y) * slow);
+    p->drift.z = Store(D(p->drift.z) * slow);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00495C80, CParticleSource::UpdateFeetCloud);
+
+// 00495E00. FeetCloud feet: on a unit carrier the element sits on its foot (left when +0x34 is
+// set, else right), else on its body, else on its position raised by +0x14C; without one on the
+// source. +0x18 gets the carrier figure's radius and the countdown +0x30 is reset.
+void CParticleSource::TickFeetCloud(ParticleElement* e) {
+    if (attachedTo && ClassOf(attachedTo) == kUnitClass) {
+        void* unit = attachedTo;
+        void* part = FindFigurePart(unit, *ElementInt(e, 0x34) ? kLeftFoot : kRightFoot);
+        if (!part) part = FindFigurePart(unit, kBody);
+        if (part) {
+            Vector3 at;
+            FigurePartPosition(unit, &at, part);
+            e->pos = at;
+        } else {
+            const float* place = reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(unit) + 0x1C);
+            float raise = *reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(unit) + 0x14C);
+            std::memcpy(&e->pos, place, 2 * sizeof(float));
+            e->pos.z = Store(D(place[2]) + D(raise));
+        }
+    } else {
+        std::memcpy(&e->pos, &origin, sizeof(Vector3));
+    }
+    Vector3 offset;
+    AttachmentOffset(&offset, ElementFloat(e, 0x18));
+    *ElementInt(e, 0x30) = 0;
+}
+EI_REPLACE_METHOD(0x00495E00, CParticleSource::TickFeetCloud);
+
+// --- Silence (0x2048) ----------------------------------------------------------------------------
+
+// 00495320. Silence: the first two particles are orbs at the source (state 1) circling in step
+// (+0x20 the angle, +0x24 its step; +0x2C the tilt, +0x30 its step; the second starts at pi).
+// Further ones are wisps (state 0) somewhere along a random orb's last step, thrown out in a
+// random direction (inside the unit ball, normalised) by 0.8 of the orb's size.
+int CParticleSource::EmitSilence(Particle* p, int) {
+    if (particles.count <= 1) {
+        p->color = 0xFFFFFF;
+        p->frame = 6;
+        std::memcpy(&p->pos, &origin, sizeof(Vector3));
+        SetBits(&p->size, 0);
+        float start = particles.count != 0 ? GameFloat(0x0073B858) : GameFloat(0x0073CF80);    // 0 / pi
+        p->velocity.x = start;
+        p->unknown_2C = start;
+        SetBits(&p->velocity.y, 0x3DCCCCCD);     // 0.1
+        SetBits(&p->unknown_30, 0x3DF5C28F);     // 0.12
+        SetBits(ParticleFloat(p, 0x34), 0x3F800000);
+        p->state = 1;
+        return 1;
+    }
+    auto* node = particles.head;
+    if (Next() & 1) node = node->next;
+    const Particle* orb = node->data;
+    double t = Unsigned(Next()) * EI_P_SCALE_1;
+    float startX = Store(D(orb->pos.x) - t * D(orb->drift.x));
+    float startY = Store(D(orb->pos.y) - t * D(orb->drift.y));
+    float startZ = Store(D(orb->pos.z) - t * D(orb->drift.z));
+    float x, y, z;
+    for (int tries = 10;;) {
+        x = SignedUnit();
+        y = Store(Range(-1.0f, 1.0f));
+        double zu = Range(-1.0f, 1.0f);
+        z = Store(zu);
+        if (zu * D(z) + D(y) * D(y) + D(x) * D(x) < D(EI_P_ONE)) break;
+        if (!(--tries > 0)) break;
+    }
+    Vector3 v;
+    v.Construct(x, y, z);
+    double s = D(orb->size);
+    float a = Store(D(v.x) * s);
+    float b = Store(D(v.y) * s);
+    double c = s * D(v.z);
+    SetBits(&p->size, 0);
+    double k = D(GameFloat(0x0073CCA8));    // 0.8
+    float a8 = Store(D(a) * k);
+    float b8 = Store(D(b) * k);
+    double c8 = c * k;
+    p->pos.x = Store(D(a8) + D(startX));
+    double y8 = D(b8) + D(startY);
+    p->pos.z = Store(c8 + D(startZ));
+    p->pos.y = Store(y8);
+    p->velocity.x = Store((Unsigned(Next()) * GameDouble(0x0073CCB0) + D(GameFloat(0x0073CCA8))) * D(size) *
+                          D(GameFloat(0x0073CF84)));    // (0.8 + [0, 0.4)) * size * 0.08
+    p->color = 0xFFFFFFFF;
+    p->frame = 6;
+    p->state = 0;
+    p->life = 7;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00495320, CParticleSource::EmitSilence);
+
+// 004955D0. Silence: once the source stops emitting (or loses its carrier) the orbs
+// shrink the source by 0.85 per tick, everything going below 0.02. An orb circles the source on a
+// tilted circle (radius: half the carrier's +0x134, kept in +0x34), half a radius up, keeping its
+// step in +0x38 and flickering in size. A wisp shows +0x20 (shrinking by 0.8) for its life.
+int CParticleSource::UpdateSilence(Particle* p) {
+    if (!(flags_ & 1) || !attachedTo) {
+        if (p->state) size = Store(D(size) * D(GameFloat(0x0073CEB8)));    // 0.85
+        if (size < GameFloat(0x0073CCD8)) {                                 // 0.02
+            SetBits(&p->size, 0);
+            p->color = 0xFFFFFF;
+            return 0;
+        }
+    }
+    if (!p->state) {
+        if (--p->life <= 0) {
+            SetBits(&p->size, 0);
+            return 0;
+        }
+        double shrunk = D(p->velocity.x) * D(GameFloat(0x0073CCA8));
+        std::memcpy(&p->size, &p->velocity.x, sizeof(float));
+        p->velocity.x = Store(shrunk);
+        return 1;
+    }
+    double radius;
+    float* kept = ParticleFloat(p, 0x34);
+    if (attachedTo) {
+        radius = D(*reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(attachedTo) + 0x134)) *
+                 D(GameFloat(0x0073B86C));
+        *kept = Store(radius);
+    } else {
+        radius = D(*kept);
+    }
+    double c = x87::fcos(D(p->velocity.x));
+    p->color = 0xFFFFFFFF;
+    float sn = Store(x87::fsin(D(p->velocity.x)));
+    double hu = x87::fsin(D(p->unknown_2C)) * GameDouble(0x0073CC88);    // * 0.5
+    float h = Store(hu);
+    double length = x87::fsqrt(hu * D(h) + D(sn) * D(sn) + c * c);
+    double ku = radius / length;
+    float k = Store(ku);
+    double cx = c * ku;
+    float sy = Store(D(k) * D(sn));
+    float sz = Store(D(k) * D(h));
+    float nx = Store(cx + D(origin.x));
+    float ny = Store(D(sy) + D(origin.y));
+    double nz = D(sz) + D(origin.z);
+    double z = radius * D(GameFloat(0x0073B86C)) + nz;
+    SetBits(&p->size, 0x3F800000);
+    p->drift.x = Store(D(nx) - D(p->pos.x));
+    p->pos.x = nx;
+    p->drift.y = Store(D(ny) - D(p->pos.y));
+    p->pos.y = ny;
+    p->drift.z = Store(z - D(p->pos.z));
+    p->pos.z = Store(z);
+    p->velocity.x = Store(D(p->velocity.y) + D(p->velocity.x));
+    p->unknown_2C = Store(D(p->unknown_30) + D(p->unknown_2C));
+    p->size = Store((Unsigned(Next()) * GameDouble(0x0073CED8) + D(GameFloat(0x0073CD70))) * D(size) *
+                    D(GameFloat(0x0073CF88)));    // (0.9 + [0, 0.2)) * size * 0.22
+    return 1;
+}
+EI_REPLACE_METHOD(0x004955D0, CParticleSource::UpdateSilence);
