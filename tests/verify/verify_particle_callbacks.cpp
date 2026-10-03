@@ -203,3 +203,12 @@ EI_EMIT_WRAPPER(EmitArrowSmoke)
 EI_VERIFY(0x0048CBA0, EmitArrowSmokeVerify, 6, s_EmitArrowSmoke);
 EI_UPDATE_WRAPPER(UpdateArrowSmoke)
 EI_VERIFY(0x0048CED0, UpdateArrowSmokeVerify, 6, s_UpdateArrowSmoke);
+
+// 00489BE0: SUB ESP,0x18; PUSH EBX; PUSH EBP; MOV EBX,ECX (7). 00489EF0: MOV EAX,[ESP+4];
+// MOV ECX,[EAX+0x50] (7). 00489F30: MOV EAX,[ESP+4]; MOV EDX,[EAX+0x34] (7).
+EI_SETUP_EMIT_WRAPPER(EmitBanshee)
+EI_VERIFY(0x00489BE0, EmitBansheeVerify, 7, s_EmitBanshee);
+EI_UPDATE_WRAPPER(UpdateBanshee)
+EI_VERIFY(0x00489EF0, UpdateBansheeVerify, 7, s_UpdateBanshee);
+EI_ELEMENT_WRAPPER(TickBanshee)
+EI_VERIFY(0x00489F30, TickBansheeVerify, 7, s_TickBanshee);

@@ -191,6 +191,9 @@ public:
     int UpdateFireBall(Particle* p);                // 0048CAD0
     int EmitArrowSmoke(Particle* p, int index);     // 0048CBA0 (FireArrow 0x2011, 0x204E)
     int UpdateArrowSmoke(Particle* p);              // 0048CED0
+    int EmitBanshee(Particle* p, int index);        // 00489BE0 (Banshee, 0x200D)
+    int UpdateBanshee(Particle* p);                 // 00489EF0
+    void TickBanshee(ParticleElement* e);           // 00489F30
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

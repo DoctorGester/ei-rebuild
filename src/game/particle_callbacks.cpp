@@ -2715,3 +2715,88 @@ int CParticleSource::UpdateArrowSmoke(Particle* p) {
     return 1;
 }
 EI_REPLACE_METHOD(0x0048CED0, CParticleSource::UpdateArrowSmoke);
+
+// --- Banshee (0x200D): a ring that widens around the source ---------------------------------------
+//
+// Element 0: +0x08 the ring's height, +0x0C its radius (easing towards 30 times the source's
+// height), +0x34 the countdown.
+
+namespace {
+
+#define EI_BANSHEE_TALL GameFloat(0x0073BAA4)        // 3.0
+#define EI_BANSHEE_WIDEN GameFloat(0x0073CD04)       // 1/36
+#define EI_BANSHEE_HALF GameFloat(0x0073B86C)        // 0.5
+#define EI_BANSHEE_REACH GameFloat(0x0073BAF0)       // 30.0
+#define EI_BANSHEE_EASE GameFloat(0x0073CB2C)        // 0.5
+#define EI_BANSHEE_THIN GameFloat(0x0073CCF4)        // 0.001
+#define EI_BANSHEE_SIZE GameFloat(0x0073CD18)        // 0.15
+
+} // namespace
+
+// 00489BE0. Banshee: the first call only sets the ring up (from the carrier's figure; 72 sparks
+// per tick after it). A spark on the ring, at a random angle, between the ring and its eased
+// inner edge.
+int CParticleSource::EmitBanshee(Particle* p, int) {
+    if (elementCount == 0) {
+        SetElementCount(this, 1);
+        Vector3 offset;
+        float radius;
+        AttachmentOffset(&offset, &radius);
+        double tall = D(radius) * D(EI_BANSHEE_TALL);
+        double widen = D(radius) * D(EI_BANSHEE_WIDEN);
+        height = Store(widen + widen);
+        elements[0].ticks = 8;
+        elements[0].pos.z = Store(tall * D(EI_BANSHEE_HALF));
+        SetBits(ElementFloat(elements, 0x0C), 0);
+        emitCount = 72;
+        return 0;
+    }
+    float ringRadius;
+    std::memcpy(&ringRadius, ElementFloat(elements, 0x0C), sizeof(float));
+    float twoPi = Store(GameDouble(0x0073CAE8) + GameDouble(0x0073CAE8));
+    std::uint32_t r = Next();
+    p->color = 0xFFFFFFFF;
+    p->frame = 0;
+    p->frameTimer = 1;
+    float angle = Store(Unsigned(r) * D(twoPi) * EI_P_SCALE_1);
+    int age = elements[0].ticks;
+    if (age >= 5) age = 5;
+    p->life = static_cast<int>(Next() % 3u) + age + 1;
+    double innerUnrounded = (D(ringRadius) - D(height) * D(EI_BANSHEE_REACH)) * D(EI_BANSHEE_EASE) + D(ringRadius);
+    float inner = Store(innerUnrounded);
+    float reach;
+    if (!(innerUnrounded + D(EI_BANSHEE_THIN) >= D(ringRadius)))
+        reach = Store(Unsigned(Next()) * (D(ringRadius) - D(inner)) * EI_P_SCALE_1 + D(inner));
+    else
+        reach = inner;
+    p->pos.x = Store(x87::fsin(D(angle)) * D(reach) + D(origin.x));
+    p->pos.y = Store(x87::fcos(D(angle)) * D(reach) + D(origin.y));
+    p->pos.z = Store(D(origin.z) + D(elements[0].pos.z));
+    p->size = Store(D(size) * D(EI_BANSHEE_SIZE));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00489BE0, CParticleSource::EmitBanshee);
+
+// 00489EF0. Banshee sparks: one frame per tick until they die.
+int CParticleSource::UpdateBanshee(Particle* p) {
+    if (--p->life == 0) return 0;
+    if (--p->frameTimer == 0) {
+        p->frameTimer = 1;
+        ++p->frame;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00489EF0, CParticleSource::UpdateBanshee);
+
+// 00489F30. Banshee ring: counts down (stopping the emission at 0) while its radius eases towards
+// 30 times the source's height.
+void CParticleSource::TickBanshee(ParticleElement* e) {
+    if (--e->ticks == 0) {
+        flags_ &= ~1u;
+        return;
+    }
+    double target = D(height) * D(EI_BANSHEE_REACH);
+    float* radius = ElementFloat(e, 0x0C);
+    *radius = Store((D(*radius) - target) * D(EI_BANSHEE_EASE) + target);
+}
+EI_REPLACE_METHOD(0x00489F30, CParticleSource::TickBanshee);
