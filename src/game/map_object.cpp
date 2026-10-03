@@ -183,9 +183,9 @@ EI_REPLACE_METHOD(0x0050E8F0, CMapObject::AttachCompanion);
 namespace {
 constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions slot 19 accepts
 
-// 00516D50. The 3D object's slot 19 (attaches type 0x46 objects at +0x94). Not rewritten.
+// 00516D50. The 3D object's slot 19, which attaches type 0x46 objects at +0x94. Not rewritten.
 __declspec(naked) std::uintptr_t __fastcall Object3DAttach(CMapObject*, void*, CEngineObject*) EI_ORIGINAL(0x00516D50)
-// 00522C50. UnitVitals::Pack (unit_stats_pack.cpp), through its game address.
+// 00522C50. UnitVitals::Pack of unit_stats_pack.cpp, through its game address.
 __declspec(naked) void* __fastcall PackVitalsAt(void*, void*, void*) EI_ORIGINAL(0x00522C50)
 } // namespace
 

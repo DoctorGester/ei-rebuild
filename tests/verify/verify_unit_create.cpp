@@ -93,3 +93,131 @@ static void __fastcall DropBrokenEquipmentVerify(CUnit* self) {
     ei::verify::Check("CUnit::DropBrokenEquipment", true, ok, "unit %d", self->id_);
 }
 EI_VERIFY(0x00532AC0, DropBrokenEquipmentVerify, 0, s_unused);
+
+// --- unit_create_stats.cpp --------------------------------------------------------------------
+
+namespace {
+// The NPC lookup: the name already indexed -> both versions, same record; else ours only, and
+// the name is then indexed with a null record.
+template <typename Table>
+char* LookupVerify(const char* label, Table* self, const char* name,
+                   char*(__fastcall* original)(Table*, void*, const char*)) {
+    stlp::string key(name);
+    bool indexed = self->byName.Find(key) != nullptr;
+    std::size_t count = self->byName.Size();
+    if (indexed) {
+        char* expected = original(self, nullptr, name);
+        char* actual = self->FindByName(name);
+        ei::verify::Check(label, expected, actual, "%s", name);
+        return expected;
+    }
+    char* actual = self->FindByName(name);
+    auto* node = self->byName.Find(key);
+    bool ok = actual == nullptr && node && node->value == nullptr && self->byName.Size() == count + 1;
+    ei::verify::Check(label, true, ok, "%s (inserted)", name);
+    return actual;
+}
+
+// A scratch copy of an output block (null stays null).
+template <std::size_t N>
+struct Scratch {
+    unsigned char bytes[N];
+    void* real;
+    explicit Scratch(void* p) : real(p) {
+        if (p) std::memcpy(bytes, p, N);
+    }
+    template <typename T> T* Get() { return real ? reinterpret_cast<T*>(bytes) : nullptr; }
+    int FirstDifference() const {
+        if (!real) return -1;
+        for (std::size_t i = 0; i < N; ++i)
+            if (bytes[i] != static_cast<unsigned char*>(real)[i]) return static_cast<int>(i);
+        return -1;
+    }
+};
+} // namespace
+
+// 005144D0: PUSH -1; PUSH 0x71D2D0 (7 bytes). The copy of 00514930.
+static char*(__fastcall* s_findPrototype)(UnitPrototypeTable*, void*, const char*);
+static char* __fastcall FindPrototypeVerify(UnitPrototypeTable* self, void*, const char* name) {
+    return LookupVerify("UnitPrototypeTable::FindByName (005144D0)", self, name, s_findPrototype);
+}
+EI_VERIFY(0x005144D0, FindPrototypeVerify, 7, s_findPrototype);
+
+// 005145D0: PUSH -1; PUSH 0x71D300 (7 bytes).
+static char*(__fastcall* s_findNpc)(NpcPrototypeTable*, void*, const char*);
+static char* __fastcall FindNpcVerify(NpcPrototypeTable* self, void*, const char* name) {
+    return LookupVerify("NpcPrototypeTable::FindByName", self, name, s_findNpc);
+}
+EI_VERIFY(0x005145D0, FindNpcVerify, 7, s_findNpc);
+
+// 005134F0: PUSH EBP; MOV EBP,ESP; SUB ESP,8 (6 bytes). Output only: the original into scratch
+// copies of what it writes (the statistics, or the vitals without statistics), ours into the
+// real ones; bytes and EAX compared.
+static int(__fastcall* s_setDefaults)(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*);
+static int __fastcall SetDefaultsVerify(UnitStatsBuilder* self, void*, UnitVitals* vitals, UnitStats* stats) {
+    Scratch<sizeof(UnitVitals)> v(stats ? nullptr : vitals);
+    Scratch<sizeof(UnitStats)> s(stats);
+    int expected = s_setDefaults(self, nullptr, stats ? vitals : v.Get<UnitVitals>(), s.Get<UnitStats>());
+    int actual = self->SetDefaults(vitals, stats);
+    int dv = v.FirstDifference();
+    int ds = s.FirstDifference();
+    ei::verify::Check("UnitStatsBuilder::SetDefaults", true, expected == actual && dv < 0 && ds < 0,
+                      "vitals +0x%X, stats +0x%X, result %d vs %d", dv, ds, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x005134F0, SetDefaultsVerify, 6, s_setDefaults);
+
+// 005136D0: PUSH EBP; MOV EBP,ESP; SUB ESP,0xC (6 bytes). Output only, as above (the lookups it
+// makes first may insert the name, which both runs then find).
+static int(__fastcall* s_buildFromPrototype)(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*, const char*);
+static int __fastcall BuildFromPrototypeVerify(UnitStatsBuilder* self, void*, UnitVitals* vitals, UnitStats* stats,
+                                               const char* name) {
+    Scratch<sizeof(UnitVitals)> v(vitals);
+    Scratch<sizeof(UnitStats)> s(stats);
+    int expected = s_buildFromPrototype(self, nullptr, v.Get<UnitVitals>(), s.Get<UnitStats>(), name);
+    int actual = self->BuildFromPrototype(vitals, stats, name);
+    int dv = v.FirstDifference();
+    int ds = s.FirstDifference();
+    ei::verify::Check("UnitStatsBuilder::BuildFromPrototype", true, expected == actual && dv < 0 && ds < 0,
+                      "%s: vitals +0x%X, stats +0x%X, result %d vs %d", name, dv, ds, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x005136D0, BuildFromPrototypeVerify, 6, s_buildFromPrototype);
+
+// 00513DA0: PUSH EBP; MOV EBP,ESP; SUB ESP,0xC (6 bytes). Output only (the statistics).
+static int(__stdcall* s_buildNpcStats)(UnitStats*, const char*);
+static int __stdcall BuildNpcStatsVerify(UnitStats* stats, const char* name) {
+    Scratch<sizeof(UnitStats)> s(stats);
+    int expected = s_buildNpcStats(s.Get<UnitStats>(), name);
+    int actual = BuildNpcStats(stats, name);
+    int ds = s.FirstDifference();
+    ei::verify::Check("BuildNpcStats", true, expected == actual && ds < 0, "%s: stats +0x%X, result %d vs %d", name,
+                      ds, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x00513DA0, BuildNpcStatsVerify, 6, s_buildNpcStats);
+
+// 00513B60. Ours only (hands statistics to the object, rescales it): returns 1 and the
+// prototype index is -1 or a valid index.
+static int __fastcall ApplyPrototypeVerify(UnitStatsBuilder* self, void*, CEngineObject* object, const char* name) {
+    int result = self->ApplyPrototype(object, name);
+    const RecordTable& table = unitdb::Prototypes();
+    int index = *reinterpret_cast<int*>(reinterpret_cast<char*>(object) + 0x18);
+    std::uint32_t count = static_cast<std::uint32_t>((table.end - table.begin) / unitdb::kPrototypeSize);
+    bool ok = result == 1 && (index == -1 || static_cast<std::uint32_t>(index) < count);
+    ei::verify::Check("UnitStatsBuilder::ApplyPrototype", true, ok, "%s: object %d index %d", name, object->id_,
+                      index);
+    return result;
+}
+EI_VERIFY(0x00513B60, ApplyPrototypeVerify, 0, s_unused);
+
+// 00512730. Ours only (allocates and constructs): an object with a vtable for the known class
+// ids, null for the others.
+static CEngineObject* __fastcall CreateObjectVerify(CMapObjectManager* self, void*, int classId) {
+    CEngineObject* result = self->CreateObject(classId);
+    bool known = (classId >= 0x32 && classId <= 0x3C) || classId == 0x300D || classId == 0x3010;
+    bool ok = known ? result != nullptr && *reinterpret_cast<void**>(result) != nullptr : result == nullptr;
+    ei::verify::Check("CMapObjectManager::CreateObject", true, ok, "class %X", classId);
+    return result;
+}
+EI_VERIFY(0x00512730, CreateObjectVerify, 0, s_unused);

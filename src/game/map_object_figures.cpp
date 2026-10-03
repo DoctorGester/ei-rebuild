@@ -41,21 +41,21 @@ constexpr int kSlotGetName = 7;
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
 
-// Not rewritten (forwarders):
+// Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 __declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) EI_ORIGINAL(0x005AA5F0)
-// 005AC2F0. Figure manager: builds `part` from `model` at the scale (x, y, z as float bits).
+// 005AC2F0. Figure manager: builds `part` from `model` at the scale x, y, z given as float bits.
 __declspec(naked) void __fastcall BuildPart(void*, void*, FigurePart*, void*, std::uint32_t, std::uint32_t,
                                             std::uint32_t) EI_ORIGINAL(0x005AC2F0)
 // 0059F3D0. Part: remembers its owner.
 __declspec(naked) void __fastcall SetPartOwner(FigurePart*, void*, CObject3D*) EI_ORIGINAL(0x0059F3D0)
 // 0050D0E0. Animation state: a part was added.
 __declspec(naked) void __fastcall AnimationAddPart(void*, void*, FigurePart*) EI_ORIGINAL(0x0050D0E0)
-// 0050D7C0. Animation state: rescale to (x, y, z) (float bits).
+// 0050D7C0. Animation state: rescale to x, y, z given as float bits.
 __declspec(naked) void __fastcall AnimationSetScale(void*, void*, std::uint32_t, std::uint32_t, std::uint32_t)
     EI_ORIGINAL(0x0050D7C0)
-// 005197B0. map<string, piece>::find on the figure's piece map (figure + 0x14): writes the node
-// (the map's header when absent) to *out.
+// 005197B0. map<string, piece>::find on the figure's piece map at figure + 0x14: writes the node,
+// or the map's header when absent, to *out.
 __declspec(naked) void __fastcall FindPiece(void*, void*, const FigurePieceRecord**, const stlp::string*)
     EI_ORIGINAL(0x005197B0)
 // Rewritten here, called through their game addresses so their verify wrappers stay in the path.

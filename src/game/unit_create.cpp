@@ -34,13 +34,13 @@ constexpr std::uint32_t kExtraRemark = 0x30;
 constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;
 constexpr int kPtrListBlockSize = 10;
 
-// Called through their game addresses (rewritten elsewhere, so their verify wrappers stay in the
-// path): 00525AF0 UnitStats::RefillSlots (unit_vitals.cpp), 0066EA70 / 0066D6E0 the player's
-// message writers (player_messages.cpp).
+// Called through their game addresses, being rewritten elsewhere, so their verify wrappers stay in the
+// path: 00525AF0 UnitStats::RefillSlots in unit_vitals.cpp, 0066EA70 / 0066D6E0 the player's
+// message writers in player_messages.cpp.
 __declspec(naked) void* __fastcall RefillSlotsAt(UnitStats*) EI_ORIGINAL(0x00525AF0)
 __declspec(naked) void __fastcall SendPair16At(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066EA70)
 __declspec(naked) void __fastcall SendObject0BAt(void*, void*, const void*, std::uint32_t) EI_ORIGINAL(0x0066D6E0)
-// 00665470. The player takes the items of `list` (a CPtrList). Not rewritten.
+// 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
 __declspec(naked) void __fastcall PlayerReceiveItems(char*, void*, void*, int) EI_ORIGINAL(0x00665470)
 
 // The player's message writer (CPlayerServer, player + 0x20).
