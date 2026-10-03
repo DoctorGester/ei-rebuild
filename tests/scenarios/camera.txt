@@ -1,0 +1,55 @@
+# Camera (src/game/camera.cpp): the per-frame update (CCamera::Update, ApplyView, SampleTerrain)
+# while the hero walks, arrow-key panning (Pan), the saved-view keys F9-F12 (RestoreView), the
+# "normal camera" key N, the script camera commands, and a recorded camera path (PlayCamera:
+# PlaybackStart / PlaybackStep). keyboard.ini: F9-F12 camera1-4, N camera_norm, arrows scroll
+# (F5 / F8 are quicksave / quickload: not used).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# The level intro keeps the hero blocked; unblock it instead of waiting.
+console @BlockUnit(GetLeader(),0)
+
+# Walk six units east while the camera updates.
+console @GSSetVar(0,"x0",GetX(GetLeader()))
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
+
+# Script camera commands (ScriptRun::Execute gives them no effect in 1.06; they must still parse).
+console @SetCameraPosition(GetX(GetLeader()),GetY(GetLeader()),0)
+console @SetCameraOrientation(1)
+
+# Pan with the arrow keys, then the saved views and the normal camera.
+key left
+wait 300
+key up
+wait 300
+key right
+wait 300
+key down
+wait 300
+key f9
+wait 300
+key f10
+wait 300
+key f11
+wait 300
+key f12
+wait 300
+key n
+wait 500
+
+# Walk back west: the camera keeps updating after the view changes.
+console @MoveToPoint(GetLeader(),GSGetVar(0,"x0"),GetY(GetLeader()))
+waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"x0"),1))
+
+# A recorded camera path (camera\bz3g.cam, three keys over about 2.5 s of game time).
+console @PlayCamera("bz3g.cam")
+console #IsCameraPlaying()
+waitfor 20 Not(IsCameraPlaying())
+wait 500
+check IsAlive(GetLeader())
+report
+quit

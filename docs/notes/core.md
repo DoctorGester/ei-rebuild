@@ -112,3 +112,97 @@ camera reads the engine's zero vector at 0079B5C8 (set by a static initialiser a
 - 0042BEC0..0042C580: a stream wrapper class (vtable 0073BE94); same.
 - 0040F230, 00401E50, 00402220, 0040F5C0: camera/transform functions calling not-yet-rewritten maths
   (0049E790, 0049E800, 0040D9B0); good next candidates once those exist.
+
+## Camera (0040D9B0-004114F0)
+
+Files: `src/game/camera.cpp`, `tests/verify/verify_camera.cpp`, scenario `tests/scenarios/camera.txt`.
+Shared header changed: `src/game/core_transform.h` (CCamera's unknown blocks split into named
+fields, new methods, small types CameraLimits / CameraViewRecord / CameraSettings / CameraView /
+CameraShake / CameraKey / CubicCurve3, and the SampleTerrain declaration; nothing removed).
+
+The camera object is at 0079B2A8 (flags at 0079B2B0); 007AF7C8 points to it for the camera-file
+player (007AFEA5). The per-frame call is `CCamera::Update` from the game frame 00456440 (Rebirth
+patches that caller, not the camera).
+
+| Address | Name | Verify |
+|---|---|---|
+| 0040FB30 | `CCamera::Update(dt)` (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes) | scratch copy (0x120); ours alone while shakes run |
+| 0040F8B0 | `CCamera::ApplyView` (position from focus, distance, heading, pitch; re-aims when 0040E4C0 lifted it) | scratch copy |
+| 0040D9B0 | `SampleTerrain` (`__stdcall`, 9 args: average / min / max surface height on a grid) | outputs: ours into scratch |
+| 0040F5C0 | `CCamera::SetFocus` (minimap clicks, scripts) | scratch copy |
+| 0040F230 | `CCamera::Pan` (scroll keys / border) | scratch copy |
+| 0040F430 | `CCamera::StopMotion` | scratch copy |
+| 004107A0 | `CCamera::ZoomBy` (mouse wheel; 1.05^steps through `_CIpow`) | scratch copy |
+| 00410860 / 004108D0 | `CCamera::SaveView` / `RestoreView` (F9-F12, with a modifier to save) | scratch copy (0x1E0) + settings record |
+| 00411470 | `CCamera::SetDistancePitch` | scratch copy |
+| 00410D70 / 00410D10 | `CCamera::ViewsToSettings` / `ViewsFromSettings` (axis-angle through `_CIacos`) | settings record restored between runs / scratch copy |
+| 004109E0 | `CCamera::SetHeading` | scratch copy |
+| 00410E50 / 00411060 / 00411360 | `CCamera::SetFree` / `LookFrom` / `SetBounds` | scratch copy |
+| 004113A0 | `CCamera::Shake` | original on a scratch camera with a private list (its node read and erased again), ours on the real list; new node compared |
+| 0040F1B0 / 0040EFB0 | `CCamera::PlaybackStart` / `PlaybackStep` (camera\*.cam paths, PlayCamera) | scratch copy (0x308) + result |
+| 0040E460 | `CubicCurve3::Evaluate` | output only |
+
+### Layout (CCamera, beyond the transform)
+
++0x94 settings (CameraSettings: clearance +0xFC, limits +0x110 normal / +0x124 briefing (flag
+0x200), briefing pitch +0x134/+0x138, view records +0x178 (4 x 0x18), pitch +0x1D8/+0x1DC in
+degrees), +0x98 pan velocity, +0xA4 its target, +0xB0 pan response, +0xB4/+0xB8/+0xBC turn rate /
+target / response, +0xC0..+0xC8 tilt, +0xCC..+0xD4 zoom, +0xE0 focus, +0xEC focus height, +0xF0
+distance, +0xF4 heading quaternion, +0x104 pitch (degrees), +0x108 shake list (STLport list,
+nodes {elapsed, duration, amplitude, decay}), +0x10C/+0x118 bounds circle (flag 0x100), +0x11C
+target id, +0x120 eight saved views {distance, rotation, pitch}, +0x1E0 a view stack (deque;
+00410E70 push / 00410EF0 pop, not functions in Ghidra), +0x2EC file name, +0x2F0 keys
+(0x24 bytes: time, ?, position, rotation), +0x2F4 count, +0x300 time offset, +0x304 key index.
+Flags: 0x8 follow the target (behind it), 0x10 file open, 0x20 playing, 0x40 free placement,
+0x100 bounded, 0x200 briefing limits.
+
+### Floating point
+
+`camera.cpp` is compiled with `float_control(precise, on)`: values the original keeps on the FPU
+are `double`, stores go through `Store`. Constants the original multiplies at run time (pi, 1/180,
+90, the 1.05 zoom base, the 0 of StopMotion) are read from the exe through volatile reads so they
+are not folded. Calls whose float result the original uses unrounded (TerrainOwner::SurfaceHeight
+00564070, Vector3::Length 00401E20) go through naked forwarders declared `double`. The shake's
+`exp` is the original's inline FLDL2E / FRNDINT / F2XM1 / FSCALE sequence (naked `Exp`). The
+quaternion products in ApplyView and Update are written out separately: they add the terms in
+different orders.
+
+### Forwarders added
+
+0040E4C0 `ClampAboveObjects` (lifts the camera over objects; STLport list of nearby objects),
+0040D710 `AlignToTarget`, 004110D0 `LookDirection` (asin / acos), 00401940 (transform: turn
+towards a direction), 0049E790 / 0049E800 quaternion from angle and axis (two argument orders),
+0049ED20 slerp, 006B9750 sound listener, 006FD026 `_hypot`, 006E7320 `_CIacos`, 006E81A0
+`_CIpow`, the shake list's STLport end / insert / erase (00411530 / 00411630 / 00411540),
+00564070 and 00401E20 (as `double`, see above).
+
+### Original behaviour kept
+
+- RestoreView sets distance and pitch only: the saved rotation goes to the settings record (and
+  back into the slots) but never to the heading.
+- SampleTerrain counts the centre sample once more than the grid (it is also on the grid when the
+  step divides the half size); its second and third arguments are unused.
+- StopMotion multiplies the view axes by 0 for the pan target (so it is (+-0, +-0, 0), NaN for a
+  NaN axis) and replaces the turn / tilt rate only when it is NaN (SetTurnRate(0) inlined).
+- PlaybackStep, called when the index already is at the last key, places the camera there but does
+  not clear the playing flag (the loop path does).
+- The script commands SetCameraPosition (0x13) and SetCameraOrientation (0x14) have no effect in
+  ScriptRun::Execute.
+- Update tracks a target only with flag 8 clear; panning clears the target and flag 8.
+
+### Skipped
+
+- 0040ECD0 camera file load (Rebirth-patched), 0040E910 / 0040EB60 / 0040ECB0 camera recording
+  (CFile / CString), 00410AB0 / 00410C10 camera to / from a save (slots 0073BA04 / 0073BA08).
+- 0040E4C0 (STLport list of nearby objects from 0056DAF0), 0040D710, 004110D0, 0040DB50 (2 KB, no
+  references: a spline camera path with 0040E460), 0040D470, 0040D1D0, 0040CE60 / 0040CFB0 /
+  0040D0A0 (camera construction / settings load).
+- 0040F640 / 0040F7B0 (focus moves with no references).
+- 00410E70 / 00410EF0: view stack push / pop (no Ghidra function; reached through a vtable).
+
+### Scenario
+
+`camera.txt`: walks the hero (Update / ApplyView / SampleTerrain every frame), pans with the
+arrow keys (Pan), F9-F12 (RestoreView), N, the two script camera commands, then PlayCamera on
+camera\bz3g.cam (PlaybackStart / PlaybackStep) until IsCameraPlaying is 0. Shake runs when an
+effect shakes the camera (the Mushroom effect, 00534B60, 00678EC0); ZoomBy needs the mouse wheel.
