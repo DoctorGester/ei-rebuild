@@ -212,7 +212,7 @@ the compiler cannot load them into the FPU.
 - Camera members (00410750-004114F0): driven by keys, the mouse wheel and saves; 004113A0 (shake) and
   00410D70 (`_CIacos`) are good next candidates. The shake list goes through STLport list code.
 - 00471B10 scene loader (12.6 KB) and its CArray helpers; 00477B00 unit record (spells / items
-  through not-yet-rewritten unit code).
+  through not-yet-rewritten unit code). Both rewritten later: objects.md, "Third round".
 - 0042C580 ReadString (CString buffer API), 0042CE10 / 0042C400 / 0042C440 (not separate functions in
   the function list: inside 0042CD70 / 0042C380), 0042C650 / 0042C8F0 / 0042CA20 / 0042CB80 / 0042C820
   (chunk readers of string arrays and maps).

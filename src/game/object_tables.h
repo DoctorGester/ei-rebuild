@@ -46,6 +46,9 @@ struct CMapDatabase {
     MapRecord* FindMap(const char* name);
     // 0045E910. Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(const char* name);
+    // 0045EA20 (map_database.cpp). Adds the allods and maps of a map.txt-style text file. Returns
+    // false if the file is not found.
+    bool Load(const char* fileName);
 
     MfcArray<AllodRecord> allods;   // +0x00
     MfcArray<MapRecord> maps;       // +0x14
