@@ -498,5 +498,177 @@ int __stdcall EnterZone(std::uint8_t* records) {
     return result;
 }
 
+// ---- StartNetworkZone -------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kNetworkExitTarget = 0x00790620;   // "MPGame1": where every exit leads
+constexpr std::uintptr_t kExitArrayVtable = 0x0073C400;      // CArray<ZoneExit> (after 0056FFE0)
+constexpr std::uintptr_t kExitArrayBaseVtable = 0x0073C3F4;
+constexpr std::uintptr_t kHostRecordVtable = 0x0073BCA0;
+constexpr int kZoneSetting2C = 0x2C;   // CWorldServer::SetUnknownDC
+constexpr int kZoneSetting30 = 0x30;   // CWorldServer::SetUnknownE0
+constexpr int kGameResultNetwork = 2;
+constexpr int kHostPort = 8000;
+constexpr int kServerMessageZone = 8;
+
+int& CampaignMode() { return *reinterpret_cast<int*>(0x007C2CC4); }
+int& SpectatorFlag() { return *reinterpret_cast<int*>(0x0079BE6C); }
+
+// 005957E0. CWorldServer's zone teardown.
+__declspec(naked) void __fastcall WorldTeardownZone(CWorldServer*, void*) EI_ORIGINAL(0x005957E0)
+// 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
+__declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0x0056FFE0)
+// 00584EA0 (RET 8). CArray<ZoneExit>::GetAt by value into `out`; returns out.
+__declspec(naked) ZoneExit* __fastcall ExitArrayGetAt(const void*, void*, ZoneExit* /*out*/, int) EI_ORIGINAL(0x00584EA0)
+// 00583B50 (RET 4). ZoneExit::operator=.
+__declspec(naked) void __fastcall ZoneExitAssign(ZoneExit*, void*, const ZoneExit*) EI_ORIGINAL(0x00583B50)
+// Rewritten elsewhere, through their addresses: SetUnknownDC / SetUnknownE0 / SetGameResult
+// (world_server / world_tick), LoadMobFile (world_zone).
+__declspec(naked) void __fastcall WorldSetUnknownDC(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC80)
+__declspec(naked) void __fastcall WorldSetUnknownE0(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC70)
+__declspec(naked) void __fastcall WorldSetGameResult(CWorldServer*, void*, int) EI_ORIGINAL(0x0058DC90)
+__declspec(naked) int __fastcall WorldLoadMobFile(CWorldServer*, void*, const char*) EI_ORIGINAL(0x00595AB0)
+// The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
+// (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
+// destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
+// 0073BCA0; counted pointer at server + 0x25A0: 00413270 release, 00418BE0 share; 00426A80
+// assigns a string from a range) and the message 0041A500(8, zone).
+__declspec(naked) int __stdcall GetHostName(char*, int) EI_ORIGINAL(0x006E6100)
+__declspec(naked) void __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
+__declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
+__declspec(naked) void __fastcall RawStringDestruct(void*, void*) EI_ORIGINAL(0x00425040)
+__declspec(naked) void __fastcall HostRecordConstruct(void*, void*) EI_ORIGINAL(0x004186E0)
+__declspec(naked) void __fastcall HostStringConstruct(void*, void*) EI_ORIGINAL(0x0041F460)
+__declspec(naked) void __fastcall CountedDestroy(void* /*slot*/, void*) EI_ORIGINAL(0x00413270)
+__declspec(naked) void __fastcall CountedShare(void* /*slot*/, void*, void*) EI_ORIGINAL(0x00418BE0)
+__declspec(naked) void __fastcall HostStringAssign(void*, void*, const char* /*first*/, const char* /*last*/)
+    EI_ORIGINAL(0x00426A80)
+__declspec(naked) void __fastcall ServerSendText(void*, void*, int /*message*/, const char*) EI_ORIGINAL(0x0041A500)
+
+std::uint8_t* GameServer() { return *reinterpret_cast<std::uint8_t**>(0x0079B5DC); }
+
+// Tells the clients of the game server where the game is: the host's address and the zone.
+void AnnounceHost(const char* zone) {
+    char host[100];
+    if (GetHostName(host, sizeof(host)) != 0) return;
+    std::uint32_t address[4] = {0, 0, 0, 0};
+    AddressInit(address, nullptr, host, kHostPort);
+    alignas(4) std::uint8_t text[12];
+    mfc::CString formatted(*AddressFormat(address, nullptr, text));
+    RawStringDestruct(text, nullptr);
+    void* memory = gamecrt::operator_new(0x24);
+    At<std::uint32_t>(memory, 4) = 0;   // written before the null test
+    void* record = nullptr;
+    if (memory) {
+        HostRecordConstruct(memory, nullptr);
+        HostStringConstruct(static_cast<std::uint8_t*>(memory) + 0xC, nullptr);
+        HostStringConstruct(static_cast<std::uint8_t*>(memory) + 0x18, nullptr);
+        *static_cast<void**>(memory) = reinterpret_cast<void*>(kHostRecordVtable);
+        record = memory;
+    }
+    void* slot = GameServer() + 0x25A0;
+    if (record != *static_cast<void**>(slot)) {
+        CountedDestroy(slot, nullptr);
+        CountedShare(slot, nullptr, record);
+    }
+    const char* text1 = formatted;
+    std::uint8_t* shared = At<std::uint8_t*>(GameServer(), 0x25A0);
+    HostStringAssign(shared + 0xC, nullptr, text1, text1 + std::strlen(text1));
+    shared = At<std::uint8_t*>(GameServer(), 0x25A0);
+    HostStringAssign(shared + 0x18, nullptr, zone, zone + std::strlen(zone));
+    ServerSendText(GameServer(), nullptr, kServerMessageZone, zone);
+}
+
+} // namespace
+
+// 0057BDF0 (__stdcall, RET 4). Starts network zone `zone` (a zone record of kind 0): tears the
+// current zone down, restores saves\current\<zone>.sav when there is one (else loads the zone
+// fresh at time 4), copies its exits with every target set to "MPGame1", applies its two settings,
+// marks the game a network one and, on a running game server, announces the host and loads the
+// zone's .mob. Returns 1, 0 on failure.
+int __stdcall StartNetworkZone(const char* zone) {
+    ToMainMenu() = 1;
+    std::uint8_t* zoneRecord = MapDatabaseFind(kMapDatabase, nullptr, zone);
+    if (!zoneRecord || At<int>(zoneRecord, kZoneKind) != 0) return 0;
+    WorldTeardownZone(World(), nullptr);
+
+    mfc::CString folder;   // [0x14]
+    LocalFileStream file;  // [0x20]
+    folder.Format(Text(kCurrentFolder), GameFolder());
+    bool opened;
+    {
+        mfc::CString path = folder + zone;
+        mfc::CString fileName = path + Text(kSaveExtension);
+        opened = file.Open(fileName, kOpenRead, 1);
+    }
+    if (opened) {
+        CMemoryStream data;
+        std::memset(&data, 0, sizeof(data));
+        data.unknown_8 = kStreamLimit;
+        data.ok_ = 1;
+        data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        data.data_ = nullptr;
+        data.Reset();
+        bool loaded = ReadSaveFile(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268),
+                                   &file.stream) &&
+                      LoadSaveAt(World(), nullptr, &data, nullptr) != 0;
+        if (loaded) file.Close();
+        data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        if (data.data_) gamecrt::operator_delete(data.data_);
+        if (!loaded) {
+            data.vtable_ = reinterpret_cast<void*>(kStreamVtable);
+            return 0;
+        }
+    } else {
+        bool loaded;
+        {
+            mfc::CString mob = At<mfc::CString>(zoneRecord, kZoneMob) + Text(kMobExtension);
+            mfc::CString map = At<mfc::CString>(zoneRecord, kZoneMap) + Text(kMapExtension);
+            loaded = NewZone(World(), nullptr, map, mob, zone) != 0;
+        }
+        if (!loaded) return 0;
+        WorldSetTime(World(), nullptr, kStartTime);
+    }
+
+    // The zone's exits, all leading to "MPGame1".
+    ZoneExitArray exits;
+    ExitArrayConstruct(&exits, nullptr);
+    exits.vtable = reinterpret_cast<void*>(kExitArrayVtable);
+    const auto* source = reinterpret_cast<const ZoneExitArray*>(zoneRecord + kZoneExits);
+    exits.SetSize(source->size, -1);
+    for (int i = 0; i < source->size; ++i) {
+        alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
+        ZoneExit* exit = ExitArrayGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);
+        ZoneExitAssign(&exits.data[i], nullptr, exit);
+        reinterpret_cast<mfc::CString*>(&reinterpret_cast<ZoneExit*>(copy)->target)->~CString();
+    }
+    for (int i = 0; i < exits.size; ++i)
+        *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = Text(kNetworkExitTarget);
+    SetZoneExitsAt(World(), nullptr, &exits);
+    WorldSetUnknownDC(World(), nullptr, At<int>(zoneRecord, kZoneSetting2C));
+    WorldSetUnknownE0(World(), nullptr, At<int>(zoneRecord, kZoneSetting30));
+    CampaignMode() = 1;
+    WorldSetGameResult(World(), nullptr, kGameResultNetwork);
+    SpectatorFlag() = 1;
+
+    std::uint8_t* server = GameServer();
+    if (server && !(At<std::uint32_t>(server, 4) & 0x80000000u)) {
+        AnnounceHost(zone);
+        mfc::CString name(zone);
+        mfc::CString mob = name + Text(kMobExtension);
+        WorldLoadMobFile(World(), nullptr, mob);
+    }
+
+    exits.vtable = reinterpret_cast<void*>(kExitArrayBaseVtable);
+    if (exits.data) {
+        for (int i = 0; i < exits.size; ++i)
+            reinterpret_cast<mfc::CString*>(&exits.data[i].target)->~CString();
+        gamecrt::operator_delete(exits.data);
+    }
+    return 1;
+}
+
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
 EI_REPLACE(0x0057A060, EnterZone);
+EI_REPLACE(0x0057BDF0, StartNetworkZone);

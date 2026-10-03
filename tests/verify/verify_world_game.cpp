@@ -5,6 +5,7 @@
 #include "../../src/game/world.h"
 
 #include <cstdio>
+#include <cstring>
 
 #include <windows.h>
 
@@ -38,3 +39,19 @@ static int __stdcall EnterZoneVerify(std::uint8_t* records) {
     return result;
 }
 EI_VERIFY(0x0057A060, EnterZoneVerify, 0, s_unused);
+
+int __stdcall StartNetworkZone(const char* zone);   // world_game.cpp
+
+// 0057BDF0: on success every exit of the world leads to "MPGame1".
+static int __stdcall StartNetworkZoneVerify(const char* zone) {
+    int result = StartNetworkZone(zone);
+    auto* world = reinterpret_cast<CWorldServer*>(0x007AFF60);
+    bool ok = result == 0;
+    if (result == 1) {
+        ok = true;
+        for (int i = 0; i < world->exitCount_ && ok; ++i) ok = std::strcmp(world->exits_[i].target, "MPGame1") == 0;
+    }
+    ei::verify::Check("StartNetworkZone", true, ok, "%s -> %d, %d exits", zone ? zone : "", result, world->exitCount_);
+    return result;
+}
+EI_VERIFY(0x0057BDF0, StartNetworkZoneVerify, 0, s_unused);
