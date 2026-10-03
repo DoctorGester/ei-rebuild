@@ -748,7 +748,44 @@ int __stdcall LeaveZone(std::uint8_t* records) {
     return 1;
 }
 
+// ---- The multiplayer flag -----------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kMultiplayerVariable = 0x007906C8;   // "z.MPGame1"
+constexpr std::uint32_t kSessionInactive = 0x80000000u;       // net_session.h
+
+std::uint8_t* ClientSession() { return *reinterpret_cast<std::uint8_t**>(0x0079B5D8); }
+std::uint8_t* ServerSession() { return *reinterpret_cast<std::uint8_t**>(0x0079B5DC); }
+bool Active(const std::uint8_t* session) {
+    return session && !(*reinterpret_cast<const std::uint32_t*>(session + 4) & kSessionInactive);
+}
+// The server world's player list (007AFF60 + 0x38); +0x2C is its player count.
+int ServerPlayerCount() { return At<int>(*reinterpret_cast<void**>(0x007AFF98), 0x2C); }
+
+} // namespace
+
+void GameFlow::UpdateMultiplayerVariable() {
+    auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
+    void* variables = player->variables;
+    if (!Active(ClientSession())) return;
+    auto set = [variables](bool on) {
+        if (on) VariableSetAt(variables, nullptr, Text(kMultiplayerVariable), 1.0f);
+        else VariableRemove(variables, nullptr, Text(kMultiplayerVariable));
+    };
+    if (!Active(ServerSession())) {
+        // A client: set while the client has no peer (+0x25EC).
+        set(!Active(At<std::uint8_t*>(ClientSession(), 0x25EC)));
+        return;
+    }
+    // The host: with +0x80, set while more than one player is in; otherwise while the client
+    // has no peer at +0x25F4.
+    if (At<char>(this, 0x80)) set(ServerPlayerCount() > 1);
+    else set(!Active(At<std::uint8_t*>(ClientSession(), 0x25F4)));
+}
+
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
+EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057AA80, CWorldServer::ZoneNameInto);
 EI_REPLACE(0x0057A780, LeaveZone);
 EI_REPLACE(0x0057A060, EnterZone);

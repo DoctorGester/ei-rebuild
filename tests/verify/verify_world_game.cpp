@@ -89,3 +89,30 @@ static int __stdcall StartNetworkZoneVerify(const char* zone) {
     return result;
 }
 EI_VERIFY(0x0057BDF0, StartNetworkZoneVerify, 0, s_unused);
+
+namespace {
+using UpdateMultiplayerFn = void(__fastcall*)(GameFlow*, void*);
+UpdateMultiplayerFn s_originalUpdateMultiplayer;
+
+__declspec(naked) double __fastcall VariableGetAt(void*, void*, const char*) {
+    __asm mov eax, 0x00460AF0
+    __asm jmp eax
+}
+
+double MultiplayerFlag() {
+    auto* view = WorldClient()->LocalView();
+    auto* player = *reinterpret_cast<WorldPlayer**>(view + 0x1C);
+    return VariableGetAt(player->variables, nullptr, "z.MPGame1");
+}
+} // namespace
+
+// 0057F190: ours, then the original must leave the flag as ours set it.
+static void __fastcall UpdateMultiplayerVerify(GameFlow* self, void*) {
+    self->UpdateMultiplayerVariable();
+    double ours = MultiplayerFlag();
+    s_originalUpdateMultiplayer(self, nullptr);
+    double original = MultiplayerFlag();
+    ei::verify::Check("GameFlow::UpdateMultiplayerVariable", true, ours == original, "z.MPGame1 %g (original %g)", ours,
+                      original);
+}
+EI_VERIFY(0x0057F190, UpdateMultiplayerVerify, 5, s_originalUpdateMultiplayer);

@@ -651,6 +651,11 @@ struct GameFlow {
     // (the world, SaveWorld). Without scenario.sav the game goes back to the main menu. Returns 1
     // when saved.
     int SaveGame(const char* slot);
+    // 0057F190 (each network step). The local player's "z.MPGame1" variable, set to 1 or
+    // removed: on a client, set unless the client session's +0x25EC is active; on the host, set
+    // when more than one player is in (with +0x80) or unless the client's +0x25F4 is active.
+    // Nothing without an active client session.
+    void UpdateMultiplayerVariable();
 };
 
 CWorldServer* WorldServer();   // 007AFF60
