@@ -251,6 +251,24 @@ public:
     // 00530920. unknown_23C = `index`. Returns `index` (EAX).
     int SetPrototype23CIndex(int index);
 
+    // map_object_lifetime.cpp.
+    // 0052E110. The constructor: the map object (0050E2D0), the name, the AI memory sub-object
+    // at +0x27C (005C6270), the carried array (vtable 0073EB84), then the vtable 0073EA8C and
+    // Reset. Returns this.
+    CUnit* Construct();
+    // 0052E310. The destructor body: release (the vtable's slot 5 function, called directly),
+    // the map object's Destroy (0050E840), Reset, the arrays and the name freed, then the map
+    // object's destructor body.
+    void DestructBody();
+    // 0052E2A0. Virtual slot 0, the scalar deleting destructor: DestructBody, then the memory
+    // freed when bit 0 of `flags` is set. Returns this.
+    CUnit* DeletingDestructor(std::uint32_t flags);
+    // 0052E5B0. Back to a blank unit: no name, prototypes, controller (released), relations,
+    // player, side, items (the slots cleared without releasing) or carried array; standard
+    // sizes and movement modes, the parameter block cleared (00523550), the network records
+    // reset (0047FB70) and +0x438 = 1.
+    void Reset();
+
     // unit_create.cpp (fourth round).
     // 00532AC0. After a hit: armour pieces and weapons whose condition (+0x20) rounds to 0 or
     // less leave their slots (armour: the controller's slot 27 with the type; weapons: message
@@ -730,6 +748,11 @@ BOOL __fastcall HasElementalDamage(const DamageInfo* info);
 // vtable 0073DD6C). Only the hit points.
 class CMapObjectServer : public CEngineObject {
 public:
+    // map_object_lifetime.cpp. 00515610 / 00515720: constructor (the engine object fields, two
+    // names, a string array, vtable 0073DD6C, vitals reset; returns this) and destructor body.
+    CMapObjectServer* Construct();
+    void DestructBody();
+
     // 005156A0. Virtual slot 17: hit points rounded (FISTP) to a 16-bit value are <= 0.
     BOOL IsDead();
     // 005156C0. Virtual slot 18: hit points below -5 times the maximum.
@@ -755,6 +778,12 @@ static_assert(offsetof(CMapObjectServer, hitPoints) == 0x28);
 // 0073DBEC); +0x1C is the object it belongs to (a unit for these two).
 class CMapObjectClientSpecific : public CEngineObject {
 public:
+    // map_object_lifetime.cpp. 00510450: constructor (the engine object fields, the particle and
+    // sound arrays, no light, vtable 0073DBEC; returns this). 00510560: destructor body (the
+    // particles and the light removed, the arrays freed).
+    CMapObjectClientSpecific* Construct();
+    void DestructBody();
+
     // 005104D0. Virtual slot 17: the unit's hit points <= 0.
     BOOL IsDead();
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.

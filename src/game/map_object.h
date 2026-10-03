@@ -46,6 +46,16 @@ constexpr int kShrink = 0x26;          // scale down
 
 class CMapObject : public CEngineObject {
 public:
+    // map_object_lifetime.cpp.
+    // 0050E2D0. The constructor: the 3D object (00515BD0), the effect array (vtable 0073DBA0),
+    // the second name, the network record array and its two memory streams (+0x1C4), then the
+    // vtable 0073DAA0, no companion, packed vitals cleared, no sector cell, +0x178 = 1. Returns
+    // this.
+    CMapObject* Construct();
+    // 0050E660. The destructor body: the streams' buffers, the network records (00510340), the
+    // second name and the effects freed, then the 3D object's destructor body.
+    void DestructBody();
+
     // --- Rewritten (map_object.cpp) ---
 
     // 0050F1C0. Virtual slot 6, the per-tick update: lets the companion (+0x170) update (its slot

@@ -177,6 +177,10 @@ public:
     // Returns 1 when damage was applied; on a miss the victim turns hostile and remembers the
     // attacker.
     BOOL TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source);
+    // map_object_lifetime.cpp. 00546230. The destructor body: the orders and the AI brain's
+    // members destroyed, the referenced objects released, the arrays freed, then the base
+    // controller (vtable 0073EDBC) and the engine object base.
+    void DestructBody();
     // unit_create.cpp. 00552F40. Takes `stats` (0x704 bytes) as the unit's statistics: marks
     // the unit's part 4 changed, refills the body slots between two calls of slot 19 and sets
     // the server companion's hit points and mana to their maxima. Returns the companion (EAX).

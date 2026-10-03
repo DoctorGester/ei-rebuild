@@ -54,6 +54,17 @@ static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 
 class CObject3D : public CEngineObject {
 public:
+    // map_object_lifetime.cpp.
+    // 00515BD0. The constructor: the engine object and transform bases (vtables 0073B8E0,
+    // 0073BA38), identity orientations, empty name, part list (vtable 0073DE4C), arrays and
+    // string array, the bounds cleared, then the vtable 0073DDD4 and the default figure scale
+    // from 007AF1D0. Returns this.
+    CObject3D* Construct();
+    // 00515D70. The destructor body: the parts released (00516080), the frame array, string
+    // array, figure (counted), part arrays, list blocks and name freed, then the transform and
+    // engine object bases.
+    void DestructBody();
+
     // 00518310. The bounding box of the parts (+0xD0, only those within 1e9 squared of the
     // object) and of the pending parts (+0xE0, whose positions are reset to 0) into the bounds:
     // centre +0x128, half extents below (+0x138) and above (+0x144) it, radius +0x134; sets bits
