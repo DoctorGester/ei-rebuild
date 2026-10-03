@@ -62,3 +62,82 @@ static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*)
                       before.objects, after.objects);
 }
 EI_VERIFY(0x00635250, BattleScreenCreateVerify, 0, s_unused);
+
+// --- Global map (0062D350) -----------------------------------------------------------------------
+
+// The arrays grow by exactly the counts Create keeps, the counts add up, a link points back at its
+// zone and a zone that names a link is in state 2; 13 fixed sprites plus one per marker, 3 fixed
+// regions plus one per link, two listed surfaces and the backdrop; the fixed fields.
+static void __fastcall GlobalMapCreateVerify(CGlobalMap* self, void*) {
+    Counts before = CountsOf(self);
+    int zones = self->zones_.size, links = self->links_.size, quests = self->quests_.size;
+    self->Create();
+    Counts after = CountsOf(self);
+    int markers = self->zoneCount_ + self->questCount_ + self->linkCount_;
+    bool counts = self->markerCount_ == markers && self->zones_.size == zones + self->zoneCount_ &&
+                  self->links_.size == links + self->linkCount_ && self->quests_.size == quests + self->questCount_;
+    bool layout = after.sceneObjects == before.sceneObjects + 13 + markers &&
+                  after.regions == before.regions + 3 + self->linkCount_ &&
+                  after.surfaces == before.surfaces + 2 && after.objects >= before.objects + 5 && self->backdrop_;
+    bool links_ok = true;
+    for (int i = 0; i < self->linkCount_ && links_ok; ++i)
+        links_ok = self->links_.data[links + i].zone >= 0 && self->links_.data[links + i].zone < self->zoneCount_;
+    for (int i = 0; i < self->zoneCount_ && links_ok; ++i) {
+        const GlobalMapZone& z = self->zones_.data[zones + i];
+        links_ok = z.link == -1 || (z.state == 2 && z.link >= 0 && z.link < self->linkCount_);
+    }
+    static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
+                                     0x77, 0xF8};
+    bool fields = std::memcmp(self->weatherTable_, kWeather, sizeof(kWeather)) == 0 && self->weatherIndex_ == 17 &&
+                  self->unknown_20C == 1 && !self->autosave_ && self->depth_ == 10.0f && self->centreX_ == 400.0f &&
+                  self->centreY_ == 280.0f && self->weather_ && !self->unknown_264;
+    bool ok = counts && layout && links_ok && fields;
+    ei::verify::Check("CGlobalMap::Create", true, ok,
+                      "counts %d layout %d links %d fields %d zones %d quests %d links %d sprites %d->%d regions %d->%d",
+                      counts, layout, links_ok, fields, self->zoneCount_, self->questCount_, self->linkCount_,
+                      before.sceneObjects, after.sceneObjects, before.regions, after.regions);
+}
+EI_VERIFY(0x0062D350, GlobalMapCreateVerify, 0, s_unused);
+
+// --- Camp page switch (0060E9E0) -------------------------------------------------------------------
+
+// The page shown afterwards (the requested one, or the previous one when the camp does not offer
+// it) has exactly its panels enabled, the item strip its slot count, its button full bright and
+// the others half; page 7 leaves (the pending value when opened from the hero screen).
+static void __fastcall CampShowPageVerify(CCampPages* self, void*, int page) {
+    int previous = self->page_;
+    bool pendingBefore = self->interface_->pendingFlag_;
+    self->ShowPage(page);
+    if (page == 7) {
+        bool ok = !self->fromHeroScreen_ || (self->interface_->pendingFlag_ && self->interface_->pendingValue_ == 0);
+        ei::verify::Check("CCampPages::ShowPage", true, ok, "leave: pending %d->%d", pendingBefore,
+                          self->interface_->pendingFlag_);
+        return;
+    }
+    int shown = self->page_;
+    bool offered = page < 0 || page > 7 || (page < 2) || (page <= 3 && self->spellConstructor_ && (page == 2 || !self->noConstructor_)) ||
+                   (page >= 4 && self->itemConstructor_ && (page != 5 || !self->noConstructor_));
+    bool pageOk = offered ? shown == page : shown == previous;
+    auto on = [](CUiWindow* w) { return w->enabled_ != 0; };
+    auto strip = [](CUiItemStrip* s) { return reinterpret_cast<CUiWindow*>(s)->enabled_ != 0; };
+    bool panels = on(self->statsPanel_) == (shown == 0 || shown == 1) && on(self->equipment_) == (shown == 0) &&
+                  on(self->equipment2_) == (shown == 1) && on(self->trade_) == (shown == 1) &&
+                  on(self->helpPanel_) == (shown >= 2 && shown <= 6);
+    if (self->spellConstructor_)
+        panels = panels && on(self->spellConstructor1_) == (shown == 2) && on(self->spellConstructor2_) == (shown == 3) &&
+                 strip(self->spellStrip_) == (shown == 2 || shown == 3);
+    if (self->itemConstructor_)
+        panels = panels && on(self->itemConstructor1_) == (shown == 4) && on(self->itemConstructor2_) == (shown == 5) &&
+                 on(self->itemConstructor3_) == (shown == 6) && strip(self->partStrip_) == (shown >= 4 && shown <= 6);
+    int slots = shown == 2 ? 1 : shown == 4 ? 5 : 9;
+    bool shades = true;
+    for (int i = 2; i < 10 && shown >= 0 && shown < 8; ++i) {
+        std::uint32_t bits;
+        std::memcpy(&bits, reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data_[i]) + 0x224, 4);
+        shades = shades && bits == (i == shown + 2 ? 0x3F800000u : 0x3F000000u);
+    }
+    bool ok = pageOk && panels && self->itemStrip_->slots_ == slots && shades;
+    ei::verify::Check("CCampPages::ShowPage", true, ok, "page %d previous %d shown %d panels %d slots %d shades %d",
+                      page, previous, shown, panels, self->itemStrip_->slots_, shades);
+}
+EI_VERIFY(0x0060E9E0, CampShowPageVerify, 0, s_unused);
