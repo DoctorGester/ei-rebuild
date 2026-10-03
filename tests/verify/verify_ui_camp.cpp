@@ -231,3 +231,28 @@ static bool __fastcall CampCanMakeItemVerify(CCampPages* self, void*) {
     return result;
 }
 EI_VERIFY(0x00612600, CampCanMakeItemVerify, 0, s_unused);
+
+// --- Hero statistics panel (006233C0 / 00623880) -----------------------------------------------------
+
+// Ours only: the two fixed regions kept plus the page's rows (9 equipment, 13 new hero, 8 other),
+// the page stored, the scene objects from 4 on shown exactly on the new hero page.
+static void __fastcall StatsShowVerify(CHeroStatsPanel* self, void*, int page) {
+    self->ShowStats(page);
+    int rows = page == 0 ? 9 : page == 10 ? 13 : 8;
+    bool shown = true;
+    for (int i = 4; i < self->sceneObjects_.size_; ++i)
+        shown = shown && *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data_[i]) +
+                                                       0x220) == (page == 10 ? 1 : 0);
+    bool ok = self->page_ == page && self->regions_.size_ == 2 + rows && shown;
+    ei::verify::Check("CHeroStatsPanel::ShowStats", true, ok, "page %d regions %d", page, self->regions_.size_);
+}
+EI_VERIFY(0x006233C0, StatsShowVerify, 0, s_unused);
+
+// Drawing only (text through GDI); ours only: the panel's state is left alone.
+static void __fastcall StatsDrawVerify(CHeroStatsPanel* self, void*) {
+    int page = self->page_, regions = self->regions_.size_, points = self->points_;
+    self->DrawStats();
+    bool ok = self->page_ == page && self->regions_.size_ == regions && self->points_ == points;
+    ei::verify::Check("CHeroStatsPanel::DrawStats", true, ok, "page %d", page);
+}
+EI_VERIFY(0x00623880, StatsDrawVerify, 0, s_unused);

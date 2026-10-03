@@ -243,3 +243,34 @@ static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
 static_assert(offsetof(CCampPages, pageTitles_) == 0x244);
 static_assert(offsetof(CCampPages, noConstructor_) == 0x254);
 static_assert(sizeof(CCampPages) == 0x260);
+
+// --- Hero statistics panel ----------------------------------------------------------------------
+//
+// The statistics column shared by the camp and the multiplayer hero screen (vtables 00741ABC /
+// 00741A88, 0x17C bytes; ui_hero_panels.cpp). Its owner's slot 51 gives the hero record (stats at
+// +0x20), slot 50 the hero's unit, slot 53 (hero screen) the equipment weight.
+class CHeroStatsPanel : public CUiWindow {
+public:
+    // 006233C0. Shows the statistics for page `page` of the owner: 0 the body parts and the
+    // weapon, 10 the new hero's points with -/+ buttons, others the plain values; rebuilds the
+    // rows' regions (two fixed ones kept) and draws (DrawStats).
+    void ShowStats(int page);
+    // 00623880. Draws the statistics into surface 0.
+    void DrawStats();
+
+    std::uint8_t unknown_148[4];
+    CUiWindow* owner_;               // +0x14C
+    int heroIndex_;                  // +0x150 passed to the owner's slot 50
+    char* title_;                    // +0x154 CString
+    int page_;                       // +0x158
+    std::uint8_t unknown_15C[4];
+    char** texts_;                   // +0x160 CStringArray data: weapon labels, the points texts, ...
+    std::uint8_t unknown_164[0x170 - 0x164];
+    int points_;                     // +0x170 skill points left (page 10)
+    std::uint8_t unknown_174[0x17C - 0x174];
+};
+static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
+static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);
+static_assert(offsetof(CHeroStatsPanel, texts_) == 0x160);
+static_assert(offsetof(CHeroStatsPanel, points_) == 0x170);
+static_assert(sizeof(CHeroStatsPanel) == 0x17C);
