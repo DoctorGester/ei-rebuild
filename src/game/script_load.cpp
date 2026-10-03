@@ -8,6 +8,7 @@
 // loaders; both are written out here (InlineSetSize, AppendNode) with the instantiation's own
 // element helpers, which are called through their addresses (MFC template code, config/library.csv).
 #include "script.h"
+#include "script_array.h"
 
 #include "lib/crt.h"
 
@@ -65,7 +66,6 @@ __declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE0
 
 // ConstructElements / DestructElements instantiations (__stdcall (first, count)) and element
 // destructors (__thiscall (flags); 0 = destroy in place).
-using RangeFn = void(__stdcall*)(void* first, int count);
 __declspec(naked) void __stdcall ZeroFloats(void*, int) EI_ORIGINAL(0x004CC870)
 __declspec(naked) void __stdcall ConstructStrings(void*, int) EI_ORIGINAL(0x006FE268)
 __declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
@@ -79,32 +79,21 @@ __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
 __declspec(naked) void __fastcall CmdDestroy(void*, void*, int) EI_ORIGINAL(0x004BF620)
 
-// ---- Inlined template code ------------------------------------------------------------------------
+} // namespace
 
-struct RawArray {
-    void* vtable;
-    char* data;     // +0x04
-    int size;       // +0x08
-    int maxSize;    // +0x0C
-    int growBy;     // +0x10
-};
-template <typename T>
-RawArray* Raw(MfcArray<T>* a) { return reinterpret_cast<RawArray*>(a); }
+// ---- Inlined template code (script_array.h) ------------------------------------------------------
 
-// The element helpers of one CArray instantiation, as the inlined SetSize uses them.
-struct ElementKind {
-    int size;
-    RangeFn construct;
-    void (*destroyAll)(char* first, int count);    // n == 0 (null: plain delete)
-    void (*destroyTail)(char* first, int count);   // shrinking (null: nothing)
-};
+namespace scriptarray {
 
+namespace {
 template <void(__fastcall* Destroy)(void*, void*, int), int kSize>
 void DestroyEach(char* first, int count) {
     for (int i = 0; i < count; ++i, first += kSize) Destroy(first, nullptr, 0);
 }
 template <RangeFn Destruct>
 void DestroyRange(char* first, int count) { Destruct(first, count); }
+
+} // namespace
 
 const ElementKind kFloats{4, ZeroFloats, nullptr, nullptr};
 const ElementKind kStrings{4, ConstructStrings, DestroyRange<DestructStrings>, DestroyRange<DestructStrings>};
@@ -158,6 +147,13 @@ void InlineSetSize(RawArray* a, int n, const ElementKind& kind) {
     a->size = n;
     a->maxSize = newMax;
 }
+
+} // namespace scriptarray
+
+namespace {
+
+using namespace scriptarray;
+
 
 using ListNode = ScriptListNode;
 using RawList = ScriptList;

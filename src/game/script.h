@@ -561,3 +561,17 @@ void __fastcall ScriptLightningLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptWorldBlocksLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptInstancesLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptRunsLoad(ScriptList* list, ScriptStream* stream);
+
+// ---- Variable appends (script_vars_append.cpp) --------------------------------------------------
+
+// 004C2B70 / 004C2FE0 / 004C3450 / 004C3DC0 (__thiscall on this set's value array, the other set's
+// value array): values grown by the other's value count, names to the old size plus the other's
+// name count, then for each of the other's names its name and value copied into the new slots
+// (floats through the FPU; objects and group members referenced).
+void __fastcall ScriptFloatsAppend(ScriptNamedValues<float>* self, void* edx, const ScriptNamedValues<float>* other);
+void __fastcall ScriptStringsAppend(ScriptNamedValues<mfc::CString>* self, void* edx,
+                                    const ScriptNamedValues<mfc::CString>* other);
+void __fastcall ScriptObjectsAppend(ScriptNamedValues<ScriptObjectRef>* self, void* edx,
+                                    const ScriptNamedValues<ScriptObjectRef>* other);
+void __fastcall ScriptGroupsAppend(ScriptNamedValues<ScriptGroup>* self, void* edx,
+                                   const ScriptNamedValues<ScriptGroup>* other);
