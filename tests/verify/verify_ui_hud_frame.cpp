@@ -8,6 +8,8 @@
 
 #include "../../src/game/ui.h"
 
+#include <cstddef>
+#include <cstdio>
 #include <cstring>
 
 namespace {
@@ -38,6 +40,44 @@ ClockCopy CopyClock(CHudClock* clock) {
     std::memcpy(&c.handVisible, bytes(1) + 0x220, 4);
     return c;
 }
+
+// The first dword that differs, named ("rotation[2].x" ...); false when equal.
+bool FirstClockDifference(const ClockCopy& e, const ClockCopy& a, char* out, std::size_t size) {
+    struct Part {
+        const char* name;
+        std::size_t offset, dwords, per;   // `per` dwords per element
+        const char* const* fields;
+    };
+    static const char* const kQuat[] = {"w", "x", "y", "z"};
+    static const char* const kVec[] = {"x", "y", "z"};
+    static const char* const kTint[] = {"r", "g", "b"};
+    const Part parts[] = {
+        {"blink", offsetof(ClockCopy, blink), 1, 1, nullptr},
+        {"dial", offsetof(ClockCopy, dial), 1, 1, nullptr},
+        {"interface+0x94", offsetof(ClockCopy, interfaceSpeed), 1, 1, nullptr},
+        {"rotation", offsetof(ClockCopy, rotation), 24, 4, kQuat},
+        {"position", offsetof(ClockCopy, position), 18, 3, kVec},
+        {"faceTint", offsetof(ClockCopy, faceTint), 3, 3, kTint},
+        {"buttonTint", offsetof(ClockCopy, buttonTint), 3, 3, kTint},
+        {"handVisible", offsetof(ClockCopy, handVisible), 1, 1, nullptr},
+    };
+    const auto* eb = reinterpret_cast<const std::uint8_t*>(&e);
+    const auto* ab = reinterpret_cast<const std::uint8_t*>(&a);
+    for (const Part& p : parts)
+        for (std::size_t i = 0; i < p.dwords; ++i) {
+            std::uint32_t x, y;
+            std::memcpy(&x, eb + p.offset + 4 * i, 4);
+            std::memcpy(&y, ab + p.offset + 4 * i, 4);
+            if (x == y) continue;
+            if (p.fields)
+                std::snprintf(out, size, "%s[object %u].%s %08X/%08X", p.name, static_cast<unsigned>(i / p.per),
+                              p.fields[i % p.per], x, y);
+            else
+                std::snprintf(out, size, "%s %08X/%08X", p.name, x, y);
+            return true;
+        }
+    return false;
+}
 } // namespace
 
 static void __fastcall ClockUpdateVerify(CHudClock* self, void*) {
@@ -48,11 +88,9 @@ static void __fastcall ClockUpdateVerify(CHudClock* self, void*) {
     std::memcpy(&self->blink_, phases, sizeof(phases));
     self->CHudClock::Update();
     ClockCopy actual = CopyClock(self);
-    ei::verify::Check("CHudClock::Update", expected, actual, "blink %08X/%08X dial %08X/%08X",
-                      *reinterpret_cast<std::uint32_t*>(&expected.blink),
-                      *reinterpret_cast<std::uint32_t*>(&actual.blink),
-                      *reinterpret_cast<std::uint32_t*>(&expected.dial),
-                      *reinterpret_cast<std::uint32_t*>(&actual.dial));
+    char where[96] = "";
+    FirstClockDifference(expected, actual, where, sizeof(where));
+    ei::verify::Check("CHudClock::Update", expected, actual, "%s", where);
 }
 // SUB ESP,0x2C; PUSH EBX; PUSH ESI: 5 bytes.
 EI_VERIFY(0x006488E0, ClockUpdateVerify, 5, s_clockUpdate);

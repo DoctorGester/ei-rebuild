@@ -35,18 +35,36 @@ bool PageMatches(CObjectivesWindow* w, int expected) {
 
 static void __fastcall ObjectivesBuildVerify(CObjectivesWindow* self, void*) {
     int texts = *reinterpret_cast<const int*>(self->objectiveTexts_ + 8);   // CStringArray size
-    self->CObjectivesWindow::Build();
+    int regionsBefore = self->regions_.size_;
+    int spritesBefore = self->sceneObjects_.size_;
     CInterface3D* ui = self->interface_;
+    bool pendingBefore = ui->pendingFlag_;
+    self->CObjectivesWindow::Build();
     bool closed = ui->pendingFlag_ && ui->pendingValue_ == 0;
-    bool ok = *reinterpret_cast<const int*>(self->objectiveTexts_ + 8) == texts + 3 && self->bar_ != nullptr;
+    int textsAfter = *reinterpret_cast<const int*>(self->objectiveTexts_ + 8);
+    const char* failed = "";
     int expected = -2;
-    if (ok && !closed) {
+    if (textsAfter != texts + 3) {
+        failed = "objective texts";
+    } else if (!self->bar_) {
+        failed = "scroll bar";
+    } else if (!closed) {
         expected = ExpectedExits(self->shownZone_);
-        ok = expected >= 0 && PageMatches(self, expected);
+        if (expected < 0)
+            failed = "zone not in the map database";
+        else if (self->exitCount_ != expected)
+            failed = "exit count";
+        else if (self->regions_.size_ != 9 + expected)
+            failed = "regions";
+        else if (self->sceneObjects_.size_ != 0x15 + expected)
+            failed = "sprites";
     }
-    ei::verify::Check("CObjectivesWindow::Build", true, ok, "zone %s exits %d/%d regions %d sprites %d",
-                      self->shownZone_ ? self->shownZone_ : "?", expected, self->exitCount_, self->regions_.size_,
-                      self->sceneObjects_.size_);
+    ei::verify::Check("CObjectivesWindow::Build", true, *failed == 0,
+                      "%s: zone %s list %d texts %d->%d exits %d/%d regions %d->%d sprites %d->%d pending %d->%d "
+                      "(value %X)",
+                      failed, self->shownZone_ ? self->shownZone_ : "?", self->listZones_, texts, textsAfter, expected,
+                      self->exitCount_, regionsBefore, self->regions_.size_, spritesBefore, self->sceneObjects_.size_,
+                      pendingBefore, ui->pendingFlag_, ui->pendingValue_);
 }
 EI_VERIFY(0x0064BE80, ObjectivesBuildVerify, 0, s_unused);
 
