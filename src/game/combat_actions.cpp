@@ -237,7 +237,7 @@ __declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, A
 __declspec(naked) void __fastcall ActionClear(UnitAction*) EI_ORIGINAL(0x00545F40)
 
 __declspec(naked) void CUnitServer::ClaimHostility(CUnit*, std::uint32_t) EI_ORIGINAL(0x00552D00)
-__declspec(naked) void CUnitServer::BuildDeathAnimation(void*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)
+__declspec(naked) void CUnitServer::CallBuildDeathAnimation(void*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)
 
 // Calls between the rewritten functions go through the game's addresses (which jump to the
 // rewrites) so that the verify build's wrappers see them: most of these have no other callers.
@@ -550,7 +550,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AnimationListConstruct(&animation);
     animation.vtable = kAnimationListVtable;
     std::uint32_t direction = CallHitDirection(attacker, hitKind);
-    BuildDeathAnimation(&animation, direction, 1, 0);
+    CallBuildDeathAnimation(&animation, direction, 1, 0);
     unknown_021 = 0;
     unknown_020 = 0;
     AnimationList copy;

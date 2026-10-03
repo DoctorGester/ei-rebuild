@@ -581,3 +581,82 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     return true;
 }
 EI_REPLACE_METHOD(0x0054F970, CUnitServer::BuildAttackSteps);
+
+// --- Death and falls -------------------------------------------------------------------------
+
+namespace {
+constexpr std::uint32_t kDirectionFront = 0xC00000;   // HitDirection's bits that need no extra key bit
+constexpr std::uint32_t kDirectionBack = 0x1000000;
+constexpr std::uint32_t kKeyDeath = 0x6000000;
+constexpr std::uint32_t kKeyDeathStanding = 0x6030000;
+constexpr std::uint32_t kKeyFallWalking = 0x2010000;
+constexpr std::uint32_t kKeyFall = 0x4000000;
+constexpr std::uint32_t kKeyDying = 0x1C0000;
+constexpr std::uint32_t kKeyNotDying = 0x200000;
+constexpr std::uint32_t kKeySideMask = 0xC03FFFFF;
+constexpr std::uint32_t kKeyNoSide = 0xFE3FFFFF;
+constexpr int kStepLying = 2;   // +8 of every step of a fall
+
+// A random side for a hero's fall (0x400000 or 0x800000).
+std::uint32_t RandomSide(std::uint32_t key) {
+    key &= kKeySideMask;
+    return key | ((Random().Next() & 1) ? 0x800000u : 0x400000u);
+}
+} // namespace
+
+// CallBuildDeathAnimation (the forwarder through 00550A80) is in combat_actions.cpp, its caller.
+
+void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direction, int dying, int fall) {
+    bool isDying = static_cast<std::uint8_t>(dying) != 0;
+    bool isFall = static_cast<std::uint8_t>(fall) != 0;
+    StepsResize(steps, nullptr, 0, -1);
+    steps->extra = -1;
+    std::uint32_t key = WeaponBit(this) | LeaveBits(&moveMode, unit);
+    int mode = moveMode.mode;
+
+    if (unit->type_ == kUnitTypeHeroes) {
+        if (isDying && mode != 4) {
+            if (mode == 1) {
+                if (isFall) key = RandomSide(key);
+            } else if (mode != 0) {
+                key |= direction;
+                if (isFall && (key & 1)) key = RandomSide(key);
+            }
+        }
+        key &= ~kKeyFlag10000;
+        if (isFall && mode != 0) {
+            key |= moveMode.wasMode3 && mode == 2 ? kKeyFallWalking : kKeyFall;
+        } else {
+            key |= mode == 0 ? kKeyDeathStanding : kKeyDeath;
+        }
+    } else {
+        if (isFall && !isDying) return;
+        if (direction == kDirectionFront || direction == kDirectionBack) key |= kKeyDeath;
+        else key |= direction | kKeyDeath;
+    }
+    key |= isDying ? kKeyDying : kKeyNotDying;
+
+    char* animation = UnitFindAnimation(unit, nullptr, key, 1);
+    bool add;
+    if (isFall) {
+        if (!animation) animation = UnitFindAnimation(unit, nullptr, key & kKeyNoSide, 1);
+        add = animation != nullptr;
+    } else {
+        add = moveMode.mode != 0 && animation;
+    }
+    if (add) {
+        std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
+        int duration = EntryTicks(unit, index, 0x20);
+        int last = steps->count;
+        StepsResize(steps, nullptr, last + 1, -1);
+        AnimationStep step = BlankStep();
+        step.unknown_08 = 0;
+        steps->steps[last] = step;
+        AnimationStep& added = steps->steps[steps->count - 1];
+        added.animation = Get<std::uint8_t>(animation, 0x10);
+        added.duration = duration;
+    }
+    if (isFall)
+        for (int i = 0; i < steps->count; ++i) steps->steps[i].unknown_08 = kStepLying;
+}
+EI_REPLACE_METHOD(0x00550A80, CUnitServer::BuildDeathAnimation);

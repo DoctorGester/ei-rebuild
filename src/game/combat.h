@@ -333,8 +333,11 @@ public:
     bool PlanOrder(UnitAction* order, int arg);
     // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
     void ClaimHostility(CUnit* claimant, std::uint32_t mask);
-    // 00550A80. Fills `animation` (a CArray of 0xC-byte entries) for death in `direction`.
-    void BuildDeathAnimation(void* animation, std::uint32_t direction, int a, int b);
+    // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
+    // (HitDirection's bits): `dying` adds the death bits, `fall` (lying down) stops the steps with
+    // +8 = 2 and may pick a side at random. Only the low bytes of `dying` and `fall` count.
+    void BuildDeathAnimation(struct AnimationSteps* steps, std::uint32_t direction, int dying, int fall);
+    void CallBuildDeathAnimation(void* steps, std::uint32_t direction, int dying, int fall);
 
     CUnit* unit;                    // +0x01C
     std::uint8_t unknown_020;       // +0x020 cleared on death

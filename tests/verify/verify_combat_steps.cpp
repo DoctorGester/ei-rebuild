@@ -29,6 +29,8 @@ TransitionFn s_transition;
 OrderStepsFn s_orderSteps;
 CastStepsFn s_castSteps;
 AttackStepsFn s_attackSteps;
+using DeathFn = void(__fastcall*)(CUnitServer*, void*, AnimationSteps*, std::uint32_t, int, int);
+DeathFn s_death;
 
 // Runs `ours` on the real outputs and `original` on copies with the same random state.
 template <typename Ours, typename Original>
@@ -147,3 +149,20 @@ static bool __fastcall BuildAttackStepsVerify(CUnitServer* self, void*, OrderPla
     return true;
 }
 EI_VERIFY(0x0054F970, BuildAttackStepsVerify, 5, s_attackSteps);
+
+// 00550A80: SUB ESP,0xC; PUSH EBX; PUSH EBP (5 bytes).
+static void __fastcall BuildDeathAnimationVerify(CUnitServer* self, void*, AnimationSteps* steps, std::uint32_t direction,
+                                                 int dying, int fall) {
+    CompareSteps(
+        "CUnitServer::BuildDeathAnimation", self, steps, nullptr,
+        [&] {
+            self->BuildDeathAnimation(steps, direction, dying, fall);
+            return true;
+        },
+        [&](AnimationSteps* scratch, int*) {
+            s_death(self, nullptr, scratch, direction, dying, fall);
+            return true;
+        },
+        static_cast<int>(direction >> 22));
+}
+EI_VERIFY(0x00550A80, BuildDeathAnimationVerify, 5, s_death);
