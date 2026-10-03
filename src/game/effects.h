@@ -187,6 +187,10 @@ public:
     int EmitCylinder(Particle* p, int index);       // 00493DE0 (Cylinder1/2, 0x203F / 0x2040)
     int UpdateCylinder(Particle* p);                // 00494170
     void TickCylinder(ParticleElement* e);          // 00494340
+    int EmitFireBall(Particle* p, int index);       // 0048C800 (FireBall, 0x2000)
+    int UpdateFireBall(Particle* p);                // 0048CAD0
+    int EmitArrowSmoke(Particle* p, int index);     // 0048CBA0 (FireArrow 0x2011, 0x204E)
+    int UpdateArrowSmoke(Particle* p);              // 0048CED0
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

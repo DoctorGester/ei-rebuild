@@ -2516,3 +2516,202 @@ void CParticleSource::TickCylinder(ParticleElement* e) {
     rotation[1] = b;
 }
 EI_REPLACE_METHOD(0x00494340, CParticleSource::TickCylinder);
+
+// --- FireBall (0x2000) and the arrow smokes (FireArrow 0x2011, 0x204E): trails of a moving source
+//
+// A trail particle starts somewhere along the source's motion of the last tick and gets a velocity
+// across the motion (the spread box along the source's side and up axes); the first particle of the
+// fireball / arrow is its head (state 1 / 2).
+
+namespace {
+
+#define EI_TRAIL_MOVING GameFloat(0x0073CDF0)        // 1e-5: below this distance there is no trail
+#define EI_TRAIL_HEAD GameFloat(0x0073CDF4)          // 1.2
+#define EI_TRAIL_HALF GameFloat(0x0073B86C)          // 0.5
+#define EI_TRAIL_DRAG GameFloat(0x0073CD50)          // 0.95
+#define EI_ARROW_HEAD GameFloat(0x0073B868)          // 0.4
+#define EI_ARROW_PUFF GameFloat(0x0073BAD4)          // 0.2
+#define EI_ARROW_SWELL GameFloat(0x0073CDF8)         // 1.4
+#define EI_ARROW_SPREAD GameFloat(0x0073BAC4)        // 1.1
+
+// A random value of [low, high) (the original's spread box order).
+double Between(float low, float high) { return Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low); }
+
+// The trail velocity: a random amount of the side axis (SideVelocity), plus one of the up axis
+// (AddUp).
+void SideVelocity(CParticleSource* s, Particle* p, float low, float high) {
+    double q = Between(low, high);
+    p->velocity.x = Store(q * D(s->side.x));
+    p->velocity.y = Store(q * D(s->side.y));
+    p->velocity.z = Store(q * D(s->side.z));
+}
+
+void AddUp(CParticleSource* s, Particle* p, double q) {
+    float a = Store(q * D(s->up.x));
+    float b = Store(q * D(s->up.y));
+    double c = q * D(s->up.z);
+    p->velocity.x = Store(D(a) + D(p->velocity.x));
+    p->velocity.y = Store(D(b) + D(p->velocity.y));
+    p->velocity.z = Store(c + D(p->velocity.z));
+}
+
+} // namespace
+
+// 0048C800. FireBall: index 0 is the ball itself (a 1.2 size particle at the source); the others
+// are smoke along the last step with a random sideways velocity (the spread box widened by half
+// the size) and are put one step out.
+int CParticleSource::EmitFireBall(Particle* p, int index) {
+    p->color = 0xFFFFFFFF;
+    p->frame = 0;
+    p->life = lifetime;
+    p->frameTimer = frameDelay;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0x3F800000);
+    double half = D(size) * D(EI_TRAIL_HALF);
+    float halfRounded = Store(half);
+    double t;
+    if (index == 0) {
+        p->size = Store(D(size) * D(EI_TRAIL_HEAD));
+        p->state = 1;
+        t = D(EI_P_ZERO);
+    } else {
+        p->size = Store(half);
+        std::uint32_t r = Next();
+        p->state = 0;
+        t = Unsigned(r) * EI_P_SCALE_1 - D(EI_P_ONE);
+    }
+    if (!(distance > EI_TRAIL_MOVING)) {
+        std::memset(&p->velocity, 0, sizeof(Vector3));
+        return 1;
+    }
+    float ax = Store(t * D(motion.x));
+    float ay = Store(t * D(motion.y));
+    double az = t * D(motion.z);
+    p->pos.x = Store(D(ax) + D(p->pos.x));
+    p->pos.y = Store(D(ay) + D(p->pos.y));
+    p->pos.z = Store(az + D(p->pos.z));
+    float high = Store(D(halfRounded) + D(spreadMax.x));
+    float low = Store(D(spreadMin.x) - D(halfRounded));
+    SideVelocity(this, p, low, high);
+    high = Store(D(halfRounded) + D(spreadMax.y));
+    low = Store(D(spreadMin.y) - D(halfRounded));
+    AddUp(this, p, Between(low, high));
+    if (p->state == 0) {
+        p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
+        p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+        p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048C800, CParticleSource::EmitFireBall);
+
+// 0048CAD0. FireBall: step through the frames (dropped after the last), grow by the source's
+// growth; the ball halves once and stays; smoke drifts by its velocity (0.95 drag).
+int CParticleSource::UpdateFireBall(Particle* p) {
+    if (--p->life == 0) return 0;
+    if (--p->frameTimer == 0) {
+        if (++p->frame >= frameCount) return 0;
+        p->frameTimer = frameDelay;
+    }
+    p->size = Store(D(growth) * D(p->size));
+    if (p->state != 0) {
+        p->size = Store(D(p->size) * D(EI_TRAIL_HALF));
+        p->state = 0;
+    } else {
+        p->pos.x = Store(D(p->pos.x) - D(p->velocity.x));
+        p->pos.y = Store(D(p->pos.y) - D(p->velocity.y));
+        p->pos.z = Store(D(p->pos.z) - D(p->velocity.z));
+    }
+    p->velocity.x = Store(D(p->velocity.x) * D(EI_TRAIL_DRAG));
+    p->velocity.y = Store(D(p->velocity.y) * D(EI_TRAIL_DRAG));
+    p->velocity.z = Store(D(p->velocity.z) * D(EI_TRAIL_DRAG));
+    p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
+    p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048CAD0, CParticleSource::UpdateFireBall);
+
+// 0048CBA0. Arrow smoke: the first particle (once) is the arrow's head (state 2); the others are
+// puffs along the last step (three in ten lingering, state 1) with a random sideways velocity.
+int CParticleSource::EmitArrowSmoke(Particle* p, int index) {
+    p->color = 0xFFFFFFFF;
+    p->life = lifetime;
+    p->frameTimer = frameDelay;
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    SetBits(&p->size, 0x3F800000);
+    float t;
+    if (index == 0 && Bits(&unknown_12C) == 0) {
+        p->size = Store(D(size) * D(EI_ARROW_HEAD));
+        SetBits(&unknown_12C, 1);
+        SetBits(&t, 0);
+        p->state = 2;
+        p->frame = 0;
+    } else {
+        p->size = Store(D(size) * D(EI_ARROW_PUFF));
+        std::uint32_t r = Next();
+        p->state = 0;
+        t = Store(Unsigned(r) * EI_P_SCALE_1 - D(EI_P_ONE));
+        if (Next() % 100 > 70) p->state = 1;
+        p->frame = static_cast<int>(Next() & 1) + 2;
+    }
+    if (!(distance > EI_TRAIL_MOVING)) {
+        std::memset(&p->velocity, 0, sizeof(Vector3));
+        return 1;
+    }
+    double ax = D(t) * D(motion.x);
+    float ay = Store(D(t) * D(motion.y));
+    float az = Store(D(t) * D(motion.z));
+    p->pos.x = Store(ax + D(p->pos.x));
+    p->pos.y = Store(D(ay) + D(p->pos.y));
+    p->pos.z = Store(D(az) + D(p->pos.z));
+    SideVelocity(this, p, spreadMin.x, spreadMax.x);
+    AddUp(this, p, Between(spreadMin.y, spreadMax.y));
+    if (p->state == 0) {
+        p->pos.x = Store(D(p->pos.x) + D(p->velocity.x));
+        p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
+        p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048CBA0, CParticleSource::EmitArrowSmoke);
+
+// 0048CED0. Arrow smoke: the head follows the source one step ahead with a random frame (dropped
+// once the source stops); puffs step through the frames, swell (faster in the first 6 frames),
+// and fly out by their velocity (growing by 1.1); lingering puffs keep their place.
+int CParticleSource::UpdateArrowSmoke(Particle* p) {
+    int state = p->state;
+    if (state == 2) {
+        p->pos.x = Store(D(motion.x) + D(origin.x));
+        p->pos.y = Store(D(motion.y) + D(origin.y));
+        p->pos.z = Store(D(motion.z) + D(origin.z));
+        p->frame = static_cast<int>(Next() % 3);
+        return static_cast<int>(flags_ & 1);
+    }
+    if (--p->life == 0) return 0;
+    if (--p->frameTimer == 0) {
+        if (++p->frame >= frameCount) return 0;
+        p->frameTimer = frameDelay;
+    }
+    int frame = p->frame;
+    if (state == 0) {
+        if (frame < 6) p->size = Store(D(p->size) * D(EI_ARROW_SWELL));
+        else p->size = Store(D(growth) * D(p->size));
+        p->pos.x = Store(D(p->pos.x) - D(p->velocity.x));
+        p->pos.y = Store(D(p->pos.y) - D(p->velocity.y));
+        p->pos.z = Store(D(p->pos.z) - D(p->velocity.z));
+        p->velocity.x = Store(D(p->velocity.x) * D(EI_ARROW_SPREAD));
+        p->velocity.y = Store(D(p->velocity.y) * D(EI_ARROW_SPREAD));
+        p->velocity.z = Store(D(p->velocity.z) * D(EI_ARROW_SPREAD));
+        p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
+        p->pos.y = Store(D(p->pos.y) + D(p->velocity.y));
+        p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+        return 1;
+    }
+    if (frame < 6) p->size = Store(D(p->size) * D(EI_ARROW_SWELL));
+    p->velocity.x = Store(D(p->velocity.x) * D(EI_TRAIL_DRAG));
+    p->velocity.y = Store(D(p->velocity.y) * D(EI_TRAIL_DRAG));
+    p->velocity.z = Store(D(p->velocity.z) * D(EI_TRAIL_DRAG));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048CED0, CParticleSource::UpdateArrowSmoke);

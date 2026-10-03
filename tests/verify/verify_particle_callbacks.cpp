@@ -191,3 +191,15 @@ EI_UPDATE_WRAPPER(UpdateCylinder)
 EI_VERIFY(0x00494170, UpdateCylinderVerify, 7, s_UpdateCylinder);
 EI_ELEMENT_WRAPPER(TickCylinder)
 EI_VERIFY(0x00494340, TickCylinderVerify, 10, s_TickCylinder);
+
+// 0048C800: SUB ESP,0x14; PUSH EBX; PUSH EBP; PUSH ESI (6). 0048CAD0: MOV EAX,[ESP+4];
+// MOV EDX,[EAX+0x50] (7). 0048CBA0: SUB ESP,0xC; PUSH EBX; PUSH EBP; PUSH ESI (6).
+// 0048CED0: PUSH ESI; MOV ESI,[ESP+8]; PUSH EDI (6).
+EI_EMIT_WRAPPER(EmitFireBall)
+EI_VERIFY(0x0048C800, EmitFireBallVerify, 6, s_EmitFireBall);
+EI_UPDATE_WRAPPER(UpdateFireBall)
+EI_VERIFY(0x0048CAD0, UpdateFireBallVerify, 7, s_UpdateFireBall);
+EI_EMIT_WRAPPER(EmitArrowSmoke)
+EI_VERIFY(0x0048CBA0, EmitArrowSmokeVerify, 6, s_EmitArrowSmoke);
+EI_UPDATE_WRAPPER(UpdateArrowSmoke)
+EI_VERIFY(0x0048CED0, UpdateArrowSmokeVerify, 6, s_UpdateArrowSmoke);
