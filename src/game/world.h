@@ -317,6 +317,14 @@ public:
     // units: the player's own items, then every record's quick, worn and belt items and spells
     // rebuilt from the unit (each item's +0x1C record pointing at its entry) and the statistics.
     void SyncPartyRecords(WorldPlayer* player);
+    // 0058FD90 (RET 0xC). Before a zone change: every record of `records` (CArray of record
+    // pointers) notes its unit's leader, gets a placement (if `placements`), is rebuilt from its
+    // unit through `partyRecords`, and the unit is removed (a dead one just loses its owner).
+    void StoreParty(void* records, void* partyRecords, void* placements);
+    // 00590A40 (RET 8). The player's party leaves the zone: gtime, its items, then (single player
+    // and kind 3, with +0x15C) its records without a unit are dropped and the rest stored
+    // (StoreParty).
+    void CollectParty(WorldPlayer* player, void* placements);
 
     // world_units.cpp
     // 0058EF20 (RET 0x20). Creates a unit for each record of `records` (a CArray of 0x784-byte unit

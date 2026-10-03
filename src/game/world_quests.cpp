@@ -623,7 +623,147 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
     if (list.data) gamecrt::operator_delete(list.data);
 }
 
+// ---- StoreParty / CollectParty ----------------------------------------------------------------
+
+namespace {
+
+constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
+constexpr std::size_t kUnitRecordSize = 0x784;
+
+// The placement array a zone change fills (CArray<Placement>, SetAtGrow 0059C510).
+struct PlacementRecord {
+    int id;
+    std::uint32_t position[3];
+    std::uint32_t rotation[4];
+    std::uint32_t value268;
+    std::uint32_t value26C;
+};
+static_assert(sizeof(PlacementRecord) == 0x28);
+
+__declspec(naked) void __fastcall PlacementsSetAtGrow(void*, void*, int, const PlacementRecord*) EI_ORIGINAL(0x0059C510)
+__declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E90)
+__declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
+__declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void*) EI_ORIGINAL(0x005300D0)
+__declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, int) EI_ORIGINAL(0x005935C0)
+__declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordArray*, void*, void*) EI_ORIGINAL(0x0058FD90)
+__declspec(naked) void __fastcall UpdatePlayerTimesAt(CWorldServer*, void*, float) EI_ORIGINAL(0x0058D280)
+// 00590160 (RET 8). The player's items into its party records before leaving.
+__declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, void* /*records*/) EI_ORIGINAL(0x00590160)
+// 0066F0C0. The player state before a zone change.
+__declspec(naked) void __fastcall StateBeforeZoneChange(void*, void*) EI_ORIGINAL(0x0066F0C0)
+// 0065F740. The unit record's destructor body.
+__declspec(naked) void __fastcall UnitRecordDestruct(void*, void*) EI_ORIGINAL(0x0065F740)
+__declspec(naked) void __fastcall RecordArraySetSize(RecordArray*, void*, int, int) EI_ORIGINAL(0x005719B0)
+__declspec(naked) void* __cdecl GameMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
+
+// One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
+// records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
+void StoreRecord(CWorldServer* world, void* records, std::uint8_t* record, CEngineObject* unit) {
+    void* controller = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
+    auto count = [&](int offset) { return *reinterpret_cast<int*>(record + offset); };
+    auto first = [&](int offset) { return **reinterpret_cast<void***>(record + offset); };
+    while (count(0x754)) RecordRemoveQuick(record, nullptr, first(0x750));
+    while (count(0x734)) RecordRemoveItem(record, nullptr, first(0x730));
+    while (count(0x764)) RecordRemoveSpell(record, nullptr, first(0x760));
+    while (count(0x744)) RecordRemoveWorn(record, nullptr, first(0x740));
+    for (int slot = 0; slot < kQuickSlots; ++slot)
+        if (CEngineObject* item = UnitQuickItem(unit, nullptr, slot)) AddToRecord(records, record, item, RecordAddQuick);
+    for (int slot = 0; slot < kWornSlots; ++slot)
+        if (CEngineObject* item = UnitWornItem(unit, nullptr, slot)) AddToRecord(records, record, item, RecordAddWorn);
+    for (int slot = 0; slot < kBeltSlots; ++slot) {
+        CEngineObject* item = UnitBeltItem(unit, nullptr, slot);
+        if (!item || *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48) <= 0) continue;
+        auto* entry = ei::VCall<std::uint8_t*>(records, kSlotRecordFromItem, item);
+        int amount = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48);
+        std::uint32_t value2C = *reinterpret_cast<std::uint32_t*>(entry + 0x2C);   // before the null test
+        *reinterpret_cast<int*>(entry + 0x48) = amount;
+        *reinterpret_cast<std::uint32_t*>(entry + 0x28) = value2C;
+        if (entry) ++reinterpret_cast<CEngineObject*>(entry)->refCount_;
+        RecordAddBelt(record, nullptr, entry);
+        if (entry) reinterpret_cast<CEngineObject*>(entry)->Release();
+    }
+    for (int slot = 0; slot < kSpellSlots; ++slot)
+        if (CEngineObject* spell = UnitSpell(unit, nullptr, slot)) AddToRecord(records, record, spell, RecordAddSpell);
+    ControllerStoreStats(controller, nullptr, record + 0x20);
+    if (world->unknown12D64_ == 1) {
+        *reinterpret_cast<std::uint32_t*>(record + 0x770) = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(unit) + 0x268);
+        *reinterpret_cast<std::uint32_t*>(record + 0x774) = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(unit) + 0x26C);
+    }
+    *reinterpret_cast<std::uint32_t*>(record + 0x780) = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(unit) + 0x438);
+    RecordStatsFinish(record + 0x20, nullptr);
+}
+
+} // namespace
+
+void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placements) {
+    auto* list = static_cast<RecordArray*>(recordsArg);
+    if (unknown12D64_ == 1) {
+        // Each record remembers whom its unit follows (-1: nobody).
+        for (int i = 0; i < list->size; ++i) {
+            std::uint8_t* record = list->data[i];
+            CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(record + 0x1C));
+            void* brain = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240) + 0x980;
+            auto* follow = static_cast<std::uint8_t*>(BrainFindFollowMode(brain, nullptr));
+            *reinterpret_cast<int*>(record + 0x77C) = follow ? *reinterpret_cast<int*>(follow + 0xC) : -1;
+        }
+    }
+    for (int i = 0; i < list->size; ++i) {
+        std::uint8_t* record = list->data[i];
+        CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(record + 0x1C));
+        if (!unit) continue;
+        if (placements) {
+            auto* raw = reinterpret_cast<std::uint8_t*>(unit);
+            PlacementRecord entry;
+            entry.id = unit->id_;
+            std::memcpy(entry.position, raw + 0x1C, 12);
+            std::memcpy(entry.rotation, raw + 0x34, 16);
+            entry.value268 = *reinterpret_cast<std::uint32_t*>(raw + 0x268);
+            entry.value26C = *reinterpret_cast<std::uint32_t*>(raw + 0x26C);
+            PlacementsSetAtGrow(placements, nullptr, *reinterpret_cast<int*>(static_cast<std::uint8_t*>(placements) + 8),
+                                &entry);
+        }
+        if (!ei::VCall<int>(unit, kSlotIsDead) || IsMultiplayerClient()) StoreRecord(this, partyRecords, record, unit);
+        if (!ei::VCall<int>(unit, kSlotIsDead)) ServerRemoveObject(this, nullptr, unit->id_);
+        else UnitSetController(unit, nullptr, nullptr);
+    }
+}
+
+void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
+    if (!player) return;
+    if (unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (unknown12D64_ != kKindNetwork) {
+        StorePlayerItems(this, nullptr, player, reinterpret_cast<std::uint8_t*>(player) + 0x70);
+        StateBeforeZoneChange(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20), nullptr);
+    }
+    if (!(unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) || unknown15C_ == 0) return;
+
+    RecordArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
+    // Records whose unit is gone (or dead, outside a network client game) are dropped (the
+    // inlined CArray::RemoveAt).
+    for (int i = 0; i < player->mercCount; ++i) {
+        CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(player->mercs + i * kUnitRecordSize + 0x1C));
+        if (unit && (!ei::VCall<int>(unit, kSlotIsDead) || IsMultiplayerClient())) continue;
+        int following = player->mercCount - i - 1;
+        UnitRecordDestruct(player->mercs + i * kUnitRecordSize, nullptr);
+        if (following)
+            GameMemmove(player->mercs + i * kUnitRecordSize, player->mercs + (i + 1) * kUnitRecordSize,
+                        following * kUnitRecordSize);
+        --player->mercCount;
+        --i;
+    }
+    for (int i = 0; i < player->mercCount; ++i) {
+        int index = list.size;
+        RecordArraySetSize(&list, nullptr, index + 1, -1);
+        list.data[index] = player->mercs + i * kUnitRecordSize;
+    }
+    StorePartyAt(this, nullptr, &list, reinterpret_cast<std::uint8_t*>(player) + 0x70, placements);
+    list.vtable = reinterpret_cast<void*>(kRecordArrayVtable);
+    if (list.data) gamecrt::operator_delete(list.data);
+}
+
 EI_REPLACE_METHOD(0x00591800, CWorldServer::UpdateMercBriefings);
+EI_REPLACE_METHOD(0x0058FD90, CWorldServer::StoreParty);
+EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);
 EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);

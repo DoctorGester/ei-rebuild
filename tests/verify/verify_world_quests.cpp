@@ -67,3 +67,34 @@ static void __fastcall SyncPartyRecordsVerify(CWorldServer* self, void*, WorldPl
     ei::verify::Check("CWorldServer::SyncPartyRecords", true, ok, "player %d, %d records", player->id, player->mercCount);
 }
 EI_VERIFY(0x00590C70, SyncPartyRecordsVerify, 0, s_unused);
+
+// 0058FD90: afterwards no record's unit is still a living world object (they were removed).
+static void __fastcall StorePartyVerify(CWorldServer* self, void*, void* records, void* party, void* placements) {
+    struct Array {
+        void* vtable;
+        std::uint8_t** data;
+        int size;
+    };
+    auto* list = static_cast<Array*>(records);
+    std::uint8_t* before[64] = {};
+    int n = list->size < 64 ? list->size : 64;
+    for (int i = 0; i < n; ++i) before[i] = list->data[i];
+    self->StoreParty(records, party, placements);
+    bool ok = true;
+    for (int i = 0; i < n && ok; ++i) {
+        CEngineObject* unit = self->FindObject(*reinterpret_cast<unsigned*>(before[i] + 0x1C));
+        ok = !unit || unit->GetClassId() != world::kClassUnit ||
+             *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x24C) == nullptr;
+    }
+    ei::verify::Check("CWorldServer::StoreParty", true, ok, "%d records", list->size);
+}
+EI_VERIFY(0x0058FD90, StorePartyVerify, 0, s_unused);
+
+// 00590A40: afterwards the player's records all name units that exist or were just stored.
+static void __fastcall CollectPartyVerify(CWorldServer* self, void*, WorldPlayer* player, void* placements) {
+    int before = player ? player->mercCount : 0;
+    self->CollectParty(player, placements);
+    int after = player ? player->mercCount : 0;
+    ei::verify::Check("CWorldServer::CollectParty", true, after <= before && after >= 0, "records %d -> %d", before, after);
+}
+EI_VERIFY(0x00590A40, CollectPartyVerify, 0, s_unused);
