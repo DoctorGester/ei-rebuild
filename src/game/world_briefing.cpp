@@ -162,6 +162,38 @@ void UnloadQuestTexts() {
     files.finish = files.start;
 }
 
+// ---- Quest variables ------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kQuestPrefix = 0x00783D7C;   // "q."
+// 005F7FC0 (RET 8). The quest log (007C7D50) hears of a quest variable.
+__declspec(naked) void __fastcall QuestLogUpdate(void*, void*, const char*, std::uint32_t) EI_ORIGINAL(0x005F7FC0)
+// 00565380 (RET 8). The client world (007AF5B8) hears of a quest variable.
+__declspec(naked) void __fastcall ClientQuestUpdate(void*, void*, const char*, std::uint32_t) EI_ORIGINAL(0x00565380)
+
+} // namespace
+
+void GameFlow::OnVariableChanged(const void* event) {
+    // The event's record (+8): name at +0x0C, value at +0x18.
+    const std::uint8_t* record = *reinterpret_cast<const std::uint8_t* const*>(static_cast<const std::uint8_t*>(event) + 8);
+    mfc::CString name(*reinterpret_cast<const char* const*>(record + 0x0C));
+    std::uint32_t value = *reinterpret_cast<const std::uint32_t*>(record + 0x18);
+    bool quest;
+    {
+        StringSlot prefix;
+        StringLeft(&name, nullptr, prefix.Raw(), 2);
+        quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix.Get())),
+                                reinterpret_cast<const unsigned char*>(Text(kQuestPrefix))) == 0;
+        prefix.Get().~CString();
+    }
+    if (quest) {
+        QuestLogUpdate(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);
+        ClientQuestUpdate(reinterpret_cast<void*>(0x007AF5B8), nullptr, name, value);
+    }
+}
+
+EI_REPLACE_METHOD(0x00580840, GameFlow::OnVariableChanged);
 EI_REPLACE(0x0057FC90, BriefingSpeakerInto);
 EI_REPLACE_METHOD(0x00580040, GameFlow::ForgetBriefing);
 EI_REPLACE(0x00580F10, UnloadQuestTexts);

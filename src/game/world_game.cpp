@@ -905,6 +905,34 @@ void GameFlow::RecreateClientSession() {
     ReleaseSession(previous);
 }
 
+namespace {
+
+__declspec(naked) int __fastcall SaveGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057B3B0)
+// 0066B1B0 (RET 8). The local view asks to go to a zone (name, entrance).
+__declspec(naked) int __fastcall ViewRequestZone(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
+
+} // namespace
+
+int GameFlow::SaveGameThunk(const char* slot) { return SaveGameAt(this, nullptr, slot); }
+
+int __stdcall RequestZone(const char* zone, int entrance) {
+    *reinterpret_cast<char*>(0x007C7D94) = 1;
+    return ViewRequestZone(WorldClient()->LocalView(), nullptr, zone, entrance);
+}
+
+void GameFlow::CloseSessions() {
+    *reinterpret_cast<char*>(0x007C7DD8) = 0;
+    auto& server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
+    std::uint8_t* old = server;
+    server = nullptr;
+    ReleaseSession(old);
+    auto& client = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    old = client;
+    client = nullptr;
+    ReleaseSession(old);
+    At<int>(this, 0) = 1;   // the state
+}
+
 bool __fastcall NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
         if (gamecrt::stricmp(*list, name) == 0) return true;
@@ -917,6 +945,9 @@ EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
 EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
 EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
+EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
+EI_REPLACE(0x00581630, RequestZone);
+EI_REPLACE_METHOD(0x00581660, GameFlow::CloseSessions);
 EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);

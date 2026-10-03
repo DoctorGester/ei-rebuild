@@ -200,3 +200,28 @@ static void __fastcall RecreateClientSessionVerify(GameFlow* self, void*) {
                       session, refs);
 }
 EI_VERIFY(0x0057F390, RecreateClientSessionVerify, 0, s_unused);
+
+// 00581610: SaveGame's result (SaveGame has its own check).
+static int __fastcall SaveGameThunkVerify(GameFlow* self, void*, const char* slot) {
+    int result = self->SaveGameThunk(slot);
+    ei::verify::Check("GameFlow::SaveGameThunk", true, result == 0 || result == 1, "%s -> %d", slot ? slot : "", result);
+    return result;
+}
+EI_VERIFY(0x00581610, SaveGameThunkVerify, 0, s_unused);
+
+// 00581630: through original code; logged.
+static int __stdcall RequestZoneVerify(const char* zone, int entrance) {
+    int result = RequestZone(zone, entrance);
+    ei::verify::Check("RequestZone", true, true, "%s %d -> %d", zone ? zone : "", entrance, result);
+    return result;
+}
+EI_VERIFY(0x00581630, RequestZoneVerify, 0, s_unused);
+
+// 00581660: afterwards both sessions are gone and the state is 1.
+static void __fastcall CloseSessionsVerify(GameFlow* self, void*) {
+    self->CloseSessions();
+    bool ok = *reinterpret_cast<void**>(0x0079B5DC) == nullptr && *reinterpret_cast<void**>(0x0079B5D8) == nullptr &&
+              *reinterpret_cast<int*>(self) == 1 && *reinterpret_cast<char*>(0x007C7DD8) == 0;
+    ei::verify::Check("GameFlow::CloseSessions", true, ok, "");
+}
+EI_VERIFY(0x00581660, CloseSessionsVerify, 0, s_unused);

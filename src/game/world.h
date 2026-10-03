@@ -683,7 +683,20 @@ struct GameFlow {
     // 0057F390. Replaces the game client session (0079B5D8) with a new one (0041BC40), releasing
     // the old one.
     void RecreateClientSession();
+    // 00581610 (RET 4). SaveGame through its address (a thunk the menus call).
+    int SaveGameThunk(const char* slot);
+    // 00581660. Releases both network sessions (server 0079B5DC, then client 0079B5D8), clears
+    // 007C7DD8 and sets the state to 1.
+    void CloseSessions();
+    // 00580840 (RET 4; world_briefing.cpp). A player variable changed (event +8: the record,
+    // name at +0x0C, value at +0x18): "q." variables go to the quest log (007C7D50) and the
+    // client world.
+    void OnVariableChanged(const void* event);
 };
+
+// 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
+// (0066B1B0); returns what that returns.
+int __stdcall RequestZone(const char* zone, int entrance);
 
 // 00580F10 (world_briefing.cpp). With the briefing texts loaded (007AF788): every quest text file
 // loaded so far (007AFDD0) is unloaded and the list emptied.

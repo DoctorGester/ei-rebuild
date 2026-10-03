@@ -2807,3 +2807,4 @@ address,name,library,signature,notes
 00575E50,"stlp::vector<string>::_M_range_insert",STLport,,instantiation (12-byte elements; node allocator)
 00587480,"stlp::vector<T>::_M_insert_overflow",STLport,,instantiation (12-byte elements of two CStrings and a dword)
 005993A0,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,instantiation (0x54-byte elements with a vtable; raw Read/Write of the data)
+00581030,stlp::char_traits<char>::move,STLport,"char* __cdecl(char*,const char*,size_t)",out-of-line memmove (006E79A0)

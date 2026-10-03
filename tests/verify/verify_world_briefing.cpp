@@ -76,3 +76,12 @@ static void UnloadQuestTextsVerify() {
     ei::verify::Check("UnloadQuestTexts", true, files[0] == files[1], "%d left", static_cast<int>((files[1] - files[0]) / 12));
 }
 EI_VERIFY(0x00580F10, UnloadQuestTextsVerify, 0, s_unused);
+
+// 00580840: through original code (quest log, client world); logged.
+static void __fastcall OnVariableChangedVerify(GameFlow* self, void*, const void* event) {
+    const auto* record = *reinterpret_cast<const std::uint8_t* const*>(static_cast<const std::uint8_t*>(event) + 8);
+    const char* name = *reinterpret_cast<const char* const*>(record + 0x0C);
+    self->OnVariableChanged(event);
+    ei::verify::Check("GameFlow::OnVariableChanged", true, true, "%s", name ? name : "");
+}
+EI_VERIFY(0x00580840, OnVariableChangedVerify, 0, s_unused);
