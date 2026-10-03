@@ -1,2 +1,4 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+0057B3B0  SaveGame: crashes at the first autosave (stream Open dispatches past the file stream vtable, slot 8 of 0073C8D8 = 0073C8F8)
+00581610  SaveGameThunk: calls the broken SaveGame
