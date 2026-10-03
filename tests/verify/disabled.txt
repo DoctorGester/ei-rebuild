@@ -1,10 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-# Terrain sectors: Build field +0x34 differs on every call (round 11); sent back
-006C1C00  terrain sector
-006C13A0  terrain sector
-006C30E0  terrain sector
-006C3DD0  terrain sector
-006C53C0  terrain sector
-006C8D40  terrain sector
-006C8930  terrain sector

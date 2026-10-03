@@ -102,9 +102,6 @@ is called through `game::FatalError`.
 
 ## Original bugs kept on purpose
 
-- Build's running minimum height never reads its comparison: the branch-free select tests bit 8 of
-  the current minimum's bit pattern (no FNSTSW after the FCOMP), so `minZ` takes the vertex height
-  whenever that bit is clear. The bounding boxes use this value.
 - Load passes the error message to FatalError as its format string.
 - Build's texture class index is compared against perPage * pages (not 16) before falling back to 15.
 - Load picks the water material of a vertex by lowest priority; Build picks the first one found.
@@ -120,6 +117,13 @@ is called through `game::FatalError`.
 - Dead code: 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 / 006C4C90 (vtable
   slots of array classes only).
 - STLport / MFC instantiations listed above.
+
+## Pitfall found in game
+
+Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48 (bytes DF E0 between the FCOMP and the
+next MOV), which made the minimum-height select look like it tested bit 8 of the minimum's bits.
+It is an ordinary minimum on the comparison status. Check the raw bytes when a listing's addresses
+skip.
 
 ## Risks
 

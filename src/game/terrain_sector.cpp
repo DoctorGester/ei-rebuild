@@ -43,12 +43,6 @@ constexpr int kVertices = 33 * 33;      // per layer
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
-std::uint32_t Bits(float f) {
-    std::uint32_t b;
-    std::memcpy(&b, &f, sizeof(b));
-    return b;
-}
-
 // MFC's growth step when none is set: an eighth of the current size, 4..1024.
 int GrowStep(int growBy, int size) {
     if (growBy) return growBy;
@@ -436,11 +430,10 @@ const std::uint8_t* BuildRecords(SectorData& s) {
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
         if (layer == 1) tiles += 0x2208;
         for (int vi = 0; vi < kVertices; ++vi, ++rec, vin += 3, src += 8) {
-            // The original's branch-free minimum tests bit 8 of the current minimum's bits (it never
-            // reads the comparison result), so the minimum is only approximate. Kept.
+            // Branch-free selects on the FCOMP status (C0): the minimum keeps its value when it is
+            // below z or unordered, the maximum when z is below it or unordered.
             float z = vin[2];
-            if (!(Bits(s.minZ) & 0x100)) s.minZ = z;
-            z = vin[2];
+            if (!(s.minZ < z) && !x87::IsNaN(s.minZ) && !x87::IsNaN(z)) s.minZ = z;
             if (!(z < s.maxZ) && !x87::IsNaN(z) && !x87::IsNaN(s.maxZ)) s.maxZ = z;
 
             rec->materialByte = 0xFF;
