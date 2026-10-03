@@ -41,7 +41,7 @@ public:
     void SendPair18(std::uint32_t a, std::uint32_t b);              // 0066F2C0
     void SendObject43(const void* object);                          // 0066D6A0: id, nothing without an object
     void SendObject0B(const void* object, std::uint32_t value);     // 0066D6E0: id, value
-    void SendText13(const char* text, std::uint32_t unused);        // 0066D770
+    void SendText13(std::uint32_t unused, const char* text);        // 0066D770: the text is the 2nd argument
     void SendText(std::uint8_t type, const char* text);             // 0066D7B0
     void WriteTo(void* target);                                     // 0066D230: target's slot 7 (stream)
     void SetDisconnect();                                           // 0066D250: state 4
