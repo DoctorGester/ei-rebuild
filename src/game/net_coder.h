@@ -1,0 +1,106 @@
+#pragma once
+
+// The byte buffers, the bit cursors over them and the LZ coder used to compress save games
+// (00579B80 / 00579830), multiplayer map transfers (00662AC0) and network messages (0047D7F0 /
+// 0047D970, 0041D600). See docs/notes/unmapped_410_470.md, "Compression". Names provisional.
+
+#include <cstddef>
+#include <cstdint>
+
+// A byte buffer (0x1C bytes). Two classes share the layout:
+//   0073D624  growing buffer (constructor 004DA7F0, destructor 004DA910): slot 0 / 1 make room
+//             for n more bytes to read / write (004DA630 / 004DA6B0: a new block of
+//             (base - begin + cur + n) * 2 + 0x40 bytes), slot 2 commit (empty), slot 6 Seek
+//             (004DA860, grows when needed).
+//   0073CA64  fixed view over memory owned elsewhere: slots 0 / 1 / 2 empty, 6 Seek (0047D930).
+struct GameBuffer {
+    void* vtable;
+    std::uint8_t* begin;       // +0x04
+    std::uint8_t* cur;         // +0x08
+    std::uint8_t* end;         // +0x0C capacity
+    std::uint8_t* high;        // +0x10 highest position written (updated lazily)
+    std::int32_t base;         // +0x14 position of `begin` in the whole stream (0 for these)
+    std::uint32_t flags;       // +0x18 (bit 0: written through a cursor)
+};
+static_assert(sizeof(GameBuffer) == 0x1C);
+
+constexpr std::uintptr_t kGrowingBufferVtable = 0x0073D624;
+constexpr std::uintptr_t kBufferViewVtable = 0x0073CA64;
+
+// A cursor over a GameBuffer (0x18 bytes) that reads and writes bytes and LSB-first bit fields.
+// Bits are collected in `acc`; a byte is reserved at `bytePtr` when a field starts in a new
+// byte and stored there once more than 8 bits are pending (exactly 8 stay pending).
+struct BufferCursor {
+    std::uint8_t* p;           // +0x00 next byte
+    std::uint8_t* bytePtr;     // +0x04 the reserved byte the pending bits go to
+    std::uint32_t acc;         // +0x08 pending bits
+    std::uint8_t bits;         // +0x0C number of pending bits
+    std::uint8_t unknown_0D[3];
+    GameBuffer* sink;          // +0x10 the buffer `p` is committed to at the end (or null)
+    std::uint8_t* start;       // +0x14 `p` when the cursor began
+
+    // 004301E0. Appends the low `count` bits of `value` (writing).
+    void PutBits(std::uint32_t value, std::uint8_t count);
+    // 00431040. Next bit (reading).
+    std::uint32_t GetBit();
+    // 00430FE0. Next `count` bits (reading), masked with the table at 0078DB24.
+    std::uint32_t GetBits(std::uint32_t count);
+    // 00430930. Copies `size` bytes to `p`.
+    void WriteBytes(const void* from, std::uint32_t size);
+    // 00430F60. Copies `size` bytes from `p`.
+    void ReadBytes(void* to, std::uint32_t size);
+    // 00430FC0. Starts reading at `at` (the other two arguments are not used).
+    void Reset(std::uint8_t* at, std::uint32_t unused1, std::uint32_t unused2);
+    // 00442570. Stores the pending bits in the reserved byte.
+    void FlushBits();
+    // 00430F90. FlushBits, then commits `p` to the sink (which must exist) and drops it. Returns
+    // what the sink's commit left in EAX.
+    std::uint32_t EndWrite();
+    // 0041D930 (also inlined in many places). FlushBits, then commits `p` to the sink if any.
+    // Returns the commit's EAX, or `this` without a sink (00579830 returns it with AL cleared).
+    std::uint32_t End();
+
+    // Not rewritten (outside the range): 004DA450 / 004DA490 bind the cursor to a buffer with
+    // room for `size` more bytes (slot 0 / slot 1 of the buffer when short); the write variant
+    // also sets the buffer's flag bit 0.
+    void BeginRead(GameBuffer* buffer, std::int32_t size);
+    void BeginWrite(GameBuffer* buffer, std::int32_t size);
+};
+static_assert(sizeof(BufferCursor) == 0x18);
+static_assert(offsetof(BufferCursor, bits) == 0x0C);
+static_assert(offsetof(BufferCursor, sink) == 0x10);
+
+// 0041D960: the same as BufferCursor::End for the cursor at +0x2800 of a CoderState (returns the
+// coder without a sink).
+struct CoderState;
+std::uint32_t __fastcall CoderEndOutput(CoderState* coder);
+
+// The 0x2828-byte LZ coder state (constructor 0042FCA0 in core_streams.cpp). The window keeps the
+// last 0x400 bytes twice (+0 and +0x400) so that comparisons can run past the wrap. Compressed
+// format: the uncompressed size (int32), then per item a flag bit: 0 and a literal byte (byte
+// aligned at the output position), or 1, a length code and an offset code (bit fields).
+struct CoderState {
+    std::uint8_t window[0x800];      // +0x000
+    std::int32_t chain[0x400];       // +0x800 distance to the previous position with the same hash
+    std::int32_t head[0x400];        // +0x1800 last position per hash ((previous byte << 2) ^ byte)
+    BufferCursor out;                // +0x2800
+    std::uint32_t pos;               // +0x2818 window position
+    std::int32_t matchPos;           // +0x281C -1: no match in progress
+    std::int32_t matchLen;           // +0x2820
+    std::uint32_t prev;              // +0x2824 the previous input byte
+
+    // 0042FCA0 (core_streams.cpp). Returns this.
+    CoderState* Construct();
+    // 00430450. Compresses everything in `in` (from its start) to `out` at its cursor.
+    void Compress(GameBuffer* in, GameBuffer* out);
+    // 00430960. Decompresses `in` from its cursor to `out` at its cursor.
+    void Decompress(GameBuffer* in, GameBuffer* out);
+    // 0042FD10. Writes the match in progress (length and offset codes); ends it.
+    void EncodeMatch(std::int32_t at);
+};
+static_assert(offsetof(CoderState, chain) == 0x800);
+static_assert(offsetof(CoderState, head) == 0x1800);
+static_assert(offsetof(CoderState, out) == 0x2800);
+static_assert(offsetof(CoderState, pos) == 0x2818);
+static_assert(offsetof(CoderState, prev) == 0x2824);
+static_assert(sizeof(CoderState) == 0x2828);

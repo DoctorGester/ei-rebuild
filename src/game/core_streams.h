@@ -14,6 +14,7 @@
 //             4 Size (+0x24), 5 Position (+0x20), 6 Clear 00417350, 7 004A55D0. 0073C960 is a
 //             second vtable with the same slots 1-7 and another copy of the destructor (004790D0).
 
+#include "net_coder.h"
 #include "object.h"
 
 #include <cstdint>
@@ -56,31 +57,5 @@ struct AlignedObjectArray {
 };
 static_assert(sizeof(AlignedObjectArray) == 12);
 
-// The 0x2828-byte coder state used by the save game and network compression (callers 0041D600,
-// 00579830, 00579B80, 00666D10, ...). Only its constructor is rewritten.
-struct CoderState {
-    std::uint8_t window[0x800];      // +0x000: [0], [0x3FF], [0x400], [0x7FF] cleared
-    std::int32_t windowSize;         // +0x800: 0x400
-    std::uint8_t unknown_804[0x1800 - 0x804];
-    std::uint32_t table[0x400];      // +0x1800: cleared
-    std::uint32_t value;             // +0x2800 byte being assembled
-    std::uint8_t* out;               // +0x2804 where a finished byte is stored
-    std::uint8_t pending;            // +0x2808
-    std::uint8_t unknown_2809[3];
-    std::uint8_t dirty;              // +0x280C
-    std::uint8_t unknown_280D[3];
-    void* sink;                      // +0x2810
-    std::uint32_t unknown_2814;
-    std::uint32_t unknown_2818;
-    std::int32_t unknown_281C;       // -1
-    std::uint32_t unknown_2820;
-    std::uint32_t unknown_2824;
-
-    // 0042FCA0. Returns this.
-    CoderState* Construct();
-};
-static_assert(offsetof(CoderState, windowSize) == 0x800);
-static_assert(offsetof(CoderState, table) == 0x1800);
-static_assert(offsetof(CoderState, dirty) == 0x280C);
-static_assert(offsetof(CoderState, unknown_2824) == 0x2824);
-static_assert(sizeof(CoderState) == 0x2828);
+// The 0x2828-byte coder state (CoderState) is declared in net_coder.h; its constructor 0042FCA0
+// is in core_streams.cpp.
