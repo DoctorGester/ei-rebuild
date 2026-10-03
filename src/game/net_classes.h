@@ -78,6 +78,9 @@ struct TypeRegistry {
     // 0042A890. Registers `type`: makes a prototype with `factory` (to learn its vtable), maps the
     // vtable to the type and the type to the factory, and releases the prototype.
     void Register(std::uint32_t type, MessageFactory factory);
+    // 00438930. A new message of `type` from its factory (operator[] on byType: an unknown type
+    // gets an empty entry), or null.
+    Message* Create(std::uint32_t type);
 };
 static_assert(sizeof(TypeRegistry) == 0x28);
 

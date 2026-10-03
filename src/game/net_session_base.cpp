@@ -75,6 +75,13 @@ void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
 }
 EI_REPLACE_METHOD(0x0042A890, TypeRegistry::Register);
 
+Message* TypeRegistry::Create(std::uint32_t type) {
+    TypeNode* node = FindOrInsert(byType, type, ByTypeResize, ByTypeNewNode);
+    auto factory = reinterpret_cast<MessageFactory>(node->value);
+    return factory ? factory() : nullptr;
+}
+EI_REPLACE_METHOD(0x00438930, TypeRegistry::Create);
+
 SessionBase* SessionBase::Construct() {
     SetVtable(this, 0x0073BB68);   // CRefObject root
     // The connection list: an empty STLport list (a 12-byte sentinel linked to itself).
