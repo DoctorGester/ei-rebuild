@@ -80,7 +80,7 @@ def param_size(p):
         return 4
     if not BUILTIN.match(p.strip()):
         return None
-    if re.search(r'double|__int64|long long', p):
+    if re.search(r'\bdouble\b|\b__int64\b|long long', p):
         return 8
     return 4
 
