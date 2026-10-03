@@ -278,6 +278,27 @@ public:
     // 005561C0. Virtual slot 10 (Save): the same in the same order, at the current version.
     void SaveServer(UnitStream* stream);
 
+    // combat_sight.cpp (third round): can an order be carried out from here, and when.
+    // 0054BCB0. What a cast (kinds 4, 5) or an order on a unit must see: false for a point order
+    // with flag18, a missing spell, a spell whose prototype +0x40 is 0, or (other kinds) a target
+    // that is not a unit. Callers test AL.
+    bool FindSightTarget(const UnitAction* order, struct SightTarget* out);
+    // 0054C2F0. Can the unit carry out `order` at `time` with its target at `point`: in range for
+    // AI units, no living unit in the way of a melee or skill order, and a line of sight when the
+    // order needs one. Callers test AL.
+    bool CanActFrom(const UnitAction* order, const float* point, int time);
+    // 0054CA40. Plans `order`: builds its animation (0054F970 / 00550100 / 00550620, which draw
+    // random numbers), then looks for the first moment at which the target is in reach, the unit
+    // can turn to it in time, and CanActFrom holds; fills `plan` and returns true then.
+    bool PlanAction(const UnitAction* order, struct OrderPlan* plan);
+    // 0054C6B0. PlanAction into a scratch plan, with the target unit's flags_ bit 0x8000000 set
+    // meanwhile. Callers test AL.
+    bool CanPlanAction(const UnitAction* order);
+    // The same through the game's addresses (for the verify build's wrappers).
+    bool CallCanActFrom(const UnitAction* order, const float* point, int time);
+    bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);
+    bool CallFindSightTarget(const UnitAction* order, struct SightTarget* out);
+
     // Not rewritten (forwarders):
     // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
     void TurnTo(const float* point, int walk, int run, std::uint32_t z);
