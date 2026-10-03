@@ -9,14 +9,13 @@ newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
-# The constructors' pages are shown only with these player variables (0060C870).
-console @GSSetVar(0,"i.onspellconstr",1)
-console @GSSetVar(0,"i.onitemconstr",1)
-wait 500
 
-# The camp (screen 5). Regions 4-10 are pages 0-6 (0060E9E0): equipment, trade, spell constructor
-# and its repair page, item constructor and its two pages; 0/1 the previous / next hero, 2/3 turn
-# the hero while held.
+# The camp (screen 5), as the global map's camp button opens it ("constr.current" 0: no constructor,
+# so the constructor pages 2-6 are not offered and ShowPage falls back to the current page). Do not
+# force "i.onspellconstr"/"i.onitemconstr": without a constructor record the camp's Create gives
+# the constructor strips the list at record+0x40 of a null record, and the original crashes in
+# CUiItemStrip::RebuildList (00621377). Regions 4-10 are pages 0-6 (0060E9E0); 0/1 the previous /
+# next hero, 2/3 turn the hero while held.
 screen 5
 wait 3000
 clickregion 5
