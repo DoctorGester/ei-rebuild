@@ -16,7 +16,9 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -373,8 +375,8 @@ void CGlobalMap::Create() {
     depth_ = Bits(0x41200000);     // 10
     centreX_ = Bits(0x43C80000);   // 400
     centreY_ = Bits(0x438C0000);   // 280
-    unknown_174 = 0;
-    unknown_178 = 0;
+    turning_ = 0;
+    bobTime_ = 0.0f;
 
     MapZoneRecord* current;
     {
@@ -401,7 +403,7 @@ void CGlobalMap::Create() {
     LoadTexture(mfc::operator+(allodName, GameText(0x00794150)), 3, 0);   // <allod>MapG
     LoadTexture(GameText(0x00793380), 3, 0);                             // "saveload"
     CreateTexture(0x100, 0x100, 0x21);
-    unknown_1FC = 0;
+    angle_ = 0.0f;
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
@@ -661,9 +663,9 @@ void CGlobalMap::Create() {
                         reinterpret_cast<const unsigned char*>(GameText(0x0079014C))) == 0)   // "gipat"
         gipat_ = true;
 
-    unknown_20C = 1;
+    selectPending_ = 1;
     Screen(this)->SelectZone(-1, 0);
-    unknown_264 = false;
+    dragging_ = false;
     reinterpret_cast<GameObjects*>(0x007AFEA6)->ResetView(0, 0);
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();
     {
@@ -696,3 +698,169 @@ namespace {
 void __fastcall GlobalMapCreate(CGlobalMap* self, void*) { self->Create(); }
 } // namespace
 EI_REPLACE(0x0062D350, GlobalMapCreate);
+
+// --- Update (0062F050) -----------------------------------------------------------------------------
+
+namespace {
+
+// 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
+__declspec(naked) double __fastcall FrameTime(CUiWindow*) EI_ORIGINAL(0x00600270)
+// 006010E0 (not rewritten): the container's base update (its children).
+__declspec(naked) void __fastcall UpdateChildren(CUiWindow*) EI_ORIGINAL(0x006010E0)
+
+struct MapScreenMore {
+    void RefreshSelection();   // 00630670
+};
+__declspec(naked) void MapScreenMore::RefreshSelection() EI_ORIGINAL(0x00630670)
+
+// The weather drawer (+0x214): 00499F10 draws into locked surface memory.
+struct WeatherDraw {
+    void Draw(void* pixels, float seconds);
+};
+__declspec(naked) void WeatherDraw::Draw(void*, float) EI_ORIGINAL(0x00499F10)
+
+// 004800E0 (cdecl): a fatal DirectX error with its message.
+__declspec(naked) void __cdecl FatalDirectX(long, const char*) EI_ORIGINAL(0x004800E0)
+
+struct CursorAt {
+    int SetShape(int shape);   // 005E5200 (on 007C7BD8)
+};
+__declspec(naked) int CursorAt::SetShape(int) EI_ORIGINAL(0x005E5200)
+
+// fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
+float FmodStored(float a, const float* divisor) {
+    float result;
+    __asm {
+        fld a
+        mov eax, divisor
+        fld dword ptr [eax]
+        mov eax, 0x006E95AA
+        call eax
+        fstp result
+    }
+    return result;
+}
+
+// The product the original inlines (r = b * a in its operand order), each component stored.
+Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
+    Quaternion r;
+    float z = Store(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
+    float y = Store(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(b.y) * D(a.w)) + D(b.w) * D(a.y));
+    float x = Store(((D(a.z) * D(b.y) - D(b.z) * D(a.y)) + D(b.x) * D(a.w)) + D(a.x) * D(b.w));
+    float w = Store(D(b.w) * D(a.w) - ((D(a.z) * D(b.z) + D(b.y) * D(a.y)) + D(b.x) * D(a.x)));
+    r.w = w;
+    r.x = x;
+    r.y = y;
+    r.z = z;
+    return r;
+}
+
+// A layer's texture frame: the fractional part of time * rate (stored).
+void SetFrameFraction(CEngineObject* layer, float time, float rate) {
+    double v = D(time) * D(rate);
+    int whole = GameFtol(v);
+    float fraction = Store(v - static_cast<double>(whole));
+    std::memcpy(reinterpret_cast<std::uint8_t*>(layer) + 0xCC, &fraction, 4);
+}
+
+} // namespace
+
+void CGlobalMap::Update() {
+    UpdateChildren(this);
+    if (dragging_ && turning_ == 0) {
+        POINT cursor;
+        gameapi::GetCursorPos(&cursor);
+        using MoveFn = void(__thiscall*)(void*, int, int, int);
+        reinterpret_cast<MoveFn>(inputVtable_[4])(InputSide(), 0, cursor.x, cursor.y);   // +0x10
+    }
+    MapBuilder builder(this);
+    if (turning_ != 0 || dragging_) {
+        // Turn the model about z.
+        float turned = Store(FrameTime(this) * static_cast<double>(turning_) * D(GameFloat(0x00742098)) *
+                                 D(GameFloat(0x0073C3B0)) +
+                             D(angle_));
+        angle_ = turned;
+        angle_ = FmodStored(turned, reinterpret_cast<const float*>(0x007C8020));
+        Vector3 up = {0.0f, 0.0f, 1.0f};
+        Vector3 side = {1.0f, 0.0f, 0.0f};
+        Quaternion spin;
+        spin.SetAngleAxis(angle_, up);
+        Quaternion tilt;
+        tilt.SetAxisAngle(side, Store(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));
+        Quaternion turn = TurnProduct(spin, tilt);
+        std::memcpy(turn_, &turn, 16);
+        if (!(D(turn_[0]) >= D(GameFloat(0x0073B858)))) {   // FCOMP; TEST AH,1: below 0 or unordered
+            for (float& c : turn_) c = -c;
+        }
+        CEngineObject** sprites = sceneObjects_.data_;
+        Vector3 at = {position_[0], position_[1], position_[2]};
+        SetPosition(reinterpret_cast<CUiMesh*>(sprites[1]), builder.ModelPoint(at));
+        builder.Turn(reinterpret_cast<CUiMesh*>(sprites[1]));
+        builder.Turn(reinterpret_cast<CUiMesh*>(sprites[2]));
+        for (int k = 3; k < 6; ++k) builder.Turn(reinterpret_cast<CUiMesh*>(sprites[markerCount_ + k]));
+        for (int i = 0; i < zoneCount_; ++i) builder.Turn(reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + i]));
+        for (int i = 0; i < questCount_; ++i) {
+            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + zoneCount_ + i]);
+            Vector3 local = {quests_.data[i].x, quests_.data[i].y, quests_.data[i].z};
+            SetPosition(sprite, builder.ModelPoint(local));
+            builder.Turn(sprite);
+            float x, y, depth;
+            Ops(sprite)->Position(&x, &y, &depth);
+        }
+        for (int i = 0; i < linkCount_; ++i) {
+            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + questCount_ + zoneCount_ + i]);
+            Vector3 local = {links_.data[i].x, links_.data[i].y, links_.data[i].z};
+            SetPosition(sprite, builder.ModelPoint(local));
+            builder.Turn(sprite);
+            float x, y, depth;
+            Ops(sprite)->Position(&x, &y, &depth);
+            int bottom = GameFtol(D(y) + D(GameFloat(0x0073BAAC)));
+            int right = GameFtol(D(x) + D(GameFloat(0x0073CCF8)));
+            int top = GameFtol(D(y) - D(GameFloat(0x0073E124)));
+            int left = GameFtol(D(x) - D(GameFloat(0x0073CCF8)));
+            regions_.data_[3 + i]->CallSetRect(left, top, right, bottom);
+        }
+    }
+
+    // The current zone's arrow bobs over it.
+    double time = FrameTime(this) + D(bobTime_);
+    bobTime_ = Store(time);
+    double bob = D(GameFloat(0x0073B86C)) - x87::fcos(time * D(GameFloat(0x0073BF34))) * D(GameFloat(0x0073BAD4));
+    Vector3 above = {position_[0], position_[1], Store(bob + D(position_[2]))};
+    SetPosition(reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0]), builder.ModelPoint(above));
+    // The layers' texture frames run at their own rates.
+    SetFrameFraction(sceneObjects_.data_[markerCount_ + 3], bobTime_, GameFloat(0x0073D09C));
+    SetFrameFraction(sceneObjects_.data_[markerCount_ + 4], bobTime_, GameFloat(0x0073F8A0));
+    SetFrameFraction(sceneObjects_.data_[markerCount_ + 5], bobTime_, GameFloat(0x007420E0));
+
+    if (selectPending_ != 0) reinterpret_cast<MapScreenMore*>(this)->RefreshSelection();
+    selectPending_ = 0;
+
+    // The weather is drawn straight into texture 4's surface.
+    if (objects_.size_ > 4) {
+        std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(objects_.data_[4]) + 0x5C);
+        auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+        gameapi::EnterCriticalSection(lock);
+        std::uint32_t desc[0x1F] = {};
+        desc[0] = 0x7C;
+        void** surface = *reinterpret_cast<void***>(holder + 0x10);
+        using LockFn = long(__stdcall*)(void*, RECT*, void*, unsigned long, void*);
+        long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(surface))[25])(surface, nullptr, desc, 1, nullptr);
+        std::memcpy(holder + 8, &hr, 4);
+        if (hr != 0) FatalDirectX(hr, GameText(0x0078E30C));   // "Can't lock surface"
+        float seconds = Store(FrameTime(this));
+        static_cast<WeatherDraw*>(weather_)->Draw(reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
+        gameapi::LeaveCriticalSection(lock);
+        using UnlockFn = long(__stdcall*)(void*, RECT*);
+        surface = *reinterpret_cast<void***>(holder + 0x10);
+        hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
+        std::memcpy(holder + 8, &hr, 4);
+        if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
+    }
+    reinterpret_cast<CursorAt*>(0x007C7BD8)->SetShape(dragging_ ? 0x16 : 0);
+}
+
+namespace {
+void __fastcall GlobalMapUpdate(CGlobalMap* self, void*) { self->Update(); }
+} // namespace
+EI_REPLACE(0x0062F050, GlobalMapUpdate);

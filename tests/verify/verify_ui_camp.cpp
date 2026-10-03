@@ -89,8 +89,8 @@ static void __fastcall GlobalMapCreateVerify(CGlobalMap* self, void*) {
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
                                      0x77, 0xF8};
     bool fields = std::memcmp(self->weatherTable_, kWeather, sizeof(kWeather)) == 0 && self->weatherIndex_ == 17 &&
-                  self->unknown_20C == 1 && !self->autosave_ && self->depth_ == 10.0f && self->centreX_ == 400.0f &&
-                  self->centreY_ == 280.0f && self->weather_ && !self->unknown_264;
+                  self->selectPending_ == 1 && !self->autosave_ && self->depth_ == 10.0f && self->centreX_ == 400.0f &&
+                  self->centreY_ == 280.0f && self->weather_ && !self->dragging_;
     bool ok = counts && layout && links_ok && fields;
     ei::verify::Check("CGlobalMap::Create", true, ok,
                       "counts %d layout %d links %d fields %d zones %d quests %d links %d sprites %d->%d regions %d->%d",
@@ -256,3 +256,29 @@ static void __fastcall StatsDrawVerify(CHeroStatsPanel* self, void*) {
     ei::verify::Check("CHeroStatsPanel::DrawStats", true, ok, "page %d", page);
 }
 EI_VERIFY(0x00623880, StatsDrawVerify, 0, s_unused);
+
+// --- Global map Update (0062F050) --------------------------------------------------------------------
+
+// Every frame; it draws the weather (whose animation advances with each call), so ours run alone:
+// the bob time advanced by the frame time (stored as float), the turn's w not negative after a
+// turn, the zone selection refresh done, the arrow sprite turned like the model.
+namespace {
+__declspec(naked) double __fastcall VerifyFrameTime(CUiWindow*) {
+    __asm {
+        mov eax, 0x00600270
+        jmp eax
+    }
+}
+} // namespace
+static void __fastcall GlobalMapUpdateVerify(CGlobalMap* self, void*) {
+    float before = self->bobTime_;
+    volatile float expected = static_cast<float>(VerifyFrameTime(self) + static_cast<double>(before));
+    bool turning = self->turning_ != 0 || self->dragging_;
+    self->Update();
+    float actual = self->bobTime_;
+    bool ok = std::memcmp(&actual, const_cast<float*>(&expected), 4) == 0 && self->selectPending_ == 0 &&
+              (!turning || !(self->turn_[0] < 0.0f));
+    ei::verify::Check("CGlobalMap::Update", true, ok, "bob %g -> %g (expected %g) turning %d w %g", before, actual,
+                      static_cast<float>(expected), turning, self->turn_[0]);
+}
+EI_VERIFY(0x0062F050, GlobalMapUpdateVerify, 0, s_unused);

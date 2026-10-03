@@ -107,14 +107,18 @@ public:
     // zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the links to zones the
     // player may enter ("z.<zone>" = 2), the clock text, the camp and turn buttons, the weather.
     void Create();
+    // 0062F050 (slot 24, every frame). While turning, turns the model and moves the markers and
+    // their regions with it; bobs the current zone's arrow, animates the layers, refreshes the
+    // zone selection when asked, draws the weather into texture 4, sets the cursor.
+    void Update();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
     int questCount_;                 // +0x168
     int linkCount_;                  // +0x16C
     int markerCount_;                // +0x170 zones + quests + links
-    int unknown_174;                 // +0x174
-    int unknown_178;                 // +0x178
+    int turning_;                    // +0x174 -1 / +1 while a turn button is held
+    float bobTime_;                  // +0x178 seconds, for the arrow's bobbing and the layers' frames
     char* allodTitle_;               // +0x17C CString
     float position_[3];              // +0x180 the current zone on the map model
     MfcArray<GlobalMapZone> zones_;  // +0x18C
@@ -122,16 +126,16 @@ public:
     MfcArray<GlobalMapPlace> quests_;   // +0x1B4
     std::uint8_t unknown_1C8[0x1EC - 0x1C8];
     float turn_[4];                  // +0x1EC the model's orientation (a quaternion)
-    int unknown_1FC;                 // +0x1FC
+    float angle_;                    // +0x1FC the model's turn about z (mod 007C8020)
     float depth_;                    // +0x200 10
     float centreX_;                  // +0x204 400 (layout)
     float centreY_;                  // +0x208 280
-    int unknown_20C;                 // +0x20C 1
+    int selectPending_;              // +0x20C 1: the zone selection is refreshed (00630670) on the next update
     CUiSurface* backdrop_;           // +0x210 a full-screen surface (not in the surface list)
     void* weather_;                  // +0x214 (vtable 007420D4, 0x34 bytes)
     int weatherTable_[18];           // +0x218 .. +0x25C
     int weatherIndex_;               // +0x260
-    bool unknown_264;                // +0x264
+    bool dragging_;                  // +0x264 the map is turned with the mouse
     std::uint8_t unknown_265[0x278 - 0x265];
     bool gipat_;                     // +0x278 the allod is gipat
     std::uint8_t unknown_279[3];
