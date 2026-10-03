@@ -18,7 +18,9 @@ comes from a bug we already hit.
   (`harness.cmd tests\scenarios\<scenario>.txt`, see README). You may add a scenario under
   `tests/scenarios/` that exercises your area (script commands via `@...`, checks via `check` and
   `waitfor`); it will be run at integration.
-- Run `python tools/check_stolen.py` before handing back.
+- Run `python tools/check_stolen.py` and `tools\check_signatures.cmd` (after `build.cmd verify`)
+  before handing back. The second compares every hooked, forwarded or wrapped declaration's stack
+  arguments with the original's RET n.
 
 ## Where code goes
 

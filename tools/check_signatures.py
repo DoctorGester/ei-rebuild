@@ -1,0 +1,176 @@
+"""Checks that every hooked or forwarded game function is declared with the stack arguments the
+original pops (its RET n).
+
+Four bugs so far came from declaring a function with too few stack arguments or misreading them:
+the caller and callee then disagree on the stack and the game crashes later, far from the cause.
+For every EI_REPLACE / EI_REPLACE_METHOD / EI_ORIGINAL / EI_VERIFY in src/ and tests/, this takes
+the C++ declaration from build/verify/ei_hook.map (undecorated with undname), computes how many
+bytes of stack arguments the calling convention leaves for the callee to pop, and compares that
+with the RET n instructions of the original function in game.exe.
+
+Argument ORDER is not checked (that needs reading the disassembly); counts are.
+
+usage: python tools/check_signatures.py   (after build.cmd verify; needs capstone and undname on PATH,
+                                           i.e. run from a VS developer prompt or via build.cmd's vcvars)
+exit code 1 when a mismatch is found
+"""
+import bisect, glob, os, re, subprocess, sys
+
+from capstone import Cs, CS_ARCH_X86, CS_MODE_32
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EXE = r'F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe'
+MAP = os.path.join(ROOT, 'build', 'verify', 'ei_hook.map')
+
+
+def load_sizes():
+    sizes = {}
+    for line in open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')):
+        m = re.match(r'\{0x([0-9A-F]+), (\d+)\}', line)
+        if m:
+            sizes[int(m.group(1), 16)] = int(m.group(2))
+    return sizes
+
+
+def original_pops(data, md, address, size):
+    """The set of n in RET n inside the function (0 for a plain RET)."""
+    pops = set()
+    off = address - 0x400000
+    for insn in md.disasm(data[off:off + size], address):
+        if insn.mnemonic == 'ret':
+            pops.add(int(insn.op_str, 0) if insn.op_str else 0)
+    return pops
+
+
+def undecorate(names):
+    out = {}
+    names = list(names)
+    for i in range(0, len(names), 200):
+        chunk = names[i:i + 200]
+        res = subprocess.run(['undname'] + chunk, capture_output=True, text=True).stdout
+        for dec, und in re.findall(r'Undecoration of :- "(.*?)"\s*is :- "(.*?)"', res):
+            out[dec] = und
+    return out
+
+
+def split_params(text):
+    depth, cur, out = 0, '', []
+    for ch in text:
+        if ch in '<(':
+            depth += 1
+        elif ch in '>)':
+            depth -= 1
+        if ch == ',' and depth == 0:
+            out.append(cur.strip())
+            cur = ''
+        else:
+            cur += ch
+    if cur.strip():
+        out.append(cur.strip())
+    return [p for p in out if p and p != 'void']
+
+
+BUILTIN = re.compile(r'^(const\s+|volatile\s+|unsigned\s+|signed\s+)*(int|char|short|long|float|double|bool|wchar_t|'
+                     r'__int8|__int16|__int32|__int64|long long|enum\s+[\w:]+)(\s+const)?$')
+
+
+def param_size(p):
+    """Stack size of one parameter, or None for a struct passed by value (size unknown here)."""
+    if '*' in p or '&' in p:
+        return 4
+    if not BUILTIN.match(p.strip()):
+        return None
+    if re.search(r'double|__int64|long long', p):
+        return 8
+    return 4
+
+
+def stack_bytes(und):
+    """(convention, bytes the callee pops) from an undecorated signature, or None."""
+    m = re.search(r'__(thiscall|stdcall|fastcall|cdecl)\s+[^(]*\((.*)\)', und)
+    if not m:
+        return None
+    conv, params = m.group(1), split_params(m.group(2))
+    if conv == 'cdecl':
+        return conv, 0
+    sizes = [param_size(p) for p in params]
+    if None in sizes:
+        return None
+    if conv == 'fastcall':
+        regs = 0
+        rest = []
+        for p, s in zip(params, sizes):
+            integral = s == 4 and ('*' in p or '&' in p or not re.search(r'\bfloat\b', p))
+            if integral and regs < 2:
+                regs += 1
+            else:
+                rest.append(s)
+        return conv, sum(rest)
+    return conv, sum(sizes)
+
+
+def main():
+    data = open(EXE, 'rb').read()
+    md = Cs(CS_ARCH_X86, CS_MODE_32)
+    sizes = load_sizes()
+    entries = re.findall(r'^\s*[0-9a-f]{4}:[0-9a-f]{8}\s+(\?\S+)\s+[0-9a-f]{8}\s+(?:f\s+)?(?:i\s+)?(\S+)\s*$',
+                         open(MAP, errors='replace').read(), re.M)
+    und = undecorate({d for d, _ in entries})
+
+    # Qualified function name -> [(undecorated signature, object file)].
+    by_name = {}
+    for dec, obj in entries:
+        u = und.get(dec)
+        m = re.search(r'([\w:~<>]+)\(', u) if u else None
+        if m:
+            by_name.setdefault(m.group(1), []).append((u, obj.lower()))
+
+    regs = []   # (address, name, kind, file, line)
+    for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
+                glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')):
+        text = open(path, encoding='utf-8', errors='replace').read()
+        rel = os.path.relpath(path, ROOT)
+        for m in re.finditer(r'EI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
+            regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
+        for m in re.finditer(r'EI_VERIFY\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
+            regs.append((int(m.group(1), 16), m.group(2), 'verify', rel, text.count('\n', 0, m.start()) + 1))
+        for m in re.finditer(r'([\w:~]+)\s*\([^;{}]*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
+            regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))
+
+    problems = checked = unresolved = 0
+    for address, name, kind, rel, line in regs:
+        size = sizes.get(address)
+        if not size:
+            continue
+        pops = original_pops(data, md, address, size)
+        if not pops:
+            continue
+        candidates = by_name.get(name) or [c for n, cs in by_name.items() if n.endswith('::' + name) for c in cs]
+        obj = os.path.splitext(os.path.basename(rel))[0].lower() + '.cpp.obj'
+        same_file = [c for c in candidates if c[1].endswith(obj)]
+        if kind == 'verify':
+            candidates = same_file             # file-local wrappers share names across files
+        elif len({stack_bytes(u) for u, _ in candidates} - {None}) > 1:
+            candidates = same_file or candidates
+        sigs = {stack_bytes(u) for u, _ in candidates} - {None}
+        if len(sigs) != 1:
+            unresolved += 1
+            continue
+        conv, nbytes = sigs.pop()
+        checked += 1
+        if conv == 'cdecl':
+            if pops != {0}:
+                problems += 1
+                print(f'{rel}:{line} {name} ({kind} {address:08X}): declared __cdecl but the original pops {sorted(pops)}')
+            continue
+        if pops != {nbytes}:
+            problems += 1
+            print(f'{rel}:{line} {name} ({kind} {address:08X}): declared __{conv} with {nbytes} bytes of stack '
+                  f'arguments, the original pops {sorted(pops)}')
+    print(f'{checked} declarations checked against RET n, {unresolved} not resolved (overloads, templates, '
+          f'lambdas), {problems} problem(s)')
+    return 1 if problems else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
