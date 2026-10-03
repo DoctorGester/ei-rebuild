@@ -178,6 +178,11 @@ public:
     // money (or experience on the trade page) and draws them on surface 0; shades the two action
     // buttons by whether they can be pressed.
     void UpdateAction();
+    // 00612290 / 00612600. Runs the spell (item) constructor over the page's slots and keeps
+    // what it makes in spellMade_ (itemMade_, with a reference); true when it can be made (the
+    // party's skill and mana suffice for the spell). Return AL.
+    bool CanMakeSpell();
+    bool CanMakeItem();
     // 0060F050 (slot 20). Finds what is under the mouse (a page button's help, an item of a
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.

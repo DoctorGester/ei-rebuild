@@ -712,3 +712,196 @@ namespace {
 BOOL __fastcall CampDraw(CCampPages* self, void*, int pass) { return self->Draw(pass); }
 } // namespace
 EI_REPLACE(0x0060F050, CampDraw);
+
+// --- 00612290 / 00612600: what the constructors would make ---------------------------------------
+
+namespace {
+
+// The spell constructor (CSpellConstructor, not rewritten; thiscall).
+struct SpellConstructorAt {
+    void SetManager(void* manager);           // 006841A0
+    BOOL Begin(const void* spell);            // 006841E0
+    BOOL AddModifier(const void* modifier);   // 006842A0
+    BOOL End();                               // 00684250
+};
+__declspec(naked) void SpellConstructorAt::SetManager(void*) EI_ORIGINAL(0x006841A0)
+__declspec(naked) BOOL SpellConstructorAt::Begin(const void*) EI_ORIGINAL(0x006841E0)
+__declspec(naked) BOOL SpellConstructorAt::AddModifier(const void*) EI_ORIGINAL(0x006842A0)
+__declspec(naked) BOOL SpellConstructorAt::End() EI_ORIGINAL(0x00684250)
+
+// The item constructor (not rewritten; thiscall).
+struct ItemConstructorAt {
+    void SetManager(void* manager);           // 006A5C00
+    BOOL Begin(int type, int a);              // 006A5C50
+    BOOL SetPart(const void* part);           // 006A5CD0
+    BOOL SetBlueprint(const void* blueprint); // 006A5CC0
+    BOOL SetSpell(void* spell);               // 006A5CE0
+    std::uint8_t* Make();                     // 006A5CF0
+};
+__declspec(naked) void ItemConstructorAt::SetManager(void*) EI_ORIGINAL(0x006A5C00)
+__declspec(naked) BOOL ItemConstructorAt::Begin(int, int) EI_ORIGINAL(0x006A5C50)
+__declspec(naked) BOOL ItemConstructorAt::SetPart(const void*) EI_ORIGINAL(0x006A5CD0)
+__declspec(naked) BOOL ItemConstructorAt::SetBlueprint(const void*) EI_ORIGINAL(0x006A5CC0)
+__declspec(naked) BOOL ItemConstructorAt::SetSpell(void*) EI_ORIGINAL(0x006A5CE0)
+__declspec(naked) std::uint8_t* ItemConstructorAt::Make() EI_ORIGINAL(0x006A5CF0)
+
+// 0068B410 (thiscall on a spell): a copy of the spell made with `manager`.
+struct SpellAt {
+    std::uint8_t* Clone(void* manager);
+};
+__declspec(naked) std::uint8_t* SpellAt::Clone(void*) EI_ORIGINAL(0x0068B410)
+
+// 0052C690: a reference-counted pointer's assignment (takes a reference, releases the old one).
+struct RefPtrAt {
+    void Assign(void* object);
+};
+__declspec(naked) void RefPtrAt::Assign(void*) EI_ORIGINAL(0x0052C690)
+
+// 00613820 (on the spell container table 007C8738): the record named `name`.
+struct ContainerTableAt {
+    std::uint8_t* Find(const char* name);
+};
+__declspec(naked) std::uint8_t* ContainerTableAt::Find(const char*) EI_ORIGINAL(0x00613820)
+
+// The item factory: 006AD000 makes an item (type, record index, a, b); 006A04D0 (on an item)
+// puts a spell into it.
+struct ItemFactoryAt {
+    std::uint8_t* MakeItem(int type, int index, int a, int b);
+};
+__declspec(naked) std::uint8_t* ItemFactoryAt::MakeItem(int, int, int, int) EI_ORIGINAL(0x006AD000)
+struct ItemAt {
+    void SetSpell(void* spell);
+};
+__declspec(naked) void ItemAt::SetSpell(void*) EI_ORIGINAL(0x006A04D0)
+
+// The slot list's own helpers (virtual slots 16 / 17 / 18 / 22 of the 00661050 lists): the item
+// constructor, the spell constructor, the item factory and the manager they work for.
+void* ListSlot(void* list, int slot) {
+    using Fn = void*(__thiscall*)(void*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(list))[slot])(list);
+}
+
+void ReleaseObject(void* object) {
+    if (object) reinterpret_cast<CEngineObject*>(object)->Release();
+}
+
+} // namespace
+
+bool CCampPages::CanMakeSpell() {
+    SpellConstructorAt* constructor = static_cast<SpellConstructorAt*>(ListSlot(spellResults_, 17));
+    void* factory = ListSlot(spellResults_, 18);
+    void* manager = ListSlot(spellResults_, 22);
+    const std::uint8_t* spell = nullptr;
+    // The original keeps the modifiers in an 8-entry stack array (more would overwrite its
+    // frame; CanEquip allows at most eight).
+    const std::uint8_t* modifiers[32];
+    int modifierCount = 0;
+    if (CountOf(spellResults_) <= 0) return false;
+    CampKinds* kinds = reinterpret_cast<CampKinds*>(this);
+    for (int i = 0; i < CountOf(spellResults_); ++i) {
+        std::uint8_t* item = Entry(spellResults_, i);
+        if (kinds->IsSpell(item))
+            spell = SpellRecord(item);
+        else if (kinds->IsModifier(item) && modifierCount < 32)
+            modifiers[modifierCount++] = ModifierRecord(item);
+    }
+    if (!spell) return false;
+    constructor->SetManager(manager);
+    if (!constructor->Begin(spell)) {
+        constructor->SetManager(nullptr);
+        return false;
+    }
+    for (int i = 0; i < modifierCount; ++i) {
+        if (!constructor->AddModifier(modifiers[i])) {
+            constructor->SetManager(nullptr);
+            return false;
+        }
+    }
+    if (!constructor->End()) {
+        constructor->SetManager(nullptr);
+        return false;
+    }
+    std::uint8_t* made = reinterpret_cast<SpellAt*>(Read<std::uint8_t*>(static_cast<std::uint8_t*>(static_cast<void*>(constructor)), 0x20) + 0x30)
+                             ->Clone(manager);
+    constructor->SetManager(nullptr);
+    std::uint8_t* record = reinterpret_cast<ContainerTableAt*>(0x007C8738)->Find(GameText(0x007938A0));   // "spell container"
+    int index = static_cast<int>(record - *reinterpret_cast<std::uint8_t* const*>(0x007C8738)) / 0x8C;
+    std::uint8_t* container = static_cast<ItemFactoryAt*>(factory)->MakeItem(0x3008, index, 0, -1);
+    if (container) reinterpret_cast<ItemAt*>(container)->SetSpell(made);
+    spellMade_ = container;
+    if (!container) return false;
+    ++*reinterpret_cast<int*>(container + 4);
+    int skill = 0, mana = 0;
+    using BestFn = void(__thiscall*)(CCampPages*, int, int*, int*);
+    reinterpret_cast<BestFn>(vtable_[45])(this, Read<int>(spell, 0x14), &skill, &mana);
+    if (mana < GameFtol(D(Read<float>(made, 0x40)))) return false;
+    return skill >= Read<int>(made, 0x50);
+}
+namespace {
+bool __fastcall CampCanMakeSpell(CCampPages* self, void*) { return self->CanMakeSpell(); }
+} // namespace
+EI_REPLACE(0x00612290, CampCanMakeSpell);
+
+bool CCampPages::CanMakeItem() {
+    ItemConstructorAt* constructor = static_cast<ItemConstructorAt*>(ListSlot(itemResults_, 16));
+    void* factory = ListSlot(itemResults_, 18);
+    void* manager = ListSlot(itemResults_, 22);
+    const std::uint8_t* part = nullptr;
+    void* spell = nullptr;   // a reference-counted pointer (0052C690), released on the way out
+    const std::uint8_t* blueprint = nullptr;
+    int blueprintCount = 0;
+    int type = 0;            // the original's is uninitialised until a part sets it
+    auto fail = [&]() {
+        ReleaseObject(spell);
+        return false;
+    };
+    CampKinds* kinds = reinterpret_cast<CampKinds*>(this);
+    if (CountOf(itemResults_) <= 0) return fail();
+    for (int i = 0; i < CountOf(itemResults_); ++i) {
+        std::uint8_t* item = Entry(itemResults_, i);
+        if (kinds->IsSpellContainer(item)) {
+            std::uint8_t* copy = reinterpret_cast<SpellAt*>(Read<std::uint8_t*>(item, 0x44))->Clone(manager);
+            reinterpret_cast<RefPtrAt*>(&spell)->Assign(copy);
+        } else if (kinds->IsPart(item)) {
+            switch (Read<int>(item, 0x50)) {
+            case 0: type = 0x3004; part = RecordAt(0x007C86F8, Index(item), 0xB4); break;
+            case 1: type = 0x3005; part = RecordAt(0x007C8718, Index(item), 200); break;
+            case 2: type = 0x3006; part = RecordAt(0x007C8738, Index(item), 0x8C); break;
+            default: break;
+            }
+        } else if (kinds->IsKindOne(item)) {
+            const std::uint8_t* record = BlueprintRecord(item);
+            if (!blueprint) {
+                blueprint = record;
+                blueprintCount = 1;
+            } else if (blueprint != record) {
+                return fail();
+            } else {
+                ++blueprintCount;
+            }
+        }
+    }
+    if (!blueprint || !part) return fail();
+    if (Read<int>(part, 0x4C) != blueprintCount) return fail();
+    if (gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(blueprint, 0x04)) != 0)
+        return fail();
+    constructor->SetManager(factory);
+    if (!constructor->Begin(type, -1)) {
+        constructor->SetManager(nullptr);
+        return fail();
+    }
+    if (!constructor->SetPart(part) || !constructor->SetBlueprint(blueprint) || !constructor->SetSpell(spell)) {
+        constructor->SetManager(nullptr);
+        return fail();
+    }
+    itemMade_ = constructor->Make();
+    constructor->SetManager(nullptr);
+    if (!itemMade_) return fail();
+    ++*reinterpret_cast<int*>(itemMade_ + 4);
+    ReleaseObject(spell);
+    return true;
+}
+namespace {
+bool __fastcall CampCanMakeItem(CCampPages* self, void*) { return self->CanMakeItem(); }
+} // namespace
+EI_REPLACE(0x00612600, CampCanMakeItem);

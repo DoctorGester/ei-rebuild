@@ -206,3 +206,28 @@ static BOOL __fastcall CampDrawVerify(CCampPages* self, void*, int pass) {
     return result;
 }
 EI_VERIFY(0x0060F050, CampDrawVerify, 0, s_unused);
+
+// --- Constructors' checks (00612290 / 00612600) -------------------------------------------------------
+
+// They make objects (the spell, the item), so ours run alone: the result implies something was
+// made (with the reference taken), nothing is made without a spell (item) slot.
+static bool __fastcall CampCanMakeSpellVerify(CCampPages* self, void*) {
+    std::uint8_t* before = self->spellMade_;
+    bool result = self->CanMakeSpell();
+    bool ok = !result || (self->spellMade_ && *reinterpret_cast<int*>(self->spellMade_ + 4) >= 1);
+    ei::verify::Check("CCampPages::CanMakeSpell", true, ok, "result %d made %p (before %p)", result, self->spellMade_,
+                      before);
+    return result;
+}
+EI_VERIFY(0x00612290, CampCanMakeSpellVerify, 0, s_unused);
+
+static bool __fastcall CampCanMakeItemVerify(CCampPages* self, void*) {
+    std::uint8_t* before = self->itemMade_;
+    bool result = self->CanMakeItem();
+    bool ok = result == (self->itemMade_ != before && self->itemMade_ != nullptr) &&
+              (!result || *reinterpret_cast<int*>(self->itemMade_ + 4) >= 1);
+    ei::verify::Check("CCampPages::CanMakeItem", true, ok, "result %d made %p (before %p)", result, self->itemMade_,
+                      before);
+    return result;
+}
+EI_VERIFY(0x00612600, CampCanMakeItemVerify, 0, s_unused);
