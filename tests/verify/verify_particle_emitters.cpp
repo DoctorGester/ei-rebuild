@@ -39,15 +39,35 @@ struct EmitState {
         std::memcpy(&GlobalRandom(), random, sizeof(random));
         if (!elements.empty()) std::memcpy(s->elements, elements.data(), elements.size());
     }
-    // 0 same, 1 source, 2 particle, 3 generator, 4 elements.
-    int Difference(const EmitState& o) const {
-        if (std::memcmp(source, o.source, sizeof(source)) != 0) return 1;
-        if (std::memcmp(particle, o.particle, sizeof(particle)) != 0) return 2;
-        if (std::memcmp(random, o.random, sizeof(random)) != 0) return 3;
-        if (elements != o.elements) return 4;
+    // 0 same, 1 source, 2 particle, 3 generator, 4 elements; `offset` gets the first differing byte.
+    int Difference(const EmitState& o, int* offset) const {
+        auto first = [offset](const unsigned char* a, const unsigned char* b, std::size_t n) {
+            for (std::size_t i = 0; i < n; ++i)
+                if (a[i] != b[i]) {
+                    *offset = static_cast<int>(i);
+                    return true;
+                }
+            return false;
+        };
+        *offset = -1;
+        if (first(source, o.source, sizeof(source))) return 1;
+        if (first(particle, o.particle, sizeof(particle))) return 2;
+        if (first(random, o.random, sizeof(random))) return 3;
+        if (elements.size() != o.elements.size()) return 4;
+        if (first(elements.data(), o.elements.data(), elements.size())) return 4;
         return 0;
     }
 };
+
+const char* PartName(int part) {
+    static const char* const names[] = {"nothing", "source", "particle", "generator", "elements"};
+    return names[part];
+}
+
+// While the original runs the first emission on its scratch source, the element array it allocates
+// starts with the bytes ours' array held: the bytes neither writes (padding such as +0x24..+0x30 of
+// each point) then match, and a byte only the original writes still shows.
+const std::vector<unsigned char>* g_seedElements = nullptr;
 
 using EmitFn = int(__fastcall*)(CParticleSource*, void*, Particle*, int);
 using UpdateFn = int(__fastcall*)(CParticleSource*, void*, Particle*);
@@ -63,9 +83,11 @@ int RunBoth(const char* name, CParticleSource* self, Particle* p, Ours ours, Ori
     before.Restore(self, p);
     int expected = original();
     theirs.Capture(self, p);
-    int part = mine.Difference(theirs);
-    ei::verify::Check(name, true, part == 0 && actual == expected, "type %X result %d vs %d, differs in %d",
-                      self->type_, expected, actual, part);
+    int offset;
+    int part = mine.Difference(theirs, &offset);
+    ei::verify::Check(name, true, part == 0 && actual == expected,
+                      "type %X result %d vs %d, differs in %s at +0x%X", self->type_, expected, actual,
+                      PartName(part), offset);
     return expected;
 }
 
@@ -98,14 +120,18 @@ int RunBothSetup(const char* name, CParticleSource* self, Particle* p, int index
     auto* scratch = reinterpret_cast<CParticleSource*>(scratchBytes);
     std::memcpy(p, before.particle, sizeof(before.particle));
     std::memcpy(&GlobalRandom(), before.random, sizeof(before.random));
+    g_seedElements = &mine.elements;
     int expected = original(scratch, nullptr, p, index);
+    g_seedElements = nullptr;
     theirs.Capture(scratch, p);
     if (scratch->elements) gamecrt::operator_delete(reinterpret_cast<void**>(scratch->elements)[-1]);
     std::memcpy(theirs.source + offsetof(CParticleSource, elements), mine.source + offsetof(CParticleSource, elements),
                 sizeof(void*));
-    int part = mine.Difference(theirs);
-    ei::verify::Check(name, true, part == 0 && actual == expected, "type %X setup: result %d vs %d, differs in %d",
-                      self->type_, expected, actual, part);
+    int offset;
+    int part = mine.Difference(theirs, &offset);
+    ei::verify::Check(name, true, part == 0 && actual == expected,
+                      "type %X setup: result %d vs %d, differs in %s at +0x%X", self->type_, expected, actual,
+                      PartName(part), offset);
 
     std::memcpy(p, mine.particle, sizeof(mine.particle));
     std::memcpy(&GlobalRandom(), mine.random, sizeof(mine.random));
@@ -118,6 +144,11 @@ int RunBothSetup(const char* name, CParticleSource* self, Particle* p, int index
 static void* s_unusedAllocate;
 static ParticleElement* __fastcall AllocateElementsVerify(int count) {
     ParticleElement* e = AllocateElements(count);
+    if (g_seedElements) {
+        std::size_t n = static_cast<std::size_t>(count) * sizeof(ParticleElement);
+        if (n > g_seedElements->size()) n = g_seedElements->size();
+        std::memcpy(e, g_seedElements->data(), n);
+    }
     auto address = reinterpret_cast<std::uintptr_t>(e);
     auto raw = reinterpret_cast<std::uintptr_t>(reinterpret_cast<void**>(e)[-1]);
     ei::verify::Check("AllocateElements", true, (address & 0x1F) == 0 && address > raw && address - raw <= 0x23,
