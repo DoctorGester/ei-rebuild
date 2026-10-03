@@ -481,3 +481,38 @@ void __fastcall ScriptDeleteArea(CScript* script, void* edx, int id);
 void __fastcall ScriptCreatePointLight(CScript* script, void* edx, const SSCCmd* cmd);
 void __fastcall ScriptMovePointLight(CScript* script, void* edx, const SSCCmd* cmd);
 void __fastcall ScriptDeletePointLight(CScript* script, void* edx, const SSCCmd* cmd);
+
+// ---- Saving (script_save.cpp) -------------------------------------------------------------------
+
+// One type's variables in a ScriptVars: the value array and the name array after it. The value
+// savers below are __thiscall on the value array (ScriptVars +0x00 / +0x28 / +0x50 / +0x78).
+template <typename T>
+struct ScriptNamedValues {
+    MfcArray<T> values;
+    MfcArray<mfc::CString> names;
+};
+static_assert(sizeof(ScriptNamedValues<float>) == 0x28);
+
+// An area of CScript +0x194 (IsInArea): its parts and its id.
+struct ScriptArea {
+    MfcArray<ScriptAreaPart> parts;
+    int id;     // +0x14
+};
+static_assert(sizeof(ScriptArea) == 0x18);
+
+// 004C0F90 (CScript::Save, the savegame): point lights, particle / FX / lightning sources, +0x68 /
+// +0x6C, the command blocks and WorldScript blocks, the definitions, the globals, the instances,
+// the runs, the loaded flag and file counter, the areas. Sets 007AA620 to the script while saving
+// (the run saver looks its instances up there).
+void __fastcall ScriptSave(CScript* script, void* edx, ScriptStream* stream);
+// 004C1230. A command block: its id, the command count, each command (SSCCmd::Save).
+void __fastcall ScriptDeclSave(const ScriptDecl* block, void* edx, ScriptStream* stream);
+// 004C2EF0 / 004C33C0 / 004C38C0 / 004C4330. The count, then per variable its value (float bits;
+// the string with its terminator; the object id or -1; the group's size and member ids) and its
+// name with the terminator (one zero byte when the name array is shorter).
+void __fastcall ScriptFloatsSave(const ScriptNamedValues<float>* vars, void* edx, ScriptStream* stream);
+void __fastcall ScriptStringsSave(const ScriptNamedValues<mfc::CString>* vars, void* edx, ScriptStream* stream);
+void __fastcall ScriptObjectsSave(const ScriptNamedValues<ScriptObjectRef>* vars, void* edx, ScriptStream* stream);
+void __fastcall ScriptGroupsSave(const ScriptNamedValues<ScriptGroup>* vars, void* edx, ScriptStream* stream);
+// 004CAEC0 (__fastcall). The areas: count, then per area its id, part count and parts (0x14 bytes).
+void __fastcall ScriptAreasSave(const MfcArray<ScriptArea>* areas, ScriptStream* stream);

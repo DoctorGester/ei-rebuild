@@ -462,3 +462,38 @@ All in `script_exec.cpp` / `script_exec_run.cpp`:
   destruction), 004BDE40 CScript constructor.
 - The multiplayer branches of GSSetVar, GSSetVarMax, GSDelVar and QuestComplete are rewritten
   but only reachable in multiplayer (not exercised by the scenario).
+
+# Savegame writer (004C0F90 and its parts)
+
+Code: `src/game/script_save.cpp`; types (`ScriptNamedValues`, `ScriptArea`) in `script.h`. Verify:
+`tests/verify/verify_script_save.cpp` (both versions write into capture streams; bytes and the
+size of every Write must match; the original's pieces then go to the real stream). Reached by the
+autosave of every new game (world_load also loads it back).
+
+| Address | Size | Name |
+|---|---|---|
+| 004C0F90 | 657 | ScriptSave (CScript::Save) |
+| 004C1230 | 94 | ScriptDeclSave (block id, count, SSCCmd::Save each) |
+| 004C2EF0 | ~130 | ScriptFloatsSave |
+| 004C33C0 | ~140 | ScriptStringsSave |
+| 004C38C0 | ~160 | ScriptObjectsSave |
+| 004C4330 | ~220 | ScriptGroupsSave |
+| 004CAEC0 | ~170 | ScriptAreasSave (__fastcall) |
+
+CScript::Save order: point lights (+0x04, 004B1940 each), particle / FX / lightning lists (+0x14,
++0x30, +0x4C; 004B1A80 / 004B1C50 / 004B1DB0), +0x68, +0x6C, command blocks (+0x70) and WorldScript
+blocks (+0x178), definitions (+0x8C, 004BBFE0), globals (+0xA0, four savers), instances (+0x140,
+004BBFE0), runs (+0x15C, 004BB320, which finds the run's instance through 007AA620), +0x1A8,
++0x1AC, then 007AA620 = 0 and the areas. Lists are written as count, then each node (the next
+pointer read before the call). A variable's name is written with its terminator, or as a single
+zero byte when the name array is shorter than the value array.
+
+Forwarders: 004B1940, 004B1A80, 004B1C50, 004B1DB0, 004BBFE0, 004BB320, SSCCmd::Save 004B6360;
+the savers of this file call each other through their addresses (verify wrappers run).
+
+Skipped: 004C0D00 (CScript::Load, 654) and its loaders (004C5CB0, 004CA480 / 004CA5D0 / 004CA720,
+004C57C0, 004CA810, 004CD770, 004CA000, 004C2D40 / 004C3200 / 004C36B0 / 004C40D0, 004CA980,
+004CAC00, 004CDB30, 004CC640): mapped, not rewritten (a save/load round trip does not reproduce the
+bytes when objects are missing, so they need record/replay verification). Areas are read only for
+stream versions >= 0x57. 004C01A0, 004C0520, 004C06F0, 004C09F0 (quest script builders): no
+references in the exe (dead). The rest of 004C0000-004CF000 is CArray / CList template code.
