@@ -1479,3 +1479,119 @@ void CParticleSource::TickGeyser(ParticleElement* e) {
     e->pos.z = power;
 }
 EI_REPLACE_METHOD(0x0048AEC0, CParticleSource::TickGeyser);
+
+// --- Shower (0x200F, 0x2031-0x2033): sparks thrown out in a few random directions ---------------
+//
+// Element 0's +0x34 is the texture frame of the kind (12-15, set by Create) and +0x30 is negative
+// until the directions are chosen; then each element's position is a unit direction and +0x30 its
+// age in ticks.
+
+namespace {
+
+#define EI_SHOWER_RAYS GameFloat(0x0073CE50)         // 8.0 directions per unit of alpha
+#define EI_SHOWER_JITTER_SCALE GameDouble(0x0073CE48) // ~0.06 * 2^-32
+#define EI_SHOWER_JITTER_LOW GameFloat(0x0073CD74)   // 0.03
+#define EI_SHOWER_SPEED GameFloat(0x0073CE40)        // 1/6
+#define EI_SHOWER_FAST GameFloat(0x0073C51C)         // 1.5
+#define EI_SHOWER_GRAVITY GameFloat(0x0073C52C)      // 0.05
+
+const std::int32_t* ShowerAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078A6B4); }
+
+// alpha * 8 random unit directions (at least one) in the elements.
+void ChooseShowerRays(CParticleSource* s) {
+    s->frameDelay = x87::fistp(Store(D(s->alpha) * D(EI_SHOWER_RAYS)));
+    if (s->frameDelay < 1) s->frameDelay = 1;
+    int rays = s->frameDelay;
+    s->emitCount = rays * 10;
+    SetElementCount(s, rays);
+    for (int i = 0; i < s->frameDelay; ++i) {
+        float x, y, z;
+        double lengthSquared;
+        for (int tries = 10;;) {
+            x = Store(Range(-1.0f, 1.0f));
+            y = Store(Range(-1.0f, 1.0f));
+            double zu = Range(-1.0f, 1.0f);
+            z = Store(zu);
+            lengthSquared = zu * D(z) + D(y) * D(y) + D(x) * D(x);
+            if (!(lengthSquared >= D(EI_P_ONE))) break;
+            if (!(--tries > 0)) break;
+        }
+        float length = Store(x87::fsqrt(lengthSquared));
+        Vector3 v;
+        v.Construct(x, y, z);
+        Vector3 direction;
+        DivideVector(&direction, v, length);
+        std::memcpy(&s->elements[i].pos, &direction, sizeof(Vector3));
+        *ElementInt(&s->elements[i], 0x30) = 0;
+    }
+}
+
+} // namespace
+
+// 0048EEA0. Shower: the first call chooses the directions. A spark leaves the source along a
+// random direction (jittered by +-0.03, scaled to the source's size and 1/6 of it per tick, one in
+// eight half as fast again), already a random part of its first step out.
+int CParticleSource::EmitShower(Particle* p, int) {
+    if (*ElementInt(elements, 0x30) < 0) ChooseShowerRays(this);
+    p->color = 0xFFFFFFFF;
+    p->life = lifetime;
+    p->frame = *ElementInt(elements, 0x34);
+    float a = Store(Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - D(EI_SHOWER_JITTER_LOW));
+    float b = Store(Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - D(EI_SHOWER_JITTER_LOW));
+    float c = Store(Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - D(EI_SHOWER_JITTER_LOW));
+    const ParticleElement& ray = elements[Next() % static_cast<std::uint32_t>(frameDelay)];
+    float scale = size;
+    double ax = D(a) + D(ray.pos.x);
+    b = Store(D(b) + D(ray.pos.y));
+    c = Store(D(c) + D(ray.pos.z));
+    std::memcpy(&p->pos, &origin, sizeof(Vector3));
+    std::memcpy(&p->size, &unknown_11C, sizeof(float));
+    a = Store(D(scale) * ax);
+    b = Store(D(scale) * D(b));
+    c = Store(D(scale) * D(c));
+    float speed = Store(D(EI_P_ONE) / x87::fsqrt(D(c) * D(c) + D(b) * D(b) + D(a) * D(a)) * D(size) * D(EI_SHOWER_SPEED));
+    if ((Next() & 7) == 0) speed = Store(D(speed) * D(EI_SHOWER_FAST));
+    p->drift.x = Store(D(speed) * D(a));
+    SetBits(&p->velocity.x, 0x3F666666);     // 0.9: the speed kept per tick
+    SetBits(&p->velocity.y, 0x3F4CCCCD);     // 0.8: the size kept per tick
+    p->drift.y = Store(D(speed) * D(b));
+    p->drift.z = Store(D(speed) * D(c));
+    double t = Unsigned(Next()) * EI_P_SCALE_1;
+    float dx = Store(t * D(p->drift.x));
+    float dy = Store(t * D(p->drift.y));
+    double dz = t * D(p->drift.z);
+    p->pos.x = Store(D(dx) + D(p->pos.x));
+    p->pos.y = Store(D(dy) + D(p->pos.y));
+    p->pos.z = Store(dz + D(p->pos.z));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048EEA0, CParticleSource::EmitShower);
+
+// 0048F300. Shower sparks move, slow down (+0x20), fall by 0.05 size per tick, shrink (+0x24) and
+// fade by the life table.
+int CParticleSource::UpdateShower(Particle* p) {
+    int life = --p->life;
+    if (life == 0) return 0;
+    p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
+    p->color = (static_cast<std::uint32_t>(ShowerAlpha()[life]) << 24) | 0xFFFFFF;
+    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
+    p->pos.z = Store(D(p->pos.z) + D(p->drift.z));
+    p->size = Store(D(p->velocity.y) * D(p->size));
+    double keep = D(p->velocity.x);
+    p->drift.x = Store(keep * D(p->drift.x));
+    p->drift.y = Store(keep * D(p->drift.y));
+    p->drift.z = Store(keep * D(p->drift.z));
+    p->drift.z = Store(D(p->drift.z) - D(size) * D(EI_SHOWER_GRAVITY));
+    return 1;
+}
+EI_REPLACE_METHOD(0x0048F300, CParticleSource::UpdateShower);
+
+// 0048F380. Shower directions age; after 5 ticks the source stops emitting and lets go of its
+// carrier.
+void CParticleSource::TickShower(ParticleElement* e) {
+    if (++*ElementInt(e, 0x30) > 5) {
+        flags_ &= ~1u;
+        Attach(nullptr);
+    }
+}
+EI_REPLACE_METHOD(0x0048F380, CParticleSource::TickShower);

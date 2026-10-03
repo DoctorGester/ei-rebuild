@@ -166,6 +166,9 @@ public:
     int EmitGeyser(Particle* p, int index);         // 0048A8F0 (Geyser, 0x2009)
     int UpdateGeyser(Particle* p);                  // 0048ADA0
     void TickGeyser(ParticleElement* e);            // 0048AEC0
+    int EmitShower(Particle* p, int index);         // 0048EEA0 (0x200F, 0x2031-0x2033)
+    int UpdateShower(Particle* p);                  // 0048F300
+    void TickShower(ParticleElement* e);            // 0048F380
 
     // Not rewritten (forwarder): offset and radius of the attachment's figure.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280

@@ -109,3 +109,29 @@ EI_UPDATE_WRAPPER(UpdateGeyser)
 EI_VERIFY(0x0048ADA0, UpdateGeyserVerify, 8, s_UpdateGeyser);
 EI_ELEMENT_WRAPPER(TickGeyser)
 EI_VERIFY(0x0048AEC0, TickGeyserVerify, 8, s_TickGeyser);
+
+// 0048EEA0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x30 (6); the first call reallocates the elements.
+// 0048F300: MOV EAX,[ESP+4]; MOV EDX,[EAX+0x50] (7). 0048F380: MOV EAX,[ESP+4]; MOV EDX,[EAX+0x30] (7).
+static EmitFn s_EmitShower;
+static int __fastcall EmitShowerVerify(CParticleSource* self, void*, Particle* p, int index) {
+    auto ours = [](CParticleSource* s, Particle* q, int i) { return s->CParticleSource::EmitShower(q, i); };
+    if (reinterpret_cast<const std::int32_t*>(self->elements)[0x30 / 4] < 0)
+        return RunBothSetup("CParticleSource::EmitShower", self, p, index, ours, s_EmitShower);
+    return RunBothEmit("CParticleSource::EmitShower", self, p, index, ours, s_EmitShower);
+}
+EI_VERIFY(0x0048EEA0, EmitShowerVerify, 6, s_EmitShower);
+EI_UPDATE_WRAPPER(UpdateShower)
+EI_VERIFY(0x0048F300, UpdateShowerVerify, 7, s_UpdateShower);
+// After 5 ticks the source detaches (shared state): ours only, the flags checked.
+static ElementFn s_TickShower;
+static void __fastcall TickShowerVerify(CParticleSource* self, void*, ParticleElement* e) {
+    if (reinterpret_cast<const std::int32_t*>(e)[0x30 / 4] >= 5) {
+        self->CParticleSource::TickShower(e);
+        ei::verify::Check("CParticleSource::TickShower", true, (self->flags_ & 1u) == 0 && !self->attachedTo,
+                          "flags %X", self->flags_);
+        return;
+    }
+    RunBothElement("CParticleSource::TickShower", self, e,
+                   [](CParticleSource* s, ParticleElement* x) { s->CParticleSource::TickShower(x); }, s_TickShower);
+}
+EI_VERIFY(0x0048F380, TickShowerVerify, 7, s_TickShower);
