@@ -1278,6 +1278,62 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     FlowAfterServer(this, nullptr);
 }
 
+// ---- AcceptPlayers --------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kAcceptedPlayer = 0x007908AC;   // "Accepted player "
+constexpr std::uintptr_t kSessionListVtable = 0x0073FA4C;
+constexpr int kSlotLobbyTakeNew = 6;                      // the lobby's slot 6 (+0x18): new connections into a list
+void* const kNetLog = reinterpret_cast<void*>(0x007C56B0);   // the network log's ostream
+
+// 00598EF0. The connection list's destructor.
+__declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(0x00598EF0)
+// 0066C180. The player list makes a new player. 00665990 (RET 4): the player takes a connection.
+__declspec(naked) WorldPlayer* __fastcall PlayersAdd(void*, void*) EI_ORIGINAL(0x0066C180)
+__declspec(naked) void __fastcall PlayerAttach(WorldPlayer*, void*, void*) EI_ORIGINAL(0x00665990)
+// 006FC9C6 (RET 4). ostream << long.
+__declspec(naked) void* __fastcall OstreamPutLong(void*, void*, long) EI_ORIGINAL(0x006FC9C6)
+
+} // namespace
+
+void CWorldServer::AcceptNewPlayers(void* lobby) {
+    mfc::CTypedPtrList<std::uint8_t> joined;
+    joined.vtable = reinterpret_cast<void*>(kSessionListVtable);
+    joined.head = nullptr;
+    joined.tail = nullptr;
+    joined.count = 0;
+    joined.free = nullptr;
+    joined.blocks = nullptr;
+    joined.blockSize = 10;
+    if (gameResult_ == 0) {
+        SessionListDestruct(&joined, nullptr);
+        return;
+    }
+    ei::VCall<void>(lobby, kSlotLobbyTakeNew, &joined);
+    for (auto* node = joined.head; node;) {
+        auto* next = node->next;
+        std::uint8_t* connection = node->data;
+        WorldPlayer* player = PlayersAdd(players_, nullptr);
+        PlayerAttach(player, nullptr, connection);
+        player->dirty = 0xFFFFFFFFu;
+        At<int>(player, 0x100) = unknown12D64_;
+        std::memcpy(At<std::uint8_t*>(player, 0x20) + 0x38, startPosition_, 12);
+        int id = player->id;
+        void* log = OstreamPutLong(OstreamPutString(kNetLog, nullptr, Text(kAcceptedPlayer)), nullptr, id);
+        OstreamManipulate(OstreamPutChar(log, nullptr, '\n'), nullptr, kFlush);
+        node = next;
+    }
+    // The list's inlined destructor: every reference released, then the blocks.
+    joined.vtable = reinterpret_cast<void*>(kSessionListVtable);
+    for (auto* node = joined.head; node; node = node->next) ReleaseSession(node->data);
+    joined.count = 0;
+    joined.free = nullptr;
+    joined.tail = nullptr;
+    joined.head = nullptr;
+    mfc::PlexFreeDataChain(joined.blocks);
+}
+
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
 
 namespace {
@@ -1333,6 +1389,7 @@ EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE(0x0057AAB0, ClearSaveFolder);
 EI_REPLACE_METHOD(0x0057EE10, GameFlow::SwitchMultiplayerZone);
 EI_REPLACE_METHOD(0x0057E740, GameFlow::StartServer);
+EI_REPLACE_METHOD(0x0058DAF0, CWorldServer::AcceptNewPlayers);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);

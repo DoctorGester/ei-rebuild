@@ -204,6 +204,21 @@ static void __fastcall StartServerVerify(GameFlow* self, void*, const char* name
 }
 EI_VERIFY(0x0057E740, StartServerVerify, 0, s_unused);
 
+// 0058DAF0: no players are lost.
+static void __fastcall AcceptPlayersVerify(CWorldServer* self, void*, void* lobby) {
+    auto count = [self] {
+        int n = 0;
+        PlayerIterator it;
+        for (WorldPlayer* p = it.First(self->players_); p; p = it.Next()) ++n;
+        return n;
+    };
+    int before = count();
+    self->AcceptNewPlayers(lobby);
+    int after = count();
+    ei::verify::Check("CWorldServer::AcceptNewPlayers", true, after >= before, "players %d -> %d", before, after);
+}
+EI_VERIFY(0x0058DAF0, AcceptPlayersVerify, 0, s_unused);
+
 // 0057F150: afterwards an active client's request is not left answered (kind 3).
 static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {
     self->UpdateAndAcknowledge();

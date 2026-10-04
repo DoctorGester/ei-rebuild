@@ -279,6 +279,10 @@ public:
     // 0xACCEECCB text packed and XORed, decoded by 004D8E10, or the plain 0xACCEECCA text) become
     // the only line of the first command queue.
     void LoadZoneScripts(const char* mob);
+    // 0058DAF0 (RET 4; world_game.cpp). While a game runs (+0x138), every new connection the
+    // lobby hands over (its slot 6) becomes a player (0066C180 / 00665990) of this game's kind,
+    // fully dirty, starting at startPosition_; "Accepted player <id>" goes to the network log.
+    void AcceptNewPlayers(void* lobby);
 
     // world_game.cpp
     // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
