@@ -114,6 +114,9 @@ struct CRegionMap {
     // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
     // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
     bool LoadBlocks(void* stream);
+    // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
+    // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
+    void PickRepresentatives(class CAIMap* map, int bx, int by);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.

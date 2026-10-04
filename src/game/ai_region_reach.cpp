@@ -122,6 +122,8 @@ void Fit(BlockGrid& grid, int width, int height, void (__fastcall* allocate)(voi
     grid.height = height;
     allocate(&grid);
 }
+// 005AF7B0 (RET 0x14, AL): whether cell (x, y) of block (bx, by) suits the block for a size class.
+__declspec(naked) bool __fastcall CellSuitsBlock(CRegionMap*, void*, int, int, int, int, int) EI_ORIGINAL(0x005AF7B0)
 } // namespace
 
 bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, void* marks) {
@@ -339,7 +341,36 @@ bool CRegionMap::LoadBlocks(void* stream) {
     return At<bool>(stream, 5);
 }
 
+void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
+    for (int c = 0; c < 8; ++c) {
+        std::uint8_t& cell = At<std::uint8_t**>(this, (c + 0x1A) * 16)[by][bx];
+        cell = static_cast<std::uint8_t>((cell & 0xF3) | 3);
+        cell = static_cast<std::uint8_t>((cell & 0x0F) | 0x30);
+        int best = 0;
+        bool found = false;
+        // Square rings from the block's middle: [4, 4), [3, 5), [2, 6), [1, 7), [0, 8).
+        for (int k = 8, grow = 0; k >= 0; k -= 2, grow += 2) {
+            int lo = k / 2, hi = grow + k / 2;
+            for (int yy = lo; yy < hi; ++yy)
+                for (int xx = lo; xx < hi; ++xx) {
+                    int x = bx * 8 + xx, y = by * 8 + yy;
+                    if (x < 0 || y < 0 || x >= map->width || y >= map->height) continue;
+                    int nibble = static_cast<int>((map->cells[y][x].passable >> (c * 4)) & 0xF);
+                    if (nibble == 0) continue;
+                    if (!(nibble > best) && found) continue;
+                    bool suits = CellSuitsBlock(this, nullptr, c, bx, by, xx, yy);
+                    if (!suits && found) continue;
+                    found = suits;
+                    best = nibble;
+                    cell = static_cast<std::uint8_t>((cell & 0xF0) | (xx & 0xF));
+                    cell = static_cast<std::uint8_t>((cell & 0x0F) | (yy << 4));
+                }
+        }
+    }
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005AF900, CRegionMap::PickRepresentatives);
 EI_REPLACE_METHOD(0x005B1180, CRegionMap::LoadBlocks);
 EI_REPLACE_METHOD(0x005B0F70, CRegionMap::ClampEdgeCosts);
 EI_REPLACE_METHOD(0x005B0370, CRegionMap::NearbyBlocks);

@@ -8,6 +8,7 @@
 #include "../../src/lib/mfc.h"
 
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 namespace {
@@ -149,6 +150,32 @@ static bool __fastcall LoadBlocksVerify(CRegionMap* self, void*, void* stream) {
     return result;
 }
 EI_VERIFY(0x005B1180, LoadBlocksVerify, 0, s_unusedLoad);
+
+namespace {
+using PickFn = void(__fastcall*)(CRegionMap*, void*, CAIMap*, int, int);
+PickFn s_originalPick;
+
+std::uint8_t& RepresentativeOf(CRegionMap* map, int c, int bx, int by) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    return (*reinterpret_cast<std::uint8_t***>(base + 0x1A0 + c * 16))[by][bx];
+}
+} // namespace
+
+// 005AF900: the block's 8 representative bytes: snapshot, the original, kept, put back, ours.
+static void __fastcall PickVerify(CRegionMap* self, void*, CAIMap* map, int bx, int by) {
+    std::uint8_t before[8], expected[8], actual[8];
+    for (int c = 0; c < 8; ++c) before[c] = RepresentativeOf(self, c, bx, by);
+    s_originalPick(self, nullptr, map, bx, by);
+    for (int c = 0; c < 8; ++c) {
+        expected[c] = RepresentativeOf(self, c, bx, by);
+        RepresentativeOf(self, c, bx, by) = before[c];
+    }
+    self->PickRepresentatives(map, bx, by);
+    for (int c = 0; c < 8; ++c) actual[c] = RepresentativeOf(self, c, bx, by);
+    ei::verify::Check("CRegionMap::PickRepresentatives", true, std::memcmp(actual, expected, 8) == 0, "block (%d,%d)", bx,
+                      by);
+}
+EI_VERIFY(0x005AF900, PickVerify, 5, s_originalPick);
 
 namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
