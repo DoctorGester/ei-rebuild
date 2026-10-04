@@ -7,6 +7,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui_camp.h"
+#include "../../src/game/world.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -407,3 +408,56 @@ static int __fastcall CampPriceVerify(CCampPages* self, void*, std::uint8_t* ite
     return expected;
 }
 EI_VERIFY(0x0060FAB0, CampPriceVerify, 6, s_campPrice);
+
+// 0060E6B0: ours only (it frees and releases). Afterwards the heroes array and the constructed
+// item and spell are gone, and the local player's records have their +0x1C back.
+static void __fastcall CampCloseVerify(CCampPages* self, void*) {
+    std::uint8_t* player = LocalPlayerData();
+    auto sum = [player] {
+        std::uint32_t total = 0;
+        std::uint8_t* records = *reinterpret_cast<std::uint8_t**>(player + 0x30);
+        int count = *reinterpret_cast<int*>(player + 0x34);
+        for (int i = 0; i < count; ++i) total += *reinterpret_cast<std::uint32_t*>(records + i * 0x784 + 0x1C);
+        return total;
+    };
+    std::uint32_t before = sum();
+    self->Close();
+    std::uint32_t after = sum();
+    bool ok = !self->heroes_ && !self->itemMade_ && !self->spellMade_ && before == after;
+    ei::verify::Check("CCampPages::Close", true, ok, "heroes %p item %p spell %p, records %08X -> %08X", self->heroes_,
+                      self->itemMade_, self->spellMade_, before, after);
+}
+EI_VERIFY(0x0060E6B0, CampCloseVerify, 0, s_unused);
+
+// 0060E3E0: ours only (a destructor body). The window base must be left empty.
+static void __fastcall TradePanelDestroyVerify(CUiWindow* self) {
+    TradePanelDestroy(self);
+    ei::verify::Check("TradePanelDestroy", true, !self->sceneObjects_.data_ && !self->objects_.data_,
+                      "scene %p objects %p", self->sceneObjects_.data_, self->objects_.data_);
+}
+EI_VERIFY(0x0060E3E0, TradePanelDestroyVerify, 0, s_unused);
+
+// 0060FE40: ours only (it moves the item). Other kinds return 0; a weapon must be gone from the
+// hero's weapons, with the chosen index below their count (or the count 0 and the index -1).
+static int __fastcall CampTakeOffVerify(CCampPages* self, void*, std::uint8_t* item) {
+    int kind;
+    std::memcpy(&kind, item + 0x10, 4);
+    using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+    std::uint8_t* hero = (kind == 0x3004) ? reinterpret_cast<HeroFn>(self->vtable_[51])(self) : nullptr;
+    int result = self->TakeOff(item);
+    bool ok = true;
+    if (kind < 0x3004 || (kind > 0x3006 && kind != 0x3008)) ok = result == 0;
+    if (hero) {
+        int count, chosen;
+        std::uint8_t** weapons;
+        std::memcpy(&count, hero + 0x734, 4);
+        std::memcpy(&weapons, hero + 0x730, 4);
+        std::memcpy(&chosen, hero + 0x774, 4);
+        for (int i = 0; i < count; ++i)
+            if (weapons[i] == item) ok = false;
+        if (!(static_cast<unsigned>(chosen) < static_cast<unsigned>(count) || (count == 0 && chosen == -1))) ok = false;
+    }
+    ei::verify::Check("CCampPages::TakeOff", true, ok, "kind %X result %d", kind, result);
+    return result;
+}
+EI_VERIFY(0x0060FE40, CampTakeOffVerify, 0, s_unused);

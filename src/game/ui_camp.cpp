@@ -977,3 +977,243 @@ namespace {
 bool __fastcall CampCanMakeItem(CCampPages* self, void*) { return self->CanMakeItem(); }
 } // namespace
 EI_REPLACE(0x00612600, CampCanMakeItem);
+
+// --- 0060E6B0: leaving the camp ---------------------------------------------------------------
+
+namespace {
+
+// The record array CreateUnits-style callers pass (CArray of record pointers, vtable 0073FAA4).
+struct CloseRecordArray {
+    void* vtable;
+    std::uint8_t** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+// 005719B0 (RET 8): its SetSize(size, growBy).
+__declspec(naked) void __fastcall CloseRecordsSetSize(CloseRecordArray*, void*, int, int) EI_ORIGINAL(0x005719B0)
+
+struct GameGlue {
+    void SetServerFlag(std::uint8_t flag);              // 00578D10 (on 007AFEA4)
+    std::uint8_t* PlayerData();                         // 00578BA0 (on 007AFEA5)
+    void TakeRecords(CloseRecordArray* records);        // 005789E0 (on 007AFEA5)
+};
+__declspec(naked) void GameGlue::SetServerFlag(std::uint8_t) EI_ORIGINAL(0x00578D10)
+__declspec(naked) std::uint8_t* GameGlue::PlayerData() EI_ORIGINAL(0x00578BA0)
+__declspec(naked) void GameGlue::TakeRecords(CloseRecordArray*) EI_ORIGINAL(0x005789E0)
+GameGlue* GlueAt(std::uintptr_t address) { return reinterpret_cast<GameGlue*>(address); }
+
+// The description panels' Describe (005EE6C0) through its address.
+struct DescribeAt {
+    void Describe(void* item);
+};
+__declspec(naked) void DescribeAt::Describe(void*) EI_ORIGINAL(0x005EE6C0)
+
+constexpr int kRecordSize = 0x784;
+constexpr std::uint32_t kRecordBias = 100000000;
+
+} // namespace
+
+void CCampPages::Close() {
+    GlueAt(0x007AFEA4)->SetServerFlag(0);
+    {
+        void* display = *reinterpret_cast<void* const*>(0x007AF080);
+        void* device;
+        std::memcpy(&device, static_cast<std::uint8_t*>(display) + 0x54, 4);
+        using SetStateFn = long(__stdcall*)(void*, unsigned long, unsigned long);   // SetRenderState
+        reinterpret_cast<SetStateFn>((*static_cast<void***>(device))[20])(device, 2, 0);
+    }
+    CloseRecordArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+    std::uint8_t* player = GlueAt(0x007AFEA5)->PlayerData();
+    auto recordsOf = [player] { return *reinterpret_cast<std::uint8_t**>(player + 0x30); };
+    auto countOf = [player] { return *reinterpret_cast<int*>(player + 0x34); };
+    for (int i = 0; i < countOf(); ++i) {
+        std::uint8_t* record = recordsOf() + i * kRecordSize;
+        *reinterpret_cast<std::uint32_t*>(record + 0x1C) += kRecordBias;
+        int index = records.size;
+        CloseRecordsSetSize(&records, nullptr, index + 1, -1);
+        records.data[index] = recordsOf() + i * kRecordSize;
+    }
+    GlueAt(0x007AFEA5)->TakeRecords(&records);
+    for (int i = 0; i < countOf(); ++i)
+        *reinterpret_cast<std::uint32_t*>(recordsOf() + i * kRecordSize + 0x1C) -= kRecordBias;
+
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    if (heroes_) {
+        gamecrt::operator_delete(heroes_);
+        heroes_ = nullptr;
+    }
+    std::memset(self + 0x1A8, 0, 4);
+    std::memset(self + 0x1A4, 0, 4);
+    if (spellMade_) reinterpret_cast<CEngineObject*>(spellMade_)->Release();
+    spellMade_ = nullptr;
+    if (itemMade_) reinterpret_cast<CEngineObject*>(itemMade_)->Release();
+    itemMade_ = nullptr;
+    reinterpret_cast<DescribeAt*>(helpPanel_)->Describe(nullptr);
+    reinterpret_cast<DescribeAt*>(descPanel_)->Describe(nullptr);
+    // The part lists (slot 3 empties a list, slot 0 is the deleting destructor); the first of
+    // each constructor's lists (+0x1B4, +0x1C8) is not touched here.
+    for (int offset : {0x1CC, 0x1D0, 0x1D4, 0x1B8, 0x1BC, 0x1C0, 0x1C4}) {
+        void* list;
+        std::memcpy(&list, self + offset, 4);
+        using EmptyFn = void(__thiscall*)(void*);
+        reinterpret_cast<EmptyFn>((*static_cast<void***>(list))[3])(list);
+        std::memcpy(&list, self + offset, 4);
+        if (list) {
+            using DeleteFn = void(__thiscall*)(void*, int);
+            reinterpret_cast<DeleteFn>((*static_cast<void***>(list))[0])(list, 1);
+        }
+    }
+    // The record array's destructor.
+    records.vtable = reinterpret_cast<void*>(0x0073FAA4);
+    if (records.data) gamecrt::operator_delete(records.data);
+}
+namespace {
+void __fastcall CampClose(CCampPages* self, void*) { self->Close(); }
+} // namespace
+EI_REPLACE(0x0060E6B0, CampClose);
+
+// --- 0060E3E0: the trade panel's destructor body (vtable 007417A8) --------------------------------
+
+namespace {
+
+// 006FE958: CStringArray's destructor (thiscall).
+__declspec(naked) void __fastcall StringArrayDestruct(void*) EI_ORIGINAL(0x006FE958)
+// 00613630 (__fastcall: block, count): frees a vector's block of 0x3C-byte entries (STLport node
+// allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
+__declspec(naked) void __fastcall FreeBlock3C(void*, int) EI_ORIGINAL(0x00613630)
+__declspec(naked) void __stdcall FreeBlock18(void*, int) EI_ORIGINAL(0x006135F0)
+// 00613CF0 (thiscall): a 0x18-byte list entry's destructor.
+__declspec(naked) void __fastcall DestroyEntry18(void*) EI_ORIGINAL(0x00613CF0)
+
+struct VectorView {
+    std::uint8_t* begin;
+    std::uint8_t* end;
+    std::uint8_t* capacity;
+};
+VectorView* VectorAt(void* object, int offset) {
+    return reinterpret_cast<VectorView*>(static_cast<std::uint8_t*>(object) + offset);
+}
+
+// The entries' destructors, then the block (its capacity in entries, a signed division).
+void DestroyVector18(VectorView* v) {
+    for (std::uint8_t* at = v->begin; at != v->end; at += 0x18) DestroyEntry18(at);
+    FreeBlock18(v->begin, static_cast<int>(v->capacity - v->begin) / 0x18);
+}
+
+} // namespace
+
+void __fastcall TradePanelDestroy(CUiWindow* self) {
+    StringArrayDestruct(reinterpret_cast<std::uint8_t*>(self) + 0x1A4);
+    VectorView* records = VectorAt(self, 0x190);
+    FreeBlock3C(records->begin, static_cast<int>(records->capacity - records->begin) / 0x3C);
+    DestroyVector18(VectorAt(self, 0x180));
+    DestroyVector18(VectorAt(self, 0x174));
+    DestroyVector18(VectorAt(self, 0x168));
+    DestroyVector18(VectorAt(self, 0x15C));
+    self->DestroyBase();
+}
+EI_REPLACE(0x0060E3E0, TradePanelDestroy);
+
+// --- 0060FE40: taking an item off the hero ---------------------------------------------------
+
+namespace {
+
+// The hero record (thiscall, RET 4): 00660A50 / 00660E10 / 00660C30 / 00660FF0 take a weapon,
+// armour, a 0x3006 item or a 0x3008 item off.
+struct HeroRecordAt {
+    void RemoveWeapon(std::uint8_t* item);    // 00660A50
+    void RemoveArmour(std::uint8_t* item);    // 00660E10
+    void Remove3006(std::uint8_t* item);      // 00660C30
+    void Remove3008(std::uint8_t* item);      // 00660FF0
+};
+__declspec(naked) void HeroRecordAt::RemoveWeapon(std::uint8_t*) EI_ORIGINAL(0x00660A50)
+__declspec(naked) void HeroRecordAt::RemoveArmour(std::uint8_t*) EI_ORIGINAL(0x00660E10)
+__declspec(naked) void HeroRecordAt::Remove3006(std::uint8_t*) EI_ORIGINAL(0x00660C30)
+__declspec(naked) void HeroRecordAt::Remove3008(std::uint8_t*) EI_ORIGINAL(0x00660FF0)
+
+// 00661DB0 (thiscall on the local player's data, RET 0xC): puts an item among the player's items.
+__declspec(naked) int __fastcall PlayerTakeItem(std::uint8_t*, void*, std::uint8_t*, int, int) EI_ORIGINAL(0x00661DB0)
+// 006A39E0 (thiscall on an armour item): its body part type. 00530840 (thiscall on a unit, RET
+// 4): takes off the armour of that type.
+__declspec(naked) int __fastcall ArmourType(std::uint8_t*) EI_ORIGINAL(0x006A39E0)
+__declspec(naked) void __fastcall UnitUnequipArmour(std::uint8_t*, void*, int) EI_ORIGINAL(0x00530840)
+// 005232B0 / 005230C0 (thiscall on the hero's statistics, record + 0x20): clears the outer
+// layers / adds one (RET 4).
+__declspec(naked) void __fastcall StatsClearOuterLayers(std::uint8_t*) EI_ORIGINAL(0x005232B0)
+__declspec(naked) void __fastcall StatsAddLayer(std::uint8_t*, void*, void*) EI_ORIGINAL(0x005230C0)
+// 00623880: the statistics panel's drawing, through its address.
+struct StatsPanelAt {
+    void DrawStats();
+};
+__declspec(naked) void StatsPanelAt::DrawStats() EI_ORIGINAL(0x00623880)
+
+template <typename T>
+T& CampField(void* p, int offset) {
+    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(p) + offset);
+}
+
+} // namespace
+
+int CCampPages::TakeOff(std::uint8_t* item) {
+    interface_->PlaySound(reinterpret_cast<const char*>(0x007937C8), 0);   // "buttons\camp\put_off.wav"
+    int kind = CampField<int>(item, 0x10);
+    if (kind < 0x3004 || (kind > 0x3006 && kind != 0x3008)) return 0;
+    using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+    std::uint8_t* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);
+    int result = PlayerTakeItem(GlueAt(0x007AFEA5)->PlayerData(), nullptr, item, 0, 1);
+    auto* record = reinterpret_cast<HeroRecordAt*>(hero);
+    switch (CampField<int>(item, 0x10)) {
+    case 0x3004: {
+        // The chosen weapon (+0x774) moves back when the item lies before it.
+        int count = CampField<int>(hero, 0x734);
+        std::uint8_t** weapons = CampField<std::uint8_t**>(hero, 0x730);
+        for (int i = 0; i < count; ++i) {
+            if (weapons[i] != item) continue;
+            if (static_cast<std::uint32_t>(i) < CampField<std::uint32_t>(hero, 0x774))
+                --CampField<std::uint32_t>(hero, 0x774);
+            break;
+        }
+        record->RemoveWeapon(item);
+        if (CampField<std::uint32_t>(hero, 0x774) >= CampField<std::uint32_t>(hero, 0x734))
+            CampField<std::uint32_t>(hero, 0x774) = CampField<std::uint32_t>(hero, 0x734) - 1;
+        using RedrawFn = void(__thiscall*)(CCampPages*);
+        reinterpret_cast<RedrawFn>(vtable_[46])(this);
+        break;
+    }
+    case 0x3005: {
+        if (heroes_[hero_]) {
+            int type = ArmourType(item);
+            UnitUnequipArmour(heroes_[hero_], nullptr, type);
+            using IntFn = void(__thiscall*)(void*, int);
+            using VoidFn = void(__thiscall*)(void*);
+            void* figure = CampField<void*>(heroes_[hero_], 0x240);
+            reinterpret_cast<IntFn>((*static_cast<void***>(figure))[25])(figure, CampField<int>(hero, 0x774));
+            figure = CampField<void*>(heroes_[hero_], 0x240);
+            reinterpret_cast<VoidFn>((*static_cast<void***>(figure))[30])(figure);
+            figure = CampField<void*>(heroes_[hero_], 0x240);
+            reinterpret_cast<VoidFn>((*static_cast<void***>(figure))[29])(figure);
+        }
+        record->RemoveArmour(item);
+        std::uint8_t* stats = hero + 0x20;
+        StatsClearOuterLayers(stats);
+        for (int i = 0; i < CampField<int>(hero, 0x754); ++i)
+            StatsAddLayer(stats, nullptr, CampField<void**>(hero, 0x750)[i]);
+        break;
+    }
+    case 0x3006:
+        record->Remove3006(item);
+        break;
+    case 0x3008:
+        record->Remove3008(item);
+        break;
+    default:
+        break;
+    }
+    reinterpret_cast<StatsPanelAt*>(statsPanel_)->DrawStats();
+    return result;
+}
+namespace {
+int __fastcall CampTakeOff(CCampPages* self, void*, std::uint8_t* item) { return self->TakeOff(item); }
+} // namespace
+EI_REPLACE(0x0060FE40, CampTakeOff);

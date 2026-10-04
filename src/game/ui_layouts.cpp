@@ -35,7 +35,6 @@ __declspec(naked) void CUiMesh::SetRectangle(float, float, float, float, float, 
     EI_ORIGINAL(0x005E70E0)
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
-__declspec(naked) void CUiContainer::AddChild(CUiWindow*) EI_ORIGINAL(0x00600D30)
 __declspec(naked) CUiScrollbar* CUiScrollbar::Construct(CInterface3D*, RECT, float, int, float) EI_ORIGINAL(0x0065AEA0)
 __declspec(naked) void CSaveLoadWindow::FillEntries() EI_ORIGINAL(0x00655D40)
 __declspec(naked) void CUiRegion::SetTipString(const char*, int, int) EI_ORIGINAL(0x005FC6B0)
