@@ -380,3 +380,22 @@ Rewritten, hooked, with verify wrappers:
 
 Skipped: 005BF8F0 (the spiral table's constructor) and 005BF5F0 (called only from it) run from
 the static initializer 005BF8E0, before the hooks are installed.
+
+
+## Third batch (worker 7)
+
+- 005B7EF0 CAIMap::StampWaterPatch (ai_water_patch.cpp): the water depths around a point as a
+  pseudo unit (key ((y + 0x800) << 16) + x) of the small-unit layer; a shared reference-counted
+  16x16 shape (static 007C2F64). Verify: ours only.
+- 005B0600 CRegionMap::DominantRegion: the region most of the reachable 3x3 blocks belong to. The
+  original counts in a temporary CList (plex nodes); ours counts in a local array of at most nine
+  entries, so its heap traffic differs, not its result. Verify: differential on the whole EAX.
+- 005AF5F0 CRegionMap::JoinBlockSearches, 005AF1C0 BlockSearchPathTo, 005AFAE0
+  MeasureBlockEdges (snapshot/restore differential), 005B0C00 Attach, 005AF3D0 the region map's
+  constructor, all in ai_region_reach.cpp. BlockSearchPathTo and CAIMap::BuildCellsTo (005B9A20,
+  ai_join.cpp) give each path cell a second dword the original takes from a stack slot it never
+  writes: ours writes 0; their differentials compare x and y only.
+- 005AEA80 StepAlarm (ai_alarm.cpp): the alarm state {level, pending, active, timer}; the AI log
+  lines ("Unit <id> acknowledges with ...") and remarks are kept. Verify: ours only.
+
+Library: 005AD680 (STLport vector<pair<string, int>>::_M_insert_overflow).
