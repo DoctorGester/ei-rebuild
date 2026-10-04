@@ -9,6 +9,8 @@
 
 #include <cstring>
 
+int __fastcall BaseManagerRemoveObject(CBaseManager* self, void*, CEngineObject* object);
+
 namespace {
 
 // STLport instantiations of the manager's containers (library): hashtable constructors, the
@@ -58,7 +60,6 @@ __declspec(naked) void __fastcall Table50Erase(void* /*table*/, void*, void* /*n
 // 00455970: CEngineObject::SetOwner (returns the previous owner); 00404040: removes an object
 // from the manager (not rewritten yet).
 __declspec(naked) void* __fastcall SetObjectOwner(CEngineObject* /*object*/, void*, void* /*owner*/) EI_ORIGINAL(0x00455970)
-__declspec(naked) void __fastcall BaseManagerRemove(CBaseManager* /*manager*/, void*, CEngineObject* /*object*/) EI_ORIGINAL(0x00404040)
 // CreateObject's containers: +0x80 type -> spare count (operator[]), +0x68 type -> CPtrList* of
 // spare objects (find), the objects table (MFC-style Lookup / SetAt, find, operator[]), the
 // pointer list (AddTail, NewNode, RemoveHead), +0x50 id -> list position (operator[]).
@@ -73,6 +74,18 @@ __declspec(naked) void* __fastcall PtrListAddTail(void* /*list*/, void*, void* /
 __declspec(naked) void** __fastcall PtrListNewNode(void* /*list*/, void*, void* /*prev*/, void* /*next*/) EI_ORIGINAL(0x004069A0)
 __declspec(naked) void** __fastcall PositionAt(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)
 __declspec(naked) int __cdecl GameRand() EI_ORIGINAL(0x006E77F7)
+// RemoveObject's: another find of the objects table, remove-by-key of the objects / +0x50 tables
+// (returning the value), CPtrList::RemoveAt, find / operator[] of +0x68, operator[] / pair / insert
+// of +0x80.
+__declspec(naked) void* __fastcall ObjectsFindIt2(void* /*table*/, void*, void** /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405B20)
+__declspec(naked) CEngineObject* __fastcall ObjectsRemoveKey(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x00404F20)
+__declspec(naked) void* __fastcall PositionRemoveKey(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x00405350)
+__declspec(naked) void __fastcall PtrListRemoveAt(void* /*list*/, void*, void* /*position*/) EI_ORIGINAL(0x004050C0)
+__declspec(naked) void* __fastcall SpareListFind2(void* /*table*/, void*, void** /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405D70)
+__declspec(naked) void** __fastcall SpareListAt(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x004075C0)
+__declspec(naked) int* __fastcall SpareCountAt2(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x00407680)
+__declspec(naked) int* __fastcall MakeTypePair(int* /*pair*/, void*, const int* /*key*/, const int* /*value*/) EI_ORIGINAL(0x00407DE0)
+__declspec(naked) int* __fastcall SpareCountInsert(void* /*table*/, void*, const int* /*pair*/) EI_ORIGINAL(0x004085E0)
 // 00404410: frees the manager's other records; not rewritten yet.
 __declspec(naked) void __fastcall BaseManagerFreeRecords(CBaseManager* /*manager*/) EI_ORIGINAL(0x00404410)
 // 00455930: the engine object's base destructor body.
@@ -376,7 +389,7 @@ void __fastcall BaseManagerReleaseObject(CBaseManager* self, void*, CEngineObjec
     }
     object->Destroy();
     SetObjectOwner(object, nullptr, nullptr);
-    BaseManagerRemove(self, nullptr, object);
+    BaseManagerRemoveObject(self, nullptr, object);
 }
 EI_REPLACE(0x00403AE0, BaseManagerReleaseObject);
 
@@ -462,3 +475,72 @@ CEngineObject* __fastcall BaseManagerCreateObject(CBaseManager* self, void*, int
     return object;
 }
 EI_REPLACE(0x00403730, BaseManagerCreateObject);
+
+// A node {next, prev, data} for `data` at the tail of an MFC CPtrList (AddTail, inlined).
+static void LinkTail(void* list, void* data) {
+    void** node = PtrListNewNode(list, nullptr, reinterpret_cast<void*>(At(list, 8)), nullptr);
+    node[2] = data;
+    if (void** tail = reinterpret_cast<void**>(At(list, 8))) tail[0] = node;
+    else At(list, 4) = reinterpret_cast<std::uint32_t>(node);
+    At(list, 8) = reinterpret_cast<std::uint32_t>(node);
+}
+
+// 00404040: RemoveObject(object). An object registered under its id leaves the objects table, the
+// +0x50 table and the pointer list; then it becomes a spare of its type (a CPtrList per type at
+// +0x68, created on first use; the type's spare count at +0x80 goes up) with id -1. Returns 0.
+int __fastcall BaseManagerRemoveObject(CBaseManager* self, void*, CEngineObject* object) {
+    std::uint8_t* base = reinterpret_cast<std::uint8_t*>(self);
+    int id = object->id_;
+    int type = object->type_;
+    int key = id;
+    void* found[2];
+    ObjectsFindIt2(&self->objects_, nullptr, found, &key);
+    if (found[0] && *reinterpret_cast<CEngineObject**>(static_cast<std::uint8_t*>(found[0]) + 8) == object) {
+        key = id;
+        CEngineObject* value = nullptr;
+        if (ObjectsLookup(&self->objects_, nullptr, &key, &value)) {
+            ObjectsRemoveKey(&self->objects_, nullptr, &key);
+            if (void* position = PositionRemoveKey(base + 0x50, nullptr, &key)) PtrListRemoveAt(base + 0x34, nullptr, position);
+        }
+    }
+    int typeKey = type;
+    void* spare[2];
+    SpareListFind2(base + 0x68, nullptr, spare, &typeKey);
+    if (spare[0]) {
+        void* list = *reinterpret_cast<void**>(static_cast<std::uint8_t*>(spare[0]) + 8);
+        LinkTail(list, object);
+        object->id_ = -1;
+        int count = *SpareCountAt(base + 0x80, nullptr, &type) + 1;
+        if (type > static_cast<int>(At(self, 0x94))) At(self, 0x94) = static_cast<std::uint32_t>(type);
+        int countKey = type;
+        *SpareCountAt2(base + 0x80, nullptr, &countKey) = count;
+        return 0;
+    }
+    // First spare of this type: a new CPtrList (block size 10).
+    auto* list = static_cast<std::uint8_t*>(gamecrt::operator_new(0x1C));
+    if (list) {
+        At(list, 0xC) = 0;
+        At(list, 0x10) = 0;
+        At(list, 8) = 0;
+        At(list, 4) = 0;
+        At(list, 0x14) = 0;
+        SetVtable(list, kPtrListVtable);
+        At(list, 0x18) = 10;
+    }
+    if (type > static_cast<int>(At(self, 0x7C))) At(self, 0x7C) = static_cast<std::uint32_t>(type);
+    int listKey = type;
+    *SpareListAt(base + 0x68, nullptr, &listKey) = list;
+    LinkTail(list, object);
+    object->id_ = -1;
+    if (type > static_cast<int>(At(self, 0x94))) At(self, 0x94) = static_cast<std::uint32_t>(type);
+    int countKey = type;
+    int count = *SpareCountAt2(base + 0x80, nullptr, &countKey) + 1;
+    if (type > static_cast<int>(At(self, 0x94))) At(self, 0x94) = static_cast<std::uint32_t>(type);
+    int pairKey = type;
+    int zero = 0;
+    int pair[2];
+    MakeTypePair(pair, nullptr, &pairKey, &zero);
+    SpareCountInsert(base + 0x80, nullptr, pair)[1] = count;
+    return 0;
+}
+EI_REPLACE(0x00404040, BaseManagerRemoveObject);

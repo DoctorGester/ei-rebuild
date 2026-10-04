@@ -15,6 +15,7 @@ CBaseManager* __fastcall BaseManagerDeletingDestructor(CBaseManager* self, void*
 CEngineObject* __fastcall EngineObjectDeletingDestructor(CEngineObject* self, void*, unsigned flags);
 int __fastcall BaseManagerInit(CBaseManager* self, void*, void* owner);
 CEngineObject* __fastcall BaseManagerCreateObject(CBaseManager* self, void*, int type, int id);
+int __fastcall BaseManagerRemoveObject(CBaseManager* self, void*, CEngineObject* object);
 void __fastcall BaseManagerReleaseObject(CBaseManager* self, void*, CEngineObject* object);
 
 namespace {
@@ -109,8 +110,16 @@ CEngineObject* __fastcall CreateObjectVerify(CBaseManager* self, void*, int type
     return object;
 }
 
+// 00404040: ours only; the object ends as a spare with id -1.
+int __fastcall RemoveObjectVerify(CBaseManager* self, void*, CEngineObject* object) {
+    int result = BaseManagerRemoveObject(self, nullptr, object);
+    ei::verify::Check("BaseManagerRemoveObject", true, result == 0 && object->id_ == -1, "");
+    return result;
+}
+
 } // namespace
 
+EI_VERIFY(0x00404040, RemoveObjectVerify, 0, s_unused);
 EI_VERIFY(0x00403730, CreateObjectVerify, 0, s_unused);
 EI_VERIFY(0x00403020, CreateVerify, 0, s_unused);
 EI_VERIFY(0x004031B0, InitVerify, 0, s_unused);
