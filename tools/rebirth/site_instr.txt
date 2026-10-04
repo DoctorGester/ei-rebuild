@@ -1,0 +1,219 @@
+HookWinMain	006EC301	5	data	e83aa1d6ff
+WideScreen #0	005FC9E0	5	005FC9E0+0	push esi; (+1)mov esi, ecx; (+3)mov eax, dword ptr [esi + 4]
+WideScreen #1	005E9E77	5	005E99D0+4A7	fld dword ptr [esp + 0x34]; (+4)fmul dword ptr [0x74015c]
+WideScreen #2	005E7C8D	5	005E7680+60D	fld dword ptr [esp + 0x34]; (+4)fmul dword ptr [0x74015c]
+WideScreen #3	005E75D1	5	005E70E0+4F1	fmul dword ptr [0x740164]
+WideScreen #4	005E835E	5	005E7D60+5FE	fmul dword ptr [0x740164]
+WideScreen #5	005FCA70	5	005FCA70+0	sub esp, 0xc; (+3)push ebx; (+4)mov ebx, ecx
+WideScreen #6	005E6FA0	5	005E6FA0+0	sub esp, 0xc; (+3)fld dword ptr [esp + 0x10]
+WideScreen #7	005F7CA0	5	005F7CA0+0	push esi; (+1)mov esi, dword ptr [esp + 8]
+WideScreen #8	005F7D20	5	005F7D20+0	push esi; (+1)mov esi, dword ptr [esp + 8]
+WideScreen #9	005F7D60	5	data	568b742408
+WideScreen #10	0065C51F	6	0065C2E0+23F	mov ecx, dword ptr [esi + 0x98]
+WideScreen #11	0065C544	6	0065C2E0+264	mov ecx, dword ptr [esi + 0x98]
+WideScreen #12	0061DB0E	6	0061D780+38E	mov ecx, dword ptr [esi + 0x98]
+WideScreen #13	0061DB3E	6	0061D780+3BE	mov ecx, dword ptr [esi + 0x98]
+WideScreen #14	006569F7	6	006567A0+257	mov ecx, dword ptr [esi + 0x98]
+WideScreen #15	00656A08	6	006567A0+268	mov ecx, dword ptr [esi + 0x98]
+WideScreen #16	005E3839	6	005E3700+139	mov ecx, dword ptr [esi + 0x98]
+WideScreen #17	005E386C	6	005E3700+16C	mov ecx, dword ptr [esi + 0x98]
+WideScreen #18	0065E77E	6	0065E580+1FE	mov ecx, dword ptr [esi + 0x98]
+WideScreen #19	0065E7C3	4	0065E580+243	(at 65E7C2)cmp eax, 0x320
+WideScreen #20	0065E7CA	4	0065E580+24A	(at 65E7C9)add eax, 0xfffffce0
+WideScreen #21	00641F20	5	00641F20+0	push ebp; (+1)mov ebp, esp; (+3)push -1
+WideScreen #22	0064291F	5	00641F20+9FF	ret 8
+WideScreen #23	00642930	5	00642930+0	push esi; (+1)mov esi, ecx; (+3)push 0x41900000
+WideScreen #24	00642B09	5	00642930+1D9	mov ecx, dword ptr [esi + 0x12c]
+WideScreen #25	00641F51	4	00641F20+31	(at 641F4B)mov dword ptr [ebx + 0xd8], 0x267
+WideScreen #26	00641F61	4	00641F20+41	(at 641F5B)mov dword ptr [ebx + 0xe0], 0x320
+WideScreen #27	00642AFC	4	00642930+1CC	(at 642AFB)add eax, 0x2bc
+WideScreen #28	00642D23	4	00642B40+1E3	(at 642D22)push 0x44324000
+WideScreen #29	00642D7F	4	00642B40+23F	(at 642D7E)push 0x44548000
+WideScreen #30	006452ED	4	00645210+DD	(at 6452EC)add eax, 0xfffffd44
+WideScreen #31	00645432	4	00645210+222	(at 645430)add edx, 0xfffffd44
+WideScreen #32	0064644C	6	006462A0+1AC	mov ecx, dword ptr [ebx + 0x98]
+WideScreen #33	0064648E	6	006462A0+1EE	mov ecx, dword ptr [ebx + 0x98]
+WideScreen #34	00646499	6	006462A0+1F9	mov ecx, dword ptr [ebx + 0x98]
+WideScreen #35	00645719	5	006456E0+39	mov dword ptr [esp + 0x4c], edx; (+4)mov dword ptr [esi + 0x170], ecx
+WideScreen #36	00645F76	5	006456E0+896	ret 8
+WideScreen #37	00645F80	5	00645F80+0	push ecx; (+1)push ebx; (+2)push esi; (+3)mov esi, ecx
+WideScreen #38	00646299	5	00645F80+319	ret 
+WideScreen #39	006462A0	5	006462A0+0	sub esp, 0x100
+WideScreen #40	00646B1D	5	006462A0+87D	mov eax, dword ptr [esp + 0x110]
+WideScreen #41	00646608	4	006462A0+368	(at 646607)mov ecx, 0x64
+WideScreen #42	006480EB	4	00647FB0+13B	(at 6480EA)push 0xc2480000
+WideScreen #43	00648147	4	00647FB0+197	(at 648146)push 0x42ae0000
+WideScreen #44	00646251	4	00645F80+2D1	(at 646250)mov eax, 0x14
+WideScreen #45	0063C880	4	0063C800+80	(at 63C87A)mov dword ptr [esi + 0xd8], 0x208
+WideScreen #46	0063C894	4	0063C800+94	(at 63C88E)mov dword ptr [esi + 0xe0], 0x2d0
+WideScreen #47	0063C800	5	0063C800+0	push -1; (+2)push 0x72df2c
+WideScreen #48	0063CA2F	5	0063C800+22F	mov eax, esi; (+2)pop edi; (+3)pop esi; (+4)pop ebp
+WideScreen #49	007428AC	4	data	00c02d44
+WideScreen #50	0063CC13	4	0063CAE0+133	(at 63CC12)push 0x442a0000
+WideScreen #51	0063CC07	4	0063CAE0+127	(at 63CC06)push 0x44340000
+WideScreen #52	0063F378	5	0063F300+78	mov dword ptr [esi + 0xd8], ebx
+WideScreen #53	0063F452	5	0063F300+152	mov eax, esi; (+2)pop edi; (+3)pop esi; (+4)pop ebp
+WideScreen #54	0063F38E	4	0063F300+8E	(at 63F388)mov dword ptr [esi + 0xe0], 0x28
+WideScreen #55	0063F633	4	0063F500+133	(at 63F632)push 0x41a00000
+WideScreen #56	0063E306	4	0063E2A0+66	(at 63E300)mov dword ptr [esi + 0xd8], 0x2f8
+WideScreen #57	0063E31A	4	0063E2A0+7A	(at 63E314)mov dword ptr [esi + 0xe0], 0x320
+WideScreen #58	0063E4B0	5	0063E4B0+0	sub esp, 0x20; (+3)push ebx; (+4)push esi
+WideScreen #59	0063E6F7	5	0063E4B0+247	pop edi; (+1)pop esi; (+2)pop ebx; (+3)add esp, 0x20
+WideScreen #60	0063BB2B	4	0063BAB0+7B	(at 63BB25)mov dword ptr [esi + 0xe0], 0xf0
+WideScreen #61	0063BAFC	4	0063BAB0+4C	(at 63BAFB)mov edi, 0x50
+WideScreen #62	005FC9F4	8	005FC9E0+14	(at 5FC9F3)add esp, 4; (+2)mov dword ptr [esi + 4], 0
+WideScreen #63	0063BF80	4	0063BCC0+2C0	(at 63BF7E)fadd dword ptr [0x741f1c]
+WideScreen #64	0063BF71	4	0063BCC0+2B1	(at 63BF6F)fadd dword ptr [0x740094]
+WideScreen #65	0063C050	5	0063C050+0	push ebx; (+1)push esi; (+2)mov esi, dword ptr [esp + 0xc]
+WideScreen #66	0063C0E3	5	0063C050+93	pop edi; (+1)pop esi; (+2)pop ebx; (+3)ret 8
+WideScreen #67	0063C16C	5	0063C050+11C	pop edi; (+1)pop esi; (+2)pop ebx; (+3)ret 8
+WideScreen #68	00649190	5	00649190+0	sub esp, 0x1c; (+3)push ebx; (+4)push ebp
+WideScreen #69	00649541	5	00649190+3B1	mov dword ptr [eax + 0xcc], 0x3ef60000
+WideScreen #70	0064919F	4	00649190+F	(at 649199)mov dword ptr [ebx + 0xd8], 0
+WideScreen #71	006491B3	4	00649190+23	(at 6491AD)mov dword ptr [ebx + 0xe0], 0x50
+WideScreen #72	00649910	5	00649910+0	mov eax, dword ptr [esp + 4]; (+4)sub esp, 0x34
+WideScreen #73	00649A85	5	00649910+175	ret 4
+WideScreen #74	00648520	5	00648520+0	sub esp, 8; (+3)push ebx; (+4)push ebp
+WideScreen #75	006488D7	5	00648520+3B7	ret 4
+WideScreen #76	00648531	4	00648520+11	(at 64852B)mov dword ptr [esi + 0xd8], 0x2d0
+WideScreen #77	00648545	4	00648520+25	(at 64853F)mov dword ptr [esi + 0xe0], 0x320
+WideScreen #78	00742B08	4	data	00004844
+WideScreen #79	005FD237	9	data	909090909090909090
+WideScreen #80	0063023C	4	00630010+22C	(at 63023B)call 0x5fd240
+WideScreen #81	0062FB20	4	0062F950+1D0	(at 62FB1F)call 0x5fd240
+WideScreen #82	005F546A	1	005F5320+14A	(at 5F5469)push 1
+WideScreen #83	005F546E	4	005F5320+14E	(at 5F546D)push 0x258
+WideScreen #84	005F5473	4	005F5320+153	(at 5F5472)push 0x320
+WideScreen #85	005F5568	1	005F5320+248	(at 5F5567)push 1
+WideScreen #86	005F556C	4	005F5320+24C	(at 5F556B)push 0x258
+WideScreen #87	005F5571	4	005F5320+251	(at 5F5570)push 0x320
+WideScreen #88	005F83CF	80	005F8340+8F	lea eax, [ebx + ebx*4]; (+3)mov esi, dword ptr [esp + 0x30]; (+7)mov dword ptr [esp + 0x28], 0xffffffff; (+15)lea eax, [eax + eax*4]; (+18)shl eax, 5; (+21)cdq ; (+22)idiv dword ptr [edi]; (+24)mov ecx, eax; (+26)lea eax, [ebp + ebp*2]; (+30)lea eax, [eax + eax*4]; (+33)lea eax, [eax + eax*4]; (+36)shl eax, 3; (+39)cdq ; (+40)idiv dword ptr [edi + 4]; (+43)mov dword ptr [esi], ecx; (+45)lea ecx, [esp + 0x34]; (+49)mov dword ptr [esi + 4], eax; (+52)call 0x700970; (+57)mov ecx, dword ptr [esp + 0x20]; (+61)mov eax, esi; (+63)pop edi; (+64)pop esi; (+65)pop ebp; (+66)pop ebx; (+67)mov dword ptr fs:[0], ecx; (+74)add esp, 0x1c; (+77)ret 0xc
+WideScreen #89	005F4A4F	6	005F4990+BF	fmul dword ptr [0x73d09c]
+WideScreen #90	005F4F81	4	data	90909090
+WideScreen #91	004F135A	19	004F1330+2A	mov dword ptr [eax], ecx; (+2)mov dword ptr [eax + 0x14], 0xbf800000; (+9)mov esp, ebp; (+11)pop ebp; (+12)ret 4
+WideScreen #92	005FDE94	3	005FDE20+74	mov ecx, dword ptr [edi + 4]
+WideScreen #93	005F7D9E	194	data	9090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946048b46088d04808d0480c1e00599f7398946088b460c8d04408d04808d0480c1e00399f7790489460c5ec20400909090909090909090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946045ec2040090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946045ec2040090
+WideScreen #94	005EB249	5	005EB210+39	call 0x5f7e00
+WideScreen #95	0063008C	5	00630010+7C	call 0x5f7e00
+WideScreen #96	0060C870	5	0060C870+0	push ebp; (+1)mov ebp, esp; (+3)push -1
+WideScreen #97	00613EA0	7	00613EA0+0	push -1; (+2)push 0x72bcbc
+WideScreen #98	00615D30	5	00615D30+0	push ebx; (+1)push ebp; (+2)push esi; (+3)mov esi, ecx
+WideScreen #99	00659994	7	00659420+574	push 0; (+2)call 0x5ff3c0
+ObjectsDrawRadius #1	0056B0EA	4	0056AFE0+10A	(at 56B0E8)fadd dword ptr [0x73bab0]
+ObjectsDrawRadius #2	0056B13C	4	0056AFE0+15C	(at 56B13A)fadd dword ptr [0x73bab0]
+ObjectsDrawRadius #3	0056B17A	4	0056AFE0+19A	(at 56B178)fsub dword ptr [0x73bab0]
+ObjectsDrawRadius #4	0056B1E1	4	0056AFE0+201	(at 56B1DF)fsub dword ptr [0x73bab0]
+LandscapeDrawRadius #1	0056A02D	4	00569E40+1ED	(at 56A02C)push 0x42c80000
+LandscapeDrawRadius #2	0056A0B9	4	00569E40+279	(at 56A0B8)push 0x42c80000
+AllowScriptArgsInLoops #0	004D1614	7	004D1330+2E4	mov dword ptr [esp + 0xdc], eax
+AllowScriptsInMainMenu #0	0057C69F	5	0057C460+23F	mov edi, 4
+FixLeversActivate #0	00522AB6	9	00522A80+36	cmp eax, edx; (+2)pop esi; (+3)sbb eax, eax; (+5)inc eax; (+6)ret 4
+FixSpellEffectsOverflow #0	0058D82E	10	0058D670+1BE	lea edx, [esp + 0x14]; (+4)lea ecx, [ebp + 0x104]
+FixSpellEffectsOverflow #1	0050F1E0	5	0050F1E0+0	push ebx; (+1)push ebp; (+2)mov ebp, ecx; (+4)push esi
+FixProgressNames #0	00595130	10	00595080+B0	mov dword ptr [0x791ee0], 0x790a70
+AddNewConsoleCommands #0	006360DF	5	00636020+BF	call 0x600ef0
+AddNewConsoleCommands #1	005DD565	5	005DC620+F45	sete cl; (+3)cmp al, 0x40
+ImproveConsole #0	005E44DD	6	005E44A0+3D	lea edi, [esi + 0x24]; (+3)lea ebp, [esi + 0xc]
+ImproveConsole #1	005E46CF	5	005E44A0+22F	mov al, byte ptr [esi + 0x78]; (+3)test al, al
+NewStringEvents #0	005F80EF	5	005F8070+7F	add esp, 8; (+3)test eax, eax
+FixSpellSelfCasting #0	0068B770	6	0068B770+0	mov eax, dword ptr [ecx + 0x18]; (+3)shr eax, 0x10
+FixSpellSelfCasting #1	00639447	3	00638EF0+557	mov cl, byte ptr [eax + 0x7f]
+FixMoveObject #0	005C11D0	6	005C11D0+0	push ebp; (+1)mov ebp, esp; (+3)sub esp, 0x20
+FixAddMapObject #0	00592F68	5	005927C0+7A8	mov esi, dword ptr [esi + 8]; (+3)add edx, ecx
+FixPlaingBattleMusicFromAntimagic #0	0054B5F6	2	0054B580+76	cmp eax, 0x1a
+FixRepairPrice #0	0060FADC	6	0060FAB0+2C	fld dword ptr [esi + 0x20]; (+3)fdiv dword ptr [esi + 0x24]
+FixRemoveMapObject #0	00593615	8	005935C0+55	mov dword ptr [esp + 0x4c], 0
+FixCreateItem #0	006ACBBD	6	006AC970+24D	mov edx, dword ptr [esp + 0x40]; (+4)mov eax, dword ptr [edx]
+FixCreateItem #1	006ACCD0	5	006AC970+360	mov ecx, dword ptr [esp + 0x60]; (+4)push ecx
+DisableExitOnCrashReport #0	004800A7	5	00480080+27	call 0x4560d0
+DisableExitOnCrashReport #1	004800C9	9	00480080+49	jl 0x4800d2; (+2)push -1; (+4)call 0x6e8da7
+DisableExitOnCrashReport #2	00564330	5	005641F0+140	call 0x665a10
+ExtendedServerName #0	0061BB51	4	0061B2C0+891	(at 61BB50)mov edi, 0x28a
+ExtendedServerName #1	0061BC0E	1	0061B2C0+94E	(at 61BC0D)push 3
+ExtendedServerName #2	0061BC09	1	0061B2C0+949	(at 61BC08)push 0xa
+ExtendedServerName #3	0061BC0B	1	0061B2C0+94B	(at 61BC0A)push 1
+ExtendedServerName #4	0061DB23	4	0061D780+3A3	(at 61DB1F)mov dword ptr [esp + 0x38], 0x10e
+ExtendedServerName #5	0061B5CE	4	0061B2C0+30E	(at 61B5CD)push 0x43b90000
+ExtendedServerName #6	0061DBEF	4	0061D780+46F	(at 61DBEE)push 0x436f0000
+ExtendedServerName #7	0061DD40	4	0061D780+5C0	(at 61DD3C)mov dword ptr [esp + 0x50], 0xdc
+ExtendedServerName #8	0061D9FC	4	0061D780+27C	(at 61D9F8)mov dword ptr [esp + 0x58], 0x109
+ExtendedServerName #9	0061DC9E	5	0061D780+51E	call 0x5fde20
+ExtendedServerName #10	0061DC7F	5	0061D780+4FF	call 0x5fde20
+ExtendedServerName #11	0061E009	5	0061D780+889	call 0x5fde20
+Set new Nival Registry path	004568EA	4	00456440+4AA	(at 4568E9)push 0x7848a8
+AutoExec #1	0057ABE1	5	0057ABA0+41	call 0x5dc620
+AutoExec #2	0057BD30	5	0057BD10+20	call 0x5dc620
+AutoExec #3	0057C9A3	5	0057C700+2A3	call 0x5dc620
+MQClient #1	0041ED36	1	0041ECC0+76	(at 41ED35)jne 0x41ed46
+MQClient #2	0041ED40	6	0041ECC0+80	je 0x41eefb
+MPSpeedControl #1 keyboard	0063A6D4	6	0063A560+174	jne 0x63b4c4
+MPSpeedControl #2 keyboard	0063A73A	6	0063A560+1DA	jne 0x63b4c4
+MPSpeedControl #3 mouse	00648DFE	6	00648D70+8E	jne 0x648ec3
+MPSpeedControl #4 mouse	00648E65	2	00648D70+F5	jne 0x648ec3
+PlayerNumbers #0	0066C1C2	5	0066C180+42	call 0x665a60
+AddNewScriptCommands #0	004B4066	115	004B4030+36	push ebp; (+1)mov ebp, dword ptr [esp + 0xc]; (+5)push esi; (+6)mov esi, dword ptr [eax + 8]; (+9)push edi; (+10)push ebp; (+11)lea eax, [esi + 0x54]; (+14)mov ecx, esi; (+16)push eax; (+17)call 0x4b3f60; (+22)mov ecx, dword ptr [esp + 0x10]; (+26)lea edx, [esi + 0x68]; (+29)add ecx, 0xa0; (+35)push ecx; (+36)push edx; (+37)mov ecx, esi; (+39)call 0x4b3f60; (+44)mov eax, dword ptr [esi + 0x84]; (+50)xor edi, edi; (+52)test eax, eax; (+54)jle 0x4b40c6; (+56)push ebx; (+57)xor ebx, ebx; (+59)mov eax, dword ptr [esi + 0x80]; (+65)mov ecx, dword ptr [esp + 0x14]; (+69)add eax, ebx; (+71)push eax; (+72)push ebp; (+73)push ecx; (+74)mov ecx, esi; (+76)call 0x4b4030; (+81)mov eax, dword ptr [esi + 0x84]; (+87)inc edi; (+88)add ebx, 0xc; (+91)cmp edi, eax; (+93)jl 0x4b40a1; (+95)pop ebx; (+96)push 0x78b748; (+101)call 0x480080; (+106)add esp, 4; (+109)pop edi; (+110)pop esi; (+111)pop ebp; (+112)ret 0xc
+AddNewScriptCommands #1	004B425A	5	004B41E0+7A	mov eax, dword ptr [esi]; (+2)add eax, -0x45
+AddNewScriptCommands #2	004B5BAF	5	004B5B00+AF	mov eax, dword ptr [esi]; (+2)add eax, -0x59
+AddNewScriptCommands #3	004B572F	5	004B56C0+6F	mov eax, dword ptr [esi]; (+2)add eax, -0x4e
+AddNewScriptCommands #4	004B56AD	5	data	6848b77800
+AddNewScriptCommands #5	004B684E	9	004B6760+EE	mov eax, dword ptr [esi]; (+2)mov dword ptr [ebp - 0x2c], 1
+AddNewScriptCommands #6	004D02CC	7	004CFBC0+70C	mov eax, dword ptr [esp + 0x1c]; (+4)cmp eax, 0x6e
+AddNewScriptCommands #7	004D15D4	5	004D1330+2A4	cmp eax, 0x6b; (+3)je 0x4d15e2
+AddNewScriptCommands #8	004CF6F0	8	004CF600+F0	mov edx, dword ptr [esp + 0x1c]; (+4)mov dword ptr [esp + 0x10], ebx
+AddNewScriptCommands #9	004CF69B	4	004CF600+9B	(at 4CF69A)mov ebp, 0x78bca0
+AddNewScriptCommands #10	004CF6B4	4	004CF600+B4	(at 4CF6B3)mov eax, dword ptr [0x78bca0]
+AddNewScriptCommands #11	004D0218	4	004CFBC0+658	(at 4D0216)mov ecx, dword ptr [0x78bca0]
+AddNewScriptCommands #12	004D021D	4	004CFBC0+65D	(at 4D021C)mov eax, 0x78bca0
+AddNewScriptCommands #13	004D0805	4	004CFBC0+C45	(at 4D0803)mov ecx, dword ptr [0x78bca0]
+AddNewScriptCommands #14	004D080A	4	004CFBC0+C4A	(at 4D0809)mov eax, 0x78bca0
+AddNewScriptCommands #15	004D0B11	4	004D0B10+1	(at 4D0B10)mov eax, dword ptr [0x78bca0]
+AddNewScriptCommands #16	004D0B1C	4	004D0B10+C	(at 4D0B1B)mov esi, 0x78bca0
+AddNewScriptCommands #17	004D0BA2	4	004D0BA0+2	(at 4D0BA0)mov edx, dword ptr [0x78bca0]
+AddNewScriptCommands #18	004D0BA7	4	004D0BA0+7	(at 4D0BA6)mov eax, 0x78bca0
+AddNewScriptCommands #19	004D14CB	4	004D1330+19B	(at 4D14C9)mov edx, dword ptr [0x78bca0]
+AddNewScriptCommands #20	004D14D0	4	004D1330+1A0	(at 4D14CF)mov eax, 0x78bca0
+AddNewScriptCommands #21	004D4204	4	004D41C0+44	(at 4D4202)mov ecx, dword ptr [0x78bca0]
+AddNewScriptCommands #22	004D4212	4	004D41C0+52	(at 4D4211)mov eax, 0x78bca0
+AddNewScriptCommands #23	004D460C	4	004D41C0+44C	(at 4D460B)mov eax, 0x78bca0
+AddNewScriptCommands #24	004CF4A2	6	004CF470+32	lea ecx, [esi + 0x1ec]
+PersistentGlobalVars #0	00663083	6	00662FB0+D3	jne 0x663129
+PersistentGlobalVars #1	00663170	7	00662FB0+1C0	mov dword ptr [esp + 0x80], ebx
+PersistentGlobalVars #2	0057EB25	5	0057EB10+15	call 0x461540
+PersistentGlobalVars #3	00580177	5	005800C0+B7	call 0x461540
+Maps #1	005954CE	5	00595480+4E	lea ecx, [esp + 0x18]; (+4)push ecx
+Maps #2	0059553C	6	00595480+BC	lea eax, [esp + 0x20]; (+4)mov ecx, esi
+Maps #3	00595BE8	5	00595BA0+48	lea edx, [esp + 8]; (+4)push edx
+Maps #4	00567D8A	6	00567AB0+2DA	lea ecx, [ebp - 0x28]; (+3)push ecx; (+4)mov ecx, esi
+Maps #5	0057F5B2	5	0057F560+52	mov ecx, 0x7aff60
+Maps #6	00580A63	5	005809D0+93	mov ecx, 0x7aff60
+Maps #7	00580B14	5	005809D0+144	mov ecx, 0x7aff60
+Maps #8	00581316	5	005812F0+26	mov ecx, 0x7aff60
+Maps #9	005813EA	5	005813A0+4A	mov ecx, 0x7aff60
+Maps SetPath	0055E9A9	5	0055E990+19	push 0x7af460
+ResOpen	00671738	5	00671730+8	push 0x7312a0
+ResClose	006714A2	5	006714A0+2	push 0x731210
+ResInit1	0068E648	5	0068E640+8	push 0x732d36
+ResInit2	005AA544	5	005AA510+34	push 0x7af45c
+ResInit3(Figure)	004F6952	5	004F68C0+92	push 0x78ec24
+ResInit4(Texture)	006915EF	5	00691500+EF	mov esi, 1
+ResFileFindMask #1	004DEC93	5	004DEC40+53	call 0x674ac0
+ResFileFindMask #2	005B44D3	5	005B43C0+113	call 0x674ac0
+ResFileFindMask #3	006B716B	5	006B7110+5B	call 0x674ac0
+ResFileFindMask #4	006C6921	5	006C68B0+71	call 0x674ac0
+ResFileFind #1	00463474	5	00463390+E4	call 0x671b40
+ResFileFind #2	00468B16	5	00468A00+116	call 0x671b40
+ResFileFind #3	005202CD	5	00520220+AD	call 0x671b40
+ResFileFind #4	0053A2AD	5	0053A200+AD	call 0x671b40
+ResFileFind #5	005B451C	5	005B43C0+15C	call 0x671b40
+ResFileFind #6	005B4B14	5	005B43C0+754	call 0x671b40
+ResFileFind #7	005B507A	5	005B43C0+CBA	call 0x671b40
+ResFileFind #8	005C94B2	5	005C9310+1A2	call 0x671b40
+ResFileFind #9	006845FD	5	00684550+AD	call 0x671b40
+ResFileFind #A	006A684D	5	006A67A0+AD	call 0x671b40
+ResFileFind #B	006AE48A	5	006AE3A0+EA	call 0x671b40
+ResFileFind #C	006D0717	5	006D0630+E7	call 0x671b40
+ResFileFind #D	006D770E	5	006D7620+EE	call 0x671b40
+ResFileFind #E	007432F4	4	data	401b6700
+Movies	0073B720	4	data	36063800
+CameraPatch	0040ED42	5	0040ECD0+72	call 0x7011e8
+StreamPatch	006BB628	5	006BB3A0+288	call 0x700b9f
