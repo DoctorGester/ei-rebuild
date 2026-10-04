@@ -4,6 +4,7 @@
 #include "base_manager.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -58,6 +59,20 @@ __declspec(naked) void __fastcall Table50Erase(void* /*table*/, void*, void* /*n
 // from the manager (not rewritten yet).
 __declspec(naked) void* __fastcall SetObjectOwner(CEngineObject* /*object*/, void*, void* /*owner*/) EI_ORIGINAL(0x00455970)
 __declspec(naked) void __fastcall BaseManagerRemove(CBaseManager* /*manager*/, void*, CEngineObject* /*object*/) EI_ORIGINAL(0x00404040)
+// CreateObject's containers: +0x80 type -> spare count (operator[]), +0x68 type -> CPtrList* of
+// spare objects (find), the objects table (MFC-style Lookup / SetAt, find, operator[]), the
+// pointer list (AddTail, NewNode, RemoveHead), +0x50 id -> list position (operator[]).
+__declspec(naked) int* __fastcall SpareCountAt(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x00406AA0)
+__declspec(naked) void* __fastcall SpareListFind(void* /*table*/, void*, void** /*out*/, const int* /*key*/) EI_ORIGINAL(0x004057A0)
+__declspec(naked) void* __fastcall PtrListRemoveHead(void* /*list*/) EI_ORIGINAL(0x00404FE0)
+__declspec(naked) int __fastcall ObjectsLookup(void* /*table*/, void*, const int* /*key*/, CEngineObject** /*value*/) EI_ORIGINAL(0x00404F80)
+__declspec(naked) void __fastcall ObjectsSetAt(void* /*table*/, void*, const int* /*key*/, CEngineObject* const* /*value*/) EI_ORIGINAL(0x00404E80)
+__declspec(naked) void* __fastcall ObjectsFindIt(void* /*table*/, void*, void** /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405560)
+__declspec(naked) CEngineObject** __fastcall ObjectsAt(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x004055A0)
+__declspec(naked) void* __fastcall PtrListAddTail(void* /*list*/, void*, void* /*data*/) EI_ORIGINAL(0x00405040)
+__declspec(naked) void** __fastcall PtrListNewNode(void* /*list*/, void*, void* /*prev*/, void* /*next*/) EI_ORIGINAL(0x004069A0)
+__declspec(naked) void** __fastcall PositionAt(void* /*table*/, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)
+__declspec(naked) int __cdecl GameRand() EI_ORIGINAL(0x006E77F7)
 // 00404410: frees the manager's other records; not rewritten yet.
 __declspec(naked) void __fastcall BaseManagerFreeRecords(CBaseManager* /*manager*/) EI_ORIGINAL(0x00404410)
 // 00455930: the engine object's base destructor body.
@@ -364,3 +379,86 @@ void __fastcall BaseManagerReleaseObject(CBaseManager* self, void*, CEngineObjec
     BaseManagerRemove(self, nullptr, object);
 }
 EI_REPLACE(0x00403AE0, BaseManagerReleaseObject);
+
+// 00403730 (slot 23): CreateObject(type, id). A spare object of the type when there is one (slot
+// 14 makes a new one otherwise; null when that fails), registered under `id` or, for -1, under the
+// next id (maxId + 1 while inside [+0x98, +0x9C)) or a random free one in that range (100000 tries;
+// then the fatal "out of ids" message). New ids join the pointer list. The object gets the manager
+// as owner and is created (slot 2).
+CEngineObject* __fastcall BaseManagerCreateObject(CBaseManager* self, void*, int type, int id) {
+    std::uint8_t* base = reinterpret_cast<std::uint8_t*>(self);
+    int key = type;
+    CEngineObject* object = nullptr;
+    if (*SpareCountAt(base + 0x80, nullptr, &key) > 0) {
+        int typeKey = key;
+        void* found[2];
+        SpareListFind(base + 0x68, nullptr, found, &typeKey);
+        if (found[0]) {
+            void* spares = *reinterpret_cast<void**>(static_cast<std::uint8_t*>(found[0]) + 8);
+            if (At(spares, 0xC) != 0) object = static_cast<CEngineObject*>(PtrListRemoveHead(spares));
+        }
+    }
+    if (!object) {
+        object = ei::VCall<CEngineObject*>(self, 14, type);
+        if (!object) return nullptr;
+    }
+    object->flags_ = 0;
+    object->type_ = type;
+    if (id == -1) {
+        int limit = static_cast<int>(At(self, 0x9C));
+        int current = self->maxId_;
+        int low = static_cast<int>(At(self, 0x98));
+        int chosen;
+        if (current < limit && current >= low) {
+            chosen = current + 1;
+        } else {
+            int range = limit - low;
+            chosen = -1;
+            for (int tries = 0; tries < 100000; ++tries) {
+                int r = GameRand() << 15;
+                r += GameRand();
+                int candidate = r % range + low;
+                if (candidate == 0) continue;
+                void* hit[2];
+                ObjectsFindIt(&self->objects_, nullptr, hit, &candidate);
+                if (!hit[0]) {
+                    chosen = candidate;
+                    break;
+                }
+            }
+        }
+        if (chosen == -1) game::FatalError(reinterpret_cast<const char*>(0x00783C00));
+        CEngineObject* existing = nullptr;
+        if (!ObjectsLookup(&self->objects_, nullptr, &chosen, &existing)) {
+            existing = nullptr;
+            PtrListAddTail(base + 0x34, nullptr, object);
+            void* tail = reinterpret_cast<void*>(At(self, 0x3C));
+            *PositionAt(base + 0x50, nullptr, &chosen) = tail;
+        }
+        ObjectsSetAt(&self->objects_, nullptr, &chosen, &object);
+        object->id_ = chosen;
+        At(self, 0xA8) = static_cast<std::uint32_t>(chosen);
+    } else {
+        int wanted = id;
+        void* hit[2];
+        ObjectsFindIt(&self->objects_, nullptr, hit, &wanted);
+        if (!hit[0]) {
+            void** node = PtrListNewNode(base + 0x34, nullptr, reinterpret_cast<void*>(At(self, 0x3C)), nullptr);
+            node[2] = object;
+            if (void** tail = reinterpret_cast<void**>(At(self, 0x3C))) tail[0] = node;
+            else At(self, 0x38) = reinterpret_cast<std::uint32_t>(node);
+            At(self, 0x3C) = reinterpret_cast<std::uint32_t>(node);
+            void* position = reinterpret_cast<void*>(At(self, 0x3C));
+            *PositionAt(base + 0x50, nullptr, &id) = position;
+        }
+        if (id > self->maxId_) self->maxId_ = id;
+        int slotKey = id;
+        *ObjectsAt(&self->objects_, nullptr, &slotKey) = object;
+        object->id_ = id;
+        At(self, 0xA8) = static_cast<std::uint32_t>(id);
+    }
+    SetObjectOwner(object, nullptr, self);
+    object->Create();
+    return object;
+}
+EI_REPLACE(0x00403730, BaseManagerCreateObject);

@@ -14,6 +14,7 @@
 CBaseManager* __fastcall BaseManagerDeletingDestructor(CBaseManager* self, void*, unsigned flags);
 CEngineObject* __fastcall EngineObjectDeletingDestructor(CEngineObject* self, void*, unsigned flags);
 int __fastcall BaseManagerInit(CBaseManager* self, void*, void* owner);
+CEngineObject* __fastcall BaseManagerCreateObject(CBaseManager* self, void*, int type, int id);
 void __fastcall BaseManagerReleaseObject(CBaseManager* self, void*, CEngineObject* object);
 
 namespace {
@@ -98,8 +99,19 @@ void __fastcall ReleaseObjectVerify(CBaseManager* self, void*, CEngineObject* ob
     ei::verify::Check("BaseManagerReleaseObject", true, true, "");
 }
 
+// 00403730: ours only (it creates the object). The object must be registered under its id with
+// the manager as owner.
+CEngineObject* __fastcall CreateObjectVerify(CBaseManager* self, void*, int type, int id) {
+    CEngineObject* object = BaseManagerCreateObject(self, nullptr, type, id);
+    bool ok = !object || (object->owner_ == self && object->type_ == type && (id == -1 || object->id_ == id) &&
+                          self->FindObject(static_cast<unsigned>(object->id_)) == object);
+    ei::verify::Check("BaseManagerCreateObject", true, ok, "type %d id %d", type, id);
+    return object;
+}
+
 } // namespace
 
+EI_VERIFY(0x00403730, CreateObjectVerify, 0, s_unused);
 EI_VERIFY(0x00403020, CreateVerify, 0, s_unused);
 EI_VERIFY(0x004031B0, InitVerify, 0, s_unused);
 EI_VERIFY(0x00403AE0, ReleaseObjectVerify, 0, s_unused);
