@@ -205,3 +205,12 @@ static void* __fastcall MessageTextVerify(CInterface3D* self, void*, void* out, 
     return out;
 }
 EI_VERIFY(0x005F8C90, MessageTextVerify, 7, s_messageText);
+
+// 006005F0: ours only (it may reallocate). The item is stored and the array is long enough.
+static void __fastcall SetAtGrowVerify(UiPtrArray<CEngineObject>* self, void*, int index, CEngineObject* item) {
+    int before = self->size_;
+    self->SetAtGrow(index, item);
+    bool ok = self->data_[index] == item && self->size_ == (index >= before ? index + 1 : before);
+    ei::verify::Check("UiPtrArray::SetAtGrow", true, ok, "index %d size %d -> %d", index, before, self->size_);
+}
+EI_VERIFY(0x006005F0, SetAtGrowVerify, 0, s_unused);

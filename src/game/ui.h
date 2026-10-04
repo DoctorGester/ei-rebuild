@@ -138,6 +138,9 @@ struct UiPtrArray {
 
     // Inlined by the original at each Add call site: appends `item` (null included).
     void Append(T* item);
+    // 006005F0 (RET 8). Stores `item` at `index`, growing the array to index + 1 first when it is
+    // that short (SetSize, inlined).
+    void SetAtGrow(int index, T* item);
     // Inlined by the original: removes the slot at `index`, shifting the rest down.
     void RemoveSlot(int index);
     // Inlined by the original: frees the storage and empties the array.
