@@ -3076,3 +3076,7 @@ address,name,library,signature,notes
 00428A20,"stlp::vector<T>::_M_insert_overflow (counted CEngineObject pointers)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 00422F70,"stlp::list<T>::push_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 0041FF40,"stlp::vector<T>::operator[]",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00424A40,"stlp::list<T>::~list (elements of three 00661050 parties)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0041F7F0,"stlp::vector<T>::~vector (0x2C-byte elements with a GameBuffer at +0x10)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00421A50,"stlp::list<RefPtr>::~list",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0041C950,"stlp::list<pair<K,RefPtr>>::~list",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic

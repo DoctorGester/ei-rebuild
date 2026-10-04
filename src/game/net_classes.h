@@ -176,6 +176,8 @@ struct ClientSession {
 
     // 0041BC40. The constructor (the caller allocated 0x2700 bytes and cleared +4); returns this.
     ClientSession* Construct();
+    // 0041CA10 (net_client_life.cpp). The destructor body (0041C8B0 is the deleting destructor).
+    void Destruct();
 };
 
 // 0041C420: the 0x10-byte member at +0x25AC (a vector and a dword), all zero. Returns this.
