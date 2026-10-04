@@ -438,3 +438,10 @@ static void __fastcall CampScreenDestroyVerify(CItemScreen* self) {
                       "models %u textures %u", self->models_.count, self->textures_.count);
 }
 EI_VERIFY(0x005F6620, CampScreenDestroyVerify, 0, s_unused);
+static void __fastcall Screen9DestroyVerify(CItemScreen* self) {
+    Screen9Destroy(self);
+    ei::verify::Check("Screen9Destroy", true,
+                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data_,
+                      "models %u textures %u", self->models_.count, self->textures_.count);
+}
+EI_VERIFY(0x005F7010, Screen9DestroyVerify, 0, s_unused);

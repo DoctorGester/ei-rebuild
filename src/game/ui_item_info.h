@@ -88,6 +88,9 @@ class CItemScreen;
 // base (ui_item_screen.cpp).
 void __fastcall ItemScreenDestroy(CItemScreen* self);
 void __fastcall CampScreenDestroy(CItemScreen* self);
+// 005F7010 (__fastcall). Destructor body of screen 9 (vtable 00740D18): its vector of CStrings at
+// +0x1AC, then both caches as above (ui_item_screen.cpp).
+void __fastcall Screen9Destroy(CItemScreen* self);
 
 // The item screens' icon window (0x148 bytes, vtables 00740444 / 00740410; made by 005EDD80).
 class CItemIconWindow : public CUiWindow {

@@ -252,3 +252,58 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     DestroyContainerBase(self);
 }
 EI_REPLACE(0x005F6620, CampScreenDestroy);
+
+// --- 005F7010: screen 9's destructor body (vtable 00740D18) ---------------------------------------
+
+namespace {
+// The maps' header deallocation in this screen's instantiation (thiscall on the map; the node
+// goes back to the allocator's free list 0079B234).
+__declspec(naked) void __fastcall FreeTextureHeaderAt(ItemObjectCache*) EI_ORIGINAL(0x005FA090)
+__declspec(naked) void __fastcall FreeModelHeaderAt(ItemObjectCache*) EI_ORIGINAL(0x005FA060)
+__declspec(naked) void __fastcall CStringDestruct(void*) EI_ORIGINAL(0x00700970)
+
+// STLport's node allocator for small blocks (free lists at 0079B224 by 8-byte size class; larger
+// blocks go back to the heap), inlined by the original.
+void DeallocateNodes(void* block, std::uint32_t bytes) {
+    if (bytes > 0x80) {
+        gamecrt::operator_delete(block);
+        return;
+    }
+    void** lists = reinterpret_cast<void**>(0x0079B224);
+    std::uint32_t index = (bytes - 1) >> 3;
+    *static_cast<void**>(block) = lists[index];
+    lists[index] = block;
+}
+
+void ClearCacheWhole(ItemObjectCache* cache, EraseFn erase) {
+    if (cache->count == 0) return;
+    erase(cache, nullptr, Link(cache->header, 4));
+    SetLink(cache->header, 8, cache->header);
+    SetLink(cache->header, 4, nullptr);
+    SetLink(cache->header, 0xC, cache->header);
+    cache->count = 0;
+}
+} // namespace
+
+void __fastcall Screen9Destroy(CItemScreen* self) {
+    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
+    // The vector of CStrings at +0x1AC (begin, end, capacity).
+    std::uint8_t* begin;
+    std::uint8_t* end;
+    std::uint8_t* capacity;
+    std::memcpy(&begin, bytes + 0x1AC, 4);
+    std::memcpy(&end, bytes + 0x1B0, 4);
+    for (std::uint8_t* at = begin; at != end; at += 4) CStringDestruct(at);
+    std::memcpy(&begin, bytes + 0x1AC, 4);
+    std::memcpy(&capacity, bytes + 0x1B4, 4);
+    std::uint32_t entries = static_cast<std::uint32_t>(static_cast<int>(capacity - begin) >> 2);
+    if (begin) DeallocateNodes(begin, entries * 4);
+    ReleaseObjects(&self->textures_);
+    ClearCacheWhole(&self->textures_, EraseTextures);
+    FreeTextureHeaderAt(&self->textures_);
+    ReleaseObjects(&self->models_);
+    ClearCacheWhole(&self->models_, EraseModels);
+    FreeModelHeaderAt(&self->models_);
+    DestroyContainerBase(self);
+}
+EI_REPLACE(0x005F7010, Screen9Destroy);
