@@ -898,3 +898,16 @@ checksum (h ^= dword; h *= (h & 0xFC) | 3), above 0x71 the flag byte. PickZones 
 groups in game-heap pointer arrays instead of the original's STLport lists of copies (same
 order, same random draws). StartServer passes 00417E10 a dword whose upper bytes are garbage in
 the original; only the low byte is used.
+
+
+Finished from the list above (third round):
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00579E60 | LoadMission (__stdcall) | logged |
+| 0059F0F0 | CFigureMesh::CopyFrom | ours only: descriptors and bounds equal the source |
+| 0059F510 | CFigureMesh::SetPose (quaternion pose) | differential |
+| 005ACE80 | LoadMenuRects (menus.reg, 11 rects) | ours only: no all-zero rectangle |
+
+0059A4A0 is MFC CList<SharedObject>::Serialize, named in `config/library.csv`. The AI and figure
+draw functions of 0x5A0000-0x5C0000 done in the same round are in ai.md and models.md.

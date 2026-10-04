@@ -771,6 +771,11 @@ void __fastcall ClearSaveFolder(const char* path);
 // first name appended to `out` (an STLport vector of strings).
 void __stdcall PickZones(void* out, int id, const char* exclude);
 
+// 00579E60 (RET 4; world_game.cpp). Reads mission.sav from a file stream (magic 0x102) and
+// restores the world (LoadSave); old versions also carry the globals (< 0x52) and the input
+// state (< 0x47). 0 when the file does not read.
+int __stdcall LoadMission(void* file);
+
 // world_savefile.cpp. 00579B80 (ECX = file stream, EDX = magic; RET 8): writes the header
 // (004A5340), at version > 0x6B a checksum, then a flag byte and the LZ-compressed data (or, when
 // decompressing it does not give the data back, 0 and the raw data). 00579830 (ECX = memory

@@ -125,6 +125,13 @@ public:
     // elements, a 0, then centre, box, radius and +0x158 / +0x15C.
     void SaveToFile(void* file);
     void LoadFromFile(void* file);
+    // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
+    // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
+    void CopyFrom(const CFigureMesh* other);
+    // 0059F510 (slot 15, RET 8): sets the rotation (slot 14 with `q` = w, x, y, z), rotates the
+    // position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110) and rebuilds the rotation
+    // matrix at +0xE0 from the stored quaternion (+0x44).
+    void SetPose(const float* q, const float* offset);
 
     void* vtable_;                      // +0x000
     std::uint8_t unknown_004[4];
