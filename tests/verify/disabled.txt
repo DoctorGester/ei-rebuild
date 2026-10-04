@@ -1,4 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-00561E50  CWorldClient::Create: the game exits silently right after loading options (every scenario)
-00563290  CWorldClient::Destroy: disabled with Create (its teardown)

@@ -736,14 +736,16 @@ public:
     // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,
     // +0xB4 and +0xB8 (released), the session (+0x20C), the counted +0x1C8, 0055F8E0, then the
     // owned objects +0x1A0 .. +0x1D0 (counted ones dropped first) deleted and cleared.
-    void Destroy() override;
+    // (Not declared as the Destroy override: a virtual member's address is a vtable thunk, and
+    // hooking the slot's own code with it recurses.)
+    void Teardown();
     // 00561E50 (slot 2; also 00456440). Sets the client world up: the managers (0055EE40), the
     // texture path, the lights table (LightsGipat.ini, 00563930), the owned objects +0x1CC, +0x1D0,
     // the terrain (+0x180, its constructor inlined), +0x44, +0x18C, +0x188, +0x190, +0x19C, the
     // session (+0x20C), the counted +0x1C8, the text resources, +0x1A0, +0x1A4, +0x1A8, +0x6F4 and the
     // platforms, flag 0x200, the cursor (+0x7D0), a reference on every player, room for 400 screen
     // entries (+0xF4), and both sector grids at 4 x 4. Returns 1.
-    int Create() override;
+    int Setup();
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090

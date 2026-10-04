@@ -895,7 +895,7 @@ void DropAndDelete(void*& slot) {
 
 } // namespace
 
-void CWorldClient::Destroy() {
+void CWorldClient::Teardown() {
     CameraSetTarget(reinterpret_cast<void*>(0x0079B2A8), nullptr, nullptr);
     if (void* p = At<void*>(this, 0x1B4)) {
         Destroy1B4(p);
@@ -1057,7 +1057,7 @@ void GridToFour(SectorGrid& grid, void (__fastcall* resize)(void*, void*, int, i
 
 } // namespace
 
-int CWorldClient::Create() {
+int CWorldClient::Setup() {
     WorldCreateManagers(reinterpret_cast<std::uint8_t*>(this));
     void* path;
     CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FFE4));   // "textures\"
@@ -1248,10 +1248,10 @@ int CWorldClient::Create() {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00561E50, CWorldClient::Create);
+EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
-EI_REPLACE_METHOD(0x00563290, CWorldClient::Destroy);
+EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
 EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);

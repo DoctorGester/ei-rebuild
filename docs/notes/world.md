@@ -955,12 +955,18 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 | 00565790 / 005659D0 | CWorldClient::PickAt / PickAt2 (RET 4) | differential: the original first; the object, the sorted entries and the cursor compared |
 | 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
 | 0056DAF0 | CWorldClient::ObjectsInRange (RET 0xC; the camera's 0040E4C0) | differential: the original appends first, its entries are erased again, ours appends; entries and the cell range / cursor (+0x138..+0x14C) compared |
-| 00563290 | CWorldClient::Destroy (slot 3) | ours only: the owned pointers cleared, the lists and grid cells empty |
-| 00561E50 | CWorldClient::Create (slot 2) | ours only: returns 1, the owned objects made, both grids 4 x 4, room for 400 screen entries |
+| 00563290 | CWorldClient::Teardown (slot 3) | ours only: the owned pointers cleared, the lists and grid cells empty |
+| 00561E50 | CWorldClient::Setup (slot 2) | ours only: returns 1, the owned objects made, both grids 4 x 4, room for 400 screen entries |
 | 00560650 | PlatformSet::AddFace (RET 0x14) | differential: the original on the real set, ours on a scratch set (its own CPlex blocks, freed after); result and the face's fields compared (floats within 8 ULPs) |
 | 00560820 | PlatformSet::AddBox (RET 0x10; from AddObject) | differential the same way: the records added, in order, compared (id and radius exact) |
 
-Create follows the original step by step through the game's constructors. The terrain's
+Setup and Teardown were first declared as the `Create` / `Destroy` overrides. Taking a virtual
+member's address with EI_REPLACE_METHOD gives MSVC's vcall thunk, which jumps through the
+object's vtable slot. That slot is the hooked original, so the call recursed until the stack ran
+out, and the game exited silently at startup. They are now plain methods. The verify wrappers
+also call them directly; a virtual call would go back through the hook.
+
+Setup (Create) follows the original step by step through the game's constructors. The terrain's
 constructor (0xAFC bytes, vtable 0073F6A8) is inlined in the original and is reproduced call by
 call. Every player gets one reference that is never dropped, as in the original. The screen-entry
 vector gets room for 400 entries with game operator new when it is empty, else through 00573520.

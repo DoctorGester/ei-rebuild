@@ -489,7 +489,7 @@ EI_VERIFY(0x00560820, AddBoxVerify, 6, s_addBox);
 // 00561E50: ours only. Returns 1 with the owned objects made, both grids at 4 x 4 and room for 400
 // screen entries.
 static int __fastcall CreateVerify(CWorldClient* client, void*) {
-    int result = client->Create();
+    int result = client->Setup();
     bool ok = result == 1;
     for (int offset : {0x1CC, 0x1D0, 0x180, 0x44, 0x18C, 0x188, 0x190, 0x19C, 0x1A0, 0x1A4, 0x1A8})
         ok = ok && At<void*>(client, offset) != nullptr;
@@ -497,19 +497,19 @@ static int __fastcall CreateVerify(CWorldClient* client, void*) {
         ok = ok && At<SectorGrid>(client, grid).width_ == 4 && At<SectorGrid>(client, grid).height_ == 4;
     const Hits& entries = At<Hits>(client, 0xF4);
     ok = ok && (entries.eos - entries.start) / 0x18 >= 400;
-    ei::verify::Check("CWorldClient::Create", true, ok, "result %d", result);
+    ei::verify::Check("CWorldClient::Setup", true, ok, "result %d", result);
     return result;
 }
 EI_VERIFY(0x00561E50, CreateVerify, 0, s_unused);
 
 // 00563290: ours only. Afterwards the owned pointers are cleared, the lists and grid cells empty.
 static void __fastcall DestroyVerify(CWorldClient* client, void*) {
-    client->Destroy();
+    client->Teardown();
     bool ok = GridEmpty(At<SectorGrid>(client, 0x120));
     for (int offset : {0x1B8, 0x1BC, 0x1C0, 0x7BC, 0xB4, 0xB8}) ok = ok && ListEmpty(client, offset);
     for (int offset : {0x1B4, 0x1AC, 0x1B0, 0x20C, 0x1A0, 0x1A4, 0x19C, 0x180, 0x190, 0x188, 0x18C, 0x1A8, 0x1CC, 0x1D0})
         ok = ok && At<void*>(client, offset) == nullptr;
-    ei::verify::Check("CWorldClient::Destroy", true, ok, "");
+    ei::verify::Check("CWorldClient::Teardown", true, ok, "");
 }
 EI_VERIFY(0x00563290, DestroyVerify, 0, s_unused);
 
