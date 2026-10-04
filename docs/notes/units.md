@@ -670,6 +670,34 @@ and the stat slot get their bool / flag arguments as 0/1 and the byte (the origi
 registers whose upper bytes are left over). The stat fractions and hit point ratio are plain C++
 (rule 7).
 
+# Client path placement
+
+Code: `src/game/unit_client_path.cpp` (new); verify wrapper: `tests/verify/verify_unit_client_path.cpp`.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00535850 | ClientPlaceOnPath (RET 8; CUnitClientSpecific, from slot 41 with (+0x34, 0) and from 00535B30 with the tick's time and rate) | differential: the original first; orientation and snap byte put back; ours; position, orientation and +0x178 within 8 ULPs, snap byte exact |
+
+Steps:
+1. Skips units with flag 0x4000000.
+2. Samples the controller's motion order (+0x38) with the unit's motion (+0x27C, 005C7430) at
+   `time`. The position goes in as half-cells (x2) and comes back out (x0.5), set on the ground
+   (00530280) plus +0x320, and the world's slot 41 moves the unit there.
+3. A set +0x76 byte is cleared and snaps the facing once (00401F00 with flag 0). With unit flag
+   0x10000000 the facing is set at once (00401F00 with 1). Otherwise, for `rate` > 0, the heading
+   blends: current = atan2(-axis.y, -axis.x) of the orientation's facing axis (0040F560), target =
+   atan2(direction). The smaller is raised by the full turn at 007AF330 until they are within
+   3.1416. heading = (1 - w) target + w current with w = exp(-0.3 rate), then cos / sin go to
+   00402220.
+4. The animation speed factor +0x178 depends on the figure's current animation (+0x98, its +0x40):
+   - none: 1;
+   - an animation of length 0: 005327D0;
+   - otherwise: |direction| x speed x 15 / (2 x frames x length), where frames comes from the
+     animation entry's start / end / span and the unit's +0xCC.
+
+atan2, exp, cos and sin are the C++ library's (rule 7). The original uses FPATAN / F2XM1 / FSCALE
+/ FCOS / FSIN at the game's 24-bit precision.
+
 # Levers
 
 Code: `src/game/unit_lever.cpp`, `src/game/lever.h` (new); verify wrappers:
