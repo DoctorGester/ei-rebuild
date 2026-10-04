@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <initializer_list>
 #include <new>
 
 namespace mapspec {
@@ -501,5 +502,123 @@ void __fastcall UnitSpecOnChunk(UnitSpec* self) {
     }
 }
 EI_REPLACE(0x0046D080, UnitSpecOnChunk);
+
+// ---- Behaviour records in a stream (saved games) -----------------------------------------------
+// The stream's slot 1 reads (data, size), slot 2 writes; its +8 is the file version.
+
+namespace {
+constexpr int kStreamRead = 1;
+constexpr int kStreamWrite = 2;
+void StreamRead(void* stream, void* data, unsigned size) { ei::VCall<unsigned>(stream, kStreamRead, data, size); }
+void StreamWrite(void* stream, const void* data, unsigned size) { ei::VCall<unsigned>(stream, kStreamWrite, data, size); }
+__declspec(naked) void __stdcall ConstructWaypoints(Waypoint*, int) EI_ORIGINAL(0x0045E130)
+__declspec(naked) void __fastcall WaypointsReadAt(Array<Waypoint>*, void* /*stream*/) EI_ORIGINAL(0x0045DE30)
+__declspec(naked) void __fastcall WaypointsWriteAt(const Array<Waypoint>*, void* /*stream*/) EI_ORIGINAL(0x0045DFB0)
+} // namespace
+
+// 0045DE30 (ECX array, EDX stream): the count, the array sized to it (MFC SetSize inlined, new
+// waypoints cleared by 0045E130), then the raw waypoints.
+void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
+    int n;
+    StreamRead(stream, &n, 4);
+    if (n == 0) {
+        if (a->data) {
+            gamecrt::operator_delete(a->data);
+            a->data = nullptr;
+        }
+        a->max = 0;
+        a->size = 0;
+    } else if (!a->data) {
+        a->data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Waypoint)));
+        ConstructWaypoints(a->data, n);
+        a->max = n;
+        a->size = n;
+    } else if (n <= a->max) {
+        if (n > a->size) ConstructWaypoints(a->data + a->size, n - a->size);
+        a->size = n;
+    } else {
+        int grow = a->grow;
+        if (grow == 0) {
+            grow = a->size / 8;
+            grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
+        }
+        int capacity = a->max + grow;
+        if (n >= capacity) capacity = n;
+        auto* data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Waypoint)));
+        std::memcpy(data, a->data, static_cast<std::size_t>(a->size) * sizeof(Waypoint));
+        ConstructWaypoints(data + a->size, n - a->size);
+        gamecrt::operator_delete(a->data);
+        a->size = n;
+        a->data = data;
+        a->max = capacity;
+    }
+    for (int i = 0; i < a->size; ++i) StreamRead(stream, &a->data[i], sizeof(Waypoint));
+}
+EI_REPLACE(0x0045DE30, WaypointsRead);
+
+// 0045DFB0 (ECX array, EDX stream): the count, then the raw waypoints.
+void __fastcall WaypointsWrite(const Array<Waypoint>* a, void* stream) {
+    int n = a->size;
+    StreamWrite(stream, &n, 4);
+    for (int i = 0; i < a->size; ++i) StreamWrite(stream, &a->data[i], sizeof(Waypoint));
+}
+EI_REPLACE(0x0045DFB0, WaypointsWrite);
+
+// 0045D610: the record from a stream. Files before version 0x53 have no alarm level: it follows
+// from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). +0x30 is not stored.
+void __fastcall BehaviourRead(Behaviour* self, void*, void* stream) {
+    StreamRead(stream, &self->type, 4);
+    int n;
+    StreamRead(stream, &n, 4);
+    PatrolsSetSize(&self->patrols, nullptr, n, -1);
+    for (int i = 0; i < self->patrols.size; ++i) {
+        Patrol* p = &self->patrols.data[i];
+        StreamRead(stream, &p->position, 12);
+        WaypointsReadAt(&p->waypoints, stream);
+    }
+    StreamRead(stream, &self->guard, 12);
+    StreamRead(stream, &self->unknown_24, 4);
+    StreamRead(stream, &self->flags, 4);
+    StreamRead(stream, &self->unknown_2C, 4);
+    StreamRead(stream, &self->unknown_34, 4);
+    StreamRead(stream, &self->unknown_38, 4);
+    StreamRead(stream, &self->unknown_3C, 4);
+    StreamRead(stream, &self->unknown_40, 4);
+    StreamRead(stream, &self->unknown_44, 4);
+    if (*reinterpret_cast<int*>(static_cast<std::uint8_t*>(stream) + 8) >= 0x53) {
+        StreamRead(stream, &self->alarm, 4);
+        return;
+    }
+    std::uint32_t flags = self->flags;
+    self->alarm = 2;
+    if (flags & 1) self->alarm = 0;
+    else if (flags & 2) self->alarm = 1;
+    else if (flags & 4) self->alarm = 2;
+    else if (flags & 0x10) self->alarm = 3;
+}
+EI_REPLACE(0x0045D610, BehaviourRead);
+
+// 0045D760: the record to a stream (the same fields).
+void __fastcall BehaviourStreamWrite(Behaviour* self, void*, void* stream) {
+    StreamWrite(stream, &self->type, 4);
+    int n = self->patrols.size;
+    StreamWrite(stream, &n, 4);
+    for (int i = 0; i < self->patrols.size; ++i) {
+        Patrol* p = &self->patrols.data[i];
+        StreamWrite(stream, &p->position, 12);
+        WaypointsWriteAt(&p->waypoints, stream);
+    }
+    StreamWrite(stream, &self->guard, 12);
+    std::uint32_t value;
+    for (std::size_t offset : {0x24u, 0x28u, 0x2Cu, 0x34u, 0x38u, 0x3Cu}) {
+        std::memcpy(&value, reinterpret_cast<std::uint8_t*>(self) + offset, 4);
+        StreamWrite(stream, &value, 4);
+    }
+    StreamWrite(stream, &self->unknown_40, 4);
+    value = self->unknown_44;
+    StreamWrite(stream, &value, 4);
+    StreamWrite(stream, &self->alarm, 4);
+}
+EI_REPLACE(0x0045D760, BehaviourStreamWrite);
 
 } // namespace mapspec
