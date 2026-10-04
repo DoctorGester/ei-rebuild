@@ -237,7 +237,7 @@ has the full per-call inventory.
   new game; a later run where it had settled showed none).
 - `samecapture <a> <b> [tolerance] [fraction]`: fails the run when two captures differ.
 - `render <spec>`, `oldterrain on|off`: section 1 and 8.
-- `tools/compare_frames.py A B [--mask M1 M2] [--diff OUT]`: per-pixel tolerance (default 8),
+- `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--diff OUT]`: per-pixel tolerance (default 8),
   differing fraction (default limit 0.1 %), worst regions; standard library only.
 
 Limits: what moves by itself between frames without the game's clocks (other threads) is not held;
