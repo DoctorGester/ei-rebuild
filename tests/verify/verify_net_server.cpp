@@ -63,3 +63,20 @@ void __fastcall SetMapVerify(net::ServerSession* self, void*, const net::StringR
 void* s_unusedSetMap;
 } // namespace
 EI_VERIFY(0x004186F0, SetMapVerify, 0, s_unusedSetMap);
+
+// QueueMapList (net_server_map.cpp): ours only (it loads quests and queues messages); it only
+// adds to the queued messages.
+namespace {
+void __fastcall QueueMapListVerify(net::ServerSession* self) {
+    std::uint32_t before = 0;
+    void** sentinel = static_cast<void**>(self->list_25AC);
+    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) ++before;
+    self->QueueMapList();
+    std::uint32_t after = 0;
+    sentinel = static_cast<void**>(self->list_25AC);
+    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) ++after;
+    ei::verify::Check("ServerSession::QueueMapList", true, after >= before, "");
+}
+void* s_unusedQueueMapList;
+} // namespace
+EI_VERIFY(0x00418530, QueueMapListVerify, 0, s_unusedQueueMapList);

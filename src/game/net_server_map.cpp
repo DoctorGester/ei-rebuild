@@ -46,6 +46,17 @@ __declspec(naked) void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /
 __declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 __declspec(naked) void** __fastcall MapRegistryFind(void* /*registry*/, void*, const StringRep* /*name*/) EI_ORIGINAL(0x004297A0)
+// The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): unloading the quest texts,
+// picking the zones that follow, loading a zone's quests.
+__declspec(naked) void __fastcall FlowUnloadQuestTexts(void* /*flow*/) EI_ORIGINAL(0x00580F10)
+__declspec(naked) void __fastcall FlowPickZones(void* /*flow*/, void*, void* /*out vector<string>*/, std::uint32_t /*kind*/, const char* /*current*/) EI_ORIGINAL(0x0057F850)
+__declspec(naked) void __fastcall FlowLoadZoneQuests(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x005809D0)
+// vector<string> (library): the allocator proxy constructor and the block free; the string
+// buffer free the string destructor inlines.
+__declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, StringRep* const* /*value*/) EI_ORIGINAL(0x004263D0)
+__declspec(naked) void __fastcall NamesFree(StringRep* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426860)
+__declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
+constexpr std::uintptr_t kQueuedMapVtable = 0x0073BCD0;   // 0x18 bytes
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
@@ -180,9 +191,51 @@ void ServerSession::SetMap(const StringRep* name) {
 
     AwardHost(entry, false);
 }
+// 00418530: unloads the flow's quest texts, then queues a map message ("zone" + suffix, vtable
+// 0073BCD0) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
+// current map (+0x25D4), loading each zone's quests.
+void ServerSession::QueueMapList() {
+    void* flow = reinterpret_cast<void*>(kWorld);
+    FlowUnloadQuestTexts(flow);
+    struct {
+        StringRep* start;
+        StringRep* finish;
+        StringRep* eos;
+    } zones;
+    zones.start = nullptr;
+    zones.finish = nullptr;
+    StringRep* none = nullptr;
+    std::uint8_t allocator = 0;
+    NamesProxyConstruct(&zones.eos, nullptr, &allocator, &none);
+    FlowPickZones(flow, nullptr, &zones, unknown_25E4, string_25D4.start);
+    for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
+        StringRep key;
+        StringPlusText(&key, zone, Text(kMapSuffix));
+        auto* message = static_cast<std::uint8_t*>(gamecrt::operator_new(0x18));
+        std::uint32_t zero = 0;
+        std::memcpy(message + 4, &zero, 4);
+        if (message) {
+            MessageConstructBase(reinterpret_cast<Message*>(message));
+            MessageStringConstruct(message + 0xC);
+            std::uintptr_t vtable = kQueuedMapVtable;
+            std::memcpy(message, &vtable, 4);
+        }
+        MessageStringAssign(message + 0xC, nullptr, &key);
+        void* ref;
+        List25ACPushBack(&list_25AC, nullptr, RefFromRaw(&ref, message));
+        RefClear(&ref);
+        StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
+        FlowLoadZoneQuests(flow, nullptr, zone->start);
+    }
+    for (StringRep* zone = zones.start; zone != zones.finish; ++zone) StringDestroyA(zone);
+    NamesFree(zones.start, static_cast<std::size_t>(zones.eos - zones.start));
+}
+
 namespace {
+void __fastcall QueueMapListHook(ServerSession* self) { self->QueueMapList(); }
 void __fastcall SetMapHook(ServerSession* self, void*, const StringRep* name) { self->SetMap(name); }
 } // namespace
 EI_REPLACE(0x004186F0, SetMapHook);
+EI_REPLACE(0x00418530, QueueMapListHook);
 
 } // namespace net

@@ -241,6 +241,8 @@ struct ServerSession {
     void Destruct();
     // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
     void SetMap(const StringRep* name);
+    // 00418530. Queues a map message for each zone that follows the current map.
+    void QueueMapList();
     // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
     // shares of the zone's two values and the host's items, then the map state is dropped.
     void CompleteZone(const StringRep* zone);

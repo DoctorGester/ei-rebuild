@@ -56,8 +56,6 @@ constexpr std::uintptr_t kMapSuffix = 0x00783D70;      // "_1"
 constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
 constexpr std::uintptr_t kEmptyText = 0x0079B298;      // ""
 
-// The server's own steps (not rewritten yet).
-__declspec(naked) void __fastcall ServerResetMapList(ServerSession* /*self*/) EI_ORIGINAL(0x00418530)
 
 constexpr std::uintptr_t kAwardVtable = 0x0073BD48;
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
@@ -209,7 +207,8 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
 // when a map message is held, then, when the map registry knows "zone_3", queues for every client
 // its share of the entry's two values (+0xC as kind 0, +0x10 as kind 1, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
-// empties the queued messages (+0x25AC), +0x25B0 and +0x2598, and resets the map list (00418530).
+// empties the queued messages (+0x25AC), +0x25B0 and +0x2598, and queues the following zones
+// (00418530).
 void ServerSession::CompleteZone(const StringRep* zone) {
     auto* holder = reinterpret_cast<RefPtr*>(&unknown_25A8);
     if (Live(holder->ptr)) {
@@ -276,13 +275,14 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     static_cast<void**>(list_25AC)[1] = list_25AC;
     List25B0Clear(&list_25B0);
     List2598Clear(&list_2598);
-    ServerResetMapList(this);
+    QueueMapList();
 }
 
 // 00418CC0: the zone leaving command ("<zone>_2"). When a map message is held: announces the
 // map's title (text 6) and, when the map registry knows "<map>_1", queues the host's items with
 // the final award. Then drops the map message, empties the queued messages (+0x25AC), +0x25B0
-// and +0x2598, resets the map list (00418530) and clears the world's map (0057ED60 with null).
+// and +0x2598, queues the following zones (00418530) and clears the world's map (0057ED60 with
+// null).
 void ServerSession::LeaveZone() {
     auto* holder = reinterpret_cast<RefPtr*>(&unknown_25A8);
     if (Live(holder->ptr)) {
@@ -330,7 +330,7 @@ void ServerSession::LeaveZone() {
     static_cast<void**>(list_25B0)[0] = list_25B0;
     static_cast<void**>(list_25B0)[1] = list_25B0;
     List2598Clear(&list_2598);
-    ServerResetMapList(this);
+    QueueMapList();
     WorldPrepareMap(reinterpret_cast<void*>(kWorld), nullptr, nullptr);
 }
 
