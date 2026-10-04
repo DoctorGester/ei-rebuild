@@ -216,6 +216,8 @@ sg_view SurfaceView(const void* holder);
 // The texture of `holder` gets the pixels of `source` (another surface holder) now; it is not read
 // from its own surface again until that changes (render::TextureChanged).
 void ReadTextureFrom(const void* holder, const void* source);
+// The texture of `holder` decoded from .mmp file data (render::TextureFromMmp).
+bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
 // A window surface (CUiSurface's holder) as one level, read now when its contents changed; texels
 // equal to `key` (the surface's pixel format) transparent when `keyed`.
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height);
