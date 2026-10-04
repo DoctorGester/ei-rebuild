@@ -2818,3 +2818,4 @@ address,name,library,signature,notes
 005876C0,stlp::list<T>::clear,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
 00583C60,"stlp::pair<CString,CString>::~pair",STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp) (and from 005876C0 / 005878B0)
 0059A4A0,"CList<SharedObject>::Serialize",MFC,,"instantiation (vtable 0073FA18): CArchive count, then each 0x20-byte element (its CArray of references through ConstructElements / SerializeElements)"
+005AD680,"stlp::vector<pair<string,int>>::_M_insert_overflow",STLport,,"instantiation over 16-byte {string, int} elements (the node allocator for blocks up to 0x80 bytes, copy via 005AE820 / 005AE8E0)"

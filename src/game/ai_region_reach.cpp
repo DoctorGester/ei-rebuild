@@ -12,6 +12,7 @@
 #include "ai_map.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -99,6 +100,9 @@ BlockCostList::Node* AppendBlockCost(BlockCostList* list) {
     ConstructBlockCosts(&node->x, 1);
     return node;
 }
+// 005C1EA0 (RET 8): the local search's set-up for a map (map, 0).
+__declspec(naked) void __fastcall SearchAttach(void*, void*, CAIMap*, int) EI_ORIGINAL(0x005C1EA0)
+
 // The region map's per size class grids are allocated for their size by 005B1550 (edge words,
 // +0x11C), 005B15F0 (representative cells, +0x19C) and 005B1680 (regions, +0x21C). 005AED60
 // (RET 8) rebuilds a derived table from the map (+0 and +0x4C, the second with 1).
@@ -645,7 +649,30 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
     }
 }
 
+void CRegionMap::Attach(CAIMap* map) {
+    SearchAttach(reinterpret_cast<std::uint8_t*>(this) + 0x98, nullptr, map, 0);
+    int width = map->width / 8, height = map->height / 8;
+    for (int c = 0; c < 8; ++c) {
+        Fit(At<BlockGrid>(this, 0x11C + c * 16), width, height, &AllocateEdges);
+        Fit(At<BlockGrid>(this, 0x19C + c * 16), width, height, &AllocateCells);
+        // The region grid's allocation is inlined here: u16 per block, rows of `width`.
+        BlockGrid& regions = At<BlockGrid>(this, 0x21C + c * 16);
+        if (regions.width == width && regions.height == height) continue;
+        GameDelete(regions.data);
+        GameDelete(regions.rows);
+        regions.width = width;
+        regions.height = height;
+        auto* data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(height * width * 2)));
+        regions.data = data;
+        regions.rows = static_cast<void**>(gamecrt::operator_new(static_cast<std::size_t>(regions.height * 4)));
+        for (int y = 0; y < regions.height; ++y) regions.rows[y] = data + regions.width * y * 2;
+    }
+    RebuildTable(this, nullptr, this, 0);
+    RebuildTable(reinterpret_cast<std::uint8_t*>(this) + 0x4C, nullptr, this, 1);
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005B0C00, CRegionMap::Attach);
 EI_REPLACE_METHOD(0x005AFAE0, CRegionMap::MeasureBlockEdges);
 EI_REPLACE(0x005AF1C0, BlockSearchPathTo);
 EI_REPLACE_METHOD(0x005AF5F0, CRegionMap::JoinBlockSearches);

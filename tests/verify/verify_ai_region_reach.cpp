@@ -282,6 +282,22 @@ static void __fastcall MeasureVerify(CRegionMap* self, void*, void* unused, int 
 EI_VERIFY(0x005AFAE0, MeasureVerify, 8, s_originalMeasure);
 
 namespace {
+void* s_unusedAttach;
+}
+
+// 005B0C00: allocates, so ours only. Afterwards every grid has the map's block size.
+static void __fastcall AttachVerify(CRegionMap* self, void*, CAIMap* map) {
+    self->Attach(map);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    int width = map->width / 8, height = map->height / 8;
+    bool ok = true;
+    for (int grid = 0x11C; grid < 0x29C && ok; grid += 16)
+        ok = *reinterpret_cast<int*>(base + grid + 8) == width && *reinterpret_cast<int*>(base + grid + 12) == height;
+    ei::verify::Check("CRegionMap::Attach", true, ok, "%dx%d blocks", width, height);
+}
+EI_VERIFY(0x005B0C00, AttachVerify, 0, s_unusedAttach);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

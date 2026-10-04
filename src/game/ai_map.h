@@ -130,6 +130,9 @@ struct CRegionMap {
     // the local search cost to each neighbour's representative cell / 128. The first argument is
     // not read.
     void MeasureBlockEdges(void* unused, int bx, int by);
+    // 005B0C00 (RET 4; ai_region_reach.cpp). Sizes the block grids for the map (8x8-cell blocks),
+    // sets up the local search and rebuilds the derived tables.
+    void Attach(class CAIMap* map);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
