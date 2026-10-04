@@ -1,0 +1,124 @@
+# The camp's item description panel (docs/notes/ui.md, "Item descriptions"): the party gets a
+# plain weapon, a weapon carrying a spell, a potion and a rune, then the camp opens (screen 5) and
+# the mouse rests on the statistics rows, the hero's body slots and the item strip, so that the
+# description panel (600..800 x 100..400) describes what is under it every frame (005F1590 for
+# statistics, 005EE6C0 -> 005EE760 and its sub-descriptions for items). Ctrl over the spell weapon
+# redraws it with its spell (key handlers 005EE640 / 005EE680). Page 1 (level up) adds the trade
+# panel's skills, school and perks. Coordinates are the 800x600 layout of the vanilla install.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @GiveItem(0,"Axe.steel")
+wait 500
+console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
+wait 500
+console @GiveItem(0,"potion 1")
+wait 500
+console @GiveItem(0,"rune.e2")
+wait 500
+
+screen 5
+wait 3000
+
+# Page 0, the statistics panel (rows at x 20..180): body parts' armour (kind 4), the weapon's attack
+# and defence (kind 5, with a weapon), the damage text (7), encumbrance (0, index 7), magic skills (6).
+move 100 187
+wait 300
+move 100 202
+wait 300
+move 100 217
+wait 300
+move 100 232
+wait 300
+move 100 277
+wait 300
+move 100 292
+wait 300
+move 100 307
+wait 300
+move 100 337
+wait 300
+move 100 367
+wait 300
+
+# The body slots (what the hero wears).
+move 250 150
+wait 300
+move 250 300
+wait 300
+move 250 450
+wait 300
+move 550 150
+wait 300
+move 550 250
+wait 300
+move 550 350
+wait 300
+move 550 450
+wait 300
+
+# The item strip (y 500..600): its last tab (region 7, 770..800 x 565..595) shows every item; then
+# the slots, 100 pixels apart from x 50. Ctrl over each of the first slots.
+click 785 580
+wait 500
+move 100 550
+wait 300
+key ctrl
+wait 300
+move 200 550
+wait 300
+key ctrl
+wait 300
+move 300 550
+wait 300
+key ctrl
+wait 300
+move 400 550
+wait 300
+move 500 550
+wait 300
+move 600 550
+wait 300
+move 700 550
+wait 300
+
+# Page 1 (level up): the trade panel's skills (x 215..385, kind 1), the school row (kind 2), the
+# perk lists (kind 3) and the statistics panel's attributes (kind 0).
+clickregion 5
+wait 1000
+move 340 142
+wait 300
+move 340 157
+wait 300
+move 340 172
+wait 300
+move 340 202
+wait 300
+move 340 232
+wait 300
+move 450 142
+wait 300
+move 450 172
+wait 300
+move 340 337
+wait 300
+move 100 172
+wait 300
+move 100 187
+wait 300
+move 100 202
+wait 300
+move 100 232
+wait 300
+
+# Esc leaves the camp; the game goes on.
+key esc
+wait 3000
+waitfor 15 IsGreater(HP(GetLeader()),0)
+report
+quit
