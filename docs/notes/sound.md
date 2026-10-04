@@ -186,3 +186,21 @@ camera, the volume setters at load), `@PlayMusic("victory")` (PlayJingle, Reques
 StopStream), `@CreateFX(...,"nature\thunder\1.wav")` (a positional sound: Play3D,
 UpdatePositional, SetSoundPosition / StopSound), then a fight with two goblins (the combat music
 request, and the brain's "Delayed sound" / "hear delayed sound" lines: `expect elayed sound`).
+
+## Play2D (006B8250)
+
+| Address | Name | Verify |
+|---|---|---|
+| 006B8250 | `CSoundManager::Play2D` (RET 0x20) | ours only: -1, or a flat voice holding the arguments under the returned handle, or a deferred record for a looping sound |
+
+Arguments: name, priority, volume 0..100, pan -100..100, loop, height fade, speech, and a value
+handed to the wave loader (006B89F0). Sound off: -1. No voice (006B7D10 returns -1): a one-shot
+sound gives -1; a looping one becomes a deferred record (0x48 bytes, the name in an STLport string
+reserved for 8 bytes and assigned, flat, volume 0, a new handle from +0x268) in the map at +0x884
+and its handle is returned. With a voice: AIL_init_sample, the fields, the level as the volume
+setters compute it except that a NaN camera height keeps the full level (the original's first
+compare is "below 70 or unordered"); a silent one-shot sound returns -1 there, leaving the voice
+initialised but not playing. Then the wave (failure: -1), loop count 0 for a looping sound,
+volume and pan, the end-of-sample callback, the reverb when on, a random start position below
++0x8BC ms + 1 from the game's random generator when set, AIL_start_sample; returns the voice's
+handle (set by the wave loader). Tick's emitters now call this rewrite directly.

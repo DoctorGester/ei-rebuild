@@ -3,7 +3,7 @@
 // the structure they leave: the 21 fixed sprites and 9 fixed regions, one marker sprite and one
 // region per exit that leads somewhere (the exit list matching the zone's exits), then one sprite
 // and one region per place of the selected quest. The quest places come from the original's
-// RefreshQuests (0064DC60), which may also return before adding them (no such quest), leaving the
+// ShowQuest (0064DC60, through RefreshQuests), which may also return before adding them (no such quest), leaving the
 // list from earlier: so the extra count is either 0 or the list's length.
 #include "verify.h"
 
@@ -87,3 +87,16 @@ static void __fastcall ObjectivesShowZoneVerify(CObjectivesWindow* self, void*, 
                       expected, self->exitCount_, QuestPlaces(self), self->regions_.size_, self->sceneObjects_.size_);
 }
 EI_VERIFY(0x0064CC10, ObjectivesShowZoneVerify, 0, s_unused);
+
+// 0064DC60 fills the quest log and adds sprites: ours only. Afterwards the shown quest is the
+// selected one, and the extra sprites and regions are the quest places' (or none, when it returned
+// before them).
+static void __fastcall ObjectivesShowQuestVerify(CObjectivesWindow* self, void*) {
+    int shownBefore = self->shownQuest_;
+    self->CObjectivesWindow::ShowQuest();
+    bool ok = self->shownQuest_ == self->selectedQuest_ && ExtrasMatch(self, self->exitCount_);
+    ei::verify::Check("CObjectivesWindow::ShowQuest", true, ok, "quest %d->%d (selected %d) places %d regions %d sprites %d",
+                      shownBefore, self->shownQuest_, self->selectedQuest_, QuestPlaces(self), self->regions_.size_,
+                      self->sceneObjects_.size_);
+}
+EI_VERIFY(0x0064DC60, ObjectivesShowQuestVerify, 0, s_unused);
