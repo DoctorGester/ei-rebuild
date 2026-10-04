@@ -8,6 +8,10 @@
 #include "lib/gameapi.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
+
+#include <cstring>
+#include <string>
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -177,6 +181,175 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     At(this)->CallDrawLines();
 }
 EI_REPLACE_METHOD(0x005E4180, ConsoleWindow::OnKeyDown);
+
+// ---- Character input (005E44A0) ------------------------------------------------------------------
+
+namespace {
+
+constexpr int kHistoryDepth = 30;
+constexpr std::uintptr_t kNewLine = 0x00784340;   // "\n"
+
+struct TextAt : mfc::CString {
+    mfc::CString Mid(int first) const;    // 006FD9B4
+    int FindOneOf(const char* set) const; // 00700ECC
+};
+__declspec(naked) mfc::CString TextAt::Mid(int) const EI_ORIGINAL(0x006FD9B4)
+__declspec(naked) int TextAt::FindOneOf(const char*) const EI_ORIGINAL(0x00700ECC)
+mfc::CString MidOf(const mfc::CString& s, int first) { return static_cast<const TextAt&>(s).Mid(first); }
+// 006FD56E (stdcall). operator+(const CString&, TCHAR).
+__declspec(naked) mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
+// 006FED03. CStringArray::InsertAt(index, const CString&, count).
+__declspec(naked) void __fastcall InsertString(CStringArray*, void*, int, const mfc::CString*, int) EI_ORIGINAL(0x006FED03)
+// 005E4090 / 005DC620, through their addresses.
+__declspec(naked) void __fastcall AddTextAt(ConsoleWindow*, void*, const char*) EI_ORIGINAL(0x005E4090)
+__declspec(naked) void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
+
+// Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
+// page, as addon's helpers do.
+void CopyToClipboard(const char* first, const char* last) {
+    int count = static_cast<int>(last - first);
+    std::wstring wide;
+    int n = count > 0 ? MultiByteToWideChar(CP_ACP, 0, first, count, nullptr, 0) : 0;
+    if (n > 0) {
+        wide.resize(static_cast<std::size_t>(n));
+        MultiByteToWideChar(CP_ACP, 0, first, count, &wide[0], n);
+    }
+    HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, (wide.size() + 1) * 2);
+    if (!memory) return;
+    void* locked = GlobalLock(memory);
+    if (!locked) {
+        GlobalFree(memory);
+        return;
+    }
+    std::memcpy(locked, wide.c_str(), (wide.size() + 1) * 2);
+    GlobalUnlock(memory);
+    if (!OpenClipboard(nullptr)) {
+        GlobalFree(memory);
+        return;
+    }
+    EmptyClipboard();
+    SetClipboardData(CF_UNICODETEXT, memory);
+    CloseClipboard();
+}
+
+std::string ClipboardText() {
+    std::wstring wide;
+    if (OpenClipboard(nullptr)) {
+        if (HANDLE data = GetClipboardData(CF_UNICODETEXT)) {
+            if (const auto* text = static_cast<const wchar_t*>(GlobalLock(data))) {
+                wide = text;
+                GlobalUnlock(data);
+            }
+        }
+        CloseClipboard();
+    }
+    std::string narrow;
+    int count = static_cast<int>(wide.size());
+    int n = count > 0 ? WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, nullptr, 0, nullptr, nullptr) : 0;
+    if (n > 0) {
+        narrow.resize(static_cast<std::size_t>(n));
+        WideCharToMultiByte(CP_ACP, 0, wide.c_str(), count, &narrow[0], n, nullptr, nullptr);
+    }
+    return narrow;
+}
+
+} // namespace
+
+// 005E44A0: typed characters. Backspace deletes the selection or the character before the caret,
+// Enter enters the line (into the history, at most 30, echoed with "> ", then executed), Escape
+// clears the line, Tab does nothing; other characters replace the selection, except while Ctrl is
+// held. Rebirth's ImproveConsole skips the history for a line equal to the last one and adds
+// Ctrl+A / C / X / V (select all, copy, cut, paste: the first line of the clipboard).
+void ConsoleWindow::OnChar(int key, int, int) {
+    int low = caret_ < anchor_ ? caret_ : anchor_;
+    int high = anchor_ > caret_ ? anchor_ : caret_;
+    switch (key) {
+    case 8: {   // Backspace
+        if (anchor_ != caret_) {
+            int first = anchor_ < caret_ ? anchor_ : caret_;
+            int last = anchor_ > caret_ ? anchor_ : caret_;
+            mfc::CString rest = MidOf(input_, last);
+            input_ = Left(input_, first) + rest;
+            caret_ = first;
+            anchor_ = first;
+        } else {
+            if (caret_ == 0) return;
+            mfc::CString rest = MidOf(input_, caret_);
+            input_ = Left(input_, caret_ - 1) + rest;
+            --caret_;
+            anchor_ = caret_;
+        }
+        At(this)->CallDrawInput();
+        return;
+    }
+    case 9:
+        return;
+    case 13: {   // Enter
+        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && commands_.size_ != 0 &&
+                        std::strcmp(input_, commands_.data_[0]) == 0;
+        if (!repeated) {
+            InsertString(&commands_, nullptr, 0, &input_, 1);
+            if (commands_.size_ > kHistoryDepth) commands_.RemoveAt(commands_.size_ - 1, 1);
+        }
+        commandIndex_ = -1;
+        input_.Empty();
+        caret_ = 0;
+        anchor_ = 0;
+        At(this)->CallDrawInput();
+        AddTextAt(this, nullptr, (mfc::CString(GameText(kPromptText)) + commands_.data_[0]) + GameText(kNewLine));
+        ExecuteAt(commands_.data_[0]);
+        return;
+    }
+    case 27:   // Escape
+        input_.Empty();
+        caret_ = 0;
+        anchor_ = 0;
+        At(this)->CallDrawInput();
+        return;
+    default:
+        break;
+    }
+    if (ctrl_ && !shift_ && ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole)) {
+        char letter = static_cast<char>(static_cast<std::uint8_t>(key) + 0x60);
+        if (letter == 'a') {
+            anchor_ = 0;
+            caret_ = Length(input_);
+            At(this)->CallDrawInput();
+        } else if ((letter == 'c' || letter == 'x') && low != high) {
+            const char* text = input_;
+            CopyToClipboard(text + low, text + high);
+            if (letter == 'x') {
+                mfc::CString rest = MidOf(input_, high);
+                mfc::CString head = Left(input_, low);
+                input_ = head + rest;
+                caret_ = low;
+                anchor_ = low;
+                At(this)->CallDrawInput();
+            }
+        } else if (letter == 'v') {
+            mfc::CString clip(ClipboardText().c_str());
+            int cut = static_cast<const TextAt&>(clip).FindOneOf("\r\n");
+            if (cut >= 0) clip = Left(clip, cut);
+            mfc::CString rest = MidOf(input_, high);
+            mfc::CString head = Left(input_, low);
+            input_ = (head + clip) + rest;
+            int position = Length(clip) - (anchor_ != caret_ ? 1 : 0) + high;
+            caret_ = position;
+            anchor_ = position;
+            At(this)->CallDrawInput();
+        }
+    }
+    if (ctrl_) return;
+    mfc::CString rest = MidOf(input_, high);
+    mfc::CString head = Left(input_, low);
+    input_ = PlusChar(head, static_cast<char>(key)) + rest;
+    caret_ = low + 1;
+    anchor_ = low + 1;
+    At(this)->CallDrawInput();
+}
+EI_REPLACE_METHOD(0x005E44A0, ConsoleWindow::OnChar);
+EI_REBIRTH_IMPLEMENTS(0x005E44A0, ei::rebirth::Patch::ImproveConsole);
+
 
 // 005E4800: keeps the scroll position within the lines, then (with a surface and a font) fills
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a

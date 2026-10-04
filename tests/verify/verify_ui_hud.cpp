@@ -417,3 +417,18 @@ EI_VERIFY(0x0063C4F0, WeaponBarDrawVerify, 0, s_unused);
 EI_VERIFY(0x0063CDC0, QuickItemsDrawVerify, 0, s_unused);
 EI_VERIFY(0x0063F190, SpellColumnDrawVerify, 0, s_unused);
 EI_VERIFY(0x0063FD50, ActionColumnDrawVerify, 0, s_unused);
+
+// 00638EF0 (CBattleScreen::SelectUnit) sends orders and plays sounds: ours only. The pending action
+// (+0x17C) is still one of the nine; actions 5, 6 and 8 that issued their order went back to 0
+// with no item or spell (+0x180, +0x184 = -1).
+static void __fastcall SelectUnitVerify(CBattleScreen* self, void*, CUnit* unit, int x, int y) {
+    auto field = [self](int offset) { return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(self) + offset); };
+    int before = field(0x17C);
+    self->SelectUnit(unit, x, y);
+    int after = field(0x17C);
+    bool ok = after >= 0 && after <= 8;
+    if ((before == 5 || before == 6 || before == 8) && after == 0) ok = ok && field(0x180) == -1 && field(0x184) == -1;
+    ei::verify::Check("CBattleScreen::SelectUnit", true, ok, "unit %p (%d, %d), action %d -> %d, item %d spell %d", unit, x, y,
+                      before, after, field(0x180), field(0x184));
+}
+EI_VERIFY(0x00638EF0, SelectUnitVerify, 0, s_unused);

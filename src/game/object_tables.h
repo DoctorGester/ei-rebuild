@@ -76,6 +76,10 @@ struct NamedFloatTable {
 };
 static_assert(sizeof(NamedFloatTable) == 0x14);
 
+// Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` (00461540) but keeps
+// its "gvar." entries, set again in the order addon's own container gives them.
+void ClearVariablesKeepingGlobals(NamedFloatTable* table);
+
 // 00462F70. The command bound to `key`: the first command slot i (0..0x1FF) whose key in the table
 // at 0079BF70 equals `key` and that has an entry in the command table at 007857B0 (0x48-byte
 // entries, slot number first). Returns the entry + 8, or null. __fastcall (key in ECX).

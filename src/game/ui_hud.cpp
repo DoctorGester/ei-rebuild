@@ -2,7 +2,12 @@
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
 #include "ui.h"
 
+#include "random.h"
+
 #include "ei/hook.h"
+#include "ei/rebirth.h"
+#include "ei/vcall.h"
+#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "unit.h"
@@ -109,7 +114,6 @@ __declspec(naked) int CInterface3D::PlaySound(const char*, int) EI_ORIGINAL(0x00
 __declspec(naked) BOOL CUiWindow::DrawBase(int) EI_ORIGINAL(0x005FEB90)
 __declspec(naked) void UiRenderer::FlushBatchA() EI_ORIGINAL(0x004E7840)
 __declspec(naked) void UiRenderer::FlushBatchB() EI_ORIGINAL(0x004E7A40)
-__declspec(naked) void CBattleScreen::SelectUnit(CUnit*, int, int) EI_ORIGINAL(0x00638EF0)
 __declspec(naked) void CBattleScreen::HoverUnit(CUnit*, int, int) EI_ORIGINAL(0x00639EF0)
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudQuickItems::ItemTip(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
@@ -542,3 +546,330 @@ BOOL CHudTopPanel::OnWheel(int, int, int x, int y) {
     return 1;
 }
 UI_WHEEL_HANDLER(0x0064A2F0, CHudTopPanel, OnWheel);
+
+// --- CBattleScreen::SelectUnit (00638EF0) --------------------------------------------------------
+
+namespace {
+
+struct UiVec3 {
+    float x, y, z;
+};
+
+constexpr int kSlotIsDead = 55;             // object slot 55 (+0xDC): non-zero for a dead unit
+constexpr int kSlotCanTarget = 38;          // slot 38 (+0x98)
+constexpr int kSlotSlot39 = 39;             // slot 39 (+0x9C)
+constexpr int kSlotAcceptsSpell = 42;       // slot 42 (+0xA8), with the screen's +0x220
+constexpr int kSlotShowOrder = 32;          // the screen's slot 32 (+0x80): (unit id, 7, 0)
+constexpr std::uint32_t kFlagSelected = 0x10;
+constexpr int kPortraitRecordSize = 0x78;
+constexpr int kQuickSlots = 8;
+constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
+constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
+constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
+constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
+const char* const kSoundOnOff = reinterpret_cast<const char*>(0x007935BC);    // "buttons\battle\on_off.wav"
+const char* const kTerrainCoords = reinterpret_cast<const char*>(0x00794418); // "Terrain Coords "
+const char* const kSpace = reinterpret_cast<const char*>(0x0078DA40);         // " "
+void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
+void* const kCamera = reinterpret_cast<void*>(0x0079B2A8);
+void* const kConsoleStream = reinterpret_cast<void*>(0x007C5760);
+void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
+
+template <typename T> T& Field(void* base, int offset) {
+    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset);
+}
+
+// The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
+__declspec(naked) void __fastcall ScreenOrderAt(CBattleScreen*, void*, UiVec3, int, char) EI_ORIGINAL(0x00636F10)
+__declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
+__declspec(naked) void __fastcall ScreenOrderDead(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x006373A0)
+__declspec(naked) void __fastcall ScreenCastOn(CBattleScreen*, void*, CUnit*, char, int) EI_ORIGINAL(0x00637500)
+__declspec(naked) void __fastcall ScreenCastAt(CBattleScreen*, void*, UiVec3, CUnit*, int) EI_ORIGINAL(0x00637750)
+__declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int) EI_ORIGINAL(0x006379E0)
+// The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
+// (index, 0) and 0063F7A0 (all).
+__declspec(naked) void __fastcall QuickPanelSet(void*, void*, int, int) EI_ORIGINAL(0x0063CD20)
+__declspec(naked) void __fastcall SpellPanelSet(void*, void*, int, int) EI_ORIGINAL(0x0063E750)
+__declspec(naked) void __fastcall ActionPanelSet(void*, void*, int, int) EI_ORIGINAL(0x0063F730)
+__declspec(naked) void __fastcall ActionPanelReset(void*) EI_ORIGINAL(0x0063F7A0)
+// The client world (007AF5B8): the object under a screen point (x, y pair), the ground point
+// under it (CWorldClient::PickSurface, rewritten), the local view.
+__declspec(naked) CUnit* __fastcall ClientObjectAt(void*, void*, const int*) EI_ORIGINAL(0x005659D0)
+__declspec(naked) float* __fastcall ClientPickSurface(void*, void*, float*, int, int) EI_ORIGINAL(0x0056C350)
+__declspec(naked) std::uint8_t* __fastcall ClientView(void*) EI_ORIGINAL(0x005699F0)
+// The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target).
+__declspec(naked) void __fastcall ViewOrderTarget(void*, void*, CUnit*, CUnit*, int, int, int) EI_ORIGINAL(0x0066AA20)
+__declspec(naked) void __fastcall ViewOrderFollow(void*, void*, CUnit*, CUnit*) EI_ORIGINAL(0x0066AFE0)
+// CCamera::SetTarget (007AB2A8), CUnit::IsHostileTo, CUnit::GetQuickItem, CItem::GetCategory and
+// the sprite's SetScale, through their addresses.
+__declspec(naked) void __fastcall CameraSetTarget(void*, void*, CUnit*) EI_ORIGINAL(0x0040D3B0)
+__declspec(naked) int __fastcall UnitHostileTo(CUnit*, void*, CUnit*) EI_ORIGINAL(0x00530150)
+__declspec(naked) void* __fastcall UnitQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
+__declspec(naked) int __fastcall ItemCategory(void*) EI_ORIGINAL(0x006A4230)
+__declspec(naked) void __fastcall SpriteSetScale(void*, void*, std::uint32_t) EI_ORIGINAL(0x005E7060)
+// The console's ostream (007C5760).
+__declspec(naked) void* __fastcall StreamText(void*, void*, const char*) EI_ORIGINAL(0x006FC31D)
+__declspec(naked) void* __fastcall StreamDouble(void*, void*, double) EI_ORIGINAL(0x006FC7FA)
+__declspec(naked) void* __fastcall StreamChar(void*, void*, char) EI_ORIGINAL(0x006FC0B0)
+__declspec(naked) void* __fastcall StreamManipulate(void*, void*, void*) EI_ORIGINAL(0x00434FE0)
+
+constexpr int kCategoryWand = 8;
+IsaacRandom& UiRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+// A random value times ~-2^-34 * 0.3 (00742760), as the original stores it.
+float PortraitDelay(std::uint32_t random) {
+    return static_cast<float>(x87::FromUnsigned(random) * *reinterpret_cast<const volatile double*>(0x00742760));
+}
+// fcomp with 0.0 and C3: true for zero (either sign) and for NaN.
+bool ZeroOrNaN(float value) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &value, 4);
+    return (bits & 0x7FFFFFFFu) == 0 || x87::IsNaN(value);
+}
+
+} // namespace
+
+void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
+    auto ctrl = [this] { return static_cast<char>(interface_->keyCtrl_); };
+    auto unitDead = [](CUnit* u) { return ei::VCall<int>(u, kSlotIsDead) != 0; };
+    auto pick = [x, y]() {
+        float out[3];
+        float* p = ClientPickSurface(kClientWorld, nullptr, out, x, y);
+        return UiVec3{p[0], p[1], p[2]};
+    };
+    auto unitPosition = [](CUnit* u) { return Field<UiVec3>(u, 0x1C); };
+    auto objectAt = [x, y]() {
+        int point[2] = {x, y};
+        return ClientObjectAt(kClientWorld, nullptr, point);
+    };
+    // The portrait of member `index` flashes after a short random delay.
+    auto flash = [this](int index) {
+        std::uint8_t* records = Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158);
+        float delay = PortraitDelay(UiRandom().Next());
+        Field<float>(records, index * kPortraitRecordSize + 0x3C) = delay;
+        Field<int>(Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158), index * kPortraitRecordSize + 0x38) = 1;
+    };
+    // Back to plain selection: the pending action and its item and spell are dropped and the
+    // panels' highlights cleared.
+    auto resetMode = [this](bool actionLoop) {
+        void* quick = Field<void*>(this, 0x198);
+        Field<int>(this, 0x17C) = 0;
+        Field<int>(this, 0x180) = -1;
+        Field<int>(this, 0x184) = -1;
+        for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
+        Field<int>(quick, 0x150) = -1;
+        void* spells = Field<void*>(this, 0x19C);
+        for (int i = 0; i < Field<int>(spells, 0x14C); ++i) SpellPanelSet(spells, nullptr, i, 0);
+        Field<int>(spells, 0x150) = -1;
+        void* actions = Field<void*>(this, 0x1A0);
+        if (!actionLoop) {
+            ActionPanelReset(actions);
+            return;
+        }
+        for (int i = 0; i < Field<int>(actions, 0x14C); ++i) ActionPanelSet(actions, nullptr, i, 0);
+        Field<int>(actions, 0x150) = -1;
+    };
+    auto order = [this](CUnit* first, CUnit* target, int a, int b) {
+        int flag = static_cast<std::uint8_t>(interface_->keyCtrl_);
+        ViewOrderTarget(ClientView(kClientWorld), nullptr, first, target, a, b, flag);
+    };
+
+    CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
+    int count = partyCount_;
+    int firstIndex = -1;
+    CUnit* first = nullptr;
+    int selected = 0;
+    for (int i = 0; i < count; ++i) {
+        CUnit* member = party_[i];
+        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (!first) {
+            first = member;
+            firstIndex = i;
+        }
+        ++selected;
+    }
+
+    if (count <= 0 || selected == 0) {
+        // Nobody selected: a click on a portrait's unit selects it (Ctrl: the camera follows it).
+        if (count <= 0) return;
+        for (int i = 0; i < partyCount_; ++i) {
+            if (unit != party_[i]) continue;
+            interface_->PlaySound(kSoundOnOff, 0);
+            if (interface_->keyCtrl_) {
+                if (i < partyCount_) CameraSetTarget(kCamera, nullptr, party_[i]);
+            } else {
+                ScreenToggleMember(this, nullptr, i);
+            }
+        }
+        return;
+    }
+
+    if (interface_->keyFlag7E_) {
+        ScreenOrderAt(this, nullptr, unit ? unitPosition(unit) : pick(), 0, ctrl());
+        return;
+    }
+    bool anyFlag = false;
+    for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = Field<std::uint8_t>(this, 0x18D + i) != 0;
+    if (anyFlag) {
+        if (unit && !unitDead(unit)) {
+            ScreenOrderUnit(this, nullptr, unit, ctrl());
+            return;
+        }
+        ScreenOrderAt(this, nullptr, pick(), 1, ctrl());
+        return;
+    }
+    if (interface_->keyShift_) {
+        if (unit && !unitDead(unit)) {
+            ScreenOrderUnit(this, nullptr, unit, ctrl());
+            return;
+        }
+        ScreenOrderAt(this, nullptr, pick(), 1, ctrl());
+        return;
+    }
+
+    switch (Field<int>(this, 0x17C)) {
+    case 0:   // plain: select, attack or move
+        if (unit) {
+            if (unitDead(unit)) {
+                ScreenOrderDead(this, nullptr, unit, ctrl());
+                return;
+            }
+            int members = partyCount_;
+            for (int i = 0; i < members; ++i) {
+                if (unit != party_[i]) continue;
+                interface_->PlaySound(kSoundOnOff, 0);
+                if (interface_->keyCtrl_) {
+                    if (i < partyCount_) CameraSetTarget(kCamera, nullptr, party_[i]);
+                } else {
+                    ScreenToggleMember(this, nullptr, i);
+                }
+                return;
+            }
+            if (members != 0 && party_[0] && UnitHostileTo(party_[0], nullptr, unit)) {
+                ScreenOrderUnit(this, nullptr, unit, ctrl());
+                return;
+            }
+            ScreenOrderAt(this, nullptr, unitPosition(unit), 0, ctrl());
+            return;
+        }
+        if (CUnit* object = objectAt()) {
+            if (ei::VCall<int>(object, kSlotCanTarget) != 0 && ei::VCall<int>(object, kSlotSlot39) == 0 && selected == 1) {
+                order(first, object, 0, -1);
+                flash(firstIndex);
+                return;
+            }
+        }
+        {
+            UiVec3 at = pick();
+            ScreenOrderAt(this, nullptr, at, 0, ctrl());
+            void* stream = StreamText(kConsoleStream, nullptr, kTerrainCoords);
+            Field<int>(stream, 4) = 1;
+            stream = StreamDouble(stream, nullptr, at.x);
+            stream = StreamText(stream, nullptr, kSpace);
+            Field<int>(stream, 4) = 1;
+            stream = StreamDouble(stream, nullptr, at.y);
+            stream = StreamText(stream, nullptr, kSpace);
+            Field<int>(stream, 4) = 1;
+            stream = StreamDouble(stream, nullptr, at.z);
+            stream = StreamChar(stream, nullptr, '\n');
+            StreamManipulate(stream, nullptr, kFlushManipulator);
+        }
+        return;
+    case 1:   // a spell on a unit
+        if (!unit || unitDead(unit) || !first) return;
+        // Rebirth's FixSpellSelfCasting #1 (MOV CL,0 at 00639447): the cast no longer passes the
+        // Ctrl flag.
+        ScreenCastOn(this, nullptr, unit,
+                     ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellSelfCasting) ? '\0' : ctrl(), 0);
+        return;
+    case 2:   // a spell on a point
+    case 4: {
+        UiVec3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
+        if (ZeroOrNaN(at.x) && ZeroOrNaN(at.y)) return;
+        if (!first) return;
+        ScreenCastAt(this, nullptr, at, living, Field<int>(this, 0x17C) == 4 ? 1 : 0);
+        return;
+    }
+    case 3: {   // a quick item on a unit
+        if (!unit || unitDead(unit) || !first) return;
+        void* item = UnitQuickItem(first, nullptr, Field<int>(this, 0x180));
+        if (item && ItemCategory(item) == kCategoryWand && unit != first) return;
+        ScreenCastOn(this, nullptr, unit, 1, 0);
+        return;
+    }
+    case 5: {   // use an item on an object
+        CUnit* target = unit ? unit : objectAt();
+        if (!target || !first) return;
+        if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
+        order(first, target, 0, Field<int>(this, 0x184));
+        flash(firstIndex);
+        resetMode(false);
+        return;
+    }
+    case 6: {   // use a spell on an object
+        CUnit* target = unit ? unit : objectAt();
+        if (!target || !first) return;
+        if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
+        if (ei::VCall<int>(target, kSlotAcceptsSpell, &Field<std::uint8_t>(this, 0x220)) == 0) return;
+        order(first, target, 0, Field<int>(this, 0x184));
+        flash(firstIndex);
+        resetMode(true);
+        return;
+    }
+    case 7: {   // follow: every selected member follows the unit
+        if (!unit || unitDead(unit)) return;
+        for (int i = 0; i < partyCount_; ++i) {
+            CUnit* member = party_[i];
+            if (!member || !(member->flags_ & kFlagSelected)) continue;
+            ViewOrderFollow(ClientView(kClientWorld), nullptr, member, unit);
+            ei::VCall<void>(this, kSlotShowOrder, party_[i]->id_, 7, 0);
+            void* portraits = Field<void*>(this, 0x1A4);
+            float delay = PortraitDelay(UiRandom().Next());
+            Field<float>(Field<std::uint8_t*>(portraits, 0x158), i * kPortraitRecordSize + 0x3C) = delay;
+            Field<int>(Field<std::uint8_t*>(portraits, 0x158), i * kPortraitRecordSize + 0x38) = 1;
+        }
+        void* quick = Field<void*>(this, 0x198);
+        Field<int>(this, 0x180) = -1;
+        Field<int>(this, 0x184) = -1;
+        Field<int>(this, 0x17C) = 0;
+        for (int i = 0; i < kQuickSlots; ++i) {
+            int slot = Field<int>(quick, 0x16C + 4 * i);
+            if (slot < 0 || slot >= Field<int>(quick, 0x14C)) continue;
+            void* sprite = Field<void**>(quick, 0x108)[slot];
+            SpriteSetScale(sprite, nullptr, i < 4 ? kScaleSmall : kScaleLarge);
+            Field<std::uint32_t>(sprite, 0xD8) = kSpriteOpaque;
+        }
+        Field<int>(quick, 0x150) = -1;
+        static constexpr int kColumns[2] = {0x19C, 0x1A0};   // spells, actions
+        for (int panelOffset : kColumns) {
+            void* panel = Field<void*>(this, panelOffset);
+            for (int i = 0; i < Field<int>(panel, 0x14C); ++i) {
+                void* sprite = Field<void**>(panel, 0x108)[i];
+                SpriteSetScale(sprite, nullptr, kScaleOne);
+                Field<std::uint32_t>(sprite, 0xD8) = kSpriteOpaque;
+                Field<int>(panel, 0x150) = i;
+            }
+            Field<int>(panel, 0x150) = -1;
+        }
+        return;
+    }
+    case 8: {   // an order on an object (a unit outside the party, or the object under the mouse)
+        CUnit* target = unit ? unit : objectAt();
+        if (!target || !first) return;
+        if (unit) {
+            for (int i = 0; i < partyCount_; ++i)
+                if (unit == party_[i]) return;
+            order(first, unit, 1, -1);
+        } else {
+            if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
+            order(first, target, 0, -1);
+        }
+        flash(firstIndex);
+        resetMode(true);
+        return;
+    }
+    default:
+        return;
+    }
+}
+EI_REPLACE_METHOD(0x00638EF0, CBattleScreen::SelectUnit);
+EI_REBIRTH_IMPLEMENTS(0x00638EF0, ei::rebirth::Patch::FixSpellSelfCasting);
