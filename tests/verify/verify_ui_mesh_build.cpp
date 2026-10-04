@@ -69,9 +69,19 @@ struct MeshState {
             sizes[6] = ArrayAt(mesh, 0x148).size;
         }
     }
+    // Commit copies the index array's data pointer to +0xC4. The builders empty the index array
+    // with SetSize(0), which frees its storage, so each run gets a new buffer: the copy records
+    // whether +0xC4 points at the current indices instead of the address itself.
     static MeshState Read(CUiMesh* mesh) {
         MeshState s;
         s.Visit(mesh, false);
+        auto* m = reinterpret_cast<std::uint8_t*>(mesh);
+        std::uint32_t pointer, indices;
+        std::memcpy(&pointer, m + 0xC4, 4);
+        std::memcpy(&indices, m + 0x200, 4);
+        std::uint32_t flag = pointer == indices ? 1u : 2u;
+        std::size_t at = s.bytes.size() - (0xCC - 0xC4);   // the render fields come last
+        std::memcpy(&s.bytes[at], &flag, 4);
         return s;
     }
     bool operator==(const MeshState& o) const {
