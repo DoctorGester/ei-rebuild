@@ -858,3 +858,103 @@ unit's constructor / destructor body / Destroy (0052E110, 0052E310, 0052E590), t
 member at +0x4E0 (00508700, 005087B0, 005088E0, 00508930), 00446C10 (scene loader), 0059F390,
 00578DB0, 004DBF50 (split), the frame step's callees (005F7590, 00503F40, 005F5220, 005040A0,
 005F5320, 005E54A0, 004EF610, 005E6610, 006D6D40, 006D5AC0) and the movie player 005DB3F0.
+
+## Tenth round: the message links over streams (ticket A2)
+
+Files: `src/game/net_link.h/.cpp`, verify `tests/verify/verify_net_link.cpp`; `refptr_copies.cpp`
+gained 00478FB0 (a RefPtr null constructor copy); `config/library.csv` 9 rows (note "range 470
+review (A2)": the queue's STLport list members 00478F10, 00478FF0, 004790F0, 00479130, 00479310,
+00479400, 00479570, 004795B0, 004795E0). No shared header changed.
+
+### Classes
+
+- `FileStream` (0073C8D8, 0x1C): a CStream over an MFC CFile at +0xC (+4 CStream's direction byte,
+  +5 ok, +8 limit). Slots 1 Read (a short read clears ok), 2 Write, 3 Seek (from the start), 4 Size
+  (GetLength), 5 Position, 6 Rewind (ok again, Seek 0), 7 CStream's copy 004A4D40; each calls the
+  CFile's own virtual slot (MFC 4.2: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write,
+  19 Close). world_game.cpp's save code builds these on the stack.
+- `NetLink` (0073C8A4, 0x28, abstract, on 0073BB58): a message endpoint that can record what it
+  takes in. +8 recording, +9 drop the next recorded message, +0xC the recording file. Slots: 2 reset
+  (the owner's shutdown, core_refcount.h), 3 clone, 4 connected, 5 alive, 6 has incoming, 7 incoming
+  count (base: 1 when slot 6), 8 Send (base: dropped, true), 9 Receive / record (base: records the
+  stream), 10 pump (empty), 11 disconnect, 12 0. The other links on it: 0073C92C (a replay link,
+  00478960; ticket A3) and the per-player network driver 0073C990.
+- `LoopbackLink` (0073C8F8, 0x30): +0x28 the incoming queue (STLport list<CMemoryStream>, 0x30-byte
+  pool nodes holding streams with the 0073C960 vtable), +0x2C the peer (counted). Send puts a copy
+  of the stream at the end of the peer's queue (a default element, then its slot 7 copy); Receive
+  copies the front into the caller's stream, drops it and records it as the base does.
+
+### What runs when
+
+- Every new game and load: the client world's 00566CE0 asks 004782E0 for two loopback links joined
+  to each other; the first becomes the server-side player's link (+8), the second the client's. The
+  single-player messages then go through Send / Receive and the queries every frame, so every
+  new-game scenario (sandbox_actions.txt, world_load.txt, ...) reaches 004782E0 and slots 4-9.
+- Save files: the file stream's slots under ReadSaveFile / WriteSaveFile (00579830 / 00579B80):
+  the new game's autosave and every load (world_load.txt); its destructor body also from 00596350.
+- Not reached by a scenario: recording (Open / Close 004780B0 / 004780E0, called from 00669710 /
+  00669750: the game flow's 0057C700 and 005797D0, which nothing calls directly), LinkRecord (only
+  the abstract base's slot 9; every derived link overrides it), and probably Clone / Reset /
+  Disconnect (sharing, the owner's shutdown, a dropped link: not traced).
+- net_lobby.txt: the lobby's links are drivers (0073C990), whose constructor reaches the base
+  through 00477E60 (net_session_pump.cpp); their destructor (00479D40) inlines the base's and
+  their slots are their own: the lobby itself reaches none of this round's functions.
+
+### Rewritten
+
+| Address | Name | Verify |
+|---|---|---|
+| 00478470 / 00477FB0 / 00477F90 | FileStreamConstruct / Destruct / deleting destructor | original on the real object, ours on a copy / closed CFile: original on a copy, else ours only / ours only |
+| 00477F00 00477F30 00477F50 00477F70 00477F80 00477EE0 | FileStream Read / Write / Seek / Size / Position / Rewind (slots 1-6) | recorded CFile (below) |
+| 00478050 / 00478030 | LinkDestruct / deleting destructor | closed CFile: original on a copy, else ours / ours only |
+| 00478000 / 00478100 | LinkIncomingCount (slot 7) / LinkSend (slot 8) | side by side (00478000: a copy of its 12-byte body as the original) |
+| 00478110 | LinkRecord (slot 9) | side by side; when it writes, recorded CFile with a deep copy of the stream |
+| 004780B0 / 004780E0 | LinkOpenRecording / LinkCloseRecording | recorded CFile |
+| 004782E0 | LoopbackCreatePair | ours only: the pair joined, counts 2 / 1, empty queues, closed files |
+| 004787A0 / 00478780 | LoopbackDestruct / deleting destructor | ours only (vtables left) / ours only |
+| 00478610 | LoopbackReset (slot 2) | ours only: a fresh link with the same count |
+| 004784D0 | LoopbackClone (slot 3) | both clone, compared stream by stream, the original's deleted |
+| 00478710 00478730 00478750 00478760 | LoopbackConnected / Alive / HasIncoming / IncomingCount (4-7) | side by side |
+| 00478220 | LoopbackSend (slot 8) | original on copies (peer with a scratch queue, deep copy of the stream) |
+| 00478270 | LoopbackReceive (slot 9) | original on copies (scratch queue holding the front's copy, deep copy of the target; recorded CFile when it records) |
+| 00478140 | LoopbackDisconnect (slot 11) | ours only: no peer afterwards |
+| 00478FB0 | RefPtrNull copy (refptr_copies.cpp) | side by side, as the other copies |
+
+### Verify wrappers
+
+- Recorded CFile: ours runs on the real object with the embedded CFile's vtable pointer swapped for a
+  recorder (each call forwarded to the real CFile with its own vtable put back, then logged: slot,
+  arguments, result, written bytes up to 64 KB); the original then runs on a byte copy taken before,
+  whose CFile replays the log (same calls, arguments and bytes; logged results returned). Reads land
+  in the caller's buffer (the same in both runs), so the replay leaves it alone; writes too large
+  to keep compare the buffer's address. The checks do not nest: inside one, the file stream's
+  wrappers run ours on whichever CFile they get (the record's writes go through them).
+- Memory streams: only the two CMemoryStream vtables are deep-copied (otherwise ours only). The
+  queue's streams are compared without +4, +6, +7 and +0xC, which their copy constructor (00479410)
+  and the copy (004A55D0) never write: pool leftovers.
+- A Send / Receive without a peer or with an empty queue runs side by side (no side effects).
+
+### Original behaviour kept
+
+- 004782E0 writes each new link's reference count before the null check; without memory for the
+  second link it dereferences null (crashes), as the original.
+- Open switches recording on even when the file did not open (only the stream's ok says so).
+- Reset keeps +9 (the skip flag) and the reference count; the clone copies both flags but gets a
+  closed file of its own.
+- The link base's destructor body does not set its own vtable first (no virtual call in it).
+- The loopback's destructor and Reset release the peer without clearing the pointer before the
+  rest of the teardown (Reset clears it when it rebuilds).
+
+### Skipped
+
+- 00478010 (RET) and 00478020 (XOR EAX,EAX; RET): slots 10 / 12 shared by every link vtable,
+  shorter than the 5-byte jump.
+- 00478880 (vtable 0073F258, another class), 00478960 and the 0073C92C slots (ticket A3).
+
+### Forwarders added (the standalone build must replace)
+
+Library: the queue's list constructors 00478D50 / 00479150, insert of a default element 00478FF0,
+erase 004790F0, clear 00479570, range insert 004795B0, node deallocation 00479530 and the node pool
+00405950 / 00404D70. Game code: 004A5250 (a stream written into another with a size prefix). Virtual
+calls: the CFile's slots 3 / 8 / 10 / 12 / 13 / 14 / 19, the streams' slots 0 / 7, a link's slots 6
+and 11.
