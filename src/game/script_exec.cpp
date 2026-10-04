@@ -6,8 +6,10 @@
 // are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
 // the rest still run original code or their own replacement's verify wrapper.
 #include "script.h"
+#include "script_addon.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -809,9 +811,14 @@ BOOL ScriptRun::Execute(CScript* script) {
             CalcParametersOrig(cmd, nullptr, script, &vars, &cmd->subCalls.data[i]);
         cont = 1;
         if (g_scriptCommandObserver) g_scriptCommandObserver->before(this, script, cmd);
+        bool done = false;
+        if (scriptaddon::Enabled()) {   // Rebirth's AddNewScriptCommands (hook at 004B684E)
+            scriptaddon::Call call{cmd, script, nullptr, &cont, this};
+            done = scriptaddon::Dispatch(&call);
+        }
 
         const float* f = cmd->floatArgs.data;
-        switch (cmd->id) {
+        switch (done ? -1 : cmd->id) {
         // ---- Flow -------------------------------------------------------------------------------
         case 0x07: {   // Sleep(ticks): counts this run's Execute calls from the first one
             if (sleepStart < 0) sleepStart = ticks;
@@ -1634,3 +1641,4 @@ BOOL ScriptRun::Execute(CScript* script) {
     return 1;
 }
 EI_REPLACE_METHOD(0x004B6760, ScriptRun::Execute);
+EI_REBIRTH_IMPLEMENTS(0x004B6760, ei::rebirth::Patch::AddNewScriptCommands);

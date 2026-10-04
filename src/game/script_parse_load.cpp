@@ -8,6 +8,7 @@
 // itself directly (its verify wrapper would otherwise run the subtree twice at every level).
 #include "script.h"
 #include "script_parse.h"
+#include "script_addon.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -384,6 +385,8 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         int tokenId;
         ClassifyAt(text, &tokenId, nullptr);
         if (!assignment) {
+            // AddNewScriptCommands (hook at 004D02CC): the signature's '?' and '+'.
+            if (scriptaddon::Enabled()) scriptaddon::SignatureStep(cmd, &signature, tokenId);
             if (tokenId == kLexClose) {
                 if (*signature) {
                     result = Error(this, token.line, 5, GameText(0x0078D7DC));   // "Not enough parameters"
@@ -545,6 +548,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     return result;
 }
 EI_REPLACE_METHOD(0x004CFBC0, CScript::LoadFunction);
+EI_REBIRTH_IMPLEMENTS(0x004CFBC0, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Sections -----------------------------------------------------------------------------------
 
@@ -788,9 +792,11 @@ BOOL CScript::LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const Scr
     }
 }
 EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
-// AddNewScriptCommands also patches this function (sites #7, #19, #20): until it is reproduced, a
-// Rebirth launch keeps the original here.
-EI_REBIRTH_IMPLEMENTS(0x004D1330, ei::rebirth::Patch::AllowScriptArgsInLoops);
+// AddNewScriptCommands also patches this function: the keyword table (sites #19, #20) and a hook
+// at 004D15D4 that would parse a body after commands whose record has flag 1 (no record has), so
+// For and ForIf stay the only ones.
+EI_REBIRTH_IMPLEMENTS(0x004D1330, ei::rebirth::Patch::AllowScriptArgsInLoops,
+                      ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Load ---------------------------------------------------------------------------------------
 

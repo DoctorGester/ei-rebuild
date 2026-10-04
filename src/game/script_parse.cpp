@@ -7,8 +7,10 @@
 // own wrapper.
 #include "script.h"
 #include "script_parse.h"
+#include "script_addon.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
@@ -95,12 +97,16 @@ int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const 
     return result;
 }
 EI_REPLACE(0x004CF470, ScriptError);
+// AddNewScriptCommands hooks 004CF4A2 only to copy the error to addon.log (not reproduced).
+EI_REBIRTH_IMPLEMENTS(0x004CF470, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Keyword table ------------------------------------------------------------------------------
 
 const ScriptKeyword* KeywordTable() {
-    // ClassifyToken loads the table with MOV EBP,imm32 at 004CF69A; Rebirth rewrites that
-    // immediate to point at its extended table (and the other references the same way).
+    // ClassifyToken loads the table with MOV EBP,imm32 at 004CF69A; Rebirth's AddNewScriptCommands
+    // rewrites that immediate to point at its extended table (and the other references the same
+    // way). With the flag on, the extended table is ours (script_addon.cpp).
+    if (scriptaddon::Enabled()) return scriptaddon::Table();
     return *reinterpret_cast<const ScriptKeyword* const*>(0x004CF69B);
 }
 
@@ -140,16 +146,21 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
     if (rest) *rest = 0;
     if (id) *id = 0;
     int best = -1;
+    const bool addon = scriptaddon::Enabled();
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         int length = static_cast<int>(std::strlen(k->name));
         if (length < best) continue;
         if (gamecrt::strnicmp(p, k->name, length) != 0) continue;
-        if (rest) *rest = static_cast<int>(std::strlen(p)) - length;
         best = length;
+        // AddNewScriptCommands (hook at 004CF6F0, after the instructions that set the best
+        // length): an identifier-like match must end the identifier.
+        if (addon && scriptaddon::RejectsMatch(k->name, p[length])) continue;
+        if (rest) *rest = static_cast<int>(std::strlen(p)) - length;
         if (id) *id = k->id;
     }
 }
 EI_REPLACE(0x004CF600, ClassifyToken);
+EI_REBIRTH_IMPLEMENTS(0x004CF600, ei::rebirth::Patch::AddNewScriptCommands);
 
 const char* __fastcall FunctionSignature(int id, int type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
@@ -172,6 +183,7 @@ const char* __fastcall FunctionSignature(int id, int type) {
     return nullptr;
 }
 EI_REPLACE(0x004D0B10, FunctionSignature);
+EI_REBIRTH_IMPLEMENTS(0x004D0B10, ei::rebirth::Patch::AddNewScriptCommands);
 
 const char* __fastcall KeywordName(int id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
@@ -179,6 +191,7 @@ const char* __fastcall KeywordName(int id) {
     return GameText(0x0078D848);   // "Unknown command"
 }
 EI_REPLACE(0x004D0BA0, KeywordName);
+EI_REBIRTH_IMPLEMENTS(0x004D0BA0, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Tokens -------------------------------------------------------------------------------------
 

@@ -81,7 +81,8 @@ META = {
 STATUS = {
  'FixLeversActivate': 'implemented: LockKey::Opens (src/game/unit_stats.cpp)',
  'FixMoveObject': 'implemented: CSectorMap::Move (src/game/sector_map.cpp)',
- 'AllowScriptArgsInLoops': 'implemented: CScript::LoadCommands (src/game/script_parse_load.cpp); Rebirth comparison waits for AddNewScriptCommands (same function)',
+ 'AllowScriptArgsInLoops': 'implemented: CScript::LoadCommands (src/game/script_parse_load.cpp)',
+ 'AddNewScriptCommands': 'in progress: table, dispatch, \'?\'/\'+\', keyword rule and CalcString in src/game/script_addon.cpp, hooked from CalcParameters/CalcFloat/CalcObject (script_eval.cpp), Execute (script_exec.cpp), ClassifyToken/FunctionSignature/KeywordName/ScriptError (script_parse.cpp), LoadFunction/LoadCommands (script_parse_load.cpp) and the new rewrite SSCCmd::CalcGroup 004B5B00 (script_eval.cpp); handlers in src/game/script_addon_*.cpp (arithmetic done)',
  'FixPlaingBattleMusicFromAntimagic': 'implemented: new rewrite CUnitServer::IsFighting 0054B580 (src/game/combat.cpp)',
  'FixRepairPrice': 'implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp)',
  'FixProgressNames': 'implemented: new rewrite SelectLoadingMovie 00595080 (src/game/world_zone.cpp)',
