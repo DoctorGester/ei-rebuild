@@ -182,3 +182,112 @@ static const std::uint8_t* __fastcall RecordAtB4Verify(const RecordVector* recor
     return result;
 }
 EI_VERIFY(0x0056E440, RecordAtB4Verify, 6, s_recordB4);
+
+// ---- The client's object maps (ours only, except the picking) ------------------------------------
+
+namespace {
+SectorListNode* ListHead(void* client, int offset) { return At<SectorListNode*>(client, offset); }
+
+int CountIdInList(void* client, int offset, int id) {
+    SectorListNode* head = ListHead(client, offset);
+    int count = 0;
+    for (SectorListNode* node = head->next; node != head; node = node->next)
+        if (node->value->id_ == id) ++count;
+    return count;
+}
+
+bool ListEmpty(void* client, int offset) {
+    SectorListNode* head = ListHead(client, offset);
+    return head->next == head && head->prev == head;
+}
+
+bool GridEmpty(const SectorGrid& grid) {
+    for (std::uint32_t y = 0; y < grid.height_; ++y)
+        for (std::uint32_t x = 0; x < grid.width_; ++x) {
+            SectorListNode* head = grid.rows_[y][x];
+            if (head->next != head) return false;
+        }
+    return true;
+}
+} // namespace
+
+// 005647E0: ours only. Returns 1 and the object is in the list +0xB8 (and in its grid cell).
+static int __fastcall AddObjectVerify(CWorldClient* client, void*, CEngineObject* object) {
+    int id = object->id_;
+    int listed = CountIdInList(client, 0xB8, id);
+    int result = client->AddObject(object);
+    bool ok = result == 1 && CountIdInList(client, 0xB8, id) >= 1;
+    // An object already listed was only referenced and released: it may be gone.
+    int cell = listed ? -2 : CountInCell(&At<SectorGrid>(client, 0x120), object, &At<float>(object, 0x1C));
+    if (!listed) ok = ok && cell != 0;
+    ei::verify::Check("CWorldClient::AddObject", true, ok, "object %d, listed before %d, cell %d", id, listed, cell);
+    return result;
+}
+EI_VERIFY(0x005647E0, AddObjectVerify, 0, s_unused);
+
+// 00564BE0: ours only. Afterwards no object with the id is in +0xB8 and the id map lacks it.
+static void __fastcall RemoveObjectVerify(CWorldClient* client, void*, int id) {
+    int listed = CountIdInList(client, 0xB8, id);
+    client->RemoveObject(id);
+    const PendingMap& ids = At<PendingMap>(client, 0xD8);
+    int after = CountIdInList(client, 0xB8, id);
+    bool ok = after == (listed > 0 ? listed - 1 : 0) && !ids.Find(static_cast<std::uint32_t>(id));
+    ei::verify::Check("CWorldClient::RemoveObject", true, ok, "id %d, listed %d -> %d", id, listed, after);
+}
+EI_VERIFY(0x00564BE0, RemoveObjectVerify, 0, s_unused);
+
+// 00564E70: ours only. The grids, +0xB4, +0x7BC, the MFC lists and the id map are empty; what is
+// left in +0xB8 has no positive id.
+static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {
+    client->ClearMaps();
+    bool ok = GridEmpty(At<SectorGrid>(client, 0x120)) && GridEmpty(At<SectorGrid>(client, 0x150)) &&
+              ListEmpty(client, 0xB4) && ListEmpty(client, 0x7BC) && At<PendingMap>(client, 0xD8).Size() == 0 &&
+              At<void*>(client, 0xC0) == nullptr && At<void*>(client, 0x1F4) == nullptr && At<int>(client, 0xEC) == 0;
+    SectorListNode* head = ListHead(client, 0xB8);
+    for (SectorListNode* node = head->next; node != head; node = node->next)
+        if (node->value->id_ > 0) ok = false;
+    ei::verify::Check("CWorldClient::ClearMaps", true, ok, "");
+}
+EI_VERIFY(0x00564E70, ClearMapsVerify, 0, s_unused);
+
+// 005726B0: ours only. True exactly for a positive id.
+static bool __fastcall ReleaseIfIdentifiedVerify(void* functor, void*, CEngineObject* object) {
+    bool positive = object->id_ > 0;
+    bool result = ReleaseIfIdentified(functor, nullptr, object);
+    ei::verify::Check("ReleaseIfIdentified", positive, result, "");
+    return result;
+}
+EI_VERIFY(0x005726B0, ReleaseIfIdentifiedVerify, 0, s_unused);
+
+// 00565790 / 005659D0: SUB ESP,0x1C; PUSH EBX; PUSH EBP (5 bytes). The original runs first; the
+// object, the sorted entries and the cursor's position are compared with ours.
+using PickFn = CEngineObject*(__fastcall*)(CWorldClient*, void*, const long*);
+static PickFn s_pick;
+static PickFn s_pick2;
+
+namespace {
+CEngineObject* PickChecked(const char* name, PickFn original, bool second, CWorldClient* client, const long* point) {
+    long pt[2] = {point[0], point[1]};
+    CEngineObject* theirs = original(client, nullptr, pt);
+    Hits& hits = At<Hits>(client, 0xF4);
+    std::vector<std::uint8_t> theirsHits(hits.start, hits.finish);
+    std::ptrdiff_t theirsCursor = At<std::uint8_t*>(client, 0x100) - hits.start;
+    CEngineObject* mine = second ? client->PickAt2(pt) : client->PickAt(pt);
+    std::vector<std::uint8_t> mineHits(hits.start, hits.finish);
+    std::ptrdiff_t mineCursor = At<std::uint8_t*>(client, 0x100) - hits.start;
+    bool ok = theirs == mine && theirsHits == mineHits && (theirsHits.empty() || theirsCursor == mineCursor);
+    ei::verify::Check(name, true, ok, "(%ld, %ld): %zu vs %zu entries, cursor %td vs %td", pt[0], pt[1],
+                      theirsHits.size() / 0x18, mineHits.size() / 0x18, theirsCursor, mineCursor);
+    return mine;
+}
+} // namespace
+
+static CEngineObject* __fastcall PickAtVerify(CWorldClient* client, void*, const long* point) {
+    return PickChecked("CWorldClient::PickAt", s_pick, false, client, point);
+}
+EI_VERIFY(0x00565790, PickAtVerify, 5, s_pick);
+
+static CEngineObject* __fastcall PickAt2Verify(CWorldClient* client, void*, const long* point) {
+    return PickChecked("CWorldClient::PickAt2", s_pick2, true, client, point);
+}
+EI_VERIFY(0x005659D0, PickAt2Verify, 5, s_pick2);

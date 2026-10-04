@@ -399,6 +399,7 @@ range (input, original's order, ours).
   (hero portraits "hr%2d"), 00568800 / 005683D0 (skins "%sskin%2d.mmp"), 00566360 / 00567500 /
   00567680 (per-frame manager updates, large), 00565090 / 00564E70 (clearing the sector grids),
   005647E0 / 00564BE0 (adding and removing objects in the client's maps): next candidates.
+  (Later: 00564E70, 005647E0, 00564BE0 and 00566F70 are rewritten, see "Client maps" below.)
 
 # Zone loading, map objects, AddUnitToServer, saving the map objects (fifth round)
 
@@ -947,6 +948,23 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 | 00571800 / 005718B0 | CollectWindowsAt / CollectWindowsAt2 (slot 22 / 24 hit test) | differential: the original's pushes taken back, ours compared |
 | 0056FC60 | PendingMapLookup (hash_map<unsigned, T*> lookup) | differential |
 | 0056E400 / 0056E440 | RecordAt50 / RecordAtB4 (bounds-checked record access) | differential |
+| 005647E0 | CWorldClient::AddObject (RET 4) | ours only: returns 1, the id is in +0xB8, a new object is in its grid cell |
+| 00564BE0 | CWorldClient::RemoveObject (RET 4) | ours only: one +0xB8 listing fewer, the id map lacks the id |
+| 00564E70 | CWorldClient::ClearMaps | ours only: grids, +0xB4, +0x7BC, the MFC lists and the id map empty; no positive id left in +0xB8 |
+| 005726B0 | ReleaseIfIdentified (ClearMaps' predicate) | ours only: true exactly for a positive id |
+| 00565790 / 005659D0 | CWorldClient::PickAt / PickAt2 (RET 4) | differential: the original first; the object, the sorted entries and the cursor compared |
+
+The client's maps (CWorldClient): +0xB4 an STLport list of counted pointers to heroes with a
+text-key id; +0xB8 a list of every object (pointers with a reference taken by hand); +0xBC an MFC
+CList of the objects answering slot 29, with +0xD8 a hash_map from id to that list's node (+0xEC
+the map's highest key); +0x1F0 an MFC CList of ids; +0x7BC a list of 0x0C-byte nodes; +0xF0 the
+screen entries (id, RECT) the pickers walk, +0xF4 the vector they fill and sort, +0x100 its
+cursor. AddObject's first loop compares ids: an object whose id is already listed is only
+referenced and released (+1, slot 4). In AddObject the grid listing is removed before it is
+appended, so a re-added object is listed once. The pickers sort with STLport's sort over the
+0x18-byte entries and DepthLess {the view stack's top, the object manager}; the original inlines
+the first level of the introsort loop, the rewrite calls the out-of-line loop (00573740, the same
+steps) and the two insertion sorts.
 
 Move removes every listing of the object from the old cell (list::remove with a counted copy:
 +1, the erases release, -1), stores the three position words, then push_back's a counted copy

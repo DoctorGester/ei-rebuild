@@ -607,6 +607,9 @@ void** __fastcall CollectWindowsAt(void** out, void*, std::uint8_t* first, std::
                                    long y, CBaseManager* manager);
 void** __fastcall CollectWindowsAt2(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, long x,
                                     long y, CBaseManager* manager);
+// 005726B0 (RET 4; the predicate of CWorldClient::ClearMaps' remove_if, ECX unused). An object
+// with a positive id is released and true; false otherwise.
+bool __fastcall ReleaseIfIdentified(void* functor, void*, CEngineObject* object);
 // 0056FC60 (RET 8). Lookup in a hash_map<unsigned, T*>: *value = the entry's value and 1, or 0.
 using PendingMap = stlp::hash_map<std::uint32_t, void*, stlp::IntHash>;
 int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value);
@@ -673,6 +676,31 @@ public:
     float* PickGround(float* out, int x, int y);
     // 0056C350 (RET 0xC). Same with the client's surface height (slot 29: platforms included).
     float* PickSurface(float* out, int x, int y);
+
+    // world_client_maps.cpp
+    // 005647E0 (RET 4). Files an object in the client's maps: an object whose id is already in the
+    // list +0xB8 is only referenced and released. Otherwise: objects answering slot 29 are added to
+    // the MFC list +0xBC and the id map +0xD8 (id -> list node); classes 0x54 / 0x5D add their
+    // platform items (flag 0x400) to +0x1D4; units get slot 43 of their +0x240 in a multiplayer
+    // session of kind 1 (+0x6EC >= 1, unit +0x24C clear); then the list +0xB8 (with a
+    // reference), the sector grid +0x120 (removed first, then appended) and, for heroes with a
+    // text-key id, the list +0xB4. Returns 1.
+    int AddObject(CEngineObject* object);
+    // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
+    // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
+    // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;
+    // the object is released.
+    void RemoveObject(int id);
+    // 00564E70. Empties the maps: both sector grids' cells, the MFC lists +0x1F0 and +0xBC, the id
+    // map +0xD8, the lists +0x7BC and +0xB4, the +0xB8 entries with a positive id (released), the
+    // session's player data, +0x34's slot 5 and the managers +0x3C/+0x40/+0x44's records.
+    void ClearMaps();
+    // 00565790 / 005659D0 (RET 4). The object at screen point `point` (x, y): the screen entries of
+    // the list +0xF0 that contain it and whose object's +0x94 answers slot 22 (00565790) or 24
+    // (005659D0) go to the vector +0xF4, which is sorted front to back (DepthLess with the view
+    // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
+    CEngineObject* PickAt(const long* point);
+    CEngineObject* PickAt2(const long* point);
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090
