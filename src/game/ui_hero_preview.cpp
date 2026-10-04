@@ -34,10 +34,18 @@ void Set(void* p, int offset, T v) {
     std::memcpy(static_cast<std::uint8_t*>(p) + offset, &v, sizeof(T));
 }
 
+// A game object's virtual function (thiscall: the object in ECX).
 template <typename R = void, typename... Args>
 R VirtualCall(void* object, int slot, Args... args) {
     void* fn = (*static_cast<void***>(object))[slot];
     return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
+}
+
+// A COM method (IDirect3DDevice7: stdcall, the interface pointer pushed first).
+template <typename... Args>
+long ComCall(void* object, int slot, Args... args) {
+    void* fn = (*static_cast<void***>(object))[slot];
+    return reinterpret_cast<long(__stdcall*)(void*, Args...)>(fn)(object, args...);
 }
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
@@ -104,7 +112,7 @@ void ClearDepth(std::uint8_t* device, unsigned long count, RECT* rects, float z)
     unsigned long flags = ClearFlags(device);
     gameapi::EnterCriticalSection(DeviceLock());
     void* d3d = Get<void*>(device, 0x54);
-    long hr = VirtualCall<long>(d3d, kD3DClear, count, rects, flags, 0ul, z, 0ul);
+    long hr = ComCall(d3d, kD3DClear, count, rects, flags, 0ul, z, 0ul);
     Set(device, 8, hr);
     gameapi::LeaveCriticalSection(DeviceLock());
 }
@@ -126,7 +134,7 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
         unsigned long flags = ClearFlags(device);
         gameapi::EnterCriticalSection(DeviceLock());
         void* d3d = Get<void*>(device, 0x54);
-        long hr = VirtualCall<long>(d3d, kD3DClear, 0ul, static_cast<RECT*>(nullptr), flags, 0ul, 0.0f, 0ul);
+        long hr = ComCall(d3d, kD3DClear, 0ul, static_cast<RECT*>(nullptr), flags, 0ul, 0.0f, 0ul);
         Set(device, 8, hr);
         gameapi::LeaveCriticalSection(DeviceLock());
     }
@@ -207,12 +215,12 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     std::uint8_t* device = deviceOf();
     std::uint32_t savedStage = 0;
     void* d3d = Get<void*>(device, 0x54);
-    Set(device, 8, VirtualCall<long>(d3d, kGetStageState, 0ul, kStageState, &savedStage));
+    Set(device, 8, ComCall(d3d, kGetStageState, 0ul, kStageState, &savedStage));
     d3d = Get<void*>(device, 0x54);
-    Set(device, 8, VirtualCall<long>(d3d, kSetStageState, 0ul, kStageState, 1ul));
+    Set(device, 8, ComCall(d3d, kSetStageState, 0ul, kStageState, 1ul));
     VirtualCall(model, 22, pass);
     d3d = Get<void*>(device, 0x54);
-    Set(device, 8, VirtualCall<long>(d3d, kSetStageState, 0ul, kStageState, static_cast<unsigned long>(savedStage)));
+    Set(device, 8, ComCall(d3d, kSetStageState, 0ul, kStageState, static_cast<unsigned long>(savedStage)));
     light = Get<std::uint8_t*>(model, 0x94);
     Set(light, 0xF0, 1.0f);
     Set(light, 0xF4, 1.0f);

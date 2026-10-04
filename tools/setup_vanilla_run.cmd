@@ -8,4 +8,5 @@ set OUT=%~dp0..\run\vanilla
 if not exist "%OUT%" mkdir "%OUT%"
 for %%f in (game.exe binkw32.dll mss32.dll mp3dec.asi 2dintmmx.dll 3dfpfpu.dll) do copy /y "%VANILLA%\%%f" "%OUT%\" >nul || exit /b 1
 for %%f in (DDraw.dll D3DImm.dll D3D8.dll D3D9.dll dgVoodoo.conf) do copy /y "%REBIRTH_ENGINE%\%%f" "%OUT%\" >nul || exit /b 1
+call "%~dp0harness_dgvoodoo_conf.cmd" "%OUT%\dgVoodoo.conf" || exit /b 1
 echo Prepared %OUT%

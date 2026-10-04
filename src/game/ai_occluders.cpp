@@ -7,8 +7,10 @@
 #include "ai_map.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -27,6 +29,9 @@ static_assert(sizeof(OccluderRecord) == 8);
 __declspec(naked) int __fastcall NewRecord(void*) EI_ORIGINAL(0x005BFE70)
 __declspec(naked) int __fastcall RemoveRecord(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005BFFD0)
 __declspec(naked) void __fastcall FreeRecord(void*, void*, int) EI_ORIGINAL(0x005C0060)
+
+// 0059E260: ConstructElements of the 8-byte records (zero-fills `count`; stdcall).
+__declspec(naked) void __stdcall ConstructRecords(void*, int) EI_ORIGINAL(0x0059E260)
 
 constexpr std::uint32_t kNone = 0x100;
 constexpr std::uint32_t kChained = 0x80;
@@ -107,6 +112,63 @@ bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
     FreeRecord(sector, nullptr, index);
     return true;
 }
+
+// 005BFE70 (thiscall on a sector): a free occluder record's index. The sector keeps a free list
+// (+0x3C head, linked through the records' `next`, -1 ends) in front of its CArray of records
+// (+0x44 data, +0x48 size, +0x4C capacity, +0x50 growth); without a free record the array grows
+// by one (MFC SetSize inlined: new records zero-filled, the growth step an eighth of the size
+// clamped to 4..1024 unless set) and the new last index is returned.
+int __fastcall NewOccluderRecord(std::uint8_t* sector) {
+    int& freeHead = *reinterpret_cast<int*>(sector + 0x3C);
+    auto*& data = *reinterpret_cast<OccluderRecord**>(sector + 0x44);
+    int& size = *reinterpret_cast<int*>(sector + 0x48);
+    int& capacity = *reinterpret_cast<int*>(sector + 0x4C);
+    int growBy = *reinterpret_cast<int*>(sector + 0x50);
+    if (freeHead >= 0) {
+        int index = freeHead;
+        freeHead = static_cast<std::int16_t>(data[index].next);
+        return index;
+    }
+    int wanted = size + 1;
+    if (wanted == 0) {
+        if (data) {
+            gamecrt::operator_delete(data);
+            data = nullptr;
+        }
+        capacity = 0;
+        size = 0;
+        return -1;
+    }
+    if (!data) {
+        data = static_cast<OccluderRecord*>(gamecrt::operator_new(static_cast<std::size_t>(wanted) * 8));
+        ConstructRecords(data, wanted);
+        capacity = wanted;
+        size = wanted;
+        return wanted - 1;
+    }
+    if (wanted <= capacity) {
+        if (wanted > size) ConstructRecords(data + size, wanted - size);
+        size = wanted;
+        return wanted - 1;
+    }
+    int step = growBy;
+    if (step == 0) {
+        step = size / 8;
+        if (step < 4) step = 4;
+        else if (step > 0x400) step = 0x400;
+    }
+    int grown = capacity + step;
+    int newCapacity = wanted < grown ? grown : wanted;
+    auto* fresh = static_cast<OccluderRecord*>(gamecrt::operator_new(static_cast<std::size_t>(newCapacity) * 8));
+    std::memcpy(fresh, data, static_cast<std::size_t>(size) * 8);
+    ConstructRecords(fresh + size, wanted - size);
+    gamecrt::operator_delete(data);
+    data = fresh;
+    size = wanted;
+    capacity = newCapacity;
+    return wanted - 1;
+}
+EI_REPLACE(0x005BFE70, NewOccluderRecord);
 
 EI_REPLACE_METHOD(0x005B61B0, CAIMap::AddOccluderRecord);
 EI_REPLACE_METHOD(0x005B6380, CAIMap::ClearOccluderRecord);

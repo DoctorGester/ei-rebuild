@@ -2818,3 +2818,11 @@ address,name,library,signature,notes
 005876C0,stlp::list<T>::clear,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
 00583C60,"stlp::pair<CString,CString>::~pair",STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp) (and from 005876C0 / 005878B0)
 0059A4A0,"CList<SharedObject>::Serialize",MFC,,"instantiation (vtable 0073FA18): CArchive count, then each 0x20-byte element (its CArray of references through ConstructElements / SerializeElements)"
+005AD680,"stlp::vector<pair<string,int>>::_M_insert_overflow",STLport,,"instantiation over 16-byte {string, int} elements (the node allocator for blocks up to 0x80 bytes, copy via 005AE820 / 005AE8E0)"
+005BDD70,"CArray<{int,int}>::Add",MFC,,"instantiation (the AI map's area lists, 8-byte elements; SetSize inlined, ConstructElements 0059E290)"
+005BDBA0,"stlp::vector<T*>::_M_fill_insert",STLport,,"instantiation over pointer elements (insert n copies at a position)"
+005BD6B0,"stlp::vector<T*>::_M_fill_insert",STLport,,"second instantiation over pointer elements (same code as 005BDBA0)"
+005BDF40,"CList<T>::Serialize",MFC,,"instantiation over 0xC-byte elements (CArchive count, then each element written / read whole)"
+005B1870,"CList<T>::Serialize",MFC,,"instantiation over 0xC-byte elements (same code as 005BDF40)"
+005B1A00,"CList<T>::Serialize",MFC,,"instantiation over 8-byte elements"
+005BE090,"stlp::hash_map<Handle,RefPtr>::operator[]",STLport,,"instantiation of find_or_insert for the reference-counted object cache (rewritten caller 005BD7F0, ai_shape_cache.cpp)"

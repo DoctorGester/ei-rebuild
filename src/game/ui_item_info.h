@@ -81,6 +81,17 @@ static_assert(sizeof(ItemObjectCache) == 0x10);
 void __fastcall TrimItemModels(ItemObjectCache* cache);
 void __fastcall TrimItemTextures(ItemObjectCache* cache);
 
+class CItemScreen;
+// 005F6470 / 005F6620 (__fastcall on the screen). Destructor bodies of the item screens (vtable
+// 00740A2C's screen; the camp, vtable 0074091C, which also has a CStringArray at +0x240 and a
+// CArray at +0x19C): both caches' objects released and their maps destroyed, then the container
+// base (ui_item_screen.cpp).
+void __fastcall ItemScreenDestroy(CItemScreen* self);
+void __fastcall CampScreenDestroy(CItemScreen* self);
+// 005F7010 (__fastcall). Destructor body of screen 9 (vtable 00740D18): its vector of CStrings at
+// +0x1AC, then both caches as above (ui_item_screen.cpp).
+void __fastcall Screen9Destroy(CItemScreen* self);
+
 // The item screens' icon window (0x148 bytes, vtables 00740444 / 00740410; made by 005EDD80).
 class CItemIconWindow : public CUiWindow {
 public:
@@ -172,6 +183,10 @@ public:
     // 005EE5C0 (slot 20). Draws the described item's model at (x + 100, y + 200), size 120,
     // greyed (mode 9) through the owner's DrawItem; returns 1 (ui_item_view.cpp).
     BOOL Draw(int pass);
+    // 005EE440 (RET 8). Builds the panel at layout point (x, y): its 200 x 300 surface (format 5),
+    // the item texts "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text
+    // table, and an empty item list (its slot 2).
+    void Build(int x, int y);
 
     // The described item (005EE720 inlined): the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }

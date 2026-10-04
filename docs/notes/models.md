@@ -408,3 +408,21 @@ the line list.
 - 005A0E80 RasteriseFigureMesh (figure_rasterise.cpp): texture coordinates scaled into its own
   static array, triangles to the rasteriser's slot 8 / 9. Verify: differential through a
   stand-in rasteriser.
+
+
+## Figure loading (005AC880, 005AC010, 005ACCF0, 005ACB80, 005A9EF0, 005AA1C0)
+
+- 005AC880 LoadSkeletonLinks (figure_links.cpp): "<name>.lnk" or the model's part; pairs of
+  (child, parent) names to the figure's 0050CC60, then 0050D2E0.
+- 005ACB80 LoadFigureBones (figure_links.cpp): "<dir><name>.bon" or the model's bones part; 0x48
+  bytes to 0050BC00, other sizes to 0050B8C0; the data is not released.
+- 005AC010 LoadFigureBounds (figure_load_bounds.cpp): "<dir><name>.fig" or the model's part;
+  "FIG" headers to 005AAE60, others to 005AB9A0.
+- 005ACCF0 SetFigureAnimation (figure_animation.cpp), 005A9EF0 FindModelAnimation and 005AA1C0
+  DestroyFigureManager (figure_models.cpp / figure_model_destroy.cpp).
+
+All verified ours only (they read resources, allocate or free).
+
+- 005A9A50 ConstructFigureModel (figure_models.cpp): the animation map built as STLport's
+  hashtable constructor inlines it (buckets for the first listed prime not below 100), then the
+  three parts (0x6C bytes each, 006721D0). Verify: ours only.

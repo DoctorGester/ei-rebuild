@@ -283,3 +283,29 @@ static void __fastcall SwapContentsVerify(CUiSurface* self, void*, int restore) 
                       static_cast<unsigned>(raw.size()), created);
 }
 EI_VERIFY(0x005FD7A0, SwapContentsVerify, 7, s_swapContents);
+
+// 005FFFB0: PUSH -1; PUSH imm32 (7). Side by side on the written rectangle of the texture's surface
+// and the result.
+static int(__thiscall* s_copyImage)(CUiWindow*, CEngineObject*, const char*, int, int, int, int, int, int, int, int);
+static int __fastcall CopyImageVerify(CUiWindow* self, void*, CEngineObject* texture, const char* name, int imageWidth,
+                                      int imageHeight, int width, int height, int x, int y, int unused1, int unused2) {
+    std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(texture) + 0x5C);
+    IDirectDrawSurface7* dd = holder ? *reinterpret_cast<IDirectDrawSurface7**>(holder + 0x10) : nullptr;
+    RECT area = {x, y, x + width, y + height};
+    Pixels before;
+    bool pixels = width > 0 && height > 0 && AccessSurface(dd, before, false, &area);
+    int expected = s_copyImage(self, texture, name, imageWidth, imageHeight, width, height, x, y, unused1, unused2);
+    Pixels expectedPixels;
+    if (pixels) pixels = AccessSurface(dd, expectedPixels, false, &area) && AccessSurface(dd, before, true, &area);
+    int actual = self->CopyImage(texture, name, imageWidth, imageHeight, width, height, x, y, unused1, unused2);
+    int row = -1;
+    if (pixels) {
+        Pixels actualPixels;
+        if (AccessSurface(dd, actualPixels, false, &area)) row = FirstDifferentRow(expectedPixels, actualPixels);
+    }
+    ei::verify::Check("CUiWindow::CopyImage", true, row == -1 && expected == actual,
+                      "%s at (%d, %d) %dx%d: pixel row %d (compared %d), result %d/%d", name, x, y, width, height, row,
+                      pixels, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x005FFFB0, CopyImageVerify, 7, s_copyImage);

@@ -33,3 +33,18 @@ static bool __fastcall ClearOccluderVerify(CAIMap* self, void*, FootprintCell* c
     return result;
 }
 EI_VERIFY(0x005B6380, ClearOccluderVerify, 0, s_unused);
+
+int __fastcall NewOccluderRecord(std::uint8_t* sector);
+
+// 005BFE70: allocates, so ours only. A free record is taken from the head of the free list,
+// otherwise the array grows by one and its last index is returned.
+static int __fastcall NewRecordVerify(std::uint8_t* sector) {
+    int freeHead = *reinterpret_cast<int*>(sector + 0x3C);
+    int size = *reinterpret_cast<int*>(sector + 0x48);
+    int result = NewOccluderRecord(sector);
+    int sizeAfter = *reinterpret_cast<int*>(sector + 0x48);
+    bool ok = freeHead >= 0 ? result == freeHead && sizeAfter == size : result == size && sizeAfter == size + 1;
+    ei::verify::Check("NewOccluderRecord", true, ok, "free %d size %d -> %d", freeHead, size, result);
+    return result;
+}
+EI_VERIFY(0x005BFE70, NewRecordVerify, 0, s_unused);

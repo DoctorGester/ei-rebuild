@@ -158,8 +158,7 @@ key delete
 key home
 key end
 key enterchar
-wait 500
-expect Current FPS:
+waitexpect 10 Current FPS:
 key up
 key up
 key down

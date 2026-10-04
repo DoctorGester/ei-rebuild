@@ -2,5 +2,3 @@
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
 00402B20  CBaseManager::ConstructBase: ours writes zeros where the original leaves bytes alone (5678 of 6452 calls differ)
 004098D0  ChunkArchive::EnterChunk: pushed chunk record differs from the original's (1 in 11 calls)
-005EC300  CUiWindow::DrawHeroPreview: crashes in a Direct3D call (null object) when the camp opens
-005F2A90  CItemIconWindow::Build: check expects 30 sprites, the scene gets 31 objects

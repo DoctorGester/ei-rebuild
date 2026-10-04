@@ -1214,7 +1214,67 @@ the camp may be laid out differently and some rows missed (harmless).
   thread calls it). Reached only with the display option's software cursor bit.
 - Item screens (ui_item_screen.cpp): `CreateBase` 005EDD80 (icon window, textures, display
   settings, cache limits; the original inlines the trimming loops, which match 005F2F20 / 005F2F90
-  except for calling begin()), `CItemIconWindow::Build` 005F2A90 (30 frame sprites through the
+  except for calling begin()), `CItemIconWindow::Build` 005F2A90 (31 frame sprites through the
   Rebirth-patched builders 005E7680 / 005E70E0), `TrimItemModels` / `TrimItemTextures`
   005F2F20 / 005F2F90 (least recently used first; spins while every entry was used at or after
   now). All ours only.
+- In-game fixes: DrawHeroPreview called the Direct3D device's methods (Clear,
+  Get/SetTextureStageState) through the thiscall helper, so the interface pointer went in ECX
+  instead of on the stack (crash in D3DImm when the camp opened). COM methods are stdcall with the
+  interface pushed first; every device call now goes through a stdcall helper. The icon window's
+  check counted 30 sprites; the strip, 4 x 6 column pieces and 6 bars make 31.
+
+## Seventh pass
+
+Interface logic only (the renderer is being rebuilt behind the DirectDraw / Direct3D boundary, so
+code that mainly locks, blits or draws stays original: 005E4EB0 the cursor image, 005E18E0 and
+005E5690 as before).
+
+- `CInterface3D::CreateScreen` 005F5BA0: the original inlines screens 1, 2, 3 and 7's
+  constructors (container base 00600B20, member constructors, vtables); id 0 does nothing, 6 and
+  ids above 9 reach the activation with the id as the window pointer. Ours only: the window at the
+  bottom of the stack carries the screen's vtable.
+- `CInterface3D::Activate` 005F71C0 and `PushWindow` 005F7350: the window stack (+0x34..+0x3C,
+  STLport vector; 005FA9A0 when full), backdrops +0x54 / +0x58, +0x50, +0x60 (the server flag kept
+  for the first window), the modifier flags +0x7C..+0x80, five render states (0x1B, 0x0F, 0x13,
+  0x14, 0x18; COM SetRenderState), slot 25 Create, the message pump. Ours only.
+- `CInterface3D::OnKeyDown` 005F78C0: scan codes 0x1D / 0x11D set +0x7C (Ctrl), 0x2A / 0x36 +0x7D
+  (Shift), 0x38 / 0x138 +0x7E (Alt); ui.h's field names there are provisional and do not match.
+  0x29 toggles the console, 0x46 (Scroll Lock) writes "shot%.4d.bmp" (counter 007C7E24). Ours only.
+- `CUiWindow::Construct` 005FE700, `DestroyBase` 005FE930 (the destructor body; it frees the arrays
+  with SetSize(0), so the array destructors after it find nothing), `ReplaceSceneObject` 005FF460
+  (the inlined InsertAt grows as SetSize), `CopyImage` 005FFFB0 (an image into part of a 256-wide
+  texture; side by side on the written rectangle), `CUiContainer::AddChild` 00600D30.
+- Camp: `CCampPages::Close` 0060E6B0 (slot 26; unit records raised by 100000000 around 005789E0),
+  `TakeOff` 0060FE40, the trade panel's destructor body 0060E3E0 (vtable 007417A8). Ours only.
+- DrawHeroPreview's check (in-game: 8 of 2021 calls): it compared the whole +0x08 dword with the
+  transform. The animation step (model slot 25) and the drawing (slot 22) may change other bits of
+  it; the original only clears 0x800 of what it reads after drawing. The check now compares the
+  position and orientation (put back byte for byte from the copies) and flag 0x800.
+
+## Eighth pass
+
+- Screens: `CGlobalMap::Construct` 005F67A0 and its destructor body 005F6920; `CCampPages::
+  Construct` 005F6240 (CreateScreen 5); the item screens' destructor bodies 005F6470 (vtable
+  00740A2C) and 005F6620 (the camp; the original inlines the caches' map erase: over the left
+  spine in 005F6470, one erase of the root in 005F6620); screen 9's constructor 005F6F30 and
+  destructor body 005F7010 (its CString vector freed through STLport's node allocator, inlined);
+  screen 8's constructor 005F6D50 and destructor body 005F6E40 (a list of 0x18-byte nodes). The
+  STLport containers' empty compare / allocator objects are passed by address in the original
+  (argument slots, stack bytes); where a constructor keeps the byte, ours passes the same value.
+  All ours only.
+- `CInterface3D::OpenHelp` 005F86F0 (ShowHelp's target: the seen-topics map at +0x98, the help
+  window), `ShowMessage` 005F8A80 (the message queue at +0x84 and the same window class 00740E28),
+  `MessageText` 005F8C90 (multiplayer message texts; side by side on the string), `LoadState`
+  005F8420 (the interface's saved state, by save version).
+- Camp: `PutOn` 0060FCA0, `RefreshWeapons` 0060F9E0 (slot 46), `RefreshStats` 0060F980 (slot 47),
+  `Update` 0060F6B0 (slot 24; the hero preview's turn through _CIfmod), `NextHero` / `PreviousHero`
+  0060F710 / 0060F7A0 (slots 48 / 49), `ShowHero` 0060F830.
+- `CItemInfoPanel::Build` 005EE440; the battle camera's key input 005EADD0 (side by side on the
+  camera's motion, view and saved-view bytes and the input object); `UiPtrArray::SetAtGrow`
+  006005F0.
+- Not rewritten (left): 005E3230 (the chat input's keys; multiplayer only); STLport algorithm and
+  container instantiations over strings and records (0060BF20 / 0060C070 / 0060C0B0 insertion
+  sort, 0060C390 / 0060C510 heap adjust, 0060A660 vector insert overflow); the base / briefing
+  screen's destructor body 005F6BA0 (briefing screen skipped); rendering code (005E4EB0 the cursor
+  image, 005E6D90 the sprite draw, ...).
