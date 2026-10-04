@@ -690,6 +690,37 @@ object (slot 20) or the brain and alarm resets, both orders emptied.
 | 00549D40 | CUnitServer::ActionInReach | reads only: ours and the original compared |
 | 00552B90 | CUnitServer::TickItemSpells | ours only (counted) |
 
+Movement modes, animations and paths (`src/game/combat_motion.cpp`, verify
+`tests/verify/verify_combat_motion.cpp`):
+
+| Address | Name | Verification |
+|---|---|---|
+| 00549D00 | CUnitServer::CanReactFor | reads only: compared |
+| 00548DE0 | CUnitServer::PlayAnimationOrder (steps by value) | ours only: state 3, the queue started |
+| 00548FA0 | CUnitServer::PlayEmoteOrder (the same code, state 4) | ours only: state 4, the queue started |
+| 00550D90 | CUnitServer::BuildIdle | the output rebuilt from scratch: ours, copied, original into the same list; steps (without byte 3) and extra compared |
+| 00550F30 | CUnitServer::IdleAnimation | ours only: +0x960 returned, the key is the unit's |
+| 005474B0 | CUnitServer::PlayIdle | ours only (counted) |
+| 005511A0 | CUnitServer::BuildMoveSteps | as BuildIdle |
+| 00551400 | CUnitServer::NextAnimation | ours only: +0x944 returned |
+| 005494D0 | CUnitServer::StartAction | ours only: state 5 |
+| 00548520 | CUnitServer::UpdateSneak | ours only (counted) |
+| 0054A150 | CUnitServer::ChangeMoveMode | ours only: a change leaves both records equal |
+| 00548700 | CUnitServer::PathTo | ours only: state 0 with a path, 6 without |
+| 005468D0 | CUnitServer::LiftNearby | ours only: every listed unit is off the sector map |
+| 0054EB30 | CUnitServer::ReportPath | ours only (counted) |
+| 00546480 | CUnitServer::ResetController | ours only: the reset fields |
+
+More controller fields: `+0x0A9` / `+0x0AA` the path's flags (+0x6D, +0x6E: no player), `+0x145`
+the last path was blocked, `+0x146` a pending path to +0x9C, `+0x147` moving (the movement
+animation plays), `+0x178` updates in mode 3 without a cheap cell, `+0x238` (stats +0x58) a
+hero's stamina for the walk / run animations (limits 007C5448 / 007C5440), `+0x940` / `+0x944`
+the movement animation key and list, `+0x95C` / `+0x960` / `+0x974` the idle key, list and its
+time (0x666DEAD: no key yet), `+0x1DC` the unit waited for (referenced), `+0x984` the brain's
+mode (6: no path reports). Animation keys: weapon bit | movement bits (0x30000 / 0x20000 /
+0x10000 / 0x8000) | 0x80580000 idle; | 0x100000 (unit mode 3) or 0x140000, and 0x40000000 once or
+0x80000000 looped (heroes | 0x800000 / 0x400000 when tired) for movement.
+
 ### Forwarders added (fourth round)
 
 00455940 / 00455950; CUnit 0050E9F0, 0052EA90, 0052EAD0, 0052EAF0, 00530570, 00530970, 005300D0
@@ -699,7 +730,13 @@ object (slot 20) or the brain and alarm resets, both orders emptied.
 005C7B00, 005C7430; the controller's 0054B390, 00547890, 00552E00, 00549EC0, 00552C60, 00550A80,
 0054B880, 00548700; the CArray<AnimationStep> instantiations 00556950 / 005483C0 (Copy, two copies
 of the same code), 00556870, 00557B60, 00557E70, 00557B80, 00557E20 (library code: not ported) and
-OrderPlan's reset 00544FD0.
+OrderPlan's reset 00544FD0. combat_motion.cpp adds: 005301B0 (animation entry for a key), 00402200
+(NegateVector), 005241C0 / 005233E0 (UnitStats), 005BA6E0 / 005BA830 / 005BA5A0 / 005BB350 (AI
+map), 005C0BD0 / 005C1010 / 005C0DF0 (sector map), 004B3330 (ScriptGroup::Contains), 005B1F10 /
+005B2050 / 005B22C0 (AIPath), 005D5E90 / 005D4F70 (brain), 0066D490 (a player's path message),
+00551A40 (AnimationDuration), 005516D0 (BuildTransition), 00550050 / 005500A0, the CArray
+instantiations 00558950 (SetAtGrow), 00557CC0 (Add), 00544D50 (add an emote), 00550A60 (a blank
+step), and MFC 006FE90F (CPlex::FreeDataChain), 0052CEF0 / 005588A0 (CList node allocation).
 
 ### Original bugs and oddities kept (fourth round)
 
@@ -709,6 +746,15 @@ OrderPlan's reset 00544FD0.
   to read the (null) target's position: an access violation in both versions.
 - TickAction's plan reset is the inlined 00544FD0 (EndOrder calls it); both leave the same state.
 - Boredom draws from the ISAAC generator only once +0x938 passes 500.
+- ReportPath passes the player's path message an uninitialised point when the path is not partial
+  (kind 3); ours passes zeros there (the message does not use it for that kind, as far as seen).
+  It also constructs and destroys an unused CList (00556D10 / 00556D40, vtable 0073EDB0); ours
+  does not.
+- PathTo saves CUnit +0x43C, writes the same value back and restores it after FindPath.
+- NextAnimation passes a pause step's emote as the misaligned dword at step + 1 (as the movement
+  tick does); the idle builders and the movement steps duplicate the same key code inline
+  (00550D90 / 00550F30 / 005474B0 / 005511A0 / 00551400); ours shares it.
+- LiftNearby's first loop over the list does nothing (an inlined RemoveAll walking the nodes).
 
 ### Risks (fourth round)
 
