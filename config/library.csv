@@ -3254,3 +3254,7 @@ address,name,library,signature,notes
 00454ED0,"ConstructElements (20-byte elements, zero fill)",MFC,,"range 440 review: MFC template instantiation (ConstructElements), not game logic"
 00454F00,ConstructElements (zero fill),MFC,,"range 440 review: MFC template instantiation (ConstructElements), not game logic"
 00454F30,"ConstructElements (20-byte elements: zeroed, fields cleared)",MFC,,"range 440 review: MFC template instantiation (ConstructElements), not game logic"
+00453240,"ConstructElements (0x220-byte CFigure parts: zeroed, then each constructed in place)",MFC,,"range 440 review: MFC template instantiation (ConstructElements with the element's constructor inlined), not game logic; used by the CArray SetSize 0044FCD0"
+004545C0,"ConstructElements (0x18C-byte records: zeroed, then each constructed in place)",MFC,,"range 440 review: MFC template instantiation (ConstructElements with the element's constructor inlined), not game logic"
+00454F80,"ConstructElements (0x120-byte records: zeroed, then each constructed in place; vtable 0073C1B8)",MFC,,"range 440 review: MFC template instantiation (ConstructElements with the element's constructor inlined), not game logic"
+00450750,"CArray<TYPE,ARG_TYPE>::ElementAt (0x9C-byte elements)",MFC,,"range 440 review: MFC template instantiation, not game logic"
