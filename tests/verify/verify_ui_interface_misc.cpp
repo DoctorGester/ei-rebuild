@@ -84,3 +84,18 @@ static void __fastcall DestroyBaseVerify(CUiWindow* self, void*) {
                       self->models_.size_);
 }
 EI_VERIFY(0x005FE930, DestroyBaseVerify, 0, s_unused);
+
+// 005F78C0: ours only (keys reach windows and the console). A modifier key (not a repeat) must
+// leave its flag set: +0x7C Ctrl, +0x7D Shift, +0x7E Alt.
+static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key, int repeat, int flags) {
+    self->OnKeyDown(key, repeat, flags);
+    int scan = flags & 0x1FF;
+    int offset = (scan == 0x1D || scan == 0x11D) ? 0x7C
+                 : (scan == 0x2A || scan == 0x36) ? 0x7D
+                 : (scan == 0x38 || scan == 0x138) ? 0x7E
+                                                    : 0;
+    if (!offset || (flags & 0x4000)) return;
+    std::uint8_t flag = reinterpret_cast<const std::uint8_t*>(self)[offset];
+    ei::verify::Check("CInterface3D::OnKeyDown", true, flag == 1, "scan %X: flag +%X = %d", scan, offset, flag);
+}
+EI_VERIFY(0x005F78C0, InterfaceKeyDownVerify, 0, s_unused);

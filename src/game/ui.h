@@ -59,6 +59,13 @@ public:
     // it to the activation (005F71C0); 0 does nothing, 6 and ids above 9 hand over the id
     // itself as the window pointer (as the original). ui_create_screen.cpp.
     void CreateScreen(int id);
+    // 005F78C0 (RET 0xC; the interface's key-down handler, `flags` the WM_KEYDOWN lParam bits:
+    // scan code in the low 9 bits, bit 14 repeat). Ctrl, Shift and Alt set +0x7C, +0x7D, +0x7E
+    // (not on a repeat); the key under Esc toggles the console; Scroll Lock saves
+    // "shot<nnnn>.bmp"; other keys go to the shown console, else (multiplayer client) the window
+    // at +0x1C when its +0x14C is set, else the active window, and a ';' key nobody handled
+    // shows help (005F86F0). ui_interface_keys.cpp.
+    void OnKeyDown(int key, int repeat, int flags);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
