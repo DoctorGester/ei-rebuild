@@ -8,9 +8,11 @@
 # (FixRepairPrice), items made by name (FixCreateItem), objects removed (FixRemoveMapObject) and
 # the units' update with the sleeping objects' effects (FixSpellEffectsOverflow #0), objects created
 # (FixAddMapObject), addon's console commands and nogui (AddNewConsoleCommands), the AutoExec lines
-# before "exec autoexec.cfg" of the new game (AutoExec). Rebirth
+# before "exec autoexec.cfg" of the new game (AutoExec), addon's script functions and commands
+# (AddNewScriptCommands; the existing lines also parse with its table and keyword rule), every frame
+# drawn with the starter's draw radii (ObjectsDrawRadius, LandscapeDrawRadius). Rebirth
 # install: the flags follow addon.dll and the wrappers compare with the patched originals.
-rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars
+rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
 wait 6000
 console thingamabob
@@ -53,6 +55,99 @@ console nogui 1
 wait 500
 console nogui 0
 wait 500
+
+# addon's arithmetic functions (AddNewScriptCommands): "#" lines print the value. Add, Mul, Max,
+# Min, And and Or take any number of arguments ('+'), Random a second one ('?'; with one it stays
+# the game's). DistancePointPoint reads two floats past its arguments (as in addon).
+console #Add(1000,200,30,4)
+expect 1234
+console #Mul(2,3,7,11)
+expect 462
+console #Max(17,4711,23)
+expect 4711
+console #Min(9876,5432,7777)
+expect 5432
+console #Pow(2,13)
+expect 8192
+console #Add(Round(2.5),Round(-31.5),Ceil(77.2),Floor(65.9),Abs(-2000))
+expect 2114
+console #Add(And(1,2,3),And(1,0.5),Or(0,0,7),Or(0,0.25),Sin(0),Cos(0),4320)
+expect 4323
+console #Add(Random(5000,5000),Random(7,3))
+expect 5007
+check IsLess(Random(10,20),20)
+console #Random(2)
+console #DistancePointPoint(3,4)
+
+# addon's string functions: "$" lines print a string through ConsoleString (addon's, any number of
+# texts), which evaluates string functions through the new CalcString.
+console $StrCat("ab","cd","ef")
+expect abcdef
+console $FloatToStr(3.14159,2)
+expect 3.14
+console $StrMid("abcdefgh",3,4)
+expect cdef
+console $StrMid("abcdefgh",-3,0)
+expect fgh
+console $StrUpper("Mixed")
+expect MIXED
+console $StrLower("LOWER")
+expect lower
+console #Add(StrToFloat("1000.5"),StrHas("haystack","st"),StrLen("abcd"),0.5)
+expect 1006
+console $RandStr("same","same")
+expect same
+console $FloatToStr(2.5)
+console $GetObjectStringID(GetLeader())
+console @ConsoleString("one ","two ","three")
+expect one two three
+console @Say("not in single player")
+
+# addon's unit, object and player functions (NearestUnit from the hero's own position finds the
+# hero; filter 7 = units, other objects and living ones).
+console #GetPlayerOfUnit(GetLeader())
+console #Add(GetUnitExp(GetLeader()),GetUnitExp(GetLeader(),"real"),GetUnitExp(GetLeader(),"spent"))
+console #Add(GetArmor(GetLeader(),0,0),GetArmor(GetLeader(),5,6),GetArmor(GetLeader(),-1,2))
+check IsEqualString(GetObjectStringID(NearestUnit(GetX(GetLeader()),GetY(GetLeader()),5,1)),GetObjectStringID(GetLeader()))
+check IsGreater(GroupSize(UnitsNearPoint(GetX(GetLeader()),GetY(GetLeader()),10,7)),0)
+check IsAlive(RandObj(GetPlayerUnits(GetPlayer(GetLeader()))))
+check PlayerExists(GetPlayer(GetLeader()))
+console #Add(GetDexterity(GetLeader()),GetIntelligence(GetLeader()),GetStrength(GetLeader()))
+console #Add(GetActions(GetLeader()),GetActionsBase(GetLeader()),GetEncumbrance(GetLeader()),GetMaxEncumbrance(GetLeader()))
+console #Add(GetSkill(GetLeader(),"melee"),GetPerk(GetLeader(),"sword"),GetPerk(GetLeader(),"intelligence"))
+console $StrCat(GetPrototype(GetLeader()),"/",GetRace(GetLeader()))
+check IsEqual(GetObjectTypeID(GetLeader()),80)
+check IsGreater(GroupSize(GetObjectsOnMap(-1)),0)
+check IsGreater(GroupSize(GetObjectsOnMap(80,81)),0)
+console #IsPlayer(GetLeader())
+check IsAlive(GetLeader())
+check Not(IsDead(GetLeader()))
+
+# addon's commands: player variables, experience, camera saving, targets, the draw-all flag,
+# pause (both ways), weather, items (the override is refused for the hero's text-key id; an
+# unknown armour is reported), and the wolf killed, looted and removed. Not run: GameOver and
+# GameOverMSG (they end the game), AddMobEx (needs a .mob file to load).
+console @GSSetPlayerVar(GetPlayer(GetLeader()),"zz.addon",42)
+waitfor 5 IsEqual(GSGetPlayerVar(GetPlayer(GetLeader()),"zz.addon"),42)
+console @GSListPlayerVars(GetPlayer(GetLeader()))
+expect zz.addon = 42.000000
+console @GiveUnitExp(GetLeader(),10) GiveExp(GetPlayer(GetLeader()),5)
+console @ResetTarget(GetLeader()) SendCurrentParty(GetPlayer(GetLeader()))
+console @StartCameraSave("zzaddon") StopCameraSave()
+console #IsFileExists("../escape.txt")
+console #IsFileExists("no such file.txt")
+console @ShowAllUnits(0) ShowAllUnits(1)
+console @PauseGame(0) PauseGame(1)
+console @SetWeather("rain")
+wait 500
+console @SetWeather("clear")
+console @GiveUnitWeapon(GetLeader(),"Axe.steel",1)
+console @GiveUnitArmor(GetLeader(),"UniqueGipatHadagan Helm.Iron",0) GiveUnitArmor(GetLeader(),"no such armour",1)
+console @KillUnit(GetObjectByName("RWolf"))
+wait 1000
+console @Loot(GetPlayer(GetLeader()),GetObjectByName("RWolf"))
+wait 500
+check IsAlive(GetLeader())
 
 # Items by name: a weapon with a material, one with a spell in brackets, a scroll.
 console @GiveItem(0,"Axe.steel")

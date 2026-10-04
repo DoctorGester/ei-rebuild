@@ -279,7 +279,7 @@ public:
     void CalcFloat(CScript* script, ScriptVars* vars, float* result);
     // 004B56C0. Functions returning an object; *result is a new temporary of `script`.
     void CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result);
-    // 004B5B00. Functions returning a group; not rewritten yet (forwarder).
+    // 004B5B00. Functions returning a group; *result is a new temporary group of `script`.
     void CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result);
 
     // The common start of the Calc functions (inlined in each): bind variables, evaluate nested calls.

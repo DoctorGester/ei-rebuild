@@ -580,6 +580,15 @@ public:
     // session's view has lost its connection (the session is disconnected, FatalError; Rebirth's
     // DisableExitOnCrashReport keeps the session).
     int Segment();
+    // 00569E40 (world_client_draw.cpp). Draws the world view: view matrix, sky, terrain passes
+    // around DrawPass, effects and particles, flying hit points. Returns 1. Rebirth's
+    // LandscapeDrawRadius sets the terrain's draw distance (100 in the game).
+    int Render();
+    // 0056AFE0 (world_client_draw.cpp). The object passes: collects the visible objects of the
+    // sectors around the camera (ObjectsDrawRadius widens the 100.0 margin), sorts and draws them,
+    // the light effects, shadows and selection markers, then empties the frame's lists. Returns 0
+    // without terrain, else 1.
+    int DrawPass();
     // 00563F70, vtable slot 27. Ground height with the position clamped into the map.
     float ClampedGroundHeight(float x, float y);
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see

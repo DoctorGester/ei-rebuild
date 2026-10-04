@@ -292,16 +292,72 @@ static int __fastcall CollectVisibleVerify(CWorldClient* self, void*, void* list
 EI_VERIFY(0x0056A990, CollectVisibleVerify, 0, s_unused);
 
 // 005641F0 (CWorldClient::Segment, slot 6) runs the client's tick: ours only. It returns 1 (0 only
-// when the connection is gone), and the game time advances by one tick unless +0x6C is set.
+// when the connection is gone), and the game time advances by one tick unless +0x6C is set. The
+// server's messages, handled before that point (the session update), may change both: the pause
+// message (00668CFF -> 00566350) sets +0x6C, and the world message (00669010 -> 00567AB0) loads
+// the client world, reading the tick from the stream and zeroing the frame count (+0x6EC) that
+// Segment increments first. So the pause flag is read afterwards, and after a load any tick goes.
 static void* s_segmentUnused;
 static int __fastcall SegmentVerify(CWorldClient* self, void*) {
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(self);
     int before = self->tick_;
-    bool paused = reinterpret_cast<const std::uint8_t*>(self)[0x6C] != 0;
+    int framesBefore = *reinterpret_cast<const int*>(bytes + 0x6EC);
     int result = self->Segment();
+    bool paused = bytes[0x6C] != 0;
+    bool loaded = *reinterpret_cast<const int*>(bytes + 0x6EC) != framesBefore + 1;
     int expected = before + (paused ? 0 : 1);
-    bool ok = result == 0 || (result == 1 && self->tick_ == expected);
-    ei::verify::Check("CWorldClient::Segment", true, ok, "result %d, tick %d -> %d%s", result, before, self->tick_,
-                      paused ? " (paused)" : "");
+    bool ok = result == 0 || (result == 1 && (loaded || self->tick_ == expected));
+    ei::verify::Check("CWorldClient::Segment", true, ok, "result %d, tick %d -> %d%s%s", result, before, self->tick_,
+                      paused ? " (paused)" : "", loaded ? " (loaded)" : "");
     return result;
 }
 EI_VERIFY(0x005641F0, SegmentVerify, 0, s_segmentUnused);
+
+// ---- The draw path (world_client_draw.cpp; ours only: they draw) ---------------------------------
+
+namespace {
+// The render device's matrix stack depths: +0x20 / +0x28 (pushed by 004D9B80), +0x40, the view +0x60.
+struct StackDepths {
+    int a, b, c, view;
+    static StackDepths Take() {
+        auto* device = *reinterpret_cast<std::uint8_t**>(0x007AF068);
+        return {*reinterpret_cast<int*>(device + 0x20), *reinterpret_cast<int*>(device + 0x28),
+                *reinterpret_cast<int*>(device + 0x40), *reinterpret_cast<int*>(device + 0x60)};
+    }
+};
+// The frame's eleven draw lists (begin, end, capacity) at 007AF508..007AF5A8 and the deferred
+// unit list 007AF5B4.
+bool FrameListsEmpty() {
+    for (std::uintptr_t a = 0x007AF508; a <= 0x007AF5A8; a += 0x10)
+        if (*reinterpret_cast<void**>(a) != *reinterpret_cast<void**>(a + 4)) return false;
+    auto* head = *reinterpret_cast<void***>(0x007AF5B4);
+    return *head == head;
+}
+} // namespace
+
+// 00569E40: afterwards the device's stacks are as before, except that the view stack has its top
+// replaced (depth at least 1). Returns 1.
+static int __fastcall RenderVerify(CWorldClient* self, void*) {
+    StackDepths before = StackDepths::Take();
+    int result = self->Render();
+    StackDepths after = StackDepths::Take();
+    bool ok = result == 1 && after.a == before.a && after.b == before.b && after.c == before.c &&
+              after.view == (before.view ? before.view : 1);
+    ei::verify::Check("CWorldClient::Render", true, ok, "result %d, depths %d %d %d %d -> %d %d %d %d", result, before.a,
+                      before.b, before.c, before.view, after.a, after.b, after.c, after.view);
+    return result;
+}
+EI_VERIFY(0x00569E40, RenderVerify, 0, s_unused);
+
+// 0056AFE0: 0 without terrain; else 1, the frame's lists and the deferred list empty again and the
+// shadow pass's two matrices popped.
+static int __fastcall DrawPassVerify(CWorldClient* self, void*) {
+    StackDepths before = StackDepths::Take();
+    int result = self->DrawPass();
+    StackDepths after = StackDepths::Take();
+    bool ok = (result == 0 || (result == 1 && FrameListsEmpty())) && after.a == before.a && after.b == before.b;
+    ei::verify::Check("CWorldClient::DrawPass", true, ok, "result %d, depths %d %d -> %d %d", result, before.a, before.b,
+                      after.a, after.b);
+    return result;
+}
+EI_VERIFY(0x0056AFE0, DrawPassVerify, 0, s_unused);

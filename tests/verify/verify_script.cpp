@@ -461,6 +461,24 @@ static void __fastcall CalcObjectVerify(SSCCmd* self, void*, CScript* script, Sc
 }
 EI_VERIFY(0x004B56C0, CalcObjectVerify, 6, s_calcObject);
 
+// 004B5B00: PUSH -1; PUSH imm32 (7 bytes). Each run returns its own temporary group; their objects
+// must match.
+static void(__fastcall* s_calcGroup)(SSCCmd*, void*, CScript*, ScriptVars*, ScriptGroup**);
+static void __fastcall CalcGroupVerify(SSCCmd* self, void*, CScript* script, ScriptVars* vars, ScriptGroup** result) {
+    RandomSnapshot before, afterOurs;
+    before.Take();
+    ScriptGroup* actual = nullptr;
+    self->CalcGroup(script, vars, &actual);
+    afterOurs.Take();
+    before.Restore();
+    s_calcGroup(self, nullptr, script, vars, result);
+    bool same = actual && *result && actual->size == (*result)->size && afterOurs.Matches();
+    for (int i = 0; same && i < actual->size; ++i) same = actual->data[i].object == (*result)->data[i].object;
+    ei::verify::Check("SSCCmd::CalcGroup", true, same, "id %02X: %d vs %d objects", self->id, *result ? (*result)->size : -1,
+                      actual ? actual->size : -1);
+}
+EI_VERIFY(0x004B5B00, CalcGroupVerify, 7, s_calcGroup);
+
 // 004B4030: MOV EAX,[ESP+0xC]; MOV EDX,[EAX] (6 bytes). Compares the argument the call fills.
 static void(__fastcall* s_calcParameters)(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*);
 
@@ -470,6 +488,9 @@ std::vector<std::uint32_t> ArgumentValue(const SSCCmd* cmd, const ScriptSubCall*
     std::vector<std::uint32_t> v;
     switch (call->type) {
     case kScriptFloat: v.push_back(reinterpret_cast<const std::uint32_t*>(cmd->floatArgs.data)[call->argIndex]); break;
+    case kScriptString:   // only with Rebirth's AddNewScriptCommands (string functions)
+        for (const char* s = cmd->stringArgs.data[call->argIndex]; *s; ++s) v.push_back(static_cast<unsigned char>(*s));
+        break;
     case kScriptObject: {
         const ScriptObjectRef* ref = cmd->objectArgs.data[call->argIndex];
         v.push_back(reinterpret_cast<std::uint32_t>(ref ? ref->object : nullptr));

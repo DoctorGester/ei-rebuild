@@ -84,7 +84,8 @@ None of the rewritten functions lies in Rebirth's patched range 0x004CF4A2-0x004
 - 00455630 diplomacy, 00665640 player HasItem, 00460AF0 player quest variable, 005BBC70 water test,
   0057F440 multiplayer flag, 00419940 / 0041A020 game server GetVar / leader id, 005788B0 camera
   playing, 00461360 object id from name.
-- CScript: 004B59F0 NewTempObject, 004BCE10 FindArea. SSCCmd::CalcGroup 004B5B00 (not rewritten).
+- CScript: 004B59F0 NewTempObject, 004BCE10 FindArea; the group temporaries list (+0x1B0) AddTail 004C8D80,
+  group destructor 004C2290, assignment 004C1290; world object iterator 00404920 / 00404960.
 - CArray<ScriptObjectRef>::SetSize 004C2050; CStringArray copy-to helper 004C2F80.
 - CRT kept local to the script files: qsort 006E88FC, memmove 006E79A0, _mbscmp 006E848B,
   atoi 006E80D8, _ftol 006E853C, _CIfmod 006E95AA (could move to `lib/crt.h`).
@@ -102,8 +103,8 @@ None of the rewritten functions lies in Rebirth's patched range 0x004CF4A2-0x004
 
 ## Skipped
 
-- 004B5B00 SSCCmd::CalcGroup: the PlayerSee case walks a hash container through iterator helpers
-  (00455830/00455890/004558B0) with an unclear frame; left for later.
+- (004B5B00 SSCCmd::CalcGroup was rewritten later, for Rebirth's AddNewScriptCommands: script_eval.cpp;
+  PlayerSee walks the party hash map like combat_actions.cpp.)
 - 004B6760 SSCCmd::Execute (14 KB command switch), rewritten later as ScriptRun::Execute: see
   "Command execution and runtime" below. The CScript loader 004CF4D0-004D53C0 was rewritten
   later: see "Loader and parser" below.

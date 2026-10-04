@@ -256,9 +256,15 @@ declarations in CWorldClient, and the sort entry points and ModelUseLess appende
 
 ## Map of the client frame
 
-The draw path 00569E40 -> 0056AFE0 is patched by Rebirth, so it stays original (CWorldClient slot
-6, 005641F0, is now rewritten as `CWorldClient::Segment` in world_client.cpp, with Rebirth's
-DisableExitOnCrashReport behind its flag). 0056AFE0 (the draw pass) does, per frame:
+The draw path 00569E40 -> 0056AFE0 (patched by Rebirth's LandscapeDrawRadius / ObjectsDrawRadius)
+is rewritten as `CWorldClient::Render` / `CWorldClient::DrawPass` in world_client_draw.cpp, with
+those patches behind their flags (CWorldClient slot 6, 005641F0, is `CWorldClient::Segment` in
+world_client.cpp, with Rebirth's DisableExitOnCrashReport behind its flag). Render: the view
+matrix (004F0EF0 of the camera 0079B2A8) replaces the view stack's top and is pushed for the
+scene, the sky (flag 0x1000, +0x1AC), the terrain's first pass (0x100: 006CA260 with the camera
+position and the draw distance 100.0, 006C6230), DrawPass, the terrain's second pass (006C6330),
+the effects, particles, lightning and ribbons (0x400), 00569D60, the pops, the flying hit points
+(0x2000). 0056AFE0 (the draw pass) does, per frame:
 
 1. Clears eleven global `vector<CEngineObject*>` (0056E870 = erase(begin, end)): 007AF508 objects
    whose model should stay loaded; visible lists 007AF568 (class 0x52), 578 (units, 0x50),
@@ -384,7 +390,8 @@ range (input, original's order, ours).
 
 ## Skipped
 
-- 0056AFE0, 00569E40, 005641F0, 00567AB0: patched by Rebirth.
+- 00567AB0 (the client world load): not rewritten. (0056AFE0, 00569E40 and 005641F0 were rewritten later,
+  with the Rebirth patches behind flags.)
 - The sorts' heap helpers (00577FC0, 00577730, 00577E90, 005782F0) and the copy_backward /
   unguarded_linear_insert instantiations (005776A0, 005776D0, 005778A0, 00577F90): their logic is
   in the template, but they are not hooked separately.

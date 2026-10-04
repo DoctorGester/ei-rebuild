@@ -81,7 +81,10 @@ META = {
 STATUS = {
  'FixLeversActivate': 'implemented: LockKey::Opens (src/game/unit_stats.cpp)',
  'FixMoveObject': 'implemented: CSectorMap::Move (src/game/sector_map.cpp)',
- 'AllowScriptArgsInLoops': 'implemented: CScript::LoadCommands (src/game/script_parse_load.cpp); Rebirth comparison waits for AddNewScriptCommands (same function)',
+ 'AllowScriptArgsInLoops': 'implemented: CScript::LoadCommands (src/game/script_parse_load.cpp)',
+ 'ObjectsDrawRadius': 'implemented: new rewrite CWorldClient::DrawPass 0056AFE0 (src/game/world_client_draw.cpp)',
+ 'LandscapeDrawRadius': 'implemented: new rewrite CWorldClient::Render 00569E40 (src/game/world_client_draw.cpp)',
+ 'AddNewScriptCommands': 'implemented: table, dispatch, \'?\'/\'+\', keyword rule and CalcString in src/game/script_addon.cpp, hooked from CalcParameters/CalcFloat/CalcObject (script_eval.cpp), Execute (script_exec.cpp), ClassifyToken/FunctionSignature/KeywordName/ScriptError (script_parse.cpp), LoadFunction/LoadCommands (script_parse_load.cpp) and the new rewrite SSCCmd::CalcGroup 004B5B00 (script_eval.cpp); handlers in src/game/script_addon_*.cpp',
  'FixPlaingBattleMusicFromAntimagic': 'implemented: new rewrite CUnitServer::IsFighting 0054B580 (src/game/combat.cpp)',
  'FixRepairPrice': 'implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp)',
  'FixProgressNames': 'implemented: new rewrite SelectLoadingMovie 00595080 (src/game/world_zone.cpp)',
@@ -103,6 +106,11 @@ SITE_STATUS = {
  ('DisableExitOnCrashReport', 0x004800C9): 'implemented: new rewrite FatalError 00480080 (src/game/app.cpp)',
  ('DisableExitOnCrashReport', 0x00564330): 'implemented: new rewrite CWorldClient::Segment 005641F0 (src/game/world_client.cpp)',
  ('FixSpellEffectsOverflow', 0x0058D82E): 'implemented: new rewrite CWorldServer::UpdateUnits 0058D670 (TickSleepingEffects; src/game/world_tick.cpp)',
+ ('AddNewScriptCommands', 0x004B56AD): 'implemented: scriptaddon::CalcString (src/game/script_addon.cpp; 004B5650 is only reached from the patched CalcParameters)',
+ ('AddNewScriptCommands', 0x004CF4A2): 'implemented as no-op: the hook only copies the error to addon.log',
+ ('AddNewScriptCommands', 0x004D4204): 'not needed: 004D41C0 is the dead script dumper',
+ ('AddNewScriptCommands', 0x004D4212): 'not needed: 004D41C0 is the dead script dumper',
+ ('AddNewScriptCommands', 0x004D460C): 'not needed: 004D41C0 is the dead script dumper',
 }
 # What addon writes at each site, for the sites worth saying more than the patch summary.
 SITE_SUMMARY = {

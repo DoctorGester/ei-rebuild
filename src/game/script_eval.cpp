@@ -1,12 +1,15 @@
-// Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat and CalcObject. See script.h.
+// Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. See
+// script.h. Rebirth's AddNewScriptCommands dispatches to addon's functions first (script_addon.h).
 //
 // Floating point: the comparisons and the few multi-step computations are written with the
 // original's x87 instruction sequences (helpers below), because their results depend on 80-bit
 // intermediates and on how FCOM reports NaN. Single operations stored straight to a float (a + b,
 // a / b, int to float) are plain C++.
 #include "script.h"
+#include "script_addon.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
@@ -292,8 +295,6 @@ __declspec(naked) MfcArray<ScriptAreaPart>* CScript::FindArea(int) EI_ORIGINAL(0
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
-__declspec(naked) void SSCCmd::CalcGroup(CScript*, ScriptVars*, ScriptGroup**) EI_ORIGINAL(0x004B5B00)
-
 void SSCCmd::PrepareArguments(CScript* script, ScriptVars* vars) {
     SetParameters(&localBindings, vars);
     SetParameters(&globalBindings, script->Globals());
@@ -306,6 +307,12 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
         call->cmd->CalcFloat(script, vars, &floatArgs.data[call->argIndex]);
         return;
     case kScriptString: {
+        // Rebirth's AddNewScriptCommands (004B4066) calls SSCCmd::CalcString (004B5650), which
+        // runs addon's string functions.
+        if (scriptaddon::Enabled()) {
+            scriptaddon::CalcString(call->cmd, script, vars, &stringArgs.data[call->argIndex]);
+            return;
+        }
         // No function returns a string: the arguments are still evaluated before the error.
         call->cmd->PrepareArguments(script, vars);
         game::FatalError("Function does not return string at SSCCmd::CalcFunction");
@@ -322,9 +329,14 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
     }
 }
 EI_REPLACE_METHOD(0x004B4030, SSCCmd::CalcParameters);
+EI_REBIRTH_IMPLEMENTS(0x004B4030, ei::rebirth::Patch::AddNewScriptCommands);
 
 void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
+    if (scriptaddon::Enabled()) {   // AddNewScriptCommands (hook at 004B425A)
+        scriptaddon::Call call{this, script, result, nullptr, nullptr};
+        if (scriptaddon::Dispatch(&call)) return;
+    }
     const float* f = floatArgs.data;
     switch (id) {
     case 0x45:   // IsEqual
@@ -684,10 +696,15 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
 }
 EI_REPLACE_METHOD(0x004B41E0, SSCCmd::CalcFloat);
+EI_REBIRTH_IMPLEMENTS(0x004B41E0, ei::rebirth::Patch::AddNewScriptCommands);
 
 void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
     *result = script->NewTempObject();
+    if (scriptaddon::Enabled()) {   // AddNewScriptCommands (hook at 004B572F)
+        scriptaddon::Call call{this, script, result, nullptr, nullptr};
+        if (scriptaddon::Dispatch(&call)) return;
+    }
     switch (id) {
     case 0x4E: { // GetObject(id)
         CEngineObject* o = TheWorld()->FindObject(Ftol(floatArgs.data[0]));
@@ -743,3 +760,166 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
     }
 }
 EI_REPLACE_METHOD(0x004B56C0, SSCCmd::CalcObject);
+EI_REBIRTH_IMPLEMENTS(0x004B56C0, ei::rebirth::Patch::AddNewScriptCommands);
+
+// ---- CalcGroup ----------------------------------------------------------------------------------
+
+namespace {
+
+// The script's temporary groups (CList<ScriptGroup> at +0x1B0): AddTail (004C8D80) copies the group
+// into a new node (the group at node + 8) and returns the node. 004C2290: group destructor.
+// 004C1290: group assignment.
+__declspec(naked) char* __fastcall GroupTempsAddTail(void* /*list*/, void*, const ScriptGroup*) EI_ORIGINAL(0x004C8D80)
+__declspec(naked) void __fastcall GroupDestruct(ScriptGroup*) EI_ORIGINAL(0x004C2290)
+__declspec(naked) void __fastcall GroupAssign(ScriptGroup*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C1290)
+
+// Walks the world object manager's list (007AFFA0); holds a reference on the manager meanwhile.
+struct ObjectIterator {
+    void* First(void* list);   // 00404920
+    void* Next();              // 00404960
+    void* list;
+    void* node;
+};
+__declspec(naked) void* ObjectIterator::First(void*) EI_ORIGINAL(0x00404920)
+__declspec(naked) void* ObjectIterator::Next() EI_ORIGINAL(0x00404960)
+
+// FNSTSW after FILD a, FCOMP b (AH).
+int CompareIntFloat(int a, float b) {
+    int status;
+    __asm {
+        fild a
+        fcomp b
+        fnstsw ax
+        movzx eax, ah
+        mov status, eax
+    }
+    return status;
+}
+
+// What a unit sees: its perception object (+0x240) lists the objects at +0xA94 ({next, ?, object}).
+void InsertSeen(ScriptGroup* group, char* perception) {
+    for (char* node = Field<char*>(perception, 0xA94); node;) {
+        char* current = node;
+        node = Field<char*>(current, 0);
+        group->Insert(Field<CEngineObject*>(current, 8));
+    }
+}
+
+// A player's party: an STLport hash_map<id, unit> at player + 0x40 (as in combat_actions.cpp).
+struct PartyNode {
+    PartyNode* next;
+    std::uint32_t key;
+    CEngineObject* unit;
+};
+struct PartyMap {
+    std::uint32_t functors;
+    PartyNode** buckets;
+    PartyNode** finish;
+};
+
+std::uint32_t BucketCount(const PartyMap* map) {
+    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->finish) -
+                                                       reinterpret_cast<std::uintptr_t>(map->buckets)) >> 2);
+}
+
+// 00455830 (hashtable::begin): the head of the first non-empty bucket.
+PartyNode* FirstNode(const PartyMap* map) {
+    for (std::uint32_t i = 0; i < BucketCount(map); ++i)
+        if (map->buckets[i]) return map->buckets[i];
+    return nullptr;
+}
+
+// operator++ (004558B0 when the chain ends).
+PartyNode* NextNode(const PartyMap* map, const PartyNode* node) {
+    if (node->next) return node->next;
+    std::uint32_t bucket = node->key % BucketCount(map);
+    for (;;) {
+        ++bucket;
+        if (BucketCount(map) <= bucket) return nullptr;
+        if (PartyNode* head = map->buckets[bucket]) return head;
+    }
+}
+
+} // namespace
+
+void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) {
+    ObjectIterator objects;
+    objects.list = nullptr;
+    PrepareArguments(script, vars);
+    {
+        ScriptGroup empty;   // 004B5ED0
+        empty.vtable = reinterpret_cast<void*>(0x0073D110);
+        empty.data = nullptr;
+        empty.size = 0;
+        empty.maxSize = 0;
+        empty.growBy = 0;
+        char* node = GroupTempsAddTail(script->Field(0x1B0), nullptr, &empty);
+        GroupDestruct(&empty);
+        *result = reinterpret_cast<ScriptGroup*>(node + 8);
+    }
+    ScriptGroup* group = *result;
+    bool done = false;
+    if (scriptaddon::Enabled()) {   // AddNewScriptCommands (hook at 004B5BAF)
+        scriptaddon::Call call{this, script, result, nullptr, nullptr};
+        done = scriptaddon::Dispatch(&call);
+    }
+    switch (done ? -1 : id) {
+    case -1:
+        break;
+    case 0x59:   // GroupAdd
+        group->Union(*groupArgs.data[0], *groupArgs.data[1]);
+        break;
+    case 0x5A:   // GroupSub
+        group->Difference(*groupArgs.data[0], *groupArgs.data[1]);
+        break;
+    case 0x5B:   // GroupCross
+        group->Intersection(*groupArgs.data[0], *groupArgs.data[1]);
+        break;
+    case 0x5D: { // UnitSee(unit)
+        group->SetSize(0, -1);
+        CEngineObject* unit = objectArgs.data[0]->AsUnit();
+        if (!unit) break;
+        if (char* perception = Field<char*>(unit, 0x240)) InsertSeen(*result, perception);
+        break;
+    }
+    case 0x5E: { // GroupSee(group): what its units see
+        group->SetSize(0, -1);
+        for (int i = 0; i < groupArgs.data[0]->size; ++i) {
+            CEngineObject* unit = groupArgs.data[0]->data[i].AsUnit();
+            if (!unit) continue;
+            if (char* perception = Field<char*>(unit, 0x240)) InsertSeen(*result, perception);
+        }
+        break;
+    }
+    case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (or NaN)
+        for (auto* o = static_cast<CEngineObject*>(objects.First(*reinterpret_cast<void**>(0x007AFFA0))); o;
+             o = static_cast<CEngineObject*>(objects.Next())) {
+            if (o->GetClassId() != kClassUnit) continue;
+            if (CompareIntFloat(Field<int>(o, 0x250), floatArgs.data[0]) & kEqual) (*result)->Insert(o);
+        }
+        break;
+    }
+    case 0xA5: { // PlayerSee(player): the player's seen objects, its party and what the party sees
+        void* player = TheWorld()->GetPlayer(Ftol(floatArgs.data[0]));
+        if (!player) {
+            (*result)->SetSize(0, -1);
+            break;
+        }
+        GroupAssign(*result, nullptr, reinterpret_cast<const ScriptGroup*>(Field<char*>(player, 0x20) + 0x50F8));
+        const auto* party = reinterpret_cast<const PartyMap*>(static_cast<char*>(player) + 0x40);
+        for (PartyNode* node = FirstNode(party); node; node = NextNode(party, node)) {
+            CEngineObject* unit = node->unit;
+            if (!unit) break;
+            (*result)->Insert(unit);
+            InsertSeen(*result, Field<char*>(unit, 0x240));   // no null check, as in the original
+        }
+        break;
+    }
+    default:
+        game::FatalError(reinterpret_cast<const char*>(0x0078B748));   // "Function does not return string at ..."
+        break;
+    }
+    if (objects.list) --Field<int>(objects.list, 4);   // the iterator's destructor
+}
+EI_REPLACE_METHOD(0x004B5B00, SSCCmd::CalcGroup);
+EI_REBIRTH_IMPLEMENTS(0x004B5B00, ei::rebirth::Patch::AddNewScriptCommands);

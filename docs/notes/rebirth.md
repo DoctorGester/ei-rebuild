@@ -194,6 +194,10 @@ Sites are listed in full in the CSV.
   float holding the setting (5376.0 here).
 - **LandscapeDrawRadius** (2 sites) - the terrain draw distance `PUSH 100.0` in 00569E40 becomes the
   setting.
+  For both, addon reads the DWORD (default 100) when it loads and patches in (float)(unsigned)
+  value, only when it is not 100. *Implemented* as new rewrites `CWorldClient::Render` (00569E40)
+  and `CWorldClient::DrawPass` (0056AFE0) in src/game/world_client_draw.cpp, reading the setting
+  once; with the flag off the margin is 0073BAB0 and the distance 100.0.
 - BinkPatch (disabled): with a mod plugin, Bink's _BinkOpen/_BinkSetVolume through the plugin.
 
 ### Scripting and console (8 applied; single player)
@@ -201,8 +205,7 @@ Sites are listed in full in the CSV.
 - **AllowScriptArgsInLoops** - `CScript::LoadCommands` (004D1330): the recursive call that parses a
   For/ForIf body passes the enclosing locals instead of 0, so a loop body can use the script's
   parameters and local variables (vanilla: "Unexpected token"). *Implemented*
-  (src/game/script_parse_load.cpp); a Rebirth launch keeps the original here until
-  AddNewScriptCommands, which patches the same function, is reproduced too.
+  (src/game/script_parse_load.cpp; with AddNewScriptCommands, which patches the same function).
 - **AllowScriptsInMainMenu** - starting the main menu zone (ZoneMainMenuNew, in 0057C460) also sets
   CWorldServer+0x160 (007B00C0; a JMP at 0057C69F to a stub that redoes `MOV EDI,4`), so Tick runs
   the first script command queue in the menu. *Implemented* as a new rewrite `GameFlow::StartZone`
@@ -217,6 +220,55 @@ Sites are listed in full in the CSV.
   ConsoleString, StartCameraSave, StopCameraSave, ...); the parser and executor (004B4030, 004B41E0,
   004B56C0, 004B5B00, 004B6760, 004CF470, 004CF600, 004CFBC0, 004D0B10, 004D0BA0, 004D1330,
   004D41C0) read the new table and dispatch the new commands. Moved here from EI_Plugin.
+  How it works (10022290): addon copies the game's 225 keywords into a vector and registers its
+  69 command records (100BA738: name, signature, handler, flags, all flags 0; 10021C61): a name
+  already in the table (stricmp) keeps its id and gets the record's signature as its function
+  signature (first letter in "FGOS") or command signature - Add, Mul, Random, IsAlive, IsDead,
+  ConsoleString and ResetTarget are replaced that way (ids 73, 75, 95, 99, 100, 126, 232); a new
+  name is appended with id 300 + the record's index. The 15 references to 0078BCA0 (ClassifyToken,
+  LoadFunction's "Expected '('", FunctionSignature, KeywordName, LoadCommands, the dead dumper
+  004D41C0) point at the new table. Context hooks look the id up in addon's map before the game's
+  switch and, when the handler returns true, jump past it: CalcFloat (004B425A), CalcObject
+  (004B572F), CalcGroup (004B5BAF), ScriptRun::Execute (004B684E, the handler gets the "go on"
+  flag and the run), and CalcString (004B56AD), the game's dead string evaluator, which the patched
+  CalcParameters now calls for string arguments (004B4066, 115 bytes) instead of the fatal error.
+  LoadFunction (004D02CC, after the separator token is classified) handles the signature letters
+  '?' (optional rest: at ')' the slots of the remaining letters are dropped, else skipped) and '+'
+  (repeat the previous type: at ')' passed, else a slot is added and the letter used again),
+  growing the arrays with its own CArray SetSize (size + 4 when full). ClassifyToken (004CF6F0)
+  rejects a match of a keyword starting with a letter when the text goes on with a letter, digit,
+  '_' or '#' (the rejected length still raises the minimum, as the hook's relocated instructions
+  run anyway), so names like "Orc1" become identifiers rather than "Or" + "c1". LoadCommands
+  (004D15D4) would parse a body after commands with record flag 1 (none). ScriptError (004CF4A2)
+  copies the error to addon.log. A handler that finds bad arguments reports to addon's console log
+  only with a mod's EnableShowingScriptErrors (no Rebirth mod sets it) and returns true.
+  *Implemented* in src/game/script_addon.cpp (table, dispatch, '?' / '+', keyword rule,
+  CalcString) with the handlers in src/game/script_addon_*.cpp, hooked from the rewritten
+  functions above plus a new rewrite of `SSCCmd::CalcGroup` (004B5B00, src/game/script_eval.cpp).
+  The handlers by group: arithmetic (Sin, Cos, Pow, DistancePointPoint, Add, Mul, And, Or, Max,
+  Min, Abs, Round, Ceil, Floor, Random; script_addon_math.cpp), strings (GetObjectStringID,
+  FloatToStr, StrToFloat, StrCat, StrLen, RandStr, StrHas, StrMid, StrLower, StrUpper, Say,
+  ConsoleString; script_addon_strings.cpp), units, objects and players (GetPlayerOfUnit,
+  GetUnitExp, GetArmor, NearestUnit, UnitsNearPoint, RandObj, PlayerExists, GetDexterity,
+  GetIntelligence, GetStrength, GetSkill, GetActions, GetActionsBase, GetEncumbrance,
+  GetMaxEncumbrance, GetPerk, GetPrototype, GetRace, GetObjectTypeID, GetObjectsOnMap, IsPlayer,
+  IsDead, IsAlive; script_addon_units.cpp: the sector map's objects within a radius for
+  NearestUnit / UnitsNearPoint, the world's object map in bucket order for GetObjectsOnMap) and
+  commands (GSSetPlayerVar, GSGetPlayerVar, GiveExp, GiveUnitExp, StartCameraSave,
+  StopCameraSave, ResetTarget, SendCurrentParty, Loot, GameOver, GameOverMSG, IsFileExists,
+  GSListPlayerVars, GiveUnitWeapon, GiveUnitArmor, ShowAllUnits, PauseGame, SetWeather,
+  AddMobEx; script_addon_commands.cpp). Kept from addon: DistancePointPoint's signature has two
+  floats but it reads four; Random with one argument declines, so the game's runs; And / Or
+  truncate (0.5 is false); Max and Min let NaN through; FloatToStr cuts trailing zeros without
+  looking at index 0 ("100" with 0 decimals gives "1"); StrMid with a negative count leaves the
+  result untouched; StrLower / StrUpper use CharLowerA / CharUpperA (the user's code page); Say
+  only talks in a network game; GSListPlayerVars and GiveExp do not check the player; the stat
+  override of GiveUnitWeapon / GiveUnitArmor is refused for units with a text-key id;
+  ShowAllUnits(0) and PauseGame(0) pass 1 (value == 0). Not exact: AddMobEx pushes its byte flag
+  as a dword whose upper bytes are left over on addon's stack (0 or 1 here); IsFileExists looks in
+  addon's mod folder, which without a mod is the starter's "AddonPath" setting (read once here, as
+  addon reads it at load); sin, cos and pow are the modern CRT's (the same SSE2 code path
+  selection as addon's MSVC 2010 CRT, results rounded to float).
 - **PersistentGlobalVars** - global variables named `gvar.*` keep their values where the game
   empties a variable table, all in multiplayer paths: the party outside a game (0057EB10, the CALL
   at 0057EB25), the client's update from the server (005800C0, the CALL at 00580177), and the saved
@@ -458,7 +510,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixLeversActivate | LockKey::Opens 00522A80 (unit_stats.cpp) | existing pure wrapper (7 stolen bytes) compares with the patched original in Rebirth |
 | FixSpellSelfCasting #0 | CSpell::IsOffensive 0068B770 (spell.cpp) | existing pure wrapper; the 6 stolen bytes are exactly addon's JMP+NOP, re-targeted in the trampoline |
 | FixMoveObject | CSectorMap::Move 005C11D0 (sector_map.cpp) | ours only (as before): the moved object's position and sector lists |
-| AllowScriptArgsInLoops | CScript::LoadCommands 004D1330 (script_parse_load.cpp) | ours only (as before); Rebirth keeps the original until AddNewScriptCommands is reproduced |
+| AllowScriptArgsInLoops | CScript::LoadCommands 004D1330 (script_parse_load.cpp) | ours only (as before), vanilla and Rebirth |
 | FixPlaingBattleMusicFromAntimagic | new: CUnitServer::IsFighting 0054B580 (combat.cpp) | pure wrapper (10 stolen bytes), vanilla and Rebirth |
 | FixRepairPrice | new: CCampPages::Price 0060FAB0 (ui_camp.cpp) | pure wrapper (6 stolen bytes), vanilla and Rebirth |
 | FixProgressNames | new: SelectLoadingMovie 00595080 (world_zone.cpp) | wrapper (7 stolen bytes) runs both on the same starting value and compares the chosen movie names as text |
@@ -476,6 +528,8 @@ shows each known site's bytes and where its CALL/JMP leads).
 | AutoExec | new: GameFlow::LoadGame 0057ABA0, StartNewGame 0057BD10, ProcessRequest 0057C700 (world_game.cpp) | ours only: the request is cleared; a loaded game has its scenario.sav (0 in multiplayer) |
 | PersistentGlobalVars | new: GameFlow::AfterServerStart 0057EB10, UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (world_game.cpp), persistent_globals.cpp | none (multiplayer paths): plain replacements |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
+| AddNewScriptCommands | script_addon*.cpp, from CalcParameters 004B4030, CalcFloat 004B41E0, CalcObject 004B56C0 (script_eval.cpp), new: CalcGroup 004B5B00 (script_eval.cpp), Execute 004B6760 (script_exec.cpp), ScriptError 004CF470, ClassifyToken 004CF600, FunctionSignature 004D0B10, KeywordName 004D0BA0 (script_parse.cpp), LoadFunction 004CFBC0, LoadCommands 004D1330 (script_parse_load.cpp) | the existing side-by-side wrappers compare with addon's patched originals in Rebirth (signatures and names as text; string arguments by content; a new CalcGroup wrapper, 7 stolen bytes); vanilla launches run them without wrappers |
+| ObjectsDrawRadius, LandscapeDrawRadius | new: CWorldClient::DrawPass 0056AFE0, CWorldClient::Render 00569E40 (world_client_draw.cpp) | ours only (they draw): afterwards the frame's lists and the deferred list are empty and the device's matrix stacks are as before (the view stack's top replaced) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
 (newgame for the loading movie, combat and spells for IsFighting and AddEffect, ui_camp for prices).
@@ -506,8 +560,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| AddNewScriptCommands | ~50 new script commands plus the table switch in 12 parser/executor functions (mostly rewritten) | 1-2 weeks |
-| ObjectsDrawRadius, LandscapeDrawRadius | two float settings in 0056AFE0 / 00569E40 (or in the client draw rewrite) | 0.5 day once those are rewritten |
 | WideScreen | 100 sites in ~45 functions, the layout maths of addon's replacements, VIDEORESOLUTION | 2-3 weeks |
 | NivalRegistry, Maps, ResOverride, Movies/Camera/StreamPatch | path policy (mod folders, starter key); belongs with the standalone's resource layer | 1 week |
 | multiplayer (5 addon + EI_Plugin features) | lobby, master server, network code | later, with multiplayer |

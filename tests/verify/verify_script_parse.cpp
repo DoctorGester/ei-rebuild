@@ -174,7 +174,7 @@ static int __cdecl ErrorVerify(CScript* self, int line, int code, const char* fo
 }
 EI_VERIFY(0x004CF470, ErrorVerify, 0, s_unused);
 
-// ---- Keyword lookup (Rebirth patches these: vanilla only) ----------------------------------------
+// ---- Keyword lookup (Rebirth's AddNewScriptCommands patches these) --------------------------------
 
 // 004CF600: SUB ESP,8; PUSH EBX; PUSH EBP (5 bytes). Pure apart from its outputs.
 static void(__fastcall* s_classify)(const char*, int*, int*);
@@ -188,11 +188,17 @@ static void __fastcall ClassifyVerify(const char* text, int* id, int* rest) {
 }
 EI_VERIFY(0x004CF600, ClassifyVerify, 5, s_classify);
 
+// The same string: Rebirth's AddNewScriptCommands table (the original's, in a Rebirth launch) and
+// ours keep their own copies of the added names and signatures.
+static bool SameText(const char* a, const char* b) { return a == b || (a && b && std::strcmp(a, b) == 0); }
+
 // 004D0B10: MOV EAX,[0078BCA0] (5 bytes). Pure.
 static const char*(__fastcall* s_signature)(int, int);
 static const char* __fastcall SignatureVerify(int id, int type) {
     const char* expected = s_signature(id, type);
-    ei::verify::Check("FunctionSignature", expected, FunctionSignature(id, type), "id %X type %d", id, type);
+    const char* actual = FunctionSignature(id, type);
+    ei::verify::Check("FunctionSignature", true, SameText(expected, actual), "id %X type %d: %s vs %s", id, type,
+                      expected ? expected : "(null)", actual ? actual : "(null)");
     return expected;
 }
 EI_VERIFY(0x004D0B10, SignatureVerify, 5, s_signature);
@@ -201,7 +207,8 @@ EI_VERIFY(0x004D0B10, SignatureVerify, 5, s_signature);
 static const char*(__fastcall* s_keywordName)(int);
 static const char* __fastcall KeywordNameVerify(int id) {
     const char* expected = s_keywordName(id);
-    ei::verify::Check("KeywordName", expected, KeywordName(id), "id %X", id);
+    const char* actual = KeywordName(id);
+    ei::verify::Check("KeywordName", true, SameText(expected, actual), "id %X: %s vs %s", id, expected, actual);
     return expected;
 }
 EI_VERIFY(0x004D0BA0, KeywordNameVerify, 6, s_keywordName);
