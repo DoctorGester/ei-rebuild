@@ -78,6 +78,30 @@ check IsLess(Random(10,20),20)
 console #Random(2)
 console #DistancePointPoint(3,4)
 
+# addon's string functions: "$" lines print a string through ConsoleString (addon's, any number of
+# texts), which evaluates string functions through the new CalcString.
+console $StrCat("ab","cd","ef")
+expect abcdef
+console $FloatToStr(3.14159,2)
+expect 3.14
+console $StrMid("abcdefgh",3,4)
+expect cdef
+console $StrMid("abcdefgh",-3,0)
+expect fgh
+console $StrUpper("Mixed")
+expect MIXED
+console $StrLower("LOWER")
+expect lower
+console #Add(StrToFloat("1000.5"),StrHas("haystack","st"),StrLen("abcd"),0.5)
+expect 1006
+console $RandStr("same","same")
+expect same
+console $FloatToStr(2.5)
+console $GetObjectStringID(GetLeader())
+console @ConsoleString("one ","two ","three")
+expect one two three
+console @Say("not in single player")
+
 # Items by name: a weapon with a material, one with a spell in brackets, a scroll.
 console @GiveItem(0,"Axe.steel")
 console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")

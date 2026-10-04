@@ -46,4 +46,18 @@ bool Ceil(Call* call);
 bool Floor(Call* call);
 bool Random(Call* call);
 
+// script_addon_strings.cpp
+bool GetObjectStringID(Call* call);
+bool FloatToStr(Call* call);
+bool StrToFloat(Call* call);
+bool StrCat(Call* call);
+bool StrLen(Call* call);
+bool RandStr(Call* call);
+bool StrHas(Call* call);
+bool StrMid(Call* call);
+bool StrLower(Call* call);
+bool StrUpper(Call* call);
+bool Say(Call* call);
+bool ConsoleString(Call* call);
+
 } // namespace scriptaddon
