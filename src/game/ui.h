@@ -47,6 +47,10 @@ public:
     // top window and the root (ui_interface_frame.cpp).
     void Update();
 
+    // 005F8070 (ui_interface_frame.cpp). A script string event ("say" / "say_block" text [key],
+    // "tutorial" name, "briefing" name, "autosave", "endofgame"); the first word is lowercased.
+    // Rebirth's NewStringEvents adds "gameover [title [text]]".
+    void OnStringEvent(const char* event);
     // 005F7590. The window on top of the active-window stack, or null.
     CUiWindow* GetActiveWindow() const;
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).

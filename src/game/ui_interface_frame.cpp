@@ -1,11 +1,16 @@
 // CInterface3D's per-frame update (game.exe 005F57C0). See docs/notes/ui.md ("Interface frame").
 #include "ui.h"
 
+#include "console.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
+#include "ei/vcall.h"
 
 #include <cstdint>
+#include <cstring>
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -199,4 +204,85 @@ void CInterface3D::Update() {
     }
     CallSlot<void>(f.root, 24);
 }
+// ---- String events (005F8070) ------------------------------------------------------------------
+
+namespace {
+
+// 004DBF50 (ECX text, EDX array, separator on the stack): splits at the separator.
+__declspec(naked) void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
+// 00461360 (ECX text). A number from the text (its characters' upper-case codes mixed).
+__declspec(naked) int __fastcall TextNumber(const char*) EI_ORIGINAL(0x00461360)
+// The tutorial queue (+0x84, an STLport list of CStrings): end() into `out` (005F97D0) and
+// insert(position, value) returning the new node into `out` (005F97E0).
+__declspec(naked) void __fastcall QueueEnd(void*, void*, void** /*out*/) EI_ORIGINAL(0x005F97D0)
+__declspec(naked) void** __fastcall QueueInsert(void*, void*, void** /*out*/, void* /*position*/, const mfc::CString*)
+    EI_ORIGINAL(0x005F97E0)
+// Rebirth's game over message: the menu object at 007AFEA5 (00578920 with 1, then 00578940), the
+// message window (0x180 bytes, constructor 00634650: interface, title, text, 0x20000, 3, 1) and
+// the interface's ShowWindow (005F7350: window, 1, 1).
+__declspec(naked) void __fastcall MenuSet578920(void*, void*, int) EI_ORIGINAL(0x00578920)
+__declspec(naked) void __fastcall MenuCall578940(void*, void*) EI_ORIGINAL(0x00578940)
+__declspec(naked) void* __fastcall MessageWindowConstruct(void*, void*, CInterface3D*, const char*, const char*, int, int,
+                                                          int) EI_ORIGINAL(0x00634650)
+__declspec(naked) void __fastcall InterfaceShowWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
+
+constexpr int kSlotShowBriefing = 34;   // top window (+0x88): (text)
+constexpr int kSlotEndOfGame = 31;      // top window (+0x7C): (1)
+constexpr int kSlotSay = 32;            // top window (+0x80): (number, 0x2A say / 0x2B say_block, text)
+int Compare(const mfc::CString& word, std::uintptr_t text) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(word)),
+                           reinterpret_cast<const unsigned char*>(text));
+}
+
+} // namespace
+
+void CInterface3D::OnStringEvent(const char* event) {
+    if (!event) return;
+    console::CStringArray words;
+    mfc::CString unused;
+    mfc::CString text(event);
+    SplitWords(text, &words, ' ');
+    words.data_[0].MakeLower();
+    // Rebirth's NewStringEvents (context hook at 005F80EF): "gameover [title [text]]" plays
+    // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
+    // game_over_msg).
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words.data_[0], "gameover") == 0) {
+        void* menu = reinterpret_cast<void*>(0x007AFEA5);
+        MenuSet578920(menu, nullptr, 1);
+        MenuCall578940(menu, nullptr);
+        PlaySound("buttons\\gameover.wav", 0);
+        const char* title = words.size_ > 1 ? static_cast<const char*>(words.data_[1]) : "game_over";
+        const char* message = words.size_ > 2 ? static_cast<const char*>(words.data_[2]) : "game_over_msg";
+        void* memory = gamecrt::operator_new(0x180);
+        void* window = memory ? MessageWindowConstruct(memory, nullptr, this, title, message, 0x20000, 3, 1) : nullptr;
+        InterfaceShowWindow(this, nullptr, window, 1, 1);
+        return;
+    }
+    auto top = [this]() { return stackEnd_[-1]; };
+    if (Compare(words.data_[0], 0x007930E8) == 0 || Compare(words.data_[0], 0x007930DC) == 0) {
+        // "say" / "say_block" text [key]: the top window shows the text.
+        if (words.size_ < 2) return;
+        int number = words.size_ > 2 ? TextNumber(words.data_[2]) : 0;
+        int kind = Compare(words.data_[0], 0x007930DC) != 0 ? 0x2A : 0x2B;
+        if (stackBegin_ != stackEnd_)
+            ei::VCall<void>(top(), kSlotSay, number, kind, static_cast<const char*>(words.data_[1]));
+    } else if (Compare(words.data_[0], 0x007930D0) == 0) {   // "tutorial" name: queued
+        if (words.size_ < 2) return;
+        void* queue = reinterpret_cast<std::uint8_t*>(this) + 0x84;
+        void* end;
+        QueueEnd(queue, nullptr, &end);
+        void* out;
+        QueueInsert(queue, nullptr, &out, end, &words.data_[1]);
+    } else if (Compare(words.data_[0], 0x007930C4) == 0) {   // "briefing" name
+        if (words.size_ < 2 || stackBegin_ == stackEnd_) return;
+        ei::VCall<void>(top(), kSlotShowBriefing, static_cast<const char*>(words.data_[1]));
+    } else if (Compare(words.data_[0], 0x00787704) == 0) {   // "autosave"
+        reinterpret_cast<std::uint8_t*>(this)[0x81] = 1;
+    } else if (Compare(words.data_[0], 0x00790664) == 0) {   // "endofgame"
+        if (stackBegin_ != stackEnd_) ei::VCall<void>(top(), kSlotEndOfGame, 1);
+    }
+}
+
 EI_REPLACE_METHOD(0x005F57C0, CInterface3D::Update);
+EI_REPLACE_METHOD(0x005F8070, CInterface3D::OnStringEvent);
+EI_REBIRTH_IMPLEMENTS(0x005F8070, ei::rebirth::Patch::NewStringEvents);

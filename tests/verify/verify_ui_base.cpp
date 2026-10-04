@@ -254,4 +254,15 @@ void __fastcall InterfaceUpdateVerify(CInterface3D* self, void*) {
 }
 EI_VERIFY(0x005F57C0, InterfaceUpdateVerify, 0, s_unused);
 
+// 005F8070 (CInterface3D::OnStringEvent) opens windows and queues texts: ours only. "autosave"
+// raises +0x81; any event leaves the window stack consistent (begin <= end).
+void __fastcall OnStringEventVerify(CInterface3D* self, void*, const char* event) {
+    self->OnStringEvent(event);
+    bool ok = self->stackBegin_ <= self->stackEnd_;
+    if (ok && event && _strnicmp(event, "autosave", 8) == 0 && (event[8] == 0 || event[8] == ' '))
+        ok = reinterpret_cast<const std::uint8_t*>(self)[0x81] != 0;
+    ei::verify::Check("CInterface3D::OnStringEvent", true, ok, "%.60s", event ? event : "(null)");
+}
+EI_VERIFY(0x005F8070, OnStringEventVerify, 0, s_unused);
+
 } // namespace

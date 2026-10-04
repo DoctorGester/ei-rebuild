@@ -228,7 +228,9 @@ Sites are listed in full in the CSV.
   list order (FNV-1a buckets, the node splicing on insert and on rehash). Not started.
 - **NewStringEvents** - string events (005F8070): "gameover" plays buttons\gameover.wav and shows a
   game over message (title and text from the event's arguments or the game_over / game_over_msg
-  texts).
+  texts): addon's 1001B869 calls 00578920(1) and 00578940 on 007AFEA5, plays the sound, builds the
+  window (0x180 bytes, 00634650) and shows it (005F7350). *Implemented* as a new rewrite
+  `CInterface3D::OnStringEvent` (src/game/ui_interface_frame.cpp).
 - **AddNewConsoleCommands** - when the console builds its command table (005DC620) addon adds
   help (wrapped), addon, execs, listgvar, drawall and nogui; at the first 00636020 call the
   Console AutoExec lines run.
@@ -443,6 +445,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | DisableExitOnCrashReport (third site) | new: CWorldClient::Segment 005641F0 (world_client.cpp) | ours only (the client tick): returns 1 and the game time advances by one tick unless paused (+0x6C), or 0 for a lost connection |
 | FixSpellSelfCasting #1 | new: CBattleScreen::SelectUnit 00638EF0 (ui_hud.cpp) | ours only (orders, sounds): the pending action stays one of the nine, and actions 5, 6, 8 that went back to 0 cleared the item and spell |
 | FixAddMapObject | new: CWorldServer::CreateObject 005927C0 (world_units.cpp) | ours only (creates objects): the returned id is in the object and map-object maps, or in the timed map for sounds, lights and kind 4 |
+| NewStringEvents | new: CInterface3D::OnStringEvent 005F8070 (ui_interface_frame.cpp) | ours only (windows, queues): "autosave" raises +0x81, the window stack stays consistent |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
