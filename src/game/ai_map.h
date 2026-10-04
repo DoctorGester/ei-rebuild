@@ -102,6 +102,9 @@ struct CRegionMap {
     // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
     // original leaves it).
     int RegionAt(int sizeClass, int x, int y);
+    // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
+    // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
+    int DominantRegion(int sizeClass, int x, int y);
     // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
     bool Reaches(int sizeClass, int x, int y, int region, void* marks);
     // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.

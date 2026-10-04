@@ -196,6 +196,21 @@ static bool __fastcall FindRegionChainVerify(CRegionMap* self, void*, int sizeCl
 EI_VERIFY(0x005B0D90, FindRegionChainVerify, 0, s_unusedChain);
 
 namespace {
+using RegionFn = int(__fastcall*)(CRegionMap*, void*, int, int, int);
+RegionFn s_originalRegion;
+}
+
+// 005B0600: reads the map (its local search is reset afterwards); the original, then ours; the
+// whole EAX compared.
+static int __fastcall DominantRegionVerify(CRegionMap* self, void*, int sizeClass, int x, int y) {
+    int expected = s_originalRegion(self, nullptr, sizeClass, x, y);
+    int result = self->DominantRegion(sizeClass, x, y);
+    ei::verify::Check("CRegionMap::DominantRegion", expected, result, "class %d (%d,%d)", sizeClass, x, y);
+    return result;
+}
+EI_VERIFY(0x005B0600, DominantRegionVerify, 7, s_originalRegion);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

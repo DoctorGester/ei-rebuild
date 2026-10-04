@@ -453,7 +453,47 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
     return ok;
 }
 
+int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
+    // The reachable blocks around the cell (through the original address, 005B0370).
+    using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
+    BlockCostList blocks{reinterpret_cast<void*>(0x0073FCFC), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    reinterpret_cast<NearbyFn>(0x005B0370)(this, nullptr, sizeClass, false, x, y, &blocks);
+    // Count the blocks per region, in first-seen order (the original keeps a CList of {region,
+    // count}; at most nine entries).
+    std::uint16_t regions[9];
+    int counts[9];
+    int distinct = 0;
+    std::uint16_t** rows = At<std::uint16_t**>(this, (sizeClass + 0x22) * 16);
+    for (BlockCostList::Node* n = blocks.head; n; n = n->next) {
+        std::uint16_t region = rows[n->y][n->x];
+        int i = 0;
+        while (i < distinct && regions[i] != region) ++i;
+        if (i < distinct) {
+            ++counts[i];
+        } else if (distinct < 9) {
+            regions[distinct] = region;
+            counts[distinct++] = 1;
+        }
+    }
+    int best = 0;
+    std::uint16_t region = 0;
+    for (int i = 0; i < distinct; ++i)
+        if (counts[i] > best) {
+            best = counts[i];
+            region = regions[i];
+        }
+    // The block list's inlined destructor.
+    blocks.vtable = reinterpret_cast<void*>(0x0073FCFC);
+    blocks.count = 0;
+    blocks.free = nullptr;
+    blocks.tail = nullptr;
+    blocks.head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(blocks.blocks));
+    return region;
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005B0600, CRegionMap::DominantRegion);
 EI_REPLACE_METHOD(0x005B0D90, CRegionMap::FindRegionChain);
 EI_REPLACE_METHOD(0x005AF900, CRegionMap::PickRepresentatives);
 EI_REPLACE_METHOD(0x005B1180, CRegionMap::LoadBlocks);
