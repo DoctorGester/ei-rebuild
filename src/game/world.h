@@ -17,6 +17,7 @@
 using BOOL = int;
 
 struct ScriptGroup;
+class CBaseManager;
 class Terrain;
 struct Float4;   // chunk_stream.h: four floats passed by value
 
@@ -570,6 +571,53 @@ struct PlatformSet {
     std::uint8_t unknown_00[0x20];
     PlatformNode* head;                   // +0x20
 };
+
+// The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
+// world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
+struct SectorListNode {
+    SectorListNode* next;
+    SectorListNode* prev;
+    CEngineObject* value;
+};
+struct SectorGrid {
+    SectorListNode** cells_;              // +0x00 the lists (a head pointer each)
+    SectorListNode*** rows_;              // +0x04 row y: its lists
+    int unknown08_, unknown0C_;           // +0x08 (00572450 resizes when they change)
+    std::uint32_t width_;                 // +0x10 cells along x
+    std::uint32_t height_;                // +0x14 cells along y
+    // 00570860 (RET 8; CWorldClient slot 41 on +0x120, also 0067BEF0 / 0067CEF0). Moves `object`
+    // to `position` (stored at object +0x1C): when the cell (FISTP of x and y, >> 4) changes, out
+    // of the old cell's list and to the end of the new one's (cells outside the grid are skipped).
+    void Move(CEngineObject* object, const float* position);
+    // 00570BB0 (RET 8; slot 42 on +0x150). The same for the second grid's list instantiation.
+    void Move2(CEngineObject* object, const float* position);
+};
+static_assert(offsetof(SectorGrid, width_) == 0x10);
+
+// 00571D50 (thiscall on the returned functor, RET 0x14). for_each over list nodes [first, last):
+// sets the byte at node +0xD when hypot(node +0x10 - x, node +0x14 - y) <= node +0x94 * scale.
+// Writes {x, y, scale} to out and returns it.
+float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::uint8_t* last, float x, float y,
+                                   float scale);
+// 00571800 / 005718B0 (thiscall on the returned functor, RET 0x18). for_each over list nodes
+// [first, last) of 0x18-byte entries (+4 object id, +8 RECT): every entry whose rectangle holds
+// (x, y) and whose object (found in `manager`) has a +0x94 that answers slot 22 (00571800) or
+// slot 24 (005718B0) for the point is pushed to the vector `hits`. *out = hits; returns out.
+void** __fastcall CollectWindowsAt(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, long x,
+                                   long y, CBaseManager* manager);
+void** __fastcall CollectWindowsAt2(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, long x,
+                                    long y, CBaseManager* manager);
+// 0056FC60 (RET 8). Lookup in a hash_map<unsigned, T*>: *value = the entry's value and 1, or 0.
+using PendingMap = stlp::hash_map<std::uint32_t, void*, stlp::IntHash>;
+int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value);
+// 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
+struct RecordVector {
+    const std::uint8_t* start;
+    const std::uint8_t* finish;
+    const std::uint8_t* eos;
+};
+const std::uint8_t* __fastcall RecordAt50(const RecordVector* records, void*, std::uint32_t index);
+const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, std::uint32_t index);
 
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {

@@ -919,3 +919,47 @@ Finished from the list above (third round):
 
 0059A4A0 is MFC CList<SharedObject>::Serialize, named in `config/library.csv`. The AI and figure
 draw functions of 0x5A0000-0x5C0000 done in the same round are in ai.md and models.md.
+
+# Client maps (0056E000-00574000 helpers, the client's object maps)
+
+Code: `src/game/world_client_maps.cpp`; verify wrappers: `tests/verify/verify_world_client_maps.cpp`.
+Shared files changed: `world.h` (additive: `SectorListNode`, `SectorGrid`, the functor and lookup
+declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration).
+
+## Structures
+
+- **Sector grids** (CWorldClient +0x120 objects, +0x150 a second grid): +0x00 the list storage,
+  +0x04 rows (row y: its lists, one head pointer each), +0x08/+0x0C sizes checked by the resize
+  (00572450), +0x10 width and +0x14 height in cells. Cells are 16x16 world units: the cell of a
+  coordinate is FISTP (round to nearest) shifted right by 4 as unsigned, so negative coordinates
+  land outside. Each cell is an STLport list of counted object pointers (+4 reference count,
+  slot 4 releases). CWorldClient slot 41 (005618A0) moves an object in +0x120, slot 42 (005618C0)
+  in +0x150.
+- The window lists walked by the collectors: STLport list nodes whose 0x18-byte entry (node + 8)
+  holds the object id at +4 and a RECT at +8.
+
+## Rewritten
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00570860 / 00570BB0 | SectorGrid::Move / Move2 (two instantiations) | ours only: position stored, listed in the new cell, reference count +1 per insert and -1 per removed listing (positions within 1% of a cell edge not judged) |
+| 00571D50 | MarkWithinRadius (for_each functor) | differential: marks undone after the original, functor compared |
+| 00571800 / 005718B0 | CollectWindowsAt / CollectWindowsAt2 (slot 22 / 24 hit test) | differential: the original's pushes taken back, ours compared |
+| 0056FC60 | PendingMapLookup (hash_map<unsigned, T*> lookup) | differential |
+| 0056E400 / 0056E440 | RecordAt50 / RecordAtB4 (bounds-checked record access) | differential |
+
+Move removes every listing of the object from the old cell (list::remove with a counted copy:
++1, the erases release, -1), stores the three position words, then push_back's a counted copy
+into the new cell (+1, the insert adds its own, -1). Out-of-grid cells are skipped on either side.
+MarkWithinRadius calls the game's `_hypot` and marks when the distance is not greater than
+radius (+0x94) x scale; a NaN marks (FCOMPP + TEST AH,0x41). The distance and the product are
+plain C++ (rule 7): a distance on the very edge of the radius may rarely mark differently.
+
+## Classified as library (config/library.csv)
+
+The other 96 functions of 0056E000-00574000 are STLport / MFC instantiations (lists, hash_map,
+vectors, CArray / CMap SetSize, Serialize, NewAssoc), compiler-generated constructors, copy
+constructors and deleting destructors, counted-pointer helpers, and the sector grid template's
+storage (allocation, resize, reset, release, clear-all: new[]/delete[] of lists, no logic).
+005593D0 (the unit appearance cache) and its twelve hash_map helpers are classified the same way,
+as agreed.
