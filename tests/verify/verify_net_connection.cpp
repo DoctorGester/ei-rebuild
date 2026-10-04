@@ -295,3 +295,44 @@ net::Connection* __fastcall ConnectionCloneVerify(const net::Connection* self) {
 void* s_unusedClone;
 } // namespace
 EI_VERIFY(0x00433060, ConnectionCloneVerify, 0, s_unusedClone);
+
+namespace net {
+ReplicaEntry* __fastcall ReplicaEntryClone(const ReplicaEntry* self);
+void __fastcall ReplicaEntryReset(ReplicaEntry* self);
+void __fastcall ReplicaEntryDestruct(ReplicaEntry* self);
+ReplicaEntry* __fastcall ReplicaEntryDeletingDestructor(ReplicaEntry* self, void*, unsigned flags);
+}
+namespace {
+// 00433A30 / 004343C0 / 00434430 / 004344C0 / 004344A0: ours only (allocation, references).
+net::IdPool* __fastcall IdPoolCopyVerify(net::IdPool* self, void*, const net::IdPool* other) {
+    net::IdPool* result = self->CopyFrom(*other);
+    bool same = (self->end - self->begin) == (other->end - other->begin) && self->next == other->next &&
+                std::memcmp(self->begin, other->begin, static_cast<std::size_t>(self->end - self->begin) * 2) == 0;
+    ei::verify::Check("IdPool::CopyFrom", true, result == self && same, "");
+    return result;
+}
+net::ReplicaEntry* __fastcall EntryCloneVerify(const net::ReplicaEntry* self) {
+    net::ReplicaEntry* copy = net::ReplicaEntryClone(self);
+    ei::verify::Check("ReplicaEntryClone", true,
+                      !copy || (copy->object == self->object && copy->id == self->id && copy->flags == self->flags), "");
+    return copy;
+}
+void __fastcall EntryResetVerify(net::ReplicaEntry* self) {
+    net::ReplicaEntryReset(self);
+    ei::verify::Check("ReplicaEntryReset", true, self->object == nullptr && self->id == 0, "");
+}
+void __fastcall EntryDestructVerify(net::ReplicaEntry* self) {
+    net::ReplicaEntryDestruct(self);
+    ei::verify::Check("ReplicaEntryDestruct", true, true, "");
+}
+net::ReplicaEntry* __fastcall EntryDeleteVerify(net::ReplicaEntry* self, void*, unsigned flags) {
+    ei::verify::Check("ReplicaEntryDeletingDestructor", true, true, "");
+    return net::ReplicaEntryDeletingDestructor(self, nullptr, flags);
+}
+void* s_unusedEntry;
+} // namespace
+EI_VERIFY(0x00433A30, IdPoolCopyVerify, 0, s_unusedEntry);
+EI_VERIFY(0x004343C0, EntryCloneVerify, 0, s_unusedEntry);
+EI_VERIFY(0x00434430, EntryResetVerify, 0, s_unusedEntry);
+EI_VERIFY(0x004344C0, EntryDestructVerify, 0, s_unusedEntry);
+EI_VERIFY(0x004344A0, EntryDeleteVerify, 0, s_unusedEntry);

@@ -40,6 +40,8 @@ struct IdPool {
 
     // 00435F10. A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
+    // 00433A30 (net_connection_life.cpp). Copy constructor; returns this.
+    IdPool* CopyFrom(const IdPool& other);
 };
 static_assert(sizeof(IdPool) == 0x10);
 

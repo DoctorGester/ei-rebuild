@@ -1,9 +1,11 @@
-// A connection's construction, reset and destruction (00432DA0, 00433320, 004334E0, 004334C0).
+// A connection's construction, reset, clone and destruction (00432DA0, 00433320, 00433060, 004334E0,
+// 004334C0), the id pools' copy and the replica entries' slots.
 // The containers are STLport instantiations (library), called through their original addresses.
 // See net_connection.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #include "net_connection.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
@@ -286,5 +288,85 @@ namespace {
 Connection* __fastcall CloneHook(const Connection* self) { return self->Clone(); }
 } // namespace
 EI_REPLACE(0x00433060, CloneHook);
+
+} // namespace net
+
+// ---- Id pools and replica entries ---------------------------------------------------------------------
+
+namespace net {
+
+namespace {
+constexpr std::uintptr_t kReplicaEntryVtable = 0x0073BF4C;
+void SetVtableOf(void* object, std::uintptr_t v) { std::memcpy(object, &v, 4); }
+// The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
+// deletes at zero).
+void ReleaseEntryObject(ReplicaEntry* e) {
+    CRefObject* object = e->object;
+    if (object && --object->refs_ == 0) ei::VCall<void*>(object, 0, 1u);
+}
+} // namespace
+
+IdPool* IdPool::CopyFrom(const IdPool& other) {
+    begin = nullptr;
+    end = nullptr;
+    eos = nullptr;
+    std::size_t count = static_cast<std::size_t>(other.end - other.begin);
+    std::uint16_t* block = count ? static_cast<std::uint16_t*>(NodeAllocate(count * 2)) : nullptr;
+    begin = block;
+    end = block;
+    eos = block + count;
+    std::size_t bytes = static_cast<std::size_t>(other.end - other.begin) * 2;
+    std::memmove(block, other.begin, bytes);
+    end = reinterpret_cast<std::uint16_t*>(reinterpret_cast<std::uint8_t*>(block) + bytes);
+    next = other.next;
+    return this;
+}
+EI_REPLACE_METHOD(0x00433A30, IdPool::CopyFrom);
+
+// 004343C0 (entry slot 3): a copy of the entry sharing the object (one more reference).
+ReplicaEntry* __fastcall ReplicaEntryClone(const ReplicaEntry* self) {
+    auto* copy = static_cast<ReplicaEntry*>(gamecrt::operator_new(sizeof(ReplicaEntry)));
+    copy->refHeader = 0;
+    if (!copy) return nullptr;
+    SetVtableOf(copy, kRefValueVtable);
+    copy->version = self->version;
+    copy->id = self->id;
+    copy->type = self->type;
+    copy->flags = self->flags;   // the original merges bit 0 and then the other bits: all of them
+    copy->object = self->object;
+    if (copy->object) ++copy->object->refs_;
+    SetVtableOf(copy, kReplicaEntryVtable);
+    return copy;
+}
+EI_REPLACE(0x004343C0, ReplicaEntryClone);
+
+// 00434430 (entry slot 2): Reset. Releases the object, then constructs again in place (object,
+// version and id cleared; type and flags kept).
+void __fastcall ReplicaEntryReset(ReplicaEntry* self) {
+    SetVtableOf(self, kReplicaEntryVtable);
+    ReleaseEntryObject(self);
+    SetVtableOf(self, kRefObjectRoot);
+    self->object = nullptr;
+    SetVtableOf(self, kReplicaEntryVtable);
+    self->version = 0;
+    self->id = 0;
+}
+EI_REPLACE(0x00434430, ReplicaEntryReset);
+
+// 004344C0: the destructor body.
+void __fastcall ReplicaEntryDestruct(ReplicaEntry* self) {
+    SetVtableOf(self, kReplicaEntryVtable);
+    ReleaseEntryObject(self);
+    SetVtableOf(self, kRefObjectRoot);
+}
+EI_REPLACE(0x004344C0, ReplicaEntryDestruct);
+
+// 004344A0 (entry slot 0): the deleting destructor.
+ReplicaEntry* __fastcall ReplicaEntryDeletingDestructor(ReplicaEntry* self, void*, unsigned flags) {
+    ReplicaEntryDestruct(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+EI_REPLACE(0x004344A0, ReplicaEntryDeletingDestructor);
 
 } // namespace net
