@@ -679,7 +679,13 @@ Code: `src/game/unit_points.cpp` (new); verify wrappers: `tests/verify/verify_un
 | Address | Function | Notes |
 | --- | --- | --- |
 | 0052FCC0 | UnitPredictPosition (slot 52, RET 8: out, time) | server units (slot 55): slot 53. Client units following a path order (kind 2, no flag 0x8000000): the motion sampled at (float)time, x / y back from half-cells, z kept. Otherwise the position. Returns out. |
-| 0052FDF0 | UnitActionPoint (slot 53, RET 4: out) | server units only (else the position). The animation entry of +0x254 (00518F80, its low byte) of kind 0x1C0000 offsets the position: 0x400000 -Y x +0x148, 0x800000 +Y x +0x148, 0xC00000 +X x +0x144, 0x1000000 -X x +0x144 (axes 0040F560 / 0040D940). A missing entry logs "Can't find animation entry index". When the world is live, a point where size class 3 cannot stand (005BA790) gives the position instead. |
+| 0052FDF0 | UnitActionPoint (slot 53, RET 4: out; returns out in EAX) | server units only (else the position). The animation entry of +0x254 (00518F80, its low byte) of kind 0x1C0000 offsets the position: 0x400000 -Y x +0x148, 0x800000 +Y x +0x148, 0xC00000 +X x +0x144, 0x1000000 -X x +0x144 (axes 0040F560 / 0040D940). A missing entry logs "Can't find animation entry index". When the world is live, a point where size class 3 cannot stand (005BA790) gives the position instead. |
+
+The first version of UnitActionPoint returned nothing. Ghidra shows the function as void, but every
+path of the original leaves `out` in EAX, and the combat rewrites use the returned pointer (slot 53
+is called as `Vector3* (Vector3* out)`). CUnitServer::ApproachTarget read through the leftover EAX
+and crashed (address 9) in the combat, sound and units scenarios. It now returns `out`, and the
+check compares both returns.
 
 # Client path placement
 
