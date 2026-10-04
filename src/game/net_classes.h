@@ -14,6 +14,8 @@
 //             2 reset, 3 clone, 4 write to a byte cursor, 5 read. Message classes 0073BBF8 ...
 //             0073BDD0 (0x18 apart).
 
+#include "net_coder.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -280,5 +282,29 @@ Message* __fastcall ConstructMessage73BBF8(Message* self);   // 00413350 (0x34 b
 Message* __fastcall ConstructMessage73BC28(Message* self);   // 004138A0 (0x18 bytes)
 Message* __fastcall ConstructMessage73BC40(Message* self);   // 00413C90 (0x1C bytes)
 Message* __fastcall ConstructMessage73BC58(Message* self);   // 004140B0 (0x14 bytes)
+
+
+// The game announcement the server builds in 0041AA10 (written by 00401000) and the client reads
+// in 0041D600 (00401170). Field meanings from 0041AA10: player count, maximum players, the
+// session magic. Names provisional.
+struct GameInfoRecord {
+    StringRep name;              // +0x00
+    StringRep description;       // +0x0C
+    std::uint8_t players;        // +0x18 number of players
+    std::uint8_t maxPlayers;     // +0x19 the server's +0x25E0
+    std::uint8_t unknown_1A;
+    std::uint8_t unknown_1B;
+    std::uint32_t unknown_1C;
+    std::uint32_t unknown_20;    // +0x20 the server's +0x2578
+    std::uint32_t magic;         // +0x24 kSessionMagic
+
+    void Write(GameBuffer* buffer) const;   // 00401000
+    int Read(GameBuffer* buffer);           // 00401170: 1 unless the buffer ran short
+};
+static_assert(sizeof(GameInfoRecord) == 0x28);
+
+// The byte buffer's read helpers (net_game_info.cpp).
+GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);   // 00401310
+unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);         // 00401340
 
 } // namespace net
