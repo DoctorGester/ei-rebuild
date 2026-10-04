@@ -16,3 +16,4 @@ address,size,note
 005E0830,348,console command handler body (no Ghidra function)
 005E0990,124,console command handler body (no Ghidra function)
 005E0A10,124,console command handler body (no Ghidra function)
+00669D50,340,client session: the game state message handler (table +0x1C; no Ghidra function)
