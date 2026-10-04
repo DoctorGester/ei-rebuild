@@ -206,7 +206,7 @@ has the full per-call inventory.
   compare N with A only where A and B differ and B shows the clear colour (nothing in front of the
   feature: no translucent interface panel, object or shadow):
   `python tools\compare_frames.py N A --mask A B --mask-background` (scenario `render_terrain`).
-  `toolsrame_preview.py` writes a downscaled side-by-side PNG of captures.
+  `tools/frame_preview.py` writes a downscaled side-by-side PNG of captures.
 - **Terrain, first run** (vanilla, 3840x2160): with the plain mask 29.6 % of the masked pixels
   differed (the mask held the translucent interface panels and the objects' shadows, which the new
   frame does not have yet); with `--mask-background` (51.5 % of the frame is terrain with nothing in
