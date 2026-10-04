@@ -41,6 +41,8 @@ struct BufferCursor {
 
     // 004301E0. Appends the low `count` bits of `value` (writing).
     void PutBits(std::uint32_t value, std::uint8_t count);
+    // 004357C0 (net_connection.cpp). Appends one bit (`bit` is added unmasked, as the original).
+    void PutBit(std::uint32_t bit);
     // 00431040. Next bit (reading).
     std::uint32_t GetBit();
     // 00430FE0. Next `count` bits (reading), masked with the table at 0078DB24.

@@ -16,6 +16,7 @@
 #include <windows.h>
 
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
+RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
 
 namespace {
 
@@ -32,6 +33,7 @@ struct DryRun {
     Fake object;
     int log[4];
     int count;
+    Fake clone;   // what slot 3 (clone) returns in a dry run
 };
 DryRun* g_run;
 
@@ -47,8 +49,15 @@ int __fastcall FakeShutdown(Fake* self, void*) {
     Log(0x200 | (self->refs & 0xF));
     return 0x5A;
 }
+void* const* FakeVtable();
+Fake* __fastcall FakeClone(Fake* self, void*) {
+    Log(0x300 | (self->refs & 0xF));
+    g_run->clone.vtable = FakeVtable();
+    return &g_run->clone;
+}
 void* const* FakeVtable() {
-    static void* vtable[4] = {reinterpret_cast<void*>(&FakeDelete), nullptr, reinterpret_cast<void*>(&FakeShutdown), nullptr};
+    static void* vtable[4] = {reinterpret_cast<void*>(&FakeDelete), nullptr, reinterpret_cast<void*>(&FakeShutdown),
+                              reinterpret_cast<void*>(&FakeClone)};
     return vtable;
 }
 
@@ -127,7 +136,71 @@ void __fastcall ReleaseVerify(RefPtr* self) {
     RefPtrRelease(self);
 }
 
+// The share copies (RefPtrShareReturn): a dry run with the argument on the stand-in (a clone, when
+// the object is copy-on-share, is a second stand-in); both stand-ins' headers, the calls, the
+// returned holder and which stand-in the holder points to must agree.
+// PUSH ESI (1), MOV ESI,ECX (2), MOV ECX,[ESP+8] (4).
+using ShareFn = RefPtr*(__fastcall*)(RefPtr*, void*, CRefObject*);
+
+int SharedIndex(const DryRun& run, const RefPtr& p) {
+    if (!p.ptr) return 0;
+    if (p.ptr == reinterpret_cast<const CRefObject*>(&run.object)) return 1;
+    if (p.ptr == reinterpret_cast<const CRefObject*>(&run.clone)) return 2;
+    return 3;
+}
+
+void CheckShare(const char* name, ShareFn original, RefPtr* self, CRefObject* object) {
+    static DryRun expected, actual;
+    int index[2];
+    bool returned[2];
+    DryRun* runs[2] = {&expected, &actual};
+    for (int k = 0; k < 2; ++k) {
+        DryRun& run = *runs[k];
+        std::memset(&run, 0, sizeof(run));
+        if (object) std::memcpy(&run.object, object, sizeof(Fake));
+        run.object.vtable = FakeVtable();
+        RefPtr holder{nullptr};
+        CRefObject* arg = object ? reinterpret_cast<CRefObject*>(&run.object) : nullptr;
+        g_run = &run;
+        RefPtr* r = k == 0 ? original(&holder, nullptr, arg) : RefPtrShareReturn(&holder, nullptr, arg);
+        g_run = nullptr;
+        returned[k] = r == &holder;
+        index[k] = SharedIndex(run, holder);
+    }
+    bool same = Same(expected, actual) && std::memcmp(&expected.clone.refs, &actual.clone.refs, 4) == 0 &&
+                index[0] == index[1] && returned[0] && returned[1];
+    ei::verify::Check(name, true, same, "%p", object);
+    RefPtrShareReturn(self, nullptr, object);
+}
+
+#define EI_SHARE_COPY(addr)                                                                      \
+    ShareFn s_share_##addr;                                                                      \
+    RefPtr* __fastcall ShareVerify_##addr(RefPtr* self, void*, CRefObject* object) {             \
+        CheckShare("RefPtrShareReturn@" #addr, s_share_##addr, self, object);                      \
+        return self;                                                                             \
+    }
+
+EI_SHARE_COPY(004292F0)
+EI_SHARE_COPY(00429350)
+EI_SHARE_COPY(00429430)
+EI_SHARE_COPY(00429710)
+EI_SHARE_COPY(00429930)
+EI_SHARE_COPY(00429990)
+EI_SHARE_COPY(004299F0)
+EI_SHARE_COPY(00429A50)
+EI_SHARE_COPY(00429AB0)
+
 } // namespace
+
+EI_VERIFY(0x004292F0, ShareVerify_004292F0, 7, s_share_004292F0);
+EI_VERIFY(0x00429350, ShareVerify_00429350, 7, s_share_00429350);
+EI_VERIFY(0x00429430, ShareVerify_00429430, 7, s_share_00429430);
+EI_VERIFY(0x00429710, ShareVerify_00429710, 7, s_share_00429710);
+EI_VERIFY(0x00429930, ShareVerify_00429930, 7, s_share_00429930);
+EI_VERIFY(0x00429990, ShareVerify_00429990, 7, s_share_00429990);
+EI_VERIFY(0x004299F0, ShareVerify_004299F0, 7, s_share_004299F0);
+EI_VERIFY(0x00429A50, ShareVerify_00429A50, 7, s_share_00429A50);
+EI_VERIFY(0x00429AB0, ShareVerify_00429AB0, 7, s_share_00429AB0);
 
 EI_VERIFY(0x00417A30, DestroyVerify_00417A30, 6, s_destroy_00417A30);
 EI_VERIFY(0x00417A70, DestroyVerify_00417A70, 6, s_destroy_00417A70);

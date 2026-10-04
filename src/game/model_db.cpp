@@ -8,12 +8,8 @@
 #include <cstring>
 
 // ---- ChunkArchive -------------------------------------------------------------------------------
+// EnterChunk / LeaveChunk / Field / CountChunks are in chunk_archive.cpp.
 
-__declspec(naked) bool ChunkArchive::EnterChunk(int) EI_ORIGINAL(0x004098D0)
-__declspec(naked) void ChunkArchive::LeaveChunk() EI_ORIGINAL(0x00409980)
-__declspec(naked) void ChunkArchive::Field(int, void*, unsigned) EI_ORIGINAL(0x004092B0)
-__declspec(naked) void ChunkArchive::StringField(int, stlp::string*) EI_ORIGINAL(0x00409470)
-__declspec(naked) int ChunkArchive::CountChunks(int) EI_ORIGINAL(0x00409A60)
 
 namespace {
 
