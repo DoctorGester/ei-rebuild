@@ -183,6 +183,10 @@ public:
     // 005EE5C0 (slot 20). Draws the described item's model at (x + 100, y + 200), size 120,
     // greyed (mode 9) through the owner's DrawItem; returns 1 (ui_item_view.cpp).
     BOOL Draw(int pass);
+    // 005EE440 (RET 8). Builds the panel at layout point (x, y): its 200 x 300 surface (format 5),
+    // the item texts "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text
+    // table, and an empty item list (its slot 2).
+    void Build(int x, int y);
 
     // The described item (005EE720 inlined): the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }

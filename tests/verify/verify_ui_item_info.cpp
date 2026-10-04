@@ -445,3 +445,21 @@ static void __fastcall Screen9DestroyVerify(CItemScreen* self) {
                       "models %u textures %u", self->models_.count, self->textures_.count);
 }
 EI_VERIFY(0x005F7010, Screen9DestroyVerify, 0, s_unused);
+
+// 005EE440: ours only (a builder). One surface more, 45 item texts and 25 skill texts more.
+static void __fastcall InfoPanelBuildVerify(CItemInfoPanel* self, void*, int x, int y) {
+    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
+    int surfaces = self->surfaces_.size_;
+    int items, skills;
+    std::memcpy(&items, bytes + 0x1C8 + 8, 4);
+    std::memcpy(&skills, bytes + 0x1DC + 8, 4);
+    self->Build(x, y);
+    int itemsAfter, skillsAfter;
+    std::memcpy(&itemsAfter, bytes + 0x1C8 + 8, 4);
+    std::memcpy(&skillsAfter, bytes + 0x1DC + 8, 4);
+    bool ok = self->surfaces_.size_ == surfaces + 1 && itemsAfter == items + 45 && skillsAfter == skills + 25 &&
+              self->x_ == x && self->y_ == y;
+    ei::verify::Check("CItemInfoPanel::Build", true, ok, "surfaces %d -> %d, items %d -> %d, skills %d -> %d",
+                      surfaces, self->surfaces_.size_, items, itemsAfter, skills, skillsAfter);
+}
+EI_VERIFY(0x005EE440, InfoPanelBuildVerify, 0, s_unused);

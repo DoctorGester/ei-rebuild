@@ -1248,3 +1248,35 @@ void __fastcall InfoPanelKeyUp(void* input, void*, int key, int repeat, int flag
 EI_REPLACE(0x005EE6B0, InfoPanelRefresh);
 EI_REPLACE(0x005EE640, InfoPanelKeyDown);
 EI_REPLACE(0x005EE680, InfoPanelKeyUp);
+
+// --- 005EE440: Build ------------------------------------------------------------------------------
+
+void CItemInfoPanel::Build(int x, int y) {
+    x_ = x;
+    y_ = y;
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    CUiSurface* surface = nullptr;
+    if (memory) surface = static_cast<CUiSurface*>(memory)->Construct(interface_, x_, y_, x_ + 200, y_ + 300, 5, 1);
+    AddSurface(surface);
+    Texts* texts = TextManager();
+    mfc::CString text, key;
+    auto* itemTexts = reinterpret_cast<console::CStringArray*>(&itemTextsVtable_);
+    for (int i = 0; i < 45; ++i) {
+        key.Format(GameText(0x00792ED8), i);   // "infoitem_%d"
+        texts->GetString(key, &text);
+        itemTexts->SetAtGrow(itemTexts->GetSize(), text);
+    }
+    auto* skillTexts = reinterpret_cast<console::CStringArray*>(reinterpret_cast<std::uint8_t*>(this) + 0x1DC);
+    for (int i = 0; i < 25; ++i) {
+        key.Format(GameText(0x00792EC8), i);   // "infoskill_%d"
+        texts->GetString(key, &text);
+        skillTexts->SetAtGrow(skillTexts->GetSize(), text);
+    }
+    void* list = itemList_;
+    using EmptyFn = void(__thiscall*)(void*);
+    reinterpret_cast<EmptyFn>((*static_cast<void***>(list))[2])(list);
+}
+namespace {
+void __fastcall InfoPanelBuild(CItemInfoPanel* self, void*, int x, int y) { self->Build(x, y); }
+} // namespace
+EI_REPLACE(0x005EE440, InfoPanelBuild);
