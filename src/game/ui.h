@@ -776,7 +776,7 @@ public:
     BOOL DrawContainer(int pass);
     // 00601040 (not rewritten). Base slot 22 (redraws the window and its children).
     void RedrawContainer();
-    // 00600D30 (not rewritten). Adds a child window (null is ignored).
+    // 00600D30. Adds a child window (null is ignored; ui_window.cpp).
     void AddChild(CUiWindow* child);
 
     UiPtrArray<CUiWindow> children_;          // +0x148

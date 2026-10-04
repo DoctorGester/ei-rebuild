@@ -101,6 +101,16 @@ static CUiWindow* __fastcall WindowConstructVerify(CUiWindow* self, void*, CInte
 }
 EI_VERIFY(0x005FE700, WindowConstructVerify, 0, s_unused);
 
+// 00600D30: ours only. A child is appended (null leaves the list alone).
+static void __fastcall AddChildVerify(CUiContainer* self, void*, CUiWindow* child) {
+    int before = self->children_.size_;
+    self->AddChild(child);
+    bool ok = child ? self->children_.size_ == before + 1 && self->children_.data_[before] == child
+                    : self->children_.size_ == before;
+    ei::verify::Check("CUiContainer::AddChild", true, ok, "children %d -> %d", before, self->children_.size_);
+}
+EI_VERIFY(0x00600D30, AddChildVerify, 0, s_unused);
+
 // 005F78C0: ours only (keys reach windows and the console). A modifier key (not a repeat) must
 // leave its flag set: +0x7C Ctrl, +0x7D Shift, +0x7E Alt.
 static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key, int repeat, int flags) {

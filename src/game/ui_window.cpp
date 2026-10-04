@@ -138,6 +138,7 @@ template struct UiPtrArray<CEngineObject>;
 template struct UiPtrArray<CUiSurface>;
 template struct UiPtrArray<CUiRegion>;
 template struct UiPtrArray<CUiModel>;
+template struct UiPtrArray<CUiWindow>;   // the containers' children
 
 // The original has a separate (identical) copy of SetSize for each of the window's arrays; the two
 // CEngineObject lists share one instantiation here.
@@ -566,6 +567,14 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     return this;
 }
 EI_REPLACE_METHOD(0x005FE700, CUiWindow::Construct);
+
+// --- 00600D30: CUiContainer::AddChild ------------------------------------------------------------
+
+void CUiContainer::AddChild(CUiWindow* child) {
+    if (!child) return;
+    children_.Append(child);
+}
+EI_REPLACE_METHOD(0x00600D30, CUiContainer::AddChild);
 
 // --- 005FE930: the destructor body -------------------------------------------------------------
 
