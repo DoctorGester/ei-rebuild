@@ -1,2 +1,4 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+00570860  SectorGrid::Move: map_objects (the wolf walking) fails often with it on, passes with it off
+00570BB0  SectorGrid::Move2: as Move
