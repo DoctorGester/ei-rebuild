@@ -225,6 +225,36 @@ static bool __fastcall JoinBlockSearchesVerify(CRegionMap* self, void*, PathCell
 }
 EI_VERIFY(0x005AF5F0, JoinBlockSearchesVerify, 0, s_unusedJoin);
 
+void __fastcall BlockSearchPathTo(void* search, void*, int x, int y, PathCellList* path);
+
+namespace {
+using PathToFn = void(__fastcall*)(void*, void*, int, int, PathCellList*);
+PathToFn s_originalPathTo;
+
+std::vector<int> Cells(const PathCellList* list) {
+    std::vector<int> out;
+    for (const PathCellList::Node* n = list->head; n; n = n->next) {
+        out.push_back(n->data.x);
+        out.push_back(n->data.y);
+    }
+    return out;
+}
+} // namespace
+
+// 005AF1C0: reads the search only. The original fills a scratch list, ours the caller's; the
+// cells' x, y compared in order (the original's second dword is uninitialised stack).
+static void __fastcall BlockPathToVerify(void* search, void*, int x, int y, PathCellList* path) {
+    PathCellList scratch{path->vtable, nullptr, nullptr, 0, nullptr, nullptr, path->blockSize};
+    s_originalPathTo(search, nullptr, x, y, &scratch);
+    std::vector<int> expected = Cells(&scratch);
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(scratch.blocks));
+    BlockSearchPathTo(search, nullptr, x, y, path);
+    std::vector<int> actual = Cells(path);
+    ei::verify::Check("BlockSearchPathTo", true, actual == expected, "(%d,%d): %d cells (original %d)", x, y,
+                      static_cast<int>(actual.size() / 2), static_cast<int>(expected.size() / 2));
+}
+EI_VERIFY(0x005AF1C0, BlockPathToVerify, 6, s_originalPathTo);
+
 namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;

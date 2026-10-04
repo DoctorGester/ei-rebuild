@@ -167,6 +167,9 @@ __declspec(naked) PathCellList* __fastcall ChainReversed(PathCellList*, void*, P
 __declspec(naked) void __fastcall ChainAppend(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5DA0)
 __declspec(naked) void __fastcall ChainFixUp(PathCellList*) EI_ORIGINAL(0x005C6000)
 
+// 00539980: ConstructElements<PathCell> (zero-fills `count`).
+__declspec(naked) void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
+
 void DestroyPathList(PathCellList& list) {
     list.vtable = reinterpret_cast<void*>(0x0073EDB0);
     list.count = 0;
@@ -551,7 +554,67 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
     return ok;
 }
 
+void __fastcall BlockSearchPathTo(void* searchIn, void*, int x, int y, PathCellList* path) {
+    auto& search = *static_cast<BlockSearch*>(searchIn);
+    // The inlined RemoveAll.
+    path->count = 0;
+    path->free = nullptr;
+    path->tail = nullptr;
+    path->head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(path->blocks));
+    path->blocks = nullptr;
+    int columns = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(&search) + 8);
+    int rows = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(&search) + 0xC);
+    if (x < 0 || x >= columns || y < 0 || y >= rows) return;
+    // The original builds each cell's second dword (flags) from a stack slot it never writes;
+    // ours writes 0.
+    auto cellAt = [](int cx, int cy) {
+        PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), 0, 0};
+        return c;
+    };
+    // Walk back along the stored directions (+0x10: 1..8; 0 ends), each cell added at the head.
+    while (int dir = search.rows[y][x].unknown_10) {
+        PathCellList::Node* node = path->NewNode(nullptr, path->head);
+        node->data = cellAt(x, y);
+        if (path->head) path->head->prev = node;
+        else path->tail = node;
+        path->head = node;
+        switch (dir) {
+        case 1: --y; break;
+        case 2: --y; --x; break;
+        case 3: --x; break;
+        case 4: ++y; --x; break;
+        case 5: ++y; break;
+        case 6: ++y; ++x; break;
+        case 7: ++x; break;
+        case 8: --y; ++x; break;
+        default: break;
+        }
+    }
+    // The first cell, through the inlined NewNode.
+    if (!path->free) {
+        mfc::CPlex*& blocks = reinterpret_cast<mfc::CPlex*&>(path->blocks);
+        mfc::CPlex* block = mfc::PlexCreate(blocks, path->blockSize, sizeof(PathCellList::Node));
+        auto* n = reinterpret_cast<PathCellList::Node*>(block + 1) + (path->blockSize - 1);
+        for (int i = path->blockSize - 1; i >= 0; --i, --n) {
+            n->next = path->free;
+            path->free = n;
+        }
+    }
+    PathCellList::Node* node = path->free;
+    path->free = node->next;
+    node->prev = nullptr;
+    node->next = path->head;
+    ++path->count;
+    ConstructPathCells(&node->data, 1);
+    node->data = cellAt(x, y);
+    if (path->head) path->head->prev = node;
+    else path->tail = node;
+    path->head = node;
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE(0x005AF1C0, BlockSearchPathTo);
 EI_REPLACE_METHOD(0x005AF5F0, CRegionMap::JoinBlockSearches);
 EI_REPLACE_METHOD(0x005B0600, CRegionMap::DominantRegion);
 EI_REPLACE_METHOD(0x005B0D90, CRegionMap::FindRegionChain);
