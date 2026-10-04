@@ -313,6 +313,8 @@ public:
     // Not rewritten (forwarders):
     // 005B6740. Applies or clears the bridge decks of a footprint.
     bool ApplyBridges(FootprintCellSet* set, bool remove);
+    // The rewrite of 005B6740 (ai_bridges.cpp); ApplyBridges stays the forwarder to its address.
+    bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);
     // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
     bool AddOccluder(FootprintCell* cell);
     bool ClearOccluder(FootprintCell* cell);
