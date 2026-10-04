@@ -648,6 +648,15 @@ Fields written / read (DeltaState at +0x1C4):
   - 11 is the masks, +0x250 and the player id (a new player through the local view). 12 is +0x4C8. 13 is +0x438.
   - The reader then re-equips (slots 32 / 33) and refreshes (25, 29) when something changed.
 
+The first reader check compared whole effect entries. About 1% of the unit reads with `first == 0`
+mismatched, while the result agreed and map objects never mismatched. Only the unit reader's own
+field 3 calls the companion's slot 13 (the effects' particles and sounds) with `first == 0`, and
+that slot can change the bytes of an entry the reader does not read. Ours runs it, then the
+original's second read runs it again over the same entries, so those bytes differ. The check now
+compares only the bytes the reader writes (+0, +1, the dword +4, +0x10). The mismatch message now
+names the first part that differs (result, delta state, received stream, globals, or a named
+field), so a further mismatch can be traced.
+
 Kept from the original: the field 3 count is one byte read into a word; the companion's slot 13
 and the stat slot get their bool / flag arguments as 0/1 and the byte (the original pushes
 registers whose upper bytes are left over). The stat fractions and hit point ratio are plain C++
