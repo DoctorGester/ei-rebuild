@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <windows.h>
 
@@ -670,6 +671,197 @@ void CWorldClient::CreatePartyUnits(const PartyRecordArray* party, char allArmou
     }
 }
 
+// ---- Objects in range (0056DAF0) -----------------------------------------------------------------
+
+namespace {
+
+// The original's branch-free selects after FCOMP + FNSTSW (C0 shifted into a mask): `a < b`
+// (true when unordered) picks one side.
+float MaxZero(float b) { return (x87::IsNaN(b) || 0.0f < b) ? b : 0.0f; }   // (0 < b) ? b : 0
+float MinOf(float a, float b) { return (x87::IsNaN(a) || x87::IsNaN(b) || a < b) ? a : b; }
+
+// _ftol: truncation to a 64-bit integer, the low word kept.
+std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
+
+} // namespace
+
+void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
+    float maxX = At<float>(terrain_, 0x10C) - 1.0f;
+    float maxY = At<float>(terrain_, 0x110) - 1.0f;
+    float y1 = MinOf(MaxZero(point[1] + radius), maxY);
+    float x1 = MinOf(MaxZero(point[0] + radius), maxX);
+    float y0 = MaxZero(MinOf(MaxZero(point[1] - radius), maxY));
+    float x0 = MaxZero(MinOf(MaxZero(point[0] - radius), maxX));
+    std::uint32_t& firstX = At<std::uint32_t>(this, 0x138);
+    std::uint32_t& firstY = At<std::uint32_t>(this, 0x13C);
+    std::uint32_t& lastX = At<std::uint32_t>(this, 0x140);
+    std::uint32_t& lastY = At<std::uint32_t>(this, 0x144);
+    std::uint32_t& x = At<std::uint32_t>(this, 0x148);
+    std::uint32_t& y = At<std::uint32_t>(this, 0x14C);
+    firstX = x = Ftol(x0) >> 4;
+    firstY = y = Ftol(y0) >> 4;
+    lastX = Ftol(x1) >> 4;
+    lastY = Ftol(y1) >> 4;
+
+    SectorGrid& grid = GridAt(this, 0x120);
+    PlainList* list = static_cast<PlainList*>(out);
+    for (SectorListNode** cell = &grid.rows_[y][x]; cell;) {
+        for (SectorListNode* node = (*cell)->next; node != *cell; node = node->next) {
+            CEngineObject* object = node->value;
+            float pz = point[2];
+            float ox = At<float>(object, 0x1C) + At<float>(object, 0x128);
+            float oy = At<float>(object, 0x20) + At<float>(object, 0x12C);
+            double reach = ClientHypot(At<float>(object, 0x144), At<float>(object, 0x148)) + radius;
+            float dx = ox - point[0];
+            float dy = oy - point[1];
+            float dz = pz - point[2];
+            double distance = (static_cast<double>(dz) * dz + static_cast<double>(dy) * dy) + static_cast<double>(dx) * dx;
+            double limit = reach * reach;
+            // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).
+            bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(static_cast<float>(limit));
+            if (!unordered && !(limit < distance)) {
+                SectorListNode* end;
+                SectorListNode* inserted;
+                list->Insert(&inserted, *list->End(&end), object);
+            }
+        }
+        if (++x > lastX) {
+            x = firstX;
+            if (++y > lastY) return;
+        }
+        cell = &grid.rows_[y][x];
+    }
+}
+
+// ---- Teardown (00563290) -------------------------------------------------------------------------
+
+namespace {
+
+__declspec(naked) void __fastcall CameraSetTarget(void*, void*, void*) EI_ORIGINAL(0x0040D3B0)
+__declspec(naked) void __fastcall Destroy1B4(void*) EI_ORIGINAL(0x005E17E0)
+__declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
+__declspec(naked) void __fastcall Teardown563190(void*) EI_ORIGINAL(0x00563190)
+__declspec(naked) void __fastcall ClearA0(void*, void*, int, int) EI_ORIGINAL(0x00570000)
+// The lists' element destructors [0056D080 (node + 8); 00575560 / 00575580 (node + 8, flags)] and
+// node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
+__declspec(naked) void __fastcall Element1B8Destroy(void*) EI_ORIGINAL(0x0056D080)
+__declspec(naked) void __fastcall Node1B8Free(void*, int) EI_ORIGINAL(0x0056FB80)
+__declspec(naked) void __fastcall Element1BCDestroy(void*, void*, int) EI_ORIGINAL(0x00575560)
+__declspec(naked) void __fastcall Element1C0Destroy(void*, void*, int) EI_ORIGINAL(0x00575580)
+__declspec(naked) void __fastcall Node7BCFree(void*, int) EI_ORIGINAL(0x00498C40)
+__declspec(naked) void __fastcall NodeB8Free(void*, int) EI_ORIGINAL(0x0056FB00)
+// for_each(first, last, functor) releasing every value [00571780, RET 0xC].
+__declspec(naked) char __stdcall ForEachRelease(SectorListNode*, SectorListNode*, char) EI_ORIGINAL(0x00571780)
+// CList RemoveAll [0056FDA0]; the counted handle's Shutdown [00417DF0], Release [0040A3A0], Share
+// [00418BE0]; the base world's teardown [0055F8E0].
+__declspec(naked) void __fastcall MfcRemoveAll(void*) EI_ORIGINAL(0x0056FDA0)
+__declspec(naked) void __fastcall RefShutdown(void*) EI_ORIGINAL(0x00417DF0)
+__declspec(naked) void __fastcall RefRelease(void*) EI_ORIGINAL(0x0040A3A0)
+__declspec(naked) void __fastcall RefShare(void*, void*, void*) EI_ORIGINAL(0x00418BE0)
+__declspec(naked) void __fastcall WorldTeardown(void*) EI_ORIGINAL(0x0055F8E0)
+
+constexpr int kSlotDeletingDestructor = 0;
+constexpr int kSlotDestroy = 3;
+
+// The list's nodes walked from the head's next, each given to `free` after the next is read; the
+// list is left empty.
+template <typename F>
+void EmptyList(PlainList& list, F free) {
+    for (SectorListNode* node = list.head->next; node != list.head;) {
+        SectorListNode* next = node->next;
+        free(node);
+        node = next;
+    }
+    list.head->next = list.head;
+    list.head->prev = list.head;
+}
+
+void DeleteOwned(void*& slot) {
+    if (slot) {
+        ei::VCall<void>(slot, kSlotDeletingDestructor, 1);
+        slot = nullptr;
+    }
+}
+
+void DropAndDelete(void*& slot) {
+    if (slot) {
+        --static_cast<CEngineObject*>(slot)->refCount_;
+        if (slot) ei::VCall<void>(slot, kSlotDeletingDestructor, 1);
+        slot = nullptr;
+    }
+}
+
+} // namespace
+
+void CWorldClient::Destroy() {
+    CameraSetTarget(reinterpret_cast<void*>(0x0079B2A8), nullptr, nullptr);
+    if (void* p = At<void*>(this, 0x1B4)) {
+        Destroy1B4(p);
+        gamecrt::operator_delete(p);
+        At<void*>(this, 0x1B4) = nullptr;
+    }
+    if (void* p = At<void*>(this, 0x1AC)) {
+        Destroy1AC(p);
+        gamecrt::operator_delete(p);
+        At<void*>(this, 0x1AC) = nullptr;
+    }
+    DeleteOwned(At<void*>(this, 0x1B0));
+    Teardown563190(this);
+    ClearA0(&At<std::uint8_t>(this, 0xA0), nullptr, 0, -1);
+    EmptyList(ListAt(this, 0x1B8), [](SectorListNode* node) {
+        Element1B8Destroy(&node->value);
+        Node1B8Free(node, 1);
+    });
+    EmptyList(ListAt(this, 0x1BC), [](SectorListNode* node) {
+        Element1BCDestroy(&node->value, nullptr, 0);
+        if (node) stlp::deallocate(node, 0x9C);
+    });
+    EmptyList(ListAt(this, 0x1C0), [](SectorListNode* node) {
+        Element1C0Destroy(&node->value, nullptr, 0);
+        if (node) stlp::deallocate(node, 0x94);
+    });
+    ei::VCall<void>(&At<std::uint8_t>(this, 0x6F4), kSlotDestroy);
+    ei::VCall<void>(&platforms_, kSlotDestroy);
+    MfcRemoveAll(&At<std::uint8_t>(this, 0x1F0));
+    SectorGrid& grid = GridAt(this, 0x120);
+    for (int x = 0; x < static_cast<int>(grid.width_); ++x)
+        for (int y = 0; y < static_cast<int>(grid.height_); ++y)
+            reinterpret_cast<CellList*>(&grid.rows_[y][x])->Clear();
+    EmptyList(ListAt(this, 0x7BC), [](SectorListNode* node) { Node7BCFree(node, 1); });
+    EmptyList(ListAt(this, 0xB4), [](SectorListNode* node) {
+        CountedDestroy(&node->value, nullptr, 0);
+        NodeFree(node, 1);
+    });
+    PlainList& objects = ListAt(this, 0xB8);
+    ForEachRelease(objects.head->next, objects.head, 0);
+    EmptyList(objects, [](SectorListNode* node) { NodeB8Free(node, 1); });
+    if (session_) {
+        ei::VCall<void>(session_, kSlotRelease);
+        session_ = nullptr;
+    }
+    if (void* handle = At<void*>(this, 0x1C8)) {
+        if (At<std::uint16_t>(handle, 4) != 1) {
+            At<std::uint8_t>(handle, 7) |= 0x80;
+            RefShutdown(handle);
+        }
+        RefRelease(At<void*>(this, 0x1C8));
+        RefShare(&At<void*>(this, 0x1C8), nullptr, nullptr);
+    }
+    WorldTeardown(this);
+    DeleteOwned(At<void*>(this, 0x1A0));
+    DeleteOwned(At<void*>(this, 0x1A4));
+    DropAndDelete(At<void*>(this, 0x19C));
+    DropAndDelete(At<void*>(this, 0x180));
+    DropAndDelete(At<void*>(this, 0x190));
+    DropAndDelete(At<void*>(this, 0x188));
+    DropAndDelete(At<void*>(this, 0x18C));
+    DeleteOwned(At<void*>(this, 0x1A8));
+    DropAndDelete(At<void*>(this, 0x1CC));
+    DropAndDelete(At<void*>(this, 0x1D0));
+}
+
+EI_REPLACE_METHOD(0x00563290, CWorldClient::Destroy);
+EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);
 EI_REPLACE_METHOD(0x00564BE0, CWorldClient::RemoveObject);

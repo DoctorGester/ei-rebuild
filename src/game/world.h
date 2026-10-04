@@ -714,6 +714,18 @@ public:
     // (+0); each unit is filed with AddObject. Armour of type 0 is put on only with `allArmour`.
     // Stops at the first unit that cannot be created or given a figure.
     void CreatePartyUnits(const PartyRecordArray* party, char allArmour);
+    // 0056DAF0 (RET 0xC; the camera's 0040E4C0). Appends to the plain pointer list `out` every
+    // object of the sector grid's cells around `point` whose (x, y) (+0x1C plus +0x128) lies within
+    // radius + hypot(+0x144, +0x148) of the point. The cell range (+0x138..+0x144, truncated and
+    // clamped to the terrain) and the walk's cursor (+0x148 / +0x14C) are left in the client.
+    // The original's z difference is the point's z minus itself (0, kept).
+    void ObjectsInRange(const float* point, float radius, void* out);
+    // 00563290 (slot 3; also 00456440 and 00561B00). Tears the client world down: the camera's
+    // target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0, the lists +0x1B8, +0x1BC,
+    // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,
+    // +0xB4 and +0xB8 (released), the session (+0x20C), the counted +0x1C8, 0055F8E0, then the
+    // owned objects +0x1A0 .. +0x1D0 (counted ones dropped first) deleted and cleared.
+    void Destroy() override;
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090

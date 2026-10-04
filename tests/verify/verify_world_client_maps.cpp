@@ -402,3 +402,48 @@ static CEngineObject* __fastcall PickAt2Verify(CWorldClient* client, void*, cons
     return PickChecked("CWorldClient::PickAt2", s_pick2, true, client, point);
 }
 EI_VERIFY(0x005659D0, PickAt2Verify, 5, s_pick2);
+
+// 00563290: ours only. Afterwards the owned pointers are cleared, the lists and grid cells empty.
+static void __fastcall DestroyVerify(CWorldClient* client, void*) {
+    client->Destroy();
+    bool ok = GridEmpty(At<SectorGrid>(client, 0x120));
+    for (int offset : {0x1B8, 0x1BC, 0x1C0, 0x7BC, 0xB4, 0xB8}) ok = ok && ListEmpty(client, offset);
+    for (int offset : {0x1B4, 0x1AC, 0x1B0, 0x20C, 0x1A0, 0x1A4, 0x19C, 0x180, 0x190, 0x188, 0x18C, 0x1A8, 0x1CC, 0x1D0})
+        ok = ok && At<void*>(client, offset) == nullptr;
+    ei::verify::Check("CWorldClient::Destroy", true, ok, "");
+}
+EI_VERIFY(0x00563290, DestroyVerify, 0, s_unused);
+
+// 0056DAF0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x20 (6 bytes). The original appends first; its
+// entries are taken back off the list (erase, 0056DFB0) and ours appends; the entries and the
+// cell range and cursor (+0x138..+0x14C) are compared. The distance test is plain C++: an object
+// exactly on the range's edge may rarely differ (rule 7).
+using InRangeFn = void(__fastcall*)(CWorldClient*, void*, const float*, float, void*);
+static InRangeFn s_inRange;
+__declspec(naked) static void __fastcall PlainListErase(void*, void*, SectorListNode**, SectorListNode*)
+    EI_ORIGINAL(0x0056DFB0)
+
+static void __fastcall ObjectsInRangeVerify(CWorldClient* client, void*, const float* point, float radius, void* out) {
+    float p[3] = {point[0], point[1], point[2]};
+    SectorListNode* head = *static_cast<SectorListNode**>(out);
+    SectorListNode* last = head->prev;   // the entries after it are the call's
+    auto appended = [head](SectorListNode* from) {
+        std::vector<CEngineObject*> values;
+        for (SectorListNode* node = from->next; node != head; node = node->next) values.push_back(node->value);
+        return values;
+    };
+    s_inRange(client, nullptr, p, radius, out);
+    std::vector<CEngineObject*> theirs = appended(last);
+    std::uint32_t theirsCells[6];
+    std::memcpy(theirsCells, &At<std::uint32_t>(client, 0x138), sizeof(theirsCells));
+    while (last->next != head) {
+        SectorListNode* ignored;
+        PlainListErase(out, nullptr, &ignored, last->next);
+    }
+    client->ObjectsInRange(p, radius, out);
+    std::vector<CEngineObject*> mine = appended(last);
+    bool ok = theirs == mine && std::memcmp(theirsCells, &At<std::uint32_t>(client, 0x138), sizeof(theirsCells)) == 0;
+    ei::verify::Check("CWorldClient::ObjectsInRange", true, ok, "(%g, %g, %g) r %g: %zu vs %zu objects", p[0], p[1],
+                      p[2], radius, theirs.size(), mine.size());
+}
+EI_VERIFY(0x0056DAF0, ObjectsInRangeVerify, 6, s_inRange);

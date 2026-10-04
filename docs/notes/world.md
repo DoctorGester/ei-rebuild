@@ -954,6 +954,16 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 | 005726B0 | ReleaseIfIdentified (ClearMaps' predicate) | ours only: true exactly for a positive id |
 | 00565790 / 005659D0 | CWorldClient::PickAt / PickAt2 (RET 4) | differential: the original first; the object, the sorted entries and the cursor compared |
 | 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
+| 0056DAF0 | CWorldClient::ObjectsInRange (RET 0xC; the camera's 0040E4C0) | differential: the original appends first, its entries are erased again, ours appends; entries and the cell range / cursor (+0x138..+0x14C) compared |
+| 00563290 | CWorldClient::Destroy (slot 3) | ours only: the owned pointers cleared, the lists and grid cells empty |
+
+ObjectsInRange clamps the box [point - r, point + r] to the terrain (+0x10C / +0x110 minus 1)
+with the original's FCOMP-mask selects (0 < v ? v : 0, a < b ? a : b; an unordered compare picks
+the first branch), truncates with `_ftol` (low word of the 64-bit result), shifts by 4, and walks
+the cells row by row through the client's cursor +0x148 / +0x14C. An object is taken when
+(dz^2 + dy^2) + dx^2 <= (hypot(+0x144, +0x148) + r)^2, with dx / dy from +0x1C + +0x128 and +0x20 +
++0x12C. The original's dz is the point's z minus itself (0, or NaN for a NaN z, which excludes
+everything); kept. The sums are plain C++ (rule 7).
 
 CreatePartyUnits (called by the glue 005789C0 with the player's party records, an MFC pointer
 array): per record a CStringArray of the figure's part names "hd", "bd", "hp", "hr", "lh1".."rl3",
