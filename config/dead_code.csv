@@ -1,5 +1,7 @@
 address,size,name,evidence
+00402310,452,FUN_00402310,"no references (only coincidental aligned dwords inside other code)"
 00402500,599,FUN_00402500,"no references at all (no call/jmp, no absolute pointer in code or data)"
+00402780,887,FUN_00402780,"no references: a radix sort with its own atexit; only coincidental aligned dwords elsewhere"
 00403F90,173,FUN_00403f90,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00408C50,32,FUN_00408c50,referenced only from dead code 00408CB0
 00408C70,51,FUN_00408c70,referenced only from dead code 00408C50
@@ -17,7 +19,9 @@ address,size,name,evidence
 0042CEC0,219,FUN_0042cec0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042D1C0,146,FUN_0042d1c0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042DA80,229,FUN_0042da80,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0042E700,3436,FUN_0042e700,"no references: polygon clipper variant; only coincidental aligned dwords (E8 call bytes at 00460928 005171F8 0053D6F8 0064C6E8)"
 0042F4C0,976,FUN_0042f4c0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0042F890,397,FUN_0042f890,referenced only from dead code 0042E700 0042F4C0
 00431300,111,FUN_00431300,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00431370,562,FUN_00431370,referenced only from dead code 00431090 00431110
 004315B0,1068,FUN_004315b0,referenced only from dead code 00431370

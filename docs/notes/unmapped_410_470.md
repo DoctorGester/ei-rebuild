@@ -302,3 +302,104 @@ No new scenario.
   0041BC40: multiplayer only, mostly STLport containers with EH frames; next candidates are the
   record serialisers 004355B0 / 00435820 (over BufferCursor, reached by the lobby scenario) and
   the server Tick's 00443590.
+
+## Third round: sessions, connections, messages (00400000-00440000 worker)
+
+Files: `src/game/net_classes.h` (session / client / server / message layouts), `net_session_base.cpp`,
+`net_client.cpp`, `net_server.cpp`, `net_messages.cpp`, `net_connection.h/.cpp`; the RefPtr share
+copies in `refptr_copies.cpp`. Verify: `tests/verify/net_verify.h` (BuiltCompare: two objects built
+by two constructor implementations compared dword by dword, pointers outside the image pairing one to
+one; session table and slot-13 helpers), `verify_net_session_base.cpp`, `verify_net_client.cpp`,
+`verify_net_server.cpp`, `verify_net_messages.cpp`, `verify_net_connection.cpp`,
+`verify_refptr_copies.cpp`. Scenario: `net_lobby.txt` (the host's client connects to its own server
+over loopback, so constructors, replication and the slot-13 collectors run every frame).
+
+### Classes
+
+- SessionBase (vtable 0073BF5C, 0x2568 bytes): +0x18 frame, +0x20 double time, +0x28 connection list,
+  +0x2C type registry (two hash_maps: message vtable -> type id, type id -> factory), +0x54 UDP socket
+  driver, +0x64 one "reliable" byte per message type, +0x164 / +0xD64 / +0x1964 handler vectors per
+  channel (0 created, 1 changed, 2 removed) and type. Handlers are `__fastcall(session, message)`.
+- ClientSession (0x2700, vtable 0073BDEC) and ServerSession (0x2600, vtable 0073BB70): see
+  net_classes.h. +8 of both is 0xDEC0AD07.
+- Message (vtable 0073BC10): {vtable, CRefObject count, kind 1}; classes 0073BBF8 ... 0073BDD0 with
+  slots 0 deleting destructor, 2 reset, 3 clone, 4 write, 5 read. Factories for types 1..17 are listed
+  in SessionBase::RegisterMessageTypes.
+- Connection (vtable 0073BF38, 0x1168): object replication to one peer (see net_connection.h for the
+  format: 11 priority maps of ReplicaEntry (0073BF4C), the send history with what each packet carried,
+  the reliable byte stream sent in chunks of up to 255 bytes, `records` of the objects received).
+  Globals: 0079B920 the session being updated, 0079B924 the connection, 0079B900 the send buffer,
+  0079B91C the network log stream, 0079B8D0 the static {object, priority} vector of CollectChanges.
+
+### Rewritten
+
+| Address | Name | Verify | Reached by |
+|---|---|---|---|
+| 0041BC40 | `ClientSession::Construct` | ours real; original into a scratch block; BuiltCompare (+0x54 socket skipped), tables, player record; scratch deleted by its destructor | net_lobby |
+| 00412D80 | `ServerSession::Construct` | the same (ours first so the real one gets the port) | net_lobby |
+| 00436770 | `SessionBase::Construct` | original on scratch, BuiltCompare; scratch destroyed by 00436A50 | net_lobby (inside the originals) |
+| 00429F40 / 0042A890 / 00438930 | `TypeRegistry::TypeOf` / `Register` / `Create` | pure / ours only + lookups / both create, same vtable | net_lobby |
+| 004377D0 / 004142F0 | `SessionBase::AddHandler` / `RegisterMessageTypes` | ours only, tables read back | net_lobby |
+| 00413250 / 004186E0 | `NewRefObject` / `MessageConstructBase` | ours only / scratch | net_lobby |
+| 0041C870 0041C680 0041C740 0041C7C0 00418C30 00413350 004138A0 00413C90 004140B0 | message constructors (named by vtable) | scratch copy (string blocks pair up, freed) | net_lobby |
+| 0041C420 | `ClientVectorConstruct` | scratch | net_lobby |
+| 004292F0 00429350 00429430 00429710 00429930 00429990 004299F0 00429A50 00429AB0 | `RefPtrShareReturn` (9 copies) | dry run on stand-ins (clone stand-in added) | net_lobby |
+| 00435A00 | `Connection::SendUpdate` | ours only | net_lobby |
+| 00435F30 | `Connection::ReadRecord` | ours only (cursor advanced) | net_lobby |
+| 004352F0 / 00435F10 / 00434C20 / 00434990 / 00433F20 | `AttachRecord` / `IdPool::Allocate` / `WriteAcks` / `QueueHeader` / `RollBack` | ours + lookup / copy / private copies / ours + order check / ours + flag | net_lobby |
+| 004346D0 / 00434110 | `Connection::CollectChanges` / `Track` | ours only + counts | net_lobby |
+| 00417EB0 / 0041D050 | `ServerCollectReplicated` / `ClientCollectReplicated` (slot 13) | ours into the real vector, original into a scratch one, items compared | net_lobby |
+
+### Forwarders added (the standalone build must replace)
+
+STLport instantiations of the session containers (list constructors 0041F8B0 ... 00424750, 0041FD30,
+00422400 ... 00421B20; hashtables 00438B70 / 00439F20 / 0042B9C0 / 0042AA90 / 0042B8A0 / 0042AA00 /
+0042A810; vectors 0043D5F0 / 0041F790 / 00426B10 / 00439E10 / 00439DD0; the connection's lists and
+trees 004397E0 00437F30 00438F60 00439C80 00439C50 00438660 00438640 00438650 00438770 004387C0
+00439A60 0043DBE0 0043CE70 00439AA0 00439B70 00439A70 0043D3E0 00439C40 00439B80 0043D2E0 0043C3B0
+00437B90 0043A090 0043C4B0 00437D60 00439540 00437D40 0043A050 0043CA00 00437F10 00439730 0043A070
+0043C900; sort 0043F870 / 0043F9B0), the strings 00424E40 / 0041F460 / 00421800, RefPtr helpers
+00438A90 / 00438F50 / 00438110 / 0041DD50, the GameBuffer constructor / grow 004DA7F0 / 004DA5C0,
+socket driver 004407F0 / 004409A0 / 00440B90, unit record builder 00661050, 00418530 (server map list),
+the handler registration templates 00428090 ... 004288E0 / 004279B0 / 00427AC0 / 00427C40, the
+iostream inserters 006FC31D / 006FC0B0 / 00434FE0 and atexit 006E727B.
+
+### Original behaviour kept
+
+- SendUpdate: an entry that overflows the budget stays in the packet uncounted; the rest of that
+  priority waits, lower priorities are still tried.
+- ReadRecord's skip path creates a throwaway object without a null check.
+- The player record and Track's entry have their reference count written before the null check.
+
+## Fourth round: ChunkArchive (00409070-0040A400)
+
+File `src/game/chunk_archive.cpp`, verify `tests/verify/verify_chunk_archive.cpp`. Shared header
+`model.h`: ChunkArchive gained `Ref`, NextChild, AppendChild, FindChild, CountChildrenOf,
+ResizeToCurrent, Open, Close (declarations only); the EnterChunk / LeaveChunk / Field / CountChunks
+forwarders moved out of `model_db.cpp` (they are rewritten now).
+
+Archive layout beyond model.h: +0x00 index stream, +0x28 data stream (data at +0x40), +0x54 version,
++0x5C hash_map<int key, object> of loaded objects, +0x70 list of objects to save. Class tables:
+0079B284 class id -> factory, 0079B270 vtable -> class id. A saved archive is three top-level chunks:
+1 (scratch data, read back on load), 0 (index: class id and key per object), 2 (data: one child 1
+per object holding child 0 = key and child 1 = the object's own fields).
+
+| Address | Name | Verify | Reached by |
+|---|---|---|---|
+| 00409070 / 004091C0 / 00409230 / 00409A60 | NextChild / FindChild / CountChildrenOf / CountChunks | pure, side by side | every scenario (database load at startup, unit saves) |
+| 004092B0 | Field | loading: scratch buffer compared; writing: ours + size | every scenario |
+| 004098D0 | EnterChunk | original first, its chunk popped, ours; same chunk | every scenario |
+| 00409980 / 00409110 | LeaveChunk / AppendChild | ours only + depth / size | every scenario |
+| 00409A40 / 00409E80 | ResizeToCurrent / ChunkRefReset | original then ours, same header / pure | every scenario |
+| 00409EA0 / 00409F30 / 0040A3C0 | ReadStreamChunk / FindStreamChunk / WriteStreamChunk | ours only | every scenario |
+| 00409AE0 / 0040A000 | Open / Close | ours only + stack depth | every scenario (startup databases; autosave) |
+
+Kept: LeaveChunk (writing) takes the child's content pointer before AppendChild resizes the stream;
+a failed EnterChunk while loading leaves the chunk pushed; a loaded archive's Close gives every
+loaded object one reference and takes it back.
+
+## Dead code found in this range
+
+00402310 (452), 00402780 (radix sort, 887), 0042E700 (3436) and 0042F890 (397, called only
+by 0042E700 and 0042F4C0) have no references: only coincidental aligned dwords inside other
+functions' code made tools/find_dead_code.py count them live. Added to config/dead_code.csv.
