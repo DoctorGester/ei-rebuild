@@ -3462,3 +3462,4 @@ address,name,library,signature,notes
 004773F0,"CArray<TYPE,ARG_TYPE>::SetAtGrow (4-byte elements)",MFC,,"range 440 review: MFC template instantiation (SetSize inlined), not game logic"
 00477270,"CMap<KEY,ARG_KEY,VALUE,ARG_VALUE>::InitHashTable",MFC,,"range 440 review: MFC template instantiation, not game logic"
 00476050,"CMap<KEY,ARG_KEY,VALUE,ARG_VALUE>::operator[] (pointer keys, hash key >> 4)",MFC,,"range 440 review: MFC template instantiation (NewAssoc inlined), not game logic"
+00463C60,stlp::vector<T>::~vector (0x2C-byte records with four CStrings),STLport,,"range 440 review: STLport template instantiation, reached only from exception unwind funclets (00714773, 007147D3); not game logic"
