@@ -336,6 +336,9 @@ public:
     bool ApplyBridges(FootprintCellSet* set, bool remove);
     // The rewrite of 005B6740 (ai_bridges.cpp); ApplyBridges stays the forwarder to its address.
     bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);
+    // 005BC750 (RET 8, ST0; ai_line_step.cpp). The largest ground step between consecutive cells on
+    // the line, in world height; 1.0 for a zero-length line, 100.0 when an end is off the map.
+    double LargestStepAlong(const Vector3* from, const Vector3* to);
     // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
     bool AddOccluder(FootprintCell* cell);
     bool ClearOccluder(FootprintCell* cell);
