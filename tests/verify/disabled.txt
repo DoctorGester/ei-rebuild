@@ -1,2 +1,4 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+0052FCC0  UnitPredictPosition: combat scenarios crash in ApproachTarget (read at address 9) with it and 0052FDF0 on
+0052FDF0  UnitActionPoint: as 0052FCC0
