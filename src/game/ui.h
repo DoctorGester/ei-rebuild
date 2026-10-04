@@ -875,6 +875,9 @@ public:
     void Build();
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
     void ShowZone(const char* zone);
+    // 0064DC60 (__fastcall): when the selected quest changed, its description in the log and a
+    // marker and region per place of the quest on the zone picture.
+    void ShowQuest();
     // Not rewritten.
     void SelectExit(int index);      // 0064E990
     void RefreshQuests();            // 0064E8B0
@@ -895,7 +898,7 @@ public:
     int exitGrowBy_;                 // +0x198
     int nearestExit_;                // +0x19C
     int selectedQuest_;              // +0x1A0 row of the quest named by the global at 007C8178
-    int unknown_1A4;                 // +0x1A4
+    int shownQuest_;                 // +0x1A4 the row ShowQuest last showed (-1: none)
     std::uint8_t quests_[0x14];      // +0x1A8 CStringArray (data +0x1AC, size +0x1B0)
     CUiScrollbar* bar_;              // +0x1BC
     int unknown_1C0;                 // +0x1C0

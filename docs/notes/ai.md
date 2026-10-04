@@ -314,3 +314,44 @@ no longer defines the `UnitShape` forwarder.
 - The unit layers and `ForgetObject` / `SetStepSpeeds` are verified only by consistency checks.
 - `UnitShape`'s create path (first use of a height) follows the original's helper calls one by
   one; the verify compares only the returned object (the original runs first and creates it).
+
+
+# AI map, region map and footprint shapes (0x005A0000-0x005C0000, worker 7)
+
+Rewritten (all hooked; verify wrappers in tests/verify):
+
+- 005B9C90 CAIMap::PlanLongPath (ai_plan.cpp): the long-range planner (region chain, then local
+  searches per leg). The old `PlanPath` forwarder in ai_path.cpp stays. Verify: differential on
+  the returned path.
+- 005B8FA0 CAIMap::RefreshArea (ai_refresh.cpp; the `Refresh` forwarder stays): per level the
+  cell marks over the rectangle grown by 3, packed as nibbles into the cells, the level's special
+  areas (005B89F0), the steep-step pass, the three border rows/columns cleared, and with
+  `refreshUnits` the objects around it taken out of the sector map around the region update
+  (005AFEE0). Verify: differential (ours re-runs from the state the original left; every value it
+  writes is recomputed from the terrain).
+- 005B8BA0 CAIMap::CellMark: a cell's mark for a level and its height, from terrain type, water
+  depth and the occluders (cost and damping through an exp, transcribed as naked x87). Verify:
+  differential on a copy of the scratch state.
+- 005B8710 CAIMap::LimitSteepCells: the second pass of Refresh. The largest climbable step of a
+  climb table is the run of non-negative costs from its middle, less one. A cell whose step to a
+  direct neighbour (table 007916BC, {dy, dx}) exceeds size class 0's becomes impassable; one that
+  exceeds the larger classes' keeps only nibble 0; either way one neighbour's nibbles 5-6 and
+  nibble 7 of 13 cells around are cleared. Quirk kept: the neighbour whose nibbles 5-6 are cleared
+  is the one that broke the scan, or entry 4 of the table (the first of the 13) when none did; the
+  original clears it four times over. Verify: differential (snapshot, original, restore, ours).
+- 005B07C0 CRegionMap::ReachesRegion (ai_region_reach.cpp; the `Reaches` forwarder stays): see
+  the file comment. The 3x3 block list is a function-local static CArray (007C2EE0) freed with
+  plain delete every call. Verify: differential over the marks window.
+- 005B0050 CRegionMap::LabelRegions: per size class the region grid cleared and every unlabelled
+  block flooded (005AFF10) with the next label from a static queue (007C2F10; 007C2EF8 the
+  flood's second list). The original inlines the queue's CArray::SetSize; ours calls the
+  out-of-line instance 005B16D0 (same logic). Verify: differential on all 8 grids.
+- 005B2A00 / 005B2760 the wall and cloud footprints (ai_footprint_shapes.cpp): a disc around the
+  point (scaled by 2 to cells, radius grown by one cell; the radius is the direction's length for
+  the wall) limited, for the wall, by (cy - y) * ny + (cx - x) * nx < 1 with n the side normal
+  over (its length * (2 * width + 1)). Values the original keeps on the FPU are doubles. Quirk:
+  the appended cell's byte 0x13 and `next` are stack garbage in the original (ours 0 and -1;
+  nothing reads them, the cells are in no bucket). Verify: differential on the cell list.
+
+Risks: RefreshArea's verify runs the refresh twice (slow on big refreshes). The footprint shapes
+and CellMark depend on the FPU precision assumption above.

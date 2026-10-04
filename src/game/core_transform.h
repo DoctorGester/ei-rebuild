@@ -27,6 +27,15 @@ public:
     // they are), vtable 0073BA38; returns this.
     CTransformObject* ConstructBase();
 
+    // Rotation helpers (core_transform_math.cpp).
+    void WorldMatrix(float* m) const;                    // 00401570: 4x4 world matrix
+    void TiltTowards(const Vector3& target);             // 00401680: down axis a tenth towards target
+    void TurnTowards(const Vector3& target);             // 00401940: forward axis onto target
+    void RollTowards(const Vector3& dir);                // 00401B50: down axis towards dir about forward
+    void Rotate(const Vector3& axis, float angle);       // 00401E50: localRotation = turn * localRotation
+    void TurnUpTowards(const Vector3& dir, int reduced); // 00401F00: up axis towards dir (0.4 of it if reduced)
+    void SetHeading(const float* dir);                   // 00402220: turn about +Z by atan2(dir[1], dir[0])
+
     Vector3 localPosition_;     // +0x1C
     Vector3 worldPosition_;     // +0x28
     Quaternion localRotation_;  // +0x34

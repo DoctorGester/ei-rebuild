@@ -970,6 +970,61 @@ constructor, which the camp gets from a base's dialogue ("constrN" answers, 0060
 Not reached by a scenario: the constructor pages' Builds (006270A0, 006280C0, 00628CC0, 006279E0),
 CanMakeSpell / CanMakeItem, and probably CanEquip (slot 43; asked when an item is picked or dropped).
 
+## Unit info texts (00647040)
+
+Files: `src/game/ui_hud_unit_info.cpp`, `tests/verify/verify_ui_hud_unit_info.cpp`.
+
+| Address | Name | Verify |
+|---|---|---|
+| 00647040 | `DrawUnitInfo` (battle HUD info panel thiscall, RET 4) | ours only: the unit's health / mana words and the panel's surface and label table unchanged |
+
+Called by 006462A0 (Rebirth-patched) for the unit under the cursor. The panel: +0x118 points at
+the surface (its text draw 005FDE20 is Rebirth-patched, called through its address), +0x1A0 the
+label table (CStrings), +0x148 the group (+0x16C units, +0x170 count). Lines, from (5, 0x23) to
+(0x9B, 0x32), 15 pixels apart, colour 0xA7D7E4:
+1. label 0 "%s %d/%d": health (+0x17E, negative shown as 0) / maximum (+0x180).
+2. label 1: mana +0x182 / +0x184 (unsigned words).
+3. label 2 "%s %.1f %s": the speed, (00742408 * speed) * 00742AEC on the FPU, the speed from
+   0052FAF0 mode 3 for a unit outside the group, else 0052FA20; the suffix is the text of
+   "move_<n>" for the parameters' +0xF above 1 (n = value - 1), else empty.
+4. label 6 "%s %d%s" label 13: the vision range at the time of day (0055FC50 rounded to float,
+   005271E0, rounded to float, FISTP).
+5. labels 3 and 4: attack and defence from the controller (+0x240, slot 50, a 0x20-byte record).
+6. label 9 "%s %d-%d %s": damage minimum / maximum (truncated) and the text of "dmg_<type>" for a
+   type below 7; for another type the suffix keeps the move text (original behaviour).
+7. label 15: the parameters' +0x15 byte.
+8. The description (005270E0 into a 0x1C-byte record, 005F13A0 (Rebirth-patched) into lines):
+   label 10 + line 0 always; outside the group label 11 + line 1 when not empty, label 5 when the
+   prototype's vector at +0x100 is not empty, and with a group "consider_more<d>" /
+   "consider_less<d>" for the level difference to the first group unit, clamped to 25 (looked up
+   in place: the same CString is key and result), drawn after label 16; inside the group label 12
+   + line 2 when not empty.
+9. A multiplayer client, for a group unit: "camp_current_exp" and the parameters' +8.
+
+The damage values go through the modern `__ftol2_sse` instead of the game's `_ftol` (both
+truncate).
+
+## Objectives window: the selected quest (0064DC60)
+
+Files: `src/game/ui_objectives.cpp` (`CObjectivesWindow::ShowQuest`), `tests/verify/verify_ui_objectives.cpp`.
+`ui.h`: `unknown_1A4` renamed `shownQuest_`, `ShowQuest` declared.
+
+| Address | Name | Verify |
+|---|---|---|
+| 0064DC60 | `CObjectivesWindow::ShowQuest` (`__fastcall`, called by RefreshQuests 0064E8B0) | ours only: the shown quest is the selected one; extra sprites / regions are the quest places' or none |
+
+Only when the selected row differs from the one shown (+0x1A4): the log (first child) is cleared
+(0065D450); for a valid row the global quest name 007C8178 is set, and when "quest <name>" is in
+the texts the log gets: colour code 007946F8 + the text up to '#', "\n", then (when the quest
+database's index 007C87B4 has the quest; its operator[] 0064EE90 adds an empty slot otherwise)
+colour 007946EC and "obj_cost_exp %d\n" / "obj_cost_money %d\n" for rewards above 0 (truncated).
+Then each line of the text: "#quest" ends the loop; "#subobj <id>" with the player's variable
+q.<zone>.<quest>.<id> (truncated) not 0 adds colour 0079349C, the next line, " ", for 2 colour
+007946B8 + "obj_completed", for 3 colour 007946C0 + "obj_failed", then 007946AC, the text up to '#'
+and 007946A4. The log text is set (0065CFE0). With the zone in the map database: 0064EA80 fills the
+quest places, the sprites / regions after the exits' (21 + exits, 9 + exits) are removed, and each
+place gets a 20x20 marker (cross texture, colour (1, 0, 0) at +0x224) at its position on the zone
+picture (as the exits: 300 / larger world side, centre (580, 190)) and a region with tip 0x138F0.
 # Item descriptions, item view, sprite shapes (005E0000-00610000, fifth pass)
 
 Files: `src/game/ui_item_info.h/.cpp` (the description panel), `src/game/ui_item_view.cpp` (the item
@@ -1090,7 +1145,10 @@ quaternion 0049E800; DrawItem through 005ECA10 (from the panel). Shapes: array S
   run their own wrappers nested.
 - DrawItem: both runs draw, so in the verify build an item is drawn twice per frame.
 - Shapes: after the original, the parts it wrote are copied and overwritten with 0xCD; ours must
-  write them all again identically. Place (Rebirth-patched) runs in both.
+  write them all again identically. Place (Rebirth-patched) runs in both. Commit's +0xC4 (the
+  index array's data pointer) is compared as "points at the current indices": the builders empty
+  the index array with SetSize(0), which frees it, so each run has a new buffer (the first in-game
+  run reported this as a one-byte difference at that field in every build).
 
 ## Scenario `tests/scenarios/ui_describe.txt`
 

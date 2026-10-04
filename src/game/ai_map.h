@@ -97,13 +97,17 @@ struct VisibilityGrid {
 };
 static_assert(sizeof(VisibilityGrid) == 0x18);
 
-// The region map at CAIMap + 0x22F8: connected areas per size class. Not rewritten.
+// The region map at CAIMap + 0x22F8: connected areas per size class.
 struct CRegionMap {
     // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
     // original leaves it).
     int RegionAt(int sizeClass, int x, int y);
     // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
     bool Reaches(int sizeClass, int x, int y, int region, void* marks);
+    // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
+    bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
+    // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
+    void LabelRegions();
 };
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
@@ -225,6 +229,11 @@ public:
 
     // 005BB350. Plans a path for `unit` to `target` into `path`; `range` limits the search.
     bool FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance);
+    // 005B9C90 (PlanPath, RET 0x20; ai_plan.cpp). The long-range plan from cell (fromX, fromY) to
+    // (toX, toY): region chain, local-search legs between the regions' representative cells, then
+    // the cells into path->cells. On a failed leg: aim at the best reached cell when it is far
+    // enough from the start, else (with `retry`) exclude the region and plan again.
+    bool PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells);
     // 005BB900. Searches again if the last search failed and nothing is left, else moves on along
     // the path. True if the path had already been walked to the end.
     bool ContinuePath(CUnit* unit, AIPath* path);
@@ -309,6 +318,17 @@ public:
     bool ClearOccluder(FootprintCell* cell);
     // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).
     void Refresh(int minX, int maxX, int minY, int maxY);
+    // The rewrite of 005B8FA0 (ai_refresh.cpp); Refresh stays the forwarder to its address.
+    void RefreshArea(int minX, int maxX, int minY, int maxY);
+    // 005B8BA0 (RET 0x14; ai_refresh.cpp). The passability mark of cell (x, y) for a standing
+    // level and its height in AI units: from the terrain type, water depth and the occluders over
+    // the cell (cost and damping), looked up in the mark table 00791164. `scratch` gets the state.
+    std::uint32_t CellMark(void* scratch, int level, int levelHeight, int x, int y);
+    // 005B8710 (RET 0x10; ai_refresh.cpp). Refresh's second pass over [x0, x1] x [y0, y1] (kept 2
+    // cells from the border): a cell whose step to a direct neighbour exceeds what size class 0
+    // can climb becomes impassable, one beyond the larger classes keeps only class 0; either way
+    // nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared.
+    void LimitSteepCells(int x0, int x1, int y0, int y1);
 
     CRegionMap* Regions() { return reinterpret_cast<CRegionMap*>(regions); }
 
