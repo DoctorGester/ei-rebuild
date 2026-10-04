@@ -123,6 +123,8 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
     static const char* const kLevels[] = {"panic", "error", "warning", "info"};
     ei::Log("render: %s %s %u (line %u): %s", tag ? tag : "sg", level < 4 ? kLevels[level] : "?", item, line,
             message ? message : "");
+    // sokol cannot go on after a panic: the new renderer switches itself off (the old path draws).
+    if (level == 0) g_failed = true;
 }
 
 bool CreateDevice() {
