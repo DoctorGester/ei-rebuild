@@ -700,6 +700,10 @@ struct GameFlow {
     // name at +0x0C, value at +0x18): "q." variables go to the quest log (007C7D50) and the
     // client world.
     void OnVariableChanged(const void* event);
+    // 005810A0 (RET 4; world_briefing.cpp). Registers a quest folder once: the flow loads its
+    // quests (005809D0), then with "<folder>\quest.reg" in the texts the quest table reads it,
+    // the map database loads "<folder>\map.txt" and the folder joins the list at 007AFDC0.
+    void RegisterQuests(const char* folder);
     // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
     // zone or save name (+4), +0x78 and, for 5 and 6, a copy of a party (+8, 00661300).
     void RequestState3();                                            // 005816C0
@@ -739,6 +743,10 @@ bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum
 // speaker, "b.elder.<briefing>".
 mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing);
+// 005814C0 (RET 4). The multiplayer peer's map (the client's +0x25F4 or the server's +0x25A8,
+// name at +0x0C), replaced by the first line of its "quest <name>" section when there is one;
+// "" without a peer.
+mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 // 00595080. Chooses the loading movie (the name at 00791EE0) for zone `zone` (may be null) by its
 // allod in the map database: progres2.bik for gipat, progres3.bik for ingos, progres4.bik for
 // suslanger, else progres.bik (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for

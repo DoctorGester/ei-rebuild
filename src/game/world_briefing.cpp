@@ -8,6 +8,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include "ei/hook.h"
 
@@ -193,7 +194,99 @@ void GameFlow::OnVariableChanged(const void* event) {
     }
 }
 
+// ---- Quest registration, the session's map name ---------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kQuestRegistry = 0x00790784;   // "\quest.reg"
+constexpr std::uintptr_t kMapList = 0x00790778;         // "\map.txt"
+constexpr std::uintptr_t kQuestSection = 0x00790790;    // "quest "
+
+// 005809D0 (RET 4, AL; patched by Rebirth). The flow loads the quests of a folder.
+__declspec(naked) bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char*) EI_ORIGINAL(0x005809D0)
+// 006AE8E0 (RET 4). The quest table (007C87A8) reads the texts' current file (+0x20).
+__declspec(naked) void __fastcall QuestTableLoad(void*, void*, void*) EI_ORIGINAL(0x006AE8E0)
+// 0045EA20 (RET 4). CMapDatabase::Load (0079BF00).
+__declspec(naked) void __fastcall MapDatabaseLoad(void*, void*, const char*) EI_ORIGINAL(0x0045EA20)
+// 004DCE90 (RET 0xC). vector<string>::_M_insert_overflow(pos, value, count).
+__declspec(naked) void __fastcall StringVectorInsertOverflow(void*, void*, stlp::string*, const stlp::string*, unsigned)
+    EI_ORIGINAL(0x004DCE90)
+// 004DF8D0 (RET 8). The texts read the current line into a CString.
+__declspec(naked) void __fastcall TextsReadLine(void*, void*, mfc::CString*, int) EI_ORIGINAL(0x004DF8D0)
+
+// The quest folders registered so far (007AFDC0: an STLport vector of strings).
+struct StringVector {
+    stlp::string* start;
+    stlp::string* finish;
+    stlp::string* end;
+};
+StringVector& QuestFolders() { return *reinterpret_cast<StringVector*>(0x007AFDC0); }
+
+bool Equal(const stlp::string& s, const char* text) {
+    std::size_t length = std::strlen(text);
+    return s.size() == length && std::memcmp(s.data(), text, length) == 0;
+}
+
+bool ActiveSession(const std::uint8_t* s) { return s && !(*reinterpret_cast<const std::uint32_t*>(s + 4) & 0x80000000u); }
+
+} // namespace
+
+void GameFlow::RegisterQuests(const char* folder) {
+    void* texts = BriefingTexts();
+    if (!texts) return;
+    if (!FlowLoadQuestFolder(this, nullptr, folder)) return;
+    StringVector& folders = QuestFolders();
+    for (stlp::string* s = folders.start; s != folders.finish; ++s)
+        if (Equal(*s, folder)) return;
+    bool registered;
+    {
+        mfc::CString base(folder);
+        mfc::CString path = base + Text(kQuestRegistry);
+        registered = TextsOpenSection(texts, nullptr, path) != 0;
+    }
+    if (!registered) return;
+    QuestTableLoad(reinterpret_cast<void*>(0x007C87A8), nullptr, *reinterpret_cast<void**>(static_cast<std::uint8_t*>(texts) + 0x20));
+    {
+        mfc::CString base(folder);
+        mfc::CString path = base + Text(kMapList);
+        MapDatabaseLoad(reinterpret_cast<void*>(0x0079BF00), nullptr, path);
+    }
+    // push_back(folder)
+    stlp::string name(folder);
+    if (folders.finish != folders.end) {
+        new (folders.finish) stlp::string(name);
+        ++folders.finish;
+    } else {
+        StringVectorInsertOverflow(&folders, nullptr, folders.finish, &name, 1);
+    }
+}
+
+mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
+    mfc::CString name;
+    // The peer's map: the client's +0x25F4, else the server's +0x25A8 (name at +0x0C).
+    const std::uint8_t* peer = nullptr;
+    auto* client = *reinterpret_cast<std::uint8_t* const*>(0x0079B5D8);
+    auto* server = *reinterpret_cast<std::uint8_t* const*>(0x0079B5DC);
+    if (ActiveSession(client) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(client + 0x25F4)))
+        peer = *reinterpret_cast<std::uint8_t* const*>(client + 0x25F4);
+    else if (ActiveSession(server) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(server + 0x25A8)))
+        peer = *reinterpret_cast<std::uint8_t* const*>(server + 0x25A8);
+    if (!peer) return new (out) mfc::CString(Text(kEmpty));
+    name = *reinterpret_cast<const char* const*>(peer + 0x0C);
+    void* texts = BriefingTexts();
+    int found;
+    {
+        mfc::CString prefix(Text(kQuestSection));
+        mfc::CString section = prefix + name;
+        found = TextsOpenSection(texts, nullptr, section);
+    }
+    if (found) TextsReadLine(texts, nullptr, &name, 1);
+    return new (out) mfc::CString(name);
+}
+
 EI_REPLACE_METHOD(0x00580840, GameFlow::OnVariableChanged);
+EI_REPLACE_METHOD(0x005810A0, GameFlow::RegisterQuests);
+EI_REPLACE(0x005814C0, SessionMapNameInto);
 EI_REPLACE(0x0057FC90, BriefingSpeakerInto);
 EI_REPLACE_METHOD(0x00580040, GameFlow::ForgetBriefing);
 EI_REPLACE(0x00580F10, UnloadQuestTexts);

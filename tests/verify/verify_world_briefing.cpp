@@ -77,6 +77,43 @@ static void UnloadQuestTextsVerify() {
 }
 EI_VERIFY(0x00580F10, UnloadQuestTextsVerify, 0, s_unused);
 
+// 005810A0: afterwards the folder is listed at most once.
+static void __fastcall RegisterQuestsVerify(GameFlow* self, void*, const char* folder) {
+    self->RegisterQuests(folder);
+    struct Str {
+        const char* start;
+        const char* finish;
+        const char* end;
+    };
+    auto* list = reinterpret_cast<Str* const*>(0x007AFDC0);
+    int count = 0;
+    std::size_t length = folder ? std::strlen(folder) : 0;
+    for (Str* s = list[0]; s != list[1]; ++s)
+        if (static_cast<std::size_t>(s->finish - s->start) == length && std::memcmp(s->start, folder, length) == 0) ++count;
+    ei::verify::Check("GameFlow::RegisterQuests", true, count <= 1, "%s listed %d", folder ? folder : "", count);
+}
+EI_VERIFY(0x005810A0, RegisterQuestsVerify, 0, s_unused);
+
+namespace {
+StringFn s_originalSessionMapName;
+mfc::CString* __stdcall SessionMapOriginalAdapter(mfc::CString* out, const char*) {
+    return reinterpret_cast<mfc::CString*(__stdcall*)(mfc::CString*)>(s_originalSessionMapName)(out);
+}
+} // namespace
+
+// 005814C0: the same name as the original's.
+static mfc::CString* __stdcall SessionMapNameVerify(mfc::CString* out) {
+    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+    mfc::CString* expected = SessionMapOriginalAdapter(reinterpret_cast<mfc::CString*>(storage), nullptr);
+    mfc::CString* result = SessionMapNameInto(out);
+    bool ok = result == out && std::strcmp(*result, *expected) == 0;
+    ei::verify::Check("SessionMapNameInto", true, ok, "%s (original %s)", static_cast<const char*>(*result),
+                      static_cast<const char*>(*expected));
+    expected->~CString();
+    return result;
+}
+EI_VERIFY(0x005814C0, SessionMapNameVerify, 7, s_originalSessionMapName);
+
 // 00580840: through original code (quest log, client world); logged.
 static void __fastcall OnVariableChangedVerify(GameFlow* self, void*, const void* event) {
     const auto* record = *reinterpret_cast<const std::uint8_t* const*>(static_cast<const std::uint8_t*>(event) + 8);
