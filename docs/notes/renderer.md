@@ -236,7 +236,18 @@ in our runs) is still created and still used, because:
    every 20000 passes of the passes that still needed the old device. The verify build also reads
    every fed state back and logs disagreements ("fed X but the old device has Y": a writer in code
    not converted, e.g. the renderer's state presets 00501C60 that particles use); the device's
-   value is drawn then. Remaining writers are in functions not rewritten yet.
+   value is drawn then. The first runs' list (render_*, frames_basic, ui_camp, both installs) is
+   handled: the fog colour (renderer slot 0, 00501AB0), the material setter (004EB170: stage 1 off
+   without a material) and three window draws that set alpha states (00600F70, 0062EFC0, 0065A6D0)
+   are rewritten and feed the mirror; the states the game never sets (ZFUNC, TEXTUREFACTOR,
+   ADDRESSU / V, stage 1 off) start with the device's initial values (checked by the verify build
+   like fed ones). One documented exception, not logged: stage 0's mip filter, which the unit
+   panel's draw 006462A0 turns off around the unit's picture and back (Rebirth replaces that whole
+   function with its wide-layout version, so it cannot feed the mirror until it is rewritten with
+   that patch); the device's value is drawn in the verify build, the mirror's (linear mips) in the
+   release build. Known writers not reached by the scenarios: the tutorial screen's create
+   00658E10 (alpha reference 1), the particle presets 0049B140 / 0049B4B0 and the renderer's
+   005045D0 (stage 0 colour operation around their draws).
 4. **CPU paths into surfaces**: the shadow rasteriser now draws into a CPU buffer (the surface's
    layout), which goes to the new renderer (`render::TexturePixels`) and is then copied into the
    render surface for the old path's texture load. Bink decodes each frame into a CPU buffer too
