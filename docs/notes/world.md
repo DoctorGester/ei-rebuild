@@ -956,8 +956,20 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 | 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
 | 0056DAF0 | CWorldClient::ObjectsInRange (RET 0xC; the camera's 0040E4C0) | differential: the original appends first, its entries are erased again, ours appends; entries and the cell range / cursor (+0x138..+0x14C) compared |
 | 00563290 | CWorldClient::Destroy (slot 3) | ours only: the owned pointers cleared, the lists and grid cells empty |
+| 00561E50 | CWorldClient::Create (slot 2) | ours only: returns 1, the owned objects made, both grids 4 x 4, room for 400 screen entries |
 | 00560650 | PlatformSet::AddFace (RET 0x14) | differential: the original on the real set, ours on a scratch set (its own CPlex blocks, freed after); result and the face's fields compared (floats within 8 ULPs) |
 | 00560820 | PlatformSet::AddBox (RET 0x10; from AddObject) | differential the same way: the records added, in order, compared (id and radius exact) |
+
+Create follows the original step by step through the game's constructors. The terrain's
+constructor (0xAFC bytes, vtable 0073F6A8) is inlined in the original and is reproduced call by
+call. Every player gets one reference that is never dropped, as in the original. The screen-entry
+vector gets room for 400 entries with game operator new when it is empty, else through 00573520.
+Allocation failures crash where the original crashes: references are counted without a null test.
+
+Skipped: 0056C750, called from the figure (0051CE60) and terrain (006CEDE0) draw code. It builds
+triangles from the platform objects' figures on the render device's object matrix stack
+(007AF068 +0x84 / +0x88) into a static vertex buffer (007AF478) for the device's slot 26. That is
+renderer work, so it waits for the new renderer.
 
 Platforms: the set's record list is the MFC-style list at CWorldClient +0x1F0 (the set's +0x1C):
 +0x1F4 the last node (nodes link backwards through +0, forwards through +4), +0x1F8 the first,

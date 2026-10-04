@@ -962,6 +962,293 @@ void CWorldClient::Destroy() {
     DropAndDelete(At<void*>(this, 0x1D0));
 }
 
+// ---- Set up (00561E50) ---------------------------------------------------------------------------
+
+int __fastcall WorldCreateManagers(std::uint8_t* world);   // 0055EE40 (world_create.cpp)
+
+namespace {
+
+// MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
+// CString::operator=(const CString&) [00700AA9], operator=(LPCTSTR) [00700AF9], ~CString [00700970].
+__declspec(naked) void* __stdcall CStringConcat(void* /*out*/, const void* /*left*/, const char*) EI_ORIGINAL(0x00700C05)
+__declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
+__declspec(naked) void __fastcall CStringAssignText(void*, void*, const char*) EI_ORIGINAL(0x00700AF9)
+__declspec(naked) void __fastcall CStringDestroy(void*) EI_ORIGINAL(0x00700970)
+// The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
+__declspec(naked) void __fastcall LoadLights(void*, void*, const char*) EI_ORIGINAL(0x00563930)
+__declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
+// Constructors (thiscall; some take a block size or count).
+__declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
+__declspec(naked) void __fastcall Construct562A80(void*) EI_ORIGINAL(0x00562A80)
+__declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
+__declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453400)
+__declspec(naked) void __fastcall Construct570E10(void*) EI_ORIGINAL(0x00570E10)
+__declspec(naked) void __fastcall Construct570E40(void*) EI_ORIGINAL(0x00570E40)
+__declspec(naked) void __fastcall Construct56FD30(void*) EI_ORIGINAL(0x0056FD30)
+__declspec(naked) void __fastcall Construct6721D0(void*) EI_ORIGINAL(0x006721D0)
+__declspec(naked) void __fastcall Construct570E70(void*) EI_ORIGINAL(0x00570E70)
+__declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL(0x00570EA0)
+__declspec(naked) void __fastcall Construct571050(void*) EI_ORIGINAL(0x00571050)
+__declspec(naked) void __fastcall Construct570DE0(void*) EI_ORIGINAL(0x00570DE0)
+__declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
+__declspec(naked) void __fastcall Construct6C5620(void*) EI_ORIGINAL(0x006C5620)
+__declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690)
+__declspec(naked) void* __fastcall Construct691140(void*) EI_ORIGINAL(0x00691140)
+__declspec(naked) void __fastcall Attach4031B0(void*, void*, void*) EI_ORIGINAL(0x004031B0)
+__declspec(naked) void* __fastcall Construct68E3F0(void*) EI_ORIGINAL(0x0068E3F0)
+__declspec(naked) void* __fastcall Construct68D850(void*) EI_ORIGINAL(0x0068D850)
+__declspec(naked) void __fastcall ManagerBase(void*) EI_ORIGINAL(0x00402B20)
+__declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
+__declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
+__declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
+__declspec(naked) void* __fastcall SessionFor(void*) EI_ORIGINAL(0x0066C180)
+__declspec(naked) void __fastcall Construct419720(void*) EI_ORIGINAL(0x00419720)
+__declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
+__declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)
+__declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
+// The player list walk (begin [00404920: list], next [00404960]).
+__declspec(naked) CEngineObject* __fastcall PlayersBegin(void*, void*, void*) EI_ORIGINAL(0x00404920)
+__declspec(naked) CEngineObject* __fastcall PlayersNext(void*) EI_ORIGINAL(0x00404960)
+// vector<0x18 entry>::_M_allocate_and_copy [00573520: count, first, last].
+__declspec(naked) std::uint8_t* __fastcall EntriesAllocateCopy(void*, void*, int, std::uint8_t*, std::uint8_t*)
+    EI_ORIGINAL(0x00573520)
+// The sector grids: resize [00572450 / 005724F0 (width, height)], the cells' vector deleting
+// destructor [00572B30 / 00572C50 (flags)], the allocation [00572820 / 005728D0].
+__declspec(naked) void __fastcall GridResize(void*, void*, int, int) EI_ORIGINAL(0x00572450)
+__declspec(naked) void __fastcall GridResize2(void*, void*, int, int) EI_ORIGINAL(0x005724F0)
+__declspec(naked) void __fastcall CellsDelete(void*, void*, int) EI_ORIGINAL(0x00572B30)
+__declspec(naked) void __fastcall CellsDelete2(void*, void*, int) EI_ORIGINAL(0x00572C50)
+__declspec(naked) void __fastcall GridAllocate(void*) EI_ORIGINAL(0x00572820)
+__declspec(naked) void __fastcall GridAllocate2(void*) EI_ORIGINAL(0x005728D0)
+
+constexpr int kSlotCreateSelf = 8 / 4;     // owned objects: ()
+constexpr int kSlotAttachWorld = 0x34 / 4; // managers: (world)
+constexpr int kSlotPlayers = 0x58 / 4;     // the world: () -> the player list
+
+const void* const kDataPath = reinterpret_cast<const void*>(0x007AF460);   // CString
+const void* const kTextPath = reinterpret_cast<const void*>(0x007AF45C);   // CString
+std::uintptr_t EmptyString() { return *reinterpret_cast<const std::uintptr_t*>(0x00796E48); }
+
+std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
+
+// A heap object made by its constructor (null without memory), stored and referenced (the
+// original does not test the pointer before counting).
+CEngineObject* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
+    std::uint8_t* memory = New(size);
+    auto* object = static_cast<CEngineObject*>(memory ? construct(memory) : nullptr);
+    ++object->refCount_;
+    return object;
+}
+
+// The grid set to 4 x 4 cells, reallocated unless its storage already has that size.
+void GridToFour(SectorGrid& grid, void (__fastcall* resize)(void*, void*, int, int),
+                void (__fastcall* deleteCells)(void*, void*, int), void (__fastcall* allocate)(void*)) {
+    resize(&grid, nullptr, 1, 1);
+    grid.width_ = 4;
+    grid.height_ = 4;
+    if (grid.unknown08_ != 4 || grid.unknown0C_ != 4) {
+        if (grid.cells_) deleteCells(grid.cells_, nullptr, 3);
+        gamecrt::operator_delete(grid.rows_);
+        grid.unknown08_ = 4;
+        grid.unknown0C_ = 4;
+        allocate(&grid);
+    }
+}
+
+} // namespace
+
+int CWorldClient::Create() {
+    WorldCreateManagers(reinterpret_cast<std::uint8_t*>(this));
+    void* path;
+    CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FFE4));   // "textures\"
+    CStringAssign(&At<std::uint8_t>(this, 0x224), nullptr, &path);
+    CStringDestroy(&path);
+    LoadLights(this, nullptr, reinterpret_cast<const char*>(0x0078FFD4));          // "LightsGipat.ini"
+    At<int>(this, 0x6DC) = 0;
+    At<CEngineObject*>(this, 0x1CC) = MakeCounted(0x8C0, Construct6B6040);
+
+    std::uint8_t* texts = New(0x2C);
+    if (texts) {
+        At<std::uintptr_t>(texts, 0) = 0x0073B8E0;
+        At<int>(texts, 4) = 0;
+        At<int>(texts, 0xC) = -1;
+        At<int>(texts, 0x18) = 0;
+        At<int>(texts, 0x10) = 0;
+        At<int>(texts, 8) = 0;
+        At<int>(texts, 0x14) = 0;
+        Construct562A80(texts + 0x1C);
+        At<std::uintptr_t>(texts, 0) = 0x0073F6F0;
+        Construct4DED20(texts);
+    }
+    At<std::uint8_t*>(this, 0x1D0) = texts;
+    ++At<int>(texts, 4);
+
+    std::uint8_t* terrain = New(0xAFC);
+    if (terrain) {
+        TransformObjectBase(terrain);
+        At<int>(terrain, 0xD8) = 0;
+        At<int>(terrain, 0xE4) = 0;
+        At<int>(terrain, 0xE0) = 0;
+        At<int>(terrain, 0xDC) = 0;
+        Construct570E10(terrain + 0xE8);
+        At<std::uintptr_t>(terrain, 0xF8) = EmptyString();
+        At<std::uintptr_t>(terrain, 0xFC) = EmptyString();
+        Construct570E40(terrain + 0x12C);
+        Construct56FD30(terrain + 0x13C);
+        Construct56FD30(terrain + 0x14C);
+        Construct6721D0(terrain + 0x15C);
+        Construct570E70(terrain + 0x1E8);
+        Construct570EA0(terrain + 0x1FC, nullptr, 10);
+        Construct571050(terrain + 0x25C);
+        Construct570DE0(terrain + 0x290);
+        Construct56FD30(terrain + 0xAA8);
+        Construct56FD30(terrain + 0xAB8);
+        At<std::uintptr_t>(terrain, 0xAE0) = EmptyString();
+        Construct5711C0(terrain + 0xAE8);
+        At<std::uintptr_t>(terrain, 0) = 0x0073F6A8;
+        Construct6C5620(terrain);
+    }
+    At<std::uint8_t*>(this, 0x180) = terrain;
+    ++At<int>(terrain, 4);
+    CStringAssignText(&At<std::uint8_t>(this, 0x184), nullptr, reinterpret_cast<const char*>(0x0078FFCC));   // "gipath"
+
+    CEngineObject* object = MakeCounted(0xB0, Construct42D690);
+    At<CEngineObject*>(this, 0x44) = object;
+    ei::VCall<void>(object, kSlotAttachWorld, this);
+    object = MakeCounted(0xF0, Construct691140);
+    At<CEngineObject*>(this, 0x18C) = object;
+    Attach4031B0(object, nullptr, this);
+    object = MakeCounted(0xD0, Construct68E3F0);
+    At<CEngineObject*>(this, 0x188) = object;
+    ei::VCall<void>(object, kSlotAttachWorld, this);
+    object = MakeCounted(0xD8, Construct68D850);
+    At<CEngineObject*>(this, 0x190) = object;
+    ei::VCall<void>(object, kSlotAttachWorld, this);
+
+    std::uint8_t* manager = New(0xE8);
+    if (manager) {
+        ManagerBase(manager);
+        Construct56FD40(manager + 0xB0, nullptr, 10);
+        Construct5725E0(manager + 0xCC);
+        At<int>(manager, 0xE0) = 0;
+        At<std::uintptr_t>(manager, 0) = 0x0073F644;
+        Construct4981A0(manager);
+    }
+    At<std::uint8_t*>(this, 0x19C) = manager;
+    ++At<int>(manager, 4);
+    ei::VCall<void>(manager, kSlotAttachWorld, this);
+
+    session_ = static_cast<std::uint8_t*>(SessionFor(players_));
+
+    std::uint8_t* handle = New(8);
+    At<int>(handle, 4) = 0;   // (written before the pointer is tested)
+    void* created = nullptr;
+    if (handle) {
+        Construct419720(handle);
+        At<std::uintptr_t>(handle, 0) = 0x0073F628;
+        created = handle;
+    }
+    void*& slot = At<void*>(this, 0x1C8);
+    if (created != slot) {
+        if (void* old = slot) {
+            if (At<std::uint16_t>(old, 4) != 1) {
+                At<std::uint8_t>(old, 7) |= 0x80;
+                RefShutdown(old);
+            }
+            RefRelease(slot);
+        }
+        RefShare(&slot, nullptr, created);
+    }
+    ei::VCall<void>(At<void*>(this, 0x180), kSlotCreateSelf);
+    ei::VCall<void>(At<void*>(this, 0x1CC), kSlotCreateSelf);
+    ei::VCall<void>(At<void*>(this, 0x1D0), kSlotCreateSelf);
+    CStringConcat(&path, kTextPath, reinterpret_cast<const char*>(0x0078FFC0));   // "texts.res"
+    LoadTexts(At<void*>(this, 0x1D0), nullptr, static_cast<const char*>(path));
+    CStringDestroy(&path);
+    CStringConcat(&path, kTextPath, reinterpret_cast<const char*>(0x0078FFB0));   // "textsLmp.res"
+    LoadTexts(At<void*>(this, 0x1D0), nullptr, static_cast<const char*>(path));
+    CStringDestroy(&path);
+
+    std::uint8_t* lists = New(0xCC);
+    if (lists) {
+        ManagerBase(lists);
+        At<std::uintptr_t>(lists, 0xB0) = 0x0073F61C;
+        At<int>(lists, 0xBC) = 0;
+        At<int>(lists, 0xC0) = 0;
+        At<int>(lists, 0xB8) = 0;
+        At<int>(lists, 0xB4) = 0;
+        At<int>(lists, 0xC4) = 0;
+        At<int>(lists, 0xC8) = 10;
+        At<std::uintptr_t>(lists, 0) = 0x0073F5B8;
+    }
+    At<std::uint8_t*>(this, 0x1A0) = lists;
+    ei::VCall<void>(lists, kSlotAttachWorld, this);
+    std::uint8_t* arrays = New(0xD0);
+    if (arrays) {
+        ManagerBase(arrays);
+        At<int>(arrays, 0xB0) = 0;
+        Construct5715D0(arrays + 0xB4, nullptr, 10);
+        At<std::uintptr_t>(arrays, 0) = 0x0073F554;
+    }
+    At<std::uint8_t*>(this, 0x1A4) = arrays;
+    ei::VCall<void>(arrays, kSlotAttachWorld, this);
+    std::uint8_t* memory = New(0x58);
+    void* owned = memory ? Construct6B4350(memory) : nullptr;
+    At<void*>(this, 0x1A8) = owned;
+    ei::VCall<void>(owned, kSlotCreateSelf);
+
+    Construct4E3C20(&At<std::uint8_t>(this, 0x6F4));
+    At<CWorldClient*>(this, 0x6F4 + 0x20) = this;
+    ei::VCall<void>(&platforms_, kSlotCreateSelf);
+    if (*reinterpret_cast<const int*>(0x0079BD0C) > 0)
+        flags_ |= 0x200;
+    else
+        flags_ &= ~0x200u;
+    CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FF9C));   // "wincurs\Df0000.cur"
+    At<HCURSOR>(this, 0x7D0) = LoadCursorFromFileA(static_cast<const char*>(path));
+    CStringDestroy(&path);
+
+    if (ei::VCall<void*>(this, kSlotPlayers)) {
+        void** walk = reinterpret_cast<void**>(New(8));
+        if (walk) *walk = nullptr;
+        for (CEngineObject* player = PlayersBegin(walk, nullptr, ei::VCall<void*>(this, kSlotPlayers)); player;
+             player = PlayersNext(walk))
+            ++player->refCount_;
+        if (walk) {
+            if (auto* held = static_cast<CEngineObject*>(*walk)) {
+                --held->refCount_;
+                *walk = nullptr;
+            }
+            gamecrt::operator_delete(walk);
+        }
+    }
+
+    HitVector& entries = At<HitVector>(this, 0xF4);
+    if (static_cast<std::uint32_t>((entries.eos - entries.start) / 0x18) < 400) {
+        int count = static_cast<int>((entries.finish - entries.start) / 0x18);
+        std::uint8_t* block;
+        if (entries.start) {
+            block = EntriesAllocateCopy(&entries, nullptr, 400, entries.start, entries.finish);
+            if (std::uint8_t* old = entries.start)
+                stlp::deallocate(old, static_cast<std::size_t>((entries.eos - old) / 0x18) * 0x18);
+        } else {
+            block = New(0x2580);
+        }
+        entries.start = block;
+        entries.finish = block + count * 0x18;
+        entries.eos = block + 0x2580;
+    }
+    At<int>(this, 0x84) = -100000;
+    At<int>(this, 0x6E0) = 0;
+    At<int>(this, 0x6E4) = 0;
+    GridToFour(GridAt(this, 0x150), GridResize2, CellsDelete2, GridAllocate2);
+    GridToFour(GridAt(this, 0x120), GridResize, CellsDelete, GridAllocate);
+    At<int>(this, 0x6EC) = 0;
+    At<int>(this, 0x1C4) = 0;
+    return 1;
+}
+
+EI_REPLACE_METHOD(0x00561E50, CWorldClient::Create);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Destroy);

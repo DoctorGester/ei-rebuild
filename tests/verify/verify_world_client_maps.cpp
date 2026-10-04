@@ -486,6 +486,22 @@ static void __fastcall AddBoxVerify(PlatformSet* set, void*, int id, const std::
 }
 EI_VERIFY(0x00560820, AddBoxVerify, 6, s_addBox);
 
+// 00561E50: ours only. Returns 1 with the owned objects made, both grids at 4 x 4 and room for 400
+// screen entries.
+static int __fastcall CreateVerify(CWorldClient* client, void*) {
+    int result = client->Create();
+    bool ok = result == 1;
+    for (int offset : {0x1CC, 0x1D0, 0x180, 0x44, 0x18C, 0x188, 0x190, 0x19C, 0x1A0, 0x1A4, 0x1A8})
+        ok = ok && At<void*>(client, offset) != nullptr;
+    for (int grid : {0x120, 0x150})
+        ok = ok && At<SectorGrid>(client, grid).width_ == 4 && At<SectorGrid>(client, grid).height_ == 4;
+    const Hits& entries = At<Hits>(client, 0xF4);
+    ok = ok && (entries.eos - entries.start) / 0x18 >= 400;
+    ei::verify::Check("CWorldClient::Create", true, ok, "result %d", result);
+    return result;
+}
+EI_VERIFY(0x00561E50, CreateVerify, 0, s_unused);
+
 // 00563290: ours only. Afterwards the owned pointers are cleared, the lists and grid cells empty.
 static void __fastcall DestroyVerify(CWorldClient* client, void*) {
     client->Destroy();
