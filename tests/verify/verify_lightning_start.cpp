@@ -15,6 +15,29 @@ void __fastcall StartVerify(CLightning* self, void*, const Vector3* from, const 
     ei::verify::CheckNear("CLightning::Start radius", self->boundsMax_.Length(), self->radius_, "");
     ei::verify::Check("CLightning::Start", true, ok, "");
 }
+CLightning* __fastcall NewObjectVerify(CLightningManager* self, void*, int type);
+void __fastcall DestructVerify(CLightning* self);
+} // namespace
+
+CLightning* __fastcall LightningNewObject(CLightningManager* self, void*, int type);
+void __fastcall LightningDestruct(CLightning* self);
+
+namespace {
+// 00468680 / 00468810: ours only (they allocate and free); the new bolt is reset (power 1, no
+// textures, empty point arrays); the destroyed one has no textures.
+CLightning* __fastcall NewObjectVerify(CLightningManager* self, void*, int type) {
+    CLightning* bolt = LightningNewObject(self, nullptr, type);
+    bool ok = !bolt || (bolt->power_ == 1.0f && !bolt->texture_ && !bolt->glowTexture_ && !bolt->main_.points.data &&
+                        !bolt->branches_[5].points.data);
+    ei::verify::Check("CLightningManager::NewObject", true, ok, "");
+    return bolt;
+}
+void __fastcall DestructVerify(CLightning* self) {
+    LightningDestruct(self);
+    ei::verify::Check("CLightning::Destruct", true, !self->texture_ && !self->glowTexture_, "");
+}
 } // namespace
 
 EI_VERIFY(0x004680D0, StartVerify, 0, s_unused);
+EI_VERIFY(0x00468680, NewObjectVerify, 0, s_unused);
+EI_VERIFY(0x00468810, DestructVerify, 0, s_unused);

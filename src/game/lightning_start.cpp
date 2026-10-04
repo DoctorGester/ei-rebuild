@@ -6,7 +6,9 @@
 #include "random.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <cmath>
 #include <cstdint>
@@ -124,6 +126,77 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
         LoadTexture(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CBC));   // "Lightning"
     }
 }
+
+namespace {
+// CRT eh vector constructor / destructor iterators (pointer, element size, count, [constructor,]
+// destructor); the segment's element constructor 00468900 and destructor 00468920; the engine
+// object's destructor body 00455930.
+__declspec(naked) void __stdcall VectorCtorIterator(void*, unsigned, int, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x006E8693)
+__declspec(naked) void __stdcall VectorDtorIterator(void*, unsigned, int, std::uintptr_t) EI_ORIGINAL(0x006E859F)
+__declspec(naked) void __fastcall EngineObjectDestruct(CEngineObject*) EI_ORIGINAL(0x00455930)
+constexpr std::uintptr_t kSegmentConstruct = 0x00468900;
+constexpr std::uintptr_t kSegmentDestruct = 0x00468920;
+constexpr std::uintptr_t kEngineObjectVtable = 0x0073B8E0;
+constexpr std::uintptr_t kLightningVtable = 0x0073C550;
+
+// A texture reference dropped: cleared, then released through slot 4.
+void DropTexture(CEngineObject*& slot) {
+    CEngineObject* old = slot;
+    slot = nullptr;
+    if (old) ei::VCall<void>(old, 4);
+}
+void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
+} // namespace
+
+// 00468680 (CLightningManager slot 14, the object factory; `type` is not used): a new bolt (the
+// engine object's constructor inlined, the bounds cleared, the main segment's points empty, the
+// branches constructed), reset like slot 3.
+CLightning* __fastcall LightningNewObject(CLightningManager*, void*, int /*type*/) {
+    auto* bolt = static_cast<CLightning*>(gamecrt::operator_new(sizeof(CLightning)));
+    if (!bolt) return nullptr;
+    auto* bytes = reinterpret_cast<std::uint8_t*>(bolt);
+    SetVtable(bolt, kEngineObjectVtable);
+    bolt->refCount_ = 0;
+    bolt->id_ = -1;
+    bolt->unknown_18 = 0;
+    bolt->type_ = 0;
+    bolt->flags_ = 0;
+    bolt->owner_ = nullptr;
+    bolt->texture_ = nullptr;
+    bolt->glowTexture_ = nullptr;
+    std::memset(bytes + 0x24, 0, 14 * 4);
+    bolt->main_.points.data = nullptr;
+    bolt->main_.points.growBy = 0;
+    bolt->main_.points.capacity = 0;
+    bolt->main_.points.size = 0;
+    VectorCtorIterator(bolt->branches_, sizeof(LightningSegment), 6, kSegmentConstruct, kSegmentDestruct);
+    SetVtable(bolt, kLightningVtable);
+    std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
+    std::memcpy(&bolt->power_, &one, 4);
+    std::memcpy(&bolt->amplitude_, &tenth, 4);
+    DropTexture(bolt->texture_);
+    DropTexture(bolt->glowTexture_);
+    return bolt;
+}
+EI_REPLACE(0x00468680, LightningNewObject);
+
+// 00468810: the destructor body: reset like slot 3, the branches destroyed, the main segment's
+// points freed, the texture references released again (both null by then), the engine object's
+// body.
+void __fastcall LightningDestruct(CLightning* self) {
+    SetVtable(self, kLightningVtable);
+    std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
+    std::memcpy(&self->power_, &one, 4);
+    std::memcpy(&self->amplitude_, &tenth, 4);
+    DropTexture(self->texture_);
+    DropTexture(self->glowTexture_);
+    VectorDtorIterator(self->branches_, sizeof(LightningSegment), 6, kSegmentDestruct);
+    if (self->main_.points.data) gamecrt::operator_delete(reinterpret_cast<void**>(self->main_.points.data)[-1]);
+    if (self->glowTexture_) ei::VCall<void>(self->glowTexture_, 4);
+    if (self->texture_) ei::VCall<void>(self->texture_, 4);
+    EngineObjectDestruct(self);
+}
+EI_REPLACE(0x00468810, LightningDestruct);
 
 namespace {
 void __fastcall StartHook(CLightning* self, void*, const Vector3* from, const Vector3* to, float power, bool demon) {
