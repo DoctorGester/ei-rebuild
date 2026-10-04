@@ -6,6 +6,7 @@
 #include "lib/gameapi.h"
 
 #include <cstring>
+#include <initializer_list>
 
 namespace {
 // 32-bit wrapping multiply (IMUL r32, r/m32).
@@ -137,6 +138,7 @@ template struct UiPtrArray<CEngineObject>;
 template struct UiPtrArray<CUiSurface>;
 template struct UiPtrArray<CUiRegion>;
 template struct UiPtrArray<CUiModel>;
+template struct UiPtrArray<CUiWindow>;   // the containers' children
 
 // The original has a separate (identical) copy of SetSize for each of the window's arrays; the two
 // CEngineObject lists share one instantiation here.
@@ -437,3 +439,190 @@ void CUiWindow::ClearModels() {
     models_.FreeStorage();
 }
 EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
+
+// --- 005FF460: ReplaceSceneObject ------------------------------------------------------------------
+
+namespace {
+// 005AC1A0 (thiscall on the model manager 007AF5F4): a new object by name, or null.
+__declspec(naked) std::uint8_t* __fastcall NewModelObject(void*, void*, const char*) EI_ORIGINAL(0x005AC1A0)
+// 0059F3D0 (thiscall on the object): attaches it to the window.
+__declspec(naked) void __fastcall AttachToWindow(std::uint8_t*, void*, CUiWindow*) EI_ORIGINAL(0x0059F3D0)
+// 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
+__declspec(naked) double __fastcall SpriteScale(void*) EI_ORIGINAL(0x005E70B0)
+__declspec(naked) void __fastcall SetSpriteScale(void*, void*, float) EI_ORIGINAL(0x005E7060)
+
+// FLD / FSTP of a float field (as the original copies +0xCC and +0xD0).
+void CopyFloat(void* to, const void* from) {
+    __asm {
+        mov eax, from
+        mov ecx, to
+        fld dword ptr [eax]
+        fstp dword ptr [ecx]
+    }
+}
+} // namespace
+
+CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
+    for (int i = 0; i < sceneObjects_.size_; ++i) {
+        if (sceneObjects_.data_[i] != object) continue;
+        void* manager = *reinterpret_cast<void* const*>(0x007AF5F4);
+        std::uint8_t* made = NewModelObject(manager, nullptr, name);
+        if (!made) return nullptr;
+        int references;
+        std::memcpy(&references, made + 4, 4);
+        ++references;
+        std::memcpy(made + 4, &references, 4);
+        AttachToWindow(made, nullptr, this);
+        auto* old = reinterpret_cast<std::uint8_t*>(object);
+        std::memcpy(made + 0x27C, reinterpret_cast<std::uint8_t*>(this) + 0xEC, 4);
+        CEngineObject* texture = objects_.size_ > 0 ? objects_.data_[0] : nullptr;
+        std::memcpy(made + 0x280, &texture, 4);
+        std::memcpy(made + 0x1C, old + 0x1C, 12);
+        CopyFloat(made + 0xCC, old + 0xCC);
+        CopyFloat(made + 0xD0, old + 0xD0);
+        std::memcpy(made + 0x34, old + 0x34, 16);
+        std::memcpy(made + 0x280, old + 0x280, 4);
+        volatile float scale = static_cast<float>(SpriteScale(old));
+        SetSpriteScale(made, nullptr, scale);
+        sceneObjects_.RemoveSlot(i);
+        using ReleaseFn = void(__thiscall*)(void*);
+        reinterpret_cast<ReleaseFn>((*reinterpret_cast<void***>(object))[4])(object);
+        // Back in at the same place: the original grows the array as SetSize does (inlined when
+        // the place is the end) and shifts the rest up with memmove.
+        int size = sceneObjects_.size_;
+        if (i < size) {
+            sceneObjects_.SetSize(size + 1, -1);
+            std::memmove(&sceneObjects_.data_[i + 1], &sceneObjects_.data_[i], static_cast<std::size_t>(size - i) * 4);
+        } else {
+            sceneObjects_.SetSize(i + 1, -1);
+        }
+        sceneObjects_.data_[i] = reinterpret_cast<CEngineObject*>(made);
+        return reinterpret_cast<CEngineObject*>(made);
+    }
+    return nullptr;
+}
+EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
+
+// --- 005FE700: the constructor -----------------------------------------------------------------
+
+namespace {
+// 0040CB20: the engine object's base constructor (thiscall).
+__declspec(naked) void __fastcall ConstructEngineObject(void*) EI_ORIGINAL(0x0040CB20)
+// The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4), 0068EAF0
+// registers it (RET 8).
+__declspec(naked) std::uint8_t* __fastcall NewMaterial(void*, void*, int) EI_ORIGINAL(0x0068E970)
+__declspec(naked) void __fastcall RegisterMaterial(void*, void*, std::uint8_t*, int) EI_ORIGINAL(0x0068EAF0)
+
+void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
+
+// A material's colour (+0x50..+0x58) and a reference (+0x04).
+void PrepareMaterial(std::uint8_t* material, std::uint32_t colour) {
+    SetDword(material, 0x50, colour);
+    SetDword(material, 0x54, colour);
+    SetDword(material, 0x58, colour);
+    std::uint32_t references;
+    std::memcpy(&references, material + 4, 4);
+    SetDword(material, 4, references + 1);
+}
+} // namespace
+
+CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    ConstructEngineObject(this);
+    for (int offset : {0x34, 0x44}) {   // two identity rotations (0040CB00, inlined here)
+        SetDword(self, offset, 0x3F800000);
+        SetDword(self, offset + 4, 0);
+        SetDword(self, offset + 8, 0);
+        SetDword(self, offset + 12, 0);
+    }
+    interface_ = ui;
+    inputVtable_ = reinterpret_cast<void**>(0x007401D0);
+    std::memset(self + 0xA0, 0, 0x38);
+    for (int offset = 0xF8; offset <= 0x138; offset += 0x10) {   // the five pointer arrays
+        SetDword(self, offset, 0);
+        SetDword(self, offset + 0xC, 0);
+        SetDword(self, offset + 8, 0);
+        SetDword(self, offset + 4, 0);
+    }
+    vtable_ = reinterpret_cast<void**>(0x00740F60);
+    inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
+    SetDword(self, 0x08, 0);
+    rect_ = RECT{0, 0, 0, 0};
+    std::memcpy(self + 0x34, reinterpret_cast<const void*>(0x007C7E58), 16);
+    SetDword(self, 0x1C, 0);
+    SetDword(self, 0xF4, 0);
+    SetDword(self, 0x20, 0);
+    SetDword(self, 0x24, 0);
+    void* materials = *reinterpret_cast<void* const*>(0x007AF740);
+    std::uint8_t* white = NewMaterial(materials, nullptr, 0x16);
+    SetDword(self, 0xF0, reinterpret_cast<std::uintptr_t>(white));
+    RegisterMaterial(materials, nullptr, white, 0x16);
+    PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xF0), 0x3F800000);
+    std::uint8_t* black = NewMaterial(materials, nullptr, 0x16);
+    SetDword(self, 0xEC, reinterpret_cast<std::uintptr_t>(black));
+    RegisterMaterial(materials, nullptr, black, 0x16);
+    PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xEC), 0);
+    enabled_ = 1;
+    CallSlot19(this, 1);
+    return this;
+}
+EI_REPLACE_METHOD(0x005FE700, CUiWindow::Construct);
+
+// --- 00600D30: CUiContainer::AddChild ------------------------------------------------------------
+
+void CUiContainer::AddChild(CUiWindow* child) {
+    if (!child) return;
+    children_.Append(child);
+}
+EI_REPLACE_METHOD(0x00600D30, CUiContainer::AddChild);
+
+// --- 005FE930: the destructor body -------------------------------------------------------------
+
+void CUiWindow::DestroyBase() {
+    vtable_ = reinterpret_cast<void**>(0x00740F60);
+    inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    for (int offset = 0xEC; offset <= 0xF4; offset += 4) {
+        CEngineObject* object;
+        std::memcpy(&object, self + offset, 4);
+        if (object) object->Release();
+        std::memset(self + offset, 0, 4);
+    }
+    for (int i = 0; i < sceneObjects_.size_; ++i) sceneObjects_.data_[i]->Release();
+    sceneObjects_.SetSize(0, -1);
+    for (int i = 0; i < surfaces_.size_; ++i) {
+        if (CUiSurface* surface = surfaces_.data_[i]) {
+            surface->ReleaseContents();
+            gamecrt::operator_delete(surface);
+        }
+    }
+    surfaces_.SetSize(0, -1);
+    for (int i = 0; i < regions_.size_; ++i) {
+        if (CUiRegion* region = regions_.data_[i]) {
+            region->ReleaseContents();
+            gamecrt::operator_delete(region);
+        }
+    }
+    regions_.SetSize(0, -1);
+    for (int i = 0; i < objects_.size_; ++i) objects_.data_[i]->Release();
+    objects_.SetSize(0, -1);
+    for (int i = 0; i < models_.size_; ++i) {
+        if (CUiModel* model = models_.data_[i]) {
+            model->ReleaseObject();
+            gamecrt::operator_delete(model);
+        }
+    }
+    models_.SetSize(0, -1);
+    std::memset(self + 0x08, 0, 4);
+    // The arrays' destructors (their storage is already freed above, so these find nothing).
+    if (models_.data_) FreeAligned(models_.data_);
+    if (regions_.data_) FreeAligned(regions_.data_);
+    if (surfaces_.data_) FreeAligned(surfaces_.data_);
+    if (sceneObjects_.data_) FreeAligned(sceneObjects_.data_);
+    if (objects_.data_) FreeAligned(objects_.data_);
+    // The CTransformObject and CEngineObject levels.
+    inputVtable_ = reinterpret_cast<void**>(0x007401D0);
+    vtable_ = reinterpret_cast<void**>(0x0073BA38);
+    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+}
+EI_REPLACE_METHOD(0x005FE930, CUiWindow::DestroyBase);

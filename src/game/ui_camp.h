@@ -163,6 +163,11 @@ static_assert(offsetof(CGlobalMap, gipat_) == 0x278);
 static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
 
+// 0060E3E0 (__fastcall on the panel). The trade panel's destructor body (vtable 007417A8):
+// its CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
+// +0x15C (0x18-byte entries), then the window base (ui_camp.cpp).
+void __fastcall TradePanelDestroy(CUiWindow* self);
+
 // --- Camp pages -----------------------------------------------------------------------------
 //
 // The camp (CCampScreen in ui_screens.h, vtables 007408E8 / 0074091C, 0x260 bytes) with the
@@ -201,6 +206,17 @@ public:
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.
     BOOL Draw(int pass);
+    // 0060E6B0 (slot 26, leaving the camp). Clears the server flag (00578D10) and render state 2;
+    // hands the local player's unit records to 005789E0 with +0x1C raised by 100000000 for the
+    // call; frees the heroes array, releases the constructed item and spell, empties both
+    // description panels and deletes the constructors' part lists except the first of each.
+    void Close();
+    // 0060FE40 (RET 4; from 0060FCA0 and 00610AD0). Takes `item` (a weapon 0x3004, armour 0x3005,
+    // 0x3006 or 0x3008) off the current hero (slot 51) into the player's items (00661DB0, whose
+    // result it returns; 0 for other kinds): a weapon also moves the hero's chosen-weapon index
+    // (+0x774) back and redraws (slot 46); armour also comes off the hero's unit and the stats'
+    // outer layers are rebuilt. The stats panel is redrawn.
+    int TakeOff(std::uint8_t* item);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
