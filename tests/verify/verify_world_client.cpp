@@ -292,16 +292,23 @@ static int __fastcall CollectVisibleVerify(CWorldClient* self, void*, void* list
 EI_VERIFY(0x0056A990, CollectVisibleVerify, 0, s_unused);
 
 // 005641F0 (CWorldClient::Segment, slot 6) runs the client's tick: ours only. It returns 1 (0 only
-// when the connection is gone), and the game time advances by one tick unless +0x6C is set.
+// when the connection is gone), and the game time advances by one tick unless +0x6C is set. The
+// server's messages, handled before that point (the session update), may change both: the pause
+// message (00668CFF -> 00566350) sets +0x6C, and the world message (00669010 -> 00567AB0) loads
+// the client world, reading the tick from the stream and zeroing the frame count (+0x6EC) that
+// Segment increments first. So the pause flag is read afterwards, and after a load any tick goes.
 static void* s_segmentUnused;
 static int __fastcall SegmentVerify(CWorldClient* self, void*) {
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(self);
     int before = self->tick_;
-    bool paused = reinterpret_cast<const std::uint8_t*>(self)[0x6C] != 0;
+    int framesBefore = *reinterpret_cast<const int*>(bytes + 0x6EC);
     int result = self->Segment();
+    bool paused = bytes[0x6C] != 0;
+    bool loaded = *reinterpret_cast<const int*>(bytes + 0x6EC) != framesBefore + 1;
     int expected = before + (paused ? 0 : 1);
-    bool ok = result == 0 || (result == 1 && self->tick_ == expected);
-    ei::verify::Check("CWorldClient::Segment", true, ok, "result %d, tick %d -> %d%s", result, before, self->tick_,
-                      paused ? " (paused)" : "");
+    bool ok = result == 0 || (result == 1 && (loaded || self->tick_ == expected));
+    ei::verify::Check("CWorldClient::Segment", true, ok, "result %d, tick %d -> %d%s%s", result, before, self->tick_,
+                      paused ? " (paused)" : "", loaded ? " (loaded)" : "");
     return result;
 }
 EI_VERIFY(0x005641F0, SegmentVerify, 0, s_segmentUnused);
