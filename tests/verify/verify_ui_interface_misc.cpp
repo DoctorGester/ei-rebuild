@@ -5,6 +5,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_create_screen.h"
 
 #include <cstdint>
 #include <cstring>
@@ -134,6 +135,36 @@ static void __fastcall ActivateVerify(CInterface3D* self, void*, CUiWindow* wind
                       static_cast<int>(self->stackEnd_ - self->stackBegin_));
 }
 EI_VERIFY(0x005F71C0, ActivateVerify, 0, s_unused);
+
+// 005F6F30 / 005F6D50 / 005F6E40: ours only (constructors and a destructor body).
+static void* __fastcall Screen9ConstructVerify(void* self, void*, CInterface3D* ui) {
+    void* result = Screen9Construct(self, nullptr, ui);
+    ei::verify::Check("Screen9Construct", true,
+                      result == self && *static_cast<std::uintptr_t*>(self) == 0x00740D18 &&
+                          static_cast<CUiWindow*>(self)->interface_ == ui,
+                      "vtable %08X", static_cast<unsigned>(*static_cast<std::uintptr_t*>(self)));
+    return result;
+}
+EI_VERIFY(0x005F6F30, Screen9ConstructVerify, 0, s_unused);
+static void* __fastcall Screen8ConstructVerify(void* self, void*, CInterface3D* ui, int flag, const char* text) {
+    void* result = Screen8Construct(self, nullptr, ui, flag, text);
+    std::uint8_t* header;
+    std::memcpy(&header, static_cast<std::uint8_t*>(self) + 0x1C8, 4);
+    std::uint8_t* next;
+    std::memcpy(&next, header, 4);
+    ei::verify::Check("Screen8Construct", true,
+                      result == self && *static_cast<std::uintptr_t*>(self) == 0x00740C3C && next == header,
+                      "vtable %08X header %p next %p", static_cast<unsigned>(*static_cast<std::uintptr_t*>(self)),
+                      header, next);
+    return result;
+}
+EI_VERIFY(0x005F6D50, Screen8ConstructVerify, 0, s_unused);
+static void __fastcall Screen8DestroyVerify(void* self) {
+    Screen8Destroy(self);
+    ei::verify::Check("Screen8Destroy", true, !static_cast<CUiWindow*>(self)->sceneObjects_.data_, "scene %p",
+                      static_cast<CUiWindow*>(self)->sceneObjects_.data_);
+}
+EI_VERIFY(0x005F6E40, Screen8DestroyVerify, 0, s_unused);
 
 // 005F78C0: ours only (keys reach windows and the console). A modifier key (not a repeat) must
 // leave its flag set: +0x7C Ctrl, +0x7D Shift, +0x7E Alt.

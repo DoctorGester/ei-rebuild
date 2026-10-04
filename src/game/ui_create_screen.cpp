@@ -3,6 +3,8 @@
 // The original inlines the constructors of screens 1, 2, 3 and 7 (the container base 00600B20,
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
+#include "ui_create_screen.h"
+
 #include "ui.h"
 
 #include "ei/hook.h"
@@ -295,3 +297,115 @@ namespace {
 void __fastcall InterfaceCreateScreen(CInterface3D* self, void*, int id) { self->CreateScreen(id); }
 } // namespace
 EI_REPLACE(0x005F5BA0, InterfaceCreateScreen);
+
+// --- Screens 8 and 9: constructors and screen 8's destructor body -----------------------------------
+
+namespace {
+
+// STLport's node allocator: the free list of 0x18-byte nodes (0079B22C) and the refill
+// (004060E0, __fastcall with the size).
+void** FreeList18() { return reinterpret_cast<void**>(0x0079B22C); }
+__declspec(naked) void* __fastcall RefillNodes(std::size_t) EI_ORIGINAL(0x004060E0)
+
+void* AllocateNode18() {
+    void* node = *FreeList18();
+    if (node) {
+        *FreeList18() = *static_cast<void**>(node);
+        return node;
+    }
+    return RefillNodes(0x18);
+}
+void FreeNode18(void* node) {
+    *static_cast<void**>(node) = *FreeList18();
+    *FreeList18() = node;
+}
+
+// Members (thiscall): screen 9's two maps (005F9F80 with two allocators, RET 8; 005F98F0);
+// screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
+__declspec(naked) void __fastcall Screen9FirstMap(void*, void*, const void*, const void*) EI_ORIGINAL(0x005F9F80)
+__declspec(naked) void __fastcall Screen9SecondMap(void*) EI_ORIGINAL(0x005F98F0)
+__declspec(naked) void __fastcall Screen8Member170(void*) EI_ORIGINAL(0x00671280)
+__declspec(naked) void __fastcall Screen8Member170Destruct(void*) EI_ORIGINAL(0x006714A0)
+__declspec(naked) void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
+__declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
+__declspec(naked) void __fastcall ConstructCStringFrom(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
+__declspec(naked) void __fastcall DestructCString(void*) EI_ORIGINAL(0x00700970)
+__declspec(naked) void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
+
+std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
+
+} // namespace
+
+// 005F6F30 (thiscall, RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
+void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
+    ConstructContainer(self, nullptr, ui);
+    SetDword(self, 0x168, 0);
+    // The original passes a stack byte and its argument slot as the allocators.
+    std::uint8_t junk = 0;
+    CInterface3D* slot = ui;
+    Screen9FirstMap(Bytes(self) + 0x170, nullptr, &junk, &slot);
+    SetDword(self, 0x17C, 50);
+    Screen9SecondMap(Bytes(self) + 0x180);
+    SetDword(self, 0x18C, 50);
+    SetDword(self, 0x1AC, 0);
+    SetDword(self, 0x1B0, 0);
+    Bytes(self)[0x1B4] = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(slot));
+    SetDword(self, 0x1B4, 0);
+    SetDword(self, 0x00, 0x00740D18);
+    SetDword(self, 0x94, 0x00740CE4);
+    return self;
+}
+EI_REPLACE(0x005F6F30, Screen9Construct);
+
+// 005F6D50 (thiscall, RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list
+// at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
+void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
+    ConstructContainer(self, nullptr, ui);
+    Screen8Member170(Bytes(self) + 0x170);
+    std::uint8_t* list = Bytes(self) + 0x1C8;
+    list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten
+    SetDword(list, 0, 0);
+    void* header = AllocateNode18();
+    SetDword(list, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
+    SetDword(header, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // next
+    SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // prev
+    ConstructCStringFrom(Bytes(self) + 0x1D4, nullptr, text);
+    Screen8Member1D8(Bytes(self) + 0x1D8);
+    SetDword(self, 0x00, 0x00740C3C);
+    Bytes(self)[0x1F4] = static_cast<std::uint8_t>(flag);
+    SetDword(self, 0x94, 0x00740C08);
+    return self;
+}
+EI_REPLACE(0x005F6D50, Screen8Construct);
+
+// 005F6E40 (thiscall). Screen 8's destructor body: its members, the list (entries with two
+// CStrings at +0x10 / +0x14) back to the node allocator, then the container base.
+void __fastcall Screen8Destroy(void* self) {
+    Screen8Member1D8Destruct(Bytes(self) + 0x1D8);
+    DestructCString(Bytes(self) + 0x1D4);
+    std::uint8_t* list = Bytes(self) + 0x1C8;
+    auto headerOf = [list] {
+        std::uint8_t* h;
+        std::memcpy(&h, list, 4);
+        return h;
+    };
+    std::uint8_t* node;
+    std::memcpy(&node, headerOf(), 4);
+    while (node != headerOf()) {
+        std::uint8_t* next;
+        std::memcpy(&next, node, 4);
+        DestructCString(node + 0x14);
+        DestructCString(node + 0x10);
+        if (node) FreeNode18(node);
+        node = next;
+    }
+    std::uint8_t* header = headerOf();
+    SetDword(header, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
+    header = headerOf();
+    SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
+    header = headerOf();
+    if (header) FreeNode18(header);
+    Screen8Member170Destruct(Bytes(self) + 0x170);
+    DestroyContainerBody(self);
+}
+EI_REPLACE(0x005F6E40, Screen8Destroy);
