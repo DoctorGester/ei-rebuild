@@ -239,6 +239,18 @@ public:
     // 0060F980 (slot 47). The current hero's unit (if any) takes the record's statistics
     // (00532A20 with record + 0x20) and its figure is updated (slot 31); the stats panel redraws.
     void RefreshStats();
+    // 0060F6B0 (slot 24). The children's update, then the hero preview turns while a turn button
+    // is held (+0x25C 1 / 2): heroTurn_ +- twice the frame time, modulo 007C7EE8.
+    void Update();
+    // 0060F710 / 0060F7A0 (slots 48 / 49). The next / previous hero of the party (wrapping; the
+    // first record whose prototype is of class 0x32; fatal after a full round without one); a
+    // different hero is shown (0060F830) and re-armed (slot 46).
+    void NextHero();
+    void PreviousHero();
+    // 0060F830. The current hero's name for the panels: the unit's own name, else the text of
+    // "pers <record name>" when the text table has it; to the stats panel (006232D0) and the trade
+    // panel (00625860).
+    void ShowHero();
     // 005F6240 (RET 8; CreateScreen 5). Constructor: the container base, both item caches (limit
     // 50; the item screens' vtables 00740A2C / 007409F8 in between), fromHeroScreen_ from the
     // flag's low byte, the heroes array (vtable 007402AC), the page titles' CStringArray; the

@@ -504,6 +504,44 @@ static void __fastcall CampRefreshStatsVerify(CCampPages* self, void*) {
 }
 EI_VERIFY(0x0060F980, CampRefreshStatsVerify, 0, s_unused);
 
+// 0060F6B0: ours only (time-dependent). Without a turn button held the turn stays.
+static void __fastcall CampUpdateVerify(CCampPages* self, void*) {
+    int turning;
+    std::memcpy(&turning, reinterpret_cast<std::uint8_t*>(self) + 0x25C, 4);
+    std::uint32_t before = self->heroTurn_;
+    self->Update();
+    if (turning == 1 || turning == 2) return;
+    ei::verify::Check("CCampPages::Update", true, self->heroTurn_ == before, "turn %08X -> %08X", before,
+                      self->heroTurn_);
+}
+EI_VERIFY(0x0060F6B0, CampUpdateVerify, 0, s_unused);
+
+// 0060F710 / 0060F7A0: ours only. The hero chosen is a valid index.
+static void __fastcall CampNextHeroVerify(CCampPages* self, void*) {
+    self->NextHero();
+    int count;
+    std::memcpy(&count, LocalPlayerData() + 0x34, 4);
+    ei::verify::Check("CCampPages::NextHero", true, self->hero_ >= 0 && self->hero_ < count, "hero %d of %d",
+                      self->hero_, count);
+}
+EI_VERIFY(0x0060F710, CampNextHeroVerify, 0, s_unused);
+static void __fastcall CampPreviousHeroVerify(CCampPages* self, void*) {
+    self->PreviousHero();
+    int count;
+    std::memcpy(&count, LocalPlayerData() + 0x34, 4);
+    ei::verify::Check("CCampPages::PreviousHero", true, self->hero_ >= 0 && self->hero_ < count, "hero %d of %d",
+                      self->hero_, count);
+}
+EI_VERIFY(0x0060F7A0, CampPreviousHeroVerify, 0, s_unused);
+
+// 0060F830: ours only (it sets the panels' text).
+static void __fastcall CampShowHeroVerify(CCampPages* self, void*) {
+    int hero = self->hero_;
+    self->ShowHero();
+    ei::verify::Check("CCampPages::ShowHero", true, self->hero_ == hero, "hero %d -> %d", hero, self->hero_);
+}
+EI_VERIFY(0x0060F830, CampShowHeroVerify, 0, s_unused);
+
 // 005F67A0: ours only (a constructor). Vtables, empty arrays, the identity turn.
 static CGlobalMap* __fastcall GlobalMapConstructVerify(CGlobalMap* self, void*, CInterface3D* ui) {
     CGlobalMap* result = self->Construct(ui);
