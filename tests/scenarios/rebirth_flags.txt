@@ -102,6 +102,26 @@ console @ConsoleString("one ","two ","three")
 expect one two three
 console @Say("not in single player")
 
+# addon's unit, object and player functions (NearestUnit from the hero's own position finds the
+# hero; filter 7 = units, other objects and living ones).
+console #GetPlayerOfUnit(GetLeader())
+console #Add(GetUnitExp(GetLeader()),GetUnitExp(GetLeader(),"real"),GetUnitExp(GetLeader(),"spent"))
+console #Add(GetArmor(GetLeader(),0,0),GetArmor(GetLeader(),5,6),GetArmor(GetLeader(),-1,2))
+check IsEqualString(GetObjectStringID(NearestUnit(GetX(GetLeader()),GetY(GetLeader()),5,1)),GetObjectStringID(GetLeader()))
+check IsGreater(GroupSize(UnitsNearPoint(GetX(GetLeader()),GetY(GetLeader()),10,7)),0)
+check IsAlive(RandObj(GetPlayerUnits(GetPlayer(GetLeader()))))
+check PlayerExists(GetPlayer(GetLeader()))
+console #Add(GetDexterity(GetLeader()),GetIntelligence(GetLeader()),GetStrength(GetLeader()))
+console #Add(GetActions(GetLeader()),GetActionsBase(GetLeader()),GetEncumbrance(GetLeader()),GetMaxEncumbrance(GetLeader()))
+console #Add(GetSkill(GetLeader(),"melee"),GetPerk(GetLeader(),"sword"),GetPerk(GetLeader(),"intelligence"))
+console $StrCat(GetPrototype(GetLeader()),"/",GetRace(GetLeader()))
+check IsEqual(GetObjectTypeID(GetLeader()),80)
+check IsGreater(GroupSize(GetObjectsOnMap(-1)),0)
+check IsGreater(GroupSize(GetObjectsOnMap(80,81)),0)
+console #IsPlayer(GetLeader())
+check IsAlive(GetLeader())
+check Not(IsDead(GetLeader()))
+
 # Items by name: a weapon with a material, one with a spell in brackets, a scroll.
 console @GiveItem(0,"Axe.steel")
 console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")

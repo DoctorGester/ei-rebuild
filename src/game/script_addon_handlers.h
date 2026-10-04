@@ -20,6 +20,18 @@ int Ftol(float value);
 int Status(float a, float b);
 // FLD / FSTP of a value into *dst, as the handlers store their results.
 void Store(float* dst, float value);
+// _ftol2's x87 path (10090EE6, called directly by NearestUnit and UnitsNearPoint): truncation of
+// the 64-bit value, its low 32 bits (here through the game's _ftol, the same FISTP).
+int TruncateX87(float value);
+// 10010CC5: dx = x1 - x0 and dy = y1 - y0 rounded to float, dx * dx + dy * dy rounded to float,
+// then its square root (double) rounded to float.
+float Distance(float x0, float y0, float x1, float y1);
+// _stricmp in the "C" locale.
+int Stricmp(const char* a, const char* b);
+// 10010D04: the object's class (virtual slot 12) is a unit's (0x50).
+bool IsUnit(CEngineObject* object);
+// 10010E2D: a unit's data object (+0x240), null for a missing reference, object or non-unit.
+void* UnitData(const ScriptObjectRef* ref);
 // 10010D12: addon reports a handler's problem as a "Scripts" error ("<function>: <message>") in
 // its console log only when the mod setting EnableShowingScriptErrors is on, which no Rebirth mod
 // sets, so nothing is shown. Returns true: the call counts as done.
@@ -59,5 +71,30 @@ bool StrLower(Call* call);
 bool StrUpper(Call* call);
 bool Say(Call* call);
 bool ConsoleString(Call* call);
+
+// script_addon_units.cpp
+bool GetPlayerOfUnit(Call* call);
+bool GetUnitExp(Call* call);
+bool GetArmor(Call* call);
+bool NearestUnit(Call* call);
+bool UnitsNearPoint(Call* call);
+bool RandObj(Call* call);
+bool PlayerExists(Call* call);
+bool GetDexterity(Call* call);
+bool GetIntelligence(Call* call);
+bool GetStrength(Call* call);
+bool GetSkill(Call* call);
+bool GetActions(Call* call);
+bool GetActionsBase(Call* call);
+bool GetEncumbrance(Call* call);
+bool GetMaxEncumbrance(Call* call);
+bool GetPerk(Call* call);
+bool GetPrototype(Call* call);
+bool GetRace(Call* call);
+bool GetObjectTypeID(Call* call);
+bool GetObjectsOnMap(Call* call);
+bool IsPlayer(Call* call);
+bool IsDead(Call* call);
+bool IsAlive(Call* call);
 
 } // namespace scriptaddon

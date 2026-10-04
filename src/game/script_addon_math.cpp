@@ -36,29 +36,6 @@ double CrtPow(double x, double y) { return std::pow(x, y); }
 __declspec(naked) double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/) EI_ORIGINAL(0x00488970)
 IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
-// 10010CC5: dx = x1 - x0 and dy = y1 - y0 rounded to float, dx * dx + dy * dy rounded to float,
-// then its square root (double) rounded to float.
-float AddonDistance(float x0, float y0, float x1, float y1) {
-    float deltaX, deltaY, squared;
-    __asm {
-        fld x1
-        fsub x0
-        fstp deltaX
-        fld y1
-        fsub y0
-        fstp deltaY
-        fld deltaY
-        fld deltaX
-        fld st(0)
-        fmulp st(1), st
-        fld st(1)
-        fmulp st(2), st
-        faddp st(1), st
-        fstp squared
-    }
-    return static_cast<float>(x87::fsqrt(squared));
-}
-
 } // namespace
 
 bool Sin(Call* call) {
@@ -87,7 +64,7 @@ bool Pow(Call* call) {
 // of the argument array, as in addon.
 bool DistancePointPoint(Call* call) {
     const float* f = Floats(call);
-    Store(FloatResult(call), AddonDistance(f[0], f[1], f[2], f[3]));
+    Store(FloatResult(call), Distance(f[0], f[1], f[2], f[3]));
     return true;
 }
 

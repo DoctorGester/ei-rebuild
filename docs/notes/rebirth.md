@@ -244,7 +244,13 @@ Sites are listed in full in the CSV.
   Handlers done: the arithmetic ones (Sin, Cos, Pow, DistancePointPoint, Add, Mul, And, Or, Max,
   Min, Abs, Round, Ceil, Floor, Random; script_addon_math.cpp) and the string ones
   (GetObjectStringID, FloatToStr, StrToFloat, StrCat, StrLen, RandStr, StrHas, StrMid, StrLower,
-  StrUpper, Say, ConsoleString; script_addon_strings.cpp). Kept from addon: DistancePointPoint's
+  StrUpper, Say, ConsoleString; script_addon_strings.cpp) and the unit, object and player ones
+  (GetPlayerOfUnit, GetUnitExp, GetArmor, NearestUnit, UnitsNearPoint, RandObj, PlayerExists,
+  GetDexterity, GetIntelligence, GetStrength, GetSkill, GetActions, GetActionsBase,
+  GetEncumbrance, GetMaxEncumbrance, GetPerk, GetPrototype, GetRace, GetObjectTypeID,
+  GetObjectsOnMap, IsPlayer, IsDead, IsAlive; script_addon_units.cpp: the sector map's objects
+  within a radius for NearestUnit / UnitsNearPoint, the world's object map in bucket order for
+  GetObjectsOnMap). Kept from addon: DistancePointPoint's
   signature has two floats but it reads four; Random with one argument declines, so the game's
   runs; And / Or truncate (0.5 is false); Max and Min let NaN through; FloatToStr cuts trailing
   zeros without looking at index 0 ("100" with 0 decimals gives "1"); StrMid with a negative count

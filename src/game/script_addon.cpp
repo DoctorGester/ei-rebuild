@@ -16,6 +16,8 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "ei/x87.h"
+#include "engine_object.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -39,9 +41,9 @@ struct Record {
 
 // In addon's order (ids follow it).
 const Record kRecords[] = {
-    {"GetPlayerOfUnit", "Fo", nullptr},
-    {"GetUnitExp", "Fo?s", nullptr},
-    {"GetArmor", "Foff", nullptr},
+    {"GetPlayerOfUnit", "Fo", GetPlayerOfUnit},
+    {"GetUnitExp", "Fo?s", GetUnitExp},
+    {"GetArmor", "Foff", GetArmor},
     {"GetObjectStringID", "So", GetObjectStringID},
     {"FloatToStr", "Sf?f", FloatToStr},
     {"StrToFloat", "Fs", StrToFloat},
@@ -51,8 +53,8 @@ const Record kRecords[] = {
     {"Cos", "Ff", Cos},
     {"Pow", "Fff", Pow},
     {"DistancePointPoint", "Fff", DistancePointPoint},   // sic: the handler reads four floats
-    {"NearestUnit", "Offff", nullptr},
-    {"UnitsNearPoint", "Gffff", nullptr},
+    {"NearestUnit", "Offff", NearestUnit},
+    {"UnitsNearPoint", "Gffff", UnitsNearPoint},
     {"GSSetPlayerVar", "fsf", nullptr},
     {"GSGetPlayerVar", "Ffs", nullptr},
     {"GiveExp", "ff", nullptr},
@@ -73,37 +75,37 @@ const Record kRecords[] = {
     {"Floor", "Ff", Floor},
     {"Random", "Ff?f", Random},
     {"RandStr", "Sss+", RandStr},
-    {"RandObj", "Og", nullptr},
+    {"RandObj", "Og", RandObj},
     {"StrHas", "Fss", StrHas},
     {"StrMid", "Ssff", StrMid},
     {"StrLower", "Ss", StrLower},
     {"StrUpper", "Ss", StrUpper},
     {"ResetTarget", "o", nullptr},
     {"SendCurrentParty", "f", nullptr},
-    {"PlayerExists", "Ff", nullptr},
+    {"PlayerExists", "Ff", PlayerExists},
     {"Loot", "fo", nullptr},
     {"GameOver", "", nullptr},
     {"GameOverMSG", "ss", nullptr},
-    {"GetDexterity", "Fo", nullptr},
-    {"GetIntelligence", "Fo", nullptr},
-    {"GetStrength", "Fo", nullptr},
-    {"GetSkill", "Fos", nullptr},
-    {"GetActions", "Fo", nullptr},
-    {"GetActionsBase", "Fo", nullptr},
-    {"GetEncumbrance", "Fo", nullptr},
-    {"GetMaxEncumbrance", "Fo", nullptr},
-    {"GetPerk", "Fos", nullptr},
-    {"GetPrototype", "So", nullptr},
-    {"GetRace", "So", nullptr},
+    {"GetDexterity", "Fo", GetDexterity},
+    {"GetIntelligence", "Fo", GetIntelligence},
+    {"GetStrength", "Fo", GetStrength},
+    {"GetSkill", "Fos", GetSkill},
+    {"GetActions", "Fo", GetActions},
+    {"GetActionsBase", "Fo", GetActionsBase},
+    {"GetEncumbrance", "Fo", GetEncumbrance},
+    {"GetMaxEncumbrance", "Fo", GetMaxEncumbrance},
+    {"GetPerk", "Fos", GetPerk},
+    {"GetPrototype", "So", GetPrototype},
+    {"GetRace", "So", GetRace},
     {"IsFileExists", "Fs", nullptr},
     {"GSListPlayerVars", "f", nullptr},
-    {"GetObjectTypeID", "Fo", nullptr},
-    {"GetObjectsOnMap", "Gf+", nullptr},
-    {"IsPlayer", "Fo", nullptr},
+    {"GetObjectTypeID", "Fo", GetObjectTypeID},
+    {"GetObjectsOnMap", "Gf+", GetObjectsOnMap},
+    {"IsPlayer", "Fo", IsPlayer},
     {"GiveUnitWeapon", "osf", nullptr},
     {"GiveUnitArmor", "osf", nullptr},
-    {"IsDead", "Fo", nullptr},
-    {"IsAlive", "Fo", nullptr},
+    {"IsDead", "Fo", IsDead},
+    {"IsAlive", "Fo", IsAlive},
     {"ShowAllUnits", "f", nullptr},
     {"PauseGame", "f", nullptr},
     {"SetWeather", "s", nullptr},
@@ -232,6 +234,48 @@ void Store(float* dst, float value) {
         mov eax, dst
         fstp dword ptr [eax]
     }
+}
+
+int TruncateX87(float value) {
+    int result;
+    __asm {
+        fld value
+        mov eax, 0x006E853C   // the game's _ftol: truncating FISTP of the 64-bit value
+        call eax
+        mov result, eax
+    }
+    return result;
+}
+
+float Distance(float x0, float y0, float x1, float y1) {
+    float deltaX, deltaY, squared;
+    __asm {
+        fld x1
+        fsub x0
+        fstp deltaX
+        fld y1
+        fsub y0
+        fstp deltaY
+        fld deltaY
+        fld deltaX
+        fld st(0)
+        fmulp st(1), st
+        fld st(1)
+        fmulp st(2), st
+        faddp st(1), st
+        fstp squared
+    }
+    return static_cast<float>(x87::fsqrt(squared));
+}
+
+int Stricmp(const char* a, const char* b) { return AsciiStricmp(a, b); }
+
+bool IsUnit(CEngineObject* object) { return object->GetClassId() == 0x50; }
+
+void* UnitData(const ScriptObjectRef* ref) {
+    if (!ref || !ref->object) return nullptr;
+    if (!IsUnit(ref->object)) return nullptr;
+    return *reinterpret_cast<void**>(reinterpret_cast<char*>(ref->object) + 0x240);
 }
 
 bool Report(const char*, const char*, ...) { return true; }
