@@ -114,6 +114,9 @@ struct SessionBase {
     // 00437370 (slot 14, net_session_tick.cpp). Handles the waiting datagrams, ticks the
     // connections (dropping timed-out ones) and counts the frame.
     void Receive(double dt);
+    // 00436A50 (net_session_tick.cpp). The destructor body: tells every client it leaves, then
+    // destroys the handler tables, the socket, the type registry and the clients list.
+    void Destruct();
 
     // A handler registration as the session constructors inline it (not a function of its own in
     // the original): a prototype message of `size` bytes built by `construct`, held through a

@@ -1,10 +1,11 @@
-// The session's receive step (00437370, vtable slot 14) and two small helpers it calls. See
-// net_classes.h and docs/notes/unmapped_410_470.md ("Sixth round").
+// The session's receive step (00437370, slot 14), its packet handlers, sends and destruction,
+// and the byte buffer helpers they use. See net_classes.h and docs/notes/unmapped_410_470.md.
 #include "net_classes.h"
 #include "net_connection.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 
 #include <cstring>
 
@@ -321,5 +322,80 @@ void __fastcall SessionSendLeave(SessionBase* self, void*, const void* address, 
     GrowingBufferDestruct(buffer);
 }
 EI_REPLACE(0x00436FA0, SessionSendLeave);
+
+} // namespace net
+
+// ---- Destruction ----------------------------------------------------------------------------------
+
+namespace net {
+
+namespace {
+// CRT eh vector destructor iterator (ptr, element size, count, destructor), the handler vector's
+// destructor, the socket driver's destructor.
+__declspec(naked) void __stdcall VectorDestructorIterator(void* /*ptr*/, unsigned /*size*/, int /*count*/, void* /*dtor*/) EI_ORIGINAL(0x006E859F)
+constexpr std::uintptr_t kHandlerVectorDestructor = 0x004389C0;
+__declspec(naked) void __fastcall SocketDriverDestruct(SocketDriver* /*driver*/) EI_ORIGINAL(0x00440940)
+// The type registry's tables: clear and bucket-vector destruction of byType and byVtable.
+__declspec(naked) void __fastcall ByTypeClear(HashTable* /*table*/) EI_ORIGINAL(0x0043D590)
+__declspec(naked) void __fastcall ByTypeBucketsDestroy(void* /*buckets*/) EI_ORIGINAL(0x0043AAB0)
+__declspec(naked) void __fastcall ByVtableClear(HashTable* /*table*/) EI_ORIGINAL(0x0043B4D0)
+__declspec(naked) void __fastcall ByVtableBucketsDestroy(void* /*buckets*/) EI_ORIGINAL(0x0043A2B0)
+// The clients list: release of a node's counted connection pointer, node deallocation, sentinel
+// deallocation (pointer in ECX, count in EDX).
+__declspec(naked) void __fastcall ClientRefRelease(void* /*ref*/, void*, int /*flag*/) EI_ORIGINAL(0x0043DCA0)
+__declspec(naked) void __fastcall ClientNodeFree(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00439E60)
+__declspec(naked) void __fastcall ClientSentinelFree(void* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043AB30)
+constexpr std::uintptr_t kRefObjectRoot = 0x0073BB68;
+} // namespace
+
+void SessionBase::Destruct() {
+    vtable = reinterpret_cast<void*>(kSessionBaseVtable);
+    for (void** node = *static_cast<void***>(clients); node != clients; node = static_cast<void**>(node[0])) {
+        auto* connection = static_cast<Connection*>(node[2]);
+        std::uint32_t id = connection->connectionId;
+        alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
+        auto* buffer = reinterpret_cast<GameBuffer*>(storage);
+        GrowingBufferConstruct(buffer);
+        std::uint8_t kind = 1;
+        BufferWrite(buffer, nullptr, &kind, 1);
+        if (buffer->cur + 4 <= buffer->end) {
+            buffer->flags |= 1;
+            BufferWriteRaw(buffer, nullptr, &id, 4);
+        } else {
+            ei::VCall<int>(buffer, kBufferWriteMore, &id, 4u);
+        }
+        SocketSendTo(&socket, nullptr, connection->address, buffer);
+        GrowingBufferDestruct(buffer);
+    }
+    VectorDestructorIterator(handlers[2], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
+    VectorDestructorIterator(handlers[1], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
+    VectorDestructorIterator(handlers[0], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
+    SocketDriverDestruct(&socket);
+    ByTypeClear(&types.byType);
+    ByTypeBucketsDestroy(&types.byType.buckets);
+    ByVtableClear(&types.byVtable);
+    ByVtableBucketsDestroy(&types.byVtable.buckets);
+    void* sentinel = clients;
+    for (void** node = *static_cast<void***>(sentinel); node != clients;) {
+        void** next = static_cast<void**>(node[0]);
+        ClientRefRelease(node + 2, nullptr, 0);
+        ClientNodeFree(&clients, nullptr, node, 1);
+        node = next;
+        if (node == clients) break;
+    }
+    static_cast<void**>(clients)[0] = clients;
+    static_cast<void**>(clients)[1] = clients;
+    ClientSentinelFree(clients, 1);
+    vtable = reinterpret_cast<void*>(kRefObjectRoot);
+}
+EI_REPLACE_METHOD(0x00436A50, SessionBase::Destruct);
+
+// 004368D0 (slot 0): the deleting destructor.
+SessionBase* __fastcall SessionDeletingDestructor(SessionBase* self, void*, unsigned flags) {
+    self->Destruct();
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+EI_REPLACE(0x004368D0, SessionDeletingDestructor);
 
 } // namespace net

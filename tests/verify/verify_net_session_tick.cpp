@@ -133,3 +133,21 @@ EI_VERIFY(0x00437240, OnLeaveVerify, 0, s_unused);
 EI_VERIFY(0x00419CC0, UpdateHighVerify, 6, s_updateHigh);
 EI_VERIFY(0x00435010, AddressStringVerify, 0, s_unused);
 EI_VERIFY(0x00437370, ReceiveVerify, 0, s_unused);
+
+namespace net {
+SessionBase* __fastcall SessionDeletingDestructor(SessionBase* self, void*, unsigned flags);
+}
+namespace {
+// 00436A50 / 004368D0: ours only (they send leave packets and free the session's tables).
+void __fastcall SessionDestructVerify(net::SessionBase* self) {
+    self->Destruct();
+    ei::verify::Check("SessionBase::Destruct", true, self->vtable == reinterpret_cast<void*>(0x0073BB68), "");
+}
+net::SessionBase* __fastcall SessionDeleteVerify(net::SessionBase* self, void*, unsigned flags) {
+    ei::verify::Check("SessionDeletingDestructor", true, true, "");
+    return net::SessionDeletingDestructor(self, nullptr, flags);
+}
+void* s_unusedDtor;
+} // namespace
+EI_VERIFY(0x00436A50, SessionDestructVerify, 0, s_unusedDtor);
+EI_VERIFY(0x004368D0, SessionDeleteVerify, 0, s_unusedDtor);
