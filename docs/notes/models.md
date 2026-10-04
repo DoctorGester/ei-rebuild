@@ -394,3 +394,17 @@ context flag 0x4000 the mesh's clip box (origin +0x18C, extents +0x19C / +0x1A8)
 renderer's slot 15 as a line list of 16 points (8 edges, colour 0xFFFF0000; the list's 64-byte
 blocks are appended by 0049B140). Verify: differential through a stand-in renderer that records
 the line list.
+
+
+## Figure models, factory and shadow rasterisation (005AA5F0, 005A9C90, 005AA8E0, 005A0E80)
+
+- 005AA5F0 FindFigureModel (figure_models.cpp): the manager's hash_map<string, model*> (+0xBC);
+  a new model opens <name>.mod / .bon / .anm through slot 19, nothing without the .mod. Verify:
+  ours only, the cache agrees with the result.
+- 005A9C90 DestroyFigureModel (figure_model_destroy.cpp): deletes the mapped objects, clears the
+  map, releases and deletes the three parts, then the map's inline destructor. Verify: ours only.
+- 005AA8E0 CreateFigureObject (figure_factory.cpp): class ids 0x41-0x44, 0x300B-0x300D; +0x10
+  gets the id. Verify: ours only (id and vtables).
+- 005A0E80 RasteriseFigureMesh (figure_rasterise.cpp): texture coordinates scaled into its own
+  static array, triangles to the rasteriser's slot 8 / 9. Verify: differential through a
+  stand-in rasteriser.
