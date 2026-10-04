@@ -2818,3 +2818,250 @@ address,name,library,signature,notes
 005876C0,stlp::list<T>::clear,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
 00583C60,"stlp::pair<CString,CString>::~pair",STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp) (and from 005876C0 / 005878B0)
 0059A4A0,"CList<SharedObject>::Serialize",MFC,,"instantiation (vtable 0073FA18): CArchive count, then each 0x20-byte element (its CArray of references through ConstructElements / SerializeElements)"
+00404980,"stlp::_Ht_iterator::operator++",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004049D0,"stlp::list<T>::end",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00404D50,"stlp::_Ht_iterator::_Ht_iterator",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00404FE0,"CPtrList::RemoveHead (CTypedPtrList copy)",MFC,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00405E90,"stlp::_Ht_iterator::_Ht_iterator",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004062E0,"stlp::_Ht_iterator::_Ht_iterator",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00406570,"stlp::_Ht_iterator::_Ht_iterator",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004074B0,"stlp::hashtable::_M_delete_node",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00407580,"stlp::hashtable::_M_delete_node",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00407640,"stlp::hashtable::_M_delete_node",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00407700,"stlp::hashtable::_M_delete_node",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00407DE0,"stlp::pair<K,V>::pair",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00408A50,"stlp::lower_bound<uint*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00408BB0,"stlp::copy_backward<T*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00408BE0,"stlp::copy<T*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00408C00,"stlp::fill_n<T*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00408C20,"stlp::copy<T*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A690,"stlp::list<T>::iterator helper",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A6B0,"stlp::list<T>::push_back()",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A6D0,"stlp::list<T>::pop_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A700,"stlp::_Ht_iterator::operator++(int)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A760,"stlp::list<T>::iterator::operator->",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A8D0,"stlp::list<T>::insert(pos)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A950,"stlp::list<T>::iterator copy",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A960,"stlp::list<T>::iterator::operator--",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A9D0,"stlp::pair<K,V>::pair",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040A9F0,"stlp::list<T>::begin",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040AA00,"stlp::list<T>::end",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040AA70,"stlp::list<T>::iterator::iterator",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040AD20,"stlp::_Ht_iterator::_Ht_iterator",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040AE00,"stlp::__stl_next_prime",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040B3C0,"stlp::string::erase(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040B5E0,"stlp::_Ht_iterator::_Ht_iterator",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040C280,"stlp::string::append(first,last) wrapper",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040C2A0,"stlp::string::_M_append(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040C440,"stlp::__Named_exception copy constructor",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040C5A0,"stlp::string::string(const char*)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040C6E0,"stlp::__Named_exception copy constructor",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0040C7B0,"stlp::copy<char*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00421800,"stlp::string reserve / _M_reserve",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00421D90,"stlp::vector<T>::erase(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00421ED0,"stlp::vector<T>::erase(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00424E40,"stlp::_String_base::_M_allocate_block",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004269A0,"stlp::__stl_throw_length_error",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00426A80,"stlp::string::assign(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00426CB0,"stlp::vector<T>::insert(pos,n,x)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00427D60,"stlp::operator+(string,const char*)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00427E80,"stlp::operator+(string,string)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00427FA0,"stlp::operator==(string,string)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00427FF0,"stlp::find_if wrapper",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00428DF0,"stlp::string::string(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00428F10,"stlp::string::string(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429040,"stlp::distance<list<T>::iterator>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429080,"stlp::copy<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004290D0,"stlp::distance<list<T>::iterator>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004290F0,"stlp::distance<list<T>::iterator>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429110,"stlp::distance<list<T>::iterator>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004292E0,"stlp::list<T>::iterator copy",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429770,"stlp::list<T>::erase",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004298D0,"stlp::__stl_hash_string",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429B70,"stlp::vector<T>::_M_insert_overflow",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429DB0,"stlp::copy_backward<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429E10,"stlp::fill<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00429F80,"stlp::find_if<list<T>::iterator>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042A020,"stlp::__introsort_loop",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042A150,"stlp::__final_insertion_sort",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042A2B0,"stlp::string::string(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042A3D0,"stlp::string::string(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042A4F0,"stlp::string::assign(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042A560,"stlp::copy<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042AF80,"stlp::uninitialized_copy<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042AFB0,"stlp::string::append(first,last) wrapper",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B3C0,"stlp::uninitialized_copy<pair*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B3F0,"stlp::uninitialized_fill_n<pair*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B420,"stlp::uninitialized_copy (EH)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B510,"stlp::uninitialized_fill_n (EH)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B600,"stlp::uninitialized_copy<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B630,"stlp::uninitialized_fill_n<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B660,"stlp::uninitialized_copy<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B690,"stlp::uninitialized_fill_n<RefPtr*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B6C0,"stlp::uninitialized_copy<T*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B6E0,"stlp::uninitialized_fill_n<T*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B700,"stlp::string::_M_append(first,last)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042B930,"stlp::__adjust_heap",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042BD60,"stlp::__make_heap / partial sort",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042BE40,"stlp::copy<char*>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042D340,"stlp::vector<char>::erase",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042D370,"stlp::vector<char>::insert(pos,n,c)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042D4E0,"stlp::vector<char>::_M_insert_overflow",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437930,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004379E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437AA0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437B90,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437C50,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437D40,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437D60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437E00,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437EF0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437F10,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437F20,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437F30,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00437F60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438000,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438010,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004380C0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004381B0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004382A0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438440,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438530,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004385A0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438640,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438650,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438660,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438690,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438730,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438770,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004387C0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438820,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438830,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438F60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00438FF0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439000,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439100,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004392D0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439390,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004394A0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439500,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439530,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439540,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439650,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004396A0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439700,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439730,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439760,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004397B0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004397E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439930,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439940,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439960,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004399C0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439A60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439A70,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439AA0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439AE0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439B40,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439B70,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439B80,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439BB0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439C10,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439C40,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439C80,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439CC0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439CE0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439D40,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439D80,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00439DD0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A050,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A070,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A090,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A1D0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A3D0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A450,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A460,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A4C0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A520,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A570,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A590,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A740,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A760,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A930,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043A950,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043ABB0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043AC40,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043ADE0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043AEE0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043B0A0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043B310,"stlp::__node_alloc::deallocate (copy)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043B360,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043B530,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043B9E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043BA20,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043BE60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043BF00,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043BF60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043C3A0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043C3B0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043C450,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043C4B0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043C8F0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043C900,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043C9A0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043CA00,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043CA40,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043CA80,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043CE60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043CE70,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043CED0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043CF10,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D000,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D2E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D380,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D3E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D420,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D780,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D7C0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D7D0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D7E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D7F0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D800,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043D830,"stlp::_Rb_global::_Rebalance_for_erase",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043DBE0,"stlp::_Rb_global::_M_increment",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043DC20,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043DC50,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043DC80,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043DD20,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043DD30,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043DF00,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E100,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E300,"stlp::_Rb_global::_Rotate_left",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E350,"stlp::_Rb_global::_Rotate_right",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E4E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E5F0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E920,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043EA30,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043ED60,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043EEB0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043F4E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043F5E0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043F870,"stlp::__introsort_loop",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043F9B0,"stlp::__final_insertion_sort",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FB30,"stlp::find_if<list<T>::iterator>",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FB70,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FBA0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FBE0,"stlp::_Rb_global::_M_decrement",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FC30,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FC70,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FCB0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FD40,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FD50,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FDA0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FDB0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FDF0,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FE10,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FE30,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FE50,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FE70,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043FE90,"stlp::_Rb_global::_Rebalance",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
