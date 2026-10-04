@@ -21,12 +21,15 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U3 Next 3-5 largest live game-logic functions in the range (skip draws, matrix and bone code,
+- U3 (taken 2026-10-05) Next 3-5 largest live game-logic functions in the range (skip draws, matrix and bone code,
   effect/audio-adjacent 00534B60 / 00534760 / 00537500 until reviewed).
 
 ## App and startup, 0x00440000-0x00480000
 
-- A2.. To be split after the current worker's report (largest remaining live functions, 3-8 each).
+- A2 (taken 2026-10-05) Network message objects over streams, first group: the classes with vtables
+  0073C8A4 / 0073C8D8 / 0073C8F8 (constructors, read/write, destructors) in 00477E60-0047A6D0.
+- A3 The rest of those message classes (vtables 0073C92C / 0073C990 / 0073C9C8 / 0073CA10).
+- A4 The drivers at 0047B980-0047E340, in groups of 3-8.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
