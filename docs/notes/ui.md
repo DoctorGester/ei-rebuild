@@ -1145,7 +1145,10 @@ quaternion 0049E800; DrawItem through 005ECA10 (from the panel). Shapes: array S
   run their own wrappers nested.
 - DrawItem: both runs draw, so in the verify build an item is drawn twice per frame.
 - Shapes: after the original, the parts it wrote are copied and overwritten with 0xCD; ours must
-  write them all again identically. Place (Rebirth-patched) runs in both.
+  write them all again identically. Place (Rebirth-patched) runs in both. Commit's +0xC4 (the
+  index array's data pointer) is compared as "points at the current indices": the builders empty
+  the index array with SetSize(0), which frees it, so each run has a new buffer (the first in-game
+  run reported this as a one-byte difference at that field in every build).
 
 ## Scenario `tests/scenarios/ui_describe.txt`
 
