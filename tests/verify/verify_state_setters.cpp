@@ -1,6 +1,6 @@
 // Checks for the small state setters rewritten for the state mirror (device_states.cpp,
-// ui_alpha_draws.cpp). All ours only (they talk to Direct3D); the device's state is read back here
-// to check what they leave.
+// ui_alpha_draws.cpp). Ours only (they talk to Direct3D) except the blend setter 00501C60; the
+// device's state is read back here to check what they leave.
 #include "verify.h"
 
 #include "../../src/game/ui.h"
@@ -29,6 +29,27 @@ static int __fastcall RendererSetFogColourVerify(char* renderer, void*, std::uin
     return result;
 }
 EI_VERIFY(0x00501AB0, RendererSetFogColourVerify, 0, s_fog);
+
+// 00501C60: differential on the real device (the particles' blend switch, scenarios particles /
+// spells / effects): the original through the trampoline, the blend factors it leaves read back;
+// then ours, read back again; results and factors compared. Both set the same two states, so the
+// original's run has no effect of its own (a failing device would report the error twice).
+int __fastcall RendererSetBlend(char* renderer, void*, std::uint32_t source, std::uint32_t dest);
+using SetBlendFn = int(__fastcall*)(char*, void*, std::uint32_t, std::uint32_t);
+static SetBlendFn s_blend;
+static int __fastcall RendererSetBlendVerify(char* renderer, void*, std::uint32_t source, std::uint32_t dest) {
+    void* d3d = *reinterpret_cast<void**>(*reinterpret_cast<char**>(renderer + 0x20) + 0x54);
+    int expected = s_blend(renderer, nullptr, source, dest);
+    std::uint32_t expectedSource = RenderState(d3d, 0x13), expectedDest = RenderState(d3d, 0x14);
+    int result = RendererSetBlend(renderer, nullptr, source, dest);
+    std::uint32_t actualSource = RenderState(d3d, 0x13), actualDest = RenderState(d3d, 0x14);
+    bool ok = result == expected && actualSource == expectedSource && actualDest == expectedDest &&
+              (result != 1 || (actualSource == source && actualDest == dest));
+    ei::verify::Check("RendererSetBlend", true, ok, "(%u, %u): result %d/%d, device %u, %u (original %u, %u)", source, dest,
+                      result, expected, actualSource, actualDest, expectedSource, expectedDest);
+    return result;
+}
+EI_VERIFY(0x00501C60, RendererSetBlendVerify, 7, s_blend);
 
 int __fastcall DeviceSetMaterial(char* device, void*, void* material);
 static void* s_material;
