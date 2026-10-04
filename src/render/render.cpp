@@ -96,6 +96,12 @@ ID3D11DeviceContext* g_context = nullptr;
 void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
               const char* /*file*/, void* /*user*/) {
     static const char* const kLevels[] = {"panic", "error", "warning", "info"};
+    // Each message at most 10 times (a full pool would otherwise log every frame).
+    static unsigned char counts[1024];
+    if (level > 0 && item < 1024 && counts[item]++ >= 10) {
+        counts[item] = 11;
+        return;
+    }
     ei::Log("render: %s %s %u (line %u): %s", tag ? tag : "sg", level < 4 ? kLevels[level] : "?", item, line,
             message ? message : "");
     // sokol cannot go on after a panic: the new renderer switches itself off (the old path draws).
@@ -119,6 +125,14 @@ bool CreateDevice() {
     desc.environment.d3d11.device = g_device;
     desc.environment.d3d11.device_context = g_context;
     desc.logger.func = &SokolLog;
+    // The game's textures (terrain pages, every model's, the interface's, one shadow texture per
+    // object), window surfaces and the images replaced within a frame: far more than sokol's
+    // default pools (128 images, 256 views); a full pool made sg_make_image fail.
+    desc.image_pool_size = 16384;
+    desc.view_pool_size = 16384;
+    desc.buffer_pool_size = 512;
+    desc.pipeline_pool_size = 1024;
+    desc.sampler_pool_size = 256;
     sg_setup(&desc);
     if (!sg_isvalid()) {
         ei::Log("render: sg_setup failed; the new renderer stays off");

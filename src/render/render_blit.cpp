@@ -262,10 +262,18 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
     desc.label = "ei-cursor";
     sg_image image = sg_make_image(&desc);
+    if (!image.id || sg_query_image_state(image) != SG_RESOURCESTATE_VALID) {
+        if (image.id) sg_destroy_image(image);
+        return;
+    }
     sg_view_desc vd{};
     vd.texture.image = image;
     sg_view view = sg_make_view(&vd);
     g_frameImages.push_back(image);
+    if (!view.id || sg_query_view_state(view) != SG_RESOURCESTATE_VALID) {
+        if (view.id) sg_destroy_view(view);
+        return;
+    }
     g_frameViews.push_back(view);
     Frame& f = CurrentFrame();
     f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});

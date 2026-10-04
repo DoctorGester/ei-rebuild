@@ -206,7 +206,13 @@ sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>>
     return sg_make_image(&desc);
 }
 
+// A texture view of `image`; none when the image could not be made (sokol's validation would
+// dereference the missing image).
 sg_view MakeTextureView(sg_image image) {
+    if (!image.id || sg_query_image_state(image) != SG_RESOURCESTATE_VALID) {
+        if (g_failures++ < 10) ei::Log("render: a texture image could not be made (pool full or bad data); drawn white");
+        return sg_view{};
+    }
     sg_view_desc v{};
     v.texture.image = image;
     return sg_make_view(&v);
@@ -353,9 +359,9 @@ void ReadWindow(Texture& t, void* surface, bool keyed, std::uint32_t key) {
     d.label = "ei-window-surface";
     t.image = sg_make_image(&d);
     t.view = MakeTextureView(t.image);
-    if (sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
-        sg_destroy_view(t.view);
-        sg_destroy_image(t.image);
+    if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
+        if (t.view.id) sg_destroy_view(t.view);
+        if (t.image.id) sg_destroy_image(t.image);
         t.image = sg_image{};
         t.view = sg_view{};
     }
