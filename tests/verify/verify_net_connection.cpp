@@ -281,3 +281,17 @@ EI_VERIFY(0x00432DA0, ConnectionConstructVerify, 0, s_unusedLife);
 EI_VERIFY(0x00433320, ConnectionResetVerify, 0, s_unusedLife);
 EI_VERIFY(0x004334E0, ConnectionDestructVerify, 0, s_unusedLife);
 EI_VERIFY(0x004334C0, ConnectionDeleteVerify, 0, s_unusedLife);
+
+namespace {
+// 00433060: ours only (it allocates); the copy has the same id, address and budget.
+net::Connection* __fastcall ConnectionCloneVerify(const net::Connection* self) {
+    net::Connection* copy = self->Clone();
+    ei::verify::Check("Connection::Clone", true,
+                      !copy || (copy->connectionId == self->connectionId && copy->updateBudget == self->updateBudget &&
+                                std::memcmp(copy->address, self->address, 16) == 0),
+                      "");
+    return copy;
+}
+void* s_unusedClone;
+} // namespace
+EI_VERIFY(0x00433060, ConnectionCloneVerify, 0, s_unusedClone);

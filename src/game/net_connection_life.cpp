@@ -226,3 +226,65 @@ Connection* __fastcall ConnectionDeletingDestructor(Connection* self, void*, uns
 EI_REPLACE(0x004334C0, ConnectionDeletingDestructor);
 
 } // namespace net
+
+namespace net {
+
+namespace {
+// Copy constructors of the containers (library) and of the id pools (00433A30, not rewritten yet).
+__declspec(naked) void* __fastcall ReceivedGetAllocator(const void* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00438CC0)
+__declspec(naked) void __fastcall ReceivedReserveConstruct(void* /*vector*/, void*, int /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00438D00)
+__declspec(naked) std::int32_t* __fastcall CopyInts(const std::int32_t* /*first*/, const std::int32_t* /*last*/, std::int32_t* /*dest*/) EI_ORIGINAL(0x0043B360)
+__declspec(naked) void __fastcall IdPoolCopy(IdPool* /*to*/, void*, const IdPool* /*from*/) EI_ORIGINAL(0x00433A30)
+__declspec(naked) void __fastcall FreedListCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437930)
+__declspec(naked) void __fastcall BySentIdCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437AA0)
+__declspec(naked) void __fastcall ByObjectCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437C50)
+__declspec(naked) void __fastcall PriorityCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437E00)
+__declspec(naked) void __fastcall HistoryCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437F60)
+__declspec(naked) void __fastcall RecordsCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x004381B0)
+__declspec(naked) void __fastcall AttachedCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00438440)
+__declspec(naked) void __fastcall HeaderListCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00438690)
+__declspec(naked) void __fastcall GameBufferCopy(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/) EI_ORIGINAL(0x004DA9E0)
+} // namespace
+
+Connection* Connection::Clone() const {
+    auto* copy = static_cast<Connection*>(gamecrt::operator_new(sizeof(Connection)));
+    Put32(copy, 4, 0);
+    if (!copy) return nullptr;
+    SetVtable(copy, kRefValueVtable);
+    copy->sendSequence = sendSequence;
+    copy->lastReceived = lastReceived;
+    copy->unknown_0010 = unknown_0010;
+    std::uint8_t tag = 0;
+    void* alloc = ReceivedGetAllocator(&received, nullptr, &tag);
+    ReceivedReserveConstruct(&copy->received, nullptr, static_cast<int>(receivedEnd - received), alloc);
+    copy->receivedEnd = CopyInts(received, receivedEnd, copy->received);
+    std::memcpy(Bytes(copy) + 0x20, reinterpret_cast<const std::uint8_t*>(this) + 0x20, 0x0C);   // id, round trips
+    std::memcpy(copy->address, address, sizeof(address));
+    std::memcpy(Bytes(copy) + 0x3C, reinterpret_cast<const std::uint8_t*>(this) + 0x3C, 0x18);   // timers, clock, budget
+    for (int i = 0; i < 0x100; ++i) IdPoolCopy(&copy->idPools[i], nullptr, &idPools[i]);
+    FreedListCopy(&copy->freedIds, nullptr, &freedIds);
+    copy->freedTimer = freedTimer;
+    BySentIdCopy(copy->bySentId, nullptr, bySentId);
+    ByObjectCopy(&copy->byObject, nullptr, &byObject);
+    for (int i = 0; i < 11; ++i) PriorityCopy(&copy->priorities[i], nullptr, &priorities[i]);
+    HistoryCopy(&copy->history, nullptr, &history);
+    HistoryCopy(&copy->acknowledged, nullptr, &acknowledged);
+    RecordsCopy(&copy->records, nullptr, &records);
+    AttachedCopy(&copy->attached, nullptr, &attached);
+    copy->headerSequence = headerSequence;
+    copy->unknown_111A = unknown_111A;
+    HeaderListCopy(&copy->headers, nullptr, &headers);
+    HeaderListCopy(&copy->list_1120, nullptr, &list_1120);
+    copy->unknown_1124 = unknown_1124;
+    copy->unknown_1128 = unknown_1128;
+    GameBufferCopy(&copy->reliableOut, nullptr, &reliableOut);
+    GameBufferCopy(&copy->reliableIn, nullptr, &reliableIn);
+    SetVtable(copy, kConnectionVtable);
+    return copy;
+}
+namespace {
+Connection* __fastcall CloneHook(const Connection* self) { return self->Clone(); }
+} // namespace
+EI_REPLACE(0x00433060, CloneHook);
+
+} // namespace net

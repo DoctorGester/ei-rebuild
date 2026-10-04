@@ -196,6 +196,8 @@ struct Connection {
     Connection* Construct(std::uint32_t id);
     void Reset();
     void Destruct();
+    // 00433060 (slot 3, net_connection_life.cpp): a copy of the connection (every container copied).
+    Connection* Clone() const;
 };
 static_assert(offsetof(Connection, address) == 0x2C);
 static_assert(offsetof(Connection, clock) == 0x48);
