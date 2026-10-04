@@ -614,6 +614,12 @@ bool __fastcall ReleaseIfIdentified(void* functor, void*, CEngineObject* object)
 using PendingMap = stlp::hash_map<std::uint32_t, void*, stlp::IntHash>;
 int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value);
 // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
+// The party records handed to CWorldClient::CreatePartyUnits: an MFC pointer array.
+struct PartyRecordArray {
+    void* vtable;
+    void** data;                          // +0x04
+    int count;                            // +0x08
+};
 struct RecordVector {
     const std::uint8_t* start;
     const std::uint8_t* finish;
@@ -701,6 +707,13 @@ public:
     // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
     CEngineObject* PickAt(const long* point);
     CEngineObject* PickAt2(const long* point);
+    // 00566F70 (RET 8). Creates the party's heroes from their records (+0x14 prototype, +0x18
+    // second prototype, +0x1C id, +8 model, +0x10 skin, +0x20 stats, +0x724 position, +0x730 /
+    // +0x740 / +0x750 weapons, quick items and armour as pointer arrays with their counts after):
+    // the figure from the part names (the hair "hr.%.2d" by the prototype's number), items, player
+    // (+0); each unit is filed with AddObject. Armour of type 0 is put on only with `allArmour`.
+    // Stops at the first unit that cannot be created or given a figure.
+    void CreatePartyUnits(const PartyRecordArray* party, char allArmour);
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090

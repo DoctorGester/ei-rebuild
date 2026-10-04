@@ -250,6 +250,29 @@ static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {
 }
 EI_VERIFY(0x00564E70, ClearMapsVerify, 0, s_unused);
 
+// 00566F70: ours only. No listing is lost, and +0xB8 grows by at most one per record.
+static void __fastcall CreatePartyUnitsVerify(CWorldClient* client, void*, const PartyRecordArray* party, char allArmour) {
+    auto size = [client] {
+        SectorListNode* head = ListHead(client, 0xB8);
+        int n = 0;
+        for (SectorListNode* node = head->next; node != head; node = node->next) ++n;
+        return n;
+    };
+    int count = party->count;
+    std::vector<int> before;
+    for (int i = 0; i < count; ++i)
+        before.push_back(CountIdInList(client, 0xB8, At<int>(party->data[i], 0x1C)));
+    int sizeBefore = size();
+    client->CreatePartyUnits(party, allArmour);
+    int sizeAfter = size();
+    bool ok = sizeAfter >= sizeBefore && sizeAfter - sizeBefore <= count;
+    for (int i = 0; i < count; ++i)
+        if (CountIdInList(client, 0xB8, At<int>(party->data[i], 0x1C)) < before[i]) ok = false;
+    ei::verify::Check("CWorldClient::CreatePartyUnits", true, ok, "%d records, objects %d -> %d", count, sizeBefore,
+                      sizeAfter);
+}
+EI_VERIFY(0x00566F70, CreatePartyUnitsVerify, 0, s_unused);
+
 // 005726B0: ours only. True exactly for a positive id.
 static bool __fastcall ReleaseIfIdentifiedVerify(void* functor, void*, CEngineObject* object) {
     bool positive = object->id_ > 0;

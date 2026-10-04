@@ -953,6 +953,18 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 | 00564E70 | CWorldClient::ClearMaps | ours only: grids, +0xB4, +0x7BC, the MFC lists and the id map empty; no positive id left in +0xB8 |
 | 005726B0 | ReleaseIfIdentified (ClearMaps' predicate) | ours only: true exactly for a positive id |
 | 00565790 / 005659D0 | CWorldClient::PickAt / PickAt2 (RET 4) | differential: the original first; the object, the sorted entries and the cursor compared |
+| 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
+
+CreatePartyUnits (called by the glue 005789C0 with the player's party records, an MFC pointer
+array): per record a CStringArray of the figure's part names "hd", "bd", "hp", "hr", "lh1".."rl3",
+where "hr" becomes "hr.%.2d" with the number at +0x10 of the prototype found by name in the map
+007AF364 (left out at -1); the object manager's slot 23 creates the hero (type 0x32, the record's
+id +0x1C); +0x18 = the prototype's index (-1 when unknown), the second prototype by name (+0x18),
+flag 0x4000000, the figure from the model (+8) and the part names (00516DA0; a failure ends the
+whole call, like a failed creation), the skin swap from "none" to +0x10 (none when it is "none"),
+the stats (+0x20, slot 35), the position (+0x724, also copied to +0x1AC), the items (weapons
++0x730, armour +0x750 (type-0 armour only with the flag), quick items +0x740, each array's count
+in the next word), the player (+0, slot 61), then AddObject.
 
 The client's maps (CWorldClient): +0xB4 an STLport list of counted pointers to heroes with a
 text-key id; +0xB8 a list of every object (pointers with a reference taken by hand); +0xBC an MFC

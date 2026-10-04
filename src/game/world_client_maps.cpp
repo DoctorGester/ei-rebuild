@@ -9,6 +9,7 @@
 #include "world.h"
 
 #include "base_manager.h"
+#include "console.h"
 #include "object_tables.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -550,6 +551,126 @@ CEngineObject* Pick(CWorldClient* client, const long* point,
 CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, CollectWindowsAt); }
 CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, CollectWindowsAt2); }
 
+// ---- The party's units (00566F70) ----------------------------------------------------------------
+
+namespace {
+
+// The prototypes' name map (007AF364, hash_map<string, record*>): find or insert a {name, 0} pair
+// [00514880], returning the stored pair; the prototype table's lookup by name [00514930].
+struct NamePair {
+    stlp::string first;
+    int second;
+};
+__declspec(naked) std::uint8_t* __fastcall NameMapFindOrInsert(void*, void*, const NamePair*) EI_ORIGINAL(0x00514880)
+__declspec(naked) std::uint8_t* __fastcall FindPrototypeByName(void*, void*, const char*) EI_ORIGINAL(0x00514930)
+// CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
+// [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
+// [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
+__declspec(naked) void __fastcall UnitSetPrototype2(void*, void*, const char*) EI_ORIGINAL(0x005308D0)
+__declspec(naked) int __fastcall UnitMakeFigure(void*, void*, const char*, console::CStringArray*, int) EI_ORIGINAL(0x00516DA0)
+__declspec(naked) void __fastcall Unit518840(void*, void*, const char*, int) EI_ORIGINAL(0x00518840)
+__declspec(naked) void __fastcall Unit518860(void*) EI_ORIGINAL(0x00518860)
+__declspec(naked) void __fastcall Unit50EA40(void*) EI_ORIGINAL(0x0050EA40)
+__declspec(naked) void __fastcall UnitSetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
+__declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
+__declspec(naked) void __fastcall UnitAddWeapon(void*, void*, void*) EI_ORIGINAL(0x00531070)
+__declspec(naked) void __fastcall UnitEquipArmour(void*, void*, void*) EI_ORIGINAL(0x00530730)
+__declspec(naked) void __fastcall UnitAddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00531180)
+// The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
+// [006A39E0, on the item].
+__declspec(naked) void __fastcall Figure51C970(void*) EI_ORIGINAL(0x0051C970)
+__declspec(naked) void __fastcall FigureSwapTexture(void*, void*, const char*, const char*) EI_ORIGINAL(0x0051C250)
+__declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
+
+constexpr int kSlotCreate = 0x5C / 4;        // object manager: (type, id) -> object
+constexpr int kSlotSetStats = 0x8C / 4;      // unit: (stats block)
+constexpr int kSlotRefresh = 0x78 / 4;       // unit and its controller: ()
+constexpr int kSlotSetPlayer = 0xF4 / 4;     // unit: (player)
+constexpr int kSlotEquipped = 0x64 / 4;      // controller: (0)
+constexpr int kSlotItemsChanged = 0x74 / 4;  // controller: ()
+
+const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+
+bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
+    for (;; ++a, ++b) {
+        if (*a != *b) return false;
+        if (*a == 0) return true;
+    }
+}
+
+// The figure's part names: "hd", "bd", "hp", "hr" (the hair: "hr.%.2d" with the prototype's
+// number, or left out at -1), "lh1".."rl3".
+constexpr std::uintptr_t kPartNames[] = {0x0078AD74, 0x0078AD38, 0x007900E4, 0x0078FB38, 0x007900E0, 0x0078AD70,
+                                         0x007900DC, 0x007900D8, 0x0078AD6C, 0x0078F95C, 0x007900D4, 0x0078AD68,
+                                         0x0078B008, 0x007900D0, 0x0078AD64, 0x0078B004};
+constexpr std::uintptr_t kHair = 0x0078FB38;        // "hr"
+constexpr std::uintptr_t kHairFormat = 0x0078FB0C;  // "hr.%.2d"
+constexpr std::uintptr_t kNone = 0x007846F0;        // "none"
+
+} // namespace
+
+void CWorldClient::CreatePartyUnits(const PartyRecordArray* party, char allArmour) {
+    mfc::CString hair;
+    for (int i = 0; i < party->count; ++i) {
+        std::uint8_t* record = static_cast<std::uint8_t*>(party->data[i]);
+        console::CStringArray parts;
+        for (std::uintptr_t name : kPartNames) {
+            if (SameText(GameString(name), GameString(kHair))) {
+                std::uint8_t* stored;
+                {
+                    stlp::string key(At<const char*>(record, 0x14));
+                    NamePair pair{key, 0};
+                    stored = NameMapFindOrInsert(reinterpret_cast<void*>(0x007AF364), nullptr, &pair);
+                }
+                int number = At<int>(At<void*>(stored, 0xC), 0x10);
+                if (number != -1) {
+                    hair.Format(GameString(kHairFormat), number);
+                    parts.SetAtGrow(parts.GetSize(), hair);
+                }
+            } else {
+                parts.SetAtGrow(parts.GetSize(), GameString(name));
+            }
+        }
+        void* manager = ei::VCall<void*>(this, kSlotObjects);
+        CEngineObject* unit = ei::VCall<CEngineObject*>(manager, kSlotCreate, kTypeHero, At<int>(record, 0x1C));
+        if (!unit) return;   // (the original leaves the loop: the same as returning here)
+        std::uint8_t* prototype =
+            FindPrototypeByName(reinterpret_cast<void*>(0x007AF358), nullptr, At<const char*>(record, 0x14));
+        At<int>(unit, 0x18) =
+            prototype ? static_cast<int>(prototype - *reinterpret_cast<std::uint8_t**>(0x007AF358)) / 0x120 : -1;
+        UnitSetPrototype2(unit, nullptr, At<const char*>(record, 0x18));
+        unit->flags_ |= 0x4000000;
+        if (!UnitMakeFigure(unit, nullptr, At<const char*>(record, 8), &parts, 1)) return;
+        void* figure = At<void*>(unit, 0x94);
+        Figure51C970(figure);
+        Unit518840(unit, nullptr, At<const char*>(record, 8), 0);
+        Unit518860(unit);
+        const char* skin = At<const char*>(record, 0x10);
+        FigureSwapTexture(figure, nullptr, GameString(kNone), SameText(skin, GameString(kNone)) ? nullptr : skin);
+        Unit50EA40(unit);
+        ei::VCall<void>(unit, kSlotSetStats, record + 0x20);
+        UnitSetPosition(unit, nullptr, &At<float>(record, 0x724));
+        std::memcpy(&At<float>(unit, 0x1AC), &At<float>(record, 0x724), 12);
+        ei::VCall<void>(unit, kSlotRefresh);
+        UnitReleaseAllItems(unit);
+        for (int j = 0; j < At<int>(record, 0x734); ++j)
+            UnitAddWeapon(unit, nullptr, At<void**>(record, 0x730)[j]);
+        void* controller = At<void*>(unit, 0x240);
+        if (At<int>(record, 0x734) != 0) ei::VCall<void>(controller, kSlotEquipped, 0);
+        for (int j = 0; j < At<int>(record, 0x754); ++j) {
+            void* armour = At<void**>(record, 0x750)[j];
+            if (allArmour || ArmourType(armour) != 0) UnitEquipArmour(unit, nullptr, armour);
+        }
+        for (int j = 0; j < At<int>(record, 0x744); ++j)
+            UnitAddQuickItem(unit, nullptr, At<void**>(record, 0x740)[j]);
+        ei::VCall<void>(At<void*>(unit, 0x240), kSlotItemsChanged);
+        ei::VCall<void>(At<void*>(unit, 0x240), kSlotRefresh);
+        ei::VCall<void>(unit, kSlotSetPlayer, At<void*>(record, 0));
+        AddObject(unit);
+    }
+}
+
+EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);
 EI_REPLACE_METHOD(0x00564BE0, CWorldClient::RemoveObject);
 EI_REPLACE_METHOD(0x00564E70, CWorldClient::ClearMaps);
