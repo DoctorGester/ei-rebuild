@@ -34,7 +34,20 @@ __declspec(naked) int __fastcall GameStep(void*) EI_ORIGINAL(0x00503F40)
 __declspec(naked) void __fastcall InterfaceUpdate(void*) EI_ORIGINAL(0x005F5220)
 __declspec(naked) void __fastcall GameDraw(void*) EI_ORIGINAL(0x005040A0)
 __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
-__declspec(naked) void __fastcall ScreenBegin(void*) EI_ORIGINAL(0x005E65F0)
+// The software cursor's lock (005E65F0) is called through the target of the original CALL at
+// 004580D7 (the original body stays in place behind the hook's jump): the harness's frame capture
+// redirects that call (tests/verify/harness_capture.cpp) to read the finished frame before the
+// cursor is blitted and the frame flipped, and keeps working with this rewrite. Without the
+// harness the target is 005E65F0.
+using CursorLock = void(__fastcall*)(void*);
+CursorLock CursorLockAtCallSite() {
+    constexpr std::uintptr_t kCall = 0x004580D7;
+    const auto* code = reinterpret_cast<const unsigned char*>(kCall);
+    std::int32_t rel;
+    std::memcpy(&rel, code + 1, 4);
+    if (code[0] != 0xE8) return reinterpret_cast<CursorLock>(0x005E65F0);
+    return reinterpret_cast<CursorLock>(kCall + 5 + rel);
+}
 __declspec(naked) void __fastcall ScreenDraw(void*) EI_ORIGINAL(0x005E54A0)
 __declspec(naked) int __fastcall RendererFlip(void*) EI_ORIGINAL(0x004EF610)
 __declspec(naked) void __fastcall ScreenEnd(void*) EI_ORIGINAL(0x005E6610)
@@ -96,7 +109,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     GameDraw(Game());
     if (cursor) InterfaceDrawCursor(Interface());
     if (!draw || !Running()) return;
-    ScreenBegin(Screen());
+    CursorLockAtCallSite()(Screen());
     ScreenDraw(Screen());
     if (RendererFlip(Renderer())) game::FatalError(Text(0x00784A30));   // "Can't flip render surface"
     ScreenEnd(Screen());
