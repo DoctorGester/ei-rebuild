@@ -125,4 +125,12 @@ void __fastcall OptionsResetDefaults(GameOptions* self) {
 }
 EI_REPLACE(0x00458DA0, OptionsResetDefaults);
 
+// 00458730: the options object's destructor (at exit, registered by the static initialiser
+// 00458700): its eighteen CStrings, the last first.
+void __fastcall OptionsDestruct(GameOptions* self) {
+    for (std::size_t i = sizeof(kStringFields) / sizeof(kStringFields[0]); i-- > 0;)
+        reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(self) + kStringFields[i])->~CString();
+}
+EI_REPLACE(0x00458730, OptionsDestruct);
+
 } // namespace options
