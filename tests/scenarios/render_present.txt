@@ -1,9 +1,10 @@
-# frames_basic with the switch-over ("render new,present", docs/notes/renderer.md): the new renderer
-# draws and shows every frame by itself, the old path draws only what is not handed over yet and
-# presents nothing; captures are the new frames. Compare with a frames_basic run of the old path:
+# frames_basic with the switch-over ("render new,present", docs/notes/renderer.md): the old path
+# draws only what is not handed over yet, the new frame is copied into the game's render target and
+# the old present shows it; captures are the new frames. Compare with a frames_basic run of the old
+# path:
 #   python tools\compare_frames.py <frames_basic run>\frames <render_present run>\frames
-# (weather is not in the new frame yet; the runs are
-# not deterministic, so expect small differences anyway). world / world_again must match.
+# (weather is not in the new frame yet; the runs are not deterministic, so expect small differences
+# anyway). world / world_again must match.
 render new,present
 reject Script error
 wait 6000
