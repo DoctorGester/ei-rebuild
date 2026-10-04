@@ -45,7 +45,7 @@ const char* const kNoEntry = reinterpret_cast<const char*>(0x0078F918);   // "Ca
 float* __fastcall UnitPredictPosition(std::uint8_t* unit, void*, float* out, int time) {
     void* order = ei::VCall<void*>(At<void*>(unit, 0x240), kSlotPath);
     if (ei::VCall<int>(unit, kSlotIsServer)) {
-        ei::VCall<void>(unit, kSlotActionPoint, out);
+        ei::VCall<float*>(unit, kSlotActionPoint, out);
         return out;
     }
     if (At<int>(order, 0) == kOrderPath && !(At<std::uint32_t>(unit, 8) & 0x8000000)) {
@@ -69,15 +69,16 @@ float* __fastcall UnitPredictPosition(std::uint8_t* unit, void*, float* out, int
     return out;
 }
 
-// 0052FDF0 (slot 53, RET 4). On the server, the point the unit's current animation (+0x254) acts
-// on: an animation entry of kind 0x1C0000 (bits 0x3C0000 of +0x14) offsets the position along the
-// orientation by its direction bits (0x1C00000 of +0x18): 0x400000 back (-Y), 0x800000 forward (+Y)
-// by +0x148, 0xC00000 right (+X), 0x1000000 left (-X) by +0x144. The point is kept only where the
-// AI map lets size class 3 stand (when the world is live); otherwise, and on a client, the position.
-void __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out) {
+// 0052FDF0 (slot 53, RET 4; returns `out` in EAX, which the callers use). On the server, the
+// point the unit's current animation (+0x254) acts on: an animation entry of kind 0x1C0000 (bits
+// 0x3C0000 of +0x14) offsets the position along the orientation by its direction bits (0x1C00000
+// of +0x18): 0x400000 back (-Y), 0x800000 forward (+Y) by +0x148, 0xC00000 right (+X), 0x1000000
+// left (-X) by +0x144. The point is kept only where the AI map lets size class 3 stand (when the
+// world is live); otherwise, and on a client, the position.
+float* __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out) {
     if (!ei::VCall<int>(unit, kSlotIsServer)) {
         std::memcpy(out, unit + 0x1C, 12);
-        return;
+        return out;
     }
     std::uint8_t index = At<std::uint8_t>(unit, 0x254);
     float offset[3] = {0.0f, 0.0f, 0.0f};
@@ -111,12 +112,13 @@ void __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out) {
                           offset[2] + At<float>(unit, 0x24)};
         if (!IsPassableForClass(world + 0x170, nullptr, 3, point)) {
             std::memcpy(out, unit + 0x1C, 12);
-            return;
+            return out;
         }
     }
     out[0] = offset[0] + At<float>(unit, 0x1C);
     out[1] = offset[1] + At<float>(unit, 0x20);
     out[2] = offset[2] + At<float>(unit, 0x24);
+    return out;
 }
 
 EI_REPLACE(0x0052FCC0, UnitPredictPosition);

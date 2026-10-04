@@ -5,7 +5,7 @@
 #include <cstdint>
 
 float* __fastcall UnitPredictPosition(std::uint8_t* unit, void*, float* out, int time);
-void __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out);
+float* __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out);
 
 namespace {
 bool SamePoint(const float* a, const float* b) {
@@ -31,13 +31,16 @@ static float* __fastcall UnitPredictPositionVerify(std::uint8_t* unit, void*, fl
 EI_VERIFY(0x0052FCC0, UnitPredictPositionVerify, 6, s_predict);
 
 // 0052FDF0: SUB ESP,0x4C; PUSH EBX; PUSH ESI (5 bytes).
-using ActionFn = void(__fastcall*)(std::uint8_t*, void*, float*);
+// The original returns `out` in EAX; the callers (combat_*.cpp) use it.
+using ActionFn = float*(__fastcall*)(std::uint8_t*, void*, float*);
 static ActionFn s_action;
-static void __fastcall UnitActionPointVerify(std::uint8_t* unit, void*, float* out) {
+static float* __fastcall UnitActionPointVerify(std::uint8_t* unit, void*, float* out) {
     float theirs[3];
-    s_action(unit, nullptr, theirs);
-    UnitActionPoint(unit, nullptr, out);
-    ei::verify::Check("Unit::ActionPoint", true, SamePoint(theirs, out), "unit %d: (%g, %g, %g) vs (%g, %g, %g)",
-                      UnitId(unit), theirs[0], theirs[1], theirs[2], out[0], out[1], out[2]);
+    float* theirsResult = s_action(unit, nullptr, theirs);
+    float* result = UnitActionPoint(unit, nullptr, out);
+    ei::verify::Check("Unit::ActionPoint", true, theirsResult == theirs && result == out && SamePoint(theirs, out),
+                      "unit %d: (%g, %g, %g) vs (%g, %g, %g)", UnitId(unit), theirs[0], theirs[1], theirs[2], out[0],
+                      out[1], out[2]);
+    return result;
 }
 EI_VERIFY(0x0052FDF0, UnitActionPointVerify, 5, s_action);
