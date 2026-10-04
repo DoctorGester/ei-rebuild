@@ -191,6 +191,11 @@ struct Connection {
     // 00436620. The peer goes away: every object received from it is reported to the session's
     // removal handlers (channel 2) and released.
     void Close();
+    // net_connection_life.cpp: 00432DA0 constructor (returns this), 00433320 Reset (slot 2:
+    // destroy, then construct with id 0), 004334E0 destructor body.
+    Connection* Construct(std::uint32_t id);
+    void Reset();
+    void Destruct();
 };
 static_assert(offsetof(Connection, address) == 0x2C);
 static_assert(offsetof(Connection, clock) == 0x48);

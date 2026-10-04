@@ -249,3 +249,35 @@ void __fastcall CloseVerify(net::Connection* self) {
 void* s_unusedClose;
 } // namespace
 EI_VERIFY(0x00436620, CloseVerify, 0, s_unusedClose);
+
+namespace net {
+Connection* __fastcall ConnectionDeletingDestructor(Connection* self, void*, unsigned flags);
+}
+namespace {
+// 00432DA0 / 00433320 / 004334E0 / 004334C0: ours only (they allocate and free the containers).
+net::Connection* __fastcall ConnectionConstructVerify(net::Connection* self, void*, std::uint32_t id) {
+    net::Connection* result = self->Construct(id);
+    ei::verify::Check("Connection::Construct", true,
+                      result == self && self->connectionId == id && self->updateBudget == 0xDC &&
+                          *reinterpret_cast<std::uintptr_t*>(self) == 0x0073BF38,
+                      "id %u", id);
+    return result;
+}
+void __fastcall ConnectionResetVerify(net::Connection* self) {
+    self->Reset();
+    ei::verify::Check("Connection::Reset", true, self->connectionId == 0, "");
+}
+void __fastcall ConnectionDestructVerify(net::Connection* self) {
+    self->Destruct();
+    ei::verify::Check("Connection::Destruct", true, *reinterpret_cast<std::uintptr_t*>(self) == 0x0073BB68, "");
+}
+net::Connection* __fastcall ConnectionDeleteVerify(net::Connection* self, void*, unsigned flags) {
+    ei::verify::Check("ConnectionDeletingDestructor", true, true, "");
+    return net::ConnectionDeletingDestructor(self, nullptr, flags);
+}
+void* s_unusedLife;
+} // namespace
+EI_VERIFY(0x00432DA0, ConnectionConstructVerify, 0, s_unusedLife);
+EI_VERIFY(0x00433320, ConnectionResetVerify, 0, s_unusedLife);
+EI_VERIFY(0x004334E0, ConnectionDestructVerify, 0, s_unusedLife);
+EI_VERIFY(0x004334C0, ConnectionDeleteVerify, 0, s_unusedLife);
