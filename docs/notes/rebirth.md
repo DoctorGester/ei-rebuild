@@ -194,6 +194,10 @@ Sites are listed in full in the CSV.
   float holding the setting (5376.0 here).
 - **LandscapeDrawRadius** (2 sites) - the terrain draw distance `PUSH 100.0` in 00569E40 becomes the
   setting.
+  For both, addon reads the DWORD (default 100) when it loads and patches in (float)(unsigned)
+  value, only when it is not 100. *Implemented* as new rewrites `CWorldClient::Render` (00569E40)
+  and `CWorldClient::DrawPass` (0056AFE0) in src/game/world_client_draw.cpp, reading the setting
+  once; with the flag off the margin is 0073BAB0 and the distance 100.0.
 - BinkPatch (disabled): with a mod plugin, Bink's _BinkOpen/_BinkSetVolume through the plugin.
 
 ### Scripting and console (8 applied; single player)
@@ -525,6 +529,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | PersistentGlobalVars | new: GameFlow::AfterServerStart 0057EB10, UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (world_game.cpp), persistent_globals.cpp | none (multiplayer paths): plain replacements |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 | AddNewScriptCommands | script_addon*.cpp, from CalcParameters 004B4030, CalcFloat 004B41E0, CalcObject 004B56C0 (script_eval.cpp), new: CalcGroup 004B5B00 (script_eval.cpp), Execute 004B6760 (script_exec.cpp), ScriptError 004CF470, ClassifyToken 004CF600, FunctionSignature 004D0B10, KeywordName 004D0BA0 (script_parse.cpp), LoadFunction 004CFBC0, LoadCommands 004D1330 (script_parse_load.cpp) | the existing side-by-side wrappers compare with addon's patched originals in Rebirth (signatures and names as text; string arguments by content; a new CalcGroup wrapper, 7 stolen bytes); vanilla launches run them without wrappers |
+| ObjectsDrawRadius, LandscapeDrawRadius | new: CWorldClient::DrawPass 0056AFE0, CWorldClient::Render 00569E40 (world_client_draw.cpp) | ours only (they draw): afterwards the frame's lists and the deferred list are empty and the device's matrix stacks are as before (the view stack's top replaced) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
 (newgame for the loading movie, combat and spells for IsFighting and AddEffect, ui_camp for prices).
@@ -555,7 +560,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| ObjectsDrawRadius, LandscapeDrawRadius | two float settings in 0056AFE0 / 00569E40 (or in the client draw rewrite) | 0.5 day once those are rewritten |
 | WideScreen | 100 sites in ~45 functions, the layout maths of addon's replacements, VIDEORESOLUTION | 2-3 weeks |
 | NivalRegistry, Maps, ResOverride, Movies/Camera/StreamPatch | path policy (mod folders, starter key); belongs with the standalone's resource layer | 1 week |
 | multiplayer (5 addon + EI_Plugin features) | lobby, master server, network code | later, with multiplayer |

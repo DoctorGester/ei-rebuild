@@ -9,9 +9,10 @@
 # the units' update with the sleeping objects' effects (FixSpellEffectsOverflow #0), objects created
 # (FixAddMapObject), addon's console commands and nogui (AddNewConsoleCommands), the AutoExec lines
 # before "exec autoexec.cfg" of the new game (AutoExec), addon's script functions and commands
-# (AddNewScriptCommands; the existing lines also parse with its table and keyword rule). Rebirth
+# (AddNewScriptCommands; the existing lines also parse with its table and keyword rule), every frame
+# drawn with the starter's draw radii (ObjectsDrawRadius, LandscapeDrawRadius). Rebirth
 # install: the flags follow addon.dll and the wrappers compare with the patched originals.
-rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands
+rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
 wait 6000
 console thingamabob

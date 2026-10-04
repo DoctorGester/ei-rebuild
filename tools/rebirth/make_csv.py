@@ -82,6 +82,8 @@ STATUS = {
  'FixLeversActivate': 'implemented: LockKey::Opens (src/game/unit_stats.cpp)',
  'FixMoveObject': 'implemented: CSectorMap::Move (src/game/sector_map.cpp)',
  'AllowScriptArgsInLoops': 'implemented: CScript::LoadCommands (src/game/script_parse_load.cpp)',
+ 'ObjectsDrawRadius': 'implemented: new rewrite CWorldClient::DrawPass 0056AFE0 (src/game/world_client_draw.cpp)',
+ 'LandscapeDrawRadius': 'implemented: new rewrite CWorldClient::Render 00569E40 (src/game/world_client_draw.cpp)',
  'AddNewScriptCommands': 'implemented: table, dispatch, \'?\'/\'+\', keyword rule and CalcString in src/game/script_addon.cpp, hooked from CalcParameters/CalcFloat/CalcObject (script_eval.cpp), Execute (script_exec.cpp), ClassifyToken/FunctionSignature/KeywordName/ScriptError (script_parse.cpp), LoadFunction/LoadCommands (script_parse_load.cpp) and the new rewrite SSCCmd::CalcGroup 004B5B00 (script_eval.cpp); handlers in src/game/script_addon_*.cpp',
  'FixPlaingBattleMusicFromAntimagic': 'implemented: new rewrite CUnitServer::IsFighting 0054B580 (src/game/combat.cpp)',
  'FixRepairPrice': 'implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp)',
