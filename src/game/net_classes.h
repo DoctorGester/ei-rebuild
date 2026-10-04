@@ -243,6 +243,13 @@ struct ServerSession {
     void SetMap(const StringRep* name);
     // 00418530. Queues a map message for each zone that follows the current map.
     void QueueMapList();
+    // 00419570 .. 00419940 (net_server_vars.cpp): the script variables (+0x25B0, named floats).
+    void** FindVariable(void** out, const StringRep* name);
+    void** FindOrAddVariable(void** out, const StringRep* name);
+    void SetVariable(const StringRep* name, float value);      // zero removes it
+    void RaiseVariable(const StringRep* name, float value);    // to the larger value
+    void RemoveVariable(const StringRep* name);
+    double GetVariable(const StringRep* name);                 // 0 when missing
     // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
     // shares of the zone's two values and the host's items, then the map state is dropped.
     void CompleteZone(const StringRep* zone);

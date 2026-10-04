@@ -61,10 +61,6 @@ constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
 
-// The server's own steps (not rewritten yet).
-__declspec(naked) void* __fastcall ServerAddResource(ServerSession* /*self*/, void*, void** /*out*/, const StringRep* /*name*/) EI_ORIGINAL(0x004195D0)
-__declspec(naked) void __fastcall ServerAddFile(ServerSession* /*self*/, void*, const StringRep* /*path*/, float /*weight*/) EI_ORIGINAL(0x00419730)
-
 constexpr std::uintptr_t kMapSuffix = 0x00783D80;      // appended to the map name for the message
 constexpr std::uintptr_t kRegistrySuffix = 0x00783D70; // appended for the registry lookup
 constexpr std::uintptr_t kPathPrefix = 0x00783D7C;
@@ -72,7 +68,7 @@ constexpr std::uintptr_t kPathMiddle = 0x00783D78;
 constexpr std::uintptr_t kPathSuffix = 0x00783D74;
 
 const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
-std::uint32_t* ResourceCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }
+std::uint32_t* VariableCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }
 
 // Frees every node of a list (sentinel kept and linked to itself): element destructor, then the node.
 template <typename DestroyElement, typename FreeNode>
@@ -94,9 +90,9 @@ void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
 // 004186F0: SetMap(name). Empties the two lists at +0x25AC / +0x25B0, queues a map message (name +
 // suffix) on the first, replaces the counted message at +0x25A8 by a fresh 0073BD00 one and copies
 // the name into it and into +0x25D4, loads the map into the world and announces its title. Then,
-// when the map registry knows "name + suffix", registers each of the map's resource names (weight
-// 1, numbered by 0079B608), adds the map's two data files and queues the host's item awards
-// (004191C0, without the final award).
+// when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's
+// names (inline, through FindOrAddVariable) and for two paths built from the map name
+// (SetVariable), and queues the host's item awards (004191C0, without the final award).
 void ServerSession::SetMap(const StringRep* name) {
     std::uint8_t* self = reinterpret_cast<std::uint8_t*>(this);
     ClearList(self + 0x25AC, Element25ACDestroy, List25ACFreeNode);
@@ -148,18 +144,18 @@ void ServerSession::SetMap(const StringRep* name) {
     if (!entry) return;
 
     for (auto** it = *reinterpret_cast<const char***>(entry + 0x2C); it != *reinterpret_cast<const char***>(entry + 0x30); ++it) {
-        const char* resource = *it;
+        const char* variableName = *it;
         StringRep resourceName;
         std::uint32_t alloc;
         StringWithAlloc(&resourceName, nullptr, &alloc);
-        StringRangeInit(&resourceName, nullptr, resource, resource + std::strlen(resource));
+        StringRangeInit(&resourceName, nullptr, variableName, variableName + std::strlen(variableName));
         void* added;
-        ServerAddResource(this, nullptr, &added, &resourceName);
+        FindOrAddVariable(&added, &resourceName);
         auto* record = *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(added) + 8);
         const std::uint32_t one = 0x3F800000;   // 1.0f
         std::memcpy(record + 0x18, &one, 4);
-        std::memcpy(record + 0x1C, ResourceCounter(), 4);
-        ++*ResourceCounter();
+        std::memcpy(record + 0x1C, VariableCounter(), 4);
+        ++*VariableCounter();
         ++*reinterpret_cast<std::int32_t*>(record + 8);
         StringDestroyB(&resourceName);
     }
@@ -170,7 +166,7 @@ void ServerSession::SetMap(const StringRep* name) {
     StringPlusString(&a, &prefix, name);
     StringPlusText(&b, &a, Text(kPathMiddle));
     StringPlusString(&path, &b, name);
-    ServerAddFile(this, nullptr, &path, 1.0f);
+    SetVariable(&path, 1.0f);
     StringDestroyB(&path);
     StringDestroyB(&b);
     StringDestroyB(&a);
@@ -182,7 +178,7 @@ void ServerSession::SetMap(const StringRep* name) {
     StringPlusText(&b2, &a2, Text(kPathMiddle));
     StringPlusString(&c2, &b2, name);
     StringPlusText(&path2, &c2, Text(kPathSuffix));
-    ServerAddFile(this, nullptr, &path2, 1.0f);
+    SetVariable(&path2, 1.0f);
     StringDestroyB(&path2);
     StringDestroyB(&c2);
     StringDestroyB(&b2);
