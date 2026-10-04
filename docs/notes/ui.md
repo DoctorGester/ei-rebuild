@@ -969,3 +969,150 @@ constructor, which the camp gets from a base's dialogue ("constrN" answers, 0060
 
 Not reached by a scenario: the constructor pages' Builds (006270A0, 006280C0, 00628CC0, 006279E0),
 CanMakeSpell / CanMakeItem, and probably CanEquip (slot 43; asked when an item is picked or dropped).
+
+# Item descriptions, item view, sprite shapes (005E0000-00610000, fifth pass)
+
+Files: `src/game/ui_item_info.h/.cpp` (the description panel), `src/game/ui_item_view.cpp` (the item
+screens' model view and the panel's drawing), `src/game/ui_mesh_build.h/.cpp` (sprite shapes);
+wrappers in `tests/verify/verify_ui_item_info.cpp` and `verify_ui_mesh_build.cpp`; scenario
+`tests/scenarios/ui_describe.txt`. Shared files changed: `tests/verify/harness.cpp` (one key name,
+`ctrl`). No shared header was changed.
+
+## Rewritten
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 005F1590 | 4904 | `CItemInfoPanel::DescribeStats` (RET 4) | side by side, surface pixels | ui_camp (every camp frame, no statistic), ui_describe (kinds 0-7) |
+| 005ECA10 | 3316 | `CItemScreen::DrawItem` (RET 8) | side by side: the model's fields and the item's turning state (put back between the runs); ours alone when the item has no turning state yet | ui_camp, ui_screens, ui_describe (every strip / panel item, every frame) |
+| 005EE760 | 2968 | `CItemInfoPanel::DescribeItem` | side by side, surface pixels | ui_camp (cleared every frame), ui_describe (items) |
+| 005F0370 | 2070 | `DescribeBlueprint` | side by side, pixels | none (blueprint items) |
+| 005E8450 | 2050 | `CUiMeshBuilder::Framed` (RET 0x2C) | side by side, sprite arrays poisoned between the runs | ui_camp, ui_screens (strips, hero panels, trade grids) |
+| 005E91F0 | 2009 | `CUiMeshBuilder::Ring` (RET 0x2C) | as Framed | every scenario (battle screen map panel) |
+| 005EF5D0 | 1979 | `DescribeCarriedSpell` | side by side, pixels | ui_describe (rune, Ctrl over the spell axe) |
+| 005EFD90 | 1494 | `DescribeMaterial` | side by side, pixels | none (material loot) |
+| 005F0B90 | 1431 | `DescribeSpellRecord` | side by side, pixels | none |
+| 005E8C60 | 1412 | `CUiMeshBuilder::Disc` (RET 0x24) | as Framed | every scenario (clock, map, movement panel) |
+| 005EF300 | 711 | `DescribeQuickItem` (category 8) | side by side, pixels | probably none |
+| 005F1130 | 617 | `DescribeModifierRecord` | side by side, pixels | none |
+| 005F2910 | 369 | `CItemInfoPanel::ShowHelp` (RET 4) | side by side, pixels | ui_camp, ui_describe (page buttons) |
+| 005EE5C0 | 117 | `CItemInfoPanel::Draw` (slot 20) | ours: returns 1 (draws through DrawItem's wrapper) | ui_describe |
+| 005EE6C0 | 91 | `CItemInfoPanel::Describe` | ours: the list then holds one item (none for null), unchanged when the item was already shown | ui_describe |
+| 005EE640 / 005EE680 | 56 / 47 | `OnKeyDown` / `OnKeyUp` (input slots 9 / 11) | ours: item list unchanged | ui_describe (`key ctrl`) |
+| 005EE6B0 | 11 | input slot 1 (redraw) | ours: item list unchanged | not known to be reached |
+
+20 functions, about 26 KB.
+
+### The description panel (CItemInfoPanel, 0x1F0 bytes)
+
+- Vtables 007404DC / 007404A8, destructor body 005EE380, built by 005EE440 (a 200 x 300 surface at
+  +0x1C0/+0x1C4, texts "infoitem_0".."44" (CStringArray +0x1C8) and "infoskill_0".."24" (+0x1DC)).
+  The camp creates two: the description panel (+0x164, at 600, 100) and the help panel (+0x1DC, at
+  0, 100); the owner (+0x14C) is the item screen. +0x150 is an item list (00661050 class; entries
+  +0x190, count +0x194) holding a copy of the described item (00661DB0 adds a copy).
+- Layout: title wrapped in white at (15, 10)-(185, 25), a gap, lines 15 pixels apart in 0xA7D7E4
+  (005FDE20, Rebirth-patched, called through its address), values right-aligned 10 pixels in
+  (format 2), then the wrapped description.
+- Item dispatch (005EE760): kind 0x3007 with +0x4C 1 material, 2 with +0x50 0-2 blueprint, 3 spell
+  record, 4 modifier record; quick item of category 8 -> 005EF300; a carried spell (+0x44) while Ctrl
+  (CInterface3D +0x7C) is down, or a spell container (0x3008) -> 005EF5D0; else the common text:
+  "matshort <MATERIAL>" and count, price, charge, condition (current only when positive), weapon
+  damage (min-max and the first damage kind with a weight; the text keeps the material line's
+  otherwise), 005F13A0's armour lists, "loot_item" for 0x3007, the carried spell's name.
+- Statistics (005F1590): kinds 0-3 read "perk <text>", 4-7 the strings <text> and <text>_desc.
+  Kind 0 attributes (UnitStats values, percentages * 100, 1.04^(intelligence - 25)); 1 skills; 2
+  school; 3 the perk's three levels from the skill database (007AF268; the name with trailing '0's
+  trimmed and "1" appended, 0051FE80; group = index / 3), effect by group, cost 00528050 (negative
+  shown as 0x7FFFFFFF); 4 a body part's armour per damage kind (three layers 0x48 bytes apart from
+  stats + 0x11C + part * 0xF4, summed as float); 5 the weapon's attack or defence parts and their
+  sum; 6 magic schools 0-3 and 5; 7 the description only.
+- Values computed by original functions are truncated straight off the FPU stack (inline asm with
+  the game's _ftol), as the original does.
+- `00700EFE` is CString::MakeUpper (it calls _mbsupr); lib/mfc.h and console.h call it MakeLower
+  (the address is right, the name is not). CInterface3D +0x7C is the Ctrl flag (scan 0x1D in
+  005F78C0), not Shift as ui.h's provisional name says; +0x7D is Shift, +0x7E Alt.
+
+### The model view (005ECA10)
+
+- The item screens (camp, hero screen, exchange; CItemScreen) keep two caches set up by 005EDD80:
+  models (+0x170) by the item's slot 20 name, created by 005EBFB0, and figure textures (+0x180) by
+  the slot 19 name, created by 005EC020; STLport map<string, {object, last use}> with a limit (30,
+  or 20 with 00784754); 005F2F20 / 005F2F90 release the least recently used beyond it.
+- Each item gets a turning state (vtable 007403F8, 0x18 bytes, at the item's +0x1C): angle, speed,
+  flag, glow phase (random: ISAAC word * 2 pi * 2^-32). The hovered item speeds up by 8/s (max 5),
+  others brake to the next full turn or stop below 0.1. Weapons turn about (1, 1, 0) after a half
+  turn about x, other items about y; spell records, scrolls and containers lie flat (half turn about
+  z), blueprints lie still. Weapons and armour with a spell glow in the school's colour (00740358).
+  Mode 9 (the description panel): half bright, still, scaled to fit by the larger of +0x1A8/+0x1AC.
+  A frame (texture 2) is drawn behind, a spell container's modifier marks around it (texture 1), and
+  a shade in front when the strip's mode cannot take the item (slot 43).
+- The glow and the angle wrap keep unrounded x87 values (stored with FST and still used): inline asm.
+
+### Sprite shapes
+
+- Framed (005E8450): outer quad and inner quad `border` in, 8 vertices, 24 indices; Disc (005E8C60):
+  fan of `count` points (Place, Rebirth-patched, called through its address); Ring (005E91F0): `count`
+  segments of 4 vertices / 6 indices (the last closes on vertices 0 and 1), count / 2 quads.
+- The circle points use the original's FPU sequence (FILD j, FMUL pi, FADD ST0,ST0, FDIV n,
+  FCOS/FSIN, then the factors) in inline asm. The ring's indices mix the index array's
+  SetSize-and-store (0044FA90) and SetAtGrow (00452FC0) as the original does.
+- The original inlines the UV / vertex / quad array sizing; the rewrite calls the out-of-line copies
+  (005EA380, 005EA600, 005EA210), which have the same growth rule and allocation sizes.
+
+## Forwarders added (standalone build must replace)
+
+Surface 005FDC00/005FE2F0/005FDE20 (Rebirth)/005FDFA0/005FDC60; text manager 004DEFC0, 004DF510,
+004DF8D0, 004DFB80, 004E0020, 004E0150; CString MakeUpper 00700EFE, TrimRight 006FE08A; items
+006A0110, 006A4230, 006A07F0, 006A0770, 006A2D40/006A2D90; spells 0068BA20/0068BA60; item list
+00661700/00661DB0; damage lists 005F13A0; skill database 0051FE80; unit statistics 00523CB0,
+00523CC0, 00523CD0, 00524280, 00524320, 00525CD0, 00525DF0, 00525E10, 00526780, 005267E0, 00526860,
+00527030, 00527050, 00527EB0, 00528050; _CIpow 006E81A0, _CIfmod 006E95AA, _ftol 006E853C (inline
+asm). Model view: sprite 005E6FA0 (Rebirth), 005E7060, 005E70B0, 005E7010, 005E70E0 (Rebirth),
+005E6D90; cache maps 005F3730/005F3B50 (find) and 005F3000/005F3170 (operator[]) (library); trims
+005F2F20/005F2F90; creators 005EBFB0/005EC020; RefPtr assign 00419CD0; ISAAC 004667F0; axis-angle
+quaternion 0049E800; DrawItem through 005ECA10 (from the panel). Shapes: array SetSize 0044F960,
+005A6E70, 0044FA90, SetAtGrow 00452FC0, mesh SetSize 005EA210/005EA600/005EA380, Commit 005EA150.
+
+## Original quirks kept
+
+- DescribeItem reads the material record through null when the material index is out of range, and
+  the prototype (+0x4C) without a null check on the material line.
+- DescribeCarriedSpell without an item or spell calls the surface's End without a Begin.
+- DescribeBlueprint for a blueprint kind outside 0-2 uses an uninitialised record (unreachable: the
+  dispatcher passes only 0-2); the rewrite reads through null instead.
+- DrawItem writes the new turning state's count before checking the allocation.
+- Ring writes two vertex records before the array when count is 0.
+
+## Verify wrappers
+
+- Descriptions: the panel surface's pixels are read with a DirectDraw lock (outside the functions'
+  own GetDC/ReleaseDC), the original draws, its pixels are recorded and the old ones put back, ours
+  draws; pixels and the item list must match. Sub-descriptions reached from the original's dispatch
+  run their own wrappers nested.
+- DrawItem: both runs draw, so in the verify build an item is drawn twice per frame.
+- Shapes: after the original, the parts it wrote are copied and overwritten with 0xCD; ours must
+  write them all again identically. Place (Rebirth-patched) runs in both.
+
+## Scenario `tests/scenarios/ui_describe.txt`
+
+New game, GiveItem of a steel axe, an axe with a firewall spell, a potion and a rune, `screen 5`;
+the mouse rests on the statistics rows (page 0), the body slots, the item strip (its "all" tab,
+region 7 at 785, 580) with `key ctrl` over the first slots, then page 1 (the trade panel's skills,
+school and perks, the attributes); Esc. Coordinates are the vanilla 800x600 layout; under Rebirth
+the camp may be laid out differently and some rows missed (harmless).
+
+## Mapped, not rewritten
+
+- The base / briefing screen (CreateScreen 3, 0x2A4 bytes, vtables 00740578 input / 007405AC main):
+  slot 24 Update 00604130 (dialogue state +0x16C: 0 idle, 1 topic choice, 2 dialogue starting, 3
+  phrases, 4 rewards; NPC walks in the base; briefing marks through 0066F840), slot 25 Create
+  006024B0, slot 34 006030C0 (start briefing <name>; the interface command "BRIEFING <name>" of
+  005F8070, from client message handler 00667E60), click 006030F0, keys 006034A0 (Esc menu,
+  Enter/Space advance with 00604C50), dialogue start 006064E0 (camera placement around the speakers,
+  "goodbye", "constrN" opens the camp with constructor N), script step 00604C50 (#show/#hide/
+  #phrase/#camera/#animation, voice "<allod>_briefing_<zone>_<n>.mp3", rewards brief_get_*),
+  rewards 00608450. Not rewritten: reaching them needs a "brief" zone (maps bz2g .. bz18h) or an
+  interface "briefing" command, which no scenario does; they move NPCs and the camera and play voice
+  files, so they could only be checked "ours only". Left for a pass that adds a base scenario.
+- 005EC300 (the camp's hero preview: D3D clears, the hero model's transform overridden for drawing
+  and put back), 005ED7B0 (00629AF0's item view), 005EC020 (figure texture), 005E18E0 (flying hit
+  points), 005E2A30 (chat word wrap), 005E5690 / 005E5C40 (cursor blits).
