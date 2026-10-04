@@ -166,6 +166,9 @@ struct Connection {
     // 00434110. Starts tracking `item` (an {object, priority} pair): a new entry for the object,
     // kept in byObject and its priority map.
     void Track(Replicated* item);
+    // 00433BD0 (net_connection_tick.cpp). Clocks, lost packets, sending, delayed id reuse; false
+    // when the peer timed out or the reliable stream overflowed.
+    bool Tick(double dt);
 };
 static_assert(offsetof(Connection, address) == 0x2C);
 static_assert(offsetof(Connection, clock) == 0x48);

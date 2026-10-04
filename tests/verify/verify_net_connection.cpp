@@ -186,3 +186,15 @@ EI_VERIFY(0x00435A00, SendUpdateVerify, 0, s_unused);
 EI_VERIFY(0x00435F30, ReadRecordVerify, 0, s_unused);
 EI_VERIFY(0x00434110, TrackVerify, 0, s_unused);
 EI_VERIFY(0x004346D0, CollectChangesVerify, 0, s_unused);
+
+namespace {
+// 00433BD0: ours only (it sends packets and changes the connection); the current connection is
+// cleared again afterwards.
+bool __fastcall TickVerify(net::Connection* self, void*, double dt) {
+    bool alive = self->Tick(dt);
+    ei::verify::Check("Connection::Tick", true, *reinterpret_cast<void**>(0x0079B924) == nullptr, "");
+    return alive;
+}
+void* s_unusedTick;
+} // namespace
+EI_VERIFY(0x00433BD0, TickVerify, 0, s_unusedTick);
