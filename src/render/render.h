@@ -105,6 +105,15 @@ struct ScreenVertex {
 };
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
 
+// A Direct3D 7 draw of pre-transformed vertices the old path is about to make (particles and
+// sprites 00503680, ribbons and lightning 00502A20, the renderer's triangle draw 00501BB0: flying hit
+// points): `fvf` 0x1C4 (x, y, z, rhw, colour, specular, u, v) or 0xC4 (no texture coordinates),
+// `primitive` a D3DPRIMITIVETYPE (2 line list, 3 line strip, 4 triangle list, 5 strip, 6 fan),
+// indexed when `indices`. The vertices' fog (specular alpha) is already applied. Takes the old
+// device's state for the draw; returns whether the old path still draws it.
+bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+            int primitive);
+
 // A window surface's blit onto the frame (005FDA80): the surface holder (CDXSurface), the screen
 // rectangle, the source rectangle (null: the whole surface, stretched) and the colour key (in the
 // surface's pixel format) when `keyed`.
