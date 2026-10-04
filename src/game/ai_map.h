@@ -108,7 +108,28 @@ struct CRegionMap {
     bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
     // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
     void LabelRegions();
+    // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
+    // representative cell the local search reaches from it, as {block x, block y, cost} appended
+    // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
+    void NearbyBlocks(int sizeClass, bool flag, int x, int y, struct BlockCostList* out);
 };
+
+// A CList of {block x, block y, cost} (0x1C bytes, nodes 0x14).
+struct BlockCostList {
+    struct Node {
+        Node* next;
+        Node* prev;
+        int x, y, cost;
+    };
+    void* vtable;
+    Node* head;
+    Node* tail;
+    int count;
+    Node* free;
+    void* blocks;
+    int blockSize;
+};
+static_assert(sizeof(BlockCostList) == 0x1C);
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
 // middle (negative steps down, positive up). Layout provisional.

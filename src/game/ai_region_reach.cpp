@@ -12,6 +12,7 @@
 #include "ai_map.h"
 
 #include "ei/hook.h"
+#include "lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -75,6 +76,29 @@ constexpr int kBlocksHigh = 0x128;
 
 std::uint8_t** MarkRows(void* marks) { return At<std::uint8_t**>(marks, 4); }
 
+// 005B1C70 (RET 8): ConstructElements of the {x, y, cost} records (zero-fills `count`).
+__declspec(naked) void __stdcall ConstructBlockCosts(void*, int) EI_ORIGINAL(0x005B1C70)
+
+// The list's inlined AddTail (MFC 4.2 NewNode with the plex carved into the free list).
+BlockCostList::Node* AppendBlockCost(BlockCostList* list) {
+    using Node = BlockCostList::Node;
+    if (!list->free) {
+        mfc::CPlex*& blocks = reinterpret_cast<mfc::CPlex*&>(list->blocks);
+        mfc::CPlex* block = mfc::PlexCreate(blocks, list->blockSize, sizeof(Node));
+        Node* node = reinterpret_cast<Node*>(block + 1) + (list->blockSize - 1);
+        for (int i = list->blockSize - 1; i >= 0; --i, --node) {
+            node->next = list->free;
+            list->free = node;
+        }
+    }
+    Node* node = list->free;
+    list->free = node->next;
+    node->prev = list->tail;
+    node->next = nullptr;
+    ++list->count;
+    ConstructBlockCosts(&node->x, 1);
+    return node;
+}
 } // namespace
 
 bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, void* marks) {
@@ -181,5 +205,46 @@ void CRegionMap::LabelRegions() {
     }
 }
 
+void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out) {
+    int bx = x / 8, by = y / 8;
+    if (At<int>(this, kBlocksWide) - 1 < bx) bx = At<int>(this, kBlocksWide) - 1;
+    if (bx < 0) bx = 0;
+    if (At<int>(this, kBlocksHigh) - 1 < by) by = At<int>(this, kBlocksHigh) - 1;
+    if (by < 0) by = 0;
+    // The inlined RemoveAll.
+    out->count = 0;
+    out->free = nullptr;
+    out->tail = nullptr;
+    out->head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(out->blocks));
+    out->blocks = nullptr;
+
+    At<bool>(this, 0x114) = flag;
+    void* search = reinterpret_cast<std::uint8_t*>(this) + 0x98;
+    SearchSetup(search, nullptr, sizeClass, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, x, y);
+    SearchFlood(search, nullptr, 1);
+    SearchFinish(search, nullptr);
+    SearchSettle(search, nullptr);
+    std::uint8_t** cellRows = At<std::uint8_t**>(this, (sizeClass + 0x1A) * 16);
+    for (int yy = by - 1; yy < by + 2; ++yy) {
+        if (yy < 0 || yy >= At<int>(this, kBlocksHigh)) continue;
+        for (int xx = bx - 1; xx < bx + 2; ++xx) {
+            if (xx < 0 || xx >= At<int>(this, kBlocksWide)) continue;
+            std::uint8_t cell = cellRows[yy][xx];
+            int cost = SearchCost(search, nullptr, (cell & 0xF) + xx * 8, (cell >> 4) + yy * 8);
+            if (cost >= kUnreached) continue;
+            BlockCostList::Node* node = AppendBlockCost(out);
+            node->x = xx;
+            node->y = yy;
+            node->cost = cost;
+            if (out->tail) out->tail->next = node;
+            else out->head = node;
+            out->tail = node;
+        }
+    }
+    SearchReset(search, nullptr);
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005B0370, CRegionMap::NearbyBlocks);
 EI_REPLACE_METHOD(0x005B0050, CRegionMap::LabelRegions);

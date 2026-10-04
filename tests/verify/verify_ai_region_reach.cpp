@@ -5,6 +5,7 @@
 #include "verify.h"
 
 #include "../../src/game/ai_map.h"
+#include "../../src/lib/mfc.h"
 
 #include <cstdint>
 #include <vector>
@@ -92,3 +93,35 @@ static void __fastcall LabelRegionsVerify(CRegionMap* self, void*) {
     ei::verify::Check("CRegionMap::LabelRegions", 0, differences, "%d blocks", static_cast<int>(actual.size()));
 }
 EI_VERIFY(0x005B0050, LabelRegionsVerify, 8, s_originalLabel);
+
+namespace {
+using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
+NearbyFn s_originalNearby;
+
+std::vector<int> Records(const BlockCostList* list) {
+    std::vector<int> out;
+    for (const BlockCostList::Node* n = list->head; n; n = n->next) {
+        out.push_back(n->x);
+        out.push_back(n->y);
+        out.push_back(n->cost);
+    }
+    return out;
+}
+} // namespace
+
+// 005B0370: the original fills a scratch list of the same shape, ours the caller's; the records
+// (in order) and the counts compared. The scratch list's blocks are freed afterwards.
+static void __fastcall NearbyBlocksVerify(CRegionMap* self, void*, int sizeClass, bool flag, int x, int y,
+                                          BlockCostList* out) {
+    BlockCostList scratch{out->vtable, nullptr, nullptr, 0, nullptr, nullptr, out->blockSize};
+    s_originalNearby(self, nullptr, sizeClass, flag, x, y, &scratch);
+    std::vector<int> expected = Records(&scratch);
+    int expectedCount = scratch.count;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(scratch.blocks));
+    self->NearbyBlocks(sizeClass, flag, x, y, out);
+    std::vector<int> actual = Records(out);
+    bool ok = actual == expected && out->count == expectedCount;
+    ei::verify::Check("CRegionMap::NearbyBlocks", true, ok, "class %d (%d,%d): %d blocks (original %d)", sizeClass, x, y,
+                      out->count, expectedCount);
+}
+EI_VERIFY(0x005B0370, NearbyBlocksVerify, 7, s_originalNearby);
