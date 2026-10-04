@@ -50,6 +50,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 | Sound: wave cache operator[] 006BBDF0, deferred-sound hash_map begin / next bucket / operator[] / erase (006BC3E0, 006BCFB0, 006BCFF0, 006BD060), STLport string free 006B72E0, CStringArray::Copy 006FEB61, CurrentStreamName 006BAEA0, 006BBAC0, Play3D 006B8600, Play2D 006B8250, LoadSample 006B89F0, `_CIacos` 006E7320; Miles through the import table (0073B750..0073B808); `CString::operator+=(const char*)` 00700D4C (see `docs/notes/sound.md`) | `src/game/sound_manager.cpp`, `sound_music.cpp`, `src/lib/mfc.*` | rewrite / own containers; link Miles directly |
 | Effect objects: sound system 006B8600 / 006B92F0 / 006B94A0 / 006BA5E0 / 006BA7C0 / 006B9950 / 006B9A30 / 006B9AA0, light manager 006CA720 / 006CA5D0 / 006CA830, CLight 0068D010, particle source 00498400 / 00485480 / 004849F0 / 00485360, scorch 0056D4C0, camera shake 004113A0, bolt 004680D0 / 00467E10, reference assignment 00511B90 / 0056F1A0, world / unit helpers 00455950 / 0055FB00 / 00532860, net_delta methods through their addresses, 0047E340, CStringArray 006FE9B8 / 006773A0 / 004E5840 (full list in `docs/notes/range_660.md`) | `src/game/world_effect*.cpp` | rewrite / call directly |
 | Player messages: variables table 00460BC0 / 00460AF0 / 00460DB0, state payloads 0047DA80 / 006D4570 | `src/game/player_messages.cpp` | rewrite |
+| Window surface blit: the DirectDraw error report 004F0B00 (and the old Blt itself, which goes with the old renderer) | `src/game/ui_surface_blit.cpp` | rewrite / drop with the old path |
 | Resources: `_access` 006EAF20, `_findfirst` 006EB832, `_splitpath` 006E8BEE, CStringArray `SetSize` 006FE9B8 / `SetAtGrow` 006FEBCE, CBaseManager constructor / slot 3 / destructor 00402B20 / 004031E0 / 00402DF0 | `src/game/resource_stream.cpp` | modern CRT / own containers / rewrite |
 
 ## Indirections
@@ -59,6 +60,12 @@ Each needs a real implementation, or the caller must be rewritten first.
   script loader functions in `src/game/script_parse_load.cpp`). Standalone: call the function directly.
 - `KeywordTable()` (`src/game/script_parse.cpp`) reads the script keyword table's address from the
   code of 004CF600 (Rebirth points it at an extended table). Standalone: the table itself.
+
+- The new renderer (`src/render`) reads the old Direct3D 7 device's state for every mesh pass
+  (`render_mesh.cpp`, `ReadPassState`: the materials' state blocks are opaque) and reads textures
+  and the interface windows' pixels out of the old DirectDraw surfaces (`render_textures.cpp`).
+  Standalone: the materials from the game's data, textures from the .mmp files, the window surfaces
+  as CPU buffers (or native drawing, `docs/notes/renderer.md` section 5).
 
 - `src/lib/gameapi.h` calls Win32 through game.exe's import table so other mods' API hooks apply.
   Standalone: call the APIs directly (or keep the header as a thin alias). Regenerate or delete

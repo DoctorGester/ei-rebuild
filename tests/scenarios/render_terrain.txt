@@ -2,9 +2,11 @@
 # the old frame (world.bmp, with the new renderer's frame next to it, world.new.bmp, which so far
 # holds only the terrain), the old frame without its terrain (world_noterrain.bmp: the difference
 # of the two old frames is where the terrain is), and the old frame again (it must not have moved).
-# Compare the terrain with
+# Compare the terrain where nothing is in front of it (no interface panel, object or shadow) with
 #   python tools\compare_frames.py <run>\frames\world.new.bmp <run>\frames\world.bmp
-#       --mask <run>\frames\world.bmp <run>\frames\world_noterrain.bmp --diff terrain_diff.bmp
+#       --mask <run>\frames\world.bmp <run>\frames\world_noterrain.bmp --mask-background
+#       --diff terrain_diff.bmp
+# and look at it with: python tools\frame_preview.py out.png --scale 4 world.bmp world.new.bmp terrain_diff.bmp
 # Needs the hooks (the terrain page draw 006BFF40 and the present 004EF610 are rewritten code).
 render new
 reject Script error

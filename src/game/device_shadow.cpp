@@ -8,6 +8,7 @@
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -171,7 +172,7 @@ int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const 
         Fill(target, count, colours, uvs);
         if (target == reinterpret_cast<TLVertex*>(Vertices().data)) {
             Scale(count, &zScale);
-            DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
+            if (render::DrawOldFlat()) DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
             return 0;
         }
         DrawVertexBuffer(device, nullptr, indices, indexCount);
@@ -195,7 +196,10 @@ int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const 
     ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
     if (vertexCount == 0 || clippedIndices == 0) return 0;
     Scale(vertexCount, &zScale);
-    DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
+    // With the new renderer's "noobjects" the old path leaves out the world's flat geometry
+    // (shadows, ground decals) along with its meshes.
+    if (render::DrawOldFlat())
+        DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
     return 0;
 }
 EI_REPLACE(0x004EA4A0, DeviceDrawFlat);

@@ -6,7 +6,6 @@
 // and the page's texture; the clip matrix is the one the old path transforms the same vertices with
 // (the pipeline's stack at +0x24). The GPU clips; no software clipping or projection here.
 #include "render.h"
-#include "render_game.h"
 #include "render_internal.h"
 
 #include "../game/terrain_sector.h"
@@ -70,24 +69,6 @@ const void* PageTexture(const SectorData* s, int page) {
     return textures ? textures[page % (s->pages + 2)] : nullptr;
 }
 
-// The fog the old path draws with: IDirect3DDevice7::GetRenderState (slot 21) of FOGENABLE (28)
-// and FOGCOLOR (34) on the game's device (the device object's +0x54). Read once per frame.
-void ReadFog(Frame& f) {
-    f.haveFog = true;
-    char* device = *reinterpret_cast<char**>(game::Where().deviceObject);
-    void* d3d = device ? *reinterpret_cast<void**>(device + 0x54) : nullptr;
-    if (!d3d) return;
-    using GetState = long(__stdcall*)(void*, unsigned long, unsigned long*);
-    auto get = reinterpret_cast<GetState>((*static_cast<void***>(d3d))[21]);
-    unsigned long enabled = 0, colour = 0;
-    LockGameDevice();
-    get(d3d, 28, &enabled);
-    get(d3d, 34, &colour);
-    UnlockGameDevice();
-    f.fogEnabled = enabled != 0;
-    f.fogColour = static_cast<std::uint32_t>(colour);
-}
-
 // --- GPU side ------------------------------------------------------------------------------------------
 
 const char* const kTerrainSource = R"(
@@ -130,8 +111,12 @@ sg_pipeline g_ground{}, g_water{};
 sg_buffer g_vertices{}, g_indices{};
 std::size_t g_vertexCapacity = 0, g_indexCapacity = 0;
 
+} // namespace
+
+namespace detail {
+
 // A dynamic buffer of at least `bytes` (grown by half again when too small).
-bool EnsureBuffer(sg_buffer& buffer, std::size_t& capacity, std::size_t bytes, bool index) {
+bool EnsureDynamicBuffer(sg_buffer& buffer, std::size_t& capacity, std::size_t bytes, bool index, const char* label) {
     if (buffer.id && bytes <= capacity) return true;
     if (buffer.id) sg_destroy_buffer(buffer);
     capacity = bytes + bytes / 2 + 4096;
@@ -141,7 +126,7 @@ bool EnsureBuffer(sg_buffer& buffer, std::size_t& capacity, std::size_t bytes, b
     d.usage.index_buffer = index;
     d.usage.immutable = false;
     d.usage.dynamic_update = true;
-    d.label = index ? "ei-terrain-indices" : "ei-terrain-vertices";
+    d.label = label;
     buffer = sg_make_buffer(&d);
     if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_VALID) {
         capacity = 0;
@@ -149,10 +134,6 @@ bool EnsureBuffer(sg_buffer& buffer, std::size_t& capacity, std::size_t bytes, b
     }
     return true;
 }
-
-} // namespace
-
-namespace detail {
 
 bool CreateTerrainPipelines() {
     sg_shader_desc s{};
@@ -223,43 +204,39 @@ bool CreateTerrainPipelines() {
     return ok;
 }
 
-void DrawTerrain(const Frame& f) {
+void UploadTerrain(const Frame& f) {
     if (f.terrainBatches.empty()) return;
-    std::size_t vertexBytes = f.terrainVertices.size() * sizeof(TerrainVertex);
+    std::size_t vertexBytes = f.terrainVertices.size() * sizeof(Vertex);
     std::size_t indexBytes = f.terrainIndices.size() * sizeof(std::uint32_t);
-    if (!EnsureBuffer(g_vertices, g_vertexCapacity, vertexBytes, false) ||
-        !EnsureBuffer(g_indices, g_indexCapacity, indexBytes, true))
+    if (!EnsureDynamicBuffer(g_vertices, g_vertexCapacity, vertexBytes, false, "ei-terrain-vertices") ||
+        !EnsureDynamicBuffer(g_indices, g_indexCapacity, indexBytes, true, "ei-terrain-indices"))
         return;
     sg_range v{f.terrainVertices.data(), vertexBytes};
     sg_update_buffer(g_vertices, &v);
     sg_range i{f.terrainIndices.data(), indexBytes};
     sg_update_buffer(g_indices, &i);
+}
 
-    sg_pipeline current{};
-    for (const TerrainBatch& batch : f.terrainBatches) {
-        sg_pipeline wanted = batch.water ? g_water : g_ground;
-        if (wanted.id != current.id) {
-            sg_apply_pipeline(wanted);
-            current = wanted;
-        }
-        sg_bindings b{};
-        b.vertex_buffers[0] = g_vertices;
-        b.index_buffer = g_indices;
-        b.views[0] = TextureView(batch.texture);
-        b.samplers[0] = LinearSampler();
-        sg_apply_bindings(&b);
-        Params params{};
-        std::memcpy(params.rows, f.matrices[static_cast<std::size_t>(batch.matrix)].m, sizeof(params.rows));
-        params.fog[0] = static_cast<float>((f.fogColour >> 16) & 0xFF) / 255.0f;
-        params.fog[1] = static_cast<float>((f.fogColour >> 8) & 0xFF) / 255.0f;
-        params.fog[2] = static_cast<float>(f.fogColour & 0xFF) / 255.0f;
-        params.flags[0] = batch.water ? 1.0f : 0.0f;
-        params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
-        sg_range u{&params, sizeof(params)};
-        sg_apply_uniforms(0, &u);
-        sg_apply_uniforms(1, &u);
-        sg_draw(batch.firstIndex, batch.indexCount, 1);
-    }
+void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
+    if (!g_vertices.id || !g_indices.id) return;
+    sg_apply_pipeline(batch.water ? g_water : g_ground);
+    sg_bindings b{};
+    b.vertex_buffers[0] = g_vertices;
+    b.index_buffer = g_indices;
+    b.views[0] = TextureView(batch.texture);
+    b.samplers[0] = LinearSampler();
+    sg_apply_bindings(&b);
+    Params params{};
+    std::memcpy(params.rows, f.matrices[static_cast<std::size_t>(batch.matrix)].m, sizeof(params.rows));
+    params.fog[0] = static_cast<float>((f.fogColour >> 16) & 0xFF) / 255.0f;
+    params.fog[1] = static_cast<float>((f.fogColour >> 8) & 0xFF) / 255.0f;
+    params.fog[2] = static_cast<float>(f.fogColour & 0xFF) / 255.0f;
+    params.flags[0] = batch.water ? 1.0f : 0.0f;
+    params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    sg_range u{&params, sizeof(params)};
+    sg_apply_uniforms(0, &u);
+    sg_apply_uniforms(1, &u);
+    sg_draw(batch.firstIndex, batch.indexCount, 1);
 }
 
 void DestroyTerrain() {
@@ -341,8 +318,8 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     }
     int count = static_cast<int>(f.terrainIndices.size()) - firstIndex;
     if (count <= 0) return;
-    if (!f.terrainBatches.empty()) {
-        TerrainBatch& last = f.terrainBatches.back();
+    if (!f.commands.empty() && f.commands.back().kind == Command::Terrain) {
+        TerrainBatch& last = f.terrainBatches[static_cast<std::size_t>(f.commands.back().index)];
         if (last.texture == texture && last.water == water && last.matrix == matrix &&
             last.firstIndex + last.indexCount == firstIndex) {
             last.indexCount += count;
@@ -350,6 +327,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
         }
     }
     f.terrainBatches.push_back(TerrainBatch{texture, water, matrix, firstIndex, count});
+    f.commands.push_back(Command{Command::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
 }
 
 } // namespace render

@@ -16,6 +16,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -440,6 +441,7 @@ BOOL CBattleScreenSetup::Draw(void* target) {
     *reinterpret_cast<HRESULT*>(renderer + 8) =
         reinterpret_cast<ClearFn>((*static_cast<void***>(device))[10])(device, 0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);
+    render::ClearDepth(1.0f, nullptr, 0);
     // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
