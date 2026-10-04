@@ -64,10 +64,19 @@ comes from a bug we already hit.
 6. **Memory and CRT:** allocate and free with `gamecrt::operator_new/operator_delete` (the game's heap),
    STL containers through `stlp::` (the game's node pool), MFC lists through `mfc::CTypedPtrList`.
    Call the game's CRT (`gamecrt::tolower`, `strnicmp`, `sprintf`, ...) and Win32 through `gameapi::`.
-7. **Floating point:** the build is `/arch:IA32 /fp:fast` (x87, like VC6). Keep the original's order of
-   operations exactly (it affects rounding). Use `x87::fsqrt/fsin/fcos` (not the modern CRT) and
-   `x87::fistp` for FISTP (rounds to nearest; a C++ cast truncates). Copy floats that the original
-   copies as dwords with `memcpy`.
+7. **Floating point.** Since 2026-10-04: write float maths as plain C++ (`float`/`double`, the
+   standard maths functions); do NOT hand-copy x87 instruction sequences (no new naked FPU helpers,
+   `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its
+   main thread at 24-bit precision anyway, and the standalone build will use SSE2 (docs/cleanup-plan.md).
+   Verify float results with `ei::verify::CheckNear` (a few ULPs), not the bitwise `Check`. When an
+   integer or a branch follows from a float that sits on a rounding edge, a rare mismatch there is
+   expected: say so in the wrapper and the notes rather than copying the FPU sequence. Rounding mode
+   still matters: FISTP rounds to nearest (use `x87::fistp` or `std::lrint`), a C++ cast truncates,
+   `_ftol` truncates. The existing hand-copied helpers stay until the cleanup removes them.
+   The rules below about NaN tests and unsigned conversion still apply: they are about getting the
+   same results at all, not the last bit. (Earlier text kept for the existing code:) the build is
+   `/arch:IA32 /fp:fast` (x87, like VC6); the old rule was to keep the original's order of operations
+   exactly, use `x87::fsqrt/fsin/fcos` and copy floats the original copies as dwords with `memcpy`.
    The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at
    every frame boundary in both installs; other threads run at 53 bits). Still, a float the original
    returns unrounded in ST0 must not be rounded on return: declare the function `double` and let

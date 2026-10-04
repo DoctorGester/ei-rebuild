@@ -48,11 +48,20 @@
 //   capture <name>            write the frame presented after the next two to frames\<name>.bmp in
 //                             the output folder (the render target before the software cursor and
 //                             the flip; harness_capture.cpp); fails after 10 s without a frame
-//   freeze, unfreeze          hold the game's clocks (timeGetTime, GetTickCount) for captures: no
-//                             world, client or camera updates, no clock-driven animation, while the
-//                             frames keep being drawn. Do not "check"/"waitfor" while frozen (script
-//                             output needs world updates); a scenario that freezes also sees a
-//                             fixed date (as in deterministic mode)
+//   freeze, unfreeze          hold the game's clocks (timeGetTime, GetTickCount) and the camera for
+//                             captures: no world, client or camera updates, no clock-driven
+//                             animation, while the frames keep being drawn. Do not "check"/"waitfor"
+//                             while frozen (script output needs world updates); a scenario that
+//                             freezes also sees a fixed date (as in deterministic mode)
+//   render <spec>             the new renderer for this run (src/render/render.h; the format of
+//                             EI_RENDER, e.g. "new" or "new,split"). Read before the game starts.
+//                             With it, "capture" also writes frames\<name>.new.bmp
+//   oldterrain on|off         the old Direct3D path draws the terrain or not (for a terrain mask:
+//                             capture with and without it at one frozen moment)
+//   samecapture <a> <b> [tolerance] [fraction]
+//                             require frames <a> and <b> to match: at most <fraction> (default
+//                             0.001) of the pixels may have a channel differing by more than
+//                             <tolerance> (default 8), as tools/compare_frames.py counts
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
@@ -72,6 +81,7 @@
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/game/ui.h"
+#include "../../src/render/render.h"
 
 #include <windows.h>
 #include <psapi.h>
@@ -547,9 +557,15 @@ void WINAPI FixedTime(LPSYSTEMTIME t) {
 // presents a frame. Unfreezing resumes both clocks from where they stopped (no jump). Installed
 // only when the scenario uses "freeze" (in deterministic mode the virtual clock just stops). Such
 // a scenario also gets the fixed date: the main menu's picture follows the time of day.
-// Limits: what already moves by itself between frames (other threads, frame-counted effects) is
-// not held; the harness's own waits use real time (in deterministic mode the virtual clock, which
-// stops too: use "capture", not "wait", while frozen there).
+// The camera is held too: the main loop calls CCamera::Update once per frame even when no time has
+// passed (at 00457595, with dt 0), and parts of it move by a fixed fraction per call, not per
+// unit of time (the focus drifts a fifth of the way to the tracked object, the focus height a
+// tenth of the way to the ground, ApplyView lifts the camera over nearby objects). Measured on
+// two frozen captures three frames apart: the whole scene moved about 1 pixel at 3840x2160.
+// While frozen that call is skipped (HeldCameraUpdate).
+// Limits: what already moves by itself between frames (other threads, other frame-counted
+// effects) is not held; the harness's own waits use real time (in deterministic mode the virtual
+// clock, which stops too: use "capture", not "wait", while frozen there).
 bool g_freezeUsed = false;
 struct HeldClock {
     DWORD(WINAPI* base)() = nullptr;
@@ -575,6 +591,33 @@ void Freeze(bool on) {
         }
     }
     g_frozen = on;
+}
+
+// The main loop's per-frame camera update: CALL 0040FB30 at 00457595 (thiscall on the camera
+// 0079B2A8, one float, RET 4), redirected here when the scenario freezes.
+constexpr std::uintptr_t kFrameCameraUpdateCall = 0x00457595;
+constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
+void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
+    if (g_frozen) return;
+    reinterpret_cast<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
+}
+
+// Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.
+bool RedirectCall(std::uintptr_t site, std::uintptr_t expected, const void* to) {
+    auto* p = reinterpret_cast<unsigned char*>(site);
+    std::int32_t rel = 0;
+    std::memcpy(&rel, p + 1, 4);
+    if (p[0] != 0xE8 || site + 5 + rel != expected) {
+        Log("harness: unexpected code at %08X (not a call of %08X); not redirected", unsigned(site), unsigned(expected));
+        return false;
+    }
+    rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(to) - (site + 5));
+    DWORD old;
+    VirtualProtect(p + 1, 4, PAGE_EXECUTE_READWRITE, &old);
+    std::memcpy(p + 1, &rel, 4);
+    VirtualProtect(p + 1, 4, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, 5);
+    return true;
 }
 
 // 0049F660 seeds the ISAAC generator: srand(timeGetTime()), then 0x400 bytes from a randomly
@@ -892,6 +935,30 @@ void RunSteps() {
             g_captureName = s.argument;
             g_captureDeadline = GetTickCount() + 10000;
             return;
+        } else if (s.verb == "samecapture") {
+            char a[64] = "", b[64] = "";
+            int tolerance = 8;
+            double limit = 0.001;
+            if (sscanf_s(s.argument.c_str(), "%63s %63s %d %lf", a, unsigned(sizeof(a)), b, unsigned(sizeof(b)),
+                         &tolerance, &limit) < 2) {
+                g_failures.push_back("samecapture needs two frame names");
+                continue;
+            }
+            double differing = 0;
+            int largest = 0;
+            const char* why = "";
+            if (!capture::Compare(a, b, tolerance, &differing, &largest, &why)) {
+                g_failures.push_back(std::string("samecapture ") + a + " " + b + ": " + why);
+                continue;
+            }
+            char text[160];
+            std::snprintf(text, sizeof(text), "samecapture %s %s: %.3f%% of the pixels differ by more than %d (largest %d)", a,
+                          b, 100.0 * differing, tolerance, largest);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "oldterrain") {
+            render::SetDrawOldTerrain(s.argument != "off");
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
@@ -1030,6 +1097,11 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
             continue;
         }
+        if (g_steps.back().verb == "render") {
+            render::Configure(g_steps.back().argument.c_str());
+            g_steps.pop_back();
+            continue;
+        }
         if (g_steps.back().verb == "timeout") {
             g_budget = 1000 * std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
             g_steps.pop_back();
@@ -1117,6 +1189,7 @@ struct Harness {
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
             Log("harness: the game's clocks can be frozen (fixed date)");
         }
+        if (g_freezeUsed) RedirectCall(kFrameCameraUpdateCall, kCameraUpdate, reinterpret_cast<const void*>(&HeldCameraUpdate));
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
                 capture::Install();

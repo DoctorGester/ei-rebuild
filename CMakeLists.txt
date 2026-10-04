@@ -18,6 +18,16 @@ add_compile_options(/arch:IA32 /fp:fast /W4 /permissive- /utf-8)
 
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
+# The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
+# The verify build turns on sokol's validation layer (messages go to ei_hook.log).
+file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
+add_library(ei_render STATIC ${EI_RENDER_SOURCES})
+target_include_directories(ei_render PRIVATE include src third_party/sokol)
+target_link_libraries(ei_render PUBLIC d3d11 dxgi)
+if(EI_VERIFY)
+    target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
+endif()
+
 add_library(ei_hook SHARED
     src/hook/dllmain.cpp
     src/hook/hook.cpp
@@ -25,6 +35,7 @@ add_library(ei_hook SHARED
     src/hook/rebirth_hook.cpp
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
+target_link_libraries(ei_hook PRIVATE ei_render)
 if(EI_VERIFY)
     file(GLOB EI_VERIFY_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
     target_sources(ei_hook PRIVATE ${EI_VERIFY_SOURCES})

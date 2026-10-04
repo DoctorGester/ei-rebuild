@@ -22,4 +22,9 @@ State Poll(const char** detail);
 // Frames presented through the hooked point so far.
 unsigned FramesPresented();
 
+// Compares frames\<a>.bmp with frames\<b>.bmp as tools/compare_frames.py does: `differing` gets the
+// fraction of pixels with a channel differing by more than `tolerance`, `largest` the largest
+// channel difference. False (with `why`) when a file is missing, unreadable or of another size.
+bool Compare(const char* a, const char* b, int tolerance, double* differing, int* largest, const char** why);
+
 } // namespace ei::verify::capture

@@ -1,7 +1,7 @@
 """Compares frames captured by the harness ("capture <name>": <run folder>\\frames\\<name>.bmp).
 
 usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--block N] [--worst N]
-                                          [--diff OUT]
+                                          [--diff OUT] [--mask M1 M2]
   A, B              two BMP files, or two folders: run folders (their frames\\ subfolder is used) or
                     frames folders; every <name>.bmp present in both is compared
   --tolerance N     a pixel differs when one of its channels differs by more than N (0..255,
@@ -11,6 +11,10 @@ usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--
   --worst N         regions listed per frame (default 8)
   --diff OUT        write a difference image: a dimmed grey copy of A with the differing pixels in
                     red (brighter = larger difference); with folders OUT is a folder
+  --mask M1 M2      compare only the pixels where the frames M1 and M2 differ (by more than the
+                    tolerance), e.g. the old frame with and without its terrain to compare the new
+                    renderer's terrain (A) with the old one (B) where the terrain is (files only);
+                    the fraction is then of the masked pixels
 exit code: 0 when every frame is within --max-fraction, 1 when one is not, 2 when a frame is
 missing, unreadable or of another size
 
@@ -64,9 +68,25 @@ def write_bmp(path, width, height, rows):
             f.write(bytes(rows[y]) + pad)
 
 
-def compare(a, b, tolerance, block):
+def make_mask(m1, m2, tolerance):
+    """Rows of 0/1 flags: 1 where m1 and m2 differ by more than `tolerance` in a channel."""
+    rows = []
+    for y in range(m1.height):
+        r1, r2 = m1.rows[y], m2.rows[y]
+        row = bytearray(m1.width)
+        if r1 != r2:
+            for x in range(m1.width):
+                i = 3 * x
+                if max(abs(r1[i] - r2[i]), abs(r1[i + 1] - r2[i + 1]), abs(r1[i + 2] - r2[i + 2])) > tolerance:
+                    row[x] = 1
+        rows.append(row)
+    return rows
+
+
+def compare(a, b, tolerance, block, mask=None):
     """Returns (differing pixels, max channel difference, sum of channel differences, regions,
-    diff rows) where regions maps (bx, by) to [differing pixels, max difference]."""
+    diff rows) where regions maps (bx, by) to [differing pixels, max difference]. With `mask`
+    (rows of 0/1) only the flagged pixels count."""
     differing = 0
     worst = 0
     total = 0
@@ -75,7 +95,8 @@ def compare(a, b, tolerance, block):
     for y in range(a.height):
         ra, rb = a.rows[y], b.rows[y]
         out = bytearray(a.width * 3)
-        if ra == rb:
+        mrow = mask[y] if mask is not None else None
+        if ra == rb or (mrow is not None and not any(mrow)):
             for x in range(a.width):
                 g = (ra[3 * x] + ra[3 * x + 1] + ra[3 * x + 2]) // 9
                 out[3 * x:3 * x + 3] = bytes((g, g, g))
@@ -84,6 +105,9 @@ def compare(a, b, tolerance, block):
         by = y // block
         for x in range(a.width):
             i = 3 * x
+            if mrow is not None and not mrow[x]:
+                out[i:i + 3] = bytes((ra[i] // 6, ra[i + 1] // 6, ra[i + 2] // 6))
+                continue
             d0 = abs(ra[i] - rb[i])
             d1 = abs(ra[i + 1] - rb[i + 1])
             d2 = abs(ra[i + 2] - rb[i + 2])
@@ -109,18 +133,25 @@ def compare(a, b, tolerance, block):
     return differing, worst, total, regions, diff_rows
 
 
-def compare_pair(name, path_a, path_b, args, diff_path):
+def compare_pair(name, path_a, path_b, args, diff_path, mask_paths=None):
     try:
         a = read_bmp(path_a)
         b = read_bmp(path_b)
+        masks = [read_bmp(p) for p in mask_paths] if mask_paths else []
     except (OSError, ValueError) as e:
         print(f'{name}: {e}')
         return 2
-    if (a.width, a.height) != (b.width, b.height):
-        print(f'{name}: sizes differ ({a.width}x{a.height} and {b.width}x{b.height})')
+    if any((m.width, m.height) != (a.width, a.height) for m in [b] + masks):
+        print(f'{name}: sizes differ ({", ".join(f"{m.width}x{m.height}" for m in [a, b] + masks)})')
         return 2
-    differing, worst, total, regions, diff_rows = compare(a, b, args.tolerance, args.block)
-    pixels = a.width * a.height
+    mask = make_mask(masks[0], masks[1], args.tolerance) if masks else None
+    differing, worst, total, regions, diff_rows = compare(a, b, args.tolerance, args.block, mask)
+    pixels = sum(sum(row) for row in mask) if mask is not None else a.width * a.height
+    if mask is not None:
+        print(f'{name}: mask of {pixels} pixels ({100.0 * pixels / (a.width * a.height):.2f}% of the frame)')
+    if pixels == 0:
+        print(f'{name}: nothing to compare')
+        return 2
     fraction = differing / pixels if pixels else 0.0
     ok = fraction <= args.max_fraction
     print(f'{name}: {a.width}x{a.height}, {differing} pixels differ by more than {args.tolerance} '
@@ -151,10 +182,13 @@ def main():
     ap.add_argument('--block', type=int, default=32)
     ap.add_argument('--worst', type=int, default=8)
     ap.add_argument('--diff')
+    ap.add_argument('--mask', nargs=2, metavar=('M1', 'M2'))
     args = ap.parse_args()
     if args.block < 1:
         ap.error('--block must be positive')
 
+    if args.mask and (os.path.isdir(args.a) or os.path.isdir(args.b)):
+        ap.error('--mask needs two files')
     if os.path.isdir(args.a) and os.path.isdir(args.b):
         da, db = frames_dir(args.a), frames_dir(args.b)
         names_a = {n for n in os.listdir(da) if n.lower().endswith('.bmp')}
@@ -174,7 +208,7 @@ def main():
         return result
     if os.path.isdir(args.a) or os.path.isdir(args.b):
         ap.error('give two files or two folders')
-    return compare_pair(os.path.basename(args.a), args.a, args.b, args, args.diff)
+    return compare_pair(os.path.basename(args.a), args.a, args.b, args, args.diff, args.mask)
 
 
 if __name__ == '__main__':
