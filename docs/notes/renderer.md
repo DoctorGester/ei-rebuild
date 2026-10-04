@@ -155,7 +155,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Sky | the sky object (004D96E0: a model at the camera, turning with time) | the figure path | with objects |
 | Interface surfaces | CUiSurface (0x38 bytes): +0x0C flags (1 colour key, 2 whole surface stretched, 4 shown), +0x10 the surface holder, +0x24 the screen rectangle, +0x34 the colour key; the DirectDraw surface's pixels (read with a read-only Lock when its uniqueness value changed) | the blit 005FDA80 (rewritten: `ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn (overlay) |
 | Rectangle fills | renderer slot 19 (005041F0): a translucent black quad (alpha argument) and optionally its outline | 005041F0 rewritten (`renderer_rect.cpp`) -> `render::ScreenDraw` (pre-transformed triangles, line strip) | drawn |
-| Cursor | the cursor object 007C7BD8 (shape 005E5200; hardware cursor normally; the display option's software cursor is drawn into locked surfaces by 005E5690 / 005E5C40 after the capture point) | the frame draw 005E54A0 rewritten (`ui_cursor_frame.cpp`) -> `render::Cursor` (image and mask; texels with a mask left out) | drawn; the cursor thread's draws between frames are not (they go to the primary) |
+| Cursor | the cursor object 007C7BD8 (shape 005E5200; hardware cursor normally; the display option's software cursor is drawn into locked surfaces by 005E5690 / 005E5C40 after the capture point) | the frame draw 005E54A0 rewritten (`ui_cursor_frame.cpp`) -> `render::Cursor` (image from its picture's file data, 004EFC60 -> `render::PictureFromMmp`, and mask; texels with a mask left out) | drawn; the cursor thread's draws between frames are not (they go to the primary) |
 | Movies | Bink frames: BinkCopyToBuffer into the video's locked surface (CBinkVideo: 005DBA50 opens, 005DBD80 steps a frame and blits it into its letterboxed rectangle of the render target or the primary; called by the movie screen's draw 0062BD80 inside the frame) | 005DBD80 rewritten (`bink_video.cpp`) -> `render::SurfaceBlit` (the surface read when the decode changed it) | drawn; with `present` the old blit is skipped |
 
 ## 5. Order of work and estimates (one developer)
@@ -229,9 +229,12 @@ in our runs) is still created and still used, because:
    DirectDraw takes a DIB section as a system-memory surface's memory, and GDI through a memory DC
    on the DIB and through the surface's DC both land in it (dgVoodoo not checked: the fallback
    covers a refusal; if it caches client memory and misses GDI writes, the old path's windows
-   would go stale, which the empty Lock / Unlock is there to prevent). Left: the change detection
-   still asks DirectDraw (the uniqueness value; a dirty flag from ReleaseDC and the lock users
-   next), the old path's Blt of windows (goes with the old path), and with the verify build's
+   would go stale, which the empty Lock / Unlock is there to prevent; render_cpuwindows passes on
+   both installs with no refusal). Change detection for these surfaces no longer asks DirectDraw:
+   the new renderer keeps a copy of the memory each window texture was made from and converts the
+   window again only when the memory differs (a memcmp at each blit; it sees every writer: GDI,
+   the lock users, the old path's Blt, with no flag to set in each of them). Left: the old path's
+   Blt of windows (goes with the old path), and with the verify build's
    side-by-side text checks under cpuwindows the GDI batch must be flushed before they read
    pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
@@ -270,9 +273,12 @@ in our runs) is still created and still used, because:
    render surface for the old path's texture load. Bink decodes each frame into a CPU buffer too
    (BinkCopyToBuffer's 32-bit R, G, B, X type 4, checked offline against the 5:6:5 decode of a game
    movie) for the new renderer (`render::MovieFrame / MovieBlit`); with `present` the video's
-   DirectDraw surface is not filled at all. Left: the software cursor (its image comes from a
-   texture loaded by 005E4EB0 into a surface, not rewritten; read back each frame) and the screen
-   copies (written into DirectDraw surfaces the interface draws from: with point 2).
+   DirectDraw surface is not filled at all. The software cursor's images come from 8888 pictures
+   loaded into surfaces by 004EFC60 (rewritten, `dx_surface.cpp`; 004F0060 makes and fills the
+   surface): the new renderer decodes the picture from the file data (`render::PictureFromMmp`)
+   and `render::Cursor` takes its colours from there, with the mask (005E4EB0: all ones where the
+   image is black) from game memory; no Lock per frame. The same holder type serves windows made
+   from a picture (005FCF80), whose blits still read the surface. Left: the screen copies (written into DirectDraw surfaces the interface draws from: with point 2).
 5. **Draws the old path still makes**: the weather's (004E4240 / 004E4C80 build and draw in one
    function; the new renderer takes the triangles after they return). Everything in the world view
    and the interface is handed over; with `present` the old back buffer is overwritten by the new
