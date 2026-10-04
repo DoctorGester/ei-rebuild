@@ -486,7 +486,7 @@ void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* value
 void ReadFog(Frame& f) {
     const std::uint32_t states[2] = {28, 34};
     std::uint32_t values[2];
-    OldRenderStates(states, values, 2);
+    RenderValues(states, values, 2);
     f.haveFog = true;
     f.fogEnabled = values[0] != 0;
     f.fogColour = values[1];
@@ -545,10 +545,11 @@ void SetDrawOldInterface(bool on) {
     g_oldInterface = on;
 }
 
-void TextureChanged(const void* holder, const void* source) {
-    if (!holder || !source || !Active() || !EnsureStarted()) return;
+void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    if (!holder || !pixels || !Active() || !EnsureStarted()) return;
     FpuGuard fpu;
-    ReadTextureFrom(holder, source);
+    TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
 }
 
 void BeginWorld() { g_inWorld = true; }

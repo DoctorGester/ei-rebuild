@@ -140,6 +140,12 @@ void ReadFog(Frame& f);
 // GetTextureStageState), several under one hold of the device lock.
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count);
 void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
+// The values of render states / of a stage's states for a pass, from the state the game code fed
+// (render_state.h), the old device for the rest (render_state.cpp; logged); PassDone after each
+// pass counts the passes that still needed the old device.
+void RenderValues(const std::uint32_t* states, std::uint32_t* values, int count);
+void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
+void PassDone();
 // Inside the world view's draw (render::BeginWorld .. EndWorld).
 bool InWorld();
 // The device object (007AF080) and its render target's size.
@@ -213,9 +219,10 @@ void DestroyBlits();
 // (render_textures.cpp). Valid until the next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);
-// The texture of `holder` gets the pixels of `source` (another surface holder) now; it is not read
-// from its own surface again until that changes (render::TextureChanged).
-void ReadTextureFrom(const void* holder, const void* source);
+// The texture of `holder` made from CPU pixels (render::TexturePixels); it is not read from its
+// surface again until that changes.
+bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                       std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 // The texture of `holder` decoded from .mmp file data (render::TextureFromMmp).
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
 // A window surface (CUiSurface's holder) as one level, read now when its contents changed; texels

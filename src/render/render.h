@@ -91,10 +91,11 @@ struct MeshDraw {
 // new renderer decodes them from the file instead of reading the surface back.
 void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
 
-// The game copied new pixels into a texture's surface (CDXSurface) with Direct3D from `source`
-// (a CDXSurface the CPU wrote; the shadow textures, 0051CE60): the new renderer takes them from
-// `source` now.
-void TextureChanged(const void* holder, const void* source);
+// The game made new pixels for a texture on the CPU (the shadow textures, 0051CE60) and copies
+// them into its surface (CDXSurface): the new renderer takes them from the buffer (`pitch` bytes
+// per row, `bitsPerPixel` 16 or 32, the channel masks of the surface's format).
+void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 void BeginMesh(void* device, const MeshDraw& mesh);
 bool MeshPass(void* device);
 void EndMesh();
@@ -126,6 +127,12 @@ struct Rect {
     int left, top, right, bottom;
 };
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key);
+
+// A movie's decoded frame (CBinkVideo 005DBD80): R, G, B, X bytes per pixel (BinkCopyToBuffer's
+// 32-bit "R" type), kept for `key` (the video object) until the next one; MovieBlit draws the last
+// frame into the screen rectangle `to`.
+void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height);
+void MovieBlit(const void* key, const Rect& to);
 
 // The software cursor (005E54A0): the part `from` of the cursor image's surface (holder) with its
 // mask (`mask`: the image's full width, the surface's pixel format; the old path draws

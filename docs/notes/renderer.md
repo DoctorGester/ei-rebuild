@@ -217,33 +217,34 @@ in our runs) is still created and still used, because:
 2. **The interface is composed on DirectDraw surfaces** with GDI (GetDC / ReleaseDC, text, fills)
    and pixel code (locks), then read back on change. Needed: the window surfaces as DIB sections or
    CPU buffers (GDI works on a DIB section the same way), or native interface drawing (step 6).
-3. **Pass state is read back from the old device** (render states, texture stage states, the
-   bound textures). What the "materials" are, found while starting on this: there is no
-   material data in the game files (materials.res holds sound / physics materials). The device
-   records exactly four Direct3D state blocks at its creation (004E6392..004E67BD, handles at
-   007AEDDC / 007AEDD8 / 007AEDD4 / 007AEDD0), each a stage-0 setup:
+3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
+   place that sets a render state, a texture stage state or applies a state block on the old device
+   also calls `render::state::Render / Stage / Block` with the same values (13 files so far:
+   device_draw, renderer_init (and a reset at device creation), renderer_rect, renderer_sprites,
+   renderer_strip, terrain_draw, world_client_draw, ui_camp, ui_create_screen, ui_hero_preview,
+   ui_hud, ui_item_view, ui_objectives). The device records only four state blocks, at its creation
+   (004E6392..004E67BD, handles in 007AEDDC / D8 / D4 / D0), each a stage-0 setup; a material's
+   technique is a list of those handles plus its blend factors and texture records:
    | handle | colour | alpha |
    |---|---|---|
    | 007AEDDC | texture x current (MODULATE) | texture (SELECTARG1) |
    | 007AEDD8 | texture x diffuse | texture x diffuse |
    | 007AEDD4 | texture x diffuse | texture (SELECTARG1) |
    | 007AEDD0 | texture x diffuse | diffuse (SELECTARG1) |
-   A technique (material +0x14) is a list of these handles, one per pass, plus the material's
-   blend flag and factors and its stage records (texture name, coordinate index). So the stage
-   part of a pass is a table lookup. Everything else in the pass state is ambient: render states
-   (alpha test and reference, depth write and function, culling, fog, specular, texture factor,
-   blending outside materials) and stage states (filters, addressing, ops outside techniques) set
-   by the draw code around the draws, about 180 SetRenderState / SetTextureStageState sites, many in
-   code not rewritten. Options to stop reading them back: (a) a mirror of the device state kept by
-   wrapping the device's SetRenderState / SetTextureStageState / ApplyStateBlock / SetTexture
-   (in-memory, at the COM interface the old path uses: complete at once, but it hooks dgVoodoo's
-   interface); (b) the same mirror fed by the game code: every rewritten site calls a helper that
-   records the value, the remaining sites as their functions get rewritten (exact by design, slow
-   to finish). Reading back costs about 25 COM calls per pass and only blocks dropping the old
-   device, so it can wait for (b) to cover the draw paths; (a) is a two-day job if wanted sooner.
-4. **CPU paths into surfaces**: the shadow rasteriser (2DintMMX into a render surface, then a
-   device Load), Bink (BinkCopyToBuffer into a locked surface), the software cursor's surfaces,
-   the screen copies. Each needs a CPU buffer instead.
+   A pass takes its states from this mirror; a state nothing has fed yet is read from the old device
+   and logged once ("render: pass state: render state N not fed by the game code yet"), with a count
+   every 20000 passes of the passes that still needed the old device. The verify build also reads
+   every fed state back and logs disagreements ("fed X but the old device has Y": a writer in code
+   not converted, e.g. the renderer's state presets 00501C60 that particles use); the device's
+   value is drawn then. Remaining writers are in functions not rewritten yet.
+4. **CPU paths into surfaces**: the shadow rasteriser now draws into a CPU buffer (the surface's
+   layout), which goes to the new renderer (`render::TexturePixels`) and is then copied into the
+   render surface for the old path's texture load. Bink decodes each frame into a CPU buffer too
+   (BinkCopyToBuffer's 32-bit R, G, B, X type 4, checked offline against the 5:6:5 decode of a game
+   movie) for the new renderer (`render::MovieFrame / MovieBlit`); with `present` the video's
+   DirectDraw surface is not filled at all. Left: the software cursor (its image comes from a
+   texture loaded by 005E4EB0 into a surface, not rewritten; read back each frame) and the screen
+   copies (written into DirectDraw surfaces the interface draws from: with point 2).
 5. **Draws the old path still makes**: the weather's (004E4240 / 004E4C80 build and draw in one
    function; the new renderer takes the triangles after they return). Everything in the world view
    and the interface is handed over; with `present` the old back buffer is overwritten by the new

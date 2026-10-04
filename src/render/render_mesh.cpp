@@ -108,7 +108,7 @@ PassState ReadPassState(char* device) {
     };
     constexpr int kStateCount = static_cast<int>(sizeof(kStates) / sizeof(kStates[0]));
     std::uint32_t v[kStateCount];
-    OldRenderStates(kStates, v, kStateCount);
+    RenderValues(kStates, v, kStateCount);
     PassState s;
     s.blend = v[0] != 0;
     s.sourceBlend = static_cast<std::uint8_t>(v[1]);
@@ -134,7 +134,16 @@ PassState ReadPassState(char* device) {
     constexpr int kStageCount = static_cast<int>(sizeof(kStageStates) / sizeof(kStageStates[0]));
     for (int stage = 0; stage < 2; ++stage) {
         std::uint32_t t[kStageCount];
-        OldStageStates(stage, kStageStates, t, kStageCount);
+        if (stage == 1) {   // stage 1 only when it is on (COLOROP not D3DTOP_DISABLE)
+            const std::uint32_t op = 1;
+            std::uint32_t value = 0;
+            StageValues(1, &op, &value, 1);
+            if (value <= 1) {
+                s.stages[1].colourOp = static_cast<std::uint8_t>(value);
+                break;
+            }
+        }
+        StageValues(stage, kStageStates, t, kStageCount);
         StageState& st = s.stages[stage];
         st.colourOp = static_cast<std::uint8_t>(t[0]);
         st.colourArg1 = static_cast<std::uint8_t>(t[1]);
@@ -154,6 +163,7 @@ PassState ReadPassState(char* device) {
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
     }
+    PassDone();
     return s;
 }
 
