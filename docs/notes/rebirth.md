@@ -241,21 +241,30 @@ Sites are listed in full in the CSV.
   *Implemented* in src/game/script_addon.cpp (table, dispatch, '?' / '+', keyword rule,
   CalcString) with the handlers in src/game/script_addon_*.cpp, hooked from the rewritten
   functions above plus a new rewrite of `SSCCmd::CalcGroup` (004B5B00, src/game/script_eval.cpp).
-  Handlers done: the arithmetic ones (Sin, Cos, Pow, DistancePointPoint, Add, Mul, And, Or, Max,
-  Min, Abs, Round, Ceil, Floor, Random; script_addon_math.cpp) and the string ones
-  (GetObjectStringID, FloatToStr, StrToFloat, StrCat, StrLen, RandStr, StrHas, StrMid, StrLower,
-  StrUpper, Say, ConsoleString; script_addon_strings.cpp) and the unit, object and player ones
-  (GetPlayerOfUnit, GetUnitExp, GetArmor, NearestUnit, UnitsNearPoint, RandObj, PlayerExists,
-  GetDexterity, GetIntelligence, GetStrength, GetSkill, GetActions, GetActionsBase,
-  GetEncumbrance, GetMaxEncumbrance, GetPerk, GetPrototype, GetRace, GetObjectTypeID,
-  GetObjectsOnMap, IsPlayer, IsDead, IsAlive; script_addon_units.cpp: the sector map's objects
-  within a radius for NearestUnit / UnitsNearPoint, the world's object map in bucket order for
-  GetObjectsOnMap). Kept from addon: DistancePointPoint's
-  signature has two floats but it reads four; Random with one argument declines, so the game's
-  runs; And / Or truncate (0.5 is false); Max and Min let NaN through; FloatToStr cuts trailing
-  zeros without looking at index 0 ("100" with 0 decimals gives "1"); StrMid with a negative count
-  leaves the result untouched; StrLower / StrUpper use CharLowerA / CharUpperA (the user's code
-  page); Say only talks in a network game.
+  The handlers by group: arithmetic (Sin, Cos, Pow, DistancePointPoint, Add, Mul, And, Or, Max,
+  Min, Abs, Round, Ceil, Floor, Random; script_addon_math.cpp), strings (GetObjectStringID,
+  FloatToStr, StrToFloat, StrCat, StrLen, RandStr, StrHas, StrMid, StrLower, StrUpper, Say,
+  ConsoleString; script_addon_strings.cpp), units, objects and players (GetPlayerOfUnit,
+  GetUnitExp, GetArmor, NearestUnit, UnitsNearPoint, RandObj, PlayerExists, GetDexterity,
+  GetIntelligence, GetStrength, GetSkill, GetActions, GetActionsBase, GetEncumbrance,
+  GetMaxEncumbrance, GetPerk, GetPrototype, GetRace, GetObjectTypeID, GetObjectsOnMap, IsPlayer,
+  IsDead, IsAlive; script_addon_units.cpp: the sector map's objects within a radius for
+  NearestUnit / UnitsNearPoint, the world's object map in bucket order for GetObjectsOnMap) and
+  commands (GSSetPlayerVar, GSGetPlayerVar, GiveExp, GiveUnitExp, StartCameraSave,
+  StopCameraSave, ResetTarget, SendCurrentParty, Loot, GameOver, GameOverMSG, IsFileExists,
+  GSListPlayerVars, GiveUnitWeapon, GiveUnitArmor, ShowAllUnits, PauseGame, SetWeather,
+  AddMobEx; script_addon_commands.cpp). Kept from addon: DistancePointPoint's signature has two
+  floats but it reads four; Random with one argument declines, so the game's runs; And / Or
+  truncate (0.5 is false); Max and Min let NaN through; FloatToStr cuts trailing zeros without
+  looking at index 0 ("100" with 0 decimals gives "1"); StrMid with a negative count leaves the
+  result untouched; StrLower / StrUpper use CharLowerA / CharUpperA (the user's code page); Say
+  only talks in a network game; GSListPlayerVars and GiveExp do not check the player; the stat
+  override of GiveUnitWeapon / GiveUnitArmor is refused for units with a text-key id;
+  ShowAllUnits(0) and PauseGame(0) pass 1 (value == 0). Not exact: AddMobEx pushes its byte flag
+  as a dword whose upper bytes are left over on addon's stack (0 or 1 here); IsFileExists looks in
+  addon's mod folder, which without a mod is the starter's "AddonPath" setting (read once here, as
+  addon reads it at load); sin, cos and pow are the modern CRT's (the same SSE2 code path
+  selection as addon's MSVC 2010 CRT, results rounded to float).
 - **PersistentGlobalVars** - global variables named `gvar.*` keep their values where the game
   empties a variable table, all in multiplayer paths: the party outside a game (0057EB10, the CALL
   at 0057EB25), the client's update from the server (005800C0, the CALL at 00580177), and the saved
@@ -546,7 +555,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| AddNewScriptCommands | the remaining handlers (strings, units, commands) | in progress |
 | ObjectsDrawRadius, LandscapeDrawRadius | two float settings in 0056AFE0 / 00569E40 (or in the client draw rewrite) | 0.5 day once those are rewritten |
 | WideScreen | 100 sites in ~45 functions, the layout maths of addon's replacements, VIDEORESOLUTION | 2-3 weeks |
 | NivalRegistry, Maps, ResOverride, Movies/Camera/StreamPatch | path policy (mod folders, starter key); belongs with the standalone's resource layer | 1 week |

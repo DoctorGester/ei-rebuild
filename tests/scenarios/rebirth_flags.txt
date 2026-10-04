@@ -122,6 +122,32 @@ console #IsPlayer(GetLeader())
 check IsAlive(GetLeader())
 check Not(IsDead(GetLeader()))
 
+# addon's commands: player variables, experience, camera saving, targets, the draw-all flag,
+# pause (both ways), weather, items (the override is refused for the hero's text-key id; an
+# unknown armour is reported), and the wolf killed, looted and removed. Not run: GameOver and
+# GameOverMSG (they end the game), AddMobEx (needs a .mob file to load).
+console @GSSetPlayerVar(GetPlayer(GetLeader()),"zz.addon",42)
+waitfor 5 IsEqual(GSGetPlayerVar(GetPlayer(GetLeader()),"zz.addon"),42)
+console @GSListPlayerVars(GetPlayer(GetLeader()))
+expect zz.addon = 42.000000
+console @GiveUnitExp(GetLeader(),10) GiveExp(GetPlayer(GetLeader()),5)
+console @ResetTarget(GetLeader()) SendCurrentParty(GetPlayer(GetLeader()))
+console @StartCameraSave("zzaddon") StopCameraSave()
+console #IsFileExists("../escape.txt")
+console #IsFileExists("no such file.txt")
+console @ShowAllUnits(0) ShowAllUnits(1)
+console @PauseGame(0) PauseGame(1)
+console @SetWeather("rain")
+wait 500
+console @SetWeather("clear")
+console @GiveUnitWeapon(GetLeader(),"Axe.steel",1)
+console @GiveUnitArmor(GetLeader(),"UniqueGipatHadagan Helm.Iron",0) GiveUnitArmor(GetLeader(),"no such armour",1)
+console @KillUnit(GetObjectByName("RWolf"))
+wait 1000
+console @Loot(GetPlayer(GetLeader()),GetObjectByName("RWolf"))
+wait 500
+check IsAlive(GetLeader())
+
 # Items by name: a weapon with a material, one with a spell in brackets, a scroll.
 console @GiveItem(0,"Axe.steel")
 console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")

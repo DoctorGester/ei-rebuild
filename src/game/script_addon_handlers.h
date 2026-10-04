@@ -97,4 +97,25 @@ bool IsPlayer(Call* call);
 bool IsDead(Call* call);
 bool IsAlive(Call* call);
 
+// script_addon_commands.cpp
+bool GSSetPlayerVar(Call* call);
+bool GSGetPlayerVar(Call* call);
+bool GiveExp(Call* call);
+bool GiveUnitExp(Call* call);
+bool StartCameraSave(Call* call);
+bool StopCameraSave(Call* call);
+bool ResetTarget(Call* call);
+bool SendCurrentParty(Call* call);
+bool Loot(Call* call);
+bool GameOver(Call* call);
+bool GameOverMsg(Call* call);
+bool IsFileExists(Call* call);
+bool GSListPlayerVars(Call* call);
+bool GiveUnitWeapon(Call* call);
+bool GiveUnitArmor(Call* call);
+bool ShowAllUnits(Call* call);
+bool PauseGame(Call* call);
+bool SetWeather(Call* call);
+bool AddMobEx(Call* call);
+
 } // namespace scriptaddon
