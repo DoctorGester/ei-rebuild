@@ -143,8 +143,9 @@ Sites are listed in full in the CSV.
 - **FixSpellSelfCasting** - (#0) `CSpell::IsOffensive` (0068B770) is replaced by a table that also
   marks spell types 0x28 and 0x29 offensive (Rebirth's new spells; the original table stops at 0x26);
   (#1) in `CBattleScreen::SelectUnit` (00638EF0) `MOV CL,[EAX+0x7F]` becomes `MOV CL,0; NOP`: the
-  flag passed to 00637500 when a spell is cast on a clicked unit is always 0. *#0 implemented*
-  (src/game/spell.cpp); #1 needs SelectUnit (3.6 KB).
+  flag passed to 00637500 when a spell is cast on a clicked unit is always 0 (vanilla passes the
+  interface's +0x7F key flag). *Implemented*: #0 in src/game/spell.cpp, #1 as a new rewrite
+  `CBattleScreen::SelectUnit` (src/game/ui_hud.cpp).
 - **FixMoveObject** - `CSectorMap::Move` (005C11D0) is replaced by a check that refuses (returns
   false) a target with x < 0, y < 0 or NaN before calling the original; failures are logged.
   Vanilla computes a negative sector there. *Implemented* (src/game/sector_map.cpp).
@@ -436,6 +437,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | AllowScriptsInMainMenu | new: GameFlow::StartZone 0057C460 (world_game.cpp) | ours only (tears down and loads zones): the campaign mode is the one asked for (or 2 / 8), and +0x160 is set in the menu with the flag |
 | FixCreateItem | new: CItemManager::CreateItem 006AC970 (item_constructor.cpp) | ours only (creates objects): a created item has an item class, a "spell container[...]" one its spell |
 | DisableExitOnCrashReport (FatalError sites) | new: FatalError 00480080 (app.cpp) | none (it shows a message box and exits): a plain replacement |
+| FixSpellSelfCasting #1 | new: CBattleScreen::SelectUnit 00638EF0 (ui_hud.cpp) | ours only (orders, sounds): the pending action stays one of the nine, and actions 5, 6, 8 that went back to 0 cleared the item and spell |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -467,7 +469,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| FixSpellSelfCasting #1 | CBattleScreen::SelectUnit 00638EF0 (3.6 KB) | 1-2 days |
 | FixAddMapObject | object creation 005927C0 (3.5 KB) | 2 days |
 | DisableExitOnCrashReport | the third site: 005641F0, the world frame (1.5 KB) | 1 day |
 | NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
@@ -494,6 +495,10 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
   004217E0, 00428F10, 0040C720, 0040C770, 00689950, 006AD670, 006A75E0, 004ABBD0, 004ABD00,
   004ACC10).
 - app.cpp: `ShowMessageBox` (004560D0), `ExitGame` (006E8DA7).
+- ui_hud.cpp (SelectUnit): the battle screen's commands 00636F10, 00637190, 006373A0, 00637500,
+  00637750, 006379E0; the HUD panels' 0063CD20, 0063E750, 0063F730, 0063F7A0; the client world's
+  005659D0, 0056C350, 005699F0; the local view's 0066AA20, 0066AFE0; 0040D3B0, 00530150, 00531920,
+  006A4230, 005E7060; the console ostream's 006FC31D, 006FC7FA, 006FC0B0, 00434FE0.
 - world_server.cpp: `IdMapErase` (00599A80), `SectorMapRemove` (005C1010), `UnitSetController`
   (005300D0), `CommandQueuePurge` (004BED90), `ProjectileForget` (0067EF00), `ProjectileRemoveAt`
   (00599CC0), `PlayerStateForget` (0066DC90).

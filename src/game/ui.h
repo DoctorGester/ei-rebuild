@@ -356,8 +356,12 @@ constexpr int kRenderStateSpecular = 29;     // D3DRENDERSTATE_SPECULARENABLE
 // The battle screen. Only the members the panels use; created by original code.
 class CBattleScreen : public CUiWindow {
 public:
-    // 00638EF0 (Rebirth-patched, not rewritten). Selects a party member (portrait click).
-    void SelectUnit(CUnit* unit, int a, int b);
+    // 00638EF0 (ui_hud.cpp). A click on `unit` (or, without one, at screen point x, y) while
+    // party members are selected: by the pending action (+0x17C: 0 select / attack / move, 1 spell
+    // on a unit, 2 and 4 spell on a point, 3 quick item, 5 item and 6 spell on an object, 7 follow,
+    // 8 order on an object) or the interface's modifier keys; with nobody selected it selects the
+    // clicked member. Rebirth's FixSpellSelfCasting #1 drops the Ctrl flag of a spell on a unit.
+    void SelectUnit(CUnit* unit, int x, int y);
     // 00639EF0 (not rewritten). Shows the unit under the mouse in the unit panel.
     void HoverUnit(CUnit* unit, int a, int b);
 

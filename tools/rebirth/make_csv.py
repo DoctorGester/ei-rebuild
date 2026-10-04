@@ -92,7 +92,7 @@ STATUS = {
 }
 SITE_STATUS = {
  ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spell.cpp)',
- ('FixSpellSelfCasting', 0x00639447): 'not started: 00638EF0 CBattleScreen::SelectUnit not rewritten (3.6 KB)',
+ ('FixSpellSelfCasting', 0x00639447): 'implemented: new rewrite CBattleScreen::SelectUnit 00638EF0 (src/game/ui_hud.cpp)',
  ('FixSpellEffectsOverflow', 0x0050F1E0): 'implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/map_object.cpp)',
  ('DisableExitOnCrashReport', 0x004800A7): 'implemented: new rewrite FatalError 00480080 (src/game/app.cpp; the addon.log line is not reproduced)',
  ('DisableExitOnCrashReport', 0x004800C9): 'implemented: new rewrite FatalError 00480080 (src/game/app.cpp)',
