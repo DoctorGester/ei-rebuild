@@ -374,6 +374,96 @@ void __fastcall InterfaceShowMessage(CInterface3D* self, void*, int force) { sel
 } // namespace
 EI_REPLACE(0x005F8A80, InterfaceShowMessage);
 
+// --- 005F86F0: the help window -----------------------------------------------------------------------
+
+namespace {
+// The seen-topics map at +0x98 (STLport map<CString, int>; thiscall): find (005FAEA0) and
+// lower_bound (005FAF30) into an iterator (RET 8), insert with a hint (005F9810, RET 0xC).
+__declspec(naked) void __fastcall TopicsFind(void*, void*, void** /*out*/, const void* /*key*/) EI_ORIGINAL(0x005FAEA0)
+__declspec(naked) void __fastcall TopicsLowerBound(void*, void*, void** /*out*/, const void* /*key*/)
+    EI_ORIGINAL(0x005FAF30)
+__declspec(naked) void __fastcall TopicsInsert(void*, void*, void** /*out*/, void* /*hint*/, const void* /*pair*/)
+    EI_ORIGINAL(0x005F9810)
+// The help window's list member at +0x188 (005F9A00, from an allocator; RET 4).
+__declspec(naked) void __fastcall ConstructHelpList(void*, void*, const void*) EI_ORIGINAL(0x005F9A00)
+// _mbscmp (the game's CRT).
+__declspec(naked) int __cdecl MbsCompare(const char*, const char*) EI_ORIGINAL(0x006E848B)
+} // namespace
+
+void CInterface3D::OpenHelp(int flag) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    if (stackBegin_ == stackEnd_) return;
+    CUiWindow* active = stackEnd_[-1];
+    using TopicFn = const char*(__thiscall*)(CUiWindow*);
+    const char* topic = reinterpret_cast<TopicFn>(active->vtable_[41])(active);
+    if (!topic) return;
+    int seen = -1;
+    void* topics = self + 0x98;
+    void* header;
+    std::memcpy(&header, topics, 4);
+    void* found;
+    {
+        mfc::CString key(topic);
+        TopicsFind(topics, nullptr, &found, &key);
+    }
+    std::memcpy(&header, topics, 4);
+    if (found != header) {
+        seen = *reinterpret_cast<const int*>(static_cast<std::uint8_t*>(found) + 0x14);
+    } else {
+        mfc::CString key(topic);
+        void* at;
+        TopicsLowerBound(topics, nullptr, &at, &key);
+        std::memcpy(&header, topics, 4);
+        if (at == header ||
+            MbsCompare(key, *reinterpret_cast<const char* const*>(static_cast<std::uint8_t*>(at) + 0x10)) < 0) {
+            // A new entry {topic, 0} before `at`.
+            struct Pair {
+                std::uint8_t key[sizeof(mfc::CString)];
+                int value;
+            } pair;
+            CopyCString(pair.key, nullptr, &key);
+            pair.value = 0;
+            void* inserted;
+            TopicsInsert(topics, nullptr, &inserted, at, &pair);
+            at = inserted;
+            reinterpret_cast<mfc::CString*>(pair.key)->~CString();
+        }
+        *reinterpret_cast<int*>(static_cast<std::uint8_t*>(at) + 0x14) = 0;
+    }
+    bool forced = static_cast<std::uint8_t>(flag) != 0;
+    if (*reinterpret_cast<const int*>(0x0079BE78) != 0) {
+        if (!forced && seen >= 0) return;
+    } else if (!forced) {
+        return;
+    }
+    void* memory = gamecrt::operator_new(0x194);
+    CUiWindow* window = nullptr;
+    if (memory) {
+        ConstructContainer(memory, nullptr, this);
+        auto* win = static_cast<std::uint8_t*>(memory);
+        win[0x164] = 0;
+        ConstructCString(win + 0x168, nullptr, topic);
+        SetDword(win, 0x16C, *reinterpret_cast<const std::uint32_t*>(0x00796E48));   // empty CString
+        ConstructStringArrayAt(win + 0x170);
+        SetDword(win, 0x184, static_cast<std::uint32_t>(seen));
+        // The original passes its argument slot as the list's allocator.
+        int slot = flag;
+        ConstructHelpList(win + 0x188, nullptr, &slot);
+        std::uint32_t junk = 0, zero = 0;
+        ConstructListHolder(win + 0x18C, nullptr, &junk, &zero);
+        NewListHeader(win + 0x18C);
+        SetDword(win, 0x00, 0x00740E28);
+        SetDword(win, 0x94, 0x00740DF4);
+        window = reinterpret_cast<CUiWindow*>(memory);
+    }
+    PushWindow(window, 1, 0);
+}
+
+namespace {
+void __fastcall InterfaceOpenHelp(CInterface3D* self, void*, int flag) { self->OpenHelp(flag); }
+} // namespace
+EI_REPLACE(0x005F86F0, InterfaceOpenHelp);
+
 // --- Screens 8 and 9: constructors and screen 8's destructor body -----------------------------------
 
 namespace {

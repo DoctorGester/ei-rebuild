@@ -229,3 +229,13 @@ static void __fastcall ShowMessageVerify(CInterface3D* self, void*, int force) {
     ei::verify::Check("CInterface3D::ShowMessage", true, after == windows, "windows %d -> %d", windows, after);
 }
 EI_VERIFY(0x005F8A80, ShowMessageVerify, 0, s_unused);
+
+// 005F86F0: ours only (it opens a window). At most one window opens; none without an active one.
+static void __fastcall OpenHelpVerify(CInterface3D* self, void*, int flag) {
+    int windows = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    self->OpenHelp(flag);
+    int after = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    bool ok = windows == 0 ? after == 0 : (after == windows || after == windows + 1);
+    ei::verify::Check("CInterface3D::OpenHelp", true, ok, "flag %d: windows %d -> %d", flag & 0xFF, windows, after);
+}
+EI_VERIFY(0x005F86F0, OpenHelpVerify, 0, s_unused);

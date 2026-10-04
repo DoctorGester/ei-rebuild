@@ -94,6 +94,11 @@ public:
     // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
     // 0079BE78 is off and it was not forced. ui_create_screen.cpp.
     void ShowMessage(int force);
+    // 005F86F0 (RET 4; ShowHelp above calls it through its address). The active window's help
+    // topic (its slot 41; none: nothing): the map at +0x98 counts topics seen (an unseen one is
+    // entered with 0, giving -1 here); the help window (0x194 bytes, vtables 00740E28 / 00740DF4)
+    // opens when forced (`flag`), or when the option 0079BE78 is on and the topic was not seen.
+    void OpenHelp(int flag);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
