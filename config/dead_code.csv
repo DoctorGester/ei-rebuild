@@ -88,11 +88,13 @@ address,size,name,evidence
 00440DA0,53,FUN_00440da0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00441440,148,FUN_00441440,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00442E20,213,FUN_00442e20,referenced only from dead code 00707A13
+00442F00,269,FUN_00442f00,"no code or vtable reference; the only matches are float constants in .rdata (00742B79 / 00742BC1 / 00742BC9, 700.0f) - an unused refusal sender (7, id, reason)"
 00445E50,311,FUN_00445e50,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00445F90,42,FUN_00445f90,referenced only from dead code 00445E50
 00445FD0,119,FUN_00445fd0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00446050,114,FUN_00446050,"no references at all (no call/jmp, no absolute pointer in code or data)"
 004461B0,45,FUN_004461b0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0044A7B0,2214,FUN_0044a7b0,"referenced only from dead code 0044B060 (an animation exporter)"
 0044B060,779,FUN_0044b060,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0044B820,345,FUN_0044b820,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0044CDA0,347,FUN_0044cda0,"no references at all (no call/jmp, no absolute pointer in code or data)"
@@ -114,10 +116,13 @@ address,size,name,evidence
 00466E60,63,FUN_00466e60,"no references at all (no call/jmp, no absolute pointer in code or data)"
 004694F0,307,FUN_004694f0,referenced only from dead code 004694BA
 00469630,154,FUN_00469630,"no references at all (no call/jmp, no absolute pointer in code or data)"
+004696D0,454,FUN_004696d0,"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+004698A0,32,FUN_004698a0,"referenced only from dead code 004696D0"
 004698F0,287,FUN_004698f0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00469A10,154,FUN_00469a10,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00469BD0,197,FUN_00469bd0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0046C590,116,FUN_0046c590,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0046C6A0,313,FUN_0046c6a0,"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0046D330,30,FUN_0046d330,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0046F1F0,10397,FUN_0046f1f0,referenced only from dead code 004E72A0
 00476F80,42,FUN_00476f80,referenced only from dead code 0046F1F0
@@ -143,10 +148,14 @@ address,size,name,evidence
 0047C8E0,210,FUN_0047c8e0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047C9E0,30,FUN_0047c9e0,referenced only from vtable(s) installed only by dead code 0073CA08
 0047CA00,100,FUN_0047ca00,referenced only from dead code 0047C9E0
+0047CAA0,335,FUN_0047caa0,"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0047CBF0,64,FUN_0047cbf0,"referenced only from dead code 0047CAA0"
+0047CC30,45,FUN_0047cc30,"referenced only from dead code 0047CAA0"
 0047CF60,57,FUN_0047cf60,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047CFA0,453,FUN_0047cfa0,referenced only from dead code 0047D1DB
 0047D4E0,9,FUN_0047d4e0,referenced only from dead code 0047CFA0
 0047D560,62,FUN_0047d560,referenced only from dead code 0047D500
+0047D7A0,15,FUN_0047d7a0,"referenced only from dead code 0047CAA0 and 0047CFA0"
 0047DB70,91,FUN_0047db70,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047DBD0,73,FUN_0047dbd0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 004803E0,1939,FUN_004803e0,"no references at all (no call/jmp, no absolute pointer in code or data)"

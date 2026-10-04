@@ -763,3 +763,98 @@ constructors of NewObject (005A7010, 0051AB00, 00510450, 00533AD0, 00666D10, 005
 decoder 004D8E10, the growing buffer's destructor 004DA910, the server base tick 00443590, the
 server entry base 004413E0, the memory stream's reserve / resize (004A5570 / 004A54D0), the
 connection's object references (004355B0 / 00435820), and 0041AA10 (Rebirth).
+
+## Ninth round: 00440000-00480000 (application, network lobby, tables)
+
+The worker for 0x00440000-0x00480000 (35% ported at the start). The fake unit scene, figures,
+lightning, loot, zone records and aligned arrays of this range are in objects.md ("Sixth round"),
+the player's object sets in world.md. Stopped part-way on a scope change (the rest goes to smaller
+tickets); about 200 live functions of the range remain, the largest the network message objects
+over streams (00477E60-0047A6D0: vtables 0073C8A4, 0073C8D8, 0073C8F8, 0073C92C, 0073C990,
+0073C9C8, 0073CA10) and the drivers of 0047B980-0047E340.
+
+### Rewritten
+
+| Address | File | What |
+| --- | --- | --- |
+| 004413E0-00442AD0 (21) | net_lobby.cpp | the client base's lobby: server list, direct queries, join request / retry, the ping / info / accepted / refused packets, FlushBits (00442570) |
+| 00442C60, 00443050, 00443060, 004434F0, 00443590 | net_lobby.cpp | the server base's half: pings answered, joins accepted or refused, the pending joins aged |
+| 00443770, 00443790, 00443E90, 00444270, 00443E20, 00443760 | net_lobby.cpp | the 0x2C-byte query: constructor, destructor, copy, holders |
+| 00440440, 00440690 | net_socket_driver.cpp | address parsing and formatting |
+| 004407F0-00440BE0 (7) | net_socket_driver.cpp | the UDP socket driver: open, close, broadcast addresses, send, receive |
+| 00440C60, 00440D40, 00440DE0 | net_socket_driver.cpp | the master server's TCP link |
+| 004447D0-00444F50 (10) | string_map.cpp | the debug information panel at 0079B930 (set, remove, tick, redraw, show, release) |
+| 00458010 | app_frame.cpp | WinMain's frame step (see "Frame capture" below) |
+| 00458270 | app_frame.cpp | the intro movies (list from the .ini, each played, the screen cleared by a Blt colour fill) |
+| 00458570, 00458540, 00458550, 004586E0 | app_registry.cpp | type registration with a factory (vtable <-> id <-> factory) and COM releases |
+| 0045E310 | app_dxversion.cpp | the DirectX version probe |
+| 00463030, 004652A0, 004657E0, 00465A70, 00465BC0, 00465090 | app_device_list.cpp | the device record list's archiving and the record's members |
+| 0045DE30, 0045DFB0, 0045D610, 0045D760 | map_spec_unit.cpp | waypoint lists and behaviour records read / written (stream chunks) |
+| 00460460, 004608B0, 00460970 | zone_records.cpp | the zone exit's destructors (world.h ZoneExit) and the map database's zone record destructor (eight CStrings, the exits' CArray at +0x48) |
+| 00460BC0, 00460DB0, 00460EE0, 00460FE0, 00461260 | object_tables.cpp | NamedFloatTable (hash_map<CString, float>): Set (zero removes), Remove, CopyPrefixed, Load, Save |
+| 00461190 | object_tables.cpp | StreamReadString: bytes up to a zero into a CString (many callers keep forwarders) |
+| 00462C10, 00462DF0 | key_bindings.cpp | the key bindings file: load (key texts from GetKeyNameTextA, "command key" lines) and save |
+| 00463120 | lever_table.cpp | the atexit destructor of the table at 0079C1A0 (vector of 0x2C records, hash map of vectors) |
+| 00477E60, 0047A030 | net_session_pump.cpp | the network record (file stream over a CFile) and the per-player driver (vtable 0073C990) constructors |
+| 00479E30, 0047A080 | net_session_pump.cpp | the session's connection pump (a driver per queued, known player; drivers pumped, dead ones erased) and its start (lists emptied, one driver, its start-up output drained) |
+| 0047A690, 0047A6A0, 0047A6D0 | refptr_copies.cpp | RefPtr copies (from raw; the released holder's deleting destructor) |
+
+### Frame capture
+
+The harness's frame capture redirects the CALL 005E65F0 at 004580D7 inside the original 00458010
+(tests/verify/harness_capture.cpp). The rewrite calls the software cursor's lock through that call
+site's current target (read from the rel32 each frame; 005E65F0 when the byte there is not a CALL),
+in the same place: after the game's draw (EndScene) and the interface draw, before the cursor blit
+(005E54A0), the flip (004EF610) and the lock's release (005E6610). The original body behind the
+hook's entry jump is untouched, so the harness still finds and patches the call. The camera-freeze
+skip (the CALL 0040FB30 at 00457595) and the PeekMessageA return addresses (00457119 / 00457610)
+are in WinMain (00456440, Rebirth-patched, not rewritten).
+
+### Verify wrappers
+
+verify_net_lobby, verify_string_map, verify_app_registry, verify_app_dxversion,
+verify_app_device_list, verify_named_float_table (ours only: the name holds the value or is gone,
+the count matches the nodes; CopyPrefixed copies exactly the prefixed entries), verify_key_bindings
+(differential: the original loads first; the bindings and the key texts compared after ours loads
+the same file), verify_net_session_pump (00477E60 differential on a copy of the object's bytes; the
+pump and the start ours only: every driver's player alive; after a start one driver, for the
+player, and no holders).
+
+### Original behaviour kept
+
+- NamedFloatTable::Set tests the value with FCOMP against 0: NaN removes the entry as 0 does.
+- FrameStep's movie capture: without a render target the original passes two stack words it never
+  set as the capture rectangle's size; kept (uninitialised locals).
+- SessionStart writes the new driver's reference count before checking the allocation.
+- The lever table's destructor: a zero-sized record block with a non-null pointer indexes the free
+  lists with (0 - 1) >> 3, as the original does.
+
+### Classified as library (config/library.csv)
+
+161 rows over the round, notes prefixed "range 440 review": the STLport and MFC template
+instantiations of the range (list / vector / hashtable / map members, CArray SetSize / SetAtGrow /
+Add / Serialize / ElementAt, CMap InitHashTable / operator[], ConstructElements with inlined element
+constructors, the named float table's hashtable internals 00460BA0 / 00461750 / 004615B0 /
+004616A0 / 004618F0 / 004613C0 / 00461520 / 004614B0, the vector destructor 00463C60). 0045DE30
+was first taken for a CArray::SetSize; it is a game stream reader (rewritten).
+
+### Skipped
+
+- Rebirth-patched: 00456440 (WinMain), 00443080, 00463390, 00468A00.
+- Static initialisers, run before the hooks are installed: 00444740 (debug panel), 00458870
+  (GameOptions), 0045E820, 004632A0 (the lever table's constructor).
+- Dead (config/dead_code.csv): 00442F00 (only coincidental float bytes refer to it) and the
+  animation exporter's writer and six unreferenced functions (commit f1865fc).
+
+### Forwarders added (the standalone build must replace)
+
+Library: the STLport list insert / erase (0047A450, 0047A480, 0047A380) and node deallocation
+(0047A650, 00404D70, 004648D0, 00406590, 00461710), hashtable resize / new node / operator[] /
+clear / delete node (00461750, 004615B0, 004613C0, 00461540, 004616A0), CArray SetSize (0044FCD0,
+00453790), CStdioFile and CString members (00701B79, 00701C6D, 00701CB0, 00701E93, 00701E23,
+00701FE0, 006FD56E operator+(char), 00700C05), strncmp 006E9180. Game code not rewritten: the
+player queue's 00419CC0, the manager's 00417E40, 00413250, the memory stream reset 00468C20, the
+unit's constructor / destructor body / Destroy (0052E110, 0052E310, 0052E590), the fake unit's
+member at +0x4E0 (00508700, 005087B0, 005088E0, 00508930), 00446C10 (scene loader), 0059F390,
+00578DB0, 004DBF50 (split), the frame step's callees (005F7590, 00503F40, 005F5220, 005040A0,
+005F5320, 005E54A0, 004EF610, 005E6610, 006D6D40, 006D5AC0) and the movie player 005DB3F0.

@@ -5,6 +5,11 @@
 
 #include "ei/hook.h"
 
+#include "ei/vcall.h"
+
+#include <cstring>
+#include <new>
+
 namespace {
 
 const unsigned char* Bytes(const char* s) { return reinterpret_cast<const unsigned char*>(s); }
@@ -60,6 +65,176 @@ float NamedFloatTable::Get(const char* name) {
     return node ? node->value : kZero;
 }
 EI_REPLACE_METHOD(0x00460AF0, NamedFloatTable::Get);
+
+namespace {
+
+// STLport's hashtable internals (library): resize (00461750), _M_new_node (004615B0), the node
+// allocator's deallocate (00461710: 12 bytes back to the pool's free list at 0079B228).
+struct KeyValue {
+    mfc::CString key;
+    float value;
+};
+__declspec(naked) void __fastcall TableResize(NamedFloatTable*, void*, std::uint32_t) EI_ORIGINAL(0x00461750)
+__declspec(naked) NamedFloatTable::Node* __fastcall TableNewNode(NamedFloatTable*, void*, const KeyValue*) EI_ORIGINAL(0x004615B0)
+__declspec(naked) void __fastcall NodeDeallocate(NamedFloatTable::Node*, int) EI_ORIGINAL(0x00461710)
+// clear (00461540), operator[] (004613C0: returns the value's address), _M_delete_node (004616A0).
+__declspec(naked) void __fastcall TableClearAt(NamedFloatTable*) EI_ORIGINAL(0x00461540)
+__declspec(naked) float* __fastcall TableIndex(NamedFloatTable*, void*, const mfc::CString*) EI_ORIGINAL(0x004613C0)
+__declspec(naked) void __fastcall TableDeleteNode(NamedFloatTable*, void*, NamedFloatTable::Node*) EI_ORIGINAL(0x004616A0)
+void TableClear(NamedFloatTable* table) { TableClearAt(table); }
+__declspec(naked) int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
+// operator+(const CString&, char) (AFXAPI, 006FD56E).
+__declspec(naked) mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
+
+std::uint32_t BucketCount(const NamedFloatTable* table) {
+    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(table->finish) -
+                                                       reinterpret_cast<std::uintptr_t>(table->buckets)) >> 2);
+}
+
+void FreeNode(NamedFloatTable* table, NamedFloatTable::Node* node) {
+    reinterpret_cast<mfc::CString*>(&node->key)->~CString();
+    NodeDeallocate(node, 1);
+    --table->count;
+}
+
+// hashtable::erase(key) as STLport writes it: the rest of the chain first, then its head.
+void Erase(NamedFloatTable* table, const char* key) {
+    std::uint32_t bucket = HashString(key) % BucketCount(table);
+    NamedFloatTable::Node* first = table->buckets[bucket];
+    if (!first) return;
+    NamedFloatTable::Node* prev = first;
+    for (NamedFloatTable::Node* cur = first->next; cur;) {
+        if (gamecrt::mbscmp(Bytes(cur->key), Bytes(key)) == 0) {
+            prev->next = cur->next;
+            FreeNode(table, cur);
+            cur = prev->next;
+        } else {
+            prev = cur;
+            cur = cur->next;
+        }
+    }
+    if (gamecrt::mbscmp(Bytes(first->key), Bytes(key)) == 0) {
+        table->buckets[bucket] = first->next;
+        FreeNode(table, first);
+    }
+}
+
+// operator[] as the callers inline it: {key, 0} copied, resize(count + 1), the bucket searched,
+// a new node at the chain's head when the key is absent. Returns the value's address.
+float* Index(NamedFloatTable* table, const mfc::CString& key) {
+    NamedFloatTable::Node* node;
+    {
+        KeyValue entry{key, 0.0f};
+        TableResize(table, nullptr, table->count + 1);
+        std::uint32_t bucket = HashString(entry.key) % BucketCount(table);
+        NamedFloatTable::Node* first = table->buckets[bucket];
+        node = first;
+        while (node && gamecrt::mbscmp(Bytes(node->key), Bytes(entry.key)) != 0) node = node->next;
+        if (!node) {
+            node = TableNewNode(table, nullptr, &entry);
+            node->next = first;
+            table->buckets[bucket] = node;
+            ++table->count;
+        }
+    }
+    return &node->value;
+}
+
+// Iteration in bucket order (STLport's iterator: the chain, then the next non-empty bucket after
+// the node's own, found by hashing its key again).
+NamedFloatTable::Node* First(NamedFloatTable* table) {
+    for (std::uint32_t i = 0; i < BucketCount(table); ++i)
+        if (table->buckets[i]) return table->buckets[i];
+    return nullptr;
+}
+NamedFloatTable::Node* Next(NamedFloatTable* table, NamedFloatTable::Node* node) {
+    if (node->next) return node->next;
+    std::uint32_t bucket = HashString(node->key) % BucketCount(table);
+    while (++bucket < BucketCount(table))
+        if (table->buckets[bucket]) return table->buckets[bucket];
+    return nullptr;
+}
+
+// FCOMP against 0 sets C3 for equal and for unordered operands.
+bool ZeroOrNaN(float value) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &value, 4);
+    bits &= 0x7FFFFFFFu;
+    return bits == 0 || bits > 0x7F800000u;
+}
+
+} // namespace
+
+void NamedFloatTable::Set(const char* name, float value) {
+    if (!*name) return;
+    mfc::CString key(name);
+    if (ZeroOrNaN(value)) {
+        Erase(this, key);
+        return;
+    }
+    *Index(this, key) = value;
+}
+EI_REPLACE_METHOD(0x00460BC0, NamedFloatTable::Set);
+
+void NamedFloatTable::Remove(const char* name) {
+    mfc::CString key(name);
+    Erase(this, key);
+}
+EI_REPLACE_METHOD(0x00460DB0, NamedFloatTable::Remove);
+
+void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
+    std::size_t length = std::strlen(prefix);
+    TableClear(out);
+    for (Node* node = First(this); node; node = Next(this, node))
+        if (Strncmp(prefix, node->key, length) == 0) *TableIndex(out, nullptr, reinterpret_cast<const mfc::CString*>(&node->key)) = node->value;
+}
+EI_REPLACE_METHOD(0x00460EE0, NamedFloatTable::CopyPrefixed);
+
+void NamedFloatTable::Load(void* stream) {
+    // clear() inlined: each chain's nodes freed in order (004616A0), then the count zeroed.
+    for (std::uint32_t i = 0; i < BucketCount(this); ++i) {
+        for (Node* node = buckets[i]; node;) {
+            Node* next = node->next;
+            TableDeleteNode(this, nullptr, node);
+            node = next;
+        }
+        buckets[i] = nullptr;
+    }
+    count = 0;
+    for (;;) {
+        mfc::CString key;
+        {
+            alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
+            mfc::CString* read = StreamReadString(stream, nullptr, raw);
+            key = *read;
+            read->~CString();
+        }
+        if (gamecrt::mbscmp(Bytes(key), Bytes(reinterpret_cast<const char*>(0x0079B298))) == 0) break;
+        float value;
+        ei::VCall<int>(stream, 1, &value, 4u);
+        *Index(this, key) = value;
+    }
+}
+EI_REPLACE_METHOD(0x00460FE0, NamedFloatTable::Load);
+
+void NamedFloatTable::Save(void* stream) {
+    for (Node* node = First(this); node; node = Next(this, node)) {
+        ei::VCall<int>(stream, 2, static_cast<const void*>(node->key), static_cast<unsigned>(std::strlen(node->key) + 1));
+        float value = node->value;
+        ei::VCall<int>(stream, 2, static_cast<const void*>(&value), 4u);
+    }
+    mfc::CString end;
+    ei::VCall<int>(stream, 2, static_cast<const void*>(static_cast<const char*>(end)), static_cast<unsigned>(std::strlen(end) + 1));
+}
+EI_REPLACE_METHOD(0x00461260, NamedFloatTable::Save);
+
+mfc::CString* __fastcall StreamReadString(void* stream, void*, void* out) {
+    mfc::CString text;
+    unsigned char byte;
+    while (ei::VCall<int>(stream, 1, static_cast<void*>(&byte), 1u) && byte) text = PlusChar(text, static_cast<char>(byte));
+    return new (out) mfc::CString(text);
+}
+EI_REPLACE(0x00461190, StreamReadString);
 
 void* __fastcall FindCommandByKey(int key) {
     const auto* keys = reinterpret_cast<const signed char*>(0x0079BF70);

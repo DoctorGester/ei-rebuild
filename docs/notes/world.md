@@ -1065,3 +1065,19 @@ constructors and deleting destructors, counted-pointer helpers, and the sector g
 storage (allocation, resize, reset, release, clear-all: new[]/delete[] of lists, no logic).
 005593D0 (the unit appearance cache) and its twelve hash_map helpers are classified the same way,
 as agreed.
+
+## Object sets
+
+world_object_sets.cpp (0x00440000-0x00480000 worker). The server's SyncPlayer (world_sync.cpp)
+collects the objects a player sees each frame into an aligned pointer array ({data, size,
+capacity, growBy}, blocks from 0047B940).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0047ADF0 | sort-unique: a byte-wise radix sort (four passes of 0047B120), duplicates dropped | ours only: the set strictly increasing |
+| 0047B120 | one radix pass (counts, prefix sums, scatter by one byte) | ours only: the target ordered by that byte |
+| 0047B1F0 | DiffObjectSets: the sorted current set against the set sent before: new objects (one more reference), gone objects (released through slot 4) and kept ones; the sent set becomes the current one | ours only: the three outputs split the sets consistently, the sent set equals the current one |
+| 0047B770 / 0047B880 | the two SetSize variants of the pointer arrays | ours only: the elements kept |
+
+world_sync.cpp's forwarder names its three output arrays added / kept / removed; in the original
+order they are added / gone / same.
