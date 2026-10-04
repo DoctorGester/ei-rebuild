@@ -180,3 +180,12 @@ static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key
     ei::verify::Check("CInterface3D::OnKeyDown", true, flag == 1, "scan %X: flag +%X = %d", scan, offset, flag);
 }
 EI_VERIFY(0x005F78C0, InterfaceKeyDownVerify, 0, s_unused);
+
+// 005F8420: ours only (it consumes the stream). Nothing to compare; it runs only when a save is
+// loaded.
+static void __fastcall LoadStateVerify(CInterface3D* self, void*, void* stream) {
+    self->LoadState(stream);
+    ei::verify::Check("CInterface3D::LoadState", true, true, "version %d",
+                      *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(stream) + 8));
+}
+EI_VERIFY(0x005F8420, LoadStateVerify, 0, s_unused);

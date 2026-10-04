@@ -79,6 +79,11 @@ public:
     // deleted, top first; then 005F8C50, the message pump, and the window opened as PushWindow
     // does (null is fatal). ui_create_screen.cpp.
     void Activate(CUiWindow* window);
+    // 005F8420 (RET 4). Reads the interface's saved state from `stream` (slot 1 reads bytes;
+    // +0x08 the save version): +0x89..+0x8B, +0x8C, +0x90; from version 0x47 +0x94; from 0x56 an
+    // obsolete list (count, then name and value pairs, discarded) and the CString +0xA4; from 0x5D
+    // +0xA8; from 0x5F the CString +0xAC. ui_interface_save.cpp.
+    void LoadState(void* stream);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
