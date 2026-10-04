@@ -177,7 +177,8 @@ void FillMatrixStacks(char* renderer) {
     reinterpret_cast<void(__fastcall*)(void*, void*, float*)>((*static_cast<void***>(transform))[4])(transform, nullptr, copy);
 }
 
-// The pipeline's viewport size (slot 1, floats) and depth range (slot 5, settings +0x264).
+// The pipeline's viewport size (slot 1, floats) and depth range (slot 5: settings +0x264 and +0x1E4;
+// the first version passed only one argument, and the callee's RET 8 then unbalanced the stack).
 void SetViewport(char* renderer, char* settings) {
     char* device = At<char*>(renderer, 0x20);
     void* transform = At<void*>(At<char*>(renderer, 8), 0xC);
@@ -186,8 +187,8 @@ void SetViewport(char* renderer, char* settings) {
     reinterpret_cast<void(__fastcall*)(void*, void*, float, float)>((*static_cast<void***>(transform))[1])(
         transform, nullptr, width, height);
     void* transform2 = At<void*>(At<char*>(renderer, 8), 0xC);
-    reinterpret_cast<void(__fastcall*)(void*, void*, std::uint32_t)>((*static_cast<void***>(transform2))[5])(
-        transform2, nullptr, At<std::uint32_t>(settings, 0x264));
+    reinterpret_cast<void(__fastcall*)(void*, void*, std::uint32_t, std::uint32_t)>((*static_cast<void***>(transform2))[5])(
+        transform2, nullptr, At<std::uint32_t>(settings, 0x264), At<std::uint32_t>(settings, 0x1E4));
 }
 
 // The texture filters of every stage the device can use at once: settings +0x74 picks point (0)

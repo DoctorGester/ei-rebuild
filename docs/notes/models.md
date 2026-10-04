@@ -183,6 +183,11 @@ ambient grey 50, and the helper (+0x24). The helper's flag argument is pushed as
 set: the upper bytes are what the game's operator new left in EDX, reproduced by capturing EDX after
 the same allocation.
 
+Fixed after the in-game crash at start-up: the depth range call (transform object slot 5) takes two
+arguments, settings +0x264 and +0x1E4; the first rewrite passed only the first, so the callee's
+RET 8 popped one dword too many and the function returned through a wrong stack (the crash showed up
+later as a jump to 007AF064).
+
 ### Ribbons (00501D90)
 
 A polyline of world points (16 bytes each) projected by the transform object (mode 0: slot 13 with
