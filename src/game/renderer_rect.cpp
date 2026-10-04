@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "render/render_state.h"
 
 #include <cstdint>
 
@@ -73,6 +74,7 @@ int __fastcall RendererRectangle(char* renderer, void*, int left, int top, int r
         ++At<int>(device, 0x178);
     }
     ComCall(At<void*>(device, 0x54), kSetRenderState, kZBias, 0ul);
+    render::state::Render(kZBias, 0ul);
     if (render::ScreenDraw(device, v, 4, indices, 6)) {
         gameapi::EnterCriticalSection(DeviceLock());
         At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kDrawIndexedPrimitive, kTriangleList, kFvf,
@@ -91,9 +93,13 @@ int __fastcall RendererRectangle(char* renderer, void*, int left, int top, int r
     v[3].x = x1, v[3].y = y0;
     v[4].x = x0, v[4].y = y0;
     ComCall(At<void*>(device, 0x54), kSetRenderState, kShadeMode, kShadeFlat);
+    render::state::Render(kShadeMode, kShadeFlat);
     ComCall(At<void*>(device, 0x54), kSetRenderState, kZBias, 1ul);
+    render::state::Render(kZBias, 1ul);
     At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kSetTextureStageState, 0ul, kColourOp, kOpDisable);
+    render::state::Stage(0, kColourOp, kOpDisable);
     At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kSetTextureStageState, 0ul, kAlphaOp, kOpDisable);
+    render::state::Stage(0, kAlphaOp, kOpDisable);
     if (render::ScreenDraw(device, v, 5, nullptr, 0)) {
         gameapi::EnterCriticalSection(DeviceLock());
         At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kDrawPrimitive, kLineStrip, kFvf, static_cast<void*>(v), 5ul, 0ul);
@@ -101,9 +107,13 @@ int __fastcall RendererRectangle(char* renderer, void*, int left, int top, int r
     }
     Count(device, 5, 1);
     At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kSetTextureStageState, 0ul, kColourOp, kOpModulate);
+    render::state::Stage(0, kColourOp, kOpModulate);
     At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kSetTextureStageState, 0ul, kAlphaOp, kOpModulate);
+    render::state::Stage(0, kAlphaOp, kOpModulate);
     ComCall(At<void*>(device, 0x54), kSetRenderState, kShadeMode, kShadeGouraud);
+    render::state::Render(kShadeMode, kShadeGouraud);
     ComCall(At<void*>(device, 0x54), kSetRenderState, kZBias, 0ul);
+    render::state::Render(kZBias, 0ul);
     return 1;
 }
 EI_REPLACE(0x005041F0, RendererRectangle);

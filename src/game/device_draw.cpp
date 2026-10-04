@@ -8,6 +8,7 @@
 // (source alpha, inverse source alpha) with a second one. See docs/notes/models.md ("Material draw").
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "render/render_state.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -72,6 +73,7 @@ long ComCall(void* object, int slot, Args... args) {
 }
 void SetRenderState(char* device, int state, std::uint32_t value) {
     ComCall(Direct3D(device), kSetRenderState, state, value);
+    render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
 // The texture manager (007AF744): finds or loads a texture by name [00693C60].
@@ -116,6 +118,8 @@ void SetTexCoordIndex(char* device, int stage, std::uint32_t index, bool flagsFi
     if (flagsFirst && index > 0xFFFF) ComCall(Direct3D(device), kSetTextureStageState, stage, kTextureTransformFlags, kCount2);
     ComCall(Direct3D(device), kSetTextureStageState, stage, kTexCoordIndex, index);
     if (!flagsFirst && index > 0xFFFF) ComCall(Direct3D(device), kSetTextureStageState, stage, kTextureTransformFlags, kCount2);
+    if (index > 0xFFFF) render::state::Stage(static_cast<std::uint32_t>(stage), kTextureTransformFlags, kCount2);
+    render::state::Stage(static_cast<std::uint32_t>(stage), kTexCoordIndex, index);
 }
 
 // Single pass: the stage's texture, looked up by name on first use (an inline counted assignment);
@@ -178,6 +182,7 @@ void DrawPasses(char* device, Technique* technique, const DrawArgs& args) {
     SetRenderState(device, kSourceBlend, CurrentMaterial(device)->sourceBlend);
     SetRenderState(device, kDestBlend, CurrentMaterial(device)->destBlend);
     ComCall(Direct3D(device), kApplyStateBlock, technique->blocksBegin[0]);
+    render::state::Block(technique->blocksBegin[0]);
     for (int stage = 0; stage < technique->stageCount; ++stage) {
         MaterialStage& s = CurrentMaterial(device)->stages[stage];
         SetTexCoordIndex(device, stage, s.texCoordIndex, true);
@@ -190,6 +195,7 @@ void DrawPasses(char* device, Technique* technique, const DrawArgs& args) {
         int pass = 1;
         do {
             ComCall(Direct3D(device), kApplyStateBlock, technique->blocksBegin[pass]);
+            render::state::Block(technique->blocksBegin[pass]);
             MaterialStage& s = CurrentMaterial(device)->stages[technique->stageCount + pass - 1];
             SetTexCoordIndex(device, 0, s.texCoordIndex, true);
             SetLaterPassStage(device, s);
@@ -235,6 +241,7 @@ int __fastcall DeviceDrawIndexed(char* device, void*, int primitive, int fvf, vo
             return 1;
         }
         ComCall(Direct3D(device), kApplyStateBlock, technique->blocksBegin[0]);
+        render::state::Block(technique->blocksBegin[0]);
         for (int stage = 0; stage < technique->stageCount; ++stage) {
             SetTexCoordIndex(device, stage, CurrentMaterial(device)->stages[stage].texCoordIndex, false);
             SetSinglePassStage(device, stage, CurrentMaterial(device)->stages[stage]);
@@ -258,6 +265,7 @@ int __fastcall DeviceDrawTwoTextures(char* device, void*, void* first, void* sec
     SetRenderState(device, kAlphaBlendEnable, 1);
     BindStage0(device, second);
     At<long>(device, 8) = ComCall(Direct3D(device), kSetTextureStageState, 0, kTexCoordIndex, 0);
+    render::state::Stage(0, kTexCoordIndex, 0);
     Draw(device, args, triangles);
     return 1;
 }

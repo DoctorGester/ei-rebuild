@@ -9,6 +9,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/gameapi.h"
@@ -38,12 +39,14 @@ void SetRenderState(char* renderer, int state, std::uint32_t value) {
     void* d3d = Field<void*>(renderer, 0x54);
     using Fn = long(__stdcall*)(void*, int, std::uint32_t);
     reinterpret_cast<Fn>((*static_cast<void***>(d3d))[0x50 / 4])(d3d, state, value);
+    render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 void ApplyStateBlock(char* renderer, std::uintptr_t handleAddress) {
     void* d3d = Field<void*>(renderer, 0x54);
     using Fn = long(__stdcall*)(void*, std::uint32_t);
     Field<long>(renderer, 8) = reinterpret_cast<Fn>((*static_cast<void***>(d3d))[0x9C / 4])(
         d3d, *reinterpret_cast<const std::uint32_t*>(handleAddress));
+    render::state::Block(*reinterpret_cast<const std::uint32_t*>(handleAddress));
 }
 constexpr std::uintptr_t kStateBlockScene = 0x007AEDD0;
 constexpr std::uintptr_t kStateBlockAlpha = 0x007AEDD8;

@@ -106,6 +106,10 @@ for objects our code fully owns, and finishes after phase 3.
 - A standalone build target that links `src/` without `src/hook/`; the harness becomes a test
   mode of the exe (same scenario files, same report), so the suite keeps working.
 - The sokol renderer becomes the only renderer; the old Direct3D path and dgVoodoo go.
+- Platform layer: SDL3 for the window, input (replacing DirectInput and window messages) and the
+  main loop (`SDL_PollEvent` where the game calls `PeekMessage`, so WinMain's loop and the nested
+  message pumps keep their shape); sokol_gfx renders into the SDL3 window. Decided 2026-10-04
+  (sokol_app was rejected: it owns the loop). SDL3 is added to the repo only when this phase starts.
 - Before switching: record golden outputs from the original game for the regression net
   (console logs, script expression values and save files of every scenario at fixed points;
   captures for the renderer), so the standalone exe has something to be compared against.

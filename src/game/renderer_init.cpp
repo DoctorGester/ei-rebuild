@@ -5,6 +5,7 @@
 // ambient colour, and creates the counted helper object at +0x24. Runs once at start-up. See
 // docs/notes/models.md ("Renderer creation").
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "ei/x87.h"
 
 #include <bit>
@@ -90,11 +91,13 @@ constexpr int kDirectDrawGetCaps = 11;
 
 void SetRenderState(char* renderer, int state, std::uint32_t value) {
     ComCall(DeviceOf(renderer), kSetRenderState, state, value);
+    render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 // SetTextureStageState; the result goes to the device object's +8, as every call there does.
 void SetStageState(char* renderer, int stage, int type, int value) {
     char* device = At<char*>(renderer, 0x20);
     At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kSetTextureStageState, stage, type, value);
+    render::state::Stage(static_cast<std::uint32_t>(stage), static_cast<std::uint32_t>(type), static_cast<std::uint32_t>(value));
 }
 
 // --- Matrix stacks -------------------------------------------------------------------------------
@@ -268,6 +271,7 @@ void CreateHelper(char* renderer, char* settings) {
 
 // 00500B70 (thiscall, RET 8).
 void __fastcall RendererCreate(char* renderer, void*, void* window, char* settings) {
+    render::state::Reset();   // a new device: nothing it has is known yet
     CreateWindowPart(renderer, nullptr, window, settings);
     EnumerateDrivers();
     char* driver = FirstHardwareDriver();

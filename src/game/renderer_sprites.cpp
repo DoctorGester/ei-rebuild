@@ -11,6 +11,7 @@
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "render/render.h"
 #include "ei/x87.h"
 
@@ -498,6 +499,8 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
         ComCall(Device(renderer), kGetRenderState, kDestBlend, &savedDest);
         ComCall(Device(renderer), kSetRenderState, kSourceBlend, 5);      // D3DBLEND_SRCALPHA
         ComCall(Device(renderer), kSetRenderState, kDestBlend, 2);        // D3DBLEND_ONE
+        render::state::Render(kSourceBlend, 5);
+        render::state::Render(kDestBlend, 2);
     }
 
     ScreenSize screen;
@@ -519,6 +522,8 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     if (additive) {
         ComCall(Device(renderer), kSetRenderState, kSourceBlend, savedSource);
         ComCall(Device(renderer), kSetRenderState, kDestBlend, savedDest);
+        render::state::Render(kSourceBlend, static_cast<std::uint32_t>(savedSource));
+        render::state::Render(kDestBlend, static_cast<std::uint32_t>(savedDest));
     }
     return 1;
 }

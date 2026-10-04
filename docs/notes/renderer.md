@@ -24,8 +24,8 @@ decals), the interface windows' surfaces, the renderer's rectangles (rubber band
 software cursor, and the depth clears in the middle of the frame; the escape menu's and save
 game's screen copy comes from the new frame. Checked in game: terrain, meshes, interface
 (`render_scene`, section 8). Also handed over: every pre-transformed draw of the renderer
-(particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points). Not drawn
-yet: weather (rain and snow, 004E4240 / 004E4C80 draw with the device directly, not rewritten). Movies (Bink) are handed over; the trade grid's depth clears too (00627390 rewritten).
+(particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points) and the
+weather (after its builders draw). Movies (Bink) are handed over; the trade grid's depth clears too (00627390 rewritten).
 The switch-over mode `present` exists (section 5, "Switch-over").
 
 ## 1. The switch (EI_RENDER)
@@ -151,7 +151,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Depth clears | the battle screen's before its panels (00636020), the hero preview's (005EC300: all to 0, its rectangles to 1) | `render::ClearDepth` | drawn; 00627390 (not rewritten) missing |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX slots 8 / 9 / 11 / 12 into a surface), ground quad 0056C750, drawn with 004EA4A0 | 004EA4A0 (rewritten) -> `render::BeginMesh` without corners (per-vertex positions, one colour pair, depth scale); the texture from the render surface right after 0051CE60 copies it (`render::TextureChanged`) | drawn |
 | Particles, ribbons, lightning, hit points, vision fog | the renderer's pre-transformed draws: sprites 00502CA0 -> 00503680 (particles, the vision fog's quads), ribbons 00501D90 -> 00502A20 (lightning), triangles 00501BB0 (rewritten, `renderer_triangles.cpp`: flying hit points) | `render::TlDraw` at the three draws (vertices after the fog pass, the old device's state) | drawn; later: the particle data itself instead of its screen quads |
-| Weather | rain and snow quads (004E5680 -> 004E4240 / 004E4C80, 2.6 KB each, not rewritten) drawn with the device directly | - | missing |
+| Weather | rain and snow quads built by 004E4240 / 004E4C80 (2.6 KB each, not rewritten; procedural placement) into pre-transformed vertices (+0x70, count +0x74, indices +0x84) and drawn with the device directly | the weather draw 004E5680 rewritten (`weather_draw.cpp`): after the rain / snow returns, its triangles go to `render::TlDraw` with the device state of that moment | drawn; the old draw stays (the two builders are not split yet) |
 | Sky | the sky object (004D96E0: a model at the camera, turning with time) | the figure path | with objects |
 | Interface surfaces | CUiSurface (0x38 bytes): +0x0C flags (1 colour key, 2 whole surface stretched, 4 shown), +0x10 the surface holder, +0x24 the screen rectangle, +0x34 the colour key; the DirectDraw surface's pixels (read with a read-only Lock when its uniqueness value changed) | the blit 005FDA80 (rewritten: `ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn (overlay) |
 | Rectangle fills | renderer slot 19 (005041F0): a translucent black quad (alpha argument) and optionally its outline | 005041F0 rewritten (`renderer_rect.cpp`) -> `render::ScreenDraw` (pre-transformed triangles, line strip) | drawn |
@@ -206,23 +206,49 @@ data, shows it in the child window over the whole client area, and the old path 
 what is handed over and never flips or copies its back buffer. The old Direct3D 7 device (dgVoodoo
 in our runs) is still created and still used, because:
 
-1. **Textures are DirectDraw surfaces.** The game loads every texture (.mmp) into managed DirectDraw
-   surfaces and the new renderer reads them back (Lock). Needed: textures from the .mmp files
-   directly (`texture*.cpp` hands the decoded pixels over at load time).
+1. **Textures are DirectDraw surfaces.** Done for the .mmp textures: 00690430 hands the file data
+   over at load and the new renderer decodes the levels the game loads (`render::TextureFromMmp`:
+   DXT1 / DXT3 blocks, 8888, 4444, 5551, 5650 by the header's channel masks; textures.res holds
+   704 DXT1, 70 8888, 39 4444, 39 5551, 38 5650, 21 DXT3). A texture is read from its surface only
+   when something writes to it later (its uniqueness value changes) or it does not come from an
+   .mmp: loose .bmp overrides (00690260), the item pictures ("PNT3", 973 in textures.res, decoded
+   by the game into textures it writes itself), the shadow textures (taken from their render
+   surface already). Left: those, then the DirectDraw texture objects themselves.
 2. **The interface is composed on DirectDraw surfaces** with GDI (GetDC / ReleaseDC, text, fills)
    and pixel code (locks), then read back on change. Needed: the window surfaces as DIB sections or
    CPU buffers (GDI works on a DIB section the same way), or native interface drawing (step 6).
-3. **Pass state is read back from the old device** (render states, texture stage states, the
-   bound textures; materials are opaque state blocks). Needed: the materials from the game's
-   data (technique and stage definitions) and the few explicit state changes the draw code makes
-   handed over as values.
-4. **CPU paths into surfaces**: the shadow rasteriser (2DintMMX into a render surface, then a
-   device Load), Bink (BinkCopyToBuffer into a locked surface), the software cursor's surfaces,
-   the screen copies. Each needs a CPU buffer instead.
-5. **Not handed over yet**: weather (004E4240 / 004E4C80 draw with the device directly). With
-   `present` the old path still draws it into its back buffer, but the new frame copied over it
-   hides it, so it is missing on screen. (Particles, ribbons, lightning, hit points and the vision
-   fog are handed over at the renderer's pre-transformed draws.)
+3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
+   place that sets a render state, a texture stage state or applies a state block on the old device
+   also calls `render::state::Render / Stage / Block` with the same values (13 files so far:
+   device_draw, renderer_init (and a reset at device creation), renderer_rect, renderer_sprites,
+   renderer_strip, terrain_draw, world_client_draw, ui_camp, ui_create_screen, ui_hero_preview,
+   ui_hud, ui_item_view, ui_objectives). The device records only four state blocks, at its creation
+   (004E6392..004E67BD, handles in 007AEDDC / D8 / D4 / D0), each a stage-0 setup; a material's
+   technique is a list of those handles plus its blend factors and texture records:
+   | handle | colour | alpha |
+   |---|---|---|
+   | 007AEDDC | texture x current (MODULATE) | texture (SELECTARG1) |
+   | 007AEDD8 | texture x diffuse | texture x diffuse |
+   | 007AEDD4 | texture x diffuse | texture (SELECTARG1) |
+   | 007AEDD0 | texture x diffuse | diffuse (SELECTARG1) |
+   A pass takes its states from this mirror; a state nothing has fed yet is read from the old device
+   and logged once ("render: pass state: render state N not fed by the game code yet"), with a count
+   every 20000 passes of the passes that still needed the old device. The verify build also reads
+   every fed state back and logs disagreements ("fed X but the old device has Y": a writer in code
+   not converted, e.g. the renderer's state presets 00501C60 that particles use); the device's
+   value is drawn then. Remaining writers are in functions not rewritten yet.
+4. **CPU paths into surfaces**: the shadow rasteriser now draws into a CPU buffer (the surface's
+   layout), which goes to the new renderer (`render::TexturePixels`) and is then copied into the
+   render surface for the old path's texture load. Bink decodes each frame into a CPU buffer too
+   (BinkCopyToBuffer's 32-bit R, G, B, X type 4, checked offline against the 5:6:5 decode of a game
+   movie) for the new renderer (`render::MovieFrame / MovieBlit`); with `present` the video's
+   DirectDraw surface is not filled at all. Left: the software cursor (its image comes from a
+   texture loaded by 005E4EB0 into a surface, not rewritten; read back each frame) and the screen
+   copies (written into DirectDraw surfaces the interface draws from: with point 2).
+5. **Draws the old path still makes**: the weather's (004E4240 / 004E4C80 build and draw in one
+   function; the new renderer takes the triangles after they return). Everything in the world view
+   and the interface is handed over; with `present` the old back buffer is overwritten by the new
+   frame.
 8. **Presenting through the old path** costs a full-frame readback and conversion per frame (33 MB
    at 3840x2160): a staging copy kept between frames, 32-bit BGRX written directly. Fine for the
    switch-over; the final form presents from the new renderer's own swap chain once dgVoodoo's is

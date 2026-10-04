@@ -5,6 +5,7 @@
 #include "random.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
@@ -74,6 +75,7 @@ W* FromInput(void* input) {
 // IDirect3DDevice7::SetRenderState / GetRenderState through the device's vtable.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
     using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t);
+    render::state::Render(static_cast<std::uint32_t>(state), value);
     return reinterpret_cast<Fn>(device->vtable_[20])(device, state, value);
 }
 long GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
