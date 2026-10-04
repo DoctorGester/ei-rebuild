@@ -339,6 +339,39 @@ PlayerNumbers (moved from EI_Plugin: a call in 0066C180). Disabled: SetDefaultRa
 - Disabled: SavesPath, ConfigMusicReg, ConfigStreamSNReg, ConfigMovieIni, ConfigLightsIni,
   ConfigTutorialIni.
 
+**Deferred (2026-10-04), with what addon does.** Apart from NivalRegistry these are the starter's
+mod loader: they look in the selected mod's folders first and otherwise do what the game does. The
+install runs the Standard mod (`starter\Mods\Standard`: only config.reg and Rebirth.txt, no Maps,
+Res, Movies, Camera or Stream folders), so in the runs we have they pass through; only the other
+mods (IronMod ships a Res folder) would exercise them, and no harness run selects one. Reproducing
+them means rewriting WinMain and about thirty loader and resource functions around addon's override
+file system; that belongs with the standalone's resource layer. Status "deferred" in the CSV.
+
+- NivalRegistry (apply 1001DEC8): the PUSH at 004568E9 feeds `CString::operator=` (00700AF9) on the
+  registry root 007AF450. Every registry read goes through that root, ours included (no rewrite
+  names the Nival key), so rewrites follow it in Rebirth. WinMain stays original: the harness keys
+  on its return addresses (the deterministic clock, input steps).
+- Maps (apply 1001B442): at start addon lists `<mod>\Maps<sub>\*.*` recursively (1001B092; a `.mq`
+  file sets the flag 100BB9CC) into 100BB8B8. Each of the 9 loader hooks (stubs 1001B36C-1001B41D,
+  redoing the replaced instructions; sites 5-9 load ECX = 007AFF60 from 100BA658) passes the zone
+  name and a site number to 1001B314, which logs "PatchMaps Maps" and, when the name is in the list
+  (for site 5: when the mod has an .mq file), points 100BB9D0 at the mod's path (100BD57C), else at
+  the game's 007AF460. The SetPath hook in 0055E990 pushes [100BB9D0] in place of 007AF460. With no mod maps
+  the list is empty and 007AF460 is used, as in the original.
+- ResOverride (apply 100207E9): ResOpen/ResClose (00671738 in OpenResource, 006714A2 in
+  CMappedResource::Destroy) call 100203F0 / 10020342; ResInit1-4 (0068E648, 005AA544, 004F6952
+  figures, 006915EF textures) build addon's tables once (1001FD2E: for every archive of the mod's
+  list, open its override files through the game and log "PatchRes Init1") and register the
+  archives the game opens; the 4 mask finds (calls of 00674AC0) and 13 finds (calls of 00671B40)
+  go to 100201FD / 1002012F, and the file-find vtable slot 007432F4 to 10020735. The mod's list is
+  empty for Standard, so every lookup falls back to the game's archives. Our rewrites OpenResource
+  00671730 and CMappedResource::Destroy 006714A0 therefore stay vanilla-only (patched sites).
+- MoviesPatch (apply 1001C21C; only when 100BCF7C is set): the BinkOpen import becomes addon
+  1001BB61 (the mod's movies first). CameraPatch (1001C25C): the CFile::Open (007011E8) of the
+  camera file in 0040ECD0 becomes addon 1001BDAD. StreamPatch (1001C37D): the CString concatenation
+  (00700B9F) in 006BB3A0 that builds a stream's path becomes addon 1001BD90, with a "Stream\" search
+  list (100BE0BC).
+
 ### Crash handling and infrastructure (2 of 9 applied)
 
 - **DisableExitOnCrashReport** (single player) - FatalError (00480080) logs its text instead of
@@ -561,7 +594,7 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 | Patch | Work | Estimate |
 |---|---|---|
 | WideScreen | 100 sites in ~45 functions, the layout maths of addon's replacements, VIDEORESOLUTION | 2-3 weeks |
-| NivalRegistry, Maps, ResOverride, Movies/Camera/StreamPatch | path policy (mod folders, starter key); belongs with the standalone's resource layer | 1 week |
+| NivalRegistry, Maps, ResOverride, Movies/Camera/StreamPatch | deferred: path policy (mod folders, starter key), pass-through with the Standard mod; belongs with the standalone's resource layer ("Resources and paths" above) | 1 week |
 | multiplayer (5 addon + EI_Plugin features) | lobby, master server, network code | later, with multiplayer |
 
 ## Shims and forwarders added

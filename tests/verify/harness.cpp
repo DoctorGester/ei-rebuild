@@ -12,7 +12,10 @@
 //   key <key>                 press and release a key in the game window: a letter or digit,
 //                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus,
 //                             grave (the console key), backspace, delete, home, end, pgup, pgdn, ctrl,
-//                             enterchar (Enter with its WM_CHAR, as text input such as the console needs)
+//                             enterchar (Enter with its WM_CHAR, as text input such as the console needs).
+//                             Input steps (key and the mouse steps below) are posted from the game's
+//                             main loop only: the pump that window switches run drops waiting input
+//                             (see PeekMessageHook)
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
 //                             interface screen is designed for (scaled to the window's client size)
@@ -127,6 +130,9 @@ volatile bool g_quitting = false;
 bool g_running = false;
 bool g_inStep = false;
 char g_reportPath[MAX_PATH];
+// Whether the PeekMessageA call running the steps is one that hands input to the game (see
+// PeekMessageHook): "key", mouse and region steps wait for one.
+bool g_inputLoop = false;
 
 std::vector<std::string> g_console;          // every console line so far
 std::size_t g_expectFrom = 0;                // first line "expect" looks at
@@ -740,6 +746,12 @@ void PostRegionMouse(const std::string& verb, int index) {
     }
 }
 
+// The steps that post input messages to the game window.
+bool IsInputStep(const std::string& verb) {
+    return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
+           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion";
+}
+
 // Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
 // the game (and Rebirth) install their own filters, which can leave a crashed game hanging.
 LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
@@ -853,6 +865,10 @@ void RunSteps() {
             std::size_t space = s.argument.find(' ');
             s.verb = s.argument.substr(0, space);
             s.argument = space == std::string::npos ? "" : s.argument.substr(space + 1);
+        }
+        if (!g_inputLoop && IsInputStep(s.verb)) {
+            --g_next;   // posted from the next main loop pass instead (see PeekMessageHook)
+            return;
         }
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
         if (s.verb == "wait") {
@@ -1063,12 +1079,32 @@ void KeepGameWindowActive() {
     Log("harness: the game window stays active when it loses focus");
 }
 
+// Posted input reaches the game only through its main loop (WinMain 00456440: PeekMessageA, then
+// GetMessageA and the input dispatcher 00457970) or the movie player's loop (005DB3F0: Esc and
+// Space). Every other PeekMessageA call comes from the game's pump 00458220, which interface window
+// switches run (CInterface3D::Activate 005F71C0 when the battle screen opens after a new game,
+// PushWindow, closing windows) to discard the input waiting meanwhile: what it removes goes to the
+// window procedure, which ignores keys and mouse. Steps can run inside it, so input steps posted
+// there were lost (the console scenario's keys, when the battle screen opened after its waitfor);
+// they wait for one of these calls instead (identified by the return address).
+constexpr std::uintptr_t kInputLoopReturns[] = {
+    0x00457119,   // WinMain, before the frame
+    0x00457610,   // WinMain, after the frame
+    0x005DB788,   // the movie player
+};
+bool IsInputLoop(const void* returnAddress) {
+    for (std::uintptr_t r : kInputLoopReturns)
+        if (reinterpret_cast<std::uintptr_t>(returnAddress) == r) return true;
+    return false;
+}
+
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
     TraceFpu("in the message loop");
     KeepGameWindowActive();
     if (g_running && !g_inStep) {
         g_inStep = true;   // console commands can pump messages themselves
+        g_inputLoop = IsInputLoop(_ReturnAddress());
         RunSteps();
         g_inStep = false;
     }
