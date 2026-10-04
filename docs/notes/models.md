@@ -183,6 +183,11 @@ ambient grey 50, and the helper (+0x24). The helper's flag argument is pushed as
 set: the upper bytes are what the game's operator new left in EDX, reproduced by capturing EDX after
 the same allocation.
 
+Fixed after the in-game crash at start-up: the depth range call (transform object slot 5) takes two
+arguments, settings +0x264 and +0x1E4; the first rewrite passed only the first, so the callee's
+RET 8 popped one dword too many and the function returned through a wrong stack (the crash showed up
+later as a jump to 007AF064).
+
 ### Ribbons (00501D90)
 
 A polyline of world points (16 bytes each) projected by the transform object (mode 0: slot 13 with
@@ -295,3 +300,81 @@ what those slots usually hold.
   invariants, not side by side; the pure helpers are compared with the original.
 - 00502CA0's radix and merge passes compare only when a batch has more than 128 (radix) or 2..128
   (merge) visible particles; a big fire or a long spell gives both.
+
+## Unit skins (00568800)
+
+Files: `src/game/unit_skins.cpp`, `tests/verify/verify_unit_skins.cpp`. Shared files: none.
+
+| Address | Name | Verify |
+|---|---|---|
+| 00568800 | `BuildUnitSkins` (thiscall on the zone client object, RET 8: others, dressed) | ours only (texture cache and figure maker side effects): the two record vectors are left as they were |
+
+Called by the zone load 00567AB0 (Rebirth-patched for its map paths; this function is not), so by
+every zone load. `this` +0x18C is the texture cache, +0x34 the figure maker.
+
+- Dressed units (the second argument, 0x24-byte records: +0 the prototype index into 007AF358
+  (0x120 bytes, +8 the model index into 007AF398, 0x168 bytes, +0xE8 its texture prefix), +4 the
+  item ids (7 dwords: 0 head, 1 / 2 the weapons, 3..6 the armour), +0x10 / +0x1C a weapon list and
+  an index byte, +0x20 the unit number or -1): the texture records (005683D0 with 1) are copied
+  into the set's byte array (SetSize inlined), the names are "<prefix>skin_NN.mmp" (NN the
+  prototype's +0xC; "skin_00" without a prototype), each armour piece and the weapons
+  "<prefix><item>.mmp" (006A3480; the weapon whose armour record +0xB8 is lower first when both
+  are there), and the set (size 256) is composed by the cache (00693180, name "mo<n>p" or
+  "prot<prototype>p") and registered (00693F10, kind 1); then the records again with 0, the head
+  item and the extra weapon (weapon 0056E440 and material 0056E400 records, 006A0BF0), size 128,
+  "mo<n>s" / "prot<n>s", kind 2. The names are built with the original's inlined strcpy / strcat
+  into 256-byte buffers.
+- Other units (the first argument, 0x3C-byte records): their texture names (from the prototype,
+  00535CB0, when the record's name list +0x30 is empty, else the record's names appended to a
+  vector<string> after an inlined reserve) are joined with the second list (00575E50) and given
+  to the figure maker's slot 3 with the model prefix and the record's +0x24 / +0x28 / +0x2C.
+
+## Flat geometry draw (004EA4A0)
+
+Files: `src/game/device_shadow.cpp`, `tests/verify/verify_device_shadow.cpp`.
+
+| Address | Name | Verify |
+|---|---|---|
+| 004EA4A0 | `DeviceDrawFlat` (device thiscall, RET 0x24) | ours only: result 0 / 2; with one vertex per position every vertex carries the colour pair |
+
+Callers: the object shadows (0051CE60), the renderer (00503A40), 006CEDE0. Arguments: positions
+(blocks of four), one (u, v) per vertex, the block count, indices and their count, the colour and
+specular of every vertex, a value for the projection, a z scale. The projection is the pipeline's
+004F2650 (projected vertices into 007AEE10, sized ten times the vertex count, outcodes into
+007AEE30). On screen: the vertices (projected position, the colour pair, the texture coordinate,
+all copied as qwords) go to the vertex buffer (004E7820, always null) or to 007AEE00, z is scaled
+(FLD scale, FMUL z) unless the scale compares equal to 1 (NaN too), and 004EB550 draws them.
+Crossing: buffers for ten times the vertices and indices, the outcodes copied to 007AEE20, the
+transform object's clipper (slot 37), the counts set (kept contents), slot 34, then the scale and
+the draw unless a count is 0. Returns 2 when nothing is visible, else 0.
+
+## Material draw (004EB550, 004EB370)
+
+Files: `src/game/device_draw.cpp`, `tests/verify/verify_device_draw.cpp`.
+
+| Address | Name | Verify |
+|---|---|---|
+| 004EB550 | `DeviceDrawIndexed` (device thiscall, RET 0x1C) | ours only: result 1; the call, vertex and triangle counters grow once per pass |
+| 004EB370 | `DeviceDrawTwoTextures` (RET 0x24) | ours only: result 1; two calls; the second surface stays on stage 0 |
+
+004EB550 takes DrawIndexedPrimitive's arguments (used by 004E9010 and 004EA4A0). The device's
+current material (+0x14C): +8 blend flag, +0xC / +0x10 source / destination blend, +0x14 the
+technique (+8 / +0xC a vector of state block handles, one per pass; +0x14 the first pass's stage
+count), +0x18 the stage records (0x14 bytes: texture coordinate index, the texture name as an STLport
+string, +0x10 the texture, counted, looked up through the texture manager 00693C60 on first use).
+- No material: one draw.
+- Blend flag: alpha blending on with the material's factors; otherwise, with at most one pass,
+  blending off.
+- One pass: state block 0, then per stage the coordinate index (and D3DTTFF_COUNT2 when it is a
+  generated one, above 0xFFFF), the texture's surface through 004EB300; a stage without texture or
+  name unbinds the device's stage texture (+0x12C) once (flush 004E7840, SetTexture, +0x178).
+- Several passes: the three blend states are saved, blending set from the material, state block 0
+  and every first-pass stage (here the transform flags come before the index, and a texture found
+  by name goes through 004EBE60 and 004EBAF0), a draw; then each further pass applies its state
+  block, puts stage record `stageCount + pass - 1` on stage 0 and draws again; the blend states are
+  restored.
+
+Each draw holds the device lock 007AEE78, stores the HRESULT at +8 and adds the vertices, indices / 3
+and one call to +0x16C / +0x170 / +0x174. 004EB370 (004E9A50's draw): the first surface on stage 0
+(as 004EB300 does it, inline), a draw, then source alpha / inverse source alpha with blending on,
+the second surface, texture coordinate index 0 (HRESULT kept), a second draw.

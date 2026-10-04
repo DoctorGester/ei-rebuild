@@ -69,7 +69,9 @@ Add `--no-hooks` to run the same scenario on the original code only, as a baseli
 code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to the DLL does the same
 permanently, and a scenario can ask with `rebirthflags <names>`. Harness runs
 need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
-saves and `config\tutorial.ini` go to `build\verify\harness_saves`, settings are not written to the
+saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
+its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `config\addrbook.ini`,
+`mp\*.mp`, ...) goes to a copy-on-write overlay there (reads prefer the overlay copy), settings are not written to the
 registry, and a game that hangs on exit (Rebirth) is ended 10 s after the scenario quits. When the game crashes,
 the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions.
 
