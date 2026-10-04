@@ -905,7 +905,7 @@ Finished from the list above (third round):
 | Address | Function | Verify |
 | --- | --- | --- |
 | 00579E60 | LoadMission (__stdcall) | logged |
-| 0059F0F0 | CFigureMesh::CopyFrom | ours only: sizes match the source |
+| 0059F0F0 | CFigureMesh::CopyFrom | ours only: descriptors and bounds equal the source |
 | 0059F510 | CFigureMesh::SetPose (quaternion pose) | differential |
 | 005ACE80 | LoadMenuRects (menus.reg, 11 rects) | ours only: no all-zero rectangle |
 
