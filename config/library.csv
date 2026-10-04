@@ -3195,3 +3195,7 @@ address,name,library,signature,notes
 00445780,stlp::operator< (basic_string),STLport,,"range 440 review: STLport template instantiation (string comparison), not game logic"
 004457F0,"stlp::pair<const string,string> scalar deleting destructor",STLport,,"range 440 review: compiler-generated destructor of an STLport pair, not game logic"
 00445810,stlp::basic_string::compare,STLport,,"range 440 review: STLport template instantiation (string comparison), not game logic"
+00444B10,CFont scalar deleting destructor (the CFont vtable instantiated at 0073BFB4),MFC,,"range 440 review: MFC class member instantiated in the game's module (vtable 0073BFB4: GetRuntimeClass 0070BFBF), not game logic"
+00444B30,CFont destructor (CGdiObject::DeleteObject),MFC,,"range 440 review: MFC class member instantiated in the game's module, not game logic"
+00444B70,CGdiObject scalar deleting destructor (MFC vtable at 007463D8),MFC,,"range 440 review: MFC class member instantiated in the game's module, not game logic"
+00444B90,CGdiObject destructor (DeleteObject),MFC,,"range 440 review: MFC class member instantiated in the game's module, not game logic"

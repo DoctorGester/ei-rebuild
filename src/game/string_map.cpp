@@ -1,9 +1,16 @@
-// The string table at 0079B930 (vtable 0073BFA4 on the abstract 0073BFAC): an STLport
-// map<string, string> at +4 with a setter (slot 0) and a remover (slot 1); 004447D0 returns the
-// table. The map's algorithms are library code. The constructor (00444740) runs from a static
-// initialiser before the hooks are installed and is not rewritten. See
-// docs/notes/unmapped_410_470.md ("Ninth round").
+// The debug information panel at 0079B930 (vtable 0073BFA4 on the abstract 0073BFAC): an STLport
+// map<string, string> at +4 with a setter (slot 0) and a remover (slot 1), drawn as "key  value"
+// lines (shadowed, 15 pixels apart) into a panel surface of the interface at most twice a second.
+// 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
+// constructor (00444740) runs from a static initialiser before the hooks are installed and is not
+// rewritten. See docs/notes/unmapped_410_470.md ("Ninth round").
+//   +0x10 the interface, +0x14 the panel surface (0x38 bytes), +0x18 the font (CFont),
+//   +0x1C the rectangle on screen, +0x2C the rectangle asked for (+0x34 / +0x38 its corner),
+//   +0x3C shown, +0x40 the tick of the last drawing.
 #include "ei/hook.h"
+#include "ei/vcall.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/stlp.h"
 
 #include <cstdint>
@@ -131,5 +138,168 @@ void __fastcall StringTableDestruct(void* self) {
     }
 }
 EI_REPLACE(0x00444690, StringTableDestruct);
+
+// ---- The panel ---------------------------------------------------------------------------------
+
+namespace {
+
+template <typename T>
+T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset); }
+
+// The font (MFC CFont, library), the interface's panel rectangles, the panel surface and its DC
+// (an MFC CDC: slots 10 SelectObject(CFont*), 12 SetTextColor, 26 DrawText), the red-black tree's
+// increment (library).
+__declspec(naked) int __fastcall FontCreatePoint(void*, void*, int /*size*/, const char* /*face*/, void* /*dc*/) EI_ORIGINAL(0x0070BBE5)
+__declspec(naked) void __fastcall InterfaceFitRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7CA0)
+__declspec(naked) void __fastcall InterfaceSetPanelRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7DA0)
+__declspec(naked) void* __fastcall PanelConstruct(void*, void*, void* /*ui*/, RECT*, int) EI_ORIGINAL(0x005FCDD0)
+__declspec(naked) void __fastcall PanelDestruct(void*) EI_ORIGINAL(0x005FD120)
+__declspec(naked) void* __fastcall PanelDC(void*) EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void __fastcall PanelReleaseDC(void*) EI_ORIGINAL(0x005FDC60)
+__declspec(naked) void __fastcall DcFillSolidRect(void*, void*, int, int, int, int, COLORREF) EI_ORIGINAL(0x0070BB04)
+__declspec(naked) int __fastcall DcSetBkMode(void*, void*, int) EI_ORIGINAL(0x007090C2)
+__declspec(naked) void __fastcall TreeIncrement(Node**) EI_ORIGINAL(0x0043DBE0)
+__declspec(naked) void __fastcall PanelRedrawAt(void*) EI_ORIGINAL(0x00444D00)
+__declspec(naked) void __fastcall PanelShowAt(void*, void*, std::uint8_t) EI_ORIGINAL(0x00444F50)
+__declspec(naked) void __fastcall PanelSetRectAt(void*, void*, const RECT*) EI_ORIGINAL(0x00444C10)
+
+constexpr int kDcSelectFont = 10;
+constexpr int kDcSetTextColor = 12;
+constexpr int kDcDrawText = 26;
+
+void DrawString(void* dc, const StringRep& s, RECT* rect) {
+    ei::VCall<int>(dc, kDcDrawText, static_cast<const char*>(s.start), static_cast<int>(s.finish - s.start), rect, 0x800u);
+}
+
+} // namespace
+
+// 00444A70: binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
+void __fastcall PanelInit(void* self, void*, void* ui) {
+    At<void*>(self, 0x10) = ui;
+    At<void*>(self, 0x14) = nullptr;
+    At<std::uint8_t>(self, 0x3C) = 0;
+    auto* font = static_cast<std::uint32_t*>(gamecrt::operator_new(8));
+    if (font) {
+        font[1] = 0;
+        font[0] = 0x0073BFB4;   // CFont
+    }
+    At<void*>(self, 0x18) = font;
+    if (!FontCreatePoint(font, nullptr, 0x5A, reinterpret_cast<const char*>(0x007842C8), nullptr)) {
+        if (void* f = At<void*>(self, 0x18)) ei::VCall<void>(f, 1, 1);
+        At<void*>(self, 0x18) = nullptr;
+    }
+    RECT rect = {10, 10, 0x122, 0x122};
+    PanelSetRectAt(self, nullptr, &rect);
+}
+EI_REPLACE(0x00444A70, PanelInit);
+
+// 00444BD0: frees the panel surface and the font.
+void __fastcall PanelRelease(void* self) {
+    if (void* surface = At<void*>(self, 0x14)) {
+        PanelDestruct(surface);
+        gamecrt::operator_delete(surface);
+    }
+    At<void*>(self, 0x14) = nullptr;
+    if (void* font = At<void*>(self, 0x18)) ei::VCall<void>(font, 1, 1);
+    At<void*>(self, 0x18) = nullptr;
+}
+EI_REPLACE(0x00444BD0, PanelRelease);
+
+// 00444C10: the panel's rectangle: fitted by the interface, at least 100 x 15 and at most the
+// screen (the interface's +0 / +4); a shown panel is made again.
+void __fastcall PanelSetRect(void* self, void*, const RECT* rect) {
+    void* ui = At<void*>(self, 0x10);
+    int width = At<int>(ui, 0);
+    int height = At<int>(ui, 4);
+    RECT& asked = At<RECT>(self, 0x2C);
+    asked = *rect;
+    InterfaceFitRect(ui, nullptr, &asked);
+    int dx = asked.right - asked.left;
+    int dy = asked.bottom - asked.top;
+    if (dx < 100) dx = 100;
+    if (dx > width) dx = width;
+    if (dy < 15) dy = 15;
+    if (dy > height) dy = height;
+    asked.right = asked.left + dx;
+    asked.bottom = asked.top + dy;
+    RECT& shown = At<RECT>(self, 0x1C);
+    shown = asked;
+    InterfaceSetPanelRect(At<void*>(self, 0x10), nullptr, &shown);
+    if (At<std::uint8_t>(self, 0x3C)) {
+        PanelShowAt(self, nullptr, 0);
+        PanelShowAt(self, nullptr, 1);
+    }
+}
+EI_REPLACE(0x00444C10, PanelSetRect);
+
+// 00444CD0: redraws at most every 500 ms, then the panel surface's slot 0.
+void __fastcall PanelTick(void* self) {
+    DWORD now = gameapi::timeGetTime();
+    if (now - At<DWORD>(self, 0x40) > 500) {
+        At<DWORD>(self, 0x40) = now;
+        PanelRedrawAt(self);
+    }
+    if (void* surface = At<void*>(self, 0x14)) ei::VCall<void>(surface, 0);
+}
+EI_REPLACE(0x00444CD0, PanelTick);
+
+// 00444D00: clears the panel and draws each entry (the key in the left half, the value in the
+// right half; a dark copy one pixel down and right first) until the next line would not fit.
+void __fastcall PanelRedraw(void* self) {
+    void* surface = At<void*>(self, 0x14);
+    if (!surface) return;
+    void* dc = PanelDC(surface);
+    RECT& asked = At<RECT>(self, 0x2C);
+    DcFillSolidRect(dc, nullptr, 0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
+    DcSetBkMode(dc, nullptr, 1);
+    void* oldFont = ei::VCall<void*>(dc, kDcSelectFont, At<void*>(self, 0x18));
+    RECT key = {0, 0, (asked.right - asked.left) / 2, 20};
+    RECT value = {(asked.right - asked.left) / 2, 0, asked.right - asked.left, 20};
+    Tree& tree = TreeOf(self);
+    Node* it = tree.header->left;
+    while (it != tree.header) {
+        ei::VCall<COLORREF>(dc, kDcSetTextColor, static_cast<COLORREF>(0x080808));
+        RECT shadow = key;
+        gameapi::OffsetRect(&shadow, 1, 1);
+        RECT r = shadow;
+        DrawString(dc, it->key, &r);
+        shadow = value;
+        gameapi::OffsetRect(&shadow, 1, 1);
+        r = shadow;
+        DrawString(dc, it->value, &r);
+        ei::VCall<COLORREF>(dc, kDcSetTextColor, static_cast<COLORREF>(0xFFFFFF));
+        DrawString(dc, it->key, &key);
+        DrawString(dc, it->value, &value);
+        gameapi::OffsetRect(&key, 0, 15);
+        gameapi::OffsetRect(&value, 0, 15);
+        if (key.bottom > asked.bottom - asked.top) break;
+        TreeIncrement(&it);
+    }
+    ei::VCall<void*>(dc, kDcSelectFont, oldFont);
+    PanelReleaseDC(At<void*>(self, 0x14));
+}
+EI_REPLACE(0x00444D00, PanelRedraw);
+
+// 00444F50: shows the panel (its surface made when missing, drawn at once) or hides it (the
+// surface freed).
+void __fastcall PanelShow(void* self, void*, std::uint8_t show) {
+    At<std::uint8_t>(self, 0x3C) = show;
+    if (show) {
+        if (!At<void*>(self, 0x14)) {
+            void* memory = gamecrt::operator_new(0x38);
+            At<void*>(self, 0x14) =
+                memory ? PanelConstruct(memory, nullptr, At<void*>(self, 0x10), &At<RECT>(self, 0x1C), 5) : nullptr;
+        }
+        At<DWORD>(self, 0x40) = gameapi::timeGetTime();
+        PanelRedrawAt(self);
+        return;
+    }
+    if (void* surface = At<void*>(self, 0x14)) {
+        PanelDestruct(surface);
+        gamecrt::operator_delete(surface);
+    }
+    At<void*>(self, 0x14) = nullptr;
+}
+EI_REPLACE(0x00444F50, PanelShow);
 
 } // namespace strmap
