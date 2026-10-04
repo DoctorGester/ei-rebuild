@@ -86,6 +86,11 @@ struct MeshDraw {
     float zScale;                      // the depth is multiplied by it (0 taken as 1)
 };
 
+// A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
+// `mip` on (`levels` of them) that the game loads into the surface of `holder` (a CDXSurface). The
+// new renderer decodes them from the file instead of reading the surface back.
+void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
+
 // The game copied new pixels into a texture's surface (CDXSurface) with Direct3D from `source`
 // (a CDXSurface the CPU wrote; the shadow textures, 0051CE60): the new renderer takes them from
 // `source` now.
