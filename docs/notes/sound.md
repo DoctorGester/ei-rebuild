@@ -217,3 +217,29 @@ sample position 0; its volume, base volume, pan and length stay as operator new 
 (original). A voice gets the fields, then UpdatePositional (volume and pan from the listener); a
 silent one-shot returns -1; the wave is loaded with 0 as the loader's last argument; the rest is
 the shared tail (StartLoaded).
+
+## LoadSample, the wave cache (006B89F0)
+
+| Address | Name | Verify |
+|---|---|---|
+| 006B89F0 | `CSoundManager::LoadSample` (RET 0x10) | ours only: 0, or 1 with the voice playing under the newest handle and named after the wave, a cache node of that name (unless an MP3 was found cached), the byte count not negative |
+
+`sound.h` now names the cache: `cacheBytes` (+0x850), `cacheList` (+0x854: head +0x858, tail +0x85C;
+`WaveNode` 0x24 bytes = next, prev, `WaveRecord` {Miles data, name, last use, size, uses}),
+`waveSources` (+0xE8, the archives: slot 5 loads a file, slot 6 frees it). The fourth argument
+(called `cached` before) means "the file is an MP3": Play2D passes its own last argument, Play3D 0.
+
+- Found in the cache (map +0x870, find 006BC0C0): without the MP3 flag the node is taken out
+  (record copied, node freed 006BD560), its last use set to GetTickCount and its uses + 1, and it
+  goes back in at the front (006BD4F0 / 006BD1B0), the map entry re-pointed (pair 006BC140,
+  find-or-insert 006BCC20); the length (006B96E0, the original inlines the same computation) and
+  AIL_set_named_sample_file. With the flag nothing is loaded (original).
+- Not cached: the first archive whose slot 5 returns data. An MP3 is decompressed with
+  AIL_decompress_ASI (".mp3", callback 006B89B0) and the archive's copy freed (failure: 0). Else the
+  cache is trimmed from its old end: a wave used within the last 60 s while the cache plus the new
+  wave stays under 8 MB stops the walk; otherwise a node with no uses is freed (AIL_mem_free_lock,
+  bytes, map erase 006BCCD0, unlink). The new record (uses 1) adds its size to the byte count; a WAV
+  is copied into AIL_mem_alloc_lock memory (archive copy freed), put at the front and given with
+  AIL_set_named_sample_file; an MP3 keeps the decoded buffer, goes to the back and is given with
+  AIL_set_sample_file(sample, data, size). Then the length (006B96E0).
+- Either way the voice's name, playing flag and a new handle (+0x268) are set; no archive: 0.
