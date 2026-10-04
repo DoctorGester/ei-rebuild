@@ -367,6 +367,9 @@ public:
     // 005B9690 (RET 8, AL; ai_join.cpp). Joins the forward and backward local searches where they
     // meet: the path into `cells`, the summed cost into `cost` (optional); false when they cannot.
     bool JoinLocalSearches(struct PathCellList* cells, int* cost);
+    // 005B9A20 (RET 0xC; ai_join.cpp). The path to cell (x, y) walked back along the direction marks
+    // (+0x26BC) into `path` (emptied first).
+    void BuildCellsTo(int x, int y, struct PathCellList* path);
     // 005B7EF0 (RET 8; ai_water_patch.cpp). Adds (or lifts) the water depths around `position` as
     // a pseudo unit of the small-unit layer.
     void StampWaterPatch(const Vector3* position, bool add);
