@@ -49,3 +49,17 @@ void __fastcall ServerCollectVerify(ServerSession* self, void*, ReplicatedVector
 
 EI_VERIFY(0x00412D80, ServerConstructVerify, 7, s_construct);
 EI_VERIFY(0x00417EB0, ServerCollectVerify, 5, s_collect);
+
+namespace {
+// 004186F0: ours only (it loads the map and changes the server's lists); the name is kept at +0x25D4.
+void __fastcall SetMapVerify(net::ServerSession* self, void*, const net::StringRep* name) {
+    self->SetMap(name);
+    std::size_t n = static_cast<std::size_t>(name->finish - name->start);
+    ei::verify::Check("ServerSession::SetMap", true,
+                      static_cast<std::size_t>(self->string_25D4.finish - self->string_25D4.start) == n &&
+                          std::memcmp(self->string_25D4.start, name->start, n) == 0,
+                      "");
+}
+void* s_unusedSetMap;
+} // namespace
+EI_VERIFY(0x004186F0, SetMapVerify, 0, s_unusedSetMap);

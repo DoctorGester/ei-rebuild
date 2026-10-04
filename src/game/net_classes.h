@@ -232,6 +232,8 @@ struct ServerSession {
 
     // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
     ServerSession* Construct(std::uint32_t arg);
+    // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
+    void SetMap(const StringRep* name);
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);
