@@ -193,6 +193,16 @@ void* __fastcall ClientFindParty(ClientSession* self) {
 }
 EI_REPLACE(0x0041E220, ClientFindParty);
 
+// 0041E180: a changed party description (dirty) is marked clean with its version moved on, so it
+// is sent again.
+void __fastcall ClientCommitParty(ClientSession* self) {
+    auto* state = static_cast<PartyState*>(self->unknown_260C);
+    if (!state || !state->dirty) return;
+    state->dirty = 0;
+    ++static_cast<PartyState*>(self->unknown_260C)->version;
+}
+EI_REPLACE(0x0041E180, ClientCommitParty);
+
 // 0041DDC0: rebuilds the second party (+0x2690) from the paired description, once every message of
 // it holds data. Each message gives (when its first dword is positive) an object made through the
 // party's slot 22 factory (slot 23 with the stored prototype and that id; +0x18 and its slot 9

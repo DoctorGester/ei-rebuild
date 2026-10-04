@@ -3,6 +3,8 @@
 // byte-identical code. They are registered with the core implementation.
 #include "core_refcount.h"
 
+#include <cstdint>
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 
@@ -58,6 +60,85 @@ EI_REPLACE(0x0047A430, RefPtrRelease);
 EI_REPLACE(0x0047CA80, RefPtrRelease);
 EI_REPLACE(0x0047D170, RefPtrRelease);
 EI_REPLACE(0x0047D7B0, RefPtrRelease);
+EI_REPLACE(0x00438A10, RefPtrRelease);
+EI_REPLACE(0x00439910, RefPtrRelease);
+
+// The same release of the counted pointer at +4 (the destructor of a pair whose second member is
+// the RefPtr). 4 copies.
+void __fastcall PairReleaseSecond(void* self) {
+    RefPtrRelease(reinterpret_cast<RefPtr*>(static_cast<std::uint8_t*>(self) + 4));
+}
+EI_REPLACE(0x004215A0, PairReleaseSecond);
+EI_REPLACE(0x00438A30, PairReleaseSecond);
+EI_REPLACE(0x00438A50, PairReleaseSecond);
+EI_REPLACE(0x00438A70, PairReleaseSecond);
+
+// The holder cleared without a release (MOV [ECX],0). 17 copies.
+void __fastcall RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
+EI_REPLACE(0x00421360, RefPtrClear);
+EI_REPLACE(0x00421370, RefPtrClear);
+EI_REPLACE(0x00421380, RefPtrClear);
+EI_REPLACE(0x00421390, RefPtrClear);
+EI_REPLACE(0x004213A0, RefPtrClear);
+EI_REPLACE(0x004213B0, RefPtrClear);
+EI_REPLACE(0x004213C0, RefPtrClear);
+EI_REPLACE(0x004213D0, RefPtrClear);
+EI_REPLACE(0x004213E0, RefPtrClear);
+EI_REPLACE(0x004213F0, RefPtrClear);
+EI_REPLACE(0x004214B0, RefPtrClear);
+EI_REPLACE(0x004214C0, RefPtrClear);
+EI_REPLACE(0x004214D0, RefPtrClear);
+EI_REPLACE(0x004214E0, RefPtrClear);
+EI_REPLACE(0x004214F0, RefPtrClear);
+EI_REPLACE(0x00421550, RefPtrClear);
+EI_REPLACE(0x00438A00, RefPtrClear);
+
+// The default constructor (null), returning the holder. 9 copies.
+RefPtr* __fastcall RefPtrNull(RefPtr* self) {
+    self->ptr = nullptr;
+    return self;
+}
+EI_REPLACE(0x0041FF50, RefPtrNull);
+EI_REPLACE(0x0041FF60, RefPtrNull);
+EI_REPLACE(0x0041FF70, RefPtrNull);
+EI_REPLACE(0x0041FF80, RefPtrNull);
+EI_REPLACE(0x0041FFC0, RefPtrNull);
+EI_REPLACE(0x0041FFD0, RefPtrNull);
+EI_REPLACE(0x0041FFE0, RefPtrNull);
+EI_REPLACE(0x00438A90, RefPtrNull);
+EI_REPLACE(0x00438F50, RefPtrNull);
+
+// A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
+// the holder (the original also zeroes a dead stack slot). 16 copies.
+RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object) {
+    self->ptr = object;
+    return self;
+}
+EI_REPLACE(0x00427D50, RefPtrFromRaw);
+EI_REPLACE(0x00427FD0, RefPtrFromRaw);
+EI_REPLACE(0x00427FE0, RefPtrFromRaw);
+EI_REPLACE(0x00428030, RefPtrFromRaw);
+EI_REPLACE(0x00428040, RefPtrFromRaw);
+EI_REPLACE(0x00428050, RefPtrFromRaw);
+EI_REPLACE(0x00428060, RefPtrFromRaw);
+EI_REPLACE(0x00428070, RefPtrFromRaw);
+EI_REPLACE(0x00428080, RefPtrFromRaw);
+EI_REPLACE(0x00428A10, RefPtrFromRaw);
+EI_REPLACE(0x00428C00, RefPtrFromRaw);
+EI_REPLACE(0x00428C10, RefPtrFromRaw);
+EI_REPLACE(0x00428C20, RefPtrFromRaw);
+EI_REPLACE(0x00428C30, RefPtrFromRaw);
+EI_REPLACE(0x00428C40, RefPtrFromRaw);
+EI_REPLACE(0x00428DE0, RefPtrFromRaw);
+
+// A holder of a raw pointer with a reference added, returning the holder. 2 copies.
+RefPtr* __fastcall RefPtrFromRawCounted(RefPtr* self, void*, CRefObject* object) {
+    self->ptr = object;
+    if (object) ++object->refs_;
+    return self;
+}
+EI_REPLACE(0x0040A770, RefPtrFromRawCounted);
+EI_REPLACE(0x0041DD50, RefPtrFromRawCounted);
 
 // The owning pointer's constructor from a raw pointer (RefPtr::Share, 00418BE0, which returns
 // nothing) as the instantiations emit it out of line: the same body, returning the holder.

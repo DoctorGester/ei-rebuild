@@ -268,6 +268,8 @@ struct ServerSession {
     void ShareFile(const StringRep* name, GameBuffer* data);
     // 0041A7E0 (slot 15, net_server_entry.cpp). Makes `*out` a server entry describing this server.
     void Describe(RefPtr* out);
+    // 00417E10. Whether the server is announced to the master server (port 28004).
+    void SetPublic(bool announce);
     // 0041A310 (net_server_chat.cpp). Keeps a chat or system line for the clients (`player` null
     // for the server's own; at most 50 lines).
     void Announce(const char* text, CRefObject* player);

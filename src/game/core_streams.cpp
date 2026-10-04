@@ -28,6 +28,8 @@ void* DeleteIf(void* self, unsigned flags) {
 void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, kRefObjectRootVtable); }
 EI_REPLACE(0x00412720, RefObjectDestructBase);
 EI_REPLACE(0x00413430, RefObjectDestructBase);   // byte-identical copy
+EI_REPLACE(0x00412960, RefObjectDestructBase);   // byte-identical copy
+EI_REPLACE(0x004368C0, RefObjectDestructBase);   // byte-identical copy
 
 void* __fastcall RefObjectDeletingDestructor(void* self, void*, unsigned flags) {
     SetVtable(self, kRefObjectRootVtable);

@@ -25,6 +25,12 @@ void __fastcall DescribeVerify(net::ServerSession* self, void*, RefPtr* out) {
     }
     ei::verify::Check("ServerSession::Describe", true, ok, "");
 }
+
+void __fastcall SetPublicVerify(net::ServerSession* self, void*, bool announce) {
+    self->SetPublic(announce);
+    ei::verify::Check("ServerSession::SetPublic", true, self->unknown_2574 == static_cast<std::uint8_t>(announce), "");
+}
 } // namespace
 
 EI_VERIFY(0x0041A7E0, DescribeVerify, 0, s_unused);
+EI_VERIFY(0x00417E10, SetPublicVerify, 0, s_unused);

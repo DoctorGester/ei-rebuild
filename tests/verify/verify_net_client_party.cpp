@@ -16,6 +16,7 @@ RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, Message* message
 void __fastcall ClientPublishParty(ClientSession* self);
 void* __fastcall ClientFindParty(ClientSession* self);
 void __fastcall ClientApplyParty(ClientSession* self);
+void __fastcall ClientCommitParty(ClientSession* self);
 }
 
 namespace {
@@ -62,8 +63,29 @@ void __fastcall ApplyPartyVerify(net::ClientSession* self) {
     net::ClientApplyParty(self);
     ei::verify::Check("ClientApplyParty", true, true, "");
 }
+
+// 0041E180: MOV EAX,[ECX+0x260C] (6). Side by side on a copy of the description's 0x30 bytes.
+void(__fastcall* s_commit)(net::ClientSession*);
+void __fastcall CommitVerify(net::ClientSession* self) {
+    auto* state = static_cast<std::uint8_t*>(self->unknown_260C);
+    if (!state) {
+        s_commit(self);
+        net::ClientCommitParty(self);
+        ei::verify::Check("ClientCommitParty", true, true, "");
+        return;
+    }
+    alignas(4) std::uint8_t before[0x30];
+    std::memcpy(before, state, sizeof(before));
+    s_commit(self);
+    alignas(4) std::uint8_t expected[0x30];
+    std::memcpy(expected, state, sizeof(expected));
+    std::memcpy(state, before, sizeof(before));
+    net::ClientCommitParty(self);
+    ei::verify::Check("ClientCommitParty", true, std::memcmp(expected, state, sizeof(expected)) == 0, "");
+}
 } // namespace
 
+EI_VERIFY(0x0041E180, CommitVerify, 6, s_commit);
 EI_VERIFY(0x00429FC0, FindVerify, 5, s_find);
 EI_VERIFY(0x0041E220, FindPartyVerify, 8, s_findParty);
 EI_VERIFY(0x0041DDC0, ApplyPartyVerify, 0, s_unused);

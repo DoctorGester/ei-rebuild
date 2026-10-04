@@ -26,6 +26,8 @@ __declspec(naked) void __fastcall StringAppendTag(StringRep* /*s*/, void*, const
 __declspec(naked) void __fastcall ServerEntryConstructBase(void* /*entry*/) EI_ORIGINAL(0x004413E0)
 __declspec(naked) void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /*out CString*/) EI_ORIGINAL(0x005814C0)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
+// A sockaddr_in from a host name and a port (the socket driver, 00440000).
+__declspec(naked) void __fastcall MasterAddressInit(void* /*address*/, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
 
 constexpr std::uintptr_t kServerEntryVtable = 0x0073BB28;
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
@@ -102,9 +104,18 @@ void ServerSession::Describe(RefPtr* out) {
         out->Share(reinterpret_cast<CRefObject*>(entry));
     }
 }
+// 00417E10: whether the server is announced to the master server (+0x2574); when it is, the
+// master's address (+0x257C) is set from the host name at 0079BED8 and port 28004.
+void ServerSession::SetPublic(bool announce) {
+    unknown_2574 = announce;
+    if (announce) MasterAddressInit(unknown_257C, nullptr, *reinterpret_cast<const char* const*>(0x0079BED8), 0x6D64);
+}
+
 namespace {
+void __fastcall SetPublicHook(ServerSession* self, void*, bool announce) { self->SetPublic(announce); }
 void __fastcall DescribeHook(ServerSession* self, void*, RefPtr* out) { self->Describe(out); }
 } // namespace
 EI_REPLACE(0x0041A7E0, DescribeHook);
+EI_REPLACE(0x00417E10, SetPublicHook);
 
 } // namespace net
