@@ -113,6 +113,21 @@ public:
     void StringField(int id, stlp::string* s);        // 00409470
     int CountChunks(int id);                          // 00409A60 (in the current chunk)
 
+    // Chunk primitives (chunk_archive.cpp). A chunk's content is a run of children, each an id
+    // byte, a length byte (len << 1) or, when bit 0 is set, a dword (len << 1 | 1), and len bytes.
+    struct Ref {
+        std::uint8_t id;
+        std::uint8_t unknown_01[3];
+        std::int32_t offset;     // of the content in the data buffer (+0x40)
+        std::int32_t size;
+        std::int32_t occurrence;
+    };
+    bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);           // 00409070
+    bool AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);  // 00409110
+    bool FindChild(const Ref* parent, int id, Ref* out, int occurrence);         // 004091C0
+    int CountChildrenOf(const Ref* parent, int id);                              // 00409230
+    void ResizeToCurrent();                                                      // 00409A40
+
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1
     // per record (`occurrence` selects the record); loading replaces the vector's contents.
     // The third argument (the callers pass the database file's data) is unused but popped: RET 0xC.
