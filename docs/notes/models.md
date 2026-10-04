@@ -342,3 +342,34 @@ all copied as qwords) go to the vertex buffer (004E7820, always null) or to 007A
 Crossing: buffers for ten times the vertices and indices, the outcodes copied to 007AEE20, the
 transform object's clipper (slot 37), the counts set (kept contents), slot 34, then the scale and
 the draw unless a count is 0. Returns 2 when nothing is visible, else 0.
+
+## Material draw (004EB550, 004EB370)
+
+Files: `src/game/device_draw.cpp`, `tests/verify/verify_device_draw.cpp`.
+
+| Address | Name | Verify |
+|---|---|---|
+| 004EB550 | `DeviceDrawIndexed` (device thiscall, RET 0x1C) | ours only: result 1; the call, vertex and triangle counters grow once per pass |
+| 004EB370 | `DeviceDrawTwoTextures` (RET 0x24) | ours only: result 1; two calls; the second surface stays on stage 0 |
+
+004EB550 takes DrawIndexedPrimitive's arguments (used by 004E9010 and 004EA4A0). The device's
+current material (+0x14C): +8 blend flag, +0xC / +0x10 source / destination blend, +0x14 the
+technique (+8 / +0xC a vector of state block handles, one per pass; +0x14 the first pass's stage
+count), +0x18 the stage records (0x14 bytes: texture coordinate index, the texture name as an STLport
+string, +0x10 the texture, counted, looked up through the texture manager 00693C60 on first use).
+- No material: one draw.
+- Blend flag: alpha blending on with the material's factors; otherwise, with at most one pass,
+  blending off.
+- One pass: state block 0, then per stage the coordinate index (and D3DTTFF_COUNT2 when it is a
+  generated one, above 0xFFFF), the texture's surface through 004EB300; a stage without texture or
+  name unbinds the device's stage texture (+0x12C) once (flush 004E7840, SetTexture, +0x178).
+- Several passes: the three blend states are saved, blending set from the material, state block 0
+  and every first-pass stage (here the transform flags come before the index, and a texture found
+  by name goes through 004EBE60 and 004EBAF0), a draw; then each further pass applies its state
+  block, puts stage record `stageCount + pass - 1` on stage 0 and draws again; the blend states are
+  restored.
+
+Each draw holds the device lock 007AEE78, stores the HRESULT at +8 and adds the vertices, indices / 3
+and one call to +0x16C / +0x170 / +0x174. 004EB370 (004E9A50's draw): the first surface on stage 0
+(as 004EB300 does it, inline), a draw, then source alpha / inverse source alpha with blending on,
+the second surface, texture coordinate index 0 (HRESULT kept), a second draw.
