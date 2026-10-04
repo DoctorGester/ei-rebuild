@@ -1,6 +1,7 @@
 // Game textures in the new renderer: a CTexture's pixels are read once from its DirectDraw surface
-// (the managed texture the old path loaded, CTexture +0x5C -> +0x10), converted to RGBA8 (any RGB
-// mask layout, or DXT1-5), given a box-filtered mip chain and kept as a sokol image. Later the
+// (the managed texture the old path loaded, CTexture +0x5C -> +0x10) with its mip levels,
+// converted to RGBA8 (any RGB mask layout, or DXT1-5) and kept as a sokol image; levels the surface
+// lacks are box-filtered. Later the
 // textures will come from the .mmp files directly; reading the surface keeps the first steps small.
 #include "render_internal.h"
 
@@ -154,11 +155,14 @@ bool Convert(const DDSURFACEDESC2& d, std::vector<std::uint8_t>& out) {
     return true;
 }
 
-sg_image MakeImage(int width, int height, const std::vector<std::uint8_t>& level0, const char* label) {
-    // Box-filtered mip chain down to 1x1.
-    std::vector<std::vector<std::uint8_t>> levels;
-    levels.push_back(level0);
+// An RGBA8 image from `levels` (level 0 first, as read from the game's surface); levels the surface
+// did not have are box-filtered from the last one, down to 1x1.
+sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>> levels, const char* label) {
     int w = width, h = height;
+    for (std::size_t i = 1; i < levels.size(); ++i) {
+        w = w > 1 ? w / 2 : 1;
+        h = h > 1 ? h / 2 : 1;
+    }
     while ((w > 1 || h > 1) && levels.size() < SG_MAX_MIPMAPS) {
         int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
         const std::vector<std::uint8_t>& src = levels.back();
@@ -195,20 +199,18 @@ sg_view MakeTextureView(sg_image image) {
 
 const Texture& White() {
     if (!g_white.image.id) {
-        std::vector<std::uint8_t> pixel(4, 255);
-        g_white.image = MakeImage(1, 1, pixel, "ei-white");
+        g_white.image = MakeImage(1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white");
         g_white.view = MakeTextureView(g_white.image);
     }
     return g_white;
 }
 
-// Reads `surface` (an IDirectDrawSurface7) into RGBA8.
-bool ReadSurface(void* surface, int* width, int* height, std::vector<std::uint8_t>& pixels) {
-    auto* dd = static_cast<IDirectDrawSurface7*>(surface);
-    DDSURFACEDESC2 desc{};
+// Reads one level of a surface into RGBA8. `hr` gets the Lock result.
+bool ReadLevel(IDirectDrawSurface7* dd, int* width, int* height, std::vector<std::uint8_t>& pixels, DDSURFACEDESC2& desc,
+               HRESULT& hr) {
+    desc = DDSURFACEDESC2{};
     desc.dwSize = sizeof(desc);
-    LockGameDevice();
-    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
+    hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
     bool ok = SUCCEEDED(hr) && desc.lpSurface && desc.dwWidth && desc.dwHeight;
     if (ok) {
         ok = Convert(desc, pixels);
@@ -216,6 +218,42 @@ bool ReadSurface(void* surface, int* width, int* height, std::vector<std::uint8_
         *height = static_cast<int>(desc.dwHeight);
     }
     if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+    return ok;
+}
+
+// Reads `surface` (an IDirectDrawSurface7) and the mip levels attached to it (the game loads the
+// .mmp file's own mipmaps) into RGBA8 levels.
+bool ReadSurface(void* surface, int* width, int* height, std::vector<std::vector<std::uint8_t>>& levels) {
+    auto* dd = static_cast<IDirectDrawSurface7*>(surface);
+    DDSURFACEDESC2 desc{};
+    HRESULT hr = S_OK;
+    std::vector<std::uint8_t> pixels;
+    LockGameDevice();
+    bool ok = ReadLevel(dd, width, height, pixels, desc, hr);
+    if (ok) {
+        levels.push_back(std::move(pixels));
+        int w = *width, h = *height;
+        IDirectDrawSurface7* level = dd;
+        level->AddRef();
+        while ((w > 1 || h > 1) && levels.size() < SG_MAX_MIPMAPS) {
+            DDSCAPS2 caps{};
+            caps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_MIPMAP;
+            IDirectDrawSurface7* next = nullptr;
+            if (FAILED(level->GetAttachedSurface(&caps, &next)) || !next) break;
+            level->Release();
+            level = next;
+            int lw = 0, lh = 0;
+            DDSURFACEDESC2 ld{};
+            HRESULT lhr = S_OK;
+            std::vector<std::uint8_t> lp;
+            int ew = w > 1 ? w / 2 : 1, eh = h > 1 ? h / 2 : 1;
+            if (!ReadLevel(level, &lw, &lh, lp, ld, lhr) || lw != ew || lh != eh) break;
+            levels.push_back(std::move(lp));
+            w = ew;
+            h = eh;
+        }
+        level->Release();
+    }
     UnlockGameDevice();
     if (!ok && g_failures++ < 10)
         ei::Log("render: cannot read texture surface %p (Lock %08lX, format flags %08lX, FourCC %08lX, %lu bits)", surface,
@@ -241,11 +279,11 @@ sg_view TextureView(const void* texture) {
         g_textures.erase(it);
     }
     int width = 0, height = 0;
-    std::vector<std::uint8_t> pixels;
+    std::vector<std::vector<std::uint8_t>> levels;
     Texture t;
     t.surface = surface;
-    if (ReadSurface(surface, &width, &height, pixels)) {
-        t.image = MakeImage(width, height, pixels, "ei-game-texture");
+    if (ReadSurface(surface, &width, &height, levels)) {
+        t.image = MakeImage(width, height, std::move(levels), "ei-game-texture");
         t.view = MakeTextureView(t.image);
     }
     if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {

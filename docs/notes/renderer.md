@@ -121,7 +121,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Clear colour | renderer +0x14 (00501A40 clears with it) | EndFrame | used |
 | Render target size | device object 007AF080 -> +0x18 (CDXSurface +0x14 / +0x18) | EndFrame | used |
 | Terrain sectors | SectorData (terrain_sector.h): world positions +0x17C (33x33 per layer, water layer after the ground), vertex records +0x190 (0x54 bytes: lit colour +0x11, specular / fog +0x15), tile lists per quarter and page +0x314 (9 entries per tile: record pointer, u, v), tile edge flags +0x2C4, quarter visibility +0x144 (2 = outside), level of detail +0x170, seam flags +0x174 / +0x178, owner TerrainFields +0x1C | DrawSectorPage (006BFF40) per visible page | drawn (ground and water) |
-| Terrain textures | TerrainFields +0xD8: CTexture* per page, index page % (pages + 2); CTexture +0x5C -> +0x10 the managed DirectDraw surface | TerrainPage, read once (Lock), converted to RGBA8 + mipmaps | used; later from the .mmp files |
+| Terrain textures | TerrainFields +0xD8: CTexture* per page, index page % (pages + 2); CTexture +0x5C -> +0x10 the managed DirectDraw surface and its attached mip levels | TerrainPage, read once (Lock), converted to RGBA8 | used; later from the .mmp files |
 | Objects | CollectVisible's per-class visible and shadow lists (client world 007AF5B4); per object the model matrix +0x54 and the figure state +0x98 | the figure part draws 005A7A70 / 005A7640 (rewritten) | next |
 | Figure meshes | CFigureMesh: positions in blocks of four (morphed / animated by the game), colours +0x138 / speculars +0x148 (lit by the game: 005A7A70 step 3), texture coordinates, offsets +0xCC / +0xD0, flat colour +0xD4; material +0x14C of the device (blend, technique stages, textures by name through 00693C60) | DeviceDrawMesh 004E9010 / 004E9A50, DeviceDrawIndexed 004EB550 (rewritten) | next |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX slots 8 / 9 / 11 / 12 into a surface), ground quad 0056C750, drawn with 004EA4A0 | 0051CE60 / 004EA4A0 (rewritten) | later (or GPU shadows) |
@@ -203,10 +203,19 @@ has the full per-call inventory.
   -0.5..0.5 square covers pixels 16..47 of 64), colours, readback, the split view.
 - **In game, per feature**: at one frozen moment capture the old frame (A), the old frame without
   the feature (`oldterrain off`, later `oldobjects off`, ...: B), and the new renderer's frame (N);
-  compare N with A only where A and B differ:
-  `python tools\compare_frames.py N A --mask A B` (scenario `render_terrain`). Expected
-  differences: shadows and decals on the terrain (old frame only, not ported yet), the half-pixel and
-  filtering details, the fog.
+  compare N with A only where A and B differ and B shows the clear colour (nothing in front of the
+  feature: no translucent interface panel, object or shadow):
+  `python tools\compare_frames.py N A --mask A B --mask-background` (scenario `render_terrain`).
+  `toolsrame_preview.py` writes a downscaled side-by-side PNG of captures.
+- **Terrain, first run** (vanilla, 3840x2160): with the plain mask 29.6 % of the masked pixels
+  differed (the mask held the translucent interface panels and the objects' shadows, which the new
+  frame does not have yet); with `--mask-background` (51.5 % of the frame is terrain with nothing in
+  front) **1.80 %** differ by more than 8, mean 1.15 per channel, the average colours equal to 0.1.
+  The rest is on steep rock slopes: texture detail under strong minification. The new renderer now
+  reads the textures' own mip levels (the .mmp file's, attached to the surface) instead of
+  box-filtering level 0. The light strip at the top of the new frame is the far fogged sea and the
+  clear colour between the last water pages; the old frame draws the sky object there (and the
+  interface's top bar covers it).
 - **Freeze stability**: `samecapture world world_again` in frames_basic and render_terrain (two
   captures in one frozen moment must match).
 - Cross-run comparisons are not meaningful (no determinism); the A/B above is always within one run.
