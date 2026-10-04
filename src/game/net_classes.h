@@ -244,6 +244,9 @@ struct ServerSession {
     // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
     // shares of the zone's two values and the host's items, then the map state is dropped.
     void CompleteZone(const StringRep* zone);
+    // 00418CC0. The zone leaving command ("<zone>_2"): the host's items with the final award, then
+    // the map state is dropped and the world's map cleared.
+    void LeaveZone();
     // 004191C0. Queues the host's item awards of map registry `entry` (and, with `withFinal`, the
     // final award).
     void AwardHost(const std::uint8_t* entry, bool withFinal);

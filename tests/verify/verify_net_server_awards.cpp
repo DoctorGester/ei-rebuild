@@ -3,7 +3,8 @@
 //    copied on share, and the result marked copy-on-share.
 //  - QueueAward: the pending awards end with {60.0, the award (a copy: it is shared)}, the award
 //    holding the kind and the value.
-//  - AwardHost, CompleteZone: ours only.
+//  - AwardHost, CompleteZone, LeaveZone: ours only (the last two leave the queued messages empty
+//    and no map message held).
 #include "net_verify.h"
 
 #include "../../src/game/net_classes.h"
@@ -59,8 +60,16 @@ void __fastcall CompleteZoneVerify(net::ServerSession* self, void*, const net::S
     void** messages = static_cast<void**>(self->list_25AC);
     ei::verify::Check("ServerSession::CompleteZone", true, messages[0] == messages && messages[1] == messages, "");
 }
+
+void __fastcall LeaveZoneVerify(net::ServerSession* self) {
+    self->LeaveZone();
+    void** messages = static_cast<void**>(self->list_25AC);
+    ei::verify::Check("ServerSession::LeaveZone", true,
+                      messages[0] == messages && messages[1] == messages && self->unknown_25A8 == 0, "");
+}
 } // namespace
 
+EI_VERIFY(0x00418CC0, LeaveZoneVerify, 0, s_unused);
 EI_VERIFY(0x004263F0, CopyVerify, 0, s_unused);
 EI_VERIFY(0x00419D90, QueueAwardVerify, 0, s_unused);
 EI_VERIFY(0x004191C0, AwardHostVerify, 0, s_unused);

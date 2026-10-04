@@ -36,6 +36,11 @@ __declspec(naked) void __fastcall Element25ACDestroy(void* /*element*/, void*, i
 __declspec(naked) void __fastcall FreeNode(void* /*node*/, std::size_t /*n*/) EI_ORIGINAL(0x00426920)
 __declspec(naked) void __fastcall List25B0Clear(void* /*list*/) EI_ORIGINAL(0x00427100)
 __declspec(naked) void __fastcall List2598Clear(void* /*list*/) EI_ORIGINAL(0x004271C0)
+__declspec(naked) void __fastcall StringDestroyB(StringRep* /*s*/) EI_ORIGINAL(0x0040C720)
+__declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
+__declspec(naked) void __fastcall Element25B0Destroy(void* /*element*/, void*, int /*flags*/) EI_ORIGINAL(0x004292C0)
+__declspec(naked) void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00422390)
+__declspec(naked) void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x0057ED60)
 // The pending awards (+0x25B4): push_back of {delay, award}.
 __declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00422F70)
 
@@ -47,6 +52,7 @@ __declspec(naked) void** __fastcall MapRegistryFind(void* /*registry*/, void*, c
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
+constexpr std::uintptr_t kMapSuffix = 0x00783D70;      // "_1"
 constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
 constexpr std::uintptr_t kEmptyText = 0x0079B298;      // ""
 
@@ -274,7 +280,63 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     ServerResetMapList(this);
 }
 
+// 00418CC0: the zone leaving command ("<zone>_2"). When a map message is held: announces the
+// map's title (text 6) and, when the map registry knows "<map>_1", queues the host's items with
+// the final award. Then drops the map message, empties the queued messages (+0x25AC), +0x25B0
+// and +0x2598, resets the map list (00418530) and clears the world's map (0057ED60 with null).
+void ServerSession::LeaveZone() {
+    auto* holder = reinterpret_cast<RefPtr*>(&unknown_25A8);
+    if (Live(holder->ptr)) {
+        std::uint32_t title = 0, text = 0;   // CStrings
+        void* titleOut = WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title);
+        void* textOut = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &text, 6, *static_cast<const char**>(titleOut));
+        ServerAnnounce(this, nullptr, *static_cast<const char**>(textOut), 0);
+        CStringDestroy(&text);
+        CStringDestroy(&title);
+
+        StringRep key;
+        StringPlusText(&key, reinterpret_cast<const StringRep*>(reinterpret_cast<std::uint8_t*>(holder->ptr) + 0xC),
+                       Text(kMapSuffix));
+        const char* keyText = key.start;
+        StringRep lookup;
+        std::uint8_t allocator = 0;
+        StringWithAlloc(&lookup, nullptr, &allocator);
+        StringRangeInit(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
+        auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &lookup));
+        StringDestroyB(&lookup);
+        StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
+        if (entry) AwardHost(entry, true);
+    }
+
+    if (holder->ptr) {
+        DestroyInline(holder);
+        holder->Share(nullptr);
+    }
+    void** messages = static_cast<void**>(list_25AC);
+    for (void** node = static_cast<void**>(messages[0]); node != list_25AC;) {
+        void** next = static_cast<void**>(node[0]);
+        Element25ACDestroy(node + 2, nullptr, 0);
+        FreeNode(node, 1);
+        node = next;
+    }
+    static_cast<void**>(list_25AC)[0] = list_25AC;
+    static_cast<void**>(list_25AC)[1] = list_25AC;
+    void** queued = static_cast<void**>(list_25B0);
+    for (void** node = static_cast<void**>(queued[0]); node != list_25B0;) {
+        void** next = static_cast<void**>(node[0]);
+        Element25B0Destroy(node + 2, nullptr, 0);
+        List25B0FreeNode(&list_25B0, nullptr, node, 1);
+        node = next;
+    }
+    static_cast<void**>(list_25B0)[0] = list_25B0;
+    static_cast<void**>(list_25B0)[1] = list_25B0;
+    List2598Clear(&list_2598);
+    ServerResetMapList(this);
+    WorldPrepareMap(reinterpret_cast<void*>(kWorld), nullptr, nullptr);
+}
+
 namespace {
+void __fastcall LeaveZoneHook(ServerSession* self) { self->LeaveZone(); }
 void __fastcall QueueAwardHook(ServerSession* self, void*, CRefObject* connection, int kind, float value, StringRep text) {
     self->QueueAward(connection, kind, value, text);
 }
@@ -286,5 +348,6 @@ void __fastcall CompleteZoneHook(ServerSession* self, void*, const StringRep* zo
 EI_REPLACE(0x00419D90, QueueAwardHook);
 EI_REPLACE(0x004191C0, AwardHostHook);
 EI_REPLACE(0x00418ED0, CompleteZoneHook);
+EI_REPLACE(0x00418CC0, LeaveZoneHook);
 
 } // namespace net
