@@ -57,7 +57,6 @@ constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
 constexpr std::uintptr_t kEmptyText = 0x0079B298;      // ""
 
 // The server's own steps (not rewritten yet).
-__declspec(naked) void __fastcall ServerAnnounce(ServerSession* /*self*/, void*, const char* /*text*/, int /*flag*/) EI_ORIGINAL(0x0041A310)
 __declspec(naked) void __fastcall ServerResetMapList(ServerSession* /*self*/) EI_ORIGINAL(0x00418530)
 
 constexpr std::uintptr_t kAwardVtable = 0x0073BD48;
@@ -217,7 +216,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title);
         void* textOut = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &text, 7, *static_cast<const char**>(titleOut));
-        ServerAnnounce(this, nullptr, *static_cast<const char**>(textOut), 0);
+        Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);
     }
@@ -290,7 +289,7 @@ void ServerSession::LeaveZone() {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title);
         void* textOut = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &text, 6, *static_cast<const char**>(titleOut));
-        ServerAnnounce(this, nullptr, *static_cast<const char**>(textOut), 0);
+        Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);
 

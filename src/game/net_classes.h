@@ -257,6 +257,11 @@ struct ServerSession {
     void ShareFile(const StringRep* name, GameBuffer* data);
     // 0041A7E0 (slot 15, net_server_entry.cpp). Makes `*out` a server entry describing this server.
     void Describe(RefPtr* out);
+    // 0041A310 (net_server_chat.cpp). Keeps a chat or system line for the clients (`player` null
+    // for the server's own; at most 50 lines).
+    void Announce(const char* text, CRefObject* player);
+    // 0041A490. Announce with text `kind` of the text table formatted with `text`.
+    void AnnounceText(int kind, const char* text, CRefObject* player);
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);

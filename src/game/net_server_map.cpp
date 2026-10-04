@@ -51,7 +51,6 @@ constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
 
 // The server's own steps (not rewritten yet).
-__declspec(naked) void __fastcall ServerAnnounce(ServerSession* /*self*/, void*, const char* /*text*/, int /*flag*/) EI_ORIGINAL(0x0041A310)
 __declspec(naked) void* __fastcall ServerAddResource(ServerSession* /*self*/, void*, void** /*out*/, const StringRep* /*name*/) EI_ORIGINAL(0x004195D0)
 __declspec(naked) void __fastcall ServerAddFile(ServerSession* /*self*/, void*, const StringRep* /*path*/, float /*weight*/) EI_ORIGINAL(0x00419730)
 
@@ -127,7 +126,7 @@ void ServerSession::SetMap(const StringRep* name) {
     std::uint32_t title = 0, text = 0;   // CStrings
     void* titleOut = WorldMapTitle(world, nullptr, &title);
     void* textOut = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &text, 5, *static_cast<const char**>(titleOut));
-    ServerAnnounce(this, nullptr, *static_cast<const char**>(textOut), 0);
+    Announce(*static_cast<const char**>(textOut), nullptr);
     CStringDestroy(&text);
     CStringDestroy(&title);
 

@@ -31,7 +31,6 @@ __declspec(naked) void** __fastcall BindingsBegin2(void* /*list*/, void*, void**
 __declspec(naked) void __fastcall CountNodes(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429110)
 __declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
-__declspec(naked) void __fastcall ServerAnnounce(ServerSession* /*self*/, void*, const char* /*text*/, int /*flag*/) EI_ORIGINAL(0x0041A310)
 
 constexpr std::uintptr_t kPlayerVtable = 0x0073BC70;
 constexpr std::uintptr_t kBindingVtable = 0x0073BCB8;
@@ -154,7 +153,7 @@ void __fastcall ServerOnJoin(ServerSession* self, Message* message) {
 
     std::uint32_t announcement = 0;   // CString
     void* formatted = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &announcement, 0, name->start);
-    ServerAnnounce(self, nullptr, *static_cast<const char**>(formatted), 0);
+    self->Announce(*static_cast<const char**>(formatted), nullptr);
     CStringDestroy(&announcement);
 }
 EI_REPLACE(0x0041ADB0, ServerOnJoin);
