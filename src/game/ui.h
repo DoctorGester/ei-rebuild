@@ -79,6 +79,26 @@ public:
     // deleted, top first; then 005F8C50, the message pump, and the window opened as PushWindow
     // does (null is fatal). ui_create_screen.cpp.
     void Activate(CUiWindow* window);
+    // 005F8420 (RET 4). Reads the interface's saved state from `stream` (slot 1 reads bytes;
+    // +0x08 the save version): +0x89..+0x8B, +0x8C, +0x90; from version 0x47 +0x94; from 0x56 an
+    // obsolete list (count, then name and value pairs, discarded) and the CString +0xA4; from 0x5D
+    // +0xA8; from 0x5F the CString +0xAC. ui_interface_save.cpp.
+    void LoadState(void* stream);
+    // 005F8C90 (RET 0xC; on 007C7D50; multiplayer messages). The text of message `id` (0-12:
+    // "lmp_player_connected" .. "reserved_02"; others an empty key) from the text table,
+    // formatted with `value` when it is not 0, constructed into `out`; returns `out`
+    // (ui_interface_save.cpp).
+    void* MessageText(void* out, int id, int value);
+    // 005F8A80 (RET 4). Without `force`, takes the next queued message (the list at +0x84) into
+    // +0xA4 (+0xA8 = 0), or returns when there is none. A non-empty +0xA4 then opens the message
+    // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
+    // 0079BE78 is off and it was not forced. ui_create_screen.cpp.
+    void ShowMessage(int force);
+    // 005F86F0 (RET 4; ShowHelp above calls it through its address). The active window's help
+    // topic (its slot 41; none: nothing): the map at +0x98 counts topics seen (an unseen one is
+    // entered with 0, giving -1 here); the help window (0x194 bytes, vtables 00740E28 / 00740DF4)
+    // opens when forced (`flag`), or when the option 0079BE78 is on and the topic was not seen.
+    void OpenHelp(int flag);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
@@ -128,6 +148,9 @@ struct UiPtrArray {
 
     // Inlined by the original at each Add call site: appends `item` (null included).
     void Append(T* item);
+    // 006005F0 (RET 8). Stores `item` at `index`, growing the array to index + 1 first when it is
+    // that short (SetSize, inlined).
+    void SetAtGrow(int index, T* item);
     // Inlined by the original: removes the slot at `index`, shifting the rest down.
     void RemoveSlot(int index);
     // Inlined by the original: frees the storage and empties the array.

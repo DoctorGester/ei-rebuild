@@ -5,6 +5,8 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_create_screen.h"
+#include "../../src/lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -135,6 +137,36 @@ static void __fastcall ActivateVerify(CInterface3D* self, void*, CUiWindow* wind
 }
 EI_VERIFY(0x005F71C0, ActivateVerify, 0, s_unused);
 
+// 005F6F30 / 005F6D50 / 005F6E40: ours only (constructors and a destructor body).
+static void* __fastcall Screen9ConstructVerify(void* self, void*, CInterface3D* ui) {
+    void* result = Screen9Construct(self, nullptr, ui);
+    ei::verify::Check("Screen9Construct", true,
+                      result == self && *static_cast<std::uintptr_t*>(self) == 0x00740D18 &&
+                          static_cast<CUiWindow*>(self)->interface_ == ui,
+                      "vtable %08X", static_cast<unsigned>(*static_cast<std::uintptr_t*>(self)));
+    return result;
+}
+EI_VERIFY(0x005F6F30, Screen9ConstructVerify, 0, s_unused);
+static void* __fastcall Screen8ConstructVerify(void* self, void*, CInterface3D* ui, int flag, const char* text) {
+    void* result = Screen8Construct(self, nullptr, ui, flag, text);
+    std::uint8_t* header;
+    std::memcpy(&header, static_cast<std::uint8_t*>(self) + 0x1C8, 4);
+    std::uint8_t* next;
+    std::memcpy(&next, header, 4);
+    ei::verify::Check("Screen8Construct", true,
+                      result == self && *static_cast<std::uintptr_t*>(self) == 0x00740C3C && next == header,
+                      "vtable %08X header %p next %p", static_cast<unsigned>(*static_cast<std::uintptr_t*>(self)),
+                      header, next);
+    return result;
+}
+EI_VERIFY(0x005F6D50, Screen8ConstructVerify, 0, s_unused);
+static void __fastcall Screen8DestroyVerify(void* self) {
+    Screen8Destroy(self);
+    ei::verify::Check("Screen8Destroy", true, !static_cast<CUiWindow*>(self)->sceneObjects_.data_, "scene %p",
+                      static_cast<CUiWindow*>(self)->sceneObjects_.data_);
+}
+EI_VERIFY(0x005F6E40, Screen8DestroyVerify, 0, s_unused);
+
 // 005F78C0: ours only (keys reach windows and the console). A modifier key (not a repeat) must
 // leave its flag set: +0x7C Ctrl, +0x7D Shift, +0x7E Alt.
 static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key, int repeat, int flags) {
@@ -149,3 +181,61 @@ static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key
     ei::verify::Check("CInterface3D::OnKeyDown", true, flag == 1, "scan %X: flag +%X = %d", scan, offset, flag);
 }
 EI_VERIFY(0x005F78C0, InterfaceKeyDownVerify, 0, s_unused);
+
+// 005F8420: ours only (it consumes the stream). Nothing to compare; it runs only when a save is
+// loaded.
+static void __fastcall LoadStateVerify(CInterface3D* self, void*, void* stream) {
+    self->LoadState(stream);
+    ei::verify::Check("CInterface3D::LoadState", true, true, "version %d",
+                      *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(stream) + 8));
+}
+EI_VERIFY(0x005F8420, LoadStateVerify, 0, s_unused);
+
+// 005F8C90: PUSH -1; PUSH imm32 (7). Side by side: both texts must be equal (ours is destroyed).
+static void*(__thiscall* s_messageText)(CInterface3D*, void*, int, int);
+static void* __fastcall MessageTextVerify(CInterface3D* self, void*, void* out, int id, int value) {
+    s_messageText(self, out, id, value);
+    alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
+    self->MessageText(storage, id, value);
+    const char* expected = *static_cast<const char* const*>(out);
+    const char* actual = *reinterpret_cast<const char* const*>(storage);
+    ei::verify::Check("CInterface3D::MessageText", true, std::strcmp(expected, actual) == 0, "id %d value %d: %s / %s",
+                      id, value, expected, actual);
+    reinterpret_cast<mfc::CString*>(storage)->~CString();
+    return out;
+}
+EI_VERIFY(0x005F8C90, MessageTextVerify, 7, s_messageText);
+
+// 006005F0: ours only (it may reallocate). The item is stored and the array is long enough.
+static void __fastcall SetAtGrowVerify(UiPtrArray<CEngineObject>* self, void*, int index, CEngineObject* item) {
+    int before = self->size_;
+    self->SetAtGrow(index, item);
+    bool ok = self->data_[index] == item && self->size_ == (index >= before ? index + 1 : before);
+    ei::verify::Check("UiPtrArray::SetAtGrow", true, ok, "index %d size %d -> %d", index, before, self->size_);
+}
+EI_VERIFY(0x006005F0, SetAtGrowVerify, 0, s_unused);
+
+// 005F8A80: ours only (it opens a window). Without `force` and with an empty queue nothing opens.
+static void __fastcall ShowMessageVerify(CInterface3D* self, void*, int force) {
+    std::uint8_t* header;
+    std::memcpy(&header, reinterpret_cast<std::uint8_t*>(self) + 0x84, 4);
+    std::uint8_t* first;
+    std::memcpy(&first, header, 4);
+    bool empty = first == header && static_cast<std::uint8_t>(force) == 0;
+    int windows = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    self->ShowMessage(force);
+    if (!empty) return;
+    int after = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    ei::verify::Check("CInterface3D::ShowMessage", true, after == windows, "windows %d -> %d", windows, after);
+}
+EI_VERIFY(0x005F8A80, ShowMessageVerify, 0, s_unused);
+
+// 005F86F0: ours only (it opens a window). At most one window opens; none without an active one.
+static void __fastcall OpenHelpVerify(CInterface3D* self, void*, int flag) {
+    int windows = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    self->OpenHelp(flag);
+    int after = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    bool ok = windows == 0 ? after == 0 : (after == windows || after == windows + 1);
+    ei::verify::Check("CInterface3D::OpenHelp", true, ok, "flag %d: windows %d -> %d", flag & 0xFF, windows, after);
+}
+EI_VERIFY(0x005F86F0, OpenHelpVerify, 0, s_unused);

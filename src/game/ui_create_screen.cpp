@@ -3,10 +3,13 @@
 // The original inlines the constructors of screens 1, 2, 3 and 7 (the container base 00600B20,
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
+#include "ui_create_screen.h"
+
 #include "ui.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -295,3 +298,280 @@ namespace {
 void __fastcall InterfaceCreateScreen(CInterface3D* self, void*, int id) { self->CreateScreen(id); }
 } // namespace
 EI_REPLACE(0x005F5BA0, InterfaceCreateScreen);
+
+// --- 005F8A80: the message window ------------------------------------------------------------------
+
+namespace {
+// The message queue (a std::list of CStrings at +0x84; thiscall): 005F8E50 erases a node into
+// the returned iterator (RET 8).
+__declspec(naked) void __fastcall MessageListErase(void*, void*, void* /*out*/, void* /*node*/) EI_ORIGINAL(0x005F8E50)
+__declspec(naked) void __fastcall CopyCString(void*, void*, const void*) EI_ORIGINAL(0x007006E5)
+__declspec(naked) void __fastcall ConstructCString(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
+__declspec(naked) void __fastcall ConstructStringArrayAt(void*) EI_ORIGINAL(0x006FE925)
+__declspec(naked) void __fastcall ConstructListHolder(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA340)
+__declspec(naked) void* __fastcall AllocateNodes(std::size_t) EI_ORIGINAL(0x00405950)
+
+// A list header node of 12 bytes, linked to itself.
+void NewListHeader(std::uint8_t* at) {
+    void* node = AllocateNodes(0xC);
+    SetDword(at, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(node)));
+    SetDword(node, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(node)));
+    SetDword(node, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(node)));
+}
+} // namespace
+
+void CInterface3D::ShowMessage(int force) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    bool forced = static_cast<std::uint8_t>(force) != 0;
+    if (!forced) {
+        std::uint8_t* header;
+        std::memcpy(&header, self + 0x84, 4);
+        std::uint8_t* node;
+        std::memcpy(&node, header, 4);
+        if (node == header) return;
+        alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
+        auto* text = reinterpret_cast<mfc::CString*>(storage);
+        CopyCString(text, nullptr, node + 8);
+        void* next;
+        MessageListErase(self + 0x84, nullptr, &next, node);
+        *reinterpret_cast<mfc::CString*>(self + 0xA4) = *text;
+        SetDword(self, 0xA8, 0);
+        text->~CString();
+    }
+    const char* message;
+    std::memcpy(&message, self + 0xA4, 4);
+    if (*reinterpret_cast<const int*>(message - 8) == 0) return;
+    if (*reinterpret_cast<const int*>(0x0079BE78) == 0 && !forced) return;
+    void* memory = gamecrt::operator_new(0x194);
+    CUiWindow* window = nullptr;
+    if (memory) {
+        std::uint32_t value;
+        std::memcpy(&value, self + 0xA8, 4);
+        ConstructContainer(memory, nullptr, this);
+        auto* win = static_cast<std::uint8_t*>(memory);
+        win[0x164] = 1;
+        std::memcpy(&message, self + 0xA4, 4);
+        ConstructCString(win + 0x168, nullptr, message);
+        SetDword(win, 0x16C, *reinterpret_cast<const std::uint32_t*>(0x00796E48));   // empty CString
+        ConstructStringArrayAt(win + 0x170);
+        SetDword(win, 0x184, value);
+        // The original passes a stack slot and a zeroed local; the holder keeps the zero.
+        std::uint32_t junk = 0, zero = 0;
+        ConstructListHolder(win + 0x188, nullptr, &junk, &zero);
+        NewListHeader(win + 0x188);
+        win[0x18C] = 0;   // the allocator byte, overwritten
+        SetDword(win, 0x18C, 0);
+        NewListHeader(win + 0x18C);
+        SetDword(win, 0x00, 0x00740E28);
+        SetDword(win, 0x94, 0x00740DF4);
+        window = reinterpret_cast<CUiWindow*>(memory);
+    }
+    PushWindow(window, 1, 0);
+}
+
+namespace {
+void __fastcall InterfaceShowMessage(CInterface3D* self, void*, int force) { self->ShowMessage(force); }
+} // namespace
+EI_REPLACE(0x005F8A80, InterfaceShowMessage);
+
+// --- 005F86F0: the help window -----------------------------------------------------------------------
+
+namespace {
+// The seen-topics map at +0x98 (STLport map<CString, int>; thiscall): find (005FAEA0) and
+// lower_bound (005FAF30) into an iterator (RET 8), insert with a hint (005F9810, RET 0xC).
+__declspec(naked) void __fastcall TopicsFind(void*, void*, void** /*out*/, const void* /*key*/) EI_ORIGINAL(0x005FAEA0)
+__declspec(naked) void __fastcall TopicsLowerBound(void*, void*, void** /*out*/, const void* /*key*/)
+    EI_ORIGINAL(0x005FAF30)
+__declspec(naked) void __fastcall TopicsInsert(void*, void*, void** /*out*/, void* /*hint*/, const void* /*pair*/)
+    EI_ORIGINAL(0x005F9810)
+// The help window's list member at +0x188 (005F9A00, from an allocator; RET 4).
+__declspec(naked) void __fastcall ConstructHelpList(void*, void*, const void*) EI_ORIGINAL(0x005F9A00)
+// _mbscmp (the game's CRT).
+__declspec(naked) int __cdecl MbsCompare(const char*, const char*) EI_ORIGINAL(0x006E848B)
+} // namespace
+
+void CInterface3D::OpenHelp(int flag) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    if (stackBegin_ == stackEnd_) return;
+    CUiWindow* active = stackEnd_[-1];
+    using TopicFn = const char*(__thiscall*)(CUiWindow*);
+    const char* topic = reinterpret_cast<TopicFn>(active->vtable_[41])(active);
+    if (!topic) return;
+    int seen = -1;
+    void* topics = self + 0x98;
+    void* header;
+    std::memcpy(&header, topics, 4);
+    void* found;
+    {
+        mfc::CString key(topic);
+        TopicsFind(topics, nullptr, &found, &key);
+    }
+    std::memcpy(&header, topics, 4);
+    if (found != header) {
+        seen = *reinterpret_cast<const int*>(static_cast<std::uint8_t*>(found) + 0x14);
+    } else {
+        mfc::CString key(topic);
+        void* at;
+        TopicsLowerBound(topics, nullptr, &at, &key);
+        std::memcpy(&header, topics, 4);
+        if (at == header ||
+            MbsCompare(key, *reinterpret_cast<const char* const*>(static_cast<std::uint8_t*>(at) + 0x10)) < 0) {
+            // A new entry {topic, 0} before `at`.
+            struct Pair {
+                std::uint8_t key[sizeof(mfc::CString)];
+                int value;
+            } pair;
+            CopyCString(pair.key, nullptr, &key);
+            pair.value = 0;
+            void* inserted;
+            TopicsInsert(topics, nullptr, &inserted, at, &pair);
+            at = inserted;
+            reinterpret_cast<mfc::CString*>(pair.key)->~CString();
+        }
+        *reinterpret_cast<int*>(static_cast<std::uint8_t*>(at) + 0x14) = 0;
+    }
+    bool forced = static_cast<std::uint8_t>(flag) != 0;
+    if (*reinterpret_cast<const int*>(0x0079BE78) != 0) {
+        if (!forced && seen >= 0) return;
+    } else if (!forced) {
+        return;
+    }
+    void* memory = gamecrt::operator_new(0x194);
+    CUiWindow* window = nullptr;
+    if (memory) {
+        ConstructContainer(memory, nullptr, this);
+        auto* win = static_cast<std::uint8_t*>(memory);
+        win[0x164] = 0;
+        ConstructCString(win + 0x168, nullptr, topic);
+        SetDword(win, 0x16C, *reinterpret_cast<const std::uint32_t*>(0x00796E48));   // empty CString
+        ConstructStringArrayAt(win + 0x170);
+        SetDword(win, 0x184, static_cast<std::uint32_t>(seen));
+        // The original passes its argument slot as the list's allocator.
+        int slot = flag;
+        ConstructHelpList(win + 0x188, nullptr, &slot);
+        std::uint32_t junk = 0, zero = 0;
+        ConstructListHolder(win + 0x18C, nullptr, &junk, &zero);
+        NewListHeader(win + 0x18C);
+        SetDword(win, 0x00, 0x00740E28);
+        SetDword(win, 0x94, 0x00740DF4);
+        window = reinterpret_cast<CUiWindow*>(memory);
+    }
+    PushWindow(window, 1, 0);
+}
+
+namespace {
+void __fastcall InterfaceOpenHelp(CInterface3D* self, void*, int flag) { self->OpenHelp(flag); }
+} // namespace
+EI_REPLACE(0x005F86F0, InterfaceOpenHelp);
+
+// --- Screens 8 and 9: constructors and screen 8's destructor body -----------------------------------
+
+namespace {
+
+// STLport's node allocator: the free list of 0x18-byte nodes (0079B22C) and the refill
+// (004060E0, __fastcall with the size).
+void** FreeList18() { return reinterpret_cast<void**>(0x0079B22C); }
+__declspec(naked) void* __fastcall RefillNodes(std::size_t) EI_ORIGINAL(0x004060E0)
+
+void* AllocateNode18() {
+    void* node = *FreeList18();
+    if (node) {
+        *FreeList18() = *static_cast<void**>(node);
+        return node;
+    }
+    return RefillNodes(0x18);
+}
+void FreeNode18(void* node) {
+    *static_cast<void**>(node) = *FreeList18();
+    *FreeList18() = node;
+}
+
+// Members (thiscall): screen 9's two maps (005F9F80 with two allocators, RET 8; 005F98F0);
+// screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
+__declspec(naked) void __fastcall Screen9FirstMap(void*, void*, const void*, const void*) EI_ORIGINAL(0x005F9F80)
+__declspec(naked) void __fastcall Screen9SecondMap(void*) EI_ORIGINAL(0x005F98F0)
+__declspec(naked) void __fastcall Screen8Member170(void*) EI_ORIGINAL(0x00671280)
+__declspec(naked) void __fastcall Screen8Member170Destruct(void*) EI_ORIGINAL(0x006714A0)
+__declspec(naked) void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
+__declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
+__declspec(naked) void __fastcall ConstructCStringFrom(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
+__declspec(naked) void __fastcall DestructCString(void*) EI_ORIGINAL(0x00700970)
+__declspec(naked) void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
+
+std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
+
+} // namespace
+
+// 005F6F30 (thiscall, RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
+void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
+    ConstructContainer(self, nullptr, ui);
+    SetDword(self, 0x168, 0);
+    // The original passes a stack byte and its argument slot as the allocators.
+    std::uint8_t junk = 0;
+    CInterface3D* slot = ui;
+    Screen9FirstMap(Bytes(self) + 0x170, nullptr, &junk, &slot);
+    SetDword(self, 0x17C, 50);
+    Screen9SecondMap(Bytes(self) + 0x180);
+    SetDword(self, 0x18C, 50);
+    SetDword(self, 0x1AC, 0);
+    SetDword(self, 0x1B0, 0);
+    Bytes(self)[0x1B4] = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(slot));
+    SetDword(self, 0x1B4, 0);
+    SetDword(self, 0x00, 0x00740D18);
+    SetDword(self, 0x94, 0x00740CE4);
+    return self;
+}
+EI_REPLACE(0x005F6F30, Screen9Construct);
+
+// 005F6D50 (thiscall, RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list
+// at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
+void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
+    ConstructContainer(self, nullptr, ui);
+    Screen8Member170(Bytes(self) + 0x170);
+    std::uint8_t* list = Bytes(self) + 0x1C8;
+    list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten
+    SetDword(list, 0, 0);
+    void* header = AllocateNode18();
+    SetDword(list, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
+    SetDword(header, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // next
+    SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // prev
+    ConstructCStringFrom(Bytes(self) + 0x1D4, nullptr, text);
+    Screen8Member1D8(Bytes(self) + 0x1D8);
+    SetDword(self, 0x00, 0x00740C3C);
+    Bytes(self)[0x1F4] = static_cast<std::uint8_t>(flag);
+    SetDword(self, 0x94, 0x00740C08);
+    return self;
+}
+EI_REPLACE(0x005F6D50, Screen8Construct);
+
+// 005F6E40 (thiscall). Screen 8's destructor body: its members, the list (entries with two
+// CStrings at +0x10 / +0x14) back to the node allocator, then the container base.
+void __fastcall Screen8Destroy(void* self) {
+    Screen8Member1D8Destruct(Bytes(self) + 0x1D8);
+    DestructCString(Bytes(self) + 0x1D4);
+    std::uint8_t* list = Bytes(self) + 0x1C8;
+    auto headerOf = [list] {
+        std::uint8_t* h;
+        std::memcpy(&h, list, 4);
+        return h;
+    };
+    std::uint8_t* node;
+    std::memcpy(&node, headerOf(), 4);
+    while (node != headerOf()) {
+        std::uint8_t* next;
+        std::memcpy(&next, node, 4);
+        DestructCString(node + 0x14);
+        DestructCString(node + 0x10);
+        if (node) FreeNode18(node);
+        node = next;
+    }
+    std::uint8_t* header = headerOf();
+    SetDword(header, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
+    header = headerOf();
+    SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
+    header = headerOf();
+    if (header) FreeNode18(header);
+    Screen8Member170Destruct(Bytes(self) + 0x170);
+    DestroyContainerBody(self);
+}
+EI_REPLACE(0x005F6E40, Screen8Destroy);

@@ -117,6 +117,12 @@ void UiPtrArray<T>::Append(T* item) {
 }
 
 template <typename T>
+void UiPtrArray<T>::SetAtGrow(int index, T* item) {
+    if (index >= size_) SetSize(index + 1, -1);
+    data_[index] = item;
+}
+
+template <typename T>
 void UiPtrArray<T>::RemoveSlot(int index) {
     // REP MOVSD of the size - index - 1 following slots (skipped when that is 0).
     int count = size_ - index - 1;
@@ -147,6 +153,7 @@ EI_REPLACE_METHOD(0x006004E0, UiPtrArray<CEngineObject>::SetSize);
 EI_REPLACE_METHOD(0x00600730, UiPtrArray<CUiSurface>::SetSize);
 EI_REPLACE_METHOD(0x00600840, UiPtrArray<CUiRegion>::SetSize);
 EI_REPLACE_METHOD(0x00600950, UiPtrArray<CUiModel>::SetSize);
+EI_REPLACE_METHOD(0x006005F0, UiPtrArray<CEngineObject>::SetAtGrow);
 
 // --- CUiTooltip ------------------------------------------------------------------------------
 
