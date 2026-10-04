@@ -231,17 +231,31 @@ Sites are listed in full in the CSV.
   texts): addon's 1001B869 calls 00578920(1) and 00578940 on 007AFEA5, plays the sound, builds the
   window (0x180 bytes, 00634650) and shows it (005F7350). *Implemented* as a new rewrite
   `CInterface3D::OnStringEvent` (src/game/ui_interface_frame.cpp).
-- **AddNewConsoleCommands** - when the console builds its command table (005DC620) addon adds
-  help (wrapped), addon, execs, listgvar, drawall and nogui; at the first 00636020 call the
-  Console AutoExec lines run.
+- **AddNewConsoleCommands** - each console execution (005DC620, context hook 10016174 at 005DD565,
+  after the game's own registrations) registers, after the cheat word: help (the game's, then
+  "ADDON [command]" and "addon-specific commands"), addon (welcome text; info: "Addon core version:
+  0.12.4.2\nCurrent mod: ..."; debug: addon's console and log levels, 1 and 0 at start), execs
+  (004D36F0 loads a script file into 007C27D4, 004BF000 runs it, else "Script error: line %d: %s"),
+  listgvar (the global script variables: floats, strings, objects as "<class:id>", groups) and
+  drawall (0079BE6C = argument == 0); and, public, nogui 0|1|2 (GUI and cursor shown / GUI hidden /
+  both hidden: the cursor through 005E5270 at once, the GUI by the battle screen's drawing, 00636020
+  via 100162D7 at 006360DF, which sets every panel's enabled flag while it has to). *Implemented*:
+  the registration in Execute (src/game/console.cpp), the drawing as a new rewrite
+  `CBattleScreenSetup::Draw` (src/game/ui_battle_setup.cpp), the commands and addon's state in
+  src/game/console_addon.cpp (texts copied from addon.dll).
 - **ImproveConsole** - console input (005E44A0): a line equal to the last history entry is not
   added again (1001640D, at 005E44DD); with Ctrl held and Shift not, Ctrl+A selects the line,
   Ctrl+C / Ctrl+X copy (and cut) the selection as CF_UNICODETEXT, Ctrl+V pastes the clipboard's
   first line over the selection (1001643B, at 005E46CF; the caret lands at the clipboard length +
   the selection's end, one less with a selection: addon's arithmetic, kept). *Implemented* as a
   new rewrite `ConsoleWindow::OnChar` (src/game/ui_console_window.cpp).
-- **AutoExec** - the three calls of the console executor 005DC620 from save loading (0057ABA0),
-  0057BD10 and zone start (0057C700) first run every Console AutoExec line.
+- **AutoExec** - the three "exec autoexec.cfg" executions (005DC620 called from load game 0057ABA0,
+  new game 0057BD10 and the flow's new-game request in 0057C700; the CALLs redirected to 1001DF57)
+  first execute every Console AutoExec line: addon reads them when it loads, from
+  HKCU\Software\Gipat.Ru\EI_Starter\Settings, REG_MULTI_SZ "Console AutoExec" (the non-empty
+  strings, ANSI code page), then every line of 2utoexec.cfg in the game folder. *Implemented* as
+  new rewrites `GameFlow::LoadGame`, `GameFlow::StartNewGame` and `GameFlow::ProcessRequest`
+  (src/game/world_game.cpp; the lines are read once, at the first use, in console_addon.cpp).
 
 ### Multiplayer (5 of 9 applied; not single player)
 
@@ -452,6 +466,8 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixAddMapObject | new: CWorldServer::CreateObject 005927C0 (world_units.cpp) | ours only (creates objects): the returned id is in the object and map-object maps, or in the timed map for sounds, lights and kind 4 |
 | NewStringEvents | new: CInterface3D::OnStringEvent 005F8070 (ui_interface_frame.cpp) | ours only (windows, queues): "autosave" raises +0x81, the window stack stays consistent |
 | ImproveConsole | new: ConsoleWindow::OnChar 005E44A0 (ui_console_window.cpp) | side by side on the input, caret, anchor and history index (8 stolen bytes); Enter (it executes the line) ours only: the line is empty afterwards |
+| AddNewConsoleCommands | Execute 005DC620 (console.cpp), new: CBattleScreenSetup::Draw 00636020 (ui_battle_setup.cpp), console_addon.cpp | Execute's existing checks; Draw a plain replacement |
+| AutoExec | new: GameFlow::LoadGame 0057ABA0, StartNewGame 0057BD10, ProcessRequest 0057C700 (world_game.cpp) | ours only: the request is cleared; a loaded game has its scenario.sav (0 in multiplayer) |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -483,7 +499,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
 | PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 and addon's unordered_map order (above) | 2 days |
 | AddNewScriptCommands | ~50 new script commands plus the table switch in 12 parser/executor functions (mostly rewritten) | 1-2 weeks |
 | ObjectsDrawRadius, LandscapeDrawRadius | two float settings in 0056AFE0 / 00569E40 (or in the client draw rewrite) | 0.5 day once those are rewritten |

@@ -5,6 +5,7 @@
 #include "../lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 
 #include <cstring>
 
@@ -204,6 +205,9 @@ void __fastcall Execute(const char* text) {
     command = args[0];
     args.RemoveAt(0, 1);
     bool local = !NetworkGame();
+    // Rebirth's AddNewConsoleCommands (context hook at 005DD565): addon's commands, registered
+    // again on every call like the game's own.
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
     char first = static_cast<const char*>(command)[0];
     if (first == '@' || first == '#' || first == '$') {
         if (CheatEnabled() && local) {
@@ -244,6 +248,7 @@ void __fastcall Execute(const char* text) {
     PrintLine(GameText(0x0078D848));   // "Unknown command"
 }
 EI_REPLACE(0x005DC620, Execute);
+EI_REBIRTH_IMPLEMENTS(0x005DC620, ei::rebirth::Patch::AddNewConsoleCommands);
 
 // 004DC200. States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token). Double-byte characters are taken whole.

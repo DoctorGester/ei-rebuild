@@ -2,6 +2,8 @@
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md (seventh round).
 #include "world.h"
 
+#include "console.h"
+
 #include "core_maths.h"
 #include "core_streams.h"
 #include "object.h"
@@ -1594,6 +1596,312 @@ void GameFlow::StartZone(const char* zone, int mode) {
     ClientWorldLocalView(kClientWorld)[0x85] = 0;
 }
 
+// ---- New game (0057BD10) ------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kExecAutoexec = 0x007905F0;   // "exec autoexec.cfg"
+// 005DC620 / 004A88A0 through their addresses: the console executor, the party manager's new game.
+__declspec(naked) void __fastcall ConsoleExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
+__declspec(naked) void __fastcall PartyNewGameAt(void*) EI_ORIGINAL(0x004A88A0)
+
+} // namespace
+
+void GameFlow::StartNewGame() {
+    // Rebirth's AutoExec #2 (the CALL at 0057BD30 redirected): addon's AutoExec lines first.
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
+    ConsoleExecuteAt(Text(kExecAutoexec));
+    ToMainMenu() = 1;
+    PartyNewGameAt(kParty);
+    mfc::CString folder;
+    folder.Format(Text(kCurrentFolder), GameFolder());
+    ClearSaveFolderAt(folder);
+    LocalRecords records;
+    PartyStore(kParty, nullptr, records.bytes);
+    StartZoneAt(this, nullptr, At<const char*>(records.bytes, kRecordsZone), 0);
+}
+
+// ---- The flow's requests (0057C700) -------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kResourcesSingle = 0x00784818;   // "database.res"
+constexpr std::uintptr_t kResourcesNetwork = 0x00790680;  // "databaseLMP.res"
+constexpr std::uintptr_t kAutoplay = 0x00790670;          // "autoplay.apl"
+constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
+              kStateNetworkZone = 6;
+
+__declspec(naked) int __cdecl FlowAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
+__declspec(naked) int __stdcall LeaveZoneAt(std::uint8_t*) EI_ORIGINAL(0x0057A780)
+__declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x0057BDF0)
+__declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
+__declspec(naked) void __fastcall BeginMultiplayerGameAt(GameFlow*, void*) EI_ORIGINAL(0x0057F280)
+// 005F74F0 (the interface 007C7D50): closes its windows for the zone change.
+__declspec(naked) void __fastcall InterfaceCloseAll(void*) EI_ORIGINAL(0x005F74F0)
+// 0057CB50 (ECX name): switches the resource database.
+__declspec(naked) void __fastcall SwitchResources(const char*) EI_ORIGINAL(0x0057CB50)
+// The client world (007AF5B8): its tick (005641F0), a zone check (00566D80, AL); the server's
+// update (0058DFF0); the network pump (004122D0).
+__declspec(naked) int __fastcall ClientSegmentAt(void*) EI_ORIGINAL(0x005641F0)
+__declspec(naked) bool __fastcall ClientHasZone(void*, void*, const char*) EI_ORIGINAL(0x00566D80)
+__declspec(naked) void __fastcall ServerUpdateAt(CWorldServer*) EI_ORIGINAL(0x0058DFF0)
+__declspec(naked) void __cdecl NetworkPump() EI_ORIGINAL(0x004122D0)
+// The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
+// flow's party copy (00665CC0, +8).
+__declspec(naked) void __fastcall ViewAutoplayOn(void*, void*, const char*) EI_ORIGINAL(0x00669710)
+__declspec(naked) void __fastcall ViewAutoplayOff(void*) EI_ORIGINAL(0x00669750)
+__declspec(naked) void __fastcall PlayerTakeParty(void*, void*, void*) EI_ORIGINAL(0x00665CC0)
+
+mfc::CString& LastResources() { return *reinterpret_cast<mfc::CString*>(0x007AFDEC); }
+std::uint8_t& LastResourcesGuard() { return *reinterpret_cast<std::uint8_t*>(0x007AFDF0); }
+int& SavedSpectator() { return *reinterpret_cast<int*>(0x0079BEC4); }
+int& Spectator0() { return *reinterpret_cast<int*>(0x0079BEC0); }
+std::uint8_t& AutoplayOn() { return *reinterpret_cast<std::uint8_t*>(0x007B007C); }
+
+} // namespace
+
+void GameFlow::ProcessRequest() {
+    int& state = At<int>(this, 0);
+    if (state == 0) return;
+    // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
+    if (GameMode() == 1 && (Campaign() == 1 || Campaign() == 3) && state == kStateZone) {
+        LocalRecords records;
+        PartyStore(kParty, nullptr, records.bytes);
+        LeaveZoneAt(records.bytes);
+        PartyTake(kParty, nullptr, records.bytes);
+    }
+    if (GameMode() == 2 && Campaign() == 1 && state == kStateZone) {
+        LocalRecords records;
+        LeaveZoneAt(records.bytes);
+    }
+    InterfaceCloseAll(reinterpret_cast<void*>(0x007C7D50));
+    WorldTeardownZone(World(), nullptr);
+    std::uint8_t* client = ClientSession();
+    bool network = client && !(At<std::uint32_t>(client, 4) & kSessionInactive);
+    if (!(LastResourcesGuard() & 1)) {
+        LastResourcesGuard() |= 1;
+        new (&LastResources()) mfc::CString(Text(kResourcesSingle));
+        FlowAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
+    }
+    {
+        mfc::CString wanted(Text(network ? kResourcesNetwork : kResourcesSingle));
+        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(wanted)),
+                            reinterpret_cast<const unsigned char*>(static_cast<const char*>(LastResources()))) != 0) {
+            LastResources() = wanted;
+            SwitchResources(wanted);
+            if (network) {
+                int value = Spectator0();
+                Spectator0() = 0;
+                SavedSpectator() = value;
+            } else {
+                Spectator0() = SavedSpectator();
+            }
+        }
+    }
+
+    auto* clientWorld = reinterpret_cast<void*>(0x007AF5B8);
+    switch (state) {
+    case kStateMainMenu:
+        ToMainMenu() = 1;
+        StartZoneAt(this, nullptr, Text(kMainMenu), 2);
+        break;
+    case kStateLoad:
+        ClientWorldSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
+        ClientWorldLocalView(clientWorld)[0x85] = 0;
+        WorldSetGameResult(World(), nullptr, 1);
+        ClientSegmentAt(clientWorld);
+        ServerUpdateAt(World());
+        ClientSegmentAt(clientWorld);
+        ServerUpdateAt(World());
+        LoadGameAt(this, nullptr, At<const char*>(this, 4));
+        if (At<int>(this, 0x78)) {
+            const char* autoplay = Text(kAutoplay);
+            if (autoplay) {
+                ViewAutoplayOn(ClientWorldLocalView(clientWorld), nullptr, autoplay);
+                AutoplayOn() = 1;
+            } else {
+                ViewAutoplayOff(ClientWorldLocalView(clientWorld));
+                AutoplayOn() = 0;
+            }
+        }
+        break;
+    case kStateNewGame:
+        // The same steps as 0057BD10 (inlined here in the original), Rebirth's AutoExec #3 (the
+        // CALL at 0057C9A3) included.
+        StartNewGame();
+        break;
+    case kStateZone:
+        StartZoneAt(this, nullptr, At<const char*>(this, 4), 0);
+        break;
+    case kStatePartyZone: {
+        const char* zone = At<const char*>(this, 4);
+        void* player = At<void*>(ClientWorldLocalView(clientWorld), 0x1C);
+        PlayerTakeParty(player, nullptr, reinterpret_cast<std::uint8_t*>(this) + 8);
+        WorldTeardownZone(World(), nullptr);
+        if (!ClientHasZone(clientWorld, nullptr, zone)) {
+            std::uint8_t* session = ClientSession();
+            if (session && !(At<std::uint32_t>(session, 4) & kSessionInactive)) {
+                BeginMultiplayerGameAt(this, nullptr);
+            } else {
+                ToMainMenu() = 1;
+                StartZoneAt(this, nullptr, Text(kMainMenu), 2);
+            }
+        }
+        ClientWorldLocalView(clientWorld)[0x85] = 1;
+        break;
+    }
+    case kStateNetworkZone: {
+        StartNetworkZoneAt(At<const char*>(this, 4));
+        void* player = At<void*>(ClientWorldLocalView(clientWorld), 0x1C);
+        PlayerTakeParty(player, nullptr, reinterpret_cast<std::uint8_t*>(this) + 8);
+        ClientWorldSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
+        ClientWorldLocalView(clientWorld)[0x85] = 1;
+        break;
+    }
+    default:
+        break;
+    }
+    state = 0;
+    NetworkPump();
+}
+
+// ---- LoadGame (0057ABA0) ------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kLoadedText = 0x007905B8;   // "Loaded "
+constexpr int kScenarioScriptsVersion = 0x47;      // scenario.sav from this version holds the input and scripts
+constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the globals
+// The scenario.sav parts read back: the party (004A8310), the input state (005F85C0's reader
+// 005F8420), the scripts (004A51C0, a stream method), the globals (00410AB0); the world from
+// mission.sav (00579E60, a flow method, from the file stream).
+__declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
+__declspec(naked) void __fastcall InputLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F8420)
+__declspec(naked) void __fastcall StreamLoadScripts(CMemoryStream*, void*, void* /*scripts*/) EI_ORIGINAL(0x004A51C0)
+__declspec(naked) void __fastcall GlobalsLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410AB0)
+__declspec(naked) void __fastcall FlowLoadMission(GameFlow*, void*, FileStream*) EI_ORIGINAL(0x00579E60)
+int& LoadedScriptsVersion() { return *reinterpret_cast<int*>(0x007AFE00); }
+
+} // namespace
+
+int GameFlow::LoadGame(const char* slot) {
+    if (GameMode() == 2 || GameMode() == 3) return 0;
+    // Rebirth's AutoExec #1 (the CALL at 0057ABE1 redirected): addon's AutoExec lines first.
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
+    ConsoleExecuteAt(Text(kExecAutoexec));
+    RendererSetBusy(kRenderer, nullptr, 3);
+    ToMainMenu() = 1;
+    LocalFileStream file;
+    mfc::CString zone;          // [0x14]
+    mfc::CString slotFolder;    // [0x10]
+    mfc::CString currentFolder; // [0x18]
+    slotFolder.Format(Text(kSlotFolder), GameFolder(), slot);
+    currentFolder.Format(Text(kCurrentFolder), GameFolder());
+    ClearSaveFolderAt(currentFolder);
+    bool opened;
+    {
+        mfc::CString path = slotFolder + Text(kScenarioFile);
+        opened = file.Open(path, kOpenRead, 1);
+    }
+    if (!opened) {
+        ToMainMenu() = 1;
+        StartZoneAt(this, nullptr, Text(kMainMenu), 2);
+        return 0;
+    }
+
+    // scenario.sav: the party, then (by version) the input, the scripts and the globals.
+    CMemoryStream scenario;
+    std::memset(&scenario, 0, sizeof(scenario));
+    scenario.unknown_8 = kStreamLimit;
+    scenario.ok_ = 1;
+    scenario.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    scenario.data_ = nullptr;
+    scenario.Reset();
+    struct ScenarioOwner {   // the buffer freed on the way out (the inlined destructor)
+        CMemoryStream* s;
+        ~ScenarioOwner() {
+            s->vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+            if (s->data_) gamecrt::operator_delete(s->data_);
+            s->vtable_ = reinterpret_cast<void*>(kStreamVtable);
+        }
+    } scenarioOwner{&scenario};
+    if (!ReadSaveFile(&scenario, kMagicScenario, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
+        ToMainMenu() = 1;
+        StartZoneAt(this, nullptr, Text(kMainMenu), 2);
+        return 0;
+    }
+    PartyLoad(kParty, nullptr, &scenario);
+    int version = static_cast<int>(scenario.unknown_8);
+    if (version >= kScenarioScriptsVersion) {
+        ScriptsReset(kScripts, nullptr, 0);
+        InputLoad(kInput, nullptr, &scenario);
+        StreamLoadScripts(&scenario, nullptr, kScripts);
+        version = static_cast<int>(scenario.unknown_8);
+        LoadedScriptsVersion() = version;
+    }
+    if (version >= kScenarioGlobalsVersion) GlobalsLoad(kGlobals, nullptr, &scenario);
+    file.Close();
+
+    // The visited zones of the current map (and bz7g) come back into saves\current; every other
+    // zone, and one whose file could not be copied, is marked not visited.
+    LocalRecords records;
+    PartyStore(kParty, nullptr, records.bytes);
+    mfc::CString currentMap;    // [0x1C]
+    currentMap = At<mfc::CString>(MapDatabaseFind(kMapDatabase, nullptr, At<const char*>(records.bytes, kRecordsZone)), 4);
+    void* variables = records.bytes + kRecordsVariables;
+    for (int i = 0; i < ZoneRecordCount(); ++i) {
+        std::uint8_t* record = ZoneRecords() + i * kZoneRecordSize;
+        bool visited;
+        {
+            mfc::CString prefix(Text(kVisitedPrefix));
+            mfc::CString variable = prefix + At<const char*>(record, 0);
+            // FCOMP with 0 and C3: zero or NaN counts as not visited.
+            double value = VariableGet(variables, nullptr, variable);
+            visited = value < 0.0f || value > 0.0f;
+        }
+        bool restored = false;
+        if (visited) {
+            bool keep = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(At<const char*>(record, 0)),
+                                        reinterpret_cast<const unsigned char*>(Text(kAlwaysCopied))) == 0 ||
+                        gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(At<const char*>(record, 4)),
+                                        reinterpret_cast<const unsigned char*>(static_cast<const char*>(currentMap))) == 0;
+            if (keep) {
+                zone = At<mfc::CString>(record, 0);
+                mfc::CString currentPath = currentFolder + zone;
+                mfc::CString currentFile = currentPath + Text(kSaveExtension);
+                mfc::CString slotPath = slotFolder + zone;
+                mfc::CString slotFile = slotPath + Text(kSaveExtension);
+                restored = gameapi::CopyFileA(slotFile, currentFile, FALSE) != 0;
+                if (restored) continue;
+            }
+        }
+        mfc::CString prefix(Text(kVisitedPrefix));
+        mfc::CString variable = prefix + At<const char*>(record, 0);
+        VariableSet(variables, nullptr, variable, 0.0f);
+    }
+    PartyTake(kParty, nullptr, records.bytes);
+
+    // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
+    std::uint8_t* zoneRecord = MapDatabaseFind(kMapDatabase, nullptr, At<const char*>(records.bytes, kRecordsZone));
+    int kind = At<int>(zoneRecord, kZoneKind);
+    if (kind != 0 && kind != 2) {
+        StartZoneAt(this, nullptr, At<const char*>(records.bytes, kRecordsZone), 0);
+    } else {
+        {
+            mfc::CString path = slotFolder + Text(kMissionFile);
+            opened = file.Open(path, kOpenRead, 1);
+        }
+        if (!opened) return 0;
+        FlowLoadMission(this, nullptr, &file.stream);
+        file.Close();
+        SetZoneExitsAt(World(), nullptr, zoneRecord + kZoneExits);
+    }
+    void* console = OstreamPutString(kConsole, nullptr, Text(kLoadedText));
+    console = OstreamPutString(console, nullptr, slot);
+    OstreamManipulate(OstreamPutChar(console, nullptr, '\n'), nullptr, kFlush);
+    return 1;
+}
+
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
 EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);
 EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
@@ -1623,4 +1931,10 @@ EI_REPLACE(0x0057A780, LeaveZone);
 EI_REPLACE(0x0057A060, EnterZone);
 EI_REPLACE(0x0057BDF0, StartNetworkZone);
 EI_REPLACE_METHOD(0x0057C460, GameFlow::StartZone);
+EI_REPLACE_METHOD(0x0057BD10, GameFlow::StartNewGame);
+EI_REPLACE_METHOD(0x0057C700, GameFlow::ProcessRequest);
+EI_REPLACE_METHOD(0x0057ABA0, GameFlow::LoadGame);
+EI_REBIRTH_IMPLEMENTS(0x0057ABA0, ei::rebirth::Patch::AutoExec);
+EI_REBIRTH_IMPLEMENTS(0x0057C700, ei::rebirth::Patch::AutoExec);
+EI_REBIRTH_IMPLEMENTS(0x0057BD10, ei::rebirth::Patch::AutoExec);
 EI_REBIRTH_IMPLEMENTS(0x0057C460, ei::rebirth::Patch::AllowScriptsInMainMenu);

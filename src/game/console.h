@@ -226,6 +226,12 @@ constexpr std::uintptr_t kCheatWordXor66 = 0x00740028;
 
 // 005DC620: runs one console line (command text in ECX).
 void __fastcall Execute(const char* text);
+// Rebirth's console additions (console_addon.cpp). AddNewConsoleCommands: the executor registers
+// addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
+// AutoExec: the "Console AutoExec" lines, run before three of the game's console executions.
+void RegisterAddonCommands();
+void ApplyAddonGuiVisibility(void* screen);
+void RunAddonAutoExec();
 // 004DC200: splits a console line at spaces into `out` (a token in double quotes keeps its spaces
 // and quotes); returns 1.
 int __fastcall Tokenize(const char* text, CStringArray* out);

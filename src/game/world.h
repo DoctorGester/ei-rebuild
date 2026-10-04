@@ -759,6 +759,23 @@ struct GameFlow {
     // The mode becomes the campaign mode (007C2CC4). Rebirth's AllowScriptsInMainMenu sets the
     // server's +0x160 in the menu.
     void StartZone(const char* zone, int mode);
+    // 0057BD10. A new game: "exec autoexec.cfg" on the console, the party manager's new game
+    // (004A88A0), saves\current emptied, then the party's zone started (mode 0). Rebirth's
+    // AutoExec runs addon's AutoExec lines first.
+    void StartNewGame();
+    // 0057C700. Acts on the pending request (+0, then cleared): the zone being left is saved
+    // (0057A780), the interface closes its windows, the zone is torn down and the resource
+    // database follows the network state; then 1 main menu, 2 load the save named at +4 (two
+    // ticks first; autoplay with +0x78), 3 new game (StartNewGame), 4 zone +4, 5 / 6 multiplayer
+    // zone changes with the party copy at +8. Ends with the network pump (004122D0).
+    void ProcessRequest();
+    // 0057ABA0 (RET 4). Loads the game saved in saves\<slot>\ (not in multiplayer, 007B0098 2 or
+    // 3): "exec autoexec.cfg", saves\current emptied, scenario.sav read back (the party; by
+    // version the input, scripts and globals), the visited zones of the current map copied back
+    // (the others marked not visited), then the zone: from mission.sav (kinds 0, 2) or started
+    // afresh. Without scenario.sav the main menu starts. Returns 1 when loaded. Rebirth's AutoExec
+    // runs addon's AutoExec lines first.
+    int LoadGame(const char* slot);
 };
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
