@@ -443,6 +443,79 @@ the hashtable finds / inserts / erases / clears / resizes at 00404C30-004085E0, 
 NewNode 004069A0, AddTail 00405040, RemoveAt 004050C0, RemoveHead 00404FE0, CPlex::FreeDataChain
 006FE90F, CEngineObject::SetOwner 00455970, the engine object's destructor body 00455930.
 
+## Sixth round: transforms, archive fields, the network receive path
+
+### CTransformObject rotation helpers (src/game/core_transform_math.cpp)
+
+All side by side on a scratch copy of the object (they only touch the object and call pure maths
+helpers); the rotation / matrix must match bit for bit. x87: `double` for what the original keeps
+on the FPU stack, Store for its float stores (exact at 24 and 53-bit precision control; at 64-bit a
+spilled double could differ, as elsewhere in the project).
+
+| Address | Name | Reached by |
+|---|---|---|
+| 00401570 | WorldMatrix (4x4 from the world rotation / position) | figure bounding boxes (CFigureMesh::ExtendWorldBox): every scenario |
+| 00401680 | TiltTowards (down axis a tenth of the way towards a target) | lights (0068D0A0 LightSet) and 005BC1DB: every scenario |
+| 00401940 | TurnTowards (forward axis onto a target) | the camera (camera.cpp now calls the member): every scenario |
+| 00401B50 | RollTowards (down axis towards a direction about the forward axis) | 0067BEF0 / 0067CEF0 (not traced) |
+| 00401E50 | Rotate(axis, angle) (localRotation = turn * localRotation) | 00401B50, 00401F00 |
+| 00401F00 | TurnUpTowards(dir, reduced) | units (00535850, 00549160): unit scenarios |
+| 00402220 | SetHeading(atan2 of a 2D direction about +Z) | units, 006042D3, 00608A96 |
+
+### ChunkArchive fields (chunk_archive.cpp)
+
+| Address | Name | Verify | Reached by |
+|---|---|---|---|
+| 004093A0 | CStringField | loading: original into a scratch CString; writing: ours + size | databases, saves |
+| 00409470 | StringField (STLport string; inlined assign) | loading: original on a copy; writing: ours + size | databases (model_db.cpp drops its forwarder) |
+| 00409640 | StreamField (chunk {1: size, 2: bytes} around a CMemoryStream) | ours only | saves (006617F0, 004A5AF0) |
+| 0040A440 / 0040A5A0 | SaveObjectRef / ObjectRef (object pointers through the +0x5C map and the +0x70 saved list) | ours / loading side by side | saves (004A64B0, 004ACDC0) |
+
+Kept: SaveObjectRef registers the object even while loading and then searches the field without
+using it; ObjectRef writes a zero key when saving.
+
+### Network: game announcement, receive path, session slots (net_*.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00401000 / 00401170 | GameInfoRecord::Write / Read (the server's announcement: name, description, players, max players, magic) | ours only |
+| 00401310 / 00401340 | BufferCopyOut / BufferRead (byte buffer reads) | in-memory side by side |
+| 00419CC0 / 00435010 | BufferUpdateHigh / AddressString | side by side / ours |
+| 004357C0 | BufferCursor::PutBit | side by side on a cursor copy |
+| 004355B0 / 00435820 | Connection::WriteObjectRef / ReadObjectRef | ours + bytes used |
+| 00437370 | SessionBase::Receive (slot 14: datagrams to the kind handlers, connection ticks, timeouts) | ours |
+| 00433BD0 | Connection::Tick (loss timeout, acknowledged list, send pacing, delayed id reuse, timeout) | ours |
+| 00433FA0 / 00434CE0 / 00434D70 / 00434E50 / 00434AE0 / 00436470 | Delivered / Acknowledge / ReadAcks / Accept / ProcessHeaders / ReadUpdate | ours |
+| 00436620 | Connection::Close (removal handlers for every received object) | ours |
+| 00436CC0 / 00436CF0 / 00437080 / 00437240 | FindClient / RemoveClient (slot 2) / update (slot 3) / leave (slot 6) | ours |
+| 004371E0 / 00437210 / 004372B0 / 004372E0 / 00437310 / 00437340 | the base session's "Can't handle ..." loggers (slots 4, 5, 7-10) | replaced only |
+| 00436C30 / 00436C60 | BufferWriteRaw / BufferWrite | in-memory side by side |
+| 00436F60 / 00436F80 / 00436FA0 | SessionSend / SessionRateFor (12500 local, 2500 otherwise, read from 00783E34/38) / SessionSendLeave | ours / side by side / ours |
+
+All reached by tests/scenarios/net_lobby.txt (the lobby runs the game server and client sessions),
+except GameInfoRecord::Read (a client listing servers) and the drop paths (timeouts, bad updates).
+
+Packet kinds (first byte; SessionBase::Receive): -1 master (slot 10), 0 update (3), 1 leave (6),
+2 none, 3 get info (4), 4 login (5), 5 info (7), 6 accepted (8), 7 rejected (9).
+
+Kept: Receive and Tick set and clear the current session / connection globals without the SEH
+frames that reset them on an exception; ReadObjectRef passes the type to AttachRecord with its upper
+bytes cleared (the original's were stack garbage; only the low byte is used); Delivered's freed-id
+element has a zero fourth byte (garbage in the original; never read).
+
+### Forwarders added (the standalone build must replace)
+
+STLport instantiations (library): string erase / range append (0040B3C0, 0040C2A0), the chunk
+stack and object map helpers already listed, list end / splice / erase of the history lists
+(00437F20, 004380C0, 00437F30), the freed-id and received vectors (0043D7E0, 0043D7F0, 0043B530,
+0043B6C0, 0043B850, 0043DC80, 004390C0, 00439000), tree finds / erase (0043C450, 0043D380,
+0043BF00, 0043C9A0, 00437EF0, 0043BE60), operator[] (004382A0, 00438530, 00439EA0), the clients
+list (00438830, 00438820, 0043D780, 00438840), the node deallocate copy 0043B310, 00426450 and
+the string destructor 0040C770. Game code outside the range: the socket driver (00440BE0 receive,
+00440B90 send, 00440AF0 is-local, 00440690 address format), the growing buffer (004DA170,
+004DA200, 004DA380, 004DA7F0, 004DA910), _CIacos 006E7320, the iostream inserters (006FC31D,
+006FC0B0, 006FC14E, 00434FE0).
+
 ## Dead code found in this range
 
 00402310 (452), 00402780 (radix sort, 887), 0042E700 (3436) and 0042F890 (397, called only
