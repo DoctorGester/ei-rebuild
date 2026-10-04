@@ -159,3 +159,96 @@ void CItemScreen::CreateBase() {
     }
 }
 EI_REPLACE_METHOD(0x005EDD80, CItemScreen::CreateBase);
+
+// --- 005F6470 / 005F6620: the item screens' destructor bodies -----------------------------------
+
+namespace {
+
+// The caches' map (STLport, library code; thiscall): erase a subtree, destroy one node (RET 4),
+// and free the header node (__fastcall: header, 1).
+__declspec(naked) void __fastcall EraseTextures(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005FB040)
+__declspec(naked) void __fastcall DestroyTextureNode(ItemObjectCache*, void*, ItemObjectCache::Node*)
+    EI_ORIGINAL(0x005FB910)
+__declspec(naked) void __fastcall FreeTextureHeader(ItemObjectCache::Node*, int) EI_ORIGINAL(0x005FA960)
+__declspec(naked) void __fastcall EraseModels(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005FAFF0)
+__declspec(naked) void __fastcall DestroyModelNode(ItemObjectCache*, void*, ItemObjectCache::Node*)
+    EI_ORIGINAL(0x005FB8E0)
+__declspec(naked) void __fastcall FreeModelHeader(ItemObjectCache::Node*, int) EI_ORIGINAL(0x005FA920)
+// 00600BA0: the container base's destructor body. 006FE958: CStringArray's destructor.
+__declspec(naked) void __fastcall DestroyContainerBase(void*) EI_ORIGINAL(0x00600BA0)
+__declspec(naked) void __fastcall DestroyStringArray(void*) EI_ORIGINAL(0x006FE958)
+
+using EraseFn = void(__fastcall*)(ItemObjectCache*, void*, ItemObjectCache::Node*);
+using FreeHeaderFn = void(__fastcall*)(ItemObjectCache::Node*, int);
+
+ItemObjectCache::Node* Link(ItemObjectCache::Node* node, int offset) {
+    ItemObjectCache::Node* to;
+    std::memcpy(&to, reinterpret_cast<std::uint8_t*>(node) + offset, 4);
+    return to;
+}
+void SetLink(ItemObjectCache::Node* node, int offset, ItemObjectCache::Node* to) {
+    std::memcpy(reinterpret_cast<std::uint8_t*>(node) + offset, &to, 4);
+}
+
+// Releases every cached object (slot 4), in order.
+void ReleaseObjects(ItemObjectCache* cache) {
+    CacheIterator it;
+    it.node = Link(cache->header, 8);   // begin
+    while (it.node != cache->header) {
+        using ReleaseFn = void(__thiscall*)(void*);
+        reinterpret_cast<ReleaseFn>((*static_cast<void***>(it.node->object))[4])(it.node->object);
+        it.Next();
+    }
+}
+
+// The map's destructor: its nodes erased (`inlineErase`: the original's inlined loop over the
+// left spine, erasing each right subtree and destroying the node; else one erase of the root),
+// the header emptied, then freed.
+void DestroyCache(ItemObjectCache* cache, EraseFn erase, EraseFn destroyNode, FreeHeaderFn freeHeader,
+                  bool inlineErase) {
+    if (cache->count != 0) {
+        if (inlineErase) {
+            for (ItemObjectCache::Node* node = Link(cache->header, 4); node;) {
+                erase(cache, nullptr, Link(node, 0xC));
+                ItemObjectCache::Node* left = Link(node, 8);
+                destroyNode(cache, nullptr, node);
+                node = left;
+            }
+        } else {
+            erase(cache, nullptr, Link(cache->header, 4));
+        }
+        SetLink(cache->header, 8, cache->header);
+        SetLink(cache->header, 4, nullptr);
+        SetLink(cache->header, 0xC, cache->header);
+        cache->count = 0;
+    }
+    freeHeader(cache->header, 1);
+}
+
+} // namespace
+
+void __fastcall ItemScreenDestroy(CItemScreen* self) {
+    ReleaseObjects(&self->textures_);
+    DestroyCache(&self->textures_, EraseTextures, DestroyTextureNode, FreeTextureHeader, true);
+    ReleaseObjects(&self->models_);
+    DestroyCache(&self->models_, EraseModels, DestroyModelNode, FreeModelHeader, true);
+    DestroyContainerBase(self);
+}
+EI_REPLACE(0x005F6470, ItemScreenDestroy);
+
+void __fastcall CampScreenDestroy(CItemScreen* self) {
+    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
+    DestroyStringArray(bytes + 0x240);
+    // The heroes CArray (+0x19C, vtable 007402AC).
+    std::uint32_t vtable = 0x007402AC;
+    std::memcpy(bytes + 0x19C, &vtable, 4);
+    void* heroes;
+    std::memcpy(&heroes, bytes + 0x1A0, 4);
+    if (heroes) gamecrt::operator_delete(heroes);
+    ReleaseObjects(&self->textures_);
+    DestroyCache(&self->textures_, EraseTextures, DestroyTextureNode, FreeTextureHeader, false);
+    ReleaseObjects(&self->models_);
+    DestroyCache(&self->models_, EraseModels, DestroyModelNode, FreeModelHeader, false);
+    DestroyContainerBase(self);
+}
+EI_REPLACE(0x005F6620, CampScreenDestroy);

@@ -81,6 +81,14 @@ static_assert(sizeof(ItemObjectCache) == 0x10);
 void __fastcall TrimItemModels(ItemObjectCache* cache);
 void __fastcall TrimItemTextures(ItemObjectCache* cache);
 
+class CItemScreen;
+// 005F6470 / 005F6620 (__fastcall on the screen). Destructor bodies of the item screens (vtable
+// 00740A2C's screen; the camp, vtable 0074091C, which also has a CStringArray at +0x240 and a
+// CArray at +0x19C): both caches' objects released and their maps destroyed, then the container
+// base (ui_item_screen.cpp).
+void __fastcall ItemScreenDestroy(CItemScreen* self);
+void __fastcall CampScreenDestroy(CItemScreen* self);
+
 // The item screens' icon window (0x148 bytes, vtables 00740444 / 00740410; made by 005EDD80).
 class CItemIconWindow : public CUiWindow {
 public:

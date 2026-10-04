@@ -422,3 +422,19 @@ static void __fastcall CreateBaseVerify(CItemScreen* self, void*) {
                       self->models_.count, self->models_.limit, self->textures_.count, self->textures_.limit);
 }
 EI_VERIFY(0x005EDD80, CreateBaseVerify, 0, s_unused);
+
+// 005F6470 / 005F6620: ours only (destructor bodies). Both caches emptied, the window base too.
+static void __fastcall ItemScreenDestroyVerify(CItemScreen* self) {
+    ItemScreenDestroy(self);
+    ei::verify::Check("ItemScreenDestroy", true,
+                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data_,
+                      "models %u textures %u", self->models_.count, self->textures_.count);
+}
+EI_VERIFY(0x005F6470, ItemScreenDestroyVerify, 0, s_unused);
+static void __fastcall CampScreenDestroyVerify(CItemScreen* self) {
+    CampScreenDestroy(self);
+    ei::verify::Check("CampScreenDestroy", true,
+                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data_,
+                      "models %u textures %u", self->models_.count, self->textures_.count);
+}
+EI_VERIFY(0x005F6620, CampScreenDestroyVerify, 0, s_unused);
