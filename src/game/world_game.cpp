@@ -2222,7 +2222,7 @@ __declspec(naked) void __fastcall PartyEntriesInsertOverflow(void*, void*, std::
     EI_ORIGINAL(0x00619920)
 // 00662DD0 (RET 4): the records read a party file from `folder` (their +0x68 names the file).
 __declspec(naked) bool __fastcall PartyRecordsLoad(void*, void*, const char*) EI_ORIGINAL(0x00662DD0)
-// The records' destructor pieces, as 00662FB0 inlines it: 00661700 (+8, 1, 1), 00661640, the
+// The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).
 __declspec(naked) void __fastcall RecordsPart661700(void*, void*, int, int) EI_ORIGINAL(0x00661700)
@@ -2238,7 +2238,7 @@ constexpr std::uintptr_t kRecordsVtable = 0x00743000;
 void DestroyPartyEntry(std::uint8_t* entry) {
     reinterpret_cast<mfc::CString*>(entry + 0x70)->~CString();
     *reinterpret_cast<std::uintptr_t*>(entry) = kRecordsVtable;
-    RecordsPart661700(entry + 8, nullptr, 1, 1);
+    RecordsPart661700(entry, nullptr, 1, 1);
     RecordsPart661640(entry);
     reinterpret_cast<mfc::CString*>(entry + 0x68)->~CString();
     RecordsVariablesDestroy(entry + 0x54);
