@@ -176,10 +176,13 @@ public:
     int PlaybackStart();
     int PlaybackStep(float time);
 
-    // Not rewritten (camera.cpp forwarders).
-    void ClampAboveObjects();                               // 0040E4C0
-    void AlignToTarget();                                   // 0040D710
-    void LookDirection(float dx, float dy, float dz);       // 004110D0
+    // camera_motion.cpp
+    // 0040E4C0. Lifts the camera over the terrain and the objects within 16 of it.
+    void ClampAboveObjects();
+    // 0040D710. Turns the camera a tenth of the way upright, then ClampAboveObjects.
+    void AlignToTarget();
+    // 004110D0. Aims along the direction; false (nothing done) for a zero-length one.
+    bool LookDirection(float dx, float dy, float dz);
 
 
     // 0040E810. Where the camera's view axis (rotated Z) meets the ground plane z = 0; the camera
