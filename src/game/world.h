@@ -271,6 +271,10 @@ public:
     // empty entry) refills its controller's slots (00525AF0 on +0x1E0) and runs the controller's
     // slot 19 with 0.
     void PrepareSave();
+    // 00596140 (RET 0xC; world_game.cpp). Reads the zone's AI graph into the memory stream `out`:
+    // the 0x31415926 chunk of the .mob file when there is one, else the whole <map>.grp file.
+    // 1 when found.
+    int ReadAIGraph(const char* map, const char* mob, void* out);
 
     // world_game.cpp
     // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.

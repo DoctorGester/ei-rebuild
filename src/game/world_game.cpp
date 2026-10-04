@@ -962,6 +962,66 @@ void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
     PartyCopyFrom(reinterpret_cast<std::uint8_t*>(this) + 8, nullptr, party);
 }
 
+// ---- ReadAIGraph ----------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kGraphExtension = 0x00790BB0;   // ".grp"
+constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk in a .mob file
+constexpr int kSlotStreamCopyFrom = 7;                    // memory stream slot 7 (+0x1C): read a whole stream
+
+// 00595BA0 (RET 8, patched by Rebirth). The full path of a map file, constructed into `out`.
+__declspec(naked) mfc::CString* __fastcall MapPathInto(CWorldServer*, void*, void* /*out*/, const char*) EI_ORIGINAL(0x00595BA0)
+// 004A4A90 (RET 8, AL). Finds the chunk `id` in a stream and reads it into `out`.
+__declspec(naked) bool __fastcall StreamReadChunk(void*, void*, std::uint32_t, void* /*out*/) EI_ORIGINAL(0x004A4A90)
+// 006FDBB7 (RET 4). CString::ReverseFind(char).
+__declspec(naked) int __fastcall StringReverseFind(const mfc::CString*, void*, char) EI_ORIGINAL(0x006FDBB7)
+__declspec(naked) mfc::CString* __fastcall StringLeftInto(const mfc::CString*, void*, void* /*out*/, int) EI_ORIGINAL(0x006FDAE9)
+
+} // namespace
+
+int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
+    LocalFileStream mobFile;
+    int found = 0;
+    if (mob) {
+        // The graph chunk of the .mob file.
+        {
+            alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+            mfc::CString* path = MapPathInto(this, nullptr, storage, mob);
+            mobFile.Open(*path, kOpenRead, 1);
+            path->~CString();
+        }
+        if (StreamReadChunk(&mobFile.stream, nullptr, kGraphChunk, out)) found = 1;
+        mobFile.Close();
+        if (found) return found;
+    }
+    // Otherwise <map without extension>.grp.
+    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+    mfc::CString* base = MapPathInto(this, nullptr, storage, map);
+    int dot = StringReverseFind(base, nullptr, '.');
+    if (dot > 0) {
+        alignas(mfc::CString) std::uint8_t left[sizeof(mfc::CString)];
+        mfc::CString* cut = StringLeftInto(base, nullptr, left, dot);
+        *base = *cut;
+        cut->~CString();
+    }
+    {
+        LocalFileStream graph;
+        bool opened;
+        {
+            mfc::CString path = *base + Text(kGraphExtension);
+            opened = graph.Open(path, kOpenRead, 1);
+        }
+        if (opened) {
+            ei::VCall<void>(out, kSlotStreamCopyFrom, &graph.stream);
+            found = 1;
+            graph.Close();
+        }
+    }
+    base->~CString();
+    return found;
+}
+
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
 
 namespace {
@@ -1015,6 +1075,7 @@ EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
 EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
 EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE(0x0057AAB0, ClearSaveFolder);
+EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
 EI_REPLACE(0x00581630, RequestZone);
