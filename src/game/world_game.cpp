@@ -1419,6 +1419,48 @@ void __stdcall PickZones(void* outArg, int id, const char* exclude) {
     }
 }
 
+// ---- LoadMission ----------------------------------------------------------------------------------
+
+namespace {
+
+constexpr unsigned kMagicMissionFile = 0x102;
+constexpr int kVersionGlobalsInMission = 0x52;   // below: the globals (0079B2A8) come from mission.sav
+constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C7D50) too
+
+// 006B71C0 (RET 4). The loading screen (007AF784) steps.
+__declspec(naked) void __fastcall LoadingStep(void*, void*, int) EI_ORIGINAL(0x006B71C0)
+// 00579830 (RET 0xC). SaveFileRead through its address.
+__declspec(naked) bool __fastcall SaveFileReadAt(void*, unsigned, int, int, void*) EI_ORIGINAL(0x00579830)
+// 00410AB0 (RET 4) / 005F8420 (RET 4). The globals / the input state read from a stream.
+__declspec(naked) void __fastcall GlobalsLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410AB0)
+__declspec(naked) void __fastcall InputLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F8420)
+// 004A51C0 (RET 4). A memory stream copies its remaining data into another.
+__declspec(naked) void __fastcall StreamCopyRest(CMemoryStream*, void*, void*) EI_ORIGINAL(0x004A51C0)
+// 004A54D0 (RET 4). A memory stream makes room for `size` bytes.
+__declspec(naked) void __fastcall StreamReserveAt(void*, void*, int) EI_ORIGINAL(0x004A54D0)
+// 00596E70 (RET 8). CWorldServer::LoadSave through its address.
+__declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
+
+} // namespace
+
+int __stdcall LoadMission(void* file) {
+    LoadingStep(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
+    LocalMemoryStream mission;
+    if (!SaveFileReadAt(&mission.s, kMagicMissionFile, *reinterpret_cast<const int*>(0x00790260),
+                        *reinterpret_cast<const int*>(0x00790268), file))
+        return 0;
+    int version = static_cast<int>(mission.s.unknown_8);
+    if (version < kVersionGlobalsInMission) GlobalsLoad(reinterpret_cast<void*>(0x0079B2A8), nullptr, &mission.s);
+    if (static_cast<int>(mission.s.unknown_8) < kVersionInputInMission) {
+        // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
+        StreamReserveAt(reinterpret_cast<void*>(0x007AFDF8), nullptr, 0);
+        InputLoad(reinterpret_cast<void*>(0x007C7D50), nullptr, &mission.s);
+        StreamCopyRest(&mission.s, nullptr, reinterpret_cast<void*>(0x007AFDF8));
+        *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.unknown_8;
+    }
+    return LoadSaveAt(reinterpret_cast<void*>(0x007AFF60), nullptr, &mission.s, nullptr);
+}
+
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
 
 namespace {
@@ -1604,6 +1646,7 @@ EI_REPLACE_METHOD(0x0057EE10, GameFlow::SwitchMultiplayerZone);
 EI_REPLACE_METHOD(0x0057E740, GameFlow::StartServer);
 EI_REPLACE_METHOD(0x0058DAF0, CWorldServer::AcceptNewPlayers);
 EI_REPLACE(0x0057F850, PickZones);
+EI_REPLACE(0x00579E60, LoadMission);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);

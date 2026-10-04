@@ -251,6 +251,14 @@ static void __stdcall PickZonesVerify(void* out, int id, const char* exclude) {
 }
 EI_VERIFY(0x0057F850, PickZonesVerify, 0, s_unused);
 
+// 00579E60: LoadSave has its own check; logged.
+static int __stdcall LoadMissionVerify(void* file) {
+    int result = LoadMission(file);
+    ei::verify::Check("LoadMission", true, true, "-> %d", result);
+    return result;
+}
+EI_VERIFY(0x00579E60, LoadMissionVerify, 0, s_unused);
+
 // 0057F150: afterwards an active client's request is not left answered (kind 3).
 static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {
     self->UpdateAndAcknowledge();
