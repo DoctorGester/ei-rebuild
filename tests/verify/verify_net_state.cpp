@@ -71,40 +71,62 @@ namespace {
 
 using ReadFn = std::uint32_t(__fastcall*)(std::uint8_t*, void*, int);
 
-// The decoded fields: raw bytes of the given ranges, the effect array's contents and (units) the
-// CString at +0x238.
+// The decoded fields, as named parts: raw bytes of the ranges the reader writes, the effect
+// entries' read bytes (+0, +1, the dword +4 it zeroes and fills, +0x10; the companion's slot 13
+// may change the others, and it runs again in the original's read) and (units) the CString +0x238.
 struct Decoded {
-    std::vector<std::uint8_t> bytes;
-    void Add(const std::uint8_t* object, int offset, int size) {
-        bytes.insert(bytes.end(), object + offset, object + offset + size);
+    struct Part {
+        const char* name;
+        std::vector<std::uint8_t> bytes;
+    };
+    std::vector<Part> parts;
+    void Add(const char* name, const std::uint8_t* object, int offset, int size) {
+        parts.push_back({name, std::vector<std::uint8_t>(object + offset, object + offset + size)});
+    }
+    // The first part that differs, or null.
+    const char* FirstDifference(const Decoded& other) const {
+        if (parts.size() != other.parts.size()) return "part count";
+        for (std::size_t i = 0; i < parts.size(); ++i)
+            if (parts[i].bytes != other.parts[i].bytes) return parts[i].name;
+        return nullptr;
     }
 };
 
 Decoded Decode(std::uint8_t* object, bool unit) {
     Decoded d;
-    d.Add(object, 0x17C, 0x18);
-    d.Add(object, 0x1C, 0xC);
-    d.Add(object, 0x34, 0x10);
+    d.Add("+0x17C", object, 0x17C, 0x18);
+    d.Add("position +0x1C", object, 0x1C, 0xC);
+    d.Add("orientation +0x34", object, 0x34, 0x10);
     std::uint8_t hidden = (object[8] >> 3) & 1;
-    d.bytes.push_back(hidden);
+    d.parts.push_back({"hidden flag", std::vector<std::uint8_t>(1, hidden)});
     int count = *reinterpret_cast<int*>(object + 0x19C);
-    d.Add(object, 0x19C, 4);
-    if (count > 0 && count < 256) d.bytes.insert(d.bytes.end(), *reinterpret_cast<std::uint8_t**>(object + 0x198),
-                                                 *reinterpret_cast<std::uint8_t**>(object + 0x198) + count * 0x14);
+    d.Add("effect count", object, 0x19C, 4);
+    if (count > 0 && count < 256) {
+        std::vector<std::uint8_t> effects;
+        const std::uint8_t* e = *reinterpret_cast<std::uint8_t* const*>(object + 0x198);
+        for (int i = 0; i < count; ++i, e += 0x14) {
+            effects.push_back(e[0]);
+            effects.push_back(e[1]);
+            effects.insert(effects.end(), e + 4, e + 8);
+            effects.push_back(e[0x10]);
+        }
+        d.parts.push_back({"effects", effects});
+    }
     if (unit) {
-        d.Add(object, 0x330, 0x108);
-        d.Add(object, 0x244, 4);
-        d.Add(object, 0x24C, 4);
-        d.Add(object, 0x250, 4);
-        d.Add(object, 0x254, 8);
-        d.Add(object, 0x25C, 8);
-        d.Add(object, 0x264, 8);
-        d.Add(object, 0x270, 4);
-        d.Add(object, 0x274, 8);
-        d.Add(object, 0x438, 4);
-        d.Add(object, 0x4C8, 0x14);
+        d.Add("stats +0x330", object, 0x330, 0x108);
+        d.Add("masks +0x244", object, 0x244, 4);
+        d.Add("player +0x24C", object, 0x24C, 4);
+        d.Add("+0x250", object, 0x250, 4);
+        d.Add("+0x254..+0x25B", object, 0x254, 8);
+        d.Add("bits +0x25C/+0x260", object, 0x25C, 8);
+        d.Add("+0x264/+0x268", object, 0x264, 8);
+        d.Add("+0x270", object, 0x270, 4);
+        d.Add("bits +0x274/+0x278", object, 0x274, 8);
+        d.Add("+0x438", object, 0x438, 4);
+        d.Add("+0x4C8", object, 0x4C8, 0x14);
         const char* text = *reinterpret_cast<const char* const*>(object + 0x238);
-        if (text) d.bytes.insert(d.bytes.end(), text, text + std::strlen(text) + 1);
+        d.parts.push_back({"name +0x238", text ? std::vector<std::uint8_t>(text, text + std::strlen(text) + 1)
+                                                : std::vector<std::uint8_t>()});
     }
     return d;
 }
@@ -133,11 +155,20 @@ std::uint32_t ReadChecked(const char* name, ReadFn original, ReadFn ours, bool u
     before.Restore();
     std::uint32_t theirs = original(object, nullptr, first);
 
-    bool ok = theirs == mine && mineState.Same(state) && deltasnap::SameStream(&mineReader, reader) &&
-              mineGlobals == deltasnap::Globals::Save() && Decode(object, unit).bytes == mineFields.bytes;
+    const char* differs = nullptr;
+    if (theirs != mine)
+        differs = "result";
+    else if (!mineState.Same(state))
+        differs = "delta state";
+    else if (!deltasnap::SameStream(&mineReader, reader))
+        differs = "received stream";
+    else if (!(mineGlobals == deltasnap::Globals::Save()))
+        differs = "delta globals";
+    else
+        differs = Decode(object, unit).FirstDifference(mineFields);
     deltasnap::FreeStream(&mineReader);
-    ei::verify::Check(name, true, ok, "object %d, first %d, result %u vs %u", *reinterpret_cast<int*>(object + 0xC),
-                      first, theirs, mine);
+    ei::verify::Check(name, true, differs == nullptr, "object %d, first %d, result %u vs %u: %s differs",
+                      *reinterpret_cast<int*>(object + 0xC), first, theirs, mine, differs ? differs : "nothing");
     return theirs;
 }
 
