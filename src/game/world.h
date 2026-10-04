@@ -182,6 +182,12 @@ class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
     CEngineObject* FindObject(unsigned id);
+    // 005927C0 (RET 4; world_units.cpp). Creates the object a creation message (+0x48 its kind)
+    // describes: map objects and units (1, 5, 8, 9; 6 with a figure and maybe a campfire; 7) go
+    // into the object maps, the update map and the sector map; sounds (3), lights (2) and kind 4
+    // become timed objects. Returns the new id, -1 when refused, the message's address for an
+    // unknown kind. Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
+    int CreateObject(std::uint8_t* message);
     // 005935C0. Removes object `id` from the server: out of the sector map and every id map, its
     // slot 5, flagged 1, the command queues, every object (slot 56), the missiles and the players'
     // states forget it, and the maps' reference is released. An unknown id crashes the original

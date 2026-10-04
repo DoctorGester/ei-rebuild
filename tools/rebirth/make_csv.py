@@ -88,6 +88,7 @@ STATUS = {
  'FixRemoveMapObject': 'implemented: new rewrite CWorldServer::RemoveObject 005935C0 (src/game/world_server.cpp)',
  'AllowScriptsInMainMenu': 'implemented: new rewrite GameFlow::StartZone 0057C460 (src/game/world_game.cpp)',
  'FixCreateItem': 'implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_constructor.cpp)',
+ 'FixAddMapObject': 'implemented: new rewrite CWorldServer::CreateObject 005927C0 (src/game/world_units.cpp)',
  'PersistentGlobalVars': 'not started: the gvars are re-set in the order of the MSVC unordered_map list in addon, which decides their order in the hash chains of the game (and in saves); 00662FB0, 0057EB10, 005800C0 not rewritten',
 }
 SITE_STATUS = {

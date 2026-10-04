@@ -151,7 +151,9 @@ Sites are listed in full in the CSV.
   Vanilla computes a negative sector there. *Implemented* (src/game/sector_map.cpp).
 - **FixAddMapObject** - world object creation (005927C0): a unit whose prototype record is missing
   is logged ("Invalid unit's prototype") and continues with index 0 instead of reading [0+8].
-  Context hook at 00592F68. Needs 005927C0 (3.5 KB).
+  Context hook at 00592F68 (the prototype found by name in 007AF364; its +8 is the index into the
+  unit prototype table 007AF398). *Implemented* as a new rewrite `CWorldServer::CreateObject`
+  (src/game/world_units.cpp); with the flag off the null record is read as in vanilla.
 - **FixPlaingBattleMusicFromAntimagic** - 0054B580 decides whether the unit's current order is a
   fight (for the battle music, 0066E430): an attack, or a cast of a spell of type 0-8 or 0x1A. addon
   writes `JMP +8` over the 0x1A test (antimagic no longer starts battle music). *Implemented* as a
@@ -438,6 +440,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixCreateItem | new: CItemManager::CreateItem 006AC970 (item_constructor.cpp) | ours only (creates objects): a created item has an item class, a "spell container[...]" one its spell |
 | DisableExitOnCrashReport (FatalError sites) | new: FatalError 00480080 (app.cpp) | none (it shows a message box and exits): a plain replacement |
 | FixSpellSelfCasting #1 | new: CBattleScreen::SelectUnit 00638EF0 (ui_hud.cpp) | ours only (orders, sounds): the pending action stays one of the nine, and actions 5, 6, 8 that went back to 0 cleared the item and spell |
+| FixAddMapObject | new: CWorldServer::CreateObject 005927C0 (world_units.cpp) | ours only (creates objects): the returned id is in the object and map-object maps, or in the timed map for sounds, lights and kind 4 |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -469,7 +472,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| FixAddMapObject | object creation 005927C0 (3.5 KB) | 2 days |
 | DisableExitOnCrashReport | the third site: 005641F0, the world frame (1.5 KB) | 1 day |
 | NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
 | PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 and addon's unordered_map order (above) | 2 days |
@@ -495,6 +497,11 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
   004217E0, 00428F10, 0040C720, 0040C770, 00689950, 006AD670, 006A75E0, 004ABBD0, 004ABD00,
   004ACC10).
 - app.cpp: `ShowMessageBox` (004560D0), `ExitGame` (006E8DA7).
+- world_units.cpp (CreateObject): the object setup calls 0050EA40, 0050E9F0, 0050EA70, 00517700,
+  005179E0, 0050F150, 0052B3F0, 0052A2C0, 00675CA0; the map objects manager's 00513630, 00513B60,
+  005141F0; 0058E850, 00689030, 006AC970; CString / CStringArray 00700AF9, 00700AA9, 006FEB61;
+  00530120, 00455660, 0052E970, 00477B00; 004217E0, 00428F10, 005335E0; AfxMessageBox 0070AC94.
+  The old `CreateObject` forwarder there is now `CreateObjectAt`.
 - ui_hud.cpp (SelectUnit): the battle screen's commands 00636F10, 00637190, 006373A0, 00637500,
   00637750, 006379E0; the HUD panels' 0063CD20, 0063E750, 0063F730, 0063F7A0; the client world's
   005659D0, 0056C350, 005699F0; the local view's 0066AA20, 0066AFE0; 0040D3B0, 00530150, 00531920,
