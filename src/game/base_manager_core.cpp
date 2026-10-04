@@ -110,7 +110,8 @@ std::uint32_t& At(void* object, std::size_t offset) {
 }
 
 // The hashtable members built by hand (+0x50 and +0x80): functors, bucket vector, allocator proxy
-// of the element count, 100 buckets, count 0.
+// of the element count, 100 buckets, count 0. The original copies the three empty functor bytes
+// from an uninitialised stack byte; they are never read, so they are zeroed here.
 template <typename Buckets, typename Proxy, typename Resize>
 void BuildTable(void* table, Buckets buckets, Proxy proxy, Resize resize) {
     char tag = 0;

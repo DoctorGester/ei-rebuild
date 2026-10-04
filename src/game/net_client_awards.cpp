@@ -1,0 +1,202 @@
+// The game client's tick (0041CCD0, slot 14) and its award handling (0041CD80): timers count down,
+// and received awards (+0x2608) are applied to the local player. See net_classes.h and
+// docs/notes/unmapped_410_470.md ("Seventh round").
+#pragma float_control(precise, on)
+
+#include "net_classes.h"
+#include "core_refcount.h"
+
+#include "lib/mfc.h"
+
+#include "ei/hook.h"
+#include "ei/vcall.h"
+
+#include <cstring>
+
+class CEngineObject;
+
+namespace net {
+
+namespace {
+
+using ObjectList = mfc::CTypedPtrList<CEngineObject>;
+
+// The client base tick (00442AD0) and the timers list erase (library).
+__declspec(naked) void __fastcall ClientBaseTick(ClientSession* /*self*/, void*, double /*dt*/) EI_ORIGINAL(0x00442AD0)
+__declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004246E0)
+
+// The world (0x7AFF60) and its players (outside this range).
+__declspec(naked) std::uint8_t* __fastcall WorldGetPlayer(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x00594180)
+__declspec(naked) void __fastcall AwardExperience(void* /*world*/, void*, void* /*player*/, std::uint32_t /*amount bits*/) EI_ORIGINAL(0x005911C0)
+__declspec(naked) void __fastcall PlayerGiveItems(void* /*player*/, void*, ObjectList* /*items*/, int /*flag*/) EI_ORIGINAL(0x00665470)
+__declspec(naked) void __fastcall PlayerRemoveItem(void* /*player*/, void*, int /*index*/) EI_ORIGINAL(0x00665870)
+__declspec(naked) void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
+__declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
+// MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
+// RemoveAll of both list kinds.
+__declspec(naked) ObjectList::Node* __fastcall CountedNewNode(ObjectList*, void*, ObjectList::Node* /*prev*/, ObjectList::Node* /*next*/) EI_ORIGINAL(0x00429EA0)
+__declspec(naked) void __fastcall CountedAssign(CEngineObject** /*slot*/, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
+__declspec(naked) void __fastcall CountedRemoveAll(ObjectList*) EI_ORIGINAL(0x00429E50)
+__declspec(naked) void __fastcall PtrListRemoveAll(ObjectList*) EI_ORIGINAL(0x00429F10)
+
+// The game's _ftol (006E853C) on a value loaded from a float.
+__declspec(naked) int __cdecl GameFtol(double) {
+    __asm {
+        fld qword ptr [esp + 4]
+        mov eax, 0x006E853C
+        call eax
+        ret
+    }
+}
+
+constexpr std::uintptr_t kWorld = 0x007AFF60;
+constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;       // CPtrList of objects
+constexpr std::uintptr_t kCountedListVtable = 0x0073BE74;   // list of counted objects
+constexpr int kPlayerGold = 0xC0;
+constexpr int kPlayerParty = 0x70;     // the player's party / inventory object (00661050 class)
+constexpr int kPlayerItems = 0xE4;     // head of the player's item list
+constexpr int kClassQuestItem = 0x14;
+constexpr int kSlotFactory = 18;       // of the party: the item manager
+
+void* World() { return reinterpret_cast<void*>(kWorld); }
+float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+std::int32_t GameMode() { return *reinterpret_cast<const std::int32_t*>(0x007C2CC4); }
+std::uint32_t Unknown7B00BC() { return *reinterpret_cast<const std::uint32_t*>(0x007B00BC); }
+void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }
+template <typename T>
+T& At(void* object, int offset) {
+    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
+}
+
+void InitList(ObjectList& list, std::uintptr_t vtable) {
+    list.vtable = reinterpret_cast<void*>(vtable);
+    list.head = nullptr;
+    list.tail = nullptr;
+    list.count = 0;
+    list.free = nullptr;
+    list.blocks = nullptr;
+    list.blockSize = 10;
+}
+
+} // namespace
+
+// 0041CD80: applies the received awards (+0x2608: counted award messages, net_server_awards.cpp)
+// to player 0 and empties the list. Kind 0: experience (005911C0 with the value's bits); 1: gold
+// (+0xC0, the value truncated), then an empty item list given; 2: the item named by the text,
+// given; 3: the first item of the player's list that the named item's slot 14 accepts (returns 0)
+// is removed; 4: the party's items are reset and every quest item (class 0x14) removed.
+void __fastcall ClientApplyAwards(ClientSession* self) {
+    std::uint8_t* player = WorldGetPlayer(World(), nullptr, 0);
+    if (!player) return;
+    for (void** node = static_cast<void**>(static_cast<void**>(self->list_2608)[0]); node != self->list_2608;
+         node = static_cast<void**>(node[0])) {
+        auto* award = static_cast<std::uint8_t*>(node[2]);
+        const char* name = At<const char*>(award, 0x18);
+        switch (At<std::uint32_t>(award, 0x10)) {
+        case 0:
+            AwardExperience(World(), nullptr, nullptr, At<std::uint32_t>(award, 0x14));
+            break;
+        case 1: {
+            ObjectList none;
+            InitList(none, kPtrListVtable);
+            At<std::int32_t>(player, kPlayerGold) += GameFtol(At<float>(award, 0x14));
+            PlayerGiveItems(player, nullptr, &none, 0);
+            none.vtable = reinterpret_cast<void*>(kPtrListVtable);
+            PtrListRemoveAll(&none);
+            break;
+        }
+        case 2: {
+            ObjectList items;
+            InitList(items, kCountedListVtable);
+            void* manager = ei::VCall<void*>(player + kPlayerParty, kSlotFactory);
+            CEngineObject* item = ManagerCreateItem(manager, nullptr, name);
+            ObjectList::Node* added = CountedNewNode(&items, nullptr, items.tail, nullptr);
+            CountedAssign(&added->data, nullptr, item);
+            if (items.tail) items.tail->next = added;
+            else items.head = added;
+            items.tail = added;
+            PlayerGiveItems(player, nullptr, &items, 0);
+            items.vtable = reinterpret_cast<void*>(kCountedListVtable);
+            CountedRemoveAll(&items);
+            break;
+        }
+        case 3: {
+            void* manager = ei::VCall<void*>(player + kPlayerParty, kSlotFactory);
+            CEngineObject* item = ManagerCreateItem(manager, nullptr, name);
+            if (item) ++At<std::int32_t>(item, 4);
+            for (auto* position = At<ObjectList::Node*>(player, kPlayerItems); position;) {
+                ObjectList::Node* current = position;
+                position = position->next;
+                CEngineObject* owned = current->data;
+                if (!ei::VCall<int>(owned, 14, item)) {
+                    std::int32_t index = At<std::int32_t>(owned, 0xC);
+                    if (index >= 0) PlayerRemoveItem(player, nullptr, index);
+                    break;
+                }
+            }
+            if (item) ei::VCall<int>(item, 4);   // Release
+            break;
+        }
+        case 4:
+            PartyResetItems(player + kPlayerParty);
+            for (auto* position = At<ObjectList::Node*>(player, kPlayerItems); position;) {
+                ObjectList::Node* current = position;
+                position = position->next;
+                CEngineObject* owned = current->data;
+                if (ei::VCall<int>(owned, 12) == kClassQuestItem) PlayerRemoveItem(player, nullptr, At<std::int32_t>(owned, 0xC));
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    // The list emptied inline: each award released, each node back to the 16-byte pool list.
+    for (void** node = static_cast<void**>(static_cast<void**>(self->list_2608)[0]); node != self->list_2608;) {
+        void** current = node;
+        node = static_cast<void**>(node[0]);
+        if (auto* award = static_cast<CRefObject*>(current[2])) {
+            --award->refs_;
+            if (award->refs_ == 0) ei::VCall<void>(award, 0, 1);
+        }
+        if (current) {
+            current[0] = NodeFreeList();
+            NodeFreeList() = current;
+        }
+    }
+    static_cast<void**>(self->list_2608)[0] = self->list_2608;
+    static_cast<void**>(self->list_2608)[1] = self->list_2608;
+}
+EI_REPLACE(0x0041CD80, ClientApplyAwards);
+
+// 0041CCD0 (slot 14): the client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
+// count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
+// mode 3 when player 0 exists with its +0x20 object's +0x20 at 1 and 007B00BC is set.
+void __fastcall ClientTick(ClientSession* self, void*, double dt) {
+    ClientBaseTick(self, nullptr, dt);
+    void* timers = &self->list_2604;
+    void** sentinel = static_cast<void**>(self->list_2604);
+    void** node = static_cast<void**>(sentinel[0]);
+    if (node != sentinel) {
+        const float step = static_cast<float>(dt);
+        do {
+            void** current = node;
+            node = static_cast<void**>(node[0]);
+            float& seconds = *reinterpret_cast<float*>(&current[2]);
+            const double left = static_cast<double>(seconds) - step;
+            seconds = static_cast<float>(left);
+            if (!(left >= GameFloat(0x0073B858))) {
+                void* erased;
+                TimersErase(timers, nullptr, &erased, current);
+            }
+        } while (node != self->list_2604);
+    }
+    void** awards = static_cast<void**>(self->list_2608);
+    if (awards[0] == awards || GameMode() != 3) return;
+    std::uint8_t* player = WorldGetPlayer(World(), nullptr, 0);
+    if (!player || At<std::int32_t>(At<void*>(player, 0x20), 0x20) != 1 || !Unknown7B00BC()) return;
+    ClientApplyAwards(self);
+}
+EI_REPLACE(0x0041CCD0, ClientTick);
+
+} // namespace net

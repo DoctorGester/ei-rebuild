@@ -49,3 +49,46 @@ void __fastcall ServerCollectVerify(ServerSession* self, void*, ReplicatedVector
 
 EI_VERIFY(0x00412D80, ServerConstructVerify, 7, s_construct);
 EI_VERIFY(0x00417EB0, ServerCollectVerify, 5, s_collect);
+
+namespace {
+// 004186F0: ours only (it loads the map and changes the server's lists); the name is kept at +0x25D4.
+void __fastcall SetMapVerify(net::ServerSession* self, void*, const net::StringRep* name) {
+    self->SetMap(name);
+    std::size_t n = static_cast<std::size_t>(name->finish - name->start);
+    ei::verify::Check("ServerSession::SetMap", true,
+                      static_cast<std::size_t>(self->string_25D4.finish - self->string_25D4.start) == n &&
+                          std::memcmp(self->string_25D4.start, name->start, n) == 0,
+                      "");
+}
+void* s_unusedSetMap;
+} // namespace
+EI_VERIFY(0x004186F0, SetMapVerify, 0, s_unusedSetMap);
+
+// QueueMapList (net_server_map.cpp): ours only (it loads quests and queues messages); it only
+// adds to the queued messages.
+namespace {
+void __fastcall QueueMapListVerify(net::ServerSession* self) {
+    std::uint32_t before = 0;
+    void** sentinel = static_cast<void**>(self->list_25AC);
+    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) ++before;
+    self->QueueMapList();
+    std::uint32_t after = 0;
+    sentinel = static_cast<void**>(self->list_25AC);
+    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) ++after;
+    ei::verify::Check("ServerSession::QueueMapList", true, after >= before, "");
+}
+void* s_unusedQueueMapList;
+} // namespace
+EI_VERIFY(0x00418530, QueueMapListVerify, 0, s_unusedQueueMapList);
+
+// FinishMap (net_server_map.cpp): ours only (it releases and queues messages); when it reports
+// success no map message is held.
+namespace {
+bool __fastcall FinishMapVerify(net::ServerSession* self, void*, const net::StringRep* name) {
+    bool result = self->FinishMap(name);
+    ei::verify::Check("ServerSession::FinishMap", true, !result || self->unknown_25A8 == 0, "");
+    return result;
+}
+void* s_unusedFinishMap;
+} // namespace
+EI_VERIFY(0x004193F0, FinishMapVerify, 0, s_unusedFinishMap);

@@ -249,3 +249,90 @@ void __fastcall CloseVerify(net::Connection* self) {
 void* s_unusedClose;
 } // namespace
 EI_VERIFY(0x00436620, CloseVerify, 0, s_unusedClose);
+
+namespace net {
+Connection* __fastcall ConnectionDeletingDestructor(Connection* self, void*, unsigned flags);
+}
+namespace {
+// 00432DA0 / 00433320 / 004334E0 / 004334C0: ours only (they allocate and free the containers).
+net::Connection* __fastcall ConnectionConstructVerify(net::Connection* self, void*, std::uint32_t id) {
+    net::Connection* result = self->Construct(id);
+    ei::verify::Check("Connection::Construct", true,
+                      result == self && self->connectionId == id && self->updateBudget == 0xDC &&
+                          *reinterpret_cast<std::uintptr_t*>(self) == 0x0073BF38,
+                      "id %u", id);
+    return result;
+}
+void __fastcall ConnectionResetVerify(net::Connection* self) {
+    self->Reset();
+    ei::verify::Check("Connection::Reset", true, self->connectionId == 0, "");
+}
+void __fastcall ConnectionDestructVerify(net::Connection* self) {
+    self->Destruct();
+    ei::verify::Check("Connection::Destruct", true, *reinterpret_cast<std::uintptr_t*>(self) == 0x0073BB68, "");
+}
+net::Connection* __fastcall ConnectionDeleteVerify(net::Connection* self, void*, unsigned flags) {
+    ei::verify::Check("ConnectionDeletingDestructor", true, true, "");
+    return net::ConnectionDeletingDestructor(self, nullptr, flags);
+}
+void* s_unusedLife;
+} // namespace
+EI_VERIFY(0x00432DA0, ConnectionConstructVerify, 0, s_unusedLife);
+EI_VERIFY(0x00433320, ConnectionResetVerify, 0, s_unusedLife);
+EI_VERIFY(0x004334E0, ConnectionDestructVerify, 0, s_unusedLife);
+EI_VERIFY(0x004334C0, ConnectionDeleteVerify, 0, s_unusedLife);
+
+namespace {
+// 00433060: ours only (it allocates); the copy has the same id, address and budget.
+net::Connection* __fastcall ConnectionCloneVerify(const net::Connection* self) {
+    net::Connection* copy = self->Clone();
+    ei::verify::Check("Connection::Clone", true,
+                      !copy || (copy->connectionId == self->connectionId && copy->updateBudget == self->updateBudget &&
+                                std::memcmp(copy->address, self->address, 16) == 0),
+                      "");
+    return copy;
+}
+void* s_unusedClone;
+} // namespace
+EI_VERIFY(0x00433060, ConnectionCloneVerify, 0, s_unusedClone);
+
+namespace net {
+ReplicaEntry* __fastcall ReplicaEntryClone(const ReplicaEntry* self);
+void __fastcall ReplicaEntryReset(ReplicaEntry* self);
+void __fastcall ReplicaEntryDestruct(ReplicaEntry* self);
+ReplicaEntry* __fastcall ReplicaEntryDeletingDestructor(ReplicaEntry* self, void*, unsigned flags);
+}
+namespace {
+// 00433A30 / 004343C0 / 00434430 / 004344C0 / 004344A0: ours only (allocation, references).
+net::IdPool* __fastcall IdPoolCopyVerify(net::IdPool* self, void*, const net::IdPool* other) {
+    net::IdPool* result = self->CopyFrom(*other);
+    bool same = (self->end - self->begin) == (other->end - other->begin) && self->next == other->next &&
+                std::memcmp(self->begin, other->begin, static_cast<std::size_t>(self->end - self->begin) * 2) == 0;
+    ei::verify::Check("IdPool::CopyFrom", true, result == self && same, "");
+    return result;
+}
+net::ReplicaEntry* __fastcall EntryCloneVerify(const net::ReplicaEntry* self) {
+    net::ReplicaEntry* copy = net::ReplicaEntryClone(self);
+    ei::verify::Check("ReplicaEntryClone", true,
+                      !copy || (copy->object == self->object && copy->id == self->id && copy->flags == self->flags), "");
+    return copy;
+}
+void __fastcall EntryResetVerify(net::ReplicaEntry* self) {
+    net::ReplicaEntryReset(self);
+    ei::verify::Check("ReplicaEntryReset", true, self->object == nullptr && self->id == 0, "");
+}
+void __fastcall EntryDestructVerify(net::ReplicaEntry* self) {
+    net::ReplicaEntryDestruct(self);
+    ei::verify::Check("ReplicaEntryDestruct", true, true, "");
+}
+net::ReplicaEntry* __fastcall EntryDeleteVerify(net::ReplicaEntry* self, void*, unsigned flags) {
+    ei::verify::Check("ReplicaEntryDeletingDestructor", true, true, "");
+    return net::ReplicaEntryDeletingDestructor(self, nullptr, flags);
+}
+void* s_unusedEntry;
+} // namespace
+EI_VERIFY(0x00433A30, IdPoolCopyVerify, 0, s_unusedEntry);
+EI_VERIFY(0x004343C0, EntryCloneVerify, 0, s_unusedEntry);
+EI_VERIFY(0x00434430, EntryResetVerify, 0, s_unusedEntry);
+EI_VERIFY(0x004344C0, EntryDestructVerify, 0, s_unusedEntry);
+EI_VERIFY(0x004344A0, EntryDeleteVerify, 0, s_unusedEntry);

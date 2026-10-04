@@ -19,6 +19,9 @@
 #include <cstddef>
 #include <cstdint>
 
+class CRefObject;
+struct RefPtr;
+
 namespace net {
 
 // A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage).
@@ -174,6 +177,8 @@ struct ClientSession {
 
     // 0041BC40. The constructor (the caller allocated 0x2700 bytes and cleared +4); returns this.
     ClientSession* Construct();
+    // 0041CA10 (net_client_life.cpp). The destructor body (0041C8B0 is the deleting destructor).
+    void Destruct();
 };
 
 // 0041C420: the 0x10-byte member at +0x25AC (a vector and a dword), all zero. Returns this.
@@ -232,6 +237,57 @@ struct ServerSession {
 
     // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
     ServerSession* Construct(std::uint32_t arg);
+    // 00417BC0 (net_server_life.cpp). The destructor body (00417A10 is the deleting destructor).
+    void Destruct();
+    // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
+    void SetMap(const StringRep* name);
+    // 00418530. Queues a map message for each zone that follows the current map.
+    void QueueMapList();
+    // 004193F0. When the held map message names `name`: drops it and queues "name_3" instead.
+    bool FinishMap(const StringRep* name);
+    // 00419570 .. 00419940 (net_server_vars.cpp): the script variables (+0x25B0, named floats).
+    void** FindVariable(void** out, const StringRep* name);
+    void** FindOrAddVariable(void** out, const StringRep* name);
+    void SetVariable(const StringRep* name, float value);      // zero removes it
+    void RaiseVariable(const StringRep* name, float value);    // to the larger value
+    void RemoveVariable(const StringRep* name);
+    double GetVariable(const StringRep* name);                 // 0 when missing
+    // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
+    // shares of the zone's two values and the host's items, then the map state is dropped.
+    void CompleteZone(const StringRep* zone);
+    // 00418CC0. The zone leaving command ("<zone>_2"): the host's items with the final award, then
+    // the map state is dropped and the world's map cleared.
+    void LeaveZone();
+    // 004191C0. Queues the host's item awards of map registry `entry` (and, with `withFinal`, the
+    // final award).
+    void AwardHost(const std::uint8_t* entry, bool withFinal);
+    // 00419D90. Queues an award message for `connection` (60 s delay); destroys `text`.
+    void QueueAward(CRefObject* connection, int kind, float value, StringRep text);
+    // 00419A00 (net_server_files.cpp). Lists `data` under `name` (unless listed) as a file message
+    // with 64-byte chunk messages.
+    void ShareFile(const StringRep* name, GameBuffer* data);
+    // 0041A7E0 (slot 15, net_server_entry.cpp). Makes `*out` a server entry describing this server.
+    void Describe(RefPtr* out);
+    // 00417E10. Whether the server is announced to the master server (port 28004).
+    void SetPublic(bool announce);
+    // 0041A310 (net_server_chat.cpp). Keeps a chat or system line for the clients (`player` null
+    // for the server's own; at most 50 lines).
+    void Announce(const char* text, CRefObject* player);
+    // 0041A490. Announce with text `kind` of the text table formatted with `text`.
+    void AnnounceText(int kind, const char* text, CRefObject* player);
+    // 0041ACF0 (net_server_trade.cpp). The trade between two offers (either order), or null.
+    void* FindTrade(void* offer, void* other);
+    // 0041A020 .. 0041A770 (net_server_players.cpp): players, connections, admission.
+    int LeaderId();                                       // 0041A020: the first host's id, -1
+    bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);   // slot 16
+    void SetPassword(const char* text);                   // 0041A140
+    void* FindGuestConnection(const StringRep* name);     // 0041A170
+    void* FindConnectionBySerial(int serial);             // 0041A270
+    void* FindPlayer(int id);                             // 0041A2E0
+    void AnnounceToGuests(int kind, const char* text);    // 0041A500
+    void Kick(void* connection);                          // 0041A550
+    void Ban(void* connection);                           // 0041A620
+    void ReportDeparture(void* connection, int text);     // 0041A700 (slot 11, 4) / 0041A770 (slot 12, 1)
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);

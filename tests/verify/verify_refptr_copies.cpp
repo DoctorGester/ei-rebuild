@@ -17,6 +17,11 @@
 
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
+void __fastcall PairReleaseSecond(void* self);                                    // refptr_copies.cpp
+void __fastcall RefPtrClear(RefPtr* self);                                        // refptr_copies.cpp
+RefPtr* __fastcall RefPtrNull(RefPtr* self);                                      // refptr_copies.cpp
+RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);               // refptr_copies.cpp
+RefPtr* __fastcall RefPtrFromRawCounted(RefPtr* self, void*, CRefObject* object); // refptr_copies.cpp
 
 namespace {
 
@@ -245,3 +250,130 @@ EI_VERIFY(0x0047A430, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0047CA80, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0047D170, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0047D7B0, ReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00438A10, ReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00439910, ReleaseVerify, 0, s_unused);
+
+// The pair releases: the 29-byte body of 004215A0 (identical in all four; only internal jumps)
+// copied to executable memory is the original; dry runs on a stand-in held at +4.
+namespace {
+using PairFn = void(__fastcall*)(void*);
+PairFn CopyPairReleaseBody() {
+    constexpr std::size_t kSize = 0x1D;
+    void* copy = ::VirtualAlloc(nullptr, kSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (copy) std::memcpy(copy, reinterpret_cast<const void*>(0x004215A0), kSize);
+    return reinterpret_cast<PairFn>(copy);
+}
+PairFn s_pairBody = CopyPairReleaseBody();
+
+void __fastcall PairReleaseVerify(void* self) {
+    if (s_pairBody) {
+        static DryRun expected, actual;
+        CRefObject* object = reinterpret_cast<RefPtr*>(static_cast<std::uint8_t*>(self) + 4)->ptr;
+        DryRunOn(expected, object, [](RefPtr* p) { s_pairBody(reinterpret_cast<std::uint8_t*>(p) - 4); });
+        DryRunOn(actual, object, [](RefPtr* p) { PairReleaseSecond(reinterpret_cast<std::uint8_t*>(p) - 4); });
+        ei::verify::Check("PairReleaseSecond", true, Same(expected, actual), "%p", object);
+    }
+    PairReleaseSecond(self);
+}
+
+// The holder clears and null constructors: side by side on a copy of the holder.
+// MOV [ECX],0 (6) / MOV EAX,ECX (2), MOV [EAX],0 (6).
+#define EI_CLEAR_COPY(addr)                                                                      \
+    void(__fastcall* s_clear_##addr)(RefPtr*);                                                   \
+    void __fastcall ClearVerify_##addr(RefPtr* self) {                                           \
+        RefPtr expected = *self;                                                                 \
+        s_clear_##addr(&expected);                                                               \
+        RefPtrClear(self);                                                                       \
+        ei::verify::Check("RefPtrClear@" #addr, expected.ptr, self->ptr, "");                    \
+    }
+#define EI_NULL_COPY(addr)                                                                       \
+    RefPtr*(__fastcall* s_null_##addr)(RefPtr*);                                                 \
+    RefPtr* __fastcall NullVerify_##addr(RefPtr* self) {                                         \
+        RefPtr expected = *self;                                                                 \
+        RefPtr* returned = s_null_##addr(&expected);                                             \
+        RefPtr* result = RefPtrNull(self);                                                       \
+        ei::verify::Check("RefPtrNull@" #addr, true,                                             \
+                          returned == &expected && result == self && expected.ptr == self->ptr, ""); \
+        return result;                                                                           \
+    }
+// PUSH ECX (1), MOV EAX,ECX (2), MOV [ESP],0 (8).
+#define EI_RAW_COPY(addr)                                                                        \
+    RefPtr*(__fastcall* s_raw_##addr)(RefPtr*, CRefObject*);                                    \
+    RefPtr* __fastcall RawVerify_##addr(RefPtr* self, CRefObject* object) {                      \
+        RefPtr expected = *self;                                                                 \
+        RefPtr* returned = s_raw_##addr(&expected, object);                                      \
+        RefPtr* result = RefPtrFromRaw(self, object);                                            \
+        ei::verify::Check("RefPtrFromRaw@" #addr, true,                                          \
+                          returned == &expected && result == self && expected.ptr == self->ptr, ""); \
+        return result;                                                                           \
+    }
+
+EI_CLEAR_COPY(00421360) EI_CLEAR_COPY(00421370) EI_CLEAR_COPY(00421380) EI_CLEAR_COPY(00421390)
+EI_CLEAR_COPY(004213A0) EI_CLEAR_COPY(004213B0) EI_CLEAR_COPY(004213C0) EI_CLEAR_COPY(004213D0)
+EI_CLEAR_COPY(004213E0) EI_CLEAR_COPY(004213F0) EI_CLEAR_COPY(004214B0) EI_CLEAR_COPY(004214C0)
+EI_CLEAR_COPY(004214D0) EI_CLEAR_COPY(004214E0) EI_CLEAR_COPY(004214F0) EI_CLEAR_COPY(00421550)
+EI_CLEAR_COPY(00438A00)
+EI_NULL_COPY(0041FF50) EI_NULL_COPY(0041FF60) EI_NULL_COPY(0041FF70) EI_NULL_COPY(0041FF80)
+EI_NULL_COPY(0041FFC0) EI_NULL_COPY(0041FFD0) EI_NULL_COPY(0041FFE0) EI_NULL_COPY(00438A90)
+EI_NULL_COPY(00438F50)
+EI_RAW_COPY(00427D50) EI_RAW_COPY(00427FD0) EI_RAW_COPY(00427FE0) EI_RAW_COPY(00428030)
+EI_RAW_COPY(00428040) EI_RAW_COPY(00428050) EI_RAW_COPY(00428060) EI_RAW_COPY(00428070)
+EI_RAW_COPY(00428080) EI_RAW_COPY(00428A10) EI_RAW_COPY(00428C00) EI_RAW_COPY(00428C10)
+EI_RAW_COPY(00428C20) EI_RAW_COPY(00428C30) EI_RAW_COPY(00428C40) EI_RAW_COPY(00428DE0)
+
+// The counted raw holders add a reference: ours only (the copy points at the object).
+RefPtr* __fastcall RawCountedVerify(RefPtr* self, void*, CRefObject* object) {
+    RefPtr* result = RefPtrFromRawCounted(self, nullptr, object);
+    ei::verify::Check("RefPtrFromRawCounted", true, result == self && self->ptr == object, "");
+    return result;
+}
+} // namespace
+
+EI_VERIFY(0x004215A0, PairReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00438A30, PairReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00438A50, PairReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00438A70, PairReleaseVerify, 0, s_unused);
+EI_VERIFY(0x0040A770, RawCountedVerify, 0, s_unused);
+EI_VERIFY(0x0041DD50, RawCountedVerify, 0, s_unused);
+EI_VERIFY(0x00421360, ClearVerify_00421360, 6, s_clear_00421360);
+EI_VERIFY(0x00421370, ClearVerify_00421370, 6, s_clear_00421370);
+EI_VERIFY(0x00421380, ClearVerify_00421380, 6, s_clear_00421380);
+EI_VERIFY(0x00421390, ClearVerify_00421390, 6, s_clear_00421390);
+EI_VERIFY(0x004213A0, ClearVerify_004213A0, 6, s_clear_004213A0);
+EI_VERIFY(0x004213B0, ClearVerify_004213B0, 6, s_clear_004213B0);
+EI_VERIFY(0x004213C0, ClearVerify_004213C0, 6, s_clear_004213C0);
+EI_VERIFY(0x004213D0, ClearVerify_004213D0, 6, s_clear_004213D0);
+EI_VERIFY(0x004213E0, ClearVerify_004213E0, 6, s_clear_004213E0);
+EI_VERIFY(0x004213F0, ClearVerify_004213F0, 6, s_clear_004213F0);
+EI_VERIFY(0x004214B0, ClearVerify_004214B0, 6, s_clear_004214B0);
+EI_VERIFY(0x004214C0, ClearVerify_004214C0, 6, s_clear_004214C0);
+EI_VERIFY(0x004214D0, ClearVerify_004214D0, 6, s_clear_004214D0);
+EI_VERIFY(0x004214E0, ClearVerify_004214E0, 6, s_clear_004214E0);
+EI_VERIFY(0x004214F0, ClearVerify_004214F0, 6, s_clear_004214F0);
+EI_VERIFY(0x00421550, ClearVerify_00421550, 6, s_clear_00421550);
+EI_VERIFY(0x00438A00, ClearVerify_00438A00, 6, s_clear_00438A00);
+EI_VERIFY(0x0041FF50, NullVerify_0041FF50, 8, s_null_0041FF50);
+EI_VERIFY(0x0041FF60, NullVerify_0041FF60, 8, s_null_0041FF60);
+EI_VERIFY(0x0041FF70, NullVerify_0041FF70, 8, s_null_0041FF70);
+EI_VERIFY(0x0041FF80, NullVerify_0041FF80, 8, s_null_0041FF80);
+EI_VERIFY(0x0041FFC0, NullVerify_0041FFC0, 8, s_null_0041FFC0);
+EI_VERIFY(0x0041FFD0, NullVerify_0041FFD0, 8, s_null_0041FFD0);
+EI_VERIFY(0x0041FFE0, NullVerify_0041FFE0, 8, s_null_0041FFE0);
+EI_VERIFY(0x00438A90, NullVerify_00438A90, 8, s_null_00438A90);
+EI_VERIFY(0x00438F50, NullVerify_00438F50, 8, s_null_00438F50);
+EI_VERIFY(0x00427D50, RawVerify_00427D50, 11, s_raw_00427D50);
+EI_VERIFY(0x00427FD0, RawVerify_00427FD0, 11, s_raw_00427FD0);
+EI_VERIFY(0x00427FE0, RawVerify_00427FE0, 11, s_raw_00427FE0);
+EI_VERIFY(0x00428030, RawVerify_00428030, 11, s_raw_00428030);
+EI_VERIFY(0x00428040, RawVerify_00428040, 11, s_raw_00428040);
+EI_VERIFY(0x00428050, RawVerify_00428050, 11, s_raw_00428050);
+EI_VERIFY(0x00428060, RawVerify_00428060, 11, s_raw_00428060);
+EI_VERIFY(0x00428070, RawVerify_00428070, 11, s_raw_00428070);
+EI_VERIFY(0x00428080, RawVerify_00428080, 11, s_raw_00428080);
+EI_VERIFY(0x00428A10, RawVerify_00428A10, 11, s_raw_00428A10);
+EI_VERIFY(0x00428C00, RawVerify_00428C00, 11, s_raw_00428C00);
+EI_VERIFY(0x00428C10, RawVerify_00428C10, 11, s_raw_00428C10);
+EI_VERIFY(0x00428C20, RawVerify_00428C20, 11, s_raw_00428C20);
+EI_VERIFY(0x00428C30, RawVerify_00428C30, 11, s_raw_00428C30);
+EI_VERIFY(0x00428C40, RawVerify_00428C40, 11, s_raw_00428C40);
+EI_VERIFY(0x00428DE0, RawVerify_00428DE0, 11, s_raw_00428DE0);

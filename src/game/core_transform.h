@@ -176,10 +176,21 @@ public:
     int PlaybackStart();
     int PlaybackStep(float time);
 
-    // Not rewritten (camera.cpp forwarders).
-    void ClampAboveObjects();                               // 0040E4C0
-    void AlignToTarget();                                   // 0040D710
-    void LookDirection(float dx, float dy, float dz);       // 004110D0
+    // camera_object.cpp
+    CCamera* Construct();                   // 0040C8B0: constructor body; returns this
+    void Destruct();                        // 0040CE60: destructor body
+    // 0040D0A0. Views and start placement from the settings; a / b / c kept at +0x2E0..+0x2E8.
+    int Init(CameraSettings* settings, std::uint32_t a, std::uint32_t b, std::uint32_t c);
+    void LoadState(void* stream);           // 00410AB0 (WorldStream: slot 1 Read, +8 version)
+    void SaveState(void* stream);           // 00410C10 (slot 2 Write)
+
+    // camera_motion.cpp
+    // 0040E4C0. Lifts the camera over the terrain and the objects within 16 of it.
+    void ClampAboveObjects();
+    // 0040D710. Turns the camera a tenth of the way upright, then ClampAboveObjects.
+    void AlignToTarget();
+    // 004110D0. Aims along the direction; false (nothing done) for a zero-length one.
+    bool LookDirection(float dx, float dy, float dz);
 
 
     // 0040E810. Where the camera's view axis (rotated Z) meets the ground plane z = 0; the camera
