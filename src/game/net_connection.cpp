@@ -192,6 +192,18 @@ std::uint16_t IdPool::Allocate() {
 }
 EI_REPLACE_METHOD(0x00435F10, IdPool::Allocate);
 
+// 00433B10 (no Ghidra function; the client base's 00442A20 jumps to it with its first
+// connection): 1 when the peer has been silent for longer than three average round trips (or a
+// value is NaN), else 0. Plain float maths (rewrite-guide rule 7): a silence within rounding of
+// the limit may be judged one call apart from the original.
+int __fastcall ConnectionSilent(const Connection* self) {
+    float factor;
+    std::memcpy(&factor, reinterpret_cast<const void*>(0x0073BAA4), sizeof(factor));   // 3.0
+    float limit = self->roundTrip * factor;
+    return !(limit >= self->idleTime) ? 1 : 0;
+}
+EI_REPLACE(0x00433B10, ConnectionSilent);
+
 void Connection::WriteAcks(std::uint8_t** p) {
     std::uint16_t base = static_cast<std::uint16_t>(lastReceived);
     std::uint32_t mask = 0;

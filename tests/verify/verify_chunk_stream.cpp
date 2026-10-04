@@ -11,7 +11,8 @@
 //
 // Advance (no file) runs on a copy of the chain against ours; the constructor and destructor body
 // on scratch copies. ForEachChild calls the chunks' OnChunk handlers (the zone loader's code), so it
-// runs ours only.
+// runs ours only. The text readers compare the strings (the original builds its own in a scratch
+// slot or a scratch CStringArray); the root's Open and destructor run ours only.
 #include "verify.h"
 
 #include "../../src/game/chunk_stream.h"
@@ -447,6 +448,86 @@ void __fastcall ReadBytesVerify(Chunk* self, void*, void* data, int size) {
     delete[] scratch;
 }
 
+// --- Text ----------------------------------------------------------------------------------------
+
+// 0042C580 / 0042C650: PUSH -1 (2), PUSH imm32 (5). The original builds its string in a scratch
+// slot; the texts must be equal (the scratch is destroyed afterwards).
+using ReadText = mfc::CString*(__fastcall*)(Chunk*, void*, mfc::CString*);
+template <typename Ours>
+mfc::CString* ReadTextChecked(const char* name, Chunk* self, mfc::CString* out, Ours ours, ReadText original) {
+    alignas(mfc::CString) std::uint8_t slot[sizeof(mfc::CString)];
+    auto* scratch = reinterpret_cast<mfc::CString*>(slot);
+    mfc::CString* ret = nullptr;
+    mfc::CString* expectedRet = nullptr;
+    if (RunRecorded(name, self, [&] { ret = ours(); }, [&](Chunk* c) { expectedRet = original(c, nullptr, scratch); })) {
+        bool same = expectedRet == scratch && ret == out && scratch->GetLength() == out->GetLength() &&
+                    std::memcmp(static_cast<const char*>(*scratch), static_cast<const char*>(*out), out->GetLength()) == 0;
+        ei::verify::Check(name, true, same, "text");
+        scratch->~CString();
+    }
+    return ret;
+}
+ReadText s_readString;
+mfc::CString* __fastcall ReadStringVerify(Chunk* self, void*, mfc::CString* out) {
+    return ReadTextChecked("Chunk::ReadString", self, out, [&] { return self->ReadString(out); }, s_readString);
+}
+ReadText s_readEncodedString;
+mfc::CString* __fastcall ReadEncodedStringVerify(Chunk* self, void*, mfc::CString* out) {
+    return ReadTextChecked("Chunk::ReadEncodedString", self, out, [&] { return self->ReadEncodedString(out); },
+                           s_readEncodedString);
+}
+
+// 0042C820: PUSH -1 (2), PUSH imm32 (5). Each run gets its own copy of the text (and destroys it).
+void(__fastcall* s_writeString)(Chunk*, void*, std::uint32_t, mfc::CString);
+void __fastcall WriteStringVerify(Chunk* self, void*, std::uint32_t id, mfc::CString text) {
+    RunRecorded("Chunk::WriteString", self, [&] { self->WriteString(id, text); },
+                [&](Chunk* c) { s_writeString(c, nullptr, id, text); });
+}
+
+// CStringArray (MFC): vtable, data, size, capacity, grow-by. SetSize(0, -1) frees a scratch one.
+struct StringArray {
+    void* vtable;
+    mfc::CString* data;
+    int size;
+    int capacity;
+    int growBy;
+};
+__declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
+
+// 0042CA20: MOV EAX,FS:[0] (6). The original fills an empty scratch array; the elements must match.
+void(__fastcall* s_readStringArray)(Chunk*, void*, StringArray*);
+void __fastcall ReadStringArrayVerify(Chunk* self, void*, StringArray* array) {
+    StringArray scratch{array->vtable, nullptr, 0, 0, array->growBy};
+    if (RunRecorded("Chunk::ReadStringArray", self, [&] { self->ReadStringArray(array); },
+                    [&](Chunk* c) { s_readStringArray(c, nullptr, &scratch); })) {
+        bool same = scratch.size == array->size;
+        for (int i = 0; same && i < array->size; ++i)
+            same = scratch.data[i].GetLength() == array->data[i].GetLength() &&
+                   std::memcmp(static_cast<const char*>(scratch.data[i]), static_cast<const char*>(array->data[i]),
+                               array->data[i].GetLength()) == 0;
+        ei::verify::Check("Chunk::ReadStringArray elements", true, same, "%d / %d", scratch.size, array->size);
+        StringArraySetSize(&scratch, nullptr, 0, -1);
+    }
+}
+
+// 0042CB80: SUB ESP,0xC (3), PUSH EBX (1), PUSH EBP (1). Both write the same array.
+void(__fastcall* s_writeStringArray)(Chunk*, void*, std::uint32_t, StringArray*);
+void __fastcall WriteStringArrayVerify(Chunk* self, void*, std::uint32_t id, StringArray* array) {
+    RunRecorded("Chunk::WriteStringArray", self, [&] { self->WriteStringArray(id, array); },
+                [&](Chunk* c) { s_writeStringArray(c, nullptr, id, array); });
+}
+
+// The root: ours only (opening a file and destroying it cannot run twice).
+int __fastcall RootOpenVerify(Chunk* self, void*, mfc::CString path, unsigned flags) {
+    int result = ChunkRootOpen(self, nullptr, path, flags);
+    ei::verify::Check("ChunkRootOpen", true, true, "");
+    return result;
+}
+void __fastcall RootDestructVerify(Chunk* self) {
+    ChunkRootDestruct(self);
+    ei::verify::Check("ChunkRootDestruct", kChunkVtable, VtableOf(self), "");
+}
+
 } // namespace
 
 EI_VERIFY(0x0042BEC0, ConstructVerify, 7, s_construct);
@@ -472,3 +553,10 @@ EI_VERIFY(0x0042CCC0, ReadVector3Verify, 6, s_readVector3);
 EI_VERIFY(0x0042CEC0, ReadQuadVerify, 5, s_readQuad);
 EI_VERIFY(0x0042D060, ReadQuaternionVerify, 6, s_readQuaternion);
 EI_VERIFY(0x0042D020, ReadBytesVerify, 6, s_readBytes);
+EI_VERIFY(0x0042C580, ReadStringVerify, 7, s_readString);
+EI_VERIFY(0x0042C650, ReadEncodedStringVerify, 7, s_readEncodedString);
+EI_VERIFY(0x0042C820, WriteStringVerify, 7, s_writeString);
+EI_VERIFY(0x0042CA20, ReadStringArrayVerify, 6, s_readStringArray);
+EI_VERIFY(0x0042CB80, WriteStringArrayVerify, 5, s_writeStringArray);
+EI_VERIFY(0x0042D160, RootOpenVerify, 0, s_unused);
+EI_VERIFY(0x0042D270, RootDestructVerify, 0, s_unused);

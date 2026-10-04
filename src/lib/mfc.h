@@ -25,6 +25,9 @@ public:
 
     void Empty();                                 // 007008FB
     char* GetBufferSetLength(int length);         // 00700E17
+    char* GetBuffer(int minLength);               // 00700DA0
+    void ReleaseBuffer(int newLength);            // 00700DEF (-1: up to the terminator)
+    int GetLength() const { return reinterpret_cast<const int*>(data_)[-2]; }   // CStringData::nDataLength
     void MakeLower();                             // 00700EFE (calls _mbslwr)
     void TrimRight(const char* targets);          // 006FE08A TrimRight(LPCTSTR)
     const CString& operator+=(const CString& s);  // 00700D88

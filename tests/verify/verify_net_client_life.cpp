@@ -5,6 +5,7 @@
 
 namespace net {
 ClientSession* __fastcall ClientDeletingDestructor(ClientSession* self, void*, unsigned flags);
+void __fastcall ClientBaseDestruct(ClientSession* self);
 }
 
 namespace {
@@ -18,7 +19,12 @@ net::ClientSession* __fastcall DeleteVerify(net::ClientSession* self, void*, uns
     ei::verify::Check("ClientDeletingDestructor", true, true, "");
     return net::ClientDeletingDestructor(self, nullptr, flags);
 }
+void __fastcall BaseDestructVerify(net::ClientSession* self) {
+    net::ClientBaseDestruct(self);
+    ei::verify::Check("ClientBaseDestruct", true, true, "");
+}
 } // namespace
 
 EI_VERIFY(0x0041CA10, DestructVerify, 0, s_unused);
 EI_VERIFY(0x0041C8B0, DeleteVerify, 0, s_unused);
+EI_VERIFY(0x0041C530, BaseDestructVerify, 0, s_unused);

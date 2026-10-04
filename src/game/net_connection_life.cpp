@@ -26,7 +26,7 @@ float Store(double v) {
 __declspec(naked) void __stdcall VectorCtorIterator(void* /*ptr*/, unsigned /*size*/, int /*count*/, std::uintptr_t /*ctor*/,
                                                     std::uintptr_t /*dtor*/) EI_ORIGINAL(0x006E8693)
 __declspec(naked) void __stdcall VectorDtorIterator(void* /*ptr*/, unsigned /*size*/, int /*count*/, std::uintptr_t /*dtor*/) EI_ORIGINAL(0x006E859F)
-constexpr std::uintptr_t kIdPoolCtor = 0x00433040;
+constexpr std::uintptr_t kIdPoolCtor = 0x00433040;   // IdPoolConstruct below, called through its address
 constexpr std::uintptr_t kIdPoolDtor = 0x004336D0;
 constexpr std::uintptr_t kPriorityCtor = 0x00437D70;
 constexpr std::uintptr_t kPriorityDtor = 0x00433850;
@@ -368,5 +368,17 @@ ReplicaEntry* __fastcall ReplicaEntryDeletingDestructor(ReplicaEntry* self, void
     return self;
 }
 EI_REPLACE(0x004344A0, ReplicaEntryDeletingDestructor);
+
+
+// 00433040 (no Ghidra function; the element constructor the connection's constructor passes to the
+// vector constructor iterator): an empty id pool (no free ids, next 0). Returns this.
+IdPool* __fastcall IdPoolConstruct(IdPool* self) {
+    self->begin = nullptr;
+    self->end = nullptr;
+    self->eos = nullptr;
+    self->next = 0;
+    return self;
+}
+EI_REPLACE(0x00433040, IdPoolConstruct);
 
 } // namespace net

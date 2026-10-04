@@ -1,8 +1,10 @@
 // The game client's timed entries and commands: an object kept on the timers list (0041D1A0), a
-// command message for the server (0041D260) and the client's own server entry (0041D420, slot 16).
+// command message for the server (0041D260), the client's own server entry (0041D420, slot 16), the
+// start of the game (0041D410, slot 15) and the ratio of a received buffer (0041D9A0).
 // See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #include "net_classes.h"
 #include "core_refcount.h"
+#include "net_coder.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -185,5 +187,40 @@ void __fastcall ClientDescribe(ClientSession* self, void*, RefPtr* out) {
     out->Share(reinterpret_cast<CRefObject*>(entry));
 }
 EI_REPLACE(0x0041D420, ClientDescribe);
+
+
+namespace {
+// 0057F280: GameFlow::BeginMultiplayerGame (world_game.cpp).
+__declspec(naked) void __fastcall FlowBeginMultiplayerGame(void* /*flow*/) EI_ORIGINAL(0x0057F280)
+} // namespace
+
+// 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
+void __fastcall ClientBeginGame(ClientSession*) { FlowBeginMultiplayerGame(reinterpret_cast<void*>(0x007AFE20)); }
+EI_REPLACE(0x0041D410, ClientBeginGame);
+
+// 0041D9A0 (called with the client by the transfer screen 0061E4E0): a buffer's stream size (its
+// base plus the highest written position, from `begin`) over the dword at its start (1 when 0),
+// both as signed integers; 0 for fewer than 4 bytes. Reading the dword moves the read position to
+// 4 (Seek(0) through slot 6, then a 4-byte read as BufferRead does it). Returned unrounded: the
+// caller multiplies ST0. Plain C++ division (rewrite-guide rule 7).
+double __fastcall ClientBufferRatio(ClientSession*, void*, GameBuffer* buffer) {
+    constexpr int kSlotSeek = 6;
+    auto streamSize = [buffer] {
+        if (buffer->cur > buffer->high) buffer->high = buffer->cur;
+        return static_cast<std::int32_t>(buffer->base - reinterpret_cast<std::intptr_t>(buffer->begin) +
+                                         reinterpret_cast<std::intptr_t>(buffer->high));
+    };
+    if (streamSize() < 4) {
+        float zero;
+        std::memcpy(&zero, reinterpret_cast<const void*>(0x0073B858), sizeof(zero));
+        return zero;
+    }
+    ei::VCall<int>(buffer, kSlotSeek, 0);
+    std::uint32_t stored;
+    BufferRead(buffer, nullptr, &stored, 4);
+    std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
+    return static_cast<double>(streamSize()) / static_cast<double>(divisor);
+}
+EI_REPLACE(0x0041D9A0, ClientBufferRatio);
 
 } // namespace net

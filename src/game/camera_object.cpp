@@ -356,6 +356,17 @@ int __fastcall CameraCloseFile(CCamera* self) {
 }
 EI_REPLACE(0x0040ECB0, CameraCloseFile);
 
+// 00412120: memory for `count` camera records (36 bytes each; the played-back path at +0x2F0,
+// sized by 0040ECD0): one record more is allocated and the start aligned to 32 bytes, with the
+// block's address kept in the dword before it (0040ECD0 frees through it).
+void* __fastcall CameraRecordsAllocate(int count) {
+    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(count * 9 + 9) * 4));
+    auto* start = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
+    std::memcpy(start - 4, &block, 4);
+    return start;
+}
+EI_REPLACE(0x00412120, CameraRecordsAllocate);
+
 // 00410AB0: loads the camera state saved by SaveState. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
 void CCamera::LoadState(void* stream) {
