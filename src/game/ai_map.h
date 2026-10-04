@@ -97,13 +97,15 @@ struct VisibilityGrid {
 };
 static_assert(sizeof(VisibilityGrid) == 0x18);
 
-// The region map at CAIMap + 0x22F8: connected areas per size class. Not rewritten.
+// The region map at CAIMap + 0x22F8: connected areas per size class.
 struct CRegionMap {
     // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
     // original leaves it).
     int RegionAt(int sizeClass, int x, int y);
     // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
     bool Reaches(int sizeClass, int x, int y, int region, void* marks);
+    // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
+    bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
 };
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
