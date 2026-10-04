@@ -6,6 +6,7 @@
 
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_create_screen.h"
+#include "../../src/lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -189,3 +190,18 @@ static void __fastcall LoadStateVerify(CInterface3D* self, void*, void* stream) 
                       *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(stream) + 8));
 }
 EI_VERIFY(0x005F8420, LoadStateVerify, 0, s_unused);
+
+// 005F8C90: PUSH -1; PUSH imm32 (7). Side by side: both texts must be equal (ours is destroyed).
+static void*(__thiscall* s_messageText)(CInterface3D*, void*, int, int);
+static void* __fastcall MessageTextVerify(CInterface3D* self, void*, void* out, int id, int value) {
+    s_messageText(self, out, id, value);
+    alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
+    self->MessageText(storage, id, value);
+    const char* expected = *static_cast<const char* const*>(out);
+    const char* actual = *reinterpret_cast<const char* const*>(storage);
+    ei::verify::Check("CInterface3D::MessageText", true, std::strcmp(expected, actual) == 0, "id %d value %d: %s / %s",
+                      id, value, expected, actual);
+    reinterpret_cast<mfc::CString*>(storage)->~CString();
+    return out;
+}
+EI_VERIFY(0x005F8C90, MessageTextVerify, 7, s_messageText);

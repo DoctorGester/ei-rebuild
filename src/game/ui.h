@@ -84,6 +84,11 @@ public:
     // obsolete list (count, then name and value pairs, discarded) and the CString +0xA4; from 0x5D
     // +0xA8; from 0x5F the CString +0xAC. ui_interface_save.cpp.
     void LoadState(void* stream);
+    // 005F8C90 (RET 0xC; on 007C7D50; multiplayer messages). The text of message `id` (0-12:
+    // "lmp_player_connected" .. "reserved_02"; others an empty key) from the text table,
+    // formatted with `value` when it is not 0, constructed into `out`; returns `out`
+    // (ui_interface_save.cpp).
+    void* MessageText(void* out, int id, int value);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);

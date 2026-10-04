@@ -56,6 +56,50 @@ void CInterface3D::LoadState(void* stream) {
     }
 }
 
+// --- 005F8C90: the multiplayer messages' texts -------------------------------------------------
+
+namespace {
+__declspec(naked) void __fastcall CStringCopyConstruct(void*, void*, const mfc::CString*) EI_ORIGINAL(0x007006E5)
+// The text table (007AF788; thiscall): a key's text into `out` (004E0020, RET 8).
+__declspec(naked) int __fastcall GetText(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
+
+const std::uintptr_t kMessageKeys[13] = {
+    0x007931DC,   // "lmp_player_connected"
+    0x007931C4,   // "lmp_player_disconnected"
+    0x007931B0,   // "lmp_player_kicked"
+    0x0079319C,   // "lmp_player_banned"
+    0x00793180,   // "lmp_player_lost_connection"
+    0x00793170,   // "lmp_quest_taken"
+    0x0079315C,   // "lmp_quest_canceled"
+    0x00793148,   // "lmp_quest_completed"
+    0x00793134,   // "lmp_zone_enabled"
+    0x00793120,   // "lmp_zone_disabled"
+    0x0079310C,   // "lmp_trade_requested"
+    0x007930F8,   // "lmp_trade_canceled"
+    0x007930EC,   // "reserved_02"
+};
+} // namespace
+
+void* CInterface3D::MessageText(void* out, int id, int value) {
+    mfc::CString key, text;
+    if (static_cast<unsigned>(id) <= 12) key = reinterpret_cast<const char*>(kMessageKeys[id]);
+    void* table = *reinterpret_cast<void* const*>(0x007AF788);
+    GetText(table, nullptr, key, &key);
+    if (value != 0)
+        text.Format(key, value);
+    else
+        text = key;
+    CStringCopyConstruct(out, nullptr, &text);
+    return out;
+}
+
+namespace {
+void* __fastcall InterfaceMessageText(CInterface3D* self, void*, void* out, int id, int value) {
+    return self->MessageText(out, id, value);
+}
+} // namespace
+EI_REPLACE(0x005F8C90, InterfaceMessageText);
+
 namespace {
 void __fastcall InterfaceLoadState(CInterface3D* self, void*, void* stream) { self->LoadState(stream); }
 } // namespace
