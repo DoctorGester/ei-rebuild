@@ -108,7 +108,8 @@ EI_REPLACE(0x004214F0, RefPtrClear);
 EI_REPLACE(0x00421550, RefPtrClear);
 EI_REPLACE(0x00438A00, RefPtrClear);
 
-// The default constructor (null), returning the holder. 9 copies.
+// The default constructor (null), returning the holder. 10 copies (00478FB0: the loopback link's
+// peer, net_link.cpp).
 RefPtr* __fastcall RefPtrNull(RefPtr* self) {
     self->ptr = nullptr;
     return self;
@@ -122,6 +123,7 @@ EI_REPLACE(0x0041FFD0, RefPtrNull);
 EI_REPLACE(0x0041FFE0, RefPtrNull);
 EI_REPLACE(0x00438A90, RefPtrNull);
 EI_REPLACE(0x00438F50, RefPtrNull);
+EI_REPLACE(0x00478FB0, RefPtrNull);
 
 // A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
 // the holder (the original also zeroes a dead stack slot). 16 copies.
