@@ -482,3 +482,21 @@ static void __fastcall GlobalMapDestroyVerify(CGlobalMap* self) {
     ei::verify::Check("GlobalMapDestroy", true, ok, "scene %p", self->sceneObjects_.data_);
 }
 EI_VERIFY(0x005F6920, GlobalMapDestroyVerify, 0, s_unused);
+
+// 005F6240: ours only (a constructor). Vtables, the flag, empty caches with limit 50.
+static CCampPages* __fastcall CampConstructVerify(CCampPages* self, void*, CInterface3D* ui, int fromHeroScreen) {
+    CCampPages* result = self->Construct(ui, fromHeroScreen);
+    std::uint32_t modelsCount, modelsLimit, texturesCount, texturesLimit;
+    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
+    std::memcpy(&modelsCount, bytes + 0x174, 4);
+    std::memcpy(&modelsLimit, bytes + 0x17C, 4);
+    std::memcpy(&texturesCount, bytes + 0x184, 4);
+    std::memcpy(&texturesLimit, bytes + 0x18C, 4);
+    bool ok = result == self && self->vtable_ == reinterpret_cast<void**>(0x0074091C) && self->interface_ == ui &&
+              self->fromHeroScreen_ == (static_cast<std::uint8_t>(fromHeroScreen) != 0) && modelsCount == 0 &&
+              texturesCount == 0 && modelsLimit == 50 && texturesLimit == 50;
+    ei::verify::Check("CCampPages::Construct", true, ok, "vtable %p caches %u/%u %u/%u", self->vtable_, modelsCount,
+                      modelsLimit, texturesCount, texturesLimit);
+    return result;
+}
+EI_VERIFY(0x005F6240, CampConstructVerify, 0, s_unused);

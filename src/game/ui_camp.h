@@ -226,6 +226,11 @@ public:
     // (+0x774) back and redraws (slot 46); armour also comes off the hero's unit and the stats'
     // outer layers are rebuilt. The stats panel is redrawn.
     int TakeOff(std::uint8_t* item);
+    // 005F6240 (RET 8; CreateScreen 5). Constructor: the container base, both item caches (limit
+    // 50; the item screens' vtables 00740A2C / 007409F8 in between), fromHeroScreen_ from the
+    // flag's low byte, the heroes array (vtable 007402AC), the page titles' CStringArray; the
+    // camp's vtables 0074091C / 007408E8. Returns this.
+    CCampPages* Construct(CInterface3D* ui, int fromHeroScreen);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)

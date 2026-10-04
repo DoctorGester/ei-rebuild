@@ -1217,3 +1217,54 @@ namespace {
 int __fastcall CampTakeOff(CCampPages* self, void*, std::uint8_t* item) { return self->TakeOff(item); }
 } // namespace
 EI_REPLACE(0x0060FE40, CampTakeOff);
+
+// --- 005F6240: the constructor ----------------------------------------------------------------
+
+namespace {
+__declspec(naked) void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
+// The item caches' maps (STLport, thiscall): 005FA420 / 005FA630 construct the header node from
+// an allocator (RET 4; the byte they copy is overwritten), 005FA400 / 005FA610 empty it.
+__declspec(naked) void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
+__declspec(naked) void __fastcall EmptyModelMap(void*) EI_ORIGINAL(0x005FA400)
+__declspec(naked) void __fastcall ConstructTextureMap(void*, void*, const void*) EI_ORIGINAL(0x005FA630)
+__declspec(naked) void __fastcall EmptyTextureMap(void*) EI_ORIGINAL(0x005FA610)
+__declspec(naked) void __fastcall ConstructStringArray(void*) EI_ORIGINAL(0x006FE925)
+
+void Put(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
+
+// A cache: the map's header, an empty tree whose compare byte is `compare`, the limit 50.
+void ConstructCache(std::uint8_t* cache, void(__fastcall* construct)(void*, void*, const void*),
+                    void(__fastcall* empty)(void*), const void* allocator, std::uint8_t compare) {
+    construct(cache, nullptr, allocator);
+    Put(cache, 4, 0);
+    cache[8] = compare;
+    empty(cache);
+    Put(cache, 0xC, 50);
+}
+} // namespace
+
+CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    ConstructContainerAt(this, nullptr, ui);
+    hoveredItem_ = nullptr;
+    // The original passes the address of its first argument (the models') and of a stack byte
+    // (the textures') as the allocators; the compare byte is the flag's low byte.
+    std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);
+    CInterface3D* slot = ui;
+    std::uint8_t junk = 0;
+    ConstructCache(self + 0x170, ConstructModelMap, EmptyModelMap, &slot, compare);
+    ConstructCache(self + 0x180, ConstructTextureMap, EmptyTextureMap, &junk, compare);
+    vtable_ = reinterpret_cast<void**>(0x00740A2C);
+    inputVtable_ = reinterpret_cast<void**>(0x007409F8);
+    self[0x194] = compare;
+    Put(this, 0x19C, 0x007402AC);
+    Put(this, 0x1A0, 0);
+    Put(this, 0x1AC, 0);
+    Put(this, 0x1A8, 0);
+    Put(this, 0x1A4, 0);
+    ConstructStringArray(self + 0x240);
+    vtable_ = reinterpret_cast<void**>(0x0074091C);
+    inputVtable_ = reinterpret_cast<void**>(0x007408E8);
+    return this;
+}
+EI_REPLACE_METHOD(0x005F6240, CCampPages::Construct);
