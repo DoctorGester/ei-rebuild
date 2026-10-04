@@ -66,6 +66,28 @@ static void __fastcall UpdateUnitsVerify(CWorldServer* self, void*) {
 }
 EI_VERIFY(0x0058D670, UpdateUnitsVerify, 0, s_unused);
 
+// 005935C0 (world_server.cpp): destructive (slots, releases), so only ours runs. Afterwards the id
+// is in none of the id maps; an unknown id (only with FixRemoveMapObject on) changes nothing.
+static void __fastcall RemoveObjectVerify(CWorldServer* self, void*, unsigned id) {
+    bool known = self->objects_.map.Find(id) != nullptr;
+    std::size_t before = self->objects_.map.Size();
+    self->RemoveObject(id);
+    char what[96] = "";
+    if (!known && self->objects_.map.Size() != before)
+        std::snprintf(what, sizeof(what), "unknown id, objects %u -> %u", static_cast<unsigned>(before),
+                      static_cast<unsigned>(self->objects_.map.Size()));
+    else if (self->objects_.map.Find(id))
+        std::snprintf(what, sizeof(what), "still a world object");
+    else if (self->updateMap_.map.Find(id))
+        std::snprintf(what, sizeof(what), "still in the update map");
+    else if (self->mapObjects_.map.Find(id))
+        std::snprintf(what, sizeof(what), "still a map object");
+    else if (self->namedObjects_.map.Find(id))
+        std::snprintf(what, sizeof(what), "still a named object");
+    ei::verify::Check("CWorldServer::RemoveObject", true, what[0] == 0, "id %u%s: %s", id, known ? "" : " (unknown)", what);
+}
+EI_VERIFY(0x005935C0, RemoveObjectVerify, 0, s_unused);
+
 // 0058D3D0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x20 (6 bytes). Only adds to the update map: the
 // original runs first, its entries are recorded, the map is put back (new keys erased, old values
 // and the highest id restored), ours runs, and the entries and highest id must match.

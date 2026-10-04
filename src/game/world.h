@@ -182,6 +182,11 @@ class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
     CEngineObject* FindObject(unsigned id);
+    // 005935C0. Removes object `id` from the server: out of the sector map and every id map, its
+    // slot 5, flagged 1, the command queues, every object (slot 56), the missiles and the players'
+    // states forget it, and the maps' reference is released. An unknown id crashes the original
+    // (null read); Rebirth's FixRemoveMapObject ignores it.
+    void RemoveObject(unsigned id);
     // 00594180. Player number `id`, or null.
     WorldPlayer* GetPlayer(int id);
     // 00594220, vtable slot 27. Ground height from the server's coarse height grid; 0 outside.

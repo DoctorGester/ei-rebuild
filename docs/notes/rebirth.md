@@ -160,7 +160,10 @@ Sites are listed in full in the CSV.
   repair prices for over-full durability and huge ones for negative durability. *Implemented* as a
   new rewrite `CCampPages::Price` (src/game/ui_camp.cpp).
 - **FixRemoveMapObject** - `CWorldServer::RemoveObject` (005935C0): an id that is not in the object
-  map is logged and the function returns, instead of dereferencing null. Needs 005935C0 (1 KB).
+  map is logged and the function returns, instead of dereferencing null (vanilla crashes).
+  Context hook at 00593615 that jumps to the epilogue. *Implemented* as a new rewrite
+  `CWorldServer::RemoveObject` (src/game/world_server.cpp); with the flag off it reads through the
+  null pointer like the original.
 - **FixCreateItem** - the item factory (006AC970): an unknown prototype or an invalid
   prototype/material no longer calls FatalError (which ends the game); addon logs
   "GiveItem: ..." and the factory returns no item. Two context hooks. Needs 006AC970 (1.6 KB).
@@ -411,6 +414,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixRepairPrice | new: CCampPages::Price 0060FAB0 (ui_camp.cpp) | pure wrapper (6 stolen bytes), vanilla and Rebirth |
 | FixProgressNames | new: SelectLoadingMovie 00595080 (world_zone.cpp) | wrapper (7 stolen bytes) runs both on the same starting value and compares the chosen movie names as text |
 | FixSpellEffectsOverflow #0 | new: CWorldServer::UpdateUnits 0058D670 + TickSleepingEffects (world_tick.cpp) | ours only (it runs every awake object): afterwards no unit sent to sleep is still in the update map |
+| FixRemoveMapObject | new: CWorldServer::RemoveObject 005935C0 (world_server.cpp) | ours only (destructive: slots, releases): afterwards the id is in no id map; an unknown id changes nothing |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -443,7 +447,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 | Patch | Work | Estimate |
 |---|---|---|
 | FixSpellSelfCasting #1 | CBattleScreen::SelectUnit 00638EF0 (3.6 KB) | 1-2 days |
-| FixRemoveMapObject | CWorldServer::RemoveObject 005935C0 (1 KB) | 0.5 day |
 | FixCreateItem | item factory 006AC970 (1.6 KB, many callees) | 1 day |
 | FixAddMapObject | object creation 005927C0 (3.5 KB) | 2 days |
 | AllowScriptsInMainMenu | zone start 0057C460 (0.7 KB; also patched by AutoExec in 0057C700 nearby) | 0.5 day |
@@ -461,6 +464,9 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 - `EffectArray::SetSize` (map_object.cpp): forwarder to 0050FE70, CArray<MapEffect>::SetSize.
 - world_tick.cpp: `IdArray::SetAtGrow` (004538D0), `CountedRemoveAt` (0059A050, the counted list's
   RemoveAt, which also releases the object), `ServerRemoveObject` (005935C0).
+- world_server.cpp: `IdMapErase` (00599A80), `SectorMapRemove` (005C1010), `UnitSetController`
+  (005300D0), `CommandQueuePurge` (004BED90), `ProjectileForget` (0067EF00), `ProjectileRemoveAt`
+  (00599CC0), `PlayerStateForget` (0066DC90).
 - `ItemPrice` (ui_camp.cpp): the item's slot 16 through its vtable.
 
 ## Original bugs kept
