@@ -7,10 +7,12 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R2 Window surfaces without DirectDraw under `present`: creation/release (004EF7B0 / 004EFD20)
-  and 005FCF80 / 005FD120 (GetSurfaceDesc) on game-owned memory only.
-- R3 Console pixel access on game-owned memory: 00655550, 00655D40, 00656464, 00656E10.
-- R4 Render-state presets fed to `render::state`: 0049B140, 0049B4B0, 00501C60, 0050434F, 005045D0.
+- R2b Picture windows on game memory: 004F0060 (makes and fills a picture surface: 32-bit copy,
+  16-bit conversion through the device+0x4C converter) gives the surface game-owned memory under
+  `cpuwindows`, so 005FCF80 / 005FD120 stop calling GetSurfaceDesc.
+- R3 Save/load screen screenshot textures (made by 005FF0B0; locked by 00655550, 00655D40,
+  00656464, 00656E10) on game memory.
+- R4 (taken 2026-10-05) Render-state presets fed to `render::state`: 0049B140, 0049B4B0, 00501C60, 0050434F, 005045D0.
 - R5 The ~10 interface draws with old-device calls (list in renderer.md point 6), in groups of 3-4.
 - R6 Movie surfaces and the software cursor's draws to the primary surface.
 - R7 Holders with no DirectDraw surface at all (after R2/R3).
@@ -18,7 +20,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- U2 Resistances 00535850 and 0052FDF0.
+- U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 - U3 Next 3-5 largest live game-logic functions in the range (skip draws, matrix and bone code,
   effect/audio-adjacent 00534B60 / 00534760 / 00537500 until reviewed).
 
