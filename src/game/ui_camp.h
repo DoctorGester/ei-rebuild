@@ -211,6 +211,12 @@ public:
     // call; frees the heroes array, releases the constructed item and spell, empties both
     // description panels and deletes the constructors' part lists except the first of each.
     void Close();
+    // 0060FE40 (RET 4; from 0060FCA0 and 00610AD0). Takes `item` (a weapon 0x3004, armour 0x3005,
+    // 0x3006 or 0x3008) off the current hero (slot 51) into the player's items (00661DB0, whose
+    // result it returns; 0 for other kinds): a weapon also moves the hero's chosen-weapon index
+    // (+0x774) back and redraws (slot 46); armour also comes off the hero's unit and the stats'
+    // outer layers are rebuilt. The stats panel is redrawn.
+    int TakeOff(std::uint8_t* item);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
