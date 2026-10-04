@@ -12,6 +12,8 @@
 #include "../../src/game/console.h"
 #include "../../src/lib/crt.h"
 
+#include "ei/rebirth.h"
+
 #include <windows.h>
 
 #include <cstdlib>
@@ -333,19 +335,32 @@ std::string CheatWord() {
     return word;
 }
 
-// 005DC620 (Rebirth patches it: vanilla only): ours only. Afterwards every command is registered
-// with its handler, and the cheat flag changed only for the cheat word (the first token).
+// 005DC620: ours only. Afterwards every command is registered with its handler, and the cheat flag
+// changed only for the cheat word (the first token). With Rebirth's AddNewConsoleCommands, a line
+// with a token also registers addon's commands, whose "help" replaces the game's (an empty line
+// returns before that point, after the game's registrations).
 void __fastcall ExecuteVerify(const char* text) {
     std::string line = text ? text : "";
     bool cheatBefore = CheatEnabled();
     Execute(text);
+    std::size_t start = line.find_first_not_of(' ');
+    bool addon = ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands) && start != std::string::npos;
     bool registered = true;
     for (const CommandRegistration& r : kCommandRegistrations) {
+        bool replaced = false;
+        for (const AddonCommandRegistration& a : kAddonCommandRegistrations)
+            replaced |= addon && a.cheat == r.cheat && std::strcmp(a.name, GameText(r.name)) == 0;
+        if (replaced) continue;
         CommandHandler handler = nullptr;
         registered &= FindCommand(r.cheat ? CheatCommands() : PublicCommands(), GameText(r.name), &handler) &&
                       reinterpret_cast<std::uintptr_t>(handler) == r.handler;
     }
-    std::size_t start = line.find_first_not_of(' ');
+    for (const AddonCommandRegistration& a : kAddonCommandRegistrations) {
+        if (!addon) break;
+        CommandHandler handler = nullptr;
+        registered &= FindCommand(a.cheat ? CheatCommands() : PublicCommands(), a.name, &handler) &&
+                      handler == a.handler;
+    }
     std::string first = start == std::string::npos ? "" : line.substr(start, line.find(' ', start) - start);
     for (char& c : first) c = static_cast<char>(gamecrt::tolower(static_cast<unsigned char>(c)));
     bool cheatOk = CheatEnabled() == cheatBefore || (!cheatBefore && first == CheatWord());

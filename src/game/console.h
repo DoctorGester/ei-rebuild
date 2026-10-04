@@ -230,6 +230,14 @@ void __fastcall Execute(const char* text);
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
 // AutoExec: the "Console AutoExec" lines, run before three of the game's console executions.
 void RegisterAddonCommands();
+// What RegisterAddonCommands puts in the maps, in its order ("help" replaces the game's, which
+// addon's own "help" calls first).
+struct AddonCommandRegistration {
+    bool cheat;
+    const char* name;
+    CommandHandler handler;
+};
+extern const AddonCommandRegistration kAddonCommandRegistrations[6];
 void ApplyAddonGuiVisibility(void* screen);
 void RunAddonAutoExec();
 // 004DC200: splits a console line at spaces into `out` (a token in double quotes keeps its spaces

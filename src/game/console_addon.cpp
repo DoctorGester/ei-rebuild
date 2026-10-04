@@ -234,14 +234,19 @@ const std::vector<std::string>& AutoExecLines() {
 
 } // namespace
 
+const AddonCommandRegistration kAddonCommandRegistrations[6] = {
+    {true, "help", Help},
+    {true, "addon", Addon},
+    {true, "execs", Execs},
+    {true, "listgvar", ListGlobals},
+    {true, "drawall", DrawAll},
+    {false, "nogui", NoGui},
+};
+
 void RegisterAddonCommands() {
     g_gameHelp = *CheatCommands()->Index(mfc::CString("help"));
-    Register(CheatCommands(), "help", Help);
-    Register(CheatCommands(), "addon", Addon);
-    Register(CheatCommands(), "execs", Execs);
-    Register(CheatCommands(), "listgvar", ListGlobals);
-    Register(CheatCommands(), "drawall", DrawAll);
-    Register(PublicCommands(), "nogui", NoGui);
+    for (const AddonCommandRegistration& r : kAddonCommandRegistrations)
+        Register(r.cheat ? CheatCommands() : PublicCommands(), r.name, r.handler);
 }
 
 void ApplyAddonGuiVisibility(void* screen) {
