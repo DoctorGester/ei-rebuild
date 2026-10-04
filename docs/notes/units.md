@@ -615,6 +615,44 @@ volatile so the products are not folded at compile time) and ResetToBase was rea
 - ComposeSkin and WearArmourModel build CString / STLport temporaries in the original's order
   (the allocations match); not run in game yet.
 
+# Network state
+
+Code: `src/game/net_state.cpp` (new); verify wrappers: `tests/verify/verify_net_state.cpp`, with the
+DeltaState save / restore in `tests/verify/delta_snapshot.h` (new). No shared files changed. The
+four functions are virtual slots, registered as free functions (thiscall as fastcall; rule 4).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0050EAF0 | MapObjectWriteNetState (map objects' writer) | differential, sampled: state copied, original writes, its result copied, state put back, ours writes; states and delta globals compared |
+| 0052EC70 | UnitWriteNetState (slot 50) | the same |
+| 0050EC30 | MapObjectReadNetState (RET 4) | differential, sampled, ours first: then the DeltaState, the received stream (state +0x1C) and the globals are put back and the original reads again; result, states, stream, globals and the decoded fields compared |
+| 0052EF90 | UnitReadNetState (slot 49, RET 4) | the same, with the unit's fields |
+
+Fields written / read (DeltaState at +0x1C4):
+- **Map objects:** 0 is the 0x18 bytes at +0x17C. 1 is the position +0xC4 (read: SetPosition 00517700). 2 is the hidden bit (flag 8), the
+  position +0x1C and the orientation +0x34 (read: world slot 41 moves the object, slot 51 with
+  +0x24). 3 is the effects: a count byte, then per 0x14-byte effect bytes +0, +1, the word +4 and the byte +0x10
+  raw (read: CArray::SetSize, then the companion +0x170's slot 13 with `first == 0` unless a
+  unit). The reader's result says whether each field's snapshot stream was consumed (slot 5 ==
+  slot 4); field 0 sets it, the rest AND it; field 0 calls slot 58 when hit points changed (or
+  `first == 1`).
+- **Units**, after the map object's fields:
+  - 4 is the stats block +0x330 (0x108). On read: the six stat fractions before / after give
+    controller slot 46 per changed stat, slot 31 when any changed (or `first == 0`), and on a hit point drop
+    (or flag 0x10 in +0x437) the companion's slot 16 with `_ftol(lost * max)` and the kind bits.
+  - 5 is the 11 equipment ids (the weapon -1 with flag 0x40000000); writing then refreshes a class
+    0x3E controller (slot 29).
+  - 6 is +0x264, +0x268, +0x26C. On read +0x270 = +0x26C, and slot 25 runs on a change.
+  - 7 is the packed bits of +0x25C / +0x260 / +0x274 / +0x278. 8 is +0x254, +0x255, +0x258, +0x256.
+  - 9 is the CString +0x238. 10 is the path (005C7DB0 / 005C7FC0) and the motion's speeds.
+  - 11 is the masks, +0x250 and the player id (a new player through the local view). 12 is +0x4C8. 13 is +0x438.
+  - The reader then re-equips (slots 32 / 33) and refreshes (25, 29) when something changed.
+
+Kept from the original: the field 3 count is one byte read into a word; the companion's slot 13
+and the stat slot get their bool / flag arguments as 0/1 and the byte (the original pushes
+registers whose upper bytes are left over). The stat fractions and hit point ratio are plain C++
+(rule 7).
+
 # Levers
 
 Code: `src/game/unit_lever.cpp`, `src/game/lever.h` (new); verify wrappers:
