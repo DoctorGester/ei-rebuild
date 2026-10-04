@@ -1,0 +1,285 @@
+// Checks for the surfaces' pixel work (ui_surface_pixels.cpp).
+//
+// CaptureScreen and Greyscale run side by side on the surface's pixels: they are read (DirectDraw
+// lock), the original runs, its pixels are read and the old ones put back, ours runs, and both
+// pixel sets must be equal. Rgb565Copy runs twice on the same surface and the two blocks must be
+// equal (ours is freed, the original's returned).
+#include "verify.h"
+
+#include "../../src/game/ui.h"
+#include "../../src/game/ui_cursor.h"
+#include "../../src/game/ui_item_info.h"
+#include "../../src/lib/crt.h"
+#include "../../src/lib/mfc.h"
+#include "../../src/lib/gameapi.h"
+
+#include <windows.h>
+#include <ddraw.h>
+
+#include <cstdint>
+#include <cstring>
+#include <vector>
+
+namespace {
+
+IDirectDrawSurface7* DirectDrawSurface(CUiSurface* surface) {
+    std::uint8_t* inner = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(surface) + 0x10);
+    return inner ? *reinterpret_cast<IDirectDrawSurface7**>(inner + 0x10) : nullptr;
+}
+
+struct Pixels {
+    int height = 0;
+    int rowBytes = 0;
+    std::vector<std::uint8_t> bytes;
+};
+
+CRITICAL_SECTION* SurfaceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+
+// Reads the surface (or its `rect`) into `pixels`, or with `write` stores them back. False when it
+// cannot be locked.
+bool AccessSurface(IDirectDrawSurface7* dd, Pixels& pixels, bool write, RECT* rect = nullptr) {
+    if (!dd) return false;
+    gameapi::EnterCriticalSection(SurfaceLock());
+    DDSURFACEDESC2 desc{};
+    desc.dwSize = sizeof(desc);
+    bool ok = dd->Lock(rect, &desc, DDLOCK_WAIT, nullptr) == DD_OK;
+    if (ok) {
+        auto* base = static_cast<std::uint8_t*>(desc.lpSurface);
+        if (rect) {
+            desc.dwWidth = static_cast<DWORD>(rect->right - rect->left);
+            desc.dwHeight = static_cast<DWORD>(rect->bottom - rect->top);
+        }
+        int rowBytes = static_cast<int>(desc.dwWidth * (desc.ddpfPixelFormat.dwRGBBitCount / 8));
+        if (!write) {
+            pixels.height = static_cast<int>(desc.dwHeight);
+            pixels.rowBytes = rowBytes;
+            pixels.bytes.resize(static_cast<std::size_t>(rowBytes) * desc.dwHeight);
+            for (DWORD y = 0; y < desc.dwHeight; ++y)
+                std::memcpy(&pixels.bytes[y * rowBytes], base + y * desc.lPitch, rowBytes);
+        } else if (pixels.rowBytes == rowBytes && pixels.height == static_cast<int>(desc.dwHeight)) {
+            for (int y = 0; y < pixels.height; ++y)
+                std::memcpy(base + y * desc.lPitch, &pixels.bytes[y * rowBytes], rowBytes);
+        }
+        dd->Unlock(rect);
+    }
+    gameapi::LeaveCriticalSection(SurfaceLock());
+    return ok;
+}
+
+bool AccessPixels(CUiSurface* surface, Pixels& pixels, bool write) {
+    return AccessSurface(surface ? DirectDrawSurface(surface) : nullptr, pixels, write);
+}
+
+int FirstDifferentRow(const Pixels& a, const Pixels& b) {
+    if (a.bytes.size() != b.bytes.size() || a.rowBytes != b.rowBytes) return -2;
+    for (int y = 0; y < a.height; ++y)
+        if (std::memcmp(&a.bytes[y * a.rowBytes], &b.bytes[y * b.rowBytes], a.rowBytes) != 0) return y;
+    return -1;
+}
+
+// 00691CF0 (thiscall on the texture manager): a loaded image by file name.
+__declspec(naked) std::uint8_t* __fastcall FindImageAt(void*, void*, const char*) EI_ORIGINAL(0x00691CF0)
+
+long ResultOf(CUiSurface* surface) {
+    std::uint8_t* inner = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(surface) + 0x10);
+    long result = 0;
+    if (inner) std::memcpy(&result, inner + 8, 4);
+    return result;
+}
+
+template <typename Original, typename Ours>
+void CompareDrawing(const char* name, CUiSurface* surface, Original original, Ours ours) {
+    Pixels before;
+    bool pixels = AccessPixels(surface, before, false);
+    original();
+    long expectedResult = ResultOf(surface);
+    Pixels expected;
+    if (pixels) pixels = AccessPixels(surface, expected, false) && AccessPixels(surface, before, true);
+    ours();
+    int row = -1;
+    if (pixels) {
+        Pixels actual;
+        if (AccessPixels(surface, actual, false)) row = FirstDifferentRow(expected, actual);
+    }
+    long actualResult = ResultOf(surface);
+    ei::verify::Check(name, true, row == -1 && expectedResult == actualResult,
+                      "pixel row %d (rows %d, row bytes %d, compared %d), result %ld/%ld", row, expected.height,
+                      expected.rowBytes, pixels, expectedResult, actualResult);
+}
+
+} // namespace
+
+// 005FD3D0: PUSH EBX; PUSH ESI; PUSH EDI; MOV EDI,ECX (5).
+static void(__thiscall* s_captureScreen)(CUiSurface*);
+static void __fastcall CaptureScreenVerify(CUiSurface* self, void*) {
+    CompareDrawing("CUiSurface::CaptureScreen", self, [&] { s_captureScreen(self); }, [&] { self->CaptureScreen(); });
+}
+EI_VERIFY(0x005FD3D0, CaptureScreenVerify, 5, s_captureScreen);
+
+// 005FE440: SUB ESP,0xB8 (6).
+static void(__thiscall* s_greyscale)(CUiSurface*);
+static void __fastcall GreyscaleVerify(CUiSurface* self, void*) {
+    CompareDrawing("CUiSurface::Greyscale", self, [&] { s_greyscale(self); }, [&] { self->Greyscale(); });
+}
+EI_VERIFY(0x005FE440, GreyscaleVerify, 6, s_greyscale);
+
+// 005FD440: MOV EAX,FS:[0] (6). The surface itself is only read.
+static std::uint16_t*(__thiscall* s_rgb565Copy)(CUiSurface*, int, int);
+static std::uint16_t* __fastcall Rgb565CopyVerify(CUiSurface* self, void*, int width, int height) {
+    std::uint16_t* expected = s_rgb565Copy(self, width, height);
+    std::uint16_t* actual = self->Rgb565Copy(width, height);
+    int count = width * height;
+    int first = -1;
+    if ((expected == nullptr) != (actual == nullptr)) {
+        first = -2;
+    } else if (expected) {
+        for (int i = 0; i < count; ++i)
+            if (expected[i] != actual[i]) {
+                first = i;
+                break;
+            }
+    }
+    ei::verify::Check("CUiSurface::Rgb565Copy", true, first == -1, "%d x %d: first different pixel %d", width, height,
+                      first);
+    if (actual) gamecrt::operator_delete(actual);
+    return expected;
+}
+EI_VERIFY(0x005FD440, Rgb565CopyVerify, 6, s_rgb565Copy);
+
+// 005EC020: PUSH -1; PUSH imm32 (7). Both make a texture of the same name; their surfaces' pixels
+// must be equal. Ours is released (its slot 4, as the original does on failure), the original's
+// returned.
+static void*(__fastcall* s_figureTexture)(const char*);
+static void* __fastcall FigureTextureVerify(const char* name) {
+    void* expected = s_figureTexture(name);
+    void* actual = ItemFigureTexture(name);
+    auto surfaceOf = [](void* texture) -> IDirectDrawSurface7* {
+        if (!texture) return nullptr;
+        std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(texture) + 0x5C);
+        return holder ? *reinterpret_cast<IDirectDrawSurface7**>(holder + 0x10) : nullptr;
+    };
+    int row = -3;
+    if ((expected == nullptr) != (actual == nullptr)) {
+        row = -4;
+    } else if (!expected) {
+        row = -1;
+    } else {
+        // Only the part written: the image's rows at the bottom, its width (a new surface's other
+        // pixels are whatever DirectDraw left there).
+        int width = 0x100, height = 0x100;
+        mfc::CString file = mfc::CString(name) + ".mmp";
+        void* manager = *reinterpret_cast<void* const*>(0x007AF744);
+        if (std::uint8_t* image = FindImageAt(manager, nullptr, file)) {
+            std::memcpy(&width, image + 4, 4);
+            std::memcpy(&height, image + 8, 4);
+        }
+        Pixels a, b;
+        if (AccessSurface(surfaceOf(expected), a, false) && AccessSurface(surfaceOf(actual), b, false)) {
+            row = a.bytes.size() == b.bytes.size() && a.rowBytes == b.rowBytes ? -1 : -2;
+            for (int y = a.height - height; row == -1 && y < a.height; ++y)
+                if (y >= 0 && std::memcmp(&a.bytes[y * a.rowBytes], &b.bytes[y * b.rowBytes], width * 2 < a.rowBytes ? width * 2 : a.rowBytes) != 0) row = y;
+        }
+    }
+    ei::verify::Check("ItemFigureTexture", true, row == -1, "%s: pixel row %d (made %d/%d)", name, row, expected != nullptr,
+                      actual != nullptr);
+    if (actual) {
+        using ReleaseFn = void(__thiscall*)(void*);
+        reinterpret_cast<ReleaseFn>((*static_cast<void***>(actual))[4])(actual);
+    }
+    return expected;
+}
+EI_VERIFY(0x005EC020, FigureTextureVerify, 7, s_figureTexture);
+
+// 005E5C40: SUB ESP,0x1AC (6). Side by side on the target surface's `to` rectangle (the only pixels
+// written), holding the device lock across both runs (the cursor thread calls it too).
+static void(__thiscall* s_cursorBlit)(CCursor*, CursorImage*, RECT*, RECT*);
+static void __fastcall CursorBlitVerify(CCursor* self, void*, CursorImage* image, RECT* to, RECT* from) {
+    gameapi::EnterCriticalSection(SurfaceLock());
+    IDirectDrawSurface7* target =
+        self->target_ ? *reinterpret_cast<IDirectDrawSurface7**>(self->target_ + 0x10) : nullptr;
+    RECT area = *to;
+    Pixels before;
+    bool pixels = AccessSurface(target, before, false, &area);
+    s_cursorBlit(self, image, to, from);
+    long expectedResult;
+    std::memcpy(&expectedResult, self->target_ + 8, 4);
+    Pixels expected;
+    if (pixels) pixels = AccessSurface(target, expected, false, &area) && AccessSurface(target, before, true, &area);
+    self->Blit(image, to, from);
+    int row = -1;
+    if (pixels) {
+        Pixels actual;
+        if (AccessSurface(target, actual, false, &area)) row = FirstDifferentRow(expected, actual);
+    }
+    long actualResult;
+    std::memcpy(&actualResult, self->target_ + 8, 4);
+    gameapi::LeaveCriticalSection(SurfaceLock());
+    ei::verify::Check("CCursor::Blit", true, row == -1 && expectedResult == actualResult,
+                      "pixel row %d (compared %d), result %ld/%ld", row, pixels, expectedResult, actualResult);
+}
+EI_VERIFY(0x005E5C40, CursorBlitVerify, 6, s_cursorBlit);
+
+namespace {
+// The surface's memory as the game copies it: pitch * height bytes from the top left.
+bool RawBytes(IDirectDrawSurface7* dd, std::vector<std::uint8_t>& out) {
+    if (!dd) return false;
+    gameapi::EnterCriticalSection(SurfaceLock());
+    DDSURFACEDESC2 desc{};
+    desc.dwSize = sizeof(desc);
+    bool ok = dd->Lock(nullptr, &desc, DDLOCK_WAIT, nullptr) == DD_OK;
+    if (ok) {
+        std::size_t size = static_cast<std::size_t>(desc.dwHeight) * static_cast<std::uint32_t>(desc.lPitch);
+        const auto* base = static_cast<const std::uint8_t*>(desc.lpSurface);
+        out.assign(base, base + size);
+        dd->Unlock(nullptr);
+    }
+    gameapi::LeaveCriticalSection(SurfaceLock());
+    return ok;
+}
+template <typename T>
+T Field(const void* p, int offset) {
+    T v;
+    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
+    return v;
+}
+} // namespace
+
+// 005FD7A0: PUSH -1; PUSH imm32 (7). Ours only (saving releases the surface, so it cannot run
+// twice): saving must keep exactly the surface's bytes and release it; restoring must put the
+// kept bytes back and free them; both with the memory totals moved by the same sizes.
+static void(__thiscall* s_swapContents)(CUiSurface*, int);
+static void __fastcall SwapContentsVerify(CUiSurface* self, void*, int restore) {
+    auto& kept = *reinterpret_cast<std::uint32_t*>(0x007C7E74);
+    auto& surfaceBytes = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    std::uint32_t keptBefore = kept, surfaceBefore = surfaceBytes;
+    if (!restore) {
+        std::vector<std::uint8_t> raw;
+        bool had = DirectDrawSurface(self) != nullptr && RawBytes(DirectDrawSurface(self), raw);
+        self->SwapContents(restore);
+        if (!had) return;
+        const std::uint8_t* data = Field<const std::uint8_t*>(self, 0x1C);
+        std::uint32_t size = Field<std::uint32_t>(self, 0x20);
+        bool ok = size == raw.size() && data && std::memcmp(data, raw.data(), size) == 0 &&
+                  Field<void*>(self, 0x10) == nullptr && kept - keptBefore == size && surfaceBefore - surfaceBytes == size;
+        ei::verify::Check("CUiSurface::SwapContents", true, ok, "save: %u bytes (surface %u), totals %u/%u", size,
+                          static_cast<unsigned>(raw.size()), kept - keptBefore, surfaceBefore - surfaceBytes);
+        return;
+    }
+    bool created = Field<void*>(self, 0x10) == nullptr;
+    const std::uint8_t* data = Field<const std::uint8_t*>(self, 0x1C);
+    std::uint32_t size = Field<std::uint32_t>(self, 0x20);
+    std::vector<std::uint8_t> keptCopy;
+    if (data) keptCopy.assign(data, data + size);
+    self->SwapContents(restore);
+    std::vector<std::uint8_t> raw;
+    bool read = RawBytes(DirectDrawSurface(self), raw);
+    bool ok = read && Field<void*>(self, 0x10) != nullptr;
+    if (data) {
+        ok = ok && raw.size() >= size && std::memcmp(raw.data(), keptCopy.data(), size) == 0 &&
+             Field<void*>(self, 0x1C) == nullptr && Field<std::uint32_t>(self, 0x20) == 0 && keptBefore - kept == size;
+    }
+    if (created) ok = ok && surfaceBytes - surfaceBefore == raw.size();
+    ei::verify::Check("CUiSurface::SwapContents", true, ok, "restore: kept %u bytes, surface %u, created %d", size,
+                      static_cast<unsigned>(raw.size()), created);
+}
+EI_VERIFY(0x005FD7A0, SwapContentsVerify, 7, s_swapContents);

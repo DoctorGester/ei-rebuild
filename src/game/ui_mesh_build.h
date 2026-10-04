@@ -26,5 +26,8 @@ public:
     // count / 2 quads; texels (u0, v0)-(u1, v1) for every segment.
     void Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0, int v0, int u1,
               int v1);
+    // 005E9F30. Only the per-vertex arrays: +0x1D0 one block (four 0s, four 0s, four 1s, four 1s),
+    // +0x138 and +0x148 four entries (the builders' common start; the original inlines the sizing).
+    void ResetColours();
 };
 static_assert(sizeof(CUiMeshBuilder) == sizeof(CUiMesh));
