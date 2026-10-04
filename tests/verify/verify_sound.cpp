@@ -641,3 +641,32 @@ static void __fastcall TickVerify(CSoundManager* self, void*) {
     ei::verify::Check("CSoundManager::Tick", true, ok, "deferred %d -> %d", deferredBefore, self->deferred.count);
 }
 EI_VERIFY(0x006B9B10, TickVerify, 0, s_unusedTick);
+
+// 006B8250 plays a sound: ours only. -1, or a flat voice with the arguments and the handle returned,
+// or (a looping sound without a voice) a deferred record with that handle.
+using Play2DFn = int(__fastcall*)(CSoundManager*, void*, const char*, int, int, int, int, int, int, int);
+static Play2DFn s_unusedPlay2D;
+static int __fastcall Play2DVerify(CSoundManager* self, void*, const char* name, int priority, int volume, int pan, int loop,
+                                   int heightFade, int speech, int samplePosition) {
+    int handle = self->CSoundManager::Play2D(name, priority, volume, pan, loop, heightFade, speech, samplePosition);
+    bool ok = handle == -1;
+    const char* where = "none";
+    if (!ok) {
+        for (int i = 0; i < 15 && !ok; ++i) {
+            const SoundSlot& s = self->slots[i];
+            if (s.handle != handle) continue;
+            where = "voice";
+            ok = s.flat == 1 && s.baseVolume == volume && s.pan == pan && s.looping == loop && s.heightFade == heightFade &&
+                 s.speech == speech && s.priority == priority && s.volume >= 0 && s.volume <= 0x7F;
+        }
+        if (!ok && loop != 0) {
+            const DeferredNode* node = self->deferred.Find(handle);
+            where = "deferred";
+            ok = node && node->value->handle == handle && node->value->baseVolume == volume && node->value->flat == 1;
+        }
+    }
+    ei::verify::Check("CSoundManager::Play2D", true, ok, "\"%s\" volume %d loop %d -> %d (%s)", name, volume, loop, handle,
+                      where);
+    return handle;
+}
+EI_VERIFY(0x006B8250, Play2DVerify, 0, s_unusedPlay2D);

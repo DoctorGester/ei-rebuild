@@ -1,8 +1,8 @@
 // The sound manager (CSoundManager, *007AF784): voice volumes and pans from the listener,
 // the per-handle controls, ambient emitters, 3D sound sequences, the per-frame tick and the music
-// stream requests (006B5CD0-006BB240). The Miles calls go through game.exe's import table; wave
-// loading (006B89F0), the voice allocation (006B7D10), Play2D / Play3D (006B8250 / 006B8600) and
-// the stream / MIDI threads stay original.
+// stream requests (006B5CD0-006BB240), and Play2D (006B8250). The Miles calls go through
+// game.exe's import table; wave loading (006B89F0), the voice allocation (006B7D10), Play3D
+// (006B8600) and the stream / MIDI threads stay original.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
@@ -11,6 +11,7 @@
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
+#include "../lib/stlp.h"
 #include "random.h"
 
 #include "ei/hook.h"
@@ -1021,10 +1022,91 @@ void SoundFader::Update() {
 }
 EI_REPLACE_METHOD(0x006B5EE0, SoundFader::Update);
 
+// --- 006B8250: Play2D --------------------------------------------------------------------------------
+
+namespace {
+// 006B7D10 (not rewritten): a free voice for `priority`, stealing a lower one (deferring a looping
+// sound); -1 when none can be had.
+__declspec(naked) int __fastcall AllocateVoice(CSoundManager*, void*, int /*priority*/) EI_ORIGINAL(0x006B7D10)
+using SampleUintFn = void(__stdcall*)(void*, std::uint32_t);
+SampleUintFn AilSetSampleMsPosition() { return *reinterpret_cast<SampleUintFn*>(0x0073B768); }
+
+// The level of a new 2D voice: as FlatVolume, except that a NaN camera height keeps the full level
+// (the original tests "below 70 or unordered" first, then "above 30").
+int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech) {
+    double v = volume;
+    if (heightFade != 0) {
+        float h = m->listener[2];
+        if (!(h < kHeightSilent) && !x87::IsNaN(h)) v = 0.0;
+        else if (h > kHeightFull) v = v * HeightFactor(h);
+    }
+    v = v * I(speech != 0 ? m->speechVolume : m->effectsVolume);
+    v = v * kMilesScale;
+    return ClampLevel(x87::fistp(Store(v)));
+}
+
+// No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
+int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, int pan, int heightFade, int speech) {
+    auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
+    if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
+    reinterpret_cast<stlp::string*>(rec->name)->Assign(name, name + std::strlen(name));
+    rec->baseVolume = volume;
+    rec->pan = pan;
+    rec->priority = priority;
+    rec->speech = speech;
+    rec->flat = 1;
+    rec->volume = 0;
+    rec->length = 0.0f;
+    rec->heightFade = heightFade;
+    rec->handle = m->nextHandle;
+    ++m->nextHandle;
+    rec->samplePosition = 0;
+    std::int32_t key = rec->handle;
+    reinterpret_cast<DeferredSound**>(DeferredIndex(&m->deferred, nullptr, &key))[1] = rec;
+    return rec->handle;
+}
+} // namespace
+
+// 006B8250. Plays `name` without position: `volume` 0..100 (scaled by the effects or speech volume,
+// and with `heightFade` by the camera height), `pan` -100..100, `loop` endlessly, `samplePosition`
+// handed to the wave loader. Returns the sound handle, or -1 (sound off, no voice for a one-shot
+// sound, silent one-shot, or the wave did not load).
+int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
+                          int samplePosition) {
+    if (enabled == 0) return -1;
+    int index = AllocateVoice(this, nullptr, priority);
+    if (index == -1) {
+        if (loop == 0) return -1;
+        return DeferLooping(this, name, priority, volume, pan, heightFade, speech);
+    }
+    SoundSlot* slot = &slots[index];
+    AilInitSample()(slot->sample);
+    slot->looping = loop;
+    slot->baseVolume = volume;
+    slot->pan = pan;
+    slot->priority = priority;
+    slot->flat = 1;
+    slot->heightFade = heightFade;
+    slot->speech = speech;
+    slot->volume = NewFlatLevel(this, volume, heightFade, speech);
+    if (volume == 0 && loop == 0) return -1;
+    if (LoadSample(slot, index, name, samplePosition) == 0) return -1;
+    if (loop != 0) AilSetSampleLoopCount()(slot->sample, 0);
+    ApplyVolumePan(slot);
+    AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
+    if (reverbOn != 0) AilSetSampleReverb()(slot->sample, reverb[0], reverb[1], reverb[2]);
+    if (randomStart != 0) {
+        std::uint32_t range = static_cast<std::uint32_t>(randomStart) + 1;
+        AilSetSampleMsPosition()(slot->sample, GlobalRandom().Next() % range);
+    }
+    AilStartSample()(slot->sample);
+    return slot->handle;
+}
+EI_REPLACE_METHOD(0x006B8250, CSoundManager::Play2D);
+
 // --- Forwarders -------------------------------------------------------------------------------------
 
 __declspec(naked) mfc::CString CSoundManager::CurrentStreamName() EI_ORIGINAL(0x006BAEA0)
 __declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)
 __declspec(naked) int CSoundManager::Play3D(const char*, int, const float*, float, float, int, int) EI_ORIGINAL(0x006B8600)
-__declspec(naked) int CSoundManager::Play2D(const char*, int, int, int, int, int, int, int) EI_ORIGINAL(0x006B8250)
 __declspec(naked) int CSoundManager::LoadSample(SoundSlot*, int, const char*, int) EI_ORIGINAL(0x006B89F0)
