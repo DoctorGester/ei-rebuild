@@ -399,6 +399,7 @@ range (input, original's order, ours).
   (hero portraits "hr%2d"), 00568800 / 005683D0 (skins "%sskin%2d.mmp"), 00566360 / 00567500 /
   00567680 (per-frame manager updates, large), 00565090 / 00564E70 (clearing the sector grids),
   005647E0 / 00564BE0 (adding and removing objects in the client's maps): next candidates.
+  (Later: 00564E70, 005647E0, 00564BE0 and 00566F70 are rewritten, see "Client maps" below.)
 
 # Zone loading, map objects, AddUnitToServer, saving the map objects (fifth round)
 
@@ -919,3 +920,76 @@ Finished from the list above (third round):
 
 0059A4A0 is MFC CList<SharedObject>::Serialize, named in `config/library.csv`. The AI and figure
 draw functions of 0x5A0000-0x5C0000 done in the same round are in ai.md and models.md.
+
+# Client maps (0056E000-00574000 helpers, the client's object maps)
+
+Code: `src/game/world_client_maps.cpp`; verify wrappers: `tests/verify/verify_world_client_maps.cpp`.
+Shared files changed: `world.h` (additive: `SectorListNode`, `SectorGrid`, the functor and lookup
+declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration).
+
+## Structures
+
+- **Sector grids** (CWorldClient +0x120 objects, +0x150 a second grid): +0x00 the list storage,
+  +0x04 rows (row y: its lists, one head pointer each), +0x08/+0x0C sizes checked by the resize
+  (00572450), +0x10 width and +0x14 height in cells. Cells are 16x16 world units: the cell of a
+  coordinate is FISTP (round to nearest) shifted right by 4 as unsigned, so negative coordinates
+  land outside. Each cell is an STLport list of counted object pointers (+4 reference count,
+  slot 4 releases). CWorldClient slot 41 (005618A0) moves an object in +0x120, slot 42 (005618C0)
+  in +0x150.
+- The window lists walked by the collectors: STLport list nodes whose 0x18-byte entry (node + 8)
+  holds the object id at +4 and a RECT at +8.
+
+## Rewritten
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00570860 / 00570BB0 | SectorGrid::Move / Move2 (two instantiations) | ours only: position stored, listed in the new cell, reference count +1 per insert and -1 per removed listing (positions within 1% of a cell edge not judged) |
+| 00571D50 | MarkWithinRadius (for_each functor) | differential: marks undone after the original, functor compared |
+| 00571800 / 005718B0 | CollectWindowsAt / CollectWindowsAt2 (slot 22 / 24 hit test) | differential: the original's pushes taken back, ours compared |
+| 0056FC60 | PendingMapLookup (hash_map<unsigned, T*> lookup) | differential |
+| 0056E400 / 0056E440 | RecordAt50 / RecordAtB4 (bounds-checked record access) | differential |
+| 005647E0 | CWorldClient::AddObject (RET 4) | ours only: returns 1, the id is in +0xB8, a new object is in its grid cell |
+| 00564BE0 | CWorldClient::RemoveObject (RET 4) | ours only: one +0xB8 listing fewer, the id map lacks the id |
+| 00564E70 | CWorldClient::ClearMaps | ours only: grids, +0xB4, +0x7BC, the MFC lists and the id map empty; no positive id left in +0xB8 |
+| 005726B0 | ReleaseIfIdentified (ClearMaps' predicate) | ours only: true exactly for a positive id |
+| 00565790 / 005659D0 | CWorldClient::PickAt / PickAt2 (RET 4) | differential: the original first; the object, the sorted entries and the cursor compared |
+| 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
+
+CreatePartyUnits (called by the glue 005789C0 with the player's party records, an MFC pointer
+array): per record a CStringArray of the figure's part names "hd", "bd", "hp", "hr", "lh1".."rl3",
+where "hr" becomes "hr.%.2d" with the number at +0x10 of the prototype found by name in the map
+007AF364 (left out at -1); the object manager's slot 23 creates the hero (type 0x32, the record's
+id +0x1C); +0x18 = the prototype's index (-1 when unknown), the second prototype by name (+0x18),
+flag 0x4000000, the figure from the model (+8) and the part names (00516DA0; a failure ends the
+whole call, like a failed creation), the skin swap from "none" to +0x10 (none when it is "none"),
+the stats (+0x20, slot 35), the position (+0x724, also copied to +0x1AC), the items (weapons
++0x730, armour +0x750 (type-0 armour only with the flag), quick items +0x740, each array's count
+in the next word), the player (+0, slot 61), then AddObject.
+
+The client's maps (CWorldClient): +0xB4 an STLport list of counted pointers to heroes with a
+text-key id; +0xB8 a list of every object (pointers with a reference taken by hand); +0xBC an MFC
+CList of the objects answering slot 29, with +0xD8 a hash_map from id to that list's node (+0xEC
+the map's highest key); +0x1F0 an MFC CList of ids; +0x7BC a list of 0x0C-byte nodes; +0xF0 the
+screen entries (id, RECT) the pickers walk, +0xF4 the vector they fill and sort, +0x100 its
+cursor. AddObject's first loop compares ids: an object whose id is already listed is only
+referenced and released (+1, slot 4). In AddObject the grid listing is removed before it is
+appended, so a re-added object is listed once. The pickers sort with STLport's sort over the
+0x18-byte entries and DepthLess {the view stack's top, the object manager}; the original inlines
+the first level of the introsort loop, the rewrite calls the out-of-line loop (00573740, the same
+steps) and the two insertion sorts.
+
+Move removes every listing of the object from the old cell (list::remove with a counted copy:
++1, the erases release, -1), stores the three position words, then push_back's a counted copy
+into the new cell (+1, the insert adds its own, -1). Out-of-grid cells are skipped on either side.
+MarkWithinRadius calls the game's `_hypot` and marks when the distance is not greater than
+radius (+0x94) x scale; a NaN marks (FCOMPP + TEST AH,0x41). The distance and the product are
+plain C++ (rule 7): a distance on the very edge of the radius may rarely mark differently.
+
+## Classified as library (config/library.csv)
+
+The other 96 functions of 0056E000-00574000 are STLport / MFC instantiations (lists, hash_map,
+vectors, CArray / CMap SetSize, Serialize, NewAssoc), compiler-generated constructors, copy
+constructors and deleting destructors, counted-pointer helpers, and the sector grid template's
+storage (allocation, resize, reset, release, clear-all: new[]/delete[] of lists, no logic).
+005593D0 (the unit appearance cache) and its twelve hash_map helpers are classified the same way,
+as agreed.

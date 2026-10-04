@@ -17,6 +17,7 @@
 using BOOL = int;
 
 struct ScriptGroup;
+class CBaseManager;
 class Terrain;
 struct Float4;   // chunk_stream.h: four floats passed by value
 
@@ -571,6 +572,62 @@ struct PlatformSet {
     PlatformNode* head;                   // +0x20
 };
 
+// The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
+// world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
+struct SectorListNode {
+    SectorListNode* next;
+    SectorListNode* prev;
+    CEngineObject* value;
+};
+struct SectorGrid {
+    SectorListNode** cells_;              // +0x00 the lists (a head pointer each)
+    SectorListNode*** rows_;              // +0x04 row y: its lists
+    int unknown08_, unknown0C_;           // +0x08 (00572450 resizes when they change)
+    std::uint32_t width_;                 // +0x10 cells along x
+    std::uint32_t height_;                // +0x14 cells along y
+    // 00570860 (RET 8; CWorldClient slot 41 on +0x120, also 0067BEF0 / 0067CEF0). Moves `object`
+    // to `position` (stored at object +0x1C): when the cell (FISTP of x and y, >> 4) changes, out
+    // of the old cell's list and to the end of the new one's (cells outside the grid are skipped).
+    void Move(CEngineObject* object, const float* position);
+    // 00570BB0 (RET 8; slot 42 on +0x150). The same for the second grid's list instantiation.
+    void Move2(CEngineObject* object, const float* position);
+};
+static_assert(offsetof(SectorGrid, width_) == 0x10);
+
+// 00571D50 (thiscall on the returned functor, RET 0x14). for_each over list nodes [first, last):
+// sets the byte at node +0xD when hypot(node +0x10 - x, node +0x14 - y) <= node +0x94 * scale.
+// Writes {x, y, scale} to out and returns it.
+float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::uint8_t* last, float x, float y,
+                                   float scale);
+// 00571800 / 005718B0 (thiscall on the returned functor, RET 0x18). for_each over list nodes
+// [first, last) of 0x18-byte entries (+4 object id, +8 RECT): every entry whose rectangle holds
+// (x, y) and whose object (found in `manager`) has a +0x94 that answers slot 22 (00571800) or
+// slot 24 (005718B0) for the point is pushed to the vector `hits`. *out = hits; returns out.
+void** __fastcall CollectWindowsAt(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, long x,
+                                   long y, CBaseManager* manager);
+void** __fastcall CollectWindowsAt2(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, long x,
+                                    long y, CBaseManager* manager);
+// 005726B0 (RET 4; the predicate of CWorldClient::ClearMaps' remove_if, ECX unused). An object
+// with a positive id is released and true; false otherwise.
+bool __fastcall ReleaseIfIdentified(void* functor, void*, CEngineObject* object);
+// 0056FC60 (RET 8). Lookup in a hash_map<unsigned, T*>: *value = the entry's value and 1, or 0.
+using PendingMap = stlp::hash_map<std::uint32_t, void*, stlp::IntHash>;
+int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value);
+// 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
+// The party records handed to CWorldClient::CreatePartyUnits: an MFC pointer array.
+struct PartyRecordArray {
+    void* vtable;
+    void** data;                          // +0x04
+    int count;                            // +0x08
+};
+struct RecordVector {
+    const std::uint8_t* start;
+    const std::uint8_t* finish;
+    const std::uint8_t* eos;
+};
+const std::uint8_t* __fastcall RecordAt50(const RecordVector* records, void*, std::uint32_t index);
+const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, std::uint32_t index);
+
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {
 public:
@@ -625,6 +682,38 @@ public:
     float* PickGround(float* out, int x, int y);
     // 0056C350 (RET 0xC). Same with the client's surface height (slot 29: platforms included).
     float* PickSurface(float* out, int x, int y);
+
+    // world_client_maps.cpp
+    // 005647E0 (RET 4). Files an object in the client's maps: an object whose id is already in the
+    // list +0xB8 is only referenced and released. Otherwise: objects answering slot 29 are added to
+    // the MFC list +0xBC and the id map +0xD8 (id -> list node); classes 0x54 / 0x5D add their
+    // platform items (flag 0x400) to +0x1D4; units get slot 43 of their +0x240 in a multiplayer
+    // session of kind 1 (+0x6EC >= 1, unit +0x24C clear); then the list +0xB8 (with a
+    // reference), the sector grid +0x120 (removed first, then appended) and, for heroes with a
+    // text-key id, the list +0xB4. Returns 1.
+    int AddObject(CEngineObject* object);
+    // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
+    // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
+    // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;
+    // the object is released.
+    void RemoveObject(int id);
+    // 00564E70. Empties the maps: both sector grids' cells, the MFC lists +0x1F0 and +0xBC, the id
+    // map +0xD8, the lists +0x7BC and +0xB4, the +0xB8 entries with a positive id (released), the
+    // session's player data, +0x34's slot 5 and the managers +0x3C/+0x40/+0x44's records.
+    void ClearMaps();
+    // 00565790 / 005659D0 (RET 4). The object at screen point `point` (x, y): the screen entries of
+    // the list +0xF0 that contain it and whose object's +0x94 answers slot 22 (00565790) or 24
+    // (005659D0) go to the vector +0xF4, which is sorted front to back (DepthLess with the view
+    // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
+    CEngineObject* PickAt(const long* point);
+    CEngineObject* PickAt2(const long* point);
+    // 00566F70 (RET 8). Creates the party's heroes from their records (+0x14 prototype, +0x18
+    // second prototype, +0x1C id, +8 model, +0x10 skin, +0x20 stats, +0x724 position, +0x730 /
+    // +0x740 / +0x750 weapons, quick items and armour as pointer arrays with their counts after):
+    // the figure from the part names (the hair "hr.%.2d" by the prototype's number), items, player
+    // (+0); each unit is filed with AddObject. Armour of type 0 is put on only with `allArmour`.
+    // Stops at the first unit that cannot be created or given a figure.
+    void CreatePartyUnits(const PartyRecordArray* party, char allArmour);
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090
