@@ -23,12 +23,24 @@ struct Texture {
     const void* surface = nullptr;   // the IDirectDrawSurface7 it was read from
     sg_image image{};
     sg_view view{};
+    DWORD uniqueness = 0;            // the surface's uniqueness value when it was read (0: unknown)
+    std::uint32_t checkedFrame = 0xFFFFFFFFu;
+    std::uint32_t usedFrame = 0;
+    bool keyed = false;              // window surfaces: the colour key it was converted with
+    std::uint32_t key = 0;
+    int width = 0, height = 0;
 };
 
-std::unordered_map<const void*, Texture> g_textures;
+std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures with mip levels
+std::unordered_map<const void*, Texture> g_windows;    // by surface holder: window surfaces
+std::vector<sg_view> g_retiredViews;                   // replaced during the frame: destroyed at Present
+std::vector<sg_image> g_retiredImages;
+std::unordered_map<std::uint32_t, sg_sampler> g_samplers;
 Texture g_white;
 sg_sampler g_linear{};
 int g_failures = 0;
+bool g_uniquenessLogged = false;
+constexpr std::uint32_t kUnusedFrames = 600;   // entries unused this long are dropped
 
 // One channel of an RGB mask layout: mask, shift of its lowest bit, width.
 struct Channel {
@@ -130,14 +142,17 @@ bool DecodeDxt(const DDSURFACEDESC2& d, std::uint32_t fourcc, std::vector<std::u
     return true;
 }
 
-// The locked level as RGBA8 rows.
-bool Convert(const DDSURFACEDESC2& d, std::vector<std::uint8_t>& out) {
+// The locked level as RGBA8 rows. With `keyed`, pixels whose colour bits equal `key`'s (a DirectDraw
+// source colour key) come out transparent.
+bool Convert(const DDSURFACEDESC2& d, std::vector<std::uint8_t>& out, bool keyed = false, std::uint32_t key = 0) {
     const DDPIXELFORMAT& pf = d.ddpfPixelFormat;
-    if (pf.dwFlags & DDPF_FOURCC) return DecodeDxt(d, pf.dwFourCC, out);
+    if (pf.dwFlags & DDPF_FOURCC) return !keyed && DecodeDxt(d, pf.dwFourCC, out);
     int bytes = static_cast<int>(pf.dwRGBBitCount / 8);
     if (!(pf.dwFlags & DDPF_RGB) || bytes < 2 || bytes > 4) return false;
     Channel r = MakeChannel(pf.dwRBitMask), g = MakeChannel(pf.dwGBitMask), b = MakeChannel(pf.dwBBitMask);
     Channel a = (pf.dwFlags & DDPF_ALPHAPIXELS) ? MakeChannel(pf.dwRGBAlphaBitMask) : Channel{};
+    std::uint32_t colourBits = pf.dwRBitMask | pf.dwGBitMask | pf.dwBBitMask;
+    std::uint32_t keyBits = key & colourBits;
     int width = static_cast<int>(d.dwWidth), height = static_cast<int>(d.dwHeight);
     out.resize(static_cast<std::size_t>(width) * height * 4);
     for (int y = 0; y < height; ++y) {
@@ -149,7 +164,7 @@ bool Convert(const DDSURFACEDESC2& d, std::vector<std::uint8_t>& out) {
             o[x * 4 + 0] = Expand(pixel, r, 0);
             o[x * 4 + 1] = Expand(pixel, g, 0);
             o[x * 4 + 2] = Expand(pixel, b, 0);
-            o[x * 4 + 3] = Expand(pixel, a, 255);
+            o[x * 4 + 3] = keyed ? ((pixel & colourBits) == keyBits ? 0 : 255) : Expand(pixel, a, 255);
         }
     }
     return true;
@@ -263,34 +278,142 @@ bool ReadSurface(void* surface, int* width, int* height, std::vector<std::vector
     return ok;
 }
 
-} // namespace
-
-sg_view TextureView(const void* texture) {
-    if (!texture) return White().view;
-    // CTexture +0x5C: the counted surface holder (CDXSurface), +0x10 its IDirectDrawSurface7.
-    const char* holder = *reinterpret_cast<const char* const*>(static_cast<const char*>(texture) + 0x5C);
-    void* surface = holder ? *reinterpret_cast<void* const*>(holder + 0x10) : nullptr;
-    if (!surface) return White().view;
-    auto it = g_textures.find(texture);
-    if (it != g_textures.end()) {
-        if (it->second.surface == surface) return it->second.view;
-        sg_destroy_view(it->second.view);
-        sg_destroy_image(it->second.image);
-        g_textures.erase(it);
+// Re-reads are needed when the surface's contents changed since `t` was read: its uniqueness value
+// (IDirectDrawSurface7::GetUniquenessValue, changed by every Lock / GetDC / Blt) differs. When the
+// value is not available, `unknownChanged` decides.
+bool Changed(const Texture& t, IDirectDrawSurface7* dd, DWORD* now, bool unknownChanged) {
+    DWORD value = 0;
+    LockGameDevice();
+    HRESULT hr = dd->GetUniquenessValue(&value);
+    UnlockGameDevice();
+    if (!g_uniquenessLogged) {
+        g_uniquenessLogged = true;
+        ei::Log("render: surface uniqueness values %s (%08lX, %lu)", SUCCEEDED(hr) && value ? "available" : "not available",
+                static_cast<unsigned long>(hr), static_cast<unsigned long>(value));
     }
+    *now = SUCCEEDED(hr) ? value : 0;
+    if (*now == 0) return unknownChanged;
+    return t.uniqueness != *now;
+}
+
+void Retire(Texture& t) {
+    if (t.image.id) {
+        g_retiredViews.push_back(t.view);
+        g_retiredImages.push_back(t.image);
+    }
+    t.image = sg_image{};
+    t.view = sg_view{};
+}
+
+// Reads a texture holder's surface (with mip levels) into `t`.
+void ReadTexture(Texture& t, void* surface) {
     int width = 0, height = 0;
     std::vector<std::vector<std::uint8_t>> levels;
-    Texture t;
     t.surface = surface;
     if (ReadSurface(surface, &width, &height, levels)) {
         t.image = MakeImage(width, height, std::move(levels), "ei-game-texture");
         t.view = MakeTextureView(t.image);
     }
     if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
+        if (t.view.id) sg_destroy_view(t.view);
+        if (t.image.id) sg_destroy_image(t.image);
         t.image = sg_image{};
-        t.view = White().view;
+        t.view = sg_view{};
     }
-    return g_textures.emplace(texture, t).first->second.view;
+}
+
+// Reads a window surface (one level; keyed) into `t`.
+void ReadWindow(Texture& t, void* surface, bool keyed, std::uint32_t key) {
+    auto* dd = static_cast<IDirectDrawSurface7*>(surface);
+    DDSURFACEDESC2 desc{};
+    desc.dwSize = sizeof(desc);
+    std::vector<std::uint8_t> pixels;
+    LockGameDevice();
+    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
+    bool ok = SUCCEEDED(hr) && desc.lpSurface && desc.dwWidth && desc.dwHeight && Convert(desc, pixels, keyed, key);
+    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+    UnlockGameDevice();
+    t.surface = surface;
+    t.keyed = keyed;
+    t.key = key;
+    if (!ok) {
+        if (g_failures++ < 10)
+            ei::Log("render: cannot read window surface %p (Lock %08lX, %lu bits)", surface, static_cast<unsigned long>(hr),
+                    static_cast<unsigned long>(desc.ddpfPixelFormat.dwRGBBitCount));
+        return;
+    }
+    t.width = static_cast<int>(desc.dwWidth);
+    t.height = static_cast<int>(desc.dwHeight);
+    sg_image_desc d{};
+    d.width = t.width;
+    d.height = t.height;
+    d.num_mipmaps = 1;
+    d.pixel_format = SG_PIXELFORMAT_RGBA8;
+    d.data.mip_levels[0] = sg_range{pixels.data(), pixels.size()};
+    d.label = "ei-window-surface";
+    t.image = sg_make_image(&d);
+    t.view = MakeTextureView(t.image);
+    if (sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
+        sg_destroy_view(t.view);
+        sg_destroy_image(t.image);
+        t.image = sg_image{};
+        t.view = sg_view{};
+    }
+}
+
+void* SurfaceOf(const void* holder) {
+    // A CDXSurface: +0x10 its IDirectDrawSurface7.
+    return holder ? *reinterpret_cast<void* const*>(static_cast<const char*>(holder) + 0x10) : nullptr;
+}
+
+} // namespace
+
+sg_view SurfaceView(const void* holder) {
+    void* surface = SurfaceOf(holder);
+    if (!surface) return White().view;
+    std::uint32_t frame = FrameNumber();
+    Texture& t = g_textures[holder];
+    t.usedFrame = frame;
+    if (t.surface == surface && t.checkedFrame == frame) return t.view.id ? t.view : White().view;
+    // Textures are checked once a frame; without uniqueness values they are read once.
+    DWORD now = 0;
+    bool reread = t.surface != surface || Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    t.checkedFrame = frame;
+    if (reread) {
+        Retire(t);
+        ReadTexture(t, surface);
+        t.uniqueness = now;
+    }
+    return t.view.id ? t.view : White().view;
+}
+
+sg_view TextureView(const void* texture) {
+    // CTexture +0x5C: the counted surface holder (CDXSurface).
+    if (!texture) return White().view;
+    return SurfaceView(*reinterpret_cast<const void* const*>(static_cast<const char*>(texture) + 0x5C));
+}
+
+sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height) {
+    *width = *height = 0;
+    void* surface = SurfaceOf(holder);
+    if (!surface) return sg_view{};
+    std::uint32_t frame = FrameNumber();
+    Texture& t = g_windows[holder];
+    t.usedFrame = frame;
+    // Window surfaces are checked at every blit (the game may redraw one between two blits of a
+    // frame); without uniqueness values they are read once a frame.
+    DWORD now = 0;
+    bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) ||
+                  Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
+    t.checkedFrame = frame;
+    if (reread) {
+        Retire(t);
+        ReadWindow(t, surface, keyed, key);
+        t.uniqueness = now;
+    }
+    *width = t.width;
+    *height = t.height;
+    return t.view;
 }
 
 sg_sampler LinearSampler() {
@@ -307,14 +430,69 @@ sg_sampler LinearSampler() {
     return g_linear;
 }
 
-void DestroyTextures() {
-    for (auto& entry : g_textures) {
-        if (entry.second.image.id) {
-            sg_destroy_view(entry.second.view);
-            sg_destroy_image(entry.second.image);
+namespace {
+sg_wrap Wrap(std::uint8_t address) {
+    switch (address) {   // D3DTEXTUREADDRESS
+    case 2: return SG_WRAP_MIRRORED_REPEAT;
+    case 3: return SG_WRAP_CLAMP_TO_EDGE;
+    case 4: return SG_WRAP_CLAMP_TO_BORDER;
+    default: return SG_WRAP_REPEAT;
+    }
+}
+} // namespace
+
+sg_sampler StageSampler(const StageState& s) {
+    std::uint32_t key = static_cast<std::uint32_t>(s.magFilter & 7) | (static_cast<std::uint32_t>(s.minFilter & 7) << 3) |
+                        (static_cast<std::uint32_t>(s.mipFilter & 7) << 6) | (static_cast<std::uint32_t>(s.addressU & 7) << 9) |
+                        (static_cast<std::uint32_t>(s.addressV & 7) << 12);
+    auto it = g_samplers.find(key);
+    if (it != g_samplers.end()) return it->second;
+    sg_sampler_desc d{};
+    d.mag_filter = s.magFilter == 1 ? SG_FILTER_NEAREST : SG_FILTER_LINEAR;   // D3DTFG_POINT
+    d.min_filter = s.minFilter == 1 ? SG_FILTER_NEAREST : SG_FILTER_LINEAR;   // D3DTFN_POINT
+    d.mipmap_filter = s.mipFilter == 3 ? SG_FILTER_LINEAR : SG_FILTER_NEAREST;
+    if (s.mipFilter <= 1) d.max_lod = 0.0f;   // D3DTFP_NONE: level 0 only
+    d.wrap_u = Wrap(s.addressU);
+    d.wrap_v = Wrap(s.addressV);
+    d.border_color = SG_BORDERCOLOR_TRANSPARENT_BLACK;
+    d.label = "ei-stage-sampler";
+    sg_sampler sampler = sg_make_sampler(&d);
+    g_samplers.emplace(key, sampler);
+    return sampler;
+}
+
+void RetireTextures() {
+    for (sg_view v : g_retiredViews) sg_destroy_view(v);
+    for (sg_image i : g_retiredImages) sg_destroy_image(i);
+    g_retiredViews.clear();
+    g_retiredImages.clear();
+    std::uint32_t frame = FrameNumber();
+    for (auto* map : {&g_textures, &g_windows}) {
+        for (auto it = map->begin(); it != map->end();) {
+            if (frame - it->second.usedFrame > kUnusedFrames) {
+                if (it->second.image.id) {
+                    sg_destroy_view(it->second.view);
+                    sg_destroy_image(it->second.image);
+                }
+                it = map->erase(it);
+            } else {
+                ++it;
+            }
         }
     }
-    g_textures.clear();
+}
+
+void DestroyTextures() {
+    RetireTextures();
+    for (auto* map : {&g_textures, &g_windows}) {
+        for (auto& entry : *map) {
+            if (entry.second.image.id) {
+                sg_destroy_view(entry.second.view);
+                sg_destroy_image(entry.second.image);
+            }
+        }
+        map->clear();
+    }
     if (g_white.image.id) {
         sg_destroy_view(g_white.view);
         sg_destroy_image(g_white.image);
@@ -322,6 +500,8 @@ void DestroyTextures() {
     g_white = Texture{};
     if (g_linear.id) sg_destroy_sampler(g_linear);
     g_linear = sg_sampler{};
+    for (auto& s : g_samplers) sg_destroy_sampler(s.second);
+    g_samplers.clear();
 }
 
 } // namespace render::detail

@@ -12,6 +12,7 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
+#include <float.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -31,11 +32,14 @@ bool g_active = false;
 bool g_show = false;
 bool g_split = false;
 bool g_oldTerrain = true;
+bool g_oldObjects = true;
+bool g_oldInterface = true;
+bool g_inWorld = false;
 bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
 
 void ParseSpec(const char* spec) {
     g_active = g_show = g_split = false;
-    g_oldTerrain = true;
+    g_oldTerrain = g_oldObjects = g_oldInterface = true;
     std::string s = spec ? spec : "";
     std::size_t start = 0;
     while (start <= s.size()) {
@@ -47,18 +51,21 @@ void ParseSpec(const char* spec) {
         else if (word == "show") g_show = true;
         else if (word == "split") g_show = g_split = true;
         else if (word == "noterrain") g_oldTerrain = false;
+        else if (word == "noobjects") g_oldObjects = false;
+        else if (word == "nointerface") g_oldInterface = false;
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
     if (!g_active) {
         g_show = g_split = false;
-        g_oldTerrain = true;
+        g_oldTerrain = g_oldObjects = g_oldInterface = true;
     }
     g_configured = true;
     if (g_active)
-        ei::Log("render: new renderer on (%s%s)", g_show ? (g_split ? "split view" : "shown") : "off-screen",
-                g_oldTerrain ? "" : ", old terrain off");
+        ei::Log("render: new renderer on (%s%s%s%s)", g_show ? (g_split ? "split view" : "shown") : "off-screen",
+                g_oldTerrain ? "" : ", old terrain off", g_oldObjects ? "" : ", old objects off",
+                g_oldInterface ? "" : ", old interface off");
 }
 
 void EnsureConfigured() {
@@ -68,42 +75,9 @@ void EnsureConfigured() {
     ParseSpec(n > 0 && n < sizeof(spec) ? spec : "");
 }
 
-// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU
-// precision"); drivers are not expected to change it, but the control word is put back after every
-// call into them anyway.
-class FpuGuard {
-public:
-    FpuGuard() {
-        unsigned short cw;
-        __asm fnstcw cw
-        saved_ = cw;
-    }
-    ~FpuGuard() {
-        unsigned short cw = saved_;
-        __asm fldcw cw
-    }
-    FpuGuard(const FpuGuard&) = delete;
-    FpuGuard& operator=(const FpuGuard&) = delete;
-
-private:
-    unsigned short saved_;
-};
-
 // --- Game memory -----------------------------------------------------------------------------------
 
 HWND GameWindow() { return *reinterpret_cast<HWND*>(game::Where().window); }
-char* DeviceObject() { return *reinterpret_cast<char**>(game::Where().deviceObject); }
-
-// The size of the game's render target (the device object's +0x18, a CDXSurface: +0x14 width,
-// +0x18 height).
-bool GameTargetSize(int* width, int* height) {
-    char* device = DeviceObject();
-    char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
-    if (!target) return false;
-    *width = *reinterpret_cast<int*>(target + 0x14);
-    *height = *reinterpret_cast<int*>(target + 0x18);
-    return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
-}
 
 // The renderer's clear colour (007AF060 +0x14, D3DCOLOR), as 00501A40 clears the frame with.
 std::uint32_t GameClearColour() { return *reinterpret_cast<std::uint32_t*>(game::Where().renderer + 0x14); }
@@ -226,7 +200,7 @@ LRESULT CALLBACK ViewProc(HWND window, UINT message, WPARAM wParam, LPARAM lPara
     return DefWindowProcA(window, message, wParam, lParam);
 }
 
-const char* const kBlitSource = R"(
+const char* const kShowSource = R"(
 cbuffer params : register(b0) { float4 source; };
 struct vs_out { float2 uv : TEXCOORD0; float4 pos : SV_Position; };
 vs_out vs_main(uint id : SV_VertexID) {
@@ -241,11 +215,11 @@ SamplerState smp : register(s0);
 float4 ps_main(vs_out i) : SV_Target0 { return float4(tex.Sample(smp, i.uv).rgb, 1.0); }
 )";
 
-bool CreateBlit() {
+bool CreateShowPipeline() {
     sg_shader_desc s{};
-    s.vertex_func.source = kBlitSource;
+    s.vertex_func.source = kShowSource;
     s.vertex_func.entry = "vs_main";
-    s.fragment_func.source = kBlitSource;
+    s.fragment_func.source = kShowSource;
     s.fragment_func.entry = "ps_main";
     s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
     s.uniform_blocks[0].size = 16;
@@ -260,14 +234,14 @@ bool CreateBlit() {
     s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
     s.texture_sampler_pairs[0].view_slot = 0;
     s.texture_sampler_pairs[0].sampler_slot = 0;
-    s.label = "ei-blit";
+    s.label = "ei-show";
     g_blitShader = sg_make_shader(&s);
     sg_pipeline_desc p{};
     p.shader = g_blitShader;
     p.colors[0].pixel_format = SG_PIXELFORMAT_BGRA8;
     p.depth.pixel_format = SG_PIXELFORMAT_NONE;
     p.sample_count = 1;
-    p.label = "ei-blit";
+    p.label = "ei-show";
     g_blitPipeline = sg_make_pipeline(&p);
     return sg_query_pipeline_state(g_blitPipeline) == SG_RESOURCESTATE_VALID;
 }
@@ -320,7 +294,7 @@ bool CreateView(int width, int height) {
     if (factory) factory->Release();
     if (adapter) adapter->Release();
     if (dxgiDevice) dxgiDevice->Release();
-    ok = ok && CreateSwapView() && CreateBlit();
+    ok = ok && CreateSwapView() && CreateShowPipeline();
     if (!ok) return false;
     g_viewWidth = width;
     g_viewHeight = height;
@@ -384,13 +358,14 @@ void ShowFrame() {
 Frame g_frame;
 bool g_frameDrawn = false;
 bool g_started = false;
+std::uint32_t g_frameNumber = 0;
 
 bool EnsureStarted() {
     EnsureConfigured();
     if (!g_active || g_failed) return false;
     if (g_started) return true;
     FpuGuard fpu;
-    if (!CreateDevice() || !CreateTerrainPipelines()) {
+    if (!CreateDevice() || !CreateTerrainPipelines() || !CreateMeshShader() || !CreateBlitPipeline()) {
         g_failed = true;
         return false;
     }
@@ -402,7 +377,31 @@ bool EnsureStarted() {
 
 namespace detail {
 
+// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU
+// precision"); drivers are not expected to change it, but the control word is put back after every
+// call into them anyway.
+FpuGuard::FpuGuard() : saved_(0) { __control87_2(0, 0, &saved_, nullptr); }
+FpuGuard::~FpuGuard() {
+    unsigned int now = 0;
+    __control87_2(saved_, _MCW_EM | _MCW_IC | _MCW_RC | _MCW_PC, &now, nullptr);
+}
+
 Frame& CurrentFrame() { return g_frame; }
+std::uint32_t FrameNumber() { return g_frameNumber; }
+bool Started() { return EnsureStarted(); }
+
+char* DeviceObject() { return *reinterpret_cast<char**>(game::Where().deviceObject); }
+
+// The size of the game's render target (the device object's +0x18, a CDXSurface: +0x14 width,
+// +0x18 height).
+bool GameTargetSize(int* width, int* height) {
+    char* device = DeviceObject();
+    char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
+    if (!target) return false;
+    *width = *reinterpret_cast<int*>(target + 0x14);
+    *height = *reinterpret_cast<int*>(target + 0x18);
+    return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
+}
 
 int AddMatrix(const float* m) {
     if (!g_frame.matrices.empty() && std::memcmp(g_frame.matrices.back().m, m, sizeof(Matrix)) == 0)
@@ -415,6 +414,58 @@ int AddMatrix(const float* m) {
 
 void LockGameDevice() { EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(game::Where().deviceLock)); }
 void UnlockGameDevice() { LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(game::Where().deviceLock)); }
+
+namespace {
+// The game's IDirect3DDevice7 (the device object's +0x54).
+void* OldDevice() {
+    char* device = DeviceObject();
+    return device ? *reinterpret_cast<void**>(device + 0x54) : nullptr;
+}
+} // namespace
+
+// IDirect3DDevice7::GetRenderState (slot 21).
+void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
+    void* d3d = OldDevice();
+    for (int i = 0; i < count; ++i) values[i] = 0;
+    if (!d3d) return;
+    using GetState = long(__stdcall*)(void*, unsigned long, unsigned long*);
+    auto get = reinterpret_cast<GetState>((*static_cast<void***>(d3d))[21]);
+    LockGameDevice();
+    for (int i = 0; i < count; ++i) {
+        unsigned long value = 0;
+        get(d3d, states[i], &value);
+        values[i] = static_cast<std::uint32_t>(value);
+    }
+    UnlockGameDevice();
+}
+
+// IDirect3DDevice7::GetTextureStageState (slot 36).
+void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count) {
+    void* d3d = OldDevice();
+    for (int i = 0; i < count; ++i) values[i] = 0;
+    if (!d3d) return;
+    using GetStage = long(__stdcall*)(void*, unsigned long, unsigned long, unsigned long*);
+    auto get = reinterpret_cast<GetStage>((*static_cast<void***>(d3d))[36]);
+    LockGameDevice();
+    for (int i = 0; i < count; ++i) {
+        unsigned long value = 0;
+        get(d3d, static_cast<unsigned long>(stage), states[i], &value);
+        values[i] = static_cast<std::uint32_t>(value);
+    }
+    UnlockGameDevice();
+}
+
+// The fog the old path draws with: FOGENABLE (28) and FOGCOLOR (34), once per frame.
+void ReadFog(Frame& f) {
+    const std::uint32_t states[2] = {28, 34};
+    std::uint32_t values[2];
+    OldRenderStates(states, values, 2);
+    f.haveFog = true;
+    f.fogEnabled = values[0] != 0;
+    f.fogColour = values[1];
+}
+
+bool InWorld() { return g_inWorld; }
 
 } // namespace detail
 
@@ -442,6 +493,47 @@ void SetDrawOldTerrain(bool on) {
     g_oldTerrain = on;
 }
 
+bool DrawOldMeshes() {
+    EnsureConfigured();
+    return (g_inWorld ? g_oldObjects : g_oldInterface) || !Active();
+}
+
+bool DrawOldFlat() {
+    EnsureConfigured();
+    return g_oldObjects || !g_inWorld || !Active();
+}
+
+bool DrawOldInterface() {
+    EnsureConfigured();
+    return g_oldInterface || !Active();
+}
+
+void SetDrawOldObjects(bool on) {
+    EnsureConfigured();
+    g_oldObjects = on;
+}
+
+void SetDrawOldInterface(bool on) {
+    EnsureConfigured();
+    g_oldInterface = on;
+}
+
+void BeginWorld() { g_inWorld = true; }
+void EndWorld() { g_inWorld = false; }
+
+void ClearDepth(float z, const Rect* rects, int count) {
+    if (!Active()) return;
+    if (!rects) {
+        g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
+        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
+        return;
+    }
+    for (int i = 0; i < count; ++i) {
+        g_frame.clears.push_back(ClearBatch{z, rects[i]});
+        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
+    }
+}
+
 void EndFrame() {
     if (g_frameDrawn || !EnsureStarted()) return;
     g_frameDrawn = true;
@@ -457,11 +549,21 @@ void EndFrame() {
     pass.attachments.colors[0] = g_colourAttachment;
     pass.attachments.depth_stencil = g_depthAttachment;
     pass.label = "ei-frame";
+    UploadTerrain(g_frame);
+    UploadMeshes(g_frame);
     sg_begin_pass(&pass);
     // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
     // the viewport is moved by half a pixel so that the same clip coordinates hit the same pixels.
     sg_apply_viewportf(-0.5f, -0.5f, static_cast<float>(width), static_cast<float>(height), true);
-    DrawTerrain(g_frame);
+    for (const Command& c : g_frame.commands) {
+        auto i = static_cast<std::size_t>(c.index);
+        switch (c.kind) {
+        case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
+        case Command::Mesh: DrawMeshBatch(g_frame, g_frame.meshBatches[i]); break;
+        case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
+        case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
+        }
+    }
     sg_end_pass();
     ShowFrame();
     sg_commit();
@@ -476,8 +578,19 @@ void Present() {
     g_frame.terrainVertices.clear();
     g_frame.terrainIndices.clear();
     g_frame.terrainBatches.clear();
+    g_frame.meshVertices.clear();
+    g_frame.meshIndices.clear();
+    g_frame.meshBatches.clear();
+    g_frame.blitBatches.clear();
+    g_frame.clears.clear();
+    g_frame.commands.clear();
     g_frame.haveFog = false;
     g_frameDrawn = false;
+    if (g_started) {
+        FpuGuard fpu;
+        RetireTextures();
+    }
+    ++g_frameNumber;
 }
 
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {

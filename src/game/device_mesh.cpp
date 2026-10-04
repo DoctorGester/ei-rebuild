@@ -5,10 +5,13 @@
 // corner (position, colour and texture coordinate indices) becomes a TL vertex; meshes crossing the
 // screen edges go through the transform object's clipper (slot 37) and are projected again (slot
 // 34). Figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...) draw through them.
-// Buffers are globals at 007AEDE0..007AEE3C. See docs/notes/models.md ("Renderer").
+// Buffers are globals at 007AEDE0..007AEE3C. See docs/notes/models.md ("Renderer"). The new
+// renderer (src/render) gets the mesh in model space once it is known to be visible
+// (docs/notes/renderer.md).
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -267,6 +270,29 @@ void DrawClipped(char* device, void* transform, const MeshArgs& a, const Texture
     Submit(device, textures, reinterpret_cast<std::uint16_t*>(ClipIndices().data), ClipIndices().size);
 }
 
+void HandOver(char* device, const MeshArgs& a) {
+    render::MeshDraw m{};
+    m.positions = static_cast<const float*>(a.positions);
+    m.positionCount = a.blocks * 4;
+    m.colours = a.colours;
+    m.speculars = a.speculars;
+    m.uvs = &a.uvs->u;
+    m.corners = &a.corners->position;
+    m.cornerCount = a.cornerCount;
+    m.indices = a.indices;
+    m.indexCount = a.indexCount;
+    m.moveUv = !(ZeroOrNaN(a.uOffset) && ZeroOrNaN(a.vOffset));
+    m.uOffset = *a.uOffset;
+    m.vOffset = *a.vOffset;
+    // The screen stack (+0x1C): the clip-space stack (+0x24, which the clipping draws use) times the
+    // viewport mapping, so it also places meshes drawn into a part of the screen (the interface's
+    // previews). Both stacks get the same pushes.
+    m.screenMatrix = true;
+    m.matrix = static_cast<const float*>(StackTop(device, 0x1C));
+    m.clipped = (a.flags & 2) != 0;
+    render::BeginMesh(device, m);
+}
+
 // Returns the transform's verdict: 2 nothing on screen, 1 clipped, 0 on screen (drawn: 1).
 int DrawMesh(char* device, const MeshArgs& a, const Textures* textures) {
     void* transform = At<void*>(At<char*>(device, 0xAC), 0xC);
@@ -282,12 +308,18 @@ int DrawMesh(char* device, const MeshArgs& a, const Textures* textures) {
     }
     if (visibility == 2) return 2;
     if (a.flags & 4) OverrideColours(device, a);
+    // The new renderer (src/render) takes the mesh in model space with the matrix it was projected
+    // with; each pass the old path draws below hands over the device's state (device_draw.cpp).
+    if (render::Active()) HandOver(device, a);
+    int result = visibility;
     if (visibility == 0) {
         DrawOnScreen(device, transform, a, textures);
-        return 1;
+        result = 1;
+    } else if (visibility == 1) {
+        DrawClipped(device, transform, a, textures);
     }
-    if (visibility == 1) DrawClipped(device, transform, a, textures);
-    return visibility;
+    render::EndMesh();
+    return result;
 }
 
 } // namespace

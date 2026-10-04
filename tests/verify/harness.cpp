@@ -58,6 +58,8 @@
 //                             With it, "capture" also writes frames\<name>.new.bmp
 //   oldterrain on|off         the old Direct3D path draws the terrain or not (for a terrain mask:
 //                             capture with and without it at one frozen moment)
+//   oldobjects on|off         ... the world's meshes and shadows (with "render new")
+//   oldinterface on|off       ... the interface: window surfaces, sprites, 3D previews
 //   samecapture <a> <b> [tolerance] [fraction]
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
@@ -959,6 +961,10 @@ void RunSteps() {
             if (differing > limit) g_failures.push_back(text);
         } else if (s.verb == "oldterrain") {
             render::SetDrawOldTerrain(s.argument != "off");
+        } else if (s.verb == "oldobjects") {
+            render::SetDrawOldObjects(s.argument != "off");
+        } else if (s.verb == "oldinterface") {
+            render::SetDrawOldInterface(s.argument != "off");
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
