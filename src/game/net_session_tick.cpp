@@ -249,3 +249,77 @@ EI_REPLACE(0x00437310, CantHandle<0x00783FC4>);   // slot 9, kind 7: "ERROR: Can
 EI_REPLACE(0x00437340, CantHandle<0x00783FE4>);   // slot 10, kind -1: "ERROR: Can't handle master packet"
 
 } // namespace net
+
+// ---- Byte buffer writes and small socket helpers ---------------------------------------------------
+
+namespace net {
+
+namespace {
+__declspec(naked) bool __fastcall SocketSendTo(SocketDriver* /*driver*/, void*, const void* /*address*/, GameBuffer* /*buffer*/) EI_ORIGINAL(0x00440B90)
+// 00440AF0: whether the address is on the local network.
+__declspec(naked) bool __fastcall SocketIsLocal(SocketDriver* /*driver*/, void*, const void* /*address*/) EI_ORIGINAL(0x00440AF0)
+__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
+__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
+constexpr int kBufferWriteMore = 4;
+} // namespace
+
+// 00436C30: copies `size` bytes to the write position and moves it on (no room check); returns
+// the buffer.
+GameBuffer* __fastcall BufferWriteRaw(GameBuffer* buffer, void*, const void* from, unsigned size) {
+    std::memcpy(buffer->cur, from, size);
+    buffer->cur += size;
+    return buffer;
+}
+EI_REPLACE(0x00436C30, BufferWriteRaw);
+
+// 00436C60: writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
+// otherwise through slot 4. Returns `size` or what slot 4 left.
+unsigned __fastcall BufferWrite(GameBuffer* buffer, void*, const void* from, unsigned size) {
+    if (buffer->cur + size > buffer->end) return static_cast<unsigned>(ei::VCall<int>(buffer, kBufferWriteMore, from, size));
+    buffer->flags |= 1;
+    std::memcpy(buffer->cur, from, size);
+    buffer->cur += size;
+    return size;
+}
+EI_REPLACE(0x00436C60, BufferWrite);
+
+// 00436F60: sends the buffer's contents to `address` through the session's socket.
+bool __fastcall SessionSend(SessionBase* self, void*, const void* address, GameBuffer* buffer) {
+    return SocketSendTo(&self->socket, nullptr, address, buffer);
+}
+EI_REPLACE(0x00436F60, SessionSend);
+
+// 00436F80: the send rate for a peer: the dword at 00783E38 (12500) on the local network, else the
+// one at 00783E34 (2500).
+std::uint32_t __fastcall SessionRateFor(SessionBase* self, void*, const void* address) {
+    bool local = SocketIsLocal(&self->socket, nullptr, address);
+    return *reinterpret_cast<const std::uint32_t*>(local ? 0x00783E38 : 0x00783E34);
+}
+EI_REPLACE(0x00436F80, SessionRateFor);
+
+// 00436FA0: sends a leave packet (kind 1, then the connection id) to `address`.
+void __fastcall SessionSendLeave(SessionBase* self, void*, const void* address, std::uint32_t id) {
+    alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
+    auto* buffer = reinterpret_cast<GameBuffer*>(storage);
+    GrowingBufferConstruct(buffer);
+    std::uint8_t kind = 1;
+    if (buffer->cur + 1 <= buffer->end) {
+        buffer->flags |= 1;
+        *buffer->cur = kind;
+        ++buffer->cur;
+    } else {
+        ei::VCall<int>(buffer, kBufferWriteMore, &kind, 1u);
+    }
+    if (buffer->cur + 4 <= buffer->end) {
+        buffer->flags |= 1;
+        std::memcpy(buffer->cur, &id, 4);
+        buffer->cur += 4;
+    } else {
+        ei::VCall<int>(buffer, kBufferWriteMore, &id, 4u);
+    }
+    SocketSendTo(&self->socket, nullptr, address, buffer);
+    GrowingBufferDestruct(buffer);
+}
+EI_REPLACE(0x00436FA0, SessionSendLeave);
+
+} // namespace net
