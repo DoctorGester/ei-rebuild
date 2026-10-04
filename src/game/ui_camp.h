@@ -115,6 +115,10 @@ public:
     // their regions with it; bobs the current zone's arrow, animates the layers, refreshes the
     // zone selection when asked, draws the weather into texture 4, sets the cursor.
     void Update();
+    // 005F67A0 (RET 4). Constructor (inlined into nothing; called by CreateScreen 4): the
+    // container base, empty strings and arrays (vtables 00740BFC / 00740BF0 / 00740BE4), the two
+    // STLport containers at +0x1D0 and +0x1E0, the identity turn; returns this.
+    CGlobalMap* Construct(CInterface3D* ui);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
@@ -163,6 +167,16 @@ static_assert(offsetof(CGlobalMap, gipat_) == 0x278);
 static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
 
+// 005F6920 (__fastcall on the map). The destructor body: its strings, the tree at +0x1E0, the
+// vector at +0x1C8, the three arrays (entries destroyed), then the container base
+// (ui_global_map.cpp).
+void __fastcall GlobalMapDestroy(CGlobalMap* self);
+
+// 0060E3E0 (__fastcall on the panel). The trade panel's destructor body (vtable 007417A8):
+// its CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
+// +0x15C (0x18-byte entries), then the window base (ui_camp.cpp).
+void __fastcall TradePanelDestroy(CUiWindow* self);
+
 // --- Camp pages -----------------------------------------------------------------------------
 //
 // The camp (CCampScreen in ui_screens.h, vtables 007408E8 / 0074091C, 0x260 bytes) with the
@@ -201,6 +215,47 @@ public:
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.
     BOOL Draw(int pass);
+    // 0060E6B0 (slot 26, leaving the camp). Clears the server flag (00578D10) and render state 2;
+    // hands the local player's unit records to 005789E0 with +0x1C raised by 100000000 for the
+    // call; frees the heroes array, releases the constructed item and spell, empties both
+    // description panels and deletes the constructors' part lists except the first of each.
+    void Close();
+    // 0060FE40 (RET 4; from 0060FCA0 and 00610AD0). Takes `item` (a weapon 0x3004, armour 0x3005,
+    // 0x3006 or 0x3008) off the current hero (slot 51) into the player's items (00661DB0, whose
+    // result it returns; 0 for other kinds): a weapon also moves the hero's chosen-weapon index
+    // (+0x774) back and redraws (slot 46); armour also comes off the hero's unit and the stats'
+    // outer layers are rebuilt. The stats panel is redrawn.
+    int TakeOff(std::uint8_t* item);
+    // 0060FCA0 (RET 4). Puts `item` on the current hero: a weapon (at most 4; the first becomes
+    // the chosen one; slot 46 redraws), armour (each piece of the same body part taken off first
+    // through TakeOff, then worn by the hero's unit and the stats' outer layers rebuilt), a 0x3006
+    // item (at most 4) or a 0x3008 item (at most 8); then the player's items lose it (00661F30)
+    // and the stats panel is redrawn. Other kinds and full slots do nothing.
+    void PutOn(std::uint8_t* item);
+    // 0060F9E0 (slot 46). Re-arms the current hero's unit: its figure's weapon reset (-1), the
+    // four weapon slots cleared (005310D0), the record's weapons given (00531070), 00531110, the
+    // chosen weapon shown (figure slot 25 with +0x774, slot 30); then slot 47.
+    void RefreshWeapons();
+    // 0060F980 (slot 47). The current hero's unit (if any) takes the record's statistics
+    // (00532A20 with record + 0x20) and its figure is updated (slot 31); the stats panel redraws.
+    void RefreshStats();
+    // 0060F6B0 (slot 24). The children's update, then the hero preview turns while a turn button
+    // is held (+0x25C 1 / 2): heroTurn_ +- twice the frame time, modulo 007C7EE8.
+    void Update();
+    // 0060F710 / 0060F7A0 (slots 48 / 49). The next / previous hero of the party (wrapping; the
+    // first record whose prototype is of class 0x32; fatal after a full round without one); a
+    // different hero is shown (0060F830) and re-armed (slot 46).
+    void NextHero();
+    void PreviousHero();
+    // 0060F830. The current hero's name for the panels: the unit's own name, else the text of
+    // "pers <record name>" when the text table has it; to the stats panel (006232D0) and the trade
+    // panel (00625860).
+    void ShowHero();
+    // 005F6240 (RET 8; CreateScreen 5). Constructor: the container base, both item caches (limit
+    // 50; the item screens' vtables 00740A2C / 007409F8 in between), fromHeroScreen_ from the
+    // flag's low byte, the heroes array (vtable 007402AC), the page titles' CStringArray; the
+    // camp's vtables 0074091C / 007408E8. Returns this.
+    CCampPages* Construct(CInterface3D* ui, int fromHeroScreen);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)

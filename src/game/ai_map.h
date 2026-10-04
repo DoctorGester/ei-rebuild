@@ -102,6 +102,9 @@ struct CRegionMap {
     // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
     // original leaves it).
     int RegionAt(int sizeClass, int x, int y);
+    // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
+    // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
+    int DominantRegion(int sizeClass, int x, int y);
     // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
     bool Reaches(int sizeClass, int x, int y, int region, void* marks);
     // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
@@ -120,6 +123,22 @@ struct CRegionMap {
     // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
     // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
     bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
+    // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
+    // joins their paths into `chain`; false when one runs out.
+    bool JoinBlockSearches(struct PathCellList* chain);
+    // 005AFAE0 (RET 0xC; ai_region_reach.cpp). Per size class the block (bx, by)'s edge words:
+    // the local search cost to each neighbour's representative cell / 128. The first argument is
+    // not read.
+    void MeasureBlockEdges(void* unused, int bx, int by);
+    // 005B0C00 (RET 4; ai_region_reach.cpp). Sizes the block grids for the map (8x8-cell blocks),
+    // sets up the local search and rebuilds the derived tables.
+    void Attach(class CAIMap* map);
+    // 005AF7B0 (RET 0x14, AL; ai_region_reach.cpp). Whether cell (xx, yy) of block (bx, by) can
+    // reach both side edges or both end edges of the block for a size class.
+    bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
+    // 005AFF10 (RET 0x10; ai_region_reach.cpp). Floods `label` over the blocks connected through open
+    // edges, breadth first from `frontier` (CArray<{x, y}>), `next` holding the following ring.
+    void FloodRegionFrom(int sizeClass, void* frontier, void* next, int label);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
@@ -354,6 +373,12 @@ public:
     // 005B9690 (RET 8, AL; ai_join.cpp). Joins the forward and backward local searches where they
     // meet: the path into `cells`, the summed cost into `cost` (optional); false when they cannot.
     bool JoinLocalSearches(struct PathCellList* cells, int* cost);
+    // 005B9A20 (RET 0xC; ai_join.cpp). The path to cell (x, y) walked back along the direction marks
+    // (+0x26BC) into `path` (emptied first).
+    void BuildCellsTo(int x, int y, struct PathCellList* path);
+    // 005B7EF0 (RET 8; ai_water_patch.cpp). Adds (or lifts) the water depths around `position` as
+    // a pseudo unit of the small-unit layer.
+    void StampWaterPatch(const Vector3* position, bool add);
     // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
     bool AddOccluder(FootprintCell* cell);
     bool ClearOccluder(FootprintCell* cell);

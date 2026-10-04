@@ -196,6 +196,192 @@ static bool __fastcall FindRegionChainVerify(CRegionMap* self, void*, int sizeCl
 EI_VERIFY(0x005B0D90, FindRegionChainVerify, 0, s_unusedChain);
 
 namespace {
+using RegionFn = int(__fastcall*)(CRegionMap*, void*, int, int, int);
+RegionFn s_originalRegion;
+}
+
+// 005B0600: reads the map (its local search is reset afterwards); the original, then ours; the
+// whole EAX compared.
+static int __fastcall DominantRegionVerify(CRegionMap* self, void*, int sizeClass, int x, int y) {
+    int expected = s_originalRegion(self, nullptr, sizeClass, x, y);
+    int result = self->DominantRegion(sizeClass, x, y);
+    ei::verify::Check("CRegionMap::DominantRegion", expected, result, "class %d (%d,%d)", sizeClass, x, y);
+    return result;
+}
+EI_VERIFY(0x005B0600, DominantRegionVerify, 7, s_originalRegion);
+
+namespace {
+void* s_unusedJoin;
+}
+
+// 005AF5F0: consumes the block searches' state, so ours only. A failed join adds nothing.
+static bool __fastcall JoinBlockSearchesVerify(CRegionMap* self, void*, PathCellList* chain) {
+    int before = chain->count;
+    bool result = self->JoinBlockSearches(chain);
+    bool ok = result || chain->count == before;
+    ei::verify::Check("CRegionMap::JoinBlockSearches", true, ok, "-> %d, %d cells (were %d)", result, chain->count,
+                      before);
+    return result;
+}
+EI_VERIFY(0x005AF5F0, JoinBlockSearchesVerify, 0, s_unusedJoin);
+
+void __fastcall BlockSearchPathTo(void* search, void*, int x, int y, PathCellList* path);
+
+namespace {
+using PathToFn = void(__fastcall*)(void*, void*, int, int, PathCellList*);
+PathToFn s_originalPathTo;
+
+std::vector<int> Cells(const PathCellList* list) {
+    std::vector<int> out;
+    for (const PathCellList::Node* n = list->head; n; n = n->next) {
+        out.push_back(n->data.x);
+        out.push_back(n->data.y);
+    }
+    return out;
+}
+} // namespace
+
+// 005AF1C0: reads the search only. The original fills a scratch list, ours the caller's; the
+// cells' x, y compared in order (the original's second dword is uninitialised stack).
+static void __fastcall BlockPathToVerify(void* search, void*, int x, int y, PathCellList* path) {
+    PathCellList scratch{path->vtable, nullptr, nullptr, 0, nullptr, nullptr, path->blockSize};
+    s_originalPathTo(search, nullptr, x, y, &scratch);
+    std::vector<int> expected = Cells(&scratch);
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(scratch.blocks));
+    BlockSearchPathTo(search, nullptr, x, y, path);
+    std::vector<int> actual = Cells(path);
+    ei::verify::Check("BlockSearchPathTo", true, actual == expected, "(%d,%d): %d cells (original %d)", x, y,
+                      static_cast<int>(actual.size() / 2), static_cast<int>(expected.size() / 2));
+}
+EI_VERIFY(0x005AF1C0, BlockPathToVerify, 6, s_originalPathTo);
+
+namespace {
+using MeasureFn = void(__fastcall*)(CRegionMap*, void*, void*, int, int);
+MeasureFn s_originalMeasure;
+
+std::int16_t* BlockEdges(CRegionMap* map, int c, int bx, int by) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    return (*reinterpret_cast<std::int16_t***>(base + 0x120 + c * 16))[by] + bx * 8;
+}
+} // namespace
+
+// 005AFAE0: the block's 8 x 8 edge words: snapshot, the original, kept, put back, ours.
+static void __fastcall MeasureVerify(CRegionMap* self, void*, void* unused, int bx, int by) {
+    std::int16_t before[64], expected[64], actual[64];
+    for (int c = 0; c < 8; ++c) std::memcpy(before + c * 8, BlockEdges(self, c, bx, by), 16);
+    s_originalMeasure(self, nullptr, unused, bx, by);
+    for (int c = 0; c < 8; ++c) {
+        std::memcpy(expected + c * 8, BlockEdges(self, c, bx, by), 16);
+        std::memcpy(BlockEdges(self, c, bx, by), before + c * 8, 16);
+    }
+    self->MeasureBlockEdges(unused, bx, by);
+    for (int c = 0; c < 8; ++c) std::memcpy(actual + c * 8, BlockEdges(self, c, bx, by), 16);
+    ei::verify::Check("CRegionMap::MeasureBlockEdges", true, std::memcmp(actual, expected, sizeof(actual)) == 0,
+                      "block (%d,%d)", bx, by);
+}
+EI_VERIFY(0x005AFAE0, MeasureVerify, 8, s_originalMeasure);
+
+namespace {
+void* s_unusedAttach;
+}
+
+// 005B0C00: allocates, so ours only. Afterwards every grid has the map's block size.
+static void __fastcall AttachVerify(CRegionMap* self, void*, CAIMap* map) {
+    self->Attach(map);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    int width = map->width / 8, height = map->height / 8;
+    bool ok = true;
+    for (int grid = 0x11C; grid < 0x29C && ok; grid += 16)
+        ok = *reinterpret_cast<int*>(base + grid + 8) == width && *reinterpret_cast<int*>(base + grid + 12) == height;
+    ei::verify::Check("CRegionMap::Attach", true, ok, "%dx%d blocks", width, height);
+}
+EI_VERIFY(0x005B0C00, AttachVerify, 0, s_unusedAttach);
+
+CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
+
+// 005AF3D0: constructs in place, so ours only; the searches are inactive and the local search's
+// list vtable is set.
+static CRegionMap* __fastcall ConstructRegionMapVerify(CRegionMap* self) {
+    CRegionMap* result = ConstructRegionMap(self);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    bool ok = result == self && !base[0x49] && !base[0x4C + 0x49] &&
+              *reinterpret_cast<std::uint32_t*>(base + 0x98 + 0x28) == 0x0073FA04 &&
+              *reinterpret_cast<std::uint32_t*>(base + 0x118) == 0;
+    ei::verify::Check("ConstructRegionMap", true, ok, "");
+    return result;
+}
+EI_VERIFY(0x005AF3D0, ConstructRegionMapVerify, 0, s_unusedAttach);
+
+namespace {
+using SuitsFn = bool(__fastcall*)(CRegionMap*, void*, int, int, int, int, int);
+SuitsFn s_originalSuits;
+}
+
+// 005AF7B0: reads the map through the local search (reset afterwards); the original, then ours.
+static bool __fastcall CellSuitsVerify(CRegionMap* self, void*, int sizeClass, int bx, int by, int xx, int yy) {
+    bool expected = s_originalSuits(self, nullptr, sizeClass, bx, by, xx, yy);
+    bool result = self->CellSuitsBlockAt(sizeClass, bx, by, xx, yy);
+    ei::verify::Check("CRegionMap::CellSuitsBlockAt", expected, result, "class %d block (%d,%d) cell (%d,%d)", sizeClass,
+                      bx, by, xx, yy);
+    return result;
+}
+EI_VERIFY(0x005AF7B0, CellSuitsVerify, 7, s_originalSuits);
+
+namespace {
+struct Points {
+    void* vtable;
+    int* data;   // {x, y} pairs
+    int size;
+    int capacity;
+    int growBy;
+};
+using FloodFn = void(__fastcall*)(CRegionMap*, void*, int, Points*, Points*, int);
+FloodFn s_originalFlood;
+__declspec(naked) void __fastcall PointsSetSize(Points*, void*, int, int) {
+    __asm mov eax, 0x005B16D0
+    __asm jmp eax
+}
+__declspec(naked) void __cdecl GameFree(void*) {
+    __asm mov eax, 0x007005D8
+    __asm jmp eax
+}
+void CopyPoints(Points& to, const Points& from) {
+    to = Points{from.vtable, nullptr, 0, 0, from.growBy};
+    PointsSetSize(&to, nullptr, from.size, -1);
+    if (from.size) std::memcpy(to.data, from.data, static_cast<std::size_t>(from.size) * 8);
+}
+void RegionWords(CRegionMap* map, int c, std::vector<std::uint16_t>& words, bool restore) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    auto* data = *reinterpret_cast<std::uint16_t**>(base + 0x21C + c * 16);
+    int count = *reinterpret_cast<int*>(base + 0x224 + c * 16) * *reinterpret_cast<int*>(base + 0x228 + c * 16);
+    if (restore) std::memcpy(data, words.data(), static_cast<std::size_t>(count) * 2);
+    else words.assign(data, data + count);
+}
+} // namespace
+
+// 005AFF10: the original floods from copies of the two queues, its region grid is kept and the
+// first one put back, then ours floods from the real queues; the grids compared.
+static void __fastcall FloodVerify(CRegionMap* self, void*, int sizeClass, Points* frontier, Points* next, int label) {
+    std::vector<std::uint16_t> before, expected, actual;
+    RegionWords(self, sizeClass, before, false);
+    Points a, b;
+    CopyPoints(a, *frontier);
+    CopyPoints(b, *next);
+    s_originalFlood(self, nullptr, sizeClass, &a, &b, label);
+    if (a.data) GameFree(a.data);
+    if (b.data) GameFree(b.data);
+    RegionWords(self, sizeClass, expected, false);
+    RegionWords(self, sizeClass, before, true);
+    self->FloodRegionFrom(sizeClass, frontier, next, label);
+    RegionWords(self, sizeClass, actual, false);
+    int differences = 0;
+    for (std::size_t i = 0; i < actual.size(); ++i)
+        if (actual[i] != expected[i]) ++differences;
+    ei::verify::Check("CRegionMap::FloodRegionFrom", 0, differences, "class %d label %d", sizeClass, label);
+}
+EI_VERIFY(0x005AFF10, FloodVerify, 5, s_originalFlood);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

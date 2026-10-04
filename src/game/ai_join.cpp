@@ -27,7 +27,13 @@ __declspec(naked) PathCellList* __fastcall ListReversed(PathCellList*, void*, Pa
 __declspec(naked) void __fastcall ListAppend(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5DA0)
 __declspec(naked) void __fastcall ListFixUp(PathCellList*, void*) EI_ORIGINAL(0x005C6000)
 
+// 00539980: ConstructElements<PathCell> (zero-fills `count`).
+__declspec(naked) void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
+
 constexpr int kUnreached = 0x7FFFFFFF;
+
+// The word BuildCellsTo gives each cell's second dword (see SetBuildCellsStaleWord).
+std::uint32_t g_staleWord = 0;
 constexpr std::uintptr_t kListVtable = 0x0073EDB0;
 
 // The inlined list destructor (the nodes need no destruction).
@@ -41,6 +47,10 @@ void DestroyList(PathCellList& list) {
 }
 
 } // namespace
+
+// Set by the planner (ai_plan.cpp) to the dword the original's BuildCells would find in the stack
+// slot it reads for the cells' second dword (flags and unknown_6).
+void SetBuildCellsStaleWord(std::uint32_t value) { g_staleWord = value; }
 
 bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     auto* self = reinterpret_cast<std::uint8_t*>(this);
@@ -82,4 +92,65 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     return ok;
 }
 
+void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
+    // The inlined RemoveAll.
+    path->count = 0;
+    path->free = nullptr;
+    path->tail = nullptr;
+    path->head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(path->blocks));
+    path->blocks = nullptr;
+    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    // The original builds each cell's second dword (flags, unknown_6) from a stack slot it never
+    // writes; its only caller, the planner, records what that slot holds (ai_plan.cpp).
+    std::uint32_t stale = g_staleWord;
+    auto cellAt = [stale](int cx, int cy) {
+        PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), static_cast<std::uint16_t>(stale),
+                   static_cast<std::uint16_t>(stale >> 16)};
+        return c;
+    };
+    std::int8_t** marks = reinterpret_cast<std::int8_t**>(*reinterpret_cast<std::uint8_t***>(
+        reinterpret_cast<std::uint8_t*>(this) + 0x26BC));
+    // Walk back along the marks (directions 1..8; 0 ends), each cell added at the head.
+    while (int dir = marks[y][x]) {
+        PathCellList::Node* node = path->NewNode(nullptr, path->head);
+        node->data = cellAt(x, y);
+        if (path->head) path->head->prev = node;
+        else path->tail = node;
+        path->head = node;
+        switch (dir) {
+        case 1: --y; break;
+        case 2: --y; --x; break;
+        case 3: --x; break;
+        case 4: ++y; --x; break;
+        case 5: ++y; break;
+        case 6: ++y; ++x; break;
+        case 7: ++x; break;
+        case 8: --y; ++x; break;
+        default: break;
+        }
+    }
+    // The first cell, through the inlined NewNode.
+    if (!path->free) {
+        mfc::CPlex*& blocks = reinterpret_cast<mfc::CPlex*&>(path->blocks);
+        mfc::CPlex* block = mfc::PlexCreate(blocks, path->blockSize, sizeof(PathCellList::Node));
+        auto* n = reinterpret_cast<PathCellList::Node*>(block + 1) + (path->blockSize - 1);
+        for (int i = path->blockSize - 1; i >= 0; --i, --n) {
+            n->next = path->free;
+            path->free = n;
+        }
+    }
+    PathCellList::Node* node = path->free;
+    path->free = node->next;
+    node->prev = nullptr;
+    node->next = path->head;
+    ++path->count;
+    ConstructPathCells(&node->data, 1);
+    node->data = cellAt(x, y);
+    if (path->head) path->head->prev = node;
+    else path->tail = node;
+    path->head = node;
+}
+
 EI_REPLACE_METHOD(0x005B9690, CAIMap::JoinLocalSearches);
+EI_REPLACE_METHOD(0x005B9A20, CAIMap::BuildCellsTo);

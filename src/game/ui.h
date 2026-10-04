@@ -55,6 +55,50 @@ public:
     CUiWindow* GetActiveWindow() const;
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).
     void SetPendingValue(std::uint32_t value);
+    // 005F5BA0 (RET 4). Makes screen `id` (1 in-game, 2, 3 base, 4 island map, 5, 7, 8, 9) and hands
+    // it to the activation (005F71C0); 0 does nothing, 6 and ids above 9 hand over the id
+    // itself as the window pointer (as the original). ui_create_screen.cpp.
+    void CreateScreen(int id);
+    // 005F78C0 (RET 0xC; the interface's key-down handler, `flags` the WM_KEYDOWN lParam bits:
+    // scan code in the low 9 bits, bit 14 repeat). Ctrl, Shift and Alt set +0x7C, +0x7D, +0x7E
+    // (not on a repeat); the key under Esc toggles the console; Scroll Lock saves
+    // "shot<nnnn>.bmp"; other keys go to the shown console, else (multiplayer client) the window
+    // at +0x1C when its +0x14C is set, else the active window, and a ';' key nobody handled
+    // shows help (005F86F0). ui_interface_keys.cpp.
+    void OnKeyDown(int key, int repeat, int flags);
+    // 005F7350 (RET 0xC). Opens `window` on top of the stack. With `a` set (low bytes) and `b`
+    // clear: +0x50 = 3 and 00458010(0, 1) first; for the first window: +0x60 keeps the server
+    // flag, which is then set (not as a multiplayer client), and with `a` and `b` set +0x50 = 1
+    // and 00458010(0, 1). The modifier flags are cleared, the old top deactivated (input slot 1,
+    // slot 19 with 0), the window pushed (null is fatal), five render states reset, the window
+    // created (slot 25) and the messages pumped. ui_create_screen.cpp.
+    void PushWindow(CUiWindow* window, int a, int b);
+    // 005F71C0 (RET 4). Replaces every window with `window`: a pending close-all (+0x44) runs
+    // first (005F74F0); both backdrops (+0x54, +0x58) are deleted and +0x50 / +0x60 cleared, the
+    // server flag cleared; each open window is deactivated (input slot 1), closed (slot 26) and
+    // deleted, top first; then 005F8C50, the message pump, and the window opened as PushWindow
+    // does (null is fatal). ui_create_screen.cpp.
+    void Activate(CUiWindow* window);
+    // 005F8420 (RET 4). Reads the interface's saved state from `stream` (slot 1 reads bytes;
+    // +0x08 the save version): +0x89..+0x8B, +0x8C, +0x90; from version 0x47 +0x94; from 0x56 an
+    // obsolete list (count, then name and value pairs, discarded) and the CString +0xA4; from 0x5D
+    // +0xA8; from 0x5F the CString +0xAC. ui_interface_save.cpp.
+    void LoadState(void* stream);
+    // 005F8C90 (RET 0xC; on 007C7D50; multiplayer messages). The text of message `id` (0-12:
+    // "lmp_player_connected" .. "reserved_02"; others an empty key) from the text table,
+    // formatted with `value` when it is not 0, constructed into `out`; returns `out`
+    // (ui_interface_save.cpp).
+    void* MessageText(void* out, int id, int value);
+    // 005F8A80 (RET 4). Without `force`, takes the next queued message (the list at +0x84) into
+    // +0xA4 (+0xA8 = 0), or returns when there is none. A non-empty +0xA4 then opens the message
+    // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
+    // 0079BE78 is off and it was not forced. ui_create_screen.cpp.
+    void ShowMessage(int force);
+    // 005F86F0 (RET 4; ShowHelp above calls it through its address). The active window's help
+    // topic (its slot 41; none: nothing): the map at +0x98 counts topics seen (an unseen one is
+    // entered with 0, giving -1 here); the help window (0x194 bytes, vtables 00740E28 / 00740DF4)
+    // opens when forced (`flag`), or when the option 0079BE78 is on and the topic was not seen.
+    void OpenHelp(int flag);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
@@ -104,6 +148,9 @@ struct UiPtrArray {
 
     // Inlined by the original at each Add call site: appends `item` (null included).
     void Append(T* item);
+    // 006005F0 (RET 8). Stores `item` at `index`, growing the array to index + 1 first when it is
+    // that short (SetSize, inlined).
+    void SetAtGrow(int index, T* item);
     // Inlined by the original: removes the slot at `index`, shifting the rest down.
     void RemoveSlot(int index);
     // Inlined by the original: frees the storage and empties the array.
@@ -267,6 +314,10 @@ public:
 
     // 005FF700 / 005FF770 / 005FF7D0. The second object list (+0x108).
     BOOL RemoveSceneObject(CEngineObject* object);
+    // 005FF460 (RET 8). Replaces scene object `object` (released) at its place in the list with
+    // object `name` of the model manager (007AF5F4), given the window's texture 0 and taking the
+    // old one's position, +0xCC/+0xD0, orientation, texture and scale; the new one or null.
+    CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
     void RemoveSceneObjectAt(int index);
     void ClearSceneObjects();
 
@@ -283,6 +334,15 @@ public:
     // 005FFD80 / 005FFF40. 3D model previews.
     CUiModel* AddModel();
     void ClearModels();
+    // 005FE930. Destructor body: releases the three objects at +0xEC..+0xF4, the scene objects,
+    // surfaces, regions, referenced objects and models (in that order), clears +0x08, then the
+    // engine object's base destructor (ui_window.cpp).
+    void DestroyBase();
+    // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
+    // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
+    // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
+    // with 1). Returns this (ui_window.cpp).
+    CUiWindow* Construct(CInterface3D* ui);
 
     void** vtable_;
     std::uint8_t unknown_004[0x94 - 0x004];   // CTransformObject members and more
@@ -307,6 +367,12 @@ public:
     // camp layout, else one), draws it lit through `pass` and puts its transform back
     // (ui_hero_preview.cpp).
     void DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide);
+    // 005FFFB0 (RET 0x28). Writes image "<name>.mmp" (decoded as imageWidth x imageHeight by the
+    // device's decoder) into `texture`'s 256-wide 1:5:5:5 surface: its top-left width x height at
+    // (x, y), or white there when there is no such image. Returns whether the image exists (0 also
+    // when the lock fails and the error report returns 0). ui_item_view.cpp.
+    int CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
+                  int x, int y, int unused1, int unused2);
     // Layout helpers (not rewritten): 005FEF20 loads a texture into the referenced objects,
     // 005FF0B0 creates an empty one, 005FF3C0 adds a scene object (`model` 0: a new interface
     // sprite, see CUiMesh) and returns it.
@@ -518,8 +584,9 @@ public:
     void Update();
     // 00640670 (not rewritten). Draws face picture `state` for portrait `index`.
     void ShowFace(int index, int state);
-    // 005FF460 (not rewritten). Replaces scene object `object` with a model loaded by `name`
-    // (keeping its placement); returns the new object or 0.
+    // 005FF460 (CUiWindow::ReplaceSceneObject, called through its address). Replaces scene
+    // object `object` with a model loaded by `name` (keeping its placement); returns the new
+    // object or 0.
     CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
 
     CBattleScreen* owner_;           // +0x148
@@ -745,7 +812,7 @@ public:
     BOOL DrawContainer(int pass);
     // 00601040 (not rewritten). Base slot 22 (redraws the window and its children).
     void RedrawContainer();
-    // 00600D30 (not rewritten). Adds a child window (null is ignored).
+    // 00600D30. Adds a child window (null is ignored; ui_window.cpp).
     void AddChild(CUiWindow* child);
 
     UiPtrArray<CUiWindow> children_;          // +0x148
