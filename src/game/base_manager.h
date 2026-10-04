@@ -18,6 +18,8 @@ public:
     void DestructBody();
     // 004031E0 (slot 3). Destroys, releases and deletes every object and clears the tables.
     void Destroy() override;
+    // 00403020 (slot 2). Empties the tables and sizes them for a new session; returns 1.
+    int Create() override;
 
     stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> objects_;   // +0x1C by id
     int maxId_;                                                         // +0x30 highest id handed out

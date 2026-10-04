@@ -13,6 +13,8 @@
 
 CBaseManager* __fastcall BaseManagerDeletingDestructor(CBaseManager* self, void*, unsigned flags);
 CEngineObject* __fastcall EngineObjectDeletingDestructor(CEngineObject* self, void*, unsigned flags);
+int __fastcall BaseManagerInit(CBaseManager* self, void*, void* owner);
+void __fastcall BaseManagerReleaseObject(CBaseManager* self, void*, CEngineObject* object);
 
 namespace {
 
@@ -80,8 +82,27 @@ void __fastcall DestroyVerify2(CBaseManager* self) {
     ei::verify::Check("CBaseManager::Destroy", 0u, static_cast<unsigned>(self->objects_.Size()), "");
 }
 
+// 00403020 / 004031B0 / 00403AE0: ours only (they empty tables, create, destroy objects).
+int __fastcall CreateVerify(CBaseManager* self) {
+    int result = self->CBaseManager::Create();
+    ei::verify::Check("CBaseManager::Create", true, result == 1 && self->objects_.Size() == 0 && self->maxId_ == 0, "");
+    return result;
+}
+int __fastcall InitVerify(CBaseManager* self, void*, void* owner) {
+    int result = BaseManagerInit(self, nullptr, owner);
+    ei::verify::Check("BaseManagerInit", true, result ? self->owner_AC == owner : self->owner_AC == nullptr, "");
+    return result;
+}
+void __fastcall ReleaseObjectVerify(CBaseManager* self, void*, CEngineObject* object) {
+    BaseManagerReleaseObject(self, nullptr, object);
+    ei::verify::Check("BaseManagerReleaseObject", true, true, "");
+}
+
 } // namespace
 
+EI_VERIFY(0x00403020, CreateVerify, 0, s_unused);
+EI_VERIFY(0x004031B0, InitVerify, 0, s_unused);
+EI_VERIFY(0x00403AE0, ReleaseObjectVerify, 0, s_unused);
 EI_VERIFY(0x004031E0, DestroyVerify2, 0, s_unused);
 EI_VERIFY(0x00402B20, ConstructVerify, 7, s_construct);
 EI_VERIFY(0x00402DF0, DestructVerify, 0, s_unused);

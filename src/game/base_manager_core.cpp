@@ -46,6 +46,18 @@ __declspec(naked) void** __fastcall IdsEnd(void* /*list*/, void*, void** /*out*/
 __declspec(naked) void* __fastcall IdsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const int* /*value*/) EI_ORIGINAL(0x00404A40)
 __declspec(naked) void __fastcall IdsFreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00404D10)
 __declspec(naked) void __fastcall IdsClear(void* /*list*/) EI_ORIGINAL(0x00405500)
+__declspec(naked) void __fastcall ObjectsResize(void* /*table*/, void*, std::size_t /*hint*/) EI_ORIGINAL(0x00406640)
+__declspec(naked) void __fastcall Table50ResizeBig(void* /*table*/, void*, std::size_t /*hint*/) EI_ORIGINAL(0x00406D10)
+__declspec(naked) void __fastcall Table68Resize(void* /*table*/, void*, std::size_t /*hint*/) EI_ORIGINAL(0x00406EE0)
+__declspec(naked) void __fastcall Table80ResizeBig(void* /*table*/, void*, std::size_t /*hint*/) EI_ORIGINAL(0x004070B0)
+__declspec(naked) void __fastcall Table68FreeNode(void* /*allocator*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00407DA0)
+// The +0x50 table (id -> list position): find into {node, table}, erase by iterator.
+__declspec(naked) void* __fastcall Table50Find(void* /*table*/, void*, void** /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405BB0)
+__declspec(naked) void __fastcall Table50Erase(void* /*table*/, void*, void* /*node*/, void* /*owner*/) EI_ORIGINAL(0x00405720)
+// 00455970: CEngineObject::SetOwner (returns the previous owner); 00404040: removes an object
+// from the manager (not rewritten yet).
+__declspec(naked) void* __fastcall SetObjectOwner(CEngineObject* /*object*/, void*, void* /*owner*/) EI_ORIGINAL(0x00455970)
+__declspec(naked) void __fastcall BaseManagerRemove(CBaseManager* /*manager*/, void*, CEngineObject* /*object*/) EI_ORIGINAL(0x00404040)
 // 00404410: frees the manager's other records; not rewritten yet.
 __declspec(naked) void __fastcall BaseManagerFreeRecords(CBaseManager* /*manager*/) EI_ORIGINAL(0x00404410)
 // 00455930: the engine object's base destructor body.
@@ -260,3 +272,95 @@ namespace {
 void __fastcall DestroyHook(CBaseManager* self) { self->CBaseManager::Destroy(); }
 } // namespace
 EI_REPLACE(0x004031E0, DestroyHook);
+
+// Bucket-by-bucket emptying used by Create (each node freed by `freeNode`), then the element
+// count (+0x10) and +0x14 cleared, the table resized for `size` and +0x14 cleared again.
+template <typename FreeNode, typename Resize>
+static void ResetTable(void* table, FreeNode freeNode, Resize resize, std::size_t size) {
+    auto*& begin = *reinterpret_cast<void***>(static_cast<std::uint8_t*>(table) + 4);
+    auto*& end = *reinterpret_cast<void***>(static_cast<std::uint8_t*>(table) + 8);
+    for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(end - begin); ++i) {
+        for (void* node = begin[i]; node;) {
+            void* next = *static_cast<void**>(node);
+            freeNode(node);
+            node = next;
+        }
+        begin[i] = nullptr;
+    }
+    At(table, 0x10) = 0;
+    At(table, 0x14) = 0;
+    resize(table, nullptr, size);
+    At(table, 0x14) = 0;
+}
+
+int CBaseManager::Create() {
+    std::uint8_t* self = reinterpret_cast<std::uint8_t*>(this);
+    At(this, 0x98) = 0;
+    At(this, 0x9C) = 2000000000;
+    ObjectsClear(&objects_);
+    maxId_ = 0;
+    ObjectsResize(&objects_, nullptr, 0x400);
+    maxId_ = 0;
+    void* t50 = self + 0x50;
+    ResetTable(t50, [t50](void* n) { DeleteNode50(t50, nullptr, n); }, Table50ResizeBig, 0x400);
+    void* t68 = self + 0x68;
+    ResetTable(t68, [t68](void* n) { Table68FreeNode(static_cast<std::uint8_t*>(t68) + 0x10, nullptr, n, 1); }, Table68Resize, 0x100);
+    void* t80 = self + 0x80;
+    ResetTable(t80, [](void* n) { stlp::deallocate(n, 0xC); }, Table80ResizeBig, 0x100);
+    At(this, 0xA0) = 0;
+    At(this, 0xA4) = 300;
+    return 1;
+}
+namespace {
+int __fastcall CreateHook(CBaseManager* self) { return self->CBaseManager::Create(); }
+} // namespace
+EI_REPLACE(0x00403020, CreateHook);
+
+// 004031B0 (slot 13): Init(owner). Keeps the owner at +0xAC and creates (slot 2); a failed create
+// clears the owner again. Returns 1 / 0.
+int __fastcall BaseManagerInit(CBaseManager* self, void*, void* owner) {
+    self->owner_AC = owner;
+    if (self->Create()) return 1;
+    self->owner_AC = nullptr;
+    return 0;
+}
+EI_REPLACE(0x004031B0, BaseManagerInit);
+
+// 00403AE0 (slot 24): an object without references leaves the manager: its id's entry in the +0x50
+// table and its node in the pointer list go, then it is destroyed (slot 3), loses its owner and is
+// removed (00404040).
+void __fastcall BaseManagerReleaseObject(CBaseManager* self, void*, CEngineObject* object) {
+    if (!object || object->refCount_ != 0) return;
+    std::uint8_t* base = reinterpret_cast<std::uint8_t*>(self);
+    int key = object->id_;
+    void* found[2];
+    Table50Find(base + 0x50, nullptr, found, &key);
+    if (found[0]) {
+        auto** position = *reinterpret_cast<void***>(static_cast<std::uint8_t*>(found[0]) + 8);
+        Table50Erase(base + 0x50, nullptr, found[0], found[1]);
+        if (position) {
+            // CPtrList::RemoveAt(position): {next, prev, data} nodes.
+            void** node = position;
+            if (node == reinterpret_cast<void**>(At(self, 0x38))) At(self, 0x38) = reinterpret_cast<std::uint32_t>(node[0]);
+            else static_cast<void**>(node[1])[0] = node[0];
+            if (node == reinterpret_cast<void**>(At(self, 0x3C))) At(self, 0x3C) = reinterpret_cast<std::uint32_t>(node[1]);
+            else static_cast<void**>(node[0])[1] = node[1];
+            node[0] = reinterpret_cast<void*>(At(self, 0x44));
+            At(self, 0x44) = reinterpret_cast<std::uint32_t>(node);
+            if (--At(self, 0x40) == 0) {
+                for (void* n = reinterpret_cast<void*>(At(self, 0x38)); n; n = *static_cast<void**>(n)) {
+                }
+                At(self, 0x40) = 0;
+                At(self, 0x44) = 0;
+                At(self, 0x3C) = 0;
+                At(self, 0x38) = 0;
+                PlexFreeDataChain(reinterpret_cast<void*>(At(self, 0x48)));
+                At(self, 0x48) = 0;
+            }
+        }
+    }
+    object->Destroy();
+    SetObjectOwner(object, nullptr, nullptr);
+    BaseManagerRemove(self, nullptr, object);
+}
+EI_REPLACE(0x00403AE0, BaseManagerReleaseObject);
