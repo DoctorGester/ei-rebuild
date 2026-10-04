@@ -76,6 +76,19 @@ struct ItemObjectCache {
 };
 static_assert(sizeof(ItemObjectCache) == 0x10);
 
+// 005F2F20 / 005F2F90 (__fastcall on the cache). Release the least recently used entries of the
+// model / texture cache beyond its limit (ui_item_screen.cpp).
+void __fastcall TrimItemModels(ItemObjectCache* cache);
+void __fastcall TrimItemTextures(ItemObjectCache* cache);
+
+// The item screens' icon window (0x148 bytes, vtables 00740444 / 00740410; made by 005EDD80).
+class CItemIconWindow : public CUiWindow {
+public:
+    // 005F2A90 (slot 18). The frame sprites: a strip of 8 cells over the layout's middle, the
+    // column edges and corners of four 200-wide columns, and six bars.
+    void Build();
+};
+
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these
 // fields; 005EDD80 sets the caches up): the description panel, the item under the mouse, and the
 // caches of item models (by the item's slot 20 name) and figure textures (slot 19 name).
@@ -98,6 +111,10 @@ public:
     // and the cached model of a name or null (cache untouched). For the verify wrapper.
     static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
     std::uint8_t* CachedModelNamed(const char* name);
+    // 005EDD80. The screens' common Create: the icon window (+0x16C, CItemIconWindow, a child
+    // with the screen's texture 0, built), textures "modifiers2" and "campslots", the display's
+    // settings, and the caches' limits (30, or 20 with 00784754 set) applied (ui_item_screen.cpp).
+    void CreateBase();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_;      // +0x164

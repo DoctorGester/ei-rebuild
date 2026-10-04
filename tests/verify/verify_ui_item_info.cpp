@@ -388,3 +388,36 @@ static void __fastcall InfoPanelKeyUpVerify(void* input, void*, int key, int rep
     before.Check("CItemInfoPanel::OnKeyUp", panel, key);
 }
 EI_VERIFY(0x005EE680, InfoPanelKeyUpVerify, 0, s_unused);
+
+// 005F2F20 / 005F2F90: ours only (erasing cannot run twice). The cache must end within its limit.
+static void __fastcall TrimModelsVerify(ItemObjectCache* cache) {
+    TrimItemModels(cache);
+    ei::verify::Check("TrimItemModels", true, cache->count <= cache->limit, "%u entries, limit %u", cache->count,
+                      cache->limit);
+}
+EI_VERIFY(0x005F2F20, TrimModelsVerify, 0, s_unused);
+static void __fastcall TrimTexturesVerify(ItemObjectCache* cache) {
+    TrimItemTextures(cache);
+    ei::verify::Check("TrimItemTextures", true, cache->count <= cache->limit, "%u entries, limit %u", cache->count,
+                      cache->limit);
+}
+EI_VERIFY(0x005F2F90, TrimTexturesVerify, 0, s_unused);
+
+// 005F2A90: ours only (it adds sprites). 30 scene objects must be added.
+static void __fastcall IconBuildVerify(CItemIconWindow* self, void*) {
+    int before = self->sceneObjects_.size_;
+    self->Build();
+    ei::verify::Check("CItemIconWindow::Build", true, self->sceneObjects_.size_ == before + 30, "scene objects %d -> %d",
+                      before, self->sceneObjects_.size_);
+}
+EI_VERIFY(0x005F2A90, IconBuildVerify, 0, s_unused);
+
+// 005EDD80: ours only (it makes the icon window). The window and the caches' limits.
+static void __fastcall CreateBaseVerify(CItemScreen* self, void*) {
+    self->CreateBase();
+    bool ok = self->iconWindow_ && *reinterpret_cast<std::uintptr_t*>(self->iconWindow_) == 0x00740444 &&
+              self->models_.count <= self->models_.limit && self->textures_.count <= self->textures_.limit;
+    ei::verify::Check("CItemScreen::CreateBase", true, ok, "icons %p, models %u/%u, textures %u/%u", self->iconWindow_,
+                      self->models_.count, self->models_.limit, self->textures_.count, self->textures_.limit);
+}
+EI_VERIFY(0x005EDD80, CreateBaseVerify, 0, s_unused);

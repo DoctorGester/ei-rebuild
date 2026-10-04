@@ -1,0 +1,161 @@
+// The item screens' common setup (the camp, the multiplayer hero screen and the exchange window):
+// the caches' trimming (005F2F20 / 005F2F90), the base Create (005EDD80) and the icon window's
+// frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
+#include "ui_item_info.h"
+
+#include "ei/hook.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
+
+#include <cstdint>
+#include <cstring>
+
+#pragma float_control(precise, on)
+
+namespace {
+
+inline double D(float f) { return f; }
+float Store(double v) {
+    volatile float r = static_cast<float>(v);
+    return r;
+}
+float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+
+// The caches' map (STLport, library code): 0043DBE0 steps an iterator, 005F3140 / 005F32A0 erase
+// an entry of the model / texture map (thiscall, iterator by value).
+struct CacheIterator {
+    ItemObjectCache::Node* node;
+    void Next();   // 0043DBE0
+};
+__declspec(naked) void CacheIterator::Next() EI_ORIGINAL(0x0043DBE0)
+__declspec(naked) void __fastcall EraseModel(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F3140)
+__declspec(naked) void __fastcall EraseTexture(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F32A0)
+
+using EraseFn = void(__fastcall*)(ItemObjectCache*, void*, ItemObjectCache::Node*);
+
+// While the cache holds more than its limit: the least recently used entry (used before now) has
+// its object released (slot 4) and is erased. Spins while every entry was used at or after now.
+void Trim(ItemObjectCache* cache, EraseFn erase) {
+    while (cache->count > cache->limit) {
+        std::uint32_t oldestTime = gameapi::timeGetTime();
+        ItemObjectCache::Node* oldest = cache->header;
+        CacheIterator it;
+        std::memcpy(&it.node, reinterpret_cast<std::uint8_t*>(cache->header) + 8, 4);   // leftmost
+        while (it.node != cache->header) {
+            if (it.node->lastUse < oldestTime) {
+                oldestTime = it.node->lastUse;
+                oldest = it.node;
+            }
+            it.Next();
+        }
+        if (oldest != cache->header) {
+            using ReleaseFn = void(__thiscall*)(void*);
+            reinterpret_cast<ReleaseFn>((*static_cast<void***>(oldest->object))[4])(oldest->object);
+            erase(cache, nullptr, oldest);
+        }
+    }
+}
+
+// Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): 005E70E0 a
+// rectangle, 005E7680 a strip of `count` framed cells.
+struct SpriteBuild {
+    void Rectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
+                   int v1);   // 005E70E0
+    void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
+               int v1, int count, int flag);   // 005E7680
+};
+__declspec(naked) void SpriteBuild::Rectangle(float, float, float, float, float, float, int, int, int, int)
+    EI_ORIGINAL(0x005E70E0)
+__declspec(naked) void SpriteBuild::Cells(float, float, float, float, float, float, int, int, int, int, int, int)
+    EI_ORIGINAL(0x005E7680)
+
+// 00500960: the display object; +0x14 a flag, +8 -> +0xC an object whose slot 5 takes two floats.
+__declspec(naked) std::uint8_t* __cdecl Display() EI_ORIGINAL(0x00500960)
+
+} // namespace
+
+void __fastcall TrimItemModels(ItemObjectCache* cache) { Trim(cache, EraseModel); }
+void __fastcall TrimItemTextures(ItemObjectCache* cache) { Trim(cache, EraseTexture); }
+EI_REPLACE(0x005F2F20, TrimItemModels);
+EI_REPLACE(0x005F2F90, TrimItemTextures);
+
+// --- 005F2A90: the icon window's frame -------------------------------------------------------------
+
+void CItemIconWindow::Build() {
+    auto sprite = [this] { return reinterpret_cast<SpriteBuild*>(AddSprite(0)); };
+    sprite()->Cells(8.0f, 100.0f, 0.0f, 100.0f, 800.0f, 500.0f, 0xE, 0xE, 0x72, 0x72, 8, 4);
+    // Four 200-wide columns: two side strips, and corners at the top and bottom of each half.
+    for (int x = 0; x < 800; x += 200) {
+        float left = static_cast<float>(x);
+        sprite()->Cells(7.9f, 100.0f, left, 100.0f, Store(D(left) + D(GameFloat(0x0074054C))), 500.0f, 0xFE, 0x4C, 0xE9,
+                        0xB0, 1, 4);
+        float right = static_cast<float>(x + 200);
+        sprite()->Cells(7.9f, 100.0f, Store(D(left) + D(GameFloat(0x00740548))), 100.0f, right, 500.0f, 0xE9, 0x4C, 0xFE,
+                        0xB0, 1, 4);
+        float middle = Store(D(left) + D(GameFloat(0x0073BAB0)));   // + 100
+        sprite()->Rectangle(7.8f, 100.0f, left, 100.0f, middle, 130.0f, 0xFE, 2, 0x9A, 0x20);
+        sprite()->Rectangle(7.8f, 100.0f, left, 470.0f, middle, 500.0f, 0xFE, 0x20, 0x9A, 2);
+        float half = static_cast<float>(x + 100);
+        sprite()->Rectangle(7.8f, 100.0f, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
+        sprite()->Rectangle(7.8f, 100.0f, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
+    }
+    sprite()->Rectangle(7.8f, 100.0f, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->Rectangle(7.8f, 100.0f, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->Rectangle(7.8f, 100.0f, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->Rectangle(7.8f, 100.0f, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    sprite()->Rectangle(7.8f, 100.0f, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    sprite()->Rectangle(7.8f, 100.0f, 300.0f, 280.0f, 400.0f, 320.0f, 0x9A, 0x22, 0xFE, 0x4A);
+}
+EI_REPLACE_METHOD(0x005F2A90, CItemIconWindow::Build);
+
+// --- 005EDD80: the item screens' base Create ------------------------------------------------------
+
+namespace {
+struct WindowAt {
+    CUiWindow* Construct(CInterface3D* ui);   // 005FE700 (returns this)
+};
+__declspec(naked) CUiWindow* WindowAt::Construct(CInterface3D*) EI_ORIGINAL(0x005FE700)
+__declspec(naked) void __fastcall TrimModelsAt(ItemObjectCache*) EI_ORIGINAL(0x005F2F20)
+__declspec(naked) void __fastcall TrimTexturesAt(ItemObjectCache*) EI_ORIGINAL(0x005F2F90)
+} // namespace
+
+void CItemScreen::CreateBase() {
+    void* memory = gamecrt::operator_new(0x148);
+    CUiWindow* icons = nullptr;
+    if (memory) {
+        icons = static_cast<WindowAt*>(memory)->Construct(interface_);
+        icons->vtable_ = reinterpret_cast<void**>(0x00740444);
+        icons->inputVtable_ = reinterpret_cast<void**>(0x00740410);
+    }
+    iconWindow_ = icons;
+    reinterpret_cast<CUiContainer*>(this)->AddChild(icons);
+    iconWindow_->AddObject(objects_.data_[0]);
+    using BuildFn = void(__thiscall*)(CUiWindow*);
+    reinterpret_cast<BuildFn>(iconWindow_->vtable_[18])(iconWindow_);
+    LoadTexture(reinterpret_cast<const char*>(0x00792EBC), 3, 0);   // "modifiers2"
+    LoadTexture(reinterpret_cast<const char*>(0x00792EB0), 3, 0);   // "campslots"
+    std::uint32_t zero = 0;
+    std::memcpy(Display() + 0x14, &zero, 4);
+    {
+        std::uint8_t* display = Display();
+        std::uint8_t* inner;
+        std::memcpy(&inner, display + 8, 4);
+        void* target;
+        std::memcpy(&target, inner + 0xC, 4);
+        using SetFn = void(__thiscall*)(void*, float, float);
+        reinterpret_cast<SetFn>((*static_cast<void***>(target))[5])(target, 99.0f, 100.0f);
+    }
+    // The caches keep 30 entries (20 with 00784754 set).
+    if (*reinterpret_cast<const volatile char*>(0x00784754) != 0) {
+        textures_.limit = 20;
+        TrimTexturesAt(&textures_);
+        models_.limit = 20;
+        TrimModelsAt(&models_);
+    } else {
+        textures_.limit = 30;
+        TrimTexturesAt(&textures_);
+        models_.limit = 30;
+        TrimModelsAt(&models_);
+    }
+}
+EI_REPLACE_METHOD(0x005EDD80, CItemScreen::CreateBase);
