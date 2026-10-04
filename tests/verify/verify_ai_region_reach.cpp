@@ -95,6 +95,42 @@ static void __fastcall LabelRegionsVerify(CRegionMap* self, void*) {
 EI_VERIFY(0x005B0050, LabelRegionsVerify, 8, s_originalLabel);
 
 namespace {
+LabelFn s_originalClamp;
+
+// The edge words of every size class (+0x120 + 16 * class: rows, width, height), saved or put back.
+void EdgeWords(CRegionMap* map, std::vector<std::int16_t>& words, bool restore) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    if (!restore) words.clear();
+    std::size_t i = 0;
+    for (int c = 0; c < 8; ++c) {
+        auto** rows = *reinterpret_cast<std::int16_t***>(base + 0x120 + c * 16);
+        int width = *reinterpret_cast<int*>(base + 0x124 + c * 16), height = *reinterpret_cast<int*>(base + 0x128 + c * 16);
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width * 8; ++x) {
+                if (restore) rows[y][x] = words[i++];
+                else words.push_back(rows[y][x]);
+            }
+    }
+}
+} // namespace
+
+// 005B0F70: snapshot, the original, its words kept, the snapshot put back, ours; compared.
+static void __fastcall ClampEdgeCostsVerify(CRegionMap* self, void*) {
+    std::vector<std::int16_t> before, expected, actual;
+    EdgeWords(self, before, false);
+    s_originalClamp(self, nullptr);
+    EdgeWords(self, expected, false);
+    EdgeWords(self, before, true);
+    self->ClampEdgeCosts();
+    EdgeWords(self, actual, false);
+    int differences = 0;
+    for (std::size_t i = 0; i < actual.size(); ++i)
+        if (actual[i] != expected[i]) ++differences;
+    ei::verify::Check("CRegionMap::ClampEdgeCosts", 0, differences, "%d words", static_cast<int>(actual.size()));
+}
+EI_VERIFY(0x005B0F70, ClampEdgeCostsVerify, 5, s_originalClamp);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

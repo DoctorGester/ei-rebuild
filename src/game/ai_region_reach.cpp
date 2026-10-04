@@ -245,6 +245,51 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
     SearchReset(search, nullptr);
 }
 
+void CRegionMap::ClampEdgeCosts() {
+    // Per size class (+0x120 + 16 * class): rows of blocks of 8 signed words, one per direction
+    // (offsets in the tables 0079110C / 00791130; direction d and (d - 4) & 7 are opposite).
+    struct EdgeGrid {
+        std::int16_t** rows;
+        int width;
+        int height;
+        int unknown_0C;
+    };
+    auto grid = [this](int sizeClass) -> EdgeGrid& { return At<EdgeGrid>(this, 0x120 + sizeClass * 16); };
+    const int* dx = reinterpret_cast<const int*>(0x0079110C);
+    const int* dy = reinterpret_cast<const int*>(0x00791130);
+    // No way out of the map: the directions leaving the first and last column and row are -1.
+    for (int by = 0; by < At<int>(this, kBlocksHigh); ++by)
+        for (int c = 0; c < 8; ++c) {
+            std::int16_t* row = grid(c).rows[by];
+            row[1] = row[2] = row[3] = -1;
+            std::int16_t* last = row + grid(c).width * 8 - 8;
+            last[5] = last[6] = last[7] = -1;
+        }
+    for (int bx = 0; bx < At<int>(this, kBlocksWide); ++bx)
+        for (int c = 0; c < 8; ++c) {
+            std::int16_t* first = grid(c).rows[0] + bx * 8;
+            first[7] = first[0] = first[1] = -1;
+            std::int16_t* last = grid(c).rows[grid(c).height - 1] + bx * 8;
+            last[3] = last[4] = last[5] = -1;
+        }
+    // Each edge between neighbouring blocks takes the smaller of its two directions.
+    for (int by = 0; by < At<int>(this, kBlocksHigh); ++by)
+        for (int bx = 0; bx < At<int>(this, kBlocksWide); ++bx)
+            for (int dir = 0; dir < 8; ++dir) {
+                int nx = bx + dx[dir], ny = by + dy[dir];
+                if (nx < 0 || ny < 0 || nx >= At<int>(this, kBlocksWide) || ny >= At<int>(this, kBlocksHigh)) continue;
+                int opposite = (dir - 4) & 7;
+                for (int c = 0; c < 8; ++c) {
+                    std::int16_t& a = grid(c).rows[by][bx * 8 + dir];
+                    std::int16_t& b = grid(c).rows[ny][nx * 8 + opposite];
+                    std::int16_t m = a < b ? a : b;
+                    a = m;
+                    b = m;
+                }
+            }
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005B0F70, CRegionMap::ClampEdgeCosts);
 EI_REPLACE_METHOD(0x005B0370, CRegionMap::NearbyBlocks);
 EI_REPLACE_METHOD(0x005B0050, CRegionMap::LabelRegions);
