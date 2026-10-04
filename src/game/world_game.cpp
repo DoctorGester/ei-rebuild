@@ -1334,6 +1334,90 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
     mfc::PlexFreeDataChain(joined.blocks);
 }
 
+// ---- PickZones ------------------------------------------------------------------------------------
+
+namespace {
+
+// The zone table (007AFDE0: a vector of 12-byte {first, second, id}, two CStrings and an int).
+struct ZoneEntry {
+    const char* first;
+    const char* second;
+    int id;
+};
+struct ZoneTable {
+    ZoneEntry* start;
+    ZoneEntry* finish;
+    ZoneEntry* end;
+};
+struct OutStrings {
+    stlp::string* start;
+    stlp::string* finish;
+    stlp::string* end;
+};
+// 004DCE90 (RET 0xC). vector<string>::_M_insert_overflow(pos, value, count).
+__declspec(naked) void __fastcall OutInsertOverflow(OutStrings*, void*, stlp::string*, const stlp::string*, unsigned)
+    EI_ORIGINAL(0x004DCE90)
+// 004667F0. IsaacRandom::Next on the game's generator (007A9D40).
+__declspec(naked) std::uint32_t __fastcall RandomNext(void*, void*) EI_ORIGINAL(0x004667F0)
+
+bool SameText(const char* a, const char* b) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+}
+
+// A list of entry pointers on the game's heap (the original keeps STLport lists of copies).
+struct EntryList {
+    const ZoneEntry** items = nullptr;
+    int count = 0;
+    explicit EntryList(int capacity) {
+        items = static_cast<const ZoneEntry**>(gamecrt::operator_new(static_cast<std::size_t>(capacity > 0 ? capacity : 1) * 4));
+    }
+    ~EntryList() { gamecrt::operator_delete(items); }
+    EntryList(const EntryList&) = delete;
+    EntryList& operator=(const EntryList&) = delete;
+    void RemoveAt(int i) {
+        for (int k = i + 1; k < count; ++k) items[k - 1] = items[k];
+        --count;
+    }
+};
+
+} // namespace
+
+void __stdcall PickZones(void* outArg, int id, const char* exclude) {
+    auto* out = static_cast<OutStrings*>(outArg);
+    ZoneTable& table = *reinterpret_cast<ZoneTable*>(0x007AFDE0);
+    int total = static_cast<int>(table.finish - table.start);
+    EntryList pending(total);
+    EntryList group(total);
+    for (ZoneEntry* e = table.start; e != table.finish; ++e)
+        if (e->id == id) pending.items[pending.count++] = e;
+    while (pending.count) {
+        // The group of the first pending entry's second name, in table order.
+        const char* key = pending.items[0]->second;
+        group.count = 0;
+        for (int i = 0; i < pending.count;) {
+            if (SameText(pending.items[i]->second, key)) {
+                group.items[group.count++] = pending.items[i];
+                pending.RemoveAt(i);
+            } else {
+                ++i;
+            }
+        }
+        // With a choice, never the excluded first name.
+        if (group.count > 1)
+            for (int i = 0; i < group.count;)
+                if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
+                else ++i;
+        unsigned pick = RandomNext(reinterpret_cast<void*>(0x007A9D40), nullptr) % static_cast<unsigned>(group.count);
+        stlp::string name(group.items[pick]->first);
+        if (out->finish != out->end) {
+            new (out->finish) stlp::string(name);
+            ++out->finish;
+        } else {
+            OutInsertOverflow(out, nullptr, out->finish, &name, 1);
+        }
+    }
+}
+
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
 
 namespace {
@@ -1390,6 +1474,7 @@ EI_REPLACE(0x0057AAB0, ClearSaveFolder);
 EI_REPLACE_METHOD(0x0057EE10, GameFlow::SwitchMultiplayerZone);
 EI_REPLACE_METHOD(0x0057E740, GameFlow::StartServer);
 EI_REPLACE_METHOD(0x0058DAF0, CWorldServer::AcceptNewPlayers);
+EI_REPLACE(0x0057F850, PickZones);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);

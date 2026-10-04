@@ -744,6 +744,12 @@ bool __fastcall NameInList(const char* const* list, const char* name);
 // in it (CFileFind "*.*"; CreateDirectoryA / DeleteFileA through game.exe's imports).
 void __fastcall ClearSaveFolder(const char* path);
 
+// 0057F850 (RET 0xC; world_game.cpp). For the zone table entries (007AFDE0) with `id`, grouped by
+// their second name in order of first appearance: one random entry per group (never the one
+// whose first name is `exclude` when there is a choice; one IsaacRandom draw per group) has its
+// first name appended to `out` (an STLport vector of strings).
+void __stdcall PickZones(void* out, int id, const char* exclude);
+
 // world_savefile.cpp. 00579B80 (ECX = file stream, EDX = magic; RET 8): writes the header
 // (004A5340), at version > 0x6B a checksum, then a flag byte and the LZ-compressed data (or, when
 // decompressing it does not give the data back, 0 and the raw data). 00579830 (ECX = memory

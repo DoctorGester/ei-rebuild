@@ -219,6 +219,16 @@ static void __fastcall AcceptPlayersVerify(CWorldServer* self, void*, void* lobb
 }
 EI_VERIFY(0x0058DAF0, AcceptPlayersVerify, 0, s_unused);
 
+// 0057F850: draws random numbers, so only ours runs; the output only grows.
+static void __stdcall PickZonesVerify(void* out, int id, const char* exclude) {
+    auto* v = static_cast<std::uint8_t**>(out);
+    int before = static_cast<int>((v[1] - v[0]) / 12);
+    PickZones(out, id, exclude);
+    int after = static_cast<int>((v[1] - v[0]) / 12);
+    ei::verify::Check("PickZones", true, after >= before, "id %d: %d -> %d names", id, before, after);
+}
+EI_VERIFY(0x0057F850, PickZonesVerify, 0, s_unused);
+
 // 0057F150: afterwards an active client's request is not left answered (kind 3).
 static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {
     self->UpdateAndAcknowledge();
