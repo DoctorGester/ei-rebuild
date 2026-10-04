@@ -40,3 +40,21 @@ static void __fastcall UseQuickItemVerify(CWorldServer* self, void*, void* item,
                       static_cast<unsigned>(before), static_cast<unsigned>(after));
 }
 EI_VERIFY(0x0058ECE0, UseQuickItemVerify, 0, s_unused);
+
+// 005927C0 creates objects: ours only. A new map object or unit (kinds 1, 5..9) is in the object
+// map and the map-object map under the returned id; a timed object (2, 3, 4) in the timed map.
+static int __fastcall CreateObjectVerify(CWorldServer* self, void*, std::uint8_t* message) {
+    int kind = *reinterpret_cast<int*>(message + 0x48);
+    int id = self->CreateObject(message);
+    bool ok = true;
+    if (kind >= 1 && kind <= 9 && id != -1) {
+        unsigned key = static_cast<unsigned>(id);
+        if (kind == 2 || kind == 3 || kind == 4)
+            ok = self->timedObjects_.map.Find(key) != nullptr;
+        else
+            ok = self->objects_.map.Find(key) != nullptr && self->mapObjects_.map.Find(key) != nullptr;
+    }
+    ei::verify::Check("CWorldServer::CreateObject", true, ok, "kind %d -> id %d", kind, id);
+    return id;
+}
+EI_VERIFY(0x005927C0, CreateObjectVerify, 0, s_unused);

@@ -6,9 +6,11 @@
 # wolf over and over (FixSpellEffectsOverflow: at most 20, older duplicates removed), casts and
 # attacks for the battle music test (FixPlaingBattleMusicFromAntimagic), the camp's prices
 # (FixRepairPrice), items made by name (FixCreateItem), objects removed (FixRemoveMapObject) and
-# the units' update with the sleeping objects' effects (FixSpellEffectsOverflow #0). Rebirth
+# the units' update with the sleeping objects' effects (FixSpellEffectsOverflow #0), objects created
+# (FixAddMapObject), addon's console commands and nogui (AddNewConsoleCommands), the AutoExec lines
+# before "exec autoexec.cfg" of the new game (AutoExec). Rebirth
 # install: the flags follow addon.dll and the wrappers compare with the patched originals.
-rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu
+rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars
 reject Script error
 wait 6000
 console thingamabob
@@ -42,6 +44,15 @@ console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObj
 console @Attack(GetLeader(),GetObjectByName("RWolf"))
 wait 3000
 check IsAlive(GetLeader())
+
+# addon's console commands (AddNewConsoleCommands; the cheat word was given above).
+console addon info
+console addon debug
+console listgvar
+console nogui 1
+wait 500
+console nogui 0
+wait 500
 
 # Items by name: a weapon with a material, one with a spell in brackets, a scroll.
 console @GiveItem(0,"Axe.steel")

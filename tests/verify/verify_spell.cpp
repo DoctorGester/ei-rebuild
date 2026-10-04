@@ -60,15 +60,19 @@ static char* __fastcall SpellPrototypeVerify(CSpell* self) {
 }
 EI_VERIFY(0x0068BA20, SpellPrototypeVerify, 6, s_spellPrototype);
 
-// 0068BA60: XOR EAX,EAX; MOV DL,[ECX+EAX+0x54] (6 bytes).
+// 0068BA60: ours only. The original's loop jumps back to +2, inside the bytes the hook overwrites,
+// so the original cannot run through a trampoline (it hung the game on a spell with modifiers).
+// Checks the count against the modifier bytes at +0x54 instead.
 static int(__fastcall* s_modifierCount)(CSpell*);
 static int __fastcall ModifierCountVerify(CSpell* self) {
-    int expected = s_modifierCount(self);
-    ei::verify::Check("CSpell::GetModifierCount", expected, self->GetModifierCount(), "spell %08X",
-                      self->unknown_18);
-    return expected;
+    int actual = self->GetModifierCount();
+    const auto* bytes = reinterpret_cast<const unsigned char*>(self) + 0x54;
+    int expected = 0;
+    while (expected < 8 && bytes[expected] != 0) ++expected;
+    ei::verify::Check("CSpell::GetModifierCount", expected, actual, "spell %08X", self->unknown_18);
+    return actual;
 }
-EI_VERIFY(0x0068BA60, ModifierCountVerify, 6, s_modifierCount);
+EI_VERIFY(0x0068BA60, ModifierCountVerify, 0, s_modifierCount);
 
 // 0068B7C0: PUSH EBX; MOV EBX,[0x007C8534] (7 bytes). Returns AL only.
 static bool(__fastcall* s_hasCastFlag)(CSpell*);

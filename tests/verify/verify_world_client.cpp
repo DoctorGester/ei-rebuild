@@ -290,3 +290,18 @@ static int __fastcall CollectVisibleVerify(CWorldClient* self, void*, void* list
     return touched;
 }
 EI_VERIFY(0x0056A990, CollectVisibleVerify, 0, s_unused);
+
+// 005641F0 (CWorldClient::Segment, slot 6) runs the client's tick: ours only. It returns 1 (0 only
+// when the connection is gone), and the game time advances by one tick unless +0x6C is set.
+static void* s_segmentUnused;
+static int __fastcall SegmentVerify(CWorldClient* self, void*) {
+    int before = self->tick_;
+    bool paused = reinterpret_cast<const std::uint8_t*>(self)[0x6C] != 0;
+    int result = self->Segment();
+    int expected = before + (paused ? 0 : 1);
+    bool ok = result == 0 || (result == 1 && self->tick_ == expected);
+    ei::verify::Check("CWorldClient::Segment", true, ok, "result %d, tick %d -> %d%s", result, before, self->tick_,
+                      paused ? " (paused)" : "");
+    return result;
+}
+EI_VERIFY(0x005641F0, SegmentVerify, 0, s_segmentUnused);

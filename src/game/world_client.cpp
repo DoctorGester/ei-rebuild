@@ -4,8 +4,14 @@
 #include "core_maths.h"
 #include "terrain.h"
 
+#include "lib/crt.h"
+
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
+
+#include <cstring>
 
 namespace {
 
@@ -192,6 +198,185 @@ std::uint32_t CWorldClient::EnvironmentFlags(CEngineObject* unit) {
     if (unknown7A8_ == 2) return flags | 0x1000;
     return flags | 0x2000;
 }
+
+// ---- Segment (005641F0) --------------------------------------------------------------------------
+
+namespace {
+
+template <typename T> T& Slot(void* object, int offset) {
+    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
+}
+
+// Callees, through their addresses (thiscall as fastcall).
+__declspec(naked) void __fastcall InputStringEvent(void*, void*, const char*) EI_ORIGINAL(0x005F8070)
+__declspec(naked) void __fastcall SoundSetVolumeA(void*, void*, int) EI_ORIGINAL(0x006B7740)
+__declspec(naked) void __fastcall SoundSetVolumeB(void*, void*, int) EI_ORIGINAL(0x006B78A0)
+__declspec(naked) void __fastcall SoundSetVolumeC(void*, void*, int) EI_ORIGINAL(0x006B7A00)
+__declspec(naked) void __fastcall SoundTick(void*) EI_ORIGINAL(0x006B9B10)
+__declspec(naked) void __fastcall SessionPump(void*, void*, void*) EI_ORIGINAL(0x00479E30)
+__declspec(naked) void __fastcall SessionUpdate(void*) EI_ORIGINAL(0x00665DE0)
+__declspec(naked) void __fastcall SessionDisconnect(void*) EI_ORIGINAL(0x00665A10)
+__declspec(naked) int __fastcall PendingLookup(void*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
+__declspec(naked) void __fastcall PendingListRemoveAt(void*, void*, void*) EI_ORIGINAL(0x005704A0)
+__declspec(naked) void __fastcall PendingRemoveKey(void*, void*, const int*) EI_ORIGINAL(0x00405350)
+__declspec(naked) bool __fastcall FlowIsRunning(void*) EI_ORIGINAL(0x0057F440)
+__declspec(naked) void __fastcall HudTick(void*, void*, char) EI_ORIGINAL(0x00498480)
+__declspec(naked) void __fastcall EffectListErase0(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572550)
+__declspec(naked) void __fastcall EffectListErase1(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572580)
+__declspec(naked) void __fastcall EffectListErase2(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x005725B0)
+__declspec(naked) double __fastcall ObjectDistanceTo(void*, void*, const void*) EI_ORIGINAL(0x0068D730)
+__declspec(naked) double __fastcall TerrainHeightAt(void*, void*, float, float, int) EI_ORIGINAL(0x006C8680)
+__declspec(naked) void __fastcall MapTick(void*) EI_ORIGINAL(0x00694020)
+
+constexpr int kSlotUpdate = 6;            // +0x18
+constexpr int kSlotPump = 5;              // +0x14
+constexpr int kSlotViewAlive = 23;        // the local view (+0x5C): 0 once the connection is gone
+constexpr int kSlotUnits = 14;            // world (+0x38): the units list
+constexpr int kSlotAnimate = 25;          // object (+0x64): (game time)
+constexpr int kSlotLightUnits = 35;       // world (+0x8C)
+constexpr int kSlotMapState = 34;         // world (+0x88)
+const char* const kAutosave = reinterpret_cast<const char*>(0x00787704);       // "autosave"
+const char* const kDisconnected = reinterpret_cast<const char*>(0x00790084);   // "CWorldClient::Segment()..."
+void* const kInputHandler = reinterpret_cast<void*>(0x007C7D50);
+void* const kGameFlow = reinterpret_cast<void*>(0x007AFE20);
+
+bool NaN(double v) {
+    std::uint64_t bits;
+    std::memcpy(&bits, &v, 8);
+    return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
+}
+// FCOMP a, b; C0 (a < b, or unordered) selects `ifLess`, else `otherwise` (the original's bit trick).
+float SelectLess(float a, float b, float ifLess, float otherwise) {
+    return (NaN(a) || NaN(b) || a < b) ? ifLess : otherwise;
+}
+
+} // namespace
+
+int CWorldClient::Segment() {
+    PlayerIterator unused;   // [ebp-0x68]: never walked, destroyed at the end
+    PlayerIterator objectsIt;  // [ebp-0x58]
+    void* self = this;
+    int frames = ++Slot<int>(self, 0x6EC);
+    if (frames == 10) {
+        InputStringEvent(kInputHandler, nullptr, kAutosave);
+        void* sound = Slot<void*>(self, 0x1CC);
+        SoundSetVolumeA(sound, nullptr, *reinterpret_cast<int*>(0x0079BCC8));
+        SoundSetVolumeB(Slot<void*>(self, 0x1CC), nullptr, *reinterpret_cast<int*>(0x0079BCCC));
+        SoundSetVolumeC(Slot<void*>(self, 0x1CC), nullptr, *reinterpret_cast<int*>(0x0079BCC4));
+    } else if (frames == 90 || (frames < 90 && *reinterpret_cast<int*>(0x007AFC9C) == 2)) {
+        Slot<int>(Slot<void*>(self, 0x1A8), 0x44) = 0;
+    }
+    if (void* terrain = Slot<void*>(self, 0x180)) ei::VCall<void>(terrain, kSlotUpdate);
+    if (void* p = Slot<void*>(self, 0x1A8)) ei::VCall<void>(p, kSlotUpdate);
+    if (void* sound = Slot<void*>(self, 0x1CC)) SoundTick(sound);
+    if (!Slot<std::uint8_t>(self, 0x6C)) {
+        if (void* p = Slot<void*>(self, 0x1A4)) ei::VCall<void>(p, kSlotUpdate);
+    }
+    if (void* p = Slot<void*>(self, 0x5C)) ei::VCall<void>(p, kSlotPump);
+    if (void* p = Slot<void*>(self, 0x1C8)) ei::VCall<void>(p, kSlotPump);
+    if (void* p = Slot<void*>(self, 0x60)) SessionPump(p, nullptr, *reinterpret_cast<void**>(0x0079B5D8));
+    if (std::uint8_t* session = session_) {
+        void* view = Slot<void*>(session, 0x20);
+        if (!Slot<std::uint8_t>(self, 0x6C)) SessionUpdate(session);
+        if (ei::VCall<int>(view, kSlotViewAlive) == 0) {
+            // The connection is gone. Rebirth's DisableExitOnCrashReport (5 NOPs at 00564330)
+            // keeps the session: only the error is reported.
+            if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session_);
+            game::FatalError(kDisconnected);
+            return 0;
+        }
+        ei::VCall<void>(view, kSlotUpdate);
+    }
+    if (!Slot<std::uint8_t>(self, 0x6C)) {
+        ++tick_;
+        // The objects (list +0xC0) whose update returns 0 leave the pending map (+0xD8) and list.
+        for (auto* node = Slot<std::uint8_t*>(self, 0xC0); node;) {
+            std::uint8_t* current = node;
+            node = *reinterpret_cast<std::uint8_t**>(node);
+            CEngineObject* object = Slot<CEngineObject*>(current, 8);
+            int done = ei::VCall<int>(object, kSlotUpdate);
+            if (done != 0) continue;
+            int key = object->id_;
+            void* position = nullptr;
+            if (PendingLookup(static_cast<std::uint8_t*>(self) + 0xD8, nullptr, &key, &position)) {
+                PendingListRemoveAt(static_cast<std::uint8_t*>(self) + 0xBC, nullptr, position);
+                PendingRemoveKey(static_cast<std::uint8_t*>(self) + 0xD8, nullptr, &key);
+            }
+        }
+        for (void* object = objectsIt.First(ei::VCall<CEngineObject*>(self, kSlotUnits)); object; object = objectsIt.Next())
+            ei::VCall<void>(object, kSlotUpdate);
+        if (void* p = Slot<void*>(self, 0x1B0)) ei::VCall<void>(p, kSlotUpdate);
+    }
+    if (FlowIsRunning(kGameFlow)) {
+        std::uintptr_t first = *reinterpret_cast<std::uintptr_t*>(0x007C7D84);
+        std::uintptr_t last = *reinterpret_cast<std::uintptr_t*>(0x007C7D88);
+        if (static_cast<int>((last - first) & ~3u) > 4) {
+            volatile float time = static_cast<float>(tick_) + Slot<float>(self, 0x6F0);
+            float now = time;
+            for (auto* node = Slot<std::uint8_t*>(self, 0xC0); node;) {
+                std::uint8_t* current = node;
+                node = *reinterpret_cast<std::uint8_t**>(node);
+                ei::VCall<void>(Slot<void*>(current, 8), kSlotAnimate, now);
+            }
+        }
+    }
+    if (void* hud = Slot<void*>(self, 0x19C)) HudTick(hud, nullptr, static_cast<char>(Slot<std::uint8_t>(self, 0x6C)));
+    if (!Slot<std::uint8_t>(self, 0x6C)) {
+        // Three lists of effects (std::list, sentinel head): finished ones (slot 0 returns 0) go.
+        using EraseFn = void(__fastcall*)(void*, void*, void**, void*);
+        static constexpr EraseFn kErase[3] = {EffectListErase0, EffectListErase1, EffectListErase2};
+        for (int l = 0; l < 3; ++l) {
+            void* list = static_cast<std::uint8_t*>(self) + 0x1B8 + 4 * l;
+            auto* head = Slot<std::uint8_t*>(self, 0x1B8 + 4 * l);
+            for (auto* node = *reinterpret_cast<std::uint8_t**>(head); node != head;) {
+                std::uint8_t* current = node;
+                node = *reinterpret_cast<std::uint8_t**>(node);
+                if (ei::VCall<int>(current + 8, 0) == 0) {
+                    void* out;
+                    kErase[l](list, nullptr, &out, current);
+                }
+            }
+        }
+        if (!Slot<std::uint8_t>(self, 0x6C) && *reinterpret_cast<int*>(0x0079BD58) != 0) {
+            int& countdown = Slot<int>(self, 0x1C4);
+            countdown -= *reinterpret_cast<int*>(0x0078FF34);
+            if (countdown <= 0) {
+                countdown = *reinterpret_cast<int*>(0x0079BD24);
+                // Each light of list +0x1B8 gets a grey level from the farthest unit near it.
+                void* leader = *reinterpret_cast<void**>(0x007AF07C);
+                for (auto* node = *Slot<std::uint8_t**>(self, 0x1B8); node != Slot<std::uint8_t*>(self, 0x1B8);
+                     node = *reinterpret_cast<std::uint8_t**>(node)) {
+                    float level = static_cast<float>(ObjectDistanceTo(leader, nullptr, reinterpret_cast<void*>(0x007AFDB0)));
+                    PlayerIterator units;
+                    for (auto* unit = reinterpret_cast<CEngineObject*>(units.First(ei::VCall<CEngineObject*>(self, kSlotLightUnits)));
+                         unit; unit = reinterpret_cast<CEngineObject*>(units.Next())) {
+                        if (unit == leader || (unit->flags_ & 0x80)) continue;
+                        float nodeX = Slot<float>(node, 0x10), nodeY = Slot<float>(node, 0x14);
+                        double dy = static_cast<double>(Slot<float>(unit, 0x20)) - nodeY;
+                        double dx = static_cast<double>(Slot<float>(unit, 0x1C)) - nodeX;
+                        double squared = dx * dx + dy * dy;
+                        double radius = Slot<float>(unit, 0x100);
+                        if (!NaN(squared) && !NaN(radius) && squared > radius) continue;
+                        float point[3] = {nodeX, nodeY, 0.0f};
+                        point[2] = static_cast<float>(TerrainHeightAt(Slot<void*>(self, 0x180), nullptr, nodeX, nodeY, 0));
+                        float distance = static_cast<float>(ObjectDistanceTo(unit, nullptr, point));
+                        level = SelectLess(level, distance, distance, level);
+                    }
+                    float clamped = SelectLess(1.0f, level, 1.0f, level);
+                    float floor = SelectLess(0.0f, clamped, clamped, 0.0f);
+                    volatile float scaled = floor * *reinterpret_cast<const volatile float*>(0x0073C370);
+                    std::uint32_t grey = static_cast<std::uint32_t>(x87::fistp(scaled));
+                    std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
+                    Slot<std::uint32_t>(node, 0x5C) = colour;
+                }
+            }
+        }
+    }
+    if (tick_ % 32 == 0) MapTick(ei::VCall<void*>(self, kSlotMapState));
+    return 1;
+}
+EI_REPLACE_METHOD(0x005641F0, CWorldClient::Segment);
+EI_REBIRTH_IMPLEMENTS(0x005641F0, ei::rebirth::Patch::DisableExitOnCrashReport);
 
 EI_REPLACE_METHOD(0x00563F70, CWorldClient::ClampedGroundHeight);
 EI_REPLACE_METHOD(0x00560F00, PlatformSet::SurfaceHeight);
