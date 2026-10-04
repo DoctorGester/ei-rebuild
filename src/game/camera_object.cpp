@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -245,6 +246,107 @@ const Vector3* __fastcall CameraAnchor(const CCamera* self) {
     return (self->flags_ & 0x60) ? &self->localPosition_ : &self->focus_;
 }
 EI_REPLACE(0x0040FB20, CameraAnchor);
+
+namespace {
+
+// MFC members the camera file code calls that lib/mfc.h does not declare (library).
+struct RawCString {
+    char* data;
+};
+__declspec(naked) int __fastcall FindNextFileOf(mfc::CFileFind* /*find*/) EI_ORIGINAL(0x006E6653)
+__declspec(naked) RawCString* __fastcall FindFileTitle(const mfc::CFileFind* /*find*/, void*, RawCString* /*out*/) EI_ORIGINAL(0x006E67BA)
+__declspec(naked) RawCString* __fastcall CStringMid(const RawCString* /*s*/, void*, RawCString* /*out*/, int /*first*/) EI_ORIGINAL(0x006FDA6D)
+__declspec(naked) void __fastcall CStringAssign(RawCString* /*s*/, void*, const RawCString* /*from*/) EI_ORIGINAL(0x00700AA9)
+__declspec(naked) void __fastcall CStringDestroy(RawCString* /*s*/) EI_ORIGINAL(0x00700970)
+__declspec(naked) void __fastcall FileWrite(mfc::CFile* /*file*/, void*, const void* /*buffer*/, unsigned /*count*/) EI_ORIGINAL(0x0070133F)
+__declspec(naked) int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
+
+constexpr std::uintptr_t kCurrentRecord = 0x00783D3C;      // ".\camera\camera.cam"
+constexpr std::uintptr_t kNumberedRecords = 0x00783D24;  // ".\camera\camera0*.cam"
+constexpr std::uintptr_t kNumberedRecord = 0x00783D0C;    // ".\camera\camera%.4d.cam"
+constexpr std::uintptr_t kRecordFolder = 0x00783D00;        // ".\camera\"
+constexpr int kSlotFileSeek = 10;
+const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
+std::uint32_t& GlobalFlags7AF5C0() { return *reinterpret_cast<std::uint32_t*>(0x007AF5C0); }
+
+// A recorded frame (0x24 bytes): the time, a dword the original never writes (stack bytes; zero
+// here), the camera's local position and rotation.
+struct CameraRecord {
+    std::uint32_t time;
+    std::uint32_t unused;
+    Vector3 position;
+    Quaternion rotation;
+};
+static_assert(sizeof(CameraRecord) == 0x24);
+
+} // namespace
+
+// 0040E910: starts recording into ".\camera\" + `name`. When ".\camera\camera.cam" exists it is
+// first renamed to the next numbered file: the number after the highest found, where each found
+// name's number is read from its title past the fourth character ("ra0005": always 0, so the
+// rename goes to camera0001.cam; kept as the original has it). Sets bit 0x10 of 007AF5C0 either
+// way. Returns 1 (file name kept at +0x2EC, flag 0x10 set) when the file can be created, else 0.
+int __fastcall CameraOpenFile(CCamera* self, void*, const char* name) {
+    mfc::CFileFind find;
+    mfc::CFile file;
+    if (find.FindFile(Text(kCurrentRecord), 0) == 1) {
+        int last = 0;
+        if (find.FindFile(Text(kNumberedRecords), 0)) {
+            int more;
+            do {
+                more = FindNextFileOf(&find);
+                RawCString title;
+                FindFileTitle(&find, nullptr, &title);
+                RawCString tail;
+                CStringMid(&title, nullptr, &tail, 4);
+                CStringAssign(&title, nullptr, &tail);
+                CStringDestroy(&tail);
+                int number = GameAtoi(title.data);
+                if (number > last) last = number;
+                CStringDestroy(&title);
+            } while (more);
+        }
+        mfc::CString path;
+        path.Format(Text(kNumberedRecord), last + 1);
+        gameapi::MoveFileA(Text(kCurrentRecord), path);
+    }
+    GlobalFlags7AF5C0() |= 0x10;
+    bool failed;
+    {
+        mfc::CString folder(Text(kRecordFolder));
+        mfc::CString full = folder + name;
+        failed = file.Open(full, 0x1001, nullptr) == 0;   // modeCreate | modeWrite
+    }
+    if (failed) return 0;
+    {
+        mfc::CString folder(Text(kRecordFolder));
+        mfc::CString full = folder + name;
+        *reinterpret_cast<mfc::CString*>(Bytes(self) + 0x2EC) = full;
+    }
+    self->flags_ |= 0x10;
+    file.Close();
+    return 1;
+}
+EI_REPLACE(0x0040E910, CameraOpenFile);
+
+// 0040EB60: while recording (flag 0x10), appends a frame {time, -, local position, local rotation}
+// to the file named at +0x2EC. Returns 1 when written, 0 when not recording or the file does not
+// open.
+int __fastcall CameraRecordFrame(CCamera* self, void*, std::uint32_t time) {
+    CameraRecord record;
+    mfc::CFile file;
+    if (!(self->flags_ & 0x10)) return 0;
+    if (!file.Open(*reinterpret_cast<const mfc::CString*>(Bytes(self) + 0x2EC), 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
+    ei::VCall<int>(&file, kSlotFileSeek, 0, 2);   // Seek(0, end)
+    record.time = time;
+    record.unused = 0;
+    std::memcpy(&record.position, &self->localPosition_, sizeof(record.position));
+    std::memcpy(&record.rotation, &self->localRotation_, sizeof(record.rotation));
+    FileWrite(&file, nullptr, &record, sizeof(record));
+    file.Close();
+    return 1;
+}
+EI_REPLACE(0x0040EB60, CameraRecordFrame);
 
 // 0040ECB0: closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
 int __fastcall CameraCloseFile(CCamera* self) {

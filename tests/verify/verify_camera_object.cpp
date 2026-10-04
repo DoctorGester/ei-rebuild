@@ -4,7 +4,8 @@
 //    then destroyed with our destructor body.
 //  - The small slots, Init, GetRange and Anchor: side by side (scratch copies of the camera).
 //  - The engine object constructor: side by side on a copy of its 0x1C bytes.
-//  - The destructors, CloseFile, LoadState / SaveState: ours only.
+//  - The destructors, CloseFile, OpenFile, RecordFrame, LoadState / SaveState: ours only (the file
+//    functions touch the disk).
 #include "net_verify.h"
 
 #include "../../src/game/core_transform.h"
@@ -19,6 +20,8 @@ CCamera* __fastcall CameraDeletingDestructor(CCamera* self, void*, unsigned flag
 void __fastcall CameraGetRange(const CCamera* self, void*, std::uint32_t* a, std::uint32_t* b, std::uint32_t* c);
 const Vector3* __fastcall CameraAnchor(const CCamera* self);
 int __fastcall CameraCloseFile(CCamera* self);
+int __fastcall CameraOpenFile(CCamera* self, void*, const char* name);
+int __fastcall CameraRecordFrame(CCamera* self, void*, std::uint32_t time);
 int __fastcall CameraCreate(CCamera* self);
 void __fastcall CameraDestroy(CCamera* self);
 
@@ -147,6 +150,17 @@ int __fastcall CloseFileVerify(CCamera* self) {
     ei::verify::Check("CameraCloseFile", true, result == 1 && !(self->flags_ & 0x10), "");
     return result;
 }
+int __fastcall OpenFileVerify(CCamera* self, void*, const char* name) {
+    int result = CameraOpenFile(self, nullptr, name);
+    ei::verify::Check("CameraOpenFile", true, result == 0 || (result == 1 && (self->flags_ & 0x10)), "");
+    return result;
+}
+int __fastcall RecordFrameVerify(CCamera* self, void*, std::uint32_t time) {
+    bool recording = (self->flags_ & 0x10) != 0;
+    int result = CameraRecordFrame(self, nullptr, time);
+    ei::verify::Check("CameraRecordFrame", true, recording || result == 0, "");
+    return result;
+}
 void __fastcall LoadStateVerify(CCamera* self, void*, void* stream) {
     self->LoadState(stream);
     ei::verify::Check("CCamera::LoadState", true, true, "");
@@ -173,5 +187,7 @@ EI_VERIFY(0x0040D0A0, InitVerify, 5, s_init);
 EI_VERIFY(0x0040D380, RangeVerify, 10, s_range);
 EI_VERIFY(0x0040FB20, AnchorVerify, 7, s_anchor);
 EI_VERIFY(0x0040ECB0, CloseFileVerify, 0, s_unused);
+EI_VERIFY(0x0040E910, OpenFileVerify, 0, s_unused);
+EI_VERIFY(0x0040EB60, RecordFrameVerify, 0, s_unused);
 EI_VERIFY(0x00410AB0, LoadStateVerify, 0, s_unused);
 EI_VERIFY(0x00410C10, SaveStateVerify, 0, s_unused);
