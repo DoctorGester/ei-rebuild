@@ -33,6 +33,16 @@ __declspec(naked) void __fastcall NodeDeallocate(void*, void*, Node*, int) EI_OR
 // 00406590: deallocates `count` pointers (the buckets).
 __declspec(naked) void __fastcall DeallocatePointers(void*, int) EI_ORIGINAL(0x00406590)
 
+// The figure manager's helpers: the model destructor (through its original address), 00674F40
+// (the base's clean-up), 005AE5D0 (RET 4) the pair destructor, 004FC080 (ECX node, EDX count)
+// the node allocator's deallocate, 00674DF0 the base destructor.
+__declspec(naked) void __fastcall DestroyModelAt(void*) EI_ORIGINAL(0x005A9C90)
+__declspec(naked) void __fastcall ManagerCleanUp(void*) EI_ORIGINAL(0x00674F40)
+__declspec(naked) void __fastcall DestroyNamePair(void*, void*, int) EI_ORIGINAL(0x005AE5D0)
+__declspec(naked) void __fastcall NodeFree(void*, int) EI_ORIGINAL(0x004FC080)
+__declspec(naked) void __fastcall ManagerBaseDestroy(void*) EI_ORIGINAL(0x00674DF0)
+__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
+
 std::uint32_t BucketCount(const Table* t) { return static_cast<std::uint32_t>(t->end - t->begin); }
 
 } // namespace
@@ -89,3 +99,45 @@ void __fastcall DestroyFigureModel(char* model) {
 }
 
 EI_REPLACE(0x005A9C90, DestroyFigureModel);
+
+// 005AA1C0 (thiscall): the figure manager's destructor: its vtable (0073FB88), every cached model
+// destroyed and freed, the base's clean-up (00674F40), the model map cleared and its buckets
+// freed (the map's inline destructor), then the base destructor (00674DF0).
+void __fastcall DestroyFigureManager(char* manager) {
+    *reinterpret_cast<std::uint32_t*>(manager) = 0x0073FB88;
+    auto* table = reinterpret_cast<Table*>(manager + 0xBC);
+    Node* node = nullptr;
+    for (std::uint32_t b = 0; b < BucketCount(table); ++b)
+        if (table->begin[b]) {
+            node = table->begin[b];
+            break;
+        }
+    while (node) {
+        if (void* model = node->value) {
+            DestroyModelAt(model);
+            GameDelete(model);
+        }
+        if (node->next) {
+            node = node->next;
+            continue;
+        }
+        std::uint32_t b = HashString(node->key) % BucketCount(table);
+        node = nullptr;
+        while (++b < BucketCount(table))
+            if ((node = table->begin[b]) != nullptr) break;
+    }
+    ManagerCleanUp(manager);
+    for (std::uint32_t b = 0; b < BucketCount(table); ++b) {
+        for (Node* n = table->begin[b]; n;) {
+            Node* next = n->next;
+            DestroyNamePair(n->key, nullptr, 0);
+            NodeFree(n, 1);
+            n = next;
+        }
+        table->begin[b] = nullptr;
+    }
+    table->count = 0;
+    if (table->begin) Deallocate(table->begin, static_cast<std::size_t>(table->capacity - table->begin) * 4);
+    ManagerBaseDestroy(manager);
+}
+EI_REPLACE(0x005AA1C0, DestroyFigureManager);
