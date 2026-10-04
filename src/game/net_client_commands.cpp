@@ -1,6 +1,6 @@
 // The game client's timed entries and commands: an object kept on the timers list (0041D1A0), a
-// command message for the server (0041D260), the client's own server entry (0041D420, slot 16) and
-// the ratio of a received buffer (0041D9A0).
+// command message for the server (0041D260), the client's own server entry (0041D420, slot 16), the
+// start of the game (0041D410, slot 15) and the ratio of a received buffer (0041D9A0).
 // See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #include "net_classes.h"
 #include "core_refcount.h"
@@ -188,6 +188,15 @@ void __fastcall ClientDescribe(ClientSession* self, void*, RefPtr* out) {
 }
 EI_REPLACE(0x0041D420, ClientDescribe);
 
+
+namespace {
+// 0057F280: GameFlow::BeginMultiplayerGame (world_game.cpp).
+__declspec(naked) void __fastcall FlowBeginMultiplayerGame(void* /*flow*/) EI_ORIGINAL(0x0057F280)
+} // namespace
+
+// 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
+void __fastcall ClientBeginGame(ClientSession*) { FlowBeginMultiplayerGame(reinterpret_cast<void*>(0x007AFE20)); }
+EI_REPLACE(0x0041D410, ClientBeginGame);
 
 // 0041D9A0 (called with the client by the transfer screen 0061E4E0): a buffer's stream size (its
 // base plus the highest written position, from `begin`) over the dword at its start (1 when 0),

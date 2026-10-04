@@ -1,5 +1,6 @@
-// The game server's join handler (0041ADB0, registered by the server constructor for the login
-// message): a player record and a connection binding for the new client.
+// The game server's handlers of the login message (0073BBF8, registered by the server constructor):
+// a client joined (0041ADB0: a player record and a connection binding for it), its record changed
+// (0041AD80) or it left (0041B0C0).
 // See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #include "net_classes.h"
 #include "core_refcount.h"
@@ -31,6 +32,10 @@ __declspec(naked) void** __fastcall BindingsBegin2(void* /*list*/, void*, void**
 __declspec(naked) void __fastcall CountNodes(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429110)
 __declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
+// erase(position) of the players and bindings lists, distance(first, last) (library).
+__declspec(naked) void** __fastcall PlayersErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x004293B0)
+__declspec(naked) void** __fastcall BindingsErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00429490)
+__declspec(naked) void __fastcall CountPlayers(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290D0)
 
 constexpr std::uintptr_t kPlayerVtable = 0x0073BC70;
 constexpr std::uintptr_t kBindingVtable = 0x0073BCB8;
@@ -157,5 +162,65 @@ void __fastcall ServerOnJoin(ServerSession* self, Message* message) {
     CStringDestroy(&announcement);
 }
 EI_REPLACE(0x0041ADB0, ServerOnJoin);
+
+namespace {
+bool Live(const void* object) {
+    return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
+}
+void* At(const void* p, std::size_t offset) {
+    void* v;
+    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, 4);
+    return v;
+}
+// Every node of `list` holding `value` erased (the next node taken first).
+template <typename Erase>
+void EraseValue(void* list, Erase erase, const void* value) {
+    void** sentinel = *static_cast<void***>(list);
+    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
+        void** next = static_cast<void**>(node[0]);
+        if (node[2] == value) {
+            void* erased;
+            erase(list, nullptr, &erased, node);
+        }
+        node = next;
+    }
+}
+} // namespace
+
+// 0041AD80 (channel 1): the client's record changed: its player (through the binding at +0x30)
+// takes the message's +0x28 and +0x2C at its +0x24 and +0x2C, and its version goes up.
+void __fastcall ServerOnPlayerChanged(ServerSession*, Message* message) {
+    Put32(At(At(message, 0x30), 0xC), 0x24, Get32(message, 0x28));
+    Put32(At(At(message, 0x30), 0xC), 0x2C, Get32(message, 0x2C));
+    void* player = At(At(message, 0x30), 0xC);
+    Put32(player, 8, Get32(player, 8) + 1);
+}
+EI_REPLACE(0x0041AD80, ServerOnPlayerChanged);
+
+// 0041B0C0 (channel 2): the client left. With a live binding: its live player is removed from the
+// players list, and when it was the host the first remaining player becomes the host (its version
+// goes up); then the binding is removed from the bindings list.
+void __fastcall ServerOnPlayerGone(ServerSession* self, Message* message) {
+    void* binding = At(message, 0x30);
+    if (!Live(binding)) return;
+    void* player = At(binding, 0xC);
+    if (Live(player)) {
+        std::uint8_t wasHost = static_cast<std::uint8_t*>(player)[0x28];
+        EraseValue(&self->list_2590, PlayersErase, player);
+        if (wasHost) {
+            std::uint32_t count = 0;
+            void** sentinel = static_cast<void**>(self->list_2590);
+            CountPlayers(&count, nullptr, sentinel[0], sentinel);
+            if (count > 0) {
+                void* first = static_cast<void**>(static_cast<void**>(self->list_2590)[0])[2];
+                static_cast<std::uint8_t*>(first)[0x28] = 1;
+                first = static_cast<void**>(static_cast<void**>(self->list_2590)[0])[2];
+                Put32(first, 8, Get32(first, 8) + 1);
+            }
+        }
+    }
+    EraseValue(&self->list_25A4, BindingsErase, At(message, 0x30));
+}
+EI_REPLACE(0x0041B0C0, ServerOnPlayerGone);
 
 } // namespace net

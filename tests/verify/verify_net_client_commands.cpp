@@ -3,6 +3,7 @@
 //  - ClientAddTimed / ClientSendCommand: the timers list ends with an entry for the object /
 //    command (the command holding the kind and the text).
 //  - ClientDescribe: *out is an entry of kind 4.
+//  - ClientBeginGame: ours only (it starts the game).
 //  - ClientBufferRatio: side by side for the game's two buffer classes when the first dword lies
 //    in memory (the original on a copy of the 0x1C-byte header: Seek(0) and the read only move
 //    its pointers), within a few ULPs (plain C++ division, rewrite-guide rule 7), and the headers
@@ -20,6 +21,7 @@ void __fastcall ClientAddTimed(ClientSession* self, void*, CRefObject* object, s
 void __fastcall ClientSendCommand(ClientSession* self, void*, int kind, const char* text);
 void __fastcall ClientDescribe(ClientSession* self, void*, RefPtr* out);
 double __fastcall ClientBufferRatio(ClientSession* self, void*, GameBuffer* buffer);
+void __fastcall ClientBeginGame(ClientSession* self);
 }
 
 namespace {
@@ -88,9 +90,14 @@ double __fastcall BufferRatioVerify(net::ClientSession* self, void*, GameBuffer*
     ei::verify::Check("ClientBufferRatio header", true, std::memcmp(&copy, buffer, sizeof(copy)) == 0, "");
     return actual;
 }
+void __fastcall BeginGameVerify(net::ClientSession* self) {
+    net::ClientBeginGame(self);
+    ei::verify::Check("ClientBeginGame", true, true, "");
+}
 } // namespace
 
 EI_VERIFY(0x0041D1A0, AddTimedVerify, 0, s_unused);
 EI_VERIFY(0x0041D260, SendCommandVerify, 0, s_unused);
 EI_VERIFY(0x0041D420, DescribeVerify, 0, s_unused);
 EI_VERIFY(0x0041D9A0, BufferRatioVerify, 6, s_bufferRatio);
+EI_VERIFY(0x0041D410, BeginGameVerify, 0, s_unused);

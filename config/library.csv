@@ -3120,3 +3120,14 @@ address,name,library,signature,notes
 00417AB0,"stlp::list<T>::~list (elements hold a RefPtr at +4; reached from unwind funclets)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 00417B30,"stlp::list<T>::~list (elements hold a counted pointer at +4; reached from unwind funclets)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 0041C470,"stlp::vector<T>::~vector (44-byte elements with a growing buffer at +0x10; a copy of 0041F7F0, reached from unwind funclets)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0041F7D0,"stlp::list<T>::iterator::operator* (the node value at +8)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00411D60,"stlp::deque<T>::_M_push_back_aux (36-byte elements; no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00411E60,"stlp::allocator<T>::deallocate (36-byte elements; no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00411F70,"stlp::deque<T>::_M_reallocate_map (no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00435000,"flush(ostream&) manipulator (jumps to 006FC346; no Ghidra function)",MSVC iostream,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004387D0,"stlp::vector<T>::~vector (8-byte elements; no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004389C0,"stlp::vector<void*>::~vector (the handler vectors; no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E0E0,"stlp::pair<T1,T2>::pair(const T1&, const T2&) (no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E120,"stlp::pair<T1,T2>::pair(const T1&, const T2&) (no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E5B0,"stlp::_Rb_tree<T>::upper_bound (signed keys; no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0043E9F0,"stlp::_Rb_tree<T>::upper_bound (unsigned keys; no Ghidra function)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic

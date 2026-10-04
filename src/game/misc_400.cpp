@@ -42,6 +42,10 @@ void __fastcall ManagerDestruct(CBaseManager* self) {
     self->DestructBody();
 }
 
+// 0042D6B0 / 0042D6C0: the class name ("CClientSpecificManager", 00783DD8) and class id (0x30).
+const char* __fastcall ManagerClassName(const CBaseManager*) { return reinterpret_cast<const char*>(0x00783DD8); }
+int __fastcall ManagerClassId(const CBaseManager*) { return 0x30; }
+
 // 0042D700 (slot 14): a new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
 // failed allocation.
 CEngineObject* __fastcall ManagerNewObject(CBaseManager*, void*, int type) {
@@ -84,6 +88,8 @@ void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullpt
 
 EI_REPLACE(0x0042D690, misc400::ManagerConstruct);
 EI_REPLACE(0x0042D6F0, misc400::ManagerDestruct);
+EI_REPLACE(0x0042D6B0, misc400::ManagerClassName);
+EI_REPLACE(0x0042D6C0, misc400::ManagerClassId);
 EI_REPLACE(0x0042D700, misc400::ManagerNewObject);
 EI_REPLACE(0x00406B30, misc400::AlignedWords);
 EI_REPLACE(0x00406B50, misc400::AlignedDwords);

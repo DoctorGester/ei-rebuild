@@ -18,6 +18,8 @@ void __fastcall ManagerDestruct(CBaseManager* self);
 std::uint32_t __fastcall CursorStart(BufferCursor* self, void*, std::uint8_t* p, std::uint32_t, std::uint32_t);
 void __fastcall ClearPointee(void** self);
 CEngineObject* __fastcall ManagerNewObject(CBaseManager* self, void*, int type);
+const char* __fastcall ManagerClassName(const CBaseManager* self);
+int __fastcall ManagerClassId(const CBaseManager* self);
 } // namespace misc400
 
 namespace {
@@ -59,6 +61,22 @@ void __fastcall ClearPointeeVerify(void** self) {
     ei::verify::Check("ClearPointee", true, target == nullptr && *static_cast<void**>(*self) == nullptr, "");
 }
 
+// 0042D6B0 / 0042D6C0: MOV EAX,imm32 (5). Pure.
+const char*(__fastcall* s_className)(const CBaseManager*);
+const char* __fastcall ClassNameVerify(const CBaseManager* self) {
+    const char* expected = s_className(self);
+    const char* actual = misc400::ManagerClassName(self);
+    ei::verify::Check("Manager73BECC::ClassName", expected, actual, "");
+    return actual;
+}
+int(__fastcall* s_classId)(const CBaseManager*);
+int __fastcall ClassIdVerify(const CBaseManager* self) {
+    int expected = s_classId(self);
+    int actual = misc400::ManagerClassId(self);
+    ei::verify::Check("Manager73BECC::ClassId", expected, actual, "");
+    return actual;
+}
+
 CEngineObject* __fastcall NewObjectVerify(CBaseManager* self, void*, int type) {
     CEngineObject* object = misc400::ManagerNewObject(self, nullptr, type);
     bool makes = type >= 'E' && type <= 'K' && type != 'J';
@@ -72,3 +90,5 @@ EI_VERIFY(0x0042D6F0, DestructVerify, 0, s_unused);
 EI_VERIFY(0x00430FC0, CursorStartVerify, 6, s_cursorStart);
 EI_VERIFY(0x00433F10, ClearPointeeVerify, 8, s_clearPointee);
 EI_VERIFY(0x0042D700, NewObjectVerify, 0, s_unused);
+EI_VERIFY(0x0042D6B0, ClassNameVerify, 5, s_className);
+EI_VERIFY(0x0042D6C0, ClassIdVerify, 5, s_classId);

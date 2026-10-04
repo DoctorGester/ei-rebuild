@@ -62,6 +62,8 @@ EI_REPLACE(0x0041C8F0, RefPtrRelease);
 EI_REPLACE(0x0041DDA0, RefPtrRelease);
 EI_REPLACE(0x0041E670, RefPtrRelease);
 EI_REPLACE(0x0041E830, RefPtrRelease);
+EI_REPLACE(0x00412260, RefPtrRelease);   // no Ghidra function (exit-time release of 0079B5DC)
+EI_REPLACE(0x004122B0, RefPtrRelease);   // no Ghidra function (exit-time release of 0079B5D8)
 EI_REPLACE(0x00427240, RefPtrRelease);
 EI_REPLACE(0x00427460, RefPtrRelease);
 EI_REPLACE(0x00427540, RefPtrRelease);

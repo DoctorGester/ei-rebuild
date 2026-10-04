@@ -254,6 +254,8 @@ EI_VERIFY(0x0041C8F0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0041DDA0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0041E670, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0041E830, ReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00412260, ReleaseVerify, 0, s_unused);
+EI_VERIFY(0x004122B0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00427240, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00427460, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00427540, ReleaseVerify, 0, s_unused);

@@ -132,6 +132,16 @@ SessionBase* SessionBase::Construct() {
 }
 EI_REPLACE_METHOD(0x00436770, SessionBase::Construct);
 
+// 00436A30 (no Ghidra function): the handler vector's element constructor (an empty vector; the
+// session constructor inlines it). Leaves 0 in EAX, as the original.
+void* __fastcall HandlerVectorConstruct(HandlerVector* self) {
+    self->begin = nullptr;
+    self->end = nullptr;
+    self->eos = nullptr;
+    return nullptr;
+}
+EI_REPLACE(0x00436A30, HandlerVectorConstruct);
+
 void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     if (channel < 0 || channel >= kChannels) return;
     HandlerVector& v = handlers[channel][type & 0xFF];
