@@ -54,7 +54,6 @@ constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
 __declspec(naked) void __fastcall ServerAnnounce(ServerSession* /*self*/, void*, const char* /*text*/, int /*flag*/) EI_ORIGINAL(0x0041A310)
 __declspec(naked) void* __fastcall ServerAddResource(ServerSession* /*self*/, void*, void** /*out*/, const StringRep* /*name*/) EI_ORIGINAL(0x004195D0)
 __declspec(naked) void __fastcall ServerAddFile(ServerSession* /*self*/, void*, const StringRep* /*path*/, float /*weight*/) EI_ORIGINAL(0x00419730)
-__declspec(naked) void __fastcall ServerUseMap(ServerSession* /*self*/, void*, void* /*entry*/, int /*flag*/) EI_ORIGINAL(0x004191C0)
 
 constexpr std::uintptr_t kMapSuffix = 0x00783D80;      // appended to the map name for the message
 constexpr std::uintptr_t kRegistrySuffix = 0x00783D70; // appended for the registry lookup
@@ -86,7 +85,8 @@ void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
 // suffix) on the first, replaces the counted message at +0x25A8 by a fresh 0073BD00 one and copies
 // the name into it and into +0x25D4, loads the map into the world and announces its title. Then,
 // when the map registry knows "name + suffix", registers each of the map's resource names (weight
-// 1, numbered by 0079B608), adds the map's two data files and switches to the entry.
+// 1, numbered by 0079B608), adds the map's two data files and queues the host's item awards
+// (004191C0, without the final award).
 void ServerSession::SetMap(const StringRep* name) {
     std::uint8_t* self = reinterpret_cast<std::uint8_t*>(this);
     ClearList(self + 0x25AC, Element25ACDestroy, List25ACFreeNode);
@@ -179,7 +179,7 @@ void ServerSession::SetMap(const StringRep* name) {
     StringDestroyB(&a2);
     StringDestroyB(&prefix2);
 
-    ServerUseMap(this, nullptr, entry, 0);
+    AwardHost(entry, false);
 }
 namespace {
 void __fastcall SetMapHook(ServerSession* self, void*, const StringRep* name) { self->SetMap(name); }

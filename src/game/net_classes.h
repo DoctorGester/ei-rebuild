@@ -19,6 +19,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CRefObject;
+
 namespace net {
 
 // A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage).
@@ -234,6 +236,14 @@ struct ServerSession {
     ServerSession* Construct(std::uint32_t arg);
     // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
     void SetMap(const StringRep* name);
+    // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
+    // shares of the zone's two values and the host's items, then the map state is dropped.
+    void CompleteZone(const StringRep* zone);
+    // 004191C0. Queues the host's item awards of map registry `entry` (and, with `withFinal`, the
+    // final award).
+    void AwardHost(const std::uint8_t* entry, bool withFinal);
+    // 00419D90. Queues an award message for `connection` (60 s delay); destroys `text`.
+    void QueueAward(CRefObject* connection, int kind, float value, StringRep text);
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);
