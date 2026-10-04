@@ -314,6 +314,8 @@ public:
     bool ClearOccluder(FootprintCell* cell);
     // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).
     void Refresh(int minX, int maxX, int minY, int maxY);
+    // The rewrite of 005B8FA0 (ai_refresh.cpp); Refresh stays the forwarder to its address.
+    void RefreshArea(int minX, int maxX, int minY, int maxY);
 
     CRegionMap* Regions() { return reinterpret_cast<CRegionMap*>(regions); }
 
