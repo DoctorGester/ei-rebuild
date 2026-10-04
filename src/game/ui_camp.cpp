@@ -1072,3 +1072,45 @@ namespace {
 void __fastcall CampClose(CCampPages* self, void*) { self->Close(); }
 } // namespace
 EI_REPLACE(0x0060E6B0, CampClose);
+
+// --- 0060E3E0: the trade panel's destructor body (vtable 007417A8) --------------------------------
+
+namespace {
+
+// 006FE958: CStringArray's destructor (thiscall).
+__declspec(naked) void __fastcall StringArrayDestruct(void*) EI_ORIGINAL(0x006FE958)
+// 00613630 (__fastcall: block, count): frees a vector's block of 0x3C-byte entries (STLport node
+// allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
+__declspec(naked) void __fastcall FreeBlock3C(void*, int) EI_ORIGINAL(0x00613630)
+__declspec(naked) void __stdcall FreeBlock18(void*, int) EI_ORIGINAL(0x006135F0)
+// 00613CF0 (thiscall): a 0x18-byte list entry's destructor.
+__declspec(naked) void __fastcall DestroyEntry18(void*) EI_ORIGINAL(0x00613CF0)
+
+struct VectorView {
+    std::uint8_t* begin;
+    std::uint8_t* end;
+    std::uint8_t* capacity;
+};
+VectorView* VectorAt(void* object, int offset) {
+    return reinterpret_cast<VectorView*>(static_cast<std::uint8_t*>(object) + offset);
+}
+
+// The entries' destructors, then the block (its capacity in entries, a signed division).
+void DestroyVector18(VectorView* v) {
+    for (std::uint8_t* at = v->begin; at != v->end; at += 0x18) DestroyEntry18(at);
+    FreeBlock18(v->begin, static_cast<int>(v->capacity - v->begin) / 0x18);
+}
+
+} // namespace
+
+void __fastcall TradePanelDestroy(CUiWindow* self) {
+    StringArrayDestruct(reinterpret_cast<std::uint8_t*>(self) + 0x1A4);
+    VectorView* records = VectorAt(self, 0x190);
+    FreeBlock3C(records->begin, static_cast<int>(records->capacity - records->begin) / 0x3C);
+    DestroyVector18(VectorAt(self, 0x180));
+    DestroyVector18(VectorAt(self, 0x174));
+    DestroyVector18(VectorAt(self, 0x168));
+    DestroyVector18(VectorAt(self, 0x15C));
+    self->DestroyBase();
+}
+EI_REPLACE(0x0060E3E0, TradePanelDestroy);

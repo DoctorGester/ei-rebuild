@@ -428,3 +428,11 @@ static void __fastcall CampCloseVerify(CCampPages* self, void*) {
                       self->itemMade_, self->spellMade_, before, after);
 }
 EI_VERIFY(0x0060E6B0, CampCloseVerify, 0, s_unused);
+
+// 0060E3E0: ours only (a destructor body). The window base must be left empty.
+static void __fastcall TradePanelDestroyVerify(CUiWindow* self) {
+    TradePanelDestroy(self);
+    ei::verify::Check("TradePanelDestroy", true, !self->sceneObjects_.data_ && !self->objects_.data_,
+                      "scene %p objects %p", self->sceneObjects_.data_, self->objects_.data_);
+}
+EI_VERIFY(0x0060E3E0, TradePanelDestroyVerify, 0, s_unused);
