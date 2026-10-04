@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/stlp.h"
 
 #include <cstring>
 
@@ -52,6 +53,9 @@ __declspec(naked) void* __fastcall BySentIdFind(void* /*tree*/, void*, std::uint
 __declspec(naked) RefPtr* __fastcall RecordsAt(RbTree* /*tree*/, void*, const std::int32_t* /*key*/) EI_ORIGINAL(0x004382A0)
 __declspec(naked) std::uint8_t* __fastcall AttachedAt(RbTree* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x00438530)
 __declspec(naked) MessageFactory* __fastcall FactoryAt(HashTable* /*table*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00439EA0)
+// vector<int> of received sequences: insert when full.
+__declspec(naked) void __fastcall ReceivedInsertOverflow(void* /*vector*/, void*, std::int32_t* /*pos*/, const void* /*value*/,
+                                                         std::uint32_t /*n*/) EI_ORIGINAL(0x0043B850)
 // pair<const int, Record> from a key and a Record (the counted pointer shared).
 __declspec(naked) void* __fastcall MakeRecordPair(void* /*pair*/, void*, const std::int32_t* /*key*/, const void* /*record*/) EI_ORIGINAL(0x0043A090)
 // RefPtr<T>: default constructor, assignment of a raw pointer (00438110: the old object is released
@@ -97,7 +101,9 @@ struct LogStream {
     LogStream* Put(const char* text);        // 006FC31D
     LogStream* PutChar(char c);              // 006FC0B0
     LogStream* Apply(void* manipulator);     // 00434FE0
+    LogStream* PutInt(int value);            // 006FC14E
 };
+__declspec(naked) LogStream* LogStream::PutInt(int) EI_ORIGINAL(0x006FC14E)
 __declspec(naked) LogStream* LogStream::Put(const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) LogStream* LogStream::PutChar(char) EI_ORIGINAL(0x006FC0B0)
 __declspec(naked) LogStream* LogStream::Apply(void*) EI_ORIGINAL(0x00434FE0)
@@ -779,5 +785,188 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     return object;
 }
 EI_REPLACE_METHOD(0x00435820, Connection::ReadObjectRef);
+
+} // namespace net
+
+namespace net {
+
+namespace {
+constexpr std::uintptr_t kTooOld = 0x00783E5C;      // "SKIP too old update, dif "
+constexpr std::uintptr_t kDuplicate = 0x00783E3C;   // "DUPLICATE update received from "
+Connection*& CurrentConnectionRef() { return *reinterpret_cast<Connection**>(0x0079B924); }
+} // namespace
+
+void Connection::Acknowledge(std::uint16_t sequence) {
+    for (auto* node = *static_cast<HistoryNode**>(history); node != history; node = node->next) {
+        if (node->sequence == sequence) {
+            Delivered(reinterpret_cast<std::uint8_t*>(node) + 8);
+            void* after;
+            HistoryErase(&history, nullptr, &after, node);
+            return;
+        }
+    }
+    for (auto* node = *static_cast<HistoryNode**>(acknowledged); node != acknowledged; node = node->next) {
+        if (node->sequence == sequence) {
+            Delivered(reinterpret_cast<std::uint8_t*>(node) + 8);
+            void* after;
+            HistoryErase(&acknowledged, nullptr, &after, node);
+            return;
+        }
+    }
+}
+EI_REPLACE_METHOD(0x00434CE0, Connection::Acknowledge);
+
+// The mask at +0x1124 has bit k set when the packet `ackBase - 1 - k` was acknowledged already;
+// it shifts along when the peer's newest acknowledged sequence moves.
+void Connection::ReadAcks(BufferCursor* cursor) {
+    std::uint16_t sequence;
+    std::memcpy(&sequence, cursor->p, 2);
+    cursor->p += 2;
+    std::uint32_t mask;
+    std::memcpy(&mask, cursor->p, 4);
+    cursor->p += 4;
+    std::int32_t moved = static_cast<std::int32_t>((static_cast<std::uint32_t>(sequence) - unknown_1128) & 0xFFFF);
+    if (moved > 0x8000) moved -= 0x10000;
+    if (moved <= 0) {
+        if (moved < -0x20) unknown_1124 = 0;
+        else unknown_1124 >>= (-moved) & 31;   // SHR by CL: a shift of 32 leaves it as it is
+    } else {
+        std::uint32_t shifted = (unknown_1124 << 1) | 1;
+        unknown_1124 = shifted;
+        if (moved - 1 < 0x20) unknown_1124 = shifted << ((moved - 1) & 31);
+        else unknown_1124 = 0;
+    }
+    std::uint32_t fresh = ~unknown_1124 & mask;
+    unknown_1128 = sequence;
+    unknown_1124 |= fresh;
+    Acknowledge(sequence);
+    std::uint16_t older = sequence;
+    for (int k = 1; k <= 32; ++k) {
+        --older;
+        if (fresh & (1u << (k - 1))) Acknowledge(older);
+    }
+}
+EI_REPLACE_METHOD(0x00434D70, Connection::ReadAcks);
+
+bool Connection::Accept(std::uint32_t sequence) {
+    std::uint32_t newest = lastReceived;
+    if (sequence + 0x20 < newest) {
+        if (auto* log = static_cast<LogStream*>(NetLog())) {
+            log->Put(reinterpret_cast<const char*>(kTooOld))
+                ->PutInt(static_cast<int>(newest - sequence))
+                ->PutChar('\n')
+                ->Apply(reinterpret_cast<void*>(kFlush));
+        }
+        return false;
+    }
+    if (!(newest > sequence)) newest = sequence;
+    lastReceived = newest;
+    for (std::int32_t* it = received; it != receivedEnd; ++it) {
+        if (*it == static_cast<std::int32_t>(sequence)) {
+            if (NetLog()) {
+                StringRep peer;
+                const char* text = AddressString(address, nullptr, &peer)->start;
+                static_cast<LogStream*>(NetLog())
+                    ->Put(reinterpret_cast<const char*>(kDuplicate))
+                    ->Put(text)
+                    ->PutChar('\n')
+                    ->Apply(reinterpret_cast<void*>(kFlush));
+                if (peer.start) stlp::deallocate(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
+            }
+            return false;
+        }
+    }
+    if (receivedEnd == receivedEos) {
+        ReceivedInsertOverflow(&received, nullptr, receivedEnd, &sequence, 1);
+    } else {
+        if (receivedEnd) *receivedEnd = static_cast<std::int32_t>(sequence);
+        ++receivedEnd;
+    }
+    return true;
+}
+EI_REPLACE_METHOD(0x00434E50, Connection::Accept);
+
+void Connection::ProcessHeaders() {
+    bool progress;
+    do {
+        progress = false;
+        auto* node = *static_cast<HeaderNode**>(list_1120);
+        if (node == list_1120) return;
+        do {
+            std::uint16_t sequence;
+            std::memcpy(&sequence, node->data, 2);
+            if (sequence == unknown_111A) {
+                GameBuffer* in = &reliableIn;
+                if (in->cur > in->high) in->high = in->cur;
+                ei::VCall<int>(in, 6, in->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->begin)) +
+                                          static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->high)));
+                std::uint32_t size = node->data[2];
+                const std::uint8_t* from = node->data + 3;
+                if (in->cur + size > in->end) {
+                    ei::VCall<int>(in, 4, from, size);
+                } else {
+                    in->flags |= 1;
+                    std::memcpy(in->cur, from, size);
+                    in->cur += size;
+                }
+                unknown_111A = static_cast<std::uint16_t>(unknown_111A + node->data[2]);
+                void* after;
+                HeadersErase(&list_1120, nullptr, &after, node);
+                node = static_cast<HeaderNode*>(after);
+                progress = true;
+            } else {
+                node = node->next;
+            }
+        } while (node != list_1120);
+    } while (progress);
+}
+EI_REPLACE_METHOD(0x00434AE0, Connection::ProcessHeaders);
+
+bool Connection::ReadUpdate(BufferCursor* cursor) {
+    CurrentConnectionRef() = this;
+    idleTime = 0.0f;
+    std::uint16_t low;
+    std::memcpy(&low, cursor->p, 2);
+    cursor->p += 2;
+    std::uint32_t sequence = low + unknown_0010;
+    if (lastReceived == 0) lastReceived = sequence;
+    std::int32_t step = static_cast<std::int32_t>(sequence - lastReceived);
+    if (step > 0x8000) {
+        sequence -= 0x10000;
+    } else if (step < -0x8000) {
+        sequence += 0x10000;
+        unknown_0010 += 0x10000;
+    }
+    if (!Accept(sequence)) {
+        CurrentConnectionRef() = nullptr;
+        return true;
+    }
+    ReadAcks(cursor);
+    std::uint8_t header[0x104];
+    std::memcpy(header, cursor->p, 3);
+    std::uint8_t* from = cursor->p + 3;
+    cursor->p = from;
+    std::memcpy(header + 3, from, header[2]);
+    cursor->p = from + header[2];
+    std::uint16_t headerSequenceIn;
+    std::memcpy(&headerSequenceIn, header, 2);
+    if (static_cast<std::uint16_t>(headerSequenceIn - unknown_111A) <= 0x8000 && header[2] != 0) {
+        void* position;
+        HeadersBeginForInsert(&list_1120, nullptr, &position);
+        void* inserted;
+        HeadersInsertCopy(&list_1120, nullptr, &inserted, position, header);
+        ProcessHeaders();
+    }
+    std::uint8_t count = *cursor->p++;
+    for (std::uint8_t i = 0; i < count; ++i) {
+        if (!ReadRecord(cursor, sequence)) {
+            CurrentConnectionRef() = nullptr;
+            return false;
+        }
+    }
+    CurrentConnectionRef() = nullptr;
+    return true;
+}
+EI_REPLACE_METHOD(0x00436470, Connection::ReadUpdate);
 
 } // namespace net

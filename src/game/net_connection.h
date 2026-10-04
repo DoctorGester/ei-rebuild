@@ -169,6 +169,25 @@ struct Connection {
     // 00433BD0 (net_connection_tick.cpp). Clocks, lost packets, sending, delayed id reuse; false
     // when the peer timed out or the reliable stream overflowed.
     bool Tick(double dt);
+    // 00433FA0 (net_connection_tick.cpp). A packet arrived: the round-trip averages take its age;
+    // reliable changes it carried count as delivered, removals it carried end their entries (the
+    // id goes to the newest freed-id batch).
+    void Delivered(std::uint8_t* historyData);
+    // 00434CE0. The packet with sequence `sequence` (in the history or the acknowledged list) was
+    // acknowledged: Delivered, and it leaves its list.
+    void Acknowledge(std::uint16_t sequence);
+    // 00434D70. Reads the peer's acknowledgements (last sequence, mask of the 32 before it) and
+    // acknowledges what is new.
+    void ReadAcks(BufferCursor* cursor);
+    // 00434E50. Whether an update with sequence `sequence` is new (not 32 older than the newest,
+    // not seen before); remembers it.
+    bool Accept(std::uint32_t sequence);
+    // 00434AE0. Appends the queued incoming reliable chunks that are next in sequence to the
+    // incoming reliable stream.
+    void ProcessHeaders();
+    // 00436470. Reads an update packet: sequence, acknowledgements, a reliable chunk and the
+    // entries. False when an entry could not be read; true otherwise (also for a stale packet).
+    bool ReadUpdate(BufferCursor* cursor);
 };
 static_assert(offsetof(Connection, address) == 0x2C);
 static_assert(offsetof(Connection, clock) == 0x48);

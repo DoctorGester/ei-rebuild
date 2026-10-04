@@ -198,3 +198,42 @@ bool __fastcall TickVerify(net::Connection* self, void*, double dt) {
 void* s_unusedTick;
 } // namespace
 EI_VERIFY(0x00433BD0, TickVerify, 0, s_unusedTick);
+
+namespace {
+// The receive side (00433FA0, 00434CE0, 00434D70, 00434E50, 00434AE0, 00436470): ours only (they
+// change the connection's lists and streams).
+void __fastcall DeliveredVerify(net::Connection* self, void*, std::uint8_t* historyData) {
+    self->Delivered(historyData);
+    ei::verify::Check("Connection::Delivered", true, true, "");
+}
+void __fastcall AcknowledgeVerify(net::Connection* self, void*, std::uint16_t sequence) {
+    self->Acknowledge(sequence);
+    ei::verify::Check("Connection::Acknowledge", true, true, "");
+}
+void __fastcall ReadAcksVerify(net::Connection* self, void*, BufferCursor* cursor) {
+    std::uint8_t* before = cursor->p;
+    self->ReadAcks(cursor);
+    ei::verify::Check("Connection::ReadAcks", 6, static_cast<int>(cursor->p - before), "");
+}
+bool __fastcall AcceptVerify(net::Connection* self, void*, std::uint32_t sequence) {
+    bool accepted = self->Accept(sequence);
+    ei::verify::Check("Connection::Accept", true, !accepted || self->lastReceived >= sequence, "seq %u", sequence);
+    return accepted;
+}
+void __fastcall ProcessHeadersVerify(net::Connection* self) {
+    self->ProcessHeaders();
+    ei::verify::Check("Connection::ProcessHeaders", true, true, "");
+}
+bool __fastcall ReadUpdateVerify(net::Connection* self, void*, BufferCursor* cursor) {
+    bool ok = self->ReadUpdate(cursor);
+    ei::verify::Check("Connection::ReadUpdate", true, *reinterpret_cast<void**>(0x0079B924) == nullptr, "");
+    return ok;
+}
+void* s_unusedReceive;
+} // namespace
+EI_VERIFY(0x00433FA0, DeliveredVerify, 0, s_unusedReceive);
+EI_VERIFY(0x00434CE0, AcknowledgeVerify, 0, s_unusedReceive);
+EI_VERIFY(0x00434D70, ReadAcksVerify, 0, s_unusedReceive);
+EI_VERIFY(0x00434E50, AcceptVerify, 0, s_unusedReceive);
+EI_VERIFY(0x00434AE0, ProcessHeadersVerify, 0, s_unusedReceive);
+EI_VERIFY(0x00436470, ReadUpdateVerify, 0, s_unusedReceive);

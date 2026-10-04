@@ -165,3 +165,61 @@ bool __fastcall TickHook(Connection* self, void*, double dt) { return self->Tick
 EI_REPLACE(0x00433BD0, TickHook);
 
 } // namespace net
+
+namespace net {
+
+namespace {
+__declspec(naked) void* __fastcall PriorityFind(RbTree* /*tree*/, void*, void** /*out*/, ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043C9A0)
+__declspec(naked) void __fastcall PriorityEraseAt(RbTree* /*tree*/, void*, void* /*position*/) EI_ORIGINAL(0x00437EF0)
+__declspec(naked) std::uint32_t __fastcall BySentIdErase(void* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0043BE60)
+// vector<{uint16 id, uint8 type}> of a freed-id batch: construct in place (4 bytes), insert when full.
+__declspec(naked) void __fastcall FreedConstruct(std::uint8_t* /*at*/, const void* /*value*/) EI_ORIGINAL(0x0043D7F0)
+__declspec(naked) void __fastcall FreedInsertOverflow(std::uint8_t** /*vector*/, void*, std::uint8_t* /*pos*/, const void* /*value*/,
+                                                      std::uint32_t /*n*/) EI_ORIGINAL(0x0043B6C0)
+#define EI_RTT_KEEP GameFloat(0x0073BF30)   // the share of the old average kept per sample
+#define EI_ONE GameFloat(0x0073B84C)        // 1.0f
+} // namespace
+
+void Connection::Delivered(std::uint8_t* historyData) {
+    auto* node = reinterpret_cast<HistoryNode*>(historyData - 8);
+    double sample = Get(clock) - Get(node->time);
+    double kept = D(EI_RTT_KEEP) * D(roundTrip);
+    roundTrip = Store(kept);
+    roundTrip = Store((D(EI_ONE) - D(EI_RTT_KEEP)) * sample + kept);
+    double keptSquare = D(EI_RTT_KEEP) * D(roundTripSquare);
+    roundTripSquare = Store(keptSquare);
+    roundTripSquare = Store((D(EI_ONE) - D(EI_RTT_KEEP)) * sample * sample + keptSquare);
+    for (SentItem* item = node->items->next; item != node->items; item = item->next) {
+        auto action = static_cast<std::int32_t>(item->action);
+        if (action == 1) {
+            std::uint32_t version = item->version;
+            if (item->entry->version > version) version = item->entry->version;
+            item->entry->version = version;
+        } else if (action > 1 && action < 4) {
+            ReplicaEntry* entry = item->entry;
+            RbTree* tree = &priorities[entry->flags >> 1];
+            void* found;
+            PriorityFind(tree, nullptr, &found, &entry);
+            if (found != tree->header) {
+                entry = item->entry;
+                std::uint32_t key = (static_cast<std::uint32_t>(entry->type) << 16) + entry->id;
+                BySentIdErase(bySentId, nullptr, &key);
+                std::uint8_t value[4] = {};
+                std::memcpy(value, &entry->id, 2);
+                value[2] = entry->type;
+                auto* batch = static_cast<std::uint8_t**>(freedIds)[1];   // the newest batch
+                auto** ids = reinterpret_cast<std::uint8_t**>(batch + 8);  // begin, end, eos
+                if (ids[1] != ids[2]) {
+                    FreedConstruct(ids[1], value);
+                    ids[1] += 4;
+                } else {
+                    FreedInsertOverflow(ids, nullptr, ids[1], value, 1);
+                }
+                PriorityEraseAt(tree, nullptr, found);
+            }
+        }
+    }
+}
+EI_REPLACE_METHOD(0x00433FA0, Connection::Delivered);
+
+} // namespace net
