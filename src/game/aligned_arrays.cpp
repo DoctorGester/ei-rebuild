@@ -92,6 +92,8 @@ void __fastcall QwordArraySetSize(Array* a, void*, int n, int growBy) { SetSizeT
 EI_REPLACE(0x00453100, QwordArraySetSize);
 void __fastcall Vector3ArraySetSize(Array* a, void*, int n, int growBy) { SetSizeT<12>(a, n, growBy); }
 EI_REPLACE(0x0044F1D0, Vector3ArraySetSize);
+void __fastcall Vector3ArraySetSize2(Array* a, void*, int n, int growBy) { SetSizeT<12>(a, n, growBy); }
+EI_REPLACE(0x00475F40, Vector3ArraySetSize2);   // the scene loader's instantiation
 void __fastcall MatrixArraySetSize(Array* a, void*, int n, int growBy) { SetSizeT<64>(a, n, growBy); }
 EI_REPLACE(0x0044F960, MatrixArraySetSize);
 
@@ -132,8 +134,18 @@ void __fastcall Vector3ArraySetAtGrow(Array* a, void*, int index, Blob<12> value
     std::memcpy(a->data + index * 12, &value, 12);
 }
 EI_REPLACE(0x00452AF0, Vector3ArraySetAtGrow);
+void __fastcall QwordArraySetAtGrow(Array* a, void*, int index, Blob<8> value) {
+    if (index >= a->size) Resize<8>(*a, index + 1);
+    std::memcpy(a->data + index * 8, &value, 8);
+}
+EI_REPLACE(0x00476DD0, QwordArraySetAtGrow);
 
 // ---- operator=(other) --------------------------------------------------------------------------
+void __fastcall QwordArrayCopy(Array* a, void*, const Array* other) {
+    Resize<8>(*a, other->size);
+    std::memcpy(a->data, other->data, static_cast<std::size_t>(other->size) * 8);
+}
+EI_REPLACE(0x00474C80, QwordArrayCopy);
 void __fastcall Vector3ArrayCopy(Array* a, void*, const Array* other) {
     Resize<12>(*a, other->size);
     std::memcpy(a->data, other->data, static_cast<std::size_t>(other->size) * 12);
