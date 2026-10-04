@@ -24,6 +24,23 @@ static char* __fastcall DXSurfaceConstructVerify(char* holder, void*, char* devi
 }
 EI_VERIFY(0x004EF7B0, DXSurfaceConstructVerify, 0, s_construct);
 
+// 004EFC60: returns the holder with its vtable, the device and a surface of the picture's size
+// (+4 / +8 of the .mmp header); the holder count one higher.
+char* __fastcall DXSurfaceFromPicture(char* holder, void*, char* device, const void* picture, int flag);
+static void* s_fromPicture;
+static char* __fastcall DXSurfaceFromPictureVerify(char* holder, void*, char* device, const void* picture, int flag) {
+    int count = *reinterpret_cast<int*>(0x007AEE94);
+    char* result = DXSurfaceFromPicture(holder, nullptr, device, picture, flag);
+    const auto* header = static_cast<const int*>(picture);
+    bool ok = result == holder && *reinterpret_cast<std::uintptr_t*>(holder) == 0x0073D774 &&
+              *reinterpret_cast<char**>(holder + 0xC) == device && *reinterpret_cast<void**>(holder + 0x10) != nullptr &&
+              *reinterpret_cast<int*>(holder + 0x14) == header[1] && *reinterpret_cast<int*>(holder + 0x18) == header[2] &&
+              *reinterpret_cast<int*>(0x007AEE94) == count + 1;
+    ei::verify::Check("DXSurfaceFromPicture", true, ok, "%dx%d flag %d", header[1], header[2], flag);
+    return result;
+}
+EI_VERIFY(0x004EFC60, DXSurfaceFromPictureVerify, 0, s_fromPicture);
+
 // 004EFD20: the base vtable and no device afterwards; the holder count one lower.
 static void* s_destroy;
 static void __fastcall DXSurfaceDestroyVerify(char* holder) {

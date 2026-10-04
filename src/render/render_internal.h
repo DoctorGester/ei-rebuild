@@ -228,6 +228,14 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
 // A window surface (CUiSurface's holder) as one level, read now when its contents changed; texels
 // equal to `key` (the surface's pixel format) transparent when `keyed`.
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height);
+// A picture loaded into a surface holder (render::PictureFromMmp): level 0 as RGBA8, kept until
+// the holder goes (render::ClientSurfaceGone).
+struct Picture {
+    int width = 0, height = 0;
+    std::vector<std::uint8_t> rgba;
+};
+bool PictureFromMmpData(const void* holder, const void* data);
+const Picture* PictureOf(const void* holder);
 sg_sampler LinearSampler();
 sg_sampler StageSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a

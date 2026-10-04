@@ -1,6 +1,7 @@
 // The off-screen surface holder (CDXSurface, 0x20 bytes, vtable 0073D774): its constructor for a
 // system-memory surface of the screen's pixel format (004EF7B0, thiscall: device object, width,
-// height; RET 0xC) and its destructor body (004EFD20). Used for the interface windows' surfaces
+// height; RET 0xC), its constructor from an .mmp picture (004EFC60) and its destructor body
+// (004EFD20). Used for the interface windows' surfaces
 // (005FCC00 / 005FCDD0 / 005FD7A0), the software cursor's (005E60B0) and the movies' (005DA400,
 // 005DB3F0, 005DBA50).
 //
@@ -210,14 +211,45 @@ char* __fastcall DXSurfaceConstruct(char* holder, void*, char* device, int width
 }
 EI_REPLACE(0x004EF7B0, DXSurfaceConstruct);
 
+namespace {
+// 004F0060 (thiscall on the holder, RET 8): makes the surface and loads an 8888 .mmp picture into
+// it (`flag` asks for a texture surface); 0 on failure (reported).
+__declspec(naked) int __fastcall LoadPicture(char*, void*, const void*, int) EI_ORIGINAL(0x004F0060)
+__declspec(naked) void* __cdecl ErrorObjectText(void*, const char*) EI_ORIGINAL(0x00480250)
+} // namespace
+
+// 004EFC60 (thiscall, RET 0xC): a holder whose surface shows an .mmp picture (the software cursor's
+// images 005E4EB0, windows made from a picture 005FCF80). The new renderer keeps the picture's
+// pixels from the file data (render::PictureFromMmp) instead of reading the surface back. Throws
+// the game's error object when the picture cannot be loaded.
+char* __fastcall DXSurfaceFromPicture(char* holder, void*, char* device, const void* picture, int flag) {
+    At<int>(holder, 4) = 0;
+    At<int>(holder, 8) = 0;
+    At<char*>(holder, 0xC) = device;
+    At<void*>(holder, 0x10) = nullptr;
+    At<int>(holder, 0x14) = 0;
+    At<int>(holder, 0x18) = 0;
+    At<int>(holder, 0x1C) = 0;
+    At<std::uintptr_t>(holder, 0) = 0x0073D774;
+    if (!LoadPicture(holder, nullptr, picture, flag)) {
+        void* object = GameNew(0xC);
+        if (object) object = ErrorObjectText(object, Text(0x0078E918));   // "Can't load picture to surface"
+        ThrowException(&object, reinterpret_cast<const void*>(0x00759908));
+    }
+    if (render::Active()) render::PictureFromMmp(holder, picture);
+    ++HolderCount();
+    return holder;
+}
+EI_REPLACE(0x004EFC60, DXSurfaceFromPicture);
+
 // 004EFD20. Releases the surface (and its client memory), clears the device, counts the holder out
 // and leaves the base class's vtable (0073D768).
 void __fastcall DXSurfaceDestroy(char* holder) {
     At<std::uintptr_t>(holder, 0) = 0x0073D774;
     if (void* surface = At<void*>(holder, 0x10)) ComCall(surface, kRelease);
+    render::ClientSurfaceGone(holder);   // also forgets a picture kept for it
     auto it = g_memory.find(holder);
     if (it != g_memory.end()) {
-        render::ClientSurfaceGone(holder);
         gameapi::DeleteObject(it->second.bitmap);
         g_memory.erase(it);
     }

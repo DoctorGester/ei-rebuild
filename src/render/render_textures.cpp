@@ -340,6 +340,21 @@ struct Client {
     std::uint32_t red, green, blue, alpha;
 };
 std::unordered_map<const void*, Client> g_clients;   // by holder
+// The client memory as the window texture was last made from it: a window is converted again only
+// when its memory differs (the game's GDI drawing, Lock writes and the old path's Blt all land in
+// that memory, so a comparison sees every writer without DirectDraw's change counter).
+std::unordered_map<const void*, std::vector<std::uint8_t>> g_snapshots;   // by holder
+
+std::size_t ClientBytes(const Client& c) { return static_cast<std::size_t>(c.pitch) * static_cast<std::size_t>(c.height); }
+
+// The client memory of `holder` differs from its snapshot (GdiFlush first: GDI may still hold
+// drawing for it).
+bool ClientChanged(const void* holder, const Client& c) {
+    GdiFlush();
+    auto it = g_snapshots.find(holder);
+    if (it == g_snapshots.end() || it->second.size() != ClientBytes(c)) return true;
+    return std::memcmp(it->second.data(), c.bits, it->second.size()) != 0;
+}
 
 // Reads a window surface (one level; keyed) into `t`: from its game-owned memory when it has
 // some, else through a Lock.
@@ -366,6 +381,13 @@ void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::
         desc.ddpfPixelFormat.dwBBitMask = c.blue;
         desc.ddpfPixelFormat.dwRGBAlphaBitMask = c.alpha;
         ok = Convert(desc, pixels, keyed, key);
+        if (ok) {
+            auto& snapshot = g_snapshots[holder];
+            snapshot.resize(ClientBytes(c));
+            std::memcpy(snapshot.data(), c.bits, snapshot.size());
+        } else {
+            g_snapshots.erase(holder);
+        }
     } else {
         LockGameDevice();
         hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
@@ -556,6 +578,32 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
     return StoreDecoded(holder, width, height, std::move(decoded), "ei-mmp-texture");
 }
 
+namespace {
+std::unordered_map<const void*, Picture> g_pictures;   // by surface holder
+} // namespace
+
+bool PictureFromMmpData(const void* holder, const void* data) {
+    g_pictures.erase(holder);
+    const auto& h = *static_cast<const MmpFile*>(data);
+    if (h.width == 0 || h.height == 0 || h.width > 4096 || h.height > 4096) return false;
+    Picture p;
+    p.width = static_cast<int>(h.width);
+    p.height = static_cast<int>(h.height);
+    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpFile);
+    if (!DecodeMmpLevel(h, base + MipOffset(h, 0), p.width, p.height, p.rgba)) {
+        if (g_mmpFailures++ < 10)
+            ei::Log("render: picture format %08X not decoded; it is read from its surface", static_cast<unsigned>(h.format));
+        return false;
+    }
+    g_pictures.emplace(holder, std::move(p));
+    return true;
+}
+
+const Picture* PictureOf(const void* holder) {
+    auto it = g_pictures.find(holder);
+    return it == g_pictures.end() ? nullptr : &it->second;
+}
+
 sg_view TextureView(const void* texture) {
     // CTexture +0x5C: the counted surface holder (CDXSurface).
     if (!texture) return White().view;
@@ -570,9 +618,13 @@ sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int
     Texture& t = g_windows[holder];
     t.usedFrame = frame;
     // Window surfaces are checked at every blit (the game may redraw one between two blits of a
-    // frame); without uniqueness values they are read once a frame.
+    // frame): ones in game-owned memory by comparing that memory with what they were made from,
+    // others by the surface's uniqueness value (without one, read once a frame).
     DWORD now = 0;
-    bool changed = Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
+    auto client = g_clients.find(holder);
+    bool changed = client != g_clients.end()
+                       ? ClientChanged(holder, client->second)
+                       : Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
     bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) || changed;
     t.checkedFrame = frame;
     if (reread) {
@@ -694,6 +746,16 @@ void ClientSurface(const void* holder, void* bits, int pitch, int width, int hei
                                                alphaMask};
 }
 
-void ClientSurfaceGone(const void* holder) { detail::g_clients.erase(holder); }
+void ClientSurfaceGone(const void* holder) {
+    detail::g_clients.erase(holder);
+    detail::g_snapshots.erase(holder);
+    detail::g_pictures.erase(holder);
+}
+
+void PictureFromMmp(const void* holder, const void* data) {
+    if (!holder || !data || !Active()) return;
+    detail::FpuGuard fpu;
+    detail::PictureFromMmpData(holder, data);
+}
 
 } // namespace render
