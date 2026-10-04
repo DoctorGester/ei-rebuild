@@ -7,6 +7,7 @@
 #include "net_verify.h"
 
 #include "../../src/game/base_manager.h"
+#include "../../src/game/object.h"
 #include "../../src/lib/crt.h"
 
 #include <cstring>
@@ -17,6 +18,19 @@ int __fastcall BaseManagerInit(CBaseManager* self, void*, void* owner);
 CEngineObject* __fastcall BaseManagerCreateObject(CBaseManager* self, void*, int type, int id);
 int __fastcall BaseManagerRemoveObject(CBaseManager* self, void*, CEngineObject* object);
 void __fastcall BaseManagerReleaseObject(CBaseManager* self, void*, CEngineObject* object);
+void __fastcall BaseManagerDestroyAll(CBaseManager* self);
+CEngineObject* __fastcall BaseManagerUnregister(CBaseManager* self, void*, int id);
+int __fastcall BaseManagerRegisterInstant(CBaseManager* self, void*, CEngineObject* object);
+void __fastcall BaseManagerFreeRecords(CBaseManager* self);
+void __fastcall BaseManagerLoadObjects(CBaseManager* self, void*, void* stream);
+void __fastcall BaseManagerSaveObjects(CBaseManager* self, void*, void* stream);
+void __fastcall BaseManagerReleaseUnused(CBaseManager* self);
+void __fastcall BaseManagerSetContext(CBaseManager* self, void*, void* context);
+int __fastcall BaseManagerSlot16(CBaseManager*, void*, int);
+int __fastcall BaseManagerSlot17(CBaseManager*, void*, int);
+int __fastcall BaseManagerSlot19(CBaseManager*, void*, int, int);
+bool __fastcall BaseManagerSlot20(CBaseManager*, void*, int);
+int __fastcall BaseManagerSlot21(CBaseManager*, void*, int);
 
 namespace {
 
@@ -117,8 +131,142 @@ int __fastcall RemoveObjectVerify(CBaseManager* self, void*, CEngineObject* obje
     return result;
 }
 
+// 004034E0: ours only; afterwards nothing is registered.
+void __fastcall DestroyAllVerify(CBaseManager* self) {
+    BaseManagerDestroyAll(self);
+    ei::verify::Check("BaseManagerDestroyAll", true, self->objects_.Size() == 0 && self->maxId_ == 0, "");
+}
+
+// 004039B0 / 00403BD0: ours only (they change the tables); the id is (no longer) registered.
+CEngineObject* __fastcall UnregisterVerify(CBaseManager* self, void*, int id) {
+    CEngineObject* before = self->FindObject(static_cast<unsigned>(id));
+    CEngineObject* result = BaseManagerUnregister(self, nullptr, id);
+    ei::verify::Check("BaseManagerUnregister", true,
+                      result == before && self->FindObject(static_cast<unsigned>(id)) == nullptr, "id %d", id);
+    return result;
+}
+int __fastcall RegisterInstantVerify(CBaseManager* self, void*, CEngineObject* object) {
+    int id = BaseManagerRegisterInstant(self, nullptr, object);
+    ei::verify::Check("BaseManagerRegisterInstant", true,
+                      object->id_ == id && object->owner_ == self && self->FindObject(static_cast<unsigned>(id)) == object,
+                      "id %d", id);
+    return id;
+}
+
+// 00404410: ours only; the spare tables end empty.
+void __fastcall FreeRecordsVerify(CBaseManager* self) {
+    BaseManagerFreeRecords(self);
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(self);
+    std::uint32_t spares, counts;
+    std::memcpy(&spares, bytes + 0x78, 4);
+    std::memcpy(&counts, bytes + 0x90, 4);
+    ei::verify::Check("BaseManagerFreeRecords", true, spares == 0 && counts == 0, "");
+}
+
+// 004046E0 / 00404760 / 004047E0 / 00404860: ours only (they read or write the stream).
+void __fastcall LoadVerify(CBaseManager* self, void*, void* stream) {
+    self->CBaseManager::Load(stream);
+    ei::verify::Check("CBaseManager::Load", true, true, "");
+}
+void __fastcall SaveVerify(CBaseManager* self, void*, void* stream) {
+    self->CBaseManager::Save(stream);
+    ei::verify::Check("CBaseManager::Save", true, true, "");
+}
+void __fastcall LoadObjectsVerify(CBaseManager* self, void*, void* stream) {
+    BaseManagerLoadObjects(self, nullptr, stream);
+    ei::verify::Check("BaseManagerLoadObjects", true, true, "");
+}
+void __fastcall SaveObjectsVerify(CBaseManager* self, void*, void* stream) {
+    BaseManagerSaveObjects(self, nullptr, stream);
+    ei::verify::Check("BaseManagerSaveObjects", true, true, "");
+}
+
+// 004048F0: ours only (it releases objects).
+void __fastcall ReleaseUnusedVerify(CBaseManager* self) {
+    BaseManagerReleaseUnused(self);
+    ei::verify::Check("BaseManagerReleaseUnused", true, true, "");
+}
+
+// 00404920: ours only (its prologue has a short jump within the first 5 bytes); the iterator holds
+// the manager and the returned object is the list's first.
+CEngineObject* __fastcall ListFirstVerify(ObjectListIterator* it, void*, CBaseManager* manager) {
+    CEngineObject* result = it->First(manager);
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(manager);
+    void** head;
+    std::memcpy(&head, bytes + 0x38, 4);
+    bool ok = it->manager == manager && (head ? result == head[2] && it->position == head[0] : !result && !it->position);
+    ei::verify::Check("ObjectListFirst", true, ok, "");
+    return result;
+}
+
+// 00404960: MOV EAX,[ECX+4] (3), TEST EAX,EAX (2). Side by side on a copy of the iterator.
+CEngineObject*(__fastcall* s_listNext)(ObjectListIterator*);
+CEngineObject* __fastcall ListNextVerify(ObjectListIterator* it) {
+    ObjectListIterator copy = *it;
+    CEngineObject* expected = s_listNext(&copy);
+    CEngineObject* actual = it->Next();
+    ei::verify::Check("ObjectListNext", true, expected == actual && copy.position == it->position && copy.manager == it->manager, "");
+    return actual;
+}
+
+// 00403720: ours only.
+void __fastcall SetContextVerify(CBaseManager* self, void*, void* context) {
+    BaseManagerSetContext(self, nullptr, context);
+    ei::verify::Check("BaseManagerSetContext", true, self->owner_AC == context, "");
+}
+
+// The empty slots: XOR (2) + RET n (3), side by side.
+int(__fastcall* s_slot16)(CBaseManager*, void*, int);
+int(__fastcall* s_slot17)(CBaseManager*, void*, int);
+int(__fastcall* s_slot19)(CBaseManager*, void*, int, int);
+int(__fastcall* s_slot20)(CBaseManager*, void*, int);
+int(__fastcall* s_slot21)(CBaseManager*, void*, int);
+int __fastcall Slot16Verify(CBaseManager* self, void*, int a) {
+    int actual = BaseManagerSlot16(self, nullptr, a);
+    ei::verify::Check("BaseManagerSlot16", s_slot16(self, nullptr, a), actual, "");
+    return actual;
+}
+int __fastcall Slot17Verify(CBaseManager* self, void*, int a) {
+    int actual = BaseManagerSlot17(self, nullptr, a);
+    ei::verify::Check("BaseManagerSlot17", s_slot17(self, nullptr, a), actual, "");
+    return actual;
+}
+int __fastcall Slot19Verify(CBaseManager* self, void*, int a, int b) {
+    int actual = BaseManagerSlot19(self, nullptr, a, b);
+    ei::verify::Check("BaseManagerSlot19", s_slot19(self, nullptr, a, b), actual, "");
+    return actual;
+}
+bool __fastcall Slot20Verify(CBaseManager* self, void*, int a) {
+    bool actual = BaseManagerSlot20(self, nullptr, a);
+    bool expected = (s_slot20(self, nullptr, a) & 0xFF) != 0;
+    ei::verify::Check("BaseManagerSlot20", expected, actual, "");
+    return actual;
+}
+int __fastcall Slot21Verify(CBaseManager* self, void*, int a) {
+    int actual = BaseManagerSlot21(self, nullptr, a);
+    ei::verify::Check("BaseManagerSlot21", s_slot21(self, nullptr, a), actual, "");
+    return actual;
+}
+
 } // namespace
 
+EI_VERIFY(0x004034E0, DestroyAllVerify, 0, s_unused);
+EI_VERIFY(0x004039B0, UnregisterVerify, 0, s_unused);
+EI_VERIFY(0x00403BD0, RegisterInstantVerify, 0, s_unused);
+EI_VERIFY(0x00404410, FreeRecordsVerify, 0, s_unused);
+EI_VERIFY(0x004046E0, LoadVerify, 0, s_unused);
+EI_VERIFY(0x00404760, SaveVerify, 0, s_unused);
+EI_VERIFY(0x004047E0, LoadObjectsVerify, 0, s_unused);
+EI_VERIFY(0x00404860, SaveObjectsVerify, 0, s_unused);
+EI_VERIFY(0x004048F0, ReleaseUnusedVerify, 0, s_unused);
+EI_VERIFY(0x00404920, ListFirstVerify, 0, s_unused);
+EI_VERIFY(0x00404960, ListNextVerify, 5, s_listNext);
+EI_VERIFY(0x00403720, SetContextVerify, 0, s_unused);
+EI_VERIFY(0x00402D60, Slot16Verify, 5, s_slot16);
+EI_VERIFY(0x00402D70, Slot17Verify, 5, s_slot17);
+EI_VERIFY(0x00402D90, Slot19Verify, 5, s_slot19);
+EI_VERIFY(0x00402DA0, Slot20Verify, 5, s_slot20);
+EI_VERIFY(0x00402DB0, Slot21Verify, 5, s_slot21);
 EI_VERIFY(0x00404040, RemoveObjectVerify, 0, s_unused);
 EI_VERIFY(0x00403730, CreateObjectVerify, 0, s_unused);
 EI_VERIFY(0x00403020, CreateVerify, 0, s_unused);
