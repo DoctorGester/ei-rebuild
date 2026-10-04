@@ -13,6 +13,8 @@
 
 #include "../../src/game/model.h"
 #include "../../src/game/object.h"
+#include "../../src/lib/mfc.h"
+#include "../../src/lib/stlp.h"
 
 #include <cstring>
 
@@ -168,8 +170,80 @@ void __fastcall CloseVerify(ChunkArchive* self, void*, void* stream) {
     ei::verify::Check("ChunkArchive::Close", 0, Depth(self), "");
 }
 
+// Header bytes AppendChild adds in front of a child of `size` bytes.
+std::int32_t Grown(std::uint32_t size) { return static_cast<std::int32_t>(size + (size * 2 >= 0x100 ? 5 : 2)); }
+
+// 004093A0: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1). Loading: the original assigns a scratch
+// CString, ours the real one; same text. Writing: ours; the chunk grows by the text and terminator.
+void(__fastcall* s_cstring)(ChunkArchive*, void*, int, mfc::CString*);
+void __fastcall CStringVerify(ChunkArchive* self, void*, int id, mfc::CString* s) {
+    if (self->loading_) {
+        mfc::CString scratch("");
+        s_cstring(self, nullptr, id, &scratch);
+        self->CStringField(id, s);
+        ei::verify::Check("ChunkArchive::CStringField", true, std::strcmp(scratch, *s) == 0, "id %d", id);
+        return;
+    }
+    std::int32_t before = Top(self)->size;
+    std::uint32_t size = static_cast<std::uint32_t>(std::strlen(*s) + 1);
+    self->CStringField(id, s);
+    ei::verify::Check("ChunkArchive::CStringField", Grown(size), Top(self)->size - before, "id %d", id);
+}
+
+// 00409470: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1). Loading: the original on a copy of the
+// string, ours on the real one; same contents. Writing: as CStringField.
+void(__fastcall* s_string)(ChunkArchive*, void*, int, stlp::string*);
+void __fastcall StringVerify(ChunkArchive* self, void*, int id, stlp::string* s) {
+    if (self->loading_) {
+        stlp::string scratch(*s);
+        s_string(self, nullptr, id, &scratch);
+        self->StringField(id, s);
+        ei::verify::Check("ChunkArchive::StringField", true, scratch == *s, "id %d", id);
+        return;
+    }
+    std::int32_t before = Top(self)->size;
+    std::uint32_t size = static_cast<std::uint32_t>(std::strlen(s->data()) + 1);
+    self->StringField(id, s);
+    ei::verify::Check("ChunkArchive::StringField", Grown(size), Top(self)->size - before, "id %d", id);
+}
+
+// 00409640 / 0040A440: ours only (they write the archive or the stream); the chunk stack keeps its
+// depth (a stream chunk missing while loading stays pushed, as with EnterChunk).
+void __fastcall StreamFieldVerify(ChunkArchive* self, void*, int id, CMemoryStream* s) {
+    int depth = Depth(self);
+    self->StreamField(id, s);
+    int after = Depth(self);
+    ei::verify::Check("ChunkArchive::StreamField", true, after == depth || (self->loading_ && after == depth + 1), "id %d", id);
+}
+void __fastcall SaveObjectRefVerify(ChunkArchive* self, void*, int id, void* object) {
+    std::int32_t before = Top(self)->size;
+    self->SaveObjectRef(id, object);
+    ei::verify::Check("ChunkArchive::SaveObjectRef", true, self->loading_ || Top(self)->size - before == 6, "id %d", id);
+}
+
+// 0040A5A0: SUB ESP,0x18 (3), PUSH EBX (1), PUSH EBP (1). Loading (a pure lookup): side by side.
+// Writing: ours only.
+void*(__fastcall* s_objectRef)(ChunkArchive*, void*, int);
+void* __fastcall ObjectRefVerify(ChunkArchive* self, void*, int id) {
+    if (self->loading_) {
+        void* expected = s_objectRef(self, nullptr, id);
+        void* actual = self->ObjectRef(id);
+        ei::verify::Check("ChunkArchive::ObjectRef", true, expected == actual, "id %d", id);
+        return actual;
+    }
+    std::int32_t before = Top(self)->size;
+    void* actual = self->ObjectRef(id);
+    ei::verify::Check("ChunkArchive::ObjectRef", 6, Top(self)->size - before, "id %d", id);
+    return actual;
+}
+
 } // namespace
 
+EI_VERIFY(0x004093A0, CStringVerify, 5, s_cstring);
+EI_VERIFY(0x00409470, StringVerify, 5, s_string);
+EI_VERIFY(0x00409640, StreamFieldVerify, 0, s_unused);
+EI_VERIFY(0x0040A440, SaveObjectRefVerify, 0, s_unused);
+EI_VERIFY(0x0040A5A0, ObjectRefVerify, 5, s_objectRef);
 EI_VERIFY(0x00409070, NextChildVerify, 8, s_next);
 EI_VERIFY(0x004091C0, FindChildVerify, 7, s_find);
 EI_VERIFY(0x00409230, CountChildrenVerify, 8, s_countOf);

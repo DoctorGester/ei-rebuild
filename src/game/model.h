@@ -94,6 +94,8 @@ static_assert(offsetof(CLinkFigureLoader, archives_) == 0x0C);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------
 
+struct CMemoryStream;
+
 // A chunk of a ChunkArchive being read or written; the archive keeps a stack of them in a list.
 struct ChunkNode {
     ChunkNode* next;
@@ -105,8 +107,16 @@ struct ChunkNode {
 // The tagged-chunk serialisation archive the databases are stored in (constructed by 0053A7B0,
 // opened by 00409AE0): an index stream of chunk headers and a data stream. Reading and writing go
 // through the same Serialize functions; loading_ selects the direction.
+namespace mfc { class CString; }
+
 class ChunkArchive {
 public:
+    // More fields (chunk_archive.cpp). Writing appends; reading takes the current chunk's
+    // occurrence of the child (missing: empty text, zero key).
+    void CStringField(int id, mfc::CString* s);       // 004093A0 (written with its terminator)
+    void StreamField(int id, CMemoryStream* s);       // 00409640: chunk `id` {1: size, 2: bytes}
+    void SaveObjectRef(int id, void* object);         // 0040A440: object pointer, object kept for Close
+    void* ObjectRef(int id);                          // 0040A5A0: the object a saved key stands for
     bool EnterChunk(int id);                          // 004098D0
     void LeaveChunk();                                // 00409980
     void Field(int id, void* data, unsigned size);    // 004092B0 (missing fields read as zero)

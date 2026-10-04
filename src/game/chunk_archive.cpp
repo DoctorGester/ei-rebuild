@@ -475,3 +475,154 @@ void ChunkArchive::Close(void* stream) {
     StackClear(&stack_);
 }
 EI_REPLACE_METHOD(0x0040A000, ChunkArchive::Close);
+
+// ---- String, stream and object fields ------------------------------------------------------------
+
+namespace {
+
+// 0079B298: the empty string the readers fall back to.
+const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
+
+// STLport string pieces used by StringField's inlined assign: erase(first, last) and the
+// range append (its third argument is the string again).
+struct RawString {
+    char* start;
+    char* finish;
+    char* eos;
+};
+static_assert(sizeof(RawString) == sizeof(stlp::string));
+__declspec(naked) void __fastcall StringErase(RawString* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
+__declspec(naked) void __fastcall StringAppendRange(RawString* /*s*/, void*, const char* /*first*/, const char* /*last*/,
+                                                    RawString* /*same*/) EI_ORIGINAL(0x0040C2A0)
+
+// string::assign(text, text + strlen(text)) as StringField inlines it: overwrite in place and cut
+// the rest, or overwrite the whole string and append the remainder.
+void AssignText(RawString* s, const char* text) {
+    std::size_t length = std::strlen(text);
+    std::size_t size = static_cast<std::size_t>(s->finish - s->start);
+    if (length <= size) {
+        std::memcpy(s->start, text, length);
+        StringErase(s, nullptr, s->start + length, s->finish);
+    } else {
+        std::memcpy(s->start, text, size);
+        StringAppendRange(s, nullptr, text + size, text + length, s);
+    }
+}
+
+// The current chunk's `occurrence`-th child `id` (reading), as the field readers search it.
+bool FindField(ChunkArchive* a, int id, Ref* child) {
+    Ref* current = Current(a);
+    int occurrence = current->occurrence;
+    *child = Ref{0xFF, {}, 0, 0, 1};
+    std::int32_t cursor = 0;
+    while (a->NextChild(current, &cursor, child)) {
+        if (child->id == static_cast<std::uint8_t>(id)) {
+            if (occurrence == 1) return true;
+            --occurrence;
+        }
+    }
+    return false;
+}
+
+std::uint32_t& Word(ChunkArchive* a, std::size_t offset) {
+    return *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(a) + offset);
+}
+
+// The object map at +0x5C (buckets +0x60..+0x64, nodes {next, key, value}): find, inlined.
+void** FindObjectNode(ChunkArchive* a, std::uint32_t key) {
+    auto** buckets = reinterpret_cast<void***>(Word(a, 0x60));
+    std::uint32_t count = static_cast<std::uint32_t>(static_cast<std::int32_t>(Word(a, 0x64) - Word(a, 0x60)) >> 2);
+    void** node = buckets[key % count];
+    while (node && reinterpret_cast<std::uint32_t>(node[1]) != key) node = static_cast<void**>(node[0]);
+    return node;
+}
+
+// CMemoryStream slots: 3 Seek, 4 Size, 6 Clear.
+constexpr int kStreamSeek = 3;
+constexpr int kStreamSize = 4;
+constexpr int kStreamClear = 6;
+
+} // namespace
+
+void ChunkArchive::CStringField(int id, mfc::CString* s) {
+    if (!loading_) {
+        const char* text = *s;
+        AppendChild(Current(this), id, text, static_cast<std::uint32_t>(reinterpret_cast<const int*>(text)[-2] + 1));
+        return;
+    }
+    Ref child;
+    if (FindField(this, id, &child)) *s = reinterpret_cast<const char*>(Data(this) + child.offset);
+    else *s = EmptyText();
+}
+EI_REPLACE_METHOD(0x004093A0, ChunkArchive::CStringField);
+
+// 00409470: an STLport string field, written with its terminator; read through an inlined assign
+// (the empty string when missing).
+void ChunkArchive::StringField(int id, stlp::string* s) {
+    auto* raw = reinterpret_cast<RawString*>(s);
+    if (!loading_) {
+        AppendChild(Current(this), id, raw->start, static_cast<std::uint32_t>(std::strlen(raw->start) + 1));
+        return;
+    }
+    Ref child;
+    if (FindField(this, id, &child)) AssignText(raw, reinterpret_cast<const char*>(Data(this) + child.offset));
+    else AssignText(raw, EmptyText());
+}
+EI_REPLACE_METHOD(0x00409470, ChunkArchive::StringField);
+
+// 00409640: a memory stream as chunk `id` (EnterChunk, inlined) holding its size (field 1) and its
+// bytes (field 2, inlined Field); loading clears the stream and sizes it first. The stream is
+// rewound; then the chunk is left (inlined LeaveChunk). A chunk missing while loading stays
+// pushed, as with EnterChunk.
+void ChunkArchive::StreamField(int id, CMemoryStream* s) {
+    if (!EnterChunk(id)) return;
+    std::uint32_t size = ei::VCall<std::uint32_t>(s, kStreamSize);
+    Field(1, &size, 4);
+    if (loading_) {
+        ei::VCall<void>(s, kStreamClear);
+        StreamSetSize(s, nullptr, size);
+    }
+    Field(2, s->data_, size);
+    ei::VCall<int>(s, kStreamSeek, 0);
+    LeaveChunk();
+}
+EI_REPLACE_METHOD(0x00409640, ChunkArchive::StreamField);
+
+// 0040A440: an object pointer field. An object not yet in the map at +0x5C joins the saved list
+// (+0x70, written by Close) and the map (value: the archive). Writing then stores the pointer;
+// reading looks the field up and ignores it.
+void ChunkArchive::SaveObjectRef(int id, void* object) {
+    std::uint32_t key = reinterpret_cast<std::uint32_t>(object);
+    if (!FindObjectNode(this, key)) {
+        void* saved = reinterpret_cast<std::uint8_t*>(this) + 0x70;
+        void* end;
+        SavedEnd(saved, nullptr, &end);
+        void* added;
+        SavedInsert(saved, nullptr, &added, end, &object);
+        std::uint32_t pair[2] = {key, 0};
+        LoadedAt(reinterpret_cast<std::uint8_t*>(this) + 0x5C, nullptr, pair)[1] = reinterpret_cast<std::uint32_t>(this);
+    }
+    if (!loading_) {
+        AppendChild(Current(this), id, &object, 4);
+        return;
+    }
+    Ref child;
+    FindField(this, id, &child);   // the original searches and drops the result
+}
+EI_REPLACE_METHOD(0x0040A440, ChunkArchive::SaveObjectRef);
+
+// 0040A5A0: an object reference field: the key read (0 when missing; writing stores 0) is looked
+// up in the map at +0x5C; returns the object, or null.
+void* ChunkArchive::ObjectRef(int id) {
+    std::uint32_t key = 0;
+    if (!loading_) {
+        AppendChild(Current(this), id, &key, 4);
+    } else {
+        Ref child;
+        if (FindField(this, id, &child)) std::memcpy(&key, Data(this) + child.offset, 4);
+        else key = 0;
+    }
+    void** node = FindObjectNode(this, key);
+    return node ? node[2] : nullptr;
+}
+EI_REPLACE_METHOD(0x0040A5A0, ChunkArchive::ObjectRef);

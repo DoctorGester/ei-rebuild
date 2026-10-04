@@ -10,7 +10,6 @@
 // ---- ChunkArchive -------------------------------------------------------------------------------
 // EnterChunk / LeaveChunk / Field / CountChunks are in chunk_archive.cpp.
 
-__declspec(naked) void ChunkArchive::StringField(int, stlp::string*) EI_ORIGINAL(0x00409470)
 
 namespace {
 
