@@ -713,6 +713,10 @@ void UnloadQuestTexts();
 // names ended by an empty one), compared case-insensitively.
 bool __fastcall NameInList(const char* const* list, const char* name);
 
+// 0057AAB0 (ECX = path ending in '\'; world_game.cpp). Creates the folder and deletes every file
+// in it (CFileFind "*.*"; CreateDirectoryA / DeleteFileA through game.exe's imports).
+void __fastcall ClearSaveFolder(const char* path);
+
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
 // into `out`. 0057FDE0 (RET 8): the briefing's variable, "b.<speaker>.<briefing>" or, without a

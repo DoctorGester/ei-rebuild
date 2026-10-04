@@ -80,7 +80,7 @@ static_assert(sizeof(FileStream) == 0x1C);
 // 005E5200 (RET 4). The renderer's busy state (3 while saving, 0 after).
 __declspec(naked) void __fastcall RendererSetBusy(void*, void*, int) EI_ORIGINAL(0x005E5200)
 // 0057AAB0. Creates the folder `path` (ECX) and deletes the files in it.
-__declspec(naked) void __fastcall ClearSaveFolder(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
+__declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
 __declspec(naked) WorldPlayer* __fastcall WorldGetPlayer(void*, void*, int) EI_ORIGINAL(0x00594180)
 // 004A8890 / 004A8880 (RET 4). The party (007AA5A0): take the records from / give them to a record
@@ -208,7 +208,7 @@ int GameFlow::SaveGame(const char* slot) {
     RendererSetBusy(kRenderer, nullptr, 3);
     slotFolder.Format(Text(kSlotFolder), GameFolder(), slot);
     currentFolder.Format(Text(kCurrentFolder), GameFolder());
-    ClearSaveFolder(slotFolder);
+    ClearSaveFolderAt(slotFolder);
     if (Campaign() == 4) {
         if (WorldPlayer* player = WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0))
             PartyTake(kParty, nullptr, reinterpret_cast<std::uint8_t*>(player) + 0x70);
@@ -962,6 +962,47 @@ void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
     PartyCopyFrom(reinterpret_cast<std::uint8_t*>(this) + 8, nullptr, party);
 }
 
+// ---- ClearSaveFolder ------------------------------------------------------------------------------
+
+namespace {
+
+// MFC CFileFind (0x1C bytes) members, and the Win32 calls through game.exe's import slots (harness
+// runs redirect those to harness_saves).
+__declspec(naked) void __fastcall FinderConstruct(void*, void*) EI_ORIGINAL(0x006E6370)
+__declspec(naked) void __fastcall FinderDestruct(void*, void*) EI_ORIGINAL(0x006E63AD)
+__declspec(naked) int __fastcall FinderFindFile(void*, void*, const char*, unsigned long) EI_ORIGINAL(0x006E6433)
+__declspec(naked) int __fastcall FinderNext(void*, void*) EI_ORIGINAL(0x006E6653)
+__declspec(naked) mfc::CString* __fastcall FinderPath(void*, void*, void* /*out*/) EI_ORIGINAL(0x006E6722)
+__declspec(naked) void __fastcall FinderClose(void*, void*) EI_ORIGINAL(0x006E63E9)
+constexpr std::uintptr_t kAllFiles = 0x007905B4;   // "*.*"
+using CreateDirectoryFn = BOOL(__stdcall*)(const char*, void*);
+using DeleteFileFn = BOOL(__stdcall*)(const char*);
+CreateDirectoryFn ImportCreateDirectory() { return *reinterpret_cast<CreateDirectoryFn const*>(0x0073B1B8); }
+DeleteFileFn ImportDeleteFile() { return *reinterpret_cast<DeleteFileFn const*>(0x0073B20C); }
+
+} // namespace
+
+void __fastcall ClearSaveFolder(const char* path) {
+    ImportCreateDirectory()(path, nullptr);
+    alignas(4) std::uint8_t finder[0x1C];
+    FinderConstruct(finder, nullptr);
+    int found;
+    {
+        mfc::CString folder(path);
+        mfc::CString pattern = folder + Text(kAllFiles);
+        found = FinderFindFile(finder, nullptr, pattern, 0);
+    }
+    while (found) {
+        found = FinderNext(finder, nullptr);
+        alignas(mfc::CString) std::uint8_t name[sizeof(mfc::CString)];
+        mfc::CString* file = FinderPath(finder, nullptr, name);
+        ImportDeleteFile()(*file);
+        file->~CString();
+    }
+    FinderClose(finder, nullptr);
+    FinderDestruct(finder, nullptr);
+}
+
 bool __fastcall NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
         if (gamecrt::stricmp(*list, name) == 0) return true;
@@ -973,6 +1014,7 @@ EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);
 EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
 EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
 EI_REPLACE(0x0057F820, NameInList);
+EI_REPLACE(0x0057AAB0, ClearSaveFolder);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
 EI_REPLACE(0x00581630, RequestZone);

@@ -174,6 +174,15 @@ static bool __fastcall NameInListVerify(const char* const* list, const char* nam
 }
 EI_VERIFY(0x0057F820, NameInListVerify, 6, s_originalNameInList);
 
+// 0057AAB0: afterwards the folder exists (the files' deletion is through the game's imports).
+static void __fastcall ClearSaveFolderVerify(const char* path) {
+    ClearSaveFolder(path);
+    DWORD attributes = GameFileAttributes(path);
+    bool ok = attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY);
+    ei::verify::Check("ClearSaveFolder", true, ok, "%s", path ? path : "");
+}
+EI_VERIFY(0x0057AAB0, ClearSaveFolderVerify, 0, s_unused);
+
 // 0057F150: afterwards an active client's request is not left answered (kind 3).
 static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {
     self->UpdateAndAcknowledge();
