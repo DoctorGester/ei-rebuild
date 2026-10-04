@@ -43,6 +43,15 @@ __declspec(naked) std::uint8_t** __fastcall AttachedInsertHint(RbTree* /*tree*/,
 __declspec(naked) std::uint32_t __fastcall AttachedErase(RbTree* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x0043D2E0)
 __declspec(naked) std::uint32_t __fastcall ByObjectErase(RbTree* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x0043C3B0)
 __declspec(naked) RefPtr* __fastcall BySentIdAt(void* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00437B90)
+// The object references' lookups: find in byObject, attached and bySentId; operator[] of records
+// (returns the mapped {object, version}) and of attached (returns the mapped {id, type}); operator[]
+// of the type registry's factory table.
+__declspec(naked) void* __fastcall ByObjectFind(RbTree* /*tree*/, void*, void** /*out*/, CRefObject* const* /*key*/) EI_ORIGINAL(0x0043C450)
+__declspec(naked) void* __fastcall AttachedFind(RbTree* /*tree*/, void*, std::uint8_t** /*out*/, CRefObject* const* /*key*/) EI_ORIGINAL(0x0043D380)
+__declspec(naked) void* __fastcall BySentIdFind(void* /*tree*/, void*, std::uint8_t** /*out*/, const std::int32_t* /*key*/) EI_ORIGINAL(0x0043BF00)
+__declspec(naked) RefPtr* __fastcall RecordsAt(RbTree* /*tree*/, void*, const std::int32_t* /*key*/) EI_ORIGINAL(0x004382A0)
+__declspec(naked) std::uint8_t* __fastcall AttachedAt(RbTree* /*tree*/, void*, CRefObject* const* /*key*/) EI_ORIGINAL(0x00438530)
+__declspec(naked) MessageFactory* __fastcall FactoryAt(HashTable* /*table*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x00439EA0)
 // pair<const int, Record> from a key and a Record (the counted pointer shared).
 __declspec(naked) void* __fastcall MakeRecordPair(void* /*pair*/, void*, const std::int32_t* /*key*/, const void* /*record*/) EI_ORIGINAL(0x0043A090)
 // RefPtr<T>: default constructor, assignment of a raw pointer (00438110: the old object is released
@@ -647,5 +656,128 @@ void Connection::CollectChanges() {
     }
 }
 EI_REPLACE_METHOD(0x004346D0, Connection::CollectChanges);
+
+} // namespace net
+
+void BufferCursor::PutBit(std::uint32_t bit) {
+    if (bits == 0) {
+        bits = 1;
+        bytePtr = p;
+        ++p;
+        acc = bit;
+    } else {
+        acc += bit << bits;
+        ++bits;
+    }
+    if (bits > 8) {
+        *bytePtr = static_cast<std::uint8_t>(acc);
+        bits = static_cast<std::uint8_t>(bits - 8);
+        bytePtr = p;
+        acc >>= 8;
+        ++p;
+    }
+}
+EI_REPLACE_METHOD(0x004357C0, BufferCursor::PutBit);
+
+namespace net {
+
+namespace {
+// The entries' 16-bit reference count, as the original inlines RefPtr<ReplicaEntry> assignment:
+// the old entry is deleted (slot 0) when its count reaches zero.
+void AssignEntry(RefPtr* slot, ReplicaEntry* entry) {
+    auto* old = reinterpret_cast<CRefObject*>(slot->ptr);
+    slot->ptr = reinterpret_cast<CRefObject*>(entry);
+    if (entry) ++reinterpret_cast<CRefObject*>(entry)->refs_;
+    if (old && --old->refs_ == 0) ei::VCall<void*>(old, 0, 1u);
+}
+bool Usable(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
+} // namespace
+
+void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
+    if (Usable(object)) {
+        void* found;
+        ByObjectFind(&byObject, nullptr, &found, &object);
+        if (found != byObject.header) {
+            auto* entry = *reinterpret_cast<ReplicaEntry**>(static_cast<std::uint8_t*>(found) + 0x14);
+            if (entry->id == 0) {
+                entry->id = idPools[entry->type].Allocate();
+                std::uint32_t key = (static_cast<std::uint32_t>(entry->type) << 16) + entry->id;
+                AssignEntry(BySentIdAt(bySentId, nullptr, &key), entry);
+            }
+            std::uint16_t id = entry->id;
+            std::uint8_t type = entry->type;
+            cursor->PutBit(0);
+            cursor->WriteBytes(&type, 1);
+            cursor->WriteBytes(&id, 2);
+            return;
+        }
+        std::uint8_t* node;
+        AttachedFind(&attached, nullptr, &node, &object);
+        if (node != attached.header) {
+            std::uint16_t id;
+            std::memcpy(&id, node + 0x14, 2);
+            std::uint8_t type = node[0x16];
+            cursor->PutBit(1);
+            *cursor->p++ = type;
+            std::memcpy(cursor->p, &id, 2);
+            cursor->p += 2;
+            return;
+        }
+    }
+    std::uint32_t zero = 0;
+    cursor->PutBit(0);
+    *cursor->p++ = 0;
+    cursor->WriteBytes(&zero, 2);
+}
+EI_REPLACE_METHOD(0x004355B0, Connection::WriteObjectRef);
+
+// The original reads the type and id into dwords whose upper bytes it masks off (and passes the
+// type dword on to AttachRecord, which keeps only its low byte in use); they start as zero here.
+CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
+    std::uint32_t sent = cursor->GetBit();
+    std::uint32_t type = 0;
+    cursor->ReadBytes(&type, 1);
+    std::uint32_t id = 0;
+    cursor->ReadBytes(&id, 2);
+    std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
+    if ((id & 0xFFFF) == 0) return nullptr;
+    if (sent) {
+        std::uint8_t* node;
+        BySentIdFind(bySentId, nullptr, &node, &key);
+        if (node == *reinterpret_cast<std::uint8_t**>(bySentId)) return nullptr;
+        return (*reinterpret_cast<ReplicaEntry**>(node + 0x14))->object;
+    }
+    RecordNode* found;
+    RecordsFind(&records, nullptr, &found, &key);
+    if (found == records.header) {
+        RefPtr* slot = RecordsAt(&records, nullptr, &key);
+        auto* object = reinterpret_cast<CRefObject*>(CurrentSession()->types.Create(type & 0xFF));
+        if (!object) return nullptr;
+        if (object != slot->ptr) {
+            slot->Destroy();
+            slot->Share(object);
+        }
+        reinterpret_cast<std::uint32_t*>(slot)[1] = 0;   // the record's version
+        AttachRecord(object, type & 0xFF, key);
+        return object;
+    }
+    if (Usable(found->object)) return found->object;
+    std::uint32_t typeKey = type & 0xFF;
+    MessageFactory factory = *FactoryAt(&CurrentSession()->types.byType, nullptr, &typeKey);
+    CRefObject* object = factory ? reinterpret_cast<CRefObject*>(factory()) : nullptr;
+    if (!object) return nullptr;
+    auto* slot = reinterpret_cast<RefPtr*>(&found->object);
+    if (object != slot->ptr) {
+        slot->Destroy();
+        slot->Share(object);
+    }
+    found->version = 0;
+    std::uint8_t* attachedValue = AttachedAt(&attached, nullptr, &object);
+    std::uint16_t id16 = static_cast<std::uint16_t>(key);
+    std::memcpy(attachedValue, &id16, 2);
+    attachedValue[2] = static_cast<std::uint8_t>(type);
+    return object;
+}
+EI_REPLACE_METHOD(0x00435820, Connection::ReadObjectRef);
 
 } // namespace net

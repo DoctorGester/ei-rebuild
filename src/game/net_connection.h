@@ -143,6 +143,13 @@ struct Connection {
     bool ReadRecord(BufferCursor* cursor, std::uint32_t version);
     // 004352F0. Remembers which (type, id) the received object has (map at +0x110C).
     void AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key);
+    // 004355B0. Writes a reference to `object`: a 0 bit, type and id for an object this side
+    // replicates (an id is assigned on first use), a 1 bit, type and id for one received from the
+    // peer, or a 0 bit and zeros for none.
+    void WriteObjectRef(BufferCursor* cursor, CRefObject* object);
+    // 00435820. Reads such a reference: the peer's replicated object (created from the type's
+    // factory when missing or detached) or one this side sent; null for none.
+    CRefObject* ReadObjectRef(BufferCursor* cursor);
     // 00434C20. Writes the acknowledgements: the last sequence received and a mask of the 32
     // before it; forgets sequences more than 32 old.
     void WriteAcks(std::uint8_t** p);

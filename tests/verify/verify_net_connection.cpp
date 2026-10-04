@@ -145,8 +145,37 @@ void __fastcall CollectChangesVerify(Connection* self) {
                       self->byObject.count <= static_cast<std::uint32_t>(items->end - items->begin), "");
 }
 
+// 004357C0: MOV EAX,ECX (2), MOV CL,[EAX+0xC] (3). The original on a copy of the cursor first (it
+// writes the same byte to the same place as ours), then ours; the cursors must match.
+void(__fastcall* s_putBit)(BufferCursor*, void*, std::uint32_t);
+void __fastcall PutBitVerify(BufferCursor* self, void*, std::uint32_t bit) {
+    BufferCursor copy = *self;
+    s_putBit(&copy, nullptr, bit);
+    self->PutBit(bit);
+    ei::verify::Check("BufferCursor::PutBit", true, std::memcmp(&copy, self, sizeof(copy)) == 0, "bit %u", bit);
+}
+
+// 004355B0 / 00435820: ours only (ids are assigned, objects created). A reference takes 3 bytes,
+// plus one when its bit starts a new byte.
+void __fastcall WriteObjectRefVerify(Connection* self, void*, BufferCursor* cursor, CRefObject* object) {
+    std::uint8_t* before = cursor->p;
+    self->WriteObjectRef(cursor, object);
+    std::ptrdiff_t used = cursor->p - before;
+    ei::verify::Check("Connection::WriteObjectRef", true, used == 3 || used == 4, "%d bytes", static_cast<int>(used));
+}
+CRefObject* __fastcall ReadObjectRefVerify(Connection* self, void*, BufferCursor* cursor) {
+    std::uint8_t* before = cursor->p;
+    CRefObject* result = self->ReadObjectRef(cursor);
+    std::ptrdiff_t used = cursor->p - before;
+    ei::verify::Check("Connection::ReadObjectRef", true, used == 3 || used == 4, "%d bytes", static_cast<int>(used));
+    return result;
+}
+
 } // namespace
 
+EI_VERIFY(0x004357C0, PutBitVerify, 5, s_putBit);
+EI_VERIFY(0x004355B0, WriteObjectRefVerify, 0, s_unused);
+EI_VERIFY(0x00435820, ReadObjectRefVerify, 0, s_unused);
 EI_VERIFY(0x00435F10, AllocateVerify, 5, s_allocate);
 EI_VERIFY(0x00434C20, WriteAcksVerify, 5, s_writeAcks);
 EI_VERIFY(0x00438930, TypeCreateVerify, 5, s_create);
