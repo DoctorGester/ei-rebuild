@@ -217,15 +217,21 @@ Sites are listed in full in the CSV.
   ConsoleString, StartCameraSave, StopCameraSave, ...); the parser and executor (004B4030, 004B41E0,
   004B56C0, 004B5B00, 004B6760, 004CF470, 004CF600, 004CFBC0, 004D0B10, 004D0BA0, 004D1330,
   004D41C0) read the new table and dispatch the new commands. Moved here from EI_Plugin.
-- **PersistentGlobalVars** - global variables named `gvar.*` keep their values across zone changes
-  and saves (00662FB0, 0057EB10, 005800C0). Where the game empties a variable table (00461540:
-  the call sites 0057EB25 and 00580177, redirected; and in 00662FB0, where the JNE at 00663083 now
-  jumps past the inlined clear of the table at [esp+0x70] (00663129-0066316A, to 0066316C) and
-  a context hook at 00663170 clears it instead), addon's 1001E3C1 first copies every
-  `gvar.` entry into an MSVC unordered_map<string, float>, lets the table be emptied, then sets
-  the entries again (00460BC0) in the order of that map's list. That order decides the order in
-  the game's hash chains (and so in saves), so a rewrite has to reproduce the MSVC container's
-  list order (FNV-1a buckets, the node splicing on insert and on rehash). Not started.
+- **PersistentGlobalVars** - global variables named `gvar.*` keep their values where the game
+  empties a variable table, all in multiplayer paths: the party outside a game (0057EB10, the CALL
+  at 0057EB25), the client's update from the server (005800C0, the CALL at 00580177), and the saved
+  parties' list (00662FB0: the JNE at 00663083 skips the inlined clear, a mode-0 context hook at
+  00663170, whose `count = 0` is dropped, does the clear instead). addon's 1001E3C1 walks the table
+  (buckets in order, each chain from its head), copies every `gvar.` entry (strncmp, 5 characters)
+  into an MSVC 2010 std::unordered_map<std::string, float> (std::hash: FNV-1, multiply then XOR
+  the sign-extended character, over every (length / 10 + 1)-th character; 8 buckets; a load factor
+  above 1 multiplies them by 8 and reinserts in list order; a new key is pushed to the list's front
+  and spliced in front of its bucket's first element, or to the end of the list for an empty
+  bucket), clears the table (00461540) and sets the entries again (00460BC0) in the list's order,
+  which decides their order in the game's hash chains. *Implemented*: the container in
+  src/game/persistent_globals.cpp (`ClearVariablesKeepingGlobals`), the three host functions as new
+  rewrites `GameFlow::AfterServerStart`, `GameFlow::UpdateFromServer` and `SavedPartyList::Reload`
+  (src/game/world_game.cpp; plain replacements: multiplayer only).
 - **NewStringEvents** - string events (005F8070): "gameover" plays buttons\gameover.wav and shows a
   game over message (title and text from the event's arguments or the game_over / game_over_msg
   texts): addon's 1001B869 calls 00578920(1) and 00578940 on 007AFEA5, plays the sound, builds the
@@ -468,6 +474,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | ImproveConsole | new: ConsoleWindow::OnChar 005E44A0 (ui_console_window.cpp) | side by side on the input, caret, anchor and history index (8 stolen bytes); Enter (it executes the line) ours only: the line is empty afterwards |
 | AddNewConsoleCommands | Execute 005DC620 (console.cpp), new: CBattleScreenSetup::Draw 00636020 (ui_battle_setup.cpp), console_addon.cpp | Execute's existing checks; Draw a plain replacement |
 | AutoExec | new: GameFlow::LoadGame 0057ABA0, StartNewGame 0057BD10, ProcessRequest 0057C700 (world_game.cpp) | ours only: the request is cleared; a loaded game has its scenario.sav (0 in multiplayer) |
+| PersistentGlobalVars | new: GameFlow::AfterServerStart 0057EB10, UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (world_game.cpp), persistent_globals.cpp | none (multiplayer paths): plain replacements |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -499,7 +506,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 and addon's unordered_map order (above) | 2 days |
 | AddNewScriptCommands | ~50 new script commands plus the table switch in 12 parser/executor functions (mostly rewritten) | 1-2 weeks |
 | ObjectsDrawRadius, LandscapeDrawRadius | two float settings in 0056AFE0 / 00569E40 (or in the client draw rewrite) | 0.5 day once those are rewritten |
 | WideScreen | 100 sites in ~45 functions, the layout maths of addon's replacements, VIDEORESOLUTION | 2-3 weeks |

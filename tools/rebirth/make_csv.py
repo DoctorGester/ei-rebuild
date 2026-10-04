@@ -46,7 +46,7 @@ META = {
  'SetEiPluginMode': ('infrastructure', 'no', 'Writes 0xAADD0080 at 0073AF10 (padding after .text): tells EI_Plugin.asi that addon applies the patches moved out of it (bit 0x80: the plugin\'s Scripts feature off). Written directly (no addon.log line).'),
  'PlayerNumbers': ('multiplayer', 'partly', 'Moved from EI_Plugin (its Scripts feature): the call at 0066C1C2 (0066C180) goes through addon (player numbers for scripts).'),
  'AddNewScriptCommands': ('scripting', 'yes', 'The script command table 0078BCA0 (0x12C commands) is copied and extended with addon\'s commands (GiveUnitWeapon, StrUpper, UnitsNearPoint, ...); the parser and executor (004B4030, 004B41E0, 004B5B00, 004B56C0, 004B6760, 004CF470, 004CF600, 004CFBC0, 004D0B10, 004D0BA0, 004D1330, 004D41C0) use the new table and dispatch the new commands.'),
- 'PersistentGlobalVars': ('scripting', 'yes', 'Global script variables named "gvar.*" keep their values across zone changes and saves (00662FB0, 0057EB10, 005800C0).'),
+ 'PersistentGlobalVars': ('scripting', 'yes', 'Global script variables named "gvar.*" survive where the game empties a variable table in its multiplayer paths (0057EB10 the party outside a game, 005800C0 the client update, 00662FB0 the saved parties): addon copies them into its own std::unordered_map (MSVC 2010) and sets them again in that list\'s order.'),
  'MenuMultiDisable': ('infrastructure', 'no', 'Disabled here. Mod option: the main menu\'s multiplayer buttons off (00633234, 0063353C).'),
  'MenuSingleDisable': ('infrastructure', 'no', 'Disabled here. Mod option: the main menu\'s single player buttons off.'),
  'SavesPath': ('resources', 'no', 'Disabled here. Mod GameSaves: the saves\\ and mp\\ paths moved into the mod folder (string pointers in 00456440, 0057A..., 00655..., 00615622).'),
@@ -93,7 +93,7 @@ STATUS = {
  'ImproveConsole': 'implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/ui_console_window.cpp)',
  'AddNewConsoleCommands': 'implemented: Execute 005DC620 (src/game/console.cpp) + new rewrite CBattleScreenSetup::Draw 00636020 (src/game/ui_battle_setup.cpp); commands in src/game/console_addon.cpp',
  'AutoExec': 'implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp',
- 'PersistentGlobalVars': 'not started: the gvars are re-set in the order of the MSVC unordered_map list in addon, which decides their order in the hash chains of the game (and in saves); 00662FB0, 0057EB10, 005800C0 not rewritten',
+ 'PersistentGlobalVars': 'implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon\'s container order in src/game/persistent_globals.cpp',
 }
 SITE_STATUS = {
  ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spell.cpp)',
@@ -106,6 +106,10 @@ SITE_STATUS = {
 }
 # What addon writes at each site, for the sites worth saying more than the patch summary.
 SITE_SUMMARY = {
+ ('PersistentGlobalVars', 0x00663083): 'JNE target moved from 00663129 to 0066316C: the inlined clear of the loaded records\' variables is skipped',
+ ('PersistentGlobalVars', 0x00663170): 'context hook (mode 0: the replaced count = 0 is dropped): addon 1001E3C1 clears the table keeping the gvar. entries',
+ ('PersistentGlobalVars', 0x0057EB25): 'CALL 00461540 -> addon 1001E3C1 (the table cleared keeping the gvar. entries)',
+ ('PersistentGlobalVars', 0x00580177): 'CALL 00461540 -> addon 1001E3C1',
  ('AllowScriptArgsInLoops', 0x004D1614): 'JMP to a stub: the recursive LoadCommands call for the loop body gets the caller\'s locals ([esp+0x19C]) as its 4th argument instead of 0',
  ('AllowScriptsInMainMenu', 0x0057C69F): 'JMP to a stub (addon 10017FC6): MOV EDI,4; MOV DWORD [007B00C0],1 (CWorldServer+0x160); back to 0057C6A4',
  ('FixLeversActivate', 0x00522AB6): 'JMP to a stub: lock level 0 -> key level + 1; else signed key level >= lock level (vanilla: SBB/INC unsigned compare)',

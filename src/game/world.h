@@ -776,6 +776,26 @@ struct GameFlow {
     // afresh. Without scenario.sav the main menu starts. Returns 1 when loaded. Rebirth's AutoExec
     // runs addon's AutoExec lines first.
     int LoadGame(const char* slot);
+    // 0057EB10. After the sessions start: the party step 0057DEE0(1), the variables of the party
+    // outside a game (007C82B0 + 0x54) emptied, its members reset (00661FB0), and the client's host
+    // record (session +0x2600) takes the hero's and party's names (+0x18, +0xC; defaults "Human
+    // Hero", "Bug"), +0x28 = 1. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
+    void AfterServerStart();
+    // 005800C0. A multiplayer client's update from the server: the quest texts unloaded, the
+    // local player's variables replaced ("constr.current" kept), the zone's quests, the game type's
+    // construction variable and briefings (at least 1), the seen briefings, the quest folders of
+    // "q." variables, then the server's variables applied in stamp order (007AFED0 / 007AFED4),
+    // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
+    void UpdateFromServer();
+};
+
+// The saved multiplayer parties: +0 the folder (CString), +4 an STLport vector of 0x74-byte entries
+// (the party records and the file name).
+struct SavedPartyList {
+    // 00662FB0 (world_game.cpp). Rebuilds the list from the folder's "*.mp" files: each is read
+    // into party records (00662DD0); a loaded one has its variables emptied and, with records +0x34
+    // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
+    void Reload();
 };
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
