@@ -99,6 +99,29 @@ BlockCostList::Node* AppendBlockCost(BlockCostList* list) {
     ConstructBlockCosts(&node->x, 1);
     return node;
 }
+// The region map's per size class grids are allocated for their size by 005B1550 (edge words,
+// +0x11C), 005B15F0 (representative cells, +0x19C) and 005B1680 (regions, +0x21C). 005AED60
+// (RET 8) rebuilds a derived table from the map (+0 and +0x4C, the second with 1).
+__declspec(naked) void __fastcall AllocateEdges(void*) EI_ORIGINAL(0x005B1550)
+__declspec(naked) void __fastcall AllocateCells(void*) EI_ORIGINAL(0x005B15F0)
+__declspec(naked) void __fastcall AllocateRegions(void*) EI_ORIGINAL(0x005B1680)
+__declspec(naked) void __fastcall RebuildTable(void*, void*, CRegionMap*, int) EI_ORIGINAL(0x005AED60)
+
+// A grid {data, rows, width, height}; resized (freed and reallocated) when the size changes.
+struct BlockGrid {
+    void* data;
+    void** rows;
+    int width;
+    int height;
+};
+void Fit(BlockGrid& grid, int width, int height, void (__fastcall* allocate)(void*)) {
+    if (grid.width == width && grid.height == height) return;
+    GameDelete(grid.data);
+    GameDelete(grid.rows);
+    grid.width = width;
+    grid.height = height;
+    allocate(&grid);
+}
 } // namespace
 
 bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, void* marks) {
@@ -289,7 +312,35 @@ void CRegionMap::ClampEdgeCosts() {
             }
 }
 
+bool CRegionMap::LoadBlocks(void* stream) {
+    using ReadFn = void(__fastcall*)(void*, void*, void*, int);
+    auto read = [stream](void* buffer, int size) {
+        reinterpret_cast<ReadFn>((*static_cast<void***>(stream))[1])(stream, nullptr, buffer, size);
+    };
+    int width, height;
+    read(&width, 4);
+    read(&height, 4);
+    if (width <= 0 || height <= 0 || width > 0x100 || height > 0x100) return false;
+    for (int c = 0; c < 8; ++c) {
+        BlockGrid& edges = At<BlockGrid>(this, 0x11C + c * 16);
+        BlockGrid& cells = At<BlockGrid>(this, 0x19C + c * 16);
+        BlockGrid& regions = At<BlockGrid>(this, 0x21C + c * 16);
+        Fit(edges, width, height, &AllocateEdges);
+        Fit(cells, width, height, &AllocateCells);
+        Fit(regions, width, height, &AllocateRegions);
+        for (int y = 0; y < At<int>(this, kBlocksHigh); ++y) {
+            read(edges.rows[y], width * 16);
+            read(cells.rows[y], width);
+            read(regions.rows[y], width * 2);
+        }
+    }
+    RebuildTable(this, nullptr, this, 0);
+    RebuildTable(reinterpret_cast<std::uint8_t*>(this) + 0x4C, nullptr, this, 1);
+    return At<bool>(stream, 5);
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005B1180, CRegionMap::LoadBlocks);
 EI_REPLACE_METHOD(0x005B0F70, CRegionMap::ClampEdgeCosts);
 EI_REPLACE_METHOD(0x005B0370, CRegionMap::NearbyBlocks);
 EI_REPLACE_METHOD(0x005B0050, CRegionMap::LabelRegions);

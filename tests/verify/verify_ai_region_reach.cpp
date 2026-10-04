@@ -131,6 +131,26 @@ static void __fastcall ClampEdgeCostsVerify(CRegionMap* self, void*) {
 EI_VERIFY(0x005B0F70, ClampEdgeCostsVerify, 5, s_originalClamp);
 
 namespace {
+void* s_unusedLoad;
+}
+
+// 005B1180: reads a stream, so ours only. After a load every grid of every class has the size
+// of the first (the map's block size, 1..256).
+static bool __fastcall LoadBlocksVerify(CRegionMap* self, void*, void* stream) {
+    bool result = self->LoadBlocks(stream);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    int width = *reinterpret_cast<int*>(base + 0x124), height = *reinterpret_cast<int*>(base + 0x128);
+    bool ok = true;
+    if (width > 0 && width <= 0x100 && height > 0 && height <= 0x100) {
+        for (int grid = 0x11C; grid < 0x29C && ok; grid += 16)
+            ok = *reinterpret_cast<int*>(base + grid + 8) == width && *reinterpret_cast<int*>(base + grid + 12) == height;
+    }
+    ei::verify::Check("CRegionMap::LoadBlocks", true, ok, "%dx%d -> %d", width, height, result);
+    return result;
+}
+EI_VERIFY(0x005B1180, LoadBlocksVerify, 0, s_unusedLoad);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

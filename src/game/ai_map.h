@@ -111,6 +111,9 @@ struct CRegionMap {
     // 005B0F70 (ai_region_reach.cpp). The per-direction block edge words: -1 out of the map, and
     // each edge between two blocks the smaller of its two directions, for every size class.
     void ClampEdgeCosts();
+    // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
+    // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
+    bool LoadBlocks(void* stream);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
