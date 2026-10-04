@@ -30,6 +30,18 @@ EI_REPLACE_METHOD(0x0042A610, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x0047A3F0, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x0047C1E0, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x0047D560, RefPtr::Destroy);
+EI_REPLACE_METHOD(0x00436430, RefPtr::Destroy);
+EI_REPLACE_METHOD(0x00438AA0, RefPtr::Destroy);
+EI_REPLACE_METHOD(0x00438B30, RefPtr::Destroy);
+
+// The same owner's release of the counted pointer at +4 (the destructor of a pair whose second
+// member is the RefPtr). 3 copies.
+void __fastcall PairDestroySecond(void* self) {
+    reinterpret_cast<RefPtr*>(static_cast<std::uint8_t*>(self) + 4)->Destroy();
+}
+EI_REPLACE(0x00421560, PairDestroySecond);
+EI_REPLACE(0x004215C0, PairDestroySecond);
+EI_REPLACE(0x00438AE0, PairDestroySecond);
 
 // The plain release of a RefPtr (the destructor of the instantiations without the owner's detach):
 // drops one reference of the object, destroying it at zero. The pointer is left as it is.
@@ -156,3 +168,53 @@ EI_REPLACE(0x00429990, RefPtrShareReturn);
 EI_REPLACE(0x004299F0, RefPtrShareReturn);
 EI_REPLACE(0x00429A50, RefPtrShareReturn);
 EI_REPLACE(0x00429AB0, RefPtrShareReturn);
+
+// The plain release of the counted pointer at +8 (0043A120).
+void __fastcall ReleaseThird(void* self) {
+    RefPtrRelease(reinterpret_cast<RefPtr*>(static_cast<std::uint8_t*>(self) + 8));
+}
+EI_REPLACE(0x0043A120, ReleaseThird);
+
+// Assignment of an owning pointer (the original inlines Destroy and Share): from another holder
+// (0042A770) and from a raw object (00438110). Nothing happens when it already holds the object.
+RefPtr* __fastcall RefPtrAssignHolder(RefPtr* self, void*, const RefPtr* other) {
+    if (other->ptr == self->ptr) return self;
+    self->Destroy();
+    self->Share(other->ptr);
+    return self;
+}
+EI_REPLACE(0x0042A770, RefPtrAssignHolder);
+RefPtr* __fastcall RefPtrAssignObject(RefPtr* self, void*, CRefObject* object) {
+    if (object == self->ptr) return self;
+    self->Destroy();
+    self->Share(object);
+    return self;
+}
+EI_REPLACE(0x00438110, RefPtrAssignObject);
+
+// 00429D80: whether the object has exactly one reference (AL).
+bool __fastcall RefIsUnique(const CRefObject* object) { return object->refs_ == 1; }
+EI_REPLACE(0x00429D80, RefIsUnique);
+
+// 00429D90: the object marked detached and shut down with an extra reference held; returns slot
+// 2's EAX.
+int __fastcall RefDetachShutdown(CRefObject* object) {
+    object->flags7_ |= CRefObject::kDetached;
+    return object->Shutdown();
+}
+EI_REPLACE(0x00429D90, RefDetachShutdown);
+
+// Holders of engine objects (a dword reference count at +4, released through slot 4).
+// 00421350: release (a tail call of slot 4 when set).
+void __fastcall ObjectHolderRelease(void** self) {
+    if (void* object = *self) ei::VCall<int>(object, 4);
+}
+EI_REPLACE(0x00421350, ObjectHolderRelease);
+// 00429B50: assignment: the new object gains a reference, the old one is released.
+void __fastcall ObjectHolderAssign(void** self, void*, void* object) {
+    void* previous = *self;
+    *self = object;
+    if (object) ++*reinterpret_cast<std::int32_t*>(static_cast<std::uint8_t*>(object) + 4);
+    if (previous) ei::VCall<int>(previous, 4);
+}
+EI_REPLACE(0x00429B50, ObjectHolderAssign);
