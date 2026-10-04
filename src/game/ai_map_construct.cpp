@@ -31,7 +31,7 @@ __declspec(naked) void __fastcall ConstructSearch2614(void*, void*, int) EI_ORIG
 __declspec(naked) void __fastcall Construct2698(void*, void*, int, int) EI_ORIGINAL(0x005BCEE0)
 __declspec(naked) void __fastcall Construct26A8(void*, void*, int, int) EI_ORIGINAL(0x005BCF00)
 __declspec(naked) void __fastcall Construct26C8(void*, void*) EI_ORIGINAL(0x005B3F40)
-// 005B40F0: resets the dirty rectangle (+4). 005B4150: the map's initial state.
+// 005B40F0: resets the dirty rectangle (+4). 005B4150: fills the area lists (ai_area_lists.cpp).
 __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 __declspec(naked) void __fastcall Initialise(void*, void*) EI_ORIGINAL(0x005B4150)
 
