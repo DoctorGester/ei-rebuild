@@ -151,7 +151,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Pass state | per pass of a mesh (the material's technique: one state block per pass, 004EB550; or the two textures of 004EB370): blend and factors, alpha test, depth test / write / function, culling, specular, fog and its colour, texture factor, two texture stages' colour / alpha operations and arguments, filters, addressing, and the bound surface holders (device +0x12C / +0x130) | DeviceDrawIndexed 004EB550 / DeviceDrawTwoTextures 004EB370 -> `render::MeshPass`, read back from the old device (the state blocks are opaque) | drawn; later the materials from the game's data |
 | Depth clears | the battle screen's before its panels (00636020), the hero preview's (005EC300: all to 0, its rectangles to 1) | `render::ClearDepth` | drawn; 00627390 (not rewritten) missing |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX slots 8 / 9 / 11 / 12 into a surface), ground quad 0056C750, drawn with 004EA4A0 | 004EA4A0 (rewritten) -> `render::BeginMesh` without corners (per-vertex positions, one colour pair, depth scale); the texture from the render surface right after 0051CE60 copies it (`render::TextureChanged`) | drawn |
-| Particles, ribbons, lightning, hit points, vision fog | the renderer's pre-transformed draws: sprites 00502CA0 -> 00503680 (particles, the vision fog's quads), ribbons 00501D90 -> 00502A20 (lightning), triangles 00501BB0 (rewritten, `renderer_triangles.cpp`: flying hit points) | `render::TlDraw` at the three draws (vertices after the fog pass, the old device's state) | drawn; later: the particle data itself instead of its screen quads |
+| Particles, ribbons, lightning, hit points, vision fog | the renderer's pre-transformed draws: sprites 00502CA0 -> 00503680 (particles, the vision fog's quads), ribbons 00501D90 -> 00502A20 (lightning), triangles 00501BB0 (rewritten, `renderer_triangles.cpp`: flying hit points); the line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`: debug lines) | `render::TlDraw` at the draws (vertices after the fog pass, the old device's state) | drawn; later: the particle data itself instead of its screen quads |
 | Weather | rain and snow quads built by 004E4240 / 004E4C80 (2.6 KB each, not rewritten; procedural placement) into pre-transformed vertices (+0x70, count +0x74, indices +0x84) and drawn with the device directly | the weather draw 004E5680 rewritten (`weather_draw.cpp`): after the rain / snow returns, its triangles go to `render::TlDraw` with the device state of that moment | drawn; the old draw stays (the two builders are not split yet) |
 | Sky | the sky object (004D96E0: a model at the camera, turning with time) | the figure path | with objects |
 | Interface surfaces | CUiSurface (0x38 bytes): +0x0C flags (1 colour key, 2 whole surface stretched, 4 shown), +0x10 the surface holder, +0x24 the screen rectangle, +0x34 the colour key; the DirectDraw surface's pixels (read with a read-only Lock when its uniqueness value changed) | the blit 005FDA80 (rewritten: `ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn (overlay) |
@@ -260,10 +260,10 @@ in our runs) is still created and still used, because:
    pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
    place that sets a render state, a texture stage state or applies a state block on the old device
-   also calls `render::state::Render / Stage / Block` with the same values (13 files so far:
-   device_draw, renderer_init (and a reset at device creation), renderer_rect, renderer_sprites,
-   renderer_strip, terrain_draw, world_client_draw, ui_camp, ui_create_screen, ui_hero_preview,
-   ui_hud, ui_item_view, ui_objectives). The device records only four state blocks, at its creation
+   also calls `render::state::Render / Stage / Block` with the same values (16 files so far:
+   device_draw, device_states, renderer_init (and a reset at device creation), renderer_lines,
+   renderer_rect, renderer_sprites, renderer_strip, terrain_draw, world_client_draw, ui_alpha_draws,
+   ui_camp, ui_create_screen, ui_hero_preview, ui_hud, ui_item_view, ui_objectives). The device records only four state blocks, at its creation
    (004E6392..004E67BD, handles in 007AEDDC / D8 / D4 / D0), each a stage-0 setup; a material's
    technique is a list of those handles plus its blend factors and texture records:
    | handle | colour | alpha |
@@ -276,7 +276,7 @@ in our runs) is still created and still used, because:
    and logged once ("render: pass state: render state N not fed by the game code yet"), with a count
    every 20000 passes of the passes that still needed the old device. The verify build also reads
    every fed state back and logs disagreements ("fed X but the old device has Y": a writer in code
-   not converted, e.g. the renderer's state presets 00501C60 that particles use); the device's
+   not converted, as the renderer's blend setter 00501C60 that particles use was); the device's
    value is drawn then. The first runs' list (render_*, frames_basic, ui_camp, both installs) is
    handled: the fog colour (renderer slot 0, 00501AB0), the material setter (004EB170: stage 1 off
    without a material) and three window draws that set alpha states (00600F70, 0062EFC0, 0065A6D0)
@@ -286,9 +286,31 @@ in our runs) is still created and still used, because:
    panel's draw 006462A0 turns off around the unit's picture and back (Rebirth replaces that whole
    function with its wide-layout version, so it cannot feed the mirror until it is rewritten with
    that patch); the device's value is drawn in the verify build, the mirror's (linear mips) in the
-   release build. Known writers not reached by the scenarios: the tutorial screen's create
-   00658E10 (alpha reference 1), the particle presets 0049B140 / 0049B4B0 and the renderer's
-   005045D0 (stage 0 colour operation around their draws).
+   release build. Known writer not reached by the scenarios: the tutorial screen's create
+   00658E10 (alpha reference 1).
+   The "state presets" of the first list, rewritten (2026-10-05, ticket R4):
+   - 00501C60 (renderer slot 10, `device_states.cpp`) sets SRCBLEND then DESTBLEND (a failure
+     reported through 004800E0 "Can't set source / destination alpha blend mode."). Not a general
+     preset: the caller known is the particle draw 00498940 (5, 2 before additive sources, 5, 6
+     after), so it is what left the particles' blend factors out of the mirror. Verify:
+     differential on the real device (original, factors read back, ours, read back, compared).
+   - 005045D0 (renderer slot 20) and 0049B4B0 (`renderer_lines.cpp`) are line-strip draws, not
+     particle setups: 005045D0 a strip through integer screen points (no caller found);
+     0049B4B0 the strip of the renderer's line lists (0049B780 from slot 15 00501CE0: the figure
+     parts' debug bounds boxes 005A7290, the world client's line lists 00569D60), flat shaded,
+     into a growing vertex buffer at 007A9CE0. Both turn stage 0's colour / alpha operations off
+     and back to MODULATE (0049B4B0 also SHADEMODE flat / Gouraud), now fed; their strips go to
+     `render::TlDraw` (line strip, FVF 0xC4) and the old draw is skipped with the old path's
+     meshes off. Verify: ours only (the original would draw twice): result, the device object's
+     counters, the states read back, 0049B4B0's vertex buffer. Neither is reached by the
+     scenarios (debug drawing).
+   - 0049B140 sets no state: it appends a point to a line list. The device calls listed under it
+     belong to 0049B320 inside the same functions.csv range, a two-point line draw with no caller
+     and no pointer to it (dead; left alone).
+   - 0050434F is not a function: it lies inside an instruction of the rectangle 005041F0 (a
+     false vtable entry, 00747E2C in config/vtables.csv, made it a functions.csv entry, as is
+     00504341). 005041F0 is rewritten (`renderer_rect.cpp`) and already feeds every state it
+     sets.
 4. **CPU paths into surfaces**: the shadow rasteriser now draws into a CPU buffer (the surface's
    layout), which goes to the new renderer (`render::TexturePixels`) and is then copied into the
    render surface for the old path's texture load. Bink decodes each frame into a CPU buffer too
@@ -311,10 +333,10 @@ in our runs) is still created and still used, because:
    gone (point 6).
 6. **Old device calls still made**: 524 call sites in 143 functions; with no device every one needs
    a guard or a rewrite. 241 of the sites are in functions rewritten by now (most of them already
-   skip the device call when the new renderer takes the draw); 92 functions with DirectDraw /
-   Direct3D calls are not rewritten yet: the device setup and texture management (004E5E50,
-   004E68A0, 004EE*, 0068F860..00693C60), the state presets (0049B140 / 0049B4B0, 00501C60,
-   0050434F, 005045D0), the movies' surfaces (005DA5AB / 005DA880 / 005DB603 / 005DB9E0), the
+   skip the device call when the new renderer takes the draw); 88 functions with DirectDraw /
+   Direct3D calls are not rewritten yet (the "state presets" are done, point 3; the dead line draw
+   0049B320 is left): the device setup and texture management (004E5E50,
+   004E68A0, 004EE*, 0068F860..00693C60), the movies' surfaces (005DA5AB / 005DA880 / 005DB603 / 005DB9E0), the
    software cursor's primary draws (005E5640 / 005E5690 / 005E6630), the picture window and
    holder helpers (004EFA60, 004EFEA0, 004F0060), the save / load screen's screenshot locks and a
    few interface draws (00600EF0, 00602BF0, 0060C870, 00622420, 00627C90, 00628F80, 00630670,

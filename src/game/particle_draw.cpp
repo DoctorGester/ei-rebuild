@@ -113,11 +113,11 @@ __declspec(naked) void __fastcall IntroSortAt(ParticleDepth*, ParticleDepth*, vo
 __declspec(naked) void __fastcall FinalSortAt(ParticleDepth*, ParticleDepth*, int) EI_ORIGINAL(0x004994E0)
 __declspec(naked) int __fastcall DrawSourceAt(CParticleSource*, void*, void* /*renderer*/) EI_ORIGINAL(0x004976B0)
 
-// The renderer's render-state setter (vtable slot 10): state 5 is the blend mode (2 additive, 6
-// the default).
-void SetRenderState(void* renderer, int state, int value) {
+// The renderer's blend-factor setter (vtable slot 10, 00501C60): SRCBLEND, DESTBLEND (5 source
+// alpha; 2 one: additive, 6 inverse source alpha: the default).
+void SetRenderState(void* renderer, int source, int dest) {
     using Fn = void(__fastcall*)(void*, void*, int, int);
-    (*static_cast<Fn**>(renderer))[10](renderer, nullptr, state, value);
+    (*static_cast<Fn**>(renderer))[10](renderer, nullptr, source, dest);
 }
 
 // A source attached to a unit (class 0x50) is drawn only while the unit has flag 0x400000.
