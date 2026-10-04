@@ -151,3 +151,17 @@ void* s_unusedDtor;
 } // namespace
 EI_VERIFY(0x00436A50, SessionDestructVerify, 0, s_unusedDtor);
 EI_VERIFY(0x004368D0, SessionDeleteVerify, 0, s_unusedDtor);
+
+namespace net {
+void __fastcall SessionAddClient(SessionBase* self, void*, const std::uint8_t* address, std::uint32_t id, int rate);
+}
+namespace {
+// 00436DD0: ours only (it creates a connection); the newest client has the address.
+void __fastcall AddClientVerify(net::SessionBase* self, void*, const std::uint8_t* address, std::uint32_t id, int rate) {
+    net::SessionAddClient(self, nullptr, address, id, rate);
+    auto* added = static_cast<net::Connection*>(static_cast<void**>(static_cast<void**>(self->clients)[1])[2]);
+    ei::verify::Check("SessionAddClient", true, std::memcmp(added->address, address, 16) == 0, "");
+}
+void* s_unusedAdd;
+} // namespace
+EI_VERIFY(0x00436DD0, AddClientVerify, 0, s_unusedAdd);

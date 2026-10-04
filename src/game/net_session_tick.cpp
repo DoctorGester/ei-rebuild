@@ -9,6 +9,9 @@
 
 #include <cstring>
 
+// Precise semantics keep the x87 division in SessionAddClient as written.
+#pragma float_control(precise, on)
+
 namespace net {
 
 namespace {
@@ -397,5 +400,52 @@ SessionBase* __fastcall SessionDeletingDestructor(SessionBase* self, void*, unsi
     return self;
 }
 EI_REPLACE(0x004368D0, SessionDeletingDestructor);
+
+} // namespace net
+
+// ---- Adding a client ---------------------------------------------------------------------------------
+
+namespace net {
+
+namespace {
+// 00432DA0: the connection constructor (id); 0043D7D0: a counted connection pointer from a raw one
+// (pointer in ECX, connection in EDX); 00439E30: the clients list's insert(pos, value);
+// 00425040: another STLport string destructor.
+__declspec(naked) Connection* __fastcall ConnectionConstruct(void* /*memory*/, void*, std::uint32_t /*id*/) EI_ORIGINAL(0x00432DA0)
+__declspec(naked) void* __fastcall ClientRefInit(void* /*ref*/, Connection* /*connection*/) EI_ORIGINAL(0x0043D7D0)
+__declspec(naked) void* __fastcall ClientsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/) EI_ORIGINAL(0x00439E30)
+__declspec(naked) void __fastcall StringDestroy2(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
+constexpr std::uintptr_t kAddClient = 0x00783EF8;   // "ADD client "
+float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+} // namespace
+
+// 00436DD0: AddClient(address, id, rate). Logs it, removes a connection to the same address (slot
+// 2), appends a new connection with that id and address; the send interval is the constant at
+// 0073BF48 over the rate clamped to [500, 50000].
+void __fastcall SessionAddClient(SessionBase* self, void*, const std::uint8_t* address, std::uint32_t id, int rate) {
+    if (NetLog()) {
+        StringRep peer;
+        const char* text = AddressString(address, nullptr, &peer)->start;
+        LogAddress(kAddClient, text);
+        StringDestroy2(&peer);
+    }
+    ei::VCall<void>(self, 2, FindClientNode(self, address));
+    auto* memory = static_cast<std::uint8_t*>(gamecrt::operator_new(sizeof(Connection)));
+    std::uint32_t zero = 0;
+    std::memcpy(memory + 4, &zero, 4);
+    Connection* connection = memory ? ConnectionConstruct(memory, nullptr, id) : nullptr;
+    void* ref;
+    ClientRefInit(&ref, connection);
+    void* end;
+    ClientsEnd(&self->clients, nullptr, &end);
+    void* inserted;
+    ClientsInsert(&self->clients, nullptr, &inserted, end, &ref);
+    auto* added = ConnectionOf(static_cast<void**>(self->clients)[1]);
+    std::memcpy(added->address, address, sizeof(added->address));
+    if (rate <= 500) rate = 500;
+    else if (rate >= 50000) rate = 50000;
+    added->sendInterval = static_cast<float>(static_cast<double>(GameFloatAt(0x0073BF48)) / static_cast<double>(rate));
+}
+EI_REPLACE(0x00436DD0, SessionAddClient);
 
 } // namespace net
