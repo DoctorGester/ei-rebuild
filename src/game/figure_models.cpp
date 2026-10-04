@@ -45,6 +45,15 @@ __declspec(naked) void __fastcall AnimFind(void*, void*, Iterator*, const RawStr
 __declspec(naked) char* __fastcall AnimIndex(void*, void*, const RawString*) EI_ORIGINAL(0x005ADC10)
 __declspec(naked) void* __fastcall ConstructAnimation(void*) EI_ORIGINAL(0x006721D0)
 
+// The STLport hashtable's inlined constructor: the buckets vector's end-of-storage member from an
+// allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8),
+// reserve (RET 4) and insert(pos, n, value) (RET 0xC).
+__declspec(naked) void __fastcall BucketsEndOfStorage(void*, void*, const void*, const void*) EI_ORIGINAL(0x005AD640)
+__declspec(naked) const std::uint32_t* __fastcall PrimeLowerBound(const std::uint32_t*, const std::uint32_t*,
+                                                                  const std::uint32_t*, int) EI_ORIGINAL(0x00408A50)
+__declspec(naked) void __fastcall BucketsReserve(void*, void*, std::uint32_t) EI_ORIGINAL(0x005AD880)
+__declspec(naked) void __fastcall BucketsInsert(void*, void*, void*, std::uint32_t, const void*) EI_ORIGINAL(0x005ADAD0)
+
 constexpr int kModels = 0xBC;
 constexpr int kSlotOpenResource = 19;
 constexpr int kSlotLoad = 2;
@@ -123,3 +132,37 @@ void* __fastcall FindModelAnimation(char* model, void*, const void* nameIn) {
     return found.node ? found.node->value : nullptr;
 }
 EI_REPLACE(0x005A9EF0, FindModelAnimation);
+
+// 005A9A50 (thiscall, returns this): the model's constructor. The animation map (+0xC) is built
+// as STLport's hashtable constructor inlines it: empty functors (the original copies an
+// uninitialised stack byte into them; ours 0), no elements, buckets for the first prime of the
+// list 0073B914..0073B984 not below 100, all null. Then the three parts (+0, +4, +8) are new
+// 0x6C-byte objects (006721D0), null when the allocation fails.
+void* __fastcall ConstructFigureModel(std::uint8_t* model) {
+    std::uint8_t* table = model + 0xC;
+    table[0] = 0;
+    table[1] = 0;
+    table[2] = 0;
+    void* buckets = table + 4;
+    *reinterpret_cast<std::uint32_t*>(table + 4) = 0;
+    *reinterpret_cast<std::uint32_t*>(table + 8) = 0;
+    char allocatorTag = 0;
+    std::uint32_t zero = 0;
+    BucketsEndOfStorage(table + 0xC, nullptr, &allocatorTag, &zero);
+    *reinterpret_cast<std::uint32_t*>(table + 0x10) = 0;
+    const auto* first = reinterpret_cast<const std::uint32_t*>(0x0073B914);
+    const auto* last = reinterpret_cast<const std::uint32_t*>(0x0073B984);
+    std::uint32_t hint = 100;
+    const std::uint32_t* prime = PrimeLowerBound(first, last, &hint, 0);
+    std::uint32_t count = prime == last ? *reinterpret_cast<const std::uint32_t*>(0x0073B980) : *prime;
+    BucketsReserve(buckets, nullptr, count);
+    void* none = nullptr;
+    BucketsInsert(buckets, nullptr, *reinterpret_cast<void**>(table + 8), count, &none);
+    *reinterpret_cast<std::uint32_t*>(table + 0x10) = 0;
+    for (int i = 0; i < 3; ++i) {
+        void* part = gamecrt::operator_new(0x6C);
+        reinterpret_cast<void**>(model)[i] = part ? ConstructAnimation(part) : nullptr;
+    }
+    return model;
+}
+EI_REPLACE(0x005A9A50, ConstructFigureModel);

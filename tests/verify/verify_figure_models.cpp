@@ -57,3 +57,19 @@ static void* __fastcall FindAnimationVerify(char* model, void*, const void* name
     return result;
 }
 EI_VERIFY(0x005A9EF0, FindAnimationVerify, 0, s_unused);
+
+void* __fastcall ConstructFigureModel(unsigned char* model);
+
+// 005A9A50: constructs in place, so ours only. Afterwards the map is empty with at least 100
+// null buckets and the three parts exist.
+static void* __fastcall ConstructModelVerify(unsigned char* model) {
+    void* result = ConstructFigureModel(model);
+    auto** begin = *reinterpret_cast<void***>(model + 0x10);
+    auto** end = *reinterpret_cast<void***>(model + 0x14);
+    bool ok = result == model && *reinterpret_cast<int*>(model + 0x1C) == 0 && end - begin >= 100;
+    for (void** b = begin; ok && b != end; ++b) ok = *b == nullptr;
+    for (int i = 0; ok && i < 3; ++i) ok = reinterpret_cast<void**>(model)[i] != nullptr;
+    ei::verify::Check("ConstructFigureModel", true, ok, "%d buckets", static_cast<int>(end - begin));
+    return result;
+}
+EI_VERIFY(0x005A9A50, ConstructModelVerify, 0, s_unused);

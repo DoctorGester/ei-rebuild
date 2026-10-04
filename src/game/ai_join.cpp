@@ -31,6 +31,9 @@ __declspec(naked) void __fastcall ListFixUp(PathCellList*, void*) EI_ORIGINAL(0x
 __declspec(naked) void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 
 constexpr int kUnreached = 0x7FFFFFFF;
+
+// The word BuildCellsTo gives each cell's second dword (see SetBuildCellsStaleWord).
+std::uint32_t g_staleWord = 0;
 constexpr std::uintptr_t kListVtable = 0x0073EDB0;
 
 // The inlined list destructor (the nodes need no destruction).
@@ -44,6 +47,10 @@ void DestroyList(PathCellList& list) {
 }
 
 } // namespace
+
+// Set by the planner (ai_plan.cpp) to the dword the original's BuildCells would find in the stack
+// slot it reads for the cells' second dword (flags and unknown_6).
+void SetBuildCellsStaleWord(std::uint32_t value) { g_staleWord = value; }
 
 bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     auto* self = reinterpret_cast<std::uint8_t*>(this);
@@ -94,10 +101,12 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(path->blocks));
     path->blocks = nullptr;
     if (x < 0 || x >= width || y < 0 || y >= height) return;
-    // The original builds each cell's second dword (flags) from a stack slot it never writes;
-    // ours writes 0.
-    auto cellAt = [](int cx, int cy) {
-        PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), 0, 0};
+    // The original builds each cell's second dword (flags, unknown_6) from a stack slot it never
+    // writes; its only caller, the planner, records what that slot holds (ai_plan.cpp).
+    std::uint32_t stale = g_staleWord;
+    auto cellAt = [stale](int cx, int cy) {
+        PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), static_cast<std::uint16_t>(stale),
+                   static_cast<std::uint16_t>(stale >> 16)};
         return c;
     };
     std::int8_t** marks = reinterpret_cast<std::int8_t**>(*reinterpret_cast<std::uint8_t***>(

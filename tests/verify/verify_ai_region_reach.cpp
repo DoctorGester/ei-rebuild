@@ -313,6 +313,75 @@ static CRegionMap* __fastcall ConstructRegionMapVerify(CRegionMap* self) {
 EI_VERIFY(0x005AF3D0, ConstructRegionMapVerify, 0, s_unusedAttach);
 
 namespace {
+using SuitsFn = bool(__fastcall*)(CRegionMap*, void*, int, int, int, int, int);
+SuitsFn s_originalSuits;
+}
+
+// 005AF7B0: reads the map through the local search (reset afterwards); the original, then ours.
+static bool __fastcall CellSuitsVerify(CRegionMap* self, void*, int sizeClass, int bx, int by, int xx, int yy) {
+    bool expected = s_originalSuits(self, nullptr, sizeClass, bx, by, xx, yy);
+    bool result = self->CellSuitsBlockAt(sizeClass, bx, by, xx, yy);
+    ei::verify::Check("CRegionMap::CellSuitsBlockAt", expected, result, "class %d block (%d,%d) cell (%d,%d)", sizeClass,
+                      bx, by, xx, yy);
+    return result;
+}
+EI_VERIFY(0x005AF7B0, CellSuitsVerify, 7, s_originalSuits);
+
+namespace {
+struct Points {
+    void* vtable;
+    int* data;   // {x, y} pairs
+    int size;
+    int capacity;
+    int growBy;
+};
+using FloodFn = void(__fastcall*)(CRegionMap*, void*, int, Points*, Points*, int);
+FloodFn s_originalFlood;
+__declspec(naked) void __fastcall PointsSetSize(Points*, void*, int, int) {
+    __asm mov eax, 0x005B16D0
+    __asm jmp eax
+}
+__declspec(naked) void __cdecl GameFree(void*) {
+    __asm mov eax, 0x007005D8
+    __asm jmp eax
+}
+void CopyPoints(Points& to, const Points& from) {
+    to = Points{from.vtable, nullptr, 0, 0, from.growBy};
+    PointsSetSize(&to, nullptr, from.size, -1);
+    if (from.size) std::memcpy(to.data, from.data, static_cast<std::size_t>(from.size) * 8);
+}
+void RegionWords(CRegionMap* map, int c, std::vector<std::uint16_t>& words, bool restore) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    auto* data = *reinterpret_cast<std::uint16_t**>(base + 0x21C + c * 16);
+    int count = *reinterpret_cast<int*>(base + 0x224 + c * 16) * *reinterpret_cast<int*>(base + 0x228 + c * 16);
+    if (restore) std::memcpy(data, words.data(), static_cast<std::size_t>(count) * 2);
+    else words.assign(data, data + count);
+}
+} // namespace
+
+// 005AFF10: the original floods from copies of the two queues, its region grid is kept and the
+// first one put back, then ours floods from the real queues; the grids compared.
+static void __fastcall FloodVerify(CRegionMap* self, void*, int sizeClass, Points* frontier, Points* next, int label) {
+    std::vector<std::uint16_t> before, expected, actual;
+    RegionWords(self, sizeClass, before, false);
+    Points a, b;
+    CopyPoints(a, *frontier);
+    CopyPoints(b, *next);
+    s_originalFlood(self, nullptr, sizeClass, &a, &b, label);
+    if (a.data) GameFree(a.data);
+    if (b.data) GameFree(b.data);
+    RegionWords(self, sizeClass, expected, false);
+    RegionWords(self, sizeClass, before, true);
+    self->FloodRegionFrom(sizeClass, frontier, next, label);
+    RegionWords(self, sizeClass, actual, false);
+    int differences = 0;
+    for (std::size_t i = 0; i < actual.size(); ++i)
+        if (actual[i] != expected[i]) ++differences;
+    ei::verify::Check("CRegionMap::FloodRegionFrom", 0, differences, "class %d label %d", sizeClass, label);
+}
+EI_VERIFY(0x005AFF10, FloodVerify, 5, s_originalFlood);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

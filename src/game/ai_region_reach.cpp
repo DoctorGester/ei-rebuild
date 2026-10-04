@@ -133,8 +133,11 @@ void Fit(BlockGrid& grid, int width, int height, void (__fastcall* allocate)(voi
     grid.height = height;
     allocate(&grid);
 }
-// 005AF7B0 (RET 0x14, AL): whether cell (x, y) of block (bx, by) suits the block for a size class.
+// 005AF7B0 (RET 0x14, AL): whether cell (x, y) of block (bx, by) suits the block for a size class
+// (CRegionMap::CellSuitsBlock, called through its original address).
 __declspec(naked) bool __fastcall CellSuitsBlock(CRegionMap*, void*, int, int, int, int, int) EI_ORIGINAL(0x005AF7B0)
+// 005C2CF0 with its AL result: false when the search could not be set up.
+__declspec(naked) bool __fastcall SearchSetupOk(void*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005C2CF0)
 // The region map's two block searches (+0 from the start, +0x4C from the target): a search over
 // the blocks of one size class. Its block records (24 bytes, rows at +4) keep a cost
 // (0x7FFFFFFF unvisited) and a link; +0x18 chains the touched records, +0x1C eight open
@@ -716,7 +719,75 @@ CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
     return self;
 }
 
+bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy) {
+    void* search = reinterpret_cast<std::uint8_t*>(this) + 0x98;
+    int left = bx * 8, top = by * 8, right = bx * 8 + 8, bottom = by * 8 + 8;
+    // A search confined to the block and its far edges (9x9 cells) from the candidate cell; when
+    // it cannot be set up the cell is taken.
+    if (!SearchSetupOk(search, nullptr, sizeClass, left, top, right, bottom, xx + left, yy + top)) return true;
+    SearchFinish(search, nullptr);
+    // Suitable when it reaches both the left and the right edge, or else both the top and the
+    // bottom edge.
+    bool first = false, second = false;
+    for (int y = top; y < top + 9; ++y) {
+        if (SearchCost(search, nullptr, left, y) < kUnreached) first = true;
+        if (SearchCost(search, nullptr, right, y) < kUnreached) second = true;
+    }
+    if (first && second) {
+        SearchReset(search, nullptr);
+        return true;
+    }
+    first = false;
+    second = false;
+    for (int x = left; x < left + 9; ++x) {
+        if (SearchCost(search, nullptr, x, top) < kUnreached) first = true;
+        if (SearchCost(search, nullptr, x, bottom) < kUnreached) second = true;
+    }
+    SearchReset(search, nullptr);
+    return first && second;
+}
+
+void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, int label) {
+    auto* frontier = static_cast<PointArray*>(frontierIn);
+    auto* next = static_cast<PointArray*>(nextIn);
+    const int* dx = reinterpret_cast<const int*>(0x0079110C);
+    const int* dy = reinterpret_cast<const int*>(0x00791130);
+    std::int16_t** edges = At<std::int16_t**>(this, 0x120 + sizeClass * 16);
+    std::uint16_t** regions = At<std::uint16_t**>(this, 0x220 + sizeClass * 16);
+    for (;;) {
+        // The inlined RemoveAll of the next frontier.
+        if (next->data) {
+            GameDelete(next->data);
+            next->data = nullptr;
+        }
+        next->capacity = 0;
+        next->size = 0;
+        // Every open edge (word >= 0) of a frontier block leads to a neighbour; an unlabelled one
+        // takes the label and joins the next frontier.
+        for (int i = 0; i < frontier->size; ++i) {
+            int bx = frontier->data[i].x, by = frontier->data[i].y;
+            for (int dir = 0; dir < 8; ++dir) {
+                if (edges[by][bx * 8 + dir] < 0) continue;
+                int nx = bx + dx[dir], ny = by + dy[dir];
+                std::uint16_t& region = regions[ny][nx];
+                if (region != 0) continue;
+                region = static_cast<std::uint16_t>(label);
+                int n = next->size;
+                PointArraySetSize(next, nullptr, n + 1, -1);
+                next->data[n].x = nx;
+                next->data[n].y = ny;
+            }
+        }
+        if (next->size == 0) return;
+        PointArray* swap = frontier;
+        frontier = next;
+        next = swap;
+    }
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005AFF10, CRegionMap::FloodRegionFrom);
+EI_REPLACE_METHOD(0x005AF7B0, CRegionMap::CellSuitsBlockAt);
 EI_REPLACE(0x005AF3D0, ConstructRegionMap);
 EI_REPLACE_METHOD(0x005B0C00, CRegionMap::Attach);
 EI_REPLACE_METHOD(0x005AFAE0, CRegionMap::MeasureBlockEdges);
