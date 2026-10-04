@@ -970,3 +970,30 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
 EI_REPLACE_METHOD(0x00436470, Connection::ReadUpdate);
 
 } // namespace net
+
+namespace net {
+
+void Connection::Close() {
+    *reinterpret_cast<Connection**>(0x0079B924) = this;
+    void* it = TreeBegin(records);
+    while (it != records.header) {
+        auto* slot = reinterpret_cast<RefPtr*>(&static_cast<RecordNode*>(it)->object);
+        if (CRefObject* object = slot->ptr) {
+            std::uint32_t objectVtable = *reinterpret_cast<const std::uint32_t*>(object);
+            SessionBase* session = CurrentSession();
+            void* found;
+            TypeFind(&session->types.byVtable, nullptr, &found, &objectVtable);
+            std::uint32_t type = found ? static_cast<TypeNode*>(found)->value : 0xFFFFFFFFu;
+            CallHandlers(session, 2, type, object);
+        }
+        if (slot->ptr) {
+            slot->Destroy();
+            slot->ptr = nullptr;
+        }
+        TreeIncrement(&it);
+    }
+    *reinterpret_cast<Connection**>(0x0079B924) = nullptr;
+}
+EI_REPLACE_METHOD(0x00436620, Connection::Close);
+
+} // namespace net

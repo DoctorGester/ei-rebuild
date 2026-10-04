@@ -188,6 +188,9 @@ struct Connection {
     // 00436470. Reads an update packet: sequence, acknowledgements, a reliable chunk and the
     // entries. False when an entry could not be read; true otherwise (also for a stale packet).
     bool ReadUpdate(BufferCursor* cursor);
+    // 00436620. The peer goes away: every object received from it is reported to the session's
+    // removal handlers (channel 2) and released.
+    void Close();
 };
 static_assert(offsetof(Connection, address) == 0x2C);
 static_assert(offsetof(Connection, clock) == 0x48);

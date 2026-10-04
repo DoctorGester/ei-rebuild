@@ -237,3 +237,15 @@ EI_VERIFY(0x00434D70, ReadAcksVerify, 0, s_unusedReceive);
 EI_VERIFY(0x00434E50, AcceptVerify, 0, s_unusedReceive);
 EI_VERIFY(0x00434AE0, ProcessHeadersVerify, 0, s_unusedReceive);
 EI_VERIFY(0x00436470, ReadUpdateVerify, 0, s_unusedReceive);
+
+namespace {
+// 00436620: ours only (it runs handlers and releases objects); the first record is empty afterwards.
+void __fastcall CloseVerify(net::Connection* self) {
+    self->Close();
+    void* first = static_cast<void**>(self->records.header)[2];
+    bool empty = first == self->records.header || static_cast<net::RecordNode*>(first)->object == nullptr;
+    ei::verify::Check("Connection::Close", true, empty, "");
+}
+void* s_unusedClose;
+} // namespace
+EI_VERIFY(0x00436620, CloseVerify, 0, s_unusedClose);
