@@ -136,6 +136,9 @@ struct CRegionMap {
     // 005AF7B0 (RET 0x14, AL; ai_region_reach.cpp). Whether cell (xx, yy) of block (bx, by) can
     // reach both side edges or both end edges of the block for a size class.
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
+    // 005AFF10 (RET 0x10; ai_region_reach.cpp). Floods `label` over the blocks connected through open
+    // edges, breadth first from `frontier` (CArray<{x, y}>), `next` holding the following ring.
+    void FloodRegionFrom(int sizeClass, void* frontier, void* next, int label);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.

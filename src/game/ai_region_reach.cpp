@@ -747,7 +747,46 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     return first && second;
 }
 
+void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, int label) {
+    auto* frontier = static_cast<PointArray*>(frontierIn);
+    auto* next = static_cast<PointArray*>(nextIn);
+    const int* dx = reinterpret_cast<const int*>(0x0079110C);
+    const int* dy = reinterpret_cast<const int*>(0x00791130);
+    std::int16_t** edges = At<std::int16_t**>(this, 0x120 + sizeClass * 16);
+    std::uint16_t** regions = At<std::uint16_t**>(this, 0x220 + sizeClass * 16);
+    for (;;) {
+        // The inlined RemoveAll of the next frontier.
+        if (next->data) {
+            GameDelete(next->data);
+            next->data = nullptr;
+        }
+        next->capacity = 0;
+        next->size = 0;
+        // Every open edge (word >= 0) of a frontier block leads to a neighbour; an unlabelled one
+        // takes the label and joins the next frontier.
+        for (int i = 0; i < frontier->size; ++i) {
+            int bx = frontier->data[i].x, by = frontier->data[i].y;
+            for (int dir = 0; dir < 8; ++dir) {
+                if (edges[by][bx * 8 + dir] < 0) continue;
+                int nx = bx + dx[dir], ny = by + dy[dir];
+                std::uint16_t& region = regions[ny][nx];
+                if (region != 0) continue;
+                region = static_cast<std::uint16_t>(label);
+                int n = next->size;
+                PointArraySetSize(next, nullptr, n + 1, -1);
+                next->data[n].x = nx;
+                next->data[n].y = ny;
+            }
+        }
+        if (next->size == 0) return;
+        PointArray* swap = frontier;
+        frontier = next;
+        next = swap;
+    }
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005AFF10, CRegionMap::FloodRegionFrom);
 EI_REPLACE_METHOD(0x005AF7B0, CRegionMap::CellSuitsBlockAt);
 EI_REPLACE(0x005AF3D0, ConstructRegionMap);
 EI_REPLACE_METHOD(0x005B0C00, CRegionMap::Attach);
