@@ -225,6 +225,11 @@ public:
 
     // 005BB350. Plans a path for `unit` to `target` into `path`; `range` limits the search.
     bool FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance);
+    // 005B9C90 (PlanPath, RET 0x20; ai_plan.cpp). The long-range plan from cell (fromX, fromY) to
+    // (toX, toY): region chain, local-search legs between the regions' representative cells, then
+    // the cells into path->cells. On a failed leg: aim at the best reached cell when it is far
+    // enough from the start, else (with `retry`) exclude the region and plan again.
+    bool PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells);
     // 005BB900. Searches again if the last search failed and nothing is left, else moves on along
     // the path. True if the path had already been walked to the end.
     bool ContinuePath(CUnit* unit, AIPath* path);
