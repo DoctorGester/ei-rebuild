@@ -9,6 +9,7 @@
 #include "terrain_sector.h"
 
 #include "ei/hook.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -301,6 +302,10 @@ int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unuse
     if (s->unknown_060 == 2) return 1;
     EnsureStatics();
     if (s->hasWater) ApplyWaterLevels(s);
+    // The new renderer (src/render) takes the page; with "noterrain" the old path stops here. The
+    // water levels above stay: they move the water surface that height queries read.
+    if (render::Active()) render::TerrainPage(s, context, page);
+    if (!render::DrawOldTerrain()) return 1;
 
     for (int quarter = 0; quarter < 4; ++quarter) {
         int mode = s->quarterMode[quarter];

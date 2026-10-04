@@ -1,0 +1,518 @@
+// The new renderer's frame: the switch, the Direct3D 11 device behind sokol_gfx, the off-screen
+// target the frame is drawn into (the game's resolution), the child window that can show it, and
+// reading it back for captures. See render.h and docs/notes/renderer.md.
+#include "render.h"
+#include "render_game.h"
+#include "render_internal.h"
+
+#include "../hook/log.h"
+
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#include <d3d11.h>
+#include <dxgi.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
+namespace render {
+
+namespace {
+
+using namespace detail;
+
+// --- The switch ------------------------------------------------------------------------------------
+
+bool g_configured = false;
+bool g_active = false;
+bool g_show = false;
+bool g_split = false;
+bool g_oldTerrain = true;
+bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
+
+void ParseSpec(const char* spec) {
+    g_active = g_show = g_split = false;
+    g_oldTerrain = true;
+    std::string s = spec ? spec : "";
+    std::size_t start = 0;
+    while (start <= s.size()) {
+        std::size_t comma = s.find(',', start);
+        std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
+        while (!word.empty() && word.front() == ' ') word.erase(word.begin());
+        while (!word.empty() && word.back() == ' ') word.pop_back();
+        if (word == "new") g_active = true;
+        else if (word == "show") g_show = true;
+        else if (word == "split") g_show = g_split = true;
+        else if (word == "noterrain") g_oldTerrain = false;
+        else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
+        if (comma == std::string::npos) break;
+        start = comma + 1;
+    }
+    if (!g_active) {
+        g_show = g_split = false;
+        g_oldTerrain = true;
+    }
+    g_configured = true;
+    if (g_active)
+        ei::Log("render: new renderer on (%s%s)", g_show ? (g_split ? "split view" : "shown") : "off-screen",
+                g_oldTerrain ? "" : ", old terrain off");
+}
+
+void EnsureConfigured() {
+    if (g_configured) return;
+    char spec[256];
+    DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
+    ParseSpec(n > 0 && n < sizeof(spec) ? spec : "");
+}
+
+// The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU
+// precision"); drivers are not expected to change it, but the control word is put back after every
+// call into them anyway.
+class FpuGuard {
+public:
+    FpuGuard() {
+        unsigned short cw;
+        __asm fnstcw cw
+        saved_ = cw;
+    }
+    ~FpuGuard() {
+        unsigned short cw = saved_;
+        __asm fldcw cw
+    }
+    FpuGuard(const FpuGuard&) = delete;
+    FpuGuard& operator=(const FpuGuard&) = delete;
+
+private:
+    unsigned short saved_;
+};
+
+// --- Game memory -----------------------------------------------------------------------------------
+
+HWND GameWindow() { return *reinterpret_cast<HWND*>(game::Where().window); }
+char* DeviceObject() { return *reinterpret_cast<char**>(game::Where().deviceObject); }
+
+// The size of the game's render target (the device object's +0x18, a CDXSurface: +0x14 width,
+// +0x18 height).
+bool GameTargetSize(int* width, int* height) {
+    char* device = DeviceObject();
+    char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
+    if (!target) return false;
+    *width = *reinterpret_cast<int*>(target + 0x14);
+    *height = *reinterpret_cast<int*>(target + 0x18);
+    return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
+}
+
+// The renderer's clear colour (007AF060 +0x14, D3DCOLOR), as 00501A40 clears the frame with.
+std::uint32_t GameClearColour() { return *reinterpret_cast<std::uint32_t*>(game::Where().renderer + 0x14); }
+
+sg_color FromD3DColour(std::uint32_t c) {
+    return sg_color{static_cast<float>((c >> 16) & 0xFF) / 255.0f, static_cast<float>((c >> 8) & 0xFF) / 255.0f,
+                    static_cast<float>(c & 0xFF) / 255.0f, 1.0f};
+}
+
+// --- Device ----------------------------------------------------------------------------------------
+
+ID3D11Device* g_device = nullptr;
+ID3D11DeviceContext* g_context = nullptr;
+
+void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
+              const char* /*file*/, void* /*user*/) {
+    static const char* const kLevels[] = {"panic", "error", "warning", "info"};
+    ei::Log("render: %s %s %u (line %u): %s", tag ? tag : "sg", level < 4 ? kLevels[level] : "?", item, line,
+            message ? message : "");
+}
+
+bool CreateDevice() {
+    const D3D_FEATURE_LEVEL levels[] = {D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+    D3D_FEATURE_LEVEL got{};
+    HRESULT hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_BGRA_SUPPORT, levels,
+                                   static_cast<UINT>(sizeof(levels) / sizeof(levels[0])), D3D11_SDK_VERSION, &g_device, &got,
+                                   &g_context);
+    if (FAILED(hr)) {
+        ei::Log("render: D3D11CreateDevice failed (%08lX); the new renderer stays off", static_cast<unsigned long>(hr));
+        return false;
+    }
+    sg_desc desc{};
+    desc.environment.defaults.color_format = kColourFormat;
+    desc.environment.defaults.depth_format = kDepthFormat;
+    desc.environment.defaults.sample_count = 1;
+    desc.environment.d3d11.device = g_device;
+    desc.environment.d3d11.device_context = g_context;
+    desc.logger.func = &SokolLog;
+    sg_setup(&desc);
+    if (!sg_isvalid()) {
+        ei::Log("render: sg_setup failed; the new renderer stays off");
+        return false;
+    }
+    ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
+    return true;
+}
+
+// --- The off-screen target ---------------------------------------------------------------------------
+
+int g_width = 0, g_height = 0;
+sg_image g_colour{}, g_depth{};
+sg_view g_colourAttachment{}, g_colourTexture{}, g_depthAttachment{};
+bool g_haveFrame = false;
+
+void DestroyTarget() {
+    if (g_colourAttachment.id) sg_destroy_view(g_colourAttachment);
+    if (g_colourTexture.id) sg_destroy_view(g_colourTexture);
+    if (g_depthAttachment.id) sg_destroy_view(g_depthAttachment);
+    if (g_colour.id) sg_destroy_image(g_colour);
+    if (g_depth.id) sg_destroy_image(g_depth);
+    g_colourAttachment = g_colourTexture = g_depthAttachment = sg_view{};
+    g_colour = g_depth = sg_image{};
+    g_width = g_height = 0;
+    g_haveFrame = false;
+}
+
+bool EnsureTarget(int width, int height) {
+    if (width == g_width && height == g_height && g_colour.id) return true;
+    DestroyTarget();
+    sg_image_desc colour{};
+    colour.usage.color_attachment = true;
+    colour.width = width;
+    colour.height = height;
+    colour.pixel_format = kColourFormat;
+    colour.sample_count = 1;
+    colour.label = "ei-frame-colour";
+    g_colour = sg_make_image(&colour);
+    sg_image_desc depth{};
+    depth.usage.depth_stencil_attachment = true;
+    depth.width = width;
+    depth.height = height;
+    depth.pixel_format = kDepthFormat;
+    depth.sample_count = 1;
+    depth.label = "ei-frame-depth";
+    g_depth = sg_make_image(&depth);
+    sg_view_desc v{};
+    v.color_attachment.image = g_colour;
+    g_colourAttachment = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.texture.image = g_colour;
+    g_colourTexture = sg_make_view(&v);
+    v = sg_view_desc{};
+    v.depth_stencil_attachment.image = g_depth;
+    g_depthAttachment = sg_make_view(&v);
+    if (sg_query_image_state(g_colour) != SG_RESOURCESTATE_VALID || sg_query_image_state(g_depth) != SG_RESOURCESTATE_VALID) {
+        ei::Log("render: cannot create the %dx%d frame target", width, height);
+        DestroyTarget();
+        return false;
+    }
+    g_width = width;
+    g_height = height;
+    return true;
+}
+
+// --- The child window that shows the frame ("show", "split") --------------------------------------------
+
+HWND g_view = nullptr;
+IDXGISwapChain* g_swapChain = nullptr;
+ID3D11RenderTargetView* g_swapView = nullptr;
+int g_viewWidth = 0, g_viewHeight = 0;
+sg_shader g_blitShader{};
+sg_pipeline g_blitPipeline{};
+bool g_viewFailed = false;
+
+LRESULT CALLBACK ViewProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_NCHITTEST) return HTTRANSPARENT;   // the game gets the mouse
+    if (message == WM_ERASEBKGND) return 1;
+    return DefWindowProcA(window, message, wParam, lParam);
+}
+
+const char* const kBlitSource = R"(
+cbuffer params : register(b0) { float4 source; };
+struct vs_out { float2 uv : TEXCOORD0; float4 pos : SV_Position; };
+vs_out vs_main(uint id : SV_VertexID) {
+    float2 p = float2((id << 1) & 2, id & 2);
+    vs_out o;
+    o.pos = float4(p.x * 2.0 - 1.0, 1.0 - p.y * 2.0, 0.0, 1.0);
+    o.uv = lerp(source.xy, source.zw, p);
+    return o;
+}
+Texture2D<float4> tex : register(t0);
+SamplerState smp : register(s0);
+float4 ps_main(vs_out i) : SV_Target0 { return float4(tex.Sample(smp, i.uv).rgb, 1.0); }
+)";
+
+bool CreateBlit() {
+    sg_shader_desc s{};
+    s.vertex_func.source = kBlitSource;
+    s.vertex_func.entry = "vs_main";
+    s.fragment_func.source = kBlitSource;
+    s.fragment_func.entry = "ps_main";
+    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
+    s.uniform_blocks[0].size = 16;
+    s.uniform_blocks[0].hlsl_register_b_n = 0;
+    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
+    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
+    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
+    s.views[0].texture.hlsl_register_t_n = 0;
+    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
+    s.samplers[0].hlsl_register_s_n = 0;
+    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
+    s.texture_sampler_pairs[0].view_slot = 0;
+    s.texture_sampler_pairs[0].sampler_slot = 0;
+    s.label = "ei-blit";
+    g_blitShader = sg_make_shader(&s);
+    sg_pipeline_desc p{};
+    p.shader = g_blitShader;
+    p.colors[0].pixel_format = SG_PIXELFORMAT_BGRA8;
+    p.depth.pixel_format = SG_PIXELFORMAT_NONE;
+    p.sample_count = 1;
+    p.label = "ei-blit";
+    g_blitPipeline = sg_make_pipeline(&p);
+    return sg_query_pipeline_state(g_blitPipeline) == SG_RESOURCESTATE_VALID;
+}
+
+void ReleaseSwapView() {
+    if (g_swapView) g_swapView->Release();
+    g_swapView = nullptr;
+}
+
+bool CreateSwapView() {
+    ID3D11Texture2D* buffer = nullptr;
+    if (FAILED(g_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&buffer)))) return false;
+    HRESULT hr = g_device->CreateRenderTargetView(buffer, nullptr, &g_swapView);
+    buffer->Release();
+    return SUCCEEDED(hr);
+}
+
+bool CreateView(int width, int height) {
+    HINSTANCE self = nullptr;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&ViewProc), &self);
+    WNDCLASSA wc{};
+    wc.lpfnWndProc = &ViewProc;
+    wc.hInstance = self;
+    wc.lpszClassName = "EiNewRendererView";
+    RegisterClassA(&wc);
+    g_view = CreateWindowExA(0, wc.lpszClassName, "", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 0, width, height,
+                             GameWindow(), nullptr, self, nullptr);
+    if (!g_view) return false;
+    IDXGIDevice* dxgiDevice = nullptr;
+    IDXGIAdapter* adapter = nullptr;
+    IDXGIFactory* factory = nullptr;
+    bool ok = SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice))) &&
+              SUCCEEDED(dxgiDevice->GetAdapter(&adapter)) &&
+              SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&factory)));
+    if (ok) {
+        DXGI_SWAP_CHAIN_DESC sd{};
+        sd.BufferDesc.Width = static_cast<UINT>(width);
+        sd.BufferDesc.Height = static_cast<UINT>(height);
+        sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        sd.SampleDesc.Count = 1;
+        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        sd.BufferCount = 1;
+        sd.OutputWindow = g_view;
+        sd.Windowed = TRUE;
+        sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+        ok = SUCCEEDED(factory->CreateSwapChain(g_device, &sd, &g_swapChain));
+        if (ok) factory->MakeWindowAssociation(g_view, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
+    }
+    if (factory) factory->Release();
+    if (adapter) adapter->Release();
+    if (dxgiDevice) dxgiDevice->Release();
+    ok = ok && CreateSwapView() && CreateBlit();
+    if (!ok) return false;
+    g_viewWidth = width;
+    g_viewHeight = height;
+    return true;
+}
+
+// Shows the frame in the child window: the whole client area, or its right half for "split" (the
+// same half of the frame, so the two halves line up with the old frame's).
+void ShowFrame() {
+    if (!g_show || g_viewFailed || !g_colour.id) return;
+    RECT client{};
+    if (!GetClientRect(GameWindow(), &client)) return;
+    int clientWidth = client.right - client.left, clientHeight = client.bottom - client.top;
+    if (clientWidth <= 0 || clientHeight <= 0) return;
+    int x = g_split ? clientWidth / 2 : 0;
+    int width = clientWidth - x;
+    if (!g_view) {
+        if (!CreateView(width, clientHeight)) {
+            ei::Log("render: cannot create the window that shows the new frame");
+            g_viewFailed = true;
+            return;
+        }
+    }
+    if (width != g_viewWidth || clientHeight != g_viewHeight) {
+        ReleaseSwapView();
+        if (FAILED(g_swapChain->ResizeBuffers(1, static_cast<UINT>(width), static_cast<UINT>(clientHeight),
+                                              DXGI_FORMAT_B8G8R8A8_UNORM, 0)) ||
+            !CreateSwapView()) {
+            g_viewFailed = true;
+            return;
+        }
+        g_viewWidth = width;
+        g_viewHeight = clientHeight;
+    }
+    SetWindowPos(g_view, HWND_TOP, x, 0, width, clientHeight, SWP_NOACTIVATE);
+
+    sg_pass pass{};
+    pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+    pass.swapchain.width = width;
+    pass.swapchain.height = clientHeight;
+    pass.swapchain.sample_count = 1;
+    pass.swapchain.color_format = SG_PIXELFORMAT_BGRA8;
+    pass.swapchain.depth_format = SG_PIXELFORMAT_NONE;
+    pass.swapchain.d3d11.render_view = g_swapView;
+    pass.label = "ei-show";
+    sg_begin_pass(&pass);
+    sg_apply_pipeline(g_blitPipeline);
+    sg_bindings b{};
+    b.views[0] = g_colourTexture;
+    b.samplers[0] = LinearSampler();
+    sg_apply_bindings(&b);
+    float source[4] = {g_split ? 0.5f : 0.0f, 0.0f, 1.0f, 1.0f};
+    sg_range range{source, sizeof(source)};
+    sg_apply_uniforms(0, &range);
+    sg_draw(0, 3, 1);
+    sg_end_pass();
+}
+
+// --- The frame -----------------------------------------------------------------------------------------
+
+Frame g_frame;
+bool g_frameDrawn = false;
+bool g_started = false;
+
+bool EnsureStarted() {
+    EnsureConfigured();
+    if (!g_active || g_failed) return false;
+    if (g_started) return true;
+    FpuGuard fpu;
+    if (!CreateDevice() || !CreateTerrainPipelines()) {
+        g_failed = true;
+        return false;
+    }
+    g_started = true;
+    return true;
+}
+
+} // namespace
+
+namespace detail {
+
+Frame& CurrentFrame() { return g_frame; }
+
+int AddMatrix(const float* m) {
+    if (!g_frame.matrices.empty() && std::memcmp(g_frame.matrices.back().m, m, sizeof(Matrix)) == 0)
+        return static_cast<int>(g_frame.matrices.size()) - 1;
+    Matrix copy;
+    std::memcpy(copy.m, m, sizeof(copy.m));
+    g_frame.matrices.push_back(copy);
+    return static_cast<int>(g_frame.matrices.size()) - 1;
+}
+
+void LockGameDevice() { EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(game::Where().deviceLock)); }
+void UnlockGameDevice() { LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(game::Where().deviceLock)); }
+
+} // namespace detail
+
+namespace game {
+Addresses& Where() {
+    static Addresses addresses;
+    return addresses;
+}
+} // namespace game
+
+void Configure(const char* spec) { ParseSpec(spec); }
+
+bool Active() {
+    EnsureConfigured();
+    return g_active && !g_failed;
+}
+
+bool DrawOldTerrain() {
+    EnsureConfigured();
+    return g_oldTerrain || !Active();
+}
+
+void SetDrawOldTerrain(bool on) {
+    EnsureConfigured();
+    g_oldTerrain = on;
+}
+
+void EndFrame() {
+    if (g_frameDrawn || !EnsureStarted()) return;
+    g_frameDrawn = true;
+    int width = 0, height = 0;
+    if (!GameTargetSize(&width, &height)) return;
+    FpuGuard fpu;
+    if (!EnsureTarget(width, height)) return;
+    sg_pass pass{};
+    pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+    pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
+    pass.action.depth.load_action = SG_LOADACTION_CLEAR;
+    pass.action.depth.clear_value = 1.0f;
+    pass.attachments.colors[0] = g_colourAttachment;
+    pass.attachments.depth_stencil = g_depthAttachment;
+    pass.label = "ei-frame";
+    sg_begin_pass(&pass);
+    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
+    // the viewport is moved by half a pixel so that the same clip coordinates hit the same pixels.
+    sg_apply_viewportf(-0.5f, -0.5f, static_cast<float>(width), static_cast<float>(height), true);
+    DrawTerrain(g_frame);
+    sg_end_pass();
+    ShowFrame();
+    sg_commit();
+    if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
+    g_haveFrame = true;
+}
+
+void Present() {
+    if (!Active()) return;
+    EndFrame();
+    g_frame.matrices.clear();
+    g_frame.terrainVertices.clear();
+    g_frame.terrainIndices.clear();
+    g_frame.terrainBatches.clear();
+    g_frame.haveFog = false;
+    g_frameDrawn = false;
+}
+
+bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
+    if (!Active() || !g_started || !g_haveFrame || !g_colour.id) return false;
+    FpuGuard fpu;
+    sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
+    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
+    if (!texture) return false;
+    D3D11_TEXTURE2D_DESC desc{};
+    texture->GetDesc(&desc);
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+    ID3D11Texture2D* staging = nullptr;
+    if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &staging))) return false;
+    g_context->CopyResource(staging, texture);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    bool ok = SUCCEEDED(g_context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped));
+    if (ok) {
+        *width = static_cast<int>(desc.Width);
+        *height = static_cast<int>(desc.Height);
+        bgr->resize(static_cast<std::size_t>(desc.Width) * desc.Height * 3);
+        for (UINT y = 0; y < desc.Height; ++y) {
+            const auto* row = static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch;
+            std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * desc.Width * 3;
+            for (UINT x = 0; x < desc.Width; ++x) {   // RGBA8 -> B, G, R
+                out[x * 3 + 0] = row[x * 4 + 2];
+                out[x * 3 + 1] = row[x * 4 + 1];
+                out[x * 3 + 2] = row[x * 4 + 0];
+            }
+        }
+        g_context->Unmap(staging, 0);
+    }
+    staging->Release();
+    sg_reset_state_cache();
+    return ok;
+}
+
+} // namespace render

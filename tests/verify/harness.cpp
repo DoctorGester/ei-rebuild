@@ -53,6 +53,11 @@
 //                             animation, while the frames keep being drawn. Do not "check"/"waitfor"
 //                             while frozen (script output needs world updates); a scenario that
 //                             freezes also sees a fixed date (as in deterministic mode)
+//   render <spec>             the new renderer for this run (src/render/render.h; the format of
+//                             EI_RENDER, e.g. "new" or "new,split"). Read before the game starts.
+//                             With it, "capture" also writes frames\<name>.new.bmp
+//   oldterrain on|off         the old Direct3D path draws the terrain or not (for a terrain mask:
+//                             capture with and without it at one frozen moment)
 //   samecapture <a> <b> [tolerance] [fraction]
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
@@ -76,6 +81,7 @@
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/game/ui.h"
+#include "../../src/render/render.h"
 
 #include <windows.h>
 #include <psapi.h>
@@ -951,6 +957,8 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "oldterrain") {
+            render::SetDrawOldTerrain(s.argument != "off");
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
@@ -1086,6 +1094,11 @@ bool LoadScenario(const char* path) {
         }
         if (g_steps.back().verb == "rebirthflags") {
             ei::rebirth::QueueSpec(g_steps.back().argument.c_str());
+            g_steps.pop_back();
+            continue;
+        }
+        if (g_steps.back().verb == "render") {
+            render::Configure(g_steps.back().argument.c_str());
             g_steps.pop_back();
             continue;
         }
