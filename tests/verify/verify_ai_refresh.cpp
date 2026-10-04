@@ -47,3 +47,21 @@ static void __fastcall RefreshAreaVerify(CAIMap* self, void*, int x0, int x1, in
     ei::verify::Check("CAIMap::RefreshArea", 0, differences, "[%d,%d]x[%d,%d]", x0, x1, y0, y1);
 }
 EI_VERIFY(0x005B8FA0, RefreshAreaVerify, 5, s_originalRefresh);
+
+namespace {
+using CellMarkFn = std::uint32_t(__fastcall*)(CAIMap*, void*, void*, int, int, int, int);
+CellMarkFn s_originalCellMark;
+}
+
+// 005B8BA0: only reads the map; the original on a copy of the scratch state, then ours; the
+// result and the state (0x15 bytes) compared.
+static std::uint32_t __fastcall CellMarkVerify(CAIMap* self, void*, void* scratch, int level, int height, int x, int y) {
+    std::uint8_t copy[0x18];
+    std::memcpy(copy, scratch, sizeof(copy));
+    std::uint32_t expected = s_originalCellMark(self, nullptr, copy, level, height, x, y);
+    std::uint32_t result = self->CellMark(scratch, level, height, x, y);
+    bool ok = result == expected && std::memcmp(copy, scratch, 0x15) == 0;
+    ei::verify::Check("CAIMap::CellMark", true, ok, "level %d (%d,%d): %08X (original %08X)", level, x, y, result, expected);
+    return result;
+}
+EI_VERIFY(0x005B8BA0, CellMarkVerify, 6, s_originalCellMark);

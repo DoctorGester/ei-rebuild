@@ -316,6 +316,10 @@ public:
     void Refresh(int minX, int maxX, int minY, int maxY);
     // The rewrite of 005B8FA0 (ai_refresh.cpp); Refresh stays the forwarder to its address.
     void RefreshArea(int minX, int maxX, int minY, int maxY);
+    // 005B8BA0 (RET 0x14; ai_refresh.cpp). The passability mark of cell (x, y) for a standing
+    // level and its height in AI units: from the terrain type, water depth and the occluders over
+    // the cell (cost and damping), looked up in the mark table 00791164. `scratch` gets the state.
+    std::uint32_t CellMark(void* scratch, int level, int levelHeight, int x, int y);
 
     CRegionMap* Regions() { return reinterpret_cast<CRegionMap*>(regions); }
 
