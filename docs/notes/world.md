@@ -972,6 +972,18 @@ call. Every player gets one reference that is never dropped, as in the original.
 vector gets room for 400 entries with game operator new when it is empty, else through 00573520.
 Allocation failures crash where the original crashes: references are counted without a null test.
 
+The unit set's writer 00559E60 (`UnitSet::Write`, src/game/world_unit_set.cpp; verify file
+tests/verify/verify_world_unit_set.cpp) is differential. The original and ours each write into a
+recording stream whose slot 2 appends the bytes, the bytes are compared, and ours then writes to
+the real stream. The three hash_maps are walked with the original's iterator helpers (0055AB50 /
+0055ADF0 / 0055AE50 begin; 0055B9D0 / 0055B500 next bucket; the third map's bucket scan
+inlined with 0055C5C0), so the order matches.
+
+The CWorldClient constructor 005612F0 and destructor 00561B00 are in config/library.csv as
+compiler-generated member construction and destruction. The constructor runs as the static
+initialiser of 007AF5B8, before the hooks are installed, so a rewrite would never run. The
+destructor calls 00563290 (Teardown, rewritten) and then the members' destructors.
+
 Skipped: 0056C750, called from the figure (0051CE60) and terrain (006CEDE0) draw code. It builds
 triangles from the platform objects' figures on the render device's object matrix stack
 (007AF068 +0x84 / +0x88) into a static vertex buffer (007AF478) for the device's slot 26. That is

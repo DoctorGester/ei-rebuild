@@ -583,6 +583,17 @@ struct PlatformSet {
     PlatformNode* head;                   // +0x20 the last node added (nodes link backwards)
 };
 
+// The unit set the server's SendZone fills (world_sync.cpp; 005593D0 adds a unit): an STLport
+// hash_map whose nodes hold a second hash_map of unit entries (node + 8), a word at +0x24 and a
+// third hash_map at +0x14. Only the writer is rewritten (world_unit_set.cpp).
+struct UnitSet {
+    // 00559E60 (RET 4). Writes the set to `stream` (its slot 2 writes bytes): the number of unit
+    // entries; per entry its head (00558FA0), the words at +0x24 / +0x28 / +0x2C, its string count
+    // and each string with its terminator; the word +0x24; per third-map entry a 16-bit key, two
+    // counted dword arrays, a byte and a dword.
+    void Write(void* stream);
+};
+
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
 struct SectorListNode {
