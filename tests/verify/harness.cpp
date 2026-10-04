@@ -198,6 +198,13 @@ LONG CALLBACK CrashLogger(EXCEPTION_POINTERS* e) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+// WinMain (00456060) looks for another game window with FindWindowA and, when it finds one,
+// brings it to the front and exits. Harness runs go in parallel (run_all.py --jobs), each game in
+// its own output folder, so in harness runs no other window counts.
+constexpr std::uintptr_t kFindWindowASlot = 0x0073B448;
+decltype(&::FindWindowA) g_findWindow;
+HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) { return nullptr; }
+
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     auto* slot = reinterpret_cast<T*>(address);
@@ -342,6 +349,9 @@ HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSEC
                  disposition == TRUNCATE_EXISTING || disposition == OPEN_ALWAYS;
     bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
     const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
+    // The game opens some data files for reading without sharing them; parallel harness runs read
+    // the same install, so reads always let others read too.
+    if (!write) share |= FILE_SHARE_READ;
     return g_createFile(target, access, share, sa, disposition, flags, templ);
 }
 
@@ -871,9 +881,29 @@ int WINAPI TracedAilStartup() {
     return result;
 }
 
+// The game pauses itself when its window loses focus (WM_ACTIVATE inactive: it minimises the
+// window and stops the renderer, sound and network). Parallel harness runs leave only one game in
+// front, so the harness keeps every game active: it subclasses the window and drops the
+// deactivation (and minimise) messages.
+WNDPROC g_gameWindowProc;
+LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_ACTIVATE && (LOWORD(wParam) == WA_INACTIVE || HIWORD(wParam) != 0)) return 0;
+    if (message == WM_ACTIVATEAPP && !wParam) return 0;
+    return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
+}
+
+void KeepGameWindowActive() {
+    HWND window = GameWindow();
+    if (g_gameWindowProc || !window) return;
+    g_gameWindowProc = reinterpret_cast<WNDPROC>(
+        SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
+    Log("harness: the game window stays active when it loses focus");
+}
+
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
     TraceFpu("in the message loop");
+    KeepGameWindowActive();
     if (g_running && !g_inStep) {
         g_inStep = true;   // console commands can pump messages themselves
         RunSteps();
@@ -920,11 +950,7 @@ struct Harness {
         if (n == 0 || n >= MAX_PATH) return;
         // Report next to ei_hook.log. It exists from the start ("RESULT: RUNNING"), so ei_launch can
         // tell a run whose harness never started from one that is still going.
-        HMODULE self = nullptr;
-        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(&LoadScenario), &self);
-        GetModuleFileNameA(self, g_reportPath, MAX_PATH);
-        if (char* slash = std::strrchr(g_reportPath, '\\')) strcpy_s(slash + 1, g_reportPath + MAX_PATH - (slash + 1), "harness_report.txt");
+        ei::OutputPath("harness_report.txt", g_reportPath);
         FILE* report = nullptr;
         fopen_s(&report, g_reportPath, "w");
         if (!LoadScenario(path)) {
@@ -940,6 +966,9 @@ struct Harness {
             std::fclose(report);
         }
 
+        HMODULE self = nullptr;
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCSTR>(&LoadScenario), &self);
         MODULEINFO selfInfo{};
         GetModuleInformation(GetCurrentProcess(), self, &selfInfo, sizeof(selfInfo));
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
@@ -954,6 +983,7 @@ struct Harness {
         CreateDirectoryA(g_savesDir, nullptr);
         if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
 
+        PatchSlot(kFindWindowASlot, &NoOtherGameWindow, g_findWindow);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
         PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);

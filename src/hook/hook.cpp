@@ -140,11 +140,7 @@ static const unsigned char* FileBytesAt(const std::vector<unsigned char>& file, 
 // Rewritten code must call those through their original addresses (rewrite-guide rule 9).
 static void DumpPatchedFunctions(const std::vector<unsigned char>& file) {
     char path[MAX_PATH];
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&DumpPatchedFunctions), &self);
-    GetModuleFileNameA(self, path, MAX_PATH);
-    if (char* slash = std::strrchr(path, '\\')) strcpy_s(slash + 1, path + MAX_PATH - (slash + 1), "patched_functions.txt");
+    OutputPath("patched_functions.txt", path);
     FILE* f = nullptr;
     if (fopen_s(&f, path, "w") != 0 || !f) return;
     std::fprintf(f, "# game functions whose code differs from game.exe on disk at WinMain (address, size, first differing offset)\n");

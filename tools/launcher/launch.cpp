@@ -3,7 +3,10 @@
 // ei_hook.dll into it before the game's own code runs. Nothing in the game folder is modified.
 //
 // usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>]
-//                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [game args...]
+//                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [--out <dir>]
+//                  [game args...]
+// --out puts what the run writes (ei_hook.log, the harness report and saves, ...) in <dir> instead
+// of next to ei_hook.dll (EI_OUT_DIR), so several runs can go at once.
 // --no-hooks loads ei_hook.dll (so the harness still runs) but installs none of the rewritten
 // functions: a baseline run of the original code.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
@@ -31,6 +34,7 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring dll = Dir(self) + L"\\ei_hook.dll";
     std::wstring exeOverride;
     std::wstring harness;
+    std::wstring outDir;
     bool wait = false;
     std::wstring gameArgs;
     for (int i = 1; i < argc; ++i) {
@@ -42,11 +46,20 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--wait") wait = true;
         else if (a == L"--no-hooks") SetEnvironmentVariableW(L"EI_NO_HOOKS", L"1");
         else if (a == L"--rebirth" && i + 1 < argc) SetEnvironmentVariableW(L"EI_REBIRTH", argv[++i]);
+        else if (a == L"--out" && i + 1 < argc) outDir = argv[++i];
         else gameArgs += L" \"" + a + L"\"";
     }
     wchar_t full[MAX_PATH];
     GetFullPathNameW(dll.c_str(), MAX_PATH, full, nullptr);
     dll = full;
+    if (outDir.empty()) {
+        outDir = Dir(dll);
+    } else {
+        GetFullPathNameW(outDir.c_str(), MAX_PATH, full, nullptr);
+        outDir = full;
+        CreateDirectoryW(outDir.c_str(), nullptr);
+        SetEnvironmentVariableW(L"EI_OUT_DIR", outDir.c_str());
+    }
 
     // Rebirth keeps the engine in starter\Engine (with its addon loader next to it); a plain
     // install (e.g. GOG) has game.exe in the root.
@@ -69,8 +82,8 @@ int wmain(int argc, wchar_t** argv) {
         wait = true;
     }
     // A report left over from an earlier run must not pass for this one.
-    DeleteFileW((Dir(dll) + L"\\harness_quit").c_str());
-    if (!harness.empty()) DeleteFileW((Dir(dll) + L"\\harness_report.txt").c_str());
+    DeleteFileW((outDir + L"\\harness_quit").c_str());
+    if (!harness.empty()) DeleteFileW((outDir + L"\\harness_report.txt").c_str());
     std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
 
     STARTUPINFOW si{sizeof(si)};
@@ -113,13 +126,13 @@ int wmain(int argc, wchar_t** argv) {
         return 0;
     }
 
-    // Wait for the game, then report the harness result (harness_report.txt next to the DLL). The
+    // Wait for the game, then report the harness result (harness_report.txt in the output folder). The
     // harness writes harness_quit when its scenario quits; a game still running 10 s after that is
     // hung on exit (Rebirth does this) and is terminated, so no run needs Task Manager.
-    std::wstring quitMarker = Dir(dll) + L"\\harness_quit";
+    std::wstring quitMarker = outDir + L"\\harness_quit";
     ULONGLONG quitSeen = 0;
     const ULONGLONG started = GetTickCount64();
-    std::wstring reportFile = Dir(dll) + L"\\harness_report.txt";
+    std::wstring reportFile = outDir + L"\\harness_report.txt";
     while (WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
         if (harness.empty()) continue;
         // Backstop for the harness's own time limit (default 60 s), e.g. if the game is hung so
@@ -153,7 +166,7 @@ int wmain(int argc, wchar_t** argv) {
     GetExitCodeProcess(pi.hProcess, &code);
     CloseHandle(pi.hProcess);
     if (harness.empty()) return static_cast<int>(code);
-    std::wstring reportPath = Dir(dll) + L"\\harness_report.txt";
+    std::wstring reportPath = outDir + L"\\harness_report.txt";
     FILE* report = nullptr;
     if (_wfopen_s(&report, reportPath.c_str(), L"r") != 0 || !report) {
         std::fwprintf(stderr, L"ei_launch: game exited (code %lu) without a harness report\n", code);
