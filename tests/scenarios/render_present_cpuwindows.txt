@@ -1,0 +1,58 @@
+# The switch-over with the interface windows in game-owned memory ("render new,present,cpuwindows",
+# docs/notes/renderer.md, "The interface is composed on DirectDraw surfaces"): render_present plus
+# the escape menu, whose background is the screen copy (005FD3D0, written straight into the
+# window's memory from the new frame), greyed (005FE440) and shrunk for the save picture (005FD440,
+# a CPU stretch). Captures are the new frames; compare with render_present and frames_basic:
+#   python tools\compare_frames.py <render_present run>\frames <this run>\frames
+# The escape menu must show the greyed world behind its stones (not black, not the old frame).
+# ei_hook.log must not say "cpuwindows: client-memory surface ... refused". world / world_again
+# must match.
+render new,present,cpuwindows
+reject Script error
+wait 6000
+console thingamabob
+
+# The main menu.
+move 400 20
+wait 500
+freeze
+capture menu
+unfreeze
+
+# The hero on zone1, unblocked and standing still, the camera settled on him.
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+move 400 60
+wait 2000
+freeze
+capture world
+capture world_again
+unfreeze
+samecapture world world_again
+
+# The escape menu over the greyed copy of the world; Esc closes it.
+key esc
+wait 1500
+move 400 20
+wait 300
+freeze
+capture escmenu
+unfreeze
+key esc
+wait 1000
+
+# The camp (screen 5); Esc returns to the game.
+screen 5
+wait 3000
+move 400 20
+wait 300
+freeze
+capture camp
+unfreeze
+key esc
+wait 2000
+check IsAlive(GetLeader())
+report
+quit
