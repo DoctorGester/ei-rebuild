@@ -31,6 +31,11 @@ __declspec(naked) void __fastcall HandlersInsertOverflow(HandlerVector* /*v*/, v
 // 004407F0: the socket driver's constructor (WSAStartup, the host's broadcast addresses).
 __declspec(naked) SocketDriver* __fastcall SocketDriverConstruct(SocketDriver* /*driver*/) EI_ORIGINAL(0x004407F0)
 
+// vector<Replicated>: push_back of a default element (0041F790), _M_insert_overflow (00426B10).
+__declspec(naked) void __fastcall ReplicatedPushDefault(ReplicatedVector* /*v*/) EI_ORIGINAL(0x0041F790)
+__declspec(naked) void __fastcall ReplicatedInsertOverflow(ReplicatedVector* /*v*/, void*, Replicated* /*pos*/,
+                                                           const Replicated* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426B10)
+
 std::size_t BucketCount(const HashTable& table) {
     return static_cast<std::size_t>(table.bucketsEnd - table.buckets);
 }
@@ -55,6 +60,25 @@ TypeNode* FindOrInsert(HashTable& table, std::uint32_t key, Resize resize, NewNo
 void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
 
 } // namespace
+
+void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
+    ReplicatedPushDefault(v);
+    Replicated* last = v->end - 1;
+    last->object = object;
+    last->priority = priority;
+}
+
+void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority) {
+    if (v->end != v->eos) {
+        ++v->end;   // the element's default constructor (00429030) does nothing
+    } else {
+        Replicated value{};   // the original passes an uninitialised local; it is overwritten below
+        ReplicatedInsertOverflow(v, nullptr, v->end, &value, 1);
+    }
+    Replicated* last = v->end - 1;
+    last->object = object;
+    last->priority = priority;
+}
 
 int TypeRegistry::TypeOf(const std::uint32_t* key) const {
     std::uint32_t k = *key;

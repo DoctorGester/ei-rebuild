@@ -171,6 +171,25 @@ struct ClientSession {
 // 0041C420: the 0x10-byte member at +0x25AC (a vector and a dword), all zero. Returns this.
 void* __fastcall ClientVectorConstruct(std::uint32_t* self);
 
+// What a session replicates to the connection being updated (slot 13 fills it): STLport
+// vector<{object, priority}>.
+struct Replicated {
+    void* object;              // a CRefObject with its version at +8
+    std::uint8_t priority;     // 0..10
+    std::uint8_t unknown_05[3];
+};
+struct ReplicatedVector {
+    Replicated* begin;
+    Replicated* end;
+    Replicated* eos;
+};
+// 0079B924: the connection being updated or read (null outside the session code).
+inline void* CurrentConnection() { return *reinterpret_cast<void**>(0x0079B924); }
+
+// Slot 13 of the client (0041D050) and the server (00417EB0): appends what the connection at
+// 0079B924 should receive to **out.
+void __fastcall ClientCollectReplicated(ClientSession* self, void* edx, ReplicatedVector** out);
+
 // The game server (vtable 0073BB70; server base 0073BBB4). 0x2600 bytes, pointer at 0079B5DC.
 struct ServerSession {
     SessionBase base;                   // +0x0000
@@ -212,6 +231,14 @@ static_assert(offsetof(ServerSession, list_25C4) == 0x25C4);
 static_assert(offsetof(ServerSession, string_25C8) == 0x25C8);
 static_assert(offsetof(ServerSession, unknown_25E0) == 0x25E0);
 static_assert(sizeof(ServerSession) == 0x2600);
+
+void __fastcall ServerCollectReplicated(ServerSession* self, void* edx, ReplicatedVector** out);
+
+// Appending one {object, priority} to the vector, as the slot 13 implementations do: through the
+// out-of-line push_back of a default element (0041F790) or inline (the same, with the overflow
+// path 00426B10), then storing into the new last element.
+void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority);
+void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority);
 static_assert(offsetof(ClientSession, buffer) == 0x2578);
 static_assert(offsetof(ClientSession, list_25A8) == 0x25A8);
 static_assert(offsetof(ClientSession, list_25BC) == 0x25BC);
