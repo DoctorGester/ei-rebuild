@@ -6,6 +6,7 @@
 #include "verify.h"
 
 #include "delta_snapshot.h"
+#include "ei/vcall.h"
 
 #include <cstdint>
 #include <cstring>
@@ -70,6 +71,9 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* unit, void*, int first);
 namespace {
 
 using ReadFn = std::uint32_t(__fastcall*)(std::uint8_t*, void*, int);
+
+constexpr int kSlotControllerClass = 0x30 / 4;   // controller: () -> class id
+constexpr int kClassClientController = 0x3D;     // CUnitClientSpecific
 
 // The decoded fields, as named parts: raw bytes of the ranges the reader writes, the effect
 // entries' read bytes (+0, +1, the dword +4 it zeroes and fills, +0x10; the companion's slot 13
@@ -141,6 +145,13 @@ std::uint32_t ReadChecked(const char* name, ReadFn original, ReadFn ours, bool u
     BitStream savedReader;
     deltasnap::CloneStream(&savedReader, reader);
     const deltasnap::Globals before = deltasnap::Globals::Save();
+    // A party unit's client controller (class 0x3D) snaps the unit's orientation to its path once
+    // when its byte +0x76 is set, and clears it (00535850, from slot 41 after a path is read). Ours
+    // consumes it; the original's second read would find it clear and keep the received
+    // orientation, so the byte is put back for it.
+    std::uint8_t* controller = unit ? *reinterpret_cast<std::uint8_t**>(object + 0x240) : nullptr;
+    bool clientController = controller && ei::VCall<int>(controller, kSlotControllerClass) == kClassClientController;
+    std::uint8_t snapPending = clientController ? controller[0x76] : 0;
 
     std::uint32_t mine = ours(object, nullptr, first);
     deltasnap::StateCopy mineState(state);
@@ -153,6 +164,7 @@ std::uint32_t ReadChecked(const char* name, ReadFn original, ReadFn ours, bool u
     deltasnap::FreeStream(reader);
     std::memcpy(reader, &savedReader, sizeof(BitStream));
     before.Restore();
+    if (clientController) controller[0x76] = snapPending;
     std::uint32_t theirs = original(object, nullptr, first);
 
     const char* differs = nullptr;

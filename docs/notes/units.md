@@ -657,6 +657,14 @@ compares only the bytes the reader writes (+0, +1, the dword +4, +0x10). The mis
 names the first part that differs (result, delta state, received stream, globals, or a named
 field), so a further mismatch can be traced.
 
+With named parts the remaining 1% (all `first == 0`) showed "orientation +0x34 differs". This is
+also a side effect of the second read. After field 10 (the path), the controller's slot 41 runs. For
+a party unit's client controller (class 0x3D, 00535B20) that is 00535850 with rate 0, which puts the
+unit on its path. When the controller's byte +0x76 is set, 00535850 clears the byte and snaps the
+unit's orientation to the path direction (00401F00 on the unit). Ours consumes the byte. The
+original's second read then finds it clear and keeps the orientation it just read. The check now
+saves that byte before ours and puts it back before the original's read. Ours was not changed.
+
 Kept from the original: the field 3 count is one byte read into a word; the companion's slot 13
 and the stat slot get their bool / flag arguments as 0/1 and the byte (the original pushes
 registers whose upper bytes are left over). The stat fractions and hit point ratio are plain C++
