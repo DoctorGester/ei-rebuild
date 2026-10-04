@@ -212,7 +212,14 @@ Sites are listed in full in the CSV.
   004B56C0, 004B5B00, 004B6760, 004CF470, 004CF600, 004CFBC0, 004D0B10, 004D0BA0, 004D1330,
   004D41C0) read the new table and dispatch the new commands. Moved here from EI_Plugin.
 - **PersistentGlobalVars** - global variables named `gvar.*` keep their values across zone changes
-  and saves (00662FB0, 0057EB10, 005800C0).
+  and saves (00662FB0, 0057EB10, 005800C0). Where the game empties a variable table (00461540:
+  the call sites 0057EB25 and 00580177, redirected; and in 00662FB0, where the JNE at 00663083 now
+  jumps past the inlined clear of the table at [esp+0x70] (00663129-0066316A, to 0066316C) and
+  a context hook at 00663170 clears it instead), addon's 1001E3C1 first copies every
+  `gvar.` entry into an MSVC unordered_map<string, float>, lets the table be emptied, then sets
+  the entries again (00460BC0) in the order of that map's list. That order decides the order in
+  the game's hash chains (and so in saves), so a rewrite has to reproduce the MSVC container's
+  list order (FNV-1a buckets, the node splicing on insert and on rehash). Not started.
 - **NewStringEvents** - string events (005F8070): "gameover" plays buttons\gameover.wav and shows a
   game over message (title and text from the event's arguments or the game_over / game_over_msg
   texts).
@@ -252,6 +259,9 @@ PlayerNumbers (moved from EI_Plugin: a call in 0066C180). Disabled: SetDefaultRa
 - **DisableExitOnCrashReport** (single player) - FatalError (00480080) logs its text instead of
   the message box (004800A7) and no longer exits (9 NOPs at 004800C9); 005641F0 no longer calls
   00665A10 before its own FatalError. The game carries on after errors that end vanilla.
+  *FatalError implemented* as a new rewrite (src/game/app.cpp; addon's addon.log line is not
+  reproduced: the text still goes to the error hook at 007A9BA0 when one is set); the third site
+  needs 005641F0, the world frame (1.5 KB, not rewritten).
 - **SetEiPluginMode** - writes 0xAADD0080 at 0073AF10 (padding after .text) for EI_Plugin.asi.
 - Disabled: GameExeDebug (debug log file), CommandLine (addon's command line mode), GraphGenPatches,
   MenuMultiDisable, MenuSingleDisable, PreventZone1Animation, ForceShowTutorial.
@@ -422,6 +432,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixRemoveMapObject | new: CWorldServer::RemoveObject 005935C0 (world_server.cpp) | ours only (destructive: slots, releases): afterwards the id is in no id map; an unknown id changes nothing |
 | AllowScriptsInMainMenu | new: GameFlow::StartZone 0057C460 (world_game.cpp) | ours only (tears down and loads zones): the campaign mode is the one asked for (or 2 / 8), and +0x160 is set in the menu with the flag |
 | FixCreateItem | new: CItemManager::CreateItem 006AC970 (item_constructor.cpp) | ours only (creates objects): a created item has an item class, a "spell container[...]" one its spell |
+| DisableExitOnCrashReport (FatalError sites) | new: FatalError 00480080 (app.cpp) | none (it shows a message box and exits): a plain replacement |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -455,9 +466,9 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 |---|---|---|
 | FixSpellSelfCasting #1 | CBattleScreen::SelectUnit 00638EF0 (3.6 KB) | 1-2 days |
 | FixAddMapObject | object creation 005927C0 (3.5 KB) | 2 days |
-| DisableExitOnCrashReport | FatalError 00480080 (small) + 005641F0 (1.5 KB) | 0.5 + 1 day |
+| DisableExitOnCrashReport | the third site: 005641F0, the world frame (1.5 KB) | 1 day |
 | NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
-| PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 | 1-2 days |
+| PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 and addon's unordered_map order (above) | 2 days |
 | AddNewScriptCommands | ~50 new script commands plus the table switch in 12 parser/executor functions (mostly rewritten) | 1-2 weeks |
 | ObjectsDrawRadius, LandscapeDrawRadius | two float settings in 0056AFE0 / 00569E40 (or in the client draw rewrite) | 0.5 day once those are rewritten |
 | WideScreen | 100 sites in ~45 functions, the layout maths of addon's replacements, VIDEORESOLUTION | 2-3 weeks |
@@ -479,6 +490,7 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
   0069D290), ManagerMakeItem (006AD000), the STLport string and string-map members (0040C5A0,
   004217E0, 00428F10, 0040C720, 0040C770, 00689950, 006AD670, 006A75E0, 004ABBD0, 004ABD00,
   004ACC10).
+- app.cpp: `ShowMessageBox` (004560D0), `ExitGame` (006E8DA7).
 - world_server.cpp: `IdMapErase` (00599A80), `SectorMapRemove` (005C1010), `UnitSetController`
   (005300D0), `CommandQueuePurge` (004BED90), `ProjectileForget` (0067EF00), `ProjectileRemoveAt`
   (00599CC0), `PlayerStateForget` (0066DC90).
