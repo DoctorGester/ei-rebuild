@@ -1247,8 +1247,34 @@ code that mainly locks, blits or draws stays original: 005E4EB0 the cursor image
   texture; side by side on the written rectangle), `CUiContainer::AddChild` 00600D30.
 - Camp: `CCampPages::Close` 0060E6B0 (slot 26; unit records raised by 100000000 around 005789E0),
   `TakeOff` 0060FE40, the trade panel's destructor body 0060E3E0 (vtable 007417A8). Ours only.
-- Not rewritten in this range (left): 005E3230 (the chat input's keys; multiplayer only), 005F86F0
-  (the help window: inlined STLport map and node allocation), 005F7010 (the item screens'
-  destructor body: inlined map clears), 005EADD0 (camera keys), screen constructors 005F6470 /
-  005F6620 / 005F67A0 / 005F6920 / 005F6BA0, camp 0060FCA0 / 0060C390 / 0060C510 / 0060BF20 /
-  0060C0B0 / 0060F830, 005EE440, 005F8A80, 005F8420, 005F8C90, 006005F0, 0060A660.
+- DrawHeroPreview's check (in-game: 8 of 2021 calls): it compared the whole +0x08 dword with the
+  transform. The animation step (model slot 25) and the drawing (slot 22) may change other bits of
+  it; the original only clears 0x800 of what it reads after drawing. The check now compares the
+  position and orientation (put back byte for byte from the copies) and flag 0x800.
+
+## Eighth pass
+
+- Screens: `CGlobalMap::Construct` 005F67A0 and its destructor body 005F6920; `CCampPages::
+  Construct` 005F6240 (CreateScreen 5); the item screens' destructor bodies 005F6470 (vtable
+  00740A2C) and 005F6620 (the camp; the original inlines the caches' map erase: over the left
+  spine in 005F6470, one erase of the root in 005F6620); screen 9's constructor 005F6F30 and
+  destructor body 005F7010 (its CString vector freed through STLport's node allocator, inlined);
+  screen 8's constructor 005F6D50 and destructor body 005F6E40 (a list of 0x18-byte nodes). The
+  STLport containers' empty compare / allocator objects are passed by address in the original
+  (argument slots, stack bytes); where a constructor keeps the byte, ours passes the same value.
+  All ours only.
+- `CInterface3D::OpenHelp` 005F86F0 (ShowHelp's target: the seen-topics map at +0x98, the help
+  window), `ShowMessage` 005F8A80 (the message queue at +0x84 and the same window class 00740E28),
+  `MessageText` 005F8C90 (multiplayer message texts; side by side on the string), `LoadState`
+  005F8420 (the interface's saved state, by save version).
+- Camp: `PutOn` 0060FCA0, `RefreshWeapons` 0060F9E0 (slot 46), `RefreshStats` 0060F980 (slot 47),
+  `Update` 0060F6B0 (slot 24; the hero preview's turn through _CIfmod), `NextHero` / `PreviousHero`
+  0060F710 / 0060F7A0 (slots 48 / 49), `ShowHero` 0060F830.
+- `CItemInfoPanel::Build` 005EE440; the battle camera's key input 005EADD0 (side by side on the
+  camera's motion, view and saved-view bytes and the input object); `UiPtrArray::SetAtGrow`
+  006005F0.
+- Not rewritten (left): 005E3230 (the chat input's keys; multiplayer only); STLport algorithm and
+  container instantiations over strings and records (0060BF20 / 0060C070 / 0060C0B0 insertion
+  sort, 0060C390 / 0060C510 heap adjust, 0060A660 vector insert overflow); the base / briefing
+  screen's destructor body 005F6BA0 (briefing screen skipped); rendering code (005E4EB0 the cursor
+  image, 005E6D90 the sprite draw, ...).
