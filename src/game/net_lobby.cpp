@@ -19,6 +19,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
 
 #include <cstdint>
 #include <cstring>
@@ -454,7 +455,7 @@ void __fastcall ClientOnInfo(void* self, void*, const void* from, BufferCursor* 
     } else if (query != end) {
         e->state = 1;
         auto count = static_cast<std::uint32_t>(v.end - v.begin);
-        e->timeout = static_cast<float>(static_cast<double>(count) * GameFloat(0x0073B86C) + GameFloat(0x0073BF98));
+        e->timeout = static_cast<float>(x87::FromUnsigned(count) * GameFloat(0x0073B86C) + GameFloat(0x0073BF98));   // FILD qword
     } else {
         if (node == Sentinel(self, kServers)) {
             entry.Destroy();
