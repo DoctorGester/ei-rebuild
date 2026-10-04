@@ -698,7 +698,7 @@ Movement modes, animations and paths (`src/game/combat_motion.cpp`, verify
 | 00549D00 | CUnitServer::CanReactFor | reads only: compared |
 | 00548DE0 | CUnitServer::PlayAnimationOrder (steps by value) | ours only: state 3, the queue started |
 | 00548FA0 | CUnitServer::PlayEmoteOrder (the same code, state 4) | ours only: state 4, the queue started |
-| 00550D90 | CUnitServer::BuildIdle | the output rebuilt from scratch: ours, copied, original into the same list; steps (without byte 3) and extra compared |
+| 00550D90 | CUnitServer::BuildIdle | random (the lookup 005301B0 -> 00519380 may pick an entry with rand()): the generators saved, ours, copied, restored, original into the same list; steps (without byte 3), extra and generator state compared |
 | 00550F30 | CUnitServer::IdleAnimation | ours only: +0x960 returned, the key is the unit's |
 | 005474B0 | CUnitServer::PlayIdle | ours only (counted) |
 | 005511A0 | CUnitServer::BuildMoveSteps | as BuildIdle |
