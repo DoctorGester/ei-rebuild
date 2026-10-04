@@ -234,7 +234,12 @@ Sites are listed in full in the CSV.
 - **AddNewConsoleCommands** - when the console builds its command table (005DC620) addon adds
   help (wrapped), addon, execs, listgvar, drawall and nogui; at the first 00636020 call the
   Console AutoExec lines run.
-- **ImproveConsole** - console input (005E44A0): no duplicate history entries; Ctrl+A/C/X/V.
+- **ImproveConsole** - console input (005E44A0): a line equal to the last history entry is not
+  added again (1001640D, at 005E44DD); with Ctrl held and Shift not, Ctrl+A selects the line,
+  Ctrl+C / Ctrl+X copy (and cut) the selection as CF_UNICODETEXT, Ctrl+V pastes the clipboard's
+  first line over the selection (1001643B, at 005E46CF; the caret lands at the clipboard length +
+  the selection's end, one less with a selection: addon's arithmetic, kept). *Implemented* as a
+  new rewrite `ConsoleWindow::OnChar` (src/game/ui_console_window.cpp).
 - **AutoExec** - the three calls of the console executor 005DC620 from save loading (0057ABA0),
   0057BD10 and zone start (0057C700) first run every Console AutoExec line.
 
@@ -446,6 +451,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixSpellSelfCasting #1 | new: CBattleScreen::SelectUnit 00638EF0 (ui_hud.cpp) | ours only (orders, sounds): the pending action stays one of the nine, and actions 5, 6, 8 that went back to 0 cleared the item and spell |
 | FixAddMapObject | new: CWorldServer::CreateObject 005927C0 (world_units.cpp) | ours only (creates objects): the returned id is in the object and map-object maps, or in the timed map for sounds, lights and kind 4 |
 | NewStringEvents | new: CInterface3D::OnStringEvent 005F8070 (ui_interface_frame.cpp) | ours only (windows, queues): "autosave" raises +0x81, the window stack stays consistent |
+| ImproveConsole | new: ConsoleWindow::OnChar 005E44A0 (ui_console_window.cpp) | side by side on the input, caret, anchor and history index (8 stolen bytes); Enter (it executes the line) ours only: the line is empty afterwards |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them

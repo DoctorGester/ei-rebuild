@@ -158,6 +158,7 @@ public:
     // Drawing and input (ui_console_window.cpp):
     void Show(bool shown);                     // 005E3FD0 creates or releases the surface
     void OnKeyDown(int key, int repeat, int flags);   // 005E4180 editing and scrolling keys
+    void OnChar(int key, int repeat, int flags);      // 005E44A0 typed characters, Enter, Escape
     void DrawLines();                          // 005E4800 the lines above the input line
     void DrawInput();                          // 005E4A10 the input line, selection and caret
 
