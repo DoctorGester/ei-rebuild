@@ -126,6 +126,10 @@ struct CRegionMap {
     // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
     // joins their paths into `chain`; false when one runs out.
     bool JoinBlockSearches(struct PathCellList* chain);
+    // 005AFAE0 (RET 0xC; ai_region_reach.cpp). Per size class the block (bx, by)'s edge words:
+    // the local search cost to each neighbour's representative cell / 128. The first argument is
+    // not read.
+    void MeasureBlockEdges(void* unused, int bx, int by);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.

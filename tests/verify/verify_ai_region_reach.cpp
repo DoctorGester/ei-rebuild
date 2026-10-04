@@ -256,6 +256,32 @@ static void __fastcall BlockPathToVerify(void* search, void*, int x, int y, Path
 EI_VERIFY(0x005AF1C0, BlockPathToVerify, 6, s_originalPathTo);
 
 namespace {
+using MeasureFn = void(__fastcall*)(CRegionMap*, void*, void*, int, int);
+MeasureFn s_originalMeasure;
+
+std::int16_t* BlockEdges(CRegionMap* map, int c, int bx, int by) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    return (*reinterpret_cast<std::int16_t***>(base + 0x120 + c * 16))[by] + bx * 8;
+}
+} // namespace
+
+// 005AFAE0: the block's 8 x 8 edge words: snapshot, the original, kept, put back, ours.
+static void __fastcall MeasureVerify(CRegionMap* self, void*, void* unused, int bx, int by) {
+    std::int16_t before[64], expected[64], actual[64];
+    for (int c = 0; c < 8; ++c) std::memcpy(before + c * 8, BlockEdges(self, c, bx, by), 16);
+    s_originalMeasure(self, nullptr, unused, bx, by);
+    for (int c = 0; c < 8; ++c) {
+        std::memcpy(expected + c * 8, BlockEdges(self, c, bx, by), 16);
+        std::memcpy(BlockEdges(self, c, bx, by), before + c * 8, 16);
+    }
+    self->MeasureBlockEdges(unused, bx, by);
+    for (int c = 0; c < 8; ++c) std::memcpy(actual + c * 8, BlockEdges(self, c, bx, by), 16);
+    ei::verify::Check("CRegionMap::MeasureBlockEdges", true, std::memcmp(actual, expected, sizeof(actual)) == 0,
+                      "block (%d,%d)", bx, by);
+}
+EI_VERIFY(0x005AFAE0, MeasureVerify, 8, s_originalMeasure);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

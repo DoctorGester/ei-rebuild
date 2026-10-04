@@ -613,7 +613,40 @@ void __fastcall BlockSearchPathTo(void* searchIn, void*, int x, int y, PathCellL
     path->head = node;
 }
 
+void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
+    const int* dx = reinterpret_cast<const int*>(0x0079110C);
+    const int* dy = reinterpret_cast<const int*>(0x00791130);
+    void* search = reinterpret_cast<std::uint8_t*>(this) + 0x98;
+    for (int c = 0; c < 8; ++c) {
+        std::uint8_t** cells = At<std::uint8_t**>(this, 0x1A0 + c * 16);
+        std::int16_t** edges = At<std::int16_t**>(this, 0x120 + c * 16);
+        std::uint8_t own = cells[by][bx];
+        At<std::uint8_t>(this, 0x114) = 0;
+        SearchSetup(search, nullptr, c, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, (own & 0xF) + bx * 8,
+                    (own >> 4) + by * 8);
+        SearchFinish(search, nullptr);
+        // Each direction: the search cost from the block's representative cell to the
+        // neighbour's, in units of 128 (at most 0x7FFF); -1 off the map or unreached.
+        for (int dir = 0; dir < 8; ++dir) {
+            int nx = bx + dx[dir], ny = by + dy[dir];
+            std::int16_t value = -1;
+            if (nx >= 0 && ny >= 0 && nx < At<int>(this, kBlocksWide) && ny < At<int>(this, kBlocksHigh)) {
+                std::uint8_t other = cells[ny][nx];
+                int cost = SearchCost(search, nullptr, (other & 0xF) + nx * 8, (other >> 4) + ny * 8);
+                if (cost < kUnreached) {
+                    cost /= 128;
+                    if (cost > 0x7FFF) cost = 0x7FFF;
+                    value = static_cast<std::int16_t>(cost);
+                }
+            }
+            edges[by][bx * 8 + dir] = value;
+        }
+        SearchReset(search, nullptr);
+    }
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005AFAE0, CRegionMap::MeasureBlockEdges);
 EI_REPLACE(0x005AF1C0, BlockSearchPathTo);
 EI_REPLACE_METHOD(0x005AF5F0, CRegionMap::JoinBlockSearches);
 EI_REPLACE_METHOD(0x005B0600, CRegionMap::DominantRegion);
