@@ -111,6 +111,18 @@ static void __fastcall AddChildVerify(CUiContainer* self, void*, CUiWindow* chil
 }
 EI_VERIFY(0x00600D30, AddChildVerify, 0, s_unused);
 
+// 005F7350: ours only. The window must be on the stack afterwards and the mouse capture cleared.
+static void __fastcall PushWindowVerify(CInterface3D* self, void*, CUiWindow* window, int a, int b) {
+    self->PushWindow(window, a, b);
+    bool found = false;
+    for (CUiWindow** at = self->stackBegin_; at != self->stackEnd_; ++at)
+        if (*at == window) found = true;
+    ei::verify::Check("CInterface3D::PushWindow", true, found && self->mouseCapture_ == nullptr,
+                      "window %p found %d, %d on the stack", window, found,
+                      static_cast<int>(self->stackEnd_ - self->stackBegin_));
+}
+EI_VERIFY(0x005F7350, PushWindowVerify, 0, s_unused);
+
 // 005F78C0: ours only (keys reach windows and the console). A modifier key (not a repeat) must
 // leave its flag set: +0x7C Ctrl, +0x7D Shift, +0x7E Alt.
 static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key, int repeat, int flags) {

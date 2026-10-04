@@ -66,6 +66,13 @@ public:
     // at +0x1C when its +0x14C is set, else the active window, and a ';' key nobody handled
     // shows help (005F86F0). ui_interface_keys.cpp.
     void OnKeyDown(int key, int repeat, int flags);
+    // 005F7350 (RET 0xC). Opens `window` on top of the stack. With `a` set (low bytes) and `b`
+    // clear: +0x50 = 3 and 00458010(0, 1) first; for the first window: +0x60 keeps the server
+    // flag, which is then set (not as a multiplayer client), and with `a` and `b` set +0x50 = 1
+    // and 00458010(0, 1). The modifier flags are cleared, the old top deactivated (input slot 1,
+    // slot 19 with 0), the window pushed (null is fatal), five render states reset, the window
+    // created (slot 25) and the messages pumped. ui_create_screen.cpp.
+    void PushWindow(CUiWindow* window, int a, int b);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);

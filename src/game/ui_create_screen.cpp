@@ -121,6 +121,111 @@ void CInterface3D::CreateScreen(int id) {
     reinterpret_cast<InterfaceAt*>(this)->Activate(static_cast<CUiWindow*>(screen));
 }
 
+// --- 005F7350: PushWindow --------------------------------------------------------------------------
+
+namespace {
+
+struct CursorAt {
+    int SetShape(int shape);   // 005E5200 (on 007C7BD8)
+};
+__declspec(naked) int CursorAt::SetShape(int) EI_ORIGINAL(0x005E5200)
+CursorAt* Cursor() { return reinterpret_cast<CursorAt*>(0x007C7BD8); }
+
+// 00458010 (__fastcall with two byte arguments).
+__declspec(naked) void __fastcall GameState458010(char, char) EI_ORIGINAL(0x00458010)
+// 00458220: the message pump.
+__declspec(naked) void __cdecl PumpMessages() EI_ORIGINAL(0x00458220)
+// 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
+__declspec(naked) int __fastcall IsClientAt(void*) EI_ORIGINAL(0x0057F440)
+
+struct GlueAt {
+    char ServerFlag();               // 00578D00 (on 007AFEA4)
+    void SetServerFlag(char flag);   // 00578D10
+};
+__declspec(naked) char GlueAt::ServerFlag() EI_ORIGINAL(0x00578D00)
+__declspec(naked) void GlueAt::SetServerFlag(char) EI_ORIGINAL(0x00578D10)
+GlueAt* Glue() { return reinterpret_cast<GlueAt*>(0x007AFEA4); }
+
+// 005FA9A0 (thiscall on the window stack, RET 0xC): the vector's insert when it is full.
+__declspec(naked) void __fastcall StackInsertOverflow(void*, void*, CUiWindow** /*at*/, CUiWindow* const* /*value*/,
+                                                      int /*count*/) EI_ORIGINAL(0x005FA9A0)
+
+// IDirect3DDevice7::SetRenderState (COM, slot 20).
+void SetRenderState(void* device, unsigned long state, unsigned long value) {
+    using Fn = long(__stdcall*)(void*, unsigned long, unsigned long);
+    reinterpret_cast<Fn>((*static_cast<void***>(device))[20])(device, state, value);
+}
+
+} // namespace
+
+void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    Cursor()->SetShape(3);
+    bool first = static_cast<std::uint8_t>(a) != 0;
+    bool second = static_cast<std::uint8_t>(b) != 0;
+    if (first && !second) {
+        SetDword(self, 0x50, 3);
+        GameState458010(0, 1);
+    }
+    // One window open (the byte difference with its low two bits cleared is 4).
+    std::uint32_t bytes = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stackEnd_) -
+                                                     reinterpret_cast<std::uintptr_t>(stackBegin_));
+    if ((bytes & ~3u) == 4) {
+        self[0x60] = static_cast<std::uint8_t>(Glue()->ServerFlag());
+        if ((IsClientAt(reinterpret_cast<void*>(0x007AFE20)) & 0xFF) == 0) Glue()->SetServerFlag(1);
+        if (first && second) {
+            SetDword(self, 0x50, 1);
+            GameState458010(0, 1);
+        }
+    }
+    self[0x7C] = 0;
+    self[0x7E] = 0;
+    self[0x7D] = 0;
+    self[0x80] = 0;
+    self[0x7F] = 0;
+    if (stackBegin_ != stackEnd_) {
+        void* input = reinterpret_cast<std::uint8_t*>(stackEnd_[-1]) + 0x94;
+        using Fn = void(__thiscall*)(void*);
+        reinterpret_cast<Fn>((*static_cast<void***>(input))[1])(input);
+    }
+    if (stackBegin_ != stackEnd_) {
+        CUiWindow* top = stackEnd_[-1];
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(top->vtable_[19])(top, 0);
+    }
+    if (!window) game::FatalError(reinterpret_cast<const char*>(0x0079308C));
+    if (stackEnd_ != stackCapacity_) {
+        if (stackEnd_) *stackEnd_ = window;
+        ++stackEnd_;
+    } else {
+        StackInsertOverflow(&stackBegin_, nullptr, stackEnd_, &window, 1);
+    }
+    void* device;
+    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
+    SetRenderState(device, 0x1B, 1);
+    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
+    SetRenderState(device, 0x0F, 1);
+    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
+    SetRenderState(device, 0x13, 5);
+    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
+    SetRenderState(device, 0x14, 6);
+    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
+    SetRenderState(device, 0x18, 0x80);
+    *reinterpret_cast<std::uint8_t*>(0x00784750) = 1;
+    using CreateFn = void(__thiscall*)(CUiWindow*);
+    reinterpret_cast<CreateFn>(window->vtable_[25])(window);
+    PumpMessages();
+    mouseCapture_ = nullptr;
+    Cursor()->SetShape(0);
+}
+
+namespace {
+void __fastcall InterfacePushWindow(CInterface3D* self, void*, CUiWindow* window, int a, int b) {
+    self->PushWindow(window, a, b);
+}
+} // namespace
+EI_REPLACE(0x005F7350, InterfacePushWindow);
+
 namespace {
 void __fastcall InterfaceCreateScreen(CInterface3D* self, void*, int id) { self->CreateScreen(id); }
 } // namespace
