@@ -63,6 +63,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   global map, 5 the camp); the camp's Esc returns to the game.
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
+- `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;
+  `freeze` / `unfreeze` hold the game's clocks around captures. `python tools\compare_frames.py A B`
+  compares two captures or two runs' frames with a tolerance (`docs/notes/renderer.md`).
 
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
