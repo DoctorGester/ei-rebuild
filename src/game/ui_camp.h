@@ -232,6 +232,13 @@ public:
     // item (at most 4) or a 0x3008 item (at most 8); then the player's items lose it (00661F30)
     // and the stats panel is redrawn. Other kinds and full slots do nothing.
     void PutOn(std::uint8_t* item);
+    // 0060F9E0 (slot 46). Re-arms the current hero's unit: its figure's weapon reset (-1), the
+    // four weapon slots cleared (005310D0), the record's weapons given (00531070), 00531110, the
+    // chosen weapon shown (figure slot 25 with +0x774, slot 30); then slot 47.
+    void RefreshWeapons();
+    // 0060F980 (slot 47). The current hero's unit (if any) takes the record's statistics
+    // (00532A20 with record + 0x20) and its figure is updated (slot 31); the stats panel redraws.
+    void RefreshStats();
     // 005F6240 (RET 8; CreateScreen 5). Constructor: the container base, both item caches (limit
     // 50; the item screens' vtables 00740A2C / 007409F8 in between), fromHeroScreen_ from the
     // flag's low byte, the heroes array (vtable 007402AC), the page titles' CStringArray; the

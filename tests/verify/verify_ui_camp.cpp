@@ -484,6 +484,26 @@ static void __fastcall CampPutOnVerify(CCampPages* self, void*, std::uint8_t* it
 }
 EI_VERIFY(0x0060FCA0, CampPutOnVerify, 0, s_unused);
 
+// 0060F9E0 / 0060F980: ours only (they reach the hero's unit and figure). The chosen weapon index
+// must stay as it was (the functions only read it).
+static void __fastcall CampRefreshWeaponsVerify(CCampPages* self, void*) {
+    using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+    std::uint8_t* hero = reinterpret_cast<HeroFn>(self->vtable_[51])(self);
+    int chosen;
+    std::memcpy(&chosen, hero + 0x774, 4);
+    self->RefreshWeapons();
+    int after;
+    std::memcpy(&after, hero + 0x774, 4);
+    ei::verify::Check("CCampPages::RefreshWeapons", true, chosen == after, "chosen %d -> %d", chosen, after);
+}
+EI_VERIFY(0x0060F9E0, CampRefreshWeaponsVerify, 0, s_unused);
+static void __fastcall CampRefreshStatsVerify(CCampPages* self, void*) {
+    int hero = self->hero_;
+    self->RefreshStats();
+    ei::verify::Check("CCampPages::RefreshStats", true, self->hero_ == hero, "hero %d -> %d", hero, self->hero_);
+}
+EI_VERIFY(0x0060F980, CampRefreshStatsVerify, 0, s_unused);
+
 // 005F67A0: ours only (a constructor). Vtables, empty arrays, the identity turn.
 static CGlobalMap* __fastcall GlobalMapConstructVerify(CGlobalMap* self, void*, CInterface3D* ui) {
     CGlobalMap* result = self->Construct(ui);

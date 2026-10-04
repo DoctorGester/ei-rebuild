@@ -1297,6 +1297,61 @@ void __fastcall CampPutOn(CCampPages* self, void*, std::uint8_t* item) { self->P
 } // namespace
 EI_REPLACE(0x0060FCA0, CampPutOn);
 
+// --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
+
+namespace {
+// The unit (thiscall): 005310D0 clears weapon slot n, 00531070 gives a weapon (RET 4), 00531110
+// finishes; 00532A20 takes statistics (RET 4).
+__declspec(naked) void __fastcall UnitClearWeapon(std::uint8_t*, void*, int) EI_ORIGINAL(0x005310D0)
+__declspec(naked) void __fastcall UnitGiveWeapon(std::uint8_t*, void*, std::uint8_t*) EI_ORIGINAL(0x00531070)
+__declspec(naked) void __fastcall UnitWeaponsDone(std::uint8_t*) EI_ORIGINAL(0x00531110)
+__declspec(naked) void __fastcall UnitTakeStats(std::uint8_t*, void*, std::uint8_t*) EI_ORIGINAL(0x00532A20)
+
+void FigureCall(std::uint8_t* unit, int slot) {
+    void* figure = CampField<void*>(unit, 0x240);
+    using Fn = void(__thiscall*)(void*);
+    reinterpret_cast<Fn>((*static_cast<void***>(figure))[slot])(figure);
+}
+void FigureCall(std::uint8_t* unit, int slot, int value) {
+    void* figure = CampField<void*>(unit, 0x240);
+    using Fn = void(__thiscall*)(void*, int);
+    reinterpret_cast<Fn>((*static_cast<void***>(figure))[slot])(figure, value);
+}
+} // namespace
+
+void CCampPages::RefreshWeapons() {
+    using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+    std::uint8_t* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);
+    std::uint8_t* unit = heroes_[hero_];
+    FigureCall(unit, 25, -1);
+    for (int slot = 0; slot < 4; ++slot) UnitClearWeapon(unit, nullptr, slot);
+    for (int i = 0; i < CampField<int>(hero, 0x734); ++i)
+        UnitGiveWeapon(unit, nullptr, CampField<std::uint8_t**>(hero, 0x730)[i]);
+    UnitWeaponsDone(unit);
+    FigureCall(unit, 25, CampField<int>(hero, 0x774));
+    FigureCall(unit, 30);
+    using Fn = void(__thiscall*)(CCampPages*);
+    reinterpret_cast<Fn>(vtable_[47])(this);
+}
+namespace {
+void __fastcall CampRefreshWeapons(CCampPages* self, void*) { self->RefreshWeapons(); }
+} // namespace
+EI_REPLACE(0x0060F9E0, CampRefreshWeapons);
+
+void CCampPages::RefreshStats() {
+    if (heroes_[hero_]) {
+        using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+        std::uint8_t* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);
+        UnitTakeStats(heroes_[hero_], nullptr, hero + 0x20);
+        FigureCall(heroes_[hero_], 31);
+    }
+    reinterpret_cast<StatsPanelAt*>(statsPanel_)->DrawStats();
+}
+namespace {
+void __fastcall CampRefreshStats(CCampPages* self, void*) { self->RefreshStats(); }
+} // namespace
+EI_REPLACE(0x0060F980, CampRefreshStats);
+
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
 namespace {
