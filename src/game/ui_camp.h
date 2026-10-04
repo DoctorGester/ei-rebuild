@@ -35,6 +35,10 @@ public:
     // 00635250 (slot 25). Reads the screen's saved state when a game is being loaded, else
     // remembers the local player's first hero; creates the panels and the "pers" texts table.
     void Create();
+    // 00636020 (slot 20). Draws the screen: the menu object's frame call, the viewport (with
+    // +0x1C1), a mouse move at the current position, clears the depth (and stencil) buffer, then
+    // the panels (00600EF0). Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
+    BOOL Draw(void* target);
 
     int unknown_164;                 // +0x164 cleared by Create
     std::uint8_t partyArray_[0x14];  // +0x168 the party units (CArray; SetSize 005EBDB0)

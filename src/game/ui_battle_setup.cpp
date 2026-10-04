@@ -11,7 +11,10 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -400,7 +403,53 @@ void CBattleScreenSetup::Create() {
     unknown_210 = -1;
 }
 
+// --- Drawing (slot 20, 00636020) ---------------------------------------------------------------
+
+namespace {
+
+// 00578910 on 007AFEA5 (the menu object), every frame before the battle screen draws.
+__declspec(naked) void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
+// 00600EF0. CUiContainer::DrawContainer through its address.
+__declspec(naked) BOOL __fastcall ContainerDrawAt(CUiContainer*, void*, void*) EI_ORIGINAL(0x00600EF0)
+
+constexpr int kTargetSlotViewport = 19;   // the draw target (+0x4C): (x, y, w, h, 0x40, 1)
+constexpr int kInputSlotMouseMove = 4;    // the input side (+0x10): (buttons, x, y)
+constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
+constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
+using ClearFn = HRESULT(__stdcall*)(void* device, DWORD count, void* rects, DWORD flags, DWORD colour, float z,
+                                    DWORD stencil);
+
+} // namespace
+
+BOOL CBattleScreenSetup::Draw(void* target) {
+    MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    if (unknown_1C1) {
+        ei::VCall<void>(target, kTargetSlotViewport, *reinterpret_cast<int*>(self + 0x1CC), *reinterpret_cast<int*>(self + 0x1D0),
+                        *reinterpret_cast<int*>(self + 0x1D4), *reinterpret_cast<int*>(self + 0x1D8), 0x40, 1);
+    }
+    ei::VCall<void>(InputSide(), kInputSlotMouseMove, 0, *reinterpret_cast<int*>(0x007C7C50), *reinterpret_cast<int*>(0x007C7C54));
+    // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
+    auto* renderer = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(interface_) + 8);
+    DWORD flags = kClearTarget;
+    if ((*reinterpret_cast<std::uint32_t*>(renderer + 0x90) & 0x4000) && *reinterpret_cast<int*>(renderer + 0x9C))
+        flags = kClearStencil;
+    auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+    gameapi::EnterCriticalSection(lock);
+    void* device = *reinterpret_cast<void**>(renderer + 0x54);
+    *reinterpret_cast<HRESULT*>(renderer + 8) =
+        reinterpret_cast<ClearFn>((*static_cast<void***>(device))[10])(device, 0, nullptr, flags, 0, 1.0f, 0);
+    gameapi::LeaveCriticalSection(lock);
+    // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
+    // panels.
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
+    ContainerDrawAt(this, nullptr, target);
+    return 1;
+}
+
 namespace {
 void __fastcall BattleScreenCreate(CBattleScreenSetup* self, void*) { self->Create(); }
 } // namespace
 EI_REPLACE(0x00635250, BattleScreenCreate);
+EI_REPLACE_METHOD(0x00636020, CBattleScreenSetup::Draw);
+EI_REBIRTH_IMPLEMENTS(0x00636020, ei::rebirth::Patch::AddNewConsoleCommands);

@@ -2,10 +2,31 @@
 
 #include "ei/hook.h"
 
+// 00404920: First(manager). The reference moves from the previous manager to `manager`; returns the
+// list's first object (the position then names the next node), or null.
+CEngineObject* ObjectListIterator::First(CBaseManager* list) {
+    if (manager) --manager->refCount_;
+    manager = list;
+    if (list) ++list->refCount_;
+    void** node = FieldAt<void**>(manager, 0x38);
+    position = node;
+    if (!node) return nullptr;
+    position = node[0];
+    return static_cast<CEngineObject*>(node[2]);
+}
+EI_REPLACE_METHOD(0x00404920, ObjectListIterator::First);
+
+// 00404960: Next(). The object at the position (moving it on), or null at the end.
+CEngineObject* ObjectListIterator::Next() {
+    auto** node = static_cast<void**>(position);
+    if (!node) return nullptr;
+    position = node[0];
+    return static_cast<CEngineObject*>(node[2]);
+}
+EI_REPLACE_METHOD(0x00404960, ObjectListIterator::Next);
+
 // --- Forwarders (not rewritten) ----------------------------------------------------------------
 
-__declspec(naked) CEngineObject* ObjectListIterator::First(CBaseManager*) EI_ORIGINAL(0x00404920)
-__declspec(naked) CEngineObject* ObjectListIterator::Next() EI_ORIGINAL(0x00404960)
 __declspec(naked) void __fastcall UnitSetHostileMask(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x0052E970)
 __declspec(naked) void __fastcall UnitAddHostileMask(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x0052E940)
 

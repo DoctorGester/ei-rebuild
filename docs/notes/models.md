@@ -378,3 +378,19 @@ Each draw holds the device lock 007AEE78, stores the HRESULT at +8 and adds the 
 and one call to +0x16C / +0x170 / +0x174. 004EB370 (004E9A50's draw): the first surface on stage 0
 (as 004EB300 does it, inline), a draw, then source alpha / inverse source alpha with blending on,
 the second surface, texture coordinate index 0 (HRESULT kept), a second draw.
+
+
+## Plain figure part draw and the bounds box (005A7640, 005A7290)
+
+005A7640 (figure_part_draw_plain.cpp) is 005A7A70 without the lighting, the figure slots and
+the textures: hidden (0x80) returns before anything else (the drawn flag is cleared only after
+that, unlike 005A7A70); its own moved-positions static (007C2E60, guard 007C2E70, freed by
+005A7A50); flat meshes fill the colour and specular arrays at their current sizes; an unlit mesh
+(no 0x10) gets draw flag 4 (the device lights it); arguments 2-4 are not read. The drawn flag is
+set whenever the draw did not return 2, rectangle or not. Verify: ours only, flag consistency.
+
+005A7290 (figure_part_bounds.cpp), the finishing call of both draws: with the owning manager's
+context flag 0x4000 the mesh's clip box (origin +0x18C, extents +0x19C / +0x1A8) goes to the
+renderer's slot 15 as a line list of 16 points (8 edges, colour 0xFFFF0000; the list's 64-byte
+blocks are appended by 0049B140). Verify: differential through a stand-in renderer that records
+the line list.

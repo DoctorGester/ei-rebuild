@@ -96,7 +96,6 @@ __declspec(naked) Quaternion* __fastcall QuatFromAxisAngle(Quaternion*, void*, c
     EI_ORIGINAL(0x0049E800)
 __declspec(naked) void __fastcall QuatSlerp(Quaternion*, void*, float, const Quaternion*, const Quaternion*)
     EI_ORIGINAL(0x0049ED20)
-__declspec(naked) void __fastcall TurnTowards(CTransformObject*, void*, const Vector3*) EI_ORIGINAL(0x00401940)
 __declspec(naked) void __fastcall SetListener(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x006B9750)
 __declspec(naked) double __cdecl Hypot(double, double) EI_ORIGINAL(0x006FD026)   // _hypot
 // The shake list's STLport instantiations (`list` is the address of the field holding the sentinel).
@@ -395,7 +394,7 @@ void CCamera::Update(float dt) {
             float inv = Store(1.0 / x87::fsqrt(D(dir.y) * dir.y + nx * nx));
             dir.x = Store(nx * inv);
             dir.y = Store(D(dir.y) * inv);
-            TurnTowards(this, nullptr, &dir);
+            TurnTowards(dir);
             AlignToTarget();
             return;
         }

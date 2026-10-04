@@ -19,6 +19,8 @@ RELATIVE = re.compile(r'^(call|j\w+|loop\w*)$')
 def main():
     data = open(EXE, 'rb').read()
     md = Cs(CS_ARCH_X86, CS_MODE_32)
+    sizes = {int(m.group(1), 16): int(m.group(2)) for m in re.finditer(
+        r'\{0x([0-9A-F]+), (\d+)\}', open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')).read())}
     bad = 0
     total = 0
     for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp'))):
@@ -43,6 +45,18 @@ def main():
                 problem = 'fewer than 5 bytes'
             elif problem is None and end != stolen:
                 problem = f'{stolen} bytes is not an instruction boundary (instructions end at {end})'
+            if problem is None:
+                # The original's body must never jump back into the bytes the hook's JMP overwrote:
+                # the trampoline runs them once, but a loop back to +1..+N-1 lands inside the JMP.
+                # (GetModifierCount's loop did this and hung the game on a spell with modifiers.)
+                size = sizes.get(address, 0)
+                for insn in md.disasm(data[offset:offset + size], address):
+                    if RELATIVE.match(insn.mnemonic) and insn.op_str.startswith('0x'):
+                        target = int(insn.op_str, 16)
+                        if address < target < address + stolen:
+                            problem = (f'the body jumps back into the stolen bytes ({insn.mnemonic} at '
+                                       f'{insn.address:08X} -> +{target - address}); verify ours only (0)')
+                            break
             if problem:
                 bad += 1
                 print(f'{where}: {problem}')

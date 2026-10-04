@@ -182,6 +182,12 @@ class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
     CEngineObject* FindObject(unsigned id);
+    // 005927C0 (RET 4; world_units.cpp). Creates the object a creation message (+0x48 its kind)
+    // describes: map objects and units (1, 5, 8, 9; 6 with a figure and maybe a campfire; 7) go
+    // into the object maps, the update map and the sector map; sounds (3), lights (2) and kind 4
+    // become timed objects. Returns the new id, -1 when refused, the message's address for an
+    // unknown kind. Rebirth's FixAddMapObject takes index 0 for a unit without a prototype record.
+    int CreateObject(std::uint8_t* message);
     // 005935C0. Removes object `id` from the server: out of the sector map and every id map, its
     // slot 5, flagged 1, the command queues, every object (slot 56), the missiles and the players'
     // states forget it, and the maps' reference is released. An unknown id crashes the original
@@ -568,6 +574,12 @@ struct PlatformSet {
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {
 public:
+    // 005641F0, vtable slot 6 (world_client.cpp). The client's tick ("Segment"): autosave event
+    // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,
+    // effect lists, the lights' grey levels, the map state every 32 ticks. Returns 1; 0 when the
+    // session's view has lost its connection (the session is disconnected, FatalError; Rebirth's
+    // DisableExitOnCrashReport keeps the session).
+    int Segment();
     // 00563F70, vtable slot 27. Ground height with the position clamped into the map.
     float ClampedGroundHeight(float x, float y);
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see
@@ -747,6 +759,43 @@ struct GameFlow {
     // The mode becomes the campaign mode (007C2CC4). Rebirth's AllowScriptsInMainMenu sets the
     // server's +0x160 in the menu.
     void StartZone(const char* zone, int mode);
+    // 0057BD10. A new game: "exec autoexec.cfg" on the console, the party manager's new game
+    // (004A88A0), saves\current emptied, then the party's zone started (mode 0). Rebirth's
+    // AutoExec runs addon's AutoExec lines first.
+    void StartNewGame();
+    // 0057C700. Acts on the pending request (+0, then cleared): the zone being left is saved
+    // (0057A780), the interface closes its windows, the zone is torn down and the resource
+    // database follows the network state; then 1 main menu, 2 load the save named at +4 (two
+    // ticks first; autoplay with +0x78), 3 new game (StartNewGame), 4 zone +4, 5 / 6 multiplayer
+    // zone changes with the party copy at +8. Ends with the network pump (004122D0).
+    void ProcessRequest();
+    // 0057ABA0 (RET 4). Loads the game saved in saves\<slot>\ (not in multiplayer, 007B0098 2 or
+    // 3): "exec autoexec.cfg", saves\current emptied, scenario.sav read back (the party; by
+    // version the input, scripts and globals), the visited zones of the current map copied back
+    // (the others marked not visited), then the zone: from mission.sav (kinds 0, 2) or started
+    // afresh. Without scenario.sav the main menu starts. Returns 1 when loaded. Rebirth's AutoExec
+    // runs addon's AutoExec lines first.
+    int LoadGame(const char* slot);
+    // 0057EB10. After the sessions start: the party step 0057DEE0(1), the variables of the party
+    // outside a game (007C82B0 + 0x54) emptied, its members reset (00661FB0), and the client's host
+    // record (session +0x2600) takes the hero's and party's names (+0x18, +0xC; defaults "Human
+    // Hero", "Bug"), +0x28 = 1. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
+    void AfterServerStart();
+    // 005800C0. A multiplayer client's update from the server: the quest texts unloaded, the
+    // local player's variables replaced ("constr.current" kept), the zone's quests, the game type's
+    // construction variable and briefings (at least 1), the seen briefings, the quest folders of
+    // "q." variables, then the server's variables applied in stamp order (007AFED0 / 007AFED4),
+    // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
+    void UpdateFromServer();
+};
+
+// The saved multiplayer parties: +0 the folder (CString), +4 an STLport vector of 0x74-byte entries
+// (the party records and the file name).
+struct SavedPartyList {
+    // 00662FB0 (world_game.cpp). Rebuilds the list from the folder's "*.mp" files: each is read
+    // into party records (00662DD0); a loaded one has its variables emptied and, with records +0x34
+    // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
+    void Reload();
 };
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
@@ -770,6 +819,11 @@ void __fastcall ClearSaveFolder(const char* path);
 // whose first name is `exclude` when there is a choice; one IsaacRandom draw per group) has its
 // first name appended to `out` (an STLport vector of strings).
 void __stdcall PickZones(void* out, int id, const char* exclude);
+
+// 00579E60 (RET 4; world_game.cpp). Reads mission.sav from a file stream (magic 0x102) and
+// restores the world (LoadSave); old versions also carry the globals (< 0x52) and the input
+// state (< 0x47). 0 when the file does not read.
+int __stdcall LoadMission(void* file);
 
 // world_savefile.cpp. 00579B80 (ECX = file stream, EDX = magic; RET 8): writes the header
 // (004A5340), at version > 0x6B a checksum, then a flag byte and the LZ-compressed data (or, when
