@@ -3094,3 +3094,5 @@ address,name,library,signature,notes
 00423690,"stlp::list<T>::push_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 004207C0,"stlp::list<T>::push_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 00427320,"stlp::list<T>::remove(value)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042AE90,"stlp::uninitialized_copy<RefPtr*> (share copies; entry part)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0042AEC8,"stlp::uninitialized_copy<RefPtr*> (share copies; loop and unwind part split from 0042AE90)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic

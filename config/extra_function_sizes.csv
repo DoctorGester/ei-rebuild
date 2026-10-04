@@ -18,3 +18,9 @@ address,size,note
 005E0A10,124,console command handler body (no Ghidra function)
 0041B2A0,974,game server command message handler (0073BC40; registered by 00412D80; no Ghidra function); code up to the RET at 0041B66D, jump table at 0041B670
 0041B690,134,game server handler of 0073BC58 messages (registered by 00412D80; no Ghidra function)
+00415320,42,message type factory (registered by 004142F0; no Ghidra function)
+004166F0,39,message type factory (registered by 004142F0; no Ghidra function)
+004179E0,42,message type factory (registered by 004142F0; no Ghidra function)
+00417650,80,message type factory (registered by 004142F0; no Ghidra function)
+00417300,80,message type factory (registered by 004142F0; no Ghidra function)
+00416DF0,57,message type factory (registered by 004142F0; no Ghidra function)
