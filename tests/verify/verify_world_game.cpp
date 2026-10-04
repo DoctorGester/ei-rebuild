@@ -183,6 +183,15 @@ static void __fastcall ClearSaveFolderVerify(const char* path) {
 }
 EI_VERIFY(0x0057AAB0, ClearSaveFolderVerify, 0, s_unused);
 
+// 0057EE10: the pending flag (+0x80) flips.
+static void __fastcall SwitchMultiplayerZoneVerify(GameFlow* self, void*) {
+    char before = reinterpret_cast<char*>(self)[0x80];
+    self->SwitchMultiplayerZone();
+    char after = reinterpret_cast<char*>(self)[0x80];
+    ei::verify::Check("GameFlow::SwitchMultiplayerZone", true, (before != 0) != (after != 0), "+0x80 %d -> %d", before, after);
+}
+EI_VERIFY(0x0057EE10, SwitchMultiplayerZoneVerify, 0, s_unused);
+
 // 0057F150: afterwards an active client's request is not left answered (kind 3).
 static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {
     self->UpdateAndAcknowledge();

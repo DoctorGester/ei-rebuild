@@ -704,6 +704,12 @@ struct GameFlow {
     // quests (005809D0), then with "<folder>\quest.reg" in the texts the quest table reads it,
     // the map database loads "<folder>\map.txt" and the folder joins the list at 007AFDC0.
     void RegisterQuests(const char* folder);
+    // 0057EE10 (world_game.cpp). The multiplayer zone switch, in two calls: the first (+0x80
+    // clear) resets the host's connections, takes the party (player 0's records when its state
+    // has +0x70, else the outside party) for the zone at +0x7C, asks for game state 3 and
+    // requests state 6 (host) or 5 (client, to its peer's zone); the second (+0x80 set) asks for
+    // state 1 and the start zone again, and the host drops its client.
+    void SwitchMultiplayerZone();
     // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
     // zone or save name (+4), +0x78 and, for 5 and 6, a copy of a party (+8, 00661300).
     void RequestState3();                                            // 005816C0

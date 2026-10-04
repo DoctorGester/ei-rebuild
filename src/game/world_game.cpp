@@ -1113,6 +1113,97 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     DecodedFree(&decoder.out, nullptr);
 }
 
+// ---- SwitchMultiplayerZone ------------------------------------------------------------------------
+
+namespace {
+
+// 0041A500 (RET 8). A server command with an argument (9: drop a client).
+__declspec(naked) void __fastcall ServerCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041A500)
+// 00413270 / 00418BE0 (RET 4). The session handle at the server's +0x25A0: close / assign.
+__declspec(naked) void __fastcall HandleClose(void*, void*) EI_ORIGINAL(0x00413270)
+__declspec(naked) void __fastcall HandleAssign(void*, void*, void*) EI_ORIGINAL(0x00418BE0)
+// 00590C70 / 00591070 (RET 4). CWorldServer: sync a player's party records / after the copy.
+__declspec(naked) void __fastcall SyncPartyRecordsAt(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00590C70)
+__declspec(naked) void __fastcall AfterPartyCopy(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00591070)
+__declspec(naked) int __fastcall ViewRequestZoneAt(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
+
+constexpr int kServerDropClient = 9;
+
+// The client's game state request (+0x2600): `kind`, a new request.
+void RequestKind(int kind) {
+    At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 0x28) = kind;
+    ++At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 8);
+}
+
+} // namespace
+
+void GameFlow::SwitchMultiplayerZone() {
+    if (At<char>(this, 0x80)) {
+        // A switch is pending: ask for the start zone again.
+        RequestKind(1);
+        std::uint8_t* server = ServerSession();
+        bool host = server && !(At<std::uint32_t>(server, 4) & kSessionInactive);
+        {
+            alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+            mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);
+            ToMainMenu() = 1;
+            ViewRequestZoneAt(WorldClient()->LocalView(), nullptr, *zone, 0);
+            zone->~CString();
+        }
+        if (host) {
+            // The host drops its client (+0x25A0) and closes the handle.
+            std::uint8_t* client = At<std::uint8_t*>(ServerSession(), 0x25A0);
+            if (Active(client)) ServerCommand(ServerSession(), nullptr, kServerDropClient, At<const char*>(client, 0x18));
+            void* handle = ServerSession() + 0x25A0;
+            if (*static_cast<void**>(handle)) {
+                HandleClose(handle, nullptr);
+                HandleAssign(handle, nullptr, nullptr);
+            }
+        }
+        At<char>(this, 0x80) = 0;
+        return;
+    }
+
+    // Every connection of the host (a list at +0x28) is reset to state 6.
+    std::uint8_t* server = ServerSession();
+    if (server && !(At<std::uint32_t>(server, 4) & kSessionInactive)) {
+        auto* head = reinterpret_cast<std::uint8_t**>(server + 0x28);
+        for (auto* node = *reinterpret_cast<std::uint8_t**>(*head); node != *head; node = *reinterpret_cast<std::uint8_t**>(node)) {
+            std::uint8_t* connection = At<std::uint8_t*>(node, 8);
+            std::uint32_t value = At<std::uint32_t>(connection, 0x114C);
+            At<int>(connection, 0x1160) = 6;
+            At<std::uint32_t>(connection, 0x1158) = value;
+            At<std::uint32_t>(connection, 0x1150) = value;
+        }
+    }
+    LocalRecords records;
+    WorldPlayer* player = WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0);
+    if (player && At<char>(At<void*>(player, 0x20), 0x70)) {
+        SyncPartyRecordsAt(reinterpret_cast<void*>(0x007AFF60), nullptr, player);
+        PartyCopyFrom(records.bytes, nullptr, reinterpret_cast<std::uint8_t*>(player) + 0x70);
+        AfterPartyCopy(reinterpret_cast<void*>(0x007AFF60), nullptr, player);
+    } else {
+        PartyCopyFrom(records.bytes, nullptr, GlobalParty());
+    }
+    At<mfc::CString>(records.bytes, kRecordsZone) = At<mfc::CString>(this, 0x7C);
+    RequestKind(3);
+    if (Active(ServerSession())) {
+        At<int>(this, 0) = 6;
+        At<mfc::CString>(this, 4) = At<const char*>(this, 0x7C);
+        PartyCopyFrom(reinterpret_cast<std::uint8_t*>(this) + 8, nullptr, records.bytes);
+    } else {
+        std::uint8_t* peer = At<std::uint8_t*>(ClientSession(), 0x25EC);
+        if (Active(peer)) At<mfc::CString>(records.bytes, kRecordsZone) = At<const char*>(peer, 0x18);
+        peer = At<std::uint8_t*>(ClientSession(), 0x25EC);
+        if (Active(peer)) {
+            At<int>(this, 0) = 5;
+            At<mfc::CString>(this, 4) = At<const char*>(peer, 0x0C);
+            PartyCopyFrom(reinterpret_cast<std::uint8_t*>(this) + 8, nullptr, records.bytes);
+        }
+    }
+    At<char>(this, 0x80) = 1;
+}
+
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
 
 namespace {
@@ -1166,6 +1257,7 @@ EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
 EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
 EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE(0x0057AAB0, ClearSaveFolder);
+EI_REPLACE_METHOD(0x0057EE10, GameFlow::SwitchMultiplayerZone);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
