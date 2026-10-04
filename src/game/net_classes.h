@@ -111,6 +111,9 @@ struct SessionBase {
     void AddHandler(int channel, std::uint32_t type, void* handler);
     // 004142F0. Clears the flags of message types 1..17 and registers their factories.
     void RegisterMessageTypes();
+    // 00437370 (slot 14, net_session_tick.cpp). Handles the waiting datagrams, ticks the
+    // connections (dropping timed-out ones) and counts the frame.
+    void Receive(double dt);
 
     // A handler registration as the session constructors inline it (not a function of its own in
     // the original): a prototype message of `size` bytes built by `construct`, held through a
@@ -306,5 +309,8 @@ static_assert(sizeof(GameInfoRecord) == 0x28);
 // The byte buffer's read helpers (net_game_info.cpp).
 GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);   // 00401310
 unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);         // 00401340
+// net_session_tick.cpp.
+void __fastcall BufferUpdateHigh(GameBuffer* buffer);                                          // 00419CC0
+StringRep* __fastcall AddressString(const void* address, void* edx, StringRep* out);           // 00435010
 
 } // namespace net
