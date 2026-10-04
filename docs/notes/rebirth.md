@@ -125,11 +125,14 @@ Sites are listed in full in the CSV.
   object with 20 effects gets no more (the first ten refusals are logged), and after adding an effect
   that lasts more than one tick, every older effect of the same type and end flag whose +0x0C is
   within 0.001, that lasts no longer and whose value is not higher is removed. (#0) In
-  `CWorldServer::UpdateUnits` (0058D670) a context hook first walks the world's object list
-  (007C2D00) and, for each object that is referenced, not flagged 1, has effects, a companion
-  (+0x170) and +0x174 <= 0 (objects the update does not tick), counts every effect down by one tick
-  and removes the expired ones. *#1 implemented*
-  (src/game/map_object.cpp); #0 needs UpdateUnits.
+  `CWorldServer::UpdateUnits` (0058D670) a context hook (0058D82E, before the walk of the update
+  map) first walks the map objects (007C2D00, i.e. +0x12DA0 of the server at 007AFF60) and, for each
+  object that is referenced, not flagged 1, has effects, a companion (+0x170) and +0x174 <= 0
+  (asleep: out of the update map, so its own update does not count its effects down), counts every
+  effect down by one tick; an object with an expired effect goes back into the update map
+  (0058D5D0), whose next update removes the effect. *Implemented*: #1 in src/game/map_object.cpp,
+  #0 as a new rewrite `CWorldServer::UpdateUnits` with `TickSleepingEffects`
+  (src/game/world_tick.cpp).
 - **FixProgressNames** - the loading movie (00595080): after the original picks progres.bik for an
   allod other than gipat/ingos/suslanger, addon picks progres2.bik for "gipat2" and progres5.bik for
   "jigran" (Rebirth's own islands; progres5.bik is Rebirth content). *Implemented* as a new rewrite
@@ -407,6 +410,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixPlaingBattleMusicFromAntimagic | new: CUnitServer::IsFighting 0054B580 (combat.cpp) | pure wrapper (10 stolen bytes), vanilla and Rebirth |
 | FixRepairPrice | new: CCampPages::Price 0060FAB0 (ui_camp.cpp) | pure wrapper (6 stolen bytes), vanilla and Rebirth |
 | FixProgressNames | new: SelectLoadingMovie 00595080 (world_zone.cpp) | wrapper (7 stolen bytes) runs both on the same starting value and compares the chosen movie names as text |
+| FixSpellEffectsOverflow #0 | new: CWorldServer::UpdateUnits 0058D670 + TickSleepingEffects (world_tick.cpp) | ours only (it runs every awake object): afterwards no unit sent to sleep is still in the update map |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -438,7 +442,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| FixSpellEffectsOverflow #0 | rewrite CWorldServer::UpdateUnits 0058D670 (0.9 KB) or a pre-step hook | 0.5 day |
 | FixSpellSelfCasting #1 | CBattleScreen::SelectUnit 00638EF0 (3.6 KB) | 1-2 days |
 | FixRemoveMapObject | CWorldServer::RemoveObject 005935C0 (1 KB) | 0.5 day |
 | FixCreateItem | item factory 006AC970 (1.6 KB, many callees) | 1 day |
@@ -456,6 +459,8 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 ## Shims and forwarders added
 
 - `EffectArray::SetSize` (map_object.cpp): forwarder to 0050FE70, CArray<MapEffect>::SetSize.
+- world_tick.cpp: `IdArray::SetAtGrow` (004538D0), `CountedRemoveAt` (0059A050, the counted list's
+  RemoveAt, which also releases the object), `ServerRemoveObject` (005935C0).
 - `ItemPrice` (ui_camp.cpp): the item's slot 16 through its vtable.
 
 ## Original bugs kept

@@ -216,6 +216,15 @@ public:
     // moves the missiles, runs the script command queues (the first only while +0x160 is set or
     // `force`) and then the units (0058D670).
     void Tick(char force);
+    // 0058D670. Runs the objects: with +0x12D64 == 1 the units in the update map (+0x104), each
+    // counting down to sleep (+0x174; out of the map when its controller is idle), else every map
+    // object (+0x12DA0); then the counted objects (+0x12E44, dropped when their slot 6 returns 0).
+    // Objects flagged 1 are removed (005935C0) at the end. Rebirth's FixSpellEffectsOverflow first
+    // ticks the effects of sleeping objects (TickSleepingEffects).
+    void UpdateUnits();
+    // Rebirth's FixSpellEffectsOverflow #0 (no original address): counts the effects of sleeping
+    // map objects down and wakes those with an expired one.
+    void TickSleepingEffects();
     // 0058D3D0. Puts every unit in the sectors within `radius` of `position` (x, y) in the
     // update map.
     void WakeUnitsAround(const float* position, float radius);
