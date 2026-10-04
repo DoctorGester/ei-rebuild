@@ -22,6 +22,14 @@
 
 class CItem;
 class CItemInfoPanel;
+namespace console {
+class CStringArray;
+}
+
+// 005F13A0 (__fastcall, RET 4). The seven damage values against the last one: into `out` (emptied)
+// the threshold ("%d" when `integer`, else "%.1f"), the damage kinds ("dmg_<n>" texts, ", "
+// separated) of the first six above it and those below it (or unordered).
+void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer);
 
 // --- The item screens' model view (005ECA10; ui_item_view.cpp) ------------------------------------
 

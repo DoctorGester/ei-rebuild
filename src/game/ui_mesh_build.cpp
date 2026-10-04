@@ -56,7 +56,7 @@ T* At(CUiMesh* mesh, int offset) {
 }
 
 // The common start: the +0x1D0 block (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
-void ResetColours(CUiMesh* mesh) {
+void ResetVertexColours(CUiMesh* mesh) {
     At<BlockArray>(mesh, 0x1D0)->SetSize(1, -1);
     At<DwordArray>(mesh, 0x138)->SetSize(4, -1);
     At<DwordArray>(mesh, 0x148)->SetSize(4, -1);
@@ -210,7 +210,7 @@ float CircleTexel(int j, int n, bool sine, int radius, int centre) {
 
 void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, float right, float bottom, float border,
                             int u0, int v0, int u1, int v1) {
-    ResetColours(this);
+    ResetVertexColours(this);
     // How far the inner edge lies in texels: the border's share of the width (height) of the texels.
     float width = Store(D(right) - D(left));
     float du = Store(static_cast<double>(u1 - u0) * D(border) / D(width));
@@ -303,7 +303,7 @@ EI_REPLACE(0x005E8450, MeshFramed);
 
 void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radius, int count, int u, int v,
                           int uvRadius) {
-    ResetColours(this);
+    ResetVertexColours(this);
     SetVertexCount(count);
     for (int i = 0; i < count; ++i) SetVertex(this, i, i, i);
     SetUvCount(count);
@@ -350,7 +350,7 @@ EI_REPLACE(0x005E8C60, MeshDisc);
 
 void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radius, int count, float width, int u0,
                           int v0, int u1, int v1) {
-    ResetColours(this);
+    ResetVertexColours(this);
     // Four vertices per segment: outer and inner point of its start and of its end (texture corners
     // 0-3); the last segment ends on the first one's points.
     SetVertexCount(count * 4);
@@ -429,3 +429,11 @@ void __fastcall MeshRing(CUiMeshBuilder* self, void*, float depth, float scale, 
 }
 } // namespace
 EI_REPLACE(0x005E91F0, MeshRing);
+
+// --- 005E9F30 -----------------------------------------------------------------------------------------
+
+void CUiMeshBuilder::ResetColours() { ResetVertexColours(this); }
+namespace {
+void __fastcall MeshResetColours(CUiMeshBuilder* self) { self->ResetColours(); }
+} // namespace
+EI_REPLACE(0x005E9F30, MeshResetColours);

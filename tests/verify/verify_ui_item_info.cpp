@@ -8,6 +8,7 @@
 // sub-description's own wrapper inside the original (nested side by side).
 #include "verify.h"
 
+#include "../../src/game/console.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/lib/gameapi.h"
 
@@ -174,7 +175,23 @@ static void __fastcall ShowHelpVerify(CItemInfoPanel* self, void*, int topic) {
 }
 EI_VERIFY(0x005F2910, ShowHelpVerify, 7, s_showHelp);
 
-// --- The model view (ui_item_view.cpp) ---------------------------------------------------------------
+// 005F13A0 (PUSH -1; PUSH imm32: 7). Side by side: the original fills a scratch array, ours the
+// caller's; the strings must match.
+static void(__fastcall* s_damageLists)(const float*, console::CStringArray*, char);
+static void __fastcall DamageListsVerify(const float* values, console::CStringArray* out, char integer) {
+    console::CStringArray expected;
+    s_damageLists(values, &expected, integer);
+    ItemDamageLists(values, out, integer);
+    bool same = expected.GetSize() == out->GetSize();
+    for (int i = 0; same && i < out->GetSize(); ++i)
+        same = std::strcmp(static_cast<const char*>(expected[i]), static_cast<const char*>((*out)[i])) == 0;
+    ei::verify::Check("ItemDamageLists", true, same, "integer %d: '%s' / '%s'", integer,
+                      expected.GetSize() > 1 ? static_cast<const char*>(expected[1]) : "",
+                      out->GetSize() > 1 ? static_cast<const char*>((*out)[1]) : "");
+}
+EI_VERIFY(0x005F13A0, DamageListsVerify, 7, s_damageLists);
+
+// --- The model view (ui_item_view.cpp)---------------------------------------------------------------
 
 namespace {
 
