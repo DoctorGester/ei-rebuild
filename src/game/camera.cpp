@@ -175,9 +175,6 @@ void ResetMotion(CCamera* c) {
 
 } // namespace
 
-__declspec(naked) void CCamera::ClampAboveObjects() EI_ORIGINAL(0x0040E4C0)
-__declspec(naked) void CCamera::AlignToTarget() EI_ORIGINAL(0x0040D710)
-__declspec(naked) void CCamera::LookDirection(float, float, float) EI_ORIGINAL(0x004110D0)
 
 void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {

@@ -522,6 +522,137 @@ the string destructor 0040C770. Game code outside the range: the socket driver (
 004DA200, 004DA380, 004DA7F0, 004DA910), _CIacos 006E7320, the iostream inserters (006FC31D,
 006FC0B0, 006FC14E, 00434FE0).
 
+## Seventh round: the game server and client sessions, camera motion and recording
+
+### Library classification
+
+About 270 functions of 00400000-00440000 are STLport / MFC template instantiations or compiler
+helpers and went to config/library.csv instead of being rewritten (note "range 400 review"):
+hashtable / tree / list / deque / vector plumbing of the connection maps, strings (substr, assign,
+append, erase, reserve), the CRT vector constructor iterator, the containers' destructors and
+clears (list destructors over counted pointers and parties, the 0x2C-byte buffer vector), list
+push_back / remove / insert / erase copies, vector _M_insert_overflow over counted objects.
+
+### Verify fixes (in-game mismatches)
+
+- CBaseManager::ConstructBase (00402B20): the original copies its three hashtable functor bytes
+  (and the bucket vector's allocator byte) from uninitialised stack bytes (the sample "expected
+  005E5E5E" is one stack byte stored three times); ours stores zeros. They are never read; the
+  wrapper now copies those 3 bytes of +0x1C / +0x50 / +0x68 / +0x80 from ours before comparing.
+- ChunkArchive::EnterChunk (004098D0): the pushed chunk record's padding came from the stack; the
+  wrapper compares the record's fields and names the one that differs.
+Both lines left tests/verify/disabled.txt.
+
+### Connection lifecycle and replica entries (net_connection_life.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00432DA0 / 00433320 / 004334E0 / 004334C0 | Connection::Construct(id) / Reset / Destruct / deleting destructor | BuiltCompare / ours |
+| 00433060 | Connection::Clone | ours |
+| 00433A30 | IdPool::CopyFrom | ours |
+| 004343C0 / 00434430 / 004344C0 / 004344A0 | replica entry clone / reset / destructor body / deleting destructor | ours |
+
+Kept: Construct squares the uninitialised round-trip time field (as the original); the id tree's
+compare byte is the low byte of the id.
+
+### The game server (0073BB70; net_server_*.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 0041ADB0 | join handler (player record 0073BC70 with the lowest free number, binding 0073BCB8, host flag, announcement) | ours + binding / player / name |
+| 004186F0 | SetMap (map messages, map holder, world load, the map's script variables, host items) | ours |
+| 00418530 | QueueMapList (a queued map message per zone the flow picks after the current one) | ours |
+| 004193F0 | FinishMap (held map named: dropped, "name_3" queued) | ours |
+| 00418ED0 / 00418CC0 | CompleteZone ("<zone>_3": the clients' shares of the entry's +0xC / +0x10 divided by the client count, host items with the final award) / LeaveZone ("<zone>_2") | ours |
+| 004191C0 / 00419D90 | AwardHost (kind 2 per item name, kind 4 final) / QueueAward (0073BD48, 60 s on +0x25B4) | ours |
+| 00419A00 | ShareFile (a file message 0073BD18 cut into 64-byte chunk messages 0073BD30) | ours |
+| 00419570 / 004195D0 / 00419730 / 004197D0 / 004198D0 / 00419940 | the script variables (+0x25B0, 0073BCE8): Find / FindOrAdd / Set (zero removes) / Raise (max) / Remove / Get | side by side for Find and Get, ours |
+| 0041A310 / 0041A490 / 0041A500 | Announce (a line 0073BC88 kept for the clients, at most 50) / AnnounceText / AnnounceToGuests | ours |
+| 0041A7E0 | Describe (slot 15: a server entry 0073BB28 with name, kind, map title, counts) | ours |
+| 0041A020 / 0041A170 / 0041A270 / 0041A2E0 | LeaderId / FindGuestConnection / FindConnectionBySerial / FindPlayer | side by side |
+| 0041A050 / 0041A140 | Admit (slot 16: ban list, 20-byte password, player limit) / SetPassword | ours |
+| 0041A550 / 0041A620 / 0041A700 / 0041A770 | Kick / Ban / ReportDeparture (slot 11 lost, slot 12 left) | ours |
+| 0041ACF0 / 0041B720 / 0041B7A0 / 0041B970 / 0041BA30 | trades: FindTrade / object removed / offer created, updated, removed | side by side for FindTrade, ours |
+| 00417E10 | SetPublic (announced to the master server, port 28004) | ours |
+| 00417BC0 / 00417A10 | destructor body / deleting destructor | ours |
+
+### The game client (0073BDEC; net_client_*.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 0041D600 | the server list reply (compressed {address, GameInfoRecord} into server entries) | ours |
+| 0041DA50 / 00429FC0 | ClientPublishParty (a 0073BD78 message per party member; unchanged ones keep their old object) / FindSameMessage | ours / side by side |
+| 0041E220 / 0041DDC0 / 0041E180 | ClientFindParty (the received description paired with ours) / ClientApplyParty (rebuilds party +0x2690) / ClientCommitParty | side by side / ours / side by side |
+| 0041CCD0 / 0041CD80 | ClientTick (slot 14: timers) / ClientApplyAwards (experience, gold, items given / removed, quest items reset) | ours |
+| 0041CA10 / 0041C8B0 | destructor body / deleting destructor | ours |
+| 0041D1A0 / 0041D260 | ClientAddTimed (an object on the timers list) / ClientSendCommand (0073BC40 {kind, text}, kept 60 s) | ours |
+| 0041D420 | ClientDescribe (slot 16: an empty server entry, kind 4) | ours |
+
+### Camera (camera_motion.cpp, camera_object.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 004110D0 / 0040D710 / 0040E4C0 | LookDirection / AlignToTarget / ClampAboveObjects (x87, precise) | side by side on camera copies |
+| 0040C8B0 / 0040CE60 / 0040CE10, slots 0040CDF0 / 0040CE00 / 0040E900, 0040D190 / 0040D1D0, 0040D0A0, 0040D380, 0040FB20 | constructor / destructor / deleting destructor, class name / id / 1, create / destroy, Init, GetRange, Anchor | BuiltCompare, side by side |
+| 0040CB20 / 0040CB70 / 0040CB50 | engine object constructor, transform destructor / deleting destructor | side by side / ours |
+| 0040E910 / 0040EB60 / 0040ECB0 | OpenFile (".\camera\" + name; an existing camera.cam renamed first) / RecordFrame / CloseFile | ours |
+| 00410AB0 / 00410C10 | LoadState / SaveState | ours |
+
+### Small copies
+
+33 scalar deleting destructors that only call their body (the message classes 0073BBF8 ..
+0073BD78, counted pointer holders, session containers) share one template
+(deleting_destructors_400.cpp); 50 out-of-line counted pointer helpers (release at +4, clear,
+null constructor, from a raw pointer with and without a reference, two more releases) joined
+refptr_copies.cpp; 004250A0 is a copy of the share copy 004263F0; 00412960 / 004368C0 are copies of the root destructor body (core_streams.cpp);
+004054F0 / 00405530 clear +8 for the exception unwind funclets.
+
+### Original bugs kept on purpose
+
+- CameraOpenFile (0040E910) reads each numbered file's number from its title past the fourth
+  character ("ra0005"), which is always 0: an existing camera.cam always becomes camera0001.cam.
+- CameraRecordFrame (0040EB60) writes 4 bytes the original never sets (stack contents); ours
+  writes zero there. The frame's other 32 bytes match.
+- ClientApplyParty creates the slot 22 object of a member with a positive id and does not keep it.
+- ServerSession::QueueAward assigns the text in place (inlined string assign), FindOrAddVariable
+  likewise; LeaveZone and FinishMap free the queued messages inline, as the original.
+
+### Not hooked (no Ghidra function)
+
+0041B2A0 (the server's command message handler: kick / ban by name or serial and the "_1" / "_2" /
+"_3" zone commands), 0041B690 (the 0073BC58 message handler), 0041A230 (the connection of a player)
+and 0041A2B0 (the lowest free player number) are not in config/functions.csv nor
+config/extra_function_sizes.csv, so they cannot be hooked yet.
+
+### Reached by
+
+The lobby scenario (tests/scenarios/net_lobby.txt: "server bz7g-lmp") creates the server and
+client sessions and ticks them; the host's own join (0041ADB0 with Announce), SetMap /
+QueueMapList, the party messages and the client tick are expected there (not run in this round:
+the game was not launched). Other players joining, trades, kick / ban, zone commands, awards,
+shared files and most script variable calls need a multiplayer game in progress, which no scenario
+covers. The camera functions run in every scenario with a map (tests/scenarios/camera.txt covers
+the motion helpers); OpenFile / RecordFrame only with camera recording on.
+
+### Forwarders added (the standalone build must replace)
+
+STLport (library): the string, list, vector and pair plumbing named in each file (00421EB0,
+00421F60, 0042AF80, 00421ED0, 00429060, 00426F00, 00429080, 004292A0, 00426490, 00424B40, 004298F0,
+00428A20, 004268A0, 00429770, 0041FF90, 00421D90, 00426CB0, 00420550, 004227D0, 00427D60,
+004297A0, 0040C770, 0040C720, 00425040, 004217E0, 00428F10, 0042A3D0, 00425080, 00424E40,
+004193D0, 0040B3C0, 0042AFB0, 0042A4F0, 00426A80, 0040C280, 00421800, 004219E0, 004219F0,
+00429040, 00426920, 00427100, 004271C0, 00426450, 004263D0, 00426860, 00404D70, 00420280,
+004221B0, 00420290, 00427FA0, 00420450, 004225B0, 004290F0, 00420460, 0041FCD0, 0041FCC0,
+00427FF0, 00421AF0, 004208A0, 00423190, 00420960, 00423410, 004294D0, 004293F0, 00423690,
+00427320, 00420610, 004229B0, the list / vector destructors and clears of the two destructors).
+Game code outside the range or not yet rewritten: 0041F460 / 0041F550 / 0041F4E0 (message string
+members), 00422390 / 004292C0 (the +0x25B0 list), the world and flow at 0x7AFE20 (005814C0,
+005810A0, 0057ED60, 00580F10, 0057F850, 005809D0), the text table 005F8C90, the player world
+0x7AFF60 (00594180, 005911C0, 00665470, 00665870, 00661FB0), the item manager 006AC970, the
+parties (00661700, 00661DB0, 006611D0), MFC (CString, CFile, CFileFind members, 006E80D8 atoi,
+006E7E80 strncpy, 006FA1A0 _strnicmp), the client base tick 00442AD0, the server entry base
+004413E0 / 004428A0, the address helper 00440440, the coder (0042FCA0, 00430960, 0041D930).
+
 ## Dead code found in this range
 
 00402310 (452), 00402780 (radix sort, 887), 0042E700 (3436) and 0042F890 (397, called only

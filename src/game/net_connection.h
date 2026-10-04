@@ -40,6 +40,8 @@ struct IdPool {
 
     // 00435F10. A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
+    // 00433A30 (net_connection_life.cpp). Copy constructor; returns this.
+    IdPool* CopyFrom(const IdPool& other);
 };
 static_assert(sizeof(IdPool) == 0x10);
 
@@ -191,6 +193,13 @@ struct Connection {
     // 00436620. The peer goes away: every object received from it is reported to the session's
     // removal handlers (channel 2) and released.
     void Close();
+    // net_connection_life.cpp: 00432DA0 constructor (returns this), 00433320 Reset (slot 2:
+    // destroy, then construct with id 0), 004334E0 destructor body.
+    Connection* Construct(std::uint32_t id);
+    void Reset();
+    void Destruct();
+    // 00433060 (slot 3, net_connection_life.cpp): a copy of the connection (every container copied).
+    Connection* Clone() const;
 };
 static_assert(offsetof(Connection, address) == 0x2C);
 static_assert(offsetof(Connection, clock) == 0x48);

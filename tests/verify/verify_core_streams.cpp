@@ -54,6 +54,13 @@ void __fastcall RefDestruct1Verify(void* self) {
 void __fastcall RefDestruct2Verify(void* self) {
     CheckVoid("RefObjectDestructBase@00413430", s_refDestruct2, RefObjectDestructBase, self);
 }
+VoidFn s_refDestruct3, s_refDestruct4;
+void __fastcall RefDestruct3Verify(void* self) {
+    CheckVoid("RefObjectDestructBase@00412960", s_refDestruct3, RefObjectDestructBase, self);
+}
+void __fastcall RefDestruct4Verify(void* self) {
+    CheckVoid("RefObjectDestructBase@004368C0", s_refDestruct4, RefObjectDestructBase, self);
+}
 void __fastcall StreamDestructVerify(void* self) {
     CheckVoid("StreamDestructBase", s_streamDestruct, StreamDestructBase, self);
 }
@@ -198,6 +205,8 @@ CoderState* __fastcall CoderCtorVerify(CoderState* self) {
 
 EI_VERIFY(0x00412720, RefDestruct1Verify, 6, s_refDestruct1);
 EI_VERIFY(0x00413430, RefDestruct2Verify, 6, s_refDestruct2);
+EI_VERIFY(0x00412960, RefDestruct3Verify, 6, s_refDestruct3);
+EI_VERIFY(0x004368C0, RefDestruct4Verify, 6, s_refDestruct4);
 EI_VERIFY(0x00412730, RefDeleteVerify, 5, s_refDelete);
 EI_VERIFY(0x00419720, RefValueCtorVerify, 8, s_refValueCtor);
 EI_VERIFY(0x00412700, RefValueDeleteVerify, 0, s_unused);

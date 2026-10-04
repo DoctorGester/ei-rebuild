@@ -98,3 +98,51 @@ EI_VERIFY(0x00401B50, RollVerify, 6, s_roll);
 EI_VERIFY(0x00401E50, RotateVerify, 7, s_rotate);
 EI_VERIFY(0x00401F00, UpVerify, 6, s_up);
 EI_VERIFY(0x00402220, HeadingVerify, 7, s_heading);
+
+namespace {
+// 004110D0 / 0040D710 / 0040E4C0: side by side, the original on a scratch copy of the camera
+// (they only change its rotations and height; AlignToTarget's original then runs our
+// ClampAboveObjects on the copy). The rotations and the position must match bit for bit.
+using CameraScratch = unsigned char[sizeof(CCamera)];
+CCamera* CameraCopy(const CCamera* self, CameraScratch& scratch) {
+    std::memcpy(scratch, self, sizeof(CameraScratch));
+    return reinterpret_cast<CCamera*>(scratch);
+}
+bool SamePose(const CCamera* a, const CCamera* b) {
+    return std::memcmp(&a->localRotation_, &b->localRotation_, sizeof(Quaternion)) == 0 &&
+           std::memcmp(&a->viewRotation_, &b->viewRotation_, sizeof(Quaternion)) == 0 &&
+           std::memcmp(&a->localPosition_, &b->localPosition_, sizeof(Vector3)) == 0;
+}
+
+// FLD [ESP+4] (4), FMUL [ESP+4] (4).
+bool(__fastcall* s_lookDirection)(CCamera*, void*, float, float, float);
+bool __fastcall LookDirectionVerify(CCamera* self, void*, float dx, float dy, float dz) {
+    CameraScratch scratch;
+    CCamera* copy = CameraCopy(self, scratch);
+    bool expected = s_lookDirection(copy, nullptr, dx, dy, dz);
+    bool actual = self->LookDirection(dx, dy, dz);
+    ei::verify::Check("CCamera::LookDirection", true, expected == actual && SamePose(copy, self), "");
+    return actual;
+}
+// PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0x48 (3).
+void(__fastcall* s_alignToTarget)(CCamera*);
+void __fastcall AlignToTargetVerify(CCamera* self) {
+    CameraScratch scratch;
+    CCamera* copy = CameraCopy(self, scratch);
+    s_alignToTarget(copy);
+    self->AlignToTarget();
+    ei::verify::Check("CCamera::AlignToTarget", true, SamePose(copy, self), "");
+}
+// PUSH EBP (1), MOV EBP,ESP (2), PUSH -1 (2).
+void(__fastcall* s_clampAboveObjects)(CCamera*);
+void __fastcall ClampAboveObjectsVerify(CCamera* self) {
+    CameraScratch scratch;
+    CCamera* copy = CameraCopy(self, scratch);
+    s_clampAboveObjects(copy);
+    self->ClampAboveObjects();
+    ei::verify::Check("CCamera::ClampAboveObjects", true, SamePose(copy, self), "");
+}
+} // namespace
+EI_VERIFY(0x004110D0, LookDirectionVerify, 8, s_lookDirection);
+EI_VERIFY(0x0040D710, AlignToTargetVerify, 6, s_alignToTarget);
+EI_VERIFY(0x0040E4C0, ClampAboveObjectsVerify, 5, s_clampAboveObjects);

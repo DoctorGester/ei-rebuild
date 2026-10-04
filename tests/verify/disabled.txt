@@ -1,4 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-00402B20  CBaseManager::ConstructBase: ours writes zeros where the original leaves bytes alone (5678 of 6452 calls differ)
-004098D0  ChunkArchive::EnterChunk: pushed chunk record differs from the original's (1 in 11 calls)
