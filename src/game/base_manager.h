@@ -12,6 +12,10 @@ class CBaseManager : public CEngineObject {
 public:
     // 00403F40. Object registered under `id`, or null.
     CEngineObject* FindObject(unsigned id) const;
+    // 00402B20. The constructor body (base_manager_core.cpp); returns this.
+    CBaseManager* ConstructBase();
+    // 00402DF0. The destructor body: Destroy (slot 3, 004031E0), the containers, the engine object.
+    void DestructBody();
 
     stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> objects_;   // +0x1C by id
     int maxId_;                                                         // +0x30 highest id handed out
