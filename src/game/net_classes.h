@@ -275,6 +275,17 @@ struct ServerSession {
     void AnnounceText(int kind, const char* text, CRefObject* player);
     // 0041ACF0 (net_server_trade.cpp). The trade between two offers (either order), or null.
     void* FindTrade(void* offer, void* other);
+    // 0041A020 .. 0041A770 (net_server_players.cpp): players, connections, admission.
+    int LeaderId();                                       // 0041A020: the first host's id, -1
+    bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);   // slot 16
+    void SetPassword(const char* text);                   // 0041A140
+    void* FindGuestConnection(const StringRep* name);     // 0041A170
+    void* FindConnectionBySerial(int serial);             // 0041A270
+    void* FindPlayer(int id);                             // 0041A2E0
+    void AnnounceToGuests(int kind, const char* text);    // 0041A500
+    void Kick(void* connection);                          // 0041A550
+    void Ban(void* connection);                           // 0041A620
+    void ReportDeparture(void* connection, int text);     // 0041A700 (slot 11, 4) / 0041A770 (slot 12, 1)
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);
