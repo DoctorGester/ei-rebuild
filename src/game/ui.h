@@ -204,6 +204,11 @@ public:
     // 005FD440 (vtable slot 4, RET 8). A new[] block of width * height 5:6:5 pixels: the surface
     // stretched to that size through a temporary surface. 005FE440. Greys the surface in place
     // ((2 r + 4 g + b) / 16 per channel). ui_surface_pixels.cpp.
+    // 005FD7A0 (RET 4). `restore` 0: copies the DirectDraw surface's memory (pitch * height bytes)
+    // to +0x1C (size +0x20) and releases the surface; 1: makes a new surface (+0x14 x +0x18) when
+    // there is none and copies the kept bytes back into it, freeing them. Both keep the memory
+    // totals 007C7E74 (kept bytes) and 007C7E78 (surface bytes).
+    void SwapContents(int restore);
     void CaptureScreen();
     std::uint16_t* Rgb565Copy(int width, int height);
     void Greyscale();

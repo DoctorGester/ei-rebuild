@@ -226,12 +226,111 @@ void CUiSurface::Greyscale() {
 }
 
 namespace {
+
+// 004EF7B0 (thiscall, RET 0xC): a surface holder's constructor (device, width, height).
+__declspec(naked) SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int) EI_ORIGINAL(0x004EF7B0)
+// 004E6BA0 (thiscall): drops a holder reference.
+__declspec(naked) void __fastcall ReleaseHolder(SurfaceHolder*) EI_ORIGINAL(0x004E6BA0)
+
+long GetSurfaceDesc(void** surface, std::uint32_t* desc) {
+    using Fn = long(__stdcall*)(void**, void*);
+    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(surface))[22])(surface, desc);
+}
+
+std::uint32_t& KeptBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E74); }
+std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E78); }
+
+constexpr int kDescPitch = 4;   // +0x10
+
+} // namespace
+
+void CUiSurface::SwapContents(int restore) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    auto keptAt = [self] { return reinterpret_cast<std::uint8_t**>(self + 0x1C); };
+    auto keptSize = [self] { return reinterpret_cast<std::uint32_t*>(self + 0x20); };
+    auto holderAt = [self] { return reinterpret_cast<SurfaceHolder**>(self + 0x10); };
+    std::uint32_t desc[0x1F];
+    if (restore) {
+        if (!*holderAt()) {
+            // A new surface of the surface's size.
+            void* memory = gamecrt::operator_new(0x20);
+            SurfaceHolder* made = nullptr;
+            if (memory) {
+                void* device;
+                std::memcpy(&device, reinterpret_cast<std::uint8_t*>(interface_) + 8, 4);
+                int width, height;
+                std::memcpy(&width, self + 0x14, 4);
+                std::memcpy(&height, self + 0x18, 4);
+                made = ConstructHolder(memory, nullptr, device, width, height);
+            }
+            SurfaceHolder* previous = *holderAt();
+            *holderAt() = made;
+            if (made) ++made->references;
+            if (previous) ReleaseHolder(previous);
+            SurfaceHolder* holder = *holderAt();
+            std::memset(desc, 0, sizeof(desc));
+            desc[0] = 0x7C;
+            long hr = GetSurfaceDesc(holder->surface, desc);
+            holder->result = hr;
+            if (hr != 0) FatalDirectX(hr, Text(0x0078E6C4));
+            SurfaceBytesTotal() += desc[kDescHeight] * desc[kDescPitch];
+        }
+        if (!*keptAt()) return;
+        SurfaceHolder* holder = *holderAt();
+        gameapi::EnterCriticalSection(DeviceLock());
+        std::memset(desc, 0, sizeof(desc));
+        desc[0] = 0x7C;
+        long hr = LockSurface(holder->surface, desc);
+        holder->result = hr;
+        if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
+        std::memcpy(reinterpret_cast<void*>(desc[kDescSurface]), *keptAt(), *keptSize());
+        KeptBytesTotal() -= *keptSize();
+        holder = *holderAt();
+        gameapi::LeaveCriticalSection(DeviceLock());
+        hr = UnlockSurface(holder->surface);
+        holder->result = hr;
+        if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+        gamecrt::operator_delete(*keptAt());
+        *keptAt() = nullptr;
+        *keptSize() = 0;
+        return;
+    }
+    SurfaceHolder* holder = *holderAt();
+    if (!holder) return;
+    gameapi::EnterCriticalSection(DeviceLock());
+    std::memset(desc, 0, sizeof(desc));
+    desc[0] = 0x7C;
+    long hr = LockSurface(holder->surface, desc);
+    holder->result = hr;
+    if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
+    if (*keptAt()) gamecrt::operator_delete(*keptAt());
+    *keptSize() = desc[kDescHeight] * desc[kDescPitch];
+    *keptAt() = static_cast<std::uint8_t*>(gamecrt::operator_new(*keptSize()));
+    std::memcpy(*keptAt(), reinterpret_cast<const void*>(desc[kDescSurface]), *keptSize());
+    KeptBytesTotal() += *keptSize();
+    holder = *holderAt();
+    gameapi::LeaveCriticalSection(DeviceLock());
+    hr = UnlockSurface(holder->surface);
+    holder->result = hr;
+    if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+    SurfaceBytesTotal() -= *keptSize();
+    SurfaceHolder* released = *holderAt();
+    *holderAt() = nullptr;
+    if (released && --released->references == 0) {
+        using DeleteFn = void(__thiscall*)(SurfaceHolder*, int);
+        reinterpret_cast<DeleteFn>(*reinterpret_cast<void**>(released->vtable))(released, 1);
+    }
+}
+
+namespace {
+void __fastcall SurfaceSwapContents(CUiSurface* self, void*, int restore) { self->SwapContents(restore); }
 void __fastcall SurfaceCaptureScreen(CUiSurface* self, void*) { self->CaptureScreen(); }
 std::uint16_t* __fastcall SurfaceRgb565Copy(CUiSurface* self, void*, int width, int height) {
     return self->Rgb565Copy(width, height);
 }
 void __fastcall SurfaceGreyscale(CUiSurface* self, void*) { self->Greyscale(); }
 } // namespace
+EI_REPLACE(0x005FD7A0, SurfaceSwapContents);
 EI_REPLACE(0x005FD3D0, SurfaceCaptureScreen);
 EI_REPLACE(0x005FD440, SurfaceRgb565Copy);
 EI_REPLACE(0x005FE440, SurfaceGreyscale);

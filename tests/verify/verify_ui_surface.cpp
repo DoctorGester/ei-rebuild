@@ -218,3 +218,68 @@ static void __fastcall CursorBlitVerify(CCursor* self, void*, CursorImage* image
                       "pixel row %d (compared %d), result %ld/%ld", row, pixels, expectedResult, actualResult);
 }
 EI_VERIFY(0x005E5C40, CursorBlitVerify, 6, s_cursorBlit);
+
+namespace {
+// The surface's memory as the game copies it: pitch * height bytes from the top left.
+bool RawBytes(IDirectDrawSurface7* dd, std::vector<std::uint8_t>& out) {
+    if (!dd) return false;
+    gameapi::EnterCriticalSection(SurfaceLock());
+    DDSURFACEDESC2 desc{};
+    desc.dwSize = sizeof(desc);
+    bool ok = dd->Lock(nullptr, &desc, DDLOCK_WAIT, nullptr) == DD_OK;
+    if (ok) {
+        std::size_t size = static_cast<std::size_t>(desc.dwHeight) * static_cast<std::uint32_t>(desc.lPitch);
+        const auto* base = static_cast<const std::uint8_t*>(desc.lpSurface);
+        out.assign(base, base + size);
+        dd->Unlock(nullptr);
+    }
+    gameapi::LeaveCriticalSection(SurfaceLock());
+    return ok;
+}
+template <typename T>
+T Field(const void* p, int offset) {
+    T v;
+    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
+    return v;
+}
+} // namespace
+
+// 005FD7A0: PUSH -1; PUSH imm32 (7). Ours only (saving releases the surface, so it cannot run
+// twice): saving must keep exactly the surface's bytes and release it; restoring must put the
+// kept bytes back and free them; both with the memory totals moved by the same sizes.
+static void(__thiscall* s_swapContents)(CUiSurface*, int);
+static void __fastcall SwapContentsVerify(CUiSurface* self, void*, int restore) {
+    auto& kept = *reinterpret_cast<std::uint32_t*>(0x007C7E74);
+    auto& surfaceBytes = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    std::uint32_t keptBefore = kept, surfaceBefore = surfaceBytes;
+    if (!restore) {
+        std::vector<std::uint8_t> raw;
+        bool had = DirectDrawSurface(self) != nullptr && RawBytes(DirectDrawSurface(self), raw);
+        self->SwapContents(restore);
+        if (!had) return;
+        const std::uint8_t* data = Field<const std::uint8_t*>(self, 0x1C);
+        std::uint32_t size = Field<std::uint32_t>(self, 0x20);
+        bool ok = size == raw.size() && data && std::memcmp(data, raw.data(), size) == 0 &&
+                  Field<void*>(self, 0x10) == nullptr && kept - keptBefore == size && surfaceBefore - surfaceBytes == size;
+        ei::verify::Check("CUiSurface::SwapContents", true, ok, "save: %u bytes (surface %u), totals %u/%u", size,
+                          static_cast<unsigned>(raw.size()), kept - keptBefore, surfaceBefore - surfaceBytes);
+        return;
+    }
+    bool created = Field<void*>(self, 0x10) == nullptr;
+    const std::uint8_t* data = Field<const std::uint8_t*>(self, 0x1C);
+    std::uint32_t size = Field<std::uint32_t>(self, 0x20);
+    std::vector<std::uint8_t> keptCopy;
+    if (data) keptCopy.assign(data, data + size);
+    self->SwapContents(restore);
+    std::vector<std::uint8_t> raw;
+    bool read = RawBytes(DirectDrawSurface(self), raw);
+    bool ok = read && Field<void*>(self, 0x10) != nullptr;
+    if (data) {
+        ok = ok && raw.size() >= size && std::memcmp(raw.data(), keptCopy.data(), size) == 0 &&
+             Field<void*>(self, 0x1C) == nullptr && Field<std::uint32_t>(self, 0x20) == 0 && keptBefore - kept == size;
+    }
+    if (created) ok = ok && surfaceBytes - surfaceBefore == raw.size();
+    ei::verify::Check("CUiSurface::SwapContents", true, ok, "restore: kept %u bytes, surface %u, created %d", size,
+                      static_cast<unsigned>(raw.size()), created);
+}
+EI_VERIFY(0x005FD7A0, SwapContentsVerify, 7, s_swapContents);
