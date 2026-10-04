@@ -127,3 +127,125 @@ void __fastcall ReceiveHook(SessionBase* self, void*, double dt) { self->Receive
 EI_REPLACE(0x00437370, ReceiveHook);
 
 } // namespace net
+
+// ---- Session vtable slots (0073BF5C) ---------------------------------------------------------------
+
+namespace net {
+
+namespace {
+
+// The clients list (STLport list<Connection*>, +0x28): end, begin, find by peer address (an
+// instantiation of find_if over the nodes), erase.
+__declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00438830)
+__declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00438820)
+__declspec(naked) void** __fastcall ClientFind(void** /*out*/, void*, void* /*first*/, void* /*last*/, const void* /*address*/) EI_ORIGINAL(0x0043D780)
+__declspec(naked) void* __fastcall ClientsErase(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00438840)
+// 0043B310: the node allocator's deallocate (p in ECX, size in EDX), used for the address strings.
+__declspec(naked) void __fastcall NodeFree(char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x0043B310)
+// 00436620: closes a connection (not rewritten yet).
+__declspec(naked) void __fastcall ConnectionClose(Connection* /*connection*/) EI_ORIGINAL(0x00436620)
+
+constexpr std::uintptr_t kUnknownHost = 0x00783F2C;   // "ERROR: Update from unknown host"
+constexpr std::uintptr_t kBadClient = 0x00783F1C;     // "ERROR: client "
+constexpr std::uintptr_t kBadUpdate = 0x00783F04;     // " sent incorrect update"
+constexpr std::uintptr_t kRemove = 0x00783EE8;        // "REMOVE client "
+
+// "<text>\n" and a flush, when there is a network log.
+void LogText(std::uintptr_t text) {
+    if (auto* log = static_cast<LogStream*>(NetLog()))
+        log->Put(reinterpret_cast<const char*>(text))->PutChar('\n')->Apply(reinterpret_cast<void*>(kFlush));
+}
+
+// The clients list node of the connection to `address` (the list sentinel when there is none), as
+// the slots inline it.
+void* FindClientNode(SessionBase* self, const void* address) {
+    void* last;
+    ClientsEnd(&self->clients, nullptr, &last);
+    void* first;
+    ClientsBegin(&self->clients, nullptr, &first);
+    void* found = nullptr;
+    ClientFind(&found, nullptr, first, last, address);
+    return found;
+}
+
+Connection* ConnectionOf(void* node) { return static_cast<Connection*>(static_cast<void**>(node)[2]); }
+
+// The address string of a connection, logged as "<before><address><after>\n", then freed.
+void LogConnection(std::uintptr_t before, Connection* connection, std::uintptr_t after) {
+    StringRep peer;
+    const char* text = AddressString(connection->address, nullptr, &peer)->start;
+    LogStream* log = static_cast<LogStream*>(NetLog())->Put(reinterpret_cast<const char*>(before))->Put(text);
+    if (after) log = log->Put(reinterpret_cast<const char*>(after));
+    log->PutChar('\n')->Apply(reinterpret_cast<void*>(kFlush));
+    NodeFree(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
+}
+
+} // namespace
+
+// 00436CC0: the clients list node of the connection to `address` (end when none); returns `out`.
+void** __fastcall SessionFindClient(SessionBase* self, void*, void** out, const void* address) {
+    void* last;
+    ClientsEnd(&self->clients, nullptr, &last);
+    void* first;
+    ClientsBegin(&self->clients, nullptr, &first);
+    ClientFind(out, nullptr, first, last, address);
+    return out;
+}
+EI_REPLACE(0x00436CC0, SessionFindClient);
+
+// 00436CF0 (slot 2): RemoveClient(node). Logs it, closes the connection and erases the node.
+void __fastcall SessionRemoveClient(SessionBase* self, void*, void* node) {
+    if (node == self->clients) return;
+    if (NetLog()) LogConnection(kRemove, ConnectionOf(node), 0);
+    ConnectionClose(ConnectionOf(node));
+    void* after;
+    ClientsErase(&self->clients, nullptr, &after, node);
+}
+EI_REPLACE(0x00436CF0, SessionRemoveClient);
+
+// 00437080 (slot 3, packet kind 0): an update from a client. Unknown senders are logged (returns
+// false); a client whose update does not read is logged, reported (slot 11) and removed (slot 2).
+bool __fastcall SessionOnUpdate(SessionBase* self, void*, const void* from, BufferCursor* cursor) {
+    void* node = FindClientNode(self, from);
+    if (node == self->clients) {
+        LogText(kUnknownHost);
+        return false;
+    }
+    if (!ConnectionOf(node)->ReadUpdate(cursor)) {
+        if (NetLog()) LogConnection(kBadClient, ConnectionOf(node), kBadUpdate);
+        ei::VCall<void>(self, 11, static_cast<void*>(ConnectionOf(node)));
+        ei::VCall<void>(self, 2, node);
+    }
+    return true;
+}
+EI_REPLACE(0x00437080, SessionOnUpdate);
+
+// 00437240 (slot 6, packet kind 1): a client leaves: its connection id follows; when it matches,
+// the client is reported (slot 12) and removed (slot 2).
+void __fastcall SessionOnLeave(SessionBase* self, void*, const void* from, BufferCursor* cursor) {
+    std::uint32_t id;
+    std::memcpy(&id, cursor->p, 4);
+    cursor->p += 4;
+    void* node = FindClientNode(self, from);
+    if (node != self->clients && ConnectionOf(node)->connectionId == id) {
+        ei::VCall<void>(self, 12, static_cast<void*>(ConnectionOf(node)));
+        ei::VCall<void>(self, 2, node);
+    }
+}
+EI_REPLACE(0x00437240, SessionOnLeave);
+
+// The base session's handlers of the kinds it does not serve: each logs an error.
+namespace {
+template <std::uintptr_t Text>
+void __fastcall CantHandle(SessionBase*, void*, const void*, BufferCursor*) {
+    LogText(Text);
+}
+} // namespace
+EI_REPLACE(0x004371E0, CantHandle<0x00783F4C>);   // slot 4, kind 3: "ERROR: Can't handle get info"
+EI_REPLACE(0x00437210, CantHandle<0x00783F6C>);   // slot 5, kind 4: "ERROR: Can't handle login"
+EI_REPLACE(0x004372B0, CantHandle<0x00783F88>);   // slot 7, kind 5: "ERROR: Can't handle info"
+EI_REPLACE(0x004372E0, CantHandle<0x00783FA4>);   // slot 8, kind 6: "ERROR: Can't handle accepted"
+EI_REPLACE(0x00437310, CantHandle<0x00783FC4>);   // slot 9, kind 7: "ERROR: Can't handle rejected"
+EI_REPLACE(0x00437340, CantHandle<0x00783FE4>);   // slot 10, kind -1: "ERROR: Can't handle master packet"
+
+} // namespace net
