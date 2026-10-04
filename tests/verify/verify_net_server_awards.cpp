@@ -71,6 +71,7 @@ void __fastcall LeaveZoneVerify(net::ServerSession* self) {
 
 EI_VERIFY(0x00418CC0, LeaveZoneVerify, 0, s_unused);
 EI_VERIFY(0x004263F0, CopyVerify, 0, s_unused);
+EI_VERIFY(0x004250A0, CopyVerify, 0, s_unused);
 EI_VERIFY(0x00419D90, QueueAwardVerify, 0, s_unused);
 EI_VERIFY(0x004191C0, AwardHostVerify, 0, s_unused);
 EI_VERIFY(0x00418ED0, CompleteZoneVerify, 0, s_unused);

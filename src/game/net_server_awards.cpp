@@ -103,6 +103,7 @@ RefPtr* __fastcall RefPtrCopyConstruct(RefPtr* self, void*, const RefPtr* other)
     return self;
 }
 EI_REPLACE(0x004263F0, RefPtrCopyConstruct);
+EI_REPLACE(0x004250A0, RefPtrCopyConstruct);   // byte-identical copy
 
 // 00419D90: queues an award message (vtable 0073BD48, 0x24 bytes: +0xC the connection (counted),
 // +0x10 kind, +0x14 value, +0x18 text) on the pending awards (+0x25B4) with a 60 second delay.
