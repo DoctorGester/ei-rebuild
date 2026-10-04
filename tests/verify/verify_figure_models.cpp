@@ -33,3 +33,27 @@ static void* __fastcall FindModelVerify(char* manager, void*, const void* name) 
     return result;
 }
 EI_VERIFY(0x005AA5F0, FindModelVerify, 0, s_unused);
+
+void* __fastcall FindModelAnimation(char* model, void*, const void* name);
+
+namespace {
+__declspec(naked) void __fastcall AnimFindAt(void*, void*, Iterator*, const void*) {
+    __asm mov eax, 0x005AD520
+    __asm jmp eax
+}
+void* CachedAnimation(char* model, const void* name) {
+    Iterator it{};
+    AnimFindAt(model + 0xC, nullptr, &it, name);
+    return it.node ? *reinterpret_cast<void**>(static_cast<char*>(it.node) + 0x10) : nullptr;
+}
+} // namespace
+
+// 005A9EF0: loads resources, so ours only; as above for the model's animation map.
+static void* __fastcall FindAnimationVerify(char* model, void*, const void* name) {
+    void* before = CachedAnimation(model, name);
+    void* result = FindModelAnimation(model, nullptr, name);
+    bool ok = CachedAnimation(model, name) == result && (!before || before == result);
+    ei::verify::Check("FindModelAnimation", true, ok, "%p (cached %p)", result, before);
+    return result;
+}
+EI_VERIFY(0x005A9EF0, FindAnimationVerify, 0, s_unused);

@@ -39,9 +39,16 @@ __declspec(naked) void __fastcall StringDestroyB(RawString*) EI_ORIGINAL(0x0040C
 // 005A9A50: the model's constructor; returns this.
 __declspec(naked) void* __fastcall ConstructModel(void*) EI_ORIGINAL(0x005A9A50)
 
+// The model's animation map (+0xC): find (RET 8) and operator[] (RET 4); 006721D0 the
+// animation's constructor (0x6C bytes, returns this).
+__declspec(naked) void __fastcall AnimFind(void*, void*, Iterator*, const RawString*) EI_ORIGINAL(0x005AD520)
+__declspec(naked) char* __fastcall AnimIndex(void*, void*, const RawString*) EI_ORIGINAL(0x005ADC10)
+__declspec(naked) void* __fastcall ConstructAnimation(void*) EI_ORIGINAL(0x006721D0)
+
 constexpr int kModels = 0xBC;
 constexpr int kSlotOpenResource = 19;
 constexpr int kSlotLoad = 2;
+constexpr int kSlotPartRead = 5;
 
 void* OpenPart(void* manager, const RawString* name, std::uintptr_t suffix) {
     char path[0x200];
@@ -87,3 +94,32 @@ void* __fastcall FindFigureModel(char* manager, void*, const void* nameIn) {
 }
 
 EI_REPLACE(0x005AA5F0, FindFigureModel);
+
+// 005A9EF0 (thiscall on a model, RET 4): the model's animation of a name, loaded on first use from
+// its animation part (+8, slot 5 with the name) into a new animation object (slot 2 loads it);
+// without data nothing is created. The cached entry is looked up again either way.
+void* __fastcall FindModelAnimation(char* model, void*, const void* nameIn) {
+    const auto* name = static_cast<const RawString*>(nameIn);
+    void* map = model + 0xC;
+    Iterator found;
+    AnimFind(map, nullptr, &found, name);
+    if (found.node) return found.node->value;
+    void* part = *reinterpret_cast<void**>(model + 8);
+    void* data = ei::VCall<void*>(part, kSlotPartRead, static_cast<const char*>(name->start), 0);
+    if (data) {
+        void* animation = gamecrt::operator_new(0x6C);
+        if (animation) animation = ConstructAnimation(animation);
+        RawString key;
+        StringCopy(&key, nullptr, name);
+        void** slot = reinterpret_cast<void**>(AnimIndex(map, nullptr, &key) + 0xC);
+        StringDestroyA(&key);
+        *slot = animation;
+        StringCopy(&key, nullptr, name);
+        slot = reinterpret_cast<void**>(AnimIndex(map, nullptr, &key) + 0xC);
+        StringDestroyA(&key);
+        ei::VCall<void>(*slot, kSlotLoad, data);
+    }
+    AnimFind(map, nullptr, &found, name);
+    return found.node ? found.node->value : nullptr;
+}
+EI_REPLACE(0x005A9EF0, FindModelAnimation);
