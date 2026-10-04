@@ -34,9 +34,9 @@ CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x00
 
 // 004EF610. Returns the DirectDraw result (0 when there is nothing to present).
 long __fastcall DevicePresent(char* device) {
+    // With "present" the new renderer copies its frame into the render target here, which the old
+    // present then shows.
     render::Present();
-    // The new renderer shows the frame itself ("present"): the old one is not flipped or copied.
-    if (render::Presenting()) return 0;
     void* primary = SurfaceOf(At<void*>(device, 0x14));
     void* target = At<void*>(device, 0x18);
     void* targetSurface = SurfaceOf(target);

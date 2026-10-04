@@ -23,8 +23,9 @@ interface's sprites and 3D previews), the flat geometry (object shadows, selecti
 decals), the interface windows' surfaces, the renderer's rectangles (rubber band, fades), the
 software cursor, and the depth clears in the middle of the frame; the escape menu's and save
 game's screen copy comes from the new frame. Checked in game: terrain, meshes, interface
-(`render_scene`, section 8). Not drawn yet: particles, ribbons, lightning, flying hit points,
-weather. Movies (Bink) are handed over; the trade grid's depth clears too (00627390 rewritten).
+(`render_scene`, section 8). Also handed over: every pre-transformed draw of the renderer
+(particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points). Not drawn
+yet: weather (rain and snow, 004E4240 / 004E4C80 draw with the device directly, not rewritten). Movies (Bink) are handed over; the trade grid's depth clears too (00627390 rewritten).
 The switch-over mode `present` exists (section 5, "Switch-over").
 
 ## 1. The switch (EI_RENDER)
@@ -40,7 +41,7 @@ comma-separated list:
 | `noterrain` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) |
 | `noobjects` | ... the meshes drawn inside the world view (figures, map objects, the sky) and the flat geometry there (004EA4A0: shadows, ground decals) |
 | `nointerface` | ... the meshes drawn outside the world view (the interface's sprites and 3D previews) and the window surfaces' blits |
-| `present` | the switch-over: the child window covers the whole client area, the old path's present (004EF610) and movie blits are skipped and everything handed over is off in the old path (`noterrain,noobjects,nointerface`); the swap chain presents with vsync (interval 1, as the old Flip waited); captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode) |
+| `present` | the switch-over: everything handed over is off in the old path (`noterrain,noobjects,nointerface`, movie blits too) and at the old present (004EF610) the new frame is copied into the game's render target, which the old Flip / BltFast then shows; captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode). A first version showed the frame in the child window instead: under dgVoodoo's full screen the second swap chain made the game window inactive (WM_ACTIVATE inactive: the game's frame function then draws nothing and the window minimises itself), so no frame was drawn at all. `show` / `split` have the same problem in full screen; use them windowed |
 
 Without `new` nothing in `src/render` runs; the old path draws as before. The harness has the steps
 `oldterrain`, `oldobjects`, `oldinterface` (on / off) for the same switches during a run. Planned:
@@ -149,7 +150,8 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Pass state | per pass of a mesh (the material's technique: one state block per pass, 004EB550; or the two textures of 004EB370): blend and factors, alpha test, depth test / write / function, culling, specular, fog and its colour, texture factor, two texture stages' colour / alpha operations and arguments, filters, addressing, and the bound surface holders (device +0x12C / +0x130) | DeviceDrawIndexed 004EB550 / DeviceDrawTwoTextures 004EB370 -> `render::MeshPass`, read back from the old device (the state blocks are opaque) | drawn; later the materials from the game's data |
 | Depth clears | the battle screen's before its panels (00636020), the hero preview's (005EC300: all to 0, its rectangles to 1) | `render::ClearDepth` | drawn; 00627390 (not rewritten) missing |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX slots 8 / 9 / 11 / 12 into a surface), ground quad 0056C750, drawn with 004EA4A0 | 004EA4A0 (rewritten) -> `render::BeginMesh` without corners (per-vertex positions, one colour pair, depth scale); the texture from the render surface right after 0051CE60 copies it (`render::TextureChanged`) | drawn |
-| Particles, ribbons, lightning | particle sources' interpolated points, sizes, colours and texture rectangles (007A9BD0 / 007A9BE0), textures; ribbon polylines | 00502CA0 sprites, 00501D90 ribbons (rewritten) | later |
+| Particles, ribbons, lightning, hit points, vision fog | the renderer's pre-transformed draws: sprites 00502CA0 -> 00503680 (particles, the vision fog's quads), ribbons 00501D90 -> 00502A20 (lightning), triangles 00501BB0 (rewritten, `renderer_triangles.cpp`: flying hit points) | `render::TlDraw` at the three draws (vertices after the fog pass, the old device's state) | drawn; later: the particle data itself instead of its screen quads |
+| Weather | rain and snow quads (004E5680 -> 004E4240 / 004E4C80, 2.6 KB each, not rewritten) drawn with the device directly | - | missing |
 | Sky | the sky object (004D96E0: a model at the camera, turning with time) | the figure path | with objects |
 | Interface surfaces | CUiSurface (0x38 bytes): +0x0C flags (1 colour key, 2 whole surface stretched, 4 shown), +0x10 the surface holder, +0x24 the screen rectangle, +0x34 the colour key; the DirectDraw surface's pixels (read with a read-only Lock when its uniqueness value changed) | the blit 005FDA80 (rewritten: `ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn (overlay) |
 | Rectangle fills | renderer slot 19 (005041F0): a translucent black quad (alpha argument) and optionally its outline | 005041F0 rewritten (`renderer_rect.cpp`) -> `render::ScreenDraw` (pre-transformed triangles, line strip) | drawn |
@@ -217,9 +219,14 @@ in our runs) is still created and still used, because:
 4. **CPU paths into surfaces**: the shadow rasteriser (2DintMMX into a render surface, then a
    device Load), Bink (BinkCopyToBuffer into a locked surface), the software cursor's surfaces,
    the screen copies. Each needs a CPU buffer instead.
-5. **Not handed over yet**: particles (00502CA0), ribbons and lightning (00501D90), flying hit points
-   (005E18E0), weather (004E5680), the vision fog layer (004E2700); with `present` they are drawn
-   into the old back buffer that nobody sees, so they are missing on screen.
+5. **Not handed over yet**: weather (004E4240 / 004E4C80 draw with the device directly). With
+   `present` the old path still draws it into its back buffer, but the new frame copied over it
+   hides it, so it is missing on screen. (Particles, ribbons, lightning, hit points and the vision
+   fog are handed over at the renderer's pre-transformed draws.)
+8. **Presenting through the old path** costs a full-frame readback and conversion per frame (33 MB
+   at 3840x2160): a staging copy kept between frames, 32-bit BGRX written directly. Fine for the
+   switch-over; the final form presents from the new renderer's own swap chain once dgVoodoo's is
+   gone (point 6).
 6. **Old device calls still made**: 524 call sites in 143 functions; with no device every one needs
    a guard or a rewrite. Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
    after 1-4; until then dgVoodoo keeps creating its device and swap chain (only never presented).

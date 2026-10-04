@@ -61,8 +61,10 @@ void ParseSpec(const char* spec) {
         start = comma + 1;
     }
     if (g_present) {
-        g_show = true;
-        g_split = false;
+        // No child window: a second swap chain over dgVoodoo's full-screen one deactivated the game
+        // (WM_ACTIVATE inactive: the game stops drawing and minimises itself). The frame is copied
+        // into the game's render target and the old present shows it.
+        g_show = g_split = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = false;
     }
     if (!g_active) {
@@ -382,6 +384,7 @@ bool g_frameDrawn = false;
 bool g_started = false;
 std::uint32_t g_frameNumber = 0;
 std::uint32_t g_commits = 0;
+int g_presentFailures = 0;
 
 bool EnsureStarted() {
     EnsureConfigured();
@@ -609,47 +612,67 @@ bool DrawPending() {
     return true;
 }
 
-// The off-screen target's `box` as RGBA8 rows (a staging copy).
-bool ReadTarget(const D3D11_BOX& box, std::vector<std::uint8_t>* rgba) {
+// A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until
+// UnmapTarget. The staging texture is kept (the full frame is read every frame with "present").
+ID3D11Texture2D* g_staging = nullptr;
+UINT g_stagingWidth = 0, g_stagingHeight = 0;
+
+bool MapTarget(const D3D11_BOX& box, const std::uint8_t** rows, UINT* pitch) {
     sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
     auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
     if (!texture) return false;
-    D3D11_TEXTURE2D_DESC desc{};
-    texture->GetDesc(&desc);
-    desc.Width = box.right - box.left;
-    desc.Height = box.bottom - box.top;
-    desc.MipLevels = 1;
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.MiscFlags = 0;
-    ID3D11Texture2D* staging = nullptr;
-    if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &staging))) return false;
-    g_context->CopySubresourceRegion(staging, 0, 0, 0, 0, texture, 0, &box);
-    D3D11_MAPPED_SUBRESOURCE mapped{};
-    bool ok = SUCCEEDED(g_context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped));
-    if (ok) {
-        rgba->resize(static_cast<std::size_t>(desc.Width) * desc.Height * 4);
-        for (UINT y = 0; y < desc.Height; ++y)
-            std::memcpy(rgba->data() + static_cast<std::size_t>(y) * desc.Width * 4,
-                        static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
-                        static_cast<std::size_t>(desc.Width) * 4);
-        g_context->Unmap(staging, 0);
+    UINT width = box.right - box.left, height = box.bottom - box.top;
+    if (!g_staging || g_stagingWidth < width || g_stagingHeight < height) {
+        if (g_staging) g_staging->Release();
+        g_staging = nullptr;
+        D3D11_TEXTURE2D_DESC desc{};
+        texture->GetDesc(&desc);
+        desc.Width = width > desc.Width ? width : desc.Width;
+        desc.Height = height > desc.Height ? height : desc.Height;
+        desc.MipLevels = 1;
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &g_staging))) {
+            g_staging = nullptr;
+            return false;
+        }
+        g_stagingWidth = desc.Width;
+        g_stagingHeight = desc.Height;
     }
-    staging->Release();
-    sg_reset_state_cache();
-    return ok;
+    g_context->CopySubresourceRegion(g_staging, 0, 0, 0, 0, texture, 0, &box);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    if (FAILED(g_context->Map(g_staging, 0, D3D11_MAP_READ, 0, &mapped))) return false;
+    *rows = static_cast<const std::uint8_t*>(mapped.pData);
+    *pitch = mapped.RowPitch;
+    return true;
 }
 
-// An 8-bit channel into the bits of `mask`.
-std::uint32_t Pack(std::uint8_t value, std::uint32_t mask) {
-    if (!mask) return 0;
-    int shift = 0, bits = 0;
-    while (!((mask >> shift) & 1)) ++shift;
-    while (shift + bits < 32 && ((mask >> (shift + bits)) & 1)) ++bits;
-    std::uint32_t v = bits >= 8 ? static_cast<std::uint32_t>(value) << (bits - 8) : static_cast<std::uint32_t>(value) >> (8 - bits);
-    return (v << shift) & mask;
+void UnmapTarget() {
+    g_context->Unmap(g_staging, 0);
+    sg_reset_state_cache();
 }
+
+// One 8-bit channel into a mask's bits: shift down to its width, then up to its place.
+struct ChannelPack {
+    int down = 8, up = 0;
+    std::uint32_t mask = 0;
+    explicit ChannelPack(std::uint32_t m) : mask(m) {
+        if (!m) return;
+        int shift = 0, bits = 0;
+        while (!((m >> shift) & 1)) ++shift;
+        while (shift + bits < 32 && ((m >> (shift + bits)) & 1)) ++bits;
+        if (bits >= 8) {
+            down = 0;
+            up = shift + bits - 8;
+        } else {
+            down = 8 - bits;
+            up = shift;
+        }
+    }
+    std::uint32_t operator()(std::uint8_t v) const { return ((static_cast<std::uint32_t>(v) >> down) << up) & mask; }
+};
 
 } // namespace
 
@@ -668,8 +691,9 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     if (r.right <= r.left || r.bottom <= r.top) return false;
     D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right),
                   static_cast<UINT>(r.bottom), 1};
-    std::vector<std::uint8_t> rgba;
-    if (!ReadTarget(box, &rgba)) return false;
+    const std::uint8_t* rgba = nullptr;
+    UINT pitch = 0;
+    if (!MapTarget(box, &rgba, &pitch)) return false;
     int sw = r.right - r.left, sh = r.bottom - r.top;
     // Into the surface, stretched to its size as DirectDraw's Blt does (nearest texel).
     DDSURFACEDESC2 desc{};
@@ -677,25 +701,37 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     LockGameDevice();
     HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
     bool ok = SUCCEEDED(hr) && desc.lpSurface && (desc.ddpfPixelFormat.dwFlags & DDPF_RGB) &&
-              desc.ddpfPixelFormat.dwRGBBitCount >= 16 && desc.ddpfPixelFormat.dwRGBBitCount <= 32;
+              (desc.ddpfPixelFormat.dwRGBBitCount == 16 || desc.ddpfPixelFormat.dwRGBBitCount == 32);
     if (ok) {
         const DDPIXELFORMAT& pf = desc.ddpfPixelFormat;
-        int bytes = static_cast<int>(pf.dwRGBBitCount / 8);
         int dw = static_cast<int>(desc.dwWidth), dh = static_cast<int>(desc.dwHeight);
         std::uint32_t alpha = (pf.dwFlags & DDPF_ALPHAPIXELS) ? pf.dwRGBAlphaBitMask : 0;
+        ChannelPack pr(pf.dwRBitMask), pg(pf.dwGBitMask), pb(pf.dwBBitMask);
+        std::vector<int> columns(static_cast<std::size_t>(dw));
+        for (int x = 0; x < dw; ++x) columns[static_cast<std::size_t>(x)] = static_cast<int>(static_cast<long long>(x) * sw / dw) * 4;
+        bool bgrx = pf.dwRGBBitCount == 32 && pf.dwRBitMask == 0xFF0000 && pf.dwGBitMask == 0xFF00 && pf.dwBBitMask == 0xFF;
         for (int y = 0; y < dh; ++y) {
-            int sy = static_cast<int>(static_cast<long long>(y) * sh / dh);
+            const std::uint8_t* src = rgba + static_cast<std::size_t>(static_cast<long long>(y) * sh / dh) * pitch;
             auto* row = static_cast<std::uint8_t*>(desc.lpSurface) + static_cast<std::size_t>(y) * desc.lPitch;
-            for (int x = 0; x < dw; ++x) {
-                int sx = static_cast<int>(static_cast<long long>(x) * sw / dw);
-                const std::uint8_t* p = &rgba[(static_cast<std::size_t>(sy) * sw + sx) * 4];
-                std::uint32_t pixel = Pack(p[0], pf.dwRBitMask) | Pack(p[1], pf.dwGBitMask) | Pack(p[2], pf.dwBBitMask) | alpha;
-                std::memcpy(row + static_cast<std::size_t>(x) * bytes, &pixel, static_cast<std::size_t>(bytes));
+            if (pf.dwRGBBitCount == 32) {
+                auto* out = reinterpret_cast<std::uint32_t*>(row);
+                for (int x = 0; x < dw; ++x) {
+                    const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
+                    out[x] = bgrx ? (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2] | alpha
+                                  : pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha;
+                }
+            } else {
+                auto* out = reinterpret_cast<std::uint16_t*>(row);
+                for (int x = 0; x < dw; ++x) {
+                    const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
+                    out[x] = static_cast<std::uint16_t>(pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha);
+                }
             }
         }
     }
     if (SUCCEEDED(hr)) dd->Unlock(nullptr);
     UnlockGameDevice();
+    UnmapTarget();
     return ok;
 }
 
@@ -707,9 +743,16 @@ void EndFrame() {
     ShowFrame();
     sg_commit();
     ++g_commits;
-    // Presenting, the frame is paced by the display as the old path's Flip was.
-    if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(g_present ? 1 : 0, 0);
+    if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
     g_haveFrame = true;
+    // "present": into the game's render target (the device object's +0x18), which the old present
+    // then flips or copies to the screen.
+    if (g_present) {
+        char* device = DeviceObject();
+        const void* target = device ? *reinterpret_cast<void* const*>(device + 0x18) : nullptr;
+        if (target && !CopyFrameTo(target, Rect{0, 0, g_width, g_height}) && g_presentFailures++ < 10)
+            ei::Log("render: cannot copy the frame into the game's render target");
+    }
 }
 
 void Present() {

@@ -15,9 +15,10 @@
 //   noobjects  the old path no longer draws the world's meshes (figures, objects, the sky) and
 //              its flat geometry (shadows)
 //   nointerface  ...nor the interface (window surfaces, sprites, 3D previews)
-//   present    the switch-over: the new renderer shows its frame over the whole client area and
-//              the old path draws and presents nothing (implies show, noterrain, noobjects,
-//              nointerface; movies too); captures write the new frame as frames\<name>.bmp
+//   present    the switch-over: the old path draws nothing that is handed over (implies noterrain,
+//              noobjects, nointerface; movies too) and the new frame is copied into the game's
+//              render target before the old present shows it; captures write the new frame as
+//              frames\<name>.bmp
 // Without "new" nothing here runs and the game draws exactly as before.
 
 #include <cstdint>
@@ -36,8 +37,8 @@ void Configure(const char* spec);
 // The sidecar renders frames.
 bool Active();
 
-// The sidecar presents ("present"): the old path's present (004EF610) and its remaining draws are
-// skipped.
+// The switch-over mode ("present"): the new frame is what the old present (004EF610) shows; the
+// old path draws nothing that is handed over.
 bool Presenting();
 
 // The old Direct3D path still draws the terrain ("noterrain" off). The harness can change it.
@@ -103,6 +104,15 @@ struct ScreenVertex {
     std::uint32_t colour, specular;
 };
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
+
+// A Direct3D 7 draw of pre-transformed vertices the old path is about to make (particles and
+// sprites 00503680, ribbons and lightning 00502A20, the renderer's triangle draw 00501BB0: flying hit
+// points): `fvf` 0x1C4 (x, y, z, rhw, colour, specular, u, v) or 0xC4 (no texture coordinates),
+// `primitive` a D3DPRIMITIVETYPE (2 line list, 3 line strip, 4 triangle list, 5 strip, 6 fan),
+// indexed when `indices`. The vertices' fog (specular alpha) is already applied. Takes the old
+// device's state for the draw; returns whether the old path still draws it.
+bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+            int primitive);
 
 // A window surface's blit onto the frame (005FDA80): the surface holder (CDXSurface), the screen
 // rectangle, the source rectangle (null: the whole surface, stretched) and the colour key (in the

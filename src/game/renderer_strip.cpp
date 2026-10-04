@@ -9,6 +9,7 @@
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -357,10 +358,14 @@ int __fastcall DrawTlTriangles(char* holder, void*, TLVertex* vertices, int vert
     auto enter = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B1B4);
     auto leave = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B230);
     void* section = reinterpret_cast<void*>(0x007AEE78);
-    enter(section);
-    At<long>(holder, 8) = ComCall(At<void*>(holder, 0x54), kDrawIndexedPrimitive, kTriangleList, kFvfTlVertex, vertices,
-                                  vertexCount, indices, indexCount, 0);
-    leave(section);
+    // The new renderer (src/render) takes the draw (after the fog above); with the old path's
+    // objects off it is skipped.
+    if (render::TlDraw(holder, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
+        enter(section);
+        At<long>(holder, 8) = ComCall(At<void*>(holder, 0x54), kDrawIndexedPrimitive, kTriangleList, kFvfTlVertex, vertices,
+                                      vertexCount, indices, indexCount, 0);
+        leave(section);
+    }
     At<int>(holder, 0x16C) += vertexCount;
     At<std::uint32_t>(holder, 0x170) += static_cast<std::uint32_t>(indexCount) / 3;
     At<int>(holder, 0x174) += 1;

@@ -555,6 +555,81 @@ bool MeshPass(void* device) {
 
 void EndMesh() { g_pending = Pending{}; }
 
+bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+            int primitive) {
+    if (!device || !vertices || vertexCount <= 0 || !Active() || !Started()) return true;
+    if (fvf != 0x1C4 && fvf != 0xC4) return true;   // not a layout the game uses for these
+    int width = 0, height = 0;
+    if (!GameTargetSize(&width, &height)) return true;
+    Frame& f = CurrentFrame();
+    if (f.meshVertices.size() > 4'000'000) return true;
+    static const float kIdentity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    float clip[16];
+    ScreenToClip(kIdentity, clip, width, height);
+    int stride = fvf == 0x1C4 ? 32 : 24;
+    auto base = static_cast<std::uint32_t>(f.meshVertices.size());
+    for (int i = 0; i < vertexCount; ++i) {
+        const auto* p = static_cast<const std::uint8_t*>(vertices) + static_cast<std::size_t>(i) * stride;
+        Vertex v{};
+        std::memcpy(&v.x, p, 12);   // x, y, z (rhw taken as 1: affine interpolation)
+        std::memcpy(&v.colour, p + 16, 8);
+        if (stride == 32) std::memcpy(&v.u, p + 24, 8);
+        f.meshVertices.push_back(v);
+    }
+    // The primitive as a list over absolute indices.
+    int count = indices ? indexCount : vertexCount;
+    auto at = [&](int k) { return base + (indices ? indices[k] : static_cast<std::uint16_t>(k)); };
+    auto valid = [&](int k) { return (indices ? indices[k] : k) < vertexCount; };
+    int firstIndex = static_cast<int>(f.meshIndices.size());
+    bool lines = primitive == 2 || primitive == 3;
+    for (int k = 0; k < count; ++k) {
+        switch (primitive) {
+        case 2:   // line list
+            if (k % 2 == 1 && valid(k - 1) && valid(k)) { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k)); }
+            break;
+        case 3:   // line strip
+            if (k >= 1 && valid(k - 1) && valid(k)) { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k)); }
+            break;
+        case 4:   // triangle list
+            if (k % 3 == 2 && valid(k - 2) && valid(k - 1) && valid(k))
+                for (int j = 2; j >= 0; --j) f.meshIndices.push_back(at(k - j));
+            break;
+        case 5:   // strip: every second triangle reversed to keep the winding
+            if (k >= 2 && valid(k - 2) && valid(k - 1) && valid(k)) {
+                if (k % 2 == 0) { f.meshIndices.push_back(at(k - 2)); f.meshIndices.push_back(at(k - 1)); }
+                else { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k - 2)); }
+                f.meshIndices.push_back(at(k));
+            }
+            break;
+        case 6:   // fan
+            if (k >= 2 && valid(0) && valid(k - 1) && valid(k)) {
+                f.meshIndices.push_back(at(0));
+                f.meshIndices.push_back(at(k - 1));
+                f.meshIndices.push_back(at(k));
+            }
+            break;
+        default: break;
+        }
+    }
+    int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
+    if (drawn > 0) {
+        FpuGuard fpu;
+        MeshBatch batch{};
+        batch.matrix = AddMatrix(clip);
+        batch.firstIndex = firstIndex;
+        batch.indexCount = drawn;
+        batch.state = ReadPassState(static_cast<char*>(device));
+        batch.unclipped = true;
+        batch.zScale = 1.0f;
+        batch.lines = lines;
+        f.meshBatches.push_back(batch);
+        f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
+    } else {
+        f.meshVertices.resize(base);
+    }
+    return DrawOldMeshes();
+}
+
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
     if (!device || !vertices || count <= 0 || !Active() || !Started()) return true;
     int width = 0, height = 0;
