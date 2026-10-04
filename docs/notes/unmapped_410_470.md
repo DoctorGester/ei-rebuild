@@ -585,6 +585,8 @@ compare byte is the low byte of the id.
 | 0041E220 / 0041DDC0 / 0041E180 | ClientFindParty (the received description paired with ours) / ClientApplyParty (rebuilds party +0x2690) / ClientCommitParty | side by side / ours / side by side |
 | 0041CCD0 / 0041CD80 | ClientTick (slot 14: timers) / ClientApplyAwards (experience, gold, items given / removed, quest items reset) | ours |
 | 0041CA10 / 0041C8B0 | destructor body / deleting destructor | ours |
+| 0041D1A0 / 0041D260 | ClientAddTimed (an object on the timers list) / ClientSendCommand (0073BC40 {kind, text}, kept 60 s) | ours |
+| 0041D420 | ClientDescribe (slot 16: an empty server entry, kind 4) | ours |
 
 ### Camera (camera_motion.cpp, camera_object.cpp)
 
@@ -602,7 +604,7 @@ compare byte is the low byte of the id.
 0073BD78, counted pointer holders, session containers) share one template
 (deleting_destructors_400.cpp); 50 out-of-line counted pointer helpers (release at +4, clear,
 null constructor, from a raw pointer with and without a reference, two more releases) joined
-refptr_copies.cpp; 00412960 / 004368C0 are copies of the root destructor body (core_streams.cpp);
+refptr_copies.cpp; 004250A0 is a copy of the share copy 004263F0; 00412960 / 004368C0 are copies of the root destructor body (core_streams.cpp);
 004054F0 / 00405530 clear +8 for the exception unwind funclets.
 
 ### Original bugs kept on purpose
