@@ -1,0 +1,53 @@
+# frames_basic with the switch-over ("render new,present", docs/notes/renderer.md): the old path
+# draws only what is not handed over yet, the new frame is copied into the game's render target and
+# the old present shows it; captures are the new frames. Compare with a frames_basic run of the old
+# path:
+#   python tools\compare_frames.py <frames_basic run>\frames <render_present run>\frames
+# (weather is not in the new frame yet; the runs are not deterministic, so expect small differences
+# anyway). world / world_again must match.
+render new,present
+reject Script error
+wait 6000
+console thingamabob
+
+# The main menu.
+move 400 20
+wait 500
+freeze
+capture menu
+unfreeze
+
+# The hero on zone1, unblocked and standing still, the camera settled on him.
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+move 400 60
+wait 2000
+freeze
+capture world
+capture world_again
+unfreeze
+samecapture world world_again
+
+# The camp (screen 5); Esc returns to the game.
+screen 5
+wait 3000
+move 400 20
+wait 300
+freeze
+capture camp
+unfreeze
+key esc
+wait 2000
+
+# The global map (screen 4).
+screen 4
+wait 3000
+move 400 20
+wait 300
+freeze
+capture globalmap
+unfreeze
+report
+quit

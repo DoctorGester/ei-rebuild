@@ -14,9 +14,11 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "render/render.h"
 
 #include <bit>
 #include <cstring>
+#include <vector>
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where
 // it stores to a float (float locals); the order of every operation is the original's.
@@ -327,13 +329,20 @@ struct RasterTarget {
 static_assert(sizeof(RasterTarget) == 0x40);
 
 // The surface description the lock fills (only the pitch and the bits are read).
-struct SurfaceDescription {
+struct SurfaceDescription {   // DDSURFACEDESC2
     std::uint8_t unknown_00[0x10];
     int pitch;                 // +0x10
     std::uint8_t unknown_14[0x24 - 0x14];
     void* bits;                // +0x24
-    std::uint8_t unknown_28[0x7C - 0x28];
+    std::uint8_t unknown_28[0x54 - 0x28];
+    int bitsPerPixel;          // +0x54 ddpfPixelFormat.dwRGBBitCount
+    std::uint32_t redMask;     // +0x58
+    std::uint32_t greenMask;   // +0x5C
+    std::uint32_t blueMask;    // +0x60
+    std::uint32_t alphaMask;   // +0x64
+    std::uint8_t unknown_68[0x7C - 0x68];
 };
+static_assert(sizeof(SurfaceDescription) == 0x7C);
 
 // One corner's x and y in the light's rotation `m` (3x4 rows of 4).
 double CornerX(const float* m, float a, float b) {
@@ -454,7 +463,10 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     target.colourKey = material && (material->flags_ & kMaterialKeyed) ? At<std::uint32_t>(material, 0x60) : 0;
     target.width = 0x200;
     target.pitch = description.pitch;
-    target.bits = description.bits;
+    // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
+    // from there) and copied into the surface afterwards.
+    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.pitch) * kTextureSize);
+    target.bits = pixels.data();
     std::memset(target.bits, 0, kTextureSize * kTextureSize * 2);
     count = 0;
     int keyedParts = 0;
@@ -475,6 +487,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
         ei::VCall<void>(device, 0x2C / 4, target.bits, kTextureSize, kTextureSize);
         ei::VCall<void>(device, 0x30 / 4, target.bits, kTextureSize, kTextureSize);
     }
+    std::memcpy(description.bits, pixels.data(), pixels.size());
     UnlockSurface(surface);
 
     // Copy the surface into the shadow texture.
@@ -488,6 +501,10 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     At<long>(renderDevice, 8) = copy(d3d, At<void*>(textureSurface, 0x10), nullptr, At<void*>(renderSurface, 0x10),
                                      nullptr, nullptr);
     gameapi::LeaveCriticalSection(DeviceLock());
+    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format.
+    render::TexturePixels(textureSurface, pixels.data(), kTextureSize, kTextureSize, description.pitch,
+                          description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
+                          description.alphaMask);
 
     // The light's rotation as a matrix.
     double x2 = static_cast<double>(turn.x) + turn.x;

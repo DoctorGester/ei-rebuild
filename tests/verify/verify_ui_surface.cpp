@@ -12,6 +12,7 @@
 #include "../../src/lib/crt.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/lib/gameapi.h"
+#include "../../src/render/render.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -112,6 +113,12 @@ void CompareDrawing(const char* name, CUiSurface* surface, Original original, Ou
 // 005FD3D0: PUSH EBX; PUSH ESI; PUSH EDI; MOV EDI,ECX (5).
 static void(__thiscall* s_captureScreen)(CUiSurface*);
 static void __fastcall CaptureScreenVerify(CUiSurface* self, void*) {
+    // With the new renderer on, ours takes the copy from the new renderer's frame by design
+    // (render::CopyFrameTo), not from the old render target: nothing to compare with the original.
+    if (render::Active()) {
+        self->CaptureScreen();
+        return;
+    }
     CompareDrawing("CUiSurface::CaptureScreen", self, [&] { s_captureScreen(self); }, [&] { self->CaptureScreen(); });
 }
 EI_VERIFY(0x005FD3D0, CaptureScreenVerify, 5, s_captureScreen);

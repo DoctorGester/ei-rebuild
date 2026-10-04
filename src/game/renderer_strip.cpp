@@ -9,6 +9,8 @@
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -357,10 +359,14 @@ int __fastcall DrawTlTriangles(char* holder, void*, TLVertex* vertices, int vert
     auto enter = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B1B4);
     auto leave = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B230);
     void* section = reinterpret_cast<void*>(0x007AEE78);
-    enter(section);
-    At<long>(holder, 8) = ComCall(At<void*>(holder, 0x54), kDrawIndexedPrimitive, kTriangleList, kFvfTlVertex, vertices,
-                                  vertexCount, indices, indexCount, 0);
-    leave(section);
+    // The new renderer (src/render) takes the draw (after the fog above); with the old path's
+    // objects off it is skipped.
+    if (render::TlDraw(holder, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
+        enter(section);
+        At<long>(holder, 8) = ComCall(At<void*>(holder, 0x54), kDrawIndexedPrimitive, kTriangleList, kFvfTlVertex, vertices,
+                                      vertexCount, indices, indexCount, 0);
+        leave(section);
+    }
     At<int>(holder, 0x16C) += vertexCount;
     At<std::uint32_t>(holder, 0x170) += static_cast<std::uint32_t>(indexCount) / 3;
     At<int>(holder, 0x174) += 1;
@@ -475,10 +481,14 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
     ComCall(Device(renderer), kGetRenderState, 0x14, &savedDest);
     ComCall(Device(renderer), kSetRenderState, 0x13, 5);
     ComCall(Device(renderer), kSetRenderState, 0x14, 2);
+    render::state::Render(0x13, 5);
+    render::state::Render(0x14, 2);
     int result = DrawTlTriangles(At<char*>(renderer, 0x20), nullptr, reinterpret_cast<TLVertex*>(Ribbon().data),
                                  Ribbon().size, reinterpret_cast<std::uint16_t*>(Indices().data), Indices().size);
     ComCall(Device(renderer), kSetRenderState, 0x13, savedSource);
     ComCall(Device(renderer), kSetRenderState, 0x14, savedDest);
+    render::state::Render(0x13, static_cast<std::uint32_t>(savedSource));
+    render::state::Render(0x14, static_cast<std::uint32_t>(savedDest));
     return result;
 }
 EI_REPLACE(0x00501D90, DrawRibbon);

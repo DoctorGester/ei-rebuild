@@ -7,6 +7,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "render/render.h"
 
 #include <cstring>
 
@@ -222,6 +223,8 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     std::memcpy(extra_.data, header + 1, header->extraSize);
 
     if (staging) ReleaseSurface(staging);
+    // The new renderer (src/render) decodes the same levels from the file data.
+    if (render::Active() && surface_) render::TextureFromMmp(surface_, data, mip, levels);
     return 1;
 }
 EI_REPLACE_METHOD(0x00690430, CTexture::CreateFromMmp);

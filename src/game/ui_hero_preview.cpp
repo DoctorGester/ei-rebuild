@@ -7,6 +7,7 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -224,9 +225,11 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     Set(device, 8, ComCall(d3d, kGetStageState, 0ul, kStageState, &savedStage));
     d3d = Get<void*>(device, 0x54);
     Set(device, 8, ComCall(d3d, kSetStageState, 0ul, kStageState, 1ul));
+    render::state::Stage(0, kStageState, 1);
     VirtualCall(model, 22, pass);
     d3d = Get<void*>(device, 0x54);
     Set(device, 8, ComCall(d3d, kSetStageState, 0ul, kStageState, static_cast<unsigned long>(savedStage)));
+    render::state::Stage(0, kStageState, savedStage);
     light = Get<std::uint8_t*>(model, 0x94);
     Set(light, 0xF0, 1.0f);
     Set(light, 0xF4, 1.0f);

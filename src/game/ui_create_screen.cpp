@@ -8,6 +8,7 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -157,6 +158,7 @@ __declspec(naked) void __fastcall StackInsertOverflow(void*, void*, CUiWindow** 
 void SetRenderState(void* device, unsigned long state, unsigned long value) {
     using Fn = long(__stdcall*)(void*, unsigned long, unsigned long);
     reinterpret_cast<Fn>((*static_cast<void***>(device))[20])(device, state, value);
+    render::state::Render(static_cast<std::uint32_t>(state), static_cast<std::uint32_t>(value));
 }
 
 // The end both PushWindow and Activate share: the window pushed on the stack, the render states

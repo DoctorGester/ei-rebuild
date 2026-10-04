@@ -97,20 +97,18 @@ void ColourBlock(const std::uint8_t* block, std::uint8_t tile[16][4], bool dxt1)
     for (int i = 0; i < 16; ++i) std::memcpy(tile[i], palette[(bits >> (2 * i)) & 3], 4);
 }
 
-// DXT1..5 (FourCC) into RGBA8.
-bool DecodeDxt(const DDSURFACEDESC2& d, std::uint32_t fourcc, std::vector<std::uint8_t>& out) {
+// DXT1..5 (FourCC) blocks into RGBA8; `rowPitch` the bytes per row of blocks (0: packed).
+bool DecodeDxtBlocks(const void* data, int width, int height, int rowPitch, std::uint32_t fourcc,
+                     std::vector<std::uint8_t>& out) {
     int kind = fourcc == MAKEFOURCC('D', 'X', 'T', '1') ? 1
              : (fourcc == MAKEFOURCC('D', 'X', 'T', '2') || fourcc == MAKEFOURCC('D', 'X', 'T', '3')) ? 3
              : (fourcc == MAKEFOURCC('D', 'X', 'T', '4') || fourcc == MAKEFOURCC('D', 'X', 'T', '5')) ? 5 : 0;
     if (!kind) return false;
-    int width = static_cast<int>(d.dwWidth), height = static_cast<int>(d.dwHeight);
     int blockBytes = kind == 1 ? 8 : 16;
     int blocksX = (width + 3) / 4, blocksY = (height + 3) / 4;
-    // A compressed surface's lock reports either the size of the whole level (DDSD_LINEARSIZE) or
-    // the bytes per row of blocks.
-    int rowPitch = (d.dwFlags & DDSD_LINEARSIZE) || d.lPitch <= 0 ? blocksX * blockBytes : static_cast<int>(d.lPitch);
+    if (rowPitch <= 0) rowPitch = blocksX * blockBytes;
     out.assign(static_cast<std::size_t>(width) * height * 4, 0);
-    const auto* base = static_cast<const std::uint8_t*>(d.lpSurface);
+    const auto* base = static_cast<const std::uint8_t*>(data);
     for (int by = 0; by < blocksY; ++by) {
         for (int bx = 0; bx < blocksX; ++bx) {
             const std::uint8_t* block = base + static_cast<std::size_t>(by) * rowPitch + static_cast<std::size_t>(bx) * blockBytes;
@@ -140,6 +138,13 @@ bool DecodeDxt(const DDSURFACEDESC2& d, std::uint32_t fourcc, std::vector<std::u
         }
     }
     return true;
+}
+
+// DXT1..5 of a locked surface: its lock reports either the size of the whole level
+// (DDSD_LINEARSIZE) or the bytes per row of blocks.
+bool DecodeDxt(const DDSURFACEDESC2& d, std::uint32_t fourcc, std::vector<std::uint8_t>& out) {
+    int pitch = (d.dwFlags & DDSD_LINEARSIZE) || d.lPitch <= 0 ? 0 : static_cast<int>(d.lPitch);
+    return DecodeDxtBlocks(d.lpSurface, static_cast<int>(d.dwWidth), static_cast<int>(d.dwHeight), pitch, fourcc, out);
 }
 
 // The locked level as RGBA8 rows. With `keyed`, pixels whose colour bits equal `key`'s (a DirectDraw
@@ -206,7 +211,13 @@ sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>>
     return sg_make_image(&desc);
 }
 
+// A texture view of `image`; none when the image could not be made (sokol's validation would
+// dereference the missing image).
 sg_view MakeTextureView(sg_image image) {
+    if (!image.id || sg_query_image_state(image) != SG_RESOURCESTATE_VALID) {
+        if (g_failures++ < 10) ei::Log("render: a texture image could not be made (pool full or bad data); drawn white");
+        return sg_view{};
+    }
     sg_view_desc v{};
     v.texture.image = image;
     return sg_make_view(&v);
@@ -322,17 +333,68 @@ void ReadTexture(Texture& t, void* surface) {
     }
 }
 
-// Reads a window surface (one level; keyed) into `t`.
-void ReadWindow(Texture& t, void* surface, bool keyed, std::uint32_t key) {
+// Surfaces whose pixels live in game-owned memory ("cpuwindows", render::ClientSurface).
+struct Client {
+    void* bits;
+    int pitch, width, height, bitsPerPixel;
+    std::uint32_t red, green, blue, alpha;
+};
+std::unordered_map<const void*, Client> g_clients;   // by holder
+// The client memory as the window texture was last made from it: a window is converted again only
+// when its memory differs (the game's GDI drawing, Lock writes and the old path's Blt all land in
+// that memory, so a comparison sees every writer without DirectDraw's change counter).
+std::unordered_map<const void*, std::vector<std::uint8_t>> g_snapshots;   // by holder
+
+std::size_t ClientBytes(const Client& c) { return static_cast<std::size_t>(c.pitch) * static_cast<std::size_t>(c.height); }
+
+// The client memory of `holder` differs from its snapshot (GdiFlush first: GDI may still hold
+// drawing for it).
+bool ClientChanged(const void* holder, const Client& c) {
+    GdiFlush();
+    auto it = g_snapshots.find(holder);
+    if (it == g_snapshots.end() || it->second.size() != ClientBytes(c)) return true;
+    return std::memcmp(it->second.data(), c.bits, it->second.size()) != 0;
+}
+
+// Reads a window surface (one level; keyed) into `t`: from its game-owned memory when it has
+// some, else through a Lock.
+void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::uint32_t key) {
     auto* dd = static_cast<IDirectDrawSurface7*>(surface);
     DDSURFACEDESC2 desc{};
     desc.dwSize = sizeof(desc);
     std::vector<std::uint8_t> pixels;
-    LockGameDevice();
-    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
-    bool ok = SUCCEEDED(hr) && desc.lpSurface && desc.dwWidth && desc.dwHeight && Convert(desc, pixels, keyed, key);
-    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
-    UnlockGameDevice();
+    HRESULT hr = S_OK;
+    bool ok = false;
+    auto client = g_clients.find(holder);
+    if (client != g_clients.end()) {
+        const Client& c = client->second;
+        GdiFlush();   // GDI may still hold drawing for the memory
+        desc.dwWidth = static_cast<DWORD>(c.width);
+        desc.dwHeight = static_cast<DWORD>(c.height);
+        desc.lPitch = c.pitch;
+        desc.lpSurface = c.bits;
+        desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+        desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (c.alpha ? DDPF_ALPHAPIXELS : 0);
+        desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(c.bitsPerPixel);
+        desc.ddpfPixelFormat.dwRBitMask = c.red;
+        desc.ddpfPixelFormat.dwGBitMask = c.green;
+        desc.ddpfPixelFormat.dwBBitMask = c.blue;
+        desc.ddpfPixelFormat.dwRGBAlphaBitMask = c.alpha;
+        ok = Convert(desc, pixels, keyed, key);
+        if (ok) {
+            auto& snapshot = g_snapshots[holder];
+            snapshot.resize(ClientBytes(c));
+            std::memcpy(snapshot.data(), c.bits, snapshot.size());
+        } else {
+            g_snapshots.erase(holder);
+        }
+    } else {
+        LockGameDevice();
+        hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
+        ok = SUCCEEDED(hr) && desc.lpSurface && desc.dwWidth && desc.dwHeight && Convert(desc, pixels, keyed, key);
+        if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+        UnlockGameDevice();
+    }
     t.surface = surface;
     t.keyed = keyed;
     t.key = key;
@@ -353,9 +415,9 @@ void ReadWindow(Texture& t, void* surface, bool keyed, std::uint32_t key) {
     d.label = "ei-window-surface";
     t.image = sg_make_image(&d);
     t.view = MakeTextureView(t.image);
-    if (sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
-        sg_destroy_view(t.view);
-        sg_destroy_image(t.image);
+    if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
+        if (t.view.id) sg_destroy_view(t.view);
+        if (t.image.id) sg_destroy_image(t.image);
         t.image = sg_image{};
         t.view = sg_view{};
     }
@@ -377,7 +439,8 @@ sg_view SurfaceView(const void* holder) {
     if (t.surface == surface && t.checkedFrame == frame) return t.view.id ? t.view : White().view;
     // Textures are checked once a frame; without uniqueness values they are read once.
     DWORD now = 0;
-    bool reread = t.surface != surface || Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    bool changed = Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    bool reread = t.surface != surface || changed;
     t.checkedFrame = frame;
     if (reread) {
         Retire(t);
@@ -385,6 +448,160 @@ sg_view SurfaceView(const void* holder) {
         t.uniqueness = now;
     }
     return t.view.id ? t.view : White().view;
+}
+
+// The entry of `holder` from decoded levels; it stands for the surface as it is now and is read
+// from the surface again only when something writes to it later (its uniqueness value changes).
+bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
+                  const char* label) {
+    void* surface = SurfaceOf(holder);
+    if (!surface) return false;
+    Texture& t = g_textures[holder];
+    t.usedFrame = FrameNumber();
+    Retire(t);
+    t.image = MakeImage(width, height, std::move(levels), label);
+    t.view = MakeTextureView(t.image);
+    if (!t.view.id) {
+        if (t.image.id) sg_destroy_image(t.image);
+        t.image = sg_image{};
+    }
+    t.surface = surface;
+    t.checkedFrame = FrameNumber();
+    DWORD now = 0;
+    Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    t.uniqueness = now;
+    return t.view.id != 0;
+}
+
+bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                       std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    int bytes = bitsPerPixel / 8;
+    if (width <= 0 || height <= 0 || (bytes != 2 && bytes != 4) || pitch < width * bytes) return false;
+    Channel r = MakeChannel(redMask), g = MakeChannel(greenMask), b = MakeChannel(blueMask), a = MakeChannel(alphaMask);
+    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(width) * height * 4);
+    for (int y = 0; y < height; ++y) {
+        const auto* row = static_cast<const std::uint8_t*>(pixels) + static_cast<std::size_t>(y) * pitch;
+        for (int x = 0; x < width; ++x) {
+            std::uint32_t pixel = 0;
+            std::memcpy(&pixel, row + static_cast<std::size_t>(x) * bytes, static_cast<std::size_t>(bytes));
+            std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * width + x) * 4];
+            o[0] = Expand(pixel, r, 0);
+            o[1] = Expand(pixel, g, 0);
+            o[2] = Expand(pixel, b, 0);
+            o[3] = Expand(pixel, a, 255);
+        }
+    }
+    std::vector<std::vector<std::uint8_t>> levels;
+    levels.push_back(std::move(rgba));
+    return StoreDecoded(holder, width, height, std::move(levels), "ei-cpu-texture");
+}
+
+namespace {
+
+// The .mmp header (game.exe's texture files; src/game/texture.h MmpHeader): size, mip count,
+// format id ("DXTn" FourCCs or a 16 / 32-bit RGB id), bits per pixel, then mask / shift / bits for
+// alpha, red, green and blue, and the size of an extra block that follows the header.
+struct MmpFile {
+    std::uint32_t magic, width, height, mipCount, format, bitsPerPixel;
+    std::uint32_t alphaMask, alphaShift, alphaBits;
+    std::uint32_t redMask, redShift, redBits;
+    std::uint32_t greenMask, greenShift, greenBits;
+    std::uint32_t blueMask, blueShift, blueBits;
+    std::uint32_t extraSize;
+};
+static_assert(sizeof(MmpFile) == 0x4C);
+
+// The offset of a mip level's pixels after the header, as the game computes it (006908E0, 32-bit
+// arithmetic: the extra block plus a geometric sum of the larger levels).
+std::uint32_t MipOffset(const MmpFile& h, unsigned mip) {
+    if (mip == 0) return h.extraSize;
+    std::uint32_t levelBytes = (h.bitsPerPixel * h.height * h.width) >> 3;
+    std::uint32_t scale = 1u << ((2 * mip) & 31);
+    return levelBytes * (scale - 1) * 4 / (scale * 3) + h.extraSize;
+}
+
+// One level of the file as RGBA8.
+bool DecodeMmpLevel(const MmpFile& h, const std::uint8_t* pixels, int width, int height, std::vector<std::uint8_t>& out) {
+    if ((h.format & 0xFFFFFF) == 0x545844) return DecodeDxtBlocks(pixels, width, height, 0, h.format, out);   // "DXT"
+    int bytes = static_cast<int>(h.bitsPerPixel / 8);
+    // RGB with its masks in the header; "PNT2" / "PNT3" (item pictures, a packed format the game
+    // decodes itself) and anything else are left to the surface read.
+    if ((bytes != 2 && bytes != 4) || !h.redMask || !h.greenMask || !h.blueMask) return false;
+    Channel r = MakeChannel(h.redMask), g = MakeChannel(h.greenMask), b = MakeChannel(h.blueMask);
+    Channel a = MakeChannel(h.alphaMask);
+    out.resize(static_cast<std::size_t>(width) * height * 4);
+    for (int i = 0; i < width * height; ++i) {
+        std::uint32_t pixel = 0;
+        std::memcpy(&pixel, pixels + static_cast<std::size_t>(i) * bytes, static_cast<std::size_t>(bytes));
+        std::uint8_t* o = &out[static_cast<std::size_t>(i) * 4];
+        o[0] = Expand(pixel, r, 0);
+        o[1] = Expand(pixel, g, 0);
+        o[2] = Expand(pixel, b, 0);
+        o[3] = Expand(pixel, a, 255);
+    }
+    return true;
+}
+
+int g_mmpFailures = 0;
+
+} // namespace
+
+bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels) {
+    void* surface = SurfaceOf(holder);
+    if (!surface || !data) return false;
+    const auto& h = *static_cast<const MmpFile*>(data);
+    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpFile);
+    if (h.width == 0 || h.height == 0 || h.width > 8192 || h.height > 8192 || h.mipCount == 0 || h.mipCount > 16) {
+        if (g_mmpFailures++ < 10) ei::Log("render: .mmp header not understood; the texture is read from its surface");
+        return false;
+    }
+    std::vector<std::vector<std::uint8_t>> decoded;
+    int width = 0, height = 0;
+    for (unsigned m = mip; m < mip + (levels ? levels : 1) && m < h.mipCount && decoded.size() < SG_MAX_MIPMAPS; ++m) {
+        int w = static_cast<int>(h.width >> (m & 31)), hh = static_cast<int>(h.height >> (m & 31));
+        if (w < 1) w = 1;
+        if (hh < 1) hh = 1;
+        if (m == mip) {
+            width = w;
+            height = hh;
+        }
+        std::vector<std::uint8_t> level;
+        if (!DecodeMmpLevel(h, base + MipOffset(h, m), w, hh, level)) break;
+        decoded.push_back(std::move(level));
+    }
+    if (decoded.empty() || width <= 0 || height <= 0) {
+        if (g_mmpFailures++ < 10)
+            ei::Log("render: .mmp format %08X (%u bits) not decoded; the texture is read from its surface",
+                    static_cast<unsigned>(h.format), static_cast<unsigned>(h.bitsPerPixel));
+        return false;
+    }
+    return StoreDecoded(holder, width, height, std::move(decoded), "ei-mmp-texture");
+}
+
+namespace {
+std::unordered_map<const void*, Picture> g_pictures;   // by surface holder
+} // namespace
+
+bool PictureFromMmpData(const void* holder, const void* data) {
+    g_pictures.erase(holder);
+    const auto& h = *static_cast<const MmpFile*>(data);
+    if (h.width == 0 || h.height == 0 || h.width > 4096 || h.height > 4096) return false;
+    Picture p;
+    p.width = static_cast<int>(h.width);
+    p.height = static_cast<int>(h.height);
+    const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpFile);
+    if (!DecodeMmpLevel(h, base + MipOffset(h, 0), p.width, p.height, p.rgba)) {
+        if (g_mmpFailures++ < 10)
+            ei::Log("render: picture format %08X not decoded; it is read from its surface", static_cast<unsigned>(h.format));
+        return false;
+    }
+    g_pictures.emplace(holder, std::move(p));
+    return true;
+}
+
+const Picture* PictureOf(const void* holder) {
+    auto it = g_pictures.find(holder);
+    return it == g_pictures.end() ? nullptr : &it->second;
 }
 
 sg_view TextureView(const void* texture) {
@@ -401,14 +618,18 @@ sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int
     Texture& t = g_windows[holder];
     t.usedFrame = frame;
     // Window surfaces are checked at every blit (the game may redraw one between two blits of a
-    // frame); without uniqueness values they are read once a frame.
+    // frame): ones in game-owned memory by comparing that memory with what they were made from,
+    // others by the surface's uniqueness value (without one, read once a frame).
     DWORD now = 0;
-    bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) ||
-                  Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
+    auto client = g_clients.find(holder);
+    bool changed = client != g_clients.end()
+                       ? ClientChanged(holder, client->second)
+                       : Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
+    bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) || changed;
     t.checkedFrame = frame;
     if (reread) {
         Retire(t);
-        ReadWindow(t, surface, keyed, key);
+        ReadWindow(t, holder, surface, keyed, key);
         t.uniqueness = now;
     }
     *width = t.width;
@@ -505,3 +726,36 @@ void DestroyTextures() {
 }
 
 } // namespace render::detail
+
+namespace render {
+
+void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
+    if (!holder || !data || !Active() || !detail::Started()) return;
+    detail::FpuGuard fpu;
+    detail::TextureFromMmpData(holder, data, mip, levels);
+}
+
+} // namespace render
+
+namespace render {
+
+void ClientSurface(const void* holder, void* bits, int pitch, int width, int height, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    if (!holder || !bits) return;
+    detail::g_clients[holder] = detail::Client{bits, pitch, width, height, bitsPerPixel, redMask, greenMask, blueMask,
+                                               alphaMask};
+}
+
+void ClientSurfaceGone(const void* holder) {
+    detail::g_clients.erase(holder);
+    detail::g_snapshots.erase(holder);
+    detail::g_pictures.erase(holder);
+}
+
+void PictureFromMmp(const void* holder, const void* data) {
+    if (!holder || !data || !Active()) return;
+    detail::FpuGuard fpu;
+    detail::PictureFromMmpData(holder, data);
+}
+
+} // namespace render

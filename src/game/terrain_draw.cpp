@@ -9,6 +9,7 @@
 #include "terrain_sector.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -281,6 +282,7 @@ void SetRenderState(int state, int value) {
     void* device = DrawDevice();
     auto fn = reinterpret_cast<long(__stdcall*)(void*, int, int)>((*reinterpret_cast<void***>(device))[20]);
     fn(device, state, value);
+    render::state::Render(static_cast<std::uint32_t>(state), static_cast<std::uint32_t>(value));
 }
 
 template <typename R, typename... Args>

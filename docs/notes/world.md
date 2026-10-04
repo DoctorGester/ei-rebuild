@@ -399,6 +399,7 @@ range (input, original's order, ours).
   (hero portraits "hr%2d"), 00568800 / 005683D0 (skins "%sskin%2d.mmp"), 00566360 / 00567500 /
   00567680 (per-frame manager updates, large), 00565090 / 00564E70 (clearing the sector grids),
   005647E0 / 00564BE0 (adding and removing objects in the client's maps): next candidates.
+  (Later: 00564E70, 005647E0, 00564BE0 and 00566F70 are rewritten, see "Client maps" below.)
 
 # Zone loading, map objects, AddUnitToServer, saving the map objects (fifth round)
 
@@ -919,3 +920,148 @@ Finished from the list above (third round):
 
 0059A4A0 is MFC CList<SharedObject>::Serialize, named in `config/library.csv`. The AI and figure
 draw functions of 0x5A0000-0x5C0000 done in the same round are in ai.md and models.md.
+
+# Client maps (0056E000-00574000 helpers, the client's object maps)
+
+Code: `src/game/world_client_maps.cpp`; verify wrappers: `tests/verify/verify_world_client_maps.cpp`.
+Shared files changed: `world.h` (additive: `SectorListNode`, `SectorGrid`, the functor and lookup
+declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration).
+
+## Structures
+
+- **Sector grids** (CWorldClient +0x120 objects, +0x150 a second grid): +0x00 the list storage,
+  +0x04 rows (row y: its lists, one head pointer each), +0x08/+0x0C sizes checked by the resize
+  (00572450), +0x10 width and +0x14 height in cells. Cells are 16x16 world units: the cell of a
+  coordinate is FISTP (round to nearest) shifted right by 4 as unsigned, so negative coordinates
+  land outside. Each cell is an STLport list of counted object pointers (+4 reference count,
+  slot 4 releases). CWorldClient slot 41 (005618A0) moves an object in +0x120, slot 42 (005618C0)
+  in +0x150.
+- The window lists walked by the collectors: STLport list nodes whose 0x18-byte entry (node + 8)
+  holds the object id at +4 and a RECT at +8.
+
+## Rewritten
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00570860 / 00570BB0 | SectorGrid::Move / Move2 (two instantiations) | differential, sampled (the first 256 calls, then every 32nd): ours on a scratch grid holding copies of the two touched cells (nodes from the game's pool, a reference per copy), the original on the real grid; both cells' contents in order, the object's reference change and position compared |
+| 00571D50 | MarkWithinRadius (for_each functor) | differential: marks undone after the original, functor compared |
+| 00571800 / 005718B0 | CollectWindowsAt / CollectWindowsAt2 (slot 22 / 24 hit test) | differential: the original's pushes taken back, ours compared |
+| 0056FC60 | PendingMapLookup (hash_map<unsigned, T*> lookup) | differential |
+| 0056E400 / 0056E440 | RecordAt50 / RecordAtB4 (bounds-checked record access) | differential |
+| 005647E0 | CWorldClient::AddObject (RET 4) | ours only: returns 1, the id is in +0xB8, a new object is in its grid cell |
+| 00564BE0 | CWorldClient::RemoveObject (RET 4) | ours only: one +0xB8 listing fewer, the id map lacks the id |
+| 00564E70 | CWorldClient::ClearMaps | ours only: grids, +0xB4, +0x7BC, the MFC lists and the id map empty; no positive id left in +0xB8 |
+| 005726B0 | ReleaseIfIdentified (ClearMaps' predicate) | ours only: true exactly for a positive id |
+| 00565790 / 005659D0 | CWorldClient::PickAt / PickAt2 (RET 4) | differential: the original first; the object, the sorted entries and the cursor compared |
+| 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
+| 0056DAF0 | CWorldClient::ObjectsInRange (RET 0xC; the camera's 0040E4C0) | differential: the original appends first, its entries are erased again, ours appends; entries and the cell range / cursor (+0x138..+0x14C) compared |
+| 00563290 | CWorldClient::Teardown (slot 3) | ours only: the owned pointers cleared, the lists and grid cells empty |
+| 00561E50 | CWorldClient::Setup (slot 2) | ours only: returns 1, the owned objects made, both grids 4 x 4, room for 400 screen entries |
+| 00560650 | PlatformSet::AddFace (RET 0x14) | differential: the original on the real set, ours on a scratch set (its own CPlex blocks, freed after); result and the face's fields compared (floats within 8 ULPs) |
+| 00560820 | PlatformSet::AddBox (RET 0x10; from AddObject) | differential the same way: the records added, in order, compared (id and radius exact) |
+
+Setup and Teardown were first declared as the `Create` / `Destroy` overrides. Taking a virtual
+member's address with EI_REPLACE_METHOD gives MSVC's vcall thunk, which jumps through the
+object's vtable slot. That slot is the hooked original, so the call recursed until the stack ran
+out, and the game exited silently at startup. They are now plain methods. The verify wrappers
+also call them directly; a virtual call would go back through the hook.
+
+Setup (Create) follows the original step by step through the game's constructors. The terrain's
+constructor (0xAFC bytes, vtable 0073F6A8) is inlined in the original and is reproduced call by
+call. Every player gets one reference that is never dropped, as in the original. The screen-entry
+vector gets room for 400 entries with game operator new when it is empty, else through 00573520.
+Allocation failures crash where the original crashes: references are counted without a null test.
+
+The unit set's writer 00559E60 (`UnitSet::Write`, src/game/world_unit_set.cpp; verify file
+tests/verify/verify_world_unit_set.cpp) is differential. The original and ours each write into a
+recording stream whose slot 2 appends the bytes, the bytes are compared, and ours then writes to
+the real stream. The three hash_maps are walked with the original's iterator helpers (0055AB50 /
+0055ADF0 / 0055AE50 begin; 0055B9D0 / 0055B500 next bucket; the third map's bucket scan
+inlined with 0055C5C0), so the order matches.
+
+The zone's unit look lists are read by 0055A190 (`ReadUnitLooks`, called by the client zone load
+00567AB0). Its arguments are ECX the stream, EDX the 0x3C-record vector and the stack the
+0x24-record vector. Per record it reads a 16-bit key, two counted dword arrays, a byte, then four
+dwords and a CString list (0x3C records) or one dword (0x24 records); unit_skins.cpp consumes the
+lists. The verify is differential. Ours reads the real stream through a recorder. The original
+then reads the recorded bytes from a replay stream into scratch vectors, which are compared and
+destroyed with 0056E4B0 / 0056E620. The remaining 00559000-0055E000 helpers are classified as
+STLport / compiler instantiations, so that range is done.
+
+The CWorldClient constructor 005612F0 and destructor 00561B00 are in config/library.csv as
+compiler-generated member construction and destruction. The constructor runs as the static
+initialiser of 007AF5B8, before the hooks are installed, so a rewrite would never run. The
+destructor calls 00563290 (Teardown, rewritten) and then the members' destructors.
+
+Skipped: 0056C750, called from the figure (0051CE60) and terrain (006CEDE0) draw code. It builds
+triangles from the platform objects' figures on the render device's object matrix stack
+(007AF068 +0x84 / +0x88) into a static vertex buffer (007AF478) for the device's slot 26. That is
+renderer work, so it waits for the new renderer.
+
+Platforms: the set's record list is the MFC-style list at CWorldClient +0x1F0 (the set's +0x1C):
++0x1F4 the last node (nodes link backwards through +0, forwards through +4), +0x1F8 the first,
++0x1FC count, +0x200 free list, +0x204 blocks; 00573000 hands out 0x54-byte nodes, the record
+(Platform, 0x4C) at +8. RemoveObject's first loop removes an object's platforms by the id in the
+record. AddBox builds the quaternion's matrix (w first), takes eight box corners (the min/max
+corners at item +0x14 / +0x20 in the order (X',Y,Z) (X,Y,Z) (X,Y',Z) (X,Y',Z') (X',Y',Z')
+(X',Y,Z') (X',Y,Z) (X,Y,Z)), moves each by pivot (+0x2C) then offset (+4), rotates (rows summed
+as (m2 z + m1 y) + m0 x) and adds the position; the six face normals (-z, -x, +y, +z, +x, -y) are
+rotated with the sums ordered (m2 nz + m0 nx) + m1 ny. Face i is AddFace(corner i+1, corner i,
+corner i+2, normal i); only faces with normal z >= 0.8 are kept, each given the id, the centre
+R (pivot + offset) + position (MatrixRows::Transform) and the radius (+0x10). AddFace first
+copies 0x4C bytes of uninitialised stack over the new record in the original; every word is
+then written, so the rewrite skips it. All plain C++ (rule 7): a rotated normal exactly at
+z = 0.8 may rarely be kept by one side only.
+
+ObjectsInRange clamps the box [point - r, point + r] to the terrain (+0x10C / +0x110 minus 1)
+with the original's FCOMP-mask selects (0 < v ? v : 0, a < b ? a : b; an unordered compare picks
+the first branch), truncates with `_ftol` (low word of the 64-bit result), shifts by 4, and walks
+the cells row by row through the client's cursor +0x148 / +0x14C. An object is taken when
+(dz^2 + dy^2) + dx^2 <= (hypot(+0x144, +0x148) + r)^2, with dx / dy from +0x1C + +0x128 and +0x20 +
++0x12C. The original's dz is the point's z minus itself (0, or NaN for a NaN z, which excludes
+everything); kept. The sums are plain C++ (rule 7).
+
+CreatePartyUnits (called by the glue 005789C0 with the player's party records, an MFC pointer
+array): per record a CStringArray of the figure's part names "hd", "bd", "hp", "hr", "lh1".."rl3",
+where "hr" becomes "hr.%.2d" with the number at +0x10 of the prototype found by name in the map
+007AF364 (left out at -1); the object manager's slot 23 creates the hero (type 0x32, the record's
+id +0x1C); +0x18 = the prototype's index (-1 when unknown), the second prototype by name (+0x18),
+flag 0x4000000, the figure from the model (+8) and the part names (00516DA0; a failure ends the
+whole call, like a failed creation), the skin swap from "none" to +0x10 (none when it is "none"),
+the stats (+0x20, slot 35), the position (+0x724, also copied to +0x1AC), the items (weapons
++0x730, armour +0x750 (type-0 armour only with the flag), quick items +0x740, each array's count
+in the next word), the player (+0, slot 61), then AddObject.
+
+The client's maps (CWorldClient): +0xB4 an STLport list of counted pointers to heroes with a
+text-key id; +0xB8 a list of every object (pointers with a reference taken by hand); +0xBC an MFC
+CList of the objects answering slot 29, with +0xD8 a hash_map from id to that list's node (+0xEC
+the map's highest key); +0x1F0 an MFC CList of ids; +0x7BC a list of 0x0C-byte nodes; +0xF0 the
+screen entries (id, RECT) the pickers walk, +0xF4 the vector they fill and sort, +0x100 its
+cursor. AddObject's first loop compares ids: an object whose id is already listed is only
+referenced and released (+1, slot 4). In AddObject the grid listing is removed before it is
+appended, so a re-added object is listed once. The pickers sort with STLport's sort over the
+0x18-byte entries and DepthLess {the view stack's top, the object manager}; the original inlines
+the first level of the introsort loop, the rewrite calls the out-of-line loop (00573740, the same
+steps) and the two insertion sorts.
+
+Move removes every listing of the object from the old cell (list::remove with a counted copy:
++1, the erases release, -1), stores the three position words, then push_back's a counted copy
+into the new cell (+1, the insert adds its own, -1). Out-of-grid cells are skipped on either side.
+The first, ours-only check walked both cells and computed float floors on every move. The grid
+at 007AF6D8 (moved by 0067BEF0 / 0067CEF0) holds hundreds of entries per cell near effects, and
+the moves were disabled after map_objects' wolf failed to walk in time with them on. Re-reading
+the disassembly against the rewrite found no behavioural difference: FISTP in the same rounding
+mode, the same bounds, cells, reference counts and unlink/append order. The likely cause is the
+check's cost, so the comparison is now sampled and the other calls run ours with no extra work.
+MarkWithinRadius calls the game's `_hypot` and marks when the distance is not greater than
+radius (+0x94) x scale; a NaN marks (FCOMPP + TEST AH,0x41). The distance and the product are
+plain C++ (rule 7): a distance on the very edge of the radius may rarely mark differently.
+
+## Classified as library (config/library.csv)
+
+The other 96 functions of 0056E000-00574000 are STLport / MFC instantiations (lists, hash_map,
+vectors, CArray / CMap SetSize, Serialize, NewAssoc), compiler-generated constructors, copy
+constructors and deleting destructors, counted-pointer helpers, and the sector grid template's
+storage (allocation, resize, reset, release, clear-all: new[]/delete[] of lists, no logic).
+005593D0 (the unit appearance cache) and its twelve hash_map helpers are classified the same way,
+as agreed.

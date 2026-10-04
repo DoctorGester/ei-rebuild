@@ -698,7 +698,7 @@ Movement modes, animations and paths (`src/game/combat_motion.cpp`, verify
 | 00549D00 | CUnitServer::CanReactFor | reads only: compared |
 | 00548DE0 | CUnitServer::PlayAnimationOrder (steps by value) | ours only: state 3, the queue started |
 | 00548FA0 | CUnitServer::PlayEmoteOrder (the same code, state 4) | ours only: state 4, the queue started |
-| 00550D90 | CUnitServer::BuildIdle | the output rebuilt from scratch: ours, copied, original into the same list; steps (without byte 3) and extra compared |
+| 00550D90 | CUnitServer::BuildIdle | random (the lookup 005301B0 -> 00519380 may pick an entry with rand()): the generators saved, ours, copied, restored, original into the same list; steps (without byte 3), extra and generator state compared |
 | 00550F30 | CUnitServer::IdleAnimation | ours only: +0x960 returned, the key is the unit's |
 | 005474B0 | CUnitServer::PlayIdle | ours only (counted) |
 | 005511A0 | CUnitServer::BuildMoveSteps | as BuildIdle |
@@ -737,6 +737,35 @@ attacks and spells without a target point, 1 otherwise, flag "failed"). Shouts 0
 00539890, a point array 00557230 / 00557250) and a motion order (0x3C bytes: order and step list);
 a UnitMotion (0xA4 bytes; its members 00556D70 / 00556810 / 004D5990 / 0054E5D0 / 004CB050, the
 speed scale 0073EF20, the turn limit 1e10).
+
+Taming (`src/game/combat_taming.cpp`, verify `tests/verify/verify_combat_taming.cpp`):
+
+| Address | Name | Verification |
+|---|---|---|
+| 00551AE0 | CUnitServer::TryTame (RET 8: tamer, roll) | ours only: a success records the tamer's side, stage 1..3 |
+| 00552280 | CUnitServer::UndoTaming | ours only: stage 0 |
+
+Fields: `+0x908` the taming stage, `+0x90C` the unit's own side (kept from stage 2), `+0x910` the
+tamer's side. A roll succeeds when it is above 10 x the controller's slot 39 plus the taming skill
+value (UnitStats 00525E90 with 2), or is not a number. The tamed mode is a player mode
+(005D3760, 0x24 bytes) with vtable 0073F0C4; at stage 3 the brain's reference lists at +0xAB0 and
++0xACC are emptied. Original quirk kept: the new mode's +4 is written before testing the
+allocation.
+
+The world's managers (`src/game/world_create.cpp`, verify `tests/verify/verify_world_create.cpp`):
+
+| Address | Name | Verification |
+|---|---|---|
+| 0055EE40 | World::CreateManagers (__fastcall; the client's init 00561E50 and the server's 0058AE10 call it) | ours only: returns 1, every manager slot set |
+
+It copies the command line paths (0079BC90..98) into 007AF460 / 007AF45C / 007AF458, resets
++0x24 (1.0), +0x28..+0x30, +0x64, +0x68 and +0x6C, then makes and references the managers: +0x38
+(0xB0 bytes, 00402B20 + vtable 0073F328), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48
+(0xB0, 0073F2C4), +0x50 (0x24, 00683FF0; slot 2), +0x4C (0xD4, 00688840), +0x58 (0x34, 006A5AB0;
+slot 2), +0x54 (0xBC, CResourceManager 00674D90 + 0073F25C); the others get slot 13 with the
+world. A 0x0C-byte object (0073F240) goes into the counted pointer at +0x5C (16-bit count at
++4). Then IsaacRandom::Init and 006D43E0 on +0x70. Original quirk kept: the reference counts are
+written before testing the allocations.
 
 More controller fields: `+0x0A9` / `+0x0AA` the path's flags (+0x6D, +0x6E: no player), `+0x145`
 the last path was blocked, `+0x146` a pending path to +0x9C, `+0x147` moving (the movement

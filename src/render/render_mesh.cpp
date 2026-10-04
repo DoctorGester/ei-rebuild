@@ -55,7 +55,9 @@ bool Build(Frame& f, Pending& p) {
     const MeshDraw& m = p.mesh;
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < m.cornerCount; ++i) {
-        const std::uint16_t* c = m.corners + i * 3;
+        // Without corners (the flat geometry): vertex i, one colour pair for all.
+        const std::uint16_t flat[3] = {static_cast<std::uint16_t>(i), 0, static_cast<std::uint16_t>(i)};
+        const std::uint16_t* c = m.corners ? m.corners + i * 3 : flat;
         int position = c[0];
         if (position >= m.positionCount) {
             f.meshVertices.resize(base);
@@ -106,7 +108,7 @@ PassState ReadPassState(char* device) {
     };
     constexpr int kStateCount = static_cast<int>(sizeof(kStates) / sizeof(kStates[0]));
     std::uint32_t v[kStateCount];
-    OldRenderStates(kStates, v, kStateCount);
+    RenderValues(kStates, v, kStateCount);
     PassState s;
     s.blend = v[0] != 0;
     s.sourceBlend = static_cast<std::uint8_t>(v[1]);
@@ -132,7 +134,16 @@ PassState ReadPassState(char* device) {
     constexpr int kStageCount = static_cast<int>(sizeof(kStageStates) / sizeof(kStageStates[0]));
     for (int stage = 0; stage < 2; ++stage) {
         std::uint32_t t[kStageCount];
-        OldStageStates(stage, kStageStates, t, kStageCount);
+        if (stage == 1) {   // stage 1 only when it is on (COLOROP not D3DTOP_DISABLE)
+            const std::uint32_t op = 1;
+            std::uint32_t value = 0;
+            StageValues(1, &op, &value, 1);
+            if (value <= 1) {
+                s.stages[1].colourOp = static_cast<std::uint8_t>(value);
+                break;
+            }
+        }
+        StageValues(stage, kStageStates, t, kStageCount);
         StageState& st = s.stages[stage];
         st.colourOp = static_cast<std::uint8_t>(t[0]);
         st.colourArg1 = static_cast<std::uint8_t>(t[1]);
@@ -152,6 +163,7 @@ PassState ReadPassState(char* device) {
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
     }
+    PassDone();
     return s;
 }
 
@@ -163,6 +175,7 @@ const char* const kMeshSource = R"(
 cbuffer vs_params : register(b0) {
     float4 row0; float4 row1; float4 row2; float4 row3;
     float4 distance_fog;   // x: on, y: start, z: 1 / (end - start); w: keep z inside the depth range
+    float4 shift;          // xy: the half-pixel shift (render_internal.h); z: depth scale
 };
 cbuffer fs_params : register(b0) {
     float4 fog_colour;     // rgb
@@ -182,6 +195,8 @@ vs_out vs_main(vs_in i) {
     // Meshes the old path projects to the screen without clipping (the interface's) are not cut at
     // the near and far planes there either.
     if (distance_fog.w > 0.5) o.pos.z = clamp(o.pos.z, 0.0, o.pos.w);
+    o.pos.z *= shift.z;   // the flat geometry's depth scale (shadows drawn just in front)
+    o.pos.xy += shift.xy * o.pos.w;
     o.col = i.col.zyxw;
     o.spec = i.spec.zyxw;
     // The old path's vertex fog by distance (3DfpFPU slot 35): the fog factor in the specular
@@ -268,8 +283,9 @@ float4 ps_main(vs_out i) : SV_Target0 {
 struct VsParams {
     float rows[16];
     float distanceFog[4];
+    float shift[4];
 };
-static_assert(sizeof(VsParams) == 80);
+static_assert(sizeof(VsParams) == 96);
 struct FsParams {
     float fogColour[4];
     float factor[4];
@@ -283,8 +299,7 @@ static_assert(sizeof(FsParams) == 112);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
-sg_buffer g_vertices{}, g_indices{};
-std::size_t g_vertexCapacity = 0, g_indexCapacity = 0;
+GeometryStream g_geometry("ei-mesh");
 
 sg_blend_factor Factor(std::uint8_t d3d) {
     switch (d3d) {   // D3DBLEND
@@ -316,8 +331,8 @@ sg_compare_func Compare(std::uint8_t d3d) {
     }
 }
 
-sg_pipeline Pipeline(const PassState& s) {
-    std::uint32_t key = s.PipelineKey();
+sg_pipeline Pipeline(const PassState& s, bool lines) {
+    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
     sg_pipeline_desc p{};
@@ -332,7 +347,7 @@ sg_pipeline Pipeline(const PassState& s) {
     p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
     p.layout.attrs[3].offset = 20;
     p.index_type = SG_INDEXTYPE_UINT32;
-    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
+    p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
     // D3DCULL_CW culls triangles clockwise on screen, D3DCULL_CCW counter-clockwise ones (screen y
     // down in both APIs).
     if (s.cull == 2) {
@@ -416,27 +431,17 @@ bool CreateMeshShader() {
 }
 
 void UploadMeshes(const Frame& f) {
-    if (f.meshBatches.empty() || f.meshIndices.empty()) return;
-    std::size_t vertexBytes = f.meshVertices.size() * sizeof(Vertex);
-    std::size_t indexBytes = f.meshIndices.size() * sizeof(std::uint32_t);
-    if (!EnsureDynamicBuffer(g_vertices, g_vertexCapacity, vertexBytes, false, "ei-mesh-vertices") ||
-        !EnsureDynamicBuffer(g_indices, g_indexCapacity, indexBytes, true, "ei-mesh-indices"))
-        return;
-    sg_range v{f.meshVertices.data(), vertexBytes};
-    sg_update_buffer(g_vertices, &v);
-    sg_range i{f.meshIndices.data(), indexBytes};
-    sg_update_buffer(g_indices, &i);
+    if (f.meshBatches.empty()) return;
+    g_geometry.Upload(f.meshVertices, f.meshIndices);
 }
 
 void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
-    if (!g_vertices.id || !g_indices.id || batch.indexCount <= 0) return;
+    sg_bindings b{};
+    if (batch.indexCount <= 0 || !g_geometry.Bind(b)) return;
     const PassState& s = batch.state;
-    sg_pipeline pipeline = Pipeline(s);
+    sg_pipeline pipeline = Pipeline(s, batch.lines);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
-    sg_bindings b{};
-    b.vertex_buffers[0] = g_vertices;
-    b.index_buffer = g_indices;
     for (int t = 0; t < 2; ++t) {
         const StageState& st = s.stages[t];
         b.views[t] = st.texture.id ? st.texture : SurfaceView(nullptr);
@@ -451,6 +456,9 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
         vs.distanceFog[2] = batch.fogScale / 255.0f;
     }
     vs.distanceFog[3] = batch.unclipped ? 1.0f : 0.0f;
+    vs.shift[0] = f.pixelShift[0];
+    vs.shift[1] = f.pixelShift[1];
+    vs.shift[2] = batch.zScale;
     FsParams fs{};
     fs.fogColour[0] = static_cast<float>((s.fogColour >> 16) & 0xFF) / 255.0f;
     fs.fogColour[1] = static_cast<float>((s.fogColour >> 8) & 0xFF) / 255.0f;
@@ -485,14 +493,11 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
 }
 
 void DestroyMeshes() {
-    if (g_vertices.id) sg_destroy_buffer(g_vertices);
-    if (g_indices.id) sg_destroy_buffer(g_indices);
+    g_geometry.Destroy();
     for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
     g_pipelines.clear();
     if (g_shader.id) sg_destroy_shader(g_shader);
-    g_vertices = g_indices = sg_buffer{};
     g_shader = sg_shader{};
-    g_vertexCapacity = g_indexCapacity = 0;
 }
 
 } // namespace detail
@@ -517,9 +522,9 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending.mesh = mesh;
     g_pending.device = static_cast<char*>(device);
     g_pending.matrix = AddMatrix(clip);
-    // The old path fogs the projected vertices by distance when the device's +0x158 is set (slot
-    // 35 of the transform object at the pipeline's +0xC: range start +0x34, 255 / length +0x3C).
-    g_pending.distanceFog = *reinterpret_cast<int*>(g_pending.device + 0x158) != 0;
+    // The old path fogs the projected vertices by distance (slot 35 of the transform object at the
+    // pipeline's +0xC: range start +0x34, 255 / length +0x3C).
+    g_pending.distanceFog = mesh.distanceFog;
     const char* pipeline = *reinterpret_cast<char* const*>(g_pending.device + 0xAC);
     const char* transform = pipeline ? *reinterpret_cast<char* const*>(pipeline + 0xC) : nullptr;
     if (transform) {
@@ -551,6 +556,7 @@ bool MeshPass(void* device) {
         batch.fogNear = g_pending.fogNear;
         batch.fogScale = g_pending.fogScale;
         batch.unclipped = !g_pending.mesh.clipped;
+        batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
@@ -558,5 +564,123 @@ bool MeshPass(void* device) {
 }
 
 void EndMesh() { g_pending = Pending{}; }
+
+bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+            int primitive) {
+    if (!device || !vertices || vertexCount <= 0 || !Active() || !Started()) return true;
+    if (fvf != 0x1C4 && fvf != 0xC4) return true;   // not a layout the game uses for these
+    int width = 0, height = 0;
+    if (!GameTargetSize(&width, &height)) return true;
+    Frame& f = CurrentFrame();
+    if (f.meshVertices.size() > 4'000'000) return true;
+    static const float kIdentity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    float clip[16];
+    ScreenToClip(kIdentity, clip, width, height);
+    int stride = fvf == 0x1C4 ? 32 : 24;
+    auto base = static_cast<std::uint32_t>(f.meshVertices.size());
+    for (int i = 0; i < vertexCount; ++i) {
+        const auto* p = static_cast<const std::uint8_t*>(vertices) + static_cast<std::size_t>(i) * stride;
+        Vertex v{};
+        std::memcpy(&v.x, p, 12);   // x, y, z (rhw taken as 1: affine interpolation)
+        std::memcpy(&v.colour, p + 16, 8);
+        if (stride == 32) std::memcpy(&v.u, p + 24, 8);
+        f.meshVertices.push_back(v);
+    }
+    // The primitive as a list over absolute indices.
+    int count = indices ? indexCount : vertexCount;
+    auto at = [&](int k) { return base + (indices ? indices[k] : static_cast<std::uint16_t>(k)); };
+    auto valid = [&](int k) { return (indices ? indices[k] : k) < vertexCount; };
+    int firstIndex = static_cast<int>(f.meshIndices.size());
+    bool lines = primitive == 2 || primitive == 3;
+    for (int k = 0; k < count; ++k) {
+        switch (primitive) {
+        case 2:   // line list
+            if (k % 2 == 1 && valid(k - 1) && valid(k)) { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k)); }
+            break;
+        case 3:   // line strip
+            if (k >= 1 && valid(k - 1) && valid(k)) { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k)); }
+            break;
+        case 4:   // triangle list
+            if (k % 3 == 2 && valid(k - 2) && valid(k - 1) && valid(k))
+                for (int j = 2; j >= 0; --j) f.meshIndices.push_back(at(k - j));
+            break;
+        case 5:   // strip: every second triangle reversed to keep the winding
+            if (k >= 2 && valid(k - 2) && valid(k - 1) && valid(k)) {
+                if (k % 2 == 0) { f.meshIndices.push_back(at(k - 2)); f.meshIndices.push_back(at(k - 1)); }
+                else { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k - 2)); }
+                f.meshIndices.push_back(at(k));
+            }
+            break;
+        case 6:   // fan
+            if (k >= 2 && valid(0) && valid(k - 1) && valid(k)) {
+                f.meshIndices.push_back(at(0));
+                f.meshIndices.push_back(at(k - 1));
+                f.meshIndices.push_back(at(k));
+            }
+            break;
+        default: break;
+        }
+    }
+    int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
+    if (drawn > 0) {
+        FpuGuard fpu;
+        MeshBatch batch{};
+        batch.matrix = AddMatrix(clip);
+        batch.firstIndex = firstIndex;
+        batch.indexCount = drawn;
+        batch.state = ReadPassState(static_cast<char*>(device));
+        batch.unclipped = true;
+        batch.zScale = 1.0f;
+        batch.lines = lines;
+        f.meshBatches.push_back(batch);
+        f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
+    } else {
+        f.meshVertices.resize(base);
+    }
+    return DrawOldMeshes();
+}
+
+bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
+    if (!device || !vertices || count <= 0 || !Active() || !Started()) return true;
+    int width = 0, height = 0;
+    if (!GameTargetSize(&width, &height)) return true;
+    Frame& f = CurrentFrame();
+    static const float kIdentity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    float clip[16];
+    ScreenToClip(kIdentity, clip, width, height);
+    auto base = static_cast<std::uint32_t>(f.meshVertices.size());
+    for (int i = 0; i < count; ++i) {
+        const ScreenVertex& s = vertices[i];
+        f.meshVertices.push_back(Vertex{s.x, s.y, s.z, s.colour, s.specular, 0.0f, 0.0f});
+    }
+    int firstIndex = static_cast<int>(f.meshIndices.size());
+    bool lines = indices == nullptr;
+    if (lines) {   // the strip as a list of segments
+        for (int i = 0; i + 1 < count; ++i) {
+            f.meshIndices.push_back(base + static_cast<std::uint32_t>(i));
+            f.meshIndices.push_back(base + static_cast<std::uint32_t>(i + 1));
+        }
+    } else {
+        for (int k = 0; k + 2 < indexCount; k += 3) {
+            if (indices[k] >= count || indices[k + 1] >= count || indices[k + 2] >= count) continue;
+            for (int j = 0; j < 3; ++j) f.meshIndices.push_back(base + indices[k + j]);
+        }
+    }
+    int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
+    if (drawn > 0) {
+        FpuGuard fpu;
+        MeshBatch batch{};
+        batch.matrix = AddMatrix(clip);
+        batch.firstIndex = firstIndex;
+        batch.indexCount = drawn;
+        batch.state = ReadPassState(static_cast<char*>(device));
+        batch.unclipped = true;
+        batch.zScale = 1.0f;
+        batch.lines = lines;
+        f.meshBatches.push_back(batch);
+        f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
+    }
+    return DrawOldMeshes();
+}
 
 } // namespace render

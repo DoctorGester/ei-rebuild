@@ -11,6 +11,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <d3d11.h>
+#include <ddraw.h>
 #include <dxgi.h>
 #include <float.h>
 
@@ -31,6 +32,8 @@ bool g_configured = false;
 bool g_active = false;
 bool g_show = false;
 bool g_split = false;
+bool g_present = false;
+bool g_cpuWindows = false;
 bool g_oldTerrain = true;
 bool g_oldObjects = true;
 bool g_oldInterface = true;
@@ -38,7 +41,7 @@ bool g_inWorld = false;
 bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
 
 void ParseSpec(const char* spec) {
-    g_active = g_show = g_split = false;
+    g_active = g_show = g_split = g_present = g_cpuWindows = false;
     g_oldTerrain = g_oldObjects = g_oldInterface = true;
     std::string s = spec ? spec : "";
     std::size_t start = 0;
@@ -53,17 +56,26 @@ void ParseSpec(const char* spec) {
         else if (word == "noterrain") g_oldTerrain = false;
         else if (word == "noobjects") g_oldObjects = false;
         else if (word == "nointerface") g_oldInterface = false;
+        else if (word == "present") g_present = true;
+        else if (word == "cpuwindows") g_cpuWindows = true;
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
-    if (!g_active) {
+    if (g_present) {
+        // No child window: a second swap chain over dgVoodoo's full-screen one deactivated the game
+        // (WM_ACTIVATE inactive: the game stops drawing and minimises itself). The frame is copied
+        // into the game's render target and the old present shows it.
         g_show = g_split = false;
+        g_oldTerrain = g_oldObjects = g_oldInterface = false;
+    }
+    if (!g_active) {
+        g_show = g_split = g_present = g_cpuWindows = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = true;
     }
     g_configured = true;
     if (g_active)
-        ei::Log("render: new renderer on (%s%s%s%s)", g_show ? (g_split ? "split view" : "shown") : "off-screen",
+        ei::Log("render: new renderer on (%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
                 g_oldTerrain ? "" : ", old terrain off", g_oldObjects ? "" : ", old objects off",
                 g_oldInterface ? "" : ", old interface off");
 }
@@ -95,6 +107,12 @@ ID3D11DeviceContext* g_context = nullptr;
 void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const char* message, std::uint32_t line,
               const char* /*file*/, void* /*user*/) {
     static const char* const kLevels[] = {"panic", "error", "warning", "info"};
+    // Each message at most 10 times (a full pool would otherwise log every frame).
+    static unsigned char counts[1024];
+    if (level > 0 && item < 1024 && counts[item]++ >= 10) {
+        counts[item] = 11;
+        return;
+    }
     ei::Log("render: %s %s %u (line %u): %s", tag ? tag : "sg", level < 4 ? kLevels[level] : "?", item, line,
             message ? message : "");
     // sokol cannot go on after a panic: the new renderer switches itself off (the old path draws).
@@ -118,6 +136,14 @@ bool CreateDevice() {
     desc.environment.d3d11.device = g_device;
     desc.environment.d3d11.device_context = g_context;
     desc.logger.func = &SokolLog;
+    // The game's textures (terrain pages, every model's, the interface's, one shadow texture per
+    // object), window surfaces and the images replaced within a frame: far more than sokol's
+    // default pools (128 images, 256 views); a full pool made sg_make_image fail.
+    desc.image_pool_size = 16384;
+    desc.view_pool_size = 16384;
+    desc.buffer_pool_size = 512;
+    desc.pipeline_pool_size = 1024;
+    desc.sampler_pool_size = 256;
     sg_setup(&desc);
     if (!sg_isvalid()) {
         ei::Log("render: sg_setup failed; the new renderer stays off");
@@ -359,6 +385,8 @@ Frame g_frame;
 bool g_frameDrawn = false;
 bool g_started = false;
 std::uint32_t g_frameNumber = 0;
+std::uint32_t g_commits = 0;
+int g_presentFailures = 0;
 
 bool EnsureStarted() {
     EnsureConfigured();
@@ -388,6 +416,7 @@ FpuGuard::~FpuGuard() {
 
 Frame& CurrentFrame() { return g_frame; }
 std::uint32_t FrameNumber() { return g_frameNumber; }
+std::uint32_t CommitNumber() { return g_commits; }
 bool Started() { return EnsureStarted(); }
 
 char* DeviceObject() { return *reinterpret_cast<char**>(game::Where().deviceObject); }
@@ -459,7 +488,7 @@ void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* value
 void ReadFog(Frame& f) {
     const std::uint32_t states[2] = {28, 34};
     std::uint32_t values[2];
-    OldRenderStates(states, values, 2);
+    RenderValues(states, values, 2);
     f.haveFog = true;
     f.fogEnabled = values[0] != 0;
     f.fogColour = values[1];
@@ -483,6 +512,16 @@ bool Active() {
     return g_active && !g_failed;
 }
 
+bool CpuWindows() {
+    EnsureConfigured();
+    return g_cpuWindows && g_active;
+}
+
+bool Presenting() {
+    EnsureConfigured();
+    return g_present && Active();
+}
+
 bool DrawOldTerrain() {
     EnsureConfigured();
     return g_oldTerrain || !Active();
@@ -498,11 +537,6 @@ bool DrawOldMeshes() {
     return (g_inWorld ? g_oldObjects : g_oldInterface) || !Active();
 }
 
-bool DrawOldFlat() {
-    EnsureConfigured();
-    return g_oldObjects || !g_inWorld || !Active();
-}
-
 bool DrawOldInterface() {
     EnsureConfigured();
     return g_oldInterface || !Active();
@@ -516,6 +550,13 @@ void SetDrawOldObjects(bool on) {
 void SetDrawOldInterface(bool on) {
     EnsureConfigured();
     g_oldInterface = on;
+}
+
+void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    if (!holder || !pixels || !Active() || !EnsureStarted()) return;
+    FpuGuard fpu;
+    TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
 }
 
 void BeginWorld() { g_inWorld = true; }
@@ -534,28 +575,37 @@ void ClearDepth(float z, const Rect* rects, int count) {
     }
 }
 
-void EndFrame() {
-    if (g_frameDrawn || !EnsureStarted()) return;
-    g_frameDrawn = true;
+namespace {
+
+std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
+int g_passes = 0;                  // passes drawn this frame
+
+// Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first
+// clearing it. A frame is drawn in more than one pass when a copy of it is taken in its middle
+// (CopyFrameTo).
+bool DrawPending() {
     int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) return;
-    FpuGuard fpu;
-    if (!EnsureTarget(width, height)) return;
+    if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height)) return false;
+    if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
+    UploadTerrain(g_frame);
+    UploadMeshes(g_frame);
+    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
+    // the 3D draws move their positions by half a pixel (Frame::pixelShift). (A viewport moved by
+    // half a pixel would do the same, but sokol takes whole pixels.)
+    g_frame.pixelShift[0] = 1.0f / static_cast<float>(width);
+    g_frame.pixelShift[1] = -1.0f / static_cast<float>(height);
     sg_pass pass{};
-    pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+    bool first = g_passes == 0;
+    pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
     pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
-    pass.action.depth.load_action = SG_LOADACTION_CLEAR;
+    pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
     pass.action.depth.clear_value = 1.0f;
     pass.attachments.colors[0] = g_colourAttachment;
     pass.attachments.depth_stencil = g_depthAttachment;
     pass.label = "ei-frame";
-    UploadTerrain(g_frame);
-    UploadMeshes(g_frame);
     sg_begin_pass(&pass);
-    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
-    // the viewport is moved by half a pixel so that the same clip coordinates hit the same pixels.
-    sg_apply_viewportf(-0.5f, -0.5f, static_cast<float>(width), static_cast<float>(height), true);
-    for (const Command& c : g_frame.commands) {
+    for (std::size_t k = g_drawnCommands; k < g_frame.commands.size(); ++k) {
+        const Command& c = g_frame.commands[k];
         auto i = static_cast<std::size_t>(c.index);
         switch (c.kind) {
         case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
@@ -565,15 +615,159 @@ void EndFrame() {
         }
     }
     sg_end_pass();
+    g_drawnCommands = g_frame.commands.size();
+    ++g_passes;
+    return true;
+}
+
+// A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until
+// UnmapTarget. The staging texture is kept (the full frame is read every frame with "present").
+ID3D11Texture2D* g_staging = nullptr;
+UINT g_stagingWidth = 0, g_stagingHeight = 0;
+
+bool MapTarget(const D3D11_BOX& box, const std::uint8_t** rows, UINT* pitch) {
+    sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
+    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
+    if (!texture) return false;
+    UINT width = box.right - box.left, height = box.bottom - box.top;
+    if (!g_staging || g_stagingWidth < width || g_stagingHeight < height) {
+        if (g_staging) g_staging->Release();
+        g_staging = nullptr;
+        D3D11_TEXTURE2D_DESC desc{};
+        texture->GetDesc(&desc);
+        desc.Width = width > desc.Width ? width : desc.Width;
+        desc.Height = height > desc.Height ? height : desc.Height;
+        desc.MipLevels = 1;
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &g_staging))) {
+            g_staging = nullptr;
+            return false;
+        }
+        g_stagingWidth = desc.Width;
+        g_stagingHeight = desc.Height;
+    }
+    g_context->CopySubresourceRegion(g_staging, 0, 0, 0, 0, texture, 0, &box);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    if (FAILED(g_context->Map(g_staging, 0, D3D11_MAP_READ, 0, &mapped))) return false;
+    *rows = static_cast<const std::uint8_t*>(mapped.pData);
+    *pitch = mapped.RowPitch;
+    return true;
+}
+
+void UnmapTarget() {
+    g_context->Unmap(g_staging, 0);
+    sg_reset_state_cache();
+}
+
+// One 8-bit channel into a mask's bits: shift down to its width, then up to its place.
+struct ChannelPack {
+    int down = 8, up = 0;
+    std::uint32_t mask = 0;
+    explicit ChannelPack(std::uint32_t m) : mask(m) {
+        if (!m) return;
+        int shift = 0, bits = 0;
+        while (!((m >> shift) & 1)) ++shift;
+        while (shift + bits < 32 && ((m >> (shift + bits)) & 1)) ++bits;
+        if (bits >= 8) {
+            down = 0;
+            up = shift + bits - 8;
+        } else {
+            down = 8 - bits;
+            up = shift;
+        }
+    }
+    std::uint32_t operator()(std::uint8_t v) const { return ((static_cast<std::uint32_t>(v) >> down) << up) & mask; }
+};
+
+} // namespace
+
+bool CopyFrameTo(const void* holder, const Rect& source) {
+    if (!holder || !Active() || !EnsureStarted()) return false;
+    auto* dd = *reinterpret_cast<IDirectDrawSurface7* const*>(static_cast<const char*>(holder) + 0x10);
+    if (!dd) return false;
+    FpuGuard fpu;
+    if (!g_frameDrawn && !DrawPending()) return false;
+    if (!g_colour.id) return false;
+    Rect r = source;
+    if (r.left < 0) r.left = 0;
+    if (r.top < 0) r.top = 0;
+    if (r.right > g_width) r.right = g_width;
+    if (r.bottom > g_height) r.bottom = g_height;
+    if (r.right <= r.left || r.bottom <= r.top) return false;
+    D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right),
+                  static_cast<UINT>(r.bottom), 1};
+    const std::uint8_t* rgba = nullptr;
+    UINT pitch = 0;
+    if (!MapTarget(box, &rgba, &pitch)) return false;
+    int sw = r.right - r.left, sh = r.bottom - r.top;
+    // Into the surface, stretched to its size as DirectDraw's Blt does (nearest texel).
+    DDSURFACEDESC2 desc{};
+    desc.dwSize = sizeof(desc);
+    LockGameDevice();
+    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
+    bool ok = SUCCEEDED(hr) && desc.lpSurface && (desc.ddpfPixelFormat.dwFlags & DDPF_RGB) &&
+              (desc.ddpfPixelFormat.dwRGBBitCount == 16 || desc.ddpfPixelFormat.dwRGBBitCount == 32);
+    if (ok) {
+        const DDPIXELFORMAT& pf = desc.ddpfPixelFormat;
+        int dw = static_cast<int>(desc.dwWidth), dh = static_cast<int>(desc.dwHeight);
+        std::uint32_t alpha = (pf.dwFlags & DDPF_ALPHAPIXELS) ? pf.dwRGBAlphaBitMask : 0;
+        ChannelPack pr(pf.dwRBitMask), pg(pf.dwGBitMask), pb(pf.dwBBitMask);
+        std::vector<int> columns(static_cast<std::size_t>(dw));
+        for (int x = 0; x < dw; ++x) columns[static_cast<std::size_t>(x)] = static_cast<int>(static_cast<long long>(x) * sw / dw) * 4;
+        bool bgrx = pf.dwRGBBitCount == 32 && pf.dwRBitMask == 0xFF0000 && pf.dwGBitMask == 0xFF00 && pf.dwBBitMask == 0xFF;
+        for (int y = 0; y < dh; ++y) {
+            const std::uint8_t* src = rgba + static_cast<std::size_t>(static_cast<long long>(y) * sh / dh) * pitch;
+            auto* row = static_cast<std::uint8_t*>(desc.lpSurface) + static_cast<std::size_t>(y) * desc.lPitch;
+            if (pf.dwRGBBitCount == 32) {
+                auto* out = reinterpret_cast<std::uint32_t*>(row);
+                for (int x = 0; x < dw; ++x) {
+                    const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
+                    out[x] = bgrx ? (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2] | alpha
+                                  : pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha;
+                }
+            } else {
+                auto* out = reinterpret_cast<std::uint16_t*>(row);
+                for (int x = 0; x < dw; ++x) {
+                    const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
+                    out[x] = static_cast<std::uint16_t>(pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha);
+                }
+            }
+        }
+    }
+    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+    UnlockGameDevice();
+    UnmapTarget();
+    return ok;
+}
+
+void EndFrame() {
+    if (g_frameDrawn || !EnsureStarted()) return;
+    g_frameDrawn = true;
+    FpuGuard fpu;
+    if (!DrawPending()) return;
     ShowFrame();
     sg_commit();
+    ++g_commits;
     if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
     g_haveFrame = true;
+    // "present": into the game's render target (the device object's +0x18), which the old present
+    // then flips or copies to the screen.
+    if (g_present) {
+        char* device = DeviceObject();
+        const void* target = device ? *reinterpret_cast<void* const*>(device + 0x18) : nullptr;
+        if (target && !CopyFrameTo(target, Rect{0, 0, g_width, g_height}) && g_presentFailures++ < 10)
+            ei::Log("render: cannot copy the frame into the game's render target");
+    }
 }
 
 void Present() {
     if (!Active()) return;
     EndFrame();
+    g_drawnCommands = 0;
+    g_passes = 0;
     g_frame.matrices.clear();
     g_frame.terrainVertices.clear();
     g_frame.terrainIndices.clear();
@@ -589,6 +783,8 @@ void Present() {
     if (g_started) {
         FpuGuard fpu;
         RetireTextures();
+        RetireBuffers();
+        RetireFrameImages();
     }
     ++g_frameNumber;
 }

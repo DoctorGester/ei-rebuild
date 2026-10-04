@@ -3286,3 +3286,174 @@ address,name,library,signature,notes
 004613C0,"stlp::hash_map<K,T,HF,EqK,A>::operator[]",STLport,,"range 440 review: STLport template instantiation (hash_map<CString, float>), not game logic"
 00461520,"stlp::_Ht_iterator<V,K,HF,ExK,EqK,A>::_Ht_iterator",STLport,,"range 440 review: STLport template instantiation (node, table), not game logic"
 004614B0,"stlp::pair<const CString, float>::~pair",STLport,,"range 440 review: STLport template instantiation (jump to the CString destructor), not game logic"
+00542FC0,UnitPrototype::operator= (implicit),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00542830,record::operator= (implicit),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00542D60,record::operator= (implicit),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+005407A0,record copy constructor (implicit),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540860,record copy constructor (implicit),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+005407E0,record scalar deleting destructor,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540800,record scalar deleting destructor,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540820,record scalar deleting destructor,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540840,record scalar deleting destructor,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00541960,stlp vector<T> copy constructor,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540B80,stlp vector<T> copy constructor,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00541210,stlp vector<T> copy constructor,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540890,stlp vector<T>::_M_insert_overflow,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540F40,stlp vector<T>::_M_insert_overflow,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00541680,stlp vector<T>::_M_insert_overflow,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00541DB0,stlp vector<T>::_M_insert_overflow,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00543760,stlp __copy (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540510,stlp __copy (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00542530,stlp __copy (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+005400D0,stlp __copy_backward (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+005420D0,stlp __copy_backward (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00543510,stlp __copy_backward (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00542320,stlp fill (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00540320,stlp fill (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+005427B0,stlp fill (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00541FF0,stlp fill (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00542070,stlp fill (records),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+005448F0,stlp __copy (records with a CString),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+005440E0,stlp __uninitialized_copy,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00543E90,stlp __uninitialized_copy,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00544340,stlp __uninitialized_copy,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00544550,stlp __uninitialized_fill_n,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00543B20,stlp __uninitialized_copy,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00543CE0,stlp __uninitialized_fill_n,STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00544760,stlp __uninitialized_copy (records with a CString),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+00544830,stlp __uninitialized_fill_n (records with a CString),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
+0056F360,stlp vector<12-byte record>::resize,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F2F0,"stlp vector<12-byte record>::erase(first, last)",STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F5E0,"stlp vector<T*>::erase(first, last)",STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E840,stlp vector<T*>::push_back,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E870,stlp vector<T*>::clear,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E4B0,stlp vector<0x3C record>::~vector,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E620,stlp vector<0x24 record>::~vector,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571DE0,stlp __copy (0x18-byte entries),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571E30,stlp __copy (pointers),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571DD0,stlp _Construct (copy),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005729D0,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571050,stlp hash_map constructor (100 buckets),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FBC0,stlp node_alloc deallocate (n x 0x9C),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E0E0,stlp list<record>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E1C0,stlp list<record>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E2A0,stlp list<record>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056EE20,stlp list<record>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056EF60,stlp list<record>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F0A0,stlp list<record>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E380,stlp list<record>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572E90,stlp list<counted ptr>::~list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005703C0,stlp list<counted ptr>::clear,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00573660,stlp list<counted ptr>::clear,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570400,stlp list<counted ptr>::remove,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572270,stlp list<counted ptr>::erase,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572550,stlp list<record>::erase,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572580,stlp list<record>::erase,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005725B0,stlp list<record>::erase,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056EDC0,stlp list<record>::list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056EF00,stlp list<record>::list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F040,stlp list<record>::list,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F880,stlp list<0x9C record>::_M_create_node,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F940,stlp list<0x94 record>::_M_create_node,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F9F0,stlp list<0x8C record>::_M_create_node,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571960,stlp find (list),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00573B50,stlp __find (list),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571C90,stlp for_each (function pointer),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571CD0,stlp for_each (function pointer),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571D10,stlp for_each (function pointer),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571780,stlp for_each (release functor),STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005719A0,stlp iterator copy,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E0C0,stlp list::begin,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E1A0,stlp list::begin,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E280,stlp list::begin,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E360,stlp list::begin,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572AF0,stlp list::end,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E0D0,stlp list::end,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E1B0,stlp list::end,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E290,stlp list::end,STLport,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00573080,CArray<T>::SetSize,MFC,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FEA0,CMap<...>::Serialize,MFC,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00573000,CMap<...>::NewAssoc,MFC,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FD70,CMap<...> constructor,MFC,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FFE0,CArray<T> constructor,MFC,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005711E0,CArray<T> destructor,MFC,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00573220,DestructElements<counted ptr>,MFC,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571E50,scalar deleting destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571ED0,scalar deleting destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572B30,vector deleting destructor (list array),compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572C50,vector deleting destructor (list array),compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571FC0,party record copy constructor (implicit),compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00571AF0,EH unwind helper,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005726D0,pair / functor constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005726F0,pair / functor constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572D70,pair / functor constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572D90,pair / functor constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FC40,pair / functor constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E480,counted pointer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056F1A0,counted pointer assignment,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+005715C0,counted pointer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572710,counted pointer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056E4A0,counted pointer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570DE0,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570E10,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570E40,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570E70,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FCC0,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FCD0,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FD00,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FD30,aligned buffer constructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570DF0,aligned buffer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570E20,aligned buffer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570E50,aligned buffer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00570E80,aligned buffer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FCE0,aligned buffer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+0056FD10,aligned buffer destructor,compiler,,"client maps review (world.md, Client maps): container / compiler instantiation, not game logic"
+00572820,SectorGrid storage allocation,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+005728D0,SectorGrid storage allocation,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+00572450,SectorGrid resize,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+005724F0,SectorGrid resize,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+00570730,SectorGrid reset to 1x1,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+005709F0,SectorGrid reset to 1x1,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+00572410,SectorGrid storage release,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+005724B0,SectorGrid storage release,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+005727E0,SectorGrid storage release,STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+00570B20,SectorGrid clear (every cell list),STLport,,"client maps review (world.md, Client maps): the sector grid template's storage (new[]/delete[] of STLport lists), no game logic"
+005593D0,unit appearance cache build,STLport,,library-like by agreement (combat.md): a cache built almost entirely from STLport hash_map instantiations; thin logic
+00559DB0,stlp hash_map pair constructor,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055A860,stlp hash_map copy constructor,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055A9F0,stlp hash_map copy constructor,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055ABB0,stlp pair copy constructor,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055AEB0,stlp pair copy constructor,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055B540,stlp hashtable::find_or_insert,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055BAC0,stlp hashtable::find_or_insert,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055B5C0,stlp hashtable::insert_unique_noresize,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055BB40,stlp hashtable::insert_unique_noresize,STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055C270,stlp _Construct (CString),STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055C260,stlp _Construct (copy),STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+0055D020,stlp equal (pointers),STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+005612F0,CWorldClient constructor (static initialiser of 007AF5B8),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
+00561B00,CWorldClient destructor (calls 00563290, then the members destructors),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
+0055BD60,stlp vector<0x3C look record>::_M_fill_insert,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C010,stlp vector<0x24 look record>::_M_fill_insert,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D050,stlp vector<0x3C look record>::_M_insert_overflow,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D300,stlp vector<0x24 look record>::_M_insert_overflow,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D5A0,stlp __copy (0x3C look records),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D7F0,stlp __copy (0x24 look records),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055DFF0,stlp __uninitialized_copy (0x24 look records),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D9F0,0x24 look record operator= (implicit),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055DBE0,look record operator= (implicit),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055B7E0,stlp vector<T*>::operator=,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055A400,stlp vector<0x3C look record>::resize,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055A580,stlp vector<0x24 look record>::resize,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C5E0,stlp hashtable::_M_new_node,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C2E0,stlp hashtable::_M_new_node,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C460,stlp hashtable::_M_new_node,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+00559B30,unit entry destructor (implicit; CString vector),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+00559C40,unit entry destructor (implicit; CString vector),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055A780,stlp hashtable::clear,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C730,stlp __copy (pointers, memmove),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C2C0,stlp __copy (dwords),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C5C0,stlp hashtable::_M_bkt_num_key,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055AFF0,stlp hashtable accessor (functor copy),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055AFB0,stlp hashtable iterator constructor,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055AFD0,stlp hashtable iterator constructor,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic

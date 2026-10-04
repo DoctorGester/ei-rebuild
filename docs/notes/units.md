@@ -615,3 +615,75 @@ volatile so the products are not folded at compile time) and ResetToBase was rea
 - ComposeSkin and WearArmourModel build CString / STLport temporaries in the original's order
   (the allocations match); not run in game yet.
 
+# Network state
+
+Code: `src/game/net_state.cpp` (new); verify wrappers: `tests/verify/verify_net_state.cpp`, with the
+DeltaState save / restore in `tests/verify/delta_snapshot.h` (new). No shared files changed. The
+four functions are virtual slots, registered as free functions (thiscall as fastcall; rule 4).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0050EAF0 | MapObjectWriteNetState (map objects' writer) | differential, sampled: state copied, original writes, its result copied, state put back, ours writes; states and delta globals compared |
+| 0052EC70 | UnitWriteNetState (slot 50) | the same |
+| 0050EC30 | MapObjectReadNetState (RET 4) | differential, sampled, ours first: then the DeltaState, the received stream (state +0x1C) and the globals are put back and the original reads again; result, states, stream, globals and the decoded fields compared |
+| 0052EF90 | UnitReadNetState (slot 49, RET 4) | the same, with the unit's fields |
+
+Fields written / read (DeltaState at +0x1C4):
+- **Map objects:** 0 is the 0x18 bytes at +0x17C. 1 is the position +0xC4 (read: SetPosition 00517700). 2 is the hidden bit (flag 8), the
+  position +0x1C and the orientation +0x34 (read: world slot 41 moves the object, slot 51 with
+  +0x24). 3 is the effects: a count byte, then per 0x14-byte effect bytes +0, +1, the word +4 and the byte +0x10
+  raw (read: CArray::SetSize, then the companion +0x170's slot 13 with `first == 0` unless a
+  unit). The reader's result says whether each field's snapshot stream was consumed (slot 5 ==
+  slot 4); field 0 sets it, the rest AND it; field 0 calls slot 58 when hit points changed (or
+  `first == 1`).
+- **Units**, after the map object's fields:
+  - 4 is the stats block +0x330 (0x108). On read: the six stat fractions before / after give
+    controller slot 46 per changed stat, slot 31 when any changed (or `first == 0`), and on a hit point drop
+    (or flag 0x10 in +0x437) the companion's slot 16 with `_ftol(lost * max)` and the kind bits.
+  - 5 is the 11 equipment ids (the weapon -1 with flag 0x40000000); writing then refreshes a class
+    0x3E controller (slot 29).
+  - 6 is +0x264, +0x268, +0x26C. On read +0x270 = +0x26C, and slot 25 runs on a change.
+  - 7 is the packed bits of +0x25C / +0x260 / +0x274 / +0x278. 8 is +0x254, +0x255, +0x258, +0x256.
+  - 9 is the CString +0x238. 10 is the path (005C7DB0 / 005C7FC0) and the motion's speeds.
+  - 11 is the masks, +0x250 and the player id (a new player through the local view). 12 is +0x4C8. 13 is +0x438.
+  - The reader then re-equips (slots 32 / 33) and refreshes (25, 29) when something changed.
+
+The first reader check compared whole effect entries. About 1% of the unit reads with `first == 0`
+mismatched, while the result agreed and map objects never mismatched. Only the unit reader's own
+field 3 calls the companion's slot 13 (the effects' particles and sounds) with `first == 0`, and
+that slot can change the bytes of an entry the reader does not read. Ours runs it, then the
+original's second read runs it again over the same entries, so those bytes differ. The check now
+compares only the bytes the reader writes (+0, +1, the dword +4, +0x10). The mismatch message now
+names the first part that differs (result, delta state, received stream, globals, or a named
+field), so a further mismatch can be traced.
+
+Kept from the original: the field 3 count is one byte read into a word; the companion's slot 13
+and the stat slot get their bool / flag arguments as 0/1 and the byte (the original pushes
+registers whose upper bytes are left over). The stat fractions and hit point ratio are plain C++
+(rule 7).
+
+# Levers
+
+Code: `src/game/unit_lever.cpp`, `src/game/lever.h` (new); verify wrappers:
+`tests/verify/verify_unit_lever.cpp`. No shared files changed.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0052B7A0 | Lever::SetState (RET 8; the script's lever commands) | ours only: state in range, shown position = state / (states - 1), 1 / duration stored for a timed move |
+
+Fields: +0xA4 model name, +0xC8 shown position (0..1), +0x134 radius, +0x238 state, +0x23C state
+count, +0x240 cycling, +0x250 / +0x254 start / end position, +0x258 end tick, +0x25C 1 / duration,
++0x261 the AI map flag (copied to the map's +0x172 while it moves).
+
+SetState: a negative (or NaN) duration takes the model's default from the map 0079C1AC (operator[]
+00464750 by the model name; the record's +0x1C as an unsigned number) or 10. A negative state is
+the next one: it wraps when cycling (signed modulo), otherwise it stops at the last. Other states
+are clamped to [0, states - 1]. Then, when the world is live (slot 26), the following happens:
+1. The units within radius + 0.5 come off the sector map, and so does the lever; the AI map is refreshed.
+2. The position is state / (states - 1), or 0 with one state. Plain C++ (rule 7).
+3. A move with duration > 0 is timed: start at the old position, end tick (tick + duration) + 1,
+   1 / duration. Otherwise it happens at once.
+4. The figure is animated (005179E0), MarkChanged(5), the lever goes back on the map.
+5. Every lifted unit that cannot stay in its cell is moved to a free cell
+   (FindFreeCellNear) and its controller resynced (00554450) before it goes back.
+

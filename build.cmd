@@ -16,4 +16,6 @@ if /i "%CFG%"=="debug" set BUILDTYPE=Debug
 
 cmake -S "%~dp0." -B "%~dp0build\%CFG%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_VERIFY=%VERIFY% || exit /b 1
 cmake --build "%~dp0build\%CFG%" || exit /b 1
+rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide rule 4).
+python "%~dp0tools\check_thunks.py" || exit /b 1
 echo Built: %~dp0build\%CFG%

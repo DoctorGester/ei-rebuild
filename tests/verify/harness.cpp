@@ -241,6 +241,85 @@ constexpr std::uintptr_t kFindWindowASlot = 0x0073B448;
 decltype(&::FindWindowA) g_findWindow;
 HWND WINAPI NoOtherGameWindow(LPCSTR, LPCSTR) { return nullptr; }
 
+// Harness runs stay out of the user's way: the game window never takes focus or comes to the front,
+// it opens at a small size (VideoResolution), and the sound is muted. The game's own code still
+// runs (sound included), so scenarios test the same paths.
+constexpr std::uintptr_t kSetForegroundWindowSlot = 0x0073B438;
+constexpr std::uintptr_t kBringWindowToTopSlot = 0x0073B430;
+constexpr std::uintptr_t kSetFocusSlot = 0x0073B584;
+constexpr std::uintptr_t kSetActiveWindowSlot = 0x0073B640;
+constexpr std::uintptr_t kShowWindowSlot = 0x0073B554;
+constexpr std::uintptr_t kCreateWindowExASlot = 0x0073B558;
+constexpr std::uintptr_t kSetCursorPosSlot = 0x0073B4A0;
+constexpr std::uintptr_t kRegQueryValueExASlot = 0x0073B028;
+constexpr std::uintptr_t kAilWaveOutOpenSlot = 0x0073B7A4;
+constexpr const char* kHarnessResolution = "1280x720";   // 16:9 like the usual desktop (Rebirth widescreen)
+
+decltype(&::SetForegroundWindow) g_setForegroundWindow;
+decltype(&::BringWindowToTop) g_bringWindowToTop;
+decltype(&::SetFocus) g_setFocus;
+decltype(&::SetActiveWindow) g_setActiveWindow;
+decltype(&::ShowWindow) g_showWindow;
+decltype(&::CreateWindowExA) g_createWindowEx;
+decltype(&::SetCursorPos) g_setCursorPos;
+decltype(&::RegQueryValueExA) g_regQueryValueEx;
+using AilWaveOutOpenFn = int(__stdcall*)(void**, void*, int, void*);
+AilWaveOutOpenFn g_ailWaveOutOpen;
+
+BOOL WINAPI NoForeground(HWND) { return TRUE; }
+BOOL WINAPI NoBringToTop(HWND) { return TRUE; }
+HWND WINAPI NoFocus(HWND window) { return window; }
+HWND WINAPI NoActivate(HWND window) { return window; }
+BOOL WINAPI NoCursorMove(int, int) { return TRUE; }
+BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
+    switch (command) {
+    case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
+    case SW_SHOWMAXIMIZED: command = SW_SHOWNA; break;
+    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;   // the game minimises itself on deactivation
+    default: break;
+    }
+    return g_showWindow(window, command);
+}
+HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h,
+                                    HWND parent, HMENU menu, HINSTANCE instance, LPVOID param) {
+    if (!parent) exStyle |= WS_EX_NOACTIVATE;
+    return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
+}
+LSTATUS WINAPI SmallVideoResolution(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
+    if (name && _stricmp(name, "VideoResolution") == 0 && size) {
+        DWORD need = static_cast<DWORD>(std::strlen(kHarnessResolution) + 1);
+        if (type) *type = REG_SZ;
+        if (!data) { *size = need; return ERROR_SUCCESS; }
+        if (*size < need) { *size = need; return ERROR_MORE_DATA; }
+        std::memcpy(data, kHarnessResolution, need);
+        *size = need;
+        return ERROR_SUCCESS;
+    }
+    // FullScreen = 0: the game runs in its own window mode (BltFast to the primary instead of Flip),
+    // so no display mode change. Without this a 1280x720 full screen switched the user's display.
+    if (name && _stricmp(name, "FullScreen") == 0 && size) {
+        if (type) *type = REG_DWORD;
+        if (!data) { *size = 4; return ERROR_SUCCESS; }
+        if (*size < 4) { *size = 4; return ERROR_MORE_DATA; }
+        std::memset(data, 0, 4);
+        *size = 4;
+        return ERROR_SUCCESS;
+    }
+    return g_regQueryValueEx(key, name, reserved, type, data, size);
+}
+int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void* format) {
+    int result = g_ailWaveOutOpen(driver, waveOut, deviceId, format);
+    if (HMODULE mss = GetModuleHandleA("mss32.dll"); mss && driver && *driver) {
+        using IntVolume = void(__stdcall*)(void*, int);
+        using FloatVolume = void(__stdcall*)(void*, float);
+        if (auto v = reinterpret_cast<IntVolume>(GetProcAddress(mss, "_AIL_set_digital_master_volume@8"))) v(*driver, 0);
+        if (auto v = reinterpret_cast<FloatVolume>(GetProcAddress(mss, "_AIL_set_digital_master_volume_level@8")))
+            v(*driver, 0.0f);
+        Log("harness: sound muted");
+    }
+    return result;
+}
+
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     auto* slot = reinterpret_cast<T*>(address);
@@ -1199,6 +1278,16 @@ struct Harness {
         if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
 
         PatchSlot(kFindWindowASlot, &NoOtherGameWindow, g_findWindow);
+        PatchSlot(kSetForegroundWindowSlot, &NoForeground, g_setForegroundWindow);
+        PatchSlot(kBringWindowToTopSlot, &NoBringToTop, g_bringWindowToTop);
+        PatchSlot(kSetFocusSlot, &NoFocus, g_setFocus);
+        PatchSlot(kSetActiveWindowSlot, &NoActivate, g_setActiveWindow);
+        PatchSlot(kShowWindowSlot, &ShowWithoutActivating, g_showWindow);
+        PatchSlot(kCreateWindowExASlot, &CreateWithoutActivating, g_createWindowEx);
+        PatchSlot(kSetCursorPosSlot, &NoCursorMove, g_setCursorPos);
+        // VideoResolution / FullScreen overrides (SmallVideoResolution) are off: a 1280x720 full screen
+        // switched the display mode, and the game's window mode never got past the menu. See open-questions.
+        PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
         PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
