@@ -273,6 +273,8 @@ struct ServerSession {
     void Announce(const char* text, CRefObject* player);
     // 0041A490. Announce with text `kind` of the text table formatted with `text`.
     void AnnounceText(int kind, const char* text, CRefObject* player);
+    // 0041ACF0 (net_server_trade.cpp). The trade between two offers (either order), or null.
+    void* FindTrade(void* offer, void* other);
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);
