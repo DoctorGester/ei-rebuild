@@ -3073,3 +3073,6 @@ address,name,library,signature,notes
 0040CFB0,"stlp::deque<T>::~deque",STLport,,range 400 review: template / compiler helper instantiation, not game logic
 0040CE30,"vector constructor iterator (compiler helper)",CRT,,range 400 review: template / compiler helper instantiation, not game logic
 00433990,"stlp::_Rb_tree<T>::~_Rb_tree",STLport,,range 400 review: template / compiler helper instantiation, not game logic
+00428A20,"stlp::vector<T>::_M_insert_overflow (counted CEngineObject pointers)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00422F70,"stlp::list<T>::push_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+0041FF40,"stlp::vector<T>::operator[]",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic

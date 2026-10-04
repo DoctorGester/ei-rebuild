@@ -2,6 +2,8 @@
 //  - FindSameMessage: side by side (it only reads; the stream sizes come through slot 4).
 //  - ClientPublishParty: ours only (it allocates messages and moves counted references). After it
 //    the object holds one message per party member and is no longer dirty.
+//  - ClientFindParty: side by side (it only reads).
+//  - ClientApplyParty: ours only (it creates objects and fills a party).
 #include "net_verify.h"
 
 #include "../../src/game/net_classes.h"
@@ -12,6 +14,8 @@
 namespace net {
 RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, Message* message, std::uint32_t unused);
 void __fastcall ClientPublishParty(ClientSession* self);
+void* __fastcall ClientFindParty(ClientSession* self);
+void __fastcall ClientApplyParty(ClientSession* self);
 }
 
 namespace {
@@ -44,7 +48,23 @@ void __fastcall PublishPartyVerify(net::ClientSession* self) {
     ei::verify::Check("ClientPublishParty", true, messages == (members > 0 ? members : 0) && state[0x1C] == 0,
                       "members %d, messages %d", members, messages);
 }
+
+// 0041E220: PUSH EBP, PUSH ESI (1 each), MOV ESI,[ECX+0x260C] (6).
+void*(__fastcall* s_findParty)(net::ClientSession*);
+void* __fastcall FindPartyVerify(net::ClientSession* self) {
+    void* expected = s_findParty(self);
+    void* actual = net::ClientFindParty(self);
+    ei::verify::Check("ClientFindParty", expected, actual, "");
+    return actual;
+}
+
+void __fastcall ApplyPartyVerify(net::ClientSession* self) {
+    net::ClientApplyParty(self);
+    ei::verify::Check("ClientApplyParty", true, true, "");
+}
 } // namespace
 
 EI_VERIFY(0x00429FC0, FindVerify, 5, s_find);
+EI_VERIFY(0x0041E220, FindPartyVerify, 8, s_findParty);
+EI_VERIFY(0x0041DDC0, ApplyPartyVerify, 0, s_unused);
 EI_VERIFY(0x0041DA50, PublishPartyVerify, 0, s_unused);
