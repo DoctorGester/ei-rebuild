@@ -127,7 +127,7 @@ FixCreateItem,addon,006ACBBD,6,006AC970+24D,bug fix,yes,"mov edx, dword ptr [esp
 FixCreateItem,addon,006ACCD0,5,006AC970+360,bug fix,yes,"mov ecx, dword ptr [esp + 0x60]; (+4)push ecx",context hook: invalid prototype or material -> log and go to 006ACBD1 (no FatalError),implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_constructor.cpp),
 DisableExitOnCrashReport,addon,004800A7,5,00480080+27,infrastructure,yes,call 0x4560d0,context hook replacing the message box call 004560D0: the text goes to addon.log,implemented: new rewrite FatalError 00480080 (src/game/app.cpp; the addon.log line is not reproduced),
 DisableExitOnCrashReport,addon,004800C9,9,00480080+49,infrastructure,yes,jl 0x4800d2; (+2)push -1; (+4)call 0x6e8da7,9 NOPs: the error counter test and exit(-1),implemented: new rewrite FatalError 00480080 (src/game/app.cpp),
-DisableExitOnCrashReport,addon,00564330,5,005641F0+140,infrastructure,yes,call 0x665a10,5 NOPs: CALL 00665A10 before the FatalError,"not started: 005641F0 (the world frame, 1.5 KB) not rewritten",
+DisableExitOnCrashReport,addon,00564330,5,005641F0+140,infrastructure,yes,call 0x665a10,5 NOPs: CALL 00665A10 before the FatalError,implemented: new rewrite CWorldClient::Segment 005641F0 (src/game/world_client.cpp),
 ExtendedServerName,addon,0061BB51,4,0061B2C0+891,multiplayer,no,"(at 61BB50)mov edi, 0x28a",operand replaced,not started,
 ExtendedServerName,addon,0061BC0E,1,0061B2C0+94E,multiplayer,no,(at 61BC0D)push 3,operand replaced,not started,
 ExtendedServerName,addon,0061BC09,1,0061B2C0+949,multiplayer,no,(at 61BC08)push 0xa,operand replaced,not started,

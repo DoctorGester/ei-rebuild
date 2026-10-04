@@ -574,6 +574,12 @@ struct PlatformSet {
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {
 public:
+    // 005641F0, vtable slot 6 (world_client.cpp). The client's tick ("Segment"): autosave event
+    // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,
+    // effect lists, the lights' grey levels, the map state every 32 ticks. Returns 1; 0 when the
+    // session's view has lost its connection (the session is disconnected, FatalError; Rebirth's
+    // DisableExitOnCrashReport keeps the session).
+    int Segment();
     // 00563F70, vtable slot 27. Ground height with the position clamped into the map.
     float ClampedGroundHeight(float x, float y);
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see

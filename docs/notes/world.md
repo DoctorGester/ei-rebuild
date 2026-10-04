@@ -256,8 +256,9 @@ declarations in CWorldClient, and the sort entry points and ModelUseLess appende
 
 ## Map of the client frame
 
-CWorldClient slot 6 (005641F0, per tick) and the draw path 00569E40 -> 0056AFE0 are patched by
-Rebirth, so they stay original. 0056AFE0 (the draw pass) does, per frame:
+The draw path 00569E40 -> 0056AFE0 is patched by Rebirth, so it stays original (CWorldClient slot
+6, 005641F0, is now rewritten as `CWorldClient::Segment` in world_client.cpp, with Rebirth's
+DisableExitOnCrashReport behind its flag). 0056AFE0 (the draw pass) does, per frame:
 
 1. Clears eleven global `vector<CEngineObject*>` (0056E870 = erase(begin, end)): 007AF508 objects
    whose model should stay loaded; visible lists 007AF568 (class 0x52), 578 (units, 0x50),

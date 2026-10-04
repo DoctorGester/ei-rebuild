@@ -267,7 +267,8 @@ PlayerNumbers (moved from EI_Plugin: a call in 0066C180). Disabled: SetDefaultRa
   00665A10 before its own FatalError. The game carries on after errors that end vanilla.
   *FatalError implemented* as a new rewrite (src/game/app.cpp; addon's addon.log line is not
   reproduced: the text still goes to the error hook at 007A9BA0 when one is set); the third site
-  needs 005641F0, the world frame (1.5 KB, not rewritten).
+  (a lost connection no longer disconnects the session before the error) in the new rewrite
+  `CWorldClient::Segment` (005641F0, src/game/world_client.cpp).
 - **SetEiPluginMode** - writes 0xAADD0080 at 0073AF10 (padding after .text) for EI_Plugin.asi.
 - Disabled: GameExeDebug (debug log file), CommandLine (addon's command line mode), GraphGenPatches,
   MenuMultiDisable, MenuSingleDisable, PreventZone1Animation, ForceShowTutorial.
@@ -439,6 +440,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | AllowScriptsInMainMenu | new: GameFlow::StartZone 0057C460 (world_game.cpp) | ours only (tears down and loads zones): the campaign mode is the one asked for (or 2 / 8), and +0x160 is set in the menu with the flag |
 | FixCreateItem | new: CItemManager::CreateItem 006AC970 (item_constructor.cpp) | ours only (creates objects): a created item has an item class, a "spell container[...]" one its spell |
 | DisableExitOnCrashReport (FatalError sites) | new: FatalError 00480080 (app.cpp) | none (it shows a message box and exits): a plain replacement |
+| DisableExitOnCrashReport (third site) | new: CWorldClient::Segment 005641F0 (world_client.cpp) | ours only (the client tick): returns 1 and the game time advances by one tick unless paused (+0x6C), or 0 for a lost connection |
 | FixSpellSelfCasting #1 | new: CBattleScreen::SelectUnit 00638EF0 (ui_hud.cpp) | ours only (orders, sounds): the pending action stays one of the nine, and actions 5, 6, 8 that went back to 0 cleared the item and spell |
 | FixAddMapObject | new: CWorldServer::CreateObject 005927C0 (world_units.cpp) | ours only (creates objects): the returned id is in the object and map-object maps, or in the timed map for sounds, lights and kind 4 |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
@@ -472,7 +474,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| DisableExitOnCrashReport | the third site: 005641F0, the world frame (1.5 KB) | 1 day |
 | NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
 | PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 and addon's unordered_map order (above) | 2 days |
 | AddNewScriptCommands | ~50 new script commands plus the table switch in 12 parser/executor functions (mostly rewritten) | 1-2 weeks |
@@ -497,6 +498,9 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
   004217E0, 00428F10, 0040C720, 0040C770, 00689950, 006AD670, 006A75E0, 004ABBD0, 004ABD00,
   004ACC10).
 - app.cpp: `ShowMessageBox` (004560D0), `ExitGame` (006E8DA7).
+- world_client.cpp (Segment): 005F8070, 006B7740, 006B78A0, 006B7A00, 006B9B10, 00479E30, 00665DE0,
+  00665A10, 0056FC60, 005704A0, 00405350, 0057F440, 00498480, 00572550, 00572580, 005725B0,
+  0068D730, 006C8680, 00694020.
 - world_units.cpp (CreateObject): the object setup calls 0050EA40, 0050E9F0, 0050EA70, 00517700,
   005179E0, 0050F150, 0052B3F0, 0052A2C0, 00675CA0; the map objects manager's 00513630, 00513B60,
   005141F0; 0058E850, 00689030, 006AC970; CString / CStringArray 00700AF9, 00700AA9, 006FEB61;

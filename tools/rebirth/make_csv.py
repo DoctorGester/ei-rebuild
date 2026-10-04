@@ -97,7 +97,7 @@ SITE_STATUS = {
  ('FixSpellEffectsOverflow', 0x0050F1E0): 'implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/map_object.cpp)',
  ('DisableExitOnCrashReport', 0x004800A7): 'implemented: new rewrite FatalError 00480080 (src/game/app.cpp; the addon.log line is not reproduced)',
  ('DisableExitOnCrashReport', 0x004800C9): 'implemented: new rewrite FatalError 00480080 (src/game/app.cpp)',
- ('DisableExitOnCrashReport', 0x00564330): 'not started: 005641F0 (the world frame, 1.5 KB) not rewritten',
+ ('DisableExitOnCrashReport', 0x00564330): 'implemented: new rewrite CWorldClient::Segment 005641F0 (src/game/world_client.cpp)',
  ('FixSpellEffectsOverflow', 0x0058D82E): 'implemented: new rewrite CWorldServer::UpdateUnits 0058D670 (TickSleepingEffects; src/game/world_tick.cpp)',
 }
 # What addon writes at each site, for the sites worth saying more than the patch summary.
