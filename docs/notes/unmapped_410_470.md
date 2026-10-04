@@ -491,6 +491,12 @@ using it; ObjectRef writes a zero key when saving.
 | 004371E0 / 00437210 / 004372B0 / 004372E0 / 00437310 / 00437340 | the base session's "Can't handle ..." loggers (slots 4, 5, 7-10) | replaced only |
 | 00436C30 / 00436C60 | BufferWriteRaw / BufferWrite | in-memory side by side |
 | 00436F60 / 00436F80 / 00436FA0 | SessionSend / SessionRateFor (12500 local, 2500 otherwise, read from 00783E34/38) / SessionSendLeave | ours / side by side / ours |
+| 00436DD0 | SessionAddClient (drops an old connection to the address, appends a new one; send interval = 0073BF48 / clamp(rate, 500, 50000)) | ours |
+| 00436A50 / 004368D0 | SessionBase::Destruct (leave packets to every client, then the tables) / deleting destructor (slot 0) | ours |
+
+Not rewritten in this round: 004368F0 (the type registry's destructor, reached only from exception
+unwind funclets), the connection's constructor / clone / destructor (00432DA0, 00433060, 00433320,
+004334C0) and the client / server session classes' large slots (0041xxxx).
 
 All reached by tests/scenarios/net_lobby.txt (the lobby runs the game server and client sessions),
 except GameInfoRecord::Read (a client listing servers) and the drop paths (timeouts, bad updates).
