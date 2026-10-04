@@ -213,6 +213,13 @@ static int __fastcall ReadAIGraphVerify(CWorldServer* self, void*, const char* m
 }
 EI_VERIFY(0x00596140, ReadAIGraphVerify, 7, s_originalReadAIGraph);
 
+// 00596350: the scripts go to the command queue (original code); logged.
+static void __fastcall LoadZoneScriptsVerify(CWorldServer* self, void*, const char* mob) {
+    self->LoadZoneScripts(mob);
+    ei::verify::Check("CWorldServer::LoadZoneScripts", true, true, "%s", mob ? mob : "");
+}
+EI_VERIFY(0x00596350, LoadZoneScriptsVerify, 0, s_unused);
+
 // 005956E0: refills units through original code; the map objects stay registered.
 static void __fastcall PrepareSaveVerify(CWorldServer* self, void*) {
     self->PrepareSave();

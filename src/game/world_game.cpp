@@ -1022,6 +1022,97 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
     return found;
 }
 
+// ---- LoadZoneScripts ------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uint32_t kScriptsChunk = 0xA000;          // the .mob file's scripts chunk
+constexpr std::uint32_t kScriptEncoded = 0xACCEECCB;     // in it: the script text, packed and XORed
+constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script text as is
+constexpr int kSlotStreamWrite = 2;
+
+// A pair of STLport vector<char> (0x18 bytes): the decoded text, then the encoded bytes.
+// 00598940 constructs an empty vector (allocator by pointer); 0042D2C0 / 00598D80 free them;
+// 004D8EB0 (RET 8) resizes one, filling with *value; 004D8E10 (RET 4) decodes `in` into `out`
+// and the CString.
+struct CharVector {
+    char* begin;
+    char* end;
+    char* capacity;
+};
+struct ScriptDecoder {
+    CharVector out;
+    CharVector in;
+};
+__declspec(naked) void __fastcall CharVectorConstruct(CharVector*, void*, const char* /*allocator*/) EI_ORIGINAL(0x00598940)
+__declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x0042D2C0)
+__declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
+__declspec(naked) void __fastcall CharVectorResize(CharVector*, void*, unsigned, const char*) EI_ORIGINAL(0x004D8EB0)
+__declspec(naked) void __fastcall ScriptDecode(ScriptDecoder*, void*, mfc::CString*) EI_ORIGINAL(0x004D8E10)
+// 004A5490 (RET 4). CMemoryStream::Seek. 00468C20: Reset.
+__declspec(naked) void __fastcall MemorySeek(CMemoryStream*, void*, std::uint32_t) EI_ORIGINAL(0x004A5490)
+__declspec(naked) void __fastcall MemoryReset(CMemoryStream*, void*) EI_ORIGINAL(0x00468C20)
+// 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
+__declspec(naked) void __fastcall QueueReset(void*, void*) EI_ORIGINAL(0x004BE6E0)
+__declspec(naked) void __fastcall QueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+
+// A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
+struct LocalMemoryStream {
+    CMemoryStream s;
+    LocalMemoryStream() {
+        std::memset(&s, 0, sizeof(s));
+        s.unknown_8 = kStreamLimit;
+        s.ok_ = 1;
+        s.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        s.data_ = nullptr;
+        MemoryReset(&s, nullptr);
+    }
+    ~LocalMemoryStream() {
+        s.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        if (s.data_) gamecrt::operator_delete(s.data_);
+        s.vtable_ = reinterpret_cast<void*>(kStreamVtable);
+    }
+    LocalMemoryStream(const LocalMemoryStream&) = delete;
+    LocalMemoryStream& operator=(const LocalMemoryStream&) = delete;
+};
+
+} // namespace
+
+void CWorldServer::LoadZoneScripts(const char* mob) {
+    LocalFileStream file;
+    mfc::CString script;
+    LocalMemoryStream scripts;
+    LocalMemoryStream text;
+    ScriptDecoder decoder;
+    char allocator = 0;
+    CharVectorConstruct(&decoder.out, nullptr, &allocator);
+    CharVectorConstruct(&decoder.in, nullptr, &allocator);
+    {
+        alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+        mfc::CString* path = MapPathInto(this, nullptr, storage, mob);
+        file.Open(*path, kOpenRead, 1);
+        path->~CString();
+    }
+    StreamReadChunk(&file.stream, nullptr, kScriptsChunk, &scripts.s);
+    if (StreamReadChunk(&scripts.s, nullptr, kScriptEncoded, &text.s)) {
+        const std::uint8_t* data = text.s.data_;
+        std::uint32_t size = text.s.size_;
+        char zero = 0;
+        CharVectorResize(&decoder.in, nullptr, size, &zero);
+        std::memmove(decoder.in.begin, data, size);
+        ScriptDecode(&decoder, nullptr, &script);
+    } else if (StreamReadChunk(&scripts.s, nullptr, kScriptPlain, &text.s)) {
+        MemorySeek(&text.s, nullptr, text.s.size_);
+        char zero = 0;
+        ei::VCall<void>(&text.s, kSlotStreamWrite, &zero, 1u);
+        script = reinterpret_cast<const char*>(text.s.data_);
+    }
+    QueueReset(commandsA_, nullptr);
+    QueueAdd(commandsA_, nullptr, &script, 1);
+    EncodedFree(&decoder.in, nullptr);
+    DecodedFree(&decoder.out, nullptr);
+}
+
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
 
 namespace {
@@ -1076,6 +1167,7 @@ EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
 EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE(0x0057AAB0, ClearSaveFolder);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
+EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
 EI_REPLACE(0x00581630, RequestZone);
