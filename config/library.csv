@@ -3080,3 +3080,4 @@ address,name,library,signature,notes
 0041F7F0,"stlp::vector<T>::~vector (0x2C-byte elements with a GameBuffer at +0x10)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 00421A50,"stlp::list<RefPtr>::~list",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 0041C950,"stlp::list<pair<K,RefPtr>>::~list",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004238B0,"stlp::list<RefPtr>::~list",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic

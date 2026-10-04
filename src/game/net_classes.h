@@ -236,6 +236,8 @@ struct ServerSession {
 
     // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
     ServerSession* Construct(std::uint32_t arg);
+    // 00417BC0 (net_server_life.cpp). The destructor body (00417A10 is the deleting destructor).
+    void Destruct();
     // 004186F0 (net_server_map.cpp). Switches the server to map `name`.
     void SetMap(const StringRep* name);
     // 00418ED0 (net_server_awards.cpp). The zone completion command ("<zone>_3"): the clients'
