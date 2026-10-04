@@ -461,3 +461,14 @@ static int __fastcall CampTakeOffVerify(CCampPages* self, void*, std::uint8_t* i
     return result;
 }
 EI_VERIFY(0x0060FE40, CampTakeOffVerify, 0, s_unused);
+
+// 005F67A0: ours only (a constructor). Vtables, empty arrays, the identity turn.
+static CGlobalMap* __fastcall GlobalMapConstructVerify(CGlobalMap* self, void*, CInterface3D* ui) {
+    CGlobalMap* result = self->Construct(ui);
+    bool ok = result == self && self->vtable_ == reinterpret_cast<void**>(0x00740B3C) && self->interface_ == ui &&
+              self->zones_.size == 0 && self->links_.size == 0 && self->quests_.size == 0 && self->turn_[0] == 1.0f;
+    ei::verify::Check("CGlobalMap::Construct", true, ok, "vtable %p zones %d links %d quests %d", self->vtable_,
+                      self->zones_.size, self->links_.size, self->quests_.size);
+    return result;
+}
+EI_VERIFY(0x005F67A0, GlobalMapConstructVerify, 0, s_unused);

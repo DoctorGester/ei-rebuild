@@ -864,3 +864,55 @@ namespace {
 void __fastcall GlobalMapUpdate(CGlobalMap* self, void*) { self->Update(); }
 } // namespace
 EI_REPLACE(0x0062F050, GlobalMapUpdate);
+
+// --- 005F67A0: the constructor --------------------------------------------------------------------
+
+namespace {
+__declspec(naked) void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
+// The STLport containers' constructors (thiscall): 005FA0C0 (compare, allocator; RET 8) at
+// +0x1D0, 005FA100 (allocator; RET 4: the tree header node) and 005FA0E0 (empties it) at +0x1E0.
+__declspec(naked) void __fastcall ConstructPair(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA0C0)
+__declspec(naked) void __fastcall ConstructTree(void*, void*, const void*) EI_ORIGINAL(0x005FA100)
+__declspec(naked) void __fastcall EmptyTree(void*) EI_ORIGINAL(0x005FA0E0)
+
+void PutDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
+std::uint32_t EmptyCString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }
+} // namespace
+
+CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
+    ConstructContainerAt(this, nullptr, ui);
+    PutDword(this, 0x17C, EmptyCString());
+    // Three CArrays: zones, links, quests.
+    const std::uint32_t vtables[3] = {0x00740BFC, 0x00740BF0, 0x00740BE4};
+    for (int i = 0; i < 3; ++i) {
+        int at = 0x18C + i * 0x14;
+        PutDword(this, at, vtables[i]);
+        PutDword(this, at + 4, 0);
+        PutDword(this, at + 0x10, 0);
+        PutDword(this, at + 0xC, 0);
+        PutDword(this, at + 8, 0);
+    }
+    PutDword(this, 0x1C8, 0);
+    PutDword(this, 0x1CC, 0);
+    // The empty compare / allocator objects are passed by address: the original passes the
+    // argument slot (holding `ui`) and a zeroed local; the tree keeps the slot's first byte.
+    CInterface3D* slot = ui;
+    std::uint32_t zero = 0;
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    ConstructPair(self + 0x1D0, nullptr, &slot, &zero);
+    PutDword(this, 0x1D8, EmptyCString());
+    std::uint8_t* tree = self + 0x1E0;
+    ConstructTree(tree, nullptr, &slot);
+    PutDword(tree, 4, 0);
+    tree[8] = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(slot));
+    EmptyTree(tree);
+    PutDword(this, 0x1EC, 0x3F800000);   // the identity turn
+    PutDword(this, 0x1F0, 0);
+    PutDword(this, 0x1F4, 0);
+    PutDword(this, 0x1F8, 0);
+    PutDword(this, 0x274, EmptyCString());
+    vtable_ = reinterpret_cast<void**>(0x00740B3C);
+    inputVtable_ = reinterpret_cast<void**>(0x00740B08);
+    return this;
+}
+EI_REPLACE_METHOD(0x005F67A0, CGlobalMap::Construct);

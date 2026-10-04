@@ -115,6 +115,10 @@ public:
     // their regions with it; bobs the current zone's arrow, animates the layers, refreshes the
     // zone selection when asked, draws the weather into texture 4, sets the cursor.
     void Update();
+    // 005F67A0 (RET 4). Constructor (inlined into nothing; called by CreateScreen 4): the
+    // container base, empty strings and arrays (vtables 00740BFC / 00740BF0 / 00740BE4), the two
+    // STLport containers at +0x1D0 and +0x1E0, the identity turn; returns this.
+    CGlobalMap* Construct(CInterface3D* ui);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
