@@ -617,3 +617,25 @@ records), +0x2C their index. The registry image is attached (00694610; not a reg
 
 Risk: ours has no unwinding for the raw records if a member throws (the original's EH would
 destroy them).
+
+## Composed textures (00693180)
+
+Files: `src/game/texture_compose.cpp`, `tests/verify/verify_texture_compose.cpp`.
+
+| Address | Name | Verify |
+|---|---|---|
+| 00693180 | `ComposeTexture` (texture manager thiscall, RET 0x1C) | ours only: result 0 / 1; after 1 the cache file of the returned name holds the request's layer bytes |
+
+Arguments: the name used (out), the skin request (`SkinRequest`: layer bytes, layer texture names,
+size), the cache name, a fallback name, the mip count, the fill colour, the pixel format. The cache
+file is `<game folder>textures\<name>.mmp`; its extra block (header +0x48) is the request's layer
+bytes, so a file with the same bytes is reused (result 1). When `name` has no file and differs from
+the fallback, the fallback's file is tried (the out name becomes the fallback; a mismatch switches
+back to `name`, a missing fallback file keeps it). Otherwise: no layer textures deletes the file
+(0); the image (size x size 32-bit pixels, cleared to the fill colour) is drawn by 00693010 (0 on
+failure) and written: the header ("MMP", size, mip count, format fields from 00693820 / 00693850 /
+006938B0 / 00693910 or inline for 0x5650 and "PNT2"/"PNT3"), the layer bytes, then each level
+converted to 16 bits by the pixel converter 007AF06C (slot 2 [out, in, kind, count], kind 3 for
+4444, 2 for 5551, 0 for 5650, else -1) and halved by slot 7 [out, in, width]. A file that cannot be
+created goes to FatalError (the image block leaks, as in the original). Callers: 00536670 /
+005370F0 (party unit skins), 00568800 (unit skins at zone load).
