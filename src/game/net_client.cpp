@@ -11,6 +11,16 @@
 
 namespace net {
 
+// The handler registration templates (net_handler_registrars.cpp).
+void __fastcall RegisterMapHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterVariableHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterFileHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterChunkHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterAwardHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterPartyHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterTradeHandler(SessionBase* self, void*, int channel, void* handler);
+
 namespace {
 
 // 004DA7F0: the growing byte buffer's constructor (net_coder.h, GameBuffer).
@@ -36,27 +46,6 @@ __declspec(naked) void* __fastcall ListConstruct420F10(void* /*list*/, void*, co
 __declspec(naked) void* __fastcall ListConstruct424750(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00424750)
 __declspec(naked) void* __fastcall ListConstruct4231C0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004231C0)
 __declspec(naked) void* __fastcall ListConstruct4249E0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004249E0)
-
-// Handler registration templates (one per message class): make a prototype, look up its type id
-// and add `handler` for it on `channel`. Not rewritten yet.
-struct HandlerRegistrar {
-    void Register428090(int channel, void* handler);
-    void Register4281C0(int channel, void* handler);
-    void Register4282F0(int channel, void* handler);
-    void Register428440(int channel, void* handler);
-    void Register428550(int channel, void* handler);
-    void Register428690(int channel, void* handler);
-    void Register4287D0(int channel, void* handler);
-    void Register4288E0(int channel, void* handler);
-};
-__declspec(naked) void HandlerRegistrar::Register428090(int, void*) EI_ORIGINAL(0x00428090)
-__declspec(naked) void HandlerRegistrar::Register4281C0(int, void*) EI_ORIGINAL(0x004281C0)
-__declspec(naked) void HandlerRegistrar::Register4282F0(int, void*) EI_ORIGINAL(0x004282F0)
-__declspec(naked) void HandlerRegistrar::Register428440(int, void*) EI_ORIGINAL(0x00428440)
-__declspec(naked) void HandlerRegistrar::Register428550(int, void*) EI_ORIGINAL(0x00428550)
-__declspec(naked) void HandlerRegistrar::Register428690(int, void*) EI_ORIGINAL(0x00428690)
-__declspec(naked) void HandlerRegistrar::Register4287D0(int, void*) EI_ORIGINAL(0x004287D0)
-__declspec(naked) void HandlerRegistrar::Register4288E0(int, void*) EI_ORIGINAL(0x004288E0)
 
 void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
 
@@ -154,26 +143,25 @@ ClientSession* ClientSession::Construct() {
     RegisterInline(this, 0x18, ConstructMessage73BCD0, 0, 0x0041E790);
     RegisterInline(this, 0x18, ConstructMessage73BCD0, 2, 0x0041E850);
 
-    auto* registrar = reinterpret_cast<HandlerRegistrar*>(this);
-    registrar->Register428090(0, Handler(0x0041E900));
-    registrar->Register428090(2, Handler(0x0041E960));
-    registrar->Register4281C0(0, Handler(0x0041E990));
-    registrar->Register4281C0(1, Handler(0x0041EA10));
-    registrar->Register4281C0(2, Handler(0x0041EA20));
-    registrar->Register4282F0(0, Handler(0x0041EAC0));
-    registrar->Register4282F0(2, Handler(0x0041EBF0));
-    registrar->Register428440(0, Handler(0x0041ECC0));   // patched by Rebirth: passed by address
-    registrar->Register428440(2, Handler(0x0041EF10));
-    registrar->Register428550(0, Handler(0x0041EF90));
-    registrar->Register428690(0, Handler(0x0041EFF0));
-    registrar->Register428690(1, Handler(0x0041F090));
-    registrar->Register428690(2, Handler(0x0041F0D0));
-    registrar->Register4287D0(0, Handler(0x0041F150));
-    registrar->Register4287D0(1, Handler(0x0041F180));
-    registrar->Register4287D0(2, Handler(0x0041F1B0));
-    registrar->Register4288E0(0, Handler(0x0041F1E0));
-    registrar->Register4288E0(1, Handler(0x0041F270));
-    registrar->Register4288E0(2, Handler(0x0041F3A0));
+    RegisterMapHandler(&base, nullptr, 0, Handler(0x0041E900));
+    RegisterMapHandler(&base, nullptr, 2, Handler(0x0041E960));
+    RegisterVariableHandler(&base, nullptr, 0, Handler(0x0041E990));
+    RegisterVariableHandler(&base, nullptr, 1, Handler(0x0041EA10));
+    RegisterVariableHandler(&base, nullptr, 2, Handler(0x0041EA20));
+    RegisterFileHandler(&base, nullptr, 0, Handler(0x0041EAC0));
+    RegisterFileHandler(&base, nullptr, 2, Handler(0x0041EBF0));
+    RegisterChunkHandler(&base, nullptr, 0, Handler(0x0041ECC0));   // patched by Rebirth: passed by address
+    RegisterChunkHandler(&base, nullptr, 2, Handler(0x0041EF10));
+    RegisterAwardHandler(&base, nullptr, 0, Handler(0x0041EF90));
+    RegisterPartyHandler(&base, nullptr, 0, Handler(0x0041EFF0));
+    RegisterPartyHandler(&base, nullptr, 1, Handler(0x0041F090));
+    RegisterPartyHandler(&base, nullptr, 2, Handler(0x0041F0D0));
+    RegisterMemberHandler(&base, nullptr, 0, Handler(0x0041F150));
+    RegisterMemberHandler(&base, nullptr, 1, Handler(0x0041F180));
+    RegisterMemberHandler(&base, nullptr, 2, Handler(0x0041F1B0));
+    RegisterTradeHandler(&base, nullptr, 0, Handler(0x0041F1E0));
+    RegisterTradeHandler(&base, nullptr, 1, Handler(0x0041F270));
+    RegisterTradeHandler(&base, nullptr, 2, Handler(0x0041F3A0));
 
     ei::VCall<void>(&records[0], 2);
     ei::VCall<void>(&records[1], 2);

@@ -288,6 +288,7 @@ struct ServerSession {
     void Kick(void* connection);                          // 0041A550
     void Ban(void* connection);                           // 0041A620
     void ReportDeparture(void* connection, int text);     // 0041A700 (slot 11, 4) / 0041A770 (slot 12, 1)
+    bool IsHostConnection(void* connection);              // 00419F90 (net_server_commands.cpp)
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);

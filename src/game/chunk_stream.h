@@ -9,6 +9,7 @@
 // docs/notes/unmapped_410_470.md.
 
 #include "maths.h"
+#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -63,11 +64,26 @@ struct Chunk {
     void WriteVector3(std::uint32_t id, std::uint32_t x, std::uint32_t y, std::uint32_t z); // 0042CD70
     void WriteQuaternion(std::uint32_t id, Float4 value);                    // 0042D0E0
     void WriteBlob(std::uint32_t id, const void* data, int size);            // 0042CFA0
+    // Text. A string chunk's content is its characters (no terminator); the string arrays are a
+    // count followed by one string chunk per element (all with the array chunk's id). CStrings are
+    // returned and passed by value as in the original (hidden return pointer, callee-destroyed
+    // argument).
+    mfc::CString* ReadString(mfc::CString* out);                             // 0042C580, returns out
+    mfc::CString* ReadEncodedString(mfc::CString* out);                      // 0042C650, returns out
+    void WriteString(std::uint32_t id, mfc::CString text);                   // 0042C820
+    void ReadStringArray(void* array);                                       // 0042CA20 (CStringArray)
+    void WriteStringArray(std::uint32_t id, void* array);                    // 0042CB80 (CStringArray)
 };
 static_assert(offsetof(Chunk, parent_) == 0x14);
 static_assert(sizeof(Chunk) == 0x18);
 
 constexpr std::uintptr_t kChunkVtable = 0x0073BE94;
+
+// The root chunk of a file (vtable 0073BE9C: slot 1 returns the CFile embedded at +0x18): 0042D160
+// opens the file (CFile::Open through its vtable with the low 16 bits of `flags`), 0042D270 is the
+// destructor body.
+int __fastcall ChunkRootOpen(Chunk* self, void*, mfc::CString path, unsigned flags);
+void __fastcall ChunkRootDestruct(Chunk* self);
 
 // 0042BF40: slot 1 of the base chunk (__fastcall shim of a virtual): the parent's file, or null.
 void* __fastcall ChunkFile(Chunk* self);

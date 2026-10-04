@@ -1,7 +1,7 @@
-// The game server's destructor (00417BC0) and scalar deleting destructor (00417A10, slot 0). The
-// members are torn down in reverse order through their STLport destructors and the counted
-// pointers' releases, then the session base. See net_classes.h and docs/notes/unmapped_410_470.md
-// ("Seventh round").
+// The game server's destructor (00417BC0), scalar deleting destructor (00417A10, slot 0) and its
+// base layer's destructor body (004132F0). The members are torn down in reverse order through
+// their STLport destructors and the counted pointers' releases, then the session base. See
+// net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round", "Eighth round").
 #include "net_classes.h"
 #include "core_refcount.h"
 
@@ -84,6 +84,15 @@ namespace {
 void __fastcall ServerDestructHook(ServerSession* self) { self->Destruct(); }
 } // namespace
 EI_REPLACE(0x00417BC0, ServerDestructHook);
+
+// 004132F0: the destructor body of the server's base layer (reached from its scalar deleting
+// destructor 004132D0 and the constructor's unwind funclets): the list at +0x2568, then the
+// session base. The same steps end ServerSession::Destruct.
+void __fastcall ServerBaseDestruct(ServerSession* self) {
+    List2568Destruct(&self->list_2568);
+    self->base.Destruct();
+}
+EI_REPLACE(0x004132F0, ServerBaseDestruct);
 
 // 00417A10 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
 ServerSession* __fastcall ServerDeletingDestructor(ServerSession* self, void*, unsigned flags) {

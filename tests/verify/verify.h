@@ -54,8 +54,14 @@ bool NearlyEqual(F expected, F actual, int maxUlps, F absEps) {
     std::memcpy(&a, &expected, sizeof(F));
     std::memcpy(&b, &actual, sizeof(F));
     // NaN by bits: /fp:fast folds `v != v` to false.
-    constexpr I kExp = sizeof(F) == 4 ? I(0x7F800000) : I(0x7FF0000000000000LL);
-    constexpr I kMan = sizeof(F) == 4 ? I(0x007FFFFF) : I(0x000FFFFFFFFFFFFFLL);
+    I kExp, kMan;
+    if constexpr (sizeof(F) == 4) {
+        kExp = I(0x7F800000);
+        kMan = I(0x007FFFFF);
+    } else {
+        kExp = I(0x7FF0000000000000LL);
+        kMan = I(0x000FFFFFFFFFFFFFLL);
+    }
     bool nanA = (a & kExp) == kExp && (a & kMan) != 0;
     bool nanB = (b & kExp) == kExp && (b & kMan) != 0;
     if (nanA || nanB) return nanA && nanB;

@@ -6,6 +6,8 @@
 //  - The engine object constructor: side by side on a copy of its 0x1C bytes.
 //  - The destructors, CloseFile, OpenFile, RecordFrame, LoadState / SaveState: ours only (the file
 //    functions touch the disk).
+//  - CameraRecordsAllocate: ours only (it allocates); the start is 32-byte aligned and the dword
+//    before it points at most 0x23 bytes back.
 #include "net_verify.h"
 
 #include "../../src/game/core_transform.h"
@@ -24,6 +26,7 @@ int __fastcall CameraOpenFile(CCamera* self, void*, const char* name);
 int __fastcall CameraRecordFrame(CCamera* self, void*, std::uint32_t time);
 int __fastcall CameraCreate(CCamera* self);
 void __fastcall CameraDestroy(CCamera* self);
+void* __fastcall CameraRecordsAllocate(int count);
 
 namespace {
 
@@ -170,6 +173,14 @@ void __fastcall SaveStateVerify(CCamera* self, void*, void* stream) {
     ei::verify::Check("CCamera::SaveState", true, true, "");
 }
 
+void* __fastcall RecordsAllocateVerify(int count) {
+    void* start = CameraRecordsAllocate(count);
+    std::uintptr_t a = reinterpret_cast<std::uintptr_t>(start);
+    std::uintptr_t block;
+    std::memcpy(&block, static_cast<std::uint8_t*>(start) - 4, 4);
+    ei::verify::Check("CameraRecordsAllocate", true, (a & 0x1F) == 0 && block <= a - 4 && a - block <= 0x23, "%d", count);
+    return start;
+}
 } // namespace
 
 EI_VERIFY(0x0040CB20, EngineCtorVerify, 10, s_engineCtor);
@@ -191,3 +202,4 @@ EI_VERIFY(0x0040E910, OpenFileVerify, 0, s_unused);
 EI_VERIFY(0x0040EB60, RecordFrameVerify, 0, s_unused);
 EI_VERIFY(0x00410AB0, LoadStateVerify, 0, s_unused);
 EI_VERIFY(0x00410C10, SaveStateVerify, 0, s_unused);
+EI_VERIFY(0x00412120, RecordsAllocateVerify, 0, s_unused);

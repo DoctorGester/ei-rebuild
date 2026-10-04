@@ -18,6 +18,14 @@
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
 RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
 void __fastcall PairReleaseSecond(void* self);                                    // refptr_copies.cpp
+void __fastcall PairDestroySecond(void* self);                                    // refptr_copies.cpp
+void __fastcall ReleaseThird(void* self);                                         // refptr_copies.cpp
+RefPtr* __fastcall RefPtrAssignHolder(RefPtr* self, void*, const RefPtr* other);  // refptr_copies.cpp
+RefPtr* __fastcall RefPtrAssignObject(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
+bool __fastcall RefIsUnique(const CRefObject* object);                            // refptr_copies.cpp
+int __fastcall RefDetachShutdown(CRefObject* object);                             // refptr_copies.cpp
+void __fastcall ObjectHolderRelease(void** self);                                 // refptr_copies.cpp
+void __fastcall ObjectHolderAssign(void** self, void*, void* object);             // refptr_copies.cpp
 void __fastcall RefPtrClear(RefPtr* self);                                        // refptr_copies.cpp
 RefPtr* __fastcall RefPtrNull(RefPtr* self);                                      // refptr_copies.cpp
 RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);               // refptr_copies.cpp
@@ -120,6 +128,9 @@ EI_DESTROY_COPY(0042A610)
 EI_DESTROY_COPY(0047A3F0)
 EI_DESTROY_COPY(0047C1E0)
 EI_DESTROY_COPY(0047D560)
+EI_DESTROY_COPY(00436430)
+EI_DESTROY_COPY(00438AA0)
+EI_DESTROY_COPY(00438B30)
 
 // The release copies: one copy of the body serves as the original of all of them.
 HolderFn CopyReleaseBody() {
@@ -228,6 +239,9 @@ EI_VERIFY(0x0042A610, DestroyVerify_0042A610, 6, s_destroy_0042A610);
 EI_VERIFY(0x0047A3F0, DestroyVerify_0047A3F0, 6, s_destroy_0047A3F0);
 EI_VERIFY(0x0047C1E0, DestroyVerify_0047C1E0, 6, s_destroy_0047C1E0);
 EI_VERIFY(0x0047D560, DestroyVerify_0047D560, 6, s_destroy_0047D560);
+EI_VERIFY(0x00436430, DestroyVerify_00436430, 6, s_destroy_00436430);
+EI_VERIFY(0x00438AA0, DestroyVerify_00438AA0, 6, s_destroy_00438AA0);
+EI_VERIFY(0x00438B30, DestroyVerify_00438B30, 6, s_destroy_00438B30);
 
 EI_VERIFY(0x004141D0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00415550, ReleaseVerify, 0, s_unused);
@@ -240,6 +254,8 @@ EI_VERIFY(0x0041C8F0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0041DDA0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0041E670, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0041E830, ReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00412260, ReleaseVerify, 0, s_unused);
+EI_VERIFY(0x004122B0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00427240, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00427460, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00427540, ReleaseVerify, 0, s_unused);
@@ -377,3 +393,90 @@ EI_VERIFY(0x00428C20, RawVerify_00428C20, 11, s_raw_00428C20);
 EI_VERIFY(0x00428C30, RawVerify_00428C30, 11, s_raw_00428C30);
 EI_VERIFY(0x00428C40, RawVerify_00428C40, 11, s_raw_00428C40);
 EI_VERIFY(0x00428DE0, RawVerify_00428DE0, 11, s_raw_00428DE0);
+
+// The owner's release at +4: dry runs on a stand-in held at +4; the 64-byte body of 00421560
+// (internal jumps only) copied to executable memory is the original.
+namespace {
+using PairDestroyFn = void(__fastcall*)(void*);
+PairDestroyFn CopyPairDestroyBody() {
+    constexpr std::size_t kSize = 0x40;
+    void* copy = ::VirtualAlloc(nullptr, kSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (copy) std::memcpy(copy, reinterpret_cast<const void*>(0x00421560), kSize);
+    return reinterpret_cast<PairDestroyFn>(copy);
+}
+PairDestroyFn s_pairDestroyBody = CopyPairDestroyBody();
+
+void __fastcall PairDestroyVerify(void* self) {
+    if (s_pairDestroyBody) {
+        static DryRun expected, actual;
+        CRefObject* object = reinterpret_cast<RefPtr*>(static_cast<std::uint8_t*>(self) + 4)->ptr;
+        DryRunOn(expected, object, [](RefPtr* p) { s_pairDestroyBody(reinterpret_cast<std::uint8_t*>(p) - 4); });
+        DryRunOn(actual, object, [](RefPtr* p) { PairDestroySecond(reinterpret_cast<std::uint8_t*>(p) - 4); });
+        ei::verify::Check("PairDestroySecond", true, Same(expected, actual), "%p", object);
+    }
+    PairDestroySecond(self);
+}
+
+// The release at +8: as the releases at +4 (the 29-byte body of 0043A120).
+PairFn CopyThirdReleaseBody() {
+    constexpr std::size_t kSize = 0x1D;
+    void* copy = ::VirtualAlloc(nullptr, kSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (copy) std::memcpy(copy, reinterpret_cast<const void*>(0x0043A120), kSize);
+    return reinterpret_cast<PairFn>(copy);
+}
+PairFn s_thirdBody = CopyThirdReleaseBody();
+void __fastcall ThirdReleaseVerify(void* self) {
+    if (s_thirdBody) {
+        static DryRun expected, actual;
+        CRefObject* object = reinterpret_cast<RefPtr*>(static_cast<std::uint8_t*>(self) + 8)->ptr;
+        DryRunOn(expected, object, [](RefPtr* p) { s_thirdBody(reinterpret_cast<std::uint8_t*>(p) - 8); });
+        DryRunOn(actual, object, [](RefPtr* p) { ReleaseThird(reinterpret_cast<std::uint8_t*>(p) - 8); });
+        ei::verify::Check("ReleaseThird", true, Same(expected, actual), "%p", object);
+    }
+    ReleaseThird(self);
+}
+
+// The assignments, the holder of engine objects: ours only (they release and share).
+RefPtr* __fastcall AssignHolderVerify(RefPtr* self, void*, const RefPtr* other) {
+    RefPtr* result = RefPtrAssignHolder(self, nullptr, other);
+    ei::verify::Check("RefPtrAssignHolder", true, result == self, "");
+    return result;
+}
+RefPtr* __fastcall AssignObjectVerify(RefPtr* self, void*, CRefObject* object) {
+    RefPtr* result = RefPtrAssignObject(self, nullptr, object);
+    ei::verify::Check("RefPtrAssignObject", true, result == self, "");
+    return result;
+}
+// 00429D80: XOR EAX,EAX (2), CMP word [ECX+4],1 (5). Side by side (it only reads).
+bool(__fastcall* s_isUnique)(const CRefObject*);
+bool __fastcall IsUniqueVerify(const CRefObject* object) {
+    bool expected = s_isUnique(object);
+    bool actual = RefIsUnique(object);
+    ei::verify::Check("RefIsUnique", expected, actual, "");
+    return actual;
+}
+int __fastcall DetachShutdownVerify(CRefObject* object) {
+    int result = RefDetachShutdown(object);
+    ei::verify::Check("RefDetachShutdown", true, (object->flags7_ & CRefObject::kDetached) != 0, "");
+    return result;
+}
+void __fastcall HolderReleaseVerify(void** self) {
+    ObjectHolderRelease(self);
+    ei::verify::Check("ObjectHolderRelease", true, true, "");
+}
+void __fastcall HolderAssignVerify(void** self, void*, void* object) {
+    ObjectHolderAssign(self, nullptr, object);
+    ei::verify::Check("ObjectHolderAssign", true, *self == object, "");
+}
+} // namespace
+
+EI_VERIFY(0x00421560, PairDestroyVerify, 0, s_unused);
+EI_VERIFY(0x004215C0, PairDestroyVerify, 0, s_unused);
+EI_VERIFY(0x00438AE0, PairDestroyVerify, 0, s_unused);
+EI_VERIFY(0x0043A120, ThirdReleaseVerify, 0, s_unused);
+EI_VERIFY(0x0042A770, AssignHolderVerify, 0, s_unused);
+EI_VERIFY(0x00438110, AssignObjectVerify, 0, s_unused);
+EI_VERIFY(0x00429D80, IsUniqueVerify, 7, s_isUnique);
+EI_VERIFY(0x00429D90, DetachShutdownVerify, 0, s_unused);
+EI_VERIFY(0x00421350, HolderReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00429B50, HolderAssignVerify, 0, s_unused);

@@ -21,7 +21,7 @@ code includes `object.h` (CMemoryStream), `core_refcount.h` (RefPtr), `core_math
 | 00410750-004114F0 | CCamera members (the camera at 0079B2A8; core.md has the rest): 004107A0 zoom by a power (mouse wheel, 005EB540; clamps to the camera settings object at +0x94), 00410860 / 004108D0 save / restore view slot 0-7 (+0x120 + 0x18 i: zoom, rotation, +0x104; keys in 005EADD0, saves 0057A780), 00410D70 / 00410D10 views 0-3 to / from the settings record (+0x178, axis-angle through `_CIacos`), 00410AB0 / 00410C10 camera to / from a file (0057ABA0, 0057B3B0), 00410E50 / 00411060 / 004110D0 / 00411470 free-camera look (00667BA0), 00411360 look-at target (flag 0x100), 004113A0 camera shake (effects; distance by `_hypot`, entry added to the list at +0x108), 004109E0 rotate by axis-angle |
 | 00411530-00412190 | STLport list instantiations for the camera shake list and the camera's other containers (list end / insert / erase / clear, node creation); 00411DF0 / 00412140 / 00412190 are called from 0040CE60 / 0040CFB0 (core range) |
 | 004122D0 | **network pump** (main loop, loading screens): ticks the game server and client sessions, then 0057F190 |
-| 00412370-00412D70 | network record classes: 0073BB28 (probably the player / session record; installed by 0041A7E0, 0041D420), 0073BB40 |
+| 00412370-00412D70 | the server entry 0073BB28 (the lobby's description of a game; made by 0041A7E0, 0041D420) on its base 0073BB40 (address and counters, constructor 004413E0) |
 | 00412D80 | **game server** constructor (pointer 0079B5DC; vtable 0073BB70, base 0073BBB4 = network session at 00436000-00444000); registers its message handlers (0041ADB0, 0041B1C0 chat, 0041B720, 0041B7A0, 0041B970, 0041BA30) and builds ~20 STLport lists |
 | 00413250-004179F0 | lobby record / message classes, 0x18 bytes apart from vtable 0073BBF8 to 0073BDD0 (slot 0 deleting destructor, 1 empty, 2 reset, 3 clone, 4 write to a byte cursor, 5 read); their base 0073BC10 (+8 type id), the reference-counted bases 0073BB58 / 0073BB68 (CRefObject); the memory stream's destructor (004173D0), Clear (00417350) and its base CStream (0073BDB0, 004174E0) |
 | 00417A10-0041B970 | game server: destructor (00417A10 / 00417BC0), slot 13 description (00417EB0), Tick (slot 14, 004182E0: timers, player list), players (0041A2E0 FindPlayer, 0041A020 leader id), the script's global variables in a network game (00419940 Get, 00419730 / 004197D0 / 004198D0 Set from 004B6760), chat and system text (0041A310, 0041A490), "^%i%s^7: %s" chat line (0041B1C0) |
@@ -35,7 +35,7 @@ code includes `object.h` (CMemoryStream), `core_refcount.h` (RefPtr), `core_math
 | 0042D690-0042D700 | CClientSpecificManager (vtable 0073BECC, 15 slots; 0042D700 creates objects by type through 0051AB00, 00510450, 005A7010, 00666D10, 00533AD0, 0052D0D0) |
 | 0042D910-0042E6A0 | **triangle clipping** for the mesh renderer's software path |
 | 0042E700 / 0042F4C0 / 0042F890 | polygon clipping variants with no references (dead code) |
-| 0042FAE0 | referenced from .data (007830C0) only |
+| 0042FAE0 | the coder's code tables (a static initialiser, from the .data list at 007830C0) |
 | 0042FCA0 / 0042FD10 | coder state (0x2828 bytes; save game and network compression): constructor, coder step (with 004301E0 / 00430450) |
 
 ### 00470000-00480000
@@ -658,3 +658,108 @@ parties (00661700, 00661DB0, 006611D0), MFC (CString, CFile, CFileFind members, 
 00402310 (452), 00402780 (radix sort, 887), 0042E700 (3436) and 0042F890 (397, called only
 by 0042E700 and 0042F4C0) have no references: only coincidental aligned dwords inside other
 functions' code made tools/find_dead_code.py count them live. Added to config/dead_code.csv.
+
+## Eighth round: the rest of 00400000-00440000
+
+216 functions replaced (commits 97fba1d .. bb511a7). Every Ghidra function of the range is now
+rewritten, library, dead or listed below as skipped. New unmapped functions were sized in
+config/extra_function_sizes.csv (and src/hook/function_sizes.inc) so they can be hooked: the
+server's command / object / player handlers (0041B2A0 974, 0041B690 134, 0041AD80 34,
+0041B0C0 242), six message factories, 14 client handlers, the exit-time destructors and three
+small helpers (see "Not Ghidra functions" below).
+
+### Rewritten
+
+| File | Functions |
+|---|---|
+| net_server_commands.cpp | 0041B2A0 ServerOnCommand (0073BC40 {kind, text}: 0 the host previews a map through 0057ED60; 1 a zone command, the queued map message whose zone is the text minus "_1" / "_2" / "_3" enters / leaves / finishes; 2 / 3 kick / ban by name; 4 / 5 by serial; only from the host's connection), 0041B690 ServerOnObjectAdded (0073BC58: keeps the sender's connection at +0x10, listed on +0x259C), 00419F90 IsHostConnection |
+| net_server_join.cpp | 0041AD80 ServerOnPlayerChanged (the player through the binding takes the record's +0x28 / +0x2C, version + 1), 0041B0C0 ServerOnPlayerGone (the live player leaves +0x2590, the first remaining one becomes host when it was; the binding leaves +0x25A4) |
+| net_message_classes.cpp | the 17 message classes 0073BBF8 .. 0073BDD0 and the server entry 0073BB28: factory, clone, reset, write, read, destructor body (107; the deleting destructors were in the seventh round) |
+| net_handler_registrars.cpp | the 11 instantiations of the handler registration template (004279B0, 00427AC0, 00427C40, 00428090, 004281C0, 004282F0, 00428440, 00428550, 00428690, 004287D0, 004288E0): a prototype from the class's factory, shared while its type id is looked up by vtable, AddHandler, released. The constructors now call them directly instead of through forwarders. |
+| net_client_handlers.cpp | the client's handlers 0041E430-0041F3A0 (29: binding, players, chat lines, the 0073BCA0 record, zones offered, the current map, variables, shared files and their requests, file chunks (removal; 0041ECC0 adds them and is Rebirth's), awards, party descriptions and members, the trade) and the party screen's 0041E0A0 (record a trade), 0041E270 (start a party description), 0041E3E0 (drop it) |
+| net_client_commands.cpp | 0041D410 ClientBeginGame (slot 15: GameFlow::BeginMultiplayerGame), 0041D9A0 ClientBufferRatio (stream size / stored size, returned unrounded) |
+| net_client_life.cpp / net_server_life.cpp | 0041C530 / 004132F0 the client's and server's base-layer destructor bodies |
+| net_server_tick.cpp | 004182E0 ServerTick (slot 14: base tick 00443590, the timed lists +0x25C0 / +0x25B4, the master server announcement timer +0x2570 through 0041AA10), 00417E40 ServerPlayerStateIs3 (used by the file chunk sender 00479EF4) |
+| chunk_stream.cpp | 0042C580 ReadString, 0042C650 ReadEncodedString (the content decoded by 004D8E10), 0042C820 WriteString, 0042CA20 / 0042CB80 Read / WriteStringArray (a count, then one string chunk per element with the array's id), 0042D160 ChunkRootOpen, 0042D270 ChunkRootDestruct |
+| hash_tables_400.cpp | CBaseManager's id tables (00404E80 SetAt, 00404F20 / 00405350 RemoveKey, 00404F80 Lookup, 00406950 find, 00406A10 / 00406AA0 operator[]; they keep the highest key at +0x14), the class registry 0079B270 (00408EA0 constructor, 00408D60 destructor) and the type registry's destructor 004368F0 |
+| misc_400.cpp | CClientSpecificManager 0042D6B0 / 0042D6C0 (class name and id 0x30), 0042D700 slot 14 NewObject ('E' .. 'K' except 'J': 0x3C 005A7010, 0xFC 0051AB00, 0x58 00510450, 0xDC 00533AD0, 0x50F8 00666D10, 0x64 0052D0D0), 0042D690 / 0042D6F0, 00406B30 / 00406B50 aligned word / dword arrays, 00430FC0 cursor start, 00433F10 cleanup step |
+| net_coder.cpp | 0042FAE0 the code tables (a static initialiser: it runs before the hooks; the rewrite is for the standalone build) |
+| camera_object.cpp | 00412120 the camera's recorded-path array allocation (36-byte records, 32-byte aligned) |
+| atexit_400.cpp | the exit-time destructors of the globals: 0040C8A0 camera, 00408D50 class registry, 00412250 / 004122A0 server / client pointers, 0042D900 CWordArray 0079B668, 00432CC0 / 00432D00 buffers 0079B900 / 0079B8E0 (once each), 00434980 vector 0079B8D0 |
+| net_connection.cpp / net_connection_life.cpp / net_session_base.cpp | 00433B10 ConnectionSilent (idle longer than three round trips), 00433040 IdPool and 00436A30 HandlerVector element constructors |
+| refptr_copies.cpp | three more RefPtr::Destroy copies (00436430, 00438AA0, 00438B30), the pair's second release (00421560, 004215C0, 00438AE0), 0043A120 release at +8, assignment from a holder / an object (0042A770, 00438110), unique / detach checks (00429D80, 00429D90), engine object holders (00421350, 00429B50), two release copies used at exit (00412260, 004122B0); 00429910 is a copy of the plain share copy (net_server_trade.cpp) |
+
+### Verify wrappers
+
+- Side by side: the message classes' write / read without object references (the original
+  writes first, ours over it; read: both read the same bytes, fields captured through our write),
+  the chunk text readers and writers through the chunk stream's recording file proxy (the
+  original replays on a copy of the chain; strings compared), the table lookups 00404F80 /
+  00406950, 00417E40, 0042D6B0 / 0042D6C0, 00433B10, the element constructors, 0041D9A0 (on a
+  copy of the buffer header, CheckNear), 0042FAE0 (both fill the same tables; the original's are
+  kept and compared).
+- Ours only with property checks: the handlers (slots hold the message or are null; lists hold
+  it after an add and not after a removal; a finished trade leaves no trade, description or
+  records), the registrars (the handler vector of the class's type ends with the handler), the
+  id tables (the key's node holds the value / is gone / is returned; the highest key kept), the
+  destructors and constructors, ServerTick (no timed entry left below zero), the aligned
+  allocations (32-byte aligned, block pointer just before), NewObject (null exactly for the types
+  it does not make).
+
+### Floating point (rule 7)
+
+0041D9A0 (a division returned in ST0, declared double), 004182E0 (count-downs by the frame time,
+the announcement timer) and 00433B10 (round trip times 3 against the idle time) are plain C++.
+A timer or idle time within rounding of its limit may expire / be judged one call apart from the
+original; the wrappers compare the ratio with CheckNear and the silence flag bitwise (a rare
+mismatch there is that case).
+
+### Original behaviour kept
+
+- 0041E270 clears the new party description's reference count before the null check (a failed
+  allocation crashes, as in the original); likewise the 0073BC58 request in 0041EAC0 and every
+  message factory.
+- 0041E850 reads the zone's name from the message after releasing its own reference.
+- 0042C580 ends the text at its first NUL (ReleaseBuffer(-1)); 0042CB80 takes each element's
+  buffer with GetBuffer(0), which makes a shared string unique.
+- 00408EA0 copies an uninitialised stack byte into the tables' empty functors; ours writes 0
+  there (the bytes are never read).
+- The handler registration templates read the prototype's vtable before any null check.
+
+### Not Ghidra functions
+
+Sized and rewritten: see the first paragraph. Classified without rewriting:
+- library (config/library.csv): 00411D60 / 00411E60 / 00411F70 (the camera's deque), 00412140 /
+  00412190 (deque destroy), 00417AB0 / 00417B30 (list destructors reached from unwind funclets),
+  0041C470 (a copy of the vector destructor 0041F7F0), 0041F7D0 (list iterator dereference),
+  00435000 (the flush manipulator), 004387D0 / 004389C0 (vector destructors), 0043E0E0 / 0043E120
+  (pair constructors), 0043E5B0 / 0043E9F0 (rb-tree upper_bound);
+- dead (config/dead_code.csv, no reference in game.exe or the Rebirth binaries): 0041A230,
+  0041A2B0, 0041AD40, 0041E1A0, 0041E1E0, 0042C400, 0042C440, 0042CE10, 0042F470, 0042FA20, and 46
+  more found by a scan of 16-byte aligned starts after a return (004024E0 .. 004378B0; the three
+  20-byte ones 004024E0 / 00402760 / 00402B00 are referenced only from dead code);
+- not hooked: the static initialisers in the .data list 00783038-007830D0 (they run before the
+  hooks are installed), the exception unwind funclet targets, the compiler-generated copy
+  constructors of the game's exception classes (0040C510, 0040C540, 0040C570, 00429130; reached
+  only through the C++ exception tables when one is thrown), 0043AD60 (a catch block).
+
+### Skipped
+
+- Patched by Rebirth: 0040ECD0 (camera path SetSize), 0041ECC0 (the client's file chunk handler);
+  patched at a call site: 0041AA10 (announce to the master server; ServerTick calls it through its
+  address), 0041ACA0, 0041B1C0 (the chat handler).
+- Shorter than the 5-byte jump: 0041BA20 (a 73BD78 handler: version + 1) and the 1-4 byte
+  functions of the range (00402CC0 .. 004380B0: returns, constants, `lea eax, [ecx + n]`).
+
+### Forwarders added (the standalone build must replace)
+
+Library (77, all in config/library.csv): the STLport list / vector / string / hashtable members
+named in each file, MFC CStringArray::SetSize / SetAtGrow (006FE9B8 / 006FEBFA), CWordArray's
+destructor (006FEECD), CString::GetBuffer / ReleaseBuffer (00700DA0 / 00700DEF, added to
+src/lib/mfc.h), atoi. Game code outside the range or not rewritten: the game flow 0x7AFE20
+(0057ED60, 0057F280, 0057FF40, 00580040, 005800C0, 005809D0, 005810A0, 005812F0), the text table
+0x7C7D50 (005F82D0, 005F82F0, 005F8310), the parties (00661300, 00661700), the object
+constructors of NewObject (005A7010, 0051AB00, 00510450, 00533AD0, 00666D10, 0052D0D0), the text
+decoder 004D8E10, the growing buffer's destructor 004DA910, the server base tick 00443590, the
+server entry base 004413E0, the memory stream's reserve / resize (004A5570 / 004A54D0), the
+connection's object references (004355B0 / 00435820), and 0041AA10 (Rebirth).

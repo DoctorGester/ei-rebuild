@@ -53,6 +53,7 @@ void __fastcall TradeCancelVerify(net::ServerSession* self, net::Message* messag
 
 EI_VERIFY(0x0041ACF0, FindTradeVerify, 9, s_findTrade);
 EI_VERIFY(0x004263B0, CopyPlainVerify, 0, s_unused);
+EI_VERIFY(0x00429910, CopyPlainVerify, 0, s_unused);
 EI_VERIFY(0x0041B720, ObjectRemovedVerify, 0, s_unused);
 EI_VERIFY(0x0041B7A0, TradeOfferVerify, 0, s_unused);
 EI_VERIFY(0x0041B970, TradeUpdateVerify, 0, s_unused);
