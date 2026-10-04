@@ -126,6 +126,25 @@ bool __fastcall ReadRecordVerify(Connection* self, void*, BufferCursor* cursor, 
     return result;
 }
 
+// 00434110: ours only. A live object ends up tracked (byObject holds at most one more entry).
+void __fastcall TrackVerify(Connection* self, void*, Replicated* item) {
+    std::uint32_t before = self->byObject.count;
+    auto* object = static_cast<CRefObject*>(item->object);
+    bool live = object && !(object->flags7_ & CRefObject::kDetached);
+    self->Track(item);
+    std::uint32_t after = self->byObject.count;
+    ei::verify::Check("Connection::Track", true, live ? (after == before || after == before + 1) : after == before, "");
+}
+
+// 004346D0: ours only. Afterwards every tracked entry's object is one the session listed: byObject
+// has no more entries than the static list (0079B8D0).
+void __fastcall CollectChangesVerify(Connection* self) {
+    self->CollectChanges();
+    auto* items = reinterpret_cast<ReplicatedVector*>(0x0079B8D0);
+    ei::verify::Check("Connection::CollectChanges", true,
+                      self->byObject.count <= static_cast<std::uint32_t>(items->end - items->begin), "");
+}
+
 } // namespace
 
 EI_VERIFY(0x00435F10, AllocateVerify, 5, s_allocate);
@@ -136,3 +155,5 @@ EI_VERIFY(0x00434990, QueueHeaderVerify, 0, s_unused);
 EI_VERIFY(0x00433F20, RollBackVerify, 0, s_unused);
 EI_VERIFY(0x00435A00, SendUpdateVerify, 0, s_unused);
 EI_VERIFY(0x00435F30, ReadRecordVerify, 0, s_unused);
+EI_VERIFY(0x00434110, TrackVerify, 0, s_unused);
+EI_VERIFY(0x004346D0, CollectChangesVerify, 0, s_unused);

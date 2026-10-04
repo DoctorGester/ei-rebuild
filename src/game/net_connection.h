@@ -152,6 +152,13 @@ struct Connection {
     // 00433F20. A packet was lost: entries it sent unreliably are marked unsent again and its
     // reliable chunk goes back to the front of the queue (once).
     void RollBack(std::uint8_t* historyData);
+    // 004346D0. Brings the tracked entries up to date: the session's slot 13 lists what this
+    // connection should have (sorted by object); new objects get an entry (Track), entries whose
+    // object is no longer listed are dropped (never sent) or marked gone (sent).
+    void CollectChanges();
+    // 00434110. Starts tracking `item` (an {object, priority} pair): a new entry for the object,
+    // kept in byObject and its priority map.
+    void Track(Replicated* item);
 };
 static_assert(offsetof(Connection, address) == 0x2C);
 static_assert(offsetof(Connection, clock) == 0x48);

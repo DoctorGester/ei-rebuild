@@ -181,4 +181,26 @@ ClientSession* ClientSession::Construct() {
 }
 EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
 
+// 0041D050 (slot 13). What the server receives from this client: the local player's record
+// (+0x2600), the entries of +0x2604 (value at +0xC) and +0x25E8, and the group at +0x260C with its
+// members (vector at +0xC). All priority 1.
+void __fastcall ClientCollectReplicated(ClientSession* self, void*, ReplicatedVector** out) {
+    PushReplicated(*out, self->player, 1);
+    auto head = [](void* list) { return *static_cast<void**>(list); };
+    auto next = [](void* node) { return *static_cast<void**>(node); };
+    auto value = [](void* node, std::size_t at) { return *reinterpret_cast<void**>(static_cast<std::uint8_t*>(node) + at); };
+    for (void* n = next(head(&self->list_2604)); n != head(&self->list_2604); n = next(n)) PushReplicated(*out, value(n, 0xC), 1);
+    for (void* n = next(head(&self->list_25E8)); n != head(&self->list_25E8); n = next(n)) PushReplicated(*out, value(n, 8), 1);
+    if (void* group = self->unknown_260C) {
+        PushReplicatedInline(*out, group, 1);
+        for (std::uint32_t i = 0;; ++i) {
+            auto* members = reinterpret_cast<void**>(static_cast<std::uint8_t*>(self->unknown_260C) + 0xC);
+            auto* begin = static_cast<void**>(members[0]);
+            if (i >= static_cast<std::uint32_t>(static_cast<void**>(members[1]) - begin)) break;
+            PushReplicatedInline(*out, begin[i], 1);
+        }
+    }
+}
+EI_REPLACE(0x0041D050, ClientCollectReplicated);
+
 } // namespace net

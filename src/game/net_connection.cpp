@@ -4,6 +4,7 @@
 #include "core_refcount.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 
 #include <cstring>
 
@@ -49,9 +50,33 @@ __declspec(naked) void* __fastcall MakeRecordPair(void* /*pair*/, void*, const s
 __declspec(naked) RefPtr* __fastcall RefPtrDefault(RefPtr* /*p*/) EI_ORIGINAL(0x00438A90)
 __declspec(naked) RefPtr* __fastcall RefPtrReset(RefPtr* /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x00438110)
 
+__declspec(naked) void* __fastcall TypeFind(HashTable* /*table*/, void*, void** /*out*/, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0042A810)
+__declspec(naked) void* __fastcall ByObjectLowerBound(RbTree* /*tree*/, void*, void** /*out*/, void* const* /*key*/) EI_ORIGINAL(0x0043C4B0)
+__declspec(naked) void** __fastcall ByObjectIteratorCopy(void** /*it*/, void*, void* const* /*from*/) EI_ORIGINAL(0x00437D60)
+__declspec(naked) void** __fastcall ByObjectInsertHint(RbTree* /*tree*/, void*, void** /*out*/, void* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439540)
+__declspec(naked) void __fastcall ByObjectEraseAt(RbTree* /*tree*/, void*, void* /*position*/) EI_ORIGINAL(0x00437D40)
+__declspec(naked) void* __fastcall ByObjectMakePair(void* /*pair*/, void*, void* const* /*key*/, const RefPtr* /*value*/) EI_ORIGINAL(0x0043A050)
+__declspec(naked) void* __fastcall PriorityLowerBound(RbTree* /*tree*/, void*, void** /*out*/, void* const* /*key*/) EI_ORIGINAL(0x0043CA00)
+__declspec(naked) void** __fastcall PriorityIteratorCopy(void** /*it*/, void*, void* const* /*from*/) EI_ORIGINAL(0x00437F10)
+__declspec(naked) void** __fastcall PriorityInsertHint(RbTree* /*tree*/, void*, void** /*out*/, void* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439730)
+__declspec(naked) void* __fastcall PriorityMakePair(void* /*pair*/, void*, void* const* /*key*/, const RefPtr* /*value*/) EI_ORIGINAL(0x0043A070)
+__declspec(naked) std::uint32_t __fastcall PriorityErase(RbTree* /*tree*/, void*, void* const* /*key*/) EI_ORIGINAL(0x0043C900)
+__declspec(naked) RefPtr* __fastcall RefPtrNull(RefPtr* /*p*/) EI_ORIGINAL(0x00438F50)
+// 0041DD50: a RefPtr from a raw pointer, adding a reference.
+__declspec(naked) RefPtr* __fastcall RefPtrRaw(RefPtr* /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x0041DD50)
+// The static vector of 004346D0: constructor, erase of a range, introsort loop and final insertion
+// sort by object, atexit.
+__declspec(naked) void* __fastcall ReplicatedConstruct(ReplicatedVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439E10)
+__declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void*, Replicated* /*first*/, Replicated* /*last*/) EI_ORIGINAL(0x00439DD0)
+__declspec(naked) void __fastcall ReplicatedSortLoop(Replicated* /*first*/, Replicated* /*last*/, void* /*tag*/, int /*depth*/,
+                                                     void* /*compare*/) EI_ORIGINAL(0x0043F870)
+__declspec(naked) void __fastcall ReplicatedSortFinish(Replicated* /*first*/, Replicated* /*last*/, void* /*compare*/) EI_ORIGINAL(0x0043F9B0)
+__declspec(naked) int __cdecl GameAtExit(void* /*fn*/) EI_ORIGINAL(0x006E727B)
+constexpr std::uintptr_t kReplicatedDestroyAtExit = 0x00434980;
+ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
+std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
+
 // --- Not rewritten yet ---------------------------------------------------------------------------
-// 004346D0: brings the tracked entries up to date with the session's replicated objects.
-__declspec(naked) void __fastcall CollectChanges(Connection* /*connection*/) EI_ORIGINAL(0x004346D0)
 // 00440B90: sendto() of the buffer's contents to `address`; true when all of it went.
 __declspec(naked) bool __fastcall SocketSend(SocketDriver* /*driver*/, void*, const void* /*address*/,
                                              GameBuffer* /*buffer*/) EI_ORIGINAL(0x00440B90)
@@ -265,7 +290,7 @@ EI_REPLACE_METHOD(0x004352F0, Connection::AttachRecord);
 
 bool Connection::SendUpdate(int budget) {
     bool complete = true;
-    CollectChanges(this);
+    CollectChanges();
     BufferCursor c;
     c.Reset(nullptr, 0, 0);
     c.sink = nullptr;
@@ -472,5 +497,155 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     return true;
 }
 EI_REPLACE_METHOD(0x00435F30, Connection::ReadRecord);
+
+void Connection::Track(Replicated* item) {
+    auto* object = static_cast<CRefObject*>(item->object);
+    if (!object || (object->flags7_ & CRefObject::kDetached)) return;
+    std::uint32_t objectVtable;
+    std::memcpy(&objectVtable, object, 4);
+    void* found[2];
+    TypeFind(&CurrentSession()->types.byVtable, nullptr, found, &objectVtable);
+    std::int32_t type = found[0] ? static_cast<std::int32_t>(static_cast<TypeNode*>(found[0])->value) : -1;
+
+    // A new entry (vtable 0073BF4C) with no version and no id yet.
+    auto* entry = static_cast<ReplicaEntry*>(gamecrt::operator_new(sizeof(ReplicaEntry)));
+    entry->refHeader = 0;   // before the null check, as in the original
+    if (entry) {
+        std::uintptr_t base = 0x0073BB58;
+        std::memcpy(entry, &base, 4);
+        RefPtrRaw(reinterpret_cast<RefPtr*>(&entry->object), nullptr, nullptr);
+        std::uintptr_t vt = 0x0073BF4C;
+        std::memcpy(entry, &vt, 4);
+        entry->version = 0;
+        entry->id = 0;
+    }
+
+    void* lb;
+    ByObjectLowerBound(&byObject, nullptr, &lb, &item->object);
+    if (lb == byObject.header || reinterpret_cast<std::uintptr_t>(item->object) <
+                                     *reinterpret_cast<std::uintptr_t*>(static_cast<std::uint8_t*>(lb) + 0x10)) {
+        RefPtr none;
+        RefPtrNull(&none);
+        struct {
+            void* key;
+            RefPtr value;
+        } pair;
+        ByObjectMakePair(&pair, nullptr, &item->object, &none);
+        void* hint;
+        ByObjectIteratorCopy(&hint, nullptr, &lb);
+        void* inserted;
+        ByObjectInsertHint(&byObject, nullptr, &inserted, hint, &pair);
+        lb = inserted;
+        if (pair.value.ptr) pair.value.ptr->Release();
+        if (none.ptr) none.ptr->Release();
+    }
+    auto*& slot = *reinterpret_cast<CRefObject**>(static_cast<std::uint8_t*>(lb) + 0x14);
+    CRefObject* old = slot;
+    slot = reinterpret_cast<CRefObject*>(entry);
+    if (entry) ++slot->refs_;
+    if (old) old->Release();
+
+    RbTree& map = priorities[static_cast<std::int8_t>(item->priority)];
+    void* lb2;
+    PriorityLowerBound(&map, nullptr, &lb2, reinterpret_cast<void* const*>(&entry));
+    if (lb2 == map.header || reinterpret_cast<std::uintptr_t>(entry) <
+                                 *reinterpret_cast<std::uintptr_t*>(static_cast<std::uint8_t*>(lb2) + 0x10)) {
+        RefPtr none;
+        RefPtrNull(&none);
+        struct {
+            void* key;
+            RefPtr value;
+        } pair;
+        PriorityMakePair(&pair, nullptr, reinterpret_cast<void* const*>(&entry), &none);
+        void* hint;
+        PriorityIteratorCopy(&hint, nullptr, &lb2);
+        void* inserted;
+        PriorityInsertHint(&map, nullptr, &inserted, hint, &pair);
+        lb2 = inserted;
+        if (pair.value.ptr) pair.value.ptr->Release();
+        if (none.ptr) none.ptr->Release();
+    }
+    reinterpret_cast<RefPtr*>(static_cast<std::uint8_t*>(lb2) + 0x14)->Assign(reinterpret_cast<CRefObject*>(entry));
+    entry->type = static_cast<std::uint8_t>(type);
+    CRefObject* previous = entry->object;
+    entry->object = static_cast<CRefObject*>(item->object);
+    if (entry->object) ++entry->object->refs_;
+    if (previous) previous->Release();
+    entry->flags = static_cast<std::uint8_t>((entry->flags & 1) | (item->priority << 1));
+    std::uint8_t reliable = reinterpret_cast<std::uint8_t*>(CurrentSession())[0x64 + type];
+    entry->flags = static_cast<std::uint8_t>(((reliable ^ entry->flags) & 1) ^ entry->flags);
+}
+EI_REPLACE_METHOD(0x00434110, Connection::Track);
+
+void Connection::CollectChanges() {
+    ReplicatedVector& items = StaticReplicated();
+    if (!(StaticReplicatedGuard() & 1)) {
+        StaticReplicatedGuard() |= 1;
+        char allocator = 0;
+        ReplicatedConstruct(&items, nullptr, &allocator);
+        GameAtExit(reinterpret_cast<void*>(kReplicatedDestroyAtExit));
+    }
+    ReplicatedErase(&items, nullptr, items.begin, items.end);
+    ReplicatedVector* target = &items;
+    ei::VCall<void>(CurrentSession(), 13, &target);
+    if (items.begin != items.end) {
+        int depth = 0;
+        for (std::int32_t n = static_cast<std::int32_t>(items.end - items.begin); n != 1; n >>= 1) ++depth;
+        ReplicatedSortLoop(items.begin, items.end, nullptr, depth * 2, target);
+        ReplicatedSortFinish(items.begin, items.end, target);
+    }
+
+    // Merge the sorted list with byObject (both ordered by object pointer).
+    Replicated* item = items.begin;
+    Replicated* end = items.end;
+    void* header = byObject.header;
+    void* node = TreeBegin(byObject);
+    auto entryAt = [](void* n) { return *reinterpret_cast<ReplicaEntry**>(static_cast<std::uint8_t*>(n) + 0x14); };
+    if (item != end) {
+        do {
+            if (node == header) {
+                for (; item < end; ++item) Track(item);
+                return;
+            }
+            ReplicaEntry* entry = entryAt(node);
+            auto listed = reinterpret_cast<std::uintptr_t>(item->object);
+            auto tracked = reinterpret_cast<std::uintptr_t>(entry->object);
+            if (listed == tracked) {
+                TreeIncrement(&node);
+                ++item;
+            } else if (listed < tracked) {
+                Track(item);
+                ++item;
+            } else {
+                // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone.
+                void* gone = node;
+                TreeIncrement(&node);
+                entry = entryAt(gone);
+                if (entry->id == 0) {
+                    PriorityErase(&priorities[entry->flags >> 1], nullptr, reinterpret_cast<void* const*>(&entry));
+                } else {
+                    CRefObject* old = entry->object;
+                    entry->object = nullptr;
+                    if (old) old->Release();
+                    entry->version = 0;
+                }
+                ByObjectEraseAt(&byObject, nullptr, gone);
+            }
+        } while (item != end);
+    }
+    while (node != header) {
+        void* gone = node;
+        TreeIncrement(&node);
+        ReplicaEntry* entry = entryAt(gone);
+        if (entry->id == 0) {
+            PriorityErase(&priorities[entry->flags >> 1], nullptr, reinterpret_cast<void* const*>(&entry));
+        } else {
+            reinterpret_cast<RefPtr*>(&entry->object)->Assign(nullptr);
+            entry->version = 0;
+        }
+        ByObjectEraseAt(&byObject, nullptr, gone);
+    }
+}
+EI_REPLACE_METHOD(0x004346D0, Connection::CollectChanges);
 
 } // namespace net

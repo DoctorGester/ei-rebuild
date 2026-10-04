@@ -39,6 +39,13 @@ ServerSession* __fastcall ServerConstructVerify(ServerSession* self, void*, std:
     return actualRet;
 }
 
+// 00417EB0: SUB ESP,0x10 (3), PUSH EBX (1), PUSH EBP (1).
+void(__fastcall* s_collect)(ServerSession*, void*, ReplicatedVector**);
+void __fastcall ServerCollectVerify(ServerSession* self, void*, ReplicatedVector** out) {
+    netverify::CheckCollect("ServerCollectReplicated", self, out, ServerCollectReplicated, s_collect);
+}
+
 } // namespace
 
 EI_VERIFY(0x00412D80, ServerConstructVerify, 7, s_construct);
+EI_VERIFY(0x00417EB0, ServerCollectVerify, 5, s_collect);

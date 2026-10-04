@@ -110,4 +110,90 @@ ServerSession* ServerSession::Construct(std::uint32_t arg) {
 }
 EI_REPLACE_METHOD(0x00412D80, ServerSession::Construct);
 
+namespace {
+
+// A list node's value (STLport list<T*>: next, prev, value at +8; some lists keep it at +0xC).
+template <std::size_t At = 8>
+std::uint8_t* ValueOf(void* node) { return *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(node) + At); }
+void* Head(void* list) { return *static_cast<void**>(list); }
+void* Next(void* node) { return *static_cast<void**>(node); }
+template <typename T> T& At(const void* object, std::size_t offset) {
+    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(const_cast<void*>(object)) + offset);
+}
+
+} // namespace
+
+// 00417EB0 (slot 13). What the connection being updated receives: the shared objects (+0x2590,
+// +0x25B0), its own player slot (+0x25A4: the slot whose connection it is; its record at +0xC,
+// hosting when the record's +0x28 is set), the newer entries of +0x2594 meant for everyone or for
+// it (+0xC above the record's +0x38), every object of +0x2598 with, for the one +0x259C pairs with
+// this connection, its vector at +0x20 (priority 1), the host's extras (+0x25AC), +0x25A0 / +0x25A8,
+// the entries of +0x25B4 (value at +0xC) for this connection, the groups of +0x25B8 owned by the
+// record whose members all exist (the group and its members), and the entries of +0x25BC / +0x25C0
+// naming the record at +0xC or +0x10. Priority 2 unless noted.
+void __fastcall ServerCollectReplicated(ServerSession* self, void*, ReplicatedVector** out) {
+    void* record = nullptr;
+    bool hosting = false;
+    for (void* n = Next(Head(&self->list_2590)); n != Head(&self->list_2590); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
+    for (void* n = Next(Head(&self->list_25B0)); n != Head(&self->list_25B0); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
+    void* players = Head(&self->list_25A4);
+    if (Next(players) != players) {
+        for (void* n = Next(players); n != Head(&self->list_25A4); n = Next(n)) {
+            std::uint8_t* slot = ValueOf(n);
+            if (At<void*>(slot, 0x10) != CurrentConnection()) continue;
+            record = At<void*>(slot, 0xC);
+            if (At<std::uint8_t>(record, 0x28)) hosting = true;
+            PushReplicated(*out, slot, 2);
+        }
+        if (record && !(At<std::uint32_t>(record, 4) & 0x80000000u)) {
+            for (void* n = Next(Head(&self->list_2594)); n != Head(&self->list_2594); n = Next(n)) {
+                std::uint8_t* e = ValueOf(n);
+                void* target = At<void*>(e, 0x1C);
+                if ((!target || target == CurrentConnection()) && At<std::int32_t>(e, 0xC) > At<std::int32_t>(record, 0x38))
+                    PushReplicated(*out, e, 2);
+            }
+        }
+    }
+    for (void* n = Next(Head(&self->list_2598)); n != Head(&self->list_2598); n = Next(n)) {
+        PushReplicated(*out, ValueOf(n), 2);
+        void* pairs = Head(&self->list_259C);
+        for (void* m = Next(pairs); m != pairs; m = Next(m)) {
+            std::uint8_t* pair = ValueOf(m);
+            if (At<void*>(pair, 0xC) != ValueOf(n) || At<void*>(pair, 0x10) != CurrentConnection()) continue;
+            for (void** p = At<void**>(ValueOf(n), 0x20); p != At<void**>(ValueOf(n), 0x24); ++p) PushReplicated(*out, *p, 1);
+            break;
+        }
+    }
+    if (hosting)
+        for (void* n = Next(Head(&self->list_25AC)); n != Head(&self->list_25AC); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
+    if (void* object = reinterpret_cast<void*>(self->unknown_25A0)) PushReplicated(*out, object, 2);
+    if (void* object = reinterpret_cast<void*>(self->unknown_25A8)) PushReplicated(*out, object, 2);
+    for (void* n = Next(Head(&self->list_25B4)); n != Head(&self->list_25B4); n = Next(n)) {
+        std::uint8_t* e = ValueOf<0xC>(n);
+        if (At<void*>(e, 0xC) == CurrentConnection()) PushReplicated(*out, e, 2);
+    }
+    for (void* n = Next(Head(&self->list_25B8)); n != Head(&self->list_25B8); n = Next(n)) {
+        std::uint8_t* group = ValueOf(n);
+        if (At<void*>(group, 0x2C) != record) continue;
+        bool complete = true;
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(At<void**>(group, 0x10) - At<void**>(group, 0xC)); ++i) {
+            void* member = At<void**>(group, 0xC)[i];
+            if (!member || (At<std::uint8_t>(member, 7) & 0x80)) complete = false;
+        }
+        if (!complete) continue;
+        PushReplicated(*out, group, 2);
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(At<void**>(ValueOf(n), 0x10) - At<void**>(ValueOf(n), 0xC)); ++i)
+            PushReplicated(*out, At<void**>(ValueOf(n), 0xC)[i], 2);
+    }
+    for (void* n = Next(Head(&self->list_25BC)); n != Head(&self->list_25BC); n = Next(n)) {
+        std::uint8_t* e = ValueOf(n);
+        if (At<void*>(e, 0xC) == record || At<void*>(e, 0x10) == record) PushReplicatedInline(*out, e, 2);
+    }
+    for (void* n = Next(Head(&self->list_25C0)); n != Head(&self->list_25C0); n = Next(n)) {
+        std::uint8_t* e = ValueOf<0xC>(n);
+        if (At<void*>(e, 0xC) == record || At<void*>(e, 0x10) == record) PushReplicatedInline(*out, e, 2);
+    }
+}
+EI_REPLACE(0x00417EB0, ServerCollectReplicated);
+
 } // namespace net

@@ -9,6 +9,9 @@
 // the other object's (the same pointer in one object always pairs with the same pointer in the other).
 #include "verify.h"
 
+#include "../../src/game/net_classes.h"
+#include "../../src/lib/stlp.h"
+
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -125,6 +128,28 @@ inline void CompareSessionTables(BuiltCompare& cmp, const std::uint8_t* e, const
             }
         }
     }
+}
+
+
+// Slot 13 (CollectReplicated): ours appends to the real vector; the original then fills an empty
+// scratch vector (its storage is returned to the pool afterwards); the appended {object, priority}
+// pairs must be the same.
+template <typename Session, typename Fn, typename Orig>
+void CheckCollect(const char* name, Session* self, net::ReplicatedVector** out, Fn ours, Orig original) {
+    net::ReplicatedVector* real = *out;
+    std::size_t before = static_cast<std::size_t>(real->end - real->begin);
+    ours(self, nullptr, out);
+    net::ReplicatedVector scratch{nullptr, nullptr, nullptr};
+    net::ReplicatedVector* scratchPtr = &scratch;
+    original(self, nullptr, &scratchPtr);
+    std::size_t added = static_cast<std::size_t>(real->end - real->begin) - before;
+    bool same = added == static_cast<std::size_t>(scratch.end - scratch.begin);
+    for (std::size_t i = 0; same && i < added; ++i)
+        same = real->begin[before + i].object == scratch.begin[i].object &&
+               real->begin[before + i].priority == scratch.begin[i].priority;
+    if (scratch.begin)
+        stlp::deallocate(scratch.begin, static_cast<std::size_t>(scratch.eos - scratch.begin) * sizeof(net::Replicated));
+    ei::verify::Check(name, true, same, "%u items", unsigned(added));
 }
 
 } // namespace netverify

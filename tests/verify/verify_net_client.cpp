@@ -51,7 +51,14 @@ ClientSession* __fastcall ClientConstructVerify(ClientSession* self) {
     return actualRet;
 }
 
+// 0041D050: SUB ESP,8 (3), PUSH EBX (1), PUSH EBP (1).
+void(__fastcall* s_collect)(ClientSession*, void*, ReplicatedVector**);
+void __fastcall ClientCollectVerify(ClientSession* self, void*, ReplicatedVector** out) {
+    netverify::CheckCollect("ClientCollectReplicated", self, out, ClientCollectReplicated, s_collect);
+}
+
 } // namespace
 
 EI_VERIFY(0x0041C420, VectorVerify, 5, s_vector);
 EI_VERIFY(0x0041BC40, ClientConstructVerify, 7, s_construct);
+EI_VERIFY(0x0041D050, ClientCollectVerify, 5, s_collect);
