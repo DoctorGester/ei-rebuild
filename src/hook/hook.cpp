@@ -83,6 +83,23 @@ static HookEntry* VerifyEntry(std::uintptr_t address) {
     return nullptr;
 }
 
+// Whether `code` (following incremental-link jump stubs) is MSVC's virtual-call thunk:
+// MOV EAX,[ECX] then JMP [EAX], JMP [EAX+disp8] or JMP [EAX+disp32].
+static bool IsVirtualCallThunk(const void* replacement) {
+    const auto* code = static_cast<const unsigned char*>(replacement);
+    for (int hops = 0; code[0] == 0xE9 && hops < 4; ++hops)
+        code += 5 + *reinterpret_cast<const std::int32_t*>(code + 1);
+    return code[0] == 0x8B && code[1] == 0x01 && code[2] == 0xFF &&
+           (code[3] == 0x20 || code[3] == 0x60 || code[3] == 0xA0);
+}
+
+// The first entry registered for `address` whose replacement or wrapper is such a thunk.
+static const HookEntry* ThunkEntryAt(std::uintptr_t address) {
+    for (const HookEntry* h = g_hooks; h; h = h->next)
+        if (h->address == address && IsVirtualCallThunk(h->replacement)) return h;
+    return nullptr;
+}
+
 // Copies the first `stolen` bytes of the original function into executable memory followed by a
 // JMP back to the rest of it, giving a callable copy of the original.
 static void* MakeTrampoline(std::uintptr_t address, int stolen) {
@@ -241,13 +258,12 @@ int InstallHooks() {
         if (verdict == rebirth_hook::Verdict::Implemented)
             Log("Rebirth-patched %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
         // A pointer to a virtual member function is a dispatch thunk (MOV EAX,[ECX]; JMP [EAX+n]),
-        // which would jump back into the hooked function forever.
-        const auto* code = static_cast<const unsigned char*>(h->replacement);
-        for (int hops = 0; code[0] == 0xE9 && hops < 4; ++hops)   // incremental-link jump stubs
-            code += 5 + *reinterpret_cast<const std::int32_t*>(code + 1);
-        if (code[0] == 0x8B && code[1] == 0x01 && code[2] == 0xFF && (code[3] == 0x20 || code[3] == 0x60 || code[3] == 0xA0)) {
-            Log("SKIP %s at %08X: replacement is a virtual-call thunk (register a non-virtual shim instead)",
-                h->name, static_cast<unsigned>(h->address));
+        // which would jump back into the hooked function forever. Every entry for the address is
+        // checked: a verify wrapper of a method registered through a thunk calls the same
+        // dispatch (CWorldClient::Create, 00561E50, overflowed the stack that way).
+        if (const HookEntry* thunk = ThunkEntryAt(h->address)) {
+            Log("SKIP %s at %08X: %s is a virtual-call thunk (register a non-virtual shim instead)", h->name,
+                static_cast<unsigned>(h->address), thunk->name);
             continue;
         }
         if (h->stolen > 0) {

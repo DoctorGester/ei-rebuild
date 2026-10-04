@@ -57,7 +57,11 @@ comes from a bug we already hit.
    Do not give a non-virtual method the same name and signature as a base-class virtual
    (`CEngineObject::Create`, `Destroy`, `Release`, `Load`, `Save`, `GetName`, ...): it silently becomes
    an override, and the hook lands on a dispatch thunk that loops forever. The installer now refuses
-   thunks and logs "virtual-call thunk".
+   thunks and logs "virtual-call thunk". It checks every entry for the address, so a verify wrapper
+   is refused too when the method's own registration is a thunk; the wrapper's call to the method
+   would dispatch through the vtable in the same way. `build.cmd` also runs
+   `tools/check_thunks.py`, which fails the build when an `EI_REPLACE_METHOD` names a method that is
+   virtual, or overrides one, in its class or a base class (matched by name, from the headers).
 5. **Not-yet-rewritten callees** are forwarders: `__declspec(naked) R Cls::Fn(args) EI_ORIGINAL(0xADDR)`.
    Naked functions cannot have members with constructors/destructors in the class layout path; use raw
    pointers in layouts where needed (see `mfc::CFile`).
