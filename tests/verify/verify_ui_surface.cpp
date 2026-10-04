@@ -133,6 +133,10 @@ EI_VERIFY(0x005FE440, GreyscaleVerify, 6, s_greyscale);
 // 005FD440: MOV EAX,FS:[0] (6). The surface itself is only read.
 static std::uint16_t*(__thiscall* s_rgb565Copy)(CUiSurface*, int, int);
 static std::uint16_t* __fastcall Rgb565CopyVerify(CUiSurface* self, void*, int width, int height) {
+    // In the switch-over with game-owned memory ours stretches on the CPU (ui_surface_pixels.cpp
+    // StretchCopy), which can pick a neighbouring pixel where DirectDraw's Blt does not (ratios
+    // that are not whole numbers): nothing to compare with the original then.
+    if (render::Presenting() && render::CpuWindows()) return self->Rgb565Copy(width, height);
     std::uint16_t* expected = s_rgb565Copy(self, width, height);
     std::uint16_t* actual = self->Rgb565Copy(width, height);
     int count = width * height;
@@ -152,6 +156,17 @@ static std::uint16_t* __fastcall Rgb565CopyVerify(CUiSurface* self, void*, int w
     return expected;
 }
 EI_VERIFY(0x005FD440, Rgb565CopyVerify, 6, s_rgb565Copy);
+
+// 005FD240: SUB ESP,0xB4 (6). Only reads: both run, the results must be equal.
+std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y);
+static std::uint32_t(__thiscall* s_pixelAt)(CUiSurface*, int, int);
+static std::uint32_t __fastcall PixelAtVerify(CUiSurface* self, void*, int x, int y) {
+    std::uint32_t expected = s_pixelAt(self, x, y);
+    std::uint32_t actual = SurfacePixelAt(self, nullptr, x, y);
+    ei::verify::Check("CUiSurface::PixelAt", true, expected == actual, "(%d, %d): %06X, ours %06X", x, y, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x005FD240, PixelAtVerify, 6, s_pixelAt);
 
 // 005EC020: PUSH -1; PUSH imm32 (7). Both make a texture of the same name; their surfaces' pixels
 // must be equal. Ours is released (its slot 4, as the original does on failure), the original's

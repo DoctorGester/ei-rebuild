@@ -1194,6 +1194,13 @@ the camp may be laid out differently and some rows missed (harmless).
   menu's Draw (005F5320, +0x50 == 1) runs CaptureScreen, Rgb565Copy(256, 192) and Greyscale when the
   menu opens (scenario ui_screens). Verified side by side on the surface's pixels (the copy as two
   blocks); SwapContents ours only (saving releases the surface) against the raw surface bytes.
+  `PixelAt` 005FD240 (RET 8: the colour at a point through the converter, 0 outside) side by side
+  on the result. The constructors 005FCC00 / 005FCDD0 (ui_surface_create.cpp; scale the layout
+  rectangle, holder 004EF7B0, surface bytes += height * pitch, colour fill to 0, flag 4) ours only.
+  The picture window 005FCF80 ("<name>.mmp" through the texture manager and 004EFC60, flag 1)
+  and the destructor body 005FD120 (ReleaseContents) likewise, ours only.
+  In the new renderer's switch-over these work on the windows' game-owned memory without DirectDraw
+  (docs/notes/renderer.md, "Interface windows").
 - `CItemScreen::DrawHeroFace` (005ED7B0, RET 8; caller 00629AF0, a strip of 8 hero faces): the
   unit prototype (map 007AF364) -> figure prototype (map 007AF3A4, +0xE8 model name) -> model
   "infa<model>me<n+1>face" and texture "face<m|f><nn>", both from the item screens' caches, tilted

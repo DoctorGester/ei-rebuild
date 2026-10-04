@@ -41,7 +41,8 @@ comma-separated list:
 | `noterrain` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) |
 | `noobjects` | ... the meshes drawn inside the world view (figures, map objects, the sky) and the flat geometry there (004EA4A0: shadows, ground decals) |
 | `nointerface` | ... the meshes drawn outside the world view (the interface's sprites and 3D previews) and the window surfaces' blits |
-| `present` | the switch-over: everything handed over is off in the old path (`noterrain,noobjects,nointerface`, movie blits too) and at the old present (004EF610) the new frame is copied into the game's render target, which the old Flip / BltFast then shows; captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode). A first version showed the frame in the child window instead: under dgVoodoo's full screen the second swap chain made the game window inactive (WM_ACTIVATE inactive: the game's frame function then draws nothing and the window minimises itself), so no frame was drawn at all. `show` / `split` have the same problem in full screen; use them windowed |
+| `cpuwindows` | the surfaces of 004EF7B0 (interface windows, software cursor, movies) keep their pixels in game-owned memory (DIB sections) the new renderer reads directly; on with `present`, `nocpuwindows` turns it off |
+| `present` | the switch-over: everything handed over is off in the old path (`noterrain,noobjects,nointerface`, movie blits too; `cpuwindows` on) and at the old present (004EF610) the new frame is copied into the game's render target, which the old Flip / BltFast then shows; captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode). A first version showed the frame in the child window instead: under dgVoodoo's full screen the second swap chain made the game window inactive (WM_ACTIVATE inactive: the game's frame function then draws nothing and the window minimises itself), so no frame was drawn at all. `show` / `split` have the same problem in full screen; use them windowed |
 
 Without `new` nothing in `src/render` runs; the old path draws as before. The harness has the steps
 `oldterrain`, `oldobjects`, `oldinterface` (on / off) for the same switches during a run. Planned:
@@ -215,8 +216,8 @@ in our runs) is still created and still used, because:
    by the game into textures it writes itself), the shadow textures (taken from their render
    surface already). Left: those, then the DirectDraw texture objects themselves.
 2. **The interface is composed on DirectDraw surfaces** with GDI (GetDC / ReleaseDC, text, fills)
-   and pixel code (locks). First step done behind `EI_RENDER=...,cpuwindows` (off by default until
-   proven in game): the surface holder's constructor 004EF7B0 (used for the windows, the software
+   and pixel code (locks). First step done behind `EI_RENDER=...,cpuwindows` (off by default; on with
+   `present` since render_present_cpuwindows passed on both installs, `nocpuwindows` opts out): the surface holder's constructor 004EF7B0 (used for the windows, the software
    cursor and the movies' surfaces; system memory, the screen's format) is rewritten and, with the
    option, puts the surface's pixels in a DIB section the game code owns (DirectDraw client
    memory: DDSD_LPSURFACE / DDSD_PITCH; refused -> a plain surface, logged "cpuwindows: ..."); the
@@ -233,8 +234,28 @@ in our runs) is still created and still used, because:
    both installs with no refusal). Change detection for these surfaces no longer asks DirectDraw:
    the new renderer keeps a copy of the memory each window texture was made from and converts the
    window again only when the memory differs (a memcmp at each blit; it sees every writer: GDI,
-   the lock users, the old path's Blt, with no flag to set in each of them). Left: the old path's
-   Blt of windows (goes with the old path), and with the verify build's
+   the lock users, the old path's Blt, with no flag to set in each of them).
+   In the switch-over (`present` with `cpuwindows`) the window code works on that memory without
+   DirectDraw (`DirectPixels`, dx_surface.h: a Lock-like description of the memory after GdiFlush):
+   the escape menu's screen copy 005FD3D0 no longer Blts from the old render target (it does not
+   hold the frame being drawn) and the new renderer writes its frame straight into the memory
+   (`render::CopyFrameTo`); the save picture's stretch 005FD440 is a CPU copy (pixel centres,
+   (2 x + 1) * source / (2 * size): Windows' DirectDraw gives the same at whole-number ratios,
+   checked offline; at 1280x720 -> 256x192 rows may pick a neighbour, so the verify build does not
+   compare it in that mode); Greyscale 005FE440, SwapContents 005FD7A0 and the pixel read 005FD240
+   (rewritten: a window's colour at a point) skip Lock / Unlock and GetSurfaceDesc. The window
+   constructors 005FCC00 / 005FCDD0 are rewritten (`ui_surface_create.cpp`): with game-owned
+   memory the colour-fill Blt that clears a new window is left out (a new DIB section is zero)
+   in either mode. The picture window's constructor 005FCF80 and the destructor body 005FD120 are
+   rewritten there too and take the surface's description (for the surface-bytes total) from the
+   memory in the switch-over. With that the windows' DirectDraw use in the switch-over is down to
+   creating and releasing the surface itself (004EF7B0 / 004EFD20) and the picture windows'
+   surfaces (004EFC60 -> 004F0060: made and filled through DirectDraw, no game-owned memory yet,
+   so 005FCF80 / 005FD120 still describe those through GetSurfaceDesc). (00655550 / 00655D40 /
+   00656464 / 00656E10 lock the save / load screen's screenshot textures, not windows: they go
+   with the textures.) Scenario: render_present_cpuwindows (render_present plus the escape menu
+   over its greyed screen copy). Left: game-owned memory for the picture holders (004F0060), then
+   holders with no DirectDraw surface at all; and with the verify build's
    side-by-side text checks under cpuwindows the GDI batch must be flushed before they read
    pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
@@ -278,7 +299,8 @@ in our runs) is still created and still used, because:
    surface): the new renderer decodes the picture from the file data (`render::PictureFromMmp`)
    and `render::Cursor` takes its colours from there, with the mask (005E4EB0: all ones where the
    image is black) from game memory; no Lock per frame. The same holder type serves windows made
-   from a picture (005FCF80), whose blits still read the surface. Left: the screen copies (written into DirectDraw surfaces the interface draws from: with point 2).
+   from a picture (005FCF80), whose blits still read the surface. The screen copies: with point 2
+   (in the switch-over they go into the windows' memory directly).
 5. **Draws the old path still makes**: the weather's (004E4240 / 004E4C80 build and draw in one
    function; the new renderer takes the triangles after they return). Everything in the world view
    and the interface is handed over; with `present` the old back buffer is overwritten by the new
@@ -288,7 +310,15 @@ in our runs) is still created and still used, because:
    switch-over; the final form presents from the new renderer's own swap chain once dgVoodoo's is
    gone (point 6).
 6. **Old device calls still made**: 524 call sites in 143 functions; with no device every one needs
-   a guard or a rewrite. Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
+   a guard or a rewrite. 241 of the sites are in functions rewritten by now (most of them already
+   skip the device call when the new renderer takes the draw); 92 functions with DirectDraw /
+   Direct3D calls are not rewritten yet: the device setup and texture management (004E5E50,
+   004E68A0, 004EE*, 0068F860..00693C60), the state presets (0049B140 / 0049B4B0, 00501C60,
+   0050434F, 005045D0), the movies' surfaces (005DA5AB / 005DA880 / 005DB603 / 005DB9E0), the
+   software cursor's primary draws (005E5640 / 005E5690 / 005E6630), the picture window and
+   holder helpers (004EFA60, 004EFEA0, 004F0060), the save / load screen's screenshot locks and a
+   few interface draws (00600EF0, 00602BF0, 0060C870, 00622420, 00627C90, 00628F80, 00630670,
+   00632A90, 006462A0, 0064D970, 00658E10). Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
    after 1-4; until then dgVoodoo keeps creating its device and swap chain (only never presented).
 7. **Window and display**: the child window rides on the game window; dgVoodoo's own swap chain
    stays under it. With dgVoodoo in exclusive full screen a child window may not show (windowed

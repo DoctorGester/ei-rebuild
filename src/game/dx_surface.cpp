@@ -63,6 +63,8 @@ enum : int { kFlags = 1, kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kFor
 struct ClientMemory {
     HBITMAP bitmap;
     void* bits;
+    std::uint32_t width, height, pitch;
+    std::uint32_t format[8];   // the DDPIXELFORMAT
 };
 std::unordered_map<const void*, ClientMemory> g_memory;   // by holder
 int g_clientFailures = 0;
@@ -94,7 +96,8 @@ bool AttachClientMemory(std::uint32_t* desc, ClientMemory* out) {
     desc[kFlags] |= kClientMemory;
     desc[kPitch] = static_cast<std::uint32_t>(((width * static_cast<int>(bits) / 8) + 3) & ~3);
     desc[kSurface] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(memory));
-    *out = ClientMemory{bitmap, memory};
+    *out = ClientMemory{bitmap, memory, desc[kWidth], desc[kHeight], desc[kPitch], {}};
+    std::memcpy(out->format, &desc[kFormat], sizeof(out->format));
     return true;
 }
 
@@ -128,6 +131,24 @@ bool ReadSize(char* holder) {
 HBITMAP ClientBitmap(const void* holder) {
     auto it = g_memory.find(holder);
     return it == g_memory.end() ? nullptr : it->second.bitmap;
+}
+
+bool DirectPixels(const void* holder, std::uint32_t* desc) {
+    if (!render::Presenting()) return false;
+    auto it = g_memory.find(holder);
+    if (it == g_memory.end()) return false;
+    const ClientMemory& m = it->second;
+    ::GdiFlush();   // GDI may still hold drawing for the memory (not imported by the game)
+    std::memset(desc, 0, 0x7C);
+    desc[0] = 0x7C;
+    desc[kFlags] = kDescFlags | kClientMemory;
+    desc[kWidth] = m.width;
+    desc[kHeight] = m.height;
+    desc[kPitch] = m.pitch;
+    desc[kSurface] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(m.bits));
+    std::memcpy(&desc[kFormat], m.format, sizeof(m.format));
+    desc[kCapsWord] = kCaps;
+    return true;
 }
 
 // 004EF7B0. Returns the holder; when the surface cannot be made a C++ exception is thrown (as the

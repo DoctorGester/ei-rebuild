@@ -306,6 +306,7 @@ UpdateSizeClasses (00530A50), 48 StandPoint (005303A0), 51 PlaceUnitOnGround (00
 rewritten: 0 destructor (0052E2A0), 2/3 Create/Destroy (0052E400/0052E590), 5 release (0052E740),
 9/10 Load/Save (00531A80/005321C0), 25 (0052FC40), 34 (0052EB70), 49/50 network state
 (0052EF90/0052EC70), 52/53 (0052FCC0/0052FDF0). CFakeUnit (0073BFE8) shares every rewritten slot.
+(Later: 49/50 and 52/53 are rewritten, see "Network state" and "Unit points" below.)
 
 ### Functions rewritten (second round)
 
@@ -657,10 +658,56 @@ compares only the bytes the reader writes (+0, +1, the dword +4, +0x10). The mis
 names the first part that differs (result, delta state, received stream, globals, or a named
 field), so a further mismatch can be traced.
 
+With named parts the remaining 1% (all `first == 0`) showed "orientation +0x34 differs". This is
+also a side effect of the second read. After field 10 (the path), the controller's slot 41 runs. For
+a party unit's client controller (class 0x3D, 00535B20) that is 00535850 with rate 0, which puts the
+unit on its path. When the controller's byte +0x76 is set, 00535850 clears the byte and snaps the
+unit's orientation to the path direction (00401F00 on the unit). Ours consumes the byte. The
+original's second read then finds it clear and keeps the orientation it just read. The check now
+saves that byte before ours and puts it back before the original's read. Ours was not changed.
+
 Kept from the original: the field 3 count is one byte read into a word; the companion's slot 13
 and the stat slot get their bool / flag arguments as 0/1 and the byte (the original pushes
 registers whose upper bytes are left over). The stat fractions and hit point ratio are plain C++
 (rule 7).
+
+# Unit points (slots 52 / 53)
+
+Code: `src/game/unit_points.cpp` (new); verify wrappers: `tests/verify/verify_unit_points.cpp`
+(differential: the original into a scratch point, within 8 ULPs). Registered as free functions.
+
+| Address | Function | Notes |
+| --- | --- | --- |
+| 0052FCC0 | UnitPredictPosition (slot 52, RET 8: out, time) | server units (slot 55): slot 53. Client units following a path order (kind 2, no flag 0x8000000): the motion sampled at (float)time, x / y back from half-cells, z kept. Otherwise the position. Returns out. |
+| 0052FDF0 | UnitActionPoint (slot 53, RET 4: out) | server units only (else the position). The animation entry of +0x254 (00518F80, its low byte) of kind 0x1C0000 offsets the position: 0x400000 -Y x +0x148, 0x800000 +Y x +0x148, 0xC00000 +X x +0x144, 0x1000000 -X x +0x144 (axes 0040F560 / 0040D940). A missing entry logs "Can't find animation entry index". When the world is live, a point where size class 3 cannot stand (005BA790) gives the position instead. |
+
+# Client path placement
+
+Code: `src/game/unit_client_path.cpp` (new); verify wrapper: `tests/verify/verify_unit_client_path.cpp`.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00535850 | ClientPlaceOnPath (RET 8; CUnitClientSpecific, from slot 41 with (+0x34, 0) and from 00535B30 with the tick's time and rate) | differential: the original first; orientation and snap byte put back; ours; position, orientation and +0x178 within 8 ULPs, snap byte exact |
+
+Steps:
+1. Skips units with flag 0x4000000.
+2. Samples the controller's motion order (+0x38) with the unit's motion (+0x27C, 005C7430) at
+   `time`. The position goes in as half-cells (x2) and comes back out (x0.5), set on the ground
+   (00530280) plus +0x320, and the world's slot 41 moves the unit there.
+3. A set +0x76 byte is cleared and snaps the facing once (00401F00 with flag 0). With unit flag
+   0x10000000 the facing is set at once (00401F00 with 1). Otherwise, for `rate` > 0, the heading
+   blends: current = atan2(-axis.y, -axis.x) of the orientation's facing axis (0040F560), target =
+   atan2(direction). The smaller is raised by the full turn at 007AF330 until they are within
+   3.1416. heading = (1 - w) target + w current with w = exp(-0.3 rate), then cos / sin go to
+   00402220.
+4. The animation speed factor +0x178 depends on the figure's current animation (+0x98, its +0x40):
+   - none: 1;
+   - an animation of length 0: 005327D0;
+   - otherwise: |direction| x speed x 15 / (2 x frames x length), where frames comes from the
+     animation entry's start / end / span and the unit's +0xCC.
+
+atan2, exp, cos and sin are the C++ library's (rule 7). The original uses FPATAN / F2XM1 / FSCALE
+/ FCOS / FSIN at the game's 24-bit precision.
 
 # Levers
 

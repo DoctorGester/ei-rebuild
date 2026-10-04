@@ -2,6 +2,8 @@
 // (ui_surface_dc.cpp). All ours only (DirectDraw objects, GDI).
 #include "verify.h"
 
+#include "../../src/lib/mfc.h"
+
 #include <windows.h>
 
 #include <cstdint>
@@ -70,3 +72,97 @@ static void __fastcall UiSurfaceReleaseDCVerify(char* surface) {
                       static_cast<void*>(surface));
 }
 EI_VERIFY(0x005FDC60, UiSurfaceReleaseDCVerify, 0, s_releaseDc);
+
+// 005FCC00 / 005FCDD0 (ui_surface_create.cpp): the vtable, a holder with a surface of the screen
+// rectangle's size, flag 4, nothing kept, the surface-bytes total up by height * pitch.
+char* __fastcall UiSurfaceConstruct(char* self, void*, void* ui, int left, int top, int right, int bottom, int format,
+                                    char scale);
+char* __fastcall UiSurfaceConstructRect(char* self, void*, void* ui, const int* rect, int format);
+static void CheckWindowSurface(const char* name, char* self, std::uint32_t bytesBefore) {
+    char* holder = *reinterpret_cast<char**>(self + 0x10);
+    const int* rect = reinterpret_cast<const int*>(self + 0x24);
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    void* surface = holder ? *reinterpret_cast<void**>(holder + 0x10) : nullptr;
+    bool described = surface && reinterpret_cast<long(__stdcall*)(void*, void*)>((*static_cast<void***>(surface))[22])(
+                                    surface, desc) == 0;
+    std::uint32_t grown = *reinterpret_cast<std::uint32_t*>(0x007C7E78) - bytesBefore;
+    bool ok = *reinterpret_cast<std::uintptr_t*>(self) == 0x00740F28 && holder && described &&
+              *reinterpret_cast<int*>(self + 0x14) == rect[2] - rect[0] &&
+              *reinterpret_cast<int*>(self + 0x18) == rect[3] - rect[1] &&
+              static_cast<int>(desc[3]) == rect[2] - rect[0] && static_cast<int>(desc[2]) == rect[3] - rect[1] &&
+              (*reinterpret_cast<std::uint32_t*>(self + 0xC) & 4) && *reinterpret_cast<int*>(self + 0x1C) == 0 &&
+              *reinterpret_cast<int*>(self + 0x20) == 0 && grown == desc[2] * desc[4];
+    ei::verify::Check(name, true, ok, "%dx%d, total +%u", rect[2] - rect[0], rect[3] - rect[1], grown);
+}
+
+static void* s_uiSurface;
+static char* __fastcall UiSurfaceConstructVerify(char* self, void*, void* ui, int left, int top, int right, int bottom,
+                                                 int format, char scale) {
+    std::uint32_t before = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    char* result = UiSurfaceConstruct(self, nullptr, ui, left, top, right, bottom, format, scale);
+    CheckWindowSurface("UiSurfaceConstruct", self, before);
+    return result;
+}
+EI_VERIFY(0x005FCC00, UiSurfaceConstructVerify, 0, s_uiSurface);
+
+static void* s_uiSurfaceRect;
+static char* __fastcall UiSurfaceConstructRectVerify(char* self, void*, void* ui, const int* rect, int format) {
+    std::uint32_t before = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    char* result = UiSurfaceConstructRect(self, nullptr, ui, rect, format);
+    CheckWindowSurface("UiSurfaceConstructRect", self, before);
+    return result;
+}
+EI_VERIFY(0x005FCDD0, UiSurfaceConstructRectVerify, 0, s_uiSurfaceRect);
+
+// The surface's height * pitch (GetSurfaceDesc); 0 without one.
+static std::uint32_t SurfaceBytes(char* holder) {
+    void* surface = holder ? *reinterpret_cast<void**>(holder + 0x10) : nullptr;
+    if (!surface) return 0;
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    if (reinterpret_cast<long(__stdcall*)(void*, void*)>((*static_cast<void***>(surface))[22])(surface, desc) != 0) return 0;
+    return desc[2] * desc[4];
+}
+
+// 005FD120 (ui_surface_create.cpp): no holder, an empty screen rectangle, nothing kept, the totals
+// down by the kept bytes and the surface's height * pitch.
+void __fastcall UiSurfaceRelease(char* self);
+static void* s_uiSurfaceRelease;
+static void __fastcall UiSurfaceReleaseVerify(char* self) {
+    auto& kept = *reinterpret_cast<std::uint32_t*>(0x007C7E74);
+    auto& bytes = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    std::uint32_t keptBefore = kept, bytesBefore = bytes;
+    std::uint32_t keptSize = *reinterpret_cast<void**>(self + 0x1C) ? *reinterpret_cast<std::uint32_t*>(self + 0x20) : 0;
+    std::uint32_t surfaceSize = SurfaceBytes(*reinterpret_cast<char**>(self + 0x10));
+    UiSurfaceRelease(self);
+    const int* rect = reinterpret_cast<const int*>(self + 0x24);
+    bool ok = *reinterpret_cast<void**>(self + 0x10) == nullptr && *reinterpret_cast<void**>(self + 0x1C) == nullptr &&
+              rect[0] == 0 && rect[1] == 0 && rect[2] == 0 && rect[3] == 0 && keptBefore - kept == keptSize &&
+              bytesBefore - bytes == surfaceSize;
+    ei::verify::Check("UiSurfaceRelease", true, ok, "kept -%u (%u), surface -%u (%u)", keptBefore - kept, keptSize,
+                      bytesBefore - bytes, surfaceSize);
+}
+EI_VERIFY(0x005FD120, UiSurfaceReleaseVerify, 0, s_uiSurfaceRelease);
+
+// 005FCF80: the vtable, a holder of the picture's size, the screen rectangle (0, 0, width, height),
+// flag 1, nothing kept, the surface-bytes total up by height * pitch.
+char* __fastcall UiSurfaceFromPicture(char* self, void*, void* ui, mfc::CString name);
+static void* s_uiSurfacePicture;
+static char* __fastcall UiSurfaceFromPictureVerify(char* self, void*, void* ui, mfc::CString name) {
+    std::uint32_t before = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    char* result = UiSurfaceFromPicture(self, nullptr, ui, name);
+    char* holder = *reinterpret_cast<char**>(self + 0x10);
+    const int* rect = reinterpret_cast<const int*>(self + 0x24);
+    int width = holder ? *reinterpret_cast<int*>(holder + 0x14) : -1;
+    int height = holder ? *reinterpret_cast<int*>(holder + 0x18) : -1;
+    std::uint32_t grown = *reinterpret_cast<std::uint32_t*>(0x007C7E78) - before;
+    bool ok = result == self && *reinterpret_cast<std::uintptr_t*>(self) == 0x00740F28 && holder &&
+              *reinterpret_cast<int*>(self + 0x14) == width && *reinterpret_cast<int*>(self + 0x18) == height &&
+              rect[0] == 0 && rect[1] == 0 && rect[2] == width && rect[3] == height &&
+              (*reinterpret_cast<std::uint32_t*>(self + 0xC) & 1) && *reinterpret_cast<int*>(self + 0x1C) == 0 &&
+              grown == SurfaceBytes(holder);
+    ei::verify::Check("UiSurfaceFromPicture", true, ok, "%dx%d, total +%u", width, height, grown);
+    return result;
+}
+EI_VERIFY(0x005FCF80, UiSurfaceFromPictureVerify, 0, s_uiSurfacePicture);

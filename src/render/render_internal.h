@@ -236,6 +236,13 @@ struct Picture {
 };
 bool PictureFromMmpData(const void* holder, const void* data);
 const Picture* PictureOf(const void* holder);
+// The game-owned memory of a surface holder (render::ClientSurface); false when it has none.
+struct ClientMemoryView {
+    void* bits;
+    int pitch, width, height, bitsPerPixel;
+    std::uint32_t red, green, blue, alpha;
+};
+bool ClientMemoryOf(const void* holder, ClientMemoryView* out);
 sg_sampler LinearSampler();
 sg_sampler StageSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a

@@ -45,6 +45,7 @@ void ParseSpec(const char* spec) {
     g_oldTerrain = g_oldObjects = g_oldInterface = true;
     std::string s = spec ? spec : "";
     std::size_t start = 0;
+    bool noCpuWindows = false;
     while (start <= s.size()) {
         std::size_t comma = s.find(',', start);
         std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
@@ -58,6 +59,7 @@ void ParseSpec(const char* spec) {
         else if (word == "nointerface") g_oldInterface = false;
         else if (word == "present") g_present = true;
         else if (word == "cpuwindows") g_cpuWindows = true;
+        else if (word == "nocpuwindows") noCpuWindows = true;
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
@@ -68,16 +70,20 @@ void ParseSpec(const char* spec) {
         // into the game's render target and the old present shows it.
         g_show = g_split = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = false;
+        // The windows' pixels in game-owned memory (render_present_cpuwindows passes on both
+        // installs); "nocpuwindows" keeps DirectDraw's own surfaces.
+        g_cpuWindows = true;
     }
+    if (noCpuWindows) g_cpuWindows = false;
     if (!g_active) {
         g_show = g_split = g_present = g_cpuWindows = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = true;
     }
     g_configured = true;
     if (g_active)
-        ei::Log("render: new renderer on (%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
+        ei::Log("render: new renderer on (%s%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
                 g_oldTerrain ? "" : ", old terrain off", g_oldObjects ? "" : ", old objects off",
-                g_oldInterface ? "" : ", old interface off");
+                g_oldInterface ? "" : ", old interface off", g_cpuWindows ? ", windows in game memory" : "");
 }
 
 void EnsureConfigured() {
@@ -706,8 +712,27 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     // Into the surface, stretched to its size as DirectDraw's Blt does (nearest texel).
     DDSURFACEDESC2 desc{};
     desc.dwSize = sizeof(desc);
-    LockGameDevice();
-    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
+    // In the switch-over a surface in game-owned memory is written there directly (no DirectDraw).
+    ClientMemoryView client{};
+    bool direct = g_present && ClientMemoryOf(holder, &client);
+    HRESULT hr = S_OK;
+    if (direct) {
+        GdiFlush();   // GDI drawing still queued for the memory must not land on the copy
+        desc.dwWidth = static_cast<DWORD>(client.width);
+        desc.dwHeight = static_cast<DWORD>(client.height);
+        desc.lPitch = client.pitch;
+        desc.lpSurface = client.bits;
+        desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+        desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (client.alpha ? DDPF_ALPHAPIXELS : 0);
+        desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(client.bitsPerPixel);
+        desc.ddpfPixelFormat.dwRBitMask = client.red;
+        desc.ddpfPixelFormat.dwGBitMask = client.green;
+        desc.ddpfPixelFormat.dwBBitMask = client.blue;
+        desc.ddpfPixelFormat.dwRGBAlphaBitMask = client.alpha;
+    } else {
+        LockGameDevice();
+        hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
+    }
     bool ok = SUCCEEDED(hr) && desc.lpSurface && (desc.ddpfPixelFormat.dwFlags & DDPF_RGB) &&
               (desc.ddpfPixelFormat.dwRGBBitCount == 16 || desc.ddpfPixelFormat.dwRGBBitCount == 32);
     if (ok) {
@@ -737,8 +762,10 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
             }
         }
     }
-    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
-    UnlockGameDevice();
+    if (!direct) {
+        if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+        UnlockGameDevice();
+    }
     UnmapTarget();
     return ok;
 }
