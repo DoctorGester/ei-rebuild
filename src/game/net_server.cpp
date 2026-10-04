@@ -8,6 +8,11 @@
 
 namespace net {
 
+// The handler registration templates (net_handler_registrars.cpp).
+void __fastcall RegisterRequestHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterPartyHandler(SessionBase* self, void*, int channel, void* handler);
+void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, void* handler);
+
 namespace {
 
 // 004409A0: opens the session's UDP socket, bound to `port` when it is positive. Returns 1 / 0.
@@ -31,16 +36,6 @@ __declspec(naked) void* __fastcall ListConstruct4231C0(void* /*list*/, void*, co
 __declspec(naked) void* __fastcall ListConstruct423440(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423440)
 __declspec(naked) void* __fastcall ListConstruct423700(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423700)
 __declspec(naked) void* __fastcall ListConstruct421B20(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00421B20)
-
-// Handler registration templates, one per message class; not rewritten yet.
-struct ServerRegistrar {
-    void Register4279B0(int channel, void* handler);
-    void Register427AC0(int channel, void* handler);
-    void Register427C40(int channel, void* handler);
-};
-__declspec(naked) void ServerRegistrar::Register4279B0(int, void*) EI_ORIGINAL(0x004279B0)
-__declspec(naked) void ServerRegistrar::Register427AC0(int, void*) EI_ORIGINAL(0x00427AC0)
-__declspec(naked) void ServerRegistrar::Register427C40(int, void*) EI_ORIGINAL(0x00427C40)
 
 void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
 
@@ -90,13 +85,12 @@ ServerSession* ServerSession::Construct(std::uint32_t arg) {
     base.AddHandlerFor(0x1C, ConstructMessage73BC40, 0, Handler(0x0041B2A0));
     base.AddHandlerFor(0x14, ConstructMessage73BC58, 0, Handler(0x0041B690));
 
-    auto* registrar = reinterpret_cast<ServerRegistrar*>(this);
-    registrar->Register4279B0(2, Handler(0x0041B720));
-    registrar->Register427AC0(0, Handler(0x0041B7A0));
-    registrar->Register427AC0(1, Handler(0x0041B970));
-    registrar->Register427AC0(2, Handler(0x0041BA30));
-    registrar->Register427C40(0, Handler(0x0041BA20));
-    registrar->Register427C40(1, Handler(0x0041BA20));
+    RegisterRequestHandler(&base, nullptr, 2, Handler(0x0041B720));
+    RegisterPartyHandler(&base, nullptr, 0, Handler(0x0041B7A0));
+    RegisterPartyHandler(&base, nullptr, 1, Handler(0x0041B970));
+    RegisterPartyHandler(&base, nullptr, 2, Handler(0x0041BA30));
+    RegisterMemberHandler(&base, nullptr, 0, Handler(0x0041BA20));
+    RegisterMemberHandler(&base, nullptr, 1, Handler(0x0041BA20));
 
     unknown_258C = 0;
     unknown_25E4 = arg;

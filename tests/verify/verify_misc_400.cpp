@@ -1,6 +1,8 @@
 // Checks for misc_400.cpp.
 //  - ManagerConstruct / ManagerDestruct: ours only (the base manager's constructor and destructor
 //    are verified on their own); the vtable is checked.
+//  - ManagerNewObject: ours only (it constructs objects); null exactly for the types it does not make
+//    (or a failed allocation).
 //  - CursorStart, ClearPointee: side by side on copies.
 #include "verify.h"
 
@@ -15,6 +17,7 @@ CBaseManager* __fastcall ManagerConstruct(CBaseManager* self);
 void __fastcall ManagerDestruct(CBaseManager* self);
 std::uint32_t __fastcall CursorStart(BufferCursor* self, void*, std::uint8_t* p, std::uint32_t, std::uint32_t);
 void __fastcall ClearPointee(void** self);
+CEngineObject* __fastcall ManagerNewObject(CBaseManager* self, void*, int type);
 } // namespace misc400
 
 namespace {
@@ -55,9 +58,17 @@ void __fastcall ClearPointeeVerify(void** self) {
     misc400::ClearPointee(self);
     ei::verify::Check("ClearPointee", true, target == nullptr && *static_cast<void**>(*self) == nullptr, "");
 }
+
+CEngineObject* __fastcall NewObjectVerify(CBaseManager* self, void*, int type) {
+    CEngineObject* object = misc400::ManagerNewObject(self, nullptr, type);
+    bool makes = type >= 'E' && type <= 'K' && type != 'J';
+    ei::verify::Check("Manager73BECC::NewObject", makes, object != nullptr, "type %d", type);
+    return object;
+}
 } // namespace
 
 EI_VERIFY(0x0042D690, ConstructVerify, 0, s_unused);
 EI_VERIFY(0x0042D6F0, DestructVerify, 0, s_unused);
 EI_VERIFY(0x00430FC0, CursorStartVerify, 6, s_cursorStart);
 EI_VERIFY(0x00433F10, ClearPointeeVerify, 8, s_clearPointee);
+EI_VERIFY(0x0042D700, NewObjectVerify, 0, s_unused);

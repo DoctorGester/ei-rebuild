@@ -19,13 +19,18 @@ address,size,name,evidence
 0041A2B0,39,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0041E1A0,50,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0041E1E0,61,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0042C400,54,(no Ghidra function),"a chunk reader of a 2-byte value; no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0042C440,115,(no Ghidra function),"a chunk writer of a 2-byte value chunk (size 0xA); no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0042C8F0,294,FUN_0042c8f0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0042CE10,176,(no Ghidra function),"a chunk writer of four values (size 0x18); no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0042CEC0,219,FUN_0042cec0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042D1C0,146,FUN_0042d1c0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042DA80,229,FUN_0042da80,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042E700,3436,FUN_0042e700,"no references: polygon clipper variant; only coincidental aligned dwords (E8 call bytes at 00460928 005171F8 0053D6F8 0064C6E8)"
+0042F470,78,(no Ghidra function),"a sphere overlap test (distance of two points against the sum of two radii, ret 0x20); no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0042F4C0,976,FUN_0042f4c0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042F890,397,FUN_0042f890,referenced only from dead code 0042E700 0042F4C0
+0042FA20,189,(no Ghidra function),"a float computation on two points (ret 0x24); no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 00431300,111,FUN_00431300,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00431370,562,FUN_00431370,referenced only from dead code 00431090 00431110
 004315B0,1068,FUN_004315b0,referenced only from dead code 00431370

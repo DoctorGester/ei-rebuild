@@ -131,6 +131,73 @@ std::uint32_t __fastcall CoderEndOutput(CoderState* coder) {
 }
 EI_REPLACE(0x0041D960, CoderEndOutput);
 
+// --- Code tables ----------------------------------------------------------------------------------
+
+// 0042FAE0: the startup initialiser (from the .data list at 007830C0) of the code tables: for match
+// lengths 1..0x22 the code and its bit count (0079B844 / 0079B7BC, indexed by length), for distance
+// buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (0079B738 / 0079B6B0). It runs
+// before the hooks are installed; the rewrite is for the standalone build.
+void __cdecl InitCodeTables() {
+    auto* lengthCodes = reinterpret_cast<std::int32_t*>(0x0079B844);
+    auto* lengthBits = reinterpret_cast<std::int32_t*>(0x0079B7BC);
+    for (int length = 1; length <= 0x22; ++length) {
+        int j = length - 1;
+        lengthCodes[length] = 0;
+        if (length <= 1) {
+            lengthCodes[length] = 0;
+            lengthBits[length] = 1;
+        } else if (length <= 2) {
+            lengthCodes[length] = 1;
+            lengthBits[length] = 3;
+        } else if (length <= 3) {
+            lengthCodes[length] = 3;
+            lengthBits[length] = 5;
+        } else if (length <= 4) {
+            lengthCodes[length] = 5;
+            lengthBits[length] = 3;
+        } else if (length <= 5) {
+            lengthCodes[length] = 7;
+            lengthBits[length] = 5;
+        } else if (length <= 6) {
+            lengthCodes[length] = 0xF;
+            lengthBits[length] = 5;
+        } else if (length <= 10) {
+            lengthBits[length] = 6;
+            lengthCodes[length] = 16 * j - 0x55;
+        } else if (length <= 18) {
+            lengthBits[length] = 8;
+            lengthCodes[length] = 32 * j - 0x12D;
+        } else {
+            lengthBits[length] = 10;
+            lengthCodes[length] = 64 * j - 0x461;
+        }
+    }
+    auto* offsetCodes = reinterpret_cast<std::int32_t*>(0x0079B738);
+    auto* offsetBits = reinterpret_cast<std::int32_t*>(0x0079B6B0);
+    for (int k = 0; k < 0x22; ++k) {
+        int v = 16 * k - 0x5C;
+        int high = 0x1C + 32 * k;
+        offsetCodes[k] = 0;
+        if (v < -0x3C) {
+            offsetBits[k] = 6;
+            offsetCodes[k] = high;
+        } else if (v < 4) {
+            offsetBits[k] = 6;
+            offsetCodes[k] = v + 0x44;
+        } else if (v < 0x44) {
+            offsetBits[k] = 6;
+            offsetCodes[k] = v;
+        } else if (v < 0xC4) {
+            offsetBits[k] = 7;
+            offsetCodes[k] = v - 0x44;
+        } else {
+            offsetBits[k] = 9;
+            offsetCodes[k] = high - 0x250;
+        }
+    }
+}
+EI_REPLACE(0x0042FAE0, InitCodeTables);
+
 // --- Compression ----------------------------------------------------------------------------------
 
 void CoderState::EncodeMatch(std::int32_t at) {

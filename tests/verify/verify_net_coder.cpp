@@ -19,6 +19,8 @@
 
 #include <windows.h>
 
+void __cdecl InitCodeTables();   // net_coder.cpp
+
 namespace {
 
 void* s_unused;
@@ -223,6 +225,22 @@ void __fastcall DecompressVerify(CoderState* self, void*, GameBuffer* in, GameBu
     RunBoth("CoderState::Decompress", s_decompress, &CoderState::Decompress, self, in, out);
 }
 
+
+// 0042FAE0: PUSH EBX/EBP/ESI/EDI (4), MOV ECX,1 (5). Both fill the same global tables: the original's
+// are kept and compared with ours. (It runs before the hooks are installed, so this wrapper runs only
+// if something calls it again.)
+void(__cdecl* s_initCodeTables)();
+void __cdecl InitCodeTablesVerify() {
+    constexpr std::uintptr_t kTables[4] = {0x0079B848, 0x0079B7C0, 0x0079B738, 0x0079B6B0};
+    std::uint32_t expected[4][0x22];
+    s_initCodeTables();
+    for (int t = 0; t < 4; ++t) std::memcpy(expected[t], reinterpret_cast<const void*>(kTables[t]), sizeof(expected[t]));
+    InitCodeTables();
+    bool same = true;
+    for (int t = 0; t < 4; ++t)
+        same = same && std::memcmp(expected[t], reinterpret_cast<const void*>(kTables[t]), sizeof(expected[t])) == 0;
+    ei::verify::Check("InitCodeTables", true, same, "");
+}
 } // namespace
 
 EI_VERIFY(0x004301E0, PutBitsVerify, 6, s_putBits);
@@ -236,3 +254,4 @@ EI_VERIFY(0x0041D960, CoderEndOutputVerify, 0, s_unused);
 EI_VERIFY(0x0042FD10, EncodeMatchVerify, 6, s_encodeMatch);
 EI_VERIFY(0x00430450, CompressVerify, 7, s_compress);
 EI_VERIFY(0x00430960, DecompressVerify, 7, s_decompress);
+EI_VERIFY(0x0042FAE0, InitCodeTablesVerify, 9, s_initCodeTables);

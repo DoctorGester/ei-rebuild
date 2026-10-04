@@ -7,6 +7,7 @@
 #include "ei/vcall.h"
 
 #include <cstring>
+#include <new>
 
 namespace {
 
@@ -258,3 +259,166 @@ void Chunk::ReadBytes(void* data, int size) {
     consumed_ += size;
 }
 EI_REPLACE_METHOD(0x0042D020, Chunk::ReadBytes);
+
+// --- Text ----------------------------------------------------------------------------------------
+
+namespace {
+// MFC (library): CStringArray::SetSize / SetAtGrow (data at +4, size at +8).
+__declspec(naked) void __fastcall StringArraySetSize(void* /*array*/, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x006FE9B8)
+__declspec(naked) void __fastcall StringArraySetAtGrow(void* /*array*/, void*, int /*index*/, const mfc::CString* /*value*/) EI_ORIGINAL(0x006FEBFA)
+int StringArraySize(const void* array) { return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(array) + 8); }
+mfc::CString* StringArrayAt(void* array, int i) {
+    return *reinterpret_cast<mfc::CString**>(static_cast<std::uint8_t*>(array) + 4) + i;
+}
+
+// The decoder of 004D8E10 (outside this range): two byte vectors, the decoded text and the coded
+// input; vector<uint8_t> members (library): constructor, erase, fill insert.
+struct ByteVector {
+    std::uint8_t* start;
+    std::uint8_t* finish;
+    std::uint8_t* eos;
+};
+struct TextDecoder {
+    ByteVector text;    // +0x00
+    ByteVector input;   // +0x0C
+};
+__declspec(naked) void __fastcall ByteVectorConstruct(ByteVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0042D310)
+__declspec(naked) void __fastcall ByteVectorErase(ByteVector* /*v*/, void*, std::uint8_t* /*first*/, std::uint8_t* /*last*/) EI_ORIGINAL(0x0042D340)
+__declspec(naked) void __fastcall ByteVectorFill(ByteVector* /*v*/, void*, std::uint8_t* /*pos*/, std::uint32_t /*n*/, const std::uint8_t* /*value*/) EI_ORIGINAL(0x0042D370)
+__declspec(naked) void __fastcall NodeFree(void* /*p*/, std::uint32_t /*bytes*/) EI_ORIGINAL(0x00404D70)
+// 004D8E10: unpacks the input, unscrambles it and stores it in `out`.
+__declspec(naked) void __fastcall DecodeText(TextDecoder* /*decoder*/, void*, mfc::CString* /*out*/) EI_ORIGINAL(0x004D8E10)
+} // namespace
+
+// The characters are read one at a time, each counted; the text ends at the first NUL
+// (ReleaseBuffer(-1)).
+mfc::CString* Chunk::ReadString(mfc::CString* out) {
+    mfc::CString text;
+    int length = size_ - kHeader;
+    char* p = text.GetBufferSetLength(length);
+    std::uint8_t c;
+    for (int i = length; i > 0; --i) {
+        FileRead(File(), &c, 1);
+        if (parent_) parent_->Advance(1);
+        ++consumed_;
+        *p++ = static_cast<char>(c);
+    }
+    text.ReleaseBuffer(-1);
+    new (out) mfc::CString(text);
+    return out;
+}
+EI_REPLACE_METHOD(0x0042C580, Chunk::ReadString);
+
+// The content read into the decoder's input (resized to it, zero-filled) in one read, then decoded.
+mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
+    std::uint32_t length = static_cast<std::uint32_t>(size_ - kHeader);
+    TextDecoder decoder;
+    std::uint8_t allocator = 0;
+    ByteVectorConstruct(&decoder.text, nullptr, &allocator);
+    ByteVectorConstruct(&decoder.input, nullptr, &allocator);
+    std::uint8_t zero = 0;
+    std::uint32_t had = static_cast<std::uint32_t>(decoder.input.finish - decoder.input.start);
+    if (length < had)
+        ByteVectorErase(&decoder.input, nullptr, decoder.input.start + length, decoder.input.finish);
+    else
+        ByteVectorFill(&decoder.input, nullptr, decoder.input.finish, length - had, &zero);
+    FileRead(File(), decoder.input.start, length);
+    if (parent_) parent_->Advance(static_cast<int>(length));
+    consumed_ += static_cast<int>(length);
+    {
+        mfc::CString text;
+        DecodeText(&decoder, nullptr, &text);
+        new (out) mfc::CString(text);
+    }
+    if (decoder.input.start)
+        NodeFree(decoder.input.start, static_cast<std::uint32_t>(decoder.input.eos - decoder.input.start));
+    if (decoder.text.start)
+        NodeFree(decoder.text.start, static_cast<std::uint32_t>(decoder.text.eos - decoder.text.start));
+    return out;
+}
+EI_REPLACE_METHOD(0x0042C650, Chunk::ReadEncodedString);
+
+// A chunk holding the characters (no terminator). The buffer is taken after the file (GetBuffer(0)).
+void Chunk::WriteString(std::uint32_t id, mfc::CString text) {
+    int size = text.GetLength() + kHeader;
+    FileWrite(File(), &id, 4);
+    FileWrite(File(), &size, 4);
+    if (parent_) parent_->Advance(size);
+    consumed_ += size;
+    int length = text.GetLength();
+    void* file = File();
+    FileWrite(file, text.GetBuffer(0), static_cast<std::uint32_t>(length));
+}
+EI_REPLACE_METHOD(0x0042C820, Chunk::WriteString);
+
+// The array is emptied (SetSize(0, -1)), then `count` string chunks are read through a child chunk
+// and appended. The count is unsigned.
+void Chunk::ReadStringArray(void* array) {
+    std::uint32_t count;
+    ReadCounted(this, &count, 4);
+    Chunk child;
+    std::uintptr_t vtable = kChunkVtable;
+    std::memcpy(&child.vtable_, &vtable, sizeof(vtable));
+    child.consumed_ = 0;
+    child.size_ = 0;
+    child.id_ = 0;
+    child.start_ = 0;
+    child.parent_ = this;
+    StringArraySetSize(array, nullptr, 0, -1);
+    for (std::uint32_t i = count; i != 0; --i) {
+        child.ReadHeader();
+        alignas(mfc::CString) std::uint8_t slot[sizeof(mfc::CString)];   // the original reuses a stack slot
+        mfc::CString* text = child.ReadString(reinterpret_cast<mfc::CString*>(slot));
+        StringArraySetAtGrow(array, nullptr, StringArraySize(array), text);
+        text->~CString();
+    }
+}
+EI_REPLACE_METHOD(0x0042CA20, Chunk::ReadStringArray);
+
+// The size covers the count and every element's chunk. Each element's buffer is taken with
+// GetBuffer(0) after the file is asked for (it may make a shared string unique).
+void Chunk::WriteStringArray(std::uint32_t id, void* array) {
+    int count = StringArraySize(array);
+    int characters = 0;
+    for (int i = 0; i < count; ++i) characters += StringArrayAt(array, i)->GetLength();
+    std::uint32_t chunkId = id;
+    int size = characters + count * 8 + 0xC;
+    FileWrite(File(), &chunkId, 4);
+    FileWrite(File(), &size, 4);
+    if (parent_) parent_->Advance(size);
+    consumed_ += size;
+    int n = StringArraySize(array);
+    FileWrite(File(), &n, 4);
+    for (int i = 0; i < StringArraySize(array); ++i) {
+        int elementSize = StringArrayAt(array, i)->GetLength() + kHeader;
+        FileWrite(File(), &id, 4);
+        FileWrite(File(), &elementSize, 4);
+        int length = StringArrayAt(array, i)->GetLength();
+        void* file = File();
+        FileWrite(file, StringArrayAt(array, i)->GetBuffer(0), static_cast<std::uint32_t>(length));
+    }
+}
+EI_REPLACE_METHOD(0x0042CB80, Chunk::WriteStringArray);
+
+// --- The root chunk ------------------------------------------------------------------------------
+
+namespace {
+constexpr std::uintptr_t kChunkRootVtable = 0x0073BE9C;
+constexpr int kFileOpen = 8;   // CFile slot 8: Open(path, flags, exception)
+void* RootFile(Chunk* root) { return reinterpret_cast<std::uint8_t*>(root) + 0x18; }
+} // namespace
+
+int __fastcall ChunkRootOpen(Chunk* self, void*, mfc::CString path, unsigned flags) {
+    return ei::VCall<int>(RootFile(self), kFileOpen, static_cast<const char*>(path), flags & 0xFFFF,
+                          static_cast<void*>(nullptr));
+}
+EI_REPLACE(0x0042D160, ChunkRootOpen);
+
+void __fastcall ChunkRootDestruct(Chunk* self) {
+    std::uintptr_t vtable = kChunkRootVtable;
+    std::memcpy(&self->vtable_, &vtable, sizeof(vtable));
+    static_cast<mfc::CFile*>(RootFile(self))->~CFile();
+    vtable = kChunkVtable;
+    std::memcpy(&self->vtable_, &vtable, sizeof(vtable));
+}
+EI_REPLACE(0x0042D270, ChunkRootDestruct);

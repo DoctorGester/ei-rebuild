@@ -1,7 +1,7 @@
 // The game client's message handlers (registered by the constructor 0041BC40, __fastcall with the
 // client in ECX and the message in EDX) and the three party-screen entry points around them
 // (0041E0A0, 0041E270, 0041E3E0). Each keeps the replicated objects the server sends in one of the
-// client's lists and tells the interface or the game flow. 0041ECC0 (the 0073BC58 handler for
+// client's lists and tells the interface or the game flow. 0041ECC0 (the 0073BD30 handler for
 // channel 0) is patched by Rebirth and stays original. See docs/notes/unmapped_410_470.md
 // ("Eighth round").
 #include "net_classes.h"
@@ -350,7 +350,7 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0
         node = next;
     }
 }
-// The 0073BC58 objects on +0x25E4 (the channel 0 handler 0041ECC0 is Rebirth's).
+// The file chunks (0073BD30) on +0x25E4 (the channel 0 handler 0041ECC0, which stores them, is Rebirth's).
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(&self->list_25E4, ObjectsErase, message); }   // 0041EF10
 // The awards (0073BD48) on +0x2608 (applied by the tick).
 void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(&self->list_2608, AwardsEnd, AwardsInsert, message); }   // 0041EF90

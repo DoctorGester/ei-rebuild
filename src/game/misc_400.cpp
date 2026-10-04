@@ -1,10 +1,12 @@
 // Small pieces of 00400000-00440000 without a better home: the CBaseManager subclass 0073BECC
-// (constructed by 005620D9; only its deleting destructor differs), a cursor reset of the coder and
-// an exception cleanup step. See docs/notes/unmapped_410_470.md ("Eighth round").
+// (constructed by 005620D9; its deleting destructor and slot 14, the object factory, differ), a
+// cursor reset of the coder and an exception cleanup step. See docs/notes/unmapped_410_470.md
+// ("Eighth round").
 #include "base_manager.h"
 #include "net_coder.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
@@ -12,6 +14,20 @@
 namespace misc400 {
 
 constexpr std::uintptr_t kManagerVtable = 0x0073BECC;
+
+// The constructors of the objects 0042D700 makes (outside this range; each returns this). Named by
+// the vtable each one sets.
+__declspec(naked) void* __fastcall Construct73FB10(void* /*memory*/) EI_ORIGINAL(0x005A7010)
+__declspec(naked) void* __fastcall Construct73DE90(void* /*memory*/) EI_ORIGINAL(0x0051AB00)
+__declspec(naked) void* __fastcall ConstructMapObjectClientSpecific(void* /*memory*/) EI_ORIGINAL(0x00510450)
+__declspec(naked) void* __fastcall Construct73ECD8(void* /*memory*/) EI_ORIGINAL(0x00533AD0)
+__declspec(naked) void* __fastcall Construct743180(void* /*memory*/) EI_ORIGINAL(0x00666D10)
+__declspec(naked) void* __fastcall Construct73E954(void* /*memory*/) EI_ORIGINAL(0x0052D0D0)
+
+CEngineObject* New(std::size_t size, void* (__fastcall* construct)(void*)) {
+    void* memory = gamecrt::operator_new(size);
+    return memory ? static_cast<CEngineObject*>(construct(memory)) : nullptr;
+}
 
 // 0042D690: the base manager constructed, then this class's vtable. Returns this.
 CBaseManager* __fastcall ManagerConstruct(CBaseManager* self) {
@@ -24,6 +40,20 @@ CBaseManager* __fastcall ManagerConstruct(CBaseManager* self) {
 void __fastcall ManagerDestruct(CBaseManager* self) {
     std::memcpy(self, &kManagerVtable, 4);
     self->DestructBody();
+}
+
+// 0042D700 (slot 14): a new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
+// failed allocation.
+CEngineObject* __fastcall ManagerNewObject(CBaseManager*, void*, int type) {
+    switch (type) {
+    case 'E': return New(0x3C, Construct73FB10);
+    case 'F': return New(0xFC, Construct73DE90);
+    case 'G': return New(0x58, ConstructMapObjectClientSpecific);
+    case 'H': return New(0xDC, Construct73ECD8);
+    case 'I': return New(0x50F8, Construct743180);
+    case 'K': return New(0x64, Construct73E954);
+    default: return nullptr;
+    }
 }
 
 // 00430FC0: a cursor started at `p` (no byte reserved, no pending bits; the accumulator is left
@@ -42,5 +72,6 @@ void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullpt
 
 EI_REPLACE(0x0042D690, misc400::ManagerConstruct);
 EI_REPLACE(0x0042D6F0, misc400::ManagerDestruct);
+EI_REPLACE(0x0042D700, misc400::ManagerNewObject);
 EI_REPLACE(0x00430FC0, misc400::CursorStart);
 EI_REPLACE(0x00433F10, misc400::ClearPointee);
