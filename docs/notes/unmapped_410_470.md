@@ -398,6 +398,51 @@ Kept: LeaveChunk (writing) takes the child's content pointer before AppendChild 
 a failed EnterChunk while loading leaves the chunk pushed; a loaded archive's Close gives every
 loaded object one reference and takes it back.
 
+## Fifth round: CBaseManager (00402B20-00404A00)
+
+src/game/base_manager_core.cpp (tests/verify/verify_base_manager_core.cpp); the list iterator in
+object.cpp. Vtable 0073B870 (25 slots). Members as used: +0x1C objects table (STLport hash_map id ->
+object), +0x30 highest id, +0x34 MFC CPtrList of registered objects (head +0x38, tail +0x3C, count
++0x40, free +0x44, blocks +0x48), +0x50 table id -> list position (+0x64 highest key), +0x68 table
+type -> CPtrList* of spare objects (+0x7C highest type), +0x80 table type -> spare count (+0x94
+highest type), +0x98 / +0x9C id range [low, limit) for new ids, +0xA0 / +0xA4 (0, 300 on Create),
++0xA8 last id handed out, +0xAC context (Init / SetContext).
+
+Objects are never freed while the manager lives: RemoveObject turns them into spares of their type
+(id -1) and CreateObject takes a spare before asking slot 14 for a new one. Ids come from maxId + 1
+while that stays inside the range, otherwise from rand()-based probing (100000 tries; then the fatal
+"CBaseManager::RegisterInstant" message, and the code carries on with id -1).
+
+| Address | Name | Verify | Reached by |
+|---|---|---|---|
+| 00402B20 / 00402DF0 | ConstructBase / DestructBody | scratch copy, BuiltCompare / ours only | every scenario (managers built at startup) |
+| 00402DD0 / 00402D20 | deleting destructors (manager / engine object) | ours only | every scenario (exit, object deletion) |
+| 00402D40 / 00402CE0 / 00402CF0 | CopyFrom / default name / description | side by side | every scenario |
+| 00403020 / 004031B0 / 004031E0 | Create (slot 2) / Init (13) / Destroy (3) | ours only + state | every scenario (startup, new game, exit) |
+| 004034E0 | DestroyAll (slot 15) | ours only + empty table | only through vtables (caller not traced) |
+| 00403730 / 00404040 / 00403AE0 | CreateObject (23) / RemoveObject / ReleaseObject (24) | ours only + registration | every scenario |
+| 004039B0 / 00403BD0 | Unregister(id) / RegisterInstant(object) | ours only + registration | a derived manager (vtable around 00743D10: ReleaseObject override 00691B00, 00691BF0, 00693C60); not traced to a scenario |
+| 00404410 | FreeRecords (spares freed) | ours only + empty tables | Destroy, Load, 00564E70 |
+| 004046E0 / 00404760 | Load / Save (slots 9, 10) | ours only | save / load scenarios |
+| 004047E0 / 00404860 | LoadObjects / SaveObjects (end mark -0x521) | ours only | save / load scenarios |
+| 004048F0 | ReleaseUnused | ours only | world save code (00597BD0) |
+| 00404920 / 00404960 | ObjectListIterator::First / Next | ours + state / side by side | lights, world object walks (every scenario) |
+| 00403720 | SetContext | ours only | 0058AF1B |
+| 00402D60 / 00402D70 / 00402D90 / 00402DA0 / 00402DB0 | empty slots 16, 17, 19, 20, 21 | side by side | every manager vtable |
+
+Not hookable (shorter than the 5-byte jump; the standalone build defines them): 00402CC0 (slot 5,
+RET), 00402CD0 (slot 6, return 0), 00402D00 / 00402D10 (engine object slots 9 / 10, RET 4),
+00402D80 (slot 18, return 0), 00402DC0 (slot 22, RET), 00403010 (RET).
+
+Kept: DestroyAll and Destroy read a node's next pointer after Release may have returned the object
+(and freed its table node) — the STLport pool keeps the memory, the original does the same.
+LoadObjects reads an id equal to the end mark as an object id when a 1 byte follows.
+
+Forwarders left (STLport / MFC template instantiations used by the manager, all library code):
+the hashtable finds / inserts / erases / clears / resizes at 00404C30-004085E0, CPtrList
+NewNode 004069A0, AddTail 00405040, RemoveAt 004050C0, RemoveHead 00404FE0, CPlex::FreeDataChain
+006FE90F, CEngineObject::SetOwner 00455970, the engine object's destructor body 00455930.
+
 ## Dead code found in this range
 
 00402310 (452), 00402780 (radix sort, 887), 0042E700 (3436) and 0042F890 (397, called only
