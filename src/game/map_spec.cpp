@@ -644,4 +644,25 @@ Vector3* __fastcall QuaternionRotate(const Quaternion* q, void*, Vector3* out, c
 }
 EI_REPLACE(0x0046A4B0, QuaternionRotate);
 
+// ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
+
+namespace {
+__declspec(naked) void __fastcall StringArraySetAtGrow(StringArray*, void*, int /*index*/, const char* /*text*/) EI_ORIGINAL(0x006FEBCE)
+} // namespace
+
+// The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
+// pair 1 but a player with itself (0), and the player names "Player-<i>". Returns this.
+std::int32_t* __fastcall DiplomacyConstruct(std::int32_t* self) {
+    auto* names = reinterpret_cast<StringArray*>(self + 0x400);
+    StringArrayConstruct(names);
+    for (int i = 0; i < 0x400; ++i) self[i] = 1;
+    for (int i = 0; i < 32; ++i) self[i * 33] = 0;
+    for (int i = 0; i < 32; ++i) {
+        StringArraySetAtGrow(names, nullptr, names->size, Text(0x0079B298));
+        names->data[i].Format(Text(0x00787E44), i);   // "Player-%i"
+    }
+    return self;
+}
+EI_REPLACE(0x0046E5E0, DiplomacyConstruct);
+
 } // namespace mapspec
