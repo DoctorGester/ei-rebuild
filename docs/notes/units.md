@@ -306,6 +306,7 @@ UpdateSizeClasses (00530A50), 48 StandPoint (005303A0), 51 PlaceUnitOnGround (00
 rewritten: 0 destructor (0052E2A0), 2/3 Create/Destroy (0052E400/0052E590), 5 release (0052E740),
 9/10 Load/Save (00531A80/005321C0), 25 (0052FC40), 34 (0052EB70), 49/50 network state
 (0052EF90/0052EC70), 52/53 (0052FCC0/0052FDF0). CFakeUnit (0073BFE8) shares every rewritten slot.
+(Later: 49/50 and 52/53 are rewritten, see "Network state" and "Unit points" below.)
 
 ### Functions rewritten (second round)
 
