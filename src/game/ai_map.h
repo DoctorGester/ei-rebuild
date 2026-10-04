@@ -117,6 +117,9 @@ struct CRegionMap {
     // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
     // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
     void PickRepresentatives(class CAIMap* map, int bx, int by);
+    // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
+    // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
+    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.

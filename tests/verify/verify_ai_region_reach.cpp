@@ -178,6 +178,24 @@ static void __fastcall PickVerify(CRegionMap* self, void*, CAIMap* map, int bx, 
 EI_VERIFY(0x005AF900, PickVerify, 5, s_originalPick);
 
 namespace {
+void* s_unusedChain;
+}
+
+// 005B0D90: ours only (the chain goes into the caller's list). Afterwards both block searches are
+// inactive with no touched records left.
+static bool __fastcall FindRegionChainVerify(CRegionMap* self, void*, int sizeClass, int fromX, int fromY, int toX,
+                                             int toY, void* chain, void* excluded) {
+    bool result = self->FindRegionChain(sizeClass, fromX, fromY, toX, toY, chain, excluded);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    bool ok = !base[0x49] && !base[0x4C + 0x49] && *reinterpret_cast<void**>(base + 0x18) == nullptr &&
+              *reinterpret_cast<void**>(base + 0x4C + 0x18) == nullptr;
+    ei::verify::Check("CRegionMap::FindRegionChain", true, ok, "class %d (%d,%d)->(%d,%d): %d", sizeClass, fromX, fromY,
+                      toX, toY, result);
+    return result;
+}
+EI_VERIFY(0x005B0D90, FindRegionChainVerify, 0, s_unusedChain);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

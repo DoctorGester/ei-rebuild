@@ -124,6 +124,71 @@ void Fit(BlockGrid& grid, int width, int height, void (__fastcall* allocate)(voi
 }
 // 005AF7B0 (RET 0x14, AL): whether cell (x, y) of block (bx, by) suits the block for a size class.
 __declspec(naked) bool __fastcall CellSuitsBlock(CRegionMap*, void*, int, int, int, int, int) EI_ORIGINAL(0x005AF7B0)
+// The region map's two block searches (+0 from the start, +0x4C from the target): a search over
+// the blocks of one size class. Its block records (24 bytes, rows at +4) keep a cost
+// (0x7FFFFFFF unvisited) and a link; +0x18 chains the touched records, +0x1C eight open
+// buckets, +0x3C a count, +0x49 the active flag; +0x10 points back at the map and +0x14 at the
+// class's edge grid.
+struct BlockRecord {
+    int cost;
+    BlockRecord* next;
+    int unknown_08;
+    int unknown_0C;
+    int unknown_10;
+    std::uint8_t unknown_14;
+    std::uint8_t pad[3];
+};
+static_assert(sizeof(BlockRecord) == 24);
+struct BlockSearch {
+    std::uint32_t unknown_00;
+    BlockRecord** rows;
+    std::uint8_t unknown_08[8];
+    std::uint8_t* map;
+    void* edges;
+    BlockRecord* touched;
+    BlockRecord* open[8];
+    int openCount;
+    std::uint8_t unknown_40[9];
+    bool active;
+    std::uint8_t unknown_4A[2];
+};
+static_assert(sizeof(BlockSearch) == 0x4C);
+
+// 005B0AF0 (RET 0x14, AL): seeds a search (size class, which side, the search, cell x, y).
+// 005AF5F0 (RET 4, AL): joins the two searches into the region chain list.
+__declspec(naked) bool __fastcall SeedBlockSearch(CRegionMap*, void*, int, int, BlockSearch*, int, int) EI_ORIGINAL(0x005B0AF0)
+__declspec(naked) bool __fastcall JoinBlockSearches(CRegionMap*, void*, void*) EI_ORIGINAL(0x005AF5F0)
+
+void ResetChain(BlockRecord* record) {
+    while (record) {
+        BlockRecord* next = record->next;
+        record->cost = 0x7FFFFFFF;
+        record->next = nullptr;
+        record->unknown_08 = 0;
+        record->unknown_10 = 0;
+        record->unknown_14 = 0;
+        record = next;
+    }
+}
+void PrepareSearch(BlockSearch& search, int sizeClass) {
+    search.edges = search.map + sizeClass * 16 + 0x11C;
+    for (BlockRecord*& bucket : search.open) bucket = nullptr;
+    search.active = true;
+    search.openCount = 0;
+}
+void Exclude(BlockSearch& search, int x, int y) {
+    BlockRecord* record = &search.rows[y][x];
+    if (record->cost < 0x7FFFFFFF) return;
+    record->cost = -1;
+    record->next = search.touched;
+    search.touched = record;
+}
+void FinishSearch(BlockSearch& search) {
+    ResetChain(search.touched);
+    for (BlockRecord* bucket : search.open) ResetChain(bucket);
+    search.touched = nullptr;
+    search.active = false;
+}
 } // namespace
 
 bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, void* marks) {
@@ -369,7 +434,27 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     }
 }
 
+bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded) {
+    BlockSearch& forward = At<BlockSearch>(this, 0);
+    BlockSearch& backward = At<BlockSearch>(this, 0x4C);
+    PrepareSearch(forward, sizeClass);
+    PrepareSearch(backward, sizeClass);
+    // The excluded blocks (CArray<{x, y}>: data +4, size +8) are marked visited in both.
+    const BlockPoint* points = At<BlockPoint*>(excluded, 4);
+    for (int i = 0; i < At<int>(excluded, 8); ++i) {
+        Exclude(forward, points[i].x, points[i].y);
+        Exclude(backward, points[i].x, points[i].y);
+    }
+    bool ok = SeedBlockSearch(this, nullptr, sizeClass, 0, &forward, fromX, fromY);
+    if (ok) ok = SeedBlockSearch(this, nullptr, sizeClass, 1, &backward, toX, toY);
+    if (ok) ok = JoinBlockSearches(this, nullptr, chain);
+    FinishSearch(forward);
+    FinishSearch(backward);
+    return ok;
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005B0D90, CRegionMap::FindRegionChain);
 EI_REPLACE_METHOD(0x005AF900, CRegionMap::PickRepresentatives);
 EI_REPLACE_METHOD(0x005B1180, CRegionMap::LoadBlocks);
 EI_REPLACE_METHOD(0x005B0F70, CRegionMap::ClampEdgeCosts);
