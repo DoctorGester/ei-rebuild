@@ -354,6 +354,9 @@ public:
     // 005B9690 (RET 8, AL; ai_join.cpp). Joins the forward and backward local searches where they
     // meet: the path into `cells`, the summed cost into `cost` (optional); false when they cannot.
     bool JoinLocalSearches(struct PathCellList* cells, int* cost);
+    // 005B7EF0 (RET 8; ai_water_patch.cpp). Adds (or lifts) the water depths around `position` as
+    // a pseudo unit of the small-unit layer.
+    void StampWaterPatch(const Vector3* position, bool add);
     // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
     bool AddOccluder(FootprintCell* cell);
     bool ClearOccluder(FootprintCell* cell);
