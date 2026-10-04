@@ -111,6 +111,18 @@ static int __fastcall ScaledAttackValueVerify(CUnitServer* self, void*, int kind
 }
 EI_VERIFY(0x0054B9C0, ScaledAttackValueVerify, 10, s_scaledAttackValue);
 
+// 0054B580: PUSH ESI; PUSH EDI; MOV EDI,ECX; MOV EAX,[EDI+0x190] (10 bytes). Pure. Rebirth's
+// FixPlaingBattleMusicFromAntimagic patches +0x76: with the flag on in a Rebirth launch this compares
+// with the patched original.
+static bool(__fastcall* s_isFighting)(CUnitServer*);
+static bool __fastcall IsFightingVerify(CUnitServer* self) {
+    bool expected = s_isFighting(self);
+    ei::verify::Check("CUnitServer::IsFighting", expected, self->IsFighting(), "unit %d order %d source %08X",
+                      UnitId(self), self->action.kind, self->action.source);
+    return expected;
+}
+EI_VERIFY(0x0054B580, IsFightingVerify, 10, s_isFighting);
+
 // 0054B7C0: MOV EAX,[ESP+4]; MOV ECX,[ECX+0x1C] (7 bytes).
 static CItem*(__fastcall* s_spellCarrier)(CUnitServer*, void*, std::uint32_t);
 static CItem* __fastcall SpellCarrierVerify(CUnitServer* self, void*, std::uint32_t source) {

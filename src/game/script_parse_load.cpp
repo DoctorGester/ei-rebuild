@@ -10,6 +10,7 @@
 #include "script_parse.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -733,8 +734,10 @@ BOOL CScript::LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const Scr
         if (command) {
             ok = Orig(this)->LoadFunctionAt(cmd, pos, tokens, id, locals, command->command, 0, 0);
             if (id == kCmdFor || id == kCmdForIf) {
-                // The loop body: `(` commands `)`, parsed without the script's local variables.
-                // (Parsed even when the loop header failed.)
+                // The loop body: `(` commands `)`, parsed without the script's local variables
+                // (with them under Rebirth's AllowScriptArgsInLoops, which passes this call's
+                // `locals`, the empty set when there were none). Parsed even when the loop header
+                // failed.
                 BOOL open;
                 if (!*pos) {
                     open = Error(this, tokens->tail->data.line, 1, GameText(0x0078D740));
@@ -749,7 +752,9 @@ BOOL CScript::LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const Scr
                 if (!open) return 0;
                 ScriptDecl* body = NewCommandList();
                 cmd->calledScript = body;
-                if (!Orig(this)->LoadCommandsAt(&body->commands, pos, tokens, nullptr)) return 0;
+                ScriptVars* bodyLocals =
+                    ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptArgsInLoops) ? locals : nullptr;
+                if (!Orig(this)->LoadCommandsAt(&body->commands, pos, tokens, bodyLocals)) return 0;
             }
         } else {
             {
@@ -783,6 +788,9 @@ BOOL CScript::LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const Scr
     }
 }
 EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
+// AddNewScriptCommands also patches this function (sites #7, #19, #20): until it is reproduced, a
+// Rebirth launch keeps the original here.
+EI_REBIRTH_IMPLEMENTS(0x004D1330, ei::rebirth::Patch::AllowScriptArgsInLoops);
 
 // ---- Load ---------------------------------------------------------------------------------------
 

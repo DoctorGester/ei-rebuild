@@ -1,5 +1,7 @@
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "log.h"
+#include "rebirth_hook.h"
 
 #include <windows.h>
 
@@ -75,11 +77,10 @@ static bool IsVerified(std::uintptr_t address) {
     return std::find(g_verified.begin(), g_verified.end(), address) != g_verified.end();
 }
 
-static bool HasVerifyEntry(std::uintptr_t address) {
-    if (IsVerified(address)) return false;
+static HookEntry* VerifyEntry(std::uintptr_t address) {
     for (HookEntry* h = g_hooks; h; h = h->next)
-        if (h->verify && h->address == address) return true;
-    return false;
+        if (h->verify && h->address == address) return h;
+    return nullptr;
 }
 
 // Copies the first `stolen` bytes of the original function into executable memory followed by a
@@ -191,26 +192,58 @@ int InstallHooks() {
     if (!g_disabled.empty()) Log("%u function(s) disabled (disabled.txt): the original runs", unsigned(g_disabled.size()));
     if (!g_verified.empty()) Log("%u function(s) marked verified: running without verify wrappers", unsigned(g_verified.size()));
 
+    // Rebirth's patches: the flags (ei_rebirth.ini, EI_REBIRTH, the harness), then what addon.dll
+    // has applied (and EI_Plugin.asi will), which the flags follow in a Rebirth launch.
+    {
+        char ini[MAX_PATH];
+        HMODULE self = nullptr;
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCSTR>(&InstallHooks), &self);
+        GetModuleFileNameA(self, ini, MAX_PATH);
+        if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
+        rebirth::LoadSettings(ini);
+        rebirth_hook::Detect(file);
+        unsigned short cw;
+        __asm fnstcw cw
+        Log("FPU control word at WinMain: %04X", cw);
+    }
+
     int installed = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
-        if (h->verify ? IsVerified(h->address) : HasVerifyEntry(h->address)) continue;
         if (IsDisabled(h->address)) continue;
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = FileBytesAt(file, h->address);
         std::uint32_t size = FunctionSizeAt(h->address);
+        // The verify wrapper runs unless the function is verified, or it compares with the original
+        // (stolen bytes) and the rewrite applies an enabled Rebirth patch that the original here
+        // lacks (a vanilla launch with the flag on): then the plain replacement runs. Wrappers that
+        // run ours only and check the state keep running.
+        HookEntry* verifyEntry = VerifyEntry(h->address);
+        bool wrapper = verifyEntry && !IsVerified(h->address);
+        char why[256];
+        if (wrapper && verifyEntry->stolen > 0 && orig && size &&
+            rebirth_hook::FlagWithoutOriginal(h->address, size, orig, why, sizeof(why))) {
+            if (h->verify)
+                Log("UNVERIFIED %s at %08X: Rebirth patch %s is on but the original does not have it", h->name,
+                    static_cast<unsigned>(h->address), why);
+            wrapper = false;
+        }
+        if (h->verify != wrapper) continue;
         if (!orig || size < 5) {
             Log("SKIP %s at %08X: not a known function start", h->name, static_cast<unsigned>(h->address));
             continue;
         }
-        // Another mod (e.g. Rebirth's addon.dll) may have patched code anywhere in the body; replacing
-        // the function would silently drop that patch.
-        std::uint32_t diff = 0;
-        while (diff < size && target[diff] == orig[diff]) ++diff;
-        if (diff < size) {
-            Log("SKIP %s at %08X: byte +0x%X differs from game.exe on disk (patched by another mod)",
-                h->name, static_cast<unsigned>(h->address), diff);
+        // Another mod (Rebirth's addon.dll) may have patched code anywhere in the body; replacing
+        // the function would silently drop that patch, unless the rewrite reproduces it (behind its
+        // flag, which must be on). EI_Plugin.asi patches after this point; its sites are known too.
+        rebirth_hook::Verdict verdict =
+            rebirth_hook::Check(h->address, size, orig, h->verify ? h->stolen : 0, why, sizeof(why));
+        if (verdict == rebirth_hook::Verdict::Skip) {
+            Log("SKIP %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
             continue;
         }
+        if (verdict == rebirth_hook::Verdict::Implemented)
+            Log("Rebirth-patched %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
         // A pointer to a virtual member function is a dispatch thunk (MOV EAX,[ECX]; JMP [EAX+n]),
         // which would jump back into the hooked function forever.
         const auto* code = static_cast<const unsigned char*>(h->replacement);
@@ -222,8 +255,13 @@ int InstallHooks() {
             continue;
         }
         if (h->stolen > 0) {
-            if (h->stolen < 5 || std::memcmp(target, orig, h->stolen) != 0 ||
-                !(*h->original = MakeTrampoline(h->address, h->stolen))) {
+            // In a patched function the stolen bytes may hold addon's JMP to its code: the
+            // trampoline gets it re-targeted, so calling it still runs the patched original.
+            bool patchedStart = verdict == rebirth_hook::Verdict::Implemented;
+            if (h->stolen < 5 || (!patchedStart && std::memcmp(target, orig, h->stolen) != 0) ||
+                !(*h->original = MakeTrampoline(h->address, h->stolen)) ||
+                (patchedStart && !rebirth_hook::RelocateStolen(h->address, h->stolen,
+                                                               static_cast<unsigned char*>(*h->original)))) {
                 Log("SKIP %s at %08X: cannot build trampoline", h->name, static_cast<unsigned>(h->address));
                 continue;
             }

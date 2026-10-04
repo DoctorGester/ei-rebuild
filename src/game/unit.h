@@ -750,7 +750,8 @@ static_assert(sizeof(UnitStats) == 0x704);
 // {mask, id, level}. Names provisional.
 struct LockKey {
     // 00522A80. Do the masks overlap, and either (bit 3 in common) the ids match, or (bits 0-2 in
-    // common) this level is at least the lock's (unsigned)?
+    // common) this level is at least the lock's (unsigned)? Rebirth's FixLeversActivate compares
+    // signed, and for a lock of level 0 returns this level + 1.
     BOOL Opens(const LockKey* lock);
 
     std::uint32_t mask;

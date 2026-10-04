@@ -132,6 +132,11 @@ public:
     bool IsScrollSource(std::uint32_t source);
     // 0054B880. The spell (CSpell) behind `source`: a spell slot, or the spell of a carrier item.
     void* SpellOfSource(std::uint32_t source);
+    // 0054B580. Does the current order count as fighting (for the battle music, 0066E430): an attack
+    // (kind 3), or a cast (4, 5) of a spell of type 0-8 or 0x1A from a spell slot or a spell
+    // carrier (quick item category 5 or 8). Rebirth's FixPlaingBattleMusicFromAntimagic drops 0x1A
+    // (antimagic). Callers test AL.
+    bool IsFighting();
     // 0054BF80. Can the spell of `action` be cast now: a carrier with enough charge (category 5),
     // or a spell the party unit has the mana for? Callers test AL.
     bool CanCast(const UnitAction* order);

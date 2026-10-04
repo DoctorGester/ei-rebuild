@@ -114,7 +114,7 @@ __declspec(naked) void* __fastcall OstreamPutString(void*, void*, const char*) E
 __declspec(naked) void* __fastcall OstreamPutChar(void*, void*, char) EI_ORIGINAL(0x006FC0B0)
 __declspec(naked) void* __fastcall OstreamManipulate(void*, void*, void*) EI_ORIGINAL(0x00434FE0)
 
-constexpr int kSlotStreamOpen = 8;    // the file stream's slot 8 (+0x20): Open(path, flags, error)
+constexpr int kSlotFileOpen = 8;     // CFile slot 8 (+0x20): Open(path, flags, error), on the stream's CFile (+0x0C)
 constexpr int kSlotFileClose = 19;    // CFile slot 19 (+0x4C): Close
 
 // The record builder of the party (0x70 bytes; the variables table at +0x54, the zone at +0x68).
@@ -139,10 +139,11 @@ struct LocalFileStream {
     LocalFileStream(const LocalFileStream&) = delete;
     LocalFileStream& operator=(const LocalFileStream&) = delete;
 
-    // Opens `path` (`reading`: the stream's +4 byte, 1 to read, 0 to write).
+    // Opens `path` (`reading`: the stream's +4 byte, 1 to read, 0 to write). The original calls
+    // the embedded CFile's virtual Open (its vtable at stream +0x0C, slot 8), not the stream's.
     bool Open(const char* path, unsigned flags, std::uint8_t reading) {
         stream.unknown_04 = reading;
-        stream.ok = ei::VCall<int>(&stream, kSlotStreamOpen, path, flags, 0) != 0;
+        stream.ok = ei::VCall<int>(stream.file, kSlotFileOpen, path, flags, nullptr) != 0;
         return stream.ok != 0;
     }
     void Close() { ei::VCall<void>(stream.file, kSlotFileClose); }

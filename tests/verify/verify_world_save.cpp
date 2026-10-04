@@ -41,19 +41,32 @@ bool MapObjectsRegistered(CWorldServer* world) {
 } // namespace
 
 // 00597BD0: the original into a scratch memory stream, ours into the real one; bytes compared.
+// Each player's party records end with the gold XORed with a fresh random word (00661C10), so
+// the random generator (IsaacRandom at 007A9D40) is put back before ours runs: both draw the
+// same words, and the game's random sequence is the one it would be without the check.
 static void __fastcall SaveWorldVerify(CWorldServer* self, void*, WorldStream* stream) {
     if (!IsMemoryStream(stream)) {
         self->SaveWorld(stream);
         return;
     }
+    auto* random = reinterpret_cast<std::uint8_t*>(0x007A9D40);
+    constexpr std::size_t kRandomSize = 0x814;
+    static std::uint8_t randomBefore[kRandomSize];
+    static std::uint8_t randomAfterOriginal[kRandomSize];
+    std::memcpy(randomBefore, random, kRandomSize);
+
     auto* real = reinterpret_cast<CMemoryStream*>(stream);
     alignas(4) std::uint8_t storage[sizeof(CMemoryStream)];
     auto* scratch = MemoryStreamConstruct(reinterpret_cast<CMemoryStream*>(storage));
     scratch->unknown_8 = real->unknown_8;   // the save version
     s_originalSaveWorld(self, nullptr, reinterpret_cast<WorldStream*>(scratch));
+    std::memcpy(randomAfterOriginal, random, kRandomSize);
+    std::memcpy(random, randomBefore, kRandomSize);
 
     std::uint32_t before = real->position_;
     self->SaveWorld(stream);
+    ei::verify::Check("CWorldServer::SaveWorld(random)", true, std::memcmp(random, randomAfterOriginal, kRandomSize) == 0,
+                      "the same random words drawn");
     std::uint32_t written = real->position_ - before;
     bool sameSize = written == scratch->position_;
     std::uint32_t firstDifference = 0xFFFFFFFFu;

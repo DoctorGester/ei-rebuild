@@ -390,3 +390,20 @@ static void __fastcall GlobalMapUpdateVerify(CGlobalMap* self, void*) {
                       static_cast<float>(expected), turning, self->turn_[0]);
 }
 EI_VERIFY(0x0062F050, GlobalMapUpdateVerify, 0, s_unused);
+
+// --- Camp prices (0060FAB0, slot 54) -------------------------------------------------------------
+
+// PUSH ECX; PUSH EBX; MOV EBX,[ESP+0x10] (6 bytes). Pure (the item's price slot reads only).
+// Rebirth's FixRepairPrice patches +0x2C: with the flag on in a Rebirth launch this compares with
+// the patched original.
+static int(__fastcall* s_campPrice)(CCampPages*, void*, std::uint8_t*, int);
+static int __fastcall CampPriceVerify(CCampPages* self, void*, std::uint8_t* item, int kind) {
+    int expected = s_campPrice(self, nullptr, item, kind);
+    float durability, maximum;
+    std::memcpy(&durability, item + 0x20, 4);
+    std::memcpy(&maximum, item + 0x24, 4);
+    ei::verify::Check("CCampPages::Price", expected, self->Price(item, kind), "kind %d type %X wear %g/%g",
+                      kind, *reinterpret_cast<const int*>(item + 0x10), durability, maximum);
+    return expected;
+}
+EI_VERIFY(0x0060FAB0, CampPriceVerify, 6, s_campPrice);
