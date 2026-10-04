@@ -357,6 +357,9 @@ public:
     // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
     bool AddOccluder(FootprintCell* cell);
     bool ClearOccluder(FootprintCell* cell);
+    // The rewrites of 005B61B0 / 005B6380 (ai_occluders.cpp); the two above stay the forwarders.
+    bool AddOccluderRecord(FootprintCell* cell);
+    bool ClearOccluderRecord(FootprintCell* cell);
     // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).
     void Refresh(int minX, int maxX, int minY, int maxY);
     // The rewrite of 005B8FA0 (ai_refresh.cpp); Refresh stays the forwarder to its address.
