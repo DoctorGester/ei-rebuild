@@ -1,0 +1,228 @@
+// The hero preview of the camp (0060F050) and the multiplayer hero screen (006159E0): 005EC300.
+// See ui.h (CUiWindow::DrawHeroPreview) and docs/notes/ui.md ("Hero preview").
+//
+// Floating point follows the original's x87 code: values it stores as float go through Store,
+// values it keeps on the FPU stack stay unrounded (double), products and sums keep its operand
+// order, constants are read from the exe's memory.
+#include "ui.h"
+
+#include "ei/hook.h"
+#include "ei/x87.h"
+#include "lib/gameapi.h"
+
+#include <cstdint>
+#include <cstring>
+
+#pragma float_control(precise, on)
+
+namespace {
+
+inline double D(float f) { return f; }
+float Store(double v) {
+    volatile float r = static_cast<float>(v);
+    return r;
+}
+float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+template <typename T>
+T Get(const void* p, int offset) {
+    T v;
+    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
+    return v;
+}
+template <typename T>
+void Set(void* p, int offset, T v) {
+    std::memcpy(static_cast<std::uint8_t*>(p) + offset, &v, sizeof(T));
+}
+
+template <typename R = void, typename... Args>
+R VirtualCall(void* object, int slot, Args... args) {
+    void* fn = (*static_cast<void***>(object))[slot];
+    return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
+}
+
+CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+
+struct Vec3 {
+    float x, y, z;
+};
+struct Quat {
+    float w, x, y, z;
+    Quat* FromAxisAngle(const Vec3* axis, float angle);   // 0049E800 (RET 8)
+};
+__declspec(naked) Quat* Quat::FromAxisAngle(const Vec3*, float) EI_ORIGINAL(0x0049E800)
+
+// The device's state around a frame part (thiscall, not rewritten): 004E7840 and 004E7A40.
+struct DeviceAt {
+    void Flush();     // 004E7840
+    void Restore();   // 004E7A40
+};
+__declspec(naked) void DeviceAt::Flush() EI_ORIGINAL(0x004E7840)
+__declspec(naked) void DeviceAt::Restore() EI_ORIGINAL(0x004E7A40)
+
+// The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
+// 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
+double Dot(const Vec3& a, const Vec3& b) { return (D(a.z) * D(b.z) + D(a.y) * D(b.y)) + D(a.x) * D(b.x); }
+Vec3 Scale(const Vec3& v, float s) { return {Store(D(s) * D(v.x)), Store(D(s) * D(v.y)), Store(D(s) * D(v.z))}; }
+Vec3 Cross(const Vec3& a, const Vec3& b) {
+    float z = Store(D(a.x) * D(b.y) - D(a.y) * D(b.x));
+    float y = Store(D(a.z) * D(b.x) - D(b.z) * D(a.x));
+    float x = Store(D(a.y) * D(b.z) - D(a.z) * D(b.y));
+    return {x, y, z};
+}
+Vec3 Sum(const Vec3& a, const Vec3& b) {
+    float z = Store(D(a.z) + D(b.z));
+    float y = Store(D(a.y) + D(b.y));
+    float x = Store(D(a.x) + D(b.x));
+    return {x, y, z};
+}
+
+// The products the original inlines (q * r), with the two orders of the w sum it uses.
+Quat Product(const Quat& q, const Quat& r, bool second) {
+    Quat out;
+    out.z = Store(((D(q.x) * D(r.y) - D(q.y) * D(r.x)) + D(q.w) * D(r.z)) + D(q.z) * D(r.w));
+    out.y = Store(((D(q.z) * D(r.x) - D(q.x) * D(r.z)) + D(q.y) * D(r.w)) + D(q.w) * D(r.y));
+    out.x = Store(((D(q.y) * D(r.z) - D(q.z) * D(r.y)) + D(q.x) * D(r.w)) + D(q.w) * D(r.x));
+    if (!second)
+        out.w = Store(D(q.w) * D(r.w) - ((D(q.z) * D(r.z) + D(q.y) * D(r.y)) + D(q.x) * D(r.x)));
+    else
+        out.w = Store(D(q.w) * D(r.w) - ((D(q.y) * D(r.y) + D(q.x) * D(r.x)) + D(q.z) * D(r.z)));
+    return out;
+}
+
+constexpr int kD3DClear = 10;               // IDirect3DDevice7::Clear
+constexpr int kGetStageState = 36;          // GetTextureStageState
+constexpr int kSetStageState = 37;          // SetTextureStageState
+constexpr unsigned long kStageState = 0x12;
+
+// D3DCLEAR_ZBUFFER, with D3DCLEAR_STENCIL when the device has a stencil buffer.
+unsigned long ClearFlags(std::uint8_t* device) {
+    if ((Get<std::uint32_t>(device, 0x90) & 0x4000) != 0 && Get<std::uint32_t>(device, 0x9C) != 0) return 6;
+    return 2;
+}
+
+void ClearDepth(std::uint8_t* device, unsigned long count, RECT* rects, float z) {
+    unsigned long flags = ClearFlags(device);
+    gameapi::EnterCriticalSection(DeviceLock());
+    void* d3d = Get<void*>(device, 0x54);
+    long hr = VirtualCall<long>(d3d, kD3DClear, count, rects, flags, 0ul, z, 0ul);
+    Set(device, 8, hr);
+    gameapi::LeaveCriticalSection(DeviceLock());
+}
+
+} // namespace
+
+void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide) {
+    if (!model) return;
+    auto deviceOf = [this] { return Get<std::uint8_t*>(interface_, 8); };
+    {
+        auto* device = reinterpret_cast<DeviceAt*>(deviceOf());
+        device->Flush();
+        device->Restore();
+    }
+
+    // The whole depth buffer (stencil too), then the preview's rectangles to the far plane.
+    {
+        std::uint8_t* device = deviceOf();
+        unsigned long flags = ClearFlags(device);
+        gameapi::EnterCriticalSection(DeviceLock());
+        void* d3d = Get<void*>(device, 0x54);
+        long hr = VirtualCall<long>(d3d, kD3DClear, 0ul, static_cast<RECT*>(nullptr), flags, 0ul, 0.0f, 0ul);
+        Set(device, 8, hr);
+        gameapi::LeaveCriticalSection(DeviceLock());
+    }
+    RECT rects[6];
+    if (static_cast<std::uint8_t>(wide) != 0) {
+        for (int i = 0; i < 6; ++i) {
+            RECT r;
+            r.left = Get<LONG>(reinterpret_cast<const void*>(0x007402F8), i * 4);
+            r.top = Get<LONG>(reinterpret_cast<const void*>(0x00740310), i * 4);
+            r.right = Get<LONG>(reinterpret_cast<const void*>(0x00740328), i * 4);
+            r.bottom = Get<LONG>(reinterpret_cast<const void*>(0x00740340), i * 4);
+            interface_->CallScaleRectToScreen(&r);
+            rects[i] = r;
+        }
+        ClearDepth(deviceOf(), 6, rects, 1.0f);
+    } else {
+        RECT r;
+        if (D(depth) > D(GameFloat(0x00740160)))
+            r = {410, 100, 700, 500};
+        else
+            r = {200, 100, 600, 500};
+        interface_->CallScaleRectToScreen(&r);
+        rects[0] = r;
+        ClearDepth(deviceOf(), 1, rects, 1.0f);
+    }
+
+    // Kept to put back afterwards: the position, the orientation and the pass's colour.
+    std::uint8_t savedPosition[12], savedOrientation[16];
+    std::memcpy(savedPosition, model + 0x1C, 12);
+    std::memcpy(savedOrientation, model + 0x34, 16);
+    std::uint32_t savedColour = Get<std::uint32_t>(pass, 0x18);
+    // White: three FISTPs of 255.0 packed as 0xFF rr gg bb.
+    VirtualCall(pass, 7, 0xFFFFFFFFu);
+    Set(model, 8, Get<std::uint32_t>(model, 8) | 0x800);
+    {
+        std::uint32_t now = gameapi::timeGetTime();
+        float time = Store(x87::FromUnsigned(now) * D(GameFloat(0x0073BB24)) * D(GameFloat(0x0073C518)));
+        VirtualCall(model, 25, time);
+    }
+
+    // The turn about y, applied to the origin (the game's rotation of a vector by a quaternion:
+    // 2 (v.u) v + (w^2 - v.v) u + 2 w (v x u), with u = 0).
+    Vec3 up = {0.0f, 1.0f, 0.0f};
+    Quat q;
+    q.FromAxisAngle(&up, turn);
+    Vec3 v = {q.x, q.y, q.z};
+    Vec3 origin = {0.0f, 0.0f, 0.0f};
+    float ww = Store(D(q.w) * D(q.w));
+    Vec3 along = Scale(v, Store(Dot(v, origin) + Dot(v, origin)));
+    Vec3 across = Scale(Cross(v, origin), Store(D(q.w) + D(q.w)));
+    Vec3 rotated = Sum(Sum(Scale(origin, Store(D(ww) - Dot(v, v))), across), along);
+    // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
+    double dx = ((D(depth) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) * D(GameFloat(0x007402C4))) *
+                D(GameFloat(0x0073BA98));
+    double dy = D(GameFloat(0x007402C4)) * D(GameFloat(0x007403D8));
+    float px = Store(D(rotated.x) + dx);
+    float py = Store(D(rotated.y) + dy);
+    float pz = Store(D(rotated.z) + D(GameFloat(0x0073BA98)));
+    Set(model, 0x1C, px);
+    Set(model, 0x20, py);
+    Set(model, 0x24, pz);
+    // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
+    Vec3 xAxis = {1.0f, 0.0f, 0.0f};
+    Quat tilt;
+    q = Product(q, *tilt.FromAxisAngle(&xAxis, GameFloat(0x007C7D24)), false);
+    if (D(depth) > D(GameFloat(0x00740160))) {
+        Vec3 zAxis = {0.0f, 0.0f, -1.0f};
+        Quat side;
+        q = Product(q, *side.FromAxisAngle(&zAxis, Store(D(GameFloat(0x007C7D24)) * D(GameFloat(0x0073CD18)))), true);
+    }
+    std::memcpy(model + 0x34, &q, 16);
+
+    // Drawn brighter (1.2) with texture stage 0's state 0x12 set to 1, then everything put back.
+    std::uint8_t* light = Get<std::uint8_t*>(model, 0x94);
+    Set(light, 0xF0, 1.2f);
+    Set(light, 0xF4, 1.2f);
+    Set(light, 0xF8, 1.2f);
+    std::uint8_t* device = deviceOf();
+    std::uint32_t savedStage = 0;
+    void* d3d = Get<void*>(device, 0x54);
+    Set(device, 8, VirtualCall<long>(d3d, kGetStageState, 0ul, kStageState, &savedStage));
+    d3d = Get<void*>(device, 0x54);
+    Set(device, 8, VirtualCall<long>(d3d, kSetStageState, 0ul, kStageState, 1ul));
+    VirtualCall(model, 22, pass);
+    d3d = Get<void*>(device, 0x54);
+    Set(device, 8, VirtualCall<long>(d3d, kSetStageState, 0ul, kStageState, static_cast<unsigned long>(savedStage)));
+    light = Get<std::uint8_t*>(model, 0x94);
+    Set(light, 0xF0, 1.0f);
+    Set(light, 0xF4, 1.0f);
+    Set(light, 0xF8, 1.0f);
+    std::memcpy(model + 0x1C, savedPosition, 12);
+    std::memcpy(model + 0x34, savedOrientation, 16);
+    Set(model, 8, Get<std::uint32_t>(model, 8) & ~0x800u);
+    VirtualCall(pass, 7, savedColour);
+    auto* last = reinterpret_cast<DeviceAt*>(deviceOf());
+    last->Flush();
+    last->Restore();
+}
+EI_REPLACE_METHOD(0x005EC300, CUiWindow::DrawHeroPreview);

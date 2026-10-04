@@ -292,6 +292,12 @@ public:
     // 005FEB90 (not rewritten). Base drawing (virtual slot 20): draws the scene objects and the
     // models; returns 1.
     BOOL DrawBase(int pass);
+    // 005EC300 (RET 0x14; the camp and the multiplayer hero screen). Draws `model` (a hero) as a
+    // preview: clears the depth buffer (all of it, then the preview's screen rectangles), turns it
+    // by `turn` radians about y and places it by `depth` (`wide`'s low byte: six rectangles of the
+    // camp layout, else one), draws it lit through `pass` and puts its transform back
+    // (ui_hero_preview.cpp).
+    void DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide);
     // Layout helpers (not rewritten): 005FEF20 loads a texture into the referenced objects,
     // 005FF0B0 creates an empty one, 005FF3C0 adds a scene object (`model` 0: a new interface
     // sprite, see CUiMesh) and returns it.
