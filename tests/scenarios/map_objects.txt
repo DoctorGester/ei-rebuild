@@ -25,6 +25,11 @@ check IsAlive(GetLeader())
 console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),5),GetY(GetLeader()),0)
 waitfor 10 IsAlive(GetObjectByName("Wolf1"))
 console @GSSetVar(0,"wx",GetX(GetObjectByName("Wolf1")))
+# The order is sometimes ignored right after the spawn (on the original too, 2 runs in 8): give the
+# wolf a moment, and repeat the order once.
+wait 1000
+console @MoveToPoint(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),2),GetY(GetLeader()))
+wait 2000
 console @MoveToPoint(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),2),GetY(GetLeader()))
 waitfor 15 IsLess(GetX(GetObjectByName("Wolf1")),Sub(GSGetVar(0,"wx"),2))
 console @RotateTo(GetObjectByName("Wolf1"),GetX(GetLeader()),Add(GetY(GetLeader()),5))
