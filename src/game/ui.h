@@ -291,6 +291,10 @@ public:
     // 005FFD80 / 005FFF40. 3D model previews.
     CUiModel* AddModel();
     void ClearModels();
+    // 005FE930. Destructor body: releases the three objects at +0xEC..+0xF4, the scene objects,
+    // surfaces, regions, referenced objects and models (in that order), clears +0x08, then the
+    // engine object's base destructor (ui_window.cpp).
+    void DestroyBase();
 
     void** vtable_;
     std::uint8_t unknown_004[0x94 - 0x004];   // CTransformObject members and more

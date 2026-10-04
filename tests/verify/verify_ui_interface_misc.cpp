@@ -69,3 +69,18 @@ static CEngineObject* __fastcall ReplaceSceneObjectVerify(CUiWindow* self, void*
     return made;
 }
 EI_VERIFY(0x005FF460, ReplaceSceneObjectVerify, 0, s_unused);
+
+// 005FE930: ours only (a destructor). Afterwards the window must hold nothing: +0xEC..+0xF4 and
+// every array empty with no storage (the object's memory is freed only after this returns).
+static void __fastcall DestroyBaseVerify(CUiWindow* self, void*) {
+    self->DestroyBase();
+    std::uint32_t held[3];
+    std::memcpy(held, reinterpret_cast<std::uint8_t*>(self) + 0xEC, sizeof(held));
+    bool ok = held[0] == 0 && held[1] == 0 && held[2] == 0 && !self->objects_.data_ && self->objects_.size_ == 0 &&
+              !self->sceneObjects_.data_ && self->sceneObjects_.size_ == 0 && !self->surfaces_.data_ &&
+              !self->regions_.data_ && !self->models_.data_;
+    ei::verify::Check("CUiWindow::DestroyBase", true, ok, "objects %d scene %d surfaces %d regions %d models %d",
+                      self->objects_.size_, self->sceneObjects_.size_, self->surfaces_.size_, self->regions_.size_,
+                      self->models_.size_);
+}
+EI_VERIFY(0x005FE930, DestroyBaseVerify, 0, s_unused);

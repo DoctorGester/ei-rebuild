@@ -500,3 +500,54 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
     return nullptr;
 }
 EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
+
+// --- 005FE930: the destructor body -------------------------------------------------------------
+
+void CUiWindow::DestroyBase() {
+    vtable_ = reinterpret_cast<void**>(0x00740F60);
+    inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    for (int offset = 0xEC; offset <= 0xF4; offset += 4) {
+        CEngineObject* object;
+        std::memcpy(&object, self + offset, 4);
+        if (object) object->Release();
+        std::memset(self + offset, 0, 4);
+    }
+    for (int i = 0; i < sceneObjects_.size_; ++i) sceneObjects_.data_[i]->Release();
+    sceneObjects_.SetSize(0, -1);
+    for (int i = 0; i < surfaces_.size_; ++i) {
+        if (CUiSurface* surface = surfaces_.data_[i]) {
+            surface->ReleaseContents();
+            gamecrt::operator_delete(surface);
+        }
+    }
+    surfaces_.SetSize(0, -1);
+    for (int i = 0; i < regions_.size_; ++i) {
+        if (CUiRegion* region = regions_.data_[i]) {
+            region->ReleaseContents();
+            gamecrt::operator_delete(region);
+        }
+    }
+    regions_.SetSize(0, -1);
+    for (int i = 0; i < objects_.size_; ++i) objects_.data_[i]->Release();
+    objects_.SetSize(0, -1);
+    for (int i = 0; i < models_.size_; ++i) {
+        if (CUiModel* model = models_.data_[i]) {
+            model->ReleaseObject();
+            gamecrt::operator_delete(model);
+        }
+    }
+    models_.SetSize(0, -1);
+    std::memset(self + 0x08, 0, 4);
+    // The arrays' destructors (their storage is already freed above, so these find nothing).
+    if (models_.data_) FreeAligned(models_.data_);
+    if (regions_.data_) FreeAligned(regions_.data_);
+    if (surfaces_.data_) FreeAligned(surfaces_.data_);
+    if (sceneObjects_.data_) FreeAligned(sceneObjects_.data_);
+    if (objects_.data_) FreeAligned(objects_.data_);
+    // The CTransformObject and CEngineObject levels.
+    inputVtable_ = reinterpret_cast<void**>(0x007401D0);
+    vtable_ = reinterpret_cast<void**>(0x0073BA38);
+    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+}
+EI_REPLACE_METHOD(0x005FE930, CUiWindow::DestroyBase);
