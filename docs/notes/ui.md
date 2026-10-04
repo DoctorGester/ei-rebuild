@@ -1218,3 +1218,37 @@ the camp may be laid out differently and some rows missed (harmless).
   Rebirth-patched builders 005E7680 / 005E70E0), `TrimItemModels` / `TrimItemTextures`
   005F2F20 / 005F2F90 (least recently used first; spins while every entry was used at or after
   now). All ours only.
+- In-game fixes: DrawHeroPreview called the Direct3D device's methods (Clear,
+  Get/SetTextureStageState) through the thiscall helper, so the interface pointer went in ECX
+  instead of on the stack (crash in D3DImm when the camp opened). COM methods are stdcall with the
+  interface pushed first; every device call now goes through a stdcall helper. The icon window's
+  check counted 30 sprites; the strip, 4 x 6 column pieces and 6 bars make 31.
+
+## Seventh pass
+
+Interface logic only (the renderer is being rebuilt behind the DirectDraw / Direct3D boundary, so
+code that mainly locks, blits or draws stays original: 005E4EB0 the cursor image, 005E18E0 and
+005E5690 as before).
+
+- `CInterface3D::CreateScreen` 005F5BA0: the original inlines screens 1, 2, 3 and 7's
+  constructors (container base 00600B20, member constructors, vtables); id 0 does nothing, 6 and
+  ids above 9 reach the activation with the id as the window pointer. Ours only: the window at the
+  bottom of the stack carries the screen's vtable.
+- `CInterface3D::Activate` 005F71C0 and `PushWindow` 005F7350: the window stack (+0x34..+0x3C,
+  STLport vector; 005FA9A0 when full), backdrops +0x54 / +0x58, +0x50, +0x60 (the server flag kept
+  for the first window), the modifier flags +0x7C..+0x80, five render states (0x1B, 0x0F, 0x13,
+  0x14, 0x18; COM SetRenderState), slot 25 Create, the message pump. Ours only.
+- `CInterface3D::OnKeyDown` 005F78C0: scan codes 0x1D / 0x11D set +0x7C (Ctrl), 0x2A / 0x36 +0x7D
+  (Shift), 0x38 / 0x138 +0x7E (Alt); ui.h's field names there are provisional and do not match.
+  0x29 toggles the console, 0x46 (Scroll Lock) writes "shot%.4d.bmp" (counter 007C7E24). Ours only.
+- `CUiWindow::Construct` 005FE700, `DestroyBase` 005FE930 (the destructor body; it frees the arrays
+  with SetSize(0), so the array destructors after it find nothing), `ReplaceSceneObject` 005FF460
+  (the inlined InsertAt grows as SetSize), `CopyImage` 005FFFB0 (an image into part of a 256-wide
+  texture; side by side on the written rectangle), `CUiContainer::AddChild` 00600D30.
+- Camp: `CCampPages::Close` 0060E6B0 (slot 26; unit records raised by 100000000 around 005789E0),
+  `TakeOff` 0060FE40, the trade panel's destructor body 0060E3E0 (vtable 007417A8). Ours only.
+- Not rewritten in this range (left): 005E3230 (the chat input's keys; multiplayer only), 005F86F0
+  (the help window: inlined STLport map and node allocation), 005F7010 (the item screens'
+  destructor body: inlined map clears), 005EADD0 (camera keys), screen constructors 005F6470 /
+  005F6620 / 005F67A0 / 005F6920 / 005F6BA0, camp 0060FCA0 / 0060C390 / 0060C510 / 0060BF20 /
+  0060C0B0 / 0060F830, 005EE440, 005F8A80, 005F8420, 005F8C90, 006005F0, 0060A660.
