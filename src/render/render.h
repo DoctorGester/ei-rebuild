@@ -15,6 +15,9 @@
 //   noobjects  the old path no longer draws the world's meshes (figures, objects, the sky) and
 //              its flat geometry (shadows)
 //   nointerface  ...nor the interface (window surfaces, sprites, 3D previews)
+//   present    the switch-over: the new renderer shows its frame over the whole client area and
+//              the old path draws and presents nothing (implies show, noterrain, noobjects,
+//              nointerface; movies too); captures write the new frame as frames\<name>.bmp
 // Without "new" nothing here runs and the game draws exactly as before.
 
 #include <cstdint>
@@ -32,6 +35,10 @@ void Configure(const char* spec);
 
 // The sidecar renders frames.
 bool Active();
+
+// The sidecar presents ("present"): the old path's present (004EF610) and its remaining draws are
+// skipped.
+bool Presenting();
 
 // The old Direct3D path still draws the terrain ("noterrain" off). The harness can change it.
 bool DrawOldTerrain();

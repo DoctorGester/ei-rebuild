@@ -32,6 +32,7 @@ bool g_configured = false;
 bool g_active = false;
 bool g_show = false;
 bool g_split = false;
+bool g_present = false;
 bool g_oldTerrain = true;
 bool g_oldObjects = true;
 bool g_oldInterface = true;
@@ -39,7 +40,7 @@ bool g_inWorld = false;
 bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
 
 void ParseSpec(const char* spec) {
-    g_active = g_show = g_split = false;
+    g_active = g_show = g_split = g_present = false;
     g_oldTerrain = g_oldObjects = g_oldInterface = true;
     std::string s = spec ? spec : "";
     std::size_t start = 0;
@@ -54,17 +55,23 @@ void ParseSpec(const char* spec) {
         else if (word == "noterrain") g_oldTerrain = false;
         else if (word == "noobjects") g_oldObjects = false;
         else if (word == "nointerface") g_oldInterface = false;
+        else if (word == "present") g_present = true;
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
+    if (g_present) {
+        g_show = true;
+        g_split = false;
+        g_oldTerrain = g_oldObjects = g_oldInterface = false;
+    }
     if (!g_active) {
-        g_show = g_split = false;
+        g_show = g_split = g_present = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = true;
     }
     g_configured = true;
     if (g_active)
-        ei::Log("render: new renderer on (%s%s%s%s)", g_show ? (g_split ? "split view" : "shown") : "off-screen",
+        ei::Log("render: new renderer on (%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
                 g_oldTerrain ? "" : ", old terrain off", g_oldObjects ? "" : ", old objects off",
                 g_oldInterface ? "" : ", old interface off");
 }
@@ -500,6 +507,11 @@ bool Active() {
     return g_active && !g_failed;
 }
 
+bool Presenting() {
+    EnsureConfigured();
+    return g_present && Active();
+}
+
 bool DrawOldTerrain() {
     EnsureConfigured();
     return g_oldTerrain || !Active();
@@ -695,7 +707,8 @@ void EndFrame() {
     ShowFrame();
     sg_commit();
     ++g_commits;
-    if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
+    // Presenting, the frame is paced by the display as the old path's Flip was.
+    if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(g_present ? 1 : 0, 0);
     g_haveFrame = true;
 }
 
