@@ -285,4 +285,62 @@ State Poll(const char** detail) {
 
 unsigned FramesPresented() { return g_frames; }
 
+namespace {
+// Reads a BMP this file wrote (24-bit, bottom-up) into `image` (top-down rows).
+bool ReadBmp(const char* name, Image& image) {
+    char path[MAX_PATH];
+    ei::OutputPath("frames", path);
+    std::size_t used = std::strlen(path);
+    std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", name);
+    FILE* f = nullptr;
+    if (fopen_s(&f, path, "rb") != 0 || !f) return false;
+    BITMAPFILEHEADER file{};
+    BITMAPINFOHEADER info{};
+    bool ok = std::fread(&file, sizeof(file), 1, f) == 1 && std::fread(&info, sizeof(info), 1, f) == 1 &&
+              file.bfType == 0x4D42 && info.biBitCount == 24 && info.biCompression == BI_RGB && info.biWidth > 0 &&
+              info.biHeight > 0;
+    if (ok) {
+        image.width = info.biWidth;
+        image.height = info.biHeight;
+        int stride = (image.width * 3 + 3) & ~3;
+        image.bgr.resize(static_cast<std::size_t>(image.width) * image.height * 3);
+        std::vector<std::uint8_t> row(stride);
+        ok = std::fseek(f, static_cast<long>(file.bfOffBits), SEEK_SET) == 0;
+        for (int y = image.height - 1; ok && y >= 0; --y) {
+            ok = std::fread(row.data(), 1, row.size(), f) == row.size();
+            if (ok) std::memcpy(&image.bgr[static_cast<std::size_t>(y) * image.width * 3], row.data(), image.width * 3);
+        }
+    }
+    std::fclose(f);
+    return ok;
+}
+} // namespace
+
+bool Compare(const char* a, const char* b, int tolerance, double* differing, int* largest, const char** why) {
+    Image ia, ib;
+    if (!ReadBmp(a, ia) || !ReadBmp(b, ib)) {
+        *why = "a frame is missing or unreadable";
+        return false;
+    }
+    if (ia.width != ib.width || ia.height != ib.height) {
+        *why = "the frames differ in size";
+        return false;
+    }
+    std::size_t count = 0;
+    int worst = 0;
+    for (std::size_t i = 0; i < ia.bgr.size(); i += 3) {
+        int d = 0;
+        for (int c = 0; c < 3; ++c) {
+            int v = ia.bgr[i + c] - ib.bgr[i + c];
+            if (v < 0) v = -v;
+            if (v > d) d = v;
+        }
+        if (d > worst) worst = d;
+        if (d > tolerance) ++count;
+    }
+    *differing = static_cast<double>(count) / (static_cast<double>(ia.width) * ia.height);
+    *largest = worst;
+    return true;
+}
+
 } // namespace ei::verify::capture
