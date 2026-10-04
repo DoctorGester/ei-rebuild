@@ -532,3 +532,200 @@ namespace {
 BOOL __fastcall InfoPanelDraw(CItemInfoPanel* self, void*, int pass) { return self->Draw(pass); }
 } // namespace
 EI_REPLACE(0x005EE5C0, InfoPanelDraw);
+
+// --- 005ED7B0: a hero's face ------------------------------------------------------------------------
+
+namespace {
+
+// hash_map<string, record*>::operator[] of the unit prototypes (007AF364, 005335E0) and of the
+// figure prototypes (007AF3A4, 0053C780); both insert a null entry for an unknown name.
+__declspec(naked) char** __fastcall UnitPrototypeAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x005335E0)
+__declspec(naked) char** __fastcall FigurePrototypeAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x0053C780)
+
+// 00506C70 (__fastcall, RET 4): out = a * b.
+__declspec(naked) Quaternion4* __fastcall QuaternionProduct(Quaternion4*, const Quaternion4*, const Quaternion4*)
+    EI_ORIGINAL(0x00506C70)
+
+const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+
+// The inlined strcmp(a, b) == 0.
+bool SameText(const char* a, const char* b) {
+    for (;; ++a, ++b) {
+        if (*a != *b) return false;
+        if (*a == 0) return true;
+    }
+}
+
+} // namespace
+
+void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture) {
+    char* unit;
+    {
+        stlp::string key(prototype);
+        unit = *UnitPrototypeAt(reinterpret_cast<void*>(0x007AF364), nullptr, &key);
+    }
+    char* figure;
+    {
+        stlp::string key(Get<const char*>(unit, 4));
+        figure = *FigurePrototypeAt(reinterpret_cast<void*>(0x007AF3A4), nullptr, &key);
+    }
+    mfc::CString sex;
+    const char* figureModel = Get<const char*>(figure, 0xE8);
+    if (SameText(figureModel, GameText(0x007908C8)))          // "unhuma"
+        sex = GameText(0x00792EAC);                                   // "m"
+    else if (SameText(figureModel, GameText(0x00792EA4)))     // "unhufe"
+        sex = GameText(0x0078BBD8);                                   // "f"
+    model->Format(GameText(0x00792E94), figureModel, Get<int>(unit, 0x10) + 1);         // "infa%sme%dface"
+    texture->Format(GameText(0x00792E88), static_cast<const char*>(sex), Get<int>(unit, 0x0C));   // "face%s%02d"
+}
+
+std::uint8_t* CItemScreen::CachedModelNamed(const char* name) {
+    ItemObjectCache::Node* node;
+    stlp::string key(name);
+    MapOf(&models_)->Find(&node, &key);
+    return node != models_.header ? static_cast<std::uint8_t*>(node->object) : nullptr;
+}
+
+void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
+    mfc::CString modelName, textureName;
+    FaceNames(cell->prototype, &modelName, &textureName);
+    auto* model = static_cast<std::uint8_t*>(CachedObject(&models_, modelName, false));
+    void* texture = CachedObject(&textures_, textureName, true);
+    if (!model || !texture) return;
+
+    Set(model, 0x280, texture);
+    AsSprite(model)->Place(cell->x, cell->y, cell->depth);
+    AsSprite(model)->SetScale(Store(D(cell->size) * D(cell->depth) * D(GameFloat(0x007402C4)) * D(GameFloat(0x00740408))));
+    Set(model, 0x27C, Get<std::uint32_t>(this, 0xEC));
+    Set(model, 0x224, 1.0f);
+    Set(model, 0x228, 1.0f);
+    Set(model, 0x22C, 1.0f);
+    // A half turn about x, then tilted about -x by (y - 300) / 1000.
+    Quaternion4 turn = HalfTurn(1.0f, 0.0f, 0.0f);
+    const float axis[3] = {-1.0f, 0.0f, 0.0f};
+    Quaternion4 tilt;
+    tilt.FromAxisAngle(axis, Store((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
+    Quaternion4 orientation;
+    SetOrientation(model, *QuaternionProduct(&orientation, &tilt, &turn));
+
+    // The frame behind the face (texture 2 of the screen), drawn once and removed, then the face.
+    float frameDepth = Store(D(cell->depth) * D(GameFloat(0x0073FF20)));
+    CUiMesh* frame = AddSprite(0);
+    double half = D(GameFloat(0x007403E0));
+    AsSprite(frame)->SetRectangle(frameDepth, 100.0f, Store(D(cell->x) - half), Store(D(cell->y) - half),
+                                  Store(D(cell->x) + half), Store(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
+    Set(frame, 0x280, objects_.data_[2]);
+    AsSprite(frame)->Draw(pass);
+    RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
+    AsSprite(model)->Draw(pass);
+}
+EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
+
+// --- 005EC020: an item's figure texture -------------------------------------------------------------
+
+namespace {
+
+void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
+
+// The texture manager (thiscall): 00691D80 makes a texture (width, height, format), 00691CF0 finds
+// a loaded image by file name.
+__declspec(naked) std::uint8_t* __fastcall NewManagedTexture(void*, void*, int, int, int) EI_ORIGINAL(0x00691D80)
+__declspec(naked) std::uint8_t* __fastcall FindImage(void*, void*, const char*) EI_ORIGINAL(0x00691CF0)
+
+// 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
+__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
+
+template <typename... Args>
+void VirtualCall(void* object, int slot, Args... args) {
+    void* fn = (*static_cast<void***>(object))[slot];
+    reinterpret_cast<void(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
+}
+
+// What a texture's +0x5C points at: the counted holder of its DirectDraw surface.
+struct TextureSurface {
+    void* vtable;
+    int references;
+    long result;                 // +0x08
+    std::uint8_t unknown_0C[4];
+    void** surface;              // +0x10 IDirectDrawSurface7
+};
+
+constexpr std::uint32_t kPnt3 = 0x33544E50;   // "PNT3"
+
+} // namespace
+
+void* __fastcall ItemFigureTexture(const char* name) {
+    void* manager = TextureManager();
+    std::uint8_t* texture = NewManagedTexture(manager, nullptr, 0x100, 0x100, 0x20);
+    if (!texture) return nullptr;
+    Set(texture, 4, Get<int>(texture, 4) + 1);
+    auto* holder = Get<TextureSurface*>(texture, 0x5C);
+    std::uint8_t* image;
+    {
+        mfc::CString base(name);
+        mfc::CString file = base + GameText(0x0078FB4C);   // ".mmp"
+        image = FindImage(manager, nullptr, file);
+    }
+    int width, height;
+    if (!image) {
+        height = 0x100;
+        width = 0x100;
+    } else {
+        width = Get<int>(image, 4);
+        height = Get<int>(image, 8);
+    }
+    std::uint32_t* pixels = nullptr;
+    if (image) {
+        // The image decoded to 32-bit pixels (decoder slot 5: out, image data, count, PNT3).
+        std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
+        pixels = static_cast<std::uint32_t*>(gamecrt::operator_new(count * 4));
+        std::memset(pixels, 0, count * 4);
+        void* decoder = PixelDecoder();
+        VirtualCall(decoder, 5, pixels, image + 0x4C, count, Get<std::uint32_t>(image, 0x10) == kPnt3 ? 1 : 0);
+    }
+    gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
+    long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(holder->surface))[25])(holder->surface, nullptr, desc,
+                                                                                           0, nullptr);
+    holder->result = hr;
+    if (hr != 0 && DirectXError(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
+        // The original leaves the device lock held here.
+        if (pixels) gamecrt::operator_delete(pixels);
+        VirtualCall(texture, 4);
+        return nullptr;
+    }
+    // Rows of 0x200 bytes, the image at the bottom.
+    std::uint32_t at = desc[9] + (static_cast<std::uint32_t>(0x100 - height) << 9);
+    if (!image) {
+        for (int row = height; row > 0; --row) {
+            std::memset(reinterpret_cast<void*>(at), 0xFF, static_cast<std::uint32_t>(width) * 2);
+            at += 0x200;
+        }
+    } else {
+        const std::uint32_t* from = pixels;
+        for (int row = height; row > 0; --row) {
+            auto* to = reinterpret_cast<std::uint16_t*>(at);
+            for (int i = width; i > 0; --i) {
+                std::uint32_t p = *from++;
+                *to++ = static_cast<std::uint16_t>(((p >> 9) & 0x7C00) | ((p >> 6) & 0x3E0) | ((p >> 3) & 0x1F) |
+                                                   ((p >> 16) & 0x8000));
+            }
+            at = reinterpret_cast<std::uint32_t>(to) + static_cast<std::uint32_t>(0x100 - width) * 2;
+        }
+    }
+    if (pixels) gamecrt::operator_delete(pixels);
+    gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
+    using UnlockFn = long(__stdcall*)(void**, RECT*);
+    hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(holder->surface))[32])(holder->surface, nullptr);
+    holder->result = hr;
+    if (hr != 0 && DirectXError(hr, GameText(0x0078E2F4)) == 0) {   // "Can't unlock surface"
+        VirtualCall(texture, 4);
+        return nullptr;
+    }
+    VirtualCall(manager, 22);
+    return texture;
+}
+EI_REPLACE(0x005EC020, ItemFigureTexture);

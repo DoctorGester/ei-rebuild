@@ -33,6 +33,11 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
 
 // --- The item screens' model view (005ECA10; ui_item_view.cpp) ------------------------------------
 
+// 005EC020 (__fastcall). A new 256 x 256 texture (texture manager 007AF744, format 0x20, counted)
+// holding image "<name>.mmp" decoded and packed to 1:5:5:5 at the bottom left (rows of 512 bytes),
+// or white when there is no such image; null when it cannot be made or locked.
+void* __fastcall ItemFigureTexture(const char* name);
+
 // An item drawn as a turning model in a cell (005ECA10's argument, 0x18 bytes).
 struct ItemCell {
     CItem* item;     // +0x00
@@ -43,6 +48,16 @@ struct ItemCell {
     int mode;        // +0x14 the strip's action mode; 9: greyed out, never shaded as unusable
 };
 static_assert(sizeof(ItemCell) == 0x18);
+
+// A hero's face drawn in a cell (005ED7B0's argument, 0x14 bytes; built by 00629AF0).
+struct HeroFaceCell {
+    const char* prototype;   // +0x00 the unit prototype's name (007AF364 map)
+    float x;                 // +0x04 the cell's centre (layout)
+    float y;                 // +0x08
+    float depth;             // +0x0C
+    float size;              // +0x10
+};
+static_assert(sizeof(HeroFaceCell) == 0x14);
 
 // A cache of the item screens (0x10 bytes at +0x170 and +0x180): an STLport map from a name
 // (stlp::string) to {object, time of last use}, and how many entries it keeps (30; 20 when
@@ -74,6 +89,15 @@ public:
     // The cached model of `item` (the model cache's entry for its slot 20 name), or null; leaves
     // the cache untouched. For the verify wrapper.
     std::uint8_t* CachedModel(CItem* item);
+    // 005ED7B0 (RET 8). Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the
+    // figure prototype's +0xE8 model name, the prototype's +0x10) with texture "face<m|f><+0xC,
+    // two digits>" ("m" for model "unhuma", "f" for "unhufe", else nothing), both cached as the
+    // items are, tilted back by (y - 300) / 1000 radians, over the cell frame.
+    void DrawHeroFace(int pass, HeroFaceCell* cell);
+    // The face's model and texture names (the lookups insert unknown names as DrawHeroFace's do),
+    // and the cached model of a name or null (cache untouched). For the verify wrapper.
+    static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
+    std::uint8_t* CachedModelNamed(const char* name);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_;      // +0x164

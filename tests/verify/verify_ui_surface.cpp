@@ -7,7 +7,9 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_item_info.h"
 #include "../../src/lib/crt.h"
+#include "../../src/lib/mfc.h"
 #include "../../src/lib/gameapi.h"
 
 #include <windows.h>
@@ -33,8 +35,7 @@ struct Pixels {
 CRITICAL_SECTION* SurfaceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // Reads the surface into `pixels`, or with `write` stores them back. False when it cannot be locked.
-bool AccessPixels(CUiSurface* surface, Pixels& pixels, bool write) {
-    IDirectDrawSurface7* dd = surface ? DirectDrawSurface(surface) : nullptr;
+bool AccessSurface(IDirectDrawSurface7* dd, Pixels& pixels, bool write) {
     if (!dd) return false;
     gameapi::EnterCriticalSection(SurfaceLock());
     DDSURFACEDESC2 desc{};
@@ -59,12 +60,19 @@ bool AccessPixels(CUiSurface* surface, Pixels& pixels, bool write) {
     return ok;
 }
 
+bool AccessPixels(CUiSurface* surface, Pixels& pixels, bool write) {
+    return AccessSurface(surface ? DirectDrawSurface(surface) : nullptr, pixels, write);
+}
+
 int FirstDifferentRow(const Pixels& a, const Pixels& b) {
     if (a.bytes.size() != b.bytes.size() || a.rowBytes != b.rowBytes) return -2;
     for (int y = 0; y < a.height; ++y)
         if (std::memcmp(&a.bytes[y * a.rowBytes], &b.bytes[y * b.rowBytes], a.rowBytes) != 0) return y;
     return -1;
 }
+
+// 00691CF0 (thiscall on the texture manager): a loaded image by file name.
+__declspec(naked) std::uint8_t* __fastcall FindImageAt(void*, void*, const char*) EI_ORIGINAL(0x00691CF0)
 
 long ResultOf(CUiSurface* surface) {
     std::uint8_t* inner = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(surface) + 0x10);
@@ -131,3 +139,47 @@ static std::uint16_t* __fastcall Rgb565CopyVerify(CUiSurface* self, void*, int w
     return expected;
 }
 EI_VERIFY(0x005FD440, Rgb565CopyVerify, 6, s_rgb565Copy);
+
+// 005EC020: PUSH -1; PUSH imm32 (7). Both make a texture of the same name; their surfaces' pixels
+// must be equal. Ours is released (its slot 4, as the original does on failure), the original's
+// returned.
+static void*(__fastcall* s_figureTexture)(const char*);
+static void* __fastcall FigureTextureVerify(const char* name) {
+    void* expected = s_figureTexture(name);
+    void* actual = ItemFigureTexture(name);
+    auto surfaceOf = [](void* texture) -> IDirectDrawSurface7* {
+        if (!texture) return nullptr;
+        std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(texture) + 0x5C);
+        return holder ? *reinterpret_cast<IDirectDrawSurface7**>(holder + 0x10) : nullptr;
+    };
+    int row = -3;
+    if ((expected == nullptr) != (actual == nullptr)) {
+        row = -4;
+    } else if (!expected) {
+        row = -1;
+    } else {
+        // Only the part written: the image's rows at the bottom, its width (a new surface's other
+        // pixels are whatever DirectDraw left there).
+        int width = 0x100, height = 0x100;
+        mfc::CString file = mfc::CString(name) + ".mmp";
+        void* manager = *reinterpret_cast<void* const*>(0x007AF744);
+        if (std::uint8_t* image = FindImageAt(manager, nullptr, file)) {
+            std::memcpy(&width, image + 4, 4);
+            std::memcpy(&height, image + 8, 4);
+        }
+        Pixels a, b;
+        if (AccessSurface(surfaceOf(expected), a, false) && AccessSurface(surfaceOf(actual), b, false)) {
+            row = a.bytes.size() == b.bytes.size() && a.rowBytes == b.rowBytes ? -1 : -2;
+            for (int y = a.height - height; row == -1 && y < a.height; ++y)
+                if (y >= 0 && std::memcmp(&a.bytes[y * a.rowBytes], &b.bytes[y * b.rowBytes], width * 2 < a.rowBytes ? width * 2 : a.rowBytes) != 0) row = y;
+        }
+    }
+    ei::verify::Check("ItemFigureTexture", true, row == -1, "%s: pixel row %d (made %d/%d)", name, row, expected != nullptr,
+                      actual != nullptr);
+    if (actual) {
+        using ReleaseFn = void(__thiscall*)(void*);
+        reinterpret_cast<ReleaseFn>((*static_cast<void***>(actual))[4])(actual);
+    }
+    return expected;
+}
+EI_VERIFY(0x005EC020, FigureTextureVerify, 7, s_figureTexture);

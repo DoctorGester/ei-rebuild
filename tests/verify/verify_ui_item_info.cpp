@@ -295,6 +295,37 @@ static void __fastcall DrawItemVerify(CItemScreen* self, void*, int pass, ItemCe
 }
 EI_VERIFY(0x005ECA10, DrawItemVerify, 5, s_drawItem);
 
+// 005ED7B0: PUSH -1; PUSH imm32 (7). Side by side as DrawItem: the face model's state is recorded
+// after the original, put back, and ours must leave the same (both draw, the face is drawn twice).
+static void(__thiscall* s_drawHeroFace)(CItemScreen*, int, HeroFaceCell*);
+static void __fastcall DrawHeroFaceVerify(CItemScreen* self, void*, int pass, HeroFaceCell* cell) {
+    int sceneObjects = self->sceneObjects_.size_;
+    mfc::CString modelName, textureName;
+    CItemScreen::FaceNames(cell->prototype, &modelName, &textureName);
+    std::uint8_t* model = self->CachedModelNamed(modelName);
+    bool hadModel = model != nullptr;
+    ModelState modelBefore;
+    if (hadModel) modelBefore = ModelState(model);
+    s_drawHeroFace(self, pass, cell);
+    int sceneAfterOriginal = self->sceneObjects_.size_;
+    model = self->CachedModelNamed(modelName);
+    if (!model) {
+        self->DrawHeroFace(pass, cell);
+        ei::verify::Check("CItemScreen::DrawHeroFace", true, self->CachedModelNamed(modelName) == nullptr,
+                          "no model for %s", static_cast<const char*>(modelName));
+        return;
+    }
+    ModelState expected(model);
+    if (hadModel) modelBefore.Restore(model);
+    self->DrawHeroFace(pass, cell);
+    ModelState actual(model);
+    bool ok = expected == actual && sceneAfterOriginal == sceneObjects && self->sceneObjects_.size_ == sceneObjects;
+    ei::verify::Check("CItemScreen::DrawHeroFace", true, ok, "%s / %s: model %d scene objects %d/%d/%d",
+                      static_cast<const char*>(modelName), static_cast<const char*>(textureName), expected == actual,
+                      sceneObjects, sceneAfterOriginal, self->sceneObjects_.size_);
+}
+EI_VERIFY(0x005ED7B0, DrawHeroFaceVerify, 7, s_drawHeroFace);
+
 // 005EE5C0 (slot 20): ours only (it draws through DrawItem, whose wrapper compares); returns 1.
 static BOOL __fastcall InfoPanelDrawVerify(CItemInfoPanel* self, void*, int pass) {
     BOOL result = self->Draw(pass);
