@@ -323,3 +323,22 @@ every zone load. `this` +0x18C is the texture cache, +0x34 the figure maker.
   00535CB0, when the record's name list +0x30 is empty, else the record's names appended to a
   vector<string> after an inlined reserve) are joined with the second list (00575E50) and given
   to the figure maker's slot 3 with the model prefix and the record's +0x24 / +0x28 / +0x2C.
+
+## Flat geometry draw (004EA4A0)
+
+Files: `src/game/device_shadow.cpp`, `tests/verify/verify_device_shadow.cpp`.
+
+| Address | Name | Verify |
+|---|---|---|
+| 004EA4A0 | `DeviceDrawFlat` (device thiscall, RET 0x24) | ours only: result 0 / 2; with one vertex per position every vertex carries the colour pair |
+
+Callers: the object shadows (0051CE60), the renderer (00503A40), 006CEDE0. Arguments: positions
+(blocks of four), one (u, v) per vertex, the block count, indices and their count, the colour and
+specular of every vertex, a value for the projection, a z scale. The projection is the pipeline's
+004F2650 (projected vertices into 007AEE10, sized ten times the vertex count, outcodes into
+007AEE30). On screen: the vertices (projected position, the colour pair, the texture coordinate,
+all copied as qwords) go to the vertex buffer (004E7820, always null) or to 007AEE00, z is scaled
+(FLD scale, FMUL z) unless the scale compares equal to 1 (NaN too), and 004EB550 draws them.
+Crossing: buffers for ten times the vertices and indices, the outcodes copied to 007AEE20, the
+transform object's clipper (slot 37), the counts set (kept contents), slot 34, then the scale and
+the draw unless a count is 0. Returns 2 when nothing is visible, else 0.
