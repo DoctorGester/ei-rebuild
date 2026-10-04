@@ -244,6 +244,9 @@ struct ServerSession {
     void AwardHost(const std::uint8_t* entry, bool withFinal);
     // 00419D90. Queues an award message for `connection` (60 s delay); destroys `text`.
     void QueueAward(CRefObject* connection, int kind, float value, StringRep text);
+    // 00419A00 (net_server_files.cpp). Lists `data` under `name` (unless listed) as a file message
+    // with 64-byte chunk messages.
+    void ShareFile(const StringRep* name, GameBuffer* data);
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);
