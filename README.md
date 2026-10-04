@@ -81,7 +81,7 @@ the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functio
     harness.cmd tests\scenarios\sandbox_actions.txt
 
 `python tools\run_all.py` runs every scenario on both installs, several games at once (`--jobs N`,
-default 10; the whole suite takes about 3 minutes). Each run writes to its own folder,
+default 16; the whole suite takes about 2 minutes). Each run writes to its own folder,
 `build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei_hook.log`,
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
