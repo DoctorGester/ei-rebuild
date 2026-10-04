@@ -3278,3 +3278,27 @@ address,name,library,signature,notes
 0055D020,stlp equal (pointers),STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
 005612F0,CWorldClient constructor (static initialiser of 007AF5B8),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
 00561B00,CWorldClient destructor (calls 00563290, then the members destructors),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
+0055BD60,stlp vector<0x3C look record>::_M_fill_insert,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C010,stlp vector<0x24 look record>::_M_fill_insert,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D050,stlp vector<0x3C look record>::_M_insert_overflow,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D300,stlp vector<0x24 look record>::_M_insert_overflow,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D5A0,stlp __copy (0x3C look records),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D7F0,stlp __copy (0x24 look records),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055DFF0,stlp __uninitialized_copy (0x24 look records),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055D9F0,0x24 look record operator= (implicit),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055DBE0,look record operator= (implicit),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055B7E0,stlp vector<T*>::operator=,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055A400,stlp vector<0x3C look record>::resize,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055A580,stlp vector<0x24 look record>::resize,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C5E0,stlp hashtable::_M_new_node,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C2E0,stlp hashtable::_M_new_node,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C460,stlp hashtable::_M_new_node,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+00559B30,unit entry destructor (implicit; CString vector),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+00559C40,unit entry destructor (implicit; CString vector),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055A780,stlp hashtable::clear,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C730,stlp __copy (pointers, memmove),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C2C0,stlp __copy (dwords),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C5C0,stlp hashtable::_M_bkt_num_key,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055AFF0,stlp hashtable accessor (functor copy),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055AFB0,stlp hashtable iterator constructor,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055AFD0,stlp hashtable iterator constructor,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic

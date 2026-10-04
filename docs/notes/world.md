@@ -979,6 +979,15 @@ the real stream. The three hash_maps are walked with the original's iterator hel
 0055ADF0 / 0055AE50 begin; 0055B9D0 / 0055B500 next bucket; the third map's bucket scan
 inlined with 0055C5C0), so the order matches.
 
+The zone's unit look lists are read by 0055A190 (`ReadUnitLooks`, called by the client zone load
+00567AB0). Its arguments are ECX the stream, EDX the 0x3C-record vector and the stack the
+0x24-record vector. Per record it reads a 16-bit key, two counted dword arrays, a byte, then four
+dwords and a CString list (0x3C records) or one dword (0x24 records); unit_skins.cpp consumes the
+lists. The verify is differential. Ours reads the real stream through a recorder. The original
+then reads the recorded bytes from a replay stream into scratch vectors, which are compared and
+destroyed with 0056E4B0 / 0056E620. The remaining 00559000-0055E000 helpers are classified as
+STLport / compiler instantiations, so that range is done.
+
 The CWorldClient constructor 005612F0 and destructor 00561B00 are in config/library.csv as
 compiler-generated member construction and destruction. The constructor runs as the static
 initialiser of 007AF5B8, before the hooks are installed, so a rewrite would never run. The
