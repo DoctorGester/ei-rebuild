@@ -31,8 +31,20 @@ constexpr std::size_t kNodeRotation = 0x7C;    // Quaternion
 constexpr std::size_t kNodeFrames = 0xF8;      // CArray of 40-byte records (vtable at +0xF8)
 
 __declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
-// 00449030: the index of the root node (-1 when there is none).
-__declspec(naked) int __fastcall FindRootNode(VtArray* /*nodes*/) EI_ORIGINAL(0x00449030)
+// 00449030 (below), through its address: the index of the root node (-1 when there is none).
+__declspec(naked) int __fastcall FindRootNodeAt(VtArray* /*nodes*/) EI_ORIGINAL(0x00449030)
+// CArray<node*>::SetSize (00453790, library): the node's children (+0x10C).
+__declspec(naked) void __fastcall ChildrenSetSize(VtArray*, void*, int, int) EI_ORIGINAL(0x00453790)
+__declspec(naked) void __fastcall CopyRestPoseAt(char*) EI_ORIGINAL(0x004491C0)
+constexpr std::size_t kNodeChildren = 0x10C;   // CArray of node pointers
+constexpr std::size_t kNodeRestPivot = 0x8C;   // Vector3: the pivot copied
+constexpr std::size_t kNodeRestRotation = 0x98;   // Quaternion: the rotation copied
+
+// The node's pivot and rotation copied to their rest copies.
+void CopyRest(char* node) {
+    std::memcpy(node + kNodeRestRotation, node + kNodeRotation, 16);
+    std::memcpy(node + kNodeRestPivot, node + kNodePivot, 12);
+}
 // 00449240 (below), through its address.
 __declspec(naked) void __fastcall BuildRootBoneAt(void* /*skin*/, char* /*node*/, int /*frames*/) EI_ORIGINAL(0x00449240)
 // The bone (0x128 bytes): constructor 00506710 (returns this), destructor body 005068C0; BuildBone
@@ -107,6 +119,46 @@ void __fastcall BuildRootBone(char* skin, const char* node, int frames) {
 }
 EI_REPLACE(0x00449240, BuildRootBone);
 
+// 004491C0: every child's rest pivot and rotation copied, recursively.
+void __fastcall CopyRestPose(char* node) {
+    VtArray& children = At<VtArray>(node, kNodeChildren);
+    for (int i = 0; i < children.body.size; ++i) {
+        CopyRest(static_cast<char**>(children.body.data)[i]);
+        CopyRestPoseAt(static_cast<char**>(children.body.data)[i]);
+    }
+}
+EI_REPLACE(0x004491C0, CopyRestPose);
+
+// 00449030: links each node to its children (nodes whose parent name equals its name, _mbscmp),
+// finds the root (the last node with an empty parent name, -1 when none) and copies the rest pose
+// from it down. Without a root the original reads and writes the element before the array; kept.
+int __fastcall FindRootNode(VtArray* nodes) {
+    int root = -1;
+    for (int i = 0; i < nodes->body.size; ++i) {
+        char* parent = static_cast<char*>(nodes->body.data) + i * node::kSize;
+        if (reinterpret_cast<const int*>(At<char*>(parent, node::kParent))[-2] == 0) root = i;   // CString length
+        for (int j = 0; j < nodes->body.size; ++j) {
+            char* base = static_cast<char*>(nodes->body.data);
+            char* child = base + j * node::kSize;
+            if (gamecrt::mbscmp(At<const unsigned char*>(child, node::kParent), At<const unsigned char*>(base + i * node::kSize, node::kName)) != 0)
+                continue;
+            VtArray& children = At<VtArray>(base + i * node::kSize, kNodeChildren);
+            int n = children.body.size;
+            ChildrenSetSize(&children, nullptr, n + 1, -1);
+            static_cast<char**>(children.body.data)[n] = child;
+        }
+    }
+    char* rootNode = static_cast<char*>(nodes->body.data) + root * static_cast<int>(node::kSize);
+    CopyRest(rootNode);
+    VtArray& children = At<VtArray>(rootNode, kNodeChildren);
+    for (int i = 0; i < children.body.size; ++i) {
+        CopyRest(static_cast<char**>(children.body.data)[i]);
+        CopyRestPoseAt(static_cast<char**>(children.body.data)[i]);
+    }
+    return root;
+}
+EI_REPLACE(0x00449030, FindRootNode);
+
 // ECX: the unit's meshes (CArray, 0x18C each; slot 7 of a mesh is its name), EDX: the nodes;
 // `frames` (its low word counts), `skin`. 1, or 0 without a root node; a first rotation key not
 // at frame 0 is a fatal error (FatalError's result is returned if it comes back).
@@ -127,7 +179,7 @@ int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* 
             At<Quaternion>(node, kNodeRotation) = q;
         }
     }
-    int root = FindRootNode(nodes);
+    int root = FindRootNodeAt(nodes);
     if (root == -1) {
         FatalError(reinterpret_cast<const char*>(0x007843F0));   // "Can't find top-level object in hierarchy"
         return 0;
