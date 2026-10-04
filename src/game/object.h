@@ -29,7 +29,7 @@ constexpr std::uintptr_t kHooverVtable = 0x0073C434;
 
 // Walks a manager's object list (the MFC CPtrList at CBaseManager +0x34; nodes are {next, prev,
 // object}). While iterating it holds a reference on the manager (refCount_ + 1); the owner drops it
-// afterwards with `--manager->refCount_` (the original's inlined destructor). Not rewritten.
+// afterwards with `--manager->refCount_` (the original's inlined destructor). object.cpp.
 struct ObjectListIterator {
     CBaseManager* manager;
     void* position;

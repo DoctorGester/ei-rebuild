@@ -360,3 +360,26 @@ static void __fastcall RequestPartyZone6Verify(GameFlow* self, void*, const char
     ei::verify::Check("GameFlow::RequestPartyZone6", true, RequestIs(self, 6, zone), "%s", zone);
 }
 EI_VERIFY(0x00581760, RequestPartyZone6Verify, 0, s_unused);
+
+// 0057C700 acts on the pending request (zone changes, loading): ours only. The request is cleared.
+static void __fastcall ProcessRequestVerify(GameFlow* self, void*) {
+    int request = *reinterpret_cast<int*>(self);
+    self->ProcessRequest();
+    int after = *reinterpret_cast<int*>(self);
+    ei::verify::Check("GameFlow::ProcessRequest", true, after == 0, "request %d -> %d", request, after);
+}
+EI_VERIFY(0x0057C700, ProcessRequestVerify, 0, s_unused);
+
+// 0057ABA0 loads a saved game: ours only. In single player it returns 0 or 1, in multiplayer 0;
+// a loaded game has its scenario.sav.
+static int __fastcall LoadGameVerify(GameFlow* self, void*, const char* slot) {
+    int mode = *reinterpret_cast<const int*>(0x007B0098);
+    int result = self->LoadGame(slot);
+    char path[MAX_PATH];
+    std::snprintf(path, sizeof(path), "%ssaves\\%s\\scenario.sav", *reinterpret_cast<char* const*>(0x007AF460), slot);
+    bool exists = GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    bool ok = (mode == 2 || mode == 3) ? result == 0 : (result == 0 || (result == 1 && exists));
+    ei::verify::Check("GameFlow::LoadGame", true, ok, "%s -> %d (mode %d, scenario.sav %d)", slot, result, mode, exists);
+    return result;
+}
+EI_VERIFY(0x0057ABA0, LoadGameVerify, 0, s_unused);

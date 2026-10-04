@@ -10,6 +10,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
 
@@ -131,7 +132,7 @@ __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const Raw
 __declspec(naked) std::uint8_t* __fastcall NameMapInsert(void* /*map*/, void*, const void* /*pair*/) EI_ORIGINAL(0x00514880)
 // 005927C0 (RET 4). Creates the unit described by the message; returns its id. Patched by Rebirth:
 // original address.
-__declspec(naked) int __fastcall CreateObject(CWorldServer*, void*, void* /*message*/) EI_ORIGINAL(0x005927C0)
+__declspec(naked) int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/) EI_ORIGINAL(0x005927C0)
 __declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int) EI_ORIGINAL(0x0055FB00)
 __declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, int) EI_ORIGINAL(0x005935C0)
 // _CIacos (006E7320): argument and result in ST0.
@@ -350,7 +351,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             PlaceInLine(message, position, rotation, i);
         }
 
-        CEngineObject* unit = WorldFindUnit(this, nullptr, CreateObject(this, nullptr, message));
+        CEngineObject* unit = WorldFindUnit(this, nullptr, CreateObjectAt(this, nullptr, message));
         if (!unit) continue;
 
         // A player-controlled AI, standing on a free cell near the requested position.
@@ -458,13 +459,328 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     // At the unit's position, on the ground.
     std::memcpy(message + 0x20, reinterpret_cast<std::uint8_t*>(unit) + 0x1C, 12);
     At<std::uint32_t>(message, 0x28) = 0;
-    int id = CreateObject(this, nullptr, message);
+    int id = CreateObjectAt(this, nullptr, message);
     CEngineObject* effect = ei::VCall<CEngineObject*>(this, kSlotFindObject, id);
     effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
     MessageDestructBase(message, nullptr);
 }
 
 #pragma float_control(pop)
+
+// ---- CreateObject (005927C0) -------------------------------------------------------------------
+
+namespace {
+
+// Object setup, through the original addresses (thiscall as fastcall).
+__declspec(naked) void __fastcall ObjectMarkNew(CEngineObject*, void*) EI_ORIGINAL(0x0050EA40)
+__declspec(naked) void __fastcall ObjectMarkChanged(CEngineObject*, void*, int) EI_ORIGINAL(0x0050E9F0)
+__declspec(naked) void __fastcall ObjectAnnounce(CEngineObject*, void*) EI_ORIGINAL(0x0050EA70)
+__declspec(naked) void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*) EI_ORIGINAL(0x00517700)
+__declspec(naked) void __fastcall ObjectSetName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x005179E0)
+__declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x0050F150)
+__declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
+__declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
+__declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x005141F0)
+__declspec(naked) void __fastcall ServerCastSpell(CWorldServer*, void*, CEngineObject*, int, const void*, CEngineObject*,
+                                                  const void*, int) EI_ORIGINAL(0x0058E850)
+__declspec(naked) CEngineObject* __fastcall SpellsFromText(void*, void*, const char*) EI_ORIGINAL(0x00689030)
+__declspec(naked) void __fastcall TextAssignChars(mfc::CString*, void*, const char*) EI_ORIGINAL(0x00700AF9)
+__declspec(naked) void __fastcall TextAssign(mfc::CString*, void*, const mfc::CString*) EI_ORIGINAL(0x00700AA9)
+__declspec(naked) void __fastcall TextArrayCopy(void*, void*, const void*) EI_ORIGINAL(0x006FEB61)
+__declspec(naked) void __fastcall UnitSetSide(CEngineObject*, void*, int) EI_ORIGINAL(0x00530120)
+__declspec(naked) int __fastcall DiplomacyMaskOf(void*, void*, int) EI_ORIGINAL(0x00455660)
+__declspec(naked) void __fastcall UnitSetDiplomacy(CEngineObject*, void*, int) EI_ORIGINAL(0x0052E970)
+__declspec(naked) CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
+__declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
+__declspec(naked) void __fastcall KeyDefault(void*, void*, const void*) EI_ORIGINAL(0x004217E0)
+__declspec(naked) void __fastcall KeyAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
+__declspec(naked) std::uint8_t** __fastcall UnitPrototypeAt(void*, void*, const void*) EI_ORIGINAL(0x005335E0)
+__declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
+__declspec(naked) void __fastcall ObjectSetup7(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052A2C0)
+__declspec(naked) void __fastcall MarkNewObject(CEngineObject*, void*) EI_ORIGINAL(0x00675CA0)
+__declspec(naked) int __stdcall MessageBoxText(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)
+
+constexpr int kSlotSpellManager = 22;      // world (+0x58)
+constexpr int kSlotItemManager = 18;       // world (+0x48)
+constexpr int kSlotCreate = 23;            // manager (+0x5C): (type, id)
+constexpr int kSlotIsLarge = 29;           // object (+0x74, AL): picks +0x11D or +0x11E
+constexpr int kSlotSetRace = 34;           // object (+0x88)
+constexpr int kSlotRefresh = 30;           // object (+0x78)
+constexpr int kSlotFigureShape = 16;       // figure (+0x40): (0x2001, size, radius)
+constexpr int kSlotFigureLight = 17;       // figure (+0x44): (size, radius * 10, colour)
+constexpr int kSlotFigureFlags = 18;       // figure (+0x48)
+constexpr int kTimedSound3D = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedOther = 0x4A;
+const char* const kCampfire = reinterpret_cast<const char*>(0x00790A54);
+const char* const kNoWaveName = reinterpret_cast<const char*>(0x00790A34);
+const char* const kEmpty = reinterpret_cast<const char*>(0x0079B298);
+constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
+void* const kUnitPrototypes = reinterpret_cast<void*>(0x007AF364);
+constexpr int kUnitPrototypeSize = 0x168;
+
+int UpdateCountdown(const CEngineObject* object) { return ((reinterpret_cast<int>(object) >> 5) & 0xF) + 0x80; }
+
+std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
+void Copy(void* to, const void* from, std::size_t n) {
+    auto* d = static_cast<std::uint32_t*>(to);
+    auto* s = static_cast<const std::uint32_t*>(from);
+    for (std::size_t i = 0; i < n / 4; ++i) d[i] = s[i];
+}
+
+} // namespace
+
+int CWorldServer::CreateObject(std::uint8_t* message) {
+    std::uint8_t* m = message;
+    auto created = [this, m]() {
+        void* manager = ei::VCall<void*>(this, kSlotMapObjects);
+        return ei::VCall<CEngineObject*>(manager, kSlotCreate, At<int>(m, 0x50), At<int>(m, 0x18));
+    };
+    auto allowed = [this](CEngineObject* object) {
+        return (ei::VCall<bool>(object, kSlotIsLarge) ? At<std::uint8_t>(this, 0x11D) : At<std::uint8_t>(this, 0x11E)) != 0;
+    };
+    auto refuse = [](CEngineObject* object) {
+        ++object->refCount_;
+        object->Release();
+        return -1;
+    };
+    auto companionTexts = [m](std::uint8_t* companion) {
+        TextAssign(&At<mfc::CString>(companion, 0x78), nullptr, &At<mfc::CString>(m, 0x70));
+        TextAssign(&At<mfc::CString>(companion, 0x7C), nullptr, &At<mfc::CString>(m, 0x74));
+        TextArrayCopy(companion + 0x80, nullptr, m + 0x78);
+    };
+    auto race = [m](CEngineObject* object) {
+        ++object->refCount_;
+        ei::VCall<void>(object, kSlotSetRace, At<int>(m, 0x48) == 5 ? At<int>(m, 0x20C) : At<int>(m, 0x58));
+        ObjectMarkNew(object, nullptr);
+    };
+    auto place = [m](CEngineObject* object) {
+        ObjectSetMovement(object, nullptr, m + 0x60);
+        Copy(Bytes(object) + 0x1AC, m + 0x60, 12);
+        ei::VCall<void>(object, kSlotRefresh);
+        Copy(Bytes(object) + 0x1C, m + 0x20, 12);
+        Copy(Bytes(object) + 0x34, m + 0x2C, 16);
+    };
+    auto timed = [this](CEngineObject* object) {
+        At<int>(object, 0x94) = tick_;
+        ++object->refCount_;
+        MarkNewObject(object, nullptr);
+        timedObjects_.Set(static_cast<unsigned>(object->id_), object);
+        return object->id_;
+    };
+    void* timedManager = manager48_;
+
+    switch (At<int>(m, 0x48)) {
+    case 6: {   // a map object with a figure (a campfire when it stands on the ground)
+        CEngineObject* object = created();
+        if (!allowed(object)) return refuse(object);
+        int id = object->id_;
+        if (id == -1) return -1;
+        if (At<int>(m, 0x18) == -1) At<int>(m, 0x18) = id;
+        // |ground height + z| below 0.7 (FCOMP with C0: a NaN counts as below).
+        volatile float height = At<float>(m, 0x98) + At<float>(m, 0x28);
+        float sum = height;
+        std::uint32_t bits;
+        std::memcpy(&bits, &sum, 4);
+        bits &= 0x7FFFFFFFu;
+        float level;
+        std::memcpy(&level, &bits, 4);
+        if (x87::IsNaN(level) || level < GameFloat(0x0073C538)) {
+            volatile float at[3];
+            at[2] = At<float>(m, 0x98) + At<float>(m, 0x28);
+            at[1] = At<float>(m, 0x94) + At<float>(m, 0x24);
+            at[0] = At<float>(m, 0x90) + At<float>(m, 0x20);
+            CEngineObject* spell = SpellsFromText(ei::VCall<void*>(this, kSlotSpellManager), nullptr, kCampfire);
+            if (spell) ++spell->refCount_;
+            ServerCastSpell(this, nullptr, spell, 0, const_cast<float*>(at), nullptr, const_cast<float*>(at), 0);
+            if (spell) spell->Release();
+        }
+        At<CEngineObject*>(m, 0x1C) = object;
+        void* figure = At<void*>(object, 0x238);
+        std::uint8_t* companion = At<std::uint8_t*>(object, 0x170);
+        TextAssignChars(&At<mfc::CString>(object, 0xA4), nullptr, At<const char*>(m, 0x54));
+        companionTexts(companion);
+        race(object);
+        ei::VCall<void>(figure, kSlotFigureShape, 0x2001, m + 0x90, At<std::uint32_t>(m, 0x8C));
+        std::uint32_t colour[4] = {kGrey, kGrey, kGrey, kOne};
+        float radius = At<float>(m, 0x8C) * GameFloat(0x0073BAAC);
+        ei::VCall<void>(figure, kSlotFigureLight, m + 0x90, radius, colour);
+        ei::VCall<void>(figure, kSlotFigureFlags, At<std::uint32_t>(m, 0x9C));
+        place(object);
+        ObjectMarkChanged(object, nullptr, 2);
+        ObjectMarkChanged(object, nullptr, 4);
+        if (At<std::uint8_t>(m, 0x6D) == 0) object->flags_ |= 8;
+        ManagerRegister(ei::VCall<void*>(this, kSlotMapObjects), nullptr, object);
+        if (object->GetClassId() == world::kClassUnit) ControllerReposition(At<void*>(object, 0x240), nullptr);
+        ObjectSetName(object, nullptr, At<const char*>(m, 0x54));
+        id = object->id_;
+        objects_.Set(static_cast<unsigned>(id), object);
+        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        At<int>(object, 0x174) = UpdateCountdown(object);
+        updateMap_.Set(static_cast<unsigned>(object->id_), object);
+        SectorMapAdd(sectorMap_, nullptr, object);
+        int result = object->id_;
+        if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
+        return result;
+    }
+    case 7: {   // an object updated every tick (no texts, not in the sector map)
+        CEngineObject* object = created();
+        if (!allowed(object)) return refuse(object);
+        int id = object->id_;
+        if (id == -1) return -1;
+        if (At<int>(m, 0x18) == -1) At<int>(m, 0x18) = id;
+        At<CEngineObject*>(m, 0x1C) = object;
+        ++object->refCount_;
+        ObjectMarkNew(object, nullptr);
+        ObjectMarkChanged(object, nullptr, 2);
+        object->flags_ |= 8;
+        objects_.Set(static_cast<unsigned>(object->id_), object);
+        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        At<int>(object, 0x174) = UpdateCountdown(object);
+        updateMap_.Set(static_cast<unsigned>(object->id_), object);
+        int result = object->id_;
+        if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
+        ObjectSetup7(object, nullptr, m + 0x8C);
+        return result;
+    }
+    case 1:
+    case 5:
+    case 8:
+    case 9: {   // map objects and units (5)
+        CEngineObject* object = created();
+        if (At<std::uint8_t>(m, 0x6C)) object->flags_ |= 0x20000;
+        if (gamecrt::mbscmp(At<const unsigned char*>(m, 0x4C), reinterpret_cast<const unsigned char*>(kEmpty)) != 0)
+            object->flags_ |= 0x20000;
+        if (!allowed(object)) return refuse(object);
+        int id = object->id_;
+        if (id == -1) return -1;
+        if (At<int>(m, 0x18) == -1) At<int>(m, 0x18) = id;
+        At<CEngineObject*>(m, 0x1C) = object;
+        std::uint8_t* companion = At<std::uint8_t*>(object, 0x170);
+        TextAssignChars(&At<mfc::CString>(object, 0xA4), nullptr, At<const char*>(m, 0x54));
+        ObjectSetSecondName(object, nullptr, At<const char*>(m, 0x4C));
+        companionTexts(companion);
+        race(object);
+        ei::VCall<void>(object, kSlotUnitCommit, 0);
+        int type = At<int>(m, 0x48);
+        if (type == 5) {
+            UnitSetController(object, nullptr, nullptr);
+            UnitSetSide(object, nullptr, At<std::uint8_t>(m, 0x6E));
+            UnitSetDiplomacy(object, nullptr, DiplomacyMaskOf(diplomacy_, nullptr, At<std::uint8_t>(m, 0x6E)));
+            ManagerRegisterUnit(ei::VCall<void*>(this, kSlotMapObjects), nullptr, object, At<const char*>(m, 0x20C));
+            ManagerRegisterUnit2(ei::VCall<void*>(this, kSlotMapObjects), nullptr, object, At<const char*>(m, 0x20C));
+            for (int i = 0; i < At<int>(m, 0x2D8); ++i) {
+                const char* name = At<const char**>(m, 0x2D4)[i];
+                UnitWear(object, nullptr, ItemsCreateItem(ei::VCall<void*>(this, kSlotItemManager), nullptr, name));
+            }
+            UnitRecordApply(m + 0x210, nullptr, object);
+            // The prototype's six movement values (+0x2C) go to the unit's +0x4B0.
+            const char* prototypeName = At<const char*>(m, 0x20C);
+            std::uint8_t* prototype;
+            {
+                alignas(4) std::uint8_t key[12];
+                char allocator;
+                KeyDefault(key, nullptr, &allocator);
+                KeyAssign(key, nullptr, prototypeName, prototypeName + std::strlen(prototypeName));
+                prototype = *UnitPrototypeAt(kUnitPrototypes, nullptr, key);
+                RawStringDestroy(key, nullptr);
+            }
+            std::uint8_t* begin = *reinterpret_cast<std::uint8_t**>(0x007AF398);
+            std::uint8_t* end = *reinterpret_cast<std::uint8_t**>(0x007AF39C);
+            unsigned count = static_cast<unsigned>(static_cast<int>(end - begin) / kUnitPrototypeSize);
+            unsigned index;
+            if (prototype) {
+                index = At<unsigned>(prototype, 8);
+            } else {
+                // Rebirth's FixAddMapObject (context hook at 00592F68): no prototype record is
+                // logged ("Invalid unit's prototype") and index 0 used. The original reads +8 of
+                // the null record (and crashes).
+                if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixAddMapObject))
+                    index = *reinterpret_cast<const volatile unsigned*>(reinterpret_cast<std::uintptr_t>(prototype) + 8);
+                else
+                    index = 0;
+            }
+            std::uint8_t* record = index < count ? begin + index * kUnitPrototypeSize : nullptr;
+            std::memcpy(Bytes(object) + 0x4B0, reinterpret_cast<const std::uint8_t*>(record) + 0x2C, 24);
+            ObjectMarkChanged(object, nullptr, 5);
+            ObjectMarkChanged(object, nullptr, 6);
+            ObjectMarkChanged(object, nullptr, 0xB);
+        } else if (type == 8) {
+            ObjectSetup8(object, nullptr, m + 0x8C);
+            ObjectMarkChanged(object, nullptr, 5);
+        } else {
+            ManagerRegister(ei::VCall<void*>(this, kSlotMapObjects), nullptr, object);
+        }
+        place(object);
+        ObjectMarkChanged(object, nullptr, 2);
+        ObjectMarkChanged(object, nullptr, 6);
+        ObjectMarkChanged(object, nullptr, 7);
+        ObjectMarkChanged(object, nullptr, 8);
+        if (At<std::uint8_t>(m, 0x6D) == 0) object->flags_ |= 8;
+        ObjectSetName(object, nullptr, At<const char*>(m, 0x54));
+        ei::VCall<void>(object, kSlotUnitReady);
+        if (object->GetClassId() == world::kClassUnit) ControllerReposition(At<void*>(object, 0x240), nullptr);
+        objects_.Set(static_cast<unsigned>(object->id_), object);
+        mapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
+        SectorMapAdd(sectorMap_, nullptr, object);
+        int result = object->id_;
+        if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
+        if (type >= 8 && type <= 9) {
+            At<int>(object, 0x174) = UpdateCountdown(object);
+            updateMap_.Set(static_cast<unsigned>(object->id_), object);
+        }
+        if (*At<const char*>(object, 0x1A8) != 0) namedObjects_.Set(static_cast<unsigned>(object->id_), object);
+        return result;
+    }
+    case 3: {   // a sound
+        if (!At<std::uint8_t>(this, 0x11D)) return -1;
+        if (At<std::uint8_t>(m, 0x84)) {
+            CEngineObject* sound = ei::VCall<CEngineObject*>(timedManager, kSlotCreate, kTimedSound3D, At<int>(m, 0x18));
+            TextArrayCopy(Bytes(sound) + 0x14C, nullptr, m + 0x54);
+            Copy(Bytes(sound) + 0x1C, m + 0x20, 12);
+            At<float>(sound, 0x160) = static_cast<float>(At<int>(m, 0x68));
+            At<float>(sound, 0x164) = static_cast<float>(At<int>(m, 0x6C));
+            At<std::uint32_t>(sound, 0x168) = At<std::uint32_t>(m, 0x74);
+            At<std::uint32_t>(sound, 0x16C) = At<std::uint32_t>(m, 0x78);
+            return timed(sound);
+        }
+        CEngineObject* sound = ei::VCall<CEngineObject*>(timedManager, kSlotCreate, kTimedSound, At<int>(m, 0x18));
+        if (At<int>(m, 0x5C) < 1) {
+            MessageBoxText(kNoWaveName, 0, 0);
+        } else {
+            // strcpy, inlined in the original (REP MOVS of the length with its terminator).
+            const char* wave = *At<const char**>(m, 0x58);
+            std::memcpy(Bytes(sound) + 0x14C, wave, std::strlen(wave) + 1);
+        }
+        Copy(Bytes(sound) + 0x1C, m + 0x20, 12);
+        At<float>(sound, 0x24C) = static_cast<float>(At<int>(m, 0x68));
+        At<float>(sound, 0x250) = static_cast<float>(At<int>(m, 0x6C));
+        return timed(sound);
+    }
+    case 2: {   // a light
+        if (!At<std::uint8_t>(this, 0x11D)) return -1;
+        CEngineObject* light = ei::VCall<CEngineObject*>(timedManager, kSlotCreate, kTimedLight, At<int>(m, 0x18));
+        Copy(Bytes(light) + 0x1C, m + 0x20, 12);
+        At<std::uint32_t>(light, 0x158) = At<std::uint32_t>(m, 0x64);
+        Copy(Bytes(light) + 0x14C, m + 0x54, 12);
+        return timed(light);
+    }
+    case 4: {
+        if (!At<std::uint8_t>(this, 0x11D)) return -1;
+        CEngineObject* object = ei::VCall<CEngineObject*>(timedManager, kSlotCreate, kTimedOther, At<int>(m, 0x18));
+        Copy(Bytes(object) + 0x1C, m + 0x20, 12);
+        At<std::uint32_t>(object, 0x158) = At<std::uint32_t>(m, 0x54);
+        At<std::uint32_t>(object, 0x15C) = At<std::uint32_t>(m, 0x58);
+        return timed(object);
+    }
+    default:
+        // The original returns its argument slot untouched: the message's address.
+        return reinterpret_cast<int>(message);
+    }
+}
+EI_REPLACE_METHOD(0x005927C0, CWorldServer::CreateObject);
+EI_REBIRTH_IMPLEMENTS(0x005927C0, ei::rebirth::Patch::FixAddMapObject);
 
 EI_REPLACE_METHOD(0x0058EF20, CWorldServer::CreateUnits);
 EI_REPLACE_METHOD(0x0058ECE0, CWorldServer::UseQuickItem);

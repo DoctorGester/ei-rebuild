@@ -94,6 +94,8 @@ static_assert(offsetof(CLinkFigureLoader, archives_) == 0x0C);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------
 
+struct CMemoryStream;
+
 // A chunk of a ChunkArchive being read or written; the archive keeps a stack of them in a list.
 struct ChunkNode {
     ChunkNode* next;
@@ -105,13 +107,42 @@ struct ChunkNode {
 // The tagged-chunk serialisation archive the databases are stored in (constructed by 0053A7B0,
 // opened by 00409AE0): an index stream of chunk headers and a data stream. Reading and writing go
 // through the same Serialize functions; loading_ selects the direction.
+namespace mfc { class CString; }
+
 class ChunkArchive {
 public:
+    // More fields (chunk_archive.cpp). Writing appends; reading takes the current chunk's
+    // occurrence of the child (missing: empty text, zero key).
+    void CStringField(int id, mfc::CString* s);       // 004093A0 (written with its terminator)
+    void StreamField(int id, CMemoryStream* s);       // 00409640: chunk `id` {1: size, 2: bytes}
+    void SaveObjectRef(int id, void* object);         // 0040A440: object pointer, object kept for Close
+    void* ObjectRef(int id);                          // 0040A5A0: the object a saved key stands for
     bool EnterChunk(int id);                          // 004098D0
     void LeaveChunk();                                // 00409980
     void Field(int id, void* data, unsigned size);    // 004092B0 (missing fields read as zero)
     void StringField(int id, stlp::string* s);        // 00409470
     int CountChunks(int id);                          // 00409A60 (in the current chunk)
+
+    // Chunk primitives (chunk_archive.cpp). A chunk's content is a run of children, each an id
+    // byte, a length byte (len << 1) or, when bit 0 is set, a dword (len << 1 | 1), and len bytes.
+    struct Ref {
+        std::uint8_t id;
+        std::uint8_t unknown_01[3];
+        std::int32_t offset;     // of the content in the data buffer (+0x40)
+        std::int32_t size;
+        std::int32_t occurrence;
+    };
+    bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);           // 00409070
+    bool AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);  // 00409110
+    bool FindChild(const Ref* parent, int id, Ref* out, int occurrence);         // 004091C0
+    int CountChildrenOf(const Ref* parent, int id);                              // 00409230
+    void ResizeToCurrent();                                                      // 00409A40
+    // 00409AE0. Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the
+    // object records from `stream`, a CStream) or a save (`version` kept for Close).
+    void Open(void* stream, int loading, int version);
+    // 0040A000. Ends a save: writes the saved objects' records, the version (field 2) and the index
+    // and data chunks to `stream`; or, after a load, drops the loaded objects. Clears everything.
+    void Close(void* stream);
 
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1
     // per record (`occurrence` selects the record); loading replaces the vector's contents.

@@ -169,6 +169,28 @@ void __fastcall OnKeyDownVerify(ConsoleWindow* self, void*, int key, int repeat,
 }
 EI_VERIFY(0x005E4180, OnKeyDownVerify, 8, s_onKeyDown);
 
+// 005E44A0 (same prologue): side by side on the fields, except Enter, which executes the line:
+// there ours only, and the line is empty afterwards with the caret at 0. (Ctrl+V reads the
+// clipboard twice, Ctrl+C / X write it twice: the same text.)
+void(__thiscall* s_onChar)(ConsoleWindow*, int, int, int);
+void __fastcall OnCharVerify(ConsoleWindow* self, void*, int key, int repeat, int flags) {
+    if (key == 13) {
+        self->OnChar(key, repeat, flags);
+        bool ok = Text(self->input_).empty() && self->caret_ == 0 && self->anchor_ == 0;
+        ei::verify::Check("ConsoleWindow::OnChar", true, ok, "enter: [%s] caret %d", Text(self->input_).c_str(), self->caret_);
+        return;
+    }
+    WindowFields before(self);
+    s_onChar(self, key, repeat, flags);
+    WindowFields expected(self);
+    before.Restore(self);
+    self->OnChar(key, repeat, flags);
+    WindowFields actual(self);
+    ei::verify::Check("ConsoleWindow::OnChar", true, expected == actual, "key %x: %s vs %s", key,
+                      expected.Describe().c_str(), actual.Describe().c_str());
+}
+EI_VERIFY(0x005E44A0, OnCharVerify, 8, s_onChar);
+
 // 005E3FD0: ours only (creates or releases the surface): the flag, and a surface exactly while shown.
 void __fastcall ShowVerify(ConsoleWindow* self, void*, bool shown) {
     self->Show(shown);
@@ -253,5 +275,16 @@ void __fastcall InterfaceUpdateVerify(CInterface3D* self, void*) {
     ei::verify::Check("CInterface3D::Update", true, ok, "mouse %d,%d", self->mouseX_, self->mouseY_);
 }
 EI_VERIFY(0x005F57C0, InterfaceUpdateVerify, 0, s_unused);
+
+// 005F8070 (CInterface3D::OnStringEvent) opens windows and queues texts: ours only. "autosave"
+// raises +0x81; any event leaves the window stack consistent (begin <= end).
+void __fastcall OnStringEventVerify(CInterface3D* self, void*, const char* event) {
+    self->OnStringEvent(event);
+    bool ok = self->stackBegin_ <= self->stackEnd_;
+    if (ok && event && _strnicmp(event, "autosave", 8) == 0 && (event[8] == 0 || event[8] == ' '))
+        ok = reinterpret_cast<const std::uint8_t*>(self)[0x81] != 0;
+    ei::verify::Check("CInterface3D::OnStringEvent", true, ok, "%.60s", event ? event : "(null)");
+}
+EI_VERIFY(0x005F8070, OnStringEventVerify, 0, s_unused);
 
 } // namespace

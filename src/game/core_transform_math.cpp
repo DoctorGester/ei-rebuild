@@ -1,0 +1,311 @@
+// CTransformObject's rotation helpers (00401570-00402280): the world matrix, turning the local
+// rotation towards a direction (three variants), rotating about an axis and setting a heading.
+// See core_transform.h and docs/notes/unmapped_410_470.md ("Sixth round").
+//
+// Floating point follows the original's x87 code: `double` for values the original keeps on the
+// FPU stack, Store where it stores to a float (including the floats it pushes to the Vector3
+// constructor). Compiled with precise semantics so the order of operations and the NaN compares
+// stay as written.
+#include "core_maths.h"
+#include "core_transform.h"
+
+#include "ei/hook.h"
+#include "ei/x87.h"
+
+#include <cstdint>
+#include <cstring>
+
+#pragma float_control(precise, on)
+
+namespace {
+
+inline double D(float f) { return f; }
+
+// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
+float Store(double v) {
+    volatile float r = static_cast<float>(v);
+    return r;
+}
+
+// Constants the original reads from memory at run time.
+float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+#define EI_ONE GameFloat(0x0073B84C)          // 1.0f
+#define EI_MINUS_ONE GameFloat(0x0073B854)    // -1.0f
+#define EI_ZERO GameFloat(0x0073B858)         // 0.0f
+#define EI_TILT_STEP GameFloat(0x0073B850)    // 0.1f: TiltTowards turns a tenth of the way
+#define EI_HALF_TURN GameFloat(0x0073B868)    // 0.4f: TurnUpTowards' reduced step
+#define EI_MIN_AXIS GameDouble(0x0073B860)    // 1e-5: shorter rotation axes count as none
+#define EI_PI GameDouble(0x0073B840)          // pi
+#define EI_HEADING_OFFSET GameFloat(0x0079B1B8)   // 0.0f (a .data float nothing writes)
+
+// _CIacos (006E7320): argument and result in ST0.
+__declspec(naked) double __cdecl CIacos(double) {
+    __asm fld qword ptr [esp + 4]
+    __asm mov eax, 0x006E7320
+    __asm call eax
+    __asm ret
+}
+// FPATAN of (y, x): atan2(y, x) unrounded.
+__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
+    __asm fld qword ptr [esp + 4]
+    __asm fld qword ptr [esp + 12]
+    __asm fpatan
+    __asm ret
+}
+
+// The vector helpers as the original calls them, results unrounded in ST0.
+__declspec(naked) double __fastcall LengthRaw(const Vector3* /*v*/) EI_ORIGINAL(0x00401E20)
+__declspec(naked) double __fastcall DotRaw(const Vector3* /*a*/, const Vector3* /*b*/) EI_ORIGINAL(0x00401E00)
+
+// The rotation's Y axis (up) and Z axis (forward) as these functions expand them; the operand
+// order follows the original's FPU code (sums of products in the order it adds them).
+double UpX(const Quaternion& q) {
+    double e = D(q.y) * q.x - D(q.w) * q.z;
+    return e + e;
+}
+double UpY(const Quaternion& q) {
+    double yy = D(q.y) * q.y;
+    double s = (D(q.z) * q.z + D(q.x) * q.x) + yy;
+    return (D(q.w) * q.w - s) + (yy + yy);
+}
+double UpZ(const Quaternion& q) {
+    double e = D(q.w) * q.x + D(q.y) * q.z;
+    return e + e;
+}
+double ForwardX(const Quaternion& q) {
+    double e = D(q.w) * q.y + D(q.z) * q.x;
+    return e + e;
+}
+double ForwardY(const Quaternion& q) {
+    double e = D(q.z) * q.y - D(q.w) * q.x;
+    return e + e;
+}
+double ForwardZ(const Quaternion& q) {
+    double zz = D(q.z) * q.z;
+    double s = (D(q.y) * q.y + D(q.x) * q.x) + zz;
+    return (D(q.w) * q.w - s) + (zz + zz);
+}
+
+Vector3 MakeVector(float x, float y, float z) {
+    Vector3 v;
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    return v;
+}
+
+// The shared part of RollTowards and TurnUpTowards: `side` = forward x dir, `toward` = side x
+// forward normalised, `axis` = from x toward (every component rounded to float).
+void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from, Vector3* toward, Vector3* axis) {
+    Vector3 side = MakeVector(Store(D(forward.y) * dir.z - D(forward.z) * dir.y),
+                              Store(D(forward.z) * dir.x - D(forward.x) * dir.z),
+                              Store(D(forward.x) * dir.y - D(forward.y) * dir.x));
+    Vector3 t = MakeVector(Store(D(side.y) * forward.z - D(side.z) * forward.y),
+                           Store(D(side.z) * forward.x - D(forward.z) * side.x),
+                           Store(D(forward.y) * side.x - D(side.y) * forward.x));
+    double inv = D(EI_ONE) / x87::fsqrt((D(t.z) * t.z + D(t.y) * t.y) + D(t.x) * t.x);
+    t.x = Store(inv * t.x);
+    t.y = Store(D(t.y) * inv);
+    t.z = Store(D(t.z) * inv);
+    *toward = t;
+    *axis = MakeVector(Store(D(from.y) * t.z - D(from.z) * t.y), Store(D(from.z) * t.x - D(t.z) * from.x),
+                       Store(D(t.y) * from.x - D(from.y) * t.x));
+}
+
+// acos of the clamped dot product of two unit vectors, rounded to float (Dot, then ClampUnit).
+float AngleBetween(const Vector3& a, const Vector3& b) {
+    return Store(CIacos(ClampUnit(Store(DotRaw(&a, &b)))));
+}
+
+} // namespace
+
+// 00401570: the world transform as a 4x4 matrix (rows are the rotated axes, the last row the world
+// position). The original keeps 2x, xx, xy and zz on the FPU stack and rounds the other products.
+void CTransformObject::WorldMatrix(float* m) const {
+    std::memset(m, 0, 16 * sizeof(float));
+    m[15] = 1.0f;
+    m[10] = 1.0f;
+    m[5] = 1.0f;
+    m[0] = 1.0f;
+    const Quaternion& q = worldRotation_;
+    double x2 = D(q.x) + D(q.x);
+    float y2 = Store(D(q.y) + D(q.y));
+    float z2 = Store(D(q.z) + D(q.z));
+    float wx = Store(x2 * q.w);
+    float wy = Store(D(y2) * q.w);
+    float wz = Store(D(z2) * q.w);
+    double xx = x2 * q.x;
+    double xy = D(y2) * q.x;
+    float xz = Store(D(z2) * q.x);
+    float yy = Store(D(y2) * q.y);
+    float yz = Store(D(z2) * q.y);
+    double zz = D(z2) * q.z;
+    float zzRounded = Store(zz);
+    m[0] = Store(D(EI_ONE) - (zz + yy));
+    m[4] = Store(xy - wz);
+    m[8] = Store(D(xz) + wy);
+    m[1] = Store(xy + wz);
+    m[5] = Store(D(EI_ONE) - (D(zzRounded) + xx));
+    m[9] = Store(D(yz) - wx);
+    m[2] = Store(D(xz) - wy);
+    m[6] = Store(D(yz) + wx);
+    m[10] = Store(D(EI_ONE) - (D(yy) + xx));
+    m[12] = worldPosition_.x;
+    m[13] = worldPosition_.y;
+    m[14] = worldPosition_.z;
+}
+
+// 00401680: turns the local rotation a tenth of the way from its down axis (minus the rotated Y
+// axis) towards `target` (normalised here): about down x target, by acos(down . target) / 10.
+// No turn when the axis is shorter than 1e-5.
+void CTransformObject::TiltTowards(const Vector3& target) {
+    const Quaternion& q = localRotation_;
+    float v[3];
+    std::memcpy(v, &target, sizeof(v));
+    double a = -UpX(q);
+    double b = -D(Store(UpY(q)));
+    double c = -D(Store(UpZ(q)));
+    double inv = D(EI_ONE) / x87::fsqrt((D(v[2]) * v[2] + D(v[1]) * v[1]) + D(v[0]) * v[0]);
+    float nx = Store(inv * v[0]);
+    float ny = Store(D(v[1]) * inv);
+    double nz = inv * v[2];
+    Vector3 axis = MakeVector(Store(nz * b - D(ny) * c), Store(c * nx - nz * a), Store(D(ny) * a - b * nx));
+    double length = x87::fsqrt((D(axis.z) * axis.z + D(axis.y) * axis.y) + D(axis.x) * axis.x);
+    double angle;
+    if (!(length >= EI_MIN_AXIS)) {
+        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        angle = EI_ZERO;
+    } else {
+        double dot = (nz * c + D(ny) * b) + a * nx;
+        if (dot > D(EI_ONE)) dot = EI_ONE;
+        else if (!(dot >= D(EI_MINUS_ONE))) dot = EI_MINUS_ONE;
+        // The original clamps a second time while storing the float; the value is in range by now.
+        angle = CIacos(Store(dot));
+    }
+    Quaternion turn;
+    turn.SetAngleAxis(Store(angle * D(EI_TILT_STEP)), axis);
+    localRotation_.PreMultiply(turn);
+}
+
+// 00401940: turns the local rotation so that its forward axis (rotated Z) points along `target`:
+// about forward x target (normalised), by acos(forward . target). No turn when the axis is
+// shorter than 1e-5.
+void CTransformObject::TurnTowards(const Vector3& target) {
+    const Quaternion& q = localRotation_;
+    float v[3];
+    std::memcpy(v, &target, sizeof(v));
+    double a = ForwardX(q);
+    float b = Store(ForwardY(q));
+    float c = Store(ForwardZ(q));
+    double inv = D(EI_ONE) / x87::fsqrt((D(v[2]) * v[2] + D(v[1]) * v[1]) + D(v[0]) * v[0]);
+    float nx = Store(inv * v[0]);
+    float ny = Store(D(v[1]) * inv);
+    double nz = inv * v[2];
+    Vector3 r = MakeVector(Store(nz * b - D(ny) * c), Store(D(c) * nx - nz * a), Store(D(ny) * a - D(b) * nx));
+    double length = x87::fsqrt((D(r.z) * r.z + D(r.y) * r.y) + D(r.x) * r.x);
+    Vector3 axis;
+    float angle;
+    if (!(length >= EI_MIN_AXIS)) {
+        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        angle = 0.0f;
+    } else {
+        double invLength = D(EI_ONE) / length;
+        axis = MakeVector(Store(invLength * r.x), Store(D(r.y) * invLength), Store(D(r.z) * invLength));
+        double dot = (nz * c + D(ny) * b) + a * nx;
+        float clamped = Store(dot);
+        if (dot > D(EI_ONE)) clamped = 1.0f;
+        else if (!(D(clamped) >= D(EI_MINUS_ONE))) clamped = -1.0f;
+        angle = Store(CIacos(clamped));
+    }
+    Quaternion turn;
+    turn.SetAngleAxis(angle, axis);
+    localRotation_.PreMultiply(turn);
+}
+
+// 00401B50: turns the down axis (minus the rotated Y axis) about the forward axis towards `dir`
+// (its part across the forward axis): Rotate(down x toward, acos(down . toward)).
+void CTransformObject::RollTowards(const Vector3& dir) {
+    const Quaternion& q = localRotation_;
+    Vector3 down = MakeVector(Store(-UpX(q)), Store(-D(Store(UpY(q)))), Store(-UpZ(q)));
+    Vector3 forward = MakeVector(Store(ForwardX(q)), Store(ForwardY(q)), Store(ForwardZ(q)));
+    Vector3 toward, axis;
+    TowardsAxis(forward, dir, down, &toward, &axis);
+    float angle;
+    if (!(LengthRaw(&axis) >= EI_MIN_AXIS)) {
+        axis = MakeVector(1.0f, 0.0f, 0.0f);
+        angle = 0.0f;
+    } else {
+        angle = AngleBetween(down, toward);
+    }
+    Rotate(axis, angle);
+}
+
+// 00401E50: localRotation = rotation(angle about axis) * localRotation.
+void CTransformObject::Rotate(const Vector3& axis, float angle) {
+    Quaternion turn;
+    const Quaternion& r = *turn.SetAngleAxis(angle, axis);
+    Quaternion& q = localRotation_;
+    double x = ((D(q.z) * r.y - D(q.y) * r.z) + D(q.w) * r.x) + D(r.w) * q.x;
+    float y = Store(((D(q.x) * r.z - D(q.z) * r.x) + D(r.w) * q.y) + D(q.w) * r.y);
+    float z = Store(((D(q.y) * r.x - D(r.y) * q.x) + D(r.w) * q.z) + D(q.w) * r.z);
+    double w = D(r.w) * q.w - ((D(r.y) * q.y + D(q.z) * r.z) + D(q.x) * r.x);
+    q.y = y;
+    q.z = z;
+    q.w = Store(w);
+    q.x = Store(x);
+}
+
+// 00401F00: as RollTowards with the up axis (rotated Y) negated once more, so the up axis turns
+// towards `dir`; an angle above pi becomes 2 pi - angle about the opposite axis, and `reduced`
+// scales the angle by 0.4.
+void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
+    const Quaternion& q = localRotation_;
+    Vector3 up = MakeVector(Store(UpX(q)), Store(UpY(q)), Store(UpZ(q)));
+    Vector3 from = MakeVector(Store(-D(up.x)), Store(-D(up.y)), Store(-D(up.z)));
+    Vector3 forward = MakeVector(Store(ForwardX(q)), Store(ForwardY(q)), Store(ForwardZ(q)));
+    Vector3 toward, axis;
+    TowardsAxis(forward, dir, from, &toward, &axis);
+    float angle = 0.0f;
+    if (!(LengthRaw(&axis) >= EI_MIN_AXIS)) {
+        axis = MakeVector(1.0f, 0.0f, 0.0f);
+    } else {
+        angle = AngleBetween(from, toward);
+    }
+    if (D(angle) > EI_PI) {
+        angle = Store((EI_PI + EI_PI) - D(angle));
+        Vector3 opposite;
+        NegateVector(&opposite, axis);
+        axis = opposite;
+    }
+    if (reduced) angle = Store(D(angle) * D(EI_HALF_TURN));
+    Rotate(axis, angle);
+}
+
+// 00402220: the local rotation becomes a turn about +Z by atan2(dir[1], dir[0]) (plus the
+// constant at 0079B1B8, 0).
+void CTransformObject::SetHeading(const float* dir) {
+    Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
+    Quaternion heading;
+    const Quaternion* r = heading.SetAxisAngle(axis, Store(Fpatan(dir[1], dir[0]) + D(EI_HEADING_OFFSET)));
+    std::memcpy(&localRotation_, r, sizeof(Quaternion));
+}
+
+namespace {
+void __fastcall WorldMatrixHook(const CTransformObject* self, void*, float* m) { self->WorldMatrix(m); }
+void __fastcall TiltTowardsHook(CTransformObject* self, void*, const Vector3* target) { self->TiltTowards(*target); }
+void __fastcall TurnTowardsHook(CTransformObject* self, void*, const Vector3* target) { self->TurnTowards(*target); }
+void __fastcall RollTowardsHook(CTransformObject* self, void*, const Vector3* dir) { self->RollTowards(*dir); }
+void __fastcall RotateHook(CTransformObject* self, void*, const Vector3* axis, float angle) { self->Rotate(*axis, angle); }
+void __fastcall TurnUpTowardsHook(CTransformObject* self, void*, const Vector3* dir, int reduced) {
+    self->TurnUpTowards(*dir, reduced);
+}
+void __fastcall SetHeadingHook(CTransformObject* self, void*, const float* dir) { self->SetHeading(dir); }
+} // namespace
+EI_REPLACE(0x00401570, WorldMatrixHook);
+EI_REPLACE(0x00401680, TiltTowardsHook);
+EI_REPLACE(0x00401940, TurnTowardsHook);
+EI_REPLACE(0x00401B50, RollTowardsHook);
+EI_REPLACE(0x00401E50, RotateHook);
+EI_REPLACE(0x00401F00, TurnUpTowardsHook);
+EI_REPLACE(0x00402220, SetHeadingHook);
