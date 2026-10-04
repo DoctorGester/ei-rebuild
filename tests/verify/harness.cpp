@@ -11,7 +11,7 @@
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
 //   key <key>                 press and release a key in the game window: a letter or digit,
 //                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus,
-//                             grave (the console key), backspace, delete, home, end, pgup, pgdn,
+//                             grave (the console key), backspace, delete, home, end, pgup, pgdn, ctrl,
 //                             enterchar (Enter with its WM_CHAR, as text input such as the console needs)
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
@@ -436,6 +436,7 @@ void PostKey(const std::string& name) {
     else if (name == "end") vk = VK_END;
     else if (name == "pgup") vk = VK_PRIOR;
     else if (name == "pgdn") vk = VK_NEXT;
+    else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets CInterface3D +0x7C while down
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
         Log("harness: unknown key '%s'", name.c_str());
