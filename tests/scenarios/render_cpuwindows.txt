@@ -1,0 +1,54 @@
+# frames_basic with the interface windows' surfaces in game-owned memory ("render new,cpuwindows",
+# docs/notes/renderer.md, "The interface is composed on DirectDraw surfaces"). Both frames are
+# written (old <name>.bmp, new <name>.new.bmp); the windows must look the same in both and as in a
+# plain frames_basic run:
+#   python tools\compare_frames.py <run>\frames\camp.new.bmp <run>\frames\camp.bmp
+#   python tools\compare_frames.py <frames_basic run>\frames\camp.bmp <run>\frames\camp.bmp
+# ei_hook.log says "cpuwindows: client-memory surface ... refused" if DirectDraw (dgVoodoo) does not
+# take the memory (then plain surfaces are used). world / world_again must match.
+render new,cpuwindows
+reject Script error
+wait 6000
+console thingamabob
+
+# The main menu.
+move 400 20
+wait 500
+freeze
+capture menu
+unfreeze
+
+# The hero on zone1, unblocked and standing still, the camera settled on him.
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+move 400 60
+wait 2000
+freeze
+capture world
+capture world_again
+unfreeze
+samecapture world world_again
+
+# The camp (screen 5); Esc returns to the game.
+screen 5
+wait 3000
+move 400 20
+wait 300
+freeze
+capture camp
+unfreeze
+key esc
+wait 2000
+
+# The global map (screen 4).
+screen 4
+wait 3000
+move 400 20
+wait 300
+freeze
+capture globalmap
+unfreeze
+report
+quit
