@@ -1,7 +1,7 @@
-// The game client's destructor (0041CA10) and scalar deleting destructor (0041C8B0, slot 0). The
-// members are torn down in reverse order through their STLport destructors and the counted
-// pointers' releases, then the session base. See net_classes.h and docs/notes/unmapped_410_470.md
-// ("Seventh round").
+// The game client's destructor (0041CA10), scalar deleting destructor (0041C8B0, slot 0) and its
+// base layer's destructor body (0041C530). The members are torn down in reverse order through
+// their STLport destructors and the counted pointers' releases, then the session base. See
+// net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round", "Eighth round").
 #include "net_classes.h"
 #include "core_refcount.h"
 
@@ -98,6 +98,20 @@ namespace {
 void __fastcall ClientDestructHook(ClientSession* self) { self->Destruct(); }
 } // namespace
 EI_REPLACE(0x0041CA10, ClientDestructHook);
+
+// 0041C530: the destructor body of the client's base layer (vtable 0073BE30; reached from its
+// scalar deleting destructor 0041C450 and the constructor's unwind funclets): the list +0x25BC,
+// the vector of buffers +0x25AC, the list +0x25A8, the buffer +0x2578, then the session base. The
+// original inlines the three container destructors (with the same element destructors and node
+// frees as the out-of-line ones called here, which ClientSession::Destruct uses too).
+void __fastcall ClientBaseDestruct(ClientSession* self) {
+    List25BCClear(&self->list_25BC);
+    Vector25ACDestruct(self->vector_25AC);
+    List25A8Destruct(&self->list_25A8);
+    GrowingBufferDestruct(self->buffer);
+    self->base.Destruct();
+}
+EI_REPLACE(0x0041C530, ClientBaseDestruct);
 
 // 0041C8B0 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
 ClientSession* __fastcall ClientDeletingDestructor(ClientSession* self, void*, unsigned flags) {

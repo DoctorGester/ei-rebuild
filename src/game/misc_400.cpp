@@ -1,6 +1,6 @@
 // Small pieces of 00400000-00440000 without a better home: the CBaseManager subclass 0073BECC
 // (constructed by 005620D9; its deleting destructor and slot 14, the object factory, differ), a
-// cursor reset of the coder and an exception cleanup step. See docs/notes/unmapped_410_470.md
+// cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/unmapped_410_470.md
 // ("Eighth round").
 #include "base_manager.h"
 #include "net_coder.h"
@@ -56,6 +56,18 @@ CEngineObject* __fastcall ManagerNewObject(CBaseManager*, void*, int type) {
     }
 }
 
+// 00406B30 / 00406B50: memory for `count` words / dwords plus 0x24 bytes, the start aligned to 32
+// bytes with the block's address in the dword before it (vertex and index arrays; freed through
+// that address).
+void* AlignedNew(std::size_t bytes) {
+    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
+    auto* start = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
+    std::memcpy(start - 4, &block, 4);
+    return start;
+}
+void* __fastcall AlignedWords(int count) { return AlignedNew(static_cast<std::size_t>(count * 2 + 0x24)); }
+void* __fastcall AlignedDwords(int count) { return AlignedNew(static_cast<std::size_t>(count * 4 + 0x24)); }
+
 // 00430FC0: a cursor started at `p` (no byte reserved, no pending bits; the accumulator is left
 // alone). The two other arguments are not used. Returns 0.
 std::uint32_t __fastcall CursorStart(BufferCursor* self, void*, std::uint8_t* p, std::uint32_t, std::uint32_t) {
@@ -73,5 +85,7 @@ void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullpt
 EI_REPLACE(0x0042D690, misc400::ManagerConstruct);
 EI_REPLACE(0x0042D6F0, misc400::ManagerDestruct);
 EI_REPLACE(0x0042D700, misc400::ManagerNewObject);
+EI_REPLACE(0x00406B30, misc400::AlignedWords);
+EI_REPLACE(0x00406B50, misc400::AlignedDwords);
 EI_REPLACE(0x00430FC0, misc400::CursorStart);
 EI_REPLACE(0x00433F10, misc400::ClearPointee);

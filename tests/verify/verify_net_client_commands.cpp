@@ -3,10 +3,15 @@
 //  - ClientAddTimed / ClientSendCommand: the timers list ends with an entry for the object /
 //    command (the command holding the kind and the text).
 //  - ClientDescribe: *out is an entry of kind 4.
+//  - ClientBufferRatio: side by side for the game's two buffer classes when the first dword lies
+//    in memory (the original on a copy of the 0x1C-byte header: Seek(0) and the read only move
+//    its pointers), within a few ULPs (plain C++ division, rewrite-guide rule 7), and the headers
+//    must end equal; ours only otherwise.
 #include "net_verify.h"
 
 #include "../../src/game/net_classes.h"
 #include "../../src/game/core_refcount.h"
+#include "../../src/game/net_coder.h"
 
 #include <cstring>
 
@@ -14,6 +19,7 @@ namespace net {
 void __fastcall ClientAddTimed(ClientSession* self, void*, CRefObject* object, std::uint32_t seconds);
 void __fastcall ClientSendCommand(ClientSession* self, void*, int kind, const char* text);
 void __fastcall ClientDescribe(ClientSession* self, void*, RefPtr* out);
+double __fastcall ClientBufferRatio(ClientSession* self, void*, GameBuffer* buffer);
 }
 
 namespace {
@@ -63,8 +69,28 @@ void __fastcall DescribeVerify(net::ClientSession* self, void*, RefPtr* out) {
     }
     ei::verify::Check("ClientDescribe", true, ok, "");
 }
+// 0041D9A0: PUSH ECX (1), PUSH ESI (1), MOV ESI,[ESP+0xC] (4).
+double(__fastcall* s_bufferRatio)(net::ClientSession*, void*, GameBuffer*);
+double __fastcall BufferRatioVerify(net::ClientSession* self, void*, GameBuffer* buffer) {
+    std::uintptr_t vtable;
+    std::memcpy(&vtable, buffer, 4);
+    std::uint8_t* first = buffer->begin + 4;
+    bool known = vtable == kGrowingBufferVtable || vtable == kBufferViewVtable;
+    if (!known || first > buffer->end || first > (buffer->cur > buffer->high ? buffer->cur : buffer->high)) {
+        double result = net::ClientBufferRatio(self, nullptr, buffer);
+        ei::verify::Check("ClientBufferRatio (ours only)", true, true, "");
+        return result;
+    }
+    GameBuffer copy = *buffer;
+    double expected = s_bufferRatio(self, nullptr, &copy);
+    double actual = net::ClientBufferRatio(self, nullptr, buffer);
+    ei::verify::CheckNear("ClientBufferRatio", expected, actual, "");
+    ei::verify::Check("ClientBufferRatio header", true, std::memcmp(&copy, buffer, sizeof(copy)) == 0, "");
+    return actual;
+}
 } // namespace
 
 EI_VERIFY(0x0041D1A0, AddTimedVerify, 0, s_unused);
 EI_VERIFY(0x0041D260, SendCommandVerify, 0, s_unused);
 EI_VERIFY(0x0041D420, DescribeVerify, 0, s_unused);
+EI_VERIFY(0x0041D9A0, BufferRatioVerify, 6, s_bufferRatio);
