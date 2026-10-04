@@ -204,6 +204,33 @@ bool WriteBmp(const char* path, const Image& image) {
 }
 
 void Capture() {
+    // The new renderer presenting by itself ("present"): the old render target holds nothing worth
+    // keeping; the new frame is the capture.
+    if (render::Presenting()) {
+        render::EndFrame();
+        Image frame;
+        char path[MAX_PATH];
+        ei::OutputPath("frames", path);
+        CreateDirectoryA(path, nullptr);
+        std::size_t used = std::strlen(path);
+        std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", g_name.c_str());
+        if (!render::ReadFrame(&frame.width, &frame.height, &frame.bgr)) {
+            g_state = State::Failed;
+            g_detail = "the new renderer has no frame";
+            return;
+        }
+        if (!WriteBmp(path, frame)) {
+            g_state = State::Failed;
+            g_detail = std::string("cannot write ") + path;
+            return;
+        }
+        char text[MAX_PATH + 96];
+        std::snprintf(text, sizeof(text), "%s (%dx%d, the new renderer's frame, frame %u)", path, frame.width, frame.height,
+                      g_frames);
+        g_detail = text;
+        g_state = State::Done;
+        return;
+    }
     char* device = *reinterpret_cast<char**>(kDeviceObject);
     char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
     auto* surface = target ? *reinterpret_cast<IDirectDrawSurface7**>(target + 0x10) : nullptr;

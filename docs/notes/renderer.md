@@ -24,7 +24,8 @@ decals), the interface windows' surfaces, the renderer's rectangles (rubber band
 software cursor, and the depth clears in the middle of the frame; the escape menu's and save
 game's screen copy comes from the new frame. Checked in game: terrain, meshes, interface
 (`render_scene`, section 8). Not drawn yet: particles, ribbons, lightning, flying hit points,
-weather, movies; the depth clear of the camp's trade grid (00627390).
+weather. Movies (Bink) are handed over; the trade grid's depth clears too (00627390 rewritten).
+The switch-over mode `present` exists (section 5, "Switch-over").
 
 ## 1. The switch (EI_RENDER)
 
@@ -39,6 +40,7 @@ comma-separated list:
 | `noterrain` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) |
 | `noobjects` | ... the meshes drawn inside the world view (figures, map objects, the sky) and the flat geometry there (004EA4A0: shadows, ground decals) |
 | `nointerface` | ... the meshes drawn outside the world view (the interface's sprites and 3D previews) and the window surfaces' blits |
+| `present` | the switch-over: the child window covers the whole client area, the old path's present (004EF610) and movie blits are skipped and everything handed over is off in the old path (`noterrain,noobjects,nointerface`); the swap chain presents with vsync (interval 1, as the old Flip waited); captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode) |
 
 Without `new` nothing in `src/render` runs; the old path draws as before. The harness has the steps
 `oldterrain`, `oldobjects`, `oldinterface` (on / off) for the same switches during a run. Planned:
@@ -152,7 +154,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Interface surfaces | CUiSurface (0x38 bytes): +0x0C flags (1 colour key, 2 whole surface stretched, 4 shown), +0x10 the surface holder, +0x24 the screen rectangle, +0x34 the colour key; the DirectDraw surface's pixels (read with a read-only Lock when its uniqueness value changed) | the blit 005FDA80 (rewritten: `ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn (overlay) |
 | Rectangle fills | renderer slot 19 (005041F0): a translucent black quad (alpha argument) and optionally its outline | 005041F0 rewritten (`renderer_rect.cpp`) -> `render::ScreenDraw` (pre-transformed triangles, line strip) | drawn |
 | Cursor | the cursor object 007C7BD8 (shape 005E5200; hardware cursor normally; the display option's software cursor is drawn into locked surfaces by 005E5690 / 005E5C40 after the capture point) | the frame draw 005E54A0 rewritten (`ui_cursor_frame.cpp`) -> `render::Cursor` (image and mask; texels with a mask left out) | drawn; the cursor thread's draws between frames are not (they go to the primary) |
-| Movies | Bink frames: BinkCopyToBuffer into a locked surface (005DB3F0 and 005DA880 loops, CBinkVideo 005DBA50 / 005DBD80) | the movie loops | later: copy into a CPU buffer, upload as a texture |
+| Movies | Bink frames: BinkCopyToBuffer into the video's locked surface (CBinkVideo: 005DBA50 opens, 005DBD80 steps a frame and blits it into its letterboxed rectangle of the render target or the primary; called by the movie screen's draw 0062BD80 inside the frame) | 005DBD80 rewritten (`bink_video.cpp`) -> `render::SurfaceBlit` (the surface read when the decode changed it) | drawn; with `present` the old blit is skipped |
 
 ## 5. Order of work and estimates (one developer)
 
@@ -164,8 +166,8 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | 4. Shadows | done: the CPU-rasterised shadow textures and their ground geometry through the flat draw, with the selection markers and light decals. Later: GPU shadows | (done) |
 | 5. Particles and effects | sprites (sorted back to front as the game sorts them), ribbons, lightning, flying hit points, weather | 1.5-2 weeks |
 | 6. Native interface | the window surfaces drawn by the new renderer instead of uploaded (estimate below) | 5-7 weeks |
-| 7. Movies | Bink frames into a CPU buffer and a texture, letterboxing | 0.5-1 week |
-| 8. Switch-over | the sidecar presents (child window, then the game window once the old path stops presenting), display modes and window sizes, the old path off by default | 1-1.5 weeks |
+| 7. Movies | done: the decoded frame's surface as a window-surface blit. Later: BinkCopyToBuffer into a CPU buffer (no DirectDraw surface) | (done) |
+| 8. Switch-over | first step done: `present` (below). Left: the blockers below | see below |
 
 About 8-11 weeks to a complete new frame with the overlay interface (steps 1-5, 7, 8), plus the
 native interface when we want it (step 6), plus verification scenarios per step (a capture scenario
@@ -194,6 +196,41 @@ order; renderer slot 19's translucent rectangles; the cursor (hardware normally)
   lobby: about 1 week). About 5-7 weeks: not nearly as cheap. It can come window by window later:
   a window switched to native drawing simply stops blitting its surface; the command order and the
   quads are already in place.
+
+### Switch-over: what `present` does and what blocks a full switch
+
+`present` makes the new renderer the one the player sees: it draws every frame from the handed-over
+data, shows it in the child window over the whole client area, and the old path no longer draws
+what is handed over and never flips or copies its back buffer. The old Direct3D 7 device (dgVoodoo
+in our runs) is still created and still used, because:
+
+1. **Textures are DirectDraw surfaces.** The game loads every texture (.mmp) into managed DirectDraw
+   surfaces and the new renderer reads them back (Lock). Needed: textures from the .mmp files
+   directly (`texture*.cpp` hands the decoded pixels over at load time).
+2. **The interface is composed on DirectDraw surfaces** with GDI (GetDC / ReleaseDC, text, fills)
+   and pixel code (locks), then read back on change. Needed: the window surfaces as DIB sections or
+   CPU buffers (GDI works on a DIB section the same way), or native interface drawing (step 6).
+3. **Pass state is read back from the old device** (render states, texture stage states, the
+   bound textures; materials are opaque state blocks). Needed: the materials from the game's
+   data (technique and stage definitions) and the few explicit state changes the draw code makes
+   handed over as values.
+4. **CPU paths into surfaces**: the shadow rasteriser (2DintMMX into a render surface, then a
+   device Load), Bink (BinkCopyToBuffer into a locked surface), the software cursor's surfaces,
+   the screen copies. Each needs a CPU buffer instead.
+5. **Not handed over yet**: particles (00502CA0), ribbons and lightning (00501D90), flying hit points
+   (005E18E0), weather (004E5680), the vision fog layer (004E2700); with `present` they are drawn
+   into the old back buffer that nobody sees, so they are missing on screen.
+6. **Old device calls still made**: 524 call sites in 143 functions; with no device every one needs
+   a guard or a rewrite. Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
+   after 1-4; until then dgVoodoo keeps creating its device and swap chain (only never presented).
+7. **Window and display**: the child window rides on the game window; dgVoodoo's own swap chain
+   stays under it. With dgVoodoo in exclusive full screen a child window may not show (windowed
+   and dgVoodoo's borderless "full screen" are fine); a swap chain on the game window itself needs
+   dgVoodoo's swap chain gone (point 6), or running without dgVoodoo. Resolution changes go through
+   the game's device re-creation (the new target follows the render target's size).
+
+Estimates: 1 and 4 about 1 week together, 2 (DIB sections) about 1 week, 3 about 1-2 weeks,
+5 is step 5 (1.5-2 weeks), 6 and 7 about 1-2 weeks after the others.
 
 ## 6. What happens to the rewritten draw functions
 
