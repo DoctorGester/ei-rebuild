@@ -13,6 +13,13 @@
 
 namespace {
 void* s_unused;
+
+// GetFileAttributesA through game.exe's import slot (0073B2F8), which harness runs redirect to
+// harness_saves like every save path the game touches; the DLL's own import is not redirected.
+DWORD GameFileAttributes(const char* path) {
+    using Fn = DWORD(WINAPI*)(LPCSTR);
+    return (*reinterpret_cast<Fn const*>(0x0073B2F8))(path);
+}
 }
 
 // 0057B3B0: a save that reports success has its scenario.sav; only single player saves.
@@ -21,7 +28,7 @@ static int __fastcall SaveGameVerify(GameFlow* self, void*, const char* slot) {
     int result = self->SaveGame(slot);
     char path[MAX_PATH];
     std::snprintf(path, sizeof(path), "%ssaves\\%s\\scenario.sav", *reinterpret_cast<char* const*>(0x007AF460), slot);
-    bool exists = GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    bool exists = GameFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
     bool ok = result == 0 || (result == 1 && mode == 1 && exists);
     ei::verify::Check("GameFlow::SaveGame", true, ok, "%s -> %d (mode %d, scenario.sav %d)", slot, result, mode, exists);
     return result;
@@ -70,7 +77,7 @@ static int __stdcall LeaveZoneVerify(std::uint8_t* records) {
     std::snprintf(path, sizeof(path), "%ssaves\\current\\%s.sav", *reinterpret_cast<char* const*>(0x007AF460),
                   world->zoneName_ ? world->zoneName_ : "");
     int result = LeaveZone(records);
-    bool exists = GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    bool exists = GameFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
     ei::verify::Check("LeaveZone", true, result == 0 || exists, "%s -> %d", path, result);
     return result;
 }
@@ -188,6 +195,61 @@ static bool __fastcall NameInListVerify(const char* const* list, const char* nam
     return result;
 }
 EI_VERIFY(0x0057F820, NameInListVerify, 6, s_originalNameInList);
+
+// 0057AAB0: afterwards the folder exists (the files' deletion is through the game's imports).
+static void __fastcall ClearSaveFolderVerify(const char* path) {
+    ClearSaveFolder(path);
+    DWORD attributes = GameFileAttributes(path);
+    bool ok = attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY);
+    ei::verify::Check("ClearSaveFolder", true, ok, "%s", path ? path : "");
+}
+EI_VERIFY(0x0057AAB0, ClearSaveFolderVerify, 0, s_unused);
+
+// 0057EE10: the pending flag (+0x80) flips.
+static void __fastcall SwitchMultiplayerZoneVerify(GameFlow* self, void*) {
+    char before = reinterpret_cast<char*>(self)[0x80];
+    self->SwitchMultiplayerZone();
+    char after = reinterpret_cast<char*>(self)[0x80];
+    ei::verify::Check("GameFlow::SwitchMultiplayerZone", true, (before != 0) != (after != 0), "+0x80 %d -> %d", before, after);
+}
+EI_VERIFY(0x0057EE10, SwitchMultiplayerZoneVerify, 0, s_unused);
+
+// 0057E740: afterwards both sessions exist and the client has the game type.
+static void __fastcall StartServerVerify(GameFlow* self, void*, const char* name, int value25E0, int gameType,
+                                         const char* password, char unlisted, int value25FC) {
+    self->StartServer(name, value25E0, gameType, password, unlisted, value25FC);
+    auto* server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
+    auto* client = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    bool ok = server && client && *reinterpret_cast<int*>(client + 0x261C) == gameType &&
+              *reinterpret_cast<int*>(server + 0x25FC) == value25FC;
+    ei::verify::Check("GameFlow::StartServer", true, ok, "%s type %d", name ? name : "", gameType);
+}
+EI_VERIFY(0x0057E740, StartServerVerify, 0, s_unused);
+
+// 0058DAF0: no players are lost.
+static void __fastcall AcceptPlayersVerify(CWorldServer* self, void*, void* lobby) {
+    auto count = [self] {
+        int n = 0;
+        PlayerIterator it;
+        for (WorldPlayer* p = it.First(self->players_); p; p = it.Next()) ++n;
+        return n;
+    };
+    int before = count();
+    self->AcceptNewPlayers(lobby);
+    int after = count();
+    ei::verify::Check("CWorldServer::AcceptNewPlayers", true, after >= before, "players %d -> %d", before, after);
+}
+EI_VERIFY(0x0058DAF0, AcceptPlayersVerify, 0, s_unused);
+
+// 0057F850: draws random numbers, so only ours runs; the output only grows.
+static void __stdcall PickZonesVerify(void* out, int id, const char* exclude) {
+    auto* v = static_cast<std::uint8_t**>(out);
+    int before = static_cast<int>((v[1] - v[0]) / 12);
+    PickZones(out, id, exclude);
+    int after = static_cast<int>((v[1] - v[0]) / 12);
+    ei::verify::Check("PickZones", true, after >= before, "id %d: %d -> %d names", id, before, after);
+}
+EI_VERIFY(0x0057F850, PickZonesVerify, 0, s_unused);
 
 // 0057F150: afterwards an active client's request is not left answered (kind 3).
 static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {

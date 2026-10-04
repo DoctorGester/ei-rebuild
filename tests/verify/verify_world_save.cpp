@@ -188,6 +188,38 @@ static void __fastcall AddSharedObjectVerify(CWorldServer* self, void*, int id, 
 }
 EI_VERIFY(0x005947E0, AddSharedObjectVerify, 0, s_unused);
 
+namespace {
+using ReadAIGraphFn = int(__fastcall*)(CWorldServer*, void*, const char*, const char*, void*);
+ReadAIGraphFn s_originalReadAIGraph;
+}
+
+// 00596140: only reads files, so the original reads into a scratch memory stream first; the
+// result, the sizes and the bytes are compared.
+static int __fastcall ReadAIGraphVerify(CWorldServer* self, void*, const char* map, const char* mob, void* out) {
+    if (!IsMemoryStream(out)) return self->ReadAIGraph(map, mob, out);
+    alignas(4) std::uint8_t storage[sizeof(CMemoryStream)];
+    auto* scratch = MemoryStreamConstruct(reinterpret_cast<CMemoryStream*>(storage));
+    auto* real = static_cast<CMemoryStream*>(out);
+    int expected = s_originalReadAIGraph(self, nullptr, map, mob, scratch);
+    std::uint32_t before = real->size_;
+    int result = self->ReadAIGraph(map, mob, out);
+    std::uint32_t size = real->size_ - before;
+    bool ok = result == expected && size == scratch->size_ &&
+              (size == 0 || std::memcmp(real->data_ + before, scratch->data_, size) == 0);
+    ei::verify::Check("CWorldServer::ReadAIGraph", true, ok, "%s / %s -> %d (original %d), %u bytes (original %u)",
+                      map ? map : "", mob ? mob : "", result, expected, size, scratch->size_);
+    MemoryStreamDestruct(scratch);
+    return result;
+}
+EI_VERIFY(0x00596140, ReadAIGraphVerify, 7, s_originalReadAIGraph);
+
+// 00596350: the scripts go to the command queue (original code); logged.
+static void __fastcall LoadZoneScriptsVerify(CWorldServer* self, void*, const char* mob) {
+    self->LoadZoneScripts(mob);
+    ei::verify::Check("CWorldServer::LoadZoneScripts", true, true, "%s", mob ? mob : "");
+}
+EI_VERIFY(0x00596350, LoadZoneScriptsVerify, 0, s_unused);
+
 // 005956E0: refills units through original code; the map objects stay registered.
 static void __fastcall PrepareSaveVerify(CWorldServer* self, void*) {
     self->PrepareSave();
