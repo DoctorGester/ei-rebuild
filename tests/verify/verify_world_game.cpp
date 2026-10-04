@@ -11,6 +11,13 @@
 
 namespace {
 void* s_unused;
+
+// GetFileAttributesA through game.exe's import slot (0073B2F8), which harness runs redirect to
+// harness_saves like every save path the game touches; the DLL's own import is not redirected.
+DWORD GameFileAttributes(const char* path) {
+    using Fn = DWORD(WINAPI*)(LPCSTR);
+    return (*reinterpret_cast<Fn const*>(0x0073B2F8))(path);
+}
 }
 
 // 0057B3B0: a save that reports success has its scenario.sav; only single player saves.
@@ -19,7 +26,7 @@ static int __fastcall SaveGameVerify(GameFlow* self, void*, const char* slot) {
     int result = self->SaveGame(slot);
     char path[MAX_PATH];
     std::snprintf(path, sizeof(path), "%ssaves\\%s\\scenario.sav", *reinterpret_cast<char* const*>(0x007AF460), slot);
-    bool exists = GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    bool exists = GameFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
     bool ok = result == 0 || (result == 1 && mode == 1 && exists);
     ei::verify::Check("GameFlow::SaveGame", true, ok, "%s -> %d (mode %d, scenario.sav %d)", slot, result, mode, exists);
     return result;
@@ -68,7 +75,7 @@ static int __stdcall LeaveZoneVerify(std::uint8_t* records) {
     std::snprintf(path, sizeof(path), "%ssaves\\current\\%s.sav", *reinterpret_cast<char* const*>(0x007AF460),
                   world->zoneName_ ? world->zoneName_ : "");
     int result = LeaveZone(records);
-    bool exists = GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    bool exists = GameFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
     ei::verify::Check("LeaveZone", true, result == 0 || exists, "%s -> %d", path, result);
     return result;
 }
