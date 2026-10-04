@@ -757,3 +757,118 @@ void CUnitServer::TickItemSpells() {
     }
 }
 EI_REPLACE_METHOD(0x00552B90, CUnitServer::TickItemSpells);
+
+namespace {
+// The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (vtables 0073BE80
+// and 0073F12C, blocks of 10; 005316F0) and the armour spell list (+0x91C, nodes of 0x14 bytes:
+// next, prev, the item (referenced), the countdown, a "still worn" byte).
+struct ItemList {
+    void* vtable;
+    struct Node {
+        Node* next;
+        Node* prev;
+        CEngineObject* data;
+    }* head;
+    Node* tail;
+    int count;
+    Node* free;
+    void* blocks;
+    int blockSize;
+};
+struct SpellEntry {
+    SpellEntry* next;
+    SpellEntry* prev;
+    CEngineObject* item;
+    int countdown;
+    std::uint8_t worn;
+    std::uint8_t unknown_11[3];
+};
+struct SpellElement {   // the element of a SpellEntry (from +8)
+    CEngineObject* item;
+    int countdown;
+    std::uint8_t worn;
+    std::uint8_t unknown_9[3];
+};
+constexpr int kClassWeapon = 0x11;
+constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
+// 005316F0 CUnit: its items into two lists; 005318B0 CUnit::GetWeapon; the list instantiations
+// 00558C00 (FreeNode of the first), 00558C50 / 00429F10 (their destructors), 00558B10 / 00558B80
+// (NewNode / FreeNode of the spell list), 00558840 (its element's assignment), 00429B50 (a
+// reference's assignment).
+__declspec(naked) void __fastcall UnitCollectItems(CUnit*, void*, ItemList*, ItemList*) EI_ORIGINAL(0x005316F0)
+__declspec(naked) CEngineObject* __fastcall UnitWeapon(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x005318B0)
+__declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
+__declspec(naked) void __fastcall ItemListBDestroy(ItemList*) EI_ORIGINAL(0x00558C50)
+__declspec(naked) void __fastcall ItemListADestroy(ItemList*) EI_ORIGINAL(0x00429F10)
+__declspec(naked) SpellEntry* __fastcall SpellNewNode(void*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
+    EI_ORIGINAL(0x00558B10)
+__declspec(naked) void __fastcall SpellFreeNode(void*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
+__declspec(naked) SpellElement* __fastcall SpellElementAssign(SpellElement*, void*, const SpellElement*) EI_ORIGINAL(0x00558840)
+__declspec(naked) void __fastcall ReferenceAssign(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
+} // namespace
+
+void CUnitServer::RefreshItemSpells() {
+    ItemList items{reinterpret_cast<void*>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ItemList others{reinterpret_cast<void*>(0x0073F12C), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    UnitCollectItems(unit, nullptr, &items, &others);
+    // Weapons other than the one in use do not count.
+    for (ItemList::Node* node = items.head; node;) {
+        ItemList::Node* current = node;
+        node = node->next;
+        CEngineObject* item = current->data;
+        if (item->GetClassId() != kClassWeapon || item == UnitWeapon(unit, nullptr, unit->activeWeapon)) continue;
+        if (current == items.head) items.head = current->next;
+        else current->prev->next = current->next;
+        if (current == items.tail) items.tail = current->prev;
+        else current->next->prev = current->prev;
+        ItemListFreeNode(&items, nullptr, current);
+    }
+    void* list = reinterpret_cast<char*>(this) + 0x91C;
+    SpellEntry*& head = At<SpellEntry*>(this, 0x920);
+    SpellEntry*& tail = At<SpellEntry*>(this, 0x924);
+    for (SpellEntry* entry = head; entry; entry = entry->next) entry->worn = 0;
+    // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the
+    // previous item's spell (as the original does).
+    char* spell = nullptr;
+    for (ItemList::Node* node = items.head; node;) {
+        CEngineObject* item = node->data;
+        node = node->next;
+        if (item) spell = At<char*>(item, 0x44);
+        if (!spell || (At<std::uint32_t>(spell, 0x3C) & kSpellPeriodic) == 0) continue;
+        SpellEntry* found = nullptr;
+        for (SpellEntry* entry = head; entry; entry = entry->next) {
+            if (entry->worn == 0 && entry->item == item) {
+                found = entry;
+                break;
+            }
+        }
+        if (found) {
+            found->worn = 1;
+            continue;
+        }
+        SpellElement blank{};
+        SpellEntry* added = SpellNewNode(list, nullptr, tail, nullptr);
+        SpellElementAssign(reinterpret_cast<SpellElement*>(&added->item), nullptr, &blank);
+        if (tail) tail->next = added;
+        else head = added;
+        tail = added;
+        ReferenceAssign(&added->item, nullptr, item);
+        added->worn = 1;
+    }
+    // Entries of items no longer worn go.
+    for (SpellEntry* entry = head; entry;) {
+        SpellEntry* current = entry;
+        entry = entry->next;
+        if (current->worn != 0) continue;
+        if (current == head) head = current->next;
+        else current->prev->next = current->next;
+        if (current == tail) tail = current->prev;
+        else current->next->prev = current->prev;
+        SpellFreeNode(list, nullptr, current);
+    }
+    others.vtable = reinterpret_cast<void*>(0x0073F12C);
+    ItemListBDestroy(&others);
+    items.vtable = reinterpret_cast<void*>(0x0073BE80);
+    ItemListADestroy(&items);
+}
+EI_REPLACE_METHOD(0x005528F0, CUnitServer::RefreshItemSpells);

@@ -476,6 +476,15 @@ public:
     // 00546480. The controller's reset (constructor and Load): orders, queue, plan, hit, records,
     // effect object, brain, alarm, factors, stats, animation caches, the armour spell list.
     void ResetController();
+    // 00554450. Drops the current order (and the queued one unless an animation or emote), takes
+    // the movement records from the unit's modes, stops facing its way (state 6), takes up the
+    // wanted weapon and, unless turning, plays the idle animation (a random phase on an empty
+    // queue) and turns (state 2).
+    void ResyncWithUnit();
+    // combat_update.cpp. 005528F0. Rebuilds the armour spell list (+0x91C) from the items the
+    // unit wears (weapons only the one in use) whose spell is periodic (+0x3C bit 0x20000): kept
+    // entries keep their countdown, new ones start at 0, entries of items no longer worn go.
+    void RefreshItemSpells();
 
     // combat_planning.cpp (fourth round): the way to an order's target.
     // 0054DF50. For a use order on a target (kind 6, source 0): the reachable spot the target

@@ -710,6 +710,8 @@ Movement modes, animations and paths (`src/game/combat_motion.cpp`, verify
 | 005468D0 | CUnitServer::LiftNearby | ours only: every listed unit is off the sector map |
 | 0054EB30 | CUnitServer::ReportPath | ours only (counted) |
 | 00546480 | CUnitServer::ResetController | ours only: the reset fields |
+| 00554450 | CUnitServer::ResyncWithUnit | ours only: no current order, the records follow the unit's modes |
+| 005528F0 | CUnitServer::RefreshItemSpells (combat_update.cpp) | ours only: every entry worn, the count matches |
 
 Planning an order's way (`src/game/combat_planning.cpp`, verify
 `tests/verify/verify_combat_planning.cpp`):
@@ -777,6 +779,12 @@ step), and MFC 006FE90F (CPlex::FreeDataChain), 0052CEF0 / 005588A0 (CList node 
 - PlanOrder looks up the spell of `action` (+0x194), not of the order it plans, for the message
   kind of a cast.
 - FindUseSpot writes z = -1 into every order's point it is given, use order or not.
+- ResyncWithUnit tests "current order not 0" right after setting it to 9 (always true), and
+  "state not 2" right after setting state 6 (always true).
+- RefreshItemSpells keeps the previous item's spell for a list node without an item (the original
+  reads a stale stack slot there; ours starts from none).
+- 005483C0 (the queue's assignment) copies the extra dword (the start time) too; 00556950 copies
+  only the steps: callers of the latter set the time themselves.
 - PathTo saves CUnit +0x43C, writes the same value back and restores it after FindPath.
 - NextAnimation passes a pause step's emote as the misaligned dword at step + 1 (as the movement
   tick does); the idle builders and the movement steps duplicate the same key code inline

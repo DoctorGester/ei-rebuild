@@ -193,3 +193,22 @@ static void __fastcall TickItemSpellsVerify(CUnitServer* self) {
     ei::verify::Check("CUnitServer::TickItemSpells", true, true, "");
 }
 EI_VERIFY(0x00552B90, TickItemSpellsVerify, 0, s_unused);
+
+// 005528F0: ours only. Every entry of the armour spell list is worn afterwards and has its item.
+static void __fastcall RefreshItemSpellsVerify(CUnitServer* self) {
+    self->RefreshItemSpells();
+    struct Entry {
+        Entry* next;
+        Entry* prev;
+        void* item;
+        int countdown;
+        std::uint8_t worn;
+    };
+    bool ok = true;
+    int count = 0;
+    for (Entry* entry = At<Entry*>(self, 0x920); entry && count < 1000; entry = entry->next, ++count)
+        if (entry->worn != 1) ok = false;
+    ok = ok && count == At<int>(self, 0x928);
+    ei::verify::Check("CUnitServer::RefreshItemSpells", true, ok, "unit %d, %d entries", UnitId(self), count);
+}
+EI_VERIFY(0x005528F0, RefreshItemSpellsVerify, 0, s_unused);

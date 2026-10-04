@@ -186,3 +186,13 @@ static void __fastcall ResetControllerVerify(CUnitServer* self) {
     ei::verify::Check("CUnitServer::ResetController", true, ok, "unit %d", UnitId(self));
 }
 EI_VERIFY(0x00546480, ResetControllerVerify, 0, s_unused);
+
+// 00554450: ours only. The current order is empty and the records follow the unit's modes.
+static void __fastcall ResyncWithUnitVerify(CUnitServer* self) {
+    self->ResyncWithUnit();
+    auto modeOf = [](const MoveModeState& record) { return record.wasMode3 ? 3 : record.mode; };
+    bool ok = self->action.kind == 9 && !self->action.target && modeOf(self->moveMode) == self->unit->moveMode &&
+              modeOf(self->moveMode2) == self->unit->moveMode2 && (self->state == 2 || self->state == 6);
+    ei::verify::Check("CUnitServer::ResyncWithUnit", true, ok, "unit %d, state %d", UnitId(self), self->state);
+}
+EI_VERIFY(0x00554450, ResyncWithUnitVerify, 0, s_unused);

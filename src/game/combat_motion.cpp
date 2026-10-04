@@ -9,6 +9,7 @@
 #include "combat_plan.h"
 
 #include "item.h"
+#include "random.h"
 
 #include "lib/crt.h"
 
@@ -801,6 +802,81 @@ void CUnitServer::ReportPath(void* path, char partial) {
     PlayerMessage(At<void*>(self->player, 0x20), nullptr, self, message);
 }
 EI_REPLACE_METHOD(0x0054EB30, CUnitServer::ReportPath);
+
+// --- Resync with the unit ---------------------------------------------------------------------
+
+namespace {
+// 0052B030 a reference's release, 0052A8F0 its assignment; 00544E70 does the queue hold `steps`.
+__declspec(naked) void __fastcall ReferenceRelease(CEngineObject**) EI_ORIGINAL(0x0052B030)
+__declspec(naked) void __fastcall ReferenceSet(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x0052A8F0)
+__declspec(naked) bool __fastcall QueueHolds(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x00544E70)
+IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+
+// A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
+void RecordFromMode(MoveModeState* record, int mode) {
+    record->wasMode3 = 0;
+    record->mode = mode;
+    if (mode == 3) {
+        record->mode = 2;
+        record->wasMode3 = 1;
+    }
+}
+} // namespace
+
+void CUnitServer::ResyncWithUnit() {
+    action.kind = kOrderNone;
+    if (action.target) ei::VCall<void>(action.target, kSlotRelease);
+    action.target = nullptr;
+    action.flag18 = 0;
+    action.unknown_1C = 0;
+    action.unknown_20 = 0;
+    if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {   // the first is always true
+        action2.kind = kOrderNone;
+        ReferenceRelease(&action2.target);
+        action2.flag18 = 0;
+        action2.unknown_1C = 0;
+        action2.unknown_20 = 0;
+        action2.kind = 0;
+        ReferenceSet(&action2.target, nullptr, nullptr);
+        action2.unknown_20 = 0;
+    }
+    RecordFromMode(&moveMode, unit->moveMode);
+    RecordFromMode(&moveMode2, unit->moveMode2);
+    PathClear(Motion(this));
+    int now = At<int>(WorldOf(this), 0x64);
+    float axis[3];
+    QuaternionAxisY(&At<float>(unit, 0x34), nullptr, axis);
+    float back[3];
+    const float* direction = Negate(back, axis);
+    if (PathStart(Motion(this), nullptr, &unit->positionX, direction, now)) UnitPathSpeeds(unit);
+    CtlSetStanding(this, nullptr, 0);
+    CtlSetState(this, nullptr, kStateChasing);
+    UnitUpdateSizeClass(unit);
+    unit->unknown_270 = 0;
+    if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
+        ei::VCall<void>(unit->controller, 0x64 / 4, unit->unknown_270);
+    if (state == kStateTurning) return;
+    std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
+    if (IdleKey(this) == key) {
+        IdleTime(this) = -1;
+    } else {
+        IdleKey(this) = key;
+        CtlBuildIdle(this, nullptr, &IdleSteps(this));
+    }
+    if (!QueueHolds(&Queue(this), nullptr, &IdleSteps(this))) {
+        // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
+        if (Queue(this).count == 0 && QueueTime(this) == -1)
+            IdleTime(this) = At<int>(WorldOf(this), 0x64) - static_cast<int>(Random().Next() % 0x33);
+        StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
+        StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
+        StartQueueIfUnset(this);
+        CtlPopFinishedSteps(this);
+        CtlShowCurrentStep(this);
+    }
+    CtlStandStill(this);
+    CtlSetState(this, nullptr, kStateTurning);
+}
+EI_REPLACE_METHOD(0x00554450, CUnitServer::ResyncWithUnit);
 
 // --- Reset ---------------------------------------------------------------------------------------
 
