@@ -1,0 +1,46 @@
+# The new renderer's whole frame (src/render, docs/notes/renderer.md): terrain, the world's meshes
+# (figures, objects, the sky) and the interface (window surfaces, sprites, 3D previews). At one
+# frozen moment on zone1 the old path draws less and less, the new frame (*.new.bmp) always all:
+#   world        old: terrain, objects, interface     (and the new frame)
+#   world_t      old: terrain and interface           (oldobjects off: meshes and shadows gone)
+#   world_i      old: the interface only              (oldterrain off too)
+#   world_none   old: nothing but the clear colour    (oldinterface off too)
+#   world_again  old: everything again; must equal world
+# Compare (F = <run>\frames; N = F\world.new.bmp, A = F\world.bmp):
+#   whole frame:  python tools\compare_frames.py N A
+#   terrain:      ... N A --mask F\world_t.bmp F\world_i.bmp --mask-background --exclude A F\world_t.bmp
+#   objects:      ... N A --mask A F\world_t.bmp --exclude F\world_i.bmp F\world_none.bmp
+#   interface:    ... N A --mask F\world_i.bmp F\world_none.bmp
+#   scene without the interface:  ... N A --mask A F\world_i.bmp --mask-background
+# (shadows are not drawn by the new renderer yet: the objects compare counts them as different)
+# and look at them with: python tools\frame_preview.py out.png --scale 4 A N
+# Needs the hooks (the mesh draws 004E9010 / 004E9A50, the device draws 004EB550 / 004EB370, the
+# world draw 00569E40, the surface blit 005FDA80, the terrain page draw 006BFF40 and the present
+# 004EF610 are rewritten code).
+render new
+reject Script error
+wait 6000
+console thingamabob
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+move 400 60
+wait 2000
+freeze
+capture world
+oldobjects off
+capture world_t
+oldterrain off
+capture world_i
+oldinterface off
+capture world_none
+oldterrain on
+oldobjects on
+oldinterface on
+capture world_again
+unfreeze
+samecapture world world_again
+report
+quit
