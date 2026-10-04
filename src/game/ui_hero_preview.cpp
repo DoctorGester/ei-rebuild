@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -115,6 +116,10 @@ void ClearDepth(std::uint8_t* device, unsigned long count, RECT* rects, float z)
     long hr = ComCall(d3d, kD3DClear, count, rects, flags, 0ul, z, 0ul);
     Set(device, 8, hr);
     gameapi::LeaveCriticalSection(DeviceLock());
+    render::Rect r[6];
+    int n = count < 6 ? static_cast<int>(count) : 6;
+    for (int i = 0; i < n; ++i) r[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
+    render::ClearDepth(z, r, n);
 }
 
 } // namespace
@@ -137,6 +142,7 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
         long hr = ComCall(d3d, kD3DClear, 0ul, static_cast<RECT*>(nullptr), flags, 0ul, 0.0f, 0ul);
         Set(device, 8, hr);
         gameapi::LeaveCriticalSection(DeviceLock());
+        render::ClearDepth(0.0f, nullptr, 0);
     }
     RECT rects[6];
     if (static_cast<std::uint8_t>(wide) != 0) {

@@ -8,6 +8,7 @@
 // (source alpha, inverse source alpha) with a second one. See docs/notes/models.md ("Material draw").
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "render/render.h"
 
 #include <cstdint>
 
@@ -95,13 +96,17 @@ struct DrawArgs {
 };
 
 // DrawIndexedPrimitive under the device lock (007AEE78), the result in +8, and the vertex,
-// triangle and call counters (+0x16C..+0x174).
+// triangle and call counters (+0x16C..+0x174). A mesh handed over to the new renderer (src/render,
+// device_mesh.cpp) gets this pass with the device's current state; the old draw is skipped when the
+// old path no longer draws meshes.
 void Draw(char* device, const DrawArgs& a, unsigned triangles) {
-    CRITICAL_SECTION* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
-    gameapi::EnterCriticalSection(lock);
-    At<long>(device, 8) = ComCall(Direct3D(device), kDrawIndexedPrimitive, a.primitive, a.fvf, a.vertices,
-                                  a.vertexCount, a.indices, a.indexCount, a.flags);
-    gameapi::LeaveCriticalSection(lock);
+    if (render::MeshPass(device)) {
+        CRITICAL_SECTION* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+        gameapi::EnterCriticalSection(lock);
+        At<long>(device, 8) = ComCall(Direct3D(device), kDrawIndexedPrimitive, a.primitive, a.fvf, a.vertices,
+                                      a.vertexCount, a.indices, a.indexCount, a.flags);
+        gameapi::LeaveCriticalSection(lock);
+    }
     At<int>(device, 0x16C) += a.vertexCount;
     At<unsigned>(device, 0x170) += triangles;
     At<int>(device, 0x174) += 1;

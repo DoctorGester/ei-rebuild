@@ -70,7 +70,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   requires two captures to match. `python tools\compare_frames.py A B` compares two captures or two
   runs' frames with a tolerance (`--mask` restricts it to where two other frames differ).
   `render <spec>` turns the new renderer on for the run (its frame goes to `<name>.new.bmp`) and
-  `oldterrain off|on` switches the old terrain draw (`docs/notes/renderer.md`).
+  `oldterrain`, `oldobjects`, `oldinterface` (`off|on`) switch parts of the old draw
+  (`docs/notes/renderer.md`, scenario `render_scene`).
 
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten

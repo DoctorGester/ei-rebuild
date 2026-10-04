@@ -12,6 +12,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/gameapi.h"
+#include "render/render.h"
 
 #include <windows.h>
 
@@ -308,6 +309,8 @@ void DrawLightEffects(void* list) {
 // ---- Render (00569E40) --------------------------------------------------------------------------
 
 int CWorldClient::Render() {
+    // The new renderer (src/render) tells the world's meshes from the interface's by this.
+    render::BeginWorld();
     char* renderer = Renderer();
     char* device = Device();
     ClientBeginFrame(this);
@@ -406,6 +409,7 @@ int CWorldClient::Render() {
         Flush(renderer);
         SetRenderState(renderer, 7, Field<std::uint32_t>(renderer, 0x60));
     }
+    render::EndWorld();
     return 1;
 }
 EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);

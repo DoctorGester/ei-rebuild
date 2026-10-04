@@ -1,7 +1,8 @@
 """Compares frames captured by the harness ("capture <name>": <run folder>\\frames\\<name>.bmp).
 
 usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--block N] [--worst N]
-                                          [--diff OUT] [--mask M1 M2]
+                                          [--diff OUT] [--mask M1 M2 [--mask-background]]
+                                          [--exclude E1 E2 ...] [--exclude-grow N]
   A, B              two BMP files, or two folders: run folders (their frames\\ subfolder is used) or
                     frames folders; every <name>.bmp present in both is compared
   --tolerance N     a pixel differs when one of its channels differs by more than N (0..255,
@@ -15,6 +16,12 @@ usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--
                     tolerance), e.g. the old frame with and without its terrain to compare the new
                     renderer's terrain (A) with the old one (B) where the terrain is (files only);
                     the fraction is then of the masked pixels
+  --mask-background keep only the masked pixels where M2 shows its background (clear) colour: the
+                    feature with nothing in front of it (no interface panel, shadow or object)
+  --exclude E1 E2   leave out the pixels where the frames E1 and E2 differ (repeatable; with or
+                    without --mask), e.g. the old frame with and without its objects to compare
+                    only the terrain around them
+  --exclude-grow N  widen every excluded area by N pixels (blended edges; default 0)
 exit code: 0 when every frame is within --max-fraction, 1 when one is not, 2 when a frame is
 missing, unreadable or of another size
 
@@ -68,8 +75,11 @@ def write_bmp(path, width, height, rows):
             f.write(bytes(rows[y]) + pad)
 
 
-def make_mask(m1, m2, tolerance):
-    """Rows of 0/1 flags: 1 where m1 and m2 differ by more than `tolerance` in a channel."""
+def make_mask(m1, m2, tolerance, background=False):
+    """Rows of 0/1 flags: 1 where m1 and m2 differ by more than `tolerance` in a channel. With
+    `background`, only where m2 shows its background colour (the colour m2 has most often where the
+    two differ): the feature is visible there with nothing in front of it, no translucent interface
+    panel or shadow over it."""
     rows = []
     for y in range(m1.height):
         r1, r2 = m1.rows[y], m2.rows[y]
@@ -80,7 +90,63 @@ def make_mask(m1, m2, tolerance):
                 if max(abs(r1[i] - r2[i]), abs(r1[i + 1] - r2[i + 1]), abs(r1[i + 2] - r2[i + 2])) > tolerance:
                     row[x] = 1
         rows.append(row)
+    if background:
+        counts = {}
+        for y in range(m2.height):
+            r2, row = m2.rows[y], rows[y]
+            for x in range(m2.width):
+                if row[x]:
+                    key = r2[3 * x:3 * x + 3]
+                    counts[key] = counts.get(key, 0) + 1
+        if counts:
+            colour = max(counts.items(), key=lambda kv: kv[1])[0]
+            for y in range(m2.height):
+                r2, row = m2.rows[y], rows[y]
+                for x in range(m2.width):
+                    if row[x] and r2[3 * x:3 * x + 3] != colour:
+                        row[x] = 0
     return rows
+
+
+def grow(rows, width, n):
+    """The 0/1 rows with every 1 widened by n pixels in each direction (a square)."""
+    if n <= 0:
+        return rows
+    wide = []
+    for row in rows:
+        out = bytearray(width)
+        if any(row):
+            for x in range(width):
+                if row[x]:
+                    out[max(0, x - n):min(width, x + n + 1)] = b'\x01' * (min(width, x + n + 1) - max(0, x - n))
+        wide.append(out)
+    result = []
+    for y in range(len(wide)):
+        out = bytearray(width)
+        for k in range(max(0, y - n), min(len(wide), y + n + 1)):
+            src = wide[k]
+            if any(src):
+                for x in range(width):
+                    if src[x]:
+                        out[x] = 1
+        result.append(out)
+    return result
+
+
+def apply_excludes(mask, excludes, width, height, tolerance, grow_by):
+    """`mask` (rows of 0/1, or None for every pixel) without the pixels where each pair of
+    `excludes` differs."""
+    if mask is None:
+        mask = [bytearray(b'\x01' * width) for _ in range(height)]
+    for e1, e2 in excludes:
+        drop = grow(make_mask(e1, e2, tolerance), width, grow_by)
+        for y in range(height):
+            row, d = mask[y], drop[y]
+            if any(d):
+                for x in range(width):
+                    if d[x]:
+                        row[x] = 0
+    return mask
 
 
 def compare(a, b, tolerance, block, mask=None):
@@ -133,18 +199,22 @@ def compare(a, b, tolerance, block, mask=None):
     return differing, worst, total, regions, diff_rows
 
 
-def compare_pair(name, path_a, path_b, args, diff_path, mask_paths=None):
+def compare_pair(name, path_a, path_b, args, diff_path, mask_paths=None, exclude_paths=None):
     try:
         a = read_bmp(path_a)
         b = read_bmp(path_b)
         masks = [read_bmp(p) for p in mask_paths] if mask_paths else []
+        excludes = [(read_bmp(p), read_bmp(q)) for p, q in exclude_paths] if exclude_paths else []
     except (OSError, ValueError) as e:
         print(f'{name}: {e}')
         return 2
-    if any((m.width, m.height) != (a.width, a.height) for m in [b] + masks):
-        print(f'{name}: sizes differ ({", ".join(f"{m.width}x{m.height}" for m in [a, b] + masks)})')
+    others = masks + [m for pair in excludes for m in pair]
+    if any((m.width, m.height) != (a.width, a.height) for m in [b] + others):
+        print(f'{name}: sizes differ ({", ".join(f"{m.width}x{m.height}" for m in [a, b] + others)})')
         return 2
-    mask = make_mask(masks[0], masks[1], args.tolerance) if masks else None
+    mask = make_mask(masks[0], masks[1], args.tolerance, args.mask_background) if masks else None
+    if excludes:
+        mask = apply_excludes(mask, excludes, a.width, a.height, args.tolerance, args.exclude_grow)
     differing, worst, total, regions, diff_rows = compare(a, b, args.tolerance, args.block, mask)
     pixels = sum(sum(row) for row in mask) if mask is not None else a.width * a.height
     if mask is not None:
@@ -183,12 +253,15 @@ def main():
     ap.add_argument('--worst', type=int, default=8)
     ap.add_argument('--diff')
     ap.add_argument('--mask', nargs=2, metavar=('M1', 'M2'))
+    ap.add_argument('--mask-background', action='store_true')
+    ap.add_argument('--exclude', nargs=2, action='append', metavar=('E1', 'E2'))
+    ap.add_argument('--exclude-grow', type=int, default=0)
     args = ap.parse_args()
     if args.block < 1:
         ap.error('--block must be positive')
 
-    if args.mask and (os.path.isdir(args.a) or os.path.isdir(args.b)):
-        ap.error('--mask needs two files')
+    if (args.mask or args.exclude) and (os.path.isdir(args.a) or os.path.isdir(args.b)):
+        ap.error('--mask and --exclude need two files')
     if os.path.isdir(args.a) and os.path.isdir(args.b):
         da, db = frames_dir(args.a), frames_dir(args.b)
         names_a = {n for n in os.listdir(da) if n.lower().endswith('.bmp')}
@@ -208,7 +281,7 @@ def main():
         return result
     if os.path.isdir(args.a) or os.path.isdir(args.b):
         ap.error('give two files or two folders')
-    return compare_pair(os.path.basename(args.a), args.a, args.b, args, args.diff, args.mask)
+    return compare_pair(os.path.basename(args.a), args.a, args.b, args, args.diff, args.mask, args.exclude)
 
 
 if __name__ == '__main__':
