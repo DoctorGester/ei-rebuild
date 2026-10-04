@@ -295,6 +295,16 @@ LSTATUS WINAPI SmallVideoResolution(HKEY key, LPCSTR name, LPDWORD reserved, LPD
         *size = need;
         return ERROR_SUCCESS;
     }
+    // FullScreen = 0: the game runs in its own window mode (BltFast to the primary instead of Flip),
+    // so no display mode change. Without this a 1280x720 full screen switched the user's display.
+    if (name && _stricmp(name, "FullScreen") == 0 && size) {
+        if (type) *type = REG_DWORD;
+        if (!data) { *size = 4; return ERROR_SUCCESS; }
+        if (*size < 4) { *size = 4; return ERROR_MORE_DATA; }
+        std::memset(data, 0, 4);
+        *size = 4;
+        return ERROR_SUCCESS;
+    }
     return g_regQueryValueEx(key, name, reserved, type, data, size);
 }
 int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void* format) {
@@ -1275,7 +1285,8 @@ struct Harness {
         PatchSlot(kShowWindowSlot, &ShowWithoutActivating, g_showWindow);
         PatchSlot(kCreateWindowExASlot, &CreateWithoutActivating, g_createWindowEx);
         PatchSlot(kSetCursorPosSlot, &NoCursorMove, g_setCursorPos);
-        PatchSlot(kRegQueryValueExASlot, &SmallVideoResolution, g_regQueryValueEx);
+        // VideoResolution / FullScreen overrides (SmallVideoResolution) are off: a 1280x720 full screen
+        // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
