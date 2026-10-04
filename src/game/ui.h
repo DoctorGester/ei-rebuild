@@ -55,6 +55,10 @@ public:
     CUiWindow* GetActiveWindow() const;
     // 005F74E0. Stores a value and raises the flag next to it (consumed by the frame update).
     void SetPendingValue(std::uint32_t value);
+    // 005F5BA0 (RET 4). Makes screen `id` (1 in-game, 2, 3 base, 4 island map, 5, 7, 8, 9) and hands
+    // it to the activation (005F71C0); 0 does nothing, 6 and ids above 9 hand over the id
+    // itself as the window pointer (as the original). ui_create_screen.cpp.
+    void CreateScreen(int id);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
