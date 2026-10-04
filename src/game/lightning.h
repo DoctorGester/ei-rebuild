@@ -93,6 +93,10 @@ public:
     // 00467E10. New end points: main segment, then the branches (spread along the main segment,
     // or random parallel bolts when power is 0); animates when power is negative.
     void SetEndpoints(const Vector3* from, const Vector3* to);
+    // 004680D0 (lightning_start.cpp). A new bolt: power, sway, the main segment and six branches
+    // (or six parallel bolts for power 0) with fresh noise, animated once, its bounds, and the
+    // textures ("Lightning" / "SmtgLight", or the "Demon" pair).
+    void Start(const Vector3* from, const Vector3* to, float power, bool demon);
 
     CEngineObject* texture_;            // +0x1C
     CEngineObject* glowTexture_;        // +0x20
