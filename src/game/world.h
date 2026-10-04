@@ -717,6 +717,14 @@ bool __fastcall NameInList(const char* const* list, const char* name);
 // in it (CFileFind "*.*"; CreateDirectoryA / DeleteFileA through game.exe's imports).
 void __fastcall ClearSaveFolder(const char* path);
 
+// world_savefile.cpp. 00579B80 (ECX = file stream, EDX = magic; RET 8): writes the header
+// (004A5340), at version > 0x6B a checksum, then a flag byte and the LZ-compressed data (or, when
+// decompressing it does not give the data back, 0 and the raw data). 00579830 (ECX = memory
+// stream, EDX = magic; RET 0xC; AL): reads one back (versions up to 00790264 uncompressed);
+// false on a bad header or checksum.
+void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
+bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
+
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
 // into `out`. 0057FDE0 (RET 8): the briefing's variable, "b.<speaker>.<briefing>" or, without a
