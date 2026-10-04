@@ -752,6 +752,21 @@ value (UnitStats 00525E90 with 2), or is not a number. The tamed mode is a playe
 +0xACC are emptied. Original quirk kept: the new mode's +4 is written before testing the
 allocation.
 
+The world's managers (`src/game/world_create.cpp`, verify `tests/verify/verify_world_create.cpp`):
+
+| Address | Name | Verification |
+|---|---|---|
+| 0055EE40 | World::CreateManagers (__fastcall; the client's init 00561E50 and the server's 0058AE10 call it) | ours only: returns 1, every manager slot set |
+
+It copies the command line paths (0079BC90..98) into 007AF460 / 007AF45C / 007AF458, resets
++0x24 (1.0), +0x28..+0x30, +0x64, +0x68 and +0x6C, then makes and references the managers: +0x38
+(0xB0 bytes, 00402B20 + vtable 0073F328), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48
+(0xB0, 0073F2C4), +0x50 (0x24, 00683FF0; slot 2), +0x4C (0xD4, 00688840), +0x58 (0x34, 006A5AB0;
+slot 2), +0x54 (0xBC, CResourceManager 00674D90 + 0073F25C); the others get slot 13 with the
+world. A 0x0C-byte object (0073F240) goes into the counted pointer at +0x5C (16-bit count at
++4). Then IsaacRandom::Init and 006D43E0 on +0x70. Original quirk kept: the reference counts are
+written before testing the allocations.
+
 More controller fields: `+0x0A9` / `+0x0AA` the path's flags (+0x6D, +0x6E: no player), `+0x145`
 the last path was blocked, `+0x146` a pending path to +0x9C, `+0x147` moving (the movement
 animation plays), `+0x178` updates in mode 3 without a cheap cell, `+0x238` (stats +0x58) a
