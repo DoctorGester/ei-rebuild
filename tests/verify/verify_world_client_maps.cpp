@@ -1,11 +1,13 @@
 // Checks for the client's map helpers (src/game/world_client_maps.cpp).
 //
-// The grid moves change the lists: ours only, with checks on the lists afterwards. The radius
+// The grid moves: a sample is run as ours on a scratch copy of the cells it touches and the
+// original on the real grid, and the cells, references and position compared. The radius
 // marker and the window collectors run the original first, record what it wrote, undo it and run
 // ours. The lookups are pure and compared.
 #include "verify.h"
 
 #include "../../src/game/world.h"
+#include "ei/x87.h"
 
 #include <cmath>
 #include <cstring>
@@ -19,10 +21,13 @@ T& At(void* object, int offset) {
     return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
 }
 
+// The grid's cell index of a coordinate, as the original computes it (FISTP, unsigned >> 4).
+std::uint32_t CellIndex(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
+
 // How often `object` is in `grid`'s cell for `position`, or -1 outside the grid.
 int CountInCell(const SectorGrid* grid, const CEngineObject* object, const float* position) {
-    std::uint32_t cx = static_cast<std::uint32_t>(static_cast<int>(std::floor(position[0] + 0.5f))) >> 4;
-    std::uint32_t cy = static_cast<std::uint32_t>(static_cast<int>(std::floor(position[1] + 0.5f))) >> 4;
+    std::uint32_t cx = CellIndex(position[0]);
+    std::uint32_t cy = CellIndex(position[1]);
     if (cx >= grid->width_ || cy >= grid->height_) return -1;
     SectorListNode* head = grid->rows_[cy][cx];
     int count = 0;
@@ -31,57 +36,140 @@ int CountInCell(const SectorGrid* grid, const CEngineObject* object, const float
     return count;
 }
 
-template <bool Second>
-void MoveChecked(SectorGrid* grid, CEngineObject* object, const float* position) {
-    float target[3];
-    std::memcpy(target, position, sizeof(target));
-    int refs = object->refCount_;
-    float before[3];
-    std::memcpy(before, &At<float>(object, 0x1C), sizeof(before));
-    int oldCount = CountInCell(grid, object, before);
-    if (Second)
-        grid->Move2(object, position);
-    else
-        grid->Move(object, position);
-    bool ok = std::memcmp(&At<float>(object, 0x1C), target, sizeof(target)) == 0;
-    int newCount = CountInCell(grid, object, target);
-    // The rounding of the test's cell is plain C++: positions within a hair of a cell edge are not
-    // judged (rule 7).
-    bool edge = false;
-    auto cell = [&edge](float coordinate) {
-        float scaled = (coordinate + 0.5f) / 16.0f;   // FISTP's cell edges are at 16k - 0.5
-        float f = std::floor(scaled);
-        float rest = scaled - f;
-        if (rest < 0.01f || rest > 0.99f) edge = true;
-        return f;
-    };
-    float tx = cell(target[0]), ty = cell(target[1]), bx = cell(before[0]), by = cell(before[1]);
-    bool sameCell = tx == bx && ty == by;
-    if (!edge) {
-        if (sameCell) {
-            ok = ok && refs == object->refCount_;
-        } else {
-            // Listed in the new cell; one reference more for it, one less per old listing.
-            if (newCount >= 0) ok = ok && newCount >= 1;
-            int expected = refs + (newCount >= 0 ? 1 : 0) - (oldCount > 0 ? oldCount : 0);
-            ok = ok && object->refCount_ == expected;
+// ---- Grid moves: ours on a scratch copy of the touched cells, the original on the real grid ------
+
+// A scratch grid with the real one's size whose only lists are copies of the cells a move touches
+// (nodes from the game's node pool, a reference taken per copied value, as the list's own copy
+// would). The rows not touched stay null: the move reads no other cell.
+struct ScratchGrid {
+    SectorGrid grid{};
+    std::vector<SectorListNode**> rows;
+    std::vector<std::vector<SectorListNode*>> rowCells;
+    std::vector<std::pair<std::uint32_t, std::uint32_t>> cells;
+
+    explicit ScratchGrid(const SectorGrid& real) {
+        grid = real;
+        rows.assign(real.height_, nullptr);
+        rowCells.reserve(2);
+        grid.rows_ = rows.data();
+    }
+    void CopyCell(const SectorGrid& real, std::uint32_t x, std::uint32_t y) {
+        if (x >= real.width_ || y >= real.height_) return;
+        for (auto& c : cells)
+            if (c.first == x && c.second == y) return;
+        if (!rows[y]) {
+            rowCells.emplace_back(real.width_, nullptr);
+            rows[y] = rowCells.back().data();
+        }
+        auto* head = static_cast<SectorListNode*>(stlp::allocate(sizeof(SectorListNode)));
+        head->next = head->prev = head;
+        head->value = nullptr;
+        SectorListNode* source = real.rows_[y][x];
+        for (SectorListNode* node = source->next; node != source; node = node->next) {
+            auto* copy = static_cast<SectorListNode*>(stlp::allocate(sizeof(SectorListNode)));
+            copy->value = node->value;
+            if (copy->value) ++copy->value->refCount_;
+            copy->prev = head->prev;
+            copy->next = head;
+            head->prev->next = copy;
+            head->prev = copy;
+        }
+        rows[y][x] = head;
+        cells.emplace_back(x, y);
+    }
+    ~ScratchGrid() {
+        for (auto& c : cells) {
+            SectorListNode* head = rows[c.second][c.first];
+            for (SectorListNode* node = head->next; node != head;) {
+                SectorListNode* next = node->next;
+                if (node->value) node->value->Release();
+                stlp::deallocate(node, sizeof(SectorListNode));
+                node = next;
+            }
+            stlp::deallocate(head, sizeof(SectorListNode));
         }
     }
-    ei::verify::Check(Second ? "SectorGrid::Move2" : "SectorGrid::Move", true, ok,
-                      "object %d, (%g, %g) -> (%g, %g), refs %d -> %d, cells %d -> %d", object->id_, before[0], before[1],
-                      target[0], target[1], refs, object->refCount_, oldCount, newCount);
+};
+
+std::vector<CEngineObject*> CellValues(const SectorGrid& grid, std::uint32_t x, std::uint32_t y) {
+    std::vector<CEngineObject*> values;
+    if (x >= grid.width_ || y >= grid.height_) return values;
+    SectorListNode* head = grid.rows_[y][x];
+    for (SectorListNode* node = head->next; node != head; node = node->next) values.push_back(node->value);
+    return values;
+}
+
+using MoveFn = void(__fastcall*)(SectorGrid*, void*, CEngineObject*, const float*);
+
+void MoveChecked(const char* name, MoveFn original, bool second, SectorGrid* grid, CEngineObject* object,
+                 const float* position) {
+    float target[3];
+    std::memcpy(target, position, sizeof(target));
+    float before[3];
+    std::memcpy(before, &At<float>(object, 0x1C), sizeof(before));
+    std::uint32_t oldX = CellIndex(before[0]), oldY = CellIndex(before[1]);
+    std::uint32_t newX = CellIndex(target[0]), newY = CellIndex(target[1]);
+
+    // Ours on the scratch copy.
+    std::vector<CEngineObject*> mineOld, mineNew;
+    int mineRefs;
+    float mineAt[3];
+    {
+        ScratchGrid scratch(*grid);
+        scratch.CopyCell(*grid, oldX, oldY);
+        scratch.CopyCell(*grid, newX, newY);
+        int refs = object->refCount_;
+        if (second)
+            scratch.grid.Move2(object, target);
+        else
+            scratch.grid.Move(object, target);
+        mineRefs = object->refCount_ - refs;
+        std::memcpy(mineAt, &At<float>(object, 0x1C), sizeof(mineAt));
+        mineOld = CellValues(scratch.grid, oldX, oldY);
+        mineNew = CellValues(scratch.grid, newX, newY);
+    }
+    std::memcpy(&At<float>(object, 0x1C), before, sizeof(before));
+
+    // The original on the real grid.
+    int refs = object->refCount_;
+    original(grid, nullptr, object, target);
+    int theirsRefs = object->refCount_ - refs;
+    bool ok = std::memcmp(&At<float>(object, 0x1C), mineAt, sizeof(mineAt)) == 0 && theirsRefs == mineRefs &&
+              CellValues(*grid, oldX, oldY) == mineOld && CellValues(*grid, newX, newY) == mineNew;
+    ei::verify::Check(name, true, ok, "object %d, (%g, %g) -> (%g, %g), cells (%u, %u) -> (%u, %u), refs %+d vs %+d",
+                      object->id_, before[0], before[1], target[0], target[1], oldX, oldY, newX, newY, theirsRefs,
+                      mineRefs);
+}
+
+// The first 256 moves and then every 32nd are compared: cells can hold hundreds of particles, and
+// the copies and walks would slow the game down (the rest run ours alone).
+bool Sampled(unsigned& counter) {
+    unsigned n = counter++;
+    return n < 256 || (n & 31) == 0;
 }
 } // namespace
 
+// 00570860 / 00570BB0: PUSH EBP; MOV EBP,ESP; PUSH -1 (5 bytes).
+static MoveFn s_move;
+static MoveFn s_move2;
+static unsigned s_moveCalls;
+static unsigned s_move2Calls;
+
 static void __fastcall MoveVerify(SectorGrid* grid, void*, CEngineObject* object, const float* position) {
-    MoveChecked<false>(grid, object, position);
+    if (Sampled(s_moveCalls))
+        MoveChecked("SectorGrid::Move", s_move, false, grid, object, position);
+    else
+        grid->Move(object, position);
 }
-EI_VERIFY(0x00570860, MoveVerify, 0, s_unused);
+EI_VERIFY(0x00570860, MoveVerify, 5, s_move);
 
 static void __fastcall Move2Verify(SectorGrid* grid, void*, CEngineObject* object, const float* position) {
-    MoveChecked<true>(grid, object, position);
+    if (Sampled(s_move2Calls))
+        MoveChecked("SectorGrid::Move2", s_move2, true, grid, object, position);
+    else
+        grid->Move2(object, position);
 }
-EI_VERIFY(0x00570BB0, Move2Verify, 0, s_unused);
+EI_VERIFY(0x00570BB0, Move2Verify, 5, s_move2);
 
 // 00571D50: PUSH EBP; MOV EBP,ESP; AND ESP,-8 (6 bytes). The marks and the functor compared.
 using MarkFn = float*(__fastcall*)(float*, void*, std::uint8_t*, std::uint8_t*, float, float, float);

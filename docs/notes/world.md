@@ -943,7 +943,7 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 
 | Address | Function | Verify |
 | --- | --- | --- |
-| 00570860 / 00570BB0 | SectorGrid::Move / Move2 (two instantiations) | ours only: position stored, listed in the new cell, reference count +1 per insert and -1 per removed listing (positions within 1% of a cell edge not judged) |
+| 00570860 / 00570BB0 | SectorGrid::Move / Move2 (two instantiations) | differential, sampled (the first 256 calls, then every 32nd): ours on a scratch grid holding copies of the two touched cells (nodes from the game's pool, a reference per copy), the original on the real grid; both cells' contents in order, the object's reference change and position compared |
 | 00571D50 | MarkWithinRadius (for_each functor) | differential: marks undone after the original, functor compared |
 | 00571800 / 005718B0 | CollectWindowsAt / CollectWindowsAt2 (slot 22 / 24 hit test) | differential: the original's pushes taken back, ours compared |
 | 0056FC60 | PendingMapLookup (hash_map<unsigned, T*> lookup) | differential |
@@ -981,6 +981,12 @@ steps) and the two insertion sorts.
 Move removes every listing of the object from the old cell (list::remove with a counted copy:
 +1, the erases release, -1), stores the three position words, then push_back's a counted copy
 into the new cell (+1, the insert adds its own, -1). Out-of-grid cells are skipped on either side.
+The first, ours-only check walked both cells and computed float floors on every move. The grid
+at 007AF6D8 (moved by 0067BEF0 / 0067CEF0) holds hundreds of entries per cell near effects, and
+the moves were disabled after map_objects' wolf failed to walk in time with them on. Re-reading
+the disassembly against the rewrite found no behavioural difference: FISTP in the same rounding
+mode, the same bounds, cells, reference counts and unlink/append order. The likely cause is the
+check's cost, so the comparison is now sampled and the other calls run ours with no extra work.
 MarkWithinRadius calls the game's `_hypot` and marks when the distance is not greater than
 radius (+0x94) x scale; a NaN marks (FCOMPP + TEST AH,0x41). The distance and the product are
 plain C++ (rule 7): a distance on the very edge of the radius may rarely mark differently.
