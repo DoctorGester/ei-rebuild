@@ -5,8 +5,10 @@
 #include "verify.h"
 
 #include "../../src/game/ai_map.h"
+#include "../../src/lib/mfc.h"
 
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 namespace {
@@ -92,3 +94,135 @@ static void __fastcall LabelRegionsVerify(CRegionMap* self, void*) {
     ei::verify::Check("CRegionMap::LabelRegions", 0, differences, "%d blocks", static_cast<int>(actual.size()));
 }
 EI_VERIFY(0x005B0050, LabelRegionsVerify, 8, s_originalLabel);
+
+namespace {
+LabelFn s_originalClamp;
+
+// The edge words of every size class (+0x120 + 16 * class: rows, width, height), saved or put back.
+void EdgeWords(CRegionMap* map, std::vector<std::int16_t>& words, bool restore) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    if (!restore) words.clear();
+    std::size_t i = 0;
+    for (int c = 0; c < 8; ++c) {
+        auto** rows = *reinterpret_cast<std::int16_t***>(base + 0x120 + c * 16);
+        int width = *reinterpret_cast<int*>(base + 0x124 + c * 16), height = *reinterpret_cast<int*>(base + 0x128 + c * 16);
+        for (int y = 0; y < height; ++y)
+            for (int x = 0; x < width * 8; ++x) {
+                if (restore) rows[y][x] = words[i++];
+                else words.push_back(rows[y][x]);
+            }
+    }
+}
+} // namespace
+
+// 005B0F70: snapshot, the original, its words kept, the snapshot put back, ours; compared.
+static void __fastcall ClampEdgeCostsVerify(CRegionMap* self, void*) {
+    std::vector<std::int16_t> before, expected, actual;
+    EdgeWords(self, before, false);
+    s_originalClamp(self, nullptr);
+    EdgeWords(self, expected, false);
+    EdgeWords(self, before, true);
+    self->ClampEdgeCosts();
+    EdgeWords(self, actual, false);
+    int differences = 0;
+    for (std::size_t i = 0; i < actual.size(); ++i)
+        if (actual[i] != expected[i]) ++differences;
+    ei::verify::Check("CRegionMap::ClampEdgeCosts", 0, differences, "%d words", static_cast<int>(actual.size()));
+}
+EI_VERIFY(0x005B0F70, ClampEdgeCostsVerify, 5, s_originalClamp);
+
+namespace {
+void* s_unusedLoad;
+}
+
+// 005B1180: reads a stream, so ours only. After a load every grid of every class has the size
+// of the first (the map's block size, 1..256).
+static bool __fastcall LoadBlocksVerify(CRegionMap* self, void*, void* stream) {
+    bool result = self->LoadBlocks(stream);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    int width = *reinterpret_cast<int*>(base + 0x124), height = *reinterpret_cast<int*>(base + 0x128);
+    bool ok = true;
+    if (width > 0 && width <= 0x100 && height > 0 && height <= 0x100) {
+        for (int grid = 0x11C; grid < 0x29C && ok; grid += 16)
+            ok = *reinterpret_cast<int*>(base + grid + 8) == width && *reinterpret_cast<int*>(base + grid + 12) == height;
+    }
+    ei::verify::Check("CRegionMap::LoadBlocks", true, ok, "%dx%d -> %d", width, height, result);
+    return result;
+}
+EI_VERIFY(0x005B1180, LoadBlocksVerify, 0, s_unusedLoad);
+
+namespace {
+using PickFn = void(__fastcall*)(CRegionMap*, void*, CAIMap*, int, int);
+PickFn s_originalPick;
+
+std::uint8_t& RepresentativeOf(CRegionMap* map, int c, int bx, int by) {
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    return (*reinterpret_cast<std::uint8_t***>(base + 0x1A0 + c * 16))[by][bx];
+}
+} // namespace
+
+// 005AF900: the block's 8 representative bytes: snapshot, the original, kept, put back, ours.
+static void __fastcall PickVerify(CRegionMap* self, void*, CAIMap* map, int bx, int by) {
+    std::uint8_t before[8], expected[8], actual[8];
+    for (int c = 0; c < 8; ++c) before[c] = RepresentativeOf(self, c, bx, by);
+    s_originalPick(self, nullptr, map, bx, by);
+    for (int c = 0; c < 8; ++c) {
+        expected[c] = RepresentativeOf(self, c, bx, by);
+        RepresentativeOf(self, c, bx, by) = before[c];
+    }
+    self->PickRepresentatives(map, bx, by);
+    for (int c = 0; c < 8; ++c) actual[c] = RepresentativeOf(self, c, bx, by);
+    ei::verify::Check("CRegionMap::PickRepresentatives", true, std::memcmp(actual, expected, 8) == 0, "block (%d,%d)", bx,
+                      by);
+}
+EI_VERIFY(0x005AF900, PickVerify, 5, s_originalPick);
+
+namespace {
+void* s_unusedChain;
+}
+
+// 005B0D90: ours only (the chain goes into the caller's list). Afterwards both block searches are
+// inactive with no touched records left.
+static bool __fastcall FindRegionChainVerify(CRegionMap* self, void*, int sizeClass, int fromX, int fromY, int toX,
+                                             int toY, void* chain, void* excluded) {
+    bool result = self->FindRegionChain(sizeClass, fromX, fromY, toX, toY, chain, excluded);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    bool ok = !base[0x49] && !base[0x4C + 0x49] && *reinterpret_cast<void**>(base + 0x18) == nullptr &&
+              *reinterpret_cast<void**>(base + 0x4C + 0x18) == nullptr;
+    ei::verify::Check("CRegionMap::FindRegionChain", true, ok, "class %d (%d,%d)->(%d,%d): %d", sizeClass, fromX, fromY,
+                      toX, toY, result);
+    return result;
+}
+EI_VERIFY(0x005B0D90, FindRegionChainVerify, 0, s_unusedChain);
+
+namespace {
+using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
+NearbyFn s_originalNearby;
+
+std::vector<int> Records(const BlockCostList* list) {
+    std::vector<int> out;
+    for (const BlockCostList::Node* n = list->head; n; n = n->next) {
+        out.push_back(n->x);
+        out.push_back(n->y);
+        out.push_back(n->cost);
+    }
+    return out;
+}
+} // namespace
+
+// 005B0370: the original fills a scratch list of the same shape, ours the caller's; the records
+// (in order) and the counts compared. The scratch list's blocks are freed afterwards.
+static void __fastcall NearbyBlocksVerify(CRegionMap* self, void*, int sizeClass, bool flag, int x, int y,
+                                          BlockCostList* out) {
+    BlockCostList scratch{out->vtable, nullptr, nullptr, 0, nullptr, nullptr, out->blockSize};
+    s_originalNearby(self, nullptr, sizeClass, flag, x, y, &scratch);
+    std::vector<int> expected = Records(&scratch);
+    int expectedCount = scratch.count;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(scratch.blocks));
+    self->NearbyBlocks(sizeClass, flag, x, y, out);
+    std::vector<int> actual = Records(out);
+    bool ok = actual == expected && out->count == expectedCount;
+    ei::verify::Check("CRegionMap::NearbyBlocks", true, ok, "class %d (%d,%d): %d blocks (original %d)", sizeClass, x, y,
+                      out->count, expectedCount);
+}
+EI_VERIFY(0x005B0370, NearbyBlocksVerify, 7, s_originalNearby);

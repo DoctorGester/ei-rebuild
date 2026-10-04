@@ -355,3 +355,28 @@ Rewritten (all hooked; verify wrappers in tests/verify):
 
 Risks: RefreshArea's verify runs the refresh twice (slow on big refreshes). The footprint shapes
 and CellMark depend on the FPU precision assumption above.
+
+
+## Second batch (worker 7)
+
+Rewritten, hooked, with verify wrappers:
+
+- 005B6740 CAIMap::ApplyBridgeDecks (ai_bridges.cpp; `ApplyBridges` stays the forwarder). The
+  bridge map's node value is written as a whole dword: low word the saved ground, byte 2 the
+  object height, byte 3 the occluder kind (005B30B0 restores from it). Verify: ours only inside
+  the MarkFootprint spy (kind 4; applied cells under a bridge, ground >= deck, occluder bits 7).
+- 005B61B0 / 005B6380 CAIMap::AddOccluderRecord / ClearOccluderRecord (ai_occluders.cpp): the
+  occluder word layout is in the file comment; a removal that leaves one record moves it back
+  inline (clearing bit 7 with the transparency) and frees it. Verify: ours only, word state.
+- 005B3C30 / 005B5E10 the CAIMap constructor and reset (ai_map_construct.cpp), 005B4150 the area
+  lists from their data tables (ai_area_lists.cpp, differential).
+- 005B0370 CRegionMap::NearbyBlocks (differential into a scratch list), 005B0F70 ClampEdgeCosts
+  (snapshot/restore differential), 005B1180 LoadBlocks (ours only), 005AF900
+  PickRepresentatives (differential), 005B0D90 FindRegionChain (ours only: both block searches
+  finished), all in ai_region_reach.cpp.
+- 005BC750 CAIMap::LargestStepAlong (ai_line_step.cpp): pure, bit-exact differential on the
+  ST0 result. A NaN length returns 1.0 like the zero length (FCOMP sets C3 when unordered).
+- 005B9690 CAIMap::JoinLocalSearches (ai_join.cpp): ours only.
+
+Skipped: 005BF8F0 (the spiral table's constructor) and 005BF5F0 (called only from it) run from
+the static initializer 005BF8E0, before the hooks are installed.

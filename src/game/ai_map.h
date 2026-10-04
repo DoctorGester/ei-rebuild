@@ -108,7 +108,40 @@ struct CRegionMap {
     bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
     // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
     void LabelRegions();
+    // 005B0F70 (ai_region_reach.cpp). The per-direction block edge words: -1 out of the map, and
+    // each edge between two blocks the smaller of its two directions, for every size class.
+    void ClampEdgeCosts();
+    // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
+    // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
+    bool LoadBlocks(void* stream);
+    // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
+    // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
+    void PickRepresentatives(class CAIMap* map, int bx, int by);
+    // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
+    // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
+    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
+    // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
+    // representative cell the local search reaches from it, as {block x, block y, cost} appended
+    // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
+    void NearbyBlocks(int sizeClass, bool flag, int x, int y, struct BlockCostList* out);
 };
+
+// A CList of {block x, block y, cost} (0x1C bytes, nodes 0x14).
+struct BlockCostList {
+    struct Node {
+        Node* next;
+        Node* prev;
+        int x, y, cost;
+    };
+    void* vtable;
+    Node* head;
+    Node* tail;
+    int count;
+    Node* free;
+    void* blocks;
+    int blockSize;
+};
+static_assert(sizeof(BlockCostList) == 0x1C);
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
 // middle (negative steps down, positive up). Layout provisional.
@@ -313,9 +346,20 @@ public:
     // Not rewritten (forwarders):
     // 005B6740. Applies or clears the bridge decks of a footprint.
     bool ApplyBridges(FootprintCellSet* set, bool remove);
+    // The rewrite of 005B6740 (ai_bridges.cpp); ApplyBridges stays the forwarder to its address.
+    bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);
+    // 005BC750 (RET 8, ST0; ai_line_step.cpp). The largest ground step between consecutive cells on
+    // the line, in world height; 1.0 for a zero-length line, 100.0 when an end is off the map.
+    double LargestStepAlong(const Vector3* from, const Vector3* to);
+    // 005B9690 (RET 8, AL; ai_join.cpp). Joins the forward and backward local searches where they
+    // meet: the path into `cells`, the summed cost into `cost` (optional); false when they cannot.
+    bool JoinLocalSearches(struct PathCellList* cells, int* cost);
     // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
     bool AddOccluder(FootprintCell* cell);
     bool ClearOccluder(FootprintCell* cell);
+    // The rewrites of 005B61B0 / 005B6380 (ai_occluders.cpp); the two above stay the forwarders.
+    bool AddOccluderRecord(FootprintCell* cell);
+    bool ClearOccluderRecord(FootprintCell* cell);
     // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).
     void Refresh(int minX, int maxX, int minY, int maxY);
     // The rewrite of 005B8FA0 (ai_refresh.cpp); Refresh stays the forwarder to its address.
