@@ -120,6 +120,11 @@ public:
     // vertices moved by offsets_ when there are any (into the shared buffer at 007C2E18). Returns
     // the vertex count (4 per packet). RET 0x10.
     int DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* arg3);
+    // 0059F710 / 0059F8F0 (vtable slots, RET 4; figure_mesh_file.cpp): write the mesh to / read it
+    // from an MFC CFile: the name (+0x120, length then characters), each array as a count and its
+    // elements, a 0, then centre, box, radius and +0x158 / +0x15C.
+    void SaveToFile(void* file);
+    void LoadFromFile(void* file);
 
     void* vtable_;                      // +0x000
     std::uint8_t unknown_004[4];
