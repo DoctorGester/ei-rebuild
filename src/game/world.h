@@ -710,6 +710,11 @@ struct GameFlow {
     // requests state 6 (host) or 5 (client, to its peer's zone); the second (+0x80 set) asks for
     // state 1 and the start zone again, and the host drops its client.
     void SwitchMultiplayerZone();
+    // 0057E740 (RET 0x18; world_game.cpp). Hosts a multiplayer game: new server (game type) and
+    // client sessions, the client connects to 127.0.0.1 with the password (20 bytes) as hello,
+    // then the server's name ("Server" when empty), +0x25E0, password, listing (not `unlisted`)
+    // and +0x25FC are set; between 0057F560 and 0057EB10 (both patched by Rebirth).
+    void StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted, int value25FC);
     // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
     // zone or save name (+4), +0x78 and, for 5 and 6, a copy of a party (+8, 00661300).
     void RequestState3();                                            // 005816C0

@@ -1204,6 +1204,80 @@ void GameFlow::SwitchMultiplayerZone() {
     At<char>(this, 0x80) = 1;
 }
 
+// ---- StartServer ----------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kLocalHost = 0x007906B8;     // "127.0.0.1"
+constexpr std::uintptr_t kServerName = 0x007906B0;    // "Server"
+constexpr std::size_t kServerSessionSize = 0x2600;
+constexpr std::size_t kPasswordSize = 0x14;
+
+// 0057F560 / 0057EB10 (patched by Rebirth): the flow before / after starting the sessions.
+__declspec(naked) void __fastcall FlowBeforeServer(GameFlow*, void*) EI_ORIGINAL(0x0057F560)
+__declspec(naked) void __fastcall FlowAfterServer(GameFlow*, void*) EI_ORIGINAL(0x0057EB10)
+// 00412D80 (RET 4). The game server session's constructor (game type).
+__declspec(naked) std::uint8_t* __fastcall ServerSessionConstruct(void*, void*, int) EI_ORIGINAL(0x00412D80)
+// 00419CD0 (RET 4). A session reference (0079B5DC / 0079B5D8) assigned.
+__declspec(naked) void __fastcall SessionRefAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
+// 00440440 (RET 8). A 16-byte network address from a host name and a port.
+__declspec(naked) void __fastcall AddressSet(void*, void*, const char*, int) EI_ORIGINAL(0x00440440)
+// 00436C60 (RET 8). A buffer takes bytes.
+__declspec(naked) void __fastcall BufferPut(GameBuffer*, void*, const void*, int) EI_ORIGINAL(0x00436C60)
+// 00442980 (RET 8). The client connects to an address with a hello buffer.
+__declspec(naked) void __fastcall ClientConnect(void*, void*, void*, GameBuffer*) EI_ORIGINAL(0x00442980)
+// 00426A80 (RET 8). STLport string assign [first, last).
+__declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00426A80)
+// 0041A140 (RET 4) / 00417E10 (RET 4). The server's password / whether it is listed.
+__declspec(naked) void __fastcall ServerSetPassword(void*, void*, const char*) EI_ORIGINAL(0x0041A140)
+__declspec(naked) void __fastcall ServerSetPublic(void*, void*, int) EI_ORIGINAL(0x00417E10)
+__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer*, void*) EI_ORIGINAL(0x004DA7F0)
+__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer*, void*) EI_ORIGINAL(0x004DA910)
+__declspec(naked) std::uint8_t* __fastcall ClientSessionNew(void*, void*) EI_ORIGINAL(0x0041BC40)
+// 006E7E80. The CRT's strncpy.
+__declspec(naked) char* __cdecl GameStrncpy(char*, const char*, std::size_t) EI_ORIGINAL(0x006E7E80)
+
+} // namespace
+
+void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
+                           int value25FC) {
+    FlowBeforeServer(this, nullptr);
+    *reinterpret_cast<std::uintptr_t*>(0x0079B91C) = 0x007C56B0;
+    {
+        auto* memory = static_cast<std::uint8_t*>(gamecrt::operator_new(kServerSessionSize));
+        At<std::uint32_t>(memory, 4) = 0;
+        std::uint8_t* server = memory ? ServerSessionConstruct(memory, nullptr, gameType) : nullptr;
+        SessionRefAssign(reinterpret_cast<void*>(0x0079B5DC), nullptr, server);
+    }
+    {
+        auto* memory = static_cast<std::uint8_t*>(gamecrt::operator_new(kClientSessionSize));
+        At<std::uint32_t>(memory, 4) = 0;
+        std::uint8_t* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
+        SessionRefAssign(reinterpret_cast<void*>(0x0079B5D8), nullptr, client);
+    }
+    // The local client connects to the local server with the password as its hello.
+    alignas(4) std::uint8_t address[16] = {};
+    AddressSet(address, nullptr, Text(kLocalHost), *reinterpret_cast<const int*>(0x00783E30));
+    {
+        GameBuffer hello;
+        GrowingBufferConstruct(&hello, nullptr);
+        char secret[kPasswordSize] = {};
+        if (password) GameStrncpy(secret, password, kPasswordSize);
+        BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
+        ClientConnect(ClientSession(), nullptr, address, &hello);
+        GrowingBufferDestruct(&hello, nullptr);
+    }
+    At<std::uint8_t>(At<std::uint8_t*>(ClientSession(), 0x2600), 0x24) = 1;
+    const char* shown = name && *name ? name : Text(kServerName);
+    StringAssignRange(ServerSession() + 0x25C8, nullptr, shown, shown + std::strlen(shown));
+    At<int>(ServerSession(), 0x25E0) = value25E0;
+    if (password && *password) ServerSetPassword(ServerSession(), nullptr, password);
+    ServerSetPublic(ServerSession(), nullptr, unlisted == 0);
+    At<int>(ClientSession(), 0x261C) = gameType;
+    At<int>(ServerSession(), 0x25FC) = value25FC;
+    FlowAfterServer(this, nullptr);
+}
+
 // ---- ClearSaveFolder ------------------------------------------------------------------------------
 
 namespace {
@@ -1258,6 +1332,7 @@ EI_REPLACE_METHOD(0x0057FB60, GameFlow::RequestBriefing);
 EI_REPLACE(0x0057F820, NameInList);
 EI_REPLACE(0x0057AAB0, ClearSaveFolder);
 EI_REPLACE_METHOD(0x0057EE10, GameFlow::SwitchMultiplayerZone);
+EI_REPLACE_METHOD(0x0057E740, GameFlow::StartServer);
 EI_REPLACE_METHOD(0x00596140, CWorldServer::ReadAIGraph);
 EI_REPLACE_METHOD(0x00596350, CWorldServer::LoadZoneScripts);
 EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);

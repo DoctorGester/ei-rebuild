@@ -192,6 +192,18 @@ static void __fastcall SwitchMultiplayerZoneVerify(GameFlow* self, void*) {
 }
 EI_VERIFY(0x0057EE10, SwitchMultiplayerZoneVerify, 0, s_unused);
 
+// 0057E740: afterwards both sessions exist and the client has the game type.
+static void __fastcall StartServerVerify(GameFlow* self, void*, const char* name, int value25E0, int gameType,
+                                         const char* password, char unlisted, int value25FC) {
+    self->StartServer(name, value25E0, gameType, password, unlisted, value25FC);
+    auto* server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
+    auto* client = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    bool ok = server && client && *reinterpret_cast<int*>(client + 0x261C) == gameType &&
+              *reinterpret_cast<int*>(server + 0x25FC) == value25FC;
+    ei::verify::Check("GameFlow::StartServer", true, ok, "%s type %d", name ? name : "", gameType);
+}
+EI_VERIFY(0x0057E740, StartServerVerify, 0, s_unused);
+
 // 0057F150: afterwards an active client's request is not left answered (kind 3).
 static void __fastcall UpdateAndAcknowledgeVerify(GameFlow* self, void*) {
     self->UpdateAndAcknowledge();
