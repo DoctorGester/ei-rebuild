@@ -70,3 +70,45 @@ static void __fastcall UiSurfaceReleaseDCVerify(char* surface) {
                       static_cast<void*>(surface));
 }
 EI_VERIFY(0x005FDC60, UiSurfaceReleaseDCVerify, 0, s_releaseDc);
+
+// 005FCC00 / 005FCDD0 (ui_surface_create.cpp): the vtable, a holder with a surface of the screen
+// rectangle's size, flag 4, nothing kept, the surface-bytes total up by height * pitch.
+char* __fastcall UiSurfaceConstruct(char* self, void*, void* ui, int left, int top, int right, int bottom, int format,
+                                    char scale);
+char* __fastcall UiSurfaceConstructRect(char* self, void*, void* ui, const int* rect, int format);
+static void CheckWindowSurface(const char* name, char* self, std::uint32_t bytesBefore) {
+    char* holder = *reinterpret_cast<char**>(self + 0x10);
+    const int* rect = reinterpret_cast<const int*>(self + 0x24);
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    void* surface = holder ? *reinterpret_cast<void**>(holder + 0x10) : nullptr;
+    bool described = surface && reinterpret_cast<long(__stdcall*)(void*, void*)>((*static_cast<void***>(surface))[22])(
+                                    surface, desc) == 0;
+    std::uint32_t grown = *reinterpret_cast<std::uint32_t*>(0x007C7E78) - bytesBefore;
+    bool ok = *reinterpret_cast<std::uintptr_t*>(self) == 0x00740F28 && holder && described &&
+              *reinterpret_cast<int*>(self + 0x14) == rect[2] - rect[0] &&
+              *reinterpret_cast<int*>(self + 0x18) == rect[3] - rect[1] &&
+              static_cast<int>(desc[3]) == rect[2] - rect[0] && static_cast<int>(desc[2]) == rect[3] - rect[1] &&
+              (*reinterpret_cast<std::uint32_t*>(self + 0xC) & 4) && *reinterpret_cast<int*>(self + 0x1C) == 0 &&
+              *reinterpret_cast<int*>(self + 0x20) == 0 && grown == desc[2] * desc[4];
+    ei::verify::Check(name, true, ok, "%dx%d, total +%u", rect[2] - rect[0], rect[3] - rect[1], grown);
+}
+
+static void* s_uiSurface;
+static char* __fastcall UiSurfaceConstructVerify(char* self, void*, void* ui, int left, int top, int right, int bottom,
+                                                 int format, char scale) {
+    std::uint32_t before = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    char* result = UiSurfaceConstruct(self, nullptr, ui, left, top, right, bottom, format, scale);
+    CheckWindowSurface("UiSurfaceConstruct", self, before);
+    return result;
+}
+EI_VERIFY(0x005FCC00, UiSurfaceConstructVerify, 0, s_uiSurface);
+
+static void* s_uiSurfaceRect;
+static char* __fastcall UiSurfaceConstructRectVerify(char* self, void*, void* ui, const int* rect, int format) {
+    std::uint32_t before = *reinterpret_cast<std::uint32_t*>(0x007C7E78);
+    char* result = UiSurfaceConstructRect(self, nullptr, ui, rect, format);
+    CheckWindowSurface("UiSurfaceConstructRect", self, before);
+    return result;
+}
+EI_VERIFY(0x005FCDD0, UiSurfaceConstructRectVerify, 0, s_uiSurfaceRect);

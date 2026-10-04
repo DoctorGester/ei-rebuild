@@ -706,8 +706,27 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     // Into the surface, stretched to its size as DirectDraw's Blt does (nearest texel).
     DDSURFACEDESC2 desc{};
     desc.dwSize = sizeof(desc);
-    LockGameDevice();
-    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
+    // In the switch-over a surface in game-owned memory is written there directly (no DirectDraw).
+    ClientMemoryView client{};
+    bool direct = g_present && ClientMemoryOf(holder, &client);
+    HRESULT hr = S_OK;
+    if (direct) {
+        GdiFlush();   // GDI drawing still queued for the memory must not land on the copy
+        desc.dwWidth = static_cast<DWORD>(client.width);
+        desc.dwHeight = static_cast<DWORD>(client.height);
+        desc.lPitch = client.pitch;
+        desc.lpSurface = client.bits;
+        desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+        desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (client.alpha ? DDPF_ALPHAPIXELS : 0);
+        desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(client.bitsPerPixel);
+        desc.ddpfPixelFormat.dwRBitMask = client.red;
+        desc.ddpfPixelFormat.dwGBitMask = client.green;
+        desc.ddpfPixelFormat.dwBBitMask = client.blue;
+        desc.ddpfPixelFormat.dwRGBAlphaBitMask = client.alpha;
+    } else {
+        LockGameDevice();
+        hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
+    }
     bool ok = SUCCEEDED(hr) && desc.lpSurface && (desc.ddpfPixelFormat.dwFlags & DDPF_RGB) &&
               (desc.ddpfPixelFormat.dwRGBBitCount == 16 || desc.ddpfPixelFormat.dwRGBBitCount == 32);
     if (ok) {
@@ -737,8 +756,10 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
             }
         }
     }
-    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
-    UnlockGameDevice();
+    if (!direct) {
+        if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+        UnlockGameDevice();
+    }
     UnmapTarget();
     return ok;
 }

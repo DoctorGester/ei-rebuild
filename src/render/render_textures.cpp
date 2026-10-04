@@ -599,6 +599,14 @@ bool PictureFromMmpData(const void* holder, const void* data) {
     return true;
 }
 
+bool ClientMemoryOf(const void* holder, ClientMemoryView* out) {
+    auto it = g_clients.find(holder);
+    if (it == g_clients.end()) return false;
+    const Client& c = it->second;
+    *out = ClientMemoryView{c.bits, c.pitch, c.width, c.height, c.bitsPerPixel, c.red, c.green, c.blue, c.alpha};
+    return true;
+}
+
 const Picture* PictureOf(const void* holder) {
     auto it = g_pictures.find(holder);
     return it == g_pictures.end() ? nullptr : &it->second;
