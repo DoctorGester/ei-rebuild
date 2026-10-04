@@ -15,6 +15,8 @@
 //   noobjects  the old path no longer draws the world's meshes (figures, objects, the sky) and
 //              its flat geometry (shadows)
 //   nointerface  ...nor the interface (window surfaces, sprites, 3D previews)
+//   cpuwindows the off-screen surfaces of 004EF7B0 (interface windows, cursor, movies) keep their
+//              pixels in game-owned memory the new renderer reads directly (off by default)
 //   present    the switch-over: the old path draws nothing that is handed over (implies noterrain,
 //              noobjects, nointerface; movies too) and the new frame is copied into the game's
 //              render target before the old present shows it; captures write the new frame as
@@ -36,6 +38,16 @@ void Configure(const char* spec);
 
 // The sidecar renders frames.
 bool Active();
+
+// "cpuwindows": the off-screen surfaces the game makes through 004EF7B0 (interface windows, the
+// software cursor, movies) keep their pixels in memory the game code owns (a DIB section given to
+// DirectDraw as the surface's memory). ClientSurface tells the new renderer where a holder's
+// (CDXSurface) pixels are, so it reads them there instead of locking the surface; ClientSurfaceGone
+// when the holder is destroyed.
+bool CpuWindows();
+void ClientSurface(const void* holder, void* bits, int pitch, int width, int height, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
+void ClientSurfaceGone(const void* holder);
 
 // The switch-over mode ("present"): the new frame is what the old present (004EF610) shows; the
 // old path draws nothing that is handed over.

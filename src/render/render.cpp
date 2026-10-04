@@ -33,6 +33,7 @@ bool g_active = false;
 bool g_show = false;
 bool g_split = false;
 bool g_present = false;
+bool g_cpuWindows = false;
 bool g_oldTerrain = true;
 bool g_oldObjects = true;
 bool g_oldInterface = true;
@@ -40,7 +41,7 @@ bool g_inWorld = false;
 bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
 
 void ParseSpec(const char* spec) {
-    g_active = g_show = g_split = g_present = false;
+    g_active = g_show = g_split = g_present = g_cpuWindows = false;
     g_oldTerrain = g_oldObjects = g_oldInterface = true;
     std::string s = spec ? spec : "";
     std::size_t start = 0;
@@ -56,6 +57,7 @@ void ParseSpec(const char* spec) {
         else if (word == "noobjects") g_oldObjects = false;
         else if (word == "nointerface") g_oldInterface = false;
         else if (word == "present") g_present = true;
+        else if (word == "cpuwindows") g_cpuWindows = true;
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
@@ -68,7 +70,7 @@ void ParseSpec(const char* spec) {
         g_oldTerrain = g_oldObjects = g_oldInterface = false;
     }
     if (!g_active) {
-        g_show = g_split = g_present = false;
+        g_show = g_split = g_present = g_cpuWindows = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = true;
     }
     g_configured = true;
@@ -508,6 +510,11 @@ void Configure(const char* spec) { ParseSpec(spec); }
 bool Active() {
     EnsureConfigured();
     return g_active && !g_failed;
+}
+
+bool CpuWindows() {
+    EnsureConfigured();
+    return g_cpuWindows && g_active;
 }
 
 bool Presenting() {
