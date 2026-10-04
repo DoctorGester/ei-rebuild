@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 
 // RefPtr::Destroy (00413270): 21 more copies.
 EI_REPLACE_METHOD(0x00417A30, RefPtr::Destroy);
@@ -144,6 +145,17 @@ EI_REPLACE(0x00428C20, RefPtrFromRaw);
 EI_REPLACE(0x00428C30, RefPtrFromRaw);
 EI_REPLACE(0x00428C40, RefPtrFromRaw);
 EI_REPLACE(0x00428DE0, RefPtrFromRaw);
+EI_REPLACE(0x0047A690, RefPtrFromRaw);
+EI_REPLACE(0x0047A6A0, RefPtrFromRaw);
+
+// The released holder's scalar deleting destructor (0047A6D0: the release 0047A430, then the
+// holder freed when bit 0 of the flags is set); returns the holder.
+RefPtr* __fastcall RefPtrReleaseDelete(RefPtr* self, void*, unsigned flags) {
+    RefPtrRelease(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+EI_REPLACE(0x0047A6D0, RefPtrReleaseDelete);
 
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
 RefPtr* __fastcall RefPtrFromRawCounted(RefPtr* self, void*, CRefObject* object) {

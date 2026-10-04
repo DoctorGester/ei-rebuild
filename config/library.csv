@@ -3457,3 +3457,8 @@ address,name,library,signature,notes
 0055AFF0,stlp hashtable accessor (functor copy),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
 0055AFB0,stlp hashtable iterator constructor,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
 0055AFD0,stlp hashtable iterator constructor,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+00476430,"CArray<TYPE,ARG_TYPE>::Serialize (0x1C-byte elements with a virtual destructor)",MFC,,"range 440 review: MFC template instantiation (SetSize inlined, elements written/read raw through CArchive), not game logic"
+00476640,"CArray<TYPE,ARG_TYPE>::Add (4-byte elements)",MFC,,"range 440 review: MFC template instantiation (SetAtGrow at the size, SetSize inlined), not game logic"
+004773F0,"CArray<TYPE,ARG_TYPE>::SetAtGrow (4-byte elements)",MFC,,"range 440 review: MFC template instantiation (SetSize inlined), not game logic"
+00477270,"CMap<KEY,ARG_KEY,VALUE,ARG_VALUE>::InitHashTable",MFC,,"range 440 review: MFC template instantiation, not game logic"
+00476050,"CMap<KEY,ARG_KEY,VALUE,ARG_VALUE>::operator[] (pointer keys, hash key >> 4)",MFC,,"range 440 review: MFC template instantiation (NewAssoc inlined), not game logic"
