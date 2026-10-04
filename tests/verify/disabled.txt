@@ -5,3 +5,4 @@
 005DC620  console Execute: registration check fails in 1255 of 2298 calls since the Rebirth console commands
 005641F0  CWorldClient::Segment: tick check fails in 179 of 55523 calls
 00662FB0  SavedPartyList::Reload: crashes in DestroyPartyEntry when the multiplayer hero screen opens (ui_screens)
+005EC300  CUiWindow::DrawHeroPreview: 'transform kept 0' in 8 of 2021 calls (the model's transform is not put back)
