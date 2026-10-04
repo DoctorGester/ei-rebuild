@@ -264,15 +264,46 @@ void MovieBlit(const void* key, const Rect& to) {
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
 
+namespace {
+// Draws `rgba` (w x h) at `to` as a blit of this frame.
+void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to);
+} // namespace
+
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
     if (!imageHolder || !mask || !Active() || !Started()) return;
     auto* dd = *reinterpret_cast<IDirectDrawSurface7* const*>(static_cast<const char*>(imageHolder) + 0x10);
     int w = from.right - from.left, h = from.bottom - from.top;
     if (!dd || w <= 0 || h <= 0 || w > 256 || h > 256) return;
     FpuGuard fpu;
+    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * h * 4, 0);
+    // The image loaded from its picture (004EFC60, render::PictureFromMmp): the colours from the
+    // file, the mask (the holder's width, +0x14, in its pixel size, +0x1C) from the game's memory.
+    const char* holder = static_cast<const char*>(imageHolder);
+    int maskWidth = *reinterpret_cast<const int*>(holder + 0x14);
+    int maskBytes = *reinterpret_cast<const int*>(holder + 0x1C) / 8;
+    if (const Picture* picture = PictureOf(imageHolder);
+        picture && picture->width == maskWidth && (maskBytes == 2 || maskBytes == 4) && from.left >= 0 && from.top >= 0 &&
+        from.right <= picture->width && from.bottom <= picture->height) {
+        for (int y = 0; y < h; ++y) {
+            const auto* mrow = static_cast<const std::uint8_t*>(mask) +
+                               (static_cast<std::size_t>(from.top + y) * maskWidth + from.left) * maskBytes;
+            for (int x = 0; x < w; ++x) {
+                std::uint32_t m = 0;
+                std::memcpy(&m, mrow + static_cast<std::size_t>(x) * maskBytes, static_cast<std::size_t>(maskBytes));
+                const std::uint8_t* p =
+                    &picture->rgba[(static_cast<std::size_t>(from.top + y) * picture->width + from.left + x) * 4];
+                std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * w + x) * 4];
+                o[0] = p[0];
+                o[1] = p[1];
+                o[2] = p[2];
+                o[3] = m == 0 ? 255 : 0;   // the mask is all ones where the image is black
+            }
+        }
+        CursorBlit(rgba, w, h, to);
+        return;
+    }
     DDSURFACEDESC2 d{};
     d.dwSize = sizeof(d);
-    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * h * 4, 0);
     LockGameDevice();
     HRESULT hr = dd->Lock(nullptr, &d, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
     const DDPIXELFORMAT& pf = d.ddpfPixelFormat;
@@ -308,6 +339,11 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     if (SUCCEEDED(hr)) dd->Unlock(nullptr);
     UnlockGameDevice();
     if (!ok) return;
+    CursorBlit(rgba, w, h, to);
+}
+
+namespace {
+void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to) {
     sg_image_desc desc{};
     desc.width = w;
     desc.height = h;
@@ -332,6 +368,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
+} // namespace
 
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key) {
     if (!holder || !Active() || !Started()) return;

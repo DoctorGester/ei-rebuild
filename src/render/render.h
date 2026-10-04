@@ -48,6 +48,9 @@ bool CpuWindows();
 void ClientSurface(const void* holder, void* bits, int pitch, int width, int height, int bitsPerPixel,
                    std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 void ClientSurfaceGone(const void* holder);
+// A holder whose surface was loaded from an 8888 .mmp picture (004EFC60: the software cursor's
+// images): the new renderer keeps the picture's pixels from the file data.
+void PictureFromMmp(const void* holder, const void* data);
 
 // The switch-over mode ("present"): the new frame is what the old present (004EF610) shows; the
 // old path draws nothing that is handed over.
