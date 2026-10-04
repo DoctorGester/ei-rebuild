@@ -17,8 +17,9 @@ game was run.
 
 - **addon.dll** has 52 patches in four tables (plus 35 mod-only ones that need a mod with an
   `[Addon]` section, not used here). In this install 34 are applied and 18 are logged as disabled.
-  addon.log names 218 patch sites (plus its own WinMain hook); two more are written without a log
-  line (FixProcessLogin at 004433D6, SetEiPluginMode at 0073AF10).
+  addon.log names 218 patch sites (plus its own WinMain hook); three more are written without a log
+  line (FixProcessLogin at 004433D6, FixRepairPrice's second site at 0060FB87, SetEiPluginMode at
+  0073AF10). A Rebirth launch now lists any other changed range in rebirth_unknown_diffs.txt.
 - By group (applied / all): bug fixes 10/10, widescreen/rendering 3/4, scripting/console 8/8,
   multiplayer 5/9, resources/paths 6/12, crash handling/infrastructure 2/9.
 - Single player: 28 of the 34 applied patches change single-player behaviour or presentation; the
@@ -31,9 +32,9 @@ game was run.
 - The four "unexplained" functions of the patched list are addon's: 00443080 is FixProcessLogin
   (the unlogged JMP at 004433D6), and 005F7DA0, 005F7E00, 005F7E30 are covered by WideScreen #93,
   a 194-byte write starting at 005F7D9E. No patched function is left without an addon site.
-- **FPU precision**: no code in addon.dll, EI_Plugin.asi or the loader sets the x87 precision
-  persistently. The one component that differs and runs on the main thread around D3D setup is
-  Miles: Rebirth ships MSS 6.0h, GOG 5.0p. A trace is in the harness to settle it (below).
+- **FPU precision**: measured 24 bits on the main thread at every frame boundary in both installs
+  (027F until Direct3D starts, 007F after); nothing in Rebirth sets it. The verify wrappers now log
+  any function they see running at a higher precision (below).
 - game.exe itself differs from GOG's by one byte (00456BB5, JE to JMP: the CD check).
 
 ## How Rebirth gets into the process
@@ -124,11 +125,14 @@ Sites are listed in full in the CSV.
   object with 20 effects gets no more (the first ten refusals are logged), and after adding an effect
   that lasts more than one tick, every older effect of the same type and end flag whose +0x0C is
   within 0.001, that lasts no longer and whose value is not higher is removed. (#0) In
-  `CWorldServer::UpdateUnits` (0058D670) a context hook first walks the world's object list
-  (007C2D00) and, for each object that is referenced, not flagged 1, has effects, a companion
-  (+0x170) and +0x174 <= 0 (objects the update does not tick), counts every effect down by one tick
-  and removes the expired ones. *#1 implemented*
-  (src/game/map_object.cpp); #0 needs UpdateUnits.
+  `CWorldServer::UpdateUnits` (0058D670) a context hook (0058D82E, before the walk of the update
+  map) first walks the map objects (007C2D00, i.e. +0x12DA0 of the server at 007AFF60) and, for each
+  object that is referenced, not flagged 1, has effects, a companion (+0x170) and +0x174 <= 0
+  (asleep: out of the update map, so its own update does not count its effects down), counts every
+  effect down by one tick; an object with an expired effect goes back into the update map
+  (0058D5D0), whose next update removes the effect. *Implemented*: #1 in src/game/map_object.cpp,
+  #0 as a new rewrite `CWorldServer::UpdateUnits` with `TickSleepingEffects`
+  (src/game/world_tick.cpp).
 - **FixProgressNames** - the loading movie (00595080): after the original picks progres.bik for an
   allod other than gipat/ingos/suslanger, addon picks progres2.bik for "gipat2" and progres5.bik for
   "jigran" (Rebirth's own islands; progres5.bik is Rebirth content). *Implemented* as a new rewrite
@@ -150,14 +154,22 @@ Sites are listed in full in the CSV.
   new rewrite `CUnitServer::IsFighting` (src/game/combat.cpp).
 - **FixRepairPrice** - the camp's price function (0060FAB0, slot 54 of the camp pages): the wear
   fraction 1 - durability / maximum is computed with negative (or NaN) values as 0 and clamped to
-  [0, 1]. Vanilla gives negative repair prices for over-full durability and huge ones for negative
-  durability. Context hook at 0060FADC. *Implemented* as a new rewrite `CCampPages::Price`
-  (src/game/ui_camp.cpp).
+  [0, 1] (context hook at 0060FADC); and when a weapon or armour is taken apart in the item
+  constructor (deal kind 7) the repair cost of its wear is added to the price instead of subtracted
+  (a JMP at 0060FB87 that addon writes directly, without an addon.log line). Vanilla gives negative
+  repair prices for over-full durability and huge ones for negative durability. *Implemented* as a
+  new rewrite `CCampPages::Price` (src/game/ui_camp.cpp).
 - **FixRemoveMapObject** - `CWorldServer::RemoveObject` (005935C0): an id that is not in the object
-  map is logged and the function returns, instead of dereferencing null. Needs 005935C0 (1 KB).
+  map is logged and the function returns, instead of dereferencing null (vanilla crashes).
+  Context hook at 00593615 that jumps to the epilogue. *Implemented* as a new rewrite
+  `CWorldServer::RemoveObject` (src/game/world_server.cpp); with the flag off it reads through the
+  null pointer like the original.
 - **FixCreateItem** - the item factory (006AC970): an unknown prototype or an invalid
   prototype/material no longer calls FatalError (which ends the game); addon logs
-  "GiveItem: ..." and the factory returns no item. Two context hooks. Needs 006AC970 (1.6 KB).
+  "GiveItem: ..." and the factory returns no item. Two context hooks (006ACBBD: no prototype;
+  006ACCD0: the constructor failed, where vanilla goes on with the null item and crashes), both
+  resuming at the failure exit 006ACBD1, which also skips the constructor's SetManager(0).
+  *Implemented* as a new rewrite `CItemManager::CreateItem` (src/game/item_constructor.cpp).
 
 ### Widescreen and rendering (3 of 4 applied)
 
@@ -186,7 +198,9 @@ Sites are listed in full in the CSV.
   (src/game/script_parse_load.cpp); a Rebirth launch keeps the original here until
   AddNewScriptCommands, which patches the same function, is reproduced too.
 - **AllowScriptsInMainMenu** - starting the main menu zone (ZoneMainMenuNew, in 0057C460) also sets
-  CWorldServer+0x160 (007B00C0), so the world script's command queue runs in the menu.
+  CWorldServer+0x160 (007B00C0; a JMP at 0057C69F to a stub that redoes `MOV EDI,4`), so Tick runs
+  the first script command queue in the menu. *Implemented* as a new rewrite `GameFlow::StartZone`
+  (src/game/world_game.cpp).
 - **AddNewScriptCommands** (25 sites) - the script command table (0078BCA0, 0x12C commands) is copied
   and extended (GiveUnitWeapon, GiveUnitArmor, StrUpper, StrLower, StrMid, StrHas, StrLen, StrCat,
   StrToFloat, FloatToStr, RandObj, RandStr, Random, Floor, UnitsNearPoint, NearestUnit,
@@ -198,7 +212,14 @@ Sites are listed in full in the CSV.
   004B56C0, 004B5B00, 004B6760, 004CF470, 004CF600, 004CFBC0, 004D0B10, 004D0BA0, 004D1330,
   004D41C0) read the new table and dispatch the new commands. Moved here from EI_Plugin.
 - **PersistentGlobalVars** - global variables named `gvar.*` keep their values across zone changes
-  and saves (00662FB0, 0057EB10, 005800C0).
+  and saves (00662FB0, 0057EB10, 005800C0). Where the game empties a variable table (00461540:
+  the call sites 0057EB25 and 00580177, redirected; and in 00662FB0, where the JNE at 00663083 now
+  jumps past the inlined clear of the table at [esp+0x70] (00663129-0066316A, to 0066316C) and
+  a context hook at 00663170 clears it instead), addon's 1001E3C1 first copies every
+  `gvar.` entry into an MSVC unordered_map<string, float>, lets the table be emptied, then sets
+  the entries again (00460BC0) in the order of that map's list. That order decides the order in
+  the game's hash chains (and so in saves), so a rewrite has to reproduce the MSVC container's
+  list order (FNV-1a buckets, the node splicing on insert and on rehash). Not started.
 - **NewStringEvents** - string events (005F8070): "gameover" plays buttons\gameover.wav and shows a
   game over message (title and text from the event's arguments or the game_over / game_over_msg
   texts).
@@ -238,6 +259,9 @@ PlayerNumbers (moved from EI_Plugin: a call in 0066C180). Disabled: SetDefaultRa
 - **DisableExitOnCrashReport** (single player) - FatalError (00480080) logs its text instead of
   the message box (004800A7) and no longer exits (9 NOPs at 004800C9); 005641F0 no longer calls
   00665A10 before its own FatalError. The game carries on after errors that end vanilla.
+  *FatalError implemented* as a new rewrite (src/game/app.cpp; addon's addon.log line is not
+  reproduced: the text still goes to the error hook at 007A9BA0 when one is set); the third site
+  needs 005641F0, the world frame (1.5 KB, not rewritten).
 - **SetEiPluginMode** - writes 0xAADD0080 at 0073AF10 (padding after .text) for EI_Plugin.asi.
 - Disabled: GameExeDebug (debug log file), CommandLine (addon's command line mode), GraphGenPatches,
   MenuMultiDisable, MenuSingleDisable, PreventZone1Animation, ForceShowTutorial.
@@ -291,27 +315,42 @@ patches nothing before WinMain.
 
 ## FPU precision
 
-What was checked:
+Measured (harness runs of every scenario, both installs, after this round's trace): the control word
+is 027F (53-bit, the CRT default) at WinMain and still 027F before `AIL_startup`; it is 007F (24-bit,
+round to nearest, all exceptions masked) the first time the message loop runs, i.e. after Direct3D
+(dgVoodoo) created the device; and it does not change between frames afterwards. Vanilla and Rebirth
+are the same at every frame boundary.
+
+Statically, nothing in Rebirth raises it:
 
 - addon.dll and EI_Plugin.asi use a VS2010-2013 static CRT. Their DLL init calls `_cinit(0)`, so
   `_fpmath` only does FNCLEX (`_setdefaultprecision` is not called for DLLs). Every FLDCW in them
-  (Ghidra listing) is a save/restore inside a CRT maths routine (fabs, the transcendental
-  dispatchers, `_ftol` variants) or EI_Plugin's float-to-int helper. No `_controlfp`/`_control87`
-  call outside the CRT, no FNINIT. The loader (dinput.dll) has no FPU code.
-- game.exe never changes the precision persistently: its own `_control87` calls (006C3A00,
-  006C89xx, 006C957D) raise it to 64 bits around maths and restore it.
-- Both mss32.dll versions load every `*.asi` from `AIL_startup` (Ghidra call graph: the "*.asi"
-  scan is called only from `_AIL_startup@0`), and mp3dec.asi's VC CRT runs `_setdefaultprecision`
-  (_PC_53) when it loads; both Miles versions do the same for themselves at process start.
-- What differs: Rebirth's game root has MSS 6.0h (2000-06-12), GOG has MSS 5.0p (1999-04-27). It
-  is the only differing component that runs on the main thread around graphics and sound
-  initialisation, and EI_Plugin's loading depends on its `AIL_startup` timing.
+  (Ghidra listing) is a save/restore inside a CRT maths routine (fabs and the like set 0x133F through
+  `_ctrlfp` and put the caller's word back on every exit path; the transcendental dispatchers load
+  027F only if it differs and restore it in `__math_exit`) or EI_Plugin's float-to-int helper (RC
+  only). No `_controlfp`/`_control87` outside the CRT, no FNINIT. The loader (dinput.dll) has no
+  FPU code. The handlers that run in game paths (the context hooks of FixSpellEffectsOverflow #0,
+  FixRepairPrice, the console and script hooks, the WideScreen replacements) only save the integer
+  registers and flags (PUSHAD/PUSHFD), not the FPU state, and change no control word.
+- game.exe's own `_control87` calls (006C3A00 terrain lighting, 006C8990, 006C9560) switch the
+  rounding mode (chop, down) for a while and restore the whole word; they never change precision.
+- Both mss32.dll versions call `_controlfp` only from `_setdefaultprecision` at their own load, and
+  load every `*.asi` (mp3dec.asi, EI_Plugin.asi) in `AIL_startup`, where mp3dec's VC CRT also sets
+  _PC_53. That happens before Direct3D, which then sets 24 bits. Rebirth ships MSS 6.0h, GOG 5.0p;
+  this does not change the outcome.
+- Other threads start at 027F (53-bit): Miles' timer/mixer threads, the game's stream and MIDI
+  threads, EI_Plugin's master-server and updater threads. Game code that runs there (the sound
+  manager's callbacks) computes at 53 bits in both installs.
 
-So the static answer is "not addon, not EI_Plugin; most likely Miles 6.0h's startup order or code
-leaving 53-bit precision in place after Direct3D set 24 bits". To settle it, ei_hook now logs the
-control word at WinMain ("FPU control word at WinMain"), and the verify build's harness logs it
-before and after `AIL_startup` and whenever it changes between frames on the main thread
-("harness: FPU control word ..."). One vanilla and one Rebirth run of any scenario answer it.
+So the earlier conclusion ("under Rebirth the FPU runs higher", drawn from a CItemWeapon::RollDamage
+mismatch) is not confirmed: the main thread runs at 24 bits in both installs at frame boundaries,
+and no Rebirth component is known to raise it within a frame. Possible explanations of that mismatch:
+the then rewrite's own operation order (/fp:fast reassociation changes results at 24 bits too), or
+a transient raise not found statically. To catch the latter, every verify wrapper now checks the
+control word when it reports: a function seen at 53 or 64 bits is logged once ("FPU precision ...
+in <function> on the main / another thread; stack: ..."; at most 30 lines) and listed in
+harness_report.txt. Returning ST0 results as `double` stays right either way (exact at 24 and 53
+bits, and required where callers keep using ST0).
 
 ## Flags in the rebuild
 
@@ -389,7 +428,12 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixPlaingBattleMusicFromAntimagic | new: CUnitServer::IsFighting 0054B580 (combat.cpp) | pure wrapper (10 stolen bytes), vanilla and Rebirth |
 | FixRepairPrice | new: CCampPages::Price 0060FAB0 (ui_camp.cpp) | pure wrapper (6 stolen bytes), vanilla and Rebirth |
 | FixProgressNames | new: SelectLoadingMovie 00595080 (world_zone.cpp) | wrapper (7 stolen bytes) runs both on the same starting value and compares the chosen movie names as text |
-| FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | ours only: the effect appended as the last record (or dropped at 20), part 3 changed, object dirty |
+| FixSpellEffectsOverflow #0 | new: CWorldServer::UpdateUnits 0058D670 + TickSleepingEffects (world_tick.cpp) | ours only (it runs every awake object): afterwards no unit sent to sleep is still in the update map |
+| FixRemoveMapObject | new: CWorldServer::RemoveObject 005935C0 (world_server.cpp) | ours only (destructive: slots, releases): afterwards the id is in no id map; an unknown id changes nothing |
+| AllowScriptsInMainMenu | new: GameFlow::StartZone 0057C460 (world_game.cpp) | ours only (tears down and loads zones): the campaign mode is the one asked for (or 2 / 8), and +0x160 is set in the menu with the flag |
+| FixCreateItem | new: CItemManager::CreateItem 006AC970 (item_constructor.cpp) | ours only (creates objects): a created item has an item class, a "spell container[...]" one its spell |
+| DisableExitOnCrashReport (FatalError sites) | new: FatalError 00480080 (app.cpp) | none (it shows a message box and exits): a plain replacement |
+| FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
 (newgame for the loading movie, combat and spells for IsFighting and AddEffect, ui_camp for prices).
@@ -403,21 +447,28 @@ and steps past the record moved into a removed one's place, as addon does. Not r
 log lines (addon.log, or the console only with a mod's LogErrorsIn* options) and the FSTP ST(0) its
 AddEffect wrapper executes on an empty FPU stack.
 
+### Fixed after the first Rebirth run
+
+- The detection counted MoviesPatch (an import slot) as applied in every launch, because the
+  loader writes every import slot: vanilla runs were treated as Rebirth launches and FollowAddon
+  switched the scenario's flags off. Import slots now count only when they point into addon.dll,
+  and nothing counts without addon.dll loaded.
+- CCampPages::Price was skipped in Rebirth ("byte +0xD7 differs"): FixRepairPrice's unlogged
+  second site, now in the inventory and implemented.
+- The first AddEffect wrapper only checked ours and treated a re-applied effect that replaced its
+  older copy (count unchanged) as an error; it now compares with the original as above.
+
 ### Remaining work
 
 Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 
 | Patch | Work | Estimate |
 |---|---|---|
-| FixSpellEffectsOverflow #0 | rewrite CWorldServer::UpdateUnits 0058D670 (0.9 KB) or a pre-step hook | 0.5 day |
 | FixSpellSelfCasting #1 | CBattleScreen::SelectUnit 00638EF0 (3.6 KB) | 1-2 days |
-| FixRemoveMapObject | CWorldServer::RemoveObject 005935C0 (1 KB) | 0.5 day |
-| FixCreateItem | item factory 006AC970 (1.6 KB, many callees) | 1 day |
 | FixAddMapObject | object creation 005927C0 (3.5 KB) | 2 days |
-| AllowScriptsInMainMenu | zone start 0057C460 (0.7 KB; also patched by AutoExec in 0057C700 nearby) | 0.5 day |
-| DisableExitOnCrashReport | FatalError 00480080 (small) + 005641F0 (1.5 KB) | 0.5 + 1 day |
+| DisableExitOnCrashReport | the third site: 005641F0, the world frame (1.5 KB) | 1 day |
 | NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
-| PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 | 1-2 days |
+| PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 and addon's unordered_map order (above) | 2 days |
 | AddNewScriptCommands | ~50 new script commands plus the table switch in 12 parser/executor functions (mostly rewritten) | 1-2 weeks |
 | ObjectsDrawRadius, LandscapeDrawRadius | two float settings in 0056AFE0 / 00569E40 (or in the client draw rewrite) | 0.5 day once those are rewritten |
 | WideScreen | 100 sites in ~45 functions, the layout maths of addon's replacements, VIDEORESOLUTION | 2-3 weeks |
@@ -427,6 +478,22 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 ## Shims and forwarders added
 
 - `EffectArray::SetSize` (map_object.cpp): forwarder to 0050FE70, CArray<MapEffect>::SetSize.
+- world_tick.cpp: `IdArray::SetAtGrow` (004538D0), `CountedRemoveAt` (0059A050, the counted list's
+  RemoveAt, which also releases the object), `ServerRemoveObject` (005935C0).
+- world_game.cpp: `WorldSetTimeSpeedF` / `WorldSetTimeF` (0058EEE0 / 0058EEA0, float argument),
+  `ClientWorldSetPlayer` (00566CE0), `ClientWorldLocalView` (005699F0), `EnterZoneAt` (0057A060);
+  the old `StartZone` forwarder is now `StartZoneAt`.
+- item_constructor.cpp: CString Find / Left / Right / TrimLeft() / TrimRight() (00700E91,
+  006FDAE9, 006FDA6D, 006FE216, 006FE11F; note ini_file.cpp names the last two the other way
+  round: 006FE216 is the one that moves the text, TrimLeft), atoi (006E80D8), Split (004DBE40),
+  the prototype and material lookups by name (004AB720, 004AB820, 00613820, 006AD580, 0069D380,
+  0069D290), ManagerMakeItem (006AD000), the STLport string and string-map members (0040C5A0,
+  004217E0, 00428F10, 0040C720, 0040C770, 00689950, 006AD670, 006A75E0, 004ABBD0, 004ABD00,
+  004ACC10).
+- app.cpp: `ShowMessageBox` (004560D0), `ExitGame` (006E8DA7).
+- world_server.cpp: `IdMapErase` (00599A80), `SectorMapRemove` (005C1010), `UnitSetController`
+  (005300D0), `CommandQueuePurge` (004BED90), `ProjectileForget` (0067EF00), `ProjectileRemoveAt`
+  (00599CC0), `PlayerStateForget` (0066DC90).
 - `ItemPrice` (ui_camp.cpp): the item's slot 16 through its vtable.
 
 ## Original bugs kept

@@ -1,2 +1,3 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+00500B70  RendererCreate: the game crashes at startup (a jump to 007AF064 from inside verify::Report)

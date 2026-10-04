@@ -14,7 +14,9 @@
 #include "ei/vcall.h"
 
 #include <bit>
+#include <cstdio>
 #include <cstring>
+#include <vector>
 
 namespace {
 constexpr int kTrackedSize = 0x1E0;   // MarkChanged writes nothing beyond +0x1DE
@@ -225,28 +227,64 @@ EI_VERIFY(0x00510890, ClientUpdateVerify, 0, s_unusedClientUpdate);
 
 // --- Effects ---------------------------------------------------------------------------------
 
-// 0050F1E0. Ours only (grows the array, calls the object's slots): the effect appended as the last
-// record (or, with Rebirth's FixSpellEffectsOverflow, older duplicates removed, and a 21st effect
-// dropped), part 3 changed, the object dirty.
-static void* s_unusedAddEffect;
+// 0050F1E0 (slot 45): PUSH EBX; PUSH EBP; MOV EBP,ECX; PUSH ESI (5 bytes; in a Rebirth launch they
+// hold addon's JMP, which the trampoline re-targets, so the original is FixSpellEffectsOverflow's).
+// AddEffect changes only the object: its effect array, part 3, the dirty flag and the change stamp,
+// plus whatever its slots 33 / 46 / 28 / 27 recompute from the effects. The original runs first,
+// its result is set aside, the effects and those fields are put back, ours runs, and the two are
+// compared (the slots run twice; they only recompute). The array keeps the buffer the original grew.
+static std::uintptr_t(__fastcall* s_addEffect)(CMapObject*, void*, const MapEffect*);
 static std::uintptr_t __fastcall AddEffectVerify(CMapObject* self, void*, const MapEffect* effect) {
-    int before = self->effectCount;
     MapEffect copy;
     std::memcpy(&copy, effect, sizeof(copy));
+    int before = self->effectCount;
+    std::vector<MapEffect> saved(self->effects, self->effects + before);
+    std::uint16_t parts = self->changedParts;
+    std::uint32_t flags = self->flags_;
+    int stamp = self->changeStamp;
+
+    s_addEffect(self, nullptr, effect);
+    int expectedCount = self->effectCount;
+    std::vector<MapEffect> expected(self->effects, self->effects + expectedCount);
+    std::uint16_t expectedParts = self->changedParts;
+    std::uint32_t expectedFlags = self->flags_;
+    int expectedStamp = self->changeStamp;
+
+    if (before > 0) std::memcpy(self->effects, saved.data(), before * sizeof(MapEffect));
+    self->effectCount = before;
+    self->changedParts = parts;
+    self->flags_ = flags;
+    self->changeStamp = stamp;
     std::uintptr_t result = self->AddEffect(effect);
-    int after = self->effectCount;
-    bool ok;
-    if (after == before) {
-        ok = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow) && before >= 20;
+
+    char what[160] = "";
+    if (self->effectCount != expectedCount) {
+        std::snprintf(what, sizeof(what), "count %d vs %d", expectedCount, self->effectCount);
     } else {
-        ok = after >= 1 && after <= before + 1 && std::memcmp(&self->effects[after - 1], &copy, sizeof(copy)) == 0 &&
-             (self->changedParts & 8) && (self->flags_ & 2);
+        for (int i = 0; i < expectedCount && !what[0]; ++i) {
+            const auto* a = reinterpret_cast<const std::uint8_t*>(&expected[i]);
+            const auto* b = reinterpret_cast<const std::uint8_t*>(&self->effects[i]);
+            for (int k = 0; k < static_cast<int>(sizeof(MapEffect)); ++k) {
+                if (a[k] == b[k]) continue;
+                std::uint32_t wa, wb;
+                std::memcpy(&wa, a + (k & ~3), 4);
+                std::memcpy(&wb, b + (k & ~3), 4);
+                std::snprintf(what, sizeof(what), "record %d of %d, +0x%02X: %08X vs %08X", i, expectedCount, k & ~3, wa, wb);
+                break;
+            }
+        }
     }
-    ei::verify::Check("CMapObject::AddEffect", true, ok, "object %d type %X: effects %d -> %d", self->id_, copy.type,
-                      before, after);
+    if (!what[0] && self->changedParts != expectedParts)
+        std::snprintf(what, sizeof(what), "changedParts %04X vs %04X", expectedParts, self->changedParts);
+    if (!what[0] && self->flags_ != expectedFlags)
+        std::snprintf(what, sizeof(what), "flags %08X vs %08X", expectedFlags, self->flags_);
+    if (!what[0] && self->changeStamp != expectedStamp)
+        std::snprintf(what, sizeof(what), "change stamp %d vs %d", expectedStamp, self->changeStamp);
+    ei::verify::Check("CMapObject::AddEffect", true, what[0] == 0, "object %d type %X ticks %d, effects %d -> %d: %s",
+                      self->id_, copy.type, copy.ticksLeft, before, expectedCount, what);
     return result;
 }
-EI_VERIFY(0x0050F1E0, AddEffectVerify, 0, s_unusedAddEffect);
+EI_VERIFY(0x0050F1E0, AddEffectVerify, 5, s_addEffect);
 
 // 0050F5B0. Ours only (frees the array): no effects left, part 3 changed, the object dirty.
 static void* s_unusedClearEffects;

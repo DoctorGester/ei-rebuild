@@ -11,7 +11,7 @@
 //   load <slot>               load a saved game (a folder in harness_saves, see below)
 //   key <key>                 press and release a key in the game window: a letter or digit,
 //                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus,
-//                             grave (the console key), backspace, delete, home, end, pgup, pgdn,
+//                             grave (the console key), backspace, delete, home, end, pgup, pgdn, ctrl,
 //                             enterchar (Enter with its WM_CHAR, as text input such as the console needs)
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
@@ -333,6 +333,12 @@ void WriteReport() {
         std::fprintf(f, "%-48s %10lu calls %8lu mismatches\n", name, calls, bad);
         mismatches += bad;
     });
+    bool raised = false;
+    ForEachRaisedPrecision([&](const char* name, unsigned cw, bool mainThread) {
+        if (!raised) std::fprintf(f, "\nx87 precision above 24 bits (control word) in:\n");
+        raised = true;
+        std::fprintf(f, "  %-46s %04X %s\n", name, cw, mainThread ? "main thread" : "other thread");
+    });
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     for (const std::string& failure : g_failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -430,6 +436,7 @@ void PostKey(const std::string& name) {
     else if (name == "end") vk = VK_END;
     else if (name == "pgup") vk = VK_PRIOR;
     else if (name == "pgdn") vk = VK_NEXT;
+    else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets CInterface3D +0x7C while down
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
         Log("harness: unknown key '%s'", name.c_str());
@@ -744,6 +751,7 @@ int WINAPI TracedAilStartup() {
 }
 
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
+    SetMainThread();
     TraceFpu("in the message loop");
     if (g_running && !g_inStep) {
         g_inStep = true;   // console commands can pump messages themselves

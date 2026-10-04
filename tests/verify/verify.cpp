@@ -4,6 +4,9 @@
 
 #include <windows.h>
 
+#include <atomic>
+#include <vector>
+
 #include <cstdarg>
 #include <cstdio>
 #include <map>
@@ -44,7 +47,71 @@ void ForEachCount(const std::function<void(const char*, unsigned long, unsigned 
     ReleaseSRWLockExclusive(&g_countsLock);
 }
 
+// ---- x87 precision seen by the wrappers -------------------------------------------------------
+
+std::atomic<DWORD> g_mainThread{0};
+
+void SetMainThread() {
+    DWORD none = 0;
+    g_mainThread.compare_exchange_strong(none, GetCurrentThreadId());
+}
+
+struct RaisedPrecision {
+    std::string name;
+    unsigned cw;
+    bool mainThread;
+};
+std::vector<RaisedPrecision> g_raised;   // under g_countsLock
+constexpr std::size_t kMaxRaisedReports = 30;
+
+// Module + offset of the return addresses on the stack (a few frames), for the log.
+void DescribeStack(char* out, std::size_t size) {
+    void* frames[14];
+    USHORT n = RtlCaptureStackBackTrace(2, 14, frames, nullptr);
+    std::size_t used = 0;
+    out[0] = 0;
+    for (USHORT i = 0; i < n && used + 48 < size; ++i) {
+        HMODULE module = nullptr;
+        char path[MAX_PATH] = "?";
+        if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               static_cast<LPCSTR>(frames[i]), &module))
+            GetModuleFileNameA(module, path, MAX_PATH);
+        const char* base = std::strrchr(path, '\\');
+        int w = std::snprintf(out + used, size - used, " %s+%X", base ? base + 1 : path,
+                              static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(frames[i]) -
+                                                    reinterpret_cast<std::uintptr_t>(module)));
+        if (w <= 0) break;
+        used += static_cast<std::size_t>(w);
+    }
+}
+
+void TracePrecision(const char* name) {
+    unsigned short cw;
+    __asm fnstcw cw
+    if ((cw & 0x0300) == 0) return;   // 24-bit: the game's state
+    bool mainThread = GetCurrentThreadId() == g_mainThread.load();
+    AcquireSRWLockExclusive(&g_countsLock);
+    bool known = false;
+    for (const RaisedPrecision& r : g_raised) known |= r.name == name && r.cw == cw && r.mainThread == mainThread;
+    bool report = !known && g_raised.size() < kMaxRaisedReports;
+    if (report) g_raised.push_back({name, cw, mainThread});
+    ReleaseSRWLockExclusive(&g_countsLock);
+    if (!report) return;
+    char stack[512];
+    DescribeStack(stack, sizeof(stack));
+    Log("FPU precision %s (control word %04X) in %s on %s thread %lu; stack:%s", (cw & 0x0300) == 0x0300 ? "64-bit" : "53-bit",
+        cw, name, mainThread ? "the main" : "another", GetCurrentThreadId(), stack);
+}
+
+void ForEachRaisedPrecision(const std::function<void(const char*, unsigned, bool)>& fn) {
+    AcquireSRWLockExclusive(&g_countsLock);
+    std::vector<RaisedPrecision> copy = g_raised;
+    ReleaseSRWLockExclusive(&g_countsLock);
+    for (const RaisedPrecision& r : copy) fn(r.name.c_str(), r.cw, r.mainThread);
+}
+
 void Report(const char* name, bool match, const char* detail) {
+    TracePrecision(name);
     AcquireSRWLockExclusive(&g_countsLock);
     Counts& c = GetRegistry().counts[name];
     if (++c.calls == 1) Log("verify %s: first call", name);
