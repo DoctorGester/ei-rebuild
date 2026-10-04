@@ -1,6 +1,7 @@
-// The network message classes 0073BBF8 .. 0073BDD0 (net_classes.h): for each one its factory (the
-// type registry's, 004142F0), clone (slot 3), reset (slot 2: destroyed and built again in place),
-// write / read (slots 4 / 5: the fields at a byte cursor) and destructor body. The scalar deleting
+// The network message classes 0073BBF8 .. 0073BDD0 (net_classes.h) and the server entry 0073BB28
+// (no factory): for each one its factory (the type registry's, 004142F0), clone (slot 3), reset
+// (slot 2: destroyed and built again in place), write / read (slots 4 / 5: the fields at a byte
+// cursor) and destructor body. The scalar deleting
 // destructors are in deleting_destructors_400.cpp, the constructors used by the sessions in
 // net_messages.cpp. See docs/notes/unmapped_410_470.md ("Eighth round").
 //
@@ -923,6 +924,83 @@ void __fastcall MessageDestruct73BDD0(Message* self) {   // 004178F0
     SetVtable(self, kRootVtable);
 }
 
+// ================================================================================================
+// 0073BB28 (0x48): a server entry (the lobby's description of a game; made by 0041A7E0 and
+// 0041D420, read from the server list): the base 0073BB40 (an address and the fields +0x18 ..
+// +0x24, constructor 004413E0), name +0x28, kind +0x34, description +0x38, players +0x44, maximum
+// +0x45, flag +0x46. Its deleting destructor is 004128C0; slot 1 is the empty 00412580.
+namespace entry {
+constexpr std::uintptr_t kVtable = 0x0073BB28;
+constexpr std::uintptr_t kBaseVtable = 0x0073BB40;
+constexpr std::uintptr_t kEmptyText = 0x00783D6C;
+} // namespace entry
+
+namespace {
+__declspec(naked) void __fastcall EntryConstructBase(void* /*entry*/) EI_ORIGINAL(0x004413E0)
+__declspec(naked) void __fastcall StringDestruct(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
+void AssignEmptyText(StringRep* s) {
+    const char* text = reinterpret_cast<const char*>(entry::kEmptyText);
+    StringAssignRange(s, nullptr, text, text + std::strlen(text));
+}
+} // namespace
+
+Message* __fastcall MessageClone73BB28(Message* self) {   // 00412590
+    std::uint8_t* p = NewMessage(0x48);
+    if (!p) return nullptr;
+    SetVtable(p, kRefValueVtable);
+    for (std::size_t offset : {0x08u, 0x0Cu, 0x10u, 0x14u, 0x18u, 0x1Cu}) F<std::uint32_t>(p, offset) = F<std::uint32_t>(self, offset);
+    p[0x20] = F<std::uint8_t>(self, 0x20);
+    F<std::uint32_t>(p, 0x24) = F<std::uint32_t>(self, 0x24);
+    SetVtable(p, entry::kBaseVtable);
+    StringCopy(S(p, 0x28), S(self, 0x28));
+    F<std::uint32_t>(p, 0x34) = F<std::uint32_t>(self, 0x34);
+    StringCopy(S(p, 0x38), S(self, 0x38));
+    p[0x44] = F<std::uint8_t>(self, 0x44);
+    p[0x45] = F<std::uint8_t>(self, 0x45);
+    p[0x46] = F<std::uint8_t>(self, 0x46);
+    SetVtable(p, entry::kVtable);
+    return reinterpret_cast<Message*>(p);
+}
+void __fastcall MessageReset73BB28(Message* self) {   // 00412750
+    SetVtable(self, entry::kVtable);
+    StringDestruct(S(self, 0x38));
+    StringDestruct(S(self, 0x28));
+    SetVtable(self, kRootVtable);
+    if (!self) return;
+    EntryConstructBase(self);
+    StringEmpty(S(self, 0x28));
+    StringEmpty(S(self, 0x38));
+    SetVtable(self, entry::kVtable);
+    AssignEmptyText(S(self, 0x28));
+    F<std::uint32_t>(self, 0x34) = 4;
+    AssignEmptyText(S(self, 0x38));
+    F<std::uint8_t>(self, 0x44) = 0;
+    F<std::uint8_t>(self, 0x45) = 0;
+    F<std::uint8_t>(self, 0x46) = 0;
+}
+void __fastcall MessageWrite73BB28(Message* self, void*, char** cursor) {   // 00412990
+    PutString(cursor, S(self, 0x28));
+    Put(cursor, F<std::uint32_t>(self, 0x34));
+    PutString(cursor, S(self, 0x38));
+    Put(cursor, F<std::uint8_t>(self, 0x44));
+    Put(cursor, F<std::uint8_t>(self, 0x45));
+    Put(cursor, F<std::uint8_t>(self, 0x46));
+}
+void __fastcall MessageRead73BB28(Message* self, void*, char** cursor) {   // 00412A30
+    TakeString(cursor, S(self, 0x28));
+    F<std::uint32_t>(self, 0x34) = Take<std::uint32_t>(cursor);
+    TakeString(cursor, S(self, 0x38));
+    F<std::uint8_t>(self, 0x44) = Take<std::uint8_t>(cursor);
+    F<std::uint8_t>(self, 0x45) = Take<std::uint8_t>(cursor);
+    F<std::uint8_t>(self, 0x46) = Take<std::uint8_t>(cursor);
+}
+void __fastcall MessageDestruct73BB28(Message* self) {   // 004128E0
+    SetVtable(self, entry::kVtable);
+    StringFree(S(self, 0x38));
+    StringFree(S(self, 0x28));
+    SetVtable(self, kRootVtable);
+}
+
 EI_REPLACE(0x00414DB0, MessageFactory73BCA0);
 EI_REPLACE(0x00414E80, MessageClone73BCA0);
 EI_REPLACE(0x00414FA0, MessageReset73BCA0);
@@ -1025,5 +1103,11 @@ EI_REPLACE(0x004177A0, MessageReset73BDD0);
 EI_REPLACE(0x00412AC0, MessageWrite73BDD0);
 EI_REPLACE(0x00412B70, MessageRead73BDD0);
 EI_REPLACE(0x004178F0, MessageDestruct73BDD0);
+
+EI_REPLACE(0x00412590, MessageClone73BB28);
+EI_REPLACE(0x00412750, MessageReset73BB28);
+EI_REPLACE(0x00412990, MessageWrite73BB28);
+EI_REPLACE(0x00412A30, MessageRead73BB28);
+EI_REPLACE(0x004128E0, MessageDestruct73BB28);
 
 } // namespace net

@@ -3115,3 +3115,7 @@ address,name,library,signature,notes
 00434FE0,"std::ostream::operator<<(manipulator)",CRT,,range 400 review: STLport template instantiation (container plumbing), not game logic
 00429E50,"CList<T>::RemoveAll (counted engine object holders)",MFC,,range 400 review: STLport template instantiation (container plumbing), not game logic
 0042BE60,"stlp::__false_type tag (returns 0)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00412140,"stlp::_Destroy(deque<T>::iterator, deque<T>::iterator) (trivial elements)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00412190,"stlp::_Destroy_aux(deque<T>::iterator, deque<T>::iterator) (trivial elements: walks the range only)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00417AB0,"stlp::list<T>::~list (elements hold a RefPtr at +4; reached from unwind funclets)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00417B30,"stlp::list<T>::~list (elements hold a counted pointer at +4; reached from unwind funclets)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic

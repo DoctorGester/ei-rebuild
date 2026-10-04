@@ -15,6 +15,11 @@
 #include <vector>
 
 namespace net {
+Message* __fastcall MessageClone73BB28(Message* self);
+void __fastcall MessageReset73BB28(Message* self);
+void __fastcall MessageWrite73BB28(Message* self, void*, char** cursor);
+void __fastcall MessageRead73BB28(Message* self, void*, char** cursor);
+void __fastcall MessageDestruct73BB28(Message* self);
 Message* __fastcall MessageFactory73BC70();
 Message* __fastcall MessageClone73BC70(Message* self);
 void __fastcall MessageReset73BC70(Message* self);
@@ -165,6 +170,29 @@ void CheckRead(const char* name, WriteFn original, WriteFn ours, WriteFn capture
 void CheckMade(const char* name, net::Message* made, std::uintptr_t vtable, std::uint32_t version) {
     bool ok = !made || (VtableOf(made) == vtable && Dword(made, 8) == version && (Dword(made, 4) & 0xFFFF) == 0);
     ei::verify::Check(name, true, ok, "");
+}
+
+// 73BB28 (the server entry: no factory; the reset's base constructor clears +8)
+net::Message* __fastcall Clone73BB28Verify(net::Message* self) {
+    net::Message* made = net::MessageClone73BB28(self);
+    CheckMade("MessageClone73BB28", made, 0x0073BB28, Dword(self, 8));
+    return made;
+}
+void __fastcall Reset73BB28Verify(net::Message* self) {
+    net::MessageReset73BB28(self);
+    ei::verify::Check("MessageReset73BB28", true,
+                      VtableOf(self) == 0x0073BB28 && Dword(self, 8) == 0 && Dword(self, 0x34) == 4, "");
+}
+void __fastcall Destruct73BB28Verify(net::Message* self) {
+    net::MessageDestruct73BB28(self);
+    ei::verify::Check("MessageDestruct73BB28", true, VtableOf(self) == 0x0073BB68, "");
+}
+WriteFn s_write73BB28, s_read73BB28;
+void __fastcall Write73BB28Verify(net::Message* self, void*, char** cursor) {
+    CheckWrite("MessageWrite73BB28", s_write73BB28, net::MessageWrite73BB28, self, cursor);
+}
+void __fastcall Read73BB28Verify(net::Message* self, void*, char** cursor) {
+    CheckRead("MessageRead73BB28", s_read73BB28, net::MessageRead73BB28, net::MessageWrite73BB28, self, cursor);
 }
 
 // 73BC70
@@ -616,6 +644,13 @@ void __fastcall Read73BDD0Verify(net::Message* self, void*, char** cursor) {
 }
 } // namespace
 
+// 00412990: PUSH EBX, MOV EBX,ECX, PUSH EBP, PUSH ESI (5); 00412A30: PUSH EBX, PUSH ESI,
+// MOV ESI,[ESP+0xC] (6).
+EI_VERIFY(0x00412590, Clone73BB28Verify, 0, s_unused);
+EI_VERIFY(0x00412750, Reset73BB28Verify, 0, s_unused);
+EI_VERIFY(0x004128E0, Destruct73BB28Verify, 0, s_unused);
+EI_VERIFY(0x00412990, Write73BB28Verify, 5, s_write73BB28);
+EI_VERIFY(0x00412A30, Read73BB28Verify, 6, s_read73BB28);
 EI_VERIFY(0x00414420, Factory73BC70Verify, 0, s_unused);
 EI_VERIFY(0x00414500, Clone73BC70Verify, 0, s_unused);
 EI_VERIFY(0x00414650, Reset73BC70Verify, 0, s_unused);
