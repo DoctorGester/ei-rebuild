@@ -345,6 +345,9 @@ public:
     // 005BC750 (RET 8, ST0; ai_line_step.cpp). The largest ground step between consecutive cells on
     // the line, in world height; 1.0 for a zero-length line, 100.0 when an end is off the map.
     double LargestStepAlong(const Vector3* from, const Vector3* to);
+    // 005B9690 (RET 8, AL; ai_join.cpp). Joins the forward and backward local searches where they
+    // meet: the path into `cells`, the summed cost into `cost` (optional); false when they cannot.
+    bool JoinLocalSearches(struct PathCellList* cells, int* cost);
     // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
     bool AddOccluder(FootprintCell* cell);
     bool ClearOccluder(FootprintCell* cell);
