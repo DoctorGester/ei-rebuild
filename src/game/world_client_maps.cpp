@@ -18,6 +18,7 @@
 
 #include <windows.h>
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -733,6 +734,107 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
     }
 }
 
+// ---- Platforms (00560650, 00560820) --------------------------------------------------------------
+
+namespace {
+// The record list's node allocation [00573000, on the set's list at +0x1C: (next, prev)].
+__declspec(naked) std::uint8_t* __fastcall PlatformNewNode(void*, void*, void*, void*) EI_ORIGINAL(0x00573000)
+constexpr float kSteepest = 0.8f;   // 0073CCA8: the smallest normal z of a face added
+} // namespace
+
+int PlatformSet::AddFace(const float* a, const float* b, const float* c, const float* normal, Platform** out) {
+    *out = nullptr;
+    // FCOMP + TEST AH,1: steeper faces (and a NaN z) are left out.
+    if (x87::IsNaN(normal[2]) || normal[2] < kSteepest) return 0;
+    std::uint8_t* list = reinterpret_cast<std::uint8_t*>(this) + 0x1C;
+    PlatformNode* last = head;
+    std::uint8_t* node = PlatformNewNode(list, nullptr, nullptr, last);
+    // (The original first copies 0x4C bytes of uninitialised stack over the record; every field is
+    // written below or by the caller.)
+    if (last)
+        At<std::uint8_t*>(last, 4) = node;
+    else
+        At<std::uint8_t*>(this, 0x24) = node;
+    head = reinterpret_cast<PlatformNode*>(node);
+    Platform* record = reinterpret_cast<Platform*>(node + 8);
+    *out = record;
+    float ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+    float vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+    float lengthU = std::sqrt((uz * uz + uy * uy) + ux * ux);
+    record->sizeU = lengthU;
+    float lengthV = std::sqrt((vz * vz + vy * vy) + vx * vx);
+    record->sizeV = lengthV;
+    std::memcpy(record->normal, normal, 12);
+    std::memcpy(record->origin, a, 12);
+    record->axisU[0] = ux / lengthU;
+    record->axisU[1] = uy / lengthU;
+    record->axisU[2] = uz / lengthU;
+    record->axisV[0] = vx / lengthV;
+    record->axisV[1] = vy / lengthV;
+    record->axisV[2] = vz / lengthV;
+    return 1;
+}
+
+void PlatformSet::AddBox(int id, const std::uint8_t* item, const float* position, const float* rotation) {
+    const float* offset = reinterpret_cast<const float*>(item + 4);
+    const float* low = reinterpret_cast<const float*>(item + 0x14);
+    const float* high = reinterpret_cast<const float*>(item + 0x20);
+    const float* pivot = reinterpret_cast<const float*>(item + 0x2C);
+
+    // The rotation matrix of the quaternion (w, x, y, z), as the original builds it.
+    float q0 = rotation[0], q1 = rotation[1], q2 = rotation[2], q3 = rotation[3];
+    float t1 = q1 + q1, t2 = q2 + q2, t3 = q3 + q3;
+    float t1q0 = t1 * q0, t2q0 = t2 * q0, t3q0 = t3 * q0;
+    float t1q1 = t1 * q1, t2q1 = t2 * q1, t3q1 = t3 * q1;
+    float t2q2 = t2 * q2, t3q2 = t3 * q2, t3q3 = t3 * q3;
+    MatrixRows m{};
+    m.m[0] = 1.0f - (t3q3 + t2q2);
+    m.m[1] = t2q1 - t3q0;
+    m.m[2] = t3q1 + t2q0;
+    m.m[4] = t2q1 + t3q0;
+    m.m[5] = 1.0f - (t3q3 + t1q1);
+    m.m[6] = t3q2 - t1q0;
+    m.m[8] = t3q1 - t2q0;
+    m.m[9] = t3q2 + t1q0;
+    m.m[10] = 1.0f - (t2q2 + t1q1);
+
+    // The box's corners (two of them repeated, as the faces walk them), moved by the pivot and the
+    // offset, rotated and placed.
+    float corners[8][3] = {{high[0], low[1], low[2]},  {low[0], low[1], low[2]},   {low[0], high[1], low[2]},
+                           {low[0], high[1], high[2]}, {high[0], high[1], high[2]}, {high[0], low[1], high[2]},
+                           {high[0], low[1], low[2]},  {low[0], low[1], low[2]}};
+    for (auto& corner : corners) {
+        float x = (pivot[0] + corner[0]) + offset[0];
+        float y = (pivot[1] + corner[1]) + offset[1];
+        float z = (pivot[2] + corner[2]) + offset[2];
+        float rx = (m.m[2] * z + m.m[1] * y) + m.m[0] * x;
+        float ry = (m.m[6] * z + m.m[5] * y) + m.m[4] * x;
+        float rz = (m.m[10] * z + m.m[9] * y) + m.m[8] * x;
+        corner[0] = position[0] + rx;
+        corner[1] = position[1] + ry;
+        corner[2] = rz + position[2];
+    }
+    float normals[6][3] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
+    for (auto& n : normals) {
+        float nx = n[0], ny = n[1], nz = n[2];
+        n[0] = (m.m[2] * nz + m.m[0] * nx) + m.m[1] * ny;
+        n[1] = (m.m[6] * nz + m.m[4] * nx) + m.m[5] * ny;
+        n[2] = (m.m[10] * nz + m.m[8] * nx) + m.m[9] * ny;
+    }
+    for (int i = 0; i < 6; ++i) {
+        Platform* record;
+        if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
+        At<int>(record, 0) = id;
+        Vector3 moved = {pivot[0] + offset[0], pivot[1] + offset[1], pivot[2] + offset[2]};
+        Vector3 rotated;
+        m.Transform(&rotated, &moved);
+        record->x = rotated.x + position[0];
+        record->y = rotated.y + position[1];
+        At<float>(record, 0xC) = rotated.z + position[2];
+        At<std::uint32_t>(record, 0x10) = *reinterpret_cast<const std::uint32_t*>(item + 0x10);
+    }
+}
+
 // ---- Teardown (00563290) -------------------------------------------------------------------------
 
 namespace {
@@ -860,6 +962,8 @@ void CWorldClient::Destroy() {
     DropAndDelete(At<void*>(this, 0x1D0));
 }
 
+EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
+EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Destroy);
 EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);

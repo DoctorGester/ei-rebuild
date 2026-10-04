@@ -956,6 +956,23 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 | 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
 | 0056DAF0 | CWorldClient::ObjectsInRange (RET 0xC; the camera's 0040E4C0) | differential: the original appends first, its entries are erased again, ours appends; entries and the cell range / cursor (+0x138..+0x14C) compared |
 | 00563290 | CWorldClient::Destroy (slot 3) | ours only: the owned pointers cleared, the lists and grid cells empty |
+| 00560650 | PlatformSet::AddFace (RET 0x14) | differential: the original on the real set, ours on a scratch set (its own CPlex blocks, freed after); result and the face's fields compared (floats within 8 ULPs) |
+| 00560820 | PlatformSet::AddBox (RET 0x10; from AddObject) | differential the same way: the records added, in order, compared (id and radius exact) |
+
+Platforms: the set's record list is the MFC-style list at CWorldClient +0x1F0 (the set's +0x1C):
++0x1F4 the last node (nodes link backwards through +0, forwards through +4), +0x1F8 the first,
++0x1FC count, +0x200 free list, +0x204 blocks; 00573000 hands out 0x54-byte nodes, the record
+(Platform, 0x4C) at +8. RemoveObject's first loop removes an object's platforms by the id in the
+record. AddBox builds the quaternion's matrix (w first), takes eight box corners (the min/max
+corners at item +0x14 / +0x20 in the order (X',Y,Z) (X,Y,Z) (X,Y',Z) (X,Y',Z') (X',Y',Z')
+(X',Y,Z') (X',Y,Z) (X,Y,Z)), moves each by pivot (+0x2C) then offset (+4), rotates (rows summed
+as (m2 z + m1 y) + m0 x) and adds the position; the six face normals (-z, -x, +y, +z, +x, -y) are
+rotated with the sums ordered (m2 nz + m0 nx) + m1 ny. Face i is AddFace(corner i+1, corner i,
+corner i+2, normal i); only faces with normal z >= 0.8 are kept, each given the id, the centre
+R (pivot + offset) + position (MatrixRows::Transform) and the radius (+0x10). AddFace first
+copies 0x4C bytes of uninitialised stack over the new record in the original; every word is
+then written, so the rewrite skips it. All plain C++ (rule 7): a rotated normal exactly at
+z = 0.8 may rarely be kept by one side only.
 
 ObjectsInRange clamps the box [point - r, point + r] to the terrain (+0x10C / +0x110 minus 1)
 with the original's FCOMP-mask selects (0 < v ? v : 0, a < b ? a : b; an unordered compare picks

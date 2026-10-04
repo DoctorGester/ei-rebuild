@@ -403,6 +403,89 @@ static CEngineObject* __fastcall PickAt2Verify(CWorldClient* client, void*, cons
 }
 EI_VERIFY(0x005659D0, PickAt2Verify, 5, s_pick2);
 
+// ---- Platforms: the original on the real set, ours on a scratch set; the records compared --------
+
+namespace {
+// An empty platform set: its record list (+0x1C) takes nodes from its own CPlex blocks, sized like
+// the real set's (+0x34), and frees them when done.
+struct ScratchPlatforms {
+    alignas(4) std::uint8_t bytes[0x38] = {};
+    explicit ScratchPlatforms(const PlatformSet* real) {
+        std::memcpy(bytes + 0x1C, reinterpret_cast<const std::uint8_t*>(real) + 0x1C, 4);   // the list's vtable
+        std::memcpy(bytes + 0x34, reinterpret_cast<const std::uint8_t*>(real) + 0x34, 4);   // block size
+    }
+    PlatformSet* set() { return reinterpret_cast<PlatformSet*>(bytes); }
+    ~ScratchPlatforms() { mfc::PlexFreeDataChain(*reinterpret_cast<mfc::CPlex**>(bytes + 0x30)); }
+};
+
+// Floats within 8 ULPs (or `absEps` near zero); NaN matches NaN.
+bool NearFloat(float expected, float actual, float absEps) {
+    return ei::verify::NearlyEqual<float>(expected, actual, 8, absEps);
+}
+
+// The records added after `last` (nodes link backwards from head), oldest first.
+std::vector<const Platform*> RecordsAfter(const PlatformSet* set, const PlatformNode* last) {
+    std::vector<const Platform*> records;
+    for (const PlatformNode* node = set->head; node && node != last; node = node->next)
+        records.insert(records.begin(), &node->platform);
+    return records;
+}
+
+bool SameRecord(const char* name, const Platform* theirs, const Platform* mine) {
+    const float* a = reinterpret_cast<const float*>(theirs);
+    const float* b = reinterpret_cast<const float*>(mine);
+    bool ok = std::memcmp(a, b, 4) == 0 && std::memcmp(a + 4, b + 4, 4) == 0;   // id, radius
+    for (int i : {1, 2, 3}) ok = ok && NearFloat(a[i], b[i], 1e-4f);
+    for (int i = 5; i < 19; ++i) ok = ok && NearFloat(a[i], b[i], 1e-5f);
+    if (!ok) {
+        int first = 0;
+        while (first < 19 && std::memcmp(a + first, b + first, 4) == 0) ++first;
+        ei::verify::Check(name, a[first < 19 ? first : 0], b[first < 19 ? first : 0], "record word %d", first);
+    }
+    return ok;
+}
+} // namespace
+
+// 00560650: MOV EAX,[ESP+0x14]; SUB ESP,0x64 (7 bytes).
+using AddFaceFn = int(__fastcall*)(PlatformSet*, void*, const float*, const float*, const float*, const float*, Platform**);
+static AddFaceFn s_addFace;
+static int __fastcall AddFaceVerify(PlatformSet* set, void*, const float* a, const float* b, const float* c,
+                                    const float* normal, Platform** out) {
+    int result = s_addFace(set, nullptr, a, b, c, normal, out);
+    Platform* theirs = *out;
+    ScratchPlatforms scratch(set);
+    Platform* mine;
+    int mineResult = scratch.set()->AddFace(a, b, c, normal, &mine);
+    bool ok = result == mineResult && (theirs == nullptr) == (mine == nullptr);
+    // The caller fills id, centre and radius: compare the face's own fields only.
+    if (ok && theirs) {
+        const float* x = reinterpret_cast<const float*>(theirs);
+        const float* y = reinterpret_cast<const float*>(mine);
+        for (int i = 5; i < 19; ++i) ok = ok && NearFloat(x[i], y[i], 1e-5f);
+    }
+    ei::verify::Check("PlatformSet::AddFace", true, ok, "normal (%g, %g, %g), result %d vs %d", normal[0], normal[1],
+                      normal[2], result, mineResult);
+    return result;
+}
+EI_VERIFY(0x00560650, AddFaceVerify, 7, s_addFace);
+
+// 00560820: SUB ESP,0x13C (6 bytes).
+using AddBoxFn = void(__fastcall*)(PlatformSet*, void*, int, const std::uint8_t*, const float*, const float*);
+static AddBoxFn s_addBox;
+static void __fastcall AddBoxVerify(PlatformSet* set, void*, int id, const std::uint8_t* item, const float* position,
+                                    const float* rotation) {
+    PlatformNode* last = set->head;
+    s_addBox(set, nullptr, id, item, position, rotation);
+    std::vector<const Platform*> theirs = RecordsAfter(set, last);
+    ScratchPlatforms scratch(set);
+    scratch.set()->AddBox(id, item, position, rotation);
+    std::vector<const Platform*> mine = RecordsAfter(scratch.set(), nullptr);
+    bool ok = theirs.size() == mine.size();
+    for (std::size_t i = 0; ok && i < theirs.size(); ++i) ok = SameRecord("PlatformSet::AddBox record", theirs[i], mine[i]);
+    ei::verify::Check("PlatformSet::AddBox", true, ok, "id %d: %zu vs %zu faces", id, theirs.size(), mine.size());
+}
+EI_VERIFY(0x00560820, AddBoxVerify, 6, s_addBox);
+
 // 00563290: ours only. Afterwards the owned pointers are cleared, the lists and grid cells empty.
 static void __fastcall DestroyVerify(CWorldClient* client, void*) {
     client->Destroy();

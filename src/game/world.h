@@ -567,9 +567,20 @@ struct PlatformSet {
     float SurfaceHeight(const Vector3* point, float height);
     // 00561050. Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
+    // 00560650 (RET 0x14; world_client_maps.cpp). Adds the face with corner `a`, edges to `b` and
+    // `c` and `normal` when normal.z >= 0.8: origin a, unit axes (b - a) / |b - a| and (c - a) /
+    // |c - a|, the two lengths, the normal; *out = the new record (its id, centre and radius are the
+    // caller's), null when the face is too steep. Returns 1 when added.
+    int AddFace(const float* a, const float* b, const float* c, const float* normal, Platform** out);
+    // 00560820 (RET 0x10; called by CWorldClient::AddObject). The platform item `item` (+4
+    // offset, +0x10 radius, +0x14 / +0x20 the box's corners, +0x2C pivot) of object `id` placed at
+    // `position` with the rotation quaternion `rotation` (w, x, y, z): the box's corners and the six
+    // face normals rotated, and every face that points up added with the id, the centre
+    // R (pivot + offset) + position and the radius.
+    void AddBox(int id, const std::uint8_t* item, const float* position, const float* rotation);
 
     std::uint8_t unknown_00[0x20];
-    PlatformNode* head;                   // +0x20
+    PlatformNode* head;                   // +0x20 the last node added (nodes link backwards)
 };
 
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
