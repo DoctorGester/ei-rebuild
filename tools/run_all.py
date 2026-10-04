@@ -3,7 +3,7 @@
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only] [--no-hooks]
                                [--jobs N] [--retries N] [--verified-candidates N]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
-  --jobs N         games running at once (default 4). Each run writes to its own folder,
+  --jobs N         games running at once (default 10). Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei_hook.log, harness_report.txt and
                    harness_saves, emptied first, so every run starts without saves or texture cache).
   --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
@@ -69,7 +69,7 @@ def main():
     ap.add_argument('--no-hooks', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
-    ap.add_argument('--jobs', type=int, default=4)
+    ap.add_argument('--jobs', type=int, default=10)
     args = ap.parse_args()
     names = args.scenarios or sorted(os.path.splitext(os.path.basename(p))[0]
                                      for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))

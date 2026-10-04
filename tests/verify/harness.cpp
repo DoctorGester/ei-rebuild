@@ -29,6 +29,8 @@
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
 //                             fails and the game is closed
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
+//   waitexpect <seconds> <text>  like expect, but waits up to <seconds> for <text> to appear (for
+//                             output that follows posted keys, which a busy machine handles later)
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
 //   waitfor <seconds> <expression>
@@ -122,6 +124,8 @@ DWORD g_checkDeadline = 0;
 bool g_waitingLine = false;
 std::string g_waitLineText;
 DWORD g_waitLineDeadline = 0;
+std::size_t g_waitLineFrom = 0;   // waitline: 0 (any time); waitexpect: since the last expect
+bool g_waitLineIsExpect = false;
 bool g_waitingFor = false;
 bool g_waitForPending = false;
 std::string g_waitForExpr;
@@ -706,15 +710,19 @@ void RunSteps() {
     }
     if (g_waitingLine) {
         bool found = false;
-        for (const std::string& line : g_console)
-            if (line.find(g_waitLineText) != std::string::npos) { found = true; break; }
+        for (std::size_t i = g_waitLineFrom; i < g_console.size() && !found; ++i)
+            found = g_console[i].find(g_waitLineText) != std::string::npos;
+        const char* verb = g_waitLineIsExpect ? "waitexpect" : "waitline";
         if (found) {
-            Log("harness: waitline '%s' found", g_waitLineText.c_str());
+            Log("harness: %s '%s' found", verb, g_waitLineText.c_str());
             g_waitingLine = false;
+            if (g_waitLineIsExpect) g_expectFrom = g_console.size();
         } else if (Now() >= g_waitLineDeadline) {
-            Log("harness: waitline '%s' timed out", g_waitLineText.c_str());
-            g_failures.push_back("waitline " + g_waitLineText + " timed out");
+            Log("harness: %s '%s' timed out", verb, g_waitLineText.c_str());
+            g_failures.push_back(g_waitLineIsExpect ? "expected console output '" + g_waitLineText + "' (waited)"
+                                                    : "waitline " + g_waitLineText + " timed out");
             g_waitingLine = false;
+            if (g_waitLineIsExpect) g_expectFrom = g_console.size();
         } else {
             return;
         }
@@ -773,11 +781,13 @@ void RunSteps() {
             return;
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
-        } else if (s.verb == "waitline") {
+        } else if (s.verb == "waitline" || s.verb == "waitexpect") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
             while (rest && *rest == ' ') ++rest;
             g_waitingLine = true;
+            g_waitLineIsExpect = s.verb == "waitexpect";
+            g_waitLineFrom = g_waitLineIsExpect ? g_expectFrom : 0;
             g_waitLineText = rest ? rest : "";
             g_waitLineDeadline = Now() + seconds * 1000;
             return;
