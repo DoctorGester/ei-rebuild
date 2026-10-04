@@ -243,12 +243,12 @@ public:
     // (ui_text.cpp).
     int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
                         int flag);
-    // 005FD120 (not rewritten). Destructor body: releases the DirectDraw surface.
+    // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (not rewritten). Sets (`frozen`) or clears flag 4 of +0x0C; setting it saves the
     // surface's contents when it has any (005FD7A0), clearing it restores them when `restore`.
     void Freeze(int frozen, int restore);
-    // 005FCC00 (not rewritten). Constructor: a surface of the layout rectangle (left, top,
+    // 005FCC00 (ui_surface_create.cpp). Constructor: a surface of the layout rectangle (left, top,
     // right, bottom) with format `format`; returns this.
     CUiSurface* Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
     // 005FD3D0. Copies the screen's rect_ into the surface (nothing when it is the screen).

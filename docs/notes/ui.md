@@ -1197,6 +1197,8 @@ the camp may be laid out differently and some rows missed (harmless).
   `PixelAt` 005FD240 (RET 8: the colour at a point through the converter, 0 outside) side by side
   on the result. The constructors 005FCC00 / 005FCDD0 (ui_surface_create.cpp; scale the layout
   rectangle, holder 004EF7B0, surface bytes += height * pitch, colour fill to 0, flag 4) ours only.
+  The picture window 005FCF80 ("<name>.mmp" through the texture manager and 004EFC60, flag 1)
+  and the destructor body 005FD120 (ReleaseContents) likewise, ours only.
   In the new renderer's switch-over these work on the windows' game-owned memory without DirectDraw
   (docs/notes/renderer.md, "Interface windows").
 - `CItemScreen::DrawHeroFace` (005ED7B0, RET 8; caller 00629AF0, a strip of 8 hero faces): the
