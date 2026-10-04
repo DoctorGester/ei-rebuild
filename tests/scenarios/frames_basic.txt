@@ -1,10 +1,10 @@
 # Frame captures for the renderer work (docs/notes/renderer.md, "Frame capture"): a few fixed
 # screens written to frames\<name>.bmp in the run's output folder. Compare two runs with
 #   python tools\compare_frames.py build\verify\runs\frames_basic-vanilla <other run folder>
-# Around each capture the game's clocks are frozen (no world, client or camera update, no
-# clock-driven animation) and the mouse is parked away from buttons and units; each capture skips
-# two presented frames. world and world_again come from the same freeze and must be identical
-# (a difference means something on screen moves without the game's clocks).
+# Around each capture the game's clocks and the camera are frozen (no world, client or camera
+# update, no clock-driven animation) and the mouse is parked away from buttons and units; each
+# capture skips two presented frames. world and world_again come from the same freeze and must match
+# (samecapture; a difference means something on screen moves while frozen).
 reject Script error
 wait 6000
 console thingamabob
@@ -27,6 +27,7 @@ freeze
 capture world
 capture world_again
 unfreeze
+samecapture world world_again
 
 # The camp (screen 5); Esc returns to the game.
 screen 5
