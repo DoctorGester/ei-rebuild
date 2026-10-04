@@ -297,6 +297,21 @@ static void __fastcall AttachVerify(CRegionMap* self, void*, CAIMap* map) {
 }
 EI_VERIFY(0x005B0C00, AttachVerify, 0, s_unusedAttach);
 
+CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self);
+
+// 005AF3D0: constructs in place, so ours only; the searches are inactive and the local search's
+// list vtable is set.
+static CRegionMap* __fastcall ConstructRegionMapVerify(CRegionMap* self) {
+    CRegionMap* result = ConstructRegionMap(self);
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    bool ok = result == self && !base[0x49] && !base[0x4C + 0x49] &&
+              *reinterpret_cast<std::uint32_t*>(base + 0x98 + 0x28) == 0x0073FA04 &&
+              *reinterpret_cast<std::uint32_t*>(base + 0x118) == 0;
+    ei::verify::Check("ConstructRegionMap", true, ok, "");
+    return result;
+}
+EI_VERIFY(0x005AF3D0, ConstructRegionMapVerify, 0, s_unusedAttach);
+
 namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;

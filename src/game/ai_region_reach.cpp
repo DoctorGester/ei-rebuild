@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 
 namespace {
 
@@ -100,6 +101,12 @@ BlockCostList::Node* AppendBlockCost(BlockCostList* list) {
     ConstructBlockCosts(&node->x, 1);
     return node;
 }
+// The region map's constructor helpers: the local search's two member constructors (their counts
+// preset to 1), the CRT's `eh vector constructor iterator` (array, size, count, ctor, dtor).
+__declspec(naked) void __fastcall ConstructSearchPart1(void*) EI_ORIGINAL(0x005B1470)
+__declspec(naked) void __fastcall ConstructSearchPart2(void*) EI_ORIGINAL(0x005B14C0)
+__declspec(naked) void __stdcall VectorConstruct(void*, unsigned, int, void*, void*) EI_ORIGINAL(0x006E8693)
+
 // 005C1EA0 (RET 8): the local search's set-up for a map (map, 0).
 __declspec(naked) void __fastcall SearchAttach(void*, void*, CAIMap*, int) EI_ORIGINAL(0x005C1EA0)
 
@@ -671,7 +678,46 @@ void CRegionMap::Attach(CAIMap* map) {
     RebuildTable(reinterpret_cast<std::uint8_t*>(this) + 0x4C, nullptr, this, 1);
 }
 
+// 005AF3D0 (thiscall, returns this): the region map's constructor.
+CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
+    auto* base = reinterpret_cast<std::uint8_t*>(self);
+    // The two block searches start with a 1x1 record grid.
+    for (int offset : {0, 0x4C}) {
+        std::uint8_t* search = base + offset;
+        At<int>(search, 8) = 1;
+        At<int>(search, 0xC) = 1;
+        auto* records = static_cast<std::uint8_t*>(gamecrt::operator_new(0x18));
+        At<std::uint8_t*>(search, 0) = records;
+        auto** rows = static_cast<std::uint8_t**>(gamecrt::operator_new(static_cast<std::size_t>(At<int>(search, 0xC) * 4)));
+        At<std::uint8_t**>(search, 4) = rows;
+        for (int y = 0; y < At<int>(search, 0xC); ++y) rows[y] = At<std::uint8_t*>(search, 0) + y * At<int>(search, 8) * 24;
+        At<std::uint8_t>(search, 0x49) = 0;
+        At<std::uint32_t>(search, 0x10) = 0;
+    }
+    std::uint8_t* local = base + 0x98;
+    At<int>(local, 4 + 8) = 1;
+    At<int>(local, 4 + 0xC) = 1;
+    ConstructSearchPart1(local + 4);
+    At<int>(local, 0x14 + 8) = 1;
+    At<int>(local, 0x14 + 0xC) = 1;
+    ConstructSearchPart2(local + 0x14);
+    At<std::uint32_t>(local, 0x28) = 0x0073FA04;
+    At<std::uint32_t>(local, 0x2C) = 0;
+    At<std::uint32_t>(local, 0x38) = 0;
+    At<std::uint32_t>(local, 0x34) = 0;
+    At<std::uint32_t>(local, 0x30) = 0;
+    At<std::uint32_t>(local, 0x24) = 0;
+    VectorConstruct(base + 0x11C, 0x10, 8, reinterpret_cast<void*>(0x005AF580), reinterpret_cast<void*>(0x00598440));
+    VectorConstruct(base + 0x19C, 0x10, 8, reinterpret_cast<void*>(0x005AF590), reinterpret_cast<void*>(0x00598460));
+    VectorConstruct(base + 0x21C, 0x10, 8, reinterpret_cast<void*>(0x005AF5A0), reinterpret_cast<void*>(0x00598480));
+    RebuildTable(self, nullptr, self, 0);
+    RebuildTable(base + 0x4C, nullptr, self, 1);
+    At<std::uint32_t>(self, 0x118) = 0;
+    return self;
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE(0x005AF3D0, ConstructRegionMap);
 EI_REPLACE_METHOD(0x005B0C00, CRegionMap::Attach);
 EI_REPLACE_METHOD(0x005AFAE0, CRegionMap::MeasureBlockEdges);
 EI_REPLACE(0x005AF1C0, BlockSearchPathTo);
