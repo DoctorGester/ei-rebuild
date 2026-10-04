@@ -3089,3 +3089,8 @@ address,name,library,signature,notes
 005B1870,"CList<T>::Serialize",MFC,,"instantiation over 0xC-byte elements (same code as 005BDF40)"
 005B1A00,"CList<T>::Serialize",MFC,,"instantiation over 8-byte elements"
 005BE090,"stlp::hash_map<Handle,RefPtr>::operator[]",STLport,,"instantiation of find_or_insert for the reference-counted object cache (rewritten caller 005BD7F0, ai_shape_cache.cpp)"
+0041F5F0,"stlp::string::substr(pos, n) (out_of_range "basic_string")",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004246C0,"stlp::list<T>::push_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00423690,"stlp::list<T>::push_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+004207C0,"stlp::list<T>::push_back",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00427320,"stlp::list<T>::remove(value)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
