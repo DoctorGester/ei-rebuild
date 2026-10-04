@@ -50,7 +50,9 @@
 // that into its exit code.
 //
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
-// off, saves and config\tutorial.ini kept in harness_saves next to the DLL, no registry writes.
+// off, saves and config\tutorial.ini kept in harness_saves next to the DLL, every other write under
+// the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, ...) going to a
+// copy-on-write overlay there too, no registry writes.
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
 #include "verify.h"
@@ -250,10 +252,97 @@ const char* SavesPath(const char* path, char (&buffer)[MAX_PATH]) {
     return path;
 }
 
+// The rest of the install (textures\ with the composed-skin cache, config\keyboard.ini,
+// config\addrbook.ini, mp\, ...) gets a copy-on-write overlay in harness_saves\: a write to a file
+// under the game's root goes to harness_saves\<relative path> (a file the write keeps the contents
+// of is copied there first), and a read takes that copy when there is one, else the install's file.
+// Nothing under the install is ever modified. Deleting or moving an install file only affects the
+// overlay copy (a move of an install file becomes a copy).
+char g_rootDirs[2][MAX_PATH];   // the working directory at start and the game folder (007AF460)
+
+bool UnderRoot(const char* full, const char* root, const char** relative) {
+    std::size_t n = std::strlen(root);
+    if (n == 0 || _strnicmp(full, root, n) != 0) return false;
+    if (root[n - 1] != '\\') {
+        if (full[n] != '\\') return false;
+        ++n;
+    }
+    if (full[n] == '\0') return false;
+    *relative = full + n;
+    return true;
+}
+
+// The overlay path of `path`, or null when `path` is not under the game's root.
+const char* ShadowOf(const char* path, char (&buffer)[MAX_PATH]) {
+    if (!path || !*path) return nullptr;
+    const char* folder = *reinterpret_cast<const char* const*>(0x007AF460);   // CString data, may be empty
+    if (folder && *folder && !g_rootDirs[1][0]) {
+        if (!GetFullPathNameA(folder, MAX_PATH, g_rootDirs[1], nullptr)) g_rootDirs[1][0] = '\0';
+    }
+    char full[MAX_PATH];
+    DWORD n = GetFullPathNameA(path, MAX_PATH, full, nullptr);
+    if (n == 0 || n >= MAX_PATH) return nullptr;
+    std::size_t saves = std::strlen(g_savesDir);
+    if (_strnicmp(full, g_savesDir, saves) == 0) return nullptr;   // already ours
+    for (const char* root : g_rootDirs) {
+        const char* relative = nullptr;
+        if (!UnderRoot(full, root, &relative)) continue;
+        if (std::snprintf(buffer, MAX_PATH, "%s\\%s", g_savesDir, relative) >= MAX_PATH) return nullptr;
+        return buffer;
+    }
+    return nullptr;
+}
+
+void MakeParentDirs(const char* file) {
+    char dir[MAX_PATH];
+    strcpy_s(dir, file);
+    for (char* p = dir + std::strlen(g_savesDir) + 1; *p; ++p) {
+        if (*p != '\\') continue;
+        *p = '\0';
+        g_createDirectory(dir, nullptr);
+        *p = '\\';
+    }
+}
+
+void LogInstallWrite(const char* path, const char* shadow) {
+    static int logged = 0;
+    if (logged++ < 200) Log("harness: install write redirected: %s -> %s", path, shadow);
+}
+
+// For a read: the overlay copy when it exists, else `path` (saves always redirect).
+const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
+    const char* saves = SavesPath(path, buffer);
+    if (saves != path) return saves;
+    const char* shadow = ShadowOf(path, buffer);
+    if (shadow && g_getFileAttributes(shadow) != INVALID_FILE_ATTRIBUTES) return shadow;
+    return path;
+}
+
+// For a write: the overlay path (its directories created; with `keep` an install file not yet in
+// the overlay is copied first).
+const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
+    const char* saves = SavesPath(path, buffer);
+    if (saves != path) return saves;
+    const char* shadow = ShadowOf(path, buffer);
+    if (!shadow) return path;
+    MakeParentDirs(shadow);
+    if (keep && g_getFileAttributes(shadow) == INVALID_FILE_ATTRIBUTES &&
+        g_getFileAttributes(path) != INVALID_FILE_ATTRIBUTES)
+        g_copyFile(path, shadow, TRUE);
+    LogInstallWrite(path, shadow);
+    return shadow;
+}
+
 HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSECURITY_ATTRIBUTES sa,
                                    DWORD disposition, DWORD flags, HANDLE templ) {
     char b[MAX_PATH];
-    return g_createFile(SavesPath(name, b), access, share, sa, disposition, flags, templ);
+    constexpr DWORD kWriteAccess = GENERIC_WRITE | GENERIC_ALL | FILE_WRITE_DATA | FILE_APPEND_DATA | DELETE |
+                                   FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA;
+    bool write = (access & kWriteAccess) != 0 || disposition == CREATE_ALWAYS || disposition == CREATE_NEW ||
+                 disposition == TRUNCATE_EXISTING || disposition == OPEN_ALWAYS;
+    bool keep = disposition == OPEN_EXISTING || disposition == OPEN_ALWAYS;
+    const char* target = write ? WritePath(name, b, keep) : ReadPath(name, b);
+    return g_createFile(target, access, share, sa, disposition, flags, templ);
 }
 
 // Registry: harness runs never write the game's settings (it saves its options on exit).
@@ -289,40 +378,72 @@ DWORD WINAPI HarnessGetProfileString(LPCSTR app, LPCSTR key, LPCSTR fallback, LP
         if (out && size) out[0] = '\0';
         return 0;
     }
-    return g_getProfileString(app, key, fallback, out, size, file);
+    char b[MAX_PATH];
+    return g_getProfileString(app, key, fallback, out, size, ReadPath(file, b));
+}
+
+// The other profile calls read the overlay copy too; writes go to it.
+constexpr std::uintptr_t kGetPrivateProfileSectionASlot = 0x0073B234;
+constexpr std::uintptr_t kGetPrivateProfileIntASlot = 0x0073B238;
+constexpr std::uintptr_t kWritePrivateProfileStringASlot = 0x0073B240;
+constexpr std::uintptr_t kGetPrivateProfileSectionNamesASlot = 0x0073B268;
+decltype(&::GetPrivateProfileSectionA) g_getProfileSection;
+decltype(&::GetPrivateProfileIntA) g_getProfileInt;
+decltype(&::WritePrivateProfileStringA) g_writeProfileString;
+decltype(&::GetPrivateProfileSectionNamesA) g_getProfileSectionNames;
+
+DWORD WINAPI RedirectedGetProfileSection(LPCSTR app, LPSTR out, DWORD size, LPCSTR file) {
+    char b[MAX_PATH];
+    return g_getProfileSection(app, out, size, ReadPath(file, b));
+}
+UINT WINAPI RedirectedGetProfileInt(LPCSTR app, LPCSTR key, INT fallback, LPCSTR file) {
+    char b[MAX_PATH];
+    return g_getProfileInt(app, key, fallback, ReadPath(file, b));
+}
+BOOL WINAPI RedirectedWriteProfileString(LPCSTR app, LPCSTR key, LPCSTR value, LPCSTR file) {
+    char b[MAX_PATH];
+    return g_writeProfileString(app, key, value, file ? WritePath(file, b, true) : file);
+}
+DWORD WINAPI RedirectedGetProfileSectionNames(LPSTR out, DWORD size, LPCSTR file) {
+    char b[MAX_PATH];
+    return g_getProfileSectionNames(out, size, ReadPath(file, b));
 }
 
 BOOL WINAPI RedirectedDeleteFile(LPCSTR name) {
     char b[MAX_PATH];
-    return g_deleteFile(SavesPath(name, b));
+    return g_deleteFile(WritePath(name, b, false));
 }
 BOOL WINAPI RedirectedCopyFile(LPCSTR from, LPCSTR to, BOOL failIfExists) {
     char b1[MAX_PATH], b2[MAX_PATH];
-    return g_copyFile(SavesPath(from, b1), SavesPath(to, b2), failIfExists);
+    return g_copyFile(ReadPath(from, b1), WritePath(to, b2, false), failIfExists);
 }
 BOOL WINAPI RedirectedMoveFile(LPCSTR from, LPCSTR to) {
-    char b1[MAX_PATH], b2[MAX_PATH];
-    return g_moveFile(SavesPath(from, b1), SavesPath(to, b2));
+    char b1[MAX_PATH], b2[MAX_PATH], b3[MAX_PATH];
+    const char* source = ReadPath(from, b1);
+    const char* target = WritePath(to, b2, false);
+    // An install file is never moved away: it is copied into the overlay instead.
+    if (source == from && ShadowOf(from, b3)) return g_copyFile(source, target, TRUE);
+    return g_moveFile(source, target);
 }
 HANDLE WINAPI RedirectedFindFirstFile(LPCSTR name, LPWIN32_FIND_DATAA data) {
     char b[MAX_PATH];
-    return g_findFirstFile(SavesPath(name, b), data);
+    return g_findFirstFile(ReadPath(name, b), data);
 }
 BOOL WINAPI RedirectedCreateDirectory(LPCSTR name, LPSECURITY_ATTRIBUTES sa) {
     char b[MAX_PATH];
-    return g_createDirectory(SavesPath(name, b), sa);
+    return g_createDirectory(WritePath(name, b, false), sa);
 }
 BOOL WINAPI RedirectedRemoveDirectory(LPCSTR name) {
     char b[MAX_PATH];
-    return g_removeDirectory(SavesPath(name, b));
+    return g_removeDirectory(WritePath(name, b, false));
 }
 DWORD WINAPI RedirectedGetFileAttributes(LPCSTR name) {
     char b[MAX_PATH];
-    return g_getFileAttributes(SavesPath(name, b));
+    return g_getFileAttributes(ReadPath(name, b));
 }
 BOOL WINAPI RedirectedSetFileAttributes(LPCSTR name, DWORD attributes) {
     char b[MAX_PATH];
-    return g_setFileAttributes(SavesPath(name, b), attributes);
+    return g_setFileAttributes(WritePath(name, b, true), attributes);
 }
 
 void WriteReport() {
@@ -831,6 +952,7 @@ struct Harness {
         strcpy_s(g_savesDir, g_reportPath);
         if (char* slash = std::strrchr(g_savesDir, '\\')) strcpy_s(slash + 1, g_savesDir + MAX_PATH - (slash + 1), "harness_saves");
         CreateDirectoryA(g_savesDir, nullptr);
+        if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
 
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
@@ -846,6 +968,10 @@ struct Harness {
         PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
         PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
         PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
+        PatchSlot(kGetPrivateProfileSectionASlot, &RedirectedGetProfileSection, g_getProfileSection);
+        PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);
+        PatchSlot(kWritePrivateProfileStringASlot, &RedirectedWriteProfileString, g_writeProfileString);
+        PatchSlot(kGetPrivateProfileSectionNamesASlot, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
         if (g_deterministic) {
             PatchSlot(kTimeGetTimeSlot, &VirtualTimeGetTime, g_timeGetTime);
             PatchSlot(kGetTickCountSlot, &VirtualGetTickCount, g_getTickCount);
@@ -854,7 +980,7 @@ struct Harness {
             JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
             Log("harness: deterministic mode (virtual clock, %u world updates per frame)", kUpdatesPerFrame);
         }
-        Log("harness: saves redirected to %s", g_savesDir);
+        Log("harness: saves and install writes redirected to %s (root %s)", g_savesDir, g_rootDirs[0]);
         if (HANDLE watchdog = CreateThread(nullptr, 0, &Watchdog, nullptr, 0, nullptr)) CloseHandle(watchdog);
         g_running = true;
         Log("harness: %u steps from %s", unsigned(g_steps.size()), path);
