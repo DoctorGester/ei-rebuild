@@ -583,6 +583,17 @@ struct PlatformSet {
     PlatformNode* head;                   // +0x20 the last node added (nodes link backwards)
 };
 
+// The unit set the server's SendZone fills (world_sync.cpp; 005593D0 adds a unit): an STLport
+// hash_map whose nodes hold a second hash_map of unit entries (node + 8), a word at +0x24 and a
+// third hash_map at +0x14. Only the writer is rewritten (world_unit_set.cpp).
+struct UnitSet {
+    // 00559E60 (RET 4). Writes the set to `stream` (its slot 2 writes bytes): the number of unit
+    // entries; per entry its head (00558FA0), the words at +0x24 / +0x28 / +0x2C, its string count
+    // and each string with its terminator; the word +0x24; per third-map entry a 16-bit key, two
+    // counted dword arrays, a byte and a dword.
+    void Write(void* stream);
+};
+
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
 struct SectorListNode {
@@ -736,14 +747,16 @@ public:
     // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,
     // +0xB4 and +0xB8 (released), the session (+0x20C), the counted +0x1C8, 0055F8E0, then the
     // owned objects +0x1A0 .. +0x1D0 (counted ones dropped first) deleted and cleared.
-    void Destroy() override;
+    // (Not declared as the Destroy override: a virtual member's address is a vtable thunk, and
+    // hooking the slot's own code with it recurses.)
+    void Teardown();
     // 00561E50 (slot 2; also 00456440). Sets the client world up: the managers (0055EE40), the
     // texture path, the lights table (LightsGipat.ini, 00563930), the owned objects +0x1CC, +0x1D0,
     // the terrain (+0x180, its constructor inlined), +0x44, +0x18C, +0x188, +0x190, +0x19C, the
     // session (+0x20C), the counted +0x1C8, the text resources, +0x1A0, +0x1A4, +0x1A8, +0x6F4 and the
     // platforms, flag 0x200, the cursor (+0x7D0), a reference on every player, room for 400 screen
     // entries (+0xF4), and both sector grids at 4 x 4. Returns 1.
-    int Create() override;
+    int Setup();
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090

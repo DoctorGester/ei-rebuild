@@ -3276,3 +3276,5 @@ address,name,library,signature,notes
 0055C270,stlp _Construct (CString),STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
 0055C260,stlp _Construct (copy),STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
 0055D020,stlp equal (pointers),STLport,,unit appearance cache review (combat.md): STLport hash_map / equal instantiation behind 005593D0
+005612F0,CWorldClient constructor (static initialiser of 007AF5B8),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
+00561B00,CWorldClient destructor (calls 00563290, then the members destructors),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
