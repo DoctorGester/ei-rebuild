@@ -738,6 +738,20 @@ attacks and spells without a target point, 1 otherwise, flag "failed"). Shouts 0
 a UnitMotion (0xA4 bytes; its members 00556D70 / 00556810 / 004D5990 / 0054E5D0 / 004CB050, the
 speed scale 0073EF20, the turn limit 1e10).
 
+Taming (`src/game/combat_taming.cpp`, verify `tests/verify/verify_combat_taming.cpp`):
+
+| Address | Name | Verification |
+|---|---|---|
+| 00551AE0 | CUnitServer::TryTame (RET 8: tamer, roll) | ours only: a success records the tamer's side, stage 1..3 |
+| 00552280 | CUnitServer::UndoTaming | ours only: stage 0 |
+
+Fields: `+0x908` the taming stage, `+0x90C` the unit's own side (kept from stage 2), `+0x910` the
+tamer's side. A roll succeeds when it is above 10 x the controller's slot 39 plus the taming skill
+value (UnitStats 00525E90 with 2), or is not a number. The tamed mode is a player mode
+(005D3760, 0x24 bytes) with vtable 0073F0C4; at stage 3 the brain's reference lists at +0xAB0 and
++0xACC are emptied. Original quirk kept: the new mode's +4 is written before testing the
+allocation.
+
 More controller fields: `+0x0A9` / `+0x0AA` the path's flags (+0x6D, +0x6E: no player), `+0x145`
 the last path was blocked, `+0x146` a pending path to +0x9C, `+0x147` moving (the movement
 animation plays), `+0x178` updates in mode 3 without a cheap cell, `+0x238` (stats +0x58) a
