@@ -106,6 +106,8 @@ struct CRegionMap {
     bool Reaches(int sizeClass, int x, int y, int region, void* marks);
     // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
     bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
+    // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
+    void LabelRegions();
 };
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the

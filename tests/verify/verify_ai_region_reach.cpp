@@ -63,3 +63,32 @@ static bool __fastcall ReachesVerify(CRegionMap* self, void*, int sizeClass, int
     return result;
 }
 EI_VERIFY(0x005B07C0, ReachesVerify, 7, s_original);
+
+namespace {
+using LabelFn = void(__fastcall*)(CRegionMap*, void*);
+LabelFn s_originalLabel;
+
+void SaveGrids(CRegionMap* map, std::vector<std::uint16_t>& out) {
+    out.clear();
+    auto* base = reinterpret_cast<std::uint8_t*>(map);
+    for (int c = 0; c < 8; ++c) {
+        auto* data = *reinterpret_cast<std::uint16_t**>(base + 0x21C + c * 16);
+        int width = *reinterpret_cast<int*>(base + 0x224 + c * 16), height = *reinterpret_cast<int*>(base + 0x228 + c * 16);
+        out.insert(out.end(), data, data + width * height);
+    }
+}
+} // namespace
+
+// 005B0050: recomputes every grid from scratch; the original, then ours, the grids compared.
+static void __fastcall LabelRegionsVerify(CRegionMap* self, void*) {
+    s_originalLabel(self, nullptr);
+    std::vector<std::uint16_t> expected, actual;
+    SaveGrids(self, expected);
+    self->LabelRegions();
+    SaveGrids(self, actual);
+    int differences = 0;
+    for (std::size_t i = 0; i < actual.size(); ++i)
+        if (actual[i] != expected[i]) ++differences;
+    ei::verify::Check("CRegionMap::LabelRegions", 0, differences, "%d blocks", static_cast<int>(actual.size()));
+}
+EI_VERIFY(0x005B0050, LabelRegionsVerify, 8, s_originalLabel);

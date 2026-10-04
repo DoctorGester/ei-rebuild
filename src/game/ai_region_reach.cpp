@@ -5,12 +5,16 @@
 // block is marked unreachable (2) in `marks`; otherwise the local search (+0x98) floods the 3x3
 // blocks from the cell, the region is reached when a representative cell of one of them that is
 // in the region was reached, and every reached cell of the window gets the answer (1 yes, 2 no).
-// See ai_map.h and docs/notes/ai.md.
+//
+// CRegionMap::LabelRegions (005B0050): numbers the connected areas of blocks per size class: each
+// class's region grid is cleared, and every block still 0 starts a new region (1, 2, ...) flooded
+// by 005AFF10 from a queue of blocks. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
 #include "ei/hook.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -48,6 +52,22 @@ __declspec(naked) void __fastcall SearchFinish(void*, void*) EI_ORIGINAL(0x005C3
 __declspec(naked) void __fastcall SearchSettle(void*, void*) EI_ORIGINAL(0x005C3530)
 __declspec(naked) int __fastcall SearchCost(void*, void*, int, int) EI_ORIGINAL(0x005C3090)
 __declspec(naked) void __fastcall SearchReset(void*, void*) EI_ORIGINAL(0x005C35F0)
+
+// LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
+// destroyed by 005B0360) and its second list at 007C2EF8 (bit 1, 005B0350).
+PointArray& FloodQueue() { return *reinterpret_cast<PointArray*>(0x007C2F10); }
+PointArray& FloodSecond() { return *reinterpret_cast<PointArray*>(0x007C2EF8); }
+std::uint8_t& FloodGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F24); }
+
+// 005AFF10 (RET 0x10). Floods `label` from the queued blocks for a size class.
+__declspec(naked) void __fastcall FloodRegion(CRegionMap*, void*, int, PointArray*, PointArray*, int) EI_ORIGINAL(0x005AFF10)
+
+// The per size class region grid (+0x21C + 16 * class): u16 per block.
+struct RegionGrid {
+    std::uint16_t* data;
+    std::uint16_t** rows;
+    int width, height;
+};
 
 constexpr int kUnreached = 0x7FFFFFFF;
 constexpr int kBlocksWide = 0x124;
@@ -129,4 +149,37 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, void* ma
     return found;
 }
 
+void CRegionMap::LabelRegions() {
+    PointArray& queue = FloodQueue();
+    PointArray& second = FloodSecond();
+    if (!(FloodGuard() & 1)) {
+        FloodGuard() |= 1;
+        PointArrayConstruct(&queue, nullptr);
+        GameAtExit(reinterpret_cast<void (*)()>(0x005B0360));
+    }
+    if (!(FloodGuard() & 2)) {
+        FloodGuard() |= 2;
+        PointArrayConstruct(&second, nullptr);
+        GameAtExit(reinterpret_cast<void (*)()>(0x005B0350));
+    }
+    PointArraySetSize(&queue, nullptr, 0, -1);
+    for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
+        RegionGrid& grid = At<RegionGrid>(this, 0x21C + sizeClass * 16);
+        std::memset(grid.data, 0, static_cast<std::size_t>(grid.height * grid.width * 2));
+        int label = 1;
+        for (int by = 0; by < At<int>(this, kBlocksHigh); ++by)
+            for (int bx = 0; bx < At<int>(this, kBlocksWide); ++bx) {
+                if (grid.rows[by][bx] != 0) continue;
+                grid.rows[by][bx] = static_cast<std::uint16_t>(label);
+                int n = queue.size;
+                PointArraySetSize(&queue, nullptr, n + 1, -1);
+                queue.data[n].x = bx;
+                queue.data[n].y = by;
+                FloodRegion(this, nullptr, sizeClass, &queue, &second, label);
+                ++label;
+            }
+    }
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005B0050, CRegionMap::LabelRegions);
