@@ -333,17 +333,46 @@ void ReadTexture(Texture& t, void* surface) {
     }
 }
 
-// Reads a window surface (one level; keyed) into `t`.
-void ReadWindow(Texture& t, void* surface, bool keyed, std::uint32_t key) {
+// Surfaces whose pixels live in game-owned memory ("cpuwindows", render::ClientSurface).
+struct Client {
+    void* bits;
+    int pitch, width, height, bitsPerPixel;
+    std::uint32_t red, green, blue, alpha;
+};
+std::unordered_map<const void*, Client> g_clients;   // by holder
+
+// Reads a window surface (one level; keyed) into `t`: from its game-owned memory when it has
+// some, else through a Lock.
+void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::uint32_t key) {
     auto* dd = static_cast<IDirectDrawSurface7*>(surface);
     DDSURFACEDESC2 desc{};
     desc.dwSize = sizeof(desc);
     std::vector<std::uint8_t> pixels;
-    LockGameDevice();
-    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
-    bool ok = SUCCEEDED(hr) && desc.lpSurface && desc.dwWidth && desc.dwHeight && Convert(desc, pixels, keyed, key);
-    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
-    UnlockGameDevice();
+    HRESULT hr = S_OK;
+    bool ok = false;
+    auto client = g_clients.find(holder);
+    if (client != g_clients.end()) {
+        const Client& c = client->second;
+        GdiFlush();   // GDI may still hold drawing for the memory
+        desc.dwWidth = static_cast<DWORD>(c.width);
+        desc.dwHeight = static_cast<DWORD>(c.height);
+        desc.lPitch = c.pitch;
+        desc.lpSurface = c.bits;
+        desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+        desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (c.alpha ? DDPF_ALPHAPIXELS : 0);
+        desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(c.bitsPerPixel);
+        desc.ddpfPixelFormat.dwRBitMask = c.red;
+        desc.ddpfPixelFormat.dwGBitMask = c.green;
+        desc.ddpfPixelFormat.dwBBitMask = c.blue;
+        desc.ddpfPixelFormat.dwRGBAlphaBitMask = c.alpha;
+        ok = Convert(desc, pixels, keyed, key);
+    } else {
+        LockGameDevice();
+        hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
+        ok = SUCCEEDED(hr) && desc.lpSurface && desc.dwWidth && desc.dwHeight && Convert(desc, pixels, keyed, key);
+        if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+        UnlockGameDevice();
+    }
     t.surface = surface;
     t.keyed = keyed;
     t.key = key;
@@ -548,7 +577,7 @@ sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int
     t.checkedFrame = frame;
     if (reread) {
         Retire(t);
-        ReadWindow(t, surface, keyed, key);
+        ReadWindow(t, holder, surface, keyed, key);
         t.uniqueness = now;
     }
     *width = t.width;
@@ -653,5 +682,18 @@ void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
     detail::FpuGuard fpu;
     detail::TextureFromMmpData(holder, data, mip, levels);
 }
+
+} // namespace render
+
+namespace render {
+
+void ClientSurface(const void* holder, void* bits, int pitch, int width, int height, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    if (!holder || !bits) return;
+    detail::g_clients[holder] = detail::Client{bits, pitch, width, height, bitsPerPixel, redMask, greenMask, blueMask,
+                                               alphaMask};
+}
+
+void ClientSurfaceGone(const void* holder) { detail::g_clients.erase(holder); }
 
 } // namespace render

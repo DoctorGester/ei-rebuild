@@ -215,8 +215,25 @@ in our runs) is still created and still used, because:
    by the game into textures it writes itself), the shadow textures (taken from their render
    surface already). Left: those, then the DirectDraw texture objects themselves.
 2. **The interface is composed on DirectDraw surfaces** with GDI (GetDC / ReleaseDC, text, fills)
-   and pixel code (locks), then read back on change. Needed: the window surfaces as DIB sections or
-   CPU buffers (GDI works on a DIB section the same way), or native interface drawing (step 6).
+   and pixel code (locks). First step done behind `EI_RENDER=...,cpuwindows` (off by default until
+   proven in game): the surface holder's constructor 004EF7B0 (used for the windows, the software
+   cursor and the movies' surfaces; system memory, the screen's format) is rewritten and, with the
+   option, puts the surface's pixels in a DIB section the game code owns (DirectDraw client
+   memory: DDSD_LPSURFACE / DDSD_PITCH; refused -> a plain surface, logged "cpuwindows: ..."); the
+   destructor body 004EFD20 frees it. The window surface's DC helpers 005FDC00 / 005FDC60 are
+   rewritten: with client memory GDI draws through a memory DC on the DIB section, not
+   DirectDraw's GetDC (an empty Lock / Unlock afterwards tells DirectDraw the memory changed, for
+   the old path's Blt). Lock users (the console, the description panels, Greyscale ...) work on
+   the same memory unchanged. The new renderer reads such a surface's memory directly
+   (`render::ClientSurface`; GdiFlush first), not through a Lock. Checked offline: Windows'
+   DirectDraw takes a DIB section as a system-memory surface's memory, and GDI through a memory DC
+   on the DIB and through the surface's DC both land in it (dgVoodoo not checked: the fallback
+   covers a refusal; if it caches client memory and misses GDI writes, the old path's windows
+   would go stale, which the empty Lock / Unlock is there to prevent). Left: the change detection
+   still asks DirectDraw (the uniqueness value; a dirty flag from ReleaseDC and the lock users
+   next), the old path's Blt of windows (goes with the old path), and with the verify build's
+   side-by-side text checks under cpuwindows the GDI batch must be flushed before they read
+   pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
    place that sets a render state, a texture stage state or applies a state block on the old device
    also calls `render::state::Render / Stage / Block` with the same values (13 files so far:
