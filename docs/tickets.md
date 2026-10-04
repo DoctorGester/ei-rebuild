@@ -12,7 +12,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   `cpuwindows`, so 005FCF80 / 005FD120 stop calling GetSurfaceDesc.
 - R3 Save/load screen screenshot textures (made by 005FF0B0; locked by 00655550, 00655D40,
   00656464, 00656E10) on game memory.
-- R4 (taken 2026-10-05) Render-state presets fed to `render::state`: 0049B140, 0049B4B0, 00501C60, 0050434F, 005045D0.
 - R5 The ~10 interface draws with old-device calls (list in renderer.md point 6), in groups of 3-4.
 - R6 Movie surfaces and the software cursor's draws to the primary surface.
 - R7 Holders with no DirectDraw surface at all (after R2/R3).
@@ -37,5 +36,10 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Cleanup (docs/cleanup-plan.md)
 
-- C1 Tooling: `src/game/originals.h` generator and the artefact counts in `tools/progress.py`
+- C1 (taken 2026-10-05) Tooling: `src/game/originals.h` generator and the artefact counts in `tools/progress.py`
   (phase 0). Routine; a cheaper model is fine.
+- C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
+  real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
+  globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family.
+- X1 Small fixes: 0049B320 (unreferenced two-point line draw) to config/dead_code.csv; drop the
+  false vtable entries 00747E2C (00504341 / 0050434F) from config/vtables.csv and functions.csv.
