@@ -3065,3 +3065,11 @@ address,name,library,signature,notes
 0043FE50,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 0043FE70,"stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection)",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
 0043FE90,"stlp::_Rb_global::_Rebalance",STLport,,range 400 review: STLport template instantiation (container plumbing), not game logic
+00411810,"stlp::deque<T>::iterator copy",STLport,,range 400 review: template / compiler helper instantiation, not game logic
+00411DF0,"stlp::_Destroy<deque<T>::iterator> (range)",STLport,,range 400 review: template / compiler helper instantiation, not game logic
+00411AB0,"stlp::deque<T>::deque(alloc, n)",STLport,,range 400 review: template / compiler helper instantiation, not game logic
+00411C00,"stlp::deque<T>::_M_initialize_map",STLport,,range 400 review: template / compiler helper instantiation, not game logic
+00411EE0,"stlp::deque<T>::_M_create_nodes",STLport,,range 400 review: template / compiler helper instantiation, not game logic
+0040CFB0,"stlp::deque<T>::~deque",STLport,,range 400 review: template / compiler helper instantiation, not game logic
+0040CE30,"vector constructor iterator (compiler helper)",CRT,,range 400 review: template / compiler helper instantiation, not game logic
+00433990,"stlp::_Rb_tree<T>::~_Rb_tree",STLport,,range 400 review: template / compiler helper instantiation, not game logic
