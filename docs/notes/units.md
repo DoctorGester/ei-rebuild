@@ -670,6 +670,16 @@ and the stat slot get their bool / flag arguments as 0/1 and the byte (the origi
 registers whose upper bytes are left over). The stat fractions and hit point ratio are plain C++
 (rule 7).
 
+# Unit points (slots 52 / 53)
+
+Code: `src/game/unit_points.cpp` (new); verify wrappers: `tests/verify/verify_unit_points.cpp`
+(differential: the original into a scratch point, within 8 ULPs). Registered as free functions.
+
+| Address | Function | Notes |
+| --- | --- | --- |
+| 0052FCC0 | UnitPredictPosition (slot 52, RET 8: out, time) | server units (slot 55): slot 53. Client units following a path order (kind 2, no flag 0x8000000): the motion sampled at (float)time, x / y back from half-cells, z kept. Otherwise the position. Returns out. |
+| 0052FDF0 | UnitActionPoint (slot 53, RET 4: out) | server units only (else the position). The animation entry of +0x254 (00518F80, its low byte) of kind 0x1C0000 offsets the position: 0x400000 -Y x +0x148, 0x800000 +Y x +0x148, 0xC00000 +X x +0x144, 0x1000000 -X x +0x144 (axes 0040F560 / 0040D940). A missing entry logs "Can't find animation entry index". When the world is live, a point where size class 3 cannot stand (005BA790) gives the position instead. |
+
 # Client path placement
 
 Code: `src/game/unit_client_path.cpp` (new); verify wrapper: `tests/verify/verify_unit_client_path.cpp`.
