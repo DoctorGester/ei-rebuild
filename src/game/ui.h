@@ -271,6 +271,10 @@ public:
 
     // 005FF700 / 005FF770 / 005FF7D0. The second object list (+0x108).
     BOOL RemoveSceneObject(CEngineObject* object);
+    // 005FF460 (RET 8). Replaces scene object `object` (released) at its place in the list with
+    // object `name` of the model manager (007AF5F4), given the window's texture 0 and taking the
+    // old one's position, +0xCC/+0xD0, orientation, texture and scale; the new one or null.
+    CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
     void RemoveSceneObjectAt(int index);
     void ClearSceneObjects();
 
@@ -311,6 +315,12 @@ public:
     // camp layout, else one), draws it lit through `pass` and puts its transform back
     // (ui_hero_preview.cpp).
     void DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide);
+    // 005FFFB0 (RET 0x28). Writes image "<name>.mmp" (decoded as imageWidth x imageHeight by the
+    // device's decoder) into `texture`'s 256-wide 1:5:5:5 surface: its top-left width x height at
+    // (x, y), or white there when there is no such image. Returns whether the image exists (0 also
+    // when the lock fails and the error report returns 0). ui_item_view.cpp.
+    int CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
+                  int x, int y, int unused1, int unused2);
     // Layout helpers (not rewritten): 005FEF20 loads a texture into the referenced objects,
     // 005FF0B0 creates an empty one, 005FF3C0 adds a scene object (`model` 0: a new interface
     // sprite, see CUiMesh) and returns it.
@@ -522,8 +532,9 @@ public:
     void Update();
     // 00640670 (not rewritten). Draws face picture `state` for portrait `index`.
     void ShowFace(int index, int state);
-    // 005FF460 (not rewritten). Replaces scene object `object` with a model loaded by `name`
-    // (keeping its placement); returns the new object or 0.
+    // 005FF460 (CUiWindow::ReplaceSceneObject, called through its address). Replaces scene
+    // object `object` with a model loaded by `name` (keeping its placement); returns the new
+    // object or 0.
     CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
 
     CBattleScreen* owner_;           // +0x148

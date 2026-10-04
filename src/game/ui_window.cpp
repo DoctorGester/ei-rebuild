@@ -437,3 +437,66 @@ void CUiWindow::ClearModels() {
     models_.FreeStorage();
 }
 EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
+
+// --- 005FF460: ReplaceSceneObject ------------------------------------------------------------------
+
+namespace {
+// 005AC1A0 (thiscall on the model manager 007AF5F4): a new object by name, or null.
+__declspec(naked) std::uint8_t* __fastcall NewModelObject(void*, void*, const char*) EI_ORIGINAL(0x005AC1A0)
+// 0059F3D0 (thiscall on the object): attaches it to the window.
+__declspec(naked) void __fastcall AttachToWindow(std::uint8_t*, void*, CUiWindow*) EI_ORIGINAL(0x0059F3D0)
+// 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
+__declspec(naked) double __fastcall SpriteScale(void*) EI_ORIGINAL(0x005E70B0)
+__declspec(naked) void __fastcall SetSpriteScale(void*, void*, float) EI_ORIGINAL(0x005E7060)
+
+// FLD / FSTP of a float field (as the original copies +0xCC and +0xD0).
+void CopyFloat(void* to, const void* from) {
+    __asm {
+        mov eax, from
+        mov ecx, to
+        fld dword ptr [eax]
+        fstp dword ptr [ecx]
+    }
+}
+} // namespace
+
+CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
+    for (int i = 0; i < sceneObjects_.size_; ++i) {
+        if (sceneObjects_.data_[i] != object) continue;
+        void* manager = *reinterpret_cast<void* const*>(0x007AF5F4);
+        std::uint8_t* made = NewModelObject(manager, nullptr, name);
+        if (!made) return nullptr;
+        int references;
+        std::memcpy(&references, made + 4, 4);
+        ++references;
+        std::memcpy(made + 4, &references, 4);
+        AttachToWindow(made, nullptr, this);
+        auto* old = reinterpret_cast<std::uint8_t*>(object);
+        std::memcpy(made + 0x27C, reinterpret_cast<std::uint8_t*>(this) + 0xEC, 4);
+        CEngineObject* texture = objects_.size_ > 0 ? objects_.data_[0] : nullptr;
+        std::memcpy(made + 0x280, &texture, 4);
+        std::memcpy(made + 0x1C, old + 0x1C, 12);
+        CopyFloat(made + 0xCC, old + 0xCC);
+        CopyFloat(made + 0xD0, old + 0xD0);
+        std::memcpy(made + 0x34, old + 0x34, 16);
+        std::memcpy(made + 0x280, old + 0x280, 4);
+        volatile float scale = static_cast<float>(SpriteScale(old));
+        SetSpriteScale(made, nullptr, scale);
+        sceneObjects_.RemoveSlot(i);
+        using ReleaseFn = void(__thiscall*)(void*);
+        reinterpret_cast<ReleaseFn>((*reinterpret_cast<void***>(object))[4])(object);
+        // Back in at the same place: the original grows the array as SetSize does (inlined when
+        // the place is the end) and shifts the rest up with memmove.
+        int size = sceneObjects_.size_;
+        if (i < size) {
+            sceneObjects_.SetSize(size + 1, -1);
+            std::memmove(&sceneObjects_.data_[i + 1], &sceneObjects_.data_[i], static_cast<std::size_t>(size - i) * 4);
+        } else {
+            sceneObjects_.SetSize(i + 1, -1);
+        }
+        sceneObjects_.data_[i] = reinterpret_cast<CEngineObject*>(made);
+        return reinterpret_cast<CEngineObject*>(made);
+    }
+    return nullptr;
+}
+EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
