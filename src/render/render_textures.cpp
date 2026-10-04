@@ -377,7 +377,8 @@ sg_view SurfaceView(const void* holder) {
     if (t.surface == surface && t.checkedFrame == frame) return t.view.id ? t.view : White().view;
     // Textures are checked once a frame; without uniqueness values they are read once.
     DWORD now = 0;
-    bool reread = t.surface != surface || Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    bool changed = Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    bool reread = t.surface != surface || changed;
     t.checkedFrame = frame;
     if (reread) {
         Retire(t);
@@ -385,6 +386,22 @@ sg_view SurfaceView(const void* holder) {
         t.uniqueness = now;
     }
     return t.view.id ? t.view : White().view;
+}
+
+void ReadTextureFrom(const void* holder, const void* source) {
+    void* surface = SurfaceOf(holder);
+    void* from = SurfaceOf(source);
+    if (!surface || !from) return;
+    Texture& t = g_textures[holder];
+    t.usedFrame = FrameNumber();
+    Retire(t);
+    ReadTexture(t, from);
+    // From now on the entry stands for the holder's surface as it is now.
+    t.surface = surface;
+    t.checkedFrame = FrameNumber();
+    DWORD now = 0;
+    Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    t.uniqueness = now;
 }
 
 sg_view TextureView(const void* texture) {
@@ -403,8 +420,8 @@ sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int
     // Window surfaces are checked at every blit (the game may redraw one between two blits of a
     // frame); without uniqueness values they are read once a frame.
     DWORD now = 0;
-    bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) ||
-                  Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
+    bool changed = Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
+    bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) || changed;
     t.checkedFrame = frame;
     if (reread) {
         Retire(t);

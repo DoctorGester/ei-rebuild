@@ -146,15 +146,32 @@ void Scale(int count, const float* scale) {
     for (int i = 0; i < count; ++i) ScaleZ(&reinterpret_cast<TLVertex*>(Vertices().data)[i].z, scale);
 }
 
-} // namespace
+// The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
+// (the projection 004F2650 uses the clip stack +0x24 or the screen stack +0x1C, which get the same
+// pushes); each pass the indexed draw then makes hands over the device's state.
+void HandOver(char* device, const void* positions, const char* uvs, int count, const std::uint16_t* indices,
+              int indexCount, const std::uint32_t* colours, const float* zScale, bool clipped) {
+    char* pipeline = At<char*>(device, 0xAC);
+    render::MeshDraw m{};
+    m.positions = static_cast<const float*>(positions);
+    m.positionCount = count;
+    m.colours = &colours[0];
+    m.speculars = &colours[1];
+    m.uvs = reinterpret_cast<const float*>(uvs);
+    m.corners = nullptr;
+    m.cornerCount = count;
+    m.indices = indices;
+    m.indexCount = indexCount;
+    m.matrix = At<float*>(pipeline, 0x1C) + (At<int>(pipeline, 0x20) - 1) * 16;
+    m.screenMatrix = true;
+    m.clipped = clipped;
+    m.distanceFog = false;   // no fog pass (slot 35) here
+    m.zScale = OneOrNaN(zScale) ? 1.0f : *zScale;
+    render::BeginMesh(device, m);
+}
 
-// 004EA4A0. `positions` blocks of four vertices (`blocks` of them), `uvs` one (u, v) per vertex,
-// `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `last` passed
-// to the projection, `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
-// visible, else 0.
-int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const char* uvs, int blocks,
-                              const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
-                              std::uint32_t last, float zScale) {
+int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, const std::uint16_t* indices,
+             int indexCount, std::uint32_t colour, std::uint32_t specular, std::uint32_t last, float zScale) {
     void* pipeline = At<void*>(device, 0xAC);
     void* transform = At<void*>(pipeline, 0xC);
     int count = blocks * 4;
@@ -162,6 +179,8 @@ int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const 
     Resize(Projected(), count * 10, &Alloc16);
     Resize(Outcodes(), count, &AllocBytes);
     int visibility = ProjectBlocks(pipeline, nullptr, positions, Projected().data, Outcodes().data, blocks, last);
+    if (visibility != 2 && render::Active())
+        HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {
         TLVertex* target = static_cast<TLVertex*>(LockVertexBuffer(device, nullptr, count));
@@ -172,7 +191,7 @@ int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const 
         Fill(target, count, colours, uvs);
         if (target == reinterpret_cast<TLVertex*>(Vertices().data)) {
             Scale(count, &zScale);
-            if (render::DrawOldFlat()) DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
+            DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
             return 0;
         }
         DrawVertexBuffer(device, nullptr, indices, indexCount);
@@ -196,10 +215,21 @@ int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const 
     ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
     if (vertexCount == 0 || clippedIndices == 0) return 0;
     Scale(vertexCount, &zScale);
-    // With the new renderer's "noobjects" the old path leaves out the world's flat geometry
-    // (shadows, ground decals) along with its meshes.
-    if (render::DrawOldFlat())
-        DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
+    DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
     return 0;
+}
+
+} // namespace
+
+// 004EA4A0. `positions` blocks of four vertices (`blocks` of them), `uvs` one (u, v) per vertex,
+// `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `last` passed
+// to the projection, `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
+// visible, else 0.
+int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const char* uvs, int blocks,
+                              const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
+                              std::uint32_t last, float zScale) {
+    int result = DrawFlat(device, positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);
+    render::EndMesh();
+    return result;
 }
 EI_REPLACE(0x004EA4A0, DeviceDrawFlat);

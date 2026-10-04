@@ -290,6 +290,8 @@ void HandOver(char* device, const MeshArgs& a) {
     m.screenMatrix = true;
     m.matrix = static_cast<const float*>(StackTop(device, 0x1C));
     m.clipped = (a.flags & 2) != 0;
+    m.distanceFog = At<int>(device, 0x158) != 0;
+    m.zScale = 1.0f;
     render::BeginMesh(device, m);
 }
 

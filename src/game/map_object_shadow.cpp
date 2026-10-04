@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "render/render.h"
 
 #include <bit>
 #include <cstring>
@@ -488,6 +489,9 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     At<long>(renderDevice, 8) = copy(d3d, At<void*>(textureSurface, 0x10), nullptr, At<void*>(renderSurface, 0x10),
                                      nullptr, nullptr);
     gameapi::LeaveCriticalSection(DeviceLock());
+    // The new renderer takes the new pixels from the render surface (the next object's shadow is
+    // rasterised into the same one).
+    render::TextureChanged(textureSurface, renderSurface);
 
     // The light's rotation as a matrix.
     double x2 = static_cast<double>(turn.x) + turn.x;
