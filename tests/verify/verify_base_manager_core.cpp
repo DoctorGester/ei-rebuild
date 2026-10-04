@@ -44,6 +44,11 @@ CBaseManager* __fastcall ConstructVerify(CBaseManager* self) {
     std::memcpy(scratch, self, kSize);
     CBaseManager* actual = self->ConstructBase();
     CBaseManager* expected = s_construct(reinterpret_cast<CBaseManager*>(scratch));
+    // The four hashtables' empty functor bytes (+0 .. +2 of each) are copied from uninitialised
+    // stack bytes in the original (and in the container constructors both call): they are never
+    // read, so they are left out of the comparison.
+    for (std::size_t table : {0x1Cu, 0x50u, 0x68u, 0x80u})
+        std::memcpy(scratch + table, reinterpret_cast<const std::uint8_t*>(self) + table, 3);
     netverify::BuiltCompare cmp{scratch, reinterpret_cast<const std::uint8_t*>(self), kSize};
     cmp.Range(0, kSize);
     ei::verify::Check("CBaseManager::ConstructBase", true,

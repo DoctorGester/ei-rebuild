@@ -116,9 +116,20 @@ bool __fastcall EnterVerify(ChunkArchive* self, void*, int id) {
     void* after;
     StackEraseOriginal(&self->stack_, nullptr, &after, self->stack_->prev);
     bool actual = self->EnterChunk(id);
-    ei::verify::Check("ChunkArchive::EnterChunk", true,
-                      expected == actual && std::memcmp(&pushed, Top(self), sizeof(Ref)) == 0 && Depth(self) == depth + 1,
-                      "id %d", id);
+    // Field by field: the three bytes after `id` are never written (the default Ref is built in an
+    // uninitialised stack slot of which only the id byte is set), so they differ between calls.
+    const Ref* ours = Top(self);
+    const char* field = expected != actual                 ? "result"
+                        : pushed.id != ours->id            ? "id"
+                        : pushed.offset != ours->offset    ? "offset"
+                        : pushed.size != ours->size        ? "size"
+                        : pushed.occurrence != ours->occurrence ? "occurrence"
+                        : Depth(self) != depth + 1         ? "depth"
+                                                           : nullptr;
+    ei::verify::Check("ChunkArchive::EnterChunk", true, field == nullptr,
+                      "id %d: %s differs (original %d/%02X/%d/%d/%d, ours %d/%02X/%d/%d/%d)", id, field ? field : "",
+                      expected, pushed.id, pushed.offset, pushed.size, pushed.occurrence, actual, ours->id,
+                      ours->offset, ours->size, ours->occurrence);
     return actual;
 }
 
