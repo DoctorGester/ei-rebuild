@@ -122,4 +122,67 @@ void UnitSet::Write(void* stream) {
     }
 }
 
+// ---- The unit look lists' reader (0055A190) ------------------------------------------------------
+
+namespace {
+
+// vector<0x3C record>::resize [0055A400], vector<0x24 record>::resize [0055A580], vector<int>::
+// resize(n, value) [004FE0C0], vector<CString>::resize [0051F5B0], the stream's CString reader
+// [004E5840, on the stream].
+__declspec(naked) void __fastcall ResizeLooks(void*, void*, std::uint32_t) EI_ORIGINAL(0x0055A400)
+__declspec(naked) void __fastcall ResizeLooks2(void*, void*, std::uint32_t) EI_ORIGINAL(0x0055A580)
+__declspec(naked) void __fastcall ResizeInts(void*, void*, std::uint32_t, const int*) EI_ORIGINAL(0x004FE0C0)
+__declspec(naked) void __fastcall ResizeStrings(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051F5B0)
+__declspec(naked) void __fastcall ReadCString(void*, void*, void*) EI_ORIGINAL(0x004E5840)
+
+constexpr int kSlotRead = 1;   // stream: (data, size)
+
+void Get(void* stream, void* data, std::uint32_t size) { ei::VCall<void>(stream, kSlotRead, data, size); }
+
+std::uint32_t Count(void* vector) {
+    return static_cast<std::uint32_t>((At<std::uint8_t*>(vector, 4) - At<std::uint8_t*>(vector, 0)) >> 2);
+}
+
+// A counted dword array: the count, the vector resized (new entries 0), the data.
+void GetInts(void* stream, std::uint8_t* vector) {
+    std::uint32_t n;
+    Get(stream, &n, 4);
+    int zero = 0;
+    ResizeInts(vector, nullptr, n, &zero);
+    Get(stream, At<std::uint8_t*>(vector, 0), Count(vector) << 2);
+}
+
+} // namespace
+
+void __fastcall ReadUnitLooks(void* stream, void* first, void* second) {
+    std::uint32_t count;
+    Get(stream, &count, 4);
+    ResizeLooks(first, nullptr, count);
+    for (std::uint8_t* record = At<std::uint8_t*>(first, 0); record != At<std::uint8_t*>(first, 4); record += 0x3C) {
+        Get(stream, record, 2);
+        GetInts(stream, record + 4);
+        GetInts(stream, record + 0x10);
+        Get(stream, record + 0x1C, 1);
+        Get(stream, record + 0x20, 4);
+        Get(stream, record + 0x24, 4);
+        Get(stream, record + 0x28, 4);
+        Get(stream, record + 0x2C, 4);
+        std::uint32_t strings;
+        Get(stream, &strings, 4);
+        ResizeStrings(record + 0x30, nullptr, strings);
+        for (std::uint32_t i = 0; i < Count(record + 0x30); ++i)
+            ReadCString(stream, nullptr, At<std::uint8_t*>(record, 0x30) + i * 4);
+    }
+    Get(stream, &count, 4);
+    ResizeLooks2(second, nullptr, count);
+    for (std::uint8_t* record = At<std::uint8_t*>(second, 0); record != At<std::uint8_t*>(second, 4); record += 0x24) {
+        Get(stream, record, 2);
+        GetInts(stream, record + 4);
+        GetInts(stream, record + 0x10);
+        Get(stream, record + 0x1C, 1);
+        Get(stream, record + 0x20, 4);
+    }
+}
+
+EI_REPLACE(0x0055A190, ReadUnitLooks);
 EI_REPLACE_METHOD(0x00559E60, UnitSet::Write);

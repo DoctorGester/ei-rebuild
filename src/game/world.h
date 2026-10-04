@@ -594,6 +594,13 @@ struct UnitSet {
     void Write(void* stream);
 };
 
+// 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
+// the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per 0x3C-byte
+// record a 16-bit key, two counted dword arrays (+4, +0x10), a byte (+0x1C), four dwords (+0x20 ..
+// +0x2C) and a counted list of strings (+0x30); then a count and per 0x24-byte record of `second`
+// the key, the two arrays, the byte and a dword (+0x20). Both vectors are resized to the counts.
+void __fastcall ReadUnitLooks(void* stream, void* first, void* second);
+
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
 struct SectorListNode {

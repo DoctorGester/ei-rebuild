@@ -615,3 +615,28 @@ volatile so the products are not folded at compile time) and ResetToBase was rea
 - ComposeSkin and WearArmourModel build CString / STLport temporaries in the original's order
   (the allocations match); not run in game yet.
 
+# Levers
+
+Code: `src/game/unit_lever.cpp`, `src/game/lever.h` (new); verify wrappers:
+`tests/verify/verify_unit_lever.cpp`. No shared files changed.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0052B7A0 | Lever::SetState (RET 8; the script's lever commands) | ours only: state in range, shown position = state / (states - 1), 1 / duration stored for a timed move |
+
+Fields: +0xA4 model name, +0xC8 shown position (0..1), +0x134 radius, +0x238 state, +0x23C state
+count, +0x240 cycling, +0x250 / +0x254 start / end position, +0x258 end tick, +0x25C 1 / duration,
++0x261 the AI map flag (copied to the map's +0x172 while it moves).
+
+SetState: a negative (or NaN) duration takes the model's default from the map 0079C1AC (operator[]
+00464750 by the model name; the record's +0x1C as an unsigned number) or 10. A negative state is
+the next one: it wraps when cycling (signed modulo), otherwise it stops at the last. Other states
+are clamped to [0, states - 1]. Then, when the world is live (slot 26), the following happens:
+1. The units within radius + 0.5 come off the sector map, and so does the lever; the AI map is refreshed.
+2. The position is state / (states - 1), or 0 with one state. Plain C++ (rule 7).
+3. A move with duration > 0 is timed: start at the old position, end tick (tick + duration) + 1,
+   1 / duration. Otherwise it happens at once.
+4. The figure is animated (005179E0), MarkChanged(5), the lever goes back on the map.
+5. Every lifted unit that cannot stay in its cell is moved to a free cell
+   (FindFreeCellNear) and its controller resynced (00554450) before it goes back.
+
