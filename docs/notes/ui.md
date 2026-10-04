@@ -1003,3 +1003,25 @@ label table (CStrings), +0x148 the group (+0x16C units, +0x170 count). Lines, fr
 
 The damage values go through the modern `__ftol2_sse` instead of the game's `_ftol` (both
 truncate).
+
+## Objectives window: the selected quest (0064DC60)
+
+Files: `src/game/ui_objectives.cpp` (`CObjectivesWindow::ShowQuest`), `tests/verify/verify_ui_objectives.cpp`.
+`ui.h`: `unknown_1A4` renamed `shownQuest_`, `ShowQuest` declared.
+
+| Address | Name | Verify |
+|---|---|---|
+| 0064DC60 | `CObjectivesWindow::ShowQuest` (`__fastcall`, called by RefreshQuests 0064E8B0) | ours only: the shown quest is the selected one; extra sprites / regions are the quest places' or none |
+
+Only when the selected row differs from the one shown (+0x1A4): the log (first child) is cleared
+(0065D450); for a valid row the global quest name 007C8178 is set, and when "quest <name>" is in
+the texts the log gets: colour code 007946F8 + the text up to '#', "\n", then (when the quest
+database's index 007C87B4 has the quest; its operator[] 0064EE90 adds an empty slot otherwise)
+colour 007946EC and "obj_cost_exp %d\n" / "obj_cost_money %d\n" for rewards above 0 (truncated).
+Then each line of the text: "#quest" ends the loop; "#subobj <id>" with the player's variable
+q.<zone>.<quest>.<id> (truncated) not 0 adds colour 0079349C, the next line, " ", for 2 colour
+007946B8 + "obj_completed", for 3 colour 007946C0 + "obj_failed", then 007946AC, the text up to '#'
+and 007946A4. The log text is set (0065CFE0). With the zone in the map database: 0064EA80 fills the
+quest places, the sprites / regions after the exits' (21 + exits, 9 + exits) are removed, and each
+place gets a 20x20 marker (cross texture, colour (1, 0, 0) at +0x224) at its position on the zone
+picture (as the exits: 300 / larger world side, centre (580, 190)) and a region with tip 0x138F0.
