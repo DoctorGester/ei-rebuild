@@ -1171,6 +1171,50 @@ the camp may be laid out differently and some rows missed (harmless).
   rewards 00608450. Not rewritten: reaching them needs a "brief" zone (maps bz2g .. bz18h) or an
   interface "briefing" command, which no scenario does; they move NPCs and the camera and play voice
   files, so they could only be checked "ours only". Left for a pass that adds a base scenario.
-- 005EC300 (the camp's hero preview: D3D clears, the hero model's transform overridden for drawing
-  and put back), 005ED7B0 (00629AF0's item view), 005EC020 (figure texture), 005E18E0 (flying hit
-  points), 005E2A30 (chat word wrap), 005E5690 / 005E5C40 (cursor blits).
+- 005E18E0 (flying hit points: removes entries older than 3 s, builds vertices from
+  timeGetTime-dependent fades and draws through the device; two runs cannot be compared without
+  faking the clock and the device), 005E2A30 (chat word wrap; reached only from the network chat
+  message handler 0041E5D0, so multiplayer only), 005E5690 (the software cursor's thread procedure:
+  a loop until +0x9C is set, sleeping to 41 ms per frame; cannot be run side by side).
+
+## Sixth pass
+
+- `ItemDamageLists` (005F13A0, __fastcall, RET 4): the seven damage values against the threshold
+  (the last) into a CStringArray: threshold text, kinds above, kinds below or unordered. EI_Plugin
+  patches a JMP at +0x61 (config/rebirth_patches.csv); the installer keeps the original under the
+  plugin, so ours runs in vanilla only. Side by side on a scratch array.
+- `CUiMeshBuilder::ResetColours` (005E9F30): the builders' per-vertex arrays; side by side.
+- Surface pixels (ui_surface_pixels.cpp; CUiSurface): `CaptureScreen` 005FD3D0 (Blt of rect_ from
+  the screen's holder, `device + 0x18`), `Rgb565Copy` 005FD440 (vtable slot 4; a temporary surface
+  of the wanted size and this one's format, stretched into, then every pixel through the pixel
+  converter 004EDAA0 / 004EDC70 to 5:6:5; the save game's picture), `Greyscale` 005FE440 (in place:
+  5:6:5, 5:5:5, 8:8:8 fast paths, any other format through the converter; grey = (2r + 4g + b) / 16
+  in each format's units), `SwapContents` 005FD7A0 (Freeze's helper: keep pitch * height bytes and
+  release the surface, or recreate it and copy them back; totals 007C7E74 / 007C7E78). The escape
+  menu's Draw (005F5320, +0x50 == 1) runs CaptureScreen, Rgb565Copy(256, 192) and Greyscale when the
+  menu opens (scenario ui_screens). Verified side by side on the surface's pixels (the copy as two
+  blocks); SwapContents ours only (saving releases the surface) against the raw surface bytes.
+- `CItemScreen::DrawHeroFace` (005ED7B0, RET 8; caller 00629AF0, a strip of 8 hero faces): the
+  unit prototype (map 007AF364) -> figure prototype (map 007AF3A4, +0xE8 model name) -> model
+  "infa<model>me<n+1>face" and texture "face<m|f><nn>", both from the item screens' caches, tilted
+  by (y - 300) / 1000 about -x after a half turn about x (product 00506C70), the cell frame drawn
+  behind. EI_Plugin's fix at +0xD9 (a fifth-letter check) keeps the original under the plugin.
+  Side by side on the face model as DrawItem.
+- `ItemFigureTexture` (005EC020, __fastcall): a 256 x 256 texture (manager 007AF744, format 0x20),
+  image "<name>.mmp" decoded by the converter 007AF06C slot 5 (PNT3 flag) and packed to 1:5:5:5 at
+  the bottom left, white without an image; the lock is taken without DDLOCK_WAIT and, if the error
+  report returns 0, left held (as the original). Side by side on the written pixels of both textures.
+- `CUiWindow::DrawHeroPreview` (005EC300, RET 0x14; the camp and the hero screen): clears depth,
+  turns the hero by `turn` about y, places it by `depth` (the rotation of the origin goes through
+  the game's vector helpers, all zero), tilts it ([007C7D24] about x, wide layout also about -z),
+  draws it lit 1.2 with texture stage state 0x12 = 1, and puts everything back. Ours only: the
+  model's transform and flags, the light factors and the pass's colour must be as before.
+- `CCursor::Blit` (005E5C40; ui_cursor.h): (background & saved) | image over the target rect, 16 or
+  32 bits. Side by side on the target rect, holding the device lock across both runs (the cursor
+  thread calls it). Reached only with the display option's software cursor bit.
+- Item screens (ui_item_screen.cpp): `CreateBase` 005EDD80 (icon window, textures, display
+  settings, cache limits; the original inlines the trimming loops, which match 005F2F20 / 005F2F90
+  except for calling begin()), `CItemIconWindow::Build` 005F2A90 (30 frame sprites through the
+  Rebirth-patched builders 005E7680 / 005E70E0), `TrimItemModels` / `TrimItemTextures`
+  005F2F20 / 005F2F90 (least recently used first; spins while every entry was used at or after
+  now). All ours only.

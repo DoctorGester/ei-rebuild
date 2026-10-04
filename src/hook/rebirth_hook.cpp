@@ -167,7 +167,7 @@ void DetectEiPlugin() {
 // CALL/JMP written there leads (module + offset), to check the inventory against a real launch.
 void DumpSites(const std::vector<unsigned char>& file) {
     char path[MAX_PATH];
-    PathNextToDll("rebirth_sites_live.txt", path);
+    OutputPath("rebirth_sites_live.txt", path);
     FILE* f = nullptr;
     if (fopen_s(&f, path, "w") != 0 || !f) return;
     std::fprintf(f, "# patch site size source differs live-bytes [call/jmp target]\n");
@@ -229,7 +229,7 @@ const Site* AddonSiteAt(std::uintptr_t address) {
 // line, or by a mod version newer than the inventory (docs/notes/rebirth.md).
 static void DumpUnknownDiffs(const std::vector<unsigned char>& file) {
     char path[MAX_PATH];
-    PathNextToDll("rebirth_unknown_diffs.txt", path);
+    OutputPath("rebirth_unknown_diffs.txt", path);
     FILE* f = nullptr;
     if (fopen_s(&f, path, "w") != 0 || !f) return;
     std::fprintf(f, "# ranges of .text/.rdata differing from game.exe on disk outside every known site: address size live-bytes\n");

@@ -160,14 +160,31 @@ static bool __fastcall ApplyFootprintVerify(CAIMap* self, void*, FootprintCellSe
 }
 EI_VERIFY(0x005B65B0, ApplyFootprintVerify, 0, s_unused);
 
-// 005B6740 is not rewritten: a pass-through that captures the bridge set. MOV AL,[ESP+8]; SUB ESP,0x2C (7 bytes).
+// 005B6740 (ai_bridges.cpp): captures the bridge set for MarkFootprint's check, then ours runs
+// alone (it changes the occluder lists). Applied: every in-map cell with low < high is under a
+// bridge (0x40), its ground at least the deck and its occluder byte's low bits 7; both ways the
+// cells become kind 4. MOV AL,[ESP+8]; SUB ESP,0x2C (7 bytes).
 static bool(__fastcall* s_applyBridges)(CAIMap*, void*, FootprintCellSet*, bool);
 static bool __fastcall ApplyBridgesSpy(CAIMap* self, void*, FootprintCellSet* set, bool remove) {
     if (g_capture.active && g_capture.map == self && set == &self->bridges) {
         Snapshot(set, g_capture.bridges, g_capture.bridgeBuckets);
         g_capture.bridgesSeen = true;
     }
-    return s_applyBridges(self, nullptr, set, remove);
+    bool result = self->ApplyBridgeDecks(set, remove);
+    bool ok = true;
+    for (int i = 0; i < set->count && ok; ++i) {
+        const FootprintCell& c = set->cells[i];
+        if (c.x < 0 || c.y < 0 || c.x >= self->width || c.y >= self->height || !(c.low < c.high)) continue;
+        if (!remove && !result) break;
+        ok = c.kind == 4;
+        if (ok && !remove) {
+            const AIMapCell& cell = self->cells[c.y][c.x];
+            ok = (cell.flags & kCellBridge) && cell.groundLevel >= static_cast<std::uint16_t>(c.high) &&
+                 (self->occluders[c.y][c.x] & 7) == 7;
+        }
+    }
+    ei::verify::Check("CAIMap::ApplyBridgeDecks", true, ok, "%d cells, remove %d -> %d", set->count, remove, result);
+    return result;
 }
 EI_VERIFY(0x005B6740, ApplyBridgesSpy, 7, s_applyBridges);
 

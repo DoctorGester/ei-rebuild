@@ -8,6 +8,7 @@
 // sub-description's own wrapper inside the original (nested side by side).
 #include "verify.h"
 
+#include "../../src/game/console.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/lib/gameapi.h"
 
@@ -174,7 +175,23 @@ static void __fastcall ShowHelpVerify(CItemInfoPanel* self, void*, int topic) {
 }
 EI_VERIFY(0x005F2910, ShowHelpVerify, 7, s_showHelp);
 
-// --- The model view (ui_item_view.cpp) ---------------------------------------------------------------
+// 005F13A0 (PUSH -1; PUSH imm32: 7). Side by side: the original fills a scratch array, ours the
+// caller's; the strings must match.
+static void(__fastcall* s_damageLists)(const float*, console::CStringArray*, char);
+static void __fastcall DamageListsVerify(const float* values, console::CStringArray* out, char integer) {
+    console::CStringArray expected;
+    s_damageLists(values, &expected, integer);
+    ItemDamageLists(values, out, integer);
+    bool same = expected.GetSize() == out->GetSize();
+    for (int i = 0; same && i < out->GetSize(); ++i)
+        same = std::strcmp(static_cast<const char*>(expected[i]), static_cast<const char*>((*out)[i])) == 0;
+    ei::verify::Check("ItemDamageLists", true, same, "integer %d: '%s' / '%s'", integer,
+                      expected.GetSize() > 1 ? static_cast<const char*>(expected[1]) : "",
+                      out->GetSize() > 1 ? static_cast<const char*>((*out)[1]) : "");
+}
+EI_VERIFY(0x005F13A0, DamageListsVerify, 7, s_damageLists);
+
+// --- The model view (ui_item_view.cpp)---------------------------------------------------------------
 
 namespace {
 
@@ -278,6 +295,37 @@ static void __fastcall DrawItemVerify(CItemScreen* self, void*, int pass, ItemCe
 }
 EI_VERIFY(0x005ECA10, DrawItemVerify, 5, s_drawItem);
 
+// 005ED7B0: PUSH -1; PUSH imm32 (7). Side by side as DrawItem: the face model's state is recorded
+// after the original, put back, and ours must leave the same (both draw, the face is drawn twice).
+static void(__thiscall* s_drawHeroFace)(CItemScreen*, int, HeroFaceCell*);
+static void __fastcall DrawHeroFaceVerify(CItemScreen* self, void*, int pass, HeroFaceCell* cell) {
+    int sceneObjects = self->sceneObjects_.size_;
+    mfc::CString modelName, textureName;
+    CItemScreen::FaceNames(cell->prototype, &modelName, &textureName);
+    std::uint8_t* model = self->CachedModelNamed(modelName);
+    bool hadModel = model != nullptr;
+    ModelState modelBefore;
+    if (hadModel) modelBefore = ModelState(model);
+    s_drawHeroFace(self, pass, cell);
+    int sceneAfterOriginal = self->sceneObjects_.size_;
+    model = self->CachedModelNamed(modelName);
+    if (!model) {
+        self->DrawHeroFace(pass, cell);
+        ei::verify::Check("CItemScreen::DrawHeroFace", true, self->CachedModelNamed(modelName) == nullptr,
+                          "no model for %s", static_cast<const char*>(modelName));
+        return;
+    }
+    ModelState expected(model);
+    if (hadModel) modelBefore.Restore(model);
+    self->DrawHeroFace(pass, cell);
+    ModelState actual(model);
+    bool ok = expected == actual && sceneAfterOriginal == sceneObjects && self->sceneObjects_.size_ == sceneObjects;
+    ei::verify::Check("CItemScreen::DrawHeroFace", true, ok, "%s / %s: model %d scene objects %d/%d/%d",
+                      static_cast<const char*>(modelName), static_cast<const char*>(textureName), expected == actual,
+                      sceneObjects, sceneAfterOriginal, self->sceneObjects_.size_);
+}
+EI_VERIFY(0x005ED7B0, DrawHeroFaceVerify, 7, s_drawHeroFace);
+
 // 005EE5C0 (slot 20): ours only (it draws through DrawItem, whose wrapper compares); returns 1.
 static BOOL __fastcall InfoPanelDrawVerify(CItemInfoPanel* self, void*, int pass) {
     BOOL result = self->Draw(pass);
@@ -340,3 +388,36 @@ static void __fastcall InfoPanelKeyUpVerify(void* input, void*, int key, int rep
     before.Check("CItemInfoPanel::OnKeyUp", panel, key);
 }
 EI_VERIFY(0x005EE680, InfoPanelKeyUpVerify, 0, s_unused);
+
+// 005F2F20 / 005F2F90: ours only (erasing cannot run twice). The cache must end within its limit.
+static void __fastcall TrimModelsVerify(ItemObjectCache* cache) {
+    TrimItemModels(cache);
+    ei::verify::Check("TrimItemModels", true, cache->count <= cache->limit, "%u entries, limit %u", cache->count,
+                      cache->limit);
+}
+EI_VERIFY(0x005F2F20, TrimModelsVerify, 0, s_unused);
+static void __fastcall TrimTexturesVerify(ItemObjectCache* cache) {
+    TrimItemTextures(cache);
+    ei::verify::Check("TrimItemTextures", true, cache->count <= cache->limit, "%u entries, limit %u", cache->count,
+                      cache->limit);
+}
+EI_VERIFY(0x005F2F90, TrimTexturesVerify, 0, s_unused);
+
+// 005F2A90: ours only (it adds sprites). 30 scene objects must be added.
+static void __fastcall IconBuildVerify(CItemIconWindow* self, void*) {
+    int before = self->sceneObjects_.size_;
+    self->Build();
+    ei::verify::Check("CItemIconWindow::Build", true, self->sceneObjects_.size_ == before + 30, "scene objects %d -> %d",
+                      before, self->sceneObjects_.size_);
+}
+EI_VERIFY(0x005F2A90, IconBuildVerify, 0, s_unused);
+
+// 005EDD80: ours only (it makes the icon window). The window and the caches' limits.
+static void __fastcall CreateBaseVerify(CItemScreen* self, void*) {
+    self->CreateBase();
+    bool ok = self->iconWindow_ && *reinterpret_cast<std::uintptr_t*>(self->iconWindow_) == 0x00740444 &&
+              self->models_.count <= self->models_.limit && self->textures_.count <= self->textures_.limit;
+    ei::verify::Check("CItemScreen::CreateBase", true, ok, "icons %p, models %u/%u, textures %u/%u", self->iconWindow_,
+                      self->models_.count, self->models_.limit, self->textures_.count, self->textures_.limit);
+}
+EI_VERIFY(0x005EDD80, CreateBaseVerify, 0, s_unused);

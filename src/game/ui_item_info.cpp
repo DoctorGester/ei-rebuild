@@ -303,9 +303,43 @@ struct ItemList {
 __declspec(naked) void ItemList::Clear(int, int) EI_ORIGINAL(0x00661700)
 __declspec(naked) void ItemList::Add(CItem*, int, int) EI_ORIGINAL(0x00661DB0)
 
-// 005F13A0 (__fastcall, RET 4): the damage values against `values[6]`: into `out` the threshold
-// ("%d" or "%.1f"), the damage kinds above it and those below it (", "-separated).
-__declspec(naked) void __fastcall DamageLists(const float*, CStringArray*, char) EI_ORIGINAL(0x005F13A0)
+} // namespace
+
+// --- 005F13A0 -----------------------------------------------------------------------------------------
+
+void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer) {
+    Texts* texts = TextManager();
+    out->SetSize(0, -1);
+    mfc::CString value, above, below, key, text;
+    float threshold = values[6];
+    if (integer)
+        value.Format(GameText(0x0078EEEC), FtolOf(threshold));   // "%d"
+    else
+        value.Format(GameText(0x00792F78), D(threshold));        // "%.1f"
+    for (int i = 0; i < 6; ++i) {
+        // FCOMP; TEST AH,0x41: above (ordered); else TEST AH,1: below or unordered.
+        mfc::CString* list;
+        if (values[i] > threshold)
+            list = &above;
+        else if (!(values[i] >= threshold))
+            list = &below;
+        else
+            continue;
+        key.Format(GameText(0x00792F70), i);   // "dmg_%d"
+        texts->GetString(key, &text);
+        *list += text;
+        *list += GameText(0x0078DA54);         // ", "
+    }
+    Ops(above)->TrimRight(GameText(0x0078DA54));
+    Ops(below)->TrimRight(GameText(0x0078DA54));
+    out->SetAtGrow(out->GetSize(), value);
+    out->SetAtGrow(out->GetSize(), above);
+    out->SetAtGrow(out->GetSize(), below);
+}
+EI_REPLACE(0x005F13A0, ItemDamageLists);
+
+namespace {
+void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
 
 // 0051FE80 (thiscall on the skill database 007AF268): the index of the level record named `name`.
 struct SkillDatabase {
