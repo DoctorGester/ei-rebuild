@@ -14,9 +14,11 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <windows.h>
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -670,6 +672,587 @@ void CWorldClient::CreatePartyUnits(const PartyRecordArray* party, char allArmou
     }
 }
 
+// ---- Objects in range (0056DAF0) -----------------------------------------------------------------
+
+namespace {
+
+// The original's branch-free selects after FCOMP + FNSTSW (C0 shifted into a mask): `a < b`
+// (true when unordered) picks one side.
+float MaxZero(float b) { return (x87::IsNaN(b) || 0.0f < b) ? b : 0.0f; }   // (0 < b) ? b : 0
+float MinOf(float a, float b) { return (x87::IsNaN(a) || x87::IsNaN(b) || a < b) ? a : b; }
+
+// _ftol: truncation to a 64-bit integer, the low word kept.
+std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(v)); }
+
+} // namespace
+
+void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
+    float maxX = At<float>(terrain_, 0x10C) - 1.0f;
+    float maxY = At<float>(terrain_, 0x110) - 1.0f;
+    float y1 = MinOf(MaxZero(point[1] + radius), maxY);
+    float x1 = MinOf(MaxZero(point[0] + radius), maxX);
+    float y0 = MaxZero(MinOf(MaxZero(point[1] - radius), maxY));
+    float x0 = MaxZero(MinOf(MaxZero(point[0] - radius), maxX));
+    std::uint32_t& firstX = At<std::uint32_t>(this, 0x138);
+    std::uint32_t& firstY = At<std::uint32_t>(this, 0x13C);
+    std::uint32_t& lastX = At<std::uint32_t>(this, 0x140);
+    std::uint32_t& lastY = At<std::uint32_t>(this, 0x144);
+    std::uint32_t& x = At<std::uint32_t>(this, 0x148);
+    std::uint32_t& y = At<std::uint32_t>(this, 0x14C);
+    firstX = x = Ftol(x0) >> 4;
+    firstY = y = Ftol(y0) >> 4;
+    lastX = Ftol(x1) >> 4;
+    lastY = Ftol(y1) >> 4;
+
+    SectorGrid& grid = GridAt(this, 0x120);
+    PlainList* list = static_cast<PlainList*>(out);
+    for (SectorListNode** cell = &grid.rows_[y][x]; cell;) {
+        for (SectorListNode* node = (*cell)->next; node != *cell; node = node->next) {
+            CEngineObject* object = node->value;
+            float pz = point[2];
+            float ox = At<float>(object, 0x1C) + At<float>(object, 0x128);
+            float oy = At<float>(object, 0x20) + At<float>(object, 0x12C);
+            double reach = ClientHypot(At<float>(object, 0x144), At<float>(object, 0x148)) + radius;
+            float dx = ox - point[0];
+            float dy = oy - point[1];
+            float dz = pz - point[2];
+            double distance = (static_cast<double>(dz) * dz + static_cast<double>(dy) * dy) + static_cast<double>(dx) * dx;
+            double limit = reach * reach;
+            // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).
+            bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(static_cast<float>(limit));
+            if (!unordered && !(limit < distance)) {
+                SectorListNode* end;
+                SectorListNode* inserted;
+                list->Insert(&inserted, *list->End(&end), object);
+            }
+        }
+        if (++x > lastX) {
+            x = firstX;
+            if (++y > lastY) return;
+        }
+        cell = &grid.rows_[y][x];
+    }
+}
+
+// ---- Platforms (00560650, 00560820) --------------------------------------------------------------
+
+namespace {
+// The record list's node allocation [00573000, on the set's list at +0x1C: (next, prev)].
+__declspec(naked) std::uint8_t* __fastcall PlatformNewNode(void*, void*, void*, void*) EI_ORIGINAL(0x00573000)
+constexpr float kSteepest = 0.8f;   // 0073CCA8: the smallest normal z of a face added
+} // namespace
+
+int PlatformSet::AddFace(const float* a, const float* b, const float* c, const float* normal, Platform** out) {
+    *out = nullptr;
+    // FCOMP + TEST AH,1: steeper faces (and a NaN z) are left out.
+    if (x87::IsNaN(normal[2]) || normal[2] < kSteepest) return 0;
+    std::uint8_t* list = reinterpret_cast<std::uint8_t*>(this) + 0x1C;
+    PlatformNode* last = head;
+    std::uint8_t* node = PlatformNewNode(list, nullptr, nullptr, last);
+    // (The original first copies 0x4C bytes of uninitialised stack over the record; every field is
+    // written below or by the caller.)
+    if (last)
+        At<std::uint8_t*>(last, 4) = node;
+    else
+        At<std::uint8_t*>(this, 0x24) = node;
+    head = reinterpret_cast<PlatformNode*>(node);
+    Platform* record = reinterpret_cast<Platform*>(node + 8);
+    *out = record;
+    float ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+    float vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+    float lengthU = std::sqrt((uz * uz + uy * uy) + ux * ux);
+    record->sizeU = lengthU;
+    float lengthV = std::sqrt((vz * vz + vy * vy) + vx * vx);
+    record->sizeV = lengthV;
+    std::memcpy(record->normal, normal, 12);
+    std::memcpy(record->origin, a, 12);
+    record->axisU[0] = ux / lengthU;
+    record->axisU[1] = uy / lengthU;
+    record->axisU[2] = uz / lengthU;
+    record->axisV[0] = vx / lengthV;
+    record->axisV[1] = vy / lengthV;
+    record->axisV[2] = vz / lengthV;
+    return 1;
+}
+
+void PlatformSet::AddBox(int id, const std::uint8_t* item, const float* position, const float* rotation) {
+    const float* offset = reinterpret_cast<const float*>(item + 4);
+    const float* low = reinterpret_cast<const float*>(item + 0x14);
+    const float* high = reinterpret_cast<const float*>(item + 0x20);
+    const float* pivot = reinterpret_cast<const float*>(item + 0x2C);
+
+    // The rotation matrix of the quaternion (w, x, y, z), as the original builds it.
+    float q0 = rotation[0], q1 = rotation[1], q2 = rotation[2], q3 = rotation[3];
+    float t1 = q1 + q1, t2 = q2 + q2, t3 = q3 + q3;
+    float t1q0 = t1 * q0, t2q0 = t2 * q0, t3q0 = t3 * q0;
+    float t1q1 = t1 * q1, t2q1 = t2 * q1, t3q1 = t3 * q1;
+    float t2q2 = t2 * q2, t3q2 = t3 * q2, t3q3 = t3 * q3;
+    MatrixRows m{};
+    m.m[0] = 1.0f - (t3q3 + t2q2);
+    m.m[1] = t2q1 - t3q0;
+    m.m[2] = t3q1 + t2q0;
+    m.m[4] = t2q1 + t3q0;
+    m.m[5] = 1.0f - (t3q3 + t1q1);
+    m.m[6] = t3q2 - t1q0;
+    m.m[8] = t3q1 - t2q0;
+    m.m[9] = t3q2 + t1q0;
+    m.m[10] = 1.0f - (t2q2 + t1q1);
+
+    // The box's corners (two of them repeated, as the faces walk them), moved by the pivot and the
+    // offset, rotated and placed.
+    float corners[8][3] = {{high[0], low[1], low[2]},  {low[0], low[1], low[2]},   {low[0], high[1], low[2]},
+                           {low[0], high[1], high[2]}, {high[0], high[1], high[2]}, {high[0], low[1], high[2]},
+                           {high[0], low[1], low[2]},  {low[0], low[1], low[2]}};
+    for (auto& corner : corners) {
+        float x = (pivot[0] + corner[0]) + offset[0];
+        float y = (pivot[1] + corner[1]) + offset[1];
+        float z = (pivot[2] + corner[2]) + offset[2];
+        float rx = (m.m[2] * z + m.m[1] * y) + m.m[0] * x;
+        float ry = (m.m[6] * z + m.m[5] * y) + m.m[4] * x;
+        float rz = (m.m[10] * z + m.m[9] * y) + m.m[8] * x;
+        corner[0] = position[0] + rx;
+        corner[1] = position[1] + ry;
+        corner[2] = rz + position[2];
+    }
+    float normals[6][3] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
+    for (auto& n : normals) {
+        float nx = n[0], ny = n[1], nz = n[2];
+        n[0] = (m.m[2] * nz + m.m[0] * nx) + m.m[1] * ny;
+        n[1] = (m.m[6] * nz + m.m[4] * nx) + m.m[5] * ny;
+        n[2] = (m.m[10] * nz + m.m[8] * nx) + m.m[9] * ny;
+    }
+    for (int i = 0; i < 6; ++i) {
+        Platform* record;
+        if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
+        At<int>(record, 0) = id;
+        Vector3 moved = {pivot[0] + offset[0], pivot[1] + offset[1], pivot[2] + offset[2]};
+        Vector3 rotated;
+        m.Transform(&rotated, &moved);
+        record->x = rotated.x + position[0];
+        record->y = rotated.y + position[1];
+        At<float>(record, 0xC) = rotated.z + position[2];
+        At<std::uint32_t>(record, 0x10) = *reinterpret_cast<const std::uint32_t*>(item + 0x10);
+    }
+}
+
+// ---- Teardown (00563290) -------------------------------------------------------------------------
+
+namespace {
+
+__declspec(naked) void __fastcall CameraSetTarget(void*, void*, void*) EI_ORIGINAL(0x0040D3B0)
+__declspec(naked) void __fastcall Destroy1B4(void*) EI_ORIGINAL(0x005E17E0)
+__declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
+__declspec(naked) void __fastcall Teardown563190(void*) EI_ORIGINAL(0x00563190)
+__declspec(naked) void __fastcall ClearA0(void*, void*, int, int) EI_ORIGINAL(0x00570000)
+// The lists' element destructors [0056D080 (node + 8); 00575560 / 00575580 (node + 8, flags)] and
+// node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
+__declspec(naked) void __fastcall Element1B8Destroy(void*) EI_ORIGINAL(0x0056D080)
+__declspec(naked) void __fastcall Node1B8Free(void*, int) EI_ORIGINAL(0x0056FB80)
+__declspec(naked) void __fastcall Element1BCDestroy(void*, void*, int) EI_ORIGINAL(0x00575560)
+__declspec(naked) void __fastcall Element1C0Destroy(void*, void*, int) EI_ORIGINAL(0x00575580)
+__declspec(naked) void __fastcall Node7BCFree(void*, int) EI_ORIGINAL(0x00498C40)
+__declspec(naked) void __fastcall NodeB8Free(void*, int) EI_ORIGINAL(0x0056FB00)
+// for_each(first, last, functor) releasing every value [00571780, RET 0xC].
+__declspec(naked) char __stdcall ForEachRelease(SectorListNode*, SectorListNode*, char) EI_ORIGINAL(0x00571780)
+// CList RemoveAll [0056FDA0]; the counted handle's Shutdown [00417DF0], Release [0040A3A0], Share
+// [00418BE0]; the base world's teardown [0055F8E0].
+__declspec(naked) void __fastcall MfcRemoveAll(void*) EI_ORIGINAL(0x0056FDA0)
+__declspec(naked) void __fastcall RefShutdown(void*) EI_ORIGINAL(0x00417DF0)
+__declspec(naked) void __fastcall RefRelease(void*) EI_ORIGINAL(0x0040A3A0)
+__declspec(naked) void __fastcall RefShare(void*, void*, void*) EI_ORIGINAL(0x00418BE0)
+__declspec(naked) void __fastcall WorldTeardown(void*) EI_ORIGINAL(0x0055F8E0)
+
+constexpr int kSlotDeletingDestructor = 0;
+constexpr int kSlotDestroy = 3;
+
+// The list's nodes walked from the head's next, each given to `free` after the next is read; the
+// list is left empty.
+template <typename F>
+void EmptyList(PlainList& list, F free) {
+    for (SectorListNode* node = list.head->next; node != list.head;) {
+        SectorListNode* next = node->next;
+        free(node);
+        node = next;
+    }
+    list.head->next = list.head;
+    list.head->prev = list.head;
+}
+
+void DeleteOwned(void*& slot) {
+    if (slot) {
+        ei::VCall<void>(slot, kSlotDeletingDestructor, 1);
+        slot = nullptr;
+    }
+}
+
+void DropAndDelete(void*& slot) {
+    if (slot) {
+        --static_cast<CEngineObject*>(slot)->refCount_;
+        if (slot) ei::VCall<void>(slot, kSlotDeletingDestructor, 1);
+        slot = nullptr;
+    }
+}
+
+} // namespace
+
+void CWorldClient::Destroy() {
+    CameraSetTarget(reinterpret_cast<void*>(0x0079B2A8), nullptr, nullptr);
+    if (void* p = At<void*>(this, 0x1B4)) {
+        Destroy1B4(p);
+        gamecrt::operator_delete(p);
+        At<void*>(this, 0x1B4) = nullptr;
+    }
+    if (void* p = At<void*>(this, 0x1AC)) {
+        Destroy1AC(p);
+        gamecrt::operator_delete(p);
+        At<void*>(this, 0x1AC) = nullptr;
+    }
+    DeleteOwned(At<void*>(this, 0x1B0));
+    Teardown563190(this);
+    ClearA0(&At<std::uint8_t>(this, 0xA0), nullptr, 0, -1);
+    EmptyList(ListAt(this, 0x1B8), [](SectorListNode* node) {
+        Element1B8Destroy(&node->value);
+        Node1B8Free(node, 1);
+    });
+    EmptyList(ListAt(this, 0x1BC), [](SectorListNode* node) {
+        Element1BCDestroy(&node->value, nullptr, 0);
+        if (node) stlp::deallocate(node, 0x9C);
+    });
+    EmptyList(ListAt(this, 0x1C0), [](SectorListNode* node) {
+        Element1C0Destroy(&node->value, nullptr, 0);
+        if (node) stlp::deallocate(node, 0x94);
+    });
+    ei::VCall<void>(&At<std::uint8_t>(this, 0x6F4), kSlotDestroy);
+    ei::VCall<void>(&platforms_, kSlotDestroy);
+    MfcRemoveAll(&At<std::uint8_t>(this, 0x1F0));
+    SectorGrid& grid = GridAt(this, 0x120);
+    for (int x = 0; x < static_cast<int>(grid.width_); ++x)
+        for (int y = 0; y < static_cast<int>(grid.height_); ++y)
+            reinterpret_cast<CellList*>(&grid.rows_[y][x])->Clear();
+    EmptyList(ListAt(this, 0x7BC), [](SectorListNode* node) { Node7BCFree(node, 1); });
+    EmptyList(ListAt(this, 0xB4), [](SectorListNode* node) {
+        CountedDestroy(&node->value, nullptr, 0);
+        NodeFree(node, 1);
+    });
+    PlainList& objects = ListAt(this, 0xB8);
+    ForEachRelease(objects.head->next, objects.head, 0);
+    EmptyList(objects, [](SectorListNode* node) { NodeB8Free(node, 1); });
+    if (session_) {
+        ei::VCall<void>(session_, kSlotRelease);
+        session_ = nullptr;
+    }
+    if (void* handle = At<void*>(this, 0x1C8)) {
+        if (At<std::uint16_t>(handle, 4) != 1) {
+            At<std::uint8_t>(handle, 7) |= 0x80;
+            RefShutdown(handle);
+        }
+        RefRelease(At<void*>(this, 0x1C8));
+        RefShare(&At<void*>(this, 0x1C8), nullptr, nullptr);
+    }
+    WorldTeardown(this);
+    DeleteOwned(At<void*>(this, 0x1A0));
+    DeleteOwned(At<void*>(this, 0x1A4));
+    DropAndDelete(At<void*>(this, 0x19C));
+    DropAndDelete(At<void*>(this, 0x180));
+    DropAndDelete(At<void*>(this, 0x190));
+    DropAndDelete(At<void*>(this, 0x188));
+    DropAndDelete(At<void*>(this, 0x18C));
+    DeleteOwned(At<void*>(this, 0x1A8));
+    DropAndDelete(At<void*>(this, 0x1CC));
+    DropAndDelete(At<void*>(this, 0x1D0));
+}
+
+// ---- Set up (00561E50) ---------------------------------------------------------------------------
+
+int __fastcall WorldCreateManagers(std::uint8_t* world);   // 0055EE40 (world_create.cpp)
+
+namespace {
+
+// MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
+// CString::operator=(const CString&) [00700AA9], operator=(LPCTSTR) [00700AF9], ~CString [00700970].
+__declspec(naked) void* __stdcall CStringConcat(void* /*out*/, const void* /*left*/, const char*) EI_ORIGINAL(0x00700C05)
+__declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
+__declspec(naked) void __fastcall CStringAssignText(void*, void*, const char*) EI_ORIGINAL(0x00700AF9)
+__declspec(naked) void __fastcall CStringDestroy(void*) EI_ORIGINAL(0x00700970)
+// The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
+__declspec(naked) void __fastcall LoadLights(void*, void*, const char*) EI_ORIGINAL(0x00563930)
+__declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
+// Constructors (thiscall; some take a block size or count).
+__declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
+__declspec(naked) void __fastcall Construct562A80(void*) EI_ORIGINAL(0x00562A80)
+__declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
+__declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453400)
+__declspec(naked) void __fastcall Construct570E10(void*) EI_ORIGINAL(0x00570E10)
+__declspec(naked) void __fastcall Construct570E40(void*) EI_ORIGINAL(0x00570E40)
+__declspec(naked) void __fastcall Construct56FD30(void*) EI_ORIGINAL(0x0056FD30)
+__declspec(naked) void __fastcall Construct6721D0(void*) EI_ORIGINAL(0x006721D0)
+__declspec(naked) void __fastcall Construct570E70(void*) EI_ORIGINAL(0x00570E70)
+__declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL(0x00570EA0)
+__declspec(naked) void __fastcall Construct571050(void*) EI_ORIGINAL(0x00571050)
+__declspec(naked) void __fastcall Construct570DE0(void*) EI_ORIGINAL(0x00570DE0)
+__declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
+__declspec(naked) void __fastcall Construct6C5620(void*) EI_ORIGINAL(0x006C5620)
+__declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690)
+__declspec(naked) void* __fastcall Construct691140(void*) EI_ORIGINAL(0x00691140)
+__declspec(naked) void __fastcall Attach4031B0(void*, void*, void*) EI_ORIGINAL(0x004031B0)
+__declspec(naked) void* __fastcall Construct68E3F0(void*) EI_ORIGINAL(0x0068E3F0)
+__declspec(naked) void* __fastcall Construct68D850(void*) EI_ORIGINAL(0x0068D850)
+__declspec(naked) void __fastcall ManagerBase(void*) EI_ORIGINAL(0x00402B20)
+__declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
+__declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
+__declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
+__declspec(naked) void* __fastcall SessionFor(void*) EI_ORIGINAL(0x0066C180)
+__declspec(naked) void __fastcall Construct419720(void*) EI_ORIGINAL(0x00419720)
+__declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
+__declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)
+__declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
+// The player list walk (begin [00404920: list], next [00404960]).
+__declspec(naked) CEngineObject* __fastcall PlayersBegin(void*, void*, void*) EI_ORIGINAL(0x00404920)
+__declspec(naked) CEngineObject* __fastcall PlayersNext(void*) EI_ORIGINAL(0x00404960)
+// vector<0x18 entry>::_M_allocate_and_copy [00573520: count, first, last].
+__declspec(naked) std::uint8_t* __fastcall EntriesAllocateCopy(void*, void*, int, std::uint8_t*, std::uint8_t*)
+    EI_ORIGINAL(0x00573520)
+// The sector grids: resize [00572450 / 005724F0 (width, height)], the cells' vector deleting
+// destructor [00572B30 / 00572C50 (flags)], the allocation [00572820 / 005728D0].
+__declspec(naked) void __fastcall GridResize(void*, void*, int, int) EI_ORIGINAL(0x00572450)
+__declspec(naked) void __fastcall GridResize2(void*, void*, int, int) EI_ORIGINAL(0x005724F0)
+__declspec(naked) void __fastcall CellsDelete(void*, void*, int) EI_ORIGINAL(0x00572B30)
+__declspec(naked) void __fastcall CellsDelete2(void*, void*, int) EI_ORIGINAL(0x00572C50)
+__declspec(naked) void __fastcall GridAllocate(void*) EI_ORIGINAL(0x00572820)
+__declspec(naked) void __fastcall GridAllocate2(void*) EI_ORIGINAL(0x005728D0)
+
+constexpr int kSlotCreateSelf = 8 / 4;     // owned objects: ()
+constexpr int kSlotAttachWorld = 0x34 / 4; // managers: (world)
+constexpr int kSlotPlayers = 0x58 / 4;     // the world: () -> the player list
+
+const void* const kDataPath = reinterpret_cast<const void*>(0x007AF460);   // CString
+const void* const kTextPath = reinterpret_cast<const void*>(0x007AF45C);   // CString
+std::uintptr_t EmptyString() { return *reinterpret_cast<const std::uintptr_t*>(0x00796E48); }
+
+std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
+
+// A heap object made by its constructor (null without memory), stored and referenced (the
+// original does not test the pointer before counting).
+CEngineObject* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
+    std::uint8_t* memory = New(size);
+    auto* object = static_cast<CEngineObject*>(memory ? construct(memory) : nullptr);
+    ++object->refCount_;
+    return object;
+}
+
+// The grid set to 4 x 4 cells, reallocated unless its storage already has that size.
+void GridToFour(SectorGrid& grid, void (__fastcall* resize)(void*, void*, int, int),
+                void (__fastcall* deleteCells)(void*, void*, int), void (__fastcall* allocate)(void*)) {
+    resize(&grid, nullptr, 1, 1);
+    grid.width_ = 4;
+    grid.height_ = 4;
+    if (grid.unknown08_ != 4 || grid.unknown0C_ != 4) {
+        if (grid.cells_) deleteCells(grid.cells_, nullptr, 3);
+        gamecrt::operator_delete(grid.rows_);
+        grid.unknown08_ = 4;
+        grid.unknown0C_ = 4;
+        allocate(&grid);
+    }
+}
+
+} // namespace
+
+int CWorldClient::Create() {
+    WorldCreateManagers(reinterpret_cast<std::uint8_t*>(this));
+    void* path;
+    CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FFE4));   // "textures\"
+    CStringAssign(&At<std::uint8_t>(this, 0x224), nullptr, &path);
+    CStringDestroy(&path);
+    LoadLights(this, nullptr, reinterpret_cast<const char*>(0x0078FFD4));          // "LightsGipat.ini"
+    At<int>(this, 0x6DC) = 0;
+    At<CEngineObject*>(this, 0x1CC) = MakeCounted(0x8C0, Construct6B6040);
+
+    std::uint8_t* texts = New(0x2C);
+    if (texts) {
+        At<std::uintptr_t>(texts, 0) = 0x0073B8E0;
+        At<int>(texts, 4) = 0;
+        At<int>(texts, 0xC) = -1;
+        At<int>(texts, 0x18) = 0;
+        At<int>(texts, 0x10) = 0;
+        At<int>(texts, 8) = 0;
+        At<int>(texts, 0x14) = 0;
+        Construct562A80(texts + 0x1C);
+        At<std::uintptr_t>(texts, 0) = 0x0073F6F0;
+        Construct4DED20(texts);
+    }
+    At<std::uint8_t*>(this, 0x1D0) = texts;
+    ++At<int>(texts, 4);
+
+    std::uint8_t* terrain = New(0xAFC);
+    if (terrain) {
+        TransformObjectBase(terrain);
+        At<int>(terrain, 0xD8) = 0;
+        At<int>(terrain, 0xE4) = 0;
+        At<int>(terrain, 0xE0) = 0;
+        At<int>(terrain, 0xDC) = 0;
+        Construct570E10(terrain + 0xE8);
+        At<std::uintptr_t>(terrain, 0xF8) = EmptyString();
+        At<std::uintptr_t>(terrain, 0xFC) = EmptyString();
+        Construct570E40(terrain + 0x12C);
+        Construct56FD30(terrain + 0x13C);
+        Construct56FD30(terrain + 0x14C);
+        Construct6721D0(terrain + 0x15C);
+        Construct570E70(terrain + 0x1E8);
+        Construct570EA0(terrain + 0x1FC, nullptr, 10);
+        Construct571050(terrain + 0x25C);
+        Construct570DE0(terrain + 0x290);
+        Construct56FD30(terrain + 0xAA8);
+        Construct56FD30(terrain + 0xAB8);
+        At<std::uintptr_t>(terrain, 0xAE0) = EmptyString();
+        Construct5711C0(terrain + 0xAE8);
+        At<std::uintptr_t>(terrain, 0) = 0x0073F6A8;
+        Construct6C5620(terrain);
+    }
+    At<std::uint8_t*>(this, 0x180) = terrain;
+    ++At<int>(terrain, 4);
+    CStringAssignText(&At<std::uint8_t>(this, 0x184), nullptr, reinterpret_cast<const char*>(0x0078FFCC));   // "gipath"
+
+    CEngineObject* object = MakeCounted(0xB0, Construct42D690);
+    At<CEngineObject*>(this, 0x44) = object;
+    ei::VCall<void>(object, kSlotAttachWorld, this);
+    object = MakeCounted(0xF0, Construct691140);
+    At<CEngineObject*>(this, 0x18C) = object;
+    Attach4031B0(object, nullptr, this);
+    object = MakeCounted(0xD0, Construct68E3F0);
+    At<CEngineObject*>(this, 0x188) = object;
+    ei::VCall<void>(object, kSlotAttachWorld, this);
+    object = MakeCounted(0xD8, Construct68D850);
+    At<CEngineObject*>(this, 0x190) = object;
+    ei::VCall<void>(object, kSlotAttachWorld, this);
+
+    std::uint8_t* manager = New(0xE8);
+    if (manager) {
+        ManagerBase(manager);
+        Construct56FD40(manager + 0xB0, nullptr, 10);
+        Construct5725E0(manager + 0xCC);
+        At<int>(manager, 0xE0) = 0;
+        At<std::uintptr_t>(manager, 0) = 0x0073F644;
+        Construct4981A0(manager);
+    }
+    At<std::uint8_t*>(this, 0x19C) = manager;
+    ++At<int>(manager, 4);
+    ei::VCall<void>(manager, kSlotAttachWorld, this);
+
+    session_ = static_cast<std::uint8_t*>(SessionFor(players_));
+
+    std::uint8_t* handle = New(8);
+    At<int>(handle, 4) = 0;   // (written before the pointer is tested)
+    void* created = nullptr;
+    if (handle) {
+        Construct419720(handle);
+        At<std::uintptr_t>(handle, 0) = 0x0073F628;
+        created = handle;
+    }
+    void*& slot = At<void*>(this, 0x1C8);
+    if (created != slot) {
+        if (void* old = slot) {
+            if (At<std::uint16_t>(old, 4) != 1) {
+                At<std::uint8_t>(old, 7) |= 0x80;
+                RefShutdown(old);
+            }
+            RefRelease(slot);
+        }
+        RefShare(&slot, nullptr, created);
+    }
+    ei::VCall<void>(At<void*>(this, 0x180), kSlotCreateSelf);
+    ei::VCall<void>(At<void*>(this, 0x1CC), kSlotCreateSelf);
+    ei::VCall<void>(At<void*>(this, 0x1D0), kSlotCreateSelf);
+    CStringConcat(&path, kTextPath, reinterpret_cast<const char*>(0x0078FFC0));   // "texts.res"
+    LoadTexts(At<void*>(this, 0x1D0), nullptr, static_cast<const char*>(path));
+    CStringDestroy(&path);
+    CStringConcat(&path, kTextPath, reinterpret_cast<const char*>(0x0078FFB0));   // "textsLmp.res"
+    LoadTexts(At<void*>(this, 0x1D0), nullptr, static_cast<const char*>(path));
+    CStringDestroy(&path);
+
+    std::uint8_t* lists = New(0xCC);
+    if (lists) {
+        ManagerBase(lists);
+        At<std::uintptr_t>(lists, 0xB0) = 0x0073F61C;
+        At<int>(lists, 0xBC) = 0;
+        At<int>(lists, 0xC0) = 0;
+        At<int>(lists, 0xB8) = 0;
+        At<int>(lists, 0xB4) = 0;
+        At<int>(lists, 0xC4) = 0;
+        At<int>(lists, 0xC8) = 10;
+        At<std::uintptr_t>(lists, 0) = 0x0073F5B8;
+    }
+    At<std::uint8_t*>(this, 0x1A0) = lists;
+    ei::VCall<void>(lists, kSlotAttachWorld, this);
+    std::uint8_t* arrays = New(0xD0);
+    if (arrays) {
+        ManagerBase(arrays);
+        At<int>(arrays, 0xB0) = 0;
+        Construct5715D0(arrays + 0xB4, nullptr, 10);
+        At<std::uintptr_t>(arrays, 0) = 0x0073F554;
+    }
+    At<std::uint8_t*>(this, 0x1A4) = arrays;
+    ei::VCall<void>(arrays, kSlotAttachWorld, this);
+    std::uint8_t* memory = New(0x58);
+    void* owned = memory ? Construct6B4350(memory) : nullptr;
+    At<void*>(this, 0x1A8) = owned;
+    ei::VCall<void>(owned, kSlotCreateSelf);
+
+    Construct4E3C20(&At<std::uint8_t>(this, 0x6F4));
+    At<CWorldClient*>(this, 0x6F4 + 0x20) = this;
+    ei::VCall<void>(&platforms_, kSlotCreateSelf);
+    if (*reinterpret_cast<const int*>(0x0079BD0C) > 0)
+        flags_ |= 0x200;
+    else
+        flags_ &= ~0x200u;
+    CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FF9C));   // "wincurs\Df0000.cur"
+    At<HCURSOR>(this, 0x7D0) = LoadCursorFromFileA(static_cast<const char*>(path));
+    CStringDestroy(&path);
+
+    if (ei::VCall<void*>(this, kSlotPlayers)) {
+        void** walk = reinterpret_cast<void**>(New(8));
+        if (walk) *walk = nullptr;
+        for (CEngineObject* player = PlayersBegin(walk, nullptr, ei::VCall<void*>(this, kSlotPlayers)); player;
+             player = PlayersNext(walk))
+            ++player->refCount_;
+        if (walk) {
+            if (auto* held = static_cast<CEngineObject*>(*walk)) {
+                --held->refCount_;
+                *walk = nullptr;
+            }
+            gamecrt::operator_delete(walk);
+        }
+    }
+
+    HitVector& entries = At<HitVector>(this, 0xF4);
+    if (static_cast<std::uint32_t>((entries.eos - entries.start) / 0x18) < 400) {
+        int count = static_cast<int>((entries.finish - entries.start) / 0x18);
+        std::uint8_t* block;
+        if (entries.start) {
+            block = EntriesAllocateCopy(&entries, nullptr, 400, entries.start, entries.finish);
+            if (std::uint8_t* old = entries.start)
+                stlp::deallocate(old, static_cast<std::size_t>((entries.eos - old) / 0x18) * 0x18);
+        } else {
+            block = New(0x2580);
+        }
+        entries.start = block;
+        entries.finish = block + count * 0x18;
+        entries.eos = block + 0x2580;
+    }
+    At<int>(this, 0x84) = -100000;
+    At<int>(this, 0x6E0) = 0;
+    At<int>(this, 0x6E4) = 0;
+    GridToFour(GridAt(this, 0x150), GridResize2, CellsDelete2, GridAllocate2);
+    GridToFour(GridAt(this, 0x120), GridResize, CellsDelete, GridAllocate);
+    At<int>(this, 0x6EC) = 0;
+    At<int>(this, 0x1C4) = 0;
+    return 1;
+}
+
+EI_REPLACE_METHOD(0x00561E50, CWorldClient::Create);
+EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
+EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
+EI_REPLACE_METHOD(0x00563290, CWorldClient::Destroy);
+EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);
 EI_REPLACE_METHOD(0x00564BE0, CWorldClient::RemoveObject);

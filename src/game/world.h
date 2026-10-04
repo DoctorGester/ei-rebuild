@@ -567,9 +567,20 @@ struct PlatformSet {
     float SurfaceHeight(const Vector3* point, float height);
     // 00561050. Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
+    // 00560650 (RET 0x14; world_client_maps.cpp). Adds the face with corner `a`, edges to `b` and
+    // `c` and `normal` when normal.z >= 0.8: origin a, unit axes (b - a) / |b - a| and (c - a) /
+    // |c - a|, the two lengths, the normal; *out = the new record (its id, centre and radius are the
+    // caller's), null when the face is too steep. Returns 1 when added.
+    int AddFace(const float* a, const float* b, const float* c, const float* normal, Platform** out);
+    // 00560820 (RET 0x10; called by CWorldClient::AddObject). The platform item `item` (+4
+    // offset, +0x10 radius, +0x14 / +0x20 the box's corners, +0x2C pivot) of object `id` placed at
+    // `position` with the rotation quaternion `rotation` (w, x, y, z): the box's corners and the six
+    // face normals rotated, and every face that points up added with the id, the centre
+    // R (pivot + offset) + position and the radius.
+    void AddBox(int id, const std::uint8_t* item, const float* position, const float* rotation);
 
     std::uint8_t unknown_00[0x20];
-    PlatformNode* head;                   // +0x20
+    PlatformNode* head;                   // +0x20 the last node added (nodes link backwards)
 };
 
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
@@ -714,6 +725,25 @@ public:
     // (+0); each unit is filed with AddObject. Armour of type 0 is put on only with `allArmour`.
     // Stops at the first unit that cannot be created or given a figure.
     void CreatePartyUnits(const PartyRecordArray* party, char allArmour);
+    // 0056DAF0 (RET 0xC; the camera's 0040E4C0). Appends to the plain pointer list `out` every
+    // object of the sector grid's cells around `point` whose (x, y) (+0x1C plus +0x128) lies within
+    // radius + hypot(+0x144, +0x148) of the point. The cell range (+0x138..+0x144, truncated and
+    // clamped to the terrain) and the walk's cursor (+0x148 / +0x14C) are left in the client.
+    // The original's z difference is the point's z minus itself (0, kept).
+    void ObjectsInRange(const float* point, float radius, void* out);
+    // 00563290 (slot 3; also 00456440 and 00561B00). Tears the client world down: the camera's
+    // target, the objects at +0x1B4 / +0x1AC / +0x1B0, 00563190, +0xA0, the lists +0x1B8, +0x1BC,
+    // +0x1C0, +0x6F4 and the platforms (slot 3), +0x1F0, the sector grid's cells, the lists +0x7BC,
+    // +0xB4 and +0xB8 (released), the session (+0x20C), the counted +0x1C8, 0055F8E0, then the
+    // owned objects +0x1A0 .. +0x1D0 (counted ones dropped first) deleted and cleared.
+    void Destroy() override;
+    // 00561E50 (slot 2; also 00456440). Sets the client world up: the managers (0055EE40), the
+    // texture path, the lights table (LightsGipat.ini, 00563930), the owned objects +0x1CC, +0x1D0,
+    // the terrain (+0x180, its constructor inlined), +0x44, +0x18C, +0x188, +0x190, +0x19C, the
+    // session (+0x20C), the counted +0x1C8, the text resources, +0x1A0, +0x1A4, +0x1A8, +0x6F4 and the
+    // platforms, flag 0x200, the cursor (+0x7D0), a reference on every player, room for 400 screen
+    // entries (+0xF4), and both sector grids at 4 x 4. Returns 1.
+    int Create() override;
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090

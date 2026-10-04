@@ -943,7 +943,7 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 
 | Address | Function | Verify |
 | --- | --- | --- |
-| 00570860 / 00570BB0 | SectorGrid::Move / Move2 (two instantiations) | ours only: position stored, listed in the new cell, reference count +1 per insert and -1 per removed listing (positions within 1% of a cell edge not judged) |
+| 00570860 / 00570BB0 | SectorGrid::Move / Move2 (two instantiations) | differential, sampled (the first 256 calls, then every 32nd): ours on a scratch grid holding copies of the two touched cells (nodes from the game's pool, a reference per copy), the original on the real grid; both cells' contents in order, the object's reference change and position compared |
 | 00571D50 | MarkWithinRadius (for_each functor) | differential: marks undone after the original, functor compared |
 | 00571800 / 005718B0 | CollectWindowsAt / CollectWindowsAt2 (slot 22 / 24 hit test) | differential: the original's pushes taken back, ours compared |
 | 0056FC60 | PendingMapLookup (hash_map<unsigned, T*> lookup) | differential |
@@ -954,6 +954,45 @@ declarations, `PendingMap`, `RecordVector`, a `CBaseManager` forward declaration
 | 005726B0 | ReleaseIfIdentified (ClearMaps' predicate) | ours only: true exactly for a positive id |
 | 00565790 / 005659D0 | CWorldClient::PickAt / PickAt2 (RET 4) | differential: the original first; the object, the sorted entries and the cursor compared |
 | 00566F70 | CWorldClient::CreatePartyUnits (RET 8) | ours only: no +0xB8 listing lost, at most one new object per record |
+| 0056DAF0 | CWorldClient::ObjectsInRange (RET 0xC; the camera's 0040E4C0) | differential: the original appends first, its entries are erased again, ours appends; entries and the cell range / cursor (+0x138..+0x14C) compared |
+| 00563290 | CWorldClient::Destroy (slot 3) | ours only: the owned pointers cleared, the lists and grid cells empty |
+| 00561E50 | CWorldClient::Create (slot 2) | ours only: returns 1, the owned objects made, both grids 4 x 4, room for 400 screen entries |
+| 00560650 | PlatformSet::AddFace (RET 0x14) | differential: the original on the real set, ours on a scratch set (its own CPlex blocks, freed after); result and the face's fields compared (floats within 8 ULPs) |
+| 00560820 | PlatformSet::AddBox (RET 0x10; from AddObject) | differential the same way: the records added, in order, compared (id and radius exact) |
+
+Create follows the original step by step through the game's constructors. The terrain's
+constructor (0xAFC bytes, vtable 0073F6A8) is inlined in the original and is reproduced call by
+call. Every player gets one reference that is never dropped, as in the original. The screen-entry
+vector gets room for 400 entries with game operator new when it is empty, else through 00573520.
+Allocation failures crash where the original crashes: references are counted without a null test.
+
+Skipped: 0056C750, called from the figure (0051CE60) and terrain (006CEDE0) draw code. It builds
+triangles from the platform objects' figures on the render device's object matrix stack
+(007AF068 +0x84 / +0x88) into a static vertex buffer (007AF478) for the device's slot 26. That is
+renderer work, so it waits for the new renderer.
+
+Platforms: the set's record list is the MFC-style list at CWorldClient +0x1F0 (the set's +0x1C):
++0x1F4 the last node (nodes link backwards through +0, forwards through +4), +0x1F8 the first,
++0x1FC count, +0x200 free list, +0x204 blocks; 00573000 hands out 0x54-byte nodes, the record
+(Platform, 0x4C) at +8. RemoveObject's first loop removes an object's platforms by the id in the
+record. AddBox builds the quaternion's matrix (w first), takes eight box corners (the min/max
+corners at item +0x14 / +0x20 in the order (X',Y,Z) (X,Y,Z) (X,Y',Z) (X,Y',Z') (X',Y',Z')
+(X',Y,Z') (X',Y,Z) (X,Y,Z)), moves each by pivot (+0x2C) then offset (+4), rotates (rows summed
+as (m2 z + m1 y) + m0 x) and adds the position; the six face normals (-z, -x, +y, +z, +x, -y) are
+rotated with the sums ordered (m2 nz + m0 nx) + m1 ny. Face i is AddFace(corner i+1, corner i,
+corner i+2, normal i); only faces with normal z >= 0.8 are kept, each given the id, the centre
+R (pivot + offset) + position (MatrixRows::Transform) and the radius (+0x10). AddFace first
+copies 0x4C bytes of uninitialised stack over the new record in the original; every word is
+then written, so the rewrite skips it. All plain C++ (rule 7): a rotated normal exactly at
+z = 0.8 may rarely be kept by one side only.
+
+ObjectsInRange clamps the box [point - r, point + r] to the terrain (+0x10C / +0x110 minus 1)
+with the original's FCOMP-mask selects (0 < v ? v : 0, a < b ? a : b; an unordered compare picks
+the first branch), truncates with `_ftol` (low word of the 64-bit result), shifts by 4, and walks
+the cells row by row through the client's cursor +0x148 / +0x14C. An object is taken when
+(dz^2 + dy^2) + dx^2 <= (hypot(+0x144, +0x148) + r)^2, with dx / dy from +0x1C + +0x128 and +0x20 +
++0x12C. The original's dz is the point's z minus itself (0, or NaN for a NaN z, which excludes
+everything); kept. The sums are plain C++ (rule 7).
 
 CreatePartyUnits (called by the glue 005789C0 with the player's party records, an MFC pointer
 array): per record a CStringArray of the figure's part names "hd", "bd", "hp", "hr", "lh1".."rl3",
@@ -981,6 +1020,12 @@ steps) and the two insertion sorts.
 Move removes every listing of the object from the old cell (list::remove with a counted copy:
 +1, the erases release, -1), stores the three position words, then push_back's a counted copy
 into the new cell (+1, the insert adds its own, -1). Out-of-grid cells are skipped on either side.
+The first, ours-only check walked both cells and computed float floors on every move. The grid
+at 007AF6D8 (moved by 0067BEF0 / 0067CEF0) holds hundreds of entries per cell near effects, and
+the moves were disabled after map_objects' wolf failed to walk in time with them on. Re-reading
+the disassembly against the rewrite found no behavioural difference: FISTP in the same rounding
+mode, the same bounds, cells, reference counts and unlink/append order. The likely cause is the
+check's cost, so the comparison is now sampled and the other calls run ours with no extra work.
 MarkWithinRadius calls the game's `_hypot` and marks when the distance is not greater than
 radius (+0x94) x scale; a NaN marks (FCOMPP + TEST AH,0x41). The distance and the product are
 plain C++ (rule 7): a distance on the very edge of the radius may rarely mark differently.
