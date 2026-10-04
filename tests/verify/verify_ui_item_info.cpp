@@ -403,11 +403,12 @@ static void __fastcall TrimTexturesVerify(ItemObjectCache* cache) {
 }
 EI_VERIFY(0x005F2F90, TrimTexturesVerify, 0, s_unused);
 
-// 005F2A90: ours only (it adds sprites). 30 scene objects must be added.
+// 005F2A90: ours only (it adds sprites). 31 scene objects must be added (the strip, 4 x 6 column
+// pieces, 6 bars).
 static void __fastcall IconBuildVerify(CItemIconWindow* self, void*) {
     int before = self->sceneObjects_.size_;
     self->Build();
-    ei::verify::Check("CItemIconWindow::Build", true, self->sceneObjects_.size_ == before + 30, "scene objects %d -> %d",
+    ei::verify::Check("CItemIconWindow::Build", true, self->sceneObjects_.size_ == before + 31, "scene objects %d -> %d",
                       before, self->sceneObjects_.size_);
 }
 EI_VERIFY(0x005F2A90, IconBuildVerify, 0, s_unused);

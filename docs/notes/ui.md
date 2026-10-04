@@ -1214,7 +1214,7 @@ the camp may be laid out differently and some rows missed (harmless).
   thread calls it). Reached only with the display option's software cursor bit.
 - Item screens (ui_item_screen.cpp): `CreateBase` 005EDD80 (icon window, textures, display
   settings, cache limits; the original inlines the trimming loops, which match 005F2F20 / 005F2F90
-  except for calling begin()), `CItemIconWindow::Build` 005F2A90 (30 frame sprites through the
+  except for calling begin()), `CItemIconWindow::Build` 005F2A90 (31 frame sprites through the
   Rebirth-patched builders 005E7680 / 005E70E0), `TrimItemModels` / `TrimItemTextures`
   005F2F20 / 005F2F90 (least recently used first; spins while every entry was used at or after
   now). All ours only.
