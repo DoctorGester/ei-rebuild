@@ -200,6 +200,13 @@ public:
     // 005FCC00 (not rewritten). Constructor: a surface of the layout rectangle (left, top,
     // right, bottom) with format `format`; returns this.
     CUiSurface* Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
+    // 005FD3D0. Copies the screen's rect_ into the surface (nothing when it is the screen).
+    // 005FD440 (vtable slot 4, RET 8). A new[] block of width * height 5:6:5 pixels: the surface
+    // stretched to that size through a temporary surface. 005FE440. Greys the surface in place
+    // ((2 r + 4 g + b) / 16 per channel). ui_surface_pixels.cpp.
+    void CaptureScreen();
+    std::uint16_t* Rgb565Copy(int width, int height);
+    void Greyscale();
 
     void* vtable_;
     CInterface3D* interface_;        // +0x04
