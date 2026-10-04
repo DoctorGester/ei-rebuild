@@ -462,6 +462,28 @@ static int __fastcall CampTakeOffVerify(CCampPages* self, void*, std::uint8_t* i
 }
 EI_VERIFY(0x0060FE40, CampTakeOffVerify, 0, s_unused);
 
+// 0060FCA0: ours only (it moves the item). A weapon put on a hero with room must be among the
+// hero's weapons afterwards.
+static void __fastcall CampPutOnVerify(CCampPages* self, void*, std::uint8_t* item) {
+    int kind;
+    std::memcpy(&kind, item + 0x10, 4);
+    using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+    std::uint8_t* hero = reinterpret_cast<HeroFn>(self->vtable_[51])(self);
+    unsigned before;
+    std::memcpy(&before, hero + 0x734, 4);
+    self->PutOn(item);
+    if (kind != 0x3004 || before >= 4) return;
+    int count;
+    std::uint8_t** weapons;
+    std::memcpy(&count, hero + 0x734, 4);
+    std::memcpy(&weapons, hero + 0x730, 4);
+    bool found = false;
+    for (int i = 0; i < count; ++i)
+        if (weapons[i] == item) found = true;
+    ei::verify::Check("CCampPages::PutOn", true, found, "weapons %u -> %d", before, count);
+}
+EI_VERIFY(0x0060FCA0, CampPutOnVerify, 0, s_unused);
+
 // 005F67A0: ours only (a constructor). Vtables, empty arrays, the identity turn.
 static CGlobalMap* __fastcall GlobalMapConstructVerify(CGlobalMap* self, void*, CInterface3D* ui) {
     CGlobalMap* result = self->Construct(ui);

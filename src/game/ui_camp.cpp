@@ -1218,6 +1218,85 @@ int __fastcall CampTakeOff(CCampPages* self, void*, std::uint8_t* item) { return
 } // namespace
 EI_REPLACE(0x0060FE40, CampTakeOff);
 
+// --- 0060FCA0: putting an item on the hero ----------------------------------------------------
+
+namespace {
+// The hero record (thiscall, RET 4): 006608D0 / 00660AB0 / 00660E70 add a weapon, a 0x3006 item, a
+// 0x3008 item; 00660C90 adds armour and returns what the unit wears.
+struct HeroRecordAdd {
+    void AddWeapon(std::uint8_t* item);       // 006608D0
+    void Add3006(std::uint8_t* item);         // 00660AB0
+    void Add3008(std::uint8_t* item);         // 00660E70
+    void* AddArmour(std::uint8_t* item);      // 00660C90
+};
+__declspec(naked) void HeroRecordAdd::AddWeapon(std::uint8_t*) EI_ORIGINAL(0x006608D0)
+__declspec(naked) void HeroRecordAdd::Add3006(std::uint8_t*) EI_ORIGINAL(0x00660AB0)
+__declspec(naked) void HeroRecordAdd::Add3008(std::uint8_t*) EI_ORIGINAL(0x00660E70)
+__declspec(naked) void* HeroRecordAdd::AddArmour(std::uint8_t*) EI_ORIGINAL(0x00660C90)
+// 00530730 (thiscall on a unit, RET 4): wears armour. 00661F30 (thiscall on the player's data,
+// RET 8): takes an item out of the player's items.
+__declspec(naked) void __fastcall UnitWearArmour(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00530730)
+__declspec(naked) void __fastcall PlayerDropItem(std::uint8_t*, void*, std::uint8_t*, int) EI_ORIGINAL(0x00661F30)
+// TakeOff through its address (so its hook and wrapper see the call).
+struct TakeOffAt {
+    int TakeOff(std::uint8_t* item);
+};
+__declspec(naked) int TakeOffAt::TakeOff(std::uint8_t*) EI_ORIGINAL(0x0060FE40)
+} // namespace
+
+void CCampPages::PutOn(std::uint8_t* item) {
+    interface_->PlaySound(reinterpret_cast<const char*>(0x007937B0), 0);   // "buttons\camp\put_on.wav"
+    using HeroFn = std::uint8_t*(__thiscall*)(CCampPages*);
+    std::uint8_t* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);
+    auto* record = reinterpret_cast<HeroRecordAdd*>(hero);
+    switch (CampField<int>(item, 0x10)) {
+    case 0x3004:
+        if (CampField<std::uint32_t>(hero, 0x734) >= 4) return;
+        record->AddWeapon(item);
+        if (CampField<int>(hero, 0x734) == 1) CampField<int>(hero, 0x774) = 0;
+        {
+            using RedrawFn = void(__thiscall*)(CCampPages*);
+            reinterpret_cast<RedrawFn>(vtable_[46])(this);
+        }
+        break;
+    case 0x3005: {
+        int type = ArmourType(item);
+        for (int i = 0; i < CampField<int>(hero, 0x754); ++i) {
+            if (ArmourType(CampField<std::uint8_t**>(hero, 0x750)[i]) == type)
+                reinterpret_cast<TakeOffAt*>(this)->TakeOff(CampField<std::uint8_t**>(hero, 0x750)[i]);
+        }
+        if (heroes_[hero_]) {
+            void* worn = record->AddArmour(item);
+            UnitWearArmour(heroes_[hero_], nullptr, worn);
+            void* figure = CampField<void*>(heroes_[hero_], 0x240);
+            using VoidFn = void(__thiscall*)(void*);
+            reinterpret_cast<VoidFn>((*static_cast<void***>(figure))[29])(figure);
+        }
+        std::uint8_t* stats = hero + 0x20;
+        StatsClearOuterLayers(stats);
+        for (int i = 0; i < CampField<int>(hero, 0x754); ++i)
+            StatsAddLayer(stats, nullptr, CampField<void**>(hero, 0x750)[i]);
+        break;
+    }
+    case 0x3006:
+        if (CampField<std::uint32_t>(hero, 0x744) >= 4) return;
+        record->Add3006(item);
+        break;
+    case 0x3008:
+        if (CampField<std::uint32_t>(hero, 0x764) >= 8) return;
+        record->Add3008(item);
+        break;
+    default:
+        return;
+    }
+    PlayerDropItem(GlueAt(0x007AFEA5)->PlayerData(), nullptr, item, 0);
+    reinterpret_cast<StatsPanelAt*>(statsPanel_)->DrawStats();
+}
+namespace {
+void __fastcall CampPutOn(CCampPages* self, void*, std::uint8_t* item) { self->PutOn(item); }
+} // namespace
+EI_REPLACE(0x0060FCA0, CampPutOn);
+
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
 namespace {

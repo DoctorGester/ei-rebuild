@@ -226,6 +226,12 @@ public:
     // (+0x774) back and redraws (slot 46); armour also comes off the hero's unit and the stats'
     // outer layers are rebuilt. The stats panel is redrawn.
     int TakeOff(std::uint8_t* item);
+    // 0060FCA0 (RET 4). Puts `item` on the current hero: a weapon (at most 4; the first becomes
+    // the chosen one; slot 46 redraws), armour (each piece of the same body part taken off first
+    // through TakeOff, then worn by the hero's unit and the stats' outer layers rebuilt), a 0x3006
+    // item (at most 4) or a 0x3008 item (at most 8); then the player's items lose it (00661F30)
+    // and the stats panel is redrawn. Other kinds and full slots do nothing.
+    void PutOn(std::uint8_t* item);
     // 005F6240 (RET 8; CreateScreen 5). Constructor: the container base, both item caches (limit
     // 50; the item screens' vtables 00740A2C / 007409F8 in between), fromHeroScreen_ from the
     // flag's low byte, the heroes array (vtable 007402AC), the page titles' CStringArray; the
