@@ -713,6 +713,13 @@ struct GameFlow {
     void RequestZoneChange(const char* zone, int entrance);          // 00581700 (RET 8): 4, +0x78 = entrance
     void RequestPartyZone5(const char* zone, const void* party);     // 00581730 (RET 8)
     void RequestPartyZone6(const char* zone, const void* party);     // 00581760 (RET 8)
+    // 0057C460 (RET 8). Starts `zone`: the current zone is torn down; mode 0 takes the mode from
+    // the zone record's kind (0 -> 1, 1 -> 4, 2 -> 3), "endofgame" is mode 8, mode 2 loads the main
+    // menu zone (also when the zone is unknown, after FatalError and closing the network
+    // sessions); otherwise the party enters the zone (0057A060) and the clock follows its "gtime".
+    // The mode becomes the campaign mode (007C2CC4). Rebirth's AllowScriptsInMainMenu sets the
+    // server's +0x160 in the menu.
+    void StartZone(const char* zone, int mode);
 };
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`

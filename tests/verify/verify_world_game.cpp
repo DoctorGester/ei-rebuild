@@ -4,6 +4,8 @@
 
 #include "../../src/game/world.h"
 
+#include "ei/rebirth.h"
+
 #include <cstdio>
 #include <cstring>
 
@@ -89,6 +91,26 @@ static int __stdcall StartNetworkZoneVerify(const char* zone) {
     return result;
 }
 EI_VERIFY(0x0057BDF0, StartNetworkZoneVerify, 0, s_unused);
+
+// 0057C460: tears down and loads a zone, so only ours runs. Afterwards the campaign mode is the one
+// asked for (8 for "endofgame", 2 for the menu or an unknown zone; mode 0 resolves to 0, 1, 3 or
+// 4), and in the menu the server's +0x160 is set when AllowScriptsInMainMenu is on.
+static void __fastcall StartZoneVerify(GameFlow* self, void*, const char* zone, int mode) {
+    auto* world = reinterpret_cast<CWorldServer*>(0x007AFF60);
+    int before160 = world->unknown160_;
+    self->StartZone(zone, mode);
+    int campaign = *reinterpret_cast<const int*>(0x007C2CC4);
+    char what[80] = "";
+    if (mode != 0 && campaign != mode && campaign != 2 && campaign != 8)
+        std::snprintf(what, sizeof(what), "campaign mode %d", campaign);
+    else if (mode == 0 && campaign != 0 && campaign != 1 && campaign != 2 && campaign != 3 && campaign != 4)
+        std::snprintf(what, sizeof(what), "campaign mode %d", campaign);
+    else if (campaign == 2 && ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu) && world->unknown160_ != 1)
+        std::snprintf(what, sizeof(what), "+0x160 %d in the menu", world->unknown160_);
+    ei::verify::Check("GameFlow::StartZone", true, what[0] == 0, "%s mode %d -> campaign %d, +0x160 %d -> %d: %s",
+                      zone ? zone : "", mode, campaign, before160, world->unknown160_, what);
+}
+EI_VERIFY(0x0057C460, StartZoneVerify, 0, s_unused);
 
 namespace {
 using UpdateMultiplayerFn = void(__fastcall*)(GameFlow*, void*);

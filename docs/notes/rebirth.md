@@ -195,7 +195,9 @@ Sites are listed in full in the CSV.
   (src/game/script_parse_load.cpp); a Rebirth launch keeps the original here until
   AddNewScriptCommands, which patches the same function, is reproduced too.
 - **AllowScriptsInMainMenu** - starting the main menu zone (ZoneMainMenuNew, in 0057C460) also sets
-  CWorldServer+0x160 (007B00C0), so the world script's command queue runs in the menu.
+  CWorldServer+0x160 (007B00C0; a JMP at 0057C69F to a stub that redoes `MOV EDI,4`), so Tick runs
+  the first script command queue in the menu. *Implemented* as a new rewrite `GameFlow::StartZone`
+  (src/game/world_game.cpp).
 - **AddNewScriptCommands** (25 sites) - the script command table (0078BCA0, 0x12C commands) is copied
   and extended (GiveUnitWeapon, GiveUnitArmor, StrUpper, StrLower, StrMid, StrHas, StrLen, StrCat,
   StrToFloat, FloatToStr, RandObj, RandStr, Random, Floor, UnitsNearPoint, NearestUnit,
@@ -415,6 +417,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixProgressNames | new: SelectLoadingMovie 00595080 (world_zone.cpp) | wrapper (7 stolen bytes) runs both on the same starting value and compares the chosen movie names as text |
 | FixSpellEffectsOverflow #0 | new: CWorldServer::UpdateUnits 0058D670 + TickSleepingEffects (world_tick.cpp) | ours only (it runs every awake object): afterwards no unit sent to sleep is still in the update map |
 | FixRemoveMapObject | new: CWorldServer::RemoveObject 005935C0 (world_server.cpp) | ours only (destructive: slots, releases): afterwards the id is in no id map; an unknown id changes nothing |
+| AllowScriptsInMainMenu | new: GameFlow::StartZone 0057C460 (world_game.cpp) | ours only (tears down and loads zones): the campaign mode is the one asked for (or 2 / 8), and +0x160 is set in the menu with the flag |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -449,7 +452,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 | FixSpellSelfCasting #1 | CBattleScreen::SelectUnit 00638EF0 (3.6 KB) | 1-2 days |
 | FixCreateItem | item factory 006AC970 (1.6 KB, many callees) | 1 day |
 | FixAddMapObject | object creation 005927C0 (3.5 KB) | 2 days |
-| AllowScriptsInMainMenu | zone start 0057C460 (0.7 KB; also patched by AutoExec in 0057C700 nearby) | 0.5 day |
 | DisableExitOnCrashReport | FatalError 00480080 (small) + 005641F0 (1.5 KB) | 0.5 + 1 day |
 | NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
 | PersistentGlobalVars | 00662FB0, 0057EB10, 005800C0 | 1-2 days |
@@ -464,6 +466,9 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 - `EffectArray::SetSize` (map_object.cpp): forwarder to 0050FE70, CArray<MapEffect>::SetSize.
 - world_tick.cpp: `IdArray::SetAtGrow` (004538D0), `CountedRemoveAt` (0059A050, the counted list's
   RemoveAt, which also releases the object), `ServerRemoveObject` (005935C0).
+- world_game.cpp: `WorldSetTimeSpeedF` / `WorldSetTimeF` (0058EEE0 / 0058EEA0, float argument),
+  `ClientWorldSetPlayer` (00566CE0), `ClientWorldLocalView` (005699F0), `EnterZoneAt` (0057A060);
+  the old `StartZone` forwarder is now `StartZoneAt`.
 - world_server.cpp: `IdMapErase` (00599A80), `SectorMapRemove` (005C1010), `UnitSetController`
   (005300D0), `CommandQueuePurge` (004BED90), `ProjectileForget` (0067EF00), `ProjectileRemoveAt`
   (00599CC0), `PlayerStateForget` (0066DC90).
