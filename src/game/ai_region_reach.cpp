@@ -127,7 +127,7 @@ __declspec(naked) bool __fastcall CellSuitsBlock(CRegionMap*, void*, int, int, i
 // The region map's two block searches (+0 from the start, +0x4C from the target): a search over
 // the blocks of one size class. Its block records (24 bytes, rows at +4) keep a cost
 // (0x7FFFFFFF unvisited) and a link; +0x18 chains the touched records, +0x1C eight open
-// buckets, +0x3C a count, +0x49 the active flag; +0x10 points back at the map and +0x14 at the
+// buckets, +0x3C the best open record, +0x49 the active flag; +0x10 points back at the map and +0x14 at the
 // class's edge grid.
 struct BlockRecord {
     int cost;
@@ -147,7 +147,7 @@ struct BlockSearch {
     void* edges;
     BlockRecord* touched;
     BlockRecord* open[8];
-    int openCount;
+    BlockRecord* best;         // +0x3C the best open record (x, y as shorts at +0xC / +0xE)
     std::uint8_t unknown_40[9];
     bool active;
     std::uint8_t unknown_4A[2];
@@ -157,7 +157,24 @@ static_assert(sizeof(BlockSearch) == 0x4C);
 // 005B0AF0 (RET 0x14, AL): seeds a search (size class, which side, the search, cell x, y).
 // 005AF5F0 (RET 4, AL): joins the two searches into the region chain list.
 __declspec(naked) bool __fastcall SeedBlockSearch(CRegionMap*, void*, int, int, BlockSearch*, int, int) EI_ORIGINAL(0x005B0AF0)
-__declspec(naked) bool __fastcall JoinBlockSearches(CRegionMap*, void*, void*) EI_ORIGINAL(0x005AF5F0)
+__declspec(naked) bool __fastcall JoinBlockSearchesAt(CRegionMap*, void*, void*) EI_ORIGINAL(0x005AF5F0)
+
+// The block search (thiscall): expand one round; the path to block (x, y) into a list (RET 0xC).
+__declspec(naked) void __fastcall ExpandBlockSearch(BlockSearch*) EI_ORIGINAL(0x005AF0C0)
+__declspec(naked) void __fastcall BlockPathTo(BlockSearch*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005AF1C0)
+// The path list: a reversed copy into `out` (RET 4, returns out), append (RET 4), fix-up.
+__declspec(naked) PathCellList* __fastcall ChainReversed(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5E60)
+__declspec(naked) void __fastcall ChainAppend(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5DA0)
+__declspec(naked) void __fastcall ChainFixUp(PathCellList*) EI_ORIGINAL(0x005C6000)
+
+void DestroyPathList(PathCellList& list) {
+    list.vtable = reinterpret_cast<void*>(0x0073EDB0);
+    list.count = 0;
+    list.free = nullptr;
+    list.tail = nullptr;
+    list.head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list.blocks));
+}
 
 void ResetChain(BlockRecord* record) {
     while (record) {
@@ -174,7 +191,7 @@ void PrepareSearch(BlockSearch& search, int sizeClass) {
     search.edges = search.map + sizeClass * 16 + 0x11C;
     for (BlockRecord*& bucket : search.open) bucket = nullptr;
     search.active = true;
-    search.openCount = 0;
+    search.best = nullptr;
 }
 void Exclude(BlockSearch& search, int x, int y) {
     BlockRecord* record = &search.rows[y][x];
@@ -447,7 +464,7 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
     }
     bool ok = SeedBlockSearch(this, nullptr, sizeClass, 0, &forward, fromX, fromY);
     if (ok) ok = SeedBlockSearch(this, nullptr, sizeClass, 1, &backward, toX, toY);
-    if (ok) ok = JoinBlockSearches(this, nullptr, chain);
+    if (ok) ok = JoinBlockSearchesAt(this, nullptr, chain);
     FinishSearch(forward);
     FinishSearch(backward);
     return ok;
@@ -492,7 +509,50 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     return region;
 }
 
+bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
+    BlockSearch& forward = At<BlockSearch>(this, 0);
+    BlockSearch& backward = At<BlockSearch>(this, 0x4C);
+    auto meets = [](BlockSearch& other, int x, int y) {
+        const BlockRecord& r = other.rows[y][x];
+        return r.unknown_14 != 0 && r.cost < 0x7FFFFFFF;
+    };
+    bool ok = true;
+    int x = 0, y = 0;
+    for (;;) {
+        ExpandBlockSearch(&forward);
+        ExpandBlockSearch(&backward);
+        BlockRecord* best = forward.best;
+        if (!best || best->cost == 0x7FFFFFFF) {
+            ok = false;
+            break;
+        }
+        x = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xC);
+        y = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xE);
+        if (meets(backward, x, y)) break;
+        best = backward.best;
+        if (!best || best->cost == 0x7FFFFFFF) {
+            ok = false;
+            break;
+        }
+        x = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xC);
+        y = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xE);
+        if (meets(forward, x, y)) break;
+    }
+    PathCellList scratch{reinterpret_cast<void*>(0x0073EDB0), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
+    if (ok) {
+        BlockPathTo(&forward, nullptr, x, y, chain);
+        BlockPathTo(&backward, nullptr, x, y, &scratch);
+        PathCellList reversed;
+        ChainAppend(chain, nullptr, ChainReversed(&scratch, nullptr, &reversed));
+        DestroyPathList(reversed);
+        ChainFixUp(chain);
+    }
+    DestroyPathList(scratch);
+    return ok;
+}
+
 EI_REPLACE_METHOD(0x005B07C0, CRegionMap::ReachesRegion);
+EI_REPLACE_METHOD(0x005AF5F0, CRegionMap::JoinBlockSearches);
 EI_REPLACE_METHOD(0x005B0600, CRegionMap::DominantRegion);
 EI_REPLACE_METHOD(0x005B0D90, CRegionMap::FindRegionChain);
 EI_REPLACE_METHOD(0x005AF900, CRegionMap::PickRepresentatives);

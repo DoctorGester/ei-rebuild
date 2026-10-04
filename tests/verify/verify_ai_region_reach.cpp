@@ -211,6 +211,21 @@ static int __fastcall DominantRegionVerify(CRegionMap* self, void*, int sizeClas
 EI_VERIFY(0x005B0600, DominantRegionVerify, 7, s_originalRegion);
 
 namespace {
+void* s_unusedJoin;
+}
+
+// 005AF5F0: consumes the block searches' state, so ours only. A failed join adds nothing.
+static bool __fastcall JoinBlockSearchesVerify(CRegionMap* self, void*, PathCellList* chain) {
+    int before = chain->count;
+    bool result = self->JoinBlockSearches(chain);
+    bool ok = result || chain->count == before;
+    ei::verify::Check("CRegionMap::JoinBlockSearches", true, ok, "-> %d, %d cells (were %d)", result, chain->count,
+                      before);
+    return result;
+}
+EI_VERIFY(0x005AF5F0, JoinBlockSearchesVerify, 0, s_unusedJoin);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 

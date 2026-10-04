@@ -123,6 +123,9 @@ struct CRegionMap {
     // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
     // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
     bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
+    // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
+    // joins their paths into `chain`; false when one runs out.
+    bool JoinBlockSearches(struct PathCellList* chain);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
