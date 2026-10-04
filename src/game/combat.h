@@ -382,11 +382,137 @@ public:
     void CallSetUnitMoveMode2(int mode);
     bool CallCanPlanAction(const UnitAction* order);
 
-    // Not rewritten (forwarders):
-    // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
+    // combat_update.cpp (fourth round): the update and the animation queue.
+    // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI
+    // events where it is, ticks its item spells, party units their memory and boredom, then the
+    // alarm, the brain and hostility; the orders (when not frozen, reacting to a hit or acting),
+    // the state and the animation follow. A dead one sinks to the ground and, once its death
+    // animation is over, reports its death and drops its orders. Returns 1.
+    int UpdateServer();
+    // 005499F0. The state machine of +0x164 (0 idle / 1 moving: the movement tick; 2 / 4: a hit
+    // reaction; 3: the rest of an action's animation, then 6; 5: TickAction), after ending an
+    // acting order whose target went out of reach and restoring the queue a hit reaction saved.
+    // hitDirection is -1 afterwards.
+    void UpdateState();
+    // 00546F30. Moves the animation queue on to the world's time and shows its current step on the
+    // unit (+0x254..+0x260); frozen or reacting units keep their times shifted.
+    void AdvanceAnimation();
+    // 00546B40. Drops the queue's steps that are over (a pause after one takes its animation over);
+    // true when one was dropped.
+    bool PopFinishedSteps();
+    // 00546C10. Shows the queue's first step on the unit (not a pause).
+    void ShowCurrentStep();
+    // 00546C40. The queue becomes `steps` (copied in twice) and starts.
+    void PlaySteps(const AnimationSteps* steps);
+    // 00547090. Sets the state; other than 5 (acting) the size class is updated and the effect
+    // object dropped, 5 sets +0x180 to 10 updates from now.
+    void SetState(int newState);
+    // 005467B0. The unit's standing flag (CUnit + 0x278), re-registered on the sector map.
+    void SetStanding(int standing);
+    // 00547280. The motion stops: the unit stays where it is, facing its direction; standing 0.
+    void StandStill();
+    // 00547100. Plays the reaction to a hit from hitDirection (BuildDeathAnimation without dying),
+    // saving the queue (+0x148), unless the unit is idle or the reaction would delay the next attack.
+    void PlayHitReaction();
+    // 00549690. Ends the current order: aborted (or not started, or with an open-ended animation)
+    // the state becomes 6, else 3 with what is left of a three-step plan played; the plan is reset
+    // and the unit stands still.
+    void EndOrder(char abort);
+    // 00549160. State 5: the planned action starts at its time (animation, a cast's effect), the
+    // unit follows its motion meanwhile, and at the end the action is finished (FinishAction).
+    void TickAction();
+    // 00549D40. Can the acting order still be carried out: casting allowed, the target (or a
+    // spell's point) not dead and within the plan's range at its end time. Callers test AL.
+    bool ActionInReach();
+    // 00552B90. The armour's periodic spells (list +0x920): each casts on the unit when its
+    // countdown runs out and the item's charge covers it (type 0x18: one a tick, when hurt).
+    void TickItemSpells();
+
+    // combat_motion.cpp (fourth round): movement modes, idle and movement animations, paths.
+    // 00549D00. False while an attack turns (state 2) and `ticks` from now would pass the next
+    // attack's time (+0x184). Callers test AL.
+    bool CanReactFor(int ticks);
+    // 00548DE0 / 00548FA0. Play `steps` (taken by value and destroyed) as an animation order
+    // (state 3) / an emote (state 4): the queue takes it, the unit stops facing its direction.
+    void PlayAnimationOrder(AnimationSteps steps);
+    void PlayEmoteOrder(AnimationSteps steps);
+    // 00550D90. The idle animation into `steps`: the emote 0xFE for a hero walking (mode 2 without
+    // flag4), else the idle entry of the weapon and movement key (| 0x80580000), if any.
+    void BuildIdle(AnimationSteps* steps);
+    // 00550F30. The idle animation (+0x960), rebuilt when the key (+0x95C) changed.
+    AnimationSteps* IdleAnimation();
+    // 005474B0. Unless idle, moving or turning: the idle animation, rebuilt when needed, plays.
+    void PlayIdle();
+    // 005511A0. The movement animation of the current mode into `steps`: looped (an emote of the
+    // entry; a hero's by stamina +0x238 against 007C5448 / 007C5440) or `once` (the entry's
+    // duration); every step's +8 is 2.
+    void BuildMoveSteps(AnimationSteps* steps, char once);
+    // 00551400. The movement animation (+0x944, key +0x940): for a hero the start once, then the loop.
+    AnimationSteps* NextAnimation();
+    // 005494D0. Starts the planned action: its steps get `stepFlags` in byte 2, the idle animation
+    // plays unless idle, moving or turning, state 5, and the motion turns to the plan's direction
+    // or follows its target (until its end when `follow`); not standing.
+    void StartAction(char follow, char stepFlags);
+    // 00548520. The first movement record's mode 3 (+0x16D) while the second asks for it (+0x175):
+    // taken on a cheap cell when not out of breath (and, without a player's permission, with
+    // stamina); dropped after 5 updates otherwise; out of breath drops the second's too (remark).
+    void UpdateSneak();
+    // 0054A150. Takes the second movement record (+0x170) as the first: back with message 0x0D
+    // when the unit no longer fits its cell; an idle unit changing mode stops facing its way; a
+    // transition animation plays (not while attacking); an empty queued order becomes the current
+    // one. True when the mode changed.
+    bool ChangeMoveMode();
+    // 00548700. Plans the motion to `point` within `range` (FindPath): no path stands the unit still
+    // (state 6, +0x145 from the path's +0xA9); a path makes it idle (state 0) with its movement
+    // animation going on. Callers test AL.
+    bool PathTo(const float* point, float range);
+    // 005468D0. Fills the CList `list` with the units lifted off the sector map for a path: away
+    // from `point`, those near it outside the player's group; the party members that move (with
+    // `moving`) or follow this unit. Only for a player's units with +0x100 == 1.
+    void LiftNearby(void* list, const float* point, char moving);
+    // 0054EB30. Tells a party unit's player how a path to `path`'s goal turned out (0066D490 and
+    // messages 0x0E / 0x01), unless the brain's mode is 6.
+    void ReportPath(void* path, char partial);
+    // 00546480. The controller's reset (constructor and Load): orders, queue, plan, hit, records,
+    // effect object, brain, alarm, factors, stats, animation caches, the armour spell list.
+    void ResetController();
+    // 00554450. Drops the current order (and the queued one unless an animation or emote), takes
+    // the movement records from the unit's modes, stops facing its way (state 6), takes up the
+    // wanted weapon and, unless turning, plays the idle animation (a random phase on an empty
+    // queue) and turns (state 2).
+    void ResyncWithUnit();
+    // combat_update.cpp. 005528F0. Rebuilds the armour spell list (+0x91C) from the items the
+    // unit wears (weapons only the one in use) whose spell is periodic (+0x3C bit 0x20000): kept
+    // entries keep their countdown, new ones start at 0, entries of items no longer worn go.
+    void RefreshItemSpells();
+
+    // combat_planning.cpp (fourth round): the way to an order's target.
+    // 0054DF50. For a use order on a target (kind 6, source 0): the reachable spot the target
+    // offers (its slot 44, for the unit's size) whose path is cheapest becomes the order's point
+    // (flag18 set), its path into `motionOrder` (if given); false when no spot can be reached.
+    // Every order's point gets z -1 first. Callers test AL.
+    bool FindUseSpot(UnitAction* order, void* motionOrder);
+    // 0054E250. Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks
+    // until the order's target is in reach (and seen, when the order needs a line of sight); the
+    // time it takes (ST0), 0 for other kinds.
+    double TimeUntilAction(const UnitAction* order, void* motionOrder);
+    // 0054E600. Plans the way to `order`'s target: the use spot, the path (target lifted off the
+    // sector map) and whether the unit can act from its end, with the player's path message;
+    // the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without a player plan only
+    // use orders. Callers test AL.
+    bool PlanOrderRoute(UnitAction* order, std::uint32_t shout);
+    // 00554830. A party unit's move to `point`: the units in the way lifted (LiftNearby), a runner
+    // planning as walking where it can, FindPath within `range` (the order's z bits), the units put
+    // back and the result reported (ReportPath).
+    void PlanMove(const float* point, int moving, int run, float range);
+
+    // The same through the game's addresses (combat_orders.cpp):
+    // 00554830 (PlanMove).
     void TurnTo(const float* point, int walk, int run, std::uint32_t z);
-    // 0054E600. Plans the order `order` (paths, reach); false when it cannot be carried out.
+    // 0054E600 (PlanOrderRoute).
     bool PlanOrder(UnitAction* order, int arg);
+
+    // Not rewritten (forwarders):
     // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
     void ClaimHostility(CUnit* claimant, std::uint32_t mask);
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`

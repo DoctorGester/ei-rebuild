@@ -110,7 +110,10 @@ console #Add(GetUnitExp(GetLeader()),GetUnitExp(GetLeader(),"real"),GetUnitExp(G
 console #Add(GetArmor(GetLeader(),0,0),GetArmor(GetLeader(),5,6),GetArmor(GetLeader(),-1,2))
 check IsEqualString(GetObjectStringID(NearestUnit(GetX(GetLeader()),GetY(GetLeader()),5,1)),GetObjectStringID(GetLeader()))
 check IsGreater(GroupSize(UnitsNearPoint(GetX(GetLeader()),GetY(GetLeader()),10,7)),0)
-check IsAlive(RandObj(GetPlayerUnits(GetPlayer(GetLeader()))))
+# GetPlayerUnits lists every unit of the player, dead ones too: the wolf added above (player 0, as
+# the hero) has died in the attack by now, so RandObj may pick it; check the pick's player instead.
+check IsGreater(GroupSize(GetPlayerUnits(GetPlayer(GetLeader()))),0)
+check IsEqual(GetPlayer(RandObj(GetPlayerUnits(GetPlayer(GetLeader())))),GetPlayer(GetLeader()))
 check PlayerExists(GetPlayer(GetLeader()))
 console #Add(GetDexterity(GetLeader()),GetIntelligence(GetLeader()),GetStrength(GetLeader()))
 console #Add(GetActions(GetLeader()),GetActionsBase(GetLeader()),GetEncumbrance(GetLeader()),GetMaxEncumbrance(GetLeader()))
