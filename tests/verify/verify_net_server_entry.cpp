@@ -1,0 +1,30 @@
+// Checks for net_server_entry.cpp: ours only (it allocates the entry and replaces *out). The entry
+// carries the server's name, kind and limits afterwards.
+#include "net_verify.h"
+
+#include "../../src/game/net_classes.h"
+#include "../../src/game/core_refcount.h"
+
+#include <cstring>
+
+namespace {
+void* s_unused;
+
+void __fastcall DescribeVerify(net::ServerSession* self, void*, RefPtr* out) {
+    self->Describe(out);
+    auto* entry = reinterpret_cast<const std::uint8_t*>(out->ptr);
+    bool ok = entry != nullptr;
+    if (ok) {
+        auto* name = reinterpret_cast<const net::StringRep*>(entry + 0x28);
+        std::size_t length = static_cast<std::size_t>(self->string_25C8.finish - self->string_25C8.start);
+        std::uint32_t kind;
+        std::memcpy(&kind, entry + 0x34, 4);
+        ok = static_cast<std::size_t>(name->finish - name->start) == length &&
+             std::memcmp(name->start, self->string_25C8.start, length) == 0 && kind == self->unknown_25E4 &&
+             entry[0x45] == static_cast<std::uint8_t>(self->unknown_25E0);
+    }
+    ei::verify::Check("ServerSession::Describe", true, ok, "");
+}
+} // namespace
+
+EI_VERIFY(0x0041A7E0, DescribeVerify, 0, s_unused);

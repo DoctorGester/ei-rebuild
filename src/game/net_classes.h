@@ -20,6 +20,7 @@
 #include <cstdint>
 
 class CRefObject;
+struct RefPtr;
 
 namespace net {
 
@@ -251,6 +252,8 @@ struct ServerSession {
     // 00419A00 (net_server_files.cpp). Lists `data` under `name` (unless listed) as a file message
     // with 64-byte chunk messages.
     void ShareFile(const StringRep* name, GameBuffer* data);
+    // 0041A7E0 (slot 15, net_server_entry.cpp). Makes `*out` a server entry describing this server.
+    void Describe(RefPtr* out);
 };
 static_assert(offsetof(ServerSession, list_2568) == 0x2568);
 static_assert(offsetof(ServerSession, list_2590) == 0x2590);
