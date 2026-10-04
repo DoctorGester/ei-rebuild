@@ -7,6 +7,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_cursor.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/lib/crt.h"
 #include "../../src/lib/mfc.h"
@@ -34,15 +35,20 @@ struct Pixels {
 
 CRITICAL_SECTION* SurfaceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-// Reads the surface into `pixels`, or with `write` stores them back. False when it cannot be locked.
-bool AccessSurface(IDirectDrawSurface7* dd, Pixels& pixels, bool write) {
+// Reads the surface (or its `rect`) into `pixels`, or with `write` stores them back. False when it
+// cannot be locked.
+bool AccessSurface(IDirectDrawSurface7* dd, Pixels& pixels, bool write, RECT* rect = nullptr) {
     if (!dd) return false;
     gameapi::EnterCriticalSection(SurfaceLock());
     DDSURFACEDESC2 desc{};
     desc.dwSize = sizeof(desc);
-    bool ok = dd->Lock(nullptr, &desc, DDLOCK_WAIT, nullptr) == DD_OK;
+    bool ok = dd->Lock(rect, &desc, DDLOCK_WAIT, nullptr) == DD_OK;
     if (ok) {
         auto* base = static_cast<std::uint8_t*>(desc.lpSurface);
+        if (rect) {
+            desc.dwWidth = static_cast<DWORD>(rect->right - rect->left);
+            desc.dwHeight = static_cast<DWORD>(rect->bottom - rect->top);
+        }
         int rowBytes = static_cast<int>(desc.dwWidth * (desc.ddpfPixelFormat.dwRGBBitCount / 8));
         if (!write) {
             pixels.height = static_cast<int>(desc.dwHeight);
@@ -54,7 +60,7 @@ bool AccessSurface(IDirectDrawSurface7* dd, Pixels& pixels, bool write) {
             for (int y = 0; y < pixels.height; ++y)
                 std::memcpy(base + y * desc.lPitch, &pixels.bytes[y * rowBytes], rowBytes);
         }
-        dd->Unlock(nullptr);
+        dd->Unlock(rect);
     }
     gameapi::LeaveCriticalSection(SurfaceLock());
     return ok;
@@ -183,3 +189,32 @@ static void* __fastcall FigureTextureVerify(const char* name) {
     return expected;
 }
 EI_VERIFY(0x005EC020, FigureTextureVerify, 7, s_figureTexture);
+
+// 005E5C40: SUB ESP,0x1AC (6). Side by side on the target surface's `to` rectangle (the only pixels
+// written), holding the device lock across both runs (the cursor thread calls it too).
+static void(__thiscall* s_cursorBlit)(CCursor*, CursorImage*, RECT*, RECT*);
+static void __fastcall CursorBlitVerify(CCursor* self, void*, CursorImage* image, RECT* to, RECT* from) {
+    gameapi::EnterCriticalSection(SurfaceLock());
+    IDirectDrawSurface7* target =
+        self->target_ ? *reinterpret_cast<IDirectDrawSurface7**>(self->target_ + 0x10) : nullptr;
+    RECT area = *to;
+    Pixels before;
+    bool pixels = AccessSurface(target, before, false, &area);
+    s_cursorBlit(self, image, to, from);
+    long expectedResult;
+    std::memcpy(&expectedResult, self->target_ + 8, 4);
+    Pixels expected;
+    if (pixels) pixels = AccessSurface(target, expected, false, &area) && AccessSurface(target, before, true, &area);
+    self->Blit(image, to, from);
+    int row = -1;
+    if (pixels) {
+        Pixels actual;
+        if (AccessSurface(target, actual, false, &area)) row = FirstDifferentRow(expected, actual);
+    }
+    long actualResult;
+    std::memcpy(&actualResult, self->target_ + 8, 4);
+    gameapi::LeaveCriticalSection(SurfaceLock());
+    ei::verify::Check("CCursor::Blit", true, row == -1 && expectedResult == actualResult,
+                      "pixel row %d (compared %d), result %ld/%ld", row, pixels, expectedResult, actualResult);
+}
+EI_VERIFY(0x005E5C40, CursorBlitVerify, 6, s_cursorBlit);
