@@ -74,8 +74,15 @@ const char* __fastcall DescriptionVerify(void* self) {
     return actual;
 }
 
+// 004031E0: ours only; afterwards no object is registered.
+void __fastcall DestroyVerify2(CBaseManager* self) {
+    self->CBaseManager::Destroy();
+    ei::verify::Check("CBaseManager::Destroy", 0u, static_cast<unsigned>(self->objects_.Size()), "");
+}
+
 } // namespace
 
+EI_VERIFY(0x004031E0, DestroyVerify2, 0, s_unused);
 EI_VERIFY(0x00402B20, ConstructVerify, 7, s_construct);
 EI_VERIFY(0x00402DF0, DestructVerify, 0, s_unused);
 EI_VERIFY(0x00402DD0, ManagerDeleteVerify, 0, s_unused);
