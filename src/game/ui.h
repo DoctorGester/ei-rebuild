@@ -302,6 +302,11 @@ public:
     // surfaces, regions, referenced objects and models (in that order), clears +0x08, then the
     // engine object's base destructor (ui_window.cpp).
     void DestroyBase();
+    // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
+    // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
+    // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
+    // with 1). Returns this (ui_window.cpp).
+    CUiWindow* Construct(CInterface3D* ui);
 
     void** vtable_;
     std::uint8_t unknown_004[0x94 - 0x004];   // CTransformObject members and more

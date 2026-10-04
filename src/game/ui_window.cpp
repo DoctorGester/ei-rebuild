@@ -6,6 +6,7 @@
 #include "lib/gameapi.h"
 
 #include <cstring>
+#include <initializer_list>
 
 namespace {
 // 32-bit wrapping multiply (IMUL r32, r/m32).
@@ -500,6 +501,71 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
     return nullptr;
 }
 EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
+
+// --- 005FE700: the constructor -----------------------------------------------------------------
+
+namespace {
+// 0040CB20: the engine object's base constructor (thiscall).
+__declspec(naked) void __fastcall ConstructEngineObject(void*) EI_ORIGINAL(0x0040CB20)
+// The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4), 0068EAF0
+// registers it (RET 8).
+__declspec(naked) std::uint8_t* __fastcall NewMaterial(void*, void*, int) EI_ORIGINAL(0x0068E970)
+__declspec(naked) void __fastcall RegisterMaterial(void*, void*, std::uint8_t*, int) EI_ORIGINAL(0x0068EAF0)
+
+void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
+
+// A material's colour (+0x50..+0x58) and a reference (+0x04).
+void PrepareMaterial(std::uint8_t* material, std::uint32_t colour) {
+    SetDword(material, 0x50, colour);
+    SetDword(material, 0x54, colour);
+    SetDword(material, 0x58, colour);
+    std::uint32_t references;
+    std::memcpy(&references, material + 4, 4);
+    SetDword(material, 4, references + 1);
+}
+} // namespace
+
+CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    ConstructEngineObject(this);
+    for (int offset : {0x34, 0x44}) {   // two identity rotations (0040CB00, inlined here)
+        SetDword(self, offset, 0x3F800000);
+        SetDword(self, offset + 4, 0);
+        SetDword(self, offset + 8, 0);
+        SetDword(self, offset + 12, 0);
+    }
+    interface_ = ui;
+    inputVtable_ = reinterpret_cast<void**>(0x007401D0);
+    std::memset(self + 0xA0, 0, 0x38);
+    for (int offset = 0xF8; offset <= 0x138; offset += 0x10) {   // the five pointer arrays
+        SetDword(self, offset, 0);
+        SetDword(self, offset + 0xC, 0);
+        SetDword(self, offset + 8, 0);
+        SetDword(self, offset + 4, 0);
+    }
+    vtable_ = reinterpret_cast<void**>(0x00740F60);
+    inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
+    SetDword(self, 0x08, 0);
+    rect_ = RECT{0, 0, 0, 0};
+    std::memcpy(self + 0x34, reinterpret_cast<const void*>(0x007C7E58), 16);
+    SetDword(self, 0x1C, 0);
+    SetDword(self, 0xF4, 0);
+    SetDword(self, 0x20, 0);
+    SetDword(self, 0x24, 0);
+    void* materials = *reinterpret_cast<void* const*>(0x007AF740);
+    std::uint8_t* white = NewMaterial(materials, nullptr, 0x16);
+    SetDword(self, 0xF0, reinterpret_cast<std::uintptr_t>(white));
+    RegisterMaterial(materials, nullptr, white, 0x16);
+    PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xF0), 0x3F800000);
+    std::uint8_t* black = NewMaterial(materials, nullptr, 0x16);
+    SetDword(self, 0xEC, reinterpret_cast<std::uintptr_t>(black));
+    RegisterMaterial(materials, nullptr, black, 0x16);
+    PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xEC), 0);
+    enabled_ = 1;
+    CallSlot19(this, 1);
+    return this;
+}
+EI_REPLACE_METHOD(0x005FE700, CUiWindow::Construct);
 
 // --- 005FE930: the destructor body -------------------------------------------------------------
 

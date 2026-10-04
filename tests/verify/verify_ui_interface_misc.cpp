@@ -85,6 +85,22 @@ static void __fastcall DestroyBaseVerify(CUiWindow* self, void*) {
 }
 EI_VERIFY(0x005FE930, DestroyBaseVerify, 0, s_unused);
 
+// 005FE700: ours only (a constructor). The base window: its vtables, interface, empty arrays and
+// both materials.
+static CUiWindow* __fastcall WindowConstructVerify(CUiWindow* self, void*, CInterface3D* ui) {
+    CUiWindow* result = self->Construct(ui);
+    std::uint32_t materials[2];
+    std::memcpy(materials, reinterpret_cast<std::uint8_t*>(self) + 0xEC, sizeof(materials));
+    bool ok = result == self && self->vtable_ == reinterpret_cast<void**>(0x00740F60) &&
+              self->inputVtable_ == reinterpret_cast<void**>(0x00740F2C) && self->interface_ == ui &&
+              !self->objects_.data_ && !self->sceneObjects_.data_ && !self->surfaces_.data_ && !self->regions_.data_ &&
+              !self->models_.data_ && materials[0] && materials[1];
+    ei::verify::Check("CUiWindow::Construct", true, ok, "vtable %p interface %p materials %08X %08X", self->vtable_,
+                      self->interface_, materials[0], materials[1]);
+    return result;
+}
+EI_VERIFY(0x005FE700, WindowConstructVerify, 0, s_unused);
+
 // 005F78C0: ours only (keys reach windows and the console). A modifier key (not a repeat) must
 // leave its flag set: +0x7C Ctrl, +0x7D Shift, +0x7E Alt.
 static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key, int repeat, int flags) {
