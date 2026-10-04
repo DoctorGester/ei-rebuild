@@ -73,6 +73,12 @@ public:
     // slot 19 with 0), the window pushed (null is fatal), five render states reset, the window
     // created (slot 25) and the messages pumped. ui_create_screen.cpp.
     void PushWindow(CUiWindow* window, int a, int b);
+    // 005F71C0 (RET 4). Replaces every window with `window`: a pending close-all (+0x44) runs
+    // first (005F74F0); both backdrops (+0x54, +0x58) are deleted and +0x50 / +0x60 cleared, the
+    // server flag cleared; each open window is deactivated (input slot 1), closed (slot 26) and
+    // deleted, top first; then 005F8C50, the message pump, and the window opened as PushWindow
+    // does (null is fatal). ui_create_screen.cpp.
+    void Activate(CUiWindow* window);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);

@@ -123,6 +123,18 @@ static void __fastcall PushWindowVerify(CInterface3D* self, void*, CUiWindow* wi
 }
 EI_VERIFY(0x005F7350, PushWindowVerify, 0, s_unused);
 
+// 005F71C0: ours only. Every window closed, the new one at the bottom of the stack, no backdrop.
+static void __fastcall ActivateVerify(CInterface3D* self, void*, CUiWindow* window) {
+    self->Activate(window);
+    void* backdrops[2];
+    std::memcpy(backdrops, reinterpret_cast<std::uint8_t*>(self) + 0x54, sizeof(backdrops));
+    bool ok = self->stackBegin_ != self->stackEnd_ && self->stackBegin_[0] == window && !backdrops[0] && !backdrops[1];
+    ei::verify::Check("CInterface3D::Activate", true, ok, "window %p bottom %p, %d on the stack", window,
+                      self->stackBegin_ != self->stackEnd_ ? self->stackBegin_[0] : nullptr,
+                      static_cast<int>(self->stackEnd_ - self->stackBegin_));
+}
+EI_VERIFY(0x005F71C0, ActivateVerify, 0, s_unused);
+
 // 005F78C0: ours only (keys reach windows and the console). A modifier key (not a repeat) must
 // leave its flag set: +0x7C Ctrl, +0x7D Shift, +0x7E Alt.
 static void __fastcall InterfaceKeyDownVerify(CInterface3D* self, void*, int key, int repeat, int flags) {

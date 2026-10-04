@@ -156,6 +156,29 @@ void SetRenderState(void* device, unsigned long state, unsigned long value) {
     reinterpret_cast<Fn>((*static_cast<void***>(device))[20])(device, state, value);
 }
 
+// The end both PushWindow and Activate share: the window pushed on the stack, the render states
+// the interface draws with, the window created (slot 25), the messages pumped, the mouse released.
+void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
+    if (ui->stackEnd_ != ui->stackCapacity_) {
+        if (ui->stackEnd_) *ui->stackEnd_ = window;
+        ++ui->stackEnd_;
+    } else {
+        StackInsertOverflow(&ui->stackBegin_, nullptr, ui->stackEnd_, &window, 1);
+    }
+    static const unsigned long kStates[5][2] = {{0x1B, 1}, {0x0F, 1}, {0x13, 5}, {0x14, 6}, {0x18, 0x80}};
+    for (const auto& state : kStates) {
+        void* device;
+        std::memcpy(&device, reinterpret_cast<std::uint8_t*>(ui->renderer_) + 0x54, 4);
+        SetRenderState(device, state[0], state[1]);
+    }
+    *reinterpret_cast<std::uint8_t*>(0x00784750) = 1;
+    using CreateFn = void(__thiscall*)(CUiWindow*);
+    reinterpret_cast<CreateFn>(window->vtable_[25])(window);
+    PumpMessages();
+    ui->mouseCapture_ = nullptr;
+    Cursor()->SetShape(0);
+}
+
 } // namespace
 
 void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
@@ -194,30 +217,72 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
         reinterpret_cast<Fn>(top->vtable_[19])(top, 0);
     }
     if (!window) game::FatalError(reinterpret_cast<const char*>(0x0079308C));
-    if (stackEnd_ != stackCapacity_) {
-        if (stackEnd_) *stackEnd_ = window;
-        ++stackEnd_;
-    } else {
-        StackInsertOverflow(&stackBegin_, nullptr, stackEnd_, &window, 1);
-    }
-    void* device;
-    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
-    SetRenderState(device, 0x1B, 1);
-    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
-    SetRenderState(device, 0x0F, 1);
-    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
-    SetRenderState(device, 0x13, 5);
-    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
-    SetRenderState(device, 0x14, 6);
-    std::memcpy(&device, reinterpret_cast<std::uint8_t*>(renderer_) + 0x54, 4);
-    SetRenderState(device, 0x18, 0x80);
-    *reinterpret_cast<std::uint8_t*>(0x00784750) = 1;
-    using CreateFn = void(__thiscall*)(CUiWindow*);
-    reinterpret_cast<CreateFn>(window->vtable_[25])(window);
-    PumpMessages();
-    mouseCapture_ = nullptr;
-    Cursor()->SetShape(0);
+    OpenOnTop(this, window);
 }
+
+// --- 005F71C0: Activate ----------------------------------------------------------------------------
+
+namespace {
+struct InterfaceSteps {
+    void CloseAllPending();   // 005F74F0
+    void AfterCloseAll();     // 005F8C50
+};
+__declspec(naked) void InterfaceSteps::CloseAllPending() EI_ORIGINAL(0x005F74F0)
+__declspec(naked) void InterfaceSteps::AfterCloseAll() EI_ORIGINAL(0x005F8C50)
+
+void DeleteBackdrop(CUiSurface* surface) {
+    if (!surface) return;
+    surface->ReleaseContents();
+    gamecrt::operator_delete(surface);
+}
+} // namespace
+
+void CInterface3D::Activate(CUiWindow* window) {
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    auto* steps = reinterpret_cast<InterfaceSteps*>(this);
+    if (self[0x44] != 0) {
+        self[0x44] = 0;
+        steps->CloseAllPending();
+    }
+    Cursor()->SetShape(3);
+    CUiSurface* backdrop;
+    std::memcpy(&backdrop, self + 0x54, 4);
+    DeleteBackdrop(backdrop);
+    std::memcpy(&backdrop, self + 0x58, 4);
+    SetDword(self, 0x54, 0);
+    DeleteBackdrop(backdrop);
+    SetDword(self, 0x58, 0);
+    SetDword(self, 0x50, 0);
+    self[0x60] = 0;
+    Glue()->SetServerFlag(0);
+    Cursor()->SetShape(3);
+    while (stackBegin_ != stackEnd_) {
+        void* input = reinterpret_cast<std::uint8_t*>(stackEnd_[-1]) + 0x94;
+        using VoidFn = void(__thiscall*)(void*);
+        reinterpret_cast<VoidFn>((*static_cast<void***>(input))[1])(input);
+        CUiWindow* top = stackEnd_[-1];
+        reinterpret_cast<VoidFn>(top->vtable_[26])(top);
+        top = stackEnd_[-1];
+        if (top) {
+            using DeleteFn = void(__thiscall*)(CUiWindow*, int);
+            reinterpret_cast<DeleteFn>(top->vtable_[0])(top, 1);
+        }
+        --stackEnd_;
+    }
+    steps->AfterCloseAll();
+    PumpMessages();
+    *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
+    if (!window) {
+        game::FatalError(reinterpret_cast<const char*>(0x0079308C));
+        return;
+    }
+    OpenOnTop(this, window);
+}
+
+namespace {
+void __fastcall InterfaceActivate(CInterface3D* self, void*, CUiWindow* window) { self->Activate(window); }
+} // namespace
+EI_REPLACE(0x005F71C0, InterfaceActivate);
 
 namespace {
 void __fastcall InterfacePushWindow(CInterface3D* self, void*, CUiWindow* window, int a, int b) {
