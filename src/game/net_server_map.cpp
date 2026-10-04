@@ -56,7 +56,10 @@ __declspec(naked) void __fastcall FlowLoadZoneQuests(void* /*flow*/, void*, cons
 __declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, StringRep* const* /*value*/) EI_ORIGINAL(0x004263D0)
 __declspec(naked) void __fastcall NamesFree(StringRep* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426860)
 __declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
+__declspec(naked) void __fastcall NodeFree(void* /*node*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
+__declspec(naked) void __fastcall StringDestruct(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
 constexpr std::uintptr_t kQueuedMapVtable = 0x0073BCD0;   // 0x18 bytes
+constexpr std::uintptr_t kFinishSuffix = 0x00783D84;      // "_3"
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
@@ -227,11 +230,60 @@ void ServerSession::QueueMapList() {
     NamesFree(zones.start, static_cast<std::size_t>(zones.eos - zones.start));
 }
 
+// 004193F0: when the held map message names `name`: drops it, empties the queued messages
+// (+0x25AC) and queues a map message "name" + "_3". Returns whether it did.
+bool ServerSession::FinishMap(const StringRep* name) {
+    auto* holder = reinterpret_cast<RefPtr*>(&unknown_25A8);
+    CRefObject* map = holder->ptr;
+    if (!map || (map->flags7_ & CRefObject::kDetached)) return false;
+    const StringRep* held = reinterpret_cast<const StringRep*>(reinterpret_cast<std::uint8_t*>(map) + 0xC);
+    const std::size_t length = static_cast<std::size_t>(held->finish - held->start);
+    if (length != static_cast<std::size_t>(name->finish - name->start) || std::memcmp(held->start, name->start, length) != 0)
+        return false;
+
+    if (CRefObject* object = holder->ptr) {
+        if (object->refs_ != 1) {
+            object->flags7_ |= CRefObject::kDetached;
+            object->Shutdown();
+        }
+        holder->ptr->Release();
+        holder->Share(nullptr);
+    }
+    for (void** node = static_cast<void**>(static_cast<void**>(list_25AC)[0]); node != list_25AC;) {
+        void** current = node;
+        node = static_cast<void**>(node[0]);
+        reinterpret_cast<RefPtr*>(current + 2)->Destroy();
+        if (current) NodeFree(current, 0xC);
+    }
+    static_cast<void**>(list_25AC)[0] = list_25AC;
+    static_cast<void**>(list_25AC)[1] = list_25AC;
+
+    StringRep messageName;
+    StringPlusText(&messageName, name, Text(kFinishSuffix));
+    auto* message = static_cast<std::uint8_t*>(gamecrt::operator_new(0x18));
+    std::uint32_t zero = 0;
+    std::memcpy(message + 4, &zero, 4);
+    if (message) {
+        MessageConstructBase(reinterpret_cast<Message*>(message));
+        MessageStringConstruct(message + 0xC);
+        std::uintptr_t vtable = kQueuedMapVtable;
+        std::memcpy(message, &vtable, 4);
+    }
+    MessageStringAssign(message + 0xC, nullptr, &messageName);
+    void* ref;
+    List25ACPushBack(&list_25AC, nullptr, RefFromRaw(&ref, message));
+    RefClear(&ref);
+    StringDestruct(&messageName);
+    return true;
+}
+
 namespace {
+bool __fastcall FinishMapHook(ServerSession* self, void*, const StringRep* name) { return self->FinishMap(name); }
 void __fastcall QueueMapListHook(ServerSession* self) { self->QueueMapList(); }
 void __fastcall SetMapHook(ServerSession* self, void*, const StringRep* name) { self->SetMap(name); }
 } // namespace
 EI_REPLACE(0x004186F0, SetMapHook);
 EI_REPLACE(0x00418530, QueueMapListHook);
+EI_REPLACE(0x004193F0, FinishMapHook);
 
 } // namespace net

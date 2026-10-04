@@ -80,3 +80,15 @@ void __fastcall QueueMapListVerify(net::ServerSession* self) {
 void* s_unusedQueueMapList;
 } // namespace
 EI_VERIFY(0x00418530, QueueMapListVerify, 0, s_unusedQueueMapList);
+
+// FinishMap (net_server_map.cpp): ours only (it releases and queues messages); when it reports
+// success no map message is held.
+namespace {
+bool __fastcall FinishMapVerify(net::ServerSession* self, void*, const net::StringRep* name) {
+    bool result = self->FinishMap(name);
+    ei::verify::Check("ServerSession::FinishMap", true, !result || self->unknown_25A8 == 0, "");
+    return result;
+}
+void* s_unusedFinishMap;
+} // namespace
+EI_VERIFY(0x004193F0, FinishMapVerify, 0, s_unusedFinishMap);

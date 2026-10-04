@@ -243,6 +243,8 @@ struct ServerSession {
     void SetMap(const StringRep* name);
     // 00418530. Queues a map message for each zone that follows the current map.
     void QueueMapList();
+    // 004193F0. When the held map message names `name`: drops it and queues "name_3" instead.
+    bool FinishMap(const StringRep* name);
     // 00419570 .. 00419940 (net_server_vars.cpp): the script variables (+0x25B0, named floats).
     void** FindVariable(void** out, const StringRep* name);
     void** FindOrAddVariable(void** out, const StringRep* name);
