@@ -167,6 +167,11 @@ static_assert(offsetof(CGlobalMap, gipat_) == 0x278);
 static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
 
+// 005F6920 (__fastcall on the map). The destructor body: its strings, the tree at +0x1E0, the
+// vector at +0x1C8, the three arrays (entries destroyed), then the container base
+// (ui_global_map.cpp).
+void __fastcall GlobalMapDestroy(CGlobalMap* self);
+
 // 0060E3E0 (__fastcall on the panel). The trade panel's destructor body (vtable 007417A8):
 // its CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
 // +0x15C (0x18-byte entries), then the window base (ui_camp.cpp).

@@ -472,3 +472,13 @@ static CGlobalMap* __fastcall GlobalMapConstructVerify(CGlobalMap* self, void*, 
     return result;
 }
 EI_VERIFY(0x005F67A0, GlobalMapConstructVerify, 0, s_unused);
+
+// 005F6920: ours only (a destructor body). The arrays' vtables put back, the window base emptied.
+static void __fastcall GlobalMapDestroyVerify(CGlobalMap* self) {
+    GlobalMapDestroy(self);
+    bool ok = self->zones_.vtable == reinterpret_cast<void*>(0x00740BFC) &&
+              self->links_.vtable == reinterpret_cast<void*>(0x00740BF0) &&
+              self->quests_.vtable == reinterpret_cast<void*>(0x00740BE4) && !self->sceneObjects_.data_;
+    ei::verify::Check("GlobalMapDestroy", true, ok, "scene %p", self->sceneObjects_.data_);
+}
+EI_VERIFY(0x005F6920, GlobalMapDestroyVerify, 0, s_unused);
