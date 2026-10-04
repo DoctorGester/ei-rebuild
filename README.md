@@ -30,6 +30,8 @@ The log is written next to the DLL: `build\<config>\ei_hook.log`.
 
 - `src/game/` rewritten game code. Each function notes its original address.
 - `src/hook/` the replacement framework (`include/ei/hook.h`).
+- `src/render/` the new renderer (sokol_gfx on Direct3D 11, `third_party/sokol`), switched on with
+  `EI_RENDER=new` (`docs/notes/renderer.md`).
 - `tests/verify/` differential wrappers compiled into the `verify` build.
 - `tools/` launcher, Ghidra export (`export_functions.py`), PE inspection (`pe.py`).
 - `config/functions.csv` every function in game.exe with kind (game/lib/eh/thunk) and status.
@@ -64,8 +66,11 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;
-  `freeze` / `unfreeze` hold the game's clocks around captures. `python tools\compare_frames.py A B`
-  compares two captures or two runs' frames with a tolerance (`docs/notes/renderer.md`).
+  `freeze` / `unfreeze` hold the game's clocks and camera around captures; `samecapture <a> <b>`
+  requires two captures to match. `python tools\compare_frames.py A B` compares two captures or two
+  runs' frames with a tolerance (`--mask` restricts it to where two other frames differ).
+  `render <spec>` turns the new renderer on for the run (its frame goes to `<name>.new.bmp`) and
+  `oldterrain off|on` switches the old terrain draw (`docs/notes/renderer.md`).
 
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
