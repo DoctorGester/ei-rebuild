@@ -11,6 +11,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <d3d11.h>
+#include <ddraw.h>
 #include <dxgi.h>
 #include <float.h>
 
@@ -359,6 +360,7 @@ Frame g_frame;
 bool g_frameDrawn = false;
 bool g_started = false;
 std::uint32_t g_frameNumber = 0;
+std::uint32_t g_commits = 0;
 
 bool EnsureStarted() {
     EnsureConfigured();
@@ -388,6 +390,7 @@ FpuGuard::~FpuGuard() {
 
 Frame& CurrentFrame() { return g_frame; }
 std::uint32_t FrameNumber() { return g_frameNumber; }
+std::uint32_t CommitNumber() { return g_commits; }
 bool Started() { return EnsureStarted(); }
 
 char* DeviceObject() { return *reinterpret_cast<char**>(game::Where().deviceObject); }
@@ -498,11 +501,6 @@ bool DrawOldMeshes() {
     return (g_inWorld ? g_oldObjects : g_oldInterface) || !Active();
 }
 
-bool DrawOldFlat() {
-    EnsureConfigured();
-    return g_oldObjects || !g_inWorld || !Active();
-}
-
 bool DrawOldInterface() {
     EnsureConfigured();
     return g_oldInterface || !Active();
@@ -516,6 +514,12 @@ void SetDrawOldObjects(bool on) {
 void SetDrawOldInterface(bool on) {
     EnsureConfigured();
     g_oldInterface = on;
+}
+
+void TextureChanged(const void* holder, const void* source) {
+    if (!holder || !source || !Active() || !EnsureStarted()) return;
+    FpuGuard fpu;
+    ReadTextureFrom(holder, source);
 }
 
 void BeginWorld() { g_inWorld = true; }
@@ -534,28 +538,37 @@ void ClearDepth(float z, const Rect* rects, int count) {
     }
 }
 
-void EndFrame() {
-    if (g_frameDrawn || !EnsureStarted()) return;
-    g_frameDrawn = true;
+namespace {
+
+std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
+int g_passes = 0;                  // passes drawn this frame
+
+// Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first
+// clearing it. A frame is drawn in more than one pass when a copy of it is taken in its middle
+// (CopyFrameTo).
+bool DrawPending() {
     int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) return;
-    FpuGuard fpu;
-    if (!EnsureTarget(width, height)) return;
+    if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height)) return false;
+    if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
+    UploadTerrain(g_frame);
+    UploadMeshes(g_frame);
+    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
+    // the 3D draws move their positions by half a pixel (Frame::pixelShift). (A viewport moved by
+    // half a pixel would do the same, but sokol takes whole pixels.)
+    g_frame.pixelShift[0] = 1.0f / static_cast<float>(width);
+    g_frame.pixelShift[1] = -1.0f / static_cast<float>(height);
     sg_pass pass{};
-    pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+    bool first = g_passes == 0;
+    pass.action.colors[0].load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
     pass.action.colors[0].clear_value = FromD3DColour(GameClearColour());
-    pass.action.depth.load_action = SG_LOADACTION_CLEAR;
+    pass.action.depth.load_action = first ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
     pass.action.depth.clear_value = 1.0f;
     pass.attachments.colors[0] = g_colourAttachment;
     pass.attachments.depth_stencil = g_depthAttachment;
     pass.label = "ei-frame";
-    UploadTerrain(g_frame);
-    UploadMeshes(g_frame);
     sg_begin_pass(&pass);
-    // Direct3D 7 puts pixel centres at integer screen coordinates, Direct3D 11 half a pixel further:
-    // the viewport is moved by half a pixel so that the same clip coordinates hit the same pixels.
-    sg_apply_viewportf(-0.5f, -0.5f, static_cast<float>(width), static_cast<float>(height), true);
-    for (const Command& c : g_frame.commands) {
+    for (std::size_t k = g_drawnCommands; k < g_frame.commands.size(); ++k) {
+        const Command& c = g_frame.commands[k];
         auto i = static_cast<std::size_t>(c.index);
         switch (c.kind) {
         case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
@@ -565,8 +578,109 @@ void EndFrame() {
         }
     }
     sg_end_pass();
+    g_drawnCommands = g_frame.commands.size();
+    ++g_passes;
+    return true;
+}
+
+// The off-screen target's `box` as RGBA8 rows (a staging copy).
+bool ReadTarget(const D3D11_BOX& box, std::vector<std::uint8_t>* rgba) {
+    sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
+    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
+    if (!texture) return false;
+    D3D11_TEXTURE2D_DESC desc{};
+    texture->GetDesc(&desc);
+    desc.Width = box.right - box.left;
+    desc.Height = box.bottom - box.top;
+    desc.MipLevels = 1;
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+    ID3D11Texture2D* staging = nullptr;
+    if (FAILED(g_device->CreateTexture2D(&desc, nullptr, &staging))) return false;
+    g_context->CopySubresourceRegion(staging, 0, 0, 0, 0, texture, 0, &box);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    bool ok = SUCCEEDED(g_context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped));
+    if (ok) {
+        rgba->resize(static_cast<std::size_t>(desc.Width) * desc.Height * 4);
+        for (UINT y = 0; y < desc.Height; ++y)
+            std::memcpy(rgba->data() + static_cast<std::size_t>(y) * desc.Width * 4,
+                        static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
+                        static_cast<std::size_t>(desc.Width) * 4);
+        g_context->Unmap(staging, 0);
+    }
+    staging->Release();
+    sg_reset_state_cache();
+    return ok;
+}
+
+// An 8-bit channel into the bits of `mask`.
+std::uint32_t Pack(std::uint8_t value, std::uint32_t mask) {
+    if (!mask) return 0;
+    int shift = 0, bits = 0;
+    while (!((mask >> shift) & 1)) ++shift;
+    while (shift + bits < 32 && ((mask >> (shift + bits)) & 1)) ++bits;
+    std::uint32_t v = bits >= 8 ? static_cast<std::uint32_t>(value) << (bits - 8) : static_cast<std::uint32_t>(value) >> (8 - bits);
+    return (v << shift) & mask;
+}
+
+} // namespace
+
+bool CopyFrameTo(const void* holder, const Rect& source) {
+    if (!holder || !Active() || !EnsureStarted()) return false;
+    auto* dd = *reinterpret_cast<IDirectDrawSurface7* const*>(static_cast<const char*>(holder) + 0x10);
+    if (!dd) return false;
+    FpuGuard fpu;
+    if (!g_frameDrawn && !DrawPending()) return false;
+    if (!g_colour.id) return false;
+    Rect r = source;
+    if (r.left < 0) r.left = 0;
+    if (r.top < 0) r.top = 0;
+    if (r.right > g_width) r.right = g_width;
+    if (r.bottom > g_height) r.bottom = g_height;
+    if (r.right <= r.left || r.bottom <= r.top) return false;
+    D3D11_BOX box{static_cast<UINT>(r.left), static_cast<UINT>(r.top), 0, static_cast<UINT>(r.right),
+                  static_cast<UINT>(r.bottom), 1};
+    std::vector<std::uint8_t> rgba;
+    if (!ReadTarget(box, &rgba)) return false;
+    int sw = r.right - r.left, sh = r.bottom - r.top;
+    // Into the surface, stretched to its size as DirectDraw's Blt does (nearest texel).
+    DDSURFACEDESC2 desc{};
+    desc.dwSize = sizeof(desc);
+    LockGameDevice();
+    HRESULT hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
+    bool ok = SUCCEEDED(hr) && desc.lpSurface && (desc.ddpfPixelFormat.dwFlags & DDPF_RGB) &&
+              desc.ddpfPixelFormat.dwRGBBitCount >= 16 && desc.ddpfPixelFormat.dwRGBBitCount <= 32;
+    if (ok) {
+        const DDPIXELFORMAT& pf = desc.ddpfPixelFormat;
+        int bytes = static_cast<int>(pf.dwRGBBitCount / 8);
+        int dw = static_cast<int>(desc.dwWidth), dh = static_cast<int>(desc.dwHeight);
+        std::uint32_t alpha = (pf.dwFlags & DDPF_ALPHAPIXELS) ? pf.dwRGBAlphaBitMask : 0;
+        for (int y = 0; y < dh; ++y) {
+            int sy = static_cast<int>(static_cast<long long>(y) * sh / dh);
+            auto* row = static_cast<std::uint8_t*>(desc.lpSurface) + static_cast<std::size_t>(y) * desc.lPitch;
+            for (int x = 0; x < dw; ++x) {
+                int sx = static_cast<int>(static_cast<long long>(x) * sw / dw);
+                const std::uint8_t* p = &rgba[(static_cast<std::size_t>(sy) * sw + sx) * 4];
+                std::uint32_t pixel = Pack(p[0], pf.dwRBitMask) | Pack(p[1], pf.dwGBitMask) | Pack(p[2], pf.dwBBitMask) | alpha;
+                std::memcpy(row + static_cast<std::size_t>(x) * bytes, &pixel, static_cast<std::size_t>(bytes));
+            }
+        }
+    }
+    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
+    UnlockGameDevice();
+    return ok;
+}
+
+void EndFrame() {
+    if (g_frameDrawn || !EnsureStarted()) return;
+    g_frameDrawn = true;
+    FpuGuard fpu;
+    if (!DrawPending()) return;
     ShowFrame();
     sg_commit();
+    ++g_commits;
     if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
     g_haveFrame = true;
 }
@@ -574,6 +688,8 @@ void EndFrame() {
 void Present() {
     if (!Active()) return;
     EndFrame();
+    g_drawnCommands = 0;
+    g_passes = 0;
     g_frame.matrices.clear();
     g_frame.terrainVertices.clear();
     g_frame.terrainIndices.clear();
@@ -589,6 +705,8 @@ void Present() {
     if (g_started) {
         FpuGuard fpu;
         RetireTextures();
+        RetireBuffers();
+        RetireFrameImages();
     }
     ++g_frameNumber;
 }

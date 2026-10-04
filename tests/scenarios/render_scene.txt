@@ -12,7 +12,6 @@
 #   objects:      ... N A --mask A F\world_t.bmp --exclude F\world_i.bmp F\world_none.bmp
 #   interface:    ... N A --mask F\world_i.bmp F\world_none.bmp
 #   scene without the interface:  ... N A --mask A F\world_i.bmp --mask-background
-# (shadows are not drawn by the new renderer yet: the objects compare counts them as different)
 # and look at them with: python tools\frame_preview.py out.png --scale 4 A N
 # Needs the hooks (the mesh draws 004E9010 / 004E9A50, the device draws 004EB550 / 004EB370, the
 # world draw 00569E40, the surface blit 005FDA80, the terrain page draw 006BFF40 and the present

@@ -75,7 +75,7 @@ const char* const kTerrainSource = R"(
 cbuffer params : register(b0) {
     float4 row0; float4 row1; float4 row2; float4 row3;
     float4 fog;     // rgb: the fog colour
-    float4 flags;   // x: water (alpha from the vertex colour), y: fog on
+    float4 flags;   // x: water (alpha from the vertex colour), y: fog on; zw: the half-pixel shift
 };
 struct vs_in { float3 pos : POSITION; float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; };
 struct vs_out { float4 col : COLOR0; float4 spec : COLOR1; float2 uv : TEXCOORD0; float4 pos : SV_Position; };
@@ -83,6 +83,7 @@ vs_out vs_main(vs_in i) {
     float4 p = float4(i.pos, 1.0);
     vs_out o;
     o.pos = float4(dot(row0, p), dot(row1, p), dot(row2, p), dot(row3, p));
+    o.pos.xy += flags.zw * o.pos.w;   // Direct3D 7 pixel centres (render_internal.h)
     o.col = i.col.zyxw;     // D3DCOLOR bytes are B, G, R, A
     o.spec = i.spec.zyxw;
     o.uv = i.uv;
@@ -108,31 +109,86 @@ static_assert(sizeof(Params) == 96);
 
 sg_shader g_shader{};
 sg_pipeline g_ground{}, g_water{};
-sg_buffer g_vertices{}, g_indices{};
-std::size_t g_vertexCapacity = 0, g_indexCapacity = 0;
+GeometryStream g_geometry("ei-terrain");
+std::vector<sg_buffer> g_retiredBuffers;
 
 } // namespace
 
 namespace detail {
 
-// A dynamic buffer of at least `bytes` (grown by half again when too small).
-bool EnsureDynamicBuffer(sg_buffer& buffer, std::size_t& capacity, std::size_t bytes, bool index, const char* label) {
-    if (buffer.id && bytes <= capacity) return true;
-    if (buffer.id) sg_destroy_buffer(buffer);
-    capacity = bytes + bytes / 2 + 4096;
-    sg_buffer_desc d{};
-    d.size = capacity;
-    d.usage.vertex_buffer = !index;
-    d.usage.index_buffer = index;
-    d.usage.immutable = false;
-    d.usage.dynamic_update = true;
-    d.label = label;
-    buffer = sg_make_buffer(&d);
-    if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_VALID) {
-        capacity = 0;
-        return false;
+int StreamBuffer::Append(const void* data, std::size_t bytes) {
+    if (bytes == 0) return 0;
+    std::size_t rounded = (bytes + 3) & ~static_cast<std::size_t>(3);   // sokol appends at multiples of 4
+    if (commit_ != CommitNumber()) {   // sokol starts appending from the start again after a commit
+        commit_ = CommitNumber();
+        used_ = 0;
     }
+    if (!buffer_.id || used_ + rounded > capacity_) {
+        // Too small for this frame's data: a larger buffer; the old one is destroyed after the
+        // commit (passes drawn earlier in the frame still use it).
+        if (buffer_.id) g_retiredBuffers.push_back(buffer_);
+        buffer_ = sg_buffer{};
+        capacity_ = (capacity_ > rounded ? capacity_ : rounded) * 2 + 4096;
+        sg_buffer_desc d{};
+        d.size = capacity_;
+        d.usage.vertex_buffer = !index_;
+        d.usage.index_buffer = index_;
+        d.usage.immutable = false;
+        d.usage.dynamic_update = true;
+        d.label = label_;
+        buffer_ = sg_make_buffer(&d);
+        used_ = 0;
+        if (sg_query_buffer_state(buffer_) != SG_RESOURCESTATE_VALID) {
+            if (buffer_.id) sg_destroy_buffer(buffer_);
+            buffer_ = sg_buffer{};
+            capacity_ = 0;
+            return -1;
+        }
+    }
+    sg_range range{data, bytes};
+    int offset = sg_append_buffer(buffer_, &range);
+    used_ += rounded;
+    return sg_query_buffer_overflow(buffer_) ? -1 : offset;
+}
+
+void StreamBuffer::Destroy() {
+    if (buffer_.id) sg_destroy_buffer(buffer_);
+    buffer_ = sg_buffer{};
+    capacity_ = 0;
+}
+
+void RetireBuffers() {
+    for (sg_buffer b : g_retiredBuffers) sg_destroy_buffer(b);
+    g_retiredBuffers.clear();
+}
+
+bool GeometryStream::Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices) {
+    if (frame_ == FrameNumber() && vertexCount_ == vertices.size() && indexCount_ == indices.size())
+        return vertexOffset_ >= 0 && indexOffset_ >= 0;
+    frame_ = FrameNumber();
+    vertexCount_ = vertices.size();
+    indexCount_ = indices.size();
+    vertexOffset_ = indexOffset_ = -1;
+    if (vertices.empty() || indices.empty()) return false;
+    vertexOffset_ = vertices_.Append(vertices.data(), vertices.size() * sizeof(Vertex));
+    indexOffset_ = indices_.Append(indices.data(), indices.size() * sizeof(std::uint32_t));
+    return vertexOffset_ >= 0 && indexOffset_ >= 0;
+}
+
+bool GeometryStream::Bind(sg_bindings& b) const {
+    if (frame_ != FrameNumber() || vertexOffset_ < 0 || indexOffset_ < 0) return false;
+    b.vertex_buffers[0] = vertices_.Buffer();
+    b.vertex_buffer_offsets[0] = vertexOffset_;
+    b.index_buffer = indices_.Buffer();
+    b.index_buffer_offset = indexOffset_;
     return true;
+}
+
+void GeometryStream::Destroy() {
+    vertices_.Destroy();
+    indices_.Destroy();
+    frame_ = 0xFFFFFFFFu;
+    vertexOffset_ = indexOffset_ = -1;
 }
 
 bool CreateTerrainPipelines() {
@@ -206,23 +262,13 @@ bool CreateTerrainPipelines() {
 
 void UploadTerrain(const Frame& f) {
     if (f.terrainBatches.empty()) return;
-    std::size_t vertexBytes = f.terrainVertices.size() * sizeof(Vertex);
-    std::size_t indexBytes = f.terrainIndices.size() * sizeof(std::uint32_t);
-    if (!EnsureDynamicBuffer(g_vertices, g_vertexCapacity, vertexBytes, false, "ei-terrain-vertices") ||
-        !EnsureDynamicBuffer(g_indices, g_indexCapacity, indexBytes, true, "ei-terrain-indices"))
-        return;
-    sg_range v{f.terrainVertices.data(), vertexBytes};
-    sg_update_buffer(g_vertices, &v);
-    sg_range i{f.terrainIndices.data(), indexBytes};
-    sg_update_buffer(g_indices, &i);
+    g_geometry.Upload(f.terrainVertices, f.terrainIndices);
 }
 
 void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
-    if (!g_vertices.id || !g_indices.id) return;
-    sg_apply_pipeline(batch.water ? g_water : g_ground);
     sg_bindings b{};
-    b.vertex_buffers[0] = g_vertices;
-    b.index_buffer = g_indices;
+    if (!g_geometry.Bind(b)) return;
+    sg_apply_pipeline(batch.water ? g_water : g_ground);
     b.views[0] = TextureView(batch.texture);
     b.samplers[0] = LinearSampler();
     sg_apply_bindings(&b);
@@ -233,6 +279,8 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     params.fog[2] = static_cast<float>(f.fogColour & 0xFF) / 255.0f;
     params.flags[0] = batch.water ? 1.0f : 0.0f;
     params.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    params.flags[2] = f.pixelShift[0];
+    params.flags[3] = f.pixelShift[1];
     sg_range u{&params, sizeof(params)};
     sg_apply_uniforms(0, &u);
     sg_apply_uniforms(1, &u);
@@ -240,15 +288,13 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
 }
 
 void DestroyTerrain() {
-    if (g_vertices.id) sg_destroy_buffer(g_vertices);
-    if (g_indices.id) sg_destroy_buffer(g_indices);
+    g_geometry.Destroy();
+    RetireBuffers();
     if (g_ground.id) sg_destroy_pipeline(g_ground);
     if (g_water.id) sg_destroy_pipeline(g_water);
     if (g_shader.id) sg_destroy_shader(g_shader);
-    g_vertices = g_indices = sg_buffer{};
     g_ground = g_water = sg_pipeline{};
     g_shader = sg_shader{};
-    g_vertexCapacity = g_indexCapacity = 0;
 }
 
 } // namespace detail

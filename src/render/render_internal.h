@@ -81,6 +81,8 @@ struct MeshBatch {
     float fogNear;            // the transform object's fog range: start
     float fogScale;           // 255 / (end - start)
     bool unclipped;           // projected to the screen without clipping by the old path
+    float zScale;             // the depth is multiplied by it (1: unchanged)
+    bool lines;               // a line list (else triangles)
 };
 
 // A window surface's blit: the image read at the blit, the screen and source rectangles.
@@ -118,10 +120,17 @@ struct Frame {
     bool haveFog = false;
     bool fogEnabled = false;
     std::uint32_t fogColour = 0;   // D3DCOLOR
+    // Direct3D 7 samples a pixel at its integer screen coordinates, Direct3D 11 half a pixel
+    // further right and down: the 3D draws move their clip positions by half a pixel (x by
+    // +1 / width, y by -1 / height, times w) so that the same screen coordinates get the same
+    // pixels and the same interpolated texture coordinates and colours. Set by EndFrame.
+    float pixelShift[2] = {0.0f, 0.0f};
 };
 Frame& CurrentFrame();
 // Counts presented frames (texture caches age their entries by it).
 std::uint32_t FrameNumber();
+// Counts sg_commit calls (sokol's frames).
+std::uint32_t CommitNumber();
 
 // Index of `m` in the frame's matrices (added when it differs from the last one).
 int AddMatrix(const float* m);
@@ -139,8 +148,44 @@ bool GameTargetSize(int* width, int* height);
 // sokol is set up (creates the device on first use); false when the sidecar is off or failed.
 bool Started();
 
-// A dynamic buffer of at least `bytes` (render_terrain.cpp).
-bool EnsureDynamicBuffer(sg_buffer& buffer, std::size_t& capacity, std::size_t bytes, bool index, const char* label);
+// A vertex or index buffer filled with sg_append_buffer, so that a frame can be drawn in several
+// passes (a copy of the frame taken in its middle, CopyFrameTo); replaced by a larger one when an
+// append does not fit (render_terrain.cpp).
+class StreamBuffer {
+public:
+    StreamBuffer(bool index, const char* label) : index_(index), label_(label) {}
+    // Appends `bytes` of `data`: the data's offset in Buffer(), or -1.
+    int Append(const void* data, std::size_t bytes);
+    sg_buffer Buffer() const { return buffer_; }
+    void Destroy();
+
+private:
+    bool index_;
+    const char* label_;
+    sg_buffer buffer_{};
+    std::size_t capacity_ = 0;
+    std::size_t used_ = 0;                // appended since the last commit
+    std::uint32_t commit_ = 0xFFFFFFFFu;  // CommitNumber() of the last append
+};
+// Destroys the buffers replaced during the frame (after its commit).
+void RetireBuffers();
+
+// A frame's vertices and indices (absolute indices) on the GPU: appended again when they grew since
+// the last pass of the frame.
+class GeometryStream {
+public:
+    explicit GeometryStream(const char* label) : vertices_(false, label), indices_(true, label) {}
+    bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
+    // The vertex and index buffers with the last upload's offsets; false when there is none.
+    bool Bind(sg_bindings& b) const;
+    void Destroy();
+
+private:
+    StreamBuffer vertices_, indices_;
+    std::uint32_t frame_ = 0xFFFFFFFFu;
+    std::size_t vertexCount_ = 0, indexCount_ = 0;
+    int vertexOffset_ = -1, indexOffset_ = -1;
+};
 
 // The terrain pipelines and draws, inside EndFrame's off-screen pass (render_terrain.cpp).
 bool CreateTerrainPipelines();
@@ -158,6 +203,8 @@ void DestroyMeshes();
 bool CreateBlitPipeline();
 void DrawBlitBatch(const Frame& frame, const BlitBatch& batch, int width, int height);
 void DrawClearDepth(const ClearBatch& clear, int width, int height);
+// Destroys the images made for one frame (the cursor), after its commit.
+void RetireFrameImages();
 void DestroyBlits();
 
 // The game texture `texture` (a CTexture) or a surface holder (CDXSurface, what CTexture +0x5C
@@ -166,6 +213,9 @@ void DestroyBlits();
 // (render_textures.cpp). Valid until the next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);
+// The texture of `holder` gets the pixels of `source` (another surface holder) now; it is not read
+// from its own surface again until that changes (render::TextureChanged).
+void ReadTextureFrom(const void* holder, const void* source);
 // A window surface (CUiSurface's holder) as one level, read now when its contents changed; texels
 // equal to `key` (the surface's pixel format) transparent when `keyed`.
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height);

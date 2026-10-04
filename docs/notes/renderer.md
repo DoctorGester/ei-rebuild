@@ -17,13 +17,14 @@ replaced. The design:
 
 The backend is **sokol_gfx** (`third_party/sokol`, commit 2e75443, zlib licence) on **Direct3D 11**,
 on the game's own window. Code: `src/render/` (static library `ei_render`, linked into ei_hook).
-Status: the new renderer draws, off-screen and shown on request, the terrain (ground and water
-pages; checked in game, section 8), every mesh the old path draws (figures, map objects, the sky, and
-the interface's sprites and 3D previews), and the interface windows' surfaces, in the game's order;
-depth clears in the middle of the frame included. Not drawn yet: shadows and ground decals,
-particles, ribbons, lightning, flying hit points, the rectangle fills (005041F0), the software
-cursor, movies. The mesh and surface hand-overs have only run in the offline test so far (section
-8); the first in-game run is `tests/scenarios/render_scene.txt`.
+Status: the new renderer draws, off-screen and shown on request, in the game's order: the terrain
+(ground and water pages), every mesh the old path draws (figures, map objects, the sky, the
+interface's sprites and 3D previews), the flat geometry (object shadows, selection markers, light
+decals), the interface windows' surfaces, the renderer's rectangles (rubber band, fades), the
+software cursor, and the depth clears in the middle of the frame; the escape menu's and save
+game's screen copy comes from the new frame. Checked in game: terrain, meshes, interface
+(`render_scene`, section 8). Not drawn yet: particles, ribbons, lightning, flying hit points,
+weather, movies; the depth clear of the camp's trade grid (00627390).
 
 ## 1. The switch (EI_RENDER)
 
@@ -92,7 +93,8 @@ geometry yet); textures and window surfaces are cached per surface holder and re
 DirectDraw surface's uniqueness value says its contents changed.
 
 Conventions taken over: Direct3D clip space (the game's projection already produces it), pixel
-centres of Direct3D 7 (integer screen coordinates; the viewport is moved by half a pixel), D3DCOLOR
+centres of Direct3D 7 (integer screen coordinates; the 3D draws move their clip positions by half a
+pixel, `Frame::pixelShift`: sokol's float viewport is truncated to whole pixels), D3DCOLOR
 vertex colours (B, G, R, A bytes), vertex fog in the specular alpha (255 = no fog), specular added
 after texturing.
 
@@ -144,12 +146,12 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed / animated by the game), the corners (position, colour, texture coordinate indices), colours / speculars as lit by the game (005A7A70 step 3; flag 4: the device's flat colour +0x150 and an alpha), texture coordinates and offsets; the matrix: the top of the pipeline's screen stack (+0x1C, the clip stack +0x24 times the viewport mapping, converted back to clip space for the full frame); the old device's distance fog switch +0x158 and range (transform object +0x34 / +0x3C) | DeviceDrawMesh 004E9010 / 004E9A50 -> `render::BeginMesh` | drawn |
 | Pass state | per pass of a mesh (the material's technique: one state block per pass, 004EB550; or the two textures of 004EB370): blend and factors, alpha test, depth test / write / function, culling, specular, fog and its colour, texture factor, two texture stages' colour / alpha operations and arguments, filters, addressing, and the bound surface holders (device +0x12C / +0x130) | DeviceDrawIndexed 004EB550 / DeviceDrawTwoTextures 004EB370 -> `render::MeshPass`, read back from the old device (the state blocks are opaque) | drawn; later the materials from the game's data |
 | Depth clears | the battle screen's before its panels (00636020), the hero preview's (005EC300: all to 0, its rectangles to 1) | `render::ClearDepth` | drawn; 00627390 (not rewritten) missing |
-| Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX slots 8 / 9 / 11 / 12 into a surface), ground quad 0056C750, drawn with 004EA4A0 | 0051CE60 / 004EA4A0 (rewritten) | later (or GPU shadows) |
+| Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX slots 8 / 9 / 11 / 12 into a surface), ground quad 0056C750, drawn with 004EA4A0 | 004EA4A0 (rewritten) -> `render::BeginMesh` without corners (per-vertex positions, one colour pair, depth scale); the texture from the render surface right after 0051CE60 copies it (`render::TextureChanged`) | drawn |
 | Particles, ribbons, lightning | particle sources' interpolated points, sizes, colours and texture rectangles (007A9BD0 / 007A9BE0), textures; ribbon polylines | 00502CA0 sprites, 00501D90 ribbons (rewritten) | later |
 | Sky | the sky object (004D96E0: a model at the camera, turning with time) | the figure path | with objects |
 | Interface surfaces | CUiSurface (0x38 bytes): +0x0C flags (1 colour key, 2 whole surface stretched, 4 shown), +0x10 the surface holder, +0x24 the screen rectangle, +0x34 the colour key; the DirectDraw surface's pixels (read with a read-only Lock when its uniqueness value changed) | the blit 005FDA80 (rewritten: `ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn (overlay) |
-| Rectangle fills | renderer slot 19 (005041F0): a translucent black quad (alpha argument) and optionally its outline | - | missing (the rubber band, fades) |
-| Cursor | the cursor object 007C7BD8 (shape 005E5200; hardware cursor normally; the display option's software cursor is drawn into locked surfaces by 005E5690 / 005E5C40 after the capture point) | - | later |
+| Rectangle fills | renderer slot 19 (005041F0): a translucent black quad (alpha argument) and optionally its outline | 005041F0 rewritten (`renderer_rect.cpp`) -> `render::ScreenDraw` (pre-transformed triangles, line strip) | drawn |
+| Cursor | the cursor object 007C7BD8 (shape 005E5200; hardware cursor normally; the display option's software cursor is drawn into locked surfaces by 005E5690 / 005E5C40 after the capture point) | the frame draw 005E54A0 rewritten (`ui_cursor_frame.cpp`) -> `render::Cursor` (image and mask; texels with a mask left out) | drawn; the cursor thread's draws between frames are not (they go to the primary) |
 | Movies | Bink frames: BinkCopyToBuffer into a locked surface (005DB3F0 and 005DA880 loops, CBinkVideo 005DBA50 / 005DBD80) | the movie loops | later: copy into a CPU buffer, upload as a texture |
 
 ## 5. Order of work and estimates (one developer)
@@ -157,9 +159,9 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Step | Content | Estimate |
 |---|---|---|
 | 1. Terrain | done and checked in game (section 8): sidecar, device on Direct3D 11, off-screen target, child-window view, ground and water pages from sector data, page textures with their own mip levels, fog from the old device, capture and mask tools. Left: terrain decals (selection circles, prints: 006CCF20 / 006CEDE0 / 006CF370), the fog colour and range from game data | 0.5 week |
-| 2. Interface overlay | first version done (moved ahead of the objects at the user's request, so that captures stop differing where the old frame has the translucent interface over the scene): every mesh outside the world view, the window surfaces as textures read on change, depth clears, `nointerface`. Left: rectangle fills (005041F0), the depth clear of 00627390, the software cursor, the escape menu's and save picture's screen copy (005FD3D0) from the new frame, fixes after the first in-game run | 1 week |
+| 2. Interface overlay | first version done (moved ahead of the objects at the user's request, so that captures stop differing where the old frame has the translucent interface over the scene): every mesh outside the world view, the window surfaces as textures read on change, depth clears, `nointerface`. Second round done: rectangle fills (005041F0), the software cursor (005E54A0), the screen copy (005FD3D0) from the new frame (a frame can now be drawn in several passes; `render::CopyFrameTo`), the half-pixel fix. Left: the depth clear of 00627390 (the camp's trade grid, 1421 bytes, not rewritten), fixes after the next in-game run | 2 days |
 | 3. Objects and figures | first version done with the interface (the same mesh draws): model-space meshes with the game's animation and lighting, the screen stack matrix, every pass with the old device's state (materials' multi-pass techniques, alpha, culling, distance fog), the sky, `noobjects`. Left: in-game check and fixes, picking rectangles computed in the hand-over once the old projection goes, the materials from the game's data instead of the old device's state | 2-3 weeks |
-| 4. Shadows | the shadow textures (upload what the game rasterises, or render shadows on the GPU) and their ground quads | 1 week |
+| 4. Shadows | done: the CPU-rasterised shadow textures and their ground geometry through the flat draw, with the selection markers and light decals. Later: GPU shadows | (done) |
 | 5. Particles and effects | sprites (sorted back to front as the game sorts them), ribbons, lightning, flying hit points, weather | 1.5-2 weeks |
 | 6. Native interface | the window surfaces drawn by the new renderer instead of uploaded (estimate below) | 5-7 weeks |
 | 7. Movies | Bink frames into a CPU buffer and a texture, letterboxing | 0.5-1 week |
@@ -212,7 +214,7 @@ requirements, or disappear when the GPU does the work.
 | `ui_surface_blit.cpp` (005FDA80, new) | `render::SurfaceBlit` (done) |
 | `ui_battle_setup.cpp` (00636020), `ui_hero_preview.cpp` (005EC300) | `render::ClearDepth` (done) |
 | `figure_part_draw.cpp`, `figure_part_draw_plain.cpp` (005A7A70, 005A7640) | model matrices and figure data directly, once the meshes no longer go through the old projection (step 3) |
-| `map_object_shadow.cpp` (0051CE60), `device_shadow.cpp` (004EA4A0), `figure_rasterise.cpp` (005A0E80) | shadows (step 4); `device_shadow.cpp` already skips its draw with `noobjects` |
+| `map_object_shadow.cpp` (0051CE60), `device_shadow.cpp` (004EA4A0), `figure_rasterise.cpp` (005A0E80) | shadows (step 4, done): 004EA4A0 hands over (`render::BeginMesh`), 0051CE60 tells which texture changed |
 | `renderer_sprites.cpp` (00502CA0), `renderer_strip.cpp` (00501D90), `particle_render.cpp`, `particle_draw.cpp` | particles and ribbons (step 5) |
 | `ui_surface_pixels.cpp`, `ui_cursor.cpp`, `ui_item_view.cpp`, `ui_hud*.cpp` | the screen copies, the cursor, native windows (steps 2 and 6) |
 | `texture*.cpp` | textures from the .mmp data directly |
@@ -289,6 +291,21 @@ has the full per-call inventory.
   - The **light strip** at the top of the new frame is the far sea's edge (the clear colour in
     steps where the last water pages end); in the old frame the interface's top bar covers it.
   With the interface in the new frame (`render_scene`) these areas are compared as they are.
+- **render_scene, first run** (vanilla, 3840x2160; whole frame 11.58 % differing, mean 2.9):
+  terrain 2.15 %, objects 39.3 %, interface 9.70 %. Explained:
+  - **Half a pixel**: the new frame was the old one shifted by half a pixel (new(x, y) is the
+    average of old(x, y) and old(x + 1, y + 1): mean difference on an interface icon 4.98 as
+    captured, 1.48 against the shifted old frame). sokol truncates `sg_apply_viewportf` to whole
+    pixels, so the -0.5 viewport had no effect: pixel coverage of integer edges was right (the
+    offline test checked only that), the sampling position of colours and texture coordinates was
+    not. Fixed in the vertex shaders. Comparing the new frame with the old one resampled half a
+    pixel down-right predicts: terrain 2.15 % -> 0.93 %, interface 9.70 % -> 3.70 %, objects
+    39.3 % -> 31.4 %, whole frame 11.58 % -> 7.71 % (the resampling blurs, so these are upper
+    bounds).
+  - **Objects**: the rest is the missing shadows (they fall on objects too: the "flatter" look) and
+    the missing selection marker; both go through the flat draw 004EA4A0, now handed over.
+  - **Interface**: the rest is in textured sprites' detail (icons, portrait, minimap), after the
+    shift; no blending or animation differences found (the panels' translucent bodies match).
 - **Freeze stability**: `samecapture world world_again` in frames_basic and render_terrain (two
   captures in one frozen moment must match).
 - Cross-run comparisons are not meaningful (no determinism); the A/B above is always within one run.
