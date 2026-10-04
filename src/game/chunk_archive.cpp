@@ -3,7 +3,9 @@
 #include "model.h"
 #include "object.h"
 
+#include "core_refcount.h"
 #include "ei/hook.h"
+#include "ei/vcall.h"
 
 #include <cstring>
 
@@ -162,3 +164,314 @@ void ChunkArchive::LeaveChunk() {
     StreamResize(DataStream(this), nullptr, static_cast<std::uint32_t>(parent->size + parent->offset));
 }
 EI_REPLACE_METHOD(0x00409980, ChunkArchive::LeaveChunk);
+
+// ---- Whole archives over a CStream --------------------------------------------------------------
+
+bool __fastcall ReadStreamChunk(void* in, char* id, CMemoryStream* to);
+
+namespace {
+
+// More STLport instantiations of the archive's containers (library).
+__declspec(naked) void __fastcall StackDestroyNode(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x0040ACE0)
+__declspec(naked) void __fastcall StackPushDefault(void* /*list*/) EI_ORIGINAL(0x0040A6B0)
+__declspec(naked) void __fastcall StackPopBack(void* /*list*/) EI_ORIGINAL(0x0040A6D0)
+__declspec(naked) void __fastcall StackClear(void* /*list*/) EI_ORIGINAL(0x0040B290)
+// The saved-object list at +0x70 (list<CRefObject*>): end, insert, begin, erase, clear.
+__declspec(naked) void** __fastcall SavedEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0040AA00)
+__declspec(naked) void* __fastcall SavedInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, void* const* /*value*/) EI_ORIGINAL(0x0040AA10)
+__declspec(naked) void** __fastcall SavedBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0040A9F0)
+__declspec(naked) void* __fastcall SavedErase(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x0040AA40)
+__declspec(naked) void __fastcall SavedClear(void* /*list*/) EI_ORIGINAL(0x0040B390)
+// The loaded-object map at +0x5C (hash_map<int, CRefObject*>): operator[] of a pair, begin,
+// iterator constructor and increment, clear; the pair constructor.
+__declspec(naked) std::uint32_t* __fastcall LoadedAt(void* /*map*/, void*, const std::uint32_t* /*pair*/) EI_ORIGINAL(0x0040B2C0)
+__declspec(naked) void* __fastcall LoadedBegin(void* /*map*/, void*, void** /*out*/) EI_ORIGINAL(0x0040A970)
+__declspec(naked) void* __fastcall HashIterator(void** /*it*/, void*, void* /*node*/, void* /*table*/) EI_ORIGINAL(0x0040AD20)
+__declspec(naked) void* __fastcall LoadedNext(void** /*it*/, void*, void** /*out*/, int /*postfix*/) EI_ORIGINAL(0x0040A700)
+__declspec(naked) void __fastcall LoadedClear(void* /*map*/) EI_ORIGINAL(0x0040B330)
+__declspec(naked) std::uint32_t* __fastcall MakeIntPair(std::uint32_t* /*pair*/, void*, const std::uint32_t* /*key*/,
+                                                        const std::uint32_t* /*value*/) EI_ORIGINAL(0x0040A9D0)
+// 004A5570: CMemoryStream SetSize (grows to the exact size when needed; position 0).
+__declspec(naked) void __fastcall StreamSetSize(CMemoryStream* /*stream*/, void*, std::uint32_t /*size*/) EI_ORIGINAL(0x004A5570)
+// The class tables: 0079B284 class id -> factory (operator[]), 0079B270 vtable -> class id (find).
+__declspec(naked) void** __fastcall FactoryAt(void* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0040A800)
+__declspec(naked) void* __fastcall ClassFind(void* /*map*/, void*, void** /*out*/, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0040B400)
+// 0040A770: a counted pointer from a raw pointer (adds a reference).
+__declspec(naked) void* __fastcall CountedFromRaw(void** /*p*/, void*, void* /*object*/) EI_ORIGINAL(0x0040A770)
+
+void* Factories() { return reinterpret_cast<void*>(0x0079B284); }
+void* ClassIds() { return reinterpret_cast<void*>(0x0079B270); }
+void* Member(ChunkArchive* a, std::size_t offset) { return reinterpret_cast<std::uint8_t*>(a) + offset; }
+CMemoryStream* IndexStream(ChunkArchive* a) { return reinterpret_cast<CMemoryStream*>(a->streams_); }
+std::int32_t& Version(ChunkArchive* a) { return *reinterpret_cast<std::int32_t*>(&a->unknown_54); }
+
+// CStream slots: 1 Read(buffer, n) -> count, 2 Write(buffer, n), 3 Seek(position), 4 Size,
+// 5 Position, 6 Clear.
+std::uint32_t StreamRead(void* s, void* to, std::uint32_t n) { return ei::VCall<std::uint32_t>(s, 1, to, n); }
+void StreamWrite(void* s, const void* from, std::uint32_t n) { ei::VCall<void>(s, 2, from, n); }
+std::uint32_t StreamSize(void* s) { return ei::VCall<std::uint32_t>(s, 4); }
+std::uint32_t StreamPosition(void* s) { return ei::VCall<std::uint32_t>(s, 5); }
+void StreamClear(void* s) { ei::VCall<void>(s, 6); }
+void StreamRewind(void* s) {
+    static_cast<std::uint8_t*>(s)[5] = 1;   // ok
+    ei::VCall<void>(s, 3, 0);
+    static_cast<std::uint8_t*>(s)[4] = 1;
+}
+
+
+// The chunk loop of Open: the `occurrence`-th chunk `id` of `in` read into `to`, else `to` cleared.
+void LoadTopChunk(void* in, char wanted, CMemoryStream* to, void* clearTarget) {
+    char id;
+    int occurrence = 1;
+    bool ok = ReadStreamChunk(in, &id, to);
+    while (ok) {
+        if (id == wanted) {
+            if (occurrence == 1) return;
+            --occurrence;
+        }
+        ok = ReadStreamChunk(in, &id, to);
+    }
+    StreamClear(clearTarget);
+}
+
+// The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
+Ref* PushRecordChunk(ChunkArchive* a) {
+    Ref* parent = Current(a);
+    StackPushDefault(&a->stack_);
+    Ref* fresh = Current(a);
+    if (a->loading_) {
+        a->FindChild(parent, 1, fresh, parent->occurrence);
+    } else {
+        fresh->id = 1;
+        fresh->offset = parent->size + parent->offset + 5;
+    }
+    return Current(a);
+}
+
+} // namespace
+
+bool __fastcall ReadStreamChunk(void* in, char* id, CMemoryStream* to);
+
+// 00409E80: a chunk reference reset to {0xFF, 0, 0, occurrence 1}.
+void __fastcall ChunkRefReset(Ref* r) {
+    r->id = 0xFF;
+    r->occurrence = 1;
+    r->offset = 0;
+    r->size = 0;
+}
+EI_REPLACE(0x00409E80, ChunkRefReset);
+
+// 00409EA0 (__fastcall in, id; one stack argument): reads one chunk header from the stream and its
+// bytes into `to` (at most 10,000,000). True when all of it was read.
+bool __fastcall ReadStreamChunk(void* in, char* id, CMemoryStream* to) {
+    std::uint32_t length = 0;
+    StreamRead(in, id, 1);
+    StreamRead(in, &length, 1);
+    if (length & 1) StreamRead(in, reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
+    length >>= 1;
+    if (!static_cast<std::uint8_t*>(in)[5]) return false;
+    if (length > 10000000) return false;
+    StreamSetSize(to, nullptr, length);
+    return StreamRead(in, to->data_, length) == length;
+}
+EI_REPLACE(0x00409EA0, ReadStreamChunk);
+
+// 00409F30 (__fastcall in, id in DL; two stack arguments): from the start of the stream, the
+// `occurrence`-th chunk `id` into `to`; on a read error or the end, `to` is cleared and false.
+bool __fastcall FindStreamChunk(void* in, int id, CMemoryStream* to, int occurrence) {
+    StreamRewind(in);
+    for (;;) {
+        char readId;
+        std::uint32_t length = 0;
+        StreamRead(in, &readId, 1);
+        StreamRead(in, &length, 1);
+        if (length & 1) StreamRead(in, reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
+        length >>= 1;
+        if (!static_cast<std::uint8_t*>(in)[5] || length > 10000000) break;
+        StreamSetSize(to, nullptr, length);
+        if (StreamRead(in, to->data_, length) != length) break;
+        if (readId == static_cast<char>(id)) {
+            if (occurrence == 1) return true;
+            --occurrence;
+        }
+    }
+    StreamClear(to);
+    return false;
+}
+EI_REPLACE(0x00409F30, FindStreamChunk);
+
+// 0040A3C0 (__fastcall out, id in DL; one stack argument): writes `from` as a chunk.
+bool __fastcall WriteStreamChunk(void* out, int id, CMemoryStream* from) {
+    char tag = static_cast<char>(id);
+    StreamWrite(out, &tag, 1);
+    std::uint32_t length = StreamSize(from) * 2;
+    if (length >= 0x100) {
+        length |= 1;
+        StreamWrite(out, &length, 4);
+    } else {
+        StreamWrite(out, &length, 1);
+    }
+    std::uint8_t* data = from->data_;
+    StreamWrite(out, data, StreamSize(from));
+    return true;
+}
+EI_REPLACE(0x0040A3C0, WriteStreamChunk);
+
+void ChunkArchive::Open(void* stream, int loading, int version) {
+    ChunkNode* s = stack_;
+    for (ChunkNode* n = s->next; n != stack_;) {
+        ChunkNode* dead = n;
+        n = n->next;
+        StackDestroyNode(&stack_, nullptr, dead, 1);
+    }
+    stack_->next = stack_;
+    stack_->prev = stack_;
+    StreamClear(IndexStream(this));
+    StreamClear(DataStream(this));
+    void* inserted;
+    StackInsertDefault(&stack_, nullptr, &inserted, stack_);
+    *reinterpret_cast<std::uint8_t*>(&loading_) = static_cast<std::uint8_t>(loading);
+    if (!static_cast<std::uint8_t>(loading)) {
+        Version(this) = version;
+        return;
+    }
+    StreamRewind(stream);
+    LoadTopChunk(stream, 0, IndexStream(this), IndexStream(this));
+    StreamRewind(stream);
+    LoadTopChunk(stream, 2, DataStream(this), DataStream(this));
+    Current(this)->size = static_cast<std::int32_t>(StreamSize(DataStream(this)));
+
+    // The index: per object its class id and the key its record is stored under.
+    while (StreamPosition(IndexStream(this)) < StreamSize(IndexStream(this))) {
+        std::uint32_t classId = 0;
+        std::uint32_t key = 0;
+        StreamRead(IndexStream(this), &classId, 4);
+        StreamRead(IndexStream(this), &key, 4);
+        std::uint32_t lookup = classId;
+        auto factory = reinterpret_cast<void* (__cdecl*)()>(*FactoryAt(Factories(), nullptr, &lookup));
+        void* object = factory ? factory() : nullptr;
+        void* end;
+        SavedEnd(Member(this, 0x70), nullptr, &end);
+        void* added;
+        SavedInsert(Member(this, 0x70), nullptr, &added, end, &object);
+        std::uint32_t zero = 0;
+        std::uint32_t pair[2];
+        MakeIntPair(pair, nullptr, &key, &zero);
+        LoadedAt(Member(this, 0x5C), nullptr, pair)[1] = reinterpret_cast<std::uint32_t>(object);
+    }
+    if (version == 1) Field(2, &Version(this), 4);
+    else Version(this) = version;
+
+    int count = CountChildrenOf(Current(this), 1);
+    for (int i = 1; i <= count; ++i) {
+        std::uint32_t key = 0;
+        Current(this)->occurrence = i;
+        Ref* record = PushRecordChunk(this);
+        if (loading_) {
+            Ref field;
+            ChunkRefReset(&field);
+            key = FindChild(record, 0, &field, record->occurrence) ? *reinterpret_cast<std::uint32_t*>(Data(this) + field.offset) : 0;
+        } else {
+            AppendChild(record, 0, &key, 4);
+        }
+        std::uint32_t zero = 0;
+        std::uint32_t pair[2];
+        MakeIntPair(pair, nullptr, &key, &zero);
+        void* object = reinterpret_cast<void*>(LoadedAt(Member(this, 0x5C), nullptr, pair)[1]);
+        if (object && EnterChunk(1)) {
+            ei::VCall<void>(object, 1, this);   // Serialize
+            LeaveChunk();
+        }
+        LeaveChunk();
+    }
+    Ref* top = Current(this);
+    top->occurrence = 1;
+    top->offset = 0;
+    top->size = 0;
+    top->occurrence = 1;
+    top->id = 0xFF;
+    FindStreamChunk(stream, 1, DataStream(this), 1);
+    Current(this)->size = static_cast<std::int32_t>(StreamSize(DataStream(this)));
+}
+EI_REPLACE_METHOD(0x00409AE0, ChunkArchive::Open);
+
+void ChunkArchive::Close(void* stream) {
+    if (loading_) {
+        // After a load: each loaded object gets a reference and loses it again (one without other
+        // owners is deleted).
+        void* it[2];
+        LoadedBegin(Member(this, 0x5C), nullptr, it);
+        void* end[2];
+        HashIterator(end, nullptr, nullptr, Member(this, 0x5C));
+        while (it[0] != end[0]) {
+            void* counted;
+            CountedFromRaw(&counted, nullptr, *reinterpret_cast<void**>(static_cast<std::uint8_t*>(it[0]) + 8));
+            if (counted) static_cast<CRefObject*>(counted)->Release();
+            void* old[2];
+            LoadedNext(it, nullptr, old, 0);
+            HashIterator(end, nullptr, nullptr, Member(this, 0x5C));
+        }
+    } else {
+        Ref* top = Current(this);
+        StreamResize(DataStream(this), nullptr, static_cast<std::uint32_t>(top->size + top->offset));
+        WriteStreamChunk(stream, 1, DataStream(this));
+        StreamClear(DataStream(this));
+        top = Current(this);
+        top->id = 0xFF;
+        top->occurrence = 1;
+        top->offset = 0;
+        top->size = 0;
+        void* saved = Member(this, 0x70);
+        while (**static_cast<void***>(saved) != *static_cast<void**>(saved)) {
+            void* first;
+            SavedBegin(saved, nullptr, &first);
+            void* object = *reinterpret_cast<void**>(static_cast<std::uint8_t*>(first) + 8);
+            void* position;
+            SavedBegin(saved, nullptr, &position);
+            void* after;
+            SavedErase(saved, nullptr, &after, position);
+            std::uint32_t vtable;
+            std::memcpy(&vtable, object, 4);
+            void* found[2];
+            ClassFind(ClassIds(), nullptr, found, &vtable);
+            void* end[2];
+            HashIterator(end, nullptr, nullptr, ClassIds());
+            std::int32_t classId = found[0] == end[0] ? -1 : *reinterpret_cast<std::int32_t*>(static_cast<std::uint8_t*>(found[0]) + 8);
+            StreamWrite(IndexStream(this), &classId, 4);
+            StreamWrite(IndexStream(this), &object, 4);
+            Ref* record = PushRecordChunk(this);
+            if (loading_) {
+                Ref field;
+                ChunkRefReset(&field);
+                object = FindChild(record, 0, &field, record->occurrence) ? *reinterpret_cast<void**>(Data(this) + field.offset) : nullptr;
+            } else {
+                AppendChild(record, 0, &object, 4);
+            }
+            if (EnterChunk(1)) {
+                ei::VCall<void>(object, 1, this);   // Serialize
+                LeaveChunk();
+            }
+            if (loading_) {
+                StackPopBack(&stack_);
+            } else {
+                ChunkNode* node = stack_->prev;
+                Ref* chunk = RefOf(node);
+                const std::uint8_t* content = Data(this) + chunk->offset;
+                AppendChild(RefOf(node->prev), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
+                StackPopBack(&stack_);
+                ResizeToCurrent();
+            }
+        }
+        Field(2, &Version(this), 4);
+        WriteStreamChunk(stream, 0, IndexStream(this));
+        top = Current(this);
+        StreamResize(DataStream(this), nullptr, static_cast<std::uint32_t>(top->size + top->offset));
+        WriteStreamChunk(stream, 2, DataStream(this));
+    }
+    StreamClear(IndexStream(this));
+    StreamClear(DataStream(this));
+    LoadedClear(Member(this, 0x5C));
+    SavedClear(Member(this, 0x70));
+    StackClear(&stack_);
+}
+EI_REPLACE_METHOD(0x0040A000, ChunkArchive::Close);

@@ -12,8 +12,14 @@
 #include "verify.h"
 
 #include "../../src/game/model.h"
+#include "../../src/game/object.h"
 
 #include <cstring>
+
+void __fastcall ChunkRefReset(ChunkArchive::Ref* r);                                        // chunk_archive.cpp
+bool __fastcall ReadStreamChunk(void* in, char* id, CMemoryStream* to);
+bool __fastcall FindStreamChunk(void* in, int id, CMemoryStream* to, int occurrence);
+bool __fastcall WriteStreamChunk(void* out, int id, CMemoryStream* from);
 
 namespace {
 
@@ -128,6 +134,40 @@ void __fastcall LeaveVerify(ChunkArchive* self) {
     ei::verify::Check("ChunkArchive::LeaveChunk", depth - 1, Depth(self), "");
 }
 
+// 00409E80: XOR EAX,EAX (2), MOV byte [ECX],0xFF (3).
+void(__fastcall* s_reset)(Ref*);
+void __fastcall RefResetVerify(Ref* self) {
+    Ref copy = *self;
+    s_reset(&copy);
+    ChunkRefReset(self);
+    ei::verify::Check("ChunkRefReset", true, std::memcmp(&copy, self, sizeof(Ref)) == 0, "");
+}
+
+// Whole-archive functions: ours only (they read / write the streams and create objects).
+bool __fastcall ReadStreamChunkVerify(void* in, char* id, CMemoryStream* to) {
+    bool result = ReadStreamChunk(in, id, to);
+    ei::verify::Check("ReadStreamChunk", true, !result || to->size_ <= 10000000u, "");
+    return result;
+}
+bool __fastcall FindStreamChunkVerify(void* in, int id, CMemoryStream* to, int occurrence) {
+    bool result = FindStreamChunk(in, id, to, occurrence);
+    ei::verify::Check("FindStreamChunk", true, true, "id %d", id);
+    return result;
+}
+bool __fastcall WriteStreamChunkVerify(void* out, int id, CMemoryStream* from) {
+    bool result = WriteStreamChunk(out, id, from);
+    ei::verify::Check("WriteStreamChunk", true, result, "");
+    return result;
+}
+void __fastcall OpenVerify(ChunkArchive* self, void*, void* stream, int loading, int version) {
+    self->Open(stream, loading, version);
+    ei::verify::Check("ChunkArchive::Open", 1, Depth(self), "loading %d", loading & 0xFF);
+}
+void __fastcall CloseVerify(ChunkArchive* self, void*, void* stream) {
+    self->Close(stream);
+    ei::verify::Check("ChunkArchive::Close", 0, Depth(self), "");
+}
+
 } // namespace
 
 EI_VERIFY(0x00409070, NextChildVerify, 8, s_next);
@@ -139,3 +179,9 @@ EI_VERIFY(0x004092B0, FieldVerify, 5, s_field);
 EI_VERIFY(0x004098D0, EnterVerify, 5, s_enter);
 EI_VERIFY(0x00409110, AppendVerify, 0, s_unused);
 EI_VERIFY(0x00409980, LeaveVerify, 0, s_unused);
+EI_VERIFY(0x00409E80, RefResetVerify, 5, s_reset);
+EI_VERIFY(0x00409EA0, ReadStreamChunkVerify, 0, s_unused);
+EI_VERIFY(0x00409F30, FindStreamChunkVerify, 0, s_unused);
+EI_VERIFY(0x0040A3C0, WriteStreamChunkVerify, 0, s_unused);
+EI_VERIFY(0x00409AE0, OpenVerify, 0, s_unused);
+EI_VERIFY(0x0040A000, CloseVerify, 0, s_unused);

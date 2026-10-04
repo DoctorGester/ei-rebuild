@@ -127,6 +127,12 @@ public:
     bool FindChild(const Ref* parent, int id, Ref* out, int occurrence);         // 004091C0
     int CountChildrenOf(const Ref* parent, int id);                              // 00409230
     void ResizeToCurrent();                                                      // 00409A40
+    // 00409AE0. Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the
+    // object records from `stream`, a CStream) or a save (`version` kept for Close).
+    void Open(void* stream, int loading, int version);
+    // 0040A000. Ends a save: writes the saved objects' records, the version (field 2) and the index
+    // and data chunks to `stream`; or, after a load, drops the loaded objects. Clears everything.
+    void Close(void* stream);
 
     // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1
     // per record (`occurrence` selects the record); loading replaces the vector's contents.
