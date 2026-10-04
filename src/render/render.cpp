@@ -45,6 +45,7 @@ void ParseSpec(const char* spec) {
     g_oldTerrain = g_oldObjects = g_oldInterface = true;
     std::string s = spec ? spec : "";
     std::size_t start = 0;
+    bool noCpuWindows = false;
     while (start <= s.size()) {
         std::size_t comma = s.find(',', start);
         std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
@@ -58,6 +59,7 @@ void ParseSpec(const char* spec) {
         else if (word == "nointerface") g_oldInterface = false;
         else if (word == "present") g_present = true;
         else if (word == "cpuwindows") g_cpuWindows = true;
+        else if (word == "nocpuwindows") noCpuWindows = true;
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
@@ -68,16 +70,20 @@ void ParseSpec(const char* spec) {
         // into the game's render target and the old present shows it.
         g_show = g_split = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = false;
+        // The windows' pixels in game-owned memory (render_present_cpuwindows passes on both
+        // installs); "nocpuwindows" keeps DirectDraw's own surfaces.
+        g_cpuWindows = true;
     }
+    if (noCpuWindows) g_cpuWindows = false;
     if (!g_active) {
         g_show = g_split = g_present = g_cpuWindows = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = true;
     }
     g_configured = true;
     if (g_active)
-        ei::Log("render: new renderer on (%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
+        ei::Log("render: new renderer on (%s%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
                 g_oldTerrain ? "" : ", old terrain off", g_oldObjects ? "" : ", old objects off",
-                g_oldInterface ? "" : ", old interface off");
+                g_oldInterface ? "" : ", old interface off", g_cpuWindows ? ", windows in game memory" : "");
 }
 
 void EnsureConfigured() {

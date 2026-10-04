@@ -16,11 +16,12 @@
 //              its flat geometry (shadows)
 //   nointerface  ...nor the interface (window surfaces, sprites, 3D previews)
 //   cpuwindows the off-screen surfaces of 004EF7B0 (interface windows, cursor, movies) keep their
-//              pixels in game-owned memory the new renderer reads directly (off by default)
+//              pixels in game-owned memory the new renderer reads directly (off by default, on
+//              with "present"); "nocpuwindows" turns it off
 //   present    the switch-over: the old path draws nothing that is handed over (implies noterrain,
-//              noobjects, nointerface; movies too) and the new frame is copied into the game's
-//              render target before the old present shows it; captures write the new frame as
-//              frames\<name>.bmp
+//              noobjects, nointerface, cpuwindows; movies too) and the new frame is copied into the
+//              game's render target before the old present shows it; captures write the new frame
+//              as frames\<name>.bmp
 // Without "new" nothing here runs and the game draws exactly as before.
 
 #include <cstdint>
