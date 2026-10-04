@@ -204,3 +204,16 @@ initialised but not playing. Then the wave (failure: -1), loop count 0 for a loo
 volume and pan, the end-of-sample callback, the reverb when on, a random start position below
 +0x8BC ms + 1 from the game's random generator when set, AIL_start_sample; returns the voice's
 handle (set by the wave loader). Tick's emitters now call this rewrite directly.
+
+## Play3D (006B8600)
+
+| Address | Name | Verify |
+|---|---|---|
+| 006B8600 | `CSoundManager::Play3D` (RET 0x1C) | ours only: -1, or a positional voice holding the arguments under the returned handle, or a deferred record |
+
+As Play2D, with a position, near and far distances instead of volume and pan. The deferred record
+gets the name, position, distances, flat 0, height fade 0, speech, priority, a new handle and
+sample position 0; its volume, base volume, pan and length stay as operator new returned them
+(original). A voice gets the fields, then UpdatePositional (volume and pan from the listener); a
+silent one-shot returns -1; the wave is loaded with 0 as the loader's last argument; the rest is
+the shared tail (StartLoaded).

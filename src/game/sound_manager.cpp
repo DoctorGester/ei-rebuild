@@ -1,8 +1,8 @@
 // The sound manager (CSoundManager, *007AF784): voice volumes and pans from the listener,
 // the per-handle controls, ambient emitters, 3D sound sequences, the per-frame tick and the music
-// stream requests (006B5CD0-006BB240), and Play2D (006B8250). The Miles calls go through
-// game.exe's import table; wave loading (006B89F0), the voice allocation (006B7D10), Play3D
-// (006B8600) and the stream / MIDI threads stay original.
+// stream requests (006B5CD0-006BB240), and Play2D / Play3D (006B8250 / 006B8600). The Miles calls
+// go through game.exe's import table; wave loading (006B89F0), the voice allocation (006B7D10) and
+// the stream / MIDI threads stay original.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
@@ -1022,7 +1022,7 @@ void SoundFader::Update() {
 }
 EI_REPLACE_METHOD(0x006B5EE0, SoundFader::Update);
 
-// --- 006B8250: Play2D --------------------------------------------------------------------------------
+// --- 006B8250 / 006B8600: Play2D, Play3D ---------------------------------------------------------
 
 namespace {
 // 006B7D10 (not rewritten): a free voice for `priority`, stealing a lower one (deferring a looping
@@ -1065,6 +1065,22 @@ int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, i
     reinterpret_cast<DeferredSound**>(DeferredIndex(&m->deferred, nullptr, &key))[1] = rec;
     return rec->handle;
 }
+
+// The common end of Play2D and Play3D once the wave is in the voice: loop count 0 for a looping
+// sound, volume and pan, the end-of-sample callback, the reverb when on, a random start position
+// when +0x8BC is set, start. Returns the voice's handle.
+int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
+    if (loop != 0) AilSetSampleLoopCount()(slot->sample, 0);
+    m->ApplyVolumePan(slot);
+    AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
+    if (m->reverbOn != 0) AilSetSampleReverb()(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
+    if (m->randomStart != 0) {
+        std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
+        AilSetSampleMsPosition()(slot->sample, GlobalRandom().Next() % range);
+    }
+    AilStartSample()(slot->sample);
+    return slot->handle;
+}
 } // namespace
 
 // 006B8250. Plays `name` without position: `volume` 0..100 (scaled by the effects or speech volume,
@@ -1091,22 +1107,56 @@ int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, i
     slot->volume = NewFlatLevel(this, volume, heightFade, speech);
     if (volume == 0 && loop == 0) return -1;
     if (LoadSample(slot, index, name, samplePosition) == 0) return -1;
-    if (loop != 0) AilSetSampleLoopCount()(slot->sample, 0);
-    ApplyVolumePan(slot);
-    AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
-    if (reverbOn != 0) AilSetSampleReverb()(slot->sample, reverb[0], reverb[1], reverb[2]);
-    if (randomStart != 0) {
-        std::uint32_t range = static_cast<std::uint32_t>(randomStart) + 1;
-        AilSetSampleMsPosition()(slot->sample, GlobalRandom().Next() % range);
-    }
-    AilStartSample()(slot->sample);
-    return slot->handle;
+    return StartLoaded(this, slot, loop);
 }
 EI_REPLACE_METHOD(0x006B8250, CSoundManager::Play2D);
+
+// 006B8600. Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the
+// pan from the listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound
+// without a voice is deferred; the original leaves the record's volume, base volume, pan and length
+// as operator new returned them.
+int CSoundManager::Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
+                          int speech) {
+    if (enabled == 0) return -1;
+    int index = AllocateVoice(this, nullptr, priority);
+    if (index == -1) {
+        if (loop == 0) return -1;
+        auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
+        if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
+        reinterpret_cast<stlp::string*>(rec->name)->Assign(name, name + std::strlen(name));
+        std::memcpy(rec->position, position, sizeof(rec->position));
+        std::memcpy(&rec->nearDistance, &nearDist, 4);
+        std::memcpy(&rec->farDistance, &farDist, 4);
+        rec->flat = 0;
+        rec->heightFade = 0;
+        rec->speech = speech;
+        rec->priority = priority;
+        rec->handle = nextHandle;
+        ++nextHandle;
+        rec->samplePosition = 0;
+        std::int32_t key = rec->handle;
+        reinterpret_cast<DeferredSound**>(DeferredIndex(&deferred, nullptr, &key))[1] = rec;
+        return rec->handle;
+    }
+    SoundSlot* slot = &slots[index];
+    AilInitSample()(slot->sample);
+    slot->looping = loop;
+    std::memcpy(slot->position, position, sizeof(slot->position));
+    std::memcpy(&slot->nearDistance, &nearDist, 4);
+    std::memcpy(&slot->farDistance, &farDist, 4);
+    slot->flat = 0;
+    slot->heightFade = 0;
+    slot->speech = speech;
+    slot->priority = priority;
+    UpdatePositional(slot);
+    if (slot->volume == 0 && loop == 0) return -1;
+    if (LoadSample(slot, index, name, 0) == 0) return -1;
+    return StartLoaded(this, slot, loop);
+}
+EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
 
 // --- Forwarders -------------------------------------------------------------------------------------
 
 __declspec(naked) mfc::CString CSoundManager::CurrentStreamName() EI_ORIGINAL(0x006BAEA0)
 __declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)
-__declspec(naked) int CSoundManager::Play3D(const char*, int, const float*, float, float, int, int) EI_ORIGINAL(0x006B8600)
 __declspec(naked) int CSoundManager::LoadSample(SoundSlot*, int, const char*, int) EI_ORIGINAL(0x006B89F0)
