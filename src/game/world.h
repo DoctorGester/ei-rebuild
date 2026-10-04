@@ -182,6 +182,11 @@ class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
     CEngineObject* FindObject(unsigned id);
+    // 005935C0. Removes object `id` from the server: out of the sector map and every id map, its
+    // slot 5, flagged 1, the command queues, every object (slot 56), the missiles and the players'
+    // states forget it, and the maps' reference is released. An unknown id crashes the original
+    // (null read); Rebirth's FixRemoveMapObject ignores it.
+    void RemoveObject(unsigned id);
     // 00594180. Player number `id`, or null.
     WorldPlayer* GetPlayer(int id);
     // 00594220, vtable slot 27. Ground height from the server's coarse height grid; 0 outside.
@@ -216,6 +221,15 @@ public:
     // moves the missiles, runs the script command queues (the first only while +0x160 is set or
     // `force`) and then the units (0058D670).
     void Tick(char force);
+    // 0058D670. Runs the objects: with +0x12D64 == 1 the units in the update map (+0x104), each
+    // counting down to sleep (+0x174; out of the map when its controller is idle), else every map
+    // object (+0x12DA0); then the counted objects (+0x12E44, dropped when their slot 6 returns 0).
+    // Objects flagged 1 are removed (005935C0) at the end. Rebirth's FixSpellEffectsOverflow first
+    // ticks the effects of sleeping objects (TickSleepingEffects).
+    void UpdateUnits();
+    // Rebirth's FixSpellEffectsOverflow #0 (no original address): counts the effects of sleeping
+    // map objects down and wakes those with an expired one.
+    void TickSleepingEffects();
     // 0058D3D0. Puts every unit in the sectors within `radius` of `position` (x, y) in the
     // update map.
     void WakeUnitsAround(const float* position, float radius);
@@ -699,6 +713,13 @@ struct GameFlow {
     void RequestZoneChange(const char* zone, int entrance);          // 00581700 (RET 8): 4, +0x78 = entrance
     void RequestPartyZone5(const char* zone, const void* party);     // 00581730 (RET 8)
     void RequestPartyZone6(const char* zone, const void* party);     // 00581760 (RET 8)
+    // 0057C460 (RET 8). Starts `zone`: the current zone is torn down; mode 0 takes the mode from
+    // the zone record's kind (0 -> 1, 1 -> 4, 2 -> 3), "endofgame" is mode 8, mode 2 loads the main
+    // menu zone (also when the zone is unknown, after FatalError and closing the network
+    // sessions); otherwise the party enters the zone (0057A060) and the clock follows its "gtime".
+    // The mode becomes the campaign mode (007C2CC4). Rebirth's AllowScriptsInMainMenu sets the
+    // server's +0x160 in the menu.
+    void StartZone(const char* zone, int mode);
 };
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`

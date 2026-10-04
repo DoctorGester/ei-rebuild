@@ -6,6 +6,7 @@
 #include "script.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
 
@@ -57,6 +58,37 @@ struct WorldBase {
     CEngineObject* FindUnit(unsigned id);
 };
 __declspec(naked) CEngineObject* WorldBase::FindUnit(unsigned) EI_ORIGINAL(0x0055FB00)
+
+// RemoveObject's callees (not rewritten).
+// 00599A80 (RET 4). An id map's erase(key).
+__declspec(naked) void __fastcall IdMapErase(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599A80)
+// 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
+__declspec(naked) bool __fastcall SectorMapRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
+// 005300D0 (RET 4). The unit's controller is replaced (here by none).
+__declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void*) EI_ORIGINAL(0x005300D0)
+// 004BED90. A script command queue (+0x12874, +0x12A6C) drops what refers to removed objects.
+__declspec(naked) void __fastcall CommandQueuePurge(void*, void*) EI_ORIGINAL(0x004BED90)
+// 0067EF00 (RET 4). A missile forgets `object`: 0 when it is the missile's owner (+0x1C; the missile
+// is then dropped), else its target (+0x20) is released and cleared if it is `object`; 1.
+__declspec(naked) int __fastcall ProjectileForget(Projectile*, void*, CEngineObject*) EI_ORIGINAL(0x0067EF00)
+// 00599CC0 (RET 4). The missile list's RemoveAt (releases the missile, frees the node).
+__declspec(naked) void __fastcall ProjectileRemoveAt(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x00599CC0)
+// 0066DC90 (RET 4). A player's state (WorldPlayer +0x20) forgets `object`.
+__declspec(naked) void __fastcall PlayerStateForget(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066DC90)
+
+constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
+constexpr int kSlotRemoved = 5;          // object slot 5 (+0x14): it leaves the server
+constexpr int kSlotForget = 56;          // object slot 56 (+0xE0): another object is removed
+
+// The map at +0x12D88: the map objects SendFreshObjects sent (world_map.cpp).
+ObjectIdMap& SentObjects(CWorldServer* world) {
+    return *reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(world) + 0x12D88);
+}
+
+// find + erase(iterator), as the original inlines it for each map.
+void EraseId(ObjectIdMap& map, unsigned id) {
+    if (auto* node = map.map.Find(id)) map.map.Erase(node);
+}
 
 } // namespace
 
@@ -186,6 +218,56 @@ void CWorldServer::AddToUpdateMap(CEngineObject* unit) {
     updateMap_.Set(id, unit);
 }
 
+// ---- Removal ---------------------------------------------------------------------------------------
+
+void CWorldServer::RemoveObject(unsigned id) {
+    auto* found = objects_.map.Find(id);
+    CEngineObject* const* slot = found ? &found->value : nullptr;
+    // Rebirth's FixRemoveMapObject (context hook at 00593615): an unknown id is logged and ignored.
+    // The original reads through the null pointer (and crashes).
+    if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
+    CEngineObject* object = *static_cast<CEngineObject* const volatile*>(slot);
+    if (!object) return;
+    if (object->GetClassId() != kClassNoSector) SectorMapRemove(sectorMap_, nullptr, *slot);
+
+    IdMapErase(&updateMap_, nullptr, &id);
+    EraseId(objects_, id);
+    if (namedObjects_.map.Find(id)) EraseId(namedObjects_, id);
+    if (SentObjects(this).map.Find(id)) {
+        EraseId(SentObjects(this), id);
+    } else {
+        EraseId(mapObjects_, id);
+        if (otherMapObjects_.map.Find(id)) EraseId(otherMapObjects_, id);
+    }
+
+    ei::VCall<void>(object, kSlotRemoved);
+    bool unit = object->GetClassId() == world::kClassUnit;
+    ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
+    if (unit) UnitSetController(object, nullptr, nullptr);
+    object->flags_ |= 1;
+    CommandQueuePurge(commandsA_, nullptr);
+    CommandQueuePurge(commandsB_, nullptr);
+
+    // Every world object forgets it (the walk stops at an entry without an object).
+    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
+        ei::VCall<void>(node->value, kSlotForget, object);
+    // The missiles it shot are dropped; those aimed at it lose their target.
+    for (auto* node = projectiles_.list.head; node;) {
+        auto* current = node;
+        node = node->next;
+        if (!ProjectileForget(current->data, nullptr, object)) ProjectileRemoveAt(&projectiles_, nullptr, current);
+    }
+    {
+        PlayerIterator players;
+        for (WorldPlayer* player = players.First(ei::VCall<CEngineObject*>(this, kSlotPlayers)); player; player = players.Next())
+            PlayerStateForget(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20), nullptr, object);
+        object->Release();
+        object->Release();
+    }
+}
+
+EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
+EI_REBIRTH_IMPLEMENTS(0x005935C0, ei::rebirth::Patch::FixRemoveMapObject);
 EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);
 EI_REPLACE_METHOD(0x00594180, CWorldServer::GetPlayer);
 EI_REPLACE_METHOD(0x00594220, CWorldServer::GridHeight);

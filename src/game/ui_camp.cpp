@@ -343,7 +343,14 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
             return price > 0 ? price : 1;
         }
     }
-    if (type == 0x3004 || type == 0x3005) return GameFtol(ItemPrice(item) * multipliers[kind] - repair);
+    if (type == 0x3004 || type == 0x3005) {
+        // Rebirth's FixRepairPrice also JMPs over this FMUL (0060FB87, written without an addon.log
+        // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
+        // wear is added instead of subtracted.
+        if (kind == 7 && ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
+            return GameFtol(ItemPrice(item) * multipliers[kind] + repair);
+        return GameFtol(ItemPrice(item) * multipliers[kind] - repair);
+    }
     return GameFtol(ItemPrice(item) * multipliers[kind]);
 }
 

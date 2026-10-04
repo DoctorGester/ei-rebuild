@@ -6,10 +6,12 @@
 #include "app.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
+#include <cstdarg>
 #include <cstdint>
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -333,5 +335,40 @@ int __cdecl StartFirstMap() {
     return result;
 }
 EI_REPLACE(0x00456140, StartFirstMap);
+
+// ---- FatalError (00480080) ---------------------------------------------------------------------
+
+namespace {
+
+// 004560D0 (ECX text, EDX MessageBox flags). The game's message box over the main window.
+__declspec(naked) int __fastcall ShowMessageBox(const char*, int) EI_ORIGINAL(0x004560D0)
+// 006E8DA7. exit.
+__declspec(naked) void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
+
+constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
+using ErrorHook = void(__fastcall*)(const char* text);
+ErrorHook& FatalErrorHook() { return Global<ErrorHook>(0x007A9BA0); }   // set by the console (null here)
+int& FatalErrorCount() { return Global<int>(0x007A9B9C); }
+
+} // namespace
+
+// Formats the error (wvsprintfA, 1 KB), shows it in a message box, hands it to the error hook and
+// exits the game (exit(-1); the error counter at 007A9B9C reaches 1). Rebirth's
+// DisableExitOnCrashReport replaces the message box with a line in addon.log (not reproduced) and
+// removes the exit, so the game carries on. Returns 0.
+int __cdecl FatalError(const char* format, ...) {
+    char text[0x400];
+    va_list args;
+    va_start(args, format);
+    gameapi::wvsprintfA(text, format, args);
+    va_end(args);
+    bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
+    if (!carryOn) ShowMessageBox(text, kErrorBoxFlags);
+    if (ErrorHook hook = FatalErrorHook()) hook(text);
+    if (++FatalErrorCount() >= 1 && !carryOn) ExitGame(-1);
+    return 0;
+}
+EI_REPLACE(0x00480080, FatalError);
+EI_REBIRTH_IMPLEMENTS(0x00480080, ei::rebirth::Patch::DisableExitOnCrashReport);
 
 } // namespace app

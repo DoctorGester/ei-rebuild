@@ -333,6 +333,12 @@ void WriteReport() {
         std::fprintf(f, "%-48s %10lu calls %8lu mismatches\n", name, calls, bad);
         mismatches += bad;
     });
+    bool raised = false;
+    ForEachRaisedPrecision([&](const char* name, unsigned cw, bool mainThread) {
+        if (!raised) std::fprintf(f, "\nx87 precision above 24 bits (control word) in:\n");
+        raised = true;
+        std::fprintf(f, "  %-46s %04X %s\n", name, cw, mainThread ? "main thread" : "other thread");
+    });
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     for (const std::string& failure : g_failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -745,6 +751,7 @@ int WINAPI TracedAilStartup() {
 }
 
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
+    SetMainThread();
     TraceFpu("in the message loop");
     if (g_running && !g_inStep) {
         g_inStep = true;   // console commands can pump messages themselves

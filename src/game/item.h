@@ -233,6 +233,19 @@ public:
 };
 static_assert(sizeof(CItemConstructor) == 0x34);
 
+// The item manager (007AFFB4). Only the functions rewritten here are declared; +0xAC is its
+// manager context (slot 16: the item constructor, slot 22: the spell manager).
+struct CItemManager {
+    // 006AC970 (RET 4). An item from its name, "prototype[.material][[extra]]" (lowercased):
+    // "spell container[spell]" makes a scroll; otherwise the prototype is looked up in the weapon,
+    // armor, quick, 007C8758 and 007C8778 tables (none: FatalError, null) and built with the
+    // material, the bracket part as a spell (or, for prototypes of type "material", as the count);
+    // a class-0x15 item of kind 2 gets the table index of the second name part at +0x54. A failed
+    // build reports FatalError and the original crashes; Rebirth's FixCreateItem returns null in
+    // both cases without FatalError.
+    CItem* CreateItem(const char* name);
+};
+
 // --- Weapon model parts (item_parts.cpp)------------------------------------------------------
 
 namespace console {

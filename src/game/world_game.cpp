@@ -11,6 +11,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 
 #include <cstring>
@@ -95,7 +96,7 @@ __declspec(naked) std::uint8_t* __fastcall MapDatabaseFind(void*, void*, const c
 __declspec(naked) double __fastcall VariableGet(void*, void*, const char*) EI_ORIGINAL(0x00460AF0)
 __declspec(naked) void __fastcall VariableSet(void*, void*, const char*, float) EI_ORIGINAL(0x00460BC0)
 // 0057C460 (RET 8). Starts zone `zone` (mode 2: the main menu). Patched by Rebirth: original address.
-__declspec(naked) void __fastcall StartZone(GameFlow*, void*, const char*, int) EI_ORIGINAL(0x0057C460)
+__declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int) EI_ORIGINAL(0x0057C460)
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save, 005F86D0), the
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
@@ -228,7 +229,7 @@ int GameFlow::SaveGame(const char* slot) {
     }
     if (!opened) {
         ToMainMenu() = 1;
-        StartZone(this, nullptr, Text(kMainMenu), 2);
+        StartZoneAt(this, nullptr, Text(kMainMenu), 2);
         return 0;
     }
 
@@ -968,6 +969,134 @@ bool __fastcall NameInList(const char* const* list, const char* name) {
     return false;
 }
 
+// ---- StartZone --------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kEndOfGame = 0x00790664;       // "endofgame"
+constexpr std::uintptr_t kZoneNotFound = 0x00790650;    // "Zone %s not found"
+constexpr std::uintptr_t kMenuMap = 0x00790628;         // "ZoneMainMenuNew.mpr"
+constexpr std::uintptr_t kMenuMob = 0x0079063C;         // "ZoneMainMenuNew.mob"
+constexpr std::uintptr_t kMinuteHours = 0x0073F8A0;     // 1/60 (float)
+
+// StartZone's modes (also stored as the campaign mode, 007C2CC4).
+constexpr int kModeFromRecord = 0;   // by the zone record's kind: 0 -> 1, 1 -> 4, 2 -> 3
+constexpr int kModeMainMenu = 2;
+constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
+// SetGameResult's values here.
+constexpr int kResultPlaying = 1;
+constexpr int kResultMainMenu = 4;
+
+int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
+std::uint8_t& SessionsOpen() { return *reinterpret_cast<std::uint8_t*>(0x007C7DD8); }
+void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
+
+// 0058EEE0 / 0058EEA0 (RET 4). CWorldServer::SetTimeSpeed / SetTime.
+__declspec(naked) void __fastcall WorldSetTimeSpeedF(CWorldServer*, void*, float) EI_ORIGINAL(0x0058EEE0)
+__declspec(naked) void __fastcall WorldSetTimeF(CWorldServer*, void*, float) EI_ORIGINAL(0x0058EEA0)
+// 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
+__declspec(naked) void __fastcall ClientWorldSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
+__declspec(naked) std::uint8_t* __fastcall ClientWorldLocalView(void*) EI_ORIGINAL(0x005699F0)
+// 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
+__declspec(naked) int __stdcall EnterZoneAt(std::uint8_t*) EI_ORIGINAL(0x0057A060)
+
+// `value` mod 24 through the game's _CIfmod (006E95AA), stored as float.
+float HoursOfDay(double value) {
+    float result;
+    __asm {
+        fld value
+        mov eax, 0x0073D108   ; 24.0 (double)
+        fld qword ptr [eax]
+        mov eax, 0x006E95AA
+        call eax
+        fstp result
+    }
+    return result;
+}
+
+} // namespace
+
+void GameFlow::StartZone(const char* zone, int mode) {
+    RendererSetBusy(kRenderer, nullptr, 3);
+    std::uint8_t* zoneRecord = nullptr;
+    ToMainMenu() = 1;
+    if (gamecrt::stricmp(zone, Text(kEndOfGame)) == 0) {
+        mode = kModeEndOfGame;
+    } else {
+        zoneRecord = MapDatabaseFind(kMapDatabase, nullptr, zone);
+    }
+    WorldTeardownZone(World(), nullptr);
+
+    bool found;
+    if (mode == kModeFromRecord) {
+        found = zoneRecord != nullptr;
+        if (found) {
+            switch (At<int>(zoneRecord, kZoneKind)) {
+            case 0: mode = 1; break;
+            case 1: mode = 4; break;
+            case 2: mode = 3; break;
+            default: break;
+            }
+        }
+    } else {
+        found = mode == kModeEndOfGame || mode == kModeMainMenu || zoneRecord != nullptr;
+    }
+    if (!found) {
+        // An unknown zone: the error, the network sessions closed, the main menu instead.
+        game::FatalError(Text(kZoneNotFound), zone);
+        std::uint8_t* client = ClientSession();
+        if (client && !(At<std::uint32_t>(client, 4) & kSessionInactive)) {
+            auto& server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
+            std::uint8_t* old = server;
+            SessionsOpen() = 0;
+            server = nullptr;
+            ReleaseSession(old);
+            auto& clientSlot = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+            old = clientSlot;
+            clientSlot = nullptr;
+            ReleaseSession(old);
+        }
+        mode = kModeMainMenu;
+    }
+
+    WorldSetTimeSpeedF(World(), nullptr, static_cast<float>(TimeSpeedSetting()));
+    int result;
+    if (mode == kModeMainMenu) {
+        NewZone(World(), nullptr, Text(kMenuMap), Text(kMenuMob), nullptr);
+        // The menu shows the local time of day.
+        SYSTEMTIME now;
+        gameapi::GetLocalTime(&now);
+        int minute = now.wMinute;
+        int hour = now.wHour;
+        WorldSetTimeF(World(), nullptr, static_cast<float>(minute) * GameFloat(kMinuteHours) + static_cast<float>(hour));
+        result = kResultMainMenu;
+        // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
+        // queue runs in the menu too.
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) World()->unknown160_ = 1;
+    } else if (mode == kModeEndOfGame) {
+        result = kResultPlaying;
+    } else {
+        // The party enters the zone, then the clock is set from its "gtime".
+        LocalRecords records;
+        PartyStore(kParty, nullptr, records.bytes);
+        EnterZoneAt(records.bytes);
+        PartyTake(kParty, nullptr, records.bytes);
+        WorldSetTimeF(World(), nullptr,
+                      HoursOfDay(VariableGet(records.bytes + kRecordsVariables, nullptr, Text(kGTime))));
+        if (zoneRecord) {
+            WorldSetUnknownDC(World(), nullptr, At<int>(zoneRecord, kZoneSetting2C));
+            WorldSetUnknownE0(World(), nullptr, At<int>(zoneRecord, kZoneSetting30));
+        }
+        result = kResultPlaying;
+    }
+
+    CampaignMode() = mode;
+    if (mode == 1) SpectatorFlag() = mode;
+    WorldSetGameResult(World(), nullptr, result);
+    ClientWorldSetPlayer(kClientWorld, nullptr, At<int>(World(), 0x5C));
+    ClientWorldLocalView(kClientWorld)[0x85] = 0;
+}
+
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
 EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);
 EI_REPLACE_METHOD(0x0057F150, GameFlow::UpdateAndAcknowledge);
@@ -989,3 +1118,5 @@ EI_REPLACE_METHOD(0x0057AA80, CWorldServer::ZoneNameInto);
 EI_REPLACE(0x0057A780, LeaveZone);
 EI_REPLACE(0x0057A060, EnterZone);
 EI_REPLACE(0x0057BDF0, StartNetworkZone);
+EI_REPLACE_METHOD(0x0057C460, GameFlow::StartZone);
+EI_REBIRTH_IMPLEMENTS(0x0057C460, ei::rebirth::Patch::AllowScriptsInMainMenu);
