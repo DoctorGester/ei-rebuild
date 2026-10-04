@@ -17,6 +17,8 @@ address,size,name,evidence
 00418430,252,FUN_00418430,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0041A230,60,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0041A2B0,39,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0041E1A0,50,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0041E1E0,61,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0042C8F0,294,FUN_0042c8f0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042CEC0,219,FUN_0042cec0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0042D1C0,146,FUN_0042d1c0,"no references at all (no call/jmp, no absolute pointer in code or data)"
