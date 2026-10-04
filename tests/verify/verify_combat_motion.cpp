@@ -154,7 +154,9 @@ static bool __fastcall PathToVerify(CUnitServer* self, void*, const float* point
 }
 EI_VERIFY(0x00548700, PathToVerify, 0, s_unused);
 
-// 005468D0: ours only. Every listed unit is off the sector map (cell -1).
+// 005468D0: ours only. The list is well formed: its count is the number of nodes, the last of
+// which is the tail, and every node has a unit. (Whether a unit really left the sector map
+// depends on CSectorMap::Remove, which may refuse.)
 static void __fastcall LiftNearbyVerify(CUnitServer* self, void*, void* list, const float* point, char moving) {
     self->LiftNearby(list, point, moving);
     struct Node {
@@ -164,8 +166,12 @@ static void __fastcall LiftNearbyVerify(CUnitServer* self, void*, void* list, co
     };
     bool ok = true;
     int count = 0;
-    for (Node* node = At<Node*>(list, 4); node && count < 1000; node = node->next, ++count)
-        if (node->data && node->data->sectorCellX != -1) ok = false;
+    Node* last = nullptr;
+    for (Node* node = At<Node*>(list, 4); node && count < 1000; node = node->next, ++count) {
+        if (!node->data || node->prev != last) ok = false;
+        last = node;
+    }
+    ok = ok && count == At<int>(list, 0xC) && last == At<Node*>(list, 8);
     ei::verify::Check("CUnitServer::LiftNearby", true, ok, "unit %d, %d listed", UnitId(self), count);
 }
 EI_VERIFY(0x005468D0, LiftNearbyVerify, 0, s_unused);

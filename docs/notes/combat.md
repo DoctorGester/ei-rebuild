@@ -707,7 +707,7 @@ Movement modes, animations and paths (`src/game/combat_motion.cpp`, verify
 | 00548520 | CUnitServer::UpdateSneak | ours only (counted) |
 | 0054A150 | CUnitServer::ChangeMoveMode | ours only: a change leaves both records equal |
 | 00548700 | CUnitServer::PathTo | ours only: state 0 with a path, 6 without |
-| 005468D0 | CUnitServer::LiftNearby | ours only: every listed unit is off the sector map |
+| 005468D0 | CUnitServer::LiftNearby | ours only: the list is well formed (count, links, tail) |
 | 0054EB30 | CUnitServer::ReportPath | ours only (counted) |
 | 00546480 | CUnitServer::ResetController | ours only: the reset fields |
 | 00554450 | CUnitServer::ResyncWithUnit | ours only: no current order, the records follow the unit's modes |
