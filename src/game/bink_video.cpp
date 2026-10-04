@@ -5,12 +5,14 @@
 // and the movie steps on (BinkNextFrame). Every call then blits the whole movie frame into the
 // rectangle +0x08 (letterboxed by 005DBA50) of the render target, or of the primary surface when
 // `toPrimary`. Returns whether frames are left. The new renderer (src/render) gets the same blit as
-// part of its frame; when it presents by itself the old blit is skipped. See docs/notes/renderer.md.
+// part of its frame, from a CPU copy of the decoded frame; when it presents by itself the video's
+// surface is not filled and the old blit is skipped. See docs/notes/renderer.md.
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace {
 
@@ -35,6 +37,7 @@ struct BinkHeader {
 constexpr int kLock = 25, kUnlock = 32, kBlt = 5;            // IDirectDrawSurface7 slots
 constexpr unsigned long kLockFlags = 0x21;                   // DDLOCK_WAIT | DDLOCK_NOSYSLOCK
 constexpr unsigned long kBltWait = 0x1000000;                // DDBLT_WAIT
+constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
 
 template <typename... Args>
 long ComCall(void* object, int slot, Args... args) {
@@ -57,27 +60,41 @@ unsigned __fastcall BinkVideoFrame(void* self, void*, char toPrimary) {
     if (!bink) return 0;
     if (BinkWait()(bink) == 0) {
         BinkDoFrame()(bink);
-        std::uint8_t* holder = At<std::uint8_t*>(self, 0);
-        std::uint32_t desc[0x1F] = {};
-        desc[0] = 0x7C;
-        gameapi::EnterCriticalSection(DeviceLock());
-        long hr = ComCall(At<void*>(holder, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
-                          static_cast<void*>(nullptr));
-        At<long>(holder, 8) = hr;
-        if (hr != 0 && !DirectXError(hr, Text(0x0078E30C))) {   // "Can't lock surface"
-            // The original leaves the device lock held here.
-            return ErrorMessage(Text(0x0079234C)) & 0xFFFFFF00u;
+        // The new renderer gets the frame from a CPU buffer (BinkCopyToBuffer's 32-bit R, G, B, X
+        // type); when it presents by itself the video's DirectDraw surface is not filled at all.
+        if (render::Active()) {
+            const auto* size = static_cast<const BinkHeader*>(bink);
+            int width = static_cast<int>(size->width), height = static_cast<int>(size->height);
+            static std::vector<std::uint8_t> frame;
+            frame.resize(static_cast<std::size_t>(width) * height * 4);
+            BinkCopyToBuffer()(bink, frame.data(), width * 4, height, 0, 0, kBinkSurface32R);
+            render::MovieFrame(self, frame.data(), width, height);
         }
-        // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
-        BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
-                           At<std::uint32_t>(self, 4));
-        holder = At<std::uint8_t*>(self, 0);
-        gameapi::LeaveCriticalSection(DeviceLock());
-        hr = ComCall(At<void*>(holder, 0x10), kUnlock, static_cast<void*>(nullptr));
-        At<long>(holder, 8) = hr;
-        if (hr != 0 && !DirectXError(hr, Text(0x0078E2F4)))   // "Can't unlock surface"
-            return ErrorMessage(Text(0x00792324)) & 0xFFFFFF00u;
-        BinkNextFrame()(bink);
+        if (render::Presenting()) {
+            BinkNextFrame()(bink);
+        } else {
+            std::uint8_t* holder = At<std::uint8_t*>(self, 0);
+            std::uint32_t desc[0x1F] = {};
+            desc[0] = 0x7C;
+            gameapi::EnterCriticalSection(DeviceLock());
+            long hr = ComCall(At<void*>(holder, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
+                              static_cast<void*>(nullptr));
+            At<long>(holder, 8) = hr;
+            if (hr != 0 && !DirectXError(hr, Text(0x0078E30C))) {   // "Can't lock surface"
+                // The original leaves the device lock held here.
+                return ErrorMessage(Text(0x0079234C)) & 0xFFFFFF00u;
+            }
+            // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
+            BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
+                               At<std::uint32_t>(self, 4));
+            holder = At<std::uint8_t*>(self, 0);
+            gameapi::LeaveCriticalSection(DeviceLock());
+            hr = ComCall(At<void*>(holder, 0x10), kUnlock, static_cast<void*>(nullptr));
+            At<long>(holder, 8) = hr;
+            if (hr != 0 && !DirectXError(hr, Text(0x0078E2F4)))   // "Can't unlock surface"
+                return ErrorMessage(Text(0x00792324)) & 0xFFFFFF00u;
+            BinkNextFrame()(bink);
+        }
     }
     const auto* header = static_cast<const BinkHeader*>(At<void*>(self, 0x18));
     RECT source{0, 0, static_cast<LONG>(header->width), static_cast<LONG>(header->height)};
@@ -86,8 +103,7 @@ unsigned __fastcall BinkVideoFrame(void* self, void*, char toPrimary) {
     std::uint8_t* target = At<std::uint8_t*>(At<std::uint8_t*>(holder, 0x0C), toPrimary ? 0x14 : 0x18);
     if (At<void*>(target, 0x10) != At<void*>(holder, 0x10)) {
         if (render::Active())
-            render::SurfaceBlit(holder, render::Rect{destination->left, destination->top, destination->right, destination->bottom},
-                                nullptr, false, 0);
+            render::MovieBlit(self, render::Rect{destination->left, destination->top, destination->right, destination->bottom});
         if (!render::Presenting()) {
             gameapi::EnterCriticalSection(DeviceLock());
             ComCall(At<void*>(target, 0x10), kBlt, destination, At<void*>(holder, 0x10), &source, kBltWait,

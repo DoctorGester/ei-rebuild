@@ -545,10 +545,11 @@ void SetDrawOldInterface(bool on) {
     g_oldInterface = on;
 }
 
-void TextureChanged(const void* holder, const void* source) {
-    if (!holder || !source || !Active() || !EnsureStarted()) return;
+void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    if (!holder || !pixels || !Active() || !EnsureStarted()) return;
     FpuGuard fpu;
-    ReadTextureFrom(holder, source);
+    TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
 }
 
 void BeginWorld() { g_inWorld = true; }

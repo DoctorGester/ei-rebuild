@@ -399,20 +399,50 @@ sg_view SurfaceView(const void* holder) {
     return t.view.id ? t.view : White().view;
 }
 
-void ReadTextureFrom(const void* holder, const void* source) {
+// The entry of `holder` from decoded levels; it stands for the surface as it is now and is read
+// from the surface again only when something writes to it later (its uniqueness value changes).
+bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
+                  const char* label) {
     void* surface = SurfaceOf(holder);
-    void* from = SurfaceOf(source);
-    if (!surface || !from) return;
+    if (!surface) return false;
     Texture& t = g_textures[holder];
     t.usedFrame = FrameNumber();
     Retire(t);
-    ReadTexture(t, from);
-    // From now on the entry stands for the holder's surface as it is now.
+    t.image = MakeImage(width, height, std::move(levels), label);
+    t.view = MakeTextureView(t.image);
+    if (!t.view.id) {
+        if (t.image.id) sg_destroy_image(t.image);
+        t.image = sg_image{};
+    }
     t.surface = surface;
     t.checkedFrame = FrameNumber();
     DWORD now = 0;
     Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
     t.uniqueness = now;
+    return t.view.id != 0;
+}
+
+bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
+                       std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    int bytes = bitsPerPixel / 8;
+    if (width <= 0 || height <= 0 || (bytes != 2 && bytes != 4) || pitch < width * bytes) return false;
+    Channel r = MakeChannel(redMask), g = MakeChannel(greenMask), b = MakeChannel(blueMask), a = MakeChannel(alphaMask);
+    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(width) * height * 4);
+    for (int y = 0; y < height; ++y) {
+        const auto* row = static_cast<const std::uint8_t*>(pixels) + static_cast<std::size_t>(y) * pitch;
+        for (int x = 0; x < width; ++x) {
+            std::uint32_t pixel = 0;
+            std::memcpy(&pixel, row + static_cast<std::size_t>(x) * bytes, static_cast<std::size_t>(bytes));
+            std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * width + x) * 4];
+            o[0] = Expand(pixel, r, 0);
+            o[1] = Expand(pixel, g, 0);
+            o[2] = Expand(pixel, b, 0);
+            o[3] = Expand(pixel, a, 255);
+        }
+    }
+    std::vector<std::vector<std::uint8_t>> levels;
+    levels.push_back(std::move(rgba));
+    return StoreDecoded(holder, width, height, std::move(levels), "ei-cpu-texture");
 }
 
 namespace {
@@ -494,23 +524,7 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
                     static_cast<unsigned>(h.format), static_cast<unsigned>(h.bitsPerPixel));
         return false;
     }
-    Texture& t = g_textures[holder];
-    t.usedFrame = FrameNumber();
-    Retire(t);
-    t.image = MakeImage(width, height, std::move(decoded), "ei-mmp-texture");
-    t.view = MakeTextureView(t.image);
-    if (!t.view.id) {
-        if (t.image.id) sg_destroy_image(t.image);
-        t.image = sg_image{};
-    }
-    // The entry stands for the surface as the game loaded it: read from the surface again only when
-    // something writes to it later (its uniqueness value changes).
-    t.surface = surface;
-    t.checkedFrame = FrameNumber();
-    DWORD now = 0;
-    Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
-    t.uniqueness = now;
-    return t.view.id != 0;
+    return StoreDecoded(holder, width, height, std::move(decoded), "ei-mmp-texture");
 }
 
 sg_view TextureView(const void* texture) {

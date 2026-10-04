@@ -16,6 +16,7 @@
 #include <ddraw.h>
 
 #include <cstring>
+#include <unordered_map>
 #include <vector>
 
 namespace render {
@@ -210,6 +211,58 @@ void RetireFrameImages() {
     g_frameImages.clear();
 }
 } // namespace detail
+
+namespace {
+struct Movie {
+    sg_image image{};
+    sg_view view{};
+    int width = 0, height = 0;
+};
+std::unordered_map<const void*, Movie> g_movies;
+} // namespace
+
+void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
+    if (!key || !rgbx || width <= 0 || height <= 0 || !Active() || !Started()) return;
+    FpuGuard fpu;
+    std::vector<std::uint8_t> rgba(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
+    for (std::size_t i = 3; i < rgba.size(); i += 4) rgba[i] = 255;
+    sg_image_desc desc{};
+    desc.width = width;
+    desc.height = height;
+    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+    desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
+    desc.label = "ei-movie-frame";
+    sg_image image = sg_make_image(&desc);
+    if (!image.id || sg_query_image_state(image) != SG_RESOURCESTATE_VALID) {
+        if (image.id) sg_destroy_image(image);
+        return;
+    }
+    sg_view_desc vd{};
+    vd.texture.image = image;
+    sg_view view = sg_make_view(&vd);
+    if (!view.id || sg_query_view_state(view) != SG_RESOURCESTATE_VALID) {
+        if (view.id) sg_destroy_view(view);
+        sg_destroy_image(image);
+        return;
+    }
+    Movie& m = g_movies[key];
+    // The previous frame may still be drawn by this frame's commands: destroyed after the present.
+    if (m.image.id) {
+        g_frameViews.push_back(m.view);
+        g_frameImages.push_back(m.image);
+    }
+    m = Movie{image, view, width, height};
+}
+
+void MovieBlit(const void* key, const Rect& to) {
+    if (!Active()) return;
+    auto it = g_movies.find(key);
+    if (it == g_movies.end() || !it->second.view.id) return;
+    const Movie& m = it->second;
+    Frame& f = CurrentFrame();
+    f.blitBatches.push_back(BlitBatch{m.view, m.width, m.height, to, Rect{0, 0, m.width, m.height}});
+    f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
+}
 
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
     if (!imageHolder || !mask || !Active() || !Started()) return;
