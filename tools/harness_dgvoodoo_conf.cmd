@@ -1,3 +1,4 @@
 @echo off
-rem Sets Antialiasing and Filtering to appdriven in a dgVoodoo.conf (harness runners only).
-powershell -NoProfile -Command "$p='%~1'; (Get-Content $p) -replace '^(Antialiasing\s*=\s*).*$','${1}appdriven' -replace '^(Filtering\s*=\s*).*$','${1}appdriven' | Set-Content -Encoding ascii $p" || exit /b 1
+rem Harness runners only: Antialiasing and Filtering left to the game (lighter GPU load for parallel
+rem runs), and CaptureMouse off (a harness game must not hold the user's cursor).
+powershell -NoProfile -Command "$p='%~1'; (Get-Content $p) -replace '^(Antialiasing\s*=\s*).*$','${1}appdriven' -replace '^(Filtering\s*=\s*).*$','${1}appdriven' -replace '^(CaptureMouse\s*=\s*).*$','${1}false' | Set-Content -Encoding ascii $p" || exit /b 1
