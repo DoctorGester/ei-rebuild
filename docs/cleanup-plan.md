@@ -136,6 +136,34 @@ for objects our code fully owns, and finishes after phase 3.
   `docs/standalone-cleanup.md` and the notes; each becomes a ticket with a decision (fix as an
   opt-in or leave).
 
+## Compiler artefacts and the NaN audit
+
+Two rules in the rewrite guide come from how VC6's x87 code behaves, not from Nival's intent. In
+the standalone build they turn into review items:
+
+- **NaN in comparisons (30 sites, `x87::IsNaN`).** VC6 compiled `a == 0.0f`, `a < b` etc. as
+  FCOMP / FNSTSW / TEST AH, where a NaN operand sets the "unordered" flags and so counts as
+  *equal* (or *less*, depending on the test). Our rewrites reproduce that with explicit
+  `|| x87::IsNaN(...)` terms. In the source the programmer simply wrote the comparison; NaN was
+  never meant to reach these places. Sites today: `ai_map.cpp` (line-step length),
+  `ai_motion.cpp` (turn sign, 2), `ai_movement.cpp` (radius test), `particle_callbacks.cpp`
+  (13: zero tests on sizes, bends, alphas, lengths), `sound_manager.cpp` (silent height),
+  `terrain_sector.cpp` (min/max height), `ui_hud.cpp`, `ui_hud_frame.cpp`, `ui_hud_portraits.cpp`,
+  `ui_item_info.cpp`, `ui_item_view.cpp`, `ui_objectives.cpp` (4), `world_units.cpp` (water level).
+  Standalone: write the plain comparison, and in debug builds log when a NaN shows up there; each
+  NaN that does show up is a real bug upstream (see the next item).
+- **NaN that actually happens (an original bug).** An object with a NaN view depth makes the unit
+  sort's comparator treat `Less(x, x)` as true, and STLport's unguarded partition then walks off
+  the array: the rare Rebirth crash in `docs/open-questions.md`. Fix candidate for the fixes
+  layer: find where the NaN depth comes from while a new game loads, and/or guard the sort.
+- **Unsigned 32-bit to float (`x87::FromUnsigned`, checked by `tools/check_x87.py`).** VC6
+  converted with an exact FILD of a 64-bit value; modern MSVC targeting x87 adds 2^32 with an FADD
+  that rounds at the game's 24-bit precision, so random words and tick counts came out slightly
+  different. This is a porting hazard, not a game bug: SSE2 conversion in the standalone build is
+  exact, so `FromUnsigned` becomes a plain cast.
+- **`v != v` under `/fp:fast`.** Also a porting hazard (the compiler folds it to false); it goes
+  away with the NaN audit above.
+
 ## Conventions (all cleanup tickets)
 
 - Behaviour stays identical; a cleanup commit never mixes in a fix.
