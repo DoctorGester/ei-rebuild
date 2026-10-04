@@ -230,3 +230,21 @@ static CSpell* __fastcall CreateSpellFromTextVerify(CSpellManager* self, void*, 
     return spell;
 }
 EI_VERIFY(0x00689030, CreateSpellFromTextVerify, 0, s_createSpellFromText);
+
+// 006AC970 creates objects: ours only. A created item is an item (class 0x11..0x16); one made
+// from "spell container[...]" holds a spell.
+static void* s_createItem;
+static CItem* __fastcall CreateItemVerify(CItemManager* self, void*, const char* name) {
+    CItem* item = self->CreateItem(name);
+    bool ok = true;
+    int cls = 0;
+    if (item) {
+        cls = item->GetClassId();
+        ok = cls >= 0x11 && cls <= 0x16;
+        if (_strnicmp(name, "spell container", 15) == 0) ok = ok && item->spell_ != nullptr;
+    }
+    ei::verify::Check("CItemManager::CreateItem", true, ok, "%.60s -> %p class %X count %d", name ? name : "(null)", item,
+                      cls, item ? item->refCount_ : 0);
+    return item;
+}
+EI_VERIFY(0x006AC970, CreateItemVerify, 0, s_createItem);

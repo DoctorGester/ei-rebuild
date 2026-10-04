@@ -166,7 +166,10 @@ Sites are listed in full in the CSV.
   null pointer like the original.
 - **FixCreateItem** - the item factory (006AC970): an unknown prototype or an invalid
   prototype/material no longer calls FatalError (which ends the game); addon logs
-  "GiveItem: ..." and the factory returns no item. Two context hooks. Needs 006AC970 (1.6 KB).
+  "GiveItem: ..." and the factory returns no item. Two context hooks (006ACBBD: no prototype;
+  006ACCD0: the constructor failed, where vanilla goes on with the null item and crashes), both
+  resuming at the failure exit 006ACBD1, which also skips the constructor's SetManager(0).
+  *Implemented* as a new rewrite `CItemManager::CreateItem` (src/game/item_constructor.cpp).
 
 ### Widescreen and rendering (3 of 4 applied)
 
@@ -418,6 +421,7 @@ shows each known site's bytes and where its CALL/JMP leads).
 | FixSpellEffectsOverflow #0 | new: CWorldServer::UpdateUnits 0058D670 + TickSleepingEffects (world_tick.cpp) | ours only (it runs every awake object): afterwards no unit sent to sleep is still in the update map |
 | FixRemoveMapObject | new: CWorldServer::RemoveObject 005935C0 (world_server.cpp) | ours only (destructive: slots, releases): afterwards the id is in no id map; an unknown id changes nothing |
 | AllowScriptsInMainMenu | new: GameFlow::StartZone 0057C460 (world_game.cpp) | ours only (tears down and loads zones): the campaign mode is the one asked for (or 2 / 8), and +0x160 is set in the menu with the flag |
+| FixCreateItem | new: CItemManager::CreateItem 006AC970 (item_constructor.cpp) | ours only (creates objects): a created item has an item class, a "spell container[...]" one its spell |
 | FixSpellEffectsOverflow #1 | new: CMapObject::AddEffect 0050F1E0 (map_object.cpp) | the original runs first (in Rebirth addon's, through its re-targeted JMP), its effect list and fields are set aside and undone, ours runs, and the lists, count, changed parts, flags and change stamp are compared (5 stolen bytes) |
 
 The new rewrites are also verified with every flag off in the vanilla runs that already reach them
@@ -450,7 +454,6 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 | Patch | Work | Estimate |
 |---|---|---|
 | FixSpellSelfCasting #1 | CBattleScreen::SelectUnit 00638EF0 (3.6 KB) | 1-2 days |
-| FixCreateItem | item factory 006AC970 (1.6 KB, many callees) | 1 day |
 | FixAddMapObject | object creation 005927C0 (3.5 KB) | 2 days |
 | DisableExitOnCrashReport | FatalError 00480080 (small) + 005641F0 (1.5 KB) | 0.5 + 1 day |
 | NewStringEvents, ImproveConsole, AddNewConsoleCommands, AutoExec | console code (005DC620 is rewritten; 005E44A0, 005F8070, 00636020 not) | 2-3 days |
@@ -469,6 +472,13 @@ Estimates are for a rewrite plus its flag and verify wrapper, as in this round.
 - world_game.cpp: `WorldSetTimeSpeedF` / `WorldSetTimeF` (0058EEE0 / 0058EEA0, float argument),
   `ClientWorldSetPlayer` (00566CE0), `ClientWorldLocalView` (005699F0), `EnterZoneAt` (0057A060);
   the old `StartZone` forwarder is now `StartZoneAt`.
+- item_constructor.cpp: CString Find / Left / Right / TrimLeft() / TrimRight() (00700E91,
+  006FDAE9, 006FDA6D, 006FE216, 006FE11F; note ini_file.cpp names the last two the other way
+  round: 006FE216 is the one that moves the text, TrimLeft), atoi (006E80D8), Split (004DBE40),
+  the prototype and material lookups by name (004AB720, 004AB820, 00613820, 006AD580, 0069D380,
+  0069D290), ManagerMakeItem (006AD000), the STLport string and string-map members (0040C5A0,
+  004217E0, 00428F10, 0040C720, 0040C770, 00689950, 006AD670, 006A75E0, 004ABBD0, 004ABD00,
+  004ACC10).
 - world_server.cpp: `IdMapErase` (00599A80), `SectorMapRemove` (005C1010), `UnitSetController`
   (005300D0), `CommandQueuePurge` (004BED90), `ProjectileForget` (0067EF00), `ProjectileRemoveAt`
   (00599CC0), `PlayerStateForget` (0066DC90).
