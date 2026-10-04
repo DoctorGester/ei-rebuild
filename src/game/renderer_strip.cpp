@@ -9,6 +9,7 @@
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -480,10 +481,14 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
     ComCall(Device(renderer), kGetRenderState, 0x14, &savedDest);
     ComCall(Device(renderer), kSetRenderState, 0x13, 5);
     ComCall(Device(renderer), kSetRenderState, 0x14, 2);
+    render::state::Render(0x13, 5);
+    render::state::Render(0x14, 2);
     int result = DrawTlTriangles(At<char*>(renderer, 0x20), nullptr, reinterpret_cast<TLVertex*>(Ribbon().data),
                                  Ribbon().size, reinterpret_cast<std::uint16_t*>(Indices().data), Indices().size);
     ComCall(Device(renderer), kSetRenderState, 0x13, savedSource);
     ComCall(Device(renderer), kSetRenderState, 0x14, savedDest);
+    render::state::Render(0x13, static_cast<std::uint32_t>(savedSource));
+    render::state::Render(0x14, static_cast<std::uint32_t>(savedDest));
     return result;
 }
 EI_REPLACE(0x00501D90, DrawRibbon);

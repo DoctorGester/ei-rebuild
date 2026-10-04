@@ -140,6 +140,12 @@ void ReadFog(Frame& f);
 // GetTextureStageState), several under one hold of the device lock.
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count);
 void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
+// The values of render states / of a stage's states for a pass, from the state the game code fed
+// (render_state.h), the old device for the rest (render_state.cpp; logged); PassDone after each
+// pass counts the passes that still needed the old device.
+void RenderValues(const std::uint32_t* states, std::uint32_t* values, int count);
+void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
+void PassDone();
 // Inside the world view's draw (render::BeginWorld .. EndWorld).
 bool InWorld();
 // The device object (007AF080) and its render target's size.

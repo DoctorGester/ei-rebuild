@@ -486,7 +486,7 @@ void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* value
 void ReadFog(Frame& f) {
     const std::uint32_t states[2] = {28, 34};
     std::uint32_t values[2];
-    OldRenderStates(states, values, 2);
+    RenderValues(states, values, 2);
     f.haveFog = true;
     f.fogEnabled = values[0] != 0;
     f.fogColour = values[1];

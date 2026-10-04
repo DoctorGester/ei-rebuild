@@ -6,6 +6,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -1022,6 +1023,7 @@ void CCampPages::Close() {
         std::memcpy(&device, static_cast<std::uint8_t*>(display) + 0x54, 4);
         using SetStateFn = long(__stdcall*)(void*, unsigned long, unsigned long);   // SetRenderState
         reinterpret_cast<SetStateFn>((*static_cast<void***>(device))[20])(device, 2, 0);
+        render::state::Render(2, 0);
     }
     CloseRecordArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
     std::uint8_t* player = GlueAt(0x007AFEA5)->PlayerData();

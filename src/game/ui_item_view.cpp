@@ -11,6 +11,7 @@
 #include "spell.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -323,6 +324,7 @@ void SetSpecular(int on) {
     void* device = Get<void*>(renderer, 0x54);
     using SetStateFn = long(__stdcall*)(void*, int, int);
     reinterpret_cast<SetStateFn>((*static_cast<void***>(device))[20])(device, 0x1D, on);
+    render::state::Render(0x1D, static_cast<std::uint32_t>(on));
 }
 
 } // namespace

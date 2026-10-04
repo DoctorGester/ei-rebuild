@@ -16,6 +16,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -304,6 +305,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
     using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t);
     reinterpret_cast<Fn>(device->vtable_[20])(device, state, value);
+    render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 void GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
     using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t*);
