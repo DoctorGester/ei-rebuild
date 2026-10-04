@@ -45,6 +45,14 @@
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
+//   capture <name>            write the frame presented after the next two to frames\<name>.bmp in
+//                             the output folder (the render target before the software cursor and
+//                             the flip; harness_capture.cpp); fails after 10 s without a frame
+//   freeze, unfreeze          hold the game's clocks (timeGetTime, GetTickCount) for captures: no
+//                             world, client or camera updates, no clock-driven animation, while the
+//                             frames keep being drawn. Do not "check"/"waitfor" while frozen (script
+//                             output needs world updates); a scenario that freezes also sees a
+//                             fixed date (as in deterministic mode)
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
@@ -58,6 +66,7 @@
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
 #include "verify.h"
+#include "harness_capture.h"
 
 #include "../../src/hook/log.h"
 #include "ei/rebirth.h"
@@ -133,6 +142,11 @@ std::size_t g_waitForFrom = 0;
 DWORD g_waitForNext = 0;
 DWORD g_waitForDeadline = 0;
 DWORD g_waitForStart = 0;
+// A pending "capture": its name and when to give up (real time); the frames written so far.
+bool g_capturing = false;
+std::string g_captureName;
+DWORD g_captureDeadline = 0;
+std::vector<std::string> g_capturedFrames;
 
 int __fastcall ConsoleSync(void* self, void*) {
     OverflowFn overflow = (*reinterpret_cast<OverflowFn**>(self))[7];
@@ -474,6 +488,8 @@ void WriteReport() {
         raised = true;
         std::fprintf(f, "  %-46s %04X %s\n", name, cw, mainThread ? "main thread" : "other thread");
     });
+    if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
+    for (const std::string& frame : g_capturedFrames) std::fprintf(f, "  %s\n", frame.c_str());
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     for (const std::string& failure : g_failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -498,8 +514,10 @@ bool g_deterministic = false;
 volatile DWORD g_virtualNow = 1000000;
 volatile unsigned g_callsSinceFrame = 0;
 decltype(&::timeGetTime) g_timeGetTime;
+volatile bool g_frozen = false;   // "freeze" (see HeldClock below)
 
 DWORD WINAPI VirtualTimeGetTime() {
+    if (g_frozen) return g_virtualNow;
     if (reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kMainLoopTimeReturn) {
         g_virtualNow += kUpdatesPerFrame * g_tickLength;
         g_callsSinceFrame = 0;
@@ -520,6 +538,43 @@ decltype(&::GetSystemTime) g_getSystemTime;
 DWORD WINAPI VirtualGetTickCount() { return g_virtualNow; }
 void WINAPI FixedTime(LPSYSTEMTIME t) {
     *t = SYSTEMTIME{2001, 3, 1, 26, 12, 0, 0, 0};   // 2001-03-26 12:00, game.exe's build date
+}
+
+// Frozen clocks ("freeze" / "unfreeze", for frame captures). While frozen, the game's timeGetTime
+// and GetTickCount return what they returned when frozen: the main loop (004571DC) sees no time
+// pass, so no world, client or camera update runs, and what the game animates from these clocks
+// (interface fades, the frame timer, tooltips) holds still, while every loop still draws and
+// presents a frame. Unfreezing resumes both clocks from where they stopped (no jump). Installed
+// only when the scenario uses "freeze" (in deterministic mode the virtual clock just stops). Such
+// a scenario also gets the fixed date: the main menu's picture follows the time of day.
+// Limits: what already moves by itself between frames (other threads, frame-counted effects) is
+// not held; the harness's own waits use real time (in deterministic mode the virtual clock, which
+// stops too: use "capture", not "wait", while frozen there).
+bool g_freezeUsed = false;
+struct HeldClock {
+    DWORD(WINAPI* base)() = nullptr;
+    DWORD offset = 0;   // the game's time is base() - offset while running
+    DWORD heldAt = 0;
+    DWORD Read() const { return g_frozen ? heldAt : base() - offset; }
+    void Hold() { heldAt = base() - offset; }
+    void Resume() { offset = base() - heldAt; }
+};
+HeldClock g_heldTimeGetTime, g_heldTickCount;
+DWORD WINAPI HeldTimeGetTime() { return g_heldTimeGetTime.Read(); }
+DWORD WINAPI HeldGetTickCount() { return g_heldTickCount.Read(); }
+
+void Freeze(bool on) {
+    if (on == g_frozen) return;
+    if (!g_deterministic && g_heldTimeGetTime.base) {
+        if (on) {
+            g_heldTimeGetTime.Hold();
+            g_heldTickCount.Hold();
+        } else {
+            g_heldTimeGetTime.Resume();
+            g_heldTickCount.Resume();
+        }
+    }
+    g_frozen = on;
 }
 
 // 0049F660 seeds the ISAAC generator: srand(timeGetTime()), then 0x400 bytes from a randomly
@@ -708,6 +763,20 @@ void RunSteps() {
             return;
         }
     }
+    if (g_capturing) {
+        const char* detail = "";
+        capture::State state = capture::Poll(&detail);
+        if (state == capture::State::Pending && GetTickCount() < g_captureDeadline) return;
+        if (state == capture::State::Done) {
+            Log("harness: capture %s: %s", g_captureName.c_str(), detail);
+            g_capturedFrames.push_back(g_captureName + ": " + detail);
+        } else {
+            std::string why = state == capture::State::Pending ? "no frame presented within 10 s" : detail;
+            Log("harness: capture %s failed: %s", g_captureName.c_str(), why.c_str());
+            g_failures.push_back("capture " + g_captureName + ": " + why);
+        }
+        g_capturing = false;
+    }
     if (g_waitingLine) {
         bool found = false;
         for (std::size_t i = g_waitLineFrom; i < g_console.size() && !found; ++i)
@@ -808,6 +877,23 @@ void RunSteps() {
             Log("harness: expect '%s': %s", s.argument.c_str(), found ? "found" : "MISSING");
             if (!found) g_failures.push_back("expected console output '" + s.argument + "'");
             g_expectFrom = g_console.size();
+        } else if (s.verb == "capture") {
+            // The name becomes a file name: letters, digits, '_', '-' and '.' only.
+            bool valid = !s.argument.empty() && s.argument.size() < 64;
+            for (char c : s.argument)
+                valid = valid && (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.');
+            if (!valid) {
+                g_failures.push_back("capture: bad frame name '" + s.argument + "'");
+                continue;
+            }
+            // Two frames go by first, so that what changed before (a freeze, the mouse) is drawn.
+            capture::Request(s.argument.c_str(), 2);
+            g_capturing = true;
+            g_captureName = s.argument;
+            g_captureDeadline = GetTickCount() + 10000;
+            return;
+        } else if (s.verb == "freeze" || s.verb == "unfreeze") {
+            Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
         } else if (s.verb == "report") {
@@ -947,7 +1033,12 @@ bool LoadScenario(const char* path) {
         if (g_steps.back().verb == "timeout") {
             g_budget = 1000 * std::strtoul(g_steps.back().argument.c_str(), nullptr, 10);
             g_steps.pop_back();
+            continue;
         }
+        // The clocks are hooked from the start when the scenario freezes them (see HeldClock).
+        const Step& last = g_steps.back();
+        if (last.verb == "freeze" || ((last.verb == "vanilla" || last.verb == "rebirth") && last.argument == "freeze"))
+            g_freezeUsed = true;
     }
     std::fclose(f);
     return true;
@@ -1019,7 +1110,18 @@ struct Harness {
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
             JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
             Log("harness: deterministic mode (virtual clock, %u world updates per frame)", kUpdatesPerFrame);
+        } else if (g_freezeUsed) {
+            PatchSlot(kTimeGetTimeSlot, &HeldTimeGetTime, g_heldTimeGetTime.base);
+            PatchSlot(kGetTickCountSlot, &HeldGetTickCount, g_heldTickCount.base);
+            PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
+            PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
+            Log("harness: the game's clocks can be frozen (fixed date)");
         }
+        for (const Step& step : g_steps)
+            if (step.verb == "capture") {
+                capture::Install();
+                break;
+            }
         Log("harness: saves and install writes redirected to %s (root %s)", g_savesDir, g_rootDirs[0]);
         if (HANDLE watchdog = CreateThread(nullptr, 0, &Watchdog, nullptr, 0, nullptr)) CloseHandle(watchdog);
         g_running = true;
