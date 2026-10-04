@@ -10,15 +10,23 @@ namespace ei {
 
 static char g_logPath[MAX_PATH];
 
-// ei_hook.log next to the DLL. Set on first use: static constructors (the harness) log before
-// DllMain runs.
-static void InitLogPath() {
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&InitLogPath), &self);
-    GetModuleFileNameA(self, g_logPath, MAX_PATH);
-    if (char* dot = strrchr(g_logPath, '.')) strcpy_s(dot, 5, ".log");
+void OutputPath(const char* name, char* out) {
+    DWORD n = GetEnvironmentVariableA("EI_OUT_DIR", out, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH) {
+        HMODULE self = nullptr;
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCSTR>(&OutputPath), &self);
+        GetModuleFileNameA(self, out, MAX_PATH);
+        if (char* slash = strrchr(out, '\\')) *slash = 0;
+    }
+    CreateDirectoryA(out, nullptr);
+    std::size_t used = strlen(out);
+    std::snprintf(out + used, MAX_PATH - used, "\\%s", name);
 }
+
+// ei_hook.log in the output folder. Set on first use: static constructors (the harness) log before
+// DllMain runs.
+static void InitLogPath() { OutputPath("ei_hook.log", g_logPath); }
 
 void Log(const char* fmt, ...) {
     if (!g_logPath[0]) InitLogPath();
