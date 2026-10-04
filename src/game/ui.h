@@ -204,6 +204,18 @@ public:
     // 005FCC00 (not rewritten). Constructor: a surface of the layout rectangle (left, top,
     // right, bottom) with format `format`; returns this.
     CUiSurface* Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
+    // 005FD3D0. Copies the screen's rect_ into the surface (nothing when it is the screen).
+    // 005FD440 (vtable slot 4, RET 8). A new[] block of width * height 5:6:5 pixels: the surface
+    // stretched to that size through a temporary surface. 005FE440. Greys the surface in place
+    // ((2 r + 4 g + b) / 16 per channel). ui_surface_pixels.cpp.
+    // 005FD7A0 (RET 4). `restore` 0: copies the DirectDraw surface's memory (pitch * height bytes)
+    // to +0x1C (size +0x20) and releases the surface; 1: makes a new surface (+0x14 x +0x18) when
+    // there is none and copies the kept bytes back into it, freeing them. Both keep the memory
+    // totals 007C7E74 (kept bytes) and 007C7E78 (surface bytes).
+    void SwapContents(int restore);
+    void CaptureScreen();
+    std::uint16_t* Rgb565Copy(int width, int height);
+    void Greyscale();
 
     void* vtable_;
     CInterface3D* interface_;        // +0x04
@@ -289,6 +301,12 @@ public:
     // 005FEB90 (not rewritten). Base drawing (virtual slot 20): draws the scene objects and the
     // models; returns 1.
     BOOL DrawBase(int pass);
+    // 005EC300 (RET 0x14; the camp and the multiplayer hero screen). Draws `model` (a hero) as a
+    // preview: clears the depth buffer (all of it, then the preview's screen rectangles), turns it
+    // by `turn` radians about y and places it by `depth` (`wide`'s low byte: six rectangles of the
+    // camp layout, else one), draws it lit through `pass` and puts its transform back
+    // (ui_hero_preview.cpp).
+    void DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide);
     // Layout helpers (not rewritten): 005FEF20 loads a texture into the referenced objects,
     // 005FF0B0 creates an empty one, 005FF3C0 adds a scene object (`model` 0: a new interface
     // sprite, see CUiMesh) and returns it.

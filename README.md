@@ -76,3 +76,11 @@ registry, and a game that hangs on exit (Rebirth) is ended 10 s after the scenar
 the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions.
 
     harness.cmd tests\scenarios\sandbox_actions.txt
+
+`python tools\run_all.py` runs every scenario on both installs, several games at once (`--jobs N`,
+default 4; the whole suite takes about 5 minutes at 6). Each run writes to its own folder,
+`build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei_hook.log`,
+report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
+For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
+one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
+shared reading. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.

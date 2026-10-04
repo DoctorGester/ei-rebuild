@@ -47,8 +47,11 @@ def undecorate(names):
 
 
 def main():
-    build = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'build', 'verify')
-    lines = open(os.path.join(build, 'ei_hook.log'), errors='replace').read().splitlines()
+    # The argument is the folder holding ei_hook.log: build/verify (default) or one run's folder
+    # from run_all.py (build/verify/runs/<scenario>-<install>). The map is always the build's.
+    logdir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'build', 'verify')
+    build = logdir if os.path.exists(os.path.join(logdir, 'ei_hook.map')) else os.path.join(ROOT, 'build', 'verify')
+    lines = open(os.path.join(logdir, 'ei_hook.log'), errors='replace').read().splitlines()
     start = max((i for i, l in enumerate(lines) if 'harness: exception' in l), default=None)
     if start is None:
         print('no crash logged')

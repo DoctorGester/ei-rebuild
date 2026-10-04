@@ -22,8 +22,21 @@
 
 class CItem;
 class CItemInfoPanel;
+namespace console {
+class CStringArray;
+}
+
+// 005F13A0 (__fastcall, RET 4). The seven damage values against the last one: into `out` (emptied)
+// the threshold ("%d" when `integer`, else "%.1f"), the damage kinds ("dmg_<n>" texts, ", "
+// separated) of the first six above it and those below it (or unordered).
+void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer);
 
 // --- The item screens' model view (005ECA10; ui_item_view.cpp) ------------------------------------
+
+// 005EC020 (__fastcall). A new 256 x 256 texture (texture manager 007AF744, format 0x20, counted)
+// holding image "<name>.mmp" decoded and packed to 1:5:5:5 at the bottom left (rows of 512 bytes),
+// or white when there is no such image; null when it cannot be made or locked.
+void* __fastcall ItemFigureTexture(const char* name);
 
 // An item drawn as a turning model in a cell (005ECA10's argument, 0x18 bytes).
 struct ItemCell {
@@ -35,6 +48,16 @@ struct ItemCell {
     int mode;        // +0x14 the strip's action mode; 9: greyed out, never shaded as unusable
 };
 static_assert(sizeof(ItemCell) == 0x18);
+
+// A hero's face drawn in a cell (005ED7B0's argument, 0x14 bytes; built by 00629AF0).
+struct HeroFaceCell {
+    const char* prototype;   // +0x00 the unit prototype's name (007AF364 map)
+    float x;                 // +0x04 the cell's centre (layout)
+    float y;                 // +0x08
+    float depth;             // +0x0C
+    float size;              // +0x10
+};
+static_assert(sizeof(HeroFaceCell) == 0x14);
 
 // A cache of the item screens (0x10 bytes at +0x170 and +0x180): an STLport map from a name
 // (stlp::string) to {object, time of last use}, and how many entries it keeps (30; 20 when
@@ -53,6 +76,19 @@ struct ItemObjectCache {
 };
 static_assert(sizeof(ItemObjectCache) == 0x10);
 
+// 005F2F20 / 005F2F90 (__fastcall on the cache). Release the least recently used entries of the
+// model / texture cache beyond its limit (ui_item_screen.cpp).
+void __fastcall TrimItemModels(ItemObjectCache* cache);
+void __fastcall TrimItemTextures(ItemObjectCache* cache);
+
+// The item screens' icon window (0x148 bytes, vtables 00740444 / 00740410; made by 005EDD80).
+class CItemIconWindow : public CUiWindow {
+public:
+    // 005F2A90 (slot 18). The frame sprites: a strip of 8 cells over the layout's middle, the
+    // column edges and corners of four 200-wide columns, and six bars.
+    void Build();
+};
+
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these
 // fields; 005EDD80 sets the caches up): the description panel, the item under the mouse, and the
 // caches of item models (by the item's slot 20 name) and figure textures (slot 19 name).
@@ -66,6 +102,19 @@ public:
     // The cached model of `item` (the model cache's entry for its slot 20 name), or null; leaves
     // the cache untouched. For the verify wrapper.
     std::uint8_t* CachedModel(CItem* item);
+    // 005ED7B0 (RET 8). Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the
+    // figure prototype's +0xE8 model name, the prototype's +0x10) with texture "face<m|f><+0xC,
+    // two digits>" ("m" for model "unhuma", "f" for "unhufe", else nothing), both cached as the
+    // items are, tilted back by (y - 300) / 1000 radians, over the cell frame.
+    void DrawHeroFace(int pass, HeroFaceCell* cell);
+    // The face's model and texture names (the lookups insert unknown names as DrawHeroFace's do),
+    // and the cached model of a name or null (cache untouched). For the verify wrapper.
+    static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
+    std::uint8_t* CachedModelNamed(const char* name);
+    // 005EDD80. The screens' common Create: the icon window (+0x16C, CItemIconWindow, a child
+    // with the screen's texture 0, built), textures "modifiers2" and "campslots", the display's
+    // settings, and the caches' limits (30, or 20 with 00784754 set) applied (ui_item_screen.cpp).
+    void CreateBase();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_;      // +0x164

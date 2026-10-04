@@ -129,6 +129,24 @@ static void __fastcall DiscVerify(CUiMeshBuilder* self, void*, float depth, floa
 }
 EI_VERIFY(0x005E8C60, DiscVerify, 6, s_disc);
 
+// 005E9F30: PUSH ECX; PUSH EBX; MOV EBX,ECX; PUSH EBP; PUSH ESI (6). Side by side: the block and the
+// three arrays' sizes (the block is poisoned between the runs).
+static void(__fastcall* s_resetColours)(CUiMeshBuilder*);
+static void __fastcall ResetColoursVerify(CUiMeshBuilder* self) {
+    s_resetColours(self);
+    std::uint8_t expected[0x40];
+    ArrayView block = ArrayAt(self, 0x1D0);
+    std::memcpy(expected, block.data, sizeof(expected));
+    int sizes[3] = {block.size, ArrayAt(self, 0x138).size, ArrayAt(self, 0x148).size};
+    std::memset(block.data, 0xCD, sizeof(expected));
+    self->ResetColours();
+    block = ArrayAt(self, 0x1D0);
+    bool ok = std::memcmp(expected, block.data, sizeof(expected)) == 0 && sizes[0] == block.size &&
+              sizes[1] == ArrayAt(self, 0x138).size && sizes[2] == ArrayAt(self, 0x148).size;
+    ei::verify::Check("CUiMeshBuilder::ResetColours", true, ok, "sizes %d %d %d", sizes[0], sizes[1], sizes[2]);
+}
+EI_VERIFY(0x005E9F30, ResetColoursVerify, 6, s_resetColours);
+
 // 005E91F0: SUB ESP,0x14; PUSH EBX; MOV EBX,ECX (6).
 static void(__thiscall* s_ring)(CUiMeshBuilder*, float, float, float, float, float, int, float, int, int, int, int);
 static void __fastcall RingVerify(CUiMeshBuilder* self, void*, float depth, float scale, float x, float y, float radius,
