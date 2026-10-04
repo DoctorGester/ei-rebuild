@@ -382,6 +382,52 @@ public:
     void CallSetUnitMoveMode2(int mode);
     bool CallCanPlanAction(const UnitAction* order);
 
+    // combat_update.cpp (fourth round): the update and the animation queue.
+    // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI
+    // events where it is, ticks its item spells, party units their memory and boredom, then the
+    // alarm, the brain and hostility; the orders (when not frozen, reacting to a hit or acting),
+    // the state and the animation follow. A dead one sinks to the ground and, once its death
+    // animation is over, reports its death and drops its orders. Returns 1.
+    int UpdateServer();
+    // 005499F0. The state machine of +0x164 (0 idle / 1 moving: the movement tick; 2 / 4: a hit
+    // reaction; 3: the rest of an action's animation, then 6; 5: TickAction), after ending an
+    // acting order whose target went out of reach and restoring the queue a hit reaction saved.
+    // hitDirection is -1 afterwards.
+    void UpdateState();
+    // 00546F30. Moves the animation queue on to the world's time and shows its current step on the
+    // unit (+0x254..+0x260); frozen or reacting units keep their times shifted.
+    void AdvanceAnimation();
+    // 00546B40. Drops the queue's steps that are over (a pause after one takes its animation over);
+    // true when one was dropped.
+    bool PopFinishedSteps();
+    // 00546C10. Shows the queue's first step on the unit (not a pause).
+    void ShowCurrentStep();
+    // 00546C40. The queue becomes `steps` (copied in twice) and starts.
+    void PlaySteps(const AnimationSteps* steps);
+    // 00547090. Sets the state; other than 5 (acting) the size class is updated and the effect
+    // object dropped, 5 sets +0x180 to 10 updates from now.
+    void SetState(int newState);
+    // 005467B0. The unit's standing flag (CUnit + 0x278), re-registered on the sector map.
+    void SetStanding(int standing);
+    // 00547280. The motion stops: the unit stays where it is, facing its direction; standing 0.
+    void StandStill();
+    // 00547100. Plays the reaction to a hit from hitDirection (BuildDeathAnimation without dying),
+    // saving the queue (+0x148), unless the unit is idle or the reaction would delay the next attack.
+    void PlayHitReaction();
+    // 00549690. Ends the current order: aborted (or not started, or with an open-ended animation)
+    // the state becomes 6, else 3 with what is left of a three-step plan played; the plan is reset
+    // and the unit stands still.
+    void EndOrder(char abort);
+    // 00549160. State 5: the planned action starts at its time (animation, a cast's effect), the
+    // unit follows its motion meanwhile, and at the end the action is finished (FinishAction).
+    void TickAction();
+    // 00549D40. Can the acting order still be carried out: casting allowed, the target (or a
+    // spell's point) not dead and within the plan's range at its end time. Callers test AL.
+    bool ActionInReach();
+    // 00552B90. The armour's periodic spells (list +0x920): each casts on the unit when its
+    // countdown runs out and the item's charge covers it (type 0x18: one a tick, when hurt).
+    void TickItemSpells();
+
     // Not rewritten (forwarders):
     // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
     void TurnTo(const float* point, int walk, int run, std::uint32_t z);

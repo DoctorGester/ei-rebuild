@@ -631,3 +631,88 @@ What it does, per tick, for the controller `c` (CUnitServer) of unit `u`:
 - Not run in game. It runs for every moving unit every tick; a mistake shows in movement.txt.
 - The stale-local trick depends on nothing between the hook's JMP and the entry touching the stack
   below ESP (true for the 5-byte JMP).
+
+## Fourth round: the update, the animation queue, the end of an order (2026-10-04)
+
+Code: `src/game/combat_update.cpp` (plain C++ float maths, rule 7). Verify:
+`tests/verify/verify_combat_update.cpp`. Scenarios: every creature runs these each update
+(combat.txt, combat_more.txt, movement.txt, unit_ai.txt). Shared files changed: combat.h
+(declarations only).
+
+### The update (slot 6, 00552300)
+
+Living unit: UnitVitals::Regenerate on the server stats (in combat while an order of kind other
+than 0 is current; a change recomputes the stats and marks parts 0 and 4); every (+0x914 speed
+class + 1)-th frame the AI events (world + 0x2838, 005C9770) get the unit's position (the record
+at +0x918 is updated, then replaced); the armour's periodic spells (00552B90); a party unit's
+perception memory (+0xA50, 005CB850; marks part 0xC) and boredom (+0x938 counts updates; past 500
+one ISAAC draw in 1001 sends remark 0x29 and sets 400, or 0 when the player's +0x5120 is set); the
+alarm (+0xB10), AIBrain::Think (+0x980), flags_ bit 0x8000 cleared, PropagateHostility. Then,
+unless frozen (flags_ 0x1000000), reacting to a hit (+0x144) or in state 3..5, UpdateOrders; an
+acting unit (5) with a queued move ends its order at once (EndOrder(1)); UpdateState and
+AdvanceAnimation in either case. Dead unit: the body sinks (z -= the falling speed +0x8F4, which
+grows by 0073C548 each update; never below 0) and, once the animation queue is empty, the death
+is reported once (+0x18D): 00593AF0, the unit leaves its player (005300D0), the player's message
+object (slot 20) or the brain and alarm resets, both orders emptied.
+
+### Controller fields (this round)
+
+- `+0x020` frozen this update, `+0x021` held by a hit reaction (UpdateState sets them;
+  AdvanceAnimation shifts the motion, queue and plan times by one while they are set).
+- `+0x024` the animation queue (AnimationSteps; +0x38 the time its first step started, -1 until
+  started), `+0x03C` the motion (AIPath), `+0x09C` / `+0x0A4` a point to path to and its range
+  (state 0 with `+0x146`), `+0x0C4` the plan (OrderPlan; +0xF0 its location, +0xF4 notSkill).
+- `+0x144` a hit reaction plays (combat.h calls it keepHitDirection), `+0x148` the queue saved
+  meanwhile (its time at +0x15C), `+0x160` the hit direction to react to (-1 none).
+- `+0x180` the update at which the size class is refreshed while acting (state 5 + 10),
+  `+0x184` the next attack's time, `+0x18D` death reported, `+0x8F4` sinking speed, `+0x914`
+  speed class mask, `+0x918` the AI events' presence record, `+0x920` the armour spell list
+  ({next, ?, item, countdown}), `+0x938` boredom, `+0x978` a callback run when state 3 ends.
+- States (+0x164): 0 idle, 1 moving, 2 turning, 3 the rest of an action's animation, 4 (as 2 for
+  hit reactions), 5 acting (the plan runs), 6 what an order leaves (combat_tick.cpp: "chasing").
+
+### Functions rewritten (fourth round)
+
+| Address | Name | Verification |
+|---|---|---|
+| 00552300 | CUnitServer::UpdateServer (slot 6) | ours only: returns 1; a living unit ends with hitDirection -1 |
+| 005499F0 | CUnitServer::UpdateState | ours only: hitDirection -1 afterwards |
+| 00546F30 | CUnitServer::AdvanceAnimation | ours only: the unit's +0x25C is the first step's kind (1 frozen), +0x260 whether held |
+| 00546B40 | CUnitServer::PopFinishedSteps | the queue (steps, count, time) snapshot, ours, restored, original; result and queue compared |
+| 00546C10 | CUnitServer::ShowCurrentStep | ours only: a shown step's animation and time on the unit |
+| 00546C40 | CUnitServer::PlaySteps | ours only: the queue started, no more steps than given |
+| 00547090 | CUnitServer::SetState | ours only: the state; 5 sets +0x180, others drop the effect object |
+| 005467B0 | CUnitServer::SetStanding | ours only: CUnit +0x278 |
+| 00547280 | CUnitServer::StandStill | ours only: not standing afterwards |
+| 00547100 | CUnitServer::PlayHitReaction | ours only: a started reaction holds the unit (+0x21) |
+| 00549690 | CUnitServer::EndOrder | ours only: the plan reset, state 3 or 6 |
+| 00549160 | CUnitServer::TickAction | ours only: an action at its end time leaves the plan reset |
+| 00549D40 | CUnitServer::ActionInReach | reads only: ours and the original compared |
+| 00552B90 | CUnitServer::TickItemSpells | ours only (counted) |
+
+### Forwarders added (fourth round)
+
+00455940 / 00455950; CUnit 0050E9F0, 0052EA90, 0052EAD0, 0052EAF0, 00530570, 00530970, 005300D0
+(SetPlayer), 0052E9D0, 00401F00; 0040F560 (AxisY); 00523740 / 00524560 (vitals); the AI 005C9770,
+005CB850, 005AEA80, 005AEA40, 005D53B0, 005D4E80; the world 00593AF0, 0058E520, 0058E5D0;
+00665440 (the player has the unit); 00679280; 005C1010 / 005C0DF0; the motion 005C7CB0, 005B23A0,
+005C7B00, 005C7430; the controller's 0054B390, 00547890, 00552E00, 00549EC0, 00552C60, 00550A80,
+0054B880, 00548700; the CArray<AnimationStep> instantiations 00556950 / 005483C0 (Copy, two copies
+of the same code), 00556870, 00557B60, 00557E70, 00557B80, 00557E20 (library code: not ported) and
+OrderPlan's reset 00544FD0.
+
+### Original bugs and oddities kept (fourth round)
+
+- UpdateState and PlayHitReaction copy the saved / new animation into the queue twice; PlaySteps
+  resizes and copies twice; EndOrder and TickAction assign the new queue twice.
+- ActionInReach: a cast (kind 5) whose target is gone but whose spell has flag 0x20000000 goes on
+  to read the (null) target's position: an access violation in both versions.
+- TickAction's plan reset is the inlined 00544FD0 (EndOrder calls it); both leave the same state.
+- Boredom draws from the ISAAC generator only once +0x938 passes 500.
+
+### Risks (fourth round)
+
+- Not run in game. Every creature runs UpdateServer, UpdateState and AdvanceAnimation every
+  update: a mistake shows at once in any scenario with units (smoke.txt onwards).
+- Most checks are ours-only consistency checks; PopFinishedSteps and ActionInReach are compared
+  with the original.

@@ -1,0 +1,759 @@
+// Combat, sixth part: the controller's update (CUnitServer slot 6, called once per world update for
+// every creature on the server) and the animation queue and order states it drives. See combat.h,
+// combat_plan.h and docs/notes/combat.md ("Fourth round").
+//
+// The controller's animation queue is the AnimationSteps at +0x24 (steps +0x28, count +0x2C) with
+// the game time its first step started at +0x38; a hit reaction saves it to +0x148 (its time to
+// +0x15C) and sets +0x144 until it is restored. The plan of the order being carried out is the
+// OrderPlan at +0xC4; the motion (an AIPath) is at +0x3C.
+#include "combat.h"
+#include "combat_internal.h"
+#include "combat_plan.h"
+
+#include "random.h"
+
+#include "lib/crt.h"
+
+#include "ei/hook.h"
+#include "ei/vcall.h"
+
+#include <bit>
+#include <cstdint>
+#include <cstring>
+
+namespace {
+
+template <typename T>
+T& At(void* object, int offset) {
+    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
+}
+
+// The controller's state (+0x164). combat_tick.cpp names 6 "chasing" (the state an order leaves
+// the unit in when it ends: ready for the next one).
+constexpr int kStateIdle = 0;
+constexpr int kStateMoving = 1;
+constexpr int kStateTurning = 2;
+constexpr int kStateRecovering = 3;   // the rest of an action's animation plays out
+constexpr int kStateWaiting = 4;
+constexpr int kStateActing = 5;       // the planned action (+0xC4) runs
+constexpr int kStateChasing = 6;
+constexpr int kOrderMove = 1;
+constexpr int kOrderAttack = 3;
+constexpr int kOrderCastAt = 4;
+constexpr int kOrderCast = 5;
+constexpr int kOrderSkill = 6;
+constexpr int kOrderNone = 9;
+constexpr int kOrderUse = 10;
+constexpr std::uint32_t kSkillOnTarget = 0x18A95;
+constexpr std::uint32_t kFlagFrozen = 0x1000000;      // CUnit flags_: no updates of orders and animation
+constexpr std::uint32_t kFlagNoCasting = 0x10000000;  // CUnit flags_
+constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // CUnit flags_, cleared every update
+constexpr std::uint32_t kSpellNoTarget = 0x20000000;  // spell +0x3C
+constexpr int kCastEffectKind = 0x4A;                 // the cast's particle effect (world slot 23)
+constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38: OrderPlan.rangeSq of no plan
+constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
+constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
+constexpr int kRemarkBored = 0x29;
+
+// Virtual slots.
+constexpr int kSlotRelease = 4;
+constexpr int kSlotPositionAt = 0xD0 / 4;   // Vector3* (Vector3* out, int time)
+constexpr int kSlotIsDead = 0xDC / 4;       // int ()
+constexpr int kSlotWeaponSwitch = 0x64 / 4; // controller slot 25 (weapon slot)
+constexpr int kSlotPlayerUnitDied = 0x50 / 4; // the player's message object, slot 20
+
+// --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
+
+// 00455940 the owning manager's context (the world server); 00455950 the object's world.
+__declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
+__declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
+// CUnit (unit.cpp and the unit range): 0050E9F0 MarkChanged, 0052EA90 the animation bytes
+// (+0x254..+0x256, time +0x258), 0052EAD0 / 0052EAF0 the dwords +0x25C / +0x260, 00530570 the
+// size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
+// speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
+__declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
+__declspec(naked) void __fastcall UnitSetAnimation(CUnit*, void*, int /*animation*/, int /*variant*/, int /*time*/,
+                                                   int /*flags*/) EI_ORIGINAL(0x0052EA90)
+__declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0052EAD0)
+__declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
+__declspec(naked) void __fastcall UnitUpdateSizeClass(CUnit*) EI_ORIGINAL(0x00530570)
+__declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x00530970)
+__declspec(naked) void __fastcall UnitSetPlayer(CUnit*, void*, char*) EI_ORIGINAL(0x005300D0)
+__declspec(naked) void __fastcall UnitPathSpeeds(CUnit*) EI_ORIGINAL(0x0052E9D0)
+__declspec(naked) void __fastcall UnitTurnUpTowards(CUnit*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
+// 0040F560 Quaternion::AxisY (core_maths.cpp).
+__declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float* /*out*/) EI_ORIGINAL(0x0040F560)
+// UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
+__declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUnit*, int /*inCombat*/) EI_ORIGINAL(0x00523740)
+__declspec(naked) void __fastcall StatsRecomputeAt(UnitStats*, void*, void*, CUnit*) EI_ORIGINAL(0x00524560)
+// The AI: 005C9770 the events' presence of a unit at a point (world + 0x2838; returns its record),
+// 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
+// (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
+// 005D4E80 its reset on death (unit_ai.cpp, controller + 0x980).
+__declspec(naked) void* __fastcall EventsPresence(void*, void*, const float*, CUnitServer*) EI_ORIGINAL(0x005C9770)
+__declspec(naked) void __fastcall MemoryUpdate(void*, void*, CUnitServer*, void*) EI_ORIGINAL(0x005CB850)
+__declspec(naked) void __fastcall AlarmStep(void*, void*, CUnitServer*) EI_ORIGINAL(0x005AEA80)
+__declspec(naked) void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
+__declspec(naked) void __fastcall BrainThink(void*) EI_ORIGINAL(0x005D53B0)
+__declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005D4E80)
+// The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
+// object (world_server.cpp); 00665440 does the player still have the unit.
+__declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINAL(0x00593AF0)
+__declspec(naked) void __fastcall WorldAddTimed(void*, void*, CEngineObject*) EI_ORIGINAL(0x0058E520)
+__declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINAL(0x0058E5D0)
+__declspec(naked) int __fastcall PlayerHasUnit(void*, void*, CUnit*) EI_ORIGINAL(0x00665440)
+// 00679280 CEffectParticle::SetAttachedTo (world_effect_visual.cpp).
+__declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_ORIGINAL(0x00679280)
+// The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
+__declspec(naked) void __fastcall SectorRemove(void*, void*, CUnit*) EI_ORIGINAL(0x005C1010)
+__declspec(naked) void __fastcall SectorAdd(void*, void*, CUnit*) EI_ORIGINAL(0x005C0DF0)
+// The motion (+0x3C, an AIPath; ai_motion.cpp): 005C7CB0 ShiftTime, 005B23A0 Clear, 005C7B00
+// Start, and 005C7430 UnitMotion::Sample on CUnit + 0x27C.
+__declspec(naked) void __fastcall PathShiftTime(void*, void*, int) EI_ORIGINAL(0x005C7CB0)
+__declspec(naked) void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
+__declspec(naked) bool __fastcall PathStart(void*, void*, const float* /*position*/, const float* /*direction*/,
+                                            int /*time*/) EI_ORIGINAL(0x005C7B00)
+__declspec(naked) bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/,
+                                               bool* /*turning*/, float* /*position*/, float* /*direction*/,
+                                               float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
+    EI_ORIGINAL(0x005C7430)
+// The controller's functions rewritten elsewhere, through their game addresses: 0054B390
+// UpdateOrders (combat_tick.cpp), 00547890 the movement tick (unit_motion_tick.cpp), 00552E00
+// PropagateHostility, 00549EC0 FinishAction, 00552C60 UseItemCharge (combat_actions.cpp),
+// 00550A80 BuildDeathAnimation (combat_steps.cpp), 0054B880 SpellOfSource (combat.cpp), and the
+// ones not rewritten: 00548700 plan a path to a point.
+__declspec(naked) void __fastcall CtlUpdateOrders(CUnitServer*) EI_ORIGINAL(0x0054B390)
+__declspec(naked) void __fastcall CtlMovementTick(CUnitServer*) EI_ORIGINAL(0x00547890)
+__declspec(naked) void __fastcall CtlPropagateHostility(CUnitServer*) EI_ORIGINAL(0x00552E00)
+__declspec(naked) void __fastcall CtlFinishAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x00549EC0)
+__declspec(naked) void __fastcall CtlUseItemCharge(CUnitServer*, void*, CItem*, float) EI_ORIGINAL(0x00552C60)
+__declspec(naked) void __fastcall CtlDeathAnimation(CUnitServer*, void*, AnimationSteps*, std::uint32_t, int, int)
+    EI_ORIGINAL(0x00550A80)
+__declspec(naked) void* __fastcall CtlSpellOfSource(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B880)
+__declspec(naked) bool __fastcall CtlPathTo(CUnitServer*, void*, const float*, std::uint32_t) EI_ORIGINAL(0x00548700)
+// The functions of this file, through their game addresses (for the verify build's wrappers).
+__declspec(naked) void __fastcall CtlUpdateState(CUnitServer*) EI_ORIGINAL(0x005499F0)
+__declspec(naked) void __fastcall CtlAdvanceAnimation(CUnitServer*) EI_ORIGINAL(0x00546F30)
+__declspec(naked) void __fastcall CtlTickItemSpells(CUnitServer*) EI_ORIGINAL(0x00552B90)
+__declspec(naked) bool __fastcall CtlActionInReach(CUnitServer*) EI_ORIGINAL(0x00549D40)
+__declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)
+__declspec(naked) void __fastcall CtlShowCurrentStep(CUnitServer*) EI_ORIGINAL(0x00546C10)
+__declspec(naked) void __fastcall CtlSetState(CUnitServer*, void*, int) EI_ORIGINAL(0x00547090)
+__declspec(naked) void __fastcall CtlStandStill(CUnitServer*) EI_ORIGINAL(0x00547280)
+__declspec(naked) void __fastcall CtlSetStanding(CUnitServer*, void*, int) EI_ORIGINAL(0x005467B0)
+__declspec(naked) void __fastcall CtlPlayHitReaction(CUnitServer*) EI_ORIGINAL(0x00547100)
+__declspec(naked) void __fastcall CtlEndOrder(CUnitServer*, void*, int) EI_ORIGINAL(0x00549690)
+__declspec(naked) void __fastcall CtlTickAction(CUnitServer*) EI_ORIGINAL(0x00549160)
+__declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
+// Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
+// code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
+// SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
+__declspec(naked) void __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x00556950)
+__declspec(naked) void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x005483C0)
+__declspec(naked) AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps*, void*, const AnimationSteps*)
+    EI_ORIGINAL(0x00556870)
+__declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00557B60)
+__declspec(naked) void __fastcall StepsDestroy(AnimationSteps*) EI_ORIGINAL(0x00557E70)
+__declspec(naked) void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
+__declspec(naked) void __fastcall StepsRemoveAt(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557E20)
+__declspec(naked) void __fastcall PlanReset(OrderPlan*) EI_ORIGINAL(0x00544FD0)
+
+IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+int CurrentFrame() { return *reinterpret_cast<const int*>(0x007AFFC4); }
+void* const kWorldServer = reinterpret_cast<void*>(0x007AFF60);
+void* const kAIEvents = reinterpret_cast<void*>(0x007B2798);   // the world server + 0x2838
+int WorldTime(const void* object) { return At<int>(ContextOf(object), 0x64); }
+
+AnimationSteps& Queue(CUnitServer* self) { return At<AnimationSteps>(self, 0x24); }
+AnimationSteps& SavedQueue(CUnitServer* self) { return At<AnimationSteps>(self, 0x148); }
+int& QueueTime(CUnitServer* self) { return Queue(self).extra; }       // +0x38
+int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }   // +0x15C
+OrderPlan& Plan(CUnitServer* self) { return At<OrderPlan>(self, 0xC4); }
+void* Motion(CUnitServer* self) { return reinterpret_cast<char*>(self) + 0x3C; }
+
+// A queue that has no start time yet starts now.
+void StartQueueIfUnset(CUnitServer* self) {
+    if (QueueTime(self) == -1) QueueTime(self) = At<int>(WorldOf(self), 0x64);
+}
+
+// The effect object (+0x17C, referenced) leaves the world.
+void DropEffectObject(CUnitServer* self) {
+    if (!self->effectObject) return;
+    WorldRemoveTimed(kWorldServer, nullptr, self->effectObject->id_);
+    CEngineObject* effect = self->effectObject;
+    self->effectObject = nullptr;
+    if (effect) ei::VCall<void>(effect, kSlotRelease);
+}
+
+// The weapon slot the unit wants (+0x270) taken up when it differs from the active one.
+void SwitchWeaponIfWanted(CUnit* unit) {
+    if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
+        ei::VCall<void>(unit->controller, kSlotWeaponSwitch, unit->unknown_270);
+}
+
+// The unit's standing flag (CUnit + 0x278) changed, re-registered on the sector map.
+void SetStandingFlag(CUnitServer* self, int standing) {
+    void* world = ContextOf(self);
+    CUnit* unit = self->unit;
+    int& flag = At<int>(unit, 0x278);
+    if (flag == standing) return;
+    void* sectors = static_cast<char*>(world) + 0x294;
+    SectorRemove(sectors, nullptr, unit);
+    At<int>(self->unit, 0x278) = standing;
+    SectorAdd(sectors, nullptr, self->unit);
+    UnitMarkChanged(self->unit, nullptr, 7);
+}
+
+// A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
+void EmptyAction(UnitAction* order) {
+    order->kind = kOrderNone;
+    if (order->target) ei::VCall<void>(order->target, kSlotRelease);
+    order->target = nullptr;
+    order->flag18 = 0;
+    order->unknown_1C = 0;
+    order->unknown_20 = 0;
+}
+
+// An animation list on the stack (00557B60 with the derived vtable; 00557E70 at the end).
+struct LocalSteps {
+    AnimationSteps steps;
+    LocalSteps() {
+        StepsConstruct(&steps);
+        steps.vtable = kAnimationStepsVtable;
+    }
+    ~LocalSteps() { StepsDestroy(&steps); }
+    LocalSteps(const LocalSteps&) = delete;
+    LocalSteps& operator=(const LocalSteps&) = delete;
+};
+
+// A copy of the plan's animation (00556870) with its extra dword, destroyed at the end.
+struct PlanCopy {
+    AnimationSteps steps;
+    explicit PlanCopy(const AnimationSteps& from) {
+        StepsCopyConstruct(&steps, nullptr, &from);
+        steps.extra = from.extra;
+    }
+    ~PlanCopy() { StepsDestroy(&steps); }
+    PlanCopy(const PlanCopy&) = delete;
+    PlanCopy& operator=(const PlanCopy&) = delete;
+};
+
+// The queue replaced by `steps`, twice as the original does, then started.
+void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
+    StepsCopyB(&Queue(self), nullptr, steps);
+    StepsCopyB(&Queue(self), nullptr, steps);
+    StartQueueIfUnset(self);
+    CtlPopFinishedSteps(self);
+    CtlShowCurrentStep(self);
+}
+
+// Whether a step is open-ended (a negative duration).
+bool HasOpenStep(const AnimationSteps& steps) {
+    for (int i = 0; i < steps.count; ++i)
+        if (steps.steps[i].duration < 0) return true;
+    return false;
+}
+
+// The sum of the steps' durations, -1 when one is open-ended (negative).
+int TotalDuration(const AnimationSteps& steps) {
+    int total = 0;
+    for (int i = 0; i < steps.count; ++i) {
+        if (steps.steps[i].duration < 0) return -1;
+        total += steps.steps[i].duration;
+    }
+    return total;
+}
+
+} // namespace
+
+// --- The update ---------------------------------------------------------------------------------
+
+int CUnitServer::UpdateServer() {
+    CUnit* self = unit;
+    if (self->dead == 0) {
+        if (VitalsRegenerate(ServerStatsOf(self), nullptr, &stats, self, action.kind != 0 ? 1 : 0)) {
+            StatsRecomputeAt(&stats, nullptr, ServerStatsOf(unit), unit);
+            UnitMarkChanged(unit, nullptr, 0);
+            UnitMarkChanged(unit, nullptr, 4);
+        }
+        // The AI events learn where the unit is every (speedClass + 1) updates.
+        if ((static_cast<std::uint32_t>(CurrentFrame()) & static_cast<std::uint32_t>(speedClass)) == 0) {
+            void*& presence = At<void*>(this, 0x918);
+            if (presence) {
+                At<float>(presence, 8) = unit->positionX;
+                At<float>(presence, 0xC) = unit->positionY;
+            }
+            presence = EventsPresence(kAIEvents, nullptr, &unit->positionX, this);
+        }
+        CtlTickItemSpells(this);
+        if (unit->player != nullptr) {   // 005301A0
+            // A party unit: its perception memory, and now and then a bored remark.
+            MemoryUpdate(reinterpret_cast<char*>(this) + 0xA50, nullptr, this, reinterpret_cast<char*>(unit) + 0x4C8);
+            UnitMarkChanged(unit, nullptr, 0xC);
+            int& bored = At<int>(this, 0x938);
+            ++bored;
+            if (bored > kBoredTicks && Random().Next() % kBoredChance == 0) {
+                char* player = unit->player;
+                if (!player || At<int>(At<char*>(player, 0x20), 0x5120) != 0) {
+                    bored = 0;
+                } else {
+                    PlayerMessage(At<void*>(player, 0x20), nullptr, unit, kRemarkBored);
+                    bored = 400;
+                }
+            }
+        }
+        AlarmStep(reinterpret_cast<char*>(this) + 0xB10, nullptr, this);
+        BrainThink(brain);
+        unit->flags_ &= ~kFlagSeen8000;
+        CtlPropagateHostility(this);
+        if ((unit->flags_ & kFlagFrozen) == 0 && keepHitDirection == 0 && state >= 0 &&
+            (state <= kStateTurning || state == kStateChasing)) {
+            CtlUpdateOrders(this);
+            CtlUpdateState(this);
+            CtlAdvanceAnimation(this);
+            return 1;
+        }
+        if (state == kStateActing && action2.kind == kOrderMove) CtlEndOrder(this, nullptr, 1);
+        CtlUpdateState(this);
+        CtlAdvanceAnimation(this);
+        return 1;
+    }
+
+    // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
+    // over, the death is reported and the orders are dropped.
+    void* world = ContextOf(this);
+    if (self->positionZ > 0.0f) {
+        float& sinking = At<float>(this, 0x8F4);
+        sinking += *reinterpret_cast<const float*>(0x0073C548);
+        self->positionZ = self->positionZ - sinking;
+        float z = unit->positionZ;
+        unit->positionZ = !(z <= 0.0f) ? z : 0.0f;   // FCOMP 0, z: z kept above 0 and when NaN
+        UnitMarkChanged(unit, nullptr, 2);
+    }
+    std::uint8_t& reported = At<std::uint8_t>(this, 0x18D);
+    if (reported == 0 && Queue(this).count == 0) {
+        reported = 1;
+        WorldUnitDied(world, nullptr, unit);
+        char* player = unit->player;
+        UnitSetPlayer(unit, nullptr, nullptr);
+        if (player && PlayerHasUnit(player, nullptr, unit) != 0) {
+            ei::VCall<void>(At<void*>(player, 0x20), kSlotPlayerUnitDied);
+        } else {
+            BrainReset(brain);
+            AlarmReset(reinterpret_cast<char*>(this) + 0xB10);
+        }
+        EmptyAction(&action);
+        EmptyAction(&action2);
+    }
+    CtlAdvanceAnimation(this);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00552300, CUnitServer::UpdateServer);
+
+// --- The state of the unit's animation --------------------------------------------------------
+
+void CUnitServer::UpdateState() {
+    unknown_021 = 0;
+    unknown_020 = 0;
+    if (state == kStateActing && !CtlActionInReach(this)) CtlEndOrder(this, nullptr, 0);
+    if (unit->flags_ & kFlagFrozen) {
+        unknown_020 = 1;
+        hitDirection = 0xFFFFFFFFu;
+        return;
+    }
+    if (keepHitDirection != 0) {
+        // A hit reaction plays: when it is over, the saved queue comes back.
+        if (Queue(this).count != 0) {
+            unknown_021 = 1;
+            hitDirection = 0xFFFFFFFFu;
+            return;
+        }
+        StepsCopy(&Queue(this), nullptr, &SavedQueue(this));
+        QueueTime(this) = SavedQueueTime(this);
+        StepsCopy(&Queue(this), nullptr, &SavedQueue(this));
+        QueueTime(this) = SavedQueueTime(this);
+        StartQueueIfUnset(this);
+        CtlPopFinishedSteps(this);
+        CtlShowCurrentStep(this);
+        keepHitDirection = 0;
+    }
+    switch (state) {
+    case kStateIdle:
+        SwitchWeaponIfWanted(unit);
+        if (At<std::uint8_t>(this, 0x146) == 0 ||
+            CtlPathTo(this, nullptr, &At<float>(this, 0x9C), At<std::uint32_t>(this, 0xA4))) {
+            CtlMovementTick(this);
+        }
+        break;
+    case kStateMoving:
+        SwitchWeaponIfWanted(unit);
+        CtlMovementTick(this);
+        break;
+    case kStateTurning:
+    case kStateWaiting:
+        SwitchWeaponIfWanted(unit);
+        if (hitDirection != 0xFFFFFFFFu) CtlPlayHitReaction(this);
+        break;
+    case kStateRecovering:
+        if (Queue(this).count == 0) {
+            state = kStateChasing;
+            UnitUpdateSizeClass(unit);
+            DropEffectObject(this);
+            using Callback = void(__fastcall*)(CUnit*);
+            if (auto callback = At<Callback>(this, 0x978)) {
+                callback(unit);
+                CtlUpdateOrders(this);
+            }
+        }
+        break;
+    case kStateActing:
+        CtlTickAction(this);
+        break;
+    default:
+        break;
+    }
+    hitDirection = 0xFFFFFFFFu;
+}
+EI_REPLACE_METHOD(0x005499F0, CUnitServer::UpdateState);
+
+// --- The animation queue ---------------------------------------------------------------------
+
+void CUnitServer::AdvanceAnimation() {
+    if (unknown_020 != 0) {
+        // Frozen: everything waits one more update.
+        UnitSet260(unit, nullptr, 1);
+        UnitSet25C(unit, nullptr, 1);
+        PathShiftTime(Motion(this), nullptr, 1);
+        ++QueueTime(this);
+        ++SavedQueueTime(this);
+        ++Plan(this).startTime;
+        ++Plan(this).endTime;
+        ++unit->unknown_258;
+        return;
+    }
+    bool held = unknown_021 != 0;
+    if (held) {
+        PathShiftTime(Motion(this), nullptr, 1);
+        ++SavedQueueTime(this);
+        ++Plan(this).startTime;
+        ++Plan(this).endTime;
+    }
+    UnitSet260(unit, nullptr, held ? 1 : 0);
+    AnimationSteps& queue = Queue(this);
+    if (CtlPopFinishedSteps(this)) {
+        if (queue.count == 0) {
+            UnitSet25C(unit, nullptr, 0);
+            return;
+        }
+        const AnimationStep& head = queue.steps[0];
+        if (head.animation != 0xFF || head.unknown_01 != 0xFF)
+            UnitSetAnimation(unit, nullptr, head.animation, head.unknown_01, QueueTime(this), head.unknown_02);
+    }
+    if (queue.count == 0) {
+        UnitSet25C(unit, nullptr, 0);
+        return;
+    }
+    int kind = queue.steps[0].unknown_08;
+    if (kind == 1) {
+        ++QueueTime(this);
+        if (queue.count != 0) --queue.steps[0].duration;
+    }
+    UnitSet25C(unit, nullptr, kind);
+}
+EI_REPLACE_METHOD(0x00546F30, CUnitServer::AdvanceAnimation);
+
+bool CUnitServer::PopFinishedSteps() {
+    bool popped = false;
+    int now = WorldTime(this);
+    AnimationSteps& queue = Queue(this);
+    while (queue.count != 0) {
+        AnimationStep* steps = queue.steps;
+        int duration = steps[0].duration;
+        if (duration == -1) break;
+        int end = QueueTime(this) + duration;
+        if (end > now) break;
+        popped = true;
+        if (queue.count > 1 && steps[1].animation == 0xFF && steps[1].unknown_01 == 0xFF) {
+            // The pause after it goes on with this step's animation, and lasts as long more.
+            steps[1].animation = steps[0].animation;
+            queue.steps[1].unknown_01 = queue.steps[0].unknown_01;
+            queue.steps[1].duration += steps[0].duration;
+            if (queue.steps[1].unknown_08 == 1) {
+                int late = now - QueueTime(this) - steps[0].duration;
+                if (late > steps[0].duration) late = steps[0].duration;
+                if (late > 0) QueueTime(this) += late;
+            }
+        } else {
+            QueueTime(this) = end;
+        }
+        if (queue.count - 1 != 0)
+            std::memmove(queue.steps, queue.steps + 1, static_cast<std::size_t>(queue.count - 1) * sizeof(AnimationStep));
+        --queue.count;
+    }
+    return popped;
+}
+EI_REPLACE_METHOD(0x00546B40, CUnitServer::PopFinishedSteps);
+
+void CUnitServer::ShowCurrentStep() {
+    AnimationSteps& queue = Queue(this);
+    if (queue.count == 0) return;
+    const AnimationStep& head = queue.steps[0];
+    if (head.animation != 0xFF || head.unknown_01 != 0xFF)
+        UnitSetAnimation(unit, nullptr, head.animation, head.unknown_01, QueueTime(this), head.unknown_02);
+}
+EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
+
+void CUnitServer::PlaySteps(const AnimationSteps* steps) {
+    // The steps are copied in twice (each time resized first), as the original does.
+    AnimationSteps& queue = Queue(this);
+    for (int pass = 0; pass < 2; ++pass) {
+        StepsSetSize(&queue, nullptr, steps->count, -1);
+        for (int i = 0; i < steps->count; ++i) queue.steps[i] = steps->steps[i];
+        QueueTime(this) = steps->extra;
+    }
+    StartQueueIfUnset(this);
+    CtlPopFinishedSteps(this);
+    if (queue.count == 0) return;
+    const AnimationStep& head = queue.steps[0];
+    if (head.animation != 0xFF || head.unknown_01 != 0xFF)
+        UnitSetAnimation(unit, nullptr, head.animation, head.unknown_01, QueueTime(this), head.unknown_02);
+}
+EI_REPLACE_METHOD(0x00546C40, CUnitServer::PlaySteps);
+
+// --- States -------------------------------------------------------------------------------------
+
+void CUnitServer::SetState(int newState) {
+    state = newState;
+    if (newState != kStateActing) {
+        UnitUpdateSizeClass(unit);
+        DropEffectObject(this);
+        return;
+    }
+    At<int>(this, 0x180) = WorldTime(this) + 10;
+}
+EI_REPLACE_METHOD(0x00547090, CUnitServer::SetState);
+
+void CUnitServer::SetStanding(int standing) { SetStandingFlag(this, standing); }
+EI_REPLACE_METHOD(0x005467B0, CUnitServer::SetStanding);
+
+void CUnitServer::StandStill() {
+    PathClear(Motion(this));
+    int now = At<int>(WorldOf(this), 0x64);
+    // The unit's forward direction (its rotation's Y axis, inlined), reversed.
+    const float* q = &At<float>(unit, 0x34);
+    float x = q[0], y = q[1], z = q[2], w = q[3];
+    float a = y * z - x * w;
+    a = a + a;
+    float zz = z * z;
+    float b = (x * x - (y * y + w * w + zz)) + (zz + zz);
+    float c = w * z + x * y;
+    c = c + c;
+    float direction[3] = {-a, -b, -c};
+    if (PathStart(Motion(this), nullptr, &unit->positionX, direction, now)) UnitPathSpeeds(unit);
+    SetStandingFlag(this, 0);
+}
+EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
+
+// --- Hit reactions ------------------------------------------------------------------------------
+
+void CUnitServer::PlayHitReaction() {
+    LocalSteps reaction;
+    if (moveMode.mode == 0 && state == kStateIdle) return;
+    CtlDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
+    int duration = TotalDuration(reaction.steps);
+    if (action.kind == kOrderAttack && state == kStateTurning &&
+        At<int>(WorldOf(this), 0x64) + duration > At<int>(this, 0x184))
+        return;
+    keepHitDirection = 1;
+    StepsCopy(&SavedQueue(this), nullptr, &Queue(this));
+    SavedQueueTime(this) = QueueTime(this);
+    StepsCopy(&Queue(this), nullptr, &reaction.steps);
+    QueueTime(this) = reaction.steps.extra;
+    StepsCopy(&Queue(this), nullptr, &reaction.steps);
+    QueueTime(this) = reaction.steps.extra;
+    StartQueueIfUnset(this);
+    CtlPopFinishedSteps(this);
+    CtlShowCurrentStep(this);
+    unknown_021 = 1;
+}
+EI_REPLACE_METHOD(0x00547100, CUnitServer::PlayHitReaction);
+
+// --- The end of an order ------------------------------------------------------------------------
+
+void CUnitServer::EndOrder(char abort) {
+    int now = WorldTime(this);
+    bool open = HasOpenStep(Queue(this));
+    if (abort != 0 || now < Plan(this).startTime || open) {
+        CtlSetState(this, nullptr, kStateChasing);
+    } else {
+        // A three-step plan (step out, action, step back): what is left of it is played out.
+        if (Plan(this).animation.count == 3) {
+            if (Queue(this).count == 2) {
+                PlanCopy rest(Plan(this).animation);
+                AnimationStep* steps = rest.steps.steps;
+                if (steps[1].unknown_08 == 1) {
+                    rest.steps.extra = now - steps[0].duration;
+                    steps[0].duration += steps[2].duration;
+                    StepsSetSize(&rest.steps, nullptr, 1, -1);
+                    TakeQueue(this, &rest.steps);
+                }
+            } else if (Queue(this).count == 3) {
+                PlanCopy rest(Plan(this).animation);
+                AnimationStep* steps = rest.steps.steps;
+                if (steps[1].unknown_08 == 1) {
+                    steps[0].duration += steps[2].duration;
+                    rest.steps.extra = QueueTime(this);
+                    StepsSetSize(&rest.steps, nullptr, 1, -1);
+                    TakeQueue(this, &rest.steps);
+                } else {
+                    rest.steps.extra = QueueTime(this);
+                    StepsRemoveAt(&rest.steps, nullptr, 1, 1);
+                    CtlPlaySteps(this, nullptr, &rest.steps);
+                }
+            }
+        }
+        CtlSetState(this, nullptr, kStateRecovering);
+    }
+    PlanReset(&Plan(this));
+    CtlStandStill(this);
+}
+EI_REPLACE_METHOD(0x00549690, CUnitServer::EndOrder);
+
+// --- Acting -------------------------------------------------------------------------------------
+
+void CUnitServer::TickAction() {
+    void* world = ContextOf(this);
+    int now = At<int>(world, 0x64);
+    if (now == At<int>(this, 0x180)) UnitUpdateSizeClass(unit);
+    OrderPlan& plan = Plan(this);
+    if (now == plan.startTime) {
+        // The action starts: its animation replaces the queue, and a cast shows its effect.
+        StepsCopy(&Queue(this), nullptr, &plan.animation);
+        QueueTime(this) = plan.animation.extra;
+        StepsCopyB(&Queue(this), nullptr, &plan.animation);
+        StartQueueIfUnset(this);
+        CtlPopFinishedSteps(this);
+        CtlShowCurrentStep(this);
+        if (plan.isCast != 0 && At<int>(UnitPrototypeModel(unit), 0x114) != 0) {
+            void* objects = *reinterpret_cast<void**>(0x007AFFA8);
+            auto* effect = ei::VCall<CEngineObject*>(objects, 0x5C / 4, kCastEffectKind, -1);
+            static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
+            int kind = plan.castKind;
+            At<int>(effect, 0x158) = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
+            At<float>(effect, 0x15C) = 1.0f;
+            ParticleAttach(effect, nullptr, unit->id_);
+            WorldAddTimed(world, nullptr, effect);
+            CEngineObject* old = effectObject;
+            effectObject = effect;
+            if (effect) ++effect->refCount_;
+            if (old) ei::VCall<void>(old, kSlotRelease);
+        }
+    }
+    if (now < plan.endTime) {
+        // Still acting: the unit stays where its motion puts it, facing its direction.
+        void* context = ContextOf(this);
+        float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
+        float direction[3];
+        float speed;
+        int cellX;
+        int cellY;
+        bool turning;
+        MotionSample(reinterpret_cast<char*>(unit) + 0x27C, nullptr, context, Motion(this),
+                     static_cast<float>(At<int>(context, 0x64)), &turning, position, direction, &speed, &cellX, &cellY);
+        SetStandingFlag(this, state == kStateIdle ? 1 : 0);
+        UnitTurnUpTowards(unit, nullptr, direction, 0);
+        return;
+    }
+    // The action's moment has come: it is carried out and the plan cleared.
+    CtlFinishAction(this, nullptr, plan.unknown_2C, plan.notSkill);
+    StepsSetSize(&plan.animation, nullptr, 0, -1);
+    plan.animation.extra = -1;
+    plan.targetId = -1;
+    plan.endTime = 0;
+    plan.startTime = 0;
+    plan.unknown_2C = 1;
+    plan.rangeSq = kNoRange;
+    plan.isCast = 0;
+    plan.notSkill = 0;
+    plan.castKind = 8;
+    if (state == kStateActing) {
+        state = kStateRecovering;
+        UnitUpdateSizeClass(unit);
+        DropEffectObject(this);
+    }
+    PathClear(Motion(this));
+    int time = At<int>(WorldOf(this), 0x64);
+    float axis[3];
+    QuaternionAxisY(&At<float>(unit, 0x34), nullptr, axis);
+    float backwards[3] = {-axis[0], -axis[1], -axis[2]};
+    if (PathStart(Motion(this), nullptr, &unit->positionX, backwards, time)) UnitPathSpeeds(unit);
+    CtlSetStanding(this, nullptr, 0);
+}
+EI_REPLACE_METHOD(0x00549160, CUnitServer::TickAction);
+
+// --- Checks -------------------------------------------------------------------------------------
+
+bool CUnitServer::ActionInReach() {
+    int kind = action.kind;
+    bool cast = kind == kOrderCastAt || kind == kOrderCast;
+    if (cast && (unit->flags_ & kFlagNoCasting)) return false;
+    if (kind == kOrderCastAt || kind == kOrderUse) return true;
+    if (kind != kOrderAttack && kind != kOrderSkill && kind != kOrderCast) return false;
+    CEngineObject* target = action.target;
+    if (cast && (unit->flags_ & kFlagNoCasting)) return false;
+    if (!target) {
+        if (!cast) return false;
+        auto* spell = static_cast<char*>(CtlSpellOfSource(this, nullptr, action.source));
+        if (!spell) return false;
+        if ((At<std::uint32_t>(spell, 0x3C) & kSpellNoTarget) == 0) return false;
+        // Original bug kept: with no target this reads the target's vtable (null).
+    } else if (ei::VCall<int>(target, kSlotIsDead) != 0) {
+        if (kind != kOrderSkill) return false;
+        if (action.source != kSkillOnTarget && action.source != 0) return false;
+    }
+    float where[3];
+    const float* at = ei::VCall<const float*>(target, kSlotPositionAt, where, Plan(this).endTime);
+    float dx = at[0] - unit->positionX;
+    float dy = at[1] - unit->positionY;
+    float distanceSq = dx * dx + dy * dy;
+    return !(distanceSq >= Plan(this).rangeSq);   // C0: closer, or unordered
+}
+EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);
+
+// --- Item spells --------------------------------------------------------------------------------
+
+void CUnitServer::TickItemSpells() {
+    void* world = ContextOf(this);
+    bool healed = false;
+    struct Node {
+        Node* next;
+        void* unknown_4;
+        CItem* item;
+        int countdown;
+    };
+    for (auto* node = At<Node*>(this, 0x920); node;) {
+        Node* current = node;
+        node = node->next;
+        if (current->countdown > 0) {
+            --current->countdown;
+            continue;
+        }
+        CItem* item = current->item;
+        if (!item) continue;
+        char* spell = At<char*>(item, 0x44);
+        float cost = At<float>(spell, 0x40);
+        if (cost >= At<float>(item, 0x28)) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
+        if ((At<std::uint32_t>(spell, 0x18) & 0xFFFF0000u) == 0x180000) {
+            // A healing spell: only one a tick, and only when the unit is hurt.
+            if (healed || unit->hitPoints == unit->maxHitPoints) continue;
+            healed = true;
+        }
+        CtlUseItemCharge(this, nullptr, item, At<float>(spell, 0x40));
+        CUnit* self = unit;
+        WorldCastSpell(world, nullptr, spell, self, &self->positionX, self, &self->positionX, 1);
+        int countdown = At<int>(spell, 0x20) - 3;
+        current->countdown = countdown;
+        if (countdown <= 0) current->countdown = 8;
+    }
+}
+EI_REPLACE_METHOD(0x00552B90, CUnitServer::TickItemSpells);
