@@ -7,6 +7,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui_camp.h"
+#include "../../src/game/world.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -407,3 +408,23 @@ static int __fastcall CampPriceVerify(CCampPages* self, void*, std::uint8_t* ite
     return expected;
 }
 EI_VERIFY(0x0060FAB0, CampPriceVerify, 6, s_campPrice);
+
+// 0060E6B0: ours only (it frees and releases). Afterwards the heroes array and the constructed
+// item and spell are gone, and the local player's records have their +0x1C back.
+static void __fastcall CampCloseVerify(CCampPages* self, void*) {
+    std::uint8_t* player = LocalPlayerData();
+    auto sum = [player] {
+        std::uint32_t total = 0;
+        std::uint8_t* records = *reinterpret_cast<std::uint8_t**>(player + 0x30);
+        int count = *reinterpret_cast<int*>(player + 0x34);
+        for (int i = 0; i < count; ++i) total += *reinterpret_cast<std::uint32_t*>(records + i * 0x784 + 0x1C);
+        return total;
+    };
+    std::uint32_t before = sum();
+    self->Close();
+    std::uint32_t after = sum();
+    bool ok = !self->heroes_ && !self->itemMade_ && !self->spellMade_ && before == after;
+    ei::verify::Check("CCampPages::Close", true, ok, "heroes %p item %p spell %p, records %08X -> %08X", self->heroes_,
+                      self->itemMade_, self->spellMade_, before, after);
+}
+EI_VERIFY(0x0060E6B0, CampCloseVerify, 0, s_unused);

@@ -201,6 +201,11 @@ public:
     // panel or a strip, the trade's or the hero's statistics) for the description panel, updates
     // the action, draws the children and, on the equipment page, the hero. Returns 1.
     BOOL Draw(int pass);
+    // 0060E6B0 (slot 26, leaving the camp). Clears the server flag (00578D10) and render state 2;
+    // hands the local player's unit records to 005789E0 with +0x1C raised by 100000000 for the
+    // call; frees the heroes array, releases the constructed item and spell, empties both
+    // description panels and deletes the constructors' part lists except the first of each.
+    void Close();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)

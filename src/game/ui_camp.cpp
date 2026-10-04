@@ -977,3 +977,98 @@ namespace {
 bool __fastcall CampCanMakeItem(CCampPages* self, void*) { return self->CanMakeItem(); }
 } // namespace
 EI_REPLACE(0x00612600, CampCanMakeItem);
+
+// --- 0060E6B0: leaving the camp ---------------------------------------------------------------
+
+namespace {
+
+// The record array CreateUnits-style callers pass (CArray of record pointers, vtable 0073FAA4).
+struct CloseRecordArray {
+    void* vtable;
+    std::uint8_t** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+// 005719B0 (RET 8): its SetSize(size, growBy).
+__declspec(naked) void __fastcall CloseRecordsSetSize(CloseRecordArray*, void*, int, int) EI_ORIGINAL(0x005719B0)
+
+struct GameGlue {
+    void SetServerFlag(std::uint8_t flag);              // 00578D10 (on 007AFEA4)
+    std::uint8_t* PlayerData();                         // 00578BA0 (on 007AFEA5)
+    void TakeRecords(CloseRecordArray* records);        // 005789E0 (on 007AFEA5)
+};
+__declspec(naked) void GameGlue::SetServerFlag(std::uint8_t) EI_ORIGINAL(0x00578D10)
+__declspec(naked) std::uint8_t* GameGlue::PlayerData() EI_ORIGINAL(0x00578BA0)
+__declspec(naked) void GameGlue::TakeRecords(CloseRecordArray*) EI_ORIGINAL(0x005789E0)
+GameGlue* GlueAt(std::uintptr_t address) { return reinterpret_cast<GameGlue*>(address); }
+
+// The description panels' Describe (005EE6C0) through its address.
+struct DescribeAt {
+    void Describe(void* item);
+};
+__declspec(naked) void DescribeAt::Describe(void*) EI_ORIGINAL(0x005EE6C0)
+
+constexpr int kRecordSize = 0x784;
+constexpr std::uint32_t kRecordBias = 100000000;
+
+} // namespace
+
+void CCampPages::Close() {
+    GlueAt(0x007AFEA4)->SetServerFlag(0);
+    {
+        void* display = *reinterpret_cast<void* const*>(0x007AF080);
+        void* device;
+        std::memcpy(&device, static_cast<std::uint8_t*>(display) + 0x54, 4);
+        using SetStateFn = long(__stdcall*)(void*, unsigned long, unsigned long);   // SetRenderState
+        reinterpret_cast<SetStateFn>((*static_cast<void***>(device))[20])(device, 2, 0);
+    }
+    CloseRecordArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+    std::uint8_t* player = GlueAt(0x007AFEA5)->PlayerData();
+    auto recordsOf = [player] { return *reinterpret_cast<std::uint8_t**>(player + 0x30); };
+    auto countOf = [player] { return *reinterpret_cast<int*>(player + 0x34); };
+    for (int i = 0; i < countOf(); ++i) {
+        std::uint8_t* record = recordsOf() + i * kRecordSize;
+        *reinterpret_cast<std::uint32_t*>(record + 0x1C) += kRecordBias;
+        int index = records.size;
+        CloseRecordsSetSize(&records, nullptr, index + 1, -1);
+        records.data[index] = recordsOf() + i * kRecordSize;
+    }
+    GlueAt(0x007AFEA5)->TakeRecords(&records);
+    for (int i = 0; i < countOf(); ++i)
+        *reinterpret_cast<std::uint32_t*>(recordsOf() + i * kRecordSize + 0x1C) -= kRecordBias;
+
+    auto* self = reinterpret_cast<std::uint8_t*>(this);
+    if (heroes_) {
+        gamecrt::operator_delete(heroes_);
+        heroes_ = nullptr;
+    }
+    std::memset(self + 0x1A8, 0, 4);
+    std::memset(self + 0x1A4, 0, 4);
+    if (spellMade_) reinterpret_cast<CEngineObject*>(spellMade_)->Release();
+    spellMade_ = nullptr;
+    if (itemMade_) reinterpret_cast<CEngineObject*>(itemMade_)->Release();
+    itemMade_ = nullptr;
+    reinterpret_cast<DescribeAt*>(helpPanel_)->Describe(nullptr);
+    reinterpret_cast<DescribeAt*>(descPanel_)->Describe(nullptr);
+    // The part lists (slot 3 empties a list, slot 0 is the deleting destructor); the first of
+    // each constructor's lists (+0x1B4, +0x1C8) is not touched here.
+    for (int offset : {0x1CC, 0x1D0, 0x1D4, 0x1B8, 0x1BC, 0x1C0, 0x1C4}) {
+        void* list;
+        std::memcpy(&list, self + offset, 4);
+        using EmptyFn = void(__thiscall*)(void*);
+        reinterpret_cast<EmptyFn>((*static_cast<void***>(list))[3])(list);
+        std::memcpy(&list, self + offset, 4);
+        if (list) {
+            using DeleteFn = void(__thiscall*)(void*, int);
+            reinterpret_cast<DeleteFn>((*static_cast<void***>(list))[0])(list, 1);
+        }
+    }
+    // The record array's destructor.
+    records.vtable = reinterpret_cast<void*>(0x0073FAA4);
+    if (records.data) gamecrt::operator_delete(records.data);
+}
+namespace {
+void __fastcall CampClose(CCampPages* self, void*) { self->Close(); }
+} // namespace
+EI_REPLACE(0x0060E6B0, CampClose);
