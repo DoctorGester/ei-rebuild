@@ -1,8 +1,8 @@
 // The sound manager (CSoundManager, *007AF784): voice volumes and pans from the listener,
 // the per-handle controls, ambient emitters, 3D sound sequences, the per-frame tick and the music
-// stream requests (006B5CD0-006BB240), and Play2D (006B8250). The Miles calls go through
-// game.exe's import table; wave loading (006B89F0), the voice allocation (006B7D10), Play3D
-// (006B8600) and the stream / MIDI threads stay original.
+// stream requests (006B5CD0-006BB240), and Play2D / Play3D (006B8250 / 006B8600). The Miles calls
+// go through game.exe's import table; the wave loader with its cache (006B89F0) too. The voice
+// allocation (006B7D10) and the stream / MIDI threads stay original.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
@@ -1022,7 +1022,7 @@ void SoundFader::Update() {
 }
 EI_REPLACE_METHOD(0x006B5EE0, SoundFader::Update);
 
-// --- 006B8250: Play2D --------------------------------------------------------------------------------
+// --- 006B8250 / 006B8600: Play2D, Play3D ---------------------------------------------------------
 
 namespace {
 // 006B7D10 (not rewritten): a free voice for `priority`, stealing a lower one (deferring a looping
@@ -1065,14 +1065,30 @@ int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, i
     reinterpret_cast<DeferredSound**>(DeferredIndex(&m->deferred, nullptr, &key))[1] = rec;
     return rec->handle;
 }
+
+// The common end of Play2D and Play3D once the wave is in the voice: loop count 0 for a looping
+// sound, volume and pan, the end-of-sample callback, the reverb when on, a random start position
+// when +0x8BC is set, start. Returns the voice's handle.
+int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
+    if (loop != 0) AilSetSampleLoopCount()(slot->sample, 0);
+    m->ApplyVolumePan(slot);
+    AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
+    if (m->reverbOn != 0) AilSetSampleReverb()(slot->sample, m->reverb[0], m->reverb[1], m->reverb[2]);
+    if (m->randomStart != 0) {
+        std::uint32_t range = static_cast<std::uint32_t>(m->randomStart) + 1;
+        AilSetSampleMsPosition()(slot->sample, GlobalRandom().Next() % range);
+    }
+    AilStartSample()(slot->sample);
+    return slot->handle;
+}
 } // namespace
 
 // 006B8250. Plays `name` without position: `volume` 0..100 (scaled by the effects or speech volume,
-// and with `heightFade` by the camera height), `pan` -100..100, `loop` endlessly, `samplePosition`
-// handed to the wave loader. Returns the sound handle, or -1 (sound off, no voice for a one-shot
+// and with `heightFade` by the camera height), `pan` -100..100, `loop` endlessly, `compressed` an
+// MP3 to decompress (handed to the wave loader). Returns the sound handle, or -1 (sound off, no voice for a one-shot
 // sound, silent one-shot, or the wave did not load).
 int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
-                          int samplePosition) {
+                          int compressed) {
     if (enabled == 0) return -1;
     int index = AllocateVoice(this, nullptr, priority);
     if (index == -1) {
@@ -1090,23 +1106,265 @@ int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, i
     slot->speech = speech;
     slot->volume = NewFlatLevel(this, volume, heightFade, speech);
     if (volume == 0 && loop == 0) return -1;
-    if (LoadSample(slot, index, name, samplePosition) == 0) return -1;
-    if (loop != 0) AilSetSampleLoopCount()(slot->sample, 0);
-    ApplyVolumePan(slot);
-    AilRegisterEosCallback()(slot->sample, EndOfSampleCallback());
-    if (reverbOn != 0) AilSetSampleReverb()(slot->sample, reverb[0], reverb[1], reverb[2]);
-    if (randomStart != 0) {
-        std::uint32_t range = static_cast<std::uint32_t>(randomStart) + 1;
-        AilSetSampleMsPosition()(slot->sample, GlobalRandom().Next() % range);
-    }
-    AilStartSample()(slot->sample);
-    return slot->handle;
+    if (LoadSample(slot, index, name, compressed) == 0) return -1;
+    return StartLoaded(this, slot, loop);
 }
 EI_REPLACE_METHOD(0x006B8250, CSoundManager::Play2D);
+
+// 006B8600. Plays `name` at `position`: full volume inside `nearDist`, silent beyond `farDist`, the
+// pan from the listener (UpdatePositional). Returns the handle or -1 as Play2D. A looping sound
+// without a voice is deferred; the original leaves the record's volume, base volume, pan and length
+// as operator new returned them.
+int CSoundManager::Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
+                          int speech) {
+    if (enabled == 0) return -1;
+    int index = AllocateVoice(this, nullptr, priority);
+    if (index == -1) {
+        if (loop == 0) return -1;
+        auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
+        if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
+        reinterpret_cast<stlp::string*>(rec->name)->Assign(name, name + std::strlen(name));
+        std::memcpy(rec->position, position, sizeof(rec->position));
+        std::memcpy(&rec->nearDistance, &nearDist, 4);
+        std::memcpy(&rec->farDistance, &farDist, 4);
+        rec->flat = 0;
+        rec->heightFade = 0;
+        rec->speech = speech;
+        rec->priority = priority;
+        rec->handle = nextHandle;
+        ++nextHandle;
+        rec->samplePosition = 0;
+        std::int32_t key = rec->handle;
+        reinterpret_cast<DeferredSound**>(DeferredIndex(&deferred, nullptr, &key))[1] = rec;
+        return rec->handle;
+    }
+    SoundSlot* slot = &slots[index];
+    AilInitSample()(slot->sample);
+    slot->looping = loop;
+    std::memcpy(slot->position, position, sizeof(slot->position));
+    std::memcpy(&slot->nearDistance, &nearDist, 4);
+    std::memcpy(&slot->farDistance, &farDist, 4);
+    slot->flat = 0;
+    slot->heightFade = 0;
+    slot->speech = speech;
+    slot->priority = priority;
+    UpdatePositional(slot);
+    if (slot->volume == 0 && loop == 0) return -1;
+    if (LoadSample(slot, index, name, 0) == 0) return -1;
+    return StartLoaded(this, slot, loop);
+}
+EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
+
+// --- 006B89F0: LoadSample ----------------------------------------------------------------------------
+
+namespace {
+// STLport string members (the instantiations the original calls).
+__declspec(naked) void __fastcall StringDefault(void*, void*, const void* /*allocator*/) EI_ORIGINAL(0x004217E0)
+__declspec(naked) void __fastcall StringEmpty(void*) EI_ORIGINAL(0x0041F460)
+__declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
+__declspec(naked) void __fastcall StringAssignTagged(void*, void*, const char*, const char*, int /*tag*/) EI_ORIGINAL(0x0042A4F0)
+__declspec(naked) void __fastcall StringCopy(void*, void*, const void*) EI_ORIGINAL(0x004A8930)
+__declspec(naked) void __fastcall StringDestroy(void*) EI_ORIGINAL(0x0040C720)
+__declspec(naked) void __fastcall StringDestroyOther(void*) EI_ORIGINAL(0x0040C770)
+// The cache map (CSoundManager + 0x870): find [out iterator, key], find-or-insert of a pair
+// [returns the pair], erase by key; the pair's constructor [key, value].
+struct CacheIter {
+    std::uint8_t* node;         // +0x10: the WaveNode*
+    void* map;
+};
+__declspec(naked) void __fastcall CacheFind(void*, void*, CacheIter*, const void*) EI_ORIGINAL(0x006BC0C0)
+__declspec(naked) std::uint8_t* __fastcall CacheInsert(void*, void*, const void*) EI_ORIGINAL(0x006BCC20)
+__declspec(naked) void __fastcall CacheErase(void*, void*, const void*) EI_ORIGINAL(0x006BCCD0)
+__declspec(naked) void* __fastcall PairConstruct(void*, void*, const void*, WaveNode* const*) EI_ORIGINAL(0x006BC140)
+// The cache list: a new node [prev, next], the record's copy into it, a node freed.
+__declspec(naked) WaveNode* __fastcall ListNewNode(WaveList*, void*, WaveNode*, WaveNode*) EI_ORIGINAL(0x006BD4F0)
+__declspec(naked) void __fastcall RecordCopy(WaveRecord*, void*, const WaveRecord*) EI_ORIGINAL(0x006BD1B0)
+__declspec(naked) void __fastcall ListFreeNode(WaveList*, void*, WaveNode*) EI_ORIGINAL(0x006BD560)
+// 006B96E0 [thiscall]: a wave's length in seconds (AIL_WAV_info), in ST0.
+__declspec(naked) double __fastcall WaveLength(CSoundManager*, void*, const void*, int) EI_ORIGINAL(0x006B96E0)
+
+// Miles.
+using WavInfoFn = void(__stdcall*)(const void*, void*);
+using NamedFileFn = int(__stdcall*)(void*, const char*, const void*, int, int);
+using SampleFileFn = int(__stdcall*)(void*, const void*, int);
+using MemAllocFn = void*(__stdcall*)(int);
+using MemFreeFn = void(__stdcall*)(void*);
+using DecompressFn = int(__stdcall*)(const void*, int, const char*, void**, int*, void*);
+NamedFileFn AilSetNamedSampleFile() { return *reinterpret_cast<NamedFileFn*>(0x0073B760); }
+SampleFileFn AilSetSampleFile() { return *reinterpret_cast<SampleFileFn*>(0x0073B750); }
+MemAllocFn AilMemAllocLock() { return *reinterpret_cast<MemAllocFn*>(0x0073B758); }
+MemFreeFn AilMemFreeLock() { return *reinterpret_cast<MemFreeFn*>(0x0073B7FC); }
+DecompressFn AilDecompressAsi() { return *reinterpret_cast<DecompressFn*>(0x0073B804); }
+void* DecompressCallback() { return reinterpret_cast<void*>(0x006B89B0); }
+const char* Mp3Suffix() { return reinterpret_cast<const char*>(0x007967CC); }   // ".mp3"
+constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
+constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
+
+// An archive's file load (slot 5) and free (slot 6).
+void* SourceLoad(void* source, const char* name, int* size) {
+    return reinterpret_cast<void*(__fastcall*)(void*, void*, const char*, int*)>((*static_cast<void***>(source))[5])(
+        source, nullptr, name, size);
+}
+void SourceFree(void* source, void* data) {
+    reinterpret_cast<void(__fastcall*)(void*, void*, void*)>((*static_cast<void***>(source))[6])(source, nullptr, data);
+}
+
+void Unlink(WaveList& list, WaveNode* node) {
+    if (node == list.head) list.head = node->next;
+    else node->prev->next = node->next;
+    if (node == list.tail) list.tail = node->prev;
+    else node->next->prev = node->prev;
+}
+void PushFront(WaveList& list, const WaveRecord* record) {
+    WaveNode* node = ListNewNode(&list, nullptr, nullptr, list.head);
+    RecordCopy(&node->record, nullptr, record);
+    if (list.head) list.head->prev = node;
+    else list.tail = node;
+    list.head = node;
+}
+void PushBack(WaveList& list, const WaveRecord* record) {
+    WaveNode* node = ListNewNode(&list, nullptr, list.tail, nullptr);
+    RecordCopy(&node->record, nullptr, record);
+    if (list.tail) list.tail->next = node;
+    else list.head = node;
+    list.tail = node;
+}
+// cache[key] = node (through a temporary pair, as the original).
+void CacheSet(CSoundManager* m, const std::uint32_t* key, WaveNode* node) {
+    std::uint32_t pair[4];
+    WaveNode* none = nullptr;
+    PairConstruct(pair, nullptr, key, &none);
+    std::uint8_t* inserted = CacheInsert(m->cache, nullptr, pair);
+    StringDestroy(pair);
+    *reinterpret_cast<WaveNode**>(inserted + 0xC) = node;
+}
+// A record copied out of a node (its own copy of the name).
+void CopyOut(WaveRecord* out, const WaveNode* node) {
+    out->data = node->record.data;
+    StringCopy(out->name, nullptr, node->record.name);
+    out->lastUsed = node->record.lastUsed;
+    out->size = node->record.size;
+    out->uses = node->record.uses;
+}
+
+// A cached wave: moved to the front with one more use and the time of now, then given to the voice.
+void UseCached(CSoundManager* m, SoundSlot* slot, const std::uint32_t* key, const char* name, const CacheIter& it) {
+    WaveNode* node = *reinterpret_cast<WaveNode**>(it.node + 0x10);
+    WaveRecord record;
+    CopyOut(&record, node);
+    Unlink(m->cacheList, node);
+    ListFreeNode(&m->cacheList, nullptr, node);
+    record.lastUsed = gameapi::GetTickCount();
+    record.uses = record.uses + 1;
+    PushFront(m->cacheList, &record);
+    CacheSet(m, key, m->cacheList.head);
+    slot->length = static_cast<float>(WaveLength(m, nullptr, record.data, record.size));
+    AilSetNamedSampleFile()(slot->sample, name, record.data, record.size, 0);
+    StringDestroy(record.name);
+}
+
+// Drops unused waves from the least recently used end until the new one fits the budget or the
+// next one was used within the last minute.
+void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
+    for (WaveNode* node = m->cacheList.tail; node != nullptr;) {
+        WaveNode* prev = node->prev;
+        WaveRecord record;
+        CopyOut(&record, node);
+        if (static_cast<std::uint32_t>(incoming + m->cacheBytes) < kCacheBudget && now - record.lastUsed < kCacheKeep) {
+            StringDestroy(record.name);
+            return;
+        }
+        if (record.uses <= 0) {
+            AilMemFreeLock()(record.data);
+            m->cacheBytes -= record.size;
+            CacheErase(m->cache, nullptr, record.name);
+            Unlink(m->cacheList, node);
+            ListFreeNode(&m->cacheList, nullptr, node);
+        }
+        StringDestroy(record.name);
+        node = prev;
+    }
+}
+} // namespace
+
+// 006B89F0. Gives the voice wave `name`: a cached copy (unless `compressed`, which then leaves the
+// voice without a new sample file), or the file from the first archive that has it, decompressed
+// from MP3 when `compressed` (kept at the cache's old end), else copied into Miles memory after
+// making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
+// Returns 0 when no archive has the file or the decompression fails.
+int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, int compressed) {
+    std::uint32_t key[3];
+    std::uint8_t allocator = 0;
+    StringDefault(key, nullptr, &allocator);
+    StringAssignRange(key, nullptr, name, name + std::strlen(name));
+    CacheIter it;
+    CacheFind(cache, nullptr, &it, key);
+    if (it.node != nullptr) {
+        if (compressed == 0) UseCached(this, slot, key, name, it);
+    } else {
+        void* source = nullptr;
+        void* data = nullptr;
+        int size = 0;
+        for (WaveSourceNode* n = waveSources;;) {
+            if (n == nullptr) {
+                StringDestroyOther(key);
+                return 0;
+            }
+            WaveSourceNode* current = n;
+            n = n->next;
+            source = current->source;
+            data = SourceLoad(source, name, &size);
+            if (data != nullptr) break;
+        }
+        std::uint32_t now = gameapi::GetTickCount();
+        if (compressed != 0) {
+            void* decoded = nullptr;
+            int decodedSize = 0;
+            int ok = AilDecompressAsi()(data, size, Mp3Suffix(), &decoded, &decodedSize, DecompressCallback());
+            SourceFree(source, data);
+            if (ok == 0) {
+                StringDestroyOther(key);
+                return 0;
+            }
+            size = decodedSize;
+            data = decoded;
+        } else {
+            Evict(this, size, now);
+        }
+        WaveRecord record;
+        StringEmpty(record.name);
+        StringAssignTagged(record.name, nullptr, reinterpret_cast<const char*>(key[0]), reinterpret_cast<const char*>(key[1]), 0);
+        record.lastUsed = now;
+        record.size = size;
+        record.uses = 1;
+        cacheBytes += size;
+        if (compressed == 0) {
+            void* memory = AilMemAllocLock()(size);
+            record.data = memory;
+            std::memcpy(memory, data, static_cast<std::size_t>(size));
+            SourceFree(source, data);
+            PushFront(cacheList, &record);
+            CacheSet(this, key, cacheList.head);
+            AilSetNamedSampleFile()(slot->sample, name, memory, size, 0);
+        } else {
+            record.data = data;
+            PushBack(cacheList, &record);
+            CacheSet(this, key, cacheList.tail);
+            AilSetSampleFile()(slot->sample, data, size);
+        }
+        slot->length = static_cast<float>(WaveLength(this, nullptr, record.data, record.size));
+        StringDestroy(record.name);
+    }
+    StringAssignTagged(slot->name, nullptr, reinterpret_cast<const char*>(key[0]), reinterpret_cast<const char*>(key[1]), 0);
+    slot->playing = 1;
+    slot->handle = nextHandle;
+    ++nextHandle;
+    StringDestroy(key);
+    return 1;
+}
+EI_REPLACE_METHOD(0x006B89F0, CSoundManager::LoadSample);
 
 // --- Forwarders -------------------------------------------------------------------------------------
 
 __declspec(naked) mfc::CString CSoundManager::CurrentStreamName() EI_ORIGINAL(0x006BAEA0)
 __declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)
-__declspec(naked) int CSoundManager::Play3D(const char*, int, const float*, float, float, int, int) EI_ORIGINAL(0x006B8600)
-__declspec(naked) int CSoundManager::LoadSample(SoundSlot*, int, const char*, int) EI_ORIGINAL(0x006B89F0)

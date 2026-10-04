@@ -670,3 +670,67 @@ static int __fastcall Play2DVerify(CSoundManager* self, void*, const char* name,
     return handle;
 }
 EI_VERIFY(0x006B8250, Play2DVerify, 0, s_unusedPlay2D);
+
+// 006B8600 plays a positioned sound: ours only. -1, or a positional voice holding the arguments
+// under the returned handle, or (a looping sound without a voice) a deferred record.
+using Play3DFn = int(__fastcall*)(CSoundManager*, void*, const char*, int, const float*, float, float, int, int);
+static Play3DFn s_unusedPlay3D;
+static int __fastcall Play3DVerify(CSoundManager* self, void*, const char* name, int priority, const float* position,
+                                   float nearDist, float farDist, int loop, int speech) {
+    float where3[3];
+    std::memcpy(where3, position, sizeof(where3));
+    int handle = self->CSoundManager::Play3D(name, priority, position, nearDist, farDist, loop, speech);
+    bool ok = handle == -1;
+    const char* where = "none";
+    if (!ok) {
+        for (int i = 0; i < 15 && !ok; ++i) {
+            const SoundSlot& s = self->slots[i];
+            if (s.handle != handle) continue;
+            where = "voice";
+            ok = s.flat == 0 && s.heightFade == 0 && s.looping == loop && s.speech == speech && s.priority == priority &&
+                 std::memcmp(s.position, where3, sizeof(where3)) == 0 && std::memcmp(&s.nearDistance, &nearDist, 4) == 0 &&
+                 std::memcmp(&s.farDistance, &farDist, 4) == 0 && s.volume >= 0 && s.volume <= 0x7F;
+        }
+        if (!ok && loop != 0) {
+            const DeferredNode* node = self->deferred.Find(handle);
+            where = "deferred";
+            ok = node && node->value->handle == handle && node->value->flat == 0 &&
+                 std::memcmp(node->value->position, where3, sizeof(where3)) == 0;
+        }
+    }
+    ei::verify::Check("CSoundManager::Play3D", true, ok, "\"%s\" loop %d -> %d (%s)", name, loop, handle, where);
+    return handle;
+}
+EI_VERIFY(0x006B8600, Play3DVerify, 0, s_unusedPlay3D);
+
+// 006B89F0 loads waves (archives, Miles memory, the cache): ours only. 0, or 1 with the voice
+// playing under the newest handle and named `name`, a cache list node of that name (except for an
+// MP3 found already cached), and the cache's byte count not negative.
+using LoadSampleFn = int(__fastcall*)(CSoundManager*, void*, SoundSlot*, int, const char*, int);
+static LoadSampleFn s_unusedLoadSample;
+static int __fastcall LoadSampleVerify(CSoundManager* self, void*, SoundSlot* slot, int index, const char* name,
+                                       int compressed) {
+    int result = self->CSoundManager::LoadSample(slot, index, name, compressed);
+    bool ok = result == 0;
+    if (result == 1) {
+        auto text = [](const std::uint32_t* s, std::size_t* n) {
+            *n = static_cast<std::size_t>(s[1] - s[0]);
+            return reinterpret_cast<const char*>(s[0]);
+        };
+        std::size_t length = std::strlen(name);
+        std::size_t n = 0;
+        const char* slotName = text(slot->name, &n);
+        bool named = n == length && std::memcmp(slotName, name, n) == 0;
+        bool cached = false;
+        for (const WaveNode* node = self->cacheList.head; node && !cached; node = node->next) {
+            const char* s = text(node->record.name, &n);
+            cached = n == length && std::memcmp(s, name, n) == 0;
+        }
+        ok = slot->playing == 1 && slot->handle == self->nextHandle - 1 && named && (cached || compressed != 0) &&
+             self->cacheBytes >= 0;
+    }
+    ei::verify::Check("CSoundManager::LoadSample", true, ok, "\"%s\" compressed %d -> %d (cache %d bytes)", name,
+                      compressed, result, self->cacheBytes);
+    return result;
+}
+EI_VERIFY(0x006B89F0, LoadSampleVerify, 0, s_unusedLoadSample);
