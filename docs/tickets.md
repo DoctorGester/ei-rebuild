@@ -36,10 +36,16 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Cleanup (docs/cleanup-plan.md)
 
-- C1 (taken 2026-10-05) Tooling: `src/game/originals.h` generator and the artefact counts in `tools/progress.py`
-  (phase 0). Routine; a cheaper model is fine.
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
-  globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family.
+  globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
+  - C2a (taken 2026-10-05) CEngineObject / CBaseManager / CResourceManager family
+    (base_manager*, core_*, object*, resource_manager*).
+  - C2b ChunkArchive / chunk streams / CMemoryStream (chunk_*, model archive code).
+  - C2c Network sessions, connections and messages (net_*).
+  - C2d Camera.
+- C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
+  identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
+  differ need a decision per address. Routine for the first part (cheaper model).
 - X1 Small fixes: 0049B320 (unreferenced two-point line draw) to config/dead_code.csv; drop the
   false vtable entries 00747E2C (00504341 / 0050434F) from config/vtables.csv and functions.csv.
