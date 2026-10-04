@@ -65,3 +65,39 @@ static std::uint32_t __fastcall CellMarkVerify(CAIMap* self, void*, void* scratc
     return result;
 }
 EI_VERIFY(0x005B8BA0, CellMarkVerify, 6, s_originalCellMark);
+
+namespace {
+RefreshFn s_originalLimitSteep;
+}
+
+// 005B8710: writes only cell words (from the ground heights, which it does not change). The words
+// around the rectangle are kept, the original runs, its words are kept and the first ones put
+// back, then ours runs and the two results are compared.
+static void __fastcall LimitSteepCellsVerify(CAIMap* self, void*, int x0, int x1, int y0, int y1) {
+    int ox0 = x0 - 4 < 0 ? 0 : x0 - 4, oy0 = y0 - 4 < 0 ? 0 : y0 - 4;
+    int ox1 = x1 + 4 > self->width - 1 ? self->width - 1 : x1 + 4;
+    int oy1 = y1 + 4 > self->height - 1 ? self->height - 1 : y1 + 4;
+    auto snapshot = [&](std::vector<std::uint32_t>& out) {
+        out.clear();
+        for (int y = oy0; y <= oy1; ++y)
+            for (int x = ox0; x <= ox1; ++x) out.push_back(Word(self, x, y));
+    };
+    auto restore = [&](const std::vector<std::uint32_t>& in) {
+        auto** rows = *reinterpret_cast<std::uint8_t***>(reinterpret_cast<std::uint8_t*>(self) + 0x269C);
+        std::size_t i = 0;
+        for (int y = oy0; y <= oy1; ++y)
+            for (int x = ox0; x <= ox1; ++x, ++i) std::memcpy(rows[y] + x * 9, &in[i], 4);
+    };
+    std::vector<std::uint32_t> before, expected, actual;
+    snapshot(before);
+    s_originalLimitSteep(self, nullptr, x0, x1, y0, y1);
+    snapshot(expected);
+    restore(before);
+    self->LimitSteepCells(x0, x1, y0, y1);
+    snapshot(actual);
+    int differences = 0;
+    for (std::size_t i = 0; i < actual.size(); ++i)
+        if (actual[i] != expected[i]) ++differences;
+    ei::verify::Check("CAIMap::LimitSteepCells", 0, differences, "[%d,%d]x[%d,%d]", x0, x1, y0, y1);
+}
+EI_VERIFY(0x005B8710, LimitSteepCellsVerify, 6, s_originalLimitSteep);

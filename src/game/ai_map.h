@@ -320,6 +320,11 @@ public:
     // level and its height in AI units: from the terrain type, water depth and the occluders over
     // the cell (cost and damping), looked up in the mark table 00791164. `scratch` gets the state.
     std::uint32_t CellMark(void* scratch, int level, int levelHeight, int x, int y);
+    // 005B8710 (RET 0x10; ai_refresh.cpp). Refresh's second pass over [x0, x1] x [y0, y1] (kept 2
+    // cells from the border): a cell whose step to a direct neighbour exceeds what size class 0
+    // can climb becomes impassable, one beyond the larger classes keeps only class 0; either way
+    // nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared.
+    void LimitSteepCells(int x0, int x1, int y0, int y1);
 
     CRegionMap* Regions() { return reinterpret_cast<CRegionMap*>(regions); }
 

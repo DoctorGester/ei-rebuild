@@ -323,5 +323,56 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
 
 #pragma float_control(pop)
 
+namespace {
+// 007916BC: 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells
+// whose nibble 7 a steep cell clears.
+struct CellOffset {
+    int dy, dx;
+};
+const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(0x007916BC); }
+
+// The largest climbable step of a climb table: the run of non-negative costs from the middle,
+// less one.
+int MaxStep(const ClimbTable& table) {
+    int n = 0;
+    while (table.costs[table.count / 2 + n] > -1) ++n;
+    return n - 1;
+}
+} // namespace
+
+void CAIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
+    if (x0 < 2) x0 = 2;
+    if (y0 < 2) y0 = 2;
+    if (width - 3 < x1) x1 = width - 3;
+    if (height - 3 < y1) y1 = height - 3;
+    int maxLarge = MaxStep(climbLarge);
+    int maxSmall = MaxStep(climbSmall);
+    const CellOffset* offsets = SteepOffsets();
+    for (int y = y0; y <= y1; ++y)
+        for (int x = x0; x <= x1; ++x) {
+            int here = cells[y][x].groundLevel;
+            int steepest = 0;
+            int k = 0;
+            for (; k < 4; ++k) {
+                int d = cells[y + offsets[k].dy][x + offsets[k].dx].groundLevel - here;
+                if (d < 0) d = -d;
+                if (d > steepest) {
+                    steepest = d;
+                    if (d > maxSmall) break;
+                }
+            }
+            // k is the neighbour that broke the loop, or 4 (the first of the 13) when none did.
+            if (steepest > maxSmall)
+                CellWord(this, x, y) = 0;
+            else if (steepest > maxLarge)
+                CellWord(this, x, y) &= 0xF;
+            else
+                continue;
+            CellWord(this, x + offsets[k].dx, y + offsets[k].dy) &= 0xF00FFFFF;
+            for (int i = 4; i < 17; ++i) CellWord(this, x + offsets[i].dx, y + offsets[i].dy) &= 0x0FFFFFFF;
+        }
+}
+
 EI_REPLACE_METHOD(0x005B8FA0, CAIMap::RefreshArea);
 EI_REPLACE_METHOD(0x005B8BA0, CAIMap::CellMark);
+EI_REPLACE_METHOD(0x005B8710, CAIMap::LimitSteepCells);
