@@ -9,6 +9,7 @@
 
 #include "../../src/game/combat.h"
 #include "../../src/game/combat_plan.h"
+#include "combat_verify_util.h"
 
 #include <cstring>
 #include <vector>
@@ -74,12 +75,19 @@ EI_VERIFY(0x00548FA0, PlayEmoteOrderVerify, 0, s_unused);
 using BuildIdleFn = void(__fastcall*)(CUnitServer*, void*, AnimationSteps*);
 static BuildIdleFn s_buildIdle;
 static void __fastcall BuildIdleVerify(CUnitServer* self, void*, AnimationSteps* steps) {
+    // The animation lookup (005301B0 -> 00519380) may pick an entry with rand(): both runs start
+    // from the same generator state, which is compared too.
+    combatverify::RandomState before, mine, theirs;
+    before.Save();
     self->BuildIdle(steps);
+    mine.Save();
     StepsCopy ours;
     ours.Take(steps);
+    before.Restore();
     s_buildIdle(self, nullptr, steps);
-    ei::verify::Check("CUnitServer::BuildIdle", true, ours.SameAs(steps), "unit %d, %d steps (original %d)", UnitId(self),
-                      ours.count, steps->count);
+    theirs.Save();
+    ei::verify::Check("CUnitServer::BuildIdle", true, ours.SameAs(steps) && mine.SameAs(theirs),
+                      "unit %d, %d steps (original %d)", UnitId(self), ours.count, steps->count);
 }
 EI_VERIFY(0x00550D90, BuildIdleVerify, 5, s_buildIdle);
 
@@ -105,12 +113,17 @@ EI_VERIFY(0x005474B0, PlayIdleVerify, 0, s_unused);
 using BuildMoveFn = void(__fastcall*)(CUnitServer*, void*, AnimationSteps*, int);
 static BuildMoveFn s_buildMove;
 static void __fastcall BuildMoveStepsVerify(CUnitServer* self, void*, AnimationSteps* steps, int once) {
+    combatverify::RandomState before, mine, theirs;   // as BuildIdle: the lookup may draw rand()
+    before.Save();
     self->BuildMoveSteps(steps, static_cast<char>(once));
+    mine.Save();
     StepsCopy ours;
     ours.Take(steps);
+    before.Restore();
     s_buildMove(self, nullptr, steps, once);
-    ei::verify::Check("CUnitServer::BuildMoveSteps", true, ours.SameAs(steps), "unit %d, once %d, %d steps (original %d)",
-                      UnitId(self), once & 0xFF, ours.count, steps->count);
+    theirs.Save();
+    ei::verify::Check("CUnitServer::BuildMoveSteps", true, ours.SameAs(steps) && mine.SameAs(theirs),
+                      "unit %d, once %d, %d steps (original %d)", UnitId(self), once & 0xFF, ours.count, steps->count);
 }
 EI_VERIFY(0x005511A0, BuildMoveStepsVerify, 5, s_buildMove);
 

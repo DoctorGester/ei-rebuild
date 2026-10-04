@@ -481,6 +481,14 @@ public:
     // wanted weapon and, unless turning, plays the idle animation (a random phase on an empty
     // queue) and turns (state 2).
     void ResyncWithUnit();
+    // combat_taming.cpp. 00551AE0. A tame attempt by `tamer` with `roll`: above 10 x slot 39 plus
+    // the taming skill (stats value 2) it moves the unit a stage along (+0x908: 1 not hostile to
+    // the tamer's side, 2 on that side, 3 in the tamer's party with a tamed mode); a unit with a
+    // player or a failed roll is attacked instead (taming by that side undone). 0/1.
+    BOOL TryTame(CUnit* tamer, float roll);
+    // 00552280. Undoes the taming: the tamed mode (8) removed, no player, all relations, the old
+    // side back (from stage 2), stage 0.
+    void UndoTaming();
     // combat_update.cpp. 005528F0. Rebuilds the armour spell list (+0x91C) from the items the
     // unit wears (weapons only the one in use) whose spell is periodic (+0x3C bit 0x20000): kept
     // entries keep their countdown, new ones start at 0, entries of items no longer worn go.
