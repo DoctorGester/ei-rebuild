@@ -313,6 +313,21 @@ static CRegionMap* __fastcall ConstructRegionMapVerify(CRegionMap* self) {
 EI_VERIFY(0x005AF3D0, ConstructRegionMapVerify, 0, s_unusedAttach);
 
 namespace {
+using SuitsFn = bool(__fastcall*)(CRegionMap*, void*, int, int, int, int, int);
+SuitsFn s_originalSuits;
+}
+
+// 005AF7B0: reads the map through the local search (reset afterwards); the original, then ours.
+static bool __fastcall CellSuitsVerify(CRegionMap* self, void*, int sizeClass, int bx, int by, int xx, int yy) {
+    bool expected = s_originalSuits(self, nullptr, sizeClass, bx, by, xx, yy);
+    bool result = self->CellSuitsBlockAt(sizeClass, bx, by, xx, yy);
+    ei::verify::Check("CRegionMap::CellSuitsBlockAt", expected, result, "class %d block (%d,%d) cell (%d,%d)", sizeClass,
+                      bx, by, xx, yy);
+    return result;
+}
+EI_VERIFY(0x005AF7B0, CellSuitsVerify, 7, s_originalSuits);
+
+namespace {
 using NearbyFn = void(__fastcall*)(CRegionMap*, void*, int, bool, int, int, BlockCostList*);
 NearbyFn s_originalNearby;
 
