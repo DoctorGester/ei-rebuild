@@ -81,6 +81,28 @@ static bool __fastcall WearArmourModelVerify(CUnitClientSpecific* self, void*, s
 }
 EI_VERIFY(0x005381B0, WearArmourModelVerify, 0, s_unused);
 
+// 005385A0. Ours only (changes the figure): an invalid slot or id gives false and leaves the slots
+// alone; a valid one is emptied (only that slot changes), and false then only comes from armour
+// slots 0-2, the ones that look up the unit's figure.
+static bool __fastcall RemoveArmourModelVerify(CUnitClientSpecific* self, void*, std::uint32_t slot) {
+    std::uint32_t before[7];
+    std::memcpy(before, self->armourIds, sizeof(before));
+    bool result = self->RemoveArmourModel(slot);
+    std::uint32_t id = slot < 7 ? before[slot] : 0xFFFFFFFFu;
+    bool valid = id != 0xFFFFFFFFu && (id >> 16) != 0xFFFF && (id & 0xFFFF) != 0xFFFF;
+    bool ok;
+    if (!valid) {
+        ok = !result && std::memcmp(before, self->armourIds, sizeof(before)) == 0;
+    } else {
+        before[slot] = 0xFFFFFFFFu;
+        ok = std::memcmp(before, self->armourIds, sizeof(before)) == 0 && (result || slot <= 2);
+    }
+    ei::verify::Check("CUnitClientSpecific::RemoveArmourModel", true, ok, "slot %u item %08X result %d", slot, id,
+                      result);
+    return result;
+}
+EI_VERIFY(0x005385A0, RemoveArmourModelVerify, 0, s_unused);
+
 // 00536670. Ours only (creates a texture): counted.
 static void* __fastcall ComposeSkinVerify(CUnitClientSpecific* self, void*, int detailed, void* target) {
     void* result = self->ComposeSkin(detailed, target);

@@ -1,0 +1,138 @@
+#pragma once
+
+// The records of the units database (units.udb, loaded at startup by 0053A200 into the tables at
+// 007AF358: prototypes, 007AF378 NPCs, 007AF398 models, 007AF3B8 skill levels) and how each one
+// is read from / written to the tagged-chunk archive (model.h, ChunkArchive). Names provisional;
+// the field ids are the archive's. See docs/notes/units.md ("Database records").
+
+#include "lib/mfc.h"
+
+#include <cstddef>
+#include <cstdint>
+
+class ChunkArchive;
+
+// An STLport vector<CString> (0xC bytes); 0052DF40 serialises it as chunk `id` holding one field
+// 1 per string.
+struct CStringVector {
+    mfc::CString* begin;
+    mfc::CString* end;
+    mfc::CString* endOfStorage;
+};
+static_assert(sizeof(CStringVector) == 0xC);
+
+// A unit prototype (0x120 bytes, table 007AF358). Fields whose meaning is known are named after
+// what the statistics builders (unit_create_stats.cpp) make of them.
+struct UnitPrototypeRecord {
+    // 0052D740 (RET 4). Reads (archive loading) or writes the record's fields.
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString name;              // +0x00 field 0
+    mfc::CString modelName;         // +0x04 1
+    int modelIndex;                 // +0x08 2 (0053A200 replaces it by the model's index)
+    int skin;                       // +0x0C 3
+    int hair;                       // +0x10 4 (-1: none)
+    float scale[3];                 // +0x14 5, 6, 7
+    std::uint32_t unknown_20;       // 0x22
+    std::uint32_t unknown_24;       // 0x23
+    std::uint32_t unknown_28;       // 0x25
+    std::uint32_t unknown_2C;       // 0x26
+    std::uint32_t unknown_30;       // 0x28
+    mfc::CString unknown_34;        // 8
+    std::uint8_t unknown_38[0x10];  // not serialised
+    float hitPoints;                // +0x48 9
+    float mana;                     // +0x4C 10
+    std::uint32_t unknown_50;       // 0x29
+    std::uint32_t unknown_54;       // 0x2B
+    float protectionScale;          // +0x58 11
+    std::uint32_t unknown_5C;       // 12 (-> statistics +0x8C)
+    float speed;                    // +0x60 13
+    float combat[5];                // +0x64 14, 15, 0x24, 16, 17
+    std::uint32_t naturalWeapon;    // +0x78 0x12
+    std::uint32_t unknown_7C;       // 0x27
+    float damage;                   // +0x80 0x13
+    float damageSpread;             // +0x84 0x14
+    std::uint32_t skillLevel;       // +0x88 0x15
+    std::uint32_t attributes01;     // +0x8C 0x16
+    std::uint32_t attribute2;       // +0x90 0x17
+    std::uint32_t unknown_94;       // 0x18 (-> statistics +0x48)
+    float valuesB0[6];              // +0x98 0x19
+    float valuesE0[6];              // +0xB0 0x1A
+    std::uint32_t unknown_C8[4];    // chunk 0x1B, fields 0..3
+    std::uint32_t unknown_D8[4];    // chunk 0x1C (0052D6A0: fields 0..3)
+    CStringVector unknown_E8;       // 0x1D
+    float skills3to5[3];            // +0xF4 0x1E
+    CStringVector unknown_100;      // 0x1F
+    CStringVector unknown_10C;      // 0x20
+    mfc::CString unknown_118;       // 0x21
+    mfc::CString unknown_11C;       // 0x2A
+};
+static_assert(offsetof(UnitPrototypeRecord, unknown_34) == 0x34);
+static_assert(offsetof(UnitPrototypeRecord, hitPoints) == 0x48);
+static_assert(offsetof(UnitPrototypeRecord, naturalWeapon) == 0x78);
+static_assert(offsetof(UnitPrototypeRecord, valuesB0) == 0x98);
+static_assert(offsetof(UnitPrototypeRecord, unknown_E8) == 0xE8);
+static_assert(offsetof(UnitPrototypeRecord, unknown_118) == 0x118);
+static_assert(sizeof(UnitPrototypeRecord) == 0x120);
+
+// One of a model's six body slots (0x10 bytes; 0052D6F0 serialises it as fields 0..3 of chunk
+// 0x0C + slot): the skill level record's name, its index (0053A200 resolves the name), the slot's
+// share and factor.
+struct UnitModelSlot {
+    mfc::CString levelName;         // +0x00
+    int levelIndex;                 // +0x04
+    float share;                    // +0x08
+    float factor;                   // +0x0C
+};
+static_assert(sizeof(UnitModelSlot) == 0x10);
+
+// A unit model (0x168 bytes, table 007AF398).
+struct UnitModelRecord {
+    // 0052DC70 (RET 4). Reads (archive loading) or writes the record's fields.
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString name;              // +0x00 field 0
+    int objectClass;                // +0x04 1 (00513240)
+    float hitPointRegen;            // +0x08 2
+    float manaRegen;                // +0x0C 3
+    std::uint32_t unknown_10;       // 4
+    std::uint32_t unknown_14;       // 5 (-> statistics +0x60)
+    float angle;                    // +0x18 6 (degrees)
+    std::uint32_t modeSpeeds[4];    // +0x1C 7
+    std::uint32_t unknown_2C[6];    // 0x24
+    std::uint32_t unknown_44;       // 8 (-> statistics +0x64)
+    std::uint32_t sizeClass;        // +0x48 9
+    std::uint32_t sizeClassSmall;   // +0x4C 10
+    std::uint32_t damageWeights[7]; // +0x50 11
+    float protection[7];            // +0x6C 0x27
+    UnitModelSlot slots[6];         // +0x88 chunks 0x0C..0x11
+    mfc::CString unknown_E8;        // 0x1E
+    CStringVector unknown_EC;       // 0x1F
+    CStringVector unknown_F8;       // 0x20
+    float height;                   // +0x104 0x21 (the object stands this much lower)
+    std::uint32_t unknown_108;      // 0x28
+    std::uint32_t unknown_10C;      // 0x2A
+    std::uint32_t unknown_110;      // 0x2B
+    std::uint32_t unknown_114;      // 0x29
+    mfc::CString unknown_118;       // 0x2C
+    std::uint8_t unknown_11C;       // 0x2D (one byte)
+    std::uint8_t unknown_11D[3];
+    std::uint32_t unknown_120;      // 0x2E
+    mfc::CString unknown_124;       // 0x22
+    std::uint8_t unknown_128[0x10]; // not serialised
+    CStringVector soundNames;       // +0x138 0x23 (0053A8E0 counts the .wav files of each)
+    std::uint8_t unknown_144[0xC];  // a vector of the counts; not serialised
+    std::uint32_t unknown_150;      // 0x25
+    std::uint32_t unknown_154;      // 0x26
+    std::uint32_t unknown_158;      // 0x2F
+    std::uint32_t unknown_15C;      // 0x30
+    std::uint32_t unknown_160;      // 0x31
+    std::uint32_t unknown_164;      // 0x32
+};
+static_assert(offsetof(UnitModelRecord, damageWeights) == 0x50);
+static_assert(offsetof(UnitModelRecord, slots) == 0x88);
+static_assert(offsetof(UnitModelRecord, unknown_E8) == 0xE8);
+static_assert(offsetof(UnitModelRecord, height) == 0x104);
+static_assert(offsetof(UnitModelRecord, unknown_124) == 0x124);
+static_assert(offsetof(UnitModelRecord, soundNames) == 0x138);
+static_assert(sizeof(UnitModelRecord) == 0x168);

@@ -740,3 +740,122 @@ are clamped to [0, states - 1]. Then, when the world is live (slot 26), the foll
 5. Every lifted unit that cannot stay in its cell is moved to a free cell
    (FindFreeCellNear) and its controller resynced (00554450) before it goes back.
 
+# Fifth round (U3): database records, the packed weapon skill, armour removal, magic traps
+
+Code: `src/game/unit_db.h/.cpp` (new), `src/game/unit_params_skill.cpp` (new),
+`src/game/magic_trap.h/.cpp` (new), `src/game/unit_client_models.cpp` (RemoveArmourModel added).
+Verify: `tests/verify/verify_unit_db.cpp`, `verify_unit_params_skill.cpp`, `verify_magic_trap.cpp`
+(new), `verify_unit_client_models.cpp` (one wrapper added). Shared headers, additive only: `unit.h`
+(UnitParams::WeaponSkillBonus), `unit_client_models.h` (RemoveArmourModel).
+
+Picked as the largest live game-logic functions of the range not yet rewritten. Skipped on the way:
+00534B60 / 00537500 / 00534760 (excluded by the ticket), 00510B80 (map objects' spell effect
+particles: effect-adjacent like 00534B60), 005341A0 (CUnitClientSpecific slot 6, the client tick: it
+queues speech through 005380D0 / 006B8250 and checks sound handles, audio-adjacent), 0053A8E0
+(counts each model's .wav files), 005179E0 / 00516DA0 / 0051C3D0 / 005370F0 (figure loading and
+bounds, wound textures: renderer side), 005114D0 (spell effect sounds), 0051FF40 (saves perks.pdb,
+no callers), 0053F530 / 0053FCC0 / 0053F950 / 00520FA0 / 00521220 / 0053E2A0 (STLport vector
+insert / resize instantiations). Next candidates: 0052DA60 (the NPC record's serialiser, same
+pattern), 00538960 (the client's GetAttackParams).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00527850 | UnitParams::WeaponSkillBonus (RET 8: type, weapon prototype record or null) | pure: original and ours, doubles within a few ULPs |
+| 0052D740 | UnitPrototypeRecord::Serialize (RET 4: archive) | loading: ours into the record, its fields taken, then the original reads the same record again; bytes (CString / vector slots left out) and a digest of every string compared. Writing: ours only |
+| 0052DC70 | UnitModelRecord::Serialize (RET 4) | the same |
+| 005385A0 | CUnitClientSpecific::RemoveArmourModel (slot 27, RET 4: armour slot; AL) | ours only: an invalid slot / id gives false and no slot changes; a valid one empties exactly that slot, false only for armour slots 0-2 |
+| 0052A680 | MagicTrap::UpdateVictims (no arguments) | ours only: the list of units inside well formed (links, tail, count), no unit twice; when not armed every entry alive and inside a circle |
+
+All five renamed in Ghidra, with 00538960 CUnitClientSpecific::GetAttackParams, 0053A200
+UnitDatabase::Load, 0052AC20 MagicTrap::Update, 0052A920 MagicTrap::FindVictims, 0052A4B0
+MagicTrap::CastAtUnits. None of them or their callees is on the Rebirth list.
+
+## Database records
+
+`units.udb` (in the database resource) is loaded once at startup by 0053A200 (UnitDatabase::Load)
+through the tagged-chunk archive: chunk 1 the skill levels (0x44 records, 0053E1B0, table 007AF3B8),
+2 the models (0x168, 0053DF50 -> 0052DC70, table 007AF398), 3 the prototypes (0x120, 0053DC10 ->
+0052D740, 007AF358), 4 the NPCs (0x60, 0053DD00 -> 0052DA60, 007AF378); each record is a chunk 1
+picked by its occurrence. Afterwards each name index (hash_map) is filled, a prototype's +0x08
+becomes the index of the model named by +0x04, and each model slot's +0x04 the index of the skill
+level record named by its +0x00. The serialisers call the archive's field / CString field / enter /
+leave (004092B0 / 004093A0 / 004098D0 / 00409980, rewritten in chunk_archive.cpp, called through
+their addresses) in the original's order (the order matters when writing). The record layouts
+(unit_db.h) name what the statistics builders read; the rest are `unknown_XX` with their field ids.
+Bytes 0x38..0x47 of a prototype and 0x128..0x137 / 0x144..0x14F of a model are not serialised.
+
+Every scenario reaches both serialisers at startup (several hundred records); the writing direction
+is not used by the game.
+
+## Weapon skill on the packed parameters (00527850)
+
+The client's GetAttackParams (CUnitClientSpecific slot 50, 00538960) computes the attack figures of
+party units for the interface (the unit panel, the statistics page) from the packed parameters
+(CUnit + 0x330) and the weapon in hand; for text-key units holding a weapon it adds this function's
+result to two weapon stats. It is UnitStats::WeaponSkillBonus (00526C70) on the packed bytes: types
+0-4 use skill 0 and the weapon prototype's +0x7B, 5-6 skill 1 and +0x7C, each plus the stat named by
+the skill's first letter ('s' +0x0C, 'd' +0x0D, 'i' +0x0E) minus 25 and the level value of skill
+`type` (the record at type * 3 - 1 + level; the unsigned +0x34 loaded as a qword). Type 8 uses skill
+0 and +0x7B without a level value; other types give 0. Types 0-4 keep the level value on the FPU,
+5-6 store it to a float first; the other terms are small integers (exact). Plain C++ (rule 7).
+Reached only when the interface shows a party unit holding a weapon; no scenario is known to do
+that, the verify count shows it.
+
+## Armour removal (005385A0)
+
+The counterpart of WearArmourModel (slot 26): armour slot `slot` (0 helmet -> part row 2, 1 body ->
+row 0, 2 trousers -> row 1; slots 3-6 have no parts) is emptied, then for each part name of the row
+(the hair as "hr.<hair>", skipped for a prototype without hair) the figure's parts of that name
+(00516B50, an aligned array freed with the block at data[-1]) are removed and the plain part added
+from the unit's model (00517240 with the unit's flags_ & 0x80), except when there is exactly one and
+it is already the plain part. Unlike WearArmourModel it removes before adding. No scenario is known
+to take armour off a party unit (Rebirth's GiveUnitArmor refuses text-key units); the verify count
+shows whether one does.
+
+## Magic traps
+
+Class id 0x3B (0x290 bytes, vtable 0073E63C, constructor 00529DD0). Its update (slot 6, 0052AC20)
+runs CMapObject::Update, then, when the world is live and the trap has a spell (+0x23C): with a
+period (+0x284) below 1, UpdateVictims; otherwise it counts +0x288 down and casts at its points when
+it runs out (0052AB30). UpdateVictims:
+1. Each unit in the inside list (+0x268, an MFC CList of counted references) is kept only if it is
+   inside a circle of the area (+0x244 / +0x248, {x, y, radius}: r * r > dx * dx + dy * dy on x and
+   y; NaN is outside) and alive (CUnit slot 55 returns 0); the first circle that holds it decides.
+   Dropped nodes are unlinked inline and freed through 0052CE20 (which releases the reference).
+2. An armed trap (flags_ 0x80000, the script's ActivateTrap) asks 0052A920 (fastcall: the map
+   object context in ECX, the area in EDX, then the side mask +0x238 and the output list) for the
+   living units of its sides in the circles. Each one not yet inside is appended (0052CDB0, then
+   the counted assignment 0052A8F0) and put on a list of newcomers; when there are newcomers the
+   spell is cast (0052A4B0: at the trap's points, or at the newcomers, or with +0x28C at the one
+   last found close to the trap). Both stack lists are MFC CPtrLists (vtable 0073D454) freed with
+   0052CA10.
+
+No magic trap is known on zone1; the verify count shows whether a scenario reaches one.
+
+## Forwarders added (fifth round; the standalone build must replace these)
+
+- 0052DF40 (a vector<CString> as a chunk), 0052D6A0 (four dwords), 0052D6F0 (a model slot); the
+  archive primitives 004092B0 / 004093A0 / 004098D0 / 00409980 (rewritten, through their addresses).
+- 00516B50 (a 3D object's figure parts by name); FindModel 005AA5F0, AddPart 00517240 and RemovePart
+  005167E0 were already forwarders of unit_client_models.cpp.
+- The trap's: 00455940 (ManagerContext, rewritten), 0052A920, 0052A4B0, 0052CDB0, 0052CE20,
+  0052A8F0, 0052CEF0, 0052CA10.
+
+## Original bugs and oddities kept (fifth round)
+
+- RemoveArmourModel empties the slot before looking up the figure, so an unknown figure returns false
+  with the slot already empty; the hair lookup reads the prototype record without a range check.
+- UnitParams::WeaponSkillBonus reads the level byte at +0xE3 + type for any type below 5, negative
+  ones too, and the skill table's first / second record without a check.
+- UpdateVictims tests only x and y against the circles, while 0052A920 finds the newcomers through
+  the sector map.
+
+## Risks (fifth round)
+
+- The serialisers run for every record at startup: a mistake shows at once as mismatches, and the
+  record keeps the original's reading either way. Their verify relies on loading being repeatable
+  (fields found by id, the archive left as it was; 0052DF40 empties and refills the vectors).
+- RemoveArmourModel and UpdateVictims are checked for consistency only and may not be reached by
+  any scenario; UnitParams::WeaponSkillBonus only when the interface shows a party unit holding a
+  weapon.
+

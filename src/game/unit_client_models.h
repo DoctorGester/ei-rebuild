@@ -62,6 +62,14 @@ public:
     // (AL) for an invalid id, an armour slot beyond 6 or an unknown figure; true otherwise.
     bool WearArmourModel(std::uint32_t itemId);
 
+    // 005385A0. Virtual slot 27: the unit takes off the armour in armour slot `slot`. The slot is
+    // emptied; for a body armour, trousers or helmet each part of its group is put back plain
+    // (the hair as "hr.<hair>", skipped without hair): the figure's parts of that name are
+    // removed and the plain part added, unless it is the only one and already plain. False (AL)
+    // for a slot beyond 6, an empty or invalid id, or an unknown figure (the slot is emptied
+    // then too); true otherwise.
+    bool RemoveArmourModel(std::uint32_t slot);
+
     // 00536300. The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour
     // slots; else two layers, armour slot 0 and the weapon in hand.
     void BuildSkinLayers(int detailed, SkinLayerArray* out);

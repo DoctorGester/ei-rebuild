@@ -134,6 +134,67 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
 }
 EI_REPLACE_METHOD(0x005381B0, CUnitClientSpecific::WearArmourModel);
 
+namespace {
+// The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
+// data[-1]), as SkinRequest's layers.
+struct PartArray {
+    CEngineObject** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+// 00516B50 (not rewritten). 3D object: every figure part named `name`, into `out`.
+__declspec(naked) void __fastcall FindParts(CUnit*, void*, const char*, PartArray*) EI_ORIGINAL(0x00516B50)
+
+int CompareNames(const char* a, const char* b) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
+} // namespace
+
+bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
+    if (slot >= 7) return false;
+    std::uint32_t itemId = armourIds[slot];
+    if (itemId == kNone) return false;
+    if ((itemId >> 16) == 0xFFFF || (itemId & 0xFFFF) == 0xFFFF) return false;
+    armourIds[slot] = kNone;
+    int row = RowOfSlot(static_cast<int>(slot));
+    if (row < 0) return true;
+
+    void* model;
+    {
+        stlp::string name(unit->prototypeName);
+        model = FindModel(FigureManager(), nullptr, &name);
+    }
+    if (!model) return false;   // the slot stays cleared
+    for (int i = 0; i < 7; ++i) {
+        const char* plain = ArmourPartNames()[row][i];
+        if (!plain[0]) break;
+        mfc::CString part(plain);
+        if (CompareNames(part, kHair) == 0) {
+            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18),
+                                                             unitdb::kPrototypeSize);
+            int hair = Field<int>(prototype, kPrototypeHair);
+            if (hair == -1) continue;
+            part.Format(Text(0x0078FB0C), hair);   // "hr.%.2d"
+        }
+        PartArray parts{nullptr, 0, 0, 0};
+        FindParts(unit, nullptr, part, &parts);
+        if (parts.size == 1) {
+            // One part of that name: replaced only when it is not the plain part already.
+            if (CompareNames(part, parts.data[0]->GetName()) != 0) {
+                RemovePart(unit, nullptr, parts.data[0]);
+                AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+            }
+        } else {
+            for (int k = 0; k < parts.size; ++k) RemovePart(unit, nullptr, parts.data[k]);
+            AddPart(unit, nullptr, part, model, FiguresFlag(unit));
+        }
+        if (parts.data) gamecrt::operator_delete(reinterpret_cast<void**>(parts.data)[-1]);
+    }
+    return true;
+}
+EI_REPLACE_METHOD(0x005385A0, CUnitClientSpecific::RemoveArmourModel);
+
 void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
                                        stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames) {
