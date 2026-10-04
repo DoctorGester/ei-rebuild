@@ -504,3 +504,49 @@ Forwarders: 00450750, 00447F50, 0044A2A0, 00453A30, 004553F0, 00454360, 00453C60
 006E88FC (corners); 00452C40, 00452DA0, 00452D80, 00452C20, 00452DC0, 00452E20, 00452DF0, 0044F7E0,
 0044F1D0, 0044F410, 0044F540, 0044A230, 00448A10, 0040CDC0, 00506710 (bones); the registry 00694520 / 00694540 / 006945A0 / 00694880 / 00694BE0 / 00694D20 / 006946B0
 (rewritten in registry.cpp, called through their addresses).
+
+## Sixth round: 00440000-00480000 (scene, fake unit, lightning, zone records)
+
+Part of the 0x00440000-0x00480000 worker's round; the application, network and table functions of
+the range are in unmapped_410_470.md ("Ninth round"). Plain float maths (rule 7) throughout.
+
+### Rewritten
+
+| Address | File | What |
+| --- | --- | --- |
+| 0044C4A0 | scene_weld.cpp | the scene's vertex welding (LinkNodes) |
+| 0044DCF0, 0044E3B0, 0044E8A0 | scene_normals.cpp | normals, packed positions (PlaceMeshes), mesh bounds |
+| 0044EB60 | scene_bone_frames.cpp | skeleton frames made relative to the parent bones |
+| 00448A40, 00449240 | scene_skeleton.cpp | the skeleton from the nodes and the root bone |
+| 00449030, 004491C0 | scene_skeleton.cpp | the node hierarchy (children at node +0x10C: nodes whose parent name, +8, equals the node's name, +4; _mbscmp), the root (the last node with an empty parent name) and the rest pose copy (pivot +0x70 -> +0x8C, rotation +0x7C -> +0x98) from the root's children down |
+| 0044A2A0 | scene_material.cpp | the material name parser |
+| 004466D0, 00446910, 004468F0, 00446B20, 00446BA0, 004468E0 | fake_unit.cpp | CFakeUnit (0073BFE8): constructor, destructor, deleting destructor, Destroy (slot 3), the scene load (slot 62: 00446C10, then each figure gets a class 0x45 object from the world's slot-21 manager, 0059F390), class id |
+| 00453450-0044C480 (11) | figure_slots.cpp | CFigure / CFakeFigure class names and ids, destructors, clearing constructors |
+| 0044F1B0-00454A30, 00474C80, 00475F40, 00476DD0 | aligned_arrays.cpp | the engine's plain-element arrays in 32-byte aligned blocks (SetSize, Add, SetAtGrow, copy, allocation, destructors), one template per operation |
+| 004680D0, 00467AD0, 00467590, 00468680, 00468810 | lightning_start.cpp, lightning_draw.cpp | the bolt's start, its drawing and glow, the manager's bolt factory, the bolt's destructor body (lightning.h: `Start` declared) |
+| 00461CB0 | hoover_loot.cpp | a dead unit's loot |
+| 00469CA0-0046E490 | map_spec.cpp, map_spec_unit.cpp, map_spec_effect.cpp | the zone file's records (map_spec.h): base, object, flame, magic trap, lever, unit (with behaviours, patrols, waypoints), particle source, light, sound; their chunk readers / writers |
+| 0046A4B0, 0046E5E0 | map_spec.cpp | the editor's quaternion rotation; the zone's diplomacy table constructor |
+| 00458DA0, 00458730 | options_defaults.cpp | the options' defaults and destructor |
+
+### Verify wrappers
+
+verify_scene_weld, verify_scene_normals, verify_scene_bone_frames, verify_scene_skeleton,
+verify_scene_material, verify_lightning_start, verify_lightning_draw, verify_hoover_loot,
+verify_map_spec, verify_options_defaults (differential: the defaults' bytes and strings),
+verify_aligned_arrays (one instantiation per template), verify_fake_unit (ours only: the vtable and
+four empty arrays after construction; the figures emptied by Destroy).
+
+### Original behaviour kept
+
+- 00449030: without a root node (-1) the original copies the rest pose of the element before the
+  node array and walks its children; kept.
+- CFakeUnit's destructor walks the figure array after SetSize(0, -1) (so never) dropping each
+  figure's count at +4; kept as written.
+
+### Classified as library
+
+The CArray / CMap members around the animation and figure loaders, ConstructElements with inlined
+element constructors (00453240, 004545C0, 00454F80), CArray::ElementAt 00450750, the scene
+loader's CArray Serialize / Add / SetAtGrow and CMap InitHashTable / operator[] (00476430,
+00476640, 004773F0, 00477270, 00476050).
