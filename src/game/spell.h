@@ -32,7 +32,7 @@ public:
     int GetDamageType();
 
     // 0068B770. True for the attack spells (prototype indices 0-8, 0x11, 0x13, 0x19, 0x1E, 0x20,
-    // 0x22, 0x24, 0x26). Name provisional.
+    // 0x22, 0x24, 0x26; with Rebirth's FixSpellSelfCasting also 0x28 and 0x29). Name provisional.
     bool IsOffensive();
 
     // 0068B4C0. Whether the spell may affect `target` when cast by `caster` (either may be null),

@@ -40,6 +40,9 @@
 //   quit                      write the report and exit the game through the console
 //   deterministic             virtual game clock, fixed seeds: runs repeat exactly (see below)
 //   vanilla <step>, rebirth <step>   run the step only in that install
+//   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
+//                             or patch names, each optionally =0/=1. Read before the hooks are
+//                             installed; in a Rebirth launch the flags follow addon.dll anyway.
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
@@ -53,6 +56,7 @@
 #include "verify.h"
 
 #include "../../src/hook/log.h"
+#include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/game/ui.h"
 
@@ -713,7 +717,35 @@ DWORD WINAPI Watchdog(void*) {
     }
 }
 
+// The x87 control word of the calling thread (precision, rounding). The game runs its world on the
+// main thread at whatever precision Direct3D and the DLLs loaded later leave (24-bit in the vanilla
+// install, more under Rebirth): logged when it changes, to find out who changes it.
+unsigned short FpuControlWord() {
+    unsigned short cw;
+    __asm fnstcw cw
+    return cw;
+}
+void TraceFpu(const char* where) {
+    static unsigned short last = 0xFFFF;
+    static int changes = 0;
+    unsigned short cw = FpuControlWord();
+    if (cw == last) return;
+    if (++changes <= 20) Log("harness: FPU control word %04X (was %04X) %s", cw, last, where);
+    else if (changes == 21) Log("harness: FPU control word keeps changing; no more reports");
+    last = cw;
+}
+using AilStartupFn = int(WINAPI*)();
+AilStartupFn g_ailStartup;
+constexpr std::uintptr_t kAilStartupSlot = 0x0073B7D4;   // mss32.dll!_AIL_startup@0 (loads the *.asi)
+int WINAPI TracedAilStartup() {
+    TraceFpu("before AIL_startup");
+    int result = g_ailStartup();
+    TraceFpu("after AIL_startup (Miles loads the *.asi providers here: mp3dec.asi, EI_Plugin.asi)");
+    return result;
+}
+
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
+    TraceFpu("in the message loop");
     if (g_running && !g_inStep) {
         g_inStep = true;   // console commands can pump messages themselves
         RunSteps();
@@ -736,6 +768,11 @@ bool LoadScenario(const char* path) {
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
         if (g_steps.back().verb == "deterministic") {
             g_deterministic = true;
+            g_steps.pop_back();
+            continue;
+        }
+        if (g_steps.back().verb == "rebirthflags") {
+            ei::rebirth::QueueSpec(g_steps.back().argument.c_str());
             g_steps.pop_back();
             continue;
         }
@@ -789,6 +826,7 @@ struct Harness {
         CreateDirectoryA(g_savesDir, nullptr);
 
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
+        PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
         PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
         PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);
         PatchSlot(kDeleteFileASlot, &RedirectedDeleteFile, g_deleteFile);

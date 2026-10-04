@@ -62,6 +62,16 @@ public:
     // 6). Returns 1. CUnit's slot 6 (0052F7D0) calls it after its controller's update.
     int Update();
 
+    // 0050F1E0. Virtual slot 45: appends a copy of `effect` (the array grown by SetSize 0050FE70),
+    // marks part 3 changed and the object dirty (stamped with the world's +0x68 when referenced),
+    // then calls slot 33 with the argument's dword whose low byte says whether the effect scales
+    // the object (strengthen, weaken, enlarge, shrink), slot 46 (1) for the stun types 0x19 / 0x1C,
+    // slot 28, and slot 27 for a scaling effect. Returns what the last call leaves in EAX (its low
+    // byte 0 without slot 27). Rebirth's FixSpellEffectsOverflow keeps at most 20 effects (a 21st
+    // is dropped) and, for an effect lasting more than one tick, removes older ones of the same type,
+    // end flag and +0x0C (within 0.001) that last no longer and are no stronger.
+    std::uintptr_t AddEffect(const MapEffect* effect);
+
     // 0050F5B0. Removes every effect (frees the array), marks part 3 changed and calls slots 33
     // (1), 46 (0) and 27. Returns what slot 27 leaves in EAX.
     std::uintptr_t ClearEffects();

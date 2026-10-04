@@ -1,0 +1,61 @@
+# Rebirth's bug fixes in the rewritten code (include/ei/rebirth.h, docs/notes/rebirth.md), flags on.
+# Vanilla install: the rewrites that reproduce a fix and whose wrappers compare with the original run
+# without them (ei_hook.log: "UNVERIFIED ... the original does not have it"; the state-checking
+# wrappers of Move, LoadCommands and AddEffect still run), so this run checks that the game goes
+# through the changed code: the loading movie (FixProgressNames), spell effects added to the hero and a
+# wolf over and over (FixSpellEffectsOverflow: at most 20, older duplicates removed), casts and
+# attacks for the battle music test (FixPlaingBattleMusicFromAntimagic), the camp's prices
+# (FixRepairPrice). Rebirth install: the flags follow addon.dll and the wrappers compare with the
+# patched originals.
+rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+# The same buff eight times and three others: each AddEffect drops the older equal effect.
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("strength{d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("speed{d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("infravision{d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+console @CastSpellUnit("prot_fire{e1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
+wait 1000
+check IsAlive(GetLeader())
+
+# A wolf next to the hero, hit by spells (effects on a non-hero) and attacked: the hero's orders
+# go through the battle music test every update.
+console @AddUnitToServer("RWolf","WolfTutor","RWolf",Add(GetX(GetLeader()),4),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
+console @Attack(GetLeader(),GetObjectByName("RWolf"))
+wait 3000
+check IsAlive(GetLeader())
+
+# The camp (screen 5): the trade and repair pages price every item through slot 54.
+screen 5
+wait 2000
+clickregion 5
+wait 500
+clickregion 9
+wait 500
+clickregion 10
+wait 500
+clickregion 4
+wait 500
+key esc
+wait 2000
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit

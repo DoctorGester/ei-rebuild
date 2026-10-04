@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
 
@@ -305,6 +306,29 @@ void* CUnitServer::SpellOfSource(std::uint32_t source) {
     return item->spell_;
 }
 EI_REPLACE_METHOD(0x0054B880, CUnitServer::SpellOfSource);
+
+bool CUnitServer::IsFighting() {
+    if (action.kind == 4 || action.kind == 5) {
+        void* spell = nullptr;
+        if (action.source & kQuickItemSource) {
+            auto* item = static_cast<CItem*>(unit->GetQuickItem(action.source & ~kQuickItemSource));
+            if (item && item->GetClassId() == kClassQuickItem && (item->GetCategory() == 5 || item->GetCategory() == 8))
+                spell = item->spell_;
+        } else {
+            spell = unit->GetSpellObject(action.source);
+        }
+        if (spell) {
+            std::uint32_t type = static_cast<CSpell*>(spell)->unknown_18 >> 16;
+            if (type <= 8) return true;
+            // Rebirth's FixPlaingBattleMusicFromAntimagic: JMP over the 0x1A test.
+            if (type == 0x1A && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
+                return true;
+        }
+    }
+    return action.kind == 3;
+}
+EI_REPLACE_METHOD(0x0054B580, CUnitServer::IsFighting);
+EI_REBIRTH_IMPLEMENTS(0x0054B580, ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic);
 
 bool CUnitServer::CanCast(const UnitAction* order) {
     std::uint32_t source = order->source;

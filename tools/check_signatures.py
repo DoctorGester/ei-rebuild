@@ -36,9 +36,17 @@ def original_pops(data, md, address, size):
     """The set of n in RET n inside the function (0 for a plain RET)."""
     pops = set()
     off = address - 0x400000
+    prev = None
     for insn in md.disasm(data[off:off + size], address):
         if insn.mnemonic == 'ret':
-            pops.add(int(insn.op_str, 0) if insn.op_str else 0)
+            # A catch block (funclet) inside the function returns its continuation address with
+            # MOV EAX,<address in the function>; RET. That RET is not the function's own.
+            funclet = (not insn.op_str and prev is not None and prev.mnemonic == 'mov'
+                       and prev.op_str.startswith('eax, 0x')
+                       and address <= int(prev.op_str[5:], 16) < address + size)
+            if not funclet:
+                pops.add(int(insn.op_str, 0) if insn.op_str else 0)
+        prev = insn
     return pops
 
 
@@ -98,6 +106,10 @@ def stack_bytes(und):
     # pointer pushed after the arguments; the callee pops it with them (__thiscall, __stdcall).
     if conv in ('thiscall', 'stdcall') and re.search(r'(?:^|\s)class\s+[\w:<>, ]+?\s+__' + conv + r'\b', und):
         sizes.append(4)
+    # MSVC member functions return every struct or union through that pointer too, even a small POD
+    # such as SIZE that a free function would return in EDX:EAX.
+    elif conv == 'thiscall' and re.search(r'(?:^|\s)(?:struct|union)\s+[\w:<>, ]+?\s+__thiscall\b', und):
+        sizes.append(4)
     if None in sizes:
         return None
     if conv == 'fastcall':
@@ -133,12 +145,17 @@ def main():
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
                 glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')):
         text = open(path, encoding='utf-8', errors='replace').read()
+        # Blank out line comments and __declspec(...) (same length, so line numbers hold): otherwise
+        # "__declspec" or a word in a comment before a forwarder is taken as the function's name.
+        blank = lambda m: re.sub(r'[^\n]', ' ', m.group(0))
+        text = re.sub(r'//[^\n]*', blank, text)
+        text = re.sub(r'__declspec\(\s*\w+\s*\)', blank, text)
         rel = os.path.relpath(path, ROOT)
         for m in re.finditer(r'EI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'EI_VERIFY\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'verify', rel, text.count('\n', 0, m.start()) + 1))
-        for m in re.finditer(r'([\w:~]+)\s*\([^;{}]*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
+        for m in re.finditer(r'([\w:~]+)\s*\((?:(?!EI_ORIGINAL)[^;{}])*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
             regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))
 
     problems = checked = unresolved = 0

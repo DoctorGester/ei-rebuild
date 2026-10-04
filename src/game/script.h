@@ -227,7 +227,8 @@ public:
     BOOL LoadVariableDeclarations(struct ScriptDefinition* script, ScriptPos* pos,
                                   const ScriptTokenList* tokens, BOOL qualify);
     // 004D1330 (Rebirth patches it). Parses commands up to ')' into `commands`; null `locals`
-    // means an empty variable set (For bodies).
+    // means an empty variable set (For bodies; with Rebirth's AllowScriptArgsInLoops a For body
+    // gets the enclosing `locals`).
     BOOL LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens,
                       ScriptVars* locals);
     // 004D23A0. Loads a script text (the text is replaced by its #define-expanded form);
