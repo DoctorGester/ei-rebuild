@@ -137,12 +137,43 @@ struct DeferredMap {
 };
 static_assert(sizeof(DeferredMap) == 0x14);
 
+// The wave cache (006B89F0): a list of loaded waves, most recently used first, and a hash_map from
+// the wave name to its list node (CSoundManager + 0x870).
+struct WaveRecord {
+    void* data;                 // +0x00 Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
+    std::uint32_t name[3];      // +0x04 STLport string
+    std::uint32_t lastUsed;     // +0x10 GetTickCount()
+    std::int32_t size;          // +0x14 bytes
+    std::int32_t uses;          // +0x18 voices playing it (CacheEntry's +0x20 is this field of the node)
+};
+static_assert(sizeof(WaveRecord) == 0x1C);
+struct WaveNode {
+    WaveNode* next;
+    WaveNode* prev;
+    WaveRecord record;          // +0x08
+};
+static_assert(sizeof(WaveNode) == 0x24);
+struct WaveList {
+    std::uint32_t unknown0;
+    WaveNode* head;             // +0x04 (CSoundManager + 0x858)
+    WaveNode* tail;             // +0x08 (CSoundManager + 0x85C)
+};
+// An archive the waves are read from: vtable slot 5 loads a file [name, size out] (null when
+// missing), slot 6 frees what slot 5 returned.
+struct WaveSourceNode {
+    WaveSourceNode* next;
+    std::uint32_t unknown4;
+    void* source;               // +0x08
+};
+
 // CSoundManager (0x8C0 bytes, vtable 007440F0, class id 0xE). Only the fields used by the
 // rewritten code are named.
 struct CSoundManager {
     std::uint8_t base[0x1C];            // +0x000 CEngineObject
     void* waveDriver;                   // +0x01C HDIGDRIVER
-    std::uint8_t unknown020[0xE0];
+    std::uint8_t unknown020[0xC8];
+    struct WaveSourceNode* waveSources; // +0x0E8 list of the archives LoadSample looks in
+    std::uint8_t unknown0EC[0x14];
     // The MP3 music stream (+0x100, filled by 006BB3A0 on the stream thread 006BB910).
     volatile std::int32_t streamState;  // +0x100 0 idle, 1 playing, 2 switching to nextName
     void* streamSample;                 // +0x104 HSAMPLE
@@ -172,7 +203,9 @@ struct CSoundManager {
     SoundEmitter emitters[16];          // +0x26C
     std::uint32_t emitterTick;          // +0x5EC
     SoundSequence sequences[8];         // +0x5F0
-    std::uint8_t unknown850[0x20];
+    std::int32_t cacheBytes;            // +0x850 bytes held by the wave cache
+    WaveList cacheList;                 // +0x854 the cached waves, most recently used first
+    std::uint8_t unknown860[0x10];
     std::uint8_t cache[0x14];           // +0x870 hash_map<string, cached wave> (006BBDF0)
     DeferredMap deferred;               // +0x884
     std::int32_t enabled;               // +0x898
@@ -226,8 +259,11 @@ struct CSoundManager {
     int Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
                int speech);                                                               // 006B8600
     int Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
-               int cached);                                                              // 006B8250
-    int LoadSample(SoundSlot* slot, int index, const char* name, int cached);             // 006B89F0
+               int compressed);                                                          // 006B8250
+    // 006B89F0. Puts wave `name` into the voice (from the cache, or read from the archives; with
+    // `compressed` an MP3 decompressed through the ASI codec), sets its length, marks it playing
+    // and gives it a new handle. 0 when the wave is nowhere.
+    int LoadSample(SoundSlot* slot, int index, const char* name, int compressed);
 };
 static_assert(offsetof(CSoundManager, streamState) == 0x100);
 static_assert(offsetof(CSoundManager, musicFader) == 0x144);
@@ -239,6 +275,8 @@ static_assert(offsetof(CSoundManager, slots) == 0x24C);
 static_assert(offsetof(CSoundManager, emitters) == 0x26C);
 static_assert(offsetof(CSoundManager, sequences) == 0x5F0);
 static_assert(offsetof(CSoundManager, cache) == 0x870);
+static_assert(offsetof(CSoundManager, waveSources) == 0xE8);
+static_assert(offsetof(CSoundManager, cacheList) == 0x854);
 static_assert(offsetof(CSoundManager, deferred) == 0x884);
 static_assert(offsetof(CSoundManager, enabled) == 0x898);
 static_assert(offsetof(CSoundManager, randomStart) == 0x8BC);

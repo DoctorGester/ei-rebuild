@@ -5,9 +5,10 @@
 # through the changed code: the loading movie (FixProgressNames), spell effects added to the hero and a
 # wolf over and over (FixSpellEffectsOverflow: at most 20, older duplicates removed), casts and
 # attacks for the battle music test (FixPlaingBattleMusicFromAntimagic), the camp's prices
-# (FixRepairPrice). Rebirth install: the flags follow addon.dll and the wrappers compare with the
-# patched originals.
-rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops
+# (FixRepairPrice), items made by name (FixCreateItem), objects removed (FixRemoveMapObject) and
+# the units' update with the sleeping objects' effects (FixSpellEffectsOverflow #0). Rebirth
+# install: the flags follow addon.dll and the wrappers compare with the patched originals.
+rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu
 reject Script error
 wait 6000
 console thingamabob
@@ -41,6 +42,12 @@ console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObj
 console @Attack(GetLeader(),GetObjectByName("RWolf"))
 wait 3000
 check IsAlive(GetLeader())
+
+# Items by name: a weapon with a material, one with a spell in brackets, a scroll.
+console @GiveItem(0,"Axe.steel")
+console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
+console @GiveItem(0,"spell container[strength{d2}]")
+wait 500
 
 # The camp (screen 5): the trade and repair pages price every item through slot 54.
 screen 5

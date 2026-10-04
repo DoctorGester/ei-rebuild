@@ -1,6 +1,7 @@
-// The objectives window (CObjectivesWindow, ui.h): its Create (0064BE80) and the zone page
-// (0064CC10). TAB in a zone opens it for the current zone; opened with `listZones_` it lists the
-// zones of the zone's allod in which the player has quests and shows one of them. See
+// The objectives window (CObjectivesWindow, ui.h): its Create (0064BE80), the zone page
+// (0064CC10) and the selected quest's description and places (0064DC60). TAB in a zone opens it
+// for the current zone; opened with `listZones_` it lists the zones of the zone's allod in which
+// the player has quests and shows one of them. See
 // docs/notes/ui.md.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
@@ -471,7 +472,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             Split(node->key, &parts, '.');
             if (parts.GetSize() == 3) PushBack(&found, parts[2]);
         }
-        unknown_1A4 = -1;
+        shownQuest_ = -1;
         selectedQuest_ = 0;
         if (found.Size() == 0) {
             selectedQuest_ = -1;
@@ -524,6 +525,159 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             stlp::deallocate(found.begin,
                              static_cast<std::size_t>(found.capacityEnd - found.begin) * sizeof(mfc::CString));
         table->~VariableTable();
+    }
+}
+
+// --- 0064DC60: the selected quest ------------------------------------------------------------------
+
+namespace {
+
+// The text reader's line steps (text_reader.cpp; called through their addresses).
+__declspec(naked) BOOL __fastcall ReaderNextContentLine(CTextManager*) EI_ORIGINAL(0x004DF510)
+__declspec(naked) BOOL __fastcall ReaderNextLine(CTextManager*, void*, int) EI_ORIGINAL(0x004DF030)
+__declspec(naked) int __fastcall ReaderSplit(CTextManager*, void*, CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
+__declspec(naked) BOOL __fastcall ReaderClose(CTextManager*) EI_ORIGINAL(0x004DF020)
+// The quest log (the window's first child) [thiscall]: clear [0065D450], set the text [0065CFE0].
+__declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)
+__declspec(naked) void __fastcall LogSetText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065CFE0)
+// 0064EA80 [thiscall on the window]: fills the quest places (+0x1CC) of quest `name`.
+__declspec(naked) void __fastcall FillQuestPlaces(CObjectivesWindow*, void*, const char*) EI_ORIGINAL(0x0064EA80)
+// The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
+// empty slot for a name it lacks.
+__declspec(naked) void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
+void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
+// STLport string members: default constructor [004217E0], assign [00428F10], destructor [0040C720].
+__declspec(naked) void __fastcall StringDefault(void*, void*, const void*) EI_ORIGINAL(0x004217E0)
+__declspec(naked) void __fastcall StringAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
+__declspec(naked) void __fastcall StringDestroy(void*) EI_ORIGINAL(0x0040C720)
+
+// The quest's experience (+0xC) and money (+0x14) rewards, from the quest database.
+void* QuestRecord(const char* name) {
+    std::uint32_t key[3];
+    std::uint8_t allocator = 0;
+    StringDefault(key, nullptr, &allocator);
+    StringAssign(key, nullptr, name, name + std::strlen(name));
+    void* record = *QuestIndexAt(QuestIndex(), nullptr, key);
+    StringDestroy(key);
+    return record;
+}
+
+bool SameText(const char* a, const char* b) {
+    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+}
+
+} // namespace
+
+void CObjectivesWindow::ShowQuest() {
+    CTextManager* texts = Texts();
+    mfc::CString line;
+    mfc::CString part;
+    mfc::CString text;
+    CStringArray fields;
+    mfc::CString variable;
+    if (shownQuest_ == selectedQuest_) return;
+    shownQuest_ = selectedQuest_;
+    LogClear(children_.data_[0]);
+    auto* quests = reinterpret_cast<CStringArray*>(quests_);
+    if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
+    LastQuest() = (*quests)[selectedQuest_];
+
+    mfc::CString completed;
+    mfc::CString failed;
+    mfc::CString costExp;
+    mfc::CString costMoney;
+    texts->GetString(GameText(0x0079472C), &completed);   // "obj_completed"
+    texts->GetString(GameText(0x00794720), &failed);      // "obj_failed"
+    texts->GetString(GameText(0x00794710), &costExp);     // "obj_cost_exp"
+    texts->GetString(GameText(0x00794700), &costMoney);   // "obj_cost_money"
+    bool found;
+    {
+        mfc::CString questWord(GameText(0x00790790));     // "quest "
+        mfc::CString key = questWord + (*quests)[selectedQuest_];
+        found = FindText(key) != 0;
+    }
+    if (!found) return;
+
+    // The text: a colour code, the quest's description, its rewards, then each sub-objective the
+    // player has (q.<zone>.<quest>.<objective> not 0) with "completed" (2) or "failed" (3).
+    ReaderNextContentLine(texts);
+    texts->ReadToHash(&text, 1);
+    {
+        mfc::CString colour(GameText(0x007946F8));
+        text = colour + text;
+    }
+    text += GameText(0x007946F4);
+    if (void* record = QuestRecord((*quests)[selectedQuest_])) {
+        float experience = *reinterpret_cast<const float*>(static_cast<char*>(record) + 0xC);
+        text += GameText(0x007946EC);
+        if (experience > 0.0f) {   // 0073B858
+            part.Format(GameText(0x007946E4), static_cast<const char*>(costExp), GameFtol(D(experience)));   // "%s %d\n"
+            text += part;
+        }
+        float money = *reinterpret_cast<const float*>(static_cast<char*>(record) + 0x14);
+        if (money > 0.0f) {
+            part.Format(GameText(0x007946E4), static_cast<const char*>(costMoney), GameFtol(D(money)));
+            text += part;
+        }
+    }
+    while (ReaderNextLine(texts, nullptr, 0)) {
+        ReaderSplit(texts, nullptr, &fields, 1);
+        if (fields.GetSize() < 2) continue;
+        if (SameText(fields[0], GameText(0x007946DC))) break;      // "#quest"
+        if (!SameText(fields[0], GameText(0x007946D4))) continue;  // "#subobj"
+        variable.Format(GameText(0x007946C8), shownZone_, static_cast<const char*>((*quests)[selectedQuest_]),
+                        static_cast<const char*>(fields[1]));   // "q.%s.%s.%s"
+        int state = GameFtol(D(LocalPlayerVariable(variable)));
+        if (state == 0) continue;
+        texts->ReadLine(&line, 1);
+        text += GameText(0x0079349C);
+        text += line;
+        text += GameText(0x0078DA40);   // " "
+        if (state == 2) {
+            text += GameText(0x007946B8);
+            text += completed;
+        } else if (state == 3) {
+            text += GameText(0x007946C0);
+            text += failed;
+        }
+        text += GameText(0x007946AC);
+        texts->ReadToHash(&line, 1);
+        text += line;
+        text += GameText(0x007946A4);
+    }
+    ReaderClose(texts);
+    LogSetText(children_.data_[0], nullptr, text);
+
+    // The quest's places on the zone picture: a red marker and a region each, after the exits'.
+    ZoneView* map = FindZone(shownZone_);
+    if (!map) return;
+    FillQuestPlaces(this, nullptr, (*quests)[selectedQuest_]);
+    while (sceneObjects_.size_ > exitCount_ + 0x15) RemoveSceneObjectAt(exitCount_ + 0x15);
+    while (regions_.size_ > exitCount_ + 9) RemoveRegionAt(exitCount_ + 9);
+    const float red[3] = {1.0f, 0.0f, 0.0f};
+    for (unsigned i = 0; i < static_cast<unsigned>(questPlacesEnd_ - questPlacesBegin_); ++i) {
+        float worldWidth = Store(static_cast<double>(map->width << 5));
+        float worldHeight = Store(static_cast<double>(map->height << 5));
+        float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
+                                                                                                   : worldWidth;
+        const UiPointF& place = questPlacesBegin_[i];
+        float x = Store((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
+        float y = Store(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));
+        CUiMesh* marker = AddSprite(0);
+        float bottom = Store(D(y) + kMarkerHalfWidth);
+        float right = Store(D(x) + kMarkerHalfWidth);
+        float top = Store(D(y) - kMarkerHalfWidth);
+        float left = Store(D(x) - kMarkerHalfWidth);
+        marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
+        SetSpriteTexture(marker, objects_.data_[1]);
+        std::memcpy(reinterpret_cast<std::uint8_t*>(marker) + 0x224, red, sizeof(red));
+        CUiRegion* region = AddRegion();
+        int bottomPixel = GameFtol(D(bottom));
+        int rightPixel = GameFtol(D(right));
+        int topPixel = GameFtol(D(top));
+        int leftPixel = GameFtol(D(left));
+        region->CallSetRect(leftPixel, topPixel, rightPixel, bottomPixel);
+        region->SetTip(0x138F0, 1, 0);
     }
 }
 
@@ -693,3 +847,4 @@ void CObjectivesWindow::Build() {
 }
 EI_REPLACE_METHOD(0x0064BE80, CObjectivesWindow::Build);
 EI_REPLACE_METHOD(0x0064CC10, CObjectivesWindow::ShowZone);
+EI_REPLACE_METHOD(0x0064DC60, CObjectivesWindow::ShowQuest);

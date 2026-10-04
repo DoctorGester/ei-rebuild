@@ -7,6 +7,7 @@
 
 #include "console.h"
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -406,3 +407,213 @@ BOOL CItemConstructor::Build() {
     return 1;
 }
 EI_REPLACE_METHOD(0x006A5D60, CItemConstructor::Build);
+
+// --- The item manager's CreateItem (006AC970) ----------------------------------------------------
+
+namespace {
+
+constexpr int kContextSlotConstructor = 16;   // the manager context's slot 16 (+0x40): the constructor
+constexpr int kKindSpellContainer = 0x3008;
+constexpr int kLootKindTable = 2;             // a loot item (class 0x15) whose +0x50 names a table
+
+const char* const kSpellContainer = reinterpret_cast<const char*>(0x007938A0);   // "spell container"
+const char* const kMaterialType = reinterpret_cast<const char*>(0x007938C4);     // "material"
+const char* const kNoPrototype = reinterpret_cast<const char*>(0x007966BC);      // "Can't find prototype for item \"%s\".\n"
+const char* const kCantCreate = reinterpret_cast<const char*>(0x00796684);       // "Can't create item \"%s\".\nCheck shape and material"
+
+// CString members used here (MFC; the original implementations).
+struct ItemText : mfc::CString {
+    int Find(char c) const;               // 00700E91
+    mfc::CString Left(int count) const;   // 006FDAE9
+    mfc::CString Right(int count) const;  // 006FDA6D
+    void TrimSpaceLeft();                 // 006FE216 TrimLeft() (moves the text, memmove)
+    void TrimSpaceRight();                // 006FE11F TrimRight()
+};
+__declspec(naked) int ItemText::Find(char) const EI_ORIGINAL(0x00700E91)
+__declspec(naked) mfc::CString ItemText::Left(int) const EI_ORIGINAL(0x006FDAE9)
+__declspec(naked) mfc::CString ItemText::Right(int) const EI_ORIGINAL(0x006FDA6D)
+__declspec(naked) void ItemText::TrimSpaceLeft() EI_ORIGINAL(0x006FE216)
+__declspec(naked) void ItemText::TrimSpaceRight() EI_ORIGINAL(0x006FE11F)
+ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
+
+// 006E80D8 atoi.
+__declspec(naked) int __cdecl GameAtoi(const char*) EI_ORIGINAL(0x006E80D8)
+
+// 004DBE40 (ECX text, EDX array, separator on the stack). Splits `text` at `separator`.
+__declspec(naked) void __fastcall SplitItemName(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
+
+// Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
+// 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
+// (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
+__declspec(naked) char* __fastcall FindWeaponNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB720)
+__declspec(naked) char* __fastcall FindArmorNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB820)
+__declspec(naked) char* __fastcall FindQuickNamed(void*, void*, const char*) EI_ORIGINAL(0x00613820)
+__declspec(naked) char* __fastcall FindTable14Named(void*, void*, const char*) EI_ORIGINAL(0x006AD580)
+__declspec(naked) char* __fastcall FindTable15Named(void*, void*, const char*) EI_ORIGINAL(0x0069D380)
+__declspec(naked) char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
+void* const kWeaponTable = reinterpret_cast<void*>(0x007C86F8);
+void* const kArmorTable = reinterpret_cast<void*>(0x007C8718);
+void* const kQuickTable = reinterpret_cast<void*>(0x007C8738);
+void* const kTable14 = reinterpret_cast<void*>(0x007C8758);
+void* const kTable15 = reinterpret_cast<void*>(0x007C8778);
+void* const kMaterialTable = reinterpret_cast<void*>(0x007C86D8);
+
+// 006AD000 (RET 0x10). The item manager makes an item (kind, record index, a, b).
+__declspec(naked) CItem* __fastcall ManagerMakeItem(CItemManager*, void*, int, int, int, int) EI_ORIGINAL(0x006AD000)
+
+// The string-keyed maps the loot item's table index comes from (STLport strings handled through
+// the original members; see class_templates.cpp): operator[] of the weapon (007C8704, 006AD670),
+// armor (007C8724, 006A75E0), quick item (007C8744, 004ABBD0) and spell (007C851C, 004ABD00) maps,
+// and the modifier map's find_or_insert (007C853C, 004ACC10) of a (name, null) pair (00689950).
+struct NameKey {
+    char* start;
+    char* finish;
+    char* eos;
+};
+struct NamePair {
+    NameKey name;
+    void* record;
+};
+__declspec(naked) void __fastcall KeyFromChars(NameKey*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) void __fastcall KeyDefault(NameKey*, void*, const void*) EI_ORIGINAL(0x004217E0)
+__declspec(naked) void __fastcall KeyAssign(NameKey*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
+__declspec(naked) void __fastcall KeyDestroy(NameKey*) EI_ORIGINAL(0x0040C720)
+__declspec(naked) void __fastcall KeyDestroyB(NameKey*) EI_ORIGINAL(0x0040C770)
+__declspec(naked) void __fastcall PairConstruct(NamePair*, void*, const NameKey*, void* const*) EI_ORIGINAL(0x00689950)
+__declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006AD670)
+__declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006A75E0)
+__declspec(naked) char** __fastcall QuickNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x004ABBD0)
+__declspec(naked) char** __fastcall SpellNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x004ABD00)
+__declspec(naked) char* __fastcall ModifierNameFindOrInsert(void*, void*, const NamePair*) EI_ORIGINAL(0x004ACC10)
+
+// Index of `record` in `table` (signed division of the byte offset), -1 for no record.
+int TableIndex(const RecordTable& table, const char* record, int stride) {
+    return record ? static_cast<int>(record - table.begin) / stride : -1;
+}
+
+// The table index of a loot item's second name part (`which`: its +0x50).
+int LootTableIndex(int which, const char* name, const void* allocator) {
+    NameKey key;
+    char* record;
+    switch (which) {
+    case 0:
+        KeyFromChars(&key, nullptr, name, allocator);
+        record = *WeaponNameAt(reinterpret_cast<void*>(0x007C8704), nullptr, &key);
+        KeyDestroy(&key);
+        return TableIndex(Weapons(), record, kWeaponSize);
+    case 1:
+        KeyFromChars(&key, nullptr, name, allocator);
+        record = *ArmorNameAt(reinterpret_cast<void*>(0x007C8724), nullptr, &key);
+        KeyDestroy(&key);
+        return TableIndex(Armors(), record, kArmorSize);
+    case 2:
+        KeyFromChars(&key, nullptr, name, allocator);
+        record = *QuickNameAt(reinterpret_cast<void*>(0x007C8744), nullptr, &key);
+        KeyDestroy(&key);
+        return TableIndex(QuickItems(), record, kQuickItemSize);
+    case 3:
+        KeyDefault(&key, nullptr, allocator);
+        KeyAssign(&key, nullptr, name, name + std::strlen(name));
+        record = *SpellNameAt(reinterpret_cast<void*>(0x007C851C), nullptr, &key);
+        KeyDestroy(&key);
+        return TableIndex(Spells(), record, kSpellSize);
+    case 4: {
+        KeyDefault(&key, nullptr, allocator);
+        KeyAssign(&key, nullptr, name, name + std::strlen(name));
+        void* none = nullptr;
+        NamePair pair;
+        PairConstruct(&pair, nullptr, &key, &none);
+        char** slot = reinterpret_cast<char**>(
+            ModifierNameFindOrInsert(reinterpret_cast<void*>(0x007C853C), nullptr, &pair) + 0xC);
+        KeyDestroy(&pair.name);
+        record = *slot;
+        KeyDestroyB(&key);
+        return TableIndex(SpellModifiers(), record, kSpellModifierSize);
+    }
+    default:
+        return 0;
+    }
+}
+
+} // namespace
+
+CItem* CItemManager::CreateItem(const char* name) {
+    void* context = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(this) + 0xAC);
+    auto* constructor = ei::VCall<CItemConstructor*>(context, kContextSlotConstructor);
+    mfc::CString extra;               // the part in brackets: "name[extra]"
+    mfc::CString text(name);
+    console::CStringArray parts;      // the name split at '.'
+    int bracket = AsText(text).Find('[');
+    if (bracket != -1) {
+        extra = AsText(text).Right(console::Length(text) - bracket - 1);
+        console::Ops(extra).TrimLeft('[');
+        console::Ops(extra).TrimRight(']');
+        AsText(extra).TrimSpaceLeft();
+        AsText(extra).TrimSpaceRight();
+        text = AsText(text).Left(bracket);
+        AsText(text).TrimSpaceRight();
+    }
+    SplitItemName(text, &parts, '.');
+    for (int i = 0; i < parts.size_; ++i) parts.data_[i].MakeLower();
+
+    // "spell container[spell text]": a scroll holding that spell.
+    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts.data_[0])),
+                        reinterpret_cast<const unsigned char*>(kSpellContainer)) == 0) {
+        const char* spellText = extra;
+        CSpell* spell = CallCreateSpellFromText(ei::VCall<void*>(context, kContextSlotSpellManager), nullptr, spellText);
+        CItem* item = nullptr;
+        if (spell) {
+            char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
+            int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
+            item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
+            if (item) CallItemAttachSpell(item, nullptr, spell);
+        }
+        return item;
+    }
+
+    // "prototype[.material]".
+    const char* prototypeName = parts.data_[0];
+    char* prototype = FindWeaponNamed(kWeaponTable, nullptr, prototypeName);
+    if (!prototype) prototype = FindArmorNamed(kArmorTable, nullptr, prototypeName);
+    if (!prototype) prototype = FindQuickNamed(kQuickTable, nullptr, prototypeName);
+    if (!prototype) prototype = FindTable14Named(kTable14, nullptr, prototypeName);
+    if (!prototype) prototype = FindTable15Named(kTable15, nullptr, prototypeName);
+    if (!prototype) {
+        // Rebirth's FixCreateItem (context hook at 006ACBBD) logs instead of the fatal error.
+        if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
+            game::FatalError(kNoPrototype, static_cast<const char*>(parts.data_[0]));
+        return nullptr;
+    }
+    constructor->SetManager(reinterpret_cast<CEngineObject*>(this));
+    constructor->BeginCreateItem(ei::VCall<int>(prototype, 0), -1);
+    char* material = nullptr;
+    if (parts.size_ > 1) material = FindMaterialNamed(kMaterialTable, nullptr, parts.data_[1]);
+    constructor->SetPrototype(prototype);
+    constructor->SetMaterial(material);
+    // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
+    const unsigned char* type = *reinterpret_cast<const unsigned char* const*>(prototype + 4);
+    if (console::Length(extra) != 0 && gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) != 0) {
+        void* spells = ei::VCall<void*>(context, kContextSlotSpellManager);
+        if (CSpell* spell = CallCreateSpellFromText(spells, nullptr, extra)) constructor->SetSpellObject(spell);
+    } else if (gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) == 0 &&
+               console::Length(extra) != 0) {
+        constructor->count_ = GameAtoi(extra);
+    }
+    CItem* item = constructor->EndCreateItem();
+    if (!item) {
+        // Rebirth's FixCreateItem (context hook at 006ACCD0): logged, and no item. The original
+        // reports the error and goes on with the null item (and crashes).
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
+        game::FatalError(kCantCreate, name);
+    }
+    constructor->SetManager(nullptr);
+    if (item->GetClassId() == kClassLoot && *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x4C) == kLootKindTable &&
+        parts.size_ > 1) {
+        int which = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x50);
+        *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x54) =
+            LootTableIndex(which, parts.data_[1], &name);
+    }
+    return item;
+}
+EI_REPLACE_METHOD(0x006AC970, CItemManager::CreateItem);
+EI_REBIRTH_IMPLEMENTS(0x006AC970, ei::rebirth::Patch::FixCreateItem);

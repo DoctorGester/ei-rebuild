@@ -856,17 +856,58 @@ and _ftol (006E853C), gethostname (006E6100).
   Rebirth-patched 005809D0), the copy constructor 00580900.
 - Static initializers (run before the hooks are installed at WinMain): 0057F480, 005809A0,
   00581070.
-- Not done (large, or network / file code best done with their neighbours): 0057F850 (random
-  picks over STLport lists), 0057EE10 (the flow's zone switch), 0057E740 (starting a server),
-  0058DAF0 (accepting players), 00596140 / 00596350 (AI graph file checks), 00579830 / 00579B80
-  (save file read / write with the coder), 00579E60, 005810A0 / 005814C0 (quest registration),
-  0057AAB0 (emptying a save folder), 0059F8F0 / 0059F710 (CFigureMesh Load/Save to a CFile, only
-  reachable through vtables), 0059F510 / 0059F0F0 / 0059A4A0 and the 0x582000-0x585000 STLport
-  list / map helpers of 0057F850.
+- Not done: 00579E60, 0059F510 / 0059F0F0 / 0059A4A0 (see the later additions below for the
+  rest of this list).
 - Library instantiations added to `config/library.csv` this round: the STLport sort internals of
   the draw lists (00573740, 005756F0, 005759B0, 00575BC0, 00576D40, 005769C0, 00577920,
   00577360, 00577C10, 005781A0 with DepthLess; 00577FC0, 00577730 with UnitOrderLess, only
   reached from the rewritten 005740D0), 00575E50, 00587480, 00581860 (STLport vector
   members), 00581030 (char_traits move), 005993A0 (CArray Serialize), the MFC collections
   0059B8F0, 0059C890, 0059CA60, 0059CAD0, 00599FA0, 0059CB50, 0059CCE0, 0059C510, 0059C810,
-  0059D5F0, and (earlier) vector<T*>::reserve and hashtable instantiations.
+  0059D5F0, and (earlier) vector<T*>::reserve and hashtable instantiations. Later: the list
+  instantiations of 0057F850 (00583A00, 00583A10, 005844F0, 00584870, 00587890, 005878B0,
+  005876C0, 00583C60).
+
+## Later additions (after the first in-game runs)
+
+Fixes: the save files were opened through the stream's own vtable (slot 8 of 0073C8D8, past its
+end) instead of the embedded CFile's Open (SaveGame, EnterZone, LeaveZone, StartNetworkZone);
+SaveWorld's differential now restores the random generator (00661C10 XORs the gold with a fresh
+random word), which also kept the game's random sequence from shifting in verify runs; the
+SaveGame / LeaveZone checks look for files through game.exe's (harness-redirected)
+GetFileAttributesA import.
+
+| Address | Name | Verification |
+|---|---|---|
+| 0057AAB0 | ClearSaveFolder (ECX = path) | ours only: the folder exists (CreateDirectoryA / DeleteFileA through the game's imports) |
+| 00579B80 | SaveFileWrite (ECX file, EDX magic, RET 8) | logged; checked by LoadSave reading the files |
+| 00579830 | SaveFileRead (ECX out, EDX magic, RET 0xC, AL) | ours only: a file that reads has data and the file's version |
+| 00596140 | CWorldServer::ReadAIGraph (RET 0xC) | differential: the original reads into a scratch memory stream; result, size and bytes compared |
+| 00596350 | CWorldServer::LoadZoneScripts (RET 4) | logged |
+| 005810A0 | GameFlow::RegisterQuests (RET 4) | ours only: the folder listed at most once |
+| 005814C0 | SessionMapNameInto (__stdcall, RET 4) | differential: the same name |
+| 0057EE10 | GameFlow::SwitchMultiplayerZone | ours only: +0x80 flips |
+| 0057E740 | GameFlow::StartServer (RET 0x18) | ours only: both sessions, the client's game type, +0x25FC |
+| 0058DAF0 | CWorldServer::AcceptNewPlayers (RET 4) | ours only: no players lost |
+| 0057F850 | PickZones (__stdcall, RET 0xC) | ours only (random): the output only grows |
+| 0059F710 / 0059F8F0 | CFigureMesh::SaveToFile / LoadFromFile (RET 4) | logged / sizes not negative |
+
+Notes: SaveFileWrite compresses with the LZ coder, decompresses the result and compares it with
+the input; on a mismatch it writes a 0 flag and the raw data. Versions above 0x6B carry a
+checksum (h ^= dword; h *= (h & 0xFC) | 3), above 0x71 the flag byte. PickZones keeps its
+groups in game-heap pointer arrays instead of the original's STLport lists of copies (same
+order, same random draws). StartServer passes 00417E10 a dword whose upper bytes are garbage in
+the original; only the low byte is used.
+
+
+Finished from the list above (third round):
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00579E60 | LoadMission (__stdcall) | logged |
+| 0059F0F0 | CFigureMesh::CopyFrom | ours only: descriptors and bounds equal the source |
+| 0059F510 | CFigureMesh::SetPose (quaternion pose) | differential |
+| 005ACE80 | LoadMenuRects (menus.reg, 11 rects) | ours only: no all-zero rectangle |
+
+0059A4A0 is MFC CList<SharedObject>::Serialize, named in `config/library.csv`. The AI and figure
+draw functions of 0x5A0000-0x5C0000 done in the same round are in ai.md and models.md.

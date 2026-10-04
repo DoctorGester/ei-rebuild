@@ -3,10 +3,14 @@
 #include "world.h"
 
 #include "core_maths.h"
+#include "map_object.h"
 #include "sector_map.h"
 #include "unit.h"
 
+#include "lib/crt.h"
+
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
 
@@ -18,8 +22,15 @@ namespace {
 
 // 0058CCD0. Every 64 ticks: weather (rain, lightning strikes), day time.
 __declspec(naked) void __fastcall ServerUpdateWeather(CWorldServer*, void*) EI_ORIGINAL(0x0058CCD0)
-// 0058D670. Runs the units in the update map. Patched by Rebirth: always the original address.
+// 0058D670. Runs the units in the update map (rewritten below; called through its address so a
+// Rebirth launch without the flag still runs addon's patched original).
 __declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORIGINAL(0x0058D670)
+// 0059A050. RemoveAt of the counted-reference list (+0x12E44): unlinks the node, releases its
+// object (slot 4) and frees the node.
+__declspec(naked) void __fastcall CountedRemoveAt(mfc::CTypedPtrList<CEngineObject>*, void*,
+                                                  mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x0059A050)
+// 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
+__declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, unsigned /*id*/) EI_ORIGINAL(0x005935C0)
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
 __declspec(naked) void __fastcall ServerReplace60(CWorldServer*, void*) EI_ORIGINAL(0x0055F410)
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
@@ -216,7 +227,120 @@ void CWorldServer::SetGameResult(int result) {
     }
 }
 
+// ---- The units (0058D670) -----------------------------------------------------------------------
+
+namespace {
+// UpdateUnits' two function-local id lists (00453A50-style arrays: data, size, max, grow; the data
+// block starts one dword after its allocation), with their guard bits at 007AFF00.
+struct IdArray {
+    unsigned* data;
+    int size;
+    int max;
+    int grow;
+    // 004538D0 SetAtGrow(index, value).
+    void SetAtGrow(int index, unsigned value);
+    // What UpdateUnits does at its start: frees the block and empties the array.
+    void Reset() {
+        if (data) {
+            gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]);
+            data = nullptr;
+        }
+        max = 0;
+        size = 0;
+    }
+};
+__declspec(naked) void IdArray::SetAtGrow(int, unsigned) EI_ORIGINAL(0x004538D0)
+static_assert(sizeof(IdArray) == 0x10);
+
+IdArray& RemovedIds() { return *reinterpret_cast<IdArray*>(0x007AFEF0); }   // flagged for removal
+IdArray& SleepingIds() { return *reinterpret_cast<IdArray*>(0x007AFEE0); }  // leave the update map
+std::uint8_t& UpdateListGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AFF00); }
+constexpr std::uintptr_t kRemovedIdsDestructor = 0x0058DA20;
+constexpr std::uintptr_t kSleepingIdsDestructor = 0x0058DA00;
+
+constexpr int kUnitSleepCountdown = 0x174;   // CUnit +0x174: updates left before it may sleep
+int& SleepCountdown(CEngineObject* object) {
+    return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(object) + kUnitSleepCountdown);
+}
+// What AddToUpdateMap also writes: 0x80..0x8F updates, spread by the object's address.
+int WakeCountdown(const CEngineObject* object) { return ((reinterpret_cast<int>(object) >> 5) & 0xF) + 0x80; }
+} // namespace
+
+void CWorldServer::UpdateUnits() {
+    if (!(UpdateListGuards() & 1)) {
+        UpdateListGuards() |= 1;
+        RemovedIds() = IdArray{};
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kRemovedIdsDestructor));
+    }
+    if (!(UpdateListGuards() & 2)) {
+        UpdateListGuards() |= 2;
+        SleepingIds() = IdArray{};
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kSleepingIdsDestructor));
+    }
+    RemovedIds().Reset();
+    SleepingIds().Reset();
+
+    // The walk stops at the end or at an entry without an object.
+    if (unknown12D64_ != 1) {
+        // Every map object runs (no sleeping).
+        auto& objects = mapObjects_.map;
+        for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
+            CEngineObject* object = node->value;
+            object->Slot6();
+            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
+        }
+    } else {
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
+        // The units in the update map; a unit whose countdown runs out goes to sleep (leaves the
+        // map) unless its controller is busy (+0x174, +0x9B7, +0xB0C), which restarts the countdown.
+        auto& awake = updateMap_.map;
+        for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
+            CEngineObject* object = node->value;
+            object->Slot6();
+            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->GetClassId() != world::kClassUnit) continue;
+            if (--SleepCountdown(object) > 0) continue;
+            auto* controller = reinterpret_cast<const std::uint8_t*>(static_cast<CUnit*>(object)->controller);
+            if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
+                SleepingIds().SetAtGrow(SleepingIds().size, static_cast<unsigned>(object->id_));
+            else
+                SleepCountdown(object) = WakeCountdown(object);
+        }
+    }
+
+    // The counted objects run too; those whose slot 6 returns 0 leave the list (its RemoveAt,
+    // 0059A050, also releases the reference).
+    for (auto* position = counted_.head; position;) {
+        auto* current = position;
+        position = position->next;
+        if (current->data->Slot6() == 0) CountedRemoveAt(&counted_, nullptr, current);
+    }
+    for (int i = 0; i < SleepingIds().size; ++i) {
+        if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);
+    }
+    for (int i = 0; i < RemovedIds().size; ++i) ServerRemoveObject(this, nullptr, RemovedIds().data[i]);
+}
+
+void CWorldServer::TickSleepingEffects() {
+    // Rebirth (addon.dll 1001813C, a context hook at 0058D82E): every map object that is referenced,
+    // not flagged for removal, has effects and a companion, and is asleep (+0x174 <= 0; its own
+    // update would count its effects down) gets one tick taken off each effect; when one runs
+    // out, the object goes back into the update map, whose update removes it.
+    mapObjects_.map.ForEach([this](auto* node) {
+        auto* object = static_cast<CMapObject*>(node->value);
+        if ((object->flags_ & 1) || object->refCount_ == 0 || object->effectCount == 0) return;
+        if (object->unknown_174 > 0 || !object->companion) return;
+        bool expired = false;
+        for (int i = 0; i < object->effectCount; ++i) {
+            if (--object->effects[i].ticksLeft <= 0) expired = true;
+        }
+        if (expired) AddToUpdateMap(object);
+    });
+}
+
 EI_REPLACE_METHOD(0x0058DCD0, CWorldServer::Tick);
 EI_REPLACE_METHOD(0x0058D3D0, CWorldServer::WakeUnitsAround);
 EI_REPLACE_METHOD(0x00593FC0, CWorldServer::InvokeAlarm);
 EI_REPLACE_METHOD(0x0058DC90, CWorldServer::SetGameResult);
+EI_REPLACE_METHOD(0x0058D670, CWorldServer::UpdateUnits);
+EI_REBIRTH_IMPLEMENTS(0x0058D670, ei::rebirth::Patch::FixSpellEffectsOverflow);

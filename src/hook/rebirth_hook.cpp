@@ -60,7 +60,35 @@ bool Overlaps(const Site& s, std::uintptr_t address, std::uint32_t size) {
     return s.address < address + size && s.address + s.size > address;
 }
 
+// addon.dll's image, when it is loaded (its patches are recognised only then).
+std::uintptr_t g_addonBase, g_addonEnd;
+
+// game.exe's import address table: the loader writes every slot, so a slot differs from the file
+// in any launch. A slot counts as patched only when it points into addon.dll (MoviesPatch).
+std::uintptr_t g_iatBegin, g_iatEnd;
+
+void FindImages() {
+    if (HMODULE addon = GetModuleHandleA("addon.dll")) {
+        auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(addon);
+        auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(reinterpret_cast<const char*>(addon) + dos->e_lfanew);
+        g_addonBase = reinterpret_cast<std::uintptr_t>(addon);
+        g_addonEnd = g_addonBase + nt->OptionalHeader.SizeOfImage;
+    }
+    auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(kImageBase);
+    auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(kImageBase + dos->e_lfanew);
+    const IMAGE_DATA_DIRECTORY& iat = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT];
+    g_iatBegin = kImageBase + iat.VirtualAddress;
+    g_iatEnd = g_iatBegin + iat.Size;
+}
+
+bool InImportTable(std::uintptr_t address) { return address >= g_iatBegin && address < g_iatEnd; }
+
 bool SiteDiffers(const Site& s, const std::vector<unsigned char>& file) {
+    if (!g_addonBase) return false;
+    if (InImportTable(s.address)) {
+        std::uint32_t target = *reinterpret_cast<const std::uint32_t*>(Live(s.address));
+        return target >= g_addonBase && target < g_addonEnd;
+    }
     std::uint32_t off = s.address - static_cast<std::uint32_t>(kImageBase);
     if (off + s.size > file.size()) return false;
     return std::memcmp(Live(s.address), file.data() + off, s.size) != 0;
@@ -196,7 +224,36 @@ const Site* AddonSiteAt(std::uintptr_t address) {
 
 } // namespace
 
+// rebirth_unknown_diffs.txt: every byte range of .text and .rdata (without the import table) that
+// differs from game.exe on disk and lies in no known site: patches written without an addon.log
+// line, or by a mod version newer than the inventory (docs/notes/rebirth.md).
+static void DumpUnknownDiffs(const std::vector<unsigned char>& file) {
+    char path[MAX_PATH];
+    PathNextToDll("rebirth_unknown_diffs.txt", path);
+    FILE* f = nullptr;
+    if (fopen_s(&f, path, "w") != 0 || !f) return;
+    std::fprintf(f, "# ranges of .text/.rdata differing from game.exe on disk outside every known site: address size live-bytes\n");
+    int ranges = 0;
+    const std::uint32_t begin = 0x00401000, end = 0x00783000;   // .text and .rdata
+    for (std::uint32_t a = begin; a < end && a - kImageBase < file.size(); ++a) {
+        if (Live(a)[0] == file[a - kImageBase] || InImportTable(a)) continue;
+        bool known = false;
+        for (const Site& s : kSites) known |= s.address <= a && a < s.address + s.size;
+        if (known) continue;
+        std::uint32_t n = 0;
+        while (a + n < end && n < 64 && Live(a + n)[0] != file[a + n - kImageBase] && !InImportTable(a + n)) ++n;
+        std::fprintf(f, "%08X %u ", a, n);
+        for (std::uint32_t i = 0; i < n && i < 32; ++i) std::fprintf(f, "%02X", Live(a + i)[0]);
+        std::fputc('\n', f);
+        a += n;
+        if (++ranges >= 200) break;
+    }
+    std::fclose(f);
+    Log("Rebirth: %d changed range(s) outside the known sites (rebirth_unknown_diffs.txt)", ranges);
+}
+
 void Detect(const std::vector<unsigned char>& file) {
+    FindImages();
     for (std::size_t i = 0; i < kSiteCount; ++i) {
         const Site& s = kSites[i];
         g_siteDiffers[i] = s.source == kAddon && SiteDiffers(s, file);
@@ -210,6 +267,7 @@ void Detect(const std::vector<unsigned char>& file) {
         LogList("Rebirth: addon.dll applied", g_applied);
         if (g_pluginPresent) LogList("Rebirth: EI_Plugin.asi will apply", g_plugin);
         DumpSites(file);
+        if (g_addonBase) DumpUnknownDiffs(file);
         if (rebirth::FollowAddon()) {
             for (int i = 0; i < rebirth::kPatchCount; ++i) rebirth::Set(static_cast<Patch>(i), g_applied[i] || g_plugin[i]);
             Log("Rebirth: FollowAddon: every flag follows what the mods apply");

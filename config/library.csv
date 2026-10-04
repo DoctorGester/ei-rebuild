@@ -2809,3 +2809,12 @@ address,name,library,signature,notes
 005993A0,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,instantiation (0x54-byte elements with a vtable; raw Read/Write of the data)
 00581030,stlp::char_traits<char>::move,STLport,"char* __cdecl(char*,const char*,size_t)",out-of-line memmove (006E79A0)
 00581860,"stlp::vector<string>::clear",STLport,void __thiscall(),"instantiation: inlined erase(begin(), end()) (string assignment loop over no elements, then the destructors)"
+00583A00,stlp::list<T>::begin,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
+00583A10,stlp::list<T>::end,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
+005844F0,stlp::list<T>::begin,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
+00584870,stlp::list<T>::_M_create_node,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
+00587890,stlp::distance<list<T>::iterator>,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
+005878B0,stlp::_Destroy<T>,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
+005876C0,stlp::list<T>::clear,STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp)
+00583C60,"stlp::pair<CString,CString>::~pair",STLport,,instantiation over the zone table entries (two CStrings and an id); only reached from 0057F850, which is rewritten (world_game.cpp) (and from 005876C0 / 005878B0)
+0059A4A0,"CList<SharedObject>::Serialize",MFC,,"instantiation (vtable 0073FA18): CArchive count, then each 0x20-byte element (its CArray of references through ConstructElements / SerializeElements)"

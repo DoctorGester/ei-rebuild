@@ -182,6 +182,11 @@ class CWorldServer : public CWorld {
 public:
     // 00593AA0, vtable slot 40. World object with this id, or null.
     CEngineObject* FindObject(unsigned id);
+    // 005935C0. Removes object `id` from the server: out of the sector map and every id map, its
+    // slot 5, flagged 1, the command queues, every object (slot 56), the missiles and the players'
+    // states forget it, and the maps' reference is released. An unknown id crashes the original
+    // (null read); Rebirth's FixRemoveMapObject ignores it.
+    void RemoveObject(unsigned id);
     // 00594180. Player number `id`, or null.
     WorldPlayer* GetPlayer(int id);
     // 00594220, vtable slot 27. Ground height from the server's coarse height grid; 0 outside.
@@ -216,6 +221,15 @@ public:
     // moves the missiles, runs the script command queues (the first only while +0x160 is set or
     // `force`) and then the units (0058D670).
     void Tick(char force);
+    // 0058D670. Runs the objects: with +0x12D64 == 1 the units in the update map (+0x104), each
+    // counting down to sleep (+0x174; out of the map when its controller is idle), else every map
+    // object (+0x12DA0); then the counted objects (+0x12E44, dropped when their slot 6 returns 0).
+    // Objects flagged 1 are removed (005935C0) at the end. Rebirth's FixSpellEffectsOverflow first
+    // ticks the effects of sleeping objects (TickSleepingEffects).
+    void UpdateUnits();
+    // Rebirth's FixSpellEffectsOverflow #0 (no original address): counts the effects of sleeping
+    // map objects down and wakes those with an expired one.
+    void TickSleepingEffects();
     // 0058D3D0. Puts every unit in the sectors within `radius` of `position` (x, y) in the
     // update map.
     void WakeUnitsAround(const float* position, float radius);
@@ -271,6 +285,18 @@ public:
     // empty entry) refills its controller's slots (00525AF0 on +0x1E0) and runs the controller's
     // slot 19 with 0.
     void PrepareSave();
+    // 00596140 (RET 0xC; world_game.cpp). Reads the zone's AI graph into the memory stream `out`:
+    // the 0x31415926 chunk of the .mob file when there is one, else the whole <map>.grp file.
+    // 1 when found.
+    int ReadAIGraph(const char* map, const char* mob, void* out);
+    // 00596350 (RET 4; world_game.cpp). The zone's scripts from the .mob file's 0xA000 chunk (its
+    // 0xACCEECCB text packed and XORed, decoded by 004D8E10, or the plain 0xACCEECCA text) become
+    // the only line of the first command queue.
+    void LoadZoneScripts(const char* mob);
+    // 0058DAF0 (RET 4; world_game.cpp). While a game runs (+0x138), every new connection the
+    // lobby hands over (its slot 6) becomes a player (0066C180 / 00665990) of this game's kind,
+    // fully dirty, starting at startPosition_; "Accepted player <id>" goes to the network log.
+    void AcceptNewPlayers(void* lobby);
 
     // world_game.cpp
     // 0057AA80 (RET 4). Copy-constructs the zone name (+0x120) into `out`; returns out.
@@ -692,6 +718,21 @@ struct GameFlow {
     // name at +0x0C, value at +0x18): "q." variables go to the quest log (007C7D50) and the
     // client world.
     void OnVariableChanged(const void* event);
+    // 005810A0 (RET 4; world_briefing.cpp). Registers a quest folder once: the flow loads its
+    // quests (005809D0), then with "<folder>\quest.reg" in the texts the quest table reads it,
+    // the map database loads "<folder>\map.txt" and the folder joins the list at 007AFDC0.
+    void RegisterQuests(const char* folder);
+    // 0057EE10 (world_game.cpp). The multiplayer zone switch, in two calls: the first (+0x80
+    // clear) resets the host's connections, takes the party (player 0's records when its state
+    // has +0x70, else the outside party) for the zone at +0x7C, asks for game state 3 and
+    // requests state 6 (host) or 5 (client, to its peer's zone); the second (+0x80 set) asks for
+    // state 1 and the start zone again, and the host drops its client.
+    void SwitchMultiplayerZone();
+    // 0057E740 (RET 0x18; world_game.cpp). Hosts a multiplayer game: new server (game type) and
+    // client sessions, the client connects to 127.0.0.1 with the password (20 bytes) as hello,
+    // then the server's name ("Server" when empty), +0x25E0, password, listing (not `unlisted`)
+    // and +0x25FC are set; between 0057F560 and 0057EB10 (both patched by Rebirth).
+    void StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted, int value25FC);
     // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
     // zone or save name (+4), +0x78 and, for 5 and 6, a copy of a party (+8, 00661300).
     void RequestState3();                                            // 005816C0
@@ -699,6 +740,13 @@ struct GameFlow {
     void RequestZoneChange(const char* zone, int entrance);          // 00581700 (RET 8): 4, +0x78 = entrance
     void RequestPartyZone5(const char* zone, const void* party);     // 00581730 (RET 8)
     void RequestPartyZone6(const char* zone, const void* party);     // 00581760 (RET 8)
+    // 0057C460 (RET 8). Starts `zone`: the current zone is torn down; mode 0 takes the mode from
+    // the zone record's kind (0 -> 1, 1 -> 4, 2 -> 3), "endofgame" is mode 8, mode 2 loads the main
+    // menu zone (also when the zone is unknown, after FatalError and closing the network
+    // sessions); otherwise the party enters the zone (0057A060) and the clock follows its "gtime".
+    // The mode becomes the campaign mode (007C2CC4). Rebirth's AllowScriptsInMainMenu sets the
+    // server's +0x160 in the menu.
+    void StartZone(const char* zone, int mode);
 };
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
@@ -713,12 +761,39 @@ void UnloadQuestTexts();
 // names ended by an empty one), compared case-insensitively.
 bool __fastcall NameInList(const char* const* list, const char* name);
 
+// 0057AAB0 (ECX = path ending in '\'; world_game.cpp). Creates the folder and deletes every file
+// in it (CFileFind "*.*"; CreateDirectoryA / DeleteFileA through game.exe's imports).
+void __fastcall ClearSaveFolder(const char* path);
+
+// 0057F850 (RET 0xC; world_game.cpp). For the zone table entries (007AFDE0) with `id`, grouped by
+// their second name in order of first appearance: one random entry per group (never the one
+// whose first name is `exclude` when there is a choice; one IsaacRandom draw per group) has its
+// first name appended to `out` (an STLport vector of strings).
+void __stdcall PickZones(void* out, int id, const char* exclude);
+
+// 00579E60 (RET 4; world_game.cpp). Reads mission.sav from a file stream (magic 0x102) and
+// restores the world (LoadSave); old versions also carry the globals (< 0x52) and the input
+// state (< 0x47). 0 when the file does not read.
+int __stdcall LoadMission(void* file);
+
+// world_savefile.cpp. 00579B80 (ECX = file stream, EDX = magic; RET 8): writes the header
+// (004A5340), at version > 0x6B a checksum, then a flag byte and the LZ-compressed data (or, when
+// decompressing it does not give the data back, 0 and the raw data). 00579830 (ECX = memory
+// stream, EDX = magic; RET 0xC; AL): reads one back (versions up to 00790264 uncompressed);
+// false on a bad header or checksum.
+void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
+bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
+
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
 // into `out`. 0057FDE0 (RET 8): the briefing's variable, "b.<speaker>.<briefing>" or, without a
 // speaker, "b.elder.<briefing>".
 mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing);
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing);
+// 005814C0 (RET 4). The multiplayer peer's map (the client's +0x25F4 or the server's +0x25A8,
+// name at +0x0C), replaced by the first line of its "quest <name>" section when there is one;
+// "" without a peer.
+mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 // 00595080. Chooses the loading movie (the name at 00791EE0) for zone `zone` (may be null) by its
 // allod in the map database: progres2.bik for gipat, progres3.bik for ingos, progres4.bik for
 // suslanger, else progres.bik (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for
