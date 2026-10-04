@@ -88,7 +88,11 @@ __declspec(naked) void __fastcall PathFollow(void*, void*, int /*now*/, CUnit*, 
                                              int /*start*/) EI_ORIGINAL(0x005B1F10)
 __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, const float* /*direction*/,
                                            int /*until*/, int /*start*/) EI_ORIGINAL(0x005B2050)
-__declspec(naked) void __fastcall PathEndPoint(void*, void*, float* /*out*/) EI_ORIGINAL(0x005B22C0)
+__declspec(naked) void __fastcall PathToMotionOrder(void*, void*, void* /*out*/) EI_ORIGINAL(0x005B22C0)
+// The step list of a motion order (a CList of path cells, vtable 0073EDB0): 00556D10 constructor
+// (block size), 00556D40 RemoveAll.
+__declspec(naked) void* __fastcall CellListConstruct(void*, void*, int /*blockSize*/) EI_ORIGINAL(0x00556D10)
+__declspec(naked) void __fastcall CellListRemoveAll(void*) EI_ORIGINAL(0x00556D40)
 // The world server's timed objects (world_server.cpp).
 __declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINAL(0x0058E5D0)
 // The AI: 005D5E90 the brain's leader (unit_ai.cpp), 005D4F70 the brain's reset, 005AEA40 the
@@ -96,8 +100,9 @@ __declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINA
 __declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
 __declspec(naked) void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
-// 0066D490: the player's message about a path to `point` (kind, flag, distance limit).
-__declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const float* /*from*/, const float* /*point*/,
+// 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
+// order (the path, serialised for kinds other than 3).
+__declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const void* /*motionOrder*/, const float* /*point*/,
                                                     int /*kind*/, int /*flag*/, std::uint32_t /*limitBits*/)
     EI_ORIGINAL(0x0066D490)
 // The controller's functions rewritten elsewhere, through their game addresses (combat_update.cpp,
@@ -236,6 +241,24 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
 
 // The idle key of the unit now (weapon and movement bits).
 std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
+
+// A motion order on the stack (0x3C bytes): the order header (MotionOrder, 0x20 bytes) and its
+// step list (a CList of path cells, vtable 0073EDB0, blocks of 0x80), as 005B22C0
+// (AIPath::ToMotionOrder) fills it. The header is zeroed (the original leaves it uninitialised).
+void* const kCellListVtable = reinterpret_cast<void*>(0x0073EDB0);
+struct LocalMotionOrder {
+    alignas(4) std::uint8_t bytes[0x3C];
+    LocalMotionOrder() {
+        std::memset(bytes, 0, 0x20);
+        CellListConstruct(bytes + 0x20, nullptr, 0x80);
+    }
+    ~LocalMotionOrder() {
+        *reinterpret_cast<void**>(bytes + 0x20) = kCellListVtable;
+        CellListRemoveAll(bytes + 0x20);
+    }
+    LocalMotionOrder(const LocalMotionOrder&) = delete;
+    LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
+};
 
 // A CList<CUnit*> as the controller fills them (vtable, head, tail, count, free list, blocks).
 struct UnitList {
@@ -748,17 +771,18 @@ void CUnitServer::ReportPath(void* path, char partial) {
     if (At<int>(brain, 4) == 6) return;
     CUnit* self = unit;
     const float* goal = &At<float>(path, 0x60);
-    // The original passes this point uninitialised when the path is not partial (then unused).
-    float end[3] = {0.0f, 0.0f, 0.0f};
+    // The path as a motion order for the message. The original leaves its header uninitialised
+    // when the path is not partial (the message does not read it for kind 3).
+    LocalMotionOrder end;
     int message;
     if (!partial) {
-        if (self->player) PlayerPathMessage(At<void*>(self->player, 0x20), nullptr, self, end, goal, 3, 1, kFarBits);
+        if (self->player) PlayerPathMessage(At<void*>(self->player, 0x20), nullptr, self, end.bytes, goal, 3, 1, kFarBits);
         if (BrainLeader(brain)) return;
         self = unit;
         if (!self->player) return;
         message = kMessageCannotDo;
     } else {
-        PathEndPoint(path, nullptr, end);
+        PathToMotionOrder(path, nullptr, end.bytes);
         float dy = self->positionY - goal[1];
         float dx = self->positionX - goal[0];
         float reached = dx * dx + dy * dy;
@@ -767,7 +791,8 @@ void CUnitServer::ReportPath(void* path, char partial) {
         float ex = half * At<float>(path, 0x58) - goal[0];
         float left = ex * ex + ey * ey;
         bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
-        if (self->player) PlayerPathMessage(At<void*>(self->player, 0x20), nullptr, self, end, goal, 0, far ? 0 : 1, kFarBits);
+        if (self->player)
+            PlayerPathMessage(At<void*>(self->player, 0x20), nullptr, self, end.bytes, goal, 0, far ? 0 : 1, kFarBits);
         if (BrainLeader(brain)) return;
         self = unit;
         if (!self->player) return;

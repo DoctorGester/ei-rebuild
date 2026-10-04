@@ -477,11 +477,33 @@ public:
     // effect object, brain, alarm, factors, stats, animation caches, the armour spell list.
     void ResetController();
 
-    // Not rewritten (forwarders):
-    // 00554830. Turns towards / plans the way to `point` for a party unit's move order.
+    // combat_planning.cpp (fourth round): the way to an order's target.
+    // 0054DF50. For a use order on a target (kind 6, source 0): the reachable spot the target
+    // offers (its slot 44, for the unit's size) whose path is cheapest becomes the order's point
+    // (flag18 set), its path into `motionOrder` (if given); false when no spot can be reached.
+    // Every order's point gets z -1 first. Callers test AL.
+    bool FindUseSpot(UnitAction* order, void* motionOrder);
+    // 0054E250. Simulates the unit along `motionOrder` (a path order, kind 2) in steps of 5 ticks
+    // until the order's target is in reach (and seen, when the order needs a line of sight); the
+    // time it takes (ST0), 0 for other kinds.
+    double TimeUntilAction(const UnitAction* order, void* motionOrder);
+    // 0054E600. Plans the way to `order`'s target: the use spot, the path (target lifted off the
+    // sector map) and whether the unit can act from its end, with the player's path message;
+    // the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without a player plan only
+    // use orders. Callers test AL.
+    bool PlanOrderRoute(UnitAction* order, std::uint32_t shout);
+    // 00554830. A party unit's move to `point`: the units in the way lifted (LiftNearby), a runner
+    // planning as walking where it can, FindPath within `range` (the order's z bits), the units put
+    // back and the result reported (ReportPath).
+    void PlanMove(const float* point, int moving, int run, float range);
+
+    // The same through the game's addresses (combat_orders.cpp):
+    // 00554830 (PlanMove).
     void TurnTo(const float* point, int walk, int run, std::uint32_t z);
-    // 0054E600. Plans the order `order` (paths, reach); false when it cannot be carried out.
+    // 0054E600 (PlanOrderRoute).
     bool PlanOrder(UnitAction* order, int arg);
+
+    // Not rewritten (forwarders):
     // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
     void ClaimHostility(CUnit* claimant, std::uint32_t mask);
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`

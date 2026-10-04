@@ -711,6 +711,31 @@ Movement modes, animations and paths (`src/game/combat_motion.cpp`, verify
 | 0054EB30 | CUnitServer::ReportPath | ours only (counted) |
 | 00546480 | CUnitServer::ResetController | ours only: the reset fields |
 
+Planning an order's way (`src/game/combat_planning.cpp`, verify
+`tests/verify/verify_combat_planning.cpp`):
+
+| Address | Name | Verification |
+|---|---|---|
+| 0054DF50 | CUnitServer::FindUseSpot | ours only: only use orders fail |
+| 0054E250 | CUnitServer::TimeUntilAction (ST0) | reads only (simulates a copy of the motion): compared (CheckNear; steps of 5, exact) |
+| 0054E600 | CUnitServer::PlanOrderRoute (combat_orders.cpp's PlanOrder forwarder) | ours only: units without a player succeed except for use orders |
+| 00554830 | CUnitServer::PlanMove (combat_orders.cpp's TurnTo forwarder) | ours only: the movement mode is the same afterwards |
+
+How an order's way is planned (0054E600, called by the order setters with the shout to make):
+the target's aim point (or the order's point); a use order (kind 6, source 0) goes to the
+reachable spot its target offers (slot 44 for the unit's size, slot 60) with the cheapest path
+ending within 0073EF28 of it (the spot becomes the order's point, flag18 set); a party unit that
+can already act stops there. Otherwise the path is searched with the target lifted off the sector
+map (the path flag 007B00D2 cleared meanwhile; CUnit +0x43C = 1), turned into a motion order
+(005B22C0), and the unit is put at its destination for CanReachTarget / CanPlanAction; the time
+until the action (TimeUntilAction: the motion simulated in steps of 5 ticks until the target is
+in reach and, when needed, in sight) goes to the player's path message (0066D490: kind 2 for
+attacks and spells without a target point, 1 otherwise, flag "failed"). Shouts 0x0B (attacks) /
+0x0E when it fails. Stack objects: an AIPath (0x88 bytes: order, step and cell lists 00545750 /
+00539890, a point array 00557230 / 00557250) and a motion order (0x3C bytes: order and step list);
+a UnitMotion (0xA4 bytes; its members 00556D70 / 00556810 / 004D5990 / 0054E5D0 / 004CB050, the
+speed scale 0073EF20, the turn limit 1e10).
+
 More controller fields: `+0x0A9` / `+0x0AA` the path's flags (+0x6D, +0x6E: no player), `+0x145`
 the last path was blocked, `+0x146` a pending path to +0x9C, `+0x147` moving (the movement
 animation plays), `+0x178` updates in mode 3 without a cheap cell, `+0x238` (stats +0x58) a
@@ -746,10 +771,12 @@ step), and MFC 006FE90F (CPlex::FreeDataChain), 0052CEF0 / 005588A0 (CList node 
   to read the (null) target's position: an access violation in both versions.
 - TickAction's plan reset is the inlined 00544FD0 (EndOrder calls it); both leave the same state.
 - Boredom draws from the ISAAC generator only once +0x938 passes 500.
-- ReportPath passes the player's path message an uninitialised point when the path is not partial
-  (kind 3); ours passes zeros there (the message does not use it for that kind, as far as seen).
-  It also constructs and destroys an unused CList (00556D10 / 00556D40, vtable 0073EDB0); ours
-  does not.
+- ReportPath and PlanOrder pass the player's path message a stack motion order (0x3C bytes: order
+  and step list) whose order part is uninitialised when no path was copied into it (kind 3, which
+  the message does not serialise); ours zeroes it.
+- PlanOrder looks up the spell of `action` (+0x194), not of the order it plans, for the message
+  kind of a cast.
+- FindUseSpot writes z = -1 into every order's point it is given, use order or not.
 - PathTo saves CUnit +0x43C, writes the same value back and restores it after FindPath.
 - NextAnimation passes a pause step's emote as the misaligned dword at step + 1 (as the movement
   tick does); the idle builders and the movement steps duplicate the same key code inline
