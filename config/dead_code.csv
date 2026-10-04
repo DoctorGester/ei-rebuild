@@ -88,6 +88,7 @@ address,size,name,evidence
 00440DA0,53,FUN_00440da0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00441440,148,FUN_00441440,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00442E20,213,FUN_00442e20,referenced only from dead code 00707A13
+00442F00,269,FUN_00442f00,"no code or vtable reference; the only matches are float constants in .rdata (00742B79 / 00742BC1 / 00742BC9, 700.0f) - an unused refusal sender (7, id, reason)"
 00445E50,311,FUN_00445e50,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00445F90,42,FUN_00445f90,referenced only from dead code 00445E50
 00445FD0,119,FUN_00445fd0,"no references at all (no call/jmp, no absolute pointer in code or data)"
