@@ -399,3 +399,28 @@ the static initializer 005BF8E0, before the hooks are installed.
   lines ("Unit <id> acknowledges with ...") and remarks are kept. Verify: ours only.
 
 Library: 005AD680 (STLport vector<pair<string, int>>::_M_insert_overflow).
+
+
+## Fourth batch (worker 7)
+
+The path cells' second dword. 005B9A20 (BuildCellsTo) fills every cell's second dword (flags,
+unknown_6) from a stack slot it never writes. Readers: SetStepSpeeds (005BA400) rewrites both
+halves of every step but the last, whose flags stay as built; the steering (ai_motion.cpp) reads
+every step's flags as its speed word, the last one included. The region chain cells
+(BlockSearchPathTo, 005AF1C0) are only read for x and y (005B9BC0, 005C6000, the planner).
+The slot is 20 bytes below the planner's stack pointer; its only caller, the planner (005B9C90),
+leaves there either 0 (SpiralGet pushes the planner's EBP, which is 0 at that call) or, after
+any leg, SearchCommit's row offset 4 * (last row + 1) with rows max(1, -originY) ..
+min(32, height - originY - 1) (in practice 0x84). Nothing else at that depth is called between
+the last of those and BuildCells. PlanLongPath now records that value (CommitLeg) and
+BuildCellsTo uses it; before, ours wrote 0, so the last step of every path had speed 0.
+
+Rewritten: 005BD7F0 the reference-counted object cache lookup (ai_shape_cache.cpp, used for the
+unit shapes), 005BFE70 a sector's new occluder record (ai_occluders.cpp), 005AF7B0
+CellSuitsBlockAt and 005AFF10 FloodRegionFrom (ai_region_reach.cpp, differentials), 005B6070 the
+cost tables (ai_cost_tables.cpp, differential), the stand orders 005B1DE0 / 005B1F10 / 005B2050
+/ 005B2190 (ai_path_stand.cpp; the facing direction from the orientation quaternion transcribed
+as naked x87), the path's save stream 005B2430 / 005B2570 (ai_path_save.cpp; saving is a
+differential through a recording stream).
+
+Library: 005BDD70, 005BDBA0, 005BD6B0, 005BDF40, 005B1870, 005B1A00, 005BE090.

@@ -422,3 +422,7 @@ the line list.
   DestroyFigureManager (figure_models.cpp / figure_model_destroy.cpp).
 
 All verified ours only (they read resources, allocate or free).
+
+- 005A9A50 ConstructFigureModel (figure_models.cpp): the animation map built as STLport's
+  hashtable constructor inlines it (buckets for the first listed prime not below 100), then the
+  three parts (0x6C bytes each, 006721D0). Verify: ours only.
