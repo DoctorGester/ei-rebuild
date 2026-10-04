@@ -89,6 +89,11 @@ public:
     // formatted with `value` when it is not 0, constructed into `out`; returns `out`
     // (ui_interface_save.cpp).
     void* MessageText(void* out, int id, int value);
+    // 005F8A80 (RET 4). Without `force`, takes the next queued message (the list at +0x84) into
+    // +0xA4 (+0xA8 = 0), or returns when there is none. A non-empty +0xA4 then opens the message
+    // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
+    // 0079BE78 is off and it was not forced. ui_create_screen.cpp.
+    void ShowMessage(int force);
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);

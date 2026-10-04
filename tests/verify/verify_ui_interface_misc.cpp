@@ -214,3 +214,18 @@ static void __fastcall SetAtGrowVerify(UiPtrArray<CEngineObject>* self, void*, i
     ei::verify::Check("UiPtrArray::SetAtGrow", true, ok, "index %d size %d -> %d", index, before, self->size_);
 }
 EI_VERIFY(0x006005F0, SetAtGrowVerify, 0, s_unused);
+
+// 005F8A80: ours only (it opens a window). Without `force` and with an empty queue nothing opens.
+static void __fastcall ShowMessageVerify(CInterface3D* self, void*, int force) {
+    std::uint8_t* header;
+    std::memcpy(&header, reinterpret_cast<std::uint8_t*>(self) + 0x84, 4);
+    std::uint8_t* first;
+    std::memcpy(&first, header, 4);
+    bool empty = first == header && static_cast<std::uint8_t>(force) == 0;
+    int windows = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    self->ShowMessage(force);
+    if (!empty) return;
+    int after = static_cast<int>(self->stackEnd_ - self->stackBegin_);
+    ei::verify::Check("CInterface3D::ShowMessage", true, after == windows, "windows %d -> %d", windows, after);
+}
+EI_VERIFY(0x005F8A80, ShowMessageVerify, 0, s_unused);
