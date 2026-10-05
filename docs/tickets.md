@@ -33,8 +33,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Verify checks
 
-- X7 (taken 2026-10-05) ui_order_move: a ground click doesn't move the hero with hooks (passes with no hooks). OrderAt/SelectUnit/OnLButtonUp agree; suspect the client order message 0x30 path (0066A7D0 -> net layer -> server handler). Bisect hints: culprits on both sides of 00443590; lower side within 0042BEF0..00435820.
-- X8 Pixel-comparing wrappers other than DrawWrappedText (CItemInfoPanel::DescribeStats in verify_ui_item_info.cpp) hit the same outside-disturbance pattern X5 found: 2 mismatches at the same millisecond in two processes. Share X5's settle-and-recompare helper with them.
 
 
 ## Cleanup (docs/cleanup-plan.md)
