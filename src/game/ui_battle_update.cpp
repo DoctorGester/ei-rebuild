@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <bit>
 #include "originals_ui.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
@@ -40,9 +41,9 @@ __declspec(naked) int __fastcall PlayerOwns(std::uint8_t*, void*, CUnit*) EI_ORI
 __declspec(naked) BOOL __fastcall ItemTexts(void*, void*, CEngineObject*, mfc::CString*, mfc::CString*, mfc::CString*)
     EI_ORIGINAL(0x004E0150)
 // 005E7060 (thiscall on a sprite, RET 4): its scale.
-__declspec(naked) void __fastcall SpriteScale(CEngineObject*, void*, float) EI_ORIGINAL(0x005E7060)
+void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { SpriteSetScaleOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 005E6FA0 (Rebirth-patched): places a sprite.
-__declspec(naked) void __fastcall SpritePlace(CEngineObject*, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
+void __fastcall SpritePlace(CEngineObject* a0, void*, float a2, float a3, float a4) { SpritePlaceOriginal((void*)a0, nullptr, a2, a3, a4); }
 
 // A CString an item's virtual method returns (by hidden pointer); released when it goes.
 struct ReturnedString {
@@ -160,7 +161,7 @@ __declspec(naked) void __fastcall ActionsSetUnit(CUiWindow*, void*, CUnit*, int)
 // 00530930 (__fastcall on a unit): its prototype record.
 static std::uint8_t* UnitPrototype(CUnit* unit) { return static_cast<std::uint8_t*>(::UnitPrototypeOf(unit)); }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
-__declspec(naked) void __fastcall ShowPanelUnit(CBattleScreenSetup*, void*, CUnit*, void*) EI_ORIGINAL(0x0063B920)
+void __fastcall ShowPanelUnit(CBattleScreenSetup* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
@@ -202,7 +203,7 @@ __declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORI
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
 // next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
 // message box's constructor.
-__declspec(naked) void __fastcall UpdateChildren(CUiWindow*) EI_ORIGINAL(0x006010E0)
+void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 __declspec(naked) void __fastcall ShowNextMessage(CInterface3D*, void*, int) EI_ORIGINAL(0x005F8A80)
 __declspec(naked) void __fastcall PushWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
@@ -591,9 +592,9 @@ namespace {
 struct TextGlue {
     CTextManager* Table();
 };
-__declspec(naked) CTextManager* TextGlue::Table() EI_ORIGINAL(0x00578E20)
+CTextManager* TextGlue::Table() { return (CTextManager*)GameFlowOriginal(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
-__declspec(naked) void __fastcall LogAddText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065CF30)
+void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { LogAddTextOriginal((void*)a0, nullptr, a2); }
 
 const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -695,9 +696,9 @@ namespace {
 
 // The panels' highlights (thiscall, RET 8; each called with (index, 0)): quick item slot
 // 0063CD20, spell 0063E750, action 0063F730.
-__declspec(naked) void __fastcall QuickSlotHighlight(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063CD20)
-__declspec(naked) void __fastcall SpellHighlight(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063E750)
-__declspec(naked) void __fastcall ActionHighlight(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063F730)
+void __fastcall QuickSlotHighlight(CUiWindow* a0, void*, int a2, int a3) { QuickPanelSetOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall SpellHighlight(CUiWindow* a0, void*, int a2, int a3) { SpellPanelSetOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall ActionHighlight(CUiWindow* a0, void*, int a2, int a3) { ActionPanelSetOriginal((void*)a0, nullptr, a2, a3); }
 constexpr int kSlotIsDead = 55;   // object slot 55 (+0xDC): non-zero for a dead unit
 
 } // namespace

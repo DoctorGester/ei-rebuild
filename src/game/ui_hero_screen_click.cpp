@@ -9,6 +9,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -52,7 +53,7 @@ __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGI
 struct TextGlue {
     void* Table();   // 00578E20
 };
-__declspec(naked) void* TextGlue::Table() EI_ORIGINAL(0x00578E20)
+void* TextGlue::Table() { return GameFlowOriginal(); }
 __declspec(naked) void __fastcall EndSession(void*) EI_ORIGINAL(0x0057ED00)
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.

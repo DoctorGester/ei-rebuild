@@ -57,8 +57,8 @@ constexpr std::uintptr_t kStateBlockAlpha = 0x007AEDD8;
 constexpr std::uintptr_t kStateBlockTerrain = 0x007AEDDC;
 
 // 004E7840 / 004E7A40: the renderer flushes its two batched vertex buffers.
-__declspec(naked) void __fastcall RendererFlushA(char*) EI_ORIGINAL(0x004E7840)
-__declspec(naked) void __fastcall RendererFlushB(char*) EI_ORIGINAL(0x004E7A40)
+void __fastcall RendererFlushA(char* a0) { DeviceFlushBatchAOriginal((void*)a0); }
+void __fastcall RendererFlushB(char* a0) { DeviceFlushBatchBOriginal((void*)a0); }
 void Flush(char* renderer) {
     RendererFlushA(renderer);
     RendererFlushB(renderer);
@@ -66,7 +66,7 @@ void Flush(char* renderer) {
 
 // The render device's matrix stacks (pointer, depth): +0x1C/+0x20 and +0x24/+0x28 pushed by
 // 004D9B80 (types 1 and 2), +0x3C/+0x40, and the view stack +0x5C/+0x60.
-__declspec(naked) void __fastcall PushSceneMatrix(char*, void*, const float*, int) EI_ORIGINAL(0x004D9B80)
+void __fastcall PushSceneMatrix(char* a0, void*, const float* a2, int a3) { PushSceneMatrixOriginal((void*)a0, nullptr, a2, a3); }
 inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 // 004F0EF0: the view matrix of the camera 0079B2A8 into `out`.
 __declspec(naked) void __fastcall DeviceViewMatrix(char*, void*, float*, const void*) EI_ORIGINAL(0x004F0EF0)

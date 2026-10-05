@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 
 #include <bit>
 #include <cstring>
@@ -91,7 +92,7 @@ constexpr int kTypeAntimagic = 0x201A;
 
 } // namespace
 
-__declspec(naked) void CParticleSource::Attach(void*) EI_ORIGINAL(0x004849F0)
+void CParticleSource::Attach(void* a0) { ParticleSourceAttachOriginal((void*)this, nullptr, a0); }
 
 // --- Free helpers -------------------------------------------------------------------------------
 

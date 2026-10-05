@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -35,7 +36,7 @@ PointArray& TexturePoints() { return *reinterpret_cast<PointArray*>(0x007C2E00);
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E10); }
 
 // 004F65B0: aligned storage for `count` 8-byte records.
-__declspec(naked) IntPoint* __fastcall Alloc8(int) EI_ORIGINAL(0x004F65B0)
+IntPoint* __fastcall Alloc8(int a0) { return (IntPoint*)AllocAligned32Of8Original(a0); }
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 

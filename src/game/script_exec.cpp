@@ -22,6 +22,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_render.h"
+#include "originals_ai.h"
 
 #include <cstdint>
 #include <cstring>
@@ -157,7 +158,7 @@ __declspec(naked) void World::AddUnit(int, const char*, const char*, const Vec3*
 void World::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
 __declspec(naked) void World::RecalcMercBriefings() EI_ORIGINAL(0x00591800)
 __declspec(naked) void World::SetWind(const Vec3*, float) EI_ORIGINAL(0x0058EE20)
-__declspec(naked) void World::SetTimeSpeed(float) EI_ORIGINAL(0x0058EEE0)
+void World::SetTimeSpeed(float a0) { WorldSetTimeSpeedOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 void World::SetTime(float a0) { WorldSetTimeOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 __declspec(naked) void World::SetWaterLevel(int, float, int) EI_ORIGINAL(0x00593FA0)
 __declspec(naked) void World::AddMob(const char*) EI_ORIGINAL(0x00595AB0)
@@ -210,13 +211,13 @@ __declspec(naked) void Brain::Follow(CEngineObject*) EI_ORIGINAL(0x005D7E40)
 __declspec(naked) void Brain::AttackTarget(CEngineObject*) EI_ORIGINAL(0x005D7B50)
 __declspec(naked) void Brain::CastAt(int, const Vec3*, int) EI_ORIGINAL(0x005D7DA0)
 __declspec(naked) void Brain::ResetTarget() EI_ORIGINAL(0x005D7C30)
-__declspec(naked) void Brain::ClearModes() EI_ORIGINAL(0x005D4DF0)
+void Brain::ClearModes() { BrainClearModesOriginal((void*)this); }
 __declspec(naked) void Brain::StopAction() EI_ORIGINAL(0x005D7790)
 __declspec(naked) void Brain::Guard(const Vec3*, float) EI_ORIGINAL(0x005D6230)
 __declspec(naked) void Brain::Sentry(const Vec3*) EI_ORIGINAL(0x005D64E0)
-__declspec(naked) void Brain::AddMode(void*) EI_ORIGINAL(0x005D5F60)
+void Brain::AddMode(void* a0) { BrainAddModeOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void* Brain::FindPatrolMode() EI_ORIGINAL(0x005D5E30)
-__declspec(naked) void Brain::RemoveMode(int) EI_ORIGINAL(0x005D6140)
+void Brain::RemoveMode(int a0) { BrainRemoveModeOriginal((void*)this, nullptr, a0); }
 
 // Unit modes (the brain's behaviour list). Each is allocated by the command and constructed here.
 struct Mode {
@@ -235,7 +236,7 @@ __declspec(naked) Mode* Mode::Sentry(const Vec3*) EI_ORIGINAL(0x004BA360)
 __declspec(naked) Mode* Mode::Guard(const Vec3*, float, float) EI_ORIGINAL(0x004BA1C0)
 __declspec(naked) Mode* Mode::Follow(CEngineObject*) EI_ORIGINAL(0x004BA450)
 __declspec(naked) Mode* Mode::Patrol() EI_ORIGINAL(0x005D0F60)
-__declspec(naked) Mode* Mode::Player() EI_ORIGINAL(0x005D3760)
+Mode* Mode::Player() { return (Mode*)ModePlayerConstructOriginal((void*)this); }
 __declspec(naked) Mode* Mode::Fear(int) EI_ORIGINAL(0x005D2850)
 __declspec(naked) Mode* Mode::Aggression() EI_ORIGINAL(0x004BA710)
 __declspec(naked) Mode* Mode::Revenge(int) EI_ORIGINAL(0x004BA830)
@@ -254,7 +255,7 @@ struct PatrolMode {
     void AddPoint(const Vec3* point);                    // 005D12B0
     void* LastPoint();                                   // 005D1690
 };
-__declspec(naked) void PatrolMode::AddPoint(const Vec3*) EI_ORIGINAL(0x005D12B0)
+void PatrolMode::AddPoint(const Vec3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
 __declspec(naked) void* PatrolMode::LastPoint() EI_ORIGINAL(0x005D1690)
 
 // Patrol point (16 bytes: point and a flag) and the arrays the patrol commands touch.

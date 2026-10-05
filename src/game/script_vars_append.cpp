@@ -145,7 +145,7 @@ namespace {
 
 void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 // 004B5EF0: a group's destructor body (references released, array freed).
-__declspec(naked) void __fastcall GroupDestruct(ScriptGroup*) EI_ORIGINAL(0x004B5EF0)
+void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupBodyDestructOriginal((void*)a0); }
 
 // The value array's storage freed after `destroy` ran on its elements (CArray::SetSize(0) as the
 // game inlines it), then the names emptied.

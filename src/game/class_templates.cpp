@@ -34,7 +34,7 @@ __declspec(naked) void __fastcall VectorInsertOverflow(ClassTemplateVector*, voi
                                                        ClassTemplate* const*, unsigned) EI_ORIGINAL(0x004AB520)
 using CopyConstructFn = void(__fastcall*)(ClassTemplate**, void*, ClassTemplate* const*);
 __declspec(naked) void __fastcall CopyConstructA(ClassTemplate**, void*, ClassTemplate* const*) EI_ORIGINAL(0x004ABE30)
-__declspec(naked) void __fastcall CopyConstructB(ClassTemplate**, void*, ClassTemplate* const*) EI_ORIGINAL(0x004A5D50)
+void __fastcall CopyConstructB(ClassTemplate** a0, void*, ClassTemplate* const* a2) { CountedPtrCopyOriginal((void*)a0, nullptr, (void* const*)a2); }
 
 // The item database (template +0x3C slot 18) lists the names of each kind into a CStringArray:
 // 006AD2F0 weapons, 006AD380 armors, 006AD410 quick items, 006AD260 the fourth kind (its records

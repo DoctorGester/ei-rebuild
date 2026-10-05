@@ -16,6 +16,7 @@
 #include "originals_units.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -244,9 +245,9 @@ struct CampKinds {
     bool IsBlueprint(const std::uint8_t* item);        // 005EE130
 };
 __declspec(naked) bool CampKinds::IsSpellContainer(const std::uint8_t*) EI_ORIGINAL(0x005EE0B0)
-__declspec(naked) bool CampKinds::IsSpell(const std::uint8_t*) EI_ORIGINAL(0x005EE050)
-__declspec(naked) bool CampKinds::IsModifier(const std::uint8_t*) EI_ORIGINAL(0x005EE080)
-__declspec(naked) bool CampKinds::IsPart(const std::uint8_t*) EI_ORIGINAL(0x005EE0D0)
+bool CampKinds::IsSpell(const std::uint8_t* a0) { return ItemKindIsSpellOriginal((const void*)a0); }
+bool CampKinds::IsModifier(const std::uint8_t* a0) { return ItemKindIsModifierOriginal((const void*)a0); }
+bool CampKinds::IsPart(const std::uint8_t* a0) { return ItemKindIsPartOriginal((const void*)a0); }
 __declspec(naked) bool CampKinds::IsKindOne(const std::uint8_t*) EI_ORIGINAL(0x005EE110)
 __declspec(naked) bool CampKinds::IsBlueprint(const std::uint8_t*) EI_ORIGINAL(0x005EE130)
 
@@ -1562,7 +1563,7 @@ EI_REPLACE(0x0060F980, CampRefreshStats);
 
 namespace {
 // 006010E0: the container's base update. 00600270: frame time in seconds (ST0, unrounded).
-__declspec(naked) void __fastcall UpdateChildrenAt(void*) EI_ORIGINAL(0x006010E0)
+void __fastcall UpdateChildrenAt(void* a0) { UiUpdateChildrenOriginal(a0); }
 inline double __fastcall FrameTimeAt(void* w) { return WindowFrameTimeOriginal(w); }
 
 // fmod(turn + sign * 2 * seconds, *[007C7EE8]) through the game's _CIfmod, as the original
@@ -1607,7 +1608,7 @@ constexpr int kHeroClass = 0x32;
 struct TextTableGlue {
     void* Table();   // 00578E20 (on 007AFEA4)
 };
-__declspec(naked) void* TextTableGlue::Table() EI_ORIGINAL(0x00578E20)
+void* TextTableGlue::Table() { return GameFlowOriginal(); }
 void __fastcall TextLookup(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
 // The stats panel's hero name (006232D0, RET 8) and the trade panel's hero (00625860, RET 4).
 __declspec(naked) void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*) EI_ORIGINAL(0x006232D0)

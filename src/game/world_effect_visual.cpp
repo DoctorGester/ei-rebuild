@@ -3,6 +3,7 @@
 
 #include "world_effect_internal.h"
 #include "originals_effects.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -22,7 +23,7 @@ __declspec(naked) void __fastcall AssignSource(void** /*slot*/, void*, void* /*o
 // CParticleSource (effects.cpp, through the game addresses).
 __declspec(naked) void* __fastcall CreateSource(void* /*manager*/, void*, int /*type*/) EI_ORIGINAL(0x00498400)
 __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
-__declspec(naked) void __fastcall AttachSource(void* /*source*/, void*, void* /*object*/) EI_ORIGINAL(0x004849F0)
+void __fastcall AttachSource(void* a0, void*, void* a2) { ParticleSourceAttachOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
 __declspec(naked) void __fastcall AddScorch(void*, void*, std::uint32_t /*x*/, std::uint32_t /*y*/, std::uint32_t /*outer*/, std::uint32_t /*inner*/, std::uint32_t /*angle*/, std::uint32_t /*alpha*/) EI_ORIGINAL(0x0056D4C0)

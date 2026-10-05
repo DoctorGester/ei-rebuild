@@ -103,7 +103,7 @@ BlockCostList::Node* AppendBlockCost(BlockCostList* list) {
 // The region map's constructor helpers: the local search's two member constructors (their counts
 // preset to 1), the CRT's `eh vector constructor iterator` (array, size, count, ctor, dtor).
 __declspec(naked) void __fastcall ConstructSearchPart1(void*) EI_ORIGINAL(0x005B1470)
-__declspec(naked) void __fastcall ConstructSearchPart2(void*) EI_ORIGINAL(0x005B14C0)
+void __fastcall ConstructSearchPart2(void* a0) { SearchPartConstructOriginal(a0); }
 void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
 
 // 005C1EA0 (RET 8): the local search's set-up for a map (map, 0).
@@ -176,7 +176,7 @@ __declspec(naked) bool __fastcall JoinBlockSearchesAt(CRegionMap*, void*, void*)
 __declspec(naked) void __fastcall ExpandBlockSearch(BlockSearch*) EI_ORIGINAL(0x005AF0C0)
 __declspec(naked) void __fastcall BlockPathTo(BlockSearch*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005AF1C0)
 // The path list: a reversed copy into `out` (RET 4, returns out), append (RET 4), fix-up.
-__declspec(naked) void __fastcall ChainFixUp(PathCellList*) EI_ORIGINAL(0x005C6000)
+void __fastcall ChainFixUp(PathCellList* a0) { PathCellListFixUpOriginal((void*)a0); }
 
 // 00539980: ConstructElements<PathCell> (zero-fills `count`).
 

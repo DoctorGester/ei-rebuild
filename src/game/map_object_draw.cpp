@@ -54,7 +54,7 @@ __declspec(naked) void __fastcall AddLight(void*, void*, int, CEngineObject*) EI
 void __fastcall OrientationToMatrix(void* a0, void*, float* a2) { QuaternionToMatrixOriginal((const void*)a0, nullptr, a2); }
 // 004D9B80 / 004D9880 / 0051C110. The scene's matrix stacks: push (multiplied with the top),
 // multiply, pop.
-__declspec(naked) void __fastcall PushSceneMatrix(void*, void*, const float*, int) EI_ORIGINAL(0x004D9B80)
+void __fastcall PushSceneMatrix(void* a0, void*, const float* a2, int a3) { PushSceneMatrixOriginal(a0, nullptr, a2, a3); }
 inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 __declspec(naked) void __fastcall PopSceneMatrix(void*, void*, int) EI_ORIGINAL(0x0051C110)
 // 006CB020. Light manager: is the point lit, AL.

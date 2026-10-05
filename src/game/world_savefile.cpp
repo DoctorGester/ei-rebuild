@@ -32,8 +32,8 @@ std::uint8_t* StreamData(void* stream) { return *reinterpret_cast<std::uint8_t**
 int& StreamVersion(void* stream) { return *reinterpret_cast<int*>(static_cast<std::uint8_t*>(stream) + 8); }
 
 // 004A5340 (RET 8) / 004A52D0 (RET 0xC, AL). The file header: write (magic, version) / check.
-__declspec(naked) void __fastcall HeaderWrite(void*, void*, unsigned, int) EI_ORIGINAL(0x004A5340)
-__declspec(naked) bool __fastcall HeaderRead(void*, void*, unsigned, int, int) EI_ORIGINAL(0x004A52D0)
+void __fastcall HeaderWrite(void* a0, void*, unsigned a2, int a3) { StreamWriteHeaderOriginal(a0, nullptr, a2, (unsigned)a3); }
+bool __fastcall HeaderRead(void* a0, void*, unsigned a2, int a3, int a4) { return StreamReadHeaderOriginal(a0, nullptr, a2, a3, a4); }
 // The growing buffer: constructor, destructor, Seek (grows to the position).
 inline void __fastcall BufferSeek(GameBuffer* a0, void*, int a2) { GameBufferGrowOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 // The coder.

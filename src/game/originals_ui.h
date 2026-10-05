@@ -67,3 +67,27 @@ __declspec(naked) inline void __fastcall UiMeshCellsOriginal(void* /*mesh*/, voi
                                                              float /*bottom*/, int /*u0*/, int /*v0*/, int /*u1*/,
                                                              int /*v1*/, int /*count*/, int /*flag*/)
     EI_ORIGINAL(0x005E7680)
+
+// C3j. 005E7060: sprite SetScale (RET 4; the float is only copied to three fields, so it is raw dword bits; no result).
+__declspec(naked) inline void __fastcall SpriteSetScaleOriginal(void* /*sprite*/, void*, std::uint32_t /*scaleBits*/)
+    EI_ORIGINAL(0x005E7060)
+// 005E6FA0: sprite Place(x, y, z) (RET 0xC, no result).
+__declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
+// 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
+__declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
+// 0063B920: battle screen shows the panel of a unit (RET 8: unit, extra; no result).
+__declspec(naked) inline void __fastcall BattleShowPanelUnitOriginal(void* /*screen*/, void*, void* /*unit*/, void* /*extra*/)
+    EI_ORIGINAL(0x0063B920)
+// 0063CD20 / 0063E750 / 0063F730: quick, spell and action panel slot updates (RET 8: slot, flag; no result).
+__declspec(naked) inline void __fastcall QuickPanelSetOriginal(void* /*panel*/, void*, int, int) EI_ORIGINAL(0x0063CD20)
+__declspec(naked) inline void __fastcall SpellPanelSetOriginal(void* /*panel*/, void*, int, int) EI_ORIGINAL(0x0063E750)
+__declspec(naked) inline void __fastcall ActionPanelSetOriginal(void* /*panel*/, void*, int, int) EI_ORIGINAL(0x0063F730)
+// 0065CF30: appends a line to a log window (RET 4, no result).
+__declspec(naked) inline void __fastcall LogAddTextOriginal(void* /*window*/, void*, const char* /*text*/) EI_ORIGINAL(0x0065CF30)
+// 005EE050 / 005EE080 / 005EE0D0: item record is a spell / modifier / part (RET 4, AL; free functions, ECX is not read, so the
+// members that forwarded them ignored their `this`).
+__declspec(naked) inline bool __stdcall ItemKindIsSpellOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE050)
+__declspec(naked) inline bool __stdcall ItemKindIsModifierOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE080)
+__declspec(naked) inline bool __stdcall ItemKindIsPartOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE0D0)
+// 005E0DB0: variable table iterator: the next node in the bucket chain or null (plain RET, EAX = node).
+__declspec(naked) inline void* __fastcall VariableIteratorNextOriginal(void* /*iterator*/) EI_ORIGINAL(0x005E0DB0)

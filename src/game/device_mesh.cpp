@@ -89,7 +89,7 @@ __declspec(naked) void __fastcall WordsSetSize(AlignedArray*, void*, int, int) E
 // two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
 __declspec(naked) void __fastcall BoundsOfProjected(char*, void*, AlignedArray*, int) EI_ORIGINAL(0x004E8900)
 __declspec(naked) void __fastcall BoundsOfVertices(char*, void*, AlignedArray*, char*) EI_ORIGINAL(0x004E86B0)
-__declspec(naked) void __fastcall DrawVertexBuffer(char*, void*, std::uint16_t*, int) EI_ORIGINAL(0x004E7E00)
+void __fastcall DrawVertexBuffer(char* a0, void*, std::uint16_t* a2, int a3) { DeviceDrawVertexBufferOriginal((void*)a0, nullptr, (const void*)a2, a3); }
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, std::uint16_t*, int, int)
     EI_ORIGINAL(0x004EB550)
 __declspec(naked) int __fastcall DrawPrimitive2(char*, void*, void*, void*, int, int, void*, int, std::uint16_t*, int,

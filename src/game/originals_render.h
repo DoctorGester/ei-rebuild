@@ -31,3 +31,17 @@ __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, 
 // C3i. 004D9AA0: quaternion (ECX) into a 4x4 matrix `out` (RET 4, no result).
 __declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* /*quaternion*/, void*, float* /*out*/)
     EI_ORIGINAL(0x004D9AA0)
+
+// C3j. 004E7840 / 004E7A40: flush a device's batch A / B (plain RET, no result).
+__declspec(naked) inline void __fastcall DeviceFlushBatchAOriginal(void* /*device*/) EI_ORIGINAL(0x004E7840)
+__declspec(naked) inline void __fastcall DeviceFlushBatchBOriginal(void* /*device*/) EI_ORIGINAL(0x004E7A40)
+// 004E7E00: draws a vertex buffer with 16-bit indices (RET 8: indices, count; no result).
+__declspec(naked) inline void __fastcall DeviceDrawVertexBufferOriginal(void* /*device*/, void*, const void* /*indices*/,
+                                                                        int /*count*/) EI_ORIGINAL(0x004E7E00)
+// 004D9B80: pushes a scene matrix into slot `index` of the cache (RET 8: matrix, index; no result).
+__declspec(naked) inline void __fastcall PushSceneMatrixOriginal(void* /*cache*/, void*, const float* /*matrix*/, int /*index*/)
+    EI_ORIGINAL(0x004D9B80)
+// 004F65B0: allocates `count` 8-byte elements, 32-byte aligned (ECX = count, plain RET, EAX = memory).
+__declspec(naked) inline void* __fastcall AllocAligned32Of8Original(int /*count*/) EI_ORIGINAL(0x004F65B0)
+// 004E6BA0: drops one reference of a surface holder and deletes it at zero (plain RET, no result).
+__declspec(naked) inline void __fastcall SurfaceHolderReleaseOriginal(void* /*holder*/) EI_ORIGINAL(0x004E6BA0)

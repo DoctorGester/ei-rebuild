@@ -112,7 +112,7 @@ __declspec(naked) int __cdecl GameFtol(double) {
 
 } // namespace
 
-__declspec(naked) void CUiMesh::Place(float, float, float) EI_ORIGINAL(0x005E6FA0)
+void CUiMesh::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
 
 void CHudClock::Update() {
     *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(interface_) + 0x94) = fast_;

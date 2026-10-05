@@ -125,12 +125,11 @@ __declspec(naked) inline double __fastcall UnitModeSpeed(CEngineObject*) EI_ORIG
 __declspec(naked) inline void __fastcall EffectHitUnitsInRadius(CSpellEffect*) EI_ORIGINAL(0x00683600)
 __declspec(naked) inline void __fastcall EffectHitUnitsAlong(CSpellEffect*, void*, const Vector3*) EI_ORIGINAL(0x00683730)
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.
-__declspec(naked) inline void __fastcall AiNoise(void* /*events*/, void*, void* /*source*/, float /*loudness*/, int /*kind*/,
-                                                 const Vector3* /*at*/) EI_ORIGINAL(0x005C98C0)
+inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, const Vector3* a5) { AiEventsNoiseOriginal(a0, nullptr, a2, a3, a4, (const void*)a5); }
 // 0058D3D0 CWorldServer::WakeUnitsAround (world_tick.cpp).
 __declspec(naked) inline void __fastcall WorldWakeUnits(void* /*world*/, void*, const Vector3*, float /*radius*/) EI_ORIGINAL(0x0058D3D0)
 // 005CBBE0: the unit controller's AI memory (+0xA50) notices `point` at `level` / `kind`.
-__declspec(naked) inline void __fastcall AiMemoryNotice(void*, void*, const Vector3*, int /*level*/, int /*kind*/) EI_ORIGINAL(0x005CBBE0)
+inline void __fastcall AiMemoryNotice(void* a0, void*, const Vector3* a2, int a3, int a4) { AiMemoryNoticeOriginal(a0, nullptr, (const void*)a2, a3, a4); }
 // 004B2EF0 / 004B31D0 ScriptGroup::Insert / InsertAll (script_group.cpp).
 __declspec(naked) inline void __fastcall GroupInsert(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B2EF0)
 __declspec(naked) inline void __fastcall GroupInsertAll(void*, void*, const void* /*list*/) EI_ORIGINAL(0x004B31D0)

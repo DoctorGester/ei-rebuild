@@ -71,3 +71,20 @@ __declspec(naked) inline void __fastcall StreamReadCStringOriginal(void* /*strea
     EI_ORIGINAL(0x004E5840)
 __declspec(naked) inline void* __fastcall FindWeaponOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x004AB720)
 __declspec(naked) inline void* __fastcall FindArmorOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x004AB820)
+
+// C3j. 004849F0: particle source attaches to an object (RET 4, no result).
+__declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)
+    EI_ORIGINAL(0x004849F0)
+// 004A5250: writes a stream with a size prefix into this stream (RET 4, no result).
+__declspec(naked) inline void __fastcall StreamWriteSizedOriginal(void* /*to*/, void*, void* /*from*/) EI_ORIGINAL(0x004A5250)
+// 004A52D0 / 004A5340: stream header read (magic, a, b; RET 0xC, AL) / write (magic, version; RET 8).
+__declspec(naked) inline bool __fastcall StreamReadHeaderOriginal(void* /*stream*/, void*, unsigned /*magic*/, int /*a*/, int /*b*/)
+    EI_ORIGINAL(0x004A52D0)
+__declspec(naked) inline void __fastcall StreamWriteHeaderOriginal(void* /*stream*/, void*, unsigned /*magic*/, unsigned /*version*/)
+    EI_ORIGINAL(0x004A5340)
+// 004A5490: memory stream Seek(position) (RET 4, no result).
+__declspec(naked) inline void __fastcall StreamSeekOriginal(void* /*stream*/, void*, std::uint32_t /*position*/) EI_ORIGINAL(0x004A5490)
+// 004A5D50: copies a counted pointer (RET 4, returns this).
+__declspec(naked) inline void* __fastcall CountedPtrCopyOriginal(void* /*to*/, void*, void* const* /*from*/) EI_ORIGINAL(0x004A5D50)
+// 004D8E10: decodes the chunk text into `out` (RET 4, no result).
+__declspec(naked) inline void __fastcall TextDecodeOriginal(void* /*decoder*/, void*, void* /*out CString*/) EI_ORIGINAL(0x004D8E10)

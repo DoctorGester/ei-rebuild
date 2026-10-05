@@ -29,7 +29,7 @@ inline void __fastcall AssignText(void* s, void*, const char* t) { CStringAssign
 __declspec(naked) PartyRecord** __fastcall RecordCopy(PartyRecord**, PartyRecord**, PartyRecord**) EI_ORIGINAL(0x004AB910)
 __declspec(naked) void __fastcall RecordPtrDestroy(PartyRecord**, void*, int) EI_ORIGINAL(0x004AB960)
 __declspec(naked) void __fastcall RecordPtrRelease(PartyRecord**) EI_ORIGINAL(0x004A5D70)
-__declspec(naked) void __fastcall RecordPtrCopy(PartyRecord**, void*, PartyRecord* const*) EI_ORIGINAL(0x004A5D50)
+void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) { CountedPtrCopyOriginal((void*)a0, nullptr, (void* const*)a2); }
 __declspec(naked) void __fastcall RecordInsertOverflow(PartyRecordList*, void*, PartyRecord**, PartyRecord* const*,
                                                        unsigned) EI_ORIGINAL(0x004AB320)
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named

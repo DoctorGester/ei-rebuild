@@ -129,16 +129,16 @@ __declspec(naked) void __fastcall TickStartAction(CUnitServer*, void*, int, int)
 __declspec(naked) void __fastcall TickPlaySteps(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548DE0)
 __declspec(naked) void __fastcall TickPlayEmote(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548FA0)
 __declspec(naked) bool __fastcall TickTalkTargetBusy(CUnitServer*, void*, CEngineObject*) EI_ORIGINAL(0x0054C760)
-__declspec(naked) bool __fastcall TickCheckOrder(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C8B0)
+bool __fastcall TickCheckOrder(CUnitServer* a0, void*, const UnitAction* a2) { return UnitCheckOrderOriginal((void*)a0, nullptr, (const void*)a2); }
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
-__declspec(naked) bool __fastcall QueueHolds(void*, void*, AnimationSteps*) EI_ORIGINAL(0x00544E70)
-__declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, int) EI_ORIGINAL(0x00544D50)
+bool __fastcall QueueHolds(void* a0, void*, AnimationSteps* a2) { return StepsQueueHoldsOriginal(a0, nullptr, (const void*)a2); }
+void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { StepsEmoteOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall PlanTake(OrderPlan*, void*, AnimationSteps, int, int) EI_ORIGINAL(0x00545110)
 __declspec(naked) AnimationSteps* __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x0054B260)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-__declspec(naked) void __fastcall StepsAddStepTick(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00544CE0)
+void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, a2, a3); }
 inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
 __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
@@ -153,7 +153,7 @@ __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORI
 // unit (0066E110).
 __declspec(naked) std::uint8_t __fastcall MapCellFlag80(void*, void*, const float*) EI_ORIGINAL(0x005BBC70)
 __declspec(naked) void* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
-__declspec(naked) int __fastcall MemoryIsEnemy(void*, void*, CUnit*, CEngineObject*) EI_ORIGINAL(0x005CB7F0)
+int __fastcall MemoryIsEnemy(void* a0, void*, CUnit* a2, CEngineObject* a3) { return AiMemoryIsEnemyOriginal(a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)
 // Rewritten elsewhere (combat*.cpp), through their game addresses: ActionDistance, CanReachTarget,
 // CanCast, BuildAttackHit, ResolveHit, AnimationDuration, BuildOrderSteps.

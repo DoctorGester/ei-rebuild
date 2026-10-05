@@ -54,3 +54,18 @@ __declspec(naked) inline void __fastcall WorldSetTimeOriginal(void* /*world*/, v
     EI_ORIGINAL(0x0058EEA0)
 __declspec(naked) inline void* __fastcall ServerMapPathOriginal(void* /*world*/, void*, void* /*out*/, const char* /*name*/)
     EI_ORIGINAL(0x00595BA0)
+
+// C3j. 00578E20: the game flow object (global 007AF788; plain RET, ECX unused, EAX = flow, callers use it).
+__declspec(naked) inline void* __cdecl GameFlowOriginal() EI_ORIGINAL(0x00578E20)
+// 00578920: menu call through the global at 007AF784 (ECX is loaded from it; RET 4, one stack argument, EAX not a result).
+__declspec(naked) inline void __stdcall MenuSetOriginal(int) EI_ORIGINAL(0x00578920)
+// 00578940: tail-jumps to a menu call through the global at 007AF738 (no arguments, ECX loaded from it, EAX not a result).
+__declspec(naked) inline void __cdecl MenuCallOriginal() EI_ORIGINAL(0x00578940)
+// 0055FC50: the world's time of day in ST0 (ECX = world, plain RET).
+__declspec(naked) inline double __fastcall WorldDayTimeOriginal(void* /*world*/) EI_ORIGINAL(0x0055FC50)
+// 0058EEE0: sets the time speed (RET 4; the float is only copied, so it is passed as raw dword bits; EAX not a result).
+__declspec(naked) inline void __fastcall WorldSetTimeSpeedOriginal(void* /*world*/, void*, std::uint32_t /*speedBits*/)
+    EI_ORIGINAL(0x0058EEE0)
+// 00595480: CWorldServer::NewZone(map, mob, zone) (RET 0xC, EAX 0 = failed).
+__declspec(naked) inline int __fastcall WorldNewZoneOriginal(void* /*world*/, void*, const char* /*map*/, const char* /*mob*/,
+                                                             const char* /*zone*/) EI_ORIGINAL(0x00595480)

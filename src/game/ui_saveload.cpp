@@ -118,8 +118,8 @@ __declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, uns
 // The stream's header (004A5340, RET 8: magic, version) and reads (004A52D0, RET 0xC: true when
 // the magic and version fit, the version kept in +8; 00461190 / 004E5840, RET 4: a string up to
 // a zero into a new CString at `out` / into the CString `out`).
-__declspec(naked) void __fastcall StreamWriteHeader(void*, void*, unsigned, unsigned) EI_ORIGINAL(0x004A5340)
-__declspec(naked) bool __fastcall StreamReadHeader(void*, void*, unsigned, unsigned, int) EI_ORIGINAL(0x004A52D0)
+void __fastcall StreamWriteHeader(void* a0, void*, unsigned a2, unsigned a3) { StreamWriteHeaderOriginal(a0, nullptr, a2, a3); }
+bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int a4) { return StreamReadHeaderOriginal(a0, nullptr, a2, (int)a3, a4); }
 __declspec(naked) mfc::CString* __fastcall StreamReadString(void*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 void __fastcall StreamReadInto(void* a0, void*, mfc::CString* a2) { StreamReadCStringOriginal(a0, nullptr, (void*)a2); }
 

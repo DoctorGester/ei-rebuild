@@ -69,7 +69,7 @@ __declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
 __declspec(naked) void CUiSurface::Freeze(int, int) EI_ORIGINAL(0x005FD760)
 __declspec(naked) void CUiModel::Draw(int) EI_ORIGINAL(0x005FC2F0)
 double CUiContainer::FrameTime() { return WindowFrameTimeOriginal(this); }
-__declspec(naked) void CUiContainer::UpdateBase() EI_ORIGINAL(0x006010E0)
+void CUiContainer::UpdateBase() { UiUpdateChildrenOriginal((void*)this); }
 __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void CUiContainer::RedrawContainer() EI_ORIGINAL(0x00601040)
 __declspec(naked) void CUiWindow::RedrawBase() EI_ORIGINAL(0x005FECC0)

@@ -130,8 +130,7 @@ __declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, AnimationSte
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
-__declspec(naked) AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps*, void*, const AnimationSteps*)
-    EI_ORIGINAL(0x00556870)
+AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00557B60)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 __declspec(naked) void __fastcall StepsRemoveAt(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557E20)

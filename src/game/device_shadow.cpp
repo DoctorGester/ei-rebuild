@@ -43,7 +43,7 @@ __declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*,
 // The device [thiscall]: a vertex buffer for n vertices [004E7820, always null], its draw
 // [004E7E00: indices, count], the indexed draw [004EB550: primitive, FVF, vertices, count, indices,
 // count, flags].
-__declspec(naked) void __fastcall DrawVertexBuffer(char*, void*, const void*, int) EI_ORIGINAL(0x004E7E00)
+void __fastcall DrawVertexBuffer(char* a0, void*, const void* a2, int a3) { DeviceDrawVertexBufferOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, const void*, int, int) EI_ORIGINAL(0x004EB550)
 
 int GrowthStep(const AlignedArray& a) {

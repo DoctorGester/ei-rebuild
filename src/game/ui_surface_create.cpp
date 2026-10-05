@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_engine.h"
+#include "originals_render.h"
 
 namespace {
 
@@ -127,7 +128,7 @@ void ReleaseHolderReference(char* holder) {
     }
 }
 
-__declspec(naked) void __fastcall DropHolder(char*) EI_ORIGINAL(0x004E6BA0)
+void __fastcall DropHolder(char* a0) { SurfaceHolderReleaseOriginal((void*)a0); }
 __declspec(naked) char* __fastcall PictureHolder(void*, void*, void*, const void*, int) EI_ORIGINAL(0x004EFC60)
 
 } // namespace

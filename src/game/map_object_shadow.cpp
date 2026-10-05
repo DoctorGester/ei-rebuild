@@ -109,7 +109,7 @@ inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const f
 void __fastcall OrientationToMatrix(void* a0, void*, float* a2) { QuaternionToMatrixOriginal((const void*)a0, nullptr, a2); }
 // 004545A0 / 004F65B0 / 00452E70. Aligned storage for 8-, 8- and 64-byte records.
 __declspec(naked) void* __fastcall AllocatePoints(int) EI_ORIGINAL(0x004545A0)
-__declspec(naked) void* __fastcall AllocatePixels(int) EI_ORIGINAL(0x004F65B0)
+void* __fastcall AllocatePixels(int a0) { return AllocAligned32Of8Original(a0); }
 __declspec(naked) void* __fastcall AllocateQuads(int) EI_ORIGINAL(0x00452E70)
 // 005A0E80. Figure mesh: rasterises its projected points into the texture.
 __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0E80)

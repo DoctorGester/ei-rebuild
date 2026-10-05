@@ -47,8 +47,8 @@ __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 __declspec(naked) int __fastcall StepsDuration(const AnimationSteps*) EI_ORIGINAL(0x00544E40)
 __declspec(naked) void __fastcall StepsGetAt(const AnimationSteps*, void*, AnimationStep* /*out*/, int) EI_ORIGINAL(0x00558920)
-__declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, std::uint32_t) EI_ORIGINAL(0x00544D50)
-__declspec(naked) void __fastcall StepsAddStep(AnimationSteps*, void*, std::uint32_t, int) EI_ORIGINAL(0x00544CE0)
+void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
+void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, (int)a2, a3); }
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
 // (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
 __declspec(naked) void __fastcall FaceDirection(CUnit*, void*, const float*) EI_ORIGINAL(0x00402220)

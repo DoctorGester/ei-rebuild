@@ -130,7 +130,7 @@ __declspec(naked) int __fastcall StatsPickLocation(void*, void*, int) EI_ORIGINA
 inline double __fastcall UnitGroundAt(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
 // AnimationSteps (CArray) members: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0
 // AddStep(animation, duration), 00544DD0 set every step's +8.
-__declspec(naked) void __fastcall StepsAddStep(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00544CE0)
+void __fastcall StepsAddStep(AnimationSteps* a0, void*, int a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StepsSetField8(AnimationSteps*, void*, int) EI_ORIGINAL(0x00544DD0)
 // Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ResistanceTo, the unit's
 // speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.

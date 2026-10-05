@@ -56,7 +56,7 @@ constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
 // 0055FC50. CWorld's day-time value (ST0).
-__declspec(naked) double __fastcall WorldDayTime(CWorldServer*, void*) EI_ORIGINAL(0x0055FC50)
+double __fastcall WorldDayTime(CWorldServer* a0, void*) { return WorldDayTimeOriginal((void*)a0); }
 // CAIMap (+0x170): the cell kind at a point (005BBE40), whether the point is blocked (005BBC70, AL),
 // the free fraction of the line between two points (005BC750, ST0).
 __declspec(naked) int __fastcall AIMapCellKind(void*, void*, const Vector3*) EI_ORIGINAL(0x005BBE40)
