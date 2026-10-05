@@ -113,26 +113,14 @@ reader (004A0BA0, 004A09E0), not item code; not rewritten (reads through a CFile
 (null: none), `+0x28` its size. A lookup asks every archive's GetFile (vtable slot 5) in turn; the first hit
 becomes the current text. The line reader (004DF8D0, 004DFB80) is `text_reader.cpp` (script.md).
 
-**Text keys** (record name with ' ' replaced by '_' (004DC400), upper-cased; material = material record +0x00,
-others = record +0x04):
-
-| Item kind | Key | Kind text |
-|---|---|---|
-| 0x3004 weapon | `weapon NAME MATERIAL` | item_weapon |
-| 0x3005 armor | `armor NAME MATERIAL` | item_armor_upper (type 0-2) / item_armor_lower |
-| 0x3006 quick, prototype +0x10 "none" | `qitem NAME` | item_potion |
-| 0x3006 other | `qitem NAME MATERIAL` | category 5 only: item_wand, name + ": " + spell name ("Unknown" without text); other categories no kind |
-| 0x3007, +0x4C = 0 | `litem NAME` (table 007C8778) | item_loot |
-| 0x3007, +0x4C = 1 | `material MATERIAL` (+0x54) | item_material |
-| 0x3007, +0x4C = 2, +0x50 = 0/1/2 | `instr NAME` (weapon/armor/quick record +0x54) | item_weapon_shape / item_armor_shape_upper/_lower / item_wand_shape |
-| 0x3007, +0x4C = 2, +0x50 = 3 | `spell ` + spell record +0x04 CString | item_prototype |
-| 0x3007, +0x4C = 2, +0x50 = 4 | `modifier ` + modifier record +0x04 (inline code) | item_modifier |
-| 0x3008 spell container | `spell ` + its CSpell's prototype +0x04 (none without a spell) | item_spell |
-| 0x3009 | `questitem NAME` (table 007C8758) | item_quest |
-
-The kind text is looked up as `string <kind key>`. The display name is `format_item1` (kind, name) or
-`format_item2` (kind, name, count) when the item's +0x48 stack count is above 1. Spell record +0x04 is a
-CString (the text key; what SpellCodeByName returns as "code").
+**Text keys** (record name with ' ' replaced by '_' (004DC400), upper-cased; material = material record +0x00, others = record +0x04):
+0x3004 `weapon NAME MATERIAL` (kind text item_weapon), 0x3005 `armor NAME MATERIAL` (item_armor_upper for type 0-2, else item_armor_lower),
+0x3006 `qitem NAME` for prototype +0x10 "none" (item_potion) else `qitem NAME MATERIAL` (category 5 only: item_wand, name + ": " + spell name,
+"Unknown" without text), 0x3007 by +0x4C: 0 `litem NAME` (table 007C8778, item_loot), 1 `material MATERIAL` (+0x54, item_material), 2 by +0x50:
+0-2 `instr NAME` (weapon / armor / quick record +0x54: item_weapon_shape, item_armor_shape_upper / _lower, item_wand_shape), 3 `spell ` + spell
+record +0x04 CString (item_prototype), 4 `modifier ` + modifier record +0x04 (inline code; item_modifier); 0x3008 `spell ` + its CSpell's
+prototype +0x04 (item_spell); 0x3009 `questitem NAME` (table 007C8758, item_quest). The kind text is looked up as `string <kind key>`; the display
+name is `format_item1` (kind, name) or `format_item2` (kind, name, count) when the item's +0x48 stack count is above 1.
 
 | Address | Name | Verify |
 |---|---|---|
@@ -167,21 +155,16 @@ Not rewritten: 004DEBC0, 004DC400, 004DE930 (add archive), 004DEAF0 (remove arch
 | 00688EB0, 00689310 | CSpellManager::NewContainer, CreateSpell | ours only |
 | 00684120 (slot 2), 00684150 (slot 3), 006841A0, 006841E0, 00684250, 006842A0 | CSpellConstructor::Reset, Detach, SetManager, BeginConstruct, EndConstruct, AddModifier | ours only: references, container with the prototype, record last in the list |
 
-**Cast chain.** `CastSpellUnit("healing{e2;e2}", ...)` and the other text casts go through
-CreateSpellFromText (00689030; text before `{` is the prototype, `;`-separated codes are modifier names), then
-as CreateSpell 00689310 does with records: the context's (manager +0xAC) slot 17 gives the CSpellConstructor;
-SetManager(this); BeginConstruct (a new container from manager slot 23, class 0x3003); AddModifier per
-modifier (at most 8 in CreateSpell), accepted when AllowsModifier says so (prototype flag bytes +0x78 r, +0x79
-t, +0x7A a, +0x7B e, +0x7C d; other letters always), after which the spell is rebuilt; EndConstruct rebuilds
-once more; CSpell::Clone makes the result; SetManager(null).
-
-**Build (0068BF60)** recomputes the container's spell from scratch on every AddModifier / EndConstruct (offset
-mapping and modifier letters a, e, m, r, d, t, fe/ff/fg/fh/fl/fo, ic/it are in `spell_cast.cpp`). The code string
-is sorted (insertion sort here, introsort in the original: same bytes) and its first 8 bytes are the modifier
-list. The effect fields GetDamage and the hit helpers read are this spell's: CSpellEffect +0x54 duration (named
-`targetCount`; may be a target count for attack spells), +0x58 effect (`damage`), +0x5C radius. `d`/`t`
-truncation and the area sqrt(area / pi) are small naked helpers (FILD qword / FMUL / `_ftol`; FLD / FDIV
-[00743A7C] / FSQRT). Build's double verify run is safe because it empties the code string first.
+**Cast chain.** `CastSpellUnit("healing{e2;e2}", ...)` and the other text casts go through CreateSpellFromText (00689030; text before `{` is
+the prototype, `;`-separated codes are modifier names), then as CreateSpell 00689310 does with records: the context's (manager +0xAC) slot 17
+gives the CSpellConstructor; SetManager(this); BeginConstruct (a new container from manager slot 23, class 0x3003); AddModifier per modifier (at
+most 8 in CreateSpell), accepted when AllowsModifier says so (prototype flag bytes +0x78 r, +0x79 t, +0x7A a, +0x7B e, +0x7C d; other letters
+always), after which the spell is rebuilt; EndConstruct rebuilds once more; CSpell::Clone makes the result; SetManager(null). **Build
+(0068BF60)** recomputes the container's spell from scratch each time (offset mapping and modifier letters a, e, m, r, d, t, fe/ff/fg/fh/fl/fo,
+ic/it are in `spell_cast.cpp`); the code string is sorted (insertion sort here, introsort in the original: same bytes). CSpellEffect +0x54 is
+this spell's duration (named `targetCount`; for attack spells it may be a target count), +0x58 effect (`damage`), +0x5C radius. Build's `d` / `t`
+truncation and the area sqrt are small naked helpers (FILD qword / FMUL / `_ftol`; FLD / FDIV [00743A7C] / FSQRT); its double verify run is safe
+because it empties the code string first.
 
 Original bugs kept: Build leaves the target flags alone when the prototype kind is neither 'u' nor 't', so they
 accumulate across rebuilds until Reset; a modifier whose code is not found becomes code 0, which sorts first and
@@ -222,12 +205,11 @@ when the prototype's effect (+0x2C) compares equal to 0 (NaN included); clamps s
 (NaN passes), pow is FYL2X / F2XM1 / FSCALE with 0.33 from the double at 007439A8 (naked `ClampPowCore`,
 `PowerCore`). The fireball blast uses the same curve on `(r*r*pi) / prototype area`.
 
-Hits: HitUnit (006835B0) skips units the spell may not affect (only checked with a caster) and calls CUnit
-slot 31 (the hit, the controller's TakeHit) with (hit, caster or null, caster). HitUnitsInRadius (00683600,
-fireball) and HitUnitsAlong (00683730, fire wall, every 4th tick) collect units (FindUnitsInRadius 005C0BD0
-into a stack CPtrList, vtable 0073D454, blocks of 10) and hit those IsSpellTarget (00681B80) accepts (size
-class set, or unit prototype +0x24 below 0.5); the wall only those within 0.5 of the vertical plane through the
-position along the direction (normal built with length 2, distance compared with 1).
+Hits: HitUnit (006835B0) skips units the spell may not affect (only checked with a caster) and calls CUnit slot 31 (the hit, the controller's
+TakeHit); HitUnitsInRadius (00683600, fireball) and HitUnitsAlong (00683730, fire wall, every 4th tick) collect units (FindUnitsInRadius
+005C0BD0 into a stack CPtrList, vtable 0073D454) and hit those IsSpellTarget (00681B80) accepts (size class set, or unit prototype +0x24 below
+0.5); the wall only those within 0.5 of the vertical plane through the position along the direction (normal built with length 2, distance
+compared with 1).
 
 | Address | Name | Verify |
 |---|---|---|
@@ -239,12 +221,8 @@ position along the direction (normal built with length 2, distance compared with
 | 0067F170, 0067F260, 0067F410, 0067F580, 0067F660, 0067F7C0 | CreateArrow (class 0x4E), CreateParticle (0x4A / 0x5A), CreateLightning (0x4D, with a target), CreateSound, CreateSoundSequence (class 99, max(count, 1) names), CreatePointLight (0x4B, flags 0x840) | ours only: class and kept pointer |
 | 0067EE00, 0067EE40, 0067EE80 | ReleaseVisual / Sound / Light | ours only: pointer null |
 
-Damage reaches the world only through these, so the scenarios' HP checks are what shows it arrives. Every
-sequence with more than one FP operation before a store is a naked helper in `spell_effect_internal.h`; the
-light wall's half span keeps x unrounded before halving (y and z do not), and `DivideMultiply` (acid ray /
-fireball light rise) scales the quotient before rounding, unlike the fire arrow. HitUnitsAlong sums the distance
-as (dy*ny + dz*nz) + dx*nx where the original has (dz*nz + dy*ny) + dx*nx (same value). Rebirth-patched callee:
-005C11D0 (CSectorMap::Move, the teleport).
+Damage reaches the world only through these, so the scenarios' HP checks are what shows it arrives. Every sequence with more than one FP
+operation before a store is a naked helper in `spell_effect_internal.h`. Rebirth-patched callee: 005C11D0 (CSectorMap::Move, the teleport).
 
 Original bugs kept: lightning (1) builds its light at the target's slot-48 position without checking the target;
 healing (0x18) and charm (0x24) call the target's class id without a null check; arrow and acid ray impacts read
@@ -332,19 +310,13 @@ GenerateModifierInstructions (20, 50) into a list handed to 00661DB0.
 | 0069B5B0 | LoadLists | lists only grew, new pointer records non-null and new, earlier material entries unchanged |
 | 006993B0, 00699440, 00699410 | ResetMaterialUnits, CopyMagic, SetLevels | against the original (units and rand seed restored) / spells and modifiers equal `other`'s |
 
-Non-obvious behaviour (the rest is in item_stock.cpp): the count is min + (rand() * range / 0x7FFF) % range, and
-more prototypes than that shuffles the template's prototype vector itself; a material candidate is drawn with
-one rand() against quality q (material +0x10) and price p (+0x34): 10% when q < 2p/7 - p/5 or q > p/5, else
-trunc(110 - |(q - p/7) / (p/7 - p/5)| x 100)%; instruction items get +0x54 = (record - table start) / record
-size (signed), the prototypes ("instruction weapon" 00796370, "instruction armor" 0079635C, "instruction quick
-item" 0079638C, "prototype" 00793924, "rune" 007963A4) found with 0069D380; FillSpellMaps keeps one entry per
-modifier kind letter a, d, e, m, r, t (replacing a held one unless at least as strong; FCOMP, TEST AH,1: less
-or unordered replaces) and f / i under both letters; GenerateSpells keeps the level reached in a register (the
-stored level is not updated). LoadLists reuses its count and three material ints locals for every section (a
-failed read keeps the previous value). The vectors' operator= / erase and std::find (0069E350..0069E3D0) are
-written out; allocating members and push_backs are called; context slots 22 and 18 are called with unused
-results. **Open:** LoadLists is reached by loading a save with class templates (004A6C40); which scenario
-reaches it is not confirmed (world_load / ui_saveload expected).
+Non-obvious (the rest is in item_stock.cpp): the count is min + (rand() * range / 0x7FFF) % range, and more prototypes than that shuffles the
+template's prototype vector itself; a material candidate is drawn with one rand() against quality q (material +0x10) and price p (+0x34): 10%
+when q < 2p/7 - p/5 or q > p/5, else trunc(110 - |(q - p/7) / (p/7 - p/5)| x 100)%; instruction items get +0x54 = (record - table start) / record
+size (signed); FillSpellMaps keeps one entry per modifier kind letter a, d, e, m, r, t (replacing a held one unless at least as strong; FCOMP,
+TEST AH,1: less or unordered replaces) and f / i under both letters; GenerateSpells keeps the level reached in a register (the stored level is not
+updated); LoadLists reuses its count and three material ints locals for every section (a failed read keeps the previous value). **Open:** LoadLists
+is reached by loading a save with class templates (004A6C40); which scenario reaches it is not confirmed (world_load / ui_saveload expected).
 
 Original bugs kept: the template's prototype and material vectors are shuffled in place; an item whose build fails
 (EndCreateItem null) is dereferenced; the 004ABD00 / 00684B20 lookups insert a null entry for every unknown name;
