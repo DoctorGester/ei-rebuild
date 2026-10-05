@@ -4,9 +4,8 @@
 #
 # The wands: "wand 3" (category 5) with lightning (spell kind 'u', flag 0x10000000) and with a
 # fireball (kind 't'). The camp (screen 5) page 0 puts a quick item from the item strip on the hero
-# (PutOn 0060FCA0, at most four): the strip's quick-item tab is region 5 (770..800 x 505..535,
-# tab 3), its first slot at x 50..150; each click takes the first item, so four clicks put on the
-# wands (and any potion listed before them). Back in the game the quick item panel shows the
+# (PutOn 0060FCA0, at most four); the harness step campputon does what a click on each wand in the
+# camp's item strip does (the camp's slot 42, MoveItem mode 1). Back in the game the quick item panel shows the
 # hero's four quick items at x 670..720, 620..670, 570..620, 520..570 (y 550..600); a click on one
 # (button release 0063DB20 -> 0063DD70) starts mode 3 (a lightning wand: on a unit, 00637500 with
 # quick 1) or 4 (the fireball wand: at a point, 00637750 with quick 1). Each slot is clicked, then
@@ -31,23 +30,12 @@ wait 300
 console @GiveItem(0,"wand 3.iron[fireball]")
 wait 300
 
-# The camp: quick-item tab, then the strip's first slot four times.
+# The camp (page 0): both wands on the hero, as clicks on them in the item strip do (the
+# strip's tab 3 holds class 0x3007, not the quick items: the first run's clicks put nothing on).
 screen 5
 wait 3000
-move 785 520
-wait 200
-click 785 520
+campputon 3006 2
 wait 500
-move 100 550
-wait 200
-click 100 550
-wait 400
-click 100 550
-wait 400
-click 100 550
-wait 400
-click 100 550
-wait 400
 key esc
 wait 3000
 waitfor 15 IsGreater(HP(GetLeader()),0)
