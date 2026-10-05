@@ -261,3 +261,16 @@ inline wrapper (members are plain definitions) over the shared forwarder:
 
 script_copy.cpp dropped its local `RefConstruct` (004B2500, identical to the shared one). Release and verify builds, check_stolen,
 check_x87, check_signatures and check_returns pass (0 problems, 0 forwarder warnings). Behaviour unchanged; nothing was run in the game.
+
+## C3i (next 50 by site count, in two commits): one declaration each
+
+Same method as C3b-C3h; the "differ" count is 384 after this (it was 434). Skipped: the "already rewritten" group, 0x00500000-0x00540000,
+combat_* files, ui_battle_update/commands, ui_hud, `src/lib` copies, and the cursor call 005E5270. Decided from the game.exe disassembly
+(capstone, RET n and the code before each RET); every other site is a one-line wrapper (members plain definitions) over the shared
+forwarder, generated and then built. Declarations are in originals_{library,engine,script,ui,gameplay,ai,render,world}.h, each with a
+comment saying RET n and what EAX holds. Results that callers never use are void; a few return `this` / the out pointer / the value slot
+(004A8930, 004AB720/820, 004C21E0/2680/3B00, 004C96A0, 00595BA0, 0066C180, 006AD000/1E0, 00661050, 006628D0, 004ABD00, 004ACC10, 0040C280,
+0041F550, 00700D73, 0041FCD0). Changes of note: 00405720 / 0043DBE0 / 006FEB61 wrappers that returned a value now return void (the value was
+never read; the originals leave junk in EAX); 0058EEA0 takes the time as raw dword bits; 005C35F0 / 006611D0 / 00665200 / 00665A10 / 0066C180
+/ 0066EF80 / 0066F450 are plain RET, so the old `(void*, void*)` forms dropped their dummy EDX. Verify and release builds, check_stolen,
+check_x87, check_signatures, check_returns and check_forwarders pass (0 problems). Behaviour unchanged; nothing was run in the game.
