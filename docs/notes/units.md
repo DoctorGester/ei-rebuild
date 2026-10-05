@@ -1408,8 +1408,15 @@ name) and the name.
   zone2's objects, not the traps; the run happens at integration. AddMob's name is relative to the
   maps folder (00595BA0 prefixes the game folder + "maps\" from 0055E990): the first version of the
   scenario passed "maps/zone2.mob", the file was not found, and LoadMapObjects' FatalError hung
-  vanilla (a message box) and returned 0 under Rebirth, the same without hooks. It now passes
-  "zone2.mob".
+  vanilla (a message box) and returned 0 under Rebirth, the same without hooks. With "zone2.mob"
+  the seven traps were made (Construct and SetUp 7 calls, no mismatch) but the original then
+  stalled, also without hooks: one of zone2's other objects. The scenario now loads traps.mob,
+  which tools/make_trap_mob.py writes into the run's harness_saves before the game starts (a
+  "# prepare:" line, tools/prepare_scenario.py, run by harness.cmd and run_all.py), with
+  AddMob("..\saves\traps.mob"). The file is one 0xA000 root holding 0xD000 (the reader 00481F00
+  then leaves zone1's diplomacy alone), zone2's 0xDDDDDDD1 diplomacy table (the reader's local copy
+  gives each trap its side mask in 005927C0) and a 0xB000 with only the seven 0xBBAB0000 records,
+  copied byte for byte (7206 bytes; the same from both installs' zone2.mob). Untested in the game.
 - LoadTrap's check passes through a recording stream that forwards slots 0..2; a loader that used
   another stream slot would fail there (none does in 0050F7A0 / 0052AF20 or the string reader
   00461190; the companion's Load, 0050F7A0's first call, was not inspected).

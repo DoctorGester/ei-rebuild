@@ -16,6 +16,8 @@ exit code: 0 when every run passed
 """
 import argparse, collections, concurrent.futures, glob, os, re, shutil, subprocess, sys, threading, time
 
+import prepare_scenario
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build', 'verify')
 LAUNCH = os.path.join(BUILD, 'ei_launch.exe')
@@ -27,6 +29,7 @@ def run(name, install, hooks):
     out = os.path.join(RUNS, f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out, exist_ok=True)
+    prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
     cmd = [LAUNCH, '--harness', scenario, '--out', out]
     if install == 'vanilla':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(ROOT, 'run', 'vanilla', 'game.exe')]
