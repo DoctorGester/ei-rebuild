@@ -395,7 +395,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (ClassId(this) == 0x4A && !SnapshotReadToEnd()) return 0;
     if (unitId_ != -1) {
-        void* unit = FindUnit(World(this), nullptr, unitId_);
+        void* unit = FindUnit(ObjectWorld(this), nullptr, unitId_);
         if (unit != nullptr) {
             Vector3 point;
             std::memcpy(&position, UnitEffectPoint(unit, nullptr, &point), sizeof(Vector3));
@@ -547,13 +547,13 @@ int CEffectParticle::Tick() {
         float t;
         if (StepFraction(&velocity_, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = StoreFloat(static_cast<float>(target_.z - GroundHeight(World(this), target_.x, target_.y)));
+            float aboveGround = StoreFloat(static_cast<float>(target_.z - GroundHeight(ObjectWorld(this), target_.x, target_.y)));
             float stepY = StoreFloat(t * d[1]);
             float stepZ = StoreFloat(d[2] * t);
             float x = StoreFloat(t * d[0] + localPosition_.x);
             float y = StoreFloat(stepY + localPosition_.y);
             float z = StoreFloat(stepZ + localPosition_.z);
-            float floor = StoreFloat(static_cast<float>(GroundHeight(World(this), x, y) + aboveGround));
+            float floor = StoreFloat(static_cast<float>(GroundHeight(ObjectWorld(this), x, y) + aboveGround));
             std::uint32_t zBits = !(z >= floor) ? Bits(floor) : Bits(z);
             localPosition_.x = x;
             localPosition_.y = y;
@@ -563,7 +563,7 @@ int CEffectParticle::Tick() {
     }
     if (!IsOneShotType(type_)) return 1;
     int lifetime = type_ == 0x2019 ? 0x78 : 0x3C;
-    int now = *reinterpret_cast<const int*>(static_cast<const char*>(World(this)) + 0x64);
+    int now = *reinterpret_cast<const int*>(static_cast<const char*>(ObjectWorld(this)) + 0x64);
     return now > startTick_ + lifetime ? 0 : 1;
 }
 
@@ -659,12 +659,12 @@ void CEffectLightning::Reset() {
 }
 
 void CEffectLightning::UpdateEnds() {
-    auto* target = static_cast<CEngineObject*>(ObjectById(World(this), toObject_));
+    auto* target = static_cast<CEngineObject*>(ObjectById(ObjectWorld(this), toObject_));
     if (target != nullptr) {
         std::memcpy(&to_, reinterpret_cast<char*>(target) + 0x1C, sizeof(Vector3));
         to_.z = to_.z + ConstAt(kOne);
     }
-    auto* source = static_cast<CEngineObject*>(ObjectById(World(this), fromObject_));
+    auto* source = static_cast<CEngineObject*>(ObjectById(ObjectWorld(this), fromObject_));
     if (source != nullptr && ClassId(source) == 0x50 && IsClientSide(effect::ManagerContext(this)) == 0) {
         Vector3 point;
         std::memcpy(&from_, UnitEffectPoint(source, nullptr, &point), sizeof(Vector3));

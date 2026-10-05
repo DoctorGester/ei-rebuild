@@ -16,6 +16,8 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include "originals_library.h"
+#include "originals_ui.h"
 
 namespace strmap {
 
@@ -48,7 +50,6 @@ __declspec(naked) void __fastcall StringReserve(StringRep*, void*, const void* /
 __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const StringRep*, const StringRep*) EI_ORIGINAL(0x00445170)
 __declspec(naked) Node** __fastcall InsertHint(Tree*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
-__declspec(naked) void __fastcall StringDestruct(StringRep*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall StringErase(StringRep*, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
 __declspec(naked) void __fastcall StringAppend(StringRep*, void*, const char* /*first*/, const char* /*last*/, int /*tag*/) EI_ORIGINAL(0x0040C280)
 __declspec(naked) void __fastcall Erase(Tree*, void*, Node* /*position*/) EI_ORIGINAL(0x00445010)
@@ -87,7 +88,7 @@ void __fastcall StringTableSet(void* self, void*, const char* key, const char* v
         InsertHint(&tree, nullptr, &inserted, it, pair);
         it = inserted;
         PairDestruct(pair);
-        StringDestruct(&empty);
+        StlStringDestroy(&empty);
     }
     StringRep& s = it->value;
     std::size_t length = std::strlen(value);
@@ -154,8 +155,6 @@ __declspec(naked) void __fastcall InterfaceFitRect(void*, void*, RECT*) EI_ORIGI
 __declspec(naked) void __fastcall InterfaceSetPanelRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7DA0)
 __declspec(naked) void* __fastcall PanelConstruct(void*, void*, void* /*ui*/, RECT*, int) EI_ORIGINAL(0x005FCDD0)
 __declspec(naked) void __fastcall PanelDestruct(void*) EI_ORIGINAL(0x005FD120)
-__declspec(naked) void* __fastcall PanelDC(void*) EI_ORIGINAL(0x005FDC00)
-__declspec(naked) void __fastcall PanelReleaseDC(void*) EI_ORIGINAL(0x005FDC60)
 __declspec(naked) void __fastcall DcFillSolidRect(void*, void*, int, int, int, int, COLORREF) EI_ORIGINAL(0x0070BB04)
 __declspec(naked) int __fastcall DcSetBkMode(void*, void*, int) EI_ORIGINAL(0x007090C2)
 __declspec(naked) void __fastcall TreeIncrement(Node**) EI_ORIGINAL(0x0043DBE0)
@@ -248,7 +247,7 @@ EI_REPLACE(0x00444CD0, PanelTick);
 void __fastcall PanelRedraw(void* self) {
     void* surface = At<void*>(self, 0x14);
     if (!surface) return;
-    void* dc = PanelDC(surface);
+    void* dc = SurfaceGetDC(surface);
     RECT& asked = At<RECT>(self, 0x2C);
     DcFillSolidRect(dc, nullptr, 0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
     DcSetBkMode(dc, nullptr, 1);
@@ -276,7 +275,7 @@ void __fastcall PanelRedraw(void* self) {
         TreeIncrement(&it);
     }
     ei::VCall<void*>(dc, kDcSelectFont, oldFont);
-    PanelReleaseDC(At<void*>(self, 0x14));
+    SurfaceReleaseDC(At<void*>(self, 0x14));
 }
 EI_REPLACE(0x00444D00, PanelRedraw);
 

@@ -14,6 +14,7 @@
 #include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_core.h"
+#include "originals_engine.h"
 #include "originals_units.h"
 
 #include <cstdint>
@@ -30,7 +31,6 @@ T& At(void* object, int offset) {
 
 // 00455940 the owning manager's context (the world server); 00455950 the object's world.
 __declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
-__declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 // 005C7430 UnitMotion::Sample (ai_motion.cpp) on CUnit + 0x27C.
 // The controller's animation helpers (not rewritten): 00551400 the next animation of the order,
 // 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
@@ -55,8 +55,6 @@ __declspec(naked) void __fastcall StepsAddStep(AnimationSteps*, void*, std::uint
 __declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall FaceDirection(CUnit*, void*, const float*) EI_ORIGINAL(0x00402220)
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
-__declspec(naked) void __fastcall SectorRemove(void*, void*, CUnit*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall SectorAdd(void*, void*, CUnit*) EI_ORIGINAL(0x005C0DF0)
 __declspec(naked) bool __fastcall SectorMove(void*, void*, CUnit*, const float*) EI_ORIGINAL(0x005C11D0)
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005B81B0
 // CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
@@ -231,9 +229,9 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     void* world = ContextOf(c);
     CUnit* unit = UnitOf(c);
     if (At<int>(unit, 0x278) == obstacle) return;
-    SectorRemove(SectorsOf(world), nullptr, unit);
+    SectorMapRemove(AsSectorMap(SectorsOf(world)), nullptr, unit);
     At<int>(UnitOf(c), 0x278) = obstacle;
-    SectorAdd(SectorsOf(world), nullptr, UnitOf(c));
+    SectorMapAdd(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
     UnitMarkChanged(UnitOf(c), nullptr, 7);
 }
 
@@ -243,7 +241,7 @@ void QueueNextAnimation(CUnitServer* c) {
     StepsAppend(Queue(c), nullptr, next);
     QueueStart(c) = next->extra;
     StepsCopyB(Queue(c), nullptr, next);
-    if (QueueStart(c) == -1) QueueStart(c) = WorldTime(WorldOf(c));
+    if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     RestartQueueA(c);
     CtlShowCurrentStep(c);
     At<std::uint8_t>(c, 0x147) = 1;
@@ -276,7 +274,7 @@ void HitWhileMoving(CUnitServer* c) {
         char* entry = UnitAnimationEntry(UnitOf(c), nullptr, key);
         if (entry && (At<std::uint32_t>(entry, 0x14) & 0x3C0000) == 0x200000) {
             std::uint32_t ends = At<std::uint32_t>(entry, 0x20) + static_cast<std::uint32_t>(QueueStart(c));
-            if (ends > static_cast<std::uint32_t>(WorldTime(WorldOf(c)))) return;
+            if (ends > static_cast<std::uint32_t>(WorldTime(ObjectWorld(c)))) return;
         }
     }
     AnimationSteps current;
@@ -302,7 +300,7 @@ void HitWhileMoving(CUnitServer* c) {
     }
     StepsCopyB(Queue(c), nullptr, &fall);
     StepsCopyB(Queue(c), nullptr, &fall);
-    if (QueueStart(c) == -1) QueueStart(c) = WorldTime(WorldOf(c));
+    if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     RestartQueueA(c);
     CtlShowCurrentStep(c);
     StepsDestroy(&fall);
@@ -364,7 +362,7 @@ void MotionOver(CUnitServer* c, void* world) {
     if (At<std::uint8_t>(c, 0xA8)) {
         std::uint8_t wasFlag = At<std::uint8_t>(c, 0xA9) == 1;
         PathClear(MotionOrder(c));
-        int time = WorldTime(WorldOf(c));
+        int time = WorldTime(ObjectWorld(c));
         float axis[3], back[3];
         QuaternionAxisY(&At<char>(UnitOf(c), 0x34), nullptr, axis);
         float* facing = Negate(back, axis);
@@ -376,7 +374,7 @@ void MotionOver(CUnitServer* c, void* world) {
     }
     if (!MapContinuePath(AiMapOf(world), nullptr, unit, MotionOrder(c))) {
         PathClear(MotionOrder(c));
-        int time = WorldTime(WorldOf(c));
+        int time = WorldTime(ObjectWorld(c));
         float axis[3], back[3];
         QuaternionAxisY(&At<char>(UnitOf(c), 0x34), nullptr, axis);
         float* facing = Negate(back, axis);
@@ -396,9 +394,9 @@ void MotionOver(CUnitServer* c, void* world) {
 // step lifted when `liftBlocker`.
 void Replan(CUnitServer* c, void* world, bool liftBlocker, const float* position) {
     if (liftBlocker) {
-        SectorRemove(SectorsOf(world), nullptr, UnitOf(c));
+        SectorMapRemove(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
         MapLiftAround(AiMapOf(world), nullptr, position, 1);
-        SectorAdd(SectorsOf(world), nullptr, UnitOf(c));
+        SectorMapAdd(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
     }
     // The pending step list (+0x78: a CList whose head is +0x7C) emptied, as RemoveAll inlined.
     At<int>(c, 0x84) = 0;
@@ -417,9 +415,9 @@ void Replan(CUnitServer* c, void* world, bool liftBlocker, const float* position
     bool found = MapFindPath(AiMapOf(context), nullptr, UnitOf(c), &At<char>(c, 0x9C), MotionOrder(c), range, 0.0f);
     At<std::uint32_t>(UnitOf(c), 0x43C) = current;
     if (liftBlocker) {
-        SectorRemove(SectorsOf(world), nullptr, UnitOf(c));
+        SectorMapRemove(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
         MapLiftAround(AiMapOf(world), nullptr, position, 0);
-        SectorAdd(SectorsOf(world), nullptr, UnitOf(c));
+        SectorMapAdd(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
     }
     if (found) {
         UnitPathSpeeds(UnitOf(c));
@@ -511,7 +509,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
         canStand = true;
     } else {
         void* sectors = SectorsOf(world);
-        SectorRemove(sectors, nullptr, UnitOf(c));
+        SectorMapRemove(AsSectorMap(sectors), nullptr, UnitOf(c));
         canStand = MapCanStand(AiMapOf(world), nullptr, UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
             CUnit* blocker = MapBlockingUnit(AiMapOf(world), nullptr, UnitOf(c), position);
@@ -522,7 +520,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
                 if (outcome != -1) blocked = outcome;
             }
         }
-        SectorAdd(sectors, nullptr, UnitOf(c));
+        SectorMapAdd(AsSectorMap(sectors), nullptr, UnitOf(c));
     }
 
     // An idle unit standing in a kind-3 occluder (while +0x4C is below the world's +0x2804 and

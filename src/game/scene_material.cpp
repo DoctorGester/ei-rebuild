@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <new>
+#include "originals_library.h"
 
 namespace scene {
 namespace {
@@ -17,9 +18,7 @@ namespace {
 // SetAtGrow.
 __declspec(naked) void __fastcall AppendChar(mfc::CString*, void*, char) EI_ORIGINAL(0x00700D73)
 __declspec(naked) int __fastcall FindChar(const mfc::CString*, void*, char) EI_ORIGINAL(0x00700E91)
-__declspec(naked) mfc::CString* __fastcall Left(const mfc::CString*, void*, mfc::CString* /*out*/, int) EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString* __fastcall Right(const mfc::CString*, void*, mfc::CString* /*out*/, int) EI_ORIGINAL(0x006FDA6D)
-__declspec(naked) void __fastcall StringArrayConstruct(void*) EI_ORIGINAL(0x006FE925)
 __declspec(naked) void __fastcall StringArrayDestruct(void*) EI_ORIGINAL(0x006FE958)
 __declspec(naked) void __fastcall StringArraySetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
 __declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
@@ -62,9 +61,10 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     AppendChar(&rest, nullptr, '.');
     for (int dot = FindChar(&rest, nullptr, '.'); dot != -1; dot = FindChar(&rest, nullptr, '.')) {
         alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
-        mfc::CString* part = Left(&rest, nullptr, reinterpret_cast<mfc::CString*>(slot), dot);
-        StringArraySetAtGrow(&parts, nullptr, parts.size, part);
-        part->~CString();
+        {
+            mfc::CString part = rest.Left(dot);
+            StringArraySetAtGrow(&parts, nullptr, parts.size, &part);
+        }
         mfc::CString* tail = Right(&rest, nullptr, reinterpret_cast<mfc::CString*>(slot), rest.GetLength() - dot - 1);
         rest = *tail;
         tail->~CString();

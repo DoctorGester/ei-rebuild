@@ -972,7 +972,6 @@ namespace {
 __declspec(naked) void* __stdcall CStringConcat(void* /*out*/, const void* /*left*/, const char*) EI_ORIGINAL(0x00700C05)
 __declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
 __declspec(naked) void __fastcall CStringAssignText(void*, void*, const char*) EI_ORIGINAL(0x00700AF9)
-__declspec(naked) void __fastcall CStringDestroy(void*) EI_ORIGINAL(0x00700970)
 // The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
 __declspec(naked) void __fastcall LoadLights(void*, void*, const char*) EI_ORIGINAL(0x00563930)
 __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)

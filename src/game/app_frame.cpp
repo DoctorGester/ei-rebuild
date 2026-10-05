@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -57,7 +58,6 @@ __declspec(naked) void __fastcall BitmapWrite(void* /*bitmap*/, void*, mfc::CFil
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
-__declspec(naked) void __fastcall StringArrayConstruct(void*) EI_ORIGINAL(0x006FE925)
 __declspec(naked) void __fastcall StringArrayDestruct(void*) EI_ORIGINAL(0x006FE958)
 __declspec(naked) void __fastcall IniConstruct(void*) EI_ORIGINAL(0x00695B80)
 __declspec(naked) int __fastcall IniSetPath(void*, void*, const char*) EI_ORIGINAL(0x00695BF0)

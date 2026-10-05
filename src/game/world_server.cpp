@@ -9,6 +9,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
 #include "originals_world.h"
 
 namespace {
@@ -63,7 +64,6 @@ __declspec(naked) CEngineObject* WorldBase::FindUnit(unsigned) EI_ORIGINAL(0x005
 // RemoveObject's callees (not rewritten).
 // 00599A80 (RET 4). An id map's erase(key).
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
-__declspec(naked) bool __fastcall SectorMapRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 // 005300D0 (RET 4). The unit's controller is replaced (here by none).
 __declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void*) EI_ORIGINAL(0x005300D0)
 // 004BED90. A script command queue (+0x12874, +0x12A6C) drops what refers to removed objects.
@@ -228,7 +228,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CEngineObject* object = *static_cast<CEngineObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != kClassNoSector) SectorMapRemove(sectorMap_, nullptr, *slot);
+    if (object->GetClassId() != kClassNoSector) SectorMapRemove(AsSectorMap(sectorMap_), nullptr, *slot);
 
     IdMapEraseOriginal(&updateMap_, nullptr, &id);
     EraseId(objects_, id);

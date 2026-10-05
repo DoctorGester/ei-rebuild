@@ -425,13 +425,11 @@ const char* const kCantCreate = reinterpret_cast<const char*>(0x00796684);      
 // CString members used here (MFC; the original implementations).
 struct ItemText : mfc::CString {
     int Find(char c) const;               // 00700E91
-    mfc::CString Left(int count) const;   // 006FDAE9
     mfc::CString Right(int count) const;  // 006FDA6D
     void TrimSpaceLeft();                 // 006FE216 TrimLeft() (moves the text, memmove)
     void TrimSpaceRight();                // 006FE11F TrimRight()
 };
 __declspec(naked) int ItemText::Find(char) const EI_ORIGINAL(0x00700E91)
-__declspec(naked) mfc::CString ItemText::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString ItemText::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) void ItemText::TrimSpaceLeft() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void ItemText::TrimSpaceRight() EI_ORIGINAL(0x006FE11F)
@@ -477,7 +475,6 @@ struct NamePair {
 __declspec(naked) NameKey* __fastcall KeyFromChars(NameKey*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
 __declspec(naked) void __fastcall KeyDefault(NameKey*, void*, const void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void __fastcall KeyAssign(NameKey*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
-__declspec(naked) void __fastcall KeyDestroy(NameKey*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall KeyDestroyB(NameKey*) EI_ORIGINAL(0x0040C770)
 __declspec(naked) void __fastcall PairConstruct(NamePair*, void*, const NameKey*, void* const*) EI_ORIGINAL(0x00689950)
 __declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006AD670)
@@ -499,23 +496,23 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
     case 0:
         KeyFromChars(&key, nullptr, name, allocator);
         record = *WeaponNameAt(reinterpret_cast<void*>(0x007C8704), nullptr, &key);
-        KeyDestroy(&key);
+        StlStringDestroy(&key);
         return TableIndex(Weapons(), record, kWeaponSize);
     case 1:
         KeyFromChars(&key, nullptr, name, allocator);
         record = *ArmorNameAt(reinterpret_cast<void*>(0x007C8724), nullptr, &key);
-        KeyDestroy(&key);
+        StlStringDestroy(&key);
         return TableIndex(Armors(), record, kArmorSize);
     case 2:
         KeyFromChars(&key, nullptr, name, allocator);
         record = *QuickNameAt(reinterpret_cast<void*>(0x007C8744), nullptr, &key);
-        KeyDestroy(&key);
+        StlStringDestroy(&key);
         return TableIndex(QuickItems(), record, kQuickItemSize);
     case 3:
         KeyDefault(&key, nullptr, allocator);
         KeyAssign(&key, nullptr, name, name + std::strlen(name));
         record = *SpellNameAt(reinterpret_cast<void*>(0x007C851C), nullptr, &key);
-        KeyDestroy(&key);
+        StlStringDestroy(&key);
         return TableIndex(Spells(), record, kSpellSize);
     case 4: {
         KeyDefault(&key, nullptr, allocator);
@@ -525,7 +522,7 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
         PairConstruct(&pair, nullptr, &key, &none);
         char** slot = reinterpret_cast<char**>(
             ModifierNameFindOrInsert(reinterpret_cast<void*>(0x007C853C), nullptr, &pair) + 0xC);
-        KeyDestroy(&pair.name);
+        StlStringDestroy(&pair.name);
         record = *slot;
         KeyDestroyB(&key);
         return TableIndex(SpellModifiers(), record, kSpellModifierSize);
@@ -550,7 +547,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         console::Ops(extra).TrimRight(']');
         AsText(extra).TrimSpaceLeft();
         AsText(extra).TrimSpaceRight();
-        text = AsText(text).Left(bracket);
+        text = text.Left(bracket);
         AsText(text).TrimSpaceRight();
     }
     SplitItemName(text, &parts, '.');

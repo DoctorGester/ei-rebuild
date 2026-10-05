@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 #include "originals_script.h"
 
 #include <cstring>
@@ -17,7 +18,6 @@ namespace {
 __declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignText(StringRep* /*s*/, void*, const char* /*text*/) EI_ORIGINAL(0x0041F550)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
-__declspec(naked) void __fastcall StringDestroy(StringRep* /*s*/) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall RecordDestroy(GameInfoRecord* /*record*/) EI_ORIGINAL(0x0041AC30)
 __declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
 __declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
@@ -109,8 +109,8 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
     if (complete) {
         RecordDestroy(record);
     } else {
-        StringDestroy(&record->description);
-        StringDestroy(&record->name);
+        StlStringDestroy(&record->description);
+        StlStringDestroy(&record->name);
     }
 }
 EI_REPLACE(0x0041D600, ServerListRead);

@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
 
 namespace {
 
@@ -43,8 +44,6 @@ __declspec(naked) void __fastcall ApplyArea(CAIMap*, void*, int, int, int, int, 
 __declspec(naked) void __fastcall RefreshSecondPass(CAIMap*, void*, int, int, int, int) EI_ORIGINAL(0x005B8710)
 // The sector map (+0x124): objects within a radius of a point into a list (RET 0xC), Remove, Add.
 __declspec(naked) void __fastcall SectorCollect(void*, void*, const float*, void*, float) EI_ORIGINAL(0x005C0BD0)
-__declspec(naked) void __fastcall SectorRemove(void*, void*, void*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall SectorAdd(void*, void*, void*) EI_ORIGINAL(0x005C0DF0)
 // 005AFEE0 (RET 0x14). The region map updates the blocks [x0, x1] x [y0, y1].
 __declspec(naked) void __fastcall RegionsUpdate(void*, void*, CAIMap*, int, int, int, int) EI_ORIGINAL(0x005AFEE0)
 
@@ -149,13 +148,13 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     SectorCollect(sectorMap, nullptr, centre, &objects, radius);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
-        SectorRemove(sectorMap, nullptr, node->data);
+        SectorMapRemove(AsSectorMap(sectorMap), nullptr, AsEngineObject(node->data));
         node = next;
     }
     RegionsUpdate(reinterpret_cast<std::uint8_t*>(this) + kRegionMap, nullptr, this, bx0, bx1, by0, by1);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
-        SectorAdd(sectorMap, nullptr, node->data);
+        SectorMapAdd(AsSectorMap(sectorMap), nullptr, AsEngineObject(node->data));
         node = next;
     }
     objects.vtable = reinterpret_cast<void*>(kObjectListVtable);

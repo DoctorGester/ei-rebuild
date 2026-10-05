@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_gameplay.h"
+#include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
 
@@ -167,7 +168,6 @@ struct RawString {
     std::uint8_t bytes[12];
 };
 __declspec(naked) RawString* __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
-__declspec(naked) void __fastcall RawStringDestroy(RawString*, void*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) std::uint8_t** __fastcall BriefingMapAt(void*, void*, const RawString*) EI_ORIGINAL(0x004297A0)
 // 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
 __declspec(naked) void __fastcall Split(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
@@ -296,7 +296,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         char allocator;
         RawStringInit(&key, nullptr, parts[2], &allocator);
         record = *BriefingMapAt(reinterpret_cast<void*>(0x007C87D4), nullptr, &key);
-        RawStringDestroy(&key, nullptr);
+        StlStringDestroy(&key);
     }
     WorldPlayer* player = nullptr;
     {

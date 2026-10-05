@@ -15,6 +15,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include "originals_engine.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -30,7 +32,6 @@ __declspec(naked) void __fastcall EnsureTextureLoaded(void** /*holder*/) EI_ORIG
 // 004F16A0: the visibility of a bounds record for the device's view (+8): 2 is outside.
 __declspec(naked) int __fastcall ClipTest(void* /*view*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 // 00455950: the world an engine object belongs to (its frame counter at +0x64).
-__declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 // 00467590 (below), through its address.
 __declspec(naked) void __fastcall DrawGlowAt(CLightning*, void*, void* /*device*/, const Vector3*, int, float) EI_ORIGINAL(0x00467590)
 // The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the
@@ -39,7 +40,6 @@ __declspec(naked) void __fastcall DrawGlowAt(CLightning*, void*, void* /*device*
 __declspec(naked) void __fastcall SpriteArrayConstruct(void*) EI_ORIGINAL(0x00468D60)
 __declspec(naked) void __stdcall ConstructSprites(void*, int) EI_ORIGINAL(0x00468F90)
 __declspec(naked) void* __fastcall AllocPoints16(int) EI_ORIGINAL(0x00468F70)
-__declspec(naked) int __cdecl GameAtexit(void (__cdecl*)()) EI_ORIGINAL(0x006E727B)
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 float GameFloat(std::uintptr_t address) {
@@ -128,7 +128,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
     if (!(GlowGuards() & 1)) {
         GlowGuards() |= 1;
         SpriteArrayConstruct(&Sprites());
-        GameAtexit(reinterpret_cast<void (__cdecl*)()>(0x00467A10));
+        GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x00467A10));
     }
     if (!(GlowGuards() & 2)) {
         GlowGuards() |= 2;
@@ -137,7 +137,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
         p.growBy = 0;
         p.capacity = 0;
         p.size = 0;
-        GameAtexit(reinterpret_cast<void (__cdecl*)()>(0x004679F0));
+        GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x004679F0));
     }
     auto** holder = reinterpret_cast<void**>(&self->glowTexture_);
     EnsureTextureLoaded(holder);
@@ -166,7 +166,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
     }
     float scaled = position->x * GameFloat(0x0073C518);   // 15
     int shift = x87::fistp(scaled);
-    int frame = (static_cast<int*>(WorldOf(self))[0x64 / 4] + shift) % 15;
+    int frame = (static_cast<int*>(ObjectWorld(self))[0x64 / 4] + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * GameFloat(0x0073C520);   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
@@ -212,7 +212,7 @@ int __fastcall DrawLightning(CLightning* self, void*, void* device) {
     Vector3 start = self->main_.start;
     Vector3 run{count * self->main_.step.x, count * self->main_.step.y, count * self->main_.step.z};
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
-    int frameCounter = static_cast<int*>(WorldOf(self))[0x64 / 4];
+    int frameCounter = static_cast<int*>(ObjectWorld(self))[0x64 / 4];
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
     float size = std::sqrt(dz * dz + dy * dy + dx * dx) * GameFloat(0x0073C528);   // 0.11
     int phase = (frameCounter / 2) % 15;

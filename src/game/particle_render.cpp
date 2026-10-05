@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 
 #pragma float_control(precise, on)
 
@@ -50,7 +51,6 @@ constexpr int kReserve = 0x1000;
 
 __declspec(naked) ParticleVertex* __fastcall AllocateVertices(int /*count*/) EI_ORIGINAL(0x00468F70)
 __declspec(naked) void __fastcall ConstructSpriteArray(ParticleSpriteArray*) EI_ORIGINAL(0x00468D60)
-__declspec(naked) int __cdecl GameAtexit(std::uintptr_t /*function*/) EI_ORIGINAL(0x006E727B)
 __declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 __declspec(naked) void __fastcall EnsureTextureLoaded(void** /*holder*/) EI_ORIGINAL(0x00500970)
 // The game's _ftol (006E853C): truncation.
@@ -107,7 +107,7 @@ void ConstructArrays() {
     if (!(ArraysConstructed() & 1)) {
         ArraysConstructed() |= 1;
         ConstructSpriteArray(&Sprites());
-        GameAtexit(0x00497D30);
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x00497D30));
     }
     if (!(ArraysConstructed() & 2)) {
         Vertices().data = nullptr;
@@ -115,7 +115,7 @@ void ConstructArrays() {
         Vertices().growBy = 0;
         Vertices().max = 0;
         Vertices().size = 0;
-        GameAtexit(0x00497D10);
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x00497D10));
     }
 }
 

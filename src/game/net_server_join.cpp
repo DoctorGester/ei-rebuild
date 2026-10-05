@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_core.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstring>
@@ -31,7 +32,6 @@ __declspec(naked) void** __fastcall BindingsInsert(void* /*list*/, void*, void**
 __declspec(naked) void** __fastcall BindingsEnd2(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00422BA0)
 __declspec(naked) void** __fastcall BindingsBegin2(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00422B90)
 __declspec(naked) void __fastcall CountNodes(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429110)
-__declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 // erase(position) of the players and bindings lists, distance(first, last) (library).
 __declspec(naked) void** __fastcall PlayersErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x004293B0)
 __declspec(naked) void** __fastcall BindingsErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00429490)

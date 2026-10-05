@@ -60,15 +60,13 @@ __declspec(naked) void LocalClient::BackToWorld() EI_ORIGINAL(0x00578B20)
 
 // Surface text (005FDE20 is Rebirth-patched).
 struct SurfaceDraw {
-    void* Begin();                                                                  // 005FDC00
+    void* Begin() { return SurfaceGetDC(this); }                                                                  // 005FDC00
     void Clear();                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
-    void End();                                                                     // 005FDC60
+    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 __declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
-__declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 
 // An item list of the camp (0x70 bytes, 00661050): the first node's item at **(+0x40), the
 // count at +0x44.
@@ -1711,7 +1709,6 @@ namespace {
 // The item caches' maps (STLport, thiscall): 005FA420 / 005FA630 construct the header node from
 // an allocator (RET 4; the byte they copy is overwritten), 005FA400 / 005FA610 empty it.
 __declspec(naked) void __fastcall ConstructTextureMap(void*, void*, const void*) EI_ORIGINAL(0x005FA630)
-__declspec(naked) void __fastcall ConstructStringArray(void*) EI_ORIGINAL(0x006FE925)
 
 void Put(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
 
@@ -1745,7 +1742,7 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     Put(this, 0x1AC, 0);
     Put(this, 0x1A8, 0);
     Put(this, 0x1A4, 0);
-    ConstructStringArray(self + 0x240);
+    StringArrayConstruct(self + 0x240);
     vtable_ = reinterpret_cast<void**>(0x0074091C);
     inputVtable_ = reinterpret_cast<void**>(0x007408E8);
     return this;

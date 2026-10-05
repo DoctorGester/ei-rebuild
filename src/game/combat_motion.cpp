@@ -17,6 +17,7 @@
 #include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_core.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_units.h"
@@ -56,7 +57,6 @@ constexpr int kSlotRelease = 4;
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
 __declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
-__declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 // CUnit: 0050E9F0 MarkChanged, 0052EA90 the animation bytes, 00530570 the size class, 005301B0
 // the animation entry for a key (combat_steps.cpp), 0052E9D0 the path speeds.
 __declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
@@ -73,8 +73,6 @@ __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGI
 __declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA5A0)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
 // 005C0BD0 FindUnitsInRadius.
-__declspec(naked) void __fastcall SectorRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) bool __fastcall SectorAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 __declspec(naked) void __fastcall SectorFind(void*, void*, const float*, void* /*list*/, float /*radius*/)
     EI_ORIGINAL(0x005C0BD0)
 // 004B3330 ScriptGroup::Contains (script_group.cpp).
@@ -146,7 +144,7 @@ std::uint32_t& IdleKey(CUnitServer* self) { return At<std::uint32_t>(self, 0x95C
 int& IdleTime(CUnitServer* self) { return At<int>(self, 0x974); }   // IdleSteps(self).extra
 
 void StartQueueIfUnset(CUnitServer* self) {
-    if (QueueTime(self) == -1) QueueTime(self) = At<int>(WorldOf(self), 0x64);
+    if (QueueTime(self) == -1) QueueTime(self) = At<int>(ObjectWorld(self), 0x64);
 }
 
 // The first step of the queue shown on the unit (00546C10 inlined).
@@ -170,7 +168,7 @@ void DropEffectObject(CUnitServer* self) {
 // axis of its rotation), then stands (0) and takes state 6: the sequence 0054A150 inlines twice.
 void FaceAndStop(CUnitServer* self) {
     PathClear(Motion(self));
-    int now = At<int>(WorldOf(self), 0x64);
+    int now = At<int>(ObjectWorld(self), 0x64);
     float axis[3];
     QuaternionAxisY(&At<float>(self->unit, 0x34), nullptr, axis);
     float back[3];
@@ -292,7 +290,7 @@ PartyNode* NextNode(const PartyMap* map, const PartyNode* node) {
 
 bool CUnitServer::CanReactFor(int ticks) {
     if (action.kind == kOrderAttack && state == kStateTurning &&
-        At<int>(WorldOf(this), 0x64) + ticks > At<int>(this, 0x184))
+        At<int>(ObjectWorld(this), 0x64) + ticks > At<int>(this, 0x184))
         return false;
     return true;
 }
@@ -315,7 +313,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     CtlPopFinishedSteps(self);
     ShowHead(self);
     PathClear(Motion(self));
-    int now = At<int>(WorldOf(self), 0x64);
+    int now = At<int>(ObjectWorld(self), 0x64);
     float axis[3];
     QuaternionAxisY(&At<float>(self->unit, 0x34), nullptr, axis);
     float back[3] = {-axis[0], -axis[1], -axis[2]};
@@ -325,9 +323,9 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     int& standing = At<int>(self->unit, 0x278);
     if (standing != 0) {
         void* sectors = static_cast<char*>(world) + 0x294;
-        SectorRemove(sectors, nullptr, self->unit);
+        SectorMapRemove(AsSectorMap(sectors), nullptr, self->unit);
         At<int>(self->unit, 0x278) = 0;
-        SectorAdd(sectors, nullptr, self->unit);
+        SectorMapAdd(AsSectorMap(sectors), nullptr, self->unit);
         UnitMarkChanged(self->unit, nullptr, 7);
     }
     // The list was taken by value: it is destroyed here.
@@ -499,20 +497,20 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     state = kStateActing;
     At<int>(this, 0x180) = At<int>(ContextOf(this), 0x64) + 10;
     if (plan.targetId == -1) {
-        int now = At<int>(WorldOf(this), 0x64);
+        int now = At<int>(ObjectWorld(this), 0x64);
         PathTurn(Motion(this), nullptr, now, unit, plan.direction, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
-        int now = At<int>(WorldOf(this), 0x64);
+        int now = At<int>(ObjectWorld(this), 0x64);
         PathFollow(Motion(this), nullptr, now, unit, plan.targetId, until, plan.startTime);
     }
     UnitPathSpeeds(unit);
     void* world = ContextOf(this);
     if (At<int>(unit, 0x278) == 0) return;
     void* sectors = static_cast<char*>(world) + 0x294;
-    SectorRemove(sectors, nullptr, unit);
+    SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
     At<int>(unit, 0x278) = 0;
-    SectorAdd(sectors, nullptr, unit);
+    SectorMapAdd(AsSectorMap(sectors), nullptr, unit);
     UnitMarkChanged(unit, nullptr, 7);
 }
 EI_REPLACE_METHOD(0x005494D0, CUnitServer::StartAction);
@@ -574,7 +572,7 @@ bool CUnitServer::ChangeMoveMode() {
     if (moveMode.mode == moveMode2.mode && moveMode.flag4 == moveMode2.flag4) return false;
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
-    SectorRemove(kSectorMap, nullptr, unit);
+    SectorMapRemove(AsSectorMap(kSectorMap), nullptr, unit);
     bool passableBefore = MapCellPassable(kAIMap, nullptr, unit);
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
@@ -584,7 +582,7 @@ bool CUnitServer::ChangeMoveMode() {
     if (!sameMode && !(passableBefore ? MapCellPassable(kAIMap, nullptr, unit) : MapCanLeaveCell(kAIMap, nullptr, unit)))
         placed = false;
     else
-        placed = SectorAdd(kSectorMap, nullptr, unit);
+        placed = SectorMapAdd(AsSectorMap(kSectorMap), nullptr, unit);
     UnitMarkChanged(unit, nullptr, 6);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
@@ -594,7 +592,7 @@ bool CUnitServer::ChangeMoveMode() {
         if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
         UnitUpdateSizeClass(unit);
-        SectorAdd(kSectorMap, nullptr, unit);
+        SectorMapAdd(AsSectorMap(kSectorMap), nullptr, unit);
         CUnit* self = unit;
         if (self->player) PlayerMessage(At<void*>(self->player, 0x20), nullptr, self, kMessageModeBlocked);
         return false;
@@ -718,7 +716,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
             node = node->next;
             CEngineObject* other = current->data;
             if (GroupContains(group, nullptr, other) == 0) {
-                SectorRemove(sectors, nullptr, other);
+                SectorMapRemove(AsSectorMap(sectors), nullptr, other);
                 continue;
             }
             if (current == list->head) list->head = current->next;
@@ -743,7 +741,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         if (list->tail) list->tail->next = added;
         else list->head = added;
         list->tail = added;
-        SectorRemove(kSectorMap, nullptr, member);
+        SectorMapRemove(AsSectorMap(kSectorMap), nullptr, member);
     }
 }
 EI_REPLACE_METHOD(0x005468D0, CUnitServer::LiftNearby);
@@ -823,7 +821,7 @@ void CUnitServer::ResyncWithUnit() {
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
     PathClear(Motion(this));
-    int now = At<int>(WorldOf(this), 0x64);
+    int now = At<int>(ObjectWorld(this), 0x64);
     float axis[3];
     QuaternionAxisY(&At<float>(unit, 0x34), nullptr, axis);
     float back[3];
@@ -846,7 +844,7 @@ void CUnitServer::ResyncWithUnit() {
     if (!QueueHolds(&Queue(this), nullptr, &IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).count == 0 && QueueTime(this) == -1)
-            IdleTime(this) = At<int>(WorldOf(this), 0x64) - static_cast<int>(Random().Next() % 0x33);
+            IdleTime(this) = At<int>(ObjectWorld(this), 0x64) - static_cast<int>(Random().Next() % 0x33);
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StartQueueIfUnset(this);

@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <bit>
 #include <cstring>
@@ -36,7 +37,7 @@ bool HasEffectType(const CMapObject* object, int type) {
 double GroundHeight(void* world, float x, float y) { return ei::VCall<double>(world, kWorldGroundHeight, x, y); }
 } // namespace
 
-__declspec(naked) void* CMapObject::World() EI_ORIGINAL(0x00455950)
+void* CMapObject::World() { return ObjectWorld(this); }
 __declspec(naked) std::uintptr_t CMapObject::MarkChanged(int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) int CMapObject::HasEffect(std::uint32_t) EI_ORIGINAL(0x0050F630)
 

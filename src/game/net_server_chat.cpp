@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_core.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstring>
@@ -24,7 +25,6 @@ __declspec(naked) void** __fastcall LinesEnd(void* /*list*/, void*, void** /*out
 __declspec(naked) void** __fastcall LinesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004225B0)
 __declspec(naked) void __fastcall CountLines(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290F0)
 __declspec(naked) void** __fastcall LinesErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00420460)
-__declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uint32_t kMaxLines = 50;

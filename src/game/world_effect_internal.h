@@ -88,8 +88,6 @@ inline std::uint32_t BelowOneOrOne(const float& value) {
 
 // --- Engine objects ------------------------------------------------------------------------------
 
-// 00455950. The world the object lives in.
-__declspec(naked) inline void* __fastcall World(const void*) EI_ORIGINAL(0x00455950)
 // 00455940 (rewritten in object.cpp). The owning manager's context.
 __declspec(naked) inline void* __fastcall ManagerContext(const void*) EI_ORIGINAL(0x00455940)
 // 0055FB00 (world). A unit by id, or null.

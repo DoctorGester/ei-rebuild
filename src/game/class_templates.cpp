@@ -13,6 +13,7 @@
 #include "ei/vcall.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -78,7 +79,6 @@ __declspec(naked) RawString* __fastcall StringFromChars(RawString*, void*, const
 __declspec(naked) void __fastcall StringDefault(RawString*, void*, const void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void __fastcall StringAssign(RawString*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)
-__declspec(naked) void __fastcall StringDestroy(RawString*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall StringDestroy2(RawString*) EI_ORIGINAL(0x00425040)
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
@@ -129,7 +129,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         RawString key;
         StringFromChars(&key, nullptr, names.data_[i], &alloc);
         void* record = *QuickItemAt(kQuickItemMap, nullptr, &key);
-        StringDestroy(&key);
+        StlStringDestroy(&key);
         if (record && Allowed(t, record, 0x64)) AddQuickItem(AllList(t), nullptr, record);
     }
     ListFourthKind(items, nullptr, &names);
@@ -137,7 +137,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         RawString key;
         StringFromChars(&key, nullptr, names.data_[i], &alloc);
         void* record = *FourthKindAt(kFourthKindMap, nullptr, &key);
-        StringDestroy(&key);
+        StlStringDestroy(&key);
         if (record && Allowed(t, record, 0x4C)) AddFourthKind(AllList(t), nullptr, record, 0x14, 0x32);
     }
 
@@ -149,7 +149,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         StringDefault(&key, nullptr, &alloc);
         StringAssign(&key, nullptr, code, code + std::strlen(code));
         void* record = *SpellAt(kSpellMap, nullptr, &key);
-        StringDestroy(&key);
+        StlStringDestroy(&key);
         if (record && Allowed(t, record, 0x80)) {
             AddSpell(MagicList(t), nullptr, record);
             AddSpell(AllList(t), nullptr, record);
@@ -169,7 +169,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         StringCopy(&pair.name, nullptr, &key);
         pair.record = nullptr;
         char* element = ModifierFindOrInsert(kModifierMap, nullptr, &pair);
-        StringDestroy(&pair.name);
+        StlStringDestroy(&pair.name);
         void* record = At<void*>(element, 0xC);
         StringDestroy2(&key);
         if (record && Allowed(t, record, 0x20)) {

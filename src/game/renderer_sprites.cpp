@@ -87,7 +87,6 @@ AlignedArray& Order() { return *reinterpret_cast<AlignedArray*>(0x007AEFC8); }  
 AlignedArray& Spare() { return *reinterpret_cast<AlignedArray*>(0x007AEFB8); }       // record pointers
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
 
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
 __declspec(naked) void __fastcall ByteArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FF5EA)
 __declspec(naked) void __fastcall WordArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FEE9A)

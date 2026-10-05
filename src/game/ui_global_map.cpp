@@ -21,6 +21,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -163,13 +164,11 @@ SpriteOps* Ops(CUiMesh* sprite) { return reinterpret_cast<SpriteOps*>(sprite); }
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 struct SurfaceDraw {
-    void* Begin();                                                                  // 005FDC00
+    void* Begin() { return SurfaceGetDC(this); }                                                                  // 005FDC00
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
-    void End();                                                                     // 005FDC60
+    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
-__declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 SurfaceDraw* Draw(CUiSurface* surface) { return reinterpret_cast<SurfaceDraw*>(surface); }
 
 // The local player's variables, copied by name prefix into a hash_map<CString, float>.
@@ -920,7 +919,6 @@ EI_REPLACE_METHOD(0x005F67A0, CGlobalMap::Construct);
 // --- 005F6920: the destructor body ---------------------------------------------------------------
 
 namespace {
-__declspec(naked) void __fastcall CStringDestruct(void*) EI_ORIGINAL(0x00700970)
 // The tree at +0x1E0 (thiscall): 005FB7D0 erases a subtree (RET 4), 005F9980 the destructor.
 __declspec(naked) void __fastcall TreeErase(void*, void*, void*) EI_ORIGINAL(0x005FB7D0)
 __declspec(naked) void __fastcall TreeDestruct(void*) EI_ORIGINAL(0x005F9980)
@@ -947,7 +945,7 @@ void DestroyArray(std::uint8_t* array, std::uint32_t vtable, int entrySize, void
 
 void __fastcall GlobalMapDestroy(CGlobalMap* self) {
     auto* bytes = reinterpret_cast<std::uint8_t*>(self);
-    CStringDestruct(bytes + 0x274);
+    CStringDestroy(bytes + 0x274);
     std::uint8_t* tree = bytes + 0x1E0;
     std::uint32_t count;
     std::memcpy(&count, tree + 4, 4);
@@ -964,7 +962,7 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self) {
         PutDword(tree, 4, 0);
     }
     TreeDestruct(tree);
-    CStringDestruct(bytes + 0x1D8);
+    CStringDestroy(bytes + 0x1D8);
     std::uint8_t* begin;
     std::uint8_t* capacity;
     std::memcpy(&begin, bytes + 0x1C8, 4);
@@ -973,7 +971,7 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self) {
     DestroyArray(bytes + 0x1B4, 0x00740BE4, 0x18, DestroyQuest);
     DestroyArray(bytes + 0x1A0, 0x00740BF0, 0x18, DestroyLink);
     DestroyArray(bytes + 0x18C, 0x00740BFC, 0x10, DestroyZone);
-    CStringDestruct(bytes + 0x17C);
+    CStringDestroy(bytes + 0x17C);
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6920, GlobalMapDestroy);

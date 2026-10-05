@@ -8,6 +8,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
+#include "originals_engine.h"
 
 #include <cmath>
 #include <cstdint>
@@ -24,7 +25,6 @@ T& At(void* object, int offset) {
 // [00530280 (x, y)], its turn toward a direction [00401F00 (direction, flag)], its heading from a
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
-__declspec(naked) std::uint8_t* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
 __declspec(naked) double __fastcall UnitGroundHeight(void*, void*, float, float) EI_ORIGINAL(0x00530280)
 __declspec(naked) void __fastcall UnitTurnTowards(void*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 __declspec(naked) void __fastcall UnitFaceDirection(void*, void*, const float*) EI_ORIGINAL(0x00402220)
@@ -64,7 +64,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     float speed;
     int cellX, cellY;
     bool turning;
-    std::uint8_t* world = ObjectWorld(controller);
+    std::uint8_t* world = static_cast<std::uint8_t*>(ObjectWorld(controller));
     MotionSample(unit + 0x27C, nullptr, world, controller + 0x38, time, &turning, position, direction, &speed, &cellX,
                  &cellY);
     float toWorld = kCellScale * kHalf;

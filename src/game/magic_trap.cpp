@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_engine.h"
 
 namespace {
 
@@ -171,7 +172,6 @@ EI_REPLACE(0x0052A920, FindTrapVictims);
 namespace {
 // The object's world [00455950]; the world server (007AFF60) casts `spell` from `caster` at
 // `from` on `target` at `at` [0058E850 (spell, caster, from, target, at, 0), RET 0x18].
-__declspec(naked) void* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
 __declspec(naked) void __fastcall WorldCastSpell(void*, void*, void* /*spell*/, void* /*caster*/, const float* /*from*/,
                                                  CEngineObject* /*target*/, const float* /*at*/, int)
     EI_ORIGINAL(0x0058E850)

@@ -51,7 +51,6 @@ std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E58); }
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) char* __fastcall Alloc4(int) EI_ORIGINAL(0x00406B50)
 __declspec(naked) char* __fastcall Alloc64(int) EI_ORIGINAL(0x00452E70)
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.

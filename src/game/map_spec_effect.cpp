@@ -10,6 +10,7 @@
 
 #include <cstring>
 #include <new>
+#include "originals_library.h"
 
 namespace mapspec {
 
@@ -67,7 +68,6 @@ constexpr std::uintptr_t kLightVtable = 0x0073C788;
 constexpr std::uintptr_t kSoundVtable = 0x0073C7B8;
 constexpr int kSlotApply = 7;
 
-__declspec(naked) void __fastcall StringArrayConstruct(StringArray*) EI_ORIGINAL(0x006FE925)
 __declspec(naked) void __fastcall StringArrayDestruct(StringArray*) EI_ORIGINAL(0x006FE958)
 __declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void* __fastcall ManagerFind(void*, void*, int) EI_ORIGINAL(0x00403F40)

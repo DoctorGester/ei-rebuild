@@ -15,6 +15,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 namespace {
 
@@ -42,7 +43,6 @@ __declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x00
 // 005D5940. An AI brain (unit controller + 0x980) hears alarm `index`.
 __declspec(naked) void __fastcall BrainHearAlarm(void*, void*, int /*index*/) EI_ORIGINAL(0x005D5940)
 // The game's atexit (006E727B).
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 
 constexpr int kSlotRelease60 = 4;     // the +0x60 object's slot 4, called after it is replaced
 constexpr int kBrainOffset = 0x980;   // AI brain inside the unit controller

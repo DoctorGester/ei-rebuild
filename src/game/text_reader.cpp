@@ -20,11 +20,9 @@ __declspec(naked) int __cdecl MbsCmp(const char*, const char*) EI_ORIGINAL(0x006
 struct TextString : mfc::CString {
     void AssignChar(char c);                    // 006FD559 operator=(TCHAR)
     void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
-    mfc::CString Left(int count) const;         // 006FDAE9
 };
 __declspec(naked) void TextString::AssignChar(char) EI_ORIGINAL(0x006FD559)
 __declspec(naked) void TextString::AppendChar(char) EI_ORIGINAL(0x00700D73)
-__declspec(naked) mfc::CString TextString::Left(int) const EI_ORIGINAL(0x006FDAE9)
 TextString& Ops(mfc::CString& s) { return static_cast<TextString&>(s); }
 const TextString& Ops(const mfc::CString& s) { return static_cast<const TextString&>(s); }
 
@@ -98,7 +96,7 @@ constexpr AdvanceKind kFindComment{Test::Inline, Test::Inline, Test::Call, Test:
 
 // Whether a word starts with "##".
 bool IsComment(const mfc::CString& word) {
-    mfc::CString start = Ops(word).Left(2);
+    mfc::CString start = word.Left(2);
     return MbsCmp(start, kComment) == 0;
 }
 
@@ -262,7 +260,7 @@ BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
         while (PeekWordCall(self, nullptr, &word)) {
             bool header;
             {
-                mfc::CString first = Ops(word).Left(1);
+                mfc::CString first = word.Left(1);
                 header = MbsCmp(first, kHeader) == 0 && !IsComment(word);
             }
             if (header) return 1;

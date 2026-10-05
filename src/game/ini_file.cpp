@@ -29,7 +29,6 @@ constexpr char kListSeparator = ',';
 struct TextOps : mfc::CString {
     int Find(char c) const;                     // 00700E91 Find(TCHAR)
     int Find(char c, int start) const;          // 00700E9F Find(TCHAR, int)
-    mfc::CString Left(int count) const;         // 006FDAE9
     mfc::CString Mid(int first, int count) const; // 006FD9D7
     void TrimRight();                           // 006FE216
     void TrimLeft();                            // 006FE11F
@@ -188,7 +187,6 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, MfcArray* o
 
 __declspec(naked) int TextOps::Find(char) const EI_ORIGINAL(0x00700E91)
 __declspec(naked) int TextOps::Find(char, int) const EI_ORIGINAL(0x00700E9F)
-__declspec(naked) mfc::CString TextOps::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString TextOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
@@ -236,7 +234,7 @@ BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {
         item = start;
         int equals = Ops(item).Find('=');
         if (equals != -1) {
-            item = Ops(item).Left(equals);
+            item = item.Left(equals);
             Ops(item).TrimRight();
             Ops(item).TrimLeft();
         }

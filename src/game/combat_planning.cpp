@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_ai.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
 
@@ -50,7 +51,6 @@ constexpr int kSlotSize = 0xF0 / 4;               // ST0 ()
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
 __declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
-__declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 __declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
 __declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00531A10)
 __declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
@@ -60,8 +60,6 @@ __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGI
 __declspec(naked) std::uint8_t __fastcall MapCellFlag80(void*, void*, const float*) EI_ORIGINAL(0x005BBC70)
 __declspec(naked) double __fastcall MapLineOfSight(void*, void*, const float*, const float*) EI_ORIGINAL(0x005BC3E0)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
-__declspec(naked) void __fastcall SectorRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) bool __fastcall SectorAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
 __declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGINAL(0x005B2190)
@@ -193,7 +191,7 @@ void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, 
 // --- A use order's spot -----------------------------------------------------------------------
 
 bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
-    void* world = WorldOf(this);
+    void* world = ObjectWorld(this);
     order->point[2] = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
     SpotArray spots{reinterpret_cast<void*>(0x0073C120), nullptr, 0, 0, 0};
@@ -238,7 +236,7 @@ EI_REPLACE_METHOD(0x0054DF50, CUnitServer::FindUseSpot);
 
 double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) {
     if (At<int>(motionOrder, 0) != kMotionPath) return 0.0f;
-    WorldOf(this);
+    ObjectWorld(this);
     LocalUnitMotion simulated;
     MotionBuild(&simulated.motion, nullptr, motionOrder);
     SightTarget sight;
@@ -351,7 +349,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             if (target) {
                 savedFlag = PathFlag();
                 PathFlag() = 0;
-                SectorRemove(kSectorMap, nullptr, target);
+                SectorMapRemove(AsSectorMap(kSectorMap), nullptr, target);
             }
             void* world = ContextOf(this);
             path.bytes[0x6E] = unit->player == nullptr ? 1 : 0;
@@ -361,7 +359,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             At<std::uint32_t>(unit, 0x43C) = saved43C;
             if (!found) PathStandStill(path.bytes, nullptr, unit);
             if (target) {
-                SectorAdd(kSectorMap, nullptr, target);
+                SectorMapAdd(AsSectorMap(kSectorMap), nullptr, target);
                 PathFlag() = savedFlag;
             }
             PathToMotionOrder(path.bytes, nullptr, motion.bytes);
@@ -394,11 +392,11 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
     bool running = static_cast<std::uint8_t>(run) != 0;
     if (running && mode != 2 && mode != 3) {
         // A runner plans as walking (mode 2) when it may leave its cell that way.
-        SectorRemove(sectors, nullptr, unit);
+        SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
         unit->moveMode = 2;
         UnitUpdateSizeClass(unit);
         if (!MapCanLeaveCell(map, nullptr, unit)) unit->moveMode = mode;
-        SectorAdd(sectors, nullptr, unit);
+        SectorMapAdd(AsSectorMap(sectors), nullptr, unit);
     }
     std::uint32_t flag = MapCellFlag80(map, nullptr, &unit->positionX);
     void* world2 = ContextOf(this);
@@ -408,15 +406,15 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
     bool found = MapFindPath(static_cast<char*>(world2) + 0x170, nullptr, unit, point, path.bytes, range, 0.0f);
     At<std::uint32_t>(unit, 0x43C) = saved43C;
     if (running) {
-        SectorRemove(sectors, nullptr, unit);
+        SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
         unit->moveMode = mode;
         UnitUpdateSizeClass(unit);
-        SectorAdd(sectors, nullptr, unit);
+        SectorMapAdd(AsSectorMap(sectors), nullptr, unit);
     }
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorAdd(sectors, nullptr, current->data);
+        SectorMapAdd(AsSectorMap(sectors), nullptr, current->data);
     }
     CtlReportPath(this, nullptr, path.bytes, found ? 1 : 0);
     // The list's RemoveAll (inlined).

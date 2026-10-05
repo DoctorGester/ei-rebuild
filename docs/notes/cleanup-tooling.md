@@ -98,3 +98,25 @@ only names one declaration per address) now has the real return type: constructo
 `RawString*`, `void*`), `PartyAdd`/`QueueAdd`/`Text`/`PlaySound`/`FatalDirectX`/`GetText`/`ServerUpdateAt` `int`,
 `FindFreeCellNear`/`AddressInit` `bool`, `SurfaceDraw::Begin` and `ReturnAll` `void*`, `TopicsInsert` `void**`;
 member forwarders changed in their class stubs too. `check_returns` now reports 0 forwarder warnings.
+
+## C3b (top 10 by site count): one declaration each
+
+Decided from the game.exe disassembly (RET n, callers' use of EAX/ST0/AL), each now declared once:
+
+| Address | Declaration | Header |
+| --- | --- | --- |
+| 006E727B | `int __cdecl GameAtExit(void(__cdecl*)())` (atexit, RET, 0/-1) | originals_library.h |
+| 00455950 | `void* __fastcall ObjectWorld(const void*)` (object +0x14 -> +0xAC, slot 13, or null) | originals_engine.h |
+| 0040C720 | `void __fastcall StlStringDestroy(void*)` (STLport string dtor; plain RET, the old `(void*, void*)` forms dropped the dummy EDX) | originals_library.h |
+| 006FDAE9 | `CString CString::Left(int) const` (RET 8: result slot, count), a member of `mfc::CString` | lib/mfc.h, lib/mfc.cpp |
+| 005C1010 / 005C0DF0 | `bool __fastcall SectorMapRemove / SectorMapAdd(CSectorMap*, void*, CEngineObject*)` (AL = done, RET 4); callers cast with `AsSectorMap` / `AsEngineObject` | originals_ai.h |
+| 00700970 | `mfc::CString::~CString`; `CStringDestroy(void*)` is an inline over it | originals_library.h |
+| 006FE925 | `void* __fastcall StringArrayConstruct(void*)` (returns `this`); `console::CStringArray::CStringArray()` calls it | originals_library.h |
+| 005FDC00 / 005FDC60 | `ui_gdi::GameDC* __fastcall SurfaceGetDC(void*)` / `void SurfaceReleaseDC(void*)` (surface = CUiSurface) | originals_ui.h |
+
+The class members that were forwarders for the same address (`CUnit::World`, `CMapObject::World`,
+`CVisibilityFog::World`, the per-file `SurfaceDraw::Begin/End`, `ui_gdi::SurfaceDC::GetDC/ReleaseDC`,
+`StripSurface`, `BoxSurfaceAt`, `SurfaceText`) are now one-line inline wrappers over the shared forwarder.
+`CString::Left` callers that built the result into raw memory (`scene_material`, `world_briefing`,
+`world_game`) now use a normal `CString` local. The shared forwarder replaced a duplicate local `CIacos` in
+sound_manager.cpp (identical bytes) that clashed with originals_library.h.

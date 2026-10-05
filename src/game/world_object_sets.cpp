@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 
 // {data, size, capacity, growBy}; the elements are compared as unsigned words (the objects'
 // addresses).
@@ -67,7 +68,6 @@ void InlineSetSize(ObjectSet& a, int n) {
 // by 0047B1D0).
 ObjectSet& Scratch() { return *reinterpret_cast<ObjectSet*>(0x007A9738); }
 std::uint8_t& ScratchGuard() { return *reinterpret_cast<std::uint8_t*>(0x007A9748); }
-__declspec(naked) int __cdecl GameAtExit(void (__cdecl*)()) EI_ORIGINAL(0x006E727B)
 
 // One counting pass by the byte at `shift`: `src` scattered into `dst` (stable).
 void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {

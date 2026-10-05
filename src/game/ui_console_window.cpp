@@ -56,12 +56,7 @@ struct SurfaceAt : SurfaceDC {
 __declspec(naked) SurfaceAt* SurfaceAt::Construct(int*, const int*, int) EI_ORIGINAL(0x005FCDD0)
 __declspec(naked) void SurfaceAt::ReleaseContents() EI_ORIGINAL(0x005FD120)
 
-// CString members not in lib/mfc.h.
-struct StrAt : mfc::CString {
-    mfc::CString Left(int count) const;   // 006FDAE9
-};
-__declspec(naked) mfc::CString StrAt::Left(int) const EI_ORIGINAL(0x006FDAE9)
-mfc::CString Left(const mfc::CString& s, int count) { return static_cast<const StrAt&>(s).Left(count); }
+mfc::CString Left(const mfc::CString& s, int count) { return s.Left(count); }
 
 int Clamp(int value, int high) {
     if (value > high) value = high;
@@ -432,6 +427,4 @@ __declspec(naked) POINT GameDC::MoveTo(int, int) EI_ORIGINAL(0x00709613)
 __declspec(naked) BOOL GameDC::LineTo(int, int) EI_ORIGINAL(0x0070965F)
 __declspec(naked) GamePen* GamePen::Construct(int, int, COLORREF) EI_ORIGINAL(0x0070A0E2)
 __declspec(naked) BOOL GamePen::DeleteObject() EI_ORIGINAL(0x0070A0CC)
-__declspec(naked) GameDC* SurfaceDC::GetDC() EI_ORIGINAL(0x005FDC00)
-__declspec(naked) void SurfaceDC::ReleaseDC() EI_ORIGINAL(0x005FDC60)
 } // namespace ui_gdi

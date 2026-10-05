@@ -9,6 +9,7 @@
 #include "lib/stlp.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 namespace net {
 
@@ -103,7 +104,6 @@ __declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void
 __declspec(naked) void __fastcall ReplicatedSortLoop(Replicated* /*first*/, Replicated* /*last*/, void* /*tag*/, int /*depth*/,
                                                      void* /*compare*/) EI_ORIGINAL(0x0043F870)
 __declspec(naked) void __fastcall ReplicatedSortFinish(Replicated* /*first*/, Replicated* /*last*/, void* /*compare*/) EI_ORIGINAL(0x0043F9B0)
-__declspec(naked) int __cdecl GameAtExit(void* /*fn*/) EI_ORIGINAL(0x006E727B)
 constexpr std::uintptr_t kReplicatedDestroyAtExit = 0x00434980;
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
@@ -600,7 +600,7 @@ void Connection::CollectChanges() {
         StaticReplicatedGuard() |= 1;
         char allocator = 0;
         ReplicatedConstruct(&items, nullptr, &allocator);
-        GameAtExit(reinterpret_cast<void*>(kReplicatedDestroyAtExit));
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kReplicatedDestroyAtExit));
     }
     ReplicatedErase(&items, nullptr, items.begin, items.end);
     ReplicatedVector* target = &items;

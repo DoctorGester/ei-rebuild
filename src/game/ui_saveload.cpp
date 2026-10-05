@@ -117,7 +117,6 @@ __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_
 // 0070133F (RET 8): CFile::Write.
 __declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned) EI_ORIGINAL(0x0070133F)
 // 006FE925: CStringArray's constructor.
-__declspec(naked) void __fastcall StringArrayConstruct(void*) EI_ORIGINAL(0x006FE925)
 
 // The stream's header (004A5340, RET 8: magic, version) and reads (004A52D0, RET 0xC: true when
 // the magic and version fit, the version kept in +8; 00461190 / 004E5840, RET 4: a string up to

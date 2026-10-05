@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_library.h"
 #include "originals_units.h"
 
 #include <cstring>
@@ -96,7 +97,6 @@ constexpr std::uintptr_t kPtrListVtable = 0x0073D454;   // CPtrList of the units
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 // The game's atexit (006E727B).
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 // 0058C890 (RET 4). SendZone, through its address (rewritten here).
 __declspec(naked) int __fastcall SendZoneAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058C890)
 // 0055FBD0 (RET 8). The time of day and the time speed.

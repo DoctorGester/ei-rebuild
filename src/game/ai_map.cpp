@@ -7,6 +7,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 int WorldToCell(float world) {
     float cell = 1.0f / (1.0f * 0.5f) * world - 0.5f;   // 0073B84C / (0073FD18 * 0073B86C)
@@ -376,7 +377,6 @@ EI_REPLACE_METHOD(0x005BC3E0, CAIMap::LineOfSight);
 
 namespace {
 // The game's atexit (006E727B), for the function-local static in FindFreeCellNear.
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 
 // The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius
 // (compared as raw float bits) to the number of offsets within it.

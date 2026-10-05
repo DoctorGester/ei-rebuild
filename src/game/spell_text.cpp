@@ -23,7 +23,6 @@ const char* const kCantEnd = reinterpret_cast<const char*>(0x0079593C);
 // MFC CString members not in lib/mfc.h, called on existing strings.
 struct TextOps : mfc::CString {
     int Find(char c) const;                     // 00700E91 Find(TCHAR)
-    mfc::CString Left(int count) const;         // 006FDAE9
     mfc::CString Right(int count) const;        // 006FDA6D
     void TrimRight();                           // 006FE216 (white space)
     void TrimLeft();                            // 006FE11F (white space)
@@ -55,7 +54,6 @@ int Length(const mfc::CString& s) { return console::Length(s); }
 } // namespace
 
 __declspec(naked) int TextOps::Find(char) const EI_ORIGINAL(0x00700E91)
-__declspec(naked) mfc::CString TextOps::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString TextOps::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
@@ -77,7 +75,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
     Ops(inner).TrimRight('}');
     Ops(inner).TrimLeft();
     Split(inner, &codes, ';');
-    text = Ops(text).Left(brace);
+    text = text.Left(brace);
     Ops(text).TrimRight();
     Ops(text).TrimLeft();
 }

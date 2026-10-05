@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 #include "originals_script.h"
 
 #include <cstring>
@@ -37,8 +38,6 @@ __declspec(naked) int __fastcall TextsOpenSection(void*, void*, const char*) EI_
 __declspec(naked) int __fastcall TextsFindTag(void*, void*, const char*) EI_ORIGINAL(0x004DF030)
 __declspec(naked) int __fastcall TextsReadWords(void*, void*, console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
 
-// 006FDAE9 (RET 8). CString::Left(count), returned into `out`.
-__declspec(naked) mfc::CString* __fastcall StringLeft(const mfc::CString*, void*, void* /*out*/, int) EI_ORIGINAL(0x006FDAE9)
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 __declspec(naked) void __fastcall FlowLoadQuests(GameFlow*, void*, const char*) EI_ORIGINAL(0x005809D0)
 // 00460BC0 (RET 8). Named float table Set.
@@ -108,10 +107,8 @@ void GameFlow::MarkBriefing(const char* briefing) {
     if (static_cast<int>(length) > 2 && briefing[length - 2] == '_') {
         mfc::CString zone(briefing);
         {
-            StringSlot left;
-            StringLeft(&zone, nullptr, left.Raw(), reinterpret_cast<const int*>(static_cast<const char*>(zone))[-2] - 2);
-            zone = left.Get();
-            left.Get().~CString();
+            mfc::CString left = zone.Left(reinterpret_cast<const int*>(static_cast<const char*>(zone))[-2] - 2);
+            zone = left;
         }
         FlowLoadQuests(this, nullptr, zone);
     }
@@ -128,7 +125,6 @@ namespace {
 // 00460DB0 (RET 4). Named float table Remove.
 // 004DEDD0 (RET 4). The briefing texts forget a loaded file.
 // 0040C720. STLport string destructor.
-__declspec(naked) void __fastcall RawStringDestroy(void*, void*) EI_ORIGINAL(0x0040C720)
 
 // The quest text files loaded so far (007AFDD0: an STLport vector of 12-byte strings).
 struct LoadedFile {
@@ -159,7 +155,7 @@ void UnloadQuestTexts() {
     LoadedFiles& files = QuestFiles();
     for (LoadedFile* file = files.start; file != files.finish; ++file) TextsUnload(texts, nullptr, file->start);
     // clear(): the original's inlined erase(begin(), end()) moves nothing and destroys them all.
-    for (LoadedFile* file = files.start; file != files.finish; ++file) RawStringDestroy(file, nullptr);
+    for (LoadedFile* file = files.start; file != files.finish; ++file) StlStringDestroy(file);
     files.finish = files.start;
 }
 
@@ -182,11 +178,9 @@ void GameFlow::OnVariableChanged(const void* event) {
     std::uint32_t value = *reinterpret_cast<const std::uint32_t*>(record + 0x18);
     bool quest;
     {
-        StringSlot prefix;
-        StringLeft(&name, nullptr, prefix.Raw(), 2);
-        quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix.Get())),
+        mfc::CString prefix = name.Left(2);
+        quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
                                 reinterpret_cast<const unsigned char*>(Text(kQuestPrefix))) == 0;
-        prefix.Get().~CString();
     }
     if (quest) {
         QuestLogUpdate(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);

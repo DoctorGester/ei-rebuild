@@ -22,6 +22,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -239,15 +240,13 @@ __declspec(naked) void __fastcall TreeIncrement(DistanceNode** /*iterator*/) EI_
 
 // Surfaces and sprites (not rewritten).
 struct SurfaceDraw {
-    void* Begin();                                                                   // 005FDC00
+    void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
     void Clear();                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End();                                                                     // 005FDC60
+    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 __declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
-__declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 
 struct SpriteAt {
     // 005E99D0 (Rebirth-patched): a triangle sprite (corners (x0,y0), (x1,y1), (x2,y2) at `depth`,
@@ -551,7 +550,6 @@ void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
 // STLport string members: default constructor [004217E0], assign [00428F10], destructor [0040C720].
 __declspec(naked) void __fastcall StringDefault(void*, void*, const void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void __fastcall StringAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
-__declspec(naked) void __fastcall StringDestroy(void*) EI_ORIGINAL(0x0040C720)
 
 // The quest's experience (+0xC) and money (+0x14) rewards, from the quest database.
 void* QuestRecord(const char* name) {
@@ -560,7 +558,7 @@ void* QuestRecord(const char* name) {
     StringDefault(key, nullptr, &allocator);
     StringAssign(key, nullptr, name, name + std::strlen(name));
     void* record = *QuestIndexAt(QuestIndex(), nullptr, key);
-    StringDestroy(key);
+    StlStringDestroy(key);
     return record;
 }
 

@@ -38,9 +38,6 @@ __declspec(naked) void __fastcall SteerAlong(CAIMap*, void*, CUnit*, PathCellLis
 
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
 // build's wrappers see these calls.
-struct CSectorMap;
-__declspec(naked) bool __fastcall SectorMapAdd(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
-__declspec(naked) bool __fastcall SectorMapRemove(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 CSectorMap* Sectors(CAIMap* map) { return reinterpret_cast<CSectorMap*>(reinterpret_cast<char*>(map) + 0x124); }
 
 // FPATAN: atan2(y, x), unrounded.

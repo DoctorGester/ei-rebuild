@@ -6,6 +6,7 @@
 // non-virtual ones through their addresses (not rewritten).
 
 #include "ei/hook.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 
@@ -57,8 +58,8 @@ static_assert(sizeof(GamePen) == 8);
 
 // The DC of an interface surface (CUiSurface; also the console window's surface).
 struct SurfaceDC {
-    GameDC* GetDC();                 // 005FDC00 (null when the surface has no DirectDraw surface)
-    void ReleaseDC();                // 005FDC60
+    GameDC* GetDC() { return SurfaceGetDC(this); }      // 005FDC00 (null when the surface has no DirectDraw surface)
+    void ReleaseDC() { SurfaceReleaseDC(this); }        // 005FDC60
 };
 
 } // namespace ui_gdi

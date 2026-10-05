@@ -38,13 +38,11 @@ __declspec(naked) void __fastcall EditSetText(void*, void*, const void*) EI_ORIG
 __declspec(naked) void __fastcall EditActivate(void*, void*, int) EI_ORIGINAL(0x0065C2D0)
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
-    void* Begin();   // 005FDC00
+    void* Begin() { return SurfaceGetDC(this); }   // 005FDC00
     void Clear();   // 005FE2F0
-    void End();     // 005FDC60
+    void End() { SurfaceReleaseDC(this); }     // 005FDC60
 };
-__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 // 006002A0 (RET 8): a window's enabled flag (CUiWindow::SetEnabled, through its address).
 
@@ -68,7 +66,6 @@ __declspec(naked) void __fastcall PushWindow(CInterface3D*, void*, void*, int, i
 // tree base 00619750 (RET 8), node allocation 00619770 (RET 8) and 005FA610, CStringArray 006FE925.
 __declspec(naked) void __fastcall TreeBaseConstruct(void*, void*, const void*, const void*) EI_ORIGINAL(0x00619750)
 __declspec(naked) void* __fastcall TreeAllocateNodes(void*, void*, int, const void*) EI_ORIGINAL(0x00619770)
-__declspec(naked) void __fastcall StringArrayConstruct(void*) EI_ORIGINAL(0x006FE925)
 
 template <typename Fn>
 Fn VirtualAt(void* object, int slot) {

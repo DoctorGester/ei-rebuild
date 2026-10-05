@@ -19,6 +19,7 @@
 
 #include <bit>
 #include <cstring>
+#include "originals_library.h"
 
 #pragma float_control(precise, on)
 
@@ -89,14 +90,6 @@ using ReverbFn = void(__stdcall*)(void*, float, float, float);
 ReverbFn AilSetSampleReverb() { return *reinterpret_cast<ReverbFn*>(0x0073B764); }
 // The end-of-sample callback every started voice gets (sets the slot's finished flag).
 void* EndOfSampleCallback() { return reinterpret_cast<void*>(0x006B75E0); }
-
-// _CIacos: the CRT's x87 intrinsic (argument and result in ST0).
-__declspec(naked) double __cdecl CIacos(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm mov eax, 0x006E7320
-    __asm call eax
-    __asm ret
-}
 
 // Calls a one-argument function pointer of another module whatever its convention (the ASI
 // codec's close, __stdcall in Miles): ESP is restored from EBP afterwards, as the original's
@@ -1164,7 +1157,6 @@ __declspec(naked) void* __fastcall StringEmpty(void*) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringAssignTagged(void*, void*, const char*, const char*, int /*tag*/) EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) void __fastcall StringCopy(void*, void*, const void*) EI_ORIGINAL(0x004A8930)
-__declspec(naked) void __fastcall StringDestroy(void*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall StringDestroyOther(void*) EI_ORIGINAL(0x0040C770)
 // The cache map (CSoundManager + 0x870): find [out iterator, key], find-or-insert of a pair
 // [returns the pair], erase by key; the pair's constructor [key, value].
@@ -1235,7 +1227,7 @@ void CacheSet(CSoundManager* m, const std::uint32_t* key, WaveNode* node) {
     WaveNode* none = nullptr;
     PairConstruct(pair, nullptr, key, &none);
     std::uint8_t* inserted = CacheInsert(m->cache, nullptr, pair);
-    StringDestroy(pair);
+    StlStringDestroy(pair);
     *reinterpret_cast<WaveNode**>(inserted + 0xC) = node;
 }
 // A record copied out of a node (its own copy of the name).
@@ -1260,7 +1252,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const std::uint32_t* key, cons
     CacheSet(m, key, m->cacheList.head);
     slot->length = static_cast<float>(WaveLength(m, nullptr, record.data, record.size));
     AilSetNamedSampleFile()(slot->sample, name, record.data, record.size, 0);
-    StringDestroy(record.name);
+    StlStringDestroy(record.name);
 }
 
 // Drops unused waves from the least recently used end until the new one fits the budget or the
@@ -1271,7 +1263,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
         WaveRecord record;
         CopyOut(&record, node);
         if (static_cast<std::uint32_t>(incoming + m->cacheBytes) < kCacheBudget && now - record.lastUsed < kCacheKeep) {
-            StringDestroy(record.name);
+            StlStringDestroy(record.name);
             return;
         }
         if (record.uses <= 0) {
@@ -1281,7 +1273,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
             Unlink(m->cacheList, node);
             ListFreeNode(&m->cacheList, nullptr, node);
         }
-        StringDestroy(record.name);
+        StlStringDestroy(record.name);
         node = prev;
     }
 }
@@ -1353,13 +1345,13 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             AilSetSampleFile()(slot->sample, data, size);
         }
         slot->length = static_cast<float>(WaveLength(this, nullptr, record.data, record.size));
-        StringDestroy(record.name);
+        StlStringDestroy(record.name);
     }
     StringAssignTagged(slot->name, nullptr, reinterpret_cast<const char*>(key[0]), reinterpret_cast<const char*>(key[1]), 0);
     slot->playing = 1;
     slot->handle = nextHandle;
     ++nextHandle;
-    StringDestroy(key);
+    StlStringDestroy(key);
     return 1;
 }
 EI_REPLACE_METHOD(0x006B89F0, CSoundManager::LoadSample);
