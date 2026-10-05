@@ -134,8 +134,107 @@ void __fastcall FxAssignVerify(void* self, void*, const void* other) {
     ei::verify::Check("ScriptFxSourceAssign", true, ok, "%p = %p", self, other);
 }
 
+// ---- Copy constructors (ours only: the source captured first, the new object must equal it and
+// carry the derived vtables) ----
+
+template <typename T>
+bool HasVtable(const MfcArray<T>& a, std::uintptr_t vtable) {
+    return reinterpret_cast<std::uintptr_t>(a.vtable) == vtable;
+}
+
+std::vector<std::string> Strings(const MfcArray<mfc::CString>& a) {
+    std::vector<std::string> out;
+    for (int i = 0; i < a.size; ++i) out.emplace_back(static_cast<const char*>(a.data[i]));
+    return out;
+}
+
+std::vector<CEngineObject*> Objects(const MfcArray<ScriptObjectRef>& a) {
+    std::vector<CEngineObject*> out;
+    for (int i = 0; i < a.size; ++i) out.push_back(a.data[i].object);
+    return out;
+}
+
+bool CmdVtables(const SSCCmd* c) {
+    return HasVtable(c->floatArgs, 0x0073D490) && HasVtable(c->stringArgs, 0x0073D2D4) &&
+           HasVtable(c->objectArgs, 0x0073D484) && HasVtable(c->groupArgs, 0x0073D478) &&
+           HasVtable(c->localBindings, 0x0073D49C) && HasVtable(c->globalBindings, 0x0073D49C) &&
+           HasVtable(c->subCalls, 0x0073D4A8);
+}
+
+ScriptVars* __fastcall VarsCopyVerify(ScriptVars* self, void*, const ScriptVars* other) {
+    std::vector<unsigned char> expected = VarsImage(other);
+    ScriptVarsCopyConstruct(self, nullptr, other);
+    bool ok = VarsImage(self) == expected && HasVtable(self->floats, 0x0073D2E0) &&
+              HasVtable(self->strings, 0x0073D2D4) && HasVtable(self->objects, 0x0073D110) &&
+              HasVtable(self->groups, 0x0073D304);
+    for (const auto* names : {&self->floatNames, &self->stringNames, &self->objectNames, &self->groupNames})
+        ok = ok && HasVtable(*names, 0x0073D2D4);
+    ei::verify::Check("ScriptVarsCopyConstruct", true, ok, "%p from %p", self, other);
+    return self;
+}
+
+MfcArray<mfc::CString>* __fastcall NamesCopyVerify(MfcArray<mfc::CString>* self, void*,
+                                                   const MfcArray<mfc::CString>* other) {
+    std::vector<std::string> expected = Strings(*other);
+    ScriptNamesCopyConstruct(self, nullptr, other);
+    bool ok = Strings(*self) == expected && self->maxSize == self->size && self->growBy == 0 &&
+              HasVtable(*self, 0x0073D2D4) && (self->size != 0 || self->data == nullptr);
+    ei::verify::Check("ScriptNamesCopyConstruct", true, ok, "%d names", other->size);
+    return self;
+}
+
+ScriptNamedValues<ScriptObjectRef>* __fastcall ObjectsCopyVerify(ScriptNamedValues<ScriptObjectRef>* self, void*,
+                                                                 const ScriptNamedValues<ScriptObjectRef>* other) {
+    std::vector<CEngineObject*> objects = Objects(other->values);
+    std::vector<std::string> names = Strings(other->names);
+    ScriptObjectsCopyConstruct(self, nullptr, other);
+    bool ok = Objects(self->values) == objects && Strings(self->names) == names &&
+              HasVtable(self->values, 0x0073D110) && HasVtable(self->names, 0x0073D2D4);
+    ei::verify::Check("ScriptObjectsCopyConstruct", true, ok, "%d objects", other->values.size);
+    return self;
+}
+
+ScriptNamedValues<ScriptGroup>* __fastcall GroupsCopyVerify(ScriptNamedValues<ScriptGroup>* self, void*,
+                                                            const ScriptNamedValues<ScriptGroup>* other) {
+    std::vector<std::vector<CEngineObject*>> groups;
+    for (int i = 0; i < other->values.size; ++i) groups.push_back(Objects(other->values.data[i]));
+    std::vector<std::string> names = Strings(other->names);
+    ScriptGroupsCopyConstruct(self, nullptr, other);
+    bool ok = self->values.size == static_cast<int>(groups.size()) && Strings(self->names) == names &&
+              HasVtable(self->values, 0x0073D304) && HasVtable(self->names, 0x0073D2D4);
+    for (int i = 0; ok && i < self->values.size; ++i)
+        ok = Objects(self->values.data[i]) == groups[i] && HasVtable(self->values.data[i], 0x0073D110);
+    ei::verify::Check("ScriptGroupsCopyConstruct", true, ok, "%d groups", other->values.size);
+    return self;
+}
+
+SSCCmd* __fastcall CmdCopyAtVerify(const MfcArray<SSCCmd>* self, void*, SSCCmd* out, int index) {
+    std::vector<unsigned char> expected = CmdImage(&self->data[index]);
+    ScriptCmdCopyAt(self, nullptr, out, index);
+    bool ok = CmdImage(out) == expected && CmdVtables(out);
+    ei::verify::Check("ScriptCmdCopyAt", true, ok, "command %d (index %d)", out->id, index);
+    return out;
+}
+
+ScriptSubCall* __fastcall SubCallCopyAtVerify(const MfcArray<ScriptSubCall>* self, void*, ScriptSubCall* out,
+                                              int index) {
+    const ScriptSubCall* from = &self->data[index];
+    std::vector<unsigned char> expected = CmdImage(from->cmd);
+    ScriptSubCallCopyAt(self, nullptr, out, index);
+    bool ok = out->type == from->type && out->argIndex == from->argIndex && out->cmd && out->cmd != from->cmd &&
+              CmdImage(out->cmd) == expected && CmdVtables(out->cmd);
+    ei::verify::Check("ScriptSubCallCopyAt", true, ok, "nested call type %d arg %d", from->type, from->argIndex);
+    return out;
+}
+
 } // namespace
 
+EI_VERIFY(0x004CB7E0, VarsCopyVerify, 0, s_unused);
+EI_VERIFY(0x004CBA00, NamesCopyVerify, 0, s_unused);
+EI_VERIFY(0x004CBDB0, ObjectsCopyVerify, 0, s_unused);
+EI_VERIFY(0x004CBEF0, GroupsCopyVerify, 0, s_unused);
+EI_VERIFY(0x004CE750, CmdCopyAtVerify, 0, s_unused);
+EI_VERIFY(0x004CCAA0, SubCallCopyAtVerify, 0, s_unused);
 EI_VERIFY(0x004CBAE0, VarsAssignVerify, 0, s_unused);
 EI_VERIFY(0x004CB570, RunAssignVerify, 0, s_unused);
 EI_VERIFY(0x004C6BC0, CmdAssignVerify, 0, s_unused);

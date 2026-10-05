@@ -595,3 +595,17 @@ SSCCmd* __fastcall ScriptCmdAssign(SSCCmd* self, void* edx, const SSCCmd* other)
 ScriptDecl* __fastcall ScriptDeclAssign(ScriptDecl* self, void* edx, const ScriptDecl* other);   // 004CB2D0
 // 004CB220: the FX source list element (0x34 bytes; name CString at +0x08).
 void* __fastcall ScriptFxSourceAssign(void* self, void* edx, const void* other);
+
+// Copy constructors (script_copy.cpp), __thiscall (const T& other), returning this.
+ScriptVars* __fastcall ScriptVarsCopyConstruct(ScriptVars* self, void* edx, const ScriptVars* other);   // 004CB7E0
+MfcArray<mfc::CString>* __fastcall ScriptNamesCopyConstruct(MfcArray<mfc::CString>* self, void* edx,
+                                                            const MfcArray<mfc::CString>* other);       // 004CBA00
+ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsCopyConstruct(
+    ScriptNamedValues<ScriptObjectRef>* self, void* edx, const ScriptNamedValues<ScriptObjectRef>* other); // 004CBDB0
+ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsCopyConstruct(
+    ScriptNamedValues<ScriptGroup>* self, void* edx, const ScriptNamedValues<ScriptGroup>* other);     // 004CBEF0
+// The by-value CArray::GetAt bodies (__thiscall on the array (out, index), returning out): out is
+// copy-constructed from element `index`; a nested call's command is deep-copied into a new SSCCmd.
+SSCCmd* __fastcall ScriptCmdCopyAt(const MfcArray<SSCCmd>* self, void* edx, SSCCmd* out, int index);     // 004CE750
+ScriptSubCall* __fastcall ScriptSubCallCopyAt(const MfcArray<ScriptSubCall>* self, void* edx,
+                                              ScriptSubCall* out, int index);                          // 004CCAA0
