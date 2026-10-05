@@ -886,3 +886,16 @@ void __fastcall ScriptGroupArrayDestruct(MfcArray<ScriptGroup>* groups);
 // 004BCAE0. ScriptRun destructor: its variables as ScriptVarsDestruct frees them (the float names
 // through the out-of-line CString array destructor 004C26A0).
 void __fastcall ScriptRunDestruct(ScriptRun* run);
+
+// ---- Purge and zone reset (script_cleanup.cpp) ---------------------------------------------------
+// __thiscall on the script; callers keep going through the original addresses.
+// 004BED90 (after every removal of a world object). The runs', instances' and global variables
+// drop deleted objects (ScriptVars::RemoveDeletedObjects, inlined by the original for all but the
+// runs), then the temporaries are freed (004BEC80).
+void __fastcall ScriptPurgeDeletedObjects(CScript* script);
+// 004BE490. Every instance (RemoveHead 004C7A10) and run (004C82B0) removed and destroyed.
+void __fastcall ScriptDropInstancesAndRuns(CScript* script);
+// 004BEB00 (EnterZone 0057A060). Instances and runs dropped, For depth 0, temporaries freed, the
+// point lights' objects dropped and their slots zeroed, the FX / particle / lightning lists emptied
+// (their effects dropped), global values reset (004B35E0), each WorldScript block run again (004BCC60).
+void __fastcall ScriptResetZone(CScript* script);

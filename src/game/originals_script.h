@@ -69,3 +69,6 @@ __declspec(naked) inline void* __fastcall TempGroupsRemoveTailOriginal(void* /*l
     EI_ORIGINAL(0x004C8AF0)
 __declspec(naked) inline void* __fastcall TempObjectsRemoveTailOriginal(void* /*list*/, void*, void* /*out*/)
     EI_ORIGINAL(0x004C9100)
+// 004BE490 (rewritten as ScriptDropInstancesAndRuns, script_cleanup.cpp; plain RET): the zone reset calls it
+// through its address so the verify wrapper sees the call.
+__declspec(naked) inline void __fastcall ScriptDropInstancesAndRunsOriginal(CScript* /*script*/) EI_ORIGINAL(0x004BE490)

@@ -1104,3 +1104,27 @@ The groups' references in 004BCA20 are reset with 004B5AE0 (the copy of ScriptOb
 004BCAE0 destroys the run's variables as ScriptVarsDestruct (004BE090) does, except that the group
 elements go through DestructElements<ScriptGroup> (004CC980) and the float names through the
 out-of-line CString array destructor (004C26A0), as the original calls them.
+
+## Purge and zone reset (004BED90, 004BE490, 004BEB00)
+
+Code: `src/game/script_cleanup.cpp`; verify: `tests/verify/verify_script_cleanup.cpp`. Not library,
+dead or Rebirth-patched. The callers (the world's RemoveObject 005935C0 for both scripts, Rebirth-
+patched; EnterZone 0057A060) go through the original addresses (`CommandQueuePurge` in
+world_server.cpp, `ScriptsResetZone` in world_game.cpp).
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BED90 | 616 | ScriptPurgeDeletedObjects | ours only: every run's, instance's and the global variable set loses exactly its deleted objects (deleted object variables become null; groups keep their other members in order); outside For loops the temporaries are down to one entry each | every removal of a world object: world_load, unit_create, combat, script_exec |
+| 004BE490 | 582 | ScriptDropInstancesAndRuns | ours only: both lists empty | the zone reset (called through its address) |
+| 004BEB00 | 370 | ScriptResetZone | ours only: no instances; one run per WorldScript block, at its start (index 0, ticks 0, no kill flag); For depth 0; point light slots zero; FX / particle / lightning lists empty; global floats 0, strings empty, objects null, groups empty | every zone entry: newgame (zone1) and all zone scenarios |
+
+The purge is ScriptVars::RemoveDeletedObjects (004B3940) for each run, instance and the globals,
+then FreeTemporaries; the original calls 004B2570 / 004B3110 for the runs and inlines both for the
+instances and the globals (the same release-if-deleted and remove-null-slots loop, DestructElements
+of one reference and a memmove). The instance and run destruction in 004BE490 calls the element
+array destructors one by one (004C26A0, 004C3B20, the named-value destructors 004BC8A0 / 004BC770 /
+004BC6C0 rewritten above, 004C5AF0, the two CStrings; for runs the object references inline). The
+zone reset releases each point light's object without clearing its slot and then zeroes the array.
+
+Forwarders now shared in originals_library.h: 004C3B20, 004C5AF0, 004C7A10, 004C82B0 (script_reset.cpp
+used its own for the last two); originals_script.h: 004BE490.
