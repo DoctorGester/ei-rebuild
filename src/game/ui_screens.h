@@ -226,6 +226,12 @@ public:
     bool CanEquip(char* item, int mode);
 
     void OnLButtonUp(int flags, int x, int y);   // 006177D0
+    // 00617050 (input slot 2; ui_hero_screen_click.cpp). Nothing while a hero is being renamed;
+    // after the base handler, by mode: the hero list (9: back to the main menu, continue, the
+    // rotate arrows, new hero, rename, delete (a question), the hero's inventory (the camp screen
+    // with fromHeroScreen_), list rows), the new hero (10: back, create, the arrows, defaults,
+    // voice rows) and its statistics page (11: back, next, take the equipment back).
+    void OnLButtonDown(int flags, int x, int y);
 
     // Called through the vtable, as the original does.
     char* Hero();                       // slot 51 (+0xCC)
@@ -235,9 +241,7 @@ public:
     void DrawVoices();                  // 00616560
 
     CUiWindow window;
-    std::uint8_t unknown_148[0x150 - 0x148];
-    int rotating_;              // +0x150 0, 1 or 2 while a rotate arrow is held
-    std::uint8_t unknown_154[0x190 - 0x154];
+    std::uint8_t unknown_148[0x190 - 0x148];
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     void* heroScroll_;          // +0x198 scroll bar of the hero list
@@ -246,10 +250,17 @@ public:
     char* weapon_;              // +0x1A4
     char* armor_;               // +0x1A8
     char* spellContainer_;      // +0x1AC
-    std::uint8_t unknown_1B0[4];
+    void* statsPanel_;          // +0x1B0 (CHeroStatsPanel; 006232D0 sets its hero)
     void* weaponPanel_;         // +0x1B4 shows the weapon and the armour
     void* spellPanel_;          // +0x1B8
-    std::uint8_t unknown_1BC[0x1F0 - 0x1BC];
+    std::uint8_t unknown_1BC[0x1C4 - 0x1BC];
+    void* tradePanel_;          // +0x1C4 (CTradePanel; 006255A0)
+    void** defaults_;           // +0x1C8 its first entry goes to slot 52 for a new hero
+    std::uint8_t unknown_1CC[0x1E0 - 0x1CC];
+    float turn_;                // +0x1E0 the preview's turn
+    int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
+    std::uint8_t* renameEdit_;  // +0x1E8 the hero list's rename edit window (+0x179: editing)
+    void* nameEdit_;            // +0x1EC the new hero's name edit window (0065C290 sets its text)
     void* voiceScroll_;         // +0x1F0
     std::uint8_t unknown_1F4[0x210 - 0x1F4];
     char** voices_;             // +0x210 STLport vector of {CString file, CString name} (8 bytes)
@@ -257,7 +268,9 @@ public:
     int voiceIndex_;            // +0x218
     int voiceSound_;            // +0x21C
 };
-static_assert(offsetof(CMpHeroScreen, rotating_) == 0x150);
+static_assert(offsetof(CMpHeroScreen, rotating_) == 0x1E4);
+static_assert(offsetof(CMpHeroScreen, renameEdit_) == 0x1E8);
+static_assert(offsetof(CMpHeroScreen, tradePanel_) == 0x1C4);
 static_assert(offsetof(CMpHeroScreen, mode_) == 0x190);
 static_assert(offsetof(CMpHeroScreen, heroTop_) == 0x19C);
 static_assert(offsetof(CMpHeroScreen, weapon_) == 0x1A4);

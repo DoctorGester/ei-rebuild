@@ -1285,3 +1285,125 @@ code that mainly locks, blits or draws stays original: 005E4EB0 the cursor image
   sort, 0060C390 / 0060C510 heap adjust, 0060A660 vector insert overflow); the base / briefing
   screen's destructor body 005F6BA0 (briefing screen skipped); rendering code (005E4EB0 the cursor
   image, 005E6D90 the sprite draw, ...).
+
+## Ninth pass (ticket I1)
+
+Files: `src/game/ui_trade_panel.cpp`, `src/game/ui_battle_update.cpp`, `src/game/ui_hero_screen_click.cpp`;
+wrappers `tests/verify/verify_ui_trade_panel.cpp`, `verify_ui_battle_update.cpp`,
+`verify_ui_hero_screen_click.cpp`; scenario `tests/scenarios/ui_hero_screen.txt`. Shared headers:
+`ui_camp.h` (CTradePanel and its rows; CBattleScreenSetup::Update, the selection box +0x1CC and
+the client's party ids +0x204 / +0x214 named), `ui.h` (CHudQuickItems::SetUnit and its entry array
++0x158 named), `ui_screens.h` (CMpHeroScreen::OnLButtonDown and the fields +0x1B0..+0x1EC).
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 00625880 | 2059 | `CTradePanel::BuildLists` | side by side: the four lists (texts, prices, levels, learnable flag), experience, scroll positions | ui_camp, ui_describe (the camp's ShowHero) |
+| 00638280 | 1923 | `CBattleScreenSetup::Update` (slot 24, every frame) | ours: quest sound consumed, a cleared zone-exit flag opened a window, single player party untouched, selection box marks = the world's box query | every scenario with a game |
+| 006261A0 | 1913 | `CTradePanel::DrawLists` | side by side: surface pixels, scene object count, the price sprites' quads and texture coordinates | ui_camp, ui_describe |
+| 00617050 | 1855 | `CMpHeroScreen::OnLButtonDown` (input slot 2) | ours: per region (arrows: rotation and capture; mode changes; the inventory's camp on top; voice row; equipment taken back) | ui_screens (arrows), ui_hero_screen |
+| 0063D2B0 | 1809 | `CHudQuickItems::SetUnit` (RET 4) | side by side: fields, entries, region items, each sprite's position, rotation, texture corner and colour | every scenario with a game (selection refresh 00637DC0) |
+
+5 functions, about 9.4 KB. None is Rebirth-patched; Rebirth-patched callees (0063CAE0, 005E6FA0,
+005E70E0, 005FDE20, 00615D30) are called through their original addresses.
+
+### Trade panel (CTradePanel, vtable 007417A8; the camp's +0x1F4 and the hero screen's +0x1C4)
+
+- Rows (0x18 bytes, STLport vectors): name, record key, next level's key (CStrings), price, level,
+  learnable flag. +0x15C learnable perks (scroll +0x154, 23 rows from (215, 35)), +0x168 held perks
+  (scroll +0x158, 10 rows from (15, 230)), +0x174 the six schools (Melee .. Astral, names through the
+  pointer table 00793BD4, levels at stats +0x6CB), +0x180 science (+0x6C8), +0x18C the experience
+  (stats +0x700 + +4 - +8, truncated), +0x1A4 the titles (CStringArray).
+- BuildLists: the owner's slot 51 hero, its statistics reset (00524CD0(0)) and refreshed (owner slot
+  47); the vectors erased (rows destroyed with 0062A7C0(0)); texts from "perk <name>" (004DEFC0 /
+  004DF8D0), else the name. Held perks: a level byte per group of three skill records (007AF268,
+  0x44 bytes; stats +0x6D3 + group / 3), shown as "%s (%s%d)" with "perk_level" from level 2, the
+  next record's key and price below level 3. Learnable: every third record that 005260A0 allows.
+  The perk text key is the record's +4 name without trailing "123", plus "0". Then 00626D70
+  clamps the scroll positions and draws, and DrawLists runs (through its address).
+- DrawLists: GetDC, clear, the scene objects past the first four dropped, the titles (white, centred),
+  the schools (the third one's row is left empty; science is drawn at its height), prices formatted
+  by 00626090 in grey (0x828282) when over the experience, else 0xA7D7E4, a coin sprite (texels
+  0x7C,0x8A-0xA4,0x99) after each price.
+
+### Battle screen update (00638280)
+
+- The first selected party unit (flag 0x10) is asked through its slot 55; when it answers and is the
+  only one selected, the weapon bar, quick items, spells and actions get no unit and the unit panel
+  shows it (+0x14C unit, +0x15C / +0x154 from the prototype's +0x20 / +0x24, 0063B920).
+- A network client (0057F440) collects the session's players (+0x25D8 list): the ids of those
+  with a unit (unit id) and of the others (player id), each sorted (STLport introsort 0060B1E0 and
+  insertion sort 0064B750); when they differ from +0x204 (006381E0) the party array is rebuilt with
+  the camera's player (session +0x25F0) first and in control (00566030), the portraits rebuilt,
+  the camera retargeted (0040D420) and the selection refreshed (00637DC0).
+- Then the children's update, the next queued message (005F8A80), the "leave_zone" box when the
+  saved exit (+0x188, flag +0x18C) can be taken (00578A20 over the player's unit records), the
+  selection box (+0x1C1 / +0x1CC: units inside (005656A0) get flag 0x100 and their figure's slot 26
+  with 1, the others lose it with 0), the quest sound (+0x1FC: quest, subcomplete, complete).
+
+### Quick items (0063D2B0)
+
+- Clears the sprites, the eight regions' tooltips (005FC730(0, 1, 0)) and region items, the entry
+  array (0064B060(0, -1)); for each of the unit's four quick items a sprite (0063CAE0; picture from
+  the item's slot 19, model from slot 20), an entry {1, item +0xC, item}, the tooltip text 0063CEE0
+  (tip id 0x2A + slot), the sprite at (695 - 50 slot, 575) depth 20 scaled 0.55; for the local
+  player's own unit up to four 0x3009 items of the player (+0xE8 list walked through +4), entries
+  {0, ...}, tooltips from 004E0150, at (695 - 50 (slot - 4), 525) scaled 0.85. 695 is read from
+  007428AC. The original inlines the entry array's SetSize after each sprite; the rewrite calls the
+  out-of-line copy 0064B060 (same growth, allocation and zeroing).
+
+### Hero screen left button (00617050)
+
+- The rotation state is window +0x1E4 (the turn +0x1E0), not +0x150: CMpHeroScreen's rotating_ was
+  declared at +0x150, so the earlier rewrite of the button-up handler (006177D0) cleared +0x150 and
+  left the real state set (the preview kept turning after the arrow was released, and +0x150 was
+  overwritten). Fixed with this pass (the field moved; OnLButtonUp and its wrapper are unchanged in
+  code).
+- +0x1E8 is the hero list's rename edit (its +0x179 set: the handler does nothing), +0x1EC the new
+  hero's name edit, +0x1B0 the statistics panel, +0x1C4 a trade panel, +0x1C8 an array whose first
+  entry the screen's slot 52 takes for a new hero.
+- Mode 9: 0 back to the main menu ("reserved_04" to 005F75B0, 0057ED00, pending value 0), 1 continue
+  (006183B0), 2/3 the arrows, 5 a new hero (slot 52, panels cleared, turn 0, mode 10), 6 rename
+  (00618060), 7 delete (the "lmp_deletepers" question), 8 the hero's inventory: the camp screen built
+  inline (the constructor 005F6240's fields, fromHeroScreen_ 1; the texture cache's header node comes
+  from 00619750 / 00619770 instead of 005FA630; the trees' compare bytes are the low byte of the
+  handler's first argument, whose stack slot is also the model cache's allocator), rows 9-18 show a
+  hero. Mode 10: 0 back (mode 9), 1 create (006186F0), 2/3 arrows, 4 defaults (slot 52, attributes
+  25, +0x72C 0.7), rows 9-19 the voice (the hero's +0x18 takes its file; 00619150, 00616560). Mode 11:
+  0 back to mode 10, 1 next (00617A50), 4 the hero's first weapon, armour and spell container back
+  into the panels.
+
+## Forwarders added (standalone build must replace)
+
+Trade panel: 00524CD0, 005260A0, 00528050, 00527FF0 (unit statistics), 00578E20 / 004DEFC0 /
+004DF8D0 / 004E0020 (texts), row copy / destroy / insert 0062A310 / 0062A7C0 / 00629E60, scroll clamp
+00626D70, price text 00626090, surface 005FDC00 / 005FE2F0 / 005FDE20 (Rebirth) / 005FDC60.
+Quick items: 0063CAE0 (Rebirth), entries SetSize 0064B060, 00578BC0, 00665440, 004E0150, 005E7060,
+005E6FA0 (Rebirth). Battle update: panel units 0063C180 / 0063D2B0 / 0063E820 / 0063F800, 00530930,
+0063B920, 0057F440, world 0055FB00 / 00566030 / 005656A0, vector<int> 005F8F10 / 0064B620 /
+004E2FA0 / 0060B1E0 / 0064B750 / 0064AF30 / 004E2A20 / 005F9880 / 006381E0, party array 005EBDB0 /
+0060AD50 / 0060AEC0, memmove 006E79A0, portraits 006407E0, camera 0040D420, 00637DC0, 006010E0,
+005F8A80, 005F7350, 00634650, 00578BA0, 00578A20, 0059D2E0, lists 00411850 / 00404A70 / 004049D0 /
+00404A40 / 00404D70. Hero screen: 00615D30 (Rebirth), 006186F0, 00617A50, 006183B0, 00618060,
+00619150, 006232D0, 006255A0, 006229E0 / 00622A30 / 00622BC0, 0065C290 / 0065C2D0, 005FD760,
+006002A0, 005F75B0, 0057ED00, camp pieces 00600B20 / 005FA420 / 005FA400 / 00619750 / 00619770 /
+005FA610 / 006FE925.
+
+## Original quirks kept
+
+- BuildLists pushes copies of a row whose price, level and flag are uninitialised stack bytes; all
+  are overwritten except the flag of the school, science and held-perk rows (never read there).
+  Ours are 0. A held perk at the last record reads the next record's name through null (as the
+  original).
+- DrawLists leaves the third school's row empty.
+- The battle update passes the portraits a dword whose low byte only is set (ours 0 / 1).
+- The hero screen's camp keeps the low byte of the click's button flags as its trees' compare
+  objects (empty, never read).
+
+## Skipped in this pass
+
+005E2A30 (2045, the chat window's word wrap: reached only from the network chat message 0041E5D0,
+so multiplayer only, no scenario); the briefing screen (00604C50, 00604130, 006064E0, 006024B0,
+006034A0, 00608450, 00605DE0 ...); the renderer's interface draws with old-device calls (00628F80,
+00622420, 00627C90; 005E18E0, 005E5690); 00612CF0 (the camp's debug fill, slot 39, no caller found);
+006284A0 (the spell maker page's draw, slot 20; constructor pages only); the exchange window and
+lobby screens (0062C250, 0062C9C0, 00618A10 ...; network session).
