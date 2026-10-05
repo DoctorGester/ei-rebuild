@@ -34,6 +34,8 @@ globals.
   shifted right by 4 as unsigned, so negatives land outside), each an STLport list of counted object pointers; the grid at 007AF6D8 (moved by 0067BEF0 / 0067CEF0)
   holds hundreds of entries per cell near effects. Platforms (+0x1D4 `PlatformSet`, 0x4C-byte records): `SurfaceHeight` projects the point onto each plane along z and
   keeps the highest z (margin 0.5), `Contains` tests (x, y) (margin 0.1), `AddBox` keeps only faces with normal z >= 0.8.
+- Time: the day is 24 hours; time of day = fmod(tick * secondsPerTick + base, 24); a speed s gives secondsPerTick = 1 / s / 15
+  (0: stopped, also for NaN; negative: the setting 0079BE5C). Wind: direction +0x24, strength +0x30 (ChangeWind clamps it).
 
 ## Server update path
 
@@ -248,8 +250,6 @@ original alone.
 
 ## Original bugs and oddities kept
 
-- Time: the day is 24 hours; time of day = fmod(tick * secondsPerTick + base, 24); a speed s gives secondsPerTick = 1 / s / 15
-  (0: stopped, also for NaN; negative: the setting 0079BE5C). Wind: direction +0x24, strength +0x30 (ChangeWind clamps it).
 - `CountLivingMercs` returns living - 1 (0 when the player is missing, so -1 with no living units). `RemoveTimedObject` looks the id up again after Release;
   `Tick` reads a timed object's `next` after its slot 6 and Release ran; the missile walk saves `next` before Update. `NearestVisibleUnit`, `LocalPlayer*`
   do not null-check the session / view; `DepthLess` asks each object's IsDead up to three times.
