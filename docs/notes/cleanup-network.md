@@ -159,3 +159,73 @@ goes through the vtable; no direct call to a CMemoryStream slot).
 - The forwarders to the STLport list / vector / string instantiations the handlers call (library
   layer) and the timed-entry list nodes ({delay, object}) still use raw node offsets.
 - The links, GameBuffer and the session pump (ticket C2f).
+
+## Ticket C2f: the links, the session pump, GameBuffer (2026-10-05)
+
+Behaviour unchanged; every rewritten address keeps its hook and its verify wrapper (the same checks;
+the wrappers of slots call the qualified member, the others the member).
+
+### Declarations
+
+- `net_link.h`, all `__declspec(novtable)` with the game's slots in vtable order (the slots that are
+  not rewritten are declared only, so a devirtualised call would not link):
+  - `FileStream : CStream` (0073C8D8): Read / Write / Seek / Size / Position / Clear overrides,
+    `Construct` 00478470, `CopyConstruct` 00479B10, `Destruct` 00477FB0, `DeletingDestruct`
+    00477F90; the slot 3 and slot 6 bodies return the CFile's seek result, so they are the
+    non-virtual `SeekFrom` / `Restart` (registered directly; the overrides call them). `Open` /
+    `Close` (the CFile's virtual Open / Close, inlined by every user) replace four copies.
+    Fields from CStream (`reading_`, `ok_`, `version_`, was `limit`); `file_` stays raw storage.
+  - `NetLink : CRefObject` (0073C8A4): slots 4-12 (Connected, Alive, HasIncoming, IncomingCount
+    00478000, Send 00478100, Receive 00478110, Pump 00478010, Disconnect, Unknown12 00478020);
+    `Construct` 00477E60 (was net_session_pump.cpp's `RecordConstruct`, and the inlined
+    `LinkConstructInline` / `RefValueConstructBase` + `FileStreamConstruct` sequences),
+    `ConstructCopyOf` (the clones' shared head), `Destruct`, `DeletingDestruct`, `OpenRecording`,
+    `CloseRecording`, `Record`.
+  - `LoopbackLink` (0073C8F8, `peer_` typed), `ReplayLink` (0073C92C), `FramedLink` (0073C9C8, adds
+    slot 13 `SendBytes`), `DriverLink` (0073C990, `player_` a `net::Connection*`; `Construct`
+    0047A030 moved here from net_session_pump.cpp). The free `XxxSlot(self, void*, ...)` functions
+    became members; static `LoopbackLink::CreatePair` 004782E0 and `ReplayLink::Create` 00478960.
+  - Slots 4 / 5 / 6 / 13 are declared `bool` (the replay's and the driver's own bodies set only AL);
+    the hooks of bodies that returned an int (loopback Connected / Alive, replay Alive /
+    HasIncoming, framed HasIncoming, driver Connected / SendBytes) still return 0 / 1 as an int.
+  - `DriverSession` (+8 / +0xC lists of `DriverNode`) replaces netsession::Session / ListNode;
+    `Pump` 00479E30 and `Start` 0047A080 are members (EI_REPLACE_METHOD). The pump reads the
+    player's `Connection::reliableIn_` (was `+0x1148` and raw offsets) through `BufferUpdateHigh`.
+- `net_coder.h` `GameBuffer`: a `__declspec(novtable)` class with slots 0-6 (ReserveRead,
+  ReserveWrite, Commit, ReadMore, WriteMore, the deleting destructor at slot 5, Seek), all declared
+  only; `InitView` replaces the two aggregate-built views (net_delta.cpp, world_savefile.cpp).
+  Copy construction and assignment are byte copies (the vtable included), as they were for the
+  plain struct, so the verify wrappers' copies are unchanged.
+
+### VCalls replaced
+
+The links' own slots and the streams' slots (net_link.cpp 56 -> 6, net_session_pump.cpp 4 -> 0),
+world_game.cpp's CopyFrom, ui_saveload.cpp's stream Read / Write, and GameBuffer's slots 2, 3, 4,
+6 in net_coder.cpp, net_link.cpp, net_game_info.cpp, net_lobby.cpp, net_server_list.cpp,
+net_session_tick.cpp, net_socket_driver.cpp, net_client_commands.cpp. What is left in these files
+are the MFC CFile slots (library layer). Checked in the release objects: no C++ vtable of these
+classes is emitted, and no stream or link slot is called directly (the queue's element destructor
+is `call [vtbl]` with 0, as before). net_lobby.cpp's SendInfo calls slot 4 of its local buffer
+through a pointer (a call on the local itself was devirtualised and did not link).
+
+### Other files (mechanical)
+
+- world_game.cpp: its own FileStream struct is `netlink::FileStream`; LocalFileStream uses
+  `Construct` / `Destruct` / `Open` / `Close` (its destructor now also stores CStream's vtable
+  into the dying local, as 00477FB0 does; not observable).
+- ui_saveload.cpp: LocalFileStream likewise (identical stores).
+- CMemoryStream's Resize / SetSize forwarders in net_link.cpp are the shared members (same
+  addresses).
+
+### Behaviour notes
+
+- The resets (slot 2) return 0 (the hooks returned void before; nobody reads it).
+- The resets' `if (!this)` (the inlined placement new's null test) is left out.
+
+### Left
+
+- The MFC CFile slots (FileStream, world_savefile.cpp's file stream calls) and world_savefile.cpp's
+  CStream VCalls on `void*` streams (world subsystem).
+- GameBuffer's own slot bodies (the view's Seek / destructors in net_coder.cpp) are still free
+  functions; the growing buffer's forwarders (004DA7F0 ...) are declared per file.
+- The world object the pump reads players from (+0x28) and the manager 0079B5DC.

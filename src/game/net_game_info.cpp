@@ -18,10 +18,6 @@ __declspec(naked) void __fastcall BufferWriteString(GameBuffer* /*buffer*/, void
 __declspec(naked) int __fastcall BufferReadString(GameBuffer* /*buffer*/, void*, StringRep* /*s*/, int /*maxLength*/) EI_ORIGINAL(0x004DA200)
 __declspec(naked) unsigned __fastcall BufferReadPastEnd(GameBuffer* /*buffer*/, void*, void* /*to*/, unsigned /*size*/) EI_ORIGINAL(0x004DA170)
 
-// The buffer's slots for data that does not fit: 3 reads `size` more bytes, 4 writes them.
-constexpr int kBufferReadMore = 3;
-constexpr int kBufferWriteMore = 4;
-
 // A value written the way the record writer inlines it: in place (marking the buffer written)
 // when it fits before `end`, otherwise through slot 4.
 void Put(GameBuffer* buffer, const void* value, unsigned size) {
@@ -30,7 +26,7 @@ void Put(GameBuffer* buffer, const void* value, unsigned size) {
         std::memcpy(buffer->cur, value, size);
         buffer->cur += size;
     } else {
-        ei::VCall<int>(buffer, kBufferWriteMore, value, size);
+        buffer->WriteMore(value, size);
     }
 }
 
@@ -56,7 +52,7 @@ EI_REPLACE(0x00401310, BufferCopyOut);
 unsigned __fastcall BufferRead(GameBuffer* buffer, void*, void* to, unsigned size) {
     std::uint8_t* next = buffer->cur + size;
     if (next > buffer->high) return BufferReadPastEnd(buffer, nullptr, to, size);
-    if (next > buffer->end) return static_cast<unsigned>(ei::VCall<int>(buffer, kBufferReadMore, to, size));
+    if (next > buffer->end) return static_cast<unsigned>(buffer->ReadMore(to, size));
     std::memcpy(to, buffer->cur, size);
     buffer->cur += size;
     return size;

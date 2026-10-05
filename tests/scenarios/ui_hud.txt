@@ -113,6 +113,21 @@ click 395 260
 wait 1000
 click 175 192
 wait 300
+# Keys (00650E40): rows down / up, the next and previous group, a row's bar left / right.
+key down
+wait 200
+key down
+wait 200
+key up
+wait 200
+key pgdn
+wait 300
+key pgup
+wait 300
+key right
+wait 200
+key left
+wait 200
 click 550 550
 wait 800
 # Load window: the first list row (selects a save when harness_saves has one), then Cancel.
@@ -120,11 +135,36 @@ click 395 187
 wait 1000
 click 240 120
 wait 300
+# Keys (006548A0, 00655430): the selection down and up a row and a page.
+key down
+wait 300
+key up
+wait 300
+key pgdn
+wait 300
+key pgup
+wait 300
 click 600 550
 wait 800
-# Save window: closed with Esc.
+# Save window: the new save's name edited with the keys (006548A0), then closed with Esc.
 click 395 120
 wait 1000
+key end
+wait 200
+key left
+wait 200
+key backspace
+wait 200
+key home
+wait 200
+key delete
+wait 200
+key right
+wait 200
+key down
+wait 300
+key up
+wait 300
 key esc
 wait 800
 click 392 333

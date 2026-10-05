@@ -79,14 +79,15 @@ void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderS
     GrowingBufferConstruct(&result);
     std::uint8_t* data = self->data_;
     std::uint8_t* last = data + self->Size();
-    GameBuffer view{reinterpret_cast<void*>(kBufferViewVtable), data, data, last, last, 0, 2};
+    GameBuffer view;
+    view.InitView(data, last);
     (coder->*code)(&view, &result);
     out->Resize(BufferLength(result));
     out->Seek(0);
     std::uint32_t length = BufferLength(result);
     out->Write(result.begin, length);
     out->Seek(0);
-    view.vtable = reinterpret_cast<void*>(kBufferViewBaseVtable);
+    ei::SetVtable(&view, kBufferViewBaseVtable);
     GrowingBufferDestruct(&result);
 }
 } // namespace

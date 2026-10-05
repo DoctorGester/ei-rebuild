@@ -1494,7 +1494,89 @@ scenario); 00611220 (1312, the camp's deal button; not clicked by any scenario);
 the main menu's setup: movies, system parameters); 00632D70 (1200, the main menu's click, which
 inlines five screens' constructors). Earlier skips (I1) unchanged.
 
-## Eleventh pass (ticket I3)
+## Eleventh pass (ticket H1): the largest live logic in 00640000-00680000
+
+Code: `src/game/ui_menu_keys.cpp`, `src/game/ui_scroll_text.cpp`; verify:
+`tests/verify/verify_ui_menu_keys.cpp`; scenario steps added to `tests/scenarios/ui_hud.txt` (keys in
+the Options, Load and Save windows; the objectives window it opens tokenises its quest log).
+Shared headers (additive): `ui.h` (UiSpin +0x08 `bar_`, COptionsWindow `keyOfScan_` / `group_` /
+`bindingsBegin_` / `bindingsEnd_` named inside unknown bytes, OptionBinding, UiKeyName, the token
+structs and CUiScrollText), `console.h` (`Str::Left`, 006FDAE9).
+
+| Address | Name | Verification |
+|---|---|---|
+| 006548A0 | CSaveLoadWindow::OnKeyDown (input side) | ours only: Esc leaves pending 0x100001; Up / Down / PgUp / PgDn the clamped selection; Enter handled; name keys in a save window: caret within the name (Home 0, End its length) or nothing changed |
+| 00655430 | CSaveLoadWindow::ShowSelection | ours only: selection clamped to the list, its title taken as the name |
+| 00657820 | CSaveLoadWindow::IsReservedSave | pure, side by side (5 stolen bytes) |
+| 00650E40 | COptionsWindow::OnKeyDown (input side) | ours only: Esc leaves pending 0x110001; Up / Down land on the nearest row with a binding or spin control; Enter on a binding row waits for the key; while waiting the event is handled and Esc's scan code (1) stops it |
+| 0065D4B0 | CUiScrollText::Tokenize | original first on a stand-in (interface pointer and a copy of the token array), ours on the window; the appended tokens compared (vtable, type; format: line break, font, colour; word: text, width), then the stand-in's tokens freed |
+
+### Key handlers
+
+Both run only when the window is not sliding in, pass the key to the base handler (00601820)
+first, and set the input side's handled flag (+8) for the keys they use.
+
+- Save/load: Enter confirms (00655290), Esc plays the cancel sound and closes (0x100001); Up /
+  Down / PgUp / PgDn move the selection by 1 / 16 and call 00655430 (clamp to the list, scroll it
+  into the 16 visible rows, the scroll bar's slot 25 then its position read back, the title taken
+  as the name, RefreshList 006567A0 (Rebirth), ShowPicture). When nothing handled the key and it is
+  a save window, Backspace / Delete / Home / End / Left / Right edit the name (+0x188, caret
+  +0x190): the first edit of an entry that is not "saveq" / "savea" / "saveb" sets +0x18C and
+  starts from an empty name (Backspace, Delete) or the entry's title (the others, caret at its
+  end); then RefreshList, which clamps the caret to the name.
+- Options: while a binding row waits for its key (+0x3F4) the next key's scan code (flags & 0x1FF)
+  is looked up in the key name table 007857B0 (88 entries of 0x48 bytes: scan code, name at +8;
+  the entry is kept in +0x414); Esc's scan code gives up, an unknown one plays the cancel sound
+  and keeps waiting. The key code bound to that scan code (`keyOfScan_`, a signed byte per scan
+  code at +0x164) is searched in the binding vector (+0x36C, 0x18-byte records whose first field
+  points at their key code): bound to another row, a "key_already_mapped" box asks (its text,
+  +0x168 of the box, from "key_already_mapped_msg" formatted with the key's name and the other
+  record's +0x10); otherwise CommitBinding (00652000) and RefreshRows. Otherwise Esc restores the
+  volumes and display settings and closes (0x110001), Enter starts a binding or steps a spin row
+  (GetValue + 1), PgUp / PgDn switch the group (+0x368) through ShowGroup, Up / Down move to the
+  nearest row with a binding or spin control, Left / Right move the row's scroll bar (UiSpin
+  +0x08) by one through its slot 25.
+
+### Scrolling text tokens (0065D4B0)
+
+The message log and the quest log (CUiScrollText, a CUiScrollbar subclass; constructor 0065CC00)
+hand every text they add (0065CF30, 0065CFE0, 0065CC77) to Tokenize, which appends to the CArray at
++0x19C: for every run of "\n", BEL 'C' r g b (colour) and BEL 'F' digit (font) tokens one format
+token (0x14 bytes, vtable 00742F28, type 1: line break, font, colour; a font change is a line
+break unless the array was empty), and a word token for each other token (0x10 bytes, vtable
+00742F20, type 2: the CString and its width in the current font from 005F8340, Rebirth-patched and
+called through its address). Tokens come from 0065D970 (spaces and tabs skipped; not rewritten).
+The original appends a format token with 0065E010 (CArray::SetSize) and inlines the same template
+code for a word; ours calls 0065E010 for both.
+
+### Forwarders added
+
+00601820 (base key handler, existing UiInput::BaseKeyDown), 00655290, 006567A0 (Rebirth),
+00651350, 00651D70, 00652000 (existing CSaveLoadWindow / COptionsWindow forwarders), 00634650
+(message box), 005F7350 (open window), 004E0020 (texts), 006FDAE9 / 006FD9B4 / 00700B9F
+(CString Left / Mid / operator+), 0065B090 / 0065BEB0 / 0065BEE0 (existing), 0065D970 (next
+token), 0065E010 (token array SetSize), 005F8340 (text extent, Rebirth), 00655430 (through its
+address, so the verify wrapper runs).
+
+### Original quirks kept
+
+- Save/load: Left can take the caret below 0 and Right past the name; RefreshList clamps it.
+- Options: Left / Right do not set the handled flag; a key missing from the key name table keeps
+  the binding waiting; a failed allocation of the message box (or of a token in Tokenize) is
+  written through as a null pointer.
+- Tokenize: the format token's constructor colour (0x1C8DC) and font are overwritten at once.
+
+### Candidates in 00640000-00680000 left, and why
+
+006407E0 / 00640060 (portraits: EI_Plugin patches them at runtime, Fixes and NPlayers, see
+rebirth.md), 00667EC0 (multiplayer object creation), 00647B70 / 006477E0 (unit panel: mostly text
+draws through 005FDE20), 0067CEF0 (CEffectMoshka's per-frame flight: float maths, no scenario
+creates the birds), 0065F9B0 (CParty load: only when a save is loaded), 00651940 / 0065B8B0 /
+00649AF0 (window builders and layouts), 0065C610 (the edit control's keys: no scenario types into
+one), 006570E0 (the autosave: the picture from a window surface, renderer.md). Not looked at:
+0065D150, 0065C930 and the rest below 800 bytes.
+
+## Twelfth pass (ticket I3)
 
 Files: `src/game/ui_camp.cpp` (PutOnFromStrip, MoveItem), `src/game/ui_layouts.cpp` (the main
 menu's click, the message box's Create); wrappers `tests/verify/verify_ui_camp.cpp`,

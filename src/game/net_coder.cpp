@@ -11,10 +11,6 @@
 
 namespace {
 
-// GameBuffer slots.
-constexpr int kSlotCommit = 2;   // after a cursor stored its position in `cur` (empty in both classes)
-constexpr int kSlotSeek = 6;
-
 // Tables filled at startup by 0042FAE0 (code bits and bit counts, indexed by value). Read from the
 // game's memory.
 const std::uint32_t* LengthCodes() { return reinterpret_cast<const std::uint32_t*>(0x0079B844); }
@@ -110,7 +106,7 @@ void BufferCursor::FlushBits() {
 std::uint32_t BufferCursor::EndWrite() {
     FlushBits();
     sink->cur = p;
-    std::uint32_t result = ei::VCall<std::uint32_t>(sink, kSlotCommit);
+    std::uint32_t result = sink->Commit();
     sink = nullptr;
     return result;
 }
@@ -120,7 +116,7 @@ std::uint32_t BufferCursor::End() {
     FlushBits();
     if (!sink) return reinterpret_cast<std::uint32_t>(this);   // EAX keeps `this`
     sink->cur = p;
-    return ei::VCall<std::uint32_t>(sink, kSlotCommit);
+    return sink->Commit();
 }
 EI_REPLACE_METHOD(0x0041D930, BufferCursor::End);
 
@@ -129,7 +125,7 @@ std::uint32_t __fastcall CoderEndOutput(CoderState* coder) {
     out.FlushBits();
     if (!out.sink) return reinterpret_cast<std::uint32_t>(coder);
     out.sink->cur = out.p;
-    return ei::VCall<std::uint32_t>(out.sink, kSlotCommit);
+    return out.sink->Commit();
 }
 EI_REPLACE(0x0041D960, CoderEndOutput);
 
@@ -293,7 +289,7 @@ void CoderState::Compress(GameBuffer* in, GameBuffer* outBuffer) {
     reader.bits = 0;
     reader.bytePtr = nullptr;
     reader.sink = nullptr;
-    ei::VCall<void>(in, kSlotSeek, 0);
+    in->Seek(0);
     if (in->cur > in->high) in->high = in->cur;
     std::int32_t size = static_cast<std::int32_t>(
         static_cast<std::uint32_t>(in->base) - reinterpret_cast<std::uint32_t>(in->begin) +
@@ -433,7 +429,7 @@ EI_REPLACE_METHOD(0x00430960, CoderState::Decompress);
 // --- The fixed view (0073CA64) and its base (0073CA48) --------------------------------------------
 
 namespace {
-void SetVtable(GameBuffer* b, std::uintptr_t vtable) { b->vtable = reinterpret_cast<void*>(vtable); }
+void SetVtable(GameBuffer* b, std::uintptr_t vtable) { ei::SetVtable(b, vtable); }
 } // namespace
 
 std::uint8_t* __fastcall BufferViewSeek(GameBuffer* self, void*, std::int32_t position) {

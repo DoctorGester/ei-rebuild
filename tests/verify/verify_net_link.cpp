@@ -318,7 +318,7 @@ FileStream* __fastcall FileStreamConstructVerify(FileStream* self) {
     alignas(8) std::uint8_t copy[sizeof(FileStream)];
     std::memcpy(copy, self, sizeof(copy));
     FileStream* result = s_fsConstruct(self);
-    FileStream* ours = FileStreamConstruct(reinterpret_cast<FileStream*>(copy));
+    FileStream* ours = reinterpret_cast<FileStream*>(copy)->Construct();
     ei::verify::Check("FileStreamConstruct", true,
                       result == self && ours == reinterpret_cast<FileStream*>(copy) && std::memcmp(copy, self, sizeof(copy)) == 0, "");
     return result;
@@ -327,20 +327,20 @@ FileStream* __fastcall FileStreamConstructVerify(FileStream* self) {
 // 00477FB0: PUSH -1 (2), PUSH imm32 (5).
 void(__fastcall* s_fsDestruct)(FileStream*);
 void __fastcall FileStreamDestructVerify(FileStream* self) {
-    if (!FileClosed(self->file)) {
-        FileStreamDestruct(self);
+    if (!FileClosed(self->file_)) {
+        self->Destruct();
         return;
     }
     alignas(8) std::uint8_t copy[sizeof(FileStream)];
     std::memcpy(copy, self, sizeof(copy));
     s_fsDestruct(reinterpret_cast<FileStream*>(copy));
-    FileStreamDestruct(self);
+    self->Destruct();
     ei::verify::Check("FileStreamDestruct", true, std::memcmp(copy, self, sizeof(copy)) == 0, "");
 }
 
 // 00477F90: a CALL at +3 (no trampoline): ours only.
 void* __fastcall FileStreamDeletingDestructorVerify(FileStream* self, void*, unsigned flags) {
-    void* result = FileStreamDeletingDestructor(self, nullptr, flags);
+    void* result = static_cast<void*>(self->DeletingDestruct(flags));
     ei::verify::Check("FileStreamDeletingDestructor", static_cast<void*>(self), result, "");
     return result;
 }
@@ -354,10 +354,10 @@ R StreamSlot(const char* name, FileStream* self, Ours ours, Original original) {
     R result{};
     R expected{};
     RunRecorded(
-        self->file, copy.file, [&] { result = ours(self); }, [&] { expected = original(&copy); },
+        self->file_, copy.file_, [&] { result = ours(self); }, [&] { expected = original(&copy); },
         [&](bool replayed) {
             bool same = replayed && std::memcmp(&expected, &result, sizeof(R)) == 0 &&
-                        std::memcmp(&copy, self, offsetof(FileStream, file)) == 0;
+                        std::memcmp(&copy, self, offsetof(FileStream, file_)) == 0;
             ei::verify::Check(name, true, same, "%s, %u / %u", replayed ? "replayed" : "calls differ",
                               static_cast<unsigned>(expected), static_cast<unsigned>(result));
         });
@@ -368,7 +368,7 @@ R StreamSlot(const char* name, FileStream* self, Ours ours, Original original) {
 unsigned(__fastcall* s_fsRead)(FileStream*, void*, void*, unsigned);
 unsigned __fastcall FileStreamReadVerify(FileStream* self, void*, void* buffer, unsigned count) {
     return StreamSlot<unsigned>(
-        "FileStreamRead", self, [&](FileStream* s) { return FileStreamRead(s, nullptr, buffer, count); },
+        "FileStreamRead", self, [&](FileStream* s) { return s->FileStream::Read(buffer, count); },
         [&](FileStream* s) { return s_fsRead(s, nullptr, buffer, count); });
 }
 
@@ -378,7 +378,7 @@ void __fastcall FileStreamWriteVerify(FileStream* self, void*, const void* buffe
     StreamSlot<int>(
         "FileStreamWrite", self,
         [&](FileStream* s) {
-            FileStreamWrite(s, nullptr, buffer, count);
+            s->FileStream::Write(buffer, count);
             return 0;
         },
         [&](FileStream* s) {
@@ -391,26 +391,26 @@ void __fastcall FileStreamWriteVerify(FileStream* self, void*, const void* buffe
 long(__fastcall* s_fsSeek)(FileStream*, void*, long);
 long __fastcall FileStreamSeekVerify(FileStream* self, void*, long position) {
     return StreamSlot<long>(
-        "FileStreamSeek", self, [&](FileStream* s) { return FileStreamSeek(s, nullptr, position); },
+        "FileStreamSeek", self, [&](FileStream* s) { return s->SeekFrom(position); },
         [&](FileStream* s) { return s_fsSeek(s, nullptr, position); });
 }
 
 // 00477F70 / 00477F80: MOV EAX,[ECX+0xC] (3), ADD ECX,0xC (3).
 unsigned(__fastcall* s_fsSize)(FileStream*);
 unsigned __fastcall FileStreamSizeVerify(FileStream* self) {
-    return StreamSlot<unsigned>("FileStreamSize", self, [](FileStream* s) { return FileStreamSize(s); },
+    return StreamSlot<unsigned>("FileStreamSize", self, [](FileStream* s) { return s->FileStream::Size(); },
                                 [](FileStream* s) { return s_fsSize(s); });
 }
 unsigned(__fastcall* s_fsPosition)(FileStream*);
 unsigned __fastcall FileStreamPositionVerify(FileStream* self) {
-    return StreamSlot<unsigned>("FileStreamPosition", self, [](FileStream* s) { return FileStreamPosition(s); },
+    return StreamSlot<unsigned>("FileStreamPosition", self, [](FileStream* s) { return s->FileStream::Position(); },
                                 [](FileStream* s) { return s_fsPosition(s); });
 }
 
 // 00477EE0: MOV EAX,[ECX+0xC] (3), MOV byte [ECX+5],1 (4).
 long(__fastcall* s_fsRewind)(FileStream*);
 long __fastcall FileStreamRewindVerify(FileStream* self) {
-    return StreamSlot<long>("FileStreamRewind", self, [](FileStream* s) { return FileStreamRewind(s); },
+    return StreamSlot<long>("FileStreamRewind", self, [](FileStream* s) { return s->Restart(); },
                             [](FileStream* s) { return s_fsRewind(s); });
 }
 
@@ -420,20 +420,20 @@ long __fastcall FileStreamRewindVerify(FileStream* self) {
 // 00478050: PUSH -1 (2), PUSH imm32 (5).
 void(__fastcall* s_linkDestruct)(NetLink*);
 void __fastcall LinkDestructVerify(NetLink* self) {
-    if (!FileClosed(self->record.file)) {
-        LinkDestruct(self);
+    if (!FileClosed(self->record_.file_)) {
+        self->Destruct();
         return;
     }
     alignas(8) std::uint8_t copy[sizeof(NetLink)];
     std::memcpy(copy, self, sizeof(copy));
     s_linkDestruct(reinterpret_cast<NetLink*>(copy));
-    LinkDestruct(self);
+    self->Destruct();
     ei::verify::Check("LinkDestruct", true, std::memcmp(copy, self, sizeof(copy)) == 0, "");
 }
 
 // 00478030: a CALL at +3: ours only.
 void* __fastcall LinkDeletingDestructorVerify(NetLink* self, void*, unsigned flags) {
-    void* result = LinkDeletingDestructor(self, nullptr, flags);
+    void* result = static_cast<void*>(self->DeletingDestruct(flags));
     ei::verify::Check("LinkDeletingDestructor", static_cast<void*>(self), result, "");
     return result;
 }
@@ -450,9 +450,9 @@ CountFn CopyIncomingCount() {
 }
 CountFn s_linkCountCopy = CopyIncomingCount();
 int __fastcall LinkIncomingCountVerify(NetLink* self) {
-    if (!s_linkCountCopy) return LinkIncomingCount(self);
+    if (!s_linkCountCopy) return self->NetLink::IncomingCount();
     int expected = s_linkCountCopy(self);
-    int actual = LinkIncomingCount(self);
+    int actual = self->NetLink::IncomingCount();
     ei::verify::Check("LinkIncomingCount", expected, actual, "");
     return actual;
 }
@@ -461,25 +461,25 @@ int __fastcall LinkIncomingCountVerify(NetLink* self) {
 bool(__fastcall* s_linkSend)(NetLink*, void*, void*);
 bool __fastcall LinkSendVerify(NetLink* self, void*, void* stream) {
     bool expected = s_linkSend(self, nullptr, stream);
-    bool actual = LinkSend(self, nullptr, stream);
+    bool actual = self->NetLink::Send(static_cast<CStream*>(stream));
     ei::verify::Check("LinkSend", expected, actual, "");
     return actual;
 }
 
 // The link header (vtable .. the record's limit) of a copy and the real link.
-bool SameLinkHeader(const void* a, const void* b) { return std::memcmp(a, b, offsetof(NetLink, record) + offsetof(FileStream, file)) == 0; }
+bool SameLinkHeader(const void* a, const void* b) { return std::memcmp(a, b, offsetof(NetLink, record_) + offsetof(FileStream, file_)) == 0; }
 
 // 00478110: MOV AL,[ECX+8] (3), TEST AL,AL (2).
 bool(__fastcall* s_linkRecord)(NetLink*, void*, void*);
 bool __fastcall LinkRecordVerify(NetLink* self, void*, void* stream) {
-    bool writes = self->recording && !self->skipNext;
-    if (writes && !IsMemoryStream(stream)) return LinkRecord(self, nullptr, stream);
+    bool writes = self->recording_ && !self->skipNext_;
+    if (writes && !IsMemoryStream(stream)) return self->NetLink::Receive(static_cast<CStream*>(stream));
     alignas(8) std::uint8_t copy[sizeof(NetLink)];
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<NetLink*>(copy);
     if (!writes) {
         bool expected = s_linkRecord(link, nullptr, stream);
-        bool actual = LinkRecord(self, nullptr, stream);
+        bool actual = self->NetLink::Receive(static_cast<CStream*>(stream));
         ei::verify::Check("LinkRecord", true, expected == actual && SameLinkHeader(copy, self), "");
         return actual;
     }
@@ -488,7 +488,7 @@ bool __fastcall LinkRecordVerify(NetLink* self, void*, void* stream) {
     bool actual = false;
     bool expected = false;
     RunRecorded(
-        self->record.file, link->record.file, [&] { actual = LinkRecord(self, nullptr, stream); },
+        self->record_.file_, link->record_.file_, [&] { actual = self->NetLink::Receive(static_cast<CStream*>(stream)); },
         [&] { expected = s_linkRecord(link, nullptr, &source); },
         [&](bool replayed) {
             bool same = replayed && expected == actual && SameLinkHeader(copy, self) &&
@@ -506,7 +506,7 @@ void __fastcall LinkOpenRecordingVerify(NetLink* self, void*, const char* path) 
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<NetLink*>(copy);
     RunRecorded(
-        self->record.file, link->record.file, [&] { LinkOpenRecording(self, nullptr, path); },
+        self->record_.file_, link->record_.file_, [&] { self->OpenRecording(path); },
         [&] { s_linkOpen(link, nullptr, path); },
         [&](bool replayed) {
             ei::verify::Check("LinkOpenRecording", true, replayed && SameLinkHeader(copy, self), replayed ? "" : "calls differ");
@@ -520,7 +520,7 @@ void __fastcall LinkCloseRecordingVerify(NetLink* self) {
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<NetLink*>(copy);
     RunRecorded(
-        self->record.file, link->record.file, [&] { LinkCloseRecording(self); }, [&] { s_linkClose(link); },
+        self->record_.file_, link->record_.file_, [&] { self->CloseRecording(); }, [&] { s_linkClose(link); },
         [&](bool replayed) {
             ei::verify::Check("LinkCloseRecording", true, replayed && SameLinkHeader(copy, self), replayed ? "" : "calls differ");
         });
@@ -529,55 +529,55 @@ void __fastcall LinkCloseRecordingVerify(NetLink* self) {
 // ================================================================================================
 // LoopbackLink
 
-bool PeerAlive(const LoopbackLink* self) { return self->peer && !(self->peer->flags7_ & CRefObject::kDetached); }
+bool PeerAlive(const LoopbackLink* self) { return self->peer_ && !(self->peer_->flags7_ & CRefObject::kDetached); }
 int QueueCount(const QueueNode* header) {
     int n = 0;
     for (const QueueNode* node = header->next; node != header && n < 100000; node = node->next) ++n;
     return n;
 }
-bool EmptyQueue(const LoopbackLink* self) { return self->queue && self->queue->next == self->queue && self->queue->prev == self->queue; }
+bool EmptyQueue(const LoopbackLink* self) { return self->queue_ && self->queue_->next == self->queue_ && self->queue_->prev == self->queue_; }
 bool FreshRecord(const FileStream& record) {
-    return VtableOf(&record) == kFileStreamVtable && record.ok == 1 && record.limit == 2000000000u && FileClosed(record.file);
+    return VtableOf(&record) == kFileStreamVtable && record.ok_ == 1 && record.version_ == 2000000000u && FileClosed(record.file_);
 }
 
 // 004782E0: ours only. The returned link and the player's are loopbacks joined to each other,
 // with empty queues and closed files; the player's has two references, the returned one one.
 LoopbackLink* __fastcall CreatePairVerify(void* unused, void*, std::uint8_t* player) {
-    LoopbackLink* second = LoopbackCreatePair(unused, nullptr, player);
+    LoopbackLink* second = LoopbackLink::CreatePair(unused, nullptr, player);
     if (!player) {
         ei::verify::Check("LoopbackCreatePair", static_cast<LoopbackLink*>(nullptr), second, "null player");
         return second;
     }
     auto* first = At<LoopbackLink*>(player, 8);
     bool ok = first && second && VtableOf(first) == kLoopbackVtable && VtableOf(second) == kLoopbackVtable &&
-              first->peer == reinterpret_cast<CRefObject*>(second) && second->peer == reinterpret_cast<CRefObject*>(first) &&
-              first->base.refs == 2 && second->base.refs == 1 && EmptyQueue(first) && EmptyQueue(second) &&
-              first->base.recording == 0 && second->base.recording == 0 && FreshRecord(first->base.record) &&
-              FreshRecord(second->base.record);
+              first->peer_ == second && second->peer_ == first &&
+              first->refs_ == 2 && second->refs_ == 1 && EmptyQueue(first) && EmptyQueue(second) &&
+              first->recording_ == 0 && second->recording_ == 0 && FreshRecord(first->record_) &&
+              FreshRecord(second->record_);
     ei::verify::Check("LoopbackCreatePair", true, ok, "");
     return second;
 }
 
 // 004787A0: ours only; the root and CStream vtables left.
 void __fastcall LoopbackDestructVerify(LoopbackLink* self) {
-    LoopbackDestruct(self);
-    bool ok = VtableOf(self) == 0x0073BB68 && VtableOf(&self->base.record) == 0x0073BDB0;
+    self->Destruct();
+    bool ok = VtableOf(self) == 0x0073BB68 && VtableOf(&self->record_) == 0x0073BDB0;
     ei::verify::Check("LoopbackDestruct", true, ok, "");
 }
 
 // 00478780: a CALL at +3: ours only.
 void* __fastcall LoopbackDeletingDestructorVerify(LoopbackLink* self, void*, unsigned flags) {
-    void* result = LoopbackDeletingDestructor(self, nullptr, flags);
+    void* result = static_cast<void*>(self->DeletingDestruct(flags));
     ei::verify::Check("LoopbackDeletingDestructor", static_cast<void*>(self), result, "");
     return result;
 }
 
 // 00478610: ours only; afterwards a fresh loopback with the same reference count.
 void __fastcall LoopbackResetVerify(LoopbackLink* self) {
-    std::int16_t refs = self->base.refs;
-    LoopbackReset(self);
-    bool ok = VtableOf(self) == kLoopbackVtable && self->base.refs == refs && self->base.recording == 0 && !self->peer &&
-              EmptyQueue(self) && FreshRecord(self->base.record);
+    std::int16_t refs = self->refs_;
+    self->LoopbackLink::OnShutdown();
+    bool ok = VtableOf(self) == kLoopbackVtable && self->refs_ == refs && self->recording_ == 0 && !self->peer_ &&
+              EmptyQueue(self) && FreshRecord(self->record_);
     ei::verify::Check("LoopbackReset", true, ok, "");
 }
 
@@ -585,23 +585,23 @@ void __fastcall LoopbackResetVerify(LoopbackLink* self) {
 LoopbackLink*(__fastcall* s_clone)(LoopbackLink*);
 bool SameClone(const LoopbackLink* a, const LoopbackLink* b) {
     if (std::memcmp(a, b, 10) != 0) return false;   // vtable, count and flags, recording, skip
-    const auto* x = reinterpret_cast<const std::uint8_t*>(&a->base.record);
-    const auto* y = reinterpret_cast<const std::uint8_t*>(&b->base.record);
+    const auto* x = reinterpret_cast<const std::uint8_t*>(&a->record_);
+    const auto* y = reinterpret_cast<const std::uint8_t*>(&b->record_);
     if (std::memcmp(x, y, 4) != 0 || x[5] != y[5] || std::memcmp(x + 8, y + 8, 4 + 0x10) != 0) return false;
-    if (a->peer != b->peer) return false;
-    const QueueNode* p = a->queue->next;
-    const QueueNode* q = b->queue->next;
-    for (; p != a->queue && q != b->queue; p = p->next, q = q->next)
+    if (a->peer_ != b->peer_) return false;
+    const QueueNode* p = a->queue_->next;
+    const QueueNode* q = b->queue_->next;
+    for (; p != a->queue_ && q != b->queue_; p = p->next, q = q->next)
         if (!SameQueuedStream(&p->stream, &q->stream)) return false;
-    return p == a->queue && q == b->queue;
+    return p == a->queue_ && q == b->queue_;
 }
 LoopbackLink* __fastcall LoopbackCloneVerify(LoopbackLink* self) {
     LoopbackLink* expected = s_clone(self);
-    LoopbackLink* actual = LoopbackClone(self);
+    LoopbackLink* actual = self->LoopbackLink::Clone();
     if (expected && actual) {
-        ei::verify::Check("LoopbackClone", true, SameClone(expected, actual), "%d queued", QueueCount(self->queue));
+        ei::verify::Check("LoopbackClone", true, SameClone(expected, actual), "%d queued", QueueCount(self->queue_));
     }
-    if (expected) LoopbackDeletingDestructor(expected, nullptr, 1);
+    if (expected) expected->DeletingDestruct(1);
     return actual;
 }
 
@@ -610,28 +610,28 @@ LoopbackLink* __fastcall LoopbackCloneVerify(LoopbackLink* self) {
 int(__fastcall* s_connected)(LoopbackLink*);
 int __fastcall LoopbackConnectedVerify(LoopbackLink* self) {
     int expected = s_connected(self);
-    int actual = LoopbackConnected(self);
+    int actual = (self->LoopbackLink::Connected() ? 1 : 0);
     ei::verify::Check("LoopbackConnected", expected, actual, "");
     return actual;
 }
 int(__fastcall* s_alive)(LoopbackLink*);
 int __fastcall LoopbackAliveVerify(LoopbackLink* self) {
     int expected = s_alive(self);
-    int actual = LoopbackAlive(self);
+    int actual = (self->LoopbackLink::Alive() ? 1 : 0);
     ei::verify::Check("LoopbackAlive", expected, actual, "");
     return actual;
 }
 bool(__fastcall* s_hasIncoming)(LoopbackLink*);
 bool __fastcall LoopbackHasIncomingVerify(LoopbackLink* self) {
     bool expected = s_hasIncoming(self);
-    bool actual = LoopbackHasIncoming(self);
+    bool actual = self->LoopbackLink::HasIncoming();
     ei::verify::Check("LoopbackHasIncoming", expected, actual, "");
     return actual;
 }
 int(__fastcall* s_count)(LoopbackLink*);
 int __fastcall LoopbackIncomingCountVerify(LoopbackLink* self) {
     int expected = s_count(self);
-    int actual = LoopbackIncomingCount(self);
+    int actual = self->LoopbackLink::IncomingCount();
     ei::verify::Check("LoopbackIncomingCount", expected, actual, "");
     return actual;
 }
@@ -653,32 +653,32 @@ bool(__fastcall* s_send)(LoopbackLink*, void*, void*);
 bool __fastcall LoopbackSendVerify(LoopbackLink* self, void*, void* stream) {
     if (!PeerAlive(self)) {
         bool expected = s_send(self, nullptr, stream);
-        bool actual = LoopbackSend(self, nullptr, stream);
+        bool actual = self->LoopbackLink::Send(static_cast<CStream*>(stream));
         ei::verify::Check("LoopbackSend", expected, actual, "no peer");
         return actual;
     }
-    if (!IsMemoryStream(stream)) return LoopbackSend(self, nullptr, stream);
+    if (!IsMemoryStream(stream)) return self->LoopbackLink::Send(static_cast<CStream*>(stream));
     CMemoryStream source;
     CloneStream(&source, static_cast<CMemoryStream*>(stream));
-    bool actual = LoopbackSend(self, nullptr, stream);
+    bool actual = self->LoopbackLink::Send(static_cast<CStream*>(stream));
 
     alignas(8) std::uint8_t peerCopy[sizeof(LoopbackLink)];
     alignas(8) std::uint8_t selfCopy[sizeof(LoopbackLink)];
-    std::memcpy(peerCopy, self->peer, sizeof(peerCopy));
+    std::memcpy(peerCopy, self->peer_, sizeof(peerCopy));
     std::memcpy(selfCopy, self, sizeof(selfCopy));
     auto* scratchPeer = reinterpret_cast<LoopbackLink*>(peerCopy);
     auto* scratchSelf = reinterpret_cast<LoopbackLink*>(selfCopy);
-    scratchPeer->queue = ScratchQueue();
-    scratchSelf->peer = reinterpret_cast<CRefObject*>(scratchPeer);
+    scratchPeer->queue_ = ScratchQueue();
+    scratchSelf->peer_ = scratchPeer;
     bool expected = s_send(scratchSelf, nullptr, &source);
 
-    const QueueNode* realQueue = reinterpret_cast<LoopbackLink*>(self->peer)->queue;
-    const QueueNode* scratch = scratchPeer->queue;
+    const QueueNode* realQueue = self->peer_->queue_;
+    const QueueNode* scratch = scratchPeer->queue_;
     bool same = expected == actual && QueueCount(scratch) == 1 && realQueue->prev != realQueue &&
                 SameQueuedStream(&scratch->next->stream, &realQueue->prev->stream) &&
                 SameStream(&source, static_cast<CMemoryStream*>(stream));
     ei::verify::Check("LoopbackSend", true, same, "%u bytes", static_cast<CMemoryStream*>(stream)->size_);
-    FreeScratchQueue(scratchPeer->queue);
+    FreeScratchQueue(scratchPeer->queue_);
     FreeStream(&source);
     return actual;
 }
@@ -686,14 +686,14 @@ bool __fastcall LoopbackSendVerify(LoopbackLink* self, void*, void* stream) {
 // 00478270: PUSH EBX, PUSH ESI, PUSH EDI (3), MOV EDI,ECX (2).
 bool(__fastcall* s_receive)(LoopbackLink*, void*, void*);
 bool __fastcall LoopbackReceiveVerify(LoopbackLink* self, void*, void* stream) {
-    if (self->queue->next == self->queue) {
+    if (self->queue_->next == self->queue_) {
         bool expected = s_receive(self, nullptr, stream);
-        bool actual = LoopbackReceive(self, nullptr, stream);
+        bool actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream));
         ei::verify::Check("LoopbackReceive", expected, actual, "empty");
         return actual;
     }
-    if (!IsMemoryStream(stream) || !IsMemoryStream(&self->queue->next->stream)) return LoopbackReceive(self, nullptr, stream);
-    int before = QueueCount(self->queue);
+    if (!IsMemoryStream(stream) || !IsMemoryStream(&self->queue_->next->stream)) return self->LoopbackLink::Receive(static_cast<CStream*>(stream));
+    int before = QueueCount(self->queue_);
 
     // The original's link: a copy whose queue holds a copy of the front stream (pool nodes: its
     // erase gives the node back to the pool and frees the stream's buffer).
@@ -702,29 +702,29 @@ bool __fastcall LoopbackReceiveVerify(LoopbackLink* self, void*, void* stream) {
     auto* scratchSelf = reinterpret_cast<LoopbackLink*>(selfCopy);
     QueueNode* header = ScratchQueue();
     auto* node = static_cast<QueueNode*>(NodeAllocate(sizeof(QueueNode)));
-    CloneStream(&node->stream, &self->queue->next->stream);
+    CloneStream(&node->stream, &self->queue_->next->stream);
     node->next = header;
     node->prev = header;
     header->next = node;
     header->prev = node;
-    scratchSelf->queue = header;
+    scratchSelf->queue_ = header;
     CMemoryStream target;
     CloneStream(&target, static_cast<CMemoryStream*>(stream));
 
     bool actual = false;
     bool expected = false;
     auto compare = [&](bool replayed) {
-        bool same = replayed && expected == actual && QueueCount(header) == 0 && QueueCount(self->queue) == before - 1 &&
-                    scratchSelf->base.skipNext == self->base.skipNext &&
+        bool same = replayed && expected == actual && QueueCount(header) == 0 && QueueCount(self->queue_) == before - 1 &&
+                    scratchSelf->skipNext_ == self->skipNext_ &&
                     SameStream(&target, static_cast<CMemoryStream*>(stream));
         ei::verify::Check("LoopbackReceive", true, same, "%s, %d queued", replayed ? "replayed" : "calls differ", before);
     };
-    if (self->base.recording && !self->base.skipNext) {
+    if (self->recording_ && !self->skipNext_) {
         RunRecorded(
-            self->base.record.file, scratchSelf->base.record.file, [&] { actual = LoopbackReceive(self, nullptr, stream); },
+            self->record_.file_, scratchSelf->record_.file_, [&] { actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream)); },
             [&] { expected = s_receive(scratchSelf, nullptr, &target); }, compare);
     } else {
-        actual = LoopbackReceive(self, nullptr, stream);
+        actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream));
         expected = s_receive(scratchSelf, nullptr, &target);
         compare(true);
     }
@@ -739,8 +739,8 @@ bool __fastcall LoopbackReceiveVerify(LoopbackLink* self, void*, void* stream) {
 
 // 00478140: ours only; no peer afterwards.
 void __fastcall LoopbackDisconnectVerify(LoopbackLink* self) {
-    LoopbackDisconnect(self);
-    ei::verify::Check("LoopbackDisconnect", static_cast<CRefObject*>(nullptr), self->peer, "");
+    self->LoopbackLink::Disconnect();
+    ei::verify::Check("LoopbackDisconnect", static_cast<LoopbackLink*>(nullptr), self->peer_, "");
 }
 
 // ================================================================================================
@@ -753,16 +753,16 @@ bool SameFileStream(const FileStream& a, const FileStream& b) {
     return std::memcmp(x, y, 4) == 0 && x[5] == y[5] && std::memcmp(x + 8, y + 8, 4 + 0x10) == 0;
 }
 // The replay link up to its replay stream's CFile.
-constexpr std::size_t kReplayHeader = offsetof(ReplayLink, replay) + offsetof(FileStream, file);
+constexpr std::size_t kReplayHeader = offsetof(ReplayLink, replay_) + offsetof(FileStream, file_);
 
 // 00478960: ours only. A replay link (count 0, not recording, a closed record file) whose replay
 // stream reads and is ok exactly when its CFile opened.
 ReplayLink* __fastcall ReplayCreateVerify(void* unused, void*, const char* path) {
-    ReplayLink* link = ReplayCreate(unused, nullptr, path);
-    bool open = At<std::uint32_t>(link->replay.file, 4) != 0xFFFFFFFFu;
-    bool ok = VtableOf(link) == kReplayVtable && At<std::uint32_t>(link, 4) == 0 && link->base.recording == 0 &&
-              FreshRecord(link->base.record) && VtableOf(&link->replay) == kFileStreamVtable && link->replay.reading == 1 &&
-              link->replay.limit == 2000000000u && link->replay.ok == (open ? 1 : 0);
+    ReplayLink* link = ReplayLink::Create(unused, nullptr, path);
+    bool open = At<std::uint32_t>(link->replay_.file_, 4) != 0xFFFFFFFFu;
+    bool ok = VtableOf(link) == kReplayVtable && At<std::uint32_t>(link, 4) == 0 && link->recording_ == 0 &&
+              FreshRecord(link->record_) && VtableOf(&link->replay_) == kFileStreamVtable && link->replay_.reading_ == 1 &&
+              link->replay_.version_ == 2000000000u && link->replay_.ok_ == (open ? 1 : 0);
     ei::verify::Check("ReplayCreate", true, ok, "%s", open ? "opened" : "not opened");
     return link;
 }
@@ -771,20 +771,20 @@ ReplayLink* __fastcall ReplayCreateVerify(void* unused, void*, const char* path)
 // the real link; else ours only.
 void(__fastcall* s_replayDestruct)(ReplayLink*);
 void __fastcall ReplayDestructVerify(ReplayLink* self) {
-    if (!FileClosed(self->base.record.file) || !FileClosed(self->replay.file)) {
-        ReplayDestruct(self);
+    if (!FileClosed(self->record_.file_) || !FileClosed(self->replay_.file_)) {
+        self->Destruct();
         return;
     }
     alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
     std::memcpy(copy, self, sizeof(copy));
     s_replayDestruct(reinterpret_cast<ReplayLink*>(copy));
-    ReplayDestruct(self);
+    self->Destruct();
     ei::verify::Check("ReplayDestruct", true, std::memcmp(copy, self, sizeof(copy)) == 0, "");
 }
 
 // 00478CA0: a CALL at +3: ours only.
 void* __fastcall ReplayDeletingDestructorVerify(ReplayLink* self, void*, unsigned flags) {
-    void* result = ReplayDeletingDestructor(self, nullptr, flags);
+    void* result = static_cast<void*>(self->DeletingDestruct(flags));
     ei::verify::Check("ReplayDeletingDestructor", static_cast<void*>(self), result, "");
     return result;
 }
@@ -792,10 +792,10 @@ void* __fastcall ReplayDeletingDestructorVerify(ReplayLink* self, void*, unsigne
 // 00478B10: ours only; afterwards a fresh replay link with the same count, flags and +9.
 void __fastcall ReplayResetVerify(ReplayLink* self) {
     std::uint32_t header = At<std::uint32_t>(self, 4);
-    std::uint8_t skip = self->base.skipNext;
-    ReplayReset(self);
-    bool ok = VtableOf(self) == kReplayVtable && At<std::uint32_t>(self, 4) == header && self->base.skipNext == skip &&
-              self->base.recording == 0 && FreshRecord(self->base.record) && FreshRecord(self->replay);
+    std::uint8_t skip = self->skipNext_;
+    self->ReplayLink::OnShutdown();
+    bool ok = VtableOf(self) == kReplayVtable && At<std::uint32_t>(self, 4) == header && self->skipNext_ == skip &&
+              self->recording_ == 0 && FreshRecord(self->record_) && FreshRecord(self->replay_);
     ei::verify::Check("ReplayReset", true, ok, "");
 }
 
@@ -804,13 +804,13 @@ void __fastcall ReplayResetVerify(ReplayLink* self) {
 ReplayLink*(__fastcall* s_replayClone)(ReplayLink*);
 ReplayLink* __fastcall ReplayCloneVerify(ReplayLink* self) {
     ReplayLink* expected = s_replayClone(self);
-    ReplayLink* actual = ReplayClone(self);
+    ReplayLink* actual = self->ReplayLink::Clone();
     if (expected && actual) {
-        bool same = std::memcmp(expected, actual, 10) == 0 && SameFileStream(expected->base.record, actual->base.record) &&
-                    SameFileStream(expected->replay, actual->replay);
+        bool same = std::memcmp(expected, actual, 10) == 0 && SameFileStream(expected->record_, actual->record_) &&
+                    SameFileStream(expected->replay_, actual->replay_);
         ei::verify::Check("ReplayClone", true, same, "");
     }
-    if (expected) ReplayDeletingDestructor(expected, nullptr, 1);
+    if (expected) expected->DeletingDestruct(1);
     return actual;
 }
 
@@ -824,7 +824,7 @@ int ReplayQuery(const char* name, ReplayLink* self, Ours ours, Original original
     int actual = 0;
     int expected = 0;
     RunRecorded(
-        self->replay.file, link->replay.file, [&] { actual = ours(self); }, [&] { expected = original(link); },
+        self->replay_.file_, link->replay_.file_, [&] { actual = ours(self); }, [&] { expected = original(link); },
         [&](bool replayed) {
             ei::verify::Check(name, true, replayed && expected == actual, "%s, %d / %d", replayed ? "replayed" : "calls differ", expected,
                               actual);
@@ -833,11 +833,11 @@ int ReplayQuery(const char* name, ReplayLink* self, Ours ours, Original original
 }
 int(__fastcall* s_replayAlive)(ReplayLink*);
 int __fastcall ReplayAliveVerify(ReplayLink* self) {
-    return ReplayQuery("ReplayAlive", self, [](ReplayLink* l) { return ReplayAlive(l); }, [](ReplayLink* l) { return s_replayAlive(l); });
+    return ReplayQuery("ReplayAlive", self, [](ReplayLink* l) { return (l->ReplayLink::Alive() ? 1 : 0); }, [](ReplayLink* l) { return s_replayAlive(l); });
 }
 int(__fastcall* s_replayHasIncoming)(ReplayLink*);
 int __fastcall ReplayHasIncomingVerify(ReplayLink* self) {
-    return ReplayQuery("ReplayHasIncoming", self, [](ReplayLink* l) { return ReplayHasIncoming(l); },
+    return ReplayQuery("ReplayHasIncoming", self, [](ReplayLink* l) { return (l->ReplayLink::HasIncoming() ? 1 : 0); },
                        [](ReplayLink* l) { return s_replayHasIncoming(l); });
 }
 
@@ -846,7 +846,7 @@ int __fastcall ReplayHasIncomingVerify(ReplayLink* self) {
 // the result, the target and the link's header compared.
 bool(__fastcall* s_replayReceive)(ReplayLink*, void*, void*);
 bool __fastcall ReplayReceiveVerify(ReplayLink* self, void*, void* stream) {
-    if (!IsMemoryStream(stream)) return ReplayReceive(self, nullptr, stream);
+    if (!IsMemoryStream(stream)) return self->ReplayLink::Receive(static_cast<CStream*>(stream));
     alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<ReplayLink*>(copy);
@@ -855,7 +855,7 @@ bool __fastcall ReplayReceiveVerify(ReplayLink* self, void*, void* stream) {
     bool actual = false;
     bool expected = false;
     RunRecorded(
-        self->replay.file, link->replay.file, [&] { actual = ReplayReceive(self, nullptr, stream); },
+        self->replay_.file_, link->replay_.file_, [&] { actual = self->ReplayLink::Receive(static_cast<CStream*>(stream)); },
         [&] { expected = s_replayReceive(link, nullptr, &target); },
         [&](bool replayed) {
             bool same = replayed && expected == actual && std::memcmp(copy, self, kReplayHeader) == 0 &&
@@ -875,7 +875,7 @@ void __fastcall ReplayDisconnectVerify(ReplayLink* self) {
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<ReplayLink*>(copy);
     RunRecorded(
-        self->replay.file, link->replay.file, [&] { ReplayDisconnect(self); }, [&] { s_replayDisconnect(link); },
+        self->replay_.file_, link->replay_.file_, [&] { self->ReplayLink::Disconnect(); }, [&] { s_replayDisconnect(link); },
         [&](bool replayed) {
             ei::verify::Check("ReplayDisconnect", true, replayed && std::memcmp(copy, self, kReplayHeader) == 0,
                               replayed ? "" : "calls differ");

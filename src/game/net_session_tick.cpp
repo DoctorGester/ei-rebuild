@@ -36,8 +36,6 @@ constexpr std::uintptr_t kTimeout = 0x00784008;      // "TIMEOUT client, drop "
 // "<text><address>\n" and a flush to the network log.
 void LogAddress(std::uintptr_t text, const char* address) { NetLog()->Put(Text(text))->Put(address)->PutChar('\n')->Flush(); }
 
-// The buffer's slot 3: reads `size` more bytes.
-constexpr int kBufferReadMore = 3;
 
 } // namespace
 
@@ -76,7 +74,7 @@ void SessionBase::Tick(double dt) {
         }
         char kind;
         if (buffer->cur + 1 > buffer->high) BufferReadPastEnd(buffer, nullptr, &kind, 1);
-        else if (buffer->cur + 1 > buffer->end) ei::VCall<int>(buffer, kBufferReadMore, &kind, 1u);
+        else if (buffer->cur + 1 > buffer->end) buffer->ReadMore(&kind, 1u);
         else BufferCopyOut(buffer, nullptr, &kind, 1);
         BufferUpdateHigh(buffer);
         BufferCursor cursor{};
@@ -260,7 +258,6 @@ namespace net {
 namespace {
 __declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
 __declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
-constexpr int kBufferWriteMore = 4;
 } // namespace
 
 // 00436C30: copies `size` bytes to the write position and moves it on (no room check); returns
@@ -275,7 +272,7 @@ EI_REPLACE(0x00436C30, BufferWriteRaw);
 // 00436C60: writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
 // otherwise through slot 4. Returns `size` or what slot 4 left.
 unsigned __fastcall BufferWrite(GameBuffer* buffer, void*, const void* from, unsigned size) {
-    if (buffer->cur + size > buffer->end) return static_cast<unsigned>(ei::VCall<int>(buffer, kBufferWriteMore, from, size));
+    if (buffer->cur + size > buffer->end) return static_cast<unsigned>(buffer->WriteMore(from, size));
     buffer->flags |= 1;
     std::memcpy(buffer->cur, from, size);
     buffer->cur += size;
@@ -302,14 +299,14 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
         *buffer->cur = kind;
         ++buffer->cur;
     } else {
-        ei::VCall<int>(buffer, kBufferWriteMore, &kind, 1u);
+        buffer->WriteMore(&kind, 1u);
     }
     if (buffer->cur + 4 <= buffer->end) {
         buffer->flags |= 1;
         std::memcpy(buffer->cur, &id, 4);
         buffer->cur += 4;
     } else {
-        ei::VCall<int>(buffer, kBufferWriteMore, &id, 4u);
+        buffer->WriteMore(&id, 4u);
     }
     socket_.SendTo(address, buffer);
     GrowingBufferDestruct(buffer);
@@ -353,7 +350,7 @@ void SessionBase::Destruct() {
             buffer->flags |= 1;
             BufferWriteRaw(buffer, nullptr, &id, 4);
         } else {
-            ei::VCall<int>(buffer, kBufferWriteMore, &id, 4u);
+            buffer->WriteMore(&id, 4u);
         }
         socket_.SendTo(&connection->address_, buffer);
         GrowingBufferDestruct(buffer);
