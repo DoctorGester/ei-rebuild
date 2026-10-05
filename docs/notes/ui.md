@@ -73,71 +73,60 @@ memory. Rebirth-patched functions can only be hooked in the vanilla install; the
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`; `verify_ui.cpp`)
 
-Facts the headers do not give: `CInterface3D` (Create 005F4990) keeps the stack of active windows in an STLport vector
-(+0x34..+0x3C; top receives input; activation 005F7350 / 005F71C0); `CUiWindow` (ctor 005FE700, dtor 005FE930, vtables
-00740F60 / 00740F2C at +0x94) starts with a 0x54-byte CTransformObject kept opaque and holds five aligned pointer
-arrays (+0xF8 referenced engine objects, +0x108 scene objects (both released through CEngineObject slot 4), +0x118
-surfaces, +0x128 regions, +0x138 models). `UiPtrArray<T>`: storage aligned to 32 bytes (operator new of `n*4 + 0x24`, raw
-pointer at `data[-1]`; 00600A80), growth by `growBy` or `size / 8` clamped to [4, 1024]; the original inlines
-Append / Remove at every call site and has five identical out-of-line SetSize copies. `CUiRegion` is a rectangle or a
-convex polygon (enabled from 3 vertices, points allocated by 004F65B0) tested edge by edge with integer cross
-products; tooltip states 0 idle, 1 hovered (timer), 2 appearing, 3 disappearing, 4 shown (0065E580, Rebirth-patched,
-advances them). The scale helpers (`__thiscall`, RET 4) leave `0x1B4E81B5 * product` (the division-by-600 magic
-multiply) in EAX ("to screen"), or the last result ("from screen"); ours return the same.
+Facts the headers do not give: `CInterface3D` (Create 005F4990) keeps the stack of active windows in an STLport vector (top receives
+input; activation 005F7350 / 005F71C0); `CUiWindow` (ctor 005FE700, dtor 005FE930, vtables 00740F60 / 00740F2C at +0x94) starts with a
+0x54-byte CTransformObject kept opaque and holds five aligned pointer arrays (+0xF8 referenced engine objects, +0x108 scene objects (both
+released through CEngineObject slot 4), +0x118 surfaces, +0x128 regions, +0x138 models). `UiPtrArray<T>`: storage aligned to 32 bytes
+(operator new of `n*4 + 0x24`, raw pointer at `data[-1]`; 00600A80), growth by `growBy` or `size / 8` clamped to [4, 1024]; the original
+inlines Append / Remove at every call site and has five identical out-of-line SetSize copies. `CUiRegion` is a rectangle or a convex
+polygon (enabled from 3 vertices) tested edge by edge with integer cross products; tooltip states 0 idle, 1 hovered, 2 appearing, 3
+disappearing, 4 shown (0065E580, Rebirth-patched, advances them). The scale helpers (`__thiscall`, RET 4) leave `0x1B4E81B5 * product`
+(the division-by-600 magic multiply) in EAX ("to screen") or the last result ("from screen"); ours return the same.
 
 | Address | Name | Verify |
 |---|---|---|
-| 005F7CA0, 005F7D20, 005F7DA0, 005F7E00, 005F7E30 (identical copy) | `CInterface3D::ScaleRectToScreen`, `ScalePointToScreen`, `ScaleRectFromScreen`, `ScalePointFromScreen` (+Copy) | pure, original on a scratch rect (result and EAX) |
-| 005F7590, 005F74E0 | `GetActiveWindow`, `SetPendingValue` | pure; original on a 0x50-byte copy |
-| 005F2EA0, 005F2EE0 | `UiRecordTable::SpellAt` (stride 0x84), `ModifierAt` (0x24) | pure |
-| 005FD3A0, 005FE400, 005FC450 | `CUiSurface::SetRect`, `MoveTo`, `CUiModel::SetScreenPosition` | original on a copy of the object |
+| 005F7CA0, 005F7D20, 005F7DA0, 005F7E00, 005F7E30 | `CInterface3D::ScaleRectToScreen`, `ScalePointToScreen`, `ScaleRectFromScreen`, `ScalePointFromScreen` (+Copy) | pure, original on a scratch rect |
+| 005F7590, 005F74E0, 005F2EA0, 005F2EE0 | `GetActiveWindow`, `SetPendingValue`, `UiRecordTable::SpellAt` / `ModifierAt` | pure; SetPendingValue on a 0x50-byte copy |
+| 005FD3A0, 005FE400, 005FC450 | `CUiSurface::SetRect`, `MoveTo`, `CUiModel::SetScreenPosition` | original on a copy |
 | 005FC8F0, 005FC660, 005FFCC0, 005FFD30 | `CUiRegion::HitTest`, `HasActiveTip`, `CUiWindow::RegionAt`, `ContainsPoint` | pure |
-| 005FC9E0, 005FCA40, 005FCA70, 005FC880 | `CUiRegion::SetRect`, `ClearShape`, `AddPoint`, `OnMouseMove` | ours only; fields, vertices, capacity and enable rules, tooltip transition |
-| 005FEBF0, 006002A0 | `CUiWindow::UpdateRegionTips` (RET 4), `SetEnabled` | ours only |
-| 005FEDD0, 005FF110, 005FF180, 005FF700, 005FF770, 005FF7D0 | `AddObject`, `RemoveObject`, `RemoveObjectAt`, `RemoveSceneObject` (returns 1/0), `RemoveSceneObjectAt`, `ClearSceneObjects` | ours only; array contents |
-| 005FFA90, 005FFBF0, 005FFC50, 005FF830, 005FF9C0, 005FFA20, 005FFD80, 005FFF40 | `AddSurface` (returns its argument), `RemoveSurfaceAt`, `ClearSurfaces`, `AddRegion`, `RemoveRegionAt`, `ClearRegions`, `AddModel` (0 on allocation failure), `ClearModels` | ours only |
-| 006003D0, 006004E0, 00600730, 00600840, 00600950 | `UiPtrArray<T>::SetSize` (five identical copies) | ours only; size, capacity rule, kept prefix, alignment |
+| 005FC9E0, 005FCA40, 005FCA70, 005FC880, 005FEBF0, 006002A0 | `CUiRegion::SetRect`, `ClearShape`, `AddPoint`, `OnMouseMove`, `CUiWindow::UpdateRegionTips` (RET 4), `SetEnabled` | ours only, fields |
+| 005FEDD0-005FF7D0, 005FFA90-005FFC50, 005FF830-005FFA20, 005FFD80, 005FFF40 | `AddObject`, `RemoveObject(At)`, `RemoveSceneObject(At)` (returns 1/0), `ClearSceneObjects`, `AddSurface` (returns its argument), `RemoveSurfaceAt`, `ClearSurfaces`, `AddRegion`, `RemoveRegionAt`, `ClearRegions`, `AddModel` (0 on allocation failure), `ClearModels` | ours only, array contents |
+| 006003D0, 006004E0, 00600730, 00600840, 00600950 | `UiPtrArray<T>::SetSize` (five identical copies) | ours only, size / capacity rule / kept prefix |
 
-Verify style: array mutators snapshot the array and check the original's rules (append keeps the prefix and sets the
-capacity the original computes; removal shifts the tail down without touching the capacity; clears leave a null array
-with size and capacity 0; SetSize keeps old storage when it fits, else `max(newSize, capacity + step)`); region /
-tooltip: 0065E580 runs its own state machine (0 and 4 stay, 1 may go to 0 or 2, 2 to 4, 3 to 0), so the wrapper checks
-the final state is reachable from ours. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each
-step stored as float: `float_control(precise, on)`, because /fp:fast folds the two constants. Original bugs kept:
-`AddRegion` leaves the new region's bounds uninitialised; the array append has a dead branch for `size == -1` that
-frees the storage and stores through the null array; removing by index does not check it (past the end the
-original's `REP MOVSD` count goes negative and faults; ours skips the move).
-
-Not rewritten: STLport / MFC template code (005F3000-005F4990, 005F9810-005FC010, 0060A320-0060BD70, 00613400-00613DF0,
-00619420-0061B220, 0062A390, ...); region tooltip creation 005FC730 / 005FC6B0 ("tip_%d" text lookup, 0x184 bytes).
+Verify style: array mutators snapshot the array and check the original's rules (append keeps the prefix and sets the capacity the original
+computes; removal shifts the tail down without touching the capacity; clears leave a null array with size and capacity 0; SetSize keeps old
+storage when it fits, else `max(newSize, capacity + step)`); region / tooltip: 0065E580 runs its own state machine (0 and 4 stay, 1 may go
+to 0 or 2, 2 to 4, 3 to 0), so the wrapper checks the final state is reachable from ours. `SetScreenPosition` computes `(x * 0.0025f - 1) *
+0.48157f * depth` with each step stored as float (`float_control(precise, on)`: /fp:fast folds the two constants). Original bugs kept:
+`AddRegion` leaves the new region's bounds uninitialised; the array append has a dead branch for `size == -1` that frees the storage and stores
+through the null array; removing by index does not check it (past the end the original's `REP MOVSD` count goes negative and faults; ours
+skips the move). Not rewritten: STLport / MFC template code (005F3000-005F4990, 005F9810-005FC010, 0060A320-0060BD70, 00613400-00613DF0,
+00619420-0061B220, 0062A390, ...), region tooltip creation 005FC730 / 005FC6B0 ("tip_%d" text lookup, 0x184 bytes).
 
 ### Window stack, screen construction, window base methods (all ours only unless noted)
 
 | Address | Name | Notes |
 |---|---|---|
-| 005F5BA0 | `CInterface3D::CreateScreen` (`ui_create_screen.cpp`) | the original inlines the constructors of screens 1, 2, 3, 7; id 0 does nothing, 6 and ids above 9 reach the activation with the id as the window pointer; check: the window at the bottom of the stack carries the screen's vtable |
-| 005F71C0, 005F7350 | `Activate`, `PushWindow` | window stack (005FA9A0 when full), backdrops +0x54 / +0x58, +0x50, +0x60 (the server flag kept for the first window), modifier flags +0x7C..+0x80, five render states (COM SetRenderState), slot 25 Create, message pump |
+| 005F5BA0 | `CInterface3D::CreateScreen` (`ui_create_screen.cpp`) | the original inlines the constructors of screens 1, 2, 3, 7; id 0 does nothing, 6 and ids above 9 reach the activation with the id as the window pointer |
+| 005F71C0, 005F7350 | `Activate`, `PushWindow` | window stack (005FA9A0 when full), backdrops +0x54 / +0x58, +0x50, +0x60 (the server flag kept for the first window), modifier flags, five render states (COM SetRenderState), slot 25 Create, message pump |
 | 005F78C0 | `CInterface3D::OnKeyDown` (`ui_interface_keys.cpp`) | scans 0x1D / 0x11D Ctrl, 0x2A / 0x36 Shift, 0x38 / 0x138 Alt |
 | 005FE700, 005FE930, 005FF460, 005FFFB0, 00600D30, 006005F0 | `CUiWindow::Construct`, `DestroyBase` (frees the arrays with SetSize(0), so the array destructors after it find nothing), `ReplaceSceneObject`, `CopyImage` (side by side on the written rectangle), `CUiContainer::AddChild`, `UiPtrArray::SetAtGrow` | |
 | 005F67A0 / 005F6920, 005F6240, 005F6470 / 005F6620, 005F6F30 / 005F7010, 005F6D50 / 005F6E40 | constructor / destructor body of `CGlobalMap`, `CCampPages::Construct`, item screens' and the camp's destructor bodies, screens 9 and 8 | the STLport containers' empty compare / allocator objects are passed by address in the original (argument slots, stack bytes): where a constructor keeps the byte, ours passes the same value |
-| 005F86F0, 005F8A80, 005F8C90, 005F8420 | `OpenHelp`, `ShowMessage`, `MessageText` (side by side on the string), `LoadState` | |
-| 005EADD0 | the battle camera's key input (`ui_camera_keys.cpp`) | side by side on the camera's motion, view and saved-view bytes and the input object |
+| 005F86F0, 005F8A80, 005F8C90, 005F8420, 005EADD0 | `OpenHelp`, `ShowMessage`, `MessageText` (side by side on the string), `LoadState`, the battle camera's key input (`ui_camera_keys.cpp`; side by side on the camera's motion, view and saved-view bytes and the input object) | |
 
 Not rewritten: 005F6BA0 (briefing screen's destructor body), 005E3230.
 
 ### Container input dispatch (`ui_container.cpp`; `verify_ui_container.cpp`; scenario `ui_container_input`)
 
-The window procedure (00457970) maps messages to the top window's input slots (WM_LBUTTONDOWN 2 (005F76A0), WM_RBUTTONDOWN 5
-sets +0x80, WM_LBUTTONDBLCLK 7 sets +0x7F, WM_KEYDOWN 9 (005F78C0), WM_CHAR 10 (005F7B40, unless the console or a
-multiplayer chat takes it), WM_KEYUP 11 (005F7BE0), WM_MOUSEWHEEL 12 (005F7880)). The container's dispatchers
-(`UiContainerInput`, input vtable 00740FD4): 00601110 (slot 2), 006011F0 (3), 006012D0 (4), 006013B0 (5), 00601490 (6),
-00601570 (7), 00601650 (8), 00601820 (9), 006018E0 (10), 006019A0 (11), 00601730 (12, RET 0x10, returns 1), 00601A60 (1,
-plain RET): identical apart from the slot; the original returns no value except the wheel's `MOV EAX,1`. Dispatch: the
-container's handled flag cleared; each extra input side (+0x158..+0x15C) gets its flag cleared and the event, and one
-that sets its flag ends it; then each enabled child (+0x148; mouse and wheel events also need 005FFD30 to hold the
-point) the same; the child and list end are re-read after each call; slot 1 calls every side and child and touches no
-flag. Verify (`DispatchCheck`, ours only): every flag is set to a marker 0x5A before the call and must be left exactly
-on those the dispatcher skipped; a handler that changed the lists makes the check skip. None is Rebirth-patched.
+The window procedure (00457970) maps messages to the top window's input slots (WM_LBUTTONDOWN 2 (005F76A0), WM_RBUTTONDOWN 5 sets +0x80,
+WM_LBUTTONDBLCLK 7 sets +0x7F, WM_KEYDOWN 9 (005F78C0), WM_CHAR 10 (005F7B40, unless the console or a multiplayer chat takes it), WM_KEYUP 11
+(005F7BE0), WM_MOUSEWHEEL 12 (005F7880)). The container's dispatchers (`UiContainerInput`, input vtable 00740FD4): 00601110 (slot 2), 006011F0
+(3), 006012D0 (4), 006013B0 (5), 00601490 (6), 00601570 (7), 00601650 (8), 00601820 (9), 006018E0 (10), 006019A0 (11), 00601730 (12, RET 0x10,
+returns 1), 00601A60 (1, plain RET): identical apart from the slot; the original returns no value except the wheel's `MOV EAX,1`. Dispatch: the
+container's handled flag cleared; each extra input side (+0x158..+0x15C) gets its flag cleared and the event, and one that sets its flag ends
+it; then each enabled child (+0x148; mouse and wheel events also need 005FFD30 to hold the point) the same; the child and list end are re-read
+after each call; slot 1 calls every side and child and touches no flag. Verify (`DispatchCheck`, ours only): every flag is set to a marker 0x5A
+before the call and must be left exactly on those the dispatcher skipped; a handler that changed the lists makes the check skip.
 
 ## 3. Interface base: frame update, text layout, console window, cursor (005E0000-00610000)
 
@@ -224,89 +213,78 @@ must compare counts, not identity.
 
 ## 5. Camp, global map, hero screens and the camp's panels
 
-Files: `ui_screens.h/.cpp`, `ui_camp.h` / `ui_camp.cpp`, `ui_global_map.cpp`, `ui_hero_panels.cpp`, `ui_item_strip.cpp`,
-`ui_trade_panel.cpp`, `ui_hero_screen_click.cpp`; wrappers `verify_ui_screens.cpp`, `verify_ui_camp.cpp`,
-`verify_ui_item_strip.cpp`, `verify_ui_trade_panel.cpp`, `verify_ui_hero_screen_click.cpp`; scenarios `ui_screens`,
-`ui_camp`, `ui_describe`, `ui_hero_screen`. Rebirth-patched here: 00613EA0, 00615D30, 0061B2C0, 0061D780, 0060C870, 0062F950
-(and callees 005E70E0, 005E7680, 005E6FA0, 005E7D60, 005FDE20, 005FC9E0, the panel builders 0063BAB0 ... 00648520, the price
-slot 54 0060FAB0, which are called through their original address or the vtable).
+Files: `ui_screens.h/.cpp`, `ui_camp.h` / `ui_camp.cpp`, `ui_global_map.cpp`, `ui_hero_panels.cpp`, `ui_item_strip.cpp`, `ui_trade_panel.cpp`,
+`ui_hero_screen_click.cpp`; wrappers `verify_ui_screens.cpp`, `verify_ui_camp.cpp`, `verify_ui_item_strip.cpp`, `verify_ui_trade_panel.cpp`,
+`verify_ui_hero_screen_click.cpp`; scenarios `ui_screens`, `ui_camp`, `ui_describe`, `ui_hero_screen`. Rebirth-patched here: 00613EA0, 00615D30,
+0061B2C0, 0061D780, 0060C870, 0062F950 (callees 005E70E0, 005E7680, 005E6FA0, 005E7D60, 005FDE20, 005FC9E0, the panel builders 0063BAB0 ...
+00648520 and the price slot 54 0060FAB0 are called through their original address or the vtable).
 
-**Reaching them.** `screen 5` opens the camp as the global map's camp button does ("constr.current" 0, no constructor);
-regions 5-10 and 4 ask for pages 1-6 and 0 (2-6 are not offered and fall back), regions 1 / 0 the hero arrows, 2 / 3 turn
-the hero; Esc (page 7) leaves; `screen 4` opens the global map (regions 0 / 1 turn it, Esc opens the escape menu over it).
-Constructor pages need a constructor record, which only a base's dialogue ("constrN" answers, 006064E0 -> 00578560(N) ->
-screen 5) or `screen 5 <N>` provides; setting "i.onspellconstr" / "i.onitemconstr" without one crashes the original too
-(00621377 in `RebuildList` reads 0x44: the lists are at `+0x1C8 + 0x40` / `+0x1B4 + 0x40`, the record's +0xAC / +0x3C, which
-stay 0). Not reached by a scenario: the constructor pages' Builds (006270A0, 006280C0, 00628CC0, 006279E0), CanMakeSpell /
-CanMakeItem, probably CanEquip, the hero screen's hero creation (00617A50).
+**Reaching them.** `screen 5` opens the camp as the global map's camp button does ("constr.current" 0, no constructor); regions 5-10 and 4 ask for
+pages 1-6 and 0 (2-6 are not offered and fall back), regions 1 / 0 the hero arrows, 2 / 3 turn the hero; Esc (page 7) leaves; `screen 4` opens the
+global map (regions 0 / 1 turn it, Esc opens the escape menu over it). Constructor pages need a constructor record, which only a base's dialogue
+("constrN" answers, 006064E0 -> 00578560(N) -> screen 5) or `screen 5 <N>` provides; setting "i.onspellconstr" / "i.onitemconstr" without one
+crashes the original too (00621377 in `RebuildList` reads 0x44: the lists are at `+0x1C8 + 0x40` / `+0x1B4 + 0x40`, the record's +0xAC / +0x3C,
+which stay 0). Not reached by a scenario: the constructor pages' Builds (006270A0, 006280C0, 00628CC0, 006279E0), CanMakeSpell / CanMakeItem,
+probably CanEquip, hero creation (00617A50).
 
 | Address | Name | Verify |
 |---|---|---|
-| 0062D350, 0062F050 | `CGlobalMap::Create` (slot 25, 6.7 KB), `Update` (slot 24) | ours: marker counts and arrays, 13 + markers sprites, 3 + links regions, 2 surfaces + backdrop, links point at zones; bob time, selection refresh, w >= 0 after a turn |
-| 00635250 | `CBattleScreenSetup::Create` (slot 25) | ours: 11 panels appended in order with their vtables and owner, 2 input handlers, textures, hero id (every scenario) |
-| 00611930, 006100E0 | `CCampPages::UpdateAction`, `CanEquip` (slot 43, AL) | side by side (ours releases what it made): cost, flags, made-or-not, button shades |
-| 0060E9E0, 0060F050 | `CCampPages::ShowPage`, `Draw` (slot 20) | ours: the shown page's panels exactly enabled, strip slots, button shades; Draw returns 1 |
-| 00612600, 00612290 | `CanMakeItem`, `CanMakeSpell` | ours: result iff a new item / container is held |
+| 0062D350, 0062F050 | `CGlobalMap::Create` (slot 25, 6.7 KB), `Update` | ours: marker / sprite / region counts, links point at zones; bob time, w >= 0 after a turn |
+| 00635250 | `CBattleScreenSetup::Create` (every scenario) | ours: 11 panels in order with vtables and owner, 2 input handlers, hero id |
+| 00611930, 006100E0 | `CCampPages::UpdateAction`, `CanEquip` (slot 43, AL) | side by side (ours releases what it made) |
+| 0060E9E0, 0060F050, 00612600, 00612290 | `ShowPage`, `Draw` (slot 20), `CanMakeItem`, `CanMakeSpell` | ours: the page's panels exactly enabled, strip slots; Draw returns 1; result iff an item / container is held |
 | 0060E6B0, 0060FE40, 0060E3E0, 0060FCA0, 0060F9E0, 0060F980, 0060F6B0, 0060F710 / 0060F7A0, 0060F830 | `Close` (slot 26), `TakeOff`, the trade panel's destructor body, `PutOn`, `RefreshWeapons` (46), `RefreshStats` (47), `Update` (24; the hero preview's turn through `_CIfmod`), `NextHero` / `PreviousHero` (48 / 49), `ShowHero` | ours only |
-| 00610AD0, 00610920 | `MoveItem` (slot 42, RET 8), `PutOnFromStrip` (RET 4) | ours only: refused leaves both counts, mode 0 takes off, mode 1 puts a weapon on a hero with room (ui_describe strip and body clicks) |
-| 00623880, 006233C0, 00622DB0 | `CHeroStatsPanel::DrawStats`, `ShowStats`, `Build` (slot 18) | ours: state untouched (GDI text only); 2 + 9 / 13 / 8 regions, page; counts, 8 texts |
-| 00622000, 00622A80 | `CHeroEquipPanel::Build`, `CHeroQuickStrip::Build` | ours: counts by `body`, rectangle, selection; 8 regions, 2 sprites |
-| 006270A0, 006279E0, 006280C0, 00628CC0 | `CTradeGrid::Build`, `CRepairGrid::Build`, `CConstructorPage::BuildSpellMaker`, `BuildItemMaker` | ours: 16 regions, 32 sprites, textures, surface; counts, texts, fields |
-| 00625880, 006261A0, 00624F10 | `CTradePanel::BuildLists`, `DrawLists`, `Build` (slot 18) | side by side: the four lists (texts, prices, levels, learnable flag), experience, scroll positions; surface pixels, scene object count, price sprites' quads; Build ours only: regions, sprites, titles, a record per party member |
-| 00610020, 006110F0 | `CCampScreen::BestPartySkill` (slot 45), `ShowPageTabs` (slot 44) | pure, original into scratch outputs; ours: the three strips' tabs (reads only the strips the page uses) |
-| 00618FF0, 00619090, 006193C0, 006188E0, 00618980, 00616900, 006177D0, 00617050 | `CMpHeroScreen::ClampHeroSelection`, `ClampVoiceSelection`, `EquipmentWeight` (slot 53, double in ST0), `CanEquip` (43, AL), `OnItemChosen` (42), `GetHero` (51), `OnLButtonUp`, `OnLButtonDown` (slot 2) | ours: index and visible row, the hero's voice file; pure; equipped slot; rotation stopped; per region (arrows: rotation and capture; mode changes; the inventory's camp on top; voice row; equipment taken back) |
-| 00620380, 00620960, 00620F10, 00621010, 00620E10, 006210F0, 006212A0, 00621420, 00621510, 00621530 | `CUiItemStrip::Build` (RET 4), `SetTab`, `OnMouseMove`, `OnLButtonUp`, `OnLButtonDown`, `OnWheel`, `OnLButtonDownForward`, `SetFilter`, `SelectTab`, `CycleTab` | Build side by side with its regions and sprites recorded and removed again; SetTab / MouseMove / LButtonUp: original, restore, ours (strip fields, tab shades, capture); the rest ours only (handled flag, arrow capture and direction, Shift jumps, pending scroll grows by delta / 120) |
-| 006218F0, 006219A0, 00621A80, 006212F0, 00621F30, 00620A50, 00621B50 | `ItemTab`, `SpellTab`, `ArmorTab` (pure), `RebuildList` (slot 26), `ItemAt` (25), `Update` (slot 24: scroll physics), `Draw` (slot 20 of the forwarding strip 0074197C; the camp and the exchange window use it) | ours: the list is the source items whose tab is the current one; ItemAt side by side (both rebuild); Update side by side (scroll fields +0x150..+0x17C put back; floats within 4 ULPs); Draw ours only: result 1, end faces' +0xCC dimmed exactly when the strip can scroll that way |
+| 00610AD0, 00610920 | `MoveItem` (slot 42, RET 8), `PutOnFromStrip` (RET 4) | ours only: refused leaves both counts, mode 0 takes off, mode 1 puts a weapon on a hero with room |
+| 00623880, 006233C0, 00622DB0, 00622000, 00622A80 | `CHeroStatsPanel::DrawStats`, `ShowStats`, `Build` (slot 18), `CHeroEquipPanel::Build`, `CHeroQuickStrip::Build` | ours: state untouched (GDI text only); region / sprite / text counts |
+| 006270A0, 006279E0, 006280C0, 00628CC0 | `CTradeGrid::Build`, `CRepairGrid::Build`, `CConstructorPage::BuildSpellMaker`, `BuildItemMaker` | ours: counts, textures, surface |
+| 00625880, 006261A0, 00624F10 | `CTradePanel::BuildLists`, `DrawLists`, `Build` (slot 18) | side by side: the four lists, experience, scroll positions; surface pixels, price sprites' quads; Build ours only |
+| 00610020, 006110F0 | `CCampScreen::BestPartySkill` (slot 45), `ShowPageTabs` (slot 44) | pure; ours: the three strips' tabs (only the strips the page uses) |
+| 00618FF0, 00619090, 006193C0, 006188E0, 00618980, 00616900, 006177D0, 00617050 | `CMpHeroScreen::ClampHeroSelection`, `ClampVoiceSelection`, `EquipmentWeight` (slot 53, double in ST0), `CanEquip` (43, AL), `OnItemChosen` (42), `GetHero` (51), `OnLButtonUp`, `OnLButtonDown` (slot 2) | ours / pure; OnLButtonDown per region (arrows, mode changes, the inventory's camp on top, voice row, equipment taken back) |
+| 00620380, 00620960, 00620F10, 00621010, 00620E10, 006210F0, 006212A0, 00621420, 00621510, 00621530 | `CUiItemStrip::Build` (RET 4), `SetTab`, `OnMouseMove`, `OnLButtonUp`, `OnLButtonDown`, `OnWheel`, `OnLButtonDownForward`, `SetFilter`, `SelectTab`, `CycleTab` | Build side by side with its regions and sprites recorded and removed again; SetTab / MouseMove / LButtonUp original, restore, ours; the rest ours only |
+| 006218F0, 006219A0, 00621A80, 006212F0, 00621F30, 00620A50, 00621B50 | `ItemTab`, `SpellTab`, `ArmorTab`, `RebuildList` (slot 26), `ItemAt` (25), `Update` (slot 24: scroll physics), `Draw` (slot 20 of the forwarding strip 0074197C; the camp and the exchange window use it) | pure; ours: the list is the source items of the current tab; ItemAt side by side; Update side by side (scroll fields +0x150..+0x17C put back, floats within 4 ULPs); Draw ours only |
 
 Hazards and facts (the code has the rest):
-- **Item strip**: `ItemAt` truncates `(x - 50) * 0.01f + position` with `_ftol` (the sum is not rounded to float first), `SetTab` settles
-  the old tab at `_ftol(pending + position)`, releasing an arrow (`SettleScroll`) keeps the fraction of the pending scroll and adds
-  or removes a whole slot when the fraction is under half; tab filters: filter 0 (items) parts and kind-1 items 0, spells and
-  modifiers 1, weapons / 0x3005 / armour / spell containers 2, quick items 3 (so quick items are listed in the strip's tab 2:
-  clicking tab 3 never equips them, see harness), 0x3009 4, others 5. `Update`'s branch-free FNSTSW selects pick the speed on NaN.
-- **Battle screen Create** reads its part of a save (007AFDF8; from 0x47 an int and a string appended to the top panel's text
-  and, on page 0, to the message log; from 0x62 +0x18C and +0x188), builds the unit panel, map, clock, movement and top panels
-  inline (window constructor 005FE700, owner +0x148) and puts the "pers <name>" texts into the map<int, CString> at +0x1F0.
-- **Global map**: positions are `centre + turn(local)` (centre = layout point (400, 280) at depth 10, `(x * 0.0025 - 1) *
-  0.48157 * depth`, each stored; `turn` = spin about z by +0x1FC times a tilt of 0.8 pi about x, the product inlined with its
-  own operand order: `TurnProduct`); markers come from the player's variables ("z.<zone>", "q.<zone>.<quest>" = 1 by bit
-  compare with 1.0f, ways out whose "z.<way>" equals 2 by FCOMP: unordered counts as equal); arriving from anything but the
-  camp autosaves to "saveb" when 0079BE7C is set; Update draws the weather (00499F10) into texture 4's locked surface under
-  the interface's critical section 007AEE78.
-- **Camp**: ShowPage: an unoffered page shows the current one again (recursively: the tail runs twice, as in the original);
-  constructor pages need +0x195 (spell) / +0x196 (item), their second pages also `!+0x254` ("i.noconstr"). UpdateAction (every
-  frame from Draw): page 0 repair-all, 1 level-up, 2 / 4 trade, 3 / 5 take apart or make, 6 repair; money below the cost disables
-  the button. MoveItem: slot 43 (CanEquip) first, refused = the cancel sound; moves go through 005EE1B0 (it reads the interface's
-  Shift flag +0x7D itself); items whose record +0x10 flag is set (made by a constructor) go back to the constructor's parts list
-  and strip (+0x1EC / +0x1F0), the others to the local player (00578BA0) and the item strip (+0x1E0). Hero skills
-  (`HeroSchoolSkill`, `HeroManaUnits`): 00527EB0's result is stored as float then FISTP; the mana maximum (00523F50) is stored as
-  float, divided by the period (00523CD0, unrounded) and truncated (`StoreFloat`: under /fp:fast the compiler drops the float
-  store). The statistics panel's "points left" is `ftol(75 - (float)sum)`. The sound system (005F7E60) gets the game's own string
+- **Item strip**: `ItemAt` truncates `(x - 50) * 0.01f + position` with `_ftol` (the sum is not rounded to float first), `SetTab` settles the old tab at
+  `_ftol(pending + position)`, releasing an arrow (`SettleScroll`) keeps the fraction of the pending scroll and adds or removes a whole slot when
+  the fraction is under half; `Update`'s branch-free FNSTSW selects pick the speed on NaN. Filter 0 puts quick items (0x3006) in tab 2 with weapons,
+  armour and spell containers; tab 3 holds class 0x3007, so clicking tab 3 never equips quick items (harness section).
+- **Battle screen Create** reads its part of a save (007AFDF8; from 0x47 an int and a string appended to the top panel's text and, on page 0, to the
+  message log; from 0x62 +0x18C and +0x188), builds the unit panel, map, clock, movement and top panels inline (window constructor 005FE700, owner
+  +0x148) and puts the "pers <name>" texts into the map<int, CString> at +0x1F0.
+- **Global map**: positions are `centre + turn(local)` (centre = layout point (400, 280) at depth 10, `(x * 0.0025 - 1) * 0.48157 * depth`, each
+  stored; `turn` = spin about z by +0x1FC times a tilt of 0.8 pi about x, the product inlined with its own operand order: `TurnProduct`); markers come
+  from the player's variables ("z.<zone>", "q.<zone>.<quest>" = 1 by bit compare with 1.0f, ways out whose "z.<way>" equals 2 by FCOMP: unordered
+  counts as equal); arriving from anything but the camp autosaves to "saveb" when 0079BE7C is set; Update draws the weather (00499F10) into texture 4's
+  locked surface under the interface's critical section 007AEE78.
+- **Camp**: an unoffered page shows the current one again (recursively: the tail runs twice, as in the original); constructor pages need +0x195 (spell)
+  / +0x196 (item), their second pages also `!+0x254` ("i.noconstr"); money below the cost disables an action button. MoveItem: slot 43 (CanEquip) first,
+  refused = the cancel sound; moves go through 005EE1B0 (it reads the interface's Shift flag +0x7D itself); items whose record +0x10 flag is set (made by a
+  constructor) go back to the constructor's parts list and strip (+0x1EC / +0x1F0), the others to the local player (00578BA0) and the item strip (+0x1E0).
+  A hero record keeps a clone of a weapon put on (006608D0 copies the item): compare counts, not identity. Hero skills (`HeroSchoolSkill`,
+  `HeroManaUnits`): 00527EB0's result is stored as float then FISTP; the mana maximum (00523F50) is stored as float, divided by the period (00523CD0,
+  unrounded) and truncated (`StoreFloat`: under /fp:fast the compiler drops the float store). The sound system (005F7E60) gets the game's own string
   pointers, not copies.
-- **Trade panel** (vtable 007417A8; the camp's +0x1F4, the hero screen's +0x1C4): rows of 0x18 bytes (STLport vectors); perk
-  text keys are the record's +4 name without trailing "123" plus "0"; held perks are a level byte per group of three skill records
-  (007AF268, 0x44 bytes); DrawLists leaves the third school's row empty. **The hero screen's rotation state is window +0x1E4 (the
-  turn +0x1E0), not +0x150**: `rotating_` was once declared at +0x150, so the button-up left the real state set and the preview
-  kept turning (fixed). Hero screen modes: 9 hero list (0 back, 1 continue 006183B0, 2 / 3 arrows, 5 new hero (mode 10), 6
-  rename, 7 delete "lmp_deletepers", 8 the hero's inventory = the camp screen built inline with `fromHeroScreen_` 1, rows 9-18),
-  10 new hero (1 create 006186F0, 4 defaults, rows 9-19 the voice), 11 equipment (1 next 00617A50).
+- **Trade panel** (vtable 007417A8; the camp's +0x1F4, the hero screen's +0x1C4): rows of 0x18 bytes (STLport vectors); perk text keys are the record's
+  +4 name without trailing "123" plus "0"; held perks are a level byte per group of three skill records (007AF268, 0x44 bytes). **The hero screen's
+  rotation state is window +0x1E4 (the turn +0x1E0), not +0x150**: `rotating_` was once declared at +0x150, so the button-up left the real state set and
+  the preview kept turning (fixed). Hero screen modes: 9 hero list (rows 9-18; 1 continue 006183B0, 5 new hero, 6 rename, 7 delete "lmp_deletepers", 8 the
+  hero's inventory = the camp screen built inline with `fromHeroScreen_` 1), 10 new hero (1 create 006186F0, rows 9-19 the voice), 11 equipment (1 next
+  00617A50).
 
-Original quirks kept: the global map's marker array templates have uninitialised numbers (overwritten right after; ours 0); the
-camp Draw passes hover info to 005F1590 with uninitialised bytes +4..+0x13 unless a panel fills them (ours zeroes);
-`CanMakeSpell` keeps the modifiers in an 8-entry stack array without a bound; `CanEquip` on page 1 reads the container's spell
-(+0x44) without a null check; `CanMakeItem`'s item type stays unset without a part; `SpellTab` / `ArmorTab` read the record
-through null when the record index is out of range; `ClampVoiceSelection` with an empty voice list reads the entry before the
-vector; the trade panel's BuildLists pushes copies of a row whose price, level and flag are uninitialised stack bytes (ours 0;
-a held perk at the last record reads the next record's name through null); 00626F10 leaves +0x2B and +0x39..+0x3B of each
-record unwritten.
+Original quirks kept: the global map's marker array templates have uninitialised numbers (overwritten right after; ours 0); the camp Draw passes hover info
+to 005F1590 with uninitialised bytes +4..+0x13 unless a panel fills them (ours zeroes); `CanMakeSpell` keeps the modifiers in an 8-entry stack array
+without a bound; `CanEquip` on page 1 reads the container's spell (+0x44) without a null check; `CanMakeItem`'s item type stays unset without a part;
+`SpellTab` / `ArmorTab` read the record through null when the record index is out of range; `ClampVoiceSelection` with an empty voice list reads the entry
+before the vector; the trade panel's BuildLists pushes copies of a row whose price, level and flag are uninitialised stack bytes (ours 0; a held perk at
+the last record reads the next record's name through null), `DrawLists` leaves the third school's row empty, 00626F10 leaves +0x2B and +0x39..+0x3B of
+each record unwritten.
 
-Not rewritten: the credits' parser details (section 4), 00612CF0 (camp slot 39, a debug fill; no caller but the vtable), 00626920
-(trade panel click), drawing slots 20 of the panels (00622C10, 006284A0, 00628F80, 00627C90; the trade grid draw 00627390 is in
-`ui_trade_grid_draw.cpp`, renderer.md), 00624A60 / 00624790 (stats update and click), 00611220 / 00611760 (the camp's action
-buttons; the deal button needs a hero who can level up or the item constructor), 00616560 / 006167C0 (hero screen voice
-drawing), 006242E0 / 00624CB0, 0062CF70, 006312C0 (the global map's path search, reached only from the click 0062F950), 00617A50
-(creates the hero: .mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens
-(0061C430, 0061C700, 0061D470, 0061E2F0 ..., 00618A10, 00617A50, 00616AC0, 006159E0) need a network session, no scenario.
+Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable), 00626920 (trade panel click), drawing slots 20 of the panels (00622C10,
+006284A0, 00628F80, 00627C90; the trade grid draw 00627390 is in `ui_trade_grid_draw.cpp`, renderer.md), 00624A60 / 00624790 (stats update and click),
+00611220 / 00611760 (the camp's action buttons; the deal button needs a hero who can level up or the item constructor), 00616560 / 006167C0 (hero screen
+voice drawing), 006242E0 / 00624CB0, 0062CF70, 006312C0 (the global map's path search, reached only from the click 0062F950), 00617A50 (creates the hero:
+.mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...,
+00618A10, 00616AC0, 006159E0) need a network session, no scenario.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
@@ -322,17 +300,15 @@ the Rebirth-patched callees 005E70E0, 005E7680, 005E7D60, 005FDE20, 005F8340, 00
 
 | Address | Name | Verify | Scenario |
 |---|---|---|---|
-| 00638280 | `CBattleScreenSetup::Update` (slot 24, every frame) | ours: quest sound consumed, a cleared zone-exit flag opened a window, single player party untouched, selection box marks = the world's box query | every game scenario |
-| 0063D2B0, 0063E820, 0063C180, 0063F800 | `CHudQuickItems::SetUnit`, `CHudSpellColumn::SetUnit`, `CHudWeaponBar::SetUnit`, `CHudActionColumn::SetUnit` (RET 8) | side by side: fields, entries, region items, each sprite's position / rotation / texture corner / colour, regions and each tooltip's lines, size, arguments | every game scenario (via 00637DC0, 00638280) |
-| 0063CEE0 | `CHudQuickItems::ItemTip` (RET 8) | side by side: the original into a copy of the caller's CString, ours into it | every game scenario |
-| 00639EF0 | `CBattleScreen::HoverUnit` (RET 0xC) | side by side (ours, cursor shape put back, original): cursor shape and the panel's hover unit | every game scenario (the draw sends a mouse move every frame) |
-| 00639D60, 0063B920 | `OnMouseMove` (slot 4, RET 0xC), `UnitName` (RET 8) | side by side: cursor shape, handled flag, +0x1C1, the box +0x1CC, the unit panel's hover unit; UnitName into a scratch CString | every game scenario |
-| 00638B30 | `OnLButtonUp` (slot 3, RET 0xC) | ours only: nothing with a portrait pick pending, otherwise a press on the view consumed | ui_hud, world_client, ui_describe |
-| 00637DC0 | `RefreshSelection` | ours only: the four panels' unit (+0x154) the one living selected unit or none, the unit panel's +0x14C the first selected unit or null (the original stores it before testing: 00637EE5), pending action and highlights cleared | every game scenario (slots 28 / 29 / 30, ToggleMember, a box drag, a network party change end with it) |
-| 00636F10, 006379E0, 00637190, 006373A0 | `OrderAt` (RET 0x14), `ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8) | ours only: each member selected before nods (+0x38 1, or 2 when it answered at once) with a non-positive delay; exit flag +0x18C and +0x188; markers / rest orientation / flag 0x10 for the toggle | ui_order_move, ui_hud and ui_battle_commands (portrait click, `clickunit`) |
-| 006366F0, 006369D0 | `OnUnitSpeech` (slot 32, RET 0xC), `OnQuestVariable` (slot 33, RET 8) | ours only: the top panel's text only grows and ends with a line end; event 0x30 the members' timed face, 0xB..0x15 their shake; quest notice line, clock pulse, sound request did not drop | any unit speaking; ui_quest_notice |
-| 00637500, 00637750 | `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14) | ours only: each member the unit's own check allows (CanCastSpell 0052F820 / CanUseQuickItem 0052F8B0, asked before) nods; nothing pending afterwards (+0x17C 0, +0x180 / +0x184 -1), the three panels' +0x150 -1 | ui_battle_spells, ui_quick_items |
-| 0063DB20, 0063EC90, 0063FB50, 0063DD70 | `CHudQuickItems::OnMouseUp` (RET 0xC), `CHudSpellColumn::Click`, `CHudActionColumn::Select`, `CHudQuickItems::Pick` (RET 4) | OnMouseUp ours only (capture released when taken, handled flag when the region has an entry, resulting pending mode); the others side by side from the same state: pending action, the three panels' +0x150, colour / scale of every button sprite | ui_battle_spells, ui_quick_items; 0063A560's spell keys call them by address |
+| 00638280 | `CBattleScreenSetup::Update` (slot 24, every frame) | ours: quest sound consumed, exit window, selection box marks | every game scenario |
+| 0063D2B0, 0063E820, 0063C180, 0063F800 | `CHudQuickItems::SetUnit`, `CHudSpellColumn::SetUnit`, `CHudWeaponBar::SetUnit`, `CHudActionColumn::SetUnit` (RET 8) | side by side: fields, entries, sprites, regions, tooltip lines | every game scenario (via 00637DC0) |
+| 0063CEE0, 00639EF0 | `CHudQuickItems::ItemTip` (RET 8), `CBattleScreen::HoverUnit` (RET 0xC) | side by side (ItemTip into a copy of the caller's CString; HoverUnit: cursor shape and hover unit) | every game scenario (the draw sends a mouse move every frame) |
+| 00639D60, 0063B920, 00638B30 | `OnMouseMove` (slot 4, RET 0xC), `UnitName` (RET 8), `OnLButtonUp` (slot 3, RET 0xC) | side by side (cursor shape, handled flag, +0x1C1, box +0x1CC, hover unit; UnitName into a scratch CString); ours only: press on the view consumed | every game scenario; ui_hud, world_client, ui_describe |
+| 00637DC0 | `RefreshSelection` | ours only: the panels' unit +0x154 and the unit panel's +0x14C (the original stores the first selected unit before testing: 00637EE5), pending action cleared | every game scenario (slots 28 / 29 / 30, ToggleMember, a box drag, a network party change end with it) |
+| 00636F10, 006379E0, 00637190, 006373A0 | `OrderAt` (RET 0x14), `ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8) | ours only: members nod (+0x38 1, or 2) with a non-positive delay; exit flag +0x18C / +0x188; markers and flag 0x10 for the toggle | ui_order_move, ui_hud, ui_battle_commands |
+| 006366F0, 006369D0 | `OnUnitSpeech` (slot 32, RET 0xC), `OnQuestVariable` (slot 33, RET 8) | ours only: the top panel's text only grows; faces / shake by event; quest line, clock pulse | any unit speaking; ui_quest_notice |
+| 00637500, 00637750 | `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14) | ours only: each member the unit's own check allows (CanCastSpell 0052F820 / CanUseQuickItem 0052F8B0) nods; nothing pending afterwards | ui_battle_spells, ui_quick_items |
+| 0063DB20, 0063EC90, 0063FB50, 0063DD70 | `CHudQuickItems::OnMouseUp` (RET 0xC), `CHudSpellColumn::Click`, `CHudActionColumn::Select`, `CHudQuickItems::Pick` (RET 4) | OnMouseUp ours only (capture, handled flag, pending mode); the rest side by side: pending action, panels' +0x150, button sprites | ui_battle_spells, ui_quick_items; 0063A560's spell keys call them by address |
 
 How they chain (the code has the details):
 - **Selection.** `RefreshSelection` is the hub: a single living selected member (flag 0x10; slot 55 = dead) goes to the weapon
@@ -403,16 +379,16 @@ sectors 35..80), top panel 180..620 x 0..100 (sling 385..415 x 0..20, page butto
 
 | Panel | Handlers (address) | Verify |
 |---|---|---|
-| `CHudWeaponBar` | OnMouseDown 0063C6D0, OnMouseMove 0063C7D0; OnMouseUp 0063C710, Update 0063C600 (every frame), Draw 0063C4F0 | side by side; ours only: capture, handled flag, selected slot (follows the unit's +0x270); Draw returns 1, alpha states restored, specular off |
-| `CHudQuickItems` | OnMouseDown 0063DAA0, OnDoubleClick 0063DAE0, OnMouseMove 0063E270; Update 0063D9D0 | side by side; ours only: panel state unchanged |
-| quick items / spell column / action column Draw | 0063CDC0, 0063F190, 0063FD50 (identical) | ours only: returns 1, specular off |
+| `CHudWeaponBar` | OnMouseDown 0063C6D0, OnMouseMove 0063C7D0; OnMouseUp 0063C710, Update 0063C600 (every frame), Draw 0063C4F0 | side by side; ours only (Draw: returns 1, alpha states restored) |
+| `CHudQuickItems` | OnMouseDown 0063DAA0, OnDoubleClick 0063DAE0, OnMouseMove 0063E270; Update 0063D9D0 | side by side; ours only |
+| quick items / spell column / action column Draw | 0063CDC0, 0063F190, 0063FD50 (identical) | ours only: returns 1 |
 | `CHudSpellColumn`, `CHudActionColumn` | OnMouseDown 0063F1E0 / 0063FDA0, OnDoubleClick 0063F220, OnMouseMove 0063F2D0 / 0063FE40; OnMouseUp 0063F260 / 0063FDE0 | side by side; ours only |
-| `CHudPortraits` | OnMouseDown 00641CE0, OnMouseUp 00641E20, OnMouseMove 00641EA0 | ours only: capture, handled flag, portrait mode reset |
-| `CHudMap` | OnMouseDown 00645060; OnMouseMove 00645610, OnWheel 00645640 | ours only: capture, handled, view and button tints; side by side |
-| `CHudUnitPanel` | OnMouseDown 00648330, OnMouseMove 006484C0, OnWheel 006484F0; OnMouseUp 00648370 | side by side (wheel also the result); ours only: capture, sling, body part, tints |
-| `CHudClock`, `CHudMovePanel`, `CHudTopPanel` | OnMouseDown 00648D30 / 00649630 / 0064A1C0, OnMouseMove 00649160 / 00649750 / 0064A2C0, OnWheel 0064A2F0; OnMouseUp 00649670 / 0064A200, MovePanel Update 00649550 | side by side; ours only: capture, handled flag, common flag recomputed, sling, page |
-| per frame | `CHudMap::BuildMarkers` 00643DC0 (3.4 KB), `UpdateView` 00642E80 (3.9 KB), `CHudPortraits::Update` 00641080 (3.2 KB), `CHudClock::Update` 006488E0, `CHudTopPanel::Update` 00649FF0 | side by side with state put back (mesh arrays and renderer fields byte for byte; centre / facing, needle, clipped polygon; slots and the game RNG; clock phases and sprites; slide state) |
-| `DrawUnitInfo` | 00647040 (from 006462A0, Rebirth-patched; RET 4) | ours only: the unit's health / mana words, panel surface and label table unchanged |
+| `CHudPortraits` | OnMouseDown 00641CE0, OnMouseUp 00641E20, OnMouseMove 00641EA0 | ours only |
+| `CHudMap` | OnMouseDown 00645060; OnMouseMove 00645610, OnWheel 00645640 | ours only; side by side |
+| `CHudUnitPanel` | OnMouseDown 00648330, OnMouseMove 006484C0, OnWheel 006484F0; OnMouseUp 00648370 | side by side (wheel also the result); ours only |
+| `CHudClock`, `CHudMovePanel`, `CHudTopPanel` | OnMouseDown 00648D30 / 00649630 / 0064A1C0, OnMouseMove 00649160 / 00649750 / 0064A2C0, OnWheel 0064A2F0; OnMouseUp 00649670 / 0064A200, MovePanel Update 00649550 | side by side; ours only |
+| per frame | `CHudMap::BuildMarkers` 00643DC0 (3.4 KB), `UpdateView` 00642E80 (3.9 KB), `CHudPortraits::Update` 00641080 (3.2 KB), `CHudClock::Update` 006488E0, `CHudTopPanel::Update` 00649FF0 | side by side with state put back (mesh arrays byte for byte; slots and the game RNG) |
+| `DrawUnitInfo` | 00647040 (from 006462A0, Rebirth-patched; RET 4) | ours only: unit, surface and label table unchanged |
 
 Rebirth-patched (hookable in the vanilla install only; callers here use the original addresses): 00630010, 00636020, 00638EF0,
 0063A560, 0063BAB0, 0063BCC0, 0063C050, 0063C800, 0063CAE0, 0063E2A0, 0063E4B0, 0063F300, 0063F500, 00641F20, 00642930, 00642B40,
@@ -447,14 +423,13 @@ list rows 108..370 x 108.. in 24 steps; options OK 213..287, Cancel 513..587, gr
 
 | Address | Name | Verify |
 |---|---|---|
-| 00654660, 006547B0, 006544A0, 006545E0, 00654430, 00654450 | `CSaveLoadWindow::OnMouseDown`, `OnDoubleClick`, `Draw` (slide-in), `Update`, `CloseDialog`, `OnDialogResult` (slot 27; the caller 005F590D ignores EAX) | ours only: selection and pending close value; Draw returns 1 and the surface is frozen exactly when resting; slide grows and ends past 1 |
-| 00650C20, 00650D70, 00650920, 00650A20, 006508E0, 00650900, 00650A30 | `COptionsWindow::OnMouseDown`, `OnDoubleClick`, `Draw`, `Redraw`, `OnDialogResult`, `HelpTopic` (pure), `Update` | ours only: pending close, selected row, key wait flag; slide rule, settings take the moved bars' positions |
-| 00653DD0, 006503C0 | `CSaveLoadWindow::Build`, `COptionsWindow::Build` (slot 25) | ours: counts of what is added, selection and offered name; counts, group titles, flags |
-| 006548A0, 00655430, 00657820, 00650E40 | `CSaveLoadWindow::OnKeyDown`, `ShowSelection`, `IsReservedSave` (pure), `COptionsWindow::OnKeyDown` | ours only: Esc leaves pending 0x100001 / 0x110001; Up / Down / PgUp / PgDn clamped selection (options: nearest row with a binding or spin control); Enter handled / starts a binding; name keys keep the caret within the name; while waiting for a binding the event is handled and Esc's scan code (1) stops it |
-| 0065B090, 0065B360, 0065B240, 0065B340 | `CUiScrollbar::TakePosition`, `Update` (every frame, also the battle screen's message log), `OnMouseDown`, `OnMouseUp` | side by side (result, position, flag; capture, handled, state, grab, accumulator); Update ours only: leftover within (-1, 1) |
-| 0065EA50, 0065EA80 | `CUiTooltip::Draw`, `Redraw` (every frame per tooltip) | ours only: result, state |
-| 0065D4B0 | `CUiScrollText::Tokenize` | original first on a stand-in (interface pointer and a copy of the token array), ours on the window: appended tokens compared (vtable, type; format: line break, font, colour; word: text, width) |
-| 0064BE80, 0064CC10, 0064DC60 | `CObjectivesWindow::Build` (slot 25, 3.5 KB), `ShowZone` (3.4 KB), `ShowQuest` (`__fastcall`, from RefreshQuests 0064E8B0) | ours: 3 objective texts, the scroll bar, the zone page's structure; 9 + n regions, 21 + n sprites (n = the zone's exits that lead somewhere), the shown zone's name; the shown quest is the selected one, extra sprites / regions are the quest places' or none |
+| 00654660, 006547B0, 006544A0, 006545E0, 00654430, 00654450 | `CSaveLoadWindow::OnMouseDown`, `OnDoubleClick`, `Draw` (slide-in), `Update`, `CloseDialog`, `OnDialogResult` (slot 27; the caller 005F590D ignores EAX) | ours only: selection and pending close value; Draw returns 1; slide ends past 1 |
+| 00650C20, 00650D70, 00650920, 00650A20, 006508E0, 00650900, 00650A30 | `COptionsWindow::OnMouseDown`, `OnDoubleClick`, `Draw`, `Redraw`, `OnDialogResult`, `HelpTopic` (pure), `Update` | ours only: pending close, selected row, key wait flag |
+| 00653DD0, 006503C0 | `CSaveLoadWindow::Build`, `COptionsWindow::Build` (slot 25) | ours: counts of what is added |
+| 006548A0, 00655430, 00657820, 00650E40 | `CSaveLoadWindow::OnKeyDown`, `ShowSelection`, `IsReservedSave` (pure), `COptionsWindow::OnKeyDown` | ours only: Esc leaves pending 0x100001 / 0x110001; selection clamped; caret within the name |
+| 0065B090, 0065B360, 0065B240, 0065B340 | `CUiScrollbar::TakePosition`, `Update` (every frame, also the battle screen's message log), `OnMouseDown`, `OnMouseUp` | side by side; Update ours only |
+| 0065EA50, 0065EA80, 0065D4B0 | `CUiTooltip::Draw`, `Redraw` (every frame per tooltip), `CUiScrollText::Tokenize` | ours only; Tokenize: original on a stand-in (copy of the token array), appended tokens compared |
+| 0064BE80, 0064CC10, 0064DC60 | `CObjectivesWindow::Build` (slot 25), `ShowZone`, `ShowQuest` (`__fastcall`, from RefreshQuests 0064E8B0) | ours: texts, scroll bar, page structure (9 + n regions, 21 + n sprites); the shown quest is the selected one |
 
 Key handlers run only when the window is not sliding in, pass the key to the base handler (00601820) first and set the input
 side's handled flag (+8) for the keys they use. In a save window Backspace / Delete / Home / End / Left / Right edit the name (+0x188,
@@ -504,15 +479,15 @@ rows may be missed, harmless).
 
 | Address | Name | Verify | Scenario |
 |---|---|---|---|
-| 005F1590, 005EE760, 005F0370, 005EF5D0, 005EFD90, 005F0B90, 005EF300, 005F1130, 005F2910 | `CItemInfoPanel::DescribeStats` (4.9 KB, RET 4), `DescribeItem`, `DescribeBlueprint`, `DescribeCarriedSpell`, `DescribeMaterial`, `DescribeSpellRecord`, `DescribeQuickItem` (category 8), `DescribeModifierRecord`, `ShowHelp` | side by side on the panel surface's pixels (a DirectDraw lock outside the functions' own GetDC / ReleaseDC; sub-descriptions run their own wrappers nested; rule in section 3) | ui_camp (every frame), ui_describe (kinds 0-7, items, rune with Ctrl over the spell axe); blueprint, material, spell record, modifier: none |
-| 005ECA10 | `CItemScreen::DrawItem` (RET 8) | side by side: the model's fields and the item's turning state (put back between runs; an item is drawn twice per frame in the verify build) | ui_camp, ui_screens, ui_describe |
-| 005E8450, 005E91F0, 005E8C60, 005E9F30 | `CUiMeshBuilder::Framed`, `Ring` (RET 0x2C), `Disc` (RET 0x24), `ResetColours` | side by side, sprite arrays poisoned with 0xCD between runs and every part rewritten identically; Place (Rebirth-patched) runs in both; Commit's +0xC4 (index array data pointer) compared as "points at the current indices" (the builders empty it with SetSize(0), which frees it) | every scenario (map panel, clock, movement panel), ui_camp |
-| 005EE5C0, 005EE6C0, 005EE640, 005EE680, 005EE6B0, 005EE440 | `CItemInfoPanel::Draw` (slot 20), `Describe`, `OnKeyDown` / `OnKeyUp` (slots 9 / 11), slot 1, `Build` | ours: returns 1; the list holds one item (none for null); item list unchanged | ui_describe (`key ctrl`) |
-| 005F13A0 | `ItemDamageLists` (RET 4: the seven damage values against the threshold into a CStringArray) | side by side on a scratch array; EI_Plugin patches a JMP at +0x61 (config/rebirth_patches.csv), so ours runs in vanilla only | |
-| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | `CUiSurface::CaptureScreen`, `Rgb565Copy` (slot 4; the save game's picture), `Greyscale` (grey = (2r + 4g + b) / 16 in each format's units), `SwapContents` (Freeze's helper; totals 007C7E74 / 007C7E78), `PixelAt` (RET 8) | side by side on the surface's pixels; SwapContents ours only against the raw surface bytes | ui_screens (the escape menu's Draw 005F5320 runs CaptureScreen, Rgb565Copy(256, 192), Greyscale when it opens) |
-| 005FCC00, 005FCDD0, 005FCF80, 005FD120 | `CUiSurface` constructors, picture window ("<name>.mmp" via 004EFC60; dead), destructor body | ours only | |
-| 005ED7B0, 005EC020, 005EC300 | `DrawHeroFace` (RET 8; 8 hero faces from 00629AF0; EI_Plugin's fix at +0xD9 keeps the original under the plugin), `ItemFigureTexture` (256x256 texture from "<name>.mmp" via converter 007AF06C slot 5, packed 1:5:5:5; lock without DDLOCK_WAIT, left held if the error report returns 0), `CUiWindow::DrawHeroPreview` (RET 0x14) | side by side on the face model / both textures' written pixels; DrawHeroPreview ours only: the model's position / orientation and flag 0x800 (the animation step and drawing may change other bits of +0x08), light factors, the pass's colour as before | |
-| 005EDD80, 005F2A90, 005F2F20, 005F2F90 | `CItemScreen::CreateBase`, `CItemIconWindow::Build` (31 frame sprites), `TrimItemModels` / `TrimItemTextures` (least recently used first) | ours only | |
+| 005F1590, 005EE760, 005F0370, 005EF5D0, 005EFD90, 005F0B90, 005EF300, 005F1130, 005F2910 | `CItemInfoPanel::DescribeStats` (4.9 KB, RET 4), `DescribeItem`, `DescribeBlueprint`, `DescribeCarriedSpell`, `DescribeMaterial`, `DescribeSpellRecord`, `DescribeQuickItem` (category 8), `DescribeModifierRecord`, `ShowHelp` | side by side on the panel surface's pixels (DirectDraw lock outside the functions' own GetDC / ReleaseDC; sub-descriptions run their wrappers nested; rule in section 3) | ui_camp, ui_describe (blueprint, material, spell record, modifier: none) |
+| 005ECA10 | `CItemScreen::DrawItem` (RET 8) | side by side: model fields and turning state (an item is drawn twice per frame in the verify build) | ui_camp, ui_screens, ui_describe |
+| 005E8450, 005E91F0, 005E8C60, 005E9F30 | `CUiMeshBuilder::Framed`, `Ring` (RET 0x2C), `Disc` (RET 0x24), `ResetColours` | side by side, sprite arrays poisoned with 0xCD and rewritten identically; Commit's +0xC4 (index array pointer) compared as "points at the current indices" (the builders free it with SetSize(0)) | every scenario |
+| 005EE5C0, 005EE6C0, 005EE640, 005EE680, 005EE6B0, 005EE440 | `CItemInfoPanel::Draw` (slot 20), `Describe`, `OnKeyDown` / `OnKeyUp`, slot 1, `Build` | ours: returns 1; the list holds one item | ui_describe (`key ctrl`) |
+| 005F13A0 | `ItemDamageLists` (RET 4) | side by side on a scratch array; EI_Plugin patches a JMP at +0x61 (config/rebirth_patches.csv), so ours runs in vanilla only | |
+| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | `CUiSurface::CaptureScreen`, `Rgb565Copy` (the save game's picture), `Greyscale` (grey = (2r + 4g + b) / 16), `SwapContents` (Freeze's helper), `PixelAt` (RET 8) | side by side on the surface's pixels; SwapContents ours only | ui_screens (the escape menu's Draw runs CaptureScreen, Rgb565Copy(256, 192), Greyscale when it opens) |
+| 005FCC00, 005FCDD0, 005FCF80, 005FD120 | `CUiSurface` constructors, picture window (dead), destructor body | ours only | |
+| 005ED7B0, 005EC020, 005EC300 | `DrawHeroFace` (RET 8; EI_Plugin's fix at +0xD9 keeps the original under the plugin), `ItemFigureTexture` (256x256 from "<name>.mmp" via converter 007AF06C slot 5; lock without DDLOCK_WAIT, left held if the error report returns 0), `CUiWindow::DrawHeroPreview` (RET 0x14) | side by side on the face model / both textures' pixels; DrawHeroPreview ours only: position / orientation and flag 0x800 (other bits of +0x08 may change) | |
+| 005EDD80, 005F2A90, 005F2F20, 005F2F90 | `CItemScreen::CreateBase`, `CItemIconWindow::Build`, `TrimItemModels` / `TrimItemTextures` | ours only | |
 
 Facts and hazards: the camp creates two panels, the description panel (+0x164 at 600, 100) and the help panel (+0x1DC at 0, 100); the
 owner (+0x14C) is the item screen and +0x150 an item list holding a copy of the described item (00661DB0). `DescribeItem` dispatch: kind
@@ -540,60 +515,43 @@ only" (left for a pass that adds a base scenario). 005E6D90 (sprite draw) and th
 
 ## 10. Harness steps and scenario lessons for the interface
 
-Steps added for UI work (`tests/verify/harness.cpp`; README has the general list): `screen <id>`, `clickregion` / `moveregion` (the
-centre of a region of the top window wherever the layout put it), `wheel <x> <y> <delta>`, `dblclick` / `rdblclick`, key names `ctrl`,
-`grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar`, `hudstate [minquick]` (logs the battle screen's pending
-action, each member's selection flag and quick items (00531920), the quick item panel's unit, entries and region items and the spell
-column's count and highlight; with a number fails when the panel shows fewer of its unit's own quick items), `campputon <type>
-<count>` (with the camp on top, the first <count> items of class <type> of the strip's source list go through the camp's slot 42
-`MoveItem` with mode 1, what a click does; logs every source item's type), `zone <name> [exit]` / `waitzone <seconds> <name>`.
-
-**`clickunit <name> [l|r|move] [ctrl]`.** The game picks through the client world's (007AF5B8) list at +0xF0 (node: next +0, value +8 of
-0x18 bytes with the object id at +0xC and a screen RECT at +0x10) of the objects drawn this frame (rectangles from projected vertices,
-renderer.md section 3); 00565E40 (thiscall, RET 4; the button release 00638B30 calls it with the message's own x, y) gathers entries whose
-rectangle holds the point (005718B0: PtInRect, then the object's +0x94 slot 24 finer test), sorts by depth (005659D0) and returns the
-first unit (type 0x50); the release then wants flag 0x400000. The step takes the unit's id from its script name (00461360), finds its
-rectangle in this frame's list, tries the centre and then a 9x9 grid inside it (middle outwards) with 00565E40 until the game's own pick
-answers with that unit, and posts the click there (client coordinates as the window procedure 00457970 passes them on), so the click
-cannot land on a unit in front. It fails when the unit is not in the list (off screen, not drawn yet) or hidden everywhere in its
-rectangle, and logs the unit's flags (no 0x400000: the battle screen ignores it). `ctrl` posts Ctrl down (scan 0x1D) before and up after
-the click (SelectUnit's +0x7C branch then orders an attack on any living unit, 00637190).
-
-**`zone <name> [exit]`** looks the name up in the map database (0045E850; an unknown name would make StartZone show a fatal error,
-so the step fails instead), finds the local player (server world 007AFF60, `GetPlayer` 00594180 with player number 0; world +0x5C
-is not that number) and calls `LeaveToZone` (0066F310) on its connection (+0x20), as the zone exit handler (00670C20) and the
-script command 0x8A do. It needs state 1; in campaign mode 1 or 3 a dead or missing leader loses the game instead. `waitzone`
-passes once no game request is pending, the campaign mode (007C2CC4) is not 2 (menu), the server world's zone name (+0x120, set
-by NewZone 00595480) is `<name>` and the connection is back in state 1; the party appears a little later (Redeploy), so follow
-it with `waitfor ... HP(GetLeader())`. `exit` is stored in the world player's +0xDC (target zone +0xD8); Redeploy (00590700,
-modes 1 and 3) creates the party at the centre of that exit's deploy rectangle (exit +0x04..+0x10), facing away from the map
-centre unless the exit has a `#deployangle`; an index outside the zone's exits leaves the party at (0, 0); the index counts
-`#exit` blocks from 0, i.e. map.txt's `#exit n` minus 1. Zones come from map.txt (texts.res): game `gz1g`..`gz21g`, brief
-`bz1g`..`bz18h`, edge zones `<a>_<b>` (no `#res`, mode 4, the global map's travel; `waitzone` does not recognise them); some exits
-are one-way entrances (`none 0`: gz1g's #exit 1, gz4g's 5, bz4g's and bz13h's 1, gz11k's 4, gz15h's 2..4, gz20g's); `gz21g` names
-zonemichel.mpr / .mob which the install lacks (NewZone fails; untested); `gz6g` loads its frozen map when `z.gz6g.frozen` is
-nonzero; no zone needs quest state to load. Not tried: edge zones, `endofgame`, leaving a zone other than zone1. Scenarios
-`zone_gz2g_traps` (party at (67, 15), zone2's traps 1324..1330, MTF4 armed with a wolf), `zone_base_bz1g` (mode 3, party at
-(59.25, 54.25), the base's Smith), `zone_gz3g` (party at (23, 138.5), the Pyramid trap 4515): the first central run decides
-whether their position, trap and Smith checks hold.
+The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `dblclick`, `clickunit`, `hudstate`, `campputon`, `zone` /
+`waitzone`, key names `ctrl`, `grave`, ... `enterchar`) are documented in the header of `tests/verify/harness.cpp`. Facts behind them:
+- **Picking** (`clickunit`): the client world (007AF5B8) keeps a list at +0xF0 (node: next +0, value +8 of 0x18 bytes with the object id at +0xC
+  and a screen RECT at +0x10) of the objects drawn this frame (rectangles from projected vertices, renderer.md section 3); 00565E40 (thiscall, RET
+  4; the button release 00638B30 calls it with the message's own x, y) gathers entries whose rectangle holds the point (005718B0: PtInRect, then the
+  object's +0x94 slot 24 finer test), sorts by depth (005659D0) and returns the first unit (type 0x50); the release then wants flag 0x400000. The step
+  finds the unit's rectangle in this frame's list and tries a 9x9 grid inside it with 00565E40 until the game's own pick answers with that unit, so
+  the click cannot land on a unit in front; it fails when the unit is off screen or hidden. `ctrl` holds Ctrl (scan 0x1D) around the click
+  (SelectUnit's +0x7C branch then orders an attack on any living unit, 00637190); the harness cannot hold Shift or drag.
+- **Zone steps**: `zone` calls `LeaveToZone` (0066F310) on the local player's connection (server world 007AFF60, `GetPlayer` 00594180 with player 0)
+  as the zone exit handler (00670C20) and the script command 0x8A do; it needs state 1, and in campaign mode 1 or 3 a dead or missing leader loses
+  the game instead. `waitzone` waits for no pending game request, campaign mode (007C2CC4) not 2 (menu), the server world's zone name (+0x120, set
+  by NewZone 00595480) and state 1; the party appears a little later (Redeploy), so follow it with `waitfor ... HP(GetLeader())`. The exit index is
+  stored in the world player's +0xDC (zone +0xD8); Redeploy (00590700, modes 1 and 3) puts the party at the centre of that exit's deploy rectangle
+  (exit +0x04..+0x10), facing away from the map centre unless the exit has a `#deployangle` (an index outside the zone's exits leaves it at (0, 0));
+  the index counts `#exit` blocks from 0, i.e. map.txt's `#exit n` minus 1. Zones: game `gz1g`..`gz21g`, brief `bz1g`..`bz18h`, edge zones
+  `<a>_<b>` (no `#res`, mode 4, the global map's travel; `waitzone` does not recognise them). Some exits are one-way entrances (`none 0`: gz1g's
+  #exit 1, gz4g's 5, bz4g's and bz13h's 1, gz11k's 4, gz15h's 2..4, gz20g's); `gz21g` names zonemichel.mpr / .mob which the install lacks (NewZone
+  fails; untested); `gz6g` loads its frozen map when `z.gz6g.frozen` is nonzero; no zone needs quest state to load. Not tried: edge zones,
+  `endofgame`, leaving a zone other than zone1. Scenarios `zone_gz2g_traps` (party at (67, 15), zone2's traps 1324..1330, MTF4 armed with a wolf),
+  `zone_base_bz1g` (mode 3, party at (59.25, 54.25), the base's Smith), `zone_gz3g` (party at (23, 138.5), the Pyramid trap 4515): the first central
+  run decides whether their position, trap and Smith checks hold.
 
 Scenario lessons:
-- **Race with a zone's intro script.** The server drops a hero with flag 0x800000 (script BlockUnit / IsUnitBlocked) in 0066FFF0 before
-  FindPlayerMode 005D5E60 / CommandWalk 005D39E0, and gz1g's intro script (SendText0D, SetVariableMax "q.gz1g...", PlayJingle) blocks the
-  hero for about 37 s with its first tick unordered against the hero's creation: `ui_order_move` waits for the block (`waitfor 15
-  IsUnitBlocked(GetLeader())`) before lifting it and checks the hero is not blocked before each click (scripted moves ignore the flag).
-  The order path (OrderAt 00636F10 -> 0066A7D0 writes 0x30, count, ids, ctrl, point into CPlayerClient +0x5C; 00667810 compresses it and
-  sends it on the loopback link; the server's 0066D270 decompresses it into 007C83D0 and dispatches by the first byte through the table
-  built in 0066C9A0, 0x30 -> 0066FFF0) has a wrapper at every rewritten step.
-- **Armed traps.** gz2g starts its magic traps armed (its scripts disarm them from triggers), so MTF4 strikes a placed wolf at the next
-  world update: the scenario disarms it before placing the wolf, checks the wolf alive, arms it and waits for it to die. The "command 8"
-  mismatches there were a verify bug: 004C7C90 adds a script instance at the head of the list (script.md).
-- **Quick items.** No script command puts an item in a quick slot (GiveItem adds to the player's list); quick items (0x3006) are listed in
-  strip tab 2 with weapons, armour and containers (`ItemTab` 006218F0), tab 3 holds class 0x3007, so use `campputon 3006 2` (at most four go
-  on the hero: MoveItem -> PutOnFromStrip -> PutOn 0060FCA0); "wand 1".."wand N" are category 5 prototypes (items.idb tag 0x15, e.g. `wand
-  3.iron[lightning]`; potions are category 8); the quick item panel's regions 0-3 are the bottom row from the right (x 670..720 down to
-  520..570, y 550..600), 4-7 the row above; place a target where it is drawn on screen (`QuickWolf3` at (hx, hy - 3) was culled, (hx + 3,
-  hy + 3) works).
+- **Race with a zone's intro script.** The server drops a hero with flag 0x800000 (script BlockUnit / IsUnitBlocked) in 0066FFF0 before FindPlayerMode
+  005D5E60 / CommandWalk 005D39E0, and gz1g's intro script (SendText0D, SetVariableMax "q.gz1g...", PlayJingle) blocks the hero for about 37 s with its
+  first tick unordered against the hero's creation: `ui_order_move` waits for the block (`waitfor 15 IsUnitBlocked(GetLeader())`) before lifting it
+  and checks the hero is not blocked before each click (scripted moves ignore the flag). The order path (OrderAt 00636F10 -> 0066A7D0 writes 0x30,
+  count, ids, ctrl, point into CPlayerClient +0x5C; 00667810 compresses it and sends it on the loopback link; the server's 0066D270 decompresses it
+  into 007C83D0 and dispatches by the first byte through the table built in 0066C9A0, 0x30 -> 0066FFF0) has a wrapper at every rewritten step.
+- **Armed traps.** gz2g starts its magic traps armed (its scripts disarm them from triggers), so MTF4 strikes a placed wolf at the next world update:
+  the scenario disarms it before placing the wolf, checks the wolf alive, arms it and waits for it to die. The "command 8" mismatches there were a
+  verify bug: 004C7C90 adds a script instance at the head of the list (script.md).
+- **Quick items.** No script command puts an item in a quick slot (GiveItem adds to the player's list); use `campputon 3006 2` (at most four go on the
+  hero: MoveItem -> PutOnFromStrip -> PutOn 0060FCA0); "wand 1".."wand N" are category 5 prototypes (items.idb tag 0x15, e.g. `wand 3.iron[lightning]`;
+  potions are category 8); the quick item panel's regions 0-3 are the bottom row from the right (x 670..720 down to 520..570, y 550..600), 4-7 the row
+  above; place a target where it is drawn on screen (`QuickWolf3` at (hx, hy - 3) was culled, (hx + 3, hy + 3) works).
 
 ## 11. Rules and lessons for interface work
 
