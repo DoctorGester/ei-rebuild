@@ -14,8 +14,16 @@
 #include <cstdint>
 
 class CEngineObject;
+struct MagicTrapRecord;
 
 struct MagicTrap {
+    // 0052A2C0 (RET 4). Sets the trap up from its zone record (the zone loader 005927C0): the
+    // sides, the spell made from the record's text by the spell manager (the context's slot 22,
+    // 00689030; the old one released), the position, the circles and points copied, the units
+    // inside forgotten (each reference released, the list's blocks freed), the period with the
+    // countdown at 0, and +0x28C from the record's byte.
+    void SetUp(const MagicTrapRecord* record);
+
     // 0052A680. Called from the trap's update (slot 6, 0052AC20) while the world is live, it has
     // a spell and its period is not positive. The units inside that left every circle
     // (or a unit that is dead, in the first circle that holds it) are dropped. An armed trap then
@@ -49,6 +57,28 @@ struct TrapArea {
     int growBy;
 };
 static_assert(sizeof(TrapArea) == 0x14);
+
+// A trap's points (+0x254): an MFC CArray of {x, y} pairs.
+struct TrapPoints {
+    void* vtable;
+    float* points;          // +0x04, two floats each
+    int count;              // +0x08
+    int maxCount;
+    int growBy;
+};
+static_assert(sizeof(TrapPoints) == 0x14);
+
+// The MagicTrap part of a zone object record (at record + 0x8C, 005927C0).
+struct MagicTrapRecord {
+    std::uint32_t sides;        // +0x00
+    const char* spell;          // +0x04 the spell's text (a CString)
+    float position[3];          // +0x08
+    TrapArea area;              // +0x14
+    TrapPoints points;          // +0x28
+    std::uint32_t period;       // +0x3C
+    std::uint8_t singleTarget;  // +0x40
+};
+static_assert(sizeof(MagicTrapRecord) == 0x44);
 
 // 0052A920 (__fastcall, RET 8). Empties `out` (an MFC CPtrList, RemoveAll inlined), then for each
 // circle of `area` asks the sector map (`context` + 0x294, 005C0BD0) for the units within its

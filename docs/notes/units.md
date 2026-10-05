@@ -1236,3 +1236,91 @@ rel32 call/jmp, no dword in game.exe, addon.dll, EI_Plugin.asi; tools/find_dead_
 live only through the coincidental dword 0051FFE8 inside 006DE120), appended to dead_code.csv.
 No address of the ticket is registered in src/ or tests/ (0051F790 is only an EI_ORIGINAL call
 in ui_objectives.cpp).
+
+# Ninth round (U7): the unit databases' destructors, magic trap set-up
+
+Code: `src/game/unit_db_destroy.cpp` (new), `src/game/magic_trap.cpp` (SetUp). Verify:
+`verify_unit_db_destroy.cpp` (new), `verify_magic_trap.cpp` (one wrapper added). Shared headers,
+additive only: `magic_trap.h` (MagicTrap::SetUp, TrapPoints, MagicTrapRecord).
+`config/library.csv`: 0052C740 (the trap victim list's CList::Serialize, the shape of 00405190),
+00522160 / 005222F0 (uninitialized_copy / uninitialized_fill_n of the skill database's 0x18-byte
+level records).
+
+The three destructors the previous round left, then the largest function of the range not yet
+rewritten after them that is not library: 0052A2C0 (362 bytes). Skipped on the way: 0052C740,
+00522160, 005222F0 (library, above), 00519380 / 0051C250 / 00511A00 (the ticket's exclusions),
+0052B070 / 0052ADC0 / 00529DD0 / 00529F90 (the magic trap's Save, Load, constructor and destructor:
+next candidates in this family; Load reads registers the decompiler loses), 0053EE70 (the 0x168
+model record's destructor, element code), 00535B30 (a client-side timer that drives figure
+animation speeds, 0051CC20 / 0051CCD0: animation-adjacent).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0053A050 | unitdb::DestroyUnitDatabase (thiscall, the database at 007AF358) | ours only: each table's name map count 0. At exit (atexit 0053A040), if hooks still run |
+| 00539CE0 | unitdb::DestroyNpcTable (thiscall, 007AF378) | ours only: the name map count 0. When the database file changes (0057DEE0: database.res <-> databaseLMP.res, from the multiplayer hero screens; probably no scenario) |
+| 0051FB50 | unitdb::DestroySkillDatabase (thiscall, 007AF268) | ours only, reported when it runs. At exit (atexit 0051FB40) |
+| 0052A2C0 | MagicTrap::SetUp (RET 4: the zone record's MagicTrap part, record + 0x8C) | ours only (makes a spell, releases references): sides, position, circles, points, period bitwise; countdown 0; +0x28C 0/1; list of units inside empty, no blocks. The zone loader 005927C0; no magic trap on zone1 |
+
+Renamed in Ghidra: 0053A050 UnitDatabase__Destroy, 00539CE0 UnitNpcTable__Destroy, 0051FB50
+SkillDatabase__Destroy, 0052A2C0 MagicTrap__SetUp, 0052C740 VictimList__Serialize.
+
+## The unit database's layout (007AF358)
+
+Four 0x20-byte tables: prototypes (+0, 0x120-byte records), NPCs (+0x20, 0x60), models (+0x40,
+0x168), skill levels (+0x60, 0x44). Each is a record vector (+0) and a hash_map<CString, int> from
+name to index (+0xC: the empty functors, the bucket vector +0x10..+0x18, the count +0x1C, which is
+also the node allocator's address). 0053A050 destroys them last to first, each with its own
+template instantiations: hashtable::clear (0053C5E0 / 0053C430 / 0053C280 / 0053C0D0), the bucket
+vector's destructor (0053BF00 / 0053B930 / 005150D0 / 0053BE70), each record's destructor with the
+end read once (00540840(0) / 0053EE70 / 0053ED30 / 005407E0(0)), then the storage (0053BEB0(p, n)
+with the vector's eos as `this` / 0053B7A0 / 0053B600 / 0053B460). 0057DEE0 (the database reload
+when the file name changes between database.res, its initial name, and databaseLMP.res, which
+the multiplayer hero screens ask for) runs the four tables'
+destructors one by one (0057E1A0, 00539E70, 00539CE0, 00539B20), constructs the database again
+(00539A10) and loads it (0053A200). 00539CE0 is the NPC table's with all of that inlined: the clear
+(per node 0053D990(0) on the value and 0053CAA0(node, 1); every bucket emptied, the bucket count
+read again each pass; count 0), the buckets freed (00404D70), each record's members in reverse
+order (+0x48 / +0x3C: 005214B0 _Destroy and 00520EB0; +0x30 / +0x24: 0053F020; the name), the
+storage freed with the byte count rounded down to whole records (signed IMUL division).
+
+The skill database (007AF268): a vector of 0x18-byte level records (+0: two CStrings, a dword, a
+vector<CString>) and one of 0x44-byte skill records (+0xC; CStrings at +0, +4, +0xC, +0x14).
+0051FB50 destroys the skill records and frees them, then the level records; the second free
+inlines the node pool's deallocate (identical to 00404D70, which ours calls through
+stlp::deallocate).
+
+## Magic trap set-up (0052A2C0)
+
+From the zone loader for each MagicTrap record (the record's part at +0x8C: +0 the sides, +4 the
+spell's text, +8 the position, +0x14 a CArray of circles, +0x28 a CArray of {x, y} points, +0x3C
+the period, +0x40 a byte, cast at one unit only). The sides go to +0x238; the spell comes from the
+map object context's slot 22 (the spell manager) and 00689030 CreateSpellFromText, its count raised
+and the old spell released (slot 4); the position, circles (SetSize 0046EAD0 with grow -1) and
+points (0052C8E0) are copied as dwords, the bounds read again each pass. The list of units inside
+is emptied (RemoveAll inlined: each reference released and cleared, then count, free list, tail
+and head 0 and the blocks freed with CPlex::FreeDataChain). +0x284 = the period, +0x288 = 0,
++0x28C = byte != 0.
+
+## Forwarders added (ninth round; the standalone build must replace these)
+
+- Library (config/library.csv): 0053C5E0 / 0053C430 / 0053C280 / 0053C0D0, 0053BF00 / 0053B930 /
+  005150D0 / 0053BE70, 0053BEB0, 0053B7A0 / 0053B600 / 0053B460, 00540840 / 005407E0, 0053CAA0,
+  00520EB0, 0046EAD0, 0052C8E0.
+- Game code, not rewritten: 0053EE70 / 0053ED30 (model and NPC record destructors), 0053D990 (a
+  name map value's destructor), 005214B0 (_Destroy of CStrings), 0053F020 (a vector<CString>'s
+  destructor), 00689030 (CreateSpellFromText; also forwarded by item_constructor.cpp).
+- Called directly: 00455940 ManagerContext (the existing forwarder in magic_trap.cpp), MFC
+  CString::~CString and CPlex::FreeDataChain, stlp::deallocate (00404D70). None is Rebirth-patched.
+
+## Original bugs and oddities kept (ninth round)
+
+- 00539CE0 returns junk in EAX (declared void; its callers ignore EAX).
+- VictimList::Serialize (0052C740, now library) writes raw pointers; no caller besides the vtable.
+
+## Risks (ninth round)
+
+- The destructors are checked for consistency only; at exit the verify report may already be
+  written, so their counts may stay 0. A wrong free would show as heap corruption at exit or at a
+  database reload.
+- SetUp is not reached on zone1 (no magic traps); the wrapper compares every field against the
+  record when it is.
