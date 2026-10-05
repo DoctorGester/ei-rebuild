@@ -223,6 +223,10 @@ __declspec(naked) inline void* __fastcall CStringAppendCharOriginal(void* /*stri
 __declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
                                                                     void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
 __declspec(naked) inline void __stdcall CStringElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE296)
+// 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
+// (vtable 0073D2F8; plain RET, EAX not a result).
+__declspec(naked) inline void __stdcall ScriptGroupElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC980)
+__declspec(naked) inline void __fastcall CStringArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C26A0)
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
 // 004A8930: string copy constructor (RET 4, returns this). 004C96A0: pointer list constructor with a block size (RET 4,

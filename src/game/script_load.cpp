@@ -80,7 +80,7 @@ void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a
 __declspec(naked) void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)
 void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructGroups(void*, int) EI_ORIGINAL(0x004CC9B0)
-__declspec(naked) void __stdcall DestructGroups(void*, int) EI_ORIGINAL(0x004CC980)
+void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructCmds(void*, int) EI_ORIGINAL(0x004CE920)
 __declspec(naked) void __stdcall ConstructIfThen(void*, int) EI_ORIGINAL(0x004CD4A0)
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)

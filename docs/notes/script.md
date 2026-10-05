@@ -1081,3 +1081,26 @@ stack garbage of a temporary it copies into the node, and the tick then uses the
 DIV by max - min + 1, placement radius). Rewriting it means choosing values the original never
 had (zero would replace the sound every tick); left original. 004BD120 / 004BDB80 (the same 38-byte
 body as the element destructors above) are only called from C++ unwind funclets.
+
+## Variable array constructors and destructors (004BC690-004BCAE0)
+
+Code: `src/game/script_arrays.cpp`; verify: `tests/verify/verify_script_destroy.cpp`. The compiler-
+generated constructors and destructors of `ScriptNamedValues<T>` (one type's values and names), of
+single CString / reference / group arrays, and the ScriptRun destructor. None is library, dead or
+Rebirth-patched (their library siblings 004C26A0, 004C2290, 004CC980, 004CC7D0 are; those stay
+forwarders, now shared in originals_library.h where script_destroy.cpp / script_load.cpp had their
+own). The vtables they write are named in `script.h` (`scriptvtable::`).
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BC690 / 004BC740 / 004BC870 / 004BC950 | 42 each | ScriptFloats / Strings / Objects / GroupsConstruct | against the original: original into a 0xCC scratch, ours into the real set; all 0x28 bytes and the returned pointers | the original LoadCommands (004D1330, Rebirth-patched: the Rebirth launch's script_parse, script_exec), the CScript constructor (before the hooks), the list Serialize instantiations |
+| 004BC6C0 / 004BC770 / 004BC8A0 | 126 / 147 / 175 | ScriptFloats / Strings / ObjectsDestruct | against the original on a deep copy (the game's copy constructors 004CBB80 / 004CBCA0 / 004CBDB0), S6's rules: the words each writes and the reference counts each drops | the instance / run lists' RemoveHead (004C7A10 / 004C82B0: the reset, every new game and zone load), the definition list's destructor, the original LoadCommands (Rebirth) |
+| 004BC810 | 88 | ScriptNamesDestruct (CString array) | as above, the copy by 004CBA00 | the CString array's deleting destructor 004C1860 |
+| 004BC9A0 | 118 | ScriptRefArrayDestruct | ours only: only the vtable word changes (to 0073D11C), every held reference drops by its multiplicity | the reference array's deleting destructor 004C1840 |
+| 004BCA20 | 182 | ScriptGroupArrayDestruct | ours only: as above (0073D310), the members' references | the group array's deleting destructor 004C18A0 |
+| 004BCAE0 | 380 | ScriptRunDestruct | against the original on a copy (the first five words, the variables by 004CB7E0) | every finished run (the run list's FreeNode 004CDAB0), DestructElements<ScriptRun> 004CEC80: script_exec, script_parse, console |
+
+The groups' references in 004BCA20 are reset with 004B5AE0 (the copy of ScriptObjectRef::Reset).
+004BCAE0 destroys the run's variables as ScriptVarsDestruct (004BE090) does, except that the group
+elements go through DestructElements<ScriptGroup> (004CC980) and the float names through the
+out-of-line CString array destructor (004C26A0), as the original calls them.

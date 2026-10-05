@@ -39,14 +39,14 @@ constexpr std::uintptr_t kSubCallsBaseVtable = 0x0073D418;
 // each released), ScriptGroup (004CC980).
 void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
-__declspec(naked) void __stdcall DestructGroups(void*, int) EI_ORIGINAL(0x004CC980)
+void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }
 // Element destructors (__thiscall (flags), 0 = in place): a group (004CE210, through 004B5EF0)
 // and a nested call (004CE230: its command destroyed with 004BF640 and deleted).
 __declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
 __declspec(naked) void __fastcall SubCallDestroy(void*, void*, int) EI_ORIGINAL(0x004CE230)
 // Out-of-line CArray destructors (__thiscall): CString arrays (004C26A0), object references
 // (004C2290), the ScriptVars floats (004C29C0).
-__declspec(naked) void __fastcall NamesDestruct(void*) EI_ORIGINAL(0x004C26A0)
+void __fastcall NamesDestruct(void* a0) { CStringArrayDestructOriginal(a0); }
 inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29C0)
 

@@ -398,6 +398,148 @@ void __fastcall AppendFromVerify(ScriptVars* self, void*, const ScriptVars* othe
                       wrong < 0 ? 0 : mine[wrong]->size, wrong < 0 ? 0 : expected[wrong]);
 }
 
+// ---- Variable array constructors and destructors (src/game/script_arrays.cpp) -------------------------
+
+// Constructors: against the original. The original constructs a 0xCC-filled scratch, ours the real
+// set; all 0x28 bytes (every one is written) and the returned pointers compared. 004BC690 / 004BC740 /
+// 004BC870 / 004BC950: MOV EAX,ECX; XOR ECX,ECX; MOV [EAX+4],ECX (7 bytes). Reached in the Rebirth
+// launch, from the original LoadCommands (004D1330, patched there): script_parse, script_exec.
+template <typename T>
+using NamedConstructFn = ScriptNamedValues<T>*(__fastcall*)(ScriptNamedValues<T>*);
+template <typename T>
+ScriptNamedValues<T>* ConstructVerify(const char* name, NamedConstructFn<T> original, NamedConstructFn<T> ours,
+                                      ScriptNamedValues<T>* self) {
+    alignas(4) unsigned char scratch[sizeof(ScriptNamedValues<T>)];
+    std::memset(scratch, 0xCC, sizeof(scratch));
+    auto* expected = reinterpret_cast<ScriptNamedValues<T>*>(scratch);
+    ScriptNamedValues<T>* originalResult = original(expected);
+    ScriptNamedValues<T>* result = ours(self);
+    ei::verify::Check(name, true,
+                      std::memcmp(scratch, self, sizeof(scratch)) == 0 && originalResult == expected && result == self,
+                      "constructed %p", static_cast<void*>(self));
+    return result;
+}
+NamedConstructFn<float> s_floatsConstruct;
+ScriptNamedValues<float>* __fastcall FloatsConstructVerify(ScriptNamedValues<float>* self) {
+    return ConstructVerify("ScriptFloatsConstruct", s_floatsConstruct, &ScriptFloatsConstruct, self);
+}
+NamedConstructFn<mfc::CString> s_stringsConstruct;
+ScriptNamedValues<mfc::CString>* __fastcall StringsConstructVerify(ScriptNamedValues<mfc::CString>* self) {
+    return ConstructVerify("ScriptStringsConstruct", s_stringsConstruct, &ScriptStringsConstruct, self);
+}
+NamedConstructFn<ScriptObjectRef> s_objectsConstruct;
+ScriptNamedValues<ScriptObjectRef>* __fastcall ObjectsConstructVerify(ScriptNamedValues<ScriptObjectRef>* self) {
+    return ConstructVerify("ScriptObjectsConstruct", s_objectsConstruct, &ScriptObjectsConstruct, self);
+}
+NamedConstructFn<ScriptGroup> s_groupsConstruct;
+ScriptNamedValues<ScriptGroup>* __fastcall GroupsConstructVerify(ScriptNamedValues<ScriptGroup>* self) {
+    return ConstructVerify("ScriptGroupsConstruct", s_groupsConstruct, &ScriptGroupsConstruct, self);
+}
+
+// The game's copy constructors for the destructor checks: float / string / object values with
+// their names (004CBB80 / 004CBCA0 / 004CBDB0) and a CString array (004CBA00).
+__declspec(naked) void __fastcall FloatsCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBB80)
+__declspec(naked) void __fastcall StringsCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBCA0)
+__declspec(naked) void __fastcall ObjectsCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBDB0)
+__declspec(naked) void __fastcall NamesCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBA00)
+
+// Destructors with a game copy constructor: against the original on a deep copy (the rules at the top
+// of this file). The 7 stolen bytes are PUSH -1; PUSH <handler>.
+template <typename T, typename Count>
+void DestructOnCopy(const char* name, void(__fastcall* original)(T*), void(__fastcall* ours)(T*),
+                    void(__fastcall* copyConstruct)(void*, void*, const void*), T* self, Count count) {
+    if (g_inOriginal) return original(self);
+    Counters counters;
+    count(counters, *self);
+    std::vector<int> t0 = counters.Read();
+    alignas(T) unsigned char raw[sizeof(T)];
+    auto* copy = reinterpret_cast<T*>(raw);
+    copyConstruct(copy, nullptr, self);
+    Compare(name, self, copy, counters, t0, original, ours);
+}
+
+// 004BC6C0 / 004BC770 / 004BC8A0: reached from the instance and run lists' RemoveHead (004C7A10 /
+// 004C82B0: the reset at every new game and zone load), the definition list's destructor and, in
+// the Rebirth launch, the original LoadCommands.
+void(__fastcall* s_floatsDestruct)(ScriptNamedValues<float>*);
+void __fastcall FloatsDestructVerify(ScriptNamedValues<float>* self) {
+    DestructOnCopy("ScriptFloatsDestruct", s_floatsDestruct, &ScriptFloatsDestruct, FloatsCopyConstructAt, self,
+                   [](Counters& c, const ScriptNamedValues<float>& v) { c.Strings(v.names); });
+}
+void(__fastcall* s_stringsDestruct)(ScriptNamedValues<mfc::CString>*);
+void __fastcall StringsDestructVerify(ScriptNamedValues<mfc::CString>* self) {
+    DestructOnCopy("ScriptStringsDestruct", s_stringsDestruct, &ScriptStringsDestruct, StringsCopyConstructAt, self,
+                   [](Counters& c, const ScriptNamedValues<mfc::CString>& v) {
+                       c.Strings(v.names);
+                       c.Strings(v.values);
+                   });
+}
+void(__fastcall* s_objectsDestruct)(ScriptNamedValues<ScriptObjectRef>*);
+void __fastcall ObjectsDestructVerify(ScriptNamedValues<ScriptObjectRef>* self) {
+    DestructOnCopy("ScriptObjectsDestruct", s_objectsDestruct, &ScriptObjectsDestruct, ObjectsCopyConstructAt, self,
+                   [](Counters& c, const ScriptNamedValues<ScriptObjectRef>& v) {
+                       c.Strings(v.names);
+                       for (int i = 0; i < v.values.size; ++i) c.Object(v.values.data[i].object);
+                   });
+}
+// 004BC810: PUSH -1; PUSH 0x7184E8 (7 bytes). The CString array's scalar deleting destructor
+// (004C1860).
+void(__fastcall* s_namesDestruct)(MfcArray<mfc::CString>*);
+void __fastcall NamesDestructVerify(MfcArray<mfc::CString>* self) {
+    DestructOnCopy("ScriptNamesDestruct", s_namesDestruct, &ScriptNamesDestruct, NamesCopyConstructAt, self,
+                   [](Counters& c, const MfcArray<mfc::CString>& v) { c.Strings(v); });
+}
+
+// Destructors without a copy constructor: ours only. Only the vtables listed change (to the base
+// ones); every reference the array holds drops by the number of times it is held.
+template <typename T>
+void DestructModel(const char* name, void(__fastcall* ours)(T*), T* self, const Counters& counters,
+                   std::size_t vtableWord, void* baseVtable) {
+    std::vector<int> t0 = counters.Read();
+    std::vector<std::uint32_t> before = Words(self, sizeof(T));
+    ours(self);
+    std::vector<std::uint32_t> after = Words(self, sizeof(T));
+    bool words = after[vtableWord] == reinterpret_cast<std::uintptr_t>(baseVtable);
+    for (std::size_t i = 0; i < after.size(); ++i)
+        if (i != vtableWord) words = words && after[i] == before[i];
+    int checked = 0;
+    int badCounters = counters.CheckDrops(t0, &checked);
+    ei::verify::Check(name, true, words && badCounters == 0, "words ok %d, %d of %d reference counts wrong",
+                      words ? 1 : 0, badCounters, checked);
+}
+
+// 004BC9A0: the reference array's scalar deleting destructor (004C1840).
+void __fastcall RefArrayDestructVerify(MfcArray<ScriptObjectRef>* self) {
+    Counters counters;
+    for (int i = 0; i < self->size; ++i) counters.Object(self->data[i].object);
+    DestructModel("ScriptRefArrayDestruct", &ScriptRefArrayDestruct, self, counters, 0, scriptvtable::kRefsBase);
+}
+// 004BCA20: the group array's scalar deleting destructor (004C18A0). The groups' own vtables are in
+// the freed storage and not checked.
+void __fastcall GroupArrayDestructVerify(MfcArray<ScriptGroup>* self) {
+    Counters counters;
+    for (int i = 0; i < self->size; ++i)
+        for (int k = 0; k < self->data[i].size; ++k) counters.Object(self->data[i].data[k].object);
+    DestructModel("ScriptGroupArrayDestruct", &ScriptGroupArrayDestruct, self, counters, 0,
+                  scriptvtable::kGroupsBase);
+}
+
+// 004BCAE0: PUSH -1; PUSH 0x7185DE (7 bytes). Every finished run (the run list's FreeNode 004CDAB0)
+// and the run list's DestructElements: script_exec, script_parse, console. Against the original on a
+// copy: the run's first five words and its variables deep-copied (004CB7E0).
+void(__fastcall* s_runDestruct)(ScriptRun*);
+void __fastcall RunDestructVerify(ScriptRun* self) {
+    if (g_inOriginal) return s_runDestruct(self);
+    Counters counters;
+    counters.Vars(self->vars);
+    std::vector<int> t0 = counters.Read();
+    alignas(ScriptRun) unsigned char raw[sizeof(ScriptRun)];
+    auto* copy = reinterpret_cast<ScriptRun*>(raw);
+    std::memcpy(copy, self, offsetof(ScriptRun, vars));
+    VarsCopyConstructAt(&copy->vars, nullptr, &self->vars);
+    Compare("ScriptRunDestruct", self, copy, counters, t0, s_runDestruct, ScriptRunDestruct);
+}
+
 } // namespace
 
 EI_VERIFY(0x004BE090, VarsDestructVerify, 7, s_varsDestruct);
@@ -411,3 +553,14 @@ EI_VERIFY(0x004CE270, ParticleDestroyVerify, 0, s_unused);
 EI_VERIFY(0x004CE2B0, FxSourceDestroyVerify, 0, s_unused);
 EI_VERIFY(0x004CE2D0, WorldBlockDestroyVerify, 0, s_unused);
 EI_VERIFY(0x004BF620, CmdElementDestroyVerify, 0, s_unused);
+EI_VERIFY(0x004BC690, FloatsConstructVerify, 7, s_floatsConstruct);
+EI_VERIFY(0x004BC740, StringsConstructVerify, 7, s_stringsConstruct);
+EI_VERIFY(0x004BC870, ObjectsConstructVerify, 7, s_objectsConstruct);
+EI_VERIFY(0x004BC950, GroupsConstructVerify, 7, s_groupsConstruct);
+EI_VERIFY(0x004BC6C0, FloatsDestructVerify, 7, s_floatsDestruct);
+EI_VERIFY(0x004BC770, StringsDestructVerify, 7, s_stringsDestruct);
+EI_VERIFY(0x004BC8A0, ObjectsDestructVerify, 7, s_objectsDestruct);
+EI_VERIFY(0x004BC810, NamesDestructVerify, 7, s_namesDestruct);
+EI_VERIFY(0x004BC9A0, RefArrayDestructVerify, 0, s_unused);
+EI_VERIFY(0x004BCA20, GroupArrayDestructVerify, 0, s_unused);
+EI_VERIFY(0x004BCAE0, RunDestructVerify, 7, s_runDestruct);

@@ -60,6 +60,19 @@ struct MfcList {
 };
 static_assert(sizeof(MfcList<int>) == 0x1C);
 
+// The vtables of the script's CArray instantiations: the derived classes the constructors install,
+// and the base classes the inlined destructors write back.
+namespace scriptvtable {
+inline void* const kFloats = reinterpret_cast<void*>(0x0073D2E0);       // ScriptVars float values
+inline void* const kFloatsBase = reinterpret_cast<void*>(0x0073D2EC);
+inline void* const kStrings = reinterpret_cast<void*>(0x0073D2D4);      // CString arrays (strings, names)
+inline void* const kStringsBase = reinterpret_cast<void*>(0x0073D2F8);
+inline void* const kRefs = reinterpret_cast<void*>(0x0073D110);         // object references (ScriptGroup)
+inline void* const kRefsBase = reinterpret_cast<void*>(0x0073D11C);
+inline void* const kGroups = reinterpret_cast<void*>(0x0073D304);       // ScriptVars group values
+inline void* const kGroupsBase = reinterpret_cast<void*>(0x0073D310);
+} // namespace scriptvtable
+
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
 struct ScriptObjectRef {
@@ -851,3 +864,25 @@ void __fastcall ScriptCreateParticleSource(CScript* script, void* edx, const SSC
 // 004BDBB0. MoveParticleSource(id, x, y, z, steps, delete when done): the source with the id (FISTP)
 // starts moving; step = (point - position) / steps.
 void __fastcall ScriptMoveParticleSource(CScript* script, void* edx, const SSCCmd* cmd);
+
+// ---- Variable array constructors and destructors (script_arrays.cpp) -----------------------------
+// __thiscall, registered as free functions; callers keep going through the original addresses.
+// 004BC690 / 004BC740 / 004BC870 / 004BC950. One type's values and names, both empty with their
+// vtables (scriptvtable::kFloats / kStrings / kRefs / kGroups, names kStrings); return the set.
+ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars);
+ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsConstruct(ScriptNamedValues<mfc::CString>* vars);
+ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars);
+ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars);
+// 004BC6C0 / 004BC770 / 004BC8A0. The names, then the values: base vtable, elements destroyed
+// (strings destructed, references released and cleared), storage freed.
+void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars);
+void __fastcall ScriptStringsDestruct(ScriptNamedValues<mfc::CString>* vars);
+void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars);
+// 004BC810 / 004BC9A0 / 004BCA20. One CString array; one reference array (each released and
+// cleared); one group array (each group's references reset, its storage freed).
+void __fastcall ScriptNamesDestruct(MfcArray<mfc::CString>* names);
+void __fastcall ScriptRefArrayDestruct(MfcArray<ScriptObjectRef>* refs);
+void __fastcall ScriptGroupArrayDestruct(MfcArray<ScriptGroup>* groups);
+// 004BCAE0. ScriptRun destructor: its variables as ScriptVarsDestruct frees them (the float names
+// through the out-of-line CString array destructor 004C26A0).
+void __fastcall ScriptRunDestruct(ScriptRun* run);
