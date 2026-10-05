@@ -3,6 +3,8 @@
 // The software mouse cursor (the object at 007C7BD8; 005E4E00-005E6990, see docs/notes/ui.md,
 // "Cursor"). Only the members the rewritten blit uses; the object is created by original code.
 
+#include "originals_ui.h"
+
 #include <cstdint>
 
 #include <windows.h>
@@ -20,8 +22,16 @@ public:
     // from-sized top left of the background copy (+0x60), and writes over `to`
     // (background & saved) | image per pixel (16 or 32 bits, by the image's bit depth).
     void Blit(CursorImage* image, RECT* to, RECT* from);
+    // 005E5200 (RET 4, not rewritten). Selects cursor shape `shape`; returns the previous one (-1
+    // when the cursor is not set up).
+    int SetShape(int shape) { return CursorSetShapeOriginal(this, nullptr, shape); }
 
-    std::uint8_t unknown_00[0x60];
+    std::uint8_t unknown_00[0x18];
+    int shape_;                      // +0x18 the shape SetShape selected
+    std::uint8_t unknown_1C[0x60 - 0x1C];
     std::uint8_t* under_;            // +0x60 surface holder: the background under the cursor
     std::uint8_t* target_;           // +0x64 surface holder: where the cursor is drawn
 };
+
+// The game's cursor (the object at 007C7BD8).
+inline CCursor* GameCursor() { return reinterpret_cast<CCursor*>(0x007C7BD8); }

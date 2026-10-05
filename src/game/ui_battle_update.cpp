@@ -423,7 +423,7 @@ void CBattleScreenSetup::Update() {
         std::uint8_t allocator = 0;
         List units;
         UnitListConstruct(&units, nullptr, &allocator);
-        UnitsInBox(reinterpret_cast<void*>(kWorld), nullptr, selectionBox_, &units);
+        UnitsInBox(reinterpret_cast<void*>(kWorld), nullptr, &selectionBox_, &units);
         List inside;
         IndexListConstruct(&inside, nullptr, &allocator);
         for (ListNode* node = units.header->next; node != units.header; node = node->next) {
@@ -488,7 +488,7 @@ namespace {
 
 // The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
 // (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
-__declspec(naked) CUnit* __fastcall UnitAtPoint(void*, void*, int*) EI_ORIGINAL(0x00565E40)
+CUnit* UnitAtPoint(void* world, void*, int* point) { return WorldUnitAtPointOriginal(world, nullptr, point); }
 __declspec(naked) void __fastcall WorldSelect(void*, void*, CUnit*) EI_ORIGINAL(0x00566100)
 // 00638EF0 (thiscall on the battle screen, RET 0xC; Rebirth-patched, rewritten in ui_hud.cpp):
 // the click on a unit or a point.
@@ -519,7 +519,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     std::uint8_t allocator = 0;
     List units;
     UnitListConstruct(&units, nullptr, &allocator);
-    UnitsInBox(world, nullptr, selectionBox_, &units);
+    UnitsInBox(world, nullptr, &selectionBox_, &units);
     List inside;
     IndexListConstruct(&inside, nullptr, &allocator);
     if (units.header->next != units.header) {

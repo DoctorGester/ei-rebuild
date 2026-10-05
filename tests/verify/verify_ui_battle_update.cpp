@@ -131,7 +131,7 @@ static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
                           "single player party changed (%d -> %d)", partySize, party->size_);
     }
     if (self->unknown_1C1) {
-        std::vector<std::uintptr_t> inside = UnitsInBox(self->selectionBox_);
+        std::vector<std::uintptr_t> inside = UnitsInBox(&self->selectionBox_);
         int wrong = -1;
         for (int i = 0; i < party->size_ && wrong < 0; ++i) {
             void* unit = reinterpret_cast<void*>(static_cast<std::uintptr_t>(party->data_[i]));

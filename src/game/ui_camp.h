@@ -9,23 +9,37 @@
 #include "ui.h"
 #include "ui_screens.h"
 
+#include "lib/mfc.h"
+
 #include <cstddef>
 #include <cstdint>
 
-// An MFC CArray<DWORD>-like array (vtable, data, size, capacity, growth).
-struct UiDwordArray {
-    void* vtable_;
-    std::uint32_t* data_;
-    int size_;
-    int capacity_;
-    int growBy_;
-    // 0059C660 (not rewritten; an MFC SetSize instantiation). `growBy` -1 keeps the step.
-    void SetSize(int size, int growBy);
-};
-static_assert(sizeof(UiDwordArray) == 0x14);
+// (UiDwordArray, the MFC CArray<DWORD>-like array, is in ui.h.)
 
 // --- Battle screen --------------------------------------------------------------------------
 //
+// The battle screen's "pers" texts (an STLport map<int, CString> at +0x1F0): a person's text by
+// its text key id. The header node's parent is the tree's root.
+struct PersonTextNode {
+    int colour;
+    PersonTextNode* parent;
+    PersonTextNode* left;
+    PersonTextNode* right;
+    int key;                         // +0x10
+    mfc::CString text;               // +0x14
+};
+struct PersonTextMap {
+    PersonTextNode* header;
+    // find(key) as the original inlines it (ui_battle_mouse.cpp): the lower bound of `key`, or
+    // the header when that is the header or holds a greater key.
+    const PersonTextNode* Find(int key) const;
+};
+static_assert(offsetof(PersonTextNode, text) == 0x14);
+
+// The pixels the mouse must move with the button down on the view before the battle screen
+// starts a selection box (an interface option; 0 or less: never).
+inline int BoxSelectThreshold() { return *reinterpret_cast<const int*>(0x0079BDB0); }
+
 // The in-game screen (CreateScreen id 1, vtables 00740764 / 00740730, 0x230 bytes). Its Create
 // (slot 25, 00635250) builds the HUD panels as children (ui_battle_setup.cpp). Children, in
 // order: weapon bar, quick items, spell column, action column, portraits, unit panel, map,
@@ -56,6 +70,21 @@ public:
     // markers reset, each unit inside controlled (00566030) with its portrait marked and its face
     // turned (about -x by 007C8144 / 7), then slot 32 with the first one's id; then 00637DC0.
     void OnLButtonUp(int buttons, int x, int y);
+    // 00639D60 (input side slot 4, RET 0xC; ui_battle_mouse.cpp; `this` the window). The mouse
+    // moved (also every frame from Draw, at the current position): while a portrait click picks a
+    // player (+0x22C) the cursor shape 0xD and the portraits' own mouse move; otherwise shape 0,
+    // then with a press on the view (+0x1C0), a positive BoxSelectThreshold and not a network
+    // client: a move farther than the threshold from the press point (+0x1C4) in x or y starts
+    // the selection box (+0x1C1), which empties the unit panel's hover unit and spans the press
+    // point and (x, y) (+0x1CC); before that the unit under the point is hovered at once.
+    // Without a press the container's handler (006012D0) first, and when no panel took the move
+    // the unit under the point (00565E40, any flags) goes to HoverUnit (00639EF0).
+    void OnMouseMove(int buttons, int x, int y);
+    // 0063B920 (RET 8; ui_battle_mouse.cpp). The name of `unit` into `out`: its GetName (slot 7)
+    // when not empty; for a unit whose id is a text key, its "pers" text (+0x1F0) or empty;
+    // otherwise the first line of the text "unit " + the prototype's name with spaces as '_' (or
+    // empty without such a text). The unit panel, the hover, the selection and speech lines use it.
+    void UnitName(CUnit* unit, mfc::CString* out);
     // 006369D0 (slot 33, RET 8; ui_battle_update.cpp). A "q." player variable changed while the
     // screen is on top (the quest log 005F7FC0 passes it on). `name` split at '.': three parts
     // (q.<zone>.<quest>) a quest line, "combat_get_quest" / "_complete_" (value 2) / "_failed_"
@@ -144,12 +173,14 @@ public:
     CUiWindow* movePanel_;           // +0x1B4
     CUiWindow* messageLog_;          // +0x1B8
     CUiWindow* topPanel_;            // +0x1BC
-    bool unknown_1C0;                // +0x1C0
+    bool unknown_1C0;                // +0x1C0 the left button went down on the view (00638A40)
     bool unknown_1C1;                // +0x1C1 a selection box is being dragged
-    std::uint8_t unknown_1C2[0x1CC - 0x1C2];
-    std::uint8_t selectionBox_[0x10];   // +0x1CC the box (passed to 005656A0)
+    std::uint8_t unknown_1C2[0x1C4 - 0x1C2];
+    int pressX_;                     // +0x1C4 where the button went down on the view (screen)
+    int pressY_;                     // +0x1C8
+    RECT selectionBox_;              // +0x1CC the box (passed to 005656A0)
     UiDwordArray heroes_;            // +0x1DC ids of the heroes shown (saved with the game)
-    void* personTexts_;              // +0x1F0 STLport map<int, CString>: the "pers" texts by person
+    PersonTextMap personTexts_;      // +0x1F0 the "pers" texts by person
     std::uint8_t unknown_1F4[0x1FC - 0x1F4];
     int unknown_1FC;                 // +0x1FC 0; the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // +0x200 a hero id was added (new game)
@@ -161,6 +192,7 @@ public:
     std::uint8_t unknown_220[0x22C - 0x220];
     int portraitMode_;               // +0x22C 0
 };
+static_assert(offsetof(CBattleScreenSetup, pressX_) == 0x1C4);
 static_assert(offsetof(CBattleScreenSetup, selectionBox_) == 0x1CC);
 static_assert(offsetof(CBattleScreenSetup, partyWithUnit_) == 0x204);
 static_assert(offsetof(CBattleScreenSetup, partyWithout_) == 0x214);
