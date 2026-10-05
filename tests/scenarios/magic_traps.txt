@@ -1,0 +1,48 @@
+# Magic traps (src/game/magic_trap.cpp, tickets U3 / U7 / U8). zone1 has none, so after the new
+# game's autosave the script command AddMob (LoadMobFile 00595AB0) loads zone2's .mob on top of
+# zone1 (zone2's map is smaller, so its positions lie inside zone1): its seven magic traps (MTF1..4,
+# MTFW, MTLW, MTPF) go through the factory (Construct 00529DD0) and SetUp (0052A2C0); zone2's other
+# objects and units come along. MTF4 (a lightning trap, one circle of radius 3 at 43, 104) is armed
+# with a wolf placed in it, so UpdateVictims, FindTrapVictims and CastAtUnits can run and the list
+# of units inside may hold it when the game saves. The escape menu's Save writes save1 (SaveTrap
+# 0052B070 for every trap); loading save1 removes the map objects (DestructBody 00529F90 through
+# the deleting destructor) and reads the traps back (Construct, LoadTrap 0052ADC0). Loading another
+# zone's .mob into zone1 is new ground for the harness: if this run crashes or times out, the
+# cause may be zone2's objects rather than the traps.
+timeout 90
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+
+console @AddMob("maps/zone2.mob")
+waitfor 10 IsGreater(GetObjectID(GetObjectByName("MTF4")),0)
+check IsGreater(GetObjectID(GetObjectByName("MTF1")),0)
+check IsGreater(GetObjectID(GetObjectByName("MTPF")),0)
+console @AddUnitToServer("TrapWolf","WolfTutor","TrapWolf",43,104,0)
+console @ActivateTrap(GetObjectByName("MTF4"),1)
+wait 3000
+
+# Escape menu, Save (as ui_saveload.txt): OK (region 0) saves into save1.
+key esc
+wait 1000
+click 395 120
+wait 1500
+clickregion 0
+waitline 15 Saved save1
+wait 1000
+# A wolf that is not in save1 tells when the load has replaced the world.
+console @AddUnitToServer("TrapMarker","WolfTutor","TrapMarker",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("TrapMarker"))
+
+load save1
+waitfor 20 Mul(Not(IsAlive(GetObjectByName("TrapMarker"))),IsGreater(HP(GetLeader()),0))
+check IsGreater(GetObjectID(GetObjectByName("MTF4")),0)
+check IsGreater(GetObjectID(GetObjectByName("MTF1")),0)
+check IsGreater(HP(GetLeader()),0)
+report
+quit

@@ -5,6 +5,7 @@
 // the verify count shows whether a scenario got there).
 #include "verify.h"
 
+#include "unit_capture_stream.h"
 #include "../../src/game/engine_object.h"
 #include "../../src/game/magic_trap.h"
 
@@ -12,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -167,3 +169,129 @@ static void __fastcall SetUpVerify(MagicTrap* trap, void*, const MagicTrapRecord
                       reinterpret_cast<CEngineObject*>(trap)->id_, problem ? problem : "");
 }
 EI_VERIFY(0x0052A2C0, SetUpVerify, 0, s_unused);
+
+// --- Ticket U8: constructor, destructor, Save / Load ---------------------------------------------
+
+namespace {
+using unitverify::CaptureStream;
+
+// Forwards every call to the real stream and records the bytes read.
+class ReadRecorder : public UnitStream {
+public:
+    explicit ReadRecorder(UnitStream* real) : real_(real) {
+        unknown_04 = real->unknown_04;
+        version = real->version;
+    }
+    void Slot0() override { real_->Slot0(); }
+    int Read(void* buffer, unsigned size) override {
+        int result = real_->Read(buffer, size);
+        auto* p = static_cast<const unsigned char*>(buffer);
+        bytes.insert(bytes.end(), p, p + size);
+        return result;
+    }
+    void Write(const void* buffer, unsigned size) override { real_->Write(buffer, size); }
+    std::vector<unsigned char> bytes;
+
+private:
+    UnitStream* real_;
+};
+
+bool EmptyArrayWith(void* trap, int offset, std::uintptr_t vtable) {
+    return Field<std::uintptr_t>(trap, offset) == vtable && !Field<void*>(trap, offset + 4) &&
+           Field<int>(trap, offset + 8) == 0 && Field<int>(trap, offset + 0xC) == 0 && Field<int>(trap, offset + 0x10) == 0;
+}
+bool EmptyVictims(void* trap) {
+    return Field<std::uintptr_t>(trap, 0x268) == 0x0073E730 && !Field<void*>(trap, 0x26C) && !Field<void*>(trap, 0x270) &&
+           Field<int>(trap, 0x274) == 0 && !Field<void*>(trap, 0x278) && !Field<void*>(trap, 0x27C);
+}
+} // namespace
+
+// Construct (00529DD0): ours only (the map object's Create allocates the network records and
+// stream buffers, so the original cannot run on a scratch copy without leaking them). Afterwards:
+// returns the object, vtable 0073E63C, sides -1, flags_ has 0x80040, no spell, both arrays empty
+// with their own vtables, the list of units inside empty (block size 10), period 10, countdown 0,
+// +0x28C 0. Reached by the factory (00512730) for every magic trap of a zone file and of a save.
+static MagicTrap* __fastcall ConstructVerify(MagicTrap* self) {
+    MagicTrap* result = self->Construct();
+    const char* problem = nullptr;
+    if (result != self || Field<std::uintptr_t>(self, 0) != 0x0073E63C) problem = "result / vtable";
+    else if (Field<std::uint32_t>(self, 0x238) != 0xFFFFFFFFu || (Field<std::uint32_t>(self, 0x08) & 0x80040) != 0x80040)
+        problem = "sides / flags";
+    else if (Field<void*>(self, 0x23C)) problem = "spell";
+    else if (!EmptyArrayWith(self, 0x240, 0x0073C68C) || !EmptyArrayWith(self, 0x254, 0x0073C680)) problem = "arrays";
+    else if (!EmptyVictims(self) || Field<int>(self, 0x280) != 10) problem = "units inside";
+    else if (Field<std::uint32_t>(self, 0x284) != 10 || Field<std::uint32_t>(self, 0x288) != 0 || Field<int>(self, 0x28C) != 0)
+        problem = "period / countdown / single";
+    ei::verify::Check("MagicTrap::Construct", true, problem == nullptr, "%s", problem ? problem : "");
+    return result;
+}
+EI_VERIFY(0x00529DD0, ConstructVerify, 0, s_unused);
+
+// DestructBody (00529F90): ours only (frees and releases). Afterwards the chain has reached the
+// engine object's base (vtable 0073B8E0, no owner), there is no spell, both arrays have their base
+// vtables (0073C698 / 0073C6A4) and no storage, and the list of units inside is empty. Reached by
+// the deleting destructor (00529F70) when a trap is removed: ClearMapObjects at a zone change or
+// a save's load.
+static void __fastcall DestructVerify(MagicTrap* self) {
+    self->DestructBody();
+    auto* object = reinterpret_cast<CEngineObject*>(self);
+    const char* problem = nullptr;
+    if (Field<std::uintptr_t>(self, 0) != 0x0073B8E0 || object->owner_) problem = "base state";
+    else if (Field<void*>(self, 0x23C)) problem = "spell";
+    else if (Field<std::uintptr_t>(self, 0x240) != 0x0073C698 || Field<void*>(self, 0x244) ||
+             Field<std::uintptr_t>(self, 0x254) != 0x0073C6A4 || Field<void*>(self, 0x258))
+        problem = "arrays";
+    else if (!EmptyVictims(self)) problem = "units inside";
+    ei::verify::Check("MagicTrap::DestructBody", true, problem == nullptr, "%s", problem ? problem : "");
+}
+EI_VERIFY(0x00529F90, DestructVerify, 0, s_unused);
+
+// SaveTrap (0052B070, slot 10): the original and ours write into capture streams; bytes and write
+// sizes are compared and the original's writes go on to the real stream. Reached by
+// SaveMapObjects (00596730) for each magic trap when the game saves.
+// 0052B070: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
+static void(__fastcall* s_originalSave)(MagicTrap*, void*, UnitStream*);
+static void __fastcall SaveTrapVerify(MagicTrap* self, void*, UnitStream* stream) {
+    CaptureStream expected(stream), actual(stream);
+    s_originalSave(self, nullptr, &expected);
+    self->SaveTrap(&actual);
+    ei::verify::Check("MagicTrap::SaveTrap", true, expected.Same(actual), "trap %d: %u vs %u bytes, first difference at %d",
+                      reinterpret_cast<CEngineObject*>(self)->id_, static_cast<unsigned>(expected.bytes.size()),
+                      static_cast<unsigned>(actual.bytes.size()), expected.FirstDifference(actual));
+    expected.Forward(stream);
+}
+EI_VERIFY(0x0052B070, SaveTrapVerify, 5, s_originalSave);
+
+// LoadTrap (0052ADC0, slot 9): ours only (it takes references and allocates), reading through a
+// recorder. Round trip: the original Save then writes the trap into a capture stream, and the trap's
+// part of it (from the spell id to the sides, its length known from the loaded counts) must equal
+// the last bytes read. Not compared when the list of units inside was not empty before (Load
+// appends to it) or the original Save is not hooked. A spell or unit id that no longer resolves
+// would show here too (saved back as -1). Reached by the save's load (00596E70, the map objects)
+// for each magic trap.
+static void __fastcall LoadTrapVerify(MagicTrap* self, void*, UnitStream* stream) {
+    int victimsBefore = Field<int>(self, 0x274);
+    ReadRecorder record(stream);
+    self->LoadTrap(&record);
+    if (victimsBefore != 0 || !s_originalSave) {
+        ei::verify::Check("MagicTrap::LoadTrap", true, true, "");
+        return;
+    }
+    CaptureStream saved(stream);
+    s_originalSave(self, nullptr, &saved);
+    std::size_t part = 4 + 4 + sizeof(TrapCircle) * static_cast<std::size_t>(Field<int>(self, 0x248)) + 4 +
+                       4 * static_cast<std::size_t>(Field<int>(self, 0x274)) + 4 +
+                       8 * static_cast<std::size_t>(Field<int>(self, 0x25C)) + 16;
+    int diff = -2;   // -2: too short, -1: same
+    if (record.bytes.size() >= part && saved.bytes.size() >= part) {
+        const unsigned char* read = record.bytes.data() + record.bytes.size() - part;
+        const unsigned char* written = saved.bytes.data() + saved.bytes.size() - part;
+        diff = -1;
+        for (std::size_t i = 0; i < part && diff < 0; ++i)
+            if (read[i] != written[i]) diff = static_cast<int>(i);
+    }
+    ei::verify::Check("MagicTrap::LoadTrap", true, diff == -1, "trap %d version %d: %u bytes read, %u of the trap, difference at %d",
+                      reinterpret_cast<CEngineObject*>(self)->id_, stream->version, static_cast<unsigned>(record.bytes.size()),
+                      static_cast<unsigned>(part), diff);
+}
+EI_VERIFY(0x0052ADC0, LoadTrapVerify, 0, s_unused);

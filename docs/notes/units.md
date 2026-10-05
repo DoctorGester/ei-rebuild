@@ -1324,3 +1324,90 @@ and head 0 and the blocks freed with CPlex::FreeDataChain). +0x284 = the period,
   database reload.
 - SetUp is not reached on zone1 (no magic traps); the wrapper compares every field against the
   record when it is.
+
+# Tenth round (U8): the magic trap's lifetime and Save / Load, the model record's destructor
+
+Code: `src/game/magic_trap.cpp` (four functions and the shared RemoveAll helper ClearVictims, which
+SetUp now uses too), `src/game/unit_db_destroy.cpp` (0053EE70). Verify: `verify_magic_trap.cpp`
+(four wrappers), `verify_unit_db_destroy.cpp` (one). Shared header, additive only: `magic_trap.h`
+(MagicTrap::Construct, DestructBody, SaveTrap, LoadTrap). Scenario: `tests/scenarios/magic_traps.txt`
+(new). None of the five is in library.csv, dead_code.csv or the Rebirth list, nor is any callee.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00529DD0 | MagicTrap::Construct (thiscall, returns this) | ours only (the map object's Create allocates the network records): vtable, sides -1, flags 0x80040, no spell, arrays and list empty with their vtables, block size 10, period 10, countdown and +0x28C 0. magic_traps.txt (AddMob of zone2, and the load of save1) |
+| 00529F90 | MagicTrap::DestructBody (thiscall) | ours only: engine base state (vtable 0073B8E0, no owner), no spell, the arrays' base vtables without storage, list empty. magic_traps.txt (the load of save1 removes the traps) |
+| 0052B070 | MagicTrap::SaveTrap (slot 10, RET 4) | against the original: both into capture streams, bytes and write sizes compared. magic_traps.txt (the escape menu's save) |
+| 0052ADC0 | MagicTrap::LoadTrap (slot 9, RET 4) | ours only, through a recording stream; round trip: the original Save of the loaded trap must reproduce the trap's part of the bytes read (skipped when the list was not empty before). magic_traps.txt (load save1) |
+| 0053EE70 | unitdb::DestroyModelRecord (thiscall, the 0x168 record) | ours only, reported when it runs. DestroyUnitDatabase at exit; the model vector's erase / reallocating insert on a database reload; no scenario known |
+
+Renamed in Ghidra: 00529DD0 MagicTrap__Construct, 00529F90 MagicTrap__DestructBody, 0052B070
+MagicTrap__Save, 0052ADC0 MagicTrap__Load, 0053EE70 UnitModelRecord__Destroy.
+
+## The trap's lifetime
+
+- Construct: CMapObject::Construct, the members (spell null, the circle array vtable 0073C68C,
+  the point array 0073C680, the CList of counted references 0073E730 with blocks of 10), the vtable
+  0073E63C, then the map object's Create (0050E770) called directly, sides -1, flags_ |= 0x80040
+  (0x80000 is "armed": a new trap is armed until a script disarms it; 0x40 its kind), the spell
+  released again (null), both arrays SetSize(0, -1), RemoveAll inlined, +0x288 = +0x28C = 0, the
+  period 10.
+- DestructBody (from the deleting destructor 00529F70): the vtable 0073E63C, CMapObject's Destroy
+  (0050E840, called directly), the spell assigned null (0052C690), both SetSize(0, -1), RemoveAll
+  (elements through 0052D030(0)), CList's destructor (vtable, RemoveAll again with 0052CEC0), the
+  arrays' destructors (base vtables 0073C6A4 / 0073C698, storage freed if any; their elements are
+  not destroyed, SetSize did), the spell released if still set, CMapObject::DestructBody. The
+  element helpers all release a non-null reference and clear it; ours inlines them as ClearVictims.
+
+## Save / Load
+
+Save after the map object part (0050F900): the spell's id (+0xC; -1 without one), the circle
+count and each circle (12 bytes), the count of units inside and each unit's id (0050E290, -1 for
+a null reference), the point count and each point (8 bytes), then the period, countdown, +0x28C
+and sides (4 bytes each). Load mirrors it after 0050F7A0: the spell manager is taken from the
+trap's context (slot 22) before the id is read and the spell found with 00403F40 (-1: none) and
+assigned as a counted reference; the circles and points through their SetSize(n, -1) and read into
+place, the bounds re-read each pass; the units inside through 0052AF20 (fastcall: ECX the list,
+EDX the stream, the trap's context pushed, RET 4; the "registers the decompiler loses"), which
+appends without emptying first; the last four fields read straight into the object.
+
+## Model record destructor (0053EE70)
+
+Members in reverse order: the vector of sound counts at +0x144 (storage only), the sound names
+(each CString, then 00520F60 with the element count, which tests for null itself), the CStrings
++0x124 / +0x118, the string vectors +0xF8 / +0xEC (strings, then 00404D70 when begin is set; the
+byte count rounded down to whole elements by SAR 2), the CString +0xE8, the six slots through the
+CRT's `eh vector destructor iterator` (0x10 bytes, destructor 0053F010 = ~CString of the level
+name) and the name.
+
+## Forwarders added (tenth round; the standalone build must replace these)
+
+- Game code, not rewritten: 0050E770 / 0050E840 (CMapObject Create / Destroy; 0050E770 was already
+  a forwarder in map_object_create.cpp, 0050E840 in map_object_lifetime.cpp), 0050F7A0 / 0050F900
+  (the map object part of Load / Save, also forwarded by unit_save.cpp), 0050E290 (a counted
+  reference's Save), 0052AF20 (the trap list's load), 0053F010 (a ~CString jump, passed as a
+  pointer).
+- Rewritten, called through their addresses: 0050E2D0 / 0050E660 (CMapObject construct / destruct
+  body), 00403F40 (CBaseManager::FindObject), 0053EE70 from DestroyUnitDatabase (unchanged).
+- Library: 0046EAD0 / 0052C8E0 (already), 006E859F, stlp::deallocate (00404D70, also for 00520F60's
+  identical code), MFC CPlex::FreeDataChain, CString::~CString, gamecrt::operator_delete.
+
+## Original bugs and oddities kept (tenth round)
+
+- LoadTrap reads the spell id and both counts into its argument's stack slot: a failed read
+  leaves the previous value (at first the stream pointer). Ours starts its local with the stream
+  pointer for the same effect.
+- LoadTrap appends to the list of units inside instead of replacing it (harmless: Load runs on a
+  freshly constructed trap).
+- The constructor releases a spell and empties lists it has just set to empty.
+
+## Risks (tenth round)
+
+- magic_traps.txt is the first scenario that loads another zone's .mob into zone1 (AddMob of
+  zone2: seven traps and all of zone2's units and objects). A crash or timeout there may come from
+  zone2's objects, not the traps; the run happens at integration.
+- LoadTrap's check passes through a recording stream that forwards slots 0..2; a loader that used
+  another stream slot would fail there (none does in 0050F7A0 / 0052AF20 or the string reader
+  00461190; the companion's Load, 0050F7A0's first call, was not inspected).
+- Construct and DestructBody are checked for state only; leftover heap bytes cannot show, since
+  the original never runs beside ours.
