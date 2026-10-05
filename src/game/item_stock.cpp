@@ -139,12 +139,17 @@ void Shuffle(T* first, T* last) {
     }
 }
 
-// vector<char*>::operator=, as the original inlines it.
-void AssignPointers(StockPtrVector& to, const StockPtrVector& from) {
+// vector<char*>::operator=, as the original inlines it. The spell and modifier vectors are other
+// instantiations of the same code (allocate and copy 0069DC70 / 0069DDD0, deallocate 004AA810 /
+// 004AA7D0); their copy helpers (0069EB10 / 0069EB40, 0069F560 / 0069F5C0) are the loops below.
+using PtrAllocateCopyFn = char**(__fastcall*)(StockPtrVector*, void*, std::size_t, char**, char**);
+using PtrDeallocateFn = void(__fastcall*)(char**, std::size_t);
+void AssignPointers(StockPtrVector& to, const StockPtrVector& from, PtrAllocateCopyFn allocate = PtrAllocateCopy,
+                    PtrDeallocateFn deallocate = PtrDeallocate) {
     std::size_t length = from.size();
     if (length > static_cast<std::size_t>(to.eos - to.start)) {
-        char** block = PtrAllocateCopy(&to, nullptr, length, from.start, from.finish);
-        PtrDeallocate(to.start, static_cast<std::size_t>(to.eos - to.start));
+        char** block = allocate(&to, nullptr, length, from.start, from.finish);
+        deallocate(to.start, static_cast<std::size_t>(to.eos - to.start));
         to.start = block;
         to.eos = block + length;
     } else if (to.size() >= length) {
@@ -218,9 +223,10 @@ StockMaterial* DrawMaterial(char* prototype) {
     return nullptr;
 }
 
-// Frees the spell list as the original's clear and destructor do: each counted spell released
-// (slot 4), each node back to the node pool, then the sentinel.
-void DestroySpellList(StockList& list) {
+// Empties the spell list as the original's clear does: each counted spell released (slot 4; the
+// holder's release 004C17E0 / deleting destructor 0069E540 with 0), each node back to the node pool
+// (0069CA50 with 1).
+void ClearSpellList(StockList& list) {
     StockListNode* head = list.head;
     StockListNode* node = head->next;
     while (node != head) {
@@ -232,8 +238,13 @@ void DestroySpellList(StockList& list) {
     }
     head->next = head;
     head->prev = head;
+}
+
+// Frees the spell list as the original's clear and destructor do: the clear, then the sentinel.
+void DestroySpellList(StockList& list) {
+    ClearSpellList(list);
     // (The destructor's own clear finds the list empty.)
-    stlp::deallocate(head, sizeof(StockListNode));
+    stlp::deallocate(list.head, sizeof(StockListNode));
 }
 
 // The random spell of a weapon or armor: half the time, when the material allows magic, one of the
@@ -756,3 +767,140 @@ void ItemStock::LoadLists(void* stream) {
     LoadMapped(stream, name, count, 0x007C853C, &ModifierByName, modifiers, &PushModifierRecord);
 }
 EI_REPLACE_METHOD(0x0069B5B0, ItemStock::LoadLists);
+
+// ---- 006993B0 / 00699440 --------------------------------------------------------------------------
+
+void ItemStock::ResetMaterialUnits() {
+    for (StockMaterial* e = materials.start; e != materials.finish; ++e) {
+        e->left = e->maxCount;
+        if (e->maxCount > e->minCount) e->left = RandomCount(e->minCount, e->maxCount);
+    }
+}
+EI_REPLACE_METHOD(0x006993B0, ItemStock::ResetMaterialUnits);
+
+namespace {
+
+// The spell and modifier vectors' allocate-and-copy (thiscall: count, first, last) and deallocate
+// (fastcall: block, element count).
+__declspec(naked) char** __fastcall SpellPtrAllocateCopy(StockPtrVector*, void*, std::size_t, char**, char**)
+    EI_ORIGINAL(0x0069DC70)
+__declspec(naked) void __fastcall SpellPtrDeallocate(char**, std::size_t) EI_ORIGINAL(0x004AA810)
+__declspec(naked) char** __fastcall ModifierPtrAllocateCopy(StockPtrVector*, void*, std::size_t, char**, char**)
+    EI_ORIGINAL(0x0069DDD0)
+__declspec(naked) void __fastcall ModifierPtrDeallocate(char**, std::size_t) EI_ORIGINAL(0x004AA7D0)
+
+} // namespace
+
+void ItemStock::CopyMagic(const ItemStock* other) {
+    if (&other->spells != &spells) AssignPointers(spells, other->spells, SpellPtrAllocateCopy, SpellPtrDeallocate);
+    if (&other->modifiers != &modifiers)
+        AssignPointers(modifiers, other->modifiers, ModifierPtrAllocateCopy, ModifierPtrDeallocate);
+}
+EI_REPLACE_METHOD(0x00699440, ItemStock::CopyMagic);
+
+// ---- 00699C90 / 00699ED0 --------------------------------------------------------------------------
+
+namespace {
+
+// The spell and modifier records by code (thiscall on their tables; null when missing): 0068C820 on
+// 007C8510 (0x84-byte records, the code a CString at +4), 0068C920 on 007C8530 (0x24-byte records,
+// the code inline at +4).
+__declspec(naked) char* __fastcall FindSpellByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C820)
+__declspec(naked) char* __fastcall FindModifierByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C920)
+
+// A record's index in the table whose vector starts at `table` (signed division), or -1 for null.
+int TableIndex(const char* record, std::uintptr_t table, int recordSize) {
+    if (!record) return -1;
+    std::intptr_t offset = reinterpret_cast<std::intptr_t>(record) - *reinterpret_cast<const std::intptr_t*>(table);
+    return static_cast<int>(offset) / recordSize;
+}
+
+int SpellIndex(char* record) {
+    return TableIndex(FindSpellByCode(kSpellPrototypes, nullptr, At<const char*>(record, 4)), 0x007C8510, 0x84);
+}
+int ModifierIndex(char* record) {
+    return TableIndex(FindModifierByCode(reinterpret_cast<void*>(0x007C8530), nullptr, record + 4), 0x007C8530, 0x24);
+}
+
+// The common body of 00699C90 / 00699ED0: the source copied to its scratch vector (007C8670 spells,
+// 007C8660 modifiers), then an item of kind 0x3007 with the class-0x15 prototype named at
+// `prototypeName` per record, +0x54 its index, +0x48 a random count. The scratch is emptied at the end.
+void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, std::uintptr_t scratch,
+                               PtrAllocateCopyFn allocate, PtrDeallocateFn deallocate, std::uintptr_t prototypeName,
+                               int (*indexOf)(char*), int minCount, int maxCount, StockList* out) {
+    Constructor* ctor = ei::VCall<Constructor*>(stock->context, 16);
+    void* manager = ei::VCall<void*>(stock->context, 18);
+    ei::VCall<void*>(stock->context, 22);   // (fetched and not used)
+    StockPtrVector& taken = *reinterpret_cast<StockPtrVector*>(scratch);
+    taken.finish = taken.start;   // erase(begin, end)
+    if (&source != &taken) AssignPointers(taken, source, allocate, deallocate);
+    char* prototype = FindTable15Named(kTable15, nullptr, Text(prototypeName));
+    for (char** p = taken.start; p != taken.finish; ++p) {
+        ctor->SetManager(manager);
+        ctor->BeginCreateItem(0x3007, -1);
+        ctor->SetPrototype(prototype);
+        ctor->SetMaterial(nullptr);
+        char* item = ctor->EndCreateItem();
+        ctor->SetManager(nullptr);
+        At<int>(item, 0x54) = indexOf(*p);
+        At<int>(item, 0x48) = RandomCount(minCount, maxCount);
+        AddReference(item);
+        Output(out, item);
+    }
+    taken.finish = taken.start;
+}
+
+} // namespace
+
+void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, StockList* out) {
+    GenerateMagicInstructions(this, spells, 0x007C8670, SpellPtrAllocateCopy, SpellPtrDeallocate, 0x00793924,   // "prototype"
+                              SpellIndex, minCount, maxCount, out);
+}
+EI_REPLACE_METHOD(0x00699C90, ItemStock::GenerateSpellInstructions);
+
+void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, StockList* out) {
+    GenerateMagicInstructions(this, modifiers, 0x007C8660, ModifierPtrAllocateCopy, ModifierPtrDeallocate,
+                              0x007963A4,   // "rune"
+                              ModifierIndex, minCount, maxCount, out);
+}
+EI_REPLACE_METHOD(0x00699ED0, ItemStock::GenerateModifierInstructions);
+
+// ---- 0069AC20 -------------------------------------------------------------------------------------
+
+namespace {
+void* const kScrollSpellTable = reinterpret_cast<void*>(0x007C8550);
+constexpr int kScrollTries = 10;
+} // namespace
+
+// Original bug kept: a failed build (EndCreateItem null) is dereferenced.
+void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* out) {
+    Constructor* ctor = ei::VCall<Constructor*>(context, 16);
+    void* manager = ei::VCall<void*>(context, 18);
+    ei::VCall<void*>(context, 22);   // (fetched and not used)
+    CallFillSpellMaps(this, nullptr, kScrollSpellTable);
+    StockList list;
+    char allocator = 0;
+    SpellListConstruct(&list, nullptr, &allocator);
+    for (int tries = 0;;) {
+        ClearSpellList(list);
+        CallGenerateSpells(this, nullptr, &list, scrollLevels, 0x32);
+        unsigned count = 0;
+        for (StockListNode* n = list.head->next; n != list.head; n = n->next) ++count;
+        if (count >= static_cast<unsigned>(spells.size())) break;
+        if (++tries >= kScrollTries) break;
+    }
+    char* prototype = FindQuickItemNamed(reinterpret_cast<void*>(0x007C8738), nullptr, Text(0x007938A0));   // "spell container"
+    for (StockListNode* n = list.head->next; n != list.head; n = n->next) {
+        ctor->SetManager(manager);
+        ctor->BeginCreateItem(0x3008, -1);
+        ctor->SetPrototype(prototype);
+        ctor->SetMaterial(nullptr);
+        ctor->SetSpellObject(n->value);
+        char* item = ctor->EndCreateItem();
+        ctor->SetManager(nullptr);
+        AddReference(item);
+        Output(out, item);
+    }
+    DestroySpellList(list);
+}
+EI_REPLACE_METHOD(0x0069AC20, ItemStock::GenerateScrolls);

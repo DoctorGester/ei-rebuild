@@ -72,7 +72,29 @@ struct ItemStock {
     StockPtrVector modifiers;       // +0x44
     std::uint8_t spellMap[0x14];    // +0x50 recipes by spell name (STLport hash_map<string, list>, 0069A480)
     std::uint8_t modifierMap[0x14]; // +0x64 modifiers by kind key (STLport map<string, modifier*>, 0069A480)
-    std::uint8_t unknown_78[0xB8 - 0x78];
+    std::uint8_t unknown_78[0x20];  // +0x78 8 floats, set with +0x98 (00699410)
+    float scrollLevels[8];          // +0x98 the spell level per school for the scrolls (0069AC20)
+
+    // 006993B0. Each material entry's units left (+0x0C) redrawn in [minCount, maxCount] (rand;
+    // maxCount when minCount >= maxCount).
+    void ResetMaterialUnits();
+
+    // 00699440 (RET 4). The spells (+0x38) and modifiers (+0x44) assigned from `other` (004A6DF0:
+    // the "allowed" stock takes the "magic" stock's).
+    void CopyMagic(const ItemStock* other);
+
+    // 00699C90 / 00699ED0 (RET 0xC). One instruction item (kind 0x3007, the class-0x15 prototype
+    // "prototype" / "rune") per offered spell (+0x38) / modifier (+0x44), with +0x54 the record's
+    // index in its table (found by code, 0068C820 / 0068C920; -1 when missing) and +0x48 a random
+    // count in [minCount, maxCount], into `out`.
+    void GenerateSpellInstructions(int minCount, int maxCount, StockList* out);
+    void GenerateModifierInstructions(int minCount, int maxCount, StockList* out);
+
+    // 0069AC20 (RET 0xC; from 004A6F60). Scrolls ("spell container", kind 0x3008) of the spells the
+    // stock offers: the recipe maps for scrolls (007C8550), then up to 10 tries at a spell list
+    // (0069A780 with +0x98 and threshold 50) until it holds at least as many spells as the stock
+    // offers (+0x38); a scroll per spell of the last try into `out`. The counts are not used.
+    void GenerateScrolls(int minCount, int maxCount, StockList* out);
 
     // 0069AE20 (RET 0x14). Up to a random count in [minCount, maxCount] of the prototypes (all of
     // them when there are not more; otherwise the vector is shuffled in place and its first ones
@@ -123,4 +145,5 @@ struct ItemStock {
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);
+static_assert(offsetof(ItemStock, scrollLevels) == 0x98);
 static_assert(sizeof(ItemStock) == 0xB8);
