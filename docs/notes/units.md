@@ -715,6 +715,22 @@ Steps:
 atan2, exp, cos and sin are the C++ library's (rule 7). The original uses FPATAN / F2XM1 / FSCALE
 / FCOS / FSIN at the game's 24-bit precision.
 
+Quaternion sign flip (ticket X3). The ui_hud run had one mismatch in 6329 calls, "q0 -0.707107 vs
+0.707107" (a quaternion and its negative are the same rotation). 00402220 builds the orientation
+from atan2(direction) + pi/2, so the quaternion jumps to its negative when the heading is exactly
++-pi (direction y flips sign around a heading of pi), and any one-ULP difference in the heading
+there shows. The cause was in ours, not in the maths library: the original stores `current` and
+`target` as floats (FSTP [ebp-8] / [ebp-4]) before the loop and the blend, but under /fp:fast MSVC
+compiled `static_cast<float>(std::atan2(..))` straight into FPATAN and kept both angles unrounded
+on the FPU stack, so the blend (1 - w) target + w current was fed 64-bit angles instead of floats.
+That moved the heading by one float ULP in about 10% of calls (invisible inside the 8-ULP check)
+and, near pi, flipped the sign of sin(heading) and with it the quaternion. Both angles now go
+through a volatile float store (`Store`), like the original's FSTP. Checked offline with the
+original's whole sequence (FPATAN, the wrap loop, F2XM1 / FSCALE blend, FCOS / FSIN) next to ours
+at 24-bit precision on 3 million random directions plus 3 million within a few ULPs of +-pi: before
+the fix the heading differed in 10% of calls and sin(heading) flipped sign in 1.4% of the edge
+cases; after it both counts are 0. The verify wrapper is unchanged (still strict on q0..q3).
+
 # Levers
 
 Code: `src/game/unit_lever.cpp`, `src/game/lever.h` (new); verify wrappers:
