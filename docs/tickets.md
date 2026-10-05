@@ -7,7 +7,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R5 The ~10 interface draws with old-device calls (list in renderer.md point 6), in groups of 3-4.
+- R5 (taken 2026-10-05) The ~10 interface draws with old-device calls (list in renderer.md point 6), in groups of 3-4.
 - R6 Movie surfaces and the software cursor's draws to the primary surface.
 - R7 Holders with no DirectDraw surface at all (after R2/R3).
 - R8 Device setup and texture management (last).
@@ -40,6 +40,3 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
-- X2 (taken 2026-10-05) Classify as library: the unit database's STLport vector code 0053F530, 0053FCC0,
-  0053F950, 0053E2A0, 00520FA0, 00521220, 00521C70, 0051F790, 0051FB50, 00539CE0, 0053A050; 0051FF40
-  (perks.pdb saver, unreferenced) to dead_code.csv after checking references.
