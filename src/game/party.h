@@ -20,14 +20,19 @@ using BOOL = int;
 
 class CItem;
 class CItemConstructor;
+class CParty;
 class CResourceManager;
 class CSpellConstructor;
 class CSpellManager;
+class CStream;   // core_streams.h
 struct PartyUnitRecord;   // unit.h
 
 // A unit record's item list (its data pointer, then count, capacity and grow-by) as the aligned
 // pointer array it is.
 inline AlignedPtrArray& ItemList(CEngineObject**& data) { return *reinterpret_cast<AlignedPtrArray*>(&data); }
+
+// The party whose records are being loaded (set by CParty::LoadParty around the records).
+inline CParty*& LoadingParty() { return *reinterpret_cast<CParty**>(std::uintptr_t(0x007C8344)); }
 
 // 00664880 (__stdcall, RET 8; party_lifetime.cpp). MFC ConstructElements for the records: the
 // memory zeroed, then each record constructed.
@@ -67,7 +72,7 @@ public:
     virtual void Slot15();
     virtual void Slot16();
     virtual void Slot17();
-    virtual void Slot18();
+    virtual CResourceManager* ItemManager();   // 18: itemManager_
     virtual void Slot19();
     virtual void Slot20();
     virtual void Slot21();
@@ -113,6 +118,25 @@ public:
     // clears +0x50 and +0x6C.
     void Clear(int clearVariables, int keepSpells);
 
+    // 006618C0 (RET 8; party_save.cpp). Reads what SaveParty writes: Create (slot 2) when there
+    // is no item manager, Clear(loadVariables, 0) with the party marked as being loaded
+    // (LoadingParty, which the records' item lookups use), the zone name, +0x6C, both managers
+    // (slot 9, then LoadObjects), the item ids (resolved in the item manager and counted), the
+    // records (PartyUnitRecord::Load), the variables (with `loadVariables`), +0x50 (from version
+    // 0x6C stored xor a key that follows it); then both managers' ReleaseUnused.
+    void LoadParty(CStream* stream, int loadVariables);
+    // 00661C10 (RET 8). Create when there is no item manager; the zone name with its zero, +0x6C,
+    // both managers (slot 10, then SaveObjects), the item ids (-1 for an empty entry), the record
+    // count and records, the variables (with `saveVariables`), then +0x50 xor an ISAAC key and
+    // the key.
+    void SaveParty(CStream* stream, int saveVariables);
+    // 00661300 (RET 4). operator=: Clear(1, 0), then `source` saved into a memory stream and
+    // loaded back into this party (variables included). Returns this.
+    CParty* Assign(CParty* source);
+    // 006613C0 (RET 4). Copy constructor: Construct, then `source` copied as Assign does
+    // (without the Clear). Returns this.
+    CParty* CopyConstruct(CParty* source);
+
     CResourceManager* itemManager_;         // +0x1C (CItemManager's vtable; slot 18 returns it)
     CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
     CSpellManager* spellManager_;           // +0x24 (slot 22)
@@ -125,6 +149,8 @@ public:
     std::uint32_t unknown_6C;               // +0x6C cleared by Clear
 };
 static_assert(offsetof(CParty, itemManager_) == 0x1C);
+static_assert(offsetof(CParty, unknown_50) == 0x50);
+static_assert(offsetof(CParty, unknown_6C) == 0x6C);
 static_assert(offsetof(CParty, members_) == 0x2C);
 static_assert(offsetof(CParty, items_) == 0x40);
 static_assert(offsetof(CParty, variables_) == 0x54);

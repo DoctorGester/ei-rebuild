@@ -138,8 +138,14 @@ the party is the context of its items (CItem::LoadItem's slot 22 finds the party
 Create re-attaches the spell manager; DestroyParty drops the four objects by count and deletes them whatever the count
 (kept). The constructor copies an uninitialised stack byte into the map's three functor bytes (not reproduced).
 
-Candidates next: CParty serialisation (00661300, 006618C0, 00661C10, 006613C0), the record's Load / Save /
-CopyItemsFrom (0065F9B0, 0065FDE0, 00660500), DeltaField's empty (00675F70, 19 callers) with the effect constructors /
+Serialisation (party_save.cpp, A-H5): 0065F9B0 / 0065FDE0 record Load / Save, 006618C0 / 00661C10 LoadParty /
+SaveParty (RET 8, the flag covers the variables), 00661300 Assign (operator=), 006613C0 CopyConstruct. Saves:
+original into a scratch memory stream, bytes compared (ISAAC state restored before ours: SaveParty draws the key
+for +0x50). Record Load: the original Save gives back the bytes read. LoadParty / Assign / CopyConstruct ours only
+(items registered under their ids; the copy equals the source). Global 007C8344 = the party being loaded
+(LoadingParty). StatsLoad / StatsSave moved to originals_units.h.
+
+Candidates next: the record's CopyItemsFrom (00660500), DeltaField's empty (00675F70, 19 callers) with the effect constructors /
 destructors, item database record assignment and destructors (006A8F20 with 24 callers, 006A8FB0, 006A88F0..),
 the HUD top panel's text refresh 0064A7A0, the objectives window 0064D9B0.
 

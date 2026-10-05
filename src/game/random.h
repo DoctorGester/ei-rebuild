@@ -7,6 +7,9 @@
 // must stay bit-exact. 0x814 bytes.
 class IsaacRandom {
 public:
+    // The game's generator (007A9D40).
+    static IsaacRandom& Global() { return *reinterpret_cast<IsaacRandom*>(std::uintptr_t(0x007A9D40)); }
+
     // 004667F0. Next 32-bit random value.
     std::uint32_t Next();
 
