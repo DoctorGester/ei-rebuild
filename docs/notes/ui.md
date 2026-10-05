@@ -2279,3 +2279,16 @@ scenario `tests/scenarios/ui_quick_items.txt`. Shared header (additive): `ui.h` 
 - Unconfirmed until the first run: whether the hero starts with quick items in the sack (they
   would be listed before the wands in the quick tab), and whether the portrait click after the
   camp still selects the hero.
+
+### First run of ui_quick_items (I9 follow-up)
+
+- Both installs: the four quick slot clicks never reached 0063DB20 (0 calls), so the slots'
+  regions had no entry (OnMouseDown 0063DAA0 takes the mouse only over a region with an item):
+  most likely the wands never reached the hero's quick slots. UseOnUnit had 4 calls and UseAtPoint
+  none; where they came from is not known yet. QuickWolf3 at (hx, hy - 3) was not drawn (off
+  screen or culled); it now stands at (hx + 3, hy + 3), between wolves 0 and 1 on screen.
+- New harness step `hudstate [minquick]` (tests/verify/harness.cpp): logs the battle screen's
+  pending action, each member's selection flag and quick items (00531920), the quick item panel's
+  unit, entries and region items and the spell column's count and highlight; with a number it fails
+  when the panel shows fewer of its unit's own quick items. The scenario runs it around the portrait
+  click (`hudstate 2` after it) and after every quick slot and spell button click.

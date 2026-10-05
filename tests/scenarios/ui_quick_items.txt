@@ -59,15 +59,19 @@ console @GSSetVar(0,"hy",GetY(GetLeader()))
 console @GiveUnitSpell(GetLeader(),"fireball")
 wait 500
 
-# The hero's portrait: selects it and shows its quick items and spells.
+# The hero's portrait: selects it and shows its quick items and spells. hudstate logs the
+# selection and the quick item panel before and after; "hudstate 2" fails the run when the panel
+# does not show two of the hero's own quick items (the wands did not reach its quick slots).
+hudstate
 click 400 560
 wait 300
+hudstate 2
 check IsAlive(GetLeader())
 
 console @AddUnitToServer("QuickWolf0","WolfTutor","QuickWolf0",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
 console @AddUnitToServer("QuickWolf1","WolfTutor","QuickWolf1",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
 console @AddUnitToServer("QuickWolf2","WolfTutor","QuickWolf2",Sub(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
-console @AddUnitToServer("QuickWolf3","WolfTutor","QuickWolf3",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),3),0)
+console @AddUnitToServer("QuickWolf3","WolfTutor","QuickWolf3",Add(GSGetVar(0,"hx"),3),Add(GSGetVar(0,"hy"),3),0)
 waitfor 10 IsAlive(GetObjectByName("QuickWolf0"))
 waitfor 10 IsAlive(GetObjectByName("QuickWolf1"))
 waitfor 10 IsAlive(GetObjectByName("QuickWolf2"))
@@ -83,6 +87,7 @@ move 695 575
 wait 200
 click 695 575
 wait 200
+hudstate
 click 90 320
 wait 300
 clickunit QuickWolf0
@@ -91,6 +96,7 @@ move 645 575
 wait 200
 click 645 575
 wait 200
+hudstate
 click 90 320
 wait 300
 clickunit QuickWolf1
@@ -99,6 +105,7 @@ move 595 575
 wait 200
 click 595 575
 wait 200
+hudstate
 click 90 320
 wait 300
 clickunit QuickWolf2
@@ -107,6 +114,7 @@ move 545 575
 wait 200
 click 545 575
 wait 200
+hudstate
 click 90 320
 wait 300
 clickunit QuickWolf3
@@ -117,12 +125,14 @@ move 780 490
 wait 200
 click 780 490
 wait 200
+hudstate
 click 90 320
 wait 500
 move 780 490
 wait 200
 click 780 490
 wait 200
+hudstate
 click 90 320
 wait 1000
 check IsAlive(GetLeader())
