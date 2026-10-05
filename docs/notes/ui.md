@@ -2041,3 +2041,73 @@ earlier list (briefing screen, network screens, global map path search 006312C0,
   (MoveToPoint) ignore the flag, so the other scenarios that unblock the same way never noticed.
 - ui_order_move now waits for the intro's block (`waitfor 15 IsUnitBlocked(GetLeader())`) before
   lifting it and checks the hero is not blocked before each click. No code changed.
+## Sixteenth pass (ticket I7)
+
+Files: `src/game/ui_battle_commands.cpp` (new: the party commands and the speech event); wrappers
+in `tests/verify/verify_ui_battle_commands.cpp` (new); new scenario
+`tests/scenarios/ui_battle_commands.txt`. Shared header (additive): `ui_camp.h` (four
+CBattleScreenSetup members). ui_hud.cpp's SelectUnit still calls 006379E0 / 00637190 / 006373A0
+through their addresses, so the wrappers run.
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 006379E0 | 636 | `CBattleScreenSetup::ToggleMember` (RET 4) | ours only: from the members' flags and +0x7D before the call, each portrait marker (+0x220) holds the chosen value, the face's rest orientation is the identity exactly when not chosen, every chosen member has flag 0x10; on a network client or an index past the party nothing changes | ui_hud, ui_battle_commands (a click on the hero's portrait: CHudPortraits::OnMouseUp -> SelectUnit's plain action on a member; ui_hud's run already showed the extra RefreshSelection call it ends with) |
+| 00637190 | 498 | `CBattleScreenSetup::AttackUnit` (RET 8) | ours only: every member selected before nods (kind 1 / 2) with a delay not positive | ui_battle_commands (grid of clicks around the hero with three blocked wolves; unconfirmed that a click lands on one, see below) |
+| 006373A0 | 343 | `CBattleScreenSetup::OrderDeadUnit` (RET 8) | as AttackUnit | ui_battle_commands (the same grid after the wolves die) |
+| 006366F0 | 723 | `CBattleScreenSetup::OnUnitSpeech` (slot 32, RET 0xC) | ours only: unknown id: nothing changes; otherwise the top panel's text only grows and ends with a line end when it grew; event 0x30 the members' timed face (+0x48 1, +0x4C 0), 0xB..0x15 their shake (kind 2, delay not positive); every other wobble kind / face mode unchanged | every scenario where a unit speaks; ui_hud / ui_battle_commands through the toggle (event 0) |
+
+4 functions, about 2.2 KB. None is Rebirth-patched, nor are their callees (checked against
+docs/rebirth-patched-functions.txt); none is in config/library.csv or config/dead_code.csv.
+
+### Member toggle (006379E0)
+
+- See the comment in ui_camp.h. The chosen values are a CArray<DWORD> (vtable 0073C3D0, SetAtGrow
+  00460500) of the members' flag 0x10 bits: 0x10, not 1, unless the member is the one toggled, and
+  the portrait markers get those values as they are. The rest orientation is the turn about
+  (-1, 0, 0) by 007C8144 * 1/7 (0073CDCC, rounded to a float as the original's FSTP; 0049E800).
+- The single-player sync walks the local player's records (+0xA0, 0x784 bytes, +0xA4 count)
+  against party member i by index, with no null test on the member.
+
+### Attack / dead unit (00637190, 006373A0)
+
+- The order kind is the index of the first set byte of +0x18D..+0x192 (6 for none). Per selected
+  member: the CArray<CUnit*> (vtable 007402AC, SetSize 005EBDB0), the portrait nod (random delay
+  as OrderAt's), then (attack only) the levels of the target and the member (00532D40, in that
+  order) and, more than five apart, slot 32 (member id, 10, 0). The view gets 0066A880 (units,
+  target, kind, ctrl & 0xFF) / 0066AB80 (units, target, ctrl & 0xFF); the array's data is freed.
+
+### Speech event (006366F0)
+
+- The unit comes from the object manager (007AF5F8, 00403F40). The phrase: 006D8A40 (__fastcall
+  unit, extra, event == 0x2B; RET 4) for events 0x2A / 0x2B, else 006D8430 (__fastcall unit,
+  event). With a phrase: 0063B920 (unit, &line) then line += ":\n"; "say " + the phrase's +0x1C
+  opened in the texts (TextOpen); when found the text up to '#' (TextReadToHash, advance 1),
+  TrimRight("\r\n"), += "\n"; line then text appended to the top panel's +0x164 and (while its
+  +0x160 is 0) the message log (the screen's child 9, 0065CF30). The original keeps the text in
+  its `extra` argument slot.
+- Then (with the unit found, phrase or not): event 0x30 sets each matching member's +0x4C 0 and
+  +0x48 1; events 0xB..0x15 (unsigned compare) give it the shake (kind 2) after a random delay.
+  The member loops do not test for null members.
+
+### Forwarders added (standalone build must replace)
+
+005EBDB0, 00460500 (library SetAtGrow), 005699F0, 00566100, 00566030, 0066A880, 0066AB80, 00532D40
+(through its address), 00637DC0 (through its address), 006D8430, 006D8A40, 0063B920, 00578E20,
+0065CF30.
+
+### Original quirks kept
+
+- The toggle's markers get 0x10 (not 1) for members that stay selected with +0x7D.
+- A negative index reaches the toggle's array write unchecked (only `index >= size` returns).
+
+### Not exercised / unconfirmed
+
+- No harness step clicks a world position, so ui_battle_commands' grid of clicks around the
+  (blocked, camera-centred) hero is a guess: check the report's counts for AttackUnit and
+  OrderDeadUnit. If they stay 0, the grid needs the wolves' screen positions (a harness step that
+  projects a unit, or a capture to read them off).
+- The toggle with +0x7D (Shift held: the harness cannot hold a key during a click), the attack's
+  kinds 0..5 (modifier flags) and the level-gap speech (needs a unit six levels above the hero).
+- 00637500 / 00637750 (spells and quick items on a unit / a point) and 0063DB20 (the quick item
+  panel's release) stay: no scenario puts a wand or scroll in a quick slot or starts a spell
+  target mode (a click on a spell button, then a target).

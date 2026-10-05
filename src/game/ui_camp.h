@@ -74,6 +74,31 @@ public:
     // selected unit (null with nobody selected) when it changed; the pending action (+0x17C 0,
     // +0x180 / +0x184 -1) and every panel highlight are cleared.
     void RefreshSelection();
+    // 006379E0 (RET 4; ui_battle_commands.cpp). Party member `index` clicked (its portrait or
+    // body, SelectUnit 00638EF0; the member keys of 0063A560): nothing on a network client or
+    // for an index past the party. The selection is the members' flag 0x10 (as 0x10 or 0); with
+    // the interface's +0x7D the member flips (to 1 / 0), else it alone is chosen (1). The world's
+    // selection is cleared (00566100 with 0); each portrait's marker (+0x220) gets the chosen
+    // value and its face's rest orientation the turn about -x by 007C8144 / 7 (or the identity);
+    // each chosen member is controlled (00566030) and the clicked one gets slot 32 (id, 0, 0). In
+    // single player (007B0098 1) the local player's unit records (+0x778) follow flag 0x10; then
+    // 00637DC0.
+    void ToggleMember(int index);
+    // 00637190 (RET 8). The selected members attack `target`: the order kind is the first of the
+    // six modifier flags +0x18D.. that is set (6 for none); each selected member's portrait nods
+    // after a random delay and, when the target is more than five levels above it, the member
+    // speaks (slot 32 with event 10); the local view gets the order (0066A880) with the low byte
+    // of `ctrl` (the interface's +0x7F).
+    void AttackUnit(CUnit* target, int ctrl);
+    // 006373A0 (RET 8). The same for a dead `target` (0066AB80; no kind, no levels).
+    void OrderDeadUnit(CUnit* target, int ctrl);
+    // 006366F0 (slot 32, RET 0xC). The unit with `id` (the object manager 007AF5F8) speaks: a
+    // phrase picked by 006D8430 (or, for events 0x2A / 0x2B, 006D8A40 with `extra`); when its
+    // "say <name>" text exists, the unit's name line (0063B920) + ":\n" and the text (to a '#',
+    // CR / LF trimmed, + "\n") are appended to the top panel's text and, unless its +0x160, the
+    // message log. Then event 0x30 shows that member's timed face (+0x48 1, +0x4C 0), events
+    // 0xB..0x15 make its portrait shake (kind 2) after a random delay.
+    void OnUnitSpeech(int id, unsigned event, char* extra);
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
