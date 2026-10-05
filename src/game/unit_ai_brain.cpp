@@ -6,6 +6,7 @@
 #include "core_refcount.h"
 #include "object_diplomacy.h"
 #include "originals_ai.h"
+#include "originals_library.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -382,6 +383,41 @@ void AIBrain::Forget(CEngineObject* object) {
 
 void __fastcall ForgetHook(std::uint8_t* memory, void*, CEngineObject* object) { BrainOfMemory(memory)->Forget(object); }
 EI_REPLACE(0x005CC020, ForgetHook);
+
+
+__declspec(naked) void AICallArray::Update(CUnit*, void*) EI_ORIGINAL(0x005CC9D0)
+
+void AIBrain::UpdateMemory(UnitController* who) {
+    for (int i = 0; i < reports.size; ++i) {
+        AIReport* entry = &reports.data[i];
+        if (--entry->what >= 0) continue;
+        int after = reports.size - i - 1;
+        // The element's destructor (00558CE0): release the object.
+        if (entry->object) entry->object->Release();
+        entry->object = nullptr;
+        if (after != 0) GameMemmove(entry, entry + 1, static_cast<std::size_t>(after) * sizeof(AIReport));
+        --reports.size;
+        --i;
+    }
+    calls.Update(who->unit, memory);
+    // The AI events are the world server's +0x2838 (007B2798).
+    AiEventsUpdateMemoryOriginal(WorldServer()->timeWheel_, nullptr, who, memory);
+    noticedLevel += noticedKind;
+}
+
+void __fastcall UpdateMemoryHook(std::uint8_t* memory, void*, UnitController* who) { BrainOfMemory(memory)->UpdateMemory(who); }
+EI_REPLACE(0x005CB700, UpdateMemoryHook);
+
+int AIBrain::IsEnemy(CUnit* self, CEngineObject* other) {
+    auto* unit = static_cast<CUnit*>(other);
+    if (self->side == unit->side || self->player == unit->player) return 1;
+    return visible.Find(other) ? 1 : 0;
+}
+
+int __fastcall IsEnemyHook(std::uint8_t* memory, void*, CUnit* self, CEngineObject* other) {
+    return BrainOfMemory(memory)->IsEnemy(self, other);
+}
+EI_REPLACE(0x005CB7F0, IsEnemyHook);
 
 void AIReportArray::Add(CEngineObject* object, int what) {
     if (!object) return;

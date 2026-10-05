@@ -406,6 +406,7 @@ static_assert(sizeof(AICallRecord) == 0x18);
 // CArray<AICallRecord> (brain + 0x178).
 struct AICallArray {
     void SetSize(int size, int growBy);             // 005CDD60
+    void Update(CUnit* unit, void* memory);         // 005CC9D0 (each tick, from UpdateMemory)
 
     void* vtable;
     AICallRecord* data;             // +0x04
@@ -551,13 +552,26 @@ struct AIBrain {
     // for help (kind 0x1A) at `point`; the message text is formatted only while the console shows
     // filter bit 0.
     void CallAllies(const Vector3* point);
-    void LookAround(int unused);                                        // 005CFE40 on +0xA4
-    void CurrentAttack(int* partAndObject);                             // 005CF220 on +0xA4
+    // 005CFE40 (thiscall on the attention +0xA4 with the brain; unit_ai_attention.cpp). Chooses the
+    // best target in sight (005D0030 from the unit's position) and, when it differs from the current
+    // attack, attacks it (action 3; the player's order check may lift the flags to -1) or casts
+    // spell `part` at it (action 4 when the spell cannot be cast now).
+    void LookAround(int unused);
+    // 005CF220 (thiscall on +0xA4 with the brain; unit_ai_attention.cpp). The current attack as
+    // {part, object}: action 3 {-1, target}, action 4 {spell, target}, the object only when it is a
+    // unit; otherwise only the object is cleared.
+    void CurrentAttack(int* partAndObject);
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
     void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
     bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
-    void Perceive(UnitController* owner);                               // 005CB700 on +0xD0
-    int IsEnemy(CUnit* self, CEngineObject* other);                     // 005CB7F0 on +0xD0
+    void Perceive(UnitController* owner);       // 005CB700 through its address (UpdateMemory)
+    // 005CB700 (thiscall on +0xD0; unit_ai_brain.cpp). Ages the reports (one tick off each; an
+    // entry below 0 is dropped), updates the heard calls (005CC9D0) and the AI events' view
+    // (005CAA00 on 007B2798), then adds the noticed kind to the noticed level.
+    void UpdateMemory(UnitController* owner);
+    // 005CB7F0 (thiscall on +0xD0; unit_ai_brain.cpp). 1 when `other` has the unit's side or player or
+    // is in the +0x110 list, else 0.
+    int IsEnemy(CUnit* self, CEngineObject* other);
     // 005CBBE0 (thiscall on +0xD0; unit_ai_brain.cpp). Takes over a noticed point of a higher
     // `level`: 1 when the level rose by more than 100 or the point lies more than sqrt(10) away
     // (with the point's own z, not a difference), else 0; 0 when the level is not higher.

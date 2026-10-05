@@ -142,23 +142,17 @@ __declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 namespace {
 struct AIMemory {
     void Update(UnitController* owner);                 // 005CB700
-    int IsEnemy(CUnit* self, CEngineObject* other);     // 005CB7F0
     // 005CC020 (AIBrain::Forget, unit_ai_brain.cpp), called through its address so its verify
     // wrapper sees OnObjectDeleted's calls.
     void Forget(CEngineObject* object);
 };
 __declspec(naked) void AIMemory::Update(UnitController*) EI_ORIGINAL(0x005CB700)
-int AIMemory::IsEnemy(CUnit* a0, CEngineObject* a1) { return AiMemoryIsEnemyOriginal((void*)this, nullptr, (void*)a0, (void*)a1); }
 __declspec(naked) void AIMemory::Forget(CEngineObject*) EI_ORIGINAL(0x005CC020)
 
 // The brain's attention at +0xA4.
 struct AIAttention {
-    void LookAround(AIBrain* brain, int unused);        // 005CFE40
-    void Current(AIBrain* brain, int* partAndObject);   // 005CF220
     void Choose(AIBrain* brain, int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030
 };
-__declspec(naked) void AIAttention::LookAround(AIBrain*, int) EI_ORIGINAL(0x005CFE40)
-__declspec(naked) void AIAttention::Current(AIBrain*, int*) EI_ORIGINAL(0x005CF220)
 __declspec(naked) void AIAttention::Choose(AIBrain*, int*, void*, const Vector3*, int, int) EI_ORIGINAL(0x005D0030)
 AIAttention* AttentionOf(AIBrain* brain) { return reinterpret_cast<AIAttention*>(reinterpret_cast<char*>(brain) + 0xA4); }
 
@@ -176,12 +170,9 @@ AIMemory* MemoryOf(AIBrain* brain) { return reinterpret_cast<AIMemory*>(brain->m
 } // namespace
 
 void AIBrain::Perceive(UnitController* who) { MemoryOf(this)->Update(who); }
-int AIBrain::IsEnemy(CUnit* self, CEngineObject* other) { return MemoryOf(this)->IsEnemy(self, other); }
 void AIBrain::Report(CEngineObject* object, int what) { reports.Add(object, what); }
 AIRef* AIBrain::PopCorpse(AIRef* out) { return reinterpret_cast<AICorpses*>(&corpses)->PopHead(out); }
 bool AIBrain::IsReported(CEngineObject* object) { return reports.Contains(object); }
-void AIBrain::LookAround(int unused) { AttentionOf(this)->LookAround(this, unused); }
-void AIBrain::CurrentAttack(int* partAndObject) { AttentionOf(this)->Current(this, partAndObject); }
 void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
     AttentionOf(this)->Choose(this, partAndObject, candidates, from, a, b);
 }

@@ -64,6 +64,9 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005CBBE0 | AIBrain::Notice (memory) | differential: original first, noticed fields put back, ours; result and fields compared (reached through Fear's Evaluate and spell effects; our modes call it directly) |
 | 005CC020 | AIBrain::Forget (memory) | ours only: the object is in no memory list nor the reports (OnObjectDeleted calls it through its address) |
 | 005CC620, 005CC560 | AIReportArray::Add, Contains (+0x164) | Add ours only (listed once, what kept at the maximum); Contains pure (AL); reached through 005D0030 |
+| 005CB700 | AIBrain::UpdateMemory (memory, each Think; Think calls it through its address) | ours only: no report below 0, noticed level grew by the kind |
+| 005CB7F0 | AIBrain::IsEnemy (memory) | pure |
+| 005CF220, 005CFE40 | AIBrain::CurrentAttack, LookAround (`unit_ai_attention.cpp`; `this` the attention +0xA4, brain passed) | CurrentAttack output (original into a seeded scratch pair); LookAround ours only (attack action has a target); reached through 005D0030, 005D4170 and the Guard / Patrol / Sentry Execute |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
 
 None is in `docs/rebirth-patched-functions.txt`; the only patched callee is FatalError, called
@@ -75,6 +78,10 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 - The mode adders (005D6300-005D65B0) write the new mode's +4 before testing the allocation and pass a failed one to AddMode,
   which calls its GetType (ours tests first, then also passes null). A new Suspection mode's point and level and a new Fear
   mode's +0x14..+0x20 stay uninitialised. CallAllies formats its message only for the console filter but always builds it.
+- `IsEnemy` (the name is the old guess) answers 1 for the same side, the same player, or an object in the +0x110 list, so
+  UpdateAttack gives up only on a unit of another side and player that is not listed. UpdateMemory adds the noticed kind
+  (negative: decay) to the noticed level every tick. LookAround's order for the player check leaves the point uninitialised
+  (ours zero), like AttackTarget.
 - Notice measures the distance with the new point's own z (the memory keeps no z); Forget compares the report entries with
   its argument and the list elements with its own counted copy (the same pointer).
 
