@@ -6,10 +6,7 @@ From 2026-10-05 (user): workers own one area for about a usage session ("area ti
 3-5 functions with all checks green, and the coordinator merges the branch head periodically and runs
 the suite. Forwarder cleanup batches are 50.
 
-Small, self-contained work items for worker agents. One ticket per worker; a worker that finishes
-reports and stops, and the next ticket goes to a fresh worker (docs/worker-brief.md is the common
-part of every brief). A ticket should be doable in one sitting: one mismatch, one renderer step,
-or 3-8 related functions. Mark a ticket taken by adding the date; remove it when merged.
+Mark a ticket taken by adding the date; remove it when merged.
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
@@ -25,7 +22,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I (taken 2026-10-05) Area ticket: interface 0x005E0000-0x00640000.
+- A-I (cut off by the usage limit; 12 functions merged). A-I2 (taken 2026-10-05): interface 0x005E0000-0x00640000.
 
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
