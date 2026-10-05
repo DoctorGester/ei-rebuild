@@ -15,7 +15,7 @@
 //             constructor; destructor body 0041C530.
 //   0073BDEC  ClientSession, the game client (0x2700 bytes; constructor 0041BC40; pointer at 0079B5D8).
 //   0073BC10  Message (below): the replicated object base; classes 0073BBF8 ... 0073BDD0 (0x18 apart,
-//             net_message_classes.cpp).
+//             net_messages.h).
 //   0073BB40  ServerEntry's base and 0073BB28 ServerEntry (below): a server as the lobby lists it.
 //
 // The sessions are allocated and built by the game's code (or our rewrites of their constructor
@@ -122,16 +122,7 @@ void* __fastcall NewRefObject(std::size_t size);
 // 004186E0. The message base constructor body: vtable 0073BC10, version 1. Returns this.
 Message* __fastcall MessageConstructBase(Message* self);
 
-// Constructors of message classes, named by vtable (net_messages.cpp). Each returns this.
-Message* __fastcall ConstructMessage73BCB8(Message* self);   // 0041C870 (0x14 bytes)
-Message* __fastcall ConstructMessage73BC70(Message* self);   // 0041C680 (0x3C bytes)
-Message* __fastcall ConstructMessage73BC88(Message* self);   // 0041C740 (0x20 bytes)
-Message* __fastcall ConstructMessage73BCA0(Message* self);   // 0041C7C0 (0x24 bytes)
-Message* __fastcall ConstructMessage73BCD0(Message* self);   // 00418C30 (0x18 bytes)
-Message* __fastcall ConstructMessage73BBF8(Message* self);   // 00413350 (0x34 bytes)
-Message* __fastcall ConstructMessage73BC28(Message* self);   // 004138A0 (0x18 bytes)
-Message* __fastcall ConstructMessage73BC40(Message* self);   // 00413C90 (0x1C bytes)
-Message* __fastcall ConstructMessage73BC58(Message* self);   // 004140B0 (0x14 bytes)
+// The message classes are declared in net_messages.h.
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
@@ -169,6 +160,14 @@ static_assert(sizeof(ServerEntryBase) == 0x28);
 class __declspec(novtable) ServerEntry : public ServerEntryBase {
 public:
     static constexpr std::uintptr_t kVtableAddress = 0x0073BB28;
+
+    // 0: 004128C0 deleting destructor; 1: 00412580 (empty). net_messages.cpp.
+    int OnShutdown() override;                  // 2: 00412750 reset (EAX undefined in the original)
+    ServerEntry* Clone() override;              // 3: 00412590
+    void Write(BufferCursor* cursor) override;  // 4: 00412990
+    void Read(BufferCursor* cursor) override;   // 5: 00412A30
+
+    void Destruct();                            // 004128E0
 
     StringRep name_;              // +0x28
     std::uint32_t kind_;          // +0x34 the game kind (4: none)
@@ -329,9 +328,14 @@ public:
     // 004142F0. Clears the reliable flags of message types 1..17 and registers their factories.
     void RegisterMessageTypes();
     // A handler registration as the session constructors inline it (not a function of its own in
-    // the original): a prototype message of `size` bytes built by `construct`, held through a
-    // counted reference while its type id is looked up by vtable, then AddHandler.
-    void AddHandlerFor(std::size_t size, Message* (__fastcall* construct)(Message*), int channel, void* handler);
+    // the original): a prototype message T (net_messages.h) built by its constructor body, held
+    // through a counted reference while its type id is looked up by vtable, then AddHandler.
+    template <typename T>
+    void AddHandlerFor(int channel, void* handler) {
+        auto* memory = static_cast<T*>(NewRefObject(sizeof(T)));
+        AddHandlerForPrototype(memory ? memory->Construct() : nullptr, channel, handler);
+    }
+    void AddHandlerForPrototype(Message* prototype, int channel, void* handler);
 
     // 00436CC0. The clients list node of the connection to `address` (the sentinel when none) into
     // `*out`; returns `out`.

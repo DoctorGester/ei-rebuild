@@ -1,16 +1,15 @@
 // Checks for net_server_commands.cpp.
 //  - IsHostConnection: side by side (it only reads).
 //  - The two handlers: ours only (they change lists, maps and clients). The object handler leaves
-//    the message last on +0x259C holding the current connection.
+//    the request last on +0x259C holding the current connection.
 #include "net_verify.h"
 
-#include "../../src/game/net_classes.h"
-
-#include <cstring>
+#include "../../src/game/net_messages.h"
+#include "../../src/game/net_connection.h"
 
 namespace net {
-void __fastcall ServerOnObjectAdded(ServerSession* self, Message* message);
-void __fastcall ServerOnCommand(ServerSession* self, Message* message);
+void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message);
+void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message);
 }
 
 namespace {
@@ -25,16 +24,15 @@ bool __fastcall IsHostVerify(net::ServerSession* self, void*, void* connection) 
     return actual;
 }
 
-void __fastcall ObjectAddedVerify(net::ServerSession* self, net::Message* message) {
+void __fastcall ObjectAddedVerify(net::ServerSession* self, net::FileRequestMessage* message) {
     net::ServerOnObjectAdded(self, message);
     void** sentinel = static_cast<void**>(self->fileRequests_);
     void* last = static_cast<void**>(sentinel[1])[2];
-    void* held;
-    std::memcpy(&held, reinterpret_cast<const std::uint8_t*>(message) + 0x10, 4);
+    CRefObject* held = message->ConnectionRef().ptr;
     ei::verify::Check("ServerOnObjectAdded", true, last == message && held == net::CurrentConnection(), "");
 }
 
-void __fastcall CommandVerify(net::ServerSession* self, net::Message* message) {
+void __fastcall CommandVerify(net::ServerSession* self, net::CommandMessage* message) {
     net::ServerOnCommand(self, message);
     ei::verify::Check("ServerOnCommand", true, true, "");
 }

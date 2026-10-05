@@ -8,7 +8,7 @@
 //    player and the partner; 0041E3E0 no description.
 #include "net_verify.h"
 
-#include "../../src/game/net_classes.h"
+#include "../../src/game/net_messages.h"
 #include "../../src/game/core_refcount.h"
 
 #include <cstdint>
@@ -23,18 +23,18 @@ void __fastcall ClientOnBindingGone(ClientSession* self, Message* message);
 void __fastcall ClientOnPlayer(ClientSession* self, Message* message);
 void __fastcall ClientOnPlayerChanged(ClientSession* self, Message* message);
 void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message);
-void __fastcall ClientOnLine(ClientSession* self, Message* message);
+void __fastcall ClientOnLine(ClientSession* self, LineMessage* message);
 void __fastcall ClientOnLineGone(ClientSession* self, Message* message);
 void __fastcall ClientOnInfo(ClientSession* self, Message* message);
 void __fastcall ClientOnInfoGone(ClientSession* self, Message* message);
-void __fastcall ClientOnZone(ClientSession* self, Message* message);
-void __fastcall ClientOnZoneGone(ClientSession* self, Message* message);
-void __fastcall ClientOnMap(ClientSession* self, Message* message);
+void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message);
+void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message);
+void __fastcall ClientOnMap(ClientSession* self, MapMessage* message);
 void __fastcall ClientOnMapGone(ClientSession* self, Message* message);
 void __fastcall ClientOnVariable(ClientSession* self, Message* message);
 void __fastcall ClientOnVariableChanged(ClientSession* self, Message* message);
 void __fastcall ClientOnVariableGone(ClientSession* self, Message* message);
-void __fastcall ClientOnFile(ClientSession* self, Message* message);
+void __fastcall ClientOnFile(ClientSession* self, FileMessage* message);
 void __fastcall ClientOnFileGone(ClientSession* self, Message* message);
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message);
 void __fastcall ClientOnAward(ClientSession* self, Message* message);
@@ -43,16 +43,19 @@ void __fastcall ClientOnPartyChanged(ClientSession* self, Message* message);
 void __fastcall ClientOnPartyGone(ClientSession* self, Message* message);
 void __fastcall ClientOnMember(ClientSession* self, Message* message);
 void __fastcall ClientOnTrade(ClientSession* self, Message* message);
-void __fastcall ClientOnTradeChanged(ClientSession* self, Message* message);
+void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message);
 void __fastcall ClientOnTradeGone(ClientSession* self, Message* message);
 }
 
 namespace {
 void* s_unused;
 
-std::uint32_t At(const void* p, std::size_t offset) {
-    return *reinterpret_cast<const std::uint32_t*>(static_cast<const std::uint8_t*>(p) + offset);
-}
+using net::BindingMessage;
+using net::PartyMessage;
+
+// A handler taking a message class, called with the message base.
+template <typename T, void(__fastcall* Fn)(net::ClientSession*, T*)>
+void __fastcall As(net::ClientSession* s, net::Message* m) { Fn(s, static_cast<T*>(m)); }
 
 // Whether an STLport list of pointers (the sentinel in `list`) holds `value`.
 bool Holds(void* list, const void* value) {
@@ -82,28 +85,28 @@ void __fastcall BindingVerify(net::ClientSession* s, net::Message* m) { Slot("Cl
 void __fastcall BindingGoneVerify(net::ClientSession* s, net::Message* m) { Slot("ClientOnBindingGone", net::ClientOnBindingGone, s, m, &s->binding_, false); }
 void __fastcall InfoVerify(net::ClientSession* s, net::Message* m) { Slot("ClientOnInfo", net::ClientOnInfo, s, m, &s->info_, true); }
 void __fastcall InfoGoneVerify(net::ClientSession* s, net::Message* m) { Slot("ClientOnInfoGone", net::ClientOnInfoGone, s, m, &s->info_, false); }
-void __fastcall MapVerify(net::ClientSession* s, net::Message* m) { Slot("ClientOnMap", net::ClientOnMap, s, m, &s->map_, true); }
+void __fastcall MapVerify(net::ClientSession* s, net::Message* m) { Slot("ClientOnMap", As<net::MapMessage, net::ClientOnMap>, s, m, &s->map_, true); }
 void __fastcall MapGoneVerify(net::ClientSession* s, net::Message* m) { Slot("ClientOnMapGone", net::ClientOnMapGone, s, m, &s->map_, false); }
 
 void __fastcall PlayerVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnPlayer", net::ClientOnPlayer, s, m, s->players_); }
 void __fastcall PlayerGoneVerify(net::ClientSession* s, net::Message* m) { Removed("ClientOnPlayerGone", net::ClientOnPlayerGone, s, m, s->players_); }
-void __fastcall LineVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnLine", net::ClientOnLine, s, m, s->lines_); }
+void __fastcall LineVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnLine", As<net::LineMessage, net::ClientOnLine>, s, m, s->lines_); }
 void __fastcall LineGoneVerify(net::ClientSession* s, net::Message* m) { Removed("ClientOnLineGone", net::ClientOnLineGone, s, m, s->lines_); }
-void __fastcall ZoneVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnZone", net::ClientOnZone, s, m, s->zones_); }
-void __fastcall ZoneGoneVerify(net::ClientSession* s, net::Message* m) { Removed("ClientOnZoneGone", net::ClientOnZoneGone, s, m, s->zones_); }
+void __fastcall ZoneVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnZone", As<net::ZoneMessage, net::ClientOnZone>, s, m, s->zones_); }
+void __fastcall ZoneGoneVerify(net::ClientSession* s, net::Message* m) { Removed("ClientOnZoneGone", As<net::ZoneMessage, net::ClientOnZoneGone>, s, m, s->zones_); }
 void __fastcall VariableVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnVariable", net::ClientOnVariable, s, m, s->variables_); }
 void __fastcall VariableGoneVerify(net::ClientSession* s, net::Message* m) { Removed("ClientOnVariableGone", net::ClientOnVariableGone, s, m, s->variables_); }
 void __fastcall ObjectGoneVerify(net::ClientSession* s, net::Message* m) { Removed("ClientOnObjectGone", net::ClientOnObjectGone, s, m, s->chunks_); }
 void __fastcall AwardVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnAward", net::ClientOnAward, s, m, s->awards_); }
 void __fastcall PartyVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnParty", net::ClientOnParty, s, m, s->offers_); }
 void __fastcall PartyGoneVerify(net::ClientSession* s, net::Message* m) { Removed("ClientOnPartyGone", net::ClientOnPartyGone, s, m, s->offers_); }
-void __fastcall FileVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnFile", net::ClientOnFile, s, m, s->files_); }
+void __fastcall FileVerify(net::ClientSession* s, net::Message* m) { Added("ClientOnFile", As<net::FileMessage, net::ClientOnFile>, s, m, s->files_); }
 void __fastcall FileGoneVerify(net::ClientSession* s, net::Message* m) {
     net::ClientOnFileGone(s, m);
     bool request = false;
     void** sentinel = static_cast<void**>(s->fileRequests_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
-        if (At(node[2], 0xC) == reinterpret_cast<std::uintptr_t>(m)) request = true;
+        if (static_cast<net::FileRequestMessage*>(node[2])->FileRef().ptr == m) request = true;
     ei::verify::Check("ClientOnFileGone", false, Holds(s->files_, m) || request, "");
 }
 
@@ -131,8 +134,9 @@ void __fastcall TradeVerify(net::ClientSession* s, net::Message* m) {
     ei::verify::Check("ClientOnTrade", true, s->trade_ == m && Empty(s->tradeRecords_), "");
 }
 void __fastcall TradeChangedVerify(net::ClientSession* s, net::Message* m) {
-    bool ends = *(reinterpret_cast<std::uint8_t*>(m) + 0x1C) && s->trade_ == m;
-    net::ClientOnTradeChanged(s, m);
+    auto* trade = static_cast<net::TradeMessage*>(m);
+    bool ends = trade->done_ && s->trade_ == m;
+    net::ClientOnTradeChanged(s, trade);
     if (ends)
         ei::verify::Check("ClientOnTradeChanged", true,
                           !s->trade_ && !s->party_.ptr && Empty(s->tradeRecords_), "");
@@ -153,10 +157,11 @@ void __fastcall RecordTradeVerify(net::ClientSession* s, void*, const void* part
     net::ClientRecordTrade(s, nullptr, party);
     bool found = !records;
     if (records) {
-        std::uint32_t a = At(s->party_.ptr, 0x20), b = At(s->party_.ptr, 0x24);
+        auto* ours = static_cast<PartyMessage*>(s->party_.ptr);
+        std::uint32_t a = ours->acceptedRevision_, b = ours->revision_;
         void** sentinel = static_cast<void**>(s->tradeRecords_);
         for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
-            if (At(node, 8) == a && At(node, 0xC) == b) found = true;
+            if (reinterpret_cast<std::uintptr_t>(node[2]) == a && reinterpret_cast<std::uintptr_t>(node[3]) == b) found = true;
     }
     ei::verify::Check("ClientRecordTrade", true, found, "");
 }
@@ -164,10 +169,11 @@ void __fastcall StartPartyVerify(net::ClientSession* s, void*, CRefObject* partn
     auto live = [](const void* o) {
         return o && !(static_cast<const CRefObject*>(o)->flags7_ & CRefObject::kDetached);
     };
-    bool starts = live(s->binding_) && live(reinterpret_cast<void*>(At(s->binding_, 0xC)));
+    auto* binding = static_cast<BindingMessage*>(s->binding_);
+    bool starts = live(binding) && live(binding->PlayerRef().ptr);
     net::ClientStartParty(s, nullptr, partner);
-    bool ok = !starts || (s->party_.ptr && At(s->party_.ptr, 0x28) == At(s->binding_, 0xC) &&
-                          At(s->party_.ptr, 0x2C) == reinterpret_cast<std::uintptr_t>(partner));
+    auto* party = static_cast<PartyMessage*>(s->party_.ptr);
+    bool ok = !starts || (party && party->player_.ptr == binding->PlayerRef().ptr && party->partner_.ptr == partner);
     ei::verify::Check("ClientStartParty", true, ok, "");
 }
 void __fastcall DropPartyVerify(net::ClientSession* s) {

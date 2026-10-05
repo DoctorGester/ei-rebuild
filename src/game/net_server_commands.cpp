@@ -1,7 +1,7 @@
-// The game server's command messages (0041B2A0, 0073BC40 {kind, text}) and the 0073BC58 objects a
-// client hands in (0041B690), with the host check they use (00419F90). See net_classes.h and
+// The game server's command messages (0041B2A0, CommandMessage) and the file requests a client
+// hands in (0041B690), with the host check they use (00419F90). See net_messages.h and
 // docs/notes/unmapped_410_470.md ("Eighth round").
-#include "net_classes.h"
+#include "net_messages.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -54,32 +54,27 @@ bool Is(const StringRep& s, std::uintptr_t text) {
 bool ServerSession::IsHostConnection(void* connection) {
     void** bindings = static_cast<void**>(bindings_);
     for (void** node = static_cast<void**>(bindings[0]); node != bindings; node = static_cast<void**>(node[0])) {
-        auto* binding = static_cast<std::uint8_t*>(node[2]);
-        void* bound;
-        std::memcpy(&bound, binding + 0x10, 4);
-        if (bound != connection) continue;
-        CRefObject* player;
-        std::memcpy(&player, binding + 0xC, 4);
-        if (player && !(player->flags7_ & CRefObject::kDetached) && reinterpret_cast<std::uint8_t*>(player)[0x28]) return true;
+        auto* binding = static_cast<BindingMessage*>(node[2]);
+        if (binding->ConnectionRef().ptr != connection) continue;
+        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+        if (player && !(player->flags7_ & CRefObject::kDetached) && player->host_) return true;
     }
     return false;
 }
 
-// 0041B690 (0073BC58 objects): the message keeps its sender's connection (+0x10) and is listed on
-// +0x259C (0041B720 drops it).
-void __fastcall ServerOnObjectAdded(ServerSession* self, Message* message) {
-    auto* bytes = reinterpret_cast<std::uint8_t*>(message);
+// 0041B690 (file requests): the request keeps its sender's connection and is listed on +0x259C
+// (0041B720 drops it).
+void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
     auto* connection = static_cast<CRefObject*>(CurrentConnectionObject());
-    CRefObject* previous;
-    std::memcpy(&previous, bytes + 0x10, 4);
-    std::memcpy(bytes + 0x10, &connection, 4);
+    CRefObject* previous = message->ConnectionRef().ptr;
+    message->ConnectionRef().ptr = connection;
     if (connection) ++connection->refs_;
     if (previous) {
         --previous->refs_;
-        if (previous->refs_ == 0) ei::VCall<void>(previous, 0, 1);
+        if (previous->refs_ == 0) delete previous;
     }
     RefPtr raw;
-    const RefPtr* value = RefPtrFromRaw(&raw, reinterpret_cast<CRefObject*>(message));
+    const RefPtr* value = RefPtrFromRaw(&raw, message);
     void* objects = &self->fileRequests_;
     void* end;
     ObjectsEnd(objects, nullptr, &end);
@@ -87,19 +82,16 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, Message* message) {
     ObjectsInsert(objects, nullptr, &inserted, end, value);
 }
 
-// 0041B2A0 (0073BC40 commands, from the connection being read). Kinds 0-2 need the host's
+// 0041B2A0 (commands, from the connection being read). Kinds 0-2 need the host's
 // connection, 3-5 the same through IsHostConnection:
 //   0: the world prepares map `text`;
 //   1: when a queued map message (+0x25AC) is named `text`, its suffix picks SetMap (_1),
 //      LeaveZone (_2) or CompleteZone (_3) with the name before it;
 //   2 / 3: every guest whose name starts with `text` is kicked / banned;
 //   4 / 5: the client with serial atoi(text) is kicked / banned.
-void __fastcall ServerOnCommand(ServerSession* self, Message* message) {
-    auto* bytes = reinterpret_cast<std::uint8_t*>(message);
-    std::uint32_t kind;
-    std::memcpy(&kind, bytes + 0xC, 4);
-    auto* text = reinterpret_cast<StringRep*>(bytes + 0x10);
-    switch (kind) {
+void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
+    StringRep* text = &message->text_;
+    switch (message->kind_) {
     case kPreviewMap:
         if (self->IsHostConnection(CurrentConnectionObject())) WorldPrepareMap(reinterpret_cast<void*>(kWorld), nullptr, text->start);
         return;
@@ -108,8 +100,8 @@ void __fastcall ServerOnCommand(ServerSession* self, Message* message) {
         void** queued = static_cast<void**>(self->queuedMaps_);
         void** node = static_cast<void**>(queued[0]);
         for (; node != self->queuedMaps_; node = static_cast<void**>(node[0])) {
-            auto* entry = static_cast<std::uint8_t*>(node[2]);
-            if (StringEquals(reinterpret_cast<const StringRep*>(entry + 0xC), text)) break;
+            auto* entry = static_cast<ZoneMessage*>(node[2]);
+            if (StringEquals(&entry->text_, text)) break;
         }
         if (node == self->queuedMaps_) return;
         const std::size_t cut = static_cast<std::size_t>(text->finish - text->start) - 2;

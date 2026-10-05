@@ -1,6 +1,7 @@
 // The game client session (vtable 0073BDEC, client base 0073BE30; pointer at 0079B5D8). See
 // net_classes.h and docs/notes/unmapped_410_470.md ("Third round").
 #include "net_classes.h"
+#include "net_messages.h"
 
 #include "core_refcount.h"
 #include "ei/hook.h"
@@ -47,9 +48,9 @@ __declspec(naked) void* __fastcall ListConstruct4249E0(void* /*list*/, void*, co
 
 void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
-void RegisterInline(ClientSession* client, std::size_t size, Message* (__fastcall* construct)(Message*),
-                    int channel, std::uintptr_t handler) {
-    client->AddHandlerFor(size, construct, channel, Handler(handler));
+template <typename T>
+void RegisterInline(ClientSession* client, int channel, std::uintptr_t handler) {
+    client->AddHandlerFor<T>(channel, Handler(handler));
 }
 
 } // namespace
@@ -99,19 +100,17 @@ ClientSession* ClientSession::Construct() {
     UnitRecordBuilderConstruct(&parties_[1]);
     ei::SetVtable(this, kVtableAddress);
 
-    // The local player's record (vtable 0073BBF8): two strings, +0x24 = 0, +0x28 = 4, +0x2C = -1.
-    auto* record = static_cast<Message*>(gamecrt::operator_new(0x34));
-    reinterpret_cast<std::uint32_t*>(record)[1] = 0;   // before the null check, as in the original
+    // The local player's login.
+    auto* record = NewMessageMemory<LoginMessage>();
     if (record) {
         MessageConstructBase(record);
-        auto* bytes = reinterpret_cast<std::uint8_t*>(record);
-        StringConstruct(reinterpret_cast<StringRep*>(bytes + 0xC));
-        StringConstruct(reinterpret_cast<StringRep*>(bytes + 0x18));
-        *reinterpret_cast<std::uint32_t*>(bytes + 0x30) = 0;   // 0041FFE0
-        ei::SetVtable(record, 0x0073BBF8);
-        bytes[0x24] = 0;
-        *reinterpret_cast<std::uint32_t*>(bytes + 0x28) = 4;
-        *reinterpret_cast<std::uint32_t*>(bytes + 0x2C) = 0xFFFFFFFFu;
+        StringConstruct(&record->name_);
+        StringConstruct(&record->text_);
+        record->binding_.ptr = nullptr;   // 0041FFE0
+        ei::SetVtable(record, LoginMessage::kVtableAddress);
+        record->host_ = 0;
+        record->state_ = 4;
+        record->id_ = -1;
     }
     if (record != player_.ptr) {
         player_.Destroy();
@@ -121,17 +120,17 @@ ClientSession* ClientSession::Construct() {
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 
-    RegisterInline(this, 0x14, ConstructMessage73BCB8, 0, 0x0041E430);
-    RegisterInline(this, 0x14, ConstructMessage73BCB8, 2, 0x0041E460);
-    RegisterInline(this, 0x3C, ConstructMessage73BC70, 0, 0x0041E490);
-    RegisterInline(this, 0x3C, ConstructMessage73BC70, 1, 0x0041E510);
-    RegisterInline(this, 0x3C, ConstructMessage73BC70, 2, 0x0041E520);
-    RegisterInline(this, 0x20, ConstructMessage73BC88, 0, 0x0041E5D0);
-    RegisterInline(this, 0x20, ConstructMessage73BC88, 2, 0x0041E690);
-    RegisterInline(this, 0x24, ConstructMessage73BCA0, 0, 0x0041E730);
-    RegisterInline(this, 0x24, ConstructMessage73BCA0, 2, 0x0041E760);
-    RegisterInline(this, 0x18, ConstructMessage73BCD0, 0, 0x0041E790);
-    RegisterInline(this, 0x18, ConstructMessage73BCD0, 2, 0x0041E850);
+    RegisterInline<BindingMessage>(this, 0, 0x0041E430);
+    RegisterInline<BindingMessage>(this, 2, 0x0041E460);
+    RegisterInline<PlayerMessage>(this, 0, 0x0041E490);
+    RegisterInline<PlayerMessage>(this, 1, 0x0041E510);
+    RegisterInline<PlayerMessage>(this, 2, 0x0041E520);
+    RegisterInline<LineMessage>(this, 0, 0x0041E5D0);
+    RegisterInline<LineMessage>(this, 2, 0x0041E690);
+    RegisterInline<HostMessage>(this, 0, 0x0041E730);
+    RegisterInline<HostMessage>(this, 2, 0x0041E760);
+    RegisterInline<ZoneMessage>(this, 0, 0x0041E790);
+    RegisterInline<ZoneMessage>(this, 2, 0x0041E850);
 
     RegisterMapHandler(this, nullptr, 0, Handler(0x0041E900));
     RegisterMapHandler(this, nullptr, 2, Handler(0x0041E960));
@@ -159,9 +158,9 @@ ClientSession* ClientSession::Construct() {
 }
 EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
 
-// 0041D050 (slot 13). What the server receives from this client: the local player's record
-// (+0x2600), the entries of +0x2604 (value at +0xC) and +0x25E8, and the group at +0x260C with its
-// members (vector at +0xC). All priority 1.
+// 0041D050 (slot 13). What the server receives from this client: the local player's login
+// (+0x2600), the timed objects (+0x2604, value at +0xC) and the file requests (+0x25E8), and our
+// trade offer (+0x260C) with its members. All priority 1.
 void ClientSession::CollectReplicated(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
@@ -173,10 +172,10 @@ void ClientSession::CollectReplicated(ReplicatedVector** out) {
     if (void* group = self->party_.ptr) {
         PushReplicatedInline(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
-            auto* members = reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(self->party_.ptr) + 0xC);
-            auto* begin = static_cast<void**>(members[0]);
-            if (i >= static_cast<std::uint32_t>(static_cast<void**>(members[1]) - begin)) break;
-            PushReplicatedInline(*out, begin[i], 1);
+            const RefVector& members = static_cast<PartyMessage*>(self->party_.ptr)->members_;
+            RefPtr* begin = members.start;
+            if (i >= static_cast<std::uint32_t>(members.finish - begin)) break;
+            PushReplicatedInline(*out, begin[i].ptr, 1);
         }
     }
 }

@@ -1,6 +1,8 @@
 // The game server session (vtable 0073BB70, server base 0073BBB4; pointer at 0079B5DC). See
 // net_classes.h and docs/notes/unmapped_410_470.md ("Third round").
 #include "net_classes.h"
+#include "net_messages.h"
+#include "net_connection.h"
 
 #include "core_streams.h"
 #include "ei/hook.h"
@@ -75,12 +77,12 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 
-    AddHandlerFor(0x34, ConstructMessage73BBF8, 0, Handler(0x0041ADB0));
-    AddHandlerFor(0x34, ConstructMessage73BBF8, 1, Handler(0x0041AD80));
-    AddHandlerFor(0x34, ConstructMessage73BBF8, 2, Handler(0x0041B0C0));
-    AddHandlerFor(0x18, ConstructMessage73BC28, 0, Handler(0x0041B1C0));
-    AddHandlerFor(0x1C, ConstructMessage73BC40, 0, Handler(0x0041B2A0));
-    AddHandlerFor(0x14, ConstructMessage73BC58, 0, Handler(0x0041B690));
+    AddHandlerFor<LoginMessage>(0, Handler(0x0041ADB0));
+    AddHandlerFor<LoginMessage>(1, Handler(0x0041AD80));
+    AddHandlerFor<LoginMessage>(2, Handler(0x0041B0C0));
+    AddHandlerFor<SayMessage>(0, Handler(0x0041B1C0));
+    AddHandlerFor<CommandMessage>(0, Handler(0x0041B2A0));
+    AddHandlerFor<FileRequestMessage>(0, Handler(0x0041B690));
 
     RegisterRequestHandler(this, nullptr, 2, Handler(0x0041B720));
     RegisterPartyHandler(this, nullptr, 0, Handler(0x0041B7A0));
@@ -104,43 +106,41 @@ EI_REPLACE_METHOD(0x00412D80, ServerSession::Construct);
 namespace {
 
 // A list node's value (STLport list<T*>: next, prev, value at +8; some lists keep it at +0xC).
-template <std::size_t At = 8>
-std::uint8_t* ValueOf(void* node) { return *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(node) + At); }
+template <typename T = Message, std::size_t Offset = 8>
+T* ValueOf(void* node) { return *reinterpret_cast<T**>(static_cast<std::uint8_t*>(node) + Offset); }
 void* Head(void* list) { return *static_cast<void**>(list); }
 void* Next(void* node) { return *static_cast<void**>(node); }
-template <typename T> T& At(const void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(const_cast<void*>(object)) + offset);
-}
 
 } // namespace
 
 // 00417EB0 (slot 13). What the connection being updated receives: the players and the variables,
-// its own binding (the binding whose connection it is; its player record at +0xC, hosting when the
-// record's +0x28 is set), the newer chat lines meant for everyone or for it (number +0xC above the
-// record's +0x38), every shared file with, for the one a request of this connection names, its
-// chunks (priority 1), the queued maps for the host, +0x25A0 and the map message, the awards for
-// this connection (value at +0xC), the trade offers of the record whose items all exist (the offer
-// and its items), and the trades naming the record at +0xC or +0x10. Priority 2 unless noted.
+// its own binding (the binding whose connection it is; hosting when its player is the host), the
+// newer chat lines meant for everyone or for it (numbered after the player's first line), every
+// shared file with, for the one a request of this connection names, its chunks (priority 1), the
+// queued maps for the host, the host message and the map message, the awards for this connection,
+// the trade offers to the player whose members all exist (the offer and its members), and the
+// trades naming the player. Priority 2 unless noted.
 void ServerSession::CollectReplicated(ReplicatedVector** out) {
-    void* record = nullptr;
+    PlayerMessage* record = nullptr;
     bool hosting = false;
     for (void* n = Next(Head(&players_)); n != Head(&players_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
     for (void* n = Next(Head(&variables_)); n != Head(&variables_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
     void* bindings = Head(&bindings_);
     if (Next(bindings) != bindings) {
         for (void* n = Next(bindings); n != Head(&bindings_); n = Next(n)) {
-            std::uint8_t* slot = ValueOf(n);
-            if (At<void*>(slot, 0x10) != CurrentConnection()) continue;
-            record = At<void*>(slot, 0xC);
-            if (At<std::uint8_t>(record, 0x28)) hosting = true;
-            PushReplicated(*out, slot, 2);
+            auto* binding = ValueOf<BindingMessage>(n);
+            if (binding->ConnectionRef().ptr != CurrentConnection()) continue;
+            record = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+            if (record->host_) hosting = true;
+            PushReplicated(*out, binding, 2);
         }
-        if (record && !(static_cast<CRefObject*>(record)->flags7_ & CRefObject::kDetached)) {
+        if (record && !(record->flags7_ & CRefObject::kDetached)) {
             for (void* n = Next(Head(&lines_)); n != Head(&lines_); n = Next(n)) {
-                std::uint8_t* e = ValueOf(n);
-                void* target = At<void*>(e, 0x1C);
-                if ((!target || target == CurrentConnection()) && At<std::int32_t>(e, 0xC) > At<std::int32_t>(record, 0x38))
-                    PushReplicated(*out, e, 2);
+                auto* line = ValueOf<LineMessage>(n);
+                CRefObject* target = line->connection_.ptr;
+                if ((!target || target == CurrentConnection()) &&
+                    static_cast<std::int32_t>(line->number_) > static_cast<std::int32_t>(record->firstLine_))
+                    PushReplicated(*out, line, 2);
             }
         }
     }
@@ -148,9 +148,10 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
         PushReplicated(*out, ValueOf(n), 2);
         void* requests = Head(&fileRequests_);
         for (void* m = Next(requests); m != requests; m = Next(m)) {
-            std::uint8_t* request = ValueOf(m);
-            if (At<void*>(request, 0xC) != ValueOf(n) || At<void*>(request, 0x10) != CurrentConnection()) continue;
-            for (void** p = At<void**>(ValueOf(n), 0x20); p != At<void**>(ValueOf(n), 0x24); ++p) PushReplicated(*out, *p, 1);
+            auto* request = ValueOf<FileRequestMessage>(m);
+            if (request->FileRef().ptr != ValueOf(n) || request->ConnectionRef().ptr != CurrentConnection()) continue;
+            const RefVector& chunks = ValueOf<FileMessage>(n)->chunks_;
+            for (RefPtr* p = chunks.start; p != chunks.finish; ++p) PushReplicated(*out, p->ptr, 1);
             break;
         }
     }
@@ -159,29 +160,30 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
     if (CRefObject* object = unknown_25A0.ptr) PushReplicated(*out, object, 2);
     if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
     for (void* n = Next(Head(&awards_)); n != Head(&awards_); n = Next(n)) {
-        std::uint8_t* e = ValueOf<0xC>(n);
-        if (At<void*>(e, 0xC) == CurrentConnection()) PushReplicated(*out, e, 2);
+        auto* award = ValueOf<AwardMessage, 0xC>(n);
+        if (award->connection_.ptr == CurrentConnection()) PushReplicated(*out, award, 2);
     }
     for (void* n = Next(Head(&offers_)); n != Head(&offers_); n = Next(n)) {
-        std::uint8_t* offer = ValueOf(n);
-        if (At<void*>(offer, 0x2C) != record) continue;
+        auto* offer = ValueOf<PartyMessage>(n);
+        if (offer->partner_.ptr != record) continue;
         bool complete = true;
-        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(At<void**>(offer, 0x10) - At<void**>(offer, 0xC)); ++i) {
-            void* member = At<void**>(offer, 0xC)[i];
-            if (!member || (At<std::uint8_t>(member, 7) & 0x80)) complete = false;
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.finish - offer->members_.start); ++i) {
+            CRefObject* member = offer->members_.start[i].ptr;
+            if (!member || (member->flags7_ & CRefObject::kDetached)) complete = false;
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
-        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(At<void**>(ValueOf(n), 0x10) - At<void**>(ValueOf(n), 0xC)); ++i)
-            PushReplicated(*out, At<void**>(ValueOf(n), 0xC)[i], 2);
+        const RefVector& members = ValueOf<PartyMessage>(n)->members_;
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.finish - members.start); ++i)
+            PushReplicated(*out, ValueOf<PartyMessage>(n)->members_.start[i].ptr, 2);
     }
     for (void* n = Next(Head(&trades_)); n != Head(&trades_); n = Next(n)) {
-        std::uint8_t* e = ValueOf(n);
-        if (At<void*>(e, 0xC) == record || At<void*>(e, 0x10) == record) PushReplicatedInline(*out, e, 2);
+        auto* trade = ValueOf<TradeMessage>(n);
+        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
     for (void* n = Next(Head(&finishedTrades_)); n != Head(&finishedTrades_); n = Next(n)) {
-        std::uint8_t* e = ValueOf<0xC>(n);
-        if (At<void*>(e, 0xC) == record || At<void*>(e, 0x10) == record) PushReplicatedInline(*out, e, 2);
+        auto* trade = ValueOf<TradeMessage, 0xC>(n);
+        if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
 }
 namespace {

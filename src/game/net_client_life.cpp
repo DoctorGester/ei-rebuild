@@ -53,7 +53,7 @@ void ReleaseInline(void* slot) {
     auto* object = static_cast<CRefObject*>(slot);
     if (!object) return;
     --object->refs_;
-    if (object->refs_ == 0 && object) ei::VCall<void>(object, 0, 1);
+    if (object->refs_ == 0 && object) delete object;
 }
 
 } // namespace

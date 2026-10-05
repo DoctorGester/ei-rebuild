@@ -84,3 +84,78 @@ qualified member).
 - StringRep (raw STLport string layout) vs stlp::string; the forwarders of this subsystem that call
   rewritten functions at their addresses (ticket C3); hash_tables_400.cpp's own view of the type
   registry (004368F0).
+
+## Ticket C2e: the message classes (2026-10-05)
+
+Behaviour unchanged; every rewritten address keeps its hook and its verify wrapper (the same checks;
+the wrappers of slots call the qualified member).
+
+### Declarations
+
+- New `net_messages.h` / `net_messages.cpp` (net_message_classes.cpp merged into net_messages.cpp,
+  whose constructor bodies were the other half of the same classes): one `__declspec(novtable)`
+  class per message, deriving from `Message`, with slot 2 (`OnShutdown`, the reset), slot 3
+  (`Clone`, covariant), slots 4 / 5 (`Write` / `Read`) as overrides, a static `Create` (the type
+  registry's factory), `Construct` (only the nine classes whose constructor body is a function of
+  its own) and `Destruct` (the destructor body). Named members with offset asserts:
+  - client to server: `LoginMessage` 0073BBF8 (type 5), `SayMessage` 0073BC28 (6, a chat line from
+    a client), `CommandMessage` 0073BC40 (7), `FileRequestMessage` 0073BC58 (13), `PartyMessage`
+    0073BDD0 (15, a trade offer: members, value, accepted flag and revision, revision, player,
+    partner, trading flag), `PartyMemberMessage` 0073BD78 (16, a CMemoryStream);
+  - server to client: `PlayerMessage` 0073BC70 (1), `LineMessage` 0073BC88 (2), `HostMessage`
+    0073BCA0 (3, "host:port" and the zone; built by world_game.cpp's AnnounceHost), `BindingMessage`
+    0073BCB8 (4), `ZoneMessage` 0073BCD0 (8), `MapMessage` 0073BD00 (9), `VariableMessage` 0073BCE8
+    (10), `FileMessage` 0073BD18 (11), `FileChunkMessage` 0073BD30 (12), `AwardMessage` 0073BD48
+    (14), `TradeMessage` 0073BD60 (17).
+  - Duplicate layouts merged: `TextMessage` (one string; Say / Zone / Map differ only in their
+    vtables) and `PairMessage` (two counted pointers; Binding / FileRequest, with `PlayerRef` /
+    `FileRef` / `ConnectionRef` accessors) hold the shared slot bodies (`...As(vtable)` helpers);
+    `RefVector` (vector of counted pointers) replaces net_client_party.cpp's own copy;
+    net_client_party.cpp's `PartyState` is `PartyMessage`, net_server_files.cpp's `FileMessage`
+    and net_server_vars.cpp's `ScriptVariable` are the classes here; the client's trade records
+    are `TradeRecordNode` (0x160 bytes: the two revisions and three UnitRecordBuilders) in
+    net_client_handlers.cpp.
+- `ServerEntry` (net_classes.h) gained the slot overrides and `Destruct` (its bodies moved here).
+- `NewMessageMemory<T>()`: the inlined operator new with the count dword cleared before the null
+  check, used by every file that builds messages inline.
+- `SessionBase::AddHandlerFor<T>(channel, handler)` builds the prototype with `T::Construct`
+  (was a size and a constructor function pointer); the part after it is `AddHandlerForPrototype`.
+- The `ConstructMessage73XXXX` / `MessageFactory73XXXX` / ... free functions are gone; the
+  registrations name the members (slots through `...Hook` shims, rule 4).
+
+### Other files (offsets to members)
+
+net_server.cpp (CollectReplicated), net_server_join, _players, _tick, _trade, _commands, _chat,
+_awards, _files, _map, _list, _vars; net_client.cpp (the local login, CollectReplicated),
+net_client_handlers, _party, _awards, _commands, _life; net_handler_registrars.cpp. The handlers
+take the message class they receive (same registers). The message-related `ei::VCall`s became
+virtual calls: deleting destructor (`delete`), OnShutdown, and the party member streams'
+Clear / Write / Read / Seek / Size through a `CStream*` (checked in the objects: every one still
+goes through the vtable; no direct call to a CMemoryStream slot).
+
+### Behaviour notes
+
+- The resets (slot 2) return 0 now; the originals leave EAX undefined (-1 for the player record,
+  other values elsewhere). Only `CRefObject::Shutdown` passes it on, and no caller reads it.
+- Message reads and writes of object references call `Connection::WriteObjectRef` /
+  `ReadObjectRef` directly instead of through forwarders to 004355B0 / 00435820, and the server
+  entry's reset calls `ServerEntryBase::ConstructBase` directly (same code in the release build;
+  the verify build no longer runs those wrappers for these callers).
+- The reset slots' `if (!this)` (the inlined placement new's null test) is left out.
+
+### Original bugs kept
+
+- PartyMemberMessage::Clone (00417420) sizes the copy's stream like the source, then reads the
+  copy's uninitialised bytes into the source's buffer (slot 1, Read) instead of writing the source
+  into the copy.
+
+### Left
+
+- world_game.cpp's AnnounceHost builds a HostMessage by hand (world subsystem; it can use
+  `HostMessage` and `NewMessageMemory`).
+- The UnitRecordBuilder offsets the party code reads through the client (+0x2660, +0x2664, +0x2670,
+  +0x26E0) and the party / unit VCalls in net_client_party.cpp and net_client_awards.cpp (units /
+  items tickets).
+- The forwarders to the STLport list / vector / string instantiations the handlers call (library
+  layer) and the timed-entry list nodes ({delay, object}) still use raw node offsets.
+- The links, GameBuffer and the session pump (ticket C2f).

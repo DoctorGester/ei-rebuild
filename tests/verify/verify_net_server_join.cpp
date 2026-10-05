@@ -1,59 +1,47 @@
 // Checks for net_server_join.cpp: ours only (the handlers change the server's lists and records).
-//  - ServerOnJoin: afterwards the message's binding must be the last binding and point at the last
-//    player record, which carries the message's name.
-//  - ServerOnPlayerChanged: the player holds the message's +0x28 / +0x2C.
+//  - ServerOnJoin: afterwards the login's binding must be the last binding and point at the last
+//    player record, which carries the login's name.
+//  - ServerOnPlayerChanged: the player holds the login's state and id.
 //  - ServerOnPlayerGone: a live binding is no longer listed, nor its live player.
 #include "net_verify.h"
 
-#include "../../src/game/net_classes.h"
+#include "../../src/game/net_messages.h"
 
 #include <cstring>
 
 namespace net {
-void __fastcall ServerOnJoin(ServerSession* self, Message* message);
-void __fastcall ServerOnPlayerChanged(ServerSession* self, Message* message);
-void __fastcall ServerOnPlayerGone(ServerSession* self, Message* message);
+void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* message);
+void __fastcall ServerOnPlayerChanged(ServerSession* self, LoginMessage* message);
+void __fastcall ServerOnPlayerGone(ServerSession* self, LoginMessage* message);
 }
 
 namespace {
+using net::BindingMessage;
+using net::LoginMessage;
+using net::PlayerMessage;
+
 void* s_unused;
 
-void* LastObject(const std::uint8_t* list) {
-    void** sentinel = *reinterpret_cast<void** const*>(list);
+void* LastObject(void* list) {
+    void** sentinel = *static_cast<void***>(list);
     return static_cast<void**>(sentinel[1])[2];
 }
 
-void __fastcall ServerOnJoinVerify(net::ServerSession* self, net::Message* message) {
+void __fastcall ServerOnJoinVerify(net::ServerSession* self, LoginMessage* message) {
     net::ServerOnJoin(self, message);
-    auto* base = reinterpret_cast<const std::uint8_t*>(self);
-    auto* msg = reinterpret_cast<const std::uint8_t*>(message);
-    auto* player = static_cast<const std::uint8_t*>(LastObject(base + 0x2590));
-    auto* binding = static_cast<const std::uint8_t*>(LastObject(base + 0x25A4));
-    void* kept;
-    void* bound;
-    std::memcpy(&kept, msg + 0x30, 4);
-    std::memcpy(&bound, binding + 0xC, 4);
-    auto* name = reinterpret_cast<const net::StringRep*>(player + 0xC);
-    auto* from = reinterpret_cast<const net::StringRep*>(msg + 0xC);
+    auto* player = static_cast<PlayerMessage*>(LastObject(&self->players_));
+    auto* binding = static_cast<BindingMessage*>(LastObject(&self->bindings_));
+    void* kept = message->binding_.ptr;
+    void* bound = binding->PlayerRef().ptr;
+    const net::StringRep* name = &player->name_;
+    const net::StringRep* from = &message->name_;
     std::size_t length = static_cast<std::size_t>(name->finish - name->start);
     bool sameName = length == static_cast<std::size_t>(from->finish - from->start) &&
                     std::memcmp(name->start, from->start, length) == 0;
     ei::verify::Check("ServerOnJoin", true, kept == binding && bound == player && sameName, "");
 }
 
-void* Ptr(const void* p, std::size_t offset) {
-    void* v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, 4);
-    return v;
-}
-std::uint32_t Dword(const void* p, std::size_t offset) {
-    std::uint32_t v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, 4);
-    return v;
-}
-bool Live(const void* object) {
-    return object && !(static_cast<const std::uint8_t*>(object)[7] & 0x80);
-}
+bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 bool Listed(void* list, const void* value) {
     void** sentinel = static_cast<void**>(list);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
@@ -61,16 +49,15 @@ bool Listed(void* list, const void* value) {
     return false;
 }
 
-void __fastcall PlayerChangedVerify(net::ServerSession* self, net::Message* message) {
+void __fastcall PlayerChangedVerify(net::ServerSession* self, LoginMessage* message) {
     net::ServerOnPlayerChanged(self, message);
-    void* player = Ptr(Ptr(message, 0x30), 0xC);
-    ei::verify::Check("ServerOnPlayerChanged", true,
-                      Dword(player, 0x24) == Dword(message, 0x28) && Dword(player, 0x2C) == Dword(message, 0x2C), "");
+    auto* player = static_cast<PlayerMessage*>(static_cast<BindingMessage*>(message->binding_.ptr)->PlayerRef().ptr);
+    ei::verify::Check("ServerOnPlayerChanged", true, player->state_ == message->state_ && player->id_ == message->id_, "");
 }
-void __fastcall PlayerGoneVerify(net::ServerSession* self, net::Message* message) {
-    void* binding = Ptr(message, 0x30);
+void __fastcall PlayerGoneVerify(net::ServerSession* self, LoginMessage* message) {
+    auto* binding = static_cast<BindingMessage*>(message->binding_.ptr);
     bool live = Live(binding);
-    void* player = live ? Ptr(binding, 0xC) : nullptr;
+    CRefObject* player = live ? binding->PlayerRef().ptr : nullptr;
     bool playerLive = live && Live(player);
     net::ServerOnPlayerGone(self, message);
     bool ok = !live || (!Listed(self->bindings_, binding) && (!playerLive || !Listed(self->players_, player)));

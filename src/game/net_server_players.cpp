@@ -3,9 +3,8 @@
 // (0041A550, 0041A620), the departure reports (0041A700 slot 11, 0041A770 slot 12) and the lines to
 // every guest (0041A500). See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
 //
-// Players (players_): +0x0C name, +0x28 host (byte), +0x2C id, +0x30 serial. Bindings
-// (bindings_): +0x0C the player, +0x10 the connection (net_server_join.cpp).
-#include "net_classes.h"
+// Players (players_) are PlayerMessages, bindings (bindings_) BindingMessages (net_server_join.cpp).
+#include "net_messages.h"
 #include "net_connection.h"
 #include "core_refcount.h"
 
@@ -27,21 +26,21 @@ __declspec(naked) void** __fastcall BannedInsert(void* /*list*/, void*, void** /
 
 constexpr std::size_t kPasswordSize = 0x14;
 
-template <typename T>
-T& At(void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
 }
 void** First(void* list) { return static_cast<void**>(static_cast<void**>(list)[0]); }
 void* Value(void** node) { return node[2]; }
+PlayerMessage* PlayerAt(void** node) { return static_cast<PlayerMessage*>(node[2]); }
+BindingMessage* BindingAt(void** node) { return static_cast<BindingMessage*>(node[2]); }
+PlayerMessage* PlayerOf(BindingMessage* binding) { return static_cast<PlayerMessage*>(binding->PlayerRef().ptr); }
+void* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRef().ptr; }
 
 // The connection of the first binding whose player is live and the host, or null.
 void* HostConnection(void** bindings) {
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0])) {
-        void* player = At<void*>(Value(node), 0xC);
-        if (Live(player) && At<std::uint8_t>(player, 0x28)) return At<void*>(Value(node), 0x10);
+        PlayerMessage* player = PlayerOf(BindingAt(node));
+        if (Live(player) && player->host_) return ConnectionOf(BindingAt(node));
     }
     return nullptr;
 }
@@ -61,7 +60,7 @@ void DropClient(ServerSession* self, void* peer) {
 int ServerSession::LeaderId() {
     void** players = static_cast<void**>(players_);
     for (void** node = First(players); node != players; node = static_cast<void**>(node[0]))
-        if (At<std::uint8_t>(Value(node), 0x28)) return At<int>(Value(node), 0x2C);
+        if (PlayerAt(node)->host_) return PlayerAt(node)->id_;
     return -1;
 }
 EI_REPLACE_METHOD(0x0041A020, ServerSession::LeaderId);
@@ -110,23 +109,23 @@ EI_REPLACE_METHOD(0x0041A140, ServerSession::SetPassword);
 void* ServerSession::FindGuestConnection(const StringRep* name) {
     const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
     for (void** node = First(players_); node != players_; node = static_cast<void**>(node[0])) {
-        void* player = Value(node);
-        if (GameStrnicmp(At<const char*>(player, 0xC), name->start, length) != 0) continue;
+        PlayerMessage* player = PlayerAt(node);
+        if (GameStrnicmp(player->name_.start, name->start, length) != 0) continue;
         void** bindings = static_cast<void**>(bindings_);
         void** first = First(bindings);
         for (void** binding = first; binding != bindings; binding = static_cast<void**>(binding[0])) {
-            if (At<void*>(Value(binding), 0xC) != Value(node)) continue;
-            void* connection = At<void*>(Value(binding), 0x10);
+            if (PlayerOf(BindingAt(binding)) != Value(node)) continue;
+            void* connection = ConnectionOf(BindingAt(binding));
             bool hostsToo = false;
             for (void** other = first; other != bindings; other = static_cast<void**>(other[0])) {
-                if (At<void*>(Value(other), 0x10) != connection) continue;
-                void* owner = At<void*>(Value(other), 0xC);
-                if (owner && !(static_cast<CRefObject*>(owner)->flags7_ & CRefObject::kDetached) && At<std::uint8_t>(owner, 0x28)) {
+                if (ConnectionOf(BindingAt(other)) != connection) continue;
+                PlayerMessage* owner = PlayerOf(BindingAt(other));
+                if (owner && !(owner->flags7_ & CRefObject::kDetached) && owner->host_) {
                     hostsToo = true;
                     break;
                 }
             }
-            if (!hostsToo) return At<void*>(Value(binding), 0x10);
+            if (!hostsToo) return ConnectionOf(BindingAt(binding));
             break;
         }
     }
@@ -138,7 +137,7 @@ EI_REPLACE_METHOD(0x0041A170, ServerSession::FindGuestConnection);
 void* ServerSession::FindConnectionBySerial(int serial) {
     void** bindings = static_cast<void**>(bindings_);
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0]))
-        if (At<int>(At<void*>(Value(node), 0xC), 0x30) == serial) return At<void*>(Value(node), 0x10);
+        if (PlayerOf(BindingAt(node))->serial_ == serial) return ConnectionOf(BindingAt(node));
     return nullptr;
 }
 EI_REPLACE_METHOD(0x0041A270, ServerSession::FindConnectionBySerial);
@@ -147,7 +146,7 @@ EI_REPLACE_METHOD(0x0041A270, ServerSession::FindConnectionBySerial);
 void* ServerSession::FindPlayer(int id) {
     void** players = static_cast<void**>(players_);
     for (void** node = First(players); node != players; node = static_cast<void**>(node[0]))
-        if (At<int>(Value(node), 0x2C) == id) return Value(node);
+        if (PlayerAt(node)->id_ == id) return Value(node);
     return nullptr;
 }
 EI_REPLACE_METHOD(0x0041A2E0, ServerSession::FindPlayer);
@@ -155,8 +154,8 @@ EI_REPLACE_METHOD(0x0041A2E0, ServerSession::FindPlayer);
 // 0041A500: a line (text `kind` with `text`) for every player that is not the host.
 void ServerSession::AnnounceToGuests(int kind, const char* text) {
     for (void** node = First(players_); node != players_; node = static_cast<void**>(node[0])) {
-        void* player = Value(node);
-        if (!At<std::uint8_t>(player, 0x28)) AnnounceText(kind, text, static_cast<CRefObject*>(player));
+        PlayerMessage* player = PlayerAt(node);
+        if (!player->host_) AnnounceText(kind, text, player);
     }
 }
 EI_REPLACE_METHOD(0x0041A500, ServerSession::AnnounceToGuests);
@@ -169,11 +168,11 @@ void ServerSession::Kick(void* connection) {
     void* host = HostConnection(bindings);
     if (connection == host) return;
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0])) {
-        if (At<void*>(Value(node), 0x10) != connection) continue;
-        void* binding = Value(node);
+        if (ConnectionOf(BindingAt(node)) != connection) continue;
+        BindingMessage* binding = BindingAt(node);
         if (binding) {
-            void* player = At<void*>(binding, 0xC);
-            if (Live(player)) AnnounceText(2, At<const char*>(player, 0xC), nullptr);
+            PlayerMessage* player = PlayerOf(binding);
+            if (Live(player)) AnnounceText(2, player->name_.start, nullptr);
         }
         break;
     }
@@ -189,11 +188,11 @@ void ServerSession::Ban(void* connection) {
     void* host = HostConnection(bindings);
     if (connection == host) return;
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0])) {
-        if (At<void*>(Value(node), 0x10) != connection) continue;
-        void* binding = Value(node);
+        if (ConnectionOf(BindingAt(node)) != connection) continue;
+        BindingMessage* binding = BindingAt(node);
         if (binding) {
-            void* player = At<void*>(binding, 0xC);
-            if (Live(player)) AnnounceText(3, At<const char*>(player, 0xC), nullptr);
+            PlayerMessage* player = PlayerOf(binding);
+            if (Live(player)) AnnounceText(3, player->name_.start, nullptr);
         }
         break;
     }
@@ -212,12 +211,12 @@ void ServerSession::ReportDeparture(void* connection, int text) {
     if (!Live(connection)) return;
     void** bindings = static_cast<void**>(bindings_);
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0])) {
-        if (At<void*>(Value(node), 0x10) != connection) continue;
-        void* binding = Value(node);
+        if (ConnectionOf(BindingAt(node)) != connection) continue;
+        BindingMessage* binding = BindingAt(node);
         if (!Live(binding)) return;
-        void* player = At<void*>(binding, 0xC);
+        PlayerMessage* player = PlayerOf(binding);
         if (!Live(player)) return;
-        AnnounceText(text, At<const char*>(player, 0xC), nullptr);
+        AnnounceText(text, player->name_.start, nullptr);
         return;
     }
 }
