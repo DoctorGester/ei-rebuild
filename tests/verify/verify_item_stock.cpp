@@ -469,3 +469,61 @@ static void __fastcall GenerateScrollsVerify(ItemStock* self, void*, int minCoun
                       static_cast<unsigned>(self->spells.size()), static_cast<unsigned>(before), static_cast<unsigned>(after));
 }
 EI_VERIFY(0x0069AC20, GenerateScrollsVerify, 0, s_unusedScrolls);
+
+// Ticket H6, reached by scenario trader_stock:
+// - SetLevels (00699410; from 004A6DC0): against the original: +0x78..+0xB8 compared after each.
+// - GenerateWeapons / GenerateArmors / GenerateQuickItems (0069B570 / 0069B550 / 0069B590; thunks onto
+//   0069AE20 with the stock's vector and kind 0 / 1 / 2; ours only, they draw rand and create items):
+//   the new items are valid, at most min(count of records, maxCount) of them.
+namespace {
+
+using SetLevelsFn = void(__fastcall*)(ItemStock*, void*, const float*, const float*);
+SetLevelsFn s_originalSetLevels;
+GenerateInstructionsFn s_unusedWeapons;
+GenerateInstructionsFn s_unusedArmors;
+GenerateInstructionsFn s_unusedQuickItems;
+
+void CheckThunk(const char* name, ItemStock* self, const StockPtrVector& source, int minCount, int maxCount, StockList* out,
+                void (ItemStock::*generate)(int, int, StockList*)) {
+    std::size_t before = ListSize(out);
+    std::size_t records = source.size();
+    (self->*generate)(minCount, maxCount, out);
+    std::size_t after = ListSize(out);
+    std::size_t limit = records;
+    std::size_t upper = static_cast<std::size_t>(maxCount > 0 ? maxCount : 0);
+    if (upper < limit) limit = upper;
+    bool ok = after >= before && after - before <= limit && NewItemsValid(out, before, 0x3004, 0x3006);
+    ei::verify::Check(name, true, ok, "%d..%d of %u records: %u -> %u items", minCount, maxCount,
+                      static_cast<unsigned>(records), static_cast<unsigned>(before), static_cast<unsigned>(after));
+}
+
+} // namespace
+
+static void __fastcall SetLevelsVerify(ItemStock* self, void*, const float* base, const float* scroll) {
+    float saved[16];
+    std::memcpy(saved, self->baseLevels, 0x20);
+    std::memcpy(saved + 8, self->scrollLevels, 0x20);
+    s_originalSetLevels(self, nullptr, base, scroll);
+    float original[16];
+    std::memcpy(original, self->baseLevels, 0x20);
+    std::memcpy(original + 8, self->scrollLevels, 0x20);
+    std::memcpy(self->baseLevels, saved, 0x20);
+    std::memcpy(self->scrollLevels, saved + 8, 0x20);
+    self->ItemStock::SetLevels(base, scroll);
+    bool ok = std::memcmp(self->baseLevels, original, 0x20) == 0 && std::memcmp(self->scrollLevels, original + 8, 0x20) == 0;
+    ei::verify::Check("ItemStock::SetLevels", true, ok, "levels copied");
+}
+EI_VERIFY(0x00699410, SetLevelsVerify, 8, s_originalSetLevels);
+
+static void __fastcall GenerateWeaponsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckThunk("ItemStock::GenerateWeapons", self, self->weapons, minCount, maxCount, out, &ItemStock::GenerateWeapons);
+}
+EI_VERIFY(0x0069B570, GenerateWeaponsVerify, 0, s_unusedWeapons);
+static void __fastcall GenerateArmorsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckThunk("ItemStock::GenerateArmors", self, self->armors, minCount, maxCount, out, &ItemStock::GenerateArmors);
+}
+EI_VERIFY(0x0069B550, GenerateArmorsVerify, 0, s_unusedArmors);
+static void __fastcall GenerateQuickItemsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckThunk("ItemStock::GenerateQuickItems", self, self->quickItems, minCount, maxCount, out, &ItemStock::GenerateQuickItems);
+}
+EI_VERIFY(0x0069B590, GenerateQuickItemsVerify, 0, s_unusedQuickItems);

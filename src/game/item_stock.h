@@ -72,8 +72,17 @@ struct ItemStock {
     StockPtrVector modifiers;       // +0x44
     std::uint8_t spellMap[0x14];    // +0x50 recipes by spell name (STLport hash_map<string, list>, 0069A480)
     std::uint8_t modifierMap[0x14]; // +0x64 modifiers by kind key (STLport map<string, modifier*>, 0069A480)
-    std::uint8_t unknown_78[0x20];  // +0x78 8 floats, set with +0x98 (00699410)
+    float baseLevels[8];            // +0x78 8 floats, set with +0x98 (00699410)
     float scrollLevels[8];          // +0x98 the spell level per school for the scrolls (0069AC20)
+
+    // 00699410 (RET 8). +0x78 and +0x98 each set from 8 floats (004A6DC0).
+    void SetLevels(const float* base, const float* scroll);
+
+    // 0069B570 / 0069B550 / 0069B590 (RET 0xC; thunks onto 0069AE20 with +0x14 weapons / +8 armors /
+    // +0x20 quick items and kind 0 / 1 / 2).
+    void GenerateWeapons(int minCount, int maxCount, StockList* out);
+    void GenerateArmors(int minCount, int maxCount, StockList* out);
+    void GenerateQuickItems(int minCount, int maxCount, StockList* out);
 
     // 006993B0. Each material entry's units left (+0x0C) redrawn in [minCount, maxCount] (rand;
     // maxCount when minCount >= maxCount).
@@ -145,5 +154,6 @@ struct ItemStock {
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);
+static_assert(offsetof(ItemStock, baseLevels) == 0x78);
 static_assert(offsetof(ItemStock, scrollLevels) == 0x98);
 static_assert(sizeof(ItemStock) == 0xB8);
