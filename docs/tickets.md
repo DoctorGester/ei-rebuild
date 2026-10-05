@@ -15,7 +15,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U8 merged 2026-10-05; its scenario magic_traps is being reworked (AddMob of zone2 hangs the original game too).
 
 ## App and startup, 0x00440000-0x00480000
 
@@ -26,7 +25,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H3 Trader stock leftovers: 0069A480 / 0069A780 (spell maps, random spells), 0069B5B0 (stock load), 00699810 / 006995E0 / 00699A40 (other stock generators).
+- H3 (taken 2026-10-05) Trader stock leftovers: 0069A480 / 0069A780 (spell maps, random spells), 0069B5B0 (stock load), 00699810 / 006995E0 / 00699A40 (other stock generators).
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
