@@ -41,6 +41,25 @@ struct MfcArray {
 };
 static_assert(sizeof(MfcArray<int>) == 0x14);
 
+// MFC 4.2 CList<T, ARG> layout (0x1C bytes); a node is next, prev, then the element. The game's
+// instantiations differ only in the vtable and the element.
+template <typename T>
+struct MfcList {
+    struct Node {
+        Node* next;
+        Node* prev;
+        T data;
+    };
+    void* vtable;
+    Node* head;             // +0x04
+    Node* tail;             // +0x08
+    int count;              // +0x0C
+    Node* free;             // +0x10
+    mfc::CPlex* blocks;     // +0x14
+    int blockSize;          // +0x18
+};
+static_assert(sizeof(MfcList<int>) == 0x1C);
+
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
 struct ScriptObjectRef {
@@ -179,8 +198,74 @@ struct ScriptAreaPart {
 };
 static_assert(sizeof(ScriptAreaPart) == 0x14);
 
-// The script interpreter state passed to every evaluation ("CScript" in the loader's messages; only
-// the parts the evaluator touches are known).
+// The effects a script places in the world (CreatePointLight, CreateParticleSource, CreateFX...,
+// CreateLightning). Each holds a reference on its effect object, which is also a timed object of
+// the world; dropping one removes the timed object and releases the reference.
+
+// A point light slot (CScript::pointLights_, 256 slots).
+struct ScriptPointLight {
+    CEngineObject* object;  // +0x00 the light (CEffectPointLight), null when the slot is free
+    int id;                 // +0x04
+    int removeWhenDone;     // +0x08 MovePointLight: remove the light when the move ends
+    int moving;             // +0x0C
+    int steps;              // +0x10 moves left
+    float step[3];          // +0x14 added to the position on every move
+};
+static_assert(sizeof(ScriptPointLight) == 0x20);
+
+// A particle source (CScript::particles_; CreateParticleSource / MoveParticleSource).
+struct ScriptParticleSource {
+    CEngineObject* object;  // +0x00 the source (CEffectParticle)
+    int id;                 // +0x04
+    int deleteAfterMove;    // +0x08
+    int moving;             // +0x0C
+    int steps;              // +0x10 moves left
+    float step[3];          // +0x14
+    int lifetime;           // +0x20 ticks left, -1 forever (the particle type's lifetime)
+};
+static_assert(sizeof(ScriptParticleSource) == 0x24);
+
+// A sound source (CScript::fxSources_; CreateFXSource / CreateRandomizedFXSource). The tick
+// replaces the sound of a source whose `idle` is 0 when its countdown runs out.
+struct ScriptFxSource {
+    CEngineObject* object;  // +0x00 the current sound (CEffectSound)
+    int id;                 // +0x04
+    mfc::CString name;      // +0x08 the sound's name
+    float position[3];      // +0x0C
+    float volume;           // +0x18 copied to the sound's volume_
+    float radius;           // +0x1C ... radius_
+    int idle;               // +0x20
+    float spread;           // +0x24 a new sound is placed up to this far away in x and y
+    int minDelay;           // +0x28 ticks
+    int maxDelay;           // +0x2C
+    int countdown;          // +0x30
+};
+static_assert(sizeof(ScriptFxSource) == 0x34);
+
+// A lightning bolt (CScript::lightning_; CreateLightning).
+struct ScriptLightning {
+    CEngineObject* object;  // +0x00 the bolt (CEffectLightning)
+    int id;                 // +0x04
+};
+static_assert(sizeof(ScriptLightning) == 8);
+
+// One particle type CreateParticleSource accepts (the table at 0078B120, 64 entries).
+struct ScriptParticleType {
+    const char* name;
+    int type;               // CEffectParticle::type_ (0x2000..)
+    int lifetime;           // ticks, -1 forever
+};
+static_assert(sizeof(ScriptParticleType) == 12);
+inline const ScriptParticleType* ScriptParticleTypes() { return reinterpret_cast<const ScriptParticleType*>(0x0078B120); }
+constexpr int kScriptParticleTypeCount = 64;
+
+struct ScriptDecl;
+struct ScriptDefinition;
+struct ScriptRun;
+struct ScriptArea;
+
+// The script interpreter state passed to every evaluation ("CScript" in the loader's messages).
+// The world has two (+0x12874, and +0x12A6C = 007C29CC, the mission script the console uses).
 class CScript {
 public:
     // 004B59F0. Appends an empty object reference to the temporaries list (+0x1D0) and returns it.
@@ -188,7 +273,7 @@ public:
     // 004BCE10. The parts of area `id`, creating an empty area when it does not exist.
     MfcArray<ScriptAreaPart>* FindArea(int id);
 
-    ScriptVars* Globals() { return reinterpret_cast<ScriptVars*>(reinterpret_cast<char*>(this) + 0xA0); }
+    ScriptVars* Globals() { return &globals_; }
 
     // ---- Loader and parser (script_parse.cpp, script_parse_load.cpp) ----------------------------
     // Every Load* function returns 1 on success; on failure it returns what Error returned (0).
@@ -240,14 +325,46 @@ public:
     void RunWorldScript(MfcArray<SSCCmd>* block); // 004BCC60
 
     // Fields used by the loader.
-    MfcArray<struct ScriptDefinition>& Scripts() { return *reinterpret_cast<MfcArray<ScriptDefinition>*>(Field(0x8C)); }
-    int& LoadedFlag() { return *reinterpret_cast<int*>(Field(0x1A8)); }
-    int& FileCount() { return *reinterpret_cast<int*>(Field(0x1AC)); }
-    mfc::CString& ErrorText() { return *reinterpret_cast<mfc::CString*>(Field(0x1EC)); }
-    int& ErrorCode() { return *reinterpret_cast<int*>(Field(0x1F0)); }
-    int& ErrorLine() { return *reinterpret_cast<int*>(Field(0x1F4)); }
+    MfcArray<struct ScriptDefinition>& Scripts() { return definitions_; }
+    int& LoadedFlag() { return loaded_; }
+    int& FileCount() { return fileCount_; }
+    mfc::CString& ErrorText() { return errorText_; }
+    int& ErrorCode() { return errorCode_; }
+    int& ErrorLine() { return errorLine_; }
     char* Field(int offset) { return reinterpret_cast<char*>(this) + offset; }
+
+    MfcArray<ScriptPointLight> pointLights_;        // +0x00 256 slots (the constructor sizes it)
+    MfcList<ScriptParticleSource> particles_;       // +0x14
+    MfcList<ScriptFxSource> fxSources_;             // +0x30
+    MfcList<ScriptLightning> lightning_;            // +0x4C
+    int nextParticleId_;    // +0x68 the next automatic particle source / lightning id (-2, -3, ...)
+    int nextFxId_;          // +0x6C the next automatic FX source id
+    MfcList<ScriptDecl> blocks_;                    // +0x70 command blocks (NewCommandList)
+    MfcArray<ScriptDefinition> definitions_;        // +0x8C Script / DeclareScript definitions
+    ScriptVars globals_;                            // +0xA0 GlobalVars
+    MfcList<ScriptDefinition> instances_;           // +0x140 running script instances
+    MfcList<ScriptRun> runs_;                       // +0x15C waiting runs
+    MfcList<ScriptDecl> worldBlocks_;               // +0x178 WorldScript blocks
+    MfcArray<ScriptArea> areas_;                    // +0x194
+    int loaded_;            // +0x1A8 a script was loaded
+    int fileCount_;         // +0x1AC files loaded (QualifyName)
+    MfcList<ScriptGroup> tempGroups_;               // +0x1B0 evaluation temporaries (one kept)
+    MfcList<ScriptObjectRef> tempObjects_;          // +0x1CC
+    int forDepth_;          // +0x1E8 nesting of running For loops
+    mfc::CString errorText_;  // +0x1EC
+    int errorCode_;         // +0x1F0
+    int errorLine_;         // +0x1F4
 };
+static_assert(offsetof(CScript, particles_) == 0x14);
+static_assert(offsetof(CScript, nextParticleId_) == 0x68);
+static_assert(offsetof(CScript, blocks_) == 0x70);
+static_assert(offsetof(CScript, globals_) == 0xA0);
+static_assert(offsetof(CScript, instances_) == 0x140);
+static_assert(offsetof(CScript, areas_) == 0x194);
+static_assert(offsetof(CScript, tempGroups_) == 0x1B0);
+static_assert(offsetof(CScript, forDepth_) == 0x1E8);
+static_assert(offsetof(CScript, errorLine_) == 0x1F4);
+static_assert(sizeof(CScript) == 0x1F8);
 
 // Argument `argIndex` of a command is the result of the nested call `cmd`.
 struct ScriptSubCall {
@@ -693,3 +810,18 @@ ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsCopyConstruct(
 SSCCmd* __fastcall ScriptCmdCopyAt(const MfcArray<SSCCmd>* self, void* edx, SSCCmd* out, int index);     // 004CE750
 ScriptSubCall* __fastcall ScriptSubCallCopyAt(const MfcArray<ScriptSubCall>* self, void* edx,
                                               ScriptSubCall* out, int index);                          // 004CCAA0
+
+// ---- Script effects (script_effects.cpp) ----------------------------------------------------------
+// __thiscall on the element, registered as free functions; callers keep going through the
+// original addresses.
+// 004B1940 / 004B1A80 / 004B1C50 / 004B1DB0. A point light / particle source / FX source /
+// lightning bolt as the savegame holds it: the effect object's id (-1: none), then the fields in
+// order (an FX source's name with its terminator).
+void __fastcall ScriptPointLightSave(const ScriptPointLight* light, void* edx, ScriptStream* stream);
+void __fastcall ScriptParticleSourceSave(const ScriptParticleSource* source, void* edx, ScriptStream* stream);
+void __fastcall ScriptFxSourceSave(const ScriptFxSource* source, void* edx, ScriptStream* stream);
+void __fastcall ScriptLightningSave(const ScriptLightning* bolt, void* edx, ScriptStream* stream);
+// 004B18B0 / 004B1B40. Read what the savers wrote; the object is looked up in the world's effect
+// manager (007AFFA8) and referenced.
+void __fastcall ScriptPointLightLoad(ScriptPointLight* light, void* edx, ScriptStream* stream);
+void __fastcall ScriptFxSourceLoad(ScriptFxSource* source, void* edx, ScriptStream* stream);

@@ -115,6 +115,26 @@ void __fastcall RunSaveVerify(const ScriptRun* self, void*, ScriptStream* stream
     SaveVerify("ScriptRunSave", s_runSave, &ScriptRunSave, self, stream);
 }
 
+// The effect savers (src/game/script_effects.cpp), reached by saves of a script with point lights,
+// particle / FX sources or lightning (script_fx's save). 004B1940 / 004B1A80 / 004B1DB0: PUSH ECX;
+// PUSH ESI; PUSH EDI; MOV EDI,ECX (5 bytes). 004B1C50: PUSH ECX; PUSH EBX; MOV EBX,ECX; PUSH EBP (5).
+void(__fastcall* s_pointLightSave)(const ScriptPointLight*, void*, ScriptStream*);
+void __fastcall PointLightSaveVerify(const ScriptPointLight* self, void*, ScriptStream* stream) {
+    SaveVerify("ScriptPointLightSave", s_pointLightSave, &ScriptPointLightSave, self, stream);
+}
+void(__fastcall* s_particleSave)(const ScriptParticleSource*, void*, ScriptStream*);
+void __fastcall ParticleSaveVerify(const ScriptParticleSource* self, void*, ScriptStream* stream) {
+    SaveVerify("ScriptParticleSourceSave", s_particleSave, &ScriptParticleSourceSave, self, stream);
+}
+void(__fastcall* s_fxSave)(const ScriptFxSource*, void*, ScriptStream*);
+void __fastcall FxSaveVerify(const ScriptFxSource* self, void*, ScriptStream* stream) {
+    SaveVerify("ScriptFxSourceSave", s_fxSave, &ScriptFxSourceSave, self, stream);
+}
+void(__fastcall* s_lightningSave)(const ScriptLightning*, void*, ScriptStream*);
+void __fastcall LightningSaveVerify(const ScriptLightning* self, void*, ScriptStream* stream) {
+    SaveVerify("ScriptLightningSave", s_lightningSave, &ScriptLightningSave, self, stream);
+}
+
 } // namespace
 
 EI_VERIFY(0x004BBFE0, DefinitionSaveVerify, 6, s_definitionSave);
@@ -126,3 +146,7 @@ EI_VERIFY(0x004C33C0, StringsSaveVerify, 8, s_stringsSave);
 EI_VERIFY(0x004C38C0, ObjectsSaveVerify, 6, s_objectsSave);
 EI_VERIFY(0x004C4330, GroupsSaveVerify, 6, s_groupsSave);
 EI_VERIFY(0x004CAEC0, AreasSaveVerify, 6, s_areasSave);
+EI_VERIFY(0x004B1940, PointLightSaveVerify, 5, s_pointLightSave);
+EI_VERIFY(0x004B1A80, ParticleSaveVerify, 5, s_particleSave);
+EI_VERIFY(0x004B1C50, FxSaveVerify, 5, s_fxSave);
+EI_VERIFY(0x004B1DB0, LightningSaveVerify, 5, s_lightningSave);
