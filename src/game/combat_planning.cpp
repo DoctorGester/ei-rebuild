@@ -19,6 +19,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 
 #include <bit>
 #include <cstdint>
@@ -78,8 +79,9 @@ __declspec(naked) bool __fastcall CtlFindUseSpot(CUnitServer*, void*, UnitAction
 __declspec(naked) double __fastcall CtlTimeUntilAction(CUnitServer*, void*, const UnitAction*, void*)
     EI_ORIGINAL(0x0054E250)
 // 0066D490: the player's message about a path (combat_motion.cpp).
-__declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const void* /*motionOrder*/, const float*,
-                                                    int /*kind*/, int /*flag*/, float /*limit*/) EI_ORIGINAL(0x0066D490)
+void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, float a7) {
+    PlayerPathMessageOriginal(a0, nullptr, a2, a3, a4, a5, a6, std::bit_cast<std::uint32_t>(a7));
+}
 // Containers: 00545750 a path cell list's constructor (blocks of 0x80), 00539890 its destructor,
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
 // 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.

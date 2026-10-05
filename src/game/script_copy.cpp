@@ -24,7 +24,7 @@ __declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORI
 inline void __fastcall RefsCopy(void* a0, void*, const void* a2) { GroupAssignOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
 // CString::operator=(const CString&) on raw slots.
-__declspec(naked) void __fastcall AssignString(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
+void __fastcall AssignString(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 
 // Floats are copied through the FPU (FLD / FSTP): a signalling NaN becomes quiet.
 __declspec(naked) void __cdecl CopyFloat(float* /*to*/, const float* /*from*/) {

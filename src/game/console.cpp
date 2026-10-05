@@ -22,12 +22,12 @@ namespace console {
 __declspec(naked) mfc::CString Str::Mid(int) const EI_ORIGINAL(0x006FD9B4)
 __declspec(naked) mfc::CString Str::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 void Str::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
-__declspec(naked) void Str::AppendText(const char*) EI_ORIGINAL(0x00700D4C)
+void Str::AppendText(const char* a0) { CStringAppendTextOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void Str::AssignChar(char) EI_ORIGINAL(0x006FD559)
 __declspec(naked) char* Str::GetBuffer(int) EI_ORIGINAL(0x00700DA0)
 __declspec(naked) void Str::ReleaseBuffer(int) EI_ORIGINAL(0x00700DEF)
 __declspec(naked) void Str::MakeLower() EI_ORIGINAL(0x00700EFE)
-__declspec(naked) void Str::TrimLeft(char) EI_ORIGINAL(0x006FE1D3)
+void Str::TrimLeft(char a0) { CStringTrimLeftCharOriginal((void*)this, nullptr, a0); }
 void Str::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
 
 CStringArray::CStringArray() { StringArrayConstruct(this); }
@@ -46,8 +46,8 @@ __declspec(naked) void CStdioFile::Close() EI_ORIGINAL(0x00701FE0)
 
 GameOStream& GameOStream::operator<<(const char* text) { return *static_cast<GameOStream*>(OstreamPutString(this, nullptr, text)); }
 GameOStream& GameOStream::operator<<(char c) { return *static_cast<GameOStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-__declspec(naked) GameOStream& GameOStream::operator<<(int) EI_ORIGINAL(0x006FC91C)
-__declspec(naked) GameOStream& GameOStream::operator<<(double) EI_ORIGINAL(0x006FC7FA)
+GameOStream& GameOStream::operator<<(int a0) { return *static_cast<GameOStream*>(OstreamPutSignedLongOriginal(this, nullptr, static_cast<long>(a0))); }
+GameOStream& GameOStream::operator<<(double v) { return *static_cast<GameOStream*>(OstreamPutDoubleOriginal(this, nullptr, v)); }
 GameOStream& GameOStream::Apply(void* manipulator) { return *static_cast<GameOStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
 __declspec(naked) CommandHandler* CommandMap::Index(const mfc::CString&) EI_ORIGINAL(0x005E0B20)

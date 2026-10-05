@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -47,8 +48,7 @@ __declspec(naked) char* __fastcall FindModifierByCode(void*, void*, const char*)
 __declspec(naked) void __fastcall CodesReserve(char**, void*, unsigned) EI_ORIGINAL(0x0068C680)
 // 0068C560 (not rewritten). list<char*>::insert(pos, *value), the iterator stored in *out.
 // Arguments: list, unused EDX, out, pos, value.
-__declspec(naked) void __fastcall ModifierListInsert(SpellModifierNode**, void*, SpellModifierNode**,
-                                                     SpellModifierNode*, char**) EI_ORIGINAL(0x0068C560)
+void __fastcall ModifierListInsert(SpellModifierNode** a0, void*, SpellModifierNode** a2, SpellModifierNode* a3, char** a4) { ListInsert68C560Original(a0, nullptr, (void**)a2, a3, a4); }
 
 // The rewritten functions are called through their game addresses, so the verify wrappers see
 // every call (most have no other caller).

@@ -197,7 +197,7 @@ __declspec(naked) void __fastcall TempListConstruct(void*, void*, int /*blockSiz
 __declspec(naked) void __fastcall TempListDestruct(void*, void*) EI_ORIGINAL(0x00405130)
 inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
-__declspec(naked) void __fastcall PlayerEraseQuestItem(WorldPlayer*, void*, int) EI_ORIGINAL(0x00665780)
+void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateSetVariableMax(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
 // 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
@@ -332,7 +332,7 @@ static const char** UnitPrototype(CEngineObject* object, void*) { return static_
 // 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
 // (name, prototype, extra), remove the member with a text key.
 void __fastcall PartyAddMember(void* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
-__declspec(naked) void __fastcall PartyRemoveMember(void*, void*, unsigned) EI_ORIGINAL(0x006620F0)
+void __fastcall PartyRemoveMember(void* a0, void*, unsigned a2) { PartyRemoveMemberOriginal(a0, nullptr, a2); }
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
 __declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)
 
@@ -566,18 +566,18 @@ struct RecordArray {
 };
 
 inline int __fastcall PartyAddItem(void* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
-__declspec(naked) void __fastcall RecordArraySetAtGrow(RecordArray*, void*, int, std::uint8_t*) EI_ORIGINAL(0x0059D2E0)
-// The unit record's lists: remove the first entry of quick items (00660E10), items (00660A50),
-// spells (00660FF0), worn items (00660C30); add an entry (006608D0, 00660C90, 00660AB0,
-// 00660E70; they return the record entry).
-__declspec(naked) void __fastcall RecordRemoveQuick(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660E10)
-__declspec(naked) void __fastcall RecordRemoveItem(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660A50)
-__declspec(naked) void __fastcall RecordRemoveSpell(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660FF0)
-__declspec(naked) void __fastcall RecordRemoveWorn(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660C30)
-__declspec(naked) std::uint8_t* __fastcall RecordAddQuick(std::uint8_t*, void*, void*) EI_ORIGINAL(0x006608D0)
-__declspec(naked) std::uint8_t* __fastcall RecordAddWorn(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660C90)
-__declspec(naked) std::uint8_t* __fastcall RecordAddBelt(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660AB0)
-__declspec(naked) std::uint8_t* __fastcall RecordAddSpell(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660E70)
+void __fastcall RecordArraySetAtGrow(RecordArray* a0, void*, int a2, std::uint8_t* a3) { RecordArraySetAtGrowOriginal((void*)a0, nullptr, a2, (void*)a3); }
+// The unit record's lists (+0x730 quick items, +0x740 belt, +0x750 worn, +0x760 spells): remove the first entry
+// (00660A50, 00660C30, 00660E10, 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return
+// the record entry).
+void __fastcall RecordRemoveWorn(std::uint8_t* a0, void*, void* a2) { RecordRemoveWornEntryOriginal((void*)a0, nullptr, a2); }
+void __fastcall RecordRemoveQuick(std::uint8_t* a0, void*, void* a2) { RecordRemoveQuickEntryOriginal((void*)a0, nullptr, a2); }
+void __fastcall RecordRemoveSpell(std::uint8_t* a0, void*, void* a2) { RecordRemoveSpellEntryOriginal((void*)a0, nullptr, a2); }
+void __fastcall RecordRemoveBelt(std::uint8_t* a0, void*, void* a2) { RecordRemoveBeltEntryOriginal((void*)a0, nullptr, a2); }
+std::uint8_t* __fastcall RecordAddQuick(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddQuickEntryOriginal((void*)a0, nullptr, a2); }
+std::uint8_t* __fastcall RecordAddWorn(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddWornEntryOriginal((void*)a0, nullptr, a2); }
+std::uint8_t* __fastcall RecordAddBelt(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddBeltEntryOriginal((void*)a0, nullptr, a2); }
+std::uint8_t* __fastcall RecordAddSpell(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddSpellEntryOriginal((void*)a0, nullptr, a2); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
 __declspec(naked) CEngineObject* __fastcall UnitQuickItem(CEngineObject*, void*, int) EI_ORIGINAL(0x005318B0)
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
@@ -614,10 +614,10 @@ void SyncRecord(std::uint8_t* records, std::uint8_t* record, CEngineObject* unit
     void* controller = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
     auto count = [&](int offset) { return *reinterpret_cast<int*>(record + offset); };
     auto first = [&](int offset) { return **reinterpret_cast<void***>(record + offset); };
-    while (count(0x754)) RecordRemoveQuick(record, nullptr, first(0x750));
-    while (count(0x734)) RecordRemoveItem(record, nullptr, first(0x730));
+    while (count(0x754)) RecordRemoveWorn(record, nullptr, first(0x750));
+    while (count(0x734)) RecordRemoveQuick(record, nullptr, first(0x730));
     while (count(0x764)) RecordRemoveSpell(record, nullptr, first(0x760));
-    while (count(0x744)) RecordRemoveWorn(record, nullptr, first(0x740));
+    while (count(0x744)) RecordRemoveBelt(record, nullptr, first(0x740));
 
     for (int slot = 0; slot < kQuickSlots; ++slot) {
         CEngineObject* item = UnitQuickItem(unit, nullptr, slot);
@@ -719,10 +719,10 @@ void StoreRecord(CWorldServer* world, void* records, std::uint8_t* record, CEngi
     void* controller = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
     auto count = [&](int offset) { return *reinterpret_cast<int*>(record + offset); };
     auto first = [&](int offset) { return **reinterpret_cast<void***>(record + offset); };
-    while (count(0x754)) RecordRemoveQuick(record, nullptr, first(0x750));
-    while (count(0x734)) RecordRemoveItem(record, nullptr, first(0x730));
+    while (count(0x754)) RecordRemoveWorn(record, nullptr, first(0x750));
+    while (count(0x734)) RecordRemoveQuick(record, nullptr, first(0x730));
     while (count(0x764)) RecordRemoveSpell(record, nullptr, first(0x760));
-    while (count(0x744)) RecordRemoveWorn(record, nullptr, first(0x740));
+    while (count(0x744)) RecordRemoveBelt(record, nullptr, first(0x740));
     for (int slot = 0; slot < kQuickSlots; ++slot)
         if (CEngineObject* item = UnitQuickItem(unit, nullptr, slot)) AddToRecord(records, record, item, RecordAddQuick);
     for (int slot = 0; slot < kWornSlots; ++slot)

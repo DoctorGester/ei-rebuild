@@ -14,6 +14,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_world.h"
+#include "originals_ui.h"
 
 #include <cstdarg>
 #include <cstdint>
@@ -70,8 +71,8 @@ struct Ostream {
     Ostream* PutString(const char* text);    // 006FC31D
     Ostream* Manipulate(void* manipulator);  // 00434FE0
 };
-__declspec(naked) Ostream* Ostream::PutInt(int) EI_ORIGINAL(0x006FC14E)
-__declspec(naked) Ostream* Ostream::PutLong(unsigned long) EI_ORIGINAL(0x006FC91C)
+Ostream* Ostream::PutInt(int a0) { return static_cast<Ostream*>(OstreamPutUnsignedOriginal(this, nullptr, static_cast<unsigned>(a0))); }
+Ostream* Ostream::PutLong(unsigned long a0) { return static_cast<Ostream*>(OstreamPutSignedLongOriginal(this, nullptr, static_cast<long>(a0))); }
 Ostream* Ostream::PutChar(char c) { return static_cast<Ostream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
 Ostream* Ostream::PutString(const char* text) { return static_cast<Ostream*>(OstreamPutString(this, nullptr, text)); }
 Ostream* Ostream::Manipulate(void* manipulator) { return static_cast<Ostream*>(OstreamManipulate(this, nullptr, manipulator)); }
@@ -82,7 +83,7 @@ void* const kFlush = reinterpret_cast<void*>(0x00435000);
 struct Renderer {          // 007C7BD8
     void SetActive(int active);   // 005E5270
 };
-__declspec(naked) void Renderer::SetActive(int) EI_ORIGINAL(0x005E5270)
+void Renderer::SetActive(int a0) { CursorShowOriginal(this, nullptr, a0); }
 struct Device {            // pointer at 007AF080 (flag byte +0x20 bit 0: full screen)
     void Deactivate();     // 004EEC60
 };

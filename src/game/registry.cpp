@@ -4,6 +4,7 @@
 #include "console.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -18,7 +19,7 @@ const char* const kWrongType = Text(0x00796044);     // "CFileRegistry::FindData
 // 006FD2F0 _strnicmp (the CRT's locale-aware one).
 __declspec(naked) int __cdecl StrNICmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006FD2F0)
 // 006FD4DE CString::CString(LPCTSTR, int) on raw storage.
-__declspec(naked) void __fastcall ConstructString(void*, void*, const char*, int) EI_ORIGINAL(0x006FD4DE)
+void __fastcall ConstructString(void* a0, void*, const char* a2, int a3) { CStringConstructCountOriginal(a0, nullptr, a2, a3); }
 // _ftol (006E853C) of a float: FLD, then the game's _ftol (truncates).
 __declspec(naked) int __fastcall FloatToInt(const float*) {
     __asm {

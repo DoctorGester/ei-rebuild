@@ -489,7 +489,7 @@ __declspec(naked) int __fastcall DiplomacyMaskOf(void*, void*, int) EI_ORIGINAL(
 void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { UnitSetHostileMaskOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 __declspec(naked) CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
-__declspec(naked) std::uint8_t** __fastcall UnitPrototypeAt(void*, void*, const void*) EI_ORIGINAL(0x005335E0)
+std::uint8_t** __fastcall UnitPrototypeAt(void* a0, void*, const void* a2) { return (std::uint8_t**)PrototypeMapAtOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
 __declspec(naked) void __fastcall ObjectSetup7(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052A2C0)
 void __fastcall MarkNewObject(CEngineObject* a0, void*) { ObjectMarkNewOriginal((void*)a0); }

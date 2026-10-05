@@ -93,3 +93,6 @@ __declspec(naked) inline void __fastcall TextDecodeOriginal(void* /*decoder*/, v
 // added when the name is missing). ECX is the map.
 __declspec(naked) inline void** __fastcall QuickItemMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
     EI_ORIGINAL(0x004ABBD0)
+
+// C3l. 00581790: NamedFloatTable constructor (plain RET, returns `this`).
+__declspec(naked) inline void* __fastcall NamedTableConstructOriginal(void* /*table*/) EI_ORIGINAL(0x00581790)

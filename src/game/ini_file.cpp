@@ -196,7 +196,7 @@ __declspec(naked) void MfcArrayOps::DestroyDWordArray() EI_ORIGINAL(0x006FF966)
 __declspec(naked) void MfcArrayOps::SetSizeDWord(int, int) EI_ORIGINAL(0x006FF993)
 void MfcArrayOps::SetSizeByte(int n, int g) { ByteArraySetSizeOriginal(this, nullptr, n, g); }
 void MfcArrayOps::SetSizeWord(int n, int g) { WordArraySetSizeOriginal(this, nullptr, n, g); }
-__declspec(naked) void MfcArrayOps::SetSizeUInt(int, int) EI_ORIGINAL(0x006FF29A)
+void MfcArrayOps::SetSizeUInt(int a0, int a1) { UIntArraySetSizeOriginal(this, nullptr, a0, a1); }
 
 // --- Construction ----------------------------------------------------------------------------------
 

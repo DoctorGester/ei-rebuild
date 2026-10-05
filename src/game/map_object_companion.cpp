@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_effects.h"
 
 #include <cstring>
 
@@ -57,8 +58,7 @@ __declspec(naked) BOOL __fastcall SoundIsQueued(void* /*sounds*/, void*, int /*h
 __declspec(naked) void __fastcall MoveSound(void* /*sounds*/, void*, int /*handle*/, const float* /*position*/)
     EI_ORIGINAL(0x006BA400)
 // 006CA830. Points a light along `direction`.
-__declspec(naked) void __fastcall AimLight(void* /*lights*/, void*, CEngineObject* /*light*/, const float* /*direction*/)
-    EI_ORIGINAL(0x006CA830)
+void __fastcall AimLight(void* a0, void*, CEngineObject* a2, const float* a3) { LightMoveOriginal(a0, nullptr, a2, a3); }
 
 // A looping effect sound of the client companion (+0x40, 0x14 bytes; built by 005112A0).
 struct EffectSound {

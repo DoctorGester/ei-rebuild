@@ -112,7 +112,7 @@ __declspec(naked) int __fastcall StateSendWind(void*, void*, Vector3 /*direction
     EI_ORIGINAL(0x0066ECD0)
 __declspec(naked) void __fastcall StateSendCountdowns(void*, void*, void* /*countdowns*/) EI_ORIGINAL(0x0066F240)
 __declspec(naked) void __fastcall StateObjectsKept(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DAD0)
-__declspec(naked) void __fastcall StateObjectsAdded(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066D7F0)
+void __fastcall StateObjectsAdded(void* a0, void*, StaticPtrArray* a2) { StateObjectsAddedOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateObjectsRemoved(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DBA0)
 __declspec(naked) void __fastcall StateTimedKept(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DF40)
 __declspec(naked) void __fastcall StateTimedAdded(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DDE0)

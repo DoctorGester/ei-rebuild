@@ -635,7 +635,7 @@ EI_REPLACE_METHOD(0x00526C70, UnitStats::WeaponSkillBonus);
 
 namespace {
 // 0051FE80. Skill database: the index of the level record named `name` by _mbsicmp, or -1.
-__declspec(naked) int __fastcall SkillRecordIndexByName(const void*, void*, const char*) EI_ORIGINAL(0x0051FE80)
+int __fastcall SkillRecordIndexByName(const void* a0, void*, const char* a2) { return SkillIndexOfOriginal(a0, nullptr, a2); }
 
 // A CString field of a record: is it set, and not "none"?
 bool NamesRequirement(const char* record, int offset) {

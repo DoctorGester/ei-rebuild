@@ -61,8 +61,8 @@ __declspec(naked) void __fastcall IniConstruct(void*) EI_ORIGINAL(0x00695B80)
 __declspec(naked) int __fastcall IniSetPath(void*, void*, const char*) EI_ORIGINAL(0x00695BF0)
 __declspec(naked) void __fastcall IniDestruct(void*) EI_ORIGINAL(0x00695BE0)
 __declspec(naked) int __fastcall IniGetList(void*, void*, const char* /*section*/, const char* /*key*/, void* /*list*/, char) EI_ORIGINAL(0x00696090)
-__declspec(naked) mfc::CString* __stdcall ConcatText(mfc::CString* /*out*/, const mfc::CString*, const char*) EI_ORIGINAL(0x00700C05)
-__declspec(naked) mfc::CString* __stdcall ConcatString(mfc::CString* /*out*/, const mfc::CString*, const mfc::CString*) EI_ORIGINAL(0x00700B9F)
+mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
 struct StringArray {
     void* vtable;

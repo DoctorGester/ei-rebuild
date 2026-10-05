@@ -326,8 +326,8 @@ struct Player {
     void GiveItems(void* list, int flag);                // 00665470
     void EraseQuestItem(int id);                         // 00665780
 };
-__declspec(naked) void Player::GiveItems(void*, int) EI_ORIGINAL(0x00665470)
-__declspec(naked) void Player::EraseQuestItem(int) EI_ORIGINAL(0x00665780)
+void Player::GiveItems(void* a0, int a1) { PlayerGiveItemsOriginal(this, nullptr, a0, a1); }
+void Player::EraseQuestItem(int a0) { PlayerEraseQuestItemOriginal(this, nullptr, a0); }
 
 // The player's +0x20 object: quest variables, music, zone change.
 struct PlayerState {
@@ -353,7 +353,7 @@ struct PartyRecords {
 };
 __declspec(naked) void* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
 void PartyRecords::AddUnit(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
-__declspec(naked) void PartyRecords::RemoveUnit(int) EI_ORIGINAL(0x006620F0)
+void PartyRecords::RemoveUnit(int a0) { PartyRemoveMemberOriginal(this, nullptr, static_cast<unsigned>(a0)); }
 struct PartyRecord {
     void CopyItemsFrom(void* source, void* records);     // 00660500
 };
@@ -386,7 +386,7 @@ struct Party {
     void RemoveItem(void* item, int a);                  // 00661F30
 };
 int Party::AddItem(void* item, int a, int b) { return (int)PartyAddItemOriginal(this, nullptr, item, a, b); }
-__declspec(naked) void Party::RemoveItem(void*, int) EI_ORIGINAL(0x00661F30)
+void Party::RemoveItem(void* a0, int a1) { PartyRemoveItemOriginal(this, nullptr, a0, a1); }
 
 struct Diplomacy {
     void SetRelation(int a, int b, int relation, int both);   // 004554E0

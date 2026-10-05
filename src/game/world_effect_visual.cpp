@@ -14,7 +14,7 @@ namespace {
 
 // The light manager (*007AF738), thiscall.
 __declspec(naked) void __fastcall AddLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA5D0)
-__declspec(naked) void __fastcall MoveLight(void*, void*, CEngineObject* /*light*/, const Vector3* /*delta*/) EI_ORIGINAL(0x006CA830)
+void __fastcall MoveLight(void* a0, void*, CEngineObject* a2, const Vector3* a3) { LightMoveOriginal(a0, nullptr, a2, (const float*)a3); }
 // 0068D010 (CLight): sets the colour and the position.
 __declspec(naked) void __fastcall SetLightColorPosition(CEngineObject* /*light*/, void*, const Vector3* /*color*/, const Vector3* /*position*/) EI_ORIGINAL(0x0068D010)
 // 00511B90 / 0056F1A0: reference-counted pointer assignment (ECX = the pointer).

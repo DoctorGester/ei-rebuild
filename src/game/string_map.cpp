@@ -155,8 +155,8 @@ __declspec(naked) void __fastcall InterfaceFitRect(void*, void*, RECT*) EI_ORIGI
 __declspec(naked) void __fastcall InterfaceSetPanelRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7DA0)
 __declspec(naked) void* __fastcall PanelConstruct(void*, void*, void* /*ui*/, RECT*, int) EI_ORIGINAL(0x005FCDD0)
 __declspec(naked) void __fastcall PanelDestruct(void*) EI_ORIGINAL(0x005FD120)
-__declspec(naked) void __fastcall DcFillSolidRect(void*, void*, int, int, int, int, COLORREF) EI_ORIGINAL(0x0070BB04)
-__declspec(naked) int __fastcall DcSetBkMode(void*, void*, int) EI_ORIGINAL(0x007090C2)
+void __fastcall DcFillSolidRect(void* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { DcFillSolidRectOriginal(a0, nullptr, a2, a3, a4, a5, a6); }
+int __fastcall DcSetBkMode(void* a0, void*, int a2) { return DcSetBkModeOriginal(a0, nullptr, a2); }
 void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal((void*)a0); }
 __declspec(naked) void __fastcall PanelRedrawAt(void*) EI_ORIGINAL(0x00444D00)
 __declspec(naked) void __fastcall PanelShowAt(void*, void*, std::uint8_t) EI_ORIGINAL(0x00444F50)

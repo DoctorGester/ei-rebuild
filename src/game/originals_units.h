@@ -151,3 +151,11 @@ __declspec(naked) inline void __fastcall UnitSetHostileMaskOriginal(void* /*unit
 // constructor (plain RET, returns `this`).
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
 __declspec(naked) inline void* __fastcall StepsConstructOriginal(void* /*steps*/) EI_ORIGINAL(0x00557B60)
+
+// C3l. 005335E0: the unit prototype map (a hash map keyed by a string; RET 4: key; EAX = the address of the value slot, after
+// inserting an entry for a missing name). 0051FE80: SkillDatabase::IndexOf(name) over the 0x44-byte records between +0x0C and +0x10
+// (RET 4; EAX = the index, or -1).
+__declspec(naked) inline void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
+    EI_ORIGINAL(0x005335E0)
+__declspec(naked) inline int __fastcall SkillIndexOfOriginal(const void* /*database*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x0051FE80)

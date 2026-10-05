@@ -244,7 +244,7 @@ struct CellList {
 };
 __declspec(naked) void CellList::Remove(CEngineObject* const*) EI_ORIGINAL(0x00570400)
 __declspec(naked) void CellList::PushBack(CEngineObject* const*) EI_ORIGINAL(0x0056DED0)
-__declspec(naked) void CellList::Clear() EI_ORIGINAL(0x005703C0)
+void CellList::Clear() { CountedListClearOriginal(this); }
 __declspec(naked) void CellList::Clear2() EI_ORIGINAL(0x00573660)
 
 // An MFC CList<CEngineObject*> / CList<int>: head, tail, count, free list, blocks.
@@ -264,7 +264,7 @@ struct MfcList {
     void FreeNode(MfcNode* node);                     // 00573300
     void RemoveAt(MfcNode* node);                     // 0056FDD0
 };
-__declspec(naked) MfcNode* MfcList::NewNode(MfcNode*, MfcNode*) EI_ORIGINAL(0x00573290)
+MfcNode* MfcList::NewNode(MfcNode* a0, MfcNode* a1) { return (MfcNode*)PtrListNewNode573290Original(this, nullptr, a0, a1); }
 __declspec(naked) void MfcList::FreeNode(MfcNode*) EI_ORIGINAL(0x00573300)
 __declspec(naked) void MfcList::RemoveAt(MfcNode*) EI_ORIGINAL(0x0056FDD0)
 
@@ -970,7 +970,7 @@ namespace {
 
 // MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
 // CString::operator=(const CString&) [00700AA9], operator=(LPCTSTR) [00700AF9], ~CString [00700970].
-__declspec(naked) void* __stdcall CStringConcat(void* /*out*/, const void* /*left*/, const char*) EI_ORIGINAL(0x00700C05)
+void* __stdcall CStringConcat(void* a0, const void* a1, const char* a2) { return CStringConcatTextOriginal((mfc::CString*)a0, (const mfc::CString*)a1, a2); }
 void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 inline void __fastcall CStringAssignText(void* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 // The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].

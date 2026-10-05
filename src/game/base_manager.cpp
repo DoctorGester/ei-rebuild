@@ -80,9 +80,9 @@ void __fastcall SpareCountsResizeBig(SpareCountMap* a0, void*, std::size_t a2) {
 __declspec(naked) void __fastcall SparesFreeNode(void* /*proxy*/, void*, SpareMap::Node*, int /*n*/) EI_ORIGINAL(0x00407DA0)
 __declspec(naked) void __fastcall SpareCountsFreeNode(void* /*proxy*/, void*, SpareCountMap::Node*, int /*n*/) EI_ORIGINAL(0x00408020)
 // Destroy's list<int>: constructor, end, insert, node deallocation, clear.
-__declspec(naked) IdList* __fastcall IdsConstruct(IdList*, void*, const void* /*alloc*/) EI_ORIGINAL(0x00404A70)
-__declspec(naked) IdNode** __fastcall IdsEnd(IdList*, void*, IdNode** /*out*/) EI_ORIGINAL(0x004049D0)
-__declspec(naked) IdNode** __fastcall IdsInsert(IdList*, void*, IdNode** /*out*/, IdNode* /*pos*/, const int* /*value*/) EI_ORIGINAL(0x00404A40)
+IdList* __fastcall IdsConstruct(IdList* a0, void*, const void* a2) { return (IdList*)ListConstruct404A70Original(a0, nullptr, a2); }
+IdNode** __fastcall IdsEnd(IdList* a0, void*, IdNode** a2) { return (IdNode**)ListEnd4049D0Original(a0, nullptr, (void**)a2); }
+IdNode** __fastcall IdsInsert(IdList* a0, void*, IdNode** a2, IdNode* a3, const int* a4) { return (IdNode**)ListInsert404A40Original(a0, nullptr, (void**)a2, a3, a4); }
 __declspec(naked) void __fastcall IdsFreeNode(IdList*, void*, IdNode*, int /*n*/) EI_ORIGINAL(0x00404D10)
 __declspec(naked) void __fastcall IdsClear(IdList*) EI_ORIGINAL(0x00405500)
 // The positions table: find, erase(iterator), operator[] (two copies), remove by key (returning the

@@ -67,3 +67,8 @@ __declspec(naked) inline void __fastcall SurfaceHolderReleaseOriginal(void* /*ho
 __declspec(naked) inline void __fastcall TextureEnsureLoadedOriginal(void* /*holder*/) EI_ORIGINAL(0x00500970)
 __declspec(naked) inline int __fastcall DeviceSetTextureOriginal(void* /*device*/, void*, int /*stage*/, void* /*texture*/)
     EI_ORIGINAL(0x00501AF0)
+
+// C3l. 0068EAF0: the material manager enters a key in its hash map at +0xBC (when absent) and copies the stored 0x44-byte value
+// to record +0x20 (RET 8: record, key; EAX 1, or 0 for a null record; no caller reads it).
+__declspec(naked) inline int __fastcall MaterialRegisterOriginal(void* /*manager*/, void*, void* /*record*/,
+                                                                 std::uint32_t /*key*/) EI_ORIGINAL(0x0068EAF0)

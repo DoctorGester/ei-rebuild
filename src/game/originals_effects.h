@@ -16,3 +16,8 @@ __declspec(naked) inline std::uint8_t __fastcall IsLit(void*, void*, const float
 
 // 00675CA0: an effect / world object is marked new (flags |= 2, stamp = the world stamp at 007AFFC8); plain RET.
 __declspec(naked) inline void __fastcall ObjectMarkNewOriginal(void* /*object*/) EI_ORIGINAL(0x00675CA0)
+
+// C3l. 006CA830: the light manager updates a light for a displacement (RET 8: light, delta vector or null; reads the position at
+// the light's +0x1C; EAX is not a result).
+__declspec(naked) inline void __fastcall LightMoveOriginal(void* /*lights*/, void*, CEngineObject* /*light*/,
+                                                           const float* /*delta*/) EI_ORIGINAL(0x006CA830)

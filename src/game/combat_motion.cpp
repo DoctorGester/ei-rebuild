@@ -22,6 +22,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_gameplay.h"
 
 #include <bit>
 #include <cstdint>
@@ -90,9 +91,9 @@ void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 __declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 // 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
-__declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const void* /*motionOrder*/, const float* /*point*/,
-                                                    int /*kind*/, int /*flag*/, std::uint32_t /*limitBits*/)
-    EI_ORIGINAL(0x0066D490)
+void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, std::uint32_t a7) {
+    PlayerPathMessageOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7);
+}
 // The controller's functions rewritten elsewhere, through their game addresses (combat_update.cpp,
 // combat_steps.cpp, combat_tick.cpp).
 __declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)

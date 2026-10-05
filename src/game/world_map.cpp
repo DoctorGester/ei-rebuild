@@ -151,7 +151,7 @@ namespace {
 __declspec(naked) void* __fastcall SharedObjectDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DDE0)
 __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
-__declspec(naked) void __stdcall CountedRangeRelease(void*, int) EI_ORIGINAL(0x0059C890)
+void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
 __declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 0047B670. The object map's clear (every object id hash map; nodes freed).
@@ -232,7 +232,7 @@ namespace {
 
 void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
 // 0059A100. The shared-object element's object array destructor.
-__declspec(naked) void __fastcall ObjectPtrArrayDestruct(void*, void*) EI_ORIGINAL(0x0059A100)
+void __fastcall ObjectPtrArrayDestruct(void* a0, void*) { CountedPtrArrayDestructOriginal(a0); }
 // 0055F890. CWorld's own teardown (base class).
 __declspec(naked) void __fastcall WorldBaseTeardown(CWorldServer*, void*) EI_ORIGINAL(0x0055F890)
 
@@ -294,9 +294,11 @@ namespace {
 
 constexpr std::uintptr_t kObjectListVtable = 0x0073F530;
 
-__declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectListNewNode(
-    mfc::CTypedPtrList<CEngineObject>*, void*, mfc::CTypedPtrList<CEngineObject>::Node*,
-    mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x00573290)
+mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectListNewNode(
+    mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2,
+    mfc::CTypedPtrList<CEngineObject>::Node* a3) {
+    return (mfc::CTypedPtrList<CEngineObject>::Node*)PtrListNewNode573290Original((void*)a0, nullptr, (void*)a2, (void*)a3);
+}
 __declspec(naked) void __fastcall ObjectListRemoveAll(mfc::CTypedPtrList<CEngineObject>*, void*) EI_ORIGINAL(0x00570470)
 // 00599A80 (RET 4) / 00599AE0 (RET 4). An id map's erase(key) / lookup (pointer to the value or
 // null).
@@ -306,7 +308,7 @@ __declspec(naked) void __fastcall AlignedArraySetAtGrow(void*, void*, int, CEngi
 // 0066C180. The player list creates a temporary player (returned).
 WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
-__declspec(naked) void __fastcall StateObjectsAdded(void*, void*, void* /*objects*/) EI_ORIGINAL(0x0066D7F0)
+void __fastcall StateObjectsAdded(void* a0, void*, void* a2) { StateObjectsAddedOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateSendHeader(void*, void*, void* /*stream*/) EI_ORIGINAL(0x0066D230)
 
 constexpr int kSlotObjectStatic = 29;   // object slot 29 (+0x74, AL): part of the map itself

@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -490,8 +491,7 @@ __declspec(naked) void* __fastcall BuildSpell(void*, void*, char* /*prototype*/,
 // insert 0068C560 (result, position, &value), node free 0068C640 (fastcall: node, count).
 __declspec(naked) void __fastcall ModifierListConstruct(StockList*, void*, const void*) EI_ORIGINAL(0x0069BF70)
 __declspec(naked) void __fastcall ModifierListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0068C500)
-__declspec(naked) void __fastcall ModifierListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)
-    EI_ORIGINAL(0x0068C560)
+void __fastcall ModifierListInsert(StockList* a0, void*, StockListNode** a2, StockListNode* a3, char* const* a4) { ListInsert68C560Original(a0, nullptr, (void**)a2, a3, a4); }
 __declspec(naked) void __fastcall ModifierNodesFree(StockListNode*, int) EI_ORIGINAL(0x0068C640)
 // The output list of counted spells: end 0069BE60, insert 0069C410 (result, position, &value).
 __declspec(naked) void __fastcall SpellListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069BE60)

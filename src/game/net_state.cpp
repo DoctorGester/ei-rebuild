@@ -11,6 +11,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 
 #include <cstdint>
 #include <cstring>
@@ -229,8 +230,8 @@ __declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x00531
 __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
 __declspec(naked) void __fastcall PathRead(void*, void*, DeltaField*) EI_ORIGINAL(0x005C7FC0)
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
-__declspec(naked) void __fastcall PlayerRemoveUnit(void*, void*, void*) EI_ORIGINAL(0x00665B50)
-__declspec(naked) void __fastcall PlayerAddUnit(void*, void*, void*) EI_ORIGINAL(0x00665A70)
+void __fastcall PlayerRemoveUnit(void* a0, void*, void* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
+void __fastcall PlayerAddUnit(void* a0, void*, void* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
 void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 

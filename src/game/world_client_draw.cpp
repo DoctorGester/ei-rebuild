@@ -128,7 +128,7 @@ float LandscapeDrawRadius() {
 }
 
 // DrawPass's callees.
-__declspec(naked) void __fastcall DeferredClear(void*) EI_ORIGINAL(0x005703C0)
+void __fastcall DeferredClear(void* a0) { CountedListClearOriginal(a0); }
 __declspec(naked) void __fastcall VectorClear(void*) EI_ORIGINAL(0x0056E870)
 __declspec(naked) float* __fastcall CameraPosition(void*) EI_ORIGINAL(0x0040FB20)
 __declspec(naked) void __fastcall SoundListener(void*, void*, float) EI_ORIGINAL(0x0067CEF0)
