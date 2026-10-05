@@ -102,12 +102,12 @@ void UnitController::Say(int what) {
 }
 
 void AIMode::Release() { RefObjectRelease((void*)this); }
-int AIMode::Evaluate(AIBrain* brain) { return ei::VCall<int>(this, 4, brain); }
-void AIMode::Execute(AIBrain* brain) { ei::VCall<void>(this, 5, brain); }
-void AIMode::Enter(AIBrain* brain) { ei::VCall<void>(this, 6, brain); }
-void AIMode::Leave(AIBrain* brain) { ei::VCall<void>(this, 7, brain); }
-int AIMode::GetType() { return ei::VCall<int>(this, 8); }
-void AIMode::OnObjectDeleted(CEngineObject* object) { ei::VCall<void>(this, 10, object); }
+int AIMode::Evaluate(AIBrain* brain) { return Virtuals()->Evaluate(brain); }
+void AIMode::Execute(AIBrain* brain) { Virtuals()->Execute(brain); }
+void AIMode::Enter(AIBrain* brain) { Virtuals()->Enter(brain); }
+void AIMode::Leave(AIBrain* brain) { Virtuals()->Leave(brain); }
+int AIMode::GetType() { return Virtuals()->GetType(); }
+void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDeleted(object); }
 
 void AIRef::Reset() { CountedRefResetOriginal((void*)this); }
 void AIRef::Assign(CEngineObject* a0) { CountedRefAssignOriginal((void*)this, nullptr, (void*)a0); }

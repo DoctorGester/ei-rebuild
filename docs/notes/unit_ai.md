@@ -16,6 +16,10 @@ commands). Verify: `tests/verify/verify_unit_ai.cpp`. Scenario: `tests/scenarios
 | 005D6F90-005D7F80 | actions: follow, move, attack, setters, FindStandPoint |
 | 005D8310-005DBF70 | CList/CArray template instantiations and EH funclets |
 
+- The brain's perception memory is the sub-object at +0xD0 (005CB0F0 and 005CB700.. take it as `this`): lists of counted
+  object references at +0xF4, +0x110 (visible), +0x12C, +0x148 (corpses), CArrays at +0x164 (reports) and +0x178; the alarm
+  records (CArray of 0x4C bytes) are at +0x90. Mode slot 9 (`Exclusive`): AddMode replaces a mode of another type when both
+  answer 1. The mode list holds owning pointers (RefPtr::Share on add, RefPtr::Destroy on removal).
 - Entry: the unit controller (CUnit + 0x240) embeds the brain at +0x980; its tick 00552300 calls
   `AIBrain::Think` (005D53B0). Modes are 16-bit-refcounted (+4, released through 0040A3A0).
 - The script's UM* commands (SSCCmd::Execute cases 0x24-0x31, 0xC7-0xCA) build modes and add them
@@ -50,6 +54,7 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005D37A0, 005D1DE0 | PlayerMode / FollowMode::OnObjectDeleted | ours only |
 | 005D4A90 | PlayerMode::Execute (every tick for party units) | ours only: state in 0..2, a following brain has a target |
 | 005D39E0-005D3D90 | PlayerMode::CommandWalk, GoTo, Attack, Use, Cast, CastAt | ours only: state / action / target / run flag |
+| 005D5F60, 005D6140, 005D4DF0, 005D4E80, 005D4F70, 005CB0F0 | AIBrain::AddMode, RemoveModesOfType, ClearModes, Reset, Init, ResetMemory (`unit_ai_brain.cpp`) | ours only: list walk agrees with count and tail, one mode of the added type, the removed type gone, cleared fields; scenarios `unit_ai` / `script_exec` (UMClear, UM*, UMAg), every spawn (Init), a death (Reset, `combat_more`) |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
 
 None is in `docs/rebirth-patched-functions.txt`; the only patched callee is FatalError, called
@@ -70,7 +75,7 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 - Large float / path code: 005D0030 target choice (2.6 KB), 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D4170 Player combat, 005D6F90 UpdateFollow, 005D5B40 PlanLooks, 005D7F80 FindStandPoint, 005D6630 /
   005D6D20 alarm assembly; next candidates 005D5B40 and 005D7F80 with an offline harness. 005D4860 StaysWithParty walks the player's unit hash map through iterator helpers (00455830 / 00455890 / 004558B0) with an
   unclear frame.
-- Allocation-heavy bookkeeping, rare: 005D5F60 AddMode, 005D4DF0 ClearModes, 005D4E80 / 005D4F70 reset / init, 005D1930 / 005D1A40 Patrol Load / Save (Ghidra garbles the frames), 005D0F90 / 005D2880 clones,
+- Allocation-heavy bookkeeping, rare: 005D1930 / 005D1A40 Patrol Load / Save (Ghidra garbles the frames), 005D0F90 / 005D2880 clones,
   destructors; 005D1E60 Follow Load, 005D2770 Aggression Load, 005D4CD0 Player Load (a ScriptGroup for versions 0x46..0x5D) run only on game load; 005D7F40 (seen object is an ally) leaves the caller's EAX upper bytes in the
   result; 005D1210 / 005D2920 (GetType of Patrol / Fear) and other constant slots are trivial.
 

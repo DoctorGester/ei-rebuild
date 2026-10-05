@@ -10,6 +10,7 @@
 // count at +4, released through 0040A3A0) kept in the brain's mode list; the brain holds a counted
 // pointer to the mode in charge.
 
+#include "core_refcount.h"
 #include "engine_object.h"
 #include "maths.h"
 #include "unit.h"
@@ -133,21 +134,31 @@ enum AIModeType {
     kModeFollow = 10,
 };
 
-// Base of all modes (vtables 0073D15C (abstract), 0073D22C (abstract)). Virtual slots, all
-// __thiscall:
-//   0 scalar deleting destructor, 1 (0x412580), 2 destructor body, 3 Clone,
-//   4 int Evaluate(AIBrain*): the priority the mode claims this tick,
-//   5 void Execute(AIBrain*): runs while the mode is in charge,
-//   6 void Enter(AIBrain*), 7 void Leave(AIBrain*), 8 int GetType(),
-//   9 bool (1 for most modes), 10 void OnObjectDeleted(CEngineObject*),
-//   11 void Load(AIStream*), 12 void Save(AIStream*).
-// The structs below have no C++ virtuals; the slots are called through VCall and our versions are
-// registered at the original addresses.
+// The modes' vtable as virtual functions. A mode is a reference-counted object (core_refcount.h:
+// slots 0-3 are CRefObject's, slot 2 the destructor body, 3 Clone), then:
+class AIModeVirtuals : public CRefObject {
+public:
+    virtual int Evaluate(AIBrain* brain) = 0;           // 4: the priority the mode claims this tick
+    virtual void Execute(AIBrain* brain) = 0;           // 5: runs while the mode is in charge
+    virtual void Enter(AIBrain* brain) = 0;             // 6
+    virtual void Leave(AIBrain* brain) = 0;             // 7
+    virtual int GetType() = 0;                          // 8
+    // 9: 1 for most modes; AddMode replaces a mode of another type when both answer 1.
+    virtual bool Exclusive() = 0;
+    virtual void OnObjectDeleted(CEngineObject* object) = 0;    // 10
+    virtual void Load(AIStream* stream) = 0;            // 11
+    virtual void Save(AIStream* stream) = 0;            // 12
+};
+
+// Base of all modes (vtables 0073D15C (abstract), 0073D22C (abstract)); the slots are listed in
+// AIModeVirtuals. The structs below have no C++ virtuals (their constructors install the game's
+// vtables); our slot versions are registered at the original addresses.
 struct AIMode {
     void* vtable;
     std::int16_t refs;              // +0x04 (INC word / 0040A3A0)
     std::int16_t unknown_06;
 
+    AIModeVirtuals* Virtuals() { return reinterpret_cast<AIModeVirtuals*>(this); }
     int Evaluate(AIBrain* brain);   // through the vtable
     void Execute(AIBrain* brain);
     void Enter(AIBrain* brain);
@@ -423,6 +434,26 @@ struct AIBrain {
     // from the perception memory.
     void OnObjectDeleted(CEngineObject* object);
 
+    // Mode list and state (unit_ai_brain.cpp).
+    // 005D5F60. Adds `mode` (a counted reference, RefPtr::Share) at the end of the list after
+    // removing the first mode of the same type, or the first exclusive one when `mode` is exclusive
+    // (the mode in charge loses its reference when it is the one removed).
+    void AddMode(AIMode* mode);
+    // 005D6140. Removes every mode of `type` (the mode in charge is left alone).
+    void RemoveModesOfType(int type);
+    // 005D4DF0. Empties the mode list, drops the mode in charge, resets the near point (+0x44 /
+    // +0x48) and the decay.
+    void ClearModes();
+    // 005D4E80. ClearModes, then no action, memory reset, action point and looks cleared, target
+    // and seen object released (the controller's death).
+    void Reset();
+    // 005D4F70. The state of a new controller's brain: Reset's work plus owner, alert and alarm
+    // state, alarm records, positions.
+    void Init();
+    // 005CB0F0 (thiscall on +0xD0). Empties the perception memory: its four object lists, the noticed
+    // point, the report arrays.
+    void ResetMemory();
+
     // 005D7520. Action 2 (move) after arrival: run the queued looks, each turning then waiting.
     void UpdateMove();
     // 005D76A0. Action 3 (attack): give up when the target is dead, no longer an enemy or the
@@ -483,28 +514,32 @@ struct AIBrain {
     std::int8_t alarm;              // +0x035 alarm kind raised when the countdown ends
     std::int8_t unknown_36;
     std::uint8_t unknown_37;
-    float unknown_38;               // +0x038
+    float unknown_38;               // +0x038 (10.0 from 0073FED8 at Init)
     int alertMode;                  // +0x03C
     int alarmCountdown;             // +0x040
-    float unknown_44;
+    float unknown_44;               // +0x044 near point (Guard); 100000 when cleared
     float unknown_48;
     float decay;                    // +0x04C alertness decay factor
     Vector3 previousPosition;       // +0x050
     Vector3 position;               // +0x05C
-    std::uint8_t unknown_068[8];
-    mfc::CTypedPtrList<AIMode> modes;   // +0x070
+    int unknown_068;
+    int unknown_06C;
+    mfc::CTypedPtrList<AIMode> modes;   // +0x070 (elements are counted references)
     AIMode* current;                // +0x08C
-    std::uint8_t unknown_090[0xD0 - 0x90];
+    std::uint8_t alarmRecords[0x14];    // +0x090 CArray of 0x4C-byte alarm records (data at +0x94)
+    std::uint8_t attention[0xD0 - 0xA4]; // +0x0A4 (005CF220, 005CFE40, 005D0030)
     std::uint8_t memory[0x10];      // +0x0D0 perception memory (005CB700 ...); continues below
     float noticedX;                 // +0x0E0
     float noticedY;                 // +0x0E4
     int noticedLevel;               // +0x0E8
     int noticedKind;                // +0x0EC
-    std::uint8_t unknown_0F0[0x110 - 0xF0];
+    int unknown_0F0;
+    mfc::CTypedPtrList<CEngineObject> unknown_0F4;  // +0x0F4 (elements are counted references)
     mfc::CTypedPtrList<CEngineObject> visible;  // +0x110 units in sight
-    std::uint8_t unknown_12C[0x148 - 0x12C];
+    mfc::CTypedPtrList<CEngineObject> unknown_12C;  // +0x12C (elements are counted references)
     mfc::CTypedPtrList<CEngineObject> corpses;  // +0x148 (elements are counted references)
-    std::uint8_t reports[0x18C - 0x164];        // +0x164
+    std::uint8_t reports[0x178 - 0x164];        // +0x164 CArray (005CD670 SetSize)
+    std::uint8_t unknown_178[0x18C - 0x178];    // +0x178 CArray (005CDD60 SetSize)
     std::uint8_t seesEnemy;         // +0x18C
     std::uint8_t unknown_18D[3];
 };
@@ -516,7 +551,11 @@ static_assert(offsetof(AIBrain, previousPosition) == 0x50);
 static_assert(offsetof(AIBrain, position) == 0x5C);
 static_assert(offsetof(AIBrain, modes) == 0x70);
 static_assert(offsetof(AIBrain, current) == 0x8C);
+static_assert(offsetof(AIBrain, alarmRecords) == 0x90);
 static_assert(offsetof(AIBrain, memory) == 0xD0);
+static_assert(offsetof(AIBrain, unknown_0F4) == 0xF4);
+static_assert(offsetof(AIBrain, unknown_12C) == 0x12C);
+static_assert(offsetof(AIBrain, unknown_178) == 0x178);
 static_assert(offsetof(AIBrain, noticedX) == 0xE0);
 static_assert(offsetof(AIBrain, visible) == 0x110);
 static_assert(offsetof(AIBrain, corpses) == 0x148);
