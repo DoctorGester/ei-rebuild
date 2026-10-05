@@ -398,7 +398,11 @@ static_assert(sizeof(TitleLine) == 0x10);
 // --- Main menu ----------------------------------------------------------------------------------
 //
 // The main menu window (input vtable slot 2 at 0074065C).
-class CMainMenu {
+// The main menu (CreateScreen id 2, vtables 00740688 / 00740654, 0x17C bytes; ui_main_menu.cpp, the
+// click in ui_layouts.cpp). Regions 0-5 from the menus.reg "MainMenu" rectangles (007C8048..); the
+// stones are the object manager's object 2; the world behind it runs the "MainMenu.cam" camera path
+// with rain at night.
+class CMainMenu : public CUiContainer {
 public:
     // 00632D70 (input slot 2; ui_layouts.cpp). By region: 0 the difficulty question (a message
     // box, vtables 0074225C / 00742228), 1 load (the save/load window), 2 the exit movie and quit,
@@ -406,9 +410,46 @@ public:
     // "reserved_04", the server flag, the hero screen); each window is built inline as the
     // original does. Then the container's handler.
     void OnLButtonDown(int buttons, int x, int y);
+    // 006326B0 (slot 25). The interface's saved state cleared (005F51F0), the flow's party step 0,
+    // an inert extra input side (vtable 00741154), the full-screen rectangle, the version line, the
+    // six regions; the default music, the map edge fade kept (+0x178) and set to 6, rain by a coin
+    // toss (+0x16C), daylight between 7 and 21 (+0x16D), the rain started before 7; the camera path
+    // "MainMenu.cam" and the menu music.
+    void Create();
+    // 006335E0. A surface (100, 480)-(780, 600) with the "version_name" text, added to the window.
+    void AddVersionLine();
+    // 00632B10 (slot 24, every frame). The children's update; with rain the weather turns on at 0
+    // o'clock and off at 7 (the truncated hour changing); at night before 6 with rain and the
+    // option 007AF064 bit 0, every 100 ms a 1 in 41 chance of a lightning bolt at random; the hour
+    // kept in +0x170.
+    void Update();
+    // 00632910 (slot 26). The map edge fade put back (+0x178), then 00578920(1) and 00578940.
+    void Close();
+    // 00632940 (slot 27, RET 4). A message box's answer (the flow's party step 0 and the server
+    // flag cleared first): 0x10001 (the quit box's yes) the exit movie and quit, 0x20001 the intro
+    // movie and the flow's state 3, 0xCCCCCCCC (the titles closed) the version line again.
+    void OnMessageResult(int result);
+    // 00633400 (input slot 4, RET 0xC). Hovering a region plays its stone's animation (regions 0-5:
+    // 1, 3, 5, 7, 11, 9; off them the rest pose) with the stone sound, once per region; then the
+    // container's handler.
+    void OnMouseMove(int buttons, int x, int y);
+    // 00633540 (input slot 9, RET 0xC). The container's handler, then Esc asks to quit (a message
+    // box "quit" / "quit_msg", flags 0x10000).
+    void OnKeyDown(int key, int repeat, int flags);
 
-    CUiWindow window;
+    int hovered_;                    // +0x164 the region under the mouse (-1 none)
+    std::uint8_t unknown_168[4];
+    bool rain_;                      // +0x16C
+    bool daylight_;                  // +0x16D the hour was between 7 and 21 when the menu opened
+    std::uint8_t unknown_16E[2];
+    float hour_;                     // +0x170 the time of day at the last update
+    std::uint8_t unknown_174[4];
+    float savedEdgeFade_;            // +0x178 the map edge fade before the menu
 };
+static_assert(offsetof(CMainMenu, hovered_) == 0x164);
+static_assert(offsetof(CMainMenu, rain_) == 0x16C);
+static_assert(offsetof(CMainMenu, hour_) == 0x170);
+static_assert(sizeof(CMainMenu) == 0x17C);
 
 // --- Exchange window ------------------------------------------------------------------------
 //

@@ -386,8 +386,8 @@ EI_VERIFY(0x0062AE90, EscLButtonDownVerify, 0, s_unused);
 // Region 2 quits (no scenario clicks it).
 static void __fastcall MainMenuLButtonDownVerify(void* input, void*, int buttons, int x, int y) {
     auto* self = WindowFromInput<CMainMenu>(input);
-    CInterface3D* ui = self->window.interface_;
-    int region = self->window.RegionAt(x, y);
+    CInterface3D* ui = self->interface_;
+    int region = self->RegionAt(x, y);
     CUiWindow* top = ui->GetActiveWindow();
     self->CMainMenu::OnLButtonDown(buttons, x, y);
     CUiWindow* now = ui->GetActiveWindow();

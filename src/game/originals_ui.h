@@ -9,6 +9,7 @@
 #include <cstdint>
 
 class CInterface3D;
+namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
 struct tagRECT;
@@ -135,3 +136,36 @@ __declspec(naked) inline void __fastcall TooltipSetTextOriginal(struct CUiToolti
 // address so the wrapper runs): the console's key release (RET 0xC).
 __declspec(naked) inline void __fastcall ConsoleOnCharOriginal(void* /*console*/, void*, int, int, int) EI_ORIGINAL(0x005E44A0)
 __declspec(naked) inline void __fastcall ConsoleOnKeyUpOriginal(void* /*console*/, void*, int, int, int) EI_ORIGINAL(0x005E47E0)
+
+// A-I4. 005F7350 (rewritten as CInterface3D::PushWindow; through its address so the wrapper runs): opens `window` on top
+// (thiscall, RET 0xC; no result). 005F51F0 (rewritten as CInterface3D::ResetSavedState): clears the saved state
+// (ECX, plain RET). 00600CC0 (rewritten as CUiContainer::AddInput): appends an extra input side (RET 4).
+__declspec(naked) inline void __fastcall InterfacePushWindowOriginal(CInterface3D*, void*, void* /*window*/, int, int)
+    EI_ORIGINAL(0x005F7350)
+__declspec(naked) inline void __fastcall InterfaceResetSavedStateOriginal(CInterface3D*) EI_ORIGINAL(0x005F51F0)
+__declspec(naked) inline void __fastcall ContainerAddInputOriginal(void* /*container*/, void*, void* /*input*/)
+    EI_ORIGINAL(0x00600CC0)
+// 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).
+__declspec(naked) inline void __fastcall RegionSetRectFromOriginal(class CUiRegion*, void*, int /*left*/, int /*top*/,
+                                                                   int /*right*/, int /*bottom*/) EI_ORIGINAL(0x0062AC90)
+// 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
+__declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/) EI_ORIGINAL(0x005FE2F0)
+// The client glue objects (007AFEA4 / 007AFEA5 / 007AFEA6, thiscall; the object is not read): 00578DC0 the game's
+// folder (a CString*); 00578950 marks the interface changed (the window list +0x94 flag 8); 005786A0 the weather
+// (kind 0 clear / 1 rain, strength; RET 8); 005786E0 the world's time of day, unrounded in ST0; 00578960 (RET 4) asks
+// the sound manager for a music stream (null: the default 0079BECC); 00578880 (RET 4) plays a camera path file.
+__declspec(naked) inline const mfc::CString* __fastcall GameDirectoryOriginal(void*) EI_ORIGINAL(0x00578DC0)
+__declspec(naked) inline void __fastcall GameMarkInterfaceChangedOriginal(void*) EI_ORIGINAL(0x00578950)
+__declspec(naked) inline void __fastcall GameSetWeatherOriginal(void*, void*, int /*kind*/, float /*strength*/)
+    EI_ORIGINAL(0x005786A0)
+__declspec(naked) inline double __fastcall GameTimeOfDayOriginal(void*) EI_ORIGINAL(0x005786E0)
+__declspec(naked) inline void __fastcall GamePlayMusicOriginal(void*, void*, const char* /*stream*/) EI_ORIGINAL(0x00578960)
+__declspec(naked) inline void __fastcall GamePlayCameraPathOriginal(void*, void*, const char* /*file*/) EI_ORIGINAL(0x00578880)
+// 006B51F0 (rewritten as CMusicSystem::PlayMainMenu): the music system [007AF760] plays the main menu's music.
+__declspec(naked) inline void __fastcall MusicPlayMainMenuOriginal(void* /*music*/) EI_ORIGINAL(0x006B51F0)
+// 005187B0 (thiscall on a figure, RET 8): plays `animation` (`restart` 1: from the start). 00512B20 (thiscall on the object
+// manager 007AF5F8, RET 8): its object of `kind` named `name` (an animation for kind 0x80590000, the rest pose), or null.
+__declspec(naked) inline void __fastcall FigurePlayAnimationOriginal(void* /*figure*/, void*, void* /*animation*/,
+                                                                     int /*restart*/) EI_ORIGINAL(0x005187B0)
+__declspec(naked) inline void* __fastcall ManagerFindNamedOriginal(void* /*manager*/, void*, const mfc::CString* /*name*/,
+                                                                   std::uint32_t /*kind*/) EI_ORIGINAL(0x00512B20)

@@ -22,6 +22,11 @@ wheel 10 10 120
 wait 300
 key x
 wait 500
+# Esc on the menu asks to quit (00633540); Esc on the box answers 0x10002 (00632940).
+key esc
+wait 1000
+key esc
+wait 1000
 
 # The options window over it, then cancelled (region 1).
 clickregion 3

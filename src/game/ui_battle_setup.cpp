@@ -79,7 +79,7 @@ RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 struct ContainerInputs {
     void AddInput(void* input);   // 00600CC0
 };
-__declspec(naked) void ContainerInputs::AddInput(void*) EI_ORIGINAL(0x00600CC0)
+void ContainerInputs::AddInput(void* input) { ContainerAddInputOriginal(this, nullptr, input); }
 
 // The game's save stream (global object at 007AFDF8, a CMemoryStream; version at 007AFE00, a
 // game being loaded at 007AFE1C).
@@ -108,7 +108,7 @@ struct GameObjects {
 };
 void GameObjects::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
 __declspec(naked) void GameObjects::ResetView(int, int) EI_ORIGINAL(0x005786A0)
-__declspec(naked) void GameObjects::MarkInterfaceChanged() EI_ORIGINAL(0x00578950)
+void GameObjects::MarkInterfaceChanged() { GameMarkInterfaceChangedOriginal(this); }
 GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObjects*>(address); }
 
 // The party array of the battle screen (+0x168).

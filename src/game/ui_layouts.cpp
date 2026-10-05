@@ -406,7 +406,7 @@ struct MenuGlue {
     void BeforeTitles(int value);      // 00578920
     void BeforeTitles2();              // 00578940
 };
-__declspec(naked) const mfc::CString* MenuGlue::Directory() EI_ORIGINAL(0x00578DC0)
+const mfc::CString* MenuGlue::Directory() { return GameDirectoryOriginal(this); }
 void* MenuGlue::TextTable() { return GameFlowOriginal(); }
 void MenuGlue::SetServer(int f) { SetServerFlagOriginal(f); }
 void MenuGlue::BeforeTitles(int a0) { MenuSetOriginal(a0); }
@@ -431,9 +431,9 @@ std::uint32_t EmptyStringData() { return *reinterpret_cast<const std::uint32_t*>
 } // namespace
 
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
-    CInterface3D* ui = window.interface_;
+    CInterface3D* ui = interface_;
     const char* okSound = GameText(0x00793FF0);   // "buttons\menu\ok.wav"
-    switch (window.RegionAt(x, y)) {
+    switch (RegionAt(x, y)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
         ui->PlaySound(okSound, 0);
@@ -479,7 +479,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         Glue(0x007AFEA5)->BeforeTitles(0);
         Glue(0x007AFEA5)->BeforeTitles2();
         ui->PlaySound(okSound, 0);
-        window.ClearSurfaces();
+        ClearSurfaces();
         void* w = gamecrt::operator_new(0x1FC);
         if (w) {
             ConstructContainerAt(w, nullptr, ui);
@@ -523,7 +523,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     default:
         break;
     }
-    UiContainerMouseDown(window.InputSide(), nullptr, buttons, x, y);
+    UiContainerMouseDown(InputSide(), nullptr, buttons, x, y);
 }
 
 namespace {

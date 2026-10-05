@@ -8,15 +8,18 @@
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_ui.h"
 
 namespace {
 
 // 005187B0 (thiscall on the object, RET 8): plays `animation` (with `restart` 1 from here).
-__declspec(naked) void __fastcall PlayAnimation(CObject3D*, void*, FigureAnimation* /*animation*/, int /*restart*/)
-    EI_ORIGINAL(0x005187B0)
+void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int restart) {
+    FigurePlayAnimationOriginal(object, nullptr, animation, restart);
+}
 // 00512B20 (thiscall on the object manager 007AF5F8, RET 8): the object of `kind` named `name`.
-__declspec(naked) FigureAnimation* __fastcall FindNamed(void* /*manager*/, void*, const mfc::CString* /*name*/,
-                                                        std::uint32_t /*kind*/) EI_ORIGINAL(0x00512B20)
+FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
+    return static_cast<FigureAnimation*>(ManagerFindNamedOriginal(manager, nullptr, name, kind));
+}
 void* ObjectManager() { return *reinterpret_cast<void* const*>(0x007AF5F8); }
 constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
