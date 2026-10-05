@@ -73,6 +73,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `oldterrain`, `oldobjects`, `oldinterface` (`off|on`) switch parts of the old draw
   (`docs/notes/renderer.md`, scenario `render_scene`).
 
+A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
+before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the
+game sees those files under its `saves\` (e.g. `magic_traps.txt` and `tools/make_trap_mob.py`).
+
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
 code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to the DLL does the same
