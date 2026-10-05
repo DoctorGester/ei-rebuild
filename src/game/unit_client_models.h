@@ -130,6 +130,18 @@ public:
     // the step sounds (00534B60); the speech queue (+0x9C); for +0x255 == -2 with animation
     // state +0x50 below 3, 00535480(0). Returns 1.
     int UpdateClient();
+    // 005344E0. Virtual slot 13 (figures loaded): the drawn parts take the fade-in as alpha.
+    // Returns 1.
+    int FiguresLoaded();
+    // 005344A0. Virtual slot 43: the fade-in starts again from 0 (the drawn parts take it). Returns
+    // what the original leaves in EAX (0, the walk's end).
+    int RestartFadeIn();
+    // 00539160. Virtual slot 24: the level from the packed experience (UnitParams +0x04, CUnit +0x334):
+    // ln(experience / 007C5488) / ln(007C548C) stored as a float and rounded to nearest.
+    int Level();
+    // 00537360. Virtual slot 31 (statistics changed): when the wounds texture is needed (005370F0)
+    // the client half shows "mo<unit id>w" (0051C3D0), else none (0051C920). Returns 1.
+    int RefreshWounds();
     // 00537CB0. Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80;
     // its part names from 006A0FF0, the parts found by FindPart) unless +0x74 already says so;
     // +0x74 and +0x75 take the new state.

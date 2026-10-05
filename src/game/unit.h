@@ -437,6 +437,8 @@ public:
     void DestroyUnit();
 
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
+    // The parameter block at +0x330 (the fields below repeat parts of it).
+    UnitParams* Params() { return reinterpret_cast<UnitParams*>(unknown_330); }
     // The unit as the 3D object it starts with (map_object_figures.h; CUnit repeats its fields).
     CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
     UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }

@@ -12,8 +12,11 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "originals_engine.h"
 #include "originals_world.h"
+
+#include <cmath>
 
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
@@ -145,3 +148,59 @@ int CUnitClientSpecific::UpdateClient() {
     return 1;
 }
 EI_REPLACE_METHOD(0x005341A0, CUnitClientSpecific::UpdateClient);
+
+// --- Fade-in, level and wounds slots ----------------------------------------------------------
+
+namespace {
+// 007C5488 / 007C548C: the experience of level 0 and the factor between levels.
+float LevelBase() { return *reinterpret_cast<const float*>(0x007C5488); }
+float LevelFactor() { return *reinterpret_cast<const float*>(0x007C548C); }
+
+// Not rewritten (forwarders): 005370F0 (whether the unit's wounds need a texture, composing it;
+// plain RET), the client half's 0051C3D0 (shows wounds texture `name`, RET 4) and 0051C920 (none).
+__declspec(naked) int __fastcall NeedsWoundsTexture(CUnitClientSpecific*) EI_ORIGINAL(0x005370F0)
+__declspec(naked) void __fastcall ShowWounds(CObject3DClientSpecific*, void*, const char*) EI_ORIGINAL(0x0051C3D0)
+__declspec(naked) void __fastcall HideWounds(CObject3DClientSpecific*) EI_ORIGINAL(0x0051C920)
+
+CObject3DClientSpecific* ClientHalf(CUnit* unit) {
+    return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+}
+
+// The drawn parts take `alpha`.
+void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
+    for (FigurePart* part = CallFirstDrawnPart(half); part; part = CallNextDrawnPart(half)) part->alpha = alpha;
+}
+} // namespace
+
+int CUnitClientSpecific::FiguresLoaded() {
+    SetPartsAlpha(ClientHalf(unit), fadeIn);
+    return 1;
+}
+EI_REPLACE_METHOD(0x005344E0, CUnitClientSpecific::FiguresLoaded);
+
+int CUnitClientSpecific::RestartFadeIn() {
+    fadeIn = 0.0f;
+    SetPartsAlpha(ClientHalf(unit), fadeIn);
+    return 0;
+}
+EI_REPLACE_METHOD(0x005344A0, CUnitClientSpecific::RestartFadeIn);
+
+int CUnitClientSpecific::Level() {
+    double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
+    double ratio = std::log(experience / LevelBase()) / std::log(static_cast<double>(LevelFactor()));
+    volatile float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
+    return static_cast<int>(std::lrint(level));
+}
+EI_REPLACE_METHOD(0x00539160, CUnitClientSpecific::Level);
+
+int CUnitClientSpecific::RefreshWounds() {
+    if (NeedsWoundsTexture(this)) {
+        char name[0x80];
+        gamecrt::sprintf(name, "mo%dw", unit->id_);
+        ShowWounds(ClientHalf(unit), nullptr, name);
+    } else {
+        HideWounds(ClientHalf(unit));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00537360, CUnitClientSpecific::RefreshWounds);
