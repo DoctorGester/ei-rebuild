@@ -1801,3 +1801,90 @@ Unchanged from the earlier passes: the briefing screen (00604C50, 00604130, 0060
 network screens (0062C250, 0062C9C0, 00618A10, 00616AC0, 006159E0), 006369D0 (quest notice),
 00611220 (camp deal button), 00620A50 (strip scroll animation, float-heavy). Next by size and
 reachable: 00617A50 (993, the hero screen's next), 006312C0 (989), 00621B50 (972), 00638B30 (946).
+
+## Fourteenth pass (ticket I5)
+
+Files: `src/game/ui_item_strip.cpp` (the forwarding strip's draw), `src/game/ui_battle_update.cpp`
+(the battle screen's button release and quest notice); wrappers `tests/verify/verify_ui_item_strip.cpp`,
+`verify_ui_battle_update.cpp`; new scenario `tests/scenarios/ui_quest_notice.txt`. Shared headers
+(additive): `ui_screens.h` (CUiItemStrip::Draw), `ui_camp.h` (CBattleScreenSetup::OnLButtonUp,
+OnQuestVariable).
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 00621B50 | 972 | `CUiItemStrip::Draw` (slot 20 of the forwarding strip 0074197C, RET 4) | ours only: result 1, the end faces' +0xCC dimmed exactly when the strip can scroll that way, the strip's fields unchanged | ui_camp, ui_describe, frames_basic, render_present (the camp's three strips, every frame) |
+| 00638B30 | 946 | `CBattleScreenSetup::OnLButtonUp` (input slot 3, RET 0xC) | ours only: nothing with a portrait pick pending, otherwise a press on the view consumed | ui_hud (panel clicks: the container's handler), world_client, ui_describe (view clicks: SelectUnit) |
+| 006369D0 | 1344 | `CBattleScreenSetup::OnQuestVariable` (slot 33, RET 8) | ours only: the top panel's text grew by a line ending in 00794318 (or, a skipped sub-objective, not at all), the clock pulses, the sound request did not drop | ui_quest_notice (new) |
+
+3 functions, about 3.2 KB. None is Rebirth-patched; the Rebirth-patched callees 005E6FA0 (sprite
+place), 005FDE20 (surface text) and 00638EF0 (SelectUnit, rewritten) are called through their
+original addresses.
+
+### Item strip draw (00621B50)
+
+- `first` = the current tab's position truncated (_ftol), `frac` = position - first (a float local).
+  Sprite 0 (left end) +0xCC = 0x3E480000 when position > 0, else 0; sprite 1 when list size - 7 >
+  position (NaN: 0 for both). Sprite 9 (the background cells) placed at (50 - frac * 100, top,
+  2 scale), sprites 10..17 (the cell frames) at ((i - frac + 1) * 100, top + 50, scale); then the
+  window's base draw (005FEB90).
+- Cells i = 0..7 show list item first + i when in range: 005ECA10 on the owner with {item, x as
+  above, top + 50, scale * 1.5, 100, action mode +0x148}.
+- Surface 0: GetDC, clear, each shown item whose +0x48 (count) is not 1 as "%d" in {x + 15, 0,
+  x + 85, 20} (x = (i - frac) * 100 truncated), font 1, 0xA7D7E4, format 2. Surface 1: unless +0x1B0
+  is 9, each shown item the owner's slot 43 (item, mode) takes gets the owner's slot 54 (item,
+  +0x1B0) number, format 1. Returns 1. Only the forwarding strips (vtables 00741948 /
+  0074197C: the camp and the exchange window 0062C250) use this draw; the plain strip's slot 20 is
+  the base draw.
+
+### Battle screen button release (00638B30)
+
+- `this` is the input side (window + 0x94). Nothing while +0x22C (a portrait click picks a player).
+  Without a press on the view (+0x1C0, set by 00638A40 when no panel took the press) the container's
+  handler 006011F0. Otherwise +0x1C0 is cleared; without a drag (+0x1C1, set by the mouse move
+  00639D60 past 0079BDB0 pixels) or on a network client: 00565E40 (world, the point) gives the unit
+  there, kept only with flag 0x400000, and SelectUnit (00638EF0) gets it with the point (the
+  original passes its own argument slots as the point and reads them back).
+- A drag: the units in the box (+0x1CC, 005656A0) matched against the party (+0x16C / +0x170) into a
+  list of indices (the first remembered). With a match: 00566100(0) clears the world's selection;
+  every party unit loses mark 0x100 (figure slot 26 with 0) unless dead (0x10), its portrait marker
+  (portraits' scene object 5 i + 4) hidden and its face's rest orientation (+0x28 of the 0x78-byte
+  slot) the identity (007C8150); then each unit inside: marker shown, rest orientation the turn
+  about (-1, 0, 0) by 007C8144 * 1/7 (0049E800), controlled (00566030); then window slot 32 (the
+  first one's id, 0, 0). In every drag case 00637DC0 refreshes the selection, +0x1C1 is cleared and
+  both lists freed.
+
+### Quest notice (006369D0)
+
+- See the comment in ui_camp.h. The text: "\x07C" colour codes 0x31E3EE43 (quests, 00794370) /
+  0x31B3FF43 (sub-objectives, 0079349C) + the "combat_*" title + " " + the quest text's first line
+  (text "quest <name>", for a sub-objective after its "#subobj <n>" line); every line ends with
+  00794318 (colour 0xA7D7E4 and LF), also for names of other part counts (the line is then only
+  that). Values compare equal-or-unordered (FCOMP; TEST AH,0x40) with 2 and 3; a failure is
+  treated as value 1 afterwards. The top panel (+0x1BC) appends the line to +0x164 and, while its
+  +0x160 is 0, the message log (the screen's child 9, 0065CF30) shows it; the clock's +0x158 = 1;
+  +0x1FC = max(+0x1FC, value truncated) (a completed quest first raises it to 3).
+
+### Forwarders added (standalone build must replace)
+
+Strip: 005ECA10 (through its address), 005FDC00 / 005FE2F0 / 005FDE20 / 005FDC60 (another local
+SurfaceDraw copy). Button release: 00565E40, 00566100, 00638EF0 (through its address). Quest notice:
+00578E20, 004E0020, 004DBE40, 0065CF30.
+
+### Original quirks kept
+
+- The quest notice posts a bare colour-code line for "q." names that are neither three nor four
+  parts.
+
+### Not exercised by the scenarios
+
+The battle screen's drag (box selection): the harness has no drag step (button down, moves, button
+up). The strip's second surface numbers need a strip mode other than 9.
+
+### Skipped in this pass
+
+00617A50 (the hero screen's statistics page "next"): it creates the hero (00661300, .mp files
+counted with CFileFind, the hero records array 007C82A0..007C82AC) and no scenario creates a hero
+(ui_hero_screen stops before it; it needs a name typed into the edit field). 006312C0 (the global
+map's path search, recursive over the zone links with an STLport map<int, float>): reached only from
+the global map's click 0062F950 on a zone or link, which no scenario does (and a link starts the
+travel). Both stay for a pass that adds those scenarios.

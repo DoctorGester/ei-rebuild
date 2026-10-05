@@ -76,3 +76,29 @@ static void __fastcall StripBuildVerify(CUiItemStrip* self, void*, int top) {
                       static_cast<int>(expected.size()), static_cast<int>(actual.size()), top & 0xFF);
 }
 EI_VERIFY(0x00620380, StripBuildVerify, 5, s_stripBuild);
+
+// CUiItemStrip::Draw (00621B50, the forwarding strip's slot 20): ours only, the original would draw
+// the strip (sprites, item models, both text surfaces) a second time. Reached every frame the camp
+// shows its strips (ui_camp, ui_describe, frames_basic, render_present). Checked: result 1, the
+// end faces' +0xCC dimmed (0x3E480000) exactly when the strip can scroll that way (position > 0;
+// list size - 7 > position), and the strip's scroll fields and list unchanged.
+static void* s_stripDraw;
+static BOOL __fastcall StripDrawVerify(CUiItemStrip* self, void*, int pass) {
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(self);
+    std::uint8_t before[0x1B4 - 0x148];
+    std::memcpy(before, bytes + 0x148, sizeof(before));
+    BOOL result = self->Draw(pass);
+    float position = self->position_[self->tab_];
+    std::uint32_t wantLeft = position > 0.0f ? 0x3E480000u : 0u;
+    std::uint32_t wantRight = static_cast<float>(self->list_.size_ - 7) > position ? 0x3E480000u : 0u;
+    CEngineObject** sprites = self->window.sceneObjects_.data_;
+    std::uint32_t left, right;
+    std::memcpy(&left, reinterpret_cast<const std::uint8_t*>(sprites[0]) + 0xCC, 4);
+    std::memcpy(&right, reinterpret_cast<const std::uint8_t*>(sprites[1]) + 0xCC, 4);
+    bool same = std::memcmp(before, bytes + 0x148, sizeof(before)) == 0;
+    bool ok = result == 1 && left == wantLeft && right == wantRight && same;
+    ei::verify::Check("CUiItemStrip::Draw", true, ok, "result %d, ends %08X/%08X (want %08X/%08X), fields %s", result,
+                      left, right, wantLeft, wantRight, same ? "same" : "changed");
+    return result;
+}
+EI_VERIFY(0x00621B50, StripDrawVerify, 0, s_stripDraw);

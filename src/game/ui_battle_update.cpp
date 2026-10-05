@@ -1,9 +1,13 @@
-// The battle screen's every-frame update (00638280, slot 24) and the quick item panel's unit
-// (0063D2B0). See docs/notes/ui.md ("Ninth pass").
+// The battle screen's every-frame update (00638280, slot 24), its left button release (00638B30),
+// its quest variable notice (006369D0, slot 33) and the quick item panel's unit (0063D2B0). See docs/notes/ui.md ("Ninth pass", "Fourteenth
+// pass").
+#include "originals_world.h"
+#include "text_reader.h"
 #include "ui_camp.h"
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -473,3 +477,213 @@ namespace {
 void __fastcall BattleScreenUpdate(CBattleScreenSetup* self) { self->Update(); }
 } // namespace
 EI_REPLACE(0x00638280, BattleScreenUpdate);
+
+// --- 00638B30: the battle screen's left button release -----------------------------------------
+
+namespace {
+
+// The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
+// (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
+__declspec(naked) CUnit* __fastcall UnitAtPoint(void*, void*, int*) EI_ORIGINAL(0x00565E40)
+__declspec(naked) void __fastcall WorldSelect(void*, void*, CUnit*) EI_ORIGINAL(0x00566100)
+// 00638EF0 (thiscall on the battle screen, RET 0xC; Rebirth-patched, rewritten in ui_hud.cpp):
+// the click on a unit or a point.
+__declspec(naked) void __fastcall SelectUnitAt(CBattleScreenSetup*, void*, CUnit*, int, int) EI_ORIGINAL(0x00638EF0)
+
+} // namespace
+
+void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
+    if (portraitMode_ != 0) return;
+    if (!unknown_1C0) {
+        InputOf(this)->BaseLButtonUp(buttons, x, y);
+        return;
+    }
+    unknown_1C0 = false;
+    void* world = reinterpret_cast<void*>(kWorld);
+    if (!unknown_1C1 || IsNetworkClient(reinterpret_cast<void*>(0x007AFE20))) {
+        // The original passes the address of its own (x, y) arguments and reads them back.
+        int point[2] = {x, y};
+        CUnit* unit = UnitAtPoint(world, nullptr, point);
+        if (unit && !(At<std::uint32_t>(unit, 8) & 0x400000)) unit = nullptr;
+        SelectUnitAt(this, nullptr, unit, point[0], point[1]);
+        return;
+    }
+
+    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
+    auto unitAt = [&](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    int first = -1;
+    std::uint8_t allocator = 0;
+    List units;
+    UnitListConstruct(&units, nullptr, &allocator);
+    UnitsInBox(world, nullptr, selectionBox_, &units);
+    List inside;
+    IndexListConstruct(&inside, nullptr, &allocator);
+    if (units.header->next != units.header) {
+        for (ListNode* node = units.header->next; node != units.header; node = node->next) {
+            for (int i = 0; i < party->size_; ++i) {
+                if (party->data_[i] != node->value) continue;
+                ListNode* end;
+                IndexListEnd(&inside, nullptr, &end);
+                ListNode* inserted;
+                IndexListInsert(&inside, nullptr, &inserted, end, &i);
+                if (first < 0) first = i;
+            }
+        }
+        if (first >= 0) {
+            WorldSelect(world, nullptr, nullptr);
+            using MarkFn = void(__thiscall*)(void*, int);
+            // Portrait i's selection marker (scene object 5 i + 4) and face state.
+            auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data_[i * 5 + 4]); };
+            auto slot = [&](int i) -> HudPortraitSlot& { return static_cast<CHudPortraits*>(portraits_)->slots_[i]; };
+            for (int i = 0; i < party->size_; ++i) {
+                CUnit* unit = unitAt(i);
+                std::uint32_t flags = At<std::uint32_t>(unit, 8);
+                if (!(flags & 0x10) && (flags & 0x100)) {
+                    At<std::uint32_t>(unit, 8) = flags & ~0x100u;
+                    void* figure = At<void*>(unit, 0x94);
+                    reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, 0);
+                }
+                marker(i)->visible_ = 0;
+                slot(i).restB_ = *reinterpret_cast<const Quaternion*>(0x007C8150);   // identity
+            }
+            for (ListNode* node = inside.header->next; node != inside.header; node = node->next) {
+                int i = static_cast<int>(node->value);
+                marker(i)->visible_ = 1;
+                const Vector3 axis = {-1.0f, 0.0f, 0.0f};
+                const float angle = *reinterpret_cast<const volatile float*>(0x007C8144) *
+                                    *reinterpret_cast<const volatile float*>(0x0073CDCC);   // 1/7
+                Quaternion turn;
+                turn.SetAxisAngle(axis, angle);
+                slot(i).restB_ = turn;
+                WorldControl(world, nullptr, unitAt(static_cast<int>(node->value)));
+            }
+            int id = At<int>(unitAt(first), 0xC);
+            using EventFn = void(__thiscall*)(void*, int, int, int);
+            reinterpret_cast<EventFn>(vtable_[0x80 / 4])(this, id, 0, 0);
+        }
+    }
+    RefreshSelection(this);
+    unknown_1C1 = false;
+    FreeListNodes(&inside);
+    if (inside.header) NodeFree(inside.header, 0xC);
+    FreeListNodes(&units);
+    if (units.header) {
+        *reinterpret_cast<void**>(units.header) = NodeFreeList();
+        NodeFreeList() = units.header;
+    }
+}
+namespace {
+void __fastcall BattleScreenLButtonUp(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CBattleScreenSetup>(input)->OnLButtonUp(buttons, x, y);
+}
+} // namespace
+EI_REPLACE(0x00638B30, BattleScreenLButtonUp);
+
+// --- 006369D0: a quest variable's notice -------------------------------------------------------
+
+namespace {
+
+// 00578E20 (thiscall on 007AFEA4): the text manager. 004E0020 (thiscall on it, RET 8): the text of
+// a key. 004DBE40 (__fastcall, RET 4): splits a text at a separator.
+struct TextGlue {
+    CTextManager* Table();
+};
+__declspec(naked) CTextManager* TextGlue::Table() EI_ORIGINAL(0x00578E20)
+__declspec(naked) int __fastcall TextGetString(CTextManager*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
+__declspec(naked) void __fastcall SplitText(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
+// 0065CF30 (thiscall on the message log, RET 4): adds a line.
+__declspec(naked) void __fastcall LogAddText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065CF30)
+
+const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+// FCOMP; TEST AH,0x40: equal, or unordered.
+bool EqualOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
+
+} // namespace
+
+void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
+    CTextManager* texts = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
+    console::CStringArray parts;
+    mfc::CString text;
+    mfc::CString title;
+    SplitText(name, &parts, '.');
+    const float complete = GameFloatAt(0x0073CDB8);   // 2
+    const float failed = GameFloatAt(0x0073BAA4);     // 3
+    if (parts.size_ == 3) {
+        const char* key;
+        if (EqualOrNaN(value, complete)) {
+            if (unknown_1FC <= 3) unknown_1FC = 3;
+            key = GameText(0x007943A0);   // "combat_complete_quest"
+        } else if (EqualOrNaN(value, failed)) {
+            value = 1.0f;
+            key = GameText(0x0079438C);   // "combat_failed_quest"
+        } else {
+            key = GameText(0x00794378);   // "combat_get_quest"
+        }
+        TextGetString(texts, nullptr, key, &title);
+        text.Empty();
+        BOOL found;
+        {
+            mfc::CString quest(GameText(0x00790790));   // "quest "
+            mfc::CString textKey = quest + parts[2];
+            found = TextOpen(texts, nullptr, textKey);
+        }
+        if (found) TextReadLine(texts, nullptr, &text, 1);
+        mfc::CString colour(GameText(0x00794370));   // colour code 0x31E3EE43 and a space
+        text = colour + title + GameText(0x0078DA40) + text;
+    } else if (parts.size_ == 4) {
+        if (!IsNetworkClient(reinterpret_cast<void*>(0x007AFE20))) {
+            const char* dot = GameText(0x00783D78);
+            mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
+            double current = HoverPlayerVariable(reinterpret_cast<void*>(0x007AFEA5), nullptr, variable);
+            // FCOMP of the unrounded result with 0 (0073B858); TEST AH,0x40.
+            if (current == static_cast<double>(GameFloatAt(0x0073B858)) || x87::IsNaN(static_cast<float>(current))) return;
+        }
+        const char* key;
+        if (EqualOrNaN(value, complete)) {
+            key = GameText(0x00794358);   // "combat_complete_subobj"
+        } else if (EqualOrNaN(value, failed)) {
+            value = 1.0f;
+            key = GameText(0x00794340);   // "combat_failed_subobj"
+        } else {
+            key = GameText(0x0079432C);   // "combat_get_subobj"
+        }
+        TextGetString(texts, nullptr, key, &title);
+        text.Empty();
+        bool found = false;
+        {
+            mfc::CString quest(GameText(0x00790790));   // "quest "
+            mfc::CString textKey = quest + parts[2];
+            if (TextOpen(texts, nullptr, textKey)) {
+                mfc::CString sub(GameText(0x00794320));   // "#subobj "
+                mfc::CString lineKey = sub + parts[3];
+                found = TextFindLine(texts, nullptr, lineKey) != 0;
+            }
+        }
+        if (found) {
+            TextNextLine(texts);
+            TextReadLine(texts, nullptr, &text, 1);
+        }
+        mfc::CString colour(GameText(0x0079349C));   // colour code 0x31B3FF43 and a space
+        text = colour + title + GameText(0x0078DA40) + text;
+    }
+    text = text + GameText(0x00794318);   // colour code and a line end
+
+    CUiWindow* top = topPanel_;
+    const char* line = text;
+    *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(top) + 0x164) += line;
+    if (At<int>(top, 0x160) == 0) {
+        CUiWindow* screen = At<CUiWindow*>(top, 0x148);
+        LogAddText(At<CUiWindow**>(screen, 0x148)[9], nullptr, line);
+    }
+    At<std::uint8_t>(clock_, 0x158) = 1;
+    int sound = static_cast<int>(value);
+    if (unknown_1FC > sound) sound = unknown_1FC;
+    unknown_1FC = sound;
+}
+namespace {
+void __fastcall BattleScreenQuestVariable(CBattleScreenSetup* self, void*, const char* name, float value) {
+    self->OnQuestVariable(name, value);
+}
+} // namespace
+EI_REPLACE(0x006369D0, BattleScreenQuestVariable);

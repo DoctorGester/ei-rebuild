@@ -1,8 +1,11 @@
 // The item strip's layout (00620380): the camp's and the hero screen's strips of items along the
-// top or bottom edge. See ui_screens.h (CUiItemStrip::Build) and docs/notes/ui.md ("Tenth pass").
+// top or bottom edge, and the forwarding strip's draw (00621B50). See ui_screens.h
+// (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Tenth pass", "Fourteenth pass").
+#include "ui_item_info.h"
 #include "ui_screens.h"
 
 #include "ei/hook.h"
+#include "lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -20,6 +23,42 @@ __declspec(naked) void __fastcall StripCells(CUiMesh*, void*, float /*depth*/, f
                                              int, int, int, int, int /*count*/, int) EI_ORIGINAL(0x005E7680)
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+
+// The original keeps this value in a float local (FSTP dword) and reads it back.
+float StoreFloat(float value) {
+    volatile float stored = value;
+    return stored;
+}
+
+// The owner screen's item cell draw (005ECA10, rewritten in ui_item_view.cpp; through its address).
+struct StripOwner {
+    void DrawItem(int pass, ItemCell* cell);
+};
+__declspec(naked) void StripOwner::DrawItem(int, ItemCell*) EI_ORIGINAL(0x005ECA10)
+
+// A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
+// Rebirth-patched).
+struct StripSurface {
+    void* GetDC();
+    void Clear();
+    int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);
+    void ReleaseDC();
+};
+__declspec(naked) void* StripSurface::GetDC() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void StripSurface::Clear() EI_ORIGINAL(0x005FE2F0)
+__declspec(naked) int StripSurface::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+__declspec(naked) void StripSurface::ReleaseDC() EI_ORIGINAL(0x005FDC60)
+
+// The owner's virtual slots 43 (whether the strip's mode takes the item; AL) and 54 (a number
+// shown under the item for mode `mode`).
+bool OwnerTakes(CUiWindow* owner, char* item, int mode) {
+    using Fn = bool(__thiscall*)(CUiWindow*, char*, int);
+    return reinterpret_cast<Fn>(owner->vtable_[0xAC / 4])(owner, item, mode);
+}
+int OwnerNumber(CUiWindow* owner, char* item, int mode) {
+    using Fn = int(__thiscall*)(CUiWindow*, char*, int);
+    return reinterpret_cast<Fn>(owner->vtable_[0xD8 / 4])(owner, item, mode);
+}
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
@@ -115,3 +154,86 @@ void CUiItemStrip::Build(char top) {
     hovered_ = -1;
 }
 EI_REPLACE_METHOD(0x00620380, CUiItemStrip::Build);
+
+// 00621B50 (RET 4). `first` is the current tab's position truncated, `frac` what is left of it
+// (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.
+BOOL CUiItemStrip::Draw(int pass) {
+    const float position = position_[tab_];
+    const int first = static_cast<int>(position);
+    const float frac = StoreFloat(position - static_cast<float>(first));
+    const float hundred = GameFloat(0x0073BAB0), fifty = GameFloat(0x0074023C), one = GameFloat(0x0073B84C);
+    CEngineObject** sprites = window.sceneObjects_.data_;
+    const std::uint32_t dim = 0x3E480000;   // 0.1953125
+    auto* left = reinterpret_cast<std::uint8_t*>(sprites[0]);
+    auto* right = reinterpret_cast<std::uint8_t*>(sprites[1]);
+    *reinterpret_cast<std::uint32_t*>(left + 0xCC) = position_[tab_] > GameFloat(0x0073B858) ? dim : 0u;
+    *reinterpret_cast<std::uint32_t*>(right + 0xCC) =
+        static_cast<float>(list_.size_ - 7) > position_[tab_] ? dim : 0u;
+
+    reinterpret_cast<CUiMesh*>(sprites[9])->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
+    for (int i = 0; i < 8; ++i) {
+        reinterpret_cast<CUiMesh*>(window.sceneObjects_.data_[10 + i])
+            ->Place(((static_cast<float>(i) - frac) + one) * hundred, static_cast<float>(top_) + fifty, scale_);
+    }
+    window.DrawBase(pass);
+
+    char* shown[8];
+    for (int i = 0; i < 8; ++i) {
+        int index = first + i;
+        if (index < 0 || index >= list_.size_) {
+            shown[i] = nullptr;
+            continue;
+        }
+        ItemCell cell;
+        cell.item = reinterpret_cast<CItem*>(list_.data_[index]);
+        shown[i] = list_.data_[index];
+        cell.size = 100.0f;
+        cell.mode = actionMode_;
+        cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
+        cell.y = static_cast<float>(top_) + fifty;
+        cell.depth = scale_ * GameFloat(0x0073C51C);   // 1.5
+        reinterpret_cast<StripOwner*>(owner_)->DrawItem(pass, &cell);
+    }
+
+    // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.
+    auto cellRect = [&](int i) {
+        int x = static_cast<int>((static_cast<float>(i) - frac) * hundred);
+        RECT rect;
+        rect.left = x + 0xF;
+        rect.top = 0;
+        rect.right = x + 0x55;
+        rect.bottom = 0x14;
+        return rect;
+    };
+    const char* const kNumber = reinterpret_cast<const char*>(0x0078EEEC);   // "%d"
+    mfc::CString text;
+    auto* counts = reinterpret_cast<StripSurface*>(window.surfaces_.data_[0]);
+    counts->GetDC();
+    counts->Clear();
+    for (int i = 0; i < 8; ++i) {
+        if (!shown[i]) continue;
+        int count = *reinterpret_cast<const int*>(shown[i] + 0x48);
+        if (count == 1) continue;
+        text.Format(kNumber, count);
+        RECT rect = cellRect(i);
+        counts->Text(text, &rect, 1, 0xA7D7E4, 2, 1);
+    }
+    counts->ReleaseDC();
+    auto* numbers = reinterpret_cast<StripSurface*>(window.surfaces_.data_[1]);
+    numbers->GetDC();
+    numbers->Clear();
+    for (int i = 0; i < 8; ++i) {
+        char* item = shown[i];
+        if (!item || slots_ == 9) continue;
+        if (!OwnerTakes(owner_, item, actionMode_)) continue;
+        text.Format(kNumber, OwnerNumber(owner_, item, slots_));
+        RECT rect = cellRect(i);
+        numbers->Text(text, &rect, 1, 0xA7D7E4, 1, 1);
+    }
+    numbers->ReleaseDC();
+    return 1;
+}
+namespace {
+BOOL __fastcall ItemStripDraw(CUiItemStrip* self, void*, int pass) { return self->Draw(pass); }
+} // namespace
+EI_REPLACE(0x00621B50, ItemStripDraw);

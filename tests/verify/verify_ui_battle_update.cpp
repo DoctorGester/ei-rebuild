@@ -11,6 +11,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui_camp.h"
+#include "../../src/lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -144,3 +145,51 @@ static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
     }
 }
 EI_VERIFY(0x00638280, BattleScreenUpdateVerify, 0, s_battleUpdate);
+
+// CBattleScreenSetup::OnLButtonUp (00638B30, input side slot 3): ours only (it selects units, plays
+// sounds and gives orders through SelectUnit). Reached by every left click in a game: on a panel
+// the press was the panel's, so the container's handler runs (ui_hud, ui_describe); on the view a
+// press without a drag is a click through SelectUnit (world_client, ui_describe). A drag (box
+// selection) is not reached: the harness has no drag step. Checked: with a portrait pick pending
+// (+0x22C) nothing changes; otherwise a press on the view (+0x1C0) is consumed.
+static void* s_battleLButtonUp;
+static void __fastcall BattleScreenLButtonUpVerify(void* input, void*, int buttons, int x, int y) {
+    auto* self = reinterpret_cast<CBattleScreenSetup*>(static_cast<std::uint8_t*>(input) - 0x94);
+    int mode = self->portraitMode_;
+    bool pressed = self->unknown_1C0, dragging = self->unknown_1C1;
+    self->OnLButtonUp(buttons, x, y);
+    bool ok;
+    if (mode != 0)
+        ok = self->unknown_1C0 == pressed && self->unknown_1C1 == dragging;
+    else
+        ok = !(pressed && self->unknown_1C0);
+    ei::verify::Check("CBattleScreenSetup::OnLButtonUp", true, ok, "mode %d, press %d/%d, drag %d/%d", mode,
+                      pressed ? 1 : 0, self->unknown_1C0 ? 1 : 0, dragging ? 1 : 0, self->unknown_1C1 ? 1 : 0);
+}
+EI_VERIFY(0x00638B30, BattleScreenLButtonUpVerify, 0, s_battleLButtonUp);
+
+// CBattleScreenSetup::OnQuestVariable (006369D0, slot 33): ours only (it appends to the top
+// panel's text and the message log). Reached when a "q." player variable changes in a game
+// (scenario ui_quest_notice: GSSetVar of q.<zone>.<quest> to 1, 2 and 3, a sub-objective and a
+// two-part name). Checked: the top panel's text grew by a line ending in the colour code and LF
+// (00794318), or (a single player's unset sub-objective) did not change; when it grew the clock
+// pulses and the quest sound request did not drop.
+static void* s_questVariable;
+static void __fastcall BattleScreenQuestVariableVerify(CBattleScreenSetup* self, void*, const char* name, float value) {
+    auto* top = reinterpret_cast<std::uint8_t*>(self->topPanel_);
+    const auto& log = *reinterpret_cast<const mfc::CString*>(top + 0x164);
+    int before = log.GetLength();
+    int sound = self->unknown_1FC;
+    self->OnQuestVariable(name, value);
+    int after = log.GetLength();
+    const char* tail = reinterpret_cast<const char*>(0x00794318);
+    int tailLength = static_cast<int>(std::strlen(tail));
+    bool grew = after >= before + tailLength &&
+                std::memcmp(static_cast<const char*>(log) + after - tailLength, tail, tailLength) == 0;
+    bool pulsed = Get<std::uint8_t>(self->clock_, 0x158) != 0;
+    bool ok = after == before || (grew && pulsed && self->unknown_1FC >= sound);
+    ei::verify::Check("CBattleScreenSetup::OnQuestVariable", true, ok, "'%s' %g: text %d -> %d, clock %d, sound %d -> %d",
+                      name ? name : "", static_cast<double>(value), before, after, pulsed ? 1 : 0, sound,
+                      self->unknown_1FC);
+}
+EI_VERIFY(0x006369D0, BattleScreenQuestVariableVerify, 0, s_questVariable);
