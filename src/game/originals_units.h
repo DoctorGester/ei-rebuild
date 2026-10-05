@@ -152,7 +152,6 @@ __declspec(naked) inline void __fastcall UnitSetHostileMaskOriginal(void* /*unit
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
 __declspec(naked) inline void* __fastcall StepsConstructOriginal(void* /*steps*/) EI_ORIGINAL(0x00557B60)
 
-<<<<<<< HEAD
 // C3l. 005335E0: the unit prototype map (a hash map keyed by a string; RET 4: key; EAX = the address of the value slot, after
 // inserting an entry for a missing name). 0051FE80: SkillDatabase::IndexOf(name) over the 0x44-byte records between +0x0C and +0x10
 // (RET 4; EAX = the index, or -1).
@@ -160,7 +159,6 @@ __declspec(naked) inline void** __fastcall PrototypeMapAtOriginal(void* /*map*/,
     EI_ORIGINAL(0x005335E0)
 __declspec(naked) inline int __fastcall SkillIndexOfOriginal(const void* /*database*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x0051FE80)
-=======
 // U11. Figure methods of map objects (the 3D object base). 00518F80: animation entry `key & 0xFF` of the figure's
 // animation set (0x58-byte entries from set + 0x2C, the set loaded on first use by 00518CA0; RET 4, EAX the entry or
 // null). 00517990: the index of the part named `name` (_mbscmp, the names at +0x114 / +0x118; RET 4, -1 when
@@ -171,4 +169,3 @@ __declspec(naked) inline int __fastcall ObjectFindPartIndexOriginal(const void* 
     EI_ORIGINAL(0x00517990)
 __declspec(naked) inline float* __fastcall ObjectPartPositionOriginal(const void* /*object*/, void*, float* /*out*/,
                                                                       void* /*part*/) EI_ORIGINAL(0x005188B0)
->>>>>>> 5211319
