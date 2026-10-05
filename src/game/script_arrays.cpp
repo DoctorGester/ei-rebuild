@@ -132,6 +132,24 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     FreePlain(&vars.floats, scriptvtable::kFloatsBase);
 }
 
+// 004C81B0: the names, then each group's references through the element destructor (004CE1E0) and
+// its storage, then the array's storage.
+void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
+    FreeStrings(&vars->names);
+    MfcArray<ScriptGroup>& groups = vars->values;
+    groups.vtable = scriptvtable::kGroupsBase;
+    if (!groups.data) return;
+    ScriptGroup* group = groups.data;
+    for (int n = groups.size; n != 0; --n, ++group) {
+        group->vtable = scriptvtable::kRefsBase;
+        if (!group->data) continue;
+        ScriptObjectRef* ref = group->data;
+        for (int k = group->size; k != 0; --k, ++ref) ScriptRefDestroy(&ref->object, nullptr, 0);
+        gamecrt::operator_delete(group->data);
+    }
+    gamecrt::operator_delete(groups.data);
+}
+
 EI_REPLACE(0x004BC690, ScriptFloatsConstruct);
 EI_REPLACE(0x004BC740, ScriptStringsConstruct);
 EI_REPLACE(0x004BC870, ScriptObjectsConstruct);
@@ -143,3 +161,4 @@ EI_REPLACE(0x004BC810, ScriptNamesDestruct);
 EI_REPLACE(0x004BC9A0, ScriptRefArrayDestruct);
 EI_REPLACE(0x004BCA20, ScriptGroupArrayDestruct);
 EI_REPLACE(0x004BCAE0, ScriptRunDestruct);
+EI_REPLACE(0x004C81B0, ScriptGroupsDestruct);

@@ -69,6 +69,11 @@ void __fastcall ScriptFxSourceDestruct(ScriptFxSource* source) {
     source->name.~CString();
 }
 
+// 004CD690: DestructElements<ScriptLightning>.
+void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count) {
+    for (; count != 0; --count, ++first) DropEffect(&first->object);
+}
+
 // ---- Commands -----------------------------------------------------------------------------------------
 
 // 004BD260: CreateFX(x, y, z, volume, radius, name), a sound played once.
@@ -277,3 +282,4 @@ EI_REPLACE(0x004BCFF0, ScriptCreateLightning);
 EI_REPLACE(0x004BD540, ScriptFxSourceDestruct);
 EI_REPLACE(0x004BD9A0, ScriptCreateParticleSource);
 EI_REPLACE(0x004BDBB0, ScriptMoveParticleSource);
+EI_REPLACE(0x004CD690, ScriptLightningElementsDestruct);
