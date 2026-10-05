@@ -321,6 +321,12 @@ int __fastcall ArmorFieldB8(std::uint32_t index);
 // and EndCreateItem fills the item from a record combining them (Build).
 class CItemConstructor : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744020);
+
+    // 006A5AB0 (party_lifetime.cpp). Constructor body: CEngineObject's fields, no manager,
+    // records, item or spell (count_ is left as it is), the vtable. Returns this.
+    CItemConstructor* Construct();
+
     // 006A5B90. Virtual slot 2: forgets the manager (its count dropped), releases the item and
     // clears the records and the spell. Returns 1.
     BOOL Reset();
@@ -367,9 +373,13 @@ public:
 };
 static_assert(sizeof(CItemConstructor) == 0x34);
 
-// The item manager (007AFFB4). Only the functions rewritten here are declared; +0xAC is its
+// The item manager (007AFFB4; a CResourceManager with vtable 0073F25C, 0xBC bytes, as the world
+// and every party make one). Only the functions rewritten here are declared; +0xAC is its
 // manager context (slot 16: the item constructor, slot 22: the spell manager).
 struct CItemManager {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F25C);
+    static constexpr std::size_t kSize = 0xBC;
+
     // 006AC970 (RET 4). An item from its name, "prototype[.material][[extra]]" (lowercased):
     // "spell container[spell]" makes a scroll; otherwise the prototype is looked up in the weapon,
     // armor, quick, 007C8758 and 007C8778 tables (none: FatalError, null) and built with the

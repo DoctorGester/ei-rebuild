@@ -1,13 +1,19 @@
-// Party unit records: constructor and destructor bodies, the item lists' clear, and the party's
-// record array (MFC CArray::SetSize and ConstructElements). The record's item lists are aligned
-// pointer arrays; four more copies of their SetSize (00519D70) are registered here. See party.h and
-// docs/notes/items_spells.md ("Party").
+// Parties and their unit records: the records' constructor and destructor bodies and item clear,
+// the record array (MFC CArray::SetSize and ConstructElements), the party's constructor,
+// destructor, Create / Destroy / Clear, and the constructors of the managers a party makes. The
+// record's item lists are aligned pointer arrays; four more copies of their SetSize (00519D70) are
+// registered here. See party.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
+
+#include "game_strings.h"
+#include "item.h"
+#include "spell.h"
 #include "unit.h"
 
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -144,3 +150,160 @@ void PartyMemberArray::SetSize(int newSize, int newGrowBy) {
     capacity = newCapacity;
 }
 EI_REPLACE_METHOD(0x00663FA0, PartyMemberArray::SetSize);
+
+// --- The managers and constructors a party makes ------------------------------------------------
+
+CItemConstructor* CItemConstructor::Construct() {
+    ClearFields();
+    ei::SetVtable(this, kVtableAddress);
+    material_ = nullptr;
+    prototype_ = nullptr;
+    item_ = nullptr;
+    spell_ = nullptr;
+    manager_ = nullptr;
+    return this;
+}
+EI_REPLACE_METHOD(0x006A5AB0, CItemConstructor::Construct);
+
+CSpellConstructor* CSpellConstructor::Construct() {
+    ClearFields();
+    container_ = nullptr;
+    ei::SetVtable(this, kVtableAddress);
+    // (The original then releases +0x20, which it has just cleared.)
+    manager_ = nullptr;
+    return this;
+}
+EI_REPLACE_METHOD(0x00683FF0, CSpellConstructor::Construct);
+
+CSpellManager* CSpellManager::Construct() {
+    CResourceManager::Construct();
+    objects_.InitBuckets(100);
+    unknown_D0 = 0;
+    ei::SetVtable(this, kVtableAddress);
+    return this;
+}
+EI_REPLACE_METHOD(0x00688840, CSpellManager::Construct);
+
+// --- CParty -------------------------------------------------------------------------------------
+
+namespace {
+
+// A counted object the party owns: its count dropped and the object deleted (slot 0), whatever
+// the count, and the pointer cleared.
+template <typename T>
+void Drop(T*& object) {
+    if (object == nullptr) return;
+    --object->refCount_;
+    delete object;
+    object = nullptr;
+}
+
+void ReleaseItems(const AlignedPtrArray& items) {
+    for (int i = 0; i < items.size; ++i) static_cast<CEngineObject*>(items.data[i])->Release();
+}
+
+} // namespace
+
+CParty* CParty::Construct() {
+    ClearFields();
+    ei::SetVtable(this, kBaseVtableAddress);
+    members_.vtable = reinterpret_cast<void*>(PartyMemberArray::kVtableAddress);
+    members_.data = nullptr;
+    members_.growBy = 0;
+    members_.capacity = 0;
+    members_.size = 0;
+    items_.data = nullptr;
+    items_.growBy = 0;
+    items_.capacity = 0;
+    items_.size = 0;
+    variables_.InitBuckets(100);
+    new (&zone_) mfc::CString();
+    itemManager_ = nullptr;
+    spellManager_ = nullptr;
+    itemConstructor_ = nullptr;
+    spellConstructor_ = nullptr;
+    ei::SetVtable(this, kVtableAddress);
+    return this;
+}
+EI_REPLACE_METHOD(0x00661050, CParty::Construct);
+
+void CParty::DestructBody() {
+    ei::SetVtable(this, kVtableAddress);
+    Clear(1, 1);
+    DestroyParty();
+    zone_.~CString();
+    variables_.Destroy();
+    if (items_.data != nullptr) gamecrt::operator_delete(items_.data[-1]);
+    members_.vtable = reinterpret_cast<void*>(PartyMemberArray::kVtableAddress);
+    if (members_.data != nullptr) {
+        for (int i = 0; i != members_.size; ++i) members_.data[i].Destruct();
+        gamecrt::operator_delete(members_.data);
+    }
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x006611D0, CParty::DestructBody);
+
+CParty* CParty::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00661190, CParty::DeletingDestruct);
+
+BOOL CParty::CreateParty() {
+    // The base class's slot 2 (0055E930) only returns 1.
+    void* memory = gamecrt::operator_new(CItemManager::kSize);
+    if (memory != nullptr) {
+        static_cast<CResourceManager*>(memory)->Construct();
+        ei::SetVtable(memory, CItemManager::kVtableAddress);
+    }
+    itemManager_ = static_cast<CResourceManager*>(memory);
+    ++itemManager_->refCount_;   // not tested for null, as in the original
+    itemManager_->Init(this);
+
+    memory = gamecrt::operator_new(sizeof(CSpellManager));
+    spellManager_ = memory != nullptr ? static_cast<CSpellManager*>(memory)->Construct() : nullptr;
+    ++spellManager_->refCount_;
+    spellManager_->Init(this);
+
+    memory = gamecrt::operator_new(sizeof(CItemConstructor));
+    itemConstructor_ = memory != nullptr ? static_cast<CItemConstructor*>(memory)->Construct() : nullptr;
+    ++itemConstructor_->refCount_;
+    itemConstructor_->Create();
+
+    memory = gamecrt::operator_new(sizeof(CSpellConstructor));
+    spellConstructor_ = memory != nullptr ? static_cast<CSpellConstructor*>(memory)->Construct() : nullptr;
+    ++spellConstructor_->refCount_;
+    spellConstructor_->Create();
+
+    Clear(1, 0);
+    return 1;
+}
+EI_REPLACE_METHOD(0x006614F0, CParty::CreateParty);
+
+void CParty::DestroyParty() {
+    members_.SetSize(0, -1);
+    ReleaseItems(items_);
+    items_.SetSize(0, -1);
+    Drop(itemConstructor_);
+    Drop(spellConstructor_);
+    Drop(itemManager_);
+    Drop(spellManager_);
+}
+EI_REPLACE_METHOD(0x00661640, CParty::DestroyParty);
+
+void CParty::Clear(int clearVariables, int keepSpells) {
+    ReleaseItems(items_);
+    items_.SetSize(0, -1);
+    if (itemManager_ != nullptr) itemManager_->DestroyAll();
+    if (spellManager_ != nullptr) {
+        spellManager_->Destroy();
+        if (keepSpells == 0) spellManager_->Init(this);
+    }
+    members_.SetSize(0, -1);
+    if (clearVariables != 0) variables_.Clear();   // each name destroyed, its node back to the allocator
+    zone_ = game::EmptyText();
+    unknown_6C = 0;
+    unknown_50 = 0;
+}
+EI_REPLACE_METHOD(0x00661700, CParty::Clear);
