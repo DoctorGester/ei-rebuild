@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "unit.h"
 #include "world.h"
+#include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
 
@@ -608,10 +609,7 @@ __declspec(naked) void* __fastcall UnitQuickItem(CUnit*, void*, int) EI_ORIGINAL
 __declspec(naked) int __fastcall ItemCategory(void*) EI_ORIGINAL(0x006A4230)
 __declspec(naked) void __fastcall SpriteSetScale(void*, void*, std::uint32_t) EI_ORIGINAL(0x005E7060)
 // The console's ostream (007C5760).
-__declspec(naked) void* __fastcall StreamText(void*, void*, const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) void* __fastcall StreamDouble(void*, void*, double) EI_ORIGINAL(0x006FC7FA)
-__declspec(naked) void* __fastcall StreamChar(void*, void*, char) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) void* __fastcall StreamManipulate(void*, void*, void*) EI_ORIGINAL(0x00434FE0)
 
 constexpr int kCategoryWand = 8;
 IsaacRandom& UiRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
@@ -761,17 +759,17 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         {
             UiVec3 at = pick();
             ScreenOrderAt(this, nullptr, at, 0, ctrl());
-            void* stream = StreamText(kConsoleStream, nullptr, kTerrainCoords);
+            void* stream = OstreamPutString(kConsoleStream, nullptr, kTerrainCoords);
             Field<int>(stream, 4) = 1;
             stream = StreamDouble(stream, nullptr, at.x);
-            stream = StreamText(stream, nullptr, kSpace);
+            stream = OstreamPutString(stream, nullptr, kSpace);
             Field<int>(stream, 4) = 1;
             stream = StreamDouble(stream, nullptr, at.y);
-            stream = StreamText(stream, nullptr, kSpace);
+            stream = OstreamPutString(stream, nullptr, kSpace);
             Field<int>(stream, 4) = 1;
             stream = StreamDouble(stream, nullptr, at.z);
-            stream = StreamChar(stream, nullptr, '\n');
-            StreamManipulate(stream, nullptr, kFlushManipulator);
+            stream = OstreamPutChar(stream, nullptr, '\n');
+            OstreamManipulate(stream, nullptr, kFlushManipulator);
         }
         return;
     case 1:   // a spell on a unit

@@ -50,7 +50,7 @@ struct SurfaceText {
     void End() { SurfaceReleaseDC(this); }
 };
 __declspec(naked) void SurfaceText::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) int SurfaceText::Draw(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+int SurfaceText::Draw(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 template <typename... Args>
 long ComCall(void* object, int slot, Args... args) {

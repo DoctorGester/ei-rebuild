@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 
 namespace {
 
@@ -23,8 +24,6 @@ struct RawString {
 // STLport string members: the end-of-storage member from an allocator and a value (RET 8),
 // assign(first, last) (RET 8), the destructor.
 __declspec(naked) void __fastcall StringEndOfStorage(char**, void*, const void*, const void*) EI_ORIGINAL(0x00425080)
-__declspec(naked) void __fastcall StringAssign(RawString*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
-__declspec(naked) void __fastcall StringDestroy(RawString*) EI_ORIGINAL(0x00425040)
 // 005AA5F0: the manager's model of a name (figure_models.cpp).
 __declspec(naked) void** __fastcall FindModelAt(void*, void*, const RawString*) EI_ORIGINAL(0x005AA5F0)
 // 004DBCA0: reads a length-prefixed string at *cursor into a CString and advances the cursor.
@@ -53,9 +52,9 @@ int __fastcall LoadSkeletonLinks(void* manager, void*, void* figure, const char*
     char allocatorTag;
     int zero = 0;
     StringEndOfStorage(&key.eos, nullptr, &allocatorTag, &zero);
-    StringAssign(&key, nullptr, name, name + std::strlen(name));
+    StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
     void** model = FindModelAt(manager, nullptr, &key);
-    StringDestroy(&key);
+    StringBufferFree(&key);
 
     std::uint32_t* data;
     if (model) {

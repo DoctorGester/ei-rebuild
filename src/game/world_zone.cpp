@@ -15,6 +15,7 @@
 
 #include <cstring>
 #include <new>
+#include "originals_world.h"
 
 namespace {
 
@@ -73,7 +74,6 @@ __declspec(naked) void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*
                                                     const Vector3* /*position*/, Float4 /*rotation*/,
                                                     int /*placements*/) EI_ORIGINAL(0x0058EF20)
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
-__declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
 __declspec(naked) char** __fastcall ServerMapPath(CWorldServer*, void*, char** /*out*/, const char* /*name*/)
@@ -237,7 +237,7 @@ void CWorldServer::ClearMapObjects() {
     }
     for (auto* node = pending.head; node;) {
         auto* next = node->next;
-        ServerRemoveObject(this, nullptr, node->data->id_);
+        WorldRemoveObject(this, nullptr, node->data->id_);
         node = next;
     }
 

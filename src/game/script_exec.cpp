@@ -17,6 +17,8 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_ui.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -147,7 +149,7 @@ __declspec(naked) void* World::GetPlayer(int) EI_ORIGINAL(0x00594180)
 __declspec(naked) float World::GridHeight(float, float) EI_ORIGINAL(0x00594220)
 __declspec(naked) void World::InvokeAlarm(int, const Vec3*, int) EI_ORIGINAL(0x00593FC0)
 __declspec(naked) void World::AddUnit(int, const char*, const char*, const Vec3*) EI_ORIGINAL(0x005910A0)
-__declspec(naked) void World::RemoveObject(int) EI_ORIGINAL(0x005935C0)
+void World::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
 __declspec(naked) void World::RecalcMercBriefings() EI_ORIGINAL(0x00591800)
 __declspec(naked) void World::SetWind(const Vec3*, float) EI_ORIGINAL(0x0058EE20)
 __declspec(naked) void World::SetTimeSpeed(float) EI_ORIGINAL(0x0058EEE0)
@@ -288,7 +290,7 @@ __declspec(naked) void Unit::SetController(void*) EI_ORIGINAL(0x005300D0)
 __declspec(naked) void Unit::GiveQuestItem(void*) EI_ORIGINAL(0x00531220)
 __declspec(naked) void Unit::RemoveQuestItem(int) EI_ORIGINAL(0x005313B0)
 __declspec(naked) void Unit::AddSpell(void*) EI_ORIGINAL(0x00531820)
-__declspec(naked) void Unit::MarkChanged(int) EI_ORIGINAL(0x0050E9F0)
+void Unit::MarkChanged(int what) { UnitMarkChanged(this, nullptr, what); }
 
 struct Lever {
     void SwitchState(int state, float time);             // 0052B7A0
@@ -393,7 +395,7 @@ struct Network {
     bool IsMultiplayer();                                // 0057F440
     bool QuestAllowed(const char* name);                 // 0057FB90
 };
-__declspec(naked) bool Network::IsMultiplayer() EI_ORIGINAL(0x0057F440)
+bool Network::IsMultiplayer() { return IsNetworkClientOriginal(); }
 __declspec(naked) bool Network::QuestAllowed(const char*) EI_ORIGINAL(0x0057FB90)
 Network* TheNetwork() { return reinterpret_cast<Network*>(0x007AFE20); }
 
@@ -406,9 +408,9 @@ struct StlString {
     void* InitFrom(const char* text, void* allocator);    // 0040C5A0
     std::uint32_t data[4];
 };
-__declspec(naked) void StlString::InitEmpty(void*) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void StlString::AssignRange(const char*, const char*) EI_ORIGINAL(0x00428F10)
-__declspec(naked) void StlString::Destroy() EI_ORIGINAL(0x00425040)
+void StlString::InitEmpty(void* allocator) { StringInitWithAllocator(this, nullptr, allocator); }
+void StlString::AssignRange(const char* first, const char* last) { StringAssignSpan(this, nullptr, first, last); }
+void StlString::Destroy() { StringBufferFree(this); }
 __declspec(naked) void* StlString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
 struct StlAllocator {
     StlAllocator* Init();                                // 0041F770
@@ -462,8 +464,8 @@ struct Ostream {
     Ostream* Manipulate(void* manipulator);              // 00434FE0
 };
 __declspec(naked) Ostream* Ostream::PutFloat(float) EI_ORIGINAL(0x004BA9D0)
-__declspec(naked) Ostream* Ostream::PutString(const char*) EI_ORIGINAL(0x006FC31D)
-__declspec(naked) Ostream* Ostream::Manipulate(void*) EI_ORIGINAL(0x00434FE0)
+Ostream* Ostream::PutString(const char* text) { return static_cast<Ostream*>(OstreamPutString(this, nullptr, text)); }
+Ostream* Ostream::Manipulate(void* manipulator) { return static_cast<Ostream*>(OstreamManipulate(this, nullptr, manipulator)); }
 Ostream* Console() { return reinterpret_cast<Ostream*>(0x007C55A8); }
 void* const kEndLine = reinterpret_cast<void*>(0x004BA9F0);
 

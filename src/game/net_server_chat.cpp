@@ -16,7 +16,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignRange(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00426A80)
 // The lines list (+0x2594): a counted pointer from a raw one without a reference, end, insert,
 // node count, erase (library).
@@ -39,7 +38,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
         RefValueConstructBase(line);
         ei::SetVtable(line, kMessageVtable);
         line->version_ = 1;
-        StringConstruct(&line->text_);
+        StringInitEmpty(&line->text_);
         RefNullBOriginal(&line->connection_);
         ei::SetVtable(line, LineMessage::kVtableAddress);
     }

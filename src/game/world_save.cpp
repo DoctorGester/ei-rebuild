@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_ai.h"
+#include "originals_core.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "originals_world.h"
@@ -254,7 +255,6 @@ __declspec(naked) void __fastcall ManagerSaveObjects(CEngineObject*, void*, Worl
 // 004048F0. Releases the manager's objects nobody holds (reference count 0).
 __declspec(naked) void __fastcall ManagerReleaseUnused(CEngineObject*, void*) EI_ORIGINAL(0x004048F0)
 // 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
-__declspec(naked) CEngineObject* __fastcall ManagerFind(CEngineObject*, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
 __declspec(naked) void __fastcall MarkNew(CEngineObject*, void*) EI_ORIGINAL(0x00675CA0)
 // 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save.
@@ -304,7 +304,6 @@ __declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, 
 // 00554450. The unit controller's reposition after a move.
 __declspec(naked) void __fastcall ControllerReposition(void*, void*) EI_ORIGINAL(0x00554450)
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: original address.
-__declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
 // 006FEBFA / 006FE9B8. CStringArray::SetAtGrow(int, const CString&) / SetSize(int, int).
 __declspec(naked) void __fastcall StringArraySetAtGrow(StringArray*, void*, int, const mfc::CString*)
     EI_ORIGINAL(0x006FEBFA)
@@ -312,7 +311,6 @@ __declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int, i
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 __declspec(naked) void __fastcall MapObjectBeginLoad(CEngineObject*, void*) EI_ORIGINAL(0x0050EA40)
-__declspec(naked) void __fastcall MapObjectMarkChanged(CEngineObject*, void*, int /*part*/) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall MapObjectSetupFigure(CEngineObject*, void*, const char* /*figure*/)
     EI_ORIGINAL(0x005179E0)
 
@@ -376,7 +374,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
-        CEngineObject* object = ManagerFind(manager40_, nullptr, id);
+        CEngineObject* object = ManagerFindObject(manager40_, nullptr, id);
         if (stream->version >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
@@ -388,7 +386,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         if (!object) continue;   // (the object was already used above)
 
         ++object->refCount_;
-        MapObjectMarkChanged(object, nullptr, -1);
+        UnitMarkChanged(object, nullptr, -1);
         if (object->type_ != 0x3B) {
             MapObjectSetupFigure(object, nullptr, At<const char*>(object, 0xA4));
             SectorMapAdd(AsSectorMap(SectorMap(this)), nullptr, object);
@@ -419,7 +417,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         // bit 1 << i itself, never `changed & bit`).
         int parts = At<int>(object, 0x1CC);
         for (int i = 0; i < parts; ++i)
-            if (changed != 0 && (1u << (i & 31)) != 0) MapObjectMarkChanged(object, nullptr, i);
+            if (changed != 0 && (1u << (i & 31)) != 0) UnitMarkChanged(object, nullptr, i);
 
         if (object->GetClassId() == world::kClassUnit && At<std::uint8_t>(At<void*>(object, 0x240), 0x9B7) == 0)
             continue;   // a unit whose controller does not ask for updates
@@ -463,7 +461,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             SectorMapAdd(AsSectorMap(SectorMap(world)), nullptr, unit);
             ControllerReposition(At<void*>(unit, 0x240), nullptr);
         } else {
-            ServerRemoveObject(world, nullptr, stranded.data[i]);
+            WorldRemoveObject(world, nullptr, stranded.data[i]);
         }
     }
     stranded.vtable = reinterpret_cast<void*>(kIdArrayVtable);
@@ -485,7 +483,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         for (;;) {
             int id = ReadValue<int>(stream);
             if (id == -1) break;
-            CEngineObject* object = ManagerFind(items, nullptr, id);
+            CEngineObject* object = ManagerFindObject(items, nullptr, id);
             if (!object) continue;
             At<ObjectList>(player, kPlayerObjects).AddTail(object);
             ++object->refCount_;
@@ -606,7 +604,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             for (;;) {
                 int id = ReadValue<int>(stream);
                 if (id == -1) break;
-                CEngineObject* object = ManagerFind(manager48_, nullptr, id);
+                CEngineObject* object = ManagerFindObject(manager48_, nullptr, id);
                 ++object->refCount_;
                 MarkNew(object, nullptr);
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -641,7 +639,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             for (;;) {
                 int id = ReadValue<int>(stream);
                 if (id < 0) break;
-                CEngineObject* item = ManagerFind(itemManager_, nullptr, id);
+                CEngineObject* item = ManagerFindObject(itemManager_, nullptr, id);
                 if (!item) continue;
                 auto* node = CountedNewNode(&counted_, nullptr, nullptr, counted_.head);
                 CountedAssign(&node->data, nullptr, item);
@@ -660,7 +658,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     stream->Read(&id, 4);
                     if (id == -1) break;
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
-                    CEngineObject* object = ManagerFind(ei::VCall<CEngineObject*>(this, 18), nullptr, id);
+                    CEngineObject* object = ManagerFindObject(ei::VCall<CEngineObject*>(this, 18), nullptr, id);
                     if (!object) continue;
                     auto* record = static_cast<ObjectRecord*>(gamecrt::operator_new(sizeof(ObjectRecord)));
                     At<std::uint32_t>(record, 4) = 0;   // written before the null test
@@ -914,7 +912,6 @@ __declspec(naked) void __fastcall ObjectPtrArraySetSize(ObjectPtrArray*, void*, 
 // 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
 __declspec(naked) void __stdcall CountedRangeRelease(CEngineObject**, int) EI_ORIGINAL(0x0059C890)
 // 00403F40 (RET 4). The item manager's (007AFFB4) object by id, or null.
-__declspec(naked) CEngineObject* __fastcall ManagerObjectById(void*, void*, int) EI_ORIGINAL(0x00403F40)
 
 constexpr std::uintptr_t kObjectPtrArrayVtable = 0x0073FAC8;
 constexpr std::uintptr_t kObjectPtrArrayBaseVtable = 0x0073FABC;   // set by the destructor
@@ -940,7 +937,7 @@ void __fastcall LoadSharedObject(void* entryArg, void*, WorldStream* stream) {
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
-        CEngineObject* object = ManagerObjectById(*reinterpret_cast<void**>(kItemManager), nullptr, id);
+        CEngineObject* object = ManagerFindObject(*reinterpret_cast<void**>(kItemManager), nullptr, id);
         if (object) Append(entry->objects, object);   // the original inlines the SetSize
     }
 }

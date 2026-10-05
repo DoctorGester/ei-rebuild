@@ -10,6 +10,7 @@
 #include "lib/mfc.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 #include <windows.h>
 
@@ -34,7 +35,6 @@ __declspec(naked) void* __fastcall WorldGetPlayer(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __fastcall WorldAwardExperience(void*, void*, void* /*player*/, float) EI_ORIGINAL(0x005911C0)
 // 005942D0 (Loot: the player takes what the body holds) and 005935C0 (removes an object by id).
 __declspec(naked) int __fastcall WorldLoot(void*, void*, CEngineObject*, void*) EI_ORIGINAL(0x005942D0)
-__declspec(naked) void __fastcall WorldRemoveObject(void*, void*, int) EI_ORIGINAL(0x005935C0)
 // 00594AB0: an item made from its name (null when it cannot be).
 __declspec(naked) void* __fastcall WorldMakeItem(void*, void*, const char*) EI_ORIGINAL(0x00594AB0)
 // 00596030: loads a .mob file's objects (second argument: keep their ids).
@@ -43,7 +43,6 @@ __declspec(naked) int __fastcall WorldLoadMapObjects(void*, void*, const char*, 
 __declspec(naked) void __fastcall WorldSetWeather(void*, void*, int, float) EI_ORIGINAL(0x0058EE00)
 // 00566330 on the client: the pause request through the client's session.
 __declspec(naked) void __fastcall ClientPause(void*, void*, int) EI_ORIGINAL(0x00566330)
-__declspec(naked) bool __fastcall NetworkIsMultiplayer(void*) EI_ORIGINAL(0x0057F440)
 // The camera script player: start (005787F0) and stop (005787D0) saving a camera path.
 __declspec(naked) void __fastcall CameraStartSave(void*, void*, const char*) EI_ORIGINAL(0x005787F0)
 __declspec(naked) void __fastcall CameraStopSave(void*) EI_ORIGINAL(0x005787D0)
@@ -63,7 +62,6 @@ __declspec(naked) void __fastcall BrainSelect(void*, void*, void*, int) EI_ORIGI
 __declspec(naked) int __fastcall UnitAddWeapon(void*, void*, void*) EI_ORIGINAL(0x00531070)
 __declspec(naked) void* __fastcall UnitEquipArmour(void*, void*, void*) EI_ORIGINAL(0x00530730)
 __declspec(naked) char* __fastcall UnitPrototype(void*) EI_ORIGINAL(0x00530930)
-__declspec(naked) void __fastcall UnitMarkChanged(void*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) char* __fastcall ItemPrototype(void*) EI_ORIGINAL(0x006A0110)
 __declspec(naked) int __fastcall ItemWeaponType(void*) EI_ORIGINAL(0x006A07F0)
 
@@ -358,7 +356,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!NetworkIsMultiplayer(kNetwork)) ClientPause(kClient, nullptr, Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsNetworkClientOriginal()) ClientPause(kClient, nullptr, Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 

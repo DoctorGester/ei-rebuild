@@ -20,6 +20,7 @@
 #include "originals_ai.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
@@ -195,7 +196,6 @@ __declspec(naked) void __fastcall WorldItemChanged(void*, void*, CItem*) EI_ORIG
 // 005942D0. CWorldServer: `target` meets `player` (talk / trade); AL non-zero when handled.
 __declspec(naked) int __fastcall WorldMeetUnit(void*, void*, CEngineObject*, char*) EI_ORIGINAL(0x005942D0)
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
-__declspec(naked) void __fastcall WorldRemoveObject(void*, void*, int) EI_ORIGINAL(0x005935C0)
 // 00665BE0. Player: an inventory item changed.
 __declspec(naked) void __fastcall PlayerItemChanged(char*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
 // 00665470. Player: receives the items in `list` (a CPtrList).

@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 #include "originals_script.h"
 
 #include <cstring>
@@ -17,10 +18,10 @@
 namespace net {
 
 // The network log's inserters (library), declared in net_classes.h.
-__declspec(naked) LogStream* LogStream::Put(const char*) EI_ORIGINAL(0x006FC31D)
-__declspec(naked) LogStream* LogStream::PutChar(char) EI_ORIGINAL(0x006FC0B0)
+LogStream* LogStream::Put(const char* text) { return static_cast<LogStream*>(OstreamPutString(this, nullptr, text)); }
+LogStream* LogStream::PutChar(char c) { return static_cast<LogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
 __declspec(naked) LogStream* LogStream::PutInt(int) EI_ORIGINAL(0x006FC14E)
-__declspec(naked) LogStream* LogStream::Apply(void*) EI_ORIGINAL(0x00434FE0)
+LogStream* LogStream::Apply(void* manipulator) { return static_cast<LogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
 namespace {
 
@@ -396,7 +397,6 @@ namespace {
 __declspec(naked) Connection** __fastcall ClientRefInit(Connection** /*ref*/, Connection* /*connection*/) EI_ORIGINAL(0x0043D7D0)
 __declspec(naked) ClientNode** __fastcall ClientsInsert(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/,
                                                         Connection* const* /*value*/) EI_ORIGINAL(0x00439E30)
-__declspec(naked) void __fastcall StringDestroy2(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
 constexpr std::uintptr_t kAddClient = 0x00783EF8;   // "ADD client "
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 } // namespace
@@ -407,7 +407,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
         StringRep peer;
         const char* text = address->ToString(&peer)->start;
         LogAddress(kAddClient, text);
-        StringDestroy2(&peer);
+        StringBufferFree(&peer);
     }
     RemoveClient(ClientAt(address));
     auto* memory = static_cast<Connection*>(gamecrt::operator_new(sizeof(Connection)));

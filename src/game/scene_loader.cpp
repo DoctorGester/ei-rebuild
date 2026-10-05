@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_core.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -788,7 +789,6 @@ __declspec(naked) void __fastcall SetSizeMatrices(ArrayBody*, void*, int, int) E
 __declspec(naked) void __fastcall DestructNode(void*) EI_ORIGINAL(0x004543E0)
 __declspec(naked) void __fastcall ConstructRegistry(void*) EI_ORIGINAL(0x00694520)
 __declspec(naked) void __fastcall DestroyRegistry(void*) EI_ORIGINAL(0x00694540)
-__declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
 // Reads the figure's .reg file: the texture names ({id, name}) and links ({id, value}).
 __declspec(naked) void __fastcall LoadFigureRegistry(void*, const mfc::CString*, VtArray*, VtArray*) EI_ORIGINAL(0x0044B980)
 __declspec(naked) void __fastcall LinkNodes(void*, VtArray*) EI_ORIGINAL(0x0044C4A0)
@@ -988,7 +988,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             *At<mfc::CString>(texture, kTextureName) = static_cast<const char*>(s.textureNames.Name(t));
         }
         for (int l = 0; l < s.textureLinks.body.size; ++l) {
-            void* manager = ei::VCall<void*>(ManagerContext(fakeUnit), kTextureManagerSlot);
+            void* manager = ei::VCall<void*>(ManagerContextOf(fakeUnit), kTextureManagerSlot);
             std::uint32_t id = Dword(s.textureLinks.body.data, l * 8);
             if (id != s.textureNames.Id(t)) continue;
             void* linked = AddTextureLink(owner, nullptr, id, Dword(s.textureLinks.body.data, l * 8 + 4));

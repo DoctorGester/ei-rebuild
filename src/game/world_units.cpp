@@ -136,7 +136,6 @@ __declspec(naked) std::uint8_t* __fastcall NameMapInsert(void* /*map*/, void*, c
 // original address.
 __declspec(naked) int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/) EI_ORIGINAL(0x005927C0)
 __declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int) EI_ORIGINAL(0x0055FB00)
-__declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, int) EI_ORIGINAL(0x005935C0)
 // _CIacos (006E7320): argument and result in ST0.
 __declspec(naked) double __cdecl CIacos(double) {
     __asm fld qword ptr [esp + 4]
@@ -332,7 +331,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
         int id = At<int>(record, kRecordId);
         At<int>(message, 0x18) = id;
-        if (ei::VCall<void*>(this, kSlotFindObject, id)) ServerRemoveObject(this, nullptr, At<int>(message, 0x18));
+        if (ei::VCall<void*>(this, kSlotFindObject, id)) WorldRemoveObject(this, nullptr, At<int>(message, 0x18));
 
         Placement* placement = nullptr;
         if (placements) {
@@ -472,7 +471,6 @@ namespace {
 
 // Object setup, through the original addresses (thiscall as fastcall).
 __declspec(naked) void __fastcall ObjectMarkNew(CEngineObject*, void*) EI_ORIGINAL(0x0050EA40)
-__declspec(naked) void __fastcall ObjectMarkChanged(CEngineObject*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall ObjectAnnounce(CEngineObject*, void*) EI_ORIGINAL(0x0050EA70)
 __declspec(naked) void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*) EI_ORIGINAL(0x00517700)
 __declspec(naked) void __fastcall ObjectSetName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x005179E0)
@@ -491,8 +489,6 @@ __declspec(naked) int __fastcall DiplomacyMaskOf(void*, void*, int) EI_ORIGINAL(
 __declspec(naked) void __fastcall UnitSetDiplomacy(CEngineObject*, void*, int) EI_ORIGINAL(0x0052E970)
 __declspec(naked) CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
-__declspec(naked) void __fastcall KeyDefault(void*, void*, const void*) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void __fastcall KeyAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) std::uint8_t** __fastcall UnitPrototypeAt(void*, void*, const void*) EI_ORIGINAL(0x005335E0)
 __declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
 __declspec(naked) void __fastcall ObjectSetup7(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052A2C0)
@@ -603,8 +599,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ei::VCall<void>(figure, kSlotFigureLight, m + 0x90, radius, colour);
         ei::VCall<void>(figure, kSlotFigureFlags, At<std::uint32_t>(m, 0x9C));
         place(object);
-        ObjectMarkChanged(object, nullptr, 2);
-        ObjectMarkChanged(object, nullptr, 4);
+        UnitMarkChanged(object, nullptr, 2);
+        UnitMarkChanged(object, nullptr, 4);
         if (At<std::uint8_t>(m, 0x6D) == 0) object->flags_ |= 8;
         ManagerRegister(ei::VCall<void*>(this, kSlotMapObjects), nullptr, object);
         if (object->GetClassId() == world::kClassUnit) ControllerReposition(At<void*>(object, 0x240), nullptr);
@@ -629,7 +625,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         At<CEngineObject*>(m, 0x1C) = object;
         ++object->refCount_;
         ObjectMarkNew(object, nullptr);
-        ObjectMarkChanged(object, nullptr, 2);
+        UnitMarkChanged(object, nullptr, 2);
         object->flags_ |= 8;
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -678,8 +674,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             {
                 alignas(4) std::uint8_t key[12];
                 char allocator;
-                KeyDefault(key, nullptr, &allocator);
-                KeyAssign(key, nullptr, prototypeName, prototypeName + std::strlen(prototypeName));
+                StringInitWithAllocator(key, nullptr, &allocator);
+                StringAssignSpan(key, nullptr, prototypeName, prototypeName + std::strlen(prototypeName));
                 prototype = *UnitPrototypeAt(kUnitPrototypes, nullptr, key);
                 StlStringDestroy(key);
             }
@@ -700,20 +696,20 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             }
             std::uint8_t* record = index < count ? begin + index * kUnitPrototypeSize : nullptr;
             std::memcpy(Bytes(object) + 0x4B0, reinterpret_cast<const std::uint8_t*>(record) + 0x2C, 24);
-            ObjectMarkChanged(object, nullptr, 5);
-            ObjectMarkChanged(object, nullptr, 6);
-            ObjectMarkChanged(object, nullptr, 0xB);
+            UnitMarkChanged(object, nullptr, 5);
+            UnitMarkChanged(object, nullptr, 6);
+            UnitMarkChanged(object, nullptr, 0xB);
         } else if (type == 8) {
             ObjectSetup8(object, nullptr, m + 0x8C);
-            ObjectMarkChanged(object, nullptr, 5);
+            UnitMarkChanged(object, nullptr, 5);
         } else {
             ManagerRegister(ei::VCall<void*>(this, kSlotMapObjects), nullptr, object);
         }
         place(object);
-        ObjectMarkChanged(object, nullptr, 2);
-        ObjectMarkChanged(object, nullptr, 6);
-        ObjectMarkChanged(object, nullptr, 7);
-        ObjectMarkChanged(object, nullptr, 8);
+        UnitMarkChanged(object, nullptr, 2);
+        UnitMarkChanged(object, nullptr, 6);
+        UnitMarkChanged(object, nullptr, 7);
+        UnitMarkChanged(object, nullptr, 8);
         if (At<std::uint8_t>(m, 0x6D) == 0) object->flags_ |= 8;
         ObjectSetName(object, nullptr, At<const char*>(m, 0x54));
         ei::VCall<void>(object, kSlotUnitReady);

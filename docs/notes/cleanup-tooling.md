@@ -120,3 +120,29 @@ The class members that were forwarders for the same address (`CUnit::World`, `CM
 `CString::Left` callers that built the result into raw memory (`scene_material`, `world_briefing`,
 `world_game`) now use a normal `CString` local. The shared forwarder replaced a duplicate local `CIacos` in
 sound_manager.cpp (identical bytes) that clashed with originals_library.h.
+
+## C3c (next 15 by site count): one declaration each
+
+Same method as C3b. 494 of the 509 "differ" addresses are left (the 15 below were removed from the group). Decided
+from the game.exe disassembly (capstone), each now declared once in `originals_<area>.h`:
+
+| Address | Declaration | Header |
+| --- | --- | --- |
+| 00455940 | `void* __fastcall ManagerContextOf(const void*)` (object +0x14 -> +0xAC, plain RET) | originals_engine.h |
+| 0050E9F0 | `void* __fastcall UnitMarkChanged(void*, void*, int part)` (RET 4; EAX on exit is the object's world or null, which the tail-calling rewrites hand on, so it is not void) | originals_units.h |
+| 0041F460 / 004217E0 | `void* __fastcall StringInitEmpty(void*)` (RET, returns `this`) / `StringInitWithAllocator(void*, void*, const void*)` (RET 4, returns `this`) | originals_library.h |
+| 00428F10 / 00425040 | `void __fastcall StringAssignSpan(void*, void*, const char*, const char*)` (RET 8) / `StringBufferFree(void*)` (RET). `StringAssignRange` was taken by 00426A80 | originals_library.h |
+| 00403F40 | `CEngineObject* __fastcall ManagerFindObject(void*, void*, int)` (RET 4, object or null) | originals_core.h |
+| 0057F440 | `bool __cdecl IsNetworkClientOriginal()` (no arguments: it reads the global at 0079B5D8 and never touches ECX; the callers' `0x007AFE20` / `kGameFlow` ECX arguments were dummies) | originals_world.h |
+| 005935C0 | `void __fastcall WorldRemoveObject(void*, void*, int id)` (RET 4) | originals_world.h |
+| 00434FE0 / 006FC0B0 / 006FC31D | `void* __fastcall OstreamManipulate(void*, void*, void*)` / `OstreamPutChar(void*, void*, char)` / `OstreamPutString(void*, void*, const char*)` (all RET 4, return the stream) | originals_library.h |
+| 004800E0 | `int __cdecl FatalDirectX(long, const char*, ...)` (printf style; the `(long, const char*)` copies were the same call with no varargs) | originals_engine.h |
+| 005FDE20 | `int __fastcall SurfaceDrawText(void*, void*, const char*, tagRECT*, int, uint32, int, int)` (RET 0x18) | originals_ui.h |
+| 005C0BD0 | `void __fastcall SectorMapFindUnitsInRadius(void*, void*, const void* center, void* list, float)` (RET 0xC) | originals_ai.h |
+
+Class members that forwarded the same address (`AiLogStream` / `Ostream` / `GameOstream` / `GameOStream` / `LogStream` /
+`UnitLogStream` members, `SurfaceDraw::Text`, `StripSurface::Text`, `BoxSurfaceAt::Text`, `SurfaceTextAt::Text`,
+`SurfaceText::Draw`, `StlString::InitEmpty/AssignRange/Destroy`, `Network::IsMultiplayer`, `SessionAt::IsMultiplayerClient`,
+`World::RemoveObject`, `Unit::MarkChanged`, `CMapObject::MarkChanged`) are now one-line definitions over the shared forwarder.
+`world_effect_internal.h` keeps `effect::ManagerContext` / `effect::FindObject` as inline wrappers. The release and verify builds,
+check_stolen, check_x87, check_signatures and check_returns (0 problems, 0 forwarder warnings) pass.

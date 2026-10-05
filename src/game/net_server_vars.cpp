@@ -11,12 +11,12 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 namespace net {
 
 namespace {
 
-__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 // STLport (library): string equality, erase(first, last), append(first, last, tag); the list's
 // begin, insert and erase; a counted pointer from a raw one without a reference.
 __declspec(naked) bool __fastcall StringEquals(const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427FA0)
@@ -78,7 +78,7 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
         RefValueConstructBase(variable);
         ei::SetVtable(variable, kMessageVtable);
         variable->version_ = 1;
-        StringConstruct(&variable->name_);
+        StringInitEmpty(&variable->name_);
         ei::SetVtable(variable, VariableMessage::kVtableAddress);
     }
     RefPtr ref;

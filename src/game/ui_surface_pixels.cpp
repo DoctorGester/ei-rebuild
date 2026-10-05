@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "originals_engine.h"
 #include "originals_render.h"
 
 #include <cstdint>
@@ -42,7 +43,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 004800E0 (cdecl): a fatal DirectX error with its message.
-__declspec(naked) int __cdecl FatalDirectX(long, const char*) EI_ORIGINAL(0x004800E0)
 // 004F0B00 (cdecl): the copies' error report (an empty function in 1.06).
 
 // IDirectDrawSurface7 slots.

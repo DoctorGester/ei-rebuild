@@ -16,7 +16,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignText(StringRep* /*s*/, void*, const char* /*text*/) EI_ORIGINAL(0x0041F550)
 // STLport strings (library): reserve(n) with an allocator, assign(first, last, tag),
 // assign(first, last), erase(first, last), append(first, last, tag).
@@ -46,7 +45,7 @@ void ServerSession::Describe(RefPtr* out) {
         std::uint8_t allocator = 0;
         StringReserve(&entry->name_, nullptr, &allocator, 8);
         *entry->name_.finish = 0;
-        StringConstruct(&entry->description_);
+        StringInitEmpty(&entry->description_);
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
         StringAssignText(&entry->name_, nullptr, Text(kEmptyText));
         entry->kind_ = 4;

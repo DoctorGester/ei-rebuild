@@ -1152,9 +1152,6 @@ EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
 
 namespace {
 // STLport string members (the instantiations the original calls).
-__declspec(naked) void __fastcall StringDefault(void*, void*, const void* /*allocator*/) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void* __fastcall StringEmpty(void*) EI_ORIGINAL(0x0041F460)
-__declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringAssignTagged(void*, void*, const char*, const char*, int /*tag*/) EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) void __fastcall StringCopy(void*, void*, const void*) EI_ORIGINAL(0x004A8930)
 __declspec(naked) void __fastcall StringDestroyOther(void*) EI_ORIGINAL(0x0040C770)
@@ -1287,8 +1284,8 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, int compressed) {
     std::uint32_t key[3];
     std::uint8_t allocator = 0;
-    StringDefault(key, nullptr, &allocator);
-    StringAssignRange(key, nullptr, name, name + std::strlen(name));
+    StringInitWithAllocator(key, nullptr, &allocator);
+    StringAssignSpan(key, nullptr, name, name + std::strlen(name));
     CacheIter it;
     CacheFind(cache, nullptr, &it, key);
     if (it.node != nullptr) {
@@ -1324,7 +1321,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             Evict(this, size, now);
         }
         WaveRecord record;
-        StringEmpty(record.name);
+        StringInitEmpty(record.name);
         StringAssignTagged(record.name, nullptr, reinterpret_cast<const char*>(key[0]), reinterpret_cast<const char*>(key[1]), 0);
         record.lastUsed = now;
         record.size = size;

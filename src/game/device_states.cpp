@@ -7,6 +7,7 @@
 #include "render/render_state.h"
 
 #include <cstdint>
+#include "originals_engine.h"
 
 namespace {
 
@@ -25,7 +26,6 @@ long ComCall(void* object, int slot, Args... args) {
 }
 
 // 004800E0 (cdecl): a DirectX error report (the result and a message); its result is returned.
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 
 } // namespace
 
@@ -47,10 +47,10 @@ int __fastcall RendererSetBlend(char* renderer, void*, std::uint32_t source, std
     long hr = ComCall(At<void*>(At<char*>(renderer, 0x20), 0x54), kSetRenderState, kSourceBlend,
                       static_cast<unsigned long>(source));
     render::state::Render(kSourceBlend, source);
-    if (hr != 0) return DirectXError(hr, reinterpret_cast<const char*>(0x0078EE88));   // "Can't set source alpha blend mode."
+    if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE88));   // "Can't set source alpha blend mode."
     hr = ComCall(At<void*>(At<char*>(renderer, 0x20), 0x54), kSetRenderState, kDestBlend, static_cast<unsigned long>(dest));
     render::state::Render(kDestBlend, dest);
-    if (hr != 0) return DirectXError(hr, reinterpret_cast<const char*>(0x0078EE5C));   // "Can't set destination alpha blend mode."
+    if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE5C));   // "Can't set destination alpha blend mode."
     return 1;
 }
 EI_REPLACE(0x00501C60, RendererSetBlend);

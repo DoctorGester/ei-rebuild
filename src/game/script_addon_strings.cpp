@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "random.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <windows.h>
 
@@ -25,7 +26,6 @@ namespace scriptaddon {
 namespace {
 
 // 0057F440 on 007AFE20: whether this is a network game.
-__declspec(naked) bool __fastcall NetworkIsMultiplayer(void*) EI_ORIGINAL(0x0057F440)
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
 __declspec(naked) void __fastcall ServerSay(void*, void*, const char*, int) EI_ORIGINAL(0x0041A310)
 
@@ -152,7 +152,7 @@ bool StrUpper(Call* call) {
 
 // Say(text, ...): in a network game, the joined texts go out as a chat line from the server.
 bool Say(Call* call) {
-    if (NetworkIsMultiplayer(reinterpret_cast<void*>(0x007AFE20))) {
+    if (IsNetworkClientOriginal()) {
         void* server = *reinterpret_cast<void**>(0x0079B5DC);
         if (server && !(*reinterpret_cast<std::uint32_t*>(static_cast<char*>(server) + 4) & 0x80000000u)) {
             std::string text = Joined(call);

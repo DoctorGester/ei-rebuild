@@ -241,7 +241,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
     if (ticks >= 0) {
         float wake = e->radius + ConstAt(kWakeMargin);
         WorldWakeUnits(e->world, nullptr, &e->position, wake);
-        FindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
+        SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
         for (auto* node = units.head; node;) {
             CEngineObject* unit = node->data;
             node = node->next;
@@ -267,7 +267,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
         void* player = At<void*>(e->caster, 0x24C);
         if (player) {
             void* group = RevealGroup(player);
-            FindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
+            SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
             for (auto* node = units.head; node;) {
                 CEngineObject* unit = node->data;
                 node = node->next;

@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_engine.h"
 
 namespace {
 
@@ -26,7 +27,6 @@ CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x00
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004800E0 (cdecl): a fatal DirectX error; its result says whether the caller goes on.
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 
 // A surface holder: +0x08 the last result, +0x10 the IDirectDrawSurface7, +0x1C bits per pixel.
 void** SurfaceOf(std::uint8_t* holder) { return Get<void**>(holder, 0x10); }
@@ -41,7 +41,7 @@ int Lock(std::uint8_t* holder, RECT* rect, std::uint32_t* desc) {
     using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
     long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(surface))[25])(surface, rect, desc, 1, nullptr);
     Set(holder, 8, hr);
-    if (hr != 0) return DirectXError(hr, Text(0x0078E30C));   // "Can't lock surface"
+    if (hr != 0) return FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
     return 1;
 }
 
@@ -51,7 +51,7 @@ void Unlock(std::uint8_t* holder) {
     using UnlockFn = long(__stdcall*)(void**, RECT*);
     long hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
     Set(holder, 8, hr);
-    if (hr != 0) DirectXError(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+    if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
 // The blend for pixels of type T (16 or 32 bits): to = (under & saved) | image, row by row over

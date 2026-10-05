@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
 
@@ -126,8 +127,6 @@ __declspec(naked) int __fastcall StateSendStart(void*, void*, const Vector3* /*p
 __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
                                                  StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
 // 005C0BD0 (RET 0xC). CSectorMap: the units within `radius` of `position` into a CPtrList.
-__declspec(naked) void __fastcall SectorMapUnitsInRadius(void*, void*, const void* /*position*/, void* /*list*/,
-                                                         float /*radius*/) EI_ORIGINAL(0x005C0BD0)
 // 0052CA10. CPtrList destructor body (RemoveAll).
 __declspec(naked) void __fastcall PtrListDestruct(void*, void*) EI_ORIGINAL(0x0052CA10)
 // 004E58A0 (RET 4). Writes a zone exit to a stream.
@@ -257,7 +256,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, void
         float minimum = At<float>(controller, 0x2A4);
         float range = !(perception >= minimum) ? minimum : perception;   // the original's branch-free select
         float radius = StoreFloat(static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin()));
-        SectorMapUnitsInRadius(world->sectorMap_, nullptr, &At<std::uint8_t>(unit, 0x1C), &heard, radius);
+        SectorMapFindUnitsInRadius(world->sectorMap_, nullptr, &At<std::uint8_t>(unit, 0x1C), &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = reinterpret_cast<void*>(kPtrListVtable);
         PtrListDestruct(&heard, nullptr);

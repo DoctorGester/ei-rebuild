@@ -30,7 +30,6 @@ T& At(void* object, int offset) {
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
 // 00455940 the owning manager's context (the world server); 00455950 the object's world.
-__declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
 // 005C7430 UnitMotion::Sample (ai_motion.cpp) on CUnit + 0x27C.
 // The controller's animation helpers (not rewritten): 00551400 the next animation of the order,
 // 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
@@ -52,7 +51,6 @@ __declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, std::uint32
 __declspec(naked) void __fastcall StepsAddStep(AnimationSteps*, void*, std::uint32_t, int) EI_ORIGINAL(0x00544CE0)
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
 // (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
-__declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall FaceDirection(CUnit*, void*, const float*) EI_ORIGINAL(0x00402220)
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
 __declspec(naked) bool __fastcall SectorMove(void*, void*, CUnit*, const float*) EI_ORIGINAL(0x005C11D0)
@@ -226,7 +224,7 @@ void ClearWaitingFor(void* controller) {
 
 // The unit is on the map as an obstacle (+0x278) or not: re-registered when that changes.
 void SetObstacle(CUnitServer* c, int obstacle) {
-    void* world = ContextOf(c);
+    void* world = ManagerContextOf(c);
     CUnit* unit = UnitOf(c);
     if (At<int>(unit, 0x278) == obstacle) return;
     SectorMapRemove(AsSectorMap(SectorsOf(world)), nullptr, unit);
@@ -408,7 +406,7 @@ void Replan(CUnitServer* c, void* world, bool liftBlocker, const float* position
 
     float range = At<float>(c, 0xA4);
     std::uint32_t saved = At<std::uint32_t>(UnitOf(c), 0x43C);
-    void* context = ContextOf(c);
+    void* context = ManagerContextOf(c);
     At<std::uint8_t>(MotionOrder(c), 0x6E) = At<void*>(UnitOf(c), 0x24C) ? 0 : 1;
     std::uint32_t current = At<std::uint32_t>(UnitOf(c), 0x43C);
     At<std::uint32_t>(UnitOf(c), 0x43C) = saved;
@@ -476,7 +474,7 @@ void Exhaustion(CUnitServer* c) {
 // cases, so a unit that reached no cell, or a cell outside the map, decides on whatever the stack
 // held there.
 void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
-    void* world = ContextOf(c);
+    void* world = ManagerContextOf(c);
     float position[3];
     std::memcpy(position, &At<float>(UnitOf(c), 0x1C), 12);
     ToHalfCells(position);

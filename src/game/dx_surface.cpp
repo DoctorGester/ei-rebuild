@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>
+#include "originals_engine.h"
 
 namespace {
 
@@ -44,7 +45,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 
 // 004800E0 / 00480080 (cdecl): DirectX error / fatal error reports (the second printf-like);
 // nonzero to go on.
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 __declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
 // The thrown error object: operator new (007005AF), its constructor (00480250, cdecl: object,
 // format, width, height) and _CxxThrowException (006E7819) with its throw info 00759908.
@@ -125,7 +125,7 @@ bool ReadSize(char* holder) {
     d[0] = 0x7C;
     long hr = ComCall(At<void*>(holder, 0x10), kGetSurfaceDesc, static_cast<void*>(d));
     At<long>(holder, 8) = hr;
-    if (hr != 0 && !DirectXError(hr, Text(0x0078E6C4))) return false;   // "Can't get surface description"
+    if (hr != 0 && !FatalDirectX(hr, Text(0x0078E6C4))) return false;   // "Can't get surface description"
     At<std::uint32_t>(holder, 0x14) = d[kWidth];
     At<std::uint32_t>(holder, 0x18) = d[kHeight];
     At<std::uint32_t>(holder, 0x1C) = d[kBits];
@@ -204,7 +204,7 @@ char* __fastcall DXSurfaceConstruct(char* holder, void*, char* device, int width
     desc[kFormat] = 0x20;
     long hr = ComCall(At<void*>(primary, 0x10), kGetPixelFormat, static_cast<void*>(&desc[kFormat]));
     At<long>(primary, 8) = hr;
-    if (hr != 0) DirectXError(hr, Text(0x0078E714));   // "Can't get pixel format from surface"
+    if (hr != 0) FatalDirectX(hr, Text(0x0078E714));   // "Can't get pixel format from surface"
 
     if (!At<char*>(holder, 0xC)) {
         if (!FatalError(Text(0x0078E8CC))) ThrowCreateFailed(width, height);
@@ -360,7 +360,7 @@ int __fastcall DXSurfaceLoadPicture(char* holder, void*, const void* data, int f
         desc[kFormat] = 0x20;
         long hr = ComCall(At<void*>(primary, 0x10), kGetPixelFormat, static_cast<void*>(&desc[kFormat]));
         At<long>(primary, 8) = hr;
-        if (hr != 0) DirectXError(hr, Text(0x0078E714));   // "Can't get pixel format from surface."
+        if (hr != 0) FatalDirectX(hr, Text(0x0078E714));   // "Can't get pixel format from surface."
         gameapi::LeaveCriticalSection(DeviceLock());
         // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH: the format (the primary's) is not passed.
         desc[kFlags] = 7;
@@ -430,14 +430,14 @@ int __fastcall DXSurfaceLoadPicture(char* holder, void*, const void* data, int f
         format[0] = 0x20;
         long hr = ComCall(At<void*>(holder, 0x10), kGetPixelFormat, static_cast<void*>(format));
         At<long>(holder, 8) = hr;
-        if (hr != 0 && !DirectXError(hr, Text(0x0078E714)))   // "Can't get pixel format from surface."
+        if (hr != 0 && !FatalDirectX(hr, Text(0x0078E714)))   // "Can't get pixel format from surface."
             return FatalError(Text(0x0078EA80));               // "Can't get surface pixel format to load picture."
         gameapi::EnterCriticalSection(DeviceLock());
         // DDLOCK_WAIT | DDLOCK_WRITEONLY | DDLOCK_NOSYSLOCK
         hr = ComCall(At<void*>(holder, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), 0x821ul,
                      static_cast<void*>(nullptr));
         At<long>(holder, 8) = hr;
-        if (hr != 0 && !DirectXError(hr, Text(0x0078E30C)))   // "Can't lock surface."
+        if (hr != 0 && !FatalDirectX(hr, Text(0x0078E30C)))   // "Can't lock surface."
             return FatalError(Text(0x0078EA58));               // "Can't lock surface to load picture." (lock held)
     }
     FillPicture(holder, picture, desc, format);
@@ -445,7 +445,7 @@ int __fastcall DXSurfaceLoadPicture(char* holder, void*, const void* data, int f
     if (!direct) {
         long hr = ComCall(At<void*>(holder, 0x10), kUnlock, static_cast<void*>(nullptr));
         At<long>(holder, 8) = hr;
-        if (hr != 0 && !DirectXError(hr, Text(0x0078E2F4)))   // "Can't unlock surface."
+        if (hr != 0 && !FatalDirectX(hr, Text(0x0078E2F4)))   // "Can't unlock surface."
             return FatalError(Text(0x0078E9E4));               // "Can't unlock surface after load picture."
     }
     return 1;

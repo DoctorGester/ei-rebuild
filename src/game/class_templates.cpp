@@ -76,10 +76,7 @@ struct RawString {
     char* eos;
 };
 __declspec(naked) RawString* __fastcall StringFromChars(RawString*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
-__declspec(naked) void __fastcall StringDefault(RawString*, void*, const void*) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void __fastcall StringAssign(RawString*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)
-__declspec(naked) void __fastcall StringDestroy2(RawString*) EI_ORIGINAL(0x00425040)
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
@@ -146,8 +143,8 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     for (int i = 0; i < names.size_; ++i) {
         const char* code = SpellCode(names.data_[i]);
         RawString key;
-        StringDefault(&key, nullptr, &alloc);
-        StringAssign(&key, nullptr, code, code + std::strlen(code));
+        StringInitWithAllocator(&key, nullptr, &alloc);
+        StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
         void* record = *SpellAt(kSpellMap, nullptr, &key);
         StlStringDestroy(&key);
         if (record && Allowed(t, record, 0x80)) {
@@ -161,7 +158,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         // operator[] inlined: an empty string assigned the code, a (key, null) pair built from it,
         // find_or_insert, the pair and the string destroyed.
         RawString key{};
-        StringAssign(&key, nullptr, code, code + std::strlen(code));
+        StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
         struct {
             RawString name;
             void* record;
@@ -171,7 +168,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         char* element = ModifierFindOrInsert(kModifierMap, nullptr, &pair);
         StlStringDestroy(&pair.name);
         void* record = At<void*>(element, 0xC);
-        StringDestroy2(&key);
+        StringBufferFree(&key);
         if (record && Allowed(t, record, 0x20)) {
             AddModifier(MagicList(t), nullptr, record);
             AddModifier(AllList(t), nullptr, record);

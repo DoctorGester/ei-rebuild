@@ -6,6 +6,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -38,7 +39,7 @@ double GroundHeight(void* world, float x, float y) { return ei::VCall<double>(wo
 } // namespace
 
 void* CMapObject::World() { return ObjectWorld(this); }
-__declspec(naked) std::uintptr_t CMapObject::MarkChanged(int) EI_ORIGINAL(0x0050E9F0)
+std::uintptr_t CMapObject::MarkChanged(int part) { return reinterpret_cast<std::uintptr_t>(UnitMarkChanged(this, nullptr, part)); }
 __declspec(naked) int CMapObject::HasEffect(std::uint32_t) EI_ORIGINAL(0x0050F630)
 
 // --- Per-tick update -------------------------------------------------------------------------

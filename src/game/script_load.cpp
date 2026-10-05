@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "originals_core.h"
 #include "originals_library.h"
 
 #include <cstdint>
@@ -44,9 +45,8 @@ __declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
-__declspec(naked) CEngineObject* __fastcall RegistryFind(void*, void*, int) EI_ORIGINAL(0x00403F40)
 __declspec(naked) CEngineObject* __fastcall WorldFindObject(void*, void*, int) EI_ORIGINAL(0x00593AA0)
-CEngineObject* RegistryObject(int id) { return RegistryFind(*reinterpret_cast<void**>(0x007AFFA8), nullptr, id); }
+CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_cast<void**>(0x007AFFA8), nullptr, id); }
 
 // Rewritten script helpers, called through their addresses (their verify wrappers run).
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)

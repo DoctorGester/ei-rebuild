@@ -24,16 +24,12 @@ namespace {
 // STLport strings and lists (library instantiations).
 __declspec(naked) StringRep* __fastcall StringPlusText(StringRep* /*out*/, const StringRep* /*a*/, const char* /*b*/) EI_ORIGINAL(0x00427D60)
 __declspec(naked) void __fastcall StringDestroyA(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
-__declspec(naked) void __fastcall StringDestroyVector(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
-__declspec(naked) StringRep* __fastcall StringWithAlloc(StringRep* /*s*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void __fastcall StringRangeInit(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringRangeInitTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042A3D0)
 __declspec(naked) void __fastcall StringAllocProxy(char** /*eos*/, void*, const void* /*alloc*/, char* const* /*value*/) EI_ORIGINAL(0x00425080)
 __declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
 __declspec(naked) char* __fastcall CopyTrivial(const char* /*first*/, const char* /*last*/, char* /*result*/) EI_ORIGINAL(0x004193D0)
 __declspec(naked) void __fastcall StringErase(StringRep* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
 __declspec(naked) void __fastcall StringAppend(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042AFB0)
-__declspec(naked) StringRep* __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219E0)
 __declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
 __declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
@@ -99,7 +95,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
         ei::SetVtable(award, kMessageVtable);
         award->version_ = 1;
         award->connection_.ptr = nullptr;
-        MessageStringConstruct(&award->text_);
+        StringInitEmpty(&award->text_);
         ei::SetVtable(award, AwardMessage::kVtableAddress);
     }
     CRefObject* previous = award->connection_.ptr;
@@ -142,7 +138,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
     AwardsPushBack(&awards_, nullptr, &entry);
     entry.award.Destroy();
     DestroyInline(&shared);
-    StringDestroyVector(&text);
+    StringBufferFree(&text);
 }
 
 // 004191C0: finds the host (the first binding whose player is live and has the host flag) and,
@@ -229,12 +225,12 @@ void ServerSession::CompleteZone(const StringRep* zone) {
             CRefObject* connection = node->connection;
             std::uint8_t allocator = 0;
             StringRep text0;
-            StringWithAlloc(&text0, nullptr, &allocator);
+            StringInitWithAllocator(&text0, nullptr, &allocator);
             const char* empty = Text(kEmptyText);
-            StringRangeInit(&text0, nullptr, empty, empty + std::strlen(empty));
+            StringAssignSpan(&text0, nullptr, empty, empty + std::strlen(empty));
             QueueAward(connection, 0, award0, text0);
             StringRep text1;
-            StringWithAlloc(&text1, nullptr, &allocator);
+            StringInitWithAllocator(&text1, nullptr, &allocator);
             StringRangeInitTag(&text1, nullptr, empty, empty + std::strlen(empty), static_cast<std::uint32_t>(share));
             QueueAward(connection, 1, award1, text1);
             node = node->next;
@@ -282,8 +278,8 @@ void ServerSession::LeaveZone() {
         const char* keyText = key.start;
         StringRep lookup;
         std::uint8_t allocator = 0;
-        StringWithAlloc(&lookup, nullptr, &allocator);
-        StringRangeInit(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
+        StringInitWithAllocator(&lookup, nullptr, &allocator);
+        StringAssignSpan(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
         auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &lookup));
         StlStringDestroy(&lookup);
         StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));

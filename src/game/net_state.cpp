@@ -10,6 +10,7 @@
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -226,12 +227,10 @@ namespace {
 // field reader's CString [0047E310 (out)], CString operator= [00700AA9] and destructor [00700970].
 __declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
 __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
-__declspec(naked) void __fastcall UnitMarkChanged(void*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall PathRead(void*, void*, DeltaField*) EI_ORIGINAL(0x005C7FC0)
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
 __declspec(naked) void __fastcall PlayerRemoveUnit(void*, void*, void*) EI_ORIGINAL(0x00665B50)
 __declspec(naked) void __fastcall PlayerAddUnit(void*, void*, void*) EI_ORIGINAL(0x00665A70)
-__declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
 __declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
 
@@ -396,7 +395,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* unit, void*, int first) 
                 if (void* c = At<void*>(unit, 0x240)) ei::VCall<void>(c, kSlotSetPlayer, nullptr);
             }
         } else if (!current || At<int>(current, 0xC) != id) {
-            std::uint8_t* view = LocalView(ManagerContext(unit));
+            std::uint8_t* view = LocalView(ManagerContextOf(unit));
             void* local = At<void*>(view, 0x1C);
             if ((At<int>(local, 0xC) == id || At<std::uint8_t>(view, 0x84)) && At<void*>(unit, 0x24C) != local) {
                 void* old = At<void*>(unit, 0x24C);

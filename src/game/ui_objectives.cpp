@@ -246,7 +246,7 @@ struct SurfaceDraw {
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 struct SpriteAt {
     // 005E99D0 (Rebirth-patched): a triangle sprite (corners (x0,y0), (x1,y1), (x2,y2) at `depth`,
@@ -548,15 +548,13 @@ __declspec(naked) void __fastcall FillQuestPlaces(CObjectivesWindow*, void*, con
 // empty slot for a name it lacks.
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
 // STLport string members: default constructor [004217E0], assign [00428F10], destructor [0040C720].
-__declspec(naked) void __fastcall StringDefault(void*, void*, const void*) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void __fastcall StringAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 
 // The quest's experience (+0xC) and money (+0x14) rewards, from the quest database.
 void* QuestRecord(const char* name) {
     std::uint32_t key[3];
     std::uint8_t allocator = 0;
-    StringDefault(key, nullptr, &allocator);
-    StringAssign(key, nullptr, name, name + std::strlen(name));
+    StringInitWithAllocator(key, nullptr, &allocator);
+    StringAssignSpan(key, nullptr, name, name + std::strlen(name));
     void* record = *QuestIndexAt(QuestIndex(), nullptr, key);
     StlStringDestroy(key);
     return record;

@@ -71,9 +71,9 @@ struct Ostream {
 };
 __declspec(naked) Ostream* Ostream::PutInt(int) EI_ORIGINAL(0x006FC14E)
 __declspec(naked) Ostream* Ostream::PutLong(unsigned long) EI_ORIGINAL(0x006FC91C)
-__declspec(naked) Ostream* Ostream::PutChar(char) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) Ostream* Ostream::PutString(const char*) EI_ORIGINAL(0x006FC31D)
-__declspec(naked) Ostream* Ostream::Manipulate(void*) EI_ORIGINAL(0x00434FE0)
+Ostream* Ostream::PutChar(char c) { return static_cast<Ostream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
+Ostream* Ostream::PutString(const char* text) { return static_cast<Ostream*>(OstreamPutString(this, nullptr, text)); }
+Ostream* Ostream::Manipulate(void* manipulator) { return static_cast<Ostream*>(OstreamManipulate(this, nullptr, manipulator)); }
 Ostream* Console() { return reinterpret_cast<Ostream*>(0x007C55A8); }
 void* const kFlush = reinterpret_cast<void*>(0x00435000);
 

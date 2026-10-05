@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_engine.h"
 #include "originals_units.h"
 
 #include <cstdint>
@@ -56,7 +57,6 @@ __declspec(naked) void __fastcall FiguresSetSize(void*, void*, int, int) EI_ORIG
 __declspec(naked) void* __fastcall FakeUnitDestructAt(void*) EI_ORIGINAL(0x00446910)
 // 00446C10 (__stdcall file, regFile, unit; ECX the unit as well): the scene loader.
 __declspec(naked) int __fastcall LoadScene(void* /*ecx unit*/, void*, const char*, const char*, void*) EI_ORIGINAL(0x00446C10)
-__declspec(naked) void* __fastcall ManagerContext(const void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) void __fastcall FigureAttach(void* /*figure*/, void*, void*) EI_ORIGINAL(0x0059F390)
 
 // The member at +0x4E0 emptied and the unit's own Destroy (the start of both the destructor and
@@ -134,7 +134,7 @@ EI_REPLACE(0x00446B20, FakeUnitDestroy);
 int __fastcall FakeUnitLoadScene(std::uint8_t* self, void*, const char* file, const char* regFile) {
     if (!LoadScene(self, nullptr, file, regFile, self)) return 0;
     for (int i = 0; i < At<Array>(self, 0x530).size; ++i) {
-        void* manager = ei::VCall<void*>(ManagerContext(self), 21);
+        void* manager = ei::VCall<void*>(ManagerContextOf(self), 21);
         void* object = ei::VCall<void*>(manager, 23, 0x45, -1);
         FigureAttach(At<Array>(self, 0x530).data + i * 0x220, nullptr, object);
     }

@@ -27,9 +27,7 @@ namespace {
 
 // --- STLport (library) ---------------------------------------------------------------------------
 __declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
-__declspec(naked) void __fastcall StringRangeInit(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringAssignRange(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00426A80)
-__declspec(naked) void __fastcall StringDestruct(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
 // vector<RefPtr> of the file message: copy of the elements sharing them, deallocate.
 __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AE90)
 __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
@@ -81,7 +79,7 @@ void StringCopy(StringRep& to, const StringRep& from) {
     to.start = nullptr;
     to.finish = nullptr;
     to.eos = nullptr;
-    StringRangeInit(&to, nullptr, from.start, from.finish);
+    StringAssignSpan(&to, nullptr, from.start, from.finish);
 }
 // An empty string with an 8-byte block from _M_allocate_block.
 void StringEmpty(StringRep& s) {
@@ -1097,8 +1095,8 @@ ServerEntry* ServerEntry::Clone() {   // 00412590
 }
 int ServerEntry::OnShutdown() {   // 00412750
     ei::SetVtable(this, kVtableAddress);
-    StringDestruct(&description_);
-    StringDestruct(&name_);
+    StringBufferFree(&description_);
+    StringBufferFree(&name_);
     ei::SetVtable(this, kRefObjectRootVtable);
     ConstructBase();
     StringEmpty(name_);

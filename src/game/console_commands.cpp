@@ -6,6 +6,7 @@
 #include "../lib/crt.h"
 
 #include "ei/hook.h"
+#include "originals_world.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -120,7 +121,6 @@ __declspec(naked) void __fastcall Split(const char*, CStringArray*, char) EI_ORI
 __declspec(naked) void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
 
 // 0057F440 (with the game 007AFE20 in ECX): a network game is running.
-__declspec(naked) int __fastcall NetworkGameAt(void*) EI_ORIGINAL(0x0057F440)
 
 // 0079B5D8: the network server, active unless +4 has bit 31.
 inline char* Server() { return *reinterpret_cast<char**>(0x0079B5D8); }
@@ -269,7 +269,7 @@ EI_REPLACE(0x005DE460, Show);
 void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine(GameText(0x007926A4));   // usage
     char* player;
-    if (NetworkGameAt(reinterpret_cast<void*>(0x007AFE20)) & 0xFF)
+    if (IsNetworkClientOriginal())
         player = Field<char*>(DebugDisplay()->LocalClient(), 0x1C);
     else
         player = World()->GetPlayer(Atoi((*args)[0]));

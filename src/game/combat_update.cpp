@@ -69,12 +69,10 @@ constexpr int kSlotPlayerUnitDied = 0x50 / 4; // the player's message object, sl
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
 // 00455940 the owning manager's context (the world server); 00455950 the object's world.
-__declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
 // CUnit (unit.cpp and the unit range): 0050E9F0 MarkChanged, 0052EA90 the animation bytes
 // (+0x254..+0x256, time +0x258), 0052EAD0 / 0052EAF0 the dwords +0x25C / +0x260, 00530570 the
 // size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
 // speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
-__declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0052EAD0)
 __declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
 __declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x00530970)
@@ -142,7 +140,7 @@ IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 int CurrentFrame() { return *reinterpret_cast<const int*>(0x007AFFC4); }
 void* const kWorldServer = reinterpret_cast<void*>(0x007AFF60);
 void* const kAIEvents = reinterpret_cast<void*>(0x007B2798);   // the world server + 0x2838
-int WorldTime(const void* object) { return At<int>(ContextOf(object), 0x64); }
+int WorldTime(const void* object) { return At<int>(ManagerContextOf(object), 0x64); }
 
 AnimationSteps& Queue(CUnitServer* self) { return At<AnimationSteps>(self, 0x24); }
 AnimationSteps& SavedQueue(CUnitServer* self) { return At<AnimationSteps>(self, 0x148); }
@@ -173,7 +171,7 @@ void SwitchWeaponIfWanted(CUnit* unit) {
 
 // The unit's standing flag (CUnit + 0x278) changed, re-registered on the sector map.
 void SetStandingFlag(CUnitServer* self, int standing) {
-    void* world = ContextOf(self);
+    void* world = ManagerContextOf(self);
     CUnit* unit = self->unit;
     int& flag = At<int>(unit, 0x278);
     if (flag == standing) return;
@@ -301,7 +299,7 @@ int CUnitServer::UpdateServer() {
 
     // Dead: the body sinks (accelerating) until it is at height 0; once the death animation is
     // over, the death is reported and the orders are dropped.
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     if (self->positionZ > 0.0f) {
         float& sinking = At<float>(this, 0x8F4);
         sinking += *reinterpret_cast<const float*>(0x0073C548);
@@ -602,7 +600,7 @@ EI_REPLACE_METHOD(0x00549690, CUnitServer::EndOrder);
 // --- Acting -------------------------------------------------------------------------------------
 
 void CUnitServer::TickAction() {
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     int now = At<int>(world, 0x64);
     if (now == At<int>(this, 0x180)) UnitUpdateSizeClass(unit);
     OrderPlan& plan = Plan(this);
@@ -631,7 +629,7 @@ void CUnitServer::TickAction() {
     }
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
-        void* context = ContextOf(this);
+        void* context = ManagerContextOf(this);
         float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
         float direction[3];
         float speed;
@@ -703,7 +701,7 @@ EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);
 // --- Item spells --------------------------------------------------------------------------------
 
 void CUnitServer::TickItemSpells() {
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     bool healed = false;
     struct Node {
         Node* next;

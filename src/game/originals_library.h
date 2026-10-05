@@ -14,6 +14,21 @@ struct RefPtr;
 
 // STLport std::string destructor (frees the buffer back to the node allocator unless it is the inline one).
 __declspec(naked) inline void __fastcall StlStringDestroy(void* /*string*/) EI_ORIGINAL(0x0040C720)
+// STLport string on the node allocator (the 12-byte begin / end / capacity rep): 0041F460 constructs an
+// empty one and returns `this` (RET); 004217E0 does the same with an allocator argument (RET 4, returns
+// `this`); 00428F10 assigns the range [first, last) (RET 8); 00425040 frees the buffer (RET).
+__declspec(naked) inline void* __fastcall StringInitEmpty(void* /*string*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) inline void* __fastcall StringInitWithAllocator(void* /*string*/, void*, const void* /*alloc*/)
+    EI_ORIGINAL(0x004217E0)
+__declspec(naked) inline void __fastcall StringBufferFree(void* /*string*/) EI_ORIGINAL(0x00425040)
+__declspec(naked) inline void __fastcall StringAssignSpan(void* /*string*/, void*, const char* /*first*/, const char* /*last*/)
+    EI_ORIGINAL(0x00428F10)
+// MSVC 6 iostream ostream members on the game's streams: operator<<(manipulator function) 00434FE0,
+// operator<<(char) 006FC0B0, operator<<(const char*) 006FC31D. All RET 4 and return the stream (`this`).
+__declspec(naked) inline void* __fastcall OstreamManipulate(void* /*stream*/, void*, void* /*manipulator*/)
+    EI_ORIGINAL(0x00434FE0)
+__declspec(naked) inline void* __fastcall OstreamPutChar(void* /*stream*/, void*, char) EI_ORIGINAL(0x006FC0B0)
+__declspec(naked) inline void* __fastcall OstreamPutString(void* /*stream*/, void*, const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) inline void** __fastcall PartiesEnd(void*, void*, void**) EI_ORIGINAL(0x004208A0)
 __declspec(naked) inline void __fastcall List25BCClear(void* /*list*/) EI_ORIGINAL(0x00421CD0)
 __declspec(naked) inline void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/)

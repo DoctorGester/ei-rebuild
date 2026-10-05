@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 
 #include <bit>
@@ -48,7 +49,6 @@ __declspec(naked) float* __stdcall AxisSwapMatrix(float*) EI_ORIGINAL(0x004F1330
 __declspec(naked) void __fastcall MultiplyMatrix(float* /*out*/, void*, const float*, const float*) EI_ORIGINAL(0x004D9880)
 // FatalError (patched by Rebirth; through its address), FatalError with an HRESULT, exit.
 __declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
-__declspec(naked) int __cdecl FatalErrorCode(long, const char*, ...) EI_ORIGINAL(0x004800E0)
 // The game's operator new, keeping EDX as the allocator leaves it (see CreateHelper).
 __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::uint32_t* /*edx out*/) {
     __asm {
@@ -306,7 +306,7 @@ void __fastcall RendererCreate(char* renderer, void*, void* window, char* settin
     char* holder = At<char*>(renderer, 0x20);
     long result = ComCall(At<void*>(holder, 0x54), kGetCaps, deviceDesc);
     At<long>(holder, 8) = result;
-    if (result != 0) FatalErrorCode(result, reinterpret_cast<const char*>(0x0078EE20));   // "Can't get device description"
+    if (result != 0) FatalDirectX(result, reinterpret_cast<const char*>(0x0078EE20));   // "Can't get device description"
     std::uint32_t driverCaps[0x5F] = {};
     std::uint32_t emulationCaps[0x5F] = {};
     driverCaps[0] = 0x17C;

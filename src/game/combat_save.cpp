@@ -6,6 +6,7 @@
 #include "ei/vcall.h"
 
 #include <cstdint>
+#include "originals_core.h"
 
 namespace {
 // Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
@@ -80,13 +81,12 @@ __declspec(naked) void __fastcall VoiceSave(void*, void*, UnitStream*) EI_ORIGIN
 __declspec(naked) void __fastcall AttackersLoad(void*, UnitStream*) EI_ORIGINAL(0x005585F0)
 __declspec(naked) void __fastcall AttackerSave(void*, void*, UnitStream*) EI_ORIGINAL(0x00545430)
 // 00403F40 CBaseManager::FindObject (base_manager.cpp), through its game address.
-__declspec(naked) CEngineObject* __fastcall FindObjectAt(void*, void*, int) EI_ORIGINAL(0x00403F40)
 
 // Resolves an id read from the stream in `manager` (-1: none).
 CEngineObject* ReadObject(UnitStream* stream, void* manager) {
     int id;
     stream->Read(&id, 4);
-    return id == -1 ? nullptr : FindObjectAt(manager, nullptr, id);
+    return id == -1 ? nullptr : ManagerFindObject(manager, nullptr, id);
 }
 
 void LoadOrder(UnitStream* stream, UnitAction* order) {

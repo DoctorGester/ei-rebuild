@@ -43,7 +43,6 @@ __declspec(naked) void __fastcall ApplyArea(CAIMap*, void*, int, int, int, int, 
 // 005B8710 (RET 0x10). The second pass over the inner rectangle.
 __declspec(naked) void __fastcall RefreshSecondPass(CAIMap*, void*, int, int, int, int) EI_ORIGINAL(0x005B8710)
 // The sector map (+0x124): objects within a radius of a point into a list (RET 0xC), Remove, Add.
-__declspec(naked) void __fastcall SectorCollect(void*, void*, const float*, void*, float) EI_ORIGINAL(0x005C0BD0)
 // 005AFEE0 (RET 0x14). The region map updates the blocks [x0, x1] x [y0, y1].
 __declspec(naked) void __fastcall RegionsUpdate(void*, void*, CAIMap*, int, int, int, int) EI_ORIGINAL(0x005AFEE0)
 
@@ -145,7 +144,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     centre[0] = cx;
     centre[1] = cy;
     void* sectorMap = reinterpret_cast<std::uint8_t*>(this) + kSectorMap;
-    SectorCollect(sectorMap, nullptr, centre, &objects, radius);
+    SectorMapFindUnitsInRadius(sectorMap, nullptr, centre, &objects, radius);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
         SectorMapRemove(AsSectorMap(sectorMap), nullptr, AsEngineObject(node->data));

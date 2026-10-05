@@ -90,11 +90,8 @@ __declspec(naked) void __fastcall StringsInsertOverflow(void*, void*, char*, con
 __declspec(naked) void __fastcall StringsInsertRange(void*, void*, char*, const char*, const char*, int) EI_ORIGINAL(0x00575E50)
 __declspec(naked) char* __fastcall NodeAllocate(int) EI_ORIGINAL(0x00405950)
 // STLport string members (as in figure_part_draw.cpp).
-__declspec(naked) void __fastcall StringDefault(void*, void*, const void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void __fastcall StringInitRange(void*, void*, const char*, const char*, int) EI_ORIGINAL(0x0042A3D0)
 __declspec(naked) void __fastcall StringEndOfStorage(void*, void*, const void*, const void*) EI_ORIGINAL(0x00425080)
-__declspec(naked) void __fastcall StringAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
-__declspec(naked) void __fastcall StringDestroy(void*) EI_ORIGINAL(0x00425040)
 
 const std::uint8_t kAllocator = 0;
 
@@ -327,7 +324,7 @@ void FigureUnit(char* self, const char* record) {
         for (const char* const* p = At<const char* const*>(record, 0x30); p != At<const char* const*>(record, 0x34); ++p) {
             const char* text = *p;
             alignas(4) char string[12];
-            StringDefault(string, nullptr, &kAllocator);
+            StringInitWithAllocator(string, nullptr, &kAllocator);
             StringInitRange(string, nullptr, text, text + std::strlen(text), 0);
             if (first.end != first.storageEnd) {
                 StringCopyConstruct(first.end, string);
@@ -335,7 +332,7 @@ void FigureUnit(char* self, const char* record) {
             } else {
                 StringsInsertOverflow(&first, nullptr, first.end, string, 1);
             }
-            StringDestroy(string);
+            StringBufferFree(string);
         }
     }
     StringsInsertRange(&first, nullptr, first.end, second.begin, second.end, 0);
@@ -346,10 +343,10 @@ void FigureUnit(char* self, const char* record) {
     int zero = 0;
     StringEndOfStorage(name + 8, nullptr, &kAllocator, &zero);
     const char* prefix = ModelPrefix(model);
-    StringAssign(name, nullptr, prefix, prefix + std::strlen(prefix));
+    StringAssignSpan(name, nullptr, prefix, prefix + std::strlen(prefix));
     ThisCall<void>(At<void*>(self, 0x34), 3, static_cast<void*>(name), static_cast<void*>(&first), At<std::uint32_t>(record, 0x24),
                    At<std::uint32_t>(record, 0x28), At<std::uint32_t>(record, 0x2C), 0);
-    StringDestroy(name);
+    StringBufferFree(name);
 
     for (char* s = second.begin; s != second.end; s += 12) StlStringDestroy(s);
     StringsDeallocate(&second.storageEnd, nullptr, second.begin, Count12(second.begin, second.storageEnd));

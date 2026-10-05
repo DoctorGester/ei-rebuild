@@ -7,6 +7,7 @@
 #include "ei/vcall.h"
 #include "lib/mfc.h"
 #include "random.h"
+#include "originals_ai.h"
 #include "originals_units.h"
 
 #include <cstdint>
@@ -23,8 +24,6 @@ void* GetPlayer(int number) { return WorldGetPlayer(reinterpret_cast<void*>(0x00
 
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).
-__declspec(naked) void __fastcall SectorCollect(void*, void*, const float*, mfc::CTypedPtrList<CEngineObject>*, float)
-    EI_ORIGINAL(0x005C0BD0)
 __declspec(naked) void __fastcall PtrListDestruct(mfc::CTypedPtrList<CEngineObject>*) EI_ORIGINAL(0x00427830)
 void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
 
@@ -63,7 +62,7 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
     list.vtable = reinterpret_cast<void*>(0x0073D454);
     list.blockSize = 10;
     float point[3] = {x, y, 0.0f};
-    SectorCollect(kSectorMap, nullptr, point, &list, radius);
+    SectorMapFindUnitsInRadius(kSectorMap, nullptr, point, &list, radius);
     for (auto* node = list.head; node; node = node->next) visit(node->data);
     PtrListDestruct(&list);
 }

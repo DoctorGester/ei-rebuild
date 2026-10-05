@@ -9,7 +9,9 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
+#include "originals_ui.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstdint>
 
@@ -39,8 +41,6 @@ constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
 // The panel surface's text draw [005FDE20, Rebirth-patched: text, rectangle, 0, colour, 0, 1].
-__declspec(naked) int __fastcall DrawText(void*, void*, const char*, RECT*, int, std::uint32_t, int, int)
-    EI_ORIGINAL(0x005FDE20)
 // The text manager (007AF788): the text of a key [004E0020: key, out].
 __declspec(naked) int __fastcall GetText(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
 // CUnit [thiscall]: the move speed of a mode [0052FAF0] or the current one [0052FA20] (in ST0),
@@ -58,7 +58,6 @@ __declspec(naked) double __fastcall VisionRange(void*, void*, float) EI_ORIGINAL
 // 005F13A0 [__fastcall, Rebirth-patched]: the description as lines [description, out, 1].
 __declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*, int) EI_ORIGINAL(0x005F13A0)
 // The session (007AFE20): a multiplayer client [0057F440, AL].
-__declspec(naked) bool __fastcall IsMultiplayerClient(void*) EI_ORIGINAL(0x0057F440)
 
 // What the unit's controller (+0x240, slot 50) reports for the info panel (0x20 bytes).
 struct CombatInfo {
@@ -103,7 +102,7 @@ struct Panel {
     // Draws `text` and moves down a line.
     void DrawLine() { DrawLine(text); }
     void DrawLine(const char* line) {
-        DrawText(surface, nullptr, line, &rect, 0, kTextColour, 0, 1);
+        SurfaceDrawText(surface, nullptr, line, &rect, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&rect, 0, kLineHeight);
     }
     // "<label> <line>" when the line is not empty.
@@ -213,7 +212,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
         panel.DrawLabelled(12, lines[2]);
     }
 
-    if (IsMultiplayerClient(reinterpret_cast<void*>(0x007AFE20)) && !outside) {
+    if (IsNetworkClientOriginal() && !outside) {
         GetText(texts, nullptr, kCampExp, &suffix);
         panel.text.Format(kValue, static_cast<const char*>(suffix), At<int>(stats, 8));
         panel.DrawLine();

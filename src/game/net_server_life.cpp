@@ -14,7 +14,6 @@ namespace net {
 namespace {
 
 // STLport destructors, clears and sentinel frees of the member containers (library).
-__declspec(naked) void __fastcall StringDestruct(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
 __declspec(naked) void __fastcall List25C0Destruct(void* /*list*/) EI_ORIGINAL(0x004238B0)
 __declspec(naked) void __fastcall List25BCDestruct(void* /*list*/) EI_ORIGINAL(0x004235F0)
 __declspec(naked) void __fastcall List25B4Clear(void* /*list*/) EI_ORIGINAL(0x004272E0)
@@ -55,8 +54,8 @@ void DestroyInline(RefPtr& slot) {
 // 00417BC0: the destructor body. The server's own vtable is not restored first (the original does
 // not either).
 void ServerSession::Destruct() {
-    StringDestruct(&mapName_);
-    StringDestruct(&name_);
+    StringBufferFree(&mapName_);
+    StringBufferFree(&name_);
     List25BCClear(&banned_);
     List25C0Destruct(&finishedTrades_);
     List25BCDestruct(&trades_);

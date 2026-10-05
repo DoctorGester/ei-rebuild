@@ -8,12 +8,16 @@
 #include <cstddef>
 #include <cstdint>
 
+class CEngineObject;
 struct RefPtr;
 struct Vector3;
 
 __declspec(naked) inline double __fastcall DotRaw(const Vector3* /*a*/, const Vector3* /*b*/) EI_ORIGINAL(0x00401E00)
 __declspec(naked) inline double __fastcall LengthRaw(const Vector3* /*v*/) EI_ORIGINAL(0x00401E20)
 __declspec(naked) inline float* __fastcall Negate(float* /*out*/, const float* /*v*/) EI_ORIGINAL(0x00402200)
+// 00403F40 (rewritten as CBaseManager::FindObject): the manager's object with this id, or null.
+__declspec(naked) inline CEngineObject* __fastcall ManagerFindObject(void* /*manager*/, void*, int /*id*/)
+    EI_ORIGINAL(0x00403F40)
 __declspec(naked) inline char* __fastcall AllocWords(int) EI_ORIGINAL(0x00406B30)
 __declspec(naked) inline void __fastcall ConstructEngineObject(void* /*object*/) EI_ORIGINAL(0x0040CB20)
 __declspec(naked) inline void __cdecl NetworkTimers() EI_ORIGINAL(0x004122D0)

@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_core.h"
 #include "originals_engine.h"
 
 #include <cstring>
@@ -249,7 +250,6 @@ std::uint8_t* PartyRecords::Find(int unitId) const {
 
 namespace {
 // 00403F40 (base_manager.cpp), through its game address.
-__declspec(naked) void* __fastcall FindObjectAt(void* /*manager*/, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
 } // namespace
 
 void CPlayer::Tick() {
@@ -259,7 +259,7 @@ void CPlayer::Tick() {
         node = node->next;
         int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
         void* manager = ei::VCall<void*>(&party_, 18, id);
-        void* object = FindObjectAt(manager, nullptr, id);
+        void* object = ManagerFindObject(manager, nullptr, id);
         if (object == nullptr || ei::VCall<int>(object, 6) == 0) objects_.RemoveAt(current);
     }
     ei::VCall<void>(connection_, 21);
