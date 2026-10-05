@@ -39,6 +39,27 @@ public:
     // +0x1C1), a mouse move at the current position, clears the depth (and stencil) buffer, then
     // the panels (00600EF0). Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
     BOOL Draw(void* target);
+    // 00638280 (slot 24, every frame; ui_battle_update.cpp). When the one selected party unit asks
+    // for it (its slot 55), empties the weapon, quick item, spell and action panels and shows the
+    // unit in the unit panel; a multiplayer client rebuilds the party from the session's players
+    // (sorted ids; the camera's player first); the children's update, the next queued message;
+    // the "leave_zone" box when a saved zone exit is pending (+0x18C); with a selection box
+    // (+0x1C1) the party units inside +0x1CC are marked (flag 0x100) and the others unmarked; the
+    // quest sound asked for in +0x1FC.
+    void Update();
+
+    // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
+    // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
+    struct IdVector {
+        int* begin;
+        int* end;
+        int* capacity;
+    };
+    struct PartyIds {
+        IdVector withUnit;
+        int camera;
+        IdVector without;
+    };
 
     int unknown_164;                 // +0x164 cleared by Create
     std::uint8_t partyArray_[0x14];  // +0x168 the party units (CArray; SetSize 005EBDB0)
@@ -60,18 +81,25 @@ public:
     CUiWindow* messageLog_;          // +0x1B8
     CUiWindow* topPanel_;            // +0x1BC
     bool unknown_1C0;                // +0x1C0
-    bool unknown_1C1;                // +0x1C1
-    std::uint8_t unknown_1C2[0x1DC - 0x1C2];
+    bool unknown_1C1;                // +0x1C1 a selection box is being dragged
+    std::uint8_t unknown_1C2[0x1CC - 0x1C2];
+    std::uint8_t selectionBox_[0x10];   // +0x1CC the box (passed to 005656A0)
     UiDwordArray heroes_;            // +0x1DC ids of the heroes shown (saved with the game)
     void* personTexts_;              // +0x1F0 STLport map<int, CString>: the "pers" texts by person
     std::uint8_t unknown_1F4[0x1FC - 0x1F4];
-    int unknown_1FC;                 // +0x1FC 0
+    int unknown_1FC;                 // +0x1FC 0; the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // +0x200 a hero id was added (new game)
-    std::uint8_t unknown_201[0x210 - 0x201];
+    std::uint8_t unknown_201[3];
+    // +0x204 the client's party ids last built (+0x210 = unknown_210 is its camera id, -1).
+    IdVector partyWithUnit_;         // +0x204
     int unknown_210;                 // +0x210 -1
-    std::uint8_t unknown_214[0x22C - 0x214];
+    IdVector partyWithout_;          // +0x214
+    std::uint8_t unknown_220[0x22C - 0x220];
     int portraitMode_;               // +0x22C 0
 };
+static_assert(offsetof(CBattleScreenSetup, selectionBox_) == 0x1CC);
+static_assert(offsetof(CBattleScreenSetup, partyWithUnit_) == 0x204);
+static_assert(offsetof(CBattleScreenSetup, partyWithout_) == 0x214);
 static_assert(offsetof(CBattleScreenSetup, partyArray_) == 0x168);
 static_assert(offsetof(CBattleScreenSetup, savedSelection_) == 0x188);
 static_assert(offsetof(CBattleScreenSetup, weaponBar_) == 0x194);
@@ -176,6 +204,68 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self);
 // its CStringArray (+0x1A4), the vectors at +0x190 (0x3C-byte entries) and +0x180, +0x174, +0x168,
 // +0x15C (0x18-byte entries), then the window base (ui_camp.cpp).
 void __fastcall TradePanelDestroy(CUiWindow* self);
+
+// --- Camp trade panel (the level-up page) ------------------------------------------------------
+//
+// The panel that sells skills for experience (vtable 007417A8; the camp's +0x1F4;
+// ui_trade_panel.cpp): the hero's six magic schools and science with
+// their levels, the perks the hero holds and the perks the hero may learn, each with its price.
+
+// A row of the panel's lists (0x18 bytes, STLport vectors at +0x15C .. +0x180).
+struct TradeRow {
+    char* name;                      // +0x00 CString shown text
+    char* key;                       // +0x04 CString the perk's record name (perk rows)
+    char* nextKey;                   // +0x08 CString the next level's record name (held perks below 3)
+    int price;                       // +0x0C experience
+    int level;                       // +0x10
+    bool learnable;                  // +0x14 set on the learnable list (not written in the others)
+    std::uint8_t unknown_15[3];
+};
+static_assert(sizeof(TradeRow) == 0x18);
+
+// STLport vector<TradeRow>.
+struct TradeRows {
+    TradeRow* begin;
+    TradeRow* end;
+    TradeRow* capacity;
+    int Count() const { return static_cast<int>(reinterpret_cast<const char*>(end) - reinterpret_cast<const char*>(begin)) / 0x18; }
+};
+
+class CTradePanel : public CUiWindow {
+public:
+    // 00625880 (__fastcall). Rebuilds the lists for the owner's hero (its slot 51): the hero's
+    // statistics are reset (00524CD0) and refreshed (owner slot 47); the schools (00793BD4 names,
+    // levels at stats +0x6CB, science +0x6C8, prices 00527FF0), the held perks (a level byte per
+    // group of three skill records at stats +0x6D3) and every first-level perk the hero may learn
+    // (005260A0), named by the texts "perk <name>"; the experience left; then the scroll positions
+    // are clamped (00626D70) and the lists drawn.
+    void BuildLists();
+    // 006261A0 (__fastcall). Draws the lists into surface 0: the three titles, the schools (the
+    // third one's row left empty) and science, ten held perks from perkTop_, 23 learnable perks
+    // from learnableTop_, each price in grey when it is over the experience, with a coin sprite
+    // per price (the scene objects past the first four are dropped first).
+    void DrawLists();
+
+    std::uint8_t unknown_148[4];
+    CUiWindow* owner_;               // +0x14C the camp or the hero screen (slot 51: the hero record)
+    std::uint8_t unknown_150[4];
+    int learnableTop_;               // +0x154 first learnable row shown
+    int perkTop_;                    // +0x158 first held perk shown
+    TradeRows learnable_;            // +0x15C
+    TradeRows perks_;                // +0x168
+    TradeRows schools_;              // +0x174 (six)
+    TradeRows science_;              // +0x180 (one)
+    int experience_;                 // +0x18C experience the hero can spend
+    std::uint8_t records_[0xC];      // +0x190 vector of 0x3C-byte entries
+    std::uint8_t unknown_19C[0x1A4 - 0x19C];
+    void* textsVtable_;              // +0x1A4 CStringArray: the titles
+    char** texts_;                   // +0x1A8
+};
+static_assert(offsetof(CTradePanel, owner_) == 0x14C);
+static_assert(offsetof(CTradePanel, learnable_) == 0x15C);
+static_assert(offsetof(CTradePanel, science_) == 0x180);
+static_assert(offsetof(CTradePanel, experience_) == 0x18C);
+static_assert(offsetof(CTradePanel, texts_) == 0x1A8);
 
 // --- Camp pages -----------------------------------------------------------------------------
 //

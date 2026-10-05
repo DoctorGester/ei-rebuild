@@ -2,7 +2,8 @@
 // motion it follows (00535850). See docs/notes/units.md ("Client path placement").
 //
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
-// library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit.
+// library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
+// (the two angles are rounded to float like the original's, which removed the common 1-ULP shift).
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
@@ -39,6 +40,13 @@ constexpr float kDecay = -0.3f;               // 0073CDFC
 constexpr float kAnimationRate = 15.0f;       // 0073C518
 float FullTurn() { return *reinterpret_cast<const float*>(0x007AF330); }   // set at start-up
 
+// Rounds an x87 intermediate to float, as the original's FSTP into a float temporary does. Under
+// /fp:fast a cast to float alone leaves the FPATAN result unrounded in the register.
+float Store(double v) {
+    volatile float r = static_cast<float>(v);
+    return r;
+}
+
 } // namespace
 
 // 00535850 (RET 8; slot 41 passes (+0x34, 0); 00535B30 the tick's time and rate). Samples the
@@ -74,8 +82,11 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     } else if (!x87::IsNaN(rate) && rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         float axis[3];
         FacingAxis(unit + 0x34, nullptr, axis);
-        float current = static_cast<float>(std::atan2(-static_cast<double>(axis[1]), -static_cast<double>(axis[0])));
-        float target = static_cast<float>(std::atan2(static_cast<double>(direction[1]), static_cast<double>(direction[0])));
+        // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
+        // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
+        // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
+        float current = Store(std::atan2(-static_cast<double>(axis[1]), -static_cast<double>(axis[0])));
+        float target = Store(std::atan2(static_cast<double>(direction[1]), static_cast<double>(direction[0])));
         for (;;) {
             float gap = target - current;
             gap = gap < 0 ? -gap : gap;
