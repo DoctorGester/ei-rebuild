@@ -66,7 +66,9 @@ public:
     CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the
                                     //       first of the two part sets Draw walks (+0x24 the
                                     //       second)
-    std::uint8_t unknown_24[0x38 - 0x24];
+    CEngineObject** secondMaterial; // +0x24 its object is the texture of the second part set (a
+                                    //       hero's simple skin, CUnitClientSpecific slot 30)
+    std::uint8_t unknown_28[0x38 - 0x28];
     FigurePart** drawnParts;        // +0x38 the parts a unit's fade-in reaches (FirstDrawnPart)
     int drawnPartCount;             // +0x3C
     std::uint8_t unknown_40[0x48 - 0x40];

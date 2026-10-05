@@ -12,8 +12,11 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "originals_engine.h"
 #include "originals_world.h"
+
+#include <cmath>
 
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
@@ -37,8 +40,14 @@ __declspec(naked) void __fastcall RestorePartColours(CObject3DClientSpecific*, v
 // 00538ED0 / 00539010. The blink: the face texture with closed / open eyes (RET 4).
 __declspec(naked) void __fastcall CloseEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00538ED0)
 __declspec(naked) void __fastcall OpenEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00539010)
-// 00534B60. The sounds of the animation's steps and hits (plain RET).
-__declspec(naked) void __fastcall PlayStepSounds(CUnitClientSpecific*) EI_ORIGINAL(0x00534B60)
+// Rewritten (unit_client_sounds.cpp, unit_client_models.cpp, below), called through their game
+// addresses so their verify wrappers stay in the path: 00534B60 the step sounds, 00537CB0 the weapon
+// parts, 00538C20 the bow's arrow, 0051B6D0 / 0051B6F0 the drawn parts.
+__declspec(naked) void __fastcall CallPlayStepSounds(CUnitClientSpecific*) EI_ORIGINAL(0x00534B60)
+__declspec(naked) void __fastcall CallShowWeaponParts(CUnitClientSpecific*, void*, bool) EI_ORIGINAL(0x00537CB0)
+__declspec(naked) void __fastcall CallUpdateArrow(CUnitClientSpecific*) EI_ORIGINAL(0x00538C20)
+__declspec(naked) FigurePart* __fastcall CallFirstDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6D0)
+__declspec(naked) FigurePart* __fastcall CallNextDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6F0)
 // 005380D0. Plays a speech; false when the same one played within 5 seconds (RET 4, AL).
 __declspec(naked) bool __fastcall Speak(CUnitClientSpecific*, void*, ClientSpeech*) EI_ORIGINAL(0x005380D0)
 // 005392F0 (library: STLport list::erase). Removes `at`, the next node to *out (RET 8).
@@ -82,7 +91,7 @@ int CUnitClientSpecific::UpdateClient() {
     if (unit->unknown_260 == 1) MotionPath()->ShiftTime(1);
     if (unit->unknown_25C == 1) ++unit->unknown_258;
     const FigureAnimation* current = unit->Object3D()->animation->current;
-    if (current) ShowWeaponParts((current->key & kKeyLowBits) == 0);
+    if (current) CallShowWeaponParts(this, nullptr, (current->key & kKeyLowBits) == 0);
 
     bool drawn;
     if (unit->dead && static_cast<CWorld*>(ObjectWorld(this))->tick_ >
@@ -97,7 +106,7 @@ int CUnitClientSpecific::UpdateClient() {
 
     if (!(fadeIn >= 1.0f)) {   // below 1, or NaN
         auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-        for (FigurePart* part = half->FirstDrawnPart(); part; part = half->NextDrawnPart()) part->alpha = fadeIn;
+        for (FigurePart* part = CallFirstDrawnPart(half); part; part = CallNextDrawnPart(half)) part->alpha = fadeIn;
         volatile float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
         fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
@@ -114,8 +123,8 @@ int CUnitClientSpecific::UpdateClient() {
             else OpenEyes(this, nullptr, 0);
         }
     }
-    UpdateArrow();
-    PlayStepSounds(this);
+    CallUpdateArrow(this);
+    CallPlayStepSounds(this);
 
     ClientSpeechNode* queue = speech;
     if (queue->next != queue) {
@@ -139,3 +148,59 @@ int CUnitClientSpecific::UpdateClient() {
     return 1;
 }
 EI_REPLACE_METHOD(0x005341A0, CUnitClientSpecific::UpdateClient);
+
+// --- Fade-in, level and wounds slots ----------------------------------------------------------
+
+namespace {
+// 007C5488 / 007C548C: the experience of level 0 and the factor between levels.
+float LevelBase() { return *reinterpret_cast<const float*>(0x007C5488); }
+float LevelFactor() { return *reinterpret_cast<const float*>(0x007C548C); }
+
+// Not rewritten (forwarders): 005370F0 (whether the unit's wounds need a texture, composing it;
+// plain RET), the client half's 0051C3D0 (shows wounds texture `name`, RET 4) and 0051C920 (none).
+__declspec(naked) int __fastcall NeedsWoundsTexture(CUnitClientSpecific*) EI_ORIGINAL(0x005370F0)
+__declspec(naked) void __fastcall ShowWounds(CObject3DClientSpecific*, void*, const char*) EI_ORIGINAL(0x0051C3D0)
+__declspec(naked) void __fastcall HideWounds(CObject3DClientSpecific*) EI_ORIGINAL(0x0051C920)
+
+CObject3DClientSpecific* ClientHalf(CUnit* unit) {
+    return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
+}
+
+// The drawn parts take `alpha`.
+void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
+    for (FigurePart* part = CallFirstDrawnPart(half); part; part = CallNextDrawnPart(half)) part->alpha = alpha;
+}
+} // namespace
+
+int CUnitClientSpecific::FiguresLoaded() {
+    SetPartsAlpha(ClientHalf(unit), fadeIn);
+    return 1;
+}
+EI_REPLACE_METHOD(0x005344E0, CUnitClientSpecific::FiguresLoaded);
+
+int CUnitClientSpecific::RestartFadeIn() {
+    fadeIn = 0.0f;
+    SetPartsAlpha(ClientHalf(unit), fadeIn);
+    return 0;
+}
+EI_REPLACE_METHOD(0x005344A0, CUnitClientSpecific::RestartFadeIn);
+
+int CUnitClientSpecific::Level() {
+    double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
+    double ratio = std::log(experience / LevelBase()) / std::log(static_cast<double>(LevelFactor()));
+    volatile float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
+    return static_cast<int>(std::lrint(level));
+}
+EI_REPLACE_METHOD(0x00539160, CUnitClientSpecific::Level);
+
+int CUnitClientSpecific::RefreshWounds() {
+    if (NeedsWoundsTexture(this)) {
+        char name[0x80];
+        gamecrt::sprintf(name, "mo%dw", unit->id_);
+        ShowWounds(ClientHalf(unit), nullptr, name);
+    } else {
+        HideWounds(ClientHalf(unit));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00537360, CUnitClientSpecific::RefreshWounds);

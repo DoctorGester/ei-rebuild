@@ -20,6 +20,7 @@
 #include "../../src/game/originals_engine.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 void* s_unusedUpdate;
@@ -92,3 +93,60 @@ static void __fastcall UpdateArrowVerify(CUnitClientSpecific* self) {
                       before, self->arrowHidden);
 }
 EI_VERIFY(0x00538C20, UpdateArrowVerify, 0, s_unusedArrow);
+
+// --- Fade-in, level and wounds slots ----------------------------------------------------------
+// FiguresLoaded (005344E0) / RestartFadeIn (005344A0): ours only; every drawn part's alpha is the
+// fade-in (0 after the restart), results 1 / 0. Level (00539160): pure, compared (a level whose
+// ratio lies within a float ULP of .5 could round differently: std::log instead of FYL2X).
+// RefreshWounds (00537360): ours only, result 1. Reached: slot 13 when a unit's figures load (every
+// spawn through CUnit::LoadUnitFigures: units, unit_create), slot 24 (CUnit::Level of a hero on the
+// client: the interface's level display, ui_hud), slot 31 (the network state reader after a
+// statistics change: every hit in combat, combat_more). Slot 43's callers are not traced (a virtual
+// slot); its counts show whether a scenario reaches it.
+
+namespace {
+void* s_unusedFiguresLoaded;
+void* s_unusedRestartFade;
+void* s_unusedWounds;
+
+bool PartsTake(CUnitClientSpecific* self, float alpha) {
+    const auto* half = static_cast<const CObject3DClientSpecific*>(self->unit->Object3D()->attached);
+    for (int i = 0; i < half->drawnPartCount; ++i)
+        if (std::memcmp(&half->drawnParts[i]->alpha, &alpha, sizeof(float)) != 0) return false;
+    return true;
+}
+} // namespace
+
+static int __fastcall FiguresLoadedVerify(CUnitClientSpecific* self) {
+    int result = self->FiguresLoaded();
+    ei::verify::Check("CUnitClientSpecific::FiguresLoaded", true, result == 1 && PartsTake(self, self->fadeIn),
+                      "unit %d", self->unit->id_);
+    return result;
+}
+EI_VERIFY(0x005344E0, FiguresLoadedVerify, 0, s_unusedFiguresLoaded);
+
+static int __fastcall RestartFadeInVerify(CUnitClientSpecific* self) {
+    int result = self->RestartFadeIn();
+    ei::verify::Check("CUnitClientSpecific::RestartFadeIn", true, result == 0 && self->fadeIn == 0.0f &&
+                      PartsTake(self, 0.0f), "unit %d", self->unit->id_);
+    return result;
+}
+EI_VERIFY(0x005344A0, RestartFadeInVerify, 0, s_unusedRestartFade);
+
+// 00539160: PUSH EBP; MOV EBP,ESP; SUB ESP,0xC (6 bytes).
+static int(__fastcall* s_level)(CUnitClientSpecific*);
+static int __fastcall LevelVerify(CUnitClientSpecific* self) {
+    int expected = s_level(self);
+    int actual = self->Level();
+    ei::verify::Check("CUnitClientSpecific::Level", expected, actual, "unit %d experience %d", self->unit->id_,
+                      self->unit->Params()->experience);
+    return actual;
+}
+EI_VERIFY(0x00539160, LevelVerify, 6, s_level);
+
+static int __fastcall RefreshWoundsVerify(CUnitClientSpecific* self) {
+    int result = self->RefreshWounds();
+    ei::verify::Check("CUnitClientSpecific::RefreshWounds", 1, result, "unit %d", self->unit->id_);
+    return result;
+}
+EI_VERIFY(0x00537360, RefreshWoundsVerify, 0, s_unusedWounds);

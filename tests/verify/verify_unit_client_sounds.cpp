@@ -58,3 +58,22 @@ static int __fastcall ActionSoundVerify(CUnitClientSpecific* self, void*, const 
     return actual;
 }
 EI_VERIFY(0x00534760, ActionSoundVerify, 7, s_actionSound);
+
+// 00534B60. Ours only (plays sounds, shakes the camera, adds footprints, draws rand()). Afterwards the
+// controller remembers the animation playing and, unless the frame did not move (or there is no
+// animation), its frame; the footprint countdown stays within 0..7.
+static void* s_unusedPlayStepSounds;
+static void __fastcall PlayStepSoundsVerify(CUnitClientSpecific* self) {
+    const CFigureAnimationState* state = self->unit->Object3D()->animation;
+    const FigureAnimation* current = state->current;
+    float now = state->time;
+    float last = self->lastAnimation == current ? self->lastAnimationTime : 0.0f;
+    bool moved = now < last || now > last;
+    self->PlayStepSounds();
+    float expected = moved && current ? now : last;
+    bool ok = self->lastAnimation == current && std::memcmp(&self->lastAnimationTime, &expected, sizeof(float)) == 0 &&
+              self->footprintRepeats >= 0 && self->footprintRepeats <= 7;
+    ei::verify::Check("CUnitClientSpecific::PlayStepSounds", true, ok, "unit %d: time %g (expected %g), repeats %d",
+                      self->unit->id_, self->lastAnimationTime, expected, self->footprintRepeats);
+}
+EI_VERIFY(0x00534B60, PlayStepSoundsVerify, 0, s_unusedPlayStepSounds);
