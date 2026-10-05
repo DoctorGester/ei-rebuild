@@ -264,7 +264,7 @@ void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(reinterpret_ca
 void SetWhite(CUiMesh* sprite) {
     for (int offset : {0x224, 0x228, 0x22C}) SetField(sprite, offset, 0x3F800000);
 }
-CUiMesh* AddFigure(CUiWindow* window, const char* name) { return window->AddSprite(reinterpret_cast<int>(name)); }
+CUiMesh* AddFigure(CUiWindow* window, const char* name) { return window->AddSprite(name); }
 
 } // namespace
 

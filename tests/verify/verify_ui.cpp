@@ -356,8 +356,10 @@ static BOOL __fastcall ContainsPointVerify(const CUiWindow* self, void*, int x, 
 }
 EI_VERIFY(0x005FFD30, ContainsPointVerify, 7, s_containsPoint);
 
-// 005FEBF0: the same check for every region with a tooltip, at the scaled mouse position.
-static void __fastcall UpdateRegionTipsVerify(CUiWindow* self, void*, int unused) {
+// 005FEBF0: the same check for every region with a tooltip, at the scaled mouse position (005FED00
+// does the same and redraws each tooltip).
+template <typename Run>
+static void RegionTipsCheck(const char* name, CUiWindow* self, Run run) {
     constexpr int kMax = 128;
     CUiTooltip* tips[kMax];
     int states[kMax];
@@ -374,14 +376,23 @@ static void __fastcall UpdateRegionTipsVerify(CUiWindow* self, void*, int unused
             inside[i] = tips[i] && region->CUiRegion::HitTest(mouse.x, mouse.y) != 0;
         }
     }
-    self->CUiWindow::UpdateRegionTips(unused);
+    run();
     if (!complete) return;
     bool ok = true;
     for (int i = 0; i < count; ++i)
         if (tips[i]) ok &= TipHandlerCanReach(TipStateAfterTransition(states[i], inside[i]), tips[i]->state_);
-    ei::verify::Check("CUiWindow::UpdateRegionTips", true, ok, "regions %d", count);
+    ei::verify::Check(name, true, ok, "regions %d", count);
+}
+
+static void __fastcall UpdateRegionTipsVerify(CUiWindow* self, void*, int unused) {
+    RegionTipsCheck("CUiWindow::UpdateRegionTips", self, [&] { self->CUiWindow::UpdateRegionTips(unused); });
 }
 EI_VERIFY(0x005FEBF0, UpdateRegionTipsVerify, 0, s_unused);
+
+static void __fastcall RedrawTipsVerify(CUiWindow* self) {
+    RegionTipsCheck("CUiWindow::RedrawTips", self, [&] { self->CUiWindow::RedrawTips(); });
+}
+EI_VERIFY(0x005FED00, RedrawTipsVerify, 0, s_unused);
 
 // 006002A0: slot 19 (006002C0 / 00601AC0) shows or hides surfaces and children; the flag is ours.
 static void __fastcall SetEnabledVerify(CUiWindow* self, void*, int enabled, int notify) {
@@ -581,3 +592,31 @@ static void __fastcall SetSizeModelsVerify(UiPtrArray<CUiModel>* self, void*, in
     SetSizeCheck("UiPtrArray<CUiModel>::SetSize", self, newSize, growBy);
 }
 EI_VERIFY(0x00600950, SetSizeModelsVerify, 0, s_unused);
+
+static void __fastcall SetSizeChildrenVerify(UiPtrArray<CUiWindow>* self, void*, int newSize, int growBy) {
+    SetSizeCheck("UiPtrArray<CUiWindow>::SetSize", self, newSize, growBy);
+}
+EI_VERIFY(0x00601D00, SetSizeChildrenVerify, 0, s_unused);
+
+// 005FF3C0 (ours only: it makes an object). A new object is appended to the scene objects with the
+// array's growth rule (one already listed is not added again); either way it gets the window's
+// black material and its first referenced object as the texture.
+static CUiMesh* __fastcall AddSpriteVerify(CUiWindow* self, void*, const char* name) {
+    ArraySnapshot before;
+    before.Take(self->sceneObjects_);
+    CUiMesh* sprite = self->CUiWindow::AddSprite(name);
+    auto* object = reinterpret_cast<CEngineObject*>(sprite);
+    bool ok;
+    if (!sprite) {
+        ok = self->sceneObjects_.size_ == before.size;
+    } else {
+        bool listed = false;
+        for (int i = 0; before.complete && i < before.size; ++i) listed |= before.items[i] == object;
+        ok = listed ? self->sceneObjects_.size_ == before.size : AppendedCorrectly(before, self->sceneObjects_, object);
+        CEngineObject* texture = self->objects_.size_ > 0 ? self->objects_.data_[0] : nullptr;
+        ok &= sprite->material_ == self->blackMaterial_ && sprite->texture_ == texture;
+    }
+    ei::verify::Check("CUiWindow::AddSprite", true, ok, "name %p sprite %p size %d", name, sprite, before.size);
+    return sprite;
+}
+EI_VERIFY(0x005FF3C0, AddSpriteVerify, 0, s_unused);

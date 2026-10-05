@@ -36,7 +36,6 @@ __declspec(naked) void CUiModel::ShowAllParts(int) EI_ORIGINAL(0x005FC4F0)
 __declspec(naked) void CUiModel::ShowPart(const char*, int) EI_ORIGINAL(0x005FC4C0)
 __declspec(naked) int CUiWindow::LoadTexture(const char*, int, int) EI_ORIGINAL(0x005FEF20)
 __declspec(naked) CEngineObject* CUiWindow::CreateTexture(int, int, int) EI_ORIGINAL(0x005FF0B0)
-__declspec(naked) CUiMesh* CUiWindow::AddSprite(int) EI_ORIGINAL(0x005FF3C0)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)

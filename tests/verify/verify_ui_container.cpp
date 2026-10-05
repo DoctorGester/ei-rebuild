@@ -13,6 +13,7 @@
 
 #include "../../src/game/ui.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -225,3 +226,49 @@ static void __fastcall DeactivateVerify(UiContainerInput* self, void*) {
     ei::verify::Check("UiContainerInput::OnDeactivate", true, ok, "children %d -> %d", count, c->children_.size_);
 }
 EI_VERIFY(0x00601A60, DeactivateVerify, 0, s_unused);
+
+// --- Construction, destruction, extra input sides (ours only) ------------------------------------
+
+static void* s_unusedLifetime;
+
+// 00600B20: the base constructed, then an empty container with its two vtables.
+static CUiContainer* __fastcall ContainerConstructVerify(CUiContainer* self, void*, CInterface3D* ui) {
+    CUiContainer* result = self->CUiContainer::Construct(ui);
+    bool ok = result == self && self->interface_ == ui && !self->children_.data_ && self->children_.size_ == 0 &&
+              self->children_.capacity_ == 0 && self->children_.growBy_ == 0 && !self->inputsBegin_ &&
+              !self->inputsEnd_ && !self->inputsCapacity_ && self->vtable_ == reinterpret_cast<void**>(0x00741008) &&
+              self->inputVtable_ == reinterpret_cast<void**>(0x00740FD4);
+    ei::verify::Check("CUiContainer::Construct", true, ok, "window %p", self);
+    return result;
+}
+EI_VERIFY(0x00600B20, ContainerConstructVerify, 0, s_unusedLifetime);
+
+// 00600BA0: the children array is empty and has no storage afterwards (the window base's
+// destructor body leaves +0x148 alone; the object's memory is freed only after the body).
+static void __fastcall ContainerDestroyVerify(CUiContainer* self) {
+    self->CUiContainer::DestroyContainer();
+    bool ok = !self->children_.data_ && self->children_.size_ == 0 && self->children_.capacity_ == 0;
+    ei::verify::Check("CUiContainer::DestroyContainer", true, ok, "size %d", self->children_.size_);
+}
+EI_VERIFY(0x00600BA0, ContainerDestroyVerify, 0, s_unusedLifetime);
+
+// 00600CC0: the side appended (the earlier ones kept in order); the capacity grows to size +
+// max(size, 1) when full. Null changes nothing.
+static void __fastcall ContainerAddInputVerify(CUiContainer* self, void*, UiInputSide* input) {
+    std::vector<UiInputSide*> before(self->inputsBegin_, self->inputsEnd_);
+    std::size_t capacity = static_cast<std::size_t>(self->inputsCapacity_ - self->inputsBegin_);
+    self->CUiContainer::AddInput(input);
+    std::size_t size = before.size();
+    bool ok;
+    if (!input) {
+        ok = static_cast<std::size_t>(self->inputsEnd_ - self->inputsBegin_) == size;
+    } else {
+        std::size_t expected = size < capacity ? capacity : size + (size > 1 ? size : 1);
+        ok = static_cast<std::size_t>(self->inputsEnd_ - self->inputsBegin_) == size + 1 &&
+             static_cast<std::size_t>(self->inputsCapacity_ - self->inputsBegin_) == expected &&
+             std::equal(before.begin(), before.end(), self->inputsBegin_) && self->inputsBegin_[size] == input;
+    }
+    ei::verify::Check("CUiContainer::AddInput", true, ok, "input %p size %u capacity %u", input,
+                      static_cast<unsigned>(size), static_cast<unsigned>(capacity));
+}
+EI_VERIFY(0x00600CC0, ContainerAddInputVerify, 0, s_unusedLifetime);

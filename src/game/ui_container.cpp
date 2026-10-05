@@ -3,6 +3,114 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
+#include "lib/stlp.h"
+#include "originals_render.h"
+
+namespace {
+// The container's vtables (main, input side).
+void** ContainerVtable() { return reinterpret_cast<void**>(0x00741008); }
+void** ContainerInputVtable() { return reinterpret_cast<void**>(0x00740FD4); }
+
+// The display object (00500960): slot 6 gives the last frame's length in milliseconds.
+std::uint32_t FrameMilliseconds() {
+    void* display = DisplayObject();
+    using Fn = std::uint32_t(__thiscall*)(void*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(display))[6])(display);
+}
+
+// Slot 0 of an input side or a window: the deleting destructor (with 1: the memory is freed).
+void DeleteInstance(void* object) {
+    using Fn = void(__thiscall*)(void*, int);
+    reinterpret_cast<Fn>((*static_cast<void***>(object))[0])(object, 1);
+}
+} // namespace
+
+// --- Construction and destruction --------------------------------------------------------------
+
+CUiContainer* CUiContainer::Construct(CInterface3D* ui) {
+    CUiWindow::Construct(ui);
+    children_ = UiPtrArray<CUiWindow>{};
+    // The extra input sides (an empty STLport vector; the original stores the low byte of `ui` as
+    // its allocator into +0x160 and overwrites it with the null capacity at once).
+    inputsBegin_ = nullptr;
+    inputsEnd_ = nullptr;
+    inputsCapacity_ = nullptr;
+    vtable_ = ContainerVtable();
+    inputVtable_ = ContainerInputVtable();
+    return this;
+}
+EI_REPLACE_METHOD(0x00600B20, CUiContainer::Construct);
+
+void CUiContainer::DestroyContainer() {
+    vtable_ = ContainerVtable();
+    inputVtable_ = ContainerInputVtable();
+    for (UiInputSide** side = inputsBegin_; side != inputsEnd_; ++side)
+        if (*side) DeleteInstance(*side);
+    for (int i = 0; i < children_.size_; ++i)
+        if (CUiWindow* child = children_.data_[i]) DeleteInstance(child);
+    children_.SetSize(0, -1);
+    // The vector's storage goes back to the node pool (the pointers are left as they are).
+    if (inputsBegin_)
+        stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
+    // The children array's destructor (its storage is already freed).
+    if (children_.data_) FreeAligned(children_.data_);
+    DestroyBase();
+}
+EI_REPLACE_METHOD(0x00600BA0, CUiContainer::DestroyContainer);
+
+// STLport's push_back: when full, a block of size + max(size, 1) pointers from the node pool
+// (00601B70, _M_insert_overflow), the old block back to the pool.
+void CUiContainer::AddInput(UiInputSide* input) {
+    if (!input) return;
+    if (inputsEnd_ != inputsCapacity_) {
+        if (inputsEnd_) *inputsEnd_ = input;
+        ++inputsEnd_;
+        return;
+    }
+    std::size_t size = static_cast<std::size_t>(inputsEnd_ - inputsBegin_);
+    std::size_t length = size + (size > 1 ? size : 1);
+    auto** fresh = static_cast<UiInputSide**>(stlp::allocate(length * sizeof(UiInputSide*)));
+    for (std::size_t i = 0; i < size; ++i) fresh[i] = inputsBegin_[i];
+    fresh[size] = input;
+    if (inputsBegin_)
+        stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
+    inputsBegin_ = fresh;
+    inputsEnd_ = fresh + size + 1;
+    inputsCapacity_ = fresh + length;
+}
+EI_REPLACE_METHOD(0x00600CC0, CUiContainer::AddInput);
+
+// --- Per-frame slots ---------------------------------------------------------------------------
+
+// The milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
+double CUiContainer::FrameTime() { return x87::FromUnsigned(FrameMilliseconds()) * static_cast<double>(0.001f); }
+EI_REPLACE_METHOD(0x00600270, CUiContainer::FrameTime);
+
+void CUiContainer::UpdateBase() {
+    for (int i = 0; i < children_.size_; ++i) children_.data_[i]->VirtualUpdate();
+}
+EI_REPLACE_METHOD(0x006010E0, CUiContainer::UpdateBase);
+
+void CUiContainer::RedrawContainer() {
+    if (!interface_->drawing_) return;
+    RedrawBase();
+    for (int i = 0; i < children_.size_; ++i) {
+        CUiWindow* child = children_.data_[i];
+        if (child->enabled_) child->VirtualRedraw();
+    }
+}
+EI_REPLACE_METHOD(0x00601040, CUiContainer::RedrawContainer);
+
+void CUiContainer::RedrawChildTips() {
+    if (!interface_->drawing_) return;
+    RedrawTips();
+    for (int i = 0; i < children_.size_; ++i) {
+        CUiWindow* child = children_.data_[i];
+        if (child->enabled_) child->VirtualRedrawTips();
+    }
+}
+EI_REPLACE_METHOD(0x00601090, CUiContainer::RedrawChildTips);
 
 // --- Input dispatch ----------------------------------------------------------------------------
 
