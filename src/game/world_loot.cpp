@@ -29,10 +29,10 @@ using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 // MFC list helpers instantiated in the exe (not rewritten).
 inline void __fastcall PtrListRemoveAll(ObjectList* a0, void*) { PtrListRemoveAllNodesOriginal((void*)a0); }
 inline void __fastcall PtrListDestruct(ObjectList* a0, void*) { PtrListDestructOriginal((void*)a0); }
-__declspec(naked) void __fastcall LootListRemoveAll(ObjectList*, void*) EI_ORIGINAL(0x00558C50)
+void __fastcall LootListRemoveAll(ObjectList* a0, void*) { ItemListRemoveAllOriginal((void*)a0); }
 __declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-__declspec(naked) void __fastcall PtrListConstruct(ObjectList*, void*, int /*blockSize*/) EI_ORIGINAL(0x004C98C0)
+void __fastcall PtrListConstruct(ObjectList* a0, void*, int a2) { ItemListConstructOriginal((void*)a0, nullptr, a2); }
 void __fastcall PtrListAddTail(ObjectList* a0, void*, CEngineObject* a2) { PtrListAddTailOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall PtrListRemoveAt(ObjectList*, void*, ObjectList::Node*) EI_ORIGINAL(0x0059A680)
 __declspec(naked) CEngineObject** __fastcall PtrListGetNext(ObjectList*, void*, ObjectList::Node** /*position*/)

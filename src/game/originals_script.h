@@ -55,3 +55,17 @@ __declspec(naked) inline void __fastcall SubCallArraySetSizeOriginal(void* /*arr
 
 // C3j. 004B5EF0: ScriptGroup destructor body (plain RET, no result).
 __declspec(naked) inline void __fastcall ScriptGroupBodyDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004B5EF0)
+
+// C3k. 004C2030: script group (CArray with vtable 0073D11C) constructor (plain RET, returns `this`). 004C59C0 / 004CD2B0:
+// CArray<ScriptIfThen> / CArray<SSCCmd>::SetSize(size, growBy) (both RET 8, no result).
+__declspec(naked) inline void* __fastcall ScriptGroupConstructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2030)
+__declspec(naked) inline void __fastcall IfThenArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x004C59C0)
+__declspec(naked) inline void __fastcall CmdArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x004CD2B0)
+// 004C8AF0 / 004C9100: RemoveTail of the script's temporary group / object lists; the removed value is copied to `out`
+// (RET 4, EAX = out).
+__declspec(naked) inline void* __fastcall TempGroupsRemoveTailOriginal(void* /*list*/, void*, void* /*out*/)
+    EI_ORIGINAL(0x004C8AF0)
+__declspec(naked) inline void* __fastcall TempObjectsRemoveTailOriginal(void* /*list*/, void*, void* /*out*/)
+    EI_ORIGINAL(0x004C9100)

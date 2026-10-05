@@ -51,9 +51,9 @@ float TickFraction() { return *reinterpret_cast<const volatile float*>(0x007AFCA
 constexpr int kReserve = 0x1000;
 
 ParticleVertex* __fastcall AllocateVertices(int a0) { return (ParticleVertex*)AllocAligned16(a0); }
-__declspec(naked) void __fastcall ConstructSpriteArray(ParticleSpriteArray*) EI_ORIGINAL(0x00468D60)
+void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { SpriteArrayConstructOriginal((void*)a0); }
 __declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
-__declspec(naked) void __fastcall EnsureTextureLoaded(void** /*holder*/) EI_ORIGINAL(0x00500970)
+void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
 // The game's _ftol (006E853C): truncation.
 __declspec(naked) int __cdecl GameFtol(double) {
     __asm {

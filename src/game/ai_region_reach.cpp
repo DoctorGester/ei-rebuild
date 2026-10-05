@@ -45,7 +45,7 @@ struct PointArray {
 PointArray& Blocks() { return *reinterpret_cast<PointArray*>(0x007C2EE0); }
 std::uint8_t& BlocksGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2EF4); }
 
-__declspec(naked) void __fastcall PointArrayConstruct(PointArray*, void*) EI_ORIGINAL(0x00557230)
+void __fastcall PointArrayConstruct(PointArray* a0, void*) { PointArrayConstructOriginal((void*)a0); }
 inline void __fastcall PointArraySetSize(PointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 
 // The local search at +0x98: set up over a window (size class, x0, y0, x1, y1 exclusive, start

@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_gameplay.h"
+#include "originals_units.h"
 
 #include <cstring>
 #include <new>
@@ -59,7 +60,7 @@ void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
 // 005AA5F0. Figure manager: the model named `name`.
 __declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) EI_ORIGINAL(0x005AA5F0)
 // 00516A80. 3D object: its figure part named `name`, or null.
-__declspec(naked) CEngineObject* __fastcall FindPart(CUnit*, void*, const char*) EI_ORIGINAL(0x00516A80)
+CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return ObjectFindPartOriginal((void*)a0, nullptr, a2); }
 // 00517240. 3D object: adds the figure part `name` of `model`; returns it (null when the model has
 // no such part).
 __declspec(naked) CEngineObject* __fastcall AddPart(CUnit*, void*, const char*, void*, std::uint32_t) EI_ORIGINAL(0x00517240)

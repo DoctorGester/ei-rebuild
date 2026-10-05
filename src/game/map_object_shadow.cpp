@@ -121,7 +121,7 @@ __declspec(naked) void __fastcall UnlockSurface(void*) EI_ORIGINAL(0x00691030)
 __declspec(naked) void __fastcall ProjectShadow(void*, void*, const float*, const float*, std::uint32_t, void*, void*,
                                                 void*, void*, int, int) EI_ORIGINAL(0x0056C750)
 // 00501AF0. Texture stages: binds a texture.
-__declspec(naked) void __fastcall SetTexture(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x00501AF0)
+void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
 // 006CB020. Light manager: is the point lit, AL.
 // 004EA4A0. Device: draws the shadow geometry.
 __declspec(naked) void __fastcall DrawGeometry(void*, void*, void*, void*, int, void*, int, std::uint32_t,

@@ -6,6 +6,7 @@
 #include "model.h"   // ChunkArchive
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -25,8 +26,8 @@ __declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
 __declspec(naked) int __fastcall ArchiveCount(ChunkArchive*, void*, int /*id*/) EI_ORIGINAL(0x00409A60)
-__declspec(naked) void __fastcall StringsClear(CStringVector*) EI_ORIGINAL(0x0052E010)
-__declspec(naked) void __fastcall StringsResize(CStringVector*, void*, std::uint32_t /*count*/) EI_ORIGINAL(0x0051F5B0)
+void __fastcall StringsClear(CStringVector* a0) { CStringVectorClearOriginal((void*)a0); }
+void __fastcall StringsResize(CStringVector* a0, void*, std::uint32_t a2) { CStringVectorResizeOriginal((void*)a0, nullptr, a2); }
 
 void Dword(ChunkArchive* ar, int id, void* data) { ArchiveField(ar, nullptr, id, data, 4); }
 

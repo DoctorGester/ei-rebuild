@@ -44,9 +44,8 @@ constexpr int kSpellFlags = 0x3C;
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
 inline void __fastcall UnitListRemoveAll(UnitList* l, void*) { PtrListRemoveAllOriginal(l); }
-__declspec(naked) UnitList::Node* __fastcall UnitListNewNode(UnitList*, void*, UnitList::Node* /*prev*/,
-                                                           UnitList::Node* /*next*/) EI_ORIGINAL(0x0052CEF0)
-__declspec(naked) void __fastcall UnitListFreeNode(UnitList*, void*, UnitList::Node*) EI_ORIGINAL(0x005588A0)
+UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* a2, UnitList::Node* a3) { return (UnitList::Node*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
+void __fastcall UnitListFreeNode(UnitList* a0, void*, UnitList::Node* a2) { UnitListFreeNodeOriginal((void*)a0, nullptr, (void*)a2); }
 // 004B3330 (RET 4). ScriptGroup::Contains (script_group.cpp), through its address.
 __declspec(naked) int __fastcall GroupContains(const void*, void*, CEngineObject*) EI_ORIGINAL(0x004B3330)
 // 0054BBC0 (RET 0x10). Whether the spell (EDX) may hit `target` (ECX = the world).

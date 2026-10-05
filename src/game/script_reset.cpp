@@ -31,8 +31,8 @@ T& Field(void* object, std::size_t offset) {
 __declspec(naked) void* __fastcall InstancesRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C7A10)
 __declspec(naked) void* __fastcall RunsRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C82B0)
 __declspec(naked) void* __fastcall BlocksRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C69B0)
-__declspec(naked) void* __fastcall TempGroupsRemoveTail(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C8AF0)
-__declspec(naked) void* __fastcall TempObjectsRemoveTail(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C9100)
+void* __fastcall TempGroupsRemoveTail(void* a0, void*, void* a2) { return TempGroupsRemoveTailOriginal(a0, nullptr, a2); }
+void* __fastcall TempObjectsRemoveTail(void* a0, void*, void* a2) { return TempObjectsRemoveTailOriginal(a0, nullptr, a2); }
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
 __declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
 __declspec(naked) void __fastcall VarsDestruct(void*) EI_ORIGINAL(0x004BE090)

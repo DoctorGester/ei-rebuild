@@ -7,6 +7,7 @@
 // See docs/notes/effects.md and docs/notes/renderer.md.
 #include "ei/hook.h"
 #include "render/render.h"
+#include "originals_render.h"
 
 #include <cstdint>
 
@@ -19,7 +20,7 @@ T& At(void* p, int offset) {
 
 // Not rewritten (float-heavy particle placement), reached through their addresses.
 __declspec(naked) void __fastcall WeatherStep(void*, void*, float /*time*/) EI_ORIGINAL(0x004E40B0)
-__declspec(naked) void __fastcall TextureTouch(void*) EI_ORIGINAL(0x00500970)
+void __fastcall TextureTouch(void* a0) { TextureEnsureLoadedOriginal(a0); }
 __declspec(naked) int __fastcall DrawRain(void*, void*, void* /*renderer*/) EI_ORIGINAL(0x004E4240)
 __declspec(naked) int __fastcall DrawSnow(void*, void*, void* /*renderer*/) EI_ORIGINAL(0x004E4C80)
 

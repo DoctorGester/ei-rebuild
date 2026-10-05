@@ -32,7 +32,7 @@ void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const ch
 __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AE90)
 __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
-__declspec(naked) void* __fastcall RefsGetAllocator(const RefVector* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00421EB0)
+void* __fastcall RefsGetAllocator(const RefVector* a0, void*, void* a2) { return VectorGetAllocatorOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall RefsBaseConstruct(RefVector* /*vector*/, void*, std::size_t /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00421F60)
 __declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
 __declspec(naked) void __fastcall RefsResize(RefVector* /*vector*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x004200C0)

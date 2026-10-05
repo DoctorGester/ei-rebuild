@@ -31,8 +31,7 @@ T& Field(void* object, std::size_t offset) {
 // ---- Original code (MFC template instantiations, config/library.csv) ------------------------------
 
 // CList<ScriptDecl>::NewNode (__thiscall (prev, next)); the element is constructed (vtable 0073D3DC).
-__declspec(naked) ScriptListNode* __fastcall NewBlockNode(ScriptList*, void*, ScriptListNode*, ScriptListNode*)
-    EI_ORIGINAL(0x004CD6D0)
+ScriptListNode* __fastcall NewBlockNode(ScriptList* a0, void*, ScriptListNode* a2, ScriptListNode* a3) { return (ScriptListNode*)ScriptBlockListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // CArray<ScriptArea>::SetSize (__thiscall (size, growBy)); CArray<ScriptAreaPart>::Copy.
 __declspec(naked) void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
 __declspec(naked) void __fastcall PartsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CE2F0)

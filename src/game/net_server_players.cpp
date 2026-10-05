@@ -22,7 +22,7 @@ __declspec(naked) int __cdecl GameStrnicmp(const char* /*a*/, const char* /*b*/,
 void** __fastcall BannedEnd(void* a0, void*, void** a2) { return ListEndIteratorOriginal(a0, nullptr, a2); }
 __declspec(naked) void** __fastcall BannedBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0041FCC0)
 __declspec(naked) void** __fastcall BannedFind(void** /*out*/, void*, void* /*first*/, void* /*last*/, std::uint32_t /*value*/) EI_ORIGINAL(0x00427FF0)
-__declspec(naked) void** __fastcall BannedInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/) EI_ORIGINAL(0x00421AF0)
+void** __fastcall BannedInsert(void* a0, void*, void** a2, void* a3, const void* a4) { return ListInsert421AF0Original(a0, nullptr, a2, a3, a4); }
 
 constexpr std::size_t kPasswordSize = 0x14;
 

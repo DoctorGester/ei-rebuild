@@ -66,7 +66,7 @@ __declspec(naked) void __fastcall StateUpdate(void*, void*) EI_ORIGINAL(0x0066E1
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's
 // destructor; 004C2050 SetSize.
-__declspec(naked) void __fastcall GroupConstruct(ScriptGroup*, void*) EI_ORIGINAL(0x004C2030)
+void __fastcall GroupConstruct(ScriptGroup* a0, void*) { ScriptGroupConstructOriginal((void*)a0); }
 inline void __fastcall GroupDestruct(ScriptGroup* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) void __fastcall GroupUnion(ScriptGroup*, void*, const ScriptGroup*, const ScriptGroup*) EI_ORIGINAL(0x004B2620)

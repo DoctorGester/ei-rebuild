@@ -70,7 +70,7 @@ __declspec(naked) int __fastcall DrawMesh2(char*, void*, std::uint32_t, std::uin
 void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
 inline void __fastcall StringInitRange(RawString* a0, void*, const char* a2, const char* a3, const void* a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 005197B0: map<string, piece>::find on a figure's piece map (figure + 0x14): the node to *out.
-__declspec(naked) void __fastcall FindPiece(void*, void*, char**, const RawString*) EI_ORIGINAL(0x005197B0)
+void __fastcall FindPiece(void* a0, void*, char** a2, const RawString* a3) { StringMapFindOriginal(a0, nullptr, (void**)a2, (const void*)a3); }
 
 template <typename R, typename... Args>
 R ThisCall(void* object, int slot, Args... args) {

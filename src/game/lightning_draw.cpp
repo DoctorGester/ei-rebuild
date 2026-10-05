@@ -29,7 +29,7 @@ constexpr int kDrawStrip = 16;
 constexpr int kDrawSprites = 17;
 
 // 00500970: makes sure the texture in `holder` is loaded.
-__declspec(naked) void __fastcall EnsureTextureLoaded(void** /*holder*/) EI_ORIGINAL(0x00500970)
+void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
 // 004F16A0: the visibility of a bounds record for the device's view (+8): 2 is outside.
 __declspec(naked) int __fastcall ClipTest(void* /*view*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 // 00455950: the world an engine object belongs to (its frame counter at +0x64).
@@ -38,7 +38,7 @@ __declspec(naked) void __fastcall DrawGlowAt(CLightning*, void*, void* /*device*
 // The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the
 // points' exit-time free 004679F0; sprite record constructor 00468F90 [pointer, count]; aligned
 // allocation of 16-byte points 00468F70; atexit 006E727B.
-__declspec(naked) void __fastcall SpriteArrayConstruct(void*) EI_ORIGINAL(0x00468D60)
+void __fastcall SpriteArrayConstruct(void* a0) { SpriteArrayConstructOriginal(a0); }
 __declspec(naked) void __stdcall ConstructSprites(void*, int) EI_ORIGINAL(0x00468F90)
 void* __fastcall AllocPoints16(int a0) { return (void*)AllocAligned16(a0); }
 

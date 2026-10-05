@@ -58,8 +58,8 @@ inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) 
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
 // The temporaries lists' RemoveTail (values returned through a hidden pointer).
-__declspec(naked) ScriptGroup* __fastcall TempGroupsRemoveTail(void*, void*, ScriptGroup*) EI_ORIGINAL(0x004C8AF0)
-__declspec(naked) ScriptObjectRef* __fastcall TempObjectsRemoveTail(void*, void*, ScriptObjectRef*) EI_ORIGINAL(0x004C9100)
+ScriptGroup* __fastcall TempGroupsRemoveTail(void* a0, void*, ScriptGroup* a2) { return (ScriptGroup*)TempGroupsRemoveTailOriginal(a0, nullptr, (void*)a2); }
+ScriptObjectRef* __fastcall TempObjectsRemoveTail(void* a0, void*, ScriptObjectRef* a2) { return (ScriptObjectRef*)TempObjectsRemoveTailOriginal(a0, nullptr, (void*)a2); }
 // ScriptVars constructor / destructor and the value arrays' Copy.
 __declspec(naked) void __fastcall VarsConstruct(ScriptVars*) EI_ORIGINAL(0x004C00D0)
 __declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE090)
@@ -70,7 +70,7 @@ __declspec(naked) void __stdcall RunConstructElements(ScriptRun*, int) EI_ORIGIN
 __declspec(naked) void __fastcall RunAssign(ScriptRun*, void*, const ScriptRun*) EI_ORIGINAL(0x004CB570)
 __declspec(naked) void __fastcall RunListFreeNode(void*, void*, ListNode*) EI_ORIGINAL(0x004CDAB0)
 // The run list's NewNode(prev, next): a node from the free list, its ScriptRun constructed.
-__declspec(naked) ListNode* __fastcall RunListNewNode(void*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CDA30)
+ListNode* __fastcall RunListNewNode(void* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptRunListNewNodeOriginal(a0, nullptr, (void*)a2, (void*)a3); }
 // ScriptVars::operator= (all eight arrays).
 __declspec(naked) void __fastcall VarsAssign(ScriptVars*, void*, const ScriptVars*) EI_ORIGINAL(0x004CBAE0)
 __declspec(naked) void __fastcall InstanceListFreeNode(void*, void*, ListNode*) EI_ORIGINAL(0x004CD9B0)

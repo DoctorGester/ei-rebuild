@@ -35,7 +35,7 @@ __declspec(naked) void __fastcall PlayerRemoveItem(void* /*player*/, void*, int 
 __declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.
-__declspec(naked) ObjectList::Node* __fastcall CountedNewNode(ObjectList*, void*, ObjectList::Node* /*prev*/, ObjectList::Node* /*next*/) EI_ORIGINAL(0x00429EA0)
+ObjectList::Node* __fastcall CountedNewNode(ObjectList* a0, void*, ObjectList::Node* a2, ObjectList::Node* a3) { return (ObjectList::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) void __fastcall CountedAssign(CEngineObject** /*slot*/, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
 __declspec(naked) void __fastcall CountedRemoveAll(ObjectList*) EI_ORIGINAL(0x00429E50)
 inline void __fastcall PtrListRemoveAll(ObjectList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }

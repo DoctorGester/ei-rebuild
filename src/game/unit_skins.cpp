@@ -83,7 +83,7 @@ __declspec(naked) void __fastcall PrototypeTextures(const char*, const char*, co
 __declspec(naked) void __fastcall StringsConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053BB80)
 __declspec(naked) char* __fastcall StringsCopy(void*, void*, int, const char*, const char*) EI_ORIGINAL(0x0053D7F0)
 __declspec(naked) void __fastcall StringDestroyFlag(void*, void*, int) EI_ORIGINAL(0x004DDC90)
-__declspec(naked) void __fastcall StringsFree(char*, int) EI_ORIGINAL(0x00426860)
+void __fastcall StringsFree(char* a0, int a1) { NodeFree12Original((void*)a0, (std::size_t)a1); }
 __declspec(naked) void __fastcall StringsDeallocate(void*, void*, char*, int) EI_ORIGINAL(0x0053BF40)
 __declspec(naked) void __fastcall StringCopyConstruct(char*, const void*) EI_ORIGINAL(0x004F5DF0)
 void __fastcall StringsInsertOverflow(void* a0, void*, char* a2, const void* a3, int a4) { StringVectorInsertOverflowOriginal(a0, nullptr, (void*)a2, a3, (unsigned)a4); }

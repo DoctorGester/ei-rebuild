@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cstring>
 #include "originals_render.h"
+#include "originals_library.h"
+#include "originals_units.h"
 
 // Every float expression here must keep the original's association: (a + b) + c.
 #pragma float_control(precise, on, push)
@@ -78,7 +80,7 @@ struct FigureState {
     // 0050D450. Applies a pending animation change once (clears its +0x74 flag).
     void ApplyPending();
 };
-__declspec(naked) void FigureState::ApplyPending() EI_ORIGINAL(0x0050D450)
+void FigureState::ApplyPending() { FigureApplyPendingOriginal((void*)this); }
 
 // Terrain::HeightAt (006C8680) declared double: the original adds the unrounded ST0.
 struct TerrainHeight {
@@ -121,8 +123,7 @@ struct ObjectList {
     // 0056E8A0. insert(pos, value): new node holding a reference; returns *result.
     ObjectListNode** Insert(ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value);
 };
-__declspec(naked) ObjectListNode** ObjectList::Insert(ObjectListNode**, ObjectListNode*, CEngineObject* const&)
-    EI_ORIGINAL(0x0056E8A0)
+ObjectListNode** ObjectList::Insert(ObjectListNode** a0, ObjectListNode* a1, CEngineObject* const& a2) { return (ObjectListNode**)ListInsert56E8A0Original((void*)this, nullptr, (void**)a0, (void*)a1, (const void*)&a2); }
 
 // The frame's lists (0056AFE0 clears them before collecting).
 constexpr std::uintptr_t kTouchedModels = 0x007AF508;   // models to keep loaded (by last use)

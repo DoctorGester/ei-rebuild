@@ -273,9 +273,7 @@ __declspec(naked) void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*ob
 void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
 // pointer's assignment (reference added, old one released through slot 4).
-__declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall CountedNewNode(
-    mfc::CTypedPtrList<CEngineObject>*, void*, mfc::CTypedPtrList<CEngineObject>::Node* /*prev*/,
-    mfc::CTypedPtrList<CEngineObject>::Node* /*next*/) EI_ORIGINAL(0x00429EA0)
+mfc::CTypedPtrList<CEngineObject>::Node* __fastcall CountedNewNode(mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2, mfc::CTypedPtrList<CEngineObject>::Node* a3) { return (mfc::CTypedPtrList<CEngineObject>::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) void __fastcall CountedAssign(void* /*slot*/, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
 // Load / Save of the time wheel (+0x2838), the first command queue (+0x12874), the diplomacy
 // tables (+0x12C64) and the countdowns (+0x70).
@@ -291,7 +289,7 @@ __declspec(naked) void __fastcall CountdownsSave(void*, void*, WorldStream*) EI_
 __declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
 __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
 // 004C2030 / 004B3360 (RET 4) / 004C2290. A script group's constructor, Load and destructor.
-__declspec(naked) void __fastcall ScriptGroupConstruct(void*, void*) EI_ORIGINAL(0x004C2030)
+void __fastcall ScriptGroupConstruct(void* a0, void*) { ScriptGroupConstructOriginal(a0); }
 __declspec(naked) void __fastcall ScriptGroupLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004B3360)
 inline void __fastcall ScriptGroupDestruct(void* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 // 0066EF80 / 0066D260 (RET 4). The player state's refresh after a load and SetFlag70.
@@ -311,9 +309,8 @@ void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOrig
 void __fastcall StringArraySetAtGrow(StringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
-__declspec(naked) void __fastcall MapObjectBeginLoad(CEngineObject*, void*) EI_ORIGINAL(0x0050EA40)
-__declspec(naked) void __fastcall MapObjectSetupFigure(CEngineObject*, void*, const char* /*figure*/)
-    EI_ORIGINAL(0x005179E0)
+void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
+void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) { ObjectSetupFigureOriginal((void*)a0, nullptr, a2); }
 
 } // namespace
 

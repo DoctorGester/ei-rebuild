@@ -46,7 +46,7 @@ void __fastcall BrainAddMode(void* a0, void*, void* a2) { BrainAddModeOriginal(a
 void __fastcall BrainRemoveMode(void* a0, void*, int a2) { BrainRemoveModeOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall BrainStopAction(void*) EI_ORIGINAL(0x005D7790)
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
-__declspec(naked) void __fastcall ReferenceRelease(CEngineObject**) EI_ORIGINAL(0x0052B030)
+void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 // This file's functions through their game addresses.
 __declspec(naked) void __fastcall CtlUndoTaming(CUnitServer*) EI_ORIGINAL(0x00552280)

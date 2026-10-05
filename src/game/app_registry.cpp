@@ -4,6 +4,7 @@
 // TypeRegistry::Register, 0042A890). See docs/notes/unmapped_410_470.md ("Ninth round").
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -30,8 +31,8 @@ struct Pair {
 };
 
 // The two instantiations' resize and node creation (library).
-__declspec(naked) void __fastcall ByVtableResize(Table*, void*, std::uint32_t) EI_ORIGINAL(0x0042B9C0)
-__declspec(naked) Node* __fastcall ByVtableNewNode(Table*, void*, const Pair*) EI_ORIGINAL(0x0042B8A0)
+void __fastcall ByVtableResize(Table* a0, void*, std::uint32_t a2) { ByVtableResizeOriginal((void*)a0, nullptr, a2); }
+Node* __fastcall ByVtableNewNode(Table* a0, void*, const Pair* a2) { return (Node*)ByVtableNewNodeOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) void __fastcall ByIdResize(Table*, void*, std::uint32_t) EI_ORIGINAL(0x0040BAC0)
 __declspec(naked) Node* __fastcall ByIdNewNode(Table*, void*, const Pair*) EI_ORIGINAL(0x0040B440)
 

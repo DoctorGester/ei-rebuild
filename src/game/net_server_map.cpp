@@ -44,7 +44,7 @@ inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLo
 // vector<string> (library): the allocator proxy constructor and the block free; the string
 // buffer free the string destructor inlines.
 __declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, StringRep* const* /*value*/) EI_ORIGINAL(0x004263D0)
-__declspec(naked) void __fastcall NamesFree(StringRep* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426860)
+void __fastcall NamesFree(StringRep* a0, std::size_t a1) { NodeFree12Original((void*)a0, a1); }
 inline void __fastcall StringDeallocate(char**, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 constexpr std::uintptr_t kFinishSuffix = 0x00783D84;      // "_3"

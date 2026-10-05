@@ -84,7 +84,7 @@ __declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const 
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
 // 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.
 __declspec(naked) void __fastcall CellListConstruct(void*) EI_ORIGINAL(0x00545750)
-__declspec(naked) void __fastcall PointArrayConstruct(void*) EI_ORIGINAL(0x00557230)
+void __fastcall PointArrayConstruct(void* a0) { PointArrayConstructOriginal(a0); }
 __declspec(naked) void __fastcall PointArrayDestroy(void*) EI_ORIGINAL(0x00557250)
 __declspec(naked) void __fastcall MotionPointsConstruct(void*) EI_ORIGINAL(0x00556D70)
 __declspec(naked) void __fastcall MotionWaypointsConstruct(void*) EI_ORIGINAL(0x00556810)

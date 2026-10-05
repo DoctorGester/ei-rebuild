@@ -39,7 +39,7 @@ __declspec(naked) void __fastcall MapBeginRefresh(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall MapEndRefresh(void*) EI_ORIGINAL(0x005B8B80)
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, void*) EI_ORIGINAL(0x005BA830)
 __declspec(naked) bool __fastcall MapFindFreeCellNear(void*, void*, void*, const float*, float*) EI_ORIGINAL(0x005BA9D0)
-__declspec(naked) void __fastcall FigureAnimate(void*, void*, const char*) EI_ORIGINAL(0x005179E0)
+void __fastcall FigureAnimate(void* a0, void*, const char* a2) { ObjectSetupFigureOriginal(a0, nullptr, a2); }
 void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
 constexpr int kSlotWorldActive = 0x68 / 4;   // world: () -> non-zero when the map is live

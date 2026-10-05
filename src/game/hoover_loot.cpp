@@ -49,7 +49,7 @@ __declspec(naked) void* __fastcall CreateItem(void* /*manager*/, void*, const ch
 __declspec(naked) void* __fastcall UnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) void __fastcall UnitRemoveQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x005311E0)
 __declspec(naked) void __fastcall UnitRemoveCarried(void* /*unit*/, void*, int) EI_ORIGINAL(0x005313B0)
-__declspec(naked) void* __fastcall UnitArmour(void* /*unit*/, void*, int) EI_ORIGINAL(0x00530830)
+void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)UnitWornItemOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) int __fastcall ArmourType(void* /*armour*/) EI_ORIGINAL(0x006A39E0)
 __declspec(naked) void __fastcall UnitUnequipArmour(void* /*unit*/, void*, int) EI_ORIGINAL(0x00530840)
 __declspec(naked) void* __fastcall UnitWeapon(void* /*unit*/, void*, int) EI_ORIGINAL(0x005318B0)

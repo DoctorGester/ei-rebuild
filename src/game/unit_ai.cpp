@@ -109,10 +109,10 @@ void AIMode::Leave(AIBrain* brain) { ei::VCall<void>(this, 7, brain); }
 int AIMode::GetType() { return ei::VCall<int>(this, 8); }
 void AIMode::OnObjectDeleted(CEngineObject* object) { ei::VCall<void>(this, 10, object); }
 
-__declspec(naked) void AIRef::Reset() EI_ORIGINAL(0x0052B030)
-__declspec(naked) void AIRef::Assign(CEngineObject*) EI_ORIGINAL(0x0052A8F0)
-__declspec(naked) void AIRef::Load(AIStream*, void*) EI_ORIGINAL(0x0050E220)
-__declspec(naked) void AIRef::Save(AIStream*) EI_ORIGINAL(0x0050E290)
+void AIRef::Reset() { CountedRefResetOriginal((void*)this); }
+void AIRef::Assign(CEngineObject* a0) { CountedRefAssignOriginal((void*)this, nullptr, (void*)a0); }
+void AIRef::Load(AIStream* a0, void* a1) { CountedRefLoadOriginal((void*)this, nullptr, (void*)a0, a1); }
+void AIRef::Save(AIStream* a0) { CountedRefSaveOriginal((void*)this, nullptr, (void*)a0); }
 
 __declspec(naked) void AIBrain::UpdateFollow() EI_ORIGINAL(0x005D6F90)
 __declspec(naked) void AIBrain::PlanLooks(AIMoveOrder*, const Vector3*, float, bool) EI_ORIGINAL(0x005D5B40)
@@ -134,7 +134,7 @@ __declspec(naked) void UnitController::UseSpecial(CEngineObject*, int) EI_ORIGIN
 __declspec(naked) void AILookArray::Construct() EI_ORIGINAL(0x005573F0)
 __declspec(naked) void AILookArray::SetSize(int, int) EI_ORIGINAL(0x005D8EE0)
 __declspec(naked) void AILookArray::Copy(const AILookArray*) EI_ORIGINAL(0x005D8B60)
-__declspec(naked) void AILookArray::Destroy() EI_ORIGINAL(0x004CB770)
+void AILookArray::Destroy() { AiLookArrayDestructOriginal((void*)this); }
 __declspec(naked) void AILookArray::GetAt(AILook*, int) const EI_ORIGINAL(0x005D9DE0)
 __declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 

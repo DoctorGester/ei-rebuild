@@ -131,7 +131,7 @@ __declspec(naked) ClientNode** __fastcall ClientFind(ClientNode** /*out*/, void*
                                                      const NetAddress* /*address*/) EI_ORIGINAL(0x0043D780)
 __declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/) EI_ORIGINAL(0x00438840)
 // 0043B310: the node allocator's deallocate (p in ECX, size in EDX), used for the address strings.
-__declspec(naked) void __fastcall NodeFree(char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x0043B310)
+void __fastcall NodeFree(char* a0, std::size_t a1) { NodeDeallocateOriginal((void*)a0, a1); }
 
 constexpr std::uintptr_t kUnknownHost = 0x00783F2C;   // "ERROR: Update from unknown host"
 constexpr std::uintptr_t kBadClient = 0x00783F1C;     // "ERROR: client "

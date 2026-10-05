@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_units.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -53,7 +54,7 @@ __declspec(naked) void __fastcall MemberDestruct(void*) EI_ORIGINAL(0x005087B0)
 __declspec(naked) void __fastcall MemberClear(void*) EI_ORIGINAL(0x005088E0)
 __declspec(naked) void __fastcall MemberRelease(void*, void*, int) EI_ORIGINAL(0x00508930)
 // CArray<CFigure>::SetSize (library).
-__declspec(naked) void __fastcall FiguresSetSize(void*, void*, int, int) EI_ORIGINAL(0x0044FCD0)
+void __fastcall FiguresSetSize(void* a0, void*, int a2, int a3) { FigureArraySetSizeOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void* __fastcall FakeUnitDestructAt(void*) EI_ORIGINAL(0x00446910)
 // 00446C10 (__stdcall file, regFile, unit; ECX the unit as well): the scene loader.
 __declspec(naked) int __fastcall LoadScene(void* /*ecx unit*/, void*, const char*, const char*, void*) EI_ORIGINAL(0x00446C10)

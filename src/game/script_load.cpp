@@ -63,8 +63,8 @@ __declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGI
 __declspec(naked) void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770) // 0xC0
 __declspec(naked) void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)       // ScriptArea
 __declspec(naked) void __fastcall PartsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CC640)       // ScriptAreaPart
-__declspec(naked) void __fastcall CmdsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD2B0)        // SSCCmd
-__declspec(naked) void __fastcall IfThenSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C59C0)      // ScriptIfThen
+void __fastcall CmdsSetSize(void* a0, void*, int a2, int a3) { CmdArraySetSizeOriginal(a0, nullptr, a2, a3); }
+void __fastcall IfThenSetSize(void* a0, void*, int a2, int a3) { IfThenArraySetSizeOriginal(a0, nullptr, a2, a3); }
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
 __declspec(naked) void __fastcall IfThenCopy(void*, void*, const void*) EI_ORIGINAL(0x004CC4A0)
 __declspec(naked) void __fastcall VarsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CBAE0)
@@ -182,9 +182,9 @@ using NewNodeFn = ListNode*(__fastcall*)(RawList*, void*, ListNode* prev, ListNo
 __declspec(naked) ListNode* __fastcall NewParticleNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD540)
 __declspec(naked) ListNode* __fastcall NewFxNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD5B0)
 __declspec(naked) ListNode* __fastcall NewLightningNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD620)
-__declspec(naked) ListNode* __fastcall NewBlockNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD6D0)
+ListNode* __fastcall NewBlockNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptBlockListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) ListNode* __fastcall NewInstanceNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD930)
-__declspec(naked) ListNode* __fastcall NewRunNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CDA30)
+ListNode* __fastcall NewRunNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptRunListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
 
 // CList::AddTail as inlined: a new node after the tail, its element filled by `fill`, then linked.
 template <typename Fill>

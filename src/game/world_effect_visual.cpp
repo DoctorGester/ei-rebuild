@@ -4,6 +4,7 @@
 #include "world_effect_internal.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -17,7 +18,7 @@ __declspec(naked) void __fastcall MoveLight(void*, void*, CEngineObject* /*light
 // 0068D010 (CLight): sets the colour and the position.
 __declspec(naked) void __fastcall SetLightColorPosition(CEngineObject* /*light*/, void*, const Vector3* /*color*/, const Vector3* /*position*/) EI_ORIGINAL(0x0068D010)
 // 00511B90 / 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
-__declspec(naked) void __fastcall AssignLight(CEngineObject** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00511B90)
+void __fastcall AssignLight(CEngineObject** a0, void*, void* a2) { CountedRefStoreOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall AssignSource(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
 
 // CParticleSource (effects.cpp, through the game addresses).

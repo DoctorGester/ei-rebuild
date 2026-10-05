@@ -19,6 +19,7 @@
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -75,11 +76,10 @@ __declspec(naked) void __fastcall CastAtNewcomers(MagicTrap*, void*, PtrList* /*
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
-__declspec(naked) VictimNode* __fastcall VictimNewNode(VictimList*, void*, VictimNode* /*prev*/, VictimNode* /*next*/)
-    EI_ORIGINAL(0x0052CDB0)
+VictimNode* __fastcall VictimNewNode(VictimList* a0, void*, VictimNode* a2, VictimNode* a3) { return (VictimNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) void __fastcall VictimFreeNode(VictimList*, void*, VictimNode*) EI_ORIGINAL(0x0052CE20)
-__declspec(naked) void __fastcall ReferenceSet(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x0052A8F0)
-__declspec(naked) PtrNode* __fastcall PtrNewNode(PtrList*, void*, PtrNode* /*prev*/, PtrNode* /*next*/) EI_ORIGINAL(0x0052CEF0)
+void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefAssignOriginal((void*)a0, nullptr, (void*)a2); }
+PtrNode* __fastcall PtrNewNode(PtrList* a0, void*, PtrNode* a2, PtrNode* a3) { return (PtrNode*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 inline void __fastcall PtrRemoveAll(PtrList* l) { PtrListRemoveAllOriginal(l); }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
@@ -226,7 +226,7 @@ namespace {
 // The spell manager's CreateSpellFromText (00689030, RET 4; not rewritten); the two arrays'
 // SetSize(n, -1) (0046EAD0 for the circles, 0052C8E0 for the points; MFC template code, RET 8).
 __declspec(naked) void* __fastcall CreateSpellFromText(void* /*manager*/, void*, const char*) EI_ORIGINAL(0x00689030)
-__declspec(naked) void __fastcall CirclesSetSize(TrapArea*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0046EAD0)
+void __fastcall CirclesSetSize(TrapArea* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall PointsSetSize(TrapPoints*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0052C8E0)
 constexpr int kSlotSpellManager = 0x58 / 4;   // the map object context's slot 22
 constexpr int kSlotRelease = 0x10 / 4;        // a counted object's release
@@ -287,13 +287,13 @@ __declspec(naked) void __fastcall ConstructMapObjectAt(void*) EI_ORIGINAL(0x0050
 __declspec(naked) void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
 __declspec(naked) int __fastcall MapObjectCreate(void*) EI_ORIGINAL(0x0050E770)
 __declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840)
-__declspec(naked) void __fastcall MapObjectLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x0050F7A0)
-__declspec(naked) void __fastcall MapObjectSave(void*, void*, UnitStream*) EI_ORIGINAL(0x0050F900)
+void __fastcall MapObjectLoad(void* a0, void*, UnitStream* a2) { MapObjectLoadOriginal(a0, nullptr, (void*)a2); }
+void __fastcall MapObjectSave(void* a0, void*, UnitStream* a2) { MapObjectSaveOriginal(a0, nullptr, (void*)a2); }
 // A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside
 // read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
 // [00403F40, rewritten in base_manager.cpp].
-__declspec(naked) void __fastcall CountedRefSave(CEngineObject**, void*, UnitStream*) EI_ORIGINAL(0x0050E290)
+void __fastcall CountedRefSave(CEngineObject** a0, void*, UnitStream* a2) { CountedRefSaveOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall VictimListLoad(VictimList*, UnitStream*, void* /*context*/) EI_ORIGINAL(0x0052AF20)
 
 constexpr std::uintptr_t kTrapVtable = 0x0073E63C;

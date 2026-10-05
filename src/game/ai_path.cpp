@@ -15,7 +15,7 @@
 
 __declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
 __declspec(naked) bool CRegionMap::Reaches(int, int, int, int, void*) EI_ORIGINAL(0x005B07C0)
-__declspec(naked) void PathCellList::RemoveAll() EI_ORIGINAL(0x00556D40)
+void PathCellList::RemoveAll() { CellListRemoveAllOriginal((void*)this); }
 
 namespace {
 // 005BD200: appends a copy of `cell` to the list.
