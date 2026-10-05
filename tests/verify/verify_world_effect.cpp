@@ -12,6 +12,7 @@
 //   (offset in the object, size) must match.
 // - Everything that starts sounds, lights or particle sources, releases references or consumes the
 //   network reader runs ours only, with checks of what must hold afterwards.
+#include "fake_stream.h"
 #include "verify.h"
 
 #include "../../src/game/world_effect.h"
@@ -163,7 +164,7 @@ struct FieldState {
     explicit FieldState(DeltaField* f) {
         BitStream* streams[4] = {&f->snapshot[0], &f->snapshot[1], &f->out[0], &f->out[1]};
         for (int i = 0; i < 4; ++i) {
-            s[i].header = *streams[i];
+            RawCopy(&s[i].header, streams[i]);
             if (streams[i]->data_)
                 s[i].bytes.assign(streams[i]->data_, streams[i]->data_ + streams[i]->capacity_);
         }
@@ -171,7 +172,7 @@ struct FieldState {
     void Restore(DeltaField* f) const {
         BitStream* streams[4] = {&f->snapshot[0], &f->snapshot[1], &f->out[0], &f->out[1]};
         for (int i = 0; i < 4; ++i) {
-            *streams[i] = s[i].header;
+            RawCopy(streams[i], &s[i].header);
             if (!s[i].bytes.empty()) std::memcpy(streams[i]->data_, s[i].bytes.data(), s[i].bytes.size());
         }
     }

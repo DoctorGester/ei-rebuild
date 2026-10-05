@@ -19,6 +19,17 @@ struct CoderState;   // net_coder.h
 // The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
 // WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).
 using BitStream = CMemoryStream;
+// The layout BitStream had as its own struct.
+static_assert(offsetof(BitStream, ok_) == 0x05);
+static_assert(offsetof(BitStream, version_) == 0x08);
+static_assert(offsetof(BitStream, bits_) == 0x0C);
+static_assert(offsetof(BitStream, bitMask_) == 0x10);
+static_assert(offsetof(BitStream, bitsIndex_) == 0x14);
+static_assert(offsetof(BitStream, data_) == 0x18);
+static_assert(offsetof(BitStream, capacity_) == 0x1C);
+static_assert(offsetof(BitStream, position_) == 0x20);
+static_assert(offsetof(BitStream, size_) == 0x24);
+static_assert(sizeof(BitStream) == 0x28);
 
 namespace delta {
 
