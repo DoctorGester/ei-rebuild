@@ -1,4 +1,4 @@
-# Models, resource loading and the 3D device layer
+# Models, resources, the 3D device layer and terrain sectors
 
 Code: `src/game/model.h/.cpp` (3D library side of figures), `model_db.cpp` (databases, water level
 changes), `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `device_mesh.cpp`,
