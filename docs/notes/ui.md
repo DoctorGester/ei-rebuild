@@ -727,7 +727,7 @@ fields +0x08..+0x2C and +0x78/+0x79 named, four method declarations).
 | Address | Size | Name | Verify |
 |---|---|---|---|
 | 005F57C0 | 748 | `CInterface3D::Update` (every frame) | ours only: the mouse copy (+0x68/+0x6C from 007C7C50) |
-| 005FDFA0 | 838 | `CUiSurface::DrawWrappedText` | side by side: line count and the surface's pixels through GDI (the caller holds the DC): recorded, the original's result recorded and the old pixels put back, ours compared; a pixel difference is rerun once (outside surface changes, ticket X4) |
+| 005FDFA0 | 838 | `CUiSurface::DrawWrappedText` | side by side: line count and the surface's pixels through GDI (the caller holds the DC): recorded, the original's result recorded and the old pixels put back, ours compared; on a pixel difference the original is redrawn until it settles and ours compared with that (outside surface changes, tickets X4, X5) |
 | 005E4A10 | 789 | `ConsoleWindow::DrawInput` | side by side: caret/anchor clamp and the surface's pixels (DirectDraw lock); before ours the pixels are put back with the input strip's rows inverted, so anything ours leaves undrawn shows |
 | 005E4180 | 709 | `ConsoleWindow::OnKeyDown` | side by side: input text, caret, anchor, command index, scroll, Ctrl/Shift (restored between the runs) |
 | 005E4800 | 524 | `ConsoleWindow::DrawLines` | as DrawInput (rows above the input strip); runs on every console message (without a surface: the scroll clamp only) |
@@ -791,6 +791,30 @@ server flag 00578D10, activation 005F71C0/005F7350, close-all 005F8C50, message 
   pair once more from the recorded pixels: original, put back, ours. Only a difference that repeats is a
   mismatch. Each rerun logs the first difference and how far the original's own redraw moved from its first
   draw, so a real difference would still show.
+
+## Ticket X5: the original's own redraw differs (2026-10-05)
+
+- Nothing in the original keeps state between calls. 005FDFA0 only walks the text and calls 005F8340
+  (measures with a screen DC, GetDC(0079BC28), the font from CInterface3D+0x70+font*4, scaled to the
+  800x600 UI space by integer maths) and 005FDE20 (FromHandle on the surface DC, rect scaled by 005F7CA0
+  (integer x*w/800, y*h/600), SelectObject font, SetBkMode transparent, optional 0x080808 shadow at +1,+1,
+  SetTextColor, DrawText, font put back, height scaled back by 005F7E30). No caret, no timer, no lazily
+  created font, no cache. The save-name caret is drawn by other code and nothing else runs between the
+  four draws of one check (same thread, back to back). The restore covers the whole surface rectangle
+  (+0x24..+0x30, pixel coordinates: 005FDE20 uses them unscaled for an empty rect), and the differing
+  pixels are only those of the text box itself.
+- The logs agree that it is outside: the last mismatch (ui_describe-vanilla and ui_hud-vanilla) was the
+  same 3-byte word, the same 872 pixels in 336,32-435,74, in two different scenarios at the same
+  millisecond (09:16:29.854), as in X4. The same text and count each time means a word the games draw
+  when something desktop-wide happens (the runs share one full-screen dgVoodoo desktop; another run
+  starting or stopping), and draws made during that moment do not land reliably. In those two runs the
+  original's redraw already agreed with ours (A differed, the rerun matched); in the ticket's ui_saveload
+  run the disturbance lasted through the rerun too.
+- The check now redraws the original from the recorded pixels until two draws in a row agree (up to 5,
+  sleeping 10, 20, ... ms before each, at most 150 ms in total, only on a difference), then compares ours
+  with that settled draw. A real difference in ours still shows: the original settles on the first redraw
+  and ours differs from it. If the original never settles the pixels are not compared and the line count
+  check alone counts; the log line says "did not settle ... not compared".
 
 ## Skipped
 
