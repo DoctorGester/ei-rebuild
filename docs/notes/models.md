@@ -180,3 +180,87 @@ Facts that are not in the code comments:
   with asin/acos), 004F1330 (Rebirth-patched).
 - The `CDib` class (never runs); the prints.db / acks.db loaders themselves (Rebirth-patched) and the
   STLport instantiations.
+
+## Terrain sectors, lighting, prints (006BE3A0-006CFEA0)
+
+Code: `terrain_sector.h/.cpp` (`terrain::SectorData` / `TerrainFields` are views of terrain.h's
+`TerrainSector` / `Terrain`), `terrain.cpp` (PlaneHeight, VertexAt, HeightAt), `terrain_draw.cpp`
+(`DrawSectorPage`, algorithm in its header). Verify: `verify_terrain_sector.cpp`,
+`verify_terrain_draw.cpp`. Reached by every scenario (zone1 loads several sectors; water sectors only
+where the map has water; the terrain pass draws every visible page each frame). Sound parts of the range
+are in `sound.md`; prints.db / acks.db and water level changes are above.
+
+Map (R = Direct3D / renderer calls, left original):
+- 006BF5F0 / 006BF8A0 `SectorData` ctor / dtor (0x394 bytes); 006BFB00-006BFC80 per-quarter draw setup (R);
+  006BFF40 sector page draw.
+- 006C13A0 `Load` (`<zone>XXXYYY.sec`: magic CF4BF774, flags byte 1 water / 2 water tiles); 006C1C00
+  (+ chunk 006C29BD) `Build` (per-vertex records, tile textures / rotations, per quarter and texture page
+  the tile flags and 3x3 vertex lists with UVs, animated tiles with a random start frame, bounding boxes,
+  point lights, water materials); 006C30E0 `ApplyWaterLevels`; 006C3DD0 `Ensure` (build 2 / light 4 on
+  demand); 006C53C0 `TileUv`; 006C3C80 / 006C3D70 Clear / reset.
+- Vertex lighting 006C31C0 / 006C36B0 / 006C3A00 (3A00 switches the FPU to chop rounding with
+  `_controlfp(0x300, 0x300)`; 36B0 tests shadows through 006C92C0); animated tile frames 006C3E30-006C3E80;
+  lightmap / shadow-map helpers 006C42A0-006C4790; 006C67E0 reload of a sector's light data.
+- Landscape object (vtable 0073F6A8): Create 006C5430 (sine table), Destroy 006C54D0, per-frame Update
+  006CB1E0 (light countdown 006C8ED0, animated tiles, ambience 006CB390, frame counter +0x218); 006C5AA0
+  ambient / light-map loading for 006C68B0; 006C7A80 light map setup, 006C7D70 / 006C7EB0 time-of-day colour.
+- Draw passes 006C6230 / 006C6330 / 006C6460 / 006C66E0 (from the renderer 00569E40, Rebirth-patched) (R);
+  006C98F0 / 006CA170.. / 006CA260 light / shadow map textures (R; 98F0 is reached from code Ghidra has no
+  function for, 006CA255); 006CCF20 / 006CEDE0 patch vertex buffers (R).
+- 006C68B0 map loader (`.mp` header, materials, water rows +0xAEC, sector grid, ambient sounds;
+  Rebirth-patched, not rewritten). 006C8140 `Terrain::SectorAt`: the sector cache (grid +0x1F8 of MFC list
+  nodes, LRU list +0x200 / +0x204, 240-frame age limit, loads through 006C13A0, builds through 006C3DD0; not
+  rewritten).
+- 006C85A0 / 006C8680 `VertexAt` / `HeightAt`; 006C8930 `GroundAndWaterDepth`; 006C8D40 `SurfaceClass` (texture
+  class under a point: footprints, blood, effects); 006C8ED0 / 006C92C0 periodic light recomputation / shadow
+  test of a point; 006CA5D0-006CAC10 point lights register with the vertices they reach (pooled 16-byte
+  LightRef nodes, blocks of 1000 at 007C8840); 006CB020 point test (8 callers); 006CBE60-006CC8D0 decal / patch
+  projection (006CC530 builds from VertexAt), 006CC7F0 water level apply; 006CF370-006CFEA0 foot / blood /
+  fire prints.
+
+Sector data: the file has a 5-byte header (magic, flags), 33x33 x 8-byte vertices per layer {int8 dx, int8
+dy, u16 height, u32 normal 10:11:11}, 256 u16 tile words (texture 14 bits, rotation 2 bits), a second 256
+with water tiles, and 256 u16 water materials per tile with water (sizes 0x240D / 0x4815, +0x200 with water
+tiles). Vertex records (0x54, packed): +0x19 position (water), +0x25 water material, +0x27 depth (ground),
++0x2B normal, +0x43 material colour, +0x4F material byte, +0x50 light references. Texture pages: `pages`
+(landscape +0x11C) pages of `perPage` (+0x128) textures, then 8 per page; water tiles use pages + 2 + page;
+quarters are 8x8 tiles; counts are indexed quarter * 256 + page.
+
+| Address | Name | Verify |
+|---|---|---|
+| 006C1C00 | SectorData::Build | original on a scratch sector (empty rebuilt arrays, private vertices and water list), random generator and the owner's water row restored, ours on the real one; every written field and array compared (pointers as indices, light lists by light); scratch destroyed through the original's record destructor |
+| 006C13A0 | SectorData::Load | ours on the real sector, original on a scratch copy with emptied arrays (extra GetFile reference dropped with CloseFile); header fields, vertices, water tiles compared |
+| 006C30E0 | SectorData::ApplyWaterLevels | snapshot of records, vertices and water row; original, record, restore, ours, compare |
+| 006C3DD0 | SectorData::Ensure | ours only: result and built flags (calls Build through its original address) |
+| 006C53C0, 006C8D40, 006C8930 | TileUv, SurfaceClass, GroundAndWaterDepth | pure / side by side (the sector lookup only refreshes the cache) / outputs |
+| 006BFF40 | DrawSectorPage (`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused) | ours only: result 0 / 1, vertex buffer size within capacity and a multiple of 4 |
+
+Facts: terrain_sector.cpp is compiled with `float_control(precise, on)`; the vertex grid's running x / y,
+heights in flight and bounding box intermediates are doubles, every float store goes through `Store`,
+constants are read from the exe, heights from HeightAt are taken unrounded through a double-returning
+forwarder to 006C8680. `DrawSectorPage` returns 1 at once when sector +0x60 is 2; its function-local statics
+(guard byte 007C88A0: vertex buffer 007C8890, index CWordArray 007C8878, clipped indices 007C8860, per-vertex
+CByteArray 007C8848; clipped-vertex arrays 007C88B8 / 007C88A8, guard 007C88C8; exit handlers 006C1370 /
+006C1360 / 006C1350 / 006C1340 / 006C1320 / 006C1300) are built on first use, and the last two arrays do not
+keep their contents when they grow; the level-of-detail tables 0079699C / 007969A8 are read from the exe; the
+vertex buffer's element is 32 bytes, so it is four times larger than needed (as in the original); render
+state 0x1D goes through `*007AF080 + 0x54` (IDirect3DDevice7 slot 20).
+
+Original quirks kept: Load passes the error message to FatalError as its format string; Build's texture
+class index is compared against perPage * pages (not 16) before falling back to 15; Load picks a vertex's
+water material by lowest priority, Build the first found; `DrawSectorPage` with a level of detail outside
+0..2 reads past the tables as the original does. Forwarders: Clear 006C3C80, Light 006C3A00, Build (Ensure's
+call), element constructors / destructors 006C4EE0 / 006C4F90 / 006C4F60 / 006C5050 / 006C5010 / 006C5120,
+CByteArray SetSize / SetAtGrow 006FF64A / 006FF7DC, the owner's LightSector 006CA9C0; the archive's GetFile
+through its vtable (slot 5).
+
+Skipped: the other draw functions (R above); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); 006C8140
+`SectorAt` (stateful cache, next candidate with invariant checks), the vertex lighting (chop rounding), point
+light registration 006CAC10 (global node pool), 006C3E80 animated tiles; dead code 006C8990, 006C9560,
+006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 / 006C4C90; STLport / MFC instantiations (006B01F0-006B4230,
+006BDDD0-006BE300, 006CD540-006CEA10). Risks: the animated-tile path draws from the game's random generator
+(a mistake would shift later draws); Build's verify allocates and frees a scratch sector each call, so light
+reference node addresses differ from a plain run; `DrawSectorPage` runs every frame, so a mistake shows at
+once (missing or garbled terrain, or a crash). Lesson: Ghidra's listing of 006C1C00 drops the FNSTSW AX at
+006C1F48 (a plain minimum select on the comparison status); check the raw bytes when a listing's addresses
+skip.
