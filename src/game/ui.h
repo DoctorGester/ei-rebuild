@@ -510,6 +510,10 @@ public:
     void OnMouseDown(int buttons, int x, int y);   // 0063DAA0
     void OnDoubleClick(int buttons, int x, int y); // 0063DAE0
     void OnMouseMove(int buttons, int x, int y);   // 0063E270
+    // 0063DB20 (ui_hud.cpp). Button release: a unit's quick item (bottom row) is picked (0063DD70)
+    // or, with key +0x7F, used at once (0063E020); a player's item (top row) starts mode 6, or
+    // cancels when it is the highlighted one.
+    void OnMouseUp(int buttons, int x, int y);
     BOOL Draw(int pass);                           // 0063CDC0
     // 0063D9D0 (slot 24, every frame). Fills the tooltip of each quick item slot that shows one.
     void Update();

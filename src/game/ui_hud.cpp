@@ -873,6 +873,68 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
 EI_REPLACE_METHOD(0x00638EF0, CBattleScreen::SelectUnit);
 EI_REBIRTH_IMPLEMENTS(0x00638EF0, ei::rebirth::Patch::FixSpellSelfCasting);
 
+// --- 0063DB20: the quick item panel's button release -------------------------------------------
+
+namespace {
+// The quick item panel (thiscall, RET 4, slot): 0063DD70 picks the unit's quick item `slot` (a wand
+// or scroll with a spell starts target mode 3 / 4), 0063E020 uses it at once (key +0x7F).
+__declspec(naked) void __fastcall QuickPanelPick(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063DD70)
+__declspec(naked) void __fastcall QuickPanelUseNow(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063E020)
+constexpr int kItemSlotUseTarget = 21;   // item slot 21 (+0x54): 12 bytes into a buffer, returns it
+} // namespace
+
+void CHudQuickItems::OnMouseUp(int, int x, int y) {
+    if (!ReleaseMouse()) return;
+    int region = RegionAt(x, y);
+    // Unchecked, as in the original (region -1 reads +0x168).
+    int entry = RegionItem(region);
+    if (entry < 0) return;
+    inputHandled_ = true;
+    if (region < 4 && entries_[entry].own) {
+        if (interface_->keyCtrl_)
+            QuickPanelUseNow(this, nullptr, region);
+        else
+            QuickPanelPick(this, nullptr, region);
+        return;
+    }
+    CBattleScreen* screen = owner_;
+    auto clearPanels = [screen](int value) {
+        void* quick = Field<void*>(screen, 0x198);
+        for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
+        Field<int>(quick, 0x150) = value;
+        void* spells = Field<void*>(screen, 0x19C);
+        for (int i = 0; i < Field<int>(spells, 0x14C); ++i) SpellPanelSet(spells, nullptr, i, 0);
+        Field<int>(spells, 0x150) = value;
+        void* actions = Field<void*>(screen, 0x1A0);
+        for (int i = 0; i < Field<int>(actions, 0x14C); ++i) ActionPanelSet(actions, nullptr, i, 0);
+        Field<int>(actions, 0x150) = value;
+    };
+    if (selected_ != region) {
+        // One of the player's items (top row): "use on an object" (mode 6) with the item's
+        // 12-byte value (slot 21) at the screen's +0x220 and its id at +0x184.
+        interface_->PlaySound(kSoundClick, 0);
+        std::uint32_t buffer[3];
+        CEngineObject* item = entries_[entry].item;
+        using UseTargetFn = const std::uint32_t*(__thiscall*)(CEngineObject*, std::uint32_t*);
+        const std::uint32_t* value =
+            reinterpret_cast<UseTargetFn>((*reinterpret_cast<void***>(item))[kItemSlotUseTarget])(item, buffer);
+        std::memcpy(&Field<std::uint8_t>(screen, 0x220), value, 12);
+        Field<int>(screen, 0x184) = entries_[entry].id;
+        Field<int>(screen, 0x180) = region;
+        Field<int>(screen, 0x17C) = 6;
+        clearPanels(-1);
+        QuickPanelSet(Field<void*>(screen, 0x198), nullptr, region, 1);
+        return;
+    }
+    // The highlighted one again: back to plain selection.
+    interface_->PlaySound(kSoundClick, 0);
+    Field<int>(screen, 0x180) = -1;
+    Field<int>(screen, 0x17C) = 0;
+    Field<int>(screen, 0x184) = -1;
+    clearPanels(-1);
+}
+UI_INPUT_HANDLER(0x0063DB20, CHudQuickItems, OnMouseUp);
+
 // --- 00636F10: the selected units ordered to a point -------------------------------------------
 
 namespace {

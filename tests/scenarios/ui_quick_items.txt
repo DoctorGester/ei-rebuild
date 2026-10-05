@@ -1,0 +1,130 @@
+# Quick items and spells on a target (docs/notes/ui.md, "Eighteenth pass (ticket I9)"): two wands
+# go into the hero's quick slots through the camp, then the battle screen uses them on a unit and
+# at a point, and a spell aimed at a point is cast on the ground.
+#
+# The wands: "wand 3" (category 5) with lightning (spell kind 'u', flag 0x10000000) and with a
+# fireball (kind 't'). The camp (screen 5) page 0 puts a quick item from the item strip on the hero
+# (PutOn 0060FCA0, at most four): the strip's quick-item tab is region 5 (770..800 x 505..535,
+# tab 3), its first slot at x 50..150; each click takes the first item, so four clicks put on the
+# wands (and any potion listed before them). Back in the game the quick item panel shows the
+# hero's four quick items at x 670..720, 620..670, 570..620, 520..570 (y 550..600); a click on one
+# (button release 0063DB20 -> 0063DD70) starts mode 3 (a lightning wand: on a unit, 00637500 with
+# quick 1) or 4 (the fireball wand: at a point, 00637750 with quick 1). Each slot is clicked, then
+# the ground (a mode 4 item is used there; mode 3 waits) and then a wolf (a mode 3 item is used on
+# it; otherwise a plain order), so the order of the items does not matter.
+#
+# The spell: the hero gets only the fireball, so the spell column has one button (760..800 x
+# 470..510). SetUnit leaves it highlighted, and a click on the highlighted spell cancels, so the
+# button and the ground are clicked twice: one of the two clicks starts mode 2 (no flag
+# 0x10000000) and the ground click casts it at the point (SelectUnit -> 00637750).
+# Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @GiveItem(0,"wand 3.iron[lightning]")
+wait 300
+console @GiveItem(0,"wand 3.iron[fireball]")
+wait 300
+
+# The camp: quick-item tab, then the strip's first slot four times.
+screen 5
+wait 3000
+move 785 520
+wait 200
+click 785 520
+wait 500
+move 100 550
+wait 200
+click 100 550
+wait 400
+click 100 550
+wait 400
+click 100 550
+wait 400
+click 100 550
+wait 400
+key esc
+wait 3000
+waitfor 15 IsGreater(HP(GetLeader()),0)
+
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @GiveUnitSpell(GetLeader(),"fireball")
+wait 500
+
+# The hero's portrait: selects it and shows its quick items and spells.
+click 400 560
+wait 300
+check IsAlive(GetLeader())
+
+console @AddUnitToServer("QuickWolf0","WolfTutor","QuickWolf0",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("QuickWolf1","WolfTutor","QuickWolf1",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+console @AddUnitToServer("QuickWolf2","WolfTutor","QuickWolf2",Sub(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("QuickWolf3","WolfTutor","QuickWolf3",GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),3),0)
+waitfor 10 IsAlive(GetObjectByName("QuickWolf0"))
+waitfor 10 IsAlive(GetObjectByName("QuickWolf1"))
+waitfor 10 IsAlive(GetObjectByName("QuickWolf2"))
+waitfor 10 IsAlive(GetObjectByName("QuickWolf3"))
+console @BlockUnit(GetObjectByName("QuickWolf0"),1)
+console @BlockUnit(GetObjectByName("QuickWolf1"),1)
+console @BlockUnit(GetObjectByName("QuickWolf2"),1)
+console @BlockUnit(GetObjectByName("QuickWolf3"),1)
+wait 500
+
+# Quick slots 0-3: the slot, the ground, a wolf.
+move 695 575
+wait 200
+click 695 575
+wait 200
+click 90 320
+wait 300
+clickunit QuickWolf0
+wait 500
+move 645 575
+wait 200
+click 645 575
+wait 200
+click 90 320
+wait 300
+clickunit QuickWolf1
+wait 500
+move 595 575
+wait 200
+click 595 575
+wait 200
+click 90 320
+wait 300
+clickunit QuickWolf2
+wait 500
+move 545 575
+wait 200
+click 545 575
+wait 200
+click 90 320
+wait 300
+clickunit QuickWolf3
+wait 500
+
+# The fireball spell at a point, twice (the first click may only cancel the highlight).
+move 780 490
+wait 200
+click 780 490
+wait 200
+click 90 320
+wait 500
+move 780 490
+wait 200
+click 780 490
+wait 200
+click 90 320
+wait 1000
+check IsAlive(GetLeader())
+report
+quit
