@@ -10,6 +10,8 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "engine_object.h"
+#include "originals_world.h"
 
 #include "ei/hook.h"
 
@@ -45,6 +47,13 @@ __declspec(naked) void __fastcall SubCallDestroy(void*, void*, int) EI_ORIGINAL(
 __declspec(naked) void __fastcall NamesDestruct(void*) EI_ORIGINAL(0x004C26A0)
 __declspec(naked) void __fastcall RefArrayDestruct(void*) EI_ORIGINAL(0x004C2290)
 __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29C0)
+
+// Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)
+// and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
+__declspec(naked) void __fastcall GroupBody(void*) EI_ORIGINAL(0x004B5EF0)
+__declspec(naked) void __fastcall FxSourceBody(void*) EI_ORIGINAL(0x004BD540)
+__declspec(naked) void __fastcall WorldBlockBody(void*) EI_ORIGINAL(0x004BF7E0)
+__declspec(naked) void __fastcall CmdDestructAt(void*) EI_ORIGINAL(0x004BF640)
 
 template <typename T>
 void SetBaseVtable(MfcArray<T>* a, std::uintptr_t vtable) {
@@ -123,3 +132,66 @@ void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
     FreePlain(&cmd->floatArgs, kArgFloatsBaseVtable);
 }
 EI_REPLACE(0x004BF640, ScriptCmdDestruct);
+
+// ---- Element destructors (ticket S7) -------------------------------------------------------------
+// __thiscall (flags) RET 4, `this` returned in EAX; bit 0 of the flags also deletes the element.
+
+namespace {
+void* Finish(void* self, int flags) {
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+} // namespace
+
+// A reference: the object released, the slot cleared.
+void* __fastcall ScriptRefDestroy(CEngineObject** slot, void*, int flags) {
+    if (*slot) (*slot)->Release();
+    *slot = nullptr;
+    return Finish(slot, flags);
+}
+EI_REPLACE(0x004CE1E0, ScriptRefDestroy);
+
+void* __fastcall ScriptGroupDestroy(void* group, void*, int flags) {
+    GroupBody(group);
+    return Finish(group, flags);
+}
+EI_REPLACE(0x004CE210, ScriptGroupDestroy);
+
+// A nested call: its command destroyed and deleted.
+void* __fastcall ScriptSubCallElementDestroy(ScriptSubCall* call, void*, int flags) {
+    if (SSCCmd* cmd = call->cmd) {
+        CmdDestructAt(cmd);
+        gamecrt::operator_delete(cmd);
+    }
+    return Finish(call, flags);
+}
+EI_REPLACE(0x004CE230, ScriptSubCallElementDestroy);
+
+// A particle source's object: removed from the world's timed objects, then released.
+void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags) {
+    if (*slot) {
+        WorldRemoveTimed(reinterpret_cast<void*>(0x007AFF60), nullptr, (*slot)->id_);
+        (*slot)->Release();
+    }
+    *slot = nullptr;
+    return Finish(slot, flags);
+}
+EI_REPLACE(0x004CE270, ScriptParticleDestroy);
+
+void* __fastcall ScriptFxSourceDestroy(void* source, void*, int flags) {
+    FxSourceBody(source);
+    return Finish(source, flags);
+}
+EI_REPLACE(0x004CE2B0, ScriptFxSourceDestroy);
+
+void* __fastcall ScriptWorldBlockDestroy(void* block, void*, int flags) {
+    WorldBlockBody(block);
+    return Finish(block, flags);
+}
+EI_REPLACE(0x004CE2D0, ScriptWorldBlockDestroy);
+
+void* __fastcall ScriptCmdElementDestroy(SSCCmd* cmd, void*, int flags) {
+    CmdDestructAt(cmd);
+    return Finish(cmd, flags);
+}
+EI_REPLACE(0x004BF620, ScriptCmdElementDestroy);
