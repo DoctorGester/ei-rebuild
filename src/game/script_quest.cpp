@@ -17,6 +17,11 @@ namespace {
 // text).
 __declspec(naked) void __fastcall ObjectivesSetSize(MfcArray<ScriptQuestObjective>*, void*, int, int)
     EI_ORIGINAL(0x004CDF40)
+// 004CE110: the quest table's hashtable find_or_insert(pair) (library, RET 4): the pair in the table, a
+// copy of `pair` inserted when its key is missing.
+__declspec(naked) QuestTable::Map::Pair* __fastcall QuestFindOrInsert(QuestTable::Map*, void*,
+                                                                       const QuestTable::Map::Pair*)
+    EI_ORIGINAL(0x004CE110)
 
 } // namespace
 
@@ -55,3 +60,11 @@ void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, floa
 EI_REPLACE(0x004BAEB0, ScriptQuestObjectiveDestruct);
 EI_REPLACE(0x004BAA40, ScriptQuestStart);
 EI_REPLACE(0x004BAE10, ScriptQuestAddObjective);
+
+// 004C9C90: the key, then a {key, null} pair copied from it; the pair is destroyed before the key.
+void* QuestTable::Find(const char* name) {
+    stlp::string key(name);
+    Map::Pair pair{key, nullptr};
+    return QuestFindOrInsert(&byName, nullptr, &pair)->value;
+}
+EI_REPLACE_METHOD(0x004C9C90, QuestTable::Find);

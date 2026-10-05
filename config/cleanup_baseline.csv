@@ -202,7 +202,7 @@ src/game/ui_battle_hover.cpp,23,7,0,0,0,0
 src/game/ui_battle_setup.cpp,0,2,0,0,2,0
 src/game/ui_battle_update.cpp,49,1,0,0,1,0
 src/game/ui_camera_keys.cpp,0,0,0,1,0,0
-src/game/ui_camp.cpp,0,0,3,3,21,18
+src/game/ui_camp.cpp,0,0,3,3,21,17
 src/game/ui_console_window.cpp,0,0,0,0,3,3
 src/game/ui_container_draws.cpp,32,3,0,0,1,1
 src/game/ui_create_screen.cpp,0,0,0,0,0,3

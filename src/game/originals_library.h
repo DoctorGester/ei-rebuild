@@ -74,7 +74,8 @@ __declspec(naked) inline void* __fastcall StringArrayConstruct(void* /*array*/) 
 __declspec(naked) inline void __fastcall StringArrayDestruct(void* /*array*/) EI_ORIGINAL(0x006FE958)
 __declspec(naked) inline void __fastcall StringArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x006FE9B8)
-// 004DBE40: splits the text at a separator into a CStringArray (ECX text, EDX array, RET 4 for the character).
+// 004DBE40 (rewritten as text::Split, text_split.cpp): splits the text at a separator into a CStringArray (ECX
+// text, EDX array, RET 4 for the character).
 __declspec(naked) inline void __fastcall StringSplit(const char* /*text*/, void* /*array*/, char /*separator*/)
     EI_ORIGINAL(0x004DBE40)
 // The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
@@ -162,6 +163,12 @@ __declspec(naked) inline void* __fastcall CStringAssignTextOriginal(void* /*dest
     EI_ORIGINAL(0x00700AF9)
 __declspec(naked) inline int __fastcall CStringFindCharOriginal(const void* /*string*/, void*, char /*c*/)
     EI_ORIGINAL(0x00700E91)
+// MFC CString::Find(char, start) 00700E9F (RET 8, index or -1). TrimLeft() 006FE216 and TrimRight() 006FE11F
+// (white space, plain RET, no result).
+__declspec(naked) inline int __fastcall CStringFindCharFromOriginal(const void* /*string*/, void*, char /*c*/,
+                                                                     int /*start*/) EI_ORIGINAL(0x00700E9F)
+__declspec(naked) inline void __fastcall CStringTrimLeftOriginal(void* /*string*/) EI_ORIGINAL(0x006FE216)
+__declspec(naked) inline void __fastcall CStringTrimRightOriginal(void* /*string*/) EI_ORIGINAL(0x006FE11F)
 // MFC CPtrList::NewNode(prev, next) 004621A0 (RET 8, returns the node, data cleared); RemoveAll 0052CA10 (plain RET).
 __declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x004621A0)
@@ -201,7 +208,7 @@ __declspec(naked) inline void* __fastcall MapRegistryFindOriginal(void* /*map*/,
 __declspec(naked) inline char* __fastcall StringInitRangeOriginal(void* /*string*/, void*, const char* /*first*/,
                                                                   const char* /*last*/, const void* /*tag*/)
     EI_ORIGINAL(0x0042A3D0)
-// 004DA5C0: the game buffer grows its storage to `size` bytes (RET 4, EAX not a result).
+// 004DA5C0: the game buffer moves to a block of size * 2 + 0x40 bytes (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall GameBufferGrowOriginal(void* /*buffer*/, void*, std::uint32_t /*size*/)
     EI_ORIGINAL(0x004DA5C0)
 

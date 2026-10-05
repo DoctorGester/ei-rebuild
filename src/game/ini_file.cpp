@@ -186,7 +186,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, MfcArray* o
 } // namespace
 
 int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
-__declspec(naked) int TextOps::Find(char, int) const EI_ORIGINAL(0x00700E9F)
+int TextOps::Find(char c, int start) const { return CStringFindCharFromOriginal(this, nullptr, c, start); }
 __declspec(naked) mfc::CString TextOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)

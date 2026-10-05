@@ -1,7 +1,7 @@
 # Map objects (00500000-00522000)
 
 Code: `src/game/map_object.h/.cpp` (CMapObject, MapEffect: layouts, per-slot comments),
-`map_object_companion.cpp` (CMapObjectServer / CMapObjectClientSpecific), `map_object_figures.*`
+`map_object_companion.cpp` (CMapObjectServer / CMapObjectClientSpecific), `map_object_figures.*`, `map_object_parts.cpp`
 (CObject3D figure parts, scale, bounds), `map_object_shadow.*`, `map_object_draw.cpp`,
 `map_object_animation.*`, `map_object_cage.*`, `map_object_lifetime.cpp` (constructors, destructor
 bodies), `map_object_create.cpp` (slot 2 of units / torches). Verify: `tests/verify/verify_map_object*.cpp`.
@@ -46,6 +46,9 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
   through the figure manager (ManagerContext slot 15, 005AA5F0); SetFigureScale rebuilds the figure
   only when the scale changes (ManagerContext slots 23 / 6); the piece map at figure + 0x14 is an
   STLport map<string, piece> (find 005197B0).
+- The side half at +0x94 (`CObject3DSpecific`: client 0x37 vtable 0073DE90, server 0x38 0073DFBC) is declared as an interface;
+  slot 18 GetScale gives the client's +0xF0..+0xF8 or 1, 1, 1 on the server. Scenarios reaching the part code: units, unit_create, combat
+  (weapon / armour models), spells_cast, effects (EffectPoint, particle callbacks).
 - **Animation tracks and cages**: AnimationTrack::Evaluate uses the CRT's modf of the time rounded
   with FISTP, `Quaternion::Slerp` 0049ED20, defaults at 007AF110 / 007AF100; CageInterpolator cube /
   prism are called by the figure manager's 005ACB80 and read point records from a stream advancing
@@ -75,6 +78,14 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 00518310 | CObject3D::ComputeBounds | ours, bounds restored, original; +0x124..+0x150 and EAX |
 | 00517700, 00517500, 005164B0 | SetFigureScale, LoadFigures, AddPart | ours only: scale as given / nothing pending, parts listed |
 | 00519E80, 00519D70 | AlignedPtrArray::SetAtGrow, SetSize | ours only: value, size, alignment |
+| 00516A80, 005169A0 | CObject3D::FindPartByPrefix (strstr at the name's start, case-sensitive), FindPart (strcmp); parts, then pending parts | pure |
+| 005167E0, 005168F0 | RemovePart (side half's slot 15 first; a placed part forgets its owner; animation 0050D350; released), RemovePartNamed | ours only: list one shorter, next entry moved down, result |
+| 005188B0 | PartWorldPosition (part position turned by the orientation, times the side half's slot 18 scale, plus the position) | output, CheckNear |
+| 00518CA0, 00518F80, 00518FC0 | Animations ("<name>.adb" through the owner's GetFile on first use, +0xA0), AnimationAt (key & 0xFF), FindSkillAnimation (kind 0x40000, number in bits 22-29) | pure once loaded (00518F80 through a stub repeating its first three instructions) |
+| 0050E770, 0050E840 | CMapObject::CreateMapObject / DestroyMapObject (slots 2 / 3; map_object_create.cpp) | ours only: blank state / nothing left |
+| 00515F70, 00516080 | CObject3D::Create3D / Destroy3D (slots 2 / 3; object3d_lifetime.cpp; Destroy3D drops the parts' references without releasing them) | ours only |
+| 00518A00, 00518AE0, 00519580 | AddEffectSource / RemoveEffectSource (particle sources at +0xA8, attached through 004849F0), CountedRef::Assign | ours only: list / reference counts |
+| 00518D30, 00517990 | AnimationFactor (units only: (start + (end - start) t) / length, 1 for a 0 / NaN length), FindPartIndex (_mbscmp over +0x114) | pure (CheckNear) |
 | 0051CE60, 0051B7E0 | DrawShadow, Draw | ours only: result 1; Draw: scene matrix stacks as deep as before |
 | 0050ACD0 | AnimationTrack::Evaluate | ours, values restored, original, compared |
 | 0050B8C0, 0050BC00 | CageInterpolator::InterpolateCube, Prism | ours, point and stream restored, original, compared |
@@ -110,9 +121,12 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   (ours zero-extends); its light list starts with SetSize(16) / SetSize(0), the paths for an existing
   list cannot run.
 
+- Create3D drops the side half (+0x94) without releasing it; Destroy3D only decrements the placed
+  parts' counts (no release, nothing freed at 0) while it releases the pending ones.
+
 ## Skipped and why
 
-- Create / Destroy (0050E770, 0050E840, 00510770, 005107B0, 005157C0, 005157E0), Load / Save (0050F7A0 /
+- Companion Create / Destroy (00510770, 005107B0, 005157C0, 005157E0), Load / Save (0050F7A0 /
   0050F900, 005159D0 / 00515AC0), CArray Serialize/SetSize instantiations: container members,
   exception frames, stream classes not rewritten.
 - 0050F170 (fade mode from a float, slot 47): small, next candidate.

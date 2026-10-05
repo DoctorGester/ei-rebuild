@@ -54,6 +54,28 @@ public:
 
     static constexpr std::uintptr_t kViewVtableAddress = 0x0073CA64;
 
+    // The growing buffer's non-virtual members (game_buffer.cpp).
+    // 004DA7F0. Constructor: growing vtable, base 0, flags 6, a 0x20-byte block (cursor and high at
+    // its start). Returns this.
+    GameBuffer* ConstructGrowing();
+    // 004DA9E0 (RET 4). Copy constructor: growing vtable, base 0, a block of `from`'s capacity with
+    // all of its bytes, the same cursor / high offsets and flags. Returns this.
+    GameBuffer* ConstructCopy(const GameBuffer* from);
+    // 004DAA80 (RET 4). Assignment: frees the block, then copies as ConstructCopy (vtable and base
+    // kept). Returns this.
+    GameBuffer* AssignFrom(const GameBuffer* from);
+    // 004DA910. Destructor body: growing vtable, the block freed, the view base's vtable left.
+    void DestructGrowing();
+    // 004DA5C0 (RET 4). Moves the contents to a new block of size * 2 + 0x40 bytes.
+    void Grow(std::uint32_t size);
+    // 004DA170 (RET 8). A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what
+    // is left before `high` (through slot 3 when that crosses `end`); the cursor ends at `high`.
+    // Returns the bytes read.
+    std::uint32_t ReadPastEnd(void* to, std::uint32_t size);
+    // The block replaced by one of `capacity` bytes with the old capacity's bytes; the pointers
+    // move with it (inlined in every growing slot).
+    void Reallocate(std::uint32_t capacity);
+
     std::uint8_t* begin;       // +0x04
     std::uint8_t* cur;         // +0x08
     std::uint8_t* end;         // +0x0C capacity
@@ -78,6 +100,21 @@ void __fastcall BufferViewDestruct(GameBuffer* self);
 // destructors (the base's vtable left; freed when bit 0 of `flags` is set). Return `self`.
 void* __fastcall BufferViewDeletingDestructor(GameBuffer* self, void*, unsigned flags);
 void* __fastcall BufferViewBaseDeletingDestructor(GameBuffer* self, void*, unsigned flags);
+// 004DA5A0 / 004DA5B0 (view slots 3 / 4) and 004DA730 (growing slot 3), RET 8: 0.
+int __fastcall BufferNothingMore(GameBuffer* self, void*, const void* data, std::uint32_t size);
+
+// The growing buffer's slots (game_buffer.cpp).
+// 004DA630 / 004DA6B0 (slots 0 / 1, RET 4, byte-identical): always moves the contents to a new
+// block of (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
+void __fastcall GrowingBufferReserve(GameBuffer* self, void*, std::int32_t size);
+// 004DA740 (slot 4, RET 8): grows as Reserve, then copies `size` bytes to the cursor; returns `size`.
+int __fastcall GrowingBufferWriteMore(GameBuffer* self, void*, const void* from, std::uint32_t size);
+// 004DA860 (slot 6, RET 4): `high` raised to the cursor, the cursor moved to begin + position; past
+// `end` the contents move to a block of position * 2 + 0x40 bytes. Returns the cursor, or the new
+// capacity when it grew (EAX as the original leaves it).
+std::uint8_t* __fastcall GrowingBufferSeek(GameBuffer* self, void*, std::int32_t position);
+// 004DA8F0 (slot 5, RET 4): DestructGrowing, freed when bit 0 of `flags` is set; returns `self`.
+GameBuffer* __fastcall GrowingBufferDeletingDestructor(GameBuffer* self, void*, unsigned flags);
 
 // A cursor over a GameBuffer (0x18 bytes) that reads and writes bytes and LSB-first bit fields.
 // Bits are collected in `acc`; a byte is reserved at `bytePtr` when a field starts in a new
@@ -114,9 +151,9 @@ struct BufferCursor {
     // Returns the commit's EAX, or `this` without a sink (00579830 returns it with AL cleared).
     std::uint32_t End();
 
-    // Not rewritten (outside the range): 004DA450 / 004DA490 bind the cursor to a buffer with
-    // room for `size` more bytes (slot 0 / slot 1 of the buffer when short); the write variant
-    // also sets the buffer's flag bit 0.
+    // 004DA450 / 004DA490 (game_buffer.cpp, RET 8) bind the cursor to a buffer with room for
+    // `size` more bytes (slot 0 / slot 1 of the buffer when short): sink, start and p set, no
+    // pending bits (acc is left); the write variant first sets the buffer's flag bit 0.
     void BeginRead(GameBuffer* buffer, std::int32_t size);
     void BeginWrite(GameBuffer* buffer, std::int32_t size);
 };
