@@ -217,6 +217,28 @@ public:
     // resize(hint): grow to the next prime and rehash, moving nodes to the head of new buckets.
     void Resize(std::size_t hint);
 
+    // clear() as STLport writes it, each node freed by `deleteNode(node)` (the instantiation's own
+    // node deleter, for owners that call the game's copy): every chain from its head, the bucket
+    // emptied, then the count zeroed.
+    template <typename F> void ClearWith(F deleteNode) {
+        for (std::size_t i = 0; i < BucketCount(); ++i) {
+            for (Node* n = buckets_[i]; n;) {
+                Node* next = n->next;
+                deleteNode(n);
+                n = next;
+            }
+            buckets_[i] = nullptr;
+        }
+        count_ = 0;
+    }
+
+    // The parts an owner constructs and destroys by hand when the game inlines it (CBaseManager):
+    // the functor bytes, the bucket vector, and the element count, which STLport keeps in the
+    // node allocator's proxy (the node allocator's `this`).
+    std::uint8_t* Functors() { return functors_; }
+    void* BucketVector() { return &buckets_; }
+    void* CountProxy() { return &count_; }
+
 private:
     std::uint8_t functors_[4];
     Node** buckets_;

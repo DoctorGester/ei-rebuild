@@ -7,6 +7,7 @@
 
 using BOOL = int;
 
+class CStream;
 class CUnit;
 
 enum DiplomacyRelation : int {
@@ -30,10 +31,9 @@ struct CDiplomacy {
     // 00455660. Row `player` of the hostile table; -1 outside 0..31.
     int GetHostileMask(int player) const;
 
-    // 004557C0 / 004557F0. Both tables through a stream's slot 1 (Read) / slot 2 (Write), 0x80
-    // bytes each.
-    void ReadFrom(void* stream);
-    void WriteTo(void* stream);
+    // 004557C0 / 004557F0. Both tables read from / written to a stream, 0x80 bytes each.
+    void ReadFrom(CStream* stream);
+    void WriteTo(CStream* stream);
 
     // 00455680. `attacker` attacked `victim`: unless the victim's player is allied with the
     // attacker's, the victim, then the members of the victim's party up to the first empty entry,

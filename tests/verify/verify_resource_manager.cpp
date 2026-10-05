@@ -8,7 +8,7 @@ static BOOL(__fastcall* s_hasFile)(CResourceManager*, void*, const char*);
 
 static BOOL __fastcall HasFileVerify(CResourceManager* self, void*, const char* name) {
     BOOL expected = s_hasFile(self, nullptr, name);
-    BOOL actual = self->HasFile(name);
+    BOOL actual = self->CResourceManager::HasFile(name);
     ei::verify::Check("CResourceManager::HasFile", expected, actual, "\"%s\"", name);
     return expected;
 }

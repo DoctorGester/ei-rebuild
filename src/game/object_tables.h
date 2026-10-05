@@ -8,9 +8,7 @@
 
 using BOOL = int;
 
-namespace mfc {
-class CString;
-}
+class CStream;
 
 // 00461360. Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
 // h % 1000000000 + 1000000000. __fastcall (name in ECX).
@@ -80,11 +78,11 @@ struct NamedFloatTable {
     // `prefix` (strncmp over the prefix's length).
     void CopyPrefixed(const char* prefix, NamedFloatTable* out);
     // 00460FE0 (RET 4). Empties the table, then reads {zero-terminated name, float} pairs from the
-    // stream (vtable slot 1: Read(buffer, size)) up to the name equal to the string at 0079B298.
-    void Load(void* stream);
-    // 00461260 (RET 4). Writes each entry (name with its zero, then the value; slot 2:
-    // Write(buffer, size)), in bucket order, then an empty name.
-    void Save(void* stream);
+    // stream up to an empty name (compared with the exe's empty string, 0079B298).
+    void Load(CStream* stream);
+    // 00461260 (RET 4). Writes each entry (name with its zero, then the value), in bucket order,
+    // then an empty name.
+    void Save(CStream* stream);
 
     std::uint32_t functors;
     Node** buckets;       // +0x04
@@ -97,10 +95,6 @@ static_assert(sizeof(NamedFloatTable) == 0x14);
 // Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` (00461540) but keeps
 // its "gvar." entries, set again in the order addon's own container gives them.
 void ClearVariablesKeepingGlobals(NamedFloatTable* table);
-
-// 00461190 (thiscall on the stream, RET 4). Reads bytes (vtable slot 1: Read(buffer, 1)) up to a
-// zero or a failed read into a CString constructed at `out`; returns `out`.
-mfc::CString* __fastcall StreamReadString(void* stream, void*, void* out);
 
 // 00462F70. The command bound to `key`: the first command slot i (0..0x1FF) whose key in the table
 // at 0079BF70 equals `key` and that has an entry in the command table at 007857B0 (0x48-byte

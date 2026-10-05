@@ -2,8 +2,8 @@
 
 // The rest of the resource code (00672190-00675050): the archive readers' common base
 // CResourceBase, the sound system's file reader (vtable 00743320), the name listing of an archive
-// and the constructors and destructors of CMMIOResource and CResourceManager. Names provisional;
-// the class name CResourceBase is from the game's own error messages.
+// and the constructors and destructors of CMMIOResource. Names provisional; the class name
+// CResourceBase is from the game's own error messages.
 
 #include "resource.h"
 

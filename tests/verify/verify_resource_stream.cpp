@@ -150,7 +150,8 @@ EI_VERIFY(0x006722D0, MmioDeletingVerify, 0, s_unused);
 // CResourceManager: ours only (they close, delete and free).
 static CResourceManager* __fastcall ManagerConstructVerify(CResourceManager* self) {
     CResourceManager* result = self->Construct();
-    bool ok = result == self && self->vtable_ == reinterpret_cast<void*>(0x00743338) && self->archives_.size() == 0;
+    bool ok = result == self && *reinterpret_cast<const std::uintptr_t*>(self) == CResourceManager::kVtableAddress &&
+              self->archives_.size() == 0;
     ei::verify::Check("CResourceManager::Construct", true, ok, "object %p", self);
     return result;
 }
@@ -162,7 +163,7 @@ static CResourceManager* __fastcall ManagerDeletingVerify(CResourceManager* self
 }
 EI_VERIFY(0x00674DD0, ManagerDeletingVerify, 0, s_unused);
 static void __fastcall ManagerDestroyVerify(CResourceManager* self) {
-    self->DestroyManager();
-    ei::verify::Check("CResourceManager::DestroyManager", true, self->archives_.size() == 0, "object %p", self);
+    self->CResourceManager::Destroy();
+    ei::verify::Check("CResourceManager::Destroy", true, self->archives_.size() == 0, "object %p", self);
 }
 EI_VERIFY(0x00674F40, ManagerDestroyVerify, 0, s_unused);

@@ -1,51 +1,17 @@
 #include "object_diplomacy.h"
 
+#include "core_streams.h"
 #include "object.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 namespace {
 
 // SHL r32,CL: the count is masked to 5 bits.
 std::uint32_t Bit(int n) { return 1u << (static_cast<unsigned>(n) & 31); }
 
-// A party's members: an STLport hash_map<key, CUnit*> at party +0x40 (buckets vector at +4).
-struct PartyNode {
-    PartyNode* next;
-    std::uint32_t key;      // hashed by value (IntHash)
-    CUnit* unit;
-};
-struct PartyMembers {
-    std::uint32_t functors;
-    PartyNode** buckets;
-    PartyNode** finish;
-};
-
-std::uint32_t BucketCount(const PartyMembers* map) {
-    // (finish - start) >> 2, signed shift then used unsigned, as STLport's vector size.
-    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->finish) -
-                                                       reinterpret_cast<std::uintptr_t>(map->buckets)) >> 2);
-}
-
-// 00455830 (hashtable::begin): the head of the first non-empty bucket.
-PartyNode* FirstNode(const PartyMembers* map) {
-    for (std::uint32_t i = 0; i < BucketCount(map); ++i)
-        if (map->buckets[i]) return map->buckets[i];
-    return nullptr;
-}
-
-// operator++ (004558B0 when the chain ends): the next node in the chain, else the head of the next
-// non-empty bucket after the node's own.
-PartyNode* NextNode(const PartyMembers* map, const PartyNode* node) {
-    if (node->next) return node->next;
-    std::uint32_t bucket = node->key % BucketCount(map);
-    for (;;) {
-        ++bucket;
-        if (BucketCount(map) <= bucket) return nullptr;
-        if (PartyNode* head = map->buckets[bucket]) return head;
-    }
-}
+// A party's members: an STLport hash_map<key, CUnit*> at party +0x40, walked in iterator order.
+using PartyMembers = stlp::hash_map<std::uint32_t, CUnit*, stlp::IntHash>;
 
 } // namespace
 
@@ -78,7 +44,7 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
     ObjectListIterator it;
     it.manager = nullptr;
     for (CEngineObject* object = it.First(WorldObjectManager()); object; object = it.Next()) {
-        if (ei::VCall<int>(object, 12) != kClassUnit) continue;   // GetClassId
+        if (object->GetClassId() != kClassUnit) continue;
         CUnit* unit = static_cast<CUnit*>(object);
         if (FieldAt<int>(unit, unitfield::kPlayer) != player) continue;
         std::uint32_t mask = FieldAt<std::uint32_t>(unit, unitfield::kHostileMask);
@@ -102,15 +68,15 @@ int CDiplomacy::GetHostileMask(int player) const {
 }
 EI_REPLACE_METHOD(0x00455660, CDiplomacy::GetHostileMask);
 
-void CDiplomacy::ReadFrom(void* stream) {
-    ei::VCall<unsigned>(stream, 1, static_cast<void*>(allied_), 0x80u);
-    ei::VCall<unsigned>(stream, 1, static_cast<void*>(hostile_), 0x80u);
+void CDiplomacy::ReadFrom(CStream* stream) {
+    stream->Read(allied_, sizeof(allied_));
+    stream->Read(hostile_, sizeof(hostile_));
 }
 EI_REPLACE_METHOD(0x004557C0, CDiplomacy::ReadFrom);
 
-void CDiplomacy::WriteTo(void* stream) {
-    ei::VCall<unsigned>(stream, 2, static_cast<void*>(allied_), 0x80u);
-    ei::VCall<unsigned>(stream, 2, static_cast<void*>(hostile_), 0x80u);
+void CDiplomacy::WriteTo(CStream* stream) {
+    stream->Write(allied_, sizeof(allied_));
+    stream->Write(hostile_, sizeof(hostile_));
 }
 EI_REPLACE_METHOD(0x004557F0, CDiplomacy::WriteTo);
 
@@ -124,8 +90,8 @@ void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim, int) {
     char* party = FieldAt<char*>(victim, unitfield::kParty);
     if (!party) return;
     auto* members = reinterpret_cast<const PartyMembers*>(party + 0x40);
-    for (PartyNode* node = FirstNode(members); node && node->unit; node = NextNode(members, node)) {
-        CUnit* unit = node->unit;
+    for (const PartyMembers::Node* node = members->First(); node && node->value; node = members->After(node)) {
+        CUnit* unit = node->value;
         UnitAddHostileMask(unit, nullptr,
                            FieldAt<std::uint32_t>(unit, unitfield::kHostileMask) |
                                Bit(FieldAt<int>(attacker, unitfield::kPlayer)));

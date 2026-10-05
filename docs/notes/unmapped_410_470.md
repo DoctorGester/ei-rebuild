@@ -400,8 +400,8 @@ loaded object one reference and takes it back.
 
 ## Fifth round: CBaseManager (00402B20-00404A00)
 
-src/game/base_manager_core.cpp (tests/verify/verify_base_manager_core.cpp); the list iterator in
-object.cpp. Vtable 0073B870 (25 slots). Members as used: +0x1C objects table (STLport hash_map id ->
+src/game/base_manager.cpp (tests/verify/verify_base_manager.cpp), with the list iterator; the
+members are named in base_manager.h since ticket C2a (docs/notes/cleanup-engine-base.md). Vtable 0073B870 (25 slots). Members as used: +0x1C objects table (STLport hash_map id ->
 object), +0x30 highest id, +0x34 MFC CPtrList of registered objects (head +0x38, tail +0x3C, count
 +0x40, free +0x44, blocks +0x48), +0x50 table id -> list position (+0x64 highest key), +0x68 table
 type -> CPtrList* of spare objects (+0x7C highest type), +0x80 table type -> spare count (+0x94
@@ -792,7 +792,7 @@ over streams (00477E60-0047A6D0: vtables 0073C8A4, 0073C8D8, 0073C8F8, 0073C92C,
 | 0045DE30, 0045DFB0, 0045D610, 0045D760 | map_spec_unit.cpp | waypoint lists and behaviour records read / written (stream chunks) |
 | 00460460, 004608B0, 00460970 | zone_records.cpp | the zone exit's destructors (world.h ZoneExit) and the map database's zone record destructor (eight CStrings, the exits' CArray at +0x48) |
 | 00460BC0, 00460DB0, 00460EE0, 00460FE0, 00461260 | object_tables.cpp | NamedFloatTable (hash_map<CString, float>): Set (zero removes), Remove, CopyPrefixed, Load, Save |
-| 00461190 | object_tables.cpp | StreamReadString: bytes up to a zero into a CString (many callers keep forwarders) |
+| 00461190 | core_streams.cpp | CStream::ReadString: bytes up to a zero into a CString (many callers keep forwarders) |
 | 00462C10, 00462DF0 | key_bindings.cpp | the key bindings file: load (key texts from GetKeyNameTextA, "command key" lines) and save |
 | 00463120 | lever_table.cpp | the atexit destructor of the table at 0079C1A0 (vector of 0x2C records, hash map of vectors) |
 | 00477E60, 0047A030 | net_session_pump.cpp | the network record (file stream over a CFile) and the per-player driver (vtable 0073C990) constructors |

@@ -16,6 +16,22 @@ constexpr int kFileRead = 13;
 constexpr int kFileWrite = 14;
 } // namespace
 
+CTransformObject* CTransformObject::ConstructBase() {
+    ClearFields();
+    // Identity rotations (w first); the positions are not initialised.
+    localRotation_.w = 1.0f;
+    localRotation_.x = 0.0f;
+    localRotation_.y = 0.0f;
+    localRotation_.z = 0.0f;
+    worldRotation_.w = 1.0f;
+    worldRotation_.x = 0.0f;
+    worldRotation_.y = 0.0f;
+    worldRotation_.z = 0.0f;
+    ei::SetVtable(this, kVtableAddress);
+    return this;
+}
+EI_REPLACE_METHOD(0x00453400, CTransformObject::ConstructBase);
+
 CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) {
     std::memmove(&localPosition_, &other.localPosition_, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition_));
     return this;

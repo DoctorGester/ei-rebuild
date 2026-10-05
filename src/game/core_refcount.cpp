@@ -1,17 +1,12 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 namespace {
-constexpr int kDeletingDestructor = 0;
-constexpr int kShutdown = 2;
-constexpr int kClone = 3;
-
-// The original's inlined release. It also tests the pointer for null after decrementing through
-// it, which can never matter.
+// The original's inlined release (delete calls slot 0 with 1, after the same null test the
+// original makes).
 void ReleaseObject(CRefObject* object) {
-    if (--object->refs_ == 0) ei::VCall<void*>(object, kDeletingDestructor, 1);
+    if (--object->refs_ == 0) delete object;
 }
 } // namespace
 
@@ -20,7 +15,7 @@ EI_REPLACE_METHOD(0x0040A3A0, CRefObject::Release);
 
 int CRefObject::Shutdown() {
     ++refs_;
-    int result = ei::VCall<int>(this, kShutdown);
+    int result = OnShutdown();
     --refs_;
     return result;
 }
@@ -39,7 +34,7 @@ void RefPtr::Share(CRefObject* object) {
         ptr = nullptr;
         return;
     }
-    if (object->flags6_ & CRefObject::kCopyOnShare) object = ei::VCall<CRefObject*>(object, kClone);
+    if (object->flags6_ & CRefObject::kCopyOnShare) object = object->Clone();
     ptr = object;
     ++object->refs_;
     ptr->flags6_ |= CRefObject::kCopyOnShare;
@@ -52,7 +47,7 @@ void RefPtr::Destroy() {
     if (object->refs_ != 1) {
         object->flags7_ |= CRefObject::kDetached;
         ++object->refs_;
-        ei::VCall<int>(object, kShutdown);
+        object->OnShutdown();
         --object->refs_;
     }
     ReleaseObject(ptr);   // reloaded: the shutdown may have changed it

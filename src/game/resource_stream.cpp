@@ -1,10 +1,8 @@
 // The rest of the resource code: CResourceBase, the sound system's file reader, the archive name
-// listing, and the CMMIOResource / CResourceManager constructors and destructors. See
-// resource_stream.h and docs/notes/range_660.md.
+// listing, and the CMMIOResource constructors and destructors (CResourceManager's are in
+// resource_manager.cpp). See resource_stream.h and docs/notes/range_660.md.
 
 #include "resource_stream.h"
-
-#include "resource_manager.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -42,7 +40,6 @@ constexpr std::uintptr_t kResourceBaseVtable = 0x00743324;
 constexpr std::uintptr_t kResourceStreamVtable = 0x00743320;
 constexpr std::uintptr_t kMappedResourceVtable = 0x007432E0;
 constexpr std::uintptr_t kMmioResourceVtable = 0x00743300;
-constexpr std::uintptr_t kResourceManagerVtable = 0x00743338;
 
 void SetVtable(void* object, std::uintptr_t vtable) { *static_cast<std::uintptr_t*>(object) = vtable; }
 
@@ -274,51 +271,6 @@ CMMIOResource* CMMIOResource::DeletingDestroy(unsigned flags) {
     return this;
 }
 
-// --- CResourceManager ----------------------------------------------------------------------------
-
-namespace {
-// The CBaseManager part (not rewritten): constructor body, slot 3, destructor body.
-__declspec(naked) void* __fastcall BaseManagerConstruct(void* /*self*/) EI_ORIGINAL(0x00402B20)
-__declspec(naked) void __fastcall BaseManagerDestroy(void* /*self*/) EI_ORIGINAL(0x004031E0)
-__declspec(naked) void __fastcall BaseManagerDestruct(void* /*self*/) EI_ORIGINAL(0x00402DF0)
-
-// Closes and deletes every archive (slot 3 CloseResource, then the scalar deleting destructor).
-void CloseAll(stlp::vector<ArchiveEntry>& archives) {
-    for (ArchiveEntry& e : archives) {
-        e.resource->CloseResource();
-        if (e.resource != nullptr) delete e.resource;
-    }
-    archives.clear();
-}
-} // namespace
-
-CResourceManager* CResourceManager::Construct() {
-    BaseManagerConstruct(this);
-    std::memset(&archives_, 0, sizeof(archives_));
-    vtable_ = reinterpret_cast<void*>(kResourceManagerVtable);
-    return this;
-}
-
-void CResourceManager::Destruct() {
-    vtable_ = reinterpret_cast<void*>(kResourceManagerVtable);
-    CloseAll(archives_);
-    BaseManagerDestroy(this);
-    archives_.clear();
-    archives_.FreeStorage();
-    BaseManagerDestruct(this);
-}
-
-CResourceManager* CResourceManager::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-
-void CResourceManager::DestroyManager() {
-    CloseAll(archives_);
-    BaseManagerDestroy(this);
-}
-
 // --- Hooks ---------------------------------------------------------------------------------------
 
 EI_REPLACE_METHOD(0x00674790, CResourceBase::Construct);
@@ -340,8 +292,3 @@ EI_REPLACE_METHOD(0x00674AC0, CMappedResource::ListFiles);
 EI_REPLACE_METHOD(0x006721D0, CMMIOResource::Construct);
 EI_REPLACE_METHOD(0x006722F0, CMMIOResource::Destroy);
 EI_REPLACE_METHOD(0x006722D0, CMMIOResource::DeletingDestroy);
-
-EI_REPLACE_METHOD(0x00674D90, CResourceManager::Construct);
-EI_REPLACE_METHOD(0x00674DF0, CResourceManager::Destruct);
-EI_REPLACE_METHOD(0x00674DD0, CResourceManager::DeletingDestruct);
-EI_REPLACE_METHOD(0x00674F40, CResourceManager::DestroyManager);

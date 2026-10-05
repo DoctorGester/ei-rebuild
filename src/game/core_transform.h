@@ -12,6 +12,8 @@
 // Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save).
 class CTransformObject : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = 0x0073BA38;
+
     // 13: 00401490. Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);
     // 14: 0040CB80. worldRotation = parent * localRotation. Overridden by 00516370 in units.
@@ -23,8 +25,8 @@ public:
     // 17: 00401540. Reads the local transform from an MFC CFile (slot 13, Read).
     virtual void LoadTransform(void* file);
 
-    // 00453400 (object.cpp). Constructor body: base fields, identity rotations (positions left as
-    // they are), vtable 0073BA38; returns this.
+    // 00453400. Constructor body: base fields, identity rotations (positions left as they are),
+    // vtable 0073BA38; returns this.
     CTransformObject* ConstructBase();
 
     // Rotation helpers (core_transform_math.cpp).

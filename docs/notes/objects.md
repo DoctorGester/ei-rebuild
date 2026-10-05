@@ -59,7 +59,7 @@ Found by scanning .rdata for runs that have CEngineObject's slot 1 (00402D40) an
 
 - `CEngineObject`: the inline constructor pattern is refCount_ = 0, id_ = -1, unknown_18 = type_ =
   flags_ = owner_ = 0 (00461C10, 00453400, 00468680). `owner_` is the manager; the manager's +0xAC
-  (`CBaseManager::owner_AC`) is what `ManagerContext` returns; 00455950 calls that object's slot 13.
+  (`CBaseManager::context_`) is what `ManagerContext` returns; 00455950 calls that object's slot 13.
 - `ObjectListIterator` {manager, position}: walks a manager's CPtrList at +0x34 (00404920 First,
   00404960 Next). It holds a reference on the manager (`refCount_`), which the owner drops with
   `--manager->refCount_`. The world object manager is the pointer at 007AFFA0.

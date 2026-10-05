@@ -103,7 +103,7 @@ static void* s_ctorDestruct;
 static void __fastcall CtorDestructVerify(CItemConstructor* self) {
     self->DestructBody();
     bool ok = !self->manager_ && !self->item_ && !self->owner_ &&
-              *reinterpret_cast<std::uintptr_t*>(self) == kEngineObjectVtable;
+              *reinterpret_cast<std::uintptr_t*>(self) == CEngineObject::kVtableAddress;
     ei::verify::Check("CItemConstructor::DestructBody", true, ok, "%p", self);
 }
 EI_VERIFY(0x006A5B20, CtorDestructVerify, 0, s_ctorDestruct);
