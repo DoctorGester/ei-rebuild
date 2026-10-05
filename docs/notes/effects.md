@@ -4,7 +4,7 @@ Code: `src/game/effects.h` (layouts and class overview), `effects.cpp` (particle
 setters), `effects_weather.cpp` (rain/snow fade, fog). Verify: `tests/verify/verify_effects.cpp`.
 Scenario: `tests/scenarios/effects.txt` (cannot check particles directly; relies on the verify
 totals; rain/snow and fog only run where the map has weather / the fog is active). The rest of the
-particle source (Create, Tick, Draw, other callbacks) is in `range_490.md` and `particle_*.cpp`.
+particle source (Create, Tick, Draw, other callbacks) is in `particles.md` and `particle_*.cpp`.
 
 ## Facts
 
