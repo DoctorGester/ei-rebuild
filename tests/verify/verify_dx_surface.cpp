@@ -1,12 +1,16 @@
 // Checks for the off-screen surface holder (dx_surface.cpp) and the window surface's DC
-// (ui_surface_dc.cpp). All ours only (DirectDraw objects, GDI).
+// (ui_surface_dc.cpp). Ours only (DirectDraw objects, GDI), except the picture loader 004F0060,
+// which runs the original on a scratch holder.
 #include "verify.h"
 
+#include "../../src/game/dx_surface.h"
 #include "../../src/lib/mfc.h"
+#include "../../src/render/render.h"
 
 #include <windows.h>
 
 #include <cstdint>
+#include <cstring>
 
 char* __fastcall DXSurfaceConstruct(char* holder, void*, char* device, int width, int height);
 void __fastcall DXSurfaceDestroy(char* holder);
@@ -42,6 +46,101 @@ static char* __fastcall DXSurfaceFromPictureVerify(char* holder, void*, char* de
     return result;
 }
 EI_VERIFY(0x004EFC60, DXSurfaceFromPictureVerify, 0, s_fromPicture);
+
+// --- 004F0060 ---------------------------------------------------------------------------------------
+
+namespace {
+
+template <typename... Args>
+long SurfaceCall(void* surface, int slot, Args... args) {
+    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(surface))[slot])(surface, args...);
+}
+
+// A holder's pixels for reading: its game-owned memory (the DIB section; GDI flushed) when it has
+// some, else a read-only Lock (`locked` set; Unlock afterwards).
+const std::uint8_t* PixelsOf(char* holder, long* pitch, void** locked) {
+    *locked = nullptr;
+    if (HBITMAP bitmap = ClientBitmap(holder)) {
+        DIBSECTION section{};
+        ::GdiFlush();
+        if (::GetObjectW(bitmap, sizeof(section), &section) != sizeof(section) || !section.dsBm.bmBits) return nullptr;
+        *pitch = section.dsBm.bmWidthBytes;
+        return static_cast<const std::uint8_t*>(section.dsBm.bmBits);
+    }
+    void* surface = *reinterpret_cast<void**>(holder + 0x10);
+    if (!surface) return nullptr;
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    // DDLOCK_WAIT | DDLOCK_READONLY
+    if (SurfaceCall(surface, 25, static_cast<RECT*>(nullptr), static_cast<void*>(desc), 0x11ul, static_cast<void*>(nullptr)) != 0)
+        return nullptr;
+    *locked = surface;
+    *pitch = static_cast<long>(desc[4]);
+    return reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(desc[9]));
+}
+
+// The two holders' surfaces hold the same rows of `rowBytes` bytes.
+bool SamePixels(char* expected, char* actual, int rowBytes, int height, int* firstRow) {
+    auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+    ::EnterCriticalSection(lock);
+    long expectedPitch = 0, actualPitch = 0;
+    void* expectedLocked = nullptr;
+    void* actualLocked = nullptr;
+    const std::uint8_t* e = PixelsOf(expected, &expectedPitch, &expectedLocked);
+    const std::uint8_t* a = PixelsOf(actual, &actualPitch, &actualLocked);
+    bool same = e && a;
+    *firstRow = same ? -1 : -2;
+    for (int y = 0; same && y < height; ++y) {
+        if (std::memcmp(e + static_cast<std::ptrdiff_t>(y) * expectedPitch, a + static_cast<std::ptrdiff_t>(y) * actualPitch,
+                        static_cast<std::size_t>(rowBytes)) != 0) {
+            same = false;
+            *firstRow = y;
+        }
+    }
+    if (expectedLocked) SurfaceCall(expectedLocked, 32, static_cast<RECT*>(nullptr));
+    if (actualLocked) SurfaceCall(actualLocked, 32, static_cast<RECT*>(nullptr));
+    ::LeaveCriticalSection(lock);
+    return same;
+}
+
+} // namespace
+
+// 004F0060 (dx_surface.cpp): when it makes the surface (a holder without one, a device, an 8888
+// picture: the path 004EFC60 takes) against the original on a scratch copy of the holder: the
+// result, the holder's +8 / +0x14 / +0x18 / +0x1C and the pixels (the original's surface through a
+// read-only Lock; ours from its game-owned memory when it has some, else a Lock), then the scratch
+// surface is released. With "cpuwindows" a system-memory request must have got game-owned memory.
+// Other calls (errors, a holder with a surface: only the dead 004EFF30 / 004EFFF0) ours only.
+int __fastcall DXSurfaceLoadPicture(char* holder, void*, const void* data, int flag);
+static void* s_loadPicture;
+static int __fastcall DXSurfaceLoadPictureVerify(char* holder, void*, const void* data, int flag) {
+    const auto* header = static_cast<const std::uint32_t*>(data);
+    bool compare = header && header[4] == 0x8888 && !*reinterpret_cast<void**>(holder + 0x10) &&
+                   *reinterpret_cast<char**>(holder + 0xC);
+    if (!compare) return DXSurfaceLoadPicture(holder, nullptr, data, flag);
+    alignas(4) char scratch[0x20];
+    std::memcpy(scratch, holder, sizeof(scratch));
+    using Fn = int(__fastcall*)(char*, void*, const void*, int);
+    int expected = reinterpret_cast<Fn>(s_loadPicture)(scratch, nullptr, data, flag);
+    int actual = DXSurfaceLoadPicture(holder, nullptr, data, flag);
+    auto field = [](const char* h, int offset) { return *reinterpret_cast<const std::uint32_t*>(h + offset); };
+    bool fields = expected == actual && field(scratch, 8) == field(holder, 8) && field(scratch, 0x14) == field(holder, 0x14) &&
+                  field(scratch, 0x18) == field(holder, 0x18) && field(scratch, 0x1C) == field(holder, 0x1C);
+    int width = static_cast<int>(header[1]), height = static_cast<int>(header[2]);
+    int bytes = static_cast<int>(field(holder, 0x1C) / 8);
+    int firstRow = -1;
+    bool pixels = expected != 1 || actual != 1 || (bytes != 2 && bytes != 4) ||
+                  SamePixels(scratch, holder, width * bytes, height, &firstRow);
+    bool wantsClient = actual == 1 && (flag & 0xFF) == 0 && render::CpuWindows();
+    bool client = ClientBitmap(holder) != nullptr;
+    ei::verify::Check("DXSurfaceLoadPicture", true, fields && pixels && (client || !wantsClient),
+                      "%dx%d flag %d: result %d/%d, bits %u/%u, pixels %s (row %d), game memory %d/%d", width, height,
+                      flag & 0xFF, expected, actual, field(scratch, 0x1C), field(holder, 0x1C), pixels ? "same" : "differ",
+                      firstRow, wantsClient ? 1 : 0, client ? 1 : 0);
+    if (void* surface = *reinterpret_cast<void**>(scratch + 0x10)) SurfaceCall(surface, 2);   // Release
+    return actual;
+}
+EI_VERIFY(0x004F0060, DXSurfaceLoadPictureVerify, 6, s_loadPicture);
 
 // 004EFD20: the base vtable and no device afterwards; the holder count one lower.
 static void* s_destroy;

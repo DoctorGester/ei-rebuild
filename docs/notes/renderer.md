@@ -41,7 +41,7 @@ comma-separated list:
 | `noterrain` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) |
 | `noobjects` | ... the meshes drawn inside the world view (figures, map objects, the sky) and the flat geometry there (004EA4A0: shadows, ground decals) |
 | `nointerface` | ... the meshes drawn outside the world view (the interface's sprites and 3D previews) and the window surfaces' blits |
-| `cpuwindows` | the surfaces of 004EF7B0 (interface windows, software cursor, movies) keep their pixels in game-owned memory (DIB sections) the new renderer reads directly; on with `present`, `nocpuwindows` turns it off |
+| `cpuwindows` | the surfaces of 004EF7B0 (interface windows, software cursor, movies) and the system-memory picture surfaces of 004F0060 (the cursor's images, picture windows) keep their pixels in game-owned memory (DIB sections) the new renderer reads directly; on with `present`, `nocpuwindows` turns it off |
 | `present` | the switch-over: everything handed over is off in the old path (`noterrain,noobjects,nointerface`, movie blits too; `cpuwindows` on) and at the old present (004EF610) the new frame is copied into the game's render target, which the old Flip / BltFast then shows; captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode). A first version showed the frame in the child window instead: under dgVoodoo's full screen the second swap chain made the game window inactive (WM_ACTIVATE inactive: the game's frame function then draws nothing and the window minimises itself), so no frame was drawn at all. `show` / `split` have the same problem in full screen; use them windowed |
 
 Without `new` nothing in `src/render` runs; the old path draws as before. The harness has the steps
@@ -249,13 +249,12 @@ in our runs) is still created and still used, because:
    in either mode. The picture window's constructor 005FCF80 and the destructor body 005FD120 are
    rewritten there too and take the surface's description (for the surface-bytes total) from the
    memory in the switch-over. With that the windows' DirectDraw use in the switch-over is down to
-   creating and releasing the surface itself (004EF7B0 / 004EFD20) and the picture windows'
-   surfaces (004EFC60 -> 004F0060: made and filled through DirectDraw, no game-owned memory yet,
-   so 005FCF80 / 005FD120 still describe those through GetSurfaceDesc). (00655550 / 00655D40 /
+   creating and releasing the surface itself (004EF7B0 / 004EFD20, and 004F0060 for the picture
+   holders, which get game-owned memory too since R2b, below). (00655550 / 00655D40 /
    00656464 / 00656E10 lock the save / load screen's screenshot textures, not windows: they go
    with the textures.) Scenario: render_present_cpuwindows (render_present plus the escape menu
-   over its greyed screen copy). Left: game-owned memory for the picture holders (004F0060), then
-   holders with no DirectDraw surface at all; and with the verify build's
+   over its greyed screen copy). Left: holders with no DirectDraw surface at all; and with the
+   verify build's
    side-by-side text checks under cpuwindows the GDI batch must be flushed before they read
    pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
@@ -321,7 +320,8 @@ in our runs) is still created and still used, because:
    surface): the new renderer decodes the picture from the file data (`render::PictureFromMmp`)
    and `render::Cursor` takes its colours from there, with the mask (005E4EB0: all ones where the
    image is black) from game memory; no Lock per frame. The same holder type serves windows made
-   from a picture (005FCF80), whose blits still read the surface. The screen copies: with point 2
+   from a picture (005FCF80, dead code); with `cpuwindows` these holders keep their pixels in
+   game-owned memory too (004F0060, R2b below). The screen copies: with point 2
    (in the switch-over they go into the windows' memory directly).
 5. **Draws the old path still makes**: the weather's (004E4240 / 004E4C80 build and draw in one
    function; the new renderer takes the triangles after they return). Everything in the world view
@@ -337,8 +337,8 @@ in our runs) is still created and still used, because:
    Direct3D calls are not rewritten yet (the "state presets" are done, point 3; the dead line draw
    0049B320 is left): the device setup and texture management (004E5E50,
    004E68A0, 004EE*, 0068F860..00693C60), the movies' surfaces (005DA5AB / 005DA880 / 005DB603 / 005DB9E0), the
-   software cursor's primary draws (005E5640 / 005E5690 / 005E6630), the picture window and
-   holder helpers (004EFA60, 004EFEA0, 004F0060), the save / load screen's screenshot locks and a
+   software cursor's primary draws (005E5640 / 005E5690 / 005E6630), the holder helpers
+   (004EFA60, 004EFEA0; 004F0060 is rewritten), the save / load screen's screenshot locks and a
    few interface draws (00600EF0, 00602BF0, 0060C870, 00622420, 00627C90, 00628F80, 00630670,
    00632A90, 006462A0, 0064D970, 00658E10). Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
    after 1-4; until then dgVoodoo keeps creating its device and swap chain (only never presented).
@@ -489,3 +489,65 @@ has the full per-call inventory.
 
 Limits: what moves by itself between frames without the game's clocks (other threads) is not held;
 the harness's own waits use real time.
+
+## 10. Picture holders on game memory (ticket R2b, 2026-10-05)
+
+**004F0060** (`dx_surface.cpp`, `DXSurfaceLoadPicture`; thiscall on the holder, RET 8: picture,
+flag) is rewritten. What it does: rejects a null picture or one not in 8888 (fatal error report,
+its result returned); for a holder without a surface reads the primary's pixel format, creates an
+off-screen surface of the picture's size (flags CAPS | WIDTH | HEIGHT: the screen's format by
+default; caps 0x840 system memory, or 0x4040 video memory when the flag's low byte is set),
+describes it (004EFEA0) and sets +0x14 / +0x18 / +0x1C to the width, height and the primary's bit
+count; then reads the surface's pixel format, locks it (WAIT | WRITEONLY | NOSYSLOCK) and fills it:
+32 bits a row copy, 16 bits through the device's converter (device +0x4C, 2DintMMX: slot 1 the
+target 0 5:6:5 / 1 5:5:5 / 2 1:5:5:5 / -1 with the four masks from 004EDAA0's channel split, slot
+2 one row: out, in, target, count), 24 bits a report and a clear; unlock; 1.
+
+With `cpuwindows` a system-memory request gets a DIB section as the surface's memory, as 004EF7B0
+does for windows (DDSD_LPSURFACE | DDSD_PITCH, and DDSD_PIXELFORMAT with the primary's format, the
+one DirectDraw picks without it; refused -> the original's plain surface and the log line
+"cpuwindows: client-memory surface WxH refused (hr) for a picture; a plain one instead"; the memory
+goes to `g_memory` and `render::ClientSurface`, the destructor body 004EFD20 frees it). Outside the
+switch-over the fill still goes through Lock / Unlock, which on a client-memory surface returns that
+memory (the verify build reads the DIB itself, not the lock, so it checks the pixels landed there).
+In the switch-over (`present`) the fill writes straight into the memory: no GetPixelFormat on the
+surface, no Lock / Unlock and no GetSurfaceDesc (004EFEA0) after the creation: size and format come
+from the memory (`DirectPixels`); the device lock is still taken around the fill. A video-memory
+request (flag low byte set) keeps the original's surface: client memory must be system memory. The
+only live caller passes `(byte 00784756 == 0)`: 004EFC60 from the cursor's sprite loader 005E4EB0
+(005DAEA0 -> 005E63F0, 49 images; 00784756 is 1 in the exe's data and never written by address,
+so the flag is 0 and the images come out in system memory, on game memory with the option).
+
+The picture windows: 005FCF80 has no caller in game.exe, EI_Plugin, addon.dll or mp3dec
+(config/dead_code.csv), and 004EFF30 / 004EFFF0 (the other two callers of 004F0060, loading a
+picture from a file into an existing holder) have no callers either. So in the scenarios
+004F0060 is reached only through the cursor's images (25 calls per run in render_present,
+render_present_cpuwindows, ui_camp and ui_screens). 005FCF80 / 005FD120 needed no code change:
+their `Describe` already takes the description from `DirectPixels`, which now covers picture
+holders too (comments updated).
+
+The new renderer: a picture holder with game memory is a window surface like the others (read
+from memory, converted when the memory changed); the cursor still takes its colours from the
+picture's file data (`render::PictureFromMmp`).
+
+Original details kept: a holder that already has a surface (dead callers only) must hold the
+picture's width in both +0x14 and +0x18 (the original compares the width with the height field
+too); a failed Lock whose report says stop returns with the device lock still held; the 24-bit
+clear ignores the pitch; without a device the original reads the primary through a null pointer
+(004EFC60 always passes the device object) and its "no DXDD" branch and the release of an earlier
+surface on the creating path are unreachable (not reproduced).
+
+Forwarders added: 004EDAA0 (`ChannelLayout::Split`, the pixel-format channel split; the same as
+`PixelConverter::Init` in ui_surface_pixels.cpp), 00480080 as a printf-like `FatalError`. 004EFC60
+still calls 004F0060 through its address, so the verify wrapper runs.
+
+Verify (`verify_dx_surface.cpp`, `DXSurfaceLoadPictureVerify`, 6 stolen bytes: SUB ESP,0xD8): on
+the creating path (a holder without a surface, a device, an 8888 picture: every live call) the
+original runs first on a scratch copy of the holder, then ours on the real one; compared: the
+result, the holder's +8 / +0x14 / +0x18 / +0x1C, every row of pixels (the original's surface through
+a read-only Lock; ours from its DIB section when it has one, else a read-only Lock), and with
+`cpuwindows` a system-memory request must have got game-owned memory; the scratch surface is
+released. Other calls (error paths, an existing surface) ours only. Scenarios: render_present and
+render_present_cpuwindows (the switch-over, direct fill), ui_camp and ui_screens (plain DirectDraw
+path, the comparison of the fill itself); render_cpuwindows has the option without the switch-over
+(the fill through Lock into the DIB).

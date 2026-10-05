@@ -10,7 +10,9 @@
 // section) and the colour fill is left out; in the switch-over ("present") its description comes
 // from that memory too, so making a window asks DirectDraw for nothing but the surface itself.
 // The surface descriptions 005FCF80 / 005FD120 take for the surface-bytes total come from that
-// memory too in the switch-over (for picture windows only once their holders get such memory).
+// memory too in the switch-over, for picture windows as well: their holders (004EFC60 -> 004F0060,
+// a system-memory picture surface) get game-owned memory like the others. (005FCF80 itself has
+// no caller in game.exe or the mods: config/dead_code.csv.)
 // The original's unwinding when 004EF7B0 throws (freeing the holder's memory) is not reproduced:
 // that throw ends the game.
 #include "ui.h"
@@ -107,8 +109,8 @@ void Begin(char* self, void* ui, int format) {
 
 namespace {
 
-// The surface's description: from its game-owned memory in the switch-over (DirectPixels), else
-// GetSurfaceDesc (the result in the holder's +8, reported).
+// The surface's description: from its game-owned memory in the switch-over (DirectPixels: window
+// and picture holders alike), else GetSurfaceDesc (the result in the holder's +8, reported).
 void Describe(char* holder, std::uint32_t* desc) {
     std::memset(desc, 0, 0x7C);
     desc[0] = 0x7C;
