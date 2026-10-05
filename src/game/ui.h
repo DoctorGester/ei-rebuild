@@ -896,6 +896,53 @@ static_assert(offsetof(CUiScrollbar, thumb_) == 0x164);
 static_assert(offsetof(CUiScrollbar, state_) == 0x184);
 static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
+namespace mfc { class CString; }
+
+// The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, vtable
+// 00742F28, type 1) or a word (0x10 bytes, vtable 00742F20 over the base 00742F24, type 2).
+struct UiTextToken {
+    void* vtable_;
+    int type_;                       // +0x04 1 format, 2 word
+};
+struct UiFormatToken : UiTextToken {
+    bool newline_;                   // +0x08 a line break (a newline token, or a font change after
+                                     //       the first token)
+    std::uint8_t unknown_09[3];
+    int font_;                       // +0x0C interface font
+    COLORREF colour_;                // +0x10
+};
+static_assert(sizeof(UiFormatToken) == 0x14);
+struct UiWordToken : UiTextToken {
+    char* text_;                     // +0x08 CString
+    int width_;                      // +0x0C its width in the token's font (005F8340)
+};
+static_assert(sizeof(UiWordToken) == 0x10);
+// MFC CArray of token pointers (SetSize 0065E010).
+struct UiTokenArray {
+    void* vtable_;
+    UiTextToken** data_;             // +0x04
+    int size_;                       // +0x08
+    int maxSize_;                    // +0x0C
+    int growBy_;                     // +0x10
+};
+
+// A scrolling text: a scroll bar subclass (constructor 0065CC00) showing tokenised text; the
+// battle screen's message log and the objectives window's quest log.
+class CUiScrollText : public CUiScrollbar {
+public:
+    // 0065D4B0 (RET 4; ui_scroll_text.cpp). Appends the tokens of `text`: words (with their
+    // widths), and before each run of newline, BEL C<rgb> and BEL F<digit> tokens one format
+    // token.
+    void Tokenize(const mfc::CString* text);
+    // 0065D970 (RET 0xC; not rewritten). The token of `text` at `pos` (spaces and tabs skipped)
+    // into `out`; returns the position after it, or -1 at the end.
+    int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
+
+    std::uint8_t unknown_18C[0x19C - 0x18C];
+    UiTokenArray tokens_;            // +0x19C
+};
+static_assert(offsetof(CUiScrollText, tokens_) == 0x19C);
+
 // A spin control of the options window (its +0x0C value object).
 struct UiSpinValue {
     // 0065BEB0 / 0065BEE0 (not rewritten). Value access.
@@ -903,7 +950,8 @@ struct UiSpinValue {
     void SetValue(int value);
 };
 struct UiSpin {
-    std::uint8_t unknown_00[0x0C];
+    std::uint8_t unknown_00[0x08];
+    CUiScrollbar* bar_;              // +0x08 or null (the options window's Left / Right move it)
     UiSpinValue* value_;             // +0x0C
 };
 
@@ -968,6 +1016,20 @@ public:
     int EntryCount() const { return static_cast<int>(entriesEnd_ - entriesBegin_); }
     // The selected save's title becomes the name being edited.
     void TakeSelectedTitle();
+
+    // ui_menu_keys.cpp.
+    // 006548A0 (input side, RET 0xC). Keys: Enter confirms, Esc cancels, Up / Down / PgUp / PgDn
+    // move the selection; in a save window Backspace, Delete, Home, End, Left and Right edit the
+    // save's name (the first edit of a save that is not a quick or automatic one takes over its
+    // title, Backspace / Delete starting from an empty name).
+    void OnKeyDown(int key, int repeat, int flags);
+    // 00655430. Clamps the selection to the list, scrolls it into view (16 rows), takes its
+    // title as the name, redraws the list and shows its picture.
+    void ShowSelection();
+    void CallShowSelection();        // through 00655430
+    // 00657820 (RET 4). Entry `index` is the quick save or an automatic save ("saveq", "savea",
+    // "saveb"; no bound check).
+    bool IsReservedSave(int index);
 
     SaveEntry* entriesBegin_;        // +0x164
     SaveEntry* entriesEnd_;          // +0x168
@@ -1066,6 +1128,23 @@ static_assert(offsetof(CObjectivesWindow, exits_) == 0x18C);
 static_assert(offsetof(CObjectivesWindow, bar_) == 0x1BC);
 static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 
+// A key binding row of the options window (0x18 bytes, vector at +0x36C; rows_ point at them).
+struct OptionBinding {
+    const int* key_;                 // +0x00 its first int is the bound key code
+    std::uint8_t unknown_04[0x0C];
+    std::uint32_t name_;             // +0x10 passed to "key_already_mapped_msg" (a string)
+    std::uint8_t unknown_14[4];
+};
+static_assert(sizeof(OptionBinding) == 0x18);
+
+// The game's table of key names (0x48 bytes each, 88 of them from 007857B0 to 00787070).
+struct UiKeyName {
+    int scan_;                       // +0x00 scan code
+    std::uint8_t unknown_04[4];
+    char name_[0x40];                // +0x08
+};
+static_assert(sizeof(UiKeyName) == 0x48);
+
 // A row of the options window: a key binding or a spin control.
 struct OptionRow {
     void* binding_;
@@ -1101,12 +1180,21 @@ public:
     // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
 
+    // 00650E40 (input side, RET 0xC; ui_menu_keys.cpp). Keys: Esc cancels, Enter starts a key
+    // binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch groups, Left /
+    // Right move a row's bar. While a binding waits for its key the next key (scan code) is
+    // bound, Esc's scan code giving up; a key bound to another action asks first.
+    void OnKeyDown(int key, int repeat, int flags);
+
     // Row of region `region` (13 and up).
     OptionRow& RegionRow(int region) { return rows_[region - 13]; }
 
-    std::uint8_t unknown_164[0x364 - 0x164];
+    signed char keyOfScan_[0x200];   // +0x164 the key code bound to each scan code
     int selectedRow_;                // +0x364
-    std::uint8_t unknown_368[0x378 - 0x368];
+    int group_;                      // +0x368 the option group shown
+    struct OptionBinding* bindingsBegin_;   // +0x36C STLport vector of the key binding rows
+    struct OptionBinding* bindingsEnd_;     // +0x370
+    std::uint8_t unknown_374[0x378 - 0x374];
     struct OptionSetting* settings_; // +0x378 26 settings
     std::uint8_t unknown_37C[0x384 - 0x37C];
     OptionRow rows_[14];             // +0x384
@@ -1117,11 +1205,13 @@ public:
     std::uint8_t groupNames_[0x14];  // +0x3FC CStringArray: the option groups' titles
     bool displayModeChanged_;        // +0x410 a display mode setting (7-9) changed
     std::uint8_t unknown_411[3];
-    int unknown_414;                 // +0x414 cleared by Build
+    int unknown_414;                 // +0x414 cleared by Build; OnKeyDown keeps the UiKeyName* of
+                                     //        the key pressed for a binding there (null: none)
 };
 static_assert(offsetof(COptionsWindow, settings_) == 0x378);
 static_assert(offsetof(COptionsWindow, displayModeChanged_) == 0x410);
 static_assert(offsetof(COptionsWindow, selectedRow_) == 0x364);
+static_assert(offsetof(COptionsWindow, bindingsEnd_) == 0x370);
 static_assert(offsetof(COptionsWindow, rows_) == 0x384);
 static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
 static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
