@@ -35,6 +35,9 @@
 //                             quick items, the quick item panel and the spell column; with
 //                             <minquick>, fail when the quick item panel shows fewer of its unit's
 //                             own quick items (ui_quick_items)
+//   campputon <type> <count>  with the camp on top: put the first <count> of the player's items
+//                             of class type <type> (hex, e.g. 3006 quick items) on the hero, as a
+//                             click on them in the item strip does (the camp's slot 42, mode 1)
 //   screen <id> [constr]      ask the server for interface screen <id> as the global map's buttons
 //                             do (4 the global map, 5 the camp; the battle screen is left). For the
 //                             camp, <constr> (default 0: none) is the constructor / trader class it
@@ -1068,6 +1071,43 @@ std::string HudState(const std::string& argument) {
     return "";
 }
 
+// --- campputon <type> <count> (ticket I9) -----------------------------------------------------
+// With the camp on top (screen 5, page 0): the first <count> items of class type <type> (hex,
+// item +0x10: 0x3004 weapon, 0x3005 armour, 0x3006 quick item, 0x3008 spell container) in the
+// item strip's source list (camp +0x1E0, strip +0x1AC: the player's items) are put on the hero as
+// a click on them in the strip does: the camp's virtual slot 42 (MoveItem 00610AD0) with mode 1
+// (PutOnFromStrip -> PutOn 0060FCA0). The strip's tabs do not matter. Logs every source item's
+// type; fails when fewer than <count> items of the type are found or the camp is not on top.
+std::string CampPutOn(const std::string& argument) {
+    unsigned type = 0;
+    int count = 0;
+    if (sscanf_s(argument.c_str(), "%x %d", &type, &count) != 2) return "campputon needs <type hex> <count>";
+    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    auto* camp = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
+    if (!camp || *reinterpret_cast<void**>(camp) != reinterpret_cast<void*>(0x0074091C))
+        return "campputon: the camp is not on top";
+    int page = *reinterpret_cast<int*>(camp + 0x190);
+    auto* strip = *reinterpret_cast<std::uint8_t**>(camp + 0x1E0);
+    auto* source = strip ? *reinterpret_cast<UiPtrArray<std::uint8_t>**>(strip + 0x1AC) : nullptr;
+    if (!source) return "campputon: the camp has no item strip source";
+    std::vector<std::uint8_t*> chosen;
+    for (int i = 0; i < source->size_; ++i) {
+        std::uint8_t* item = source->data_[i];
+        unsigned itemType = item ? *reinterpret_cast<unsigned*>(item + 0x10) : 0;
+        Log("harness: campputon: page %d, source item %d %p type %04X", page, i, item, itemType);
+        if (item && itemType == type && static_cast<int>(chosen.size()) < count) chosen.push_back(item);
+    }
+    using MoveFn = void(__thiscall*)(std::uint8_t*, std::uint8_t*, int);
+    auto move = reinterpret_cast<MoveFn>((*reinterpret_cast<void***>(camp))[42]);
+    for (std::uint8_t* item : chosen) {
+        move(camp, item, 1);
+        Log("harness: campputon: %p put on (MoveItem mode 1)", item);
+    }
+    if (static_cast<int>(chosen.size()) < count)
+        return "campputon: " + std::to_string(chosen.size()) + " items of the type, wanted " + std::to_string(count);
+    return "";
+}
+
 // The steps that post input messages to the game window.
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
@@ -1242,8 +1282,8 @@ void RunSteps() {
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
-        } else if (s.verb == "hudstate") {
-            std::string error = HudState(s.argument);
+        } else if (s.verb == "hudstate" || s.verb == "campputon") {
+            std::string error = s.verb == "hudstate" ? HudState(s.argument) : CampPutOn(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);

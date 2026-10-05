@@ -2292,3 +2292,10 @@ scenario `tests/scenarios/ui_quick_items.txt`. Shared header (additive): `ui.h` 
   unit, entries and region items and the spell column's count and highlight; with a number it fails
   when the panel shows fewer of its unit's own quick items. The scenario runs it around the portrait
   click (`hudstate 2` after it) and after every quick slot and spell button click.
+- Second run: hudstate showed the hero with no quick items after the camp clicks. The cause: the
+  item strip's tab 3 (region 5) holds class 0x3007 items; quick items (0x3006) are listed with the
+  weapons, armour and spell containers in tab 2 (ItemTab 006218F0). New harness step `campputon
+  <type> <count>`: with the camp on top, the first <count> of the strip's source items (camp +0x1E0,
+  strip +0x1AC) of class <type> go through the camp's slot 42 (MoveItem 00610AD0) with mode 1,
+  exactly what a click on them in the strip does; it logs every source item's type. The scenario
+  uses `campputon 3006 2` instead of the clicks; `hudstate 2` checks the result.
