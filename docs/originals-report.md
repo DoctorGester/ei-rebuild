@@ -259,7 +259,7 @@ Rewritten as `CEngineObject::DestructBase` (src/game/engine_object.cpp).
 
 ### 0x00461190: 7 files, 7 sites, signatures differ
 Rewritten as `CStream::ReadString` (src/game/core_streams.cpp).
-- `src/game/item_stock.cpp:665`: `mfc::CString* __fastcall StreamReadString(void*, void*, void* /*out*/)`
+- `src/game/item_stock.cpp:680`: `mfc::CString* __fastcall StreamReadString(void*, void*, void* /*out*/)`
 - `src/game/script_load.cpp:40`: `mfc::CString* __fastcall StreamReadString(ScriptStream*, void*, void* /*out*/)`
 - `src/game/ui_battle_setup.cpp:98`: `mfc::CString* SaveStream::ReadString(void*)`
 - `src/game/ui_interface_save.cpp:20`: `mfc::CString* __fastcall ReadString(void*, void*, mfc::CString*)`
@@ -1515,7 +1515,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 ### 0x004ABD00: 4 files, 4 sites, signatures differ
 - `src/game/class_templates.cpp:61`: `void** __fastcall SpellAt(void*, void*, const void*)`
 - `src/game/item_constructor.cpp:477`: `char** __fastcall SpellNameAt(void*, void*, const NameKey*)`
-- `src/game/item_stock.cpp:464`: `char** __fastcall SpellByName(void*, void*, const void* /*string*/)`
+- `src/game/item_stock.cpp:479`: `char** __fastcall SpellByName(void*, void*, const void* /*string*/)`
 - `src/game/spell_text.cpp:37`: `char** __fastcall SpellMapAt(void*, void*, const stlp::string*)`
 
 ### 0x004ACC10: 3 files, 3 sites, signatures differ
@@ -1740,7 +1740,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/ui_create_screen.cpp:42`: `void __fastcall Member5F8F10(void*, void*, const void*)`
 
 ### 0x0068C560: 2 files, 2 sites, signatures differ
-- `src/game/item_stock.cpp:477`: `void __fastcall ModifierListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)`
+- `src/game/item_stock.cpp:492`: `void __fastcall ModifierListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)`
 - `src/game/spell_cast.cpp:51`: `void __fastcall ModifierListInsert(SpellModifierNode**, void*, SpellModifierNode**, SpellModifierNode*, char**)`
 
 ### 0x006E6370: 2 files, 2 sites, signatures differ
@@ -2019,12 +2019,12 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 ### 0x004AB720: 3 files, 3 sites, signatures differ
 - `src/game/class_templates.cpp:57`: `void* __fastcall FindWeapon(void*, void*, const char*)`
 - `src/game/item_constructor.cpp:443`: `char* __fastcall FindWeaponNamed(void*, void*, const char*)`
-- `src/game/item_stock.cpp:671`: `char* __fastcall FindWeaponNamed(void*, void*, const char*)`
+- `src/game/item_stock.cpp:686`: `char* __fastcall FindWeaponNamed(void*, void*, const char*)`
 
 ### 0x004AB820: 3 files, 3 sites, signatures differ
 - `src/game/class_templates.cpp:58`: `void* __fastcall FindArmor(void*, void*, const char*)`
 - `src/game/item_constructor.cpp:444`: `char* __fastcall FindArmorNamed(void*, void*, const char*)`
-- `src/game/item_stock.cpp:670`: `char* __fastcall FindArmorNamed(void*, void*, const char*)`
+- `src/game/item_stock.cpp:685`: `char* __fastcall FindArmorNamed(void*, void*, const char*)`
 
 ### 0x004B5EF0: 2 files, 2 sites, signatures differ
 - `src/game/script_destroy.cpp:54`: `void __fastcall GroupBody(void*)`
@@ -2443,7 +2443,7 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 
 ### 0x00613820: 3 files, 3 sites, signatures differ
 - `src/game/item_constructor.cpp:445`: `char* __fastcall FindQuickNamed(void*, void*, const char*)`
-- `src/game/item_stock.cpp:672`: `char* __fastcall FindQuickItemNamed(void*, void*, const char*)`
+- `src/game/item_stock.cpp:687`: `char* __fastcall FindQuickItemNamed(void*, void*, const char*)`
 - `src/game/ui_camp.cpp:840`: `std::uint8_t* ContainerTableAt::Find(const char*)`
 
 ### 0x006232D0: 2 files, 2 sites, signatures differ
@@ -2602,11 +2602,11 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/world_sync.cpp:119`: `void __fastcall StateRefresh(void*, void*)`
 
 ### 0x0068C820: 2 files, 2 sites, identical
-- `src/game/item_stock.cpp:808`: `char* __fastcall FindSpellByCode(void*, void*, const char*)`
+- `src/game/item_stock.cpp:823`: `char* __fastcall FindSpellByCode(void*, void*, const char*)`
 - `src/game/spell_cast.cpp:43`: `char* __fastcall FindSpellByCode(void*, void*, const char*)`
 
 ### 0x0068C920: 2 files, 2 sites, identical
-- `src/game/item_stock.cpp:809`: `char* __fastcall FindModifierByCode(void*, void*, const char*)`
+- `src/game/item_stock.cpp:824`: `char* __fastcall FindModifierByCode(void*, void*, const char*)`
 - `src/game/spell_cast.cpp:45`: `char* __fastcall FindModifierByCode(void*, void*, const char*)`
 
 ### 0x0068EAF0: 2 files, 2 sites, signatures differ
@@ -2615,7 +2615,7 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 
 ### 0x0069D290: 2 files, 2 sites, identical
 - `src/game/item_constructor.cpp:448`: `char* __fastcall FindMaterialNamed(void*, void*, const char*)`
-- `src/game/item_stock.cpp:673`: `char* __fastcall FindMaterialNamed(void*, void*, const char*)`
+- `src/game/item_stock.cpp:688`: `char* __fastcall FindMaterialNamed(void*, void*, const char*)`
 
 ### 0x0069D380: 2 files, 2 sites, identical
 - `src/game/item_constructor.cpp:447`: `char* __fastcall FindTable15Named(void*, void*, const char*)`
