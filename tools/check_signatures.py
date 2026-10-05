@@ -125,23 +125,24 @@ def stack_bytes(und):
     return conv, sum(sizes)
 
 
-def main():
-    data = open(EXE, 'rb').read()
-    md = Cs(CS_ARCH_X86, CS_MODE_32)
-    sizes = load_sizes()
+def declarations(map_path=MAP):
+    """Qualified function name -> [(undecorated signature, object file)] from the linker map."""
     entries = re.findall(r'^\s*[0-9a-f]{4}:[0-9a-f]{8}\s+(\?\S+)\s+[0-9a-f]{8}\s+(?:f\s+)?(?:i\s+)?(\S+)\s*$',
-                         open(MAP, errors='replace').read(), re.M)
+                         open(map_path, errors='replace').read(), re.M)
     und = undecorate({d for d, _ in entries})
-
-    # Qualified function name -> [(undecorated signature, object file)].
     by_name = {}
     for dec, obj in entries:
         u = und.get(dec)
         m = re.search(r'([\w:~<>]+)\(', u) if u else None
         if m:
             by_name.setdefault(m.group(1), []).append((u, obj.lower()))
+    return by_name
 
-    regs = []   # (address, name, kind, file, line)
+
+def registrations():
+    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_VERIFY ('verify')
+    and EI_ORIGINAL ('forwarder') in src/ and tests/verify/."""
+    regs = []
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
                 glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')):
         text = open(path, encoding='utf-8', errors='replace').read()
@@ -157,6 +158,28 @@ def main():
             regs.append((int(m.group(1), 16), m.group(2), 'verify', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'([\w:~]+)\s*\((?:(?!EI_ORIGINAL)[^;{}])*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
             regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))
+    return regs
+
+
+def candidates_for(by_name, name, kind, rel, key):
+    """The declarations a registration of `name` in file `rel` refers to; `key` maps a signature to
+    the property being checked, and same-file declarations break ties when candidates disagree."""
+    candidates = by_name.get(name) or [c for n, cs in by_name.items() if n.endswith('::' + name) for c in cs]
+    obj = os.path.splitext(os.path.basename(rel))[0].lower() + '.cpp.obj'
+    same_file = [c for c in candidates if c[1].endswith(obj)]
+    if kind == 'verify':
+        return same_file                       # file-local wrappers share names across files
+    if len({key(u) for u, _ in candidates} - {None}) > 1:
+        return same_file or candidates
+    return candidates
+
+
+def main():
+    data = open(EXE, 'rb').read()
+    md = Cs(CS_ARCH_X86, CS_MODE_32)
+    sizes = load_sizes()
+    by_name = declarations()
+    regs = registrations()
 
     problems = checked = unresolved = 0
     for address, name, kind, rel, line in regs:
@@ -166,13 +189,7 @@ def main():
         pops = original_pops(data, md, address, size)
         if not pops:
             continue
-        candidates = by_name.get(name) or [c for n, cs in by_name.items() if n.endswith('::' + name) for c in cs]
-        obj = os.path.splitext(os.path.basename(rel))[0].lower() + '.cpp.obj'
-        same_file = [c for c in candidates if c[1].endswith(obj)]
-        if kind == 'verify':
-            candidates = same_file             # file-local wrappers share names across files
-        elif len({stack_bytes(u) for u, _ in candidates} - {None}) > 1:
-            candidates = same_file or candidates
+        candidates = candidates_for(by_name, name, kind, rel, stack_bytes)
         sigs = {stack_bytes(u) for u, _ in candidates} - {None}
         if len(sigs) != 1:
             unresolved += 1

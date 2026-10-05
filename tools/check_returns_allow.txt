@@ -1,0 +1,2 @@
+# Reviewed false positives of tools/check_returns.py (replacements declared void whose game call
+# sites seem to read EAX). One per line: <function address> <call site address, or *>  # reason

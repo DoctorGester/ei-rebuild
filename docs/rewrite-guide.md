@@ -46,6 +46,8 @@ comes from a bug we already hit.
    - A "void" setter that ends with `MOV EAX,ECX` returns `this` (the Vector3 constructor crashed the
      game when we returned void).
    - Functions that set all of EAX to 0/1 return `BOOL` (int); ones that set only AL return `bool`.
+   - build.cmd runs `tools/check_returns.py`, which fails when a replacement declared void has game
+     call sites reading EAX after the call. It cannot see calls through vtable slots.
 3. **Calling conventions:** `__thiscall` methods become C++ members registered with
    `EI_REPLACE_METHOD(addr, Class::Method)`. `__fastcall`/`__stdcall`/`__cdecl` free functions use
    `EI_REPLACE(addr, Function)`. Count `RET n` to confirm stack arguments, and declare every one of
