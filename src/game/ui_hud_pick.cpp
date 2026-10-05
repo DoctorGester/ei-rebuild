@@ -39,9 +39,9 @@ CSpell* SpellOf(CEngineObject* item) { return static_cast<CSpell*>(static_cast<C
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-void CHudQuickItems::Highlight(int slot, int on) { QuickPanelSetOriginal(this, nullptr, slot, on); }
-void CHudSpellColumn::Highlight(int index, int on) { SpellPanelSetOriginal(this, nullptr, index, on); }
-void CHudActionColumn::Highlight(int index, int on) { ActionPanelSetOriginal(this, nullptr, index, on); }
+void CHudQuickItems::HighlightAt(int slot, int on) { QuickPanelSetOriginal(this, nullptr, slot, on); }
+void CHudSpellColumn::HighlightAt(int index, int on) { SpellPanelSetOriginal(this, nullptr, index, on); }
+void CHudActionColumn::HighlightAt(int index, int on) { ActionPanelSetOriginal(this, nullptr, index, on); }
 __declspec(naked) void CHudSpellColumn::ClickAt(int) EI_ORIGINAL(0x0063EC90)
 __declspec(naked) void CHudActionColumn::SelectAt(int) EI_ORIGINAL(0x0063FB50)
 
@@ -51,26 +51,26 @@ void CBattleScreen::SetPendingAction(int mode, int slot, int item) {
     pendingSlot_ = slot;
     pendingAction_ = mode;
     pendingItem_ = item;
-    for (int i = 0; i < kQuickSlots; ++i) quickItems_->Highlight(i, 0);
+    for (int i = 0; i < kQuickSlots; ++i) quickItems_->HighlightAt(i, 0);
     quickItems_->selected_ = -1;
-    for (int i = 0; i < spellColumn_->count_; ++i) spellColumn_->Highlight(i, 0);
+    for (int i = 0; i < spellColumn_->count_; ++i) spellColumn_->HighlightAt(i, 0);
     spellColumn_->selected_ = -1;
-    for (int i = 0; i < actionColumn_->count_; ++i) actionColumn_->Highlight(i, 0);
+    for (int i = 0; i < actionColumn_->count_; ++i) actionColumn_->HighlightAt(i, 0);
     actionColumn_->selected_ = -1;
     switch (mode) {
     case 1:
     case 2:
-        spellColumn_->Highlight(slot, 1);
+        spellColumn_->HighlightAt(slot, 1);
         break;
     case 3:
     case 4:
     case 5:
     case 6:
-        quickItems_->Highlight(slot, 1);
+        quickItems_->HighlightAt(slot, 1);
         break;
     case 7:
     case 8:
-        actionColumn_->Highlight(slot, 1);
+        actionColumn_->HighlightAt(slot, 1);
         break;
     default:
         break;
@@ -87,8 +87,8 @@ void CHudSpellColumn::Click(int index) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    if (previous >= 0 && previous < count_) Highlight(previous, 0);
-    Highlight(index, 1);
+    if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
+    HighlightAt(index, 1);
     interface_->PlaySound(kSoundClick, 0);
     CEngineObject* item = unit_->GetSpell(index);
     if (!item) return;
@@ -112,8 +112,8 @@ void CHudActionColumn::Select(int index) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    if (previous >= 0 && previous < count_) Highlight(previous, 0);
-    Highlight(index, 1);
+    if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
+    HighlightAt(index, 1);
     interface_->PlaySound(kSoundClick, 0);
     int action = static_cast<int>(actions_.data_[index]);
     owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);

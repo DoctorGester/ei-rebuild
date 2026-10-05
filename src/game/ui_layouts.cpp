@@ -29,7 +29,6 @@
 
 // --- Forwarders ---------------------------------------------------------------------------------
 
-__declspec(naked) void CUiRegion::SetTip(int, int, int) EI_ORIGINAL(0x005FC730)
 __declspec(naked) void CUiRegion::CallSetRect(int, int, int, int) EI_ORIGINAL(0x005FC9E0)
 __declspec(naked) CUiSurface* CUiSurface::Construct(CInterface3D*, int, int, int, int, int, int) EI_ORIGINAL(0x005FCC00)
 __declspec(naked) void CUiModel::Load(const char*, const char*, const char*) EI_ORIGINAL(0x005FC1F0)
@@ -42,7 +41,6 @@ void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, flo
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
 __declspec(naked) CUiScrollbar* CUiScrollbar::Construct(CInterface3D*, RECT, float, int, float) EI_ORIGINAL(0x0065AEA0)
-__declspec(naked) void CUiRegion::SetTipString(const char*, int, int) EI_ORIGINAL(0x005FC6B0)
 __declspec(naked) void COptionsWindow::BuildSettings() EI_ORIGINAL(0x00651940)
 __declspec(naked) void COptionsWindow::LoadSettings() EI_ORIGINAL(0x00652200)
 __declspec(naked) void COptionsWindow::BuildBindings() EI_ORIGINAL(0x00651600)
