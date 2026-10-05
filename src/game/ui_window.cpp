@@ -158,6 +158,7 @@ EI_REPLACE_METHOD(0x00600730, UiPtrArray<CUiSurface>::SetSize);
 EI_REPLACE_METHOD(0x00600840, UiPtrArray<CUiRegion>::SetSize);
 EI_REPLACE_METHOD(0x00600950, UiPtrArray<CUiModel>::SetSize);
 EI_REPLACE_METHOD(0x006005F0, UiPtrArray<CEngineObject>::SetAtGrow);
+EI_REPLACE_METHOD(0x00601D00, UiPtrArray<CUiWindow>::SetSize);   // the containers' children
 
 // --- CUiTooltip ------------------------------------------------------------------------------
 
@@ -457,6 +458,7 @@ EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
 namespace {
 // 005AC1A0 (thiscall on the model manager 007AF5F4): a new object by name, or null.
 __declspec(naked) std::uint8_t* __fastcall NewModelObject(void*, void*, const char*) EI_ORIGINAL(0x005AC1A0)
+void* ModelManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
 // 0059F3D0 (thiscall on the object): attaches it to the window.
 void __fastcall AttachToWindow(std::uint8_t* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
@@ -477,8 +479,7 @@ void CopyFloat(void* to, const void* from) {
 CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
     for (int i = 0; i < sceneObjects_.size_; ++i) {
         if (sceneObjects_.data_[i] != object) continue;
-        void* manager = *reinterpret_cast<void* const*>(0x007AF5F4);
-        std::uint8_t* made = NewModelObject(manager, nullptr, name);
+        std::uint8_t* made = NewModelObject(ModelManager(), nullptr, name);
         if (!made) return nullptr;
         int references;
         std::memcpy(&references, made + 4, 4);
@@ -514,6 +515,25 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
     return nullptr;
 }
 EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
+
+// --- 005FF3C0: AddSprite ---------------------------------------------------------------------------
+
+CUiMesh* CUiWindow::AddSprite(const char* name) {
+    auto* object = reinterpret_cast<CEngineObject*>(NewModelObject(ModelManager(), nullptr, name));
+    if (!object) return nullptr;
+    bool listed = false;
+    for (int i = 0; i < sceneObjects_.size_ && !listed; ++i) listed = sceneObjects_.data_[i] == object;
+    if (!listed) {
+        sceneObjects_.SetAtGrow(sceneObjects_.size_, object);
+        ++object->refCount_;
+        AttachToWindow(reinterpret_cast<std::uint8_t*>(object), nullptr, this);
+    }
+    auto* sprite = reinterpret_cast<CUiMesh*>(object);
+    sprite->material_ = blackMaterial_;
+    sprite->texture_ = objects_.size_ > 0 ? objects_.data_[0] : nullptr;
+    return sprite;
+}
+EI_REPLACE_METHOD(0x005FF3C0, CUiWindow::AddSprite);
 
 // --- 005FE700: the constructor -----------------------------------------------------------------
 

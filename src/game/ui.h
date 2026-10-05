@@ -149,7 +149,11 @@ public:
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
     std::uint8_t unknown_18[0x1C - 0x18];
     CUiRootWindow* root_;            // +0x1C updated after the top window every frame
-    std::uint8_t unknown_20[0x34 - 0x20];
+    std::uint8_t unknown_20[0x30 - 0x20];
+    // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
+    // set (the containers' slots 20, 22 and 23).
+    bool drawing_;
+    std::uint8_t unknown_31[0x34 - 0x31];
     CUiWindow** stackBegin_;         // +0x34 stack of active windows (STLport vector)
     CUiWindow** stackEnd_;           // +0x38
     CUiWindow** stackCapacity_;      // +0x3C
@@ -179,6 +183,7 @@ static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
 static_assert(offsetof(CInterface3D, console_) == 0x14);
 static_assert(offsetof(CInterface3D, root_) == 0x1C);
+static_assert(offsetof(CInterface3D, drawing_) == 0x30);
 static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 
@@ -509,11 +514,14 @@ public:
     int CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y, int unused1, int unused2);
     // Layout helpers (not rewritten): 005FEF20 loads a texture into the referenced objects,
-    // 005FF0B0 creates an empty one, 005FF3C0 adds a scene object (`model` 0: a new interface
-    // sprite, see CUiMesh) and returns it.
+    // 005FF0B0 creates an empty one.
     int LoadTexture(const char* name, int a, int b);
     CEngineObject* CreateTexture(int width, int height, int format);
-    CUiMesh* AddSprite(int model);
+    // 005FF3C0 (RET 4; ui_window.cpp). Object `name` of the model manager (007AF5F4; null: a new
+    // interface sprite, CUiMesh) added to the scene objects (once: one reference taken and the
+    // object attached to the window), given the black material and the first referenced object
+    // (or null) as its texture; returns it, or null when the manager makes none.
+    CUiMesh* AddSprite(const char* name);
     // 005FECC0 (not rewritten). Base slot 22 (redraw).
     void RedrawBase();
 
@@ -523,7 +531,9 @@ public:
     std::uint8_t unknown_09D[0xD8 - 0x09D];
     RECT rect_;                               // +0xD8 layout coordinates
     int enabled_;                             // +0xE8
-    std::uint8_t unknown_0EC[0xF8 - 0x0EC];
+    CEngineObject* blackMaterial_;            // +0xEC given to every sprite (AddSprite)
+    CEngineObject* whiteMaterial_;            // +0xF0
+    CEngineObject* unknown_0F4;               // +0xF4 released by the destructor
     UiPtrArray<CEngineObject> objects_;       // +0xF8 referenced objects
     UiPtrArray<CEngineObject> sceneObjects_;  // +0x108
     UiPtrArray<CUiSurface> surfaces_;         // +0x118
@@ -536,6 +546,7 @@ static_assert(offsetof(CUiWindow, inputHandled_) == 0x9C);
 static_assert(sizeof(CUiWindow) == 0x148);
 static_assert(offsetof(CUiWindow, rect_) == 0xD8);
 static_assert(offsetof(CUiWindow, enabled_) == 0xE8);
+static_assert(offsetof(CUiWindow, blackMaterial_) == 0xEC);
 static_assert(offsetof(CUiWindow, objects_) == 0xF8);
 static_assert(offsetof(CUiWindow, regions_) == 0x128);
 static_assert(offsetof(CUiWindow, models_) == 0x138);
@@ -966,7 +977,8 @@ public:
     float scaleY_;                   // +0x250
     std::uint8_t unknown_254[0x264 - 0x254];
     float scaleZ_;                   // +0x264
-    std::uint8_t unknown_268[0x280 - 0x268];
+    std::uint8_t unknown_268[0x27C - 0x268];
+    CEngineObject* material_;        // +0x27C the window's black material (CUiWindow +0xEC)
     CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };
 static_assert(offsetof(CUiMesh, colour_) == 0xD8);
@@ -982,6 +994,7 @@ static_assert(offsetof(CUiMesh, tint_) == 0x224);
 static_assert(offsetof(CUiMesh, flags_) == 0x08);
 static_assert(offsetof(CUiMesh, plainColour_) == 0xD4);
 static_assert(offsetof(CUiMesh, texture_) == 0x280);
+static_assert(offsetof(CUiMesh, material_) == 0x27C);
 
 // A growable array of 2D points with the interface arrays' 32-byte alignment.
 struct UiPointF {
@@ -1165,6 +1178,14 @@ public:
     void RedrawContainer();
     // 00600D30. Adds a child window (null is ignored; ui_window.cpp).
     void AddChild(CUiWindow* child);
+    // 00600B20 (RET 4; ui_container.cpp). Constructor: the window base (005FE700), no children or
+    // extra input sides, vtables 00741008 / 00740FD4. Returns this.
+    CUiContainer* Construct(CInterface3D* ui);
+    // 00600BA0 (ui_container.cpp). Destructor body: the extra input sides and the children deleted
+    // (their slot 0 with 1), both lists freed, then the window base's (005FE930).
+    void DestroyContainer();
+    // 00600CC0 (RET 4; ui_container.cpp). Appends an extra input side (null is ignored).
+    void AddInput(UiInputSide* input);
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)

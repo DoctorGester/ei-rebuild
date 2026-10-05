@@ -581,3 +581,31 @@ static void __fastcall SetSizeModelsVerify(UiPtrArray<CUiModel>* self, void*, in
     SetSizeCheck("UiPtrArray<CUiModel>::SetSize", self, newSize, growBy);
 }
 EI_VERIFY(0x00600950, SetSizeModelsVerify, 0, s_unused);
+
+static void __fastcall SetSizeChildrenVerify(UiPtrArray<CUiWindow>* self, void*, int newSize, int growBy) {
+    SetSizeCheck("UiPtrArray<CUiWindow>::SetSize", self, newSize, growBy);
+}
+EI_VERIFY(0x00601D00, SetSizeChildrenVerify, 0, s_unused);
+
+// 005FF3C0 (ours only: it makes an object). A new object is appended to the scene objects with the
+// array's growth rule (one already listed is not added again); either way it gets the window's
+// black material and its first referenced object as the texture.
+static CUiMesh* __fastcall AddSpriteVerify(CUiWindow* self, void*, const char* name) {
+    ArraySnapshot before;
+    before.Take(self->sceneObjects_);
+    CUiMesh* sprite = self->CUiWindow::AddSprite(name);
+    auto* object = reinterpret_cast<CEngineObject*>(sprite);
+    bool ok;
+    if (!sprite) {
+        ok = self->sceneObjects_.size_ == before.size;
+    } else {
+        bool listed = false;
+        for (int i = 0; before.complete && i < before.size; ++i) listed |= before.items[i] == object;
+        ok = listed ? self->sceneObjects_.size_ == before.size : AppendedCorrectly(before, self->sceneObjects_, object);
+        CEngineObject* texture = self->objects_.size_ > 0 ? self->objects_.data_[0] : nullptr;
+        ok &= sprite->material_ == self->blackMaterial_ && sprite->texture_ == texture;
+    }
+    ei::verify::Check("CUiWindow::AddSprite", true, ok, "name %p sprite %p size %d", name, sprite, before.size);
+    return sprite;
+}
+EI_VERIFY(0x005FF3C0, AddSpriteVerify, 0, s_unused);
