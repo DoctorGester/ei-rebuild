@@ -106,6 +106,11 @@ struct UiItemKinds {
 // (0062C250). Regions: 0/1 left/right arrows, 2-7 tabs, 8 the strip.
 class CUiItemStrip {
 public:
+    // 00620380 (RET 4; ui_item_strip.cpp; from the camp's and the hero screen's strip setup
+    // 00621160 / 00629A40). Lays the strip out along the top edge (`top`: y 0, scale 8) or the
+    // bottom (y 500, scale 4): the scroll state cleared, nine regions (arrows, six tab buttons, the
+    // items), the ends' and tab buttons' sprites, the highlight frame, the background cells; tab 5.
+    void Build(char top);
     // 00620960. Selects tab `tab`: settles the current tab's position to a whole slot, highlights
     // the tab's button and stops scrolling.
     void SetTab(int tab);

@@ -231,8 +231,34 @@ struct TradeRows {
     int Count() const { return static_cast<int>(reinterpret_cast<const char*>(end) - reinterpret_cast<const char*>(begin)) / 0x18; }
 };
 
+// A party member's statistics as the trade panel keeps them (0x3C bytes, STLport vector at
+// CTradePanel +0x190; filled by 00626F10 from the local player's unit record `index`).
+struct TradeRecord {
+    std::uint8_t science;            // +0x00 stats +0x6C8
+    std::uint8_t schools[6];         // +0x01 stats +0x6CB..
+    std::uint8_t perks[36];          // +0x07 stats +0x6D3..
+    std::uint8_t unknown_2B;         // +0x2B not written
+    int unknown_2C;                  // +0x2C stats +0x04
+    int unknown_30;                  // +0x30 stats +0x08
+    int unknown_34;                  // +0x34 stats +0x700
+    std::uint8_t unknown_38;         // +0x38 0
+    std::uint8_t unknown_39[3];      // not written
+};
+static_assert(sizeof(TradeRecord) == 0x3C);
+struct TradeRecords {
+    TradeRecord* begin;
+    TradeRecord* end;
+    TradeRecord* capacity;
+};
+
 class CTradePanel : public CUiWindow {
 public:
+    // 00624F10 (__fastcall; window slot 18, called by the camp's and the hero screen's Create).
+    // Lays the panel out at (200, 100, 600, 500): a surface, the regions (the four scroll arrows,
+    // the title rows, 23 learnable rows from (415, 135), 10 held rows from (215, 330)), the arrows'
+    // sprites, the three titles ("skills", "perks", "perks_av"), and one statistics record per
+    // party member (00626F10 with +0x150 the member's index); +0x19C = -1, +0x1A0 = 0.
+    void Build();
     // 00625880 (__fastcall). Rebuilds the lists for the owner's hero (its slot 51): the hero's
     // statistics are reset (00524CD0) and refreshed (owner slot 47); the schools (00793BD4 names,
     // levels at stats +0x6CB, science +0x6C8, prices 00527FF0), the held perks (a level byte per
@@ -248,7 +274,7 @@ public:
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C the camp or the hero screen (slot 51: the hero record)
-    std::uint8_t unknown_150[4];
+    int recordIndex_;                // +0x150 the record 00626F10 fills
     int learnableTop_;               // +0x154 first learnable row shown
     int perkTop_;                    // +0x158 first held perk shown
     TradeRows learnable_;            // +0x15C
@@ -256,8 +282,9 @@ public:
     TradeRows schools_;              // +0x174 (six)
     TradeRows science_;              // +0x180 (one)
     int experience_;                 // +0x18C experience the hero can spend
-    std::uint8_t records_[0xC];      // +0x190 vector of 0x3C-byte entries
-    std::uint8_t unknown_19C[0x1A4 - 0x19C];
+    TradeRecords records_;           // +0x190 one per party member
+    int unknown_19C;                 // +0x19C -1 after Build
+    int unknown_1A0;                 // +0x1A0 0 after Build
     void* textsVtable_;              // +0x1A4 CStringArray: the titles
     char** texts_;                   // +0x1A8
 };
@@ -266,6 +293,8 @@ static_assert(offsetof(CTradePanel, learnable_) == 0x15C);
 static_assert(offsetof(CTradePanel, science_) == 0x180);
 static_assert(offsetof(CTradePanel, experience_) == 0x18C);
 static_assert(offsetof(CTradePanel, texts_) == 0x1A8);
+static_assert(offsetof(CTradePanel, records_) == 0x190);
+static_assert(offsetof(CTradePanel, unknown_1A0) == 0x1A0);
 
 // --- Camp pages -----------------------------------------------------------------------------
 //

@@ -1,8 +1,10 @@
-// The camp's trade panel (the level-up page, vtable 007417A8): its lists of schools and perks
-// (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Ninth pass").
+// The camp's trade panel (the level-up page, vtable 007417A8): its layout (00624F10), its lists of
+// schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Ninth pass",
+// "Tenth pass").
 #include "ui_camp.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
@@ -324,3 +326,104 @@ namespace {
 void __fastcall TradeDrawLists(CTradePanel* self) { self->DrawLists(); }
 } // namespace
 EI_REPLACE(0x006261A0, TradeDrawLists);
+
+// --- 00624F10 -----------------------------------------------------------------------------------
+
+namespace {
+// 0062A0B0 (thiscall, RET 0xC): vector<TradeRecord>'s insert that reallocates; 00626F10
+// (__fastcall): fills record +0x150 from the local player's unit records; 00578BA0 (on 007AFEA5):
+// the local player's data (+0x34 the number of unit records).
+__declspec(naked) void __fastcall RecordsInsertOverflow(TradeRecords*, void*, TradeRecord* /*pos*/, const TradeRecord*,
+                                                        int /*n*/) EI_ORIGINAL(0x0062A0B0)
+__declspec(naked) void __fastcall FillRecord(CTradePanel*) EI_ORIGINAL(0x00626F10)
+__declspec(naked) std::uint8_t* __fastcall TradePlayerData(void*) EI_ORIGINAL(0x00578BA0)
+// CStringArray::SetAtGrow (thiscall, RET 8).
+__declspec(naked) void __fastcall TitlesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
+
+int PartyRecordCount() { return *reinterpret_cast<int*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)) + 0x34); }
+
+CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
+    CUiRegion* region = window->AddRegion();
+    region->CallSetRect(left, top, right, bottom);
+    return region;
+}
+CUiRegion* AddRect(CUiWindow* window, const RECT& rect) {
+    RECT copy = rect;
+    return AddRect(window, copy.left, copy.top, copy.right, copy.bottom);
+}
+} // namespace
+
+void CTradePanel::Build() {
+    rect_ = RECT{200, 100, 600, 500};
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 100, 600, 500, 5, 1) : nullptr);
+    recordIndex_ = 0;
+    perkTop_ = 0;
+    learnableTop_ = 0;
+
+    // Regions 0-3: the scroll arrows (held perks up / down, learnable up / down).
+    AddRect(this, 360, 320, 380, 330);
+    AddRect(this, 360, 480, 380, 490);
+    AddRect(this, 560, 125, 580, 135);
+    AddRect(this, 560, 480, 580, 490);
+    // The school rows, an empty region, three more rows (two rows skipped between them), science.
+    RECT row = {215, 135, 385, 150};
+    for (int i = 0; i < 2; ++i) {
+        AddRect(this, row);
+        Down(&row);
+    }
+    Down(&row);
+    Down(&row);
+    AddRect(this, 0, 0, 0, 0);
+    for (int i = 0; i < 3; ++i) {
+        AddRect(this, row);
+        Down(&row);
+    }
+    Down(&row);
+    AddRect(this, 215, 165, 385, 180);
+    // The learnable perks (23 rows) and the held perks (10 rows).
+    for (int y = 135; y < 480; y += 15) AddRect(this, 415, y, 585, y + 15);
+    for (int y = 330; y < 480; y += 15) AddRect(this, 215, y, 385, y + 15);
+
+    // The four arrows' faces.
+    AddSprite(0)->SetRectangle(6.0f, 100.0f, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
+    AddSprite(0)->SetRectangle(6.0f, 100.0f, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
+    AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+
+    // The titles.
+    void* table = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
+    {
+        mfc::CString text;
+        void* titles = &textsVtable_;
+        auto* size = reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(this) + 0x1AC);
+        TextGetString(table, nullptr, GameText(0x00793E58), &text);   // "skills"
+        TitlesSetAtGrow(titles, nullptr, *size, &text);
+        TextGetString(table, nullptr, GameText(0x00793E50), &text);   // "perks"
+        TitlesSetAtGrow(titles, nullptr, *size, &text);
+        TextGetString(table, nullptr, GameText(0x00793E44), &text);   // "perks_av"
+        TitlesSetAtGrow(titles, nullptr, *size, &text);
+
+        // One statistics record per party member (the vector emptied first; the records hold no
+        // resources). The original pushes uninitialised stack bytes; 00626F10 writes all but
+        // +0x2B and +0x39..+0x3B. Ours pushes zeros.
+        records_.end = records_.begin;
+        const TradeRecord blank{};
+        for (int i = 0; i < PartyRecordCount(); ++i) {
+            if (records_.end != records_.capacity) {
+                if (records_.end) *records_.end = blank;
+                ++records_.end;
+            } else {
+                RecordsInsertOverflow(&records_, nullptr, records_.end, &blank, 1);
+            }
+            recordIndex_ = i;
+            FillRecord(this);
+        }
+        unknown_19C = -1;
+        unknown_1A0 = 0;
+    }
+}
+namespace {
+void __fastcall TradeBuild(CTradePanel* self) { self->Build(); }
+} // namespace
+EI_REPLACE(0x00624F10, TradeBuild);

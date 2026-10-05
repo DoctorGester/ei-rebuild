@@ -116,7 +116,6 @@ __declspec(naked) int CInterface3D::PlaySound(const char*, int) EI_ORIGINAL(0x00
 __declspec(naked) BOOL CUiWindow::DrawBase(int) EI_ORIGINAL(0x005FEB90)
 __declspec(naked) void UiRenderer::FlushBatchA() EI_ORIGINAL(0x004E7840)
 __declspec(naked) void UiRenderer::FlushBatchB() EI_ORIGINAL(0x004E7A40)
-__declspec(naked) void CBattleScreen::HoverUnit(CUnit*, int, int) EI_ORIGINAL(0x00639EF0)
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudQuickItems::ItemTip(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
 __declspec(naked) void CUiRegion::SetTipText(const char*) EI_ORIGINAL(0x005FC690)
