@@ -1,5 +1,6 @@
 // Script variables and the SSCCmd helpers that bind and save call trees. See script.h.
 #include "script.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -11,7 +12,6 @@ namespace {
 
 
 // The empty string constant the game assigns to clear string variables.
-const char* EmptyString() { return reinterpret_cast<const char*>(0x0079B298); }
 
 // CStringArray-like helper of the variable set (004C2F80): *dst = strings[index], through a
 // temporary copy (GetAt returns by value).
@@ -42,7 +42,7 @@ int FindName(const MfcArray<mfc::CString>& names, const char* name) {
 
 void ScriptVars::ResetValues() {
     for (int i = 0; i < floats.size; ++i) reinterpret_cast<std::uint32_t*>(floats.data)[i] = 0;
-    for (int i = 0; i < strings.size; ++i) strings.data[i] = EmptyString();
+    for (int i = 0; i < strings.size; ++i) strings.data[i] = game::EmptyText();
     for (int i = 0; i < objects.size; ++i) {
         ScriptObjectRef* slot = &objects.data[i];
         if (slot->object) slot->object->Release();

@@ -4,6 +4,7 @@
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "ui.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -444,7 +445,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         void* memory = gamecrt::operator_new(0x184);
         CUiWindow* box = nullptr;
         if (memory) {
-            box = ConstructMessageBox(memory, nullptr, ui, GameText(0x00794258), GameText(0x0079B298), 0x20000, 3,
+            box = ConstructMessageBox(memory, nullptr, ui, GameText(0x00794258), game::EmptyText(), 0x20000, 3,
                                       1);   // "option_difficulty", ""
             SetVtables(box, 0x0074225C, 0x00742228);
         }
