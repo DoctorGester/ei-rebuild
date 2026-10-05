@@ -15,6 +15,9 @@ waitfor 10 IsEqual(GSGetVar(0,"zxq.done"),1)
 # A second quest with a single objective (the last objective's tail only).
 console @QStart("zxr") QObjArea(7) QFinish() GSSetVar(0,"zxr.done",1)
 waitfor 10 IsEqual(GSGetVar(0,"zxr.done"),1)
+# QuestComplete looks the quest up in the quest table (004C9C90; an unknown name finds no record).
+console @QuestComplete(0,"zxq") GSSetVar(0,"zxq.complete",1)
+waitfor 10 IsEqual(GSGetVar(0,"zxq.complete"),1)
 wait 500
 check IsAlive(GetLeader())
 report

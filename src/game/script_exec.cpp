@@ -489,12 +489,6 @@ struct MoviePaths {
 };
 __declspec(naked) const mfc::CString* MoviePaths::Directory() EI_ORIGINAL(0x00578DC0)
 
-// Quest kill table (007C87A8).
-struct QuestTable {
-    void* Find(const char* name);                        // 004C9C90
-};
-__declspec(naked) void* QuestTable::Find(const char*) EI_ORIGINAL(0x004C9C90)
-
 // MFC-style containers the commands keep on the stack.
 struct PtrList {      // CPtrList (0x1C)
     PtrList* Construct(int blockSize);                   // 004C96A0
@@ -1602,14 +1596,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x9F: {   // QuestComplete(player, quest)
             if (TheNetwork()->IsMultiplayer()) {
                 if (TheNetwork()->QuestAllowed(Text(cmd, 0))) {
-                    void* quest = reinterpret_cast<QuestTable*>(0x007C87A8)->Find(Text(cmd, 0));
+                    void* quest = TheQuestTable()->Find(Text(cmd, 0));
                     if (quest) TheWorld()->AwardKill(nullptr, Field<int>(quest, 0x0C));
                 }
                 break;
             }
             void* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            void* quest = reinterpret_cast<QuestTable*>(0x007C87A8)->Find(Text(cmd, 0));
+            void* quest = TheQuestTable()->Find(Text(cmd, 0));
             if (!quest) break;
             TheWorld()->AwardKill(player, Field<int>(quest, 0x0C));
             ThePartyManager()->QuestCompleted();
