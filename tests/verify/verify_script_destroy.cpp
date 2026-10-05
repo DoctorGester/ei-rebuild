@@ -442,6 +442,7 @@ __declspec(naked) void __fastcall FloatsCopyConstructAt(void*, void*, const void
 __declspec(naked) void __fastcall StringsCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBCA0)
 __declspec(naked) void __fastcall ObjectsCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBDB0)
 __declspec(naked) void __fastcall NamesCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBA00)
+__declspec(naked) void __fastcall GroupsCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBEF0)
 
 // Destructors with a game copy constructor: against the original on a deep copy (the rules at the top
 // of this file). The 7 stolen bytes are PUSH -1; PUSH <handler>.
@@ -480,6 +481,17 @@ void __fastcall ObjectsDestructVerify(ScriptNamedValues<ScriptObjectRef>* self) 
                    [](Counters& c, const ScriptNamedValues<ScriptObjectRef>& v) {
                        c.Strings(v.names);
                        for (int i = 0; i < v.values.size; ++i) c.Object(v.values.data[i].object);
+                   });
+}
+// 004C81B0: reached in the Rebirth launch from the original LoadCommands (004D1330: script_parse,
+// script_exec; ours and the instance loader destroy the whole set instead). PUSH -1; PUSH 0x719480 (7).
+void(__fastcall* s_groupsDestruct)(ScriptNamedValues<ScriptGroup>*);
+void __fastcall GroupsDestructVerify(ScriptNamedValues<ScriptGroup>* self) {
+    DestructOnCopy("ScriptGroupsDestruct", s_groupsDestruct, &ScriptGroupsDestruct, GroupsCopyConstructAt, self,
+                   [](Counters& c, const ScriptNamedValues<ScriptGroup>& v) {
+                       c.Strings(v.names);
+                       for (int i = 0; i < v.values.size; ++i)
+                           for (int k = 0; k < v.values.data[i].size; ++k) c.Object(v.values.data[i].data[k].object);
                    });
 }
 // 004BC810: PUSH -1; PUSH 0x7184E8 (7 bytes). The CString array's scalar deleting destructor
@@ -560,6 +572,7 @@ EI_VERIFY(0x004BC950, GroupsConstructVerify, 7, s_groupsConstruct);
 EI_VERIFY(0x004BC6C0, FloatsDestructVerify, 7, s_floatsDestruct);
 EI_VERIFY(0x004BC770, StringsDestructVerify, 7, s_stringsDestruct);
 EI_VERIFY(0x004BC8A0, ObjectsDestructVerify, 7, s_objectsDestruct);
+EI_VERIFY(0x004C81B0, GroupsDestructVerify, 7, s_groupsDestruct);
 EI_VERIFY(0x004BC810, NamesDestructVerify, 7, s_namesDestruct);
 EI_VERIFY(0x004BC9A0, RefArrayDestructVerify, 0, s_unused);
 EI_VERIFY(0x004BCA20, GroupArrayDestructVerify, 0, s_unused);

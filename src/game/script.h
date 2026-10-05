@@ -947,3 +947,31 @@ int __fastcall ScriptFindVariableName(const ScriptNamedValues<float>* vars, void
 // (CArray<ScriptIfThen>: the if-then pairs of Load's local definition).
 MfcArray<SSCCmd>* __fastcall ScriptCmdArrayConstruct(MfcArray<SSCCmd>* array);
 MfcArray<ScriptIfThen>* __fastcall ScriptIfThenArrayConstruct(MfcArray<ScriptIfThen>* array);
+// 004CE5F0 (CArray<CString>::SetAtGrow (index, text), RET 8; ScriptDefinition::AddParameter's
+// parameter names): grown to index + 1 when needed, then the string assigned.
+void __fastcall ScriptNamesSetAtGrow(MfcArray<mfc::CString>* array, void* edx, int index, const mfc::CString* text);
+// 004C2F80 (__thiscall on a CString array (index, out), RET 8; SSCCmd::SetParameters): *out = a
+// by-value GetAt copy of element `index` (004C2680), the copy destroyed.
+void __fastcall ScriptStringsCopyTo(const MfcArray<mfc::CString>* array, void* edx, int index, mfc::CString* out);
+struct AILook;
+// 004CDCB0 (CArray<AILook>::SetAtGrow (index, look), RET 8; the brain's look queue and the patrol
+// looks of UMPatrol): grown to index + 1 when needed (new looks zeroed, 004CDE10), the look copied.
+void __fastcall ScriptLooksSetAtGrow(MfcArray<AILook>* array, void* edx, int index, const AILook* look);
+
+// ---- More copies and destructors (A-S2) -----------------------------------------------------------
+// 004CBB80 / 004CBCA0 (copy constructors, __thiscall (other), RET 4, `this` returned): float values
+// (SetSize 004C2880, each copied through the FPU) or string values (GetAt copies), then the names.
+ScriptNamedValues<float>* __fastcall ScriptFloatsCopyConstruct(ScriptNamedValues<float>* self, void* edx,
+                                                               const ScriptNamedValues<float>* other);
+ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsCopyConstruct(ScriptNamedValues<mfc::CString>* self, void* edx,
+                                                                       const ScriptNamedValues<mfc::CString>* other);
+// 004CB460 (ScriptDefinition::operator=, __thiscall, RET 4, `this` returned): index, name and
+// parameters, the if-then pairs (SetSize 004C59C0, copied as words), the variables as
+// ScriptVars::operator= copies them.
+ScriptDefinition* __fastcall ScriptDefinitionAssign(ScriptDefinition* self, void* edx, const ScriptDefinition* other);
+// 004C81B0 (__thiscall). Group values' destructor: the names, then each group's references (element
+// destructor 004CE1E0) and storage, then the array's; only base vtables are written.
+void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars);
+// 004CD690 (DestructElements<ScriptLightning>, __stdcall (first, count); the reset's lightning list):
+// each bolt dropped as ScriptLightningDestruct drops it (inlined in the original).
+void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count);

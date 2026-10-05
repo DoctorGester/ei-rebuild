@@ -11,6 +11,7 @@
 #include "script_compare.h"
 
 #include "../../src/game/script.h"
+#include "../../src/game/unit_ai.h"
 #include "../../src/lib/crt.h"
 
 #include <cstdint>
@@ -175,6 +176,93 @@ MfcArray<ScriptIfThen>* __fastcall IfThenArrayConstructVerify(MfcArray<ScriptIfT
     return CheckConstruct(s_ifThenArrayConstruct, ScriptIfThenArrayConstruct, "ScriptIfThenArrayConstruct", self);
 }
 
+// 004CE5F0 (ScriptDefinition::AddParameter's names; script_parse, every Script with parameters):
+// against the original on a scratch array when the index is past the end (the only use); ours only
+// otherwise (the original would assign into the shared string). SUB ESP,8; PUSH EBX; MOV EBX,ECX (6).
+void(__fastcall* s_namesSetAtGrow)(MfcArray<mfc::CString>*, void*, int, const mfc::CString*);
+void __fastcall NamesSetAtGrowVerify(MfcArray<mfc::CString>* self, void*, int index, const mfc::CString* text) {
+    if (index < self->size) {
+        ScriptNamesSetAtGrow(self, nullptr, index, text);
+        ei::verify::Check("ScriptNamesSetAtGrow", true, SameText(self->data[index], *text),
+                          "index %d of %d (ours only)", index, self->size);
+        return;
+    }
+    ScratchArray<mfc::CString> scratch(*self);
+    s_namesSetAtGrow(&scratch.array, nullptr, index, text);
+    ScriptNamesSetAtGrow(self, nullptr, index, text);
+    bool ok = scratch.SameOld(*self);
+    for (int i = scratch.oldSize; ok && i < self->size; ++i) ok = SameText(scratch.array.data[i], self->data[i]);
+    for (int i = scratch.oldSize; i < scratch.array.size; ++i) scratch.array.data[i].~CString();
+    ei::verify::Check("ScriptNamesSetAtGrow", true, ok, "index %d, size %d -> %d / %d, \"%s\"", index, scratch.oldSize,
+                      scratch.array.size, self->size, static_cast<const char*>(*text));
+}
+
+// 004C2F80 (SSCCmd::SetParameters: every string argument bound to a variable; script_exec): the
+// original into a scratch string, ours into `out`. MOV EAX,FS:[0] (6 bytes).
+void(__fastcall* s_stringsCopyTo)(const MfcArray<mfc::CString>*, void*, int, mfc::CString*);
+void __fastcall StringsCopyToVerify(const MfcArray<mfc::CString>* self, void*, int index, mfc::CString* out) {
+    mfc::CString expected;
+    s_stringsCopyTo(self, nullptr, index, &expected);
+    ScriptStringsCopyTo(self, nullptr, index, out);
+    ei::verify::Check("ScriptStringsCopyTo", true, SameText(expected, *out), "index %d: \"%s\" / \"%s\"", index,
+                      static_cast<const char*>(expected), static_cast<const char*>(*out));
+}
+
+// 004CDCB0 (the patrol looks of UMPatrol, AIBrain::PlanLooks; unit_ai, script_exec): against the
+// original on a scratch array (plain elements, any index). SUB ESP,8; PUSH EBX; PUSH EBP; MOV EBX,ECX (7).
+void(__fastcall* s_looksSetAtGrow)(MfcArray<AILook>*, void*, int, const AILook*);
+void __fastcall LooksSetAtGrowVerify(MfcArray<AILook>* self, void*, int index, const AILook* look) {
+    ScratchArray<AILook> scratch(*self);
+    s_looksSetAtGrow(&scratch.array, nullptr, index, look);
+    ScriptLooksSetAtGrow(self, nullptr, index, look);
+    ei::verify::Check("ScriptLooksSetAtGrow", true, SamePlain(scratch.array, *self, true),
+                      "index %d, size %d -> %d / %d", index, scratch.oldSize, scratch.array.size, self->size);
+}
+
+// 004CBB80 / 004CBCA0 (the run list's RemoveHead 004C82B0: the reset at every new game and zone load;
+// newgame, world_load): the original into raw scratch storage, ours into the real set; values,
+// names, vtables and capacities compared, then the scratch destroyed. PUSH -1; PUSH <handler> (7).
+template <typename T>
+using NamedCopyFn = ScriptNamedValues<T>*(__fastcall*)(ScriptNamedValues<T>*, void*, const ScriptNamedValues<T>*);
+template <typename T, typename Same>
+ScriptNamedValues<T>* CopyConstructCheck(const char* name, NamedCopyFn<T> original, NamedCopyFn<T> ours,
+                                         void(__fastcall* destruct)(ScriptNamedValues<T>*), Same sameValues,
+                                         ScriptNamedValues<T>* self, const ScriptNamedValues<T>* other) {
+    alignas(ScriptNamedValues<T>) unsigned char raw[sizeof(ScriptNamedValues<T>)];
+    std::memset(raw, 0xCC, sizeof(raw));
+    auto* scratch = reinterpret_cast<ScriptNamedValues<T>*>(raw);
+    bool returned = original(scratch, nullptr, other) == scratch;
+    returned = ours(self, nullptr, other) == self && returned;
+    bool ok = returned && sameValues(scratch->values, self->values) && SameStrings(scratch->names, self->names, true);
+    destruct(scratch);
+    ei::verify::Check(name, true, ok, "%d values, %d names", other->values.size, other->names.size);
+    return self;
+}
+NamedCopyFn<float> s_floatsCopyConstruct;
+ScriptNamedValues<float>* __fastcall FloatsCopyConstructVerify(ScriptNamedValues<float>* self, void*,
+                                                               const ScriptNamedValues<float>* other) {
+    return CopyConstructCheck<float>(
+        "ScriptFloatsCopyConstruct", s_floatsCopyConstruct, ScriptFloatsCopyConstruct, ScriptFloatsDestruct,
+        [](const MfcArray<float>& a, const MfcArray<float>& b) { return SamePlain(a, b, true); }, self, other);
+}
+NamedCopyFn<mfc::CString> s_stringsCopyConstruct;
+ScriptNamedValues<mfc::CString>* __fastcall StringsCopyConstructVerify(ScriptNamedValues<mfc::CString>* self, void*,
+                                                                       const ScriptNamedValues<mfc::CString>* other) {
+    return CopyConstructCheck<mfc::CString>(
+        "ScriptStringsCopyConstruct", s_stringsCopyConstruct, ScriptStringsCopyConstruct, ScriptStringsDestruct,
+        [](const MfcArray<mfc::CString>& a, const MfcArray<mfc::CString>& b) { return SameStrings(a, b, true); },
+        self, other);
+}
+
+// 004CB460 (CList<ScriptDefinition>::Serialize 004C7F60 only; no scenario reaches it): ours only,
+// the definition equals the source afterwards.
+ScriptDefinition* __fastcall DefinitionAssignVerify(ScriptDefinition* self, void*, const ScriptDefinition* other) {
+    ScriptDefinitionAssign(self, nullptr, other);
+    ei::verify::Check("ScriptDefinitionAssign", true, SameDefinition(*self, *other, false), "\"%s\"",
+                      static_cast<const char*>(other->name));
+    return self;
+}
+
 } // namespace
 
 EI_VERIFY(0x004D5B50, BindingsAddVerify, 6, s_bindingsAdd);
@@ -189,3 +277,9 @@ EI_VERIFY(0x004D5AD0, FindName3Verify, 5, s_findName3);
 EI_VERIFY(0x004D5B10, FindName4Verify, 5, s_findName4);
 EI_VERIFY(0x004D5A10, CmdArrayConstructVerify, 7, s_cmdArrayConstruct);
 EI_VERIFY(0x004D5A30, IfThenArrayConstructVerify, 7, s_ifThenArrayConstruct);
+EI_VERIFY(0x004CE5F0, NamesSetAtGrowVerify, 6, s_namesSetAtGrow);
+EI_VERIFY(0x004C2F80, StringsCopyToVerify, 6, s_stringsCopyTo);
+EI_VERIFY(0x004CDCB0, LooksSetAtGrowVerify, 7, s_looksSetAtGrow);
+EI_VERIFY(0x004CBB80, FloatsCopyConstructVerify, 7, s_floatsCopyConstruct);
+EI_VERIFY(0x004CBCA0, StringsCopyConstructVerify, 7, s_stringsCopyConstruct);
+EI_VERIFY(0x004CB460, DefinitionAssignVerify, 0, s_unused);

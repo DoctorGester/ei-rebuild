@@ -353,3 +353,36 @@ ScriptVars* __fastcall ScriptVarsConstruct(ScriptVars* self) {
     return self;
 }
 EI_REPLACE(0x004C00D0, ScriptVarsConstruct);
+
+// Float values: the values through their SetSize (004C2880) and the FPU, then the names as
+// ScriptNamesCopyConstruct builds them (inlined in the original).
+ScriptNamedValues<float>* __fastcall ScriptFloatsCopyConstruct(ScriptNamedValues<float>* self, void*,
+                                                               const ScriptNamedValues<float>* other) {
+    InitArray(&self->values, kVarFloatsVtable);
+    CopyFloats(&self->values, &other->values, FloatsSetSize);
+    ScriptNamesCopyConstruct(&self->names, nullptr, &other->names);
+    return self;
+}
+EI_REPLACE(0x004CBB80, ScriptFloatsCopyConstruct);
+
+// String values: values and names each through 004C2510 and GetAt copies.
+ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsCopyConstruct(ScriptNamedValues<mfc::CString>* self, void*,
+                                                                       const ScriptNamedValues<mfc::CString>* other) {
+    CopyConstructStrings(&self->values, &other->values);
+    CopyConstructStrings(&self->names, &other->names);
+    return self;
+}
+EI_REPLACE(0x004CBCA0, ScriptStringsCopyConstruct);
+
+// ScriptDefinition::operator=: the pairs read straight from the source (no GetAt), the variables as
+// ScriptVars::operator= (inlined in the original).
+ScriptDefinition* __fastcall ScriptDefinitionAssign(ScriptDefinition* self, void*, const ScriptDefinition* other) {
+    self->index = other->index;
+    self->name = other->name;
+    self->params = other->params;
+    IfThenArraySetSizeOriginal(&self->ifThen, nullptr, other->ifThen.size, -1);
+    for (int i = 0; i < other->ifThen.size; ++i) self->ifThen.data[i] = other->ifThen.data[i];
+    AssignVars(&self->vars, &other->vars);
+    return self;
+}
+EI_REPLACE(0x004CB460, ScriptDefinitionAssign);

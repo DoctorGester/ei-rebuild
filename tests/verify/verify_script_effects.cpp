@@ -50,6 +50,19 @@ void __fastcall PointLightDestructVerify(ScriptPointLight* self) {
 void __fastcall LightningDestructVerify(ScriptLightning* self) {
     DestructVerify("ScriptLightningDestruct", &ScriptLightningDestruct, self);
 }
+// 004CD690: DestructElements of the lightning list (the CScript reset 004BE6E0: every new game and
+// load; script_fx). Ours only, per element as above.
+void __stdcall LightningElementsDestructVerify(ScriptLightning* first, int count) {
+    bool ok = true;
+    for (int i = 0; i < count; ++i) {
+        CEngineObject* object = first[i].object;
+        int before = object ? object->refCount_ : 0;
+        ScriptLightningElementsDestruct(first + i, 1);
+        ok = ok && first[i].object == nullptr;
+        if (object && before > 2) ok = ok && (object->refCount_ == before - 1 || object->refCount_ == before - 2);
+    }
+    ei::verify::Check("ScriptLightningElementsDestruct", true, ok, "%d bolts", count);
+}
 // 004B1850: particle sources (the list's RemoveAll 0059C1A0).
 void __fastcall ParticleDestructVerify(ScriptParticleSource* self) {
     DestructVerify("ScriptParticleSourceDestruct", &ScriptParticleSourceDestruct, self);
@@ -190,6 +203,7 @@ EI_VERIFY(0x004BD9A0, CreateParticleSourceVerify, 0, s_unused);
 EI_VERIFY(0x004BDBB0, MoveParticleSourceVerify, 6, s_moveParticles);
 EI_VERIFY(0x004B17F0, PointLightDestructVerify, 0, s_unused);
 EI_VERIFY(0x004B1820, LightningDestructVerify, 0, s_unused);
+EI_VERIFY(0x004CD690, LightningElementsDestructVerify, 0, s_unused);
 EI_VERIFY(0x004B1850, ParticleDestructVerify, 0, s_unused);
 EI_VERIFY(0x004B1880, FxDropVerify, 0, s_unused);
 EI_VERIFY(0x004BD260, CreateFxVerify, 0, s_unused);

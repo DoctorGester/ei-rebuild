@@ -1203,3 +1203,25 @@ directly (ScriptCmdAssign 004C6BC0, ScriptVarsAssign 004CBAE0). New forwarders (
 The four name lookups take the value array of one type's variables (`ScriptNamedValues<T>`, names at
 +0x14). Add's and SetAtGrow's "empty" and "shrink" branches of the inlined SetSize cannot run (the new
 size is above the old one) but are kept through InlineSetSize.
+
+## Copies, SetAtGrow and destructors (004CE5F0, 004C2F80, 004CDCB0, 004CBB80, 004CBCA0, 004CB460, 004C81B0, 004CD690)
+
+Code: `script_parse_arrays.cpp` (the array members), `script_copy.cpp` (copies), `script_arrays.cpp`
+(004C81B0), `script_effects.cpp` (004CD690). Verify: `verify_script_parse_arrays.cpp`,
+`verify_script_destroy.cpp` (004C81B0), `verify_script_effects.cpp` (004CD690). None is library, dead
+or Rebirth-patched. New forwarder (library): 004CDE10 (ConstructElements of 16-byte elements).
+ScriptDefinitionsAdd (004D6100) now calls ScriptDefinitionAssign, which is the same copy (the original
+inlines it, with a by-value GetAt per pair).
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004CE5F0 | 348 | ScriptNamesSetAtGrow (CArray<CString>) | against the original on a scratch array when appending (the only use: AddParameter 004BB800); ours only otherwise | script_parse (Script parameters) |
+| 004C2F80 | 88 | ScriptStringsCopyTo (*out = GetAt copy) | original into a scratch string; text compared | SSCCmd::SetParameters: every bound string argument (script_exec, console) |
+| 004CDCB0 | 338 | ScriptLooksSetAtGrow (CArray<AILook>) | against the original on a scratch array, every element's bytes | UMPatrol's looks (script_exec), AIBrain::PlanLooks (unit_ai) |
+| 004CBB80 / 004CBCA0 | 277 / 270 | ScriptFloats / StringsCopyConstruct | original into raw scratch storage: values (bits / texts), names, vtables, capacities; the scratch destroyed with 004BC6C0 / 004BC770 | the run list's RemoveHead 004C82B0 (every reset: newgame, world_load) |
+| 004CB460 | 234 | ScriptDefinitionAssign | ours only: deep-equal to the source | only CList<ScriptDefinition>::Serialize 004C7F60 (no scenario) |
+| 004C81B0 | 244 | ScriptGroupsDestruct | against the original on a deep copy (004CBEF0), S6's rules | the original LoadCommands only (Rebirth launch) |
+| 004CD690 | 64 | ScriptLightningElementsDestruct | ours only: each bolt's slot cleared, its count down by 1 or 2 | the CScript reset 004BE6E0 (newgame, loads; script_fx) |
+
+The floats' copy constructor builds its names as ScriptNamesCopyConstruct does (exact allocation, then
+GetAt copies; called directly), the strings' through 004C2510 like CopyConstructStrings.

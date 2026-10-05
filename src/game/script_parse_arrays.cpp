@@ -1,8 +1,9 @@
 // The CArray members the script loader calls out of line (MFC template code the game compiled for its
 // own element types): Add for bindings, nested calls, commands and definitions, SetAtGrow for
 // commands, the nested call's destructor body, the per-type variable name lookups and two array
-// constructors. Each Add / SetAtGrow inlines CArray::SetSize(n, -1) (scriptarray::InlineSetSize with
-// the instantiation's element helpers) and the element's assignment operator. See script.h.
+// constructors; also the parameter names' and the look queue's SetAtGrow and a string GetAt copy.
+// Each Add / SetAtGrow inlines CArray::SetSize(n, -1) (scriptarray::InlineSetSize with the
+// instantiation's element helpers) and the element's assignment operator. See script.h.
 #include "script.h"
 #include "script_array.h"
 
@@ -10,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "originals_script.h"
+#include "unit_ai.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -22,6 +24,8 @@ using namespace scriptarray;
 __declspec(naked) void __stdcall ConstructBindings(void*, int) EI_ORIGINAL(0x004CCA50)
 __declspec(naked) void __stdcall ConstructSubCalls(void*, int) EI_ORIGINAL(0x004CD130)
 __declspec(naked) void __stdcall ConstructDefinitions(void*, int) EI_ORIGINAL(0x004CEB80)
+// 004CDE10: ConstructElements of 16-byte elements (zeroes).
+__declspec(naked) void __stdcall ConstructLooks(void*, int) EI_ORIGINAL(0x004CDE10)
 
 // The element destructors the inlined SetSize runs when the array empties or shrinks (neither
 // happens in Add or SetAtGrow, whose new size is above the old one).
@@ -36,6 +40,7 @@ void DestroyDefinitions(char* first, int count) {
 const ElementKind kBindings{sizeof(ScriptBinding), ConstructBindings, nullptr, nullptr};
 const ElementKind kSubCalls{sizeof(ScriptSubCall), ConstructSubCalls, DestroySubCalls, DestroySubCalls};
 const ElementKind kDefinitions{sizeof(ScriptDefinition), ConstructDefinitions, DestroyDefinitions, DestroyDefinitions};
+const ElementKind kLooks{sizeof(AILook), ConstructLooks, nullptr, nullptr};
 
 // Grows `array` by one element and returns the old size (the new element's index).
 template <typename T>
@@ -43,17 +48,6 @@ int Append(MfcArray<T>* array, const ElementKind& kind) {
     int index = array->size;
     InlineSetSize(Raw(array), index + 1, kind);
     return index;
-}
-
-// ScriptDefinition::operator= as Add inlines it: the if-then pairs through their SetSize (004C59C0)
-// and a by-value GetAt per pair, the variables through ScriptVars::operator= (004CBAE0).
-void AssignDefinition(ScriptDefinition* to, const ScriptDefinition* from) {
-    to->index = from->index;
-    to->name = from->name;
-    to->params = from->params;
-    IfThenArraySetSizeOriginal(&to->ifThen, nullptr, from->ifThen.size, -1);
-    for (int i = 0; i < from->ifThen.size; ++i) to->ifThen.data[i] = from->ifThen.data[i];
-    ScriptVarsAssign(&to->vars, nullptr, &from->vars);
 }
 
 } // namespace
@@ -90,7 +84,7 @@ EI_REPLACE(0x004D65E0, ScriptCmdsSetAtGrow);
 
 int __fastcall ScriptDefinitionsAdd(MfcArray<ScriptDefinition>* array, void*, const ScriptDefinition* definition) {
     int index = Append(array, kDefinitions);
-    AssignDefinition(&array->data[index], definition);
+    ScriptDefinitionAssign(&array->data[index], nullptr, definition);   // inlined in the original
     return index;
 }
 EI_REPLACE(0x004D6100, ScriptDefinitionsAdd);
@@ -136,3 +130,21 @@ MfcArray<ScriptIfThen>* __fastcall ScriptIfThenArrayConstruct(MfcArray<ScriptIfT
     return array;
 }
 EI_REPLACE(0x004D5A30, ScriptIfThenArrayConstruct);
+
+void __fastcall ScriptNamesSetAtGrow(MfcArray<mfc::CString>* array, void*, int index, const mfc::CString* text) {
+    if (index >= array->size) InlineSetSize(Raw(array), index + 1, kStrings);
+    array->data[index] = *text;
+}
+EI_REPLACE(0x004CE5F0, ScriptNamesSetAtGrow);
+
+void __fastcall ScriptStringsCopyTo(const MfcArray<mfc::CString>* array, void*, int index, mfc::CString* out) {
+    mfc::CString copy(array->data[index]);   // the by-value GetAt (004C2680)
+    *out = copy;
+}
+EI_REPLACE(0x004C2F80, ScriptStringsCopyTo);
+
+void __fastcall ScriptLooksSetAtGrow(MfcArray<AILook>* array, void*, int index, const AILook* look) {
+    if (index >= array->size) InlineSetSize(Raw(array), index + 1, kLooks);
+    array->data[index] = *look;
+}
+EI_REPLACE(0x004CDCB0, ScriptLooksSetAtGrow);
