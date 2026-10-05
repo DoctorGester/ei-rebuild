@@ -179,9 +179,9 @@ using RawList = ScriptList;
 
 // CList::NewNode instantiations (__thiscall (prev, next); the element is default-constructed).
 using NewNodeFn = ListNode*(__fastcall*)(RawList*, void*, ListNode* prev, ListNode* next);
-__declspec(naked) ListNode* __fastcall NewParticleNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD540)
-__declspec(naked) ListNode* __fastcall NewFxNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD5B0)
-__declspec(naked) ListNode* __fastcall NewLightningNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD620)
+ListNode* __fastcall NewParticleNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptParticleListNewNodeOriginal(a0, nullptr, a2, a3); }
+ListNode* __fastcall NewFxNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptFxListNewNodeOriginal(a0, nullptr, a2, a3); }
+ListNode* __fastcall NewLightningNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptLightningListNewNodeOriginal(a0, nullptr, a2, a3); }
 ListNode* __fastcall NewBlockNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptBlockListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) ListNode* __fastcall NewInstanceNode(RawList*, void*, ListNode*, ListNode*) EI_ORIGINAL(0x004CD930)
 ListNode* __fastcall NewRunNode(RawList* a0, void*, ListNode* a2, ListNode* a3) { return (ListNode*)ScriptRunListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }

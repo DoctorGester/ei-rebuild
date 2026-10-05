@@ -1036,3 +1036,25 @@ with its terminator, its length from strlen). Loading looks the id up in the wor
 New scenario `tests/scenarios/script_fx.txt`: particle sources (by id, automatic id, unknown type,
 same id again, moved), lightning, a one-off sound, a point light and a randomized FX source, then a
 save into a new slot through the escape menu (as ui_saveload) and `load save1`.
+
+## Effect element destructors, CreateFX, CreateLightning (004B17F0, 004B1820, 004B1850, 004B1880, 004BD260, 004BCFF0)
+
+Code: `src/game/script_effects.cpp`; verify: `tests/verify/verify_script_effects.cpp`. Not library,
+dead or Rebirth-patched; the callees (CBaseManager::CreateObject slot 23 on the effect manager,
+CWorldServer::AddTimedObject / RemoveTimedObject 0058E520 / 0058E5D0, CEffectLightning::SetEnds
+0067A6B0, all rewritten) are called directly; the list's NewNode 004CD620 is library (forwarder,
+now shared in originals_library.h with 004CD540 / 004CD5B0, which script_load.cpp used).
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004B17F0 | 38 | ScriptPointLightDestruct (point light slot) | ours only: slot cleared, count down by 1 or 2 (read when > 2 before) | the slot array's deleting destructor 0059DD70 / Serialize 004C5E60 (world teardown) |
+| 004B1820 | 38 | ScriptLightningDestruct | as above | CreateLightning's temporary (script_fx), the list's RemoveAll 0059C1F0, 004BEB00 |
+| 004B1850 | 38 | ScriptParticleSourceDestruct | as above | the particle list's RemoveAll 0059C1A0 (world teardown) |
+| 004B1880 | 38 | ScriptFxSourceDropSound (FX element, the object only) | as above | CreateFXSource's temporary (script_fx) |
+| 004BD260 | 167 | ScriptCreateFx (CreateFX) | ours only: the effect manager registered a new object (lastId_), class 0x48, position / volume / radius bits and name as the arguments, not looping | sound, script_fx |
+| 004BCFF0 | 304 | ScriptCreateLightning (CreateLightning) | ours only: one more node at the tail; id (automatic for a negative or NaN argument, nextParticleId_ counted down; else truncated); the bolt is the newest effect, class 0x4D, count >= 2, ends and width bits as the arguments | script_fx |
+
+The four destructors are the same 38 bytes (one per element type). CreateFX keeps no reference:
+the sound lives as a timed object only (not looping: it ends after its first tick). CreateLightning
+appends without looking the id up (two bolts can share an id; DeleteLightning removes the first),
+and its id test is `FCOMP 0; TEST AH,1` (negative or NaN: automatic) followed by `_ftol` (truncation).

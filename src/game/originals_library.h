@@ -278,6 +278,14 @@ __declspec(naked) inline void* __fastcall ScriptBlockListNewNodeOriginal(void* /
     EI_ORIGINAL(0x004CD6D0)
 __declspec(naked) inline void* __fastcall ScriptRunListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x004CDA30)
+// CList::NewNode(prev, next) of the script's particle source (004CD540), FX source (004CD5B0) and lightning
+// (004CD620) lists (RET 8, the node in EAX; the element zeroed, an FX source's name constructed empty).
+__declspec(naked) inline void* __fastcall ScriptParticleListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
+                                                                            void* /*next*/) EI_ORIGINAL(0x004CD540)
+__declspec(naked) inline void* __fastcall ScriptFxListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
+                                                                      void* /*next*/) EI_ORIGINAL(0x004CD5B0)
+__declspec(naked) inline void* __fastcall ScriptLightningListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
+                                                                             void* /*next*/) EI_ORIGINAL(0x004CD620)
 // 005588A0: CPtrList::FreeNode(node) (RET 4, EAX not a result). 00558C50: CPtrList::RemoveAll (plain RET).
 __declspec(naked) inline void __fastcall UnitListFreeNodeOriginal(void* /*list*/, void*, void* /*node*/)
     EI_ORIGINAL(0x005588A0)

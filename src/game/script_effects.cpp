@@ -4,11 +4,20 @@
 #include "script.h"
 
 #include "base_manager.h"
+#include "originals_library.h"
 #include "world.h"
+#include "world_effect.h"
 
 #include "ei/hook.h"
 
+#include <cstring>
+
 namespace {
+
+// Class ids of the effect objects the script makes (CBaseManager::CreateObject).
+constexpr int kClassSound = 0x48;       // CEffectSound
+constexpr int kClassParticles = 0x4A;   // CEffectParticle
+constexpr int kClassLightning = 0x4D;   // CEffectLightning
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
 CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
@@ -28,13 +37,70 @@ CEngineObject* ReadObject(ScriptStream* stream) {
     return object;
 }
 
-std::size_t Length(const char* s) {
-    std::size_t n = 0;
-    while (s[n]) ++n;
-    return n;
+std::size_t Length(const char* s) { return std::strlen(s); }
+
+// Takes the effect object out of the world's timed objects and drops the reference to it.
+void DropEffect(CEngineObject** slot) {
+    if (CEngineObject* object = *slot) {
+        WorldServer()->RemoveTimedObject(object->id_);
+        (*slot)->Release();
+    }
+    *slot = nullptr;
 }
 
 } // namespace
+
+// ---- Element destructors ----------------------------------------------------------------------------
+// One body for each element type: the effect object dropped (DropEffect).
+
+// 004B17F0
+void __fastcall ScriptPointLightDestruct(ScriptPointLight* light) { DropEffect(&light->object); }
+// 004B1820
+void __fastcall ScriptLightningDestruct(ScriptLightning* bolt) { DropEffect(&bolt->object); }
+// 004B1850
+void __fastcall ScriptParticleSourceDestruct(ScriptParticleSource* source) { DropEffect(&source->object); }
+// 004B1880 (the name is the caller's to destroy)
+void __fastcall ScriptFxSourceDropSound(ScriptFxSource* source) { DropEffect(&source->object); }
+
+// ---- Commands -----------------------------------------------------------------------------------------
+
+// 004BD260: CreateFX(x, y, z, volume, radius, name), a sound played once.
+void __fastcall ScriptCreateFx(CScript*, void*, const SSCCmd* cmd) {
+    auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
+    const float* f = cmd->floatArgs.data;
+    sound->localPosition_ = {f[0], f[1], f[2]};
+    std::memcpy(&sound->volume_, &f[3], 4);
+    std::memcpy(&sound->radius_, &f[4], 4);
+    sound->looping_ = 0;
+    const char* name = cmd->stringArgs.data[0];
+    std::memcpy(sound->name_, name, Length(name) + 1);
+    WorldServer()->AddTimedObject(sound);
+}
+
+// 004BCFF0: CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
+// next automatic one; others are truncated. The bolt is always added, even when the id exists.
+void __fastcall ScriptCreateLightning(CScript* script, void*, const SSCCmd* cmd) {
+    MfcList<ScriptLightning>& list = script->lightning_;
+    auto* node = static_cast<MfcList<ScriptLightning>::Node*>(
+        ScriptLightningListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
+    node->data.object = nullptr;
+    node->data.id = -1;
+    if (list.tail) list.tail->next = node;
+    else list.head = node;
+    list.tail = node;
+
+    const float* f = cmd->floatArgs.data;
+    if (!(f[0] >= 0.0f)) node->data.id = script->nextParticleId_--;
+    else node->data.id = static_cast<int>(f[0]);
+
+    auto* bolt = static_cast<CEffectLightning*>(EffectManager()->CreateObject(kClassLightning, -1));
+    node->data.object = bolt;
+    ++bolt->refCount_;
+    Vector3 to{f[4], f[5], f[6]};
+    Vector3 from{f[1], f[2], f[3]};
+    bolt->SetEnds(&from, &to, f[7]);
+    WorldServer()->AddTimedObject(bolt);
+}
 
 // ---- Saving ---------------------------------------------------------------------------------------
 
@@ -116,3 +182,9 @@ EI_REPLACE(0x004B1C50, ScriptFxSourceSave);
 EI_REPLACE(0x004B1DB0, ScriptLightningSave);
 EI_REPLACE(0x004B18B0, ScriptPointLightLoad);
 EI_REPLACE(0x004B1B40, ScriptFxSourceLoad);
+EI_REPLACE(0x004B17F0, ScriptPointLightDestruct);
+EI_REPLACE(0x004B1820, ScriptLightningDestruct);
+EI_REPLACE(0x004B1850, ScriptParticleSourceDestruct);
+EI_REPLACE(0x004B1880, ScriptFxSourceDropSound);
+EI_REPLACE(0x004BD260, ScriptCreateFx);
+EI_REPLACE(0x004BCFF0, ScriptCreateLightning);

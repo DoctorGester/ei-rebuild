@@ -825,3 +825,17 @@ void __fastcall ScriptLightningSave(const ScriptLightning* bolt, void* edx, Scri
 // manager (007AFFA8) and referenced.
 void __fastcall ScriptPointLightLoad(ScriptPointLight* light, void* edx, ScriptStream* stream);
 void __fastcall ScriptFxSourceLoad(ScriptFxSource* source, void* edx, ScriptStream* stream);
+// 004B17F0 / 004B1820 / 004B1850 / 004B1880 (__thiscall). The element's effect object leaves the
+// world's timed objects and is released; the slot is cleared (an FX source's name stays).
+void __fastcall ScriptPointLightDestruct(ScriptPointLight* light);
+void __fastcall ScriptLightningDestruct(ScriptLightning* bolt);
+void __fastcall ScriptParticleSourceDestruct(ScriptParticleSource* source);
+void __fastcall ScriptFxSourceDropSound(ScriptFxSource* source);
+// Commands (__thiscall on the script with the command, as Execute calls them).
+// 004BD260. CreateFX(x, y, z, volume, radius, name): a new sound object (class 0x48, not looping)
+// added to the world's timed objects; the script keeps nothing.
+void __fastcall ScriptCreateFx(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BCFF0. CreateLightning(id, from xyz, to xyz, width): a new bolt (class 0x4D) appended to
+// lightning_ (a negative or NaN id takes nextParticleId_, others are truncated; existing ids are
+// not looked up).
+void __fastcall ScriptCreateLightning(CScript* script, void* edx, const SSCCmd* cmd);
