@@ -190,6 +190,7 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 | Memory stream (`core_memory_stream.cpp`, `core_streams.h`) | 004A5380 / 004A53F0 / 004A5490 / 004A55D0 `CMemoryStream` slots Read / Write / Seek / CopyFrom, 004A54D0 Resize, 004A5570 SetSize, 004A5610 StartByte, 004A5650 EndBits; 004A4D40 `CStream::CopyFrom` (slot 7), 004A51C0 / 004A5250 ReadSized / WriteSized, 004A52D0 / 004A5340 ReadHeader / WriteHeader | original on a 0x28-byte copy of the stream (`verify_memory_stream.cpp` says how each shares or clones the buffer); both CopyFroms and the sized helpers on other stream classes ours only. Reached by every save / load and network message (`world_load`, `newgame`) |
 | Growing byte buffer (`game_buffer.cpp`, `net_coder.h`) | 004DA7F0 ConstructGrowing, 004DA9E0 ConstructCopy, 004DAA80 AssignFrom, 004DA910 DestructGrowing, 004DA8F0 deleting destructor, 004DA5C0 Grow, 004DA630 / 004DA6B0 Reserve (slots 0 / 1), 004DA740 WriteMore, 004DA860 Seek, 004DA170 ReadPastEnd, 004DA450 / 004DA490 `BufferCursor::BeginRead` / `BeginWrite`; 004DA5A0 / 004DA5B0 / 004DA730 slots returning 0, 004DA850 (= 0047D960) | original on a 0x1C-byte copy, with a cloned block where it frees one; grown buffers compared by offsets and the copied bytes. Save-game compression (`world_load`, `newgame`) reaches construct / destruct / Reserve / Begin*; Copy, Assign, Grow, WriteMore mainly multiplayer |
 | Matrix helpers (`matrix_math.cpp`, `model.h`, `maths.h`) | 004D9880 `MatrixMultiply`, 004D9AA0 `Quaternion::ToMatrix`, 004D9B80 `CTransformPipeline::PushMatrix` (stacks at +0x14, 8 bytes each); 004D9ED0 (= 0047B940 `AlignedPointerArrayAlloc`) | original into scratch matrices with the same aliasing, NearlyEqual per element; push: original first, its slot and depth recorded and put back, then ours. Every drawn frame (`world_load`, `render_scene`) |
+| Text splitting (`text_split.cpp`, `text_split.h`) | 004DBE40 `text::Split`, 004DBF50 `text::SplitWords`, 004DC400 `text::ReplaceChar` | original into a scratch CStringArray / a copy of the string; sizes, strings and results compared. Split: console lines with line breaks (`console`), item texts; SplitWords: keyboard.ini at startup (every scenario); ReplaceChar: item name keys |
 
 - Memory stream facts: Write grows to (capacity + size) * 2 copying the old capacity's bytes; Resize grows to
   size * 1.5 + 0x10 copying the old size's bytes and flushes the pending bits byte only when it grows; SetSize
@@ -200,6 +201,9 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 - Matrix facts: each product element sums its four terms in the original's order (two orders: `kProductOrder` /
   `kPushOrder`), pinned with StoreFloat against /fp:fast regrouping; elements are written in memory order, so an
   output that is also an input behaves as in the original.
+- MFC naming traps met here: `mfc::CString::Mid(int)` (006FDA6D) is MFC's Right(n); the real Mid(first) is 006FD9B4
+  (`console::Str::Mid`). 006FE216 is TrimLeft() and 006FE11F TrimRight() (ini_file.cpp's TextOps names them the other
+  way round; the calls are right).
 
 ## Original bugs and oddities kept
 
