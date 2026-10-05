@@ -5,7 +5,9 @@
 # (SaveGame writes shot.sav from that memory), then the Load window (ShowPicture reads a shot.sav
 # into the picture texture's memory). Captures are the new frames: the picture frame (right
 # upper box) must show the greyed world, not black. Verify wrappers: ShowPicture / FillEntries
-# against the original, SaveGame ours only (files read back). For the side-by-side check of the
+# against the original, SaveGame ours only (files read back). Since R8 (section 15) the picture
+# textures have no DirectDraw texture in this mode, only the new renderer's memory: the originals
+# run on a DirectDraw texture lent for the call (tests/verify/memory_texture.h). For the side-by-side check of the
 # old and new frames use "render new,cpuwindows" instead (the old path then draws the textures).
 render new,present
 reject Script error

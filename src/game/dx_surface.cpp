@@ -13,12 +13,15 @@
 // works on the memory directly (DirectPixels; GDI through a memory DC, ui_surface_dc.cpp) and the
 // new renderer reads it. Picture surfaces (004F0060) get the same memory when they are asked for in
 // system memory. The save / load screen's picture textures get such memory beside their DirectDraw
-// texture (AttachTextureMemory, ui_saveload.cpp). See docs/notes/renderer.md (sections 5, 10, 14).
+// texture (AttachTextureMemory, ui_saveload.cpp); in the switch-over every texture the texture
+// manager makes for the CPU (00691D80, texture_blank.cpp) gets a holder with only such memory
+// (NewMemoryTextureHolder, ticket R8). See docs/notes/renderer.md (sections 5, 10, 14, 15).
 #include "dx_surface.h"
 #include "texture.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 
@@ -68,6 +71,7 @@ enum : int { kFlags = 1, kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kFor
 
 int g_clientFailures = 0;
 bool g_memoryOnlyLogged = false;
+bool g_memoryTexturesLogged = false;
 
 // Memory of the new renderer's for `holder` in the format `desc` gives (16 or 32-bit RGB): its pitch
 // and address go into the description as the surface's client memory. False when there is none.
@@ -192,6 +196,46 @@ bool AttachTextureMemory(void* holder, int width, int height, const std::uint32_
     return true;
 }
 
+CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
+    if (!device || !render::Presenting() || !render::CpuWindows()) return nullptr;
+    auto* holder = static_cast<CDXSurface*>(gamecrt::operator_new(sizeof(CDXSurface)));
+    if (!holder) return nullptr;
+    // As 004EFA60 starts a holder.
+    holder->refCount = 0;
+    holder->result = 0;
+    holder->device = device;
+    holder->surface = nullptr;
+    holder->width = 0;
+    holder->height = 0;
+    holder->bitsPerPixel = 0;
+    SetHolderVtable(holder);
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    desc[kFlags] = kDescFlags;
+    desc[kWidth] = static_cast<std::uint32_t>(width);
+    desc[kHeight] = static_cast<std::uint32_t>(height);
+    std::memcpy(&desc[kFormat], pixelFormat, 8 * sizeof(std::uint32_t));
+    if (!AttachClientMemory(holder, desc)) {
+        if (g_clientFailures++ < 5)
+            ei::Log("cpuwindows: no memory for a %dx%d texture (format flags %08X, %u bits); a DirectDraw texture "
+                    "instead", width, height, desc[kFormat + 1], desc[kBits]);
+        gamecrt::operator_delete(holder);
+        return nullptr;
+    }
+    if (!g_memoryTexturesLogged) {
+        g_memoryTexturesLogged = true;
+        ei::Log("cpuwindows: the texture manager's CPU-written textures in the switch-over get no DirectDraw "
+                "texture, only the new renderer's memory");
+    }
+    // The memory is the surface: described by the request, the creation counted as done.
+    device->lastLoadResult_ = 0;
+    holder->width = width;
+    holder->height = height;
+    holder->bitsPerPixel = static_cast<int>(desc[kBits]);
+    ++HolderCount();
+    return holder;
+}
+
 // 004EF7B0. Returns the holder; when the surface cannot be made a C++ exception is thrown (as the
 // original: an error object by pointer). In the switch-over with "cpuwindows" the holder gets the
 // new renderer's memory and no DirectDraw surface (MemoryOnly).
@@ -276,19 +320,6 @@ constexpr std::uint32_t kFormat8888 = 0x8888;
 const std::uint8_t* PicturePixels(const MmpHeader* picture) {
     return reinterpret_cast<const std::uint8_t*>(picture) + sizeof(MmpHeader) + picture->extraSize;
 }
-
-// 004EDAA0 (thiscall, RET 4): a DDPIXELFORMAT's channels as mask, bit count and shift (0x34 bytes,
-// zeroed first; it stops early for a format without DDPF_RGB or a channel wider than 8 bits).
-struct ChannelLayout {
-    std::uint32_t unknown_00;
-    std::uint32_t alphaMask, alphaBits, alphaShift;   // +0x04
-    std::uint32_t redMask, redBits, redShift;         // +0x10
-    std::uint32_t greenMask, greenBits, greenShift;   // +0x1C
-    std::uint32_t blueMask, blueBits, blueShift;      // +0x28
-    int Split(const void* format);
-};
-static_assert(sizeof(ChannelLayout) == 0x34);
-__declspec(naked) int ChannelLayout::Split(const void*) EI_ORIGINAL(0x004EDAA0)
 
 // The picture's pixels into the memory `desc` describes (locked, or the new renderer's memory), of
 // the surface's pixel format `format` (a DDPIXELFORMAT). The device's pixel converter (2DintMMX's

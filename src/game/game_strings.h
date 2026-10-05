@@ -11,4 +11,7 @@ namespace game {
 constexpr std::uintptr_t kEmptyTextAddress = 0x0079B298;
 inline const char* EmptyText() { return reinterpret_cast<const char*>(kEmptyTextAddress); }
 
+// 00795D74: "Can't find texture format %d.\n" (the texture manager's FatalError, 00691D80).
+inline const char* CantFindTextureFormatText() { return reinterpret_cast<const char*>(0x00795D74); }
+
 } // namespace game

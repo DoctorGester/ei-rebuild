@@ -28,7 +28,8 @@ game's screen copy comes from the new frame. Checked in game: terrain, meshes, i
 weather (after its builders draw). Movies (Bink) are handed over, the players outside the frame too (section 13); the trade grid's depth clears too (00627390 rewritten).
 The switch-over mode `present` exists (section 5, "Switch-over"); in it the interface windows', the
 cursor's and the movies' surface holders have no DirectDraw surface, only memory the new renderer
-owns (section 14).
+owns (section 14), and so do the texture manager's CPU-written textures (the save / load pictures,
+the global map's weather, the item pictures: section 15).
 
 ## 1. The switch (EI_RENDER)
 
@@ -43,7 +44,7 @@ comma-separated list:
 | `noterrain` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) |
 | `noobjects` | ... the meshes drawn inside the world view (figures, map objects, the sky) and the flat geometry there (004EA4A0: shadows, ground decals) |
 | `nointerface` | ... the meshes drawn outside the world view (the interface's sprites and 3D previews) and the window surfaces' blits |
-| `cpuwindows` | the surfaces of 004EF7B0 (interface windows, software cursor, movies) and the system-memory picture surfaces of 004F0060 (the cursor's images, picture windows) keep their pixels in memory the new renderer owns (DIB sections, `render::SurfaceMemory`) and reads directly; on with `present`, `nocpuwindows` turns it off. With `present` these holders have no DirectDraw surface at all (section 14) |
+| `cpuwindows` | the surfaces of 004EF7B0 (interface windows, software cursor, movies) and the system-memory picture surfaces of 004F0060 (the cursor's images, picture windows) keep their pixels in memory the new renderer owns (DIB sections, `render::SurfaceMemory`) and reads directly; on with `present`, `nocpuwindows` turns it off. With `present` these holders have no DirectDraw surface at all (section 14), nor do the texture manager's CPU-written textures (00691D80; section 15) |
 | `present` | the switch-over: everything handed over is off in the old path (`noterrain,noobjects,nointerface`, movie blits too; `cpuwindows` on) and at the old present (004EF610) the new frame is copied into the game's render target, which the old Flip / BltFast then shows; captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode). A first version showed the frame in the child window instead: under dgVoodoo's full screen the second swap chain made the game window inactive (WM_ACTIVATE inactive: the game's frame function then draws nothing and the window minimises itself), so no frame was drawn at all. `show` / `split` have the same problem in full screen; use them windowed |
 
 Without `new` nothing in `src/render` runs; the old path draws as before. The harness has the steps
@@ -256,9 +257,9 @@ in our runs) is still created and still used, because:
    textures (locked by 00655550 / 00655D40 / 00656E10) get game-owned memory since R3 (section 11). Scenario: render_present_cpuwindows (render_present plus the escape menu
    over its greyed screen copy). Since R7 (section 14) the holders of 004EF7B0 and the
    system-memory pictures of 004F0060 have no DirectDraw surface at all in the switch-over (the
-   memory is the new renderer's, `render::SurfaceMemory`). Left: the texture holders (004EFA60
-   through the texture manager: the save / load pictures, the global map's weather texture, the
-   item pictures), which go with R8; and with the verify build's
+   memory is the new renderer's, `render::SurfaceMemory`). Since R8 (section 15) the texture
+   manager's CPU-written textures (00691D80: the save / load pictures, the global map's weather
+   texture, the item pictures) have no DirectDraw texture there either. Left: with the verify build's
    side-by-side text checks under cpuwindows the GDI batch must be flushed before they read
    pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
@@ -341,7 +342,7 @@ in our runs) is still created and still used, because:
    skip the device call when the new renderer takes the draw); 83 functions with DirectDraw /
    Direct3D calls are not rewritten yet (the "state presets" are done, point 3; the dead line draw
    0049B320 is left): the device setup and texture management (004E5E50,
-   004E68A0, 004EE*, 0068F860..00693C60), the holder helpers
+   004E68A0, 004EE*, 0068F860..00693C60; 0068F6C0 and 00691D80 are done, section 15), the holder helpers
    (004EFA60, 004EFEA0; 004F0060 is rewritten; the save / load screen's picture locks are done,
    section 11) and a few interface draws (0060C870, 00627C90, 00628F80, 00630670, 006462A0,
    00658E10; 00600EF0, 00602BF0, 00622420, 00632A90 and 0064D970 are done, section 12; 0060C870 is
@@ -691,9 +692,9 @@ software cursor display option, which no scenario sets; 005E5640 likewise). Not 
 yet (runs are central).
 
 Left of R6-R8: R7 holders with no DirectDraw surface at all (done for the windows, the cursor and
-the movies: section 14); R8 device setup and texture management, and with it the presentation
-itself (the old Flip / BltFast that `present` still goes through, and the cursor between frames
-once there is no primary).
+the movies: section 14); R8 device setup and texture management (first part done: the CPU-written
+textures, section 15), and with it the presentation itself (the old Flip / BltFast that `present`
+still goes through, and the cursor between frames once there is no primary).
 
 ## 14. Holders with no DirectDraw surface (ticket R7, 2026-10-05)
 
@@ -736,12 +737,11 @@ holders' surfaces: 005E4EB0 and 005DBA50 were the only ones not rewritten. The o
 render surface (004EA4A0) and dead code (005DA880, 004EF510; 0052EF90 is a false hit, a unit's
 network state).
 
-Left: the texture holders (004EFA60 through the texture manager): the save / load pictures keep a
-DirectDraw texture beside their memory (R3), the other CPU-written textures (0062F050, 005EC020,
-005FFFB0) have only the texture. Making them memory-only needs the texture management (the
-material setter's SetTexture, the texture manager's SetPriority / restore / release paths,
-0068F6C0..00693C60): R8. The screen's pixel format is still read from the primary at every holder
-creation (the primary goes with R8 too).
+Left (then): the texture holders (004EFA60 through the texture manager): the save / load pictures
+kept a DirectDraw texture beside their memory (R3), the other CPU-written textures (0062F050,
+005EC020, 005FFFB0) had only the texture. Done for those in R8's first part (section 15). The
+screen's pixel format is still read from the primary at every holder creation (the primary goes
+with R8 too).
 
 If the new renderer fails after holders were made without a surface (a sokol panic, or no Direct3D
 11 device at the first frame: `Presenting()` turns false and the old path takes over), the old path
@@ -788,3 +788,101 @@ windows; their textures are unchanged), render_titles_present (new: the main men
 005DBA50 / 005DBD80 in the switch-over); render_cpuwindows (the option outside the switch-over: the
 memory is DirectDraw's client memory, as before) and render_movie (the old path). Not checked in
 game yet (runs are central).
+
+## 15. CPU-written textures without a DirectDraw texture (ticket R8, first part, 2026-10-05)
+
+Why this part first, not presenting from the new renderer's own swap chain: that needs dgVoodoo's
+swap chain gone (a second flip-model swap chain on the game window fails, and a child window's made
+the game window inactive in full screen: section 1), i.e. no old device at all, and the device can
+only go once textures no longer live in DirectDraw (section 5, points 1 and 6). Taking textures off
+DirectDraw is the step that unblocks the rest; the swap chain comes after.
+
+In the switch-over (`present` with `cpuwindows`) the textures the texture manager makes for the game
+to fill on the CPU (00691D80) have no DirectDraw texture: their holder (`CDXSurface::surface` null)
+has only the new renderer's memory (`render::SurfaceMemory`, a DIB section in the texture's pixel
+format; CreateDIBSection takes the 4:4:4:4 and 1:5:5:5 masks too, checked offline), which the
+writers fill directly and the new renderer reads (`SurfaceView`, as for R3's save pictures). Outside
+the switch-over, or with `nocpuwindows`, they are the original's managed textures.
+
+Rewritten (`texture_blank.cpp`):
+
+| Address | What |
+|---|---|
+| 0068F6C0 `CTexture::CreateBlank` (thiscall, RET 8, EAX 1) | frees the texture's aligned block +0x60; a texture surface of header->width square (the height is not read) with header->mipCount levels in the texture's format_ (+0x3C): caps TEXTURE (MIPMAP / COMPLEX with mips), with flag 0x400 in system memory, else TEXTUREMANAGE; caps2 OPAQUE for flag 0x40, HINTSTATIC for 0x80, HINTDYNAMIC for 0x100 / 0x200 / 0x400; the holder from 004EFA60 (counted, the old one released); +0x28 = 0 (see below). Callers: 00691D80, the shadow textures 00692010 (flag 0x200) and 00692140 (0x400, the render surface) |
+| 00691D80 `CTextureManager::NewTexture` (thiscall: width, height, kind; RET 0xC) | CreateObject(kind, -1) (slot 23; flag 0x40), width_ / height_, for kind 0x1E / 0x20 / 0x21 the device's format 5650 / 5551 / 4444 (FindFormat; missing: FatalError "Can't find texture format %d." and its result returned as the texture) and an .mmp-like header with those channels, then CreateBlank's body; in the switch-over the holder comes from `NewMemoryTextureHolder` (dx_surface.cpp: the holder 004EFA60 would make, vtable, device, size, bits, holder count, but no CreateSurface; no memory -> the DirectDraw texture as before, logged). A failed CreateBlank (never: it returns 1) releases the texture (slot 4), null |
+
+The users of these textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250,
+the options 006503C0, the save / load window 00653DD0 / 00655D40, the global map 0062D350, the
+tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (the item screens' figure textures).
+Their writers, all rewritten: 005FFFB0 CopyImage and 005EC020 (`ui_item_view.cpp`, `LockTexture` /
+`UnlockTexture`: `DirectPixels` instead of Lock / Unlock), the global map's weather 0062F050
+(`ui_global_map.cpp`, the weather drawer 00499F10 draws into the memory), the save / load window's
+00655550 / 00655D40 / 00656E10 (`DirectPixels` since R3; `AttachTextureMemory` finds the memory
+there). Nothing else of the texture manager touches their surface: the binders (004EB300,
+004EBAF0, 00501AF0, 004EB370's inline one) pass the holder's null surface to SetTexture (D3D7 takes
+it: no texture on the old device, which draws nothing in the switch-over; the new renderer reads the
+bound holder, device +0x12C); SetPriority is only called on loaded textures (flag 8: the release
+00691B00 keeps them in its cache, 00691BF0 / 00693C60 take them back from it), which these are
+not; the reload of every texture (00692BF0 -> 006922A0) finds no file for their empty name and does
+nothing, as before; the release (slot 3 00691A70, destructor 00691950) releases the holder, and
+004EFD20 frees the memory.
+
+Not memory-only yet: the shadow textures (0068F6C0 from 00692010 / 00692140: 0051CE60 locks the
+render surface through 00690FC0 / 00691030 and copies it into the texture with the device's Load);
+the .mmp textures (00690430) and the loose .bmp ones (00690260 / 0068FBF0).
+
+Original details kept: 0068F6C0 makes the surface square from the header's width; its byte size
+(+0x28) is meant to be bits * width * height / 8 but takes the bits from the first field of
+004EDAA0's output, which that function zeroes and never writes, so it is always 0; 00691D80 writes
+the header's channel fields, which nothing reads, and leaves a texture whose format is missing
+registered with the manager; another kind keeps a zero format. Not reproduced: the unwinding when
+004EFA60 throws (the throw ends the game).
+
+Forwarders: 004EDAA0 is declared once in texture.h (`ChannelLayout::Split`, defined in texture.cpp);
+dx_surface.cpp's own copy is gone (ui_surface_pixels.cpp still forwards it as `PixelConverter::Init`,
+on the duplicates list already). New accessor `game::CantFindTextureFormatText` (00795D74,
+game_strings.h); MmpHeader's channel fields and CTexture +0x60 / +0x64 named (texture.h).
+
+Verify (`verify_texture_blank.cpp`):
+- 0068F6C0 ours only (it makes a DirectDraw texture): result 1, a holder with a DirectDraw surface
+  of header->width square in the format's bit count, +0x28 0, no block. Reached through the shadow
+  textures (render_scene, render_present, frames_basic: object shadows).
+- 00691D80 ours only (it registers a texture): for the three kinds the size, format_ equal to the
+  device's format for the kind, a holder of `width` square in it, the holder count one higher,
+  +0x28 0; in the switch-over with `cpuwindows` only memory of that size and those channel masks
+  (no DirectDraw texture), otherwise a DirectDraw texture and no memory.
+- The writers' wrappers in the switch-over (`tests/verify/memory_texture.h`): an original that locks
+  such a texture runs on a temporary DirectDraw texture lent to the holder (system memory, the
+  memory's size and format, filled from the memory), taken back afterwards. 005FFFB0 and 00656E10
+  lend the texture they are given and read the original's pixels from the lent texture (the memory
+  keeps the pixels from before, ours then writes it); 005EC020 and 00655D40 make their texture
+  themselves, so while their original runs 00691D80's wrapper lends every new texture
+  (`LendNewTextures`) and moves its pixels into the memory afterwards; the comparisons read memory
+  where a holder has no surface. If DirectDraw refuses the temporary texture ("verify: no
+  DirectDraw texture ... ours only" in ei_hook.log) 005FFFB0 / 00656E10 run ours only; 005EC020 /
+  00655D40 would then crash in their original (not expected: the same kind of system-memory texture
+  00692140 makes). 0062F050 (ours only) and 00655550 (ours only, reads the memory) are unchanged.
+
+Scenarios: ui_saveload (`new,present`: the save / load pictures through FillEntries, SaveGame and
+ShowPicture with memory-only textures, both against the original), render_present and
+render_present_cpuwindows (the battle screen's textures through CopyImage, the camp's item and face
+pictures through 005EC020, in render_present the global map's weather), render_movie_present and
+render_titles_present (the switch-over with a new game / the main menu); outside the switch-over
+ui_camp, ui_screens and ui_hud (DirectDraw textures: the writers against the originals as before) and
+render_scene (0068F6C0 for the shadows). ei_hook.log says once "cpuwindows: the texture manager's
+CPU-written textures in the switch-over get no DirectDraw texture". Not checked in game yet (runs
+are central).
+
+If the new renderer fails after such textures were made (`Presenting()` turns false), the old path
+binds no texture for them (they stay missing) but nothing crashes, and the writers keep writing the
+memory (`DirectPixels` is true for a holder without a surface).
+
+Left of R8: (1) the shadow textures memory-only (00692010 / 00692140, the locks 00690FC0 / 00691030,
+0051CE60's copy, 004EA4A0); (2) the .mmp textures without DirectDraw (00690430: the new renderer
+already decodes them from the file data but keys them by the surface, `StoreDecoded`; the texture
+manager's SetPriority on loaded textures 00691B00 / 00691BF0 / 00693C60 needs a guard; the .bmp
+overrides 00690260 / 0068FBF0 into memory; 0068FA10's fills skipped); (3) the device setup
+(004E5E50, 004E68A0, 004E6C30, 004EE*, 00500B70: no primary, render target, depth buffer or Direct3D
+device; the screen's pixel format for the window holders from elsewhere); (4) presenting from the
+new renderer's own swap chain on the game window instead of the old Flip / BltFast, and the cursor
+between frames.

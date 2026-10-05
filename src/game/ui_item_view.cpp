@@ -7,6 +7,7 @@
 // (precise floating point), constants are read from the exe's memory.
 #include "ui_item_info.h"
 
+#include "dx_surface.h"
 #include "item.h"
 #include "spell.h"
 
@@ -654,6 +655,27 @@ struct TextureSurface {
 
 constexpr std::uint32_t kPnt3 = 0x33544E50;   // "PNT3"
 
+// The texture's pixels for one fill into `desc` (a DDSURFACEDESC2 as dwords): in the switch-over
+// the texture manager's textures have only the new renderer's memory (00691D80, ticket R8), which
+// is written directly (DirectPixels, `direct` set: no Lock / Unlock, no result in the holder);
+// otherwise a Lock with flags 0 as the original, its result in the holder's +8.
+long LockTexture(TextureSurface* holder, std::uint32_t* desc, bool* direct) {
+    *direct = DirectPixels(holder, desc);
+    if (*direct) return 0;
+    using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
+    long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(holder->surface))[25])(holder->surface, nullptr, desc,
+                                                                                           0, nullptr);
+    holder->result = hr;
+    return hr;
+}
+long UnlockTexture(TextureSurface* holder, bool direct) {
+    if (direct) return 0;
+    using UnlockFn = long(__stdcall*)(void**, RECT*);
+    long hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(holder->surface))[32])(holder->surface, nullptr);
+    holder->result = hr;
+    return hr;
+}
+
 } // namespace
 
 void* __fastcall ItemFigureTexture(const char* name) {
@@ -688,10 +710,8 @@ void* __fastcall ItemFigureTexture(const char* name) {
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
-    using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
-    long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(holder->surface))[25])(holder->surface, nullptr, desc,
-                                                                                           0, nullptr);
-    holder->result = hr;
+    bool direct;
+    long hr = LockTexture(holder, desc, &direct);
     if (hr != 0 && FatalDirectX(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
@@ -719,9 +739,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     }
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
-    using UnlockFn = long(__stdcall*)(void**, RECT*);
-    hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(holder->surface))[32])(holder->surface, nullptr);
-    holder->result = hr;
+    hr = UnlockTexture(holder, direct);
     if (hr != 0 && FatalDirectX(hr, GameText(0x0078E2F4)) == 0) {   // "Can't unlock surface"
         VirtualCall(texture, 4);
         return nullptr;
@@ -755,10 +773,8 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
-    using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
-    long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(holder->surface))[25])(holder->surface, nullptr, desc,
-                                                                                           0, nullptr);
-    holder->result = hr;
+    bool direct;
+    long hr = LockTexture(holder, desc, &direct);
     if (hr != 0 && FatalDirectX(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
@@ -785,9 +801,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     }
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
-    using UnlockFn = long(__stdcall*)(void**, RECT*);
-    hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(holder->surface))[32])(holder->surface, nullptr);
-    holder->result = hr;
+    hr = UnlockTexture(holder, direct);
     if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
     VirtualCall(TextureManager(), 22);
     return image != nullptr;

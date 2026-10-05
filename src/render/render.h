@@ -23,8 +23,9 @@
 //   present    the switch-over: the old path draws nothing that is handed over (implies noterrain,
 //              noobjects, nointerface, cpuwindows; movies too) and the new frame is copied into the
 //              game's render target before the old present shows it; captures write the new frame
-//              as frames\<name>.bmp. With cpuwindows the holders of 004EF7B0 / 004F0060 then have
-//              no DirectDraw surface at all, only that memory
+//              as frames\<name>.bmp. With cpuwindows the holders of 004EF7B0 / 004F0060 and the
+//              texture manager's CPU-written textures (00691D80) then have no DirectDraw surface
+//              at all, only that memory
 // Without "new" nothing here runs and the game draws exactly as before.
 
 #include <cstdint>
@@ -48,9 +49,9 @@ bool Active();
 // new renderer owns (NewSurfaceMemory). Outside the switch-over that memory is given to DirectDraw
 // as the surface's memory; in the switch-over ("present") such a holder has no DirectDraw surface at
 // all. The new renderer reads a holder's (CDXSurface) pixels there wherever it draws it, instead of
-// locking a surface. Texture holders can have such memory too (the save / load screen's pictures,
-// beside their DirectDraw texture): a mesh pass that binds one reads the memory, again whenever it
-// changed.
+// locking a surface. Texture holders can have such memory too (the save / load screen's pictures
+// beside their DirectDraw texture; in the switch-over every texture of 00691D80 instead of one): a
+// mesh pass that binds one reads the memory, again whenever it changed.
 bool CpuWindows();
 // A surface holder's pixels: a zeroed top-down DIB section (GDI can draw into it through a memory
 // DC) of `width` x `height` pixels, 16 or 32 bits each, the channels at the given masks (`alphaMask`
