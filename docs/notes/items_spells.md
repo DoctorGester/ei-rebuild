@@ -50,6 +50,13 @@ non-zero weight (6 if none).
 | 006A0770 | CItemWeapon::GetDamageTypes | original into a scratch float[7] |
 | 006A0070 | CItem::Recharge (vslot 6) | ours, charge restored, original; result and charge bits |
 | 006A2DE0 | CItemWeapon::RollDamage (declared `double`, unrounded ST0) | ISAAC snapshot, ours, restore, original; roll bits and generator state |
+| 0069FE90, 006A30D0, 006A3C20, 006A4510, 006A4B00 | IsSameAs (slot 14) of CItem (base body), armour, quick (also scrolls), quest, loot (`item_slots.cpp`) | pure |
+| 006A0660, 006A3070, 006A3BE0, 006A44D0, 006A4AB0 | InitFromRecord (slot 13) of weapon, armour, quick (also scrolls), quest, loot | original on a scratch copy of the item, whole object compared |
+
+IsSameAs compares the base floats (+0x20..+0x2C, +0x34..+0x3C) as "equal or unordered" (FCOMP, TEST AH,40h) and
+the armour's rows and masks as dwords; the subclasses' slot 13 inline CItem::InitFromRecord and add their record
+fields (`WeaponRecord`, `ArmorRecord`, `QuickItemRecord`, `LootItemRecord` in item_db.h; the quest item takes the
+head's +0x6C). Scenarios: items (weapons, armour, potion, rune, quest items; merges in the party list), trader_stock.
 
 ## Item parts, constructor and names
 

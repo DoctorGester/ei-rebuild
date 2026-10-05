@@ -56,7 +56,9 @@ public:
     // chargeRate_ * chargeMax_. Returns 0 when already full.
     BOOL Recharge();
 
-    // 0069FE90. Virtual slot 14: the base comparison of two items (not rewritten; forwarder).
+    // 0069FE90 (item_slots.cpp). Virtual slot 14's base body: 1 for the item itself; else the
+    // same kind, packed id, values +0x40 and (equal or unordered floats) +0x20..+0x2C, +0x34..+0x3C,
+    // and both without a spell or both with one of the same packed id and modifiers.
     BOOL IsSameAs(CItem* other);
 
     // 006A0490. Virtual slot 13 of CItem (the subclasses call it first): takes the item's values
@@ -117,6 +119,8 @@ public:
 
     // 006A0730 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C..+0x58.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A0660 (slot 13; item_slots.cpp). CItem::InitFromRecord, then damage, spread and +0x58.
+    void InitFromRecord(const char* record);
 
     std::uint32_t unknown_4C;
     float damage_;          // +0x50 prototype +0x90
@@ -143,6 +147,10 @@ public:
 
     // 006A3140 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then absorb_ and layerMask_.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A3070 (slot 13; item_slots.cpp). CItem::InitFromRecord, then the two absorption rows.
+    void InitFromRecord(const char* record);
+    // 006A30D0 (slot 14). CItem::IsSameAs, then absorb_ and layerMask_ equal as dwords.
+    BOOL IsSameAs(CItemArmor* other);
 
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
@@ -162,6 +170,10 @@ public:
     mfc::CString PictureName();
     // 006A3C50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A3BE0 / 006A3C20 (slots 13 / 14, also the scrolls'; item_slots.cpp). The base's, then
+    // +0x4C (prototype +0x70).
+    void InitFromRecord(const char* record);
+    BOOL IsSameAs(CItemQuick* other);
 
     std::uint32_t unknown_4C;
 };
@@ -174,6 +186,10 @@ public:
     mfc::CString PictureName();     // 006A47B0 "initqu<number>item"
     // 006A4540 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A44D0 / 006A4510 (slots 13 / 14; item_slots.cpp). The base's, then +0x4C (prototype
+    // +0x6C, the category).
+    void InitFromRecord(const char* record);
+    BOOL IsSameAs(CItemQuest* other);
 
     std::uint32_t unknown_4C;
 };
@@ -206,6 +222,10 @@ public:
     mfc::CString PictureName();
     // 006A4B50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then kind_, recordType_, index_.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A4AB0 / 006A4B00 (slots 13 / 14; item_slots.cpp). The base's, then kind_, recordType_
+    // and index_ (prototype +0x6C..+0x74).
+    void InitFromRecord(const char* record);
+    BOOL IsSameAs(CItemLoot* other);
 
     std::uint32_t kind_;        // +0x4C 0 own price, 1 material, 2 record of recordType_
     std::uint32_t recordType_;  // +0x50 0 weapon, 1 armor, 2 quick item, 3 spell, 4 spell modifier
