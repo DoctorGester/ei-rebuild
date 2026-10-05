@@ -22,7 +22,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I4 (taken 2026-10-05) Next 3-8 live non-rendering interface functions (see ui.md Eleventh/Twelfth pass for skips).
+- I5 (taken 2026-10-05) Next 3-5 live interface functions; candidates by size from ui.md Thirteenth pass: 00617A50, 006312C0, 00621B50, 00638B30.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
@@ -37,7 +37,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
-  - C2d (taken 2026-10-05) Camera.
+  - (C2d camera merged 2026-10-05.)
 - C3b The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
   group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
   shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
@@ -46,4 +46,4 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
-- X4 CUiSurface::DrawWrappedText: 1 mismatch in 9378 (ui_hud, Rebirth): "'...' lines 1/1 pixels 0" — lines and pixels agree, so find which compared value differs (return value? width?) and fix the check or ours.
+- X4 (taken 2026-10-05) CUiSurface::DrawWrappedText: 1 mismatch in 9378 (ui_hud, Rebirth): "'...' lines 1/1 pixels 0" — lines and pixels agree, so find which compared value differs (return value? width?) and fix the check or ours.
