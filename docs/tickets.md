@@ -7,8 +7,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R3 (taken 2026-10-05) Save/load screen screenshot textures (made by 005FF0B0; locked by 00655550, 00655D40,
-  00656464, 00656E10) on game memory.
 - R5 The ~10 interface draws with old-device calls (list in renderer.md point 6), in groups of 3-4.
 - R6 Movie surfaces and the software cursor's draws to the primary surface.
 - R7 Holders with no DirectDraw surface at all (after R2/R3).
@@ -25,7 +23,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I2 Next 3-8 largest live non-rendering interface functions (the briefing screen excluded).
+- I2 (taken 2026-10-05) Next 3-8 largest live non-rendering interface functions (the briefing screen excluded).
 
 ## Cleanup (docs/cleanup-plan.md)
 
