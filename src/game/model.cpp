@@ -67,7 +67,8 @@ EI_REPLACE_METHOD(0x004F93A0, ClipBounds::SetBox);
 // /fp:fast would regroup the sums ((a + b) + c) + d as (a + b) + (c + d), which rounds differently.
 #pragma float_control(precise, on, push)
 int CTransformPipeline::ClipTest(const ClipBounds* b) const {
-    const float* m = matrices_[matrixCount_ - 1].m;
+    const MatrixStack& stack = stacks_[kClipStack];
+    const float* m = stack.matrices[stack.count - 1].m;
 
     if (b->flags & 1) {
         // The cube of half side `radius` around the centre. The corner coordinates are sums the

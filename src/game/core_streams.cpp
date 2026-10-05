@@ -152,6 +152,7 @@ void** __fastcall AlignedPointerArrayAlloc(int count) {
     return reinterpret_cast<void**>(aligned);
 }
 EI_REPLACE(0x0047B940, AlignedPointerArrayAlloc);
+EI_REPLACE(0x004D9ED0, AlignedPointerArrayAlloc);   // byte-identical copy
 
 void AlignedObjectArray::Clear() {
     // The size is read again after every call (a release may change the array).

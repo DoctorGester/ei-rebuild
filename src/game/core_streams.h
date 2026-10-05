@@ -174,7 +174,7 @@ void* __fastcall RefObjectDeletingDestructor(void* self, void* edx, unsigned fla
 void* __fastcall RefValueConstructBase(void* self);                                // 00419720, returns this
 void* __fastcall RefValueDeletingDestructor(void* self, void* edx, unsigned flags);  // 00412700 (slot 0)
 
-// 0047B940. Allocates room for `count` pointers on a 32-byte boundary; the block returned by
+// 0047B940 (and its copy 004D9ED0). Allocates room for `count` pointers on a 32-byte boundary; the block returned by
 // operator new is stored just before the aligned pointer (freed through it by 0047B620).
 void** __fastcall AlignedPointerArrayAlloc(int count);
 
