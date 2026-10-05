@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "originals_script.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -20,7 +21,7 @@ __declspec(naked) void __fastcall ArgFloatsSetSize(void*, void*, int, int) EI_OR
 __declspec(naked) void __fastcall ArgObjectsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C46F0)
 __declspec(naked) void __fastcall ArgGroupsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
 __declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
-__declspec(naked) void __fastcall RefsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1290)
+inline void __fastcall RefsCopy(void* a0, void*, const void* a2) { GroupAssignOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
 // CString::operator=(const CString&) on raw slots.
 __declspec(naked) void __fastcall AssignString(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
@@ -146,10 +147,9 @@ __declspec(naked) ScriptObjectRef* __fastcall RefAt(const void*, void*, void* /*
 __declspec(naked) ScriptGroup* __fastcall GroupAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C3B00)
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
-__declspec(naked) CEngineObject* __fastcall RefConstruct(ScriptObjectRef*, void*, const ScriptObjectRef*) EI_ORIGINAL(0x004B2500)
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
-__declspec(naked) void __fastcall GroupDestruct(void*) EI_ORIGINAL(0x004C2290)
+inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // 006FE268: ConstructElements for CString.
 __declspec(naked) void __stdcall ConstructStrings(void*, int) EI_ORIGINAL(0x006FE268)
 // Library copy constructors of the binding and nested call arrays (__thiscall (const CArray&)).

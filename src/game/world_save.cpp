@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -292,7 +293,7 @@ __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, 
 // 004C2030 / 004B3360 (RET 4) / 004C2290. A script group's constructor, Load and destructor.
 __declspec(naked) void __fastcall ScriptGroupConstruct(void*, void*) EI_ORIGINAL(0x004C2030)
 __declspec(naked) void __fastcall ScriptGroupLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004B3360)
-__declspec(naked) void __fastcall ScriptGroupDestruct(void*, void*) EI_ORIGINAL(0x004C2290)
+inline void __fastcall ScriptGroupDestruct(void* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 // 0066EF80 / 0066D260 (RET 4). The player state's refresh after a load and SetFlag70.
 __declspec(naked) void __fastcall PlayerStateRefresh(void*, void*) EI_ORIGINAL(0x0066EF80)
 __declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*/) EI_ORIGINAL(0x0066D260)

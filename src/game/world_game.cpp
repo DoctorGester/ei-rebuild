@@ -1971,7 +1971,7 @@ __declspec(naked) void __fastcall VariablesClearAt(NamedFloatTable*) EI_ORIGINAL
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void __fastcall VariableSetBits(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 // The flow's methods, through their addresses.
-__declspec(naked) void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char*) EI_ORIGINAL(0x005809D0)
+inline void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 __declspec(naked) void __fastcall FlowMarkBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FF40)
 __declspec(naked) void __fastcall FlowRegisterQuests(GameFlow*, void*, const char*) EI_ORIGINAL(0x005810A0)
 __declspec(naked) void __fastcall FlowVariableChanged(void*, void*, const void*) EI_ORIGINAL(0x00580840)
@@ -2179,7 +2179,7 @@ __declspec(naked) bool __fastcall PartyRecordsLoad(void*, void*, const char*) EI
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).
-__declspec(naked) void __fastcall RecordsPart661700(void*, void*, int, int) EI_ORIGINAL(0x00661700)
+inline void __fastcall RecordsPart661700(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall RecordsPart661640(void*) EI_ORIGINAL(0x00661640)
 __declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
 __declspec(naked) void __fastcall RecordsArrayDestroy(void*) EI_ORIGINAL(0x006643F0)

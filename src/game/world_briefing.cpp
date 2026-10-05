@@ -14,6 +14,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "originals_world.h"
 
 #include <cstring>
 #include <new>
@@ -39,7 +40,7 @@ __declspec(naked) int __fastcall TextsFindTag(void*, void*, const char*) EI_ORIG
 __declspec(naked) int __fastcall TextsReadWords(void*, void*, console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
 
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
-__declspec(naked) void __fastcall FlowLoadQuests(GameFlow*, void*, const char*) EI_ORIGINAL(0x005809D0)
+inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // 00460BC0 (RET 8). Named float table Set.
 void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { NamedTableSet(a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
 // Rewritten here, through their addresses.
@@ -197,7 +198,7 @@ constexpr std::uintptr_t kMapList = 0x00790778;         // "\map.txt"
 constexpr std::uintptr_t kQuestSection = 0x00790790;    // "quest "
 
 // 005809D0 (RET 4, AL; patched by Rebirth). The flow loads the quests of a folder.
-__declspec(naked) bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char*) EI_ORIGINAL(0x005809D0)
+inline bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char* a2) { return FlowLoadQuestsOriginal(a2); }
 // 006AE8E0 (RET 4). The quest table (007C87A8) reads the texts' current file (+0x20).
 __declspec(naked) void __fastcall QuestTableLoad(void*, void*, void*) EI_ORIGINAL(0x006AE8E0)
 // 0045EA20 (RET 4). CMapDatabase::Load (0079BF00).

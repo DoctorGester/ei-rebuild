@@ -43,3 +43,7 @@ __declspec(naked) inline void __fastcall WorldRemoveTimed(void* /*world*/, void*
 __declspec(naked) inline void* __fastcall WorldGetPlayer(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x00594180)
 __declspec(naked) inline void __fastcall IdMapEraseOriginal(ObjectIdMap*, void*, const unsigned*)
     EI_ORIGINAL(0x00599A80)
+
+// C3h. 005809D0: the game flow loads the quests of a zone folder (RET 4, AL = loaded). The flow is the global at
+// 007AF788; ECX is not read, so the callers' flow argument was a dummy.
+__declspec(naked) inline bool __stdcall FlowLoadQuestsOriginal(const char* /*zone*/) EI_ORIGINAL(0x005809D0)

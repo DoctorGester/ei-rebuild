@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "originals_core.h"
 #include "originals_library.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -34,8 +35,8 @@ __declspec(naked) void __fastcall ObjectPtrConstructCopy(void* /*at*/, void*, vo
 __declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, void*, void** /*pos*/, void* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00428A20)
 __declspec(naked) void __fastcall ObjectVectorDeallocate(void** /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004268A0)
 __declspec(naked) void** __fastcall List2614Erase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00429770)
-__declspec(naked) void __fastcall PartyReset(void* /*party*/, void*, int /*a*/, int /*b*/) EI_ORIGINAL(0x00661700)
-__declspec(naked) int __fastcall PartyAdd(void* /*party*/, void*, void* /*object*/, int /*a*/, int /*b*/) EI_ORIGINAL(0x00661DB0)
+inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
+inline int __fastcall PartyAdd(void* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
 
 std::uint32_t Get32(const void* p, std::size_t offset) {
     std::uint32_t v;

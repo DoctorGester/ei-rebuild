@@ -27,8 +27,8 @@ constexpr int kPlayerGold = 0xC0;                         // WorldPlayer: money
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // MFC list helpers instantiated in the exe (not rewritten).
-__declspec(naked) void __fastcall PtrListRemoveAll(ObjectList*, void*) EI_ORIGINAL(0x00429F10)
-__declspec(naked) void __fastcall PtrListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00427830)
+inline void __fastcall PtrListRemoveAll(ObjectList* a0, void*) { PtrListRemoveAllNodesOriginal((void*)a0); }
+inline void __fastcall PtrListDestruct(ObjectList* a0, void*) { PtrListDestructOriginal((void*)a0); }
 __declspec(naked) void __fastcall LootListRemoveAll(ObjectList*, void*) EI_ORIGINAL(0x00558C50)
 __declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }

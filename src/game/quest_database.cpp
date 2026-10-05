@@ -138,7 +138,7 @@ __declspec(naked) void __fastcall BriefingFind(void*, void*, void**, const void*
 __declspec(naked) void __fastcall BriefingIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B30)
 __declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0780)
 __declspec(naked) void __fastcall BriefingIndexClear(void*) EI_ORIGINAL(0x006B0590)
-__declspec(naked) void** __fastcall BriefingIndexAt(void*, void*, const void*) EI_ORIGINAL(0x004297A0)
+inline void** __fastcall BriefingIndexAt(void* a0, void*, const void* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIGINAL(0x006B0600)
 // MFC: CString TrimLeft / TrimRight of one character [006FE1D3 / 006FE0DD]; the game's splitter of
 // a string at a separator into a CStringArray [004DBE40, __fastcall: text, out; separator]; atof.

@@ -68,9 +68,9 @@ using RecordArray = LocalArray<std::uint8_t*>;
 // 004621A0 (RET 8). CPtrList::NewNode(prev, next), out of line.
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 // 00429F10. CPtrList::RemoveAll.
-__declspec(naked) void __fastcall PtrListRemoveAll(ObjectList*, void*) EI_ORIGINAL(0x00429F10)
+inline void __fastcall PtrListRemoveAll(ObjectList* a0, void*) { PtrListRemoveAllNodesOriginal((void*)a0); }
 // 00427830. CPtrList destructor.
-__declspec(naked) void __fastcall PtrListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00427830)
+inline void __fastcall PtrListDestruct(ObjectList* a0, void*) { PtrListDestructOriginal((void*)a0); }
 // 0059D450 (RET 8). CArray<int>::SetAtGrow(index, value).
 __declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, int) EI_ORIGINAL(0x0059D450)
 // 0059CB50 (RET 8). The item array's SetSize(size, growBy).

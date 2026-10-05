@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include "originals_library.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -34,7 +35,7 @@ __declspec(naked) double __fastcall StatsSkillValue(UnitStats*, void*, int, CUni
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
 __declspec(naked) void __fastcall UnitSetSide(CUnit*, void*, int) EI_ORIGINAL(0x00530120)
 __declspec(naked) void __fastcall UnitSetRelationsB(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530180)
-__declspec(naked) void __fastcall UnitSetPlayer(CUnit*, void*, char*) EI_ORIGINAL(0x005300D0)
+inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
 // 00665D20 the player: prepares to take a unit in (no arguments).
 __declspec(naked) void __fastcall PlayerTakeUnit(char*) EI_ORIGINAL(0x00665D20)
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24

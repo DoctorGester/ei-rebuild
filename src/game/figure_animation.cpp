@@ -24,9 +24,8 @@ struct RawString {
 // initialisation (first, last, tag; RET 0xC), the allocator's deallocate (p, n; RET 8) and the
 // node allocator's deallocate (ECX p, EDX n).
 void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall StringInitRange(RawString*, void*, const char*, const char*, const void*)
-    EI_ORIGINAL(0x0042A3D0)
-__declspec(naked) void __fastcall StringDeallocate(char**, void*, char*, int) EI_ORIGINAL(0x00426450)
+inline void __fastcall StringInitRange(RawString* a0, void*, const char* a2, const char* a3, const void* a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
+inline void __fastcall StringDeallocate(char**, void*, char* a2, int a3) { StringDeallocateOriginal(a2, (std::size_t)a3); }
 __declspec(naked) void __fastcall NodeDeallocate(char*, int) EI_ORIGINAL(0x0043B310)
 // 005AA5F0: the manager's model of a name; 005A9EF0 (RET 4): the model's animation of a name.
 __declspec(naked) void* __fastcall FindModelAt(void*, void*, const RawString*) EI_ORIGINAL(0x005AA5F0)

@@ -37,7 +37,7 @@ __declspec(naked) bool __fastcall HeaderRead(void*, void*, unsigned, int, int) E
 // 004A54D0 (RET 4). The memory stream makes room for `size` bytes.
 void __fastcall StreamReserve(void* a0, void*, int a2) { StreamResizeOriginal(a0, nullptr, (std::uint32_t)a2); }
 // The growing buffer: constructor, destructor, Seek (grows to the position).
-__declspec(naked) void __fastcall BufferSeek(GameBuffer*, void*, int) EI_ORIGINAL(0x004DA5C0)
+inline void __fastcall BufferSeek(GameBuffer* a0, void*, int a2) { GameBufferGrowOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 // The coder.
 __declspec(naked) void __fastcall CoderConstruct(CoderState*, void*) EI_ORIGINAL(0x0042FCA0)
 __declspec(naked) void __fastcall CoderCompress(CoderState*, void*, GameBuffer*, GameBuffer*) EI_ORIGINAL(0x00430450)

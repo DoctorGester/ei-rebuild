@@ -54,7 +54,7 @@ __declspec(naked) void __fastcall IfThenRunOrig(const ScriptIfThen*, void*, CScr
 __declspec(naked) void __fastcall ReleaseIfDeletedOrig(ScriptObjectRef*) EI_ORIGINAL(0x004B2570)
 __declspec(naked) void __fastcall GroupRemoveDeletedOrig(ScriptGroup*) EI_ORIGINAL(0x004B3110)
 void __fastcall GroupSetSizeOrig(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall GroupCopy(ScriptGroup*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C1290)
+inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 __declspec(naked) void __stdcall DestructRefs(ScriptObjectRef*, int) EI_ORIGINAL(0x004CC7D0)
 // The temporaries lists' RemoveTail (values returned through a hidden pointer).

@@ -236,3 +236,28 @@ plain definitions) over the shared forwarder:
 | 006FC9C6 / 006FE90F | `void* __fastcall OstreamPutLongOriginal(void*, void*, long)` (RET 4, returns the stream) / `void __fastcall PlexFreeDataChainOriginal(void*)` (plain RET) | originals_library.h |
 
 Release and verify builds, check_stolen, check_x87 and the forwarder checks in build.cmd pass (0 problems, 0 forwarder warnings).
+
+## C3h (next 15 by site count): one declaration each
+
+Same method as C3b-C3g; the "differ" count is 434 after this (it was 449). "Already rewritten" addresses were skipped (a direct call
+replaces those); addresses with sites in ui_battle_commands/update or ui_hud were skipped (004E7840, 00578E20, 005E7060); net_* and
+script_* files were edited. Decided from the game.exe disassembly (capstone); every other site keeps its local name as a one-line
+inline wrapper (members are plain definitions) over the shared forwarder:
+
+| Address | Declaration | Header |
+| --- | --- | --- |
+| 00405950 | `void* __fastcall NodeAllocateOriginal(size_t)` (ECX = bytes, plain RET); `src/lib/stlp.cpp` keeps its copy | originals_library.h |
+| 00421800 | `void* __fastcall StringReserveOriginal(void*, void*, const void* alloc, size_t n)` (RET 8, returns this) | originals_library.h |
+| 00426450 | `void __stdcall StringDeallocateOriginal(char* p, size_t n)` (RET 8; ECX/EDX are never read, the old first argument was a dummy) | originals_library.h |
+| 00427830 / 00429F10 | `void __fastcall PtrListDestructOriginal(void*)` / `PtrListRemoveAllNodesOriginal(void*)` (plain RET) | originals_library.h |
+| 004297A0 | `void* __fastcall MapRegistryFindOriginal(void*, void*, const void* key)` (RET 4, address of the value slot) | originals_library.h |
+| 0042A3D0 | `char* __fastcall StringInitRangeOriginal(void*, void*, const char*, const char*, const void* tag)` (RET 0xC, tag unread, returns the end pointer, not this) | originals_library.h |
+| 004DA5C0 | `void __fastcall GameBufferGrowOriginal(void*, void*, uint32_t size)` (RET 4); world_savefile's `BufferSeek` is the same call | originals_library.h |
+| 004C1290 / 004C2290 | `void __fastcall GroupAssignOriginal(void*, void*, const void*)` (RET 4) / `ScriptGroupDestructOriginal(void*)` (plain RET; the `(void*, void*)` forms passed a dummy EDX) | originals_script.h |
+| 005300D0 | `void __fastcall UnitSetControllerOriginal(void*, void*, void* player)` (RET 4) | originals_units.h |
+| 00530280 | `double __fastcall UnitGroundHeightOriginal(void*, void*, float, float)` (RET 8, ST0). `UnitGround::Height` in script_eval.cpp now returns `double` so ST0 stays unrounded (its caller casts after adding z) | originals_units.h |
+| 005809D0 | `bool __stdcall FlowLoadQuestsOriginal(const char*)` (RET 4, AL; reads the flow from the global 007AF788, ECX unused, so the flow arguments were dummies) | originals_world.h |
+| 00661700 / 00661DB0 | `void __fastcall PartyResetOriginal(void*, void*, int, int)` (RET 8) / `void* PartyAddItemOriginal(void*, void*, void* item, int, int)` (RET 0xC; the two flags are read as bytes; returns the item or null) | originals_gameplay.h |
+
+script_copy.cpp dropped its local `RefConstruct` (004B2500, identical to the shared one). Release and verify builds, check_stolen,
+check_x87, check_signatures and check_returns pass (0 problems, 0 forwarder warnings). Behaviour unchanged; nothing was run in the game.

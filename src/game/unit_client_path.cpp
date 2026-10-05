@@ -10,6 +10,7 @@
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_core.h"
+#include "originals_units.h"
 
 #include <cmath>
 #include <cstdint>
@@ -26,7 +27,7 @@ T& At(void* object, int offset) {
 // [00530280 (x, y)], its turn toward a direction [00401F00 (direction, flag)], its heading from a
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
-__declspec(naked) double __fastcall UnitGroundHeight(void*, void*, float, float) EI_ORIGINAL(0x00530280)
+inline double __fastcall UnitGroundHeight(void* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall UnitTurnTowards(void*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 __declspec(naked) void __fastcall UnitFaceDirection(void*, void*, const float*) EI_ORIGINAL(0x00402220)
 __declspec(naked) double __fastcall UnitAnimationSpeed(void*, void*, const void*) EI_ORIGINAL(0x005327D0)

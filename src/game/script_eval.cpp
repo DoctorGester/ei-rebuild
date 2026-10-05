@@ -17,6 +17,8 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_engine.h"
+#include "originals_units.h"
+#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>
@@ -178,9 +180,9 @@ World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
 // Height of the ground under a unit (00530280, a unit method).
 struct UnitGround {
-    float Height(float x, float y);
+    double Height(float x, float y);   // ST0 stays unrounded, as the original left it
 };
-__declspec(naked) float UnitGround::Height(float, float) EI_ORIGINAL(0x00530280)
+double UnitGround::Height(float x, float y) { return UnitGroundHeightOriginal(this, nullptr, x, y); }
 
 // Diplomacy table (007C2BC4).
 struct Diplomacy {
@@ -393,7 +395,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         float x = Field<float>(o, 0x1C), y = Field<float>(o, 0x20), z = Field<float>(o, 0x24);
-        if (o->GetClassId() == kClassUnit) *result = reinterpret_cast<UnitGround*>(o)->Height(x, y) + z;
+        if (o->GetClassId() == kClassUnit) *result = static_cast<float>(reinterpret_cast<UnitGround*>(o)->Height(x, y) + z);
         else *result = TheWorld()->TerrainHeight(x, y) + z;
         return;
     }
@@ -771,8 +773,8 @@ namespace {
 // into a new node (the group at node + 8) and returns the node. 004C2290: group destructor.
 // 004C1290: group assignment.
 __declspec(naked) char* __fastcall GroupTempsAddTail(void* /*list*/, void*, const ScriptGroup*) EI_ORIGINAL(0x004C8D80)
-__declspec(naked) void __fastcall GroupDestruct(ScriptGroup*) EI_ORIGINAL(0x004C2290)
-__declspec(naked) void __fastcall GroupAssign(ScriptGroup*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C1290)
+inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOriginal((void*)a0); }
+inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 
 // Walks the world object manager's list (007AFFA0); holds a reference on the manager meanwhile.
 struct ObjectIterator {
