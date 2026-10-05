@@ -13,6 +13,9 @@
 #include "../lib/mfc.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
+#include "originals_script.h"
+#include "originals_ui.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -29,12 +32,9 @@ namespace console {
 
 namespace {
 
-__declspec(naked) int __cdecl AddonAtoi(const char*) EI_ORIGINAL(0x006E80D8)
 // 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded).
-__declspec(naked) int __fastcall ScriptsLoadFile(void*, void*, const char*) EI_ORIGINAL(0x004D36F0)
 __declspec(naked) void __fastcall ScriptsRun(void*) EI_ORIGINAL(0x004BF000)
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
-__declspec(naked) void __fastcall WindowSetEnabled(void*, void*, int, int) EI_ORIGINAL(0x006002A0)
 // 005E5270 (on the renderer 007C7BD8): shows or hides the mouse cursor.
 __declspec(naked) void __fastcall RendererShowCursor(void*, void*, int) EI_ORIGINAL(0x005E5270)
 // 006FDC12. CString::FormatV(format, arguments).
@@ -43,7 +43,6 @@ struct FormatVAt : mfc::CString {
 };
 __declspec(naked) void FormatVAt::FormatV(const char*, va_list) EI_ORIGINAL(0x006FDC12)
 // 005DC620 through its address.
-__declspec(naked) void __fastcall ExecuteLineAt(const char*) EI_ORIGINAL(0x005DC620)
 
 void* const kScripts = reinterpret_cast<void*>(0x007C27D4);
 void* const kRenderer = reinterpret_cast<void*>(0x007C7BD8);
@@ -102,7 +101,7 @@ void __fastcall Help(CStringArray* args) {
 
 void AddonDebug(CStringArray* args) {
     std::string type = args->GetSize() >= 1 ? static_cast<const char*>((*args)[0]) : "";
-    int level = args->GetSize() >= 2 ? AddonAtoi((*args)[1]) : -1;
+    int level = args->GetSize() >= 2 ? GameAtoi((*args)[1]) : -1;
     if (type.empty() || type == "help") {
         SayFormat("Usage:\n\taddon debug {type} [level]\n\nSet debug level for type of addon's debugging settings\n"
                   "or show current value if level is not specified\n\nTypes:\n* log      - addon log file (current: %d)\n"
@@ -141,7 +140,7 @@ void __fastcall Addon(CStringArray* args) {
 
 // execs file: loads a script file into the script loader and runs it.
 void __fastcall Execs(CStringArray* args) {
-    if (ScriptsLoadFile(kScripts, nullptr, (*args)[0])) {
+    if (LoadScriptFile(kScripts, nullptr, (*args)[0])) {
         ScriptsRun(kScripts);
         return;
     }
@@ -170,12 +169,12 @@ void __fastcall ListGlobals(CStringArray*) {
 // drawall n: 0079BE6C = (n == 0).
 void __fastcall DrawAll(CStringArray* args) {
     if (args->GetSize() < 1) return;
-    *kSpectator = AddonAtoi((*args)[0]) == 0 ? 1 : 0;
+    *kSpectator = GameAtoi((*args)[0]) == 0 ? 1 : 0;
 }
 
 // nogui 0|1|2: GUI and cursor shown / GUI hidden / both hidden.
 void __fastcall NoGui(CStringArray* args) {
-    int mode = args->GetSize() == 1 ? AddonAtoi((*args)[0]) : -1;
+    int mode = args->GetSize() == 1 ? GameAtoi((*args)[0]) : -1;
     if (static_cast<unsigned>(mode) > 2) {
         Say("Hide or show GUI in game missions\n\nnogui 0 - show all (default)\nnogui 1 - hide GUI but show cursor\n"
             "nogui 2 - hide GUI and cursor");
@@ -258,7 +257,7 @@ void ApplyAddonGuiVisibility(void* screen) {
 }
 
 void RunAddonAutoExec() {
-    for (const std::string& line : AutoExecLines()) ExecuteLineAt(line.c_str());
+    for (const std::string& line : AutoExecLines()) ExecuteAt(line.c_str());
 }
 
 } // namespace console

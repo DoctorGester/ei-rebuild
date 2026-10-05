@@ -6,6 +6,7 @@
 // clear (empty by then) and the buckets freed. See docs/notes/models.md.
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -41,7 +42,6 @@ __declspec(naked) void __fastcall ManagerCleanUp(void*) EI_ORIGINAL(0x00674F40)
 __declspec(naked) void __fastcall DestroyNamePair(void*, void*, int) EI_ORIGINAL(0x005AE5D0)
 __declspec(naked) void __fastcall NodeFree(void*, int) EI_ORIGINAL(0x004FC080)
 __declspec(naked) void __fastcall ManagerBaseDestroy(void*) EI_ORIGINAL(0x00674DF0)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 
 std::uint32_t BucketCount(const Table* t) { return static_cast<std::uint32_t>(t->end - t->begin); }
 

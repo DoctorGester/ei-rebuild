@@ -11,6 +11,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -50,7 +51,6 @@ __declspec(naked) void __fastcall BuildRootBoneAt(void* /*skin*/, char* /*node*/
 // The bone (0x128 bytes): constructor 00506710 (returns this), destructor body 005068C0; BuildBone
 // 004492F0 (scene_bones.cpp) and MakeFrameRelative 0044EB60 (scene_bone_frames.cpp), through their
 // addresses.
-__declspec(naked) char* __fastcall BoneConstruct(void*) EI_ORIGINAL(0x00506710)
 __declspec(naked) void __fastcall BoneDestruct(char*) EI_ORIGINAL(0x005068C0)
 __declspec(naked) void __fastcall BuildBoneAt(void*, char*, const char*, int) EI_ORIGINAL(0x004492F0)
 __declspec(naked) void __fastcall MakeFrameRelativeAt(char*, char*, int) EI_ORIGINAL(0x0044EB60)
@@ -111,7 +111,7 @@ void __fastcall BuildRootBone(char* skin, const char* node, int frames) {
         gamecrt::operator_delete(old);
     }
     void* memory = gamecrt::operator_new(0x128);
-    char* bone = memory ? BoneConstruct(memory) : nullptr;
+    char* bone = memory ? ConstructBone(memory) : nullptr;
     At<char*>(skin, 0x14) = bone;
     BuildBoneAt(skin, bone, node, frames);
     int count = static_cast<std::int16_t>(frames) + 1;

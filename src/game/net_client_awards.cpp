@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -30,7 +31,6 @@ __declspec(naked) std::uint8_t* __fastcall WorldGetPlayer(void* /*world*/, void*
 __declspec(naked) void __fastcall AwardExperience(void* /*world*/, void*, void* /*player*/, std::uint32_t /*amount bits*/) EI_ORIGINAL(0x005911C0)
 __declspec(naked) void __fastcall PlayerGiveItems(void* /*player*/, void*, ObjectList* /*items*/, int /*flag*/) EI_ORIGINAL(0x00665470)
 __declspec(naked) void __fastcall PlayerRemoveItem(void* /*player*/, void*, int /*index*/) EI_ORIGINAL(0x00665870)
-__declspec(naked) void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
 __declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.

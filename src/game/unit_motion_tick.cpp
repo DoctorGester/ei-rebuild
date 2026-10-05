@@ -12,6 +12,9 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
+#include "originals_core.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,25 +32,13 @@ T& At(void* object, int offset) {
 __declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 // 005C7430 UnitMotion::Sample (ai_motion.cpp) on CUnit + 0x27C.
-__declspec(naked) bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/,
-                                               bool* /*turning*/, float* /*position*/, float* /*direction*/,
-                                               float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
-    EI_ORIGINAL(0x005C7430)
 // The controller's animation helpers (not rewritten): 00551400 the next animation of the order,
 // 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
 // played now, 00546C40 play steps, 005511A0 the current animation as steps, 00550F30 the idle
 // animation, 00547280 / 00547090 / 005467B0 motion updates, 00548520 the end of the tick.
-__declspec(naked) AnimationSteps* __fastcall NextAnimation(CUnitServer*) EI_ORIGINAL(0x00551400)
 __declspec(naked) void __fastcall RestartQueueA(CUnitServer*) EI_ORIGINAL(0x00546B40)
-__declspec(naked) void __fastcall RestartQueueB(CUnitServer*) EI_ORIGINAL(0x00546C10)
 __declspec(naked) bool __fastcall CanPlayFor(CUnitServer*, void*, int /*ticks*/) EI_ORIGINAL(0x00549D00)
 __declspec(naked) void __fastcall PlaySteps(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
-__declspec(naked) void __fastcall CurrentAsSteps(CUnitServer*, void*, AnimationSteps*, int) EI_ORIGINAL(0x005511A0)
-__declspec(naked) AnimationSteps* __fastcall IdleAnimation(CUnitServer*) EI_ORIGINAL(0x00550F30)
-__declspec(naked) void __fastcall Motion547280(CUnitServer*) EI_ORIGINAL(0x00547280)
-__declspec(naked) void __fastcall Motion547090(CUnitServer*, void*, int) EI_ORIGINAL(0x00547090)
-__declspec(naked) void __fastcall StopChase(CUnitServer*, void*, int) EI_ORIGINAL(0x005467B0)
-__declspec(naked) void __fastcall EndOfTick(CUnitServer*) EI_ORIGINAL(0x00548520)
 // 00550A80 CUnitServer::BuildDeathAnimation (combat_steps.cpp).
 __declspec(naked) void __fastcall DeathAnimation(CUnitServer*, void*, AnimationSteps*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)
 // Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
@@ -55,18 +46,13 @@ __declspec(naked) void __fastcall DeathAnimation(CUnitServer*, void*, AnimationS
 // GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00556850)
 __declspec(naked) void __fastcall StepsDestroy(AnimationSteps*) EI_ORIGINAL(0x00557E70)
-__declspec(naked) void __fastcall StepsAssign(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x005483C0)
-__declspec(naked) void __fastcall StepsAppend(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x00556950)
 __declspec(naked) int __fastcall StepsDuration(const AnimationSteps*) EI_ORIGINAL(0x00544E40)
 __declspec(naked) void __fastcall StepsGetAt(const AnimationSteps*, void*, AnimationStep* /*out*/, int) EI_ORIGINAL(0x00558920)
 __declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, std::uint32_t) EI_ORIGINAL(0x00544D50)
 __declspec(naked) void __fastcall StepsAddStep(AnimationSteps*, void*, std::uint32_t, int) EI_ORIGINAL(0x00544CE0)
-__declspec(naked) void __fastcall StepsSetAtGrow(AnimationSteps*, void*, int, const AnimationStep*) EI_ORIGINAL(0x00558950)
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
 // (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
-__declspec(naked) char* __fastcall AnimationEntry(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530240)
 __declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
-__declspec(naked) void __fastcall UnitPathSpeeds(CUnit*) EI_ORIGINAL(0x0052E9D0)
 __declspec(naked) void __fastcall FaceDirection(CUnit*, void*, const float*) EI_ORIGINAL(0x00402220)
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
 __declspec(naked) void __fastcall SectorRemove(void*, void*, CUnit*) EI_ORIGINAL(0x005C1010)
@@ -79,17 +65,13 @@ __declspec(naked) bool __fastcall SectorMove(void*, void*, CUnit*, const float*)
 __declspec(naked) bool __fastcall MapCanStand(void*, void*, CUnit*, int, int, int*) EI_ORIGINAL(0x005B81B0)
 __declspec(naked) CUnit* __fastcall MapBlockingUnit(void*, void*, CUnit*, const float*) EI_ORIGINAL(0x005B7BB0)
 __declspec(naked) bool __fastcall MapOccluderAt(void*, void*, const float*) EI_ORIGINAL(0x005BBDB0)
-__declspec(naked) bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/,
-                                              float /*minDistance*/) EI_ORIGINAL(0x005BB350)
 __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*path*/) EI_ORIGINAL(0x005BB900)
 __declspec(naked) void __fastcall MapLiftAround(void*, void*, const float*, int) EI_ORIGINAL(0x005B7EF0)
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
-__declspec(naked) void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
 __declspec(naked) bool __fastcall PathStart(void*, void*, const float* /*position*/, const float* /*direction*/, int /*time*/)
     EI_ORIGINAL(0x005C7B00)
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 __declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float* /*out*/) EI_ORIGINAL(0x0040F560)
-__declspec(naked) float* __fastcall Negate(float* /*out*/, const float* /*v*/) EI_ORIGINAL(0x00402200)
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
 __declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall PartyMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
@@ -257,13 +239,13 @@ void SetObstacle(CUnitServer* c, int obstacle) {
 
 // The motion order's next animation once the current motion is over.
 void QueueNextAnimation(CUnitServer* c) {
-    AnimationSteps* next = NextAnimation(c);
+    AnimationSteps* next = CtlNextAnimation(c);
     StepsAppend(Queue(c), nullptr, next);
     QueueStart(c) = next->extra;
-    StepsAssign(Queue(c), nullptr, next);
+    StepsCopyB(Queue(c), nullptr, next);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(WorldOf(c));
     RestartQueueA(c);
-    RestartQueueB(c);
+    CtlShowCurrentStep(c);
     At<std::uint8_t>(c, 0x147) = 1;
 }
 
@@ -276,7 +258,7 @@ void HitWhileTurning(CUnitServer* c) {
         DeathAnimation(c, nullptr, &steps, At<std::uint32_t>(c, 0x160), 0, 0);
         if (CanPlayFor(c, nullptr, StepsDuration(&steps))) {
             At<std::uint8_t>(c, 0x144) = 1;
-            StepsAssign(&At<AnimationSteps>(c, 0x148), nullptr, Queue(c));
+            StepsCopyB(&At<AnimationSteps>(c, 0x148), nullptr, Queue(c));
             PlaySteps(c, nullptr, &steps);
             At<std::uint8_t>(c, 0x21) = 1;
         }
@@ -291,7 +273,7 @@ void HitWhileMoving(CUnitServer* c) {
     if (Queue(c)->count > 0) {
         std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->count) & 0xFFFFFF00u) |
                             *reinterpret_cast<const std::uint8_t*>(Queue(c)->steps);
-        char* entry = AnimationEntry(UnitOf(c), nullptr, key);
+        char* entry = UnitAnimationEntry(UnitOf(c), nullptr, key);
         if (entry && (At<std::uint32_t>(entry, 0x14) & 0x3C0000) == 0x200000) {
             std::uint32_t ends = At<std::uint32_t>(entry, 0x20) + static_cast<std::uint32_t>(QueueStart(c));
             if (ends > static_cast<std::uint32_t>(WorldTime(WorldOf(c)))) return;
@@ -301,7 +283,7 @@ void HitWhileMoving(CUnitServer* c) {
     StepsConstruct(&current);
     AnimationSteps fall;
     StepsConstruct(&fall);
-    CurrentAsSteps(c, nullptr, &current, 0);
+    CtlBuildMoveSteps(c, nullptr, &current, 0);
     DeathAnimation(c, nullptr, &fall, At<std::uint32_t>(c, 0x160), 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
@@ -318,11 +300,11 @@ void HitWhileMoving(CUnitServer* c) {
             StepsSetAtGrow(&fall, nullptr, fall.count, &step);
         }
     }
-    StepsAssign(Queue(c), nullptr, &fall);
-    StepsAssign(Queue(c), nullptr, &fall);
+    StepsCopyB(Queue(c), nullptr, &fall);
+    StepsCopyB(Queue(c), nullptr, &fall);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(WorldOf(c));
     RestartQueueA(c);
-    RestartQueueB(c);
+    CtlShowCurrentStep(c);
     StepsDestroy(&fall);
     StepsDestroy(&current);
 }
@@ -387,8 +369,8 @@ void MotionOver(CUnitServer* c, void* world) {
         QuaternionAxisY(&At<char>(UnitOf(c), 0x34), nullptr, axis);
         float* facing = Negate(back, axis);
         if (PathStart(MotionOrder(c), nullptr, &At<float>(UnitOf(c), 0x1C), facing, time)) UnitPathSpeeds(UnitOf(c));
-        StopChase(c, nullptr, 0);
-        Motion547090(c, nullptr, 6);
+        CtlSetStanding(c, nullptr, 0);
+        CtlSetState(c, nullptr, 6);
         At<std::uint8_t>(c, 0x145) = wasFlag;
         return;
     }
@@ -399,15 +381,15 @@ void MotionOver(CUnitServer* c, void* world) {
         QuaternionAxisY(&At<char>(UnitOf(c), 0x34), nullptr, axis);
         float* facing = Negate(back, axis);
         if (PathStart(MotionOrder(c), nullptr, &At<float>(UnitOf(c), 0x1C), facing, time)) UnitPathSpeeds(UnitOf(c));
-        StopChase(c, nullptr, 0);
-        Motion547090(c, nullptr, 6);
+        CtlSetStanding(c, nullptr, 0);
+        CtlSetState(c, nullptr, 6);
         At<std::uint8_t>(c, 0x145) = 0;
         return;
     }
     UnitPathSpeeds(UnitOf(c));
     int state = At<int>(c, 0x164);
     if (state >= 0 && (state <= 1 || state == 2)) return;
-    PlaySteps(c, nullptr, IdleAnimation(c));
+    PlaySteps(c, nullptr, CtlIdleAnimation(c));
 }
 
 // Replans the path to the order's target (+0x9C within +0xA4), with the units around the blocked
@@ -443,12 +425,12 @@ void Replan(CUnitServer* c, void* world, bool liftBlocker, const float* position
         UnitPathSpeeds(UnitOf(c));
         int state = At<int>(c, 0x164);
         if (state >= 0 && (state <= 1 || state == 2)) return;
-        PlaySteps(c, nullptr, IdleAnimation(c));
+        PlaySteps(c, nullptr, CtlIdleAnimation(c));
         return;
     }
     std::uint8_t wasFlag = At<std::uint8_t>(c, 0xA9) == 1;
-    Motion547280(c);
-    Motion547090(c, nullptr, 6);
+    CtlStandStill(c);
+    CtlSetState(c, nullptr, 6);
     At<std::uint8_t>(c, 0x145) = wasFlag;
 }
 
@@ -486,7 +468,7 @@ void Exhaustion(CUnitServer* c) {
             UnitMarkChanged(UnitOf(c), nullptr, 0);
         }
     }
-    EndOfTick(c);
+    CtlUpdateSneak(c);
 }
 
 } // namespace

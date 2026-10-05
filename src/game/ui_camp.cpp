@@ -11,6 +11,9 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -42,11 +45,11 @@ CampPanel* Panel(void* window) { return static_cast<CampPanel*>(window); }
 // The camp's item helpers (thiscall on the camp; 005EE050.. in ui_screens.cpp are their siblings).
 struct CampItems {
     // 005EE2C0: moves every item of `list` back to `owner`.
-    void ReturnAll(void* owner, void* list);
+    void* ReturnAll(void* owner, void* list);
     // 005EE1B0: moves `item` from `from` to `to`; returns the item now held.
     void* Move(void* item, void* to, void* from, int a, int b, int c);
 };
-__declspec(naked) void CampItems::ReturnAll(void*, void*) EI_ORIGINAL(0x005EE2C0)
+__declspec(naked) void* CampItems::ReturnAll(void*, void*) EI_ORIGINAL(0x005EE2C0)
 __declspec(naked) void* CampItems::Move(void*, void*, void*, int, int, int) EI_ORIGINAL(0x005EE1B0)
 
 // 00578B20 (on 007AFEA5): the client leaves the interface screen for the world.
@@ -57,14 +60,14 @@ __declspec(naked) void LocalClient::BackToWorld() EI_ORIGINAL(0x00578B20)
 
 // Surface text (005FDE20 is Rebirth-patched).
 struct SurfaceDraw {
-    void Begin();                                                                   // 005FDC00
+    void* Begin();                                                                  // 005FDC00
     void Clear();                                                                   // 005FE2F0
-    void Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
+    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
     void End();                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) void SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
 __declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 
 // An item list of the camp (0x70 bytes, 00661050): the first node's item at **(+0x40), the
@@ -1592,7 +1595,6 @@ float TurnedBy(double seconds, float turn, bool backwards) {
 }
 
 // 00513240 (thiscall on the map objects manager 007AF5F8): a prototype's object class.
-__declspec(naked) int __fastcall PrototypeClass(void*, void*, const char*) EI_ORIGINAL(0x00513240)
 // 0060F830 through its address.
 struct ShowHeroAt {
     void ShowHero();
@@ -1706,13 +1708,9 @@ EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
 namespace {
-__declspec(naked) void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 // The item caches' maps (STLport, thiscall): 005FA420 / 005FA630 construct the header node from
 // an allocator (RET 4; the byte they copy is overwritten), 005FA400 / 005FA610 empty it.
-__declspec(naked) void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
-__declspec(naked) void __fastcall EmptyModelMap(void*) EI_ORIGINAL(0x005FA400)
 __declspec(naked) void __fastcall ConstructTextureMap(void*, void*, const void*) EI_ORIGINAL(0x005FA630)
-__declspec(naked) void __fastcall EmptyTextureMap(void*) EI_ORIGINAL(0x005FA610)
 __declspec(naked) void __fastcall ConstructStringArray(void*) EI_ORIGINAL(0x006FE925)
 
 void Put(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }

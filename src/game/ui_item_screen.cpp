@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -115,8 +116,6 @@ struct WindowAt {
     CUiWindow* Construct(CInterface3D* ui);   // 005FE700 (returns this)
 };
 __declspec(naked) CUiWindow* WindowAt::Construct(CInterface3D*) EI_ORIGINAL(0x005FE700)
-__declspec(naked) void __fastcall TrimModelsAt(ItemObjectCache*) EI_ORIGINAL(0x005F2F20)
-__declspec(naked) void __fastcall TrimTexturesAt(ItemObjectCache*) EI_ORIGINAL(0x005F2F90)
 } // namespace
 
 void CItemScreen::CreateBase() {
@@ -175,7 +174,6 @@ __declspec(naked) void __fastcall DestroyModelNode(ItemObjectCache*, void*, Item
     EI_ORIGINAL(0x005FB8E0)
 __declspec(naked) void __fastcall FreeModelHeader(ItemObjectCache::Node*, int) EI_ORIGINAL(0x005FA920)
 // 00600BA0: the container base's destructor body. 006FE958: CStringArray's destructor.
-__declspec(naked) void __fastcall DestroyContainerBase(void*) EI_ORIGINAL(0x00600BA0)
 __declspec(naked) void __fastcall DestroyStringArray(void*) EI_ORIGINAL(0x006FE958)
 
 using EraseFn = void(__fastcall*)(ItemObjectCache*, void*, ItemObjectCache::Node*);
@@ -232,7 +230,7 @@ void __fastcall ItemScreenDestroy(CItemScreen* self) {
     DestroyCache(&self->textures_, EraseTextures, DestroyTextureNode, FreeTextureHeader, true);
     ReleaseObjects(&self->models_);
     DestroyCache(&self->models_, EraseModels, DestroyModelNode, FreeModelHeader, true);
-    DestroyContainerBase(self);
+    DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6470, ItemScreenDestroy);
 
@@ -249,7 +247,7 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     DestroyCache(&self->textures_, EraseTextures, DestroyTextureNode, FreeTextureHeader, false);
     ReleaseObjects(&self->models_);
     DestroyCache(&self->models_, EraseModels, DestroyModelNode, FreeModelHeader, false);
-    DestroyContainerBase(self);
+    DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6620, CampScreenDestroy);
 
@@ -304,6 +302,6 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     ReleaseObjects(&self->models_);
     ClearCacheWhole(&self->models_, EraseModels);
     FreeModelHeaderAt(&self->models_);
-    DestroyContainerBase(self);
+    DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F7010, Screen9Destroy);

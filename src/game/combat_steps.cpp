@@ -14,6 +14,8 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_library.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -119,27 +121,20 @@ namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 005301B0. CUnit: the animation record for `key` (falling back to coarser keys; with `any`, a
 // random one of the closest group).
-__declspec(naked) char* __fastcall UnitFindAnimation(CUnit*, void*, std::uint32_t, int) EI_ORIGINAL(0x005301B0)
 // 00530240. CUnit: animation entry `index` (only its low byte counts), or null.
-__declspec(naked) char* __fastcall UnitAnimationEntry(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530240)
 // 00525B20. UnitStats: a body part near `location` that can still be hit (UnitStats::PickLocation,
 // unit_hit_location.cpp; called through its address).
 __declspec(naked) int __fastcall StatsPickLocation(void*, void*, int) EI_ORIGINAL(0x00525B20)
 // 00530560. CUnit: its height (2 * +0x14C), in ST0.
-__declspec(naked) double __fastcall UnitHeight(CUnit*) EI_ORIGINAL(0x00530560)
 // 00530280. CUnit: the ground (or water surface) height under (x, y) for the unit, in ST0.
 __declspec(naked) double __fastcall UnitGroundAt(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
 // AnimationSteps (CArray) members: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0
 // AddStep(animation, duration), 00544DD0 set every step's +8.
-__declspec(naked) void __fastcall StepsResize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
-__declspec(naked) int __fastcall StepsAdd(AnimationSteps*, void*, const AnimationStep*) EI_ORIGINAL(0x00557CC0)
-__declspec(naked) void __fastcall StepsSetAtGrow(AnimationSteps*, void*, int, const AnimationStep*) EI_ORIGINAL(0x00558950)
 __declspec(naked) void __fastcall StepsAddStep(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00544CE0)
 __declspec(naked) void __fastcall StepsSetField8(AnimationSteps*, void*, int) EI_ORIGINAL(0x00544DD0)
 // Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ResistanceTo, the unit's
 // speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.
 __declspec(naked) double __fastcall UnitAnimationSpeed(CUnit*, void*, const void*) EI_ORIGINAL(0x005327D0)
-__declspec(naked) double __fastcall StepsOrderDistance(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C070)
 
 } // namespace
 
@@ -180,7 +175,7 @@ int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
 // Appends the first step of `steps` (as the original copies it) to `out`.
 void AppendFirst(AnimationSteps* out, const AnimationSteps* steps) {
     int index = out->count;
-    StepsResize(out, nullptr, index + 1, -1);
+    StepsSetSize(out, nullptr, index + 1, -1);
     out->steps[index] = steps->steps[0];
 }
 
@@ -232,7 +227,7 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
 } // namespace
 
 bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
-    StepsResize(steps, nullptr, 0, -1);
+    StepsSetSize(steps, nullptr, 0, -1);
     steps->extra = -1;
     if (unit->type_ != kUnitTypeHeroes && to->mode != 4 && from->mode != 4) return false;
     if (from->mode == to->mode && (from->mode != 2 || from->flag4 == to->flag4)) return false;
@@ -244,7 +239,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
     int duration = EntryTicks(unit, index, 0x20);
     int last = steps->count;
-    StepsResize(steps, nullptr, last + 1, -1);
+    StepsSetSize(steps, nullptr, last + 1, -1);
     AnimationStep step = BlankStep();
     step.unknown_08 = 0;
     steps->steps[last] = step;
@@ -300,7 +295,7 @@ std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const 
 } // namespace
 
 void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind, std::uint32_t source) {
-    StepsResize(steps, nullptr, 0, -1);
+    StepsSetSize(steps, nullptr, 0, -1);
     steps->extra = -1;
     std::uint32_t weaponBit;
     bool frame;
@@ -349,7 +344,7 @@ EI_REPLACE_METHOD(0x00550100, CUnitServer::BuildOrderSteps);
 
 void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind, int value) {
     (void)kind;
-    StepsResize(steps, nullptr, 0, -1);
+    StepsSetSize(steps, nullptr, 0, -1);
     steps->extra = -1;
     std::uint32_t key;
     if (unit->type_ == kUnitTypeHeroes) {
@@ -482,14 +477,14 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     double dy = static_cast<double>(y) - aim.y;
     double dx = static_cast<double>(x) - aim.x;
     volatile float distance = static_cast<float>(x87::fsqrt(dx * dx + dy * dy + dz * dz));
-    volatile float orderDistance = static_cast<float>(StepsOrderDistance(this, nullptr, &order));
+    volatile float orderDistance = static_cast<float>(CtlActionDistance(this, nullptr, &order));
     float reach = Select(distance, orderDistance, distance, orderDistance);
 
     void* victimStats = static_cast<char*>(static_cast<void*>(victim->controller)) + 0x1E0;
     volatile float myBase = static_cast<float>(UnitGroundAt(unit, nullptr, x, y) + z);
-    volatile float mySize = static_cast<float>(UnitHeight(unit));
+    volatile float mySize = static_cast<float>(UnitSize(unit));
     volatile float theirBase = static_cast<float>(UnitGroundAt(victim, nullptr, aim.x, aim.y) + aim.z);
-    volatile float theirSize = static_cast<float>(UnitHeight(victim));
+    volatile float theirSize = static_cast<float>(UnitSize(victim));
 
     // Where to hit: a skill picks at random, an attack its source location, else the body; the
     // victim's stats move it to a part that can still be hit.
@@ -615,7 +610,7 @@ std::uint32_t RandomSide(std::uint32_t key) {
 void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direction, int dying, int fall) {
     bool isDying = static_cast<std::uint8_t>(dying) != 0;
     bool isFall = static_cast<std::uint8_t>(fall) != 0;
-    StepsResize(steps, nullptr, 0, -1);
+    StepsSetSize(steps, nullptr, 0, -1);
     steps->extra = -1;
     std::uint32_t key = WeaponBit(this) | LeaveBits(&moveMode, unit);
     int mode = moveMode.mode;
@@ -655,7 +650,7 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
         std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
         int duration = EntryTicks(unit, index, 0x20);
         int last = steps->count;
-        StepsResize(steps, nullptr, last + 1, -1);
+        StepsSetSize(steps, nullptr, last + 1, -1);
         AnimationStep step = BlankStep();
         step.unknown_08 = 0;
         steps->steps[last] = step;

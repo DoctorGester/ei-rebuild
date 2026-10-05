@@ -12,6 +12,8 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
+#include "originals_script.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -22,14 +24,12 @@ namespace {
 // CArray members called out of line: 004C2510 CStringArray SetSize, 004C2680 GetAt (CString by
 // value; also on string values), 004C21E0 GetAt of a reference array (ScriptObjectRef by value,
 // referenced), 004C3B00 GetAt of a group array (ScriptGroup by value).
-__declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
 __declspec(naked) mfc::CString* __fastcall StringAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C2680)
 __declspec(naked) ScriptObjectRef* __fastcall RefAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C21E0)
 __declspec(naked) ScriptGroup* __fastcall GroupAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C3B00)
 // Rewritten script helpers, called through their addresses.
 __declspec(naked) void __fastcall GroupSetSize(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
-__declspec(naked) CEngineObject* __fastcall RefConstruct(ScriptObjectRef*, void*, const ScriptObjectRef*) EI_ORIGINAL(0x004B2500)
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
 
@@ -68,7 +68,7 @@ void CopyName(MfcArray<mfc::CString>* names, int to, const MfcArray<mfc::CString
 void __fastcall ScriptFloatsAppend(ScriptNamedValues<float>* self, void*, const ScriptNamedValues<float>* other) {
     int old = self->values.size;
     InlineSetSize(Raw(&self->values), other->values.size + old, kFloats);
-    NamesSetSize(&self->names, nullptr, other->names.size + old, -1);
+    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&self->names, old + i, &other->names, i);
         CopyFloat(&self->values.data[old + i], &other->values.data[i]);
@@ -80,7 +80,7 @@ void __fastcall ScriptStringsAppend(ScriptNamedValues<mfc::CString>* self, void*
                                     const ScriptNamedValues<mfc::CString>* other) {
     int old = self->values.size;
     InlineSetSize(Raw(&self->values), other->values.size + old, kStrings);
-    NamesSetSize(&self->names, nullptr, other->names.size + old, -1);
+    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&self->names, old + i, &other->names, i);
         TempString value;
@@ -95,7 +95,7 @@ void __fastcall ScriptObjectsAppend(ScriptNamedValues<ScriptObjectRef>* self, vo
                                     const ScriptNamedValues<ScriptObjectRef>* other) {
     int old = self->values.size;
     InlineSetSize(Raw(&self->values), other->values.size + old, kRefs);
-    NamesSetSize(&self->names, nullptr, other->names.size + old, -1);
+    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&self->names, old + i, &other->names, i);
         ScriptObjectRef value;
@@ -115,7 +115,7 @@ void __fastcall ScriptGroupsAppend(ScriptNamedValues<ScriptGroup>* self, void*,
                                    const ScriptNamedValues<ScriptGroup>* other) {
     int old = self->values.size;
     InlineSetSize(Raw(&self->values), other->values.size + old, kGroups);
-    NamesSetSize(&self->names, nullptr, other->names.size + old, -1);
+    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&self->names, old + i, &other->names, i);
         ScriptGroup copy;
@@ -143,7 +143,6 @@ EI_REPLACE(0x004C3DC0, ScriptGroupsAppend);
 
 namespace {
 
-__declspec(naked) void __fastcall FloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
 __declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
 // 004B5EF0: a group's destructor body (references released, array freed).
 __declspec(naked) void __fastcall GroupDestruct(ScriptGroup*) EI_ORIGINAL(0x004B5EF0)
@@ -159,7 +158,7 @@ void FreeValues(ScriptNamedValues<T>* vars, Destroy destroy) {
     }
     vars->values.maxSize = 0;
     vars->values.size = 0;
-    NamesSetSize(&vars->names, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars->names, nullptr, 0, -1);
 }
 
 void DestroyGroups(ScriptGroup* groups, int count) {
@@ -194,11 +193,11 @@ EI_REPLACE(0x004C1760, ScriptGroupsClear);
 // storage is freed inline (each group destroyed first).
 void __fastcall ScriptVarsClear(ScriptVars* vars) {
     FloatsSetSize(&vars->floats, nullptr, 0, -1);
-    NamesSetSize(&vars->floatNames, nullptr, 0, -1);
-    NamesSetSize(&vars->strings, nullptr, 0, -1);
-    NamesSetSize(&vars->stringNames, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars->floatNames, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars->strings, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars->stringNames, nullptr, 0, -1);
     GroupSetSize(reinterpret_cast<ScriptGroup*>(&vars->objects), nullptr, 0, -1);
-    NamesSetSize(&vars->objectNames, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars->objectNames, nullptr, 0, -1);
     if (vars->groups.data) {
         DestroyGroups(vars->groups.data, vars->groups.size);
         gamecrt::operator_delete(vars->groups.data);
@@ -206,6 +205,6 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
     }
     vars->groups.maxSize = 0;
     vars->groups.size = 0;
-    NamesSetSize(&vars->groupNames, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars->groupNames, nullptr, 0, -1);
 }
 EI_REPLACE(0x004C0020, ScriptVarsClear);

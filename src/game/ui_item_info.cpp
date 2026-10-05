@@ -235,15 +235,15 @@ int PackedFtol(std::uintptr_t fn, std::uint32_t packedId) {
 
 // The surface's drawing (thiscall on the surface).
 struct SurfaceDraw {
-    void Begin();                                                                   // 005FDC00
+    void* Begin();                                                                   // 005FDC00
     void Clear();                                                                   // 005FE2F0
-    void Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
+    int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
     int Wrapped(const char* text, RECT* rect, int maxLines, int font, std::uint32_t colour, int format, int flag);   // 005FDFA0
     void End();                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) void SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
 __declspec(naked) int SurfaceDraw::Wrapped(const char*, RECT*, int, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDFA0)
 __declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 
@@ -298,10 +298,10 @@ SpellAt* Of(void* spell) { return static_cast<SpellAt*>(spell); }
 // The panel's item list (00661050 class, at +0x150; thiscall).
 struct ItemList {
     void Clear(int a, int b);               // 00661700
-    void Add(CItem* item, int a, int b);    // 00661DB0
+    int Add(CItem* item, int a, int b);    // 00661DB0
 };
 __declspec(naked) void ItemList::Clear(int, int) EI_ORIGINAL(0x00661700)
-__declspec(naked) void ItemList::Add(CItem*, int, int) EI_ORIGINAL(0x00661DB0)
+__declspec(naked) int ItemList::Add(CItem*, int, int) EI_ORIGINAL(0x00661DB0)
 
 } // namespace
 

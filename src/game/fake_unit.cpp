@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -45,7 +46,6 @@ constexpr ArrayInfo kArrays[] = {
 };
 
 __declspec(naked) void __fastcall UnitConstruct(void*) EI_ORIGINAL(0x0052E110)
-__declspec(naked) void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0052E310)
 __declspec(naked) void __fastcall UnitDestroy(void*) EI_ORIGINAL(0x0052E590)
 __declspec(naked) void __fastcall MemberConstruct(void*) EI_ORIGINAL(0x00508700)
 __declspec(naked) void __fastcall MemberDestruct(void*) EI_ORIGINAL(0x005087B0)

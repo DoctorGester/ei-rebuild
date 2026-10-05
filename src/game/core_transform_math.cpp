@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_core.h"
 
 #include <cstdint>
 #include <cstring>
@@ -55,8 +56,6 @@ __declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
 }
 
 // The vector helpers as the original calls them, results unrounded in ST0.
-__declspec(naked) double __fastcall LengthRaw(const Vector3* /*v*/) EI_ORIGINAL(0x00401E20)
-__declspec(naked) double __fastcall DotRaw(const Vector3* /*a*/, const Vector3* /*b*/) EI_ORIGINAL(0x00401E00)
 
 // The rotation's Y axis (up) and Z axis (forward) as these functions expand them; the operand
 // order follows the original's FPU code (sums of products in the order it adds them).

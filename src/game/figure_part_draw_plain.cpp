@@ -9,6 +9,9 @@
 // draw that is not off screen marks the mesh drawn. See docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "originals_ai.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,18 +34,11 @@ AlignedArray& MovedPositions() { return *reinterpret_cast<AlignedArray*>(0x007C2
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E70); }
 
 __declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 __declspec(naked) char* __fastcall Alloc64(int) EI_ORIGINAL(0x00452E70)
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 __declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 // 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
-__declspec(naked) void __fastcall Animate(char*, void*, std::uint32_t) EI_ORIGINAL(0x005A7160)
-__declspec(naked) void __fastcall FinishDraw(char*, void*, void* /*renderer*/) EI_ORIGINAL(0x005A7290)
 // 004E9010: the device's mesh draw (device_mesh.cpp).
-__declspec(naked) int __fastcall DrawMesh(char*, void*, const void*, int, std::uint32_t, int, std::uint32_t,
-                                          std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
-                                          std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
-                                          std::uint32_t, int, int) EI_ORIGINAL(0x004E9010)
 
 // *target = *offset + *target (FLD offset, FADD, FSTP). __fastcall.
 __declspec(naked) void __fastcall AddOffset(const float* /*offset*/, float* /*target*/) {
@@ -148,7 +144,7 @@ int __fastcall DrawFigurePartPlain(char* node, void*, char* device, int, int, in
         At<std::uint32_t>(node, 8) |= *reinterpret_cast<const std::uint32_t*>(0x00790C0C);
         std::uint32_t bits;
         std::memcpy(&bits, &time, 4);
-        Animate(node, nullptr, bits);
+        AnimateOriginal(node, nullptr, bits);
     }
 
     std::uint32_t meshFlags = At<std::uint32_t>(mesh(), 8);

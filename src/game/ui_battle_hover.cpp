@@ -10,6 +10,8 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -50,18 +52,14 @@ void* const kPlayerGlue = reinterpret_cast<void*>(0x007AFEA5);
 
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
-__declspec(naked) CUnit* __fastcall HoverObjectAt(void*, void*, const int*) EI_ORIGINAL(0x005659D0)
-__declspec(naked) float* __fastcall HoverPickSurface(void*, void*, float*, int, int) EI_ORIGINAL(0x0056C350)
 __declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const float*, int*) EI_ORIGINAL(0x00567440)
 // The local player glue (007AFEA5): 00578A40 an exit's zone name (RET 4), 00578B50 the local
 // player's variable `name` (RET 4, ST0).
 __declspec(naked) const char* __fastcall HoverExitZone(void*, void*, int) EI_ORIGINAL(0x00578A40)
-__declspec(naked) double __fastcall HoverPlayerVariable(void*, void*, const char*) EI_ORIGINAL(0x00578B50)
 // Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
 // 00531920 the quick item (RET 4); 006A4230 an item's category.
 __declspec(naked) std::uint8_t* __fastcall HoverPrototype(CUnit*) EI_ORIGINAL(0x00530930)
-__declspec(naked) int __fastcall HoverHostileTo(CUnit*, void*, CUnit*) EI_ORIGINAL(0x00530150)
 __declspec(naked) int __fastcall HoverCanCast(CUnit*, void*, int, const float*) EI_ORIGINAL(0x0052F820)
 __declspec(naked) int __fastcall HoverCanUseQuick(CUnit*, void*, int, const float*) EI_ORIGINAL(0x0052F8B0)
 __declspec(naked) void* __fastcall HoverQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)

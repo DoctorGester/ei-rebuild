@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
 
 #include <cstring>
 
@@ -73,16 +74,12 @@ __declspec(naked) const std::int16_t* __fastcall SpiralGet(void*, void*, std::ui
 __declspec(naked) bool __fastcall SearchBegin(void*, void*, CUnit*, int, int, int, int) EI_ORIGINAL(0x005C2420)
 __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
 __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
-__declspec(naked) int __fastcall SearchCost(void*, void*, int, int) EI_ORIGINAL(0x005C3090)
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
-__declspec(naked) void __fastcall SearchFinish(void*, void*) EI_ORIGINAL(0x005C30E0)
 __declspec(naked) void __fastcall SearchReset(void*, void*) EI_ORIGINAL(0x005C35F0)
 // 005B16D0 (RET 8). The excluded regions' CArray<{int x, y}>::SetSize.
 __declspec(naked) void __fastcall ExcludedSetSize(void*, void*, int, int) EI_ORIGINAL(0x005B16D0)
 // 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.
 __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005B9A20)
-__declspec(naked) bool __fastcall PlanPathAt(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
-    EI_ORIGINAL(0x005B9C90)
 // 006E727B. atexit, for the function-local spiral cache.
 __declspec(naked) int __cdecl GameAtexit(void (*)()) EI_ORIGINAL(0x006E727B)
 
@@ -284,7 +281,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 int* data = At<int*>(excluded, 4);
                 data[size * 2] = x;
                 data[size * 2 + 1] = y;
-                retried = PlanPathAt(this, nullptr, unit, fromX, fromY, toX, toY, path, retry, maxCells);
+                retried = PlanPath(this, nullptr, unit, fromX, fromY, toX, toY, path, retry, maxCells);
             }
             DestroyList(waypoints, kWaypointListVtable);
             DestroyList(chain, kRegionListVtable);

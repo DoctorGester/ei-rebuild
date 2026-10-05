@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -53,7 +54,6 @@ __declspec(naked) double __cdecl CIasin(double) {
     __asm call eax
     __asm ret
 }
-__declspec(naked) double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 
 // The world's object query (0x7AF5B8): the objects within `radius` of `p` into an STLport list.
 __declspec(naked) void __fastcall ObjectsNear(void* /*world*/, void*, const Vector3* /*p*/, float /*radius*/, void* /*list*/) EI_ORIGINAL(0x0056DAF0)

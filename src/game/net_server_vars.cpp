@@ -16,7 +16,7 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 // STLport (library): string equality, erase(first, last), append(first, last, tag); the list's
 // begin, insert and erase; a counted pointer from a raw one without a reference.
 __declspec(naked) bool __fastcall StringEquals(const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427FA0)

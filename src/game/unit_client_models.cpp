@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 #include <new>
@@ -67,7 +68,6 @@ __declspec(naked) void __fastcall RemovePart(CUnit*, void*, CEngineObject*) EI_O
 // 00539580. SkinLayerArray::SetSize.
 __declspec(naked) void __fastcall SetLayerCount(SkinLayerArray*, void*, int, int) EI_ORIGINAL(0x00539580)
 // 006A3480 / 006A0AA0. The texture name of an armour / weapon by type and number, into `out`.
-__declspec(naked) void __fastcall ArmourTexture(mfc::CString*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x006A3480)
 __declspec(naked) void __fastcall WeaponTexture(mfc::CString*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x006A0AA0)
 // 00693180. Texture manager: composes a skin.
 __declspec(naked) void* __fastcall ComposeTexture(void*, void*, void*, SkinRequest*, mfc::CString*, mfc::CString*, int,

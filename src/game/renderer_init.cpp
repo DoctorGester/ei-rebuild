@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
+#include "originals_library.h"
 
 #include <bit>
 #include <cstdint>
@@ -48,7 +49,6 @@ __declspec(naked) void __fastcall MultiplyMatrix(float* /*out*/, void*, const fl
 // FatalError (patched by Rebirth; through its address), FatalError with an HRESULT, exit.
 __declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
 __declspec(naked) int __cdecl FatalErrorCode(long, const char*, ...) EI_ORIGINAL(0x004800E0)
-__declspec(naked) void __cdecl GameExit(int) EI_ORIGINAL(0x006E8DA7)
 // The game's operator new, keeping EDX as the allocator leaves it (see CreateHelper).
 __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::uint32_t* /*edx out*/) {
     __asm {
@@ -277,7 +277,7 @@ void __fastcall RendererCreate(char* renderer, void*, void* window, char* settin
     char* driver = FirstHardwareDriver();
     if (!driver) {
         FatalError(reinterpret_cast<const char*>(0x0078E534));   // "Can't find any driver with HW 3D..."
-        GameExit(-1);
+        ExitGame(-1);
     }
     int index = At<int>(settings, 0x2C);
     if (index != -1) {

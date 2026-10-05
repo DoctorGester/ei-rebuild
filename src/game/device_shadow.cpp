@@ -9,6 +9,9 @@
 
 #include "ei/hook.h"
 #include "render/render.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -32,18 +35,14 @@ AlignedArray& Projected() { return *reinterpret_cast<AlignedArray*>(0x007AEE10);
 AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE20); }  // a byte per vertex
 AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
 
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 __declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
-__declspec(naked) char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004ECB70)
-__declspec(naked) char* __fastcall AllocWords(int) EI_ORIGINAL(0x00406B30)
 // 004F2650: the pipeline projects `blocks` blocks of positions with outcodes [positions, out,
 // outcodes, blocks, last]; 0 on screen, 1 crossing, 2 outside.
 __declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*, void*, int, std::uint32_t) EI_ORIGINAL(0x004F2650)
 // The device [thiscall]: a vertex buffer for n vertices [004E7820, always null], its draw
 // [004E7E00: indices, count], the indexed draw [004EB550: primitive, FVF, vertices, count, indices,
 // count, flags].
-__declspec(naked) void* __fastcall LockVertexBuffer(char*, void*, int) EI_ORIGINAL(0x004E7820)
 __declspec(naked) void __fastcall DrawVertexBuffer(char*, void*, const void*, int) EI_ORIGINAL(0x004E7E00)
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, const void*, int, int) EI_ORIGINAL(0x004EB550)
 
@@ -185,7 +184,7 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
     if (visibility == 0) {
         TLVertex* target = static_cast<TLVertex*>(LockVertexBuffer(device, nullptr, count));
         if (!target) {
-            Resize(Vertices(), count, &AllocVertices);
+            Resize(Vertices(), count, &AllocVerticesOriginal);
             target = reinterpret_cast<TLVertex*>(Vertices().data);
         }
         Fill(target, count, colours, uvs);
@@ -201,7 +200,7 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
     if (visibility == 2) return 2;
     if (visibility != 1) return 0;
 
-    Resize(Vertices(), count * 10, &AllocVertices);
+    Resize(Vertices(), count * 10, &AllocVerticesOriginal);
     Fill(reinterpret_cast<TLVertex*>(Vertices().data), count, colours, uvs);
     Resize(ClipIndices(), indexCount * 10, &AllocWords);
     Resize(CornerOutcodes(), Outcodes().size * 10, &AllocBytes);
@@ -210,7 +209,7 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
     int clippedIndices = indexCount;
     ThisCall<int>(transform, 37, static_cast<void*>(Vertices().data), static_cast<void*>(CornerOutcodes().data),
                   indices, static_cast<void*>(ClipIndices().data), &vertexCount, &clippedIndices);
-    SetSize(Vertices(), vertexCount, sizeof(TLVertex), &AllocVertices);
+    SetSize(Vertices(), vertexCount, sizeof(TLVertex), &AllocVerticesOriginal);
     SetSize(ClipIndices(), clippedIndices, 2, &AllocWords);
     ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
     if (vertexCount == 0 || clippedIndices == 0) return 0;

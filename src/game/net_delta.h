@@ -65,7 +65,7 @@ struct BitStream {
     void EndBits();                         // 004A5650: stores bits_, no pending byte
     void Resize(std::uint32_t size);        // 004A54D0: size = size, position 0 (grows the buffer)
     void SetSize(std::uint32_t size);       // 004A5570: size = size, position 0 (grows to exactly that)
-    void ReadString(void* cstring);         // 00461190: CString up to a zero byte
+    void* ReadString(void* cstring);        // 00461190: CString up to a zero byte
 };
 static_assert(offsetof(BitStream, mask_) == 0x10);
 static_assert(offsetof(BitStream, data_) == 0x18);

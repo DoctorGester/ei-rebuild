@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -82,7 +83,6 @@ __declspec(naked) std::uint8_t* __fastcall QuestItemInfo(CEngineObject*, void*) 
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
 __declspec(naked) void __fastcall PlayerGiveItems(WorldPlayer*, void*, ObjectList*, int) EI_ORIGINAL(0x00665470)
 // 0045E850 (RET 4). The map database's zone record by name.
-__declspec(naked) std::uint8_t* __fastcall MapDatabaseFind(void*, void*, const char*) EI_ORIGINAL(0x0045E850)
 // 0049ECC0 (RET 8). Quaternion from an axis and an angle.
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
 // 0066ED30 (RET 0xC). Sends the player state its start position.

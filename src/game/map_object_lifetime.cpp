@@ -11,6 +11,10 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_effects.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -76,14 +80,12 @@ __declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840
 // 005121B0. The client companion's particle array: SetSize.
 __declspec(naked) void __fastcall SetParticleCount(void*, void*, int, int) EI_ORIGINAL(0x005121B0)
 // 006CA720. Light manager: removes a light.
-__declspec(naked) void __fastcall RemoveLight(void*, void*, CEngineObject*) EI_ORIGINAL(0x006CA720)
 // 00511FB0. The light list (007AF748 + 0xD4): erases the entries with id *id.
 __declspec(naked) void __fastcall EraseLightId(void*, void*, const int*) EI_ORIGINAL(0x00511FB0)
 // 00511B90. A counted reference: assign.
 __declspec(naked) void __fastcall AssignReference(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x00511B90)
 // The server unit controller's members (00546230).
 __declspec(naked) void __fastcall ControllerClearOrders(void*) EI_ORIGINAL(0x00546480)
-__declspec(naked) void __fastcall BrainDestroy(void*) EI_ORIGINAL(0x005D4F70)
 __declspec(naked) void __fastcall BrainMemoryDestroy(void*) EI_ORIGINAL(0x00545CB0)
 __declspec(naked) void __fastcall BrainListDestroy(void*) EI_ORIGINAL(0x00557410)
 __declspec(naked) void __fastcall BrainList90Destroy(void*) EI_ORIGINAL(0x00557890)
@@ -93,7 +95,6 @@ __declspec(naked) void __fastcall BrainArrayDestroy(void*) EI_ORIGINAL(0x0052B03
 __declspec(naked) void __fastcall Brain14Destroy(void*) EI_ORIGINAL(0x004CB770)
 __declspec(naked) void __fastcall ControllerListDestroy(void*) EI_ORIGINAL(0x00557E70)
 __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
-__declspec(naked) void __fastcall ControllerPathDestroy(void*) EI_ORIGINAL(0x00539890)
 // Rewritten elsewhere or here, through their game addresses (verify wrappers in the path):
 // 005233B0 UnitVitalsPacked::Reset, 00523370 UnitVitals::Reset, 00523550 UnitParams::Reset,
 // 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
@@ -106,7 +107,6 @@ __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D
 __declspec(naked) CMapObject* __fastcall ConstructMapObjectAt(void*) EI_ORIGINAL(0x0050E2D0)
 __declspec(naked) void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
 __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
-__declspec(naked) void __fastcall DestructUnitAt(void*) EI_ORIGINAL(0x0052E310)
 
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(void* object) {
@@ -353,7 +353,7 @@ void CUnit::DestructBody() {
 EI_REPLACE_METHOD(0x0052E310, CUnit::DestructBody);
 
 CUnit* CUnit::DeletingDestructor(std::uint32_t flags) {
-    DestructUnitAt(this);
+    UnitDestructBody(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -455,7 +455,7 @@ void CUnitServer::DestructBody() {
     SetVtable(this, kUnitServerVtable);
     ControllerClearOrders(this);
     char* brainBase = reinterpret_cast<char*>(this) + 0x980;
-    BrainDestroy(brainBase);
+    BrainResetAll(brainBase);
     BrainMemoryDestroy(brainBase + 0xD0);
     BrainListDestroy(brainBase + 0xA4 + 0x14);
     BrainListDestroy(brainBase + 0xA4);
@@ -479,8 +479,8 @@ void CUnitServer::DestructBody() {
     DestroyArray(reinterpret_cast<char*>(this) + 0xC4, kServerArrayVtable);
     char* paths = reinterpret_cast<char*>(this) + 0x3C;
     DestroyArray(paths + 0x70, 0x0073F07C);
-    ControllerPathDestroy(paths + 0x3C);
-    ControllerPathDestroy(paths + 0x20);
+    CellListDestroy(paths + 0x3C);
+    CellListDestroy(paths + 0x20);
     DestroyArray(reinterpret_cast<char*>(this) + 0x24, kServerArrayVtable);
     SetVtable(this, kControllerVtable);
     SetDword(this, 0x1C, 0);

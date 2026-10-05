@@ -13,6 +13,8 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_library.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -145,7 +147,6 @@ namespace {
 // 00530280. CUnit: the height of the ground (or water surface) under (x, y) for the unit, in ST0.
 __declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
 // 00557B80. CArray::SetSize of an AnimationSteps list.
-__declspec(naked) void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
 // 00455950. The world an object lives in.
 __declspec(naked) void* __fastcall ObjectWorld(const void*) EI_ORIGINAL(0x00455950)
 // Rewritten elsewhere, called through their game addresses (ST0 results kept unrounded):
@@ -153,7 +154,6 @@ __declspec(naked) void* __fastcall ObjectWorld(const void*) EI_ORIGINAL(0x004559
 // CUnitServer::ActionDistance, 005BC3E0 CAIMap::LineOfSight.
 __declspec(naked) double __fastcall UnitEyeHeight(CUnit*) EI_ORIGINAL(0x00530370)
 __declspec(naked) double __fastcall UnitModeHeight(CUnit*) EI_ORIGINAL(0x005302F0)
-__declspec(naked) double __fastcall OrderDistance(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C070)
 __declspec(naked) double __fastcall MapLineOfSight(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC3E0)
 
 } // namespace
@@ -357,7 +357,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     void* spell = nullptr;
 
     if (order->flag18) {
-        double distance = OrderDistance(this, nullptr, order);
+        double distance = CtlActionDistance(this, nullptr, order);
         double dy = static_cast<double>(order->point[1]) - unit->positionY;
         double dx = static_cast<double>(order->point[0]) - unit->positionX;
         if (LessOrUnordered(distance * distance, dx * dx + dy * dy)) {
@@ -393,7 +393,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     }
     if (duration <= 0) duration = 1;
 
-    volatile float range = static_cast<float>(OrderDistance(this, nullptr, order));
+    volatile float range = static_cast<float>(CtlActionDistance(this, nullptr, order));
     if (order->flag18) range = std::bit_cast<float>(kNoRangeBits);
 
     // The unit's heading and how many ticks a half turn takes.

@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -32,7 +33,6 @@ __declspec(naked) void* __stdcall WsGetHostByName(const char*) EI_ORIGINAL(0x006
 __declspec(naked) std::uint32_t __stdcall WsInetAddr(const char*) EI_ORIGINAL(0x006E60EE)
 __declspec(naked) std::uint16_t __stdcall WsNtohs(std::uint16_t) EI_ORIGINAL(0x006E60F4)
 __declspec(naked) void* __stdcall WsGetHostByAddr(const void*, int, int) EI_ORIGINAL(0x006E60FA)
-__declspec(naked) int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x006E6100)
 __declspec(naked) int __stdcall WsStartup(std::uint16_t, void*) EI_ORIGINAL(0x006E6106)
 __declspec(naked) int __stdcall WsCleanup() EI_ORIGINAL(0x006E610C)
 __declspec(naked) int __stdcall WsCloseSocket(std::uint32_t) EI_ORIGINAL(0x006E6112)
@@ -58,7 +58,6 @@ __declspec(naked) void __fastcall GameBufferGrow(GameBuffer*, void*, std::uint32
 // thrower of basic_string::substr.
 __declspec(naked) void __fastcall AddressesInsertOverflow(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x00441180)
 __declspec(naked) void __fastcall ThrowOutOfRange(void*) EI_ORIGINAL(0x004410A0)
-__declspec(naked) int __cdecl GameAtoi(const char*) EI_ORIGINAL(0x006E80D8)
 
 // A hostent's first address (h_addr_list[0]).
 std::uint32_t FirstAddress(const void* host) {

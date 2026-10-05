@@ -13,6 +13,9 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_library.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -119,13 +122,12 @@ __declspec(naked) void __fastcall StringArraySetAtGrow(void*, void*, int, const 
 __declspec(naked) void __stdcall VectorDestruct(void*, unsigned, int, void*) EI_ORIGINAL(0x006E859F)
 constexpr std::uintptr_t kMessagePartDestructor = 0x0046C290;
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
-__declspec(naked) int __fastcall PrototypeType(void*, void*, const char*) EI_ORIGINAL(0x00513240)
 // The prototype table's name map (007AF364): an STLport string key (0040C5A0 / 0040C720), the
 // pair (005729D0 builds {key, value}) and the insert (00514880, returns the stored pair).
 struct RawString {
     std::uint8_t bytes[12];
 };
-__declspec(naked) void __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) RawString* __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
 __declspec(naked) void __fastcall RawStringDestroy(void*, void*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
@@ -152,7 +154,7 @@ __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brai
 // Placement on the maps.
 __declspec(naked) void __fastcall SectorMapRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 __declspec(naked) void __fastcall SectorMapAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
-__declspec(naked) void __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3*, Vector3*)
+__declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3*, Vector3*)
     EI_ORIGINAL(0x005BA9D0)
 __declspec(naked) bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*) EI_ORIGINAL(0x005BA790)
 __declspec(naked) void __fastcall ControllerReposition(void*, void*) EI_ORIGINAL(0x00554450)
@@ -168,11 +170,10 @@ __declspec(naked) void __fastcall UnitAddSpell(CEngineObject*, void*, CEngineObj
 __declspec(naked) void __fastcall UnitSet18(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x005308D0)
 __declspec(naked) void __fastcall UnitSetPose(CEngineObject*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0052EB10)
 // Items: the 12-byte record at item + 0x1C.
-__declspec(naked) void* __fastcall ItemRecordConstruct(void*, void*) EI_ORIGINAL(0x0058FBB0)
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
-__declspec(naked) void __fastcall CommandQueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+__declspec(naked) int __fastcall CommandQueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
 
 // Vtable slots.
 constexpr int kSlotMapObjects = 19;        // world: the map objects manager (+0x40)
@@ -327,7 +328,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         *reinterpret_cast<mfc::CString*>(message + 0x74) = At<mfc::CString>(record, kRecord10);
         StringArraySetSize(message + 0x78, nullptr, 0, -1);
         const char* prototypeName = At<const char*>(record, kRecordPrototype);
-        int type = PrototypeType(ei::VCall<void*>(this, kSlotMapObjects), nullptr, prototypeName);
+        int type = PrototypeClass(ei::VCall<void*>(this, kSlotMapObjects), nullptr, prototypeName);
         At<int>(message, 0x50) = type;
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 
@@ -498,7 +499,6 @@ __declspec(naked) std::uint8_t** __fastcall UnitPrototypeAt(void*, void*, const 
 __declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
 __declspec(naked) void __fastcall ObjectSetup7(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052A2C0)
 __declspec(naked) void __fastcall MarkNewObject(CEngineObject*, void*) EI_ORIGINAL(0x00675CA0)
-__declspec(naked) int __stdcall MessageBoxText(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)
 
 constexpr int kSlotSpellManager = 22;      // world (+0x58)
 constexpr int kSlotItemManager = 18;       // world (+0x48)
@@ -747,7 +747,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         }
         CEngineObject* sound = ei::VCall<CEngineObject*>(timedManager, kSlotCreate, kTimedSound, At<int>(m, 0x18));
         if (At<int>(m, 0x5C) < 1) {
-            MessageBoxText(kNoWaveName, 0, 0);
+            AfxMessageBox(kNoWaveName, 0, 0);
         } else {
             // strcpy, inlined in the original (REP MOVS of the length with its terminator).
             const char* wave = *At<const char**>(m, 0x58);

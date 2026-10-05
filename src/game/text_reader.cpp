@@ -7,15 +7,13 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_library.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
 // MBCS CRT: 006E99F2 _ismbblead, 006E9A6C isleadbyte, 006E9947 _mbsinc, 006E848B _mbscmp.
-__declspec(naked) int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)
-__declspec(naked) int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
-__declspec(naked) const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)
 __declspec(naked) int __cdecl MbsCmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 
 // CString members not in lib/mfc.h.

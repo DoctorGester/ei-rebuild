@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_effects.h"
 
 #include <bit>
 #include <cstring>
@@ -56,7 +57,6 @@ __declspec(naked) void __fastcall PushSceneMatrix(void*, void*, const float*, in
 __declspec(naked) void __fastcall MultiplyMatrix(float*, void*, const float*, const float*) EI_ORIGINAL(0x004D9880)
 __declspec(naked) void __fastcall PopSceneMatrix(void*, void*, int) EI_ORIGINAL(0x0051C110)
 // 006CB020. Light manager: is the point lit, AL.
-__declspec(naked) std::uint8_t __fastcall IsLit(void*, void*, const float*) EI_ORIGINAL(0x006CB020)
 // 004EB170. Device: sets the texture of stage 0.
 __declspec(naked) void __fastcall SetDeviceTexture(void*, void*, CEngineObject*) EI_ORIGINAL(0x004EB170)
 // 00457720. A temporary texture reference: released.

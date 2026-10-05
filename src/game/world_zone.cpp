@@ -102,13 +102,13 @@ __declspec(naked) char** __fastcall UnitPrototype(CEngineObject*, void*) EI_ORIG
 struct UnitRecordBuilder {
     std::uint8_t bytes[0x70];
 
-    void Construct();                                                        // 00661050
+    void* Construct();                                                       // 00661050
     void Fill(const char* text, const char* prototype, const char* name);    // 006628D0 (RET 0xC)
     void Destruct();                                                         // 006611D0
     void* Record() { return At<void*>(this, 0x30); }
 };
 static_assert(sizeof(UnitRecordBuilder) == 0x70);
-__declspec(naked) void UnitRecordBuilder::Construct() EI_ORIGINAL(0x00661050)
+__declspec(naked) void* UnitRecordBuilder::Construct() EI_ORIGINAL(0x00661050)
 __declspec(naked) void UnitRecordBuilder::Fill(const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
 __declspec(naked) void UnitRecordBuilder::Destruct() EI_ORIGINAL(0x006611D0)
 

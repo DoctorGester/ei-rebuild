@@ -17,6 +17,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -100,8 +101,6 @@ __declspec(naked) ItemObjectCache::Node** CacheMap::FindTexture(ItemObjectCache:
     EI_ORIGINAL(0x005F3B50)
 __declspec(naked) void** CacheMap::Slot(const stlp::string*) EI_ORIGINAL(0x005F3000)
 __declspec(naked) void** CacheMap::TextureSlot(const stlp::string*) EI_ORIGINAL(0x005F3170)
-__declspec(naked) void __fastcall TrimModels(ItemObjectCache*) EI_ORIGINAL(0x005F2F20)
-__declspec(naked) void __fastcall TrimTextures(ItemObjectCache*) EI_ORIGINAL(0x005F2F90)
 CacheMap* MapOf(ItemObjectCache* cache) { return reinterpret_cast<CacheMap*>(cache); }
 
 // 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
@@ -140,9 +139,9 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
         value[1] = reinterpret_cast<void*>(static_cast<std::uintptr_t>(time));
     }
     if (textures)
-        TrimTextures(cache);
+        TrimTexturesAt(cache);
     else
-        TrimModels(cache);
+        TrimModelsAt(cache);
     return object;
 }
 

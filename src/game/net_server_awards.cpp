@@ -10,6 +10,10 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -29,25 +33,17 @@ __declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, s
 __declspec(naked) char* __fastcall CopyTrivial(const char* /*first*/, const char* /*last*/, char* /*result*/) EI_ORIGINAL(0x004193D0)
 __declspec(naked) void __fastcall StringErase(StringRep* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
 __declspec(naked) void __fastcall StringAppend(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042AFB0)
-__declspec(naked) void __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) StringRep* __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219E0)
 __declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
 __declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
-__declspec(naked) void __fastcall Element25ACDestroy(void* /*element*/, void*, int /*flags*/) EI_ORIGINAL(0x0042A5F0)
 __declspec(naked) void __fastcall FreeNode(void* /*node*/, std::size_t /*n*/) EI_ORIGINAL(0x00426920)
-__declspec(naked) void __fastcall List25B0Clear(void* /*list*/) EI_ORIGINAL(0x00427100)
-__declspec(naked) void __fastcall List2598Clear(void* /*list*/) EI_ORIGINAL(0x004271C0)
 __declspec(naked) void __fastcall StringDestroyB(StringRep* /*s*/) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
-__declspec(naked) void __fastcall Element25B0Destroy(void* /*element*/, void*, int /*flags*/) EI_ORIGINAL(0x004292C0)
-__declspec(naked) void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00422390)
-__declspec(naked) void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x0057ED60)
 // The pending awards (+0x25B4): push_back of {delay, award}.
 __declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00422F70)
 
 // The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
-__declspec(naked) void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /*out CString*/) EI_ORIGINAL(0x005814C0)
-__declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 __declspec(naked) void** __fastcall MapRegistryFind(void* /*registry*/, void*, const StringRep* /*name*/) EI_ORIGINAL(0x004297A0)
 constexpr std::uintptr_t kWorld = 0x007AFE20;

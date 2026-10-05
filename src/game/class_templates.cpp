@@ -74,7 +74,7 @@ struct RawString {
     char* finish;
     char* eos;
 };
-__declspec(naked) void __fastcall StringFromChars(RawString*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) RawString* __fastcall StringFromChars(RawString*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
 __declspec(naked) void __fastcall StringDefault(RawString*, void*, const void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void __fastcall StringAssign(RawString*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)

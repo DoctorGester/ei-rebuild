@@ -7,6 +7,9 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_gameplay.h"
+#include "originals_script.h"
+#include "originals_world.h"
 
 namespace {
 
@@ -22,7 +25,6 @@ __declspec(naked) char** __fastcall ServerMapPath(CWorldServer*, void*, char** /
 // 005B1180 (RET 4). The AI layer (+0x2468) reads its state from the graph stream (AL).
 __declspec(naked) bool __fastcall AILayerLoad(void*, void*, void* /*stream*/) EI_ORIGINAL(0x005B1180)
 // 004BE6E0. A script command queue's reset.
-__declspec(naked) void __fastcall CommandQueueReset(void*, void*) EI_ORIGINAL(0x004BE6E0)
 // 004554B0. CDiplomacy::Reset (object_diplomacy.cpp).
 __declspec(naked) void __fastcall DiplomacyReset(void*, void*) EI_ORIGINAL(0x004554B0)
 // 0059D7A0. The timed-object map's clear (nodes freed, buckets kept).
@@ -90,8 +92,8 @@ int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fr
     std::uint8_t* raw = reinterpret_cast<std::uint8_t*>(this);
     if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(mobName_), reinterpret_cast<const unsigned char*>(mob)) == 0) {
         // The same zone again: start over.
-        CommandQueueReset(commandsA_, nullptr);
-        CommandQueueReset(commandsB_, nullptr);
+        QueueReset(commandsA_, nullptr);
+        QueueReset(commandsB_, nullptr);
         DiplomacyReset(diplomacy_, nullptr);
         ClearMapObjectsAt(this, nullptr);
         ClearMissiles(this);
@@ -124,7 +126,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fr
         int loaded = LoadMapObjectsAt(this, nullptr, mob, *LoadedFresh(this) == 0);
         if (!loaded) return loaded;
         if (!*LoadedFresh(this)) {
-            CommandQueueReset(commandsA_, nullptr);
+            QueueReset(commandsA_, nullptr);
             DiplomacyReset(diplomacy_, nullptr);
         }
         if (*KeepsState(this)) StartFreshZone(this, nullptr);
@@ -185,8 +187,8 @@ void CWorldServer::ResetZone() {
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     CountdownsClear(countdowns_, nullptr);
     reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->SetSize(0, -1);
-    CommandQueueReset(commandsA_, nullptr);
-    CommandQueueReset(commandsB_, nullptr);
+    QueueReset(commandsA_, nullptr);
+    QueueReset(commandsB_, nullptr);
     ClearMissilePointers(this);
     for (auto* node = counted_.head; node; node = node->next) CountedRangeRelease(&node->data, 1);
     FreeListBlocks(counted_);
@@ -228,7 +230,6 @@ void CWorldServer::ResetZone() {
 namespace {
 
 __declspec(naked) void __fastcall PlayerDisconnect(WorldPlayer*, void*) EI_ORIGINAL(0x00665A10)
-__declspec(naked) void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*) EI_ORIGINAL(0x0066C1D0)
 // 0059A100. The shared-object element's object array destructor.
 __declspec(naked) void __fastcall ObjectPtrArrayDestruct(void*, void*) EI_ORIGINAL(0x0059A100)
 // 0055F890. CWorld's own teardown (base class).
@@ -261,8 +262,8 @@ void CWorldServer::TeardownZone() {
     shared.blocks = nullptr;
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     aiMap_[2] = 0;   // CAIMap +0x172: refreshes off
-    CommandQueueReset(commandsA_, nullptr);
-    CommandQueueReset(commandsB_, nullptr);
+    QueueReset(commandsA_, nullptr);
+    QueueReset(commandsB_, nullptr);
     DiplomacyReset(diplomacy_, nullptr);
     ClearMapObjectsAt(this, nullptr);
 
@@ -298,7 +299,6 @@ __declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectList
 __declspec(naked) void __fastcall ObjectListRemoveAll(mfc::CTypedPtrList<CEngineObject>*, void*) EI_ORIGINAL(0x00570470)
 // 00599A80 (RET 4) / 00599AE0 (RET 4). An id map's erase(key) / lookup (pointer to the value or
 // null).
-__declspec(naked) void __fastcall IdMapErase(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599A80)
 __declspec(naked) CEngineObject** __fastcall IdMapLookup(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599AE0)
 // 0059CCE0 (RET 8). The aligned object array's SetAtGrow.
 __declspec(naked) void __fastcall AlignedArraySetAtGrow(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0059CCE0)
@@ -355,11 +355,11 @@ void CWorldServer::SendFreshObjects() {
         auto* next = node->next;
         CEngineObject* object = node->data;
         unsigned id = static_cast<unsigned>(object->id_);
-        IdMapErase(&mapObjects_, nullptr, &id);
+        IdMapEraseOriginal(&mapObjects_, nullptr, &id);
         id = static_cast<unsigned>(object->id_);
         if (IdMapLookup(&otherMapObjects_, nullptr, &id)) {
             id = static_cast<unsigned>(object->id_);
-            IdMapErase(&otherMapObjects_, nullptr, &id);
+            IdMapEraseOriginal(&otherMapObjects_, nullptr, &id);
         }
         AlignedArraySetAtGrow(&objects, nullptr, objects.size, object);
         node = next;
@@ -376,8 +376,8 @@ void CWorldServer::ResetState() {
     ResetZoneAt(this, nullptr);
     *reinterpret_cast<mfc::CString*>(&mapName_) = EmptyText();
     DiplomacyReset(diplomacy_, nullptr);
-    CommandQueueReset(commandsA_, nullptr);
-    CommandQueueReset(commandsB_, nullptr);
+    QueueReset(commandsA_, nullptr);
+    QueueReset(commandsB_, nullptr);
     AIMapReset(aiMap_, nullptr);
     unknown15C_ = 0;
     unknown84_ = 0;

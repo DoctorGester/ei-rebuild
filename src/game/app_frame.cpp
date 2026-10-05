@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -64,7 +65,6 @@ __declspec(naked) void __fastcall IniDestruct(void*) EI_ORIGINAL(0x00695BE0)
 __declspec(naked) int __fastcall IniGetList(void*, void*, const char* /*section*/, const char* /*key*/, void* /*list*/, char) EI_ORIGINAL(0x00696090)
 __declspec(naked) mfc::CString* __stdcall ConcatText(mfc::CString* /*out*/, const mfc::CString*, const char*) EI_ORIGINAL(0x00700C05)
 __declspec(naked) mfc::CString* __stdcall ConcatString(mfc::CString* /*out*/, const mfc::CString*, const mfc::CString*) EI_ORIGINAL(0x00700B9F)
-__declspec(naked) void __fastcall PlayVideo(const char* /*path*/, int /*zero*/, int, int, int, int, int) EI_ORIGINAL(0x005DB3F0)
 
 struct StringArray {
     void* vtable;
@@ -165,7 +165,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         alignas(mfc::CString) unsigned char fullRaw[sizeof(mfc::CString)];
         mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), reinterpret_cast<const mfc::CString*>(0x007AF458), Text(0x00784A4C));
         mfc::CString* full = ConcatString(reinterpret_cast<mfc::CString*>(fullRaw), dir, &list.data[i]);
-        PlayVideo(*full, 0, 1, 0, 0, a, b);
+        PlayMovieFile(*full, 0, 1, 0, 0, a, b);
         full->~CString();
         dir->~CString();
         if (clearAfter) ClearScreen();

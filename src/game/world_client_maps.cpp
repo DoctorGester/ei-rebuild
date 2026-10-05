@@ -15,6 +15,9 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_world.h"
 
 #include <windows.h>
 
@@ -32,7 +35,6 @@ T& At(void* object, int offset) {
 constexpr int kSlotRelease = 4;
 
 // _hypot (the game's CRT), through its address.
-__declspec(naked) double __cdecl ClientHypot(double, double) EI_ORIGINAL(0x006FD026)
 
 // The cell index of a coordinate: FISTP (round to nearest), then an unsigned shift by 4, so a
 // negative coordinate gives a huge index that fails the bounds tests.
@@ -129,7 +131,7 @@ float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::
     for (std::uint8_t* node = first; node != last; node = *reinterpret_cast<std::uint8_t**>(node)) {
         double dx = At<float>(node, 0x10) - x;
         double dy = At<float>(node, 0x14) - y;
-        double distance = ClientHypot(dx, dy);
+        double distance = Hypot(dx, dy);
         float limit = At<float>(node, 0x94) * scale;
         // FCOMPP + TEST AH,0x41: marked unless the distance is greater (a NaN marks too).
         bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(limit);
@@ -279,8 +281,6 @@ __declspec(naked) void __fastcall PlatformsAdd(void*, void*, int, std::uint32_t*
 __declspec(naked) void __fastcall HeroLeft(void*) EI_ORIGINAL(0x00538EA0)
 // ClearMaps: a counted node value's destructor [00575510 (flags)], the node's release to the pool
 // [0056FB40 (node, count)], the session's player data [00665200], a manager's records [00404410].
-__declspec(naked) void __fastcall CountedDestroy(void*, void*, int) EI_ORIGINAL(0x00575510)
-__declspec(naked) void __fastcall NodeFree(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) void __fastcall SessionPlayerClear(void*) EI_ORIGINAL(0x00665200)
 __declspec(naked) void __fastcall ManagerFreeRecords(void*) EI_ORIGINAL(0x00404410)
 
@@ -481,8 +481,8 @@ void CWorldClient::ClearMaps() {
     PlainList& heroes = ListAt(this, 0xB4);
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
         SectorListNode* next = node->next;
-        CountedDestroy(&node->value, nullptr, 0);
-        NodeFree(node, 1);
+        CountedRelease(&node->value, nullptr, 0);
+        NodeFree12Fast(node, 1);
         node = next;
     }
     heroes.head->next = heroes.head;
@@ -712,7 +712,7 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
             float pz = point[2];
             float ox = At<float>(object, 0x1C) + At<float>(object, 0x128);
             float oy = At<float>(object, 0x20) + At<float>(object, 0x12C);
-            double reach = ClientHypot(At<float>(object, 0x144), At<float>(object, 0x148)) + radius;
+            double reach = Hypot(At<float>(object, 0x144), At<float>(object, 0x148)) + radius;
             float dx = ox - point[0];
             float dy = oy - point[1];
             float dz = pz - point[2];
@@ -859,7 +859,6 @@ __declspec(naked) char __stdcall ForEachRelease(SectorListNode*, SectorListNode*
 __declspec(naked) void __fastcall MfcRemoveAll(void*) EI_ORIGINAL(0x0056FDA0)
 __declspec(naked) void __fastcall RefShutdown(void*) EI_ORIGINAL(0x00417DF0)
 __declspec(naked) void __fastcall RefRelease(void*) EI_ORIGINAL(0x0040A3A0)
-__declspec(naked) void __fastcall RefShare(void*, void*, void*) EI_ORIGINAL(0x00418BE0)
 __declspec(naked) void __fastcall WorldTeardown(void*) EI_ORIGINAL(0x0055F8E0)
 
 constexpr int kSlotDeletingDestructor = 0;
@@ -931,8 +930,8 @@ void CWorldClient::Teardown() {
             reinterpret_cast<CellList*>(&grid.rows_[y][x])->Clear();
     EmptyList(ListAt(this, 0x7BC), [](SectorListNode* node) { Node7BCFree(node, 1); });
     EmptyList(ListAt(this, 0xB4), [](SectorListNode* node) {
-        CountedDestroy(&node->value, nullptr, 0);
-        NodeFree(node, 1);
+        CountedRelease(&node->value, nullptr, 0);
+        NodeFree12Fast(node, 1);
     });
     PlainList& objects = ListAt(this, 0xB8);
     ForEachRelease(objects.head->next, objects.head, 0);

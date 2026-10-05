@@ -7,6 +7,8 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -226,14 +228,11 @@ __declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x00531
 __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
 __declspec(naked) void __fastcall UnitMarkChanged(void*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall PathRead(void*, void*, DeltaField*) EI_ORIGINAL(0x005C7FC0)
-__declspec(naked) void __fastcall Path7CB0(void*, void*, int) EI_ORIGINAL(0x005C7CB0)
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
-__declspec(naked) void __fastcall Motion67D0(void*, void*, void*) EI_ORIGINAL(0x005C67D0)
 __declspec(naked) void __fastcall PlayerRemoveUnit(void*, void*, void*) EI_ORIGINAL(0x00665B50)
 __declspec(naked) void __fastcall PlayerAddUnit(void*, void*, void*) EI_ORIGINAL(0x00665A70)
 __declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
-__declspec(naked) void* __fastcall FieldReadString(DeltaField*, void*, void*) EI_ORIGINAL(0x0047E310)
 __declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
 __declspec(naked) void __fastcall CStringDestroy(void*) EI_ORIGINAL(0x00700970)
 
@@ -368,7 +367,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* unit, void*, int first) 
     if (DeltaField* field = state->BeginField(10)) {
         void* path = ei::VCall<void*>(At<void*>(unit, 0x240), kSlotPath);
         PathRead(path, nullptr, field);
-        if (At<int>(unit, 0x260) == 1) Path7CB0(path, nullptr, -1);
+        if (At<int>(unit, 0x260) == 1) PathShiftTime(path, nullptr, -1);
         void* path2 = ei::VCall<void*>(At<void*>(unit, 0x240), kSlotPath);
         PathSetOwner(path2, nullptr, At<int>(unit, 0xC));
         float walk, run;
@@ -376,7 +375,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* unit, void*, int first) 
         At<int>(unit, 0x27C + 0xA0) = -1;
         At<float>(unit, 0x27C + 0x3C) = walk;
         At<float>(unit, 0x27C + 0x40) = run;
-        Motion67D0(unit + 0x27C, nullptr, path2);
+        MotionBuild(unit + 0x27C, nullptr, path2);
         UnitMarkChanged(unit, nullptr, 10);
         ei::VCall<void>(At<void*>(unit, 0x240), kSlotMotionChanged);
         complete &= SnapshotConsumed();

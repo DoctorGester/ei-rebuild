@@ -5,6 +5,8 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -32,23 +34,19 @@ __declspec(naked) void __fastcall PlayVoice(CMpHeroScreen*) EI_ORIGINAL(0x006191
 // container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
 __declspec(naked) void __fastcall StatsSetHero(void*, void*, int, void*) EI_ORIGINAL(0x006232D0)
 __declspec(naked) void __fastcall TradeSetHero(void*, void*, int, int) EI_ORIGINAL(0x006255A0)
-__declspec(naked) void __fastcall ShowWeapon(void*, void*, char*) EI_ORIGINAL(0x006229E0)
-__declspec(naked) void __fastcall ShowArmour(void*, void*, char*) EI_ORIGINAL(0x00622A30)
-__declspec(naked) void __fastcall ShowContainer(void*, void*, char*) EI_ORIGINAL(0x00622BC0)
 __declspec(naked) void __fastcall EditSetText(void*, void*, const void*) EI_ORIGINAL(0x0065C290)
 __declspec(naked) void __fastcall EditActivate(void*, void*, int) EI_ORIGINAL(0x0065C2D0)
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
-    void Begin();   // 005FDC00
+    void* Begin();   // 005FDC00
     void Clear();   // 005FE2F0
     void End();     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 __declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 // 006002A0 (RET 8): a window's enabled flag (CUiWindow::SetEnabled, through its address).
-__declspec(naked) void __fastcall WindowSetEnabled(void*, void*, int, int) EI_ORIGINAL(0x006002A0)
 
 // Back to the main menu: the text "reserved_04" (00578E20 / 004E0020) to 005F75B0 (thiscall on
 // 007C7D50, RET 4), 0057ED00 (thiscall on the session 007AFE20) ends it.
@@ -57,7 +55,6 @@ struct TextGlue {
 };
 __declspec(naked) void* TextGlue::Table() EI_ORIGINAL(0x00578E20)
 __declspec(naked) int __fastcall TextGetString(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
-__declspec(naked) void __fastcall ShowStatusText(void*, void*, const char*) EI_ORIGINAL(0x005F75B0)
 __declspec(naked) void __fastcall EndSession(void*) EI_ORIGINAL(0x0057ED00)
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
@@ -69,12 +66,8 @@ __declspec(naked) void __fastcall PushWindow(CInterface3D*, void*, void*, int, i
 // 005F6240, with the texture cache's header node made by the tree's own allocator): container
 // base 00600B20 (RET 4), the model cache's map 005FA420 (RET 4) / 005FA400, the texture cache's
 // tree base 00619750 (RET 8), node allocation 00619770 (RET 8) and 005FA610, CStringArray 006FE925.
-__declspec(naked) void __fastcall ContainerConstruct(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
-__declspec(naked) void __fastcall ModelMapConstruct(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
-__declspec(naked) void __fastcall ModelMapEmpty(void*) EI_ORIGINAL(0x005FA400)
 __declspec(naked) void __fastcall TreeBaseConstruct(void*, void*, const void*, const void*) EI_ORIGINAL(0x00619750)
 __declspec(naked) void* __fastcall TreeAllocateNodes(void*, void*, int, const void*) EI_ORIGINAL(0x00619770)
-__declspec(naked) void __fastcall TextureMapEmpty(void*) EI_ORIGINAL(0x005FA610)
 __declspec(naked) void __fastcall StringArrayConstruct(void*) EI_ORIGINAL(0x006FE925)
 
 template <typename Fn>
@@ -102,14 +95,14 @@ char* FirstOf(char* hero, int dataOffset) {
 void* BuildCamp(CInterface3D* ui, const int* flags) {
     auto* camp = static_cast<std::uint8_t*>(gamecrt::operator_new(0x260));
     if (!camp) return nullptr;
-    ContainerConstruct(camp, nullptr, ui);
+    ConstructContainerAt(camp, nullptr, ui);
     At<int>(camp, 0x168) = 0;
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
     std::uint8_t* models = camp + 0x170;
-    ModelMapConstruct(models, nullptr, flags);
+    ConstructModelMap(models, nullptr, flags);
     At<int>(models, 4) = 0;
     models[8] = compare;
-    ModelMapEmpty(models);
+    EmptyModelMap(models);
     At<int>(models, 0xC) = 50;
     std::uint8_t* textures = camp + 0x180;
     void* header = nullptr;
@@ -117,7 +110,7 @@ void* BuildCamp(CInterface3D* ui, const int* flags) {
     At<void*>(textures, 0) = TreeAllocateNodes(textures, nullptr, 1, nullptr);
     At<int>(textures, 4) = 0;
     textures[8] = compare;
-    TextureMapEmpty(textures);
+    EmptyTextureMap(textures);
     At<int>(textures, 0xC) = 50;
     At<std::uint32_t>(camp, 0) = 0x00740A2C;
     At<std::uint32_t>(camp, 0x94) = 0x007409F8;

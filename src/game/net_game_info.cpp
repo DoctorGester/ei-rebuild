@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -16,7 +17,6 @@ namespace {
 // 004DA170 reads past the end (zeroes the target, sets error bit 3, takes what is left).
 __declspec(naked) void __fastcall BufferWriteString(GameBuffer* /*buffer*/, void*, const StringRep* /*s*/) EI_ORIGINAL(0x004DA380)
 __declspec(naked) int __fastcall BufferReadString(GameBuffer* /*buffer*/, void*, StringRep* /*s*/, int /*maxLength*/) EI_ORIGINAL(0x004DA200)
-__declspec(naked) unsigned __fastcall BufferReadPastEnd(GameBuffer* /*buffer*/, void*, void* /*to*/, unsigned /*size*/) EI_ORIGINAL(0x004DA170)
 
 // A value written the way the record writer inlines it: in place (marking the buffer written)
 // when it fits before `end`, otherwise through slot 4.

@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_core.h"
 
 #include <cstdint>
 #include <cstring>
@@ -12,7 +13,6 @@ namespace figure {
 
 namespace {
 __declspec(naked) void __fastcall FigureDestructBody(void*) EI_ORIGINAL(0x0059F030)
-__declspec(naked) void __fastcall RecordDestructAt(void*) EI_ORIGINAL(0x0044C490)
 } // namespace
 
 // 00453450 / 00453460: CFigure's class name and class id; 004547F0 / 00454800: CFakeFigure's;
@@ -41,7 +41,7 @@ EI_REPLACE(0x00453470, FigureDelete);
 void __fastcall NamedRecordDestruct(std::uint8_t* self) { reinterpret_cast<mfc::CString*>(self + 4)->~CString(); }
 EI_REPLACE(0x0044C490, NamedRecordDestruct);
 void* __fastcall NamedRecordDelete(std::uint8_t* self, void*, unsigned flags) {
-    RecordDestructAt(self);
+    DestructTextureName(self);
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }

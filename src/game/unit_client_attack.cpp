@@ -10,6 +10,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "originals_units.h"
 
 #include <cstdint>
 
@@ -29,7 +30,6 @@ __declspec(naked) double __fastcall WeaponSkillBonusAt(UnitParams*, void*, int /
     EI_ORIGINAL(0x00527850)
 __declspec(naked) float __fastcall ScaleDamageAt(UnitParams*, void*, CUnit*, float) EI_ORIGINAL(0x005285D0)
 // 0052E0D0. Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
-__declspec(naked) void __fastcall DifficultyScaleParams(AttackParams*, void*, int /*keyed*/) EI_ORIGINAL(0x0052E0D0)
 
 UnitParams* ParamsOf(CUnit* unit) { return reinterpret_cast<UnitParams*>(reinterpret_cast<char*>(unit) + 0x330); }
 

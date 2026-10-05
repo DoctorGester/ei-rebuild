@@ -11,6 +11,9 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_ai.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -49,22 +52,15 @@ std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E58); }
 // --- Forwarders ----------------------------------------------------------------------------------
 
 __declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 __declspec(naked) char* __fastcall Alloc4(int) EI_ORIGINAL(0x00406B50)
 __declspec(naked) char* __fastcall Alloc64(int) EI_ORIGINAL(0x00452E70)
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 __declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 // 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
-__declspec(naked) void __fastcall Animate(char*, void*, std::uint32_t) EI_ORIGINAL(0x005A7160)
-__declspec(naked) void __fastcall FinishDraw(char*, void*, void* /*renderer*/) EI_ORIGINAL(0x005A7290)
 // 0068D280: a light's colours for a material and the ambient level (float bits).
 __declspec(naked) void __fastcall LightForMaterial(char*, void*, char* /*material*/, std::uint32_t /*ambient*/)
     EI_ORIGINAL(0x0068D280)
 // The device's mesh draws (device_mesh.cpp).
-__declspec(naked) int __fastcall DrawMesh(char*, void*, const void*, int, std::uint32_t, int, std::uint32_t,
-                                          std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
-                                          std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
-                                          std::uint32_t, int, int) EI_ORIGINAL(0x004E9010)
 __declspec(naked) int __fastcall DrawMesh2(char*, void*, std::uint32_t, std::uint32_t, const void*, int, std::uint32_t,
                                            int, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
                                            std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
@@ -778,7 +774,7 @@ int __fastcall DrawFigurePart(char* node, void*, char* device, const void* light
         At<std::uint32_t>(node, 8) |= *reinterpret_cast<const std::uint32_t*>(0x00790C0C);
         std::uint32_t bits;
         std::memcpy(&bits, &time, 4);
-        Animate(node, nullptr, bits);
+        AnimateOriginal(node, nullptr, bits);
     }
 
     std::uint32_t meshFlags = At<std::uint32_t>(part.Mesh(), 8);

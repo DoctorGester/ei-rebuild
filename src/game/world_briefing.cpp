@@ -11,6 +11,8 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
+#include "originals_engine.h"
+#include "originals_script.h"
 
 #include <cstring>
 #include <new>
@@ -33,7 +35,7 @@ constexpr std::uintptr_t kEmpty = 0x0079B298;             // ""
 void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
 __declspec(naked) int __fastcall TextsOpenSection(void*, void*, const char*) EI_ORIGINAL(0x004DEFC0)
 __declspec(naked) int __fastcall TextsFindTag(void*, void*, const char*) EI_ORIGINAL(0x004DF030)
-__declspec(naked) void __fastcall TextsReadWords(void*, void*, console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
+__declspec(naked) int __fastcall TextsReadWords(void*, void*, console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
 
 // 006FDAE9 (RET 8). CString::Left(count), returned into `out`.
 __declspec(naked) mfc::CString* __fastcall StringLeft(const mfc::CString*, void*, void* /*out*/, int) EI_ORIGINAL(0x006FDAE9)
@@ -124,9 +126,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
 namespace {
 
 // 00460DB0 (RET 4). Named float table Remove.
-__declspec(naked) void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)
 // 004DEDD0 (RET 4). The briefing texts forget a loaded file.
-__declspec(naked) void __fastcall TextsUnload(void*, void*, const char*) EI_ORIGINAL(0x004DEDD0)
 // 0040C720. STLport string destructor.
 __declspec(naked) void __fastcall RawStringDestroy(void*, void*) EI_ORIGINAL(0x0040C720)
 

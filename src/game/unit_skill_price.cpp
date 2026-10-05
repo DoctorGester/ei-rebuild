@@ -4,6 +4,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "originals_units.h"
 
 #include <cmath>
 #include <cstdint>
@@ -26,7 +27,6 @@ float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(ad
 
 constexpr std::uintptr_t kSkillDatabase = 0x007AF268;
 // 0051FF00 (not rewritten): the index of `record` among the skill database's level records, or -1.
-__declspec(naked) int __fastcall SkillRecordIndex(const void*, void*, const void*) EI_ORIGINAL(0x0051FF00)
 
 // What a level value is worth (the same curve as RaiseSkill's).
 double Worth(int value) {

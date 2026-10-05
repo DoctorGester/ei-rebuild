@@ -6,6 +6,7 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -38,10 +39,7 @@ __declspec(naked) void __stdcall DestructExits(void*, int) EI_ORIGINAL(0x0046067
 // CDWordArray::SetAtGrow (the allod's map list).
 __declspec(naked) void __fastcall SetAtGrowDword(void* /*array*/, void*, int /*index*/, std::uint32_t /*value*/) EI_ORIGINAL(0x00460500)
 
-__declspec(naked) int __cdecl atoi(const char*) EI_ORIGINAL(0x006E80D8)
-__declspec(naked) double __cdecl atof(const char*) EI_ORIGINAL(0x006E911A)
-
-// *out = float(atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
+// *out = float(GameAtof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
 __declspec(naked) void __cdecl StoreRadians(void* /*out*/, const char* /*text*/) {
     __asm {
@@ -215,7 +213,7 @@ void Loader::AddExit() {
     Split();
     if (Count() > 1) {
         StringAt(Exit(), exit::kTarget) = words_[0];
-        Set<int>(Exit(), exit::kTargetIndex, atoi(Word(1)) - 1);
+        Set<int>(Exit(), exit::kTargetIndex, GameAtoi(Word(1)) - 1);
     }
 }
 
@@ -233,8 +231,8 @@ bool Loader::MapLine(const char* word) {
     } else if (Is(word, kMapsText)) {
         Split();
         if (Count() > 1) {
-            Set<int>(Map(), map::kSizeX, atoi(Word(0)));
-            Set<int>(Map(), map::kSizeY, atoi(Word(1)));
+            Set<int>(Map(), map::kSizeX, GameAtoi(Word(0)));
+            Set<int>(Map(), map::kSizeY, GameAtoi(Word(1)));
         }
         Split();
         if (Count() > 1) {
@@ -258,7 +256,7 @@ bool Loader::MapLine(const char* word) {
         Split();
         if (Count() > 2) {
             Set<std::uint8_t>(Map(), map::kRestricted, 1);
-            for (int i = 0; i < 3; ++i) Set<float>(Map(), map::kRestrict + i * 4, static_cast<float>(atof(Word(i))));
+            for (int i = 0; i < 3; ++i) Set<float>(Map(), map::kRestrict + i * 4, static_cast<float>(GameAtof(Word(i))));
         }
     } else if (Is(word, kSkyText)) {
         Split();
@@ -279,7 +277,7 @@ void Loader::ExitLine(const char* word) {
         Split();
         if (Count() > 3) {
             for (int i = 0; i < 4; ++i) {
-                float v = static_cast<float>(atof(Word(i)));
+                float v = static_cast<float>(GameAtof(Word(i)));
                 Set<float>(Exit(), exit::kRemove + i * 4, v);
                 if (deploy) Set<float>(Exit(), exit::kDeploy + i * 4, v);
             }
@@ -288,7 +286,7 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 4) StoreRadians(Exit() + exit::kAngle, Word(4));
     } else if (Is(word, kPassTimeText)) {
         Split();
-        if (Count() > 0) Set<float>(Exit(), exit::kPassTime, static_cast<float>(atof(Word(0))));
+        if (Count() > 0) Set<float>(Exit(), exit::kPassTime, static_cast<float>(GameAtof(Word(0))));
     } else if (Is(word, kViewText)) {
         Split();
         words_.SetAtGrow(Count(), GameText(kZeroText));

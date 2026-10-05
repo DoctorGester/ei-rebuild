@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_ui.h"
 
 namespace {
 // The game's own strings (the sound system is given the game's pointers, as the original does).
@@ -39,7 +40,7 @@ __declspec(naked) int __cdecl GameFtol(double) {
 }
 
 // Not rewritten (forwarders). Thiscall methods are declared __fastcall with the unused EDX.
-__declspec(naked) void __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
+__declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
 __declspec(naked) void __fastcall LeaveGameAt(void*) EI_ORIGINAL(0x00581660)
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
 __declspec(naked) void __fastcall ChatKeyBackspace(CInterface3D*) EI_ORIGINAL(0x005F7C80)
@@ -51,9 +52,6 @@ __declspec(naked) void __fastcall SetRegionTip(CUiRegion*, void*, int, int, int)
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
 __declspec(naked) BOOL __fastcall TakeScrollPos(void*, void*, int*) EI_ORIGINAL(0x0065B090)
 // The hero screen's equipment panels.
-__declspec(naked) void __fastcall PanelSetWeapon(void*, void*, char*) EI_ORIGINAL(0x006229E0)
-__declspec(naked) void __fastcall PanelSetArmor(void*, void*, char*) EI_ORIGINAL(0x00622A30)
-__declspec(naked) void __fastcall PanelSetSpellContainer(void*, void*, char*) EI_ORIGINAL(0x00622BC0)
 
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
 __declspec(naked) double __fastcall StatsSchoolSkill(void*, void*, int) EI_ORIGINAL(0x00527EB0)
@@ -488,15 +486,15 @@ void CMpHeroScreen::OnItemChosen(char* item, int mode) {
         switch (ItemType(item)) {
         case kTypeWeapon:
             weapon_ = item;
-            PanelSetWeapon(weaponPanel_, nullptr, item);
+            ShowWeapon(weaponPanel_, nullptr, item);
             break;
         case kTypeArmor:
             armor_ = item;
-            PanelSetArmor(weaponPanel_, nullptr, item);
+            ShowArmour(weaponPanel_, nullptr, item);
             break;
         case kTypeSpellContainer:
             spellContainer_ = item;
-            PanelSetSpellContainer(spellPanel_, nullptr, item);
+            ShowContainer(spellPanel_, nullptr, item);
             break;
         default:
             equipped = false;

@@ -13,6 +13,8 @@
 #include "lib/mfc.h"
 #include "unit.h"
 #include "world.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -595,8 +597,6 @@ __declspec(naked) void __fastcall ActionPanelSet(void*, void*, int, int) EI_ORIG
 __declspec(naked) void __fastcall ActionPanelReset(void*) EI_ORIGINAL(0x0063F7A0)
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point
 // under it (CWorldClient::PickSurface, rewritten), the local view.
-__declspec(naked) CUnit* __fastcall ClientObjectAt(void*, void*, const int*) EI_ORIGINAL(0x005659D0)
-__declspec(naked) float* __fastcall ClientPickSurface(void*, void*, float*, int, int) EI_ORIGINAL(0x0056C350)
 __declspec(naked) std::uint8_t* __fastcall ClientView(void*) EI_ORIGINAL(0x005699F0)
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target).
 __declspec(naked) void __fastcall ViewOrderTarget(void*, void*, CUnit*, CUnit*, int, int, int) EI_ORIGINAL(0x0066AA20)
@@ -604,7 +604,6 @@ __declspec(naked) void __fastcall ViewOrderFollow(void*, void*, CUnit*, CUnit*) 
 // CCamera::SetTarget (007AB2A8), CUnit::IsHostileTo, CUnit::GetQuickItem, CItem::GetCategory and
 // the sprite's SetScale, through their addresses.
 __declspec(naked) void __fastcall CameraSetTarget(void*, void*, CUnit*) EI_ORIGINAL(0x0040D3B0)
-__declspec(naked) int __fastcall UnitHostileTo(CUnit*, void*, CUnit*) EI_ORIGINAL(0x00530150)
 __declspec(naked) void* __fastcall UnitQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) int __fastcall ItemCategory(void*) EI_ORIGINAL(0x006A4230)
 __declspec(naked) void __fastcall SpriteSetScale(void*, void*, std::uint32_t) EI_ORIGINAL(0x005E7060)
@@ -634,13 +633,13 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return ei::VCall<int>(u, kSlotIsDead) != 0; };
     auto pick = [x, y]() {
         float out[3];
-        float* p = ClientPickSurface(kClientWorld, nullptr, out, x, y);
+        float* p = HoverPickSurface(kClientWorld, nullptr, out, x, y);
         return UiVec3{p[0], p[1], p[2]};
     };
     auto unitPosition = [](CUnit* u) { return Field<UiVec3>(u, 0x1C); };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return ClientObjectAt(kClientWorld, nullptr, point);
+        return HoverObjectAt(kClientWorld, nullptr, point);
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) {
@@ -745,7 +744,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 }
                 return;
             }
-            if (members != 0 && party_[0] && UnitHostileTo(party_[0], nullptr, unit)) {
+            if (members != 0 && party_[0] && HoverHostileTo(party_[0], nullptr, unit)) {
                 ScreenOrderUnit(this, nullptr, unit, ctrl());
                 return;
             }

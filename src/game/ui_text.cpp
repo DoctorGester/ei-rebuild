@@ -6,6 +6,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -14,9 +15,6 @@
 namespace {
 
 // The game's multibyte CRT.
-__declspec(naked) int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)              // _ismbblead
-__declspec(naked) int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)                  // isleadbyte
-__declspec(naked) const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)      // _mbsinc
 
 // 005F8340 (Rebirth-patched, called through its address): the extent of `text` in interface
 // font `font`. It takes a CString by value and releases it; a naked forwarder cannot declare a

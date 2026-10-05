@@ -17,6 +17,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -409,7 +410,6 @@ void CBattleScreenSetup::Create() {
 namespace {
 
 // 00578910 on 007AFEA5 (the menu object), every frame before the battle screen draws.
-__declspec(naked) void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
 // 00600EF0. CUiContainer::DrawContainer through its address.
 __declspec(naked) BOOL __fastcall ContainerDrawAt(CUiContainer*, void*, void*) EI_ORIGINAL(0x00600EF0)
 

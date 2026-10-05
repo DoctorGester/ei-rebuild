@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -19,7 +20,6 @@ constexpr std::size_t kPlayerDirty = 0x130;      // bits the state messages clea
 __declspec(naked) void __fastcall VariableSet(void* /*table*/, void*, const char* /*name*/, std::uint32_t /*value*/)
     EI_ORIGINAL(0x00460BC0)
 __declspec(naked) double __fastcall VariableGet(void* /*table*/, void*, const char* /*name*/) EI_ORIGINAL(0x00460AF0)
-__declspec(naked) void __fastcall VariableDelete(void* /*table*/, void*, const char* /*name*/) EI_ORIGINAL(0x00460DB0)
 // 0047DA80: writes a state value into the stream; 006D4570: an object writes itself into one.
 __declspec(naked) void __fastcall StreamWriteState(BitStream* /*stream*/, void*, int /*value*/) EI_ORIGINAL(0x0047DA80)
 __declspec(naked) void __fastcall WriteStateTo(void* /*source*/, void*, BitStream* /*stream*/) EI_ORIGINAL(0x006D4570)
@@ -80,7 +80,7 @@ void CPlayerServer::SetVariableMax(const char* name, float value) {
 }
 
 void CPlayerServer::DeleteVariable(const char* name) {
-    VariableDelete(player_ + kPlayerVariables, nullptr, name);
+    VariableRemove(player_ + kPlayerVariables, nullptr, name);
     WriteByte(&out_, 0x82);
     WriteText(&out_, name);
 }

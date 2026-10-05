@@ -14,6 +14,8 @@
 #include "render/render_state.h"
 #include "render/render.h"
 #include "ei/x87.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -86,9 +88,7 @@ AlignedArray& Spare() { return *reinterpret_cast<AlignedArray*>(0x007AEFB8); }  
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
 
 __declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 __declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
-__declspec(naked) char* __fastcall Alloc32(int) EI_ORIGINAL(0x004E5710)
 __declspec(naked) void __fastcall ByteArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FF5EA)
 __declspec(naked) void __fastcall WordArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FEE9A)
 __declspec(naked) void __fastcall ByteArraySetSize(MfcArray*, void*, int, int) EI_ORIGINAL(0x006FF64A)
@@ -483,7 +483,7 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     void* transform = At<void*>(pipeline, 0xC);
     EnsureStatics();
     Resize(Unused(), 0x200, &Alloc16);
-    Resize(Corners(), 0x2000, &Alloc32);
+    Resize(Corners(), 0x2000, &AllocVertices);
     ByteArraySetSize(&Outcodes(), nullptr, 0x800, -1);
     WordArraySetSize(&Indices(), nullptr, 0x3000, -1);
     std::uint32_t view[16];
@@ -506,7 +506,7 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     ScreenSize screen;
     while (remaining > 0) {
         int count = FillCorners(sprite, remaining);
-        Resize(Corners(), count * 4, &Alloc32);
+        Resize(Corners(), count * 4, &AllocVertices);
         // 0: all corners on screen, 1: some off screen, else nothing to draw.
         int visibility = ThisCall<int>(transform, 24, static_cast<const void*>(view), static_cast<const void*>(point),
                                        static_cast<void*>(Corners().data), Outcodes().data, count);

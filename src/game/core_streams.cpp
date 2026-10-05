@@ -7,6 +7,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 
 #include <cstring>
 #include <new>
@@ -24,7 +25,6 @@ void* DeleteIf(void* self, unsigned flags) {
 }
 
 // operator+(const CString&, char) (AFXAPI, 006FD56E).
-__declspec(naked) mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
 
 // The hook of CMemoryStream's slot 6 (a virtual: registered through this shim).
 void __fastcall MemoryStreamClearHook(CMemoryStream* self) { self->CMemoryStream::Clear(); }

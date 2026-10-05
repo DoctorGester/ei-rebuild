@@ -13,6 +13,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -49,7 +50,6 @@ __declspec(naked) void __fastcall GroupSort(ScriptGroup*) EI_ORIGINAL(0x004B2D60
 __declspec(naked) void __fastcall GroupSetSize(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
 
 // CArray template members (out of line), __thiscall (size, growBy).
-__declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)       // CString
 __declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C5CB0)      // 0x20 slots
 __declspec(naked) void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770) // 0xC0
 __declspec(naked) void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)       // ScriptArea
@@ -57,7 +57,6 @@ __declspec(naked) void __fastcall PartsSetSize(void*, void*, int, int) EI_ORIGIN
 __declspec(naked) void __fastcall CmdsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD2B0)        // SSCCmd
 __declspec(naked) void __fastcall IfThenSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C59C0)      // ScriptIfThen
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
-__declspec(naked) void __fastcall CmdsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CC0C0)
 __declspec(naked) void __fastcall IfThenCopy(void*, void*, const void*) EI_ORIGINAL(0x004CC4A0)
 __declspec(naked) void __fastcall VarsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CBAE0)
 // ScriptVars constructor / destructor body.
@@ -154,7 +153,6 @@ namespace {
 
 using namespace scriptarray;
 
-
 using ListNode = ScriptListNode;
 using RawList = ScriptList;
 
@@ -248,7 +246,7 @@ void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
 void __fastcall ScriptFloatsLoad(ScriptNamedValues<float>* vars, void*, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&vars->values), count, kFloats);
-    NamesSetSize(&vars->names, nullptr, count, -1);
+    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
     for (int i = 0; i < vars->values.size; ++i) {
         stream->Read(&vars->values.data[i], 4);
         StringLoad(&vars->names.data[i], stream);
@@ -259,7 +257,7 @@ EI_REPLACE(0x004C2D40, ScriptFloatsLoad);
 void __fastcall ScriptStringsLoad(ScriptNamedValues<mfc::CString>* vars, void*, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&vars->values), count, kStrings);
-    NamesSetSize(&vars->names, nullptr, count, -1);
+    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
     for (int i = 0; i < vars->values.size; ++i) {
         StringLoad(&vars->values.data[i], stream);
         StringLoad(&vars->names.data[i], stream);
@@ -272,7 +270,7 @@ EI_REPLACE(0x004C3200, ScriptStringsLoad);
 void __fastcall ScriptObjectsLoad(ScriptNamedValues<ScriptObjectRef>* vars, void*, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&vars->values), count, kRefs);
-    NamesSetSize(&vars->names, nullptr, count, -1);
+    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
     for (int i = 0; i < vars->values.size; ++i) {
         ScriptObjectRef* ref = &vars->values.data[i];
         int id = 0;
@@ -296,7 +294,7 @@ EI_REPLACE(0x004C36B0, ScriptObjectsLoad);
 void __fastcall ScriptGroupsLoad(ScriptNamedValues<ScriptGroup>* vars, void*, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&vars->values), count, kGroups);
-    NamesSetSize(&vars->names, nullptr, count, -1);
+    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
     for (int i = 0; i < vars->values.size; ++i) {
         ScriptGroup* group = &vars->values.data[i];
         int size = 0;
@@ -417,7 +415,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
         temp.commands.vtable = reinterpret_cast<void*>(0x0073D3DC);
         AppendNode(list, NewBlockNode, [&](char* data) {
             auto* block = reinterpret_cast<ScriptDecl*>(data);
-            CmdsCopy(&block->commands, nullptr, &temp.commands);
+            CommandsCopy(&block->commands, nullptr, &temp.commands);
             block->id = temp.id;
         });
         // Its destructor frees nothing (no commands).

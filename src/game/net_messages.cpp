@@ -16,6 +16,8 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "originals_core.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -34,12 +36,10 @@ __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, voi
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
 __declspec(naked) void* __fastcall RefsGetAllocator(const RefVector* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00421EB0)
 __declspec(naked) void __fastcall RefsBaseConstruct(RefVector* /*vector*/, void*, std::size_t /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00421F60)
-__declspec(naked) RefPtr* __fastcall RefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AF80)
 __declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
 __declspec(naked) void __fastcall RefsResize(RefVector* /*vector*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x004200C0)
 // Counted pointer element destructors (deleting destructors called with 0).
 __declspec(naked) void* __fastcall FileRefDestroy(RefPtr* /*p*/, void*, unsigned /*flags*/) EI_ORIGINAL(0x0042B880)
-__declspec(naked) void* __fastcall RefRelease(RefPtr* /*p*/, void*, unsigned /*flags*/) EI_ORIGINAL(0x004292A0)
 
 // 00783D6C: the empty text the server entry's reset assigns.
 const char* EmptyText() { return reinterpret_cast<const char*>(0x00783D6C); }
@@ -1014,7 +1014,7 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     std::uint8_t allocator = 0;
     const void* copy = RefsGetAllocator(&members_, nullptr, &allocator);
     RefsBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.finish - members_.start), copy);
-    p->members_.finish = RefsCopy(members_.start, members_.finish, p->members_.start, 0);
+    p->members_.finish = UninitializedCopy(members_.start, members_.finish, p->members_.start, 0);
     p->partyValue_ = partyValue_;
     p->accepted_ = accepted_;
     p->acceptedRevision_ = acceptedRevision_;
@@ -1029,7 +1029,7 @@ int PartyMessage::OnShutdown() {   // 004177A0
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
-    for (RefPtr *p = members_.start, *end = members_.finish; p != end; ++p) RefRelease(p, nullptr, 0);
+    for (RefPtr *p = members_.start, *end = members_.finish; p != end; ++p) RefPtrDestroyAt(p, nullptr, 0);
     RefsDeallocate(&members_.eos, nullptr, members_.start, static_cast<std::size_t>(members_.eos - members_.start));
     ei::SetVtable(this, kRefObjectRootVtable);
     version_ = 1;

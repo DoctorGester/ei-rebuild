@@ -28,6 +28,10 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
+#include "originals_engine.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -96,7 +100,6 @@ __declspec(naked) int __fastcall SaveGameAt(void* /*flow*/, void*, const char* /
 // 005E5200 (RET 4): the cursor's shape (3 busy, 0 normal).
 __declspec(naked) int __fastcall CursorSetShape(void*, void*, int) EI_ORIGINAL(0x005E5200)
 // 005F75B0 (RET 4): the interface shows `text` in a notice band and draws a frame.
-__declspec(naked) void __fastcall ShowNotice(void* /*ui*/, void*, const char* /*text*/) EI_ORIGINAL(0x005F75B0)
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top.
 __declspec(naked) CUiWindow* __fastcall ConstructMessageBox(void* /*memory*/, void*, CInterface3D*, const char*,
                                                             const char* /*text key*/, int, int, int)
@@ -104,16 +107,13 @@ __declspec(naked) CUiWindow* __fastcall ConstructMessageBox(void* /*memory*/, vo
 __declspec(naked) void __fastcall ActivateWindow(CInterface3D*, void*, void* /*window*/, int, int) EI_ORIGINAL(0x005F7350)
 // 00578B50 / 00578A90 (RET 4): the local player's variable `name` (ST0) and zone (a CString
 // constructed at `out`, returned).
-__declspec(naked) double __fastcall PlayerVariable(void*, void*, const char* /*name*/) EI_ORIGINAL(0x00578B50)
 __declspec(naked) mfc::CString* __fastcall PlayerZone(void*, void*, void* /*out*/) EI_ORIGINAL(0x00578A90)
 // 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
-__declspec(naked) std::uint8_t* __fastcall FindZone(void*, void*, const char* /*name*/) EI_ORIGINAL(0x0045E850)
 // 0065AFE0 (RET 4): the scroll bar's range (0..maximum).
 __declspec(naked) void __fastcall ScrollbarSetRange(CUiScrollbar*, void*, int /*maximum*/) EI_ORIGINAL(0x0065AFE0)
 // 006FE508: CTime::GetCurrentTime (time(), returned through `out`).
 __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_ORIGINAL(0x006FE508)
 // 006E80D8: atoi.
-__declspec(naked) int __cdecl GameAtoi(const char*) EI_ORIGINAL(0x006E80D8)
 // 0070133F (RET 8): CFile::Write.
 __declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned) EI_ORIGINAL(0x0070133F)
 // 006FE925: CStringArray's constructor.
@@ -334,7 +334,7 @@ void CSaveLoadWindow::SaveGame() {
     folder.Format(Text(kSlotFolder), GameFolder(), entry->folder_);
     mfc::CString notice;
     Texts()->GetString(Text(kNotifySaving), &notice);
-    ShowNotice(kInterface, nullptr, notice);
+    ShowStatusText(kInterface, nullptr, notice);
     SaveGameAt(kFlow, nullptr, entry->folder_);
     CursorSetShape(kCursor, nullptr, 3);
 
@@ -480,14 +480,14 @@ void CSaveLoadWindow::FillEntries() {
         }
         SaveEntry* entry = entriesBegin_;
         Str(entry->folder_).Format(Text(kNewFolder), highest + 1);
-        entry->gameTime_ = static_cast<float>(PlayerVariable(kGlue, nullptr, Text(kGameTime)));
+        entry->gameTime_ = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, Text(kGameTime)));
         {
             alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
             mfc::CString* zone = PlayerZone(kGlue, nullptr, storage);
             Str(entry->zone_) = *zone;
             zone->~CString();
         }
-        if (std::uint8_t* record = FindZone(kMapDatabase, nullptr, entry->zone_))
+        if (std::uint8_t* record = MapDatabaseFind(kMapDatabase, nullptr, entry->zone_))
             Str(entry->map_) = At<mfc::CString>(record, 4);
         EntryMakeTitle(entry, nullptr, 1);
         entry->broken_ = false;

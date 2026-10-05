@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 namespace net {
 
@@ -14,21 +15,15 @@ namespace {
 
 // STLport destructors, clears and sentinel frees of the member containers (library).
 __declspec(naked) void __fastcall StringDestruct(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
-__declspec(naked) void __fastcall List25C4Destruct(void* /*list*/) EI_ORIGINAL(0x00421CD0)
 __declspec(naked) void __fastcall List25C0Destruct(void* /*list*/) EI_ORIGINAL(0x004238B0)
 __declspec(naked) void __fastcall List25BCDestruct(void* /*list*/) EI_ORIGINAL(0x004235F0)
-__declspec(naked) void __fastcall List25B8Destruct(void* /*list*/) EI_ORIGINAL(0x00423370)
 __declspec(naked) void __fastcall List25B4Clear(void* /*list*/) EI_ORIGINAL(0x004272E0)
 __declspec(naked) void __fastcall List25B4Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00425AB0)
-__declspec(naked) void __fastcall List25B0Clear(void* /*list*/) EI_ORIGINAL(0x00427100)
-__declspec(naked) void __fastcall List25B0Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00422390)
 __declspec(naked) void __fastcall List25ACClear(void* /*list*/) EI_ORIGINAL(0x004272A0)
-__declspec(naked) void __fastcall List25ACFree(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00425A40)
 __declspec(naked) void __fastcall List25A4Clear(void* /*list*/) EI_ORIGINAL(0x00427260)
 __declspec(naked) void __fastcall List25A4Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x004258F0)
 __declspec(naked) void __fastcall List259CClear(void* /*list*/) EI_ORIGINAL(0x00427200)
 __declspec(naked) void __fastcall List259CFree(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x004257A0)
-__declspec(naked) void __fastcall List2598Clear(void* /*list*/) EI_ORIGINAL(0x004271C0)
 __declspec(naked) void __fastcall List2598Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x004256D0)
 __declspec(naked) void __fastcall List2594Clear(void* /*list*/) EI_ORIGINAL(0x00427180)
 __declspec(naked) void __fastcall List2594Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00422790)
@@ -62,12 +57,12 @@ void DestroyInline(RefPtr& slot) {
 void ServerSession::Destruct() {
     StringDestruct(&mapName_);
     StringDestruct(&name_);
-    List25C4Destruct(&banned_);
+    List25BCClear(&banned_);
     List25C0Destruct(&finishedTrades_);
     List25BCDestruct(&trades_);
-    List25B8Destruct(&offers_);
+    List2610Destruct(&offers_);
     DestroyList(awards_, List25B4Clear, List25B4Free);
-    DestroyList(variables_, List25B0Clear, List25B0Free);
+    DestroyList(variables_, List25B0Clear, List25B0FreeNode);
     DestroyList(queuedMaps_, List25ACClear, List25ACFree);
     DestroyInline(map_);
     DestroyList(bindings_, List25A4Clear, List25A4Free);

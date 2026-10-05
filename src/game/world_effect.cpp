@@ -4,6 +4,7 @@
 #include "world_effect_internal.h"
 
 #include "lib/mfc.h"
+#include "originals_effects.h"
 
 #include <cstring>
 
@@ -18,7 +19,6 @@ __declspec(naked) int __fastcall PlaySound(void*, void*, const char* /*name*/, i
 // 006B92F0: moves a playing sound.
 __declspec(naked) void __fastcall MoveSound(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/) EI_ORIGINAL(0x006B92F0)
 // 006B94A0: stops a sound.
-__declspec(naked) void __fastcall StopSound(void*, void*, int /*sound*/) EI_ORIGINAL(0x006B94A0)
 // 006BA5E0 / 006BA7C0: moves / stops a sound sequence.
 __declspec(naked) void __fastcall MoveSequence(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int) EI_ORIGINAL(0x006BA5E0)
 __declspec(naked) void __fastcall StopSequence(void*, void*, int /*sound*/) EI_ORIGINAL(0x006BA7C0)
@@ -103,7 +103,7 @@ double CEffect::DefaultRadius() { return ConstAt(kDefaultRadius); }
 
 void CEffectSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1 && looping_ != 0) StopSound(SoundSystem(), nullptr, sound_);
+    if (sound_ != -1 && looping_ != 0) SoundStop(SoundSystem(), nullptr, sound_);
     sound_ = -1;
     looping_ = 1;
     name_[0] = '\0';
@@ -281,7 +281,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     StringArraySetSize(&names_, nullptr, static_cast<int>(countSlot & 0xFF), -1);
     for (int i = 0; i < static_cast<int>(countSlot & 0xFF); ++i) {
         alignas(4) unsigned char raw[sizeof(mfc::CString)];
-        auto* text = static_cast<mfc::CString*>(ReadCString(field, nullptr, raw));
+        auto* text = static_cast<mfc::CString*>(FieldReadString(field, nullptr, raw));
         *reinterpret_cast<mfc::CString*>(&names_.data[i]) = *text;
         text->~CString();
     }

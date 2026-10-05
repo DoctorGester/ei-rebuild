@@ -15,6 +15,11 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstdint>
@@ -55,13 +60,8 @@ __declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 // CUnit: 0050E9F0 MarkChanged, 0052EA90 the animation bytes, 00530570 the size class, 005301B0
 // the animation entry for a key (combat_steps.cpp), 0052E9D0 the path speeds.
 __declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
-__declspec(naked) void __fastcall UnitSetAnimation(CUnit*, void*, int, int, int, int) EI_ORIGINAL(0x0052EA90)
-__declspec(naked) void __fastcall UnitUpdateSizeClass(CUnit*) EI_ORIGINAL(0x00530570)
-__declspec(naked) char* __fastcall UnitFindAnimation(CUnit*, void*, std::uint32_t, int) EI_ORIGINAL(0x005301B0)
-__declspec(naked) void __fastcall UnitPathSpeeds(CUnit*) EI_ORIGINAL(0x0052E9D0)
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 __declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
-__declspec(naked) float* __fastcall Negate(float* /*out*/, const float* /*v*/) EI_ORIGINAL(0x00402200)
 // UnitStats (unit_vitals.cpp / unit_stats_pack.cpp): 005241C0 the stamina state for a movement
 // (1: running), 005233E0 Reset.
 __declspec(naked) int __fastcall StatsMovementState(UnitStats*, void*, int) EI_ORIGINAL(0x005241C0)
@@ -71,8 +71,6 @@ __declspec(naked) void __fastcall StatsReset(UnitStats*) EI_ORIGINAL(0x005233E0)
 __declspec(naked) bool __fastcall MapCellPassable(void*, void*, CUnit*) EI_ORIGINAL(0x005BA6E0)
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA830)
 __declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA5A0)
-__declspec(naked) bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/,
-                                              float /*minDistance*/) EI_ORIGINAL(0x005BB350)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
 // 005C0BD0 FindUnitsInRadius.
 __declspec(naked) void __fastcall SectorRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
@@ -83,13 +81,11 @@ __declspec(naked) void __fastcall SectorFind(void*, void*, const float*, void* /
 __declspec(naked) int __fastcall GroupContains(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B3330)
 // The motion (+0x3C, an AIPath; ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005C7B00 Start,
 // 005B1F10 follow a target, 005B2050 turn to a direction, 005B22C0 the path's end point.
-__declspec(naked) void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
 __declspec(naked) bool __fastcall PathStart(void*, void*, const float*, const float*, int) EI_ORIGINAL(0x005C7B00)
 __declspec(naked) void __fastcall PathFollow(void*, void*, int /*now*/, CUnit*, int /*targetId*/, int /*until*/,
                                              int /*start*/) EI_ORIGINAL(0x005B1F10)
 __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, const float* /*direction*/,
                                            int /*until*/, int /*start*/) EI_ORIGINAL(0x005B2050)
-__declspec(naked) void __fastcall PathToMotionOrder(void*, void*, void* /*out*/) EI_ORIGINAL(0x005B22C0)
 // The step list of a motion order (a CList of path cells, vtable 0073EDB0): 00556D10 constructor
 // (block size), 00556D40 RemoveAll.
 __declspec(naked) void* __fastcall CellListConstruct(void*, void*, int /*blockSize*/) EI_ORIGINAL(0x00556D10)
@@ -99,8 +95,6 @@ __declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINA
 // The AI: 005D5E90 the brain's leader (unit_ai.cpp), 005D4F70 the brain's reset, 005AEA40 the
 // alarm's reset.
 __declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
-__declspec(naked) void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
-__declspec(naked) void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
 // 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
 __declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const void* /*motionOrder*/, const float* /*point*/,
@@ -109,39 +103,25 @@ __declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const 
 // The controller's functions rewritten elsewhere, through their game addresses (combat_update.cpp,
 // combat_steps.cpp, combat_tick.cpp).
 __declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)
-__declspec(naked) void __fastcall CtlShowCurrentStep(CUnitServer*) EI_ORIGINAL(0x00546C10)
 __declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, const AnimationSteps*) EI_ORIGINAL(0x00546C40)
-__declspec(naked) void __fastcall CtlSetState(CUnitServer*, void*, int) EI_ORIGINAL(0x00547090)
-__declspec(naked) void __fastcall CtlStandStill(CUnitServer*) EI_ORIGINAL(0x00547280)
-__declspec(naked) void __fastcall CtlSetStanding(CUnitServer*, void*, int) EI_ORIGINAL(0x005467B0)
 __declspec(naked) bool __fastcall CtlBuildTransition(CUnitServer*, void*, AnimationSteps*, const MoveModeState*,
                                                      const MoveModeState*) EI_ORIGINAL(0x005516D0)
 __declspec(naked) int __fastcall CtlAnimationDuration(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x00551A40)
 __declspec(naked) std::uint32_t __fastcall CtlWeaponTypeMask(CUnitServer*) EI_ORIGINAL(0x00550050)
 __declspec(naked) std::uint32_t __fastcall CtlMoveModeMask(CUnitServer*, void*, const MoveModeState*) EI_ORIGINAL(0x005500A0)
 // And the functions of this file.
-__declspec(naked) void __fastcall CtlUpdateSneak(CUnitServer*) EI_ORIGINAL(0x00548520)
-__declspec(naked) AnimationSteps* __fastcall CtlIdleAnimation(CUnitServer*) EI_ORIGINAL(0x00550F30)
 __declspec(naked) void __fastcall CtlBuildIdle(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00550D90)
-__declspec(naked) void __fastcall CtlBuildMoveSteps(CUnitServer*, void*, AnimationSteps*, int) EI_ORIGINAL(0x005511A0)
-__declspec(naked) AnimationSteps* __fastcall CtlNextAnimation(CUnitServer*) EI_ORIGINAL(0x00551400)
 __declspec(naked) void __fastcall CtlPlayAnimation(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548DE0)
 // Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
 // blank step; 00544FD0 OrderPlan's reset.
-__declspec(naked) void __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x00556950)
-__declspec(naked) void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x005483C0)
 __declspec(naked) AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps*, void*, const AnimationSteps*)
     EI_ORIGINAL(0x00556870)
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00557B60)
 __declspec(naked) void __fastcall StepsDestroy(AnimationSteps*) EI_ORIGINAL(0x00557E70)
-__declspec(naked) void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
-__declspec(naked) void __fastcall StepsSetAtGrow(AnimationSteps*, void*, int, const AnimationStep*) EI_ORIGINAL(0x00558950)
-__declspec(naked) int __fastcall StepsAdd(AnimationSteps*, void*, const AnimationStep*) EI_ORIGINAL(0x00557CC0)
 __declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, std::uint32_t) EI_ORIGINAL(0x00544D50)
 __declspec(naked) AnimationStep* __fastcall StepBlank(AnimationStep*) EI_ORIGINAL(0x00550A60)
-__declspec(naked) void __fastcall PlanReset(OrderPlan*) EI_ORIGINAL(0x00544FD0)
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
 __declspec(naked) void __fastcall PlexFreeDataChain(void*) EI_ORIGINAL(0x006FE90F)
@@ -327,9 +307,9 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     UnitUpdateSizeClass(self->unit);
     DropEffectObject(self);
     AnimationSteps& queue = Queue(self);
-    StepsCopy(&queue, nullptr, &steps);
+    StepsAppend(&queue, nullptr, &steps);
     QueueTime(self) = steps.extra;
-    StepsCopy(&queue, nullptr, &steps);
+    StepsAppend(&queue, nullptr, &steps);
     QueueTime(self) = steps.extra;
     StartQueueIfUnset(self);
     CtlPopFinishedSteps(self);
@@ -389,9 +369,9 @@ void CUnitServer::PlayIdle() {
         FillIdle(this, &IdleSteps(this));
     }
     // The idle list into the queue (twice), started (00546C40's body inlined).
-    StepsCopy(&Queue(this), nullptr, &IdleSteps(this));
+    StepsAppend(&Queue(this), nullptr, &IdleSteps(this));
     QueueTime(this) = IdleTime(this);
-    StepsCopy(&Queue(this), nullptr, &IdleSteps(this));
+    StepsAppend(&Queue(this), nullptr, &IdleSteps(this));
     QueueTime(this) = IdleTime(this);
     StartQueueIfUnset(this);
     CtlPopFinishedSteps(this);
@@ -691,10 +671,10 @@ bool CUnitServer::PathTo(const float* point, float range) {
         AnimationSteps current;
         StepsConstruct(&current);
         current.vtable = kAnimationStepsVtable;
-        StepsCopy(&current, nullptr, &Queue(this));
+        StepsAppend(&current, nullptr, &Queue(this));
         current.extra = QueueTime(this);
         if (current.count != 1 || moving.count != 1 || current.steps[0].unknown_01 != moving.steps[0].unknown_01) {
-            StepsCopy(&Queue(this), nullptr, &moving);
+            StepsAppend(&Queue(this), nullptr, &moving);
             QueueTime(this) = moving.extra;
             StepsCopyB(&Queue(this), nullptr, &moving);
             StartQueueIfUnset(this);

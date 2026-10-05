@@ -15,6 +15,9 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
+#include "originals_library.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstdint>
@@ -48,13 +51,11 @@ constexpr int kSlotSize = 0xF0 / 4;               // ST0 ()
 
 __declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
-__declspec(naked) void __fastcall UnitUpdateSizeClass(CUnit*) EI_ORIGINAL(0x00530570)
 __declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
 __declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00531A10)
 __declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
-__declspec(naked) bool __fastcall MapFindPath(void*, void*, CUnit*, const void*, void*, float, float) EI_ORIGINAL(0x005BB350)
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA830)
 __declspec(naked) std::uint8_t __fastcall MapCellFlag80(void*, void*, const float*) EI_ORIGINAL(0x005BBC70)
 __declspec(naked) double __fastcall MapLineOfSight(void*, void*, const float*, const float*) EI_ORIGINAL(0x005BC3E0)
@@ -63,28 +64,19 @@ __declspec(naked) void __fastcall SectorRemove(void*, void*, CEngineObject*) EI_
 __declspec(naked) bool __fastcall SectorAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
-__declspec(naked) void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
 __declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGINAL(0x005B2190)
-__declspec(naked) void __fastcall PathToMotionOrder(void*, void*, void*) EI_ORIGINAL(0x005B22C0)
 __declspec(naked) float* __fastcall MotionDestination(void*, void*, float* /*out*/) EI_ORIGINAL(0x005C7D00)
 // UnitMotion (ai_motion.cpp): 005C6270 Clear, 005C67D0 Build, 005C7430 Sample.
 __declspec(naked) int __fastcall MotionClear(void*) EI_ORIGINAL(0x005C6270)
-__declspec(naked) void __fastcall MotionBuild(void*, void*, void* /*order*/) EI_ORIGINAL(0x005C67D0)
-__declspec(naked) bool __fastcall MotionSample(void*, void*, void* /*world*/, void* /*order*/, float /*time*/, bool*,
-                                               float*, float*, float*, int*, int*) EI_ORIGINAL(0x005C7430)
 // The controller's functions rewritten elsewhere, through their game addresses: 0054C800
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
 // 005468D0 LiftNearby, 0054EB30 ReportPath (combat_motion.cpp), and this file's functions.
-__declspec(naked) bool __fastcall CtlCanReachTarget(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C800)
 __declspec(naked) bool __fastcall CtlCanPlanAction(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C6B0)
 __declspec(naked) bool __fastcall CtlFindSightTarget(CUnitServer*, void*, const UnitAction*, SightTarget*)
     EI_ORIGINAL(0x0054BCB0)
-__declspec(naked) double __fastcall CtlActionDistance(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C070)
 __declspec(naked) CItem* __fastcall CtlSpellCarrier(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B7C0)
 __declspec(naked) void __fastcall CtlShout(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x00552780)
-__declspec(naked) void __fastcall CtlLiftNearby(CUnitServer*, void*, void*, const float*, int) EI_ORIGINAL(0x005468D0)
-__declspec(naked) void __fastcall CtlReportPath(CUnitServer*, void*, void*, int) EI_ORIGINAL(0x0054EB30)
 __declspec(naked) bool __fastcall CtlFindUseSpot(CUnitServer*, void*, UnitAction*, void*) EI_ORIGINAL(0x0054DF50)
 __declspec(naked) double __fastcall CtlTimeUntilAction(CUnitServer*, void*, const UnitAction*, void*)
     EI_ORIGINAL(0x0054E250)
@@ -95,7 +87,6 @@ __declspec(naked) void __fastcall PlayerPathMessage(void*, void*, CUnit*, const 
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /
 // 0054E5D0 and 004CB050; MFC 006FE90F CPlex::FreeDataChain.
 __declspec(naked) void __fastcall CellListConstruct(void*) EI_ORIGINAL(0x00545750)
-__declspec(naked) void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
 __declspec(naked) void __fastcall PointArrayConstruct(void*) EI_ORIGINAL(0x00557230)
 __declspec(naked) void __fastcall PointArrayDestroy(void*) EI_ORIGINAL(0x00557250)
 __declspec(naked) void __fastcall MotionPointsConstruct(void*) EI_ORIGINAL(0x00556D70)

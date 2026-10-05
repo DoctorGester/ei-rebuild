@@ -6,6 +6,8 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -22,8 +24,6 @@ __declspec(naked) StringRep* __fastcall StringSubstr(const StringRep* /*s*/, voi
 __declspec(naked) void __fastcall StringDestroyA(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
 __declspec(naked) void** __fastcall ObjectsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420610)
 __declspec(naked) void** __fastcall ObjectsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004229B0)
-__declspec(naked) void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x0057ED60)
-__declspec(naked) int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kEnterSuffix = 0x00783D70;   // "_1"

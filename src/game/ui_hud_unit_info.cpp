@@ -8,6 +8,8 @@
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_engine.h"
+#include "originals_units.h"
 
 #include <cstdint>
 
@@ -40,7 +42,7 @@ constexpr int kLevelDifferenceLimit = 25;
 __declspec(naked) int __fastcall DrawText(void*, void*, const char*, RECT*, int, std::uint32_t, int, int)
     EI_ORIGINAL(0x005FDE20)
 // The text manager (007AF788): the text of a key [004E0020: key, out].
-__declspec(naked) void __fastcall GetText(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
+__declspec(naked) int __fastcall GetText(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
 // CUnit [thiscall]: the move speed of a mode [0052FAF0] or the current one [0052FA20] (in ST0),
 // the prototype [00530930], the level [00532D40].
 __declspec(naked) double __fastcall MoveSpeedFor(void*, void*, int) EI_ORIGINAL(0x0052FAF0)
@@ -52,9 +54,7 @@ __declspec(naked) double __fastcall WorldDayTime(void*) EI_ORIGINAL(0x0055FC50)
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
 // the description texts [005270E0: unit +0x17C, out, name is a text key].
 __declspec(naked) double __fastcall VisionRange(void*, void*, float) EI_ORIGINAL(0x005271E0)
-__declspec(naked) void __fastcall DescribeUnit(void*, void*, void*, void*, int) EI_ORIGINAL(0x005270E0)
 // 004613A0: whether an id is a text key [__fastcall].
-__declspec(naked) int __fastcall IsTextKey(int) EI_ORIGINAL(0x004613A0)
 // 005F13A0 [__fastcall, Rebirth-patched]: the description as lines [description, out, 1].
 __declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*, int) EI_ORIGINAL(0x005F13A0)
 // The session (007AFE20): a multiplayer client [0057F440, AL].
@@ -184,7 +184,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.DrawLine();
 
     std::uint8_t description[0x1C];
-    DescribeUnit(stats, nullptr, unit + 0x17C, description, IsTextKey(At<int>(unit, 0xC)));
+    UnitParameterBlock(stats, nullptr, unit + 0x17C, description, IsTextKeyOriginal(At<int>(unit, 0xC)));
     console::CStringArray lines;
     DescriptionLines(description, &lines, 1);
     panel.DrawLabelled(10, lines[0]);

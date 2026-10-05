@@ -9,6 +9,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_render.h"
 
 #include <cmath>
 #include <cstdint>
@@ -17,7 +18,6 @@
 namespace {
 
 // 00500A00: releases the texture in `holder` and loads `name` (kind 6).
-__declspec(naked) void __fastcall LoadTexture(void** /*holder*/, void*, int /*kind*/, const char* /*name*/) EI_ORIGINAL(0x00500A00)
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 float GameFloat(std::uintptr_t address) {
@@ -119,11 +119,11 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     auto** glow = reinterpret_cast<void**>(&glowTexture_);
     auto** main = reinterpret_cast<void**>(&texture_);
     if (demon) {
-        LoadTexture(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CE4));   // "DemonLight"
-        LoadTexture(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CD4));   // "DemonLightning"
+        LoadTextureOriginal(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CE4));   // "DemonLight"
+        LoadTextureOriginal(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CD4));   // "DemonLightning"
     } else {
-        LoadTexture(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CC8));   // "SmtgLight"
-        LoadTexture(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CBC));   // "Lightning"
+        LoadTextureOriginal(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CC8));   // "SmtgLight"
+        LoadTextureOriginal(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CBC));   // "Lightning"
     }
 }
 

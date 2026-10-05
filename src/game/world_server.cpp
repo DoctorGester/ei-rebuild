@@ -9,6 +9,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_world.h"
 
 namespace {
 
@@ -61,7 +62,6 @@ __declspec(naked) CEngineObject* WorldBase::FindUnit(unsigned) EI_ORIGINAL(0x005
 
 // RemoveObject's callees (not rewritten).
 // 00599A80 (RET 4). An id map's erase(key).
-__declspec(naked) void __fastcall IdMapErase(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599A80)
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
 __declspec(naked) bool __fastcall SectorMapRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 // 005300D0 (RET 4). The unit's controller is replaced (here by none).
@@ -230,7 +230,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!object) return;
     if (object->GetClassId() != kClassNoSector) SectorMapRemove(sectorMap_, nullptr, *slot);
 
-    IdMapErase(&updateMap_, nullptr, &id);
+    IdMapEraseOriginal(&updateMap_, nullptr, &id);
     EraseId(objects_, id);
     if (namedObjects_.map.Find(id)) EraseId(namedObjects_, id);
     if (SentObjects(this).map.Find(id)) {

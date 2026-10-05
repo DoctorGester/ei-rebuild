@@ -77,3 +77,24 @@ the void declaration). First run: 0 replacement hits, 22 forwarder warnings, e.g
 returning `this` declared void (StringFromChars, MessageStringConstruct, RecordsConstruct),
 FatalDirectX (returns 0 when it does not exit; callers compare it), BitStream::ReadString, SurfaceDraw::Begin/Text,
 CampItems::ReturnAll, PartyAdd, SoundStop. No declarations needed fixing.
+
+## C3, first part: shared forwarder headers
+
+One declaration per address for 156 of the 213 forwarded addresses that the report marked identical or
+"names differ" (405 sites in 151 files; the nested ones inside `namespace {}` / named namespaces moved to the
+global shared header). The headers are `src/game/originals_<area>.h` (core, engine, script, render, units,
+world, ai, ui, gameplay, effects by address range; library for STLport/MFC/CRT code). Each declares the
+forwarders as `__declspec(naked) inline ... EI_ORIGINAL(addr)` and forward-declares the types it names (so
+including them does not pull class headers or their globals into the files); the files include the header after
+their own includes and use one helper name per address (the most common one; the rest were renamed in the
+files, and in files that include an edited header). Rewritten targets stay forwarders (no call to the hook).
+Left alone (57 addresses still listed): member-style declarations (`Str::Mid`, `SurfaceDraw::Clear`, ...),
+signatures that use types defined in several places or only in a .cpp, the definitions in `src/lib/`, and
+0x006E9180 (`scriptparse::Strncmp` is the same address declared elsewhere). Not touched: the 504 addresses whose
+signatures differ in types or calling convention.
+
+Void fixes: every forwarder `check_returns -v` listed (22 at the start, 38 sites in the end, because each run
+only names one declaration per address) now has the real return type: constructors `this` (`StringRep*`,
+`RawString*`, `void*`), `PartyAdd`/`QueueAdd`/`Text`/`PlaySound`/`FatalDirectX`/`GetText`/`ServerUpdateAt` `int`,
+`FindFreeCellNear`/`AddressInit` `bool`, `SurfaceDraw::Begin` and `ReturnAll` `void*`, `TopicsInsert` `void**`;
+member forwarders changed in their class stubs too. `check_returns` now reports 0 forwarder warnings.

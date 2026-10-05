@@ -10,6 +10,9 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
+#include "originals_script.h"
+#include "originals_world.h"
 
 #include <cstdarg>
 #include <cstdint>
@@ -180,7 +183,6 @@ int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >>
 bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
 // The script loader of the mission script (007C27D4).
-__declspec(naked) int __fastcall LoadScriptFile(void*, void*, const char*) EI_ORIGINAL(0x004D36F0)
 // 00456360. Copies the script's error text, code and line.
 struct ScriptError {
     char* text;   // CString
@@ -194,7 +196,6 @@ __declspec(naked) void __fastcall MenuOpen(void*) EI_ORIGINAL(0x0057C700)
 __declspec(naked) int __fastcall WorldLoadMap(void*, void*, const char*, const char*, int)
     EI_ORIGINAL(0x00595480)
 __declspec(naked) void __fastcall WorldSetGameResult(void*, void*, int) EI_ORIGINAL(0x0058DC90)
-__declspec(naked) void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
 __declspec(naked) std::uint8_t* __fastcall ClientLocalView(void*) EI_ORIGINAL(0x005699F0)
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
@@ -343,7 +344,6 @@ namespace {
 // 004560D0 (ECX text, EDX MessageBox flags). The game's message box over the main window.
 __declspec(naked) int __fastcall ShowMessageBox(const char*, int) EI_ORIGINAL(0x004560D0)
 // 006E8DA7. exit.
-__declspec(naked) void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
 using ErrorHook = void(__fastcall*)(const char* text);

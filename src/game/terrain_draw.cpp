@@ -11,6 +11,9 @@
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "render/render.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -61,10 +64,7 @@ void(__cdecl* const kDestroyIndices)() = reinterpret_cast<void(__cdecl*)()>(0x00
 void(__cdecl* const kFreeVertices)() = reinterpret_cast<void(__cdecl*)()>(0x006C1370);
 
 // Aligned allocations of n elements (32-byte, 2-byte, 1-byte elements; ECX = n) and the CRT.
-__declspec(naked) char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004E5710)
-__declspec(naked) char* __fastcall AllocWords(int) EI_ORIGINAL(0x00406B30)
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 // 006C30E0 SectorData::ApplyWaterLevels (terrain_sector.cpp).
 __declspec(naked) void __fastcall ApplyWaterLevels(SectorData*) EI_ORIGINAL(0x006C30E0)
 

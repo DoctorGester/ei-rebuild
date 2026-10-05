@@ -6,6 +6,10 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -14,10 +18,6 @@ namespace net {
 namespace {
 
 // List teardown of +0x25AC / +0x25B0: element destructors and node deallocation.
-__declspec(naked) void __fastcall Element25ACDestroy(void* /*element*/, void*, int /*flags*/) EI_ORIGINAL(0x0042A5F0)
-__declspec(naked) void __fastcall List25ACFreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00425A40)
-__declspec(naked) void __fastcall Element25B0Destroy(void* /*element*/, void*, int /*flags*/) EI_ORIGINAL(0x004292C0)
-__declspec(naked) void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00422390)
 
 // STLport strings (library): operator+(string, const char*), operator+(string, string),
 // string(const char*, alloc), string(alloc), range assign, assign(first, last, tag), destructors.
@@ -36,13 +36,10 @@ __declspec(naked) void __fastcall MessageStringAssign(StringRep* /*string*/, voi
 __declspec(naked) void* __fastcall RefFromRaw(void* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427D50)
 __declspec(naked) void __fastcall RefClear(void* /*ref*/) EI_ORIGINAL(0x00421360)
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
-__declspec(naked) void __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) StringRep* __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
 __declspec(naked) void __fastcall WorldLoadMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x005810A0)
-__declspec(naked) void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x0057ED60)
-__declspec(naked) void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /*out CString*/) EI_ORIGINAL(0x005814C0)
-__declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 __declspec(naked) void** __fastcall MapRegistryFind(void* /*registry*/, void*, const StringRep* /*name*/) EI_ORIGINAL(0x004297A0)
 // The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): unloading the quest texts,
@@ -95,7 +92,7 @@ void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
 // names (inline, through FindOrAddVariable) and for two paths built from the map name
 // (SetVariable), and queues the host's item awards (004191C0, without the final award).
 void ServerSession::SetMap(const StringRep* name) {
-    ClearList(&queuedMaps_, Element25ACDestroy, List25ACFreeNode);
+    ClearList(&queuedMaps_, Element25ACDestroy, List25ACFree);
     ClearList(&variables_, Element25B0Destroy, List25B0FreeNode);
 
     StringRep messageName;

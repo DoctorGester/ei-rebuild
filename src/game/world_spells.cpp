@@ -9,6 +9,8 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -58,7 +60,6 @@ __declspec(naked) bool __fastcall SpellAffects(const void* /*spell*/, void*, CEn
 __declspec(naked) void __fastcall CreateMissileAt(CWorldServer*, void*, const void*, CEngineObject*, Vector3,
                                                   CEngineObject*, const Vector3*, int) EI_ORIGINAL(0x0058E670)
 // The missile: constructor 0067E510 (returns this), Init 0067ECB0 (RET 0x1C), Update 0067E6D0.
-__declspec(naked) Projectile* __fastcall MissileConstruct(void*, void*) EI_ORIGINAL(0x0067E510)
 __declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*, const void* /*spell*/,
                                               CEngineObject* /*caster*/, const Vector3* /*from*/,
                                               CEngineObject* /*target*/, const Vector3* /*to*/, int)
@@ -69,7 +70,6 @@ __declspec(naked) ProjectileList::Node* __fastcall ProjectileNewNode(ProjectileL
 // 005D7E90 (RET 4). The target's AI brain is attacked by `caster`.
 __declspec(naked) void __fastcall BrainAttackedBy(void*, void*, CEngineObject*) EI_ORIGINAL(0x005D7E90)
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
-__declspec(naked) void __fastcall DiplomacyAttack(void*, void*, CEngineObject*, CEngineObject*, int) EI_ORIGINAL(0x00455680)
 
 constexpr int kSlotIsDead = 55;
 constexpr int kSlotGroundHeight = 28;
@@ -116,7 +116,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
 
     void* memory = gamecrt::operator_new(0xA8);
     At<std::uint32_t>(memory, 4) = 0;   // written before the null test
-    Projectile* missile = memory ? MissileConstruct(memory, nullptr) : nullptr;
+    Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
     MissileInit(missile, nullptr, this, spell, caster, &from, target, &end, extra);
     if (MissileUpdate(missile, nullptr)) {
         auto& list = projectiles_.list;
@@ -133,7 +133,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
         void* controller = At<void*>(target, 0x240);
         if (IsHostileType(SpellType(spell))) {
             BrainAttackedBy(static_cast<std::uint8_t*>(controller) + 0x980, nullptr, caster);
-            DiplomacyAttack(diplomacy_, nullptr, caster, target, 10);
+            DiplomacyOnAttack(diplomacy_, nullptr, caster, target, 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }

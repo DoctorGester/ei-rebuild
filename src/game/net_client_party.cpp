@@ -7,6 +7,8 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -17,12 +19,10 @@ namespace {
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
 __declspec(naked) void* __fastcall VectorGetAllocator(RefVector* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00421EB0)
 __declspec(naked) void __fastcall VectorBaseConstruct(RefVector* /*vector*/, void*, std::size_t /*n*/, const void* /*allocator*/) EI_ORIGINAL(0x00421F60)
-__declspec(naked) RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AF80)
 __declspec(naked) RefPtr* __fastcall VectorErase(RefVector* /*vector*/, void*, RefPtr* /*first*/, RefPtr* /*last*/) EI_ORIGINAL(0x00421ED0)
 __declspec(naked) void __fastcall RefPtrConstructCopy(RefPtr* /*at*/, const RefPtr* /*from*/) EI_ORIGINAL(0x00429060)
 __declspec(naked) void __fastcall VectorInsertOverflow(RefVector* /*vector*/, void*, RefPtr* /*pos*/, const RefPtr* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426F00)
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
-__declspec(naked) void* __fastcall RefPtrDestroyAt(RefPtr* /*p*/, void*, unsigned /*flags*/) EI_ORIGINAL(0x004292A0)
 __declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
 __declspec(naked) void __fastcall RefPtrRaw(RefPtr* /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x0041DD50)
 __declspec(naked) void* __fastcall MemoryStreamConstructAt(CMemoryStream* /*stream*/) EI_ORIGINAL(0x0041DD70)
@@ -35,7 +35,7 @@ __declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, v
 __declspec(naked) void __fastcall ObjectVectorDeallocate(void** /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004268A0)
 __declspec(naked) void** __fastcall List2614Erase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00429770)
 __declspec(naked) void __fastcall PartyReset(void* /*party*/, void*, int /*a*/, int /*b*/) EI_ORIGINAL(0x00661700)
-__declspec(naked) void __fastcall PartyAdd(void* /*party*/, void*, void* /*object*/, int /*a*/, int /*b*/) EI_ORIGINAL(0x00661DB0)
+__declspec(naked) int __fastcall PartyAdd(void* /*party*/, void*, void* /*object*/, int /*a*/, int /*b*/) EI_ORIGINAL(0x00661DB0)
 
 std::uint32_t Get32(const void* p, std::size_t offset) {
     std::uint32_t v;

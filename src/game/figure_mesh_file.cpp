@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_core.h"
 
 #include <cstring>
 
@@ -97,7 +98,6 @@ __declspec(naked) void __fastcall TransformCopy(void*, void*, const void*) EI_OR
 __declspec(naked) void __fastcall StringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
 // The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
-__declspec(naked) double __fastcall VectorDot(const Vector3*, const Vector3*) EI_ORIGINAL(0x00401E00)
 __declspec(naked) Vector3* __fastcall VectorCross(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x004489D0)
 __declspec(naked) Vector3* __fastcall VectorScaleCopy(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00448A10)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
@@ -161,7 +161,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     VectorCross(&cross, &v, p);
     VectorScaleCopy(&turned, &cross, StoreFloat(static_cast<float>(static_cast<double>(w) + w)));
     float ww = StoreFloat(static_cast<float>(static_cast<double>(w) * w));
-    float k = StoreFloat(static_cast<float>(ww - VectorDot(&v, &v)));
+    float k = StoreFloat(static_cast<float>(ww - DotRaw(&v, &v)));
     VectorScale(&scaled, p, k);
     VectorAdd(&sum, &scaled, &turned);
     VectorAdd(&rotated, &sum, &along);

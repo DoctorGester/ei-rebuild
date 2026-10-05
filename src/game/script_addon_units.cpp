@@ -7,6 +7,7 @@
 #include "ei/vcall.h"
 #include "lib/mfc.h"
 #include "random.h"
+#include "originals_units.h"
 
 #include <cstdint>
 
@@ -31,7 +32,6 @@ void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
 __declspec(naked) char* __fastcall UnitPrototype(void*) EI_ORIGINAL(0x00530930)
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
-__declspec(naked) void __fastcall UnitParameterBlock(void*, void*, void*, void*, int) EI_ORIGINAL(0x005270E0)
 
 IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 

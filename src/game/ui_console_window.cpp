@@ -9,6 +9,8 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "originals_library.h"
+#include "originals_ui.h"
 
 #include <cstring>
 #include <string>
@@ -197,12 +199,10 @@ __declspec(naked) mfc::CString TextAt::Mid(int) const EI_ORIGINAL(0x006FD9B4)
 __declspec(naked) int TextAt::FindOneOf(const char*) const EI_ORIGINAL(0x00700ECC)
 mfc::CString MidOf(const mfc::CString& s, int first) { return static_cast<const TextAt&>(s).Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
-__declspec(naked) mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
 // 006FED03. CStringArray::InsertAt(index, const CString&, count).
 __declspec(naked) void __fastcall InsertString(CStringArray*, void*, int, const mfc::CString*, int) EI_ORIGINAL(0x006FED03)
 // 005E4090 / 005DC620, through their addresses.
 __declspec(naked) void __fastcall AddTextAt(ConsoleWindow*, void*, const char*) EI_ORIGINAL(0x005E4090)
-__declspec(naked) void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
 
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
 // page, as addon's helpers do.
@@ -349,7 +349,6 @@ void ConsoleWindow::OnChar(int key, int, int) {
 }
 EI_REPLACE_METHOD(0x005E44A0, ConsoleWindow::OnChar);
 EI_REBIRTH_IMPLEMENTS(0x005E44A0, ei::rebirth::Patch::ImproveConsole);
-
 
 // 005E4800: keeps the scroll position within the lines, then (with a surface and a font) fills
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a

@@ -15,6 +15,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -147,9 +148,7 @@ __declspec(naked) float __fastcall StatsScaleDamage(UnitStats*, void*, CUnit*, f
 __declspec(naked) double __fastcall StatsWeaponSkillBonus(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00526C70)
 // 005304A0 / 00530560. The unit's load and size (2 * +0x14C), in ST0: declared double.
 __declspec(naked) double __fastcall UnitLoad(CUnit*) EI_ORIGINAL(0x005304A0)
-__declspec(naked) double __fastcall UnitSize(CUnit*) EI_ORIGINAL(0x00530560)
 // 0052E0D0. Scales AttackParams::attack and ::defence by the difficulty unless `keyed`.
-__declspec(naked) void __fastcall DifficultyScaleParams(AttackParams*, void*, int) EI_ORIGINAL(0x0052E0D0)
 // 00530A60. Is the unit behind `target` (facing test)? Only AL is meaningful.
 __declspec(naked) int __fastcall UnitIsBehind(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00530A60)
 // 005254B0. Applies `hit` (with the attacker's `weapon`, may be null) to the unit's server stats;

@@ -17,6 +17,9 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_engine.h"
+#include "originals_render.h"
 
 #include <cstring>
 
@@ -57,7 +60,6 @@ double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volat
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
-__declspec(naked) double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/) EI_ORIGINAL(0x00488970)
 double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
 // 006E853C, the game's _ftol: truncation of ST0.
@@ -72,11 +74,9 @@ __declspec(naked) int __cdecl GameFtol(double) {
 
 // 00497EB0 AllocateElements, called through its address (the original calls it there for some
 // types and inlines it for others; the same code either way).
-__declspec(naked) ParticleElement* __fastcall AllocateElementsAt(int /*count*/) EI_ORIGINAL(0x00497EB0)
 
 // 00500A00. Releases the texture in `holder`, then finds (or creates) the texture resource `name`
 // of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.
-__declspec(naked) void __fastcall LoadTexture(void** /*holder*/, void*, int /*kind*/, const char* /*name*/) EI_ORIGINAL(0x00500A00)
 
 // 00518AE0. Detaches `source` from the object it is attached to. __thiscall on that object.
 __declspec(naked) void __fastcall DetachSource(void* /*object*/, void*, CParticleSource* /*source*/) EI_ORIGINAL(0x00518AE0)
@@ -940,12 +940,11 @@ int CParticleSource::CreateForType() {
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    LoadTexture(&texture, nullptr, 6, name);
+    LoadTextureOriginal(&texture, nullptr, 6, name);
     BuildFrames(this);
     return 1;
 }
 EI_REPLACE_METHOD(0x00485540, CParticleSource::CreateForType);
-
 
 // --- Factory and destructor ----------------------------------------------------------------------
 
@@ -953,7 +952,6 @@ namespace {
 
 // Not rewritten (forwarders): the engine object's base constructor (vtable 0073B8E0, id -1, the
 // rest zero) and its base destructor body.
-__declspec(naked) void __fastcall EngineObjectConstruct(void* /*object*/) EI_ORIGINAL(0x0040CB20)
 __declspec(naked) void __fastcall EngineObjectDestructBase(void* /*object*/) EI_ORIGINAL(0x00455930)
 
 constexpr std::uintptr_t kTransformObjectVtable = 0x0073BA38;
@@ -975,7 +973,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     if (!memory) return nullptr;
     auto* bytes = static_cast<std::uint8_t*>(memory);
     auto* s = static_cast<CParticleSource*>(memory);
-    EngineObjectConstruct(s);
+    ConstructEngineObject(s);
     reinterpret_cast<Quaternion*>(bytes + 0x34)->SetIdentity();
     reinterpret_cast<Quaternion*>(bytes + 0x44)->SetIdentity();
     SetVtableAt(s, kTransformObjectVtable);
