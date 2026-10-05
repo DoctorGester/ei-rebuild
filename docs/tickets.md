@@ -1,11 +1,6 @@
 # Ticket queue
 
-**D1 (taken 2026-10-05, three workers by file group) — first after the usage reset, before any other worker (user):** trim the docs.
-docs/notes/*.md is 1.3 MB (ui.md 182 KB, units.md 119 KB, script.md 96 KB, ...) and workers read
-it on start. Rewrite each notes file as a current-state reference (what exists, layouts, rules,
-open items, skip lists), dropping per-ticket history, run logs and details the code already records
-(git history keeps them). Keep the rewrite guide and worker brief short. originals-report.md is
-generated: workers should not read it whole.
+D1 done 2026-10-05: docs/notes 1.38 MB -> 0.46 MB (current-state references; history in git). D2 queued: retarget ~150 code comments that cite removed section names ("Nth round", "pass", renderer section numbers) to the file / new section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.
 
 From 2026-10-05 (user): workers own one area for about a usage session ("area tickets"), commit every
 3-5 functions with all checks green, and the coordinator merges the branch head periodically and runs
@@ -33,7 +28,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - A-I (taken 2026-10-05) Area ticket: interface 0x005E0000-0x00640000.
 
 
-- I11 Next interface functions (ui.md "Nineteenth pass (ticket I10)"); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
+- I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 

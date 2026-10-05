@@ -71,7 +71,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   local player) for map.txt zone `<name>` (`gz2g`, `bz1g`, ...), the party arriving at that zone's
   exit `<exit>` (from 0: map.txt's `#exit n` minus 1); `waitzone <seconds> <name>` waits until it is
   loaded. Starting a zone from the main menu crashes the game, so scenarios start with `newgame`
-  and change zones from zone1 (`zone_gz2g_traps.txt`; zone list in `docs/notes/ui.md`, X9).
+  and change zones from zone1 (`zone_gz2g_traps.txt`; zone list in `docs/notes/ui.md`, section 10).
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;
