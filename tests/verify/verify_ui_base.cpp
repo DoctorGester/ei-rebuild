@@ -5,6 +5,7 @@
 // are put back with the rows the function paints inverted, then ours draws and both are
 // compared. (Each function paints whole rows of its band, so anything ours left undrawn shows.)
 #include "verify.h"
+#include "pixel_settle.h"
 
 #include "../../src/game/console.h"
 #include "../../src/game/ui.h"
@@ -303,16 +304,11 @@ int __fastcall DrawWrappedVerify(CUiSurface* self, void*, const char* text, cons
             return CopySurfaceDC(dc, width, height, out, nullptr);
         };
         PixelDiff first = diff;
-        GdiPixels previous = expected, next;
-        int drift = -1, tries = 0;
-        bool stable = false;
-        while (tries < 5 && !stable) {
-            Sleep(10 * ++tries);
-            if (!original(&next)) break;
-            drift = DiffPixels(previous, next, width).count;
-            stable = drift == 0;
-            previous.bits.swap(next.bits);
-        }
+        GdiPixels previous = expected;
+        ei::verify::SettleOutcome settle = ei::verify::SettleOriginal(
+            previous, original, [&](const GdiPixels& x, const GdiPixels& y) { return DiffPixels(x, y, width).count; });
+        int drift = settle.drift, tries = settle.tries;
+        bool stable = settle.settled;
         GdiPixels actual2;
         rectCopy = *rect;
         bool again = CopySurfaceDC(dc, width, height, nullptr, &before);

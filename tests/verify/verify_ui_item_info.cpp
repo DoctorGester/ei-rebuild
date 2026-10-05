@@ -7,10 +7,12 @@
 // draws, and both pixel sets must be equal. A description that reaches a sub-description runs the
 // sub-description's own wrapper inside the original (nested side by side).
 #include "verify.h"
+#include "pixel_settle.h"
 
 #include "../../src/game/console.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/lib/gameapi.h"
+#include "../../src/hook/log.h"
 
 #include <windows.h>
 #include <ddraw.h>
@@ -91,13 +93,29 @@ void CompareDrawing(const char* name, CItemInfoPanel* panel, const std::function
     if (pixels) pixels = AccessPixels(surface, expected, false) && AccessPixels(surface, before, true);
     ours();
     int row = -1;
+    bool unstable = false;
     if (pixels) {
         Pixels actual;
         if (AccessPixels(surface, actual, false)) row = FirstDifferentRow(expected, actual);
+        if (row != -1) {
+            // Outside disturbance (ticket X8, as X5): redraw the original from the saved pixels until
+            // two redraws agree, then ours from the saved pixels against that settled draw.
+            auto redraw = [&](Pixels* out) {
+                return AccessPixels(surface, before, true) && (original(), true) && AccessPixels(surface, *out, false);
+            };
+            ei::verify::SettleOutcome settle = ei::verify::SettleOriginal(
+                expected, redraw, [](const Pixels& a, const Pixels& b) { return FirstDifferentRow(a, b) == -1 ? 0 : 1; });
+            Pixels again;
+            bool ok = AccessPixels(surface, before, true) && (ours(), true) && AccessPixels(surface, again, false);
+            row = !ok ? -2 : settle.settled ? FirstDifferentRow(expected, again) : -1;
+            unstable = ok && !settle.settled;
+            ei::Log("verify %s: pixels differed (detail %d); the original's redraws %s after %d tries; rerun row %d", name,
+                    detail, settle.settled ? "settled" : "did not settle", settle.tries, row);
+        }
     }
     bool same = row == -1 && panel->itemCount_ == expectedCount && panel->Item() == expectedItem;
-    ei::verify::Check(name, true, same, "detail %d: pixel row %d, items %d/%d (pixels compared: %d)", detail, row,
-                      expectedCount, panel->itemCount_, pixels);
+    ei::verify::Check(name, true, same, "detail %d: pixel row %d, items %d/%d (pixels compared: %d%s)", detail, row,
+                      expectedCount, panel->itemCount_, pixels && !unstable, unstable ? ", original unstable" : "");
 }
 
 int KindOf(CItem* item) { return item ? *reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(item) + 0x10) : -1; }

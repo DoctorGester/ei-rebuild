@@ -2008,3 +2008,13 @@ earlier list (briefing screen, network screens, global map path search 006312C0,
   the server side of the order too). Next step: a bisect run with 00636F10 and then 00637DC0 in
   tests/verify/disabled.txt (copied next to the DLL). If it still fails, the bug predates I6 and ui_order_move is the
   first scenario that checks a click moves the hero.
+
+### Ticket X8 (shared pixel settling)
+
+- The X5 settle-and-recompare loop is now `ei::verify::SettleOriginal` in
+  tests/verify/pixel_settle.h (redraw the original from the saved pixels until two redraws agree,
+  up to 5 tries, 10 ms * try apart). DrawWrappedVerify and the item panel's CompareDrawing
+  (DescribeItem, DescribeStats and the other descriptions) both use it; on a pixel difference ours
+  is re-run from the saved pixels and compared with the settled draw. Never settling: logged, pixels
+  not compared. Those two are the only wrappers that compare GDI/DirectDraw surface pixels
+  (harness_capture.cpp only captures frames). Game code unchanged.
