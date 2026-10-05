@@ -102,12 +102,12 @@ void UnitController::Say(int what) {
 }
 
 void AIMode::Release() { RefObjectRelease((void*)this); }
-int AIMode::Evaluate(AIBrain* brain) { return ei::VCall<int>(this, 4, brain); }
-void AIMode::Execute(AIBrain* brain) { ei::VCall<void>(this, 5, brain); }
-void AIMode::Enter(AIBrain* brain) { ei::VCall<void>(this, 6, brain); }
-void AIMode::Leave(AIBrain* brain) { ei::VCall<void>(this, 7, brain); }
-int AIMode::GetType() { return ei::VCall<int>(this, 8); }
-void AIMode::OnObjectDeleted(CEngineObject* object) { ei::VCall<void>(this, 10, object); }
+int AIMode::Evaluate(AIBrain* brain) { return Virtuals()->Evaluate(brain); }
+void AIMode::Execute(AIBrain* brain) { Virtuals()->Execute(brain); }
+void AIMode::Enter(AIBrain* brain) { Virtuals()->Enter(brain); }
+void AIMode::Leave(AIBrain* brain) { Virtuals()->Leave(brain); }
+int AIMode::GetType() { return Virtuals()->GetType(); }
+void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDeleted(object); }
 
 void AIRef::Reset() { CountedRefResetOriginal((void*)this); }
 void AIRef::Assign(CEngineObject* a0) { CountedRefAssignOriginal((void*)this, nullptr, (void*)a0); }
@@ -117,7 +117,6 @@ void AIRef::Save(AIStream* a0) { CountedRefSaveOriginal((void*)this, nullptr, (v
 __declspec(naked) void AIBrain::UpdateFollow() EI_ORIGINAL(0x005D6F90)
 __declspec(naked) void AIBrain::PlanLooks(AIMoveOrder*, const Vector3*, float, bool) EI_ORIGINAL(0x005D5B40)
 __declspec(naked) bool AIBrain::FindStandPoint(const Vector3*, float, Vector3*) EI_ORIGINAL(0x005D7F80)
-__declspec(naked) void AIBrain::CallAllies(const Vector3*) EI_ORIGINAL(0x005D5990)
 
 __declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554740)
 __declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)

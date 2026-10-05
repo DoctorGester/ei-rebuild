@@ -19,6 +19,7 @@ using BOOL = int;
 
 struct ScriptGroup;
 class CBaseManager;
+class CSectorMap;   // sector_map.h
 class CSpellManager;   // spell.h
 class Terrain;
 struct Float4;   // chunk_stream.h: four floats passed by value
@@ -501,6 +502,7 @@ public:
     float startPosition_[3];              // +0x164 where joining players start (0058DAF0)
     std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
     float gridHeightScale_;               // +0x290
+    CSectorMap* Sectors() { return reinterpret_cast<CSectorMap*>(sectorMap_); }
     std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
     std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
     int gridWidth_;                       // +0x2810
