@@ -22,7 +22,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I3 (taken 2026-10-05) Next 3-8 interface functions; candidates from ui.md "Tenth pass": 00610AD0, 00611220, 00634790, 0062B7D0, 00632D70 (add scenario steps where needed).
+- I4 Next 3-8 live non-rendering interface functions (see ui.md Eleventh/Twelfth pass for skips).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
@@ -45,3 +45,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
+- T1 (taken 2026-10-05) Tool: check_returns.py. Two crashes came from rewrites declared void whose
+  original leaves a value in EAX that callers use (UnitActionPoint 0052FDF0, AddSurface 005FFA90).
+  For every EI_REPLACE / forwarder declared void, scan the game's call sites and flag those that read
+  EAX after the call before writing it; run it from build.cmd like check_thunks.
