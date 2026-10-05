@@ -21,7 +21,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I7 Next 3-5 live interface functions (ui.md Fifteenth pass: 006379E0, 00637190 and the other battle commands, 006366F0, 0063DB20).
+- I8 AttackUnit 00637190 has 0 calls (ui_battle_commands' click grid misses the wolves): needs a way to click a unit (a harness step that clicks a unit's projected screen position?). Then 00637500 / 00637750 / 0063DB20 (spells and quick items on targets).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
@@ -29,11 +29,11 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S5 (taken 2026-10-05; 004C00D0, 004D3320, 004B3D10, 004B6330) Next script runtime functions (script.md "Blocks, areas and temporaries").
+- S6 (taken 2026-10-05) Next script runtime functions (script.md "Constructor, reset and small loaders (ticket S5)": 004B3900 AppendFrom; destructors 004BE9D0 / 004BE090 / 004BF640 need a verify approach).
 
 ## Verify checks
 
-- X9 (next, high priority) Harness step `zone <name> [exit]`: from a running zone1 game, call the server's LeaveToZone (0066F310; see ui.md "LeaveToZone") so the game loads another zone the normal way (game request kind 4 set in game, not from the menu, which crashes). Then scenarios for other zones: magic traps in their own zone (zone2), a base/brief zone, and zones with no intro block. Find which zones exist in map.txt and which need prior quest state.
+- X9 (taken 2026-10-05) Harness step `zone <name> [exit]`: from a running zone1 game, call the server's LeaveToZone (0066F310; see ui.md "LeaveToZone") so the game loads another zone the normal way (game request kind 4 set in game, not from the menu, which crashes). Then scenarios for other zones: magic traps in their own zone (zone2), a base/brief zone, and zones with no intro block. Find which zones exist in map.txt and which need prior quest state.
 
 
 
