@@ -676,7 +676,6 @@ void PlayerMode::Execute(AIBrain* brain) {
 }
 EI_REPLACE_METHOD(0x005D4A90, PlayerMode::Execute);
 
-__declspec(naked) bool PlayerMode::PathClear(AIBrain*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005D37E0)
 
 namespace {
 // Does the player control the unit directly (player + 0x20, +0x5120 == 2)?

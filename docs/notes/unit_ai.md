@@ -68,6 +68,9 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005CB7F0 | AIBrain::IsEnemy (memory) | pure |
 | 005CF220, 005CFE40 | AIBrain::CurrentAttack, LookAround (`unit_ai_attention.cpp`; `this` the attention +0xA4, brain passed) | CurrentAttack output (original into a seeded scratch pair); LookAround ours only (attack action has a target); reached through 005D0030, 005D4170 and the Guard / Patrol / Sentry Execute |
 | 005D2850, 005CA050 | FearMode::Construct (script UMFear / UMAg, alarm assembly), CopyPoint2 (events, heard calls) | output: the original on a copy, all bytes and the returned pointer compared |
+| 005D5B40, 005D7F80 | AIBrain::PlanLooks, FindStandPoint (`unit_ai_moves.cpp`) | differential: the original on a copy (PlanLooks: an empty look array; FindStandPoint: a scratch point) from the same random state, ours after the state is put back; looks / point within 4 ULPs, cooldown, result and random state compared |
+| 005D6F90 | AIBrain::UpdateFollow | ours only: a dead or missing leader ends the action, else the timer counts on or restarts at 0 / 6 |
+| 005D37E0 | PlayerMode::PathClear | original, then ours: results compared, the unit back at its position (ui_order_move, movement) |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
 
 X12 (2026-10-05), the two A-W failures, back on (out of `tests/verify/disabled.txt`):
@@ -84,6 +87,12 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 `originals_ai.h`; the standalone build must replace them.
 
 ## Original bugs and oddities kept on purpose
+
+- A-W2 (`unit_ai_moves.cpp`): the brain's +0x68 is FindStandPoint's cooldown (after a failure, a third of the distance in calls, at most
+  10, fail at once) and +0x6C UpdateFollow's timer (acts from 8; an order sets 0 or 6). PlanLooks' wait of the seventh (untested) draw is
+  kept when all six line-of-sight tests fail; UpdateFollow ignores the result of its side-step path search and only reads the path's target;
+  PathClear ignores its `this`. Test paths on the stack (`ScopedPath`) mirror the original's constructors (two cell lists of 0x80, the
+  point array, Clear). Map objects' slots 52 / 55 are called through `CMapObjectVirtuals` (map_object.h).
 
 - The mode adders (005D6300-005D65B0) write the new mode's +4 before testing the allocation and pass a failed one to AddMode,
   which calls its GetType (ours tests first, then also passes null). A new Suspection mode's point and level and a new Fear
@@ -104,8 +113,8 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 
 ## Skipped and why
 
-- Large float / path code: 005D0030 target choice (2.6 KB), 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D4170 Player combat, 005D6F90 UpdateFollow, 005D5B40 PlanLooks, 005D7F80 FindStandPoint, 005D6630 /
-  005D6D20 alarm assembly; next candidates 005D5B40 and 005D7F80 with an offline harness. 005D4860 StaysWithParty walks the player's unit hash map through iterator helpers (00455830 / 00455890 / 004558B0) with an
+- Large float / path code: 005D0030 target choice (2.6 KB), 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D4170 Player combat, 005D6630 /
+  005D6D20 alarm assembly. 005D4860 StaysWithParty walks the player's unit hash map through iterator helpers (00455830 / 00455890 / 004558B0) with an
   unclear frame.
 - Allocation-heavy bookkeeping, rare: 005D1930 / 005D1A40 Patrol Load / Save (Ghidra garbles the frames), 005D0F90 / 005D2880 clones,
   destructors; 005D1E60 Follow Load, 005D2770 Aggression Load, 005D4CD0 Player Load (a ScriptGroup for versions 0x46..0x5D) run only on game load; 005D7F40 (seen object is an ally) leaves the caller's EAX upper bytes in the

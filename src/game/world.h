@@ -18,6 +18,7 @@
 using BOOL = int;
 
 struct ScriptGroup;
+class CAIMap;       // ai_map.h
 class CBaseManager;
 class CSectorMap;   // sector_map.h
 class CSpellManager;   // spell.h
@@ -517,6 +518,7 @@ public:
     int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
     float startPosition_[3];              // +0x164 where joining players start (0058DAF0)
     std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
+    CAIMap* AIMap() { return reinterpret_cast<CAIMap*>(aiMap_); }
     float gridHeightScale_;               // +0x290
     CSectorMap* Sectors() { return reinterpret_cast<CSectorMap*>(sectorMap_); }
     std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)

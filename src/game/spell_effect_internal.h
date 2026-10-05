@@ -133,9 +133,8 @@ inline void __fastcall AiMemoryNotice(void* a0, void*, const Vector3* a2, int a3
 // 004B2EF0 / 004B31D0 ScriptGroup::Insert / InsertAll (script_group.cpp).
 __declspec(naked) inline void __fastcall GroupInsert(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B2EF0)
 __declspec(naked) inline void __fastcall GroupInsertAll(void*, void*, const void* /*list*/) EI_ORIGINAL(0x004B31D0)
-// 005B7A40 CAIMap::IsPassableWithoutSelf (ai_map.cpp); 005C11D0 CSectorMap::Move (patched by Rebirth).
+// 005B7A40 CAIMap::IsPassableWithoutSelf (ai_map.cpp); 005C11D0 CSectorMap::Move: originals_ai.h.
 __declspec(naked) inline bool __fastcall AiMapPassableWithoutSelf(void*, void*, CEngineObject*, const Vector3*) EI_ORIGINAL(0x005B7A40)
-__declspec(naked) inline bool __fastcall SectorMapMove(void*, void*, CEngineObject*, const Vector3*) EI_ORIGINAL(0x005C11D0)
 // 00554450: the unit controller re-places its unit after a teleport.
 inline void __fastcall ControllerReposition(void* a0) { ControllerRepositionOriginal(a0); }
 

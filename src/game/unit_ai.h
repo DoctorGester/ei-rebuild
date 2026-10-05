@@ -73,6 +73,8 @@ struct UnitController {
     void UseSpecial(CEngineObject* unit, int b);            // 00555630
     bool CanCast(int spell);                                // 0054B820
     void Cast(int spell, CEngineObject* target, int unused);    // 00554F50
+    // 0054B520 (CUnitServer::GetMovePoint). The point of the first move order; false without one.
+    bool GetMovePoint(Vector3* out);
 };
 static_assert(offsetof(UnitController, unit) == 0x1C);
 static_assert(offsetof(UnitController, state) == 0x164);
@@ -372,7 +374,8 @@ struct PlayerMode : AIMode {
     // Not rewritten (forwarders).
     void UpdateCombat(AIBrain* brain);                      // 005D4170
     bool StaysWithParty(AIBrain* brain, bool moving);       // 005D4860
-    // 005D37E0. Can the unit get from `from` to `to` (path search with the unit moved to `from`)?
+    // 005D37E0 (unit_ai_moves.cpp). Can the unit get from `from` to `to`: false when they are within
+    // 0.1 (2D), else a path search with the unit moved to `from` for it (range twice the distance).
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
 
     CEngineObject* target;          // +0x08
@@ -549,11 +552,18 @@ struct AIBrain {
     // a special unit use).
     void UseOn(CEngineObject* object, int kind, int a, int b);
 
-    // Not rewritten (forwarders).
-    void UpdateFollow();                                                // 005D6F90
-    // 005D5B40. Plans the looks of a move to `order` (random directions around `direction`).
+    // unit_ai_moves.cpp.
+    // 005D6F90. Action 6 (follow `target`): every few ticks walk to where the leader is or will be
+    // (a moving leader is met ahead on its way, or passed on the side); a dead or lost leader ends it.
+    void UpdateFollow();
+    // 005D5B40. Replaces the looks of `order` by one to four random directions (each the first that
+    // the AI map sees clear, within 6 tries) around `direction`, each followed by a random wait
+    // between a quarter and all of the wander time (40 when negative, else 15 x `wander`). A `far`
+    // look (not for busy units nor "unhu*" prototypes) is a single one with a longer wait.
     void PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool far);
-    // 005D7F80. A free place to stand within `radius` of `point`.
+    // 005D7F80. A random place within `radius` of `point` to stand at: not too steep, no unit of an
+    // allied player near it, and a path there not much longer than the way. After a failure the
+    // next calls (up to 10, a third of the distance) fail at once.
     bool FindStandPoint(const Vector3* point, float radius, Vector3* out);
     // 005D5990 (unit_ai_brain.cpp). Every allied unit within +0x38 of the owner's unit hears a call
     // for help (kind 0x1A) at `point`; the message text is formatted only while the console shows
@@ -609,8 +619,8 @@ struct AIBrain {
     float decay;                    // +0x04C alertness decay factor
     Vector3 previousPosition;       // +0x050
     Vector3 position;               // +0x05C
-    int unknown_068;
-    int unknown_06C;
+    int standCooldown;              // +0x068 FindStandPoint fails while above 0 (one off per call)
+    int followTimer;                // +0x06C UpdateFollow acts once it has counted past 8
     mfc::CTypedPtrList<AIMode> modes;   // +0x070 (elements are counted references)
     AIMode* current;                // +0x08C
     std::uint8_t alarmRecords[0x14];    // +0x090 CArray of 0x4C-byte alarm records (data at +0x94)

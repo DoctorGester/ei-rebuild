@@ -114,10 +114,6 @@ void AIRef::Assign(CEngineObject* a0) { CountedRefAssignOriginal((void*)this, nu
 void AIRef::Load(AIStream* a0, void* a1) { CountedRefLoadOriginal((void*)this, nullptr, (void*)a0, a1); }
 void AIRef::Save(AIStream* a0) { CountedRefSaveOriginal((void*)this, nullptr, (void*)a0); }
 
-__declspec(naked) void AIBrain::UpdateFollow() EI_ORIGINAL(0x005D6F90)
-__declspec(naked) void AIBrain::PlanLooks(AIMoveOrder*, const Vector3*, float, bool) EI_ORIGINAL(0x005D5B40)
-__declspec(naked) bool AIBrain::FindStandPoint(const Vector3*, float, Vector3*) EI_ORIGINAL(0x005D7F80)
-
 __declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554740)
 __declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
 __declspec(naked) void UnitController::Cast(int, CEngineObject*, int) EI_ORIGINAL(0x00554F50)

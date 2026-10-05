@@ -233,8 +233,12 @@ struct AIPath {
     bool reached;               // +0x6C no cells left
     bool failed;                // +0x6D the last search failed; search again
     bool flag6E, flag6F;        // +0x6E, +0x6F
-    std::uint8_t unknown_70[0x84 - 0x70];
-    int smoothing;              // +0x84 from 005C46C0
+    void* pointsVtable;         // +0x70 CArray of points (vtable 0073F07C; 00557230 / 00557250)
+    void* points;               // +0x74
+    int pointCount;             // +0x78
+    int pointMax;               // +0x7C
+    int pointGrowBy;            // +0x80
+    int smoothing;              // +0x84 from 005C46C0 (how much longer the path is than the way)
 };
 static_assert(offsetof(AIPath, steps) == 0x20);
 static_assert(offsetof(AIPath, cells) == 0x3C);
