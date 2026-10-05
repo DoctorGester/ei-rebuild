@@ -78,7 +78,7 @@ AlignedArray& Projected() { return *reinterpret_cast<AlignedArray*>(0x007AEE10);
 AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE20); }  // a byte per corner
 AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
 
-__declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
+char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
 // SetSize keeping the contents (thiscall: size, growth or -1): TL vertices 004EC790, words 0044FA90.
 __declspec(naked) void __fastcall VerticesSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x004EC790)

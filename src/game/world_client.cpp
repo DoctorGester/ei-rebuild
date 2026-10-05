@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "originals_engine.h"
 #include "originals_world.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -28,7 +29,6 @@ struct WorldBase {
 CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, static_cast<int>(id)); }
 __declspec(naked) BOOL WorldBase::IsNight() EI_ORIGINAL(0x0055FC10)
 
-__declspec(naked) int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 
 __forceinline float FieldF(const void* object, int offset) {
     return *reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(object) + offset);

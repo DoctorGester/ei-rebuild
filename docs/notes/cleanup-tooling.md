@@ -168,3 +168,27 @@ Class members that forwarded the same addresses (`World::GetPlayer`, `World::Fin
 `World::RemoveTimedObject`, `StlString::InitFrom`, `RawString::InitFrom`, `TextReader::Open`, `TextTable::Find`, `Texts::Open/GetString`,
 `UiTexts::Find`, `WorldAt::GetPlayer`) are one-line definitions over the shared forwarders. Release and verify builds, check_stolen,
 check_x87, check_signatures and check_returns (0 problems, 0 forwarder warnings) pass.
+
+## C3e (next 15 by site count): one declaration each
+
+Same method as C3b-C3d; the "differ" group is 468 addresses after this (it was 483). Addresses with a site in a `net_*` file or in
+ui_battle_update.cpp / ui_hud.cpp were skipped (other tickets work there); the next ones by site count were taken. Decided from the
+game.exe disassembly (capstone), each now declared once:
+
+| Address | Declaration | Header |
+| --- | --- | --- |
+| 004C2050 | `void __fastcall PtrArraySetSize(void*, void*, int count, int growBy)` (MFC CPtrArray::SetSize, RET 8) | originals_library.h |
+| 006E848B | `int __cdecl GameMbscmp(const char*, const char*)` (plain RET). `src/lib/crt.cpp` keeps a private `MbscmpOriginal` (lib cannot include game headers) under the `unsigned char` `gamecrt::mbscmp` | originals_library.h |
+| 006FDA6D | `mfc::CString mfc::CString::Mid(int first) const` (RET 8: result slot, first). It is Mid(nFirst), not Right: the callers' `Right(Length - n)` and `CStringMid` all pass a start index | lib/mfc.h, lib/mfc.cpp |
+| 0040A3A0 / 0040F560 | `void __fastcall RefObjectRelease(void*)` (plain RET, EAX not a result) / `float* __fastcall QuaternionAxisY(const void*, void*, float* out)` (RET 4, returns `out`; the `void` copy in world_client_draw.cpp is gone) | originals_core.h |
+| 00460AF0 / 00460BC0 | `float __fastcall NamedTableGet(void*, void*, const char*)` (RET 4, ST0) / `void NamedTableSet(void*, void*, const char*, uint32_t valueBits)` (RET 8; raw dword, float callers pass `std::bit_cast`, so no FPU load touches a NaN payload) | originals_engine.h |
+| 004DF8D0 | `int __fastcall TextsReadLineOriginal(void*, void*, mfc::CString*, int advance)` (RET 8, EAX 0/1) | originals_engine.h |
+| 00500960 / 00468F70 | `void* __cdecl DisplayObject()` (returns the global 007AF060) / `char* __fastcall AllocAligned16(int count)` (plain RET) | originals_render.h |
+| 004D23A0 | `int __fastcall ScriptLoadLine(void*, void*, const mfc::CString*, int)` (RET 8) | originals_script.h |
+| 00530730 / 00531070 | `void* __fastcall UnitEquipArmourOriginal(void*, void*, void*)` (RET 4, previous item or null) / `int UnitAddWeaponOriginal(void*, void*, void*)` (RET 4, index / 1 / -1) | originals_units.h |
+| 00554450 | `void __fastcall ControllerRepositionOriginal(void*)` (plain RET; the `(void*, void*)` forms passed a dummy EDX) | originals_units.h |
+| 00675CA0 | `void __fastcall ObjectMarkNewOriginal(void*)` (plain RET) | originals_effects.h |
+
+Every other site keeps its local name and signature as a one-line wrapper over the shared forwarder (generated, then the self-named
+duplicates deleted), so call sites are unchanged. The `Right` members of the per-file CString views are gone; their callers use
+`CString::Mid`. Release and verify builds, check_stolen, check_x87, check_signatures and check_returns pass (0 problems).

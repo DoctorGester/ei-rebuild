@@ -52,7 +52,7 @@ CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_ca
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
 __declspec(naked) void __fastcall RefAssign(ScriptObjectRef*, void*, CEngineObject*) EI_ORIGINAL(0x004B24D0)
 __declspec(naked) void __fastcall GroupSort(ScriptGroup*) EI_ORIGINAL(0x004B2D60)
-__declspec(naked) void __fastcall GroupSetSize(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
+void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 
 // CArray template members (out of line), __thiscall (size, growBy).
 __declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C5CB0)      // 0x20 slots

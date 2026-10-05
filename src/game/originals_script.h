@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <windows.h>
+#include "lib/mfc.h"
 
 class CEngineObject;
 class CScript;
@@ -28,3 +29,7 @@ __declspec(naked) inline unsigned __fastcall BufferReadPastEnd(GameBuffer* /*buf
 __declspec(naked) inline void __fastcall GameBufferCopy(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/)
     EI_ORIGINAL(0x004DA9E0)
 __declspec(naked) inline void __fastcall TextsUnload(void*, void*, const char*) EI_ORIGINAL(0x004DEDD0)
+
+// 004D23A0 (RET 8, EAX 0/1): adds / loads a script line (CScript::Load, rewritten; called through its address).
+__declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, const mfc::CString* /*line*/,
+                                                       int /*flag*/) EI_ORIGINAL(0x004D23A0)

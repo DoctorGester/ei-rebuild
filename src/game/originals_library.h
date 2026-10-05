@@ -96,12 +96,10 @@ __declspec(naked) inline int __stdcall AfxMessageBox(const char*, unsigned, unsi
 // STLport std::list constructor for a list of pointers on the 12-byte node allocator (RET 4).
 __declspec(naked) inline void __fastcall ListConstruct411850(void* /*list*/, void*, const void* /*alloc*/)
     EI_ORIGINAL(0x00411850)
-// MFC: CFileFind::FindNextFile / GetFileTitle, CString::Mid(first) into `out`, CFile::Write.
+// MFC: CFileFind::FindNextFile / GetFileTitle, CFile::Write (CString::Mid(first) is a member of mfc::CString).
 __declspec(naked) inline int __fastcall CFileFindNext(mfc::CFileFind* /*find*/) EI_ORIGINAL(0x006E6653)
 __declspec(naked) inline mfc::CString* __fastcall CFileFindTitle(const mfc::CFileFind* /*find*/, void*,
                                                                   mfc::CString* /*out*/) EI_ORIGINAL(0x006E67BA)
-__declspec(naked) inline mfc::CString* __fastcall CStringMid(const mfc::CString* /*s*/, void*, mfc::CString* /*out*/,
-                                                              int /*first*/) EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) inline void __fastcall CFileWrite(mfc::CFile* /*file*/, void*, const void* /*buffer*/,
                                                     unsigned /*count*/) EI_ORIGINAL(0x0070133F)
 // The CRT's x87 intrinsics: _CIacos / _CIasin (argument and result in ST0) and _CIpow (base in ST1,
@@ -125,3 +123,9 @@ __declspec(naked) inline double __cdecl CIpow(double, double) {
     __asm call eax
     __asm ret
 }
+
+// MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
+__declspec(naked) inline void __fastcall PtrArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
+    EI_ORIGINAL(0x004C2050)
+// CRT _mbscmp (plain RET, EAX: <0, 0, >0). src/lib/crt.cpp keeps its own copy (lib cannot include game headers).
+__declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)

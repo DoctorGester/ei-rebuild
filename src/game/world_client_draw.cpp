@@ -143,7 +143,6 @@ __declspec(naked) void __fastcall FinalSortByModelUseAt(CEngineObject**, CEngine
 __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGINAL(0x0056A370)
 __declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
 __declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI_ORIGINAL(0x0040D6B0)
-__declspec(naked) void __fastcall QuaternionAxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
 __declspec(naked) void __fastcall QuaternionAxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
 __declspec(naked) void __fastcall MarkerBegin(void*, void*, int, int) EI_ORIGINAL(0x00501AF0)
 __declspec(naked) void* __fastcall ObjectFindPart(CEngineObject*, void*, const char*) EI_ORIGINAL(0x00516A80)

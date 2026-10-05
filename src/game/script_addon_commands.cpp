@@ -11,6 +11,7 @@
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_engine.h"
 
 #include <windows.h>
 
@@ -51,15 +52,15 @@ __declspec(naked) void __fastcall PlayerSetVariable(void*, void*, const char*, f
 __declspec(naked) void __fastcall PlayerSendText(void*, void*, int, const char*) EI_ORIGINAL(0x0066D770)
 __declspec(naked) void __fastcall PlayerResendParty(void*) EI_ORIGINAL(0x0066F450)
 // 00460AF0: a variable of a table (the player's at +0xC4), in ST0.
-__declspec(naked) double __fastcall VariablesGet(void*, void*, const char*) EI_ORIGINAL(0x00460AF0)
+double __fastcall VariablesGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 00553380: the unit's data gains experience.
 // The unit's brain (data +0x980): 005CB0F0 on its +0xD0, then 005D6630 (entry, index).
 __declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005CB0F0)
 __declspec(naked) void __fastcall BrainSelect(void*, void*, void*, int) EI_ORIGINAL(0x005D6630)
 // Units: add a weapon (00531070; slot or -1), equip armour (00530730), the prototype (00530930),
 // mark changed (0050E9F0). Items: the prototype (006A0110), the weapon type (006A07F0).
-__declspec(naked) int __fastcall UnitAddWeapon(void*, void*, void*) EI_ORIGINAL(0x00531070)
-__declspec(naked) void* __fastcall UnitEquipArmour(void*, void*, void*) EI_ORIGINAL(0x00530730)
+int __fastcall UnitAddWeapon(void* a0, void*, void* a2) { return UnitAddWeaponOriginal(a0, nullptr, a2); }
+void* __fastcall UnitEquipArmour(void* a0, void*, void* a2) { return UnitEquipArmourOriginal(a0, nullptr, a2); }
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) char* __fastcall ItemPrototype(void*) EI_ORIGINAL(0x006A0110)
 __declspec(naked) int __fastcall ItemWeaponType(void*) EI_ORIGINAL(0x006A07F0)

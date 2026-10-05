@@ -18,9 +18,8 @@ constexpr std::size_t kPlayerValue100 = 0x100;
 constexpr std::size_t kPlayerDirty = 0x130;      // bits the state messages clear once sent
 
 // The variables table (object_tables.cpp / not rewritten), through the game addresses.
-__declspec(naked) void __fastcall VariableSet(void* /*table*/, void*, const char* /*name*/, std::uint32_t /*value*/)
-    EI_ORIGINAL(0x00460BC0)
-__declspec(naked) double __fastcall VariableGet(void* /*table*/, void*, const char* /*name*/) EI_ORIGINAL(0x00460AF0)
+void __fastcall VariableSet(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
+double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0047DA80: writes a state value into the stream; 006D4570: an object writes itself into one.
 __declspec(naked) void __fastcall StreamWriteState(BitStream* /*stream*/, void*, int /*value*/) EI_ORIGINAL(0x0047DA80)
 __declspec(naked) void __fastcall WriteStateTo(void* /*source*/, void*, BitStream* /*stream*/) EI_ORIGINAL(0x006D4570)

@@ -14,6 +14,9 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_core.h"
+#include "originals_engine.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -41,7 +44,7 @@ float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 // 00461360. The text key (object id) of a name (object_tables.cpp), ECX = name.
 __declspec(naked) unsigned __fastcall TextKey(const char*) EI_ORIGINAL(0x00461360)
 // 00460AF0 (RET 4). Named float table Get; the value is left in ST0.
-__declspec(naked) double __fastcall VariableGet(void* /*table*/, void*, const char*) EI_ORIGINAL(0x00460AF0)
+double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0066EE10 (RET 8). CPlayerServer::SetVariable (player_messages.cpp).
 __declspec(naked) void __fastcall StateSetVariable(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
 
@@ -199,7 +202,7 @@ __declspec(naked) void __fastcall PlayerGiveItems(WorldPlayer*, void*, mfc::CTyp
 __declspec(naked) void __fastcall PlayerEraseQuestItem(WorldPlayer*, void*, int) EI_ORIGINAL(0x00665780)
 __declspec(naked) void __fastcall StateSetVariableMax(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
 // 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.
-__declspec(naked) int __fastcall CommandQueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 
 void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
@@ -587,7 +590,7 @@ __declspec(naked) CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int
 __declspec(naked) void __fastcall ControllerStoreStats(void*, void*, void*) EI_ORIGINAL(0x00553360)
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall RefPtrAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
-__declspec(naked) void __fastcall RefRelease(void*, void*) EI_ORIGINAL(0x0040A3A0)
+void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 
 // The record entry for `item` from the party records, with a reference held across `add`.
 template <typename Add>

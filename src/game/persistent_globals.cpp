@@ -10,12 +10,14 @@
 #include "object_tables.h"
 
 #include "ei/hook.h"
+#include "originals_engine.h"
 
 #include <cstring>
 #include <iterator>
 #include <list>
 #include <string>
 #include <vector>
+#include <bit>
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -24,7 +26,7 @@ namespace {
 // 00461540 (clear) and 00460BC0 (Set, RET 8: name, value) of the game's table, through their
 // addresses.
 __declspec(naked) void __fastcall TableClear(NamedFloatTable*) EI_ORIGINAL(0x00461540)
-__declspec(naked) void __fastcall TableSet(NamedFloatTable*, void*, const char*, float) EI_ORIGINAL(0x00460BC0)
+void __fastcall TableSet(NamedFloatTable* a0, void*, const char* a2, float a3) { NamedTableSet((void*)a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
 
 // MSVC 2010's std::unordered_map<std::string, float>, insertion order only: the element list,
 // two list positions per bucket (first and last of its range; end() when empty), mask and

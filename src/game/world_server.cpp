@@ -11,6 +11,7 @@
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_world.h"
+#include "originals_effects.h"
 
 namespace {
 
@@ -53,7 +54,7 @@ struct SharedObjectNode {
 struct NewObjectMark {
     void Apply();
 };
-__declspec(naked) void NewObjectMark::Apply() EI_ORIGINAL(0x00675CA0)
+void NewObjectMark::Apply() { ObjectMarkNewOriginal((void*)this); }
 
 // 0055FB00 (world base): FindObject (slot 40) restricted to units.
 struct WorldBase {

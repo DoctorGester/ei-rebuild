@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <new>
 
@@ -22,7 +23,7 @@ __forceinline T Field(const void* object, int offset) {
 struct NamedFloatTable {
     float Get(const char* name);   // 00460AF0
 };
-__declspec(naked) float NamedFloatTable::Get(const char*) EI_ORIGINAL(0x00460AF0)
+float NamedFloatTable::Get(const char* a0) { return NamedTableGet((void*)this, nullptr, a0); }
 
 NamedFloatTable* Variables(const std::uint8_t* player) {
     return reinterpret_cast<NamedFloatTable*>(const_cast<std::uint8_t*>(player) + 0xC4);

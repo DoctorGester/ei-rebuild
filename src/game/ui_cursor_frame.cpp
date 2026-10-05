@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -35,7 +36,7 @@ long ComCall(void* object, int slot, Args... args) {
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 00500960: the renderer object (007AF060).
-__declspec(naked) std::uint8_t* __cdecl Renderer() EI_ORIGINAL(0x00500960)
+std::uint8_t* __cdecl Renderer() { return (std::uint8_t*)DisplayObject(); }
 // 005E52E0 (thiscall): moves the cursor's rectangles to the mouse position; nonzero when shown.
 __declspec(naked) char __fastcall UpdatePosition(CCursor*) EI_ORIGINAL(0x005E52E0)
 // 005E5640 (thiscall on a surface holder): Blt into it, under the device lock [dest rect, source

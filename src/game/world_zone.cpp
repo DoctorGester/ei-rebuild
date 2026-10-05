@@ -17,6 +17,7 @@
 #include <new>
 #include "originals_world.h"
 #include "originals_units.h"
+#include "originals_core.h"
 
 namespace {
 
@@ -89,7 +90,7 @@ __declspec(naked) void __fastcall RootChunkDestruct(Chunk*, void*) EI_ORIGINAL(0
 __declspec(naked) bool __fastcall ReadMapObjectFile(Chunk*, void*, CWorldServer*, int /*keepIds*/)
     EI_ORIGINAL(0x00481660)
 // 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
-__declspec(naked) void __fastcall RefRelease(void*, void*) EI_ORIGINAL(0x0040A3A0)
+void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // 0059DDB0 (RET 4). Destructor of a counted pointer (releases through slot 4; flags & 1 frees it).
 __declspec(naked) void* __fastcall CountedPtrDestroy(void** /*slot*/, void*, unsigned /*flags*/)
     EI_ORIGINAL(0x0059DDB0)

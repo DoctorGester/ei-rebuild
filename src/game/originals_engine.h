@@ -40,3 +40,13 @@ __declspec(naked) inline int __fastcall TextsGetString(void* /*texts*/, void*, c
 __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/)
     EI_ORIGINAL(0x00488970)
 __declspec(naked) inline ParticleElement* __fastcall AllocateElementsAt(int /*count*/) EI_ORIGINAL(0x00497EB0)
+
+// Named float table (RET 4 / RET 8): 00460AF0 Get (result in ST0), 00460BC0 Set (the value is the raw dword the
+// original pushes, so no FPU load changes it on the way). 004DF8D0: the texts read the current line into a CString
+// (RET 8, EAX 0/1).
+__declspec(naked) inline float __fastcall NamedTableGet(void* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00460AF0)
+__declspec(naked) inline void __fastcall NamedTableSet(void* /*table*/, void*, const char* /*name*/,
+                                                       std::uint32_t /*valueBits*/) EI_ORIGINAL(0x00460BC0)
+__declspec(naked) inline int __fastcall TextsReadLineOriginal(void* /*texts*/, void*, mfc::CString* /*out*/,
+                                                              int /*advance*/) EI_ORIGINAL(0x004DF8D0)

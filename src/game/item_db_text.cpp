@@ -5,6 +5,7 @@
 #include "spell.h"
 
 #include "lib/crt.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 
@@ -12,7 +13,7 @@ using namespace itemdb;
 
 #pragma warning(disable : 4740) // naked forwarders
 
-__declspec(naked) BOOL CTextManager::ReadLine(mfc::CString*, BOOL) EI_ORIGINAL(0x004DF8D0)
+BOOL CTextManager::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
 __declspec(naked) BOOL CTextManager::ReadToHash(mfc::CString*, BOOL) EI_ORIGINAL(0x004DFB80)
 __declspec(naked) BOOL __fastcall ReplaceChar(mfc::CString*, char, char) EI_ORIGINAL(0x004DC400)
 __declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x004DEAB0)

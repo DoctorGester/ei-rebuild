@@ -3,6 +3,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -27,8 +28,8 @@ __declspec(naked) char* Unit::GetPrototypeModel() EI_ORIGINAL(0x00530970)
 __declspec(naked) int Unit::AddQuickItem(void*) EI_ORIGINAL(0x00531180)
 __declspec(naked) int Unit::AddCarried(void*) EI_ORIGINAL(0x00531220)
 __declspec(naked) int Unit::AddSpell(void*) EI_ORIGINAL(0x00531820)
-__declspec(naked) void* Unit::EquipArmour(void*) EI_ORIGINAL(0x00530730)
-__declspec(naked) int Unit::AddWeapon(void*) EI_ORIGINAL(0x00531070)
+void* Unit::EquipArmour(void* a0) { return UnitEquipArmourOriginal((void*)this, nullptr, a0); }
+int Unit::AddWeapon(void* a0) { return UnitAddWeaponOriginal((void*)this, nullptr, a0); }
 
 // The unit's body slots (controller +0x1E0, unit.h UnitStats).
 struct Slots {

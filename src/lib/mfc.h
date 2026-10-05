@@ -33,6 +33,7 @@ public:
     const CString& operator+=(const CString& s);  // 00700D88
     const CString& operator+=(const char* s);     // 00700D4C
     CString Left(int count) const;                // 006FDAE9 (RET 8: result slot, count)
+    CString Mid(int first) const;                 // 006FDA6D Mid(nFirst) (RET 8: result slot, first)
 
     operator const char*() const { return data_; }
 

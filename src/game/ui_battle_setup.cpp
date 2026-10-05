@@ -122,7 +122,7 @@ struct TextTable {
 };
 __declspec(naked) void TextTable::FindKeys(CStringArray*, const char*) EI_ORIGINAL(0x004DEFA0)
 int TextTable::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-__declspec(naked) BOOL TextTable::ReadLine(mfc::CString*, BOOL) EI_ORIGINAL(0x004DF8D0)
+BOOL TextTable::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
 TextTable* Texts() { return *reinterpret_cast<TextTable**>(0x007AF788); }
 
 __declspec(naked) int __fastcall TextKey(const char*) EI_ORIGINAL(0x00461360)

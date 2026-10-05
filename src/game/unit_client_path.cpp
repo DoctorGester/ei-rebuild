@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
+#include "originals_core.h"
 
 #include <cmath>
 #include <cstdint>
@@ -29,7 +30,7 @@ __declspec(naked) double __fastcall UnitGroundHeight(void*, void*, float, float)
 __declspec(naked) void __fastcall UnitTurnTowards(void*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 __declspec(naked) void __fastcall UnitFaceDirection(void*, void*, const float*) EI_ORIGINAL(0x00402220)
 __declspec(naked) double __fastcall UnitAnimationSpeed(void*, void*, const void*) EI_ORIGINAL(0x005327D0)
-__declspec(naked) float* __fastcall FacingAxis(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
+float* __fastcall FacingAxis(const void* a0, void*, float* a2) { return QuaternionAxisY(a0, nullptr, a2); }
 
 constexpr int kSlotMoveObject = 0xA4 / 4;     // world: (object, position)
 constexpr float kCellScale = 1.0f;            // 0073EBF0

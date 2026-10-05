@@ -6,6 +6,7 @@
 #include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
+#include "originals_core.h"
 
 #include <cstdint>
 #include <cstring>
@@ -23,7 +24,7 @@ T& At(void* object, int offset) {
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
 __declspec(naked) std::uint8_t* __fastcall AnimationEntry(void*, void*, std::uint32_t) EI_ORIGINAL(0x00518F80)
 __declspec(naked) float* __fastcall AxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
-__declspec(naked) float* __fastcall AxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
+float* __fastcall AxisY(const void* a0, void*, float* a2) { return QuaternionAxisY(a0, nullptr, a2); }
 __declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
 __declspec(naked) void __cdecl DebugMessage(const char*, ...) EI_ORIGINAL(0x0044C470)
 

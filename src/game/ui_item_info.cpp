@@ -258,7 +258,7 @@ struct Texts {
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 __declspec(naked) BOOL Texts::NextLine() EI_ORIGINAL(0x004DF510)
-__declspec(naked) BOOL Texts::ReadLine(mfc::CString*, BOOL) EI_ORIGINAL(0x004DF8D0)
+BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
 __declspec(naked) BOOL Texts::ReadToHash(mfc::CString*, BOOL) EI_ORIGINAL(0x004DFB80)
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 __declspec(naked) BOOL Texts::ItemTexts(CItem*, mfc::CString*, mfc::CString*, mfc::CString*) EI_ORIGINAL(0x004E0150)

@@ -19,6 +19,8 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "originals_effects.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -257,7 +259,7 @@ __declspec(naked) void __fastcall ManagerSaveObjects(CEngineObject*, void*, Worl
 __declspec(naked) void __fastcall ManagerReleaseUnused(CEngineObject*, void*) EI_ORIGINAL(0x004048F0)
 // 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
-__declspec(naked) void __fastcall MarkNew(CEngineObject*, void*) EI_ORIGINAL(0x00675CA0)
+void __fastcall MarkNew(CEngineObject* a0, void*) { ObjectMarkNewOriginal((void*)a0); }
 // 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save.
 __declspec(naked) void __fastcall ProjectileLoad(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E7D0)
 __declspec(naked) void __fastcall ProjectileSave(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E960)
@@ -267,7 +269,7 @@ __declspec(naked) ProjectileList::Node* __fastcall ProjectileNewNode(ProjectileL
 // 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
 __declspec(naked) void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // 0040A3A0. CRefObject::Release.
-__declspec(naked) void __fastcall RefRelease(void*, void*) EI_ORIGINAL(0x0040A3A0)
+void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
 // pointer's assignment (reference added, old one released through slot 4).
 __declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall CountedNewNode(
@@ -297,12 +299,12 @@ __declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*
 // 0066EE10 (RET 8). CPlayerServer::SetVariable (player_messages.cpp).
 __declspec(naked) void __fastcall PlayerStateSetVariable(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
 // 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
-__declspec(naked) double __fastcall VariableGet(void* /*table*/, void*, const char* /*name*/) EI_ORIGINAL(0x00460AF0)
+double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0055FB00 (RET 4). CWorld::FindUnit.
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
 // 00554450. The unit controller's reposition after a move.
-__declspec(naked) void __fastcall ControllerReposition(void*, void*) EI_ORIGINAL(0x00554450)
+void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: original address.
 // 006FEBFA / 006FE9B8. CStringArray::SetAtGrow(int, const CString&) / SetSize(int, int).
 __declspec(naked) void __fastcall StringArraySetAtGrow(StringArray*, void*, int, const mfc::CString*)

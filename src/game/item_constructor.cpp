@@ -425,12 +425,10 @@ const char* const kCantCreate = reinterpret_cast<const char*>(0x00796684);      
 // CString members used here (MFC; the original implementations).
 struct ItemText : mfc::CString {
     int Find(char c) const;               // 00700E91
-    mfc::CString Right(int count) const;  // 006FDA6D
     void TrimSpaceLeft();                 // 006FE216 TrimLeft() (moves the text, memmove)
     void TrimSpaceRight();                // 006FE11F TrimRight()
 };
 __declspec(naked) int ItemText::Find(char) const EI_ORIGINAL(0x00700E91)
-__declspec(naked) mfc::CString ItemText::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) void ItemText::TrimSpaceLeft() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void ItemText::TrimSpaceRight() EI_ORIGINAL(0x006FE11F)
 ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
@@ -538,7 +536,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     console::CStringArray parts;      // the name split at '.'
     int bracket = AsText(text).Find('[');
     if (bracket != -1) {
-        extra = AsText(text).Right(console::Length(text) - bracket - 1);
+        extra = AsText(text).Mid(console::Length(text) - bracket - 1);
         console::Ops(extra).TrimLeft('[');
         console::Ops(extra).TrimRight(']');
         AsText(extra).TrimSpaceLeft();

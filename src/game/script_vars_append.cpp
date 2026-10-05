@@ -28,7 +28,7 @@ __declspec(naked) mfc::CString* __fastcall StringAt(const void*, void*, void* /*
 __declspec(naked) ScriptObjectRef* __fastcall RefAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C21E0)
 __declspec(naked) ScriptGroup* __fastcall GroupAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C3B00)
 // Rewritten script helpers, called through their addresses.
-__declspec(naked) void __fastcall GroupSetSize(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
+void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)

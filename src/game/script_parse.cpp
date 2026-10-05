@@ -29,11 +29,10 @@ namespace scriptparse {
 __declspec(naked) int __cdecl IsDigit(int) EI_ORIGINAL(0x006E9379)
 __declspec(naked) int __cdecl IsSpace(int) EI_ORIGINAL(0x006E93CE)
 __declspec(naked) int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
-__declspec(naked) int __cdecl Mbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
+int __cdecl Mbscmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 
 __declspec(naked) StringOps* StringOps::InitN(const char*, int) EI_ORIGINAL(0x006FD4DE)
 __declspec(naked) mfc::CString StringOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
-__declspec(naked) mfc::CString StringOps::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) int StringOps::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
 __declspec(naked) char* StringOps::LockBuffer() EI_ORIGINAL(0x00700E6A)
 __declspec(naked) void StringOps::UnlockBuffer() EI_ORIGINAL(0x00700E7C)
@@ -407,7 +406,7 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
             const StringOps& text = Ops(*line);
             int at = text.Find(node->data.name);
             if (at < 0) break;
-            mfc::CString right = text.Right(Length(*line) - Length(node->data.name) - at);
+            mfc::CString right = static_cast<const mfc::CString&>(text).Mid(Length(*line) - Length(node->data.name) - at);
             mfc::CString left = text.Left(at);
             *line = (left + node->data.value) + right;
         }

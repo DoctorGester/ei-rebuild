@@ -9,13 +9,15 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_gameplay.h"
+#include "originals_engine.h"
+#include "originals_library.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
 // 006E848B _mbscmp.
-__declspec(naked) int __cdecl MbsCmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
+int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 // 00661050 constructor of the embedded party (returns this).
 __declspec(naked) void* __fastcall PartyConstruct(void*) EI_ORIGINAL(0x00661050)
 // 00700AF9 CString::operator=(LPCTSTR) on a raw CString slot.
@@ -32,7 +34,7 @@ __declspec(naked) void __fastcall RecordInsertOverflow(PartyRecordList*, void*, 
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
 __declspec(naked) void __fastcall PartyAddMember(void*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
-__declspec(naked) void __fastcall PartySetVar(void*, void*, const char*, std::uint32_t) EI_ORIGINAL(0x00460BC0)
+void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 
 const char* const kEmpty = reinterpret_cast<const char*>(0x0079B298);
 const char* const kHero = reinterpret_cast<const char*>(0x0078B0F4);           // "Hero"

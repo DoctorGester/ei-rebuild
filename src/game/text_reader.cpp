@@ -14,7 +14,7 @@
 namespace {
 
 // MBCS CRT: 006E99F2 _ismbblead, 006E9A6C isleadbyte, 006E9947 _mbsinc, 006E848B _mbscmp.
-__declspec(naked) int __cdecl MbsCmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
+int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 
 // CString members not in lib/mfc.h.
 struct TextString : mfc::CString {

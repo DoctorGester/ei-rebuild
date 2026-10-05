@@ -10,6 +10,8 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_world.h"
+#include "originals_effects.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -63,7 +65,7 @@ __declspec(naked) double __fastcall AIMapLineFree(void*, void*, const Vector3*, 
 // 0067DA50 (RET 8). A lightning object's path.
 __declspec(naked) void __fastcall LightningSetPath(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x0067DA50)
 // 00675CA0. Marks an object new.
-__declspec(naked) void __fastcall MarkNew(void*, void*) EI_ORIGINAL(0x00675CA0)
+void __fastcall MarkNew(void* a0, void*) { ObjectMarkNewOriginal(a0); }
 // 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
 __declspec(naked) void __fastcall ShowBoltAt(void*, void*, Vector3 /*from*/, Vector3 /*to*/) EI_ORIGINAL(0x00578E30)
 // 0058B6D0 / 0058D280. MarkPlayersDirty / UpdatePlayerTimes, through their addresses.
@@ -182,7 +184,7 @@ constexpr std::uintptr_t kLightningScript = 0x00790394;
 constexpr std::uintptr_t kScriptQueue = 0x007C29CC;   // a command queue (004D23A0 adds a line)
 
 // 004D23A0 (RET 8). Adds a script line to a command queue.
-__declspec(naked) int __fastcall QueueAddLine(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+int __fastcall QueueAddLine(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
 float Half() { return GameFloat(0x0073B86C); }   // 0.5
 

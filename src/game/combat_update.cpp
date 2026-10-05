@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_core.h"
 
 #include <bit>
 #include <cstdint>
@@ -80,7 +81,6 @@ __declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x0053
 __declspec(naked) void __fastcall UnitSetPlayer(CUnit*, void*, char*) EI_ORIGINAL(0x005300D0)
 __declspec(naked) void __fastcall UnitTurnUpTowards(CUnit*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
-__declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float* /*out*/) EI_ORIGINAL(0x0040F560)
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 __declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUnit*, int /*inCombat*/) EI_ORIGINAL(0x00523740)
 __declspec(naked) void __fastcall StatsRecomputeAt(UnitStats*, void*, void*, CUnit*) EI_ORIGINAL(0x00524560)

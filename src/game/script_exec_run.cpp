@@ -10,6 +10,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_world.h"
+#include "originals_effects.h"
 
 #include <cstdint>
 #include <cstring>
@@ -52,7 +53,7 @@ __declspec(naked) void __fastcall RunCommandsOrig(CScript*, void*, ScriptDecl*, 
 __declspec(naked) void __fastcall IfThenRunOrig(const ScriptIfThen*, void*, CScript*, ScriptDefinition*) EI_ORIGINAL(0x004BB520)
 __declspec(naked) void __fastcall ReleaseIfDeletedOrig(ScriptObjectRef*) EI_ORIGINAL(0x004B2570)
 __declspec(naked) void __fastcall GroupRemoveDeletedOrig(ScriptGroup*) EI_ORIGINAL(0x004B3110)
-__declspec(naked) void __fastcall GroupSetSizeOrig(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
+void __fastcall GroupSetSizeOrig(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall GroupCopy(ScriptGroup*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C1290)
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 __declspec(naked) void __stdcall DestructRefs(ScriptObjectRef*, int) EI_ORIGINAL(0x004CC7D0)
@@ -84,7 +85,7 @@ __declspec(naked) void World::AddTimedObject(void*) EI_ORIGINAL(0x0058E520)
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
 // 00675CA0: an effect object took a new position.
-__declspec(naked) void __fastcall EffectMoved(void*) EI_ORIGINAL(0x00675CA0)
+void __fastcall EffectMoved(void* a0) { ObjectMarkNewOriginal(a0); }
 
 struct Random {
     std::uint32_t Next();                 // 004667F0

@@ -3,12 +3,12 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
 namespace {
 
-__declspec(naked) int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 
 // The empty string constant the game assigns to clear string variables.
 const char* EmptyString() { return reinterpret_cast<const char*>(0x0079B298); }
@@ -103,7 +103,7 @@ namespace {
 // CArray template members (out of line), __thiscall (size, growBy) / (index, element).
 __declspec(naked) void __fastcall FloatValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
 __declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
-__declspec(naked) void __fastcall RefsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2050)
+void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
 __declspec(naked) void __fastcall NamesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x004CE5F0)
 // 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.

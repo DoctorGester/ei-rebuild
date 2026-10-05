@@ -60,7 +60,6 @@ constexpr int kSlotRelease = 4;
 // CUnit: 0050E9F0 MarkChanged, 0052EA90 the animation bytes, 00530570 the size class, 005301B0
 // the animation entry for a key (combat_steps.cpp), 0052E9D0 the path speeds.
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
-__declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
 // UnitStats (unit_vitals.cpp / unit_stats_pack.cpp): 005241C0 the stamina state for a movement
 // (1: running), 005233E0 Reset.
 __declspec(naked) int __fastcall StatsMovementState(UnitStats*, void*, int) EI_ORIGINAL(0x005241C0)

@@ -719,10 +719,8 @@ namespace {
 // CString members used only here, called on existing strings through this view (no extra data).
 struct Text : mfc::CString {
     int Find(const char* sub) const;      // 006FDBD9
-    mfc::CString Right(int count) const;  // 006FDA6D
 };
 __declspec(naked) int Text::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
-__declspec(naked) mfc::CString Text::Right(int) const EI_ORIGINAL(0x006FDA6D)
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
@@ -911,7 +909,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     if (ext != -1) {
         if (!registryName) {
             if (Ops(s.path).Find(GameText(kScenesDirText)) == 0) {
-                s.path = GameText(kIniDirText) + Ops(s.path).Right(Length(s.path) - 7);
+                s.path = GameText(kIniDirText) + Ops(s.path).Mid(Length(s.path) - 7);
                 --ext;
             }
             s.path = s.path.Left(ext) + GameText(kRegExtText);
@@ -979,7 +977,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int t = 0; t < s.textureNames.body.size; ++t) {
         void* owner = *At<void*>(u, unit::kTextureOwner);
         void* texture = FindTexture(owner, nullptr, s.textureNames.Id(t));
-        bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Ops(s.textureNames.Name(t)).Right(4))),
+        bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Ops(s.textureNames.Name(t)).Mid(4))),
                                     reinterpret_cast<const unsigned char*>(GameText(kBmpExtText))) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);

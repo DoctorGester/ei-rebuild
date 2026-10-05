@@ -11,6 +11,7 @@
 #include "originals_script.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "originals_core.h"
 
 namespace {
 
@@ -31,7 +32,7 @@ __declspec(naked) void __fastcall DiplomacyReset(void*, void*) EI_ORIGINAL(0x004
 // 0059D7A0. The timed-object map's clear (nodes freed, buckets kept).
 __declspec(naked) void __fastcall TimedMapClear(void*, void*) EI_ORIGINAL(0x0059D7A0)
 // 0040A3A0. CRefObject::Release (the missiles).
-__declspec(naked) void __fastcall RefRelease(void*, void*) EI_ORIGINAL(0x0040A3A0)
+void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // Rewritten elsewhere, through their addresses: ClearMapObjects / LoadMapObjects (world_zone).
 __declspec(naked) void __fastcall ClearMapObjectsAt(CWorldServer*, void*) EI_ORIGINAL(0x00596C60)
 __declspec(naked) int __fastcall LoadMapObjectsAt(CWorldServer*, void*, const char*, int) EI_ORIGINAL(0x00596030)

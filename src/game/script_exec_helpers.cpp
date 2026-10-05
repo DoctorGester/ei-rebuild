@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>
@@ -273,7 +274,7 @@ mfc::CString& QuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C);
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004D23A0 CScript::Load (rewritten; through its address so its verify wrapper runs).
-__declspec(naked) BOOL __fastcall LoadOrig(CScript*, void*, mfc::CString*, BOOL) EI_ORIGINAL(0x004D23A0)
+BOOL __fastcall LoadOrig(CScript* a0, void*, mfc::CString* a2, BOOL a3) { return (BOOL)ScriptLoadLine((void*)a0, nullptr, (const mfc::CString*)a2, (int)a3); }
 // 00700B9F operator+(const CString&, const CString&), constructing the result in `out`.
 __declspec(naked) mfc::CString* __stdcall ConcatString(mfc::CString* /*out*/, const mfc::CString*, const mfc::CString*) EI_ORIGINAL(0x00700B9F)
 
