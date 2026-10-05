@@ -494,6 +494,8 @@ inline const RecordTable& Prototypes() { return *reinterpret_cast<const RecordTa
 inline const RecordTable& Models() { return *reinterpret_cast<const RecordTable*>(0x007AF398); }
 inline const RecordTable& Skills() { return *reinterpret_cast<const RecordTable*>(0x007AF268); }
 inline const RecordTable& SkillLevels() { return *reinterpret_cast<const RecordTable*>(0x007AF274); }
+// 0073E048: for each armour type, the three body slots it covers (7: none); UnitStats::AddArmourLayer.
+inline const int* ArmourCoverage() { return reinterpret_cast<const int*>(0x0073E048); }
 } // namespace unitdb
 
 // One of the three protection layers of a body slot (0x48 bytes): what each of the seven damage
