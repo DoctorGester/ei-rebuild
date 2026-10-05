@@ -3,7 +3,8 @@
 // - CHudWeaponBar::SetUnit (0063C180) and CHudActionColumn::SetUnit (0063F800) drop every sprite
 //   and reset their regions' tips first, so the original runs, its result is recorded (fields,
 //   each sprite's position, orientation, texture corner and colour, each region's rectangle and
-//   its tooltip's lines, size and arguments; the action column's action array), then ours runs
+//   its tooltip's lines and, for a tip with text, its size and arguments; the action column's
+//   action array), then ours runs
 //   over it and both must agree. Reached when the selection changes (00637DC0) and from the
 //   battle update (00638280): every scenario with a game (ui_hud, ui_screens, ...).
 // - CHudQuickItems::ItemTip (0063CEE0): the original writes into a copy of the caller's CString,
@@ -62,6 +63,10 @@ std::vector<std::uint8_t> PanelState(CUiWindow* panel) {
         Append(out, &lines, 4);
         char** text = Get<char**>(tip, 0x14C);
         for (int l = 0; l < lines; ++l) AppendText(out, text[l]);
+        // The tooltip's constructor (0065E320) writes the two arguments and the size only for a
+        // non-empty text; a cleared tip (SetTip(0, 1, 0): a fresh 0x184-byte allocation with an
+        // empty text and no lines) keeps leftover heap bytes there.
+        if (lines == 0) continue;
         Append(out, tip + 0x164, 8);       // the two arguments
         Append(out, tip + 0x174, 8);       // width, height
     }
