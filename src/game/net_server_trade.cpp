@@ -92,7 +92,7 @@ EI_REPLACE(0x00429910, RefPtrCopyPlain);   // byte-identical copy
 
 // 0041ACF0: the trade between the two offers (in either order), or null.
 void* ServerSession::FindTrade(void* offer, void* other) {
-    void** sentinel = static_cast<void**>(list_25BC);
+    void** sentinel = static_cast<void**>(trades_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
         void* trade = node[2];
         void* first = At<void*>(trade, 0x14);
@@ -106,8 +106,8 @@ void* ServerSession::FindTrade(void* offer, void* other) {
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
     const RefPtr* value = ObjectRefFromRaw(&ref, message);
-    void* objects = &self->list_259C;
-    void** sentinel = static_cast<void**>(self->list_259C);
+    void* objects = &self->fileRequests_;
+    void** sentinel = static_cast<void**>(self->fileRequests_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
         void** next = static_cast<void**>(node[0]);
         if (node[2] == value->ptr) {
@@ -121,7 +121,7 @@ void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
 // 0041B7A0 (offer created): lists the offer; when the partner's offer is listed, a trade of the two
 // is made (both marked paired), else the partner is told of the offer.
 void __fastcall ServerOnTradeOffer(ServerSession* self, Message* message) {
-    void* offers = &self->list_25B8;
+    void* offers = &self->offers_;
     RefPtr ref;
     const RefPtr* value = OfferRefFromRaw(&ref, message);
     void* end;
@@ -152,7 +152,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, Message* message) {
     reinterpret_cast<RefPtr*>(trade + 0x18)->Assign(static_cast<CRefObject*>(other));
     reinterpret_cast<RefPtr*>(trade + 0xC)->Assign(At<CRefObject*>(message, 0x28));
     reinterpret_cast<RefPtr*>(trade + 0x10)->Assign(At<CRefObject*>(message, 0x2C));
-    void* trades = &self->list_25BC;
+    void* trades = &self->trades_;
     RefPtr tradeRef;
     value = TradeRefFromRaw(&tradeRef, trade);
     TradesEnd(trades, nullptr, &end);
@@ -166,7 +166,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, Message* message) {
 // two values.
 void __fastcall ServerOnTradeUpdate(ServerSession* self, Message* message) {
     ++At<std::uint32_t>(message, 8);
-    void* other = FindPartnerOffer(&self->list_25B8, message);
+    void* other = FindPartnerOffer(&self->offers_, message);
     void* trade = self->FindTrade(message, other);
     if (!Live(trade)) return;
     void* first = At<void*>(trade, 0x14);
@@ -186,8 +186,8 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, Message* message) {
 void __fastcall ServerOnTradeCancel(ServerSession* self, Message* message) {
     RefPtr ref;
     const RefPtr* value = OfferRefFromRaw(&ref, message);
-    void* offers = &self->list_25B8;
-    void** sentinel = static_cast<void**>(self->list_25B8);
+    void* offers = &self->offers_;
+    void** sentinel = static_cast<void**>(self->offers_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
         void** next = static_cast<void**>(node[0]);
         if (node[2] == value->ptr) {
@@ -210,14 +210,14 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, Message* message) {
         } entry;
         entry.delay = kFinishedDelay;
         RefPtrCopyPlain(&entry.trade, nullptr, &held);
-        FinishedPushBack(&self->list_25C0, nullptr, &entry);
+        FinishedPushBack(&self->finishedTrades_, nullptr, &entry);
         if (entry.trade.ptr) entry.trade.ptr->Release();
         ReleaseInline(held.ptr);
     }
     RefPtr removing;
     removing.ptr = trade;
     ++trade->refs_;
-    TradesRemove(&self->list_25BC, nullptr, &removing);
+    TradesRemove(&self->trades_, nullptr, &removing);
     ReleaseInline(removing.ptr);
 }
 

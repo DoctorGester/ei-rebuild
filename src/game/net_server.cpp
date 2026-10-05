@@ -2,7 +2,9 @@
 // net_classes.h and docs/notes/unmapped_410_470.md ("Third round").
 #include "net_classes.h"
 
+#include "core_streams.h"
 #include "ei/hook.h"
+#include "ei/vcall.h"
 
 #include <cstring>
 
@@ -15,11 +17,9 @@ void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, voi
 
 namespace {
 
-// 004409A0: opens the session's UDP socket, bound to `port` when it is positive. Returns 1 / 0.
-__declspec(naked) int __fastcall SocketDriverOpen(SocketDriver* /*driver*/, void*, int /*port*/) EI_ORIGINAL(0x004409A0)
 // 00421800: STLport string constructor with room for n bytes, library.
 __declspec(naked) StringRep* __fastcall StringReserve(StringRep* /*s*/, void*, const void* /*alloc*/, std::size_t /*n*/) EI_ORIGINAL(0x00421800)
-// 00418530: fills the server's list at +0x25AC from the game's settings; not rewritten yet.
+// 00418530: fills the queued maps from the game flow (ServerSession::QueueMapList), through its address.
 __declspec(naked) void __fastcall ServerLoadList(ServerSession* /*server*/) EI_ORIGINAL(0x00418530)
 
 // STLport list constructors, list taking the allocator; one per element type, library.
@@ -37,8 +37,6 @@ __declspec(naked) void* __fastcall ListConstruct423440(void* /*list*/, void*, co
 __declspec(naked) void* __fastcall ListConstruct423700(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00423700)
 __declspec(naked) void* __fastcall ListConstruct421B20(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00421B20)
 
-void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
-
 void* Handler(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
 // 00783E30: the game's UDP port (read at run time, as the original does).
@@ -46,60 +44,59 @@ int GamePort() { return *reinterpret_cast<const volatile int*>(0x00783E30); }
 
 } // namespace
 
-ServerSession* ServerSession::Construct(std::uint32_t arg) {
+// The server base's constructor is inlined: the session base, the pending joins, the socket bound
+// to the game port.
+ServerSession* ServerSession::Construct(std::uint32_t kind) {
     char allocator = 0;   // the containers' (empty) allocator argument
-    base.Construct();
-    ListConstruct41FD30(&list_2568, nullptr, &allocator);
-    SetVtable(this, kServerBaseVtable);
-    SocketDriverOpen(&base.socket, nullptr, GamePort());
-    unknown_257C[0] = 0;
-    unknown_257C[1] = 0;
-    unknown_257C[2] = 0;
-    unknown_257C[3] = 0;
-    ListConstruct422400(&list_2590, nullptr, &allocator);
-    ListConstruct4225E0(&list_2594, nullptr, &allocator);
-    ListConstruct422800(&list_2598, nullptr, &allocator);
-    ListConstruct4229E0(&list_259C, nullptr, &allocator);
-    unknown_25A0 = 0;
-    ListConstruct422BE0(&list_25A4, nullptr, &allocator);
-    unknown_25A8 = 0;
-    ListConstruct422DC0(&list_25AC, nullptr, &allocator);
-    ListConstruct4221E0(&list_25B0, nullptr, &allocator);
-    ListConstruct422FE0(&list_25B4, nullptr, &allocator);
-    ListConstruct4231C0(&list_25B8, nullptr, &allocator);
-    ListConstruct423440(&list_25BC, nullptr, &allocator);
-    ListConstruct423700(&list_25C0, nullptr, &allocator);
-    ListConstruct421B20(&list_25C4, nullptr, &allocator);
-    StringReserve(&string_25C8, nullptr, &allocator, 8);
-    *string_25C8.finish = 0;
-    StringReserve(&string_25D4, nullptr, &allocator, 8);
-    *string_25D4.finish = 0;
-    SetVtable(this, kServerVtable);
-    base.unknown_08 = kSessionMagic;
-    base.RegisterMessageTypes();
+    SessionBase::Construct();
+    ListConstruct41FD30(&joins_, nullptr, &allocator);
+    ei::SetVtable(this, ServerBase::kVtableAddress);
+    socket_.Open(GamePort());
+    masterAddress_ = NetAddress{};
+    ListConstruct422400(&players_, nullptr, &allocator);
+    ListConstruct4225E0(&lines_, nullptr, &allocator);
+    ListConstruct422800(&files_, nullptr, &allocator);
+    ListConstruct4229E0(&fileRequests_, nullptr, &allocator);
+    unknown_25A0.ptr = nullptr;
+    ListConstruct422BE0(&bindings_, nullptr, &allocator);
+    map_.ptr = nullptr;
+    ListConstruct422DC0(&queuedMaps_, nullptr, &allocator);
+    ListConstruct4221E0(&variables_, nullptr, &allocator);
+    ListConstruct422FE0(&awards_, nullptr, &allocator);
+    ListConstruct4231C0(&offers_, nullptr, &allocator);
+    ListConstruct423440(&trades_, nullptr, &allocator);
+    ListConstruct423700(&finishedTrades_, nullptr, &allocator);
+    ListConstruct421B20(&banned_, nullptr, &allocator);
+    StringReserve(&name_, nullptr, &allocator, 8);
+    *name_.finish = 0;
+    StringReserve(&mapName_, nullptr, &allocator, 8);
+    *mapName_.finish = 0;
+    ei::SetVtable(this, kVtableAddress);
+    magic_ = kSessionMagic;
+    RegisterMessageTypes();
 
-    base.AddHandlerFor(0x34, ConstructMessage73BBF8, 0, Handler(0x0041ADB0));
-    base.AddHandlerFor(0x34, ConstructMessage73BBF8, 1, Handler(0x0041AD80));
-    base.AddHandlerFor(0x34, ConstructMessage73BBF8, 2, Handler(0x0041B0C0));
-    base.AddHandlerFor(0x18, ConstructMessage73BC28, 0, Handler(0x0041B1C0));
-    base.AddHandlerFor(0x1C, ConstructMessage73BC40, 0, Handler(0x0041B2A0));
-    base.AddHandlerFor(0x14, ConstructMessage73BC58, 0, Handler(0x0041B690));
+    AddHandlerFor(0x34, ConstructMessage73BBF8, 0, Handler(0x0041ADB0));
+    AddHandlerFor(0x34, ConstructMessage73BBF8, 1, Handler(0x0041AD80));
+    AddHandlerFor(0x34, ConstructMessage73BBF8, 2, Handler(0x0041B0C0));
+    AddHandlerFor(0x18, ConstructMessage73BC28, 0, Handler(0x0041B1C0));
+    AddHandlerFor(0x1C, ConstructMessage73BC40, 0, Handler(0x0041B2A0));
+    AddHandlerFor(0x14, ConstructMessage73BC58, 0, Handler(0x0041B690));
 
-    RegisterRequestHandler(&base, nullptr, 2, Handler(0x0041B720));
-    RegisterPartyHandler(&base, nullptr, 0, Handler(0x0041B7A0));
-    RegisterPartyHandler(&base, nullptr, 1, Handler(0x0041B970));
-    RegisterPartyHandler(&base, nullptr, 2, Handler(0x0041BA30));
-    RegisterMemberHandler(&base, nullptr, 0, Handler(0x0041BA20));
-    RegisterMemberHandler(&base, nullptr, 1, Handler(0x0041BA20));
+    RegisterRequestHandler(this, nullptr, 2, Handler(0x0041B720));
+    RegisterPartyHandler(this, nullptr, 0, Handler(0x0041B7A0));
+    RegisterPartyHandler(this, nullptr, 1, Handler(0x0041B970));
+    RegisterPartyHandler(this, nullptr, 2, Handler(0x0041BA30));
+    RegisterMemberHandler(this, nullptr, 0, Handler(0x0041BA20));
+    RegisterMemberHandler(this, nullptr, 1, Handler(0x0041BA20));
 
-    unknown_258C = 0;
-    unknown_25E4 = arg;
-    unknown_25E0 = 8;
+    nextLine_ = 0;
+    kind_ = kind;
+    maxPlayers_ = 8;
     ServerLoadList(this);
-    unknown_2570 = 0;
-    unknown_2574 = 0;
+    std::memset(&announceTimer_, 0, sizeof(announceTimer_));
+    public_ = 0;
     unknown_2578 = 0;
-    for (std::uint32_t& v : unknown_25E8) v = 0;
+    std::memset(password_, 0, sizeof(password_));
     return this;
 }
 EI_REPLACE_METHOD(0x00412D80, ServerSession::Construct);
@@ -117,30 +114,29 @@ template <typename T> T& At(const void* object, std::size_t offset) {
 
 } // namespace
 
-// 00417EB0 (slot 13). What the connection being updated receives: the shared objects (+0x2590,
-// +0x25B0), its own player slot (+0x25A4: the slot whose connection it is; its record at +0xC,
-// hosting when the record's +0x28 is set), the newer entries of +0x2594 meant for everyone or for
-// it (+0xC above the record's +0x38), every object of +0x2598 with, for the one +0x259C pairs with
-// this connection, its vector at +0x20 (priority 1), the host's extras (+0x25AC), +0x25A0 / +0x25A8,
-// the entries of +0x25B4 (value at +0xC) for this connection, the groups of +0x25B8 owned by the
-// record whose members all exist (the group and its members), and the entries of +0x25BC / +0x25C0
-// naming the record at +0xC or +0x10. Priority 2 unless noted.
-void __fastcall ServerCollectReplicated(ServerSession* self, void*, ReplicatedVector** out) {
+// 00417EB0 (slot 13). What the connection being updated receives: the players and the variables,
+// its own binding (the binding whose connection it is; its player record at +0xC, hosting when the
+// record's +0x28 is set), the newer chat lines meant for everyone or for it (number +0xC above the
+// record's +0x38), every shared file with, for the one a request of this connection names, its
+// chunks (priority 1), the queued maps for the host, +0x25A0 and the map message, the awards for
+// this connection (value at +0xC), the trade offers of the record whose items all exist (the offer
+// and its items), and the trades naming the record at +0xC or +0x10. Priority 2 unless noted.
+void ServerSession::CollectReplicated(ReplicatedVector** out) {
     void* record = nullptr;
     bool hosting = false;
-    for (void* n = Next(Head(&self->list_2590)); n != Head(&self->list_2590); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
-    for (void* n = Next(Head(&self->list_25B0)); n != Head(&self->list_25B0); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
-    void* players = Head(&self->list_25A4);
-    if (Next(players) != players) {
-        for (void* n = Next(players); n != Head(&self->list_25A4); n = Next(n)) {
+    for (void* n = Next(Head(&players_)); n != Head(&players_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
+    for (void* n = Next(Head(&variables_)); n != Head(&variables_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
+    void* bindings = Head(&bindings_);
+    if (Next(bindings) != bindings) {
+        for (void* n = Next(bindings); n != Head(&bindings_); n = Next(n)) {
             std::uint8_t* slot = ValueOf(n);
             if (At<void*>(slot, 0x10) != CurrentConnection()) continue;
             record = At<void*>(slot, 0xC);
             if (At<std::uint8_t>(record, 0x28)) hosting = true;
             PushReplicated(*out, slot, 2);
         }
-        if (record && !(At<std::uint32_t>(record, 4) & 0x80000000u)) {
-            for (void* n = Next(Head(&self->list_2594)); n != Head(&self->list_2594); n = Next(n)) {
+        if (record && !(static_cast<CRefObject*>(record)->flags7_ & CRefObject::kDetached)) {
+            for (void* n = Next(Head(&lines_)); n != Head(&lines_); n = Next(n)) {
                 std::uint8_t* e = ValueOf(n);
                 void* target = At<void*>(e, 0x1C);
                 if ((!target || target == CurrentConnection()) && At<std::int32_t>(e, 0xC) > At<std::int32_t>(record, 0x38))
@@ -148,46 +144,51 @@ void __fastcall ServerCollectReplicated(ServerSession* self, void*, ReplicatedVe
             }
         }
     }
-    for (void* n = Next(Head(&self->list_2598)); n != Head(&self->list_2598); n = Next(n)) {
+    for (void* n = Next(Head(&files_)); n != Head(&files_); n = Next(n)) {
         PushReplicated(*out, ValueOf(n), 2);
-        void* pairs = Head(&self->list_259C);
-        for (void* m = Next(pairs); m != pairs; m = Next(m)) {
-            std::uint8_t* pair = ValueOf(m);
-            if (At<void*>(pair, 0xC) != ValueOf(n) || At<void*>(pair, 0x10) != CurrentConnection()) continue;
+        void* requests = Head(&fileRequests_);
+        for (void* m = Next(requests); m != requests; m = Next(m)) {
+            std::uint8_t* request = ValueOf(m);
+            if (At<void*>(request, 0xC) != ValueOf(n) || At<void*>(request, 0x10) != CurrentConnection()) continue;
             for (void** p = At<void**>(ValueOf(n), 0x20); p != At<void**>(ValueOf(n), 0x24); ++p) PushReplicated(*out, *p, 1);
             break;
         }
     }
     if (hosting)
-        for (void* n = Next(Head(&self->list_25AC)); n != Head(&self->list_25AC); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
-    if (void* object = reinterpret_cast<void*>(self->unknown_25A0)) PushReplicated(*out, object, 2);
-    if (void* object = reinterpret_cast<void*>(self->unknown_25A8)) PushReplicated(*out, object, 2);
-    for (void* n = Next(Head(&self->list_25B4)); n != Head(&self->list_25B4); n = Next(n)) {
+        for (void* n = Next(Head(&queuedMaps_)); n != Head(&queuedMaps_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
+    if (CRefObject* object = unknown_25A0.ptr) PushReplicated(*out, object, 2);
+    if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
+    for (void* n = Next(Head(&awards_)); n != Head(&awards_); n = Next(n)) {
         std::uint8_t* e = ValueOf<0xC>(n);
         if (At<void*>(e, 0xC) == CurrentConnection()) PushReplicated(*out, e, 2);
     }
-    for (void* n = Next(Head(&self->list_25B8)); n != Head(&self->list_25B8); n = Next(n)) {
-        std::uint8_t* group = ValueOf(n);
-        if (At<void*>(group, 0x2C) != record) continue;
+    for (void* n = Next(Head(&offers_)); n != Head(&offers_); n = Next(n)) {
+        std::uint8_t* offer = ValueOf(n);
+        if (At<void*>(offer, 0x2C) != record) continue;
         bool complete = true;
-        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(At<void**>(group, 0x10) - At<void**>(group, 0xC)); ++i) {
-            void* member = At<void**>(group, 0xC)[i];
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(At<void**>(offer, 0x10) - At<void**>(offer, 0xC)); ++i) {
+            void* member = At<void**>(offer, 0xC)[i];
             if (!member || (At<std::uint8_t>(member, 7) & 0x80)) complete = false;
         }
         if (!complete) continue;
-        PushReplicated(*out, group, 2);
+        PushReplicated(*out, offer, 2);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(At<void**>(ValueOf(n), 0x10) - At<void**>(ValueOf(n), 0xC)); ++i)
             PushReplicated(*out, At<void**>(ValueOf(n), 0xC)[i], 2);
     }
-    for (void* n = Next(Head(&self->list_25BC)); n != Head(&self->list_25BC); n = Next(n)) {
+    for (void* n = Next(Head(&trades_)); n != Head(&trades_); n = Next(n)) {
         std::uint8_t* e = ValueOf(n);
         if (At<void*>(e, 0xC) == record || At<void*>(e, 0x10) == record) PushReplicatedInline(*out, e, 2);
     }
-    for (void* n = Next(Head(&self->list_25C0)); n != Head(&self->list_25C0); n = Next(n)) {
+    for (void* n = Next(Head(&finishedTrades_)); n != Head(&finishedTrades_); n = Next(n)) {
         std::uint8_t* e = ValueOf<0xC>(n);
         if (At<void*>(e, 0xC) == record || At<void*>(e, 0x10) == record) PushReplicatedInline(*out, e, 2);
     }
 }
-EI_REPLACE(0x00417EB0, ServerCollectReplicated);
+namespace {
+void __fastcall ServerCollectReplicatedHook(ServerSession* self, void*, ReplicatedVector** out) {
+    self->ServerSession::CollectReplicated(out);
+}
+} // namespace
+EI_REPLACE(0x00417EB0, ServerCollectReplicatedHook);
 
 } // namespace net

@@ -56,8 +56,8 @@ static_assert(sizeof(FileMessage) == 0x2C);
 // first filled with one shared chunk (a copy per element when shared, as RefPtr copies are),
 // whose elements are then filled in turn.
 void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
-    void* files = &list_2598;
-    void** sentinel = static_cast<void**>(list_2598);
+    void* files = &files_;
+    void** sentinel = static_cast<void**>(files_);
     const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
         auto* other = static_cast<FileMessage*>(node[2]);

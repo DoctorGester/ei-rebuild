@@ -3,7 +3,6 @@
 #include "net_session.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/gameapi.h"
 
 namespace {
@@ -21,13 +20,13 @@ struct NetGame {
 };
 __declspec(naked) void NetGame::Step() EI_ORIGINAL(0x0057F190)
 
-void TickSession(void* session, std::uint32_t elapsed) {
+// A session that is there and not shutting down is ticked (slot 14) with `elapsed` milliseconds.
+void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
     if (!session) return;
-    std::uint32_t flags = reinterpret_cast<const std::uint32_t*>(session)[1];
-    if (flags & net::kSessionInactive) return;
+    if (session->flags7_ & CRefCounted::kDetached) return;
     // FILD of the zero-extended 64-bit value, FMUL by the float constant, passed as a double.
     double seconds = x87::FromUnsigned(elapsed) * kMillisecondsToSeconds;
-    ei::VCall<void>(session, net::kSlotTick, seconds);
+    session->Tick(seconds);
 }
 
 } // namespace
@@ -39,8 +38,8 @@ void __cdecl Pump() {
     std::uint32_t elapsed = now - LastPumpTime();
     if (elapsed > 5000) elapsed = 1000;   // after a long stall, pretend one second passed
     LastPumpTime() = now;
-    TickSession(GameServerSession(), elapsed);
-    TickSession(GameClientSession(), elapsed);
+    TickSession(GameServer(), elapsed);
+    TickSession(GameClient(), elapsed);
     reinterpret_cast<NetGame*>(0x007AFE20)->Step();
 }
 EI_REPLACE(0x004122D0, Pump);

@@ -52,7 +52,7 @@ bool Is(const StringRep& s, std::uintptr_t text) {
 
 // 00419F90: whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(void* connection) {
-    void** bindings = static_cast<void**>(list_25A4);
+    void** bindings = static_cast<void**>(bindings_);
     for (void** node = static_cast<void**>(bindings[0]); node != bindings; node = static_cast<void**>(node[0])) {
         auto* binding = static_cast<std::uint8_t*>(node[2]);
         void* bound;
@@ -80,7 +80,7 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, Message* message) {
     }
     RefPtr raw;
     const RefPtr* value = RefPtrFromRaw(&raw, reinterpret_cast<CRefObject*>(message));
-    void* objects = &self->list_259C;
+    void* objects = &self->fileRequests_;
     void* end;
     ObjectsEnd(objects, nullptr, &end);
     void* inserted;
@@ -105,13 +105,13 @@ void __fastcall ServerOnCommand(ServerSession* self, Message* message) {
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
-        void** queued = static_cast<void**>(self->list_25AC);
+        void** queued = static_cast<void**>(self->queuedMaps_);
         void** node = static_cast<void**>(queued[0]);
-        for (; node != self->list_25AC; node = static_cast<void**>(node[0])) {
+        for (; node != self->queuedMaps_; node = static_cast<void**>(node[0])) {
             auto* entry = static_cast<std::uint8_t*>(node[2]);
             if (StringEquals(reinterpret_cast<const StringRep*>(entry + 0xC), text)) break;
         }
-        if (node == self->list_25AC) return;
+        if (node == self->queuedMaps_) return;
         const std::size_t cut = static_cast<std::size_t>(text->finish - text->start) - 2;
         StringRep suffix, name;
         StringSubstr(text, nullptr, &suffix, cut, StringNpos());

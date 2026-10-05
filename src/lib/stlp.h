@@ -248,6 +248,15 @@ public:
     std::uint8_t* Functors() { return functors_; }
     void* BucketVector() { return &buckets_; }
     void* CountProxy() { return &count_; }
+    // The insert half of operator[] for owners that call the game's own resize and node
+    // allocation (the session's type registry): the head of bucket `b`, and a new node linked in
+    // front of it.
+    Node* Bucket(std::size_t b) const { return buckets_[b]; }
+    void LinkAtHead(std::size_t b, Node* node) {
+        node->next = buckets_[b];
+        buckets_[b] = node;
+        ++count_;
+    }
 
 private:
     std::uint8_t functors_[4];

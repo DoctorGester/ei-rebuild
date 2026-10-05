@@ -156,7 +156,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
     } entry;
     entry.delay = kAwardDelay;
     RefPtrCopyConstruct(&entry.award, nullptr, &shared);
-    AwardsPushBack(&list_25B4, nullptr, &entry);
+    AwardsPushBack(&awards_, nullptr, &entry);
     entry.award.Destroy();
     DestroyInline(&shared);
     StringDestroyVector(&text);
@@ -166,7 +166,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
 // when its connection is live, queues a kind 2 award for each item name of `entry` (+0x14..+0x18)
 // and, with `withFinal`, a kind 4 award with an empty text.
 void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
-    void** sentinel = static_cast<void**>(list_25A4);
+    void** sentinel = static_cast<void**>(bindings_);
     void** node = static_cast<void**>(sentinel[0]);
     for (;;) {
         if (node == sentinel) return;
@@ -211,7 +211,7 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
 // empties the queued messages (+0x25AC), +0x25B0 and +0x2598, and queues the following zones
 // (00418530).
 void ServerSession::CompleteZone(const StringRep* zone) {
-    auto* holder = reinterpret_cast<RefPtr*>(&unknown_25A8);
+    auto* holder = &map_;
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title);
@@ -226,7 +226,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &key));
     StringDestroyA(&key);
     if (entry) {
-        void* clients = &base.clients;
+        void* clients = &clients_;
         int count = 0;
         void* last;
         void* lastNode = *ClientsEnd(clients, nullptr, &last);
@@ -241,7 +241,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
         float award0 = static_cast<float>(value0 / divisor);
         float award1 = static_cast<float>(value1 / divisor);
 
-        void** sentinel = static_cast<void**>(base.clients);
+        void** sentinel = static_cast<void**>(clients_);
         for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
             auto* connection = static_cast<CRefObject*>(node[2]);
             std::uint8_t allocator = 0;
@@ -255,7 +255,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
             StringRangeInitTag(&text1, nullptr, empty, empty + std::strlen(empty), static_cast<std::uint32_t>(share));
             QueueAward(connection, 1, award1, text1);
             node = static_cast<void**>(node[0]);
-            sentinel = static_cast<void**>(base.clients);
+            sentinel = static_cast<void**>(clients_);
         }
         AwardHost(entry, true);
     }
@@ -264,18 +264,18 @@ void ServerSession::CompleteZone(const StringRep* zone) {
         DestroyInline(holder);
         holder->Share(nullptr);
     }
-    void** messages = static_cast<void**>(list_25AC);
-    for (void** node = static_cast<void**>(messages[0]); node != list_25AC;) {
+    void** messages = static_cast<void**>(queuedMaps_);
+    for (void** node = static_cast<void**>(messages[0]); node != queuedMaps_;) {
         void** next = static_cast<void**>(node[0]);
         Element25ACDestroy(node + 2, nullptr, 0);
         FreeNode(node, 1);
         node = next;
     }
-    messages = static_cast<void**>(list_25AC);
+    messages = static_cast<void**>(queuedMaps_);
     messages[0] = messages;
-    static_cast<void**>(list_25AC)[1] = list_25AC;
-    List25B0Clear(&list_25B0);
-    List2598Clear(&list_2598);
+    static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
+    List25B0Clear(&variables_);
+    List2598Clear(&files_);
     QueueMapList();
 }
 
@@ -285,7 +285,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
 // and +0x2598, queues the following zones (00418530) and clears the world's map (0057ED60 with
 // null).
 void ServerSession::LeaveZone() {
-    auto* holder = reinterpret_cast<RefPtr*>(&unknown_25A8);
+    auto* holder = &map_;
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title);
@@ -312,25 +312,25 @@ void ServerSession::LeaveZone() {
         DestroyInline(holder);
         holder->Share(nullptr);
     }
-    void** messages = static_cast<void**>(list_25AC);
-    for (void** node = static_cast<void**>(messages[0]); node != list_25AC;) {
+    void** messages = static_cast<void**>(queuedMaps_);
+    for (void** node = static_cast<void**>(messages[0]); node != queuedMaps_;) {
         void** next = static_cast<void**>(node[0]);
         Element25ACDestroy(node + 2, nullptr, 0);
         FreeNode(node, 1);
         node = next;
     }
-    static_cast<void**>(list_25AC)[0] = list_25AC;
-    static_cast<void**>(list_25AC)[1] = list_25AC;
-    void** queued = static_cast<void**>(list_25B0);
-    for (void** node = static_cast<void**>(queued[0]); node != list_25B0;) {
+    static_cast<void**>(queuedMaps_)[0] = queuedMaps_;
+    static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
+    void** queued = static_cast<void**>(variables_);
+    for (void** node = static_cast<void**>(queued[0]); node != variables_;) {
         void** next = static_cast<void**>(node[0]);
         Element25B0Destroy(node + 2, nullptr, 0);
-        List25B0FreeNode(&list_25B0, nullptr, node, 1);
+        List25B0FreeNode(&variables_, nullptr, node, 1);
         node = next;
     }
-    static_cast<void**>(list_25B0)[0] = list_25B0;
-    static_cast<void**>(list_25B0)[1] = list_25B0;
-    List2598Clear(&list_2598);
+    static_cast<void**>(variables_)[0] = variables_;
+    static_cast<void**>(variables_)[1] = variables_;
+    List2598Clear(&files_);
     QueueMapList();
     WorldPrepareMap(reinterpret_cast<void*>(kWorld), nullptr, nullptr);
 }

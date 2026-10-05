@@ -50,7 +50,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
         RefNull(line + 0x1C);
         SetVtable(line, kLineVtable);
     }
-    void* lines = &list_2594;
+    void* lines = &lines_;
     RefPtr ref;
     const RefPtr* value = LineRefFromRaw(&ref, line);
     void* end;
@@ -58,15 +58,15 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     void* inserted;
     LinesInsert(lines, nullptr, &inserted, end, value);
 
-    void** sentinel = static_cast<void**>(list_2594);
+    void** sentinel = static_cast<void**>(lines_);
     auto* added = static_cast<std::uint8_t*>(static_cast<void**>(sentinel[1])[2]);
     StringAssignRange(reinterpret_cast<StringRep*>(added + 0x10), nullptr, text, text + std::strlen(text));
-    std::memcpy(added + 0xC, &unknown_258C, 4);
-    ++unknown_258C;
+    std::memcpy(added + 0xC, &nextLine_, 4);
+    ++nextLine_;
 
     CRefObject* connection = nullptr;
     if (player && !(player->flags7_ & CRefObject::kDetached)) {
-        void** bindings = static_cast<void**>(list_25A4);
+        void** bindings = static_cast<void**>(bindings_);
         for (void** node = static_cast<void**>(bindings[0]); node != bindings; node = static_cast<void**>(node[0])) {
             auto* binding = static_cast<std::uint8_t*>(node[2]);
             CRefObject* bound;
@@ -84,10 +84,10 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     if (previous) previous->Release();
 
     std::uint32_t count = 0;
-    CountLines(&count, nullptr, static_cast<void**>(list_2594)[0], list_2594);
+    CountLines(&count, nullptr, static_cast<void**>(lines_)[0], lines_);
     if (count > kMaxLines) {
         void* erased;
-        LinesErase(lines, nullptr, &erased, static_cast<void**>(list_2594)[0]);
+        LinesErase(lines, nullptr, &erased, static_cast<void**>(lines_)[0]);
     }
 }
 

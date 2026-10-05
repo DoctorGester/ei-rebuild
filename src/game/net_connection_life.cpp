@@ -4,6 +4,7 @@
 // See net_connection.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #include "net_connection.h"
 
+#include "core_streams.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
@@ -16,6 +17,10 @@
 namespace net {
 
 namespace {
+
+using ObjectMap = TreeMap<CRefObject*, RefPtr>;
+using SentIdMap = TreeMap<std::uint32_t, RefPtr>;
+using AttachedMap = TreeMap<CRefObject*, AttachedId>;
 
 float Store(double v) {
     volatile float r = static_cast<float>(v);
@@ -32,260 +37,255 @@ constexpr std::uintptr_t kPriorityCtor = 0x00437D70;
 constexpr std::uintptr_t kPriorityDtor = 0x00433850;
 
 // Container constructors (allocator / comparison arguments are empty objects passed by address).
-__declspec(naked) void __fastcall ReceivedConstruct(void* /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00438CE0)
-__declspec(naked) void __fastcall FreedListConstruct(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439120)
-__declspec(naked) void __fastcall BySentIdConstruct(void* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x004393C0)
-__declspec(naked) void __fastcall ByObjectConstruct(void* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x00439570)
-__declspec(naked) void __fastcall HistoryListConstruct(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439960)
-__declspec(naked) void __fastcall RecordsBaseConstruct(void* /*tree*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0043A590)
-__declspec(naked) void __fastcall RecordsEmpty(void* /*tree*/) EI_ORIGINAL(0x0043A570)
-__declspec(naked) void __fastcall AttachedBaseConstruct(void* /*tree*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0043A780)
-__declspec(naked) void __fastcall AttachedEmpty(void* /*tree*/) EI_ORIGINAL(0x0043A760)
-__declspec(naked) void __fastcall HeaderListConstruct(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
-__declspec(naked) void __fastcall IncomingProxyConstruct(void* /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
+__declspec(naked) void __fastcall ReceivedConstruct(std::int32_t** /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00438CE0)
+__declspec(naked) void __fastcall FreedListConstruct(FreedBatch** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439120)
+__declspec(naked) void __fastcall BySentIdConstruct(SentIdMap* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x004393C0)
+__declspec(naked) void __fastcall ByObjectConstruct(ObjectMap* /*tree*/, void*, const void* /*a*/, const void* /*b*/) EI_ORIGINAL(0x00439570)
+__declspec(naked) void __fastcall HistoryListConstruct(HistoryNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439960)
+__declspec(naked) void __fastcall RecordsBaseConstruct(Connection::RecordMap* /*tree*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0043A590)
+__declspec(naked) void __fastcall RecordsEmpty(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x0043A570)
+__declspec(naked) void __fastcall AttachedBaseConstruct(AttachedMap* /*tree*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0043A780)
+__declspec(naked) void __fastcall AttachedEmpty(AttachedMap* /*tree*/) EI_ORIGINAL(0x0043A760)
+__declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
+__declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
 __declspec(naked) void* __fastcall NodeAllocate(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
 __declspec(naked) void __fastcall GameBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
 __declspec(naked) void __fastcall GameBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
-__declspec(naked) void* __fastcall FreedPushDefault(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00439000)
+__declspec(naked) FreedBatch** __fastcall FreedPushDefault(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
 // Reset's container teardown.
-__declspec(naked) void __fastcall ListDeleteAll(void* /*list*/) EI_ORIGINAL(0x00439D40)
-__declspec(naked) void __fastcall AttachedDestroy(void* /*tree*/) EI_ORIGINAL(0x004385A0)
-__declspec(naked) void __fastcall RecordsDestroy(void* /*tree*/) EI_ORIGINAL(0x004383A0)
-__declspec(naked) void __fastcall HistoryDestroy(void* /*list*/) EI_ORIGINAL(0x004399C0)
-__declspec(naked) void __fastcall ByObjectClear(void* /*tree*/) EI_ORIGINAL(0x004396A0)
-__declspec(naked) void __fastcall ByObjectFreeHeader(void* /*tree*/) EI_ORIGINAL(0x00439700)
-__declspec(naked) void __fastcall BySentIdClear(void* /*tree*/) EI_ORIGINAL(0x004394A0)
-__declspec(naked) void __fastcall BySentIdFreeHeader(void* /*tree*/) EI_ORIGINAL(0x00439500)
-__declspec(naked) void __fastcall FreedClear(void* /*list*/) EI_ORIGINAL(0x0043BA20)
-__declspec(naked) void __fastcall FreedFreeSentinelA(void* /*list*/, void*, void* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043A410)
-__declspec(naked) void __fastcall ReceivedDeallocate(void* /*eos*/, void*, std::int32_t* /*start*/, int /*count*/) EI_ORIGINAL(0x0043A300)
+__declspec(naked) void __fastcall ListDeleteAll(HeaderNode** /*list*/) EI_ORIGINAL(0x00439D40)
+__declspec(naked) void __fastcall AttachedDestroy(AttachedMap* /*tree*/) EI_ORIGINAL(0x004385A0)
+__declspec(naked) void __fastcall RecordsDestroy(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x004383A0)
+__declspec(naked) void __fastcall HistoryDestroy(HistoryNode** /*list*/) EI_ORIGINAL(0x004399C0)
+__declspec(naked) void __fastcall ByObjectClear(ObjectMap* /*tree*/) EI_ORIGINAL(0x004396A0)
+__declspec(naked) void __fastcall ByObjectFreeHeader(ObjectMap* /*tree*/) EI_ORIGINAL(0x00439700)
+__declspec(naked) void __fastcall BySentIdClear(SentIdMap* /*tree*/) EI_ORIGINAL(0x004394A0)
+__declspec(naked) void __fastcall BySentIdFreeHeader(SentIdMap* /*tree*/) EI_ORIGINAL(0x00439500)
+__declspec(naked) void __fastcall FreedClear(FreedBatch** /*list*/) EI_ORIGINAL(0x0043BA20)
+__declspec(naked) void __fastcall FreedFreeSentinelA(FreedBatch** /*list*/, void*, FreedBatch* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043A410)
+__declspec(naked) void __fastcall ReceivedDeallocate(std::int32_t** /*eos*/, void*, std::int32_t* /*start*/, int /*count*/) EI_ORIGINAL(0x0043A300)
 
 // The destructor's container teardown.
-__declspec(naked) void __fastcall ListDeleteNodes(void* /*list*/) EI_ORIGINAL(0x0043D420)
-__declspec(naked) void __fastcall HeaderSentinelFree(void* /*list*/, void*, void* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x00439D80)
-__declspec(naked) void __fastcall AttachedClear(void* /*tree*/) EI_ORIGINAL(0x00439BB0)
-__declspec(naked) void __fastcall AttachedFreeHeader(void* /*tree*/) EI_ORIGINAL(0x00439C10)
-__declspec(naked) void __fastcall RecordsClear(void* /*tree*/) EI_ORIGINAL(0x00439AE0)
-__declspec(naked) void __fastcall RecordsFreeHeader(void* /*tree*/) EI_ORIGINAL(0x00439B40)
-__declspec(naked) void __fastcall HistoryClear(void* /*list*/) EI_ORIGINAL(0x0043CA40)
-__declspec(naked) void __fastcall HistorySentinelFree(void* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043AAF0)
-__declspec(naked) void __fastcall ByObjectHeaderFree(void* /*tree*/, void*, void* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A4E0)
-__declspec(naked) void __fastcall BySentIdHeaderFree(void* /*tree*/, void*, void* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A480)
-__declspec(naked) void __fastcall FreedSentinelFreeB(void* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043B180)
+__declspec(naked) void __fastcall ListDeleteNodes(HeaderNode** /*list*/) EI_ORIGINAL(0x0043D420)
+__declspec(naked) void __fastcall HeaderSentinelFree(HeaderNode** /*list*/, void*, HeaderNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x00439D80)
+__declspec(naked) void __fastcall AttachedClear(AttachedMap* /*tree*/) EI_ORIGINAL(0x00439BB0)
+__declspec(naked) void __fastcall AttachedFreeHeader(AttachedMap* /*tree*/) EI_ORIGINAL(0x00439C10)
+__declspec(naked) void __fastcall RecordsClear(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x00439AE0)
+__declspec(naked) void __fastcall RecordsFreeHeader(Connection::RecordMap* /*tree*/) EI_ORIGINAL(0x00439B40)
+__declspec(naked) void __fastcall HistoryClear(HistoryNode** /*list*/) EI_ORIGINAL(0x0043CA40)
+__declspec(naked) void __fastcall HistorySentinelFree(HistoryNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043AAF0)
+__declspec(naked) void __fastcall ByObjectHeaderFree(ObjectMap* /*tree*/, void*, ObjectMap::Node* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A4E0)
+__declspec(naked) void __fastcall BySentIdHeaderFree(SentIdMap* /*tree*/, void*, SentIdMap::Node* /*header*/, int /*n*/) EI_ORIGINAL(0x0043A480)
+__declspec(naked) void __fastcall FreedSentinelFreeB(FreedBatch* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043B180)
 
-constexpr std::uintptr_t kConnectionVtable = 0x0073BF38;
-constexpr std::uintptr_t kRefValueVtable = 0x0073BB58;
-constexpr std::uintptr_t kRefObjectRoot = 0x0073BB68;
-
-std::uint8_t* Bytes(Connection* c) { return reinterpret_cast<std::uint8_t*>(c); }
-void SetVtable(Connection* c, std::uintptr_t v) { std::memcpy(c, &v, 4); }
-void Put32(Connection* c, std::size_t offset, std::uint32_t v) { std::memcpy(Bytes(c) + offset, &v, 4); }
+void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
 // The std::vector<int> of received sequences given back to the pool.
 void FreeReceived(Connection* c) {
-    ReceivedDeallocate(&c->receivedEos, nullptr, c->received, static_cast<int>(c->receivedEos - c->received));
+    ReceivedDeallocate(&c->receivedEos_, nullptr, c->received_, static_cast<int>(c->receivedEos_ - c->received_));
+}
+
+// Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
+void DestroyForReset(Connection* c) {
+    GameBufferDestruct(&c->reliableIn_);
+    GameBufferDestruct(&c->reliableOut_);
+    ListDeleteAll(&c->incoming_);
+    ListDeleteAll(&c->headers_);
+    AttachedDestroy(&c->attached_);
+    RecordsDestroy(&c->records_);
+    HistoryDestroy(&c->acknowledged_);
+    HistoryDestroy(&c->history_);
+    VectorDtorIterator(c->priorities_, sizeof(Connection::EntryMap), 11, kPriorityDtor);
+    ByObjectClear(&c->byObject_);
+    ByObjectFreeHeader(&c->byObject_);
+    BySentIdClear(&c->bySentId_);
+    BySentIdFreeHeader(&c->bySentId_);
+    FreedClear(&c->freedIds_);
+    FreedFreeSentinelA(&c->freedIds_, nullptr, c->freedIds_, 1);
+    VectorDtorIterator(c->idPools_, sizeof(IdPool), kMessageTypes, kIdPoolDtor);
+    FreeReceived(c);
 }
 
 } // namespace
 
 // 00432DA0: the constructor (id). Builds every container, then: the send sequence starts at the
-// tick count, the round trip at the session's +0x10 (or 0073BF34 without a session), its square
-// average is the square of what the memory held, send interval 0.04, budget 220.
+// tick count, the round trip at the session's maxRoundTrip_ (or 0073BF34 without a session), its
+// square average is the square of what the memory held, send interval 0.04, budget 220.
 Connection* Connection::Construct(std::uint32_t id) {
-    SetVtable(this, kRefValueVtable);
+    ei::SetVtable(this, kRefValueVtable);
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
-    ReceivedConstruct(&received, nullptr, &tags[2]);
-    Put32(this, 0x2C, 0);
-    Put32(this, 0x30, 0);
-    Put32(this, 0x34, 0);
-    Put32(this, 0x38, 0);
-    VectorCtorIterator(idPools, sizeof(IdPool), 0x100, kIdPoolCtor, kIdPoolDtor);
-    FreedListConstruct(&freedIds, nullptr, &tags[2]);
-    BySentIdConstruct(bySentId, nullptr, &tags[3], &tags[2]);
-    ByObjectConstruct(&byObject, nullptr, &tags[2], &tags[3]);
-    VectorCtorIterator(priorities, sizeof(RbTree), 11, kPriorityCtor, kPriorityDtor);
-    HistoryListConstruct(&history, nullptr, &tags[3]);
-    HistoryListConstruct(&acknowledged, nullptr, &tags[3]);
+    ReceivedConstruct(&received_, nullptr, &tags[2]);
+    address_ = NetAddress{};
+    VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, kIdPoolCtor, kIdPoolDtor);
+    FreedListConstruct(&freedIds_, nullptr, &tags[2]);
+    BySentIdConstruct(&bySentId_, nullptr, &tags[3], &tags[2]);
+    ByObjectConstruct(&byObject_, nullptr, &tags[2], &tags[3]);
+    VectorCtorIterator(priorities_, sizeof(EntryMap), 11, kPriorityCtor, kPriorityDtor);
+    HistoryListConstruct(&history_, nullptr, &tags[3]);
+    HistoryListConstruct(&acknowledged_, nullptr, &tags[3]);
     // The trees' comparison byte is copied from the stack slot of the id argument.
-    RecordsBaseConstruct(&records, nullptr, &tags[3]);
-    records.count = 0;
-    records.compare = static_cast<std::uint8_t>(id);
-    RecordsEmpty(&records);
-    AttachedBaseConstruct(&attached, nullptr, &tags[3]);
-    attached.compare = static_cast<std::uint8_t>(id);
-    attached.count = 0;
-    AttachedEmpty(&attached);
-    HeaderListConstruct(&headers, nullptr, &tags[3]);
+    RecordsBaseConstruct(&records_, nullptr, &tags[3]);
+    records_.count = 0;
+    records_.compare = static_cast<std::uint8_t>(id);
+    RecordsEmpty(&records_);
+    AttachedBaseConstruct(&attached_, nullptr, &tags[3]);
+    attached_.compare = static_cast<std::uint8_t>(id);
+    attached_.count = 0;
+    AttachedEmpty(&attached_);
+    HeaderListConstruct(&headers_, nullptr, &tags[3]);
     std::uint32_t zero = 0;
-    IncomingProxyConstruct(&list_1120, nullptr, &tags[3], &zero);
-    void** sentinel = static_cast<void**>(NodeAllocate(0x10C));
-    list_1120 = sentinel;
-    sentinel[0] = sentinel;
-    sentinel[1] = sentinel;
-    GameBufferConstruct(&reliableOut);
-    GameBufferConstruct(&reliableIn);
-    SetVtable(this, kConnectionVtable);
+    IncomingProxyConstruct(&incoming_, nullptr, &tags[3], &zero);
+    auto* sentinel = static_cast<HeaderNode*>(NodeAllocate(sizeof(HeaderNode)));
+    incoming_ = sentinel;
+    sentinel->next = sentinel;
+    sentinel->prev = sentinel;
+    GameBufferConstruct(&reliableOut_);
+    GameBufferConstruct(&reliableIn_);
+    ei::SetVtable(this, kVtableAddress);
     std::uint32_t tick = gameapi::GetTickCount();
-    connectionId = 0;
+    id_ = 0;
     SessionBase* session = CurrentSession();
     if (session) {
-        std::int32_t longest;
-        std::memcpy(&longest, reinterpret_cast<std::uint8_t*>(session) + 0x10, 4);
-        roundTrip = Store(static_cast<double>(longest));
+        roundTrip_ = Store(static_cast<double>(session->maxRoundTrip_));
     } else {
-        roundTrip = *reinterpret_cast<const float*>(0x0073BF34);
+        roundTrip_ = *reinterpret_cast<const float*>(0x0073BF34);
     }
-    double old = roundTripSquare;   // never written before: whatever the allocation held
-    sendSequence = static_cast<std::uint16_t>(tick);
-    Put32(this, 0x3C, 0x3D23D70A);  // 0.04f
-    Put32(this, 0x40, 0);
-    Put32(this, 0x44, 0);
-    updateBudget = 0xDC;
-    roundTripSquare = Store(old * old);
-    lastReceived = 0;
-    unknown_0010 = 0x10000;
-    void* out;
-    FreedPushDefault(&freedIds, nullptr, &out, freedIds);
-    FreedPushDefault(&freedIds, nullptr, &out, freedIds);
-    connectionId = id;
-    clock[0] = 0;
-    freedTimer = 0.0f;
-    headerSequence = 0;
-    unknown_111A = 0;
-    clock[1] = 0;
-    unknown_1124 = 0;
-    unknown_1128 = 0;
+    double old = roundTripSquare_;   // never written before: whatever the allocation held
+    sendSequence_ = static_cast<std::uint16_t>(tick);
+    Put32(&sendInterval_, 0, 0x3D23D70A);   // 0.04f
+    sendTimer_ = 0.0f;
+    idleTime_ = 0.0f;
+    updateBudget_ = 0xDC;
+    roundTripSquare_ = Store(old * old);
+    lastReceived_ = 0;
+    sequenceHigh_ = 0x10000;
+    FreedBatch* out;
+    FreedPushDefault(&freedIds_, nullptr, &out, freedIds_);
+    FreedPushDefault(&freedIds_, nullptr, &out, freedIds_);
+    id_ = id;
+    Put32(&clock_, 0, 0);
+    freedTimer_ = 0.0f;
+    headerSequence_ = 0;
+    incomingSequence_ = 0;
+    Put32(&clock_, 4, 0);
+    ackMask_ = 0;
+    ackBase_ = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00432DA0, Connection::Construct);
 
-// 00433320 (slot 2): Reset. Tears every container down (in the order the destructor's unwinding
-// would) and constructs the connection again with id 0.
-void Connection::Reset() {
-    SetVtable(this, kConnectionVtable);
-    GameBufferDestruct(&reliableIn);
-    GameBufferDestruct(&reliableOut);
-    ListDeleteAll(&list_1120);
-    ListDeleteAll(&headers);
-    AttachedDestroy(&attached);
-    RecordsDestroy(&records);
-    HistoryDestroy(&acknowledged);
-    HistoryDestroy(&history);
-    VectorDtorIterator(priorities, sizeof(RbTree), 11, kPriorityDtor);
-    ByObjectClear(&byObject);
-    ByObjectFreeHeader(&byObject);
-    BySentIdClear(bySentId);
-    BySentIdFreeHeader(bySentId);
-    FreedClear(&freedIds);
-    FreedFreeSentinelA(&freedIds, nullptr, freedIds, 1);
-    VectorDtorIterator(idPools, sizeof(IdPool), 0x100, kIdPoolDtor);
-    FreeReceived(this);
-    SetVtable(this, kRefObjectRoot);
-    Construct(0);
+// 00433320 (slot 2): tears every container down (in the order the destructor's unwinding would)
+// and constructs the connection again with id 0.
+int Connection::OnShutdown() {
+    ei::SetVtable(this, kVtableAddress);
+    DestroyForReset(this);
+    ei::SetVtable(this, kRefObjectRootVtable);
+    return static_cast<int>(reinterpret_cast<std::uintptr_t>(Construct(0)));
 }
 namespace {
-void __fastcall ResetHook(Connection* self) { self->Reset(); }
+int __fastcall ResetHook(Connection* self) { return self->Connection::OnShutdown(); }
 } // namespace
 EI_REPLACE(0x00433320, ResetHook);
 
 // 004334E0: the destructor body.
 void Connection::Destruct() {
-    SetVtable(this, kConnectionVtable);
-    GameBufferDestruct(&reliableIn);
-    GameBufferDestruct(&reliableOut);
-    ListDeleteNodes(&list_1120);
-    HeaderSentinelFree(&list_1120, nullptr, list_1120, 1);
-    ListDeleteNodes(&headers);
-    HeaderSentinelFree(&headers, nullptr, headers, 1);
-    AttachedClear(&attached);
-    AttachedFreeHeader(&attached);
-    RecordsClear(&records);
-    RecordsFreeHeader(&records);
-    HistoryClear(&acknowledged);
-    HistorySentinelFree(acknowledged, 1);
-    HistoryClear(&history);
-    HistorySentinelFree(history, 1);
-    VectorDtorIterator(priorities, sizeof(RbTree), 11, kPriorityDtor);
-    ByObjectClear(&byObject);
-    ByObjectHeaderFree(&byObject, nullptr, byObject.header, 1);
-    BySentIdClear(bySentId);
-    BySentIdHeaderFree(bySentId, nullptr, *reinterpret_cast<void**>(bySentId), 1);
-    FreedClear(&freedIds);
-    FreedSentinelFreeB(freedIds, 1);
-    VectorDtorIterator(idPools, sizeof(IdPool), 0x100, kIdPoolDtor);
+    ei::SetVtable(this, kVtableAddress);
+    GameBufferDestruct(&reliableIn_);
+    GameBufferDestruct(&reliableOut_);
+    ListDeleteNodes(&incoming_);
+    HeaderSentinelFree(&incoming_, nullptr, incoming_, 1);
+    ListDeleteNodes(&headers_);
+    HeaderSentinelFree(&headers_, nullptr, headers_, 1);
+    AttachedClear(&attached_);
+    AttachedFreeHeader(&attached_);
+    RecordsClear(&records_);
+    RecordsFreeHeader(&records_);
+    HistoryClear(&acknowledged_);
+    HistorySentinelFree(acknowledged_, 1);
+    HistoryClear(&history_);
+    HistorySentinelFree(history_, 1);
+    VectorDtorIterator(priorities_, sizeof(EntryMap), 11, kPriorityDtor);
+    ByObjectClear(&byObject_);
+    ByObjectHeaderFree(&byObject_, nullptr, byObject_.header, 1);
+    BySentIdClear(&bySentId_);
+    BySentIdHeaderFree(&bySentId_, nullptr, bySentId_.header, 1);
+    FreedClear(&freedIds_);
+    FreedSentinelFreeB(freedIds_, 1);
+    VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, kIdPoolDtor);
     FreeReceived(this);
-    SetVtable(this, kRefObjectRoot);
+    ei::SetVtable(this, kRefObjectRootVtable);
 }
 EI_REPLACE_METHOD(0x004334E0, Connection::Destruct);
 
 // 004334C0 (slot 0): the deleting destructor.
-Connection* __fastcall ConnectionDeletingDestructor(Connection* self, void*, unsigned flags) {
-    self->Destruct();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+Connection* Connection::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004334C0, ConnectionDeletingDestructor);
+EI_REPLACE_METHOD(0x004334C0, Connection::DeletingDestruct);
 
 } // namespace net
 
 namespace net {
 
 namespace {
-// Copy constructors of the containers (library) and of the id pools (00433A30, not rewritten yet).
-__declspec(naked) void* __fastcall ReceivedGetAllocator(const void* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00438CC0)
-__declspec(naked) void __fastcall ReceivedReserveConstruct(void* /*vector*/, void*, int /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00438D00)
+// Copy constructors of the containers (library).
+__declspec(naked) void* __fastcall ReceivedGetAllocator(std::int32_t* const* /*vector*/, void*, void* /*out*/) EI_ORIGINAL(0x00438CC0)
+__declspec(naked) void __fastcall ReceivedReserveConstruct(std::int32_t** /*vector*/, void*, int /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00438D00)
 __declspec(naked) std::int32_t* __fastcall CopyInts(const std::int32_t* /*first*/, const std::int32_t* /*last*/, std::int32_t* /*dest*/) EI_ORIGINAL(0x0043B360)
-__declspec(naked) void __fastcall IdPoolCopy(IdPool* /*to*/, void*, const IdPool* /*from*/) EI_ORIGINAL(0x00433A30)
-__declspec(naked) void __fastcall FreedListCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437930)
-__declspec(naked) void __fastcall BySentIdCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437AA0)
-__declspec(naked) void __fastcall ByObjectCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437C50)
-__declspec(naked) void __fastcall PriorityCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437E00)
-__declspec(naked) void __fastcall HistoryCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00437F60)
-__declspec(naked) void __fastcall RecordsCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x004381B0)
-__declspec(naked) void __fastcall AttachedCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00438440)
-__declspec(naked) void __fastcall HeaderListCopy(void* /*to*/, void*, const void* /*from*/) EI_ORIGINAL(0x00438690)
+__declspec(naked) void __fastcall FreedListCopy(FreedBatch** /*to*/, void*, FreedBatch* const* /*from*/) EI_ORIGINAL(0x00437930)
+__declspec(naked) void __fastcall BySentIdCopy(SentIdMap* /*to*/, void*, const SentIdMap* /*from*/) EI_ORIGINAL(0x00437AA0)
+__declspec(naked) void __fastcall ByObjectCopy(ObjectMap* /*to*/, void*, const ObjectMap* /*from*/) EI_ORIGINAL(0x00437C50)
+__declspec(naked) void __fastcall PriorityCopy(Connection::EntryMap* /*to*/, void*, const Connection::EntryMap* /*from*/) EI_ORIGINAL(0x00437E00)
+__declspec(naked) void __fastcall HistoryCopy(HistoryNode** /*to*/, void*, HistoryNode* const* /*from*/) EI_ORIGINAL(0x00437F60)
+__declspec(naked) void __fastcall RecordsCopy(Connection::RecordMap* /*to*/, void*, const Connection::RecordMap* /*from*/) EI_ORIGINAL(0x004381B0)
+__declspec(naked) void __fastcall AttachedCopy(AttachedMap* /*to*/, void*, const AttachedMap* /*from*/) EI_ORIGINAL(0x00438440)
+__declspec(naked) void __fastcall HeaderListCopy(HeaderNode** /*to*/, void*, HeaderNode* const* /*from*/) EI_ORIGINAL(0x00438690)
 __declspec(naked) void __fastcall GameBufferCopy(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/) EI_ORIGINAL(0x004DA9E0)
 } // namespace
 
-Connection* Connection::Clone() const {
+// 00433060 (slot 3).
+Connection* Connection::Clone() {
     auto* copy = static_cast<Connection*>(gamecrt::operator_new(sizeof(Connection)));
     Put32(copy, 4, 0);
     if (!copy) return nullptr;
-    SetVtable(copy, kRefValueVtable);
-    copy->sendSequence = sendSequence;
-    copy->lastReceived = lastReceived;
-    copy->unknown_0010 = unknown_0010;
+    ei::SetVtable(copy, kRefValueVtable);
+    copy->sendSequence_ = sendSequence_;
+    copy->lastReceived_ = lastReceived_;
+    copy->sequenceHigh_ = sequenceHigh_;
     std::uint8_t tag = 0;
-    void* alloc = ReceivedGetAllocator(&received, nullptr, &tag);
-    ReceivedReserveConstruct(&copy->received, nullptr, static_cast<int>(receivedEnd - received), alloc);
-    copy->receivedEnd = CopyInts(received, receivedEnd, copy->received);
-    std::memcpy(Bytes(copy) + 0x20, reinterpret_cast<const std::uint8_t*>(this) + 0x20, 0x0C);   // id, round trips
-    std::memcpy(copy->address, address, sizeof(address));
-    std::memcpy(Bytes(copy) + 0x3C, reinterpret_cast<const std::uint8_t*>(this) + 0x3C, 0x18);   // timers, clock, budget
-    for (int i = 0; i < 0x100; ++i) IdPoolCopy(&copy->idPools[i], nullptr, &idPools[i]);
-    FreedListCopy(&copy->freedIds, nullptr, &freedIds);
-    copy->freedTimer = freedTimer;
-    BySentIdCopy(copy->bySentId, nullptr, bySentId);
-    ByObjectCopy(&copy->byObject, nullptr, &byObject);
-    for (int i = 0; i < 11; ++i) PriorityCopy(&copy->priorities[i], nullptr, &priorities[i]);
-    HistoryCopy(&copy->history, nullptr, &history);
-    HistoryCopy(&copy->acknowledged, nullptr, &acknowledged);
-    RecordsCopy(&copy->records, nullptr, &records);
-    AttachedCopy(&copy->attached, nullptr, &attached);
-    copy->headerSequence = headerSequence;
-    copy->unknown_111A = unknown_111A;
-    HeaderListCopy(&copy->headers, nullptr, &headers);
-    HeaderListCopy(&copy->list_1120, nullptr, &list_1120);
-    copy->unknown_1124 = unknown_1124;
-    copy->unknown_1128 = unknown_1128;
-    GameBufferCopy(&copy->reliableOut, nullptr, &reliableOut);
-    GameBufferCopy(&copy->reliableIn, nullptr, &reliableIn);
-    SetVtable(copy, kConnectionVtable);
+    void* alloc = ReceivedGetAllocator(&received_, nullptr, &tag);
+    ReceivedReserveConstruct(&copy->received_, nullptr, static_cast<int>(receivedEnd_ - received_), alloc);
+    copy->receivedEnd_ = CopyInts(received_, receivedEnd_, copy->received_);
+    // id, round trips; timers, clock, budget: copied as dwords.
+    std::memcpy(&copy->id_, &id_, offsetof(Connection, address_) - offsetof(Connection, id_));
+    copy->address_ = address_;
+    std::memcpy(&copy->sendInterval_, &sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));
+    for (int i = 0; i < kMessageTypes; ++i) copy->idPools_[i].CopyFrom(idPools_[i]);
+    FreedListCopy(&copy->freedIds_, nullptr, &freedIds_);
+    copy->freedTimer_ = freedTimer_;
+    BySentIdCopy(&copy->bySentId_, nullptr, &bySentId_);
+    ByObjectCopy(&copy->byObject_, nullptr, &byObject_);
+    for (int i = 0; i < 11; ++i) PriorityCopy(&copy->priorities_[i], nullptr, &priorities_[i]);
+    HistoryCopy(&copy->history_, nullptr, &history_);
+    HistoryCopy(&copy->acknowledged_, nullptr, &acknowledged_);
+    RecordsCopy(&copy->records_, nullptr, &records_);
+    AttachedCopy(&copy->attached_, nullptr, &attached_);
+    copy->headerSequence_ = headerSequence_;
+    copy->incomingSequence_ = incomingSequence_;
+    HeaderListCopy(&copy->headers_, nullptr, &headers_);
+    HeaderListCopy(&copy->incoming_, nullptr, &incoming_);
+    copy->ackMask_ = ackMask_;
+    copy->ackBase_ = ackBase_;
+    GameBufferCopy(&copy->reliableOut_, nullptr, &reliableOut_);
+    GameBufferCopy(&copy->reliableIn_, nullptr, &reliableIn_);
+    ei::SetVtable(copy, kVtableAddress);
     return copy;
 }
 namespace {
-Connection* __fastcall CloneHook(const Connection* self) { return self->Clone(); }
+Connection* __fastcall CloneHook(Connection* self) { return self->Connection::Clone(); }
 } // namespace
 EI_REPLACE(0x00433060, CloneHook);
 
@@ -294,17 +294,6 @@ EI_REPLACE(0x00433060, CloneHook);
 // ---- Id pools and replica entries ---------------------------------------------------------------------
 
 namespace net {
-
-namespace {
-constexpr std::uintptr_t kReplicaEntryVtable = 0x0073BF4C;
-void SetVtableOf(void* object, std::uintptr_t v) { std::memcpy(object, &v, 4); }
-// The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
-// deletes at zero).
-void ReleaseEntryObject(ReplicaEntry* e) {
-    CRefObject* object = e->object;
-    if (object && --object->refs_ == 0) ei::VCall<void*>(object, 0, 1u);
-}
-} // namespace
 
 IdPool* IdPool::CopyFrom(const IdPool& other) {
     begin = nullptr;
@@ -323,51 +312,66 @@ IdPool* IdPool::CopyFrom(const IdPool& other) {
 }
 EI_REPLACE_METHOD(0x00433A30, IdPool::CopyFrom);
 
+namespace {
+// The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
+// deletes at zero).
+void ReleaseEntryObject(ReplicaEntry* e) {
+    CRefObject* object = e->object_.ptr;
+    if (object && --object->refs_ == 0) delete object;
+}
+} // namespace
+
 // 004343C0 (entry slot 3): a copy of the entry sharing the object (one more reference).
-ReplicaEntry* __fastcall ReplicaEntryClone(const ReplicaEntry* self) {
+ReplicaEntry* ReplicaEntry::Clone() {
     auto* copy = static_cast<ReplicaEntry*>(gamecrt::operator_new(sizeof(ReplicaEntry)));
-    copy->refHeader = 0;
+    Put32(copy, 4, 0);
     if (!copy) return nullptr;
-    SetVtableOf(copy, kRefValueVtable);
-    copy->version = self->version;
-    copy->id = self->id;
-    copy->type = self->type;
-    copy->flags = self->flags;   // the original merges bit 0 and then the other bits: all of them
-    copy->object = self->object;
-    if (copy->object) ++copy->object->refs_;
-    SetVtableOf(copy, kReplicaEntryVtable);
+    ei::SetVtable(copy, kRefValueVtable);
+    copy->version_ = version_;
+    copy->id_ = id_;
+    copy->type_ = type_;
+    copy->flags_ = flags_;   // the original merges bit 0 and then the other bits: all of them
+    copy->object_.ptr = object_.ptr;
+    if (copy->object_.ptr) ++copy->object_.ptr->refs_;
+    ei::SetVtable(copy, kVtableAddress);
     return copy;
 }
-EI_REPLACE(0x004343C0, ReplicaEntryClone);
 
-// 00434430 (entry slot 2): Reset. Releases the object, then constructs again in place (object,
-// version and id cleared; type and flags kept).
-void __fastcall ReplicaEntryReset(ReplicaEntry* self) {
-    SetVtableOf(self, kReplicaEntryVtable);
-    ReleaseEntryObject(self);
-    SetVtableOf(self, kRefObjectRoot);
-    self->object = nullptr;
-    SetVtableOf(self, kReplicaEntryVtable);
-    self->version = 0;
-    self->id = 0;
+// 00434430 (entry slot 2): releases the object, then constructs again in place (object, version
+// and id cleared; type and flags kept). Returns what EAX held (nothing in particular).
+int ReplicaEntry::OnShutdown() {
+    ei::SetVtable(this, kVtableAddress);
+    ReleaseEntryObject(this);
+    ei::SetVtable(this, kRefObjectRootVtable);
+    object_.ptr = nullptr;
+    ei::SetVtable(this, kVtableAddress);
+    version_ = 0;
+    id_ = 0;
+    return 0;
 }
-EI_REPLACE(0x00434430, ReplicaEntryReset);
+
+namespace {
+ReplicaEntry* __fastcall ReplicaEntryCloneHook(ReplicaEntry* self) { return self->ReplicaEntry::Clone(); }
+int __fastcall ReplicaEntryResetHook(ReplicaEntry* self) { return self->ReplicaEntry::OnShutdown(); }
+} // namespace
+EI_REPLACE(0x004343C0, ReplicaEntryCloneHook);
+EI_REPLACE(0x00434430, ReplicaEntryResetHook);
 
 // 004344C0: the destructor body.
-void __fastcall ReplicaEntryDestruct(ReplicaEntry* self) {
-    SetVtableOf(self, kReplicaEntryVtable);
-    ReleaseEntryObject(self);
-    SetVtableOf(self, kRefObjectRoot);
+void ReplicaEntry::Destruct() {
+    ei::SetVtable(this, kVtableAddress);
+    ReleaseEntryObject(this);
+    ei::SetVtable(this, kRefObjectRootVtable);
 }
-EI_REPLACE(0x004344C0, ReplicaEntryDestruct);
+EI_REPLACE_METHOD(0x004344C0, ReplicaEntry::Destruct);
 
 // 004344A0 (entry slot 0): the deleting destructor.
-ReplicaEntry* __fastcall ReplicaEntryDeletingDestructor(ReplicaEntry* self, void*, unsigned flags) {
-    ReplicaEntryDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+ReplicaEntry* ReplicaEntry::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004344A0, ReplicaEntryDeletingDestructor);
+EI_REPLACE_METHOD(0x004344A0, ReplicaEntry::DeletingDestruct);
 
 
 // 00433040 (no Ghidra function; the element constructor the connection's constructor passes to the

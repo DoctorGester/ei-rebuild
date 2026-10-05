@@ -45,8 +45,8 @@ void DestroyList(void*& list, Clear clear, Free free) {
 
 // RefPtr::Destroy as the destructor inlines it (the release is not null-checked after the
 // shutdown).
-void DestroyInline(std::uint32_t& slot) {
-    auto*& object = reinterpret_cast<CRefObject*&>(slot);
+void DestroyInline(RefPtr& slot) {
+    CRefObject*& object = slot.ptr;
     if (!object) return;
     if (object->refs_ != 1) {
         object->flags7_ |= CRefObject::kDetached;
@@ -60,46 +60,42 @@ void DestroyInline(std::uint32_t& slot) {
 // 00417BC0: the destructor body. The server's own vtable is not restored first (the original does
 // not either).
 void ServerSession::Destruct() {
-    StringDestruct(&string_25D4);
-    StringDestruct(&string_25C8);
-    List25C4Destruct(&list_25C4);
-    List25C0Destruct(&list_25C0);
-    List25BCDestruct(&list_25BC);
-    List25B8Destruct(&list_25B8);
-    DestroyList(list_25B4, List25B4Clear, List25B4Free);
-    DestroyList(list_25B0, List25B0Clear, List25B0Free);
-    DestroyList(list_25AC, List25ACClear, List25ACFree);
-    DestroyInline(unknown_25A8);
-    DestroyList(list_25A4, List25A4Clear, List25A4Free);
+    StringDestruct(&mapName_);
+    StringDestruct(&name_);
+    List25C4Destruct(&banned_);
+    List25C0Destruct(&finishedTrades_);
+    List25BCDestruct(&trades_);
+    List25B8Destruct(&offers_);
+    DestroyList(awards_, List25B4Clear, List25B4Free);
+    DestroyList(variables_, List25B0Clear, List25B0Free);
+    DestroyList(queuedMaps_, List25ACClear, List25ACFree);
+    DestroyInline(map_);
+    DestroyList(bindings_, List25A4Clear, List25A4Free);
     DestroyInline(unknown_25A0);
-    DestroyList(list_259C, List259CClear, List259CFree);
-    DestroyList(list_2598, List2598Clear, List2598Free);
-    DestroyList(list_2594, List2594Clear, List2594Free);
-    DestroyList(list_2590, List2590Clear, List2590Free);
-    List2568Destruct(&list_2568);
-    base.Destruct();
+    DestroyList(fileRequests_, List259CClear, List259CFree);
+    DestroyList(files_, List2598Clear, List2598Free);
+    DestroyList(lines_, List2594Clear, List2594Free);
+    DestroyList(players_, List2590Clear, List2590Free);
+    List2568Destruct(&joins_);
+    SessionBase::Destruct();
 }
-
-namespace {
-void __fastcall ServerDestructHook(ServerSession* self) { self->Destruct(); }
-} // namespace
-EI_REPLACE(0x00417BC0, ServerDestructHook);
+EI_REPLACE_METHOD(0x00417BC0, ServerSession::Destruct);
 
 // 004132F0: the destructor body of the server's base layer (reached from its scalar deleting
-// destructor 004132D0 and the constructor's unwind funclets): the list at +0x2568, then the
-// session base. The same steps end ServerSession::Destruct.
-void __fastcall ServerBaseDestruct(ServerSession* self) {
-    List2568Destruct(&self->list_2568);
-    self->base.Destruct();
+// destructor 004132D0 and the constructor's unwind funclets): the pending joins, then the session
+// base. The same steps end ServerSession::Destruct.
+void ServerBase::DestructBase() {
+    List2568Destruct(&joins_);
+    SessionBase::Destruct();
 }
-EI_REPLACE(0x004132F0, ServerBaseDestruct);
+EI_REPLACE_METHOD(0x004132F0, ServerBase::DestructBase);
 
 // 00417A10 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
-ServerSession* __fastcall ServerDeletingDestructor(ServerSession* self, void*, unsigned flags) {
-    self->Destruct();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+ServerSession* ServerSession::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00417A10, ServerDeletingDestructor);
+EI_REPLACE_METHOD(0x00417A10, ServerSession::DeletingDestruct);
 
 } // namespace net

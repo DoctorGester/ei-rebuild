@@ -27,33 +27,27 @@ float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatil
 
 // The history / acknowledged lists (STLport list<HistoryNode>): end, splice of one node before
 // `pos`, erase.
-__declspec(naked) void** __fastcall HistoryEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00437F20)
-__declspec(naked) void __fastcall HistorySplice(void* /*list*/, void*, void* /*pos*/, void* /*from*/, void* /*node*/) EI_ORIGINAL(0x004380C0)
-__declspec(naked) void* __fastcall HistoryEraseAt(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00437F30)
-// The freed-id queue (list of vector<{uint16 id, uint8 type}>): erase, insert a default element.
-__declspec(naked) void* __fastcall FreedErase(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x004390C0)
-__declspec(naked) void* __fastcall FreedInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00439000)
+__declspec(naked) HistoryNode** __fastcall HistoryEnd(HistoryNode** /*list*/, void*, HistoryNode** /*out*/) EI_ORIGINAL(0x00437F20)
+__declspec(naked) void __fastcall HistorySplice(HistoryNode** /*list*/, void*, HistoryNode* /*pos*/, HistoryNode** /*from*/,
+                                                HistoryNode* /*node*/) EI_ORIGINAL(0x004380C0)
+__declspec(naked) HistoryNode** __fastcall HistoryEraseAt(HistoryNode** /*list*/, void*, HistoryNode** /*out*/, HistoryNode* /*pos*/) EI_ORIGINAL(0x00437F30)
+// The freed-id queue (list of vector<FreedId>): erase, insert a default element.
+__declspec(naked) FreedBatch** __fastcall FreedErase(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x004390C0)
+__declspec(naked) FreedBatch** __fastcall FreedInsert(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 // vector<uint16_t> pieces of the id pools: construct in place, insert when full; vector copy of
 // 4-byte elements (returns the end of the copy).
 __declspec(naked) void __fastcall IdConstruct(std::uint16_t* /*at*/, const void* /*value*/) EI_ORIGINAL(0x0043D7E0)
 __declspec(naked) void __fastcall IdInsertOverflow(IdPool* /*pool*/, void*, std::uint16_t* /*pos*/, const void* /*value*/,
                                                    std::uint32_t /*n*/) EI_ORIGINAL(0x0043B530)
-__declspec(naked) std::uint8_t* __fastcall CopyFreed(std::uint8_t* /*first*/, std::uint8_t* /*last*/, std::uint8_t* /*dest*/) EI_ORIGINAL(0x0043DC80)
+__declspec(naked) FreedId* __fastcall CopyFreed(FreedId* /*first*/, FreedId* /*last*/, FreedId* /*dest*/) EI_ORIGINAL(0x0043DC80)
 
-SessionBase*& SessionRef() { return *reinterpret_cast<SessionBase**>(0x0079B920); }
-Connection*& ConnectionRef() { return *reinterpret_cast<Connection**>(0x0079B924); }
-int SessionInt(std::size_t offset) {
-    int v;
-    std::memcpy(&v, reinterpret_cast<std::uint8_t*>(SessionRef()) + offset, 4);
-    return v;
-}
-
-double Get(const std::uint32_t* d) {
+// The clocks are doubles read and written as their 8 bytes.
+double Get(const double* d) {
     double v;
     std::memcpy(&v, d, 8);
     return v;
 }
-void Set(std::uint32_t* d, double v) { std::memcpy(d, &v, 8); }
+void Set(double* d, double v) { std::memcpy(d, &v, 8); }
 
 // The reliable stream's size (the buffer's high mark follows its position first).
 std::int32_t ReliableSize(GameBuffer* b) {
@@ -68,79 +62,78 @@ float Select(bool flag, float pick, float other) { return flag ? pick : other; }
 } // namespace
 
 // 00433BD0: advances the idle time and the clock by `dt`. Packets older than the loss timeout
-// (3 standard deviations above the average round trip, at least 0.1, at most the session's +0x10)
-// are rolled back and move to the acknowledged list, where they stay for +0x10 seconds. Sends an
-// update every sendInterval (stopping early once the reliable stream and the header queue are
-// empty). Every +0x14 seconds the oldest batch of freed ids returns to the id pools. False once
-// the peer was silent for +0x0C seconds or the reliable stream holds 32000 bytes.
+// (3 standard deviations above the average round trip, at least 0.1, at most the session's
+// maxRoundTrip_) are rolled back and move to the acknowledged list, where they stay for
+// maxRoundTrip_ seconds. Sends an update every sendInterval_ (stopping early once the reliable
+// stream and the header queue are empty). Every idReuseTime_ seconds the oldest batch of freed ids
+// returns to the id pools. False once the peer was silent for the session's timeout_ or the
+// reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
-    ConnectionRef() = this;
-    idleTime = Store(D(idleTime) + dt);
-    Set(clock, dt + Get(clock));
-    float spread = Store(D(roundTrip) * D(roundTrip) - D(roundTripSquare));
+    CurrentConnection() = this;
+    idleTime_ = Store(D(idleTime_) + dt);
+    Set(&clock_, dt + Get(&clock_));
+    float spread = Store(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
     std::uint32_t bits;
     std::memcpy(&bits, &spread, 4);
     bits &= 0x7FFFFFFF;
     std::memcpy(&spread, &bits, 4);
-    float loss = Store(x87::fsqrt(spread) * D(GameFloat(0x0073BAA4)) + D(roundTrip));
+    float loss = Store(x87::fsqrt(spread) * D(GameFloat(0x0073BAA4)) + D(roundTrip_));
     float tenth;
     const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&tenth, &tenthBits, 4);
     loss = Select(!(loss >= tenth), tenth, loss);
-    float longest = Store(static_cast<double>(SessionInt(0x10)));
+    float longest = Store(static_cast<double>(CurrentSession()->maxRoundTrip_));
     loss = Select(!(longest >= loss), longest, loss);
-    float kept = Store(static_cast<double>(SessionInt(0x10)));
+    float kept = Store(static_cast<double>(CurrentSession()->maxRoundTrip_));
 
-    for (auto* node = *static_cast<HistoryNode**>(history); node != history;) {
-        double age = Get(clock) - Get(node->time);
+    for (HistoryNode* node = history_->next; node != history_;) {
+        double age = Get(&clock_) - Get(&node->time);
         if (!(D(loss) < age)) break;
         RollBack(reinterpret_cast<std::uint8_t*>(node) + 8);
         HistoryNode* next = node->next;
-        void* end;
-        HistoryEnd(&acknowledged, nullptr, &end);
-        HistorySplice(&acknowledged, nullptr, end, &history, node);
+        HistoryNode* end;
+        HistoryEnd(&acknowledged_, nullptr, &end);
+        HistorySplice(&acknowledged_, nullptr, end, &history_, node);
         node = next;
-        if (node == history) break;
+        if (node == history_) break;
     }
-    for (auto* node = *static_cast<HistoryNode**>(acknowledged); node != acknowledged;) {
-        double age = Get(clock) - Get(node->time);
+    for (HistoryNode* node = acknowledged_->next; node != acknowledged_;) {
+        double age = Get(&clock_) - Get(&node->time);
         if (!(D(kept) < age)) {
             node = node->next;
         } else {
-            void* after;
-            HistoryEraseAt(&acknowledged, nullptr, &after, node);
-            node = static_cast<HistoryNode*>(after);
+            HistoryNode* after;
+            HistoryEraseAt(&acknowledged_, nullptr, &after, node);
+            node = after;
         }
     }
 
-    double timer = D(sendTimer) + dt;
-    sendTimer = Store(timer);
-    if (timer > D(sendInterval)) {
+    double timer = D(sendTimer_) + dt;
+    sendTimer_ = Store(timer);
+    if (timer > D(sendInterval_)) {
         do {
-            sendTimer = Store(D(sendTimer) - D(sendInterval));
-            if (SendUpdate(static_cast<int>(updateBudget)) && *static_cast<void**>(headers) == headers) {
-                if (ReliableSize(&reliableOut) == 0) break;
+            sendTimer_ = Store(D(sendTimer_) - D(sendInterval_));
+            if (SendUpdate(static_cast<int>(updateBudget_)) && headers_->next == headers_) {
+                if (ReliableSize(&reliableOut_) == 0) break;
             }
-        } while (sendTimer > sendInterval);
+        } while (sendTimer_ > sendInterval_);
     }
-    if (sendTimer > sendInterval) {
+    if (sendTimer_ > sendInterval_) {
         double rest;
         do {
-            rest = D(sendTimer) - D(sendInterval);
-            sendTimer = Store(rest);
-        } while (rest > D(sendInterval));
+            rest = D(sendTimer_) - D(sendInterval_);
+            sendTimer_ = Store(rest);
+        } while (rest > D(sendInterval_));
     }
 
-    double freedTime = D(freedTimer) + dt;
-    freedTimer = Store(freedTime);
-    if (freedTime > static_cast<double>(SessionInt(0x14))) {
-        freedTimer = 0.0f;
-        auto* first = *static_cast<std::uint8_t**>(freedIds);
-        auto** ids = reinterpret_cast<std::uint8_t**>(first + 8);   // vector: begin, end, eos
-        for (std::uint8_t* e = ids[0]; e != ids[1]; e += 4) {
-            std::uint32_t value = 0;
-            std::memcpy(&value, e, 2);
-            IdPool& pool = idPools[e[2]];
+    double freedTime = D(freedTimer_) + dt;
+    freedTimer_ = Store(freedTime);
+    if (freedTime > static_cast<double>(CurrentSession()->idReuseTime_)) {
+        freedTimer_ = 0.0f;
+        FreedBatch* oldest = freedIds_->next;
+        for (FreedId* e = oldest->begin; e != oldest->end; ++e) {
+            std::uint32_t value = e->id;
+            IdPool& pool = idPools_[e->type];
             if (pool.end != pool.eos) {
                 IdConstruct(pool.end, &value);
                 ++pool.end;
@@ -148,72 +141,72 @@ bool Connection::Tick(double dt) {
                 IdInsertOverflow(&pool, nullptr, pool.end, &value, 1);
             }
         }
-        ids[1] = CopyFreed(ids[1], ids[1], ids[0]);
-        void* out;
-        FreedErase(&freedIds, nullptr, &out, *static_cast<void**>(freedIds));
-        FreedInsert(&freedIds, nullptr, &out, freedIds);
+        oldest->end = CopyFreed(oldest->end, oldest->end, oldest->begin);
+        FreedBatch* out;
+        FreedErase(&freedIds_, nullptr, &out, freedIds_->next);
+        FreedInsert(&freedIds_, nullptr, &out, freedIds_);
     }
 
     bool alive = false;
-    if (static_cast<double>(SessionInt(0x0C)) > D(idleTime)) alive = ReliableSize(&reliableOut) < 32000;
-    ConnectionRef() = nullptr;
+    if (static_cast<double>(CurrentSession()->timeout_) > D(idleTime_)) alive = ReliableSize(&reliableOut_) < 32000;
+    CurrentConnection() = nullptr;
     return alive;
 }
-namespace {
-bool __fastcall TickHook(Connection* self, void*, double dt) { return self->Tick(dt); }
-} // namespace
-EI_REPLACE(0x00433BD0, TickHook);
+EI_REPLACE_METHOD(0x00433BD0, Connection::Tick);
 
 } // namespace net
 
 namespace net {
 
 namespace {
-__declspec(naked) void* __fastcall PriorityFind(RbTree* /*tree*/, void*, void** /*out*/, ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043C9A0)
-__declspec(naked) void __fastcall PriorityEraseAt(RbTree* /*tree*/, void*, void* /*position*/) EI_ORIGINAL(0x00437EF0)
-__declspec(naked) std::uint32_t __fastcall BySentIdErase(void* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0043BE60)
-// vector<{uint16 id, uint8 type}> of a freed-id batch: construct in place (4 bytes), insert when full.
-__declspec(naked) void __fastcall FreedConstruct(std::uint8_t* /*at*/, const void* /*value*/) EI_ORIGINAL(0x0043D7F0)
-__declspec(naked) void __fastcall FreedInsertOverflow(std::uint8_t** /*vector*/, void*, std::uint8_t* /*pos*/, const void* /*value*/,
+__declspec(naked) Connection::EntryMap::Node** __fastcall PriorityFind(Connection::EntryMap* /*tree*/, void*,
+                                                                       Connection::EntryMap::Node** /*out*/,
+                                                                       ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043C9A0)
+__declspec(naked) void __fastcall PriorityEraseAt(Connection::EntryMap* /*tree*/, void*,
+                                                  Connection::EntryMap::Node* /*position*/) EI_ORIGINAL(0x00437EF0)
+__declspec(naked) std::uint32_t __fastcall BySentIdErase(TreeMap<std::uint32_t, RefPtr>* /*map*/, void*,
+                                                         const std::uint32_t* /*key*/) EI_ORIGINAL(0x0043BE60)
+// vector<FreedId> of a freed-id batch: construct in place (4 bytes), insert when full.
+__declspec(naked) void __fastcall FreedConstruct(FreedId* /*at*/, const FreedId* /*value*/) EI_ORIGINAL(0x0043D7F0)
+__declspec(naked) void __fastcall FreedInsertOverflow(FreedId** /*vector*/, void*, FreedId* /*pos*/, const FreedId* /*value*/,
                                                       std::uint32_t /*n*/) EI_ORIGINAL(0x0043B6C0)
-#define EI_RTT_KEEP GameFloat(0x0073BF30)   // the share of the old average kept per sample
-#define EI_ONE GameFloat(0x0073B84C)        // 1.0f
+float RttKeep() { return GameFloat(0x0073BF30); }   // the share of the old average kept per sample
+float One() { return GameFloat(0x0073B84C); }       // 1.0f
 } // namespace
 
 void Connection::Delivered(std::uint8_t* historyData) {
     auto* node = reinterpret_cast<HistoryNode*>(historyData - 8);
-    double sample = Get(clock) - Get(node->time);
-    double kept = D(EI_RTT_KEEP) * D(roundTrip);
-    roundTrip = Store(kept);
-    roundTrip = Store((D(EI_ONE) - D(EI_RTT_KEEP)) * sample + kept);
-    double keptSquare = D(EI_RTT_KEEP) * D(roundTripSquare);
-    roundTripSquare = Store(keptSquare);
-    roundTripSquare = Store((D(EI_ONE) - D(EI_RTT_KEEP)) * sample * sample + keptSquare);
+    double sample = Get(&clock_) - Get(&node->time);
+    double kept = D(RttKeep()) * D(roundTrip_);
+    roundTrip_ = Store(kept);
+    roundTrip_ = Store((D(One()) - D(RttKeep())) * sample + kept);
+    double keptSquare = D(RttKeep()) * D(roundTripSquare_);
+    roundTripSquare_ = Store(keptSquare);
+    roundTripSquare_ = Store((D(One()) - D(RttKeep())) * sample * sample + keptSquare);
     for (SentItem* item = node->items->next; item != node->items; item = item->next) {
         auto action = static_cast<std::int32_t>(item->action);
-        if (action == 1) {
+        if (action == SentItem::kChangedReliable) {
             std::uint32_t version = item->version;
-            if (item->entry->version > version) version = item->entry->version;
-            item->entry->version = version;
+            if (item->entry->version_ > version) version = item->entry->version_;
+            item->entry->version_ = version;
         } else if (action > 1 && action < 4) {
             ReplicaEntry* entry = item->entry;
-            RbTree* tree = &priorities[entry->flags >> 1];
-            void* found;
+            EntryMap* tree = &priorities_[entry->flags_ >> 1];
+            EntryMap::Node* found;
             PriorityFind(tree, nullptr, &found, &entry);
             if (found != tree->header) {
                 entry = item->entry;
-                std::uint32_t key = (static_cast<std::uint32_t>(entry->type) << 16) + entry->id;
-                BySentIdErase(bySentId, nullptr, &key);
-                std::uint8_t value[4] = {};
-                std::memcpy(value, &entry->id, 2);
-                value[2] = entry->type;
-                auto* batch = static_cast<std::uint8_t**>(freedIds)[1];   // the newest batch
-                auto** ids = reinterpret_cast<std::uint8_t**>(batch + 8);  // begin, end, eos
-                if (ids[1] != ids[2]) {
-                    FreedConstruct(ids[1], value);
-                    ids[1] += 4;
+                std::uint32_t key = (static_cast<std::uint32_t>(entry->type_) << 16) + entry->id_;
+                BySentIdErase(&bySentId_, nullptr, &key);
+                FreedId value{};
+                value.id = entry->id_;
+                value.type = entry->type_;
+                FreedBatch* batch = freedIds_->prev;   // the newest batch
+                if (batch->end != batch->eos) {
+                    FreedConstruct(batch->end, &value);
+                    ++batch->end;
                 } else {
-                    FreedInsertOverflow(ids, nullptr, ids[1], value, 1);
+                    FreedInsertOverflow(&batch->begin, nullptr, batch->end, &value, 1);
                 }
                 PriorityEraseAt(tree, nullptr, found);
             }

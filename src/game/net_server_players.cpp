@@ -3,20 +3,17 @@
 // (0041A550, 0041A620), the departure reports (0041A700 slot 11, 0041A770 slot 12) and the lines to
 // every guest (0041A500). See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
 //
-// Players (+0x2590): +0x0C name, +0x28 host (byte), +0x2C id, +0x30 serial. Bindings (+0x25A4):
-// +0x0C the player, +0x10 the connection (net_server_join.cpp).
+// Players (players_): +0x0C name, +0x28 host (byte), +0x2C id, +0x30 serial. Bindings
+// (bindings_): +0x0C the player, +0x10 the connection (net_server_join.cpp).
 #include "net_classes.h"
+#include "net_connection.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cstring>
 
 namespace net {
-
-void** __fastcall SessionFindClient(SessionBase* self, void*, void** out, const void* address);   // net_session_tick.cpp
-void __fastcall SessionSendLeave(SessionBase* self, void*, const void* address, std::uint32_t id);  // net_session_tick.cpp
 
 namespace {
 
@@ -28,7 +25,6 @@ __declspec(naked) void** __fastcall BannedBegin(void* /*list*/, void*, void** /*
 __declspec(naked) void** __fastcall BannedFind(void** /*out*/, void*, void* /*first*/, void* /*last*/, std::uint32_t /*value*/) EI_ORIGINAL(0x00427FF0)
 __declspec(naked) void** __fastcall BannedInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/) EI_ORIGINAL(0x00421AF0)
 
-constexpr int kSlotRemoveClient = 2;
 constexpr std::size_t kPasswordSize = 0x14;
 
 template <typename T>
@@ -51,32 +47,33 @@ void* HostConnection(void** bindings) {
 }
 
 // The common tail of kicking and banning: the client is told to leave and removed (slot 2).
-void DropClient(ServerSession* self, void* connection) {
-    auto* address = static_cast<std::uint8_t*>(connection) + 0x2C;
-    SessionSendLeave(&self->base, nullptr, address, At<std::uint32_t>(connection, 0x20));
-    void* node;
-    SessionFindClient(&self->base, nullptr, &node, address);
-    ei::VCall<void>(self, kSlotRemoveClient, node);
+void DropClient(ServerSession* self, void* peer) {
+    auto* connection = static_cast<Connection*>(peer);
+    self->SendLeave(&connection->address_, connection->id_);
+    ClientNode* node;
+    self->FindClient(&node, &connection->address_);
+    self->RemoveClient(node);
 }
 
 } // namespace
 
 // 0041A020: the id of the first host player, -1 without one.
 int ServerSession::LeaderId() {
-    void** players = static_cast<void**>(list_2590);
+    void** players = static_cast<void**>(players_);
     for (void** node = First(players); node != players; node = static_cast<void**>(node[0]))
         if (At<std::uint8_t>(Value(node), 0x28)) return At<int>(Value(node), 0x2C);
     return -1;
 }
+EI_REPLACE_METHOD(0x0041A020, ServerSession::LeaderId);
 
 // 0041A050 (slot 16): whether a client from `address` may join. Refused when the address is banned
 // (reason 2), when a password is set and the 20 bytes at `*password` differ (reason 3; the pointer
-// moves past them either way), or when the clients and the pending ones (+0x2568) reach the
-// maximum (reason 1).
+// moves past them either way), or when the clients and the pending joins reach the maximum
+// (reason 1).
 bool ServerSession::Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
-    void* banned = &list_25C4;
+    void* banned = &banned_;
     *reason = 2;
-    void* sentinel = list_25C4;
+    void* sentinel = banned_;
     void* last;
     BannedEnd(banned, nullptr, &last);
     void* first;
@@ -84,7 +81,7 @@ bool ServerSession::Admit(std::uint32_t address, const std::uint8_t** password, 
     void* found;
     if (*BannedFind(&found, nullptr, first, last, address) != sentinel) return false;
 
-    auto* stored = reinterpret_cast<std::uint8_t*>(unknown_25E8);
+    const std::uint8_t* stored = password_;
     if (stored[0]) {
         *reason = 3;
         std::uint8_t given[kPasswordSize] = {};
@@ -93,30 +90,29 @@ bool ServerSession::Admit(std::uint32_t address, const std::uint8_t** password, 
         if (std::memcmp(given, stored, kPasswordSize) != 0) return false;
     }
     *reason = 1;
-    std::uint32_t clients = 0;
-    void** list = static_cast<void**>(base.clients);
-    for (void** node = First(list); node != list; node = static_cast<void**>(node[0])) ++clients;
+    std::uint32_t clients = ClientCount();
     std::uint32_t pending = 0;
-    list = static_cast<void**>(list_2568);
+    void** list = static_cast<void**>(joins_);
     for (void** node = First(list); node != list; node = static_cast<void**>(node[0])) ++pending;
-    return pending + clients < unknown_25E0;
+    return pending + clients < maxPlayers_;
 }
 
 // 0041A140: the join password (at most 20 bytes, zero-filled).
 void ServerSession::SetPassword(const char* text) {
-    char* stored = reinterpret_cast<char*>(unknown_25E8);
+    char* stored = reinterpret_cast<char*>(password_);
     std::memset(stored, 0, kPasswordSize);
     GameStrncpy(stored, text, kPasswordSize);
 }
+EI_REPLACE_METHOD(0x0041A140, ServerSession::SetPassword);
 
 // 0041A170: the connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
 void* ServerSession::FindGuestConnection(const StringRep* name) {
     const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
-    for (void** node = First(list_2590); node != list_2590; node = static_cast<void**>(node[0])) {
+    for (void** node = First(players_); node != players_; node = static_cast<void**>(node[0])) {
         void* player = Value(node);
         if (GameStrnicmp(At<const char*>(player, 0xC), name->start, length) != 0) continue;
-        void** bindings = static_cast<void**>(list_25A4);
+        void** bindings = static_cast<void**>(bindings_);
         void** first = First(bindings);
         for (void** binding = first; binding != bindings; binding = static_cast<void**>(binding[0])) {
             if (At<void*>(Value(binding), 0xC) != Value(node)) continue;
@@ -136,36 +132,40 @@ void* ServerSession::FindGuestConnection(const StringRep* name) {
     }
     return nullptr;
 }
+EI_REPLACE_METHOD(0x0041A170, ServerSession::FindGuestConnection);
 
 // 0041A270: the connection of the player with serial `serial`, or null.
 void* ServerSession::FindConnectionBySerial(int serial) {
-    void** bindings = static_cast<void**>(list_25A4);
+    void** bindings = static_cast<void**>(bindings_);
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0]))
         if (At<int>(At<void*>(Value(node), 0xC), 0x30) == serial) return At<void*>(Value(node), 0x10);
     return nullptr;
 }
+EI_REPLACE_METHOD(0x0041A270, ServerSession::FindConnectionBySerial);
 
 // 0041A2E0: the player with id `id`, or null.
 void* ServerSession::FindPlayer(int id) {
-    void** players = static_cast<void**>(list_2590);
+    void** players = static_cast<void**>(players_);
     for (void** node = First(players); node != players; node = static_cast<void**>(node[0]))
         if (At<int>(Value(node), 0x2C) == id) return Value(node);
     return nullptr;
 }
+EI_REPLACE_METHOD(0x0041A2E0, ServerSession::FindPlayer);
 
 // 0041A500: a line (text `kind` with `text`) for every player that is not the host.
 void ServerSession::AnnounceToGuests(int kind, const char* text) {
-    for (void** node = First(list_2590); node != list_2590; node = static_cast<void**>(node[0])) {
+    for (void** node = First(players_); node != players_; node = static_cast<void**>(node[0])) {
         void* player = Value(node);
         if (!At<std::uint8_t>(player, 0x28)) AnnounceText(kind, text, static_cast<CRefObject*>(player));
     }
 }
+EI_REPLACE_METHOD(0x0041A500, ServerSession::AnnounceToGuests);
 
 // 0041A550: kicks the client on `connection` (unless it is the host's): its player is announced
 // (text 2), then the client is told to leave and removed.
 void ServerSession::Kick(void* connection) {
     if (!Live(connection)) return;
-    void** bindings = static_cast<void**>(list_25A4);
+    void** bindings = static_cast<void**>(bindings_);
     void* host = HostConnection(bindings);
     if (connection == host) return;
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0])) {
@@ -179,12 +179,13 @@ void ServerSession::Kick(void* connection) {
     }
     DropClient(this, connection);
 }
+EI_REPLACE_METHOD(0x0041A550, ServerSession::Kick);
 
 // 0041A620: bans the client on `connection` (unless it is the host's): its player is announced
 // (text 3), its address added to the banned list, then the client is told to leave and removed.
 void ServerSession::Ban(void* connection) {
     if (!Live(connection)) return;
-    void** bindings = static_cast<void**>(list_25A4);
+    void** bindings = static_cast<void**>(bindings_);
     void* host = HostConnection(bindings);
     if (connection == host) return;
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0])) {
@@ -196,19 +197,20 @@ void ServerSession::Ban(void* connection) {
         }
         break;
     }
-    auto* address = static_cast<std::uint8_t*>(connection) + 0x2C;
+    const NetAddress* address = &static_cast<Connection*>(connection)->address_;
     void* end;
-    BannedEnd(&list_25C4, nullptr, &end);
+    BannedEnd(&banned_, nullptr, &end);
     void* inserted;
-    BannedInsert(&list_25C4, nullptr, &inserted, end, address);
+    BannedInsert(&banned_, nullptr, &inserted, end, address);
     DropClient(this, connection);
 }
+EI_REPLACE_METHOD(0x0041A620, ServerSession::Ban);
 
 // 0041A700 (slot 11, a client lost) and 0041A770 (slot 12, a client left): the client's player is
 // announced (text 4 / text 1).
 void ServerSession::ReportDeparture(void* connection, int text) {
     if (!Live(connection)) return;
-    void** bindings = static_cast<void**>(list_25A4);
+    void** bindings = static_cast<void**>(bindings_);
     for (void** node = First(bindings); node != bindings; node = static_cast<void**>(node[0])) {
         if (At<void*>(Value(node), 0x10) != connection) continue;
         void* binding = Value(node);
@@ -220,30 +222,18 @@ void ServerSession::ReportDeparture(void* connection, int text) {
     }
 }
 
+// Slots 11 (a client lost: text 4) and 12 (a client left: text 1).
+void ServerSession::OnClientLost(Connection* connection) { ReportDeparture(connection, 4); }
+void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(connection, 1); }
+
 namespace {
-int __fastcall LeaderIdHook(ServerSession* self) { return self->LeaderId(); }
 bool __fastcall AdmitHook(ServerSession* self, void*, std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
-    return self->Admit(address, password, reason);
+    return self->ServerSession::Admit(address, password, reason);
 }
-void __fastcall SetPasswordHook(ServerSession* self, void*, const char* text) { self->SetPassword(text); }
-void* __fastcall FindGuestConnectionHook(ServerSession* self, void*, const StringRep* name) { return self->FindGuestConnection(name); }
-void* __fastcall FindConnectionBySerialHook(ServerSession* self, void*, int serial) { return self->FindConnectionBySerial(serial); }
-void* __fastcall FindPlayerHook(ServerSession* self, void*, int id) { return self->FindPlayer(id); }
-void __fastcall AnnounceToGuestsHook(ServerSession* self, void*, int kind, const char* text) { self->AnnounceToGuests(kind, text); }
-void __fastcall KickHook(ServerSession* self, void*, void* connection) { self->Kick(connection); }
-void __fastcall BanHook(ServerSession* self, void*, void* connection) { self->Ban(connection); }
-void __fastcall ClientLostHook(ServerSession* self, void*, void* connection) { self->ReportDeparture(connection, 4); }
-void __fastcall ClientLeftHook(ServerSession* self, void*, void* connection) { self->ReportDeparture(connection, 1); }
+void __fastcall ClientLostHook(ServerSession* self, void*, Connection* connection) { self->ServerSession::OnClientLost(connection); }
+void __fastcall ClientLeftHook(ServerSession* self, void*, Connection* connection) { self->ServerSession::OnClientLeft(connection); }
 } // namespace
-EI_REPLACE(0x0041A020, LeaderIdHook);
 EI_REPLACE(0x0041A050, AdmitHook);
-EI_REPLACE(0x0041A140, SetPasswordHook);
-EI_REPLACE(0x0041A170, FindGuestConnectionHook);
-EI_REPLACE(0x0041A270, FindConnectionBySerialHook);
-EI_REPLACE(0x0041A2E0, FindPlayerHook);
-EI_REPLACE(0x0041A500, AnnounceToGuestsHook);
-EI_REPLACE(0x0041A550, KickHook);
-EI_REPLACE(0x0041A620, BanHook);
 EI_REPLACE(0x0041A700, ClientLostHook);
 EI_REPLACE(0x0041A770, ClientLeftHook);
 
