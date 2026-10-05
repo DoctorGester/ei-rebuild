@@ -1766,6 +1766,14 @@ bar's spell line (no scenario equips a weapon with a spell); the titles opened f
 (+0x1F4 0, the end of the game). The side-by-side wrappers check those paths whenever a run
 reaches them.
 
+### Fixes after the first in-game run
+
+- The weapon bar's and the action column's wrappers mismatched in most game runs (state bytes 247
+  / 587: region 2's tip arguments). Their regions without a button get SetTip(0, 1, 0), a fresh
+  0x184-byte tooltip with the empty text 0079B298; its constructor 0065E320 writes the arguments
+  (+0x164 / +0x168) and the size (+0x174 / +0x178) only for a non-empty text, so those were leftover
+  heap bytes. The wrappers compare them only for tips with lines now.
+
 ### Candidates in 005E0000-00640000 left
 
 Unchanged from the earlier passes: the briefing screen (00604C50, 00604130, 006064E0, 006024B0,
