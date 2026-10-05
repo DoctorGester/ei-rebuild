@@ -366,20 +366,44 @@ static_assert(offsetof(CUiSurface, rect_) == 0x24);
 static_assert(offsetof(CUiSurface, flags_) == 0x0C);
 static_assert(sizeof(CUiSurface) == 0x38);
 
-// A 3D model shown in a window (an inventory item, a portrait): one pointer to a scene object.
+// The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
+struct UiDrawPass {
+    void SetColour(std::uint32_t colour) {
+        using Fn = void(__thiscall*)(UiDrawPass*, std::uint32_t);
+        reinterpret_cast<Fn>(vtable_[7])(this, colour);
+    }
+
+    void** vtable_;
+    std::uint8_t unknown_04[0x18 - 0x04];
+    std::uint32_t colour_;           // +0x18
+};
+static_assert(offsetof(UiDrawPass, colour_) == 0x18);
+
+class CObject3D;
+
+// A 3D model shown in a window (an inventory item, a portrait): one pointer to a scene object
+// (a CObject3D). ui_model.cpp unless noted.
 class CUiModel {
 public:
-    // 005FC450. Places the object in front of the camera at a layout position and depth.
+    // 005FC450 (ui_interface.cpp). Places the object in front of the camera at a layout position
+    // and depth.
     void SetScreenPosition(float x, float y, float depth);
-    // 005FC1D0 (not rewritten). Releases the object.
+    // 005FC1D0. Releases the object (slot 4) and clears the pointer.
     void ReleaseObject();
-    // 005FC2F0 (not rewritten). Draws the object.
-    void Draw(int pass);
-    // Not rewritten: 005FC1F0 loads the model (`name`, its layout and label parts), 005FC4F0
-    // shows or hides all its parts, 005FC4C0 one part by name.
+    // 005FC2F0 (RET 4). Draws the object in `pass` (a UiDrawPass) in white at the interface's
+    // animation clock (timeGetTime / 67), with object flag 0x800 set while it draws.
+    void Draw(UiDrawPass* pass);
+    // 005FC1F0 (not rewritten). Loads the model (`name`, its layout and label parts).
     void Load(const char* name, const char* layout, const char* labels);
+    // 005FC4F0 (RET 4) shows or hides all its parts (part flag 0x80), 005FC4C0 (RET 8) one part by
+    // name.
     void ShowAllParts(int show);
     void ShowPart(const char* name, int show);
+    // 005FC3B0 (RET 4). Plays skill animation `animation` + 1 (00518FC0, 005187B0).
+    void Play(int animation);
+    // 005FC3D0. Plays the figure's rest pose (the object manager's object named like the figure).
+    void Stop();
+    CObject3D* Figure() const { return reinterpret_cast<CObject3D*>(object_); }
 
     CTransformObject* object_;
 };

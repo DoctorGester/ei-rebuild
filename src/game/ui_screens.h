@@ -67,13 +67,6 @@ void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 void LeaveGame();
 } // namespace uiorig
 
-// A model preview's animation controls (CUiModel, ui.h), not rewritten.
-struct UiModelAnim {
-    CTransformObject* object_;
-    void Play(int animation);   // 005FC3B0 (animation + 1 is the object's track)
-    void Stop();                // 005FC3D0 (back to the rest pose)
-};
-
 static_assert(sizeof(CUiWindow) == 0x148);
 
 // An MFC CPtrArray-like array (vtable, data, size, capacity, growth) with zeroed new slots.

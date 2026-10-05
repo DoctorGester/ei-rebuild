@@ -322,7 +322,7 @@ EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
 
 BOOL CUiWindow::DrawBase(int pass) {
     for (int i = 0; i < sceneObjects_.size_; ++i) SpriteDrawOriginal(sceneObjects_.data_[i], nullptr, pass);
-    for (int i = 0; i < models_.size_; ++i) models_.data_[i]->Draw(pass);
+    for (int i = 0; i < models_.size_; ++i) models_.data_[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
 EI_REPLACE_METHOD(0x005FEB90, CUiWindow::DrawBase);

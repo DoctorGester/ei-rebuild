@@ -32,8 +32,6 @@
 __declspec(naked) void CUiRegion::CallSetRect(int, int, int, int) EI_ORIGINAL(0x005FC9E0)
 __declspec(naked) CUiSurface* CUiSurface::Construct(CInterface3D*, int, int, int, int, int, int) EI_ORIGINAL(0x005FCC00)
 __declspec(naked) void CUiModel::Load(const char*, const char*, const char*) EI_ORIGINAL(0x005FC1F0)
-__declspec(naked) void CUiModel::ShowAllParts(int) EI_ORIGINAL(0x005FC4F0)
-__declspec(naked) void CUiModel::ShowPart(const char*, int) EI_ORIGINAL(0x005FC4C0)
 __declspec(naked) int CUiWindow::LoadTexture(const char*, int, int) EI_ORIGINAL(0x005FEF20)
 __declspec(naked) CEngineObject* CUiWindow::CreateTexture(int, int, int) EI_ORIGINAL(0x005FF0B0)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
@@ -281,7 +279,7 @@ void CEscMenu::Build() {
         gameapi::CopyRect(&rect, reinterpret_cast<const RECT*>(source));
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    reinterpret_cast<UiModelAnim*>(window.models_.data_[0])->Play(1);
+    window.models_.data_[0]->Play(1);
     window.interface_->PlaySound(GameText(0x00793F90), 0);   // "buttons\menu\shift.wav"
 }
 EI_REPLACE_METHOD(0x0062AB20, CEscMenu::Build);

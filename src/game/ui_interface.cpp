@@ -106,8 +106,6 @@ EI_REPLACE_METHOD(0x005FE400, CUiSurface::MoveTo);
 
 // --- CUiModel --------------------------------------------------------------------------------
 
-__declspec(naked) void CUiModel::ReleaseObject() EI_ORIGINAL(0x005FC1D0)
-
 // /fp:fast would fold the two constant factors into one (different rounding); keep the original's
 // order of operations.
 #pragma float_control(precise, on, push)

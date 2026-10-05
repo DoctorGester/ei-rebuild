@@ -140,8 +140,6 @@ bool UiItemKinds::IsBuildable(const char* item) {
 }
 EI_REPLACE_METHOD(0x005EE130, UiItemKinds::IsBuildable);
 
-__declspec(naked) void UiModelAnim::Play(int) EI_ORIGINAL(0x005FC3B0)
-__declspec(naked) void UiModelAnim::Stop() EI_ORIGINAL(0x005FC3D0)
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { PlaySoundAt(ui, nullptr, name, flags); }
@@ -621,7 +619,7 @@ EI_REPLACE(0x006177D0, MpHeroLButtonUp);
 // --- CEscMenu ---------------------------------------------------------------------------------
 
 void CEscMenu::OnMouseMove(int flags, int x, int y) {
-    auto* model = reinterpret_cast<UiModelAnim*>(window.models_.data_[0]);
+    CUiModel* model = window.models_.data_[0];
     int region = window.RegionAt(x, y);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {
