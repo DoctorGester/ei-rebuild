@@ -7,7 +7,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R5 (taken 2026-10-05) The ~10 interface draws with old-device calls (list in renderer.md point 6), in groups of 3-4.
 - R6 Movie surfaces and the software cursor's draws to the primary surface.
 - R7 Holders with no DirectDraw surface at all (after R2/R3).
 - R8 Device setup and texture management (last).
@@ -21,15 +20,14 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I8 (taken 2026-10-05) AttackUnit 00637190 has 0 calls (ui_battle_commands' click grid misses the wolves): needs a way to click a unit (a harness step that clicks a unit's projected screen position?). Then 00637500 / 00637750 / 0063DB20 (spells and quick items on targets).
+- I9 (taken 2026-10-05) UseAtPoint 00637750 has 0 calls (ui_battle_spells: the spells chosen all target units?); quick items on a target (mode 3) and 0063DB20 need a scenario with a wand or scroll in a quick slot.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H4 Trader stock: no scenario reaches the stock generators (0069AE20, 0069A110, H3's 00699810 / 006995E0 / 00699A40 installed but 0 calls; ui_camp does not reach 004A6DF0). Find what calls 004A6DF0 and add a scenario; then 0069B5B0 (stock load), 0069A480 / 0069A780.
+- H4 (taken 2026-10-05) Trader stock: no scenario reaches the stock generators (0069AE20, 0069A110, H3's 00699810 / 006995E0 / 00699A40 installed but 0 calls; ui_camp does not reach 004A6DF0). Find what calls 004A6DF0 and add a scenario; then 0069B5B0 (stock load), 0069A480 / 0069A780.
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S7 (taken 2026-10-05) Script element-destructor wrappers 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004BF620 (S6's deep-copy check fits).
 
 ## Verify checks
 
@@ -43,7 +41,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
   - (C2d camera merged 2026-10-05.)
-- C3b (top 10, C3c-C3e and C3f, the next 15 by site count each; C3g done on its branch, merge pending; 445 left per the regenerated report, continue with the next 15 by site count) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
+- C3b (top 10, C3c-C3e and C3f, the next 15 by site count each; C3g merged; C3h (taken 2026-10-05) next 15; 445 left per the regenerated report, continue with the next 15 by site count) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
   group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
   shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
   0x0040C720, ...), then by area. C3 first part (shared headers, 38 void forwarders typed) merged 2026-10-05.
