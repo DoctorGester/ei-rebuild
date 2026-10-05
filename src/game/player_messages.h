@@ -5,7 +5,7 @@
 // the outgoing stream at +0x48 (a CMemoryStream; its slot 2 writes bytes): a type byte, then the
 // payload. The single-player game runs the same server / client pair, so the per-tick player state
 // (0058B750), script variables and unit events all go through them. Names are provisional; see
-// docs/notes/range_660.md.
+// docs/notes/objects.md.
 
 #include "maths.h"
 #include "net_delta.h"
