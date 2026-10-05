@@ -821,3 +821,14 @@ In `item_names.cpp`. Reached through the weapon's 006A0F50 (index = id >> 16) fr
 point 00532860 (effects, lightning; scenarios effects / spells_cast). The number is "%.2d" of +0x18;
 the original's 4-byte number buffer would overrun into the name for numbers above 999 (not in the
 database; the overlapping copy is not reproduced).
+
+### Stock leftovers (ticket H6)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00699410 | `ItemStock::SetLevels` (RET 8; two 8-dword copies to +0x78 / +0x98) | against the original (fields compared) |
+| 0069B570 / 0069B550 / 0069B590 | `GenerateWeapons` / `GenerateArmors` / `GenerateQuickItems` (RET 0xC) | ours only: valid new items, count <= min(records, max) |
+
+The thunks call 0069AE20 with the vectors +0x14 / +8 / +0x20 and kind 0 / 1 / 2. All reached by
+`trader_stock`. None is in library.csv, dead_code.csv or the Rebirth list. `unknown_78` is now
+`baseLevels`. No other functions taken. Not run in the harness (central).

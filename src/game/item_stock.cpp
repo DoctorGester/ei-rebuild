@@ -345,6 +345,21 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
 }
 EI_REPLACE_METHOD(0x0069AE20, ItemStock::GenerateItems);
 
+// ---- 00699410 / 0069B570 / 0069B550 / 0069B590 ----------------------------------------------------
+
+void ItemStock::SetLevels(const float* base, const float* scroll) {
+    for (int i = 0; i < 8; ++i) baseLevels[i] = base[i];
+    for (int i = 0; i < 8; ++i) scrollLevels[i] = scroll[i];
+}
+EI_REPLACE_METHOD(0x00699410, ItemStock::SetLevels);
+
+void ItemStock::GenerateWeapons(int minCount, int maxCount, StockList* out) { GenerateItems(&weapons, minCount, maxCount, out, 0); }
+EI_REPLACE_METHOD(0x0069B570, ItemStock::GenerateWeapons);
+void ItemStock::GenerateArmors(int minCount, int maxCount, StockList* out) { GenerateItems(&armors, minCount, maxCount, out, 1); }
+EI_REPLACE_METHOD(0x0069B550, ItemStock::GenerateArmors);
+void ItemStock::GenerateQuickItems(int minCount, int maxCount, StockList* out) { GenerateItems(&quickItems, minCount, maxCount, out, 2); }
+EI_REPLACE_METHOD(0x0069B590, ItemStock::GenerateQuickItems);
+
 // ---- 0069A110 -------------------------------------------------------------------------------------
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
