@@ -332,3 +332,140 @@ static void __fastcall LoadListsVerify(ItemStock* self, void*, void* stream) {
                       static_cast<unsigned>(lists[4]->size()), static_cast<unsigned>(self->materials.size()));
 }
 EI_VERIFY(0x0069B5B0, LoadListsVerify, 0, s_unusedLoadLists);
+
+// Ticket H5, all reached by scenario trader_stock (the camp opened with a constructor record):
+// - ResetMaterialUnits (006993B0; from 004A6DF0): against the original. The original runs first,
+//   its units and rand seed are kept, the units and seed are restored and ours runs; units and
+//   seeds compared.
+// - CopyMagic (00699440; from 004A6DF0; ours only, it may reallocate the vectors): the spells and
+//   modifiers equal `other`'s, element for element.
+// - GenerateSpellInstructions / GenerateModifierInstructions (00699C90 / 00699ED0; from 004A6F60;
+//   ours only, they draw from rand and create items): one counted item per offered spell /
+//   modifier, in order, +0x48 within the range, +0x54 the record's index when the record lies in
+//   its table (007C8510 / 0x84, 007C8530 / 0x24; the lookup by code finds the first record with
+//   that code, so a mismatch would mean duplicate codes), else -1 or a valid index;
+//   the scratch vector is empty.
+// - GenerateScrolls (0069AC20; from 004A6F60; ours only, ISAAC draws and new items / spells): every
+//   new entry of `out` is a counted item of kind 0x3008.
+namespace combatverify {
+char* __cdecl GamePtd();   // verify_combat_steps.cpp; +0x14 is rand()'s seed
+}
+
+namespace {
+
+std::uint32_t& RandSeed() { return *reinterpret_cast<std::uint32_t*>(combatverify::GamePtd() + 0x14); }
+
+using ResetMaterialUnitsFn = void(__fastcall*)(ItemStock*, void*);
+ResetMaterialUnitsFn s_originalResetMaterialUnits;
+using CopyMagicFn = void(__fastcall*)(ItemStock*, void*, const ItemStock*);
+CopyMagicFn s_unusedCopyMagic;
+GenerateInstructionsFn s_unusedSpellInstructions;
+GenerateInstructionsFn s_unusedModifierInstructions;
+GenerateInstructionsFn s_unusedScrolls;
+
+bool SameElements(const StockPtrVector& a, const StockPtrVector& b) {
+    if (a.size() != b.size()) return false;
+    for (std::size_t i = 0; i < a.size(); ++i)
+        if (a.start[i] != b.start[i]) return false;
+    return true;
+}
+
+void CheckMagicInstructions(const char* name, ItemStock* self, const StockPtrVector& source, std::uintptr_t table,
+                            std::uintptr_t scratch, int recordSize, int minCount, int maxCount, StockList* out,
+                            void (ItemStock::*generate)(int, int, StockList*)) {
+    const char* tableStart = *reinterpret_cast<char* const*>(table);
+    const char* tableEnd = *reinterpret_cast<char* const*>(table + 4);
+    int tableCount = static_cast<int>((tableEnd - tableStart) / recordSize);
+    std::size_t expected = source.size();
+    int indices[kMaxRecords];   // -2: not in the table
+    for (std::size_t i = 0; i < expected && i < kMaxRecords; ++i) {
+        const char* r = source.start[i];
+        indices[i] = r >= tableStart && r < tableEnd ? static_cast<int>((r - tableStart) / recordSize) : -2;
+    }
+    std::size_t before = ListSize(out);
+    (self->*generate)(minCount, maxCount, out);
+    std::size_t added = ListSize(out) - before;
+    const StockPtrVector& taken = *reinterpret_cast<const StockPtrVector*>(scratch);
+    int lo = minCount < maxCount ? minCount : maxCount;
+    bool ok = added == expected && taken.start == taken.finish;
+    std::size_t i = 0;
+    for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
+        if (i < before) continue;
+        const char* item = static_cast<const char*>(node->value);
+        if (!item || *reinterpret_cast<const int*>(item + 4) < 1) {
+            ok = false;
+            break;
+        }
+        int count = *reinterpret_cast<const int*>(item + 0x48);
+        if (count < lo || count > maxCount) ok = false;
+        std::size_t k = i - before;
+        int index = *reinterpret_cast<const int*>(item + 0x54);
+        if (k < kMaxRecords && indices[k] != -2) {
+            if (index != indices[k]) ok = false;
+        } else if (index < -1 || index >= tableCount) {
+            ok = false;
+        }
+    }
+    ei::verify::Check(name, true, ok, "%d..%d, %u records: %u items", minCount, maxCount, static_cast<unsigned>(expected),
+                      static_cast<unsigned>(added));
+}
+
+} // namespace
+
+static void __fastcall ResetMaterialUnitsVerify(ItemStock* self, void*) {
+    std::size_t count = self->materials.size();
+    if (count > kMaxListed) {   // (not expected: run ours alone)
+        self->ItemStock::ResetMaterialUnits();
+        return;
+    }
+    int before[kMaxListed];
+    int original[kMaxListed];
+    for (std::size_t i = 0; i < count; ++i) before[i] = self->materials.start[i].left;
+    std::uint32_t seed = RandSeed();
+    s_originalResetMaterialUnits(self, nullptr);
+    std::uint32_t originalSeed = RandSeed();
+    for (std::size_t i = 0; i < count; ++i) {
+        original[i] = self->materials.start[i].left;
+        self->materials.start[i].left = before[i];
+    }
+    RandSeed() = seed;
+    self->ItemStock::ResetMaterialUnits();
+    int mismatch = -1;
+    for (std::size_t i = 0; i < count && mismatch < 0; ++i)
+        if (self->materials.start[i].left != original[i]) mismatch = static_cast<int>(i);
+    ei::verify::Check("ItemStock::ResetMaterialUnits", true, mismatch < 0 && RandSeed() == originalSeed,
+                      "%u entries, first mismatch %d, seed %08X / %08X", static_cast<unsigned>(count), mismatch, originalSeed,
+                      RandSeed());
+}
+EI_VERIFY(0x006993B0, ResetMaterialUnitsVerify, 7, s_originalResetMaterialUnits);
+
+static void __fastcall CopyMagicVerify(ItemStock* self, void*, const ItemStock* other) {
+    self->ItemStock::CopyMagic(other);
+    bool ok = SameElements(self->spells, other->spells) && SameElements(self->modifiers, other->modifiers);
+    ei::verify::Check("ItemStock::CopyMagic", true, ok, "spells %u / %u, modifiers %u / %u", static_cast<unsigned>(self->spells.size()),
+                      static_cast<unsigned>(other->spells.size()), static_cast<unsigned>(self->modifiers.size()),
+                      static_cast<unsigned>(other->modifiers.size()));
+}
+EI_VERIFY(0x00699440, CopyMagicVerify, 0, s_unusedCopyMagic);
+
+static void __fastcall GenerateSpellInstructionsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckMagicInstructions("ItemStock::GenerateSpellInstructions", self, self->spells, 0x007C8510, 0x007C8670, 0x84, minCount,
+                           maxCount, out, &ItemStock::GenerateSpellInstructions);
+}
+EI_VERIFY(0x00699C90, GenerateSpellInstructionsVerify, 0, s_unusedSpellInstructions);
+
+static void __fastcall GenerateModifierInstructionsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckMagicInstructions("ItemStock::GenerateModifierInstructions", self, self->modifiers, 0x007C8530, 0x007C8660, 0x24,
+                           minCount, maxCount, out, &ItemStock::GenerateModifierInstructions);
+}
+EI_VERIFY(0x00699ED0, GenerateModifierInstructionsVerify, 0, s_unusedModifierInstructions);
+
+static void __fastcall GenerateScrollsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    std::size_t before = ListSize(out);
+    self->ItemStock::GenerateScrolls(minCount, maxCount, out);
+    std::size_t after = ListSize(out);
+    bool ok = after >= before && NewItemsValid(out, before, 0x3008, 0x3008);
+    ei::verify::Check("ItemStock::GenerateScrolls", true, ok, "%u offered spells: %u -> %u items",
+                      static_cast<unsigned>(self->spells.size()), static_cast<unsigned>(before), static_cast<unsigned>(after));
+}
+EI_VERIFY(0x0069AC20, GenerateScrollsVerify, 0, s_unusedScrolls);

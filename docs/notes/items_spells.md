@@ -768,9 +768,48 @@ these three in `trader_goods.cpp`; this port follows the disassembly and main's 
 Original bugs kept: the 004ABD00 / 00684B20 lookups insert a null entry for every unknown name;
 a material entry with an unknown material is loaded with a null record.
 
-Not rewritten: 0069AC20 (the scrolls generator, "spell container" items, from 004A6F60, which the
-camp calls just before 004A6DF0, so `trader_stock` reaches it too; the old branch has a version),
-004A6DF0 / 004A6F60 / 004A6DC0 themselves.
+Not rewritten: 004A6DF0 / 004A6F60 / 004A6DC0 themselves (0069AC20 done in H5, below).
+
+### Scrolls, magic instructions, material units (ticket H5)
+
+| Address | Name | Verify |
+|---|---|---|
+| 0069AC20 | `ItemStock::GenerateScrolls` (RET 0xC) | ours only: every new entry of `out` a counted item of kind 0x3008 |
+| 00699C90 | `ItemStock::GenerateSpellInstructions` (RET 0xC) | ours only: one counted item per offered spell, in order, +0x48 in range, +0x54 the record's index (when the record lies in 007C8510's table); scratch 007C8670 empty |
+| 00699ED0 | `ItemStock::GenerateModifierInstructions` (RET 0xC) | ours only: the same over the modifiers (table 007C8530, scratch 007C8660) |
+| 006993B0 | `ItemStock::ResetMaterialUnits` | against the original: the original runs first, units and rand seed restored, ours runs; units and seeds compared |
+| 00699440 | `ItemStock::CopyMagic` (RET 4) | ours only (may reallocate): spells and modifiers equal `other`'s element for element |
+
+All are reached by `trader_stock` (the camp opened with a constructor record). The camp's 004A6DF0
+(on the template's "allowed" stock +0x11C) first calls CopyMagic with the "magic" stock (+0x1D4),
+then ResetMaterialUnits (each material entry's units left = RandomCount(+4, +8), the same rand
+formula as the other generators), then the generators of H2 / H3. 004A6F60 (on the "magic" stock,
+when the template's +0xD flag is set) calls GenerateScrolls (40, 50), GenerateSpellInstructions (1, 3)
+and GenerateModifierInstructions (20, 50) into a list whose items it hands to 00661DB0.
+
+GenerateScrolls: context slots 16, 18, 22 (22's result unused); FillSpellMaps with the scroll recipe
+vector 007C8550; a spell list (0069C440); up to 10 tries, each emptying the list (the holder release
+0069E540 with 0 and the node free 0069CA50, written out as `ClearSpellList`, the clear part of
+GenerateItems' `DestroySpellList`) and calling GenerateSpells with the levels at +0x98 and threshold
+50, stopping once the list holds at least as many spells as the stock offers (+0x38; unsigned
+compare). A "spell container" (00613820 on 007C8738) of kind 0x3008, no material, carrying each
+listed spell, counted, into `out`; the list is then destroyed (004C17E0 per node, then the sentinel).
+The two counts are not read. Ported from the old branch's `MakeTraderScrolls` (commit c4c586e) onto
+main's `ItemStock`; the old version's null test of the sentinel after dereferencing it is gone.
+
+The magic instructions follow 00699810's shape with their own scratch vectors and vector helpers
+(allocate-and-copy 0069DC70 / 0069DDD0, deallocate 004AA810 / 004AA7D0; `AssignPointers` now takes
+them as parameters, the item vectors' defaults unchanged): the class-0x15 prototype "prototype"
+(00793924) / "rune" (007963A4), and +0x54 the index of the record found by code (0068C820 on
+007C8510 with the CString at +4, /0x84; 0068C920 on 007C8530 with the inline code at +4, /0x24;
+-1 when not found), written before the +0x48 count draw. Slot 22 is called and unused here too.
+
+`ItemStock` +0x98 is now `scrollLevels` (8 floats; 00699410 from 004A6DC0 copies it and +0x78 from
+its two arguments, not rewritten). Forwarders added: 0069DC70, 004AA810, 0069DDD0, 004AA7D0,
+0068C820, 0068C920 (none on the Rebirth list, none in library.csv / dead_code.csv; 0069C440 /
+0069C3D0 / 0069CA50 are STLport library entries called or written out as before). Not rewritten in
+this range: 00699410 (two 8-dword copies), 0069B570 / 0069B550 / 0069B590 (the GenerateItems
+thunks for kinds 0 / 1 / 2).
 
 ## Weapon base figure (006A0CC0)
 
