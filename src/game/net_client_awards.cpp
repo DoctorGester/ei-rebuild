@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_gameplay.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -27,7 +28,6 @@ __declspec(naked) void __fastcall ClientBaseTick(ClientBase* /*self*/, void*, do
 __declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004246E0)
 
 // The world (0x7AFF60) and its players (outside this range).
-__declspec(naked) std::uint8_t* __fastcall WorldGetPlayer(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x00594180)
 __declspec(naked) void __fastcall AwardExperience(void* /*world*/, void*, void* /*player*/, std::uint32_t /*amount bits*/) EI_ORIGINAL(0x005911C0)
 __declspec(naked) void __fastcall PlayerGiveItems(void* /*player*/, void*, ObjectList* /*items*/, int /*flag*/) EI_ORIGINAL(0x00665470)
 __declspec(naked) void __fastcall PlayerRemoveItem(void* /*player*/, void*, int /*index*/) EI_ORIGINAL(0x00665870)
@@ -87,7 +87,7 @@ void InitList(ObjectList& list, std::uintptr_t vtable) {
 // is removed; 4: the party's items are reset and every quest item (class 0x14) removed.
 void ClientSession::ApplyAwards() {
     ClientSession* self = this;
-    std::uint8_t* player = WorldGetPlayer(World(), nullptr, 0);
+    std::uint8_t* player = static_cast<std::uint8_t*>(WorldGetPlayer(World(), nullptr, 0));
     if (!player) return;
     for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;
          node = static_cast<void**>(node[0])) {
@@ -198,7 +198,7 @@ void ClientSession::Tick(double dt) {
     }
     void** awards = static_cast<void**>(self->awards_);
     if (awards[0] == awards || GameMode() != 3) return;
-    std::uint8_t* player = WorldGetPlayer(World(), nullptr, 0);
+    std::uint8_t* player = static_cast<std::uint8_t*>(WorldGetPlayer(World(), nullptr, 0));
     if (!player || At<std::int32_t>(At<void*>(player, 0x20), 0x20) != 1 || !Unknown7B00BC()) return;
     ApplyAwards();
 }

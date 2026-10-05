@@ -52,7 +52,7 @@ struct UiTexts {
     // at its start).
     int Find(const char* key);
 };
-__declspec(naked) int UiTexts::Find(const char*) EI_ORIGINAL(0x004DEFC0)
+int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
 } // namespace
 
@@ -417,7 +417,6 @@ __declspec(naked) void MenuGlue::SetServer(int) EI_ORIGINAL(0x00578D10)
 __declspec(naked) void MenuGlue::BeforeTitles(int) EI_ORIGINAL(0x00578920)
 __declspec(naked) void MenuGlue::BeforeTitles2() EI_ORIGINAL(0x00578940)
 MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }
-__declspec(naked) int __fastcall MenuTextOf(void* /*table*/, void*, const char* /*key*/, mfc::CString*) EI_ORIGINAL(0x004E0020)
 
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
@@ -503,7 +502,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 5: {
         // Multiplayer: the hero screen (a server session starts).
         mfc::CString text;
-        MenuTextOf(Glue(0x007AFEA4)->TextTable(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
+        TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
         ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
         Glue(0x007AFEA4)->SetServer(1);
         ui->PlaySound(okSound, 0);
@@ -720,7 +719,6 @@ __declspec(naked) CUiSurface* __fastcall TitlesPlainSurface(void*, void*, CInter
     EI_ORIGINAL(0x005FCDD0)
 __declspec(naked) std::uint8_t* __cdecl TitlesDisplay() EI_ORIGINAL(0x00500960)
 __declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
-__declspec(naked) void* __cdecl TitlesMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
 __declspec(naked) double __cdecl TitlesAtof(const char*) EI_ORIGINAL(0x006E911A)
 
 struct TitlesTokenizer {
@@ -764,7 +762,7 @@ void CCreditsScreen::Build() {
         currentLine_ = lines_;
     } else {
         mfc::CString script;
-        TitlesMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
+        GameMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
         TitlesRemoveCr(&script);
         TitlesTokenizer lines{0, &script, GameText(0x00784340)};   // "\n"

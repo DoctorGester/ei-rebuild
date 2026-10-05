@@ -18,6 +18,7 @@
 #include "lib/mfc.h"
 #include "render/render.h"
 #include "originals_world.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -120,7 +121,7 @@ struct TextTable {
     BOOL ReadLine(mfc::CString* out, BOOL advance);          // 004DF8D0
 };
 __declspec(naked) void TextTable::FindKeys(CStringArray*, const char*) EI_ORIGINAL(0x004DEFA0)
-__declspec(naked) int TextTable::Find(const char*) EI_ORIGINAL(0x004DEFC0)
+int TextTable::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 __declspec(naked) BOOL TextTable::ReadLine(mfc::CString*, BOOL) EI_ORIGINAL(0x004DF8D0)
 TextTable* Texts() { return *reinterpret_cast<TextTable**>(0x007AF788); }
 

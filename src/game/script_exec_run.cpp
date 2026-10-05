@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -78,7 +79,7 @@ struct World {
     void RemoveTimedObject(int id);       // 0058E5D0
     void AddTimedObject(void* object);    // 0058E520
 };
-__declspec(naked) void World::RemoveTimedObject(int) EI_ORIGINAL(0x0058E5D0)
+void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
 __declspec(naked) void World::AddTimedObject(void*) EI_ORIGINAL(0x0058E520)
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 

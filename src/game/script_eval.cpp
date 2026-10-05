@@ -169,10 +169,10 @@ struct World {
     CEngineObject* FindUnitObject(int unitId);         // 0055FB00
 };
 __declspec(naked) CEngineObject* World::FindObject(int) EI_ORIGINAL(0x00593AA0)
-__declspec(naked) void* World::GetPlayer(int) EI_ORIGINAL(0x00594180)
+void* World::GetPlayer(int id) { return ::WorldGetPlayer(this, nullptr, id); }
 __declspec(naked) float World::TerrainHeight(float, float) EI_ORIGINAL(0x00594220)
 __declspec(naked) int World::MercsNumber(int) EI_ORIGINAL(0x00591740)
-__declspec(naked) CEngineObject* World::FindUnitObject(int) EI_ORIGINAL(0x0055FB00)
+CEngineObject* World::FindUnitObject(int id) { return ::WorldFindUnit(this, nullptr, id); }
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
 // Height of the ground under a unit (00530280, a unit method).

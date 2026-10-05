@@ -70,7 +70,6 @@ __declspec(naked) int __fastcall DrawMesh2(char*, void*, std::uint32_t, std::uin
 __declspec(naked) void __fastcall StringEndOfStorage(char**, void*, const void*, const void*) EI_ORIGINAL(0x00425080)
 __declspec(naked) void __fastcall StringInitRange(RawString*, void*, const char*, const char*, const void*)
     EI_ORIGINAL(0x0042A3D0)
-__declspec(naked) void __fastcall StringDestroyB(RawString*) EI_ORIGINAL(0x0040C770)
 // 005197B0: map<string, piece>::find on a figure's piece map (figure + 0x14): the node to *out.
 __declspec(naked) void __fastcall FindPiece(void*, void*, char**, const RawString*) EI_ORIGINAL(0x005197B0)
 
@@ -621,7 +620,7 @@ void Light(Part& part) {
         StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
         ThisCall<void>(part.figure, kFigureLight, &s, part.lights, part.material, part.alpha, &part.Colours(),
                        &part.Speculars());
-        StringDestroyB(&s);
+        StringRepDestroy(&s);
     } else {
         std::uint32_t vector[3];
         std::memcpy(vector, part.material + 0x50, sizeof(vector));

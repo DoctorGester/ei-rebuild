@@ -19,6 +19,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
@@ -151,7 +152,6 @@ __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORI
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
 __declspec(naked) std::uint8_t __fastcall MapCellFlag80(void*, void*, const float*) EI_ORIGINAL(0x005BBC70)
-__declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINAL(0x0058E5D0)
 __declspec(naked) void* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) int __fastcall MemoryIsEnemy(void*, void*, CUnit*, CEngineObject*) EI_ORIGINAL(0x005CB7F0)
 __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)

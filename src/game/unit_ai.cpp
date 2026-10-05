@@ -62,7 +62,6 @@ __declspec(naked) void AIWorld::RaiseAlarm(int, const Vector3*, int) EI_ORIGINAL
 __declspec(naked) void __stdcall DestructRefs(CEngineObject**, int) EI_ORIGINAL(0x0052CEC0)
 
 // 006E79A0: the game's memmove.
-__declspec(naked) void* __cdecl GameMemmove(void*, const void*, unsigned) EI_ORIGINAL(0x006E79A0)
 
 // The controller's voice (controller + 0xB10): 005AEA60 says remark `what`.
 struct AIVoice {

@@ -23,9 +23,8 @@ namespace {
 // string(const char*, alloc), string(alloc), range assign, assign(first, last, tag), destructors.
 __declspec(naked) StringRep* __fastcall StringPlusText(StringRep* /*out*/, const StringRep* /*a*/, const char* /*b*/) EI_ORIGINAL(0x00427D60)
 __declspec(naked) StringRep* __fastcall StringPlusString(StringRep* /*out*/, const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427E80)
-__declspec(naked) StringRep* __fastcall StringFromText(StringRep* /*s*/, void*, const char* /*text*/, const void* /*alloc*/) EI_ORIGINAL(0x0040C5A0)
+static StringRep* StringFromText(StringRep* s, void*, const char* text, const void* alloc) { return static_cast<StringRep*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
-__declspec(naked) void __fastcall StringDestroyA(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
 
 // The queued message (vtable 0073BCD0, built by 00418C30) and its string member assignment, the
 // counted pointer helpers, the list push_back.
@@ -97,7 +96,7 @@ void ServerSession::SetMap(const StringRep* name) {
     void* ref;
     List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
     RefClear(&ref);
-    StringDestroyA(&messageName);
+    StringRepDestroy(&messageName);
 
     auto* mapMessage = NewMessageMemory<MapMessage>();
     if (mapMessage) {
@@ -127,7 +126,7 @@ void ServerSession::SetMap(const StringRep* name) {
     StringRep registryName;
     StringPlusText(&registryName, name, Text(kRegistrySuffix));
     auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &registryName));
-    StringDestroyA(&registryName);
+    StringRepDestroy(&registryName);
     if (!entry) return;
 
     for (auto** it = *reinterpret_cast<const char***>(entry + 0x2C); it != *reinterpret_cast<const char***>(entry + 0x30); ++it) {
@@ -207,7 +206,7 @@ void ServerSession::QueueMapList() {
         StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
         FlowLoadZoneQuests(flow, nullptr, zone->start);
     }
-    for (StringRep* zone = zones.start; zone != zones.finish; ++zone) StringDestroyA(zone);
+    for (StringRep* zone = zones.start; zone != zones.finish; ++zone) StringRepDestroy(zone);
     NamesFree(zones.start, static_cast<std::size_t>(zones.eos - zones.start));
 }
 

@@ -105,7 +105,6 @@ constexpr int kObjectSlotUpdate = 30;
 __declspec(naked) void __stdcall VectorConstruct(void*, unsigned, int, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x006E8693)
 __declspec(naked) void __stdcall VectorDestruct(void*, unsigned, int, std::uintptr_t) EI_ORIGINAL(0x006E859F)
 // MFC (library): CStringArray, the CArray instantiations of patrols and waypoints.
-__declspec(naked) void __fastcall StringArrayDestruct(StringArray*) EI_ORIGINAL(0x006FE958)
 __declspec(naked) void __fastcall WaypointsSetSize(Array<Waypoint>*, void*, int, int) EI_ORIGINAL(0x0046E970)
 __declspec(naked) void __fastcall PatrolsSetSize(Array<Patrol>*, void*, int, int) EI_ORIGINAL(0x0045DAE0)
 __declspec(naked) void __stdcall ConstructPatrols(Patrol*, int) EI_ORIGINAL(0x0045E180)

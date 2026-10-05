@@ -3,6 +3,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 
@@ -61,7 +62,6 @@ void CInterface3D::LoadState(void* stream) {
 namespace {
 __declspec(naked) void __fastcall CStringCopyConstruct(void*, void*, const mfc::CString*) EI_ORIGINAL(0x007006E5)
 // The text table (007AF788; thiscall): a key's text into `out` (004E0020, RET 8).
-__declspec(naked) int __fastcall GetText(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
 
 const std::uintptr_t kMessageKeys[13] = {
     0x007931DC,   // "lmp_player_connected"
@@ -84,7 +84,7 @@ void* CInterface3D::MessageText(void* out, int id, int value) {
     mfc::CString key, text;
     if (static_cast<unsigned>(id) <= 12) key = reinterpret_cast<const char*>(kMessageKeys[id]);
     void* table = *reinterpret_cast<void* const*>(0x007AF788);
-    GetText(table, nullptr, key, &key);
+    TextsGetString(table, nullptr, key, &key);
     if (value != 0)
         text.Format(key, value);
     else

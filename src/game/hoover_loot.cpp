@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -42,7 +43,7 @@ struct PtrList {
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
 // and weapons (with the same effects).
 __declspec(naked) PtrListNode* __fastcall NewNode(PtrList*, void*, PtrListNode* /*prev*/, PtrListNode* /*next*/) EI_ORIGINAL(0x004621A0)
-__declspec(naked) char* __fastcall UnitPrototype(void* /*unit*/) EI_ORIGINAL(0x00530930)
+static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) void* __fastcall CreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void* __fastcall UnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) void __fastcall UnitRemoveQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x005311E0)

@@ -14,6 +14,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -1081,7 +1082,6 @@ EI_REPLACE(0x0060E6B0, CampClose);
 namespace {
 
 // 006FE958: CStringArray's destructor (thiscall).
-__declspec(naked) void __fastcall StringArrayDestruct(void*) EI_ORIGINAL(0x006FE958)
 // 00613630 (__fastcall: block, count): frees a vector's block of 0x3C-byte entries (STLport node
 // allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
 __declspec(naked) void __fastcall FreeBlock3C(void*, int) EI_ORIGINAL(0x00613630)
@@ -1607,7 +1607,6 @@ struct TextTableGlue {
     void* Table();   // 00578E20 (on 007AFEA4)
 };
 __declspec(naked) void* TextTableGlue::Table() EI_ORIGINAL(0x00578E20)
-__declspec(naked) int __fastcall TextHasKey(void*, void*, const char*) EI_ORIGINAL(0x004DEFC0)
 __declspec(naked) void __fastcall TextLookup(void*, void*, mfc::CString*, int) EI_ORIGINAL(0x004DF8D0)
 // The stats panel's hero name (006232D0, RET 8) and the trade panel's hero (00625860, RET 4).
 __declspec(naked) void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*) EI_ORIGINAL(0x006232D0)
@@ -1692,7 +1691,7 @@ void CCampPages::ShowHero() {
         {
             mfc::CString prefix(reinterpret_cast<const char*>(0x007937A8));   // "pers "
             mfc::CString key = prefix + own;
-            found = TextHasKey(table, nullptr, key);
+            found = TextsOpenSection(table, nullptr, key);
         }
         if (found) TextLookup(table, nullptr, &name, 1);
     } else {

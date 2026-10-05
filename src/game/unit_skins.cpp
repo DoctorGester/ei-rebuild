@@ -65,7 +65,6 @@ __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
 __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
 // CStringArray SetSize [006FE9B8], SetAtGrow of a CString [006FEBFA] and of a C string [006FEBCE].
-__declspec(naked) void __fastcall NamesSetSize(console::CStringArray*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void __fastcall NamesSetAtGrowString(console::CStringArray*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
 __declspec(naked) void __fastcall NamesSetAtGrowText(console::CStringArray*, void*, int, const char*) EI_ORIGINAL(0x006FEBCE)
 // The texture cache [this +0x18C]: build a composite texture [00693180: out name, set, name, name,
@@ -239,7 +238,7 @@ void DressUnit(char* self, const char* record) {
         TextureRecords(1, record, &list);
         CopyRecords(set, list);
         mfc::CString skin;
-        NamesSetSize(&set.names, nullptr, 0, -1);
+        StringArraySetSize(&set.names, nullptr, 0, -1);
         if (prototype) {
             skin.Format(Text(0x0078FB64), ModelPrefix(model), At<int>(prototype, 0xC));   // "%sskin_%.2d.mmp"
         } else {
@@ -261,7 +260,7 @@ void DressUnit(char* self, const char* record) {
 
         TextureRecords(0, record, &list);
         CopyRecords(set, list);
-        NamesSetSize(&set.names, nullptr, 0, -1);
+        StringArraySetSize(&set.names, nullptr, 0, -1);
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (At<int>(record, 0x20) != -1) {

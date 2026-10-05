@@ -26,7 +26,6 @@ LogStream* LogStream::Apply(void* manipulator) { return static_cast<LogStream*>(
 namespace {
 
 // 0040C770: STLport string destructor; 00426450: the string allocator's deallocate(p, n).
-__declspec(naked) void __fastcall StringDestroy(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
 __declspec(naked) void __fastcall StringDeallocate(void* /*allocator*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
 // 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
 
@@ -68,7 +67,7 @@ void SessionBase::Tick(double dt) {
                 StringRep address;
                 const char* text = from.ToString(&address)->start;
                 LogAddress(kZeroLength, text);
-                StringDestroy(&address);
+                StringRepDestroy(&address);
             }
             continue;
         }
@@ -256,8 +255,6 @@ EI_REPLACE(0x00437340, OnMasterHook);     // slot 10, kind -1
 namespace net {
 
 namespace {
-__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
-__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
 } // namespace
 
 // 00436C30: copies `size` bytes to the write position and moves it on (no room check); returns

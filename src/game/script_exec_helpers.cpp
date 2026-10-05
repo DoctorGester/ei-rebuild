@@ -7,6 +7,8 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -20,7 +22,6 @@ T& Field(void* object, std::size_t offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
 }
 
-__declspec(naked) void* __cdecl GameMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
 // 004BCF10: an area's destructor (vtable 0073D31C, frees the parts).
 __declspec(naked) void __fastcall AreaDestruct(void*) EI_ORIGINAL(0x004BCF10)
 
@@ -28,7 +29,7 @@ struct World {
     void RemoveTimedObject(int id);       // 0058E5D0
     void AddTimedObject(void* object);    // 0058E520
 };
-__declspec(naked) void World::RemoveTimedObject(int) EI_ORIGINAL(0x0058E5D0)
+void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
 __declspec(naked) void World::AddTimedObject(void*) EI_ORIGINAL(0x0058E520)
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 

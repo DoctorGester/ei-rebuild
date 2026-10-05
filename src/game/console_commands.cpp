@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "originals_world.h"
+#include "originals_library.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -73,7 +74,7 @@ struct WorldAt {
     char* GetPlayer(int index);   // 00594180
     void LootAll();               // 00593D60
 };
-__declspec(naked) char* WorldAt::GetPlayer(int) EI_ORIGINAL(0x00594180)
+char* WorldAt::GetPlayer(int id) { return static_cast<char*>(::WorldGetPlayer(this, nullptr, id)); }
 __declspec(naked) void WorldAt::LootAll() EI_ORIGINAL(0x00593D60)
 inline WorldAt* World() { return reinterpret_cast<WorldAt*>(0x007AFF60); }
 
@@ -115,7 +116,6 @@ struct VariableTableAt {
 __declspec(naked) void VariableTableAt::Begin(VariableIterator*) EI_ORIGINAL(0x004614C0)
 
 // 004DBE40: splits `text` at `separator` into `out`.
-__declspec(naked) void __fastcall Split(const char*, CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 // 005DC620 (Rebirth patches it): runs a console line.
 __declspec(naked) void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
@@ -315,7 +315,7 @@ void __fastcall LoadVar(CStringArray* args) {
         return;
     }
     while (file.ReadString(line)) {
-        Split(line, &parts, ' ');
+        StringSplit(line, &parts, ' ');
         if (parts.GetSize() > 1) {
             const char* name = parts[0];
             float value = static_cast<float>(Atof(parts[1]));

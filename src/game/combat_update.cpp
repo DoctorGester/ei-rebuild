@@ -20,6 +20,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 #include <bit>
 #include <cstdint>
@@ -96,7 +97,6 @@ __declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005D4E80)
 // object (world_server.cpp); 00665440 does the player still have the unit.
 __declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINAL(0x00593AF0)
 __declspec(naked) void __fastcall WorldAddTimed(void*, void*, CEngineObject*) EI_ORIGINAL(0x0058E520)
-__declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINAL(0x0058E5D0)
 __declspec(naked) int __fastcall PlayerHasUnit(void*, void*, CUnit*) EI_ORIGINAL(0x00665440)
 // 00679280 CEffectParticle::SetAttachedTo (world_effect_visual.cpp).
 __declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_ORIGINAL(0x00679280)

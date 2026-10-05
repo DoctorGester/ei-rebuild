@@ -26,7 +26,7 @@ T& At(void* object, int offset) {
 // 00500540: the window part of the creation (thiscall: window, settings).
 __declspec(naked) void __fastcall CreateWindowPart(void*, void*, void* /*window*/, void* /*settings*/) EI_ORIGINAL(0x00500540)
 // The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver,
-// 004EE6D0 the driver with an index (ECX), null when missing (both FatalError on failure).
+// 004EE6D0 the driver with an index (ECX), null when missing (both FatalErrorOriginal on failure).
 __declspec(naked) int __cdecl EnumerateDrivers() EI_ORIGINAL(0x004EE4A0)
 __declspec(naked) char* __cdecl FirstHardwareDriver() EI_ORIGINAL(0x004EE5D0)
 __declspec(naked) char* __fastcall DriverAt(int /*index*/) EI_ORIGINAL(0x004EE6D0)
@@ -47,8 +47,7 @@ __declspec(naked) float* __stdcall ProjectionMatrix(float*, float /*fov*/, float
 __declspec(naked) float* __stdcall ViewportMatrix(float*, const int* /*rect*/) EI_ORIGINAL(0x004F1370)
 __declspec(naked) float* __stdcall AxisSwapMatrix(float*) EI_ORIGINAL(0x004F1330)
 __declspec(naked) void __fastcall MultiplyMatrix(float* /*out*/, void*, const float*, const float*) EI_ORIGINAL(0x004D9880)
-// FatalError (patched by Rebirth; through its address), FatalError with an HRESULT, exit.
-__declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
+// FatalErrorOriginal (patched by Rebirth; through its address), FatalErrorOriginal with an HRESULT, exit.
 // The game's operator new, keeping EDX as the allocator leaves it (see CreateHelper).
 __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::uint32_t* /*edx out*/) {
     __asm {
@@ -276,7 +275,7 @@ void __fastcall RendererCreate(char* renderer, void*, void* window, char* settin
     EnumerateDrivers();
     char* driver = FirstHardwareDriver();
     if (!driver) {
-        FatalError(reinterpret_cast<const char*>(0x0078E534));   // "Can't find any driver with HW 3D..."
+        FatalErrorOriginal(reinterpret_cast<const char*>(0x0078E534));   // "Can't find any driver with HW 3D..."
         ExitGame(-1);
     }
     int index = At<int>(settings, 0x2C);

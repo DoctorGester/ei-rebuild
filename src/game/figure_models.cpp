@@ -35,7 +35,6 @@ __declspec(naked) void __fastcall MapFind(void*, void*, Iterator*, const RawStri
 __declspec(naked) char* __fastcall MapIndex(void*, void*, const RawString*) EI_ORIGINAL(0x004FBBD0)
 // STLport string copy constructor (RET 4) and two destructor instantiations.
 __declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)
-__declspec(naked) void __fastcall StringDestroyA(void*) EI_ORIGINAL(0x0040C770)
 // 005A9A50: the model's constructor; returns this.
 __declspec(naked) void* __fastcall ConstructModel(void*) EI_ORIGINAL(0x005A9A50)
 
@@ -93,7 +92,7 @@ void* __fastcall FindFigureModel(char* manager, void*, const void* nameIn) {
 
     void* model = gamecrt::operator_new(0x20);
     if (model) model = ConstructModel(model);
-    *static_cast<void**>(ModelSlot(map, name, &StringDestroyA)) = model;
+    *static_cast<void**>(ModelSlot(map, name, &StringRepDestroy)) = model;
     void** parts = *static_cast<void***>(ModelSlot(map, name, &StlStringDestroy));
     ei::VCall<void>(parts[0], kSlotLoad, mesh);
     if (bones) ei::VCall<void>(parts[1], kSlotLoad, bones);
@@ -121,11 +120,11 @@ void* __fastcall FindModelAnimation(char* model, void*, const void* nameIn) {
         RawString key;
         StringCopy(&key, nullptr, name);
         void** slot = reinterpret_cast<void**>(AnimIndex(map, nullptr, &key) + 0xC);
-        StringDestroyA(&key);
+        StringRepDestroy(&key);
         *slot = animation;
         StringCopy(&key, nullptr, name);
         slot = reinterpret_cast<void**>(AnimIndex(map, nullptr, &key) + 0xC);
-        StringDestroyA(&key);
+        StringRepDestroy(&key);
         ei::VCall<void>(*slot, kSlotLoad, data);
     }
     AnimFind(map, nullptr, &found, name);

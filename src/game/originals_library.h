@@ -69,6 +69,26 @@ __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, ch
 __declspec(naked) inline void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 // MFC CStringArray constructor (006FE925; also console::CStringArray). Returns `this`.
 __declspec(naked) inline void* __fastcall StringArrayConstruct(void* /*array*/) EI_ORIGINAL(0x006FE925)
+// 006FE958 (destructor, plain RET) and 006FE9B8 (SetSize(count, growBy), RET 8; -1 keeps the grow step):
+// neither returns a result.
+__declspec(naked) inline void __fastcall StringArrayDestruct(void* /*array*/) EI_ORIGINAL(0x006FE958)
+__declspec(naked) inline void __fastcall StringArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
+    EI_ORIGINAL(0x006FE9B8)
+// 004DBE40: splits the text at a separator into a CStringArray (ECX text, EDX array, RET 4 for the character).
+__declspec(naked) inline void __fastcall StringSplit(const char* /*text*/, void* /*array*/, char /*separator*/)
+    EI_ORIGINAL(0x004DBE40)
+// The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
+// `this` (plain RET), 004DA910 destroys it (plain RET).
+__declspec(naked) inline void* __fastcall GrowingBufferConstruct(void* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
+__declspec(naked) inline void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)
+// STLport string (begin / end / capacity rep): 0040C5A0 constructs it from text and an allocator and returns
+// `this` (RET 8); 0040C770 frees the buffer back to the node allocator (plain RET).
+__declspec(naked) inline void* __fastcall StringInitFromChars(void* /*string*/, void*, const char* /*text*/,
+    const void* /*alloc*/) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) inline void __fastcall StringRepDestroy(void* /*string*/) EI_ORIGINAL(0x0040C770)
+// The CRT's memmove (cdecl, returns the destination).
+__declspec(naked) inline void* __cdecl GameMemmove(void* /*to*/, const void* /*from*/, std::size_t /*n*/)
+    EI_ORIGINAL(0x006E79A0)
 // mfc::CString::~CString (00700970) on a string given as raw memory.
 inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString(); }
 __declspec(naked) inline int __stdcall AfxMessageBox(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)

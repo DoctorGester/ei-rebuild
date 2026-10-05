@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 
@@ -38,7 +39,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 __declspec(naked) UnitPrototypeRecord* __fastcall FindPrototypeAt(void*, void*, const char*) EI_ORIGINAL(0x005144D0)
 __declspec(naked) CEngineObject* __fastcall CreateItemAt(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 __declspec(naked) CEngineObject* __fastcall CreateSpellAt(void*, void*, const char*, void*) EI_ORIGINAL(0x006AD1E0)
-__declspec(naked) int __cdecl FatalErrorAt(const char*, ...) EI_ORIGINAL(0x00480080)
 __declspec(naked) CEngineObject* __fastcall EquipArmourAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00530730)
 __declspec(naked) int __fastcall AddWeaponAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00531070)
 __declspec(naked) int __fastcall AddSpellAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00531820)
@@ -55,7 +55,7 @@ bool Named(const mfc::CString& name) {
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 CEngineObject* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
     CEngineObject* weapon = CreateItemAt(items, nullptr, name);
-    if (!weapon) FatalErrorAt(Text(kNoWeapon), static_cast<const char*>(name), prototype);
+    if (!weapon) FatalErrorOriginal(Text(kNoWeapon), static_cast<const char*>(name), prototype);
     return weapon;
 }
 } // namespace
@@ -66,7 +66,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     void* items = ei::VCall<void*>(world, kWorldItemManager);
     UnitPrototypeRecord* prototype = FindPrototypeAt(reinterpret_cast<void*>(kTable), nullptr, name);
     if (!prototype) {
-        FatalErrorAt(Text(kNoPrototype), name);
+        FatalErrorOriginal(Text(kNoPrototype), name);
         return 0;
     }
     if (unit->type_ == kTypeArmed) {
@@ -74,7 +74,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CEngineObject* armour = CreateItemAt(items, nullptr, prototype->armourNames.begin[i]);
             if (armour) EquipArmourAt(unit, nullptr, armour);
-            else FatalErrorAt(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin[i]), name);
+            else FatalErrorOriginal(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin[i]), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
@@ -87,7 +87,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CEngineObject* spell = CreateSpellAt(items, nullptr, prototype->spellNames.begin[i], spellOwner);
         if (spell) AddSpellAt(unit, nullptr, spell);
-        else FatalErrorAt(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin[i]), name);
+        else FatalErrorOriginal(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin[i]), name);
     }
     return 1;
 }

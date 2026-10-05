@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -18,8 +19,6 @@ __declspec(naked) int __cdecl Access(const char* /*path*/, int /*mode*/) EI_ORIG
 __declspec(naked) long __cdecl FindFirst(const char* /*path*/, void* /*findData*/) EI_ORIGINAL(0x006EB832)
 __declspec(naked) void __cdecl SplitPath(const char* /*path*/, char* /*drive*/, char* /*dir*/, char* /*name*/,
                                          char* /*ext*/) EI_ORIGINAL(0x006E8BEE)
-__declspec(naked) void __fastcall StringArraySetSize(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void __fastcall StringArraySetAtGrow(void* /*array*/, void*, int /*index*/, const char* /*text*/)
     EI_ORIGINAL(0x006FEBCE)
 

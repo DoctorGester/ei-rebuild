@@ -145,7 +145,7 @@ struct World {
     void AwardKill(void* player, int id);                                // 005911C0
     void CastSpell(void* spell, int a, const Vec3* from, CEngineObject* target, const void* to, int b);  // 0058E850
 };
-__declspec(naked) void* World::GetPlayer(int) EI_ORIGINAL(0x00594180)
+void* World::GetPlayer(int id) { return ::WorldGetPlayer(this, nullptr, id); }
 __declspec(naked) float World::GridHeight(float, float) EI_ORIGINAL(0x00594220)
 __declspec(naked) void World::InvokeAlarm(int, const Vec3*, int) EI_ORIGINAL(0x00593FC0)
 __declspec(naked) void World::AddUnit(int, const char*, const char*, const Vec3*) EI_ORIGINAL(0x005910A0)
@@ -411,7 +411,7 @@ struct StlString {
 void StlString::InitEmpty(void* allocator) { StringInitWithAllocator(this, nullptr, allocator); }
 void StlString::AssignRange(const char* first, const char* last) { StringAssignSpan(this, nullptr, first, last); }
 void StlString::Destroy() { StringBufferFree(this); }
-__declspec(naked) void* StlString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
+void* StlString::InitFrom(const char* text, void* alloc) { return ::StringInitFromChars(this, nullptr, text, alloc); }
 struct StlAllocator {
     StlAllocator* Init();                                // 0041F770
     void Destroy();                                      // 0040C760

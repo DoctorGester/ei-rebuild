@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "lib/mfc.h"
 
 class CEngineObject;
 class IsaacRandom;
@@ -27,6 +28,15 @@ __declspec(naked) inline void __fastcall SessionPump(void*, void*, void*) EI_ORI
 __declspec(naked) inline void* __fastcall FieldReadString(DeltaField*, void*, void*) EI_ORIGINAL(0x0047E310)
 // 004800E0 (cdecl, printf style): reports a DirectX error (HRESULT, format, arguments) and exits; returns 0 if it comes back.
 __declspec(naked) inline int __cdecl FatalDirectX(long /*result*/, const char* /*format*/, ...) EI_ORIGINAL(0x004800E0)
+// 00480080 (rewritten as FatalError; cdecl, printf style, plain RET): reports a fatal error and exits; returns 0
+// if it comes back.
+__declspec(naked) inline int __cdecl FatalErrorOriginal(const char* /*format*/, ...) EI_ORIGINAL(0x00480080)
+// Text tables (CTextManager): 004DEFC0 opens a section by key (RET 4, EAX 1 when found and non-empty, else 0);
+// 004E0020 reads a string into a CString (RET 8, EAX 1 when found, else 0).
+__declspec(naked) inline int __fastcall TextsOpenSection(void* /*texts*/, void*, const char* /*key*/)
+    EI_ORIGINAL(0x004DEFC0)
+__declspec(naked) inline int __fastcall TextsGetString(void* /*texts*/, void*, const char* /*key*/, mfc::CString* /*out*/)
+    EI_ORIGINAL(0x004E0020)
 __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/)
     EI_ORIGINAL(0x00488970)
 __declspec(naked) inline ParticleElement* __fastcall AllocateElementsAt(int /*count*/) EI_ORIGINAL(0x00497EB0)

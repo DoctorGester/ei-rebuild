@@ -18,6 +18,7 @@
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -298,7 +299,6 @@ __declspec(naked) void __fastcall PlayerStateSetVariable(void*, void*, const cha
 // 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
 __declspec(naked) double __fastcall VariableGet(void* /*table*/, void*, const char* /*name*/) EI_ORIGINAL(0x00460AF0)
 // 0055FB00 (RET 4). CWorld::FindUnit.
-__declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int /*id*/) EI_ORIGINAL(0x0055FB00)
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
 // 00554450. The unit controller's reposition after a move.
@@ -307,7 +307,6 @@ __declspec(naked) void __fastcall ControllerReposition(void*, void*) EI_ORIGINAL
 // 006FEBFA / 006FE9B8. CStringArray::SetAtGrow(int, const CString&) / SetSize(int, int).
 __declspec(naked) void __fastcall StringArraySetAtGrow(StringArray*, void*, int, const mfc::CString*)
     EI_ORIGINAL(0x006FEBFA)
-__declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 __declspec(naked) void __fastcall MapObjectBeginLoad(CEngineObject*, void*) EI_ORIGINAL(0x0050EA40)

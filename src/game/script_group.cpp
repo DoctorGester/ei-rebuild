@@ -3,6 +3,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -18,7 +19,6 @@ ObjectRegistry* Registry() { return reinterpret_cast<ObjectRegistry*>(0x007AFF60
 // The game's CRT.
 __declspec(naked) void __cdecl GameQsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*))
     EI_ORIGINAL(0x006E88FC)
-__declspec(naked) void* __cdecl GameMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
 
 constexpr int kClassUnit = 0x50;          // CEngineObject::GetClassId() of units
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world

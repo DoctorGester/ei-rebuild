@@ -86,7 +86,6 @@ __declspec(naked) void __fastcall RendererSetBusy(void*, void*, int) EI_ORIGINAL
 // 0057AAB0. Creates the folder `path` (ECX) and deletes the files in it.
 __declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
-__declspec(naked) WorldPlayer* __fastcall WorldGetPlayer(void*, void*, int) EI_ORIGINAL(0x00594180)
 // 004A8890 / 004A8880 (RET 4). The party (007AA5A0): take the records from / give them to a record
 // builder (00661050 constructs one, 006611D0 destroys it).
 __declspec(naked) void __fastcall PartyTake(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8890)
@@ -197,7 +196,7 @@ int GameFlow::SaveGame(const char* slot) {
     currentFolder.Format(Text(kCurrentFolder), GameFolder());
     ClearSaveFolderAt(slotFolder);
     if (Campaign() == 4) {
-        if (WorldPlayer* player = WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0))
+        if (WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0)))
             PartyTake(kParty, nullptr, reinterpret_cast<std::uint8_t*>(player) + 0x70);
     }
     LocalRecords records;
@@ -1150,7 +1149,7 @@ void GameFlow::SwitchMultiplayerZone() {
         }
     }
     LocalRecords records;
-    WorldPlayer* player = WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0);
+    WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0));
     if (player && At<char>(At<void*>(player, 0x20), 0x70)) {
         SyncPartyRecordsAt(reinterpret_cast<void*>(0x007AFF60), nullptr, player);
         PartyCopyFrom(records.bytes, nullptr, reinterpret_cast<std::uint8_t*>(player) + 0x70);
@@ -1204,8 +1203,6 @@ __declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, c
 // 0041A140 (RET 4) / 00417E10 (RET 4). The server's password / whether it is listed.
 __declspec(naked) void __fastcall ServerSetPassword(void*, void*, const char*) EI_ORIGINAL(0x0041A140)
 __declspec(naked) void __fastcall ServerSetPublic(void*, void*, int) EI_ORIGINAL(0x00417E10)
-__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer*, void*) EI_ORIGINAL(0x004DA7F0)
-__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer*, void*) EI_ORIGINAL(0x004DA910)
 __declspec(naked) std::uint8_t* __fastcall ClientSessionNew(void*, void*) EI_ORIGINAL(0x0041BC40)
 // 006E7E80. The CRT's strncpy.
 
@@ -1232,12 +1229,12 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     AddressSet(address, nullptr, Text(kLocalHost), *reinterpret_cast<const int*>(0x00783E30));
     {
         GameBuffer hello;
-        GrowingBufferConstruct(&hello, nullptr);
+        GrowingBufferConstruct(&hello);
         char secret[kPasswordSize] = {};
         if (password) GameStrncpy(secret, password, kPasswordSize);
         BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
         ClientConnect(ClientSession(), nullptr, address, &hello);
-        GrowingBufferDestruct(&hello, nullptr);
+        GrowingBufferDestruct(&hello);
     }
     At<std::uint8_t>(At<std::uint8_t*>(ClientSession(), 0x2600), 0x24) = 1;
     const char* shown = name && *name ? name : Text(kServerName);

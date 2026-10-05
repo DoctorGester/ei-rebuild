@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_library.h"
 
 #include <bit>
 #include <cstring>
@@ -62,8 +63,6 @@ namespace {
 constexpr std::uint32_t kMaxStreamLength = 100000;
 
 // The growing buffer's constructor and destructor (not rewritten).
-__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
-__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
 
 // The number of bytes in a buffer, its high-water mark raised to the cursor first (inlined).
 std::uint32_t BufferLength(GameBuffer& b) {

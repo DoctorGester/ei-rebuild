@@ -115,8 +115,6 @@ constexpr std::size_t kMessageSize = 0x324;
 
 __declspec(naked) void* __fastcall MessageConstruct(void*, void*) EI_ORIGINAL(0x0046C010)
 __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(0x0046AEB0)
-__declspec(naked) void __fastcall StringArrayDestruct(void*, void*) EI_ORIGINAL(0x006FE958)
-__declspec(naked) void __fastcall StringArraySetSize(void*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void __fastcall StringArraySetAtGrowText(void*, void*, int, const char*) EI_ORIGINAL(0x006FEBCE)
 __declspec(naked) void __fastcall StringArraySetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
 // 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
@@ -128,14 +126,13 @@ constexpr std::uintptr_t kMessagePartDestructor = 0x0046C290;
 struct RawString {
     std::uint8_t bytes[12];
 };
-__declspec(naked) RawString* __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
+static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
 __declspec(naked) std::uint8_t* __fastcall NameMapInsert(void* /*map*/, void*, const void* /*pair*/) EI_ORIGINAL(0x00514880)
 // 005927C0 (RET 4). Creates the unit described by the message; returns its id. Patched by Rebirth:
 // original address.
 __declspec(naked) int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/) EI_ORIGINAL(0x005927C0)
-__declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int) EI_ORIGINAL(0x0055FB00)
 // _CIacos (006E7320): argument and result in ST0.
 __declspec(naked) double __cdecl CIacos(double) {
     __asm fld qword ptr [esp + 4]
@@ -188,7 +185,7 @@ constexpr int kSlotControllerAnimate = 25; // controller (+0x64)
 void DestroyMessage(std::uint8_t* message) {
     *reinterpret_cast<void**>(message) = reinterpret_cast<void*>(kMessageVtable);
     static constexpr int kPartNameArrays[] = {0x30C, 0x2F8, 0x2E4, 0x2D0, 0x2BC};
-    for (int offset : kPartNameArrays) StringArrayDestruct(message + offset, nullptr);
+    for (int offset : kPartNameArrays) StringArrayDestruct(message + offset);
     reinterpret_cast<mfc::CString*>(message + 0x20C)->~CString();
     VectorDestruct(message + 0x90, 0x4C, 5, reinterpret_cast<void*>(kMessagePartDestructor));
     MessageDestructBase(message, nullptr);

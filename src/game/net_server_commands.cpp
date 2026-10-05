@@ -21,7 +21,6 @@ namespace {
 // (+0x259C) end / insert.
 __declspec(naked) bool __fastcall StringEquals(const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427FA0)
 __declspec(naked) StringRep* __fastcall StringSubstr(const StringRep* /*s*/, void*, StringRep* /*out*/, std::size_t /*pos*/, std::size_t /*n*/) EI_ORIGINAL(0x0041F5F0)
-__declspec(naked) void __fastcall StringDestroyA(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
 __declspec(naked) void** __fastcall ObjectsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420610)
 __declspec(naked) void** __fastcall ObjectsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004229B0)
 
@@ -111,8 +110,8 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         if (Is(suffix, kEnterSuffix)) self->SetMap(&name);
         if (Is(suffix, kLeaveSuffix)) self->LeaveZone();
         if (Is(suffix, kFinishSuffix)) self->CompleteZone(&name);
-        StringDestroyA(&name);
-        StringDestroyA(&suffix);
+        StringRepDestroy(&name);
+        StringRepDestroy(&suffix);
         return;
     }
     case kKickByName:

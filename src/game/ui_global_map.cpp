@@ -191,7 +191,6 @@ struct BeginAt {
     void Begin(VariableIterator* it);                   // 004614C0
 };
 __declspec(naked) void BeginAt::Begin(VariableIterator*) EI_ORIGINAL(0x004614C0)
-__declspec(naked) void __fastcall Split(const char*, CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 // A local hash_map<CString, float>, freed the way the original's inlined destructor does: every
 // node's key released and the node returned to the 16-byte free list, then the bucket storage.
@@ -473,7 +472,7 @@ void CGlobalMap::Create() {
             std::uint32_t value;
             std::memcpy(&value, &node->value, 4);
             if (value == 0x3F800000) {
-                Split(node->key, &parts, '.');
+                StringSplit(node->key, &parts, '.');
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
                     reinterpret_cast<PlaceArrayAt*>(&quests_)->SetQuestsSize(quests_.size + 1, -1);

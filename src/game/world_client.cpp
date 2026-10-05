@@ -25,7 +25,7 @@ struct WorldBase {
     CEngineObject* FindUnit(unsigned id);
     BOOL IsNight();   // 0055FC10: hour of day < 6 or >= 22
 };
-__declspec(naked) CEngineObject* WorldBase::FindUnit(unsigned) EI_ORIGINAL(0x0055FB00)
+CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, static_cast<int>(id)); }
 __declspec(naked) BOOL WorldBase::IsNight() EI_ORIGINAL(0x0055FC10)
 
 __declspec(naked) int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)

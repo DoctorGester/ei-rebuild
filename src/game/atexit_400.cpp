@@ -3,6 +3,7 @@
 // They run at exit, after the hooks are installed. Each calls the global's destructor (rewritten or
 // not) through its original address. See docs/notes/unmapped_410_470.md ("Eighth round").
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -14,7 +15,6 @@ __declspec(naked) void __fastcall ClassRegistryDestruct(void* /*registry*/) EI_O
 __declspec(naked) void __fastcall RefPtrRelease(void* /*ref*/) EI_ORIGINAL(0x00412260)
 __declspec(naked) void __fastcall RefPtrRelease2(void* /*ref*/) EI_ORIGINAL(0x004122B0)
 __declspec(naked) void __fastcall WordArrayDestruct(void* /*array*/) EI_ORIGINAL(0x006FEECD)   // CWordArray::~CWordArray
-__declspec(naked) void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)
 __declspec(naked) void __fastcall Vector8Destruct(void* /*vector*/) EI_ORIGINAL(0x004387D0)
 
 void* At(std::uintptr_t address) { return reinterpret_cast<void*>(address); }

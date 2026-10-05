@@ -146,3 +146,25 @@ Class members that forwarded the same address (`AiLogStream` / `Ostream` / `Game
 `World::RemoveObject`, `Unit::MarkChanged`, `CMapObject::MarkChanged`) are now one-line definitions over the shared forwarder.
 `world_effect_internal.h` keeps `effect::ManagerContext` / `effect::FindObject` as inline wrappers. The release and verify builds,
 check_stolen, check_x87, check_signatures and check_returns (0 problems, 0 forwarder warnings) pass.
+
+## C3d (next 15 by site count): one declaration each
+
+Same method as C3b/C3c; the "differ" group is 482 addresses after this (it was 497). Decided from the game.exe disassembly
+(capstone), each now declared once:
+
+| Address | Declaration | Header |
+| --- | --- | --- |
+| 006FE958 / 006FE9B8 | `void __fastcall StringArrayDestruct(void*)` (plain RET) / `StringArraySetSize(void*, void*, int count, int growBy)` (RET 8); `console::CStringArray` members are one-line wrappers | originals_library.h |
+| 004DBE40 | `void __fastcall StringSplit(const char*, void* array, char)` (ECX text, EDX array, RET 4) | originals_library.h |
+| 004DA7F0 / 004DA910 | `void* __fastcall GrowingBufferConstruct(void*)` (returns `this`, plain RET) / `void GrowingBufferDestruct(void*)`; the old `(GameBuffer*, void*)` forms passed a dummy EDX that is dropped | originals_library.h |
+| 0040C5A0 / 0040C770 | `void* __fastcall StringInitFromChars(void*, void*, const char*, const void* alloc)` (RET 8, returns `this`; files keep typed `static` wrappers) / `void StringRepDestroy(void*)` (plain RET) | originals_library.h |
+| 006E79A0 | `void* __cdecl GameMemmove(void*, const void*, size_t)` | originals_library.h |
+| 00480080 | `int __cdecl FatalErrorOriginal(const char*, ...)` (plain RET). `FatalError` is the rewrite in app.cpp, so the shared name differs; `src/lib/crt.cpp` keeps its own copy (lib cannot include game headers) | originals_engine.h |
+| 004DEFC0 / 004E0020 | `int __fastcall TextsOpenSection(void*, void*, const char*)` (RET 4, EAX 0/1) / `TextsGetString(void*, void*, const char*, mfc::CString*)` (RET 8, EAX 0/1) | originals_engine.h |
+| 0055FB00 / 0058E5D0 / 00594180 | `CEngineObject* __fastcall WorldFindUnit(void*, void*, int)` (RET 4, unit or null) / `void WorldRemoveTimed(void*, void*, int)` (RET 4, EAX not a result) / `void* WorldGetPlayer(void*, void*, int)` (RET 4, player record or null) | originals_world.h |
+| 00530930 | `void* __fastcall UnitPrototypeOf(const void* unit)` (plain RET, record or null); callers keep `static` typed wrappers (`UnitPrototype`, `HoverPrototype`) | originals_units.h |
+
+Class members that forwarded the same addresses (`World::GetPlayer`, `World::FindUnitObject`, `WorldBase::FindUnit`,
+`World::RemoveTimedObject`, `StlString::InitFrom`, `RawString::InitFrom`, `TextReader::Open`, `TextTable::Find`, `Texts::Open/GetString`,
+`UiTexts::Find`, `WorldAt::GetPlayer`) are one-line definitions over the shared forwarders. Release and verify builds, check_stolen,
+check_x87, check_signatures and check_returns (0 problems, 0 forwarder warnings) pass.

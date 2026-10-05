@@ -175,7 +175,6 @@ __declspec(naked) void __fastcall DestroyModelNode(ItemObjectCache*, void*, Item
     EI_ORIGINAL(0x005FB8E0)
 __declspec(naked) void __fastcall FreeModelHeader(ItemObjectCache::Node*, int) EI_ORIGINAL(0x005FA920)
 // 00600BA0: the container base's destructor body. 006FE958: CStringArray's destructor.
-__declspec(naked) void __fastcall DestroyStringArray(void*) EI_ORIGINAL(0x006FE958)
 
 using EraseFn = void(__fastcall*)(ItemObjectCache*, void*, ItemObjectCache::Node*);
 using FreeHeaderFn = void(__fastcall*)(ItemObjectCache::Node*, int);
@@ -237,7 +236,7 @@ EI_REPLACE(0x005F6470, ItemScreenDestroy);
 
 void __fastcall CampScreenDestroy(CItemScreen* self) {
     auto* bytes = reinterpret_cast<std::uint8_t*>(self);
-    DestroyStringArray(bytes + 0x240);
+    StringArrayDestruct(bytes + 0x240);
     // The heroes CArray (+0x19C, vtable 007402AC).
     std::uint32_t vtable = 0x007402AC;
     std::memcpy(bytes + 0x19C, &vtable, 4);

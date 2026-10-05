@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_script.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -50,8 +51,6 @@ __declspec(naked) void __fastcall AttachedEmpty(AttachedMap* /*tree*/) EI_ORIGIN
 __declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
 __declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
 __declspec(naked) void* __fastcall NodeAllocate(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
-__declspec(naked) void __fastcall GameBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
-__declspec(naked) void __fastcall GameBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
 __declspec(naked) FreedBatch** __fastcall FreedPushDefault(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
 // Reset's container teardown.
@@ -89,8 +88,8 @@ void FreeReceived(Connection* c) {
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
 void DestroyForReset(Connection* c) {
-    GameBufferDestruct(&c->reliableIn_);
-    GameBufferDestruct(&c->reliableOut_);
+    GrowingBufferDestruct(&c->reliableIn_);
+    GrowingBufferDestruct(&c->reliableOut_);
     ListDeleteAll(&c->incoming_);
     ListDeleteAll(&c->headers_);
     AttachedDestroy(&c->attached_);
@@ -141,8 +140,8 @@ Connection* Connection::Construct(std::uint32_t id) {
     incoming_ = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    GameBufferConstruct(&reliableOut_);
-    GameBufferConstruct(&reliableIn_);
+    GrowingBufferConstruct(&reliableOut_);
+    GrowingBufferConstruct(&reliableIn_);
     ei::SetVtable(this, kVtableAddress);
     std::uint32_t tick = gameapi::GetTickCount();
     id_ = 0;
@@ -192,8 +191,8 @@ EI_REPLACE(0x00433320, ResetHook);
 // 004334E0: the destructor body.
 void Connection::Destruct() {
     ei::SetVtable(this, kVtableAddress);
-    GameBufferDestruct(&reliableIn_);
-    GameBufferDestruct(&reliableOut_);
+    GrowingBufferDestruct(&reliableIn_);
+    GrowingBufferDestruct(&reliableOut_);
     ListDeleteNodes(&incoming_);
     HeaderSentinelFree(&incoming_, nullptr, incoming_, 1);
     ListDeleteNodes(&headers_);

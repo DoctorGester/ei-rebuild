@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CEngineObject;
 class CUnit;
 class CWorldServer;
 struct ObjectIdMap;
@@ -33,5 +34,12 @@ __declspec(naked) inline void* __fastcall ItemRecordConstruct(void*, void*) EI_O
 // 005935C0 (rewritten as CWorldServer::RemoveObject; RET 4): removes the object with this id from the world
 // (EAX on return is not a result).
 __declspec(naked) inline void __fastcall WorldRemoveObject(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
+// 0055FB00 (RET 4): the world's object with this id when it is a unit (type 0x50), else null.
+__declspec(naked) inline CEngineObject* __fastcall WorldFindUnit(void* /*world*/, void*, int /*id*/)
+    EI_ORIGINAL(0x0055FB00)
+// 0058E5D0 (rewritten as CWorldServer::RemoveTimedObject; RET 4): EAX on return is not a result.
+__declspec(naked) inline void __fastcall WorldRemoveTimed(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x0058E5D0)
+// 00594180 (rewritten as CWorldServer::GetPlayer; RET 4): the player record with this id, or null.
+__declspec(naked) inline void* __fastcall WorldGetPlayer(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x00594180)
 __declspec(naked) inline void __fastcall IdMapEraseOriginal(ObjectIdMap*, void*, const unsigned*)
     EI_ORIGINAL(0x00599A80)
