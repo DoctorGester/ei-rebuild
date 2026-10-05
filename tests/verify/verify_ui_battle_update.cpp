@@ -198,10 +198,10 @@ EI_VERIFY(0x006369D0, BattleScreenQuestVariableVerify, 0, s_questVariable);
 // have their own side-by-side wrappers). Reached in every game: the screen's slot 29 (006361B0, a
 // unit joins the party, as the new game's hero does) ends with it; also slots 28 (items picked
 // up) and 30 (a member leaves), the member toggle 006379E0, a box drag (00638B30) and a network
-// client's party change (00638280). Checked:
-// with exactly one living selected unit the weapon bar, quick items, spell and action columns
-// show it, otherwise none; the unit panel's +0x14C is the first selected unit when there is one
-// (else unchanged); the pending action is cleared (+0x17C 0, +0x180 / +0x184 -1) and the three
+// client's party change (00638280). Checked: with exactly one living selected unit the weapon
+// bar, quick items, spell and action columns show it, otherwise none; the unit panel's +0x14C is
+// the first selected unit, or null with nobody selected (the original stores it before testing
+// it, 00637EE5); the pending action is cleared (+0x17C 0, +0x180 / +0x184 -1) and the three
 // panels' highlights (+0x150) are -1.
 static void* s_refreshSelection;
 static void __fastcall RefreshSelectionVerify(CBattleScreenSetup* self) {
@@ -216,19 +216,18 @@ static void __fastcall RefreshSelectionVerify(CBattleScreenSetup* self) {
     }
     bool dead = first && reinterpret_cast<int(__thiscall*)(void*)>((*reinterpret_cast<void***>(first))[55])(first) != 0;
     void* shown = (first && !dead && selected == 1) ? first : nullptr;
-    void* panelBefore = Get<void*>(self->unitPanel_, 0x14C);
 
     self->RefreshSelection();
 
     void* panelUnit = Get<void*>(self->unitPanel_, 0x14C);
     bool panels = Get<void*>(self->weaponBar_, 0x154) == shown && Get<void*>(self->quickItems_, 0x154) == shown &&
                   Get<void*>(self->spellColumn_, 0x154) == shown && Get<void*>(self->actionColumn_, 0x154) == shown;
-    bool panel = panelUnit == (first ? first : panelBefore);
+    bool panel = panelUnit == first;
     bool cleared = self->unknown_17C == 0 && self->unknown_180 == -1 && Get<int>(self, 0x184) == -1 &&
                    Get<int>(self->quickItems_, 0x150) == -1 && Get<int>(self->spellColumn_, 0x150) == -1 &&
                    Get<int>(self->actionColumn_, 0x150) == -1;
     ei::verify::Check("CBattleScreenSetup::RefreshSelection", true, panels && panel && cleared,
                       "%d selected (first %p, dead %d): panels %d, unit panel %p (want %p), cleared %d", selected, first,
-                      dead ? 1 : 0, panels ? 1 : 0, panelUnit, first ? first : panelBefore, cleared ? 1 : 0);
+                      dead ? 1 : 0, panels ? 1 : 0, panelUnit, first, cleared ? 1 : 0);
 }
 EI_VERIFY(0x00637DC0, RefreshSelectionVerify, 0, s_refreshSelection);
