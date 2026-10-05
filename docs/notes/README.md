@@ -10,3 +10,4 @@ One file per area (`<area>.md`), written by whoever rewrites that area. See `doc
   files, clipping, camera.
 - `network.md`: sessions, connections, messages, lobby, LZ coder, delta replication, message links.
 - `app.md`: application layer: frame step, registries, option / device records, key bindings.
+- `particles.md`: particle sources and their per-type callbacks (weather, fog and the first callbacks: `effects.md`).
