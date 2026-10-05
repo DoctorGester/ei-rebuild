@@ -125,6 +125,14 @@ or loaded (no scenario does).
 | 006765F0, 00678690, 006793E0, 00679EA0, 0067A770 | LoadState (slot 9) | original on a scratch copy against a stand-in that reads nothing, ours through a recorder: (offset, size) of every read compared |
 | 006772D0, 00677BF0 | LoadState of sequence / ambient | ours only (the string-array readers use more of the stream) |
 | 00678BA0, 00679280, 006792B0, 006792E0, 00679310, 00679C30, 0067A890, 0067A8C0, 0067A6B0 | particle Position and setters (SetAttachedTo, SetSize, SetColors, SetTarget, SetDirection, SetObjects, SetFlag, SetEnds) | ours, restore, original, bytes compared |
+| 0066C4F0, 00677EC0 = 0066A300, 00675F70 | CMemoryStream::ConstructQueueStream, DeltaField::Construct (two identical copies), DeltaField::Empty | side by side on copies |
+| 00675DD0, 00676760, 00677D30, 006787B0, 006797E0, 00679FC0 | Construct of sound, sequence, light, particle, wall, lightning (`world_effect_lifetime.cpp`) | original on scratch memory seeded with the real bytes, ours on the real object; whole object compared |
+| 006760A0, 00676980, 00677FC0, 00678990, 006799E0, 0067A0B0; 00676080, 00676960, 00677FA0, 00678970, 006799C0, 0067A090 | Destruct and slot 0 (deleting destructor) of the same | ours only, in the slot 0 wrappers (bit 0 cleared, freed by the wrapper): CEngineObject vtable, no owner, CStream vtables in the field, handle / pointer gone |
+
+Constructors / destructors (`world_effect_lifetime.cpp`; scenarios spells, spells_cast, effects, objects_more): the
+lightning constructor does not Reset (only bolt, width 0, flag 0); the wall runs the particle's Reset under the particle
+vtable before its own (both in the destructor too); sound and sequence destructors Reset twice. The bodies are called
+only by slot 0, so their own wrappers stay at 0 calls.
 
 x87: ticks and starts follow the original's operation order; small naked helpers repeat the original
 instructions where the compiler could not be trusted: `StepFraction` (particle speed / distance ratio),
@@ -138,9 +146,8 @@ sound is moved too; Sound Reset stops a sound only when it loops; CEffectAmbient
 count into the low byte of the stack slot of its `field` argument; CEffectParticle::Attach reads the source's
 position through a null source when there is none.
 
-Skipped: effect constructors / destructors (00675DD0, 006760A0, 00676760, 00676980, 00677510, 006776E0,
-00677D30, 00677FC0, 006787B0, 00678990, 006797E0, 006799E0, 00679FC0, 0067A0B0) and the factory 0067E170 (EH
-frames; later with the effect manager); CEffectSoundSeq::Start 00676C00 and Unpack 00676FD0 (CStringArray
+Skipped: the ambient sound's constructor / destructor (00677510, 006776E0; no scenario creates one), the base's
+destructor 00675FB0 / 00676910 (only reachable through the abstract base's vtable) and the factory 0067E170; CEffectSoundSeq::Start 00676C00 and Unpack 00676FD0 (CStringArray
 temporaries, random picks 00676DD0..00676F90 passed as callbacks); CEffectArrow / ArrowFigure / ShowVisibility /
 Moshka / Tornado (0067AAB0-0067E000); dead code 00675CC0 (UpdateMoving), 0067A2C0 (UpdateEnds); STLport
 instantiations.
