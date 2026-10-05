@@ -1,5 +1,5 @@
 // CBaseManager (00402B20-004048F0) and the object list iterator. See base_manager.h and
-// docs/notes/unmapped_410_470.md ("Fifth round").
+// docs/notes/core.md.
 #include "base_manager.h"
 
 #include "core_streams.h"

@@ -1,7 +1,7 @@
 // The exit-time destructors of 00400000-00440000's globals (the compiler's dynamic atexit
 // functions, registered by the static initialisers listed at 00783000; none is a Ghidra function).
 // They run at exit, after the hooks are installed. Each calls the global's destructor (rewritten or
-// not) through its original address. See docs/notes/unmapped_410_470.md ("Eighth round").
+// not) through its original address. See docs/notes/core.md.
 #include "ei/hook.h"
 #include "originals_library.h"
 

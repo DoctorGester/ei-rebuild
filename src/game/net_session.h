@@ -1,7 +1,7 @@
 #pragma once
 
 // The network pump: ticks the game server and the game client (net_classes.h, GameServer() /
-// GameClient()). Names provisional; see docs/notes/unmapped_410_470.md.
+// GameClient()). Names provisional; see docs/notes/network.md.
 
 #include "net_classes.h"
 

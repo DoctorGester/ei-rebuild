@@ -1,7 +1,7 @@
 // The camera object itself: construction and destruction, its small vtable slots (vtable
 // 0073B9E0), Init, and saving / loading its state with the world. The transform base's destructor
 // and the engine object's inlined constructor live here too.
-// See camera.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// See camera.h and docs/notes/core.md.
 #include "camera.h"
 
 #include "core_streams.h"

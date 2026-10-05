@@ -1,7 +1,7 @@
 // 00458570: registers an object type with a factory in a two-way type registry (called twice by
 // WinMain): a prototype made by the factory gives the vtable; vtable -> id in the STLport
 // hash_map at +0, id -> factory in the one at +0x14 (the same scheme as the network's
-// TypeRegistry::Register, 0042A890). See docs/notes/unmapped_410_470.md ("Ninth round").
+// TypeRegistry::Register, 0042A890). See docs/notes/app.md.
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_library.h"

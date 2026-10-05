@@ -6,3 +6,7 @@ One file per area (`<area>.md`), written by whoever rewrites that area. See `doc
   the rebuild (`include/ei/rebirth.h`) and how flagged rewrites are verified.
 - `cleanup-tooling.md`: the cleanup artefact counts in `tools/progress.py` and the duplicate
   forwarder report (`tools/gen_originals.py`, `docs/originals-report.md`).
+- `core.md`: engine base: maths, transforms, reference counting, object manager, streams and chunked
+  files, clipping, camera.
+- `network.md`: sessions, connections, messages, lobby, LZ coder, delta replication, message links.
+- `app.md`: application layer: frame step, registries, option / device records, key bindings.

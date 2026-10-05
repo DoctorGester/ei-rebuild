@@ -1,7 +1,7 @@
 // The connection pump of a network session (00479E30) and its start (0047A080): a driver link
 // (net_link.h) per remote player. The session keeps two STLport lists of the drivers (+8 owning,
 // +0xC plain holders); the lists' members are library code, called at their original addresses.
-// See docs/notes/unmapped_410_470.md ("Ninth round").
+// See docs/notes/network.md.
 #include "net_link.h"
 
 #include "core_refcount.h"

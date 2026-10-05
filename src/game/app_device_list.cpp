@@ -1,7 +1,7 @@
 // The list of 0x2C-byte device records WinMain's start-up (00463390, patched by Rebirth) keeps in
 // a chunk archive (a name, a GUID, three dwords, three more strings): the record's fields, its
 // compiler-made members and the list's archiving. The list is an STLport vector (its algorithms
-// are library code). See docs/notes/unmapped_410_470.md ("Ninth round").
+// are library code). See docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"

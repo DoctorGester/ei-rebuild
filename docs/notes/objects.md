@@ -508,7 +508,7 @@ Forwarders: 00450750, 00447F50, 0044A2A0, 00453A30, 004553F0, 00454360, 00453C60
 ## Sixth round: 00440000-00480000 (scene, fake unit, lightning, zone records)
 
 Part of the 0x00440000-0x00480000 worker's round; the application, network and table functions of
-the range are in unmapped_410_470.md ("Ninth round"). Plain float maths (rule 7) throughout.
+the range are in app.md and network.md. Plain float maths (rule 7) throughout.
 
 ### Rewritten
 

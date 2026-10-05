@@ -129,8 +129,9 @@ Decide case by case whether the standalone build keeps them (behaviour-exact) or
 - Effect objects and the sound file reader: see "Original bugs and oddities kept" in
   `docs/notes/range_660.md` (a stopped sound is still moved, the ambient sound's count read into its
   argument slot, `_findfirst` handle leak, Seek origins).
-- Delta replication, chunked files, clipper, network pump: see "Original bugs and oddities kept" in
-  `docs/notes/unmapped_410_470.md` (e.g. the 16-bit float packing's mantissa carry, `ReadQuad`'s order).
+- Delta replication, chunked files, clipper, network pump: see the "kept" lists in
+  `docs/notes/network.md` and `docs/notes/core.md` (e.g. the 16-bit float packing's mantissa carry,
+  `ReadQuad`'s order).
 
 ## Functions left original because Rebirth patches them
 

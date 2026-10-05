@@ -1,7 +1,7 @@
 // The game client's timed entries and commands: an object kept on the timers list (0041D1A0), a
 // command message for the server (0041D260), the client's own server entry (0041D420, slot 16), the
 // start of the game (0041D410, slot 15) and the ratio of a received buffer (0041D9A0).
-// See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "net_coder.h"

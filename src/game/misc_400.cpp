@@ -1,7 +1,6 @@
 // Small pieces of 00400000-00440000 without a better home: the CBaseManager subclass 0073BECC
 // (constructed by 005620D9; its deleting destructor and slot 14, the object factory, differ), a
-// cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/unmapped_410_470.md
-// ("Eighth round").
+// cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/core.md.
 #include "base_manager.h"
 #include "net_coder.h"
 

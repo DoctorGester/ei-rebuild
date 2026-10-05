@@ -1,8 +1,7 @@
 // Message links over streams (net_link.h): the file stream 0073C8D8, the link base 0073C8A4, the
 // loopback link 0073C8F8, the replay link 0073C92C, the framed link 0073C9C8 and the per-player
 // driver 0073C990 (00477E60-0047BC10). The queue's STLport list members are library code, called
-// at their original addresses. See docs/notes/unmapped_410_470.md ("Tenth round", "Eleventh
-// round") and docs/notes/cleanup-network.md.
+// at their original addresses. See docs/notes/network.md and docs/notes/cleanup-network.md.
 #include "net_link.h"
 
 #include "core_streams.h"

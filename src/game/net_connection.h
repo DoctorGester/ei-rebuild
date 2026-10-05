@@ -2,7 +2,7 @@
 
 // A connection of a network session to one peer (vtable 0073BF38, 0x1168 bytes; constructor
 // 00432DA0, created by SessionBase::AddClient 00436DD0) and the object replication it runs.
-// Names are provisional; see docs/notes/unmapped_410_470.md ("Third round: connections").
+// Names are provisional; see docs/notes/network.md.
 //
 // Replication: every replicated object (a Message, whose version changes with it) is tracked by a
 // ReplicaEntry in one of 11 priority maps. Each update packet carries, highest priority first, the

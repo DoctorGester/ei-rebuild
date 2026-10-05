@@ -3,7 +3,7 @@
 // +0x20, +0x24, +0x28) and a hash map whose 0x14-byte nodes hold a vector at +4. Its constructor
 // (004632A0) runs from a static initializer, before the hooks are installed; the destructor
 // (00463120, registered with atexit through the thunk 00463110) is rewritten here. The STL members
-// it inlines are library code. See docs/notes/unmapped_410_470.md ("Ninth round").
+// it inlines are library code. See docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"

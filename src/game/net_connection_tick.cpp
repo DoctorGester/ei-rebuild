@@ -1,5 +1,5 @@
 // A connection's tick (00433BD0): clocks, lost-packet detection, sending, delayed id reuse and the
-// timeout. See net_connection.h and docs/notes/unmapped_410_470.md ("Sixth round").
+// timeout. See net_connection.h and docs/notes/network.md.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order

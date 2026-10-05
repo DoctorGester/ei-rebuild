@@ -3,7 +3,7 @@
 // (0041E0A0, 0041E270, 0041E3E0). Each keeps the replicated objects the server sends in one of the
 // client's lists and tells the interface or the game flow. 0041ECC0 (the file chunk handler for
 // channel 0) is patched by Rebirth and stays original. The messages are declared in
-// net_messages.h. See docs/notes/unmapped_410_470.md ("Eighth round").
+// net_messages.h. See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"

@@ -1,6 +1,6 @@
 // CCamera helpers the per-frame update uses: aiming along a direction (004110D0), turning the
 // camera upright towards its target (0040D710) and keeping it above nearby objects (0040E4C0).
-// See camera.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// See camera.h and docs/notes/core.md.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
