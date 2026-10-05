@@ -189,11 +189,11 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 0052E970, 0052E9D0, 005300D0 | SetHostileMask, RefreshMotion (path forgets the unit, motion +0x27C takes GetMoveSpeeds and is rebuilt; part 10), SetPlayer | unit_controller.cpp | ours only (mask / speeds / player owns the unit; parts marked) |
 | 005341A0 | CUnitClientSpecific::UpdateClient (slot 6: motion order shift, weapon hidden by key, flags_ 8, fade-in, colour flash, blink, arrow, step sounds, speech queue, special idle) | unit_client_update.cpp | ours only (result 1, flags_ 8 by the rule, fade <= 1, blink timer 0..9) |
 | 00537CB0, 00538C20 | ShowWeaponParts, UpdateArrow (bow arrow "rh3_arrow00" between the animation's frames +0x28 / +0x2C) | unit_client_models.cpp | ours only (+0x74 / +0x75; part flag agrees) |
-| 005344E0, 005344A0, 00539160, 00537360 | FiguresLoaded (slot 13: parts take the fade-in), RestartFadeIn (43: from 0; EAX 0), Level (24: ln(packed experience / 007C5488) / ln(007C548C), float, rounded), RefreshWounds (31: "mo<id>w" through 005370F0 / 0051C3D0, else 0051C920) | unit_client_update.cpp | ours only / Level compared (std::log: a ratio within an ULP of .5 may round differently) |
+| 005344E0, 005344A0, 00539160, 00537360 | FiguresLoaded (slot 13: parts take the fade-in), RestartFadeIn (43: from 0; EAX 0), Level (24: ln(packed experience / 007C5488) / ln(007C548C), float, rounded), RefreshWounds (31: "mo<id>w" through 005370F0 / 0051C3D0, else 0051C920) | unit_client_update.cpp | ours only / Level compared (std::log: a ratio within an ULP of .5 may round differently; experience 0 gives ln 0 = -inf, and FISTP's 0x80000000 is reproduced, X11) |
 | 00536100, 00536220 | RefreshSkins (slot 29), RefreshSimpleSkin (slot 30): heroes' composed skins into the client half's +0x20 / +0x24 textures, reloaded when new or renamed | unit_client_equipment.cpp | ours only (result 1) |
 | 00538140, 00538860, 005388C0, 00538920 | SetArmourModels (slot 32), SetWeaponModels (33), AddWeaponModel (34), RemoveWeaponModel (35) | unit_client_equipment.cpp | ours only (ids among the given) / weapon ids compared with the original |
 | 00534590, 00534760 | FootstepSound (model sound names +0x138 / counts +0x144 per ground kind; platform -> kind 2; crawling), ActionSound (sound frame +0x44 in [from, to), sounds +0x48; folder: second prototype +0x34 or model +0x124; idle / attack chances +0x150 / +0x154) | unit_client_sounds.cpp | rand() saved, original into a copy of `out`; result, string, rand state compared |
-| 00534B60 | PlayStepSounds (attack / death / skill sounds at priority 1000, idle / hit at 0; camera shake by prototype +0x30 at the attack moment and steps; footprints through 0056D150 with model +0x10C / +0x110 / +0x11C and prototype +0xB0 as scale) | unit_client_sounds.cpp | ours only (animation and frame remembered, footprint countdown 0..7) |
+| 00534B60 | PlayStepSounds (attack / death / skill sounds at priority 1000, idle / hit at 0; camera shake by prototype +0x30 at the attack moment and steps; footprints through 0056D150 with model +0x10C / +0x110 / +0x11C and prototype +0xB0 as scale) | unit_client_sounds.cpp | ours only (animation and frame remembered; footprint / countdown change by one of the original's steps, countdown -1 until the first footprint, X11) |
 | 0051B6D0, 0051B6F0 | CObject3DClientSpecific::FirstDrawnPart / NextDrawnPart (+0x38 / +0x3C, cursor +0x48) | unit_client_update.cpp | result and cursor compared |
 | 0052E740, 0052E590 | ReleaseUnit (slot 5: SetPlayer(null), controller slot 5, item slots, carried items), DestroyUnit (slot 3) | unit_controller.cpp | ours only (no player, empty slots; no controller) |
 | 00535590, 00535CB0, 00536300, 00536670, 005381B0, 005385A0 | ChangeWeaponModel, CollectArmourPartNames, BuildSkinLayers, ComposeSkin, WearArmourModel, RemoveArmourModel | unit_client_models.cpp | ours only / output |
@@ -205,6 +205,8 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 
 ## Original bugs and oddities kept on purpose
 
+- Client `Level` (00539160) of a unit with experience 0: ln 0 = -inf and FISTP turns it into 0x80000000 (INT_MIN), not 0;
+  ours returns the same (X11: the CRT's lrint gave 0, 4 of 8 calls differed).
 - PlayStepSounds: a step frame of 1 ends the step list (the frame is the entry minus 1, tested for 0), so an entry 0 never matches;
   the footprint scale reads the prototype unchecked; the "shown" flag goes to 0056D150 with stack garbage in its upper bytes (ours 0 / 1);
   FootstepSound divides by a missing ground kind's count of 0 when a platform turns the kind into 2. Our calls between the client
@@ -248,6 +250,10 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 
 ## Risks
 
+- X11 (2026-10-05): PlayStepSounds' rewrite was right; its check wrongly required the footprint countdown (+0x84) in 0..7, but
+  00533FE0 starts it at -1 and the original leaves it there until a footprint is made (it only decrements above 0). The check now
+  follows the original's steps. It stays ours only: the original plays sounds, shakes the camera and adds world footprints, so a
+  second run on a copy would double them. Level's experience-0 case is fixed (above). Both are hooked again (off disabled.txt).
 - Recompute and Regenerate run for every unit (Regenerate every world update, Recompute after every 15th and after hits and heals): a mistake shows at once; both are verified side by side.
   Constructors compare every byte with the original on a copy; destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. Under 64-bit FPU
   precision (not the game's mode) `TotalItemWeight`'s double accumulator rounds differently.
