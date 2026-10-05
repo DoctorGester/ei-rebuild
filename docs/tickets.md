@@ -7,8 +7,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R7 (taken 2026-10-05) Holders with no DirectDraw surface at all (after R2/R3).
-- R8 Device setup and texture management (last).
+- R8 (taken 2026-10-05, first part) Device setup and texture management (last). Includes R7's leftovers: 004EFA60 texture holders (save/load pictures, weather texture, item pictures) via the texture manager 0068F6C0..00693C60; presenting without the old Flip/BltFast.
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
