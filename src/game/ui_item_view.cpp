@@ -147,18 +147,6 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
     return object;
 }
 
-// An item's turning state (0x18 bytes, vtable 007403F8, a counted object at the item's +0x1C).
-struct ItemTurn {
-    void* vtable;
-    int references;          // +0x04
-    float angle;             // +0x08 radians, wrapped at 007C7D20 (2 pi)
-    float speed;             // +0x0C
-    bool flag;               // +0x10
-    std::uint8_t unknown_11[3];
-    float glow;              // +0x14 phase of the spell glow
-};
-static_assert(sizeof(ItemTurn) == 0x18);
-
 // 00419CD0: RefPtr assignment (thiscall on the item's +0x1C; counts the new object).
 struct RefSlot {
     void Assign(void* object);

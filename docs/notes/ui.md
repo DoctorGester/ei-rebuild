@@ -254,6 +254,8 @@ probably CanEquip, hero creation (00617A50).
 | 00610020, 006110F0 | `CCampScreen::BestPartySkill` (slot 45), `ShowPageTabs` (slot 44) | pure; ours: the three strips' tabs (only the strips the page uses) |
 | 00618FF0, 00619090, 006193C0, 006188E0, 00618980, 00616900, 006177D0, 00617050 | `CMpHeroScreen::ClampHeroSelection`, `ClampVoiceSelection`, `EquipmentWeight` (slot 53, double in ST0), `CanEquip` (43, AL), `OnItemChosen` (42), `GetHero` (51), `OnLButtonUp`, `OnLButtonDown` (slot 2) | ours / pure; OnLButtonDown per region (arrows, mode changes, the inventory's camp on top, voice row, equipment taken back) |
 | 00620380, 00620960, 00620F10, 00621010, 00620E10, 006210F0, 006212A0, 00621420, 00621510, 00621530 | `CUiItemStrip::Build` (RET 4), `SetTab`, `OnMouseMove`, `OnLButtonUp`, `OnLButtonDown`, `OnWheel`, `OnLButtonDownForward`, `SetFilter`, `SelectTab`, `CycleTab` | Build side by side with its regions and sprites recorded and removed again; SetTab / MouseMove / LButtonUp original, restore, ours; the rest ours only |
+| 005EE050, 005EE080, 005EE0B0, 005EE0D0, 005EE110, 005EE130 | `UiItemKinds::IsSpell`, `IsModifier`, `IsSpellContainer` (BOOL), `IsPart`, `IsKindOne`, `IsBuildable` (`ui_screens.cpp`; `verify_ui_camp_items.cpp`) | pure, side by side |
+| 005EE1B0, 005EE2C0, 00621570 | `CItemScreen::MoveItem` (RET 0x18), `ReturnAll` (RET 8; `ui_item_screen.cpp`), `CUiItemStrip::ScrollToItem` (RET 4) | ours only: the target holds the result, a whole stack left the source, a refused move changes nothing, a turning move's item has its state flagged; ReturnAll empties the source; ScrollToItem's list is the rebuild rule's for the tab it ends on, scroll stopped, the last match within the seven visible slots |
 | 006218F0, 006219A0, 00621A80, 006212F0, 00621F30, 00620A50, 00621B50 | `ItemTab`, `SpellTab`, `ArmorTab`, `RebuildList` (slot 26), `ItemAt` (25), `Update` (slot 24: scroll physics), `Draw` (slot 20 of the forwarding strip 0074197C; the camp and the exchange window use it) | pure; ours: the list is the source items of the current tab; ItemAt side by side; Update side by side (scroll fields +0x150..+0x17C put back, floats within 4 ULPs); Draw ours only |
 
 Hazards and facts (the code has the rest):
@@ -283,6 +285,11 @@ Hazards and facts (the code has the rest):
   the preview kept turning (fixed). Hero screen modes: 9 hero list (rows 9-18; 1 continue 006183B0, 5 new hero, 6 rename, 7 delete "lmp_deletepers", 8 the
   hero's inventory = the camp screen built inline with `fromHeroScreen_` 1), 10 new hero (1 create 006186F0, rows 9-19 the voice), 11 equipment (1 next
   00617A50).
+
+MoveItem: with `limit` > 0 (and at least that many items in the target) it moves only an item the same as one of the
+target's first `limit` items, and then gives no turning state; a turning move makes a state whose glow (+0x14) stays
+uninitialised and whose count is written before the allocation is checked, and faults on a null AddItem result (kept).
+ScrollToItem (the camp's "AddItem" call sites) does not update `count_`; its second loop inlines the array's SetSize.
 
 Original quirks kept: the global map's marker array templates have uninitialised numbers (overwritten right after; ours 0); the camp Draw passes hover info
 to 005F1590 with uninitialised bytes +4..+0x13 unless a panel fills them (ours zeroes); `CanMakeSpell` keeps the modifiers in an 8-entry stack array
