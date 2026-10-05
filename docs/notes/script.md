@@ -956,3 +956,27 @@ Forwarders added: `script_destroy.cpp` 006FE296, 004CC7D0, 004CC980, 004CE210, 0
 
 Not taken: the element destructors 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0 and
 004BF620 (small wrappers around these; the same deep-copy check would fit them).
+
+# Element destructors (ticket S7: 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004BF620)
+
+None is in config/library.csv, config/dead_code.csv or docs/rebirth-patched-functions.txt (nor are the
+callees 004B5EF0, 004BD540, 004BF7E0, 004BF640 and 0058E5D0), so they install in both launches. All are
+`__thiscall (flags)`, RET 4, return `this`; bit 0 of the flags also deletes the element (007005D8).
+Code: `src/game/script_destroy.cpp`; verify: `tests/verify/verify_script_destroy.cpp`.
+
+| Address | Element | Does | Verification | Reached by |
+|---|---|---|---|---|
+| 004CE1E0 | ScriptObjectRef | release the object, clear the slot | against the original on a copy of the slot with the object's count raised (words, count drops, return) | CArray<ScriptObjectRef> SetSize / copy (script_copy, script_vars_append, script_load) |
+| 004CE210 | ScriptGroup | body 004B5EF0 (base vtable 0073D11C, references released, array freed) | ours only: vtable the only word changed, counts dropped, return | ScriptVars destructor / group arrays (S6's list) |
+| 004CE230 | ScriptSubCall | its command destroyed with 004BF640 and deleted | against the original on a deep copy (CArray<SSCCmd>::Copy 004CC0C0) | SSCCmd destructor, nested commands: script_parse, script_exec, world_load |
+| 004CE270 | particle source's object | timed removal (0058E5D0 with the id at +0xC), release, slot cleared | ours only: slot cleared, count down by 1 or 2, return | the reset's particle list (+0x14), zone changes |
+| 004CE2B0 | FX source | body 004BD540 (the same removal and release, then its CString) | ours only: object slot cleared, return | the reset's FX list (+0x30) |
+| 004CE2D0 | world block | body 004BF7E0 (vtable 0073D3D0, commands destroyed inline, array freed) | ours only: vtable the only word changed, counts dropped, return | the reset's block list (+0x178) |
+| 004BF620 | SSCCmd | 004BF640 | ours only: counts dropped, return (004BF640 has its own comparison) | command arrays SetSize / Copy (script_load) |
+
+"Ours only" for four of them because the first three bytes are followed by a relative CALL, so the
+original cannot be run through a trampoline (no 5 stolen bytes without it). 004CE270 / 004CE2B0 also
+change the world (timed removal), so running the original first on a copy would change what ours sees.
+Flags with bit 0 set are passed through unchecked (the element is freed). Forwarders added:
+004B5EF0, 004BD540, 004BF7E0, 004BF640 (script_destroy.cpp). The bodies keep their exception frames
+(they stay original); the wrappers have none.

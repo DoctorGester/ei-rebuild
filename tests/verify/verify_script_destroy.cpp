@@ -93,6 +93,18 @@ public:
         return bad;
     }
 
+    // Model check (no original to compare with): every counter read before (t0) that ours does not
+    // free must have dropped by the number of times the object holds it.
+    int CheckDrops(const std::vector<int>& t0, int* checked) const {
+        int bad = 0;
+        for (std::size_t i = 0; i < entries_.size(); ++i) {
+            if (t0[i] - entries_[i].held <= 0) continue;
+            ++*checked;
+            if (*entries_[i].counter != t0[i] - entries_[i].held) ++bad;
+        }
+        return bad;
+    }
+
 private:
     struct Entry {
         int* counter;
@@ -208,6 +220,158 @@ void __fastcall CmdDestructVerify(SSCCmd* self) {
     gamecrt::operator_delete(copies.data);
 }
 
+// ---- Element destructors (ticket S7) ---------------------------------------------------------------
+// Each takes (element, edx, flags) and returns the element. With bit 0 of the flags the element is
+// deleted too (not checkable: the call is passed through).
+
+// 004CE1E0: PUSH ESI; MOV ESI,ECX; MOV ECX,[ESI] (5 bytes). The copy: the slot with the object's
+// count raised for it.
+void*(__fastcall* s_refDestroy)(CEngineObject**, void*, int);
+void* __fastcall RefDestroyVerify(CEngineObject** self, void*, int flags) {
+    if (g_inOriginal || (flags & 1)) return ScriptRefDestroy(self, nullptr, flags);
+    Counters counters;
+    counters.Object(*self);
+    std::vector<int> t0 = counters.Read();
+    CEngineObject* copy = *self;
+    if (copy) ++copy->refCount_;
+    std::vector<int> t1 = counters.Read();
+    std::vector<std::uint32_t> copyBefore = Words(&copy, 4);
+    std::vector<std::uint32_t> realBefore = Words(self, 4);
+    ++g_inOriginal;
+    void* originalResult = s_refDestroy(&copy, nullptr, 0);
+    --g_inOriginal;
+    std::vector<int> t2 = counters.Read();
+    void* result = ScriptRefDestroy(self, nullptr, 0);
+    int checked = 0;
+    int badCounters = counters.CheckAfterOurs(t0, t1, t2, &checked);
+    int wrongWord = FirstWrongWord(copyBefore, &copy, realBefore, self);
+    ei::verify::Check("ScriptRefDestroy", true,
+                      badCounters == 0 && wrongWord < 0 && result == self &&
+                          originalResult == static_cast<void*>(&copy),
+                      "%d of %d reference counts wrong; first wrong word at +0x%X; returned %p for %p",
+                      badCounters, checked, static_cast<unsigned>(wrongWord), result, static_cast<void*>(self));
+    return result;
+}
+
+// 004CE210: ours only (PUSH ESI; MOV ESI,ECX; CALL: no 5 bytes without the relative call). The
+// group's body (004B5EF0) writes the base vtable and releases every reference; the array stays.
+void* __fastcall GroupDestroyVerify(void* self, void*, int flags) {
+    if (flags & 1) return ScriptGroupDestroy(self, nullptr, flags);
+    auto* group = static_cast<ScriptGroup*>(self);
+    Counters counters;
+    for (int i = 0; i < group->size; ++i) counters.Object(group->data[i].object);
+    std::vector<int> t0 = counters.Read();
+    std::vector<std::uint32_t> before = Words(self, sizeof(ScriptGroup));
+    void* result = ScriptGroupDestroy(self, nullptr, 0);
+    std::vector<std::uint32_t> after = Words(self, sizeof(ScriptGroup));
+    bool words = after[0] == 0x0073D11C;
+    for (std::size_t i = 1; i < after.size(); ++i) words = words && after[i] == before[i];
+    int checked = 0;
+    int badCounters = counters.CheckDrops(t0, &checked);
+    ei::verify::Check("ScriptGroupDestroy", true, words && badCounters == 0 && result == self,
+                      "words ok %d, %d of %d reference counts wrong, returned %p for %p", words ? 1 : 0,
+                      badCounters, checked, result, self);
+    return result;
+}
+
+// 004CE230: PUSH ESI; MOV ESI,ECX; PUSH EDI; MOV EDI,[ESI+8] (7 bytes). The copy: the element with
+// the command deep-copied (CArray<SSCCmd>::Copy from a one-element view); the original deletes the
+// copy's command (the array storage) as ours deletes the real one.
+void*(__fastcall* s_subCallDestroy)(ScriptSubCall*, void*, int);
+void* __fastcall SubCallDestroyVerify(ScriptSubCall* self, void*, int flags) {
+    if (g_inOriginal || (flags & 1)) return ScriptSubCallElementDestroy(self, nullptr, flags);
+    Counters counters;
+    if (self->cmd) counters.Cmd(*self->cmd);
+    std::vector<int> t0 = counters.Read();
+    ScriptSubCall copy = *self;
+    MfcArray<SSCCmd> source{reinterpret_cast<void*>(0x0073D3DC), self->cmd, self->cmd ? 1 : 0, 1, 0};
+    MfcArray<SSCCmd> copies{reinterpret_cast<void*>(0x0073D3DC), nullptr, 0, 0, 0};
+    if (self->cmd) {
+        CommandsCopy(&copies, nullptr, &source);
+        copy.cmd = copies.data;
+    }
+    std::vector<int> t1 = counters.Read();
+    std::vector<std::uint32_t> copyBefore = Words(&copy, sizeof(copy));
+    std::vector<std::uint32_t> realBefore = Words(self, sizeof(*self));
+    ++g_inOriginal;
+    void* originalResult = s_subCallDestroy(&copy, nullptr, 0);
+    --g_inOriginal;
+    std::vector<int> t2 = counters.Read();
+    void* result = ScriptSubCallElementDestroy(self, nullptr, 0);
+    int checked = 0;
+    int badCounters = counters.CheckAfterOurs(t0, t1, t2, &checked);
+    int wrongWord = FirstWrongWord(copyBefore, &copy, realBefore, self);
+    ei::verify::Check("ScriptSubCallElementDestroy", true,
+                      badCounters == 0 && wrongWord < 0 && result == self &&
+                          originalResult == static_cast<void*>(&copy),
+                      "%d of %d reference counts wrong; first wrong word at +0x%X; returned %p for %p",
+                      badCounters, checked, static_cast<unsigned>(wrongWord), result, static_cast<void*>(self));
+    return result;
+}
+
+// 004CE270: ours only. It removes the object from the world's timed objects (which flags and
+// releases it when it is one) and releases it: the original cannot run first on a copy without
+// changing the world. Checked: the slot cleared, the object's count down by one or two, the return.
+void* __fastcall ParticleDestroyVerify(CEngineObject** self, void*, int flags) {
+    if (flags & 1) return ScriptParticleDestroy(self, nullptr, flags);
+    CEngineObject* object = *self;
+    int before = object ? object->refCount_ : 0;
+    void* result = ScriptParticleDestroy(self, nullptr, 0);
+    bool ok = result == static_cast<void*>(self) && *self == nullptr;
+    // Read the count only when it cannot have reached zero (the object may be freed).
+    if (object && before > 2) ok = ok && (object->refCount_ == before - 1 || object->refCount_ == before - 2);
+    ei::verify::Check("ScriptParticleDestroy", true, ok, "slot %p, returned %p for %p",
+                      static_cast<void*>(*self), result, static_cast<void*>(self));
+    return result;
+}
+
+// 004CE2B0: ours only (the same relative call after 3 bytes). The FX source's body (004BD540)
+// clears the object slot (the world's timed removal and release are as 004CE270's).
+void* __fastcall FxSourceDestroyVerify(void* self, void*, int flags) {
+    if (flags & 1) return ScriptFxSourceDestroy(self, nullptr, flags);
+    void* result = ScriptFxSourceDestroy(self, nullptr, 0);
+    ei::verify::Check("ScriptFxSourceDestroy", true, result == self && *static_cast<void**>(self) == nullptr,
+                      "slot %p, returned %p for %p", *static_cast<void**>(self), result, self);
+    return result;
+}
+
+// 004CE2D0: ours only (as above). The block is a CArray<SSCCmd> (0x14 bytes) and one more dword;
+// its body (004BF7E0) writes the base vtable 0073D3D0, destroys the commands and frees the array.
+void* __fastcall WorldBlockDestroyVerify(void* self, void*, int flags) {
+    if (flags & 1) return ScriptWorldBlockDestroy(self, nullptr, flags);
+    auto* cmds = static_cast<MfcArray<SSCCmd>*>(self);
+    Counters counters;
+    for (int i = 0; i < cmds->size; ++i) counters.Cmd(cmds->data[i]);
+    std::vector<int> t0 = counters.Read();
+    std::vector<std::uint32_t> before = Words(self, 0x18);
+    void* result = ScriptWorldBlockDestroy(self, nullptr, 0);
+    std::vector<std::uint32_t> after = Words(self, 0x18);
+    bool words = after[0] == 0x0073D3D0;
+    for (std::size_t i = 1; i < after.size(); ++i) words = words && after[i] == before[i];
+    int checked = 0;
+    int badCounters = counters.CheckDrops(t0, &checked);
+    ei::verify::Check("ScriptWorldBlockDestroy", true, words && badCounters == 0 && result == self,
+                      "words ok %d, %d of %d reference counts wrong, returned %p for %p", words ? 1 : 0,
+                      badCounters, checked, result, self);
+    return result;
+}
+
+// 004BF620: ours only (PUSH ESI; MOV ESI,ECX; CALL). The body is the command destructor 004BF640,
+// whose own wrapper compares it with the original; here the return value and the reference counts.
+void* __fastcall CmdElementDestroyVerify(SSCCmd* self, void*, int flags) {
+    if (flags & 1) return ScriptCmdElementDestroy(self, nullptr, flags);
+    Counters counters;
+    counters.Cmd(*self);
+    std::vector<int> t0 = counters.Read();
+    void* result = ScriptCmdElementDestroy(self, nullptr, 0);
+    int checked = 0;
+    int badCounters = counters.CheckDrops(t0, &checked);
+    ei::verify::Check("ScriptCmdElementDestroy", true, badCounters == 0 && result == static_cast<void*>(self),
+                      "%d of %d reference counts wrong, returned %p for %p", badCounters, checked, result,
+                      static_cast<void*>(self));
+    return result;
+}
+
 // ---- AppendFrom ---------------------------------------------------------------------------------------
 
 // 004B3900: ours only (the four appends check the contents): every array's size as the appends
@@ -240,3 +404,10 @@ EI_VERIFY(0x004BE090, VarsDestructVerify, 7, s_varsDestruct);
 EI_VERIFY(0x004BE9D0, DefinitionDestructVerify, 7, s_definitionDestruct);
 EI_VERIFY(0x004BF640, CmdDestructVerify, 7, s_cmdDestruct);
 EI_VERIFY(0x004B3900, AppendFromVerify, 0, s_unused);
+EI_VERIFY(0x004CE1E0, RefDestroyVerify, 5, s_refDestroy);
+EI_VERIFY(0x004CE210, GroupDestroyVerify, 0, s_unused);
+EI_VERIFY(0x004CE230, SubCallDestroyVerify, 7, s_subCallDestroy);
+EI_VERIFY(0x004CE270, ParticleDestroyVerify, 0, s_unused);
+EI_VERIFY(0x004CE2B0, FxSourceDestroyVerify, 0, s_unused);
+EI_VERIFY(0x004CE2D0, WorldBlockDestroyVerify, 0, s_unused);
+EI_VERIFY(0x004BF620, CmdElementDestroyVerify, 0, s_unused);

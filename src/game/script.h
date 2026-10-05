@@ -638,6 +638,16 @@ void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition);
 // 004BF640 (SSCCmd destructor, __thiscall; script_destroy.cpp): nested calls destroyed (their
 // commands deleted), every argument and binding array freed.
 void __fastcall ScriptCmdDestruct(SSCCmd* cmd);
+// Element destructors (ticket S7; __thiscall (flags) RET 4, bit 0 also deletes, `this` returned):
+// 004CE1E0 reference, 004CE210 group, 004CE230 nested call, 004CE270 particle source's object,
+// 004CE2B0 FX source, 004CE2D0 world block, 004BF620 command.
+void* __fastcall ScriptRefDestroy(CEngineObject** slot, void*, int flags);
+void* __fastcall ScriptGroupDestroy(void* group, void*, int flags);
+void* __fastcall ScriptSubCallElementDestroy(ScriptSubCall* call, void*, int flags);
+void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags);
+void* __fastcall ScriptFxSourceDestroy(void* source, void*, int flags);
+void* __fastcall ScriptWorldBlockDestroy(void* block, void*, int flags);
+void* __fastcall ScriptCmdElementDestroy(SSCCmd* cmd, void*, int flags);
 // 004B3900 (ScriptVars::AppendFrom, __thiscall; script_vars_append.cpp): the four appends.
 void __fastcall ScriptVarsAppendFrom(ScriptVars* vars, void* edx, const ScriptVars* other);
 
