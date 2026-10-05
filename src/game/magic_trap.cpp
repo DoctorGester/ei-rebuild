@@ -1,5 +1,6 @@
 // Magic traps: who is inside, and casting at newcomers (0052A680), the living units of the trap's
-// sides in its circles (0052A920), casting the spell (0052A4B0). See magic_trap.h and
+// sides in its circles (0052A920), casting the spell (0052A4B0), set-up from the zone record
+// (0052A2C0). See magic_trap.h and
 // docs/notes/units.md ("Magic traps").
 #include "magic_trap.h"
 
@@ -9,6 +10,7 @@
 #include "ei/vcall.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -215,3 +217,53 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
     At<std::uint32_t>(this, 0x288) = At<std::uint32_t>(this, 0x284);
 }
 EI_REPLACE_METHOD(0x0052A4B0, MagicTrap::CastAtUnits);
+
+namespace {
+// The spell manager's CreateSpellFromText (00689030, RET 4; not rewritten); the two arrays'
+// SetSize(n, -1) (0046EAD0 for the circles, 0052C8E0 for the points; MFC template code, RET 8).
+__declspec(naked) void* __fastcall CreateSpellFromText(void* /*manager*/, void*, const char*) EI_ORIGINAL(0x00689030)
+__declspec(naked) void __fastcall CirclesSetSize(TrapArea*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0046EAD0)
+__declspec(naked) void __fastcall PointsSetSize(TrapPoints*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0052C8E0)
+constexpr int kSlotSpellManager = 0x58 / 4;   // the map object context's slot 22
+constexpr int kSlotRelease = 0x10 / 4;        // a counted object's release
+} // namespace
+
+void MagicTrap::SetUp(const MagicTrapRecord* record) {
+    At<std::uint32_t>(this, 0x238) = record->sides;
+    const char* text = record->spell;
+    void* manager = ei::VCall<void*>(ManagerContext(this), kSlotSpellManager);
+    void* spell = CreateSpellFromText(manager, nullptr, text);
+    void* old = At<void*>(this, 0x23C);
+    At<void*>(this, 0x23C) = spell;
+    if (spell) ++At<int>(spell, 4);
+    if (old) ei::VCall<void>(old, kSlotRelease);
+    std::memcpy(&At<float>(this, 0x1C), record->position, sizeof(record->position));   // copied as dwords
+
+    // The loop bounds are read again on every pass, as in the original.
+    auto* area = &At<TrapArea>(this, 0x240);
+    CirclesSetSize(area, nullptr, record->area.count, -1);
+    for (int i = 0; i < record->area.count; ++i)
+        std::memcpy(&area->circles[i], &record->area.circles[i], sizeof(TrapCircle));
+    auto* points = &At<TrapPoints>(this, 0x254);
+    PointsSetSize(points, nullptr, record->points.count, -1);
+    for (int i = 0; i < record->points.count; ++i)
+        std::memcpy(&points->points[2 * i], &record->points.points[2 * i], 2 * sizeof(float));
+
+    // The units inside: CList::RemoveAll inlined (each element's reference released and cleared,
+    // the list emptied, its blocks freed).
+    for (VictimNode* node = At<VictimNode*>(this, 0x26C); node; node = node->next) {
+        if (node->unit) ei::VCall<void>(node->unit, kSlotRelease);
+        node->unit = nullptr;
+    }
+    At<int>(this, 0x274) = 0;           // count
+    At<void*>(this, 0x278) = nullptr;   // free nodes
+    At<void*>(this, 0x270) = nullptr;   // tail
+    At<void*>(this, 0x26C) = nullptr;   // head
+    mfc::PlexFreeDataChain(At<mfc::CPlex*>(this, 0x27C));
+    At<void*>(this, 0x27C) = nullptr;
+
+    At<std::uint32_t>(this, 0x284) = record->period;
+    At<std::uint32_t>(this, 0x288) = 0;
+    At<int>(this, 0x28C) = record->singleTarget != 0 ? 1 : 0;
+}
+EI_REPLACE_METHOD(0x0052A2C0, MagicTrap::SetUp);

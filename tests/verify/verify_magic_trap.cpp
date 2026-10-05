@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 void* s_unused;
@@ -136,3 +137,33 @@ static void __fastcall CastAtUnitsVerify(MagicTrap* trap, void*, mfc::CTypedPtrL
                       reinterpret_cast<CEngineObject*>(trap)->id_, countBefore, problem ? problem : "");
 }
 EI_VERIFY(0x0052A4B0, CastAtUnitsVerify, 0, s_unused);
+
+// SetUp (0052A2C0) makes a spell and releases references: ours only. Afterwards the sides, position,
+// circles, points and period equal the record's (bitwise), the countdown is 0, +0x28C is the
+// record's byte as 0 / 1, the list of units inside is empty with no blocks, and the trap holds a
+// spell exactly when the record's text made one (not checked again: the spell manager is not
+// asked twice). Reached by the zone loader (005927C0) for every magic trap of a zone file; none is
+// known on zone1.
+static void __fastcall SetUpVerify(MagicTrap* trap, void*, const MagicTrapRecord* record) {
+    trap->SetUp(record);
+    const char* problem = nullptr;
+    const auto* area = &Field<TrapArea>(trap, 0x240);
+    const auto* points = &Field<TrapPoints>(trap, 0x254);
+    if (Field<std::uint32_t>(trap, 0x238) != record->sides) problem = "sides";
+    else if (std::memcmp(&Field<float>(trap, 0x1C), record->position, sizeof(record->position)) != 0) problem = "position";
+    else if (area->count != record->area.count ||
+             (area->count > 0 && std::memcmp(area->circles, record->area.circles, area->count * sizeof(TrapCircle)) != 0))
+        problem = "circles";
+    else if (points->count != record->points.count ||
+             (points->count > 0 && std::memcmp(points->points, record->points.points, points->count * 2 * sizeof(float)) != 0))
+        problem = "points";
+    else if (Field<void*>(trap, 0x26C) || Field<void*>(trap, 0x270) || Field<int>(trap, 0x274) != 0 ||
+             Field<void*>(trap, 0x278) || Field<void*>(trap, 0x27C))
+        problem = "units inside not emptied";
+    else if (Field<std::uint32_t>(trap, 0x284) != record->period || Field<std::uint32_t>(trap, 0x288) != 0)
+        problem = "period / countdown";
+    else if (Field<int>(trap, 0x28C) != (record->singleTarget ? 1 : 0)) problem = "single target";
+    ei::verify::Check("MagicTrap::SetUp", true, problem == nullptr, "trap %d: %s",
+                      reinterpret_cast<CEngineObject*>(trap)->id_, problem ? problem : "");
+}
+EI_VERIFY(0x0052A2C0, SetUpVerify, 0, s_unused);
