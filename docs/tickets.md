@@ -33,6 +33,8 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Verify checks
 
+- X9 (next, high priority) Harness step `zone <name> [exit]`: from a running zone1 game, call the server's LeaveToZone (0066F310; see ui.md "LeaveToZone") so the game loads another zone the normal way (game request kind 4 set in game, not from the menu, which crashes). Then scenarios for other zones: magic traps in their own zone (zone2), a base/brief zone, and zones with no intro block. Find which zones exist in map.txt and which need prior quest state.
+
 
 
 ## Cleanup (docs/cleanup-plan.md)
