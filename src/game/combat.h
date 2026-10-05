@@ -259,7 +259,7 @@ public:
     // 005546B0. Kind 2 (turn) towards `direction`; +0x1C = `time`.
     void OrderTurn(const float* direction, std::uint32_t time);
     // 00554740. Kind 1 (move) to `point`: source = `walk` != 0 (low byte), +0x20 = `run` (low
-    // byte), the point's z replaced by `z` (sic). A party unit with a real point (z not -1312)
+    // byte), the point's z replaced by `z` (sic). A party unit with a real point (z not -1313)
     // either has +0x1C set to 1 (the world's +0x6C byte clear) or turns there (00554830).
     void OrderMove(const float* point, int run, int walk, std::uint32_t z);
     // 00554B30. Kind 3 (attack) on `target` (not null, not the unit itself) at body part

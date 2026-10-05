@@ -10,6 +10,9 @@
 
 namespace {
 void* s_unused;
+// Calls through CopyPoint2Verify (005CA050) below. UpdateMemory's callees take over a noticed point
+// only right after a CopyPoint2 call, so a change of this count marks a notice inside the update.
+unsigned s_copyPoint2Calls;
 
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 } // namespace
@@ -39,15 +42,27 @@ static void __fastcall LookAroundVerify(std::uint8_t* attention, void*, AIBrain*
 }
 EI_VERIFY(0x005CFE40, LookAroundVerify, 0, s_unused);
 
-// 005CB700 UpdateMemory (Think calls it through its address): ours only; no report is left below
-// 0 and the noticed level grew by the noticed kind.
+// 005CB700 UpdateMemory (Think calls it through its address): ours only. Not the original on a copy:
+// its callees reroll a countdown with rand(), release objects and change lists and arrays whose
+// buffers a copy would share. No report is left below 0, and the level before the final add is the
+// old one with the kind unchanged, or (a notice inside, seen through CopyPoint2) a higher one the
+// callees set inline: a delayed sound heard (900, kind -3, 005CC9D0), a corpse seen (800, -3) or an
+// enemy lost from sight (1000, -2; both 005CAA00).
 static void __fastcall UpdateMemoryVerify(std::uint8_t* memory, void*, UnitController* owner) {
     AIBrain* brain = BrainOfMemory(memory);
-    int expectedLevel = brain->noticedLevel + brain->noticedKind;
+    int level = brain->noticedLevel;
+    int kind = brain->noticedKind;
+    unsigned copies = s_copyPoint2Calls;
     brain->UpdateMemory(owner);
-    bool ok = brain->noticedLevel == expectedLevel;
+    int newKind = brain->noticedKind;
+    int left = brain->noticedLevel - newKind;
+    bool kept = left == level && newKind == kind;
+    bool noticed = s_copyPoint2Calls != copies && left > level &&
+                   (((left == 900 || left == 800) && newKind == -3) || (left == 1000 && newKind == -2));
+    bool ok = kept || noticed;
     for (int i = 0; i < brain->reports.size; ++i) ok = ok && brain->reports.data[i].what >= 0 && brain->reports.data[i].object;
-    ei::verify::Check("AIBrain::UpdateMemory", true, ok, "brain %p: %d reports", brain, brain->reports.size);
+    ei::verify::Check("AIBrain::UpdateMemory", true, ok, "brain %p: %d reports, level %d kind %d -> %d kind %d", brain,
+                      brain->reports.size, level, kind, brain->noticedLevel, newKind);
 }
 EI_VERIFY(0x005CB700, UpdateMemoryVerify, 0, s_unused);
 
@@ -65,6 +80,7 @@ EI_VERIFY(0x005CB7F0, IsEnemyVerify, 8, s_isEnemy);
 // pair, ours into `out`; both pairs and the returned pointers compared.
 static float*(__fastcall* s_copyPoint2)(float*, const float*);
 static float* __fastcall CopyPoint2Verify(float* out, const float* point) {
+    ++s_copyPoint2Calls;
     float theirs[2];
     float* returned = s_copyPoint2(theirs, point);
     float* result = CopyPoint2(out, point);

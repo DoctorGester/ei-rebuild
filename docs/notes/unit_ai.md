@@ -64,11 +64,20 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005CBBE0 | AIBrain::Notice (memory) | differential: original first, noticed fields put back, ours; result and fields compared (reached through Fear's Evaluate and spell effects; our modes call it directly) |
 | 005CC020 | AIBrain::Forget (memory) | ours only: the object is in no memory list nor the reports (OnObjectDeleted calls it through its address) |
 | 005CC620, 005CC560 | AIReportArray::Add, Contains (+0x164) | Add ours only (listed once, what kept at the maximum); Contains pure (AL); reached through 005D0030 |
-| 005CB700 | AIBrain::UpdateMemory (memory, each Think; Think calls it through its address) | ours only: no report below 0, noticed level grew by the kind |
+| 005CB700 | AIBrain::UpdateMemory (memory, each Think; Think calls it through its address) | ours only: no report below 0; the level before the final add is the old one (kind unchanged), or after a notice inside (CopyPoint2 called) 900 / 800 with kind -3 or 1000 with kind -2, above the old level |
 | 005CB7F0 | AIBrain::IsEnemy (memory) | pure |
 | 005CF220, 005CFE40 | AIBrain::CurrentAttack, LookAround (`unit_ai_attention.cpp`; `this` the attention +0xA4, brain passed) | CurrentAttack output (original into a seeded scratch pair); LookAround ours only (attack action has a target); reached through 005D0030, 005D4170 and the Guard / Patrol / Sentry Execute |
 | 005D2850, 005CA050 | FearMode::Construct (script UMFear / UMAg, alarm assembly), CopyPoint2 (events, heard calls) | output: the original on a copy, all bytes and the returned pointer compared |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
+
+X12 (2026-10-05), the two A-W failures, back on (out of `tests/verify/disabled.txt`):
+- 005D2850 FearMode::Construct wrote -1312.0f as the unset x; the original stores 0xC4A42000, which is -1313.0f
+  (the AddFearMode / StandardGuard check had the same wrong value, and several comments said -1312 for that bit pattern).
+- 005CB700 UpdateMemory was right; its check was not. Both callees take over a noticed point inline (005CC9D0: a delayed
+  sound, level 900, kind -3; 005CAA00: a corpse seen, 800 / -3, an enemy lost from sight, 1000 / -2), so the final add uses
+  the new level and kind. The check now counts CopyPoint2 calls (each inline notice calls it first) to tell the two cases
+  apart; it depends on the 005CA050 wrapper being hooked. Comparing against the original on a copy is not possible: the
+  callees use rand(), release objects and change lists and arrays whose buffers a copy would share.
 
 None is in `docs/rebirth-patched-functions.txt`; the only patched callee is FatalError, called
 through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`,
