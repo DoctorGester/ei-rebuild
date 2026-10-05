@@ -202,6 +202,7 @@ harness steps `clickregion` / `moveregion`). The harness's `newgame` bypasses th
 | Address | Name | Verify |
 |---|---|---|
 | 00632D70 | `CMainMenu::OnLButtonDown` (slot 2) | ours only: the window the region opens is on top with its vtable (0074225C, 00741388, 00741FAC, 00740C3C, 0074214C); other points open nothing; region 2 not checked |
+| 00634650, 0063B5D0, 0063FE70 | `CMessageBox::Construct` (RET 0x18), `CObjectivesWindow::Construct` (RET 4), `CHudPortraits::Construct` (RET 8; `ui_screen_constructors.cpp`) | ours only: vtables, the fields each sets, the portraits' one marker sprite |
 | 00634790, 006337B0, 0062B7D0 | `CMessageBox::Build`, `CDifficultyBox::Build`, `CCreditsScreen::Build` (slot 25) | ours only: surface / sprite / region counts, the edit field as a child with flag 4; easy_ 0; +2 surfaces kept in +0x164 / +0x168, the script's lines appended |
 | 0062AB20, 0062AE90 | `CEscMenu::Build` (slot 25), `OnLButtonDown` | ours: one model and five regions added; the window opened on top (vtable, save flag), resume's pending value |
 | 0062AD10, 0062B300, 0062ACC0 | `CEscMenu::OnMouseMove`, `OnKeyDown`, `OnMessageResult` (slot 27) | ours: hovered region; Esc sets handled and pending value 0; pending value / leave-game flag |

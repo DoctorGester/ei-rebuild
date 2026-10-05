@@ -883,10 +883,17 @@ public:
     // object or 0.
     CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
 
+    // 0063FE70 (RET 8; ui_screen_constructors.cpp). Constructor: the window over 250..550 x
+    // 440..600 (vtables 00742A18 / 007429E4), no portraits, and the selection marker sprite (a
+    // 20x20 rectangle at depth 10, scale 80, texels 0x22, 0x96 - 0x36, 0xAA). Returns this.
+    CHudPortraits* Construct(CInterface3D* ui, CBattleScreen* owner);
+
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
     std::uint8_t unknown_150[0x158 - 0x150];
-    HudPortraitSlot* slots_;         // +0x158
+    HudPortraitSlot* slots_;         // +0x158 STLport vector
+    HudPortraitSlot* slotsEnd_;      // +0x15C
+    HudPortraitSlot* slotsCapacity_; // +0x160
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 
@@ -1423,6 +1430,10 @@ static_assert(sizeof(ObjectiveExit) == 0x1C);
 // zone picture with its exits; the arrows switch between zones when it lists several.
 class CObjectivesWindow : public CUiContainer {
 public:
+    // 0063B5D0 (RET 4; ui_screen_constructors.cpp). Constructor: the container, the empty zone
+    // list, strings, exit array (vtable 00741264), quest arrays and places; vtables 007411BC /
+    // 00741188 (the rest is set by Build). Returns this.
+    CObjectivesWindow* Construct(CInterface3D* ui);
     // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
     void Build();
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
@@ -1460,7 +1471,7 @@ public:
     // (0064DC60) gives each a sprite and a region after the exits'.
     UiPointF* questPlacesBegin_;     // +0x1CC
     UiPointF* questPlacesEnd_;       // +0x1D0
-    std::uint8_t unknown_1D4[0x1D8 - 0x1D4];
+    UiPointF* questPlacesCapacity_;  // +0x1D4
     std::uint8_t objectiveTexts_[0x14];   // +0x1D8 CStringArray of obj_0..obj_2
     std::uint32_t savedAlphaRef_;    // +0x1EC
 };
@@ -1564,6 +1575,12 @@ static_assert(sizeof(COptionsWindow) == 0x418);
 // cancel button), 4 an edit field instead of the text (its initial text is the text key itself).
 class CMessageBox : public CUiContainer {
 public:
+    // 00634650 (RET 0x18; ui_screen_constructors.cpp). Constructor: the container, the title
+    // (the text of `titleKey`) and, without flag 4, the text of `textKey` (else editText_ =
+    // `textKey`, the edit field's first text); `result`, `flags`, `format` kept; vtables 00742348 /
+    // 00742314. A missing text gives its key (GetString). Returns this.
+    CMessageBox* Construct(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+                           std::uint32_t flags, std::uint32_t format);
     // 00634790 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
     // 200..600 x 50..500 with the title and the text (or the edit field) centred vertically as a
     // block, the dark shade and frame behind it and the buttons below (regions with tips
