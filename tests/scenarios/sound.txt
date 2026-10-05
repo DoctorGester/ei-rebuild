@@ -37,6 +37,12 @@ console @SetPlayer(GetObjectByName("Snd1"),6)
 console @SetPlayer(GetObjectByName("Snd2"),6)
 check IsEnemy(GetObjectByName("Snd1"),0)
 console @GSSetVar(0,"hp0",HP(GetLeader()))
+# An order given right after the spawn is sometimes lost (about 1 run in 30 under 16 parallel
+# games, on the original too): the attacker never swings. Give the new unit a moment, then
+# repeat the order once; a repeated order on the same target only renews it.
+wait 1000
+console @Attack(GetObjectByName("Snd1"),GetLeader())
+wait 1000
 console @Attack(GetObjectByName("Snd1"),GetLeader())
 waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
 # The hero fights back (healed first) until the first goblin is dead.

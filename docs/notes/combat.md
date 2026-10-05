@@ -826,3 +826,15 @@ step), and MFC 006FE90F (CPlex::FreeDataChain), 0052CEF0 / 005588A0 (CList node 
   update: a mistake shows at once in any scenario with units (smoke.txt onwards).
 - Most checks are ours-only consistency checks; PopFinishedSteps and ActionInReach are compared
   with the original.
+
+## Scenario flake fix (ticket X6)
+
+combat, combat_more and sound sometimes (about 1 run in 30 with 16 games in parallel, with and
+without hooks) timed out on `waitfor IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))`: the spawned
+attacker never swung. In passing runs the first hit lands 0.2-0.6 s after `@Attack`, so the
+failures are a lost order, not a slow one. The order was given ~50 ms after AddUnitToServer and
+SetPlayer; like the MoveToPoint order in map_objects (7b508f2), an order given that early is
+sometimes dropped or overwritten while the new unit settles (script Attack silently does nothing
+when the unit has no state yet, and the brain's first Think can replace the action). The scenarios
+now wait 1 s after the spawn, give the order, wait 1 s and give it again; `hp0` is still taken
+before the first order, so a hit in between counts. Adds 2 s per scenario (runs take ~10 s).
