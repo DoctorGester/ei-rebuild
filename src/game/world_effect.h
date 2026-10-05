@@ -46,6 +46,12 @@ public:
     Vector3* Position(void* group);
     // 006768F0 (slot 19 of the base). The constant at 007433AC, unrounded in ST0.
     double DefaultRadius();
+    // The base constructor every effect constructor inlines (world_effect_lifetime.cpp): the
+    // transform object (00453400), no velocity, the state field, start tick and moving flag 0.
+    void ConstructEffect();
+    // The base destructor every effect destructor inlines: the state field's streams, then the
+    // transform object's vtable and CEngineObject's destructor body (00455930).
+    void DestructEffect();
 
     std::uint8_t unknown_54[0x94 - 0x54];
     int startTick_;            // +0x94 game tick the effect began (particles: warm-up and lifetime)
@@ -61,6 +67,12 @@ static_assert(sizeof(CEffect) == 0x14C);
 // A positional sound (vtable 007433EC, class id 0x48). 0x264 bytes.
 class CEffectSound : public CEffect {
 public:
+    // Constructor body, destructor body and slot 0 (world_effect_lifetime.cpp). The constructor
+    // ends with Reset; the destructor runs Reset twice (inline, then slot 18).
+    CEffectSound* Construct();                    // 00675DD0
+    void Destruct();                              // 006760A0
+    CEffectSound* DeletingDestruct(unsigned flags);   // 00676080
+    static std::uintptr_t Vtable();               // 007433EC
     void Reset();                                 // 00676200 (slot 18)
     int Tick();                                   // 006762F0 (slot 6)
     void Start(int update);                       // 006763A0 (slot 23)
@@ -96,6 +108,11 @@ static_assert(sizeof(EffectStringArray) == 0x14);
 // A sequence of sounds picked at random (vtable 0074344C, class id 99). 0x174 bytes.
 class CEffectSoundSeq : public CEffect {
 public:
+    // As CEffectSound's; the destructor then destroys the name array and the name.
+    CEffectSoundSeq* Construct();                 // 00676760
+    void Destruct();                              // 00676980
+    CEffectSoundSeq* DeletingDestruct(unsigned flags);    // 00676960
+    static std::uintptr_t Vtable();               // 0074344C
     void Reset();                                 // 00676B10 (slot 18)
     int Tick();                                   // 00677250 (slot 6)
     void Pack(DeltaField* field);                 // 00677180 (slot 22)
@@ -138,6 +155,11 @@ static_assert(sizeof(CEffectAmbientSound) == 0x174);
 // A point light (vtable 0074356C, class id 0x4B). 0x164 bytes.
 class CEffectPointLight : public CEffect {
 public:
+    // The constructor ends with Reset; the destructor runs Reset (slot 18) and releases the light.
+    CEffectPointLight* Construct();               // 00677D30
+    void Destruct();                              // 00677FC0
+    CEffectPointLight* DeletingDestruct(unsigned flags);  // 00677FA0
+    static std::uintptr_t Vtable();               // 0074356C
     void Reset();                                 // 006780C0 (slot 18)
     int Tick();                                   // 006781B0 (slot 6)
     void Start(int update);                       // 006782D0 (slot 23)
@@ -158,6 +180,11 @@ static_assert(sizeof(CEffectPointLight) == 0x164);
 // A particle source (vtable 007435D0, class id 0x4A; CreateParticleSource). 0x180 bytes.
 class CEffectParticle : public CEffect {
 public:
+    // The constructor ends with Reset; the destructor runs Reset (slot 18) and releases the source.
+    CEffectParticle* Construct();                 // 006787B0
+    void Destruct();                              // 00678990
+    CEffectParticle* DeletingDestruct(unsigned flags);    // 00678970
+    static std::uintptr_t Vtable();               // 007435D0
     void Reset();                                 // 00678A90 (slot 18)
     Vector3* Position(void* group);               // 00678BA0 (slot 20)
     void Start(int update);                       // 00678CF0 (slot 23)
@@ -189,6 +216,12 @@ static_assert(sizeof(CEffectParticle) == 0x180);
 // A particle wall (vtable 00743630, class id 0x5A; fire wall). 0x18C bytes.
 class CEffectWall : public CEffectParticle {
 public:
+    // The constructor runs the particle's Reset (00678A90) and then its own; the destructor its
+    // own Reset and the particle's, then releases the source.
+    CEffectWall* Construct();                     // 006797E0
+    void Destruct();                              // 006799E0
+    CEffectWall* DeletingDestruct(unsigned flags);    // 006799C0
+    static std::uintptr_t Vtable();               // 00743630
     void Reset();                                 // 00679AF0 (slot 18)
     void SetDirection(const Vector3* direction);  // 00679C30
     int Unpack(int update, DeltaField* field);    // 00679C70 (slot 21)
@@ -203,6 +236,12 @@ static_assert(sizeof(CEffectWall) == 0x18C);
 // A lightning bolt between two points or objects (vtable 00743690, class id 0x4D). 0x178 bytes.
 class CEffectLightning : public CEffect {
 public:
+    // The constructor does not reset: only the bolt (null), the width (0) and the flag (0) are set.
+    // The destructor runs Reset (slot 18) and releases the bolt.
+    CEffectLightning* Construct();                // 00679FC0
+    void Destruct();                              // 0067A0B0
+    CEffectLightning* DeletingDestruct(unsigned flags);   // 0067A090
+    static std::uintptr_t Vtable();               // 00743690
     void Reset();                                 // 0067A1B0 (slot 18)
     void UpdateEnds();                            // 0067A2C0: end points from the objects
     void Start(int update);                       // 0067A370 (slot 23)

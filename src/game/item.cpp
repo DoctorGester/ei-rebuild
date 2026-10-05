@@ -18,8 +18,6 @@ constexpr float kZero = 0.0f;   // 0073B858
 bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
 } // namespace
 
-__declspec(naked) BOOL CItem::IsSameAs(CItem*) EI_ORIGINAL(0x0069FE90)
-
 char* CItem::GetPrototype() {
     std::uint32_t index = PrototypeIndex(unknown_18);
     switch (type_) {
