@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_render.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -42,7 +43,7 @@ void ThisCall(void* object, int slot, Args... args) {
 // CFile::Write [0070133F] (not in lib/mfc.h).
 __declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned) EI_ORIGINAL(0x0070133F)
 // The aligned byte allocation [004ECB50].
-__declspec(naked) std::uint8_t* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
+std::uint8_t* __fastcall AllocBytes(int a0) { return (std::uint8_t*)AllocAligned32Original(a0); }
 // 00693010 [thiscall on the manager]: draws the request's layers into the `width` x `width` image
 // of 32-bit pixels [image, texture names, width]; 0 on failure.
 __declspec(naked) int __fastcall DrawLayers(void*, void*, std::uint32_t*, const console::CStringArray*, int)

@@ -121,7 +121,7 @@ inline void CallStart(CEffect* e, int update) { ei::VCall<void>(e, 23, update); 
 __declspec(naked) inline DeltaField* __fastcall BeginWrite(DeltaField*, void*, int /*channel1Only*/) EI_ORIGINAL(0x0047FA40)
 __declspec(naked) inline DeltaField* __fastcall BeginRead(DeltaField*, void*, int /*second*/, BitStream* /*reader*/) EI_ORIGINAL(0x0047FAA0)
 __declspec(naked) inline void __fastcall EndField(DeltaField*) EI_ORIGINAL(0x0047FAF0)
-__declspec(naked) inline void __fastcall ResizeStream(BitStream*, void*, std::uint32_t) EI_ORIGINAL(0x004A54D0)
+inline void __fastcall ResizeStream(BitStream* a0, void*, std::uint32_t a2) { StreamResizeOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) inline void __fastcall WritePosition(DeltaField*, void*, const Vector3*) EI_ORIGINAL(0x0047E3A0)
 __declspec(naked) inline void __fastcall WriteDelta(DeltaField*, void*, const void*, std::uint32_t) EI_ORIGINAL(0x0047DCA0)
 __declspec(naked) inline void __fastcall WriteString(DeltaField*, void*, const char*) EI_ORIGINAL(0x0047E2D0)

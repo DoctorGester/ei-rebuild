@@ -26,11 +26,11 @@ namespace {
 __declspec(naked) void** __fastcall TimersEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004210C0)
 __declspec(naked) void** __fastcall TimersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*entry*/) EI_ORIGINAL(0x00426230)
 __declspec(naked) void __fastcall TimersPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x004246C0)
-__declspec(naked) void __fastcall StringAllocProxy(char** /*eos*/, void*, const void* /*alloc*/, char* const* /*value*/) EI_ORIGINAL(0x00425080)
+void __fastcall StringAllocProxy(char** a0, void*, const void* a2, char* const* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, (const void*)a3); }
 __declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
 __declspec(naked) void __fastcall StringReserve(StringRep* /*s*/, void*, const void* /*alloc*/, std::size_t /*n*/) EI_ORIGINAL(0x00421800)
-__declspec(naked) void __fastcall StringAssignRange(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00426A80)
-__declspec(naked) void __fastcall StringErase(StringRep* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
+void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StringAppendTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const void* /*tag*/) EI_ORIGINAL(0x0040C280)
 __declspec(naked) void __fastcall ServerEntryConstructBase(ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)
 

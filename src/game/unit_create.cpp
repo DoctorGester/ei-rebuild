@@ -15,6 +15,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include "originals_gameplay.h"
 
 namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
@@ -41,7 +42,7 @@ __declspec(naked) void* __fastcall RefillSlotsAt(UnitStats*) EI_ORIGINAL(0x00525
 __declspec(naked) void __fastcall SendPair16At(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066EA70)
 __declspec(naked) void __fastcall SendObject0BAt(void*, void*, const void*, std::uint32_t) EI_ORIGINAL(0x0066D6E0)
 // 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
-__declspec(naked) void __fastcall PlayerReceiveItems(char*, void*, void*, int) EI_ORIGINAL(0x00665470)
+void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, a2, a3); }
 
 // The player's message writer (CPlayerServer, player + 0x20).
 void* PlayerMessages(const char* player) { return *reinterpret_cast<void* const*>(player + 0x20); }

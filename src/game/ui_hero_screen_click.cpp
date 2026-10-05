@@ -56,8 +56,7 @@ __declspec(naked) void* TextGlue::Table() EI_ORIGINAL(0x00578E20)
 __declspec(naked) void __fastcall EndSession(void*) EI_ORIGINAL(0x0057ED00)
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
-__declspec(naked) void* __fastcall MessageBoxConstruct(void*, void*, CInterface3D*, const char*, const char*, int, int,
-                                                       int) EI_ORIGINAL(0x00634650)
+void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 __declspec(naked) void __fastcall PushWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
 
 // The camp screen as the hero screen builds it inline (the same fields as its constructor

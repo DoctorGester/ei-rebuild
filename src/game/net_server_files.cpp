@@ -16,7 +16,7 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const char* /*tag*/) EI_ORIGINAL(0x0042A4F0)
+void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, const char* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 // STLport vector<RefPtr> (library): constructor with an allocator, erase(first, last),
 // insert(pos, n, value).
 __declspec(naked) void __fastcall ChunkVectorConstruct(RefVector* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x0041FF90)

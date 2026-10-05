@@ -1152,7 +1152,7 @@ EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
 
 namespace {
 // STLport string members (the instantiations the original calls).
-__declspec(naked) void __fastcall StringAssignTagged(void*, void*, const char*, const char*, int /*tag*/) EI_ORIGINAL(0x0042A4F0)
+void __fastcall StringAssignTagged(void* a0, void*, const char* a2, const char* a3, int a4) { StringAssignTaggedOriginal(a0, nullptr, a2, a3, (const void*)a4); }
 __declspec(naked) void __fastcall StringCopy(void*, void*, const void*) EI_ORIGINAL(0x004A8930)
 // The cache map (CSoundManager + 0x870): find [out iterator, key], find-or-insert of a pair
 // [returns the pair], erase by key; the pair's constructor [key, value].

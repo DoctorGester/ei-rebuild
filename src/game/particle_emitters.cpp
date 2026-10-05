@@ -254,7 +254,7 @@ const std::int32_t* FadeAlpha() { return reinterpret_cast<const std::int32_t*>(0
 const char* NoCarrierMessage() { return reinterpret_cast<const char*>(0x0078AFA4); }
 
 // 0044C470: the game's debug message (cdecl, one argument).
-__declspec(naked) void __cdecl DebugMessage(const char*) EI_ORIGINAL(0x0044C470)
+void __cdecl DebugMessage(const char* a0) { DebugMessageOriginal(a0); }
 
 // The game's _ftol (006E853C): truncation.
 __declspec(naked) int __cdecl GameFtol(double) {

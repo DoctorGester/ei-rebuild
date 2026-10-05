@@ -19,8 +19,7 @@ __declspec(naked) int __cdecl Access(const char* /*path*/, int /*mode*/) EI_ORIG
 __declspec(naked) long __cdecl FindFirst(const char* /*path*/, void* /*findData*/) EI_ORIGINAL(0x006EB832)
 __declspec(naked) void __cdecl SplitPath(const char* /*path*/, char* /*drive*/, char* /*dir*/, char* /*name*/,
                                          char* /*ext*/) EI_ORIGINAL(0x006E8BEE)
-__declspec(naked) void __fastcall StringArraySetAtGrow(void* /*array*/, void*, int /*index*/, const char* /*text*/)
-    EI_ORIGINAL(0x006FEBCE)
+void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
 
 // CMappedResource::FindEntry (resource.cpp), through its game address.
 __declspec(naked) int __fastcall FindEntryAt(const void* /*resource*/, void*, const char* /*name*/)

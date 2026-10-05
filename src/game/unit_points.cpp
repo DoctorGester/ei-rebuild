@@ -26,7 +26,6 @@ __declspec(naked) std::uint8_t* __fastcall AnimationEntry(void*, void*, std::uin
 __declspec(naked) float* __fastcall AxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
 float* __fastcall AxisY(const void* a0, void*, float* a2) { return QuaternionAxisY(a0, nullptr, a2); }
 __declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
-__declspec(naked) void __cdecl DebugMessage(const char*, ...) EI_ORIGINAL(0x0044C470)
 
 constexpr int kSlotPath = 0x40 / 4;           // controller: () -> its motion order
 constexpr int kSlotIsServer = 0xDC / 4;       // unit: ()
@@ -84,7 +83,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out) {
     float offset[3] = {0.0f, 0.0f, 0.0f};
     std::uint8_t* entry = AnimationEntry(unit, nullptr, index);
     if (!entry) {
-        DebugMessage(kNoEntry, static_cast<unsigned>(index), At<const char*>(unit, 0xA4));
+        DebugMessageOriginal(kNoEntry, static_cast<unsigned>(index), At<const char*>(unit, 0xA4));
     } else if ((At<std::uint32_t>(entry, 0x14) & 0x3C0000) == 0x1C0000) {
         std::uint32_t side = At<std::uint32_t>(entry, 0x18) & 0x1C00000;
         float axis[3];

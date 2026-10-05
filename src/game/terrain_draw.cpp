@@ -63,7 +63,7 @@ void(__cdecl* const kDestroyIndices)() = reinterpret_cast<void(__cdecl*)()>(0x00
 void(__cdecl* const kFreeVertices)() = reinterpret_cast<void(__cdecl*)()>(0x006C1370);
 
 // Aligned allocations of n elements (32-byte, 2-byte, 1-byte elements; ECX = n) and the CRT.
-__declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
+char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // 006C30E0 SectorData::ApplyWaterLevels (terrain_sector.cpp).
 __declspec(naked) void __fastcall ApplyWaterLevels(SectorData*) EI_ORIGINAL(0x006C30E0)
 

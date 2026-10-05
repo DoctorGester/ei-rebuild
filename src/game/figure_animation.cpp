@@ -9,6 +9,8 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
+#include "originals_engine.h"
 
 namespace {
 
@@ -21,7 +23,7 @@ struct RawString {
 // STLport string members: the end-of-storage member from an allocator and a value (RET 8), range
 // initialisation (first, last, tag; RET 0xC), the allocator's deallocate (p, n; RET 8) and the
 // node allocator's deallocate (ECX p, EDX n).
-__declspec(naked) void __fastcall StringEndOfStorage(char**, void*, const void*, const void*) EI_ORIGINAL(0x00425080)
+void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StringInitRange(RawString*, void*, const char*, const char*, const void*)
     EI_ORIGINAL(0x0042A3D0)
 __declspec(naked) void __fastcall StringDeallocate(char**, void*, char*, int) EI_ORIGINAL(0x00426450)
@@ -33,7 +35,6 @@ __declspec(naked) void* __fastcall FindAnimation(void*, void*, const RawString*)
 __declspec(naked) int __fastcall ClearAnimation(void*) EI_ORIGINAL(0x0050D950)
 __declspec(naked) int __fastcall SetAnimation(void*, void*, void*, const char*) EI_ORIGINAL(0x0050DA10)
 // 0044C470: the game's debug message (cdecl, printf-style).
-__declspec(naked) void __cdecl DebugMessage(const char*, ...) EI_ORIGINAL(0x0044C470)
 
 void MakeString(RawString& s, const char* text) {
     s.start = nullptr;
@@ -53,7 +54,7 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     void* model = FindModelAt(manager, nullptr, &key);
     StringDeallocate(&key.eos, nullptr, key.start, static_cast<int>(key.eos - key.start));
     if (!model) {
-        DebugMessage(reinterpret_cast<const char*>(0x00790DC0), modelName);
+        DebugMessageOriginal(reinterpret_cast<const char*>(0x00790DC0), modelName);
         return 0;
     }
     RawString name;
@@ -61,7 +62,7 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     void* found = FindAnimation(model, nullptr, &name);
     NodeDeallocate(name.start, static_cast<int>(name.eos - name.start));
     if (!found) {
-        DebugMessage(reinterpret_cast<const char*>(0x00790D94), animation, modelName);
+        DebugMessageOriginal(reinterpret_cast<const char*>(0x00790D94), animation, modelName);
         return 0;
     }
     return SetAnimation(figure, nullptr, found, animation);

@@ -18,6 +18,7 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "originals_core.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -118,7 +119,7 @@ __declspec(naked) void UnitRecordBuilder::Destruct() EI_ORIGINAL(0x006611D0)
 
 __declspec(naked) ZoneExit* ZoneExit::DeletingDestructor(unsigned) EI_ORIGINAL(0x004608B0)
 __declspec(naked) void ZoneExitArray::SetSize(int, int) EI_ORIGINAL(0x00573080)
-__declspec(naked) void StringArray::SetAtGrow(int, const char*) EI_ORIGINAL(0x006FEBCE)
+void StringArray::SetAtGrow(int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)this, nullptr, a2, a3); }
 
 // ---- Zone exits -------------------------------------------------------------------------------
 

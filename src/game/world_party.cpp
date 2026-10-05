@@ -13,6 +13,7 @@
 #include "originals_engine.h"
 
 #include <cstring>
+#include "originals_gameplay.h"
 
 // The arrival maths keeps the original's operation order: no reassociation in this file.
 #pragma float_control(precise, on, push)
@@ -81,7 +82,7 @@ __declspec(naked) void __fastcall PlacementsSetSize(void*, void*, int, int) EI_O
 // 006A0110. A quest item's description: the names of the zones it belongs to (a vector at +0x70).
 __declspec(naked) std::uint8_t* __fastcall QuestItemInfo(CEngineObject*, void*) EI_ORIGINAL(0x006A0110)
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
-__declspec(naked) void __fastcall PlayerGiveItems(WorldPlayer*, void*, ObjectList*, int) EI_ORIGINAL(0x00665470)
+void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0045E850 (RET 4). The map database's zone record by name.
 // 0049ECC0 (RET 8). Quaternion from an axis and an angle.
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)

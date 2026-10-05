@@ -12,6 +12,7 @@
 #include "originals_library.h"
 
 #include <cstring>
+#include "originals_engine.h"
 
 namespace {
 
@@ -34,7 +35,7 @@ int& StreamVersion(void* stream) { return *reinterpret_cast<int*>(static_cast<st
 __declspec(naked) void __fastcall HeaderWrite(void*, void*, unsigned, int) EI_ORIGINAL(0x004A5340)
 __declspec(naked) bool __fastcall HeaderRead(void*, void*, unsigned, int, int) EI_ORIGINAL(0x004A52D0)
 // 004A54D0 (RET 4). The memory stream makes room for `size` bytes.
-__declspec(naked) void __fastcall StreamReserve(void*, void*, int) EI_ORIGINAL(0x004A54D0)
+void __fastcall StreamReserve(void* a0, void*, int a2) { StreamResizeOriginal(a0, nullptr, (std::uint32_t)a2); }
 // The growing buffer: constructor, destructor, Seek (grows to the position).
 __declspec(naked) void __fastcall BufferSeek(GameBuffer*, void*, int) EI_ORIGINAL(0x004DA5C0)
 // The coder.

@@ -41,3 +41,9 @@ __declspec(naked) inline void __fastcall ShowWeapon(void*, void*, char*) EI_ORIG
 __declspec(naked) inline void __fastcall ShowArmour(void*, void*, char*) EI_ORIGINAL(0x00622A30)
 __declspec(naked) inline void __fastcall ShowContainer(void*, void*, char*) EI_ORIGINAL(0x00622BC0)
 __declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
+// 005E5200: the mouse cursor (007C7BD8) SetShape(shape), RET 4, returns the previous shape or -1.
+__declspec(naked) inline int __fastcall CursorSetShapeOriginal(void* /*cursor*/, void*, int /*shape*/) EI_ORIGINAL(0x005E5200)
+// 00634650: constructs a message box window in `memory` (RET 0x18, returns it).
+__declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*memory*/, void*, CInterface3D*,
+                                                                      const char*, const char*, int, int, int)
+    EI_ORIGINAL(0x00634650)

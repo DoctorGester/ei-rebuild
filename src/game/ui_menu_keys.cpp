@@ -15,6 +15,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include "originals_ui.h"
 
 namespace {
 // Virtual-key codes.
@@ -48,9 +49,7 @@ mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field
 
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top (rewritten
 // elsewhere; called through its address as the other windows do).
-__declspec(naked) CUiWindow* __fastcall ConstructMessageBox(void* /*memory*/, void*, CInterface3D*, const char*,
-                                                            const char* /*text key*/, int, int, int)
-    EI_ORIGINAL(0x00634650)
+CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 __declspec(naked) void __fastcall ActivateWindow(CInterface3D*, void*, void* /*window*/, int, int) EI_ORIGINAL(0x005F7350)
 } // namespace
 

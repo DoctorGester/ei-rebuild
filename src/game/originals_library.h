@@ -129,3 +129,30 @@ __declspec(naked) inline void __fastcall PtrArraySetSize(void* /*array*/, void*,
     EI_ORIGINAL(0x004C2050)
 // CRT _mbscmp (plain RET, EAX: <0, 0, >0). src/lib/crt.cpp keeps its own copy (lib cannot include game headers).
 __declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
+// STLport string members on the 12-byte rep (all __thiscall, EDX unused): assign [first, last) 00426A80
+// (RET 8, returns this); erase [first, last) 0040B3C0 (RET 8, returns first); assign with an allocator
+// tag 0042A4F0 (RET 0xC, returns this); the end-of-storage proxy 00425080 (RET 8, returns this).
+__declspec(naked) inline void* __fastcall StringAssignRangeOriginal(void* /*string*/, void*, const char* /*first*/,
+                                                                    const char* /*last*/) EI_ORIGINAL(0x00426A80)
+__declspec(naked) inline char* __fastcall StringEraseOriginal(void* /*string*/, void*, char* /*first*/, char* /*last*/)
+    EI_ORIGINAL(0x0040B3C0)
+__declspec(naked) inline void* __fastcall StringAssignTaggedOriginal(void* /*string*/, void*, const char* /*first*/,
+                                                                     const char* /*last*/, const void* /*tag*/)
+    EI_ORIGINAL(0x0042A4F0)
+__declspec(naked) inline void* __fastcall StringEndOfStorageOriginal(void* /*proxy*/, void*, const void* /*alloc*/,
+                                                                     const void* /*value*/) EI_ORIGINAL(0x00425080)
+// The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET. src/lib/stlp.cpp keeps its own copy.
+__declspec(naked) inline void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
+// The CRT's `eh vector destructor iterator` (array, element size, count, destructor called with ECX = element, last
+// to first): __stdcall, RET 0x10, EAX not a result.
+__declspec(naked) inline void __stdcall EhVectorDestructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
+                                                                   void* /*destructor*/) EI_ORIGINAL(0x006E859F)
+// MFC CStringArray::SetAtGrow(index, const char*) 006FEBCE / (index, const CString&) 006FEBFA (both RET 8, EAX not a
+// result). CString::operator=(const CString&) 00700AA9 (RET 4, returns this). src/lib/mfc.cpp keeps its member.
+__declspec(naked) inline void __fastcall StringArraySetAtGrowTextOriginal(void* /*array*/, void*, int /*index*/,
+                                                                          const char* /*text*/) EI_ORIGINAL(0x006FEBCE)
+__declspec(naked) inline void __fastcall StringArraySetAtGrowStringOriginal(void* /*array*/, void*, int /*index*/,
+                                                                            const mfc::CString* /*value*/)
+    EI_ORIGINAL(0x006FEBFA)
+__declspec(naked) inline void* __fastcall CStringAssignOriginal(void* /*destination*/, void*, const void* /*source*/)
+    EI_ORIGINAL(0x00700AA9)

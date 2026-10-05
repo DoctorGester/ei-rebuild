@@ -11,6 +11,7 @@
 
 #include <bit>
 #include <cstring>
+#include "originals_engine.h"
 
 // --- BitStream ---------------------------------------------------------------------------------
 
@@ -36,7 +37,7 @@ std::uint32_t BitStream::Position() { return ei::VCall<std::uint32_t>(this, kSlo
 
 __declspec(naked) void BitStream::StartByte() EI_ORIGINAL(0x004A5610)
 __declspec(naked) void BitStream::EndBits() EI_ORIGINAL(0x004A5650)
-__declspec(naked) void BitStream::Resize(std::uint32_t) EI_ORIGINAL(0x004A54D0)
+void BitStream::Resize(std::uint32_t a2) { StreamResizeOriginal((void*)this, nullptr, a2); }
 __declspec(naked) void BitStream::SetSize(std::uint32_t) EI_ORIGINAL(0x004A5570)
 __declspec(naked) void* BitStream::ReadString(void*) EI_ORIGINAL(0x00461190)
 

@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ui.h"
 
 namespace {
 
@@ -44,7 +45,7 @@ constexpr int kCursorOrder = 0x18;
 struct HoverCursor {
     int SetShape(int shape);
 };
-__declspec(naked) int HoverCursor::SetShape(int) EI_ORIGINAL(0x005E5200)
+int HoverCursor::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
 void SetCursor(int shape) { reinterpret_cast<HoverCursor*>(0x007C7BD8)->SetShape(shape); }
 
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);

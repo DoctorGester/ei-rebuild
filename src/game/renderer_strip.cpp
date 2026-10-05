@@ -46,7 +46,7 @@ float& TopV() { return *reinterpret_cast<float*>(0x007AF058); }
 float& BottomV() { return *reinterpret_cast<float*>(0x007AF054); }
 
 char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
-__declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
+char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // The index array's SetAtGrow (00452FC0) and Add (00504E50).
 __declspec(naked) void __fastcall IndicesSetAtGrow(AlignedArray*, void*, int /*index*/, int /*value*/) EI_ORIGINAL(0x00452FC0)
 __declspec(naked) void __fastcall IndicesAdd(AlignedArray*, void*, int /*value*/) EI_ORIGINAL(0x00504E50)
