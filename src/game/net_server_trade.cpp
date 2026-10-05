@@ -25,7 +25,7 @@ __declspec(naked) RefPtr* __fastcall ObjectRefFromRaw(RefPtr* /*ref*/, void* /*o
 __declspec(naked) RefPtr* __fastcall OfferRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428070)
 __declspec(naked) RefPtr* __fastcall TradeRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428080)
 __declspec(naked) void** __fastcall ObjectsErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004293F0)
-__declspec(naked) void** __fastcall OffersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00423190)
+void** __fastcall OffersInsert(void* a0, void*, void** a2, void* a3, const RefPtr* a4) { return ListInsert423190Original(a0, nullptr, a2, a3, (const void*)a4); }
 __declspec(naked) void** __fastcall TradesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420960)
 __declspec(naked) void** __fastcall TradesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00423410)
 __declspec(naked) void __fastcall TradesRemove(void* /*list*/, void*, const RefPtr* /*value*/) EI_ORIGINAL(0x00427320)

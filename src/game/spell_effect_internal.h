@@ -104,7 +104,7 @@ __declspec(naked) inline void __fastcall EffectHitUnit(CSpellEffect*, void*, Dam
 __declspec(naked) inline int __fastcall IsAreaSpellTarget(CEngineObject*) EI_ORIGINAL(0x00681B80)
 // CPtrList constructor (block size) and destructor.
 inline void* __fastcall PtrListConstruct(void* a0, void*, int a2) { return PtrListConstructOriginal(a0, nullptr, a2); }
-__declspec(naked) inline void __fastcall PtrListDestruct(void*) EI_ORIGINAL(0x004C96F0)
+inline void __fastcall PtrListDestruct(void* a0) { PtrListDestruct4C96F0Original(a0); }
 // The unit controller (+0x240): 00552780 says remark `what`; 00551AE0 tries to be tamed by `tamer`
 // with skill `skill` (0 when it failed).
 __declspec(naked) inline void __fastcall ControllerShout(void*, void*, int /*what*/) EI_ORIGINAL(0x00552780)

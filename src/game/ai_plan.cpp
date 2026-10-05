@@ -61,7 +61,7 @@ struct List {
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
 void __fastcall RegionListConstruct(List* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall ListRemoveAll(void*, void*) EI_ORIGINAL(0x00556D40)
+void __fastcall ListRemoveAll(void* a0, void*) { CellListRemoveAllOriginal(a0); }
 // 005B0D90 (RET 0x1C, AL). The region map's chain of regions from (fromX, fromY) to (toX, toY),
 // avoiding the regions in `excluded` (AIPath + 0x70).
 __declspec(naked) bool __fastcall RegionChain(void*, void*, int, int, int, int, int, List*, void*) EI_ORIGINAL(0x005B0D90)

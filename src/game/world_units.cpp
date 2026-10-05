@@ -132,7 +132,7 @@ struct RawString {
 static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
-__declspec(naked) std::uint8_t* __fastcall NameMapInsert(void* /*map*/, void*, const void* /*pair*/) EI_ORIGINAL(0x00514880)
+std::uint8_t* __fastcall NameMapInsert(void* a0, void*, const void* a2) { return (std::uint8_t*)NameMapInsertOriginal(a0, nullptr, a2); }
 // 005927C0 (RET 4). Creates the unit described by the message; returns its id. Patched by Rebirth:
 // original address.
 __declspec(naked) int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/) EI_ORIGINAL(0x005927C0)
@@ -470,10 +470,10 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
 namespace {
 
 // Object setup, through the original addresses (thiscall as fastcall).
-__declspec(naked) void __fastcall ObjectMarkNew(CEngineObject*, void*) EI_ORIGINAL(0x0050EA40)
+void __fastcall ObjectMarkNew(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
 __declspec(naked) void __fastcall ObjectAnnounce(CEngineObject*, void*) EI_ORIGINAL(0x0050EA70)
 __declspec(naked) void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*) EI_ORIGINAL(0x00517700)
-__declspec(naked) void __fastcall ObjectSetName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x005179E0)
+void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { ObjectSetupFigureOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x0050F150)
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
@@ -486,7 +486,7 @@ void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CS
 void __fastcall TextArrayCopy(void* a0, void*, const void* a2) { StringArrayCopyOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitSetSide(CEngineObject*, void*, int) EI_ORIGINAL(0x00530120)
 __declspec(naked) int __fastcall DiplomacyMaskOf(void*, void*, int) EI_ORIGINAL(0x00455660)
-__declspec(naked) void __fastcall UnitSetDiplomacy(CEngineObject*, void*, int) EI_ORIGINAL(0x0052E970)
+void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { UnitSetHostileMaskOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 __declspec(naked) CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
 __declspec(naked) std::uint8_t** __fastcall UnitPrototypeAt(void*, void*, const void*) EI_ORIGINAL(0x005335E0)

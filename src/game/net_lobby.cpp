@@ -48,7 +48,7 @@ __declspec(naked) Node** __fastcall ServersEnd(void* /*list*/, void*, Node** /*o
 __declspec(naked) Node** __fastcall ServersInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004437A0)
 __declspec(naked) Node** __fastcall ServersErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004436D0)
 Node** __fastcall WaitingEnd(void* a0, void*, Node** a2) { return (Node**)ListEndIteratorOriginal(a0, nullptr, (void**)a2); }
-__declspec(naked) Node** __fastcall WaitingInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const NetAddress* /*value*/) EI_ORIGINAL(0x00421AF0)
+Node** __fastcall WaitingInsert(void* a0, void*, Node** a2, Node* a3, const NetAddress* a4) { return (Node**)ListInsert421AF0Original(a0, nullptr, (void**)a2, (void*)a3, (const void*)a4); }
 __declspec(naked) Node** __fastcall WaitingErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004437D0)
 __declspec(naked) Node** __fastcall JoinsErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x00443730)
 __declspec(naked) void __fastcall QueryConstructAt(Query* /*p*/) EI_ORIGINAL(0x00443E30)

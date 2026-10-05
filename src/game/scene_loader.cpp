@@ -781,7 +781,7 @@ __declspec(naked) void __stdcall ConstructBoneLinks(void*, int) EI_ORIGINAL(0x00
 __declspec(naked) void __stdcall DestructBoneLinks(void*, int) EI_ORIGINAL(0x004534C0)
 __declspec(naked) void* __fastcall AllocDwords(int) EI_ORIGINAL(0x00406B50)
 __declspec(naked) void __fastcall SetSizeBoneLinks(VtArray*, void*, int, int) EI_ORIGINAL(0x00450370)       // unit +0x558
-__declspec(naked) void __fastcall SetSizeFigures(VtArray*, void*, int, int) EI_ORIGINAL(0x0044FCD0)         // unit +0x530
+void __fastcall SetSizeFigures(VtArray* a0, void*, int a2, int a3) { FigureArraySetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
 __declspec(naked) void __fastcall SetSizeMatrices(ArrayBody*, void*, int, int) EI_ORIGINAL(0x0044F960)
 __declspec(naked) void __fastcall DestructNode(void*) EI_ORIGINAL(0x004543E0)

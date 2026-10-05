@@ -7,6 +7,7 @@
 #include "ei/vcall.h"
 #include "originals_engine.h"
 #include "originals_units.h"
+#include "originals_library.h"
 
 #include <bit>
 #include <cstring>
@@ -57,7 +58,7 @@ namespace {
 struct EffectArray {
     void SetSize(int size, int growBy);
 };
-__declspec(naked) void EffectArray::SetSize(int, int) EI_ORIGINAL(0x0050FE70)
+void EffectArray::SetSize(int a0, int a1) { EffectArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
 
 constexpr int kRebirthMaxEffects = 20;
 constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)

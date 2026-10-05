@@ -119,7 +119,7 @@ __declspec(naked) void __fastcall PlacesInsertOverflow(void*, void*, float*, con
 // list].
 __declspec(naked) void __fastcall ListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0055A3E0)
 __declspec(naked) void __fastcall ListErase(void*, void*, void*, void*) EI_ORIGINAL(0x006AFB60)
-__declspec(naked) void __fastcall ListClear(void*) EI_ORIGINAL(0x0052E010)
+void __fastcall ListClear(void* a0) { CStringVectorClearOriginal(a0); }
 __declspec(naked) void __fastcall ListReserve(void*, void*, int) EI_ORIGINAL(0x006B02B0)
 __declspec(naked) void __fastcall ListPushBack(void*, void*, const mfc::CString*) EI_ORIGINAL(0x006AF790)
 __declspec(naked) void __fastcall ReadList(Registry*, const char*, const char*, void*) EI_ORIGINAL(0x006AE740)

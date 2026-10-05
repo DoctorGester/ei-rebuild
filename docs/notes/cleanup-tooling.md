@@ -296,3 +296,35 @@ comment giving RET n and EAX. Changes of note:
 
 Verify and release builds, check_stolen, check_x87, check_signatures, check_returns and check_forwarders pass (0 problems). Behaviour
 unchanged; nothing was run in the game.
+
+## C3k (next 50 by site count): one declaration each
+
+Same method as C3b-C3j; the "differ" count is 283 after this (it was 333). Taken from the "not yet ported" and "library code" groups
+by site count (then address), skipping "already rewritten", `src/lib` copies, sites in `ui_*`, bink_video.cpp / ui_cursor_frame.cpp /
+`src/render` / harness.cpp, and the cursor call 005E5270 (I10 edits the interface files). The 0x00500000-0x00540000 range was taken this
+time (U10 is merged and U11 has not started). Decided from the game.exe disassembly (capstone: RET n and the code before each RET; callers'
+use of EAX through `check_returns` logic over all call sites, including the ones inside replaced functions); every other site is a one-line
+wrapper (members plain definitions) over the shared forwarder, generated and then built. Declarations are in
+originals_{library,units,render,engine,script,ai}.h, each with a comment giving RET n and EAX. Changes of note:
+
+- Containers (originals_library.h): CList / CPtrList `NewNode(prev, next)` (RET 8, returns the node) is one declaration per instance, named
+  with the address where the instance is anonymous: 0052CEF0 (CPtrList, data cleared), 0052CDB0 / 00429EA0 / 004CD6D0 / 004CDA30 (the element is
+  constructed through ConstructElements). `ListInsert421AF0 / 423190 / 56E8A0Original(list, out, pos, value)` (RET 0xC, returns `out`);
+  `CellListA::Insert` / `ObjectList::Insert` take `CEngineObject* const&`, so their wrappers pass `&value`. `StringMapFindOriginal(map, out, key)`
+  (RET 8, returns `out`), `NameMapInsertOriginal(map, pair)` (RET 4, returns node + 4), `QuickItemMapAtOriginal` (originals_engine.h; RET 4,
+  address of the value slot), `VectorGetAllocatorOriginal(vector, out)` (RET 4, returns `out`), `ByVtableNewNodeOriginal` (ECX not read).
+- Array `SetSize(size, growBy)` instances (RET 8, no result): 0044FCD0 figures (0x220-byte elements, virtual destructor), 0046EAD0 12-byte
+  elements, 0050FE70 effects, 004C59C0 `IfThen`, 004CD2B0 commands (the two verify files keep their own copy: only `src/` is scanned). Array and
+  list constructors return `this` (00468D60, 00557230, 00557B60, 004C2030, 004C98C0); the plain-RET functions whose old `(T*, void*)` forms passed a
+  dummy EDX are 00556D40 (ai_plan), 0050EA40 (world_save, world_units), 004C2030 (world_save, world_update), 00557230 (ai_region_reach) and
+  00558C50 (world_loot).
+- Counted references (originals_units.h): 0052B030 `Reset(slot)` (plain RET), 0052A8F0 `Assign(slot, object)` and 00511B90 `Store(slot, object)` (RET 4),
+  0050E220 `Load(stream, context)` (RET 8), 0050E290 `Save(stream)` (RET 4); no result. 0050F7A0 / 0050F900 are the map object part of Load / Save
+  (RET 4). 00516A80 returns the part (`CEngineObject*`, callers test it), 00530830 the worn item. 0052E970 takes the mask as a dword.
+- 00501AF0 returns 1 in EAX every time (`int`, nobody reads it); 00500970 is plain RET and not a result. 004C8AF0 / 004C9100 `RemoveTail` return
+  their `out` (RET 4). 00426860 frees `count` 12-byte nodes (ECX p, EDX count), 0043B310 `bytes`.
+- `check_cleanup` fails on main for bink_video.cpp and ui_cursor_frame.cpp (R6, clean-code fix in progress); counts are identical before and
+  after this ticket and no other file is reported.
+
+Verify and release builds, check_stolen, check_x87, check_signatures, check_returns and check_forwarders pass (0 problems). Behaviour
+unchanged; nothing was run in the game.

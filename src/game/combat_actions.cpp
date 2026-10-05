@@ -21,6 +21,7 @@
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_library.h"
 
 #include <bit>
 #include <cstring>
@@ -223,10 +224,9 @@ __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CU
 // 0050F5B0. Map object base: drops all effects (+0x198), marks the object changed.
 __declspec(naked) void __fastcall UnitClearEffects(CUnit*) EI_ORIGINAL(0x0050F5B0)
 // 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists.
-__declspec(naked) UnitListNode* __fastcall UnitListNewNode(UnitList*, void*, UnitListNode*,
-                                                           UnitListNode*) EI_ORIGINAL(0x0052CDB0)
+UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, UnitListNode* a3) { return (UnitListNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // 00557B60 / 00556870. AnimationList's base constructor and copy constructor.
-__declspec(naked) AnimationList* __fastcall AnimationListConstruct(AnimationList*) EI_ORIGINAL(0x00557B60)
+AnimationList* __fastcall AnimationListConstruct(AnimationList* a0) { return (AnimationList*)StepsConstructOriginal((void*)a0); }
 AnimationList* __fastcall AnimationListCopy(AnimationList* a0, void*, const AnimationList* a2) { return (AnimationList*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 // 00548DE0. CUnitServer: plays `animation` (taken by value and destroyed).
 __declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, AnimationList)

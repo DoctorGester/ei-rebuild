@@ -580,7 +580,7 @@ __declspec(naked) std::uint8_t* __fastcall RecordAddBelt(std::uint8_t*, void*, v
 __declspec(naked) std::uint8_t* __fastcall RecordAddSpell(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00660E70)
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
 __declspec(naked) CEngineObject* __fastcall UnitQuickItem(CEngineObject*, void*, int) EI_ORIGINAL(0x005318B0)
-__declspec(naked) CEngineObject* __fastcall UnitWornItem(CEngineObject*, void*, int) EI_ORIGINAL(0x00530830)
+CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) CEngineObject* __fastcall UnitBeltItem(CEngineObject*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int) EI_ORIGINAL(0x005319A0)
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).

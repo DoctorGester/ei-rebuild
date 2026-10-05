@@ -57,7 +57,7 @@ __declspec(naked) char* __stdcall ModifierCode(const char*) EI_ORIGINAL(0x006894
 // the modifier map 007C853C.
 void* __fastcall FindWeapon(void* a0, void*, const char* a2) { return FindWeaponOriginal(a0, nullptr, a2); }
 void* __fastcall FindArmor(void* a0, void*, const char* a2) { return FindArmorOriginal(a0, nullptr, a2); }
-__declspec(naked) void** __fastcall QuickItemAt(void*, void*, const void*) EI_ORIGINAL(0x004ABBD0)
+void** __fastcall QuickItemAt(void* a0, void*, const void* a2) { return QuickItemMapAtOriginal(a0, nullptr, a2); }
 __declspec(naked) void** __fastcall FourthKindAt(void*, void*, const void*) EI_ORIGINAL(0x004ABAA0)
 void** __fastcall SpellAt(void* a0, void*, const void* a2) { return SpellMapAtOriginal(a0, nullptr, a2); }
 char* __fastcall ModifierFindOrInsert(void* a0, void*, const void* a2) { return (char*)ModifierMapFindOrInsertOriginal(a0, nullptr, a2); }

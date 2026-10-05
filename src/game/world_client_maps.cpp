@@ -52,8 +52,7 @@ struct CellListA {
 };
 __declspec(naked) SectorListNode** CellListA::Erase(SectorListNode**, SectorListNode*) EI_ORIGINAL(0x00572270)
 __declspec(naked) SectorListNode** CellListA::End(SectorListNode**) EI_ORIGINAL(0x0056DEC0)
-__declspec(naked) SectorListNode** CellListA::Insert(SectorListNode**, SectorListNode*, CEngineObject* const&)
-    EI_ORIGINAL(0x0056E8A0)
+SectorListNode** CellListA::Insert(SectorListNode** a0, SectorListNode* a1, CEngineObject* const& a2) { return (SectorListNode**)ListInsert56E8A0Original((void*)this, nullptr, (void**)a0, (void*)a1, (const void*)&a2); }
 
 struct CellListB {
     SectorListNode* head;
@@ -565,7 +564,7 @@ struct NamePair {
     stlp::string first;
     int second;
 };
-__declspec(naked) std::uint8_t* __fastcall NameMapFindOrInsert(void*, void*, const NamePair*) EI_ORIGINAL(0x00514880)
+std::uint8_t* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (std::uint8_t*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
 __declspec(naked) std::uint8_t* __fastcall FindPrototypeByName(void*, void*, const char*) EI_ORIGINAL(0x00514930)
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
@@ -574,7 +573,7 @@ __declspec(naked) void __fastcall UnitSetPrototype2(void*, void*, const char*) E
 __declspec(naked) int __fastcall UnitMakeFigure(void*, void*, const char*, console::CStringArray*, int) EI_ORIGINAL(0x00516DA0)
 __declspec(naked) void __fastcall Unit518840(void*, void*, const char*, int) EI_ORIGINAL(0x00518840)
 __declspec(naked) void __fastcall Unit518860(void*) EI_ORIGINAL(0x00518860)
-__declspec(naked) void __fastcall Unit50EA40(void*) EI_ORIGINAL(0x0050EA40)
+void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
 __declspec(naked) void __fastcall UnitSetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 __declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
 void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }

@@ -88,3 +88,8 @@ __declspec(naked) inline void __fastcall StreamSeekOriginal(void* /*stream*/, vo
 __declspec(naked) inline void* __fastcall CountedPtrCopyOriginal(void* /*to*/, void*, void* const* /*from*/) EI_ORIGINAL(0x004A5D50)
 // 004D8E10: decodes the chunk text into `out` (RET 4, no result).
 __declspec(naked) inline void __fastcall TextDecodeOriginal(void* /*decoder*/, void*, void* /*out CString*/) EI_ORIGINAL(0x004D8E10)
+
+// C3k. 004ABBD0: the quick-item map's operator[](name) (RET 4: the key; EAX the address of the value slot, a new node is
+// added when the name is missing). ECX is the map.
+__declspec(naked) inline void** __fastcall QuickItemMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
+    EI_ORIGINAL(0x004ABBD0)

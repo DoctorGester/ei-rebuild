@@ -60,3 +60,10 @@ __declspec(naked) inline void __fastcall PushSceneMatrixOriginal(void* /*cache*/
 __declspec(naked) inline void* __fastcall AllocAligned32Of8Original(int /*count*/) EI_ORIGINAL(0x004F65B0)
 // 004E6BA0: drops one reference of a surface holder and deletes it at zero (plain RET, no result).
 __declspec(naked) inline void __fastcall SurfaceHolderReleaseOriginal(void* /*holder*/) EI_ORIGINAL(0x004E6BA0)
+
+// C3k. 00500970: makes sure the texture behind a holder is loaded (plain RET; the manager loads it unless its flag 8 is
+// set; a null texture is a fatal error; EAX is not a result). 00501AF0: binds a texture to a stage (RET 8: stage, texture
+// object or null; EAX is always 1, no caller reads it).
+__declspec(naked) inline void __fastcall TextureEnsureLoadedOriginal(void* /*holder*/) EI_ORIGINAL(0x00500970)
+__declspec(naked) inline int __fastcall DeviceSetTextureOriginal(void* /*device*/, void*, int /*stage*/, void* /*texture*/)
+    EI_ORIGINAL(0x00501AF0)

@@ -143,7 +143,7 @@ namespace {
 // The object's position setter [00517700], its world [00455950], the effect array's
 // CArray::SetSize [0050FE70, on +0x194 (size, grow by)].
 __declspec(naked) void __fastcall SetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
-__declspec(naked) void __fastcall EffectsSetSize(void*, void*, int, int) EI_ORIGINAL(0x0050FE70)
+void __fastcall EffectsSetSize(void* a0, void*, int a2, int a3) { EffectArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 constexpr int kSlotAppearanceChanged = 0xE8 / 4;   // object: ()
 constexpr int kSlotMoveObject = 0xA4 / 4;          // world: (object, position)

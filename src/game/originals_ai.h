@@ -75,3 +75,6 @@ __declspec(naked) inline int __fastcall AiMemoryIsEnemyOriginal(void* /*memory*/
 // 005CBBE0: AI memory Notice(point, level, kind) (RET 0xC, no result).
 __declspec(naked) inline void __fastcall AiMemoryNoticeOriginal(void* /*memory*/, void*, const void* /*point*/, int /*level*/,
                                                                 int /*kind*/) EI_ORIGINAL(0x005CBBE0)
+
+// C3k. 004CB770: destructor of the AI look array (vtable 0073D460; frees the buffer; plain RET, EAX not a result).
+__declspec(naked) inline void __fastcall AiLookArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004CB770)

@@ -39,7 +39,7 @@ constexpr int kFileWrite = 14;
 // MFC CStringArray (library).
 void __fastcall StringArrayAppend(StringArray* a0, void*, const StringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
-__declspec(naked) void __fastcall AreasSetSize(PlainArray*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0046EAD0)
+void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __stdcall ConstructTargets(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0046F110)
 
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed

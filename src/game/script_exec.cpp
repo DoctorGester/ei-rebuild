@@ -289,7 +289,7 @@ struct Unit {
     void AddSpell(void* spell);                          // 00531820
     void MarkChanged(int what);                          // 0050E9F0
 };
-__declspec(naked) void Unit::SetHostileMask(std::uint32_t) EI_ORIGINAL(0x0052E970)
+void Unit::SetHostileMask(std::uint32_t a0) { UnitSetHostileMaskOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void Unit::SetSide(int) EI_ORIGINAL(0x00530120)
 __declspec(naked) void Unit::AddHostileMask(std::uint32_t) EI_ORIGINAL(0x0052E940)
 void Unit::SetController(void* player) { UnitSetControllerOriginal(this, nullptr, player); }
@@ -502,14 +502,14 @@ struct PtrList {      // CPtrList (0x1C)
     std::uint32_t data[7];
 };
 PtrList* PtrList::Construct(int a0) { return (PtrList*)PtrListConstructOriginal((void*)this, nullptr, a0); }
-__declspec(naked) void PtrList::Destruct() EI_ORIGINAL(0x004C96F0)
+void PtrList::Destruct() { PtrListDestruct4C96F0Original((void*)this); }
 struct ItemList {     // list of items given to a player (0x1C)
     ItemList* Construct(int blockSize);                  // 004C98C0
     void AddTail(void* item);                            // 004C98F0
     void Destruct();                                     // 00427830
     std::uint32_t data[7];
 };
-__declspec(naked) ItemList* ItemList::Construct(int) EI_ORIGINAL(0x004C98C0)
+ItemList* ItemList::Construct(int a0) { return (ItemList*)ItemListConstructOriginal((void*)this, nullptr, a0); }
 void ItemList::AddTail(void* a0) { PtrListAddTailOriginal((void*)this, nullptr, a0); }
 void ItemList::Destruct() { PtrListDestructOriginal(this); }
 struct PartyArray {   // CArray of 40-byte party slots (0x14)

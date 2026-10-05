@@ -108,7 +108,7 @@ struct CmdArray : MfcArray<SSCCmd> {
     void SetAtGrow(int index, const SSCCmd* cmd);        // 004D65E0: copies the SSCCmd
     int Add(const SSCCmd* cmd);                          // 004D5ED0: copies the SSCCmd
 };
-__declspec(naked) void CmdArray::SetSize(int, int) EI_ORIGINAL(0x004CD2B0)
+void CmdArray::SetSize(int a0, int a1) { CmdArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
 __declspec(naked) void CmdArray::SetAtGrow(int, const SSCCmd*) EI_ORIGINAL(0x004D65E0)
 __declspec(naked) int CmdArray::Add(const SSCCmd*) EI_ORIGINAL(0x004D5ED0)
 CmdArray* Cmds(MfcArray<SSCCmd>* array) { return static_cast<CmdArray*>(array); }
@@ -116,7 +116,7 @@ CmdArray* Cmds(MfcArray<SSCCmd>* array) { return static_cast<CmdArray*>(array); 
 struct IfThenArray : MfcArray<ScriptIfThen> {
     void SetSize(int size, int growBy);   // 004C59C0
 };
-__declspec(naked) void IfThenArray::SetSize(int, int) EI_ORIGINAL(0x004C59C0)
+void IfThenArray::SetSize(int a0, int a1) { IfThenArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
 
 struct DefinitionAt : ScriptDefinition {
     void Reset();      // 004D3320: empties everything (name and parameters too)

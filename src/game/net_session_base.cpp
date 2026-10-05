@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/stlp.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -21,11 +22,10 @@ __declspec(naked) TypeRegistry::ByVtable* __fastcall ByVtableConstruct(TypeRegis
                                                                       const void*, const void*, const void*) EI_ORIGINAL(0x00438B70)
 __declspec(naked) TypeRegistry::ByType* __fastcall ByTypeConstruct(TypeRegistry::ByType* /*table*/, void*, std::size_t /*n*/,
                                                                   const void*, const void*, const void*) EI_ORIGINAL(0x00439F20)
-__declspec(naked) void __fastcall ByVtableResize(TypeRegistry::ByVtable* /*table*/, void*, std::size_t /*hint*/) EI_ORIGINAL(0x0042B9C0)
+void __fastcall ByVtableResize(TypeRegistry::ByVtable* a0, void*, std::size_t a2) { ByVtableResizeOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 __declspec(naked) void __fastcall ByTypeResize(TypeRegistry::ByType* /*table*/, void*, std::size_t /*hint*/) EI_ORIGINAL(0x0042AA90)
 // _M_new_node(const pair&): a pool node {0, key, value}.
-__declspec(naked) TypeRegistry::ByVtable::Node* __fastcall ByVtableNewNode(TypeRegistry::ByVtable* /*table*/, void*,
-                                                                          const TypeRegistry::ByVtable::Pair* /*pair*/) EI_ORIGINAL(0x0042B8A0)
+TypeRegistry::ByVtable::Node* __fastcall ByVtableNewNode(TypeRegistry::ByVtable* a0, void*, const TypeRegistry::ByVtable::Pair* a2) { return (TypeRegistry::ByVtable::Node*)ByVtableNewNodeOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) TypeRegistry::ByType::Node* __fastcall ByTypeNewNode(TypeRegistry::ByType* /*table*/, void*,
                                                                       const TypeRegistry::ByType::Pair* /*pair*/) EI_ORIGINAL(0x0042AA00)
 // vector<handler>::_M_insert_overflow(pos, const value&, n) (library).

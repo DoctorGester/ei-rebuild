@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_render.h"
+#include "originals_units.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
 
@@ -145,8 +146,8 @@ __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGIN
 __declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
 __declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI_ORIGINAL(0x0040D6B0)
 __declspec(naked) void __fastcall QuaternionAxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
-__declspec(naked) void __fastcall MarkerBegin(void*, void*, int, int) EI_ORIGINAL(0x00501AF0)
-__declspec(naked) void* __fastcall ObjectFindPart(CEngineObject*, void*, const char*) EI_ORIGINAL(0x00516A80)
+void __fastcall MarkerBegin(void* a0, void*, int a2, int a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
+void* __fastcall ObjectFindPart(CEngineObject* a0, void*, const char* a2) { return (void*)ObjectFindPartOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) float* __fastcall ObjectPartPosition(CEngineObject*, void*, float*, void*) EI_ORIGINAL(0x005188B0)
 __declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, const float*, const float*)
     EI_ORIGINAL(0x00503A40)

@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include "originals_core.h"
+#include "originals_units.h"
 
 namespace {
 // Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
@@ -66,8 +67,8 @@ __declspec(naked) void __fastcall MotionSave(void*, void*, UnitStream*) EI_ORIGI
 __declspec(naked) void __fastcall PlanLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x00544EF0)
 __declspec(naked) void __fastcall PlanSave(void*, void*, UnitStream*) EI_ORIGINAL(0x00544F60)
 // 0050E220 / 0050E290: a counted reference by id (load resolves through `context`).
-__declspec(naked) void __fastcall CountedRefLoad(void*, void*, UnitStream*, void*) EI_ORIGINAL(0x0050E220)
-__declspec(naked) void __fastcall CountedRefSave(void*, void*, UnitStream*) EI_ORIGINAL(0x0050E290)
+void __fastcall CountedRefLoad(void* a0, void*, UnitStream* a2, void* a3) { CountedRefLoadOriginal(a0, nullptr, (void*)a2, a3); }
+void __fastcall CountedRefSave(void* a0, void*, UnitStream* a2) { CountedRefSaveOriginal(a0, nullptr, (void*)a2); }
 // 005287A0 / 00528800: UnitStats.
 __declspec(naked) void __fastcall StatsLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x005287A0)
 __declspec(naked) void __fastcall StatsSave(void*, void*, UnitStream*) EI_ORIGINAL(0x00528800)

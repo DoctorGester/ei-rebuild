@@ -9,6 +9,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -92,8 +93,8 @@ char* __fastcall FindUnitPrototype(const void* table, void*, const char* name);
 namespace {
 // Not rewritten (forwarders):
 // 0050F7A0 / 0050F900. The map object part of Load / Save.
-__declspec(naked) void __fastcall MapObjectLoad(CUnit*, void*, UnitStream*) EI_ORIGINAL(0x0050F7A0)
-__declspec(naked) void __fastcall MapObjectSave(CUnit*, void*, UnitStream*) EI_ORIGINAL(0x0050F900)
+void __fastcall MapObjectLoad(CUnit* a0, void*, UnitStream* a2) { MapObjectLoadOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall MapObjectSave(CUnit* a0, void*, UnitStream* a2) { MapObjectSaveOriginal((void*)a0, nullptr, (void*)a2); }
 // 005C7860 / 005C79B0. Load / Save of the sub-object at CUnit + 0x27C.
 __declspec(naked) void __fastcall UnitMemoryLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x005C7860)
 __declspec(naked) void __fastcall UnitMemorySave(void*, void*, UnitStream*) EI_ORIGINAL(0x005C79B0)

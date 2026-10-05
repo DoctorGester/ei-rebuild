@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -133,7 +134,7 @@ namespace {
 __declspec(naked) void __fastcall ResizeLooks(void*, void*, std::uint32_t) EI_ORIGINAL(0x0055A400)
 __declspec(naked) void __fastcall ResizeLooks2(void*, void*, std::uint32_t) EI_ORIGINAL(0x0055A580)
 __declspec(naked) void __fastcall ResizeInts(void*, void*, std::uint32_t, const int*) EI_ORIGINAL(0x004FE0C0)
-__declspec(naked) void __fastcall ResizeStrings(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051F5B0)
+void __fastcall ResizeStrings(void* a0, void*, std::uint32_t a2) { CStringVectorResizeOriginal(a0, nullptr, a2); }
 void __fastcall ReadCString(void* a0, void*, void* a2) { StreamReadCStringOriginal(a0, nullptr, a2); }
 
 constexpr int kSlotRead = 1;   // stream: (data, size)

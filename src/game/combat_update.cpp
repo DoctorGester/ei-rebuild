@@ -131,7 +131,7 @@ __declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, AnimationSte
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
 AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-__declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00557B60)
+AnimationSteps* __fastcall StepsConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 __declspec(naked) void __fastcall StepsRemoveAt(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557E20)
 
@@ -775,7 +775,7 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 __declspec(naked) void __fastcall UnitCollectItems(CUnit*, void*, ItemList*, ItemList*) EI_ORIGINAL(0x005316F0)
 __declspec(naked) CEngineObject* __fastcall UnitWeapon(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x005318B0)
 __declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
-__declspec(naked) void __fastcall ItemListBDestroy(ItemList*) EI_ORIGINAL(0x00558C50)
+void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
 inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
 __declspec(naked) SpellEntry* __fastcall SpellNewNode(void*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
     EI_ORIGINAL(0x00558B10)

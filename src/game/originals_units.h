@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CEngineObject;
 class CUnit;
 class CUnitServer;
 class CWorldServer;
@@ -107,3 +108,46 @@ __declspec(naked) inline void* __fastcall CellListConstructOriginal(void* /*list
 // 0059F3D0: sets a figure part's owner object (stores at +0x98; RET 4, no result).
 __declspec(naked) inline void __fastcall FigurePartSetOwnerOriginal(void* /*part*/, void*, void* /*owner*/)
     EI_ORIGINAL(0x0059F3D0)
+
+// C3k. A counted reference is a pointer slot whose object keeps a count at +4 and has Release as virtual slot 4.
+// 0052B030 releases the object and clears the slot (plain RET); 0052A8F0 assigns an object unless it is the one
+// already held (RET 4); 00511B90 stores the object, adds a reference and then releases the old one (RET 4). None of
+// them leaves a result in EAX.
+__declspec(naked) inline void __fastcall CountedRefResetOriginal(void* /*slot*/) EI_ORIGINAL(0x0052B030)
+__declspec(naked) inline void __fastcall CountedRefAssignOriginal(void* /*slot*/, void*, void* /*object*/)
+    EI_ORIGINAL(0x0052A8F0)
+__declspec(naked) inline void __fastcall CountedRefStoreOriginal(void* /*slot*/, void*, void* /*object*/)
+    EI_ORIGINAL(0x00511B90)
+// 0050E220 / 0050E290: a counted reference's Load(stream, context) (RET 8: the id is read from the stream and resolved
+// in `context`) and Save(stream) (RET 4: the object's id at +0xC, or -1); EAX is not a result.
+__declspec(naked) inline void __fastcall CountedRefLoadOriginal(void* /*ref*/, void*, void* /*stream*/, void* /*context*/)
+    EI_ORIGINAL(0x0050E220)
+__declspec(naked) inline void __fastcall CountedRefSaveOriginal(void* /*ref*/, void*, void* /*stream*/)
+    EI_ORIGINAL(0x0050E290)
+// 0050EA40: runs the object's virtual slot 50 between a begin / end pair on the member at +0x1C4, then clears bit 1 of
+// the flags at +8 (plain RET, EAX not a result). 005179E0: sets up the object's animated figure for a model name (RET 4;
+// EAX not a result). 0050D450: applies the pending animation change of a figure state once (flag at +0x74; plain RET).
+__declspec(naked) inline void __fastcall ObjectPrepareOriginal(void* /*object*/) EI_ORIGINAL(0x0050EA40)
+__declspec(naked) inline void __fastcall ObjectSetupFigureOriginal(void* /*object*/, void*, const char* /*model*/)
+    EI_ORIGINAL(0x005179E0)
+__declspec(naked) inline void __fastcall FigureApplyPendingOriginal(void* /*figure state*/) EI_ORIGINAL(0x0050D450)
+// 0050F7A0 / 0050F900: the map object part of Load(stream) / Save(stream) (both RET 4, EAX not a result).
+__declspec(naked) inline void __fastcall MapObjectLoadOriginal(void* /*object*/, void*, void* /*stream*/)
+    EI_ORIGINAL(0x0050F7A0)
+__declspec(naked) inline void __fastcall MapObjectSaveOriginal(void* /*object*/, void*, void* /*stream*/)
+    EI_ORIGINAL(0x0050F900)
+// 00516A80: the part of the object whose name matches (case-insensitive; searches the two arrays at +0xD0 / +0xE0)
+// (RET 4: the name; EAX the part or null). 00530830: the unit's worn item in a slot (RET 4: the slot; EAX = the item at
+// +0x480 + slot * 4, or null).
+__declspec(naked) inline CEngineObject* __fastcall ObjectFindPartOriginal(void* /*object*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00516A80)
+__declspec(naked) inline CEngineObject* __fastcall UnitWornItemOriginal(const void* /*unit*/, void*, int /*slot*/)
+    EI_ORIGINAL(0x00530830)
+// 0052E970: the unit's diplomacy / hostile mask (stored at +0x244, the object at +0x240 told through virtual slot 38,
+// flag 0x80000 set, part 0xB marked changed; RET 4, EAX not a result).
+__declspec(naked) inline void __fastcall UnitSetHostileMaskOriginal(void* /*unit*/, void*, std::uint32_t /*mask*/)
+    EI_ORIGINAL(0x0052E970)
+// 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10). 00557B60: AnimationSteps
+// constructor (plain RET, returns `this`).
+__declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
+__declspec(naked) inline void* __fastcall StepsConstructOriginal(void* /*steps*/) EI_ORIGINAL(0x00557B60)

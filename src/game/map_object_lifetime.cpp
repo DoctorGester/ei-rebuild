@@ -17,6 +17,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_core.h"
+#include "originals_ai.h"
 
 #include <cstring>
 
@@ -78,7 +79,7 @@ __declspec(naked) void __fastcall SetParticleCount(void*, void*, int, int) EI_OR
 // 00511FB0. The light list (007AF748 + 0xD4): erases the entries with id *id.
 __declspec(naked) void __fastcall EraseLightId(void*, void*, const int*) EI_ORIGINAL(0x00511FB0)
 // 00511B90. A counted reference: assign.
-__declspec(naked) void __fastcall AssignReference(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x00511B90)
+void __fastcall AssignReference(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefStoreOriginal((void*)a0, nullptr, (void*)a2); }
 // The server unit controller's members (00546230).
 __declspec(naked) void __fastcall ControllerClearOrders(void*) EI_ORIGINAL(0x00546480)
 __declspec(naked) void __fastcall BrainMemoryDestroy(void*) EI_ORIGINAL(0x00545CB0)
@@ -86,8 +87,8 @@ __declspec(naked) void __fastcall BrainListDestroy(void*) EI_ORIGINAL(0x00557410
 __declspec(naked) void __fastcall BrainList90Destroy(void*) EI_ORIGINAL(0x00557890)
 void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
 __declspec(naked) void __fastcall BrainList70Destroy(void*) EI_ORIGINAL(0x005575F0)
-__declspec(naked) void __fastcall BrainArrayDestroy(void*) EI_ORIGINAL(0x0052B030)
-__declspec(naked) void __fastcall Brain14Destroy(void*) EI_ORIGINAL(0x004CB770)
+void __fastcall BrainArrayDestroy(void* a0) { CountedRefResetOriginal(a0); }
+void __fastcall Brain14Destroy(void* a0) { AiLookArrayDestructOriginal(a0); }
 inline void __fastcall ControllerListDestroy(void* list) { AnimationStepsDestroyOriginal(list); }
 __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
 // Rewritten elsewhere or here, through their game addresses (verify wrappers in the path):

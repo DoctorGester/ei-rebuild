@@ -54,7 +54,7 @@ __declspec(naked) void** __fastcall RequestsErase(void*, void*, void**, void*) E
 __declspec(naked) void** __fastcall ObjectsErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429610)
 __declspec(naked) void** __fastcall AwardsEnd(void*, void*, void**) EI_ORIGINAL(0x004210E0)
 __declspec(naked) void** __fastcall AwardsInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00424720)
-__declspec(naked) void** __fastcall PartiesInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00423190)
+void** __fastcall PartiesInsert(void* a0, void*, void** a2, void* a3, const void* a4) { return ListInsert423190Original(a0, nullptr, a2, a3, a4); }
 // The trade records (+0x2614: TradeRecordNode below).
 __declspec(naked) void** __fastcall TradesInsertDefault(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00424900)
 __declspec(naked) void __fastcall TradeRecordDestroy(void* /*record*/) EI_ORIGINAL(0x00424DB0)

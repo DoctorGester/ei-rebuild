@@ -14,6 +14,7 @@
 #include <bit>
 #include <cstring>
 #include "originals_render.h"
+#include "originals_units.h"
 
 // The light range test keeps its sums on the FPU stack like the original.
 #pragma float_control(precise, on)
@@ -46,7 +47,7 @@ constexpr int kStackObject = 3;
 
 // Not rewritten, forwarders:
 // 0050D450. Animation state: brings the tracks to the current time.
-__declspec(naked) void __fastcall UpdateAnimation(void*) EI_ORIGINAL(0x0050D450)
+void __fastcall UpdateAnimation(void* a0) { FigureApplyPendingOriginal(a0); }
 // 0051EF90 / 0051EE50. The light list: aligned storage for `count` pointers; SetAtGrow.
 __declspec(naked) void* __fastcall AllocateLights(int) EI_ORIGINAL(0x0051EF90)
 __declspec(naked) void __fastcall AddLight(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0051EE50)
