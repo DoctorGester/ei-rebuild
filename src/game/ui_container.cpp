@@ -6,6 +6,7 @@
 #include "ei/x87.h"
 #include "lib/stlp.h"
 #include "originals_render.h"
+#include "originals_ui.h"
 
 namespace {
 // The container's vtables (main, input side).
@@ -111,6 +112,15 @@ void CUiContainer::RedrawChildTips() {
     }
 }
 EI_REPLACE_METHOD(0x00601090, CUiContainer::RedrawChildTips);
+
+void CUiContainer::ShowChildren(int show) {
+    WindowShowSurfacesOriginal(this, nullptr, show);
+    for (int i = 0; i < children_.size_; ++i) {
+        CUiWindow* child = children_.data_[i];
+        if (child->enabled_) child->VirtualShow(show);
+    }
+}
+EI_REPLACE_METHOD(0x00601AC0, CUiContainer::ShowChildren);
 
 // --- Input dispatch ----------------------------------------------------------------------------
 

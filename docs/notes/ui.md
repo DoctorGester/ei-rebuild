@@ -121,6 +121,8 @@ skips the move). Not rewritten: STLport / MFC template code (005F3000-005F4990, 
 | 005FC1D0, 005FC2F0, 005FC3B0, 005FC3D0, 005FC4C0, 005FC4F0 | `CUiModel::ReleaseObject`, `Draw` (white through the pass's slot 7, object slot 25 the clock timeGetTime / 67, slot 23 draws, flag 0x800 meanwhile), `Play` (skill animation n + 1), `Stop` (the object manager's object named like the figure, kind 0x80590000), `ShowPart`, `ShowAllParts` (part flag 0x80 = hidden) (`ui_model.cpp`; `verify_ui_model.cpp`) | ours only: object cleared; pass colour back, 0x800 clear; parts' hidden bits exactly as asked, other bits kept |
 | 005F86F0, 005F8A80, 005F8C90, 005F8420, 005EADD0 | `OpenHelp`, `ShowMessage`, `MessageText` (side by side on the string), `LoadState`, the battle camera's key input (`ui_camera_keys.cpp`; side by side on the camera's motion, view and saved-view bytes and the input object) | |
 
+| 005FEF20, 005FF0B0, 006002C0, 00601AC0 | `CUiWindow::LoadTexture` (texture manager 00691D00, load 006922A0 / 006926F0 by address), `CreateTexture` (00691D80, flag 0x40000), `ShowSurfaces` (slot 19: 005FD7A0 by address), `CUiContainer::ShowChildren` (slot 19; `verify_ui_window_helpers.cpp`) | ours only: the referenced list is the old one plus the result (unchanged on null); after slot 19 with 0 no surface has a holder, otherwise every shown one has it and keeps nothing |
+
 Not rewritten: 005F6BA0 (briefing screen's destructor body), 005E3230.
 
 ### Container input dispatch (`ui_container.cpp`; `verify_ui_container.cpp`; scenario `ui_container_input`)
