@@ -71,6 +71,8 @@ inline void* const kRefs = reinterpret_cast<void*>(0x0073D110);         // objec
 inline void* const kRefsBase = reinterpret_cast<void*>(0x0073D11C);
 inline void* const kGroups = reinterpret_cast<void*>(0x0073D304);       // ScriptVars group values
 inline void* const kGroupsBase = reinterpret_cast<void*>(0x0073D310);
+inline void* const kCmds = reinterpret_cast<void*>(0x0073D4A8);         // CArray<SSCCmd> (loader arrays)
+inline void* const kIfThen = reinterpret_cast<void*>(0x0073D430);       // CArray<ScriptIfThen>
 } // namespace scriptvtable
 
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
@@ -920,3 +922,28 @@ void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
 void __fastcall ScriptQuestStart(const char* name);
 // 004BAE10 (__fastcall, the value on the stack). Appends {type, text, value} to the objectives.
 void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value);
+
+// ---- Loader arrays (script_parse_arrays.cpp) ------------------------------------------------------
+// CArray template members of the loader's arrays, __thiscall, registered as free functions; the
+// loader (script_parse_load.cpp) keeps calling them through their original addresses.
+// 004D5B50 / 004D5CB0 / 004D5ED0 / 004D6100 (Add (element), RET 4, returning the new index):
+// SetSize(size + 1) inlined, then the element copied: a binding as words; a nested call's type and
+// argument index, its command deep-copied into the element's own command (SSCCmd::operator=); a
+// command likewise; a definition member by member (index, name, parameters, if-then pairs, variables).
+int __fastcall ScriptBindingsAdd(MfcArray<ScriptBinding>* array, void* edx, const ScriptBinding* binding);
+int __fastcall ScriptSubCallsAdd(MfcArray<ScriptSubCall>* array, void* edx, const ScriptSubCall* call);
+int __fastcall ScriptCmdsAdd(MfcArray<SSCCmd>* array, void* edx, const SSCCmd* cmd);
+int __fastcall ScriptDefinitionsAdd(MfcArray<ScriptDefinition>* array, void* edx, const ScriptDefinition* definition);
+// 004D65E0 (SetAtGrow (index, cmd), RET 8): grown to index + 1 when needed, then the command copied in.
+void __fastcall ScriptCmdsSetAtGrow(MfcArray<SSCCmd>* array, void* edx, int index, const SSCCmd* cmd);
+// 004C5480 (ScriptSubCall destructor body, __thiscall): the nested command destroyed and deleted;
+// the pointer stays.
+void __fastcall ScriptSubCallDestruct(ScriptSubCall* call);
+// 004D5A50 / 004D5A90 / 004D5AD0 / 004D5B10 (__thiscall on one type's variables (name), RET 4; the
+// same code once per type, the names are at +0x14 in each): the index of `name` (_mbscmp), -1 if absent.
+int __fastcall ScriptFindVariableName(const ScriptNamedValues<float>* vars, void* edx, const char* name);
+// 004D5A10 / 004D5A30 (CArray constructors, __thiscall, plain RET, `this` returned): empty, growBy 0,
+// vtable 0073D4A8 (CArray<SSCCmd>: LoadConditions' and LoadCommands' local arrays) / 0073D430
+// (CArray<ScriptIfThen>: the if-then pairs of Load's local definition).
+MfcArray<SSCCmd>* __fastcall ScriptCmdArrayConstruct(MfcArray<SSCCmd>* array);
+MfcArray<ScriptIfThen>* __fastcall ScriptIfThenArrayConstruct(MfcArray<ScriptIfThen>* array);

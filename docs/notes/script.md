@@ -1174,3 +1174,32 @@ Guard / Sentry setters 005D0B70 / 005D1B50 are rewritten and called directly.
 | 004BA1A0 | 32 | AILook {angle, time, wait, stop first (low byte)} (UMPatrolLook) |
 
 None of them sets the reference count (+4): the commands write 0 there after operator new.
+
+# Area ticket A-S2 (2026-10-05): scripts 0x004C0000-0x00500000 and the 0x00480000-0x004B0000 leftovers
+
+## Loader arrays (004D5B50, 004D5CB0, 004D5ED0, 004D65E0, 004D6100, 004C5480, 004D5A50/5A90/5AD0/5B10, 004D5A10, 004D5A30)
+
+Code: `src/game/script_parse_arrays.cpp`; verify: `tests/verify/verify_script_parse_arrays.cpp` (deep
+comparisons in `tests/verify/script_compare.h`). The CArray members the loader calls out of line; none
+is library, dead or Rebirth-patched (their callers LoadFunction 004CFBC0 and LoadCommands 004D1330
+are). Our loader (script_parse_load.cpp) keeps calling them through their addresses. The inlined
+SetSize is `scriptarray::InlineSetSize` (script_load.cpp) with three new element kinds: bindings
+(ConstructElements 004CCA50), nested calls (004CD130, each destroyed by 004C5480) and definitions
+(004CEB80, each by ScriptDefinitionDestruct); the element copies call the rewritten assignments
+directly (ScriptCmdAssign 004C6BC0, ScriptVarsAssign 004CBAE0). New forwarders (library):
+004CCA50, 004CD130, 004CEB80.
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004D5B50 | 339 | ScriptBindingsAdd | against the original on a scratch array (shallow copy of the buffer): result, shape (size, capacity, growth, vtable) and all elements' bytes | every argument bound to a variable: script_parse, script_exec, console, world_load |
+| 004D5CB0 | 518 | ScriptSubCallsAdd | as above; the new element's type and index, its own command deep-equal (capacities too); the scratch's element destroyed afterwards | every nested call |
+| 004D5ED0 | 525 | ScriptCmdsAdd | as above, the new command deep-equal | every command of a block (LoadCommands) |
+| 004D65E0 | 562 | ScriptCmdsSetAtGrow | as above when the index is past the end (the loader appends conditions); ours only otherwise | every condition (LoadConditions) |
+| 004D6100 | 521 | ScriptDefinitionsAdd | as above, the new definition deep-equal (name, parameters, pairs, every variable's name and value) | every Script / DeclareScript (Load) |
+| 004C5480 | 26 | ScriptSubCallDestruct | ours only (frees): the element's words unchanged | nested-call arrays' SetSize / RemoveAll (004C4FD0, every loaded and freed command) |
+| 004D5A50 / 004D5A90 / 004D5AD0 / 004D5B10 | 63 each | ScriptFindVariableName (one per type, identical code) | pure, against the original | the original LoadFunction only, i.e. the Rebirth launch (ours uses its own copy) |
+| 004D5A10 / 004D5A30 | 23 each | ScriptCmdArrayConstruct / ScriptIfThenArrayConstruct | original into a 0xCC scratch: 0x14 bytes and the returned pointers | the original LoadConditions / LoadCommands (Rebirth) and Load (004D23A0) |
+
+The four name lookups take the value array of one type's variables (`ScriptNamedValues<T>`, names at
++0x14). Add's and SetAtGrow's "empty" and "shrink" branches of the inlined SetSize cannot run (the new
+size is above the old one) but are kept through InlineSetSize.
