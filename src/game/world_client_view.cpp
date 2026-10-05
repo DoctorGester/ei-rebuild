@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include <cstring>
+#include "originals_render.h"
 
 // Every float expression here must keep the original's association: (a + b) + c.
 #pragma float_control(precise, on, push)
@@ -56,7 +57,7 @@ struct Matrix4 {
     // 004D9880. this = a * b (RET 8).
     void Multiply(const float* a, const float* b);
 };
-__declspec(naked) void Matrix4::Multiply(const float*, const float*) EI_ORIGINAL(0x004D9880)
+void Matrix4::Multiply(const float* a, const float* b) { MatrixMultiplyOriginal(reinterpret_cast<float*>(this), nullptr, a, b); }
 
 // The quaternion at +0x34 of a map object.
 struct Orientation {

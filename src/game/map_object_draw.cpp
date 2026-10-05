@@ -13,6 +13,7 @@
 
 #include <bit>
 #include <cstring>
+#include "originals_render.h"
 
 // The light range test keeps its sums on the FPU stack like the original.
 #pragma float_control(precise, on)
@@ -54,7 +55,7 @@ __declspec(naked) void __fastcall OrientationToMatrix(void*, void*, float*) EI_O
 // 004D9B80 / 004D9880 / 0051C110. The scene's matrix stacks: push (multiplied with the top),
 // multiply, pop.
 __declspec(naked) void __fastcall PushSceneMatrix(void*, void*, const float*, int) EI_ORIGINAL(0x004D9B80)
-__declspec(naked) void __fastcall MultiplyMatrix(float*, void*, const float*, const float*) EI_ORIGINAL(0x004D9880)
+inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 __declspec(naked) void __fastcall PopSceneMatrix(void*, void*, int) EI_ORIGINAL(0x0051C110)
 // 006CB020. Light manager: is the point lit, AL.
 // 004EB170. Device: sets the texture of stage 0.

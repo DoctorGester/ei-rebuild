@@ -79,7 +79,7 @@ __declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*, void*) EI_ORIGINAL(0x004B24B0)
 // The network log's ostream (007C56B0).
-__declspec(naked) void* __fastcall OstreamPutLong(void*, void*, long) EI_ORIGINAL(0x006FC9C6)
+inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamPutLongOriginal(s, nullptr, v); }
 
 constexpr int kSlotPlayers = 20;
 constexpr int kSlotConnected = 4;

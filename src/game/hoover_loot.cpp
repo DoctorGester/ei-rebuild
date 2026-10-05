@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 
 namespace {
 
@@ -42,7 +43,7 @@ struct PtrList {
 
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
 // and weapons (with the same effects).
-__declspec(naked) PtrListNode* __fastcall NewNode(PtrList*, void*, PtrListNode* /*prev*/, PtrListNode* /*next*/) EI_ORIGINAL(0x004621A0)
+inline PtrListNode* __fastcall NewNode(PtrList* l, void*, PtrListNode* prev, PtrListNode* next) { return static_cast<PtrListNode*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) void* __fastcall CreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void* __fastcall UnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)

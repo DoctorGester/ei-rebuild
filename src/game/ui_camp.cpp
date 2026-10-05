@@ -994,14 +994,14 @@ struct CloseRecordArray {
     int growBy;
 };
 // 005719B0 (RET 8): its SetSize(size, growBy).
-__declspec(naked) void __fastcall CloseRecordsSetSize(CloseRecordArray*, void*, int, int) EI_ORIGINAL(0x005719B0)
+inline void __fastcall CloseRecordsSetSize(CloseRecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 
 struct GameGlue {
     void SetServerFlag(std::uint8_t flag);              // 00578D10 (on 007AFEA4)
     std::uint8_t* PlayerData();                         // 00578BA0 (on 007AFEA5)
     void TakeRecords(CloseRecordArray* records);        // 005789E0 (on 007AFEA5)
 };
-__declspec(naked) void GameGlue::SetServerFlag(std::uint8_t) EI_ORIGINAL(0x00578D10)
+void GameGlue::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
 __declspec(naked) std::uint8_t* GameGlue::PlayerData() EI_ORIGINAL(0x00578BA0)
 __declspec(naked) void GameGlue::TakeRecords(CloseRecordArray*) EI_ORIGINAL(0x005789E0)
 GameGlue* GlueAt(std::uintptr_t address) { return reinterpret_cast<GameGlue*>(address); }
@@ -1562,7 +1562,7 @@ EI_REPLACE(0x0060F980, CampRefreshStats);
 namespace {
 // 006010E0: the container's base update. 00600270: frame time in seconds (ST0, unrounded).
 __declspec(naked) void __fastcall UpdateChildrenAt(void*) EI_ORIGINAL(0x006010E0)
-__declspec(naked) double __fastcall FrameTimeAt(void*) EI_ORIGINAL(0x00600270)
+inline double __fastcall FrameTimeAt(void* w) { return WindowFrameTimeOriginal(w); }
 
 // fmod(turn + sign * 2 * seconds, *[007C7EE8]) through the game's _CIfmod, as the original
 // computes it on the FPU.

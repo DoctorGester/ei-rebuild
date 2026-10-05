@@ -8,6 +8,7 @@
 #include "originals_render.h"
 
 #include <cstdint>
+#include "originals_ui.h"
 
 namespace {
 constexpr const char* kSoundCancel = "buttons\\messbox\\cancel.wav";   // 007937E4
@@ -67,7 +68,7 @@ T Global(std::uintptr_t address) {
 __declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
 __declspec(naked) void CUiSurface::Freeze(int, int) EI_ORIGINAL(0x005FD760)
 __declspec(naked) void CUiModel::Draw(int) EI_ORIGINAL(0x005FC2F0)
-__declspec(naked) double CUiContainer::FrameTime() EI_ORIGINAL(0x00600270)
+double CUiContainer::FrameTime() { return WindowFrameTimeOriginal(this); }
 __declspec(naked) void CUiContainer::UpdateBase() EI_ORIGINAL(0x006010E0)
 __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void CUiContainer::RedrawContainer() EI_ORIGINAL(0x00601040)

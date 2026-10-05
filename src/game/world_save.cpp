@@ -316,7 +316,7 @@ __declspec(naked) void __fastcall MapObjectSetupFigure(CEngineObject*, void*, co
 
 } // namespace
 
-__declspec(naked) void IdArray::SetSize(int, int) EI_ORIGINAL(0x0059C660)
+void IdArray::SetSize(int n, int g) { DwordArraySetSizeOriginal(this, nullptr, n, g); }
 __declspec(naked) void ObjectPtrArray::Construct() EI_ORIGINAL(0x005985C0)
 __declspec(naked) void ObjectPtrArray::Destruct() EI_ORIGINAL(0x0059A100)
 __declspec(naked) void SharedObject::CopyFrom(const SharedObject*) EI_ORIGINAL(0x0059B510)

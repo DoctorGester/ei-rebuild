@@ -148,7 +148,7 @@ struct GlueAt {
     void SetServerFlag(char flag);   // 00578D10
 };
 __declspec(naked) char GlueAt::ServerFlag() EI_ORIGINAL(0x00578D00)
-__declspec(naked) void GlueAt::SetServerFlag(char) EI_ORIGINAL(0x00578D10)
+void GlueAt::SetServerFlag(char f) { SetServerFlagOriginal(f); }
 GlueAt* Glue() { return reinterpret_cast<GlueAt*>(0x007AFEA4); }
 
 // 005FA9A0 (thiscall on the window stack, RET 0xC): the vector's insert when it is full.

@@ -79,7 +79,7 @@ void SetString(RegistryKey& key, const char* subkey, const char* name, const mfc
 struct Text : mfc::CString {
     int FindChar(int c) const;            // 00700E91 Find(TCHAR)
 };
-__declspec(naked) int Text::FindChar(int) const EI_ORIGINAL(0x00700E91)
+int Text::FindChar(int c) const { return CStringFindCharOriginal(this, nullptr, static_cast<char>(c)); }
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 

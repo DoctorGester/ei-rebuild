@@ -14,6 +14,7 @@
 
 #include <cstring>
 #include "originals_gameplay.h"
+#include "originals_library.h"
 
 // The arrival maths keeps the original's operation order: no reassociation in this file.
 #pragma float_control(precise, on, push)
@@ -65,8 +66,7 @@ using IdArray = LocalArray<int>;
 using RecordArray = LocalArray<std::uint8_t*>;
 
 // 004621A0 (RET 8). CPtrList::NewNode(prev, next), out of line.
-__declspec(naked) ObjectList::Node* __fastcall PtrListNewNode(ObjectList*, void*, ObjectList::Node*, ObjectList::Node*)
-    EI_ORIGINAL(0x004621A0)
+inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 // 00429F10. CPtrList::RemoveAll.
 __declspec(naked) void __fastcall PtrListRemoveAll(ObjectList*, void*) EI_ORIGINAL(0x00429F10)
 // 00427830. CPtrList destructor.
@@ -76,7 +76,7 @@ __declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, int) EI
 // 0059CB50 (RET 8). The item array's SetSize(size, growBy).
 __declspec(naked) void __fastcall ItemArraySetSize(void*, void*, int, int) EI_ORIGINAL(0x0059CB50)
 // 005719B0 (RET 8). The record array's SetSize(size, growBy).
-__declspec(naked) void __fastcall RecordArraySetSize(RecordArray*, void*, int, int) EI_ORIGINAL(0x005719B0)
+inline void __fastcall RecordArraySetSize(RecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 // 0059C3D0 (RET 8). The placement array's SetSize(size, growBy).
 __declspec(naked) void __fastcall PlacementsSetSize(void*, void*, int, int) EI_ORIGINAL(0x0059C3D0)
 // 006A0110. A quest item's description: the names of the zones it belongs to (a vector at +0x70).

@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_render.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
 
@@ -66,7 +67,7 @@ void Flush(char* renderer) {
 // The render device's matrix stacks (pointer, depth): +0x1C/+0x20 and +0x24/+0x28 pushed by
 // 004D9B80 (types 1 and 2), +0x3C/+0x40, and the view stack +0x5C/+0x60.
 __declspec(naked) void __fastcall PushSceneMatrix(char*, void*, const float*, int) EI_ORIGINAL(0x004D9B80)
-__declspec(naked) void __fastcall MultiplyMatrix(float*, void*, const float*, const float*) EI_ORIGINAL(0x004D9880)
+inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 // 004F0EF0: the view matrix of the camera 0079B2A8 into `out`.
 __declspec(naked) void __fastcall DeviceViewMatrix(char*, void*, float*, const void*) EI_ORIGINAL(0x004F0EF0)
 

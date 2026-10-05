@@ -43,7 +43,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
   - (C2d camera merged 2026-10-05.)
-- C3b (top 10, C3c-C3e and C3f, the next 15 by site count each; C3f done on its branch, merge pending; 458 left per the regenerated report, continue with the next 15 by site count) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
+- C3b (top 10, C3c-C3e and C3f, the next 15 by site count each; C3g done on its branch, merge pending; 445 left per the regenerated report, continue with the next 15 by site count) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
   group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
   shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
   0x0040C720, ...), then by area. C3 first part (shared headers, 38 void forwarders typed) merged 2026-10-05.

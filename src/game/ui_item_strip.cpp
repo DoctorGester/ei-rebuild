@@ -243,7 +243,7 @@ EI_REPLACE(0x00621B50, ItemStripDraw);
 namespace {
 
 // 00600270: the time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
-__declspec(naked) double __fastcall StripFrameTime(void*) EI_ORIGINAL(0x00600270)
+inline double __fastcall StripFrameTime(void* w) { return WindowFrameTimeOriginal(w); }
 
 // FCOMP; TEST AH,0x40: equal, or unordered.
 bool EqualOrNaN(float a, float b) { return !(a < b) && !(a > b); }

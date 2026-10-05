@@ -12,6 +12,7 @@
 #include "originals_engine.h"
 
 #include <cstdint>
+#include "originals_library.h"
 
 namespace {
 
@@ -44,7 +45,7 @@ __declspec(naked) void __fastcall BrainRemoveMode(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __fastcall BrainStopAction(void*) EI_ORIGINAL(0x005D7790)
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 __declspec(naked) void __fastcall ReferenceRelease(CEngineObject**) EI_ORIGINAL(0x0052B030)
-__declspec(naked) void __fastcall PlexFreeDataChain(void*) EI_ORIGINAL(0x006FE90F)
+inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 // This file's functions through their game addresses.
 __declspec(naked) void __fastcall CtlUndoTaming(CUnitServer*) EI_ORIGINAL(0x00552280)
 

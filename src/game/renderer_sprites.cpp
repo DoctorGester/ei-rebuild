@@ -90,8 +90,8 @@ std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8)
 char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
 __declspec(naked) void __fastcall ByteArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FF5EA)
 __declspec(naked) void __fastcall WordArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FEE9A)
-__declspec(naked) void __fastcall ByteArraySetSize(MfcArray*, void*, int, int) EI_ORIGINAL(0x006FF64A)
-__declspec(naked) void __fastcall WordArraySetSize(MfcArray*, void*, int, int) EI_ORIGINAL(0x006FEEFA)
+inline void __fastcall ByteArraySetSize(MfcArray* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
+inline void __fastcall WordArraySetSize(MfcArray* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
 // The aligned arrays' SetSize instantiations (thiscall: size, growth or -1): 32-byte elements keeping
 // the contents (00504F70) or not (00505080), 16-byte (00505150) and 4-byte (00505270) elements.
 __declspec(naked) void __fastcall SetSize32(AlignedArray*, void*, int, int) EI_ORIGINAL(0x00504F70)

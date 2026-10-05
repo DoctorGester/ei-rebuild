@@ -194,9 +194,7 @@ __declspec(naked) CEngineObject* __fastcall CreateItemByName(void*, void*, const
 // item creation, unused.
 __declspec(naked) void __fastcall TempListConstruct(void*, void*, int /*blockSize*/) EI_ORIGINAL(0x00598EC0)
 __declspec(naked) void __fastcall TempListDestruct(void*, void*) EI_ORIGINAL(0x00405130)
-__declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(
-    mfc::CTypedPtrList<CEngineObject>*, void*, mfc::CTypedPtrList<CEngineObject>::Node*,
-    mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x004621A0)
+inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 __declspec(naked) void __fastcall PlayerEraseQuestItem(WorldPlayer*, void*, int) EI_ORIGINAL(0x00665780)
 __declspec(naked) void __fastcall StateSetVariableMax(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
@@ -423,7 +421,7 @@ struct IdArray {
 __declspec(naked) ShareNode* __fastcall ShareListNewNode(ShareList*, void*, ShareNode* /*prev*/, ShareNode* /*next*/)
     EI_ORIGINAL(0x0059D5F0)
 __declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGINAL(0x0059D5C0)
-__declspec(naked) void __fastcall IdArraySetSize(IdArray*, void*, int, int) EI_ORIGINAL(0x0059C660)
+inline void __fastcall IdArraySetSize(IdArray* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 __declspec(naked) void __fastcall RecordGainExperience(void*, void*, float) EI_ORIGINAL(0x00523960)
@@ -713,7 +711,7 @@ __declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPl
 __declspec(naked) void __fastcall StateBeforeZoneChange(void*, void*) EI_ORIGINAL(0x0066F0C0)
 // 0065F740. The unit record's destructor body.
 __declspec(naked) void __fastcall UnitRecordDestruct(void*, void*) EI_ORIGINAL(0x0065F740)
-__declspec(naked) void __fastcall RecordArraySetSize(RecordArray*, void*, int, int) EI_ORIGINAL(0x005719B0)
+inline void __fastcall RecordArraySetSize(RecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.

@@ -156,3 +156,30 @@ __declspec(naked) inline void __fastcall StringArraySetAtGrowStringOriginal(void
     EI_ORIGINAL(0x006FEBFA)
 __declspec(naked) inline void* __fastcall CStringAssignOriginal(void* /*destination*/, void*, const void* /*source*/)
     EI_ORIGINAL(0x00700AA9)
+// MFC CString::operator=(const char*) 00700AF9 (RET 4, returns this); CString::Find(char) 00700E91 (RET 4, index or
+// -1; the character is the low byte of the argument). src/lib/mfc.cpp keeps its own member for the first.
+__declspec(naked) inline void* __fastcall CStringAssignTextOriginal(void* /*destination*/, void*, const char* /*text*/)
+    EI_ORIGINAL(0x00700AF9)
+__declspec(naked) inline int __fastcall CStringFindCharOriginal(const void* /*string*/, void*, char /*c*/)
+    EI_ORIGINAL(0x00700E91)
+// MFC CPtrList::NewNode(prev, next) 004621A0 (RET 8, returns the node, data cleared); RemoveAll 0052CA10 (plain RET).
+__declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
+    EI_ORIGINAL(0x004621A0)
+__declspec(naked) inline void __fastcall PtrListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x0052CA10)
+// MFC CArray::SetSize(size, growBy) instantiations (all RET 8, no result): records 005719B0, dwords 0059C660,
+// points 005B16D0, words 006FEEFA, bytes 006FF64A.
+__declspec(naked) inline void __fastcall RecordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x005719B0)
+__declspec(naked) inline void __fastcall DwordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x0059C660)
+__declspec(naked) inline void __fastcall PointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x005B16D0)
+__declspec(naked) inline void __fastcall WordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x006FEEFA)
+__declspec(naked) inline void __fastcall ByteArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x006FF64A)
+// ostream::operator<<(long) 006FC9C6 (RET 4, returns the stream). CPlex::FreeDataChain 006FE90F (plain RET, ECX =
+// chain head). src/lib/mfc.cpp keeps its own PlexFreeDataChain.
+__declspec(naked) inline void* __fastcall OstreamPutLongOriginal(void* /*stream*/, void*, long /*value*/)
+    EI_ORIGINAL(0x006FC9C6)
+__declspec(naked) inline void __fastcall PlexFreeDataChainOriginal(void* /*chain*/) EI_ORIGINAL(0x006FE90F)

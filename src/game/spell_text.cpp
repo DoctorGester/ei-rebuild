@@ -52,7 +52,7 @@ int Length(const mfc::CString& s) { return console::Length(s); }
 
 } // namespace
 
-__declspec(naked) int TextOps::Find(char) const EI_ORIGINAL(0x00700E91)
+int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
 __declspec(naked) void TextOps::TrimRight(char) EI_ORIGINAL(0x006FE0DD)

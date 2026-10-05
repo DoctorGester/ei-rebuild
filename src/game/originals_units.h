@@ -78,3 +78,5 @@ __declspec(naked) inline void* __fastcall UnitEquipArmourOriginal(void* /*unit*/
 __declspec(naked) inline int __fastcall UnitAddWeaponOriginal(void* /*unit*/, void*, void* /*item*/)
     EI_ORIGINAL(0x00531070)
 __declspec(naked) inline void __fastcall ControllerRepositionOriginal(void* /*controller*/) EI_ORIGINAL(0x00554450)
+// 00557E70: destructor of the animation-step array / controller list (ECX = object, plain RET, no result).
+__declspec(naked) inline void __fastcall AnimationStepsDestroyOriginal(void* /*steps*/) EI_ORIGINAL(0x00557E70)

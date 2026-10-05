@@ -78,7 +78,7 @@ __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGI
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
 __declspec(naked) void __fastcall SearchReset(void*, void*) EI_ORIGINAL(0x005C35F0)
 // 005B16D0 (RET 8). The excluded regions' CArray<{int x, y}>::SetSize.
-__declspec(naked) void __fastcall ExcludedSetSize(void*, void*, int, int) EI_ORIGINAL(0x005B16D0)
+inline void __fastcall ExcludedSetSize(void* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.
 __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005B9A20)
 // 006E727B. atexit, for the function-local spiral cache.

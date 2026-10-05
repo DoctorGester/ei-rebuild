@@ -24,10 +24,12 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
+#include "originals_library.h"
+#include "originals_ui.h"
 
 using console::CStringArray;
 
-__declspec(naked) void UiDwordArray::SetSize(int, int) EI_ORIGINAL(0x0059C660)
+void UiDwordArray::SetSize(int n, int g) { DwordArraySetSizeOriginal(this, nullptr, n, g); }
 
 namespace {
 
@@ -103,7 +105,7 @@ struct GameObjects {
     void ResetView(int a, int b);               // 005786A0 (on 007AFEA6)
     void MarkInterfaceChanged();                // 00578950 (on 007AFEA5)
 };
-__declspec(naked) void GameObjects::SetServerFlag(std::uint8_t) EI_ORIGINAL(0x00578D10)
+void GameObjects::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
 __declspec(naked) void GameObjects::ResetView(int, int) EI_ORIGINAL(0x005786A0)
 __declspec(naked) void GameObjects::MarkInterfaceChanged() EI_ORIGINAL(0x00578950)
 GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObjects*>(address); }

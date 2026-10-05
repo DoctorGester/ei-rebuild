@@ -91,7 +91,7 @@ __declspec(naked) void __fastcall MotionWaypointsConstruct(void*) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall MotionSpeedsConstruct(void*) EI_ORIGINAL(0x004D5990)
 __declspec(naked) void __fastcall MotionCurvesConstruct(void*) EI_ORIGINAL(0x0054E5D0)
 __declspec(naked) void __fastcall MotionSpeedsDestroy(void*) EI_ORIGINAL(0x004CB050)
-__declspec(naked) void __fastcall PlexFreeDataChain(void*) EI_ORIGINAL(0x006FE90F)
+inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 
 std::uint8_t& PathFlag() { return *reinterpret_cast<std::uint8_t*>(0x007B00D2); }   // cleared around path searches
 void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);

@@ -25,7 +25,7 @@ struct AiLogStream {
     AiLogStream* Apply(void* manipulator);  // 00434FE0
 };
 AiLogStream* AiLogStream::Write(const char* text) { return static_cast<AiLogStream*>(OstreamPutString(this, nullptr, text)); }
-__declspec(naked) AiLogStream* AiLogStream::Write(long) EI_ORIGINAL(0x006FC9C6)
+AiLogStream* AiLogStream::Write(long v) { return static_cast<AiLogStream*>(OstreamPutLongOriginal(this, nullptr, v)); }
 AiLogStream* AiLogStream::Put(int c) { return static_cast<AiLogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
 AiLogStream* AiLogStream::Apply(void* manipulator) { return static_cast<AiLogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 AiLogStream* AiLog() { return *reinterpret_cast<AiLogStream**>(0x007C2EB8); }

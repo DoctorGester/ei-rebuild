@@ -164,7 +164,7 @@ __declspec(naked) void __fastcall WorldAwardKill(void*, void*, char*, int) EI_OR
 __declspec(naked) void __fastcall RememberAttacker(void*, void*, CUnit*) EI_ORIGINAL(0x005D7E90)
 
 GameOstream* GameOstream::Put(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
-__declspec(naked) GameOstream* GameOstream::Put(long) EI_ORIGINAL(0x006FC9C6)
+GameOstream* GameOstream::Put(long v) { return static_cast<GameOstream*>(OstreamPutLongOriginal(this, nullptr, v)); }
 __declspec(naked) GameOstream* GameOstream::Put(double) EI_ORIGINAL(0x006FC7FA)
 GameOstream* GameOstream::PutChar(int c) { return static_cast<GameOstream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
 GameOstream* GameOstream::Apply(void* manipulator) { return static_cast<GameOstream*>(OstreamManipulate(this, nullptr, manipulator)); }

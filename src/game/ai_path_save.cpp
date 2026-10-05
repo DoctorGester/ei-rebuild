@@ -10,6 +10,7 @@
 #include "ei/vcall.h"
 
 #include <cstdint>
+#include "originals_library.h"
 
 namespace {
 
@@ -21,7 +22,7 @@ __declspec(naked) PathCell* __fastcall NextCell(PathCellList*, void*, PathCellLi
 __declspec(naked) void __fastcall OrderLoad(AIPath*, void*, void*) EI_ORIGINAL(0x005C8230)
 __declspec(naked) void __fastcall OrderSave(AIPath*, void*, void*) EI_ORIGINAL(0x005C8370)
 // 005B16D0 (RET 8): the excluded regions' SetSize.
-__declspec(naked) void __fastcall ExcludedSetSize(void*, void*, int, int) EI_ORIGINAL(0x005B16D0)
+inline void __fastcall ExcludedSetSize(void* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 
 void Read(void* stream, void* buffer, int size) { ei::VCall<void>(stream, 1, buffer, size); }
 void Write(void* stream, const void* buffer, int size) { ei::VCall<void>(stream, 2, buffer, size); }

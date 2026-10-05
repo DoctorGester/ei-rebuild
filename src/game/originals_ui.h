@@ -47,3 +47,8 @@ __declspec(naked) inline int __fastcall CursorSetShapeOriginal(void* /*cursor*/,
 __declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*memory*/, void*, CInterface3D*,
                                                                       const char*, const char*, int, int, int)
     EI_ORIGINAL(0x00634650)
+// 00600270: CUiWindow's frame time in seconds, unrounded in ST0 (ECX = window, plain RET).
+__declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*window*/) EI_ORIGINAL(0x00600270)
+// 00578D10: sets the world server's flag through the game state at 007AFEA4. A free function: one stack argument,
+// RET 4, ECX is not read (the callers' member `this` is the state but is ignored); EAX is not a result.
+__declspec(naked) inline void __stdcall SetServerFlagOriginal(int /*flag*/) EI_ORIGINAL(0x00578D10)

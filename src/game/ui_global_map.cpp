@@ -704,7 +704,7 @@ EI_REPLACE(0x0062D350, GlobalMapCreate);
 namespace {
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
-__declspec(naked) double __fastcall FrameTime(CUiWindow*) EI_ORIGINAL(0x00600270)
+inline double __fastcall FrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
 // 006010E0 (not rewritten): the container's base update (its children).
 __declspec(naked) void __fastcall UpdateChildren(CUiWindow*) EI_ORIGINAL(0x006010E0)
 

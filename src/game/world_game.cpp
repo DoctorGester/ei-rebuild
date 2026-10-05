@@ -1262,7 +1262,7 @@ __declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(
 __declspec(naked) WorldPlayer* __fastcall PlayersAdd(void*, void*) EI_ORIGINAL(0x0066C180)
 __declspec(naked) void __fastcall PlayerAttach(WorldPlayer*, void*, void*) EI_ORIGINAL(0x00665990)
 // 006FC9C6 (RET 4). ostream << long.
-__declspec(naked) void* __fastcall OstreamPutLong(void*, void*, long) EI_ORIGINAL(0x006FC9C6)
+inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamPutLongOriginal(s, nullptr, v); }
 
 } // namespace
 

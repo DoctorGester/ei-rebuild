@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 
 #include <cstdint>
+#include "originals_library.h"
 
 namespace {
 
@@ -70,7 +71,7 @@ __declspec(naked) void __fastcall FacingFromQuaternion(const float* /*q*/, float
 }
 
 // 005B16D0 (RET 8): the excluded regions' CArray::SetSize.
-__declspec(naked) void __fastcall ExcludedSetSize(void*, void*, int, int) EI_ORIGINAL(0x005B16D0)
+inline void __fastcall ExcludedSetSize(void* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // The order's follow-ups through their original addresses (ai_motion.cpp), the arguments as the
 // caller's dwords.
 __declspec(naked) void __fastcall OrderSetTurn(AIPath*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x005C7C00)
