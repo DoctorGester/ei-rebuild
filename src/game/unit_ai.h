@@ -179,6 +179,7 @@ inline void* const kFollowVtable = reinterpret_cast<void*>(0x0073D1C4);
 inline void* const kSuspectionVtable = reinterpret_cast<void*>(0x0073D1F8);
 inline void* const kAggressionVtable = reinterpret_cast<void*>(0x0073D260);
 inline void* const kCorpseWatcherVtable = reinterpret_cast<void*>(0x0073D294);
+inline void* const kFearVtable = reinterpret_cast<void*>(0x0073FF8C);
 } // namespace aimode
 
 // Shared slot implementations of the simple modes (registered once, used by several vtables).
@@ -393,6 +394,27 @@ struct AIRef {
     CEngineObject* object;
 };
 
+// A call the perception memory heard (0x18 bytes; CallAllies sends kind 0x1A).
+struct AICallRecord {
+    Vector3 point;                  // +0x00
+    int kind;                       // +0x0C
+    int unknown_10;                 // +0x10 0 when added
+    char* text;                     // +0x14 CString
+};
+static_assert(sizeof(AICallRecord) == 0x18);
+
+// CArray<AICallRecord> (brain + 0x178).
+struct AICallArray {
+    void SetSize(int size, int growBy);             // 005CDD60
+
+    void* vtable;
+    AICallRecord* data;             // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(AICallArray) == 0x14);
+
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
     // Actions (`action`).
@@ -453,6 +475,18 @@ struct AIBrain {
     // 005CB0F0 (thiscall on +0xD0). Empties the perception memory: its four object lists, the noticed
     // point, the report arrays.
     void ResetMemory();
+    // The standard mode sets of the script's Guard / Sentry commands: ClearModes, then the guard
+    // (radius, wander -1: the default) or sentry mode, Suspection, Aggression, CorpseWatcher and
+    // Fear(0); the target is released and the action dropped. 005D6230 / 005D64E0.
+    void StandardGuard(const Vector3* point, float radius);
+    void StandardSentry(const Vector3* point);
+    // New modes handed to AddMode (operator new; a failed allocation adds null).
+    void AddGuardMode(const Vector3* point, float radius, float wander);    // 005D6300
+    void AddSuspectionMode();                       // 005D63B0 (point and level left unset)
+    void AddAggressionMode();                       // 005D63F0
+    void AddCorpseWatcherMode();                    // 005D6440
+    void AddFearMode(std::uint8_t flag);            // 005D6480 (distance from 0073FF00, 3, unset point)
+    void AddSentryMode(const Vector3* point);       // 005D65B0
 
     // 005D7520. Action 2 (move) after arrival: run the queued looks, each turning then waiting.
     void UpdateMove();
@@ -489,7 +523,9 @@ struct AIBrain {
     void PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool far);
     // 005D7F80. A free place to stand within `radius` of `point`.
     bool FindStandPoint(const Vector3* point, float radius, Vector3* out);
-    // 005D5990. Calls allied units near `point`.
+    // 005D5990 (unit_ai_brain.cpp). Every allied unit within +0x38 of the owner's unit hears a call
+    // for help (kind 0x1A) at `point`; the message text is formatted only while the console shows
+    // filter bit 0.
     void CallAllies(const Vector3* point);
     void LookAround(int unused);                                        // 005CFE40 on +0xA4
     void CurrentAttack(int* partAndObject);                             // 005CF220 on +0xA4
@@ -539,7 +575,7 @@ struct AIBrain {
     mfc::CTypedPtrList<CEngineObject> unknown_12C;  // +0x12C (elements are counted references)
     mfc::CTypedPtrList<CEngineObject> corpses;  // +0x148 (elements are counted references)
     std::uint8_t reports[0x178 - 0x164];        // +0x164 CArray (005CD670 SetSize)
-    std::uint8_t unknown_178[0x18C - 0x178];    // +0x178 CArray (005CDD60 SetSize)
+    AICallArray calls;                          // +0x178 calls heard (005CBBA0)
     std::uint8_t seesEnemy;         // +0x18C
     std::uint8_t unknown_18D[3];
 };
@@ -555,7 +591,7 @@ static_assert(offsetof(AIBrain, alarmRecords) == 0x90);
 static_assert(offsetof(AIBrain, memory) == 0xD0);
 static_assert(offsetof(AIBrain, unknown_0F4) == 0xF4);
 static_assert(offsetof(AIBrain, unknown_12C) == 0x12C);
-static_assert(offsetof(AIBrain, unknown_178) == 0x178);
+static_assert(offsetof(AIBrain, calls) == 0x178);
 static_assert(offsetof(AIBrain, noticedX) == 0xE0);
 static_assert(offsetof(AIBrain, visible) == 0x110);
 static_assert(offsetof(AIBrain, corpses) == 0x148);

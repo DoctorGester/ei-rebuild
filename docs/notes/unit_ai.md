@@ -20,6 +20,9 @@ commands). Verify: `tests/verify/verify_unit_ai.cpp`. Scenario: `tests/scenarios
   object references at +0xF4, +0x110 (visible), +0x12C, +0x148 (corpses), CArrays at +0x164 (reports) and +0x178; the alarm
   records (CArray of 0x4C bytes) are at +0x90. Mode slot 9 (`Exclusive`): AddMode replaces a mode of another type when both
   answer 1. The mode list holds owning pointers (RefPtr::Share on add, RefPtr::Destroy on removal).
+- Calls for help: `CallAllies` lists the units within +0x38 (10 after Init) of the owner through the server's sector map;
+  each allied one's memory hears kind 0x1A (005CBBA0 -> 005CCD40: earlier unflagged records of kind >= 0x1A are dropped,
+  then {point, kind, 0, text} appended at +0x178).
 - Entry: the unit controller (CUnit + 0x240) embeds the brain at +0x980; its tick 00552300 calls
   `AIBrain::Think` (005D53B0). Modes are 16-bit-refcounted (+4, released through 0040A3A0).
 - The script's UM* commands (SSCCmd::Execute cases 0x24-0x31, 0xC7-0xCA) build modes and add them
@@ -55,6 +58,9 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005D4A90 | PlayerMode::Execute (every tick for party units) | ours only: state in 0..2, a following brain has a target |
 | 005D39E0-005D3D90 | PlayerMode::CommandWalk, GoTo, Attack, Use, Cast, CastAt | ours only: state / action / target / run flag |
 | 005D5F60, 005D6140, 005D4DF0, 005D4E80, 005D4F70, 005CB0F0 | AIBrain::AddMode, RemoveModesOfType, ClearModes, Reset, Init, ResetMemory (`unit_ai_brain.cpp`) | ours only: list walk agrees with count and tail, one mode of the added type, the removed type gone, cleared fields; scenarios `unit_ai` / `script_exec` (UMClear, UM*, UMAg), every spawn (Init), a death (Reset, `combat_more`) |
+| 005D6230, 005D64E0 | AIBrain::StandardGuard, StandardSentry (script Guard / Sentry) | ours only: exactly the five modes in order, point, fear / aggression fields; scenario `script_exec` |
+| 005D6300, 005D63B0, 005D63F0, 005D6440, 005D6480, 005D65B0 | AddGuardMode, AddSuspectionMode, AddAggressionMode, AddCorpseWatcherMode, AddFearMode, AddSentryMode | ours only: last mode's type and fields (their only callers are the two above, so the wrappers do not run in practice) |
+| 005D5990 | AIBrain::CallAllies | ours only: the same sector-map query first; every ally in range has the call (point, kind 0x1A) as its last heard record |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
 
 None is in `docs/rebirth-patched-functions.txt`; the only patched callee is FatalError, called
@@ -62,6 +68,10 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 `originals_ai.h`; the standalone build must replace them.
 
 ## Original bugs and oddities kept on purpose
+
+- The mode adders (005D6300-005D65B0) write the new mode's +4 before testing the allocation and pass a failed one to AddMode,
+  which calls its GetType (ours tests first, then also passes null). A new Suspection mode's point and level and a new Fear
+  mode's +0x14..+0x20 stay uninitialised. CallAllies formats its message only for the console filter but always builds it.
 
 - Think's "new motivation" message prints an empty name for mode type 9 or above 10. `IsNearPath` sets only AL on its first "near" return (callers test AL) and keeps NaN in the clamp of the segment parameter.
   `AttackTarget` passes the player's order check (0054C8B0) an order whose point (+0x0C..+0x17) the original leaves uninitialised (ours zeroes it). Player's CommandCast passes Cast a third argument whose upper bytes

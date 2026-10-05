@@ -117,7 +117,6 @@ void AIRef::Save(AIStream* a0) { CountedRefSaveOriginal((void*)this, nullptr, (v
 __declspec(naked) void AIBrain::UpdateFollow() EI_ORIGINAL(0x005D6F90)
 __declspec(naked) void AIBrain::PlanLooks(AIMoveOrder*, const Vector3*, float, bool) EI_ORIGINAL(0x005D5B40)
 __declspec(naked) bool AIBrain::FindStandPoint(const Vector3*, float, Vector3*) EI_ORIGINAL(0x005D7F80)
-__declspec(naked) void AIBrain::CallAllies(const Vector3*) EI_ORIGINAL(0x005D5990)
 
 __declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554740)
 __declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
