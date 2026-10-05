@@ -67,13 +67,6 @@ void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 void LeaveGame();
 } // namespace uiorig
 
-// A model preview's animation controls (CUiModel, ui.h), not rewritten.
-struct UiModelAnim {
-    CTransformObject* object_;
-    void Play(int animation);   // 005FC3B0 (animation + 1 is the object's track)
-    void Stop();                // 005FC3D0 (back to the rest pose)
-};
-
 static_assert(sizeof(CUiWindow) == 0x148);
 
 // An MFC CPtrArray-like array (vtable, data, size, capacity, growth) with zeroed new slots.
@@ -88,14 +81,30 @@ struct UiItemArray {
 };
 static_assert(sizeof(UiItemArray) == 0x14);
 
-// The item predicates of the camp screens (005EE050-005EE110, thiscall on the owning screen,
-// which they do not read). Items of type 0x3007 are sorted by kind (+0x4C) and sub-kind (+0x50).
+// The item predicates of the camp screens (005EE050-005EE130, thiscall on the owning screen,
+// which they do not read; RET 4; ui_screens.cpp). Loot items (type 0x3007, CItemLoot) are sorted
+// by kind (+0x4C) and record type (+0x50).
 struct UiItemKinds {
-    bool IsPart(const char* item);       // 005EE0D0: kind 2, sub-kind 0-2 (blueprint parts)
-    bool IsKindOne(const char* item);    // 005EE110: kind 1
-    bool IsSpell(const char* item);      // 005EE050: kind 2, sub-kind 3 (record in the spell table)
-    bool IsModifier(const char* item);   // 005EE080: kind 2, sub-kind 4 (spell modifier table)
+    bool IsPart(const char* item);       // 005EE0D0: kind 2, record type 0-2 (blueprint parts)
+    bool IsKindOne(const char* item);    // 005EE110: kind 1 (a material)
+    bool IsSpell(const char* item);      // 005EE050: kind 2, record type 3 (the spell table)
+    bool IsModifier(const char* item);   // 005EE080: kind 2, record type 4 (spell modifier table)
+    BOOL IsSpellContainer(const char* item);   // 005EE0B0: type 0x3008 (all of EAX)
+    // 005EE130: an item the item constructor can take apart: a weapon (0x3004), type 0x3005, or
+    // armour (0x3006) whose prototype's material class is not "none"; never when the prototype
+    // (006A0110) exists with its +0x68 flag clear.
+    bool IsBuildable(const char* item);
 };
+
+// The fields of an item prototype record (006A0110's result) the predicates read.
+struct ItemPrototypeRecord {
+    std::uint8_t unknown_00[0x10];
+    const char* materialClass_;      // +0x10 "none" for items without a material
+    std::uint8_t unknown_14[0x68 - 0x14];
+    bool buildable_;                 // +0x68
+};
+static_assert(offsetof(ItemPrototypeRecord, materialClass_) == 0x10);
+static_assert(offsetof(ItemPrototypeRecord, buildable_) == 0x68);
 
 // --- Camp item strip ------------------------------------------------------------------------
 //
@@ -128,6 +137,17 @@ public:
     // 006212F0. Virtual slot 26: rebuilds the visible list from the source list for the current
     // filter and tab (tab 5 of filter 0 shows everything).
     void RebuildList();
+    // 00621570 (RET 4; ui_screens.cpp). Rebuilds the list as RebuildList does, first switching to
+    // `item`'s tab (SetTab, while the tab keys are enabled; not for filter 0's tab 5), and scrolls
+    // the tab so the last entry `item` is the same as (CItem slot 14) is visible: its position
+    // moves into [index - 6, index]. The scroll stops (pending and speed 0); count_ is not
+    // updated. Null does nothing.
+    void ScrollToItem(char* item);
+    // The tab of `item` under the current filter (0 for an unknown filter), as both rebuilds
+    // choose it.
+    int TabOf(const char* item);
+    // 00620960 through its original address (its verify wrapper runs).
+    void CallSetTab(int tab);
     // 00621F30. Virtual slot 25: the item under the screen point (x, y), or null; sets the cursor
     // for the strip's action mode.
     char* ItemAt(int x, int y, int* cursor);

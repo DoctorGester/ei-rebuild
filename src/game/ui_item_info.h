@@ -13,6 +13,7 @@
 // Every description writes into the surface with the same layout: the title wrapped in white at
 // (15, 10)-(185, 25), then lines 15 pixels apart in 0xA7D7E4, the description text wrapped last.
 
+#include "item.h"
 #include "ui.h"
 
 #include "lib/mfc.h"
@@ -81,6 +82,22 @@ static_assert(sizeof(ItemObjectCache) == 0x10);
 void __fastcall TrimItemModels(ItemObjectCache* cache);
 void __fastcall TrimItemTextures(ItemObjectCache* cache);
 
+// An item's turning state (0x18 bytes, vtable 007403F8, a counted object at the item's +0x1C, its
+// count a 16-bit word): made by the item draw (005ECA10) and the moves (005EE1B0).
+struct ItemTurn {
+    void* vtable;
+    int references;          // +0x04
+    float angle;             // +0x08 radians, wrapped at 007C7D20 (2 pi)
+    float speed;             // +0x0C
+    bool flag;               // +0x10 set by a move into a list shown turning
+    std::uint8_t unknown_11[3];
+    float glow;              // +0x14 phase of the spell glow
+};
+static_assert(sizeof(ItemTurn) == 0x18);
+// The item's turning state (CItem +0x1C).
+inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(item->unknown_1C); }
+
+class CParty;
 class CItemScreen;
 // 005F6470 / 005F6620 (__fastcall on the screen). Destructor bodies of the item screens (vtable
 // 00740A2C's screen; the camp, vtable 0074091C, which also has a CStringArray at +0x240 and a
@@ -126,6 +143,16 @@ public:
     // with the screen's texture 0, built), textures "modifiers2" and "campslots", the display's
     // settings, and the caches' limits (30, or 20 with 00784754 set) applied (ui_item_screen.cpp).
     void CreateBase();
+    // 005EE1B0 (RET 0x18; ui_item_screen.cpp). Moves `item` into `to` (CParty::AddItem with the
+    // stack kept when `merge` and Shift (CInterface3D +0x7D) are down, merging with `merge`) and
+    // out of `from` (RemoveItem, all of the stack likewise); returns what `to` now holds. With
+    // `limit` > 0 and at least that many items in `to`, only when `item` is the same (slot 14) as
+    // one of its first `limit` items (else nothing, null). The unconditional move with `turning`
+    // gives the moved item a turning state (made if missing) with its flag set. Flags are bytes.
+    CItem* MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning);
+    // 005EE2C0 (RET 8; ui_item_screen.cpp). Moves every item of `from` into `to` (whole stacks,
+    // merged); returns the last item `to` took, or null when `from` was empty.
+    CItem* ReturnAll(CParty* to, CParty* from);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_;      // +0x164

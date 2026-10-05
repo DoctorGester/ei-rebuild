@@ -9,6 +9,9 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_render.h"
+#include "originals_gameplay.h"
+#include "item.h"
+#include "party.h"
 
 #include <cstdint>
 #include <cstring>
@@ -303,3 +306,56 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F7010, Screen9Destroy);
+
+// --- 005EE1B0 / 005EE2C0: moving items between lists ----------------------------------------------
+
+namespace {
+// CParty::AddItem / RemoveItem (party_items.cpp) through their original addresses (verify wrappers).
+CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
+    return static_cast<CItem*>(PartyAddItemOriginal(list, nullptr, item, keepCount, merge));
+}
+void RemoveItemAt(CParty* list, CItem* item, int all) { PartyRemoveItemOriginal(list, nullptr, item, all); }
+void* TurnVtable() { return reinterpret_cast<void*>(0x007403F8); }
+} // namespace
+
+CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
+    int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;
+    if (limit > 0 && to->items_.size >= limit) {
+        for (int i = 0; i < limit; ++i) {
+            if (!item->IsSameAsSlot(static_cast<CItem*>(to->items_.data[i]))) continue;
+            CItem* moved = AddItemAt(to, item, whole, merge);
+            RemoveItemAt(from, item, whole);
+            return moved;
+        }
+        return nullptr;
+    }
+    CItem* moved = AddItemAt(to, item, whole, merge);
+    RemoveItemAt(from, item, whole);
+    if (static_cast<std::uint8_t>(turning)) {
+        ItemTurn*& slot = ItemTurnOf(moved);   // a null result faults here, as in the original
+        if (!slot) {
+            auto* turn = static_cast<ItemTurn*>(gamecrt::operator_new(sizeof(ItemTurn)));
+            // The original writes the count before checking the allocation (and the rest after).
+            reinterpret_cast<volatile int*>(turn)[1] = 0;
+            if (turn) turn->vtable = TurnVtable();
+            turn->angle = 0.0f;
+            turn->speed = 0.0f;
+            slot = turn;
+            ++turn->references;
+        }
+        slot->flag = true;
+    }
+    return moved;
+}
+EI_REPLACE_METHOD(0x005EE1B0, CItemScreen::MoveItem);
+
+CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
+    CItem* moved = nullptr;
+    while (from->items_.size != 0) {
+        auto* first = static_cast<CItem*>(from->items_.data[0]);
+        moved = AddItemAt(to, first, 1, 1);
+        RemoveItemAt(from, first, 1);
+    }
+    return moved;
+}
+EI_REPLACE_METHOD(0x005EE2C0, CItemScreen::ReturnAll);

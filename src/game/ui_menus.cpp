@@ -67,7 +67,6 @@ T Global(std::uintptr_t address) {
 
 __declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
 __declspec(naked) void CUiSurface::Freeze(int, int) EI_ORIGINAL(0x005FD760)
-__declspec(naked) void CUiModel::Draw(int) EI_ORIGINAL(0x005FC2F0)
 __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, int) EI_ORIGINAL(0x00601110)
 __declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
@@ -153,7 +152,7 @@ BOOL CSaveLoadWindow::Draw(int pass) {
     if (!model) return 1;
     double y = isSave_ ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(pass);
+    model->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
 
@@ -295,7 +294,7 @@ BOOL COptionsWindow::Draw(int pass) {
     if (!model) return 1;
     double y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
-    model->Draw(pass);
+    model->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
 

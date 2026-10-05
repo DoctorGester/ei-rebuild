@@ -3,10 +3,12 @@
 #include "ui_screens.h"
 
 #include "core_maths.h"
+#include "item.h"
 #include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "originals_ui.h"
 
 namespace {
@@ -85,13 +87,59 @@ __declspec(naked) void UiInput::BaseKeyDown(int, int, int) EI_ORIGINAL(0x0060182
 
 __declspec(naked) void UiItemArray::SetSize(int, int) EI_ORIGINAL(0x0062A390)
 
-bool UiItemKinds::IsPart(const char* a0) { return ItemKindIsPartOriginal((const void*)a0); }
-__declspec(naked) bool UiItemKinds::IsKindOne(const char*) EI_ORIGINAL(0x005EE110)
-bool UiItemKinds::IsSpell(const char* a0) { return ItemKindIsSpellOriginal((const void*)a0); }
-bool UiItemKinds::IsModifier(const char* a0) { return ItemKindIsModifierOriginal((const void*)a0); }
+// --- Item predicates -------------------------------------------------------------------------
 
-__declspec(naked) void UiModelAnim::Play(int) EI_ORIGINAL(0x005FC3B0)
-__declspec(naked) void UiModelAnim::Stop() EI_ORIGINAL(0x005FC3D0)
+namespace {
+// The item as loot (type 0x3007), or null.
+const CItemLoot* AsLoot(const char* item) {
+    auto* loot = reinterpret_cast<const CItemLoot*>(item);
+    return loot->type_ == kTypeQuick ? loot : nullptr;
+}
+const unsigned char* NoMaterial() { return reinterpret_cast<const unsigned char*>(0x007846F0); }   // "none"
+} // namespace
+
+bool UiItemKinds::IsSpell(const char* item) {
+    const CItemLoot* loot = AsLoot(item);
+    return loot && loot->kind_ == 2 && loot->recordType_ == 3;
+}
+EI_REPLACE_METHOD(0x005EE050, UiItemKinds::IsSpell);
+
+bool UiItemKinds::IsModifier(const char* item) {
+    const CItemLoot* loot = AsLoot(item);
+    return loot && loot->kind_ == 2 && loot->recordType_ == 4;
+}
+EI_REPLACE_METHOD(0x005EE080, UiItemKinds::IsModifier);
+
+BOOL UiItemKinds::IsSpellContainer(const char* item) {
+    return reinterpret_cast<const CEngineObject*>(item)->type_ == kTypeSpellContainer;
+}
+EI_REPLACE_METHOD(0x005EE0B0, UiItemKinds::IsSpellContainer);
+
+bool UiItemKinds::IsPart(const char* item) {
+    const CItemLoot* loot = AsLoot(item);
+    return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
+}
+EI_REPLACE_METHOD(0x005EE0D0, UiItemKinds::IsPart);
+
+bool UiItemKinds::IsKindOne(const char* item) {
+    const CItemLoot* loot = AsLoot(item);
+    return loot && loot->kind_ == 1;
+}
+EI_REPLACE_METHOD(0x005EE110, UiItemKinds::IsKindOne);
+
+bool UiItemKinds::IsBuildable(const char* item) {
+    auto* object = reinterpret_cast<CItem*>(const_cast<char*>(item));
+    auto* prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
+    if (prototype && !prototype->buildable_) return false;
+    int type = object->type_;
+    if (type == kTypeWeapon || type == 0x3005) return true;
+    if (type != kTypeArmor) return false;
+    prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
+    return prototype &&
+           gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(prototype->materialClass_), NoMaterial()) != 0;
+}
+EI_REPLACE_METHOD(0x005EE130, UiItemKinds::IsBuildable);
+
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { PlaySoundAt(ui, nullptr, name, flags); }
@@ -122,6 +170,7 @@ void CUiItemStrip::SetTab(int tab) {
     scrollDirection_ = 0;
 }
 EI_REPLACE_METHOD(0x00620960, CUiItemStrip::SetTab);
+__declspec(naked) void CUiItemStrip::CallSetTab(int) EI_ORIGINAL(0x00620960)
 
 void CUiItemStrip::SetFilter(int filter) {
     for (float& position : position_) position = 0.0f;
@@ -221,14 +270,7 @@ void CUiItemStrip::RebuildList() {
     } else {
         for (int i = 0; i < source_->size_; ++i) {
             char* item = source_->data_[i];
-            int tab;
-            switch (filter_) {
-            case 0: tab = ItemTab(item); break;
-            case 1: tab = SpellTab(item); break;
-            case 2: tab = ArmorTab(item); break;
-            default: tab = 0; break;
-            }
-            if (tab == tab_) {
+            if (TabOf(item) == tab_) {
                 int index = list_.size_;
                 list_.SetSize(index + 1, -1);
                 list_.data_[index] = item;
@@ -238,6 +280,49 @@ void CUiItemStrip::RebuildList() {
     count_ = list_.size_;
 }
 EI_REPLACE_METHOD(0x006212F0, CUiItemStrip::RebuildList);
+
+int CUiItemStrip::TabOf(const char* item) {
+    switch (filter_) {
+    case 0: return ItemTab(item);
+    case 1: return SpellTab(item);
+    case 2: return ArmorTab(item);
+    default: return 0;
+    }
+}
+
+void CUiItemStrip::ScrollToItem(char* item) {
+    if (!item) return;
+    auto* wanted = reinterpret_cast<CItem*>(item);
+    float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
+    list_.SetSize(0, -1);
+    // The original inlines the array's SetSize (0062A390) in the second loop.
+    auto append = [&](char* entry) {
+        if (wanted->IsSameAsSlot(reinterpret_cast<CItem*>(entry))) found = static_cast<float>(list_.size_);
+        int index = list_.size_;
+        list_.SetSize(index + 1, -1);
+        list_.data_[index] = entry;
+    };
+    if (filter_ == 0 && tab_ == 5) {
+        for (int i = 0; i < source_->size_; ++i) append(source_->data_[i]);
+    } else {
+        int tab = TabOf(item);
+        if (TabKeysEnabled()) CallSetTab(tab);
+        for (int i = 0; i < source_->size_; ++i)
+            if (TabOf(source_->data_[i]) == tab_) append(source_->data_[i]);
+    }
+    if (!(found < 0.0f)) {
+        float& position = position_[tab_];
+        double lowest = static_cast<double>(found) - 8.0 + 2.0;   // kept on the FPU
+        if (lowest > position) {
+            position = static_cast<float>(lowest);
+        } else if (position > found) {
+            position = found;
+        }
+    }
+    pending_ = 0.0f;
+    velocity_ = 0.0f;
+}
+EI_REPLACE_METHOD(0x00621570, CUiItemStrip::ScrollToItem);
 
 char* CUiItemStrip::CallItemAt(int x, int y, int* cursor) {
     return Virtual<char*(__thiscall*)(CUiItemStrip*, int, int, int*)>(this, 25)(this, x, y, cursor);
@@ -534,7 +619,7 @@ EI_REPLACE(0x006177D0, MpHeroLButtonUp);
 // --- CEscMenu ---------------------------------------------------------------------------------
 
 void CEscMenu::OnMouseMove(int flags, int x, int y) {
-    auto* model = reinterpret_cast<UiModelAnim*>(window.models_.data_[0]);
+    CUiModel* model = window.models_.data_[0];
     int region = window.RegionAt(x, y);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {
