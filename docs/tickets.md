@@ -15,23 +15,31 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U7 (taken 2026-10-05) Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips).
+- U8 Magic trap family: Save 0052B070, Load 0052ADC0, constructor 00529DD0, destructor 00529F90; model record destructor 0053EE70.
 
 ## App and startup, 0x00440000-0x00480000
 
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I3 Next 3-8 interface functions; candidates from ui.md "Tenth pass": 00610AD0, 00611220, 00634790, 0062B7D0, 00632D70 (add scenario steps where needed).
+- I3 (taken 2026-10-05) Next 3-8 interface functions; candidates from ui.md "Tenth pass": 00610AD0, 00611220, 00634790, 0062B7D0, 00632D70 (add scenario steps where needed).
+
+## HUD, battle screen, spells and items, 0x00640000-0x006C0000
+
+- H1 (taken 2026-10-05) The 3-6 largest live game-logic functions in 0x00640000-0x00680000 (HUD and
+  battle screen logic, objectives, options windows, saved party lists, spell effects), no draws.
+- H2 Same for 0x00680000-0x006C0000 (spells, items, item database, sound manager logic, quest db).
+
+## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
+
+- S1 The 3-6 largest live script runtime functions not yet rewritten.
 
 ## Cleanup (docs/cleanup-plan.md)
 
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
-  - C2e (taken 2026-10-05) Network message classes, one class per message (net_message_classes.cpp,
-    net_messages.cpp, message offsets in net_server_* / net_client_*); docs/notes/cleanup-network.md.
-  - C2f Network links (net_link.*, net_session_pump.cpp): VCalls, duplicate layouts, FileStream from CStream.
+  - C2f (taken 2026-10-05) Network links (net_link.*, net_session_pump.cpp): VCalls, duplicate layouts, FileStream from CStream.
   - C2d Camera.
 - C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
   identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
