@@ -148,11 +148,11 @@ bool ReadDisplayModeFormat(CTextureDevice* device, std::uint32_t* format) {
 }
 
 // The screen's pixel format (the device's primary surface) into `format` (a DDPIXELFORMAT). In the
-// switch-over the display mode's instead (ticket R8, towards a device without a primary surface):
-// the primary is in the display mode's format (full screen and windowed), so the holders get the
-// same format, and nothing of theirs needs the primary surface.
+// switch-over with "cpuwindows" the display mode's instead (ticket R8, towards a device without a
+// primary surface): the primary is in the display mode's format (full screen and windowed), so the
+// holders get the same format, and nothing of theirs needs the primary surface.
 void ReadScreenFormat(CTextureDevice* device, std::uint32_t* format) {
-    if (render::Presenting() && ReadDisplayModeFormat(device, format)) return;
+    if (render::Presenting() && render::CpuWindows() && ReadDisplayModeFormat(device, format)) return;
     CDXSurface* primary = device->primary_;
     format[0] = 0x20;
     long hr = ComCall(primary->surface, kGetPixelFormat, static_cast<void*>(format));
