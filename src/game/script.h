@@ -627,6 +627,20 @@ void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream);
 // SSCCmd::Load into the element's command.
 void __fastcall ScriptSubCallLoad(ScriptSubCall* call, void* edx, ScriptStream* stream);
 
+// ---- Destructors and AppendFrom (ticket S6) ------------------------------------------------------
+// Callers keep going through the original addresses, so the wrappers see every call.
+// 004BE090 (ScriptVars destructor, __thiscall; script_destroy.cpp): every array's elements
+// destroyed and storage freed, the base vtables written; nothing else changes.
+void __fastcall ScriptVarsDestruct(ScriptVars* vars);
+// 004BE9D0 (ScriptDefinition destructor, __thiscall; script_destroy.cpp): the variables as above
+// (through the arrays' out-of-line destructors), the if-then pairs freed, parameters and name.
+void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition);
+// 004BF640 (SSCCmd destructor, __thiscall; script_destroy.cpp): nested calls destroyed (their
+// commands deleted), every argument and binding array freed.
+void __fastcall ScriptCmdDestruct(SSCCmd* cmd);
+// 004B3900 (ScriptVars::AppendFrom, __thiscall; script_vars_append.cpp): the four appends.
+void __fastcall ScriptVarsAppendFrom(ScriptVars* vars, void* edx, const ScriptVars* other);
+
 // ---- Variable appends (script_vars_append.cpp) --------------------------------------------------
 
 // 004C2B70 / 004C2FE0 / 004C3450 / 004C3DC0 (__thiscall on this set's value array, the other set's
