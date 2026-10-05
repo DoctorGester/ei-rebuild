@@ -308,6 +308,33 @@ void CUiWindow::UpdateRegionTips(int) {
 }
 EI_REPLACE_METHOD(0x005FEBF0, CUiWindow::UpdateRegionTips);
 
+// The same per region, each tooltip then redrawn (its slot 22; the tooltip is re-read).
+void CUiWindow::RedrawTips() {
+    POINT mouse{interface_->mouseX_, interface_->mouseY_};
+    interface_->CallScalePointFromScreen(&mouse);
+    for (int i = 0; i < regions_.size_; ++i) {
+        CUiRegion* region = regions_.data_[i];
+        if (region->tip_) region->OnMouseMove(mouse.x, mouse.y);
+        if (CUiTooltip* tip = regions_.data_[i]->tip_) reinterpret_cast<CUiWindow*>(tip)->VirtualRedraw();
+    }
+}
+EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
+
+BOOL CUiWindow::DrawBase(int pass) {
+    for (int i = 0; i < sceneObjects_.size_; ++i) SpriteDrawOriginal(sceneObjects_.data_[i], nullptr, pass);
+    for (int i = 0; i < models_.size_; ++i) models_.data_[i]->Draw(pass);
+    return 1;
+}
+EI_REPLACE_METHOD(0x005FEB90, CUiWindow::DrawBase);
+
+void CUiWindow::RedrawBase() {
+    for (int i = 0; i < surfaces_.size_; ++i) {
+        CUiSurface* surface = surfaces_.data_[i];
+        if (surface->Shown()) surface->Blit();
+    }
+}
+EI_REPLACE_METHOD(0x005FECC0, CUiWindow::RedrawBase);
+
 void CUiWindow::SetEnabled(int enabled, int notify) {
     enabled_ = enabled;
     if (notify) CallSlot19(this, enabled);

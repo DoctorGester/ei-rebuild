@@ -325,8 +325,9 @@ public:
                         int flag);
     // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
-    // 005FD760 (not rewritten). Sets (`frozen`) or clears flag 4 of +0x0C; setting it saves the
-    // surface's contents when it has any (005FD7A0), clearing it restores them when `restore`.
+    // 005FD760 (not rewritten). Sets (`frozen` nonzero) or clears the shown flag (4 of +0x0C):
+    // setting it puts kept contents (+0x1C) back into a surface (005FD7A0 with 1); clearing it with
+    // `restore` set keeps the contents in memory and releases the surface (005FD7A0 with 0).
     void Freeze(int frozen, int restore);
     // 005FCC00 (ui_surface_create.cpp). Constructor: a surface of the layout rectangle (left, top,
     // right, bottom) with format `format`; returns this.
@@ -344,13 +345,25 @@ public:
     std::uint16_t* Rgb565Copy(int width, int height);
     void Greyscale();
 
+    // Slot 0 (005FDA80, ui_surface_blit.cpp): blits the surface onto the render target when it is
+    // shown.
+    void Blit() {
+        using Fn = void(__thiscall*)(CUiSurface*);
+        reinterpret_cast<Fn>(static_cast<void**>(vtable_)[0])(this);
+    }
+    bool Shown() const { return (flags_ & kShown) != 0; }
+    static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze (005FD760)
+
     void* vtable_;
     CInterface3D* interface_;        // +0x04
-    std::uint8_t unknown_08[0x24 - 0x08];
+    std::uint8_t unknown_08[0x0C - 0x08];
+    std::uint32_t flags_;            // +0x0C
+    std::uint8_t unknown_10[0x24 - 0x10];
     RECT rect_;                      // +0x24 screen coordinates
     std::uint8_t unknown_34[0x38 - 0x34];
 };
 static_assert(offsetof(CUiSurface, rect_) == 0x24);
+static_assert(offsetof(CUiSurface, flags_) == 0x0C);
 static_assert(sizeof(CUiSurface) == 0x38);
 
 // A 3D model shown in a window (an inventory item, a portrait): one pointer to a scene object.
@@ -498,8 +511,8 @@ public:
         using Handler = void(__thiscall*)(void*, int, int, int);
         reinterpret_cast<Handler>(inputVtable_[4])(InputSide(), buttons, x, y);
     }
-    // 005FEB90 (not rewritten). Base drawing (virtual slot 20): draws the scene objects and the
-    // models; returns 1.
+    // 005FEB90 (RET 4; ui_window.cpp). Base drawing (virtual slot 20): the scene objects through
+    // the sprite draw (005E6D90), then the models (005FC2F0); returns 1.
     BOOL DrawBase(int pass);
     // 005EC300 (RET 0x14; the camp and the multiplayer hero screen). Draws `model` (a hero) as a
     // preview: clears the depth buffer (all of it, then the preview's screen rectangles), turns it
@@ -522,8 +535,19 @@ public:
     // object attached to the window), given the black material and the first referenced object
     // (or null) as its texture; returns it, or null when the manager makes none.
     CUiMesh* AddSprite(const char* name);
-    // 005FECC0 (not rewritten). Base slot 22 (redraw).
+    // 005FECC0 (ui_window.cpp). Base slot 22 (redraw): every shown surface blits itself (slot 0).
     void RedrawBase();
+    // 005FED00 (ui_window.cpp). Base slot 23: each region's tooltip follows the mouse (as
+    // UpdateRegionTips) and redraws itself (its slot 22), region by region.
+    void RedrawTips();
+    // Slots 22, 23 and 24 (+0x58, +0x5C, +0x60) through the vtable: redraw, tooltips, update.
+    void VirtualRedraw() { CallVirtual(22); }
+    void VirtualRedrawTips() { CallVirtual(23); }
+    void VirtualUpdate() { CallVirtual(24); }
+    void CallVirtual(int slot) {
+        using Fn = void(__thiscall*)(CUiWindow*);
+        reinterpret_cast<Fn>(vtable_[slot])(this);
+    }
 
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98
@@ -1166,16 +1190,19 @@ static_assert(offsetof(CHudTopPanel, page_) == 0x160);
 // 00601570 double click, 00601820 key) pass the event on to the handlers and children.
 class CUiContainer : public CUiWindow {
 public:
-    // 00600270 (not rewritten). Time since the last frame in seconds (timer ticks * 0.001f),
-    // left unrounded in ST0.
+    // 00600270 (ui_container.cpp; it does not use the window). Time since the last frame in
+    // seconds: the display object's (00500960) slot 6 milliseconds * 0.001f, left unrounded in ST0.
     double FrameTime();
-    // 006010E0 (not rewritten). Base update (slot 24): updates the children.
+    // 006010E0 (ui_container.cpp). Base update (slot 24): every child's slot 24.
     void UpdateBase();
     // 00600EF0 (rewritten as a free function, ui_container_draws.cpp; this forwards to its address).
     // Base drawing (slot 20); returns 1.
     BOOL DrawContainer(int pass);
-    // 00601040 (not rewritten). Base slot 22 (redraws the window and its children).
+    // 00601040 (ui_container.cpp). Base slot 22, only while the interface draws (+0x30): the
+    // window's own (005FECC0), then every enabled child's slot 22.
     void RedrawContainer();
+    // 00601090 (ui_container.cpp). Base slot 23 likewise: 005FED00, then the enabled children's.
+    void RedrawChildTips();
     // 00600D30. Adds a child window (null is ignored; ui_window.cpp).
     void AddChild(CUiWindow* child);
     // 00600B20 (RET 4; ui_container.cpp). Constructor: the window base (005FE700), no children or

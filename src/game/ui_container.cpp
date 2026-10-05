@@ -3,12 +3,21 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/stlp.h"
+#include "originals_render.h"
 
 namespace {
 // The container's vtables (main, input side).
 void** ContainerVtable() { return reinterpret_cast<void**>(0x00741008); }
 void** ContainerInputVtable() { return reinterpret_cast<void**>(0x00740FD4); }
+
+// The display object (00500960): slot 6 gives the last frame's length in milliseconds.
+std::uint32_t FrameMilliseconds() {
+    void* display = DisplayObject();
+    using Fn = std::uint32_t(__thiscall*)(void*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(display))[6])(display);
+}
 
 // Slot 0 of an input side or a window: the deleting destructor (with 1: the memory is freed).
 void DeleteInstance(void* object) {
@@ -71,6 +80,37 @@ void CUiContainer::AddInput(UiInputSide* input) {
     inputsCapacity_ = fresh + length;
 }
 EI_REPLACE_METHOD(0x00600CC0, CUiContainer::AddInput);
+
+// --- Per-frame slots ---------------------------------------------------------------------------
+
+// The milliseconds are loaded as an unsigned qword and multiplied by the float 0.001.
+double CUiContainer::FrameTime() { return x87::FromUnsigned(FrameMilliseconds()) * static_cast<double>(0.001f); }
+EI_REPLACE_METHOD(0x00600270, CUiContainer::FrameTime);
+
+void CUiContainer::UpdateBase() {
+    for (int i = 0; i < children_.size_; ++i) children_.data_[i]->VirtualUpdate();
+}
+EI_REPLACE_METHOD(0x006010E0, CUiContainer::UpdateBase);
+
+void CUiContainer::RedrawContainer() {
+    if (!interface_->drawing_) return;
+    RedrawBase();
+    for (int i = 0; i < children_.size_; ++i) {
+        CUiWindow* child = children_.data_[i];
+        if (child->enabled_) child->VirtualRedraw();
+    }
+}
+EI_REPLACE_METHOD(0x00601040, CUiContainer::RedrawContainer);
+
+void CUiContainer::RedrawChildTips() {
+    if (!interface_->drawing_) return;
+    RedrawTips();
+    for (int i = 0; i < children_.size_; ++i) {
+        CUiWindow* child = children_.data_[i];
+        if (child->enabled_) child->VirtualRedrawTips();
+    }
+}
+EI_REPLACE_METHOD(0x00601090, CUiContainer::RedrawChildTips);
 
 // --- Input dispatch ----------------------------------------------------------------------------
 

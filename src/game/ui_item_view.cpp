@@ -87,7 +87,7 @@ void Sprite::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, s
 double Sprite::Scale() { return SpriteScaleOriginal((void*)this); }
 __declspec(naked) void Sprite::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
 void Sprite::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-__declspec(naked) void Sprite::Draw(int) EI_ORIGINAL(0x005E6D90)
+void Sprite::Draw(int pass) { SpriteDrawOriginal(this, nullptr, pass); }
 Sprite* AsSprite(void* p) { return static_cast<Sprite*>(p); }
 
 // The caches' STLport map (thiscall; library code) and their trimming (game code, not rewritten).
