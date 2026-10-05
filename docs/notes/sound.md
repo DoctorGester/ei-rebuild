@@ -31,21 +31,10 @@ requested switch position); reads timeGetTime only for the fader's hold time. Th
 restarts the sequence at its markers. Neither they nor Miles' callback touch game state or the
 random generator.
 
-### Music state machine (CMusicSystem::Update, every world frame; summary in sound_music.cpp)
-
-State 1 (a zone, after SetZoneMode and the first world frame clearing `holding`): a jingle (script
-PlayMusic) playing blocks everything until it ends; a fight (`007AFC9C == 2`) requests a random
-combat track at the next marker of the current file (RequestStream mode 3), and when it ends the
-stream stops with a fade (mode 2); calm is due 120..180 s after a jingle or fight; otherwise, when
-nothing plays and `calmDue` passed, a random calm track is requested at the current position (mode
-4), then "stop after it" (mode 1) once the stream thread took it. States 2-5 play one file.
-
-### Positional sound
-
-`UpdatePositional` (formula in the code comments): silent beyond `farDistance` (squared compare), full
-inside `nearDistance`, linear between; camera height (listener z) fades "height-faded" 2D sounds
-from 30 (full) to 70 (silent), 3D sounds the same. The pan is mirrored when `panDirect` is 0
-(option "swap stereo").
+The music state machine (`CMusicSystem::Update`, every world frame) and the positional formula (`UpdatePositional`) are summarised in
+`sound_music.cpp` / `sound_manager.cpp`. `RequestStream` modes: 1 stop after the current file, 2 stop with a fade (a fight ended), 3 switch at the
+next marker of the current file (combat), 4 switch at the current position (calm); the calm music is due 120..180 s after a jingle or fight. The
+pan is mirrored when `panDirect` is 0 (option "swap stereo").
 
 ### AI hearing ("Delayed sound")
 
