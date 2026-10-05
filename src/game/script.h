@@ -60,6 +60,19 @@ struct MfcList {
 };
 static_assert(sizeof(MfcList<int>) == 0x1C);
 
+// The vtables of the script's CArray instantiations: the derived classes the constructors install,
+// and the base classes the inlined destructors write back.
+namespace scriptvtable {
+inline void* const kFloats = reinterpret_cast<void*>(0x0073D2E0);       // ScriptVars float values
+inline void* const kFloatsBase = reinterpret_cast<void*>(0x0073D2EC);
+inline void* const kStrings = reinterpret_cast<void*>(0x0073D2D4);      // CString arrays (strings, names)
+inline void* const kStringsBase = reinterpret_cast<void*>(0x0073D2F8);
+inline void* const kRefs = reinterpret_cast<void*>(0x0073D110);         // object references (ScriptGroup)
+inline void* const kRefsBase = reinterpret_cast<void*>(0x0073D11C);
+inline void* const kGroups = reinterpret_cast<void*>(0x0073D304);       // ScriptVars group values
+inline void* const kGroupsBase = reinterpret_cast<void*>(0x0073D310);
+} // namespace scriptvtable
+
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
 struct ScriptObjectRef {
@@ -825,3 +838,85 @@ void __fastcall ScriptLightningSave(const ScriptLightning* bolt, void* edx, Scri
 // manager (007AFFA8) and referenced.
 void __fastcall ScriptPointLightLoad(ScriptPointLight* light, void* edx, ScriptStream* stream);
 void __fastcall ScriptFxSourceLoad(ScriptFxSource* source, void* edx, ScriptStream* stream);
+// 004B17F0 / 004B1820 / 004B1850 / 004B1880 (__thiscall). The element's effect object leaves the
+// world's timed objects and is released; the slot is cleared (an FX source's name stays).
+void __fastcall ScriptPointLightDestruct(ScriptPointLight* light);
+void __fastcall ScriptLightningDestruct(ScriptLightning* bolt);
+void __fastcall ScriptParticleSourceDestruct(ScriptParticleSource* source);
+void __fastcall ScriptFxSourceDropSound(ScriptFxSource* source);
+// Commands (__thiscall on the script with the command, as Execute calls them).
+// 004BD260. CreateFX(x, y, z, volume, radius, name): a new sound object (class 0x48, not looping)
+// added to the world's timed objects; the script keeps nothing.
+void __fastcall ScriptCreateFx(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BCFF0. CreateLightning(id, from xyz, to xyz, width): a new bolt (class 0x4D) appended to
+// lightning_ (a negative or NaN id takes nextParticleId_, others are truncated; existing ids are
+// not looked up).
+void __fastcall ScriptCreateLightning(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BD540 (__thiscall). The FX source element's destructor body: the sound dropped as above, then
+// the name destroyed.
+void __fastcall ScriptFxSourceDestruct(ScriptFxSource* source);
+// 004BD9A0. CreateParticleSource(id, x, y, z, size, type name): the type looked up by name
+// (case-insensitive) in ScriptParticleTypes(), nothing for an unknown one; the id (FISTP; negative:
+// nextParticleId_) finds an existing source, whose effect is dropped, or a new one at the tail; a new
+// CEffectParticle (class 0x4A) with the type, position and size; the source not moving, the type's
+// lifetime.
+void __fastcall ScriptCreateParticleSource(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BDBB0. MoveParticleSource(id, x, y, z, steps, delete when done): the source with the id (FISTP)
+// starts moving; step = (point - position) / steps.
+void __fastcall ScriptMoveParticleSource(CScript* script, void* edx, const SSCCmd* cmd);
+
+// ---- Variable array constructors and destructors (script_arrays.cpp) -----------------------------
+// __thiscall, registered as free functions; callers keep going through the original addresses.
+// 004BC690 / 004BC740 / 004BC870 / 004BC950. One type's values and names, both empty with their
+// vtables (scriptvtable::kFloats / kStrings / kRefs / kGroups, names kStrings); return the set.
+ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars);
+ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsConstruct(ScriptNamedValues<mfc::CString>* vars);
+ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars);
+ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsConstruct(ScriptNamedValues<ScriptGroup>* vars);
+// 004BC6C0 / 004BC770 / 004BC8A0. The names, then the values: base vtable, elements destroyed
+// (strings destructed, references released and cleared), storage freed.
+void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars);
+void __fastcall ScriptStringsDestruct(ScriptNamedValues<mfc::CString>* vars);
+void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars);
+// 004BC810 / 004BC9A0 / 004BCA20. One CString array; one reference array (each released and
+// cleared); one group array (each group's references reset, its storage freed).
+void __fastcall ScriptNamesDestruct(MfcArray<mfc::CString>* names);
+void __fastcall ScriptRefArrayDestruct(MfcArray<ScriptObjectRef>* refs);
+void __fastcall ScriptGroupArrayDestruct(MfcArray<ScriptGroup>* groups);
+// 004BCAE0. ScriptRun destructor: its variables as ScriptVarsDestruct frees them (the float names
+// through the out-of-line CString array destructor 004C26A0).
+void __fastcall ScriptRunDestruct(ScriptRun* run);
+
+// ---- Purge and zone reset (script_cleanup.cpp) ---------------------------------------------------
+// __thiscall on the script; callers keep going through the original addresses.
+// 004BED90 (after every removal of a world object). The runs', instances' and global variables
+// drop deleted objects (ScriptVars::RemoveDeletedObjects, inlined by the original for all but the
+// runs), then the temporaries are freed (004BEC80).
+void __fastcall ScriptPurgeDeletedObjects(CScript* script);
+// 004BE490. Every instance (RemoveHead 004C7A10) and run (004C82B0) removed and destroyed.
+void __fastcall ScriptDropInstancesAndRuns(CScript* script);
+// 004BEB00 (EnterZone 0057A060). Instances and runs dropped, For depth 0, temporaries freed, the
+// point lights' objects dropped and their slots zeroed, the FX / particle / lightning lists emptied
+// (their effects dropped), global values reset (004B35E0), each WorldScript block run again (004BCC60).
+void __fastcall ScriptResetZone(CScript* script);
+
+// ---- Quest construction (script_quest.cpp) --------------------------------------------------------
+// The quest QStart starts: its name and the objectives the QObj* commands add (QFinish 004BAAB0 turns
+// them into a script).
+struct ScriptQuestObjective {
+    int type;               // the QObj* command's id (0xD7-0xDD)
+    mfc::CString text;      // its string argument (empty for QObjArea / QObjGetItem)
+    float value;            // its float argument
+};
+static_assert(sizeof(ScriptQuestObjective) == 12);
+inline MfcArray<ScriptQuestObjective>& ScriptQuestObjectives() {
+    return *reinterpret_cast<MfcArray<ScriptQuestObjective>*>(0x007AA608);
+}
+inline mfc::CString& ScriptQuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C); }
+// 004BAEB0 (__thiscall). An objective's destructor.
+void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
+// 004BAA40 (QStart; __fastcall). The objectives destroyed and freed (size and capacity 0), the quest
+// named `name`.
+void __fastcall ScriptQuestStart(const char* name);
+// 004BAE10 (__fastcall, the value on the stack). Appends {type, text, value} to the objectives.
+void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value);
