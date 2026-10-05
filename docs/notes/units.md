@@ -1490,3 +1490,57 @@ SkillLevelValue's lookup), plus intelligence - 25.
 - The existing forwarders to 00525E90 / 00527EB0 / 005230C0 (combat_actions, combat_taming,
   combat_orders, ui_screens, ui_camp, ui_item_info) still call through the address, so they go
   through the verify wrappers; the cleanup can switch them to direct calls.
+
+# Twelfth round (U10): the magic trap's Create, Destroy, update, firing and ForgetObject
+
+Code: `src/game/magic_trap.cpp`. Verify: `tests/verify/verify_magic_trap.cpp` (five wrappers, all
+ours only: each releases references, casts spells or frees memory). Shared headers, additive:
+`magic_trap.h` (MagicTrap now derives from CMapObject and declares its members +0x238..+0x28C,
+sizeof 0x290; the existing code's At<> offsets for them became members, lowering the file's
+cleanup counts), `world.h` (CWorld declares virtual slots 13-26 so slot 26, IsServer, is called
+without VCall; 13-25 are placeholders named Slot13..Slot25). None of the five is in library.csv,
+dead_code.csv or the Rebirth list; callees: 0050F1C0 CMapObject::Update (rewritten, called
+directly), 00455940, 0050E770 / 0050E840, 0052C8E0, 006FE90F, 007005D8 (all already forwarded or
+library); none Rebirth-patched.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0052A100 | MagicTrap::CreateTrap (slot 2, Create; returns 0050E770's result) | ours only: sides -1, flags 0x80040, period 10, countdown / +0x28C 0, no spell, circles without storage, no points, list empty. CBaseManager::CreateObject for every trap (magic_traps, zone_gz2g_traps) |
+| 0052A200 | MagicTrap::DestroyTrap (slot 3, Destroy) | ours only: no spell, circles / points empty, list empty. The manager's ReleaseObject / DestroyAll (the load of save1 in magic_traps) |
+| 0052AC20 | MagicTrap::UpdateTrap (slot 6; returns 0050F1C0's 1) | ours only: result 1, list well formed; on the server with a spell and a period above 0 the countdown went down by one (not below 0) or was reset to the period; unchanged without a spell or on the client. Every world update of every trap |
+| 0052AB30 | MagicTrap::FireAtOccupants | ours only: the list of units inside untouched, the countdown unchanged or (armed) the period. From UpdateTrap for traps with a period; whether zone2's traps have one decides if a scenario reaches it |
+| 0052AC90 | MagicTrap::ForgetObject (slot 56, RET 4; EAX 0) | ours only: no entry for the object left, count down by the entries removed, list well formed, an emptied list without blocks, result 0. The world server's RemoveObject (005935C0) tells every map object (save1's load in magic_traps) |
+
+Renamed in Ghidra: 0052A100 MagicTrap__Create, 0052A200 MagicTrap__Destroy, 0052AC20
+MagicTrap__Update, 0052AB30 MagicTrap__FireAtOccupants, 0052AC90 MagicTrap__ForgetObject.
+
+## Details
+
+- Create is the constructor's tail (00529DD0 calls 0050E770 directly and repeats it inline) except
+  that the circles' SetSize(0, -1) is inlined (storage freed, capacity then count 0; growBy kept).
+  Destroy does the same after 0050E840 (no sides / flags / period).
+- The update calls the map object's update first, then the world's slot 26 (1 for CWorldServer,
+  0058A380; 0 for CWorldClient, 0055EB30; world_effect_internal.h's IsClientSide is this slot,
+  misnamed). Period <= 0: UpdateVictims (0052A680). Otherwise the countdown is decremented while
+  above 0 and, at 0 or below, FireAtOccupants runs every tick until a cast resets it (CastAtUnits
+  sets countdown = period); a trap that finds nobody keeps trying each tick.
+- FireAtOccupants keeps an MFC CPtrList on the stack (vtable 0073D454, blocks of 10) and fetches the
+  context even for a disarmed trap; its destructor's RemoveAll walks the nodes doing nothing.
+- ForgetObject removes every node whose element equals the object (null included), releasing and
+  clearing the reference and returning the node to the free list; when the count reaches 0 the
+  list is emptied as RemoveAll (its blocks freed) and the loop goes on with the saved next pointer.
+- UpdateTrap and the existing UpdateVictims / FireAtOccupants callers go through the trap functions'
+  addresses (0052A680, 0052AB30, 0052A920, 0052A4B0) so their verify wrappers see the calls.
+
+## Original bugs and oddities kept (twelfth round)
+
+- A periodic trap whose countdown reached 0 and found nobody to cast at searches again on every
+  tick (the countdown is reset only by a cast).
+
+## Risks (twelfth round)
+
+- FireAtOccupants is reached only by traps with a period above 0; if zone2's seven have period 0,
+  no scenario runs it (its verify count shows).
+- Adding virtuals to CWorld changes no layout (CEngineObject already has the vtable pointer); a
+  later non-virtual CWorldServer / CWorldClient member named IsServer or SlotNN would silently
+  become an override (check_thunks catches it if it is hooked).
