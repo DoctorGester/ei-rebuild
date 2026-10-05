@@ -149,7 +149,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
         CUnit* member = unitAt(i);
         ChosenSetAtGrow(&chosen, nullptr, chosen.size_, member ? (member->flags_ & kFlagSelected) : 0);
     }
-    if (interface_->keyFlag7D_) {
+    if (interface_->shiftDown_) {
         chosen.data_[index] = chosen.data_[index] == 0 ? 1u : 0u;
     } else {
         for (int i = 0; i < chosen.size_; ++i)

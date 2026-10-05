@@ -17,8 +17,11 @@
 #include <windows.h>
 
 namespace mfc { class CString; }
+namespace console { class ConsoleWindow; }
 
 class CUiWindow;
+class CUiRootWindow;
+struct UiInputSide;
 class CUiMesh;
 
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
@@ -108,31 +111,76 @@ public:
     // the interface object itself is not used. Returns what the sound system returns.
     int PlaySound(const char* name, int flag);
 
+    // Mouse messages from the input dispatcher (00457970; ui_interface_input.cpp; RET 0xC, the
+    // wheel RET 0x10): each goes to the input side that took the mouse (+0x0C), else to the top
+    // window's, else nowhere. 005F76A0 left down (clears +0x7F first), 005F76E0 left up (+0x7F
+    // cleared after), 005F7740 move, 005F7780 / 005F77C0 right down / up (+0x80 set / cleared
+    // first), 005F7800 left double click (+0x7F set first), 005F7840 right double click (+0x80
+    // set first), 005F7880 wheel (returns the handler's result, 0 without a target).
+    void OnLeftDown(int buttons, int x, int y);
+    void OnLeftUp(int buttons, int x, int y);
+    void OnMouseMove(int buttons, int x, int y);
+    void OnRightDown(int buttons, int x, int y);
+    void OnRightUp(int buttons, int x, int y);
+    void OnLeftDouble(int buttons, int x, int y);
+    void OnRightDouble(int buttons, int x, int y);
+    int OnWheel(int flags, int delta, int x, int y);
+    // The input side mouse events go to: the one that took the mouse, else the top window's.
+    UiInputSide* MouseTarget() const;
+    // 005F7B40 (RET 0xC; ui_interface_input.cpp). A typed character (WM_CHAR): nothing for the
+    // key under Esc (scan 0x29); the shown console's OnChar, else a multiplayer client's open chat
+    // line (+0x1C), else the top window (input slot 10).
+    void OnChar(int key, int repeat, int flags);
+    // 005F7BE0 (RET 0xC). A key released: VK_SHIFT / VK_CONTROL / VK_MENU clear +0x7D / +0x7C /
+    // +0x7E; then the shown console's OnKeyUp (005E47E0), else the top window (input slot 11).
+    void OnKeyUp(int key, int repeat, int flags);
+    // 005F74F0. Closes every window, top first (input slot 1, slot 26, deleting destructor), with
+    // the cursor's shape 3 first; clears the five flags +0x7C..+0x80, pumps the messages and
+    // clears the screen flag (InterfaceHasScreen).
+    void CloseAll();
+    // 005F5AB0 (the input dispatcher's first step). CloseAll when +0x44 asks for it (cleared).
+    void CloseAllPending();
+
     int width_;                      // +0x00 screen width
     int height_;                     // +0x04 screen height
     struct UiRenderer* renderer_;    // +0x08 (its +0x54 is the Direct3D 7 device)
     void* mouseCapture_;             // +0x0C input side (window +0x94) that took the button press
-    std::uint8_t unknown_10[0x34 - 0x10];
+    std::uint8_t unknown_10[0x14 - 0x10];
+    console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
+    std::uint8_t unknown_18[0x1C - 0x18];
+    CUiRootWindow* root_;            // +0x1C updated after the top window every frame
+    std::uint8_t unknown_20[0x34 - 0x20];
     CUiWindow** stackBegin_;         // +0x34 stack of active windows (STLport vector)
     CUiWindow** stackEnd_;           // +0x38
     CUiWindow** stackCapacity_;      // +0x3C
-    std::uint8_t unknown_40[0x48 - 0x40];
+    std::uint8_t unknown_40[0x44 - 0x40];
+    bool closeAll_;                  // +0x44 every window is closed (005F5AB0)
+    std::uint8_t unknown_45[0x48 - 0x45];
     std::uint32_t pendingValue_;     // +0x48
     bool pendingFlag_;               // +0x4C
     std::uint8_t unknown_4D[0x68 - 0x4D];
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
     std::uint8_t unknown_70[0x7C - 0x70];
-    bool keyShift_;                  // +0x7C \ key-modifier flags (names provisional; the
-    std::uint8_t keyFlag7D_;         // +0x7D | battle screen tests +0x7F to choose between two
-    bool keyFlag7E_;                 // +0x7E | actions on a spell or quick-item click)
-    bool keyCtrl_;                   // +0x7F /
+    // Set by the key-down handler (005F78C0) from the scan codes, cleared by the key-up one
+    // (005F7BE0) from the virtual keys and when the windows change.
+    bool ctrlDown_;                  // +0x7C
+    std::uint8_t shiftDown_;         // +0x7D
+    bool altDown_;                   // +0x7E
+    // The left press is a double click (005F7800 sets it, the button's down and up clear it); a
+    // spell or quick item clicked twice is used at once.
+    bool doubleClick_;               // +0x7F
+    bool rightDown_;                 // +0x80 the right button is held
 };
 static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
-static_assert(offsetof(CInterface3D, keyCtrl_) == 0x7F);
+static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
+static_assert(offsetof(CInterface3D, console_) == 0x14);
+static_assert(offsetof(CInterface3D, root_) == 0x1C);
+static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
+static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 
 // The interface's growable pointer arrays (an MFC CArray-like template the game inlines): the
 // storage is aligned to 32 bytes, with the pointer returned by operator new stored just before it.
@@ -351,10 +399,10 @@ struct UiInputSide {
         using Fn = void(__thiscall*)(UiInputSide*, int, int, int);
         reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
     }
-    // Slot 12.
-    void Wheel(int flags, int delta, int x, int y) {
-        using Fn = void(__thiscall*)(UiInputSide*, int, int, int, int);
-        reinterpret_cast<Fn>(vtable_[kWheel])(this, flags, delta, x, y);
+    // Slot 12. The handlers return 1.
+    int Wheel(int flags, int delta, int x, int y) {
+        using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
+        return reinterpret_cast<Fn>(vtable_[kWheel])(this, flags, delta, x, y);
     }
 
     void** vtable_;
@@ -430,6 +478,16 @@ public:
         interface_->mouseCapture_ = nullptr;
         return true;
     }
+    // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
+    void CloseWindow() {
+        using Fn = void(__thiscall*)(CUiWindow*);
+        reinterpret_cast<Fn>(vtable_[26])(this);
+    }
+    // Slot 0: the deleting destructor (with 1: the memory is freed).
+    void DeleteWindow() {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+    }
     // The window's own mouse move handler (input slot 4), through its input vtable.
     void InputMouseMove(int buttons, int x, int y) {
         using Handler = void(__thiscall*)(void*, int, int, int);
@@ -481,6 +539,19 @@ static_assert(offsetof(CUiWindow, enabled_) == 0xE8);
 static_assert(offsetof(CUiWindow, objects_) == 0xF8);
 static_assert(offsetof(CUiWindow, regions_) == 0x128);
 static_assert(offsetof(CUiWindow, models_) == 0x138);
+
+// The interface's root window (CInterface3D +0x1C): updated after the top window every frame; in a
+// multiplayer client it holds the chat line, which takes the keys while it is open.
+// Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
+// main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
+inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
+
+class CUiRootWindow : public CUiWindow {
+public:
+    std::uint8_t unknown_148[4];
+    bool chatOpen_;                  // +0x14C
+};
+static_assert(offsetof(CUiRootWindow, chatOpen_) == 0x14C);
 
 // 005F2EA0 / 005F2EE0. Bounds-checked records of the spell and spell-modifier databases, as the
 // spell book reads them (stride 0x84 and 0x24; see item_db.h).
@@ -812,10 +883,17 @@ public:
     // object or 0.
     CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
 
+    // 0063FE70 (RET 8; ui_screen_constructors.cpp). Constructor: the window over 250..550 x
+    // 440..600 (vtables 00742A18 / 007429E4), no portraits, and the selection marker sprite (a
+    // 20x20 rectangle at depth 10, scale 80, texels 0x22, 0x96 - 0x36, 0xAA). Returns this.
+    CHudPortraits* Construct(CInterface3D* ui, CBattleScreen* owner);
+
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
     std::uint8_t unknown_150[0x158 - 0x150];
-    HudPortraitSlot* slots_;         // +0x158
+    HudPortraitSlot* slots_;         // +0x158 STLport vector
+    HudPortraitSlot* slotsEnd_;      // +0x15C
+    HudPortraitSlot* slotsCapacity_; // +0x160
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 
@@ -1352,6 +1430,10 @@ static_assert(sizeof(ObjectiveExit) == 0x1C);
 // zone picture with its exits; the arrows switch between zones when it lists several.
 class CObjectivesWindow : public CUiContainer {
 public:
+    // 0063B5D0 (RET 4; ui_screen_constructors.cpp). Constructor: the container, the empty zone
+    // list, strings, exit array (vtable 00741264), quest arrays and places; vtables 007411BC /
+    // 00741188 (the rest is set by Build). Returns this.
+    CObjectivesWindow* Construct(CInterface3D* ui);
     // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
     void Build();
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
@@ -1389,7 +1471,7 @@ public:
     // (0064DC60) gives each a sprite and a region after the exits'.
     UiPointF* questPlacesBegin_;     // +0x1CC
     UiPointF* questPlacesEnd_;       // +0x1D0
-    std::uint8_t unknown_1D4[0x1D8 - 0x1D4];
+    UiPointF* questPlacesCapacity_;  // +0x1D4
     std::uint8_t objectiveTexts_[0x14];   // +0x1D8 CStringArray of obj_0..obj_2
     std::uint32_t savedAlphaRef_;    // +0x1EC
 };
@@ -1493,6 +1575,12 @@ static_assert(sizeof(COptionsWindow) == 0x418);
 // cancel button), 4 an edit field instead of the text (its initial text is the text key itself).
 class CMessageBox : public CUiContainer {
 public:
+    // 00634650 (RET 0x18; ui_screen_constructors.cpp). Constructor: the container, the title
+    // (the text of `titleKey`) and, without flag 4, the text of `textKey` (else editText_ =
+    // `textKey`, the edit field's first text); `result`, `flags`, `format` kept; vtables 00742348 /
+    // 00742314. A missing text gives its key (GetString). Returns this.
+    CMessageBox* Construct(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+                           std::uint32_t flags, std::uint32_t format);
     // 00634790 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
     // 200..600 x 50..500 with the title and the text (or the edit field) centred vertically as a
     // block, the dark shade and frame behind it and the buttons below (regions with tips

@@ -81,7 +81,7 @@ static void __fastcall ToggleMemberVerify(CBattleScreenSetup* self, void*, int i
     }
     bool skipped = client || index >= Party(self)->size_;
     if (!skipped && index >= 0 && index < count) {
-        if (self->interface_->keyFlag7D_) {
+        if (self->interface_->shiftDown_) {
             chosen[index] = chosen[index] == 0 ? 1u : 0u;
         } else {
             for (int i = 0; i < count; ++i) chosen[i] = 0;
@@ -109,7 +109,7 @@ static void __fastcall ToggleMemberVerify(CBattleScreenSetup* self, void*, int i
     }
     ei::verify::Check("CBattleScreenSetup::ToggleMember", true, wrong < 0,
                       "index %d of %d (client %d, +0x7D %d): member %d wrong (marker %d, want %u)", index, count,
-                      client ? 1 : 0, self->interface_->keyFlag7D_, wrong, wrong >= 0 ? Marker(self, wrong) : 0,
+                      client ? 1 : 0, self->interface_->shiftDown_, wrong, wrong >= 0 ? Marker(self, wrong) : 0,
                       wrong >= 0 ? chosen[wrong] : 0u);
 }
 EI_VERIFY(0x006379E0, ToggleMemberVerify, 0, s_toggleMember);

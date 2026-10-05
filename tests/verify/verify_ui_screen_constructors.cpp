@@ -1,0 +1,66 @@
+// Checks for the window constructors (ui_screen_constructors.cpp). Ours only (a constructor
+// cannot run twice on the same memory): afterwards the vtables, the fields each one sets and its
+// result must be as the original leaves them. Reached: the message box by every question (the
+// Esc menu's quit box in ui_screens, the save window's overwrite, the disconnect box); the
+// objectives window by TAB (ui_hud); the portraits panel by every battle screen's Create.
+#include "verify.h"
+
+#include "../../src/game/ui.h"
+
+#include <cstdint>
+#include <cstring>
+
+namespace {
+
+bool Is(const void* p, std::uintptr_t address) { return reinterpret_cast<std::uintptr_t>(p) == address; }
+const char* Str(const void* field) { return *static_cast<const char* const*>(field); }
+
+} // namespace
+
+// CMessageBox::Construct (00634650).
+static CMessageBox*(__fastcall* s_messageBox)(CMessageBox*, void*, CInterface3D*, const char*, const char*, std::uint32_t,
+                                               std::uint32_t, std::uint32_t);
+static CMessageBox* __fastcall MessageBoxVerify(CMessageBox* self, void*, CInterface3D* ui, const char* title,
+                                                const char* text, std::uint32_t result, std::uint32_t flags,
+                                                std::uint32_t format) {
+    CMessageBox* r = self->CMessageBox::Construct(ui, title, text, result, flags, format);
+    bool edit = (flags & 4) != 0;
+    bool ok = r == self && Is(self->vtable_, 0x00742348) && Is(self->inputVtable_, 0x00742314) && self->interface_ == ui &&
+              self->result_ == result && self->flags_ == flags && self->format_ == format && self->title_ &&
+              self->text_ && (edit ? self->editText_ == text && *self->text_ == 0 : self->editText_ == nullptr);
+    ei::verify::Check("CMessageBox::Construct", true, ok, "\"%.30s\" \"%.30s\" flags %X: \"%.40s\" / \"%.40s\"",
+                      title ? title : "", text ? text : "", flags, self->title_ ? self->title_ : "",
+                      self->text_ ? self->text_ : "");
+    return r;
+}
+EI_VERIFY(0x00634650, MessageBoxVerify, 0, s_messageBox);
+
+// CObjectivesWindow::Construct (0063B5D0).
+static CObjectivesWindow*(__fastcall* s_objectives)(CObjectivesWindow*, void*, CInterface3D*);
+static CObjectivesWindow* __fastcall ObjectivesVerify(CObjectivesWindow* self, void*, CInterface3D* ui) {
+    CObjectivesWindow* r = self->CObjectivesWindow::Construct(ui);
+    const std::int32_t* quests = reinterpret_cast<const std::int32_t*>(self->quests_);
+    const std::int32_t* texts = reinterpret_cast<const std::int32_t*>(self->objectiveTexts_);
+    bool ok = r == self && Is(self->vtable_, 0x007411BC) && Is(self->inputVtable_, 0x00741188) && self->interface_ == ui &&
+              !self->zonesBegin_ && !self->zonesEnd_ && !self->zonesCapacity_ && *Str(&self->zoneName_) == 0 &&
+              !self->exitDistances_ && *Str(&self->shownZone_) == 0 && Is(self->exitsVtable_, 0x00741264) &&
+              !self->exits_ && self->exitCount_ == 0 && self->exitCapacity_ == 0 && self->exitGrowBy_ == 0 &&
+              quests[1] == 0 && quests[2] == 0 && !self->questPlacesBegin_ && !self->questPlacesEnd_ &&
+              !self->questPlacesCapacity_ && texts[1] == 0 && texts[2] == 0;
+    ei::verify::Check("CObjectivesWindow::Construct", true, ok, "window %p", self);
+    return r;
+}
+EI_VERIFY(0x0063B5D0, ObjectivesVerify, 0, s_objectives);
+
+// CHudPortraits::Construct (0063FE70): also exactly one scene object, the marker sprite.
+static CHudPortraits*(__fastcall* s_portraits)(CHudPortraits*, void*, CInterface3D*, CBattleScreen*);
+static CHudPortraits* __fastcall PortraitsVerify(CHudPortraits* self, void*, CInterface3D* ui, CBattleScreen* owner) {
+    CHudPortraits* r = self->CHudPortraits::Construct(ui, owner);
+    bool ok = r == self && Is(self->vtable_, 0x00742A18) && Is(self->inputVtable_, 0x007429E4) && self->interface_ == ui &&
+              self->owner_ == owner && self->count_ == 0 && !self->slots_ && !self->slotsEnd_ && !self->slotsCapacity_ &&
+              self->rect_.left == 250 && self->rect_.top == 440 && self->rect_.right == 550 && self->rect_.bottom == 600 &&
+              self->sceneObjects_.size_ == 1 && self->sceneObjects_.data_[0] != nullptr;
+    ei::verify::Check("CHudPortraits::Construct", true, ok, "objects %d", self->sceneObjects_.size_);
+    return r;
+}
+EI_VERIFY(0x0063FE70, PortraitsVerify, 0, s_portraits);

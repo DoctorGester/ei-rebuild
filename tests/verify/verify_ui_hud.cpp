@@ -221,7 +221,7 @@ static void __fastcall QuickItemsMouseUpVerify(void* input, void*, int buttons, 
     int region = w->RegionAt(x, y);
     int entry = captured ? w->RegionItem(region) : -1;
     bool own = entry >= 0 && region < 4 && w->entries_[entry].own;
-    bool ctrl = w->interface_->keyCtrl_;
+    bool ctrl = w->interface_->doubleClick_;
     int selected = w->selected_;
     int id = entry >= 0 ? w->entries_[entry].id : 0;
     CBattleScreen* screen = w->owner_;
