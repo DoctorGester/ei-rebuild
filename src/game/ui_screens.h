@@ -131,6 +131,12 @@ public:
     // 00621F30. Virtual slot 25: the item under the screen point (x, y), or null; sets the cursor
     // for the strip's action mode.
     char* ItemAt(int x, int y, int* cursor);
+    // 00621B50 (slot 20 of the forwarding strip's vtable 0074197C; ui_item_strip.cpp). Draws the
+    // strip: the end faces dimmed (sprite +0xCC 0.195) where it can scroll on, the background cells
+    // shifted by the current tab's fractional position, the window's sprites, eight item cells
+    // through the owner (005ECA10), the stack counts (not 1) on surface 0 and, unless +0x1B0 is 9,
+    // the owner's slot 54 number of each item its slot 43 takes on surface 1. Returns 1.
+    BOOL Draw(int pass);
 
     // Input handlers (input sub-object).
     void OnLButtonDown(int flags, int x, int y);   // 00620E10

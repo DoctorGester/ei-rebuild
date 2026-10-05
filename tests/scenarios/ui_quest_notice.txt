@@ -1,0 +1,34 @@
+# The battle screen's quest notice (006369D0, slot 33; docs/notes/ui.md, "Fourteenth pass"): a
+# "q." player variable set while the battle screen is on top reaches it through the quest log
+# (005F7FC0). Three parts: a new quest (1), completed (2), failed (3); four parts: a sub-objective
+# of an unset quest variable (skipped) and of a set one; two parts: the bare line. The quest names
+# have no "quest <name>" text, so the lines carry only the "combat_*" titles.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @GSSetVar(0,"q.zxzone.zxq",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxq"),1)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxq",2)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxq"),2)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxr",3)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxr"),3)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxs.1",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxs.1"),1)
+wait 300
+console @GSSetVar(0,"q.zxzone.zxq.1",2)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxzone.zxq.1"),2)
+wait 300
+console @GSSetVar(0,"q.zxt",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.zxt"),1)
+wait 500
+check IsAlive(GetLeader())
+report
+quit

@@ -47,6 +47,24 @@ public:
     // (+0x1C1) the party units inside +0x1CC are marked (flag 0x100) and the others unmarked; the
     // quest sound asked for in +0x1FC.
     void Update();
+    // 00638B30 (input side slot 3, RET 0xC; ui_battle_update.cpp; `this` the window). The left
+    // button released: nothing while a portrait click picks a player (+0x22C); without a press on
+    // the view (+0x1C0) the container's handler (006011F0); a press without a drag (+0x1C1), or on
+    // a network client, is a click on the unit under the point (00565E40, units with flag
+    // 0x400000 only) through SelectUnit (00638EF0); a drag selects the party units inside the box
+    // (+0x1CC): the world's selection cleared (00566100 with 0), the box marks and portraits'
+    // markers reset, each unit inside controlled (00566030) with its portrait marked and its face
+    // turned (about -x by 007C8144 / 7), then slot 32 with the first one's id; then 00637DC0.
+    void OnLButtonUp(int buttons, int x, int y);
+    // 006369D0 (slot 33, RET 8; ui_battle_update.cpp). A "q." player variable changed while the
+    // screen is on top (the quest log 005F7FC0 passes it on). `name` split at '.': three parts
+    // (q.<zone>.<quest>) a quest line, "combat_get_quest" / "_complete_" (value 2) / "_failed_"
+    // (3), then the quest's title (text "quest <quest>"); four parts (a sub-objective) the same
+    // with "_subobj" and the "#subobj <n>" line, skipped on a single player whose variable
+    // "<a>.<b>.<c>" is 0. The line (any part count) goes to the top panel's text (+0x164) and,
+    // unless +0x160, the message log; the clock pulses, +0x1FC becomes at least the value (1 for
+    // a failure, 3 for a completed quest).
+    void OnQuestVariable(const char* name, float value);
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
