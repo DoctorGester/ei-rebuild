@@ -250,7 +250,7 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     auto* counts = reinterpret_cast<RawVector*>(record->unknown_144);
     if (counts->begin) stlp::deallocate(counts->begin, static_cast<std::size_t>((static_cast<int>(counts->eos - counts->begin) >> 2) * 4));
     DestroyStringsAndFree(&record->soundNames);
-    DestroyString(&record->unknown_124);
+    DestroyString(&record->soundFolder);
     DestroyString(&record->unknown_118);
     DestroyStringsAndFree(&record->unknown_F8);
     DestroyStringsAndFree(&record->unknown_EC);

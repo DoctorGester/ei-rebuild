@@ -65,9 +65,13 @@ struct FigureAnimation {
     std::uint8_t unknown_1C[0x28 - 0x1C];
     std::uint32_t arrowFrom;        // +0x28
     std::uint32_t arrowTo;          // +0x2C
-    std::uint8_t unknown_30[0x58 - 0x30];
+    std::uint32_t stepFrames[4];    // +0x30 the footsteps' frames + 1 (0 ends the list)
+    std::uint32_t moment;           // +0x40 the action's moment (frame)
+    int soundFrame;                 // +0x44 the frame of the action's sound (0: none)
+    std::uint32_t sounds[4];        // +0x48 sound numbers to pick from (0 ends the list)
 };
 static_assert(offsetof(FigureAnimation, arrowFrom) == 0x28);
+static_assert(offsetof(FigureAnimation, soundFrame) == 0x44);
 static_assert(sizeof(FigureAnimation) == 0x58);
 
 // A figure's animation database: the data of "<figure name>.adb" as the object's manager

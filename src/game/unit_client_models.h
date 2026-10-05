@@ -8,6 +8,7 @@
 #include "console.h"
 #include "engine_object.h"
 
+#include "lib/mfc.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
@@ -15,6 +16,7 @@
 
 class CUnit;
 struct AIPath;    // ai_map.h
+struct FigureAnimation;   // map_object_figures.h
 struct Vector3;   // maths.h
 
 // An entry of a client controller's speech queue (0x14 bytes; the value of a node of the STLport
@@ -137,6 +139,22 @@ public:
     // is hidden again (+0x75 = 1) outside the window up to frame +0x2C, or always for animations
     // without the flag.
     void UpdateArrow();
+
+    // unit_client_sounds.cpp (A-U).
+    // 00534590. The footstep sound on ground kind `terrain` into `out` (CString::Format), for units
+    // whose prototype's model has sounds for it (+0x144 counts): on a platform 0.01 or more away
+    // from the ground the kind is 2; crawling (movement mode 0) except on kinds 6 / 14 gives
+    // "steps\human\crawl\<1..6>.wav", else "<the kind's name (+0x138)>\<1..count>.wav" (one rand()
+    // each). Returns 1, or 0 (no prototype, model or sounds; `out` untouched).
+    int FootstepSound(int terrain, mfc::CString* out);
+    // 00534760. The sound of `animation`'s action into `out` (emptied first) when its sound frame
+    // (+0x44, not 0) lies in [from, to): "weapons\miss.wav" for `miss`, else one of its sound
+    // numbers (+0x48, rand()) in the folder of the second prototype (+0x34) or its model (+0x124):
+    // idle (kind 0x180000, by the model's idle chance), skill sounds (0x40000: tame, steal, science,
+    // loot), attack (0x80000: "weapons\<n>.wav" for a hero with a bow or crossbow, else by the
+    // attack chance), death (0x1C0000), hit (0x200000). Returns 1 for those kinds (also when a
+    // chance left `out` empty), else 0.
+    int ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out, std::uint8_t miss);
 
     AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motionOrder); }
 
