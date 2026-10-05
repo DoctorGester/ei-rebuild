@@ -850,6 +850,11 @@ struct UnitOrderLess {
 struct EntryIdLess {
     BOOL Less(const std::uint8_t* a, const std::uint8_t* b);
 };
+// world_stamp_sort.cpp. STLport's sort of the changed variables' nodes with EntryIdLess (the flow's
+// update 005800C0): 00589160 (RET 0xC) __introsort_loop, 00589240 (RET 4) __final_insertion_sort;
+// first in ECX, last in EDX, then a dummy value-type pointer, the depth limit and the comparator.
+void __fastcall StampIntroSort(void** first, void** last, int valueType, int depthLimit, const void* comp);
+void __fastcall StampInsertionSort(void** first, void** last, const void* comp);
 
 // Game interface glue (00578000-00580000): small free functions the scripts and menus call.
 // 0057F440. Whether a multiplayer client session (global at 0079B5D8) is active.
