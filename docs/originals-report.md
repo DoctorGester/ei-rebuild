@@ -6,12 +6,12 @@ merging duplicate `EI_ORIGINAL` forwarders into one declaration per function (cl
 - 3,817 forwarder sites forward to 3,254 distinct original functions.
 - **349** of those functions are forwarded from more than one file; they are listed below (900 sites).
 - 12 more are forwarded several times inside a single file (not listed).
-- Of the 349: 242 already rewritten, 72 library code, 35 not yet ported.
+- Of the 349: 243 already rewritten, 72 library code, 34 not yet ported.
 - Signatures: 32 identical in every file, 56 the same apart from the helper name, 261 differ in return or parameter types or in the calling convention (these need a decision before merging).
 
 Files with the most shared forwarders: `src/game/originals_library.h` (33), `src/game/ui_camp.cpp` (29), `src/game/script_exec.cpp` (28), `src/game/world_game.cpp` (21), `src/game/script_load.cpp` (17), `src/game/world_units.cpp` (16), `src/lib/mfc.cpp` (16), `src/game/ui_battle_update.cpp` (16), `src/game/world_client_maps.cpp` (14), `src/game/world_quests.cpp` (14), `src/game/combat_update.cpp` (13), `src/game/item_stock.cpp` (12), `src/game/combat_actions.cpp` (11), `src/game/unit_create_stats.cpp` (11), `src/game/world_save.cpp` (11).
 
-## Already rewritten (242)
+## Already rewritten (243)
 
 The function is ported here; callers can call it directly instead of through the original address.
 
@@ -1061,6 +1061,11 @@ Rewritten as `UiContainerDraw` (src/game/ui_container_draws.cpp).
 - `src/game/ui_container_draws.cpp:84`: `int __fastcall ContainerDrawAt(CUiWindow*, void*, int)`
 - `src/game/ui_menus.cpp:73`: `BOOL CUiContainer::DrawContainer(int)`
 
+### 0x00601110: 2 files, 2 sites, signatures differ
+Rewritten as `UiContainerInput::OnLeftDown` (src/game/ui_container.cpp).
+- `src/game/ui_menus.cpp:76`: `void __fastcall UiContainerMouseDown(void*, void*, int, int, int)`
+- `src/game/ui_screens.cpp:81`: `void UiInput::BaseLButtonDown(int, int, int)`
+
 ### 0x00637DC0: 2 files, 2 sites, identical
 Rewritten as `CBattleScreenSetup::RefreshSelection` (src/game/ui_battle_update.cpp).
 - `src/game/ui_battle_commands.cpp:65`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
@@ -1710,7 +1715,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/originals_library.h:427`: `void __fastcall DcFillSolidRectOriginal(void* /*dc*/, void*, int /*x*/, int /*y*/, int /*cx*/, int /*cy*/, std::uint32_t /*colour*/)`
 - `src/game/ui_console_window.cpp:423`: `void GameDC::FillSolidRect(int, int, int, int, COLORREF)`
 
-## Not yet ported (35)
+## Not yet ported (34)
 
 Declare once (src/game/originals.h), include everywhere, replace by the port later.
 
@@ -1810,10 +1815,6 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/ui_objectives.cpp:249`: `void SurfaceDraw::Clear()`
 - `src/game/ui_trade_grid_draw.cpp:52`: `void SurfaceText::Clear()`
 - `src/game/ui_trade_panel.cpp:61`: `void SurfaceDraw::Clear()`
-
-### 0x00601110: 2 files, 2 sites, signatures differ
-- `src/game/ui_menus.cpp:76`: `void __fastcall UiContainerMouseDown(void*, void*, int, int, int)`
-- `src/game/ui_screens.cpp:81`: `void UiInput::BaseLButtonDown(int, int, int)`
 
 ### 0x006232D0: 2 files, 2 sites, signatures differ
 - `src/game/ui_camp.cpp:1614`: `void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*)`
