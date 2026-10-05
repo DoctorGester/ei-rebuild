@@ -141,6 +141,17 @@ public:
     void UpdateArrow();
 
     // unit_client_sounds.cpp (A-U).
+    // 00534B60. The sounds of the animation playing (state +0x40) between the last update's frame
+    // (+0x2C; 0 when the animation changed) and now: attacks (stop the idle sound; at the action's
+    // moment the prototype's +0x30 shakes the camera; heroes with +0x256 play the miss sound at
+    // 1000) and deaths (stop the idle and speech sounds) and skills play ActionSound at priority
+    // 1000, idles and hits at 0; walk / run (0x100000 / 0x140000) at a step frame play the footstep
+    // of the ground (unless silenced, effect 0x10) and, when not crawling, shake by the prototype's
+    // +0x30 and leave a footprint (model +0x10C / +0x110, part "ll<n>" / "rl<n>" by the step and
+    // the model's +0x11C) through the client world (0056D150). An attack's sound waits for the
+    // speech sound (+0x90) and becomes it; an idle's becomes +0x88. Then +0x30 / +0x2C take the
+    // animation and frame.
+    void PlayStepSounds();
     // 00534590. The footstep sound on ground kind `terrain` into `out` (CString::Format), for units
     // whose prototype's model has sounds for it (+0x144 counts): on a platform 0.01 or more away
     // from the ground the kind is 2; crawling (movement mode 0) except on kinds 6 / 14 gives
@@ -161,7 +172,8 @@ public:
     CUnit* unit;                    // +0x1C
     std::uint8_t unknown_020[0x2C - 0x20];
     float lastAnimationTime;        // +0x2C the animation state's time (+0x60) at the last update
-    std::uint8_t unknown_030[0x38 - 0x30];
+    const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
+    std::uint8_t unknown_034[4];
     std::uint8_t motionOrder[0x20]; // +0x38 the order part of a path (AIPath; slot 16): MotionOrder()
     std::uint8_t unknown_058[0x74 - 0x58];   // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
@@ -169,7 +181,10 @@ public:
     std::uint8_t unknown_076[2];
     float fadeIn;                   // +0x78 1 when fully shown; the drawn parts take it as alpha
     int flashCountdown;             // +0x7C the drawn parts get their colours back (0051C9F0 with 0) at 0
-    std::uint8_t unknown_080[0x90 - 0x80];
+    int footprint;                  // +0x80 the last footprint (0056D150), -1 none
+    int footprintRepeats;           // +0x84 further steps that may reuse it
+    int idleSound;                  // +0x88 the idle animation's sound handle
+    std::uint8_t unknown_08C[4];
     int speechSound;                // +0x90 the sound of the last speech that waits (-1 none)
     std::uint8_t unknown_094[0x9C - 0x94];   // +0x94 last speech id, +0x98 its time (005380D0)
     ClientSpeechNode* speech;       // +0x9C the speech queue (STLport list header node)
@@ -182,6 +197,8 @@ public:
     int eyesClosed;                 // +0xD8 00538ED0 sets it, 00539010 clears it
 };
 static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
+static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);
+static_assert(offsetof(CUnitClientSpecific, footprint) == 0x80);
 static_assert(offsetof(CUnitClientSpecific, motionOrder) == 0x38);
 static_assert(offsetof(CUnitClientSpecific, weaponHidden) == 0x74);
 static_assert(offsetof(CUnitClientSpecific, fadeIn) == 0x78);

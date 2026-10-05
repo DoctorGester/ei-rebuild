@@ -190,6 +190,7 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 005341A0 | CUnitClientSpecific::UpdateClient (slot 6: motion order shift, weapon hidden by key, flags_ 8, fade-in, colour flash, blink, arrow, step sounds, speech queue, special idle) | unit_client_update.cpp | ours only (result 1, flags_ 8 by the rule, fade <= 1, blink timer 0..9) |
 | 00537CB0, 00538C20 | ShowWeaponParts, UpdateArrow (bow arrow "rh3_arrow00" between the animation's frames +0x28 / +0x2C) | unit_client_models.cpp | ours only (+0x74 / +0x75; part flag agrees) |
 | 00534590, 00534760 | FootstepSound (model sound names +0x138 / counts +0x144 per ground kind; platform -> kind 2; crawling), ActionSound (sound frame +0x44 in [from, to), sounds +0x48; folder: second prototype +0x34 or model +0x124; idle / attack chances +0x150 / +0x154) | unit_client_sounds.cpp | rand() saved, original into a copy of `out`; result, string, rand state compared |
+| 00534B60 | PlayStepSounds (attack / death / skill sounds at priority 1000, idle / hit at 0; camera shake by prototype +0x30 at the attack moment and steps; footprints through 0056D150 with model +0x10C / +0x110 / +0x11C and prototype +0xB0 as scale) | unit_client_sounds.cpp | ours only (animation and frame remembered, footprint countdown 0..7) |
 | 0051B6D0, 0051B6F0 | CObject3DClientSpecific::FirstDrawnPart / NextDrawnPart (+0x38 / +0x3C, cursor +0x48) | unit_client_update.cpp | result and cursor compared |
 | 0052E740, 0052E590 | ReleaseUnit (slot 5: SetPlayer(null), controller slot 5, item slots, carried items), DestroyUnit (slot 3) | unit_controller.cpp | ours only (no player, empty slots; no controller) |
 | 00535590, 00535CB0, 00536300, 00536670, 005381B0, 005385A0 | ChangeWeaponModel, CollectArmourPartNames, BuildSkinLayers, ComposeSkin, WearArmourModel, RemoveArmourModel | unit_client_models.cpp | ours only / output |
@@ -201,6 +202,10 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 
 ## Original bugs and oddities kept on purpose
 
+- PlayStepSounds: a step frame of 1 ends the step list (the frame is the entry minus 1, tested for 0), so an entry 0 never matches;
+  the footprint scale reads the prototype unchecked; the "shown" flag goes to 0056D150 with stack garbage in its upper bytes (ours 0 / 1);
+  FootstepSound divides by a missing ground kind's count of 0 when a platform turns the kind into 2. Our calls between the client
+  controller's rewrites go through the game addresses so the verify wrappers see them.
 - AddWeapon / AddQuickItem / AddSpell return 1 when the item is already in any slot (indistinguishable from "added to slot 1"); AddSpell has no null check; GiveStartingEquipment adds a
   weapon that could not be made (AddWeapon(null) returns 0, +0x270 becomes 0). GetSpellObject reads a party spell entry's +0x44 unchecked; GetQuickItem returns null for a party item whose
   +0x48 is not positive but the non-party path returns the slot as is; SkillWithBonus reads the record name without a range check; several setters return what MarkChanged leaves in EAX;
@@ -232,7 +237,7 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 - 0052EA40 (SetMotionSpeeds with given speeds): only the multiplayer client calls it (00669FA0).
 - Large or stateful, next candidates: 005316F0, 0052EB70 and 0050E9B0 (slot 34:
   pack stack copies that 005136D0 fills, stack garbage), 0052FC40, 00526860 / 005271E0 (skill / attack builders), 00522AE0 / 00522B20 (results depend on leftover register halves), record
-  destructors 0053EBC0 and others, 00535B30 / 00537D80 / 00534590 (client timers, speech, footsteps: audio-adjacent), 00538ED0 / 00539010 / 005352B0 / 00533980 / 00533EA0 (client arrow
+  destructors 0053EBC0 and others, 00535B30 / 00537D80 / 005380D0 (client timers, speech: audio-adjacent), 00538ED0 / 00539010 / 005352B0 / 00533980 / 00533EA0 (client arrow
   part, figure, animation code, destructor), 0053A8E0 (counts each model's .wav files), 005190C0 / 00519380 (random animations; forwarded locally).
 - Not unit logic: 00500000-0050E000 (`map_objects.md`), figure loading, bounds and wound textures (005179E0, 00516DA0, 0051C3D0, 005370F0, 00536EA0), map object effect visuals (00510B80, 005112A0,
   005114D0, 00511A00), 00529B80 (class 0x3010's update: a script CreateParticleSource), 0051FF40 (writes "perks.pdb", no references: dead), unit database STLport code (library: 0053F530, 0053FCC0,

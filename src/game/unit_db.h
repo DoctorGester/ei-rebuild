@@ -37,7 +37,7 @@ struct UnitPrototypeRecord {
     std::uint32_t unknown_24;       // 0x23
     std::uint32_t unknown_28;       // 0x25
     std::uint32_t unknown_2C;       // 0x26
-    std::uint32_t unknown_30;       // 0x28
+    float shake;                    // +0x30 0x28 the camera shake of its steps and attacks
     mfc::CString soundFolder;       // +0x34 8 (when set, the action sounds come from here, not the model's)
     std::uint8_t unknown_38[0x10];  // not serialised
     float hitPoints;                // +0x48 9
@@ -145,11 +145,11 @@ struct UnitModelRecord {
     CStringVector unknown_F8;       // 0x20
     float height;                   // +0x104 0x21 (the object stands this much lower)
     std::uint32_t unknown_108;      // 0x28
-    std::uint32_t unknown_10C;      // 0x2A
-    std::uint32_t unknown_110;      // 0x2B
+    int footprintKind;              // +0x10C 0x2A the footprint texture (-1: none; 0056D150)
+    std::uint32_t footPart;         // +0x110 0x2B the foot parts "ll<n>" / "rl<n>" (1..8)
     std::uint32_t unknown_114;      // 0x29
     mfc::CString unknown_118;       // 0x2C
-    std::uint8_t unknown_11C;       // 0x2D (one byte)
+    std::uint8_t swapFeet;          // +0x11C 0x2D (one byte) the first step is the right foot
     std::uint8_t unknown_11D[3];
     std::uint32_t unknown_120;      // 0x2E
     mfc::CString soundFolder;       // +0x124 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
