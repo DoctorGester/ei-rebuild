@@ -20,4 +20,6 @@ rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide
 python "%~dp0tools\check_thunks.py" || exit /b 1
 rem Replacements declared void whose game callers use EAX afterwards (UnitActionPoint, AddSurface).
 python "%~dp0tools\check_returns.py" --map "%~dp0build\%CFG%\ei_hook.map" || exit /b 1
+rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<area>.h (ticket C3).
+python "%~dp0tools\check_forwarders.py" || exit /b 1
 echo Built: %~dp0build\%CFG%

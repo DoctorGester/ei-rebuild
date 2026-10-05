@@ -65,6 +65,12 @@ comes from a bug we already hit.
    `tools/check_thunks.py`, which fails the build when an `EI_REPLACE_METHOD` names a method that is
    virtual, or overrides one, in its class or a base class (matched by name, from the headers).
 5. **Not-yet-rewritten callees** are forwarders: `__declspec(naked) R Cls::Fn(args) EI_ORIGINAL(0xADDR)`.
+   Look in `src/game/originals_<area>.h` first and use the shared declaration (`...Original`) when
+   the function has one; when it has none and a second file needs it, move it there instead of
+   declaring another forwarder. Decide its signature from the disassembly (RET n, what callers read
+   in EAX/AL/ST0). `build.cmd` runs `tools/check_forwarders.py`, which fails on any function newly
+   forwarded from more than one file. A rewritten function is called directly, except Rebirth-patched
+   ones (rule 9) and calls that must keep running through a verify wrapper.
    Naked functions cannot have members with constructors/destructors in the class layout path; use raw
    pointers in layouts where needed (see `mfc::CFile`).
 6. **Memory and CRT:** allocate and free with `gamecrt::operator_new/operator_delete` (the game's heap),

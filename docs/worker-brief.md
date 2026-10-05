@@ -15,6 +15,8 @@ Rules:
 - Plain C++ float maths (rule 7); verify floats with ei::verify::CheckNear.
 - Every rewrite gets a verify wrapper; say whether it compares against the original or checks
   ours only, and which scenario reaches it.
+- Forwarders: use the shared declarations in src/game/originals_<area>.h (rewrite guide rule 5);
+  build.cmd's check_forwarders fails on new duplicates.
 - Shared headers: small additive changes only.
 - Build `build.cmd verify` and `build.cmd release` (your worktree's, by full path) with no errors
   or warnings; `python tools/check_stolen.py`, `python tools/check_x87.py`, `tools\check_signatures.cmd`
