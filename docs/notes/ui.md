@@ -2383,3 +2383,55 @@ unit click). Both are SetPendingAction plus an immediate 00637500 / 00637750 and
 CSpell::IsOffensive (0068B770, Rebirth-patched: call it through its address). The drag branch of
 the mouse move and its portrait pick branch are not exercised either (no drag step; a portrait
 pick needs a multiplayer server command).
+
+## Area ticket A-I (2026-10-05)
+
+One worker on the interface range for a session, committing in groups. Written clean (members,
+named slots, no offsets); new files `src/game/ui_container.cpp`, `tests/verify/verify_ui_container.cpp`.
+
+### Group 1: the containers' input dispatch (ui_container.cpp)
+
+Shared header (additive): `ui.h` gets `UiInputSide` (an input side: vtable, owner, handled flag,
+with the slot numbers the interface uses), `CUiWindow::Input()`, `CUiContainer`'s extra input
+sides typed as `UiInputSide**`, and `UiContainerInput` (the container's own input side, input
+vtable 00740FD4). Harness: new steps `dblclick` / `rdblclick`; new scenario `ui_container_input`.
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 00601110 | 215 | `UiContainerInput::OnLeftDown` (slot 2, RET 0xC) | ours only, dispatch order (below) | ui_screens (escape menu clicks), ui_main_menu (the windows' buttons), ui_camp |
+| 006011F0 | 215 | `OnLeftUp` (slot 3) | same | the same clicks' button-up |
+| 006012D0 | 215 | `OnMouseMove` (slot 4) | same | every game scenario (00639D60 every frame) |
+| 006013B0 | 215 | `OnRightDown` (slot 5) | same | world_client, ui_container_input (battle screen and main menu right clicks) |
+| 00601490 | 215 | `OnRightUp` (slot 6) | same | the same |
+| 00601570 | 215 | `OnLeftDouble` (slot 7) | same | ui_container_input (`dblclick` on the main menu) |
+| 00601650 | 215 | `OnRightDouble` (slot 8) | same | ui_container_input (`rdblclick`) |
+| 00601820 | 191 | `OnKeyDown` (slot 9) | same, children by enabled flag only | ui_container_input ('x' on the main menu, 00633540 calls it first), ui_screens (escape menu keys through 0062B300) |
+| 006018E0 | 191 | `OnChar` (slot 10, WM_CHAR) | same | ui_container_input ('x' on the main menu, the options window and the escape menu) |
+| 006019A0 | 191 | `OnKeyUp` (slot 11) | same | every key on the main menu, the escape menu, the hero screen (ui_screens) |
+| 00601730 | 230 | `OnWheel` (slot 12, RET 0x10, returns 1) | same, and the result | ui_container_input (main menu, options window, escape menu) |
+| 00601A60 | 90 | `OnDeactivate` (slot 1, plain RET) | ours only: the lists unchanged | ui_main_menu / ui_container_input (the options window opens over the main menu) |
+
+- The interface's window procedure (00457970) maps the messages to the top window's input slots:
+  WM_LBUTTONDOWN 2 (005F76A0), UP 3, WM_MOUSEMOVE 4, WM_RBUTTONDOWN 5 (sets +0x80), UP 6 (clears
+  it), WM_LBUTTONDBLCLK 7 (sets +0x7F), WM_RBUTTONDBLCLK 8, WM_KEYDOWN 9 (005F78C0), WM_CHAR 10
+  (005F7B40, unless the console or a multiplayer chat takes it), WM_KEYUP / WM_SYSKEYUP 11
+  (005F7BE0), WM_MOUSEWHEEL 12 (005F7880: flags = wParam low word, delta = high word, x, y).
+  `UiInputSide::Slot` names them.
+- The dispatch: the container's handled flag cleared; each extra input side (+0x158..+0x15C, an
+  STLport vector) gets its flag cleared and the event, and one that sets its flag ends it; then
+  each child (+0x148 array) that is enabled (+0xE8) and, for the mouse and wheel events, holds the
+  point (005FFD30, called directly), the same. The child and the list end are re-read after each
+  call, as the original does. Slot 1 calls every side and every child (enabled or not) and touches
+  no flag.
+- The eleven dispatchers are identical apart from the slot (bytes compared); the original does
+  not return a value from them (EAX is left over; check_returns found no direct caller reading it),
+  except the wheel's `MOV EAX,1`.
+- Verify (`DispatchCheck`): ours only. Before the call every side's and child's flag is set to a
+  marker (0x5A); the dispatcher clears the flag of each one it calls, so afterwards the marker is
+  left exactly on those it skipped. In order, every side and every child that qualifies (judged
+  before or after the call, since a handler may enable or disable a child) up to the first one
+  whose handler set its flag must have lost the marker, all the others must keep it, and the
+  container's flag must say whether one was found. Markers left are put back. When a handler
+  changed the lists, nothing is compared (no count).
+- None of these is Rebirth-patched, in config/library.csv or config/dead_code.csv; the callee
+  005FFD30 is rewritten and not patched.

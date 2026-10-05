@@ -1,0 +1,53 @@
+# The containers' default input handlers (ui_container.cpp; docs/notes/ui.md, "Area ticket A-I").
+# The main menu (input vtable 00740654) keeps the container's handlers for the right button
+# (006013B0 / 00601490), the double clicks (00601570 / 00601650), the character and key-up events
+# (006018E0 / 006019A0) and the wheel (00601730); its key-down handler (00633540) calls 00601820
+# first. Opening the options window takes the top from it (slot 1, 00601A60). The options window
+# and the escape menu keep the wheel, character and key-up handlers too; the battle screen keeps the
+# right button's. The point (10, 10) is off the main menu's buttons; 'x' is no key of these menus.
+reject Script error
+wait 6000
+console thingamabob
+
+# Main menu.
+move 10 10
+wait 200
+rclick 10 10
+wait 300
+dblclick 10 10
+wait 300
+rdblclick 10 10
+wait 300
+wheel 10 10 120
+wait 300
+key x
+wait 500
+
+# The options window over it, then cancelled (region 1).
+clickregion 3
+wait 1500
+key x
+wait 300
+wheel 400 300 -120
+wait 300
+clickregion 1
+wait 1500
+
+# A game: a right click on the battle screen, then keys and the wheel on the escape menu.
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+rclick 400 300
+wait 500
+key esc
+wait 1000
+key x
+wait 300
+wheel 400 300 120
+wait 300
+key esc
+wait 1000
+check IsAlive(GetLeader())
+report
+quit

@@ -19,7 +19,9 @@
 //   click <x> <y>, rclick <x> <y>, move <x> <y>
 //                             left/right click or move the mouse at (x, y) in the 800x600 layout every
 //                             interface screen is designed for (scaled to the window's client size)
-//   wheel <x> <y> <delta>     turn the mouse wheel by <delta> (120 a notch; negative: towards the
+//   dblclick <x> <y>, rdblclick <x> <y>
+//                             a left / right double click there (down, up, WM_xBUTTONDBLCLK, up)
+//   wheel <x> <y> <delta>    turn the mouse wheel by <delta> (120 a notch; negative: towards the
 //                             user) with the mouse at (x, y) in the 800x600 layout
 //   clickregion <n>, rclickregion <n>, moveregion <n>
 //                             the same at the centre of clickable region <n> of the window on top
@@ -887,6 +889,17 @@ void PostMouse(const std::string& verb, int x, int y) {
     } else if (verb == "rclick") {
         PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
         PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+    } else if (verb == "dblclick") {
+        // What Windows sends for a double click: down, up, double click, up.
+        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+        PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, at);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+    } else if (verb == "rdblclick") {
+        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
+        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
+        PostMessageA(GameWindow(), WM_RBUTTONDBLCLK, MK_RBUTTON, at);
+        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
     }
 }
 
@@ -1111,6 +1124,7 @@ std::string CampPutOn(const std::string& argument) {
 // The steps that post input messages to the game window.
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
+           verb == "dblclick" || verb == "rdblclick" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit";
 }
 
@@ -1272,7 +1286,8 @@ void RunSteps() {
             g_request.kind = 2;
         } else if (s.verb == "key") {
             PostKey(s.argument);
-        } else if (s.verb == "click" || s.verb == "rclick" || s.verb == "move") {
+        } else if (s.verb == "click" || s.verb == "rclick" || s.verb == "move" || s.verb == "dblclick" ||
+                   s.verb == "rdblclick") {
             int x = 0, y = 0;
             if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());
