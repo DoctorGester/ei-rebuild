@@ -76,7 +76,7 @@ bool IsMemoryStream(const void* s) {
 void CloneStream(CMemoryStream* dst, const CMemoryStream* src) {
     std::memcpy(dst, src, sizeof(CMemoryStream));
     if (!src->data_) return;
-    std::uint32_t bytes = src->unknown_1C > src->size_ ? src->unknown_1C : src->size_;
+    std::uint32_t bytes = src->capacity_ > src->size_ ? src->capacity_ : src->size_;
     if (bytes == 0) bytes = 1;
     dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
     std::memset(dst->data_, 0, bytes);

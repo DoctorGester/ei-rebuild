@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+class ChunkArchive;
+
 // Reference-counted objects of the engine core (script values, network records and messages, AI
 // shapes; vtable 0073BB58 and its descendants). Names provisional. The header and the slots below
 // are what the engine's helpers use; the original code mostly inlines these helpers, the
@@ -14,7 +16,7 @@ public:
     };
 
     virtual ~CRefObject();                  // 0: scalar deleting destructor (1 when the last reference goes)
-    virtual void Slot1(int);                // 1: empty in the root class (RET 4)
+    virtual void Serialize(ChunkArchive* ar);   // 1: empty in the root class (RET 4); chunk_archive.h
     virtual int OnShutdown() = 0;           // 2: the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // 3: the copy handed out when a kCopyOnShare object is shared
 

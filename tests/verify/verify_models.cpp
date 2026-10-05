@@ -249,27 +249,28 @@ static void __fastcall SerializeAcks3Verify(ChunkArchive* ar, void*, int id, voi
 }
 EI_VERIFY(0x006DB8D0, SerializeAcks3Verify, 0, s_unused);
 
-// Record Serialize when loading: reading leaves the archive as it was, so the original reads into
-// a scratch copy and ours into the real record; the fields and the name are compared. Saving
-// writes, so it runs ours only.
+// Record Serialize (slot 0) when loading: reading leaves the archive as it was, so the original
+// reads into a scratch copy and ours into the real record; the fields and the name are compared.
+// Saving writes, so it runs ours only. Ours is called qualified (a virtual call would come back
+// here).
 // 006D41D0 / 006D4270: PUSH EBX; MOV EBX,ECX; PUSH ESI; MOV ESI,[ESP+0xC] (8 bytes).
 template <typename Record>
 static void SerializeRecordVerify(const char* name, void(__fastcall* original)(Record*, void*, ChunkArchive*), Record* self,
                                   ChunkArchive* ar) {
     if (!ar->loading_) {
-        self->Serialize(ar);
+        self->Record::Serialize(ar);
         return;
     }
     // The scratch name must be a real STLport string: a default-constructed stlp::string has no
     // buffer (null pointers), which STLport code never expects (it always keeps a terminator), so
     // the original's assign crashed on it. The copy constructor allocates like STLport's.
     Record scratch;
-    std::memcpy(&scratch.vtable, &self->vtable, sizeof(void*));
+    std::memcpy(static_cast<void*>(&scratch), self, sizeof(void*));   // the game's vtable
     std::memcpy(reinterpret_cast<char*>(&scratch) + 0x10, reinterpret_cast<char*>(self) + 0x10, sizeof(Record) - 0x10);
     scratch.name.~string();
     new (&scratch.name) stlp::string(self->name);
     original(&scratch, nullptr, ar);
-    self->Serialize(ar);
+    self->Record::Serialize(ar);
     bool same = scratch.name == self->name &&
                 std::memcmp(reinterpret_cast<char*>(&scratch) + 0x10, reinterpret_cast<char*>(self) + 0x10, sizeof(Record) - 0x10) == 0;
     ei::verify::Check(name, true, same, "\"%.*s\" vs \"%.*s\"", static_cast<int>(scratch.name.size()), scratch.name.data(),

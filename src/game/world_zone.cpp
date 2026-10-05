@@ -182,7 +182,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     auto* root = reinterpret_cast<Chunk*>(storage);
     root->Construct(nullptr);
     void* fileObject = new (storage + 0x18) mfc::CFile();
-    root->vtable_ = reinterpret_cast<void*>(kMapObjectFileVtable);
+    ei::SetVtable(root, kMapObjectFileVtable);
 
     char* path = nullptr;   // a CString, handed to (and destroyed by) the open call
     ServerMapPath(this, nullptr, &path, file);

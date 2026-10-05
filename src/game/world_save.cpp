@@ -174,17 +174,17 @@ constexpr int kPlayerIds = 0x114;           // DwordList
 // The memory stream locals of LoadSave / SaveWorld are built in place.
 void InitMemoryStream(CMemoryStream* stream) {
     std::memset(stream, 0, sizeof(*stream));
-    stream->vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
-    stream->unknown_8 = kStreamLimit;
+    ei::SetVtable(stream, kMemoryStreamVtable);
+    stream->version_ = kStreamLimit;
     stream->ok_ = 1;
     stream->data_ = nullptr;
     stream->Reset();
 }
 
 void DestroyMemoryStream(CMemoryStream* stream) {
-    stream->vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(stream, kMemoryStreamVtable);
     if (stream->data_) gamecrt::operator_delete(stream->data_);
-    stream->vtable_ = reinterpret_cast<void*>(kStreamVtable);
+    ei::SetVtable(stream, kStreamVtable);
 }
 
 // A CMemoryStream local: built in place, its buffer freed when it goes out of scope.
@@ -773,8 +773,8 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
 // vtable and an empty buffer.
 void ConstructSaveStream(CMemoryStream* stream) {
     std::memset(stream, 0, sizeof(*stream));
-    StreamConstructBase(stream);
-    stream->vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    stream->ConstructBase();
+    ei::SetVtable(stream, kMemoryStreamVtable);
     stream->data_ = nullptr;
     stream->Reset();
 }
@@ -895,11 +895,11 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         node = next;
     }
 
-    current.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&current, kMemoryStreamVtable);
     if (current.data_) gamecrt::operator_delete(current.data_);
-    base.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&base, kMemoryStreamVtable);
     if (base.data_) gamecrt::operator_delete(base.data_);
-    current.vtable_ = reinterpret_cast<void*>(kStreamVtable);
+    ei::SetVtable(&current, kStreamVtable);
 }
 
 // ---- The shared-object list -------------------------------------------------------------------

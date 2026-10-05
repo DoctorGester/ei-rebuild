@@ -100,11 +100,11 @@ code includes `object.h` (CMemoryStream), `core_refcount.h` (RefPtr), `core_math
 | Address | Name | Verify |
 |---|---|---|
 | 004122D0 | `net::Pump` | ours only: the stored time is the current one |
-| 0041DD70 | `MemoryStreamConstruct` | scratch copy |
-| 004173D0, 004790A0 | `MemoryStreamDestruct` (two copies) | scratch copy with the buffer cleared |
-| 004173B0, 004790D0 | `MemoryStreamDeletingDestructor` (slot 0) | ours on a scratch copy against the destructor body; then real |
-| 00417350 | `MemoryStreamClear` (slot 6) | scratch copy with the buffer cleared |
-| 0047A200 / 004174E0 / 00417400 | `StreamConstructBase` / `StreamDestructBase` / `StreamDeletingDestructor` | scratch copy (no delete) |
+| 0041DD70 | `CMemoryStream::Construct` | scratch copy |
+| 004173D0, 004790A0 | `CMemoryStream::Destruct` (two copies) | scratch copy with the buffer cleared |
+| 004173B0, 004790D0 | `CMemoryStream::DeletingDestruct` (slot 0) | ours on a scratch copy against the destructor body; then real |
+| 00417350 | `CMemoryStream::Clear` (slot 6) | scratch copy with the buffer cleared |
+| 0047A200 / 004174E0 / 00417400 | `CStream::ConstructBase` / `DestructBase` / `DeletingDestruct` | scratch copy (no delete) |
 | 00412720, 00413430 | `RefObjectDestructBase` (two copies) | scratch copy |
 | 00412730 | `RefObjectDeletingDestructor` | scratch copy (no delete) |
 | 00419720 / 00412700 | `RefValueConstructBase` / `RefValueDeletingDestructor` | scratch copy |
@@ -126,7 +126,7 @@ code includes `object.h` (CMemoryStream), `core_refcount.h` (RefPtr), `core_math
 | 0047F1E0 / 0047F3D0 / 0047F4D0 / 0047F7F0 | `WriteFloat16` / `ReadFloat16` / `WriteFloat16x3` / `ReadFloat16x3` | same |
 | 0047FB70 / 0047FBF0 / 0047FD50 / 0047FD80 | `DeltaState::Reset` / `BeginField` / `SetWriteMode` / `BeginRead` | state copies |
 | 0042BEC0 / 0042BEF0 | `Chunk::Construct` / `Destruct` | scratch copy |
-| 0042BF00 / 0042BF40 | `Chunk::Advance` / `ChunkFile` (slot 1) | chain copy / pure |
+| 0042BF00 / 0042BF40 | `Chunk::Advance` / `Chunk::File` (slot 1) | chain copy / pure |
 | 0042BF50 / 0042BFB0 / 0042C000 | `Chunk::BeginWrite` / `EndWrite` / `WriteHeader` | recorded file (below) |
 | 0042C060 / 0042C0B0 | `Chunk::SkipContent` / `ReadHeader` | recorded file |
 | 0042C140 | `Chunk::ForEachChild` | ours only (calls the zone loader's handlers) |
@@ -201,7 +201,7 @@ the compiler cannot load them into the FPU.
   intersection. The work buffer (32 indices) is not bounds-checked.
 - `BeginWriteA` returns its argument or 1, `BeginReadA` its argument or the reader (callers ignore
   them); `DeltaState::BeginRead` returns its argument.
-- `MemoryStreamDestruct` leaves the freed buffer pointer in place.
+- `CMemoryStream::Destruct` leaves the freed buffer pointer in place.
 - The pump treats a gap of more than 5 s as 1 s.
 
 ## Skipped
@@ -390,7 +390,7 @@ per object holding child 0 = key and child 1 = the object's own fields).
 | 004092B0 | Field | loading: scratch buffer compared; writing: ours + size | every scenario |
 | 004098D0 | EnterChunk | original first, its chunk popped, ours; same chunk | every scenario |
 | 00409980 / 00409110 | LeaveChunk / AppendChild | ours only + depth / size | every scenario |
-| 00409A40 / 00409E80 | ResizeToCurrent / ChunkRefReset | original then ours, same header / pure | every scenario |
+| 00409A40 / 00409E80 | ResizeToCurrent / ChunkArchive::Ref::Reset | original then ours, same header / pure | every scenario |
 | 00409EA0 / 00409F30 / 0040A3C0 | ReadStreamChunk / FindStreamChunk / WriteStreamChunk | ours only | every scenario |
 | 00409AE0 / 0040A000 | Open / Close | ours only + stack depth | every scenario (startup databases; autosave) |
 
@@ -680,7 +680,7 @@ small helpers (see "Not Ghidra functions" below).
 | net_client_commands.cpp | 0041D410 ClientBeginGame (slot 15: GameFlow::BeginMultiplayerGame), 0041D9A0 ClientBufferRatio (stream size / stored size, returned unrounded) |
 | net_client_life.cpp / net_server_life.cpp | 0041C530 / 004132F0 the client's and server's base-layer destructor bodies |
 | net_server_tick.cpp | 004182E0 ServerTick (slot 14: base tick 00443590, the timed lists +0x25C0 / +0x25B4, the master server announcement timer +0x2570 through 0041AA10), 00417E40 ServerPlayerStateIs3 (used by the file chunk sender 00479EF4) |
-| chunk_stream.cpp | 0042C580 ReadString, 0042C650 ReadEncodedString (the content decoded by 004D8E10), 0042C820 WriteString, 0042CA20 / 0042CB80 Read / WriteStringArray (a count, then one string chunk per element with the array's id), 0042D160 ChunkRootOpen, 0042D270 ChunkRootDestruct |
+| chunk_stream.cpp | 0042C580 ReadString, 0042C650 ReadEncodedString (the content decoded by 004D8E10), 0042C820 WriteString, 0042CA20 / 0042CB80 Read / WriteStringArray (a count, then one string chunk per element with the array's id), 0042D160 RootChunk::Open, 0042D270 RootChunk::Destruct |
 | hash_tables_400.cpp | CBaseManager's id tables (00404E80 SetAt, 00404F20 / 00405350 RemoveKey, 00404F80 Lookup, 00406950 find, 00406A10 / 00406AA0 operator[]; they keep the highest key at +0x14), the class registry 0079B270 (00408EA0 constructor, 00408D60 destructor) and the type registry's destructor 004368F0 |
 | misc_400.cpp | CClientSpecificManager 0042D6B0 / 0042D6C0 (class name and id 0x30), 0042D700 slot 14 NewObject ('E' .. 'K' except 'J': 0x3C 005A7010, 0xFC 0051AB00, 0x58 00510450, 0xDC 00533AD0, 0x50F8 00666D10, 0x64 0052D0D0), 0042D690 / 0042D6F0, 00406B30 / 00406B50 aligned word / dword arrays, 00430FC0 cursor start, 00433F10 cleanup step |
 | net_coder.cpp | 0042FAE0 the code tables (a static initialiser: it runs before the hooks; the rewrite is for the standalone build) |

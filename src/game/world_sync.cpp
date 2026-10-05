@@ -357,9 +357,9 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
 int CWorldServer::SendZone(WorldPlayer* player) {
     CMemoryStream message;
     std::memset(&message, 0, sizeof(message));
-    message.unknown_8 = 2000000000;
+    message.version_ = 2000000000;
     message.ok_ = 1;
-    message.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&message, kMemoryStreamVtable);
     message.data_ = nullptr;
     message.Reset();
 
@@ -405,7 +405,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         }
         if (result != 0) ei::VCall<void>(state, 17, &At<std::uint8_t>(player, kPlayerObjects), 0);
     }
-    message.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&message, kMemoryStreamVtable);
     if (message.data_) gamecrt::operator_delete(message.data_);
     return result;
 }

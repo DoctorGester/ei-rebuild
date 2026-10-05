@@ -3,6 +3,7 @@
 // or writes a save stream, so only ours runs (stolenBytes 0) and the resulting state is checked.
 #include "verify.h"
 
+#include "../../src/game/core_streams.h"
 #include "../../src/game/object.h"
 #include "../../src/game/world.h"
 #include "../../src/lib/crt.h"

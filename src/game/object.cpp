@@ -42,16 +42,3 @@ EI_REPLACE(0x00453440, FigureGetName);
 
 const char* __fastcall FakeFigureGetName(const CEngineObject* figure) { return FieldAt<const char*>(figure, 0x94); }
 EI_REPLACE(0x004547C0, FakeFigureGetName);
-
-// --- CMemoryStream ------------------------------------------------------------------------------
-
-void CMemoryStream::Reset() {
-    ok_ = 1;
-    data_ = nullptr;
-    unknown_1C = 0;
-    position_ = 0;
-    size_ = 0;
-    growBy_ = 0x80;
-    unknown_14 = -1;
-}
-EI_REPLACE_METHOD(0x00468C20, CMemoryStream::Reset);

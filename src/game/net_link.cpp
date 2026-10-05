@@ -680,7 +680,7 @@ namespace netlink {
 // alive); then the player let go.
 void __fastcall DriverDisconnect(DriverLink* self) {
     CMemoryStream pending;   // the original's stack stream: +4, +6, +7 and +0xC never written
-    pending.unknown_8 = kStreamLimit;
+    pending.version_ = kStreamLimit;
     pending.ok_ = 1;
     SetVtable(&pending, kMemoryStreamVtable);
     pending.data_ = nullptr;
@@ -741,7 +741,7 @@ DriverLink* __fastcall DriverClone(DriverLink* self) {
     FileStreamCopyConstruct(&copy->base.base.record, nullptr, &self->base.base.record);
     SetVtable(copy, kLinkVtable);
     CMemoryStream* inbox = &copy->base.inbox;
-    inbox->unknown_8 = kStreamLimit;
+    inbox->version_ = kStreamLimit;
     inbox->ok_ = 1;
     SetVtable(inbox, kMemoryStreamVtable);
     inbox->data_ = nullptr;

@@ -119,7 +119,7 @@ def fastcall_shims(sources):
 
 def structs_defined_twice(sources):
     """Top-level struct/class names that are defined (with a body) in more than one file."""
-    definition = re.compile(r'^(?:struct|class)\s+(\w+)(?:\s+final)?\s*(?::[^{;]*)?\{', re.M)
+    definition = re.compile(r'^(?:struct|class)\s+(?:__declspec\(\w+\)\s+)?(\w+)(?:\s+final)?\s*(?::[^{;]*)?\{', re.M)
     files = defaultdict(set)
     for s in sources:
         for m in definition.finditer(s.code):

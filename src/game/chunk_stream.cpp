@@ -1,20 +1,22 @@
 // Chunked files. See chunk_stream.h.
 //
-// Every file operation asks for the file again through slot 1, as the original does.
+// Every file operation asks for the file again through slot 1 (File), as the original does.
 #include "chunk_stream.h"
+
+#include "console.h"   // CStringArray
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/stlp.h"
 
 #include <cstring>
 #include <new>
 
 namespace {
 
-constexpr int kSlotOnChunk = 0;
-constexpr int kSlotFile = 1;
-// MFC CFile slots.
+// MFC CFile slots (library: mfc::CFile declares no virtuals).
 constexpr int kFileGetPosition = 3;
+constexpr int kFileOpen = 8;   // Open(path, flags, exception)
 constexpr int kFileSeek = 10;
 constexpr int kFileRead = 13;
 constexpr int kFileWrite = 14;
@@ -39,26 +41,57 @@ __declspec(naked) std::uint32_t __cdecl FpuCopyBits(const void* /*value*/) {
     }
 }
 
-} // namespace
+// The hook of slot 1 (a virtual: registered through this shim).
+void* __fastcall ChunkFileHook(Chunk* self) { return self->Chunk::File(); }
 
-void* Chunk::File() { return ei::VCall<void*>(this, kSlotFile); }
+// A chunk holding one value: header, then the value (counted with the header).
+void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uint32_t valueSize) {
+    int size = kHeader + static_cast<int>(valueSize);
+    FileWrite(chunk->File(), &id, 4);
+    FileWrite(chunk->File(), &size, 4);
+    if (chunk->parent_) chunk->parent_->Advance(size);
+    chunk->consumed_ += size;
+    FileWrite(chunk->File(), value, valueSize);
+}
+
+// Reads `size` bytes and counts them.
+void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
+    FileRead(chunk->File(), data, size);
+    if (chunk->parent_) chunk->parent_->Advance(static_cast<int>(size));
+    chunk->consumed_ += static_cast<int>(size);
+}
+
+// The decoder of 004D8E10 (outside this range): two byte vectors, the decoded text and the coded
+// input; vector<uint8_t> members (library): constructor, erase, fill insert.
+struct ByteVector {
+    std::uint8_t* start;
+    std::uint8_t* finish;
+    std::uint8_t* eos;
+};
+struct TextDecoder {
+    ByteVector text;    // +0x00
+    ByteVector input;   // +0x0C
+};
+__declspec(naked) void __fastcall ByteVectorConstruct(ByteVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0042D310)
+__declspec(naked) void __fastcall ByteVectorErase(ByteVector* /*v*/, void*, std::uint8_t* /*first*/, std::uint8_t* /*last*/) EI_ORIGINAL(0x0042D340)
+__declspec(naked) void __fastcall ByteVectorFill(ByteVector* /*v*/, void*, std::uint8_t* /*pos*/, std::uint32_t /*n*/, const std::uint8_t* /*value*/) EI_ORIGINAL(0x0042D370)
+// 004D8E10: unpacks the input, unscrambles it and stores it in `out`.
+__declspec(naked) void __fastcall DecodeText(TextDecoder* /*decoder*/, void*, mfc::CString* /*out*/) EI_ORIGINAL(0x004D8E10)
+
+} // namespace
 
 Chunk* Chunk::Construct(Chunk* parent) {
     consumed_ = 0;
     size_ = 0;
     id_ = 0;
     start_ = 0;
-    std::uintptr_t vtable = kChunkVtable;
-    std::memcpy(&vtable_, &vtable, sizeof(vtable));
+    ei::SetVtable(this, kVtableAddress);
     parent_ = parent;
     return this;
 }
 EI_REPLACE_METHOD(0x0042BEC0, Chunk::Construct);
 
-void Chunk::Destruct() {
-    std::uintptr_t vtable = kChunkVtable;
-    std::memcpy(&vtable_, &vtable, sizeof(vtable));
-}
+void Chunk::Destruct() { ei::SetVtable(this, kVtableAddress); }
 EI_REPLACE_METHOD(0x0042BEF0, Chunk::Destruct);
 
 void Chunk::Advance(int bytes) {
@@ -67,8 +100,8 @@ void Chunk::Advance(int bytes) {
 }
 EI_REPLACE_METHOD(0x0042BF00, Chunk::Advance);
 
-void* __fastcall ChunkFile(Chunk* self) { return self->parent_ ? self->parent_->File() : nullptr; }
-EI_REPLACE(0x0042BF40, ChunkFile);
+void* Chunk::File() { return parent_ ? parent_->File() : nullptr; }
+EI_REPLACE(0x0042BF40, ChunkFileHook);
 
 // --- Writing -----------------------------------------------------------------------------------
 
@@ -98,18 +131,6 @@ void Chunk::WriteHeader(std::uint32_t id, int payload) {
     consumed_ += size;
 }
 EI_REPLACE_METHOD(0x0042C000, Chunk::WriteHeader);
-
-namespace {
-// A chunk holding one value: header, then the value (counted with the header).
-void WriteValueChunk(Chunk* chunk, std::uint32_t id, const void* value, std::uint32_t valueSize) {
-    int size = kHeader + static_cast<int>(valueSize);
-    FileWrite(chunk->File(), &id, 4);
-    FileWrite(chunk->File(), &size, 4);
-    if (chunk->parent_) chunk->parent_->Advance(size);
-    chunk->consumed_ += size;
-    FileWrite(chunk->File(), value, valueSize);
-}
-} // namespace
 
 void Chunk::WriteFloat(std::uint32_t id, std::uint32_t valueBits) { WriteValueChunk(this, id, &valueBits, 4); }
 EI_REPLACE_METHOD(0x0042C2C0, Chunk::WriteFloat);
@@ -180,22 +201,13 @@ EI_REPLACE_METHOD(0x0042C0B0, Chunk::ReadHeader);
 void Chunk::ForEachChild() {
     ReadHeader();
     for (;;) {
-        ei::VCall<void>(this, kSlotOnChunk);
+        OnChunk();
         SkipContent();
         if (parent_->size_ == parent_->consumed_) return;
         ReadHeader();
     }
 }
 EI_REPLACE_METHOD(0x0042C140, Chunk::ForEachChild);
-
-namespace {
-// Reads `size` bytes and counts them.
-void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
-    FileRead(chunk->File(), data, size);
-    if (chunk->parent_) chunk->parent_->Advance(static_cast<int>(size));
-    chunk->consumed_ += static_cast<int>(size);
-}
-} // namespace
 
 float Chunk::ReadFloat() {
     float value;
@@ -262,34 +274,6 @@ EI_REPLACE_METHOD(0x0042D020, Chunk::ReadBytes);
 
 // --- Text ----------------------------------------------------------------------------------------
 
-namespace {
-// MFC (library): CStringArray::SetSize / SetAtGrow (data at +4, size at +8).
-__declspec(naked) void __fastcall StringArraySetSize(void* /*array*/, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x006FE9B8)
-__declspec(naked) void __fastcall StringArraySetAtGrow(void* /*array*/, void*, int /*index*/, const mfc::CString* /*value*/) EI_ORIGINAL(0x006FEBFA)
-int StringArraySize(const void* array) { return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(array) + 8); }
-mfc::CString* StringArrayAt(void* array, int i) {
-    return *reinterpret_cast<mfc::CString**>(static_cast<std::uint8_t*>(array) + 4) + i;
-}
-
-// The decoder of 004D8E10 (outside this range): two byte vectors, the decoded text and the coded
-// input; vector<uint8_t> members (library): constructor, erase, fill insert.
-struct ByteVector {
-    std::uint8_t* start;
-    std::uint8_t* finish;
-    std::uint8_t* eos;
-};
-struct TextDecoder {
-    ByteVector text;    // +0x00
-    ByteVector input;   // +0x0C
-};
-__declspec(naked) void __fastcall ByteVectorConstruct(ByteVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0042D310)
-__declspec(naked) void __fastcall ByteVectorErase(ByteVector* /*v*/, void*, std::uint8_t* /*first*/, std::uint8_t* /*last*/) EI_ORIGINAL(0x0042D340)
-__declspec(naked) void __fastcall ByteVectorFill(ByteVector* /*v*/, void*, std::uint8_t* /*pos*/, std::uint32_t /*n*/, const std::uint8_t* /*value*/) EI_ORIGINAL(0x0042D370)
-__declspec(naked) void __fastcall NodeFree(void* /*p*/, std::uint32_t /*bytes*/) EI_ORIGINAL(0x00404D70)
-// 004D8E10: unpacks the input, unscrambles it and stores it in `out`.
-__declspec(naked) void __fastcall DecodeText(TextDecoder* /*decoder*/, void*, mfc::CString* /*out*/) EI_ORIGINAL(0x004D8E10)
-} // namespace
-
 // The characters are read one at a time, each counted; the text ends at the first NUL
 // (ReleaseBuffer(-1)).
 mfc::CString* Chunk::ReadString(mfc::CString* out) {
@@ -330,10 +314,8 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
         DecodeText(&decoder, nullptr, &text);
         new (out) mfc::CString(text);
     }
-    if (decoder.input.start)
-        NodeFree(decoder.input.start, static_cast<std::uint32_t>(decoder.input.eos - decoder.input.start));
-    if (decoder.text.start)
-        NodeFree(decoder.text.start, static_cast<std::uint32_t>(decoder.text.eos - decoder.text.start));
+    stlp::deallocate(decoder.input.start, static_cast<std::size_t>(decoder.input.eos - decoder.input.start));
+    stlp::deallocate(decoder.text.start, static_cast<std::size_t>(decoder.text.eos - decoder.text.start));
     return out;
 }
 EI_REPLACE_METHOD(0x0042C650, Chunk::ReadEncodedString);
@@ -352,24 +334,19 @@ void Chunk::WriteString(std::uint32_t id, mfc::CString text) {
 EI_REPLACE_METHOD(0x0042C820, Chunk::WriteString);
 
 // The array is emptied (SetSize(0, -1)), then `count` string chunks are read through a child chunk
-// and appended. The count is unsigned.
-void Chunk::ReadStringArray(void* array) {
+// (its constructor inlined) and appended. The count is unsigned.
+void Chunk::ReadStringArray(void* strings) {
+    auto* array = static_cast<console::CStringArray*>(strings);
     std::uint32_t count;
     ReadCounted(this, &count, 4);
     Chunk child;
-    std::uintptr_t vtable = kChunkVtable;
-    std::memcpy(&child.vtable_, &vtable, sizeof(vtable));
-    child.consumed_ = 0;
-    child.size_ = 0;
-    child.id_ = 0;
-    child.start_ = 0;
-    child.parent_ = this;
-    StringArraySetSize(array, nullptr, 0, -1);
+    child.Construct(this);
+    array->SetSize(0, -1);
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
         alignas(mfc::CString) std::uint8_t slot[sizeof(mfc::CString)];   // the original reuses a stack slot
         mfc::CString* text = child.ReadString(reinterpret_cast<mfc::CString*>(slot));
-        StringArraySetAtGrow(array, nullptr, StringArraySize(array), text);
+        array->SetAtGrow(array->GetSize(), *text);
         text->~CString();
     }
 }
@@ -377,48 +354,40 @@ EI_REPLACE_METHOD(0x0042CA20, Chunk::ReadStringArray);
 
 // The size covers the count and every element's chunk. Each element's buffer is taken with
 // GetBuffer(0) after the file is asked for (it may make a shared string unique).
-void Chunk::WriteStringArray(std::uint32_t id, void* array) {
-    int count = StringArraySize(array);
+void Chunk::WriteStringArray(std::uint32_t id, void* strings) {
+    auto* array = static_cast<console::CStringArray*>(strings);
+    int count = array->GetSize();
     int characters = 0;
-    for (int i = 0; i < count; ++i) characters += StringArrayAt(array, i)->GetLength();
+    for (int i = 0; i < count; ++i) characters += (*array)[i].GetLength();
     std::uint32_t chunkId = id;
     int size = characters + count * 8 + 0xC;
     FileWrite(File(), &chunkId, 4);
     FileWrite(File(), &size, 4);
     if (parent_) parent_->Advance(size);
     consumed_ += size;
-    int n = StringArraySize(array);
+    int n = array->GetSize();
     FileWrite(File(), &n, 4);
-    for (int i = 0; i < StringArraySize(array); ++i) {
-        int elementSize = StringArrayAt(array, i)->GetLength() + kHeader;
+    for (int i = 0; i < array->GetSize(); ++i) {
+        int elementSize = (*array)[i].GetLength() + kHeader;
         FileWrite(File(), &id, 4);
         FileWrite(File(), &elementSize, 4);
-        int length = StringArrayAt(array, i)->GetLength();
+        int length = (*array)[i].GetLength();
         void* file = File();
-        FileWrite(file, StringArrayAt(array, i)->GetBuffer(0), static_cast<std::uint32_t>(length));
+        FileWrite(file, (*array)[i].GetBuffer(0), static_cast<std::uint32_t>(length));
     }
 }
 EI_REPLACE_METHOD(0x0042CB80, Chunk::WriteStringArray);
 
 // --- The root chunk ------------------------------------------------------------------------------
 
-namespace {
-constexpr std::uintptr_t kChunkRootVtable = 0x0073BE9C;
-constexpr int kFileOpen = 8;   // CFile slot 8: Open(path, flags, exception)
-void* RootFile(Chunk* root) { return reinterpret_cast<std::uint8_t*>(root) + 0x18; }
-} // namespace
-
-int __fastcall ChunkRootOpen(Chunk* self, void*, mfc::CString path, unsigned flags) {
-    return ei::VCall<int>(RootFile(self), kFileOpen, static_cast<const char*>(path), flags & 0xFFFF,
-                          static_cast<void*>(nullptr));
+int RootChunk::Open(mfc::CString path, unsigned flags) {
+    return ei::VCall<int>(&file_, kFileOpen, static_cast<const char*>(path), flags & 0xFFFF, static_cast<void*>(nullptr));
 }
-EI_REPLACE(0x0042D160, ChunkRootOpen);
+EI_REPLACE_METHOD(0x0042D160, RootChunk::Open);
 
-void __fastcall ChunkRootDestruct(Chunk* self) {
-    std::uintptr_t vtable = kChunkRootVtable;
-    std::memcpy(&self->vtable_, &vtable, sizeof(vtable));
-    static_cast<mfc::CFile*>(RootFile(self))->~CFile();
-    vtable = kChunkVtable;
-    std::memcpy(&self->vtable_, &vtable, sizeof(vtable));
+void RootChunk::Destruct() {
+    ei::SetVtable(this, kVtableAddress);
+    file_.~CFile();
+    ei::SetVtable(this, Chunk::kVtableAddress);
 }
-EI_REPLACE(0x0042D270, ChunkRootDestruct);
+EI_REPLACE_METHOD(0x0042D270, RootChunk::Destruct);

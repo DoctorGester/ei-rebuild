@@ -35,7 +35,7 @@
 //             slots are listed in config/dead_code.csv.
 
 #include "core_refcount.h"
-#include "object.h"
+#include "core_streams.h"
 
 #include <cstddef>
 #include <cstdint>

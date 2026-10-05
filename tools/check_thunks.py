@@ -16,7 +16,7 @@ usage: python tools/check_thunks.py     (exits 1 on any problem)
 import glob, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CLASS = re.compile(r'\b(?:class|struct)\s+(\w+)\s*(?:final\s*)?(?::\s*([^{;]+))?\{')
+CLASS = re.compile(r'\b(?:class|struct)\s+(?:__declspec\(\w+\)\s+)?(\w+)\s*(?:final\s*)?(?::\s*([^{;]+))?\{')
 VIRTUAL = re.compile(r'\bvirtual\b[^;{(]*?\b(~?\w+)\s*\(')
 OVERRIDE = re.compile(r'\b(~?\w+)\s*\([^;{]*\)\s*(?:const\s*)?override\b')
 REGISTER = re.compile(r'EI_REPLACE_METHOD\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)\s*\)')
