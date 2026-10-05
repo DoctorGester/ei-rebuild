@@ -15,14 +15,14 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U7 Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips).
+- U7 (taken 2026-10-05) Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips).
 
 ## App and startup, 0x00440000-0x00480000
 
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I2 (taken 2026-10-05) Next 3-8 largest live non-rendering interface functions (the briefing screen excluded).
+- I3 Next 3-8 interface functions; candidates from ui.md "Tenth pass": 00610AD0, 00611220, 00634790, 0062B7D0, 00632D70 (add scenario steps where needed).
 
 ## Cleanup (docs/cleanup-plan.md)
 
