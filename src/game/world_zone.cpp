@@ -69,7 +69,7 @@ struct PtrArray {
     void SetSize(int newSize, int newGrowBy);   // 005719B0 (RET 8)
 };
 static_assert(sizeof(PtrArray) == 0x14);
-__declspec(naked) void PtrArray::SetSize(int, int) EI_ORIGINAL(0x005719B0)
+void PtrArray::SetSize(int n, int g) { RecordArraySetSizeOriginal(this, nullptr, n, g); }
 
 // 0058EF20 (RET 0x20). Creates the units described by `records` (pointers to 0x784-byte unit
 // records) around `position` with `rotation`; ids come from the records (+0x1C).

@@ -428,7 +428,7 @@ struct ItemText : mfc::CString {
     void TrimSpaceLeft();                 // 006FE216 TrimLeft() (moves the text, memmove)
     void TrimSpaceRight();                // 006FE11F TrimRight()
 };
-__declspec(naked) int ItemText::Find(char) const EI_ORIGINAL(0x00700E91)
+int ItemText::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
 __declspec(naked) void ItemText::TrimSpaceLeft() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void ItemText::TrimSpaceRight() EI_ORIGINAL(0x006FE11F)
 ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }

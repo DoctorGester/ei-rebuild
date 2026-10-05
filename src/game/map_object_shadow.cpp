@@ -20,6 +20,7 @@
 #include <bit>
 #include <cstring>
 #include <vector>
+#include "originals_render.h"
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where
 // it stores to a float (float locals); the order of every operation is the original's.
@@ -103,7 +104,7 @@ __declspec(naked) CEngineObject* __fastcall CreateShadowTexture(void*) EI_ORIGIN
 __declspec(naked) void __fastcall LightViewMatrix(void*, void*, float*, const float*) EI_ORIGINAL(0x004F1440)
 __declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quaternion*) EI_ORIGINAL(0x004F15C0)
 // 004D9880. 4x4 matrix: this = a * b.
-__declspec(naked) void __fastcall MultiplyMatrix(float*, void*, const float*, const float*) EI_ORIGINAL(0x004D9880)
+inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 // 004D9AA0. A quaternion into a 4x4 matrix.
 __declspec(naked) void __fastcall OrientationToMatrix(void*, void*, float*) EI_ORIGINAL(0x004D9AA0)
 // 004545A0 / 004F65B0 / 00452E70. Aligned storage for 8-, 8- and 64-byte records.

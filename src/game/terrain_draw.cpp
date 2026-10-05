@@ -53,8 +53,8 @@ std::uint8_t& ClipGuards() { return *reinterpret_cast<std::uint8_t*>(0x007C88C8)
 // The statics' constructors and exit handlers.
 __declspec(naked) void __fastcall WordArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FEE9A)
 __declspec(naked) void __fastcall ByteArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FF5EA)
-__declspec(naked) void __fastcall WordArraySetSize(MfcArray*, void*, int, int) EI_ORIGINAL(0x006FEEFA)
-__declspec(naked) void __fastcall ByteArraySetSize(MfcArray*, void*, int, int) EI_ORIGINAL(0x006FF64A)
+inline void __fastcall WordArraySetSize(MfcArray* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
+inline void __fastcall ByteArraySetSize(MfcArray* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
 void(__cdecl* const kFreeUsed)() = reinterpret_cast<void(__cdecl*)()>(0x006C1300);
 void(__cdecl* const kFreeRenumber)() = reinterpret_cast<void(__cdecl*)()>(0x006C1320);
 void(__cdecl* const kDestroyFlags)() = reinterpret_cast<void(__cdecl*)()>(0x006C1340);

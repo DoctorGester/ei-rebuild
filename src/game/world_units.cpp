@@ -480,7 +480,7 @@ __declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObje
 __declspec(naked) void __fastcall ServerCastSpell(CWorldServer*, void*, CEngineObject*, int, const void*, CEngineObject*,
                                                   const void*, int) EI_ORIGINAL(0x0058E850)
 __declspec(naked) CEngineObject* __fastcall SpellsFromText(void*, void*, const char*) EI_ORIGINAL(0x00689030)
-__declspec(naked) void __fastcall TextAssignChars(mfc::CString*, void*, const char*) EI_ORIGINAL(0x00700AF9)
+inline void __fastcall TextAssignChars(mfc::CString* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) void __fastcall TextArrayCopy(void*, void*, const void*) EI_ORIGINAL(0x006FEB61)
 __declspec(naked) void __fastcall UnitSetSide(CEngineObject*, void*, int) EI_ORIGINAL(0x00530120)

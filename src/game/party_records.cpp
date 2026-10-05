@@ -21,7 +21,7 @@ int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); 
 // 00661050 constructor of the embedded party (returns this).
 __declspec(naked) void* __fastcall PartyConstruct(void*) EI_ORIGINAL(0x00661050)
 // 00700AF9 CString::operator=(LPCTSTR) on a raw CString slot.
-__declspec(naked) void __fastcall AssignText(void*, void*, const char*) EI_ORIGINAL(0x00700AF9)
+inline void __fastcall AssignText(void* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n).

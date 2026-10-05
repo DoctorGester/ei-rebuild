@@ -128,7 +128,7 @@ __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray
                                                  StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
 // 005C0BD0 (RET 0xC). CSectorMap: the units within `radius` of `position` into a CPtrList.
 // 0052CA10. CPtrList destructor body (RemoveAll).
-__declspec(naked) void __fastcall PtrListDestruct(void*, void*) EI_ORIGINAL(0x0052CA10)
+inline void __fastcall PtrListDestruct(void* l, void*) { PtrListRemoveAllOriginal(l); }
 // 004E58A0 (RET 4). Writes a zone exit to a stream.
 __declspec(naked) void __fastcall ZoneExitWrite(ZoneExit*, void*, void* /*stream*/) EI_ORIGINAL(0x004E58A0)
 // The unit set SendZone fills: an STLport hash_map (0x14 bytes, constructor 005985E0, destructor

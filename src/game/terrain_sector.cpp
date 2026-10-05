@@ -13,6 +13,7 @@
 #include "../lib/mfc.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 #pragma float_control(precise, on)
 
@@ -79,7 +80,7 @@ struct MfcOps {
     void SetAtGrowByte(int index, std::uint8_t value);  // 006FF7DC CByteArray::SetAtGrow
     void DestroyTileList(int flags);            // 006C5120 (element of the tile lists)
 };
-__declspec(naked) void MfcOps::SetSizeByte(int, int) EI_ORIGINAL(0x006FF64A)
+void MfcOps::SetSizeByte(int n, int g) { ByteArraySetSizeOriginal(this, nullptr, n, g); }
 __declspec(naked) void MfcOps::SetAtGrowByte(int, std::uint8_t) EI_ORIGINAL(0x006FF7DC)
 __declspec(naked) void MfcOps::DestroyTileList(int) EI_ORIGINAL(0x006C5120)
 

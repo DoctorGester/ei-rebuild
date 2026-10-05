@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 
 #include <cstdint>
+#include "originals_library.h"
 
 namespace {
 
@@ -23,7 +24,7 @@ constexpr int kSlotAttach = 0x34 / 4;   // (world)
 constexpr int kSlotInit = 8 / 4;        // ()
 
 // MFC CString::operator=(LPCTSTR) on the path globals.
-__declspec(naked) void* __fastcall CStringAssign(void*, void*, const char*) EI_ORIGINAL(0x00700AF9)
+inline void* __fastcall CStringAssign(void* s, void*, const char* t) { return CStringAssignTextOriginal(s, nullptr, t); }
 // The managers' constructors (thiscall, no arguments; they return this).
 __declspec(naked) void* __fastcall ObjectBaseConstruct(void*) EI_ORIGINAL(0x00402B20)
 __declspec(naked) void* __fastcall Manager5125E0(void*) EI_ORIGINAL(0x005125E0)

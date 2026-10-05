@@ -14,6 +14,7 @@
 #include "originals_gameplay.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 // The distances keep the original's operation order: no reassociation in this file.
 #pragma float_control(precise, on, push)
@@ -42,7 +43,7 @@ constexpr int kSpellFlags = 0x3C;
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
-__declspec(naked) void __fastcall UnitListRemoveAll(UnitList*, void*) EI_ORIGINAL(0x0052CA10)
+inline void __fastcall UnitListRemoveAll(UnitList* l, void*) { PtrListRemoveAllOriginal(l); }
 __declspec(naked) UnitList::Node* __fastcall UnitListNewNode(UnitList*, void*, UnitList::Node* /*prev*/,
                                                            UnitList::Node* /*next*/) EI_ORIGINAL(0x0052CEF0)
 __declspec(naked) void __fastcall UnitListFreeNode(UnitList*, void*, UnitList::Node*) EI_ORIGINAL(0x005588A0)

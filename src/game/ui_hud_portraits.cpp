@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ui.h"
 
 #pragma float_control(precise, on)
 
@@ -47,7 +48,7 @@ int SelectedUnitId() { return *reinterpret_cast<const volatile int*>(0x0079B3C4)
 IsaacRandom* Random() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
-__declspec(naked) double __fastcall WindowFrameTime(CUiWindow*) EI_ORIGINAL(0x00600270)
+inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
 
 // The game's _ftol (006E853C): truncation of the value in ST0.
 __declspec(naked) int __cdecl GameFtol(double) {

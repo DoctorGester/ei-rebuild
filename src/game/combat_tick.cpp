@@ -137,9 +137,9 @@ __declspec(naked) bool __fastcall QueueHolds(void*, void*, AnimationSteps*) EI_O
 __declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, int) EI_ORIGINAL(0x00544D50)
 __declspec(naked) void __fastcall PlanTake(OrderPlan*, void*, AnimationSteps, int, int) EI_ORIGINAL(0x00545110)
 __declspec(naked) AnimationSteps* __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x0054B260)
-__declspec(naked) void __fastcall StepsDestroy(AnimationSteps*) EI_ORIGINAL(0x00557E70)
+inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 __declspec(naked) void __fastcall StepsAddStepTick(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00544CE0)
-__declspec(naked) void __fastcall PtrListRemoveAll(void*) EI_ORIGINAL(0x0052CA10)
+inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
 __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
 __declspec(naked) bool __fastcall MotionPlace(void*, void*, const float*, const Vector3*, int) EI_ORIGINAL(0x005C7B00)

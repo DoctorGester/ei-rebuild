@@ -9,6 +9,7 @@
 #include "ei/vcall.h"
 #include "originals_world.h"
 #include "originals_gameplay.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -30,8 +31,7 @@ __declspec(naked) void __fastcall PtrListRemoveAll(ObjectList*, void*) EI_ORIGIN
 __declspec(naked) void __fastcall PtrListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00427830)
 __declspec(naked) void __fastcall LootListRemoveAll(ObjectList*, void*) EI_ORIGINAL(0x00558C50)
 __declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
-__declspec(naked) ObjectList::Node* __fastcall PtrListNewNode(ObjectList*, void*, ObjectList::Node* /*prev*/,
-                                                            ObjectList::Node* /*next*/) EI_ORIGINAL(0x004621A0)
+inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 __declspec(naked) void __fastcall PtrListConstruct(ObjectList*, void*, int /*blockSize*/) EI_ORIGINAL(0x004C98C0)
 __declspec(naked) void __fastcall PtrListAddTail(ObjectList*, void*, CEngineObject*) EI_ORIGINAL(0x004C98F0)
 __declspec(naked) void __fastcall PtrListRemoveAt(ObjectList*, void*, ObjectList::Node*) EI_ORIGINAL(0x0059A680)

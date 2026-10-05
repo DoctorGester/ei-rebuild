@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 
 namespace {
 
@@ -41,7 +42,7 @@ __declspec(naked) void __fastcall AddWeaponSprite(CHudWeaponBar*, void*, const c
 __declspec(naked) void __fastcall AddActionButton(CHudActionColumn*, void*, const char* /*model*/,
                                                   const char* /*image*/, int /*action*/) EI_ORIGINAL(0x0063F500)
 // 0059C660 (thiscall, RET 8): CDWordArray::SetSize (`growBy` -1 keeps the step).
-__declspec(naked) void __fastcall DwordArraySetSize(void*, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x0059C660)
+inline void __fastcall DwordArraySetSize(void* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
 
 // A CString an item's virtual method returns (by hidden pointer); released when it goes.
 struct ReturnedString {

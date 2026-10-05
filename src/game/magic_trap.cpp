@@ -17,6 +17,7 @@
 #include "originals_ai.h"
 #include "originals_core.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -78,7 +79,7 @@ __declspec(naked) VictimNode* __fastcall VictimNewNode(VictimList*, void*, Victi
 __declspec(naked) void __fastcall VictimFreeNode(VictimList*, void*, VictimNode*) EI_ORIGINAL(0x0052CE20)
 __declspec(naked) void __fastcall ReferenceSet(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x0052A8F0)
 __declspec(naked) PtrNode* __fastcall PtrNewNode(PtrList*, void*, PtrNode* /*prev*/, PtrNode* /*next*/) EI_ORIGINAL(0x0052CEF0)
-__declspec(naked) void __fastcall PtrRemoveAll(PtrList*) EI_ORIGINAL(0x0052CA10)
+inline void __fastcall PtrRemoveAll(PtrList* l) { PtrListRemoveAllOriginal(l); }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).

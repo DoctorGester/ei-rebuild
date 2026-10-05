@@ -18,7 +18,7 @@ namespace {
 // (returned by value: the result is constructed in `out`), CStringArray constructor, destructor,
 // SetAtGrow.
 __declspec(naked) void __fastcall AppendChar(mfc::CString*, void*, char) EI_ORIGINAL(0x00700D73)
-__declspec(naked) int __fastcall FindChar(const mfc::CString*, void*, char) EI_ORIGINAL(0x00700E91)
+inline int __fastcall FindChar(const mfc::CString* s, void*, char c) { return CStringFindCharOriginal(s, nullptr, c); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 
 struct StringArray {   // CStringArray

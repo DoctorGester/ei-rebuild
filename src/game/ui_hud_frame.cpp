@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ui.h"
 
 #pragma float_control(precise, on)
 
@@ -74,7 +75,7 @@ float TimeOfDay() {
 }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
-__declspec(naked) double __fastcall WindowFrameTime(CUiWindow*) EI_ORIGINAL(0x00600270)
+inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
 
 void SetTint(CEngineObject* object, float value) {
     auto* p = reinterpret_cast<std::uint8_t*>(object) + 0x224;

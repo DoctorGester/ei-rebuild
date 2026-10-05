@@ -91,7 +91,7 @@ void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
 __declspec(naked) void __fastcall BrainList70Destroy(void*) EI_ORIGINAL(0x005575F0)
 __declspec(naked) void __fastcall BrainArrayDestroy(void*) EI_ORIGINAL(0x0052B030)
 __declspec(naked) void __fastcall Brain14Destroy(void*) EI_ORIGINAL(0x004CB770)
-__declspec(naked) void __fastcall ControllerListDestroy(void*) EI_ORIGINAL(0x00557E70)
+inline void __fastcall ControllerListDestroy(void* list) { AnimationStepsDestroyOriginal(list); }
 __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
 // Rewritten elsewhere or here, through their game addresses (verify wrappers in the path):
 // 005233B0 UnitVitalsPacked::Reset, 00523370 UnitVitals::Reset, 00523550 UnitParams::Reset,

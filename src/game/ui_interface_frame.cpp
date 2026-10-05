@@ -86,7 +86,7 @@ SessionAt* Session() { return reinterpret_cast<SessionAt*>(0x007AFE20); }
 struct GameStateAt {
     void SetServerFlag(bool flag);   // 00578D10 (007AFEA4): the world server 007AFF60 +0x6C
 };
-__declspec(naked) void GameStateAt::SetServerFlag(bool) EI_ORIGINAL(0x00578D10)
+void GameStateAt::SetServerFlag(bool f) { SetServerFlagOriginal(f); }
 
 struct SurfaceAt {
     void ReleaseContents();          // 005FD120

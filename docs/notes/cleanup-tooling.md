@@ -215,3 +215,24 @@ local name and signature as a generated one-line wrapper over the shared forward
 | 00665470 | `void __fastcall PlayerGiveItemsOriginal(void*, void*, void* items, int)` (RET 8, EAX not a result) | originals_gameplay.h |
 
 Release and verify builds, check_stolen, check_x87, check_signatures and check_returns pass (0 problems, 0 forwarder warnings).
+
+## C3g (next 15 by site count): one declaration each
+
+Same method as C3b-C3f; the "differ" group is 445 addresses after this (it was 458). Addresses with a site in `net_*`, `script_*`,
+ui_battle_update.cpp, ui_hud.cpp or ui_battle_commands.cpp were skipped, so the 15 are the highest site counts among the rest.
+00700AF9 and 006FE90F keep their `src/lib/mfc.cpp` copy (lib cannot include game headers), so they stay listed. Decided from the
+game.exe disassembly (capstone); every other site keeps its local name and signature as a one-line inline wrapper (members are
+plain definitions) over the shared forwarder:
+
+| Address | Declaration | Header |
+| --- | --- | --- |
+| 00600270 | `double __fastcall WindowFrameTimeOriginal(void*)` (ECX = window, ST0, plain RET) | originals_ui.h |
+| 00578D10 | `void __stdcall SetServerFlagOriginal(int)` (one stack arg, RET 4, ECX unused; the `this` of the old members was ignored) | originals_ui.h |
+| 00557E70 | `void __fastcall AnimationStepsDestroyOriginal(void*)` (plain RET) | originals_units.h |
+| 004D9880 | `void __fastcall MatrixMultiplyOriginal(float*, void*, const float*, const float*)` (RET 8) | originals_render.h |
+| 00700AF9 / 00700E91 | `void* __fastcall CStringAssignTextOriginal(void*, void*, const char*)` (RET 4, returns this) / `int ...CStringFindCharOriginal(const void*, void*, char)` (RET 4, index or -1, low byte of the arg) | originals_library.h |
+| 004621A0 / 0052CA10 | `void* __fastcall PtrListNewNodeOriginal(void*, void*, void* prev, void* next)` (RET 8, returns node) / `void __fastcall PtrListRemoveAllOriginal(void*)` (plain RET) | originals_library.h |
+| 005719B0 / 0059C660 / 005B16D0 / 006FEEFA / 006FF64A | `void __fastcall {Record,Dword,Point,Word,Byte}ArraySetSizeOriginal(void*, void*, int, int)` (RET 8) | originals_library.h |
+| 006FC9C6 / 006FE90F | `void* __fastcall OstreamPutLongOriginal(void*, void*, long)` (RET 4, returns the stream) / `void __fastcall PlexFreeDataChainOriginal(void*)` (plain RET) | originals_library.h |
+
+Release and verify builds, check_stolen, check_x87 and the forwarder checks in build.cmd pass (0 problems, 0 forwarder warnings).

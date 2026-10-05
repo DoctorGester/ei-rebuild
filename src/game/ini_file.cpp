@@ -185,7 +185,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, MfcArray* o
 
 } // namespace
 
-__declspec(naked) int TextOps::Find(char) const EI_ORIGINAL(0x00700E91)
+int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
 __declspec(naked) int TextOps::Find(char, int) const EI_ORIGINAL(0x00700E9F)
 __declspec(naked) mfc::CString TextOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
@@ -194,8 +194,8 @@ __declspec(naked) void TextOps::AppendChar(char) EI_ORIGINAL(0x00700D73)
 __declspec(naked) void MfcArrayOps::ConstructDWordArray() EI_ORIGINAL(0x006FF933)
 __declspec(naked) void MfcArrayOps::DestroyDWordArray() EI_ORIGINAL(0x006FF966)
 __declspec(naked) void MfcArrayOps::SetSizeDWord(int, int) EI_ORIGINAL(0x006FF993)
-__declspec(naked) void MfcArrayOps::SetSizeByte(int, int) EI_ORIGINAL(0x006FF64A)
-__declspec(naked) void MfcArrayOps::SetSizeWord(int, int) EI_ORIGINAL(0x006FEEFA)
+void MfcArrayOps::SetSizeByte(int n, int g) { ByteArraySetSizeOriginal(this, nullptr, n, g); }
+void MfcArrayOps::SetSizeWord(int n, int g) { WordArraySetSizeOriginal(this, nullptr, n, g); }
 __declspec(naked) void MfcArrayOps::SetSizeUInt(int, int) EI_ORIGINAL(0x006FF29A)
 
 // --- Construction ----------------------------------------------------------------------------------

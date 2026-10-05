@@ -25,3 +25,6 @@ __declspec(naked) inline void* __cdecl DisplayObject() EI_ORIGINAL(0x00500960)
 __declspec(naked) inline char* __fastcall AllocAligned16(int /*count*/) EI_ORIGINAL(0x00468F70)
 // 004ECB50: 32-byte aligned allocation of `count` bytes (ECX, plain RET).
 __declspec(naked) inline char* __fastcall AllocAligned32Original(int /*count*/) EI_ORIGINAL(0x004ECB50)
+// 004D9880: 4x4 matrix product out = a * b (ECX = out, RET 8, no result).
+__declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, void*, const float* /*a*/,
+                                                                const float* /*b*/) EI_ORIGINAL(0x004D9880)

@@ -133,7 +133,7 @@ __declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, AnimationSte
 __declspec(naked) AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps*, void*, const AnimationSteps*)
     EI_ORIGINAL(0x00556870)
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00557B60)
-__declspec(naked) void __fastcall StepsDestroy(AnimationSteps*) EI_ORIGINAL(0x00557E70)
+inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 __declspec(naked) void __fastcall StepsRemoveAt(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557E20)
 
 IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }

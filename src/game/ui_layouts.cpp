@@ -412,7 +412,7 @@ struct MenuGlue {
 };
 __declspec(naked) const mfc::CString* MenuGlue::Directory() EI_ORIGINAL(0x00578DC0)
 __declspec(naked) void* MenuGlue::TextTable() EI_ORIGINAL(0x00578E20)
-__declspec(naked) void MenuGlue::SetServer(int) EI_ORIGINAL(0x00578D10)
+void MenuGlue::SetServer(int f) { SetServerFlagOriginal(f); }
 __declspec(naked) void MenuGlue::BeforeTitles(int) EI_ORIGINAL(0x00578920)
 __declspec(naked) void MenuGlue::BeforeTitles2() EI_ORIGINAL(0x00578940)
 MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }

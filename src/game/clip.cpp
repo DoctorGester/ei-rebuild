@@ -7,6 +7,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 // Keep the original's order of operations in the interpolation (/fp:fast may reassociate).
 #pragma float_control(precise, on)
@@ -55,7 +56,7 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
 struct WordArray {
     void SetSize(int newSize, int growBy);
 };
-__declspec(naked) void WordArray::SetSize(int, int) EI_ORIGINAL(0x006FEEFA)
+void WordArray::SetSize(int n, int g) { WordArraySetSizeOriginal(this, nullptr, n, g); }
 
 void Emit(std::uint16_t index) { clip::Buffer()[clip::BufferCount()++] = index; }
 

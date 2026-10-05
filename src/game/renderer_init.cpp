@@ -13,6 +13,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include "originals_render.h"
 
 namespace {
 
@@ -46,7 +47,7 @@ __declspec(naked) float* __stdcall ProjectionMatrix(float*, float /*fov*/, float
     EI_ORIGINAL(0x004F0E80)
 __declspec(naked) float* __stdcall ViewportMatrix(float*, const int* /*rect*/) EI_ORIGINAL(0x004F1370)
 __declspec(naked) float* __stdcall AxisSwapMatrix(float*) EI_ORIGINAL(0x004F1330)
-__declspec(naked) void __fastcall MultiplyMatrix(float* /*out*/, void*, const float*, const float*) EI_ORIGINAL(0x004D9880)
+inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 // FatalErrorOriginal (patched by Rebirth; through its address), FatalErrorOriginal with an HRESULT, exit.
 // The game's operator new, keeping EDX as the allocator leaves it (see CreateHelper).
 __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::uint32_t* /*edx out*/) {
