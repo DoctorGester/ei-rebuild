@@ -34,6 +34,16 @@ public:
     virtual BOOL IsSameAsSlot(CItem* other);                 // 14: 0069FE90 IsSameAs
     virtual BOOL CopyToSlot(CItem* target, CSpellManager* spells);   // 15: 0069FFC0 CopyTo
 
+    // 0069FCA0 (item_lifetime.cpp). Constructor body: CEngineObject's fields, no link (+0x1C) or
+    // spell, +0x20..+0x3C -1.0, count 1 (+0x40 is left as it is). Returns this.
+    CItem* Construct();
+    static std::uintptr_t Vtable();   // 00743DA4
+    // 0069FE20 (slot 2). Count 1, the spell released; returns 1.
+    int CreateItem();
+    // 0069FE50 (slot 3). The spell released (slot 4) and the link (+0x1C, a CRefCounted: 16-bit
+    // count, deleted at 0) let go.
+    void DestroyItem();
+
     // 0069FF70 (RET 4; party_items.cpp). A new item of the same kind from the owning manager
     // (slot 23), given this one's values through slot 15 with the spell manager `spells`; when
     // that fails the new item is released and the result is null.
@@ -119,6 +129,8 @@ public:
 
     // 006A0730 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C..+0x58.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A0540 (item_lifetime.cpp). CItem's, then +0x4C 0 and the three floats -1.0.
+    CItemWeapon* Construct();
     // 006A0660 (slot 13; item_slots.cpp). CItem::InitFromRecord, then damage, spread and +0x58.
     void InitFromRecord(const char* record);
 
@@ -147,6 +159,8 @@ public:
 
     // 006A3140 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then absorb_ and layerMask_.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A2F20 (item_lifetime.cpp). CItem's, then absorb_ and layerMask_ 0.
+    CItemArmor* Construct();
     // 006A3070 (slot 13; item_slots.cpp). CItem::InitFromRecord, then the two absorption rows.
     void InitFromRecord(const char* record);
     // 006A30D0 (slot 14). CItem::IsSameAs, then absorb_ and layerMask_ equal as dwords.
@@ -170,6 +184,8 @@ public:
     mfc::CString PictureName();
     // 006A3C50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A3AD0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
+    CItemQuick* Construct();
     // 006A3BE0 / 006A3C20 (slots 13 / 14, also the scrolls'; item_slots.cpp). The base's, then
     // +0x4C (prototype +0x70).
     void InitFromRecord(const char* record);
@@ -186,6 +202,8 @@ public:
     mfc::CString PictureName();     // 006A47B0 "initqu<number>item"
     // 006A4540 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A43A0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
+    CItemQuest* Construct();
     // 006A44D0 / 006A4510 (slots 13 / 14; item_slots.cpp). The base's, then +0x4C (prototype
     // +0x6C, the category).
     void InitFromRecord(const char* record);
@@ -201,6 +219,8 @@ public:
     mfc::CString FigureName();
     // 006A57F0 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A56E0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
+    CItemSpell* Construct();
 
     std::uint32_t unknown_4C;
 };
@@ -222,6 +242,9 @@ public:
     mfc::CString PictureName();
     // 006A4B50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then kind_, recordType_, index_.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 006A49A0 (item_lifetime.cpp). CItem's and the vtable (kind, record type and index are left
+    // as they are).
+    CItemLoot* Construct();
     // 006A4AB0 / 006A4B00 (slots 13 / 14; item_slots.cpp). The base's, then kind_, recordType_
     // and index_ (prototype +0x6C..+0x74).
     void InitFromRecord(const char* record);

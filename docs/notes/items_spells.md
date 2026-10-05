@@ -53,6 +53,12 @@ non-zero weight (6 if none).
 | 0069FE90, 006A30D0, 006A3C20, 006A4510, 006A4B00 | IsSameAs (slot 14) of CItem (base body), armour, quick (also scrolls), quest, loot (`item_slots.cpp`) | pure |
 | 006A0660, 006A3070, 006A3BE0, 006A44D0, 006A4AB0 | InitFromRecord (slot 13) of weapon, armour, quick (also scrolls), quest, loot | original on a scratch copy of the item, whole object compared |
 
+| 0069FCA0, 006A2F20 | CItem::Construct, CItemArmor::Construct (`item_lifetime.cpp`) | original on scratch memory seeded with the real bytes, whole object compared |
+| 006A0540, 006A3AD0, 006A43A0, 006A49A0, 006A56E0 | Construct of weapon, quick, quest, loot, scroll (a CALL within 5 bytes: no trampoline) | ours only: CItem's fields, vtable, the weapon's -1.0 floats |
+| 0069FE20, 0069FE50 | CItem::CreateItem / DestroyItem (slots 2 / 3, every class) | ours only: count 1, spell and link (+0x1C) gone |
+
+Constructors leave +0x40 (CItem) and the quick, quest, loot and scroll fields (+0x4C..) as they are; +0x20..+0x3C
+start at -1.0. The link at +0x1C is a CRefCounted (16-bit count) that Destroy deletes at 0.
 IsSameAs compares the base floats (+0x20..+0x2C, +0x34..+0x3C) as "equal or unordered" (FCOMP, TEST AH,40h) and
 the armour's rows and masks as dwords; the subclasses' slot 13 inline CItem::InitFromRecord and add their record
 fields (`WeaponRecord`, `ArmorRecord`, `QuickItemRecord`, `LootItemRecord` in item_db.h; the quest item takes the
