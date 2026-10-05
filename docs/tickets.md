@@ -31,11 +31,14 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
-  - C2b (taken 2026-10-05) ChunkArchive / chunk streams / CMemoryStream (chunk_*, model archive code).
-  - C2c Network sessions, connections and messages (net_*).
+  - C2c (taken 2026-10-05) Network sessions, connections and messages (net_*).
   - C2d Camera.
 - C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
   identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
   differ need a decision per address. Routine for the first part (cheaper model).
 - X1 Small fixes: 0049B320 (unreferenced two-point line draw) to config/dead_code.csv; drop the
   false vtable entries 00747E2C (00504341 / 0050434F) from config/vtables.csv and functions.csv.
+- C4 Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
+  ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
+  world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
+  hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
