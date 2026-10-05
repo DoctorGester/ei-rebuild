@@ -73,36 +73,27 @@ OnDamaged (00553AC0). A miss makes the victim hostile (CDiplomacy::OnAttack) and
 
 ### Update (slot 6, 00552300), movement tick (00547890), damage and death
 
-- Update, living unit: UnitVitals::Regenerate (in combat while an order other than 0 is current); every (+0x914 + 1)-th frame the AI events (world + 0x2838, 005C9770) get the position; armour periodic
-  spells (00552B90); a party unit's perception memory (+0xA50, 005CB850); boredom (+0x938; past 500 one ISAAC draw in 1001 sends remark 0x29 and sets 400, or 0 when the player's +0x5120 is set); alarm
-  (+0xB10), AIBrain::Think, PropagateHostility; then, unless frozen (flags_ 0x1000000), reacting to a hit or in state 3..5, UpdateOrders; UpdateState (005499F0) and AdvanceAnimation. Dead unit: the body
-  sinks (z -= +0x8F4, growing by 0073C548 per update) and once the animation queue is empty death is reported once (+0x18D: 00593AF0, the unit leaves its player 005300D0, brain / alarm resets).
-- Movement tick (`UpdateMotion`, controller `this`, called twice by 005499F0; the AI-side chain is in `ai.md` "How a unit moves"): samples the motion order (+0x3C) at the world time (half-cells scaled by
-  1 / (0073EEE4 * 0.5)); starts the order's next animation (00551400); plays a pending fall / death animation; with a reached cell: off the sector map, CanStandAtFromHere, and when blocked BlockingUnitAt
-  decides: wait (a party member leading this unit, or the unit already waited for), wait behind a unit attacking / casting at the same target, or replan with nearby units lifted (links leading back clear
-  both and replan; a slower blocker with reason 2, water, also replans); else CSectorMap::Move, obstacle flag (+0x278) only while idle. Running party units drain stamina (stats +0x14 -= +0x18 * 0073F088;
-  below 0: message 0x1D, walk, MarkChanged 6); then 00548520.
-- OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags_ bit 1. Living: armour spells (onHit 0), attacker hostile and remembered (005D7E90), flags_ 0x80000, PropagateHostility (allied units
-  within the brain's +0x38 radius, squared compared as ints, exchange claims through 00552D00), hit direction to +0x160 unless +0x144. Dead: the killer's party gets message 0x30, WitnessMurder on both
-  nearby lists (brain + 0xF4), effects cleared (0050F5B0), SetDead(1), "Unit 12 damaged to death", death animation (BuildDeathAnimation 00550A80, played by 00548DE0), AI death notice (005C97B0), party
-  memory (005CBE90). HitDirection: |side| < |front| (or NaN) gives 0x800000 front / 0x400000 behind, else 0xC00000 / 0x1000000 by the side's sign. Heal (slot 21, 005543B0; healing spell effect 00681652):
-  UnitStats 00525900, Recompute, MarkChanged(0) and (4).
-- UseSkill (0054F000, kind 6): talk (0x18A95) meets the player (005942D0) and starts the dialog (005935C0, Rebirth-patched, called through its address); science (0) and stealing (1) compare skills (00525E90);
-  stealing fails unless the thief's skill is greater, else takes a random item (00531400) or tries 005942D0 (message 0x22 on failure); science raises the item record's third int by the rounded skill (message
-  0x11 when refused). No script command reaches it. Taming (00551AE0 `TryTame`, 00552280 `UndoTaming`): +0x908 stage; a roll succeeds when above 10 x slot 39 plus the taming skill (00525E90 with 2) or NaN;
-  the tamed mode is a player mode (005D3760, vtable 0073F0C4); at stage 3 the brain lists at +0xAB0 / +0xACC are emptied.
-- World::CreateManagers (0055EE40, `__fastcall`; client init 00561E50, server 0058AE10): copies command-line paths (0079BC90..98) to 007AF460 / 45C / 458, resets +0x24 (1.0), +0x28..+0x30, +0x64..+0x6C,
-  makes and references managers +0x38 (0xB0), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48 (0xB0), +0x50 (0x24, 00683FF0), +0x4C (0xD4, 00688840), +0x58 (0x34, 006A5AB0), +0x54 (0xBC,
-  CResourceManager 00674D90); a 0x0C-byte object (0073F240) into the counted pointer at +0x5C; then IsaacRandom::Init and 006D43E0 on +0x70.
+- Update: UnitVitals::Regenerate, AI events (world + 0x2838, 005C9770) every (+0x914 + 1)-th frame, armour periodic spells (00552B90), a party unit's perception memory (+0xA50, 005CB850), boredom (+0x938; past 500 one
+  ISAAC draw in 1001 sends remark 0x29 and sets 400, or 0 when the player's +0x5120 is set), alarm, AIBrain::Think, PropagateHostility, then UpdateOrders unless frozen (flags_ 0x1000000) or reacting to a hit, UpdateState
+  (005499F0) and AdvanceAnimation. A dead unit's body sinks (z -= +0x8F4, growing by 0073C548 per update) and once the queue is empty death is reported once (+0x18D: 00593AF0, 005300D0, brain / alarm resets).
+- Movement tick (`UpdateMotion`, called twice by 005499F0; the AI-side chain is in `ai.md` "How a unit moves"): samples the motion order (+0x3C) at the world time, starts the next animation, plays a pending fall / death
+  animation; a blocked step (BlockingUnitAt) waits (a party member leading this unit, or the unit already waited for), waits behind a unit attacking / casting at the same target, or replans with nearby units lifted
+  (links leading back clear both; a slower blocker with reason 2, water, also replans); else CSectorMap::Move. Running party units drain stamina (stats +0x14 -= +0x18 * 0073F088; below 0: message 0x1D, walk).
+- OnDamaged(attacker, hitKind): types outside 0x32..0x36 only get flags_ bit 1. Living: armour spells, attacker hostile and remembered (005D7E90), flags_ 0x80000, PropagateHostility (allied units within the brain's +0x38
+  radius exchange claims through 00552D00), hit direction to +0x160 unless +0x144. Dead: the killer's party gets message 0x30, WitnessMurder on both nearby lists (brain + 0xF4), effects cleared, SetDead(1), "Unit 12 damaged to
+  death", death animation (00550A80, 00548DE0), AI death notice (005C97B0), party memory (005CBE90). HitDirection: |side| < |front| (or NaN) gives 0x800000 front / 0x400000 behind, else 0xC00000 / 0x1000000.
+- UseSkill (0054F000, kind 6; no script command reaches it): talk (0x18A95) starts the dialog (005935C0, Rebirth-patched, called through its address); stealing (1) fails unless the thief's skill is greater, else takes a
+  random item (00531400) (message 0x22 on failure); science (0) raises the item record's third int. Taming (`TryTame` 00551AE0, `UndoTaming` 00552280): +0x908 stage; a roll succeeds when above 10 x slot 39 plus the
+  taming skill or NaN; the tamed mode is a player mode (005D3760, vtable 0073F0C4).
+- World::CreateManagers (0055EE40, from the client init 00561E50 and the server's 0058AE10) makes and references the world's managers at +0x38 (0xB0), +0x40 (0xBC, 005125E0), +0x3C (0xD0, 005AA070), +0x48, +0x50
+  (00683FF0), +0x4C (00688840), +0x58 (006A5AB0), +0x54 (CResourceManager 00674D90), copies the command-line paths (0079BC90..98) to 007AF460 / 45C / 458, then IsaacRandom::Init and 006D43E0 on +0x70.
 
 ### Floating point and verification patterns
 
-`float_control(precise, on)` where the original keeps values on the FPU stack (`double` locals; float locals where it stores). The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; also
-the melee reach floor in ActionDistance); `TEST AH,0x40` skips on equal or unordered (`x < 0 || x > 0`); random draws `random % (n + 1)` with n = FISTP, then FILD of the zero-extended remainder (`Unsigned`); `_ftol`
-through `GameFtol`. Random-number wrappers keep their snapshots on the stack so nested wrappers (AttackRoll in ResolveHit, BuildAttackHit in PrepareAttack, RollDamage) each leave the generator as one original run
-would. Rewrites call each other through the game addresses (`Call*` members) so verify wrappers see the calls. 005536B0 starts with PUSH / MOV and a relative CALL, so its wrapper (`stolenBytes` 0) calls
-`OriginalUpdateMoveFactors`, a naked stub in verify_combat.cpp repeating PUSH ECX; PUSH ESI; MOV ESI,ECX, calling 00455940 and jumping to 005536B9. The movement tick's stale-local quirk is reproduced by reading
-the stack dword at entry ESP - 0x98 in a naked entry before the frame exists.
+The original's branch-free `max(0, v)` picks v when 0 < v or NaN (`MaxZero`; also the melee reach floor in ActionDistance); `TEST AH,0x40` skips on equal or unordered (`x < 0 || x > 0`); random draws
+`random % (n + 1)` with n = FISTP, then FILD of the zero-extended remainder (`Unsigned`). Random-number wrappers keep their snapshots on the stack so nested wrappers (AttackRoll in ResolveHit, BuildAttackHit in
+PrepareAttack, RollDamage) each leave the generator as one original run would. 005536B0 starts with PUSH / MOV and a relative CALL, so its wrapper (`stolenBytes` 0) calls `OriginalUpdateMoveFactors`, a naked
+stub in verify_combat.cpp. The movement tick's stale-local quirk is reproduced by reading the stack dword at entry ESP - 0x98 in a naked entry before the frame exists.
 
 ## Rewritten
 
