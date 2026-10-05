@@ -1,6 +1,6 @@
 // The quest under construction: QStart names it and drops the old objectives, the QObj* commands
 // add objectives, QFinish (004BAAB0, script_exec_helpers.cpp) turns them into a script. See script.h
-// and docs/notes/script.md ("Quest construction").
+// and docs/notes/script.md.
 #include "script.h"
 
 #include "lib/crt.h"

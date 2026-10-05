@@ -1,5 +1,5 @@
 // Script command execution: ScriptRun::Execute (004B6760), the switch over every world script
-// command. See script.h and docs/notes/script.md ("Command execution").
+// command. See script.h and docs/notes/script.md.
 //
 // Rebirth patches Execute in memory (it adds commands), so this replacement installs only in the
 // vanilla game. Every callee is reached through its original address (forwarders below): several

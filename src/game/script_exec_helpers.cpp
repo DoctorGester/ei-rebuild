@@ -1,6 +1,6 @@
 // Command helpers of the script runtime: areas (AddRectToArea, AddRoundToArea, DeleteArea) and point
 // lights (CreatePointLight, MovePointLight, DeletePointLight). See script.h and
-// docs/notes/script.md ("Command execution and runtime").
+// docs/notes/script.md.
 #include "script.h"
 #include "game_strings.h"
 
