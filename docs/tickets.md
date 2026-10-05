@@ -13,7 +13,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- U9 (taken 2026-10-05) Next 3-5 live unit/combat functions in 0x00500000-0x00540000 (docs/notes/units.md, combat.md), reached by existing scenarios (zones gz2g/gz3g now available).
+- U10 (taken 2026-10-05) Next 3-5 live unit functions; units.md "Eleventh round (U9)": 0052AC90 (magic trap vtable entry) and others reached by magic_traps / zone_gz2g_traps / combat.
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## App and startup, 0x00440000-0x00480000
