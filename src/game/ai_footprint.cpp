@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_render.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -137,8 +138,6 @@ __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector
 // CStringArray element by value (a CString constructed into `out`).
 __declspec(naked) char** __fastcall StringArrayGetAt(const void*, void*, char**, int)
     EI_ORIGINAL(0x004698A0)
-// Index of the object's model part named `name`, -1 if none.
-__declspec(naked) int __fastcall FindPart(CEngineObject*, void*, const char*) EI_ORIGINAL(0x00517990)
 
 void DestroyString(char** s) { reinterpret_cast<mfc::CString*>(s)->~CString(); }
 
@@ -182,7 +181,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     bool hasBridge = false;
     for (int n = 0; n < *reinterpret_cast<int*>(names + 8); ++n) {
         char* name;
-        int index = FindPart(object, nullptr, *StringArrayGetAt(names, nullptr, &name, n));
+        int index = ObjectFindPartIndexOriginal(object, nullptr, *StringArrayGetAt(names, nullptr, &name, n));
         DestroyString(&name);
         if (index < 0) {
             const char* objectName = Field<const char*>(object, 0xA4);

@@ -116,9 +116,9 @@ static_assert(sizeof(StringArray) == 0x14);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
-    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Only slot
-    // 26 is called by name; 13-25 hold its place (the managers' getters, 24 the server's CopyItem;
-    // rewritten slots stay plain members, rewrite guide rule 4).
+    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Slots 26,
+    // 29 and 30 are called by name; 13-25, 27 and 28 hold their places (the managers' getters, 24
+    // the server's CopyItem; rewritten slots stay plain members, rewrite guide rule 4).
     virtual void Slot13();
     virtual void Slot14();
     virtual void Slot15();
@@ -133,6 +133,12 @@ public:
     virtual void Slot24();
     virtual void Slot25();
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
+    virtual void Slot27();                // 27: the terrain height (CWorldServer::GridHeight 00594220)
+    virtual void Slot28();                // 28: the server's AI map height (0058A390), client 00564070
+    // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
+    // 0058A3D0 / 0058A3F0 call slots 27 / 28; client 005618E0 / 00561930 also clamp, 00560F00).
+    virtual double GroundHeightAt(float x, float y);
+    virtual double SurfaceHeightAt(float x, float y);
 
     float timeBase_;                     // +0x1C
     float secondsPerTick_;                // +0x20

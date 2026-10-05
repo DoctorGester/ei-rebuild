@@ -14,6 +14,7 @@
 #include <cstdint>
 
 class CUnit;
+struct Vector3;   // maths.h
 
 // The figure part names of the three armour groups (0073EC24: seven char[4] each): a body
 // armour covers "bd" and the arm pieces, trousers "hp" and the legs, a helmet the hair "hr" and
@@ -88,6 +89,13 @@ public:
     // "<prototype><armour or weapon texture>.mmp", named "mo<id>p" / "prot<prototype>p" (or
     // ...s when not `detailed`). Returns the texture.
     void* ComposeSkin(int detailed, void* target);
+
+    // 00535770 (not rewritten; forwarded from unit_figure_queries.cpp, RET 4). The point the weapon
+    // in hand acts from: the node named by the weapon's model (weaponIds[unit->activeWeapon], 006A0CC0;
+    // "baserh3" without one) in the unit's figure animation (0050CC20 on the unit's +0x98), its +0x74
+    // copied to `out` (relative to the unit, not turned by its orientation). False (AL) when the
+    // animation has no such node (`out` untouched).
+    bool WeaponPoint(Vector3* out);
 
     CUnit* unit;                    // +0x1C
     std::uint8_t unknown_020[0xA0 - 0x20];

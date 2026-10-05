@@ -148,7 +148,6 @@ __declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI
 __declspec(naked) void __fastcall QuaternionAxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
 void __fastcall MarkerBegin(void* a0, void*, int a2, int a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
 void* __fastcall ObjectFindPart(CEngineObject* a0, void*, const char* a2) { return (void*)ObjectFindPartOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) float* __fastcall ObjectPartPosition(CEngineObject*, void*, float*, void*) EI_ORIGINAL(0x005188B0)
 __declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, const float*, const float*)
     EI_ORIGINAL(0x00503A40)
 __declspec(naked) void __fastcall ListErase(void*, void*, void**, void*) EI_ORIGINAL(0x00512030)
@@ -598,7 +597,7 @@ int CWorldClient::DrawPass() {
                     std::memcpy(point, &Field<float>(object, 0x1C), sizeof(point));
                     if (void* part = ObjectFindPart(object, nullptr, reinterpret_cast<const char*>(0x007900E4))) {
                         float scratch[3];
-                        const float* at = ObjectPartPosition(object, nullptr, scratch, part);
+                        const float* at = ObjectPartPositionOriginal(object, nullptr, scratch, part);
                         std::memcpy(point, at, sizeof(point));
                         point[2] = Reload(Field<float>(object, 0x24));
                     }
