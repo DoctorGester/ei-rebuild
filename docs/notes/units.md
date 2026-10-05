@@ -1145,3 +1145,80 @@ alone.
 - ChangeWeaponModel is checked for consistency only; a wrong part name or a missed part would not
   be caught by the wrapper (the figure would show it).
 
+
+# Eighth round (U6): hit locations, stealing, the Create slots of units and torches
+
+Code: `src/game/unit_hit_location.cpp`, `src/game/unit_steal.cpp`, `src/game/map_object_create.cpp`
+(new). Verify: `verify_unit_hit_location.cpp`, `verify_unit_steal.cpp`, `verify_map_object_create.cpp`
+(new). Shared headers, additive only: `unit.h` (UnitStats::PickLocation, CUnit::TakeRandomItem,
+CUnit::CreateUnit), `map_object.h` (TorchCreate). Forwarder comments in combat_steps.cpp /
+combat_actions.cpp name the rewrites (both still call them through their addresses).
+
+The largest functions of the range left are mostly library-like: STLport vector insert / resize /
+destroy instantiations of the unit database's records (0053F530, 0053FCC0, 0053F950, 0053E2A0,
+00520FA0, 00521220, 00521C70 copy, 0051F790, 0051FB50, 00539CE0, 0053A050) and should go to
+config/library.csv in a cleanup ticket. Also skipped: 0051FF40 (writes "perks.pdb", the skill
+database saver: no reference in the exe, a dead-code candidate), 00519380 / 0051C250 (figure
+animations and parts), 00511A00 (CMapObjectClientSpecific::SetLightMode, rendering), 00529B80
+(class 0x3010's update: a world script CreateParticleSource when units come near; effect-adjacent)
+and 0052C740 (Serialize of a list of counted pointers, vtable 0073E730: on loading it reads raw
+pointer values from the archive and dereferences them, so it can only work with a count of 0; no
+caller found besides the vtable). That gave 0052BFC0 (400 bytes), 00525B20 (400), 0052E400 (396)
+and 00531400 (385).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 00525B20 | UnitStats::PickLocation (RET 4) | differential with the random generator (007A9D40, 0x814 bytes) saved and put back between the two; result exact, generator state equal. Every attack on a creature (BuildAttackSteps; combat scenarios) |
+| 00531400 | CUnit::TakeRandomItem (no arguments) | differential: carried items, quick items, changedParts / flags_ / changeStamp and the generator saved and put back between the two; item and state equal. Stealing only; probably no scenario |
+| 0052E400 | CUnit::CreateUnit (virtual slot 2, Create) | ours only (allocates): result 1, 14 network fields, buffer at least 14, mode idle, no carried items. Every unit made (newgame) |
+| 0052BFC0 | TorchCreate (CTorchObject slot 2; fastcall) | ours only: result 1, 5 network fields, mode idle, +0x238 null. Zones with torches |
+
+Renamed in Ghidra: 00525B20, 00531400, 0052E400 (CUnit__Create), 0052BFC0 (CTorchObject__Create).
+
+## Hit locations (00525B20)
+
+UnitStats::PickLocation(location), from BuildAttackSteps: the slot kind (+0x1F0 + 0xF4 x location,
+UnitStatSlot::kind) 3 means working. The aimed location is kept while it works (read for any
+location: the original only guards its jump table, unsigned `location <= 5`). Otherwise a jump
+table tries neighbours: head 1, 2, 3; body 0, 2, 3, 4, 5; hand 2: 3, 1; hand 3: 2, 1; leg 4: 5, 1;
+leg 5: 4, 1. Then the working slots are collected in order and one is picked with an inlined
+IsaacRandom::Next (the same code as 004667F0; our Next is called) modulo their count; none gives 1.
+
+## Stealing (00531400)
+
+TakeRandomItem, from CUnitServer's actions (kind 1, combat_actions.cpp): with carried items
+(+0x4A0, count +0x4A4) the first is taken, the rest moved down (CArray::RemoveAt(0) inlined,
+memmove only when some remain), count - 1, MarkChanged(5). Otherwise the filled quick item
+slots (+0x450) are collected (in the original into a CArray<int>, vtable 0073EBD4, grown with
+00533740 and freed again: heap traffic only), one is picked with an inlined Next modulo the count,
+emptied (no release; the caller takes the reference) and MarkChanged(5). Null and no change when
+there is nothing.
+
+## The Create slots (0052E400, 0052BFC0)
+
+Virtual slot 2 of CEngineObject is Create. CMapObject's (0050E770, not rewritten) resets the map
+object and gives its DeltaState (+0x1C4) 4 fields (0050FA30, CArray<DeltaField>::SetSize) before
+DeltaState::Reset. CUnit's then calls CUnit::Reset (0052E5B0) and sets 14 fields; CTorchObject's
+(class id 0x3A, vtable 0073E834, "CTorchObject") releases and clears its +0x238, sets 5 fields
+and calls DeltaState::Reset (0047FB70) again. Both inline SetSize(n, -1); the inlined code is
+exactly 0050FA30 (allocate and construct with 005101A0 when empty; construct the new tail or
+destroy the surplus with 00510340 within the capacity; else grow by the grow step or an eighth of
+the size, 4..1024, at least to n, copying the old records bytewise), so ours calls 0050FA30. The
+C++ member is named CreateUnit: Create would override CEngineObject's virtual (rule 4).
+
+## Forwarders added (eighth round; the standalone build must replace these)
+
+- Not rewritten: 0050E770 (CMapObject::Create), 0050FA30 (CArray<DeltaField>::SetSize).
+- Rewritten, called directly: IsaacRandom::Next (004667F0), CUnit::MarkChanged (0050E9F0),
+  CUnit::Reset (0052E5B0), DeltaState::Reset (0047FB70). None is Rebirth-patched.
+
+## Original bugs and oddities kept (eighth round)
+
+- PickLocation reads a slot kind for any location before its range check.
+
+## Risks (eighth round)
+
+- PickLocation and CreateUnit run in the combat scenarios and newgame: a mistake shows at once
+  (PickLocation differentially, including the random draw).
+- TakeRandomItem (stealing) and TorchCreate (torch zones) may not be reached by any scenario; the
+  verify counts show it. TorchCreate and CreateUnit are checked for consistency only.

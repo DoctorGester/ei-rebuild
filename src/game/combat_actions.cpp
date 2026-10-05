@@ -201,7 +201,8 @@ __declspec(naked) void __fastcall PlayerItemChanged(char*, void*, CItem*) EI_ORI
 __declspec(naked) void __fastcall PlayerReceiveItems(char*, void*, void*, int) EI_ORIGINAL(0x00665470)
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 __declspec(naked) void __fastcall PlayerMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
-// 00531400. CUnit: takes a random carried item away (stealing); null when there is none.
+// 00531400. CUnit: takes a random carried item away (stealing); null when there is none
+// (CUnit::TakeRandomItem, unit_steal.cpp; called through its address).
 __declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x00531400)
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
