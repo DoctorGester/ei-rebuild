@@ -5,6 +5,7 @@
 // replicated-field operations, and the x87 details the effects repeat.
 
 #include "world_effect.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -166,6 +167,6 @@ inline void WriteCopy(void* stream, const void* field) {
 __declspec(naked) inline void __fastcall ReadStringArray(EffectStringArray*, void* /*stream*/) EI_ORIGINAL(0x006773A0)
 // 004E5840: reads a CString from a save stream (thiscall on the stream).
 __declspec(naked) inline void __fastcall ReadStreamCString(void* /*stream*/, void*, void* /*cstring*/) EI_ORIGINAL(0x004E5840)
-inline const char* EmptyCString() { return reinterpret_cast<const char*>(0x0079B298); }
+inline const char* EmptyCString() { return game::EmptyText(); }
 
 } // namespace effect

@@ -1,4 +1,5 @@
 #include "object_tables.h"
+#include "game_strings.h"
 
 #include "core_streams.h"
 
@@ -14,8 +15,6 @@ namespace {
 
 const unsigned char* Bytes(const char* s) { return reinterpret_cast<const unsigned char*>(s); }
 
-// 0079B298: the exe's empty string; a saved table ends with the name equal to it.
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 
 // STLport __stl_hash_string (00460BA0): h = 5 h + c over signed chars.
 std::uint32_t HashString(const char* s) {
@@ -210,7 +209,7 @@ void NamedFloatTable::Load(CStream* stream) {
             key = *read;
             read->~CString();
         }
-        if (gamecrt::mbscmp(Bytes(key), Bytes(EmptyText())) == 0) break;
+        if (gamecrt::mbscmp(Bytes(key), Bytes(game::EmptyText())) == 0) break;
         float value;
         stream->Read(&value, 4);
         *Index(this, key) = value;

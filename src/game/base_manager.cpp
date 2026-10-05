@@ -17,21 +17,11 @@ using PositionMap = CBaseManager::PositionMap;
 using SpareMap = CBaseManager::SpareMap;
 using SpareCountMap = CBaseManager::SpareCountMap;
 
-// An STLport hashtable iterator: the node and its table.
+// The tables' iterator and {key, value} pair, as stlp::hash_map lays them out.
 template <typename Map>
-struct MapIterator {
-    typename Map::Node* node;
-    Map* table;
-};
-// The {key, value} pairs the tables' insert functions take and return.
-struct ObjectPair {
-    int key;
-    CEngineObject* value;
-};
-struct CountPair {
-    int key;
-    int count;
-};
+using MapIterator = typename Map::Iterator;
+using ObjectPair = ObjectMap::Pair;
+using CountPair = SpareCountMap::Pair;
 // Destroy's list<int> of ids: the sentinel node of a circular list.
 struct IdNode {
     IdNode* next;
@@ -97,7 +87,7 @@ __declspec(naked) void __fastcall IdsClear(IdList*) EI_ORIGINAL(0x00405500)
 // The positions table: find, erase(iterator), operator[] (two copies), remove by key (returning the
 // value).
 __declspec(naked) MapIterator<PositionMap>* __fastcall PositionsFind(PositionMap*, void*, MapIterator<PositionMap>* /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405BB0)
-__declspec(naked) void __fastcall PositionsErase(PositionMap*, void*, PositionMap::Node* /*node*/, PositionMap* /*table*/) EI_ORIGINAL(0x00405720)
+__declspec(naked) void __fastcall PositionsErase(PositionMap*, void*, PositionMap::Node* /*node*/, const PositionMap* /*table*/) EI_ORIGINAL(0x00405720)
 __declspec(naked) ObjectNode** __fastcall PositionAt(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)
 __declspec(naked) ObjectNode** __fastcall PositionAt2(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004056A0)
 __declspec(naked) ObjectNode* __fastcall PositionRemoveKey(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00405350)
@@ -110,7 +100,7 @@ __declspec(naked) int __fastcall ObjectsLookup(ObjectMap*, void*, const int* /*k
 __declspec(naked) void __fastcall ObjectsSetAt(ObjectMap*, void*, const int* /*key*/, CEngineObject* const* /*value*/) EI_ORIGINAL(0x00404E80)
 __declspec(naked) CEngineObject** __fastcall ObjectsAt(ObjectMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004055A0)
 __declspec(naked) CEngineObject* __fastcall ObjectsRemoveKey(ObjectMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00404F20)
-__declspec(naked) void __fastcall ObjectsErase(ObjectMap*, void*, ObjectMap::Node* /*node*/, ObjectMap* /*table*/) EI_ORIGINAL(0x00405620)
+__declspec(naked) void __fastcall ObjectsErase(ObjectMap*, void*, ObjectMap::Node* /*node*/, const ObjectMap* /*table*/) EI_ORIGINAL(0x00405620)
 __declspec(naked) ObjectPair* __fastcall ObjectsFindOrInsert(ObjectMap*, void*, const ObjectPair*) EI_ORIGINAL(0x004065D0)
 // The spares table: finds into an iterator (two copies), operator[], begin, the next non-empty
 // bucket after a node (returns its head).
@@ -527,7 +517,7 @@ int CBaseManager::RegisterInstant(CEngineObject* object) {
         *PositionAt2(&positions_, nullptr, &positionKey) = position;
     }
     if (id > maxId_) maxId_ = id;
-    ObjectPair pair = {id, nullptr};
+    ObjectPair pair = {static_cast<unsigned>(id), nullptr};
     ObjectsFindOrInsert(&objects_, nullptr, &pair)->value = object;
     object->id_ = id;
     lastId_ = id;
@@ -587,7 +577,7 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
     int zero = 0;
     CountPair pair;
     MakeCountPair(&pair, nullptr, &pairKey, &zero);
-    SpareCountInsert(&spareCounts_, nullptr, &pair)->count = count;
+    SpareCountInsert(&spareCounts_, nullptr, &pair)->value = count;
     return 0;
 }
 EI_REPLACE_METHOD(0x00404040, CBaseManager::RemoveObject);

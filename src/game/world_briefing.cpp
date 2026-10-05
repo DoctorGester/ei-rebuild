@@ -3,6 +3,7 @@
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md
 // (seventh round).
 #include "world.h"
+#include "game_strings.h"
 
 #include "console.h"
 
@@ -30,7 +31,6 @@ constexpr std::uintptr_t kHero = 0x0078B0F4;              // "Hero"
 constexpr std::uintptr_t kElderPrefix = 0x007906F0;       // "b.elder."
 constexpr std::uintptr_t kVariablePrefix = 0x007906FC;    // "b."
 constexpr std::uintptr_t kDot = 0x00783D78;               // "."
-constexpr std::uintptr_t kEmpty = 0x0079B298;             // ""
 
 // The briefing texts (pointer at 007AF788): 004DEFC0 (RET 4) opens a section by name (0 when
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
@@ -56,7 +56,7 @@ struct StringSlot {
 
 bool IsEmpty(const mfc::CString& s) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s)),
-                           reinterpret_cast<const unsigned char*>(Text(kEmpty))) == 0;
+                           reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0;
 }
 
 } // namespace
@@ -69,7 +69,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
         mfc::CString section = prefix + briefing;
         missing = TextsOpenSection(texts, nullptr, section) == 0;
     }
-    if (missing) return new (out) mfc::CString(Text(kEmpty));
+    if (missing) return new (out) mfc::CString(game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
     while (TextsFindTag(texts, nullptr, Text(kShowTag))) {
@@ -79,7 +79,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
                              reinterpret_cast<const unsigned char*>(Text(kHero))) != 0)
             return new (out) mfc::CString(words[1]);
     }
-    return new (out) mfc::CString(Text(kEmpty));
+    return new (out) mfc::CString(game::EmptyText());
 }
 
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing) {
@@ -266,7 +266,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
         peer = *reinterpret_cast<std::uint8_t* const*>(client + 0x25F4);
     else if (ActiveSession(server) && ActiveSession(*reinterpret_cast<std::uint8_t* const*>(server + 0x25A8)))
         peer = *reinterpret_cast<std::uint8_t* const*>(server + 0x25A8);
-    if (!peer) return new (out) mfc::CString(Text(kEmpty));
+    if (!peer) return new (out) mfc::CString(game::EmptyText());
     name = *reinterpret_cast<const char* const*>(peer + 0x0C);
     void* texts = BriefingTexts();
     int found;

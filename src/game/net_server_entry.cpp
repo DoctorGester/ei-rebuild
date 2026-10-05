@@ -2,6 +2,7 @@
 // client reads from the server list (net_server_list.cpp). See net_classes.h and
 // docs/notes/unmapped_410_470.md ("Seventh round").
 #include "net_classes.h"
+#include "game_strings.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -26,7 +27,6 @@ void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEr
 __declspec(naked) void __fastcall StringAppendTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const void* /*tag*/) EI_ORIGINAL(0x0040C280)
 
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
-constexpr std::uintptr_t kEmptyText2 = 0x0079B298;
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 
 const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
@@ -58,7 +58,7 @@ void ServerSession::Describe(RefPtr* out) {
     if (&name_ != name) StringAssign(name, nullptr, name_.start, name_.finish, out);
     entry->kind_ = kind_;
     StringRep* description = &entry->description_;
-    const char* empty = Text(kEmptyText2);
+    const char* empty = game::EmptyText();
     StringAssignRange(description, nullptr, empty, empty + std::strlen(empty));
 
     CRefObject* map = map_.ptr;

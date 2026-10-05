@@ -2,6 +2,7 @@
 // model, figure and picture (inventory icon) names such as "sw_03.iron.1", "unhumasw_03.iron.1",
 // "initwesw3weapon", "qitem0012.uq". Each returns a new CString (by hidden pointer, as MFC does).
 #include "item.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "ei/hook.h"
@@ -77,7 +78,7 @@ mfc::CString FirstListNameOf(const RecordTable& table, int stride, std::uint32_t
     const char* prototype = table.At(PrototypeIndex(id), stride);
     auto* list = reinterpret_cast<const console::CStringArray*>(prototype + kRecordNameList);
     if (prototype && list->GetSize() != 0) return mfc::CString((*list)[0]);
-    return mfc::CString(Text(0x0079B298));   // ""
+    return mfc::CString(game::EmptyText());   // ""
 }
 
 // "unhuma" + the item's slot 17 (called through its vtable).
