@@ -7,7 +7,11 @@
 # zone2.mob with their own ids (MTF1..4 1324..1327, MTFW 1328, MTLW 1329, MTPF 1330; see
 # tools/make_trap_mob.py for the fields), through the factory (Construct 00529DD0) and SetUp
 # (0052A2C0) as the zone loader makes them, not through AddMob as in magic_traps.txt. MTF4 (a
-# lightning trap, one circle of radius 3 at 43, 104) is armed with a wolf placed in it.
+# lightning trap, one circle of radius 3 at 43, 104) gets a wolf placed in it and is then armed.
+# gz2g starts its traps armed (its triggers disarm them), and an armed MTF4 strikes a unit that
+# enters it at the next world update: the WolfTutor dies of the first bolt. The wolf is therefore
+# placed while MTF4 is disarmed (ticket X10: before, the first waitfor poll raced that update and
+# timed out whenever a world update came first).
 # No quest state: gz2g's scripts read Rune, Tr1Act/Tr2Act, WitchKey and q.gz2g.q6g, all unset (0).
 wait 6000
 console thingamabob
@@ -26,10 +30,14 @@ check IsEqual(GetObjectID(GetObject(1324)),1324)
 check IsEqual(GetObjectID(GetObject(1327)),1327)
 check IsEqual(GetObjectID(GetObject(1328)),1328)
 check IsEqual(GetObjectID(GetObject(1330)),1330)
+console @ActivateTrap(GetObject(1327),0)
 console @AddUnitToServer("TrapWolf","WolfTutor","TrapWolf",43,104,0)
 waitfor 5 IsAlive(GetObjectByName("TrapWolf"))
+wait 1000
+check IsAlive(GetObjectByName("TrapWolf"))
 console @ActivateTrap(GetObject(1327),1)
-wait 3000
+waitfor 5 IsDead(GetObjectByName("TrapWolf"))
+wait 2000
 check IsEqual(GetObjectID(GetObject(1327)),1327)
 check IsAlive(GetLeader())
 report

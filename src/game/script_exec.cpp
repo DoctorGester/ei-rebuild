@@ -95,8 +95,9 @@ __declspec(naked) void __fastcall BindCallOrig(ScriptDefinition*, void*, const S
 // CArray<ScriptObjectRef> (groups): Copy 004C1290, RemoveAt 004C2200.
 __declspec(naked) void __fastcall GroupCopy(ScriptGroup*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C1290)
 __declspec(naked) void __fastcall GroupRemoveAt(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2200)
-// CList<ScriptDefinition> AddTail (CScript +0x140): returns the new node.
-__declspec(naked) void* __fastcall InstanceAddTail(void*, void*, const ScriptDefinition*) EI_ORIGINAL(0x004C7C90)
+// CList<ScriptDefinition> AddHead (CScript +0x140; despite the AddTail-like shape it links the new
+// node before the head): returns the new node.
+__declspec(naked) void* __fastcall InstanceAddHead(void*, void*, const ScriptDefinition*) EI_ORIGINAL(0x004C7C90)
 // CList RemoveAt for the particle (+0x14), FX source (+0x30) and lightning (+0x4C) lists.
 __declspec(naked) void __fastcall ParticleRemoveAt(void*, void*, void*) EI_ORIGINAL(0x004C6040)
 __declspec(naked) void __fastcall FxSourceRemoveAt(void*, void*, void*) EI_ORIGINAL(0x004C6370)
@@ -841,7 +842,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x08: {   // a declared script: start an instance with the call's arguments
             int which = Ftol(f[0]);
             auto* definition = &script->Scripts().data[which];
-            void* node = InstanceAddTail(script->Field(0x140), nullptr, definition);
+            void* node = InstanceAddHead(script->Field(0x140), nullptr, definition);
             auto* instance = reinterpret_cast<ScriptDefinition*>(static_cast<char*>(node) + 8);
             BindCallOrig(instance, nullptr, cmd);
             instance->index = 0;   // the killed flag

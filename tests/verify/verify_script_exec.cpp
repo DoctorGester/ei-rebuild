@@ -144,9 +144,10 @@ bool CommandEffect(const Snapshot& s, ScriptRun* run, CScript* script, SSCCmd* c
     }
     case 0x79:   // KillScript
         return run->killFlag && *run->killFlag == 1;
-    case 0x08: {   // script call: a new instance at the tail, alive, with the call's floats
+    case 0x08: {   // script call: a new instance at the head (004C7C90 links it before the head), alive,
+                   // with the call's floats
         if (Field<int>(script, 0x14C) != s.instances + 1) return false;
-        auto* instance = reinterpret_cast<ScriptDefinition*>(Field<ListNode*>(script, 0x148) + 1);
+        auto* instance = reinterpret_cast<ScriptDefinition*>(Field<ListNode*>(script, 0x144) + 1);
         if (instance->index != 0 || instance->vars.floats.size != cmd->floatArgs.size - 1) return false;
         for (int i = 1; i < cmd->floatArgs.size; ++i)
             if (std::memcmp(&instance->vars.floats.data[i - 1], &f[i], 4) != 0) return false;
