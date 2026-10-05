@@ -15,7 +15,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U8 Magic trap family: Save 0052B070, Load 0052ADC0, constructor 00529DD0, destructor 00529F90; model record destructor 0053EE70.
+- U8 (taken 2026-10-05) Magic trap family: Save 0052B070, Load 0052ADC0, constructor 00529DD0, destructor 00529F90; model record destructor 0053EE70.
 
 ## App and startup, 0x00440000-0x00480000
 
@@ -30,7 +30,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S2 (taken 2026-10-05) Script runtime at 0x004B0000-0x004C0000: 004B5FE0 SSCCmd::Load, 004BAAB0 QFinish, 004BE6E0 CScript reset, 004BB800 AddParameter, 004BDE40 CScript constructor (3-5 of them).
+- S3 Next 3-5 live script runtime functions at 0x004B0000-0x004C0000 (see script.md "Runtime leftovers (ticket S2)"; 004BDE40 runs before the hooks, skip).
 
 ## Cleanup (docs/cleanup-plan.md)
 
