@@ -26,20 +26,17 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H1 (taken 2026-10-05) The 3-6 largest live game-logic functions in 0x00640000-0x00680000 (HUD and
-  battle screen logic, objectives, options windows, saved party lists, spell effects), no draws.
-- H2 Same for 0x00680000-0x006C0000 (spells, items, item database, sound manager logic, quest db).
+- H2 (taken 2026-10-05) Same for 0x00680000-0x006C0000 (spells, items, item database, sound manager logic, quest db).
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S1 The 3-6 largest live script runtime functions not yet rewritten.
+- S1 (taken 2026-10-05) The 3-6 largest live script runtime functions not yet rewritten.
 
 ## Cleanup (docs/cleanup-plan.md)
 
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
-  - C2f (taken 2026-10-05) Network links (net_link.*, net_session_pump.cpp): VCalls, duplicate layouts, FileStream from CStream.
   - C2d Camera.
 - C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
   identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
