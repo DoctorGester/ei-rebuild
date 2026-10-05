@@ -53,6 +53,22 @@ struct QuickItemRecord {
 static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
 static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
 
+// The fields every item prototype starts with (weapons, armours, quick, quest and loot items).
+struct ItemRecordHead {
+    std::uint8_t unknown_00[0x0C];
+    int type;                           // +0x0C field::kItemType
+    std::uint8_t unknown_10[0x18 - 0x10];
+    int number;                         // +0x18 field::kItemNumber
+    int variant;                        // +0x1C the model variant
+};
+static_assert(offsetof(ItemRecordHead, number) == 0x18);
+
+// The start of a material record (kMaterialSize bytes).
+struct MaterialRecordHead {
+    std::uint8_t unknown_00[0x08];
+    const char* name;                   // +0x08 CString
+};
+
 inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTable*>(0x007C86D8); }
 inline const RecordTable& Weapons() { return *reinterpret_cast<const RecordTable*>(0x007C86F8); }
 inline const RecordTable& Armors() { return *reinterpret_cast<const RecordTable*>(0x007C8718); }

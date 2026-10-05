@@ -1,6 +1,8 @@
-// Checks for the item copies and item lists (party_items.cpp). All of them create, release or
-// move counted objects, so ours runs alone and the wrapper checks the result: the copy's kind and
-// values, the list's count and order. Scenarios: ui_camp (the camp's item moves put items into and
+// Checks for the item copies and item lists (party_items.cpp) and the armour model name
+// (item_model_names.cpp). The copies and lists create, release or move counted objects, so ours
+// runs alone and the wrapper checks the result: the copy's kind and values, the list's count and
+// order. The model name is compared with the original's.
+// Scenarios: ui_camp (the camp's item moves put items into and
 // out of the party and the unit records), trader_stock (the stock's items go to 00661DB0),
 // party_records, items.
 #include "verify.h"
@@ -137,3 +139,52 @@ EI_VERIFY(0x00660C90, AddArmorVerify, 0, s_unused);
 EI_VERIFY(0x00660E10, RemoveArmorVerify, 0, s_unused);
 EI_VERIFY(0x00660E70, AddSpellVerify, 0, s_unused);
 EI_VERIFY(0x00660FF0, RemoveSpellVerify, 0, s_unused);
+
+// The subclasses' CopyTo (stolen 0; the base copy inside runs through 0069FFC0's wrapper): 0 for
+// another kind, else 1 with the subclass's own dwords copied.
+namespace {
+template <typename Item>
+BOOL CheckSubclassCopy(const char* name, Item* self, CItem* target, CSpellManager* spells, std::size_t from) {
+    int targetKind = target->type_;
+    BOOL result = self->Item::CopyTo(target, spells);
+    const auto* a = reinterpret_cast<const std::uint8_t*>(self);
+    const auto* b = reinterpret_cast<const std::uint8_t*>(target);
+    bool ok = targetKind != self->type_ ? result == 0
+                                        : result == 1 && SameValues(target, self) &&
+                                              std::memcmp(a + from, b + from, sizeof(Item) - from) == 0;
+    ei::verify::Check(name, true, ok, "kind %X -> %X: %d", self->type_, targetKind, result);
+    return result;
+}
+} // namespace
+
+#define SUBCLASS_COPY_VERIFY(Item)                                                                       \
+    static BOOL __fastcall Item##CopyToVerify(Item* self, void*, CItem* target, CSpellManager* spells) { \
+        return CheckSubclassCopy(#Item "::CopyTo", self, target, spells, sizeof(CItem));                 \
+    }
+
+SUBCLASS_COPY_VERIFY(CItemWeapon)
+SUBCLASS_COPY_VERIFY(CItemArmor)
+SUBCLASS_COPY_VERIFY(CItemQuick)
+SUBCLASS_COPY_VERIFY(CItemQuest)
+SUBCLASS_COPY_VERIFY(CItemLoot)
+SUBCLASS_COPY_VERIFY(CItemSpell)
+
+EI_VERIFY(0x006A0730, CItemWeaponCopyToVerify, 0, s_unused);
+EI_VERIFY(0x006A3140, CItemArmorCopyToVerify, 0, s_unused);
+EI_VERIFY(0x006A3C50, CItemQuickCopyToVerify, 0, s_unused);
+EI_VERIFY(0x006A4540, CItemQuestCopyToVerify, 0, s_unused);
+EI_VERIFY(0x006A4B50, CItemLootCopyToVerify, 0, s_unused);
+EI_VERIFY(0x006A57F0, CItemSpellCopyToVerify, 0, s_unused);
+
+// 006A3480: PUSH ECX; PUSH EBX; PUSH EBP; PUSH ESI; MOV [ESP+0xC],ECX (8 bytes). Pure: the
+// original into a scratch CString, ours into `out`; the texts compared. Reached by every scenario
+// that dresses a unit in armour (unit skins and models: units, models, ui_camp).
+static void(__fastcall* s_armorModelName)(mfc::CString*, std::uint32_t, std::uint32_t);
+static void __fastcall ArmorModelNameVerify(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex) {
+    mfc::CString expected;
+    s_armorModelName(&expected, armorIndex, materialIndex);
+    ArmorModelName(out, armorIndex, materialIndex);
+    ei::verify::Check("ArmorModelName", true, std::strcmp(expected, *out) == 0, "%u / %u: '%s' vs '%s'", armorIndex,
+                      materialIndex, static_cast<const char*>(expected), static_cast<const char*>(*out));
+}
+EI_VERIFY(0x006A3480, ArmorModelNameVerify, 8, s_armorModelName);
