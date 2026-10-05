@@ -12,7 +12,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- U11 Next unit functions (units.md "Twelfth round (U10)").
+- U11 (taken 2026-10-05) Next unit functions (units.md "Twelfth round (U10)").
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## App and startup, 0x00440000-0x00480000
@@ -21,7 +21,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
 
-- I10 (taken 2026-10-05) Next 3-5 live interface functions (ui.md latest passes), written clean (members, no offsets).
+- I11 Next interface functions (ui.md "Nineteenth pass (ticket I10)"); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
