@@ -1,8 +1,9 @@
-// The items' constructor bodies and their Create / Destroy slots (2 / 3). See item.h and
-// docs/notes/items_spells.md ("Item rules").
+// The items' constructor and destructor bodies, slot 0 and their Create / Destroy slots (2 / 3).
+// See item.h and docs/notes/items_spells.md ("Item rules").
 #include "item.h"
 
 #include "core_refcount.h"
+#include "../lib/crt.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -76,6 +77,36 @@ void CItem::DestroyItem() {
     if (link != nullptr && --link->refs_ == 0) delete link;
 }
 EI_REPLACE_METHOD(0x0069FE50, CItem::DestroyItem);
+
+void CItem::DestructBody() {
+    SetVtable(this, Vtable());
+    DestroyItem();
+    // The members' destructors: the spell released and the link's count dropped, without clearing.
+    if (spell_ != nullptr) static_cast<CEngineObject*>(spell_)->Release();
+    CRefCounted* link = Link(unknown_1C);
+    if (link != nullptr && --link->refs_ == 0) delete link;
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x0069FD70, CItem::DestructBody);
+EI_REPLACE_METHOD(0x006A05B0, CItem::DestructBody);
+EI_REPLACE_METHOD(0x006A2FC0, CItem::DestructBody);
+EI_REPLACE_METHOD(0x006A3B30, CItem::DestructBody);
+EI_REPLACE_METHOD(0x006A4420, CItem::DestructBody);
+EI_REPLACE_METHOD(0x006A4A00, CItem::DestructBody);
+EI_REPLACE_METHOD(0x006A5740, CItem::DestructBody);
+
+CItem* CItem::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x0069FD30, CItem::DeletingDestruct);
+EI_REPLACE_METHOD(0x006A0590, CItem::DeletingDestruct);
+EI_REPLACE_METHOD(0x006A2FA0, CItem::DeletingDestruct);
+EI_REPLACE_METHOD(0x006A3B10, CItem::DeletingDestruct);
+EI_REPLACE_METHOD(0x006A4400, CItem::DeletingDestruct);
+EI_REPLACE_METHOD(0x006A49E0, CItem::DeletingDestruct);
+EI_REPLACE_METHOD(0x006A5720, CItem::DeletingDestruct);
 
 CItemWeapon* CItemWeapon::Construct() {
     CItem::Construct();

@@ -5,6 +5,9 @@
 // - The other constructors start with a CALL within five bytes (no trampoline): ours only, the
 //   fields CItem's constructor sets and the class's vtable and fields checked.
 // - Create / Destroy (slots 2 / 3) release references: ours only, the state afterwards checked.
+// - Destructor bodies and slot 0 (every class): ours only, the object checked afterwards (slot 0
+//   runs without the free, which the wrapper then does). Reached when the item manager deletes
+//   items (its Destroy and FreeSpares: loading a save in world_load / ui_saveload, the game's end).
 #include "verify.h"
 
 #include "../../src/game/item.h"
@@ -108,6 +111,23 @@ void __fastcall DestroyVerify(CItem* self) {
     ei::verify::Check("CItem::DestroyItem", true, self->spell_ == nullptr && self->unknown_1C == 0, "item %p", self);
 }
 
+// What the destructor body leaves: CEngineObject's vtable, no owner, spell or link.
+bool Destructed(const CItem* item) {
+    return VtableOf(item) == CEngineObject::kVtableAddress && item->owner_ == nullptr && item->spell_ == nullptr &&
+           item->unknown_1C == 0;
+}
+void __fastcall DestructVerify(CItem* self) {
+    self->DestructBody();
+    ei::verify::Check("CItem::DestructBody", true, Destructed(self), "item %p", self);
+}
+// Slot 0 runs without the free (bit 0 cleared) so the object can be checked; the wrapper frees it.
+CItem* __fastcall DeletingVerify(CItem* self, void*, unsigned flags) {
+    CItem* result = self->DeletingDestruct(flags & ~1u);
+    ei::verify::Check("CItem::DeletingDestruct", true, result == self && Destructed(self), "item %p flags %u", self, flags);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return result;
+}
+
 } // namespace
 
 EI_VERIFY(0x0069FCA0, ItemCtorVerify, 7, s_itemCtor);
@@ -119,3 +139,17 @@ EI_VERIFY(0x006A49A0, LootCtorVerify, 0, s_unused);
 EI_VERIFY(0x006A56E0, SpellCtorVerify, 0, s_unused);
 EI_VERIFY(0x0069FE20, CreateVerify, 0, s_unused);
 EI_VERIFY(0x0069FE50, DestroyVerify, 0, s_unused);
+EI_VERIFY(0x0069FD70, DestructVerify, 0, s_unused);
+EI_VERIFY(0x006A05B0, DestructVerify, 0, s_unused);
+EI_VERIFY(0x006A2FC0, DestructVerify, 0, s_unused);
+EI_VERIFY(0x006A3B30, DestructVerify, 0, s_unused);
+EI_VERIFY(0x006A4420, DestructVerify, 0, s_unused);
+EI_VERIFY(0x006A4A00, DestructVerify, 0, s_unused);
+EI_VERIFY(0x006A5740, DestructVerify, 0, s_unused);
+EI_VERIFY(0x0069FD30, DeletingVerify, 0, s_unused);
+EI_VERIFY(0x006A0590, DeletingVerify, 0, s_unused);
+EI_VERIFY(0x006A2FA0, DeletingVerify, 0, s_unused);
+EI_VERIFY(0x006A3B10, DeletingVerify, 0, s_unused);
+EI_VERIFY(0x006A4400, DeletingVerify, 0, s_unused);
+EI_VERIFY(0x006A49E0, DeletingVerify, 0, s_unused);
+EI_VERIFY(0x006A5720, DeletingVerify, 0, s_unused);

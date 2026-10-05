@@ -11,6 +11,7 @@
 
 class CSpell;
 class CSpellManager;
+class CStream;
 
 // CEngineObject::type_ of an item: which database its prototype lives in.
 enum ItemKind : int {
@@ -43,6 +44,20 @@ public:
     // 0069FE50 (slot 3). The spell released (slot 4) and the link (+0x1C, a CRefCounted: 16-bit
     // count, deleted at 0) let go.
     void DestroyItem();
+    // 0069FD70 (item_lifetime.cpp) and its byte-identical copies per class: 006A05B0 weapon,
+    // 006A2FC0 armour, 006A3B30 quick, 006A4420 quest, 006A4A00 loot, 006A5740 scroll (00462420
+    // calls 0069FD70 too). The destructor body: CItem's vtable back, DestroyItem's work, the two
+    // members' destructors (on the fields it emptied), then CEngineObject's.
+    void DestructBody();
+    // 0069FD30 and the per-class copies 006A0590, 006A2FA0, 006A3B10, 006A4400, 006A49E0, 006A5720
+    // (slot 0; RET 4): DestructBody, then operator delete when bit 0 of `flags` is set.
+    CItem* DeletingDestruct(unsigned flags);
+
+    // 006A0270 / 006A0360 (slots 9 / 10, RET 4; item_save.cpp). Read / write the packed id
+    // (+0x18), +0x20..+0x3C, the spell's id (-1: none; Load finds it in the spell manager of the
+    // manager context, slot 22, and counts it), +0x48 and +0x40, four bytes each, in that order.
+    void LoadItem(CStream* stream);
+    void SaveItem(CStream* stream);
 
     // 0069FF70 (RET 4; party_items.cpp). A new item of the same kind from the owning manager
     // (slot 23), given this one's values through slot 15 with the spell manager `spells`; when
@@ -133,6 +148,9 @@ public:
     CItemWeapon* Construct();
     // 006A0660 (slot 13; item_slots.cpp). CItem::InitFromRecord, then damage, spread and +0x58.
     void InitFromRecord(const char* record);
+    // 006A2E60 / 006A2EB0 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C..+0x58.
+    void LoadItem(CStream* stream);
+    void SaveItem(CStream* stream);
 
     std::uint32_t unknown_4C;
     float damage_;          // +0x50 prototype +0x90
@@ -165,6 +183,10 @@ public:
     void InitFromRecord(const char* record);
     // 006A30D0 (slot 14). CItem::IsSameAs, then absorb_ and layerMask_ equal as dwords.
     BOOL IsSameAs(CItemArmor* other);
+    // 006A3A70 / 006A3AA0 (slots 9 / 10; item_save.cpp). CItem's, then the two absorption rows
+    // (0x1C bytes each; layerMask_ is not saved).
+    void LoadItem(CStream* stream);
+    void SaveItem(CStream* stream);
 
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
@@ -190,6 +212,9 @@ public:
     // +0x4C (prototype +0x70).
     void InitFromRecord(const char* record);
     BOOL IsSameAs(CItemQuick* other);
+    // 006A3C80 / 006A3CA0 (slots 9 / 10, also the scrolls'; item_save.cpp). CItem's, then +0x4C.
+    void LoadItem(CStream* stream);
+    void SaveItem(CStream* stream);
 
     std::uint32_t unknown_4C;
 };
@@ -208,6 +233,9 @@ public:
     // +0x6C, the category).
     void InitFromRecord(const char* record);
     BOOL IsSameAs(CItemQuest* other);
+    // 006A4570 / 006A4590 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C.
+    void LoadItem(CStream* stream);
+    void SaveItem(CStream* stream);
 
     std::uint32_t unknown_4C;
 };
@@ -249,8 +277,13 @@ public:
     // and index_ (prototype +0x6C..+0x74).
     void InitFromRecord(const char* record);
     BOOL IsSameAs(CItemLoot* other);
+    // 006A5630 / 006A5680 (slots 9 / 10; item_save.cpp). CItem's, then kind_, recordType_ and
+    // index_. Load reads the first two through the stack slot of `stream` (a read that writes
+    // nothing leaves the pointer's value, then the previous value).
+    void LoadItem(CStream* stream);
+    void SaveItem(CStream* stream);
 
-    std::uint32_t kind_;        // +0x4C 0 own price, 1 material, 2 record of recordType_
+    std::uint32_t kind_;       // +0x4C 0 own price, 1 material, 2 record of recordType_
     std::uint32_t recordType_;  // +0x50 0 weapon, 1 armor, 2 quick item, 3 spell, 4 spell modifier
     std::uint32_t index_;       // +0x54 record index
 };
