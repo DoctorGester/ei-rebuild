@@ -249,7 +249,7 @@ EI_REPLACE_METHOD(0x00440B90, SocketDriver::SendTo);
 
 // The buffer is first sought (its slot 6) to room for 0x800 bytes.
 bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
-    ei::VCall<int>(buffer, 6, 0x800);
+    buffer->Seek(0x800);
     int fromLength = 0x10;
     int n = WsRecvFrom(socket, buffer->begin, 0x800, 0, from, &fromLength);
     if (n >= 0) {

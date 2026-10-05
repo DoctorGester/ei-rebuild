@@ -201,7 +201,6 @@ EI_REPLACE(0x0041D410, ClientBeginGameHook);
 // 4 (Seek(0) through slot 6, then a 4-byte read as BufferRead does it). Returned unrounded: the
 // caller multiplies ST0. Plain C++ division (rewrite-guide rule 7).
 double __fastcall ClientBufferRatio(ClientSession*, void*, GameBuffer* buffer) {
-    constexpr int kSlotSeek = 6;
     auto streamSize = [buffer] {
         if (buffer->cur > buffer->high) buffer->high = buffer->cur;
         return static_cast<std::int32_t>(buffer->base - reinterpret_cast<std::intptr_t>(buffer->begin) +
@@ -212,7 +211,7 @@ double __fastcall ClientBufferRatio(ClientSession*, void*, GameBuffer* buffer) {
         std::memcpy(&zero, reinterpret_cast<const void*>(0x0073B858), sizeof(zero));
         return zero;
     }
-    ei::VCall<int>(buffer, kSlotSeek, 0);
+    buffer->Seek(0);
     std::uint32_t stored;
     BufferRead(buffer, nullptr, &stored, 4);
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;

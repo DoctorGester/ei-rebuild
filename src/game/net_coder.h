@@ -4,21 +4,56 @@
 // (00579B80 / 00579830), multiplayer map transfers (00662AC0) and network messages (0047D7F0 /
 // 0047D970, 0041D600). See docs/notes/unmapped_410_470.md, "Compression". Names provisional.
 
+#include "ei/vcall.h"
+
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 // A byte buffer (0x1C bytes). Two classes share the layout:
 //   0073D624  growing buffer (constructor 004DA7F0, destructor 004DA910): slot 0 / 1 make room
 //             for n more bytes to read / write (004DA630 / 004DA6B0: a new block of
-//             (base - begin + cur + n) * 2 + 0x40 bytes), slot 2 commit (empty), slot 6 Seek
-//             (004DA860, grows when needed).
-//   0073CA64  fixed view over memory owned elsewhere: slots 0 / 1 / 2 empty, 5 deleting destructor
-//             (0047D940, body 0047D960), 6 Seek (0047D930). Its base 0073CA48 has only slot 2
-//             (empty, 0047D900) and slot 5 (deleting destructor 0047D910); the views live on the
-//             stack and are destroyed by setting the base's vtable (inlined, or 0047D960 when
+//             (base - begin + cur + n) * 2 + 0x40 bytes), slot 2 commit (empty), slot 3 (0), slot 4
+//             writes past the end, growing (004DA740), slot 5 deleting destructor (004DA8F0), slot 6
+//             Seek (004DA860, grows when needed).
+//   0073CA64  fixed view over memory owned elsewhere: slots 0 / 1 / 2 empty, 3 / 4 (0), 5 deleting
+//             destructor (0047D940, body 0047D960), 6 Seek (0047D930). Its base 0073CA48 has only
+//             slot 2 (empty, 0047D900) and slot 5 (deleting destructor 0047D910); the views live on
+//             the stack and are destroyed by setting the base's vtable (inlined, or 0047D960 when
 //             unwinding).
-struct GameBuffer {
-    void* vtable;
+// Like the streams, the class is __declspec(novtable): the game's constructors (or InitView) store
+// the vtables, and C++ never does. Copies are byte copies, the vtable included, as they were when
+// this was a plain struct (the verify wrappers copy buffers).
+class __declspec(novtable) GameBuffer {
+public:
+    GameBuffer() {}
+    GameBuffer(const GameBuffer& other) { std::memcpy(static_cast<void*>(this), &other, sizeof(GameBuffer)); }
+    GameBuffer& operator=(const GameBuffer& other) {
+        std::memcpy(static_cast<void*>(this), &other, sizeof(GameBuffer));
+        return *this;
+    }
+
+    virtual void ReserveRead(std::int32_t size);                    // 0: room for `size` more bytes to read
+    virtual void ReserveWrite(std::int32_t size);                   // 1: room for `size` more bytes to write
+    virtual std::uint32_t Commit();                                 // 2: after a cursor stored its position in `cur` (empty; EAX as it was)
+    virtual int ReadMore(void* to, std::uint32_t size);             // 3: a read past the end (0 in both classes)
+    virtual int WriteMore(const void* from, std::uint32_t size);    // 4: a write past the end (the growing buffer grows)
+    virtual ~GameBuffer() {}                                        // 5: deleting destructor
+    virtual std::uint8_t* Seek(std::int32_t position);              // 6: the cursor to `position` bytes from the start
+
+    // A fixed view (vtable 0073CA64, flags 2) over [first, last), as the coder's callers build it.
+    void InitView(std::uint8_t* first, std::uint8_t* last) {
+        ei::SetVtable(this, kViewVtableAddress);
+        begin = first;
+        cur = first;
+        end = last;
+        high = last;
+        base = 0;
+        flags = 2;
+    }
+
+    static constexpr std::uintptr_t kViewVtableAddress = 0x0073CA64;
+
     std::uint8_t* begin;       // +0x04
     std::uint8_t* cur;         // +0x08
     std::uint8_t* end;         // +0x0C capacity
@@ -26,10 +61,12 @@ struct GameBuffer {
     std::int32_t base;         // +0x14 position of `begin` in the whole stream (0 for these)
     std::uint32_t flags;       // +0x18 (bit 0: written through a cursor)
 };
+static_assert(offsetof(GameBuffer, begin) == 0x04);
+static_assert(offsetof(GameBuffer, flags) == 0x18);
 static_assert(sizeof(GameBuffer) == 0x1C);
 
 constexpr std::uintptr_t kGrowingBufferVtable = 0x0073D624;
-constexpr std::uintptr_t kBufferViewVtable = 0x0073CA64;
+constexpr std::uintptr_t kBufferViewVtable = GameBuffer::kViewVtableAddress;
 constexpr std::uintptr_t kBufferViewBaseVtable = 0x0073CA48;
 
 // The fixed view's own slots (free functions registered at their addresses, rewrite-guide rule 4).

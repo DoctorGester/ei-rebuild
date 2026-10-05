@@ -97,20 +97,19 @@ bool FileClosed(const void* file) {
     return At<std::uint32_t>(file, 4) == 0xFFFFFFFFu && name && reinterpret_cast<const long*>(name)[-3] == -1;
 }
 bool FreshRecord(const FileStream& record) {
-    return VtableOf(&record) == kFileStreamVtable && record.ok == 1 && record.limit == 2000000000u && FileClosed(record.file);
+    return VtableOf(&record) == kFileStreamVtable && record.ok_ == 1 && record.version_ == 2000000000u && FileClosed(record.file_);
 }
 
 bool Alive(const CRefObject* o) { return o && !(o->flags7_ & CRefObject::kDetached); }
-net::Connection* ConnectionOf(CRefObject* player) { return reinterpret_cast<net::Connection*>(player); }
 
 // A copy of a framed link (the driver's size) whose inbox has a buffer of its own.
 struct LinkCopy {
     alignas(8) std::uint8_t bytes[sizeof(DriverLink)];
     explicit LinkCopy(const FramedLink* link) {
         std::memcpy(bytes, link, sizeof(bytes));
-        CloneStream(&Link()->inbox, &link->inbox);
+        CloneStream(&Link()->inbox_, &link->inbox_);
     }
-    ~LinkCopy() { FreeStream(&Link()->inbox); }
+    ~LinkCopy() { FreeStream(&Link()->inbox_); }
     LinkCopy(const LinkCopy&) = delete;
     LinkCopy& operator=(const LinkCopy&) = delete;
     FramedLink* Link() { return reinterpret_cast<FramedLink*>(bytes); }
@@ -126,7 +125,7 @@ FileStream* __fastcall FileStreamCopyConstructVerify(FileStream* self, void*, co
     alignas(8) std::uint8_t copy[sizeof(FileStream)];
     std::memcpy(copy, self, sizeof(copy));
     FileStream* result = s_fsCopy(self, nullptr, other);
-    FileStream* ours = FileStreamCopyConstruct(reinterpret_cast<FileStream*>(copy), nullptr, other);
+    FileStream* ours = reinterpret_cast<FileStream*>(copy)->CopyConstruct(other);
     ei::verify::Check("FileStreamCopyConstruct", true,
                       result == self && ours == reinterpret_cast<FileStream*>(copy) && std::memcmp(copy, self, sizeof(copy)) == 0, "");
     return result;
@@ -137,17 +136,17 @@ FileStream* __fastcall FileStreamCopyConstructVerify(FileStream* self, void*, co
 // compared.
 void(__fastcall* s_framedDestruct)(FramedLink*);
 void __fastcall FramedDestructVerify(FramedLink* self) {
-    if (!FileClosed(self->base.record.file)) {
-        FramedDestruct(self);
+    if (!FileClosed(self->record_.file_)) {
+        self->Destruct();
         return;
     }
     alignas(8) std::uint8_t copy[sizeof(FramedLink)];
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<FramedLink*>(copy);
-    CloneStream(&link->inbox, &self->inbox);
+    CloneStream(&link->inbox_, &self->inbox_);
     s_framedDestruct(link);
-    FramedDestruct(self);
-    constexpr std::size_t kData = offsetof(FramedLink, inbox) + offsetof(CMemoryStream, data_);
+    self->Destruct();
+    constexpr std::size_t kData = offsetof(FramedLink, inbox_) + offsetof(CMemoryStream, data_);
     const auto* real = reinterpret_cast<const std::uint8_t*>(self);
     bool same = std::memcmp(copy, real, kData) == 0 && std::memcmp(copy + kData + 4, real + kData + 4, sizeof(copy) - kData - 4) == 0;
     ei::verify::Check("FramedDestruct", true, same, "");
@@ -155,7 +154,7 @@ void __fastcall FramedDestructVerify(FramedLink* self) {
 
 // 00479B70: a CALL at +3: ours only.
 void* __fastcall FramedDeletingDestructorVerify(FramedLink* self, void*, unsigned flags) {
-    void* result = FramedDeletingDestructor(self, nullptr, flags);
+    void* result = static_cast<void*>(self->DeletingDestruct(flags));
     ei::verify::Check("FramedDeletingDestructor", static_cast<void*>(self), result, "");
     return result;
 }
@@ -163,30 +162,30 @@ void* __fastcall FramedDeletingDestructorVerify(FramedLink* self, void*, unsigne
 // 0047B980: PUSH ESI (1), LEA ESI,[ECX+0x28] (3), PUSH EDI (1).
 void(__fastcall* s_append)(FramedLink*, void*, const void*, unsigned);
 void __fastcall FramedAppendVerify(FramedLink* self, void*, const void* data, unsigned size) {
-    if (!IsMemoryStream(&self->inbox)) {
-        FramedAppend(self, nullptr, data, size);
+    if (!IsMemoryStream(&self->inbox_)) {
+        self->Append(data, size);
         return;
     }
     LinkCopy copy(self);
     s_append(copy.Link(), nullptr, data, size);
-    FramedAppend(self, nullptr, data, size);
-    ei::verify::Check("FramedAppend", true, SameStream(&copy.Link()->inbox, &self->inbox), "%u bytes", size);
+    self->Append(data, size);
+    ei::verify::Check("FramedAppend", true, SameStream(&copy.Link()->inbox_, &self->inbox_), "%u bytes", size);
 }
 
 // 0047B9B0: PUSH EBX, PUSH ESI, PUSH EDI (3), MOV EDI,[ESP+0x10] (4).
 void(__fastcall* s_takeAll)(FramedLink*, void*, void*);
 void __fastcall FramedTakeAllVerify(FramedLink* self, void*, void* out) {
-    if (!IsMemoryStream(&self->inbox) || !IsMemoryStream(out)) {
-        FramedTakeAll(self, nullptr, out);
+    if (!IsMemoryStream(&self->inbox_) || !IsMemoryStream(out)) {
+        self->TakeAll(static_cast<CStream*>(out));
         return;
     }
     LinkCopy copy(self);
     CMemoryStream target;
     CloneStream(&target, static_cast<CMemoryStream*>(out));
-    unsigned before = self->inbox.size_;
+    unsigned before = self->inbox_.size_;
     s_takeAll(copy.Link(), nullptr, &target);
-    FramedTakeAll(self, nullptr, out);
-    bool same = SameStream(&copy.Link()->inbox, &self->inbox) && SameStream(&target, static_cast<CMemoryStream*>(out));
+    self->TakeAll(static_cast<CStream*>(out));
+    bool same = SameStream(&copy.Link()->inbox_, &self->inbox_) && SameStream(&target, static_cast<CMemoryStream*>(out));
     ei::verify::Check("FramedTakeAll", true, same, "%u bytes", before);
     FreeStream(&target);
 }
@@ -196,22 +195,22 @@ void __fastcall FramedTakeAllVerify(FramedLink* self, void*, void* out) {
 // PUSH ESI / PUSH EBX (1).
 template <typename Ours, typename Original>
 int InboxQuery(const char* name, FramedLink* self, Ours ours, Original original) {
-    if (!IsMemoryStream(&self->inbox)) return ours(self);
+    if (!IsMemoryStream(&self->inbox_)) return ours(self);
     LinkCopy copy(self);
     int expected = original(copy.Link());
     int actual = ours(self);
-    ei::verify::Check(name, true, expected == actual && SameStream(&copy.Link()->inbox, &self->inbox), "%d / %d, %u bytes", expected,
-                      actual, self->inbox.size_);
+    ei::verify::Check(name, true, expected == actual && SameStream(&copy.Link()->inbox_, &self->inbox_), "%d / %d, %u bytes", expected,
+                      actual, self->inbox_.size_);
     return actual;
 }
 int(__fastcall* s_hasMessage)(FramedLink*);
 int __fastcall FramedHasMessageVerify(FramedLink* self) {
-    return InboxQuery("FramedHasMessage", self, [](FramedLink* l) { return FramedHasMessage(l); },
+    return InboxQuery("FramedHasMessage", self, [](FramedLink* l) { return (l->FramedLink::HasIncoming() ? 1 : 0); },
                       [](FramedLink* l) { return s_hasMessage(l); });
 }
 int(__fastcall* s_messageCount)(FramedLink*);
 int __fastcall FramedMessageCountVerify(FramedLink* self) {
-    return InboxQuery("FramedMessageCount", self, [](FramedLink* l) { return FramedMessageCount(l); },
+    return InboxQuery("FramedMessageCount", self, [](FramedLink* l) { return l->FramedLink::IncomingCount(); },
                       [](FramedLink* l) { return s_messageCount(l); });
 }
 
@@ -219,14 +218,14 @@ int __fastcall FramedMessageCountVerify(FramedLink* self) {
 // target; the result and both streams compared.
 bool(__fastcall* s_receive)(FramedLink*, void*, CMemoryStream*);
 bool __fastcall FramedReceiveVerify(FramedLink* self, void*, CMemoryStream* stream) {
-    if (!IsMemoryStream(&self->inbox) || !IsMemoryStream(stream)) return FramedReceive(self, nullptr, stream);
+    if (!IsMemoryStream(&self->inbox_) || !IsMemoryStream(stream)) return self->FramedLink::Receive(stream);
     LinkCopy copy(self);
     CMemoryStream target;
     CloneStream(&target, stream);
-    unsigned before = self->inbox.size_;
+    unsigned before = self->inbox_.size_;
     bool expected = s_receive(copy.Link(), nullptr, &target);
-    bool actual = FramedReceive(self, nullptr, stream);
-    bool same = expected == actual && SameStream(&copy.Link()->inbox, &self->inbox) && SameStream(&target, stream);
+    bool actual = self->FramedLink::Receive(stream);
+    bool same = expected == actual && SameStream(&copy.Link()->inbox_, &self->inbox_) && SameStream(&target, stream);
     ei::verify::Check("FramedReceive", true, same, "%d / %d, %u bytes queued", expected, actual, before);
     FreeStream(&target);
     return actual;
@@ -292,7 +291,7 @@ bool g_sendBusy;
 bool(__fastcall* s_send)(FramedLink*, void*, void*);
 bool __fastcall FramedSendVerify(FramedLink* self, void*, void* stream) {
     std::uintptr_t vt = VtableOf(self);
-    if (g_sendBusy || !IsMemoryStream(stream) || (vt != kDriverVtable && vt != 0x0073CA10)) return FramedSend(self, nullptr, stream);
+    if (g_sendBusy || !IsMemoryStream(stream) || (vt != kDriverVtable && vt != 0x0073CA10)) return self->FramedLink::Send(static_cast<CStream*>(stream));
     g_sendBusy = true;
     alignas(8) std::uint8_t copy[sizeof(DriverLink)];
     std::memcpy(copy, self, sizeof(copy));
@@ -305,7 +304,7 @@ bool __fastcall FramedSendVerify(FramedLink* self, void*, void* stream) {
     g_send.sends = g_send.disconnects = g_send.replayedSends = g_send.replayedDisconnects = 0;
     g_send.mismatch = false;
     SetVtablePtr(self, RecorderVtable(real));
-    bool actual = FramedSend(self, nullptr, stream);
+    bool actual = self->FramedLink::Send(static_cast<CStream*>(stream));
     SetVtablePtr(self, real);
 
     g_send.recording = false;
@@ -327,7 +326,7 @@ bool __fastcall FramedSendVerify(FramedLink* self, void*, void* stream) {
 int(__fastcall* s_connected)(DriverLink*);
 int __fastcall DriverConnectedVerify(DriverLink* self) {
     int expected = s_connected(self);
-    int actual = DriverConnected(self);
+    int actual = (self->DriverLink::Connected() ? 1 : 0);
     ei::verify::Check("DriverConnected", expected, actual, "");
     return actual;
 }
@@ -341,49 +340,49 @@ bool SameBufferFields(const GameBuffer& a, const GameBuffer& b) { return std::me
 // 004797A0: PUSH ESI (1), MOV ESI,[ECX+0x50] (3), TEST ESI,ESI (2).
 void(__fastcall* s_pump)(DriverLink*);
 void __fastcall DriverPumpVerify(DriverLink* self) {
-    if (!Alive(self->player)) {
+    if (!Alive(self->player_)) {
         s_pump(self);
-        DriverPump(self);
+        self->DriverLink::Pump();
         ei::verify::Check("DriverPump", true, true, "");
         return;
     }
-    if (!IsMemoryStream(&self->base.inbox)) {
-        DriverPump(self);
+    if (!IsMemoryStream(&self->inbox_)) {
+        self->DriverLink::Pump();
         return;
     }
-    LinkCopy copy(&self->base);
-    std::memcpy(g_player, self->player, sizeof(g_player));
-    copy.Driver()->player = reinterpret_cast<CRefObject*>(g_player);
-    GameBuffer& in = ConnectionOf(self->player)->reliableIn_;
+    LinkCopy copy(self);
+    std::memcpy(g_player, self->player_, sizeof(g_player));
+    copy.Driver()->player_ = reinterpret_cast<net::Connection*>(g_player);
+    GameBuffer& in = self->player_->reliableIn_;
     unsigned before = static_cast<unsigned>(in.cur - in.begin);
     s_pump(copy.Driver());
-    DriverPump(self);
+    self->DriverLink::Pump();
     const GameBuffer& expectedIn = reinterpret_cast<net::Connection*>(g_player)->reliableIn_;
-    bool same = SameStream(&copy.Link()->inbox, &self->base.inbox) && SameBufferFields(expectedIn, in);
+    bool same = SameStream(&copy.Link()->inbox_, &self->inbox_) && SameBufferFields(expectedIn, in);
     ei::verify::Check("DriverPump", true, same, "%u bytes", before);
 }
 
 // 004796B0: PUSH EBX (1), MOV EBX,ECX (2), PUSH EBP (1), PUSH ESI (1).
 int(__fastcall* s_sendBytes)(DriverLink*, void*, const void*, unsigned);
 int __fastcall DriverSendBytesVerify(DriverLink* self, void*, const void* data, unsigned size) {
-    if (!Alive(self->player)) {
+    if (!Alive(self->player_)) {
         int expected = s_sendBytes(self, nullptr, data, size);
-        int actual = DriverSendBytes(self, nullptr, data, size);
+        int actual = (self->DriverLink::SendBytes(data, size) ? 1 : 0);
         ei::verify::Check("DriverSendBytes", expected, actual, "no player");
         return actual;
     }
-    GameBuffer& out = ConnectionOf(self->player)->reliableOut_;
-    if (VtableOf(&out) != kGrowingBufferVtable) return DriverSendBytes(self, nullptr, data, size);
+    GameBuffer& out = self->player_->reliableOut_;
+    if (VtableOf(&out) != kGrowingBufferVtable) return (self->DriverLink::SendBytes(data, size) ? 1 : 0);
     alignas(8) std::uint8_t copy[sizeof(DriverLink)];
     std::memcpy(copy, self, sizeof(copy));
-    std::memcpy(g_player, self->player, sizeof(g_player));
-    reinterpret_cast<DriverLink*>(copy)->player = reinterpret_cast<CRefObject*>(g_player);
+    std::memcpy(g_player, self->player_, sizeof(g_player));
+    reinterpret_cast<DriverLink*>(copy)->player_ = reinterpret_cast<net::Connection*>(g_player);
     GameBuffer& scratch = reinterpret_cast<net::Connection*>(g_player)->reliableOut_;
     GameBufferCopy(&scratch, nullptr, &out);
     scratch.base = out.base;
 
     int expected = s_sendBytes(reinterpret_cast<DriverLink*>(copy), nullptr, data, size);
-    int actual = DriverSendBytes(self, nullptr, data, size);
+    int actual = (self->DriverLink::SendBytes(data, size) ? 1 : 0);
     auto offset = [](const GameBuffer& b, const std::uint8_t* p) { return static_cast<std::ptrdiff_t>(p - b.begin); };
     bool same = expected == actual && VtableOf(&scratch) == VtableOf(&out) && offset(scratch, scratch.cur) == offset(out, out.cur) &&
                 offset(scratch, scratch.high) == offset(out, out.high) && offset(scratch, scratch.end) == offset(out, out.end) &&
@@ -404,24 +403,24 @@ constexpr std::uint32_t kKeep = 0x10000;
 std::uint8_t g_unread[kKeep];
 std::uint8_t g_incoming[kKeep];
 void __fastcall DriverDisconnectVerify(DriverLink* self) {
-    CRefObject* player = self->player;
-    bool checkStream = Alive(player) && player->refs_ > 1 && self->base.inbox.size_ != 0;
-    std::uint32_t unread = self->base.inbox.size_;
+    net::Connection* player = self->player_;
+    bool checkStream = Alive(player) && player->refs_ > 1 && self->inbox_.size_ != 0;
+    std::uint32_t unread = self->inbox_.size_;
     std::uint32_t incoming = 0;
     if (checkStream) {
-        GameBuffer& in = ConnectionOf(player)->reliableIn_;
+        GameBuffer& in = player->reliableIn_;
         const std::uint8_t* high = in.cur > in.high ? in.cur : in.high;
         incoming = static_cast<std::uint32_t>(in.base + (high - in.begin));
         checkStream = in.base == 0 && unread <= kKeep && incoming <= kKeep;
         if (checkStream) {
-            std::memcpy(g_unread, self->base.inbox.data_, unread);
+            std::memcpy(g_unread, self->inbox_.data_, unread);
             std::memcpy(g_incoming, in.begin, incoming);
         }
     }
-    DriverDisconnect(self);
-    bool ok = self->player == nullptr && self->base.inbox.size_ == 0;
+    self->DriverLink::Disconnect();
+    bool ok = self->player_ == nullptr && self->inbox_.size_ == 0;
     if (ok && checkStream) {
-        GameBuffer& in = ConnectionOf(player)->reliableIn_;
+        GameBuffer& in = player->reliableIn_;
         ok = static_cast<std::uint32_t>(in.cur - in.begin) == unread + incoming && std::memcmp(in.begin, g_unread, unread) == 0 &&
              std::memcmp(in.begin + unread, g_incoming, incoming) == 0;
     }
@@ -430,15 +429,15 @@ void __fastcall DriverDisconnectVerify(DriverLink* self) {
 
 // 00479D40: ours only; the root, CStream and CStream vtables left, no player.
 void __fastcall DriverDestructVerify(DriverLink* self) {
-    DriverDestruct(self);
-    bool ok = VtableOf(self) == 0x0073BB68 && VtableOf(&self->base.base.record) == 0x0073BDB0 && VtableOf(&self->base.inbox) == 0x0073BDB0 &&
-              self->player == nullptr;
+    self->Destruct();
+    bool ok = VtableOf(self) == 0x0073BB68 && VtableOf(&self->record_) == 0x0073BDB0 && VtableOf(&self->inbox_) == 0x0073BDB0 &&
+              self->player_ == nullptr;
     ei::verify::Check("DriverDestruct", true, ok, "");
 }
 
 // 00479D20: a CALL at +3: ours only.
 void* __fastcall DriverDeletingDestructorVerify(DriverLink* self, void*, unsigned flags) {
-    void* result = DriverDeletingDestructor(self, nullptr, flags);
+    void* result = static_cast<void*>(self->DeletingDestruct(flags));
     ei::verify::Check("DriverDeletingDestructor", static_cast<void*>(self), result, "");
     return result;
 }
@@ -452,10 +451,10 @@ bool FreshInbox(const CMemoryStream& s) {
 // 00479C10: ours only; afterwards a fresh driver with the same count, flags and +9.
 void __fastcall DriverResetVerify(DriverLink* self) {
     std::uint32_t header = At<std::uint32_t>(self, 4);
-    std::uint8_t skip = self->base.base.skipNext;
-    DriverReset(self);
-    bool ok = VtableOf(self) == kDriverVtable && At<std::uint32_t>(self, 4) == header && self->base.base.skipNext == skip &&
-              self->base.base.recording == 0 && FreshRecord(self->base.base.record) && FreshInbox(self->base.inbox) && self->player == nullptr;
+    std::uint8_t skip = self->skipNext_;
+    self->DriverLink::OnShutdown();
+    bool ok = VtableOf(self) == kDriverVtable && At<std::uint32_t>(self, 4) == header && self->skipNext_ == skip &&
+              self->recording_ == 0 && FreshRecord(self->record_) && FreshInbox(self->inbox_) && self->player_ == nullptr;
     ei::verify::Check("DriverReset", true, ok, "");
 }
 
@@ -472,21 +471,21 @@ bool SameCloneInbox(const CMemoryStream& a, const CMemoryStream& b) {
            std::memcmp(x + 0x1C, y + 0x1C, 0xC) == 0;
 }
 DriverLink* __fastcall DriverCloneVerify(DriverLink* self) {
-    if (!IsMemoryStream(&self->base.inbox)) return DriverClone(self);
-    LinkCopy source(&self->base);
+    if (!IsMemoryStream(&self->inbox_)) return self->DriverLink::Clone();
+    LinkCopy source(self);
     DriverLink* expected = s_clone(source.Driver());
-    DriverLink* actual = DriverClone(self);
+    DriverLink* actual = self->DriverLink::Clone();
     if (expected && actual) {
-        const auto* x = reinterpret_cast<const std::uint8_t*>(&expected->base.base.record);
-        const auto* y = reinterpret_cast<const std::uint8_t*>(&actual->base.base.record);
+        const auto* x = reinterpret_cast<const std::uint8_t*>(&expected->record_);
+        const auto* y = reinterpret_cast<const std::uint8_t*>(&actual->record_);
         bool same = std::memcmp(expected, actual, 10) == 0 && std::memcmp(x, y, 4) == 0 && x[5] == y[5] &&
-                    std::memcmp(x + 8, y + 8, 4 + 0x10) == 0 && SameCloneInbox(expected->base.inbox, actual->base.inbox) &&
-                    expected->player == actual->player;
-        ei::verify::Check("DriverClone", true, same, "%u bytes", self->base.inbox.size_);
+                    std::memcmp(x + 8, y + 8, 4 + 0x10) == 0 && SameCloneInbox(expected->inbox_, actual->inbox_) &&
+                    expected->player_ == actual->player_;
+        ei::verify::Check("DriverClone", true, same, "%u bytes", self->inbox_.size_);
     }
     if (expected) {
-        if (expected->base.inbox.data_) gamecrt::operator_delete(expected->base.inbox.data_);
-        if (expected->player) --expected->player->refs_;
+        if (expected->inbox_.data_) gamecrt::operator_delete(expected->inbox_.data_);
+        if (expected->player_) --expected->player_->refs_;
         gamecrt::operator_delete(expected);
     }
     return actual;

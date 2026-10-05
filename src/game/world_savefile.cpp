@@ -95,7 +95,8 @@ void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* dat
     // A view over the data (vtable 0073CA64, flags 2).
     std::uint8_t* begin = StreamData(data);
     std::uint8_t* last = begin + ei::VCall<int>(data, kSlotSize);
-    GameBuffer view{reinterpret_cast<void*>(kBufferViewVtable), begin, begin, last, last, 0, 2};
+    GameBuffer view;
+    view.InitView(begin, last);
     {
         LocalBuffer packed;
         std::uint8_t compressed = 1;
@@ -133,7 +134,7 @@ void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* dat
             }
         }   // the decoder's cursor ends here, then `check` and `packed` go
     }
-    view.vtable = reinterpret_cast<void*>(kBufferViewBase);
+    ei::SetVtable(&view, kBufferViewBase);
 }
 
 bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file) {

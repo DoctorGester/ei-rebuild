@@ -77,13 +77,10 @@ constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bit
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
 constexpr unsigned kOpenWrite = 0x1001;              // CFile::modeCreate | modeWrite
-constexpr std::uint32_t kStreamLimit = 2000000000;
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
 constexpr int kLock = 25, kUnlock = 32;              // IDirectDrawSurface7
-constexpr int kSlotRead = 1, kSlotWrite = 2;         // CStream
-constexpr int kSlotFileOpen = 8, kSlotFileClose = 19;   // CFile (the stream's, +0x0C)
 constexpr int kSlotMatchesMask = 14;                 // CFileFind::MatchesMask
 
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
@@ -165,33 +162,20 @@ __declspec(naked) mfc::CString FileFindOps::FileName() const EI_ORIGINAL(0x006E6
 __declspec(naked) void FileFindOps::Close() EI_ORIGINAL(0x006E63E9)
 FileFindOps& Ops(mfc::CFileFind& find) { return static_cast<FileFindOps&>(find); }
 
-// A file stream local as the original builds and tears it down inline (vtables 0073BDB0 /
-// 0073C8D8, an MFC CFile at +0x0C).
+// A file stream local as the original builds and tears it down inline (net_link.h).
 struct LocalFileStream {
     netlink::FileStream s;
-    LocalFileStream() {
-        ei::SetVtable(&s, CStream::kVtableAddress);
-        s.limit = kStreamLimit;
-        s.ok = 1;
-        new (s.file) mfc::CFile();
-        ei::SetVtable(&s, netlink::kFileStreamVtable);
-    }
-    ~LocalFileStream() {
-        ei::SetVtable(&s, netlink::kFileStreamVtable);
-        reinterpret_cast<mfc::CFile*>(s.file)->~CFile();
-        ei::SetVtable(&s, CStream::kVtableAddress);
-    }
+    LocalFileStream() { s.Construct(); }
+    ~LocalFileStream() { s.Destruct(); }
     LocalFileStream(const LocalFileStream&) = delete;
     LocalFileStream& operator=(const LocalFileStream&) = delete;
 
-    // The stream's direction byte, then the CFile's virtual Open (its own vtable, slot 8).
-    void Open(const char* path, unsigned flags, std::uint8_t reading) {
-        s.reading = reading;
-        s.ok = ei::VCall<int>(s.file, kSlotFileOpen, path, flags, static_cast<void*>(nullptr)) != 0;
-    }
-    void Close() { ei::VCall<void>(s.file, kSlotFileClose); }
-    unsigned Read(void* buffer, unsigned size) { return ei::VCall<unsigned>(&s, kSlotRead, buffer, size); }
-    void Write(const void* buffer, unsigned size) { ei::VCall<void>(&s, kSlotWrite, buffer, size); }
+    // The stream's direction byte, then the CFile's virtual Open.
+    void Open(const char* path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
+    void Close() { s.Close(); }
+    unsigned Read(void* buffer, unsigned size) { return Stream()->Read(buffer, size); }
+    void Write(const void* buffer, unsigned size) { Stream()->Write(buffer, size); }
+    CStream* Stream() { return &s; }
     // A string with its terminating zero.
     void WriteText(const char* text) { Write(text, static_cast<unsigned>(std::strlen(text) + 1)); }
 };
@@ -451,12 +435,12 @@ void CSaveLoadWindow::FillEntries() {
                 }
                 StreamReadInto(&info.s, nullptr, &Str(entry->zone_));
                 // +8 of the stream: the version the header read.
-                if (static_cast<int>(info.s.limit) > 1) {
+                if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
                     info.Read(&savedAt, 4);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.s.limit) > 2) StreamReadInto(&info.s, nullptr, &Str(entry->title_));
+                if (static_cast<int>(info.s.version_) > 2) StreamReadInto(&info.s, nullptr, &Str(entry->title_));
             }
             info.Close();
             if (console::Length(Str(entry->title_)) == 0) EntryMakeTitle(entry, nullptr, 1);
