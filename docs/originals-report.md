@@ -417,8 +417,8 @@ Rewritten as `DeviceDrawIndexed` (src/game/device_draw.cpp).
 ### 0x004EF7B0: 3 files, 3 sites, signatures differ
 Rewritten as `DXSurfaceConstruct` (src/game/dx_surface.cpp).
 - `src/game/originals_render.h:38`: `char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/, int /*width*/, int /*height*/)`
-- `src/game/ui_surface_create.cpp:52`: `char* __fastcall ConstructHolder(void*, void*, void*, int, int)`
-- `src/game/ui_surface_pixels.cpp:280`: `SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int)`
+- `src/game/ui_surface_create.cpp:53`: `char* __fastcall ConstructHolder(void*, void*, void*, int, int)`
+- `src/game/ui_surface_pixels.cpp:282`: `SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int)`
 
 ### 0x004F16A0: 5 files, 5 sites, signatures differ
 Rewritten as `CTransformPipeline::ClipTest` (src/game/model.cpp).
@@ -1029,7 +1029,7 @@ Rewritten as `CInterface3D::ScaleRectToScreen` (src/game/ui_interface.cpp).
 - `src/game/console_window.cpp:20`: `void ScreenAt::ScaleRectToScreen(int*)`
 - `src/game/string_map.cpp:154`: `void __fastcall InterfaceFitRect(void*, void*, RECT*)`
 - `src/game/ui_interface.cpp:26`: `int CInterface3D::CallScaleRectToScreen(RECT*) const`
-- `src/game/ui_surface_create.cpp:58`: `int ScaleAt::ScaleRectToScreen(int*)`
+- `src/game/ui_surface_create.cpp:59`: `int ScaleAt::ScaleRectToScreen(int*)`
 
 ### 0x005F7DA0: 2 files, 2 sites, signatures differ
 Rewritten as `CInterface3D::ScaleRectFromScreen` (src/game/ui_interface.cpp).
@@ -1648,8 +1648,8 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/terrain_draw.cpp:55`: `void __fastcall ByteArrayConstruct(MfcArray*)`
 
 ### 0x007005AF: 3 files, 3 sites, signatures differ
-- `src/game/dx_surface.cpp:50`: `void* __cdecl GameNew(unsigned)`
-- `src/game/ui_surface_create.cpp:51`: `void* __cdecl GameNew(unsigned)`
+- `src/game/dx_surface.cpp:49`: `void* __cdecl GameNew(unsigned)`
+- `src/game/ui_surface_create.cpp:52`: `void* __cdecl GameNew(unsigned)`
 - `src/lib/crt.cpp:7`: `void* __cdecl operator_new(std::size_t)`
 
 ### 0x007005D8: 2 files, 2 sites, same signature, names differ
@@ -1734,8 +1734,8 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/ui_interface_frame.cpp:213`: `void __fastcall SplitWords(const char*, console::CStringArray*, char)`
 
 ### 0x004EDAA0: 2 files, 2 sites, same signature, names differ
-- `src/game/dx_surface.cpp:287`: `int ChannelLayout::Split(const void*)`
-- `src/game/ui_surface_pixels.cpp:82`: `int PixelConverter::Init(const void*)`
+- `src/game/dx_surface.cpp:291`: `int ChannelLayout::Split(const void*)`
+- `src/game/ui_surface_pixels.cpp:83`: `int PixelConverter::Init(const void*)`
 
 ### 0x0050E770: 2 files, 2 sites, identical
 - `src/game/magic_trap.cpp:288`: `int __fastcall MapObjectCreate(void*)`
