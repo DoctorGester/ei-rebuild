@@ -113,7 +113,9 @@ int MarkerCount(CGlobalMap* self) {
 
 std::uint32_t* DisplayColour() { return reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(DisplayObject()) + 0x14); }
 
-MapState Snapshot(CGlobalMap* self) {
+// The weather object (+0x214) only with `withWeather`: SelectZone runs in Create before the
+// object exists (the field is still uninitialised heap then), SetWeather after it.
+MapState Snapshot(CGlobalMap* self, bool withWeather) {
     MapState s;
     for (int i = 0; i < MarkerCount(self); ++i) {
         CUiMesh* m = self->Marker(i);
@@ -121,11 +123,11 @@ MapState Snapshot(CGlobalMap* self) {
     }
     s.displayColour = *DisplayColour();
     std::memset(s.weather, 0, sizeof(s.weather));
-    if (self->weather_) std::memcpy(s.weather, self->weather_, sizeof(s.weather));
+    if (withWeather) std::memcpy(s.weather, self->weather_, sizeof(s.weather));
     return s;
 }
 
-void Restore(CGlobalMap* self, const MapState& s) {
+void Restore(CGlobalMap* self, const MapState& s, bool withWeather) {
     for (int i = 0; i < static_cast<int>(s.markers.size()); ++i) {
         CUiMesh* m = self->Marker(i);
         const MarkerState& k = s.markers[i];
@@ -135,7 +137,7 @@ void Restore(CGlobalMap* self, const MapState& s) {
         m->plainColour_ = k.plain;
     }
     *DisplayColour() = s.displayColour;
-    if (self->weather_) std::memcpy(self->weather_, s.weather, sizeof(s.weather));
+    if (withWeather) std::memcpy(self->weather_, s.weather, sizeof(s.weather));
 }
 
 } // namespace
@@ -144,12 +146,12 @@ void Restore(CGlobalMap* self, const MapState& s) {
 // ours. SUB ESP,0x38; OR EAX,-1 (6).
 static void(__fastcall* s_selectZone)(CGlobalMap*, void*, int, bool);
 static void __fastcall SelectZoneVerify(CGlobalMap* self, void*, int index, bool isLink) {
-    MapState before = Snapshot(self);
+    MapState before = Snapshot(self, false);
     s_selectZone(self, nullptr, index, isLink);
-    MapState expected = Snapshot(self);
-    Restore(self, before);
+    MapState expected = Snapshot(self, false);
+    Restore(self, before, false);
     self->CGlobalMap::SelectZone(index, isLink);
-    MapState actual = Snapshot(self);
+    MapState actual = Snapshot(self, false);
     ei::verify::Check("CGlobalMap::SelectZone", true, expected == actual, "index %d link %d zones %d links %d gipat %d",
                       index, isLink ? 1 : 0, self->zoneCount_, self->linkCount_, self->gipat_ ? 1 : 0);
 }
@@ -159,12 +161,14 @@ EI_VERIFY(0x00630860, SelectZoneVerify, 6, s_selectZone);
 // table from the same values, so running it twice changes nothing more). MOV EAX,[ECX+0x260] (6).
 static void(__fastcall* s_setWeather)(CGlobalMap*, void*);
 static void __fastcall SetWeatherVerify(CGlobalMap* self, void*) {
-    MapState before = Snapshot(self);
+    // Entries 16 and up set the weather object's ramp (it exists by then).
+    bool withWeather = self->weatherIndex_ >= 16 && self->weather_;
+    MapState before = Snapshot(self, withWeather);
     s_setWeather(self, nullptr);
-    MapState expected = Snapshot(self);
-    Restore(self, before);
+    MapState expected = Snapshot(self, withWeather);
+    Restore(self, before, withWeather);
     self->CGlobalMap::SetWeather();
-    MapState actual = Snapshot(self);
+    MapState actual = Snapshot(self, withWeather);
     ei::verify::Check("CGlobalMap::SetWeather", true, expected == actual, "entry %d colour %08X / %08X",
                       self->weatherIndex_, expected.displayColour, actual.displayColour);
 }

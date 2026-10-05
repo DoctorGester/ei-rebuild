@@ -111,6 +111,9 @@ skips the move). Not rewritten: STLport / MFC template code (005F3000-005F4990, 
 | 005F5BA0 | `CInterface3D::CreateScreen` (`ui_create_screen.cpp`) | the original inlines the constructors of screens 1, 2, 3, 7; id 0 does nothing, 6 and ids above 9 reach the activation with the id as the window pointer |
 | 005F71C0, 005F7350 | `Activate`, `PushWindow` | window stack (005FA9A0 when full), backdrops +0x54 / +0x58, +0x50, +0x60 (the server flag kept for the first window), modifier flags, five render states (COM SetRenderState), slot 25 Create, message pump |
 | 005F78C0 | `CInterface3D::OnKeyDown` (`ui_interface_keys.cpp`) | scans 0x1D / 0x11D Ctrl, 0x2A / 0x36 Shift, 0x38 / 0x138 Alt |
+| 005F76A0, 005F76E0, 005F7740, 005F7780, 005F77C0, 005F7800, 005F7840, 005F7880 | `CInterface3D::OnLeftDown`, `OnLeftUp`, `OnMouseMove`, `OnRightDown`, `OnRightUp`, `OnLeftDouble`, `OnRightDouble`, `OnWheel` (`ui_interface_input.cpp`; to the capture +0x0C, else the top window) | side by side against stand-in vtables on the possible targets (recorded delivery, +0x7F double click, +0x80 right button), then ours for real |
+| 005F7B40, 005F7BE0, 005E47E0 | `CInterface3D::OnChar` (console, a client's open chat line +0x1C +0x14C, top window), `OnKeyUp` (VK_SHIFT / VK_CONTROL / VK_MENU clear +0x7D / +0x7C / +0x7E), `ConsoleWindow::OnKeyUp` | the same while the console is hidden (the chat line stood in too); the console's side by side |
+| 005F74F0, 005F5AB0 | `CInterface3D::CloseAll`, `CloseAllPending` (+0x44) | ours only: no window, flags clear, screen flag (00784750) off |
 | 005FE700, 005FE930, 005FF460, 005FFFB0, 00600D30, 006005F0 | `CUiWindow::Construct`, `DestroyBase` (frees the arrays with SetSize(0), so the array destructors after it find nothing), `ReplaceSceneObject`, `CopyImage` (side by side on the written rectangle), `CUiContainer::AddChild`, `UiPtrArray::SetAtGrow` | |
 | 005F67A0 / 005F6920, 005F6240, 005F6470 / 005F6620, 005F6F30 / 005F7010, 005F6D50 / 005F6E40 | constructor / destructor body of `CGlobalMap`, `CCampPages::Construct`, item screens' and the camp's destructor bodies, screens 9 and 8 | the STLport containers' empty compare / allocator objects are passed by address in the original (argument slots, stack bytes): where a constructor keeps the byte, ours passes the same value |
 | 005F86F0, 005F8A80, 005F8C90, 005F8420, 005EADD0 | `OpenHelp`, `ShowMessage`, `MessageText` (side by side on the string), `LoadState`, the battle camera's key input (`ui_camera_keys.cpp`; side by side on the camera's motion, view and saved-view bytes and the input object) | |
@@ -199,6 +202,7 @@ harness steps `clickregion` / `moveregion`). The harness's `newgame` bypasses th
 | Address | Name | Verify |
 |---|---|---|
 | 00632D70 | `CMainMenu::OnLButtonDown` (slot 2) | ours only: the window the region opens is on top with its vtable (0074225C, 00741388, 00741FAC, 00740C3C, 0074214C); other points open nothing; region 2 not checked |
+| 00634650, 0063B5D0, 0063FE70 | `CMessageBox::Construct` (RET 0x18), `CObjectivesWindow::Construct` (RET 4), `CHudPortraits::Construct` (RET 8; `ui_screen_constructors.cpp`) | ours only: vtables, the fields each sets, the portraits' one marker sprite |
 | 00634790, 006337B0, 0062B7D0 | `CMessageBox::Build`, `CDifficultyBox::Build`, `CCreditsScreen::Build` (slot 25) | ours only: surface / sprite / region counts, the edit field as a child with flag 4; easy_ 0; +2 surfaces kept in +0x164 / +0x168, the script's lines appended |
 | 0062AB20, 0062AE90 | `CEscMenu::Build` (slot 25), `OnLButtonDown` | ours: one model and five regions added; the window opened on top (vtable, save flag), resume's pending value |
 | 0062AD10, 0062B300, 0062ACC0 | `CEscMenu::OnMouseMove`, `OnKeyDown`, `OnMessageResult` (slot 27) | ours: hovered region; Esc sets handled and pending value 0; pending value / leave-game flag |
@@ -579,6 +583,8 @@ Scenario lessons:
   state), put them back, run ours and compare; checks that read GDI / DirectDraw pixels use the settle-and-recompare rule
   (section 3).
 - A function that returns its argument or `this` in EAX must too (`AddSurface`: the titles' Create used the result).
+- A wrapper's snapshot must not follow pointers the screen's Create sets later: the global map's Create calls SelectZone
+  before it creates the weather object (+0x214 still heap garbage), and a snapshot copying through it crashed ui_camp.
 - Fields declared at a wrong offset in a header hide bugs for a long time (`CMpHeroScreen::rotating_`): when a state
   seems stuck, check the offset in the handler that sets it against the one that clears it.
 

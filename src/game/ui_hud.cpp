@@ -262,7 +262,7 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
     inputHandled_ = true;
-    if (interface_->keyCtrl_)
+    if (interface_->doubleClick_)
         ClickAlternate(region);
     else
         ClickAt(region);
@@ -626,7 +626,7 @@ bool ZeroOrNaN(float value) {
 } // namespace
 
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
-    auto ctrl = [this] { return static_cast<char>(interface_->keyCtrl_); };
+    auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
     auto unitDead = [](CUnit* u) { return ei::VCall<int>(u, kSlotIsDead) != 0; };
     auto pick = [x, y]() {
         float out[3];
@@ -666,7 +666,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         Field<int>(actions, 0x150) = -1;
     };
     auto order = [this](CUnit* first, CUnit* target, int a, int b) {
-        int flag = static_cast<std::uint8_t>(interface_->keyCtrl_);
+        int flag = static_cast<std::uint8_t>(interface_->doubleClick_);
         ViewOrderTarget(ClientView(kClientWorld), nullptr, first, target, a, b, flag);
     };
 
@@ -691,7 +691,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         for (int i = 0; i < partyCount_; ++i) {
             if (unit != party_[i]) continue;
             interface_->PlaySound(kSoundOnOff, 0);
-            if (interface_->keyCtrl_) {
+            if (interface_->doubleClick_) {
                 if (i < partyCount_) CameraSetTarget(kCamera, nullptr, party_[i]);
             } else {
                 ScreenToggleMember(this, nullptr, i);
@@ -700,7 +700,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
 
-    if (interface_->keyFlag7E_) {
+    if (interface_->altDown_) {
         ScreenOrderAt(this, nullptr, unit ? unitPosition(unit) : pick(), 0, ctrl());
         return;
     }
@@ -714,7 +714,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         ScreenOrderAt(this, nullptr, pick(), 1, ctrl());
         return;
     }
-    if (interface_->keyShift_) {
+    if (interface_->ctrlDown_) {
         if (unit && !unitDead(unit)) {
             ScreenOrderUnit(this, nullptr, unit, ctrl());
             return;
@@ -734,7 +734,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             for (int i = 0; i < members; ++i) {
                 if (unit != party_[i]) continue;
                 interface_->PlaySound(kSoundOnOff, 0);
-                if (interface_->keyCtrl_) {
+                if (interface_->doubleClick_) {
                     if (i < partyCount_) CameraSetTarget(kCamera, nullptr, party_[i]);
                 } else {
                     ScreenToggleMember(this, nullptr, i);
@@ -889,7 +889,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     if (entry < 0) return;
     inputHandled_ = true;
     if (region < 4 && entries_[entry].own) {
-        if (interface_->keyCtrl_)
+        if (interface_->doubleClick_)
             QuickPanelUseNow(this, nullptr, region);
         else
             QuickPanelPick(this, nullptr, region);

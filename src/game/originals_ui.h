@@ -127,3 +127,9 @@ __declspec(naked) inline struct CUiTooltip* __fastcall TooltipConstructOriginal(
     EI_ORIGINAL(0x0065E320)
 __declspec(naked) inline void __fastcall TooltipSetTextOriginal(struct CUiTooltip* /*tooltip*/, void*, const char* /*text*/)
     EI_ORIGINAL(0x0065E540)
+
+// 005E44A0 (Rebirth-patched by ImproveConsole; rewritten as ConsoleWindow::OnChar): the console's typed character
+// (thiscall, RET 0xC: key, repeat, flags; no result). 005E47E0 (rewritten as ConsoleWindow::OnKeyUp; through its
+// address so the wrapper runs): the console's key release (RET 0xC).
+__declspec(naked) inline void __fastcall ConsoleOnCharOriginal(void* /*console*/, void*, int, int, int) EI_ORIGINAL(0x005E44A0)
+__declspec(naked) inline void __fastcall ConsoleOnKeyUpOriginal(void* /*console*/, void*, int, int, int) EI_ORIGINAL(0x005E47E0)

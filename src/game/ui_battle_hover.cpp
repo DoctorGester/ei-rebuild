@@ -123,7 +123,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (selected == 0) return;
 
     int shape = 0;
-    if (interface_->keyFlag7E_) {
+    if (interface_->altDown_) {
         Point3 at = pick();
         int exit;
         if (!HoverFindExit(kClientWorld, nullptr, at.v, &exit)) return;
@@ -136,7 +136,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             return;
         }
     }
-    if (interface_->keyShift_) {
+    if (interface_->ctrlDown_) {
         SetCursor(kCursorAttack);
         return;
     }
