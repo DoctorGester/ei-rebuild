@@ -536,4 +536,4 @@ SuspectionMode* __fastcall ScriptSuspectionModeConstruct(SuspectionMode* mode);
 AggressionMode* __fastcall ScriptAggressionModeConstruct(AggressionMode* mode);
 AggressionMode* __fastcall ScriptRevengeModeConstruct(AggressionMode* mode, void* edx, int fixed);
 CorpseWatcherMode* __fastcall ScriptCorpseWatcherModeConstruct(CorpseWatcherMode* mode);
-AILook* __fastcall ScriptAILookConstruct(AILook* look, void* edx, float angle, float time, float wait, int stopFirst);
+AILook* __fastcall ScriptAILookConstruct(AILook* look, void* edx, float angle, float wait, float time, int stopFirst);

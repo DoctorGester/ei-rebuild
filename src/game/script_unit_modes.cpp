@@ -66,8 +66,9 @@ CorpseWatcherMode* __fastcall ScriptCorpseWatcherModeConstruct(CorpseWatcherMode
     return mode;
 }
 
-// 004BA1A0 (RET 0x10; UMPatrolLook's entry): angle, turning time, wait, stop first (low byte).
-AILook* __fastcall ScriptAILookConstruct(AILook* look, void*, float angle, float time, float wait, int stopFirst) {
+// 004BA1A0 (RET 0x10; UMPatrolLook's entry): angle, wait, turning time, stop first (low byte). The
+// arguments come in a different order from the fields: the second goes to +0x08, the third to +0x04.
+AILook* __fastcall ScriptAILookConstruct(AILook* look, void*, float angle, float wait, float time, int stopFirst) {
     look->angle = angle;
     look->time = time;
     look->wait = wait;

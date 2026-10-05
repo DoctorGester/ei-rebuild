@@ -97,11 +97,11 @@ AggressionMode* __fastcall RevengeVerify(AggressionMode* self, void*, int fixed)
 
 // 004BA1A0: MOV EDX,[ESP+0xC]; MOV EAX,ECX (6 bytes). UMPatrolLook (script_exec, unit_ai).
 AILook*(__fastcall* s_look)(AILook*, void*, float, float, float, int);
-AILook* __fastcall LookVerify(AILook* self, void*, float angle, float time, float wait, int stopFirst) {
+AILook* __fastcall LookVerify(AILook* self, void*, float angle, float wait, float time, int stopFirst) {
     AILook scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
-    AILook* expected = s_look(&scratch, nullptr, angle, time, wait, stopFirst);
-    AILook* result = ScriptAILookConstruct(self, nullptr, angle, time, wait, stopFirst);
+    AILook* expected = s_look(&scratch, nullptr, angle, wait, time, stopFirst);
+    AILook* result = ScriptAILookConstruct(self, nullptr, angle, wait, time, stopFirst);
     Report("ScriptAILookConstruct", scratch, self, expected, result, &scratch);
     return result;
 }
