@@ -22,15 +22,15 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I4 Next 3-8 live non-rendering interface functions (see ui.md Eleventh/Twelfth pass for skips).
+- I4 (taken 2026-10-05) Next 3-8 live non-rendering interface functions (see ui.md Eleventh/Twelfth pass for skips).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H2 (taken 2026-10-05) Same for 0x00680000-0x006C0000 (spells, items, item database, sound manager logic, quest db).
+- H3 Trader stock leftovers: 0069A480 / 0069A780 (spell maps, random spells), 0069B5B0 (stock load), 00699810 / 006995E0 / 00699A40 (other stock generators).
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S1 (taken 2026-10-05) The 3-6 largest live script runtime functions not yet rewritten.
+- S2 (taken 2026-10-05) Script runtime at 0x004B0000-0x004C0000: 004B5FE0 SSCCmd::Load, 004BAAB0 QFinish, 004BE6E0 CScript reset, 004BB800 AddParameter, 004BDE40 CScript constructor (3-5 of them).
 
 ## Cleanup (docs/cleanup-plan.md)
 
@@ -45,3 +45,4 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
+- X4 CUiSurface::DrawWrappedText: 1 mismatch in 9378 (ui_hud, Rebirth): "'...' lines 1/1 pixels 0" — lines and pixels agree, so find which compared value differs (return value? width?) and fix the check or ours.
