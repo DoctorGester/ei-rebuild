@@ -873,3 +873,80 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
 }
 EI_REPLACE_METHOD(0x00638EF0, CBattleScreen::SelectUnit);
 EI_REBIRTH_IMPLEMENTS(0x00638EF0, ei::rebirth::Patch::FixSpellSelfCasting);
+
+// --- 00636F10: the selected units ordered to a point -------------------------------------------
+
+namespace {
+
+void* const kPlayerGlue = reinterpret_cast<void*>(0x007AFEA5);
+// The local player glue (007AFEA5, thiscall): 00578A00 the zone exit at a point (RET 8; jumps to
+// the client world's 00567440), 00578A40 an exit's zone name (RET 4).
+__declspec(naked) int __fastcall GlueExitAt(void*, void*, const float*, int*) EI_ORIGINAL(0x00578A00)
+__declspec(naked) const char* __fastcall GlueExitZone(void*, void*, int) EI_ORIGINAL(0x00578A40)
+// The CArray<CUnit*> the order takes (vtable 007402AC; SetSize 005EBDB0, RET 8).
+struct OrderUnits {
+    void* vtable;
+    CUnit** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+__declspec(naked) void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int) EI_ORIGINAL(0x005EBDB0)
+// The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there,
+// 0066A720 the other order (mode non-zero: the modifier flags or Shift).
+__declspec(naked) void __fastcall ViewOrderMove(void*, void*, OrderUnits*, const float*, int) EI_ORIGINAL(0x0066A7D0)
+__declspec(naked) void __fastcall ViewOrderMoveAlt(void*, void*, OrderUnits*, const float*, int) EI_ORIGINAL(0x0066A720)
+
+} // namespace
+
+void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
+    // The original passes the address of its own argument slots as the point.
+    float point[3] = {x, y, z};
+    int selected = 0;
+    for (int i = 0; i < partyCount_; ++i) {
+        CUnit* member = party_[i];
+        if (member && (member->flags_ & kFlagSelected)) ++selected;
+    }
+
+    // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for
+    // the update to ask about leaving (+0x18C, +0x188 the exit).
+    Field<std::uint8_t>(this, 0x18C) = 0;
+    int exit;
+    if (GlueExitAt(kPlayerGlue, nullptr, point, &exit) && selected > 0) {
+        mfc::CString name(GlueExitZone(kPlayerGlue, nullptr, exit));
+        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
+                             reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
+            name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."
+            double value = HoverPlayerVariable(kPlayerGlue, nullptr, name);
+            const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
+            // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
+            if (!x87::IsNaN(static_cast<float>(value)) && value != one) {
+                Field<std::uint8_t>(this, 0x18C) = 1;
+                Field<int>(this, 0x188) = exit;
+            }
+        }
+    }
+
+    // The selected members go; each one's portrait nods after a short random delay.
+    OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
+    for (int i = 0; i < partyCount_; ++i) {
+        CUnit* member = party_[i];
+        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        int n = units.size;
+        OrderUnitsSetSize(&units, nullptr, n + 1, -1);
+        units.data[n] = member;
+        std::uint8_t* records = Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158);
+        Field<float>(records, i * kPortraitRecordSize + 0x3C) = PortraitDelay(UiRandom().Next());
+        Field<int>(Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158), i * kPortraitRecordSize + 0x38) = 1;
+    }
+    if (units.size != 0) {
+        std::uint8_t* view = ClientView(kClientWorld);
+        if (static_cast<std::uint8_t>(mode) != 0)
+            ViewOrderMoveAlt(view, nullptr, &units, point, ctrl & 0xFF);
+        else
+            ViewOrderMove(view, nullptr, &units, point, ctrl & 0xFF);
+    }
+    units.vtable = reinterpret_cast<void*>(0x007402AC);
+    if (units.data) gamecrt::operator_delete(units.data);
+}
+EI_REPLACE_METHOD(0x00636F10, CBattleScreen::OrderAt);

@@ -8,6 +8,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include <cmath>
 #include <cstring>
 #include "originals_ui.h"
 
@@ -236,3 +237,115 @@ namespace {
 BOOL __fastcall ItemStripDraw(CUiItemStrip* self, void*, int pass) { return self->Draw(pass); }
 } // namespace
 EI_REPLACE(0x00621B50, ItemStripDraw);
+
+// --- 00620A50: the strip's per-frame scroll ---------------------------------------------------
+
+namespace {
+
+// 00600270: the time since the last frame in seconds (ticks * 0.001f, unrounded in ST0).
+__declspec(naked) double __fastcall StripFrameTime(void*) EI_ORIGINAL(0x00600270)
+
+// FCOMP; TEST AH,0x40: equal, or unordered.
+bool EqualOrNaN(float a, float b) { return !(a < b) && !(a > b); }
+
+} // namespace
+
+void CUiItemStrip::Update() {
+    const float zero = GameFloat(0x0073B858);
+    const float repeat = GameFloat(0x00741EC0);      // 0.1 s per slot while an arrow is held
+    const float nearDistance = GameFloat(0x00741EB4);  // 0.5 slot: closer than this the scroll eases out
+    const float easeDivisor = GameFloat(0x00741EB8); // 0.25
+    const float accel = GameFloat(0x00741EBC);       // 15 slots/s^2
+    const float maxSpeed = GameFloat(0x00741EB0);    // 7 slots/s
+    const float half = GameFloat(0x0073B86C);
+    const float snapLow = GameFloat(0x0073C548);     // 0.01
+    const float snapPending = GameFloat(0x0073CCD8); // 0.02
+    const float snapHigh = GameFloat(0x00741F0C);    // 0.99
+    const float one = GameFloat(0x0073B84C);
+    const float dt = StoreFloat(static_cast<float>(StripFrameTime(this)));
+
+    // An arrow held: one slot at once, then one more every `repeat` seconds.
+    if (scrollDirection_ != 0) {
+        int steps = 0;
+        if (EqualOrNaN(scrollTimer_, zero)) {
+            steps = 1;
+            const std::uint32_t first = 0x3A83126F;   // 0.001
+            std::memcpy(&scrollTimer_, &first, 4);
+        } else {
+            scrollTimer_ = StoreFloat(dt + scrollTimer_);
+            while (scrollTimer_ > repeat) {
+                scrollTimer_ = StoreFloat(scrollTimer_ - repeat);
+                ++steps;
+            }
+        }
+        pending_ = scrollDirection_ == 1 ? pending_ - static_cast<float>(steps) : static_cast<float>(steps) + pending_;
+    }
+
+    if (!EqualOrNaN(pending_, zero)) {
+        float speed;
+        if (std::fabs(pending_) > nearDistance) {
+            // Far: accelerate towards the target up to the top speed, but no faster than reaches
+            // the easing distance in one frame; the average of that and the new speed.
+            const float gain = accel * dt;
+            float limited;
+            if (pending_ > zero) {
+                velocity_ = StoreFloat(gain + velocity_);
+                if (velocity_ > maxSpeed) velocity_ = maxSpeed;
+                const float limit = StoreFloat((pending_ - nearDistance) / dt);
+                const float current = velocity_;
+                limited = !(current >= limit) ? current : limit;
+            } else {
+                velocity_ = StoreFloat(velocity_ - gain);
+                const float minSpeed = -maxSpeed;
+                if (!(velocity_ >= minSpeed)) velocity_ = minSpeed;
+                const float limit = StoreFloat((nearDistance + pending_) / dt);
+                const float current = velocity_;
+                limited = !(limit >= current) ? current : limit;
+            }
+            speed = (limited + velocity_) * half;
+        } else if (pending_ > zero) {
+            // Near: the speed that eases out (sqrt(0.5 d) / 0.25).
+            speed = static_cast<float>(std::sqrt(static_cast<double>(nearDistance * pending_)) / easeDivisor);
+        } else {
+            speed = -static_cast<float>(std::sqrt(static_cast<double>(-(nearDistance * pending_))) / easeDivisor);
+        }
+        velocity_ = StoreFloat(speed);
+        float step = StoreFloat(speed * dt);
+        if (!(std::fabs(pending_) >= std::fabs(step))) step = pending_;
+        position_[tab_] = StoreFloat(step + position_[tab_]);
+        pending_ = StoreFloat(pending_ - step);
+
+        // Settle on a whole slot when the remaining scroll is tiny and the position is within
+        // 0.01 above or 0.01 below one.
+        const float whole = static_cast<float>(static_cast<int>(position_[tab_]));
+        bool done = false;
+        if (!(position_[tab_] - whole >= snapLow) && !(std::fabs(pending_) >= snapPending)) {
+            position_[tab_] = whole;
+            pending_ = 0.0f;
+            done = true;
+        }
+        if (!done && position_[tab_] - whole > snapHigh && !(std::fabs(pending_) >= snapPending)) {
+            position_[tab_] = StoreFloat(whole + one);
+            pending_ = 0.0f;
+        }
+    }
+    if (EqualOrNaN(pending_, zero)) velocity_ = 0.0f;
+
+    CallRebuildList();
+    // Kept within [0, size - 7].
+    const float last = static_cast<float>(count_ - 7);
+    if (!(last >= position_[tab_])) {
+        position_[tab_] = last;
+        pending_ = 0.0f;
+        velocity_ = 0.0f;
+    }
+    if (!(position_[tab_] >= zero)) {
+        position_[tab_] = 0.0f;
+        pending_ = 0.0f;
+        velocity_ = 0.0f;
+    }
+}
+namespace {
+void __fastcall ItemStripUpdate(CUiItemStrip* self) { self->Update(); }
+} // namespace
+EI_REPLACE(0x00620A50, ItemStripUpdate);

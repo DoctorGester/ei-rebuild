@@ -1,0 +1,34 @@
+# A click on the ground orders the selected hero there (docs/notes/ui.md, "Fifteenth pass"): the
+# button release (00638B30) finds no unit under the point, SelectUnit (00638EF0) takes its plain
+# action and, with no targetable object there either, calls CBattleScreen::OrderAt (00636F10),
+# which nods the hero's portrait and gives the local view the move order. The new game's hero is
+# selected; the clicks are away from the HUD panels (800x600 layout). The hero must then walk
+# away from where it stood. The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+wait 1000
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+move 560 260
+wait 300
+click 560 260
+wait 500
+waitfor 15 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),2)
+
+# A second order back towards the start.
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+move 260 340
+wait 300
+click 260 340
+wait 500
+waitfor 15 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),2)
+check IsAlive(GetLeader())
+report
+quit

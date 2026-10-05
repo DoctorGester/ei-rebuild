@@ -137,6 +137,13 @@ public:
     // through the owner (005ECA10), the stack counts (not 1) on surface 0 and, unless +0x1B0 is 9,
     // the owner's slot 54 number of each item its slot 43 takes on surface 1. Returns 1.
     BOOL Draw(int pass);
+    // 00620A50 (slot 24, every frame; ui_item_strip.cpp; vtables 0074197C, 00741A1C, 00741BF4).
+    // Scrolls: a held arrow (+0x154) adds one slot to the pending scroll at once and one more
+    // every 0.1 s (+0x158 the timer); the pending scroll (+0x174) moves the current tab's
+    // position at a speed (+0x178) that accelerates (15 slots/s^2, at most 7) and eases out within
+    // half a slot, settling on a whole slot; then the list is rebuilt (slot 26) and the position
+    // kept within [0, count - 7].
+    void Update();
 
     // Input handlers (input sub-object).
     void OnLButtonDown(int flags, int x, int y);   // 00620E10

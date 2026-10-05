@@ -102,3 +102,44 @@ static BOOL __fastcall StripDrawVerify(CUiItemStrip* self, void*, int pass) {
     return result;
 }
 EI_VERIFY(0x00621B50, StripDrawVerify, 0, s_stripDraw);
+
+// CUiItemStrip::Update (00620A50, slot 24 of the strips' vtables 0074197C, 00741A1C, 00741BF4):
+// side by side. The original runs first; the scroll fields it wrote (+0x150..+0x17C: timer,
+// positions, pending scroll, speed) are recorded and put back as they were, then ours runs (both
+// rebuild the list through slot 26, which only depends on the source list and the tab; the list
+// itself is not put back since the rebuild may have reallocated it). The frame time (00600270) is
+// the same within a frame. Floats compared within a few ULPs (rule 7; a position on a snapping
+// edge may rarely settle differently), the visible count exactly. Reached every frame a strip is
+// shown: the camp (ui_camp, ui_describe, frames_basic, render_present) and the hero screen's
+// inventory (ui_hero_screen). The arrow scroll needs a held arrow (button down on region 0 or 1).
+static void(__fastcall* s_stripUpdate)(CUiItemStrip*);
+static void __fastcall StripUpdateVerify(CUiItemStrip* self) {
+    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
+    std::uint8_t before[0x17C - 0x150];
+    std::memcpy(before, bytes + 0x150, sizeof(before));
+    s_stripUpdate(self);
+    std::uint8_t expected[0x17C - 0x150];
+    std::memcpy(expected, bytes + 0x150, sizeof(expected));
+    int expectedCount = self->count_;
+    std::memcpy(bytes + 0x150, before, sizeof(before));
+    self->Update();
+    // Every float from the timer (+0x158) to the speed (+0x178); the tab and arrow state exactly.
+    int at = -1;
+    if (std::memcmp(expected, bytes + 0x150, 8) != 0) at = 0;
+    for (int offset = 8; offset < static_cast<int>(sizeof(expected)) && at < 0; offset += 4) {
+        float a, b;
+        std::memcpy(&a, expected + offset, 4);
+        std::memcpy(&b, bytes + 0x150 + offset, 4);
+        if (!ei::verify::NearlyEqual<float>(a, b, 4, 1e-6f)) at = 0x150 + offset;
+    }
+    if (at < 0 && expectedCount != self->count_) at = 0x188;
+    float wantPosition = 0.0f, gotPosition = 0.0f;
+    if (self->tab_ >= 0 && self->tab_ < 6) {
+        std::memcpy(&wantPosition, expected + 0xC + 4 * self->tab_, 4);   // position_[tab]
+        gotPosition = self->position_[self->tab_];
+    }
+    ei::verify::Check("CUiItemStrip::Update", -1, at, "field +0x%X differs (tab %d, position %g / %g, count %d / %d)", at,
+                      self->tab_, static_cast<double>(wantPosition), static_cast<double>(gotPosition), expectedCount,
+                      self->count_);
+}
+EI_VERIFY(0x00620A50, StripUpdateVerify, 6, s_stripUpdate);
