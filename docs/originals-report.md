@@ -6,12 +6,12 @@ merging duplicate `EI_ORIGINAL` forwarders into one declaration per function (cl
 - 4,061 forwarder sites forward to 3,226 distinct original functions.
 - **522** of those functions are forwarded from more than one file; they are listed below (1,345 sites).
 - 12 more are forwarded several times inside a single file (not listed).
-- Of the 522: 231 already rewritten, 143 library code, 148 not yet ported.
+- Of the 522: 233 already rewritten, 143 library code, 146 not yet ported.
 - Signatures: 33 identical in every file, 55 the same apart from the helper name, 434 differ in return or parameter types or in the calling convention (these need a decision before merging).
 
 Files with the most shared forwarders: `src/game/script_exec.cpp` (46), `src/game/world_game.cpp` (43), `src/game/ui_camp.cpp` (36), `src/game/world_quests.cpp` (27), `src/game/script_load.cpp` (26), `src/game/ui_battle_update.cpp` (25), `src/game/world_units.cpp` (25), `src/game/world_client_maps.cpp` (24), `src/game/combat_motion.cpp` (21), `src/game/world_save.cpp` (20), `src/game/combat_update.cpp` (17), `src/game/ui_battle_commands.cpp` (17), `src/game/item_stock.cpp` (17), `src/lib/mfc.cpp` (16), `src/game/combat_actions.cpp` (16).
 
-## Already rewritten (231)
+## Already rewritten (233)
 
 The function is ported here; callers can call it directly instead of through the original address.
 
@@ -527,6 +527,16 @@ Rewritten as `UnitStats::RefillSlots` (src/game/unit_vitals.cpp).
 - `src/game/unit_create_stats.cpp:138`: `void* __fastcall RefillSlotsAt(UnitStats*)`
 - `src/game/unit_record.cpp:40`: `void* Slots::RefillSlots()`
 - `src/game/world_save.cpp:985`: `void __fastcall StatsRefillSlots(void*, void*)`
+
+### 0x00525E90: 2 files, 2 sites, identical
+Rewritten as `UnitStats::AttributeWithItems` (src/game/unit_armour_layers.cpp).
+- `src/game/combat_actions.cpp:187`: `double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*)`
+- `src/game/combat_taming.cpp:33`: `double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*)`
+
+### 0x00527EB0: 2 files, 2 sites, signatures differ
+Rewritten as `UnitStats::SpellSchoolSkill` (src/game/unit_armour_layers.cpp).
+- `src/game/combat_orders.cpp:85`: `double __fastcall StatsSpellSkill(UnitStats*, void*, int)`
+- `src/game/ui_screens.cpp:57`: `double __fastcall StatsSchoolSkill(void*, void*, int)`
 
 ### 0x0052E940: 2 files, 2 sites, signatures differ
 Rewritten as `CUnit::AddHostileMask` (src/game/unit.cpp).
@@ -1974,7 +1984,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/string_map.cpp:158`: `void __fastcall DcFillSolidRect(void*, void*, int, int, int, int, COLORREF)`
 - `src/game/ui_console_window.cpp:423`: `void GameDC::FillSolidRect(int, int, int, int, COLORREF)`
 
-## Not yet ported (148)
+## Not yet ported (146)
 
 Declare once (src/game/originals.h), include everywhere, replace by the port later.
 
@@ -2149,14 +2159,6 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 ### 0x0051FE80: 2 files, 2 sites, signatures differ
 - `src/game/ui_item_info.cpp:349`: `int SkillDatabase::IndexOf(const char*)`
 - `src/game/unit_create_stats.cpp:638`: `int __fastcall SkillRecordIndexByName(const void*, void*, const char*)`
-
-### 0x00525E90: 2 files, 2 sites, identical
-- `src/game/combat_actions.cpp:187`: `double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*)`
-- `src/game/combat_taming.cpp:33`: `double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*)`
-
-### 0x00527EB0: 2 files, 2 sites, signatures differ
-- `src/game/combat_orders.cpp:85`: `double __fastcall StatsSpellSkill(UnitStats*, void*, int)`
-- `src/game/ui_screens.cpp:57`: `double __fastcall StatsSchoolSkill(void*, void*, int)`
 
 ### 0x0052A8F0: 3 files, 3 sites, signatures differ
 - `src/game/combat_motion.cpp:784`: `void __fastcall ReferenceSet(CEngineObject**, void*, CEngineObject*)`
