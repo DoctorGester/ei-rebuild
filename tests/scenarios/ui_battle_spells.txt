@@ -28,6 +28,17 @@ click 400 560
 wait 300
 check IsAlive(GetLeader())
 
+# The action column (0..40 x 270..510; button i at y 470 - 40 i .. 510 - 40 i): with the hero
+# selected, button 0 is "skill0011" (action -1: follow, mode 7) and button 1 the science button
+# (action 0: mode 8). CHudActionColumn::Select (0063FB50): button 0, then button 1 (moves the
+# highlight), then button 1 again (drops the pending action, so the spells below start clean).
+click 20 490
+wait 200
+click 20 450
+wait 200
+click 20 450
+wait 200
+
 console @AddUnitToServer("SpellWolf1","WolfTutor","SpellWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
 console @AddUnitToServer("SpellWolf2","WolfTutor","SpellWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
 console @AddUnitToServer("SpellWolf3","WolfTutor","SpellWolf3",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)

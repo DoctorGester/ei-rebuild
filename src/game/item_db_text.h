@@ -62,6 +62,9 @@ static_assert(offsetof(CTextManager, sources_) == 0x1C);
 static_assert(offsetof(CTextManager, length_) == 0x28);
 static_assert(offsetof(CTextManager::SourceNode, source) == 0x14);
 
+// The game's text manager (the global pointer at 007AF788).
+inline CTextManager* GameTexts() { return *reinterpret_cast<CTextManager* const*>(0x007AF788); }
+
 // The archive list (STLport list<pair<string, CMappedResource*>>, CTextManager +0x1C). Nodes come
 // from the STLport node allocator's 0x18-byte free list (0079B22C).
 struct TextSourceList {

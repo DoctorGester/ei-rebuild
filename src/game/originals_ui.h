@@ -87,13 +87,17 @@ __declspec(naked) inline void __fastcall SpriteSetScaleOriginal(void* /*sprite*/
 __declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
 // 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
 __declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
-// 0063B920: battle screen shows the panel of a unit (RET 8: unit, extra; no result).
+// 0063B920 (rewritten as CBattleScreenSetup::UnitName; called through its address so the wrapper runs): the
+// battle screen writes a unit's name into a CString (RET 8: unit, out; no result).
 __declspec(naked) inline void __fastcall BattleShowPanelUnitOriginal(void* /*screen*/, void*, void* /*unit*/, void* /*extra*/)
     EI_ORIGINAL(0x0063B920)
 // 0063CD20 / 0063E750 / 0063F730: quick, spell and action panel slot updates (RET 8: slot, flag; no result).
 __declspec(naked) inline void __fastcall QuickPanelSetOriginal(void* /*panel*/, void*, int, int) EI_ORIGINAL(0x0063CD20)
 __declspec(naked) inline void __fastcall SpellPanelSetOriginal(void* /*panel*/, void*, int, int) EI_ORIGINAL(0x0063E750)
 __declspec(naked) inline void __fastcall ActionPanelSetOriginal(void* /*panel*/, void*, int, int) EI_ORIGINAL(0x0063F730)
+// 0063F7A0: the action panel unhighlights every button, then +0x150 = -1 (ECX = panel, plain RET, no result;
+// 0063E7C0 is the spell panel's copy).
+__declspec(naked) inline void __fastcall ActionPanelClearOriginal(void* /*panel*/) EI_ORIGINAL(0x0063F7A0)
 // 0065CF30: appends a line to a log window (RET 4, no result).
 __declspec(naked) inline void __fastcall LogAddTextOriginal(void* /*window*/, void*, const char* /*text*/) EI_ORIGINAL(0x0065CF30)
 // 005EE050 / 005EE080 / 005EE0D0: item record is a spell / modifier / part (RET 4, AL; free functions, ECX is not read, so the

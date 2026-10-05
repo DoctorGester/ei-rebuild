@@ -358,6 +358,11 @@ public:
         interface_->mouseCapture_ = nullptr;
         return true;
     }
+    // The window's own mouse move handler (input slot 4), through its input vtable.
+    void InputMouseMove(int buttons, int x, int y) {
+        using Handler = void(__thiscall*)(void*, int, int, int);
+        reinterpret_cast<Handler>(inputVtable_[4])(InputSide(), buttons, x, y);
+    }
     // 005FEB90 (not rewritten). Base drawing (virtual slot 20): draws the scene objects and the
     // models; returns 1.
     BOOL DrawBase(int pass);
@@ -421,6 +426,21 @@ static_assert(sizeof(UiRecordTable) == 8);
 // Coordinates below are the 800x600 layout of the original (Rebirth moves some panels).
 
 class CUnit;
+class CHudQuickItems;
+class CHudSpellColumn;
+class CHudActionColumn;
+
+// An MFC CDWordArray (vtable, data, size, capacity, growth).
+struct UiDwordArray {
+    void* vtable_;
+    std::uint32_t* data_;
+    int size_;
+    int capacity_;
+    int growBy_;
+    // 0059C660 (not rewritten; an MFC SetSize instantiation). `growBy` -1 keeps the step.
+    void SetSize(int size, int growBy);
+};
+static_assert(sizeof(UiDwordArray) == 0x14);
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 struct UiD3DDevice {
@@ -462,15 +482,34 @@ public:
     // the order (0066A7D0, or 0066A720 when the low byte of `mode` is set) with the low byte of
     // `ctrl`. SelectUnit calls it for a click on the ground (mode 0) or with a modifier (mode 1).
     void OrderAt(float x, float y, float z, int mode, int ctrl);
+    // Inlined by the original wherever a HUD button starts or drops an action (the switch at
+    // 0063EE29 / 0063DF0C, and 0063FB50's tail): the pending action becomes `mode` on `slot` with
+    // `item`, every highlight of the quick item panel (0063CD20 per slot), the spell column and
+    // the action column is dropped (each panel's +0x150 -1), and `slot` is highlighted in the
+    // panel of that mode (1, 2 the spell column; 3-6 the quick items; 7, 8 the actions; others
+    // none). Mode 0 with slot and item -1 cancels (ui_hud_pick.cpp).
+    void SetPendingAction(int mode, int slot, int item);
 
     std::uint8_t unknown_148[0x16C - 0x148];
     CUnit** party_;                  // +0x16C the player's units shown as portraits
     int partyCount_;                 // +0x170
-    std::uint8_t unknown_174[0x22C - 0x174];
+    std::uint8_t unknown_174[0x17C - 0x174];
+    int pendingAction_;              // +0x17C what the next click on the view does (SelectUnit)
+    int pendingSlot_;                // +0x180 its spell, quick item or action button, or -1
+    int pendingItem_;                // +0x184 the player's item id (mode 6), the action (7, 8), or -1
+    std::uint8_t unknown_188[0x198 - 0x188];
+    CHudQuickItems* quickItems_;     // +0x198
+    CHudSpellColumn* spellColumn_;   // +0x19C
+    CHudActionColumn* actionColumn_; // +0x1A0
+    std::uint8_t unknown_1A4[0x22C - 0x1A4];
     int portraitMode_;               // +0x22C 0: normal; 1, 2: the next portrait click picks a
                                      //        player for a server command (4, 5)
 };
 static_assert(offsetof(CBattleScreen, party_) == 0x16C);
+static_assert(offsetof(CBattleScreen, pendingAction_) == 0x17C);
+static_assert(offsetof(CBattleScreen, pendingItem_) == 0x184);
+static_assert(offsetof(CBattleScreen, quickItems_) == 0x198);
+static_assert(offsetof(CBattleScreen, actionColumn_) == 0x1A0);
 static_assert(offsetof(CBattleScreen, portraitMode_) == 0x22C);
 
 // Weapon bar (constructor 0063BAB0, vtables 0074279C / 00742768): four 40x80 slots at
@@ -523,6 +562,16 @@ public:
     void ItemTip(unsigned index, void* text);
     // The same through the original's address (so the verify wrapper sees the call).
     void ItemTipAt(unsigned index, void* text);
+    // 0063DD70 (RET 4; ui_hud_pick.cpp). Picks the unit's quick item `slot` (a click on it or its
+    // key): without a unit nothing; without an item there the pending action is dropped (no
+    // sound); otherwise the click sound, then a click on the highlighted slot drops the pending
+    // action, and a wand (category 5) or scroll (8) becomes the pending action on `slot`: 3 when
+    // its spell has flag 0x10000000 (on a unit), 4 (at a point), 0 without a spell. Other
+    // categories change nothing.
+    void Pick(int slot);
+    // 0063CD20 (RET 8, not rewritten). Highlights the sprite shown in region `slot` (bottom row
+    // scale 0.65 / 0.55, top row 1.0 / 0.85; with `on` also selected_ = slot).
+    void Highlight(int slot, int on);
     // Item of the region at `index` (-1: empty). The original indexes this with the result of
     // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
@@ -569,9 +618,20 @@ public:
     void OnMouseUp(int buttons, int x, int y);     // 0063F260
     void OnMouseMove(int buttons, int x, int y);   // 0063F2D0
     BOOL Draw(int pass);                           // 0063F190
-    // 0063EC90 / 0063EF60 (not rewritten). Click on spell `index`, without / with key flag +0x7F.
+    // 0063EC90 (RET 4; ui_hud_pick.cpp). A click on spell `index` (its button or key): a click
+    // on the highlighted one plays the click sound and drops the pending action; otherwise the
+    // previous button loses its highlight, `index` gets it, the click sound, and when the unit's
+    // spell there has its data (+0x44) the spell becomes the pending action on `index`: 1 with
+    // flag 0x10000000 (on a unit), else 2 (at a point). An index out of range does nothing.
     void Click(int index);
+    // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
+    void ClickAt(int index);
+    // 0063EF60 (not rewritten). Click with key flag +0x7F (or the key handler's Ctrl / Alt): the
+    // spell is cast at once.
     void ClickAlternate(int index);
+    // 0063E750 (RET 8, not rewritten). Button `index` highlighted (scale 1.15, colour 0xFF404040)
+    // or not (1.0, 0xFF000000); selected_ = index either way.
+    void Highlight(int index, int on);
     // 0063E820 (RET 4; ui_spell_column.cpp). Shows `unit`'s spells: sprites and regions dropped;
     // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
     // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
@@ -597,8 +657,16 @@ public:
     void OnMouseUp(int buttons, int x, int y);     // 0063FDE0
     void OnMouseMove(int buttons, int x, int y);   // 0063FE40
     BOOL Draw(int pass);                           // 0063FD50
-    // 0063FB50 (not rewritten). Selects action `index`.
+    // 0063FB50 (RET 4; ui_hud_pick.cpp). Selects action button `index` (a click on it or its
+    // key): the highlighted one again plays the click sound and drops the pending action;
+    // another moves the highlight to it, plays the click sound and makes its action the pending
+    // one on `index`: 8 (an order on an object) for action 0 (science), else 7 (follow), the
+    // action in +0x184. An index out of range does nothing.
     void Select(int index);
+    // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
+    void SelectAt(int index);
+    // 0063F730 (RET 8, not rewritten). As CHudSpellColumn::Highlight.
+    void Highlight(int index, int on);
     // 0063F800 (RET 8; ui_hud_tips.cpp). Shows `unit`'s actions: sprites and the action array
     // dropped, the six regions' tips cleared; with `extra` (its low byte) first a "skill0011"
     // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
@@ -609,11 +677,12 @@ public:
     int count_;                      // +0x14C buttons added
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    std::uint8_t actions_[0x14];     // +0x158 CDWordArray: the buttons' actions (0063F500 adds)
+    UiDwordArray actions_;           // +0x158 the buttons' actions (0063F500 adds; 0 science, -1 follow)
     void* labelsVtable_;             // +0x16C CStringArray: the tooltip's labels
     char** labels_;                  // +0x170
 };
 static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
+static_assert(offsetof(CHudActionColumn, actions_) == 0x158);
 static_assert(offsetof(CHudActionColumn, labels_) == 0x170);
 
 // A portrait's state (0x78 bytes, array at CHudPortraits +0x158): the last hit points seen,
@@ -703,7 +772,9 @@ public:
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
 
-    std::uint8_t unknown_000[0x1C0];
+    std::uint8_t unknown_000[0xD8];
+    std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
+    std::uint8_t unknown_0DC[0x1C0 - 0xDC];
     UiQuadBlock* quads_;             // +0x1C0
     int quadCount_;                  // +0x1C4
     std::uint8_t unknown_1C8[0x1E0 - 0x1C8];
@@ -717,7 +788,18 @@ public:
     int uvCount_;                    // +0x214
     std::uint8_t unknown_218[0x220 - 0x218];
     int visible_;                    // +0x220
+    std::uint8_t unknown_224[0x23C - 0x224];
+    // The scale 005E7060 sets (the same value in all three; the diagonal of a matrix of rows of
+    // five floats, the rest unknown).
+    float scaleX_;                   // +0x23C
+    std::uint8_t unknown_240[0x250 - 0x240];
+    float scaleY_;                   // +0x250
+    std::uint8_t unknown_254[0x264 - 0x254];
+    float scaleZ_;                   // +0x264
 };
+static_assert(offsetof(CUiMesh, colour_) == 0xD8);
+static_assert(offsetof(CUiMesh, scaleX_) == 0x23C);
+static_assert(offsetof(CUiMesh, scaleZ_) == 0x264);
 static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);
@@ -793,12 +875,15 @@ public:
     BOOL OnWheel(int buttons, int delta, int x, int y);   // 006484F0
 
     CBattleScreen* owner_;           // +0x148
-    std::uint8_t unknown_14C[0x16C - 0x14C];
+    std::uint8_t unknown_14C[0x150 - 0x14C];
+    CUnit* hoverUnit_;               // +0x150 the unit under the mouse (HoverUnit), or null
+    std::uint8_t unknown_154[0x16C - 0x154];
     int sliding_;                    // +0x16C set when the sling button starts the slide
     std::uint8_t unknown_170[0x17C - 0x170];
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
 };
+static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 

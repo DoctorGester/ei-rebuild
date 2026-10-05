@@ -2299,3 +2299,87 @@ scenario `tests/scenarios/ui_quick_items.txt`. Shared header (additive): `ui.h` 
   strip +0x1AC) of class <type> go through the camp's slot 42 (MoveItem 00610AD0) with mode 1,
   exactly what a click on them in the strip does; it logs every source item's type. The scenario
   uses `campputon 3006 2` instead of the clicks; `hudstate 2` checks the result.
+
+## Nineteenth pass (ticket I10)
+
+Files: `src/game/ui_hud_pick.cpp` (new: the HUD buttons that start a pending action),
+`src/game/ui_battle_mouse.cpp` (new: the battle screen's mouse move and a unit's name line);
+wrappers `tests/verify/verify_ui_hud_pick.cpp`, `tests/verify/verify_ui_battle_mouse.cpp` (new);
+scenario `ui_battle_spells.txt` gets three action column clicks. Written clean (members, no
+offsets, named globals). Shared headers (additive): `ui.h` (CBattleScreen's pending action
++0x17C..+0x184 and panel pointers +0x198..+0x1A0, `SetPendingAction`; the three panels' `Pick` /
+`Click` / `Select`, `Highlight`, `ClickAt` / `SelectAt`; CHudActionColumn's
+`actions_` is now a `UiDwordArray`, which moved here from ui_camp.h; CHudUnitPanel::hoverUnit_
++0x150; CUiMesh's colour +0xD8 and scale +0x23C / +0x250 / +0x264; CUiWindow::InputMouseMove),
+`ui_camp.h` (CBattleScreenSetup's `OnMouseMove`, `UnitName`, the press point +0x1C4, the selection
+box as a RECT, the "pers" texts as a `PersonTextMap`; `BoxSelectThreshold()` for 0079BDB0),
+`ui_cursor.h` (CCursor::SetShape, shape_ +0x18, `GameCursor()`), `item_db_text.h` (`GameTexts()`
+for 007AF788), `originals_world.h` (00565E40, moved there from ui_battle_update.cpp).
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 0063EC90 | 684 | `CHudSpellColumn::Click` (RET 4) | side by side: the original, then ours from the same state; the pending action (+0x17C/+0x180/+0x184), the three panels' +0x150 and the colour / scale of every quick item, spell and action button sprite must agree | ui_battle_spells, ui_quick_items (spell buttons); the key handler 0063A560 (spell keys) |
+| 0063FB50 | 508 | `CHudActionColumn::Select` (RET 4) | as Click | ui_battle_spells (new: buttons 0, 1, 1 again) |
+| 0063DD70 | 653 | `CHudQuickItems::Pick` (RET 4) | as Click | ui_quick_items (the quick slot clicks after `campputon`, through 0063DB20) |
+| 00639D60 | 391 | `CBattleScreenSetup::OnMouseMove` (input slot 4, RET 0xC) | side by side: cursor shape, the screen's handled flag, +0x1C1, the box +0x1CC and the unit panel's hover unit | every game scenario (the battle screen's Draw repeats the move every frame), every `move` / `click` on the view |
+| 0063B920 | 390 | `CBattleScreenSetup::UnitName` (RET 8) | side by side: the original into a scratch CString, ours into the caller's; the texts must match | every game scenario (00637DC0 with the new hero), HoverUnit, speech lines |
+
+5 functions, about 2.6 KB. None is Rebirth-patched, in config/library.csv or config/dead_code.csv;
+nor is any callee (005E7060, 005F7E60, 005319A0, 00531920, 006A4230, 0063CD20, 0063E750,
+0063F730, 0063E7C0, 0063F7A0, 005E5200, 0057F440, 006012D0, 00565E40, 00639EF0, 004613A0,
+00530930, 004DC400, 004DEFC0, 004DF8D0). The key handler 0063A560 that also calls the three
+buttons is Rebirth-patched, but it calls them by address, so the rewrites run there too.
+
+### Pending action (inlined by the original)
+
+- Every HUD button that starts or drops an action does the same: +0x180 slot, +0x17C mode, +0x184
+  item, the quick item panel's eight highlights off (0063CD20) and +0x150 -1, the spell and action
+  columns' buttons off (0063E750 / 0063F730 per button; some copies call 0063E7C0 / 0063F7A0
+  instead, which are the same loop, so ours always loops) and +0x150 -1, then the slot's button
+  highlighted in the
+  panel of the mode through a jump table (1, 2 spells; 3-6 quick items; 7, 8 actions; others
+  none). `CBattleScreen::SetPendingAction` is that; a cancel is (0, -1, -1). The modes: 1 / 2 a
+  spell on a unit / at a point (spell data flag 0x10000000 or not), 3 / 4 a quick item's spell
+  likewise, 6 a player's item, 7 follow, 8 an order on an object (the science button).
+- Spell button (0063EC90): the highlighted one again: sound, cancel. Otherwise the previous
+  highlight (when in range) off, the new one on, sound; only a spell item with its data (+0x44)
+  sets the action, else the highlight stays with no action. Action button (0063FB50): the same,
+  the action word of the button (`actions_`, 0 science, -1 follow) giving 8 or 7 and the item.
+  Quick slot (0063DD70): no unit: nothing; no item in the slot: cancel without a sound; else the
+  sound, the highlighted slot cancels, and only categories 5 (wand) and 8 (scroll) go on: mode 3 /
+  4 by the spell's flag, or 0 for one without a spell (slot set, nothing highlighted).
+- Action buttons: the column's regions are 0..40 x (470 - 40 i)..(510 - 40 i); with a selected
+  unit, RefreshSelection's SetUnit adds "skill0011" (action -1) first, then science (action 0).
+
+### Mouse move (00639D60) and name line (0063B920)
+
+- See the comments in ui_camp.h. The drag test reads the threshold option 0079BDB0 (int, 0 or
+  less: no boxes) and |x - press x| / |y - press y| against it; once dragging, the unit panel's
+  hover unit is emptied and the box spans the press point and the mouse, and nothing is hovered.
+  Before the drag threshold the base handler is skipped and the unit under the point hovered at
+  once. The unit under the point is not filtered by flag 0x400000 here (HoverUnit tests it).
+- The name: GetName (slot 7) when not empty; a text-key id (004613A0) looks up the "pers" map
+  (+0x1F0, lower bound then key test, as STLport's find); otherwise "unit " + the prototype's name
+  with ' ' as '_' (004DC400), first line of that text, or empty.
+
+### Forwarders added (standalone build must replace)
+
+0063EC90 / 0063FB50 as `ClickAt` / `SelectAt` (ui_hud.cpp's OnMouseUp calls them through the
+address so the wrappers run), 00639EF0 (HoverUnit through its address, ui_battle_mouse.cpp),
+00565E40 (now `WorldUnitAtPointOriginal` in originals_world.h; ui_battle_update.cpp uses it too).
+0063F7A0 moved from ui_hud.cpp to originals_ui.h (`ActionPanelClearOriginal`) unchanged.
+
+### Original quirks kept
+
+- A wand or scroll without a spell becomes the pending slot with mode 0 and no highlight.
+- UnitName does not test the prototype for null; the mouse move does not test the unit panel.
+
+### Skipped in this pass
+
+0063EF60 (`CHudSpellColumn::ClickAlternate`) and 0063E020 (the quick item used at once): they
+need the interface's key flag +0x7F during a click, or Ctrl / Alt held during a spell or quick
+item key (0063A560); the harness can hold neither (`clickunit ... ctrl` holds Ctrl only around a
+unit click). Both are SetPendingAction plus an immediate 00637500 / 00637750 and
+CSpell::IsOffensive (0068B770, Rebirth-patched: call it through its address). The drag branch of
+the mouse move and its portrait pick branch are not exercised either (no drag step; a portrait
+pick needs a multiplayer server command).

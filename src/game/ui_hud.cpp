@@ -124,9 +124,7 @@ void UiRenderer::FlushBatchB() { DeviceFlushBatchBOriginal((void*)this); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
 __declspec(naked) void CUiRegion::SetTipText(const char*) EI_ORIGINAL(0x005FC690)
-__declspec(naked) void CHudSpellColumn::Click(int) EI_ORIGINAL(0x0063EC90)
 __declspec(naked) void CHudSpellColumn::ClickAlternate(int) EI_ORIGINAL(0x0063EF60)
-__declspec(naked) void CHudActionColumn::Select(int) EI_ORIGINAL(0x0063FB50)
 __declspec(naked) void CHudMovePanel::ToggleFlag() EI_ORIGINAL(0x00649810)
 __declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
 __declspec(naked) void CHudTopPanel::ShowPage() EI_ORIGINAL(0x0064A320)
@@ -268,7 +266,7 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     if (interface_->keyCtrl_)
         ClickAlternate(region);
     else
-        Click(region);
+        ClickAt(region);
 }
 UI_INPUT_HANDLER(0x0063F260, CHudSpellColumn, OnMouseUp);
 
@@ -293,7 +291,7 @@ void CHudActionColumn::OnMouseUp(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
     inputHandled_ = true;
-    Select(region);
+    SelectAt(region);
 }
 UI_INPUT_HANDLER(0x0063FDE0, CHudActionColumn, OnMouseUp);
 
@@ -597,7 +595,7 @@ __declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int)
 void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { QuickPanelSetOriginal(a0, nullptr, a2, a3); }
 void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { SpellPanelSetOriginal(a0, nullptr, a2, a3); }
 void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { ActionPanelSetOriginal(a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall ActionPanelReset(void*) EI_ORIGINAL(0x0063F7A0)
+void __fastcall ActionPanelReset(void* a0) { ActionPanelClearOriginal(a0); }
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point
 // under it (CWorldClient::PickSurface, rewritten), the local view.
 __declspec(naked) std::uint8_t* __fastcall ClientView(void*) EI_ORIGINAL(0x005699F0)
