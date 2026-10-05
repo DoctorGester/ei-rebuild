@@ -7,7 +7,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R2b Picture windows on game memory: 004F0060 (makes and fills a picture surface: 32-bit copy,
+- R2b (taken 2026-10-05) Picture windows on game memory: 004F0060 (makes and fills a picture surface: 32-bit copy,
   16-bit conversion through the device+0x4C converter) gives the surface game-owned memory under
   `cpuwindows`, so 005FCF80 / 005FD120 stop calling GetSurfaceDesc.
 - R3 Save/load screen screenshot textures (made by 005FF0B0; locked by 00655550, 00655D40,
@@ -20,13 +20,11 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U4 (taken 2026-10-05) 0052DA60 (NPC record serialiser), 00538960 (client attack figures) and the
-  next 1-3 largest game-logic functions in 0x00500000-0x00540000 (same skips as before).
+- U5 0052BBE0 (lever surrounding points) and the next 2-4 largest game-logic functions in the range.
 
 ## App and startup, 0x00440000-0x00480000
 
-- A3 (taken 2026-10-05) The rest of those message classes (vtables 0073C92C / 0073C990 / 0073C9C8 / 0073CA10).
-- A4 The drivers at 0047B980-0047E340, in groups of 3-8.
+- A4 (taken 2026-10-05) The drivers at 0047BB80-0047E340 (0047B980-0047BB70 and the dead 0073CA10 class are done), in groups of 3-8.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
@@ -37,9 +35,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
-  - C2a (taken 2026-10-05) CEngineObject / CBaseManager / CResourceManager family
-    (base_manager*, core_*, object*, resource_manager*).
-  - C2b ChunkArchive / chunk streams / CMemoryStream (chunk_*, model archive code).
+  - C2b (taken 2026-10-05) ChunkArchive / chunk streams / CMemoryStream (chunk_*, model archive code).
   - C2c Network sessions, connections and messages (net_*).
   - C2d Camera.
 - C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
