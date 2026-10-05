@@ -1,5 +1,5 @@
-// The battle screen's mouse move (00639D60) and a unit's name line (0063B920). See ui_camp.h
-// (CBattleScreenSetup) and docs/notes/ui.md ("Nineteenth pass (ticket I10)").
+// The battle screen's mouse move (00639D60), left button down (00638A40) and a unit's name line
+// (0063B920). See ui_camp.h (CBattleScreenSetup) and docs/notes/ui.md ("Battle screen").
 #include "ui_camp.h"
 
 #include "item_db_text.h"
@@ -62,6 +62,29 @@ void __fastcall BattleScreenMouseMove(void* input, void*, int buttons, int x, in
 }
 } // namespace
 EI_REPLACE(0x00639D60, BattleScreenMouseMove);
+
+// --- 00638A40: the left button went down on the battle screen ------------------------------------
+
+void CBattleScreenSetup::OnLButtonDown(int buttons, int x, int y) {
+    if (portraitMode_ != 0) {
+        if (portraits_) portraits_->Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
+        return;
+    }
+    if (!unknown_1C0) {
+        InputOf(this)->BaseLButtonDown(buttons, x, y);
+        if (inputHandled_) return;
+    }
+    unknown_1C0 = true;
+    pressX_ = x;
+    pressY_ = y;
+    unknown_1C1 = false;
+}
+namespace {
+void __fastcall BattleScreenLButtonDown(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CBattleScreenSetup>(input)->OnLButtonDown(buttons, x, y);
+}
+} // namespace
+EI_REPLACE(0x00638A40, BattleScreenLButtonDown);
 
 // --- 0063B920: a unit's name line --------------------------------------------------------------
 

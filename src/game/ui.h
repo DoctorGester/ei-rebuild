@@ -618,9 +618,12 @@ public:
     // its spell has flag 0x10000000 (on a unit), 4 (at a point), 0 without a spell. Other
     // categories change nothing.
     void Pick(int slot);
-    // 0063CD20 (RET 8, not rewritten). Highlights the sprite shown in region `slot` (bottom row
-    // scale 0.65 / 0.55, top row 1.0 / 0.85; with `on` also selected_ = slot).
+    // 0063CD20 (RET 8; ui_hud_highlight.cpp). Highlights the sprite shown in region `slot` when
+    // it shows one (bottom row, slots 0-3: scale 0.65 / 0.55; top row 1.0 / 0.85; colour
+    // 0xFF404040 / 0xFF000000; with `on` also selected_ = slot).
     void Highlight(int slot, int on);
+    // The same through the original's address (so the verify wrapper sees the call).
+    void HighlightAt(int slot, int on);
     // Item of the region at `index` (-1: empty). The original indexes this with the result of
     // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
@@ -678,9 +681,12 @@ public:
     // 0063EF60 (not rewritten). Click with key flag +0x7F (or the key handler's Ctrl / Alt): the
     // spell is cast at once.
     void ClickAlternate(int index);
-    // 0063E750 (RET 8, not rewritten). Button `index` highlighted (scale 1.15, colour 0xFF404040)
-    // or not (1.0, 0xFF000000); selected_ = index either way.
+    // 0063E750 (RET 8; ui_hud_highlight.cpp). Button `index` highlighted (scale 1.15, colour
+    // 0xFF404040) or not (1.0, 0xFF000000); selected_ = index either way.
     void Highlight(int index, int on);
+    void HighlightAt(int index, int on);   // through the original's address
+    // 0063E7C0 (ui_hud_highlight.cpp). Every button unhighlighted, then selected_ = -1.
+    void ClearHighlights();
     // 0063E820 (RET 4; ui_spell_column.cpp). Shows `unit`'s spells: sprites and regions dropped;
     // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
     // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
@@ -714,8 +720,11 @@ public:
     void Select(int index);
     // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
     void SelectAt(int index);
-    // 0063F730 (RET 8, not rewritten). As CHudSpellColumn::Highlight.
+    // 0063F730 (RET 8; ui_hud_highlight.cpp). As CHudSpellColumn::Highlight.
     void Highlight(int index, int on);
+    void HighlightAt(int index, int on);   // through the original's address
+    // 0063F7A0 (ui_hud_highlight.cpp). As CHudSpellColumn::ClearHighlights.
+    void ClearHighlights();
     // 0063F800 (RET 8; ui_hud_tips.cpp). Shows `unit`'s actions: sprites and the action array
     // dropped, the six regions' tips cleared; with `extra` (its low byte) first a "skill0011"
     // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
@@ -820,6 +829,9 @@ public:
                       int u1, int v1);
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
+    // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
+    // EAX is left holding them, callers do not read it).
+    void SetScale(float scale);
 
     std::uint8_t unknown_000[0x08];
     std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)

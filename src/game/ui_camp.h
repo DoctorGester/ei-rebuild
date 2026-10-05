@@ -93,6 +93,12 @@ public:
     // Without a press the container's handler (006012D0) first, and when no panel took the move
     // the unit under the point (00565E40, any flags) goes to HoverUnit (00639EF0).
     void OnMouseMove(int buttons, int x, int y);
+    // 00638A40 (input side slot 2, RET 0xC; ui_battle_mouse.cpp; `this` the window). The left
+    // button went down: while a portrait click picks a player (+0x22C) the portraits' own handler
+    // (slot 2) gets it; otherwise, unless a press on the view is already on (+0x1C0), the
+    // container's handler (00601110) first, and when no panel took it a press on the view starts:
+    // +0x1C0 set, the point kept (+0x1C4), no drag (+0x1C1).
+    void OnLButtonDown(int buttons, int x, int y);
     // 0063B920 (RET 8; ui_battle_mouse.cpp). The name of `unit` into `out`: its GetName (slot 7)
     // when not empty; for a unit whose id is a text key, its "pers" text (+0x1F0) or empty;
     // otherwise the first line of the text "unit " + the prototype's name with spaces as '_' (or
