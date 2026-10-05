@@ -37,12 +37,9 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
   identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
   differ need a decision per address. Routine for the first part (cheaper model).
-- X1 Small fixes: 0049B320 (unreferenced two-point line draw) to config/dead_code.csv; drop the
+- X1 (taken 2026-10-05) Small fixes: 0049B320 (unreferenced two-point line draw) to config/dead_code.csv; drop the
   false vtable entries 00747E2C (00504341 / 0050434F) from config/vtables.csv and functions.csv.
 - C4 Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
-- X3 ClientPlaceOnPath (00535850): 1 mismatch in 314,727 calls, a quaternion sign flip at a 180-degree
-  turn ("q0 -0.707107 vs 0.707107", ui_hud): follow the original's branch for that edge case (plain
-  C++ picks the other sign) or, if it's a rounding edge, document it; q and -q are the same rotation.
