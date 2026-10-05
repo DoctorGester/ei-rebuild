@@ -2156,3 +2156,12 @@ docs/rebirth-patched-functions.txt); none is in config/library.csv or config/dea
   (59.25, 54.25), the base's Smith), `zone_gz3g` (Foothills: party at (23, 138.5), the Pyramid trap
   4515). Not run by the author; the first central run decides whether the position, trap and Smith
   checks hold.
+- X10, the first runs of zone_gz2g_traps: (1) "no wolf with hooks" was not a spawn bug. gz2g starts
+  its magic traps armed (its scripts disarm them from triggers), so MTF4 strikes the wolf at the
+  next world update and the WolfTutor dies of the first bolt (the hooked Rebirth run shows
+  CastAtUnits, TakeHit and SetDead right after AddUnitToServer, after the first poll had printed 1).
+  Whether the first `waitfor IsAlive` poll ran before that update was a race (no hooks: 0 ms; with
+  hooks frames are slower and a world update could come first, so the poll never saw it alive).
+  The scenario now disarms MTF4 before placing the wolf, checks it alive a second later, arms the
+  trap and waits for the wolf to die. (2) The "command 8" mismatches were a verify bug: 004C7C90
+  adds a script instance at the head of the list, not the tail (docs/notes/script.md, X10).

@@ -334,11 +334,13 @@ the body therefore ends the body for that member). ForIf evaluates its first flo
 (the condition) for each member and skips the member when argument float 0 is zero or NaN.
 CScript +0x1E8 counts the For nesting; FreeTemporaries does nothing while it is positive.
 
-A script call (command 8) appends an instance of definition `float 0` (AddTail 004C7C90),
+A script call (command 8) adds an instance of definition `float 0` at the head of the list
+(004C7C90: an AddHead, see "X10" below),
 `ScriptBindCall` (004BB6A0) copies the arguments after the first float and string into its
 variables (FatalError "Wrong number of script %s float parameters" etc. when a count differs), and
-the instance's killed flag is cleared. The instance runs its pairs from the same tick on (the
-instance loop reaches it when it was added at the tail).
+the instance's killed flag is cleared. The instance loop walks from the head, so an instance
+started by a waiting run (tick step 1) runs its pairs in the same tick, one started by another
+instance's commands (step 2) from the next tick on.
 
 Assignment (command 0x78): float 1 = type - 1 selects floats (copied as bits), strings (CString
 assignment), objects (reference) or groups (CArray Copy 004C1290); float 0 = variable index.
@@ -388,7 +390,7 @@ runs through its verify wrapper in the verify build. For bodies recurse through 
 ## Forwarders added (standalone build must replace)
 
 All in `script_exec.cpp` / `script_exec_run.cpp`:
-- Script: 004C7C90 instance AddTail, 004CDAB0 / 004CD9B0 run / instance FreeNode, 004CECB0 /
+- Script: 004C7C90 instance AddHead, 004CDAB0 / 004CD9B0 run / instance FreeNode, 004CECB0 /
   004CB570 ScriptRun ConstructElements / operator=, 004C00D0 / 004BE090 ScriptVars, 004C1A80 /
   004C14A0 / 004C1290 / 004C1BE0 value array Copy, 004C2200 group RemoveAt, 004C2050 SetSize,
   004CC7D0 reference DestructElements, 004C8AF0 / 004C9100 temporaries RemoveTail, 004C6040 /
@@ -956,3 +958,22 @@ Forwarders added: `script_destroy.cpp` 006FE296, 004CC7D0, 004CC980, 004CE210, 0
 
 Not taken: the element destructors 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0 and
 004BF620 (small wrappers around these; the same deep-copy check would fit them).
+
+## X10: command 8 mismatches in gz2g (verify bug)
+
+zone_gz2g_traps reported `ScriptRun::Execute command` mismatches on "command 8 (Unknown command)"
+(the declared-script call; KeywordName has no name for it since it is not a keyword). Ours did the
+same as the original (004B68F6..004B692D: `_ftol` float 0, definition = CScript+0x90 + i * 0xC0,
+004C7C90 on CScript+0x140, ScriptBindCall 004BB6A0, killed flag 0). The check was wrong: 004C7C90
+was taken for an AddTail, but it links the new node before the head (node->next = old head, old
+head->prev = node, head = node; the tail changes only when the list was empty). The observer read
+the tail instance (+0x148), i.e. the oldest one. That passes while the list was empty or the
+oldest instance looks like the new one (alive, same float count), and fails in gz2g's pattern
+`KillScript() VTriger#0#n( this )` when the calling instance, already flagged killed, is the oldest
+one. The check now
+reads the head (+0x144); the forwarder is renamed InstanceAddHead. No change to the game's
+behaviour.
+
+gz2g's scripts (zone2.mob chunk 0xACCEECCB, decoded as 004D8E10 does: the first dword seeds the
+MSVC rand LCG, x = x * 0x343FD + 0x269EC3, each byte XORed with x >> 16) start every magic trap
+armed and disarm them from triggers (`ActivateTrap(MTF1..4, 0)` etc.).
