@@ -144,8 +144,9 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   `SaveObjectRef` registers the object while loading and then searches the field without using it;
   `ObjectRef` writes key 0 when saving; `LeaveChunk` (writing) takes the child's content pointer before
   `AppendChild` resizes the stream; a failed `EnterChunk` while loading leaves the chunk pushed.
-- Not rewritten: 0042D260 (RootChunk::File), 004A5380-004A55D0 (the memory stream's own slots, 004A54D0
-  Resize, 004A5570 SetSize, 004A5610 / 004A5650 bit-stream start byte / end bits: forwarders).
+- Not rewritten: 0042D260 (RootChunk::File). The memory stream's own slots, Resize / SetSize, the bit
+  helpers and the sized / header helpers (004A4D40-004A5650) are in `core_memory_stream.cpp` (script.md,
+  "Leftovers").
 
 ## Triangle clipping (0x0042D910-0x0042E6A0)
 

@@ -34,20 +34,37 @@ struct ClipBounds {
 };
 static_assert(sizeof(ClipBounds) == 0x2C);
 
+// One of the transform pipeline's matrix stacks: aligned storage of matrices and the depth.
+struct MatrixStack {
+    Matrix4* matrices;      // +0x00
+    int count;              // +0x04 the top is matrices[count - 1]
+};
+static_assert(sizeof(MatrixStack) == 8);
+
+// 004D9880 (matrix_math.cpp; ECX = out, RET 8). out = a * b (row-major: rows of `a` times columns
+// of `b`). The elements are written one after the other, each from the inputs as they are then, so
+// `out` may be one of the inputs as in the original.
+void __fastcall MatrixMultiply(float* out, void*, const float* a, const float* b);
+
 // The transform pipeline of the 3D library (the object behind GetTLPipeline). Only the matrix
-// stack is known.
+// stacks are known.
 class CTransformPipeline {
 public:
+    // Stack 2 holds the matrix ClipTest projects with.
+    static constexpr int kClipStack = 2;
+
     // 004F16A0. Classifies `bounds` against the view volume of the current (top) matrix:
     // 2 = entirely outside one clip plane, 0 = entirely inside, 1 = crossing or not decided.
     // The cube (flag 0) is tried first, then the box (flag 1).
     int ClipTest(const ClipBounds* bounds) const;
+    // 004D9B80 (matrix_math.cpp, RET 8). Pushes `m` onto stack `index`: an empty stack gets `m`
+    // itself, otherwise the new top is the old top times `m` (no capacity check).
+    void PushMatrix(const float* m, int index);
 
-    std::uint8_t unknown_00[0x24];
-    Matrix4* matrices_;     // +0x24 matrix stack
-    int matrixCount_;       // +0x28 the top is matrices_[matrixCount_ - 1]
+    std::uint8_t unknown_00[0x14];
+    MatrixStack stacks_[11];    // +0x14 (models.md: stacks 0-2, 5-10 are in use)
 };
-static_assert(offsetof(CTransformPipeline, matrices_) == 0x24);
+static_assert(offsetof(CTransformPipeline, stacks_) == 0x14);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
