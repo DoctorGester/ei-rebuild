@@ -18,6 +18,9 @@
 #include <cstddef>
 #include <cstdint>
 
+struct DeltaState;          // net_delta.h
+struct UnitVitalsPacked;    // unit.h
+
 // An active effect (0x14 bytes; CArray at +0x194, the same record as UnitEffect in unit.h).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
 // 0x13 stench, 0x19 stun, 0x1A antimagic, 0x1C, 0x1D strengthen, 0x1E weaken, 0x1F regeneration,
@@ -124,6 +127,20 @@ public:
     std::uint32_t IsStunned();
     std::uint32_t Flag20000();
 
+    // map_object_create.cpp (A-U).
+    // 0050E770. Virtual slot 2 (Create; another name so it is no override): the 3D object's
+    // Create (00515F70), the companion detached and released, the packed vitals reset (+0x178 = 1
+    // between two resets), 4 network fields (SetSize 0050FA30) reset (0047FB70), changeStamp -1,
+    // the effects freed, +0x174 = 5, the second name emptied, the base scale 0. Returns 1.
+    int CreateMapObject();
+    // 0050E840. Virtual slot 3 (Destroy): the effects emptied (SetSize 0050FE70 to 0), the
+    // companion detached and released, then the 3D object's Destroy (00516080).
+    void DestroyMapObject();
+
+    // The packed vitals (+0x17C) and the network state (+0x1C4).
+    UnitVitalsPacked* PackedVitals() { return reinterpret_cast<UnitVitalsPacked*>(packedVitals); }
+    DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
+
     // --- Not rewritten (forwarders) ---
 
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
@@ -148,7 +165,7 @@ public:
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
     int unknown_174;                // +0x174 (5 after Create)
     float unknown_178;              // +0x178 (1 after Create)
-    std::uint8_t unknown_17C[0x194 - 0x17C];
+    std::uint8_t packedVitals[0x18];    // +0x17C a UnitVitalsPacked (unit.h): PackedVitals()
     void* effectsVtable;            // +0x194 \ CArray<MapEffect> (vtable 0073DBA0; SetSize 0050FE70)
     MapEffect* effects;             // +0x198 |
     int effectCount;                // +0x19C |
@@ -159,7 +176,9 @@ public:
     int sectorCellX;                // +0x1B8
     int sectorCellY;                // +0x1BC
     int changeStamp;                // +0x1C0 world + 0x68 when last changed
-    std::uint8_t unknown_1C4[0x1DC - 0x1C4];   // a CArray of 0xA0-byte records (+0x1C4)
+    // +0x1C4 the network state (DeltaState, net_delta.h, up to +0x238: its field records, masks
+    // and two memory streams at +0x1E8 / +0x210); NetState(). Its mask is changedParts.
+    std::uint8_t netState[0x1DC - 0x1C4];
     std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
     std::uint8_t unknown_1DE[0x238 - 0x1DE];   // two memory streams at +0x1E8 and +0x210
 };

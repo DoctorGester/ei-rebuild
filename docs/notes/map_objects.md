@@ -82,6 +82,9 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 005167E0, 005168F0 | RemovePart (side half's slot 15 first; a placed part forgets its owner; animation 0050D350; released), RemovePartNamed | ours only: list one shorter, next entry moved down, result |
 | 005188B0 | PartWorldPosition (part position turned by the orientation, times the side half's slot 18 scale, plus the position) | output, CheckNear |
 | 00518CA0, 00518F80, 00518FC0 | Animations ("<name>.adb" through the owner's GetFile on first use, +0xA0), AnimationAt (key & 0xFF), FindSkillAnimation (kind 0x40000, number in bits 22-29) | pure once loaded (00518F80 through a stub repeating its first three instructions) |
+| 0050E770, 0050E840 | CMapObject::CreateMapObject / DestroyMapObject (slots 2 / 3; map_object_create.cpp) | ours only: blank state / nothing left |
+| 00515F70, 00516080 | CObject3D::Create3D / Destroy3D (slots 2 / 3; object3d_lifetime.cpp; Destroy3D drops the parts' references without releasing them) | ours only |
+| 00518A00, 00518AE0, 00519580 | AddEffectSource / RemoveEffectSource (particle sources at +0xA8, attached through 004849F0), CountedRef::Assign | ours only: list / reference counts |
 | 00518D30, 00517990 | AnimationFactor (units only: (start + (end - start) t) / length, 1 for a 0 / NaN length), FindPartIndex (_mbscmp over +0x114) | pure (CheckNear) |
 | 0051CE60, 0051B7E0 | DrawShadow, Draw | ours only: result 1; Draw: scene matrix stacks as deep as before |
 | 0050ACD0 | AnimationTrack::Evaluate | ours, values restored, original, compared |
@@ -118,9 +121,12 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   (ours zero-extends); its light list starts with SetSize(16) / SetSize(0), the paths for an existing
   list cannot run.
 
+- Create3D drops the side half (+0x94) without releasing it; Destroy3D only decrements the placed
+  parts' counts (no release, nothing freed at 0) while it releases the pending ones.
+
 ## Skipped and why
 
-- Create / Destroy (0050E770, 0050E840, 00510770, 005107B0, 005157C0, 005157E0), Load / Save (0050F7A0 /
+- Companion Create / Destroy (00510770, 005107B0, 005157C0, 005157E0), Load / Save (0050F7A0 /
   0050F900, 005159D0 / 00515AC0), CArray Serialize/SetSize instantiations: container members,
   exception frames, stream classes not rewritten.
 - 0050F170 (fade mode from a float, slot 47): small, next candidate.

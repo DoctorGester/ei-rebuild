@@ -8,6 +8,8 @@
 #include "engine_object.h"
 #include "maths.h"
 
+#include "lib/mfc.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -91,6 +93,24 @@ public:
     virtual void GetScale(float* x, float* y, float* z);
 };
 
+class CObject3D;
+
+// The figure's animation state (CObject3D + 0x98; 0050D0E0 adds a part, 0050D350 removes one,
+// 0050D3A0 lets go of every part, 0050D7C0 rescales). Only its back pointer is named.
+class CFigureAnimationState : public CEngineObject {
+public:
+    CObject3D* owner;               // +0x1C
+};
+
+// A counted reference: the pointer slot is the `this` of 00519580.
+struct CountedRef {
+    // 00519580 (object3d_lifetime.cpp). object = `value`: the new object gains a reference, the
+    // old one loses one and is deleted (its slot 0 with 1) when that was the last.
+    void Assign(CEngineObject* value);
+
+    CEngineObject* object;
+};
+
 class CObject3D : public CEngineObject {
 public:
     // map_object_lifetime.cpp.
@@ -160,6 +180,24 @@ public:
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
 
+    // object3d_lifetime.cpp (A-U).
+    // 00515F70. Virtual slot 2 (Create; another name so it is no override): position 0, the
+    // identity orientation (007AF1C0), no side half (dropped without a release), flags 0, no
+    // animation database, scale 0, the figure released (deleted at its last reference), the
+    // default scale (007AF1D0) at +0xF4, the bounds cleared and the part boxes freed. Returns 1.
+    int Create3D();
+    // 00516080. Virtual slot 3 (Destroy): the figure released (00519580), every effect source
+    // removed (00518AE0), the animation state lets go of its parts (0050D3A0), is detached and
+    // released, the parts lose a reference without a release and the array is freed, the pending
+    // parts are released and freed, the side half released; +0x9C, the database and flags 0.
+    void Destroy3D();
+    // 00518A00. Adds `source` (a particle source; it calls this from its Attach 004849F0) to the
+    // effect sources unless it is there: referenced and attached to this object.
+    void AddEffectSource(CEngineObject* source);
+    // 00518AE0. Takes `source` out of the effect sources (its node freed; the last one frees the
+    // list's blocks), detaches it (004849F0 with null) and releases it. Nothing when not there.
+    void RemoveEffectSource(CEngineObject* source);
+
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
 
@@ -168,16 +206,19 @@ public:
     Quaternion orientation;         // +0x034
     std::uint8_t unknown_044[0x94 - 0x44];
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
-    void* animation;                // +0x098 the figure's animation state (0050D7C0 rescales it)
-    std::uint8_t unknown_09C[0xA0 - 0x9C];
+    CFigureAnimationState* animation;   // +0x098 the figure's animation state
+    std::uint32_t unknown_09C;      // +0x09C cleared by Create3D / Destroy3D
     AnimationDatabase* animations;  // +0x0A0 loaded on first use (00518CA0)
     const char* name;               // +0x0A4 CString: the figure's name
-    std::uint8_t unknown_0A8[0xC4 - 0xA8];
+    // +0x0A8 the particle sources attached to the object (MFC CPtrList, vtable 0073DE4C, block
+    // size 10).
+    mfc::CTypedPtrList<CEngineObject> effectSources;
     float scale[3];                 // +0x0C4
     AlignedPtrArray parts;          // +0x0D0 FigurePart*
     AlignedPtrArray pendingParts;   // +0x0E0 FigurePart*, built by LoadFigures
     CEngineObject* figure;          // +0x0F0 counted reference (slot 0 deletes)
-    std::uint8_t unknown_0F4[0x114 - 0xF4];
+    float defaultScale[3];          // +0x0F4 from 007AF1D0 (constructor, Create3D)
+    std::uint8_t unknown_100[0x114 - 0x100];
     char** partNames;               // +0x114 the figure's part names (00517990), in the order of
     int partNameCount;              // +0x118 the part boxes (CUnit::partBoxes, +0x160)
     std::uint8_t unknown_11C[0x124 - 0x11C];
@@ -186,10 +227,18 @@ public:
     float radius;                   // +0x134
     float below[3];                 // +0x138 box minimum - centre
     float above[3];                 // +0x144 box maximum - centre
-    std::uint8_t unknown_150[0x170 - 0x150];
+    std::uint8_t unknown_150[0x15C - 0x150];   // cleared with the bounds
+    void* partBoxArrayVtable;       // +0x15C \ CArray of the part boxes (vtable 0073DE40)
+    void* partBoxes;                // +0x160 |
+    int partBoxCount;               // +0x164 |
+    int partBoxCapacity;            // +0x168 |
+    int partBoxGrowBy;              // +0x16C /
 };
 static_assert(offsetof(CObject3D, orientation) == 0x34);
 static_assert(offsetof(CObject3D, attached) == 0x94);
+static_assert(offsetof(CObject3D, effectSources) == 0xA8);
+static_assert(offsetof(CObject3D, defaultScale) == 0xF4);
+static_assert(offsetof(CObject3D, partBoxes) == 0x160);
 static_assert(offsetof(CObject3D, animations) == 0xA0);
 static_assert(offsetof(CObject3D, name) == 0xA4);
 static_assert(offsetof(CObject3D, partNames) == 0x114);

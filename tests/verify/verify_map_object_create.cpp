@@ -7,6 +7,7 @@
 #include "verify.h"
 
 #include "../../src/game/map_object.h"
+#include "../../src/game/map_object_figures.h"
 #include "../../src/game/net_delta.h"
 #include "../../src/game/unit.h"
 
@@ -48,3 +49,45 @@ static int __fastcall TorchCreateVerify(CMapObject* torch) {
     return result;
 }
 EI_VERIFY(0x0052BFC0, TorchCreateVerify, 0, s_unusedTorch);
+
+// --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------
+// Ours only (they release the companion and allocate the network fields). Create: result 1, no
+// companion, 4 fields, mode idle, changeStamp -1, no effects, +0x174 5, +0x178 1, the second name
+// empty, base scale 0, no figure. Destroy: no effects, no companion, no figure, parts or side
+// half. Every map object made or removed (zone loads, spawns, removals: every scenario).
+
+namespace {
+void* s_unusedCreate;
+void* s_unusedDestroy;
+
+const CObject3D* As3D(const CMapObject* object) { return reinterpret_cast<const CObject3D*>(object); }
+} // namespace
+
+static int __fastcall CreateMapObjectVerify(CMapObject* object) {
+    int result = object->CreateMapObject();
+    const char* problem = result != 1 ? "result" : CheckState(NetState(object), 4);
+    if (!problem && object->companion) problem = "companion";
+    if (!problem && (object->changeStamp != -1 || object->effects || object->effectCount)) problem = "stamp / effects";
+    if (!problem && (object->unknown_174 != 5 || object->unknown_178 != 1.0f)) problem = "+0x174 / +0x178";
+    if (!problem && (!object->name2 || object->name2[0])) problem = "second name";
+    if (!problem && (object->baseScale[0] != 0.0f || object->baseScale[1] != 0.0f || object->baseScale[2] != 0.0f))
+        problem = "base scale";
+    if (!problem && (As3D(object)->figure || As3D(object)->attached)) problem = "figure / side half";
+    ei::verify::Check("CMapObject::CreateMapObject", true, problem == nullptr, "object %d: %s", object->id_,
+                      problem ? problem : "");
+    return result;
+}
+EI_VERIFY(0x0050E770, CreateMapObjectVerify, 0, s_unusedCreate);
+
+static void __fastcall DestroyMapObjectVerify(CMapObject* object) {
+    object->DestroyMapObject();
+    const CObject3D* body = As3D(object);
+    const char* problem = nullptr;
+    if (object->effectCount != 0) problem = "effects";
+    else if (object->companion) problem = "companion";
+    else if (body->figure || body->attached || body->animation) problem = "figure / side half / animation";
+    else if (body->parts.size || body->pendingParts.size || body->effectSources.head) problem = "parts / sources";
+    ei::verify::Check("CMapObject::DestroyMapObject", true, problem == nullptr, "object %d: %s", object->id_,
+                      problem ? problem : "");
+}
+EI_VERIFY(0x0050E840, DestroyMapObjectVerify, 0, s_unusedDestroy);
