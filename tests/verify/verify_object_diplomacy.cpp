@@ -3,6 +3,7 @@
 // OnAttack, which are checked for consistency after ours runs.
 #include "verify.h"
 
+#include "../../src/game/core_streams.h"
 #include "../../src/game/object.h"
 #include "../../src/game/object_diplomacy.h"
 #include "ei/vcall.h"
@@ -42,7 +43,7 @@ void __fastcall SetRelationVerify(CDiplomacy* self, void*, int player, int other
         ObjectListIterator it;
         it.manager = nullptr;
         for (CEngineObject* object = it.First(WorldObjectManager()); object; object = it.Next()) {
-            if (ei::VCall<int>(object, 12) != kClassUnit || FieldAt<int>(object, unitfield::kPlayer) != player) continue;
+            if (object->GetClassId() != kClassUnit || FieldAt<int>(object, unitfield::kPlayer) != player) continue;
             bool hostile = (FieldAt<std::uint32_t>(object, unitfield::kHostileMask) & Bit(other)) != 0;
             if (hostile != (relation == kRelationHostile)) same = false;
         }
@@ -118,10 +119,10 @@ void CheckStream(const char* name, StreamFn original, void (*ours)(CDiplomacy*, 
 // 004557C0 / 004557F0: PUSH ESI (1), MOV ESI,[ESP+8] (4).
 StreamFn s_readFrom, s_writeTo;
 void __fastcall ReadFromVerify(CDiplomacy* self, void*, void* stream) {
-    CheckStream("CDiplomacy::ReadFrom", s_readFrom, [](CDiplomacy* d, void* s) { d->ReadFrom(s); }, self, stream);
+    CheckStream("CDiplomacy::ReadFrom", s_readFrom, [](CDiplomacy* d, void* s) { d->ReadFrom(static_cast<CStream*>(s)); }, self, stream);
 }
 void __fastcall WriteToVerify(CDiplomacy* self, void*, void* stream) {
-    CheckStream("CDiplomacy::WriteTo", s_writeTo, [](CDiplomacy* d, void* s) { d->WriteTo(s); }, self, stream);
+    CheckStream("CDiplomacy::WriteTo", s_writeTo, [](CDiplomacy* d, void* s) { d->WriteTo(static_cast<CStream*>(s)); }, self, stream);
 }
 
 // 00455680 changes units (through 0052E940): only ours runs. Afterwards, unless the victim's player

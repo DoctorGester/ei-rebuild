@@ -1,20 +1,21 @@
-// Stream and reference-counted base classes: constructor and destructor bodies, the memory
-// stream's Clear, the aligned pointer arrays and the coder state constructor. See core_streams.h.
+// Stream and reference-counted base classes: constructor and destructor bodies, the stream's string
+// read, the memory stream's Clear, the aligned pointer arrays and the coder state constructor. See
+// core_streams.h.
 #include "core_streams.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 
 #include <cstring>
+#include <new>
 
 namespace {
-void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
+using ei::SetVtable;
 
-// Offsets in CStream (the memory stream adds its fields after these).
-constexpr std::size_t kStreamOk = 0x05;
-constexpr std::size_t kStreamLimit = 0x08;
-constexpr std::uint32_t kDefaultLimit = 2000000000;
+// CStream::version_ of a new stream.
+constexpr std::uint32_t kDefaultVersion = 2000000000;
 
 // Scalar deleting destructor tail: frees the object when bit 0 of the flags is set.
 void* DeleteIf(void* self, unsigned flags) {
@@ -53,10 +54,10 @@ EI_REPLACE(0x00412700, RefValueDeletingDestructor);
 // --- CStream -----------------------------------------------------------------------------------
 
 void* __fastcall StreamConstructBase(void* self) {
-    auto* bytes = static_cast<std::uint8_t*>(self);
-    SetVtable(self, kStreamVtable);
-    std::memcpy(bytes + kStreamLimit, &kDefaultLimit, sizeof(kDefaultLimit));
-    bytes[kStreamOk] = 1;
+    auto* stream = static_cast<CStream*>(self);
+    SetVtable(stream, kStreamVtable);
+    stream->version_ = kDefaultVersion;
+    stream->ok_ = 1;
     return self;
 }
 EI_REPLACE(0x0047A200, StreamConstructBase);
@@ -70,11 +71,24 @@ void* __fastcall StreamDeletingDestructor(void* self, void*, unsigned flags) {
 }
 EI_REPLACE(0x00417400, StreamDeletingDestructor);
 
+namespace {
+// operator+(const CString&, char) (AFXAPI, 006FD56E).
+__declspec(naked) mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
+} // namespace
+
+mfc::CString* CStream::ReadString(void* out) {
+    mfc::CString text;
+    unsigned char byte;
+    while (Read(&byte, 1) && byte) text = PlusChar(text, static_cast<char>(byte));
+    return new (out) mfc::CString(text);
+}
+EI_REPLACE_METHOD(0x00461190, CStream::ReadString);
+
 // --- CMemoryStream -----------------------------------------------------------------------------
 
 // Fields +4, +6, +7 and +0xC are left as they are.
 CMemoryStream* __fastcall MemoryStreamConstruct(CMemoryStream* self) {
-    self->unknown_8 = kDefaultLimit;
+    self->unknown_8 = kDefaultVersion;
     SetVtable(self, kMemoryStreamVtable);
     self->data_ = nullptr;
     self->unknown_1C = 0;
@@ -129,10 +143,9 @@ void** __fastcall AlignedPointerArrayAlloc(int count) {
 EI_REPLACE(0x0047B940, AlignedPointerArrayAlloc);
 
 void AlignedObjectArray::Clear() {
-    constexpr int kSlotRelease = 4;
-    // The size is read again after every call (an element's slot 4 may change the array).
-    void** element = data;
-    for (int i = 0; i < size; ++i) ei::VCall<void>(*element++, kSlotRelease);
+    // The size is read again after every call (a release may change the array).
+    CEngineObject** element = data;
+    for (int i = 0; i < size; ++i) (*element++)->Release();
     if (data) {
         gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]);
         data = nullptr;

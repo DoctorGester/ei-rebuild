@@ -9,7 +9,7 @@
 //             body only restores this vtable (two identical copies, 00412720 and 00413430).
 //   0073BB58  abstract reference-counted value (adds pure slots 2 and 3, see core_refcount.h);
 //             constructor body 00419720, deleting destructor 00412700.
-//   0073BDB0  CStream: abstract byte stream (slots 1-3 pure). +5 ok flag, +8 a limit (2000000000).
+//   0073BDB0  CStream (below): abstract byte stream (slots 1-3 pure).
 //   0073BD90  CMemoryStream (object.h): slot 1 Read 004A5380, 2 Write 004A53F0, 3 Seek 004A5490,
 //             4 Size (+0x24), 5 Position (+0x20), 6 Clear 00417350, 7 004A55D0. 0073C960 is a
 //             second vtable with the same slots 1-7 and another copy of the destructor (004790D0).
@@ -17,12 +17,39 @@
 #include "net_coder.h"
 #include "object.h"
 
+#include <cstddef>
 #include <cstdint>
+
+namespace mfc {
+class CString;
+}
 
 constexpr std::uintptr_t kRefObjectRootVtable = 0x0073BB68;
 constexpr std::uintptr_t kRefValueVtable = 0x0073BB58;
 constexpr std::uintptr_t kStreamVtable = 0x0073BDB0;
 constexpr std::uintptr_t kMemoryStreamVtable = 0x0073BD90;
+
+// The engine's abstract byte stream (vtable 0073BDB0; slots 1-3 pure). The save game, the network
+// messages and the chunk archives are memory streams behind it (CMemoryStream, object.h).
+class CStream {
+public:
+    virtual ~CStream();                                                 // 0: 00417400
+    virtual std::uint32_t Read(void* buffer, std::uint32_t size) = 0;   // 1: returns the bytes read
+    virtual void Write(const void* buffer, std::uint32_t size) = 0;     // 2
+    virtual void Seek(std::uint32_t position) = 0;                      // 3
+
+    // 00461190. Reads bytes up to a zero or a failed read into a CString constructed at `out`;
+    // returns `out`.
+    mfc::CString* ReadString(void* out);
+
+    std::uint8_t unknown_4;
+    std::uint8_t ok_;               // +0x05 cleared when a read runs past the end
+    std::uint8_t unknown_6[2];
+    std::uint32_t version_;         // +0x08 format version (the save game's); 2000000000 when constructed
+};
+static_assert(offsetof(CStream, ok_) == 0x05);
+static_assert(offsetof(CStream, version_) == 0x08);
+static_assert(sizeof(CStream) == 0x0C);
 
 // CRefObject root (vtable 0073BB68).
 void __fastcall RefObjectDestructBase(void* self);                                 // 00412720, 00413430
@@ -48,11 +75,11 @@ void** __fastcall AlignedPointerArrayAlloc(int count);
 
 // An array of object pointers in an aligned block (0047B940): data, size, capacity.
 struct AlignedObjectArray {
-    void** data;
+    CEngineObject** data;
     int size;
     int capacity;
 
-    // 0047B620. Calls slot 4 of every element, frees the block and empties the array.
+    // 0047B620. Releases every element (slot 4), frees the block and empties the array.
     void Clear();
 };
 static_assert(sizeof(AlignedObjectArray) == 12);

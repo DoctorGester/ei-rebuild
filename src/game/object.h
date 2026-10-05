@@ -1,9 +1,9 @@
 #pragma once
 
-// Shared pieces of the world objects (00440000-00470000): CEngineObject's non-virtual helpers (declared
-// in engine_object.h), the CTransformObject constructor body (core_transform.h), small engine
-// objects defined in this range, and the trivial virtual getters of units and figures. Names are
-// provisional. See docs/notes/objects.md for the class map.
+// Shared pieces of the world objects (00440000-00470000): small engine objects defined in this
+// range and the trivial virtual getters of units and figures. Names are provisional. See
+// docs/notes/objects.md for the class map. (CEngineObject: engine_object.h; the object list
+// iterator: base_manager.h.)
 
 #include "ai_map.h"
 #include "base_manager.h"
@@ -22,22 +22,6 @@ T FieldAt(const void* object, std::size_t offset) {
     std::memcpy(&value, static_cast<const char*>(object) + offset, sizeof(T));
     return value;
 }
-
-constexpr std::uintptr_t kEngineObjectVtable = 0x0073B8E0;   // CEngineObject (13 slots)
-constexpr std::uintptr_t kTransformObjectVtable = 0x0073BA38;
-constexpr std::uintptr_t kHooverVtable = 0x0073C434;
-
-// Walks a manager's object list (the MFC CPtrList at CBaseManager +0x34; nodes are {next, prev,
-// object}). While iterating it holds a reference on the manager (refCount_ + 1); the owner drops it
-// afterwards with `--manager->refCount_` (the original's inlined destructor). object.cpp.
-struct ObjectListIterator {
-    CBaseManager* manager;
-    void* position;
-
-    CEngineObject* First(CBaseManager* list);   // 00404920
-    CEngineObject* Next();                      // 00404960
-};
-static_assert(sizeof(ObjectListIterator) == 8);
 
 // 007AFFA0: the manager that owns the world's objects (units, buildings, ...).
 inline CBaseManager* WorldObjectManager() { return *reinterpret_cast<CBaseManager**>(0x007AFFA0); }
@@ -74,8 +58,10 @@ const char* __fastcall FakeFigureGetName(const CEngineObject* figure);   // 0045
 // "CHoover" (class id 0x1F, vtable 0073C434): no fields of its own seen.
 class CHoover : public CEngineObject {
 public:
-    // 00461C10. Constructor body: refCount_, flags_, type_, owner_, unknown_18 = 0, id_ = -1,
-    // vtable 0073C434. Returns this.
+    static constexpr std::uintptr_t kVtableAddress = 0x0073C434;
+
+    // 00461C10. Constructor body: the engine object's fields cleared, then its vtable. Returns
+    // this.
     CHoover* Construct();
     // 00461C80. Destructor body: restores its vtable, then CEngineObject::DestructBase.
     void Destruct();

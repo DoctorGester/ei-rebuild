@@ -37,18 +37,19 @@ struct Scratch {
 void*(__fastcall* s_managerContext)(const CEngineObject*);
 void* __fastcall ManagerContextVerify(const CEngineObject* self) {
     void* expected = s_managerContext(self);
-    ei::verify::Check("CEngineObject::ManagerContext", expected, self->ManagerContext(), "owner %p", self->owner_);
+    ei::verify::Check("CEngineObject::ManagerContext", expected, self->ManagerContext(), "owner %p",
+                      static_cast<void*>(self->owner_));
     return expected;
 }
 
 // 00455970: MOV EDX,[ESP+4] (4), MOV EAX,[ECX+14] (3).
-void*(__fastcall* s_setOwner)(CEngineObject*, void*, void*);
-void* __fastcall SetOwnerVerify(CEngineObject* self, void*, void* owner) {
+CBaseManager*(__fastcall* s_setOwner)(CEngineObject*, void*, CBaseManager*);
+CBaseManager* __fastcall SetOwnerVerify(CEngineObject* self, void*, CBaseManager* owner) {
     Scratch<sizeof(CEngineObject)> expected(self);
-    void* expectedRet = s_setOwner(expected.as<CEngineObject>(), nullptr, owner);
-    void* actualRet = self->SetOwner(owner);
+    CBaseManager* expectedRet = s_setOwner(expected.as<CEngineObject>(), nullptr, owner);
+    CBaseManager* actualRet = self->SetOwner(owner);
     ei::verify::Check("CEngineObject::SetOwner", true, expectedRet == actualRet && expected.Same(self), "%p -> %p",
-                      expectedRet, owner);
+                      static_cast<void*>(expectedRet), static_cast<void*>(owner));
     return actualRet;
 }
 

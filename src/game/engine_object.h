@@ -2,35 +2,47 @@
 
 #include <cstdint>
 
-// Base of the engine's objects and managers (textures, figures, the managers themselves). Name
-// provisional. The virtual interface below is the part shared by every vtable seen so far; slot
-// numbers are in comments. Objects are created by original code, so no constructor is declared.
+class CBaseManager;
+
+// Base of the engine's objects and managers (textures, figures, units, the managers themselves).
+// Name provisional; vtable 0073B8E0, 13 slots (slots 2, 3, 11 and 12 are _purecall there). Objects
+// are created by original code or by the rewritten constructor bodies, which store the original
+// vtable (kVtableAddress); no C++ constructor is declared. Non-virtual members: object.cpp.
 class CEngineObject {
 public:
-    virtual ~CEngineObject();                          // 0
-    virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (copies +0x08, +0x10, +0x18)
-    virtual int Create();                              // 2
-    virtual void Destroy();                            // 3
-    virtual void Release();                            // 4: 00455980 (refcount; owner frees at 0)
-    virtual void Slot5();                              // 5
-    virtual int Slot6();                               // 6
-    virtual const char* GetName();                     // 7: "noname" by default
-    virtual const char* GetDescription();              // 8: "nodesc" by default
-    virtual void Load(void* stream);                   // 9
-    virtual void Save(void* stream);                   // 10
-    virtual const char* GetClassName();                // 11: e.g. "CTexture"
-    virtual int GetClassId();                          // 12: e.g. 6 for CTexture
+    static constexpr std::uintptr_t kVtableAddress = 0x0073B8E0;
 
-    // Non-virtual helpers (object.cpp).
-    void* ManagerContext() const;   // 00455940: the owning manager's +0xAC
-    void* SetOwner(void* owner);    // 00455970: returns the previous owner
-    void DestructBase();            // 00455930: base destructor body
+    virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor)
+    virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, unknown_18)
+    virtual int Create() = 0;                          // 2
+    virtual void Destroy() = 0;                        // 3
+    virtual void Release();                            // 4: 00455980 (refcount; the owner releases it at 0)
+    virtual void Slot5();                              // 5: 00402CC0 (empty)
+    virtual int Slot6();                               // 6: 00402CD0 (0); world objects' per-tick update
+    virtual const char* GetName();                     // 7: 00402CE0 "noname"
+    virtual const char* GetDescription();              // 8: 00402CF0 "nodesc"
+    virtual void Load(void* stream);                   // 9: 00402D00 (empty); a CStream (core_streams.h)
+    virtual void Save(void* stream);                   // 10: 00402D10 (empty)
+    virtual const char* GetClassName() = 0;            // 11: e.g. "CTexture"
+    virtual int GetClassId() = 0;                      // 12: e.g. 6 for CTexture
+
+    // 00402D20. Slot 0's body: DestructBase, then operator delete when flags bit 0 is set.
+    CEngineObject* DeletingDestruct(unsigned flags);
+    // 00455940. The owning manager's context_ (the world, for the world's managers).
+    void* ManagerContext() const;
+    // 00455970. Sets the owner; returns the previous one.
+    CBaseManager* SetOwner(CBaseManager* owner);
+    // 00455930. The destructor body: the CEngineObject vtable back, no owner.
+    void DestructBase();
+    // The fields the (always inlined) constructor sets, in its order: no references, id -1, no
+    // flags, kind 0, no owner.
+    void ClearFields();
 
     int refCount_;          // +0x04
     std::uint32_t flags_;   // +0x08
-    int id_;                // +0x0C
+    int id_;                // +0x0C -1 until a manager registers the object
     int type_;              // +0x10 class-specific kind (texture usage for CTexture)
-    void* owner_;           // +0x14 manager that owns the object
-    std::uint32_t unknown_18;
+    CBaseManager* owner_;   // +0x14 manager that owns the object
+    std::uint32_t unknown_18;   // +0x18 saved and loaded with id and type by CBaseManager::Save / Load
 };
 static_assert(sizeof(CEngineObject) == 0x1C);
