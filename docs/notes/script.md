@@ -925,7 +925,7 @@ included) calls them through their addresses. Code: `src/game/script_destroy.cpp
 | 004BE090 | 438 | ScriptVarsDestruct (ScriptVars destructor) | against the original on a deep copy (copy constructor 004CB7E0), see below | runs leaving the run list (004C82B0), the reset, CScript::Load's locals: script_exec, script_parse, script_copy, world_load |
 | 004BE9D0 | 295 | ScriptDefinitionDestruct | against the original on a deep copy (built like Load's local definition, assigned with 004CB460) | instances leaving the list (004C7A10), definitions SetSize (004CD770), Load's local definition: every script load |
 | 004BF640 | 285 | ScriptCmdDestruct (SSCCmd destructor) | against the original on a deep copy (CArray<SSCCmd>::Copy 004CC0C0 from a one-element view) | command blocks freed by the reset, Clear / Load / parser temporaries: script_parse, script_exec, world_load |
-| 004B3900 | 53 | ScriptVarsAppendFrom | ours only: all eight sizes as the appends set them (the four appends check the contents) | GlobalVars sections (script_exec, script_parse, zone scripts with GlobalVars) |
+| 004B3900 | 55 | ScriptVarsAppendFrom | ours only: all eight sizes as the appends set them (the four appends check the contents) | GlobalVars sections (script_exec, script_parse, zone scripts with GlobalVars) |
 
 Destructor verification (the idea asked for in S3 / S5): the original destroys a deep copy made
 with the game's own copy functions, ours the real object. Compared: (1) the words written: every
