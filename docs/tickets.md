@@ -17,7 +17,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U6 Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips; prefer ones a
+- U6 (taken 2026-10-05) Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips; prefer ones a
   scenario reaches: combat, movement, units, map_objects).
 
 ## App and startup, 0x00440000-0x00480000
@@ -37,8 +37,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
   identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
   differ need a decision per address. Routine for the first part (cheaper model).
-- X1 (done 2026-10-05) Small fixes: 0049B320 (unreferenced two-point line draw) to config/dead_code.csv; drop the
-  false vtable entries 00747E2C (00504341 / 0050434F) from config/vtables.csv and functions.csv.
 - C4 Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
