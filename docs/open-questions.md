@@ -76,3 +76,5 @@ The algorithm was rechecked step by step against 005740D0, 00574390, 00577FC0 an
 (median of three, unguarded partition, recursion on the right part, depth limit, heap fallback,
 insertion threshold 16) with no difference found. Still open: where the NaN depths come from
 (look for "view stack depth" and the depth/position bits of "not orderable" lines).
+
+- Original bug (fix candidate): CUnitClientSpecific::Level (00539160) returns INT_MIN for a unit with 0 experience (FISTP of ln 0 = -inf). Kept for now; see units.md.
