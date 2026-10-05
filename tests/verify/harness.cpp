@@ -251,6 +251,7 @@ constexpr std::uintptr_t kSetActiveWindowSlot = 0x0073B640;
 constexpr std::uintptr_t kShowWindowSlot = 0x0073B554;
 constexpr std::uintptr_t kCreateWindowExASlot = 0x0073B558;
 constexpr std::uintptr_t kSetCursorPosSlot = 0x0073B4A0;
+constexpr std::uintptr_t kGetCursorPosSlot = 0x0073B49C;
 constexpr std::uintptr_t kRegQueryValueExASlot = 0x0073B028;
 constexpr std::uintptr_t kAilWaveOutOpenSlot = 0x0073B7A4;
 constexpr const char* kHarnessResolution = "1280x720";   // 16:9 like the usual desktop (Rebirth widescreen)
@@ -271,6 +272,29 @@ BOOL WINAPI NoBringToTop(HWND) { return TRUE; }
 HWND WINAPI NoFocus(HWND window) { return window; }
 HWND WINAPI NoActivate(HWND window) { return window; }
 BOOL WINAPI NoCursorMove(int, int) { return TRUE; }
+
+// The game reads the real cursor with GetCursorPos (edge scrolling among others). The user's cursor
+// can be anywhere, e.g. on a second screen to the right, which the game took as panning right and
+// which moved the camera under the scenario's clicks. The game sees the harness's own mouse instead:
+// the last position a move/click step posted (client coordinates), the window's centre until then.
+decltype(&::GetCursorPos) g_getCursorPos;
+volatile LONG g_mouseX = -1, g_mouseY = -1;
+HWND GameWindow();
+BOOL WINAPI HarnessCursorPos(LPPOINT point) {
+    if (!point) return FALSE;
+    HWND window = GameWindow();
+    RECT client{};
+    if (!window || !GetClientRect(window, &client)) return g_getCursorPos(point);
+    if (g_mouseX < 0) {
+        point->x = (client.right - client.left) / 2;
+        point->y = (client.bottom - client.top) / 2;
+    } else {
+        point->x = g_mouseX;
+        point->y = g_mouseY;
+    }
+    ClientToScreen(window, point);
+    return TRUE;
+}
 BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
     switch (command) {
     case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
@@ -773,6 +797,8 @@ void PostMouse(const std::string& verb, int x, int y) {
     RECT client{};
     GetClientRect(GameWindow(), &client);
     LPARAM at = MAKELPARAM(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    g_mouseX = x * (client.right - client.left) / 800;
+    g_mouseY = y * (client.bottom - client.top) / 600;
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
     if (verb == "click") {
         PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
@@ -1285,6 +1311,7 @@ struct Harness {
         PatchSlot(kShowWindowSlot, &ShowWithoutActivating, g_showWindow);
         PatchSlot(kCreateWindowExASlot, &CreateWithoutActivating, g_createWindowEx);
         PatchSlot(kSetCursorPosSlot, &NoCursorMove, g_setCursorPos);
+        PatchSlot(kGetCursorPosSlot, &HarnessCursorPos, g_getCursorPos);
         // VideoResolution / FullScreen overrides (SmallVideoResolution) are off: a 1280x720 full screen
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
