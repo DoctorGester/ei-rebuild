@@ -3,7 +3,7 @@
 // the real one; the local rotation (or the matrix) must match bit for bit.
 #include "net_verify.h"
 
-#include "../../src/game/core_transform.h"
+#include "../../src/game/camera.h"
 
 #include <cstring>
 

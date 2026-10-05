@@ -3,7 +3,7 @@
 // the real camera, and the bytes are compared. Exceptions are noted at each wrapper.
 #include "verify.h"
 
-#include "../../src/game/core_transform.h"
+#include "../../src/game/camera.h"
 
 #include <cstring>
 

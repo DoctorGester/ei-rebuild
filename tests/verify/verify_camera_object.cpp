@@ -10,7 +10,7 @@
 //    before it points at most 0x23 bytes back.
 #include "net_verify.h"
 
-#include "../../src/game/core_transform.h"
+#include "../../src/game/camera.h"
 #include "../../src/lib/crt.h"
 
 #include <cstring>
@@ -164,11 +164,11 @@ int __fastcall RecordFrameVerify(CCamera* self, void*, std::uint32_t time) {
     ei::verify::Check("CameraRecordFrame", true, recording || result == 0, "");
     return result;
 }
-void __fastcall LoadStateVerify(CCamera* self, void*, void* stream) {
+void __fastcall LoadStateVerify(CCamera* self, void*, CStream* stream) {
     self->LoadState(stream);
     ei::verify::Check("CCamera::LoadState", true, true, "");
 }
-void __fastcall SaveStateVerify(CCamera* self, void*, void* stream) {
+void __fastcall SaveStateVerify(CCamera* self, void*, CStream* stream) {
     self->SaveState(stream);
     ei::verify::Check("CCamera::SaveState", true, true, "");
 }

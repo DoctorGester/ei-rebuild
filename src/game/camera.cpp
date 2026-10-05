@@ -1,15 +1,18 @@
-// The camera (CCamera, core_transform.h): the per-frame update and view placement, focus and
+// The camera (CCamera, camera.h): the per-frame update and view placement, focus and
 // terrain sampling, panning / zoom / saved views, shakes and recorded camera paths
 // (0040D9B0-004114F0). Names are provisional.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, StoreFloat where it stores to a float. Compiled with precise semantics so that the
+// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
 // operation order is kept (/fp:fast may reassociate) and NaN compares stay as written.
-#include "core_transform.h"
+#include "camera.h"
 
 #include "base_manager.h"
 #include "core_maths.h"
+#include "map_object_figures.h"
+#include "sound.h"
 #include "terrain.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -23,29 +26,8 @@
 
 namespace {
 
-inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
-// Game globals.
-Terrain* Map() { return *reinterpret_cast<Terrain* const*>(0x007AF738); }            // width / height
-void* SurfaceOwner() { return reinterpret_cast<void*>(0x007AF5B8); }                  // TerrainOwner
-void* SoundSystem() { return *reinterpret_cast<void* const*>(0x007AF784); }
-CBaseManager* Objects() { return *reinterpret_cast<CBaseManager* const*>(0x007AF5F8); }
-float CellSize() { return *reinterpret_cast<const float*>(0x0079BDB4); }
-float GameTime() { return *reinterpret_cast<const float*>(0x0079B2A4); }
-const Vector3* ZeroVector() { return reinterpret_cast<const Vector3*>(0x0079B5C8); }
-
-// Constants the original multiplies at run time (read from the exe so the compiler cannot fold
-// them: the products round at the FPU's precision).
-double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-#define EI_DEGREE (GameDouble(0x0073B9A0) * GameDouble(0x0073BA30))   // pi * (1 / 180)
-#define EI_RIGHT_ANGLE (EI_DEGREE * GameDouble(0x0073BAB8))          // * 90
+using camera::D;
+using camera::Store;
 
 constexpr float kTrackGain = 0.2f;        // 0073BAD4
 constexpr float kPanZoomSpan = 1.125f;    // 0073BAD0
@@ -56,12 +38,6 @@ constexpr float kShakeRange = 20.0f;      // 0073B9D4
 constexpr float kShakeFull = 8.0f;        // 0073B9D0
 constexpr float kShakeTicks = 30.0f;      // 0073BAF0
 constexpr float kAxisTiny = 1e-8f;        // 0073BAE0
-
-float FloatAt(const void* object, std::size_t offset) {
-    float f;
-    std::memcpy(&f, static_cast<const char*>(object) + offset, sizeof(f));
-    return f;
-}
 
 float AbsBits(float f) {
     std::uint32_t bits;
@@ -90,35 +66,7 @@ float ClampToMap(float v, float last) {
     return !(limit >= low) ? limit : low;
 }
 
-// Not rewritten.
-__declspec(naked) Quaternion* __fastcall QuatFromAngleAxis(Quaternion*, void*, float /*angle*/, const Vector3*)
-    EI_ORIGINAL(0x0049E790)
-__declspec(naked) Quaternion* __fastcall QuatFromAxisAngle(Quaternion*, void*, const Vector3*, float /*angle*/)
-    EI_ORIGINAL(0x0049E800)
-__declspec(naked) void __fastcall QuatSlerp(Quaternion*, void*, float, const Quaternion*, const Quaternion*)
-    EI_ORIGINAL(0x0049ED20)
-__declspec(naked) void __fastcall SetListener(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x006B9750)
-// The shake list's STLport instantiations (`list` is the address of the field holding the sentinel).
-__declspec(naked) void __fastcall ShakeEnd(CameraShake* const*, void*, CameraShake** /*ret*/) EI_ORIGINAL(0x00411530)
-__declspec(naked) void __fastcall ShakeInsert(CameraShake* const*, void*, CameraShake** /*ret*/, CameraShake* /*pos*/,
-                                              const float* /*value*/) EI_ORIGINAL(0x00411630)
-__declspec(naked) void __fastcall ShakeErase(CameraShake* const*, void*, CameraShake** /*ret*/, CameraShake* /*pos*/)
-    EI_ORIGINAL(0x00411540)
-
-// _CIacos / _CIpow: the CRT's x87 intrinsics (argument in ST0, or base in ST1 and exponent in ST0).
-__declspec(naked) double __cdecl CIacos(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm mov eax, 0x006E7320
-    __asm call eax
-    __asm ret
-}
-__declspec(naked) double __cdecl CIpow(double, double) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm mov eax, 0x006E81A0
-    __asm call eax
-    __asm ret
-}
+// The CRT's x87 helper functions (CIacos, CIpow: originals_library.h); atan2 and e^x as the original inlines them.
 __declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
     __asm fld qword ptr [esp + 4]
     __asm fld qword ptr [esp + 12]
@@ -162,8 +110,8 @@ void Approach(float* rate, const float* target, float response, float dt) {
 }
 
 void ResetMotion(CCamera* c) {
-    std::memcpy(&c->offset98_, ZeroVector(), sizeof(Vector3));
-    std::memcpy(&c->offsetA4_, ZeroVector(), sizeof(Vector3));
+    std::memcpy(&c->offset98_, &camera::ZeroVector(), sizeof(Vector3));
+    std::memcpy(&c->offsetA4_, &camera::ZeroVector(), sizeof(Vector3));
     const float zero = 0.0f;
     CopyFloat(&c->turnRate_, &zero);
     CopyFloat(&c->turnTarget_, &zero);
@@ -177,18 +125,18 @@ void ResetMotion(CCamera* c) {
 
 void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
-    double centre = SurfaceHeightRaw(SurfaceOwner(), nullptr, p->x, p->y);
+    double centre = SurfaceHeightRaw(WorldClient(), nullptr, p->x, p->y);
     *minimum = Store(centre);
     *maximum = Store(centre);
     *average = Store(centre);
     int count = 1;
     float x = Store(D(p->x) - halfX);
     while (x <= D(halfX) + p->x) {
-        if (x >= 0.0f && Map()->width > x) {
+        if (x >= 0.0f && camera::TheTerrain()->width > x) {
             float y = Store(D(p->y) - halfY);
             while (y <= D(halfY) + p->y) {
-                if (y >= 0.0f && Map()->height > y) {
-                    float h = Store(SurfaceHeightRaw(SurfaceOwner(), nullptr, x, y));
+                if (y >= 0.0f && camera::TheTerrain()->height > y) {
+                    float h = Store(SurfaceHeightRaw(WorldClient(), nullptr, x, y));
                     float low = *minimum;
                     *minimum = !(h >= low) ? h : low;
                     float high = *maximum;
@@ -257,7 +205,7 @@ int CCamera::PlaybackStep(float time) {
     localPosition_.x = Store(dx * u + a.position.x);
     localPosition_.y = Store(D(sy) + a.position.y);
     localPosition_.z = Store(D(sz) + a.position.z);
-    QuatSlerp(&localRotation_, nullptr, u, &a.rotation, &b.rotation);
+    localRotation_.Slerp(u, a.rotation, b.rotation);
     return 1;
 }
 EI_REPLACE_METHOD(0x0040EFB0, CCamera::PlaybackStep);
@@ -287,7 +235,7 @@ void CCamera::StopMotion() {
     localRotation_.AxisX(&right);
     localRotation_.AxisY(&up);
     // The original multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
-    const float zero = GameFloat(0x0073B858);
+    const float zero = CAM_ZERO;
     right.x = Store(D(zero) * right.x);
     right.y = Store(D(right.y) * zero);
     right.z = 0.0f;
@@ -309,7 +257,7 @@ EI_REPLACE_METHOD(0x0040F430, CCamera::StopMotion);
 void CCamera::SetFocus(const Vector3* p) {
     std::memcpy(&focus_, p, sizeof(Vector3));
     float average, low, high;
-    SampleTerrain(p, ZeroVector(), ZeroVector(), Store(D(CellSize()) * 0.5f), CellSize(), CellSize(), &average,
+    SampleTerrain(p, &camera::ZeroVector(), &camera::ZeroVector(), Store(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(), &average,
                   &low, &high);
     focus_.z = Store(D(average) + focusHeight_);
 }
@@ -320,7 +268,7 @@ void CCamera::ApplyView() {
     Vector3 right;
     localRotation_.AxisX(&right);
     Quaternion tilt;
-    QuatFromAngleAxis(&tilt, nullptr, Store(-(EI_RIGHT_ANGLE + pitch_)), &right);
+    tilt.SetAngleAxis(Store(-(CAM_RIGHT_ANGLE + pitch_)), right);
     localRotation_.PreMultiply(tilt);
     Vector3 forward;
     localRotation_.AxisZ(&forward);
@@ -348,7 +296,7 @@ void CCamera::ApplyView() {
     axis.y = Store((D(s.x) * s.y + D(s.z) * s.w) * 2.0);
     axis.z = Store((D(s.x) * s.z - D(s.y) * s.w) * 2.0);
     Quaternion q;
-    QuatFromAngleAxis(&q, nullptr, Store(-(EI_RIGHT_ANGLE + angle)), &axis);
+    q.SetAngleAxis(Store(-(CAM_RIGHT_ANGLE + angle)), axis);
     float y = Store(((D(q.z) * s.x - D(s.z) * q.x) + D(s.w) * q.y) + D(s.y) * q.w);
     float z = Store(((D(q.x) * s.y - D(s.x) * q.y) + D(s.w) * q.z) + D(s.z) * q.w);
     float w = Store(D(s.w) * q.w - ((D(s.x) * q.x + D(q.z) * s.z) + D(q.y) * s.y));
@@ -363,21 +311,22 @@ EI_REPLACE_METHOD(0x0040F8B0, CCamera::ApplyView);
 void CCamera::Update(float dt) {
     Vector3 listener;
     std::memcpy(&listener, &localPosition_, sizeof(Vector3));
-    if (!(flags_ & 0x60)) {
+    if (!(flags_ & kPlaced)) {
         std::memcpy(&listener, &focus_, sizeof(Vector3));
-        if (Map()) listener.z = Store(SurfaceHeightRaw(SurfaceOwner(), nullptr, focus_.x, focus_.y) + focusHeight_);
+        if (camera::TheTerrain()) listener.z = Store(SurfaceHeightRaw(WorldClient(), nullptr, focus_.x, focus_.y) + focusHeight_);
     }
     Vector3 forward;
     localRotation_.AxisZ(&forward);
-    SetListener(SoundSystem(), nullptr, &listener, &forward);
-    if (flags_ & 0x60) return;
+    sound::Manager()->SetListener(&listener.x, &forward.x);
+    if (flags_ & kPlaced) return;
 
-    CEngineObject* target = Objects()->FindObject(static_cast<unsigned>(targetId_));
+    CEngineObject* target = camera::ObjectManager()->FindObject(static_cast<unsigned>(targetId_));
     if (flags_ & kFollowing) {
         if (target) {
             // Behind the target, looking along its heading.
             const CTransformObject* t = static_cast<const CTransformObject*>(target);
-            double lift = D(FloatAt(target, 0x14C)) + FloatAt(target, 0x130);
+            const CObject3D* body = static_cast<const CObject3D*>(target);
+            double lift = D(body->above[2]) + body->center[2];
             std::memcpy(&localPosition_.x, &t->localPosition_.x, sizeof(float));
             std::memcpy(&localPosition_.y, &t->localPosition_.y, sizeof(float));
             localPosition_.z = Store(lift + t->localPosition_.z);
@@ -399,10 +348,10 @@ void CCamera::Update(float dt) {
         const CTransformObject* t = static_cast<const CTransformObject*>(target);
         double dx = D(t->localPosition_.x) - focus_.x;
         float dy = Store(D(t->localPosition_.y) - focus_.y);
-        float width = Map()->width;
+        float width = camera::TheTerrain()->width;
         float dyStep = Store(D(dy) * kTrackGain);
         focus_.x = ClampToMap(Store(dx * kTrackGain + focus_.x), width);
-        float height = Map()->height;
+        float height = camera::TheTerrain()->height;
         focus_.y = ClampToMap(Store(D(dyStep) + focus_.y), height);
     }
 
@@ -432,9 +381,9 @@ void CCamera::Update(float dt) {
         float moveY = Store(D(dt) * velocity.y);
         float stepX = Store(moveX * scale);
         float stepY = Store(D(moveY) * scale);
-        float width = Map()->width;
+        float width = camera::TheTerrain()->width;
         focus_.x = ClampToMap(Store(D(stepX) + focus_.x), width);
-        float height = Map()->height;
+        float height = camera::TheTerrain()->height;
         float y = ClampToMap(Store(D(stepY) + focus_.y), height);
         targetId_ = -1;
         flags_ &= ~kFollowing;
@@ -458,9 +407,9 @@ void CCamera::Update(float dt) {
 
     // The focus height follows the target's or the ground's, a tenth of the way per frame.
     float average, low, high;
-    SampleTerrain(&focus_, ZeroVector(), ZeroVector(), Store(D(CellSize()) * 0.5f), CellSize(), CellSize(),
+    SampleTerrain(&focus_, &camera::ZeroVector(), &camera::ZeroVector(), Store(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(),
                   &average, &low, &high);
-    double ground = target ? D(FloatAt(target, 0x24)) : D(average);
+    double ground = target ? D(static_cast<const CObject3D*>(target)->position[2]) : D(average);
     focus_.z = Store(((ground + focusHeight_) - focus_.z) * kHeightLag + focus_.z);
 
     // Tilt (pitch in degrees, clamped to the settings' range).
@@ -469,9 +418,9 @@ void CCamera::Update(float dt) {
         double pitch = D(dt) * tiltRate_ + pitch_;
         pitch_ = Store(pitch);
         bool alternate = (flags_ & kAlternate) != 0;
-        float most = Store(D(alternate ? settings_->altPitchMax : settings_->pitchMax) * EI_DEGREE);
+        float most = Store(D(alternate ? settings_->altPitchMax : settings_->pitchMax) * CAM_DEGREE);
         if (pitch > most) pitch_ = most;
-        double least = D(alternate ? settings_->altPitchMin : settings_->pitchMin) * EI_DEGREE;
+        double least = D(alternate ? settings_->altPitchMin : settings_->pitchMin) * CAM_DEGREE;
         if (least > pitch_) pitch_ = Store(least);
     }
 
@@ -480,7 +429,7 @@ void CCamera::Update(float dt) {
     if (NonZero(turnRate_)) {
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Quaternion q;
-        QuatFromAxisAngle(&q, nullptr, &up, Store(D(dt) * turnRate_));
+        q.SetAxisAngle(up, Store(D(dt) * turnRate_));
         const Quaternion r = viewRotation_;
         float x = Store(((D(r.z) * q.y - D(r.y) * q.z) + D(q.w) * r.x) + D(r.w) * q.x);
         float y = Store(((D(r.x) * q.z - D(r.z) * q.x) + D(q.w) * r.y) + D(r.w) * q.y);
@@ -518,7 +467,7 @@ void CCamera::Update(float dt) {
     float offset = 0.0f;
     for (CameraShake* s = shakes_->next; s != shakes_;) {
         double damping = Exp(-(D(s->decay) * s->elapsed));
-        double wave = x87::fcos(D(GameTime()) * s->elapsed * kShakeFrequency);
+        double wave = x87::fcos(D(camera::ClockFloat()) * s->elapsed * kShakeFrequency);
         offset = Store(wave * damping * s->amplitude + offset);
         double elapsed = D(dt) + s->elapsed;
         s->elapsed = Store(elapsed);
@@ -535,7 +484,7 @@ void CCamera::Update(float dt) {
 EI_REPLACE_METHOD(0x0040FB30, CCamera::Update);
 
 void CCamera::ZoomBy(float steps) {
-    double d = CIpow(GameDouble(0x0073BAD8), steps) * distance_;
+    double d = CIpow(CAM_ZOOM_STEP, steps) * distance_;
     distance_ = Store(d);
     if (!settings_) return;
     const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
@@ -647,7 +596,7 @@ void CCamera::SetBounds(const Vector3* center, float radius) {
 EI_REPLACE_METHOD(0x00411360, CCamera::SetBounds);
 
 void CCamera::Shake(const Vector3* source, float duration, float amplitude, float decay) {
-    const Vector3& at = (flags_ & 0x60) ? localPosition_ : focus_;
+    const Vector3& at = (flags_ & kPlaced) ? localPosition_ : focus_;
     double distance = Hypot(D(at.x) - source->x, D(at.y) - source->y);
     float distanceF = Store(distance);
     if (distance >= kShakeRange) return;

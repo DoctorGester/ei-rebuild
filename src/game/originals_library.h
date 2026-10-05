@@ -50,3 +50,36 @@ __declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORI
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
 __declspec(naked) inline void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 __declspec(naked) inline int __stdcall AfxMessageBox(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)
+
+// STLport std::list constructor for a list of pointers on the 12-byte node allocator (RET 4).
+__declspec(naked) inline void __fastcall ListConstruct411850(void* /*list*/, void*, const void* /*alloc*/)
+    EI_ORIGINAL(0x00411850)
+// MFC: CFileFind::FindNextFile / GetFileTitle, CString::Mid(first) into `out`, CFile::Write.
+__declspec(naked) inline int __fastcall CFileFindNext(mfc::CFileFind* /*find*/) EI_ORIGINAL(0x006E6653)
+__declspec(naked) inline mfc::CString* __fastcall CFileFindTitle(const mfc::CFileFind* /*find*/, void*,
+                                                                  mfc::CString* /*out*/) EI_ORIGINAL(0x006E67BA)
+__declspec(naked) inline mfc::CString* __fastcall CStringMid(const mfc::CString* /*s*/, void*, mfc::CString* /*out*/,
+                                                              int /*first*/) EI_ORIGINAL(0x006FDA6D)
+__declspec(naked) inline void __fastcall CFileWrite(mfc::CFile* /*file*/, void*, const void* /*buffer*/,
+                                                    unsigned /*count*/) EI_ORIGINAL(0x0070133F)
+// The CRT's x87 intrinsics: _CIacos / _CIasin (argument and result in ST0) and _CIpow (base in ST1,
+// exponent in ST0), called here with ordinary double arguments.
+__declspec(naked) inline double __cdecl CIacos(double) {
+    __asm fld qword ptr [esp + 4]
+    __asm mov eax, 0x006E7320
+    __asm call eax
+    __asm ret
+}
+__declspec(naked) inline double __cdecl CIasin(double) {
+    __asm fld qword ptr [esp + 4]
+    __asm mov eax, 0x006E83C0
+    __asm call eax
+    __asm ret
+}
+__declspec(naked) inline double __cdecl CIpow(double, double) {
+    __asm fld qword ptr [esp + 4]
+    __asm fld qword ptr [esp + 12]
+    __asm mov eax, 0x006E81A0
+    __asm call eax
+    __asm ret
+}
