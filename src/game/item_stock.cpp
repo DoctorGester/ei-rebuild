@@ -13,6 +13,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -683,9 +684,9 @@ __declspec(naked) mfc::CString* __fastcall StreamReadString(void*, void*, void* 
 // 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
 // 007C86D8; the spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
 // they insert a null for a new name).
-__declspec(naked) char* __fastcall FindArmorNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB820)
-__declspec(naked) char* __fastcall FindWeaponNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB720)
-__declspec(naked) char* __fastcall FindQuickItemNamed(void*, void*, const char*) EI_ORIGINAL(0x00613820)
+char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)FindArmorOriginal(a0, nullptr, a2); }
+char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)FindWeaponOriginal(a0, nullptr, a2); }
+char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)FindQuickItemOriginal(a0, nullptr, a2); }
 __declspec(naked) char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
 __declspec(naked) char** __fastcall ModifierByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x00684B20)
 // push_back of the pointer vectors (thiscall, &value): 0069BD30 (the three item lists), 0069BDC0

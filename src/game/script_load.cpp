@@ -75,7 +75,7 @@ __declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE0
 // ConstructElements / DestructElements instantiations (__stdcall (first, count)) and element
 // destructors (__thiscall (flags); 0 = destroy in place).
 __declspec(naked) void __stdcall ZeroFloats(void*, int) EI_ORIGINAL(0x004CC870)
-__declspec(naked) void __stdcall ConstructStrings(void*, int) EI_ORIGINAL(0x006FE268)
+void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0, a1); }
 void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)
 void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
@@ -94,7 +94,7 @@ __declspec(naked) void __stdcall ZeroPointers(void*, int) EI_ORIGINAL(0x004CCA10
 __declspec(naked) void __fastcall FloatArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4410)
 __declspec(naked) void __fastcall GroupArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
 __declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
-__declspec(naked) void __fastcall SubCallsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4FD0)
+void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
 // 004B6330 (__thiscall on the element): type, argument index, then SSCCmd::Load into its command.
 __declspec(naked) void __fastcall SubCallLoad(ScriptSubCall*, void*, ScriptStream*) EI_ORIGINAL(0x004B6330)
 

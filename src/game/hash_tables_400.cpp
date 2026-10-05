@@ -31,13 +31,13 @@ using FreeNode = void(__fastcall*)(void* /*allocator*/, void*, Node*, int);
 namespace {
 
 // Library members of each instantiation.
-__declspec(naked) void __fastcall ObjectsResize(Table*, void*, std::uint32_t) EI_ORIGINAL(0x00406640)
+void __fastcall ObjectsResize(Table* a0, void*, std::uint32_t a2) { ObjectsResizeOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) Node* __fastcall ObjectsNewNode(Table*, void*, const std::uint32_t*) EI_ORIGINAL(0x00407420)
-__declspec(naked) void __fastcall ObjectsErase(Table*, void*, Node*, Table*) EI_ORIGINAL(0x00405620)
-__declspec(naked) void __fastcall PositionsResize(Table*, void*, std::uint32_t) EI_ORIGINAL(0x00406D10)
+void __fastcall ObjectsErase(Table* a0, void*, Node* a2, Table* a3) { ObjectsEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
+void __fastcall PositionsResize(Table* a0, void*, std::uint32_t a2) { PositionsResizeOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) Node* __fastcall PositionsNewNode(Table*, void*, const std::uint32_t*) EI_ORIGINAL(0x004074F0)
 void __fastcall PositionsErase(Table* a0, void*, Node* a2, Table* a3) { HashEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
-__declspec(naked) void __fastcall SpareCountsResize(Table*, void*, std::uint32_t) EI_ORIGINAL(0x004070B0)
+void __fastcall SpareCountsResize(Table* a0, void*, std::uint32_t a2) { SpareCountsResizeOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) Node* __fastcall SpareCountsNewNode(Table*, void*, const std::uint32_t*) EI_ORIGINAL(0x00408B20)
 __declspec(naked) void __fastcall FactoriesFreeNode(void*, void*, Node*, int) EI_ORIGINAL(0x0040B5A0)
 __declspec(naked) void __fastcall ByVtableFreeNode(void*, void*, Node*, int) EI_ORIGINAL(0x0040B560)

@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -37,7 +38,7 @@ constexpr std::size_t kRecordSize = 0x2C;
 // (004648D0, thiscall on the count's allocator proxy); the bucket storage's deallocate (00406590).
 __declspec(naked) void* __fastcall NodeValueDelete(void*, void*, unsigned) EI_ORIGINAL(0x00464DF0)
 __declspec(naked) void __fastcall NodeDeallocate(void* /*proxy*/, void*, HashNode*, std::size_t) EI_ORIGINAL(0x004648D0)
-__declspec(naked) void __fastcall BucketsDeallocate(HashNode**, std::size_t) EI_ORIGINAL(0x00406590)
+void __fastcall BucketsDeallocate(HashNode** a0, std::size_t a1) { BucketsDeallocateOriginal((void*)a0, a1); }
 
 void DestroyString(std::uint8_t* p) { reinterpret_cast<mfc::CString*>(p)->~CString(); }
 

@@ -50,7 +50,7 @@ __declspec(naked) void __fastcall CameraStopSave(void*) EI_ORIGINAL(0x005787D0)
 // pair (0066F2C0), send a text (0066D770; the first argument unused), resend the party (0066F450).
 __declspec(naked) void __fastcall PlayerSetVariable(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
 __declspec(naked) void __fastcall PlayerSendText(void*, void*, int, const char*) EI_ORIGINAL(0x0066D770)
-__declspec(naked) void __fastcall PlayerResendParty(void*) EI_ORIGINAL(0x0066F450)
+void __fastcall PlayerResendParty(void* a0) { PlayerResendPartyOriginal(a0); }
 // 00460AF0: a variable of a table (the player's at +0xC4), in ST0.
 double __fastcall VariablesGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 00553380: the unit's data gains experience.

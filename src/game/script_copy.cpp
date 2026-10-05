@@ -142,16 +142,16 @@ __declspec(naked) void __fastcall GroupsSetSize(void*, void*, int, int) EI_ORIGI
 void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
 // GetAt by value: CString (004C2680), a referenced ScriptObjectRef (004C21E0), a ScriptGroup copy
 // (004C3B00); __thiscall (out, index), returning out.
-__declspec(naked) void* __fastcall StringAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C2680)
-__declspec(naked) ScriptObjectRef* __fastcall RefAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C21E0)
-__declspec(naked) ScriptGroup* __fastcall GroupAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C3B00)
+void* __fastcall StringAt(const void* a0, void*, void* a2, int a3) { return ScriptStringAtOriginal(a0, nullptr, a2, a3); }
+ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal(a0, nullptr, a2, a3); }
+ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // 006FE268: ConstructElements for CString.
-__declspec(naked) void __stdcall ConstructStrings(void*, int) EI_ORIGINAL(0x006FE268)
+void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0, a1); }
 // Library copy constructors of the binding and nested call arrays (__thiscall (const CArray&)).
 __declspec(naked) void __fastcall BindingsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCCB0)
 __declspec(naked) void __fastcall SubCallsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCD90)

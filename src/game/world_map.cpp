@@ -23,7 +23,7 @@ __declspec(naked) void __fastcall AIMapBeginRefresh(void*, void*) EI_ORIGINAL(0x
 // 005B43C0 (RET 4). CAIMap: loads the terrain map file; 0 on failure. Patched by Rebirth.
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
-__declspec(naked) char** __fastcall ServerMapPath(CWorldServer*, void*, char** /*out*/, const char*) EI_ORIGINAL(0x00595BA0)
+char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 005B1180 (RET 4). The AI layer (+0x2468) reads its state from the graph stream (AL).
 __declspec(naked) bool __fastcall AILayerLoad(void*, void*, void* /*stream*/) EI_ORIGINAL(0x005B1180)
 // 004BE6E0. A script command queue's reset.
@@ -153,7 +153,7 @@ __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
 __declspec(naked) void __stdcall CountedRangeRelease(void*, int) EI_ORIGINAL(0x0059C890)
 __declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
-__declspec(naked) void __fastcall PlayerClear(WorldPlayer*, void*) EI_ORIGINAL(0x00665200)
+void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 0047B670. The object map's clear (every object id hash map; nodes freed).
 __declspec(naked) void __fastcall ObjectMapClear(void*, void*) EI_ORIGINAL(0x0047B670)
 // 0059D6D0. The other id maps' clear.
@@ -230,7 +230,7 @@ void CWorldServer::ResetZone() {
 
 namespace {
 
-__declspec(naked) void __fastcall PlayerDisconnect(WorldPlayer*, void*) EI_ORIGINAL(0x00665A10)
+void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
 // 0059A100. The shared-object element's object array destructor.
 __declspec(naked) void __fastcall ObjectPtrArrayDestruct(void*, void*) EI_ORIGINAL(0x0059A100)
 // 0055F890. CWorld's own teardown (base class).
@@ -304,7 +304,7 @@ __declspec(naked) CEngineObject** __fastcall IdMapLookup(ObjectIdMap*, void*, co
 // 0059CCE0 (RET 8). The aligned object array's SetAtGrow.
 __declspec(naked) void __fastcall AlignedArraySetAtGrow(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0059CCE0)
 // 0066C180. The player list creates a temporary player (returned).
-__declspec(naked) WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject*, void*) EI_ORIGINAL(0x0066C180)
+WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
 __declspec(naked) void __fastcall StateObjectsAdded(void*, void*, void* /*objects*/) EI_ORIGINAL(0x0066D7F0)
 __declspec(naked) void __fastcall StateSendHeader(void*, void*, void* /*stream*/) EI_ORIGINAL(0x0066D230)

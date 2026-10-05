@@ -285,7 +285,7 @@ namespace {
 
 // 006AD000 (RET 0x10). The item factory (world slot 18) makes an item: type, record index, the
 // two halves of the item's +0x18, -1.
-__declspec(naked) CEngineObject* __fastcall FactoryMakeItem(void*, void*, int, int, int, int) EI_ORIGINAL(0x006AD000)
+CEngineObject* __fastcall FactoryMakeItem(void* a0, void*, int a2, int a3, int a4, int a5) { return (CEngineObject*)FactoryMakeItemOriginal(a0, nullptr, a2, a3, a4, a5); }
 // 00599FA0 (RET 4). CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
 __declspec(naked) void __fastcall CountedAddTail(void*, void*, CEngineObject*) EI_ORIGINAL(0x00599FA0)
 
@@ -318,7 +318,7 @@ namespace {
 // 006AC970 (RET 4, patched by Rebirth). The item manager makes an item by name.
 __declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 // 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
-__declspec(naked) CEngineObject* __fastcall ManagerCreateSpell(void*, void*, const char*, void*) EI_ORIGINAL(0x006AD1E0)
+CEngineObject* __fastcall ManagerCreateSpell(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 
 void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
 

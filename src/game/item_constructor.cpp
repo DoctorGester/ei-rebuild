@@ -13,6 +13,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 #include <new>
@@ -441,9 +442,9 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
 // 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
 // (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
-__declspec(naked) char* __fastcall FindWeaponNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB720)
-__declspec(naked) char* __fastcall FindArmorNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB820)
-__declspec(naked) char* __fastcall FindQuickNamed(void*, void*, const char*) EI_ORIGINAL(0x00613820)
+char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)FindWeaponOriginal(a0, nullptr, a2); }
+char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)FindArmorOriginal(a0, nullptr, a2); }
+char* __fastcall FindQuickNamed(void* a0, void*, const char* a2) { return (char*)FindQuickItemOriginal(a0, nullptr, a2); }
 __declspec(naked) char* __fastcall FindTable14Named(void*, void*, const char*) EI_ORIGINAL(0x006AD580)
 __declspec(naked) char* __fastcall FindTable15Named(void*, void*, const char*) EI_ORIGINAL(0x0069D380)
 __declspec(naked) char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
@@ -455,7 +456,7 @@ void* const kTable15 = reinterpret_cast<void*>(0x007C8778);
 void* const kMaterialTable = reinterpret_cast<void*>(0x007C86D8);
 
 // 006AD000 (RET 0x10). The item manager makes an item (kind, record index, a, b).
-__declspec(naked) CItem* __fastcall ManagerMakeItem(CItemManager*, void*, int, int, int, int) EI_ORIGINAL(0x006AD000)
+CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a4, int a5) { return (CItem*)FactoryMakeItemOriginal((void*)a0, nullptr, a2, a3, a4, a5); }
 
 // The string-keyed maps the loot item's table index comes from (STLport strings handled through
 // the original members; see class_templates.cpp): operator[] of the weapon (007C8704, 006AD670),

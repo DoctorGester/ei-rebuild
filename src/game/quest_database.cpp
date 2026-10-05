@@ -143,7 +143,7 @@ __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIG
 // MFC: CString TrimLeft / TrimRight of one character [006FE1D3 / 006FE0DD]; the game's splitter of
 // a string at a separator into a CStringArray [004DBE40, __fastcall: text, out; separator]; atof.
 __declspec(naked) void __fastcall TrimLeftChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE1D3)
-__declspec(naked) void __fastcall TrimRightChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE0DD)
+void __fastcall TrimRightChar(mfc::CString* a0, void*, char a2) { CStringTrimRightCharOriginal((void*)a0, nullptr, a2); }
 
 // An allocator argument: the members read at most a byte through it.
 const std::uint8_t kAllocator = 0;

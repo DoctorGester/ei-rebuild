@@ -13,6 +13,7 @@
 #include "originals_engine.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -216,7 +217,7 @@ __declspec(naked) void __fastcall SoundSetVolumeB(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __fastcall SoundSetVolumeC(void*, void*, int) EI_ORIGINAL(0x006B7A00)
 __declspec(naked) void __fastcall SoundTick(void*) EI_ORIGINAL(0x006B9B10)
 __declspec(naked) void __fastcall SessionUpdate(void*) EI_ORIGINAL(0x00665DE0)
-__declspec(naked) void __fastcall SessionDisconnect(void*) EI_ORIGINAL(0x00665A10)
+void __fastcall SessionDisconnect(void* a0) { PlayerDisconnectOriginal(a0); }
 __declspec(naked) int __fastcall PendingLookup(void*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(void*, void*, void*) EI_ORIGINAL(0x005704A0)
 __declspec(naked) void __fastcall PendingRemoveKey(void*, void*, const int*) EI_ORIGINAL(0x00405350)

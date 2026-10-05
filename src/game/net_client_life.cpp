@@ -9,13 +9,14 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "originals_library.h"
+#include "originals_gameplay.h"
 
 namespace net {
 
 namespace {
 
 // The two parties (00661050 class, outside this range).
-__declspec(naked) void __fastcall PartyDestruct(void* /*party*/) EI_ORIGINAL(0x006611D0)
+void __fastcall PartyDestruct(void* a0) { PartyRecordsDestructOriginal(a0); }
 // STLport destructors, clears and sentinel frees of the member containers (library).
 __declspec(naked) void __fastcall List2614Destruct(void* /*list*/) EI_ORIGINAL(0x00424A40)
 __declspec(naked) void __fastcall List2608Clear(void* /*list*/) EI_ORIGINAL(0x004275A0)

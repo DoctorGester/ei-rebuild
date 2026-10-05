@@ -80,8 +80,7 @@ __declspec(naked) void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
-__declspec(naked) char** __fastcall ServerMapPath(CWorldServer*, void*, char** /*out*/, const char* /*name*/)
-    EI_ORIGINAL(0x00595BA0)
+char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 00481660 (RET 8). Reads the objects of an opened .mob file into the server (AL).
 __declspec(naked) bool __fastcall ReadMapObjectFile(Chunk*, void*, CWorldServer*, int /*keepIds*/)
     EI_ORIGINAL(0x00481660)
@@ -108,7 +107,7 @@ struct UnitRecordBuilder {
 static_assert(sizeof(UnitRecordBuilder) == 0x70);
 void* UnitRecordBuilder::Construct() { return PartyRecordsConstructOriginal((void*)this); }
 void UnitRecordBuilder::Fill(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
-__declspec(naked) void UnitRecordBuilder::Destruct() EI_ORIGINAL(0x006611D0)
+void UnitRecordBuilder::Destruct() { PartyRecordsDestructOriginal((void*)this); }
 
 } // namespace
 

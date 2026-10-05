@@ -5,6 +5,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_core.h"
+#include "originals_ui.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -459,7 +460,7 @@ __declspec(naked) std::uint8_t* __fastcall NewModelObject(void*, void*, const ch
 // 0059F3D0 (thiscall on the object): attaches it to the window.
 __declspec(naked) void __fastcall AttachToWindow(std::uint8_t*, void*, CUiWindow*) EI_ORIGINAL(0x0059F3D0)
 // 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
-__declspec(naked) double __fastcall SpriteScale(void*) EI_ORIGINAL(0x005E70B0)
+double __fastcall SpriteScale(void* a0) { return SpriteScaleOriginal((const void*)a0); }
 __declspec(naked) void __fastcall SetSpriteScale(void*, void*, float) EI_ORIGINAL(0x005E7060)
 
 // FLD / FSTP of a float field (as the original copies +0xCC and +0xD0).

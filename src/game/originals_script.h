@@ -41,3 +41,14 @@ __declspec(naked) inline void __fastcall ScriptGroupDestructOriginal(void* /*gro
 
 // C3i. 004CC7D0: CArray<ScriptObjectRef> DestructElements, releasing each reference (RET 8: first, count; EAX not a result).
 __declspec(naked) inline void __stdcall ScriptRefElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC7D0)
+
+// C3i part 2. 004C21E0 / 004C2680 / 004C3B00: CArray GetAt(out, index) for references / strings / groups (RET 8, returns
+// out). 004C4FD0: CArray<SubCall>::SetSize(count, growBy) (RET 8).
+__declspec(naked) inline void* __fastcall ScriptRefAtOriginal(const void* /*array*/, void*, void* /*out*/, int /*index*/)
+    EI_ORIGINAL(0x004C21E0)
+__declspec(naked) inline void* __fastcall ScriptStringAtOriginal(const void* /*array*/, void*, void* /*out*/, int /*index*/)
+    EI_ORIGINAL(0x004C2680)
+__declspec(naked) inline void* __fastcall ScriptGroupAtOriginal(const void* /*array*/, void*, void* /*out*/, int /*index*/)
+    EI_ORIGINAL(0x004C3B00)
+__declspec(naked) inline void __fastcall SubCallArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
+    EI_ORIGINAL(0x004C4FD0)

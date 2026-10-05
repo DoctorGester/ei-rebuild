@@ -47,7 +47,7 @@ inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) {
 __declspec(naked) Node** __fastcall ServersEnd(void* /*list*/, void*, Node** /*out*/) EI_ORIGINAL(0x004436C0)
 __declspec(naked) Node** __fastcall ServersInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004437A0)
 __declspec(naked) Node** __fastcall ServersErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004436D0)
-__declspec(naked) Node** __fastcall WaitingEnd(void* /*list*/, void*, Node** /*out*/) EI_ORIGINAL(0x0041FCD0)
+Node** __fastcall WaitingEnd(void* a0, void*, Node** a2) { return (Node**)ListEndIteratorOriginal(a0, nullptr, (void**)a2); }
 __declspec(naked) Node** __fastcall WaitingInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const NetAddress* /*value*/) EI_ORIGINAL(0x00421AF0)
 __declspec(naked) Node** __fastcall WaitingErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004437D0)
 __declspec(naked) Node** __fastcall JoinsErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x00443730)

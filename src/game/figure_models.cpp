@@ -34,7 +34,7 @@ struct Iterator {
 __declspec(naked) void __fastcall MapFind(void*, void*, Iterator*, const RawString*) EI_ORIGINAL(0x004FB0F0)
 __declspec(naked) char* __fastcall MapIndex(void*, void*, const RawString*) EI_ORIGINAL(0x004FBBD0)
 // STLport string copy constructor (RET 4) and two destructor instantiations.
-__declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)
+void __fastcall StringCopy(RawString* a0, void*, const RawString* a2) { StringCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 // 005A9A50: the model's constructor; returns this.
 __declspec(naked) void* __fastcall ConstructModel(void*) EI_ORIGINAL(0x005A9A50)
 

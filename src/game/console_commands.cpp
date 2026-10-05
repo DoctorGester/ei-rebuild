@@ -10,6 +10,7 @@
 #include "originals_world.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "originals_gameplay.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -92,8 +93,8 @@ struct PlayerStateAt {
     void ResendParty();                                // 0066F450
 };
 __declspec(naked) void PlayerStateAt::SetVariable(const char*, float) EI_ORIGINAL(0x0066EE10)
-__declspec(naked) void PlayerStateAt::Refresh() EI_ORIGINAL(0x0066EF80)
-__declspec(naked) void PlayerStateAt::ResendParty() EI_ORIGINAL(0x0066F450)
+void PlayerStateAt::Refresh() { PlayerStateRefreshOriginal((void*)this); }
+void PlayerStateAt::ResendParty() { PlayerResendPartyOriginal((void*)this); }
 
 struct UnitStatsAt {
     void AddExperience(float amount);   // 00523960

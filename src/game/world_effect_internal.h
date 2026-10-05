@@ -166,7 +166,7 @@ inline void WriteCopy(void* stream, const void* field) {
 // 006773A0: reads a count and that many CStrings from a save stream, appending them (ECX array, EDX stream).
 __declspec(naked) inline void __fastcall ReadStringArray(EffectStringArray*, void* /*stream*/) EI_ORIGINAL(0x006773A0)
 // 004E5840: reads a CString from a save stream (thiscall on the stream).
-__declspec(naked) inline void __fastcall ReadStreamCString(void* /*stream*/, void*, void* /*cstring*/) EI_ORIGINAL(0x004E5840)
+inline void __fastcall ReadStreamCString(void* a0, void*, void* a2) { StreamReadCStringOriginal(a0, nullptr, a2); }
 inline const char* EmptyCString() { return game::EmptyText(); }
 
 } // namespace effect

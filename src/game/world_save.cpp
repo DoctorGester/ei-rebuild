@@ -225,7 +225,7 @@ __declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const c
 // 005DA400. Shows the loading screen at `stage` (ECX).
 __declspec(naked) void __fastcall ShowLoadProgress(int /*stage*/) EI_ORIGINAL(0x005DA400)
 // 00665200. Empties a player before it is loaded.
-__declspec(naked) void __fastcall PlayerClear(WorldPlayer*, void*) EI_ORIGINAL(0x00665200)
+void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 005B8B30 / 005B8B80. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp).
 __declspec(naked) void __fastcall AIMapBeginRefresh(void*, void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall AIMapEndRefresh(void*, void*) EI_ORIGINAL(0x005B8B80)
@@ -295,7 +295,7 @@ __declspec(naked) void __fastcall ScriptGroupConstruct(void*, void*) EI_ORIGINAL
 __declspec(naked) void __fastcall ScriptGroupLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004B3360)
 inline void __fastcall ScriptGroupDestruct(void* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 // 0066EF80 / 0066D260 (RET 4). The player state's refresh after a load and SetFlag70.
-__declspec(naked) void __fastcall PlayerStateRefresh(void*, void*) EI_ORIGINAL(0x0066EF80)
+void __fastcall PlayerStateRefresh(void* a0, void*) { PlayerStateRefreshOriginal(a0); }
 __declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*/) EI_ORIGINAL(0x0066D260)
 // 0066EE10 (RET 8). CPlayerServer::SetVariable (player_messages.cpp).
 __declspec(naked) void __fastcall PlayerStateSetVariable(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
@@ -324,7 +324,7 @@ __declspec(naked) void SharedObject::CopyFrom(const SharedObject*) EI_ORIGINAL(0
 __declspec(naked) void SharedObject::Load(WorldStream*) EI_ORIGINAL(0x00589CA0)
 __declspec(naked) SharedObjectNode* SharedObjectList::NewNode(SharedObjectNode*, SharedObjectNode*) EI_ORIGINAL(0x0059CA60)
 __declspec(naked) void DwordList::AddTail(std::uint32_t) EI_ORIGINAL(0x0059CC60)
-__declspec(naked) void ObjectList::AddTail(CEngineObject*) EI_ORIGINAL(0x004C98F0)
+void ObjectList::AddTail(CEngineObject* a0) { PtrListAddTailOriginal((void*)this, nullptr, (void*)a0); }
 
 namespace {
 

@@ -19,7 +19,7 @@ namespace {
 
 __declspec(naked) int __cdecl GameStrnicmp(const char* /*a*/, const char* /*b*/, std::size_t /*n*/) EI_ORIGINAL(0x006FA1A0)
 // The banned addresses (+0x25C4, STLport list<sockaddr_in>; library): end, begin, find, insert.
-__declspec(naked) void** __fastcall BannedEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0041FCD0)
+void** __fastcall BannedEnd(void* a0, void*, void** a2) { return ListEndIteratorOriginal(a0, nullptr, a2); }
 __declspec(naked) void** __fastcall BannedBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0041FCC0)
 __declspec(naked) void** __fastcall BannedFind(void** /*out*/, void*, void* /*first*/, void* /*last*/, std::uint32_t /*value*/) EI_ORIGINAL(0x00427FF0)
 __declspec(naked) void** __fastcall BannedInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/) EI_ORIGINAL(0x00421AF0)

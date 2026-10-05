@@ -259,7 +259,7 @@ struct SpriteAt {
 };
 __declspec(naked) void SpriteAt::SetTriangle(float, float, float, float, float, float, float, float, float, float,
                                              float, float, float, float) EI_ORIGINAL(0x005E99D0)
-__declspec(naked) double SpriteAt::Scale() EI_ORIGINAL(0x005E70B0)
+double SpriteAt::Scale() { return SpriteScaleOriginal((void*)this); }
 
 struct ScrollbarAt {
     void SetRange(int maximum);      // 0065AFE0

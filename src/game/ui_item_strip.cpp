@@ -20,8 +20,7 @@ namespace {
 void __fastcall StripRectangle(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11) { UiMeshRectangleOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 __declspec(naked) void __fastcall StripFrame(CUiMesh*, void*, float /*depth*/, float /*scale*/, float, float, float, float,
                                              float /*border*/, int, int, int, int) EI_ORIGINAL(0x005E8450)
-__declspec(naked) void __fastcall StripCells(CUiMesh*, void*, float /*depth*/, float /*scale*/, float, float, float, float,
-                                             int, int, int, int, int /*count*/, int) EI_ORIGINAL(0x005E7680)
+void __fastcall StripCells(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11, int a12, int a13) { UiMeshCellsOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13); }
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 

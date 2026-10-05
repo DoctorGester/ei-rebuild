@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "originals_engine.h"
 
 #include <cstring>
 #include <new>
@@ -43,7 +44,7 @@ __declspec(naked) void __fastcall NodesDeallocate(QueueNode* /*p*/, std::size_t 
 __declspec(naked) void __fastcall StreamWriteSized(CStream* /*to*/, void*, CStream* /*from*/) EI_ORIGINAL(0x004A5250)
 // 004A51C0 (RET 4): reads a stream written by 004A5250 (size prefix, then the bytes) from the
 // stream in ECX into `to`, which is emptied first (its slot 6).
-__declspec(naked) void __fastcall StreamReadSized(CStream* /*from*/, void*, CStream* /*to*/) EI_ORIGINAL(0x004A51C0)
+void __fastcall StreamReadSized(CStream* a0, void*, CStream* a2) { StreamReadSizedOriginal((void*)a0, nullptr, (void*)a2); }
 // The game's memmove (006E79A0).
 
 bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }

@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "originals_script.h"
 
 #include <cstdint>
 
@@ -43,7 +44,7 @@ __declspec(naked) void __fastcall StringArgsSetSize(void*, void*, int, int) EI_O
 __declspec(naked) void __fastcall ObjectArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C46F0)
 __declspec(naked) void __fastcall GroupArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
 __declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
-__declspec(naked) void __fastcall SubCallsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4FD0)
+void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 constexpr std::uintptr_t kCommandsVtable = 0x0073D3DC;  // CArray<SSCCmd> (the temporary ScriptDecl)
 constexpr std::uintptr_t kPartsVtable = 0x0073D328;     // CArray<ScriptAreaPart> (the temporary area)

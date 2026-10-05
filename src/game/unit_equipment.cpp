@@ -13,6 +13,7 @@
 #include "ei/vcall.h"
 #include "originals_engine.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 
 #include <cstdint>
 
@@ -39,7 +40,7 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 // spell by name (with world slot 22), is not rewritten.
 __declspec(naked) UnitPrototypeRecord* __fastcall FindPrototypeAt(void*, void*, const char*) EI_ORIGINAL(0x005144D0)
 __declspec(naked) CEngineObject* __fastcall CreateItemAt(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
-__declspec(naked) CEngineObject* __fastcall CreateSpellAt(void*, void*, const char*, void*) EI_ORIGINAL(0x006AD1E0)
+CEngineObject* __fastcall CreateSpellAt(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
 int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) int __fastcall AddSpellAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00531820)

@@ -28,7 +28,7 @@ __declspec(naked) char* Str::GetBuffer(int) EI_ORIGINAL(0x00700DA0)
 __declspec(naked) void Str::ReleaseBuffer(int) EI_ORIGINAL(0x00700DEF)
 __declspec(naked) void Str::MakeLower() EI_ORIGINAL(0x00700EFE)
 __declspec(naked) void Str::TrimLeft(char) EI_ORIGINAL(0x006FE1D3)
-__declspec(naked) void Str::TrimRight(char) EI_ORIGINAL(0x006FE0DD)
+void Str::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
 
 CStringArray::CStringArray() { StringArrayConstruct(this); }
 CStringArray::~CStringArray() { StringArrayDestruct(this); }

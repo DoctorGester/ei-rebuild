@@ -204,8 +204,7 @@ __declspec(naked) void __fastcall QuestTableLoad(void*, void*, void*) EI_ORIGINA
 // 0045EA20 (RET 4). CMapDatabase::Load (0079BF00).
 __declspec(naked) void __fastcall MapDatabaseLoad(void*, void*, const char*) EI_ORIGINAL(0x0045EA20)
 // 004DCE90 (RET 0xC). vector<string>::_M_insert_overflow(pos, value, count).
-__declspec(naked) void __fastcall StringVectorInsertOverflow(void*, void*, stlp::string*, const stlp::string*, unsigned)
-    EI_ORIGINAL(0x004DCE90)
+void __fastcall StringVectorInsertOverflow(void* a0, void*, stlp::string* a2, const stlp::string* a3, unsigned a4) { StringVectorInsertOverflowOriginal(a0, nullptr, (void*)a2, (const void*)a3, a4); }
 // 004DF8D0 (RET 8). The texts read the current line into a CString.
 void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
 

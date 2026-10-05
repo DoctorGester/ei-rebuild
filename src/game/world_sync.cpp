@@ -16,6 +16,7 @@
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -116,7 +117,7 @@ __declspec(naked) void __fastcall StateObjectsRemoved(void*, void*, StaticPtrArr
 __declspec(naked) void __fastcall StateTimedKept(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DF40)
 __declspec(naked) void __fastcall StateTimedAdded(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DDE0)
 __declspec(naked) void __fastcall StateTimedRemoved(void*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066E020)
-__declspec(naked) void __fastcall StateRefresh(void*, void*) EI_ORIGINAL(0x0066F450)
+void __fastcall StateRefresh(void* a0, void*) { PlayerResendPartyOriginal(a0); }
 __declspec(naked) void __fastcall StateUpdateUnits(void*, void*) EI_ORIGINAL(0x0066E430)
 __declspec(naked) void __fastcall StateLeave(void*, void*) EI_ORIGINAL(0x0066F180)
 __declspec(naked) int __fastcall StateSendZone(void*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)

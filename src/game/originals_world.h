@@ -47,3 +47,10 @@ __declspec(naked) inline void __fastcall IdMapEraseOriginal(ObjectIdMap*, void*,
 // C3h. 005809D0: the game flow loads the quests of a zone folder (RET 4, AL = loaded). The flow is the global at
 // 007AF788; ECX is not read, so the callers' flow argument was a dummy.
 __declspec(naked) inline bool __stdcall FlowLoadQuestsOriginal(const char* /*zone*/) EI_ORIGINAL(0x005809D0)
+
+// C3i part 2. 0058EEA0: CWorldServer::SetTime(float) (RET 4; the argument is a raw dword, float callers pass
+// std::bit_cast). 00595BA0: the map path text for a name into `out` (RET 8, returns out).
+__declspec(naked) inline void __fastcall WorldSetTimeOriginal(void* /*world*/, void*, std::uint32_t /*timeBits*/)
+    EI_ORIGINAL(0x0058EEA0)
+__declspec(naked) inline void* __fastcall ServerMapPathOriginal(void* /*world*/, void*, void* /*out*/, const char* /*name*/)
+    EI_ORIGINAL(0x00595BA0)
