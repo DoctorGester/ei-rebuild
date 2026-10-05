@@ -31,8 +31,12 @@
 //                             (00565E40) finds it in this frame; "ctrl" holds Ctrl (CInterface3D
 //                             +0x7C) around it. Fails when the unit is not drawn or always hidden
 //                             behind another object
-//   screen <id>               ask the server for interface screen <id> as the global map's buttons
-//                             do (4 the global map, 5 the camp; the battle screen is left)
+//   screen <id> [constr]      ask the server for interface screen <id> as the global map's buttons
+//                             do (4 the global map, 5 the camp; the battle screen is left). For the
+//                             camp, <constr> (default 0: none) is the constructor / trader class it
+//                             opens with, as a base dialogue's "constrN" answer (006064E0) sets it
+//                             (classes 1, 3, 4, 5 after a new game); fails when there is no such
+//                             class template
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
 //                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
 //                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
@@ -133,6 +137,9 @@ __declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005D
 __declspec(naked) void __stdcall RequestScreen(int) EI_ORIGINAL(0x00578B00)
 // 00578560: sets player 0's "constr_current" (the constructor the camp opens with; 0 none).
 __declspec(naked) void __stdcall SetCurrentConstructor(float) EI_ORIGINAL(0x00578560)
+// 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
+__declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
+constexpr std::uintptr_t kClassTemplates = 0x007AA5D8;
 
 // 0066F310 (RET 8): CPlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
 // LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
@@ -1190,10 +1197,19 @@ void RunSteps() {
             }
         } else if (s.verb == "screen") {
             // What the global map's buttons do (0062F950): ask the server for interface screen <id>.
-            // For the camp (5) the map's button first sets "constr_current" to 0.
-            int id = std::atoi(s.argument.c_str());
-            if (id == 5) SetCurrentConstructor(0.0f);
-            RequestScreen(id);
+            // For the camp (5) the map's button first sets "constr_current" to 0; a base dialogue's
+            // "constrN" answer (006064E0) sets N instead, when the class template exists.
+            int id = 0, constr = 0;
+            sscanf_s(s.argument.c_str(), "%d %d", &id, &constr);
+            if (id == 5 && constr > 0 &&
+                !FindClassTemplate(reinterpret_cast<void*>(kClassTemplates), nullptr, constr)) {
+                std::string error = "screen: no class template " + std::to_string(constr);
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            } else {
+                if (id == 5) SetCurrentConstructor(static_cast<float>(constr));
+                RequestScreen(id);
+            }
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";
