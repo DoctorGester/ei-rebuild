@@ -921,3 +921,42 @@ ui_hud_frame.cpp's Layout forwarder renamed, so their callers still run the veri
 forwarder moved from ui_objectives.cpp to `originals_ui.h` (`LogSetTextOriginal`).
 Forwarder added: 0066AF30 (the local view's +0x438 order). None of the rewritten functions is
 on the Rebirth list (their caller 006462A0 is).
+
+## Group 3: item copies and item lists (0069FF70, 0069FFC0, 006608D0-00661F30)
+
+Code: `src/game/party_items.cpp`, `src/game/party.h` (new: CParty, the item list part);
+verify: `tests/verify/verify_party_items.cpp`. All are stateful (they create, release and move
+counted objects): ours only, with checks of the copies' values and of the lists' counts and order.
+Scenarios: ui_camp (the camp's item moves: 0060FCA0 / 0060FE40 / 0060E900 call the record lists,
+00661DB0 / 00661F30 take items in and out of the party), trader_stock (004A6F60 hands the
+magic stock's items to 00661DB0), party_records (0058FD90 / 00590C70 rebuild the records through
+the record list adds and removes), items.
+
+| Address | Name | Verify |
+|---|---|---|
+| 0069FF70 | CItem::Clone (RET 4: spell manager) | ours only: null, or a new item of the kind with the same id and values +0x20..+0x40, count 1, a spell when the source has one |
+| 0069FFC0 | CItem::CopyTo (RET 8; slot 15's base body) | ours only: 0 for another kind; else 1 and the target's values as above |
+| 00661DB0 | CParty::AddItem (RET 0xC; flags read as bytes) | ours only: null for null; a merge leaves the list as it was and returns a listed item; else the copy appended with the count |
+| 00661F30 | CParty::RemoveItem (RET 8) | ours only: a returned item is the argument and the list is unchanged; else the list without it |
+| 006608D0 / 00660AB0 / 00660C90 / 00660E70 | PartyUnitRecord::AddWeapon / AddQuickItem / AddArmor / AddSpell (RET 4) | ours only: a copy with the item's values appended to the list (+0x730 / +0x740 / +0x750 / +0x760) |
+| 00660A50 / 00660C30 / 00660E10 / 00660FF0 | PartyUnitRecord::RemoveWeapon / ... (RET 4) | ours only: the list without the entry |
+
+Clone: the owning manager's CreateObject(kind, -1) (slot 23), then the source's slot 15 (CopyTo,
+overridden by every item class, which calls 0069FFC0 first) with the spell manager; when that
+fails the new item gets a reference and is released (slot 4). CopyTo: the target is destroyed
+(slot 3), gets +0x18 and the dwords +0x20..+0x40, a clone of the attached spell (CSpell::Clone
+0068B410, counted; the old one released) or none, and +0x48 = 1. The record adds clone the item
+with the world's spell manager (the item's manager context, CWorld slot 22 `SpellManager`,
+0055EBA0: +0x4C), count it and append it; the removes release the entry and close the gap. The
+party's adds: with `merge` an item the list holds that is the same (slot 14) gets the count;
+otherwise the party's slot 24 (0055E940: the item factory makes a new item and the source copies
+itself into it) gives the copy, which gets the count, the end of the list and a reference. The
+inlined array growth is AlignedPtrArray::SetSize (00519D70, rewritten) with size + 1.
+
+Header changes (additive): `item.h` CItem virtual slots 13-15 (`InitFromRecordSlot`,
+`IsSameAsSlot`, `CopyToSlot`; the rewritten bodies stay plain members) and Clone / CopyTo;
+`unit.h` PartyUnitRecord's list capacities, grow-bys, the armour list (+0x750) and the eight
+methods; `world.h` CWorld slot 22 named `SpellManager` (was the placeholder `Slot22`, unused).
+The callers' forwarders (originals_gameplay.h PartyAddItemOriginal / PartyRemoveItemOriginal /
+Record*EntryOriginal, ui_camp.cpp, script_exec.cpp, ui_item_info.cpp) stay: they reach these
+through their addresses, so the wrappers run.

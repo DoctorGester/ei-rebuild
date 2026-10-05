@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CItem;   // item.h
 struct UnitStats;
 struct UnitParams;
 struct DamageInfo;   // spell.h
@@ -45,20 +46,44 @@ struct UnitEffect {
 static_assert(sizeof(UnitEffect) == 0x14);
 
 // The record the player keeps for each unit of the party (0x784 bytes, found by unit id through
-// 006621B0); only the item lists are read here.
+// 006621B0); only the item lists are read here. Each list is an aligned pointer array (data,
+// count, capacity, grow-by; AlignedPtrArray's layout) of the record's own copies of the items.
 struct PartyUnitRecord {
+    // 006608D0 / 00660AB0 / 00660C90 / 00660E70 (RET 4; party_items.cpp). A copy of `item` (its
+    // Clone with the world's spell manager), counted and appended to the weapons / quick items /
+    // armour / spells; returns the copy.
+    CItem* AddWeapon(CItem* item);
+    CItem* AddQuickItem(CItem* item);
+    CItem* AddArmor(CItem* item);
+    CItem* AddSpell(CItem* item);
+    // 00660A50 / 00660C30 / 00660E10 / 00660FF0 (RET 4). Releases `entry` and takes it out of the
+    // list (nothing when it is not there).
+    void RemoveWeapon(CItem* entry);
+    void RemoveQuickItem(CItem* entry);
+    void RemoveArmor(CItem* entry);
+    void RemoveSpell(CItem* entry);
+
     std::uint8_t unknown_000[0x730];
     CEngineObject** weapons;        // +0x730
     std::uint32_t weaponCount;      // +0x734
-    std::uint8_t unknown_738[8];
+    int weaponCapacity;             // +0x738
+    int weaponGrowBy;               // +0x73C
     CEngineObject** quickItems;     // +0x740 (an entry counts only with +0x48 > 0)
     std::uint32_t quickItemCount;   // +0x744
-    std::uint8_t unknown_748[0x18];
+    int quickItemCapacity;          // +0x748
+    int quickItemGrowBy;            // +0x74C
+    CEngineObject** armor;          // +0x750
+    std::uint32_t armorCount;       // +0x754
+    int armorCapacity;              // +0x758
+    int armorGrowBy;                // +0x75C
     CEngineObject** spells;         // +0x760
     std::uint32_t spellCount;       // +0x764
+    int spellCapacity;              // +0x768
+    int spellGrowBy;                // +0x76C
 };
 static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
 static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
+static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
 static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 
 // The player's list of party unit records (player + 0x70).

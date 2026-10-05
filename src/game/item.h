@@ -10,6 +10,7 @@
 #include "../lib/mfc.h"
 
 class CSpell;
+class CSpellManager;
 
 // CEngineObject::type_ of an item: which database its prototype lives in.
 enum ItemKind : int {
@@ -27,6 +28,22 @@ inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0
 // Base of every item (vtable 00743DA4).
 class CItem : public CEngineObject {
 public:
+    // Virtual slots 13-15 after CEngineObject's (vtable 00743DA4; the subclasses override 13 and
+    // 15 and call CItem's first). Rewritten bodies are the plain members below (rule 4).
+    virtual void InitFromRecordSlot(const char* record);    // 13: 006A0490 InitFromRecord
+    virtual BOOL IsSameAsSlot(CItem* other);                 // 14: 0069FE90 IsSameAs
+    virtual BOOL CopyToSlot(CItem* target, CSpellManager* spells);   // 15: 0069FFC0 CopyTo
+
+    // 0069FF70 (RET 4; party_items.cpp). A new item of the same kind from the owning manager
+    // (slot 23), given this one's values through slot 15 with the spell manager `spells`; when
+    // that fails the new item is released and the result is null.
+    CItem* Clone(CSpellManager* spells);
+    // 0069FFC0 (RET 8; slot 15's base body; party_items.cpp). Gives `target`, when it is of the
+    // same kind, this item's packed id and values +0x20..+0x40 (after its Destroy, slot 3), a copy
+    // of the attached spell (CSpell::Clone with `spells`; or none) and a count (+0x48) of 1.
+    // Returns 0 for another kind, else 1.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
+
     // 006A0110. The prototype record for the item's kind and index; null for spell containers,
     // other kinds and indices out of range.
     char* GetPrototype();
