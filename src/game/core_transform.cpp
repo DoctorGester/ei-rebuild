@@ -1,5 +1,7 @@
 #include "core_transform.h"
 
+#include "camera.h"
+
 #include "core_maths.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"

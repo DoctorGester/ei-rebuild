@@ -5,7 +5,7 @@
 // recording proxy of the real file, and compare the call sequences.
 #include "verify.h"
 
-#include "../../src/game/core_transform.h"
+#include "../../src/game/camera.h"
 #include "ei/vcall.h"
 
 #include <cstring>

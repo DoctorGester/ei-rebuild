@@ -190,3 +190,39 @@ chunk_archive.obj (release) that every stream call goes through the vtable (Clea
 Scenarios: the archive and the prints.db / acks.db serialisers run at every startup (database.res);
 the chunk streams when a zone's .mob loads (newgame); the memory streams in every save, load and
 network message.
+
+## Ticket C2d: camera (2026-10-05)
+
+Behaviour unchanged; every EI_REPLACE / EI_VERIFY keeps its address, no logic edited.
+
+- New `camera.h` holds the camera's declarations, moved out of `core_transform.h` (which keeps only
+  `CTransformObject`): `CameraLimits`, `CameraViewRecord`, `CameraSettings` (+0x104..+0x120 named:
+  start focus / start distance), `CameraView`, `CameraShake`, `CameraKey` (also the recorder's
+  frame, replaces camera_object.cpp's `CameraRecord`), `CubicCurve3`, `SampleTerrain`, `CCamera`.
+  `CCamera` gained named members for what was raw offsets: `viewStack_` (STLport deque, +0x1E0),
+  `nearDistance_` / `farDistance_` / `fieldOfView_` (+0x2E0..+0x2E8; renderer_init reads them as
+  zNear / zFar / fov), `fileName_` (`mfc::CString`, +0x2EC), flag names `kRecording`, `kPlaced`.
+  `LoadState` / `SaveState` take `CStream*` (virtual Read / Write, `version_`) instead of VCall.
+- Globals have names in `camera::` (terrain, object manager, cell size, clock, zero vector,
+  identity rotation, node free list, flags 007AF5C0), the exe's float constants are `CAM_*` macros
+  (read from the exe at run time as before). Helpers `D` / `Store` exist once.
+- Placed-object fields read by raw offset (+0x24, +0x128..+0x14C) are `CObject3D` members
+  (`position`, `center`, `above`); `ClampAboveObjects` walks a typed `NearbyList` and calls
+  `CWorldClient::ObjectsInRange`, quaternion calls use `Quaternion::SetAngleAxis / SetAxisAngle /
+  Slerp`, the listener `sound::Manager()->SetListener`, all direct calls to functions that are
+  rewritten (before: through the original address, which the hook redirects to the same code; the
+  verify wrappers at those addresses are no longer run from the camera).
+- Shared forwarders in `originals_library.h`: `CIacos`, `CIasin`, `CIpow`, `ListConstruct411850`,
+  `CFileFindNext`, `CFileFindTitle`, `CStringMid`, `CFileWrite`. The camera's container forwarders
+  (shake list, view stack) are declared once in `camera.h`.
+- Hooks of the camera_motion / camera_object member functions are `EI_REPLACE_METHOD` now (the
+  `...Hook` shims are gone).
+- Other files touched mechanically (include only): core_transform.cpp, ui_camera_keys.cpp and four
+  verify files now include `camera.h`; verify_camera_object.cpp's State wrappers take `CStream*`.
+
+Left for other tickets (seen, not changed): duplicate forwarders of 00411850 (ui_battle_update.cpp
+`UnitListConstruct`), 006E6653 (ui_saveload.cpp, world_game.cpp), 0070133F (texture_compose.cpp,
+ui_saveload.cpp), 00700AA9 / 00700970 (net_*.cpp), `CIacos` (core_transform_math.cpp,
+quaternion.cpp) and `CIpow` (ui_hud_map.cpp, ui_item_info.cpp inline asm), `NodeFreeList` (4 files);
+item_constructor.cpp / options.cpp call 006FDA6D `Right`, the camera's use shows it takes the
+characters after the first N (Mid); 007AF738 is the terrain here but `LightManager()` elsewhere.

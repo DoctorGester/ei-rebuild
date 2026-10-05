@@ -9,7 +9,7 @@
 
 #include "ui.h"
 
-#include "core_transform.h"
+#include "camera.h"
 
 #include "ei/hook.h"
 
