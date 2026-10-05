@@ -17,6 +17,7 @@
 #include "originals_world.h"
 
 #include <cmath>
+#include <limits>
 
 namespace {
 constexpr std::uint32_t kFlagNotDrawn = 8;            // the unit's flags_
@@ -32,6 +33,7 @@ constexpr int kSpeechAfterSpeech = 2;                 // ClientSpeech::kind valu
 constexpr int kSpeechAfterSpeech2 = 0x1C;
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::unknown_50
+constexpr float kIntRange = 2147483648.0f;            // 2^31: FISTP's int range is below it
 
 // Not rewritten (forwarders):
 // 0051C9F0. The client half: with 0 every drawn part takes back the colour it kept (with 1 it
@@ -189,7 +191,11 @@ int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
     double ratio = std::log(experience / LevelBase()) / std::log(static_cast<double>(LevelFactor()));
     volatile float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
-    return static_cast<int>(std::lrint(level));
+    float rounded = level;
+    // FISTP gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value;
+    // the CRT's lrint gives 0. Experience 0 reaches it: ln 0 = -inf.
+    if (!(std::fabs(rounded) < kIntRange)) return std::numeric_limits<int>::min();
+    return static_cast<int>(std::lrint(rounded));
 }
 EI_REPLACE_METHOD(0x00539160, CUnitClientSpecific::Level);
 

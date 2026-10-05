@@ -68,6 +68,15 @@ struct DeltaField {
     BitStream snapshot[2];   // +0x00, +0x28: per channel, the bytes last sent
     BitStream out[2];        // +0x50, +0x78: per channel, what is sent now
 
+    // 00677EC0, 0066A300 (identical copies; world_effect_lifetime.cpp). Constructor body: four
+    // empty memory streams, the outputs with the queue streams' vtable (0073C960). Returns this.
+    DeltaField* Construct();
+    // 00675F70 (world_effect_lifetime.cpp). Resize(0) on the four streams: sizes and positions 0,
+    // buffers kept.
+    void Empty();
+    // The destructor body the effects inline: the four streams' destructor bodies, last first.
+    void Destruct();
+
     // 0047DB70 / 0047FA40. Rewinds the snapshots, empties the outputs; both channels keep their
     // snapshots unless `channel1Only`. 0047DB70 returns `channel1Only` or 1, 0047FA40 this.
     int BeginWriteA(int channel1Only);

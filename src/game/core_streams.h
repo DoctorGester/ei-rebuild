@@ -106,6 +106,9 @@ public:
     // 0041DD70. Constructor body: CStream's fields, the vtable, an empty stream (Reset's fields).
     // Fields +4, +6, +7 and +0xC are left as they are. Returns this.
     CMemoryStream* Construct();
+    // 0066C4F0 (world_effect_lifetime.cpp). Construct with the second vtable (0073C960, the
+    // network queue's streams). Returns this.
+    CMemoryStream* ConstructQueueStream();
     // 004173D0, 004790A0. Destructor body: frees the buffer (the pointer is left dangling), then
     // CStream's vtable.
     void Destruct();

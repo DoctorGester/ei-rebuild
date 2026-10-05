@@ -59,9 +59,14 @@ static int __fastcall ActionSoundVerify(CUnitClientSpecific* self, void*, const 
 }
 EI_VERIFY(0x00534760, ActionSoundVerify, 7, s_actionSound);
 
-// 00534B60. Ours only (plays sounds, shakes the camera, adds footprints, draws rand()). Afterwards the
-// controller remembers the animation playing and, unless the frame did not move (or there is no
-// animation), its frame; the footprint countdown stays within 0..7.
+// 00534B60. Ours only: it plays and stops sounds, shakes the camera and adds footprints to the world,
+// so the original cannot run a second time on a copy (it would double all of these, and its footprint
+// would get another id). Afterwards the controller remembers the animation playing and, unless the
+// frame did not move (or there is no animation), its frame. The footprint (+0x80) and its countdown
+// (+0x84) start at -1 (the controller's reset 00533FE0) and change only by one of the original's
+// steps (00535123..00535175): none (no footprint step), the countdown down by one (above 0), the
+// footprint dropped to -1 (countdown 0 or -1, unchanged), or a new footprint id >= 0 with a
+// countdown of 4..7. (The first check required 0..7 and failed on the -1 every unit starts with.)
 static void* s_unusedPlayStepSounds;
 static void __fastcall PlayStepSoundsVerify(CUnitClientSpecific* self) {
     const CFigureAnimationState* state = self->unit->Object3D()->animation;
@@ -69,11 +74,20 @@ static void __fastcall PlayStepSoundsVerify(CUnitClientSpecific* self) {
     float now = state->time;
     float last = self->lastAnimation == current ? self->lastAnimationTime : 0.0f;
     bool moved = now < last || now > last;
+    int printBefore = self->footprint;
+    int repeatsBefore = self->footprintRepeats;
     self->PlayStepSounds();
     float expected = moved && current ? now : last;
+    int print = self->footprint;
+    int repeats = self->footprintRepeats;
+    bool footprintOk = (print == printBefore && repeats == repeatsBefore) ||
+                       (repeatsBefore > 0 && print == printBefore && repeats == repeatsBefore - 1) ||
+                       (repeatsBefore <= 0 && print == -1 && repeats == repeatsBefore) ||
+                       (print >= 0 && repeats >= 4 && repeats <= 7);
     bool ok = self->lastAnimation == current && std::memcmp(&self->lastAnimationTime, &expected, sizeof(float)) == 0 &&
-              self->footprintRepeats >= 0 && self->footprintRepeats <= 7;
-    ei::verify::Check("CUnitClientSpecific::PlayStepSounds", true, ok, "unit %d: time %g (expected %g), repeats %d",
-                      self->unit->id_, self->lastAnimationTime, expected, self->footprintRepeats);
+              footprintOk;
+    ei::verify::Check("CUnitClientSpecific::PlayStepSounds", true, ok,
+                      "unit %d: time %g (expected %g), footprint %d repeats %d (before %d / %d)", self->unit->id_,
+                      self->lastAnimationTime, expected, print, repeats, printBefore, repeatsBefore);
 }
 EI_VERIFY(0x00534B60, PlayStepSoundsVerify, 0, s_unusedPlayStepSounds);

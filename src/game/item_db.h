@@ -44,24 +44,63 @@ constexpr int kQuestItemSize = 0x78;
 constexpr int kSpellSize = 0x84;
 constexpr int kSpellModifierSize = 0x24;
 
-// A quick item prototype (potions, wands; kQuickItemSize bytes). Only the fields read through it.
-struct QuickItemRecord {
-    std::uint8_t unknown_00[0x80];
-    std::uint8_t attributeBonus[3];     // +0x80 per attribute (UnitStats::AttributeWithItems)
-    std::uint8_t unknown_83[kQuickItemSize - 0x83];
-};
-static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
-static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
-
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items).
+// The values +0x34..+0x48 go to the item (CItem::InitFromRecord), with the item offset noted.
 struct ItemRecordHead {
     std::uint8_t unknown_00[0x0C];
     int type;                           // +0x0C field::kItemType
     std::uint8_t unknown_10[0x18 - 0x10];
     int number;                         // +0x18 field::kItemNumber
     int variant;                        // +0x1C the model variant
+    std::uint8_t unknown_20[0x34 - 0x20];
+    float price;                        // +0x34 field::kItemPrice (item +0x38)
+    std::uint32_t value38;              // +0x38 item +0x34 (weapons: attack)
+    std::uint32_t value3C;              // +0x3C item +0x3C
+    float charge;                       // +0x40 item charge and maximum
+    std::uint32_t value44;              // +0x44 item +0x40
+    float value48;                      // +0x48 item +0x20 and +0x24
+    std::uint8_t unknown_4C[0x6C - 0x4C];
+    std::uint32_t category;             // +0x6C field::kItemCategory (the loot item's kind)
 };
 static_assert(offsetof(ItemRecordHead, number) == 0x18);
+static_assert(offsetof(ItemRecordHead, price) == 0x34);
+static_assert(offsetof(ItemRecordHead, value48) == 0x48);
+static_assert(sizeof(ItemRecordHead) == 0x70);
+
+// A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
+struct WeaponRecord : ItemRecordHead {
+    std::uint8_t unknown_70[0x8C - 0x70];
+    std::uint32_t value8C;              // +0x8C item +0x58
+    float damage;                       // +0x90 field::kWeaponDamage
+    float damageSpread;                 // +0x94 field::kWeaponDamageSpread
+};
+static_assert(offsetof(WeaponRecord, value8C) == 0x8C);
+
+// An armour prototype (kArmorSize bytes): the two absorption rows CItemArmor takes.
+struct ArmorRecord : ItemRecordHead {
+    std::uint32_t absorbFirst[7];       // +0x70 item absorb_[0]
+    std::uint8_t unknown_8C[0x94 - 0x8C];
+    std::uint32_t absorbOthers[7];      // +0x94 item absorb_[1]
+};
+static_assert(offsetof(ArmorRecord, absorbOthers) == 0x94);
+
+// A quick item prototype (potions, wands, scrolls; kQuickItemSize bytes).
+struct QuickItemRecord : ItemRecordHead {
+    std::uint32_t value70;              // +0x70 item +0x4C
+    std::uint8_t unknown_74[0x80 - 0x74];
+    std::uint8_t attributeBonus[3];     // +0x80 per attribute (UnitStats::AttributeWithItems)
+    std::uint8_t unknown_83[kQuickItemSize - 0x83];
+};
+static_assert(offsetof(QuickItemRecord, value70) == 0x70);
+static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
+static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
+
+// The prototype of a CItemLoot (table 007C8778): kind (the head's category), record type, index.
+struct LootItemRecord : ItemRecordHead {
+    std::uint32_t recordType;           // +0x70
+    std::uint32_t index;                // +0x74
+};
+static_assert(offsetof(LootItemRecord, index) == 0x74);
 
 // The start of a material record (kMaterialSize bytes).
 struct MaterialRecordHead {
