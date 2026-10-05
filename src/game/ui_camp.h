@@ -99,6 +99,19 @@ public:
     // container's handler (00601110) first, and when no panel took it a press on the view starts:
     // +0x1C0 set, the point kept (+0x1C4), no drag (+0x1C1).
     void OnLButtonDown(int buttons, int x, int y);
+    // 00638AD0 (input side slot 7, RET 0xC; ui_battle_input.cpp; `this` the window). A double
+    // click: as the button-down (00638A40) with the container's double-click handler (00601570).
+    void OnLeftDouble(int buttons, int x, int y);
+    // 0063B6D0 (input side slot 11, RET 0xC; ui_battle_input.cpp). A key released: unless a
+    // portrait click picks a player, the container's key-up handler (006019A0), then the order
+    // key of the key's action (0x11..0x16 of the key table, by `flags & 0x1FF`) is released.
+    void OnKeyUp(int key, int repeat, int flags);
+    // 0063B770 (input side slot 12, RET 0x10; ui_battle_input.cpp). The wheel: unless a portrait
+    // click picks a player, offered to the map, the unit panel, the message log and the top panel
+    // in that order (each one's handled flag cleared first, the first that sets it ends it); when
+    // none takes it, those four are disabled (006002A0 with 0, 0) while the container's wheel
+    // handler (00601730) passes it on, then enabled again (1, 0). Returns 1.
+    BOOL OnWheel(int flags, int delta, int x, int y);
     // 0063B920 (RET 8; ui_battle_mouse.cpp). The name of `unit` into `out`: its GetName (slot 7)
     // when not empty; for a unit whose id is a text key, its "pers" text (+0x1F0) or empty;
     // otherwise the first line of the text "unit " + the prototype's name with spaces as '_' (or
@@ -180,7 +193,11 @@ public:
     std::uint8_t unknown_184[4];
     int savedSelection_;             // +0x188 -1, or read from the save (version 0x62)
     std::uint8_t savedFlag_;         // +0x18C
-    std::uint8_t unknown_18D[0x194 - 0x18D];   // +0x18D dword, +0x191 word cleared by Create
+    // +0x18D the order modifier keys held: key actions 0x11..0x16 (key table 0079BF70) set by the
+    // key-down handler 0063A560 and cleared by the key-up one (0063B6D0); AttackUnit's order kind
+    // is the first one set. Create clears them (a dword and a word).
+    std::uint8_t orderKeys_[6];
+    std::uint8_t unknown_193;
     CUiWindow* weaponBar_;           // +0x194
     CUiWindow* quickItems_;          // +0x198
     CUiWindow* spellColumn_;         // +0x19C

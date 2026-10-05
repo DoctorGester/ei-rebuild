@@ -175,6 +175,16 @@ public:
     // spell or quick item clicked twice is used at once.
     bool doubleClick_;               // +0x7F
     bool rightDown_;                 // +0x80 the right button is held
+    std::uint8_t unknown_81[0x89 - 0x81];
+    // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState.
+    std::uint8_t unknown_89[3];
+    int unknown_8C;
+    int unknown_90;
+    int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
+
+    // 005F51F0 (ui_main_menu.cpp; the main menu's Create). Clears the saved state: +0x89..+0x8B,
+    // +0x8C, +0x90 and +0x94.
+    void ResetSavedState();
 };
 static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
@@ -186,6 +196,8 @@ static_assert(offsetof(CInterface3D, root_) == 0x1C);
 static_assert(offsetof(CInterface3D, drawing_) == 0x30);
 static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
+static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
+static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
 
 // The interface's growable pointer arrays (an MFC CArray-like template the game inlines): the
 // storage is aligned to 32 bytes, with the pointer returned by operator new stored just before it.
@@ -291,6 +303,9 @@ public:
     void SetTipString(const char* text, int a, int b);
     // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
     void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0
+    // 0062AC90 (RET 0x10; ui_main_menu.cpp). SetRect (through its original address) from a RECT
+    // passed by value; the menus' layouts use it for their menus.reg rectangles.
+    void SetRectFrom(RECT rect);
 
     CInterface3D* interface_;        // +0x00
     UiPoint* points_;                // +0x04 polygon vertices (aligned storage)
@@ -604,6 +619,10 @@ static_assert(offsetof(CUiWindow, models_) == 0x138);
 // Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
 inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
+
+// The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
+// (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
+inline const signed char* KeyActions() { return reinterpret_cast<const signed char*>(0x0079BF70); }
 
 class CUiRootWindow : public CUiWindow {
 public:

@@ -178,7 +178,7 @@ plus its WM_CHAR, which the console's character input needs); scenario `console.
 ## 4. Main menu, dialogs, escape menu, credits
 
 Files: `ui_layouts.cpp`, `ui_menus.cpp`, `ui_screens.cpp`; wrappers `verify_ui_screens.cpp`, `verify_ui_menus.cpp`;
-scenarios `ui_main_menu` (regions 3, 1, 0, 4) and `ui_screens` (main menu region 5, the hero screen's list keys and
+scenarios `ui_main_menu` (regions 3, 1, 0, 4), `ui_container_input` (Esc on the menu, Esc on the quit box) and `ui_screens` (main menu region 5, the hero screen's list keys and
 rotate buttons, Esc back; then a new game and the escape menu: hover, resume, Esc, the quit box cancelled with Esc; uses the
 harness steps `clickregion` / `moveregion`). The harness's `newgame` bypasses the difficulty question.
 
@@ -206,6 +206,8 @@ harness steps `clickregion` / `moveregion`). The harness's `newgame` bypasses th
 | Address | Name | Verify |
 |---|---|---|
 | 00632D70 | `CMainMenu::OnLButtonDown` (slot 2) | ours only: the window the region opens is on top with its vtable (0074225C, 00741388, 00741FAC, 00740C3C, 0074214C); other points open nothing; region 2 not checked |
+| 006326B0, 006335E0, 00632B10, 00632910, 00632940 | `CMainMenu::Create` (slot 25), `AddVersionLine`, `Update` (24: rain at 0 / 7 o'clock, night lightning 1 in 41 per 100 ms), `Close` (26), `OnMessageResult` (27) (`ui_main_menu.cpp`; CMainMenu is now a CUiContainer) | ours only: regions / surfaces / inputs added, hour, the map edge fade (0079BD34) kept and restored; surfaces after an answer |
+| 00633400, 00633540, 005F51F0, 0062AC90 | `CMainMenu::OnMouseMove` (stone animations 1, 3, 5, 7, 11, 9), `OnKeyDown` (Esc: the quit box), `CInterface3D::ResetSavedState`, `CUiRegion::SetRectFrom` (RECT by value) | ours only: hovered region, the box on top; side by side: the saved-state bytes, the region on a copy without vertices |
 | 00634650, 0063B5D0, 0063FE70 | `CMessageBox::Construct` (RET 0x18), `CObjectivesWindow::Construct` (RET 4), `CHudPortraits::Construct` (RET 8; `ui_screen_constructors.cpp`) | ours only: vtables, the fields each sets, the portraits' one marker sprite |
 | 00634790, 006337B0, 0062B7D0 | `CMessageBox::Build`, `CDifficultyBox::Build`, `CCreditsScreen::Build` (slot 25) | ours only: surface / sprite / region counts, the edit field as a child with flag 4; easy_ 0; +2 surfaces kept in +0x164 / +0x168, the script's lines appended |
 | 0062AB20, 0062AE90 | `CEscMenu::Build` (slot 25), `OnLButtonDown` | ours: one model and five regions added; the window opened on top (vtable, save flag), resume's pending value |
@@ -334,6 +336,7 @@ the Rebirth-patched callees 005E70E0, 005E7680, 005E7D60, 005FDE20, 005F8340, 00
 | 006366F0, 006369D0 | `OnUnitSpeech` (slot 32, RET 0xC), `OnQuestVariable` (slot 33, RET 8) | ours only: the top panel's text only grows; faces / shake by event; quest line, clock pulse | any unit speaking; ui_quest_notice |
 | 00637500, 00637750 | `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14) | ours only: each member the unit's own check allows (CanCastSpell 0052F820 / CanUseQuickItem 0052F8B0) nods; nothing pending afterwards | ui_battle_spells, ui_quick_items |
 | 0063CD20, 0063E750, 0063F730, 0063E7C0, 0063F7A0, 005E7060 | `CHudQuickItems::Highlight`, `CHudSpellColumn` / `CHudActionColumn::Highlight` (RET 8), their `ClearHighlights`, `CUiMesh::SetScale` (RET 4; `ui_hud_highlight.cpp`; rewritten callers use `HighlightAt` / `SpriteSetScaleOriginal`) | side by side: sprites' scale and colour, +0x150 | every game scenario (SetPendingAction, SetUnit) |
+| 00638AD0, 0063B6D0, 0063B770 | `OnLeftDouble` (slot 7: the button-down with 00601570), `OnKeyUp` (slot 11: 006019A0, then the order key of actions 0x11..0x16 released, `orderKeys_` +0x18D in the jump table's order 0, 1, 5, 4, 3, 2), `OnWheel` (slot 12, RET 0x10: map, unit panel, message log, top panel, else those four disabled around 00601730; returns 1) (`ui_battle_input.cpp`) | ours only: press state as the button-down's check; the action's key cleared, the others kept; result 1 and the four panels enabled again | ui_container_input (double click on the view), camera / ui_hud keys, ui_hud's wheel |
 | 0063DB20, 0063EC90, 0063FB50, 0063DD70 | `CHudQuickItems::OnMouseUp` (RET 0xC), `CHudSpellColumn::Click`, `CHudActionColumn::Select`, `CHudQuickItems::Pick` (RET 4) | OnMouseUp ours only (capture, handled flag, pending mode); the rest side by side: pending action, panels' +0x150, button sprites | ui_battle_spells, ui_quick_items; 0063A560's spell keys call them by address |
 
 How they chain (the code has the details):

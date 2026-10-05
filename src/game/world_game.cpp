@@ -1902,7 +1902,7 @@ namespace {
 constexpr std::uintptr_t kDefaultHeroName = 0x0078B0FC;   // "Human Hero"
 constexpr std::uintptr_t kDefaultPartyName = 0x007906C4;  // "Bug"
 // 0057DEE0 (RET 4). The flow's party setup step (1 here).
-__declspec(naked) void __fastcall FlowPartyStep(GameFlow*, void*, int) EI_ORIGINAL(0x0057DEE0)
+void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { FlowPartyStepOriginal(flow, nullptr, step); }
 // 00461540. The named float table's clear, through its address.
 __declspec(naked) void __fastcall VariablesClear(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00661FB0. The party outside a game (007C82B0) resets its members.

@@ -73,3 +73,11 @@ __declspec(naked) inline void __fastcall WorldSetTimeSpeedOriginal(void* /*world
 // 00595480: CWorldServer::NewZone(map, mob, zone) (RET 0xC, EAX 0 = failed).
 __declspec(naked) inline int __fastcall WorldNewZoneOriginal(void* /*world*/, void*, const char* /*map*/, const char* /*mob*/,
                                                              const char* /*zone*/) EI_ORIGINAL(0x00595480)
+
+// 0057DEE0 (thiscall on the game flow 007AFE20, RET 4): the flow's party setup step (the unit database rebuilt).
+__declspec(naked) inline void __fastcall FlowPartyStepOriginal(void* /*flow*/, void*, int /*step*/) EI_ORIGINAL(0x0057DEE0)
+// 00578E30 (rewritten as ShowBolt, world_weather.cpp; RET 0x18): the client glue (007AFEA4) shows a lightning bolt
+// from (fromX, fromY, fromZ) to (toX, toY, toZ) (two Vector3 by value).
+__declspec(naked) inline void __fastcall ShowBoltOriginal(void* /*glue*/, void*, float /*fromX*/, float /*fromY*/,
+                                                          float /*fromZ*/, float /*toX*/, float /*toY*/, float /*toZ*/)
+    EI_ORIGINAL(0x00578E30)

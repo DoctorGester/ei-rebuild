@@ -67,7 +67,9 @@ __declspec(naked) void __fastcall LightningSetPath(void*, void*, const Vector3*,
 // 00675CA0. Marks an object new.
 void __fastcall MarkNew(void* a0, void*) { ObjectMarkNewOriginal(a0); }
 // 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
-__declspec(naked) void __fastcall ShowBoltAt(void*, void*, Vector3 /*from*/, Vector3 /*to*/) EI_ORIGINAL(0x00578E30)
+void __fastcall ShowBoltAt(void* glue, void*, Vector3 from, Vector3 to) {
+    ShowBoltOriginal(glue, nullptr, from.x, from.y, from.z, to.x, to.y, to.z);
+}
 // 0058B6D0 / 0058D280. MarkPlayersDirty / UpdatePlayerTimes, through their addresses.
 __declspec(naked) void __fastcall MarkPlayersDirtyAt(CWorldServer*, void*, std::uint32_t) EI_ORIGINAL(0x0058B6D0)
 
