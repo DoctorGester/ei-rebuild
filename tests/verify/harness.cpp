@@ -25,6 +25,12 @@
 //                             the same at the centre of clickable region <n> of the window on top
 //                             of the interface (its regions as the screen's code numbers them;
 //                             placed with the game's own scaling, so Rebirth's widescreen layout too)
+//   clickunit <name> [l|r|move] [ctrl]
+//                             left click (default), right click or move the mouse on the unit with
+//                             script name <name> (as GetObjectByName) where the game's own picking
+//                             (00565E40) finds it in this frame; "ctrl" holds Ctrl (CInterface3D
+//                             +0x7C) around it. Fails when the unit is not drawn or always hidden
+//                             behind another object
 //   screen <id>               ask the server for interface screen <id> as the global map's buttons
 //                             do (4 the global map, 5 the camp; the battle screen is left)
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
@@ -896,10 +902,98 @@ void PostRegionMouse(const std::string& verb, int index) {
     }
 }
 
+// --- clickunit <name> [l|r|move] [ctrl] (ticket I8) -------------------------------------------
+// A click on a unit's body, placed where the game's own picking finds it. The client world
+// (007AF5B8) keeps a list (+0xF0, header pointer; nodes: next +0, value +8: 0x18 bytes, the
+// object id at +0xC and its screen rectangle at +0x10) of the objects drawn this frame with the
+// rectangles of their projected vertices (written by the object draw, 004E8900 / 005A7A70).
+// 00565E40 (the world's thiscall, RET 4) is the unit at a point that the battle screen's left
+// button release (00638B30) asks with the message's own coordinates: those rectangles that hold
+// the point, the client object's finer test (+0x94 slot 24), the nearest unit (type 0x50). The
+// step tries the rectangle's centre and then a grid inside it until 00565E40 answers with the
+// unit, so a click there selects or orders that unit and no other in front of it.
+// 00461360 (__fastcall) turns the script name into the id AddUnitToServer gave the unit.
+__declspec(naked) int __fastcall HarnessObjectIdFromName(const char*) EI_ORIGINAL(0x00461360)
+__declspec(naked) void* __fastcall HarnessUnitAtPoint(void* /*client world*/, void*, int* /*x, y*/) EI_ORIGINAL(0x00565E40)
+constexpr std::uintptr_t kClientWorld = 0x007AF5B8;
+constexpr int kClientPickList = 0xF0;
+constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 requires of the unit
+
+std::string PostUnitMouse(const std::string& argument) {
+    char name[64] = "", button[8] = "l", modifier[8] = "";
+    if (sscanf_s(argument.c_str(), "%63s %7s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button)),
+                 modifier, unsigned(sizeof(modifier))) < 1)
+        return "clickunit needs <name> [l|r|move] [ctrl]";
+    std::string what = std::string("clickunit ") + name;
+    int id = HarnessObjectIdFromName(name);
+    auto* world = reinterpret_cast<std::uint8_t*>(kClientWorld);
+    auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
+    if (!header) return what + ": no pick list (not in a game)";
+    // The unit's rectangle in this frame's list (the last entry for the id).
+    const RECT* rect = nullptr;
+    for (auto* node = *reinterpret_cast<std::uint8_t**>(header); node && node != header;
+         node = *reinterpret_cast<std::uint8_t**>(node)) {
+        if (*reinterpret_cast<int*>(node + 0xC) == id) rect = reinterpret_cast<const RECT*>(node + 0x10);
+    }
+    if (!rect) return what + " (id " + std::to_string(id) + "): not drawn this frame (off screen?)";
+    Log("harness: %s: id %d, rectangle (%ld,%ld)-(%ld,%ld)", what.c_str(), id, rect->left, rect->top, rect->right,
+        rect->bottom);
+    // Candidates: the centre, then a 9x9 grid inside the rectangle from the middle outwards.
+    std::vector<POINT> candidates;
+    long cx = (rect->left + rect->right) / 2, cy = (rect->top + rect->bottom) / 2;
+    candidates.push_back({cx, cy});
+    constexpr int kSteps = 9;
+    for (int ring = 1; ring <= kSteps / 2; ++ring) {
+        for (int j = -ring; j <= ring; ++j) {
+            for (int i = -ring; i <= ring; ++i) {
+                if (i != -ring && i != ring && j != -ring && j != ring) continue;
+                long x = cx + i * (rect->right - rect->left) / (kSteps + 1);
+                long y = cy + j * (rect->bottom - rect->top) / (kSteps + 1);
+                candidates.push_back({x, y});
+            }
+        }
+    }
+    void* hit = nullptr;
+    POINT at{};
+    for (const POINT& p : candidates) {
+        int point[2] = {p.x, p.y};
+        hit = HarnessUnitAtPoint(world, nullptr, point);
+        if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
+            at = p;
+            break;
+        }
+        hit = nullptr;
+    }
+    if (!hit) return what + ": the game's pick (00565E40) finds another object everywhere in its rectangle";
+    std::uint32_t flags = *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(hit) + 8);
+    RECT client{};
+    GetClientRect(GameWindow(), &client);
+    Log("harness: %s: at (%ld,%ld) (client %ldx%ld), flags %08X%s", what.c_str(), at.x, at.y, client.right - client.left,
+        client.bottom - client.top, flags, (flags & kPickableUnit) ? "" : " (no 0x400000: the battle screen ignores it)");
+    // The battle screen reads the message's coordinates as they are (the pick space is the client
+    // area); the harness's cursor follows them.
+    g_mouseX = at.x;
+    g_mouseY = at.y;
+    LPARAM where = MAKELPARAM(at.x, at.y);
+    bool ctrl = std::strcmp(modifier, "ctrl") == 0;
+    constexpr UINT kCtrlScan = 0x1D;   // CInterface3D::OnKeyDown: +0x7C while down
+    if (ctrl) PostMessageA(GameWindow(), WM_KEYDOWN, VK_CONTROL, 1 | (kCtrlScan << 16));
+    PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, where);
+    if (std::strcmp(button, "l") == 0) {
+        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, where);
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, where);
+    } else if (std::strcmp(button, "r") == 0) {
+        PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, where);
+        PostMessageA(GameWindow(), WM_RBUTTONUP, 0, where);
+    }
+    if (ctrl) PostMessageA(GameWindow(), WM_KEYUP, VK_CONTROL, 1 | (kCtrlScan << 16) | 0xC0000000u);
+    return "";
+}
+
 // The steps that post input messages to the game window.
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
-           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion";
+           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit";
 }
 
 // Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
@@ -1071,6 +1165,12 @@ void RunSteps() {
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
+        } else if (s.verb == "clickunit") {
+            std::string error = PostUnitMouse(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
         } else if (s.verb == "screen") {
             // What the global map's buttons do (0062F950): ask the server for interface screen <id>.
             // For the camp (5) the map's button first sets "constr_current" to 0.

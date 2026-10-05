@@ -92,6 +92,18 @@ public:
     void AttackUnit(CUnit* target, int ctrl);
     // 006373A0 (RET 8). The same for a dead `target` (0066AB80; no kind, no levels).
     void OrderDeadUnit(CUnit* target, int ctrl);
+    // 00637500 (RET 0xC; ui_battle_commands.cpp). The pending spell (+0x17C 1) or quick item (3) in
+    // slot +0x180 used on `target` by each selected member: `quick` 0 a spell (the local view's
+    // 0066AC70 (slot, member, target, low byte of `ctrl`), then CUnit::CanCastSpell), else a quick
+    // item (0066AD40, the quick item panel shows the member (0063D2B0), CUnit::CanUseQuickItem);
+    // when the check answers 0 the member's portrait nods after a random delay. Then the pending
+    // action is dropped (+0x17C 0, +0x180 / +0x184 -1) and the quick item, spell and action
+    // panels' highlights cleared.
+    void UseOnUnit(CUnit* target, char quick, int ctrl);
+    // 00637750 (RET 0x14; ui_battle_commands.cpp). The same at the point (x, y, z) (0066ACD0 /
+    // 0066ADD0 with the point and 0). For the member that is `unit` itself the point first moves
+    // 0.1 (0073B850) behind it (against its rotated Y axis), for it and the members after it.
+    void UseAtPoint(float x, float y, float z, CUnit* unit, char quick);
     // 006366F0 (slot 32, RET 0xC). The unit with `id` (the object manager 007AF5F8) speaks: a
     // phrase picked by 006D8430 (or, for events 0x2A / 0x2B, 006D8A40 with `extra`); when its
     // "say <name>" text exists, the unit's name line (0063B920) + ":\n" and the text (to a '#',

@@ -1,0 +1,57 @@
+# The battle screen's spell target modes (docs/notes/ui.md, "Seventeenth pass"). The hero gets
+# three spells (GiveUnitSpell) and a click on its portrait refreshes the spell column (00637DC0 ->
+# 0063E820): the spells' buttons stand at x 760..800, the last one at y 470..510 and each earlier
+# one 40 higher (0063E4B0), so with three spells their centres are (780, 410), (780, 450) and
+# (780, 490). A click on a button (CHudSpellColumn::Click 0063EC90) starts its target mode
+# (+0x17C: 1 for a spell with data flag 0x10000000, else 2) and "clickunit" on a wolf ends it
+# through SelectUnit (00638EF0): mode 1 is the spell on a unit (00637500), mode 2 the spell at the
+# unit's position (00637750). The wolves stand blocked next to the blocked hero; the report's call
+# counts for CBattleScreenSetup::UseOnUnit / UseAtPoint show which were reached.
+# Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @GiveUnitSpell(GetLeader(),"lightning")
+console @GiveUnitSpell(GetLeader(),"firewall")
+console @GiveUnitSpell(GetLeader(),"fireball")
+wait 500
+
+# The hero's portrait: selects it and shows its spells.
+click 400 560
+wait 300
+check IsAlive(GetLeader())
+
+console @AddUnitToServer("SpellWolf1","WolfTutor","SpellWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("SpellWolf2","WolfTutor","SpellWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+console @AddUnitToServer("SpellWolf3","WolfTutor","SpellWolf3",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("SpellWolf1"))
+waitfor 10 IsAlive(GetObjectByName("SpellWolf2"))
+waitfor 10 IsAlive(GetObjectByName("SpellWolf3"))
+console @BlockUnit(GetObjectByName("SpellWolf1"),1)
+console @BlockUnit(GetObjectByName("SpellWolf2"),1)
+console @BlockUnit(GetObjectByName("SpellWolf3"),1)
+wait 500
+
+# Each spell's button, then a wolf.
+click 780 410
+wait 200
+clickunit SpellWolf1
+wait 500
+click 780 450
+wait 200
+clickunit SpellWolf2
+wait 500
+click 780 490
+wait 200
+clickunit SpellWolf3
+wait 1000
+check IsAlive(GetLeader())
+report
+quit
