@@ -19,7 +19,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
 
-- A-W (taken 2026-10-05) Area ticket: 0x00540000-0x005E0000.
+- A-W done 2026-10-05 (33 functions; leftovers listed in unit_ai.md / world.md).
+- X12 (taken 2026-10-05) A-W's two failures, now in tests/verify/disabled.txt: 005D2850 FearMode::Construct (differs on every call, "mode ... flag 0") and 005CB700 AIBrain::UpdateMemory (its check fails 197 of 510756, "brain ...: 0 reports").
 
 ## App and startup, 0x00440000-0x00480000
 
