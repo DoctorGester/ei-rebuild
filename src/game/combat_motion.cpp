@@ -82,7 +82,7 @@ __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, co
                                            int /*until*/, int /*start*/) EI_ORIGINAL(0x005B2050)
 // The step list of a motion order (a CList of path cells, vtable 0073EDB0): 00556D10 constructor
 // (block size), 00556D40 RemoveAll.
-__declspec(naked) void* __fastcall CellListConstruct(void*, void*, int /*blockSize*/) EI_ORIGINAL(0x00556D10)
+void* __fastcall CellListConstruct(void* a0, void*, int a2) { return CellListConstructOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall CellListRemoveAll(void*) EI_ORIGINAL(0x00556D40)
 // The world server's timed objects (world_server.cpp).
 // The AI: 005D5E90 the brain's leader (unit_ai.cpp), 005D4F70 the brain's reset, 005AEA40 the
@@ -109,11 +109,10 @@ __declspec(naked) void __fastcall CtlPlayAnimation(CUnitServer*, void*, Animatio
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
 // blank step; 00544FD0 OrderPlan's reset.
-__declspec(naked) AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps*, void*, const AnimationSteps*)
-    EI_ORIGINAL(0x00556870)
+AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00557B60)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-__declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, std::uint32_t) EI_ORIGINAL(0x00544D50)
+void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
 __declspec(naked) AnimationStep* __fastcall StepBlank(AnimationStep*) EI_ORIGINAL(0x00550A60)
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
@@ -782,7 +781,7 @@ namespace {
 // 0052B030 a reference's release, 0052A8F0 its assignment; 00544E70 does the queue hold `steps`.
 __declspec(naked) void __fastcall ReferenceRelease(CEngineObject**) EI_ORIGINAL(0x0052B030)
 __declspec(naked) void __fastcall ReferenceSet(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x0052A8F0)
-__declspec(naked) bool __fastcall QueueHolds(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x00544E70)
+bool __fastcall QueueHolds(AnimationSteps* a0, void*, const AnimationSteps* a2) { return StepsQueueHoldsOriginal((void*)a0, nullptr, (const void*)a2); }
 IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.

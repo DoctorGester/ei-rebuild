@@ -85,10 +85,10 @@ __declspec(naked) void UiInput::BaseKeyDown(int, int, int) EI_ORIGINAL(0x0060182
 
 __declspec(naked) void UiItemArray::SetSize(int, int) EI_ORIGINAL(0x0062A390)
 
-__declspec(naked) bool UiItemKinds::IsPart(const char*) EI_ORIGINAL(0x005EE0D0)
+bool UiItemKinds::IsPart(const char* a0) { return ItemKindIsPartOriginal((const void*)a0); }
 __declspec(naked) bool UiItemKinds::IsKindOne(const char*) EI_ORIGINAL(0x005EE110)
-__declspec(naked) bool UiItemKinds::IsSpell(const char*) EI_ORIGINAL(0x005EE050)
-__declspec(naked) bool UiItemKinds::IsModifier(const char*) EI_ORIGINAL(0x005EE080)
+bool UiItemKinds::IsSpell(const char* a0) { return ItemKindIsSpellOriginal((const void*)a0); }
+bool UiItemKinds::IsModifier(const char* a0) { return ItemKindIsModifierOriginal((const void*)a0); }
 
 __declspec(naked) void UiModelAnim::Play(int) EI_ORIGINAL(0x005FC3B0)
 __declspec(naked) void UiModelAnim::Stop() EI_ORIGINAL(0x005FC3D0)

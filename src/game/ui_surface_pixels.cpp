@@ -279,7 +279,7 @@ namespace {
 // 004EF7B0 (thiscall, RET 0xC): a surface holder's constructor (device, width, height).
 __declspec(naked) SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int) EI_ORIGINAL(0x004EF7B0)
 // 004E6BA0 (thiscall): drops a holder reference.
-__declspec(naked) void __fastcall ReleaseHolder(SurfaceHolder*) EI_ORIGINAL(0x004E6BA0)
+void __fastcall ReleaseHolder(SurfaceHolder* a0) { SurfaceHolderReleaseOriginal((void*)a0); }
 
 long GetSurfaceDesc(void** surface, std::uint32_t* desc) {
     using Fn = long(__stdcall*)(void**, void*);

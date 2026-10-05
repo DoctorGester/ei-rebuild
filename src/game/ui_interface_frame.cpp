@@ -221,8 +221,8 @@ __declspec(naked) void** __fastcall QueueInsert(void*, void*, void** /*out*/, vo
 // Rebirth's game over message: the menu object at 007AFEA5 (00578920 with 1, then 00578940), the
 // message window (0x180 bytes, constructor 00634650: interface, title, text, 0x20000, 3, 1) and
 // the interface's ShowWindow (005F7350: window, 1, 1).
-__declspec(naked) void __fastcall MenuSet578920(void*, void*, int) EI_ORIGINAL(0x00578920)
-__declspec(naked) void __fastcall MenuCall578940(void*, void*) EI_ORIGINAL(0x00578940)
+void __fastcall MenuSet578920(void*, void*, int a2) { MenuSetOriginal(a2); }
+void __fastcall MenuCall578940(void*, void*) { MenuCallOriginal(); }
 void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 __declspec(naked) void __fastcall InterfaceShowWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
 

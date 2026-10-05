@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include "originals_library.h"
+#include "originals_ai.h"
 
 namespace {
 
@@ -22,7 +23,7 @@ void* Member(void* object, int offset) { return static_cast<std::uint8_t*>(objec
 // Constructors of the members (thiscall).
 __declspec(naked) void __fastcall Construct10C(void*, void*) EI_ORIGINAL(0x005BCCD0)
 __declspec(naked) void __fastcall Construct134(void*, void*) EI_ORIGINAL(0x005BD1C0)
-__declspec(naked) void __fastcall Construct1F4(void*, void*) EI_ORIGINAL(0x005B14C0)
+void __fastcall Construct1F4(void* a0, void*) { SearchPartConstructOriginal(a0); }
 __declspec(naked) void __fastcall ConstructUnitLayer(void*, void*) EI_ORIGINAL(0x005B4110)
 __declspec(naked) void __fastcall ConstructRegionMap(void*, void*) EI_ORIGINAL(0x005AF3D0)
 __declspec(naked) void __fastcall ConstructList2598(void*, void*, int, int) EI_ORIGINAL(0x005BCC50)

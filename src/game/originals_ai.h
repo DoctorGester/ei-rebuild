@@ -48,3 +48,30 @@ __declspec(naked) inline void __fastcall PathShiftTime(void*, void*, int) EI_ORI
 
 // C3i. 005C35F0: CLocalSearch reset (plain RET, EAX not a result; the old `(void*, void*)` forms passed a dummy EDX).
 __declspec(naked) inline void __fastcall LocalSearchResetOriginal(void* /*search*/) EI_ORIGINAL(0x005C35F0)
+
+// C3j. 005D3760: player mode constructor (plain RET, returns this).
+__declspec(naked) inline void* __fastcall ModePlayerConstructOriginal(void* /*mode*/) EI_ORIGINAL(0x005D3760)
+// 005D5F60 / 005D4DF0 / 005D6140: brain AddMode(mode) (RET 4) / ClearModes() (plain RET) / RemoveMode(index) (RET 4); no result.
+__declspec(naked) inline void __fastcall BrainAddModeOriginal(void* /*brain*/, void*, void* /*mode*/) EI_ORIGINAL(0x005D5F60)
+__declspec(naked) inline void __fastcall BrainClearModesOriginal(void* /*brain*/) EI_ORIGINAL(0x005D4DF0)
+__declspec(naked) inline void __fastcall BrainRemoveModeOriginal(void* /*brain*/, void*, int /*index*/) EI_ORIGINAL(0x005D6140)
+// 005D12B0: patrol mode adds a point (RET 4, no result).
+__declspec(naked) inline void __fastcall PatrolAddPointOriginal(void* /*mode*/, void*, const void* /*point*/) EI_ORIGINAL(0x005D12B0)
+// 005AEA60: AI voice raises its level to at least `level` (RET 4, no result).
+__declspec(naked) inline void __fastcall VoiceSayOriginal(void* /*voice*/, void*, int /*level*/) EI_ORIGINAL(0x005AEA60)
+// 005B14C0: constructs the second part of the search state (plain RET, no result).
+__declspec(naked) inline void __fastcall SearchPartConstructOriginal(void* /*search*/) EI_ORIGINAL(0x005B14C0)
+// 005C2420: CLocalSearch begin(unit, a, b, c, d) (RET 0x14, AL).
+__declspec(naked) inline bool __fastcall LocalSearchBeginOriginal(void* /*search*/, void*, void* /*unit*/, int, int, int, int)
+    EI_ORIGINAL(0x005C2420)
+// 005C6000: fixes up a path cell list chain (plain RET, no result).
+__declspec(naked) inline void __fastcall PathCellListFixUpOriginal(void* /*list*/) EI_ORIGINAL(0x005C6000)
+// 005C98C0: AI events noise(source, loudness, kind, at) (RET 0x10; a null `at` means the source's position; no result).
+__declspec(naked) inline void __fastcall AiEventsNoiseOriginal(void* /*events*/, void*, void* /*source*/, float /*loudness*/,
+                                                               int /*kind*/, const void* /*at*/) EI_ORIGINAL(0x005C98C0)
+// 005CB7F0: AI memory IsEnemy(unit, object) (RET 8, EAX 0/1).
+__declspec(naked) inline int __fastcall AiMemoryIsEnemyOriginal(void* /*memory*/, void*, void* /*unit*/, void* /*object*/)
+    EI_ORIGINAL(0x005CB7F0)
+// 005CBBE0: AI memory Notice(point, level, kind) (RET 0xC, no result).
+__declspec(naked) inline void __fastcall AiMemoryNoticeOriginal(void* /*memory*/, void*, const void* /*point*/, int /*level*/,
+                                                                int /*kind*/) EI_ORIGINAL(0x005CBBE0)

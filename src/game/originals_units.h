@@ -87,3 +87,23 @@ __declspec(naked) inline void __fastcall UnitSetControllerOriginal(void* /*unit*
 // 00530280: the ground (or water surface) height under (x, y) for the unit, in ST0 (RET 8).
 __declspec(naked) inline double __fastcall UnitGroundHeightOriginal(void* /*unit*/, void*, float /*x*/, float /*y*/)
     EI_ORIGINAL(0x00530280)
+
+// C3j. 00544CE0 / 00544D50: AnimationSteps adds a step (kind byte, value; RET 8) / an emote step (kind byte; RET 4); no result.
+__declspec(naked) inline void __fastcall StepsAddStepOriginal(void* /*steps*/, void*, int /*kind*/, int /*value*/)
+    EI_ORIGINAL(0x00544CE0)
+__declspec(naked) inline void __fastcall StepsEmoteOriginal(void* /*steps*/, void*, int /*kind*/) EI_ORIGINAL(0x00544D50)
+// 00544E70: AnimationSteps equal-length test against another (RET 4, AL).
+__declspec(naked) inline bool __fastcall StepsQueueHoldsOriginal(void* /*steps*/, void*, const void* /*other*/)
+    EI_ORIGINAL(0x00544E70)
+// 00556870: AnimationSteps copy constructor (RET 4, returns this).
+__declspec(naked) inline void* __fastcall StepsCopyConstructOriginal(void* /*steps*/, void*, const void* /*source*/)
+    EI_ORIGINAL(0x00556870)
+// 0054C8B0: unit controller checks an order against its state (RET 4, AL).
+__declspec(naked) inline bool __fastcall UnitCheckOrderOriginal(void* /*controller*/, void*, const void* /*action*/)
+    EI_ORIGINAL(0x0054C8B0)
+// 00556D10: cell list constructor (block size; RET 4, returns this).
+__declspec(naked) inline void* __fastcall CellListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
+    EI_ORIGINAL(0x00556D10)
+// 0059F3D0: sets a figure part's owner object (stores at +0x98; RET 4, no result).
+__declspec(naked) inline void __fastcall FigurePartSetOwnerOriginal(void* /*part*/, void*, void* /*owner*/)
+    EI_ORIGINAL(0x0059F3D0)

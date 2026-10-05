@@ -8,6 +8,7 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
+#include "originals_render.h"
 
 #include <cstdint>
 
@@ -38,7 +39,7 @@ long ComCall(void* object, int slot, Args... args) {
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 004E7840 (thiscall on the device object): draws the batched vertices.
-__declspec(naked) void __fastcall FlushBatch(char*) EI_ORIGINAL(0x004E7840)
+void __fastcall FlushBatch(char* a0) { DeviceFlushBatchAOriginal((void*)a0); }
 
 void Count(char* device, int vertices, int primitives) {
     At<int>(device, 0x16C) += vertices;

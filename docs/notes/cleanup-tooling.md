@@ -274,3 +274,25 @@ comment saying RET n and what EAX holds. Results that callers never use are void
 never read; the originals leave junk in EAX); 0058EEA0 takes the time as raw dword bits; 005C35F0 / 006611D0 / 00665200 / 00665A10 / 0066C180
 / 0066EF80 / 0066F450 are plain RET, so the old `(void*, void*)` forms dropped their dummy EDX. Verify and release builds, check_stolen,
 check_x87, check_signatures, check_returns and check_forwarders pass (0 problems). Behaviour unchanged; nothing was run in the game.
+
+## C3j (next 50 by site count): one declaration each
+
+Same method as C3b-C3i; the "differ" count is 333 after this (it was 384). Taken from the "not yet ported" group by site count, skipping
+0x00500000-0x00540000, `src/render`, movie/cursor code, unit_armour_layers.cpp and `src/lib` copies. Decided from the game.exe disassembly
+(capstone, RET n and the code before each RET, callers' use of EAX); every other site is a one-line wrapper (members plain definitions)
+over the shared forwarder, generated and then built. Declarations are in originals_{world,ui,render,units,ai,engine,script}.h, each with a
+comment giving RET n and EAX. Changes of note:
+
+- 00578E20 `void* __cdecl GameFlowOriginal()` (global 007AF788, ECX unused); 00578920 `void __stdcall MenuSetOriginal(int)` and 00578940
+  `void __cdecl MenuCallOriginal()` load ECX from globals, so the old `this` arguments were dummies. 005EE050 / 005EE080 / 005EE0D0 are
+  `bool __stdcall` over one item pointer (ECX never read), so the `CampKinds` / `UiItemKinds` members ignore `this`.
+- 005E7060 and 0058EEE0 only copy their float, so they take raw dword bits (`std::bit_cast` at float callers). 0055FC50 returns the day
+  time in ST0 (`double`).
+- 00595480 is `NewZone(map, mob, zone)`, all three strings (app.cpp's `int` third argument is a null pointer). 005C98C0 `AiEventsNoise`
+  has four stack arguments (source, loudness, kind, at; a null `at` means the source's position); combat_actions passed `at` as an int 0.
+- Constructors / copies that return `this` are `void*` (005D3760, 00556870, 00556D10, 004A5D50); plain-RET forms (006010E0, 005B14C0,
+  005C6000, 004B5EF0, 005D4DF0, 004E7840/7A40, 004E6BA0) lost their dummy EDX.
+- `check_cleanup` reports one problem on main (unit_armour_layers.cpp, 1 offset access, from U9); this ticket did not touch it.
+
+Verify and release builds, check_stolen, check_x87, check_signatures, check_returns and check_forwarders pass (0 problems). Behaviour
+unchanged; nothing was run in the game.

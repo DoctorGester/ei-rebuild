@@ -52,3 +52,6 @@ __declspec(naked) inline void* __fastcall ScriptGroupAtOriginal(const void* /*ar
     EI_ORIGINAL(0x004C3B00)
 __declspec(naked) inline void __fastcall SubCallArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x004C4FD0)
+
+// C3j. 004B5EF0: ScriptGroup destructor body (plain RET, no result).
+__declspec(naked) inline void __fastcall ScriptGroupBodyDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004B5EF0)

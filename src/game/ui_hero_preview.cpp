@@ -11,6 +11,7 @@
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -66,8 +67,8 @@ struct DeviceAt {
     void Flush();     // 004E7840
     void Restore();   // 004E7A40
 };
-__declspec(naked) void DeviceAt::Flush() EI_ORIGINAL(0x004E7840)
-__declspec(naked) void DeviceAt::Restore() EI_ORIGINAL(0x004E7A40)
+void DeviceAt::Flush() { DeviceFlushBatchAOriginal((void*)this); }
+void DeviceAt::Restore() { DeviceFlushBatchBOriginal((void*)this); }
 
 // The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
 // 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).

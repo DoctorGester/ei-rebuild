@@ -12,6 +12,8 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_core.h"
+#include "originals_ai.h"
+#include "originals_units.h"
 
 // Keep the original's order of float operations (/fp:fast would reassociate constants).
 #pragma float_control(precise, on)
@@ -68,7 +70,7 @@ __declspec(naked) void __stdcall DestructRefs(CEngineObject**, int) EI_ORIGINAL(
 struct AIVoice {
     void Say(int what);
 };
-__declspec(naked) void AIVoice::Say(int) EI_ORIGINAL(0x005AEA60)
+void AIVoice::Say(int a0) { VoiceSayOriginal((void*)this, nullptr, a0); }
 
 // The mode names of the "new motivation" message (the original pushes these addresses).
 const char* ModeName(int type) {
@@ -121,7 +123,7 @@ __declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) E
 __declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
 __declspec(naked) void UnitController::Cast(int, CEngineObject*, int) EI_ORIGINAL(0x00554F50)
 __declspec(naked) void UnitController::Attack(CEngineObject*, int, int, int) EI_ORIGINAL(0x00554B30)
-__declspec(naked) bool UnitController::CheckOrder(const void*) EI_ORIGINAL(0x0054C8B0)
+bool UnitController::CheckOrder(const void* a0) { return UnitCheckOrderOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void UnitController::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x00554D00)
 __declspec(naked) void UnitController::TurnTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554830)
 __declspec(naked) void UnitController::UseOnPoint(CEngineObject*, int, int) EI_ORIGINAL(0x00555570)
@@ -146,8 +148,8 @@ struct AIMemory {
     void Forget(CEngineObject* object);                 // 005CC020
 };
 __declspec(naked) void AIMemory::Update(UnitController*) EI_ORIGINAL(0x005CB700)
-__declspec(naked) void AIMemory::Notice(const Vector3*, int, int) EI_ORIGINAL(0x005CBBE0)
-__declspec(naked) int AIMemory::IsEnemy(CUnit*, CEngineObject*) EI_ORIGINAL(0x005CB7F0)
+void AIMemory::Notice(const Vector3* a0, int a1, int a2) { AiMemoryNoticeOriginal((void*)this, nullptr, (const void*)a0, a1, a2); }
+int AIMemory::IsEnemy(CUnit* a0, CEngineObject* a1) { return AiMemoryIsEnemyOriginal((void*)this, nullptr, (void*)a0, (void*)a1); }
 __declspec(naked) void AIMemory::Forget(CEngineObject*) EI_ORIGINAL(0x005CC020)
 
 struct AIReports {

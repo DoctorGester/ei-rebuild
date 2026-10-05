@@ -10,6 +10,7 @@
 #include "lib/gameapi.h"
 #include "render/render_state.h"
 #include "render/render.h"
+#include "originals_render.h"
 
 #include <cstdint>
 
@@ -85,7 +86,7 @@ __declspec(naked) void __fastcall AssignTexture(void**, void*, void*) EI_ORIGINA
 // a stage [004EBAF0: stage, texture], flushes the batched vertices [004E7840].
 __declspec(naked) void __fastcall BindSurface(char*, void*, int, void*) EI_ORIGINAL(0x004EB300)
 __declspec(naked) void __fastcall BindTexture(char*, void*, int, void*) EI_ORIGINAL(0x004EBAF0)
-__declspec(naked) void __fastcall FlushBatch(char*) EI_ORIGINAL(0x004E7840)
+void __fastcall FlushBatch(char* a0) { DeviceFlushBatchAOriginal((void*)a0); }
 
 struct DrawArgs {
     int primitive;

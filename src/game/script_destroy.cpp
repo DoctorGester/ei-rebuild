@@ -52,7 +52,7 @@ __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29
 
 // Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)
 // and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
-__declspec(naked) void __fastcall GroupBody(void*) EI_ORIGINAL(0x004B5EF0)
+void __fastcall GroupBody(void* a0) { ScriptGroupBodyDestructOriginal(a0); }
 __declspec(naked) void __fastcall FxSourceBody(void*) EI_ORIGINAL(0x004BD540)
 __declspec(naked) void __fastcall WorldBlockBody(void*) EI_ORIGINAL(0x004BF7E0)
 __declspec(naked) void __fastcall CmdDestructAt(void*) EI_ORIGINAL(0x004BF640)

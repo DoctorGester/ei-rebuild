@@ -209,11 +209,10 @@ __declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x005
 // worked.
 __declspec(naked) int __fastcall ControllerTame(void*, void*, CUnit*, float) EI_ORIGINAL(0x00551AE0)
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
-__declspec(naked) void __fastcall VoiceSay(void*, void*, int) EI_ORIGINAL(0x005AEA60)
+void __fastcall VoiceSay(void* a0, void*, int a2) { VoiceSayOriginal(a0, nullptr, a2); }
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
-__declspec(naked) void __fastcall AIEventsNoise(void*, void*, CUnitServer*, float, int, int)
-    EI_ORIGINAL(0x005C98C0)
+void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
 __declspec(naked) void __fastcall AIEventsDied(void*, void*, CUnitServer*) EI_ORIGINAL(0x005C97B0)
 __declspec(naked) void __fastcall AIEventsUpdateMemory(void*, void*, CUnitServer*, void*)
     EI_ORIGINAL(0x005CAA00)
@@ -228,8 +227,7 @@ __declspec(naked) UnitListNode* __fastcall UnitListNewNode(UnitList*, void*, Uni
                                                            UnitListNode*) EI_ORIGINAL(0x0052CDB0)
 // 00557B60 / 00556870. AnimationList's base constructor and copy constructor.
 __declspec(naked) AnimationList* __fastcall AnimationListConstruct(AnimationList*) EI_ORIGINAL(0x00557B60)
-__declspec(naked) AnimationList* __fastcall AnimationListCopy(AnimationList*, void*, const AnimationList*)
-    EI_ORIGINAL(0x00556870)
+AnimationList* __fastcall AnimationListCopy(AnimationList* a0, void*, const AnimationList* a2) { return (AnimationList*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 // 00548DE0. CUnitServer: plays `animation` (taken by value and destroyed).
 __declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, AnimationList)
     EI_ORIGINAL(0x00548DE0)

@@ -41,7 +41,7 @@ void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1)
 __declspec(naked) void __fastcall NodesDeallocate(QueueNode* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00479530)
 // 004A5250 (RET 4): writes a stream (its size as a 2- or 4-byte prefix, then its bytes) into the
 // stream in ECX.
-__declspec(naked) void __fastcall StreamWriteSized(CStream* /*to*/, void*, CStream* /*from*/) EI_ORIGINAL(0x004A5250)
+void __fastcall StreamWriteSized(CStream* a0, void*, CStream* a2) { StreamWriteSizedOriginal((void*)a0, nullptr, (void*)a2); }
 // 004A51C0 (RET 4): reads a stream written by 004A5250 (size prefix, then the bytes) from the
 // stream in ECX into `to`, which is emptied first (its slot 6).
 void __fastcall StreamReadSized(CStream* a0, void*, CStream* a2) { StreamReadSizedOriginal((void*)a0, nullptr, (void*)a2); }

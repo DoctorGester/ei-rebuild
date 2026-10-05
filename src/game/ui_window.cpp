@@ -6,9 +6,11 @@
 #include "lib/gameapi.h"
 #include "originals_core.h"
 #include "originals_ui.h"
+#include "originals_units.h"
 
 #include <cstring>
 #include <initializer_list>
+#include <bit>
 
 namespace {
 // 32-bit wrapping multiply (IMUL r32, r/m32).
@@ -458,10 +460,10 @@ namespace {
 // 005AC1A0 (thiscall on the model manager 007AF5F4): a new object by name, or null.
 __declspec(naked) std::uint8_t* __fastcall NewModelObject(void*, void*, const char*) EI_ORIGINAL(0x005AC1A0)
 // 0059F3D0 (thiscall on the object): attaches it to the window.
-__declspec(naked) void __fastcall AttachToWindow(std::uint8_t*, void*, CUiWindow*) EI_ORIGINAL(0x0059F3D0)
+void __fastcall AttachToWindow(std::uint8_t* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
 double __fastcall SpriteScale(void* a0) { return SpriteScaleOriginal((const void*)a0); }
-__declspec(naked) void __fastcall SetSpriteScale(void*, void*, float) EI_ORIGINAL(0x005E7060)
+void __fastcall SetSpriteScale(void* a0, void*, float a2) { SpriteSetScaleOriginal(a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 
 // FLD / FSTP of a float field (as the original copies +0xCC and +0xD0).
 void CopyFloat(void* to, const void* from) {

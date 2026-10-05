@@ -70,7 +70,7 @@ __declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x006
 __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
 __declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
 __declspec(naked) void RawPanel::ShowTopPanelPage() EI_ORIGINAL(0x0064A7A0)
-__declspec(naked) void RawPanel::AddLogText(const char*) EI_ORIGINAL(0x0065CF30)
+void RawPanel::AddLogText(const char* a0) { LogAddTextOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void* RawPanel::ConstructViewInput(CInterface3D*) EI_ORIGINAL(0x005EACB0)
 
 RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
@@ -93,7 +93,7 @@ struct SaveStream {
     void Resize(int size);                      // 004A54D0
     mfc::CString* ReadString(void* out);        // 00461190 (constructs a CString at out)
 };
-__declspec(naked) void SaveStream::Seek(int) EI_ORIGINAL(0x004A5490)
+void SaveStream::Seek(int a0) { StreamSeekOriginal((void*)this, nullptr, (std::uint32_t)a0); }
 void SaveStream::Resize(int a2) { StreamResizeOriginal((void*)this, nullptr, (std::uint32_t)a2); }
 __declspec(naked) mfc::CString* SaveStream::ReadString(void*) EI_ORIGINAL(0x00461190)
 SaveStream* GameSaveStream() { return reinterpret_cast<SaveStream*>(0x007AFDF8); }

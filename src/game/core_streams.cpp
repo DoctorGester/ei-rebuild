@@ -89,7 +89,7 @@ EI_REPLACE_METHOD(0x00461190, CStream::ReadString);
 
 // --- CMemoryStream -----------------------------------------------------------------------------
 
-__declspec(naked) void CMemoryStream::Seek(std::uint32_t) EI_ORIGINAL(0x004A5490)
+void CMemoryStream::Seek(std::uint32_t a0) { StreamSeekOriginal((void*)this, nullptr, a0); }
 void CMemoryStream::Resize(std::uint32_t a2) { StreamResizeOriginal((void*)this, nullptr, a2); }
 __declspec(naked) void CMemoryStream::SetSize(std::uint32_t) EI_ORIGINAL(0x004A5570)
 

@@ -144,9 +144,9 @@ __declspec(naked) double __cdecl CIacos(double) {
     __asm ret
 }
 // The unit's AI brain (controller + 0x980).
-__declspec(naked) void __fastcall BrainClearModes(void*, void*) EI_ORIGINAL(0x005D4DF0)
-__declspec(naked) void* __fastcall PlayerModeConstruct(void*, void*) EI_ORIGINAL(0x005D3760)
-__declspec(naked) void __fastcall BrainAddMode(void*, void*, void*) EI_ORIGINAL(0x005D5F60)
+void __fastcall BrainClearModes(void* a0, void*) { BrainClearModesOriginal(a0); }
+void* __fastcall PlayerModeConstruct(void* a0, void*) { return ModePlayerConstructOriginal(a0); }
+void __fastcall BrainAddMode(void* a0, void*, void* a2) { BrainAddModeOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall BrainStopAction(void*, void*) EI_ORIGINAL(0x005D7790)
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E60)
 __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)

@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_render.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -411,10 +412,10 @@ struct MenuGlue {
     void BeforeTitles2();              // 00578940
 };
 __declspec(naked) const mfc::CString* MenuGlue::Directory() EI_ORIGINAL(0x00578DC0)
-__declspec(naked) void* MenuGlue::TextTable() EI_ORIGINAL(0x00578E20)
+void* MenuGlue::TextTable() { return GameFlowOriginal(); }
 void MenuGlue::SetServer(int f) { SetServerFlagOriginal(f); }
-__declspec(naked) void MenuGlue::BeforeTitles(int) EI_ORIGINAL(0x00578920)
-__declspec(naked) void MenuGlue::BeforeTitles2() EI_ORIGINAL(0x00578940)
+void MenuGlue::BeforeTitles(int a0) { MenuSetOriginal(a0); }
+void MenuGlue::BeforeTitles2() { MenuCallOriginal(); }
 MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }
 
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),

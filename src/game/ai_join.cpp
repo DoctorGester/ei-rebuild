@@ -24,7 +24,7 @@ __declspec(naked) void __fastcall SearchPathTo(void*, void*, int, int, PathCellL
 void __fastcall SearchResetAt(void* a0, void*) { LocalSearchResetOriginal(a0); }
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
-__declspec(naked) void __fastcall ListFixUp(PathCellList*, void*) EI_ORIGINAL(0x005C6000)
+void __fastcall ListFixUp(PathCellList* a0, void*) { PathCellListFixUpOriginal((void*)a0); }
 
 // 00539980: ConstructElements<PathCell> (zero-fills `count`).
 

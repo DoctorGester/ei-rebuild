@@ -66,7 +66,7 @@ __declspec(naked) int __fastcall HoverCanUseQuick(CUnit*, void*, int, const floa
 __declspec(naked) void* __fastcall HoverQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) int __fastcall HoverItemCategory(void*) EI_ORIGINAL(0x006A4230)
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
-__declspec(naked) void __fastcall HoverShowPanelUnit(void*, void*, CUnit*, void*) EI_ORIGINAL(0x0063B920)
+void __fastcall HoverShowPanelUnit(void* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal(a0, nullptr, (void*)a2, a3); }
 
 // fcomp with 0.0 and C3: true for zero (either sign) and for NaN.
 bool ZeroOrNaN(float value) {

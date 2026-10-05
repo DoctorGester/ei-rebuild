@@ -106,7 +106,7 @@ __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORI
 __declspec(naked) void __fastcall InputSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F85C0)
 __declspec(naked) void __fastcall InputAfterSave(void*, void*) EI_ORIGINAL(0x005F86D0)
 void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
-__declspec(naked) void __fastcall StreamSaveScripts(CMemoryStream*, void*, void* /*scripts*/) EI_ORIGINAL(0x004A5250)
+void __fastcall StreamSaveScripts(CMemoryStream* a0, void*, void* a2) { StreamWriteSizedOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall GlobalsSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410C10)
 // 00579B80 (RET 8). Writes `data` to the file stream (ECX) under a header (magic in EDX, version).
 __declspec(naked) void __fastcall WriteSaveFile(FileStream*, unsigned /*magic*/, int /*version*/, CMemoryStream*)
@@ -336,7 +336,7 @@ __declspec(naked) void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const 
     EI_ORIGINAL(0x0058D3D0)
 __declspec(naked) void __fastcall SetZoneExitsAt(CWorldServer*, void*, const void*) EI_ORIGINAL(0x005915E0)
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
-__declspec(naked) int __fastcall NewZone(CWorldServer*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x00595480)
+int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 0058EEA0 (RET 4). CWorldServer::SetTime.
 void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { WorldSetTimeOriginal((void*)a0, nullptr, a2); }
 // 00596350 (RET 4). Loads the zone's scripts from a folder.
@@ -1022,7 +1022,7 @@ __declspec(naked) void __fastcall CharVectorConstruct(CharVector*, void*, const 
 __declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x0042D2C0)
 __declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
 __declspec(naked) void __fastcall CharVectorResize(CharVector*, void*, unsigned, const char*) EI_ORIGINAL(0x004D8EB0)
-__declspec(naked) void __fastcall ScriptDecode(ScriptDecoder*, void*, mfc::CString*) EI_ORIGINAL(0x004D8E10)
+void __fastcall ScriptDecode(ScriptDecoder* a0, void*, mfc::CString* a2) { TextDecodeOriginal((void*)a0, nullptr, (void*)a2); }
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 int __fastcall QueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
@@ -1491,7 +1491,7 @@ std::uint8_t& SessionsOpen() { return *reinterpret_cast<std::uint8_t*>(0x007C7DD
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 
 // 0058EEE0 / 0058EEA0 (RET 4). CWorldServer::SetTimeSpeed / SetTime.
-__declspec(naked) void __fastcall WorldSetTimeSpeedF(CWorldServer*, void*, float) EI_ORIGINAL(0x0058EEE0)
+void __fastcall WorldSetTimeSpeedF(CWorldServer* a0, void*, float a2) { WorldSetTimeSpeedOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 void __fastcall WorldSetTimeF(CWorldServer* a0, void*, float a2) { WorldSetTimeOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
 __declspec(naked) std::uint8_t* __fastcall ClientWorldLocalView(void*) EI_ORIGINAL(0x005699F0)

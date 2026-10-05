@@ -13,6 +13,7 @@
 #include <bit>
 #include <cstring>
 #include "originals_library.h"
+#include "originals_ai.h"
 
 #pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
@@ -224,7 +225,7 @@ EI_REPLACE_METHOD(0x005D0F00, GuardMode::Save);
 
 // --- Patrol --------------------------------------------------------------------------------------
 
-__declspec(naked) void PatrolMode::AddPoint(const Vector3*) EI_ORIGINAL(0x005D12B0)
+void PatrolMode::AddPoint(const Vector3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (pointCount != 0) return kPriority;

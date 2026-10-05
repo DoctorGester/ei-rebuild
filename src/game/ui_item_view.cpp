@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <bit>
 
 #pragma float_control(precise, on)
 
@@ -80,8 +81,8 @@ struct Sprite {
                       int u1, int v1);           // 005E70E0 (Rebirth-patched)
     void Draw(int pass);                         // 005E6D90
 };
-__declspec(naked) void Sprite::Place(float, float, float) EI_ORIGINAL(0x005E6FA0)
-__declspec(naked) void Sprite::SetScale(float) EI_ORIGINAL(0x005E7060)
+void Sprite::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
+void Sprite::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 double Sprite::Scale() { return SpriteScaleOriginal((void*)this); }
 __declspec(naked) void Sprite::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
 void Sprite::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }

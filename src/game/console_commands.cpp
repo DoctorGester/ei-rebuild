@@ -11,6 +11,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_gameplay.h"
+#include "originals_ui.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -112,7 +113,7 @@ struct VariableIterator {
     void* table;
     VariableNode* NextBucket();   // 005E0DB0: first node of the next non-empty bucket, or null
 };
-__declspec(naked) VariableNode* VariableIterator::NextBucket() EI_ORIGINAL(0x005E0DB0)
+VariableNode* VariableIterator::NextBucket() { return (VariableNode*)VariableIteratorNextOriginal((void*)this); }
 struct VariableTableAt {
     void Begin(VariableIterator* it);   // 004614C0
 };

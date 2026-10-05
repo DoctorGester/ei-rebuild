@@ -49,7 +49,7 @@ __declspec(naked) double __fastcall MoveSpeed(void*) EI_ORIGINAL(0x0052FA20)
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) int __fastcall UnitLevel(void*) EI_ORIGINAL(0x00532D40)
 // The world (007AF5B8): the time of day [0055FC50, ST0].
-__declspec(naked) double __fastcall WorldDayTime(void*) EI_ORIGINAL(0x0055FC50)
+double __fastcall WorldDayTime(void* a0) { return WorldDayTimeOriginal(a0); }
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
 // the description texts [005270E0: unit +0x17C, out, name is a text key].
 __declspec(naked) double __fastcall VisionRange(void*, void*, float) EI_ORIGINAL(0x005271E0)

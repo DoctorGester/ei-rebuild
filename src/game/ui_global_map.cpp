@@ -29,6 +29,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
+#include <bit>
 
 #pragma float_control(precise, on)
 
@@ -159,7 +160,7 @@ struct SpriteOps {
     void SetScale(float scale);                         // 005E7060
     void Position(float* x, float* y, float* depth);    // 005E7010 (its layout position)
 };
-__declspec(naked) void SpriteOps::SetScale(float) EI_ORIGINAL(0x005E7060)
+void SpriteOps::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 __declspec(naked) void SpriteOps::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
 SpriteOps* Ops(CUiMesh* sprite) { return reinterpret_cast<SpriteOps*>(sprite); }
 
@@ -186,7 +187,7 @@ struct VariableIterator {
     NamedFloatTable* table;
     NamedFloatTable::Node* NextBucket();                // 005E0DB0
 };
-__declspec(naked) NamedFloatTable::Node* VariableIterator::NextBucket() EI_ORIGINAL(0x005E0DB0)
+NamedFloatTable::Node* VariableIterator::NextBucket() { return (NamedFloatTable::Node*)VariableIteratorNextOriginal((void*)this); }
 struct BeginAt {
     void Begin(VariableIterator* it);                   // 004614C0
 };
@@ -706,7 +707,7 @@ namespace {
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall FrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
 // 006010E0 (not rewritten): the container's base update (its children).
-__declspec(naked) void __fastcall UpdateChildren(CUiWindow*) EI_ORIGINAL(0x006010E0)
+void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 
 struct MapScreenMore {
     void RefreshSelection();   // 00630670

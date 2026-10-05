@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "originals_render.h"
 
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 00794460
@@ -118,8 +119,8 @@ constexpr std::uint32_t kTintOff = 0x3F000000;   // 0.5f
 
 __declspec(naked) int CInterface3D::PlaySound(const char*, int) EI_ORIGINAL(0x005F7E60)
 __declspec(naked) BOOL CUiWindow::DrawBase(int) EI_ORIGINAL(0x005FEB90)
-__declspec(naked) void UiRenderer::FlushBatchA() EI_ORIGINAL(0x004E7840)
-__declspec(naked) void UiRenderer::FlushBatchB() EI_ORIGINAL(0x004E7A40)
+void UiRenderer::FlushBatchA() { DeviceFlushBatchAOriginal((void*)this); }
+void UiRenderer::FlushBatchB() { DeviceFlushBatchBOriginal((void*)this); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
 __declspec(naked) void CUiRegion::SetTipText(const char*) EI_ORIGINAL(0x005FC690)
@@ -593,9 +594,9 @@ __declspec(naked) void __fastcall ScreenCastAt(CBattleScreen*, void*, UiVec3, CU
 __declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int) EI_ORIGINAL(0x006379E0)
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
-__declspec(naked) void __fastcall QuickPanelSet(void*, void*, int, int) EI_ORIGINAL(0x0063CD20)
-__declspec(naked) void __fastcall SpellPanelSet(void*, void*, int, int) EI_ORIGINAL(0x0063E750)
-__declspec(naked) void __fastcall ActionPanelSet(void*, void*, int, int) EI_ORIGINAL(0x0063F730)
+void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { QuickPanelSetOriginal(a0, nullptr, a2, a3); }
+void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { SpellPanelSetOriginal(a0, nullptr, a2, a3); }
+void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { ActionPanelSetOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall ActionPanelReset(void*) EI_ORIGINAL(0x0063F7A0)
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point
 // under it (CWorldClient::PickSurface, rewritten), the local view.
@@ -608,7 +609,7 @@ __declspec(naked) void __fastcall ViewOrderFollow(void*, void*, CUnit*, CUnit*) 
 __declspec(naked) void __fastcall CameraSetTarget(void*, void*, CUnit*) EI_ORIGINAL(0x0040D3B0)
 __declspec(naked) void* __fastcall UnitQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) int __fastcall ItemCategory(void*) EI_ORIGINAL(0x006A4230)
-__declspec(naked) void __fastcall SpriteSetScale(void*, void*, std::uint32_t) EI_ORIGINAL(0x005E7060)
+void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { SpriteSetScaleOriginal(a0, nullptr, a2); }
 // The console's ostream (007C5760).
 __declspec(naked) void* __fastcall StreamDouble(void*, void*, double) EI_ORIGINAL(0x006FC7FA)
 

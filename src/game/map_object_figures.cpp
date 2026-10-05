@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -48,7 +49,7 @@ __declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) 
 __declspec(naked) void __fastcall BuildPart(void*, void*, FigurePart*, void*, std::uint32_t, std::uint32_t,
                                             std::uint32_t) EI_ORIGINAL(0x005AC2F0)
 // 0059F3D0. Part: remembers its owner.
-__declspec(naked) void __fastcall SetPartOwner(FigurePart*, void*, CObject3D*) EI_ORIGINAL(0x0059F3D0)
+void __fastcall SetPartOwner(FigurePart* a0, void*, CObject3D* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 0050D0E0. Animation state: a part was added.
 __declspec(naked) void __fastcall AnimationAddPart(void*, void*, FigurePart*) EI_ORIGINAL(0x0050D0E0)
 // 0050D7C0. Animation state: rescale to x, y, z given as float bits.

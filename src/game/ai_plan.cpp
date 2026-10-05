@@ -14,6 +14,7 @@
 #include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_library.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -59,7 +60,7 @@ struct List {
 };
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
-__declspec(naked) void __fastcall RegionListConstruct(List*, void*, int) EI_ORIGINAL(0x00556D10)
+void __fastcall RegionListConstruct(List* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall ListRemoveAll(void*, void*) EI_ORIGINAL(0x00556D40)
 // 005B0D90 (RET 0x1C, AL). The region map's chain of regions from (fromX, fromY) to (toX, toY),
 // avoiding the regions in `excluded` (AIPath + 0x70).
@@ -72,7 +73,7 @@ __declspec(naked) WaypointNode* __fastcall WaypointNewNode(List*, void*, void*, 
 __declspec(naked) const std::int16_t* __fastcall SpiralGet(void*, void*, std::uint32_t, int*) EI_ORIGINAL(0x005BFC40)
 // The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
 // a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
-__declspec(naked) bool __fastcall SearchBegin(void*, void*, CUnit*, int, int, int, int) EI_ORIGINAL(0x005C2420)
+bool __fastcall SearchBegin(void* a0, void*, CUnit* a2, int a3, int a4, int a5, int a6) { return LocalSearchBeginOriginal(a0, nullptr, (void*)a2, a3, a4, a5, a6); }
 __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
 __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)

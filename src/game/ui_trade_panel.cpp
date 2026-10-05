@@ -13,6 +13,7 @@
 #include "originals_ui.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 namespace {
 
@@ -34,7 +35,7 @@ __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGIN
 struct TextGlue {
     void* Table();   // 00578E20
 };
-__declspec(naked) void* TextGlue::Table() EI_ORIGINAL(0x00578E20)
+void* TextGlue::Table() { return GameFlowOriginal(); }
 int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return TextsReadLineOriginal(a0, nullptr, a2, a3); }
 
 // vector<TradeRow> pieces (library): 0062A310 copy-constructs a row (thiscall, RET 4), 0062A7C0

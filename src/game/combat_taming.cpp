@@ -14,6 +14,7 @@
 #include <cstdint>
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_ai.h"
 
 namespace {
 
@@ -40,9 +41,9 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetContro
 __declspec(naked) void __fastcall PlayerTakeUnit(char*) EI_ORIGINAL(0x00665D20)
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24
 // bytes), 005D5F60 AddMode, 005D6140 RemoveMode(kind), 005D7790 StopAction.
-__declspec(naked) void* __fastcall ModePlayerConstruct(void*) EI_ORIGINAL(0x005D3760)
-__declspec(naked) void __fastcall BrainAddMode(void*, void*, void*) EI_ORIGINAL(0x005D5F60)
-__declspec(naked) void __fastcall BrainRemoveMode(void*, void*, int) EI_ORIGINAL(0x005D6140)
+void* __fastcall ModePlayerConstruct(void* a0) { return ModePlayerConstructOriginal(a0); }
+void __fastcall BrainAddMode(void* a0, void*, void* a2) { BrainAddModeOriginal(a0, nullptr, a2); }
+void __fastcall BrainRemoveMode(void* a0, void*, int a2) { BrainRemoveModeOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall BrainStopAction(void*) EI_ORIGINAL(0x005D7790)
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 __declspec(naked) void __fastcall ReferenceRelease(CEngineObject**) EI_ORIGINAL(0x0052B030)
