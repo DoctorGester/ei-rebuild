@@ -3,34 +3,69 @@
 #include "engine_object.h"
 #include "resource_manager.h"
 
+#include <windows.h>
+
 // Pixel format of a texture surface (32 bytes), as filled in by the texture device.
 struct PixelFormat {
     std::uint32_t words[8];
 };
 static_assert(sizeof(PixelFormat) == 32);
 
+struct CDXSurface;
+
 // Owns the Direct3D texture formats; held by CTextureManager. Name provisional; not rewritten yet.
+// The same object is the renderer's device object (the global at 007AF080): its DirectDraw
+// interface, the primary surface's and the render target's holders and the screen rectangle.
 class CTextureDevice {
 public:
     int ParseMmpHeader(const void* data, PixelFormat* format);   // 004E7C40
     int FindFormat(int id, PixelFormat* format);                 // 004E7DA0
 
     std::uint8_t unknown_00[8];
-    int lastLoadResult_;        // +0x08 result of the last IDirect3DDevice7::Load
-    std::uint8_t unknown_0C[0x54 - 0x0C];
+    int lastLoadResult_;        // +0x08 result of the last IDirect3DDevice7::Load (and other calls)
+    void* ddraw_;               // +0x0C IDirectDraw7*
+    std::uint8_t unknown_10[4];
+    CDXSurface* primary_;       // +0x14 the primary surface's holder
+    CDXSurface* renderTarget_;  // +0x18 the render target's holder
+    std::uint8_t unknown_1C[4];
+    std::uint8_t flags_;        // +0x20 bit 0: full screen (the present flips)
+    std::uint8_t unknown_21[3];
+    RECT screen_;               // +0x24 the screen rectangle
+    std::uint8_t unknown_34[0x54 - 0x34];
     void* d3dDevice_;           // +0x54 IDirect3DDevice7*
 };
+static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
+static_assert(offsetof(CTextureDevice, primary_) == 0x14);
+static_assert(offsetof(CTextureDevice, renderTarget_) == 0x18);
+static_assert(offsetof(CTextureDevice, flags_) == 0x20);
+static_assert(offsetof(CTextureDevice, screen_) == 0x24);
 static_assert(offsetof(CTextureDevice, d3dDevice_) == 0x54);
 
-// A DirectDraw surface wrapper (004EFA60 constructs it from a DDSURFACEDESC2; 0x20 bytes):
-// vtable (slot 0 the deleting destructor), +0x04 reference count, +0x10 IDirectDrawSurface7*.
+// A DirectDraw surface wrapper (004EFA60 constructs it from a DDSURFACEDESC2, 004EF7B0 for an
+// off-screen surface of the screen's format; 0x20 bytes): vtable (slot 0 the deleting destructor),
+// the reference count, the last DirectDraw result, the device object, the IDirectDrawSurface7*,
+// width, height and bits per pixel.
 struct CDXSurface {
     void* vtable;
-    int refCount;
-    std::uint8_t unknown_08[8];
+    int refCount;               // +0x04
+    long result;                // +0x08
+    CTextureDevice* device;     // +0x0C
     void* surface;              // +0x10
-    std::uint8_t unknown_14[0x0C];
+    int width;                  // +0x14
+    int height;                 // +0x18
+    int bitsPerPixel;           // +0x1C
+
+    // 004E6BA0: drops a reference; the deleting destructor (vtable slot 0, with 1) at zero.
+    void Release() {
+        if (--refCount != 0) return;
+        using Destroy = void(__fastcall*)(CDXSurface*, void*, int);
+        (*static_cast<Destroy*>(vtable))(this, nullptr, 1);
+    }
 };
+static_assert(offsetof(CDXSurface, result) == 0x08);
+static_assert(offsetof(CDXSurface, device) == 0x0C);
+static_assert(offsetof(CDXSurface, surface) == 0x10);
+static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
 
 // A byte buffer aligned to 32 bytes (the raw block pointer is stored just before the data), with

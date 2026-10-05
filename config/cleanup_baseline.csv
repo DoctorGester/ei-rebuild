@@ -21,7 +21,6 @@ src/game/app_frame.cpp,8,1,0,0,1,0
 src/game/app_registry.cpp,0,2,0,0,0,0
 src/game/base_manager.cpp,0,1,0,0,1,0
 src/game/base_manager.h,0,0,0,0,1,0
-src/game/bink_video.cpp,18,0,0,0,0,0
 src/game/camera.cpp,0,0,5,1,0,0
 src/game/camera.h,0,0,0,0,1,0
 src/game/camera_motion.cpp,0,0,0,1,0,0
@@ -207,7 +206,6 @@ src/game/ui_camp.cpp,0,0,3,3,21,18
 src/game/ui_console_window.cpp,0,0,0,0,3,3
 src/game/ui_container_draws.cpp,32,3,0,0,1,1
 src/game/ui_create_screen.cpp,0,0,0,0,0,3
-src/game/ui_cursor_frame.cpp,13,0,0,0,0,0
 src/game/ui_global_map.cpp,0,0,2,1,9,8
 src/game/ui_hero_panels.cpp,0,0,1,1,1,0
 src/game/ui_hero_preview.cpp,0,0,0,1,0,1

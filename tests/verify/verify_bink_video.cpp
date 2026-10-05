@@ -1,20 +1,23 @@
 // Checks for the Bink movie's frame step and the movie players (bink_video.cpp).
 #include "verify.h"
 
+#include "../../src/game/bink_video.h"
+#include "../../src/game/texture.h"
+
 #include <windows.h>
 
 #include <cstdint>
 
-unsigned __fastcall BinkVideoFrame(void* self, void*, char toPrimary);
+unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary);
 
 // 005DBD80 decodes and blits: ours only. Checked: the result is 0 or 1 and the video's handle and
 // surface are unchanged.
 static void* s_binkFrame;
-static unsigned __fastcall BinkVideoFrameVerify(void* self, void*, char toPrimary) {
-    void* holder = *static_cast<void**>(self);
-    void* bink = static_cast<void**>(self)[6];
+static unsigned __fastcall BinkVideoFrameVerify(CBinkVideo* self, void*, char toPrimary) {
+    CDXSurface* holder = self->holder;
+    BinkHeader* bink = self->bink;
     unsigned result = BinkVideoFrame(self, nullptr, toPrimary);
-    bool ok = (result & 0xFF) <= 1 && *static_cast<void**>(self) == holder && static_cast<void**>(self)[6] == bink;
+    bool ok = (result & 0xFF) <= 1 && self->holder == holder && self->bink == bink;
     ei::verify::Check("CBinkVideo::Frame", true, ok, "result %08X", result);
     return result;
 }
@@ -24,7 +27,7 @@ EI_VERIFY(0x005DBD80, BinkVideoFrameVerify, 0, s_binkFrame);
 
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int unused);
-long __fastcall HolderFill(std::uint8_t* holder, void*, RECT* rect, std::uint32_t colour);
+long __fastcall HolderFill(CDXSurface* holder, void*, RECT* rect, std::uint32_t colour);
 void __fastcall ShowLoadingMovie(int progress);
 
 // 005DB3F0 plays a whole movie in its own message loop: ours only. Checked: the result is 0 or 1,
@@ -46,9 +49,9 @@ EI_VERIFY(0x005DB3F0, PlayMovieVerify, 0, s_playMovie);
 // 005DB9E0 fills a rectangle of a surface: the original (6 stolen bytes: SUB ESP,0x64; PUSH ESI;
 // MOV ESI,ECX), then ours (the same fill again); Blt's results compared. Reached from 005DB3F0 with
 // its clear-screen flag outside the switch-over (render_movie).
-using HolderFillFn = long(__fastcall*)(std::uint8_t*, void*, RECT*, std::uint32_t);
+using HolderFillFn = long(__fastcall*)(CDXSurface*, void*, RECT*, std::uint32_t);
 static HolderFillFn s_holderFill;
-static long __fastcall HolderFillVerify(std::uint8_t* holder, void*, RECT* rect, std::uint32_t colour) {
+static long __fastcall HolderFillVerify(CDXSurface* holder, void*, RECT* rect, std::uint32_t colour) {
     long expected = s_holderFill(holder, nullptr, rect, colour);
     long result = HolderFill(holder, nullptr, rect, colour);
     ei::verify::Check("HolderFill", expected, result, "result %08lX, original %08lX", static_cast<unsigned long>(result),
@@ -65,13 +68,13 @@ static void* s_loadingMovie;
 static void __fastcall ShowLoadingMovieVerify(int progress) {
     ShowLoadingMovie(progress);
     if (*reinterpret_cast<char*>(0x007C554C)) return;
-    auto* bink = *reinterpret_cast<std::uint8_t**>(0x007C5550);
+    const BinkHeader* bink = *reinterpret_cast<BinkHeader**>(0x007C5550);
     if (!bink) return;
     void* holder = *reinterpret_cast<void**>(0x007C551C);
-    int frames = *reinterpret_cast<int*>(bink + 8);
-    unsigned frame = *reinterpret_cast<unsigned*>(bink + 0x0C);
+    int frames = static_cast<int>(bink->frames);
+    unsigned frame = bink->frameNum;
     int want = progress < frames - 1 ? progress : frames - 1;
-    bool ok = holder != nullptr && (frame >= static_cast<unsigned>(want) + 1 || frames == *reinterpret_cast<int*>(bink + 0x10));
+    bool ok = holder != nullptr && (frame >= static_cast<unsigned>(want) + 1 || bink->frames == bink->lastFrame);
     ei::verify::Check("ShowLoadingMovie", true, ok, "holder %p, frame %u of %d, progress %d", holder, frame, frames, progress);
 }
 EI_VERIFY(0x005DA400, ShowLoadingMovieVerify, 0, s_loadingMovie);

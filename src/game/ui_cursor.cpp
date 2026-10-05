@@ -2,6 +2,7 @@
 // "Cursor"). Used by the cursor thread (005E5690) and 005E54A0 when the display option's software
 // cursor bit is set.
 #include "ui_cursor.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -12,45 +13,33 @@
 
 namespace {
 
-template <typename T>
-T Get(const void* p, int offset) {
-    T v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
-    return v;
-}
-template <typename T>
-void Set(void* p, int offset, T v) {
-    std::memcpy(static_cast<std::uint8_t*>(p) + offset, &v, sizeof(T));
-}
-
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004800E0 (cdecl): a fatal DirectX error; its result says whether the caller goes on.
 
-// A surface holder: +0x08 the last result, +0x10 the IDirectDrawSurface7, +0x1C bits per pixel.
-void** SurfaceOf(std::uint8_t* holder) { return Get<void**>(holder, 0x10); }
+void** SurfaceOf(CDXSurface* holder) { return static_cast<void**>(holder->surface); }
 
 // Enters the device lock (left by Unlock) and locks `rect` of the holder's surface (DDLOCK_WAIT).
 // Nonzero when locked, or what the error report returned.
-int Lock(std::uint8_t* holder, RECT* rect, std::uint32_t* desc) {
+int Lock(CDXSurface* holder, RECT* rect, std::uint32_t* desc) {
     gameapi::EnterCriticalSection(DeviceLock());
     std::memset(desc, 0, 0x7C);
     desc[0] = 0x7C;
     void** surface = SurfaceOf(holder);
     using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
     long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(surface))[25])(surface, rect, desc, 1, nullptr);
-    Set(holder, 8, hr);
+    holder->result = hr;
     if (hr != 0) return FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
     return 1;
 }
 
-void Unlock(std::uint8_t* holder) {
+void Unlock(CDXSurface* holder) {
     gameapi::LeaveCriticalSection(DeviceLock());
     void** surface = SurfaceOf(holder);
     using UnlockFn = long(__stdcall*)(void**, RECT*);
     long hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
-    Set(holder, 8, hr);
+    holder->result = hr;
     if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
@@ -97,7 +86,7 @@ void CCursor::Blit(CursorImage* image, RECT* to, RECT* from) {
     RECT whole = {0, 0, from->right - from->left, from->bottom - from->top};
     int underLocked = Lock(under_, &whole, underDesc);
     if (imageLocked && targetLocked && underLocked) {
-        int bits = Get<int>(image->holder, 0x1C);
+        int bits = image->holder->bitsPerPixel;
         int imageWidth = static_cast<int>(imageDesc[kDescWidth]);
         if (bits == 16) {
             std::uintptr_t saved = reinterpret_cast<std::uintptr_t>(image->saved) +

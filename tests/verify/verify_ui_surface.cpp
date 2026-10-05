@@ -7,6 +7,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/texture.h"
 #include "../../src/game/ui_cursor.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/lib/crt.h"
@@ -218,13 +219,12 @@ static void(__thiscall* s_cursorBlit)(CCursor*, CursorImage*, RECT*, RECT*);
 static void __fastcall CursorBlitVerify(CCursor* self, void*, CursorImage* image, RECT* to, RECT* from) {
     gameapi::EnterCriticalSection(SurfaceLock());
     IDirectDrawSurface7* target =
-        self->target_ ? *reinterpret_cast<IDirectDrawSurface7**>(self->target_ + 0x10) : nullptr;
+        self->target_ ? static_cast<IDirectDrawSurface7*>(self->target_->surface) : nullptr;
     RECT area = *to;
     Pixels before;
     bool pixels = AccessSurface(target, before, false, &area);
     s_cursorBlit(self, image, to, from);
-    long expectedResult;
-    std::memcpy(&expectedResult, self->target_ + 8, 4);
+    long expectedResult = self->target_->result;
     Pixels expected;
     if (pixels) pixels = AccessSurface(target, expected, false, &area) && AccessSurface(target, before, true, &area);
     self->Blit(image, to, from);
@@ -233,8 +233,7 @@ static void __fastcall CursorBlitVerify(CCursor* self, void*, CursorImage* image
         Pixels actual;
         if (AccessSurface(target, actual, false, &area)) row = FirstDifferentRow(expected, actual);
     }
-    long actualResult;
-    std::memcpy(&actualResult, self->target_ + 8, 4);
+    long actualResult = self->target_->result;
     gameapi::LeaveCriticalSection(SurfaceLock());
     ei::verify::Check("CCursor::Blit", true, row == -1 && expectedResult == actualResult,
                       "pixel row %d (compared %d), result %ld/%ld", row, pixels, expectedResult, actualResult);

@@ -1,12 +1,12 @@
 // A Bink movie's frame step (CBinkVideo, 005DBD80, thiscall, RET 4; called once per frame by the
 // movie screen's draw 0062BD80, inside the game's frame). When the movie's next frame is due
-// (BinkWait) it is decoded (BinkDoFrame) into the video's own surface (+0x00 its holder, made by
-// 005DBA50 in the format +0x04 BinkDDSurfaceType gave) through a Lock / BinkCopyToBuffer / Unlock,
-// and the movie steps on (BinkNextFrame). Every call then blits the whole movie frame into the
-// rectangle +0x08 (letterboxed by 005DBA50) of the render target, or of the primary surface when
-// `toPrimary`. Returns whether frames are left. The new renderer (src/render) gets the same blit as
-// part of its frame, from a CPU copy of the decoded frame; when it presents by itself the video's
-// surface is not filled and the old blit is skipped. See docs/notes/renderer.md.
+// (BinkWait) it is decoded (BinkDoFrame) into the video's own surface (its holder, made by 005DBA50
+// in the format BinkDDSurfaceType gave) through a Lock / BinkCopyToBuffer / Unlock, and the movie
+// steps on (BinkNextFrame). Every call then blits the whole movie frame into the video's rectangle
+// (letterboxed by 005DBA50) of the render target, or of the primary surface when `toPrimary`.
+// Returns whether frames are left. The new renderer (src/render) gets the same blit as part of its
+// frame, from a CPU copy of the decoded frame; when it presents by itself the video's surface is not
+// filled and the old blit is skipped. See docs/notes/renderer.md.
 //
 // Also the two movie players that draw outside the game's frame, straight to the primary surface
 // (ticket R6): the blocking player 005DB3F0 (intro, titles, the script's PlayMovie; its message loop
@@ -14,6 +14,9 @@
 // one step per call). With the new renderer they hand each frame over as a frame of its own
 // (render::MovieFrame / MovieBlit, then the old present 004EF610 with "present", or render::Present);
 // with "present" their surfaces are not filled and nothing is drawn to the primary.
+#include "bink_video.h"
+#include "texture.h"
+
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -29,113 +32,159 @@
 
 namespace {
 
-template <typename T>
-T& At(void* p, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(p) + offset);
-}
-
 // Bink through game.exe's import table (stdcall).
-using BinkFn = int(__stdcall*)(void*);
-using BinkCopyFn = int(__stdcall*)(void*, void*, int, int, int, int, unsigned);
-BinkFn BinkWait() { return *reinterpret_cast<BinkFn*>(0x0073B728); }
-BinkFn BinkDoFrame() { return *reinterpret_cast<BinkFn*>(0x0073B718); }
-BinkFn BinkNextFrame() { return *reinterpret_cast<BinkFn*>(0x0073B724); }
-BinkCopyFn BinkCopyToBuffer() { return *reinterpret_cast<BinkCopyFn*>(0x0073B740); }
-using BinkOpenFn = void*(__stdcall*)(const char*, unsigned);
-using BinkCloseFn = void(__stdcall*)(void*);
+using BinkFn = int(__stdcall*)(BinkHeader*);
+using BinkCopyFn = int(__stdcall*)(BinkHeader*, void*, int, int, int, int, unsigned);
+using BinkOpenFn = BinkHeader*(__stdcall*)(const char*, unsigned);
+using BinkCloseFn = void(__stdcall*)(BinkHeader*);
 using BinkSurfaceTypeFn = unsigned(__stdcall*)(void*);
-using BinkSetFn = void(__stdcall*)(void*, int);
-using BinkGotoFn = void(__stdcall*)(void*, unsigned, int);
-BinkOpenFn BinkOpen() { return *reinterpret_cast<BinkOpenFn*>(0x0073B720); }
-BinkCloseFn BinkClose() { return *reinterpret_cast<BinkCloseFn*>(0x0073B73C); }
-BinkSurfaceTypeFn BinkDDSurfaceType() { return *reinterpret_cast<BinkSurfaceTypeFn*>(0x0073B71C); }
-BinkSetFn BinkSetVolume() { return *reinterpret_cast<BinkSetFn*>(0x0073B730); }
-BinkSetFn BinkSetSoundSystem() { return *reinterpret_cast<BinkSetFn*>(0x0073B734); }   // (open function, Miles driver)
-BinkGotoFn BinkGoto() { return *reinterpret_cast<BinkGotoFn*>(0x0073B714); }
-
-// The Bink handle's first fields: frame width, height, frame count +0x08, current frame +0x10.
-struct BinkHeader {
-    std::uint32_t width, height, frames, unknown_0C, frame;
-};
+using BinkVolumeFn = void(__stdcall*)(BinkHeader*, int);
+using BinkSoundSystemFn = void(__stdcall*)(void*, int);   // (open function, Miles driver)
+using BinkGotoFn = void(__stdcall*)(BinkHeader*, unsigned, int);
+template <typename F>
+F Import(std::uintptr_t slot) {
+    return *reinterpret_cast<F*>(slot);
+}
+BinkFn BinkWait() { return Import<BinkFn>(0x0073B728); }
+BinkFn BinkDoFrame() { return Import<BinkFn>(0x0073B718); }
+BinkFn BinkNextFrame() { return Import<BinkFn>(0x0073B724); }
+BinkCopyFn BinkCopyToBuffer() { return Import<BinkCopyFn>(0x0073B740); }
+BinkOpenFn BinkOpen() { return Import<BinkOpenFn>(0x0073B720); }
+BinkCloseFn BinkClose() { return Import<BinkCloseFn>(0x0073B73C); }
+BinkSurfaceTypeFn BinkDDSurfaceType() { return Import<BinkSurfaceTypeFn>(0x0073B71C); }
+BinkVolumeFn BinkSetVolume() { return Import<BinkVolumeFn>(0x0073B730); }
+BinkSoundSystemFn BinkSetSoundSystem() { return Import<BinkSoundSystemFn>(0x0073B734); }
+void* BinkOpenMiles() { return Import<void*>(0x0073B738); }
+BinkGotoFn BinkGoto() { return Import<BinkGotoFn>(0x0073B714); }
 
 constexpr int kLock = 25, kUnlock = 32, kBlt = 5;            // IDirectDrawSurface7 slots
 constexpr unsigned long kLockFlags = 0x21;                   // DDLOCK_WAIT | DDLOCK_NOSYSLOCK
 constexpr unsigned long kBltWait = 0x1000000;                // DDBLT_WAIT
+constexpr unsigned long kBltColourFill = 0x1000400;          // DDBLT_WAIT | DDBLT_COLORFILL
 constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
+constexpr std::uint32_t kDescSize = 0x7C;                    // DDSURFACEDESC2
 
 template <typename... Args>
 long ComCall(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
 }
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+// The sound system (the global at 007AF784; also the loading screen's owner): +0x1C the Miles
+// driver handle.
+struct SoundSystem {
+    std::uint8_t unknown_00[0x1C];
+    int milesDriver;            // +0x1C
+};
+
+// The loading screen's movie (005DA400): globals from 007C551C on.
+struct LoadingMovie {
+    CDXSurface* holder;         // 007C551C
+    RECT screen;                // 007C5520
+    std::uint8_t unknown_14[0x30 - 0x14];
+    char off;                   // 007C554C
+    std::uint8_t unknown_31[3];
+    BinkHeader* bink;           // 007C5550
+    unsigned surfaceType;       // 007C5554
+};
+static_assert(offsetof(LoadingMovie, off) == 0x30);
+static_assert(offsetof(LoadingMovie, bink) == 0x34);
+static_assert(offsetof(LoadingMovie, surfaceType) == 0x38);
+
+// Game globals.
+template <typename T>
+T& Global(std::uintptr_t address) {
+    return *reinterpret_cast<T*>(address);
+}
+CRITICAL_SECTION* DeviceLock() { return &Global<CRITICAL_SECTION>(0x007AEE78); }
+CTextureDevice* DeviceObject() { return Global<CTextureDevice*>(0x007AF080); }
+void* Cursor() { return &Global<std::uint8_t>(0x007C7BD8); }
+void* RendererObject() { return &Global<std::uint8_t>(0x007AF060); }
+SoundSystem* Sound() { return Global<SoundSystem*>(0x007AF784); }
+int MoviesMode() { return Global<int>(0x0079BCBC); }           // 0 off, 1 at size, 2 stretched to the width
+int MovieSound() { return Global<int>(0x0079BCC0); }
+int MovieVolume() { return Global<int>(0x0079BCC4); }          // percent
+bool VideoMemoryOff() { return Global<std::uint8_t>(0x00784756) != 0; }
+const char* GameFolder() { return Global<const char*>(0x007AF460); }   // a CString
+const char* LoadingMovieName() { return Global<const char*>(0x00791EE0); }
+LoadingMovie& Loading() { return Global<LoadingMovie>(0x007C551C); }
+// 00455F10 (fastcall, CL): sets the byte 00784751 (cleared while a timed movie plays).
+void SetFlag784751(std::uint8_t value) { Global<std::uint8_t>(0x00784751) = value; }
+const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
 // 0044C470 (cdecl): an error message; returns a value whose low byte the caller clears.
 unsigned __cdecl ErrorMessage(const char* a0) { return DebugMessageOriginal(a0); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+
+// 005DB9E0 through its address (the verify wrapper sees the call).
+__declspec(naked) long __fastcall HolderFillAt(CDXSurface*, void*, RECT*, std::uint32_t) EI_ORIGINAL(0x005DB9E0)
+
+void Blt(CDXSurface* target, RECT* to, CDXSurface* source, RECT* from) {
+    gameapi::EnterCriticalSection(DeviceLock());
+    ComCall(target->surface, kBlt, to, source->surface, from, kBltWait, static_cast<void*>(nullptr));
+    gameapi::LeaveCriticalSection(DeviceLock());
+}
+
+// The decoded frame as BinkCopyToBuffer's 32-bit R, G, B, X type, for the new renderer.
+void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
+    int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
+    frame->resize(static_cast<std::size_t>(width) * height * 4);
+    BinkCopyToBuffer()(bink, frame->data(), width * 4, height, 0, 0, kBinkSurface32R);
+}
+
+render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
 } // namespace
 
 // 005DBD80.
-unsigned __fastcall BinkVideoFrame(void* self, void*, char toPrimary) {
-    if (!*reinterpret_cast<int*>(0x0079BCBC)) return 0;   // movies off
-    void* bink = At<void*>(self, 0x18);
+unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
+    if (!MoviesMode()) return 0;   // movies off
+    BinkHeader* bink = self->bink;
     if (!bink) return 0;
     if (BinkWait()(bink) == 0) {
         BinkDoFrame()(bink);
         // The new renderer gets the frame from a CPU buffer (BinkCopyToBuffer's 32-bit R, G, B, X
         // type); when it presents by itself the video's DirectDraw surface is not filled at all.
         if (render::Active()) {
-            const auto* size = static_cast<const BinkHeader*>(bink);
-            int width = static_cast<int>(size->width), height = static_cast<int>(size->height);
             static std::vector<std::uint8_t> frame;
-            frame.resize(static_cast<std::size_t>(width) * height * 4);
-            BinkCopyToBuffer()(bink, frame.data(), width * 4, height, 0, 0, kBinkSurface32R);
-            render::MovieFrame(self, frame.data(), width, height);
+            CopyFrame(bink, &frame);
+            render::MovieFrame(self, frame.data(), static_cast<int>(bink->width), static_cast<int>(bink->height));
         }
         if (render::Presenting()) {
             BinkNextFrame()(bink);
         } else {
-            std::uint8_t* holder = At<std::uint8_t*>(self, 0);
+            CDXSurface* holder = self->holder;
             std::uint32_t desc[0x1F] = {};
-            desc[0] = 0x7C;
+            desc[0] = kDescSize;
             gameapi::EnterCriticalSection(DeviceLock());
-            long hr = ComCall(At<void*>(holder, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
+            long hr = ComCall(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                               static_cast<void*>(nullptr));
-            At<long>(holder, 8) = hr;
+            holder->result = hr;
             if (hr != 0 && !FatalDirectX(hr, Text(0x0078E30C))) {   // "Can't lock surface"
                 // The original leaves the device lock held here.
                 return ErrorMessage(Text(0x0079234C)) & 0xFFFFFF00u;
             }
             // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
             BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
-                               At<std::uint32_t>(self, 4));
-            holder = At<std::uint8_t*>(self, 0);
+                               self->surfaceType);
+            holder = self->holder;
             gameapi::LeaveCriticalSection(DeviceLock());
-            hr = ComCall(At<void*>(holder, 0x10), kUnlock, static_cast<void*>(nullptr));
-            At<long>(holder, 8) = hr;
+            hr = ComCall(holder->surface, kUnlock, static_cast<void*>(nullptr));
+            holder->result = hr;
             if (hr != 0 && !FatalDirectX(hr, Text(0x0078E2F4)))   // "Can't unlock surface"
                 return ErrorMessage(Text(0x00792324)) & 0xFFFFFF00u;
             BinkNextFrame()(bink);
         }
     }
-    const auto* header = static_cast<const BinkHeader*>(At<void*>(self, 0x18));
+    const BinkHeader* header = self->bink;
     RECT source{0, 0, static_cast<LONG>(header->width), static_cast<LONG>(header->height)};
-    std::uint8_t* holder = At<std::uint8_t*>(self, 0);
-    RECT* destination = &At<RECT>(self, 8);
-    std::uint8_t* target = At<std::uint8_t*>(At<std::uint8_t*>(holder, 0x0C), toPrimary ? 0x14 : 0x18);
-    if (At<void*>(target, 0x10) != At<void*>(holder, 0x10)) {
-        if (render::Active())
-            render::MovieBlit(self, render::Rect{destination->left, destination->top, destination->right, destination->bottom});
-        if (!render::Presenting()) {
-            gameapi::EnterCriticalSection(DeviceLock());
-            ComCall(At<void*>(target, 0x10), kBlt, destination, At<void*>(holder, 0x10), &source, kBltWait,
-                    static_cast<void*>(nullptr));
-            gameapi::LeaveCriticalSection(DeviceLock());
-        }
+    CDXSurface* holder = self->holder;
+    CDXSurface* target = toPrimary ? holder->device->primary_ : holder->device->renderTarget_;
+    if (target->surface != holder->surface) {
+        if (render::Active()) render::MovieBlit(self, ToRender(self->to));
+        if (!render::Presenting()) Blt(target, &self->to, holder, &source);
     }
-    header = static_cast<const BinkHeader*>(At<void*>(self, 0x18));
-    return static_cast<int>(header->frame) < static_cast<int>(header->frames) ? 1u : 0u;
+    header = self->bink;
+    return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
 }
 EI_REPLACE(0x005DBD80, BinkVideoFrame);
 
@@ -143,49 +192,27 @@ EI_REPLACE(0x005DBD80, BinkVideoFrame);
 
 namespace {
 
-template <typename T>
-T& Global(std::uintptr_t address) {
-    return *reinterpret_cast<T*>(address);
-}
-
-constexpr std::uint32_t kDescSize = 0x7C;                    // DDSURFACEDESC2
-constexpr unsigned long kBltColourFill = 0x1000400;          // DDBLT_WAIT | DDBLT_COLORFILL
-std::uint8_t* DeviceObject() { return Global<std::uint8_t*>(0x007AF080); }
-void* Cursor() { return reinterpret_cast<void*>(0x007C7BD8); }
-void* RendererObject() { return reinterpret_cast<void*>(0x007AF060); }
-
-// 005DB9E0 through its address (the verify wrapper sees the call).
-__declspec(naked) long __fastcall HolderFillAt(std::uint8_t*, void*, RECT*, std::uint32_t) EI_ORIGINAL(0x005DB9E0)
-
-// A surface holder (CDXSurface): +0x04 its reference count; released as 004E6BA0 does (the
-// destructor through vtable slot 0 with 1 when the count reaches 0).
-void ReleaseHolder(std::uint8_t* holder) {
-    if (--At<int>(holder, 4) != 0) return;
-    using Destroy = void(__fastcall*)(void*, void*, int);
-    (*reinterpret_cast<Destroy**>(holder))[0](holder, nullptr, 1);
-}
-
 // The movie's surface holder (0x20 bytes on the game's heap) for a w x h frame. The original asks
 // for a video-memory surface through a DDSURFACEDESC2 (004EFA60) when 00784756 is 0, falling back to
 // 004EF7B0 in a catch block when that throws; 00784756 is 1 in the exe and never written by
 // address, so the plain off-screen surface of 004EF7B0 (system memory, the screen's format;
 // game-owned memory with "cpuwindows") is what is made. The video-memory branch is kept without the
 // catch.
-std::uint8_t* NewMovieHolder(std::uint8_t* device, int width, int height) {
-    void* memory = gamecrt::operator_new(0x20);
-    std::uint8_t* holder = nullptr;
-    if (!Global<std::uint8_t>(0x00784756)) {
+CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
+    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
+    CDXSurface* holder = nullptr;
+    if (!VideoMemoryOff()) {
         std::uint32_t desc[0x1F] = {};
         desc[0] = kDescSize;
         desc[1] = 7;                       // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH
         desc[2] = static_cast<std::uint32_t>(height);
         desc[3] = static_cast<std::uint32_t>(width);
         desc[0x68 / 4] = 0x4040;           // DDSCAPS_VIDEOMEMORY | DDSCAPS_OFFSCREENPLAIN
-        if (memory) holder = static_cast<std::uint8_t*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc));
+        if (memory) holder = static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc));
     } else if (memory) {
-        holder = reinterpret_cast<std::uint8_t*>(DXSurfaceConstructOriginal(memory, nullptr, device, width, height));
+        holder = reinterpret_cast<CDXSurface*>(DXSurfaceConstructOriginal(memory, nullptr, device, width, height));
     }
-    if (holder) ++At<int>(holder, 4);
+    if (holder) ++holder->refCount;
     return holder;
 }
 
@@ -197,40 +224,28 @@ void PresentMovieFrame() {
     else render::Present();
 }
 
-// The decoded frame as BinkCopyToBuffer's 32-bit R, G, B, X type, for the new renderer.
-void CopyFrame(void* bink, std::vector<std::uint8_t>* frame) {
-    const auto* size = static_cast<const BinkHeader*>(bink);
-    int width = static_cast<int>(size->width), height = static_cast<int>(size->height);
-    frame->resize(static_cast<std::size_t>(width) * height * 4);
-    BinkCopyToBuffer()(bink, frame->data(), width * 4, height, 0, 0, kBinkSurface32R);
-}
-
-// 00455F10 (fastcall, CL): sets the byte 00784751 (cleared while a timed movie plays).
-void SetFlag784751(std::uint8_t value) { Global<std::uint8_t>(0x00784751) = value; }
-
 int g_movieKey;   // the blocking player's movie in the new renderer
-const void* const kLoadingMovieKey = reinterpret_cast<const void*>(0x007C551C);
 
 // Locks the holder's surface (DDLOCK_WAIT | DDLOCK_NOSYSLOCK) under the device lock and copies the
 // decoded frame into it as `surfaceType`, as both players do. False when the Unlock failed and its
 // report says stop. A failed Lock whose report says go on skips the copy and leaves the device lock
 // held (as the original).
-bool CopyFrameToSurface(std::uint8_t* const* holderAt, void* bink, unsigned surfaceType) {
-    std::uint8_t* holder = *holderAt;
+bool CopyFrameToSurface(CDXSurface* const* holderAt, BinkHeader* bink, unsigned surfaceType) {
+    CDXSurface* holder = *holderAt;
     std::uint32_t desc[0x1F] = {};
     desc[0] = kDescSize;
     gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(At<void*>(holder, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
+    long hr = ComCall(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                       static_cast<void*>(nullptr));
-    At<long>(holder, 8) = hr;
+    holder->result = hr;
     if (hr != 0 && !FatalDirectX(hr, Text(0x0078E30C))) return true;   // "Can't lock surface"
     // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
     BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
                        surfaceType);
     holder = *holderAt;
     gameapi::LeaveCriticalSection(DeviceLock());
-    hr = ComCall(At<void*>(holder, 0x10), kUnlock, static_cast<void*>(nullptr));
-    At<long>(holder, 8) = hr;
+    hr = ComCall(holder->surface, kUnlock, static_cast<void*>(nullptr));
+    holder->result = hr;
     return hr == 0 || FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
@@ -238,13 +253,13 @@ bool CopyFrameToSurface(std::uint8_t* const* holderAt, void* bink, unsigned surf
 
 // 005DB9E0 (thiscall on a surface holder, RET 8): a colour fill of `rect` with `colour`
 // (DDBLT_COLORFILL) under the device lock; returns Blt's result.
-long __fastcall HolderFill(std::uint8_t* holder, void*, RECT* rect, std::uint32_t colour) {
+long __fastcall HolderFill(CDXSurface* holder, void*, RECT* rect, std::uint32_t colour) {
     std::uint32_t fx[0x19] = {};   // DDBLTFX
     fx[0] = 100;
     fx[0x50 / 4] = colour;         // dwFillColor
     gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(At<void*>(holder, 0x10), kBlt, rect, static_cast<void*>(nullptr), static_cast<void*>(nullptr),
-                      kBltColourFill, static_cast<void*>(fx));
+    long hr = ComCall(holder->surface, kBlt, rect, static_cast<void*>(nullptr), static_cast<void*>(nullptr), kBltColourFill,
+                      static_cast<void*>(fx));
     gameapi::LeaveCriticalSection(DeviceLock());
     return hr;
 }
@@ -258,38 +273,36 @@ EI_REPLACE(0x005DB9E0, HolderFill);
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int /*unused*/) {
     // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
-    if (!Global<int>(0x0079BCBC)) return 1;   // movies off
-    const char* file = name ? name : "";      // the original copies it into a CString
-    if (loadingStep) LoadingStepOriginal(Global<void*>(0x007AF784), nullptr, 1);
-    if (Global<int>(0x0079BCC0))
-        BinkSetSoundSystem()(Global<void*>(0x0073B738), At<int>(Global<void*>(0x007AF784), 0x1C));   // BinkOpenMiles
-    void* bink = BinkOpen()(file, 0);
+    if (!MoviesMode()) return 1;
+    const char* file = name ? name : "";   // the original copies it into a CString
+    if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
+    BinkHeader* bink = BinkOpen()(file, 0);
     if (!bink) {
         DebugMessageOriginal(Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
         return 1;
     }
-    BinkSetVolume()(bink, Global<int>(0x0079BCC4) * 0x7FF6 / 100);
+    BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
     CursorShowOriginal(Cursor(), nullptr, 0);
     bool presenting = render::Presenting();
     if (clearScreen && !presenting) {
         // The screen black (the primary), then the render target cleared. With "present" nothing is
         // drawn to the primary: the new frames fill the screen themselves (render::Fill below).
-        std::uint8_t* device = DeviceObject();
+        CTextureDevice* device = DeviceObject();
         gameapi::EnterCriticalSection(DeviceLock());
-        At<long>(device, 8) = HolderFillAt(At<std::uint8_t*>(device, 0x14), nullptr, &At<RECT>(device, 0x24), 0);
+        device->lastLoadResult_ = HolderFillAt(device->primary_, nullptr, &device->screen_, 0);
         gameapi::LeaveCriticalSection(DeviceLock());
         RendererClearOriginal(RendererObject());
     }
-    const auto* header = static_cast<const BinkHeader*>(bink);
-    int width = static_cast<int>(header->width), height = static_cast<int>(header->height);
+    int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &At<RECT>(DeviceObject(), 0x24));
-    std::uint8_t* holder = NewMovieHolder(DeviceObject(), width, height);
-    unsigned surfaceType = BinkDDSurfaceType()(At<void*>(holder, 0x10));
+    gameapi::CopyRect(&screen, &DeviceObject()->screen_);
+    CDXSurface* holder = NewMovieHolder(DeviceObject(), width, height);
+    unsigned surfaceType = BinkDDSurfaceType()(holder->surface);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
-    if (Global<int>(0x0079BCBC) == 2) {
+    if (MoviesMode() == 2) {
         int screenWidth = screen.right - screen.left;
         int shown = static_cast<int>(static_cast<double>(screenWidth) * (static_cast<double>(height) / static_cast<double>(width)));
         to.left = 0;
@@ -326,7 +339,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
             continue;
         }
         DWORD now = gameapi::timeGetTime();
-        if (static_cast<int>(header->frame) >= static_cast<int>(header->frames)) {
+        if (static_cast<int>(bink->lastFrame) >= static_cast<int>(bink->frames)) {
             // The last frame stays up for the frame time.
             if (frameTime == 0 || now - start >= frameTime) break;
             continue;
@@ -343,25 +356,20 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
         }
         if (!presenting && !CopyFrameToSurface(&holder, bink, surfaceType)) break;
         RECT source{0, 0, width, height};
-        std::uint8_t* primary = At<std::uint8_t*>(At<std::uint8_t*>(holder, 0x0C), 0x14);
-        if (At<void*>(primary, 0x10) != At<void*>(holder, 0x10)) {
+        CDXSurface* primary = holder->device->primary_;
+        if (primary->surface != holder->surface) {
             if (render::Active()) {
-                if (clearScreen) render::Fill(render::Rect{screen.left, screen.top, screen.right, screen.bottom}, 0);
-                render::MovieBlit(&g_movieKey, render::Rect{to.left, to.top, to.right, to.bottom});
+                if (clearScreen) render::Fill(ToRender(screen), 0);
+                render::MovieBlit(&g_movieKey, ToRender(to));
                 PresentMovieFrame();
             }
-            if (!presenting) {
-                gameapi::EnterCriticalSection(DeviceLock());
-                ComCall(At<void*>(primary, 0x10), kBlt, &to, At<void*>(holder, 0x10), &source, kBltWait,
-                        static_cast<void*>(nullptr));
-                gameapi::LeaveCriticalSection(DeviceLock());
-            }
+            if (!presenting) Blt(primary, &to, holder, &source);
         }
-        if (header->frame != header->frames) BinkNextFrame()(bink);
+        if (bink->lastFrame != bink->frames) BinkNextFrame()(bink);
         start = now;
     }
     BinkClose()(bink);
-    if (holder) ReleaseHolder(holder);
+    if (holder) holder->Release();
     SetFlag784751(1);
     CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
     CursorShowOriginal(Cursor(), nullptr, 1);
@@ -375,75 +383,68 @@ EI_REPLACE(0x005DB3F0, PlayMovie);
 // frame stretched over the screen of the primary surface. Nothing when 007C554C is set.
 void __fastcall ShowLoadingMovie(int progress) {
     NetworkTimers();   // 004122D0
-    if (Global<char>(0x007C554C)) return;
+    LoadingMovie& movie = Loading();
+    if (movie.off) return;
     CursorShowOriginal(Cursor(), nullptr, 0);
     bool presenting = render::Presenting();
-    if (!Global<std::uint8_t*>(0x007C551C)) {
+    if (!movie.holder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
-        std::string path = Global<const char*>(0x007AF460);   // the game folder (a CString)
-        path += Text(0x00784A4C);                              // "Movies\"
-        path += Global<const char*>(0x00791EE0);               // progres.bik, or the zone's
-        if (Global<void*>(0x007C5550)) {
-            BinkClose()(Global<void*>(0x007C5550));
-            Global<void*>(0x007C5550) = nullptr;
+        std::string path = GameFolder();
+        path += Text(0x00784A4C);    // "Movies\"
+        path += LoadingMovieName();  // progres.bik, or the zone's
+        if (movie.bink) {
+            BinkClose()(movie.bink);
+            movie.bink = nullptr;
         }
-        Global<void*>(0x007C5550) = BinkOpen()(path.c_str(), 0);
-        if (!Global<void*>(0x007C5550)) {
+        movie.bink = BinkOpen()(path.c_str(), 0);
+        if (!movie.bink) {
             DebugMessageOriginal(Text(0x00791EE4), path.c_str());   // "Can't open video file \"%s\""
             return;
         }
         RECT screen;
-        gameapi::CopyRect(&screen, &At<RECT>(DeviceObject(), 0x24));
-        const auto* header = Global<const BinkHeader*>(0x007C5550);
-        std::uint8_t* holder = NewMovieHolder(DeviceObject(), static_cast<int>(header->width), static_cast<int>(header->height));
-        std::uint8_t* old = Global<std::uint8_t*>(0x007C551C);
-        Global<std::uint8_t*>(0x007C551C) = holder;
-        if (old) ReleaseHolder(old);
-        Global<unsigned>(0x007C5554) = BinkDDSurfaceType()(At<void*>(holder, 0x10));
-        Global<RECT>(0x007C5520) = screen;
+        gameapi::CopyRect(&screen, &DeviceObject()->screen_);
+        CDXSurface* holder =
+            NewMovieHolder(DeviceObject(), static_cast<int>(movie.bink->width), static_cast<int>(movie.bink->height));
+        CDXSurface* old = movie.holder;
+        movie.holder = holder;
+        if (old) old->Release();
+        movie.surfaceType = BinkDDSurfaceType()(holder->surface);
+        movie.screen = screen;
         CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
     }
-    auto* bink = Global<std::uint8_t*>(0x007C5550);
-    // Bink's handle: +0x08 the frame count, +0x0C the frame number, +0x10 the last frame number.
-    int last = At<int>(bink, 8) - 1;
+    BinkHeader* bink = movie.bink;
+    int last = static_cast<int>(bink->frames) - 1;
     if (last < progress) progress = last;
     unsigned target = static_cast<unsigned>(progress) + 1;
     static std::vector<std::uint8_t> frame;
     bool decoded = false;
     for (;;) {
-        unsigned current = At<unsigned>(bink, 0x0C);
+        unsigned current = bink->frameNum;
         if (current >= target && current != 1) break;
         BinkDoFrame()(bink);
         if (render::Active()) {
             CopyFrame(bink, &frame);
             decoded = true;
         }
-        if (!presenting &&
-            !CopyFrameToSurface(&Global<std::uint8_t*>(0x007C551C), bink, Global<unsigned>(0x007C5554)))
-            return;
-        bink = Global<std::uint8_t*>(0x007C5550);
-        BinkGoto()(bink, At<unsigned>(bink, 0x0C) + 1, 0);
-        bink = Global<std::uint8_t*>(0x007C5550);
-        if (At<int>(bink, 8) == At<int>(bink, 0x10)) break;
+        if (!presenting && !CopyFrameToSurface(&movie.holder, movie.bink, movie.surfaceType)) return;
+        bink = movie.bink;
+        BinkGoto()(bink, bink->frameNum + 1, 0);
+        bink = movie.bink;
+        if (bink->frames == bink->lastFrame) break;
     }
     CursorLockOriginal(Cursor());
-    bink = Global<std::uint8_t*>(0x007C5550);
-    std::uint8_t* holder = Global<std::uint8_t*>(0x007C551C);
-    RECT source{0, 0, At<LONG>(bink, 0), At<LONG>(bink, 4)};
-    std::uint8_t* primary = At<std::uint8_t*>(At<std::uint8_t*>(holder, 0x0C), 0x14);
-    if (At<void*>(primary, 0x10) != At<void*>(holder, 0x10)) {
+    bink = movie.bink;
+    CDXSurface* holder = movie.holder;
+    RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
+    CDXSurface* primary = holder->device->primary_;
+    if (primary->surface != holder->surface) {
+        const void* key = &movie;   // the loading movie in the new renderer
         if (render::Active()) {
-            if (decoded) render::MovieFrame(kLoadingMovieKey, frame.data(), source.right, source.bottom);
-            const RECT& to = Global<RECT>(0x007C5520);
-            render::MovieBlit(kLoadingMovieKey, render::Rect{to.left, to.top, to.right, to.bottom});
+            if (decoded) render::MovieFrame(key, frame.data(), source.right, source.bottom);
+            render::MovieBlit(key, ToRender(movie.screen));
             PresentMovieFrame();
         }
-        if (!presenting) {
-            gameapi::EnterCriticalSection(DeviceLock());
-            ComCall(At<void*>(primary, 0x10), kBlt, &Global<RECT>(0x007C5520), At<void*>(holder, 0x10), &source, kBltWait,
-                    static_cast<void*>(nullptr));
-            gameapi::LeaveCriticalSection(DeviceLock());
-        }
+        if (!presenting) Blt(primary, &movie.screen, holder, &source);
     }
     CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
     CursorUnlockOriginal(Cursor());
