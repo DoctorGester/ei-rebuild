@@ -17,8 +17,6 @@
 
 namespace {
 
-// A record's item list (data, count, capacity, grow-by) has AlignedPtrArray's layout.
-AlignedPtrArray& List(CEngineObject**& data) { return *reinterpret_cast<AlignedPtrArray*>(&data); }
 static_assert(offsetof(PartyUnitRecord, weaponGrowBy) - offsetof(PartyUnitRecord, weapons) == 0xC);
 static_assert(sizeof(AlignedPtrArray) == 0x10);
 
@@ -45,12 +43,12 @@ CSpellManager* SpellManagerOf(CItem* item) { return static_cast<CWorld*>(item->M
 CItem* AddEntry(CEngineObject**& data, CItem* item) {
     CItem* entry = item->Clone(SpellManagerOf(item));
     ++entry->refCount_;
-    Append(List(data), entry);
+    Append(ItemList(data), entry);
     return entry;
 }
 
 void RemoveEntry(CEngineObject**& data, CItem* entry) {
-    AlignedPtrArray& list = List(data);
+    AlignedPtrArray& list = ItemList(data);
     for (int i = 0; i < list.size; ++i) {
         if (list.data[i] != entry) continue;
         entry->Release();

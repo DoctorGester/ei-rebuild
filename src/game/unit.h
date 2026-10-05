@@ -8,6 +8,8 @@
 #include "item_db.h"
 #include "maths.h"
 
+#include "lib/mfc.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -46,9 +48,19 @@ struct UnitEffect {
 static_assert(sizeof(UnitEffect) == 0x14);
 
 // The record the player keeps for each unit of the party (0x784 bytes, found by unit id through
-// 006621B0); only the item lists are read here. Each list is an aligned pointer array (data,
+// 006621B0; a party's record array, party.h). Each item list is an aligned pointer array (data,
 // count, capacity, grow-by; AlignedPtrArray's layout) of the record's own copies of the items.
 struct PartyUnitRecord {
+    // 0065F5F0 (party_lifetime.cpp). Constructor body: seven empty strings, empty item lists, the
+    // defaults below (stats left as they are), ClearItems, the defaults again. Returns this.
+    PartyUnitRecord* Construct();
+    // 0065F740. Destructor body: ClearItems, the defaults, the lists' storage freed (none is left),
+    // the strings destroyed (the last first).
+    void Destruct();
+    // 0065F860. Releases every item of the four lists (slot 4), then empties them (SetSize(0, -1),
+    // inlined for the first two).
+    void ClearItems();
+
     // 006608D0 / 00660AB0 / 00660C90 / 00660E70 (RET 4; party_items.cpp). A copy of `item` (its
     // Clone with the world's spell manager), counted and appended to the weapons / quick items /
     // armour / spells; returns the copy.
@@ -63,10 +75,12 @@ struct PartyUnitRecord {
     void RemoveArmor(CItem* entry);
     void RemoveSpell(CItem* entry);
 
-    std::uint8_t unknown_000[0x20];
+    mfc::CString texts[7];          // +0x000 names (empty when constructed)
+    std::uint8_t unknown_01C[4];
     std::uint8_t stats[0x724 - 0x20];   // +0x20 the unit's statistics (UnitStats)
-    std::uint8_t unknown_724[0x72C - 0x724];
-    float height;                   // +0x72C the hero's height (0.7 by default; the hero screen shows it * 100)
+    float unknown_724;              // +0x724 0.8 when constructed
+    float unknown_728;              // +0x728 0.2 when constructed
+    float height;                   // +0x72C the hero's height (1.0 when constructed; the hero screen shows it * 100)
     CEngineObject** weapons;        // +0x730
     std::uint32_t weaponCount;      // +0x734
     int weaponCapacity;             // +0x738
@@ -83,11 +97,18 @@ struct PartyUnitRecord {
     std::uint32_t spellCount;       // +0x764
     int spellCapacity;              // +0x768
     int spellGrowBy;                // +0x76C
-    std::uint8_t unknown_770[4];
-    std::uint32_t weaponIndex;      // +0x774 the weapon shown in the camp (-1 none)
+    int unknown_770;                // +0x770 2 when constructed
+    std::uint32_t weaponIndex;      // +0x774 the weapon shown in the camp (0 when constructed)
+    std::uint8_t unknown_778;       // +0x778 0 when constructed
+    std::uint8_t unknown_779[3];
+    int unknown_77C;                // +0x77C -1 when constructed
+    int unknown_780;                // +0x780 1 when constructed
 };
 static_assert(offsetof(PartyUnitRecord, stats) == 0x20);
+static_assert(offsetof(PartyUnitRecord, unknown_724) == 0x724);
 static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
+static_assert(offsetof(PartyUnitRecord, unknown_780) == 0x780);
+static_assert(sizeof(PartyUnitRecord) == 0x784);
 static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
 static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
 static_assert(offsetof(PartyUnitRecord, armor) == 0x750);

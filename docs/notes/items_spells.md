@@ -115,6 +115,19 @@ the party's slot 24 (0055E940: the factory makes the item, the source copies its
 array growth is AlignedPtrArray::SetSize (00519D70). Reached by ui_camp (0060FCA0 / 0060FE40 / 0060E900),
 trader_stock (004A6F60 into 00661DB0), party_records (0058FD90 / 00590C70).
 
+## Party records and the party object (party.h, party_lifetime.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 0065F5F0, 00664880 | PartyUnitRecord::Construct, ConstructPartyUnitRecords (stdcall: zero, then construct each) | original on a scratch copy seeded with the real bytes, all bytes compared |
+| 0065F740, 0065F860 | PartyUnitRecord::Destruct, ClearItems | ours only: lists empty, defaults set |
+| 00663FA0 | PartyMemberArray::SetSize (CParty +0x2C, MFC CArray<PartyUnitRecord>, vtable 00742FF4) | ours only: size, capacity, new records constructed |
+| 00663960, 00663AD0, 00663C00, 00663D30 | byte-identical copies of AlignedPtrArray::SetSize (00519D70) | ours only: size, alignment |
+
+A constructed record has seven empty strings, empty lists, +0x724 0.8, +0x728 0.2, height 1.0, +0x770 2, +0x774 0,
++0x778 0, +0x77C -1, +0x780 1 (the destructor sets the same). Every new game reaches them: the party record reset
+adds the hero (006628D0 builds a record on the stack, grows the array, destroys the stack record).
+
 Candidates next: CParty constructor / destructor / serialisation (00661050, 006611D0, 00661300, 006618C0,
 00661C10, 00661700, 00661640), DeltaField's empty (00675F70, 19 callers) with the effect constructors /
 destructors, item database record assignment and destructors (006A8F20 with 24 callers, 006A8FB0, 006A88F0..),
