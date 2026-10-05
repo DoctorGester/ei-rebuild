@@ -37,7 +37,7 @@ constexpr int kFileRead = 13;   // CFile
 constexpr int kFileWrite = 14;
 
 // MFC CStringArray (library).
-__declspec(naked) int __fastcall StringArrayAppend(StringArray*, void*, const StringArray*) EI_ORIGINAL(0x006FEB61)
+void __fastcall StringArrayAppend(StringArray* a0, void*, const StringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
 __declspec(naked) void __fastcall AreasSetSize(PlainArray*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0046EAD0)
 __declspec(naked) void __stdcall ConstructTargets(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0046F110)

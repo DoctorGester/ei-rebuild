@@ -92,8 +92,8 @@ __declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORI
 // builder (00661050 constructs one, 006611D0 destroys it).
 __declspec(naked) void __fastcall PartyTake(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8890)
 __declspec(naked) void __fastcall PartyStore(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8880)
-__declspec(naked) void* __fastcall RecordsConstruct(void*, void*) EI_ORIGINAL(0x00661050)
-__declspec(naked) void __fastcall RecordsDestruct(void*, void*) EI_ORIGINAL(0x006611D0)
+void* __fastcall RecordsConstruct(void* a0, void*) { return PartyRecordsConstructOriginal(a0); }
+void __fastcall RecordsDestruct(void* a0, void*) { PartyRecordsDestructOriginal(a0); }
 // 0045E850 (RET 4). CMapDatabase::FindMap: the zone record named `name`, or null.
 // 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
@@ -338,7 +338,7 @@ __declspec(naked) void __fastcall SetZoneExitsAt(CWorldServer*, void*, const voi
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 __declspec(naked) int __fastcall NewZone(CWorldServer*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x00595480)
 // 0058EEA0 (RET 4). CWorldServer::SetTime.
-__declspec(naked) void __fastcall WorldSetTime(CWorldServer*, void*, std::uint32_t /*float bits*/) EI_ORIGINAL(0x0058EEA0)
+void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { WorldSetTimeOriginal((void*)a0, nullptr, a2); }
 // 00596350 (RET 4). Loads the zone's scripts from a folder.
 __declspec(naked) void __fastcall WorldLoadZoneScripts(CWorldServer*, void*, const char*) EI_ORIGINAL(0x00596350)
 // 004BEB00. Resets the scripts (007C27D4) for a zone without its own.
@@ -948,7 +948,7 @@ constexpr std::uintptr_t kGraphExtension = 0x00790BB0;   // ".grp"
 constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk in a .mob file
 
 // 00595BA0 (RET 8, patched by Rebirth). The full path of a map file, constructed into `out`.
-__declspec(naked) mfc::CString* __fastcall MapPathInto(CWorldServer*, void*, void* /*out*/, const char*) EI_ORIGINAL(0x00595BA0)
+mfc::CString* __fastcall MapPathInto(CWorldServer* a0, void*, void* a2, const char* a3) { return (mfc::CString*)ServerMapPathOriginal((void*)a0, nullptr, a2, a3); }
 // 004A4A90 (RET 8, AL). Finds the chunk `id` in a stream and reads it into `out`.
 __declspec(naked) bool __fastcall StreamReadChunk(void*, void*, std::uint32_t, void* /*out*/) EI_ORIGINAL(0x004A4A90)
 // 006FDBB7 (RET 4). CString::ReverseFind(char).
@@ -1256,7 +1256,7 @@ void* const kNetLog = reinterpret_cast<void*>(0x007C56B0);   // the network log'
 // 00598EF0. The connection list's destructor.
 __declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(0x00598EF0)
 // 0066C180. The player list makes a new player. 00665990 (RET 4): the player takes a connection.
-__declspec(naked) WorldPlayer* __fastcall PlayersAdd(void*, void*) EI_ORIGINAL(0x0066C180)
+WorldPlayer* __fastcall PlayersAdd(void* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal(a0); }
 __declspec(naked) void __fastcall PlayerAttach(WorldPlayer*, void*, void*) EI_ORIGINAL(0x00665990)
 // 006FC9C6 (RET 4). ostream << long.
 inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamPutLongOriginal(s, nullptr, v); }
@@ -1321,8 +1321,7 @@ struct OutStrings {
     stlp::string* end;
 };
 // 004DCE90 (RET 0xC). vector<string>::_M_insert_overflow(pos, value, count).
-__declspec(naked) void __fastcall OutInsertOverflow(OutStrings*, void*, stlp::string*, const stlp::string*, unsigned)
-    EI_ORIGINAL(0x004DCE90)
+void __fastcall OutInsertOverflow(OutStrings* a0, void*, stlp::string* a2, const stlp::string* a3, unsigned a4) { StringVectorInsertOverflowOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3, a4); }
 // 004667F0. IsaacRandom::Next on the game's generator (007A9D40).
 __declspec(naked) std::uint32_t __fastcall RandomNext(void*, void*) EI_ORIGINAL(0x004667F0)
 
@@ -1400,7 +1399,7 @@ __declspec(naked) bool __fastcall SaveFileReadAt(void*, unsigned, int, int, void
 __declspec(naked) void __fastcall GlobalsLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410AB0)
 __declspec(naked) void __fastcall InputLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F8420)
 // 004A51C0 (RET 4). A memory stream copies its remaining data into another.
-__declspec(naked) void __fastcall StreamCopyRest(CMemoryStream*, void*, void*) EI_ORIGINAL(0x004A51C0)
+void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { StreamReadSizedOriginal((void*)a0, nullptr, a2); }
 // 00596E70 (RET 8). CWorldServer::LoadSave through its address.
 __declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
 
@@ -1495,7 +1494,7 @@ void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 
 // 0058EEE0 / 0058EEA0 (RET 4). CWorldServer::SetTimeSpeed / SetTime.
 __declspec(naked) void __fastcall WorldSetTimeSpeedF(CWorldServer*, void*, float) EI_ORIGINAL(0x0058EEE0)
-__declspec(naked) void __fastcall WorldSetTimeF(CWorldServer*, void*, float) EI_ORIGINAL(0x0058EEA0)
+void __fastcall WorldSetTimeF(CWorldServer* a0, void*, float a2) { WorldSetTimeOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
 __declspec(naked) std::uint8_t* __fastcall ClientWorldLocalView(void*) EI_ORIGINAL(0x005699F0)
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
@@ -1775,7 +1774,7 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // 005F8420), the scripts (004A51C0, a stream method), the globals (00410AB0); the world from
 // mission.sav (00579E60, a flow method, from the file stream).
 __declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
-__declspec(naked) void __fastcall StreamLoadScripts(CMemoryStream*, void*, void* /*scripts*/) EI_ORIGINAL(0x004A51C0)
+void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, void* a2) { StreamReadSizedOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall FlowLoadMission(GameFlow*, void*, FileStream*) EI_ORIGINAL(0x00579E60)
 int& LoadedScriptsVersion() { return *reinterpret_cast<int*>(0x007AFE00); }
 

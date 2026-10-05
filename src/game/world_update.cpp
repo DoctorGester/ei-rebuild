@@ -57,7 +57,7 @@ __declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*
 __declspec(naked) void __fastcall AcceptPlayers(CWorldServer*, void*, void* /*source*/) EI_ORIGINAL(0x0058DAF0)
 // 00479E30 (RET 4). The pending object at +0x60 polls the game server.
 // 00665A10. Disconnects a player (its connection and units).
-__declspec(naked) void __fastcall PlayerDisconnect(WorldPlayer*, void*) EI_ORIGINAL(0x00665A10)
+void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
 // 0066C1D0 (RET 4). The player list releases the player.
 // 00665DE0 / 0066E130. A player's update before the tick / its state's update after it.
 __declspec(naked) void __fastcall PlayerUpdate(WorldPlayer*, void*) EI_ORIGINAL(0x00665DE0)
@@ -70,11 +70,10 @@ __declspec(naked) void __fastcall GroupConstruct(ScriptGroup*, void*) EI_ORIGINA
 inline void __fastcall GroupDestruct(ScriptGroup* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) void __fastcall GroupUnion(ScriptGroup*, void*, const ScriptGroup*, const ScriptGroup*) EI_ORIGINAL(0x004B2620)
-__declspec(naked) ScriptGroup* __fastcall GroupsGetAt(void*, void*, ScriptGroup* /*out*/, int) EI_ORIGINAL(0x004C3B00)
-__declspec(naked) mfc::CString* __fastcall NamesGetAt(void*, void*, mfc::CString* /*out*/, int) EI_ORIGINAL(0x004C2680)
-__declspec(naked) ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup*, void*, ScriptObjectRef* /*out*/, int)
-    EI_ORIGINAL(0x004C21E0)
-__declspec(naked) void __stdcall RefsRelease(ScriptObjectRef*, int) EI_ORIGINAL(0x004CC7D0)
+ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
+mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
+ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
+void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
 __declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/) EI_ORIGINAL(0x004CE1E0)
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*, void*) EI_ORIGINAL(0x004B24B0)

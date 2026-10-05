@@ -33,7 +33,7 @@ __declspec(naked) void __fastcall LootListRemoveAll(ObjectList*, void*) EI_ORIGI
 __declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 __declspec(naked) void __fastcall PtrListConstruct(ObjectList*, void*, int /*blockSize*/) EI_ORIGINAL(0x004C98C0)
-__declspec(naked) void __fastcall PtrListAddTail(ObjectList*, void*, CEngineObject*) EI_ORIGINAL(0x004C98F0)
+void __fastcall PtrListAddTail(ObjectList* a0, void*, CEngineObject* a2) { PtrListAddTailOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall PtrListRemoveAt(ObjectList*, void*, ObjectList::Node*) EI_ORIGINAL(0x0059A680)
 __declspec(naked) CEngineObject** __fastcall PtrListGetNext(ObjectList*, void*, ObjectList::Node** /*position*/)
     EI_ORIGINAL(0x0059A670)

@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -68,13 +69,13 @@ __declspec(naked) MapIterator<ObjectMap>* __fastcall ObjectsBegin(ObjectMap*, vo
 __declspec(naked) MapIterator<ObjectMap>* __fastcall ObjectsNext(MapIterator<ObjectMap>*) EI_ORIGINAL(0x00404980)
 __declspec(naked) CEngineObject** __fastcall ObjectsFind(ObjectMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00406950)
 __declspec(naked) void __fastcall ObjectsClear(ObjectMap*) EI_ORIGINAL(0x004067B0)
-__declspec(naked) void __fastcall PositionsClear(PositionMap*) EI_ORIGINAL(0x00406E80)
+void __fastcall PositionsClear(PositionMap* a0) { HashClearOriginal((void*)a0); }
 __declspec(naked) void __fastcall SparesClear(SpareMap*) EI_ORIGINAL(0x00407050)
 __declspec(naked) void __fastcall SpareCountsClear(SpareCountMap*) EI_ORIGINAL(0x00407220)
-__declspec(naked) void __fastcall ObjectsResize(ObjectMap*, void*, std::size_t /*hint*/) EI_ORIGINAL(0x00406640)
-__declspec(naked) void __fastcall PositionsResizeBig(PositionMap*, void*, std::size_t /*hint*/) EI_ORIGINAL(0x00406D10)
+void __fastcall ObjectsResize(ObjectMap* a0, void*, std::size_t a2) { ObjectsResizeOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
+void __fastcall PositionsResizeBig(PositionMap* a0, void*, std::size_t a2) { PositionsResizeOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 __declspec(naked) void __fastcall SparesResize(SpareMap*, void*, std::size_t /*hint*/) EI_ORIGINAL(0x00406EE0)
-__declspec(naked) void __fastcall SpareCountsResizeBig(SpareCountMap*, void*, std::size_t /*hint*/) EI_ORIGINAL(0x004070B0)
+void __fastcall SpareCountsResizeBig(SpareCountMap* a0, void*, std::size_t a2) { SpareCountsResizeOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 // Node deallocation through a table's count proxy (its node allocator).
 __declspec(naked) void __fastcall SparesFreeNode(void* /*proxy*/, void*, SpareMap::Node*, int /*n*/) EI_ORIGINAL(0x00407DA0)
 __declspec(naked) void __fastcall SpareCountsFreeNode(void* /*proxy*/, void*, SpareCountMap::Node*, int /*n*/) EI_ORIGINAL(0x00408020)
@@ -87,7 +88,7 @@ __declspec(naked) void __fastcall IdsClear(IdList*) EI_ORIGINAL(0x00405500)
 // The positions table: find, erase(iterator), operator[] (two copies), remove by key (returning the
 // value).
 __declspec(naked) MapIterator<PositionMap>* __fastcall PositionsFind(PositionMap*, void*, MapIterator<PositionMap>* /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405BB0)
-__declspec(naked) void __fastcall PositionsErase(PositionMap*, void*, PositionMap::Node* /*node*/, const PositionMap* /*table*/) EI_ORIGINAL(0x00405720)
+void __fastcall PositionsErase(PositionMap* a0, void*, PositionMap::Node* a2, const PositionMap* a3) { HashEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
 __declspec(naked) ObjectNode** __fastcall PositionAt(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)
 __declspec(naked) ObjectNode** __fastcall PositionAt2(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004056A0)
 __declspec(naked) ObjectNode* __fastcall PositionRemoveKey(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00405350)
@@ -100,7 +101,7 @@ __declspec(naked) int __fastcall ObjectsLookup(ObjectMap*, void*, const int* /*k
 __declspec(naked) void __fastcall ObjectsSetAt(ObjectMap*, void*, const int* /*key*/, CEngineObject* const* /*value*/) EI_ORIGINAL(0x00404E80)
 __declspec(naked) CEngineObject** __fastcall ObjectsAt(ObjectMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004055A0)
 __declspec(naked) CEngineObject* __fastcall ObjectsRemoveKey(ObjectMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00404F20)
-__declspec(naked) void __fastcall ObjectsErase(ObjectMap*, void*, ObjectMap::Node* /*node*/, const ObjectMap* /*table*/) EI_ORIGINAL(0x00405620)
+void __fastcall ObjectsErase(ObjectMap* a0, void*, ObjectMap::Node* a2, const ObjectMap* a3) { ObjectsEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
 __declspec(naked) ObjectPair* __fastcall ObjectsFindOrInsert(ObjectMap*, void*, const ObjectPair*) EI_ORIGINAL(0x004065D0)
 // The spares table: finds into an iterator (two copies), operator[], begin, the next non-empty
 // bucket after a node (returns its head).

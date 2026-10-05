@@ -331,7 +331,7 @@ constexpr std::uintptr_t kHumanHero = 0x0078B0FC;   // "Human Hero"
 static const char** UnitPrototype(CEngineObject* object, void*) { return static_cast<const char**>(::UnitPrototypeOf(object)); }
 // 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
 // (name, prototype, extra), remove the member with a text key.
-__declspec(naked) void __fastcall PartyAddMember(void*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
+void __fastcall PartyAddMember(void* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
 __declspec(naked) void __fastcall PartyRemoveMember(void*, void*, unsigned) EI_ORIGINAL(0x006620F0)
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
 __declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)

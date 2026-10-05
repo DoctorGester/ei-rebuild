@@ -13,6 +13,7 @@
 #include "../../src/lib/crt.h"
 
 #include "ei/rebirth.h"
+#include "../../src/game/originals_library.h"
 
 #include <windows.h>
 
@@ -475,7 +476,7 @@ EI_VERIFY(0x005DC240, DeletingDestructVerify, 0, s_unused);
 struct LinesAt : CStringArray {
     void CopyFrom(const CStringArray& from);   // 006FEB61 CStringArray::Copy
 };
-__declspec(naked) void LinesAt::CopyFrom(const CStringArray&) EI_ORIGINAL(0x006FEB61)
+void LinesAt::CopyFrom(const CStringArray& a0) { StringArrayCopyOriginal((void*)this, nullptr, &a0); }
 
 std::string WindowText(const ConsoleWindow* w) {
     std::string s = "scroll " + Int(w->scroll_) + " history " + Int(w->history_) + " lines";

@@ -64,7 +64,7 @@ struct Orientation {
     // 004D9AA0. Writes the rotation into the 4x4 matrix `out` (RET 4).
     void ToMatrix(float* out);
 };
-__declspec(naked) void Orientation::ToMatrix(float*) EI_ORIGINAL(0x004D9AA0)
+void Orientation::ToMatrix(float* a0) { QuaternionToMatrixOriginal((void*)this, nullptr, a0); }
 
 // The object's model (+0x94; CObject3DClientSpecific range).
 struct ObjectModel {

@@ -39,7 +39,7 @@ __declspec(naked) HeaderNode** __fastcall HeaderIteratorCopy(HeaderNode** /*it*/
 __declspec(naked) HistoryNode** __fastcall ListIteratorDecrement(HistoryNode** /*it*/) EI_ORIGINAL(0x00439A60)
 // Red-black trees: iterator increment, find / lower_bound, insert with a hint, erase by key,
 // operator[].
-__declspec(naked) void** __fastcall TreeIncrement(void** /*it*/) EI_ORIGINAL(0x0043DBE0)
+void __fastcall TreeIncrement(void** a0) { TreeIncrementOriginal((void*)a0); }
 __declspec(naked) RecordMap::Node** __fastcall RecordsFind(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,
                                                            const std::int32_t* /*key*/) EI_ORIGINAL(0x0043CE70)
 __declspec(naked) RecordMap::Node** __fastcall RecordsLowerBound(RecordMap* /*tree*/, void*, RecordMap::Node** /*out*/,

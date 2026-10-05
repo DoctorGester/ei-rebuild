@@ -28,7 +28,7 @@ void __fastcall FacingDirection(const void* a0, void*, Vector3* a2) { Quaternion
 // long-range planner.
 struct CLocalSearch;
 __declspec(naked) bool __fastcall LocalSearch(CLocalSearch*, void*, CUnit*, int, int, int, int) EI_ORIGINAL(0x005C2420)
-__declspec(naked) void __fastcall LocalSearchReset(CLocalSearch*, void*) EI_ORIGINAL(0x005C35F0)
+void __fastcall LocalSearchReset(CLocalSearch* a0, void*) { LocalSearchResetOriginal((void*)a0); }
 __declspec(naked) bool __fastcall BuildLocalPath(CAIMap*, void*, PathCellList*, int) EI_ORIGINAL(0x005B9690)
 // 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
 __declspec(naked) int __fastcall SmoothPath(void*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)

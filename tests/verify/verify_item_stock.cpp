@@ -13,6 +13,7 @@
 #include "../../src/game/item_stock.h"
 #include "../../src/lib/stlp.h"
 #include "ei/hook.h"
+#include "../../src/game/originals_engine.h"
 
 #include <climits>
 #include <cstring>
@@ -177,7 +178,7 @@ EI_VERIFY(0x00699A40, GenerateQuickItemInstructionsVerify, 0, s_unusedQuickInstr
 // Both are reached from GenerateItems (kinds 0 / 1 / 3) in scenario trader_stock.
 namespace {
 
-__declspec(naked) char** __fastcall SpellByNameForCheck(void*, void*, const void*) EI_ORIGINAL(0x004ABD00)
+char** __fastcall SpellByNameForCheck(void* a0, void*, const void* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, a2); }
 __declspec(naked) char* __fastcall ModifierMapAtForCheck(void*, void*, const void*) EI_ORIGINAL(0x0069D1E0)
 
 using FillSpellMapsFn = void(__fastcall*)(ItemStock*, void*, const SpellRecipeVector*);

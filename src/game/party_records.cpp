@@ -20,7 +20,7 @@ namespace {
 // 006E848B _mbscmp.
 int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 // 00661050 constructor of the embedded party (returns this).
-__declspec(naked) void* __fastcall PartyConstruct(void*) EI_ORIGINAL(0x00661050)
+void* __fastcall PartyConstruct(void* a0) { return PartyRecordsConstructOriginal(a0); }
 // 00700AF9 CString::operator=(LPCTSTR) on a raw CString slot.
 inline void __fastcall AssignText(void* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
@@ -34,7 +34,7 @@ __declspec(naked) void __fastcall RecordInsertOverflow(PartyRecordList*, void*, 
                                                        unsigned) EI_ORIGINAL(0x004AB320)
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
-__declspec(naked) void __fastcall PartyAddMember(void*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
+void __fastcall PartyAddMember(void* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
 void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 
 const char* const kHero = reinterpret_cast<const char*>(0x0078B0F4);           // "Hero"

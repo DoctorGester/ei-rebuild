@@ -24,9 +24,9 @@ namespace {
 // CArray members called out of line: 004C2510 CStringArray SetSize, 004C2680 GetAt (CString by
 // value; also on string values), 004C21E0 GetAt of a reference array (ScriptObjectRef by value,
 // referenced), 004C3B00 GetAt of a group array (ScriptGroup by value).
-__declspec(naked) mfc::CString* __fastcall StringAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C2680)
-__declspec(naked) ScriptObjectRef* __fastcall RefAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C21E0)
-__declspec(naked) ScriptGroup* __fastcall GroupAt(const void*, void*, void* /*out*/, int) EI_ORIGINAL(0x004C3B00)
+mfc::CString* __fastcall StringAt(const void* a0, void*, void* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal(a0, nullptr, a2, a3); }
+ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal(a0, nullptr, a2, a3); }
+ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
 // Rewritten script helpers, called through their addresses.
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
@@ -143,7 +143,7 @@ EI_REPLACE(0x004C3DC0, ScriptGroupsAppend);
 
 namespace {
 
-__declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
+void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 // 004B5EF0: a group's destructor body (references released, array freed).
 __declspec(naked) void __fastcall GroupDestruct(ScriptGroup*) EI_ORIGINAL(0x004B5EF0)
 

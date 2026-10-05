@@ -116,7 +116,7 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 struct CandidateList {
     void Construct(int blockSize);                  // 004C96A0
 };
-__declspec(naked) void CandidateList::Construct(int) EI_ORIGINAL(0x004C96A0)
+void CandidateList::Construct(int a0) { PtrListConstructOriginal((void*)this, nullptr, a0); }
 constexpr std::uintptr_t kCandidates = 0x007C54C8;
 constexpr std::uintptr_t kCandidatesGuard = 0x007C54E4;
 constexpr std::uintptr_t kCandidatesDestructor = 0x005D2570;

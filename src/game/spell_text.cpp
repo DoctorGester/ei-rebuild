@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
+#include "originals_engine.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -34,14 +35,13 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
 // 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
-__declspec(naked) char** __fastcall SpellMapAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x004ABD00)
+char** __fastcall SpellMapAt(void* a0, void*, const stlp::string* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, (const void*)a2); }
 // 004ACC10: find_or_insert(pair); returns the element.
 struct NameRecordPair {
     stlp::string name;
     char* record;
 };
-__declspec(naked) NameRecordPair* __fastcall ModifierMapFindOrInsert(void*, void*, const NameRecordPair*)
-    EI_ORIGINAL(0x004ACC10)
+NameRecordPair* __fastcall ModifierMapFindOrInsert(void* a0, void*, const NameRecordPair* a2) { return (NameRecordPair*)ModifierMapFindOrInsertOriginal(a0, nullptr, (const void*)a2); }
 void* const kSpellNameMap = reinterpret_cast<void*>(0x007C851C);
 void* const kModifierNameMap = reinterpret_cast<void*>(0x007C853C);
 
@@ -55,7 +55,7 @@ int Length(const mfc::CString& s) { return console::Length(s); }
 int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
-__declspec(naked) void TextOps::TrimRight(char) EI_ORIGINAL(0x006FE0DD)
+void TextOps::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
 
 namespace {
 

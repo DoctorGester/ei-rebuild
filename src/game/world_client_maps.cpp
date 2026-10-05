@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 
 #include <windows.h>
 
@@ -271,8 +272,8 @@ __declspec(naked) void MfcList::RemoveAt(MfcNode*) EI_ORIGINAL(0x0056FDD0)
 // The id map +0xD8 (hash_map<unsigned, MfcNode*>, then the highest key at +0x14): operator[]
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
 __declspec(naked) void** __fastcall IdMapAt(void*, void*, const int*) EI_ORIGINAL(0x00406A10)
-__declspec(naked) void __fastcall IdMapErase(void*, void*, const void* /*node*/, const void* /*table*/) EI_ORIGINAL(0x00405720)
-__declspec(naked) void __fastcall IdMapClear(void*) EI_ORIGINAL(0x00406E80)
+void __fastcall IdMapErase(void* a0, void*, const void* a2, const void* a3) { HashEraseOriginal(a0, nullptr, (void*)a2, a3); }
+void __fastcall IdMapClear(void* a0) { HashClearOriginal(a0); }
 
 // Item `index` of an object's two item arrays [00564AF0, on the object]; a platform item added to
 // the client's platform set [00560820: id, item, position, orientation].
@@ -282,7 +283,7 @@ __declspec(naked) void __fastcall PlatformsAdd(void*, void*, int, std::uint32_t*
 __declspec(naked) void __fastcall HeroLeft(void*) EI_ORIGINAL(0x00538EA0)
 // ClearMaps: a counted node value's destructor [00575510 (flags)], the node's release to the pool
 // [0056FB40 (node, count)], the session's player data [00665200], a manager's records [00404410].
-__declspec(naked) void __fastcall SessionPlayerClear(void*) EI_ORIGINAL(0x00665200)
+void __fastcall SessionPlayerClear(void* a0) { PlayerClearOriginal(a0); }
 __declspec(naked) void __fastcall ManagerFreeRecords(void*) EI_ORIGINAL(0x00404410)
 
 // The STLport sort over the 0x18-byte screen entries with DepthLess {plane, manager}:
@@ -1000,7 +1001,7 @@ __declspec(naked) void __fastcall ManagerBase(void*) EI_ORIGINAL(0x00402B20)
 __declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
 __declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
 __declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
-__declspec(naked) void* __fastcall SessionFor(void*) EI_ORIGINAL(0x0066C180)
+void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 __declspec(naked) void __fastcall Construct419720(void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
 __declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)

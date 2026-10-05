@@ -483,7 +483,7 @@ __declspec(naked) void __fastcall ServerCastSpell(CWorldServer*, void*, CEngineO
 __declspec(naked) CEngineObject* __fastcall SpellsFromText(void*, void*, const char*) EI_ORIGINAL(0x00689030)
 inline void __fastcall TextAssignChars(mfc::CString* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
-__declspec(naked) void __fastcall TextArrayCopy(void*, void*, const void*) EI_ORIGINAL(0x006FEB61)
+void __fastcall TextArrayCopy(void* a0, void*, const void* a2) { StringArrayCopyOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitSetSide(CEngineObject*, void*, int) EI_ORIGINAL(0x00530120)
 __declspec(naked) int __fastcall DiplomacyMaskOf(void*, void*, int) EI_ORIGINAL(0x00455660)
 __declspec(naked) void __fastcall UnitSetDiplomacy(CEngineObject*, void*, int) EI_ORIGINAL(0x0052E970)

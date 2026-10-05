@@ -121,7 +121,7 @@ __declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, uns
 __declspec(naked) void __fastcall StreamWriteHeader(void*, void*, unsigned, unsigned) EI_ORIGINAL(0x004A5340)
 __declspec(naked) bool __fastcall StreamReadHeader(void*, void*, unsigned, unsigned, int) EI_ORIGINAL(0x004A52D0)
 __declspec(naked) mfc::CString* __fastcall StreamReadString(void*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
-__declspec(naked) void __fastcall StreamReadInto(void*, void*, mfc::CString* /*out*/) EI_ORIGINAL(0x004E5840)
+void __fastcall StreamReadInto(void* a0, void*, mfc::CString* a2) { StreamReadCStringOriginal(a0, nullptr, (void*)a2); }
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 __declspec(naked) void __fastcall EntryConstruct(SaveEntry* /*at*/, const SaveEntry* /*from*/) EI_ORIGINAL(0x00657C60)

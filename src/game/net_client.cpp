@@ -8,6 +8,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "originals_library.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -27,7 +28,7 @@ namespace {
 
 // 004DA7F0: the growing byte buffer's constructor (net_coder.h, GameBuffer).
 // 00661050: the unit record builder's constructor (world.md).
-__declspec(naked) UnitRecordBuilder* __fastcall UnitRecordBuilderConstruct(UnitRecordBuilder* /*b*/) EI_ORIGINAL(0x00661050)
+UnitRecordBuilder* __fastcall UnitRecordBuilderConstruct(UnitRecordBuilder* a0) { return (UnitRecordBuilder*)PartyRecordsConstructOriginal((void*)a0); }
 // 0041F460: an empty STLport string (library).
 
 // STLport list constructors, list(const allocator&), one per element type (library).

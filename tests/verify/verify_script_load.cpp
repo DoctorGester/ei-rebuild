@@ -14,6 +14,8 @@
 #include "../../src/lib/crt.h"
 
 #include "ei/vcall.h"
+#include "../../src/game/originals_library.h"
+#include "../../src/game/originals_script.h"
 
 #include <cstdio>
 #include <cstring>
@@ -99,8 +101,8 @@ public:
 
 __declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
 __declspec(naked) void __fastcall CmdsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD2B0)
-__declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
-__declspec(naked) void __stdcall DestructRefs(void*, int) EI_ORIGINAL(0x004CC7D0)
+void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
+void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
 __declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
 __declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
 __declspec(naked) void __fastcall VarsDestruct(void*) EI_ORIGINAL(0x004BE090)

@@ -32,7 +32,7 @@ __declspec(naked) void __fastcall DestroyPair(void*, void*, int) EI_ORIGINAL(0x0
 void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 __declspec(naked) void __fastcall NodeDeallocate(void*, void*, Node*, int) EI_ORIGINAL(0x005AE150)
 // 00406590: deallocates `count` pointers (the buckets).
-__declspec(naked) void __fastcall DeallocatePointers(void*, int) EI_ORIGINAL(0x00406590)
+void __fastcall DeallocatePointers(void* a0, int a1) { BucketsDeallocateOriginal(a0, (std::size_t)a1); }
 
 // The figure manager's helpers: the model destructor (through its original address), 00674F40
 // (the base's clean-up), 005AE5D0 (RET 4) the pair destructor, 004FC080 (ECX node, EDX count)

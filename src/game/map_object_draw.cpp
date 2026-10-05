@@ -51,7 +51,7 @@ __declspec(naked) void __fastcall UpdateAnimation(void*) EI_ORIGINAL(0x0050D450)
 __declspec(naked) void* __fastcall AllocateLights(int) EI_ORIGINAL(0x0051EF90)
 __declspec(naked) void __fastcall AddLight(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0051EE50)
 // 004D9AA0. A quaternion into a 4x4 matrix.
-__declspec(naked) void __fastcall OrientationToMatrix(void*, void*, float*) EI_ORIGINAL(0x004D9AA0)
+void __fastcall OrientationToMatrix(void* a0, void*, float* a2) { QuaternionToMatrixOriginal((const void*)a0, nullptr, a2); }
 // 004D9B80 / 004D9880 / 0051C110. The scene's matrix stacks: push (multiplied with the top),
 // multiply, pop.
 __declspec(naked) void __fastcall PushSceneMatrix(void*, void*, const float*, int) EI_ORIGINAL(0x004D9B80)

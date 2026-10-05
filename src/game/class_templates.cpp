@@ -14,6 +14,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "originals_engine.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -54,12 +55,12 @@ __declspec(naked) char* __stdcall ModifierCode(const char*) EI_ORIGINAL(0x006894
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
 // 007C86E4 / 007C851C (a missing name is inserted with a null record); 004ACC10 find_or_insert of
 // the modifier map 007C853C.
-__declspec(naked) void* __fastcall FindWeapon(void*, void*, const char*) EI_ORIGINAL(0x004AB720)
-__declspec(naked) void* __fastcall FindArmor(void*, void*, const char*) EI_ORIGINAL(0x004AB820)
+void* __fastcall FindWeapon(void* a0, void*, const char* a2) { return FindWeaponOriginal(a0, nullptr, a2); }
+void* __fastcall FindArmor(void* a0, void*, const char* a2) { return FindArmorOriginal(a0, nullptr, a2); }
 __declspec(naked) void** __fastcall QuickItemAt(void*, void*, const void*) EI_ORIGINAL(0x004ABBD0)
 __declspec(naked) void** __fastcall FourthKindAt(void*, void*, const void*) EI_ORIGINAL(0x004ABAA0)
-__declspec(naked) void** __fastcall SpellAt(void*, void*, const void*) EI_ORIGINAL(0x004ABD00)
-__declspec(naked) char* __fastcall ModifierFindOrInsert(void*, void*, const void*) EI_ORIGINAL(0x004ACC10)
+void** __fastcall SpellAt(void* a0, void*, const void* a2) { return SpellMapAtOriginal(a0, nullptr, a2); }
+char* __fastcall ModifierFindOrInsert(void* a0, void*, const void* a2) { return (char*)ModifierMapFindOrInsertOriginal(a0, nullptr, a2); }
 void* const kWeapons = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmors = reinterpret_cast<void*>(0x007C8718);
 void* const kQuickItemMap = reinterpret_cast<void*>(0x007C8744);
@@ -76,7 +77,7 @@ struct RawString {
     char* eos;
 };
 static RawString* StringFromChars(RawString* s, void*, const char* text, const void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-__declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)
+void __fastcall StringCopy(RawString* a0, void*, const RawString* a2) { StringCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.

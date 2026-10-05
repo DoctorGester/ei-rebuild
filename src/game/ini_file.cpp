@@ -190,7 +190,7 @@ __declspec(naked) int TextOps::Find(char, int) const EI_ORIGINAL(0x00700E9F)
 __declspec(naked) mfc::CString TextOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
-__declspec(naked) void TextOps::AppendChar(char) EI_ORIGINAL(0x00700D73)
+void TextOps::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void MfcArrayOps::ConstructDWordArray() EI_ORIGINAL(0x006FF933)
 __declspec(naked) void MfcArrayOps::DestroyDWordArray() EI_ORIGINAL(0x006FF966)
 __declspec(naked) void MfcArrayOps::SetSizeDWord(int, int) EI_ORIGINAL(0x006FF993)

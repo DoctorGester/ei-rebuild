@@ -56,3 +56,18 @@ __declspec(naked) inline void __fastcall StreamResizeOriginal(void* /*stream*/, 
 // 0044C470: the game's debug message (cdecl, printf style, a bare RET; the caller's EAX comes back unchanged, and
 // bink_video.cpp masks it, so it is declared to return a value). src/lib/crt.cpp keeps its own copy.
 __declspec(naked) inline unsigned __cdecl DebugMessageOriginal(const char*, ...) EI_ORIGINAL(0x0044C470)
+
+// C3i. 004ABD00: spell name map operator[](key) (RET 4; inserts a null record for a missing name; EAX is the address of the
+// value slot). 004ACC10: modifier map find_or_insert(pair) (RET 4; EAX is the address of the value slot, node + 4).
+__declspec(naked) inline void** __fastcall SpellMapAtOriginal(void* /*map*/, void*, const void* /*key*/) EI_ORIGINAL(0x004ABD00)
+__declspec(naked) inline void* __fastcall ModifierMapFindOrInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
+    EI_ORIGINAL(0x004ACC10)
+
+// C3i part 2. 004A51C0: CMemoryStream reads a sized block from `from` into this stream (RET 4, EAX not a result).
+// 004E5840: reads a CString from the stream into `out` (RET 4, EAX not a result). 004AB720 / 004AB820: the weapon / armour
+// record by name (RET 4, record or null).
+__declspec(naked) inline void __fastcall StreamReadSizedOriginal(void* /*stream*/, void*, void* /*to*/) EI_ORIGINAL(0x004A51C0)
+__declspec(naked) inline void __fastcall StreamReadCStringOriginal(void* /*stream*/, void*, void* /*out*/)
+    EI_ORIGINAL(0x004E5840)
+__declspec(naked) inline void* __fastcall FindWeaponOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x004AB720)
+__declspec(naked) inline void* __fastcall FindArmorOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x004AB820)

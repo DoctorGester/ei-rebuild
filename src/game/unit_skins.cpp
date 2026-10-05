@@ -86,7 +86,7 @@ __declspec(naked) void __fastcall StringDestroyFlag(void*, void*, int) EI_ORIGIN
 __declspec(naked) void __fastcall StringsFree(char*, int) EI_ORIGINAL(0x00426860)
 __declspec(naked) void __fastcall StringsDeallocate(void*, void*, char*, int) EI_ORIGINAL(0x0053BF40)
 __declspec(naked) void __fastcall StringCopyConstruct(char*, const void*) EI_ORIGINAL(0x004F5DF0)
-__declspec(naked) void __fastcall StringsInsertOverflow(void*, void*, char*, const void*, int) EI_ORIGINAL(0x004DCE90)
+void __fastcall StringsInsertOverflow(void* a0, void*, char* a2, const void* a3, int a4) { StringVectorInsertOverflowOriginal(a0, nullptr, (void*)a2, a3, (unsigned)a4); }
 __declspec(naked) void __fastcall StringsInsertRange(void*, void*, char*, const char*, const char*, int) EI_ORIGINAL(0x00575E50)
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 // STLport string members (as in figure_part_draw.cpp).

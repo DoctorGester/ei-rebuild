@@ -237,7 +237,7 @@ struct DistanceNode {
     float distance;                  // +0x14
 };
 // 0043DBE0 (not rewritten): rb-tree iterator increment (thiscall on the iterator).
-__declspec(naked) void __fastcall TreeIncrement(DistanceNode** /*iterator*/) EI_ORIGINAL(0x0043DBE0)
+void __fastcall TreeIncrement(DistanceNode** a0) { TreeIncrementOriginal((void*)a0); }
 
 // Surfaces and sprites (not rewritten).
 struct SurfaceDraw {
@@ -259,7 +259,7 @@ struct SpriteAt {
 };
 __declspec(naked) void SpriteAt::SetTriangle(float, float, float, float, float, float, float, float, float, float,
                                              float, float, float, float) EI_ORIGINAL(0x005E99D0)
-__declspec(naked) double SpriteAt::Scale() EI_ORIGINAL(0x005E70B0)
+double SpriteAt::Scale() { return SpriteScaleOriginal((void*)this); }
 
 struct ScrollbarAt {
     void SetRange(int maximum);      // 0065AFE0

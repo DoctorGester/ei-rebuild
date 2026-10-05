@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -45,7 +46,7 @@ struct Factory {
     void* CreateSpell(std::uint32_t id, std::uint32_t owner);   // 006AD1E0
 };
 __declspec(naked) void* Factory::CreateItem(std::uint32_t) EI_ORIGINAL(0x006AC970)
-__declspec(naked) void* Factory::CreateSpell(std::uint32_t, std::uint32_t) EI_ORIGINAL(0x006AD1E0)
+void* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) { return FactoryCreateSpellOriginal((void*)this, nullptr, (const char*)a0, (void*)a1); }
 Factory* TheFactory() { return *reinterpret_cast<Factory**>(0x007AFFB4); }
 std::uint32_t SpellOwner() { return *reinterpret_cast<const std::uint32_t*>(0x007AFFAC); }
 

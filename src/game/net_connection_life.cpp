@@ -30,8 +30,7 @@ float Store(double v) {
 }
 
 // CRT eh vector constructor / destructor iterators (stdcall).
-__declspec(naked) void __stdcall VectorCtorIterator(void* /*ptr*/, unsigned /*size*/, int /*count*/, std::uintptr_t /*ctor*/,
-                                                    std::uintptr_t /*dtor*/) EI_ORIGINAL(0x006E8693)
+void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3, std::uintptr_t a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
 void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
 constexpr std::uintptr_t kIdPoolCtor = 0x00433040;   // IdPoolConstruct below, called through its address
 constexpr std::uintptr_t kIdPoolDtor = 0x004336D0;

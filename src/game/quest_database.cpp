@@ -108,7 +108,7 @@ __declspec(naked) mfc::BOOL Registry::GetStringArray(const char*, const char*, c
 // STLport string members: default constructor [0041F460], assign a range [00426A80], assign a
 // C string [0041F550].
 void __fastcall StringAssignRange(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall StringAssign(void*, void*, const char*) EI_ORIGINAL(0x0041F550)
+void __fastcall StringAssign(void* a0, void*, const char* a2) { StringAssignCStrOriginal(a0, nullptr, a2); }
 // The quest places: vector<float> constructor [006AFB00, allocator] and insert-overflow [006ADD50:
 // position, value, count].
 __declspec(naked) void __fastcall PlacesConstruct(void*, void*, const void*) EI_ORIGINAL(0x006AFB00)
@@ -143,7 +143,7 @@ __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIG
 // MFC: CString TrimLeft / TrimRight of one character [006FE1D3 / 006FE0DD]; the game's splitter of
 // a string at a separator into a CStringArray [004DBE40, __fastcall: text, out; separator]; atof.
 __declspec(naked) void __fastcall TrimLeftChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE1D3)
-__declspec(naked) void __fastcall TrimRightChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE0DD)
+void __fastcall TrimRightChar(mfc::CString* a0, void*, char a2) { CStringTrimRightCharOriginal((void*)a0, nullptr, a2); }
 
 // An allocator argument: the members read at most a byte through it.
 const std::uint8_t kAllocator = 0;

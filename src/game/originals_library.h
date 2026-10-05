@@ -204,3 +204,58 @@ __declspec(naked) inline char* __fastcall StringInitRangeOriginal(void* /*string
 // 004DA5C0: the game buffer grows its storage to `size` bytes (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall GameBufferGrowOriginal(void* /*buffer*/, void*, std::uint32_t /*size*/)
     EI_ORIGINAL(0x004DA5C0)
+
+// C3i. 00405720: STLport hash_map erase(node) (RET 8: node, table; EAX not a result). 0043DBE0: red-black tree
+// iterator increment (ECX = the iterator, plain RET, EAX not a result). 0040C280: string append(first, last, tag)
+// (RET 0xC, returns this). 0041F550: string assign(const char*) (RET 4, returns this). 00700D73: CString::operator+=(char)
+// (RET 4, returns this). 006E8693: CRT `eh vector constructor iterator` (RET 0x14: array, size, count, ctor, dtor).
+// 006FE296: CArray<CString> DestructElements (RET 8: first, count).
+__declspec(naked) inline void __fastcall HashEraseOriginal(void* /*map*/, void*, void* /*node*/, const void* /*table*/)
+    EI_ORIGINAL(0x00405720)
+__declspec(naked) inline void __fastcall TreeIncrementOriginal(void* /*iterator*/) EI_ORIGINAL(0x0043DBE0)
+__declspec(naked) inline void* __fastcall StringAppendRangeOriginal(void* /*string*/, void*, const char* /*first*/,
+                                                                    const char* /*last*/, const void* /*tag*/)
+    EI_ORIGINAL(0x0040C280)
+__declspec(naked) inline void* __fastcall StringAssignCStrOriginal(void* /*string*/, void*, const char* /*text*/)
+    EI_ORIGINAL(0x0041F550)
+__declspec(naked) inline void* __fastcall CStringAppendCharOriginal(void* /*string*/, void*, char /*c*/)
+    EI_ORIGINAL(0x00700D73)
+__declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
+                                                                    void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
+__declspec(naked) inline void __stdcall CStringElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE296)
+
+// C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
+// 004A8930: string copy constructor (RET 4, returns this). 004C96A0: pointer list constructor with a block size (RET 4,
+// returns this). 004C98F0: pointer list AddTail (RET 4, EAX not a result). 004DCE90: string vector insert overflow
+// (RET 0xC: pos, first, count). 0041FCD0: list end() iterator written to `out` (RET 4, returns out).
+__declspec(naked) inline void* __fastcall StringCopyConstructOriginal(void* /*string*/, void*, const void* /*source*/)
+    EI_ORIGINAL(0x004A8930)
+__declspec(naked) inline void* __fastcall PtrListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
+    EI_ORIGINAL(0x004C96A0)
+__declspec(naked) inline void __fastcall PtrListAddTailOriginal(void* /*list*/, void*, void* /*element*/)
+    EI_ORIGINAL(0x004C98F0)
+__declspec(naked) inline void __fastcall StringVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
+                                                                            const void* /*first*/, unsigned /*count*/)
+    EI_ORIGINAL(0x004DCE90)
+__declspec(naked) inline void** __fastcall ListEndIteratorOriginal(void* /*list*/, void*, void** /*out*/)
+    EI_ORIGINAL(0x0041FCD0)
+// 006FE0DD: CString::TrimRight(char) (RET 4). 006FE268: CArray<CString> ConstructElements (RET 8: first, count).
+// 006FEB61: CStringArray::Copy(source) (RET 4, EAX not a result).
+__declspec(naked) inline void __fastcall CStringTrimRightCharOriginal(void* /*string*/, void*, char /*c*/)
+    EI_ORIGINAL(0x006FE0DD)
+__declspec(naked) inline void __stdcall CStringElementsConstruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE268)
+__declspec(naked) inline void __fastcall StringArrayCopyOriginal(void* /*array*/, void*, const void* /*source*/)
+    EI_ORIGINAL(0x006FEB61)
+// The 0x4xxxxx hash tables (STLport hash_map instantiations): 00405620 erase(node, table) (RET 8), 00406640 / 00406D10 /
+// 004070B0 resize(hint) (RET 4), 00406E80 clear (plain RET), 00406590 deallocate(pointers, count) (ECX, EDX, plain RET).
+__declspec(naked) inline void __fastcall ObjectsEraseOriginal(void* /*map*/, void*, void* /*node*/, const void* /*table*/)
+    EI_ORIGINAL(0x00405620)
+__declspec(naked) inline void __fastcall ObjectsResizeOriginal(void* /*map*/, void*, std::uint32_t /*hint*/)
+    EI_ORIGINAL(0x00406640)
+__declspec(naked) inline void __fastcall PositionsResizeOriginal(void* /*map*/, void*, std::uint32_t /*hint*/)
+    EI_ORIGINAL(0x00406D10)
+__declspec(naked) inline void __fastcall SpareCountsResizeOriginal(void* /*map*/, void*, std::uint32_t /*hint*/)
+    EI_ORIGINAL(0x004070B0)
+__declspec(naked) inline void __fastcall HashClearOriginal(void* /*map*/) EI_ORIGINAL(0x00406E80)
+__declspec(naked) inline void __fastcall BucketsDeallocateOriginal(void* /*pointers*/, std::size_t /*count*/)
+    EI_ORIGINAL(0x00406590)

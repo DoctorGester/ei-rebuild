@@ -17,7 +17,7 @@ namespace {
 // MFC members not in lib/mfc.h (library): CString::operator+=(char), Find(char), Left / Right
 // (returned by value: the result is constructed in `out`), CStringArray constructor, destructor,
 // SetAtGrow.
-__declspec(naked) void __fastcall AppendChar(mfc::CString*, void*, char) EI_ORIGINAL(0x00700D73)
+void __fastcall AppendChar(mfc::CString* a0, void*, char a2) { CStringAppendCharOriginal((void*)a0, nullptr, a2); }
 inline int __fastcall FindChar(const mfc::CString* s, void*, char c) { return CStringFindCharOriginal(s, nullptr, c); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 

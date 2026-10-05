@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <bit>
 
 #pragma warning(disable : 4740) // inline assembly: no optimisation across it
 
@@ -157,7 +158,7 @@ void World::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
 __declspec(naked) void World::RecalcMercBriefings() EI_ORIGINAL(0x00591800)
 __declspec(naked) void World::SetWind(const Vec3*, float) EI_ORIGINAL(0x0058EE20)
 __declspec(naked) void World::SetTimeSpeed(float) EI_ORIGINAL(0x0058EEE0)
-__declspec(naked) void World::SetTime(float) EI_ORIGINAL(0x0058EEA0)
+void World::SetTime(float a0) { WorldSetTimeOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 __declspec(naked) void World::SetWaterLevel(int, float, int) EI_ORIGINAL(0x00593FA0)
 __declspec(naked) void World::AddMob(const char*) EI_ORIGINAL(0x00595AB0)
 __declspec(naked) void* World::FindItem(const char*) EI_ORIGINAL(0x00594AB0)
@@ -341,7 +342,7 @@ __declspec(naked) void PlayerState::SetVarMax(const char*, float) EI_ORIGINAL(0x
 __declspec(naked) void PlayerState::DelVar(const char*) EI_ORIGINAL(0x0066EF30)
 __declspec(naked) void PlayerState::PlayMusic(const char*) EI_ORIGINAL(0x0066EB90)
 __declspec(naked) void PlayerState::LeaveToZone(const char*, int) EI_ORIGINAL(0x0066F310)
-__declspec(naked) void PlayerState::PrepareRedeploy() EI_ORIGINAL(0x0066EF80)
+void PlayerState::PrepareRedeploy() { PlayerStateRefreshOriginal((void*)this); }
 
 // Party records of a player (PartyRecordsFor) and one record.
 struct PartyRecords {
@@ -350,7 +351,7 @@ struct PartyRecords {
     void RemoveUnit(int key);                            // 006620F0
 };
 __declspec(naked) void* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
-__declspec(naked) void PartyRecords::AddUnit(const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
+void PartyRecords::AddUnit(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
 __declspec(naked) void PartyRecords::RemoveUnit(int) EI_ORIGINAL(0x006620F0)
 struct PartyRecord {
     void CopyItemsFrom(void* source, void* records);     // 00660500
@@ -499,7 +500,7 @@ struct PtrList {      // CPtrList (0x1C)
     void Destruct();                                     // 004C96F0
     std::uint32_t data[7];
 };
-__declspec(naked) PtrList* PtrList::Construct(int) EI_ORIGINAL(0x004C96A0)
+PtrList* PtrList::Construct(int a0) { return (PtrList*)PtrListConstructOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void PtrList::Destruct() EI_ORIGINAL(0x004C96F0)
 struct ItemList {     // list of items given to a player (0x1C)
     ItemList* Construct(int blockSize);                  // 004C98C0
@@ -508,7 +509,7 @@ struct ItemList {     // list of items given to a player (0x1C)
     std::uint32_t data[7];
 };
 __declspec(naked) ItemList* ItemList::Construct(int) EI_ORIGINAL(0x004C98C0)
-__declspec(naked) void ItemList::AddTail(void*) EI_ORIGINAL(0x004C98F0)
+void ItemList::AddTail(void* a0) { PtrListAddTailOriginal((void*)this, nullptr, a0); }
 void ItemList::Destruct() { PtrListDestructOriginal(this); }
 struct PartyArray {   // CArray of 40-byte party slots (0x14)
     PartyArray* Construct();                             // 004BB000

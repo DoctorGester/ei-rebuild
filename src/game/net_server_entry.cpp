@@ -17,14 +17,14 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringAssignText(StringRep* /*s*/, void*, const char* /*text*/) EI_ORIGINAL(0x0041F550)
+void __fastcall StringAssignText(StringRep* a0, void*, const char* a2) { StringAssignCStrOriginal((void*)a0, nullptr, a2); }
 // STLport strings (library): reserve(n) with an allocator, assign(first, last, tag),
 // assign(first, last), erase(first, last), append(first, last, tag).
 inline void __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, a4); }
 void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall StringAppendTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const void* /*tag*/) EI_ORIGINAL(0x0040C280)
+void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
 
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::uintptr_t kWorld = 0x007AFE20;

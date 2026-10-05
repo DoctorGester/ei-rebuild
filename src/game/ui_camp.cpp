@@ -837,14 +837,14 @@ __declspec(naked) void RefPtrAt::Assign(void*) EI_ORIGINAL(0x0052C690)
 struct ContainerTableAt {
     std::uint8_t* Find(const char* name);
 };
-__declspec(naked) std::uint8_t* ContainerTableAt::Find(const char*) EI_ORIGINAL(0x00613820)
+std::uint8_t* ContainerTableAt::Find(const char* a0) { return (std::uint8_t*)FindQuickItemOriginal((void*)this, nullptr, a0); }
 
 // The item factory: 006AD000 makes an item (type, record index, a, b); 006A04D0 (on an item)
 // puts a spell into it.
 struct ItemFactoryAt {
     std::uint8_t* MakeItem(int type, int index, int a, int b);
 };
-__declspec(naked) std::uint8_t* ItemFactoryAt::MakeItem(int, int, int, int) EI_ORIGINAL(0x006AD000)
+std::uint8_t* ItemFactoryAt::MakeItem(int a0, int a1, int a2, int a3) { return (std::uint8_t*)FactoryMakeItemOriginal((void*)this, nullptr, a0, a1, a2, a3); }
 struct ItemAt {
     void SetSpell(void* spell);
 };

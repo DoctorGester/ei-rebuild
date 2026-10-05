@@ -15,6 +15,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "originals_script.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -100,7 +101,7 @@ struct SubCallArray : MfcArray<ScriptSubCall> {
     void SetSize(int size, int growBy);      // 004C4FD0: deletes the nested SSCCmds it drops
 };
 __declspec(naked) int SubCallArray::Add(const ScriptSubCall*) EI_ORIGINAL(0x004D5CB0)
-__declspec(naked) void SubCallArray::SetSize(int, int) EI_ORIGINAL(0x004C4FD0)
+void SubCallArray::SetSize(int a0, int a1) { SubCallArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
 
 struct CmdArray : MfcArray<SSCCmd> {
     void SetSize(int size, int growBy);                  // 004CD2B0
@@ -140,8 +141,8 @@ struct TokenListAt : ScriptTokenList {
 __declspec(naked) void TokenListAt::Destruct() EI_ORIGINAL(0x004CA260)
 
 // 006FE268 / 006FE296: ConstructElements / DestructElements for CString.
-__declspec(naked) void __stdcall ConstructStrings(mfc::CString*, int) EI_ORIGINAL(0x006FE268)
-__declspec(naked) void __stdcall DestructStrings(mfc::CString*, int) EI_ORIGINAL(0x006FE296)
+void __stdcall ConstructStrings(mfc::CString* a0, int a1) { CStringElementsConstruct((void*)a0, a1); }
+void __stdcall DestructStrings(mfc::CString* a0, int a1) { CStringElementsDestruct((void*)a0, a1); }
 
 // The #define helpers through their original addresses (script_parse.cpp).
 __declspec(naked) void __fastcall AddDefineAt(ScriptDefineList*, const ScriptDefine*) EI_ORIGINAL(0x004D34F0)
