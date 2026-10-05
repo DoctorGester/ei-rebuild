@@ -197,8 +197,7 @@ __declspec(naked) void __fastcall TempListDestruct(void*, void*) EI_ORIGINAL(0x0
 __declspec(naked) mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(
     mfc::CTypedPtrList<CEngineObject>*, void*, mfc::CTypedPtrList<CEngineObject>::Node*,
     mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x004621A0)
-__declspec(naked) void __fastcall PlayerGiveItems(WorldPlayer*, void*, mfc::CTypedPtrList<CEngineObject>*, int)
-    EI_ORIGINAL(0x00665470)
+void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 __declspec(naked) void __fastcall PlayerEraseQuestItem(WorldPlayer*, void*, int) EI_ORIGINAL(0x00665780)
 __declspec(naked) void __fastcall StateSetVariableMax(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
 // 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.

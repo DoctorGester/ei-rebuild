@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "originals_library.h"
 
 namespace unitdb {
 
@@ -228,7 +229,7 @@ void __fastcall DestroySkillDatabase(SkillDatabase* self) {
 namespace {
 // The CRT's `eh vector destructor iterator` (array, element size, count, destructor; last to
 // first) [006E859F, library]; the model slot's destructor, a jump to CString::~CString [0053F010].
-__declspec(naked) void __stdcall VectorDestructor(void*, unsigned, int, std::uintptr_t) EI_ORIGINAL(0x006E859F)
+void __stdcall VectorDestructor(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
 constexpr std::uintptr_t kModelSlotDestructor = 0x0053F010;
 
 // The record's inline ~vector<CString> with the storage freed by the node pool (00404D70 when

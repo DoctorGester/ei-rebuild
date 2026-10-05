@@ -107,7 +107,7 @@ __declspec(naked) mfc::BOOL Registry::GetStringArray(const char*, const char*, c
 
 // STLport string members: default constructor [0041F460], assign a range [00426A80], assign a
 // C string [0041F550].
-__declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00426A80)
+void __fastcall StringAssignRange(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StringAssign(void*, void*, const char*) EI_ORIGINAL(0x0041F550)
 // The quest places: vector<float> constructor [006AFB00, allocator] and insert-overflow [006ADD50:
 // position, value, count].

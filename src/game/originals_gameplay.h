@@ -23,3 +23,6 @@ __declspec(naked) inline void __fastcall MissileSetTarget(CEngineObject*, void*,
 __declspec(naked) inline Projectile* __fastcall ProjectileConstruct(void*, void*) EI_ORIGINAL(0x0067E510)
 __declspec(naked) inline void __fastcall ArmourTexture(mfc::CString*, std::uint32_t, std::uint32_t)
     EI_ORIGINAL(0x006A3480)
+// 00665470: Player::GiveItems(list, flag) (RET 8, EAX not a result).
+__declspec(naked) inline void __fastcall PlayerGiveItemsOriginal(void* /*player*/, void*, void* /*items*/, int /*flag*/)
+    EI_ORIGINAL(0x00665470)

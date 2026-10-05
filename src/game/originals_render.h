@@ -23,3 +23,5 @@ __declspec(naked) inline char* __fastcall ConstructBone(void*) EI_ORIGINAL(0x005
 // 00468F70: 16-byte aligned scratch allocation of `count` 16-byte records (ECX, plain RET).
 __declspec(naked) inline void* __cdecl DisplayObject() EI_ORIGINAL(0x00500960)
 __declspec(naked) inline char* __fastcall AllocAligned16(int /*count*/) EI_ORIGINAL(0x00468F70)
+// 004ECB50: 32-byte aligned allocation of `count` bytes (ECX, plain RET).
+__declspec(naked) inline char* __fastcall AllocAligned32Original(int /*count*/) EI_ORIGINAL(0x004ECB50)

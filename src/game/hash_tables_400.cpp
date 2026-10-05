@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "originals_library.h"
 
 namespace hash400 {
 
@@ -50,7 +51,7 @@ __declspec(naked) Node* __fastcall SpareCountsNewNode(Table*, void*, const std::
 __declspec(naked) void __fastcall FactoriesFreeNode(void*, void*, Node*, int) EI_ORIGINAL(0x0040B5A0)
 __declspec(naked) void __fastcall ByVtableFreeNode(void*, void*, Node*, int) EI_ORIGINAL(0x0040B560)
 __declspec(naked) void __fastcall ByTypeFreeNode(void*, void*, Node*, int) EI_ORIGINAL(0x0043E0A0)
-__declspec(naked) void __fastcall NodeFree(void* /*p*/, std::uint32_t /*bytes*/) EI_ORIGINAL(0x00404D70)
+void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 // The class registry's construction steps (library): bucket vector constructors, initial buckets
 // (first table), the bucket count for a hint, reserve and fill-insert (second table).
 __declspec(naked) void __fastcall ClassIdsBucketsConstruct(void* /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0040ADE0)

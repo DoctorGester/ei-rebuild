@@ -91,7 +91,7 @@ struct SaveStream {
     mfc::CString* ReadString(void* out);        // 00461190 (constructs a CString at out)
 };
 __declspec(naked) void SaveStream::Seek(int) EI_ORIGINAL(0x004A5490)
-__declspec(naked) void SaveStream::Resize(int) EI_ORIGINAL(0x004A54D0)
+void SaveStream::Resize(int a2) { StreamResizeOriginal((void*)this, nullptr, (std::uint32_t)a2); }
 __declspec(naked) mfc::CString* SaveStream::ReadString(void*) EI_ORIGINAL(0x00461190)
 SaveStream* GameSaveStream() { return reinterpret_cast<SaveStream*>(0x007AFDF8); }
 int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }

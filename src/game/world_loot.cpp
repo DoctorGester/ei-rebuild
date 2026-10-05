@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_world.h"
+#include "originals_gameplay.h"
 
 namespace {
 
@@ -41,7 +42,7 @@ __declspec(naked) void __fastcall SharedListFreeNode(void*, void*, void* /*node*
 // 005301A0. CUnit: whether the unit belongs to a player (+0x24C).
 __declspec(naked) int __fastcall UnitHasOwner(CEngineObject*, void*) EI_ORIGINAL(0x005301A0)
 // 00665470 (RET 8). The player receives the objects of a list.
-__declspec(naked) void __fastcall PlayerGiveItems(WorldPlayer*, void*, ObjectList*, int) EI_ORIGINAL(0x00665470)
+void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
 // world's +0x140); 0 when there is nothing to take.
 __declspec(naked) int __fastcall CollectLoot(void*, void*, CWorldServer*, CEngineObject*, ObjectList* /*items*/,

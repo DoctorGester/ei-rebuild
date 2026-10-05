@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <initializer_list>
+#include "originals_library.h"
 
 namespace {
 
@@ -52,7 +53,7 @@ __declspec(naked) void __fastcall Destroy4A0(void*, void*) EI_ORIGINAL(0x005984A
 __declspec(naked) void __fastcall Destroy780(void*, void*) EI_ORIGINAL(0x00599780)
 __declspec(naked) void __fastcall Destroy0D0(void*, void*) EI_ORIGINAL(0x004600D0)
 // 006E859F: the CRT's `eh vector destructor iterator` (array, element size, count, destructor).
-__declspec(naked) void __stdcall VectorDestroy(void*, unsigned, int, void*) EI_ORIGINAL(0x006E859F)
+void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
 
 constexpr std::uint32_t kArrayVtable = 0x0073C3D0;      // +0xD4, +0xE8
 constexpr std::uint32_t kSectorMapVtable = 0x0073F9DC;  // +0x124

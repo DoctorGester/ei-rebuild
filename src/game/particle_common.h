@@ -83,7 +83,7 @@ inline double GroundHeight(float x, float y) { return SurfaceHeightRaw(reinterpr
 inline float PickIfLess(float a, float b) { return !(a >= b) ? a : b; }
 
 // 0044C470: the game's debug message (cdecl, one argument; compiled out, other mods may hook it).
-__declspec(naked) inline void __cdecl DebugMessage(const char*) EI_ORIGINAL(0x0044C470)
+inline void __cdecl DebugMessage(const char* a0) { DebugMessageOriginal(a0); }
 
 // 00497EB0 AllocateElements through its address (the original calls it there).
 

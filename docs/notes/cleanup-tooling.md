@@ -192,3 +192,26 @@ game.exe disassembly (capstone), each now declared once:
 Every other site keeps its local name and signature as a one-line wrapper over the shared forwarder (generated, then the self-named
 duplicates deleted), so call sites are unchanged. The `Right` members of the per-file CString views are gone; their callers use
 `CString::Mid`. Release and verify builds, check_stolen, check_x87, check_signatures and check_returns pass (0 problems).
+
+## C3f (next 15 by site count): one declaration each
+
+Same method as C3b-C3e; the "differ" group is 458 addresses after this (it was 471). Script files (script_*.cpp) were not touched, so
+00665470 (`Player::GiveItems` in script_exec.cpp) and 00700AA9 (`AssignString` in script_copy.cpp) keep one local forwarder each and stay
+listed; the other 13 left the group. Decided from the game.exe disassembly (capstone), each now declared once; every other site keeps its
+local name and signature as a generated one-line wrapper over the shared forwarder:
+
+| Address | Declaration | Header |
+| --- | --- | --- |
+| 00426A80 / 0040B3C0 | `void* __fastcall StringAssignRangeOriginal(void*, void*, const char*, const char*)` (RET 8, returns this) / `char* StringEraseOriginal(void*, void*, char* first, char* last)` (RET 8, returns first) | originals_library.h |
+| 0042A4F0 / 00425080 | `void* StringAssignTaggedOriginal(void*, void*, first, last, const void* tag)` (RET 0xC, returns this) / `void* StringEndOfStorageOriginal(void*, void*, const void*, const void*)` (RET 8, returns this) | originals_library.h |
+| 00404D70 | `void __fastcall StlNodeFreeOriginal(void* p, size_t bytes)` (ECX, EDX, plain RET); `src/lib/stlp.cpp` keeps its copy | originals_library.h |
+| 006E859F | `void __stdcall EhVectorDestructorIterator(void*, unsigned, int, void* dtor)` (RET 0x10; callers passing `uintptr_t` are cast) | originals_library.h |
+| 006FEBCE / 006FEBFA | `void __fastcall StringArraySetAtGrowTextOriginal(void*, void*, int, const char*)` / `...StringOriginal(void*, void*, int, const mfc::CString*)` (RET 8; `console::CStringArray` and `StringArray` members are wrappers, the `const CString&` overload passes `&`) | originals_library.h |
+| 00700AA9 | `void* __fastcall CStringAssignOriginal(void*, void*, const void*)` (RET 4, returns this); `src/lib/mfc.cpp` keeps `CString::operator=` | originals_library.h |
+| 0044C470 | `unsigned __cdecl DebugMessageOriginal(const char*, ...)` (a bare RET; declared to return a value because bink_video.cpp masks EAX). The two printf-style callers (`figure_animation.cpp`, `unit_points.cpp`) call it directly; `src/lib/crt.cpp` keeps `DebugLog` | originals_engine.h |
+| 004A54D0 | `void __fastcall StreamResizeOriginal(void*, void*, uint32_t)` (RET 4); `CMemoryStream` / `BitStream` / `SaveStream::Resize` are wrappers | originals_engine.h |
+| 004ECB50 | `char* __fastcall AllocAligned32Original(int)` (ECX = bytes, plain RET, 32-byte aligned) | originals_render.h |
+| 005E5200 / 00634650 | `int __fastcall CursorSetShapeOriginal(void*, void*, int)` (RET 4, previous shape or -1; `world_game.cpp`'s `RendererSetBusy` was the same call) / `void* MessageBoxConstructOriginal(void*, void*, CInterface3D*, const char*, const char*, int, int, int)` (RET 0x18) | originals_ui.h |
+| 00665470 | `void __fastcall PlayerGiveItemsOriginal(void*, void*, void* items, int)` (RET 8, EAX not a result) | originals_gameplay.h |
+
+Release and verify builds, check_stolen, check_x87, check_signatures and check_returns pass (0 problems, 0 forwarder warnings).

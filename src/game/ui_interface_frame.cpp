@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ui.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -69,7 +70,7 @@ void CancelInput(CUiWindow* w) { CallSlot<void>(w->InputSide(), 1); }
 struct CursorAt {
     int SetShape(int shape);         // 005E5200 (the mouse cursor 007C7BD8)
 };
-__declspec(naked) int CursorAt::SetShape(int) EI_ORIGINAL(0x005E5200)
+int CursorAt::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
 CursorAt* Cursor() { return reinterpret_cast<CursorAt*>(0x007C7BD8); }
 
 struct SessionAt {
@@ -108,8 +109,7 @@ __declspec(naked) void InterfaceAt::AfterCloseAll() EI_ORIGINAL(0x005F8C50)
 struct MessageBoxAt {
     void* Construct(CInterface3D* ui, const char* caption, const char* text, std::uint32_t value, int a, int b);
 };
-__declspec(naked) void* MessageBoxAt::Construct(CInterface3D*, const char*, const char*, std::uint32_t, int, int)
-    EI_ORIGINAL(0x00634650)
+void* MessageBoxAt::Construct(CInterface3D* a2, const char* a3, const char* a4, std::uint32_t a5, int a6, int a7) { return MessageBoxConstructOriginal((void*)this, nullptr, a2, a3, a4, (int)a5, a6, a7); }
 
 // 00458220: dispatches the window messages waiting in the queue.
 
@@ -223,8 +223,7 @@ __declspec(naked) void** __fastcall QueueInsert(void*, void*, void** /*out*/, vo
 // the interface's ShowWindow (005F7350: window, 1, 1).
 __declspec(naked) void __fastcall MenuSet578920(void*, void*, int) EI_ORIGINAL(0x00578920)
 __declspec(naked) void __fastcall MenuCall578940(void*, void*) EI_ORIGINAL(0x00578940)
-__declspec(naked) void* __fastcall MessageWindowConstruct(void*, void*, CInterface3D*, const char*, const char*, int, int,
-                                                          int) EI_ORIGINAL(0x00634650)
+void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 __declspec(naked) void __fastcall InterfaceShowWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
 
 constexpr int kSlotShowBriefing = 34;   // top window (+0x88): (text)

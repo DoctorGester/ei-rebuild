@@ -232,7 +232,7 @@ __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall PlayerRemoveUnit(void*, void*, void*) EI_ORIGINAL(0x00665B50)
 __declspec(naked) void __fastcall PlayerAddUnit(void*, void*, void*) EI_ORIGINAL(0x00665A70)
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
-__declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
+void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 
 constexpr int kSlotIsRemote = 0xDC / 4;          // unit: () -> non-zero skips the stat reactions
 constexpr int kSlotStatChanged = 0xB8 / 4;       // controller: (stat, change, flags)

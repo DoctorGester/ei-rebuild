@@ -16,7 +16,7 @@ namespace net {
 namespace {
 
 __declspec(naked) void __fastcall StringAssignText(StringRep* /*s*/, void*, const char* /*text*/) EI_ORIGINAL(0x0041F550)
-__declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
+void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 __declspec(naked) void __fastcall RecordDestroy(GameInfoRecord* /*record*/) EI_ORIGINAL(0x0041AC30)
 __declspec(naked) void __fastcall GameBufferGrow(GameBuffer* /*buffer*/, void*, std::uint32_t /*size*/) EI_ORIGINAL(0x004DA5C0)
 __declspec(naked) void __fastcall CoderConstruct(void* /*coder*/) EI_ORIGINAL(0x0042FCA0)

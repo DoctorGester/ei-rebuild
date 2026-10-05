@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ui.h"
 
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 00794460
@@ -43,7 +44,7 @@ struct UiCursor {
     // the cursor is not set up).
     int SetShape(int shape);
 };
-__declspec(naked) int UiCursor::SetShape(int) EI_ORIGINAL(0x005E5200)
+int UiCursor::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
 UiCursor* Cursor() { return reinterpret_cast<UiCursor*>(0x007C7BD8); }
 
 // A network player record as the multiplayer session lists them.

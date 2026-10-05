@@ -319,7 +319,7 @@ namespace net {
 namespace {
 // CRT eh vector destructor iterator (ptr, element size, count, destructor), the handler vector's
 // destructor.
-__declspec(naked) void __stdcall VectorDestructorIterator(void* /*ptr*/, unsigned /*size*/, int /*count*/, void* /*dtor*/) EI_ORIGINAL(0x006E859F)
+void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
 constexpr std::uintptr_t kHandlerVectorDestructor = 0x004389C0;
 // The type registry's tables: clear and bucket-vector destruction of byType and byVtable.
 __declspec(naked) void __fastcall ByTypeClear(TypeRegistry::ByType* /*table*/) EI_ORIGINAL(0x0043D590)

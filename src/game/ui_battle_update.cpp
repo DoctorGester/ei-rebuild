@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ui.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -204,8 +205,7 @@ __declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORI
 __declspec(naked) void __fastcall UpdateChildren(CUiWindow*) EI_ORIGINAL(0x006010E0)
 __declspec(naked) void __fastcall ShowNextMessage(CInterface3D*, void*, int) EI_ORIGINAL(0x005F8A80)
 __declspec(naked) void __fastcall PushWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
-__declspec(naked) void* __fastcall MessageBoxConstruct(void*, void*, CInterface3D*, const char*, const char*, int, int,
-                                                       int) EI_ORIGINAL(0x00634650)
+void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 
 // The game menu object 007AFEA5: 00578BA0 the local player's data (its +0x30 / +0x34 unit
 // records, 0x784 bytes each), 00578A20 (RET 0xC) whether the saved zone exit can be taken now
@@ -230,7 +230,7 @@ __declspec(naked) void __fastcall IndexListConstruct(List*, void*, const void*) 
 __declspec(naked) ListNode** __fastcall IndexListEnd(List*, void*, ListNode**) EI_ORIGINAL(0x004049D0)
 __declspec(naked) ListNode** __fastcall IndexListInsert(List*, void*, ListNode**, ListNode*, const int*)
     EI_ORIGINAL(0x00404A40)
-__declspec(naked) void __fastcall NodeFree(void*, std::uint32_t) EI_ORIGINAL(0x00404D70)
+void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the 12-byte nodes
 
 // An MFC CArray<void*> as the update builds them on the stack (vtable 0073FAA4).

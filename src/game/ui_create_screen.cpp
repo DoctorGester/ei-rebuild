@@ -135,7 +135,7 @@ namespace {
 struct CursorAt {
     int SetShape(int shape);   // 005E5200 (on 007C7BD8)
 };
-__declspec(naked) int CursorAt::SetShape(int) EI_ORIGINAL(0x005E5200)
+int CursorAt::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
 CursorAt* Cursor() { return reinterpret_cast<CursorAt*>(0x007C7BD8); }
 
 // 00458010 (__fastcall with two byte arguments).

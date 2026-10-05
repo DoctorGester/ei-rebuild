@@ -48,7 +48,7 @@ long ComCall(void* object, int slot, Args... args) {
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
 // 0044C470 (cdecl): an error message; returns a value whose low byte the caller clears.
-__declspec(naked) unsigned __cdecl ErrorMessage(const char*) EI_ORIGINAL(0x0044C470)
+unsigned __cdecl ErrorMessage(const char* a0) { return DebugMessageOriginal(a0); }
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 } // namespace

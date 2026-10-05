@@ -644,7 +644,7 @@ EI_REPLACE(0x0046A4B0, QuaternionRotate);
 // ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
 
 namespace {
-__declspec(naked) void __fastcall StringArraySetAtGrow(StringArray*, void*, int /*index*/, const char* /*text*/) EI_ORIGINAL(0x006FEBCE)
+void __fastcall StringArraySetAtGrow(StringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 } // namespace
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every

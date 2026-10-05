@@ -18,7 +18,7 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
+void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 // Counted pointers from a raw pointer without a reference (the list insert adds one).
 __declspec(naked) RefPtr* __fastcall PlayerRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428040)
 __declspec(naked) RefPtr* __fastcall BindingRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428050)

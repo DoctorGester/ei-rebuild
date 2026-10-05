@@ -10,6 +10,7 @@
 #include "originals_core.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 namespace {
 
@@ -95,7 +96,7 @@ namespace {
 
 // 00401490 (RET 4). The transform base's copy.
 __declspec(naked) void __fastcall TransformCopy(void*, void*, const void*) EI_ORIGINAL(0x00401490)
-__declspec(naked) void __fastcall StringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
+void __fastcall StringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 // The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
 __declspec(naked) Vector3* __fastcall VectorCross(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x004489D0)

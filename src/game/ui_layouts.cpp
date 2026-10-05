@@ -297,9 +297,7 @@ namespace {
 __declspec(naked) void __fastcall ConstructSaveList(void* /*vector*/, void*, void* /*allocator*/) EI_ORIGINAL(0x0062B550)
 __declspec(naked) void __fastcall ConstructBindingList(void*, void*, void*) EI_ORIGINAL(0x0062B570)
 __declspec(naked) void __fastcall ConstructSettingList(void*, void*, void*) EI_ORIGINAL(0x0062B5E0)
-__declspec(naked) CUiWindow* __fastcall ConstructMessageBox(void* /*memory*/, void*, CInterface3D*, const char*,
-                                                            const char* /*text key*/, int, int, int)
-    EI_ORIGINAL(0x00634650)
+CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 __declspec(naked) void __fastcall ActivateWindow(CInterface3D*, void*, void* /*window*/, int, int) EI_ORIGINAL(0x005F7350)
 
 constexpr std::uintptr_t kSaveLoadVtable = 0x00741388;

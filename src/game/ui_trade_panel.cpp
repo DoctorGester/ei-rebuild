@@ -12,6 +12,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -336,7 +337,7 @@ __declspec(naked) void __fastcall RecordsInsertOverflow(TradeRecords*, void*, Tr
 __declspec(naked) void __fastcall FillRecord(CTradePanel*) EI_ORIGINAL(0x00626F10)
 __declspec(naked) std::uint8_t* __fastcall TradePlayerData(void*) EI_ORIGINAL(0x00578BA0)
 // CStringArray::SetAtGrow (thiscall, RET 8).
-__declspec(naked) void __fastcall TitlesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
+void __fastcall TitlesSetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 
 int PartyRecordCount() { return *reinterpret_cast<int*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)) + 0x34); }
 

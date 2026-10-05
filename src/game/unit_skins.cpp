@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include "originals_render.h"
 
 namespace {
 
@@ -63,10 +64,10 @@ __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F59
 // The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
 __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
 __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
-__declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
+char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // CStringArray SetSize [006FE9B8], SetAtGrow of a CString [006FEBFA] and of a C string [006FEBCE].
-__declspec(naked) void __fastcall NamesSetAtGrowString(console::CStringArray*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
-__declspec(naked) void __fastcall NamesSetAtGrowText(console::CStringArray*, void*, int, const char*) EI_ORIGINAL(0x006FEBCE)
+void __fastcall NamesSetAtGrowString(console::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall NamesSetAtGrowText(console::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 // The texture cache [this +0x18C]: build a composite texture [00693180: out name, set, name, name,
 // 3, 0, 0x5551] and register it [00693F10: kind, name].
 __declspec(naked) void* __fastcall CacheBuild(void*, void*, mfc::CString*, void*, const mfc::CString*, const mfc::CString*,
@@ -90,7 +91,7 @@ __declspec(naked) void __fastcall StringsInsertRange(void*, void*, char*, const 
 __declspec(naked) char* __fastcall NodeAllocate(int) EI_ORIGINAL(0x00405950)
 // STLport string members (as in figure_part_draw.cpp).
 __declspec(naked) void __fastcall StringInitRange(void*, void*, const char*, const char*, int) EI_ORIGINAL(0x0042A3D0)
-__declspec(naked) void __fastcall StringEndOfStorage(void*, void*, const void*, const void*) EI_ORIGINAL(0x00425080)
+void __fastcall StringEndOfStorage(void* a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal(a0, nullptr, a2, a3); }
 
 const std::uint8_t kAllocator = 0;
 

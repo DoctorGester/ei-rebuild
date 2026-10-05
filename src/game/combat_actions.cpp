@@ -199,7 +199,7 @@ __declspec(naked) int __fastcall WorldMeetUnit(void*, void*, CEngineObject*, cha
 // 00665BE0. Player: an inventory item changed.
 __declspec(naked) void __fastcall PlayerItemChanged(char*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
 // 00665470. Player: receives the items in `list` (a CPtrList).
-__declspec(naked) void __fastcall PlayerReceiveItems(char*, void*, void*, int) EI_ORIGINAL(0x00665470)
+void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, a2, a3); }
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 __declspec(naked) void __fastcall PlayerMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
 // 00531400. CUnit: takes a random carried item away (stealing); null when there is none

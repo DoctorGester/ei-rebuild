@@ -103,7 +103,7 @@ constexpr int kObjectSlotUpdate = 30;
 
 // CRT eh vector constructor / destructor iterators.
 __declspec(naked) void __stdcall VectorConstruct(void*, unsigned, int, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x006E8693)
-__declspec(naked) void __stdcall VectorDestruct(void*, unsigned, int, std::uintptr_t) EI_ORIGINAL(0x006E859F)
+void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
 // MFC (library): CStringArray, the CArray instantiations of patrols and waypoints.
 __declspec(naked) void __fastcall WaypointsSetSize(Array<Waypoint>*, void*, int, int) EI_ORIGINAL(0x0046E970)
 __declspec(naked) void __fastcall PatrolsSetSize(Array<Patrol>*, void*, int, int) EI_ORIGINAL(0x0045DAE0)

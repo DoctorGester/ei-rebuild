@@ -19,7 +19,7 @@ namespace {
 // SetAtGrow.
 __declspec(naked) void __fastcall AppendChar(mfc::CString*, void*, char) EI_ORIGINAL(0x00700D73)
 __declspec(naked) int __fastcall FindChar(const mfc::CString*, void*, char) EI_ORIGINAL(0x00700E91)
-__declspec(naked) void __fastcall StringArraySetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
+void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 
 struct StringArray {   // CStringArray
     std::uintptr_t vtable;

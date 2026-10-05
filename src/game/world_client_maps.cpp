@@ -971,7 +971,7 @@ namespace {
 // MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
 // CString::operator=(const CString&) [00700AA9], operator=(LPCTSTR) [00700AF9], ~CString [00700970].
 __declspec(naked) void* __stdcall CStringConcat(void* /*out*/, const void* /*left*/, const char*) EI_ORIGINAL(0x00700C05)
-__declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
+void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall CStringAssignText(void*, void*, const char*) EI_ORIGINAL(0x00700AF9)
 // The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
 __declspec(naked) void __fastcall LoadLights(void*, void*, const char*) EI_ORIGINAL(0x00563930)

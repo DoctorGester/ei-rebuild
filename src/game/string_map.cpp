@@ -50,7 +50,7 @@ __declspec(naked) void __fastcall StringReserve(StringRep*, void*, const void* /
 __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const StringRep*, const StringRep*) EI_ORIGINAL(0x00445170)
 __declspec(naked) Node** __fastcall InsertHint(Tree*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
-__declspec(naked) void __fastcall StringErase(StringRep*, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
+void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StringAppend(StringRep*, void*, const char* /*first*/, const char* /*last*/, int /*tag*/) EI_ORIGINAL(0x0040C280)
 __declspec(naked) void __fastcall Erase(Tree*, void*, Node* /*position*/) EI_ORIGINAL(0x00445010)
 __declspec(naked) void __fastcall EraseSubtree(Tree*, void*, Node*) EI_ORIGINAL(0x00445310)

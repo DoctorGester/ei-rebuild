@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include <new>
+#include "originals_engine.h"
 
 namespace {
 using ei::SetVtable;
@@ -88,7 +89,7 @@ EI_REPLACE_METHOD(0x00461190, CStream::ReadString);
 
 // --- CMemoryStream -----------------------------------------------------------------------------
 
-__declspec(naked) void CMemoryStream::Resize(std::uint32_t) EI_ORIGINAL(0x004A54D0)
+void CMemoryStream::Resize(std::uint32_t a2) { StreamResizeOriginal((void*)this, nullptr, a2); }
 __declspec(naked) void CMemoryStream::SetSize(std::uint32_t) EI_ORIGINAL(0x004A5570)
 
 CMemoryStream* CMemoryStream::Construct() {

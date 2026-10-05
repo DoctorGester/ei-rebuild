@@ -67,7 +67,7 @@ __declspec(naked) int __fastcall DrawMesh2(char*, void*, std::uint32_t, std::uin
 // STLport string members: 004217E0 string(allocator), 00425080 the end-of-storage member from an
 // allocator and a value, 00428F10 assign(first, last), 0042A3D0 range initialisation (first, last,
 // tag), destructors 00425040 and 0040C770 (two instantiations).
-__declspec(naked) void __fastcall StringEndOfStorage(char**, void*, const void*, const void*) EI_ORIGINAL(0x00425080)
+void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StringInitRange(RawString*, void*, const char*, const char*, const void*)
     EI_ORIGINAL(0x0042A3D0)
 // 005197B0: map<string, piece>::find on a figure's piece map (figure + 0x14): the node to *out.

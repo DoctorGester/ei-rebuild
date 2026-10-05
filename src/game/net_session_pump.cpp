@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 
 #include <cstdint>
+#include "originals_library.h"
 
 namespace netlink {
 
@@ -31,7 +32,7 @@ __declspec(naked) DriverNode** __fastcall DriversInsert(DriverNode** /*list*/, v
 __declspec(naked) DriverNode** __fastcall HoldersInsert(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/, const RefPtr*) EI_ORIGINAL(0x0047A480)
 __declspec(naked) DriverNode** __fastcall DriversErase(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/) EI_ORIGINAL(0x0047A380)
 __declspec(naked) void __fastcall NodeDeallocate(DriverNode*, int /*count*/) EI_ORIGINAL(0x0047A650)
-__declspec(naked) void __fastcall NodeFree(void*, std::uint32_t /*bytes*/) EI_ORIGINAL(0x00404D70)
+void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 // The holder's deleting destructor (0047A6D0, refptr_copies.cpp), called with 0 as the original does.
 __declspec(naked) void* __fastcall HolderDelete(RefPtr*, void*, unsigned) EI_ORIGINAL(0x0047A6D0)
 // 00419CC0: raises a reliable stream's high-water mark.

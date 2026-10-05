@@ -83,7 +83,7 @@ using netlink::FileStream;
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 // 005E5200 (RET 4). The renderer's busy state (3 while saving, 0 after).
-__declspec(naked) void __fastcall RendererSetBusy(void*, void*, int) EI_ORIGINAL(0x005E5200)
+void __fastcall RendererSetBusy(void* a0, void*, int a2) { CursorSetShapeOriginal(a0, nullptr, a2); }
 // 0057AAB0. Creates the folder `path` (ECX) and deletes the files in it.
 __declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
@@ -104,7 +104,7 @@ __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
 __declspec(naked) void __fastcall InputSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F85C0)
 __declspec(naked) void __fastcall InputAfterSave(void*, void*) EI_ORIGINAL(0x005F86D0)
-__declspec(naked) void __fastcall ScriptsReset(void*, void*, int) EI_ORIGINAL(0x004A54D0)
+void __fastcall ScriptsReset(void* a0, void*, int a2) { StreamResizeOriginal(a0, nullptr, (std::uint32_t)a2); }
 __declspec(naked) void __fastcall StreamSaveScripts(CMemoryStream*, void*, void* /*scripts*/) EI_ORIGINAL(0x004A5250)
 __declspec(naked) void __fastcall GlobalsSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410C10)
 // 00579B80 (RET 8). Writes `data` to the file stream (ECX) under a header (magic in EDX, version).
@@ -523,8 +523,7 @@ __declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/
 __declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
 __declspec(naked) void __fastcall HostRecordConstruct(void*, void*) EI_ORIGINAL(0x004186E0)
 __declspec(naked) void __fastcall CountedDestroy(void* /*slot*/, void*) EI_ORIGINAL(0x00413270)
-__declspec(naked) void __fastcall HostStringAssign(void*, void*, const char* /*first*/, const char* /*last*/)
-    EI_ORIGINAL(0x00426A80)
+void __fastcall HostStringAssign(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall ServerSendText(void*, void*, int /*message*/, const char*) EI_ORIGINAL(0x0041A500)
 
 std::uint8_t* GameServer() { return *reinterpret_cast<std::uint8_t**>(0x0079B5DC); }
@@ -1200,7 +1199,7 @@ __declspec(naked) void __fastcall BufferPut(GameBuffer*, void*, const void*, int
 // 00442980 (RET 8). The client connects to an address with a hello buffer.
 __declspec(naked) void __fastcall ClientConnect(void*, void*, void*, GameBuffer*) EI_ORIGINAL(0x00442980)
 // 00426A80 (RET 8). STLport string assign [first, last).
-__declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00426A80)
+void __fastcall StringAssignRange(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 // 0041A140 (RET 4) / 00417E10 (RET 4). The server's password / whether it is listed.
 __declspec(naked) void __fastcall ServerSetPassword(void*, void*, const char*) EI_ORIGINAL(0x0041A140)
 __declspec(naked) void __fastcall ServerSetPublic(void*, void*, int) EI_ORIGINAL(0x00417E10)
@@ -1406,7 +1405,7 @@ __declspec(naked) void __fastcall InputLoad(void*, void*, CMemoryStream*) EI_ORI
 // 004A51C0 (RET 4). A memory stream copies its remaining data into another.
 __declspec(naked) void __fastcall StreamCopyRest(CMemoryStream*, void*, void*) EI_ORIGINAL(0x004A51C0)
 // 004A54D0 (RET 4). A memory stream makes room for `size` bytes.
-__declspec(naked) void __fastcall StreamReserveAt(void*, void*, int) EI_ORIGINAL(0x004A54D0)
+void __fastcall StreamReserveAt(void* a0, void*, int a2) { StreamResizeOriginal(a0, nullptr, (std::uint32_t)a2); }
 // 00596E70 (RET 8). CWorldServer::LoadSave through its address.
 __declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
 
@@ -1918,7 +1917,7 @@ __declspec(naked) void __fastcall VariablesClear(NamedFloatTable*) EI_ORIGINAL(0
 // 00661FB0. The party outside a game (007C82B0) resets its members.
 // 00426A80 (RET 8). STLport string assign(first, last) (the second call is inlined in the
 // original, the same algorithm).
-__declspec(naked) void __fastcall RangeAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00426A80)
+void __fastcall RangeAssign(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 
 std::uint8_t* HostRecord() { return *reinterpret_cast<std::uint8_t**>(ClientSession() + 0x2600); }
 void AssignText(std::uint8_t* field, const char* text) { RangeAssign(field, nullptr, text, text + std::strlen(text)); }

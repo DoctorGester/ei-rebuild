@@ -16,7 +16,7 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringAssignRange(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00426A80)
+void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
 // The lines list (+0x2594): a counted pointer from a raw one without a reference, end, insert,
 // node count, erase (library).
 __declspec(naked) RefPtr* __fastcall LineRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428030)

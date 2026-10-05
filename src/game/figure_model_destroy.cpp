@@ -29,7 +29,7 @@ struct Table {                 // at model + 0xC
 __declspec(naked) std::uint32_t __fastcall HashString(const void*) EI_ORIGINAL(0x004298D0)
 __declspec(naked) void __fastcall DestroyPair(void*, void*, int) EI_ORIGINAL(0x005AE5B0)
 // 00404D70: STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
-__declspec(naked) void __fastcall Deallocate(void*, std::size_t) EI_ORIGINAL(0x00404D70)
+void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 __declspec(naked) void __fastcall NodeDeallocate(void*, void*, Node*, int) EI_ORIGINAL(0x005AE150)
 // 00406590: deallocates `count` pointers (the buckets).
 __declspec(naked) void __fastcall DeallocatePointers(void*, int) EI_ORIGINAL(0x00406590)

@@ -79,7 +79,7 @@ AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AE
 AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
 
 char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
-__declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
+char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // SetSize keeping the contents (thiscall: size, growth or -1): TL vertices 004EC790, words 0044FA90.
 __declspec(naked) void __fastcall VerticesSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x004EC790)
 __declspec(naked) void __fastcall WordsSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x0044FA90)

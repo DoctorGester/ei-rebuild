@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 using Ref = ChunkArchive::Ref;
 using StackNode = ChunkArchive::StackNode;
@@ -79,7 +80,7 @@ bool FindField(ChunkArchive* a, int id, Ref* child) {
 
 // STLport string pieces used by StringField's inlined assign: erase(first, last) and the
 // range append (its third argument is the string again).
-__declspec(naked) void __fastcall StringErase(stlp::string* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
+void __fastcall StringErase(stlp::string* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StringAppendRange(stlp::string* /*s*/, void*, const char* /*first*/, const char* /*last*/,
                                                     stlp::string* /*same*/) EI_ORIGINAL(0x0040C2A0)
 

@@ -36,7 +36,7 @@ AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AE
 AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
 
 char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
-__declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
+char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // 004F2650: the pipeline projects `blocks` blocks of positions with outcodes [positions, out,
 // outcodes, blocks, last]; 0 on screen, 1 crossing, 2 outside.
 __declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*, void*, int, std::uint32_t) EI_ORIGINAL(0x004F2650)

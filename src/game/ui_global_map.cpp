@@ -228,7 +228,7 @@ __declspec(naked) void GameObjects::ResetView(int, int) EI_ORIGINAL(0x005786A0)
 struct SaveStream {
     void Resize(int size);                              // 004A54D0 (the save stream 007AFDF8)
 };
-__declspec(naked) void SaveStream::Resize(int) EI_ORIGINAL(0x004A54D0)
+void SaveStream::Resize(int a2) { StreamResizeOriginal((void*)this, nullptr, (std::uint32_t)a2); }
 struct SoundMixer {
     void ResetMusic();                                  // 006B4F70 (the object at *007AF760)
 };
@@ -724,7 +724,7 @@ __declspec(naked) void WeatherDraw::Draw(void*, float) EI_ORIGINAL(0x00499F10)
 struct CursorAt {
     int SetShape(int shape);   // 005E5200 (on 007C7BD8)
 };
-__declspec(naked) int CursorAt::SetShape(int) EI_ORIGINAL(0x005E5200)
+int CursorAt::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
 float FmodStored(float a, const float* divisor) {

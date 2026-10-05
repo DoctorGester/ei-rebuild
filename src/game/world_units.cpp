@@ -117,10 +117,10 @@ constexpr std::size_t kMessageSize = 0x324;
 
 __declspec(naked) void* __fastcall MessageConstruct(void*, void*) EI_ORIGINAL(0x0046C010)
 __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(0x0046AEB0)
-__declspec(naked) void __fastcall StringArraySetAtGrowText(void*, void*, int, const char*) EI_ORIGINAL(0x006FEBCE)
-__declspec(naked) void __fastcall StringArraySetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x006FEBFA)
+void __fastcall StringArraySetAtGrowText(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
+void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 // 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
-__declspec(naked) void __stdcall VectorDestruct(void*, unsigned, int, void*) EI_ORIGINAL(0x006E859F)
+void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
 constexpr std::uintptr_t kMessagePartDestructor = 0x0046C290;
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
 // The prototype table's name map (007AF364): an STLport string key (0040C5A0 / 0040C720), the
@@ -481,7 +481,7 @@ __declspec(naked) void __fastcall ServerCastSpell(CWorldServer*, void*, CEngineO
                                                   const void*, int) EI_ORIGINAL(0x0058E850)
 __declspec(naked) CEngineObject* __fastcall SpellsFromText(void*, void*, const char*) EI_ORIGINAL(0x00689030)
 __declspec(naked) void __fastcall TextAssignChars(mfc::CString*, void*, const char*) EI_ORIGINAL(0x00700AF9)
-__declspec(naked) void __fastcall TextAssign(mfc::CString*, void*, const mfc::CString*) EI_ORIGINAL(0x00700AA9)
+void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) void __fastcall TextArrayCopy(void*, void*, const void*) EI_ORIGINAL(0x006FEB61)
 __declspec(naked) void __fastcall UnitSetSide(CEngineObject*, void*, int) EI_ORIGINAL(0x00530120)
 __declspec(naked) int __fastcall DiplomacyMaskOf(void*, void*, int) EI_ORIGINAL(0x00455660)

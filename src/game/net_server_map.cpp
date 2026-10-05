@@ -24,7 +24,7 @@ namespace {
 __declspec(naked) StringRep* __fastcall StringPlusText(StringRep* /*out*/, const StringRep* /*a*/, const char* /*b*/) EI_ORIGINAL(0x00427D60)
 __declspec(naked) StringRep* __fastcall StringPlusString(StringRep* /*out*/, const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427E80)
 static StringRep* StringFromText(StringRep* s, void*, const char* text, const void* alloc) { return static_cast<StringRep*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-__declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
+void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 
 // The queued message (vtable 0073BCD0, built by 00418C30) and its string member assignment, the
 // counted pointer helpers, the list push_back.
@@ -46,7 +46,7 @@ __declspec(naked) void __fastcall FlowLoadZoneQuests(void* /*flow*/, void*, cons
 __declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, StringRep* const* /*value*/) EI_ORIGINAL(0x004263D0)
 __declspec(naked) void __fastcall NamesFree(StringRep* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426860)
 __declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
-__declspec(naked) void __fastcall NodeFree(void* /*node*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
+void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 constexpr std::uintptr_t kFinishSuffix = 0x00783D84;      // "_3"
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
