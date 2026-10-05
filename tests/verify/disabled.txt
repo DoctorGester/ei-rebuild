@@ -1,3 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-005EE2C0 CItemScreen::ReturnAll: its verify wrapper crashes (null "from", address 0x44) from CCampPages::ShowPage; being fixed (X13, 2026-10-05)
