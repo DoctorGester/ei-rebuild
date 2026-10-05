@@ -172,3 +172,42 @@ Constructors allocate nothing, so the original runs safely on a copy.
   0045E310 (DirectX version probe), 00458570 (STLport hash_map registration): mapped, not rewritten.
 - Library-classified CArray / CMap members around the loaders (00453240, 004545C0, 00454F80, 00476430,
   00476640, 004773F0, 00477270, 00476050, CArray::ElementAt 00450750).
+
+## Players, parties and player messages (0065F4B0-00671280)
+
+Code: `player_messages.h/.cpp` (CPlayerServer message writers, `CPlayer::Tick`, `PartyRecords::Find`), `party.h`
+(CParty item list; `party_items.cpp` is in `items_spells.md` "Area ticket A-H"). Verify:
+`verify_player_messages.cpp`. Scenarios reaching it: `combat.txt`, `models.txt`, `units.txt` (party units'
+weapons through `PartyRecords::Find`); 0058B750 runs for every player every world tick and sends the state
+messages whose dirty bits are set; `sandbox_actions.txt`'s GSSetVar calls SetVariable.
+
+| Range | Contents |
+|---|---|
+| 0065F4B0-00661F30 | **CParty** (vtable 00743000, GetClassName 0065F560, 54 slots; a second interface at +0x2C): ctor 00661050, dtor 006611D0, slots 2 / 3 006614F0 / 00661640, member list +0x40 / +0x44 (00661DB0 add, 00661F30 remove), serialisation 00661300 / 006618C0 / 00661C10; 00660100-00661050 party record list helpers used by the hero screens (0058FD90, 00590C70, 0060FCA0, 00617A50) |
+| 006620F0-00662AC0 | party records: 0x784-byte records of the party's units (items, stats), `PartyRecords::Find` 006621B0 (by unit id; CUnit::GetWeapon / GetSpell call it), read / write 006621F0 / 006625B0 / 006628D0 |
+| 00662AC0-00663000 | multiplayer map transfer: "temp.mp" 00662AC0, 00662DD0, 00662FB0 ("\*.mp" list; Rebirth-patched) |
+| 00664DE0-00666170 | **CPlayer** (vtable 00743104, 16 slots): ctor 00664E20, slots 2 / 3 00665010 / 006650E0, 14 / 15 00666170 / 00666050; items 00665470 receive, 00665640 HasItem (script), 00665780, 00665BE0 item changed; units 00665A70 / 00665B50 remove; 00665DE0 per tick (ticks the objects whose ids are in the list at +0x114, slot 6, dropping those gone or finished, then slot 21 of the connection at +0x20) |
+| 00666EE0-0066C700 | **CPlayerClient** (vtable 00743180, 48 slots): slots 2 / 3 / 6 00667230 / 00667510 / 00667680 (per frame; "Very top secret" / "Tango" are the session's cipher keys), send 00667810, receive slot 14 00667BA0 (packet dispatcher: "Wrong packet ID", "Pkt read error"), handlers 00667EC0-0066C1E0 (00667EC0 creates an object the server announced: unit prototype "unmogo" gets rh3.axeth00 / rh3.sword00 and rh3.pike00 or sling, "unmowi" gets particle 0x204D, humans' "hr.%.2d" model part from the party record, "mo%dp" / "mo%ds" model and skeleton names by +0x0C; multiplayer only, 3 KB; single-player model selection is in 00535CB0, 005381B0, 00536670, 00568800), 00669A30 "party received on client", 0066AE70 / 0066AED0 local view orders |
+| 0066C730-00671080 | **CPlayerServer** (vtable 00743280, 24 slots): slots 2 / 3 0066C9A0 / 0066CC50, 0066D270 (23), 0066D6E0 message 0x0B, 0066E130 per tick (rebuilds the "Heroes" group), send slot 17 0066E430 / 0066E7D0, variables and state 0066EE10 / 0066EE80 / 0066EF30 / 0066EB90 / 0066EF80 / 0066F310 (zone exit), 0066F450 "Resending party of player", receive slot 20 0066F4C0 ("Serv wrong packet ID", "SrvErrMsg", "WrongClientVersion"); command handlers 0066F840-00671060 (walk 0066FFF0, attack 00670190, group action 00670310, zone exit 00670C20, variables 00670E00 / 00670EB0, party 00670F50) |
+
+CPlayerServer messages: each player's server connection (single-player has one too) queues messages for its
+client in the CMemoryStream at +0x48: a type byte and a fixed payload. The world player (+0x1C) keeps the dirty
+bits the state messages clear (+0x130: 1 state 0x02, 2 0x70, 4 0x71, 8 0x72, 0x10 game time 0x07, 0x20 0x73),
+the script variables (+0xC4, a NamedFloatTable) and +0x100. 0058B750 sends 0x70 / 0x71 / 0x72 / 0x73 / 0x07 when
+their dirty bits are set and sets state 4 (disconnect); 0058D280 writes every player's "gtime" variable (0x81);
+scripts set and delete variables (GSSetVar 0x81, GSSetVarMax, GSDelVar 0x82); unit code sends 0x0B (22 callers),
+0x04 / 0x0F positions (also remembered at +0x38), 0x0A / 0x14 / 0x0C object ids with their +0x28 float.
+
+| Address | Name | Verify |
+|---|---|---|
+| 0066EE10, 0066EF30, 0066F180, 0066EBD0, 0066EC10, 0066EC70, 0066ECD0, 0066ED30, 0066EDA0, 0066EA10, 0066EA30, 0066EA70, 0066EAC0, 0066EB40, 0066EB90, 0066F1F0, 0066F280, 0066F2C0, 0066D6A0, 0066D6E0, 0066D770, 0066D7B0, 0066D250, 0066D260 | CPlayerServer SetVariable, DeleteVariable, SendGameTime, SendState02 / 70 / 71 / 72, SendPosition04 / 0F, Send17, SendObject0A, SendPair16, SendObjects0C, SendObject14, SendText0D / 08, SendValue15, SendPair18, SendObject43 / 0B, SendText13, SendText, SetDisconnect, SetFlag70 | ours into the stream, the stream (header and bytes), +0x1C..+0x48, +0x70 and the player's dirty bits saved, restored, original, compared with the result (skipped when ours grew the buffer; the variable table is set to the same value twice) |
+| 0066EE80, 0066F240, 0066D230 | SetVariableMax, SendState73, WriteTo | ours only (they read what they change or call other objects' writers) |
+| 006621B0 | PartyRecords::Find | pure |
+| 00665DE0 | CPlayer::Tick (every world tick, each player) | ours only: the object list is consistent afterwards (count, links, tail) |
+
+Forwarders: variables table 00460BC0 (set) / 00460AF0 (get) / 00460DB0 (delete), 0047DA80 (state payload),
+006D4570 (an object writes its state). Skipped: the rest of the player classes (packet dispatchers,
+compression and sending, party records and their CString / CArray / hash_map members, the client's handlers;
+mostly multiplayer): next candidates are 0066E130 (the "Heroes" group; forwarder in world_update.cpp) and
+0066F310 (zone-exit state; forwarder in script_exec.cpp); 0066D730 (message 0x12) writes one uninitialised
+stack byte, so it cannot be reproduced exactly; STLport instantiations (006632B0-00664D00).

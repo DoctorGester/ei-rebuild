@@ -72,3 +72,75 @@ vector 007ABB58 uses the original constructor 004E2BA0, insert-overflow 004E2FA0
 - 0x00480000-0x00485000 apart from the particle source: error reporting, DirectX names,
   configuration, containers.
 - `Reveal` / `UpdateCells` are checked only for consistency, not against the original.
+
+## Effect objects (00675B40-0067E170)
+
+Code: `world_effect.h` (class map, slots, layouts), `world_effect_internal.h`, `world_effect.cpp` (base,
+sounds), `world_effect_visual.cpp` (light, particles, wall, lightning). Verify:
+`tests/verify/verify_world_effect.cpp`. Scenarios: `effects.txt` (CreateParticleSource: CEffectParticle
+Unpack / Start / Spawn / Tick / Pack / setters; DeleteParticleSource: Reset), `spells.txt` (casts create sounds,
+sound sequences, lights, particles, the fire wall and lightning through 0067F170-0067F7C0), probably
+`sandbox_actions.txt` (healing spell). Save / Load of effects runs only when a game with live effects is saved
+or loaded (no scenario does).
+
+- Classes (vtable / id): CEffectSound 007433EC / 0x48, CEffectSoundSeq 0074344C / 99, CEffectAmbientSound
+  0074350C / 0x49, CEffectPointLight 0074356C / 0x4B, CEffectParticle 007435D0 / 0x4A, CEffectWall 00743630 /
+  0x5A, CEffectLightning 00743690 / 0x4D; not rewritten: CEffectArrow (0x6C0 bytes, embeds a particle, a light
+  and a sound; missiles), CEffectArrowFigure ("arrow01", "efar1"), CEffectShowVisibility, CEffectMoshka
+  (birds, "bird00", "unmobi"), CEffectTornado ("nature\tornado\circle.wav"), up to 0067E000. The effect
+  factory is 0067E170 (class id 0x48..0x5B). CSpellEffect (vtable 0074399C, 0067E510-0067F870) is in
+  `items_spells.md`.
+- Every effect: +0x94 start tick, +0x98 velocity, +0xA4 "moving" (NaN components count as zero), +0xA8
+  replicated state (`DeltaField`, net_delta.h), +0x148 change stamp (007AFFC8, -1 after Reset). The server
+  ticks (slot 6; 0 removes) and Packs (slot 22) into the DeltaField (SendFull / SendDelta 00675B40 / 00675B70);
+  the client Unpacks (slot 21 via Receive 00675BA0) and Starts (slot 23: 0 creates the sound / light /
+  particle source, else moves it). Load / Save (slots 9 / 10) use the save stream's slot 1 / 2 and +8 version
+  (fields added at versions 0x43, 0x58, 0x5C, 0x67, 0x6D, 100). Slot 19 is a radius (100 by default), slot 20
+  the position used for visibility.
+- Particle types 0x2002, 0x2006, 0x200B-0x200F, 0x2018, 0x2019, 0x201B-0x2026, 0x2030-0x2033, 0x203F-0x2043 are
+  one-shot: the tick removes them 60 ticks after the start (0x2019: 120) and their first spawn catches up all
+  ticks since the start (other types at most 30). Types 0x2002 and 0x2030 leave a scorch mark (0056D4C0 on the
+  world client 007AF5B8), 0x2030 also shakes the camera. A fire wall (0x2010) leaves a scorch mark.
+- Calls through game addresses: sound system (*007AF784) 006B8600 / 006B92F0 / 006B94A0 / 006BA5E0 / 006BA7C0 /
+  006B9950 / 006B9A30 / 006B9AA0; light manager (*007AF738) 006CA720 / 006CA5D0 / 006CA830, CLight 0068D010;
+  particle sources 00498400 (*007AF754), 00485480, 004849F0, 00485360; bolts (*007AF758 slot 23) 004680D0,
+  00467E10. None is on the Rebirth list.
+
+### Rewritten (world_effect*.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00675B40, 00675B70, 00675BA0, 00675BE0, 00675D10, 00675D40 | CEffect SendFull, SendDelta, Receive, ResetBase, CreateEffect, DestroyEffect | ours only (Pack is checked itself) |
+| 00675CA0, 00675D50 | CEffect::MarkChanged, SetVelocity | ours, object restored, original, bytes compared |
+| 00675FA0, 006768F0, 00676050, 00676930, 00677690, 00677F70 | Position, radius getters (slot 19) | pure |
+| 00676200, 00676B10, 00677870, 006780C0, 00678A90, 00679AF0, 0067A1B0 | Reset (slot 18) of sound, sequence, ambient, light, particle, wall, lightning | ours only: the fields Reset sets |
+| 006762F0, 00677250 | Tick of sound / sequence | ours, restore, original (moving a playing sound twice is harmless) |
+| 006781B0, 0067A8F0 | CEffectPointLight::Tick, CEffectLightning::Tick | ours only |
+| 006795C0 | CEffectParticle::Tick (also the wall's) | ours, restore, original: object, the source's position bytes, result |
+| 006763A0, 00677950, 006782D0, 00678CF0, 0067A370 | Start (slot 23) | ours only (light: flag 0x400 matches the range's sign) |
+| 00678EC0, 00679350 | CEffectParticle::Spawn, Attach | ours only |
+| 00676430, 006779D0, 00678520, 00678D30, 00679C70, 0067A490 | Unpack (slot 21) | ours only (consume the reader, start things): result 0 or 1 |
+| 00676550, 00677180, 00677B20, 00678610, 006791A0, 00679DB0, 0067A600 | Pack (slot 22) | ours into the field, streams saved, restored, original, compared (skipped when ours grew a buffer) |
+| 006766D0, 00677430, 00677C60, 00678740, 006794E0, 00679ED0, 0067A7F0 | SaveState (slot 10) | original against a recording stand-in, ours through a forwarding recorder: bytes compared |
+| 006765F0, 00678690, 006793E0, 00679EA0, 0067A770 | LoadState (slot 9) | original on a scratch copy against a stand-in that reads nothing, ours through a recorder: (offset, size) of every read compared |
+| 006772D0, 00677BF0 | LoadState of sequence / ambient | ours only (the string-array readers use more of the stream) |
+| 00678BA0, 00679280, 006792B0, 006792E0, 00679310, 00679C30, 0067A890, 0067A8C0, 0067A6B0 | particle Position and setters (SetAttachedTo, SetSize, SetColors, SetTarget, SetDirection, SetObjects, SetFlag, SetEnds) | ours, restore, original, bytes compared |
+
+x87: ticks and starts follow the original's operation order; small naked helpers repeat the original
+instructions where the compiler could not be trusted: `StepFraction` (particle speed / distance ratio),
+`SetLightRange` (range, range^2 with FST, 1 / range^2 from the unrounded square), `WallScorchShape` (FPATAN and
+the length sum), `RandomAngle` (FILD qword of the random value: a dword FILD plus 2^32 would round at 24-bit
+precision); floats the original copies with FLD / FSTP go through `CopyThroughFpu`; scalar float bits passed to
+callees are read with `Bits(const float&)`.
+
+Original quirks kept: CEffectSound / SoundSeq Tick move the sound when the handle is not 0, so a stopped (-1)
+sound is moved too; Sound Reset stops a sound only when it loops; CEffectAmbientSound::Unpack reads the name
+count into the low byte of the stack slot of its `field` argument; CEffectParticle::Attach reads the source's
+position through a null source when there is none.
+
+Skipped: effect constructors / destructors (00675DD0, 006760A0, 00676760, 00676980, 00677510, 006776E0,
+00677D30, 00677FC0, 006787B0, 00678990, 006797E0, 006799E0, 00679FC0, 0067A0B0) and the factory 0067E170 (EH
+frames; later with the effect manager); CEffectSoundSeq::Start 00676C00 and Unpack 00676FD0 (CStringArray
+temporaries, random picks 00676DD0..00676F90 passed as callbacks); CEffectArrow / ArrowFigure / ShowVisibility /
+Moshka / Tornado (0067AAB0-0067E000); dead code 00675CC0 (UpdateMoving), 0067A2C0 (UpdateEnds); STLport
+instantiations.

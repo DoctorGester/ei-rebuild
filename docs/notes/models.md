@@ -264,3 +264,36 @@ reference node addresses differ from a plain run; `DrawSectorPage` runs every fr
 once (missing or garbled terrain, or a crash). Lesson: Ghidra's listing of 006C1C00 drops the FNSTSW AX at
 006C1F48 (a plain minimum select on the comparison status); check the raw bytes when a listing's addresses
 skip.
+
+## Resources and the sound file reader (00671280-00675B40)
+
+Code: `resource_stream.h/.cpp` (CResourceBase, CResourceStream, CMMIOResource ctor / dtor, ListFiles,
+WildcardMatch); earlier resource work (CMappedResource, CMMIOResource methods, CResourceManager slots 16-22,
+CMappedFile) is in `resource.cpp` / `resource_manager.cpp`. Verify: `verify_resource_stream.cpp`. Every
+scenario reaches it (archives open at startup, the sound file reader at every sound, CResourceManager
+constructors; destructors at exit).
+
+CMappedResource (vtable 007432E0), CMMIOResource (00743300), CResourceBase (00743324), CResourceManager
+(00743338, ctor 00674D90, dtor 00674DF0 / 00674DD0, slot 3 00674F40); FindEntry 00674850, accelerator
+006748F0 / 00674910, ListFiles 00674AC0, WildcardMatch 00674CE0. The sound system's file reader (vtable
+00743320, 0x34 bytes, created by 006B6040): CResourceBase fields plus +0x24 archive HMMIO, +0x28 entry offset
+(1 loose file, 0 nothing open), +0x2C entry size, +0x30 loose file HMMIO; OpenFile tries a readable loose
+file first (`_access`, `_findfirst` for the size, `mmioOpen`), then the archive's entry. The archive part is
+dead code (Open 00674310, by-number open 006745C0 have no callers, so +0x14 / +0x18 stay null).
+
+| Address | Name | Verify |
+|---|---|---|
+| 00674790, 00674810, 006747C0, 00674A90 | CResourceBase Construct / Destruct / deleting / FreeAccelTable | Construct: original into scratch memory, bytes compared; others ours only with checks |
+| 00674280, 006742C0, 006742A0 | CResourceStream ctor / dtor / deleting | ours only (ctor: fields checked) |
+| 00674430, 006744C0, 006746B0, 006746F0 | CResourceStream Close / OpenFile / Read / Seek | ours only: fields consistent, Read not above the request |
+| 00674CE0 | WildcardMatch | pure |
+| 00674AC0 | CMappedResource::ListFiles | original into a scratch CStringArray (006FE925 / 006FE958), names compared |
+| 006721D0, 006722F0, 006722D0 | CMMIOResource ctor / dtor / deleting | ours only (ctor: vtable, closed handles) |
+| 00674D90, 00674DF0, 00674DD0, 00674F40 | CResourceManager ctor / dtor / deleting / slot 3 | ours only |
+
+`CMMIOResource::Destroy` calls our `CMappedResource::Destroy` directly: the original has an inline copy of that
+destructor, not a call to the Rebirth-patched 006714A0. Quirks kept: `CResourceStream::Seek` treats "from the
+current position" of a loose file as "from the start"; "from the end" of an archive entry uses +0x2C, which
+OpenFile never sets; OpenFile leaks the `_findfirst` handle; `ListFiles` copies a name into a 1 KB buffer
+without a length check. Dead code (callers inline its logic): 00674310, 00674910, 006748F0, 006745C0,
+00674670. Skipped: STLport instantiations (006713C0-00674070, 00675560-00675690).
