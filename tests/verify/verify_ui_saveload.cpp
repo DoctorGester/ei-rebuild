@@ -7,10 +7,11 @@
 //
 // A picture texture's pixels are compared as the game writes them: the first 0x18000 bytes of
 // the DirectDraw texture (a Lock) or of its game-owned memory ("cpuwindows"). With game-owned
-// memory ours must have written the memory, and outside the switch-over the texture too; in the
-// switch-over ("present") ours does not touch the texture (the original's run here still locks
-// it: it is the reference).
+// memory ours must have written the memory, and outside the switch-over the texture too. In the
+// switch-over ("present") the textures have no DirectDraw texture at all (00691D80, ticket R8):
+// the original's run is lent one (memory_texture.h) and ours writes the memory only.
 #include "verify.h"
+#include "memory_texture.h"
 
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/ui.h"
@@ -111,17 +112,26 @@ std::string Text(const char* s) { return s ? s : ""; }
 
 // 00656E10: MOV EAX,FS:[0] (6 bytes). The original on the window, its sprite state and (when it
 // read a shot.sav into objects_[1]) the picture taken; the texture (and its memory) scribbled
-// over, the sprite put back, ours run: the same sprite state and picture.
+// over, the sprite put back, ours run: the same sprite state and picture. A texture with only the
+// new renderer's memory (the switch-over, ticket R8) is lent a DirectDraw texture for the
+// original's run (memory_texture.h); ours then writes the memory.
 static void(__fastcall* s_showPicture)(CSaveLoadWindow*, void*);
 static void __fastcall ShowPictureVerify(CSaveLoadWindow* self, void*) {
     CEngineObject* sprite = self->sceneObjects_.data_[3];
     SpriteState before = SpriteOf(sprite);
     CEngineObject* texture = self->objects_.size_ > 1 ? self->objects_.data_[1] : nullptr;
     char* holder = HolderOf(texture);
+    auto* lentHolder = reinterpret_cast<CDXSurface*>(holder);
+    bool lent = memory_texture::Lend(lentHolder);
+    if (!lent && memory_texture::MemoryOnly(lentHolder)) {   // DirectDraw refused (logged): ours only
+        self->CSaveLoadWindow::ShowPicture();
+        return;
+    }
     s_showPicture(self, nullptr);
     SpriteState expected = SpriteOf(sprite);
     std::vector<std::uint8_t> picture;
     bool read = holder && expected.shown == 1 && expected.texture == texture && SurfaceBlock(holder, &picture);
+    if (lent) memory_texture::TakeBack(lentHolder, false);
     if (read) {
         SurfaceBlock(holder, nullptr, true, 0xA5);
         MemoryBlock(holder, nullptr, true, 0xA5);
@@ -188,13 +198,21 @@ int FirstDifference(const ListState& a, const ListState& b, bool save) {
 
 // 00655D40: PUSH -1; PUSH 0x72F30F (7 bytes). The original on the window, its list taken (every
 // entry's strings and fields, the scroll bar's range, position and moved flag, the list's scroll
-// position, the object count, the new save's picture); ours run over it: the same.
+// position, the object count, the new save's picture); ours run over it: the same. In the
+// switch-over the original's new picture texture (00691D80: only the new renderer's memory, ticket
+// R8) is lent a DirectDraw texture while the original runs; its pixels are read from the memory.
 static void(__fastcall* s_fillEntries)(CSaveLoadWindow*, void*);
 static void __fastcall FillEntriesVerify(CSaveLoadWindow* self, void*) {
-    s_fillEntries(self, nullptr);
+    {
+        memory_texture::LendNewTextures lend;
+        s_fillEntries(self, nullptr);
+    }
     ListState expected = StateOf(self);
     std::vector<std::uint8_t> picture;
-    bool shot = expected.shot && SurfaceBlock(HolderOf(self->dialog_), &picture);
+    char* shotHolder = HolderOf(self->dialog_);
+    bool shot = expected.shot && (SurfaceBlock(shotHolder, &picture) ||
+                                  (memory_texture::MemoryOnly(reinterpret_cast<CDXSurface*>(shotHolder)) &&
+                                   MemoryBlock(shotHolder, &picture)));
     self->CSaveLoadWindow::FillEntries();
     ListState actual = StateOf(self);
     int entry = FirstDifference(expected, actual, self->isSave_);

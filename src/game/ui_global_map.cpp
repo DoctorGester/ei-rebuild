@@ -10,6 +10,7 @@
 
 #include "console.h"
 #include "core_maths.h"
+#include "dx_surface.h"
 #include "item_db_text.h"
 #include "maths.h"
 #include "object_tables.h"
@@ -836,26 +837,32 @@ void CGlobalMap::Update() {
     if (selectPending_ != 0) reinterpret_cast<MapScreenMore*>(this)->RefreshSelection();
     selectPending_ = 0;
 
-    // The weather is drawn straight into texture 4's surface.
+    // The weather is drawn straight into texture 4's surface; in the switch-over that texture has
+    // only the new renderer's memory (00691D80, ticket R8), drawn into directly (no Lock / Unlock).
     if (objects_.size_ > 4) {
         std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(objects_.data_[4]) + 0x5C);
         auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
         gameapi::EnterCriticalSection(lock);
         std::uint32_t desc[0x1F] = {};
         desc[0] = 0x7C;
-        void** surface = *reinterpret_cast<void***>(holder + 0x10);
-        using LockFn = long(__stdcall*)(void*, RECT*, void*, unsigned long, void*);
-        long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(surface))[25])(surface, nullptr, desc, 1, nullptr);
-        std::memcpy(holder + 8, &hr, 4);
-        if (hr != 0) FatalDirectX(hr, GameText(0x0078E30C));   // "Can't lock surface"
+        bool direct = DirectPixels(holder, desc);
+        if (!direct) {
+            void** surface = *reinterpret_cast<void***>(holder + 0x10);
+            using LockFn = long(__stdcall*)(void*, RECT*, void*, unsigned long, void*);
+            long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(surface))[25])(surface, nullptr, desc, 1, nullptr);
+            std::memcpy(holder + 8, &hr, 4);
+            if (hr != 0) FatalDirectX(hr, GameText(0x0078E30C));   // "Can't lock surface"
+        }
         float seconds = Store(FrameTime(this));
         static_cast<WeatherDraw*>(weather_)->Draw(reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
         gameapi::LeaveCriticalSection(lock);
-        using UnlockFn = long(__stdcall*)(void*, RECT*);
-        surface = *reinterpret_cast<void***>(holder + 0x10);
-        hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
-        std::memcpy(holder + 8, &hr, 4);
-        if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
+        if (!direct) {
+            using UnlockFn = long(__stdcall*)(void*, RECT*);
+            void** surface = *reinterpret_cast<void***>(holder + 0x10);
+            long hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
+            std::memcpy(holder + 8, &hr, 4);
+            if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
+        }
     }
     reinterpret_cast<CursorAt*>(0x007C7BD8)->SetShape(dragging_ ? 0x16 : 0);
 }
