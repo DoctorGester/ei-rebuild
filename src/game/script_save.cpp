@@ -14,9 +14,10 @@
 
 namespace {
 
-// The savers of the other parts (004B / 004BB range, not rewritten), __thiscall with the stream.
+// The savers of the other parts (004B / 004BB range), __thiscall with the stream.
 // 004B1940 point light (0x20 slot), 004B1A80 particle source, 004B1C50 FX source, 004B1DB0
-// lightning (list node data), 004BBFE0 definition / instance (0xC0), 004BB320 run (0xB4).
+// lightning (list node data): not rewritten. 004BBFE0 definition / instance (0xC0), 004BB320 run
+// (0xB4): rewritten below, called through their addresses (verify wrappers run).
 __declspec(naked) void __fastcall PointLightSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1940)
 __declspec(naked) void __fastcall ParticleSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1A80)
 __declspec(naked) void __fastcall FxSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1C50)
@@ -32,6 +33,8 @@ __declspec(naked) void __fastcall StringsSaveOrig(const void*, void*, ScriptStre
 __declspec(naked) void __fastcall ObjectsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C38C0)
 __declspec(naked) void __fastcall GroupsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C4330)
 __declspec(naked) void __fastcall AreasSaveOrig(const void*, ScriptStream*) EI_ORIGINAL(0x004CAEC0)
+// ScriptObjectRef::Save (rewritten in script_group.cpp; the definition and run savers call it).
+__declspec(naked) void __fastcall RefSave(const ScriptObjectRef*, void*, ScriptStream*) EI_ORIGINAL(0x004B25F0)
 
 // The script being saved; the run saver (004BB320) finds a run's instance through it.
 CScript*& SavingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
@@ -73,6 +76,19 @@ void WriteName(ScriptStream* stream, const MfcArray<mfc::CString>& names, int i)
 }
 
 int ObjectId(const ScriptObjectRef& ref) { return ref.object ? ref.object->id_ : -1; }
+
+// A ScriptVars as the definition and run savers write it: floats, strings and objects inline (the
+// pieces of their savers; objects through ScriptObjectRef::Save), groups through 004C4330.
+void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
+    ScriptFloatsSave(reinterpret_cast<const ScriptNamedValues<float>*>(&vars->floats), nullptr, stream);
+    ScriptStringsSave(reinterpret_cast<const ScriptNamedValues<mfc::CString>*>(&vars->strings), nullptr, stream);
+    WriteInt(stream, vars->objects.size);
+    for (int i = 0; i < vars->objects.size; ++i) {
+        RefSave(&vars->objects.data[i], nullptr, stream);
+        WriteName(stream, vars->objectNames, i);
+    }
+    GroupsSaveOrig(&vars->groups, nullptr, stream);
+}
 
 // A list's count, then each element through `save`.
 template <typename Save>
@@ -144,6 +160,38 @@ void __fastcall ScriptAreasSave(const MfcArray<ScriptArea>* areas, ScriptStream*
     }
 }
 EI_REPLACE(0x004CAEC0, ScriptAreasSave);
+
+// A definition (CScript +0x8C) or an instance (+0x140). The pairs' blocks are not null-checked.
+void __fastcall ScriptDefinitionSave(const ScriptDefinition* definition, void*, ScriptStream* stream) {
+    stream->Write(&definition->index, 4);
+    WriteString(stream, definition->name);
+    WriteString(stream, definition->params);
+    WriteInt(stream, definition->ifThen.size);
+    for (int i = 0; i < definition->ifThen.size; ++i) {
+        const ScriptIfThen& pair = definition->ifThen.data[i];
+        WriteInt(stream, pair.conditions->id);
+        WriteInt(stream, pair.commands->id);
+    }
+    WriteVars(stream, &definition->vars);
+}
+EI_REPLACE(0x004BBFE0, ScriptDefinitionSave);
+
+// A run (CScript +0x15C). Its instance is found by the address of the killed flag (the node's
+// data) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
+void __fastcall ScriptRunSave(const ScriptRun* run, void*, ScriptStream* stream) {
+    WriteInt(stream, run->block->id);
+    stream->Write(&run->index, 4);
+    stream->Write(&run->ticks, 4);
+    stream->Write(&run->sleepStart, 4);
+    int instance = 0;
+    const ListNode* node = Field<List>(SavingScript(), 0x140).head;
+    for (; node; node = node->next, ++instance) {
+        if (static_cast<const void*>(run->killFlag) == NodeData(node)) break;
+    }
+    WriteInt(stream, node ? instance : -1);
+    WriteVars(stream, &run->vars);
+}
+EI_REPLACE(0x004BB320, ScriptRunSave);
 
 void __fastcall ScriptSave(CScript* script, void*, ScriptStream* stream) {
     SavingScript() = script;

@@ -104,6 +104,7 @@ __declspec(naked) void __stdcall DestructRefs(void*, int) EI_ORIGINAL(0x004CC7D0
 __declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
 __declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
 __declspec(naked) void __fastcall VarsDestruct(void*) EI_ORIGINAL(0x004BE090)
+__declspec(naked) void __fastcall VarsConstruct(void*) EI_ORIGINAL(0x004C00D0)
 // Savers (through their addresses).
 __declspec(naked) void __fastcall DeclSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C1230)
 __declspec(naked) void __fastcall DefinitionSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004BBFE0)
@@ -166,6 +167,13 @@ void Release(CEngineObject* object) {
 void Report(const char* name, bool same, const ReplayStream& replay, const RecordStream& record, const char* what) {
     ei::verify::Check(name, true, same && replay.Same(), "%s; reads %u of %u%s", what, unsigned(replay.Reads()),
                       unsigned(record.ops.size()), replay.Same() ? "" : " (read sequence differs)");
+}
+
+bool SameGroup(const ScriptGroup& a, const ScriptGroup& b) {
+    if (a.size != b.size || a.maxSize != b.maxSize || a.growBy != b.growBy) return false;
+    for (int k = 0; k < a.size; ++k)
+        if (a.data[k].object != b.data[k].object) return false;
+    return true;
 }
 
 // ---- Variables ----------------------------------------------------------------------------------------
@@ -234,18 +242,63 @@ VarsLoadFn<ScriptGroup> s_groups;
 void __fastcall GroupsLoadVerify(ScriptNamedValues<ScriptGroup>* self, void*, ScriptStream* stream) {
     VarsVerify<ScriptGroup>(
         "ScriptGroupsLoad", s_groups, &ScriptGroupsLoad, self, stream,
-        [](const ScriptGroup& a, const ScriptGroup& b) {
-            if (a.size != b.size || a.maxSize != b.maxSize || a.growBy != b.growBy) return false;
-            for (int k = 0; k < a.size; ++k)
-                if (a.data[k].object != b.data[k].object) return false;
-            return true;
-        },
+        SameGroup,
         [](MfcArray<ScriptGroup>& a) {
             if (a.data) {
                 for (int i = 0; i < a.size; ++i) GroupDestroy(&a.data[i], nullptr, 0);
                 gamecrt::operator_delete(a.data);
             }
         });
+}
+
+// ---- ScriptVars::Load ----------------------------------------------------------------------------------
+
+bool EmptyVars(const ScriptVars& v) {
+    return Empty(v.floats) && Empty(v.floatNames) && Empty(v.strings) && Empty(v.stringNames) && Empty(v.objects) &&
+           Empty(v.objectNames) && Empty(v.groups) && Empty(v.groupNames);
+}
+
+// Every value (float bits, string, object pointer, group members, sizes, capacities and growBy) and
+// every name; all of them are written by the load (sizes from an empty set, every slot read).
+bool SameVars(const ScriptVars& a, const ScriptVars& b) {
+    bool ok = SameShape(a.floats, b.floats) && SameShape(a.strings, b.strings) && SameShape(a.objects, b.objects) &&
+              SameShape(a.groups, b.groups) && SameNames(a.floatNames, b.floatNames) &&
+              SameNames(a.stringNames, b.stringNames) && SameNames(a.objectNames, b.objectNames) &&
+              SameNames(a.groupNames, b.groupNames);
+    for (int i = 0; ok && i < a.floats.size; ++i) ok = std::memcmp(&a.floats.data[i], &b.floats.data[i], 4) == 0;
+    for (int i = 0; ok && i < a.strings.size; ++i) ok = SameString(a.strings.data[i], b.strings.data[i]);
+    for (int i = 0; ok && i < a.objects.size; ++i) ok = a.objects.data[i].object == b.objects.data[i].object;
+    for (int i = 0; ok && i < a.groups.size; ++i) ok = SameGroup(a.groups.data[i], b.groups.data[i]);
+    return ok;
+}
+
+// 004B3AD0: PUSH ECX; PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,[ESP+0x14] (8 bytes). Called on new
+// definitions, instances and runs (empty sets): the original loads into a scratch set built by the
+// ScriptVars constructor 004C00D0, ours replays into the real one; the scratch is destroyed with
+// 004BE090 (its references released).
+void(__fastcall* s_vars)(ScriptVars*, void*, ScriptStream*);
+void __fastcall VarsLoadVerify(ScriptVars* self, void*, ScriptStream* stream) {
+    if (!EmptyVars(*self)) {
+        ScriptVarsLoad(self, nullptr, stream);
+        ei::verify::Check("ScriptVarsLoad", true,
+                          self->floats.size == self->floatNames.size && self->strings.size == self->stringNames.size &&
+                              self->objects.size == self->objectNames.size && self->groups.size == self->groupNames.size,
+                          "ours only: value and name counts differ");
+        return;
+    }
+    alignas(ScriptVars) unsigned char raw[sizeof(ScriptVars)];
+    VarsConstruct(raw);
+    auto* scratch = reinterpret_cast<ScriptVars*>(raw);
+    RecordStream record(stream);
+    s_vars(scratch, nullptr, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptVarsLoad(self, nullptr, replay.AsScript());
+    char what[96];
+    std::snprintf(what, sizeof(what), "%d/%d/%d/%d vs %d/%d/%d/%d variables", scratch->floats.size,
+                  scratch->strings.size, scratch->objects.size, scratch->groups.size, self->floats.size,
+                  self->strings.size, self->objects.size, self->groups.size);
+    Report("ScriptVarsLoad", SameVars(*scratch, *self), replay, record, what);
+    VarsDestruct(scratch);
 }
 
 // ---- SSCCmd::Load ---------------------------------------------------------------------------------------
@@ -337,6 +390,33 @@ void __fastcall IfThenVerify(MfcArray<ScriptIfThen>* self, ScriptStream* stream)
     std::snprintf(what, sizeof(what), "%d vs %d pairs", scratch.size, self->size);
     Report("ScriptIfThenLoad", ok, replay, record, what);
     gamecrt::operator_delete(scratch.data);
+}
+
+// 004BB590: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC] (6 bytes). Both fields are always written: the
+// original reads into a scratch pair, ours replays into the real one.
+void(__fastcall* s_pair)(ScriptIfThen*, void*, ScriptStream*);
+void __fastcall PairLoadVerify(ScriptIfThen* self, void*, ScriptStream* stream) {
+    ScriptIfThen scratch{};
+    RecordStream record(stream);
+    s_pair(&scratch, nullptr, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptIfThenPairLoad(self, nullptr, replay.AsScript());
+    char what[96];
+    std::snprintf(what, sizeof(what), "blocks %p %p vs %p %p", static_cast<void*>(scratch.conditions),
+                  static_cast<void*>(scratch.commands), static_cast<void*>(self->conditions),
+                  static_cast<void*>(self->commands));
+    Report("ScriptIfThenPairLoad", scratch.conditions == self->conditions && scratch.commands == self->commands, replay,
+           record, what);
+}
+
+// 004BFA50: MOV EDX,[ESP+4]; TEST EDX,0x80000000 (10 bytes). Pure lookup, compared with the
+// original. SSCCmd::Load calls it (every command of a loaded save).
+ScriptDecl*(__fastcall* s_findBlock)(const CScript*, void*, int);
+ScriptDecl* __fastcall FindBlockVerify(const CScript* self, void*, int id) {
+    ScriptDecl* expected = s_findBlock(self, nullptr, id);
+    ScriptDecl* actual = ScriptFindBlock(self, nullptr, id);
+    ei::verify::Check("ScriptFindBlock", expected, actual, "id %d", id);
+    return expected;
 }
 
 // ---- Lists ------------------------------------------------------------------------------------------------
@@ -465,6 +545,9 @@ EI_VERIFY(0x004C3200, StringsLoadVerify, 7, s_strings);
 EI_VERIFY(0x004C36B0, ObjectsLoadVerify, 5, s_objects);
 EI_VERIFY(0x004C40D0, GroupsLoadVerify, 5, s_groups);
 EI_VERIFY(0x004B5FE0, CmdLoadVerify, 8, s_cmd);
+EI_VERIFY(0x004B3AD0, VarsLoadVerify, 8, s_vars);
+EI_VERIFY(0x004BB590, PairLoadVerify, 6, s_pair);
+EI_VERIFY(0x004BFA50, FindBlockVerify, 10, s_findBlock);
 EI_VERIFY(0x004C57C0, DeclCommandsVerify, 7, s_declCommands);
 EI_VERIFY(0x004CA000, IfThenVerify, 5, s_ifThen);
 EI_VERIFY(0x004CA480, ParticlesVerify, 7, s_particles);
