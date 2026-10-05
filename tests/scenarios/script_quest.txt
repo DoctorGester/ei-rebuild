@@ -1,0 +1,21 @@
+# QFinish (004BAAB0, src/game/script_exec_helpers.cpp): QStart and three objectives (a string and a
+# float argument, a float only, a string only), then QFinish builds the quest script text and loads
+# it into the console's mission script. The verify wrapper compares ours' text with the original's
+# (the original's load is skipped). The generated conditions name variables the mission may not
+# have, so the load can fail quietly (QFinish prints nothing); the game must go on afterwards.
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @QStart("zxq") QObjUse("zxLever",1.5) QObjGetItem(3) QObjKillUnit("zxUnit") QFinish() GSSetVar(0,"zxq.done",1)
+waitfor 10 IsEqual(GSGetVar(0,"zxq.done"),1)
+# A second quest with a single objective (the last objective's tail only).
+console @QStart("zxr") QObjArea(7) QFinish() GSSetVar(0,"zxr.done",1)
+waitfor 10 IsEqual(GSGetVar(0,"zxr.done"),1)
+wait 500
+check IsAlive(GetLeader())
+report
+quit

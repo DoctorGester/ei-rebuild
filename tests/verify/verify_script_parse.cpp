@@ -482,7 +482,19 @@ EI_VERIFY(0x004D1330, LoadCommandsVerify, 0, s_unused);
 // Load adds definitions and variables and may start the WorldScript: ours only. A successful load
 // counts the file; a failed one does not. The WorldScript may load more files into the same script
 // (nested loads), so the error state is checked only when exactly one file was counted.
+// QFinish's wrapper (verify_script_exec.cpp) captures the text its load gets; with the skip flag
+// set (the original QFinish's run) the load itself is skipped.
+namespace scriptverify {
+std::string* g_loadTextCapture = nullptr;
+bool g_loadSkip = false;
+} // namespace scriptverify
+
 static BOOL __fastcall LoadVerify(CScript* self, void*, mfc::CString* text, BOOL runWorldScript) {
+    if (scriptverify::g_loadTextCapture) {
+        scriptverify::g_loadTextCapture->assign(static_cast<const char*>(*text));
+        scriptverify::g_loadTextCapture = nullptr;
+        if (scriptverify::g_loadSkip) return 0;
+    }
     int files = self->FileCount();
     BOOL actual = self->Load(text, runWorldScript);
     bool ok = actual == 1 ? self->FileCount() > files && self->LoadedFlag() == 1 &&
