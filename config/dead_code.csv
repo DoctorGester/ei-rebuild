@@ -143,6 +143,8 @@ address,size,name,evidence
 0047C280,121,FUN_0047c280,referenced only from dead code 0047BE1B
 0047C380,30,FUN_0047c380,referenced only from vtable(s) installed only by dead code 0073CA00
 0047C3A0,57,FUN_0047c3a0,referenced only from dead code 0047C380
+0047C420,131,FUN_0047c420,"slot 13 of vtable 0073CA10, which only dead code installs (constructors 0047CAA0 / 0047CFA0; the script reaches 0047CAA0 only through the coincidental dword 0047CBE8 at 00426BF0, the bytes of a CALL)"
+0047C520,34,FUN_0047c520,"slot 11 of vtable 0073CA10 (only dead code installs it: see 0047C420)"
 0047C650,38,FUN_0047c650,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047C680,607,FUN_0047c680,referenced only from dead code 0047C8E0 004E72A0
 0047C8E0,210,FUN_0047c8e0,"no references at all (no call/jmp, no absolute pointer in code or data)"
@@ -151,6 +153,12 @@ address,size,name,evidence
 0047CAA0,335,FUN_0047caa0,"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0047CBF0,64,FUN_0047cbf0,"referenced only from dead code 0047CAA0"
 0047CC30,45,FUN_0047cc30,"referenced only from dead code 0047CAA0"
+0047CC60,218,FUN_0047cc60,"slot 3 (clone) of vtable 0073CA10 (only dead code installs it: see 0047C420)"
+0047CD40,242,FUN_0047cd40,"slot 2 (reset) of vtable 0073CA10 (only dead code installs it: see 0047C420)"
+0047CE40,31,FUN_0047ce40,"slot 4 of vtable 0073CA10 (only dead code installs it: see 0047C420)"
+0047CE60,45,FUN_0047ce60,"slot 5 of vtable 0073CA10 (only dead code installs it: see 0047C420)"
+0047CE90,30,FUN_0047ce90,"slot 0 (deleting destructor) of vtable 0073CA10 (only dead code installs it: see 0047C420)"
+0047CEB0,167,FUN_0047ceb0,"destructor body of vtable 0073CA10's class, called only from its slot 0 0047CE90"
 0047CF60,57,FUN_0047cf60,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047CFA0,453,FUN_0047cfa0,referenced only from dead code 0047D1DB
 0047D4E0,9,FUN_0047d4e0,referenced only from dead code 0047CFA0

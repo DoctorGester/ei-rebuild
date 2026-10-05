@@ -6,9 +6,11 @@
 // back for the call) and logs slot, arguments, result and the bytes written. The original then
 // runs on a byte copy of the object taken before, whose CFile answers from the log: the same calls
 // in the same order with the same arguments and bytes, the logged results handed back. The file
-// stream's slots 1-6, the link's recording Open / Close / Record and a recording Receive use it.
-// Calls nest (the record writes through the file stream's slots, whose wrappers then run ours on
-// whichever CFile they are given). Reads land in the caller's buffer, which is the same for both.
+// stream's slots 1-6, the link's recording Open / Close / Record, a recording Receive and the
+// replay link's slots use it. Calls nest (the record writes through the file stream's slots,
+// whose wrappers then run ours on whichever CFile they are given). The bytes read are logged and
+// copied into the replay's buffer (the same one for the file stream's Read, a fresh one for
+// 004A51C0).
 //
 // Memory streams the functions touch (only the two CMemoryStream classes) are deep-copied for the
 // original's run: header plus a private buffer from the game heap; compared field by field (the
@@ -29,6 +31,11 @@
 //  - Clone: both clone; the copies compared (queue streams one by one), the original's deleted.
 //  - Pair creation, reset, disconnect, the loopback's destructor and the deleting destructors:
 //    ours only, the resulting links checked.
+//  - The replay link (0073C92C): Create ours only (it opens the recording; a second modeRead open
+//    would be refused by the share mode), the link checked; Clone both, compared, the original's
+//    deleted; Reset and the deleting destructor ours only; the destructor body as the link's;
+//    Alive / HasIncoming / Receive / Disconnect through the recorded CFile (Receive with a deep
+//    copy of the target stream).
 #include "verify.h"
 
 #include "../../src/game/net_link.h"
@@ -224,15 +231,23 @@ std::uint32_t __fastcall ProxyGetLength(void* f) {
     const FileOp* op = Expect(12, 0, 0, 0);
     return op ? op->result : 0;
 }
-// Reads go to the caller's buffer, the same in both runs: the replay leaves it as ours filled it.
+// Reads may go to different buffers (004A51C0 reads into a stack word and a fresh allocation): the
+// bytes read are kept and the replay copies them into its buffer. A read too large to keep must
+// use the same buffer, which ours filled (the file stream's Read passes the caller's).
 std::uint32_t __fastcall ProxyRead(void* f, void*, void* p, unsigned n) {
     if (g_mode.recording) {
         std::uint32_t r = Forward<std::uint32_t>(f, 13, p, n);
-        Log(13, U(p), n, 0, r);
+        LogData(Log(13, n, 0, 0, r), p, r <= n ? r : n);
         return r;
     }
-    const FileOp* op = Expect(13, U(p), n, 0);
-    return op ? op->result : 0;
+    const FileOp* op = Expect(13, n, 0, 0);
+    if (!op) return 0;
+    if (op->dataSize == kNotStored) {
+        if (op->pointer != U(p)) g_mode.mismatch = true;
+    } else {
+        std::memcpy(p, g_log.data + op->dataAt, op->dataSize);
+    }
+    return op->result;
 }
 // Writes may come from different buffers (stack, fresh allocations): the bytes are compared (the
 // buffer's address for a write too large to keep; the file stream's own Write passes the caller's).
@@ -728,6 +743,145 @@ void __fastcall LoopbackDisconnectVerify(LoopbackLink* self) {
     ei::verify::Check("LoopbackDisconnect", static_cast<CRefObject*>(nullptr), self->peer, "");
 }
 
+// ================================================================================================
+// ReplayLink
+
+// The header of a file stream two constructions should share: vtable, ok, limit and the CFile.
+bool SameFileStream(const FileStream& a, const FileStream& b) {
+    const auto* x = reinterpret_cast<const std::uint8_t*>(&a);
+    const auto* y = reinterpret_cast<const std::uint8_t*>(&b);
+    return std::memcmp(x, y, 4) == 0 && x[5] == y[5] && std::memcmp(x + 8, y + 8, 4 + 0x10) == 0;
+}
+// The replay link up to its replay stream's CFile.
+constexpr std::size_t kReplayHeader = offsetof(ReplayLink, replay) + offsetof(FileStream, file);
+
+// 00478960: ours only. A replay link (count 0, not recording, a closed record file) whose replay
+// stream reads and is ok exactly when its CFile opened.
+ReplayLink* __fastcall ReplayCreateVerify(void* unused, void*, const char* path) {
+    ReplayLink* link = ReplayCreate(unused, nullptr, path);
+    bool open = At<std::uint32_t>(link->replay.file, 4) != 0xFFFFFFFFu;
+    bool ok = VtableOf(link) == kReplayVtable && At<std::uint32_t>(link, 4) == 0 && link->base.recording == 0 &&
+              FreshRecord(link->base.record) && VtableOf(&link->replay) == kFileStreamVtable && link->replay.reading == 1 &&
+              link->replay.limit == 2000000000u && link->replay.ok == (open ? 1 : 0);
+    ei::verify::Check("ReplayCreate", true, ok, "%s", open ? "opened" : "not opened");
+    return link;
+}
+
+// 00478CC0: PUSH -1 (2), PUSH imm32 (5). With both files closed the original on a copy, ours on
+// the real link; else ours only.
+void(__fastcall* s_replayDestruct)(ReplayLink*);
+void __fastcall ReplayDestructVerify(ReplayLink* self) {
+    if (!FileClosed(self->base.record.file) || !FileClosed(self->replay.file)) {
+        ReplayDestruct(self);
+        return;
+    }
+    alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
+    std::memcpy(copy, self, sizeof(copy));
+    s_replayDestruct(reinterpret_cast<ReplayLink*>(copy));
+    ReplayDestruct(self);
+    ei::verify::Check("ReplayDestruct", true, std::memcmp(copy, self, sizeof(copy)) == 0, "");
+}
+
+// 00478CA0: a CALL at +3: ours only.
+void* __fastcall ReplayDeletingDestructorVerify(ReplayLink* self, void*, unsigned flags) {
+    void* result = ReplayDeletingDestructor(self, nullptr, flags);
+    ei::verify::Check("ReplayDeletingDestructor", static_cast<void*>(self), result, "");
+    return result;
+}
+
+// 00478B10: ours only; afterwards a fresh replay link with the same count, flags and +9.
+void __fastcall ReplayResetVerify(ReplayLink* self) {
+    std::uint32_t header = At<std::uint32_t>(self, 4);
+    std::uint8_t skip = self->base.skipNext;
+    ReplayReset(self);
+    bool ok = VtableOf(self) == kReplayVtable && At<std::uint32_t>(self, 4) == header && self->base.skipNext == skip &&
+              self->base.recording == 0 && FreshRecord(self->base.record) && FreshRecord(self->replay);
+    ei::verify::Check("ReplayReset", true, ok, "");
+}
+
+// 00478A50: PUSH -1 (2), PUSH imm32 (5). Both clone; the copies compared (count, flags, the two
+// fresh file streams), the original's deleted.
+ReplayLink*(__fastcall* s_replayClone)(ReplayLink*);
+ReplayLink* __fastcall ReplayCloneVerify(ReplayLink* self) {
+    ReplayLink* expected = s_replayClone(self);
+    ReplayLink* actual = ReplayClone(self);
+    if (expected && actual) {
+        bool same = std::memcmp(expected, actual, 10) == 0 && SameFileStream(expected->base.record, actual->base.record) &&
+                    SameFileStream(expected->replay, actual->replay);
+        ei::verify::Check("ReplayClone", true, same, "");
+    }
+    if (expected) ReplayDeletingDestructor(expected, nullptr, 1);
+    return actual;
+}
+
+// 00478C30 / 00478C50: MOV EAX,[ECX+0x28] (3), PUSH ESI (1), LEA ESI,[ECX+0x28] (3). The
+// recorded CFile (GetPosition, GetLength through the file stream's slots 5 and 4).
+template <typename Ours, typename Original>
+int ReplayQuery(const char* name, ReplayLink* self, Ours ours, Original original) {
+    alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
+    std::memcpy(copy, self, sizeof(copy));
+    auto* link = reinterpret_cast<ReplayLink*>(copy);
+    int actual = 0;
+    int expected = 0;
+    RunRecorded(
+        self->replay.file, link->replay.file, [&] { actual = ours(self); }, [&] { expected = original(link); },
+        [&](bool replayed) {
+            ei::verify::Check(name, true, replayed && expected == actual, "%s, %d / %d", replayed ? "replayed" : "calls differ", expected,
+                              actual);
+        });
+    return actual;
+}
+int(__fastcall* s_replayAlive)(ReplayLink*);
+int __fastcall ReplayAliveVerify(ReplayLink* self) {
+    return ReplayQuery("ReplayAlive", self, [](ReplayLink* l) { return ReplayAlive(l); }, [](ReplayLink* l) { return s_replayAlive(l); });
+}
+int(__fastcall* s_replayHasIncoming)(ReplayLink*);
+int __fastcall ReplayHasIncomingVerify(ReplayLink* self) {
+    return ReplayQuery("ReplayHasIncoming", self, [](ReplayLink* l) { return ReplayHasIncoming(l); },
+                       [](ReplayLink* l) { return s_replayHasIncoming(l); });
+}
+
+// 00478C70: MOV EAX,[ESP+4] (4), PUSH ESI (1). The recorded CFile (004A51C0 reads the size into a
+// stack word and the bytes into a buffer of its own) with a deep copy of a memory stream target;
+// the result, the target and the link's header compared.
+bool(__fastcall* s_replayReceive)(ReplayLink*, void*, void*);
+bool __fastcall ReplayReceiveVerify(ReplayLink* self, void*, void* stream) {
+    if (!IsMemoryStream(stream)) return ReplayReceive(self, nullptr, stream);
+    alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
+    std::memcpy(copy, self, sizeof(copy));
+    auto* link = reinterpret_cast<ReplayLink*>(copy);
+    CMemoryStream target;
+    CloneStream(&target, static_cast<CMemoryStream*>(stream));
+    bool actual = false;
+    bool expected = false;
+    RunRecorded(
+        self->replay.file, link->replay.file, [&] { actual = ReplayReceive(self, nullptr, stream); },
+        [&] { expected = s_replayReceive(link, nullptr, &target); },
+        [&](bool replayed) {
+            bool same = replayed && expected == actual && std::memcmp(copy, self, kReplayHeader) == 0 &&
+                        SameStream(&target, static_cast<CMemoryStream*>(stream));
+            ei::verify::Check("ReplayReceive", true, same, "%s, %u bytes", replayed ? "replayed" : "calls differ",
+                              static_cast<CMemoryStream*>(stream)->size_);
+        });
+    FreeStream(&target);
+    return actual;
+}
+
+// 00478C90: MOV EAX,[ECX+0x34] (3), ADD ECX,0x34 (3). The recorded CFile (Close); the link's
+// header compared.
+void(__fastcall* s_replayDisconnect)(ReplayLink*);
+void __fastcall ReplayDisconnectVerify(ReplayLink* self) {
+    alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
+    std::memcpy(copy, self, sizeof(copy));
+    auto* link = reinterpret_cast<ReplayLink*>(copy);
+    RunRecorded(
+        self->replay.file, link->replay.file, [&] { ReplayDisconnect(self); }, [&] { s_replayDisconnect(link); },
+        [&](bool replayed) {
+            ei::verify::Check("ReplayDisconnect", true, replayed && std::memcmp(copy, self, kReplayHeader) == 0,
+                              replayed ? "" : "calls differ");
+        });
+}
+
 } // namespace
 
 EI_VERIFY(0x00478470, FileStreamConstructVerify, 7, s_fsConstruct);
@@ -758,3 +912,12 @@ EI_VERIFY(0x00478760, LoopbackIncomingCountVerify, 5, s_count);
 EI_VERIFY(0x00478220, LoopbackSendVerify, 7, s_send);
 EI_VERIFY(0x00478270, LoopbackReceiveVerify, 5, s_receive);
 EI_VERIFY(0x00478140, LoopbackDisconnectVerify, 0, s_unused);
+EI_VERIFY(0x00478960, ReplayCreateVerify, 0, s_unused);
+EI_VERIFY(0x00478CC0, ReplayDestructVerify, 7, s_replayDestruct);
+EI_VERIFY(0x00478CA0, ReplayDeletingDestructorVerify, 0, s_unused);
+EI_VERIFY(0x00478B10, ReplayResetVerify, 0, s_unused);
+EI_VERIFY(0x00478A50, ReplayCloneVerify, 7, s_replayClone);
+EI_VERIFY(0x00478C30, ReplayAliveVerify, 7, s_replayAlive);
+EI_VERIFY(0x00478C50, ReplayHasIncomingVerify, 7, s_replayHasIncoming);
+EI_VERIFY(0x00478C70, ReplayReceiveVerify, 5, s_replayReceive);
+EI_VERIFY(0x00478C90, ReplayDisconnectVerify, 6, s_replayDisconnect);

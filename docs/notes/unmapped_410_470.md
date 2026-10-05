@@ -958,3 +958,102 @@ erase 004790F0, clear 00479570, range insert 004795B0, node deallocation 0047953
 00405950 / 00404D70. Game code: 004A5250 (a stream written into another with a size prefix). Virtual
 calls: the CFile's slots 3 / 8 / 10 / 12 / 13 / 14 / 19, the streams' slots 0 / 7, a link's slots 6
 and 11.
+
+## Eleventh round: the replay link, the framed link and the per-player driver (ticket A3)
+
+Files: `src/game/net_link.h/.cpp` (added to the tenth round's classes), verify
+`tests/verify/verify_net_link.cpp` (the replay link, on the recorded CFile) and the new
+`tests/verify/verify_net_link_driver.cpp` (the framed link and the driver). No shared header changed.
+
+### Classes
+
+- `ReplayLink` (0073C92C, 0x44): the link base and a second file stream at +0x28 that plays back a
+  recording made by the base's recording (each message a size prefix and its bytes, 004A5250 /
+  004A51C0). Made by 00478960 (path, modeRead) from the client world's 00566D30, which 005793E0
+  calls with `autoplay.apl` or a listed `<name>.apl` (a demo playback, from 00602190).
+  Slots: 0 00478CA0 (body 00478CC0), 2 reset 00478B10, 3 clone 00478A50, 4 connected 00478C20
+  (always 0), 5 alive / 6 has incoming 00478C30 / 00478C50 (position < size), 7 / 8 the base's,
+  9 Receive 00478C70 (004A51C0, then the stream's ok), 10 / 12 shared, 11 Disconnect 00478C90
+  (closes the file).
+- `FramedLink` (0073C9C8, 0x50, abstract): the link base and a memory stream at +0x28, the inbox:
+  received bytes, each message a 4-byte length and its bytes. Slots 6 has message 0047B9F0, 7
+  count 0047BA40, 8 Send 0047BAD0 (frames the stream in a 0x8000-byte stack buffer and hands it to
+  slot 13; disconnects through slot 11 when that fails), 9 Receive 0047BB70 (the first message out,
+  the rest moved down); members append 0047B980 and take everything 0047B9B0; slot 0 00479B70 (body
+  00479B90). Slots 2-5, 11 and 13 are pure.
+- `DriverLink` (0073C990, 0x54): a framed link over a network connection (net::Connection, +0x50,
+  counted). Slot 10 Pump 004797A0 moves the connection's incoming reliable bytes (+0x1148) to the
+  end of the inbox; slot 13 004796B0 writes bytes at the end of its outgoing reliable stream
+  (+0x112C); slot 11 Disconnect 00479810 writes the inbox's unread bytes, followed by the incoming
+  stream's old bytes, back over the start of the incoming stream, then lets go of the connection;
+  slot 4 00479780 connected; slot 5 00479D10 (always true); 2 reset 00479C10, 3 clone 00479A30,
+  0 00479D20 (body 00479D40, which disconnects first). Constructor 0047A030 (net_session_pump.cpp).
+- 0073CA10: another framed link, made only by dead code (0047CAA0, 0047CFA0 from the unreferenced
+  0047D190). The dead-code script keeps it alive through a coincidental dword (00426BF0, the bytes
+  of a CALL, points into 0047CAA0); its slots 0047CE90, 0047CEB0 (body), 0047CD40, 0047CC60,
+  0047CE40, 0047CE60, 0047C520 and 0047C420 are now in config/dead_code.csv (a rerun of
+  tools/find_dead_code.py drops these hand-added rows, like the earlier ones of 0047CAA0).
+
+### What runs when
+
+Nothing a scenario does: no .apl file exists in either install (the replay link), and drivers are
+made only for connections of remote players (00479E30 / 0047A080; net_lobby.txt's local player uses
+the loopback pair, and its 2026-10-05 run counted no call of 00479E30, 0047A080 or 00477E60, against
+what the tenth round guessed). The framed link's functions run only under drivers. All checks are
+written for a network game or a demo playback.
+
+### Rewritten
+
+| Address | Name | Verify |
+|---|---|---|
+| 00478960 | ReplayCreate | ours only: count 0, not recording, record closed; the replay stream reading, ok exactly when the CFile opened |
+| 00478CC0 / 00478CA0 | ReplayDestruct / deleting destructor | both files closed: original on a copy, else ours only / ours only |
+| 00478B10 | ReplayReset (slot 2) | ours only: fresh link, the count and +9 kept |
+| 00478A50 | ReplayClone (slot 3) | both clone, compared, the original's deleted |
+| 00478C30 / 00478C50 | ReplayAlive / ReplayHasIncoming (5, 6) | recorded CFile (GetPosition, GetLength) |
+| 00478C70 | ReplayReceive (slot 9) | recorded CFile, deep copy of the target stream |
+| 00478C90 | ReplayDisconnect (slot 11) | recorded CFile (Close) |
+| 00479B10 | FileStreamCopyConstruct | original on the real object, ours on a copy |
+| 00479B90 / 00479B70 | FramedDestruct / deleting destructor | closed file: original on a copy with its own inbox buffer / ours only |
+| 0047B980 / 0047B9B0 | FramedAppend / FramedTakeAll | original on a copy with its own inbox (and a copy of the output stream) |
+| 0047B9F0 / 0047BA40 / 0047BB70 | FramedHasMessage / MessageCount / Receive (6, 7, 9) | the same (Receive: a copy of the target too) |
+| 0047BAD0 | FramedSend (slot 8) | the link's slots 13 / 11 recorded (ours) and replayed (the original on a copy; the framed bytes compared); the stream deep-copied |
+| 00479780 | DriverConnected (slot 4) | side by side |
+| 004797A0 | DriverPump (slot 10) | original on a copy with its own inbox and a byte copy of the player; the inbox and the incoming buffer's fields compared |
+| 004796B0 | DriverSendBytes (slot 13) | original on a copy whose player copy has a real copy of the outgoing buffer (004DA9E0); fields and bytes compared |
+| 00479810 | DriverDisconnect (slot 11) | ours only: no player, empty inbox; the incoming stream's new start checked when the player outlives the call |
+| 00479D40 / 00479D20 | DriverDestruct / deleting destructor | ours only |
+| 00479C10 | DriverReset (slot 2) | ours only: fresh driver, the count and +9 kept |
+| 00479A30 | DriverClone (slot 3) | both clone (the original from a copy of the source with its own inbox buffer); compared but for the inbox bytes; the original's clone taken apart by hand (its destructor would disconnect) |
+
+The recorded CFile now logs the bytes each read returns and the replay copies them into its buffer
+(004A51C0 reads into a stack word and a fresh allocation, different in the two runs); a read too
+large to keep still requires the same buffer.
+
+### Original behaviour kept
+
+- 00478960 and the clones write the new object's reference count before the null check (a failed
+  allocation crashes there).
+- The driver's clone reads the clone's new inbox buffer (SetSize, never written) into the source's
+  buffer (slot 1 Read where a Write was meant): the clone's bytes are heap leftovers and the
+  source's inbox bytes are overwritten with them.
+- Reset keeps +9 and the reference count (the replay link and the driver); the driver's reset
+  disconnects first.
+- The replay link's Receive does not record (the base's slot 9 is not called).
+- 0047B9F0 / 0047BA40 read the length into a stack slot holding the pushed ECX; the read always
+  fills it (four bytes are there).
+
+### Skipped
+
+- 00478C20 (XOR AL,AL; RET) and 00479D10 (MOV AL,1; RET): shorter than the 5-byte jump.
+- 00479980 (dead, already in dead_code.csv), 00479E00 (no references, not a Ghidra function: the
+  driver of a player in a session's list), the 0073CA10 functions (dead, above).
+- In the range but other classes: 00478880 (vtable 0073F258), 0047A220 / 0047A230 (0073F3B8 /
+  0073F3C0), 0047A3D0 / 0047A3E0 (reached only from exception unwind funclets).
+
+### Forwarders added (the standalone build must replace)
+
+Game code: 004A51C0 (a stream read from another, size prefix first), the CMemoryStream members
+004A5490 (Seek), 004A54D0 (Resize), 004A5570 (SetSize); the game's memmove 006E79A0. Virtual
+calls: the memory streams' slots 1-6, the file stream's slots 4 / 5, the CFile's Open / Close,
+GameBuffer's slots 4 / 6, a link's slots 11 / 13.
