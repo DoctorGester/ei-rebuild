@@ -18,6 +18,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_units.h"
 
 #include <windows.h>
 
@@ -575,8 +576,8 @@ __declspec(naked) void __fastcall Unit518860(void*) EI_ORIGINAL(0x00518860)
 __declspec(naked) void __fastcall Unit50EA40(void*) EI_ORIGINAL(0x0050EA40)
 __declspec(naked) void __fastcall UnitSetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 __declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
-__declspec(naked) void __fastcall UnitAddWeapon(void*, void*, void*) EI_ORIGINAL(0x00531070)
-__declspec(naked) void __fastcall UnitEquipArmour(void*, void*, void*) EI_ORIGINAL(0x00530730)
+void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }
+void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitAddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00531180)
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
@@ -858,7 +859,7 @@ __declspec(naked) char __stdcall ForEachRelease(SectorListNode*, SectorListNode*
 // [00418BE0]; the base world's teardown [0055F8E0].
 __declspec(naked) void __fastcall MfcRemoveAll(void*) EI_ORIGINAL(0x0056FDA0)
 __declspec(naked) void __fastcall RefShutdown(void*) EI_ORIGINAL(0x00417DF0)
-__declspec(naked) void __fastcall RefRelease(void*) EI_ORIGINAL(0x0040A3A0)
+void __fastcall RefRelease(void* a0) { RefObjectRelease(a0); }
 __declspec(naked) void __fastcall WorldTeardown(void*) EI_ORIGINAL(0x0055F8E0)
 
 constexpr int kSlotDeletingDestructor = 0;

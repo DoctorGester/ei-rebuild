@@ -7,13 +7,14 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_render.h"
 
 #include <cstring>
 
 namespace {
 
 // 00500960: the display object (007AF060); +8 -> +0xC is the 3D library's transform pipeline.
-__declspec(naked) void* __cdecl Display() EI_ORIGINAL(0x00500960)
+void* __cdecl Display() { return DisplayObject(); }
 
 // Slot 7 of the transform pipeline (in 3DfpFPU.dll): fits `bounds` to the vertices.
 void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {

@@ -28,6 +28,7 @@
 
 #include <cstring>
 #include <new>
+#include <bit>
 
 namespace {
 
@@ -94,8 +95,8 @@ __declspec(naked) void* __fastcall RecordsConstruct(void*, void*) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall RecordsDestruct(void*, void*) EI_ORIGINAL(0x006611D0)
 // 0045E850 (RET 4). CMapDatabase::FindMap: the zone record named `name`, or null.
 // 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).
-__declspec(naked) double __fastcall VariableGet(void*, void*, const char*) EI_ORIGINAL(0x00460AF0)
-__declspec(naked) void __fastcall VariableSet(void*, void*, const char*, float) EI_ORIGINAL(0x00460BC0)
+double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
+void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { NamedTableSet(a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
 // 0057C460 (RET 8). Starts zone `zone` (mode 2: the main menu). Patched by Rebirth: original address.
 __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int) EI_ORIGINAL(0x0057C460)
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save, 005F86D0), the
@@ -662,7 +663,7 @@ __declspec(naked) void __fastcall WorldBeforeSave(CWorldServer*, void*) EI_ORIGI
 // 0057AA80 (RET 4). CWorldServer::ZoneNameInto (rewritten below), through its address.
 __declspec(naked) mfc::CString* __fastcall ZoneNameAt(CWorldServer*, void*, mfc::CString*) EI_ORIGINAL(0x0057AA80)
 // 00460BC0 (RET 8). Named float table Set.
-__declspec(naked) void __fastcall VariableSetAt(void*, void*, const char*, float) EI_ORIGINAL(0x00460BC0)
+void __fastcall VariableSetAt(void* a0, void*, const char* a2, float a3) { NamedTableSet(a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
 
 } // namespace
 
@@ -1027,7 +1028,7 @@ __declspec(naked) void __fastcall ScriptDecode(ScriptDecoder*, void*, mfc::CStri
 __declspec(naked) void __fastcall MemorySeek(CMemoryStream*, void*, std::uint32_t) EI_ORIGINAL(0x004A5490)
 __declspec(naked) void __fastcall MemoryReset(CMemoryStream*, void*) EI_ORIGINAL(0x00468C20)
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
-__declspec(naked) int __fastcall QueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+int __fastcall QueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
 // A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
 struct LocalMemoryStream {
@@ -1969,7 +1970,7 @@ __declspec(naked) void __fastcall VariablesConstruct(NamedFloatTable*) EI_ORIGIN
 __declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const NamedFloatTable*) EI_ORIGINAL(0x00580900)
 __declspec(naked) void __fastcall VariablesClearAt(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
-__declspec(naked) void __fastcall VariableSetBits(void*, void*, const char*, std::uint32_t) EI_ORIGINAL(0x00460BC0)
+void __fastcall VariableSetBits(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 // The flow's methods, through their addresses.
 __declspec(naked) void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char*) EI_ORIGINAL(0x005809D0)
 __declspec(naked) void __fastcall FlowMarkBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FF40)
@@ -1979,10 +1980,8 @@ __declspec(naked) void __fastcall FlowUpdateMultiplayerVariable(GameFlow*, void*
 __declspec(naked) mfc::CString* __stdcall BriefingVariableAt(mfc::CString*, const char*) EI_ORIGINAL(0x0057FDE0)
 // CString members.
 struct TextOpsAt : mfc::CString {
-    mfc::CString Right(int count) const;   // 006FDA6D
     int Find(const char* text) const;      // 006FDBD9
 };
-__declspec(naked) mfc::CString TextOpsAt::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) int TextOpsAt::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
 const TextOpsAt& Ops(const mfc::CString& s) { return static_cast<const TextOpsAt&>(s); }
 // The vector of changed variables (STLport vector<node*>): its allocator tag constructor
@@ -2096,7 +2095,7 @@ void GameFlow::UpdateFromServer() {
                                     reinterpret_cast<const unsigned char*>(Text(kQuestVariablePrefix))) == 0;
         }
         if (!quest) continue;
-        mfc::CString rest = Ops(name).Right(console::Length(name) - 2);
+        mfc::CString rest = Ops(name).Mid(console::Length(name) - 2);
         int dot = Ops(rest).Find(Text(kDot));
         if (dot > 0) {
             mfc::CString folder = rest.Left(dot);

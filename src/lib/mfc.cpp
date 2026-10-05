@@ -17,6 +17,7 @@ __declspec(naked) const CString& CString::operator=(const CString&) EI_ORIGINAL(
 
 __declspec(naked) void __cdecl CString::Format(const char*, ...) EI_ORIGINAL(0x006FDF5F)
 __declspec(naked) CString CString::Left(int) const EI_ORIGINAL(0x006FDAE9)
+__declspec(naked) CString CString::Mid(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) void CString::Empty() EI_ORIGINAL(0x007008FB)
 __declspec(naked) char* CString::GetBufferSetLength(int) EI_ORIGINAL(0x00700E17)
 __declspec(naked) char* CString::GetBuffer(int) EI_ORIGINAL(0x00700DA0)

@@ -17,6 +17,7 @@
 #include <cstring>
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_render.h"
 
 namespace {
 
@@ -39,7 +40,7 @@ __declspec(naked) void __fastcall DrawGlowAt(CLightning*, void*, void* /*device*
 // allocation of 16-byte points 00468F70; atexit 006E727B.
 __declspec(naked) void __fastcall SpriteArrayConstruct(void*) EI_ORIGINAL(0x00468D60)
 __declspec(naked) void __stdcall ConstructSprites(void*, int) EI_ORIGINAL(0x00468F90)
-__declspec(naked) void* __fastcall AllocPoints16(int) EI_ORIGINAL(0x00468F70)
+void* __fastcall AllocPoints16(int a0) { return (void*)AllocAligned16(a0); }
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 float GameFloat(std::uintptr_t address) {

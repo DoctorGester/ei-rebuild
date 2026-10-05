@@ -76,7 +76,7 @@ __declspec(naked) ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup*, voi
     EI_ORIGINAL(0x004C21E0)
 __declspec(naked) void __stdcall RefsRelease(ScriptObjectRef*, int) EI_ORIGINAL(0x004CC7D0)
 __declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/) EI_ORIGINAL(0x004CE1E0)
-__declspec(naked) void __fastcall GroupSetSize(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
+void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*, void*) EI_ORIGINAL(0x004B24B0)
 // The network log's ostream (007C56B0).
 __declspec(naked) void* __fastcall OstreamPutLong(void*, void*, long) EI_ORIGINAL(0x006FC9C6)

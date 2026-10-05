@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "originals_render.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -137,7 +138,7 @@ struct FaderAt {
 __declspec(naked) void FaderAt::FadeOut(int) EI_ORIGINAL(0x005E6B90)
 
 // 00500960: the timer (007AF060); vtable +0x18 gives the last frame time in milliseconds.
-__declspec(naked) void* __cdecl FrameTimer() EI_ORIGINAL(0x00500960)
+void* __cdecl FrameTimer() { return DisplayObject(); }
 
 // MFC CTime (a time_t).
 struct TimeAt {

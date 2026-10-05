@@ -67,7 +67,6 @@ __declspec(naked) void __fastcall MapLiftAround(void*, void*, const float*, int)
 __declspec(naked) bool __fastcall PathStart(void*, void*, const float* /*position*/, const float* /*direction*/, int /*time*/)
     EI_ORIGINAL(0x005C7B00)
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
-__declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float* /*out*/) EI_ORIGINAL(0x0040F560)
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
 __declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall PartyMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)

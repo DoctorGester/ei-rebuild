@@ -118,7 +118,7 @@ __declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGIN
 __declspec(naked) void __fastcall ListsMoveObject(void*, void*, void* /*object*/, const Vector3*) EI_ORIGINAL(0x005C11D0)
 __declspec(naked) void __fastcall SelectionTurnObject(void*, void*, void* /*object*/, const Quaternion*) EI_ORIGINAL(0x005BC180)
 __declspec(naked) void __fastcall ObjectSetScale(void*, void*, const float*) EI_ORIGINAL(0x00517700)
-__declspec(naked) void __fastcall UnitResetMotion(void*) EI_ORIGINAL(0x00554450)
+void __fastcall UnitResetMotion(void* a0) { ControllerRepositionOriginal(a0); }
 // The behaviour writer, through its address (rewritten below).
 __declspec(naked) void __fastcall BehaviourWriteAt(TargetChunk*) EI_ORIGINAL(0x0046C900)
 

@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
+#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>
@@ -65,7 +66,7 @@ __declspec(naked) BOOL Original::LoadVariableDeclarationsAt(ScriptDefinition*, S
     EI_ORIGINAL(0x004D1FE0)
 __declspec(naked) BOOL Original::LoadCommandsAt(MfcArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
     EI_ORIGINAL(0x004D1330)
-__declspec(naked) BOOL Original::LoadAt(mfc::CString*, BOOL) EI_ORIGINAL(0x004D23A0)
+BOOL Original::LoadAt(mfc::CString* a0, BOOL a1) { return (BOOL)ScriptLoadLine((void*)this, nullptr, (const mfc::CString*)a0, (int)a1); }
 Original* Orig(CScript* script) { return static_cast<Original*>(script); }
 
 // Variable lookups of the original (ScriptVars::FindVariable 004B37D0, HasVariable 004B36D0).

@@ -17,6 +17,7 @@
 
 #include <cstring>
 #include <new>
+#include <bit>
 
 namespace {
 
@@ -40,7 +41,7 @@ __declspec(naked) int __fastcall TextsReadWords(void*, void*, console::CStringAr
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 __declspec(naked) void __fastcall FlowLoadQuests(GameFlow*, void*, const char*) EI_ORIGINAL(0x005809D0)
 // 00460BC0 (RET 8). Named float table Set.
-__declspec(naked) void __fastcall VariableSet(void*, void*, const char*, float) EI_ORIGINAL(0x00460BC0)
+void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { NamedTableSet(a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
 // Rewritten here, through their addresses.
 __declspec(naked) mfc::CString* __stdcall BriefingSpeakerAt(void* /*out*/, const char*) EI_ORIGINAL(0x0057FC90)
 __declspec(naked) mfc::CString* __stdcall BriefingVariableAt(void* /*out*/, const char*) EI_ORIGINAL(0x0057FDE0)
@@ -205,7 +206,7 @@ __declspec(naked) void __fastcall MapDatabaseLoad(void*, void*, const char*) EI_
 __declspec(naked) void __fastcall StringVectorInsertOverflow(void*, void*, stlp::string*, const stlp::string*, unsigned)
     EI_ORIGINAL(0x004DCE90)
 // 004DF8D0 (RET 8). The texts read the current line into a CString.
-__declspec(naked) void __fastcall TextsReadLine(void*, void*, mfc::CString*, int) EI_ORIGINAL(0x004DF8D0)
+void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
 
 // The quest folders registered so far (007AFDC0: an STLport vector of strings).
 struct StringVector {

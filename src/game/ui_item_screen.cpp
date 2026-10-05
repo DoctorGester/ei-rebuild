@@ -8,6 +8,7 @@
 #include "lib/gameapi.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -72,7 +73,7 @@ __declspec(naked) void SpriteBuild::Cells(float, float, float, float, float, flo
     EI_ORIGINAL(0x005E7680)
 
 // 00500960: the display object; +0x14 a flag, +8 -> +0xC an object whose slot 5 takes two floats.
-__declspec(naked) std::uint8_t* __cdecl Display() EI_ORIGINAL(0x00500960)
+std::uint8_t* __cdecl Display() { return (std::uint8_t*)DisplayObject(); }
 
 } // namespace
 

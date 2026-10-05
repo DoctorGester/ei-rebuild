@@ -11,6 +11,7 @@
 #include <bit>
 #include <cstring>
 #include "originals_library.h"
+#include "originals_core.h"
 
 // Keep the original's order of float operations (/fp:fast would reassociate constants).
 #pragma float_control(precise, on)
@@ -98,7 +99,7 @@ void UnitController::Say(int what) {
     reinterpret_cast<AIVoice*>(reinterpret_cast<char*>(this) + 0xB10)->Say(what);
 }
 
-__declspec(naked) void AIMode::Release() EI_ORIGINAL(0x0040A3A0)
+void AIMode::Release() { RefObjectRelease((void*)this); }
 int AIMode::Evaluate(AIBrain* brain) { return ei::VCall<int>(this, 4, brain); }
 void AIMode::Execute(AIBrain* brain) { ei::VCall<void>(this, 5, brain); }
 void AIMode::Enter(AIBrain* brain) { ei::VCall<void>(this, 6, brain); }

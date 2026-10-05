@@ -13,6 +13,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_effects.h"
 
 namespace mapspec {
 
@@ -72,7 +73,7 @@ constexpr int kSlotApply = 7;
 
 __declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGINAL(0x005927C0)
 __declspec(naked) double __fastcall TerrainHeight(void*, void*, float /*x*/, float /*y*/, int /*zero*/) EI_ORIGINAL(0x006C8680)
-__declspec(naked) void __fastcall EffectRestart(void*) EI_ORIGINAL(0x00675CA0)
+void __fastcall EffectRestart(void* a0) { ObjectMarkNewOriginal(a0); }
 // 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
 __declspec(naked) void __fastcall EffectNotifyAt(void*, void*, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x0046D4D0)
 

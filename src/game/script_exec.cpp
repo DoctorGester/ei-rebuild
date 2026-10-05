@@ -19,6 +19,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -123,7 +124,7 @@ __declspec(naked) void* __fastcall PartyRecordsFor(void*, mfc::CString*) EI_ORIG
 __declspec(naked) int __fastcall TextKeyFromName(const char*) EI_ORIGINAL(0x00461360)
 // 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
 // 00500960: the renderer (returns the object whose 004BA120 sets the background colour).
-__declspec(naked) void* __cdecl Renderer() EI_ORIGINAL(0x00500960)
+void* __cdecl Renderer() { return DisplayObject(); }
 
 // The world (007AFF60).
 struct World {
@@ -271,7 +272,7 @@ struct UnitServer {
 __declspec(naked) void UnitServer::PlayAnimation(const char*) EI_ORIGINAL(0x00555700)
 __declspec(naked) void UnitServer::SetMoveStyle(int) EI_ORIGINAL(0x00555270)
 __declspec(naked) void UnitServer::StopQueued() EI_ORIGINAL(0x00555200)
-__declspec(naked) void UnitServer::Reposition() EI_ORIGINAL(0x00554450)
+void UnitServer::Reposition() { ControllerRepositionOriginal((void*)this); }
 
 struct Unit {
     void SetHostileMask(std::uint32_t mask);             // 0052E970

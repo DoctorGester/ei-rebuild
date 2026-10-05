@@ -111,7 +111,7 @@ EI_REPLACE_METHOD(0x004B25F0, ScriptObjectRef::Save);
 
 // ---- ScriptGroup --------------------------------------------------------------------------------
 
-__declspec(naked) void ScriptGroup::SetSize(int, int) EI_ORIGINAL(0x004C2050)
+void ScriptGroup::SetSize(int a0, int a1) { PtrArraySetSize((void*)this, nullptr, a0, a1); }
 
 void ScriptGroup::Resize(int newSize) {
     if (newSize == 0) {

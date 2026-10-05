@@ -7,6 +7,7 @@
 #include "lib/mfc.h"
 #include "originals_ai.h"
 #include "originals_units.h"
+#include "originals_core.h"
 
 #include <cstring>
 
@@ -21,7 +22,7 @@ namespace {
 __declspec(naked) void __fastcall AddPathCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD200)
 // MFC ConstructElements<PathCell> (zero-fills `count` elements).
 // The direction a quaternion faces (the orientation at CEngineObject + 0x34).
-__declspec(naked) void __fastcall FacingDirection(const void*, void*, Vector3*) EI_ORIGINAL(0x0040F560)
+void __fastcall FacingDirection(const void* a0, void*, Vector3* a2) { QuaternionAxisY(a0, nullptr, (float*)a2); }
 
 // Local searches at CAIMap + 0x2594 / + 0x2614 (forward and backward), the path builder and the
 // long-range planner.

@@ -19,6 +19,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -717,7 +718,7 @@ __declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x00
 __declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
 __declspec(naked) CUiSurface* __fastcall TitlesPlainSurface(void*, void*, CInterface3D*, RECT*, int)
     EI_ORIGINAL(0x005FCDD0)
-__declspec(naked) std::uint8_t* __cdecl TitlesDisplay() EI_ORIGINAL(0x00500960)
+std::uint8_t* __cdecl TitlesDisplay() { return (std::uint8_t*)DisplayObject(); }
 __declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
 __declspec(naked) double __cdecl TitlesAtof(const char*) EI_ORIGINAL(0x006E911A)
 

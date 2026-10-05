@@ -15,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "originals_core.h"
 
 #include <cstring>
 
@@ -86,7 +87,7 @@ __declspec(naked) void __fastcall ControllerClearOrders(void*) EI_ORIGINAL(0x005
 __declspec(naked) void __fastcall BrainMemoryDestroy(void*) EI_ORIGINAL(0x00545CB0)
 __declspec(naked) void __fastcall BrainListDestroy(void*) EI_ORIGINAL(0x00557410)
 __declspec(naked) void __fastcall BrainList90Destroy(void*) EI_ORIGINAL(0x00557890)
-__declspec(naked) void __fastcall BrainObject8CDestroy(void*) EI_ORIGINAL(0x0040A3A0)
+void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
 __declspec(naked) void __fastcall BrainList70Destroy(void*) EI_ORIGINAL(0x005575F0)
 __declspec(naked) void __fastcall BrainArrayDestroy(void*) EI_ORIGINAL(0x0052B030)
 __declspec(naked) void __fastcall Brain14Destroy(void*) EI_ORIGINAL(0x004CB770)

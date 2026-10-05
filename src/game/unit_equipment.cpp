@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 
 #include <cstdint>
 
@@ -39,8 +40,8 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 __declspec(naked) UnitPrototypeRecord* __fastcall FindPrototypeAt(void*, void*, const char*) EI_ORIGINAL(0x005144D0)
 __declspec(naked) CEngineObject* __fastcall CreateItemAt(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 __declspec(naked) CEngineObject* __fastcall CreateSpellAt(void*, void*, const char*, void*) EI_ORIGINAL(0x006AD1E0)
-__declspec(naked) CEngineObject* __fastcall EquipArmourAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00530730)
-__declspec(naked) int __fastcall AddWeaponAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00531070)
+CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
+int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) int __fastcall AddSpellAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00531820)
 
 std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.end - names.begin); }

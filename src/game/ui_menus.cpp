@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_render.h"
 
 #include <cstdint>
 
@@ -53,7 +54,7 @@ struct UiDisplaySettings {
     void** vtable_;   // slot 22: applies three values (gamma and two more)
 };
 // 00500960 (not rewritten). Returns the display settings object (007AF060).
-__declspec(naked) UiDisplaySettings* DisplaySettings() EI_ORIGINAL(0x00500960)
+UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)DisplayObject(); }
 
 template <typename T>
 T Global(std::uintptr_t address) {

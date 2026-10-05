@@ -15,6 +15,7 @@
 #include "originals_ai.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -136,7 +137,7 @@ __declspec(naked) inline void __fastcall GroupInsertAll(void*, void*, const void
 __declspec(naked) inline bool __fastcall AiMapPassableWithoutSelf(void*, void*, CEngineObject*, const Vector3*) EI_ORIGINAL(0x005B7A40)
 __declspec(naked) inline bool __fastcall SectorMapMove(void*, void*, CEngineObject*, const Vector3*) EI_ORIGINAL(0x005C11D0)
 // 00554450: the unit controller re-places its unit after a teleport.
-__declspec(naked) inline void __fastcall ControllerReposition(void*) EI_ORIGINAL(0x00554450)
+inline void __fastcall ControllerReposition(void* a0) { ControllerRepositionOriginal(a0); }
 
 // --- x87 sequences ------------------------------------------------------------------------------
 

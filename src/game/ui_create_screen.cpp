@@ -389,7 +389,7 @@ __declspec(naked) void** __fastcall TopicsInsert(void*, void*, void** /*out*/, v
 // The help window's list member at +0x188 (005F9A00, from an allocator; RET 4).
 __declspec(naked) void __fastcall ConstructHelpList(void*, void*, const void*) EI_ORIGINAL(0x005F9A00)
 // _mbscmp (the game's CRT).
-__declspec(naked) int __cdecl MbsCompare(const char*, const char*) EI_ORIGINAL(0x006E848B)
+int __cdecl MbsCompare(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 } // namespace
 
 void CInterface3D::OpenHelp(int flag) {

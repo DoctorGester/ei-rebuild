@@ -16,6 +16,7 @@
 #include "random.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -196,7 +197,7 @@ __declspec(naked) int Player::HasItem(int) EI_ORIGINAL(0x00665640)
 struct QuestVars {
     float Get(const char* name);   // 00460AF0
 };
-__declspec(naked) float QuestVars::Get(const char*) EI_ORIGINAL(0x00460AF0)
+float QuestVars::Get(const char* a0) { return NamedTableGet((void*)this, nullptr, a0); }
 
 // Water level map (007B00D0).
 struct WaterMap {
@@ -260,7 +261,6 @@ float WorldTimeOfDay() {
 
 // Object id from a name (00461360): (sum * 5 + toupper(c)) % 1e9 + 1e9, ECX = name.
 __declspec(naked) int __fastcall ObjectIdFromName(const char*) EI_ORIGINAL(0x00461360)
-__declspec(naked) int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 
 // Virtual calls on world objects by vtable offset.
 const float* FuturePosition(CEngineObject* object, float* buffer, int time) {

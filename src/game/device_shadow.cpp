@@ -35,7 +35,7 @@ AlignedArray& Projected() { return *reinterpret_cast<AlignedArray*>(0x007AEE10);
 AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE20); }  // a byte per vertex
 AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
 
-__declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
+char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
 // 004F2650: the pipeline projects `blocks` blocks of positions with outcodes [positions, out,
 // outcodes, blocks, last]; 0 on screen, 1 crossing, 2 outside.

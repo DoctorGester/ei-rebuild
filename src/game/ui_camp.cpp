@@ -1238,7 +1238,7 @@ __declspec(naked) void HeroRecordAdd::Add3008(std::uint8_t*) EI_ORIGINAL(0x00660
 __declspec(naked) void* HeroRecordAdd::AddArmour(std::uint8_t*) EI_ORIGINAL(0x00660C90)
 // 00530730 (thiscall on a unit, RET 4): wears armour. 00661F30 (thiscall on the player's data,
 // RET 8): takes an item out of the player's items.
-__declspec(naked) void __fastcall UnitWearArmour(std::uint8_t*, void*, void*) EI_ORIGINAL(0x00530730)
+void __fastcall UnitWearArmour(std::uint8_t* a0, void*, void* a2) { UnitEquipArmourOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall PlayerDropItem(std::uint8_t*, void*, std::uint8_t*, int) EI_ORIGINAL(0x00661F30)
 // TakeOff through its address (so its hook and wrapper see the call).
 struct TakeOffAt {
@@ -1508,7 +1508,7 @@ namespace {
 // The unit (thiscall): 005310D0 clears weapon slot n, 00531070 gives a weapon (RET 4), 00531110
 // finishes; 00532A20 takes statistics (RET 4).
 __declspec(naked) void __fastcall UnitClearWeapon(std::uint8_t*, void*, int) EI_ORIGINAL(0x005310D0)
-__declspec(naked) void __fastcall UnitGiveWeapon(std::uint8_t*, void*, std::uint8_t*) EI_ORIGINAL(0x00531070)
+void __fastcall UnitGiveWeapon(std::uint8_t* a0, void*, std::uint8_t* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall UnitWeaponsDone(std::uint8_t*) EI_ORIGINAL(0x00531110)
 __declspec(naked) void __fastcall UnitTakeStats(std::uint8_t*, void*, std::uint8_t*) EI_ORIGINAL(0x00532A20)
 
@@ -1607,7 +1607,7 @@ struct TextTableGlue {
     void* Table();   // 00578E20 (on 007AFEA4)
 };
 __declspec(naked) void* TextTableGlue::Table() EI_ORIGINAL(0x00578E20)
-__declspec(naked) void __fastcall TextLookup(void*, void*, mfc::CString*, int) EI_ORIGINAL(0x004DF8D0)
+void __fastcall TextLookup(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
 // The stats panel's hero name (006232D0, RET 8) and the trade panel's hero (00625860, RET 4).
 __declspec(naked) void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*) EI_ORIGINAL(0x006232D0)
 __declspec(naked) void __fastcall TradePanelSetHero(CUiWindow*, void*, int) EI_ORIGINAL(0x00625860)

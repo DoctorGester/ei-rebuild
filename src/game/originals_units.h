@@ -70,3 +70,11 @@ __declspec(naked) inline void __fastcall StepsSetAtGrow(AnimationSteps*, void*, 
     EI_ORIGINAL(0x00558950)
 __declspec(naked) inline void __fastcall WorldTimeSettings(CWorldServer*, void*, float* /*time*/, float* /*speed*/)
     EI_ORIGINAL(0x0055FBD0)
+
+// 00530730 / 00531070: equip armour (RET 4, returns the item it replaced or null) / add weapon (RET 4, slot index,
+// 1 when already there, -1 when full). 00554450: the unit controller resyncs with its unit (plain RET, no result).
+__declspec(naked) inline void* __fastcall UnitEquipArmourOriginal(void* /*unit*/, void*, void* /*item*/)
+    EI_ORIGINAL(0x00530730)
+__declspec(naked) inline int __fastcall UnitAddWeaponOriginal(void* /*unit*/, void*, void* /*item*/)
+    EI_ORIGINAL(0x00531070)
+__declspec(naked) inline void __fastcall ControllerRepositionOriginal(void* /*controller*/) EI_ORIGINAL(0x00554450)

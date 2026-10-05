@@ -17,6 +17,8 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_effects.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -151,14 +153,14 @@ __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brai
 __declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3*, Vector3*)
     EI_ORIGINAL(0x005BA9D0)
 __declspec(naked) bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*) EI_ORIGINAL(0x005BA790)
-__declspec(naked) void __fastcall ControllerReposition(void*, void*) EI_ORIGINAL(0x00554450)
+void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
 // The unit's setup.
 __declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void* /*player*/) EI_ORIGINAL(0x005300D0)
 __declspec(naked) void __fastcall UnitSet780(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x0052E9B0)
 __declspec(naked) void __fastcall UnitRefreshStats(CEngineObject*, void*) EI_ORIGINAL(0x0050F080)
 __declspec(naked) void __fastcall UnitAfterStats(CEngineObject*, void*) EI_ORIGINAL(0x005315B0)
-__declspec(naked) void __fastcall UnitGiveItem(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00531070)
-__declspec(naked) void __fastcall UnitAddQuickItem(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00530730)
+void __fastcall UnitGiveItem(CEngineObject* a0, void*, CEngineObject* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall UnitAddQuickItem(CEngineObject* a0, void*, CEngineObject* a2) { UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall UnitWear(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00531180)
 __declspec(naked) void __fastcall UnitAddSpell(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00531820)
 __declspec(naked) void __fastcall UnitSet18(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x005308D0)
@@ -167,7 +169,7 @@ __declspec(naked) void __fastcall UnitSetPose(CEngineObject*, void*, std::uint32
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
-__declspec(naked) int __fastcall CommandQueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
 // Vtable slots.
 constexpr int kSlotMapObjects = 19;        // world: the map objects manager (+0x40)
@@ -489,7 +491,7 @@ __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) 
 __declspec(naked) std::uint8_t** __fastcall UnitPrototypeAt(void*, void*, const void*) EI_ORIGINAL(0x005335E0)
 __declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
 __declspec(naked) void __fastcall ObjectSetup7(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052A2C0)
-__declspec(naked) void __fastcall MarkNewObject(CEngineObject*, void*) EI_ORIGINAL(0x00675CA0)
+void __fastcall MarkNewObject(CEngineObject* a0, void*) { ObjectMarkNewOriginal((void*)a0); }
 
 constexpr int kSlotSpellManager = 22;      // world (+0x58)
 constexpr int kSlotItemManager = 18;       // world (+0x48)

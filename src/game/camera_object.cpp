@@ -229,8 +229,7 @@ int __fastcall CameraOpenFile(CCamera* self, void*, const char* name) {
                 mfc::CString title;
                 CFileFindTitle(&find, nullptr, &title);
                 {
-                    mfc::CString tail;
-                    CStringMid(&title, nullptr, &tail, 4);
+                    mfc::CString tail = title.Mid(4);
                     title = tail;
                 }
                 int number = GameAtoi(title);

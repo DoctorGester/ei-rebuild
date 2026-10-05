@@ -34,7 +34,7 @@ struct TextGlue {
     void* Table();   // 00578E20
 };
 __declspec(naked) void* TextGlue::Table() EI_ORIGINAL(0x00578E20)
-__declspec(naked) int __fastcall TextReadLine(void*, void*, mfc::CString*, int) EI_ORIGINAL(0x004DF8D0)
+int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return TextsReadLineOriginal(a0, nullptr, a2, a3); }
 
 // vector<TradeRow> pieces (library): 0062A310 copy-constructs a row (thiscall, RET 4), 0062A7C0
 // destroys one (and frees it with flag 1; RET 4), 00629E60 the insert that reallocates (RET 0xC).
