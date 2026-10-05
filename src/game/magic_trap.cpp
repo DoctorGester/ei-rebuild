@@ -1,13 +1,16 @@
 // Magic traps: who is inside, and casting at newcomers (0052A680), the living units of the trap's
 // sides in its circles (0052A920), casting the spell (0052A4B0), set-up from the zone record
-// (0052A2C0). See magic_trap.h and
+// (0052A2C0), the constructor and destructor body (00529DD0 / 00529F90), Save and Load (0052B070 /
+// 0052ADC0). See magic_trap.h and
 // docs/notes/units.md ("Magic traps").
 #include "magic_trap.h"
 
 #include "engine_object.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
@@ -226,6 +229,22 @@ __declspec(naked) void __fastcall CirclesSetSize(TrapArea*, void*, int /*n*/, in
 __declspec(naked) void __fastcall PointsSetSize(TrapPoints*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0052C8E0)
 constexpr int kSlotSpellManager = 0x58 / 4;   // the map object context's slot 22
 constexpr int kSlotRelease = 0x10 / 4;        // a counted object's release
+
+// The units inside (+0x268): CList::RemoveAll inlined, as SetUp, the constructor and the
+// destructor all have it (each element's reference released and cleared, the list emptied, its
+// blocks freed).
+void ClearVictims(MagicTrap* trap) {
+    for (VictimNode* node = At<VictimNode*>(trap, 0x26C); node; node = node->next) {
+        if (node->unit) ei::VCall<void>(node->unit, kSlotRelease);
+        node->unit = nullptr;
+    }
+    At<int>(trap, 0x274) = 0;           // count
+    At<void*>(trap, 0x278) = nullptr;   // free nodes
+    At<void*>(trap, 0x270) = nullptr;   // tail
+    At<void*>(trap, 0x26C) = nullptr;   // head
+    mfc::PlexFreeDataChain(At<mfc::CPlex*>(trap, 0x27C));
+    At<void*>(trap, 0x27C) = nullptr;
+}
 } // namespace
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
@@ -249,21 +268,159 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     for (int i = 0; i < record->points.count; ++i)
         std::memcpy(&points->points[2 * i], &record->points.points[2 * i], 2 * sizeof(float));
 
-    // The units inside: CList::RemoveAll inlined (each element's reference released and cleared,
-    // the list emptied, its blocks freed).
-    for (VictimNode* node = At<VictimNode*>(this, 0x26C); node; node = node->next) {
-        if (node->unit) ei::VCall<void>(node->unit, kSlotRelease);
-        node->unit = nullptr;
-    }
-    At<int>(this, 0x274) = 0;           // count
-    At<void*>(this, 0x278) = nullptr;   // free nodes
-    At<void*>(this, 0x270) = nullptr;   // tail
-    At<void*>(this, 0x26C) = nullptr;   // head
-    mfc::PlexFreeDataChain(At<mfc::CPlex*>(this, 0x27C));
-    At<void*>(this, 0x27C) = nullptr;
+    ClearVictims(this);
 
     At<std::uint32_t>(this, 0x284) = record->period;
     At<std::uint32_t>(this, 0x288) = 0;
     At<int>(this, 0x28C) = record->singleTarget != 0 ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x0052A2C0, MagicTrap::SetUp);
+
+// --- Construction, destruction, Save / Load (ticket U8) ------------------------------------------
+
+namespace {
+// The map object's constructor and destructor body [0050E2D0 / 0050E660, rewritten in
+// map_object_lifetime.cpp], its Create and Destroy (slots 2 and 3, called directly) [0050E770 /
+// 0050E840, not rewritten], the map object part of Load / Save [0050F7A0 / 0050F900, not
+// rewritten]: all through their game addresses.
+__declspec(naked) void __fastcall ConstructMapObjectAt(void*) EI_ORIGINAL(0x0050E2D0)
+__declspec(naked) void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
+__declspec(naked) int __fastcall MapObjectCreate(void*) EI_ORIGINAL(0x0050E770)
+__declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840)
+__declspec(naked) void __fastcall MapObjectLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x0050F7A0)
+__declspec(naked) void __fastcall MapObjectSave(void*, void*, UnitStream*) EI_ORIGINAL(0x0050F900)
+// A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside
+// read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
+// stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
+// [00403F40, rewritten in base_manager.cpp].
+__declspec(naked) void __fastcall CountedRefSave(CEngineObject**, void*, UnitStream*) EI_ORIGINAL(0x0050E290)
+__declspec(naked) void __fastcall VictimListLoad(VictimList*, UnitStream*, void* /*context*/) EI_ORIGINAL(0x0052AF20)
+__declspec(naked) void* __fastcall ManagerFindObject(void*, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
+
+constexpr std::uintptr_t kTrapVtable = 0x0073E63C;
+constexpr std::uintptr_t kCirclesVtable = 0x0073C68C;        // while constructed
+constexpr std::uintptr_t kPointsVtable = 0x0073C680;
+constexpr std::uintptr_t kCirclesBaseVtable = 0x0073C698;    // set by their destructors
+constexpr std::uintptr_t kPointsBaseVtable = 0x0073C6A4;
+constexpr std::uintptr_t kVictimListVtable = 0x0073E730;
+constexpr std::uint32_t kTrapFlags = 0x80040;
+constexpr std::uint32_t kDefaultPeriod = 10;
+constexpr int kVictimBlockSize = 10;
+constexpr int kTailFields[] = {0x284, 0x288, 0x28C, 0x238};   // period, countdown, single, sides
+
+void SetVtableAt(void* object, int offset, std::uintptr_t vtable) { At<std::uintptr_t>(object, offset) = vtable; }
+
+// An empty MFC CArray's four fields after its vtable (data, grow by, capacity, count; in the
+// original's order).
+void EmptyArray(void* array) {
+    At<void*>(array, 0x04) = nullptr;
+    At<int>(array, 0x10) = 0;
+    At<int>(array, 0x0C) = 0;
+    At<int>(array, 0x08) = 0;
+}
+
+// The spell (+0x23C), a counted reference: the new one's count raised before the old one is
+// released.
+void SetSpell(MagicTrap* trap, void* spell) {
+    void* old = At<void*>(trap, 0x23C);
+    At<void*>(trap, 0x23C) = spell;
+    if (spell) ++At<int>(spell, 4);
+    if (old) ei::VCall<void>(old, kSlotRelease);
+}
+} // namespace
+
+MagicTrap* MagicTrap::Construct() {
+    ConstructMapObjectAt(this);
+    At<void*>(this, 0x23C) = nullptr;
+    EmptyArray(&At<TrapArea>(this, 0x240));
+    SetVtableAt(this, 0x240, kCirclesVtable);
+    EmptyArray(&At<TrapPoints>(this, 0x254));
+    SetVtableAt(this, 0x254, kPointsVtable);
+    SetVtableAt(this, 0x268, kVictimListVtable);
+    At<int>(this, 0x274) = 0;
+    At<void*>(this, 0x278) = nullptr;
+    At<void*>(this, 0x270) = nullptr;
+    At<void*>(this, 0x26C) = nullptr;
+    At<void*>(this, 0x27C) = nullptr;
+    At<int>(this, 0x280) = kVictimBlockSize;
+    SetVtableAt(this, 0, kTrapVtable);
+
+    MapObjectCreate(this);
+    At<std::uint32_t>(this, 0x238) = 0xFFFFFFFFu;
+    At<std::uint32_t>(this, 0x08) |= kTrapFlags;
+    SetSpell(this, nullptr);
+    CirclesSetSize(&At<TrapArea>(this, 0x240), nullptr, 0, -1);
+    PointsSetSize(&At<TrapPoints>(this, 0x254), nullptr, 0, -1);
+    ClearVictims(this);
+    At<std::uint32_t>(this, 0x288) = 0;
+    At<int>(this, 0x28C) = 0;
+    At<std::uint32_t>(this, 0x284) = kDefaultPeriod;
+    return this;
+}
+EI_REPLACE_METHOD(0x00529DD0, MagicTrap::Construct);
+
+void MagicTrap::DestructBody() {
+    SetVtableAt(this, 0, kTrapVtable);
+    MapObjectDestroy(this);
+    SetSpell(this, nullptr);   // 0052C690(0)
+    CirclesSetSize(&At<TrapArea>(this, 0x240), nullptr, 0, -1);
+    PointsSetSize(&At<TrapPoints>(this, 0x254), nullptr, 0, -1);
+    ClearVictims(this);        // RemoveAll (each element through 0052D030(0))
+    // CList's destructor: its vtable, then RemoveAll again (elements through 0052CEC0).
+    SetVtableAt(this, 0x268, kVictimListVtable);
+    ClearVictims(this);
+    // The arrays' destructors (no element destructors; SetSize has already freed the storage).
+    SetVtableAt(this, 0x254, kPointsBaseVtable);
+    if (void* points = At<void*>(this, 0x258)) gamecrt::operator_delete(points);
+    SetVtableAt(this, 0x240, kCirclesBaseVtable);
+    if (void* circles = At<void*>(this, 0x244)) gamecrt::operator_delete(circles);
+    if (void* spell = At<void*>(this, 0x23C)) ei::VCall<void>(spell, kSlotRelease);
+    DestructMapObjectAt(this);
+}
+EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
+
+void MagicTrap::SaveTrap(UnitStream* stream) {
+    MapObjectSave(this, nullptr, stream);
+    void* spell = At<void*>(this, 0x23C);
+    std::int32_t value = spell ? At<std::int32_t>(spell, 0x0C) : -1;
+    stream->Write(&value, 4);
+    value = At<int>(this, 0x248);
+    stream->Write(&value, 4);
+    for (int i = 0; i < At<int>(this, 0x248); ++i) stream->Write(At<TrapCircle*>(this, 0x244) + i, sizeof(TrapCircle));
+    value = At<int>(this, 0x274);
+    stream->Write(&value, 4);
+    for (VictimNode* node = At<VictimNode*>(this, 0x26C); node;) {
+        VictimNode* next = node->next;
+        CountedRefSave(&node->unit, nullptr, stream);
+        node = next;
+    }
+    value = At<int>(this, 0x25C);
+    stream->Write(&value, 4);
+    for (int i = 0; i < At<int>(this, 0x25C); ++i) stream->Write(At<float*>(this, 0x258) + 2 * i, 2 * sizeof(float));
+    for (int offset : kTailFields) {
+        value = At<std::int32_t>(this, offset);
+        stream->Write(&value, 4);
+    }
+}
+EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
+
+void MagicTrap::LoadTrap(UnitStream* stream) {
+    MapObjectLoad(this, nullptr, stream);
+    void* manager = ei::VCall<void*>(ManagerContext(this), kSlotSpellManager);
+    // The original reads the id and the two counts into its argument's stack slot: a read that
+    // fails leaves the previous value there (at first the stream pointer itself).
+    auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
+    stream->Read(&value, 4);
+    SetSpell(this, value == -1 ? nullptr : ManagerFindObject(manager, nullptr, value));
+    stream->Read(&value, 4);
+    auto* area = &At<TrapArea>(this, 0x240);
+    CirclesSetSize(area, nullptr, value, -1);
+    for (int i = 0; i < area->count; ++i) stream->Read(&area->circles[i], sizeof(TrapCircle));
+    VictimListLoad(&At<VictimList>(this, 0x268), stream, ManagerContext(this));
+    stream->Read(&value, 4);
+    auto* points = &At<TrapPoints>(this, 0x254);
+    PointsSetSize(points, nullptr, value, -1);
+    for (int i = 0; i < points->count; ++i) stream->Read(&points->points[2 * i], 2 * sizeof(float));
+    for (int offset : kTailFields) stream->Read(&At<std::uint8_t>(this, offset), 4);
+}
+EI_REPLACE_METHOD(0x0052ADC0, MagicTrap::LoadTrap);

@@ -1,4 +1,4 @@
-// Checks for unit_db_destroy.cpp. All three free memory, so ours only.
+// Checks for unit_db_destroy.cpp. All of them free memory, so ours only.
 //  - DestroyUnitDatabase (0053A050): afterwards every table's name map holds no elements (each
 //    clear sets its count to 0). Runs at exit (atexit 0053A040), if the hooks still run then.
 //  - DestroyNpcTable (00539CE0): afterwards the name map holds no elements. Reached when the
@@ -10,7 +10,10 @@
 
 #include <cstdint>
 
+struct UnitModelRecord;
+
 namespace unitdb {
+void __fastcall DestroyModelRecord(UnitModelRecord* record);
 struct UnitDatabase;
 struct RecordTable;
 struct SkillDatabase;
@@ -45,3 +48,13 @@ static void __fastcall DestroySkillDatabaseVerify(unitdb::SkillDatabase* self) {
     ei::verify::Check("DestroySkillDatabase", true, true, "");
 }
 EI_VERIFY(0x0051FB50, DestroySkillDatabaseVerify, 0, s_unused);
+
+// DestroyModelRecord (0053EE70, ticket U8): frees memory and destroys CStrings, ours only; nothing
+// it writes is left to read, so it is reported when it runs. Reached from DestroyUnitDatabase at
+// exit, from the model vector's erase on a database reload (0053DF50 inside 0053A200) and from its
+// insert when it reallocates a non-empty vector (0053FCC0); no scenario is known to reach it.
+static void __fastcall DestroyModelRecordVerify(UnitModelRecord* record) {
+    unitdb::DestroyModelRecord(record);
+    ei::verify::Check("DestroyModelRecord", true, true, "");
+}
+EI_VERIFY(0x0053EE70, DestroyModelRecordVerify, 0, s_unused);

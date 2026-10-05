@@ -15,8 +15,30 @@
 
 class CEngineObject;
 struct MagicTrapRecord;
+struct UnitStream;
 
 struct MagicTrap {
+    // 00529DD0. The constructor (the factory 00512730, class id 0x3B): the map object (0050E2D0),
+    // no spell, the two arrays (circles vtable 0073C68C, points 0073C680) and the list of units
+    // inside (vtable 0073E730, blocks of 10) empty, the vtable 0073E63C; then the map object's
+    // Create (0050E770, called directly), sides -1, flags_ |= 0x80040, the spell released, both
+    // arrays SetSize(0, -1), the list emptied, countdown 0, +0x28C 0, period 10. Returns this.
+    MagicTrap* Construct();
+    // 00529F90. The destructor body (the deleting destructor 00529F70, slot 0): the map object's
+    // Destroy (0050E840, called directly), the spell released, both arrays SetSize(0, -1), the
+    // list emptied twice (RemoveAll, then CList's destructor), the arrays' storage freed, then
+    // the map object's destructor body (0050E660).
+    void DestructBody();
+    // 0052B070 (virtual slot 10, RET 4). The map object part (0050F900), the spell's id (-1:
+    // none), the circles (count, then 12 bytes each), the units inside (count, then each id
+    // through 0050E290), the points (count, then 8 bytes each), the period, countdown, +0x28C and
+    // the sides.
+    void SaveTrap(UnitStream* stream);
+    // 0052ADC0 (virtual slot 9, RET 4). Reads what SaveTrap writes: the spell found by id in the
+    // spell manager (the context's slot 22, 00403F40), the circles and points through SetSize(n,
+    // -1), the units inside appended by 0052AF20 (resolved in the trap's context).
+    void LoadTrap(UnitStream* stream);
+
     // 0052A2C0 (RET 4). Sets the trap up from its zone record (the zone loader 005927C0): the
     // sides, the spell made from the record's text by the spell manager (the context's slot 22,
     // 00689030; the old one released), the position, the circles and points copied, the units

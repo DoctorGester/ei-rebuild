@@ -67,6 +67,7 @@ struct SkillDatabase {
 void __fastcall DestroyUnitDatabase(UnitDatabase* self);
 void __fastcall DestroyNpcTable(RecordTable* self);
 void __fastcall DestroySkillDatabase(SkillDatabase* self);
+void __fastcall DestroyModelRecord(UnitModelRecord* record);
 
 namespace {
 
@@ -224,8 +225,42 @@ void __fastcall DestroySkillDatabase(SkillDatabase* self) {
     FreeStorage(&self->levels, sizeof(SkillLevelRecord));
 }
 
+namespace {
+// The CRT's `eh vector destructor iterator` (array, element size, count, destructor; last to
+// first) [006E859F, library]; the model slot's destructor, a jump to CString::~CString [0053F010].
+__declspec(naked) void __stdcall VectorDestructor(void*, unsigned, int, std::uintptr_t) EI_ORIGINAL(0x006E859F)
+constexpr std::uintptr_t kModelSlotDestructor = 0x0053F010;
+
+// The record's inline ~vector<CString> with the storage freed by the node pool (00404D70 when
+// begin is set; 00520F60 for the sound names does the same test itself), the end read once.
+void DestroyStringsAndFree(CStringVector* v) {
+    for (mfc::CString *p = v->begin, *end = v->end; p != end; ++p) DestroyString(p);
+    if (v->begin)
+        stlp::deallocate(v->begin, static_cast<std::size_t>((static_cast<int>(reinterpret_cast<char*>(v->endOfStorage) -
+                                                                              reinterpret_cast<char*>(v->begin)) >> 2) * 4));
+}
+} // namespace
+
+// 0053EE70. A unit model record's destructor, members in reverse order: the vector of sound
+// counts (+0x144, storage only), the sound names, the CStrings +0x124 / +0x118, the string
+// vectors +0xF8 / +0xEC, the CString +0xE8, the six slots (their level names, through the CRT's
+// vector destructor iterator) and the name.
+void __fastcall DestroyModelRecord(UnitModelRecord* record) {
+    auto* counts = reinterpret_cast<RawVector*>(record->unknown_144);
+    if (counts->begin) stlp::deallocate(counts->begin, static_cast<std::size_t>((static_cast<int>(counts->eos - counts->begin) >> 2) * 4));
+    DestroyStringsAndFree(&record->soundNames);
+    DestroyString(&record->unknown_124);
+    DestroyString(&record->unknown_118);
+    DestroyStringsAndFree(&record->unknown_F8);
+    DestroyStringsAndFree(&record->unknown_EC);
+    DestroyString(&record->unknown_E8);
+    VectorDestructor(record->slots, sizeof(UnitModelSlot), 6, kModelSlotDestructor);
+    DestroyString(&record->name);
+}
+
 } // namespace unitdb
 
+EI_REPLACE(0x0053EE70, unitdb::DestroyModelRecord);
 EI_REPLACE(0x0053A050, unitdb::DestroyUnitDatabase);
 EI_REPLACE(0x00539CE0, unitdb::DestroyNpcTable);
 EI_REPLACE(0x0051FB50, unitdb::DestroySkillDatabase);
