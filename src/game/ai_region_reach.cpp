@@ -14,6 +14,9 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_ai.h"
+#include "originals_library.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -45,15 +48,12 @@ std::uint8_t& BlocksGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2EF4
 __declspec(naked) void __fastcall PointArrayConstruct(PointArray*, void*) EI_ORIGINAL(0x00557230)
 __declspec(naked) void __fastcall PointArraySetSize(PointArray*, void*, int, int) EI_ORIGINAL(0x005B16D0)
 __declspec(naked) int __cdecl GameAtExit(void (*)()) EI_ORIGINAL(0x006E727B)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 
 // The local search at +0x98: set up over a window (size class, x0, y0, x1, y1 exclusive, start
 // x, y), flood (RET 4), finish, settle, the cost of a cell (0x7FFFFFFF unreached), reset.
 __declspec(naked) void __fastcall SearchSetup(void*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005C2CF0)
 __declspec(naked) void __fastcall SearchFlood(void*, void*, int) EI_ORIGINAL(0x005C33F0)
-__declspec(naked) void __fastcall SearchFinish(void*, void*) EI_ORIGINAL(0x005C30E0)
 __declspec(naked) void __fastcall SearchSettle(void*, void*) EI_ORIGINAL(0x005C3530)
-__declspec(naked) int __fastcall SearchCost(void*, void*, int, int) EI_ORIGINAL(0x005C3090)
 __declspec(naked) void __fastcall SearchReset(void*, void*) EI_ORIGINAL(0x005C35F0)
 
 // LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
@@ -177,12 +177,9 @@ __declspec(naked) bool __fastcall JoinBlockSearchesAt(CRegionMap*, void*, void*)
 __declspec(naked) void __fastcall ExpandBlockSearch(BlockSearch*) EI_ORIGINAL(0x005AF0C0)
 __declspec(naked) void __fastcall BlockPathTo(BlockSearch*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005AF1C0)
 // The path list: a reversed copy into `out` (RET 4, returns out), append (RET 4), fix-up.
-__declspec(naked) PathCellList* __fastcall ChainReversed(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5E60)
-__declspec(naked) void __fastcall ChainAppend(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5DA0)
 __declspec(naked) void __fastcall ChainFixUp(PathCellList*) EI_ORIGINAL(0x005C6000)
 
 // 00539980: ConstructElements<PathCell> (zero-fills `count`).
-__declspec(naked) void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 
 void DestroyPathList(PathCellList& list) {
     list.vtable = reinterpret_cast<void*>(0x0073EDB0);
@@ -560,7 +557,7 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
         BlockPathTo(&forward, nullptr, x, y, chain);
         BlockPathTo(&backward, nullptr, x, y, &scratch);
         PathCellList reversed;
-        ChainAppend(chain, nullptr, ChainReversed(&scratch, nullptr, &reversed));
+        ListAppend(chain, nullptr, ListReversed(&scratch, nullptr, &reversed));
         DestroyPathList(reversed);
         ChainFixUp(chain);
     }

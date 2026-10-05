@@ -5,6 +5,8 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
+#include "originals_ai.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -18,7 +20,6 @@ namespace {
 // 005BD200: appends a copy of `cell` to the list.
 __declspec(naked) void __fastcall AddPathCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD200)
 // MFC ConstructElements<PathCell> (zero-fills `count` elements).
-__declspec(naked) void __stdcall ConstructCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 // The direction a quaternion faces (the orientation at CEngineObject + 0x34).
 __declspec(naked) void __fastcall FacingDirection(const void*, void*, Vector3*) EI_ORIGINAL(0x0040F560)
 
@@ -28,8 +29,6 @@ struct CLocalSearch;
 __declspec(naked) bool __fastcall LocalSearch(CLocalSearch*, void*, CUnit*, int, int, int, int) EI_ORIGINAL(0x005C2420)
 __declspec(naked) void __fastcall LocalSearchReset(CLocalSearch*, void*) EI_ORIGINAL(0x005C35F0)
 __declspec(naked) bool __fastcall BuildLocalPath(CAIMap*, void*, PathCellList*, int) EI_ORIGINAL(0x005B9690)
-__declspec(naked) bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
-    EI_ORIGINAL(0x005B9C90)
 // 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
 __declspec(naked) int __fastcall SmoothPath(void*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
     EI_ORIGINAL(0x005C46C0)
@@ -91,7 +90,7 @@ PathCellList::Node* PathCellList::NewNode(Node* prev, Node* next) {
     node->prev = prev;
     node->next = next;
     ++count;
-    ConstructCells(&node->data, 1);
+    ConstructPathCells(&node->data, 1);
     return node;
 }
 EI_REPLACE_METHOD(0x005B1B70, PathCellList::NewNode);
@@ -241,7 +240,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
         node->prev = nullptr;
         node->next = oldHead;
         ++pathCells.count;
-        ConstructCells(&node->data, 1);
+        ConstructPathCells(&node->data, 1);
         node->data = *last;
         if (pathCells.head) pathCells.head->prev = node;
         else pathCells.tail = node;

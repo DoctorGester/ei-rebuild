@@ -11,6 +11,8 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_engine.h"
+#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
@@ -39,10 +41,8 @@ double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volat
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
-// 00488970 IsaacRandom::Range and 00564070 TerrainOwner::SurfaceHeight leave their result
+// 00488970 IsaacRandom::Range and 00564070 TerrainOwner::SurfaceHeightRaw leave their result
 // unrounded in ST0.
-__declspec(naked) double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/) EI_ORIGINAL(0x00488970)
-__declspec(naked) double __fastcall SurfaceHeight(void* /*owner*/, void*, float /*x*/, float /*y*/) EI_ORIGINAL(0x00564070)
 void* TerrainOwner() { return reinterpret_cast<void*>(0x007AF5B8); }
 
 double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
@@ -128,7 +128,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     float cx = Store(D(bx) + D(s->origin.x));
     float cy = Store(D(by) + D(s->origin.y));
     (void)Store(D(bz) + D(s->origin.z));
-    float cz = Store(SurfaceHeight(TerrainOwner(), nullptr, cx, cy) + D(EI_POINT_THREE));
+    float cz = Store(SurfaceHeightRaw(TerrainOwner(), nullptr, cx, cy) + D(EI_POINT_THREE));
     BoltPoint* points = reinterpret_cast<BoltPoint*>(s->elements);
     points[i].pos = {cx, cy, cz};
     points[i].base = {cx, cy, cz};
@@ -522,7 +522,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     float falloff = Store((D(EI_ZONE_EXIT_SPREAD) - D(a) * D(a)) - b * b);
     float x = Store((D(a) * D(alpha) * D(unknown_120) + D(origin.x)) - b * D(unknown_124) * D(unknown_11C));
     float y = Store((D(unknown_124) * D(alpha) * D(a) + b * D(unknown_120) * D(unknown_11C)) + D(origin.y));
-    double ground = SurfaceHeight(TerrainOwner(), nullptr, x, y);
+    double ground = SurfaceHeightRaw(TerrainOwner(), nullptr, x, y);
     p->pos.x = x;
     p->pos.y = y;
     std::memset(&p->size, 0, sizeof(float));
@@ -553,7 +553,7 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
     p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
     p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
     p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
-    double lifted = SurfaceHeight(TerrainOwner(), nullptr, p->pos.x, p->pos.y) + D(EI_TENTH);
+    double lifted = SurfaceHeightRaw(TerrainOwner(), nullptr, p->pos.x, p->pos.y) + D(EI_TENTH);
     p->pos.z = Store(lifted);
     const float* plane = reinterpret_cast<const float*>(elements);
     double along = (D(p->pos.x) - D(origin.x)) * D(plane[6]) + (D(p->pos.y) - D(origin.y)) * D(plane[7]);

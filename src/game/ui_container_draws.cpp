@@ -24,6 +24,7 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
+#include "originals_world.h"
 
 #include <cstdint>
 
@@ -80,7 +81,6 @@ void Flush(std::uint8_t* device) {
 }
 
 // Through their original addresses, as the original calls them.
-__declspec(naked) void __fastcall MenuFrame(void*) EI_ORIGINAL(0x00578910)   // on 007AFEA5
 __declspec(naked) int __fastcall ContainerDrawAt(CUiWindow*, void*, int) EI_ORIGINAL(0x00600EF0)
 // 006A39E0 (thiscall on an armour item): its body part type (rewritten, item.cpp).
 __declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
@@ -91,7 +91,7 @@ __declspec(naked) void DrawItemAt::DrawItem(int, ItemCell*) EI_ORIGINAL(0x005ECA
 
 // 00602BF0 / 00632A90 share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
-    MenuFrame(reinterpret_cast<void*>(0x007AFEA5));
+    MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
     if (mouseMove)
         ei::VCall<void>(self->InputSide(), 4, 0, GameValue<int>(0x007C7C50), GameValue<int>(0x007C7C54));
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);

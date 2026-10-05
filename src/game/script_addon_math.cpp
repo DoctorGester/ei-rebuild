@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "random.h"
+#include "originals_engine.h"
 
 #include <cmath>
 
@@ -33,7 +34,6 @@ double CrtCos(double x) { return std::cos(x); }
 double CrtPow(double x, double y) { return std::pow(x, y); }
 
 // 00488970 IsaacRandom::Range (on the game's generator 007A9D40): the result is left in ST0.
-__declspec(naked) double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/) EI_ORIGINAL(0x00488970)
 IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 } // namespace

@@ -12,6 +12,9 @@
 
 #include "ei/hook.h"
 #include "render/render.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -75,11 +78,8 @@ AlignedArray& Projected() { return *reinterpret_cast<AlignedArray*>(0x007AEE10);
 AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE20); }  // a byte per corner
 AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
 
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 __declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
-__declspec(naked) char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004ECB70)
-__declspec(naked) char* __fastcall AllocWords(int) EI_ORIGINAL(0x00406B30)
 // SetSize keeping the contents (thiscall: size, growth or -1): TL vertices 004EC790, words 0044FA90.
 __declspec(naked) void __fastcall VerticesSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x004EC790)
 __declspec(naked) void __fastcall WordsSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x0044FA90)
@@ -89,7 +89,6 @@ __declspec(naked) void __fastcall WordsSetSize(AlignedArray*, void*, int, int) E
 // two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
 __declspec(naked) void __fastcall BoundsOfProjected(char*, void*, AlignedArray*, int) EI_ORIGINAL(0x004E8900)
 __declspec(naked) void __fastcall BoundsOfVertices(char*, void*, AlignedArray*, char*) EI_ORIGINAL(0x004E86B0)
-__declspec(naked) void* __fastcall LockVertexBuffer(char*, void*, int) EI_ORIGINAL(0x004E7820)
 __declspec(naked) void __fastcall DrawVertexBuffer(char*, void*, std::uint16_t*, int) EI_ORIGINAL(0x004E7E00)
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, std::uint16_t*, int, int)
     EI_ORIGINAL(0x004EB550)
@@ -240,7 +239,7 @@ void Submit(char* device, const Textures* textures, std::uint16_t* indices, int 
 
 void DrawOnScreen(char* device, void* transform, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) BoundsOfProjected(device, nullptr, &Projected(), 0);
-    Resize(Vertices(), a.cornerCount, &AllocVertices);
+    Resize(Vertices(), a.cornerCount, &AllocVerticesOriginal);
     FillCorners(a);
     if (At<int>(device, 0x158)) ThisCall<void>(transform, 35, static_cast<void*>(Vertices().data), a.cornerCount);
     Submit(device, textures, a.indices, a.indexCount);
@@ -251,7 +250,7 @@ void DrawOnScreen(char* device, void* transform, const MeshArgs& a, const Textur
 // vertices are projected (slot 34).
 void DrawClipped(char* device, void* transform, const MeshArgs& a, const Textures* textures) {
     int capacity = a.cornerCount * 10;
-    Resize(Vertices(), capacity, &AllocVertices);
+    Resize(Vertices(), capacity, &AllocVerticesOriginal);
     SetSize(ClipIndices(), a.indexCount * 10, 2, &AllocWords);
     FillCorners(a);
     SetSize(CornerOutcodes(), capacity, 1, &AllocBytes);

@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -14,7 +15,7 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const char* /*tag*/) EI_ORIGINAL(0x0042A4F0)
 // STLport vector<RefPtr> (library): constructor with an allocator, erase(first, last),
 // insert(pos, n, value).
@@ -26,7 +27,6 @@ __declspec(naked) void __fastcall RefNull(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFC
 __declspec(naked) RefPtr* __fastcall FileRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427FE0)
 __declspec(naked) void** __fastcall FilesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420550)
 __declspec(naked) void** __fastcall FilesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004227D0)
-__declspec(naked) unsigned __fastcall BufferReadPastEnd(GameBuffer* /*buffer*/, void*, void* /*to*/, unsigned /*size*/) EI_ORIGINAL(0x004DA170)
 
 constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
 

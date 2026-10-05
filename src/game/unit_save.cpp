@@ -76,13 +76,13 @@ void WriteItemIds(UnitStream* stream, CEngineObject* const* items, int count) {
 
 // A raw STLport string (12 bytes) built and destroyed by the original's routines.
 struct RawString {
-    void InitFrom(const char* text, void* allocator);   // 0040C5A0
+    void* InitFrom(const char* text, void* allocator);   // 0040C5A0
     void Destroy();                                      // 0040C720
     std::uint8_t bytes[12];
 };
 } // namespace
 
-__declspec(naked) void RawString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) void* RawString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
 __declspec(naked) void RawString::Destroy() EI_ORIGINAL(0x0040C720)
 
 // unit_items.cpp: 00514930, the prototype table's record named `name`.

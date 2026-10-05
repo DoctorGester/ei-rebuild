@@ -7,6 +7,7 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cmath>
 #include <cstdint>
@@ -36,7 +37,6 @@ __declspec(naked) int __fastcall CoordsAdd(ArrayBody*, void*, float, float) EI_O
 __declspec(naked) void __fastcall DwordsSetSize(ArrayBody*, void*, int, int) EI_ORIGINAL(0x004513A0)
 __declspec(naked) void* __fastcall AllocDwords(int) EI_ORIGINAL(0x00453A10)
 __declspec(naked) void* __fastcall AllocPoints(int) EI_ORIGINAL(0x00452C20)
-__declspec(naked) double __cdecl Hypot(double, double) EI_ORIGINAL(0x006FD026)   // _hypot
 
 void FreeAligned(void* data) {
     if (data) gamecrt::operator_delete(static_cast<void**>(data)[-1]);

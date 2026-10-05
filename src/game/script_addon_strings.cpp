@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "random.h"
+#include "originals_library.h"
 
 #include <windows.h>
 
@@ -23,7 +24,6 @@ namespace scriptaddon {
 
 namespace {
 
-__declspec(naked) double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 // 0057F440 on 007AFE20: whether this is a network game.
 __declspec(naked) bool __fastcall NetworkIsMultiplayer(void*) EI_ORIGINAL(0x0057F440)
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).

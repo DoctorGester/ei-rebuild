@@ -15,6 +15,9 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_engine.h"
+#include "originals_library.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -289,7 +292,6 @@ namespace {
 // Not rewritten: the container window constructor, the STLport vector constructors of the two
 // windows' members, the message box constructor and the interface's window activation. Thiscall
 // methods are declared __fastcall with the unused EDX.
-__declspec(naked) void __fastcall ConstructContainer(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) void __fastcall ConstructSaveList(void* /*vector*/, void*, void* /*allocator*/) EI_ORIGINAL(0x0062B550)
 __declspec(naked) void __fastcall ConstructBindingList(void*, void*, void*) EI_ORIGINAL(0x0062B570)
 __declspec(naked) void __fastcall ConstructSettingList(void*, void*, void*) EI_ORIGINAL(0x0062B5E0)
@@ -313,7 +315,7 @@ CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
     void* memory = gamecrt::operator_new(sizeof(CSaveLoadWindow));
     if (!memory) return nullptr;
     auto* w = static_cast<CSaveLoadWindow*>(memory);
-    ConstructContainer(w, nullptr, ui);
+    ConstructContainerAt(w, nullptr, ui);
     char allocator;
     ConstructSaveList(&w->entriesBegin_, nullptr, &allocator);
     w->isSave_ = false;
@@ -328,7 +330,7 @@ COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     void* memory = gamecrt::operator_new(sizeof(COptionsWindow));
     if (!memory) return nullptr;
     auto* w = static_cast<COptionsWindow*>(memory);
-    ConstructContainer(w, nullptr, ui);
+    ConstructContainerAt(w, nullptr, ui);
     char allocator[2];
     ConstructBindingList(reinterpret_cast<std::uint8_t*>(w) + 0x36C, nullptr, &allocator[0]);
     ConstructSettingList(&w->settings_, nullptr, &allocator[1]);
@@ -415,19 +417,14 @@ __declspec(naked) void MenuGlue::BeforeTitles(int) EI_ORIGINAL(0x00578920)
 __declspec(naked) void MenuGlue::BeforeTitles2() EI_ORIGINAL(0x00578940)
 MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }
 __declspec(naked) int __fastcall MenuTextOf(void* /*table*/, void*, const char* /*key*/, mfc::CString*) EI_ORIGINAL(0x004E0020)
-__declspec(naked) void __fastcall MenuStatusText(void*, void*, const char*) EI_ORIGINAL(0x005F75B0)
-__declspec(naked) void __fastcall MenuPlayMovie(const char*, int, int, int, int, int, int) EI_ORIGINAL(0x005DB3F0)
-__declspec(naked) char __fastcall MenuQuit(int) EI_ORIGINAL(0x00455F20)
 
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
 // / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
-__declspec(naked) void __fastcall MenuMappedResource(void*) EI_ORIGINAL(0x00671280)
+__declspec(naked) void* __fastcall MenuMappedResource(void*) EI_ORIGINAL(0x00671280)
 __declspec(naked) void __fastcall MenuTitlesVector(void*, void*, const void*) EI_ORIGINAL(0x00634300)
-__declspec(naked) void __fastcall MenuTitlesPlayer(void*) EI_ORIGINAL(0x005DB340)
 __declspec(naked) void __fastcall MenuModelCache(void*) EI_ORIGINAL(0x00633F50)
 __declspec(naked) void __fastcall MenuTextureCache(void*) EI_ORIGINAL(0x00633FF0)
-__declspec(naked) void __fastcall MenuHeroList(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
 __declspec(naked) void __fastcall MenuHeroVector(void*, void*, const void*) EI_ORIGINAL(0x006342A0)
 
 template <typename T>
@@ -469,9 +466,9 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // Exit: the exit movie, then quit.
         {
             mfc::CString path = *Glue(0x007AFEA4)->Directory() + GameText(0x0079422C);   // "Movies\Exit.bik"
-            MenuPlayMovie(path, 0, 0, 0, 1, 1, 1);
+            PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
         }
-        MenuQuit(0);
+        QuitGame(0);
         break;
     }
     case 3: {
@@ -490,12 +487,12 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         window.ClearSurfaces();
         void* w = gamecrt::operator_new(0x1FC);
         if (w) {
-            ConstructContainer(w, nullptr, ui);
+            ConstructContainerAt(w, nullptr, ui);
             MenuMappedResource(static_cast<std::uint8_t*>(w) + 0x170);
             char allocator = 0;
             MenuTitlesVector(static_cast<std::uint8_t*>(w) + 0x1C8, nullptr, &allocator);
             new (static_cast<std::uint8_t*>(w) + 0x1D4) mfc::CString(GameText(0x00794250));   // "Titles"
-            MenuTitlesPlayer(static_cast<std::uint8_t*>(w) + 0x1D8);
+            Screen8Member1D8(static_cast<std::uint8_t*>(w) + 0x1D8);
             Put<std::uint8_t>(w, 0x1F4, 1);
             SetVtables(w, 0x00740C3C, 0x00740C08);
         }
@@ -506,20 +503,20 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // Multiplayer: the hero screen (a server session starts).
         mfc::CString text;
         MenuTextOf(Glue(0x007AFEA4)->TextTable(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
-        MenuStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
+        ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
         Glue(0x007AFEA4)->SetServer(1);
         ui->PlaySound(okSound, 0);
         void* w = gamecrt::operator_new(0x220);
         if (w) {
             auto* bytes = static_cast<std::uint8_t*>(w);
-            ConstructContainer(w, nullptr, ui);
+            ConstructContainerAt(w, nullptr, ui);
             Put<std::uint32_t>(w, 0x168, 0);
             MenuModelCache(bytes + 0x170);
             MenuTextureCache(bytes + 0x180);
             SetVtables(w, 0x00740A2C, 0x007409F8);   // the item screens' base
             char allocators[4] = {};
-            MenuHeroList(bytes + 0x1C8, nullptr, &allocators[1]);
-            MenuHeroList(bytes + 0x1D4, nullptr, &allocators[0]);
+            FirstListConstruct(bytes + 0x1C8, nullptr, &allocators[1]);
+            FirstListConstruct(bytes + 0x1D4, nullptr, &allocators[0]);
             Put<std::uint32_t>(w, 0x1F4, EmptyStringData());
             MenuHeroVector(bytes + 0x1F8, nullptr, &allocators[2]);
             MenuHeroVector(bytes + 0x204, nullptr, &allocators[3]);
@@ -549,11 +546,11 @@ namespace {
 // CString by value, see ui_text.cpp) and the edit field: constructor 0065C010 (RET 0x14: the
 // interface and a RECT by value), its fonts and colours 0065C1A0 (RET 0x18), its text 0065C290.
 struct BoxSurfaceAt {
-    void Begin();                                                                     // 005FDC00
+    void* Begin();                                                                     // 005FDC00
     int Text(const char* text, RECT* rect, int font, COLORREF colour, int format, int flag);   // 005FDE20
     void End();                                                                       // 005FDC60
 };
-__declspec(naked) void BoxSurfaceAt::Begin() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void* BoxSurfaceAt::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) int BoxSurfaceAt::Text(const char*, RECT*, int, COLORREF, int, int) EI_ORIGINAL(0x005FDE20)
 __declspec(naked) void BoxSurfaceAt::End() EI_ORIGINAL(0x005FDC60)
 

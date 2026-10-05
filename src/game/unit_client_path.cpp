@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
 
 #include <cmath>
 #include <cstdint>
@@ -24,8 +25,6 @@ T& At(void* object, int offset) {
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
 __declspec(naked) std::uint8_t* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
-__declspec(naked) bool __fastcall MotionSample(void*, void*, void*, void*, float, bool*, float*, float*, float*, int*,
-                                               int*) EI_ORIGINAL(0x005C7430)
 __declspec(naked) double __fastcall UnitGroundHeight(void*, void*, float, float) EI_ORIGINAL(0x00530280)
 __declspec(naked) void __fastcall UnitTurnTowards(void*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 __declspec(naked) void __fastcall UnitFaceDirection(void*, void*, const float*) EI_ORIGINAL(0x00402220)

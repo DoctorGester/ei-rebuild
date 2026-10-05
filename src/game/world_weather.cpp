@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -67,7 +68,6 @@ __declspec(naked) void __fastcall MarkNew(void*, void*) EI_ORIGINAL(0x00675CA0)
 __declspec(naked) void __fastcall ShowBoltAt(void*, void*, Vector3 /*from*/, Vector3 /*to*/) EI_ORIGINAL(0x00578E30)
 // 0058B6D0 / 0058D280. MarkPlayersDirty / UpdatePlayerTimes, through their addresses.
 __declspec(naked) void __fastcall MarkPlayersDirtyAt(CWorldServer*, void*, std::uint32_t) EI_ORIGINAL(0x0058B6D0)
-__declspec(naked) void __fastcall UpdatePlayerTimesAt(CWorldServer*, void*, float) EI_ORIGINAL(0x0058D280)
 
 constexpr int kSlotTimedManager = 14;   // world: manager48_
 constexpr int kSlotCreate = 23;         // manager: create an object (type, id)
@@ -182,7 +182,7 @@ constexpr std::uintptr_t kLightningScript = 0x00790394;
 constexpr std::uintptr_t kScriptQueue = 0x007C29CC;   // a command queue (004D23A0 adds a line)
 
 // 004D23A0 (RET 8). Adds a script line to a command queue.
-__declspec(naked) void __fastcall QueueAddLine(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+__declspec(naked) int __fastcall QueueAddLine(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
 
 float Half() { return GameFloat(0x0073B86C); }   // 0.5
 

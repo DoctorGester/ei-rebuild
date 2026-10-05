@@ -6,6 +6,8 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -13,8 +15,7 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
-__declspec(naked) void __fastcall RefNull(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF70)
+__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignRange(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00426A80)
 // The lines list (+0x2594): a counted pointer from a raw one without a reference, end, insert,
 // node count, erase (library).
@@ -23,7 +24,6 @@ __declspec(naked) void** __fastcall LinesEnd(void* /*list*/, void*, void** /*out
 __declspec(naked) void** __fastcall LinesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004225B0)
 __declspec(naked) void __fastcall CountLines(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290F0)
 __declspec(naked) void** __fastcall LinesErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00420460)
-__declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
@@ -40,7 +40,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
         ei::SetVtable(line, kMessageVtable);
         line->version_ = 1;
         StringConstruct(&line->text_);
-        RefNull(&line->connection_);
+        RefNullBOriginal(&line->connection_);
         ei::SetVtable(line, LineMessage::kVtableAddress);
     }
     void* lines = &lines_;

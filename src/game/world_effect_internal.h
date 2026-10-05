@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -128,7 +129,6 @@ __declspec(naked) inline void __fastcall WriteFloat16x3(DeltaField*, void*, cons
 __declspec(naked) inline void __fastcall ReadPosition(DeltaField*, void*, Vector3*) EI_ORIGINAL(0x0047E930)
 __declspec(naked) inline void __fastcall ReadDelta(DeltaField*, void*, void*, std::uint32_t) EI_ORIGINAL(0x0047E000)
 __declspec(naked) inline void __fastcall ReadText(DeltaField*, void*, char*, int /*maxLength*/) EI_ORIGINAL(0x0047E340)
-__declspec(naked) inline void* __fastcall ReadCString(DeltaField*, void*, void* /*rawCString*/) EI_ORIGINAL(0x0047E310)
 __declspec(naked) inline void __fastcall ReadFloat16(DeltaField*, void*, void*) EI_ORIGINAL(0x0047F3D0)
 __declspec(naked) inline void __fastcall ReadFloat16x3(DeltaField*, void*, void*) EI_ORIGINAL(0x0047F7F0)
 

@@ -447,7 +447,7 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
     std::memcpy(&At<Vector3>(arrow, 0x6A4), color, 12);
     std::memcpy(&At<float>(arrow, 0x6B0), &range, 4);
     SetPosition(arrow, from);
-    ArrowSetTarget(arrow, nullptr, missileTarget->id_);
+    MissileSetTarget(arrow, nullptr, missileTarget->id_);
     At<int>(arrow, 0x6B4) = particleType;
     std::memcpy(&At<float>(arrow, 0x6B8), &power, 4);
     At<mfc::CString>(arrow, 0x6A0) = soundName;

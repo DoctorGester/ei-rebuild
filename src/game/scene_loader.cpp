@@ -12,6 +12,8 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_core.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -72,7 +74,6 @@ __declspec(naked) void __stdcall ConstructMorphHeads(void*, int) EI_ORIGINAL(0x0
 __declspec(naked) void __stdcall ConstructNormals(void*, int) EI_ORIGINAL(0x00477530)      // H: 0x14, zeroed
 __declspec(naked) void __stdcall ConstructNodeRotKeys(void*, int) EI_ORIGINAL(0x00454ED0)  // node +0xA8
 __declspec(naked) void __stdcall ConstructNodePosKeys(void*, int) EI_ORIGINAL(0x00454F00)  // node +0xBC
-__declspec(naked) void __stdcall ConstructNodeNormals(void*, int) EI_ORIGINAL(0x00452DC0)  // node +0xE4
 __declspec(naked) void __stdcall ConstructNodeMorphKeys(void*, int) EI_ORIGINAL(0x00454F30) // node +0xD0
 __declspec(naked) void __stdcall DestructNodeMorphKeys(void*, int) EI_ORIGINAL(0x00453700)
 __declspec(naked) void __stdcall ConstructMaps(void*, int) EI_ORIGINAL(0x00477380)         // CMap (0x1C)
@@ -440,7 +441,7 @@ void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, void* node) {
     if (version_ != kVersionWithNormals) return;
     SetSizeInline(r.normals.body, h.posKeyCount, 0x14, &ConstructNormals, nullptr);
     ArrayBody& normals = At<VtArray>(node, node::kNormals)->body;
-    SetSizeInline(normals, h.posKeyCount, 12, &ConstructNodeNormals, nullptr);
+    SetSizeInline(normals, h.posKeyCount, 12, &ZeroPoints, nullptr);
     Read(file_, r.normals.body.data, r.normals.body.size * 0x14);
     for (int k = 0; k < normals.size; ++k) {
         const void* from = At(r.normals.body.data, k * 0x14);
@@ -787,11 +788,9 @@ __declspec(naked) void __fastcall SetSizeFigures(VtArray*, void*, int, int) EI_O
 __declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
 __declspec(naked) void __fastcall SetSizeMatrices(ArrayBody*, void*, int, int) EI_ORIGINAL(0x0044F960)
 __declspec(naked) void __fastcall DestructNode(void*) EI_ORIGINAL(0x004543E0)
-__declspec(naked) void __fastcall DestructTextureName(void*) EI_ORIGINAL(0x0044C490)
 __declspec(naked) void __fastcall ConstructRegistry(void*) EI_ORIGINAL(0x00694520)
 __declspec(naked) void __fastcall DestroyRegistry(void*) EI_ORIGINAL(0x00694540)
 __declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
-__declspec(naked) int __stdcall AfxMessageBox(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)
 // Reads the figure's .reg file: the texture names ({id, name}) and links ({id, value}).
 __declspec(naked) void __fastcall LoadFigureRegistry(void*, const mfc::CString*, VtArray*, VtArray*) EI_ORIGINAL(0x0044B980)
 __declspec(naked) void __fastcall LinkNodes(void*, VtArray*) EI_ORIGINAL(0x0044C4A0)

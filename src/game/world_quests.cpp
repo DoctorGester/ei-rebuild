@@ -10,6 +10,9 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_gameplay.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -163,7 +166,7 @@ struct NameVector {
 struct RawString {
     std::uint8_t bytes[12];
 };
-__declspec(naked) void __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) RawString* __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
 __declspec(naked) void __fastcall RawStringDestroy(RawString*, void*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) std::uint8_t** __fastcall BriefingMapAt(void*, void*, const RawString*) EI_ORIGINAL(0x004297A0)
 // 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
@@ -197,7 +200,7 @@ __declspec(naked) void __fastcall PlayerGiveItems(WorldPlayer*, void*, mfc::CTyp
 __declspec(naked) void __fastcall PlayerEraseQuestItem(WorldPlayer*, void*, int) EI_ORIGINAL(0x00665780)
 __declspec(naked) void __fastcall StateSetVariableMax(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
 // 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.
-__declspec(naked) void __fastcall CommandQueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+__declspec(naked) int __fastcall CommandQueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
 __declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 
 void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
@@ -424,11 +427,9 @@ __declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGI
 __declspec(naked) void __fastcall IdArraySetSize(IdArray*, void*, int, int) EI_ORIGINAL(0x0059C660)
 __declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int) EI_ORIGINAL(0x0055FB00)
 // 00553380 (RET 4). The unit controller gains experience.
-__declspec(naked) void __fastcall ControllerGainExperience(void*, void*, float) EI_ORIGINAL(0x00553380)
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 __declspec(naked) void __fastcall RecordGainExperience(void*, void*, float) EI_ORIGINAL(0x00523960)
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
-__declspec(naked) void __fastcall StateUnitExperience(void*, void*, int /*unit id*/, float) EI_ORIGINAL(0x0066F2C0)
 __declspec(naked) void __fastcall StatePartyExperience(void*, void*, float) EI_ORIGINAL(0x0066F280)
 
 constexpr int kSlotIsDead = 55;
@@ -477,7 +478,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         float share = static_cast<float>(Weight(node->controller) * amount / divisor);
         volatile float stored = share;
         node->share = stored;
-        ControllerGainExperience(node->controller, nullptr, stored);
+        DataGainExperience(node->controller, nullptr, stored);
         node = next;
     }
     ShareNode* cursor = list.head;
@@ -493,7 +494,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         if (!state) continue;
         for (ShareNode* node = list.head; node; node = node->next) {
             auto* unit = *reinterpret_cast<CEngineObject**>(node->controller + 0x1C);
-            StateUnitExperience(state, nullptr, unit->id_, node->share);
+            PlayerSendPair(state, nullptr, unit->id_, node->share);
         }
     }
     if (it.list) {
@@ -524,7 +525,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
         share = stored;
         for (int i = 0; i < heroes.size; ++i) {
             CEngineObject* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
-            ControllerGainExperience(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240), nullptr,
+            DataGainExperience(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240), nullptr,
                                      share);
             for (int j = 0; j < player->mercCount; ++j) {
                 std::uint8_t* record = player->mercs + j * 0x784;
@@ -568,7 +569,7 @@ struct RecordArray {
     int growBy;
 };
 
-__declspec(naked) void __fastcall PartyAddItem(void* /*records*/, void*, void* /*item*/, int, int) EI_ORIGINAL(0x00661DB0)
+__declspec(naked) int __fastcall PartyAddItem(void* /*records*/, void*, void* /*item*/, int, int) EI_ORIGINAL(0x00661DB0)
 __declspec(naked) void __fastcall RecordArraySetAtGrow(RecordArray*, void*, int, std::uint8_t*) EI_ORIGINAL(0x0059D2E0)
 // The unit record's lists: remove the first entry of quick items (00660E10), items (00660A50),
 // spells (00660FF0), worn items (00660C30); add an entry (006608D0, 00660C90, 00660AB0,
@@ -588,7 +589,6 @@ __declspec(naked) CEngineObject* __fastcall UnitBeltItem(CEngineObject*, void*, 
 __declspec(naked) CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int) EI_ORIGINAL(0x005319A0)
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
 __declspec(naked) void __fastcall ControllerStoreStats(void*, void*, void*) EI_ORIGINAL(0x00553360)
-__declspec(naked) void* __fastcall ItemRecordConstruct(void*, void*) EI_ORIGINAL(0x0058FBB0)
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall RefPtrAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
 __declspec(naked) void __fastcall RefRelease(void*, void*) EI_ORIGINAL(0x0040A3A0)
@@ -710,7 +710,6 @@ __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void*) EI_ORIGINAL(0x005300D0)
 __declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, int) EI_ORIGINAL(0x005935C0)
 __declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordArray*, void*, void*) EI_ORIGINAL(0x0058FD90)
-__declspec(naked) void __fastcall UpdatePlayerTimesAt(CWorldServer*, void*, float) EI_ORIGINAL(0x0058D280)
 // 00590160 (RET 8). The player's items into its party records before leaving.
 __declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, void* /*records*/) EI_ORIGINAL(0x00590160)
 // 0066F0C0. The player state before a zone change.

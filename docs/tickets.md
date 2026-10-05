@@ -38,7 +38,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
   - C2d Camera.
-- C3 (taken 2026-10-05, first part) Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
+- C3 (first part done 2026-10-05; the 504 differing signatures and the member-style ones are the second part) Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
   identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
   differ need a decision per address. Routine for the first part (cheaper model).
 - C4 Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),

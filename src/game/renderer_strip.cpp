@@ -11,6 +11,9 @@
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "render/render.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -43,10 +46,7 @@ float& TopV() { return *reinterpret_cast<float*>(0x007AF058); }
 float& BottomV() { return *reinterpret_cast<float*>(0x007AF054); }
 
 __declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 __declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
-__declspec(naked) char* __fastcall Alloc32(int) EI_ORIGINAL(0x004E5710)
-__declspec(naked) char* __fastcall AllocWords(int) EI_ORIGINAL(0x00406B30)
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
 // The index array's SetAtGrow (00452FC0) and Add (00504E50).
 __declspec(naked) void __fastcall IndicesSetAtGrow(AlignedArray*, void*, int /*index*/, int /*value*/) EI_ORIGINAL(0x00452FC0)
@@ -395,9 +395,9 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
         Strip().size = 0;
     } else {
         SetSize(Projected(), n, 16, &Alloc16);
-        SetSize(Strip(), n, 32, &Alloc32);
+        SetSize(Strip(), n, 32, &AllocVertices);
     }
-    SetSize(Ribbon(), n * 2 + 100, 32, &Alloc32);
+    SetSize(Ribbon(), n * 2 + 100, 32, &AllocVertices);
     SetSize(Clipped(), n, 1, &AllocBytes);
     // The index array is sized for the ribbon and then freed at once; the indices are appended later.
     SetSize(Indices(), Ribbon().size * 3 + 0x96, 2, &AllocWords);

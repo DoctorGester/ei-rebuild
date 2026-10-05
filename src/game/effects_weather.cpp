@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_effects.h"
 
 #include <bit>
 #include <cstring>
@@ -45,7 +46,6 @@ double Unsigned(std::uint32_t value) {
 void* SoundManager() { return *reinterpret_cast<void**>(0x007AF784); }
 __declspec(naked) void __fastcall SoundSetVolume(void* /*manager*/, void*, int /*sound*/, int /*volume*/, int)
     EI_ORIGINAL(0x006B9100)
-__declspec(naked) void __fastcall SoundStop(void* /*manager*/, void*, int /*sound*/) EI_ORIGINAL(0x006B94A0)
 
 // The game's atexit (006E727B).
 __declspec(naked) int __cdecl GameAtexit(void (*)()) EI_ORIGINAL(0x006E727B)

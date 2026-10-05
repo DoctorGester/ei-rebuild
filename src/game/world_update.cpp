@@ -9,6 +9,10 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
+#include "originals_gameplay.h"
+#include "originals_script.h"
+#include "originals_world.h"
 
 // The radius keeps the original's operation order: no reassociation in this file.
 #pragma float_control(precise, on, push)
@@ -47,16 +51,13 @@ constexpr int kGlobalGroupNames = 0x129A0;
 
 __declspec(naked) void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const void* /*position*/, float /*radius*/)
     EI_ORIGINAL(0x0058D3D0)
-__declspec(naked) void __fastcall TickAt(CWorldServer*, void*, int /*force*/) EI_ORIGINAL(0x0058DCD0)
 __declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058B750)
 // 0058DAF0 (RET 4). Accepts the players a pending connection object holds.
 __declspec(naked) void __fastcall AcceptPlayers(CWorldServer*, void*, void* /*source*/) EI_ORIGINAL(0x0058DAF0)
 // 00479E30 (RET 4). The pending object at +0x60 polls the game server.
-__declspec(naked) void __fastcall PendingPoll(void*, void*, void* /*server*/) EI_ORIGINAL(0x00479E30)
 // 00665A10. Disconnects a player (its connection and units).
 __declspec(naked) void __fastcall PlayerDisconnect(WorldPlayer*, void*) EI_ORIGINAL(0x00665A10)
 // 0066C1D0 (RET 4). The player list releases the player.
-__declspec(naked) void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*) EI_ORIGINAL(0x0066C1D0)
 // 00665DE0 / 0066E130. A player's update before the tick / its state's update after it.
 __declspec(naked) void __fastcall PlayerUpdate(WorldPlayer*, void*) EI_ORIGINAL(0x00665DE0)
 __declspec(naked) void __fastcall StateUpdate(void*, void*) EI_ORIGINAL(0x0066E130)
@@ -76,7 +77,6 @@ __declspec(naked) void __stdcall RefsRelease(ScriptObjectRef*, int) EI_ORIGINAL(
 __declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/) EI_ORIGINAL(0x004CE1E0)
 __declspec(naked) void __fastcall GroupSetSize(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*, void*) EI_ORIGINAL(0x004B24B0)
-__declspec(naked) CEngineObject* __fastcall RefConstruct(ScriptObjectRef*, void*, const ScriptObjectRef*) EI_ORIGINAL(0x004B2500)
 // The network log's ostream (007C56B0).
 __declspec(naked) void* __fastcall OstreamPutString(void*, void*, const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) void* __fastcall OstreamPutLong(void*, void*, long) EI_ORIGINAL(0x006FC9C6)
@@ -136,7 +136,7 @@ int CWorldServer::Update() {
     }
     if (void* pending = unknown60_) {
         std::uint8_t* server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
-        if (server && !(At<std::uint32_t>(server, 4) & 0x80000000u)) PendingPoll(pending, nullptr, server);
+        if (server && !(At<std::uint32_t>(server, 4) & 0x80000000u)) SessionPump(pending, nullptr, server);
         AcceptPlayers(this, nullptr, unknown60_);
     }
 

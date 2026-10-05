@@ -7,6 +7,8 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
+#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>
@@ -44,12 +46,9 @@ bool ZeroOrNaN(float value) {
 
 // ---- Original code ------------------------------------------------------------------------------
 
-__declspec(naked) BOOL __fastcall ExecuteOrig(ScriptRun*, void*, CScript*) EI_ORIGINAL(0x004B6760)
 __declspec(naked) void __fastcall CalcFloatOrig(SSCCmd*, void*, CScript*, ScriptVars*, float*) EI_ORIGINAL(0x004B41E0)
-__declspec(naked) void __fastcall FreeTemporariesOrig(CScript*) EI_ORIGINAL(0x004BEC80)
 __declspec(naked) void __fastcall RunCommandsOrig(CScript*, void*, ScriptDecl*, ScriptDefinition*) EI_ORIGINAL(0x004BC420)
 __declspec(naked) void __fastcall IfThenRunOrig(const ScriptIfThen*, void*, CScript*, ScriptDefinition*) EI_ORIGINAL(0x004BB520)
-__declspec(naked) void __fastcall RemoveDeletedOrig(ScriptVars*) EI_ORIGINAL(0x004B3940)
 __declspec(naked) void __fastcall ReleaseIfDeletedOrig(ScriptObjectRef*) EI_ORIGINAL(0x004B2570)
 __declspec(naked) void __fastcall GroupRemoveDeletedOrig(ScriptGroup*) EI_ORIGINAL(0x004B3110)
 __declspec(naked) void __fastcall GroupSetSizeOrig(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
@@ -63,8 +62,6 @@ __declspec(naked) ScriptObjectRef* __fastcall TempObjectsRemoveTail(void*, void*
 __declspec(naked) void __fastcall VarsConstruct(ScriptVars*) EI_ORIGINAL(0x004C00D0)
 __declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE090)
 __declspec(naked) void __fastcall FloatsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1A80)
-__declspec(naked) void __fastcall StringsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C14A0)
-__declspec(naked) void __fastcall GroupsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1BE0)
 // ScriptRun list elements: ConstructElements(p, n) and operator=; FreeNode of the run list
 // (+0x15C) and of the instance list (+0x140) (each destroys the element).
 __declspec(naked) void __stdcall RunConstructElements(ScriptRun*, int) EI_ORIGINAL(0x004CECB0)
@@ -358,7 +355,7 @@ void __fastcall ScriptRunCommands(CScript* script, void*, ScriptDecl* block, Scr
     if (instance) {
         ScriptVars& from = instance->vars;
         FloatsCopy(&run->vars.floats, nullptr, &from.floats);
-        StringsCopy(&run->vars.strings, nullptr, &from.strings);
+        StringsCopyOriginal(&run->vars.strings, nullptr, &from.strings);
         GroupCopy(reinterpret_cast<ScriptGroup*>(&run->vars.objects), nullptr,
                   reinterpret_cast<const ScriptGroup*>(&from.objects));
         GroupsCopy(&run->vars.groups, nullptr, &from.groups);

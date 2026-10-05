@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -41,7 +42,6 @@ struct PtrList {
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
 // and weapons (with the same effects).
 __declspec(naked) PtrListNode* __fastcall NewNode(PtrList*, void*, PtrListNode* /*prev*/, PtrListNode* /*next*/) EI_ORIGINAL(0x004621A0)
-__declspec(naked) int __fastcall IsTextKey(int) EI_ORIGINAL(0x004613A0)
 __declspec(naked) char* __fastcall UnitPrototype(void* /*unit*/) EI_ORIGINAL(0x00530930)
 __declspec(naked) void* __fastcall CreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void* __fastcall UnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)
@@ -96,7 +96,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
                                  void* /*unused*/, int* gold) {
     auto* drops = static_cast<PtrList*>(dropList);
     auto* items = static_cast<PtrList*>(itemList);
-    bool keyed = IsTextKey(At<int>(unit, 0xC)) & 0xFF;
+    bool keyed = IsTextKeyOriginal(At<int>(unit, 0xC)) & 0xFF;
     if (At<std::uint32_t>(unit, 8) & 0x100000) return 0;
     void* manager = ei::VCall<void*>(world, 18);
     char* prototype = UnitPrototype(unit);

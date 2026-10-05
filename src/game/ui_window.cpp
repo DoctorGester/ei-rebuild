@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_core.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -517,7 +518,6 @@ EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
 
 namespace {
 // 0040CB20: the engine object's base constructor (thiscall).
-__declspec(naked) void __fastcall ConstructEngineObject(void*) EI_ORIGINAL(0x0040CB20)
 // The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4), 0068EAF0
 // registers it (RET 8).
 __declspec(naked) std::uint8_t* __fastcall NewMaterial(void*, void*, int) EI_ORIGINAL(0x0068E970)

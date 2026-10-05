@@ -4,6 +4,7 @@
 // docs/notes/units.md ("Unit points").
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
 
 #include <cstdint>
 #include <cstring>
@@ -20,8 +21,6 @@ T& At(void* object, int offset) {
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
 __declspec(naked) std::uint8_t* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
-__declspec(naked) bool __fastcall MotionSample(void*, void*, void*, void*, float, bool*, float*, float*, float*, int*,
-                                               int*) EI_ORIGINAL(0x005C7430)
 __declspec(naked) std::uint8_t* __fastcall AnimationEntry(void*, void*, std::uint32_t) EI_ORIGINAL(0x00518F80)
 __declspec(naked) float* __fastcall AxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
 __declspec(naked) float* __fastcall AxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)

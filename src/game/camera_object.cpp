@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -259,7 +260,6 @@ __declspec(naked) RawCString* __fastcall CStringMid(const RawCString* /*s*/, voi
 __declspec(naked) void __fastcall CStringAssign(RawCString* /*s*/, void*, const RawCString* /*from*/) EI_ORIGINAL(0x00700AA9)
 __declspec(naked) void __fastcall CStringDestroy(RawCString* /*s*/) EI_ORIGINAL(0x00700970)
 __declspec(naked) void __fastcall FileWrite(mfc::CFile* /*file*/, void*, const void* /*buffer*/, unsigned /*count*/) EI_ORIGINAL(0x0070133F)
-__declspec(naked) int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 
 constexpr std::uintptr_t kCurrentRecord = 0x00783D3C;      // ".\camera\camera.cam"
 constexpr std::uintptr_t kNumberedRecords = 0x00783D24;  // ".\camera\camera0*.cam"

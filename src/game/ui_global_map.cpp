@@ -21,6 +21,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -162,12 +163,12 @@ SpriteOps* Ops(CUiMesh* sprite) { return reinterpret_cast<SpriteOps*>(sprite); }
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 struct SurfaceDraw {
-    void Begin();                                                                   // 005FDC00
-    void Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
+    void* Begin();                                                                  // 005FDC00
+    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
     void End();                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
-__declspec(naked) void SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
 __declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 SurfaceDraw* Draw(CUiSurface* surface) { return reinterpret_cast<SurfaceDraw*>(surface); }
 
@@ -720,7 +721,7 @@ struct WeatherDraw {
 __declspec(naked) void WeatherDraw::Draw(void*, float) EI_ORIGINAL(0x00499F10)
 
 // 004800E0 (cdecl): a fatal DirectX error with its message.
-__declspec(naked) void __cdecl FatalDirectX(long, const char*) EI_ORIGINAL(0x004800E0)
+__declspec(naked) int __cdecl FatalDirectX(long, const char*) EI_ORIGINAL(0x004800E0)
 
 struct CursorAt {
     int SetShape(int shape);   // 005E5200 (on 007C7BD8)
@@ -868,7 +869,6 @@ EI_REPLACE(0x0062F050, GlobalMapUpdate);
 // --- 005F67A0: the constructor --------------------------------------------------------------------
 
 namespace {
-__declspec(naked) void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 // The STLport containers' constructors (thiscall): 005FA0C0 (compare, allocator; RET 8) at
 // +0x1D0, 005FA100 (allocator; RET 4: the tree header node) and 005FA0E0 (empties it) at +0x1E0.
 __declspec(naked) void __fastcall ConstructPair(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA0C0)
@@ -931,7 +931,6 @@ __declspec(naked) void __fastcall DestroyQuest(void*) EI_ORIGINAL(0x005FBDD0)
 __declspec(naked) void __fastcall DestroyLink(void*) EI_ORIGINAL(0x005FBD80)
 __declspec(naked) void __fastcall DestroyZone(void*) EI_ORIGINAL(0x005FBD30)
 // 00600BA0: the container base's destructor body.
-__declspec(naked) void __fastcall DestroyContainer(void*) EI_ORIGINAL(0x00600BA0)
 
 // A CArray's destructor: its vtable back, each entry destroyed, the storage freed.
 void DestroyArray(std::uint8_t* array, std::uint32_t vtable, int entrySize, void(__fastcall* destroy)(void*)) {
@@ -975,6 +974,6 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self) {
     DestroyArray(bytes + 0x1A0, 0x00740BF0, 0x18, DestroyLink);
     DestroyArray(bytes + 0x18C, 0x00740BFC, 0x10, DestroyZone);
     CStringDestruct(bytes + 0x17C);
-    DestroyContainer(self);
+    DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6920, GlobalMapDestroy);

@@ -17,6 +17,8 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_gameplay.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -30,7 +32,6 @@ constexpr float kHitNoiseScale = 2.0f;                          // 0073EEF0
 constexpr float kSkillNoiseScale = 1.5f;                        // 0073EEF8
 constexpr std::uint32_t kOneBits = 0x3F800000u;                 // 1.0f, compared as a dword
 constexpr int kNoiseKind = 0x1A;
-
 
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
@@ -183,7 +184,6 @@ __declspec(naked) BOOL __fastcall StatsHeal(UnitStats*, void*, void*, float) EI_
 // 00525E90. UnitStats: the value of skill `skill` for the unit, in ST0 (declared double).
 __declspec(naked) double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00525E90)
 // 0067AC70. Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
-__declspec(naked) void __fastcall MissileSetTarget(CEngineObject*, void*, int) EI_ORIGINAL(0x0067AC70)
 // 0058E850. CWorldServer: casts `spell` from `caster` at `from` on `target` at `at`.
 __declspec(naked) void __fastcall WorldCastSpell(void*, void*, void*, CUnit*, const float*,
                                                  CEngineObject*, const void*, int) EI_ORIGINAL(0x0058E850)
@@ -235,7 +235,6 @@ __declspec(naked) AnimationList* __fastcall AnimationListCopy(AnimationList*, vo
 __declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, AnimationList)
     EI_ORIGINAL(0x00548DE0)
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
-__declspec(naked) void __fastcall ActionClear(UnitAction*) EI_ORIGINAL(0x00545F40)
 
 __declspec(naked) void CUnitServer::ClaimHostility(CUnit*, std::uint32_t) EI_ORIGINAL(0x00552D00)
 __declspec(naked) void CUnitServer::CallBuildDeathAnimation(void*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)

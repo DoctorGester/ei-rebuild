@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -41,9 +42,8 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 004800E0 (cdecl): a fatal DirectX error with its message.
-__declspec(naked) void __cdecl FatalDirectX(long, const char*) EI_ORIGINAL(0x004800E0)
+__declspec(naked) int __cdecl FatalDirectX(long, const char*) EI_ORIGINAL(0x004800E0)
 // 004F0B00 (cdecl): the copies' error report (an empty function in 1.06).
-__declspec(naked) void __cdecl ReportBlitError(long, const char*) EI_ORIGINAL(0x004F0B00)
 
 // IDirectDrawSurface7 slots.
 long Blt(void** surface, RECT* to, void** from, RECT* fromRect, unsigned long flags, void* fx) {
@@ -131,7 +131,7 @@ void CUiSurface::CaptureScreen() {
         gameapi::EnterCriticalSection(DeviceLock());
         long hr = Blt(holder->surface, nullptr, screen->surface, &rect_, 0, nullptr);
         gameapi::LeaveCriticalSection(DeviceLock());
-        if (hr != 0) ReportBlitError(hr, Text(0x00793224));
+        if (hr != 0) ReportError(hr, Text(0x00793224));
     }
     // With the new renderer (src/render) the copy is taken from its frame: the old path's may lack
     // what it no longer draws.
@@ -158,7 +158,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
         gameapi::EnterCriticalSection(DeviceLock());
         hr = Blt(to->surface, nullptr, from->surface, nullptr, kBltWait, nullptr);
         gameapi::LeaveCriticalSection(DeviceLock());
-        if (hr != 0) ReportBlitError(hr, Text(0x00793248));
+        if (hr != 0) ReportError(hr, Text(0x00793248));
     }
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
@@ -288,7 +288,6 @@ long GetSurfaceDesc(void** surface, std::uint32_t* desc) {
 
 std::uint32_t& KeptBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E74); }
 std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E78); }
-
 
 } // namespace
 

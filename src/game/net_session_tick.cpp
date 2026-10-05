@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -27,7 +28,6 @@ namespace {
 __declspec(naked) void __fastcall StringDestroy(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
 __declspec(naked) void __fastcall StringDeallocate(void* /*allocator*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
 // 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
-__declspec(naked) unsigned __fastcall BufferReadPastEnd(GameBuffer* /*buffer*/, void*, void* /*to*/, unsigned /*size*/) EI_ORIGINAL(0x004DA170)
 
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kZeroLength = 0x00784020;   // "ZERO length packet received from "
@@ -35,7 +35,6 @@ constexpr std::uintptr_t kTimeout = 0x00784008;      // "TIMEOUT client, drop "
 
 // "<text><address>\n" and a flush to the network log.
 void LogAddress(std::uintptr_t text, const char* address) { NetLog()->Put(Text(text))->Put(address)->PutChar('\n')->Flush(); }
-
 
 } // namespace
 

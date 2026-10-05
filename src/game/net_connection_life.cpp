@@ -9,6 +9,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -243,7 +244,6 @@ __declspec(naked) void __fastcall HistoryCopy(HistoryNode** /*to*/, void*, Histo
 __declspec(naked) void __fastcall RecordsCopy(Connection::RecordMap* /*to*/, void*, const Connection::RecordMap* /*from*/) EI_ORIGINAL(0x004381B0)
 __declspec(naked) void __fastcall AttachedCopy(AttachedMap* /*to*/, void*, const AttachedMap* /*from*/) EI_ORIGINAL(0x00438440)
 __declspec(naked) void __fastcall HeaderListCopy(HeaderNode** /*to*/, void*, HeaderNode* const* /*from*/) EI_ORIGINAL(0x00438690)
-__declspec(naked) void __fastcall GameBufferCopy(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/) EI_ORIGINAL(0x004DA9E0)
 } // namespace
 
 // 00433060 (slot 3).
@@ -372,7 +372,6 @@ ReplicaEntry* ReplicaEntry::DeletingDestruct(unsigned flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x004344A0, ReplicaEntry::DeletingDestruct);
-
 
 // 00433040 (no Ghidra function; the element constructor the connection's constructor passes to the
 // vector constructor iterator): an empty id pool (no free ids, next 0). Returns this.

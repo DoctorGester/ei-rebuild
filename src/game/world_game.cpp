@@ -18,6 +18,13 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
+#include "originals_core.h"
+#include "originals_engine.h"
+#include "originals_gameplay.h"
+#include "originals_library.h"
+#include "originals_script.h"
+#include "originals_ui.h"
+#include "originals_world.h"
 
 #include <cstring>
 #include <new>
@@ -84,10 +91,9 @@ __declspec(naked) WorldPlayer* __fastcall WorldGetPlayer(void*, void*, int) EI_O
 // builder (00661050 constructs one, 006611D0 destroys it).
 __declspec(naked) void __fastcall PartyTake(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8890)
 __declspec(naked) void __fastcall PartyStore(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8880)
-__declspec(naked) void __fastcall RecordsConstruct(void*, void*) EI_ORIGINAL(0x00661050)
+__declspec(naked) void* __fastcall RecordsConstruct(void*, void*) EI_ORIGINAL(0x00661050)
 __declspec(naked) void __fastcall RecordsDestruct(void*, void*) EI_ORIGINAL(0x006611D0)
 // 0045E850 (RET 4). CMapDatabase::FindMap: the zone record named `name`, or null.
-__declspec(naked) std::uint8_t* __fastcall MapDatabaseFind(void*, void*, const char*) EI_ORIGINAL(0x0045E850)
 // 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).
 __declspec(naked) double __fastcall VariableGet(void*, void*, const char*) EI_ORIGINAL(0x00460AF0)
 __declspec(naked) void __fastcall VariableSet(void*, void*, const char*, float) EI_ORIGINAL(0x00460BC0)
@@ -110,7 +116,6 @@ __declspec(naked) void __fastcall SaveWorldAt(void*, void*, CMemoryStream*) EI_O
 __declspec(naked) void* __fastcall OstreamPutString(void*, void*, const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) void* __fastcall OstreamPutChar(void*, void*, char) EI_ORIGINAL(0x006FC0B0)
 __declspec(naked) void* __fastcall OstreamManipulate(void*, void*, void*) EI_ORIGINAL(0x00434FE0)
-
 
 // The record builder of the party (0x70 bytes; the variables table at +0x54, the zone at +0x68).
 constexpr std::size_t kRecordsSize = 0x70;
@@ -322,9 +327,7 @@ constexpr int kZoneKind = 0x28;         // 2: the zone has a script folder (0059
 constexpr int kZoneExits = 0x48;        // ZoneExitArray (exits at +0x4C, count +0x50)
 
 // 005DB3F0. Plays a movie file (ECX path, EDX 0, five flags).
-__declspec(naked) void __fastcall PlayMovieFile(const char*, int, int, int, int, int, int) EI_ORIGINAL(0x005DB3F0)
 // 00460DB0 (RET 4). Named float table Remove.
-__declspec(naked) void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)
 // 00579830 (RET 0xC). Reads a save file through the file stream into `out` (ECX), checking the
 // header (magic in EDX, version, minimum version); false when it is corrupt.
 __declspec(naked) bool __fastcall ReadSaveFile(CMemoryStream* /*out*/, unsigned /*magic*/, int /*version*/,
@@ -334,7 +337,6 @@ __declspec(naked) bool __fastcall ReadSaveFile(CMemoryStream* /*out*/, unsigned 
 __declspec(naked) int __fastcall LoadSaveAt(CWorldServer*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
 __declspec(naked) void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const float*, std::uint32_t /*radius*/)
     EI_ORIGINAL(0x0058D3D0)
-__declspec(naked) void __fastcall TickAt(CWorldServer*, void*, int /*force*/) EI_ORIGINAL(0x0058DCD0)
 __declspec(naked) void __fastcall SetZoneExitsAt(CWorldServer*, void*, const void*) EI_ORIGINAL(0x005915E0)
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 __declspec(naked) int __fastcall NewZone(CWorldServer*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x00595480)
@@ -520,14 +522,12 @@ __declspec(naked) int __fastcall WorldLoadMobFile(CWorldServer*, void*, const ch
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
 // 0073BCA0; counted pointer at server + 0x25A0: 00413270 release, 00418BE0 share; 00426A80
 // assigns a string from a range) and the message 0041A500(8, zone).
-__declspec(naked) int __stdcall GetHostName(char*, int) EI_ORIGINAL(0x006E6100)
-__declspec(naked) void __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
+__declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
 __declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
 __declspec(naked) void __fastcall RawStringDestruct(void*, void*) EI_ORIGINAL(0x00425040)
 __declspec(naked) void __fastcall HostRecordConstruct(void*, void*) EI_ORIGINAL(0x004186E0)
-__declspec(naked) void __fastcall HostStringConstruct(void*, void*) EI_ORIGINAL(0x0041F460)
+__declspec(naked) void* __fastcall HostStringConstruct(void*, void*) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall CountedDestroy(void* /*slot*/, void*) EI_ORIGINAL(0x00413270)
-__declspec(naked) void __fastcall CountedShare(void* /*slot*/, void*, void*) EI_ORIGINAL(0x00418BE0)
 __declspec(naked) void __fastcall HostStringAssign(void*, void*, const char* /*first*/, const char* /*last*/)
     EI_ORIGINAL(0x00426A80)
 __declspec(naked) void __fastcall ServerSendText(void*, void*, int /*message*/, const char*) EI_ORIGINAL(0x0041A500)
@@ -537,7 +537,7 @@ std::uint8_t* GameServer() { return *reinterpret_cast<std::uint8_t**>(0x0079B5DC
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
     char host[100];
-    if (GetHostName(host, sizeof(host)) != 0) return;
+    if (WsGetHostName(host, sizeof(host)) != 0) return;
     std::uint32_t address[4] = {0, 0, 0, 0};
     AddressInit(address, nullptr, host, kHostPort);
     alignas(4) std::uint8_t text[12];
@@ -556,7 +556,7 @@ void AnnounceHost(const char* zone) {
     void* slot = GameServer() + 0x25A0;
     if (record != *static_cast<void**>(slot)) {
         CountedDestroy(slot, nullptr);
-        CountedShare(slot, nullptr, record);
+        RefShare(slot, nullptr, record);
     }
     const char* text1 = formatted;
     std::uint8_t* shared = At<std::uint8_t*>(GameServer(), 0x25A0);
@@ -828,7 +828,6 @@ void GameFlow::BeginMultiplayerGame() {
 namespace {
 
 // 00661300 (RET 4). Party::CopyFrom. 00662AC0 (RET 4): the party sends its map transfer.
-__declspec(naked) void __fastcall PartyCopyFrom(void*, void*, const void*) EI_ORIGINAL(0x00661300)
 __declspec(naked) void __fastcall PartySendTransfer(void*, void*, int) EI_ORIGINAL(0x00662AC0)
 // 005800C0. The flow's update (patched by Rebirth: original address).
 __declspec(naked) void __fastcall FlowUpdate(GameFlow*, void*) EI_ORIGINAL(0x005800C0)
@@ -1037,8 +1036,7 @@ __declspec(naked) void __fastcall ScriptDecode(ScriptDecoder*, void*, mfc::CStri
 __declspec(naked) void __fastcall MemorySeek(CMemoryStream*, void*, std::uint32_t) EI_ORIGINAL(0x004A5490)
 __declspec(naked) void __fastcall MemoryReset(CMemoryStream*, void*) EI_ORIGINAL(0x00468C20)
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
-__declspec(naked) void __fastcall QueueReset(void*, void*) EI_ORIGINAL(0x004BE6E0)
-__declspec(naked) void __fastcall QueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
+__declspec(naked) int __fastcall QueueAdd(void*, void*, const mfc::CString*, int) EI_ORIGINAL(0x004D23A0)
 
 // A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
 struct LocalMemoryStream {
@@ -1105,7 +1103,6 @@ namespace {
 __declspec(naked) void __fastcall ServerCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041A500)
 // 00413270 / 00418BE0 (RET 4). The session handle at the server's +0x25A0: close / assign.
 __declspec(naked) void __fastcall HandleClose(void*, void*) EI_ORIGINAL(0x00413270)
-__declspec(naked) void __fastcall HandleAssign(void*, void*, void*) EI_ORIGINAL(0x00418BE0)
 // 00590C70 / 00591070 (RET 4). CWorldServer: sync a player's party records / after the copy.
 __declspec(naked) void __fastcall SyncPartyRecordsAt(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00590C70)
 __declspec(naked) void __fastcall AfterPartyCopy(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00591070)
@@ -1141,7 +1138,7 @@ void GameFlow::SwitchMultiplayerZone() {
             void* handle = ServerSession() + 0x25A0;
             if (*static_cast<void**>(handle)) {
                 HandleClose(handle, nullptr);
-                HandleAssign(handle, nullptr, nullptr);
+                RefShare(handle, nullptr, nullptr);
             }
         }
         At<char>(this, 0x80) = 0;
@@ -1205,7 +1202,7 @@ __declspec(naked) std::uint8_t* __fastcall ServerSessionConstruct(void*, void*, 
 // 00419CD0 (RET 4). A session reference (0079B5DC / 0079B5D8) assigned.
 __declspec(naked) void __fastcall SessionRefAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
 // 00440440 (RET 8). A 16-byte network address from a host name and a port.
-__declspec(naked) void __fastcall AddressSet(void*, void*, const char*, int) EI_ORIGINAL(0x00440440)
+__declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_ORIGINAL(0x00440440)
 // 00436C60 (RET 8). A buffer takes bytes.
 __declspec(naked) void __fastcall BufferPut(GameBuffer*, void*, const void*, int) EI_ORIGINAL(0x00436C60)
 // 00442980 (RET 8). The client connects to an address with a hello buffer.
@@ -1219,7 +1216,6 @@ __declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer*, void*) EI_
 __declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer*, void*) EI_ORIGINAL(0x004DA910)
 __declspec(naked) std::uint8_t* __fastcall ClientSessionNew(void*, void*) EI_ORIGINAL(0x0041BC40)
 // 006E7E80. The CRT's strncpy.
-__declspec(naked) char* __cdecl GameStrncpy(char*, const char*, std::size_t) EI_ORIGINAL(0x006E7E80)
 
 } // namespace
 
@@ -1517,7 +1513,6 @@ void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 __declspec(naked) void __fastcall WorldSetTimeSpeedF(CWorldServer*, void*, float) EI_ORIGINAL(0x0058EEE0)
 __declspec(naked) void __fastcall WorldSetTimeF(CWorldServer*, void*, float) EI_ORIGINAL(0x0058EEA0)
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
-__declspec(naked) void __fastcall ClientWorldSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
 __declspec(naked) std::uint8_t* __fastcall ClientWorldLocalView(void*) EI_ORIGINAL(0x005699F0)
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
 __declspec(naked) int __stdcall EnterZoneAt(std::uint8_t*) EI_ORIGINAL(0x0057A060)
@@ -1615,7 +1610,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     CampaignMode() = mode;
     if (mode == 1) SpectatorFlag() = mode;
     WorldSetGameResult(World(), nullptr, result);
-    ClientWorldSetPlayer(kClientWorld, nullptr, At<int>(World(), 0x5C));
+    ClientSetPlayer(kClientWorld, nullptr, At<int>(World(), 0x5C));
     ClientWorldLocalView(kClientWorld)[0x85] = 0;
 }
 
@@ -1625,7 +1620,6 @@ namespace {
 
 constexpr std::uintptr_t kExecAutoexec = 0x007905F0;   // "exec autoexec.cfg"
 // 005DC620 / 004A88A0 through their addresses: the console executor, the party manager's new game.
-__declspec(naked) void __fastcall ConsoleExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
 __declspec(naked) void __fastcall PartyNewGameAt(void*) EI_ORIGINAL(0x004A88A0)
 
 } // namespace
@@ -1633,7 +1627,7 @@ __declspec(naked) void __fastcall PartyNewGameAt(void*) EI_ORIGINAL(0x004A88A0)
 void GameFlow::StartNewGame() {
     // Rebirth's AutoExec #2 (the CALL at 0057BD30 redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
-    ConsoleExecuteAt(Text(kExecAutoexec));
+    ExecuteAt(Text(kExecAutoexec));
     ToMainMenu() = 1;
     PartyNewGameAt(kParty);
     mfc::CString folder;
@@ -1667,8 +1661,7 @@ __declspec(naked) void __fastcall SwitchResources(const char*) EI_ORIGINAL(0x005
 // update (0058DFF0); the network pump (004122D0).
 __declspec(naked) int __fastcall ClientSegmentAt(void*) EI_ORIGINAL(0x005641F0)
 __declspec(naked) bool __fastcall ClientHasZone(void*, void*, const char*) EI_ORIGINAL(0x00566D80)
-__declspec(naked) void __fastcall ServerUpdateAt(CWorldServer*) EI_ORIGINAL(0x0058DFF0)
-__declspec(naked) void __cdecl NetworkPump() EI_ORIGINAL(0x004122D0)
+__declspec(naked) int __fastcall ServerUpdateAt(CWorldServer*) EI_ORIGINAL(0x0058DFF0)
 // The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
 // flow's party copy (00665CC0, +8).
 __declspec(naked) void __fastcall ViewAutoplayOn(void*, void*, const char*) EI_ORIGINAL(0x00669710)
@@ -1729,7 +1722,7 @@ void GameFlow::ProcessRequest() {
         StartZoneAt(this, nullptr, Text(kMainMenu), 2);
         break;
     case kStateLoad:
-        ClientWorldSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
+        ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)[0x85] = 0;
         WorldSetGameResult(World(), nullptr, 1);
         ClientSegmentAt(clientWorld);
@@ -1777,7 +1770,7 @@ void GameFlow::ProcessRequest() {
         StartNetworkZoneAt(At<const char*>(this, 4));
         void* player = At<void*>(ClientWorldLocalView(clientWorld), 0x1C);
         PlayerTakeParty(player, nullptr, reinterpret_cast<std::uint8_t*>(this) + 8);
-        ClientWorldSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
+        ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)[0x85] = 1;
         break;
     }
@@ -1785,7 +1778,7 @@ void GameFlow::ProcessRequest() {
         break;
     }
     state = 0;
-    NetworkPump();
+    NetworkTimers();
 }
 
 // ---- LoadGame (0057ABA0) ------------------------------------------------------------------------
@@ -1809,7 +1802,7 @@ int GameFlow::LoadGame(const char* slot) {
     if (GameMode() == 2 || GameMode() == 3) return 0;
     // Rebirth's AutoExec #1 (the CALL at 0057ABE1 redirected): addon's AutoExec lines first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AutoExec)) console::RunAddonAutoExec();
-    ConsoleExecuteAt(Text(kExecAutoexec));
+    ExecuteAt(Text(kExecAutoexec));
     RendererSetBusy(kRenderer, nullptr, 3);
     ToMainMenu() = 1;
     LocalFileStream file;
@@ -1934,7 +1927,6 @@ __declspec(naked) void __fastcall FlowPartyStep(GameFlow*, void*, int) EI_ORIGIN
 // 00461540. The named float table's clear, through its address.
 __declspec(naked) void __fastcall VariablesClear(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00661FB0. The party outside a game (007C82B0) resets its members.
-__declspec(naked) void __fastcall OutsidePartyReset(void*) EI_ORIGINAL(0x00661FB0)
 // 00426A80 (RET 8). STLport string assign(first, last) (the second call is inlined in the
 // original, the same algorithm).
 __declspec(naked) void __fastcall RangeAssign(void*, void*, const char*, const char*) EI_ORIGINAL(0x00426A80)
@@ -1953,7 +1945,7 @@ void GameFlow::AfterServerStart() {
         ClearVariablesKeepingGlobals(variables);
     else
         VariablesClear(variables);
-    OutsidePartyReset(reinterpret_cast<void*>(0x007C82B0));
+    PartyResetItems(reinterpret_cast<void*>(0x007C82B0));
     // The client's host record gets the hero's and the party's names (or the defaults).
     if (*reinterpret_cast<int*>(0x007C82E4) == 1) {
         char** names = *reinterpret_cast<char***>(0x007C82E0);
@@ -1983,7 +1975,6 @@ unsigned& ServerStamp() { return *reinterpret_cast<unsigned*>(0x007AFED0); }   /
 unsigned& AppliedStamp() { return *reinterpret_cast<unsigned*>(0x007AFED4); }  // the stamp applied up to
 
 // The quest text files (007AFDD0, 12-byte strings) and the briefing texts (007AF788).
-__declspec(naked) void __fastcall QuestTextsUnload(void*, void*, const char*) EI_ORIGINAL(0x004DEDD0)
 __declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
 // Local NamedFloatTable copies: 00581790 an empty one (100 buckets), 00580900 a copy.
 __declspec(naked) void __fastcall VariablesConstruct(NamedFloatTable*) EI_ORIGINAL(0x00581790)
@@ -2059,7 +2050,7 @@ void GameFlow::UpdateFromServer() {
     if (void* texts = *reinterpret_cast<void**>(0x007AF788)) {
         auto* files = reinterpret_cast<std::uint8_t**>(0x007AFDD0);
         for (std::uint8_t* file = files[0]; file != files[1]; file += 0xC)
-            QuestTextsUnload(texts, nullptr, *reinterpret_cast<const char**>(file));
+            TextsUnload(texts, nullptr, *reinterpret_cast<const char**>(file));
         QuestFilesClear(files);
     }
     auto* clientWorld = reinterpret_cast<void*>(0x007AF5B8);

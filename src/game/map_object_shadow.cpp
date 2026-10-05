@@ -15,6 +15,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "render/render.h"
+#include "originals_effects.h"
 
 #include <bit>
 #include <cstring>
@@ -121,7 +122,6 @@ __declspec(naked) void __fastcall ProjectShadow(void*, void*, const float*, cons
 // 00501AF0. Texture stages: binds a texture.
 __declspec(naked) void __fastcall SetTexture(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x00501AF0)
 // 006CB020. Light manager: is the point lit, AL.
-__declspec(naked) std::uint8_t __fastcall IsLit(void*, void*, const float*) EI_ORIGINAL(0x006CB020)
 // 004EA4A0. Device: draws the shadow geometry.
 __declspec(naked) void __fastcall DrawGeometry(void*, void*, void*, void*, int, void*, int, std::uint32_t,
                                                std::uint32_t, int, std::uint32_t) EI_ORIGINAL(0x004EA4A0)

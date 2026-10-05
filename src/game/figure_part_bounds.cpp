@@ -4,6 +4,7 @@
 // (mesh +0x18C) plus, per axis, either the near (+0x19C..) or the far (+0x1A8..) extent; eight
 // edges, two points each, in the original's order. See docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -31,7 +32,6 @@ static_assert(sizeof(LineList) == 0x20);
 // 00455940 the owning manager's context (object.cpp). 0049B140 (RET 4) appends a point.
 __declspec(naked) char* __fastcall ManagerContextAt(void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) void __fastcall AddPoint(LineList*, void*, const float*) EI_ORIGINAL(0x0049B140)
-__declspec(naked) void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 
 constexpr std::uint32_t kShowBounds = 0x4000;
 constexpr int kSlotDrawLines = 15;

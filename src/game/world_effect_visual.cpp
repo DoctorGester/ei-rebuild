@@ -2,7 +2,7 @@
 // world_effect.h and docs/notes/range_660.md.
 
 #include "world_effect_internal.h"
-
+#include "originals_effects.h"
 
 #include <cstring>
 
@@ -11,7 +11,6 @@ using namespace effect;
 namespace {
 
 // The light manager (*007AF738), thiscall.
-__declspec(naked) void __fastcall RemoveLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA720)
 __declspec(naked) void __fastcall AddLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA5D0)
 __declspec(naked) void __fastcall MoveLight(void*, void*, CEngineObject* /*light*/, const Vector3* /*delta*/) EI_ORIGINAL(0x006CA830)
 // 0068D010 (CLight): sets the colour and the position.

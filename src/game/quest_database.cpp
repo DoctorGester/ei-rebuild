@@ -10,6 +10,8 @@
 
 #include "../lib/mfc.h"
 #include "ei/hook.h"
+#include "originals_library.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -105,7 +107,7 @@ __declspec(naked) mfc::BOOL Registry::GetStringArray(const char*, const char*, c
 
 // STLport string members: default constructor [0041F460], assign a range [00426A80], assign a
 // C string [0041F550].
-__declspec(naked) void __fastcall StringConstruct(void*) EI_ORIGINAL(0x0041F460)
+__declspec(naked) void* __fastcall StringConstruct(void*) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00426A80)
 __declspec(naked) void __fastcall StringAssign(void*, void*, const char*) EI_ORIGINAL(0x0041F550)
 // The quest places: vector<float> constructor [006AFB00, allocator] and insert-overflow [006ADD50:
@@ -116,7 +118,6 @@ __declspec(naked) void __fastcall PlacesInsertOverflow(void*, void*, float*, con
 // erase a range [006AFB60], clear [0052E010], reserve [006B02B0], push_back from a CString
 // [006AF790], and the reader of a registry string list into one [006AE740: registry, section; key,
 // list].
-__declspec(naked) void __fastcall FirstListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
 __declspec(naked) void __fastcall ListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0055A3E0)
 __declspec(naked) void __fastcall ListErase(void*, void*, void*, void*) EI_ORIGINAL(0x006AFB60)
 __declspec(naked) void __fastcall ListClear(void*) EI_ORIGINAL(0x0052E010)
@@ -134,7 +135,6 @@ __declspec(naked) void __fastcall QuestFind(void*, void*, void**, const void*) E
 __declspec(naked) void __fastcall QuestIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B10)
 __declspec(naked) void __fastcall QuestPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0710)
 __declspec(naked) void __fastcall QuestIndexClear(void*) EI_ORIGINAL(0x006B0520)
-__declspec(naked) void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
 __declspec(naked) void __fastcall BriefingFind(void*, void*, void**, const void*) EI_ORIGINAL(0x006B07C0)
 __declspec(naked) void __fastcall BriefingIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B30)
 __declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0780)
@@ -146,7 +146,6 @@ __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIG
 __declspec(naked) void __fastcall TrimLeftChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE1D3)
 __declspec(naked) void __fastcall TrimRightChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE0DD)
 __declspec(naked) void __fastcall Split(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
-__declspec(naked) double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 
 // An allocator argument: the members read at most a byte through it.
 const std::uint8_t kAllocator = 0;

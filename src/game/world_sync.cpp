@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -99,8 +100,6 @@ __declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727
 // 0058C890 (RET 4). SendZone, through its address (rewritten here).
 __declspec(naked) int __fastcall SendZoneAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058C890)
 // 0055FBD0 (RET 8). The time of day and the time speed.
-__declspec(naked) void __fastcall WorldTimeSettings(CWorldServer*, void*, float* /*time*/, float* /*speed*/)
-    EI_ORIGINAL(0x0055FBD0)
 // The player state's (CPlayerServer) messages and updates.
 __declspec(naked) void __fastcall StateZoneSent(void*, void*) EI_ORIGINAL(0x0066D250)
 __declspec(naked) void __fastcall StateClearUnits(void*, void*) EI_ORIGINAL(0x0066F080)

@@ -14,6 +14,9 @@
 #include "ei/vcall.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_world.h"
 
 #include <windows.h>
 
@@ -87,7 +90,6 @@ void PopMatrix(char* device, int depthOffset) {
 // Render's callees.
 __declspec(naked) void __fastcall ClientBeginFrame(CWorldClient*) EI_ORIGINAL(0x00566360)
 __declspec(naked) void __fastcall SkyDraw(void*, void*, void*, const void*) EI_ORIGINAL(0x004D96E0)
-__declspec(naked) void __cdecl NetworkTimers() EI_ORIGINAL(0x004122D0)
 __declspec(naked) void __fastcall CameraFrame(void*, void*, void*) EI_ORIGINAL(0x0040E810)
 __declspec(naked) void __fastcall TerrainSetView(void*, void*, float, float, float) EI_ORIGINAL(0x006CA260)
 __declspec(naked) void __fastcall TerrainDrawFirst(void*, void*, void*) EI_ORIGINAL(0x006C6230)
@@ -130,9 +132,7 @@ __declspec(naked) float* __fastcall CameraPosition(void*) EI_ORIGINAL(0x0040FB20
 __declspec(naked) void __fastcall SoundListener(void*, void*, float) EI_ORIGINAL(0x0067CEF0)
 __declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const float*, float, std::uint32_t, int, int)
     EI_ORIGINAL(0x0056A990)
-__declspec(naked) void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
 __declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGINAL(0x0056F700)
-__declspec(naked) void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) void __fastcall NodeFree32(void*, void*, void*, int) EI_ORIGINAL(0x0056F840)
 __declspec(naked) void __fastcall IntroSortByModelAt(CEngineObject**, CEngineObject**, void*, int, void*)
     EI_ORIGINAL(0x005740D0)
@@ -487,7 +487,6 @@ int CWorldClient::DrawPass() {
             object->flags_ &= ~0x400u;
         }
     }
-
 
     if (flags_ & 0xC0) {
         ApplyStateBlock(renderer, kStateBlockAlpha);

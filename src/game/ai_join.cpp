@@ -9,6 +9,8 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "originals_ai.h"
+#include "originals_units.h"
 
 #include <cstdint>
 
@@ -18,17 +20,13 @@ namespace {
 // cost of a cell (RET 8; 0x7FFFFFFF unreached), the path to a cell into a list (RET 0xC), reset.
 __declspec(naked) void __fastcall SearchExpand(void*, void*) EI_ORIGINAL(0x005C2D40)
 __declspec(naked) void __fastcall SearchBest(void*, void*, int*, int*, int*) EI_ORIGINAL(0x005C3050)
-__declspec(naked) int __fastcall SearchCostAt(void*, void*, int, int) EI_ORIGINAL(0x005C3090)
 __declspec(naked) void __fastcall SearchPathTo(void*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005C3200)
 __declspec(naked) void __fastcall SearchResetAt(void*, void*) EI_ORIGINAL(0x005C35F0)
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
-__declspec(naked) PathCellList* __fastcall ListReversed(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5E60)
-__declspec(naked) void __fastcall ListAppend(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5DA0)
 __declspec(naked) void __fastcall ListFixUp(PathCellList*, void*) EI_ORIGINAL(0x005C6000)
 
 // 00539980: ConstructElements<PathCell> (zero-fills `count`).
-__declspec(naked) void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
@@ -66,14 +64,14 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
             ok = false;
             break;
         }
-        other = SearchCostAt(backward, nullptr, x, y);
+        other = SearchCost(backward, nullptr, x, y);
         if (other < kUnreached) break;
         SearchBest(backward, nullptr, &x, &y, &open);
         if (open == kUnreached) {
             ok = false;
             break;
         }
-        other = SearchCostAt(forward, nullptr, x, y);
+        other = SearchCost(forward, nullptr, x, y);
         if (other < kUnreached) break;
     }
     PathCellList scratch{reinterpret_cast<void*>(kListVtable), nullptr, nullptr, 0, nullptr, nullptr, 0x80};

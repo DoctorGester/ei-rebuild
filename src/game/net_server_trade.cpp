@@ -8,6 +8,9 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -15,7 +18,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall RefNullA(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF80)
 __declspec(naked) void __fastcall RefNullB(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFD0)
 // Counted pointers from raw ones without a reference, and the STLport lists (library): the
 // objects (+0x259C), the offers (+0x25B8), the trades (+0x25BC), the finished trades (+0x25C0).
@@ -23,14 +25,11 @@ __declspec(naked) RefPtr* __fastcall ObjectRefFromRaw(RefPtr* /*ref*/, void* /*o
 __declspec(naked) RefPtr* __fastcall OfferRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428070)
 __declspec(naked) RefPtr* __fastcall TradeRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428080)
 __declspec(naked) void** __fastcall ObjectsErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004293F0)
-__declspec(naked) void** __fastcall OffersEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004208A0)
 __declspec(naked) void** __fastcall OffersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00423190)
-__declspec(naked) void** __fastcall OffersErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004294D0)
 __declspec(naked) void** __fastcall TradesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420960)
 __declspec(naked) void** __fastcall TradesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00423410)
 __declspec(naked) void __fastcall TradesRemove(void* /*list*/, void*, const RefPtr* /*value*/) EI_ORIGINAL(0x00427320)
 __declspec(naked) void __fastcall FinishedPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00423690)
-__declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
@@ -115,7 +114,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
     const RefPtr* value = OfferRefFromRaw(&ref, message);
     void* end;
-    OffersEnd(offers, nullptr, &end);
+    PartiesEnd(offers, nullptr, &end);
     void* inserted;
     OffersInsert(offers, nullptr, &inserted, end, value);
 
@@ -180,7 +179,7 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) 
         void** next = static_cast<void**>(node[0]);
         if (node[2] == value->ptr) {
             void* erased;
-            OffersErase(offers, nullptr, &erased, node);
+            PartiesErase(offers, nullptr, &erased, node);
         }
         node = next;
     }

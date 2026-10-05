@@ -10,6 +10,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -213,7 +214,6 @@ __declspec(naked) void __fastcall SoundSetVolumeA(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __fastcall SoundSetVolumeB(void*, void*, int) EI_ORIGINAL(0x006B78A0)
 __declspec(naked) void __fastcall SoundSetVolumeC(void*, void*, int) EI_ORIGINAL(0x006B7A00)
 __declspec(naked) void __fastcall SoundTick(void*) EI_ORIGINAL(0x006B9B10)
-__declspec(naked) void __fastcall SessionPump(void*, void*, void*) EI_ORIGINAL(0x00479E30)
 __declspec(naked) void __fastcall SessionUpdate(void*) EI_ORIGINAL(0x00665DE0)
 __declspec(naked) void __fastcall SessionDisconnect(void*) EI_ORIGINAL(0x00665A10)
 __declspec(naked) int __fastcall PendingLookup(void*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)

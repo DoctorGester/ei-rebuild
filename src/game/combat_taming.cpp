@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 
@@ -30,7 +31,6 @@ __declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940
 // 00525E90 UnitStats: a skill's value (combat_actions.cpp uses it too).
 __declspec(naked) double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00525E90)
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
-__declspec(naked) void __fastcall DiplomacyOnAttack(void*, void*, CEngineObject*, CEngineObject*, int) EI_ORIGINAL(0x00455680)
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
 __declspec(naked) void __fastcall UnitSetSide(CUnit*, void*, int) EI_ORIGINAL(0x00530120)
 __declspec(naked) void __fastcall UnitSetRelationsB(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530180)

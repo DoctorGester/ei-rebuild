@@ -8,6 +8,8 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
+#include "originals_gameplay.h"
+#include "originals_units.h"
 
 #include <windows.h>
 
@@ -48,13 +50,11 @@ __declspec(naked) void __fastcall CameraStopSave(void*) EI_ORIGINAL(0x005787D0)
 // The player's server side (player +0x20): set a variable (0066EE10, the value's bits), send a
 // pair (0066F2C0), send a text (0066D770; the first argument unused), resend the party (0066F450).
 __declspec(naked) void __fastcall PlayerSetVariable(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
-__declspec(naked) void __fastcall PlayerSendPair(void*, void*, int, float) EI_ORIGINAL(0x0066F2C0)
 __declspec(naked) void __fastcall PlayerSendText(void*, void*, int, const char*) EI_ORIGINAL(0x0066D770)
 __declspec(naked) void __fastcall PlayerResendParty(void*) EI_ORIGINAL(0x0066F450)
 // 00460AF0: a variable of a table (the player's at +0xC4), in ST0.
 __declspec(naked) double __fastcall VariablesGet(void*, void*, const char*) EI_ORIGINAL(0x00460AF0)
 // 00553380: the unit's data gains experience.
-__declspec(naked) void __fastcall DataGainExperience(void*, void*, float) EI_ORIGINAL(0x00553380)
 // The unit's brain (data +0x980): 005CB0F0 on its +0xD0, then 005D6630 (entry, index).
 __declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005CB0F0)
 __declspec(naked) void __fastcall BrainSelect(void*, void*, void*, int) EI_ORIGINAL(0x005D6630)

@@ -13,6 +13,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_library.h"
 
 #include <cstdarg>
 
@@ -29,7 +30,6 @@ __declspec(naked) int __cdecl IsDigit(int) EI_ORIGINAL(0x006E9379)
 __declspec(naked) int __cdecl IsSpace(int) EI_ORIGINAL(0x006E93CE)
 __declspec(naked) int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
 __declspec(naked) int __cdecl Mbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
-__declspec(naked) double __cdecl Atof(const char*) EI_ORIGINAL(0x006E911A)
 
 __declspec(naked) StringOps* StringOps::InitN(const char*, int) EI_ORIGINAL(0x006FD4DE)
 __declspec(naked) mfc::CString StringOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)

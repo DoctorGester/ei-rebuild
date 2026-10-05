@@ -13,6 +13,9 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_core.h"
+#include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -88,8 +91,6 @@ float ClampToMap(float v, float last) {
 }
 
 // Not rewritten.
-__declspec(naked) double __fastcall SurfaceHeightRaw(void* /*owner*/, void*, float, float) EI_ORIGINAL(0x00564070)
-__declspec(naked) double __fastcall LengthRaw(const Vector3*) EI_ORIGINAL(0x00401E20)
 __declspec(naked) Quaternion* __fastcall QuatFromAngleAxis(Quaternion*, void*, float /*angle*/, const Vector3*)
     EI_ORIGINAL(0x0049E790)
 __declspec(naked) Quaternion* __fastcall QuatFromAxisAngle(Quaternion*, void*, const Vector3*, float /*angle*/)
@@ -97,7 +98,6 @@ __declspec(naked) Quaternion* __fastcall QuatFromAxisAngle(Quaternion*, void*, c
 __declspec(naked) void __fastcall QuatSlerp(Quaternion*, void*, float, const Quaternion*, const Quaternion*)
     EI_ORIGINAL(0x0049ED20)
 __declspec(naked) void __fastcall SetListener(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x006B9750)
-__declspec(naked) double __cdecl Hypot(double, double) EI_ORIGINAL(0x006FD026)   // _hypot
 // The shake list's STLport instantiations (`list` is the address of the field holding the sentinel).
 __declspec(naked) void __fastcall ShakeEnd(CameraShake* const*, void*, CameraShake** /*ret*/) EI_ORIGINAL(0x00411530)
 __declspec(naked) void __fastcall ShakeInsert(CameraShake* const*, void*, CameraShake** /*ret*/, CameraShake* /*pos*/,
@@ -174,7 +174,6 @@ void ResetMotion(CCamera* c) {
 }
 
 } // namespace
-
 
 void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {

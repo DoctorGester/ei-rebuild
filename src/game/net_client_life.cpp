@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 namespace net {
 
@@ -17,7 +18,6 @@ namespace {
 __declspec(naked) void __fastcall PartyDestruct(void* /*party*/) EI_ORIGINAL(0x006611D0)
 // STLport destructors, clears and sentinel frees of the member containers (library).
 __declspec(naked) void __fastcall List2614Destruct(void* /*list*/) EI_ORIGINAL(0x00424A40)
-__declspec(naked) void __fastcall List2610Destruct(void* /*list*/) EI_ORIGINAL(0x00423370)
 __declspec(naked) void __fastcall List2608Clear(void* /*list*/) EI_ORIGINAL(0x004275A0)
 __declspec(naked) void __fastcall List2608Free(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426330)
 __declspec(naked) void __fastcall List2604Clear(void* /*list*/) EI_ORIGINAL(0x00427560)
@@ -36,7 +36,6 @@ __declspec(naked) void __fastcall List25DCClear(void* /*list*/) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall List25DCFree(void* /*list*/, void*, void* /*node*/, int /*n*/) EI_ORIGINAL(0x00425D60)
 __declspec(naked) void __fastcall List25D8Clear(void* /*list*/) EI_ORIGINAL(0x00427360)
 __declspec(naked) void __fastcall List25D8FreeNode(void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426960)
-__declspec(naked) void __fastcall List25BCClear(void* /*list*/) EI_ORIGINAL(0x00421CD0)
 __declspec(naked) void __fastcall Vector25ACDestruct(void* /*vector*/) EI_ORIGINAL(0x0041F7F0)
 __declspec(naked) void __fastcall List25A8Destruct(void* /*list*/) EI_ORIGINAL(0x00421A50)
 __declspec(naked) void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)

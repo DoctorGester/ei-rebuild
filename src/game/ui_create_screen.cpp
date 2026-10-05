@@ -11,6 +11,8 @@
 #include "render/render_state.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_engine.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -20,7 +22,6 @@ namespace {
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
 std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
 
-__declspec(naked) void __fastcall ConstructContainer(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) void __fastcall ConstructIslandMap(void*, void*, CInterface3D*) EI_ORIGINAL(0x005F67A0)      // id 4
 __declspec(naked) void __fastcall ConstructScreen5(void*, void*, CInterface3D*, int) EI_ORIGINAL(0x005F6240)    // id 5
 __declspec(naked) void __fastcall ConstructScreen8(void*, void*, CInterface3D*, int, const void*) EI_ORIGINAL(0x005F6D50)
@@ -57,7 +58,7 @@ void CInterface3D::CreateScreen(int id) {
     case 1: {   // the in-game screen (ui_camp.h)
         screen = gamecrt::operator_new(0x230);
         if (!screen) break;
-        ConstructContainer(screen, nullptr, this);
+        ConstructContainerAt(screen, nullptr, this);
         SetDword(screen, 0x168, 0x007402AC);
         SetDword(screen, 0x16C, 0);
         SetDword(screen, 0x178, 0);
@@ -74,14 +75,14 @@ void CInterface3D::CreateScreen(int id) {
     case 2:
         screen = gamecrt::operator_new(0x17C);
         if (!screen) break;
-        ConstructContainer(screen, nullptr, this);
+        ConstructContainerAt(screen, nullptr, this);
         SetDword(screen, 0x00, 0x00740688);
         SetDword(screen, 0x94, 0x00740654);
         break;
     case 3: {   // the base / briefing screen
         screen = gamecrt::operator_new(0x2A4);
         if (!screen) break;
-        ConstructContainer(screen, nullptr, this);
+        ConstructContainerAt(screen, nullptr, this);
         StringArrayConstruct(At(screen, 0x170));
         SetDword(screen, 0x184, EmptyString());
         Member5FAF80(At(screen, 0x190));
@@ -106,7 +107,7 @@ void CInterface3D::CreateScreen(int id) {
     case 7:
         screen = gamecrt::operator_new(0x168);
         if (!screen) break;
-        ConstructContainer(screen, nullptr, this);
+        ConstructContainerAt(screen, nullptr, this);
         SetDword(screen, 0x00, 0x00740840);
         SetDword(screen, 0x94, 0x0074080C);
         break;
@@ -138,7 +139,6 @@ CursorAt* Cursor() { return reinterpret_cast<CursorAt*>(0x007C7BD8); }
 // 00458010 (__fastcall with two byte arguments).
 __declspec(naked) void __fastcall GameState458010(char, char) EI_ORIGINAL(0x00458010)
 // 00458220: the message pump.
-__declspec(naked) void __cdecl PumpMessages() EI_ORIGINAL(0x00458220)
 // 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
 __declspec(naked) int __fastcall IsClientAt(void*) EI_ORIGINAL(0x0057F440)
 
@@ -179,7 +179,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 1;
     using CreateFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<CreateFn>(window->vtable_[25])(window);
-    PumpMessages();
+    PumpMessagesOriginal();
     ui->mouseCapture_ = nullptr;
     Cursor()->SetShape(0);
 }
@@ -275,7 +275,7 @@ void CInterface3D::Activate(CUiWindow* window) {
         --stackEnd_;
     }
     steps->AfterCloseAll();
-    PumpMessages();
+    PumpMessagesOriginal();
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
     if (!window) {
         game::FatalError(reinterpret_cast<const char*>(0x0079308C));
@@ -349,7 +349,7 @@ void CInterface3D::ShowMessage(int force) {
     if (memory) {
         std::uint32_t value;
         std::memcpy(&value, self + 0xA8, 4);
-        ConstructContainer(memory, nullptr, this);
+        ConstructContainerAt(memory, nullptr, this);
         auto* win = static_cast<std::uint8_t*>(memory);
         win[0x164] = 1;
         std::memcpy(&message, self + 0xA4, 4);
@@ -384,7 +384,7 @@ namespace {
 __declspec(naked) void __fastcall TopicsFind(void*, void*, void** /*out*/, const void* /*key*/) EI_ORIGINAL(0x005FAEA0)
 __declspec(naked) void __fastcall TopicsLowerBound(void*, void*, void** /*out*/, const void* /*key*/)
     EI_ORIGINAL(0x005FAF30)
-__declspec(naked) void __fastcall TopicsInsert(void*, void*, void** /*out*/, void* /*hint*/, const void* /*pair*/)
+__declspec(naked) void** __fastcall TopicsInsert(void*, void*, void** /*out*/, void* /*hint*/, const void* /*pair*/)
     EI_ORIGINAL(0x005F9810)
 // The help window's list member at +0x188 (005F9A00, from an allocator; RET 4).
 __declspec(naked) void __fastcall ConstructHelpList(void*, void*, const void*) EI_ORIGINAL(0x005F9A00)
@@ -441,7 +441,7 @@ void CInterface3D::OpenHelp(int flag) {
     void* memory = gamecrt::operator_new(0x194);
     CUiWindow* window = nullptr;
     if (memory) {
-        ConstructContainer(memory, nullptr, this);
+        ConstructContainerAt(memory, nullptr, this);
         auto* win = static_cast<std::uint8_t*>(memory);
         win[0x164] = 0;
         ConstructCString(win + 0x168, nullptr, topic);
@@ -492,13 +492,11 @@ void FreeNode18(void* node) {
 // screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
 __declspec(naked) void __fastcall Screen9FirstMap(void*, void*, const void*, const void*) EI_ORIGINAL(0x005F9F80)
 __declspec(naked) void __fastcall Screen9SecondMap(void*) EI_ORIGINAL(0x005F98F0)
-__declspec(naked) void __fastcall Screen8Member170(void*) EI_ORIGINAL(0x00671280)
+__declspec(naked) void* __fastcall Screen8Member170(void*) EI_ORIGINAL(0x00671280)
 __declspec(naked) void __fastcall Screen8Member170Destruct(void*) EI_ORIGINAL(0x006714A0)
-__declspec(naked) void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
 __declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
 __declspec(naked) void __fastcall ConstructCStringFrom(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
 __declspec(naked) void __fastcall DestructCString(void*) EI_ORIGINAL(0x00700970)
-__declspec(naked) void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
 
 std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 
@@ -506,7 +504,7 @@ std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 
 // 005F6F30 (thiscall, RET 4). Screen 9's constructor (vtables 00740D18 / 00740CE4).
 void* __fastcall Screen9Construct(void* self, void*, CInterface3D* ui) {
-    ConstructContainer(self, nullptr, ui);
+    ConstructContainerAt(self, nullptr, ui);
     SetDword(self, 0x168, 0);
     // The original passes a stack byte and its argument slot as the allocators.
     std::uint8_t junk = 0;
@@ -528,7 +526,7 @@ EI_REPLACE(0x005F6F30, Screen9Construct);
 // 005F6D50 (thiscall, RET 0xC). Screen 8's constructor (vtables 00740C3C / 00740C08): the list
 // at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
 void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
-    ConstructContainer(self, nullptr, ui);
+    ConstructContainerAt(self, nullptr, ui);
     Screen8Member170(Bytes(self) + 0x170);
     std::uint8_t* list = Bytes(self) + 0x1C8;
     list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten

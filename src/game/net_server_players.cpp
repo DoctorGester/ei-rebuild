@@ -9,6 +9,7 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -16,7 +17,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) char* __cdecl GameStrncpy(char* /*to*/, const char* /*from*/, std::size_t /*n*/) EI_ORIGINAL(0x006E7E80)
 __declspec(naked) int __cdecl GameStrnicmp(const char* /*a*/, const char* /*b*/, std::size_t /*n*/) EI_ORIGINAL(0x006FA1A0)
 // The banned addresses (+0x25C4, STLport list<sockaddr_in>; library): end, begin, find, insert.
 __declspec(naked) void** __fastcall BannedEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0041FCD0)

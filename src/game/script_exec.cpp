@@ -14,6 +14,8 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_script.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -85,9 +87,6 @@ __declspec(naked) void __fastcall SetParametersOrig(SSCCmd*, void*, const MfcArr
     EI_ORIGINAL(0x004B3F60)
 __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
     EI_ORIGINAL(0x004B4030)
-__declspec(naked) BOOL __fastcall ExecuteOrig(ScriptRun*, void*, CScript*) EI_ORIGINAL(0x004B6760)
-__declspec(naked) void __fastcall RemoveDeletedOrig(ScriptVars*) EI_ORIGINAL(0x004B3940)
-__declspec(naked) void __fastcall FreeTemporariesOrig(CScript*) EI_ORIGINAL(0x004BEC80)
 __declspec(naked) void __fastcall BindCallOrig(ScriptDefinition*, void*, const SSCCmd*) EI_ORIGINAL(0x004BB6A0)
 // CArray<ScriptObjectRef> (groups): Copy 004C1290, RemoveAt 004C2200.
 __declspec(naked) void __fastcall GroupCopy(ScriptGroup*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C1290)
@@ -120,7 +119,6 @@ __declspec(naked) void* __fastcall PartyRecordsFor(void*, mfc::CString*) EI_ORIG
 // Object id of a name (ECX = name).
 __declspec(naked) int __fastcall TextKeyFromName(const char*) EI_ORIGINAL(0x00461360)
 // 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
-__declspec(naked) void __fastcall PlayMovieFile(const char*, int, int, int, int, int, int) EI_ORIGINAL(0x005DB3F0)
 // 00500960: the renderer (returns the object whose 004BA120 sets the background colour).
 __declspec(naked) void* __cdecl Renderer() EI_ORIGINAL(0x00500960)
 
@@ -170,7 +168,7 @@ struct AIMap {
     void Remove(CEngineObject* object);                                  // 004BA0C0
     void Add(CEngineObject* object);                                     // 004BA0A0
     bool CanLeaveCell(CEngineObject* object);                            // 005BA830
-    void FindFreeCellNear(CEngineObject* object, const Vec3* from, Vec3* out);   // 005BA9D0
+    bool FindFreeCellNear(CEngineObject* object, const Vec3* from, Vec3* out);   // 005BA9D0
     char SetUpdates(int on);                                            // 004BA090 (byte +2)
 };
 __declspec(naked) void AIMap::Move(CEngineObject*, const Vec3*) EI_ORIGINAL(0x004BA0E0)
@@ -178,7 +176,7 @@ __declspec(naked) void AIMap::FindUnitsInRadius(const Vec3*, void*, float) EI_OR
 __declspec(naked) void AIMap::Remove(CEngineObject*) EI_ORIGINAL(0x004BA0C0)
 __declspec(naked) void AIMap::Add(CEngineObject*) EI_ORIGINAL(0x004BA0A0)
 __declspec(naked) bool AIMap::CanLeaveCell(CEngineObject*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) void AIMap::FindFreeCellNear(CEngineObject*, const Vec3*, Vec3*) EI_ORIGINAL(0x005BA9D0)
+__declspec(naked) bool AIMap::FindFreeCellNear(CEngineObject*, const Vec3*, Vec3*) EI_ORIGINAL(0x005BA9D0)
 __declspec(naked) char AIMap::SetUpdates(int) EI_ORIGINAL(0x004BA090)
 AIMap* TheAIMap() { return reinterpret_cast<AIMap*>(0x007B00D0); }
 
@@ -375,10 +373,10 @@ PartyList* Parties() { return reinterpret_cast<PartyList*>(0x007AA5A0 + 0x24); }
 
 // A party (PartyList::Find): +0x40 {items, count}, +0x50 money.
 struct Party {
-    void AddItem(void* item, int a, int b);              // 00661DB0
+    int AddItem(void* item, int a, int b);              // 00661DB0
     void RemoveItem(void* item, int a);                  // 00661F30
 };
-__declspec(naked) void Party::AddItem(void*, int, int) EI_ORIGINAL(0x00661DB0)
+__declspec(naked) int Party::AddItem(void*, int, int) EI_ORIGINAL(0x00661DB0)
 __declspec(naked) void Party::RemoveItem(void*, int) EI_ORIGINAL(0x00661F30)
 
 struct Diplomacy {
@@ -404,14 +402,14 @@ struct StlString {
     void InitEmpty(void* allocator);                     // 004217E0
     void AssignRange(const char* first, const char* last);   // 00428F10
     void Destroy();                                      // 00425040
-    void InitFrom(const char* text, void* allocator);    // 0040C5A0
+    void* InitFrom(const char* text, void* allocator);    // 0040C5A0
     void Destroy2();                                     // 0040C720
     std::uint32_t data[4];
 };
 __declspec(naked) void StlString::InitEmpty(void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void StlString::AssignRange(const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void StlString::Destroy() EI_ORIGINAL(0x00425040)
-__declspec(naked) void StlString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) void* StlString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
 __declspec(naked) void StlString::Destroy2() EI_ORIGINAL(0x0040C720)
 struct StlAllocator {
     StlAllocator* Init();                                // 0041F770
@@ -476,9 +474,9 @@ struct BackgroundColor {
 __declspec(naked) void BackgroundColor::Set(float, float, float) EI_ORIGINAL(0x004BA120)
 
 struct CameraPlayer {
-    void Play(const char* name, int flag);               // 00578820
+    int Play(const char* name, int flag);               // 00578820
 };
-__declspec(naked) void CameraPlayer::Play(const char*, int) EI_ORIGINAL(0x00578820)
+__declspec(naked) int CameraPlayer::Play(const char*, int) EI_ORIGINAL(0x00578820)
 struct MoviePaths {
     const mfc::CString* Directory();                     // 00578DC0
 };

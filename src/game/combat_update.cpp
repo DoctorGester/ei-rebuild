@@ -16,6 +16,9 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
+#include "originals_library.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstdint>
@@ -72,14 +75,10 @@ __declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 // size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
 // speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
 __declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
-__declspec(naked) void __fastcall UnitSetAnimation(CUnit*, void*, int /*animation*/, int /*variant*/, int /*time*/,
-                                                   int /*flags*/) EI_ORIGINAL(0x0052EA90)
 __declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0052EAD0)
 __declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
-__declspec(naked) void __fastcall UnitUpdateSizeClass(CUnit*) EI_ORIGINAL(0x00530570)
 __declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x00530970)
 __declspec(naked) void __fastcall UnitSetPlayer(CUnit*, void*, char*) EI_ORIGINAL(0x005300D0)
-__declspec(naked) void __fastcall UnitPathSpeeds(CUnit*) EI_ORIGINAL(0x0052E9D0)
 __declspec(naked) void __fastcall UnitTurnUpTowards(CUnit*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 __declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float* /*out*/) EI_ORIGINAL(0x0040F560)
@@ -93,7 +92,6 @@ __declspec(naked) void __fastcall StatsRecomputeAt(UnitStats*, void*, void*, CUn
 __declspec(naked) void* __fastcall EventsPresence(void*, void*, const float*, CUnitServer*) EI_ORIGINAL(0x005C9770)
 __declspec(naked) void __fastcall MemoryUpdate(void*, void*, CUnitServer*, void*) EI_ORIGINAL(0x005CB850)
 __declspec(naked) void __fastcall AlarmStep(void*, void*, CUnitServer*) EI_ORIGINAL(0x005AEA80)
-__declspec(naked) void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
 __declspec(naked) void __fastcall BrainThink(void*) EI_ORIGINAL(0x005D53B0)
 __declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005D4E80)
 // The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
@@ -109,14 +107,8 @@ __declspec(naked) void __fastcall SectorRemove(void*, void*, CUnit*) EI_ORIGINAL
 __declspec(naked) void __fastcall SectorAdd(void*, void*, CUnit*) EI_ORIGINAL(0x005C0DF0)
 // The motion (+0x3C, an AIPath; ai_motion.cpp): 005C7CB0 ShiftTime, 005B23A0 Clear, 005C7B00
 // Start, and 005C7430 UnitMotion::Sample on CUnit + 0x27C.
-__declspec(naked) void __fastcall PathShiftTime(void*, void*, int) EI_ORIGINAL(0x005C7CB0)
-__declspec(naked) void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
 __declspec(naked) bool __fastcall PathStart(void*, void*, const float* /*position*/, const float* /*direction*/,
                                             int /*time*/) EI_ORIGINAL(0x005C7B00)
-__declspec(naked) bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/,
-                                               bool* /*turning*/, float* /*position*/, float* /*direction*/,
-                                               float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
-    EI_ORIGINAL(0x005C7430)
 // The controller's functions rewritten elsewhere, through their game addresses: 0054B390
 // UpdateOrders (combat_tick.cpp), 00547890 the movement tick (unit_motion_tick.cpp), 00552E00
 // PropagateHostility, 00549EC0 FinishAction, 00552C60 UseItemCharge (combat_actions.cpp),
@@ -130,33 +122,23 @@ __declspec(naked) void __fastcall CtlUseItemCharge(CUnitServer*, void*, CItem*, 
 __declspec(naked) void __fastcall CtlDeathAnimation(CUnitServer*, void*, AnimationSteps*, std::uint32_t, int, int)
     EI_ORIGINAL(0x00550A80)
 __declspec(naked) void* __fastcall CtlSpellOfSource(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B880)
-__declspec(naked) bool __fastcall CtlPathTo(CUnitServer*, void*, const float*, std::uint32_t) EI_ORIGINAL(0x00548700)
 // The functions of this file, through their game addresses (for the verify build's wrappers).
 __declspec(naked) void __fastcall CtlUpdateState(CUnitServer*) EI_ORIGINAL(0x005499F0)
 __declspec(naked) void __fastcall CtlAdvanceAnimation(CUnitServer*) EI_ORIGINAL(0x00546F30)
 __declspec(naked) void __fastcall CtlTickItemSpells(CUnitServer*) EI_ORIGINAL(0x00552B90)
 __declspec(naked) bool __fastcall CtlActionInReach(CUnitServer*) EI_ORIGINAL(0x00549D40)
 __declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)
-__declspec(naked) void __fastcall CtlShowCurrentStep(CUnitServer*) EI_ORIGINAL(0x00546C10)
-__declspec(naked) void __fastcall CtlSetState(CUnitServer*, void*, int) EI_ORIGINAL(0x00547090)
-__declspec(naked) void __fastcall CtlStandStill(CUnitServer*) EI_ORIGINAL(0x00547280)
-__declspec(naked) void __fastcall CtlSetStanding(CUnitServer*, void*, int) EI_ORIGINAL(0x005467B0)
 __declspec(naked) void __fastcall CtlPlayHitReaction(CUnitServer*) EI_ORIGINAL(0x00547100)
-__declspec(naked) void __fastcall CtlEndOrder(CUnitServer*, void*, int) EI_ORIGINAL(0x00549690)
 __declspec(naked) void __fastcall CtlTickAction(CUnitServer*) EI_ORIGINAL(0x00549160)
 __declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
-__declspec(naked) void __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x00556950)
-__declspec(naked) void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x005483C0)
 __declspec(naked) AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps*, void*, const AnimationSteps*)
     EI_ORIGINAL(0x00556870)
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00557B60)
 __declspec(naked) void __fastcall StepsDestroy(AnimationSteps*) EI_ORIGINAL(0x00557E70)
-__declspec(naked) void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
 __declspec(naked) void __fastcall StepsRemoveAt(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557E20)
-__declspec(naked) void __fastcall PlanReset(OrderPlan*) EI_ORIGINAL(0x00544FD0)
 
 IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 int CurrentFrame() { return *reinterpret_cast<const int*>(0x007AFFC4); }
@@ -313,7 +295,7 @@ int CUnitServer::UpdateServer() {
             CtlAdvanceAnimation(this);
             return 1;
         }
-        if (state == kStateActing && action2.kind == kOrderMove) CtlEndOrder(this, nullptr, 1);
+        if (state == kStateActing && action2.kind == kOrderMove) TickOrderDone(this, nullptr, 1);
         CtlUpdateState(this);
         CtlAdvanceAnimation(this);
         return 1;
@@ -355,7 +337,7 @@ EI_REPLACE_METHOD(0x00552300, CUnitServer::UpdateServer);
 void CUnitServer::UpdateState() {
     unknown_021 = 0;
     unknown_020 = 0;
-    if (state == kStateActing && !CtlActionInReach(this)) CtlEndOrder(this, nullptr, 0);
+    if (state == kStateActing && !CtlActionInReach(this)) TickOrderDone(this, nullptr, 0);
     if (unit->flags_ & kFlagFrozen) {
         unknown_020 = 1;
         hitDirection = 0xFFFFFFFFu;
@@ -368,9 +350,9 @@ void CUnitServer::UpdateState() {
             hitDirection = 0xFFFFFFFFu;
             return;
         }
-        StepsCopy(&Queue(this), nullptr, &SavedQueue(this));
+        StepsAppend(&Queue(this), nullptr, &SavedQueue(this));
         QueueTime(this) = SavedQueueTime(this);
-        StepsCopy(&Queue(this), nullptr, &SavedQueue(this));
+        StepsAppend(&Queue(this), nullptr, &SavedQueue(this));
         QueueTime(this) = SavedQueueTime(this);
         StartQueueIfUnset(this);
         CtlPopFinishedSteps(this);
@@ -381,7 +363,7 @@ void CUnitServer::UpdateState() {
     case kStateIdle:
         SwitchWeaponIfWanted(unit);
         if (At<std::uint8_t>(this, 0x146) == 0 ||
-            CtlPathTo(this, nullptr, &At<float>(this, 0x9C), At<std::uint32_t>(this, 0xA4))) {
+            TickPathTo(this, nullptr, &At<float>(this, 0x9C), At<std::uint32_t>(this, 0xA4))) {
             CtlMovementTick(this);
         }
         break;
@@ -565,11 +547,11 @@ void CUnitServer::PlayHitReaction() {
         At<int>(WorldOf(this), 0x64) + duration > At<int>(this, 0x184))
         return;
     keepHitDirection = 1;
-    StepsCopy(&SavedQueue(this), nullptr, &Queue(this));
+    StepsAppend(&SavedQueue(this), nullptr, &Queue(this));
     SavedQueueTime(this) = QueueTime(this);
-    StepsCopy(&Queue(this), nullptr, &reaction.steps);
+    StepsAppend(&Queue(this), nullptr, &reaction.steps);
     QueueTime(this) = reaction.steps.extra;
-    StepsCopy(&Queue(this), nullptr, &reaction.steps);
+    StepsAppend(&Queue(this), nullptr, &reaction.steps);
     QueueTime(this) = reaction.steps.extra;
     StartQueueIfUnset(this);
     CtlPopFinishedSteps(this);
@@ -628,7 +610,7 @@ void CUnitServer::TickAction() {
     OrderPlan& plan = Plan(this);
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
-        StepsCopy(&Queue(this), nullptr, &plan.animation);
+        StepsAppend(&Queue(this), nullptr, &plan.animation);
         QueueTime(this) = plan.animation.extra;
         StepsCopyB(&Queue(this), nullptr, &plan.animation);
         StartQueueIfUnset(this);

@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -110,7 +111,6 @@ __declspec(naked) void* MessageBoxAt::Construct(CInterface3D*, const char*, cons
     EI_ORIGINAL(0x00634650)
 
 // 00458220: dispatches the window messages waiting in the queue.
-__declspec(naked) void __cdecl PumpMessages() EI_ORIGINAL(0x00458220)
 
 void ReleaseBackdrop(void* surface) {
     if (!surface) return;
@@ -139,7 +139,7 @@ void CInterface3D::Update() {
             if (CUiWindow* top = stackEnd_[-1]) CallSlot<void>(top, 0, 1);
             --stackEnd_;
         }
-        PumpMessages();
+        PumpMessagesOriginal();
         if (f.backdropState == 4) {
             ReleaseBackdrop(f.backdrop);
             void* next = f.nextBackdrop;
@@ -181,7 +181,7 @@ void CInterface3D::Update() {
             --stackEnd_;
         }
         static_cast<InterfaceAt*>(this)->AfterCloseAll();
-        PumpMessages();
+        PumpMessagesOriginal();
         *reinterpret_cast<bool*>(0x00784750) = false;
     }
     if (f.queuedWindow) {

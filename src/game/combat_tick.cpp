@@ -15,6 +15,9 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
+#include "originals_library.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -119,19 +122,11 @@ __declspec(naked) void __fastcall ControllerShout(CUnitServer*, void*, int) EI_O
 // into a list, 005494D0 start the planned action, 00548DE0 / 00548FA0 play an animation list
 // (taken by value), 00549690 the end of an order.
 __declspec(naked) bool __fastcall TickFollowPath(CUnitServer*) EI_ORIGINAL(0x0054A150)
-__declspec(naked) AnimationSteps* __fastcall TickIdleAnimation(CUnitServer*) EI_ORIGINAL(0x00550F30)
 __declspec(naked) void __fastcall TickPlayIdle(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
-__declspec(naked) void __fastcall TickMotion547280(CUnitServer*) EI_ORIGINAL(0x00547280)
-__declspec(naked) void __fastcall TickMotion547090(CUnitServer*, void*, int) EI_ORIGINAL(0x00547090)
 __declspec(naked) void __fastcall TickMotion5474B0(CUnitServer*) EI_ORIGINAL(0x005474B0)
-__declspec(naked) void __fastcall TickMotion54EB30(CUnitServer*, void*, void*, int) EI_ORIGINAL(0x0054EB30)
-__declspec(naked) void __fastcall TickStopChase(CUnitServer*, void*, int) EI_ORIGINAL(0x005467B0)
-__declspec(naked) bool __fastcall TickPathTo(CUnitServer*, void*, const float*, std::uint32_t) EI_ORIGINAL(0x00548700)
-__declspec(naked) void __fastcall TickLiftNearby(CUnitServer*, void*, void*, const float*, int) EI_ORIGINAL(0x005468D0)
 __declspec(naked) void __fastcall TickStartAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x005494D0)
 __declspec(naked) void __fastcall TickPlaySteps(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548DE0)
 __declspec(naked) void __fastcall TickPlayEmote(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548FA0)
-__declspec(naked) void __fastcall TickOrderDone(CUnitServer*, void*, int) EI_ORIGINAL(0x00549690)
 __declspec(naked) bool __fastcall TickTalkTargetBusy(CUnitServer*, void*, CEngineObject*) EI_ORIGINAL(0x0054C760)
 __declspec(naked) bool __fastcall TickCheckOrder(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C8B0)
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
@@ -142,17 +137,13 @@ __declspec(naked) void __fastcall StepsEmote(AnimationSteps*, void*, int) EI_ORI
 __declspec(naked) void __fastcall PlanTake(OrderPlan*, void*, AnimationSteps, int, int) EI_ORIGINAL(0x00545110)
 __declspec(naked) AnimationSteps* __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x0054B260)
 __declspec(naked) void __fastcall StepsDestroy(AnimationSteps*) EI_ORIGINAL(0x00557E70)
-__declspec(naked) void __fastcall StepsSetSizeTick(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
 __declspec(naked) void __fastcall StepsAddStepTick(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00544CE0)
 __declspec(naked) void __fastcall PtrListRemoveAll(void*) EI_ORIGINAL(0x0052CA10)
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
 __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
-__declspec(naked) void __fastcall MotionStop(void*) EI_ORIGINAL(0x005B23A0)
 __declspec(naked) bool __fastcall MotionPlace(void*, void*, const float*, const Vector3*, int) EI_ORIGINAL(0x005C7B00)
 // CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
 // 0052FBC0 ScaledValue (unit.cpp; ST0).
-__declspec(naked) void __fastcall UnitPathSpeeds(CUnit*) EI_ORIGINAL(0x0052E9D0)
-__declspec(naked) void __fastcall UnitUpdateSizeClass(CUnit*) EI_ORIGINAL(0x00530570)
 __declspec(naked) BOOL __fastcall UnitIsBehind(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00530A60)
 __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORIGINAL(0x0052FBC0)
 // The AI map's cell flag 0x80 under a point (005BBC70), the sector map (CSectorMap::Remove /
@@ -168,8 +159,6 @@ __declspec(naked) int __fastcall MemoryIsEnemy(void*, void*, CUnit*, CEngineObje
 __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)
 // Rewritten elsewhere (combat*.cpp), through their game addresses: ActionDistance, CanReachTarget,
 // CanCast, BuildAttackHit, ResolveHit, AnimationDuration, BuildOrderSteps.
-__declspec(naked) double __fastcall TickActionDistance(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C070)
-__declspec(naked) bool __fastcall TickCanReach(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C800)
 __declspec(naked) bool __fastcall TickCanCast(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054BF80)
 __declspec(naked) BOOL __fastcall TickBuildHit(CUnitServer*, void*, DamageInfo*, int, int, char) EI_ORIGINAL(0x0054F630)
 __declspec(naked) BOOL __fastcall TickResolveHit(CUnitServer*, void*, DamageInfo*, CUnit*) EI_ORIGINAL(0x00553DF0)
@@ -194,9 +183,8 @@ void TellParty(CUnit* unit, int message) {
 }
 
 // 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.
-__declspec(naked) void __fastcall ActionClearAt(UnitAction*) EI_ORIGINAL(0x00545F40)
 void ClearAction(UnitAction* order) {
-    ActionClearAt(order);
+    ActionClear(order);
     order->unknown_1C = 0;
     order->unknown_20 = 0;
 }
@@ -345,7 +333,7 @@ void LeaveMoveMode(CUnitServer* self) {
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
 // updates. Not while turning (state 2).
 void StandIdle(CUnitServer* self) {
-    AnimationSteps* idle = TickIdleAnimation(self);
+    AnimationSteps* idle = CtlIdleAnimation(self);
     if (!QueueHolds(&At<char>(self, 0x24), nullptr, idle)) {
         if (At<int>(self, 0x2C) == 0 && At<int>(self, 0x38) == -1) {
             int now = At<int>(TickWorld(self), 0x64);
@@ -353,8 +341,8 @@ void StandIdle(CUnitServer* self) {
         }
         TickPlayIdle(self, nullptr, idle);
     }
-    TickMotion547280(self);
-    TickMotion547090(self, nullptr, 2);
+    CtlStandStill(self);
+    CtlSetState(self, nullptr, 2);
 }
 
 // The queued order replaces the current one (0054B320 then 0054B230 on the queued order).
@@ -401,7 +389,7 @@ bool CUnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    TickLiftNearby(this, nullptr, &lifted, action.point, action.source != 0);
+    CtlLiftNearby(this, nullptr, &lifted, action.point, action.source != 0);
     void* map = static_cast<char*>(ManagerContext()) + 0x170;
     At<std::uint32_t>(unit, 0x43C) = MapCellFlag80(map, nullptr, &unit->positionX);
     bool found = TickPathTo(this, nullptr, action.point, std::bit_cast<std::uint32_t>(action.point[2]));
@@ -420,7 +408,7 @@ bool CUnitServer::StartMove() {
             close = LessOrUnordered(dx * dx + dy * dy, kLong);
         }
         if (close) arrived = true;
-        else TickMotion54EB30(this, nullptr, &At<char>(this, 0x3C), found);
+        else CtlReportPath(this, nullptr, &At<char>(this, 0x3C), found);
     }
     if (!arrived && found) {
         DestroyPtrList(&lifted);
@@ -460,7 +448,7 @@ bool CUnitServer::StartQueuedOrder() {
         MotionTurn(&At<char>(this, 0x3C), nullptr, At<int>(world, 0x64), unit, action.point, time);
         UnitPathSpeeds(unit);
         TickMotion5474B0(this);
-        TickMotion547090(this, nullptr, 1);
+        CtlSetState(this, nullptr, 1);
         return true;
     }
 
@@ -481,7 +469,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
-        StepsSetSizeTick(&steps, nullptr, 0, -1);
+        StepsSetSize(&steps, nullptr, 0, -1);
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.unknown_1C);
         int duration = TickAnimationDuration(this, nullptr, animation);
@@ -498,7 +486,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
-        StepsSetSizeTick(&steps, nullptr, 0, -1);
+        StepsSetSize(&steps, nullptr, 0, -1);
         steps.extra = -1;
         StepsEmote(&steps, nullptr, static_cast<std::uint8_t>(action.unknown_1C));
         AnimationSteps copy;
@@ -802,7 +790,7 @@ void CUnitServer::ApproachTarget() {
             double dx = static_cast<double>(heading.x) - goal[0];
             double dy = static_cast<double>(heading.y) - goal[1];
             if (!(dy * dy + dx * dx > kNearPoint)) return;
-            if (TickCanReach(this, nullptr, &action)) {
+            if (CtlCanReachTarget(this, nullptr, &action)) {
                 float saved[3];
                 std::memcpy(saved, &unit->positionX, sizeof(saved));
                 std::memcpy(&unit->positionX, &heading, sizeof(saved));
@@ -818,7 +806,7 @@ void CUnitServer::ApproachTarget() {
         return;
     }
 
-    volatile float reach = static_cast<float>(TickActionDistance(this, nullptr, &action));
+    volatile float reach = static_cast<float>(CtlActionDistance(this, nullptr, &action));
     Vector3 aim;
     ei::VCall<float*>(target, kSlotAimPoint, &aim);
     if (!ei::VCall<int>(target, kSlotIsMoving)) {
@@ -957,7 +945,7 @@ void CUnitServer::ApproachTarget() {
     if (LessOrUnordered(static_cast<double>(reach) * reach, fx * fx + fy * fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         void* motion = &At<char>(this, 0x3C);
-        MotionStop(motion);
+        PathClear(motion);
         int time = At<int>(TickWorld(this), 0x64);
         Vector3 axis;
         reinterpret_cast<const Quaternion*>(&At<float>(unit, 0x34))->AxisY(&axis);
@@ -966,7 +954,7 @@ void CUnitServer::ApproachTarget() {
         back.y = -axis.y;
         back.z = -axis.z;
         if (MotionPlace(motion, nullptr, &unit->positionX, &back, time)) UnitPathSpeeds(unit);
-        TickStopChase(this, nullptr, 0);
+        CtlSetStanding(this, nullptr, 0);
         state = kStateChasing;
         UnitUpdateSizeClass(unit);
         if (effectObject) {

@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -14,7 +15,7 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignText(StringRep* /*s*/, void*, const char* /*text*/) EI_ORIGINAL(0x0041F550)
 // STLport strings (library): reserve(n) with an allocator, assign(first, last, tag),
 // assign(first, last), erase(first, last), append(first, last, tag).
@@ -23,7 +24,6 @@ __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const ch
 __declspec(naked) void __fastcall StringAssignRange(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00426A80)
 __declspec(naked) void __fastcall StringErase(StringRep* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
 __declspec(naked) void __fastcall StringAppendTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const void* /*tag*/) EI_ORIGINAL(0x0040C280)
-__declspec(naked) void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /*out CString*/) EI_ORIGINAL(0x005814C0)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;

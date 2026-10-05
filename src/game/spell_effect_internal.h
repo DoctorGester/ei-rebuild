@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_gameplay.h"
 
 #include <cstdint>
 #include <cstring>
@@ -88,7 +89,6 @@ __declspec(naked) inline void __fastcall LightningSetEnds(CEngineObject*, void*,
 __declspec(naked) inline void __fastcall LightningSetObjects(CEngineObject*, void*, int /*from*/, int /*to*/) EI_ORIGINAL(0x0067A890)
 __declspec(naked) inline void __fastcall LightningSetFlag(CEngineObject*, void*, int /*flag byte*/) EI_ORIGINAL(0x0067A8C0)
 // 0067AC70 (not rewritten): the missile's target object id.
-__declspec(naked) inline void __fastcall ArrowSetTarget(CEngineObject*, void*, int /*id*/) EI_ORIGINAL(0x0067AC70)
 // 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
 __declspec(naked) inline void __fastcall ShowVisibilitySetObjects(CEngineObject*, void*, int, int) EI_ORIGINAL(0x0067C640)
 // 00688510: the buff record's constructor (fastcall; returns it).

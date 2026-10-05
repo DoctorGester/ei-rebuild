@@ -22,6 +22,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -238,14 +239,14 @@ __declspec(naked) void __fastcall TreeIncrement(DistanceNode** /*iterator*/) EI_
 
 // Surfaces and sprites (not rewritten).
 struct SurfaceDraw {
-    void Begin();                                                                   // 005FDC00
+    void* Begin();                                                                   // 005FDC00
     void Clear();                                                                   // 005FE2F0
-    void Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
+    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
     void End();                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) void SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
 __declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 
 struct SpriteAt {
@@ -546,7 +547,6 @@ __declspec(naked) void __fastcall LogSetText(CUiWindow*, void*, const char*) EI_
 __declspec(naked) void __fastcall FillQuestPlaces(CObjectivesWindow*, void*, const char*) EI_ORIGINAL(0x0064EA80)
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
-__declspec(naked) void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
 // STLport string members: default constructor [004217E0], assign [00428F10], destructor [0040C720].
 __declspec(naked) void __fastcall StringDefault(void*, void*, const void*) EI_ORIGINAL(0x004217E0)

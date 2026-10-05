@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_library.h"
 
 #include <cstring>
 #include <new>
@@ -23,8 +24,6 @@ const char* const kLongFloatFormat = Text(0x00796150); // "%lf"
 constexpr char kListSeparator = ',';
 
 // The game's CRT conversions.
-__declspec(naked) int __cdecl GameAtoi(const char*) EI_ORIGINAL(0x006E80D8)
-__declspec(naked) double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 
 // MFC CString members not in lib/mfc.h, called on existing strings.
 struct TextOps : mfc::CString {

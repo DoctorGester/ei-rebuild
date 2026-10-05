@@ -9,22 +9,19 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {
 
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.
-__declspec(naked) void __fastcall FloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
 __declspec(naked) void __fastcall ArgFloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4410)
 __declspec(naked) void __fastcall ArgObjectsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C46F0)
 __declspec(naked) void __fastcall ArgGroupsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
 __declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
-__declspec(naked) void __fastcall StringsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C14A0)
 __declspec(naked) void __fastcall RefsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1290)
-__declspec(naked) void __fastcall GroupsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1BE0)
 __declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
-__declspec(naked) void __fastcall CommandsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CC0C0)
 // CString::operator=(const CString&) on raw slots.
 __declspec(naked) void __fastcall AssignString(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
 
@@ -56,13 +53,13 @@ void CopyPlain(MfcArray<T>* to, const MfcArray<T>* from, void(__fastcall* setSiz
 // ScriptVars::operator= as inlined into ScriptRun::operator= and out of line at 004CBAE0.
 void AssignVars(ScriptVars* to, const ScriptVars* from) {
     CopyFloats(&to->floats, &from->floats, FloatsSetSize);
-    StringsCopy(&to->floatNames, nullptr, &from->floatNames);
-    StringsCopy(&to->strings, nullptr, &from->strings);
-    StringsCopy(&to->stringNames, nullptr, &from->stringNames);
+    StringsCopyOriginal(&to->floatNames, nullptr, &from->floatNames);
+    StringsCopyOriginal(&to->strings, nullptr, &from->strings);
+    StringsCopyOriginal(&to->stringNames, nullptr, &from->stringNames);
     RefsCopy(&to->objects, nullptr, &from->objects);
-    StringsCopy(&to->objectNames, nullptr, &from->objectNames);
+    StringsCopyOriginal(&to->objectNames, nullptr, &from->objectNames);
     GroupsCopy(&to->groups, nullptr, &from->groups);
-    StringsCopy(&to->groupNames, nullptr, &from->groupNames);
+    StringsCopyOriginal(&to->groupNames, nullptr, &from->groupNames);
 }
 
 } // namespace
@@ -87,7 +84,7 @@ EI_REPLACE(0x004CB570, ScriptRunAssign);
 SSCCmd* __fastcall ScriptCmdAssign(SSCCmd* self, void*, const SSCCmd* other) {
     self->id = other->id;
     CopyFloats(&self->floatArgs, &other->floatArgs, ArgFloatsSetSize);
-    StringsCopy(&self->stringArgs, nullptr, &other->stringArgs);
+    StringsCopyOriginal(&self->stringArgs, nullptr, &other->stringArgs);
     CopyPlain(&self->objectArgs, &other->objectArgs, ArgObjectsSetSize);
     CopyPlain(&self->groupArgs, &other->groupArgs, ArgGroupsSetSize);
     CopyPlain(&self->localBindings, &other->localBindings, BindingsSetSize);

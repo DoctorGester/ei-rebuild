@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -33,7 +34,6 @@ long ComCall(void* object, int slot, Args... args) {
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 004F0B00 (cdecl): reports a DirectDraw error with a text.
-__declspec(naked) void __cdecl ReportError(long, const char*) EI_ORIGINAL(0x004F0B00)
 
 const char* const kBlitFailed = reinterpret_cast<const char*>(0x0079326C);   // "Can't blit I3D surface to screen"
 

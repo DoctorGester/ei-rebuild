@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -555,7 +556,6 @@ namespace {
 __declspec(naked) double __fastcall ReduceAt(UnitStats*, void*, float) EI_ORIGINAL(0x005259B0)
 __declspec(naked) bool __fastcall HealSlotsAt(UnitStats*, void*, float, float) EI_ORIGINAL(0x00525800)
 // 0051FF00. Skill database: the index of `record` in its level records, or -1. Not rewritten.
-__declspec(naked) int __fastcall SkillRecordIndex(const void*, void*, const void*) EI_ORIGINAL(0x0051FF00)
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
 float CurveHitPoints(UnitStats* stats) {

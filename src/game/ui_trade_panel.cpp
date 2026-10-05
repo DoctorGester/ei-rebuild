@@ -51,14 +51,14 @@ __declspec(naked) void __fastcall DrawListsAt(CTradePanel*) EI_ORIGINAL(0x006261
 __declspec(naked) void __fastcall FormatPrice(CTradePanel*, void*, int, mfc::CString*) EI_ORIGINAL(0x00626090)
 
 struct SurfaceDraw {
-    void Begin();                                                                   // 005FDC00
+    void* Begin();                                                                   // 005FDC00
     void Clear();                                                                   // 005FE2F0
-    void Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
+    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
     void End();                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
+__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) void SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
 __declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 
 constexpr std::uintptr_t kSkillDatabase = 0x007AF268;   // its records: vector at +0xC (0x44 bytes each)

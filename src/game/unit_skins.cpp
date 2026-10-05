@@ -10,6 +10,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "ei/hook.h"
+#include "originals_gameplay.h"
 
 #include <cstdint>
 #include <cstring>
@@ -50,7 +51,6 @@ constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
 // out, weapon record; material record]; the weapon and material records [0056E440 on 007C86F8,
 // 0056E400 on 007C86D8].
-__declspec(naked) void __fastcall ItemTextureName(mfc::CString*, std::uint32_t /*high*/, std::uint32_t /*low*/) EI_ORIGINAL(0x006A3480)
 __declspec(naked) void __fastcall WeaponTextureName(mfc::CString*, const char*, const char*) EI_ORIGINAL(0x006A0BF0)
 __declspec(naked) const char* __fastcall WeaponRecord(void*, void*, std::uint32_t) EI_ORIGINAL(0x0056E440)
 __declspec(naked) const char* __fastcall MaterialRecord(void*, void*, std::uint32_t) EI_ORIGINAL(0x0056E400)
@@ -69,7 +69,7 @@ __declspec(naked) void __fastcall NamesSetAtGrowString(console::CStringArray*, v
 __declspec(naked) void __fastcall NamesSetAtGrowText(console::CStringArray*, void*, int, const char*) EI_ORIGINAL(0x006FEBCE)
 // The texture cache [this +0x18C]: build a composite texture [00693180: out name, set, name, name,
 // 3, 0, 0x5551] and register it [00693F10: kind, name].
-__declspec(naked) void __fastcall CacheBuild(void*, void*, mfc::CString*, void*, const mfc::CString*, const mfc::CString*,
+__declspec(naked) void* __fastcall CacheBuild(void*, void*, mfc::CString*, void*, const mfc::CString*, const mfc::CString*,
                                              int, int, int) EI_ORIGINAL(0x00693180)
 __declspec(naked) void __fastcall CacheRegister(void*, void*, int, const char*) EI_ORIGINAL(0x00693F10)
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
@@ -174,7 +174,7 @@ void AddItem(TextureSet& set, const char* model, std::uint32_t id) {
     char buffer[0x100];
     {
         mfc::CString name;
-        ItemTextureName(&name, id >> 16, id & 0xFFFF);
+        ArmourTexture(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name, buffer);
     }
     NamesSetAtGrowText(&set.names, nullptr, set.names.GetSize(), buffer);

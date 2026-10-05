@@ -10,6 +10,8 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -75,7 +77,6 @@ __declspec(naked) char* __fastcall Alloc40(int) EI_ORIGINAL(0x00452D80)
 __declspec(naked) char* __fastcall Alloc12(int) EI_ORIGINAL(0x00452C20)
 // Element helpers [pointer, count]: 12-byte zeroing 00452DC0, morph frame constructor 00452E20
 // and destructor 00452DF0.
-__declspec(naked) void __stdcall ZeroPoints(void*, int) EI_ORIGINAL(0x00452DC0)
 __declspec(naked) void __stdcall ConstructMorphFrames(void*, int) EI_ORIGINAL(0x00452E20)
 __declspec(naked) void __stdcall DestroyMorphFrames(void*, int) EI_ORIGINAL(0x00452DF0)
 // Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0, a frame's points 0044F1D0,
@@ -90,7 +91,6 @@ __declspec(naked) float* __fastcall VectorSubtract(float*, const float* /*b*/, c
 __declspec(naked) float* __fastcall VectorScale(float*, const float*, std::uint32_t /*t*/) EI_ORIGINAL(0x00448A10)
 __declspec(naked) float* __fastcall VectorAdd(float*, const float*, const float*) EI_ORIGINAL(0x0040CDC0)
 // 00506710: the bone constructor.
-__declspec(naked) char* __fastcall ConstructBone(void*) EI_ORIGINAL(0x00506710)
 // Through its own address, so the verify wrapper sees the children too.
 __declspec(naked) void __fastcall BuildBoneAt(char*, char*, const char*, int) EI_ORIGINAL(0x004492F0)
 

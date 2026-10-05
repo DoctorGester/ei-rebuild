@@ -8,6 +8,8 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_core.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -15,10 +17,8 @@ namespace net {
 
 namespace {
 
-__declspec(naked) void __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
-__declspec(naked) void __fastcall RefNullA(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF80)
-__declspec(naked) void __fastcall RefNullB(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF70)
 // Counted pointers from a raw pointer without a reference (the list insert adds one).
 __declspec(naked) RefPtr* __fastcall PlayerRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428040)
 __declspec(naked) RefPtr* __fastcall BindingRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428050)
@@ -31,7 +31,6 @@ __declspec(naked) void** __fastcall BindingsInsert(void* /*list*/, void*, void**
 __declspec(naked) void** __fastcall BindingsEnd2(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00422BA0)
 __declspec(naked) void** __fastcall BindingsBegin2(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00422B90)
 __declspec(naked) void __fastcall CountNodes(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429110)
-__declspec(naked) void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/) EI_ORIGINAL(0x005F8C90)
 __declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 // erase(position) of the players and bindings lists, distance(first, last) (library).
 __declspec(naked) void** __fastcall PlayersErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x004293B0)
@@ -81,7 +80,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     if (binding) {
         MessageConstructBase(binding);
         RefNullA(&binding->PlayerRef());
-        RefNullB(&binding->ConnectionRef());
+        RefNullBOriginal(&binding->ConnectionRef());
         ei::SetVtable(binding, BindingMessage::kVtableAddress);
     }
     void* bindings = &self->bindings_;

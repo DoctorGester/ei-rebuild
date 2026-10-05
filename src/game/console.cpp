@@ -6,6 +6,8 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "originals_engine.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -52,9 +54,6 @@ __declspec(naked) CommandHandler* CommandMap::Index(const mfc::CString&) EI_ORIG
 namespace {
 
 // Game CRT.
-__declspec(naked) int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)        // _ismbblead
-__declspec(naked) int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)            // isleadbyte
-__declspec(naked) const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947) // _mbsinc
 
 int Mbscmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -81,7 +80,6 @@ __declspec(naked) int __fastcall NetworkGameAt(void*) EI_ORIGINAL(0x0057F440)
 bool NetworkGame() { return (NetworkGameAt(reinterpret_cast<void*>(0x007AFE20)) & 0xFF) != 0; }
 
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
-__declspec(naked) char __fastcall QuitGame(int) EI_ORIGINAL(0x00455F20)
 
 // 005785D0 (on 007AFEA6): loads `text` into the mission script 007C29CC, runs one tick when it
 // loaded and `run` is set, and copies the loader's error into `error`. Returns nonzero on success.

@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 
 #include <cstring>
 #include <new>
@@ -437,7 +438,6 @@ __declspec(naked) void ItemText::TrimSpaceRight() EI_ORIGINAL(0x006FE11F)
 ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 
 // 006E80D8 atoi.
-__declspec(naked) int __cdecl GameAtoi(const char*) EI_ORIGINAL(0x006E80D8)
 
 // 004DBE40 (ECX text, EDX array, separator on the stack). Splits `text` at `separator`.
 __declspec(naked) void __fastcall SplitItemName(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
@@ -474,7 +474,7 @@ struct NamePair {
     NameKey name;
     void* record;
 };
-__declspec(naked) void __fastcall KeyFromChars(NameKey*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
+__declspec(naked) NameKey* __fastcall KeyFromChars(NameKey*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
 __declspec(naked) void __fastcall KeyDefault(NameKey*, void*, const void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void __fastcall KeyAssign(NameKey*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall KeyDestroy(NameKey*) EI_ORIGINAL(0x0040C720)

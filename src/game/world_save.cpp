@@ -13,6 +13,9 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_gameplay.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -222,7 +225,7 @@ __declspec(naked) void __fastcall AIMapBeginRefresh(void*, void*) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall AIMapEndRefresh(void*, void*) EI_ORIGINAL(0x005B8B80)
 // 005BA830 / 005BA9D0. CAIMap::CanLeaveCell / FindFreeCellNear (ai_map.cpp).
 __declspec(naked) bool __fastcall AIMapCanLeaveCell(void*, void*, CEngineObject*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) void __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3* /*from*/,
+__declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3* /*from*/,
                                                         Vector3* /*out*/) EI_ORIGINAL(0x005BA9D0)
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
 __declspec(naked) int __fastcall LoadAIGraph(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
@@ -244,7 +247,6 @@ __declspec(naked) void __fastcall LoadSavedMapObjectsAt(CWorldServer*, void*, Wo
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
 __declspec(naked) void __fastcall SaveMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596730)
 // 0058D280. UpdatePlayerTimes, through its address.
-__declspec(naked) void __fastcall UpdatePlayerTimesAt(CWorldServer*, void*, float) EI_ORIGINAL(0x0058D280)
 // 004047E0 / 00404860 (RET 4). A manager's changed objects, read / written by id.
 __declspec(naked) void __fastcall ManagerLoadObjects(CEngineObject*, void*, WorldStream*) EI_ORIGINAL(0x004047E0)
 __declspec(naked) void __fastcall ManagerSaveObjects(CEngineObject*, void*, WorldStream*) EI_ORIGINAL(0x00404860)
@@ -255,7 +257,6 @@ __declspec(naked) CEngineObject* __fastcall ManagerFind(CEngineObject*, void*, i
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
 __declspec(naked) void __fastcall MarkNew(CEngineObject*, void*) EI_ORIGINAL(0x00675CA0)
 // 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save.
-__declspec(naked) Projectile* __fastcall ProjectileConstruct(void*, void*) EI_ORIGINAL(0x0067E510)
 __declspec(naked) void __fastcall ProjectileLoad(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E7D0)
 __declspec(naked) void __fastcall ProjectileSave(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E960)
 // 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
@@ -298,8 +299,6 @@ __declspec(naked) double __fastcall VariableGet(void* /*table*/, void*, const ch
 // 0055FB00 (RET 4). CWorld::FindUnit.
 __declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int /*id*/) EI_ORIGINAL(0x0055FB00)
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
-__declspec(naked) void __fastcall WorldTimeSettings(CWorldServer*, void*, float* /*time*/, float* /*speed*/)
-    EI_ORIGINAL(0x0055FBD0)
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
 __declspec(naked) void __fastcall SectorMapRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 __declspec(naked) void __fastcall SectorMapAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)

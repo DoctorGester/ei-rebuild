@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "random.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -258,7 +259,6 @@ float WorldTimeOfDay() {
 
 // Object id from a name (00461360): (sum * 5 + toupper(c)) % 1e9 + 1e9, ECX = name.
 __declspec(naked) int __fastcall ObjectIdFromName(const char*) EI_ORIGINAL(0x00461360)
-__declspec(naked) int __cdecl GameAtoi(const char*) EI_ORIGINAL(0x006E80D8)
 __declspec(naked) int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 
 // Virtual calls on world objects by vtable offset.

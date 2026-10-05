@@ -14,6 +14,8 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_engine.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -54,7 +56,6 @@ inline IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x00
 inline std::uint32_t Next() { return GlobalRandom().Next(); }
 
 // 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.
-__declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/) EI_ORIGINAL(0x00488970)
 inline double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
 // 006E853C, the game's _ftol: truncation of ST0.
@@ -75,9 +76,8 @@ __declspec(naked) inline double __cdecl Ln(double) {
     __asm ret
 }
 
-// 00564070 TerrainOwner::SurfaceHeight(x, y) on the terrain owner 007AF5B8; leaves ST0 unrounded.
-__declspec(naked) inline double __fastcall SurfaceHeight(void* /*owner*/, void*, float /*x*/, float /*y*/) EI_ORIGINAL(0x00564070)
-inline double GroundHeight(float x, float y) { return SurfaceHeight(reinterpret_cast<void*>(0x007AF5B8), nullptr, x, y); }
+// 00564070 TerrainOwner::SurfaceHeightRaw(x, y) on the terrain owner 007AF5B8; leaves ST0 unrounded.
+inline double GroundHeight(float x, float y) { return SurfaceHeightRaw(reinterpret_cast<void*>(0x007AF5B8), nullptr, x, y); }
 
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
 inline float PickIfLess(float a, float b) { return !(a >= b) ? a : b; }
@@ -86,7 +86,6 @@ inline float PickIfLess(float a, float b) { return !(a >= b) ? a : b; }
 __declspec(naked) inline void __cdecl DebugMessage(const char*) EI_ORIGINAL(0x0044C470)
 
 // 00497EB0 AllocateElements through its address (the original calls it there).
-__declspec(naked) inline ParticleElement* __fastcall AllocateElementsAt(int /*count*/) EI_ORIGINAL(0x00497EB0)
 
 // The element array's inlined SetSize(n) (MFC CArray: data +0x154, size +0x158, max +0x15C,
 // grow by +0x160; 32-byte aligned blocks from 00497EB0).
