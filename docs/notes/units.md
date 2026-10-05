@@ -33,9 +33,12 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
   (an unknown name is inserted with a null record).
 - CUnit vtable 0073EA8C slots rewritten: 6 Tick 0052F7D0, 19 AttachCompanion, 26 LoadUnitFigures, 27 RecomputeUnitScale, 28
   EffectsChanged, 30 ResetUnitScale, 32 StatsChanged, 33 ScaleEffectChanged, 35 SetServerStats, 37 UpdateSizeClasses, 48
-  StandPoint, 49 / 50 network state, 51 PlaceUnitOnGround, 52 / 53 unit points. Not rewritten: 0 destructor 0052E2A0, 5
-  release 0052E740, 25 0052FC40, 34 0052EB70, Destroy 0052E590 (Create 0052E400 is `CreateUnit`: a member named Create would
-  override CEngineObject's virtual).
+  StandPoint, 49 / 50 network state, 51 PlaceUnitOnGround, 52 / 53 unit points, 5 ReleaseUnit 0052E740, 3 DestroyUnit 0052E590.
+  Not rewritten: 25 0052FC40, 34 0052EB70 (Create 0052E400 is `CreateUnit`: a member named Create would override CEngineObject's
+  virtual).
+- Controller slots are called through `CUnitController` (unit.h; `CUnit::Controller()`): an interface declaration the controller
+  classes do not derive from, so their registered slot members stay non-virtual. Named: 16 Path, 18 PlayerChanged, 38
+  HostileMaskChanged.
 - ST0 results are `double` (the original returns floats unrounded and 00532A20 truncates `Reduce` with `_ftol`): UnitStats
   Period20, AttributeWithBonus, SkillWithBonus, Value6E8, Value6E9, Value6E9Arg, Reduce, ReduceKind1, CUnit MoveSpeed2,
   MoveSpeedFor, ScaledValue, BaseSpeed, ModeSpeed, TotalItemWeight, AnimationRatio, UnitParams::Period. UnitStats level
@@ -178,6 +181,8 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 005301B0, 00530240, 005304A0, 00530280, 00532860 | FindAnimation, AnimationEntry, BodyExtent, GroundHeight, EffectPoint | unit_figure_queries.cpp | differential (rand() / ISAAC saved; GroundHeight through a copy of the 98-byte body; EffectPoint output, skipped where the original rotates uninitialised stack) |
 | 0052FCC0, 0052FDF0, 00535850 | UnitPredictPosition, UnitActionPoint, ClientPlaceOnPath | unit_points.cpp, unit_client_path.cpp | differential within 8 ULPs (quaternion strict) |
 | 0052E400, 0052BFC0 | CUnit::CreateUnit, TorchCreate | map_object_create.cpp | ours only (result 1, 14 / 5 network fields, mode idle) |
+| 0052E970, 0052E9D0, 005300D0 | SetHostileMask, RefreshMotion (path forgets the unit, motion +0x27C takes GetMoveSpeeds and is rebuilt; part 10), SetPlayer | unit_controller.cpp | ours only (mask / speeds / player owns the unit; parts marked) |
+| 0052E740, 0052E590 | ReleaseUnit (slot 5: SetPlayer(null), controller slot 5, item slots, carried items), DestroyUnit (slot 3) | unit_controller.cpp | ours only (no player, empty slots; no controller) |
 | 00535590, 00535CB0, 00536300, 00536670, 005381B0, 005385A0 | ChangeWeaponModel, CollectArmourPartNames, BuildSkinLayers, ComposeSkin, WearArmourModel, RemoveArmourModel | unit_client_models.cpp | ours only / output |
 | 0052B7A0, 0052BBE0 | Lever::SetState, UseSpots | unit_lever.cpp | ours only / output (coordinates within 8 ULPs) |
 | 00529DD0, 00529F90, 0052A100, 0052A200, 0052AC20, 0052AB30, 0052AC90, 0052A2C0, 0052A4B0, 0052A680, 0052ADC0 | MagicTrap Construct, DestructBody, CreateTrap, DestroyTrap, UpdateTrap, FireAtOccupants, ForgetObject, SetUp, CastAtUnits, UpdateVictims, LoadTrap | magic_trap.cpp | ours only (LoadTrap through a recording stream with a round trip through the original Save) |
@@ -215,9 +220,9 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 
 ## Skipped and why
 
-- Large or stateful, next candidates: 0052E970 (SetHostileMask, controller slot 0x98), 0052E9D0 / 0052EA40 (path speeds), 005300D0 SetController (controller slots 38, 16, 18; the controllers have
-  no declared virtual interface yet and adding one means checking every `EI_REPLACE_METHOD` of their slot members against check_thunks), 0052E740 (release), 005316F0, 0052EB70 and 0050E9B0 (slot 34:
-  pack stack copies that 005136D0 fills, stack garbage), 0052FC40, 0052E590, 00526860 / 005271E0 (skill / attack builders), 00522AE0 / 00522B20 (results depend on leftover register halves), record
+- 0052EA40 (SetMotionSpeeds with given speeds): only the multiplayer client calls it (00669FA0).
+- Large or stateful, next candidates: 005316F0, 0052EB70 and 0050E9B0 (slot 34:
+  pack stack copies that 005136D0 fills, stack garbage), 0052FC40, 00526860 / 005271E0 (skill / attack builders), 00522AE0 / 00522B20 (results depend on leftover register halves), record
   destructors 0053EBC0 and others, 00535B30 / 005341A0 / 00537D80 / 00534590 (client timers, speech, footsteps: audio-adjacent), 00538C20 / 00538ED0 / 00539010 / 005352B0 / 00533980 / 00533EA0 (client arrow
   part, figure, animation code, destructor), 0053A8E0 (counts each model's .wav files), 005190C0 / 00519380 (random animations; forwarded locally).
 - Not unit logic: 00500000-0050E000 (`map_objects.md`), figure loading, bounds and wound textures (005179E0, 00516DA0, 0051C3D0, 005370F0, 00536EA0), map object effect visuals (00510B80, 005112A0,
