@@ -874,3 +874,50 @@ shorter than 4 bytes keeps the pointer's remaining bytes (reproduced); GetDWord'
 uninitialised in the original (a REG_DWORD shorter than 4 bytes gives stack garbage; ours leaves
 an uninitialised local too, not the same bytes). Not taken: 00698E70..00698FB0 (static
 initialisers zeroing five 3-dword globals before WinMain).
+
+## Group 2: HUD panel displays (00647B70-0064A320)
+
+Code: `src/game/ui_hud_panels.cpp`; verify: `tests/verify/verify_ui_hud_panels.cpp`. Scenario:
+`ui_hud` (the unit panel shows the hero every frame; the top panel's page buttons and sling; the
+movement panel's inner button), and every scenario with a battle screen for the unit panel.
+
+| Address | Name | Verify |
+|---|---|---|
+| 006477E0 | CHudUnitPanel::ShowHealth (RET 4; from the panel draw 006462A0) | side by side from the same spoiled sprites 10-13 (visible, quad edge, uvs), compared (floats within 4 ULPs); unwritten fields put back |
+| 00647B70 | CHudUnitPanel::ShowParts (RET 4) | the same over sprites 14-25 (also the colour row +0xD0) |
+| 00649810 | CHudMovePanel::ToggleFlag | ours only (orders through the local view): flag 0 / 1, every selected party unit's +0x438 equal to it, the button's frame |
+| 0064A320 | CHudTopPanel::ShowPage | original, button tints spoiled, ours: tints and the message log's position / maximum / moved flag compared |
+| 00649E20 | CHudTopPanel::Layout | original, positions and region offsets spoiled, ours: the five placed sprites' positions (4 ULPs), the log's rect, the region offsets |
+
+ShowHealth: sprite 11 shown; with max HP and HP > 0 the bar (sprite 10) is filled to HP / max
+(clamped to 1, nothing when not above 0): its quad's right edge (x[2], x[3]) ratio - 0.5, its
+right texels (ratio * 100 + 64) / 256 + 1/512 between rows 0.396484375 / 0.376953125; the HP
+number ("%d", 0 when negative) at (130, 185)-(160, 200). For a party member also sprite 13 and the
+mana bar (sprite 12, rows 0.369140625 / 0.349609375) and number at (130, 200)-(160, 215).
+ShowParts: for each of the unit's six body part records (+0x374, 0x1C bytes: state, durability,
+maximum) with a state: sprite 15 + 2i shown; state 3 with durability fills bar 14 + 2i (width 50,
+rows 0.505859375 / 0.486328125), else the bar is hidden; its colour row +0xD0 is 0 above 2/3,
+-0.02734375 above 1/3, else -0.0546875 (ratio 0 when not filled); the part's name (the unit
+model's slot name, "skull" / "torso" / "leg" / "arm" replaced by the panel's labels +0x1B4) at the
+part's label position (tables 00742434 / 0074244C), red for state 1. The texts go through the
+panel surface's DrawText (005FDE20, Rebirth-patched, through its address).
+
+ToggleFlag: the click sound; the selected (flag 0x10) party members' common +0x438 (-1 none, -2
+mixed); all get 0 when it is 1, else 1, through the local view's order 0066AF30 (forwarder,
+not rewritten); +0x150 and the button's frame (+0xCC 0.3359375 for 0, 0 for 1; the original's
+third value 0.48046875 is unreachable). ShowPage: buttons 3 / 4 tinted 1 / 0.5; the message log
+(the battle screen's child 9) gets page 0's text (+0x164) and scrolls to the end (slot 25 with
+its maximum, moved flag set) or page 1's (+0x168) at the top. Layout: Place (005E6FA0,
+Rebirth-patched, through its address) of sprites 0, 1, 3, 4, 5 at y 57.5 / 10 / 10 / 10 / 47.5
+minus the slide offset, the log's slot 26 (SetRect) with (190, 25 - offset, 610, 89 - offset),
+regions 1.. offset (0, -offset).
+
+Header changes (additive): `ui.h` CUiMesh `uOffset_` / `vOffset_` (+0xCC / +0xD0) and `tint_`
+(+0x224), CBattleScreen `children_` (+0x148), CHudUnitPanel `partLabels_` (+0x1B4) and the two
+methods, CHudTopPanel `pageTexts_` (+0x164), CUiScrollbar::CallSetRect (slot 26), the
+`Call*` members (through the addresses: ui_hud.cpp's ToggleFlag / ShowPage forwarders and
+ui_hud_frame.cpp's Layout forwarder renamed, so their callers still run the verify wrappers);
+`unit.h` CUnit `maxMana` (+0x184) and `bodyParts` (+0x374, `UnitBodyPart`). The 0065CFE0
+forwarder moved from ui_objectives.cpp to `originals_ui.h` (`LogSetTextOriginal`).
+Forwarder added: 0066AF30 (the local view's +0x438 order). None of the rewritten functions is
+on the Rebirth list (their caller 006462A0 is).

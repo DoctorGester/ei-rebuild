@@ -125,9 +125,9 @@ __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050
 __declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
 __declspec(naked) void CUiRegion::SetTipText(const char*) EI_ORIGINAL(0x005FC690)
 __declspec(naked) void CHudSpellColumn::ClickAlternate(int) EI_ORIGINAL(0x0063EF60)
-__declspec(naked) void CHudMovePanel::ToggleFlag() EI_ORIGINAL(0x00649810)
+__declspec(naked) void CHudMovePanel::CallToggleFlag() EI_ORIGINAL(0x00649810)
 __declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
-__declspec(naked) void CHudTopPanel::ShowPage() EI_ORIGINAL(0x0064A320)
+__declspec(naked) void CHudTopPanel::CallShowPage() EI_ORIGINAL(0x0064A320)
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
@@ -459,7 +459,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     if (region == -1) return;
     inputHandled_ = true;
     if (region == 0) {
-        ToggleFlag();
+        CallToggleFlag();
         return;
     }
     int mode = region - 1;
@@ -529,7 +529,7 @@ void CHudTopPanel::OnMouseUp(int, int x, int y) {
     case 1:
     case 2:
         page_ = region - 1;
-        ShowPage();
+        CallShowPage();
         interface_->PlaySound(kSoundClick, 0);
         inputHandled_ = true;
         return;

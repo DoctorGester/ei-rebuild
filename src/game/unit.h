@@ -67,6 +67,16 @@ struct PartyRecords {
     PartyUnitRecord* Find(int unitId);
 };
 
+// One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
+// part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).
+struct UnitBodyPart {
+    int state;                      // +0x00
+    std::int16_t durability;        // +0x04
+    std::uint16_t maxDurability;    // +0x06
+    std::uint8_t unknown_08[0x1C - 0x08];
+};
+static_assert(sizeof(UnitBodyPart) == 0x1C);
+
 class CUnit : public CEngineObject {
 public:
     // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
@@ -362,7 +372,8 @@ public:
     std::int16_t hitPoints;         // +0x17E
     std::int16_t maxHitPoints;      // +0x180
     std::uint16_t mana;             // +0x182
-    std::uint8_t unknown_184[0x198 - 0x184];
+    std::uint16_t maxMana;          // +0x184
+    std::uint8_t unknown_186[0x198 - 0x186];
     UnitEffect* effects;            // +0x198
     int effectCount;                // +0x19C
     std::uint8_t unknown_1A0[0x1B4 - 0x1A0];
@@ -401,7 +412,9 @@ public:
     std::uint8_t movementKind;      // +0x33F 2: moves on the water surface
     std::uint8_t modeSpeeds[4];     // +0x340 speed bytes of movement modes 3 (and 2's backward), 2, 1, 0
     std::uint8_t baseSpeed;         // +0x344
-    std::uint8_t unknown_345[0x438 - 0x345];
+    std::uint8_t unknown_345[0x374 - 0x345];
+    UnitBodyPart bodyParts[6];      // +0x374 as the unit panel shows them (00647B70)
+    std::uint8_t unknown_41C[0x438 - 0x41C];
     int unknown_438;                // +0x438
     std::uint32_t unknown_43C;
     CEngineObject* weapons[4];      // +0x440
@@ -425,6 +438,8 @@ static_assert(offsetof(CUnit, above) == 0x144);
 static_assert(offsetof(CUnit, partBoxes) == 0x160);
 static_assert(offsetof(CUnit, hitPoints) == 0x17E);
 static_assert(offsetof(CUnit, mana) == 0x182);
+static_assert(offsetof(CUnit, maxMana) == 0x184);
+static_assert(offsetof(CUnit, bodyParts) == 0x374);
 static_assert(offsetof(CUnit, effects) == 0x198);
 static_assert(offsetof(CUnit, sectorCellX) == 0x1B8);
 static_assert(offsetof(CUnit, changedParts) == 0x1DC);

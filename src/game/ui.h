@@ -16,6 +16,8 @@
 
 #include <windows.h>
 
+namespace mfc { class CString; }
+
 class CUiWindow;
 class CUiMesh;
 
@@ -490,7 +492,8 @@ public:
     // none). Mode 0 with slot and item -1 cancels (ui_hud_pick.cpp).
     void SetPendingAction(int mode, int slot, int item);
 
-    std::uint8_t unknown_148[0x16C - 0x148];
+    UiPtrArray<CUiWindow> children_; // +0x148 the container's child windows ([9] the message log)
+    std::uint8_t unknown_158[0x16C - 0x158];
     CUnit** party_;                  // +0x16C the player's units shown as portraits
     int partyCount_;                 // +0x170
     std::uint8_t unknown_174[0x17C - 0x174];
@@ -772,7 +775,10 @@ public:
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
 
-    std::uint8_t unknown_000[0xD8];
+    std::uint8_t unknown_000[0xCC];
+    float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
+    float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
+    std::uint8_t unknown_0D4[0xD8 - 0xD4];
     std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
     std::uint8_t unknown_0DC[0x1C0 - 0xDC];
     UiQuadBlock* quads_;             // +0x1C0
@@ -788,7 +794,8 @@ public:
     int uvCount_;                    // +0x214
     std::uint8_t unknown_218[0x220 - 0x218];
     int visible_;                    // +0x220
-    std::uint8_t unknown_224[0x23C - 0x224];
+    float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
+    std::uint8_t unknown_230[0x23C - 0x230];
     // The scale 005E7060 sets (the same value in all three; the diagonal of a matrix of rows of
     // five floats, the rest unknown).
     float scaleX_;                   // +0x23C
@@ -805,6 +812,8 @@ static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);
 static_assert(offsetof(CUiMesh, uvs_) == 0x210);
 static_assert(offsetof(CUiMesh, visible_) == 0x220);
+static_assert(offsetof(CUiMesh, uOffset_) == 0xCC);
+static_assert(offsetof(CUiMesh, tint_) == 0x224);
 
 // A growable array of 2D points with the interface arrays' 32-byte alignment.
 struct UiPointF {
@@ -869,6 +878,13 @@ static_assert(offsetof(CHudMap, view_) == 0x1AC);
 // the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
 public:
+    // 006477E0 (RET 4; ui_hud_panels.cpp, called by the panel's draw 006462A0). The health bar
+    // and number of `unit` (scene objects 10 / 11), and its mana bar and number (12 / 13) when it
+    // is one of the party.
+    void ShowHealth(CUnit* unit);
+    // 00647B70 (RET 4; ui_hud_panels.cpp). The six body parts of `unit`: the name of each present
+    // part and, for state 3, its durability bar (scene objects 14 + 2i / 15 + 2i).
+    void ShowParts(CUnit* unit);
     void OnMouseDown(int buttons, int x, int y);   // 00648330
     void OnMouseUp(int buttons, int x, int y);     // 00648370
     void OnMouseMove(int buttons, int x, int y);   // 006484C0
@@ -882,6 +898,8 @@ public:
     std::uint8_t unknown_170[0x17C - 0x170];
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
+    std::uint8_t unknown_184[0x1B4 - 0x184];
+    mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
 };
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C);
@@ -914,8 +932,11 @@ public:
     void OnMouseMove(int buttons, int x, int y);   // 00649750
     // 00649550 (slot 24, every frame). Shows the selected units' common mode and flag.
     void Update();
-    // 00649810 (not rewritten). Region 0: toggles +0x438 of the selected units.
+    // 00649810 (ui_hud_panels.cpp). Region 0 (and its key): plays the click, sets +0x438 of the
+    // selected party units to 0 when all of them have 1, else to 1 (through the local view), and
+    // shows the button's state (scene object 5).
     void ToggleFlag();
+    void CallToggleFlag();                         // through 00649810 (its verify wrapper)
     // 00649910 (Rebirth-patched, not rewritten). Highlights mode `mode` (-1/-2: none).
     void ShowMode(int mode);
 
@@ -933,12 +954,16 @@ public:
     void OnMouseUp(int buttons, int x, int y);     // 0064A200
     void OnMouseMove(int buttons, int x, int y);   // 0064A2C0
     BOOL OnWheel(int buttons, int delta, int x, int y);   // 0064A2F0
-    // 0064A320 (not rewritten). Shows page `page_`.
+    // 0064A320 (ui_hud_panels.cpp). Shows page `page_`: highlights its button (scene objects 3 /
+    // 4) and puts its text into the battle screen's message log (page 0 scrolled to the end).
     void ShowPage();
+    void CallShowPage();                           // through 0064A320 (its verify wrapper)
     // 00649FF0 (slot 24, every frame): slides the panel in or out (ui_hud_frame.cpp).
     void Update();
-    // 00649E20 (not rewritten). Places the panel's parts at the current slide offset.
+    // 00649E20 (ui_hud_panels.cpp). Places the panel's parts, the message log and the regions at
+    // the current slide offset.
     void Layout();
+    void CallLayout();                             // through 00649E20 (its verify wrapper)
 
     CBattleScreen* owner_;           // +0x148
     int sliding_;                    // +0x14C
@@ -947,6 +972,7 @@ public:
     float slide_;                    // +0x158 0 (out) .. 1 (in)
     float slideDirection_;           // +0x15C
     int page_;                       // +0x160
+    char* pageTexts_[2];             // +0x164 CStrings: the message log's text of pages 0 and 1
 };
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
 static_assert(offsetof(CHudTopPanel, page_) == 0x160);
@@ -996,6 +1022,9 @@ public:
     void OnMouseUp(int buttons, int x, int y);     // 0065B340
     // Virtual slot 25 (0065B0C0 for the plain scroll bar): moves to `position`, clamped.
     void CallSetPosition(int position);
+    // Virtual slot 26 (0065B490; 0065D0A0 for the scrolling text): places the bar over the layout
+    // rectangle `rect` (rect_, arrows, thumb and regions; the text's surface and line width).
+    void CallSetRect(const RECT* rect);
     // 0065AEA0 (not rewritten). Constructor: a bar over the layout rectangle `rect` (passed by
     // value), scrolling `speed` lines per second; returns this.
     CUiScrollbar* Construct(CInterface3D* ui, RECT rect, float speed, int a, float b);

@@ -1,0 +1,264 @@
+// Checks for the HUD panels' state displays (ui_hud_panels.cpp). Scenario: ui_hud (the unit panel
+// shows the hero every frame; the top panel's page buttons and sling; the movement panel's inner
+// button), and every scenario with a battle screen.
+//
+// The unit panel's ShowHealth / ShowParts and the top panel's ShowPage / Layout run side by side:
+// the fields they write are spoiled (set to values they never write, so a rewrite that writes
+// nothing shows even when a frame repeats the last one's values), the original runs, its result
+// is recorded, the fields are spoiled again, ours runs and the results are compared. Their text
+// draws and the log's text run twice (the same text at the same place). ToggleFlag gives orders:
+// ours only, the units' flags checked.
+#include "verify.h"
+
+#include "../../src/game/core_transform.h"
+#include "../../src/game/ui.h"
+#include "../../src/game/unit.h"
+
+#include <cstring>
+#include <vector>
+
+namespace {
+void* s_unused;
+
+CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data_[index]); }
+
+// The fields a bar display writes on sprite `index`: visibility, colour row, the quad's right
+// edge (and the two values the original copies onto themselves) and four texture coordinates.
+struct BarState {
+    int visible;
+    float vOffset;
+    float quad[4];   // x[2], x[3], y[2], y[3]
+    float uv[4];
+};
+
+BarState ReadBar(CUiMesh* m) {
+    BarState s{};
+    s.visible = m->visible_;
+    s.vOffset = m->vOffset_;
+    if (m->quads_) {
+        s.quad[0] = m->quads_[0].x[2];
+        s.quad[1] = m->quads_[0].x[3];
+        s.quad[2] = m->quads_[0].y[2];
+        s.quad[3] = m->quads_[0].y[3];
+    }
+    if (m->uvs_ && m->uvCount_ >= 4) std::memcpy(s.uv, m->uvs_ + 4, sizeof(s.uv));
+    return s;
+}
+
+void WriteBar(CUiMesh* m, const BarState& s) {
+    m->visible_ = s.visible;
+    m->vOffset_ = s.vOffset;
+    if (m->quads_) {
+        m->quads_[0].x[2] = s.quad[0];
+        m->quads_[0].x[3] = s.quad[1];
+        m->quads_[0].y[2] = s.quad[2];
+        m->quads_[0].y[3] = s.quad[3];
+    }
+    if (m->uvs_ && m->uvCount_ >= 4) std::memcpy(m->uvs_ + 4, s.uv, sizeof(s.uv));
+}
+
+// A recognisable spoiled state: what a bar display may write is set to values it never writes
+// (the two values the original copies onto themselves are left alone).
+constexpr int kSpoiledVisible = 7;
+constexpr float kSpoiled = -9.0f;
+
+BarState Spoiled(const BarState& s) {
+    BarState x = s;
+    x.visible = kSpoiledVisible;
+    x.vOffset = kSpoiled;
+    x.quad[0] = x.quad[1] = kSpoiled;
+    for (float& v : x.uv) v = kSpoiled;
+    return x;
+}
+
+// `after` with every field still spoiled (not written) put back to its value in `before`.
+BarState Merged(const BarState& after, const BarState& before) {
+    BarState x = after;
+    if (x.visible == kSpoiledVisible) x.visible = before.visible;
+    if (x.vOffset == kSpoiled) x.vOffset = before.vOffset;
+    for (int k = 0; k < 2; ++k)
+        if (x.quad[k] == kSpoiled) x.quad[k] = before.quad[k];
+    for (int k = 0; k < 4; ++k)
+        if (x.uv[k] == kSpoiled) x.uv[k] = before.uv[k];
+    return x;
+}
+
+std::vector<BarState> ReadBars(CUiWindow* w, int first, int count) {
+    std::vector<BarState> v;
+    for (int i = 0; i < count; ++i) v.push_back(ReadBar(Sprite(w, first + i)));
+    return v;
+}
+
+void SpoilBars(CUiWindow* w, int first, const std::vector<BarState>& before) {
+    for (std::size_t i = 0; i < before.size(); ++i) WriteBar(Sprite(w, first + static_cast<int>(i)), Spoiled(before[i]));
+}
+
+void MergeBars(CUiWindow* w, int first, const std::vector<BarState>& before) {
+    for (std::size_t i = 0; i < before.size(); ++i) {
+        CUiMesh* m = Sprite(w, first + static_cast<int>(i));
+        WriteBar(m, Merged(ReadBar(m), before[i]));
+    }
+}
+
+// The first sprite whose state differs (floats within a few ULPs), or -1.
+int FirstDifferentBar(const std::vector<BarState>& a, const std::vector<BarState>& b) {
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        const BarState& x = a[i];
+        const BarState& y = b[i];
+        bool same = x.visible == y.visible && ei::verify::NearlyEqual(x.vOffset, y.vOffset, 4, 1e-6f);
+        for (int k = 0; k < 4 && same; ++k)
+            same = ei::verify::NearlyEqual(x.quad[k], y.quad[k], 4, 1e-6f) && ei::verify::NearlyEqual(x.uv[k], y.uv[k], 4, 1e-6f);
+        if (!same) return static_cast<int>(i);
+    }
+    return -1;
+}
+
+// Both versions run from the same spoiled bars (so one that writes nothing shows even when a
+// frame repeats the last one's values); what neither wrote is put back afterwards.
+template <typename Original, typename Ours>
+int CompareBarRuns(CHudUnitPanel* self, int first, int count, Original original, Ours ours, std::vector<BarState>* expected,
+                   std::vector<BarState>* actual) {
+    std::vector<BarState> before = ReadBars(self, first, count);
+    SpoilBars(self, first, before);
+    original();
+    *expected = ReadBars(self, first, count);
+    SpoilBars(self, first, before);
+    ours();
+    *actual = ReadBars(self, first, count);
+    MergeBars(self, first, before);
+    return FirstDifferentBar(*expected, *actual);
+}
+
+// 006477E0: MOV EAX,FS:[0] (6 bytes). Sprites 10..13.
+void(__fastcall* s_showHealth)(CHudUnitPanel*, void*, CUnit*);
+void __fastcall ShowHealthVerify(CHudUnitPanel* self, void*, CUnit* unit) {
+    std::vector<BarState> expected, actual;
+    int i = CompareBarRuns(
+        self, 10, 4, [&] { s_showHealth(self, nullptr, unit); }, [&] { self->ShowHealth(unit); }, &expected, &actual);
+    ei::verify::Check("CHudUnitPanel::ShowHealth", -1, i, "hp %d/%d mana %u/%u: sprite %d visible %d/%d edge %g/%g u %g/%g",
+                      unit->hitPoints, unit->maxHitPoints, unit->mana, unit->maxMana, i < 0 ? -1 : 10 + i,
+                      i < 0 ? 0 : expected[i].visible, i < 0 ? 0 : actual[i].visible, i < 0 ? 0.0 : expected[i].quad[0],
+                      i < 0 ? 0.0 : actual[i].quad[0], i < 0 ? 0.0 : expected[i].uv[0], i < 0 ? 0.0 : actual[i].uv[0]);
+}
+
+// 00647B70: PUSH -1; PUSH imm32 (7 bytes). Sprites 14..25.
+void(__fastcall* s_showParts)(CHudUnitPanel*, void*, CUnit*);
+void __fastcall ShowPartsVerify(CHudUnitPanel* self, void*, CUnit* unit) {
+    std::vector<BarState> expected, actual;
+    int i = CompareBarRuns(
+        self, 14, 12, [&] { s_showParts(self, nullptr, unit); }, [&] { self->ShowParts(unit); }, &expected, &actual);
+    const UnitBodyPart* part = i >= 0 ? &unit->bodyParts[i / 2] : nullptr;
+    ei::verify::Check("CHudUnitPanel::ShowParts", -1, i, "sprite %d (part state %d, %d/%u): visible %d/%d edge %g/%g row %g/%g",
+                      i < 0 ? -1 : 14 + i, part ? part->state : 0, part ? part->durability : 0,
+                      part ? part->maxDurability : 0u, i < 0 ? 0 : expected[i].visible, i < 0 ? 0 : actual[i].visible,
+                      i < 0 ? 0.0 : expected[i].quad[0], i < 0 ? 0.0 : actual[i].quad[0],
+                      i < 0 ? 0.0 : expected[i].vOffset, i < 0 ? 0.0 : actual[i].vOffset);
+}
+
+// 00649810 (stolen 0): ours only. Afterwards every selected party unit has the panel's flag (0 or
+// 1), and the button shows it.
+void __fastcall ToggleFlagVerify(CHudMovePanel* self, void*) {
+    self->ToggleFlag();
+    bool ok = self->flag_ == 0 || self->flag_ == 1;
+    for (int i = 0; i < self->owner_->partyCount_; ++i) {
+        CUnit* unit = self->owner_->party_[i];
+        if ((unit->flags_ & 0x10) && unit->unknown_438 != self->flag_) ok = false;
+    }
+    float frame = Sprite(self, 5)->uOffset_;
+    ok = ok && frame == (self->flag_ == 0 ? 0.3359375f : 0.0f);
+    ei::verify::Check("CHudMovePanel::ToggleFlag", true, ok, "flag %d frame %g", self->flag_, frame);
+}
+
+// The top panel's page state: the two buttons' tints and the message log's position.
+struct PageState {
+    float tints[2][3];
+    int maxPosition;
+    int position;
+    bool moved;
+};
+
+CUiScrollText* Log(CHudTopPanel* p) { return static_cast<CUiScrollText*>(p->owner_->children_.data_[9]); }
+
+PageState ReadPage(CHudTopPanel* p) {
+    PageState s{};
+    for (int i = 0; i < 2; ++i) std::memcpy(s.tints[i], Sprite(p, 3 + i)->tint_, sizeof(s.tints[i]));
+    CUiScrollText* log = Log(p);
+    s.maxPosition = log->maxPosition_;
+    s.position = log->position_;
+    s.moved = log->moved_;
+    return s;
+}
+
+// 0064A320: SUB ESP,0x18; MOV EAX,0xC (8 bytes). The tints are spoiled before ours runs; the
+// log's text is set again by ours.
+void(__fastcall* s_showPage)(CHudTopPanel*, void*);
+void __fastcall ShowPageVerify(CHudTopPanel* self, void*) {
+    PageState before = ReadPage(self);
+    s_showPage(self, nullptr);
+    PageState expected = ReadPage(self);
+    for (int i = 0; i < 2; ++i)
+        for (float& t : Sprite(self, 3 + i)->tint_) t = -9.0f;
+    Log(self)->moved_ = before.moved;
+    self->ShowPage();
+    PageState actual = ReadPage(self);
+    bool same = std::memcmp(expected.tints, actual.tints, sizeof(expected.tints)) == 0 &&
+                expected.maxPosition == actual.maxPosition && expected.position == actual.position &&
+                expected.moved == actual.moved;
+    ei::verify::Check("CHudTopPanel::ShowPage", true, same, "page %d: tints %g,%g/%g,%g position %d/%d of %d/%d moved %d/%d",
+                      self->page_, expected.tints[0][0], expected.tints[1][0], actual.tints[0][0], actual.tints[1][0],
+                      expected.position, actual.position, expected.maxPosition, actual.maxPosition, expected.moved,
+                      actual.moved);
+}
+
+// The top panel's layout: the placed sprites' positions, the log's rectangle, the regions' offsets.
+struct LayoutState {
+    Vector3 positions[5];
+    RECT logRect;
+    std::vector<int> offsets;
+};
+constexpr int kPlaced[5] = {0, 1, 3, 4, 5};
+
+CTransformObject* Placed(CHudTopPanel* p, int i) {
+    return static_cast<CTransformObject*>(p->sceneObjects_.data_[kPlaced[i]]);
+}
+
+LayoutState ReadLayout(CHudTopPanel* p) {
+    LayoutState s{};
+    for (int i = 0; i < 5; ++i) s.positions[i] = Placed(p, i)->localPosition_;
+    s.logRect = Log(p)->rect_;
+    for (int i = 1; i < p->regions_.size_; ++i) {
+        s.offsets.push_back(p->regions_.data_[i]->offsetX_);
+        s.offsets.push_back(p->regions_.data_[i]->offsetY_);
+    }
+    return s;
+}
+
+// 00649E20: SUB ESP,0x10; PUSH ESI; MOV ESI,ECX (6 bytes). Positions and offsets are spoiled
+// before ours runs (the log's rectangle is set by both).
+void(__fastcall* s_layout)(CHudTopPanel*, void*);
+void __fastcall LayoutVerify(CHudTopPanel* self, void*) {
+    s_layout(self, nullptr);
+    LayoutState expected = ReadLayout(self);
+    for (int i = 0; i < 5; ++i) Placed(self, i)->localPosition_ = Vector3{-9.0f, -9.0f, -9.0f};
+    for (int i = 1; i < self->regions_.size_; ++i) self->regions_.data_[i]->offsetX_ = self->regions_.data_[i]->offsetY_ = 12345;
+    self->Layout();
+    LayoutState actual = ReadLayout(self);
+    int bad = -1;
+    for (int i = 0; i < 5 && bad < 0; ++i) {
+        const float* e = &expected.positions[i].x;
+        const float* a = &actual.positions[i].x;
+        for (int k = 0; k < 3; ++k)
+            if (!ei::verify::NearlyEqual(e[k], a[k], 4, 1e-6f)) bad = i;
+    }
+    bool same = bad < 0 && std::memcmp(&expected.logRect, &actual.logRect, sizeof(RECT)) == 0 &&
+                expected.offsets == actual.offsets;
+    ei::verify::Check("CHudTopPanel::Layout", true, same, "offset %d: sprite %d, log rect %ld/%ld", self->offset_,
+                      bad < 0 ? -1 : kPlaced[bad], expected.logRect.top, actual.logRect.top);
+}
+} // namespace
+
+EI_VERIFY(0x006477E0, ShowHealthVerify, 6, s_showHealth);
+EI_VERIFY(0x00647B70, ShowPartsVerify, 7, s_showParts);
+EI_VERIFY(0x00649810, ToggleFlagVerify, 0, s_unused);
+EI_VERIFY(0x0064A320, ShowPageVerify, 8, s_showPage);
+EI_VERIFY(0x00649E20, LayoutVerify, 6, s_layout);
