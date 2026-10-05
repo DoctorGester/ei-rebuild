@@ -7,7 +7,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R3 Save/load screen screenshot textures (made by 005FF0B0; locked by 00655550, 00655D40,
+- R3 (taken 2026-10-05) Save/load screen screenshot textures (made by 005FF0B0; locked by 00655550, 00655D40,
   00656464, 00656E10) on game memory.
 - R5 The ~10 interface draws with old-device calls (list in renderer.md point 6), in groups of 3-4.
 - R6 Movie surfaces and the software cursor's draws to the primary surface.
@@ -17,7 +17,8 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U5 (taken 2026-10-05) 0052BBE0 (lever surrounding points) and the next 2-4 largest game-logic functions in the range.
+- U6 Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips; prefer ones a
+  scenario reaches: combat, movement, units, map_objects).
 
 ## App and startup, 0x00440000-0x00480000
 
