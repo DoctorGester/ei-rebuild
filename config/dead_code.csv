@@ -186,6 +186,7 @@ address,size,name,evidence
 00498B20,141,FUN_00498b20,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00498BB0,141,FUN_00498bb0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0049AAF0,395,FUN_0049aaf0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0049B320,314,(no Ghidra function),"no references at all (no call/jmp/jcc, no absolute pointer in game.exe image; two-point line draw next to the renderer line list 0049B140..0049B780)"
 0049EAD0,165,FUN_0049ead0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0049FEE0,75,FUN_0049fee0,referenced only from dead code 004A0350 004A0710 004A0AA0 004A0BA0 004A1220 004A17D0
 0049FF30,56,FUN_0049ff30,referenced only from dead code 004A0BA0 004A1220
