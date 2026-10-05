@@ -101,7 +101,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
             AddItemSprite(this, nullptr, model.data, image.data);
         }
         finish(item, true);
-        ItemTip(slot, &tip);
+        ItemTipAt(slot, &tip);
         regions_.data_[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }

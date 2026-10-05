@@ -320,12 +320,45 @@ public:
     void OnKeyDown(int key, int repeat, int flags);   // 0062C010
     // Ends the titles: back to where they were opened from.
     void Close();
+    // 0062B7D0 (slot 25, the window's Create; ui_layouts.cpp). Opened in a game (fromGame_ 0) the
+    // loading screen steps and the music stops; the cursor hidden, the "<name>fin" movies played,
+    // font smoothing switched off, "outro.res" opened and its "credits.scr" parsed into lines_
+    // (one record per line: "#scroll" flag, speed, two texts); the scrolling text surface (+0x164)
+    // and the header surface (+0x168), both frozen; the display's +0x14 kept in savedDisplay_ and
+    // cleared; the player +0x1D8 starts "Movies\<name>.bik".
+    void Build();
 
     CUiWindow window;
-    std::uint8_t unknown_148[0x1F4 - 0x148];
+    std::uint8_t unknown_148[0x164 - 0x148];
+    CUiSurface* textSurface_;   // +0x164 the scrolling text (0x58 bytes, constructor 0065ED30)
+    CUiSurface* headerSurface_; // +0x168
+    int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
+    std::uint8_t archive_[0x1C8 - 0x170];   // +0x170 CMappedResource ("outro.res")
+    void* lines_;               // +0x1C8 STLport list of TitleLine (its sentinel node)
+    int unknown_1CC;            // +0x1CC cleared by Build
+    void* currentLine_;         // +0x1D0 list iterator: the first line (the sentinel without a script)
+    const char* name_;          // +0x1D4 CString ("Titles")
+    std::uint8_t player_[0x1F4 - 0x1D8];    // +0x1D8 the movie player (constructor 005DB340)
     bool fromGame_;             // +0x1F4 opened in a game (pending value 0xCCCCCCCC) or the menu
+    bool unknown_1F5;           // +0x1F5 cleared by Build
+    std::uint8_t unknown_1F6[2];
+    int savedDisplay_;          // +0x1F8 the display's (00500960) +0x14 while the titles run
 };
+static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
+static_assert(offsetof(CCreditsScreen, lines_) == 0x1C8);
 static_assert(offsetof(CCreditsScreen, fromGame_) == 0x1F4);
+static_assert(offsetof(CCreditsScreen, savedDisplay_) == 0x1F8);
+static_assert(sizeof(CCreditsScreen) == 0x1FC);
+
+// A line of the titles' script (the value of a lines_ node, after next / prev).
+struct TitleLine {
+    bool scroll;                // +0 the first word is "#scroll"
+    std::uint8_t unknown_1[3];
+    float speed;                // +4 the second word (atof)
+    const char* text;           // +8 CString: the fourth word
+    const char* style;          // +0xC CString: the third word
+};
+static_assert(sizeof(TitleLine) == 0x10);
 
 // --- Main menu ----------------------------------------------------------------------------------
 //

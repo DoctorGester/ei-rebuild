@@ -8,6 +8,7 @@
 #include "console.h"
 #include "item_db_text.h"
 #include "maths.h"
+#include "resource.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -631,3 +632,196 @@ void CMessageBox::Build() {
     }
 }
 EI_REPLACE_METHOD(0x00634790, CMessageBox::Build);
+
+// --- Difficulty question (006337B0) ---------------------------------------------------------------
+
+void CDifficultyBox::Build() {
+    LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
+    CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
+    AddSurface(surface);
+    BoxSurface(surface)->Begin();
+    // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
+    RECT rect = {15, 0, 385, 200};
+    int titleHeight = BoxSurface(surface)->Text(title_, &rect, 2, 0, 0x411, 1);
+    mfc::CString explanation;
+    int textHeight = 0;
+    if (reinterpret_cast<UiTexts*>(Texts())->Find(GameText(0x0079429C)) != 0) {   // "tip option_difficulty"
+        Texts()->ReadToHash(&explanation, 1);
+        explanation.TrimRight(GameText(0x0078DD00));   // CR LF
+        rect = RECT{15, 0, 385, 300};
+        textHeight = BoxSurface(surface)->Text(explanation, &rect, 1, 0, 0x410, 1);
+    }
+    int total = textHeight + titleHeight + 0x6C;
+    int top = (0x226 - total) / 2;   // the block centred in 550 pixels
+    rect = RECT{15, top - 0x55, 385, 450};
+    BoxSurface(surface)->Text(title_, &rect, 2, 0x31B3FF, 0x11, 1);
+    rect = RECT{15, titleHeight + top - 7, 385, 450};
+    BoxSurface(surface)->Text(explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
+
+    // The two choices, their labels centred on 430 (surface x 230) by their mean width.
+    mfc::CString easy;
+    mfc::CString hard;
+    Texts()->GetString(GameText(0x0079428C), &easy);   // "difficulty_easy"
+    Texts()->GetString(GameText(0x0079427C), &hard);   // "difficulty_hard"
+    auto* metrics = reinterpret_cast<BoxMetricsAt*>(interface_);
+    SIZE easySize = metrics->TextExtent(easy, 2);
+    SIZE hardSize = metrics->TextExtent(hard, 2);
+    int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
+    int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
+    rect = RECT{0xE6 - half, row - 100, 385, 450};
+    BoxSurface(surface)->Text(easy, &rect, 2, 0xA7D7E4, 0, 1);
+    rect = RECT{0xE6 - half, row - 0x4C, 385, 450};
+    BoxSurface(surface)->Text(hard, &rect, 2, 0xA7D7E4, 0, 1);
+    BoxSurface(surface)->End();
+    easy_ = 0;
+
+    // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted
+    // by +0xCC, as the button handler does).
+    int boxLeft = 400 - half;
+    int boxRight = 0x1A5 - half;
+    AddSprite(0)->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row),
+                               static_cast<float>(boxRight), static_cast<float>(row + 0x15), 0xD1, 0x37, 0xE6, 0x4C);
+    CUiMesh* hardBox = AddSprite(0);
+    hardBox->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
+                          static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
+    const std::uint32_t checked = 0xBDB80000;
+    std::memcpy(reinterpret_cast<std::uint8_t*>(hardBox) + 0xCC, &checked, 4);
+
+    int bottom = top + total;
+    Shade(this, 3.0f, 200.0f, static_cast<float>(top), 600.0f, static_cast<float>(bottom));
+    Frame(this, 3.0f, 195.0f, static_cast<float>(top - 5), 605.0f, static_cast<float>(bottom + 5));
+    float buttonTop = static_cast<float>(bottom + 0x1A);
+    float buttonBottom = static_cast<float>(bottom + 0x4A);
+    AddSprite(0)->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
+    AddSprite(0)->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
+    AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4, 1, 0);
+    AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
+    AddRect(this, boxLeft, row, boxRight, row + 0x15);
+    AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
+}
+EI_REPLACE_METHOD(0x006337B0, CDifficultyBox::Build);
+
+// --- Titles (0062B7D0) ----------------------------------------------------------------------------
+
+namespace {
+// Not rewritten. 006B71C0 (the loading screen 007AF784, RET 4) steps it; 006B4F70 stops the music
+// (007AF760); 005E5270 (the renderer 007C7BD8, RET 4) shows or hides the cursor; 00458270 plays the
+// movies listed under a section (ECX; DL clears the screen first; then clear-after and two values
+// on the stack); 004461E0 (on a CString) drops its CRs (Remove 0x0D); 0065ED30 (RET 8: interface,
+// RECT*) constructs the scrolling text surface (0x58 bytes), 005FCDD0 (RET 0xC: interface, RECT*,
+// format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
+// movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
+// a separator; 0062C090 (RET 0xC, ECX unused) inserts a copy of a TitleLine before a list node.
+__declspec(naked) void __fastcall TitlesLoadingStep(void*, void*, int) EI_ORIGINAL(0x006B71C0)
+__declspec(naked) void __fastcall TitlesStopMusic(void*) EI_ORIGINAL(0x006B4F70)
+__declspec(naked) void __fastcall TitlesShowCursor(void*, void*, int) EI_ORIGINAL(0x005E5270)
+__declspec(naked) void __fastcall TitlesPlayMovies(const char*, int, int, int, int) EI_ORIGINAL(0x00458270)
+__declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x004461E0)
+__declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
+__declspec(naked) CUiSurface* __fastcall TitlesPlainSurface(void*, void*, CInterface3D*, RECT*, int)
+    EI_ORIGINAL(0x005FCDD0)
+__declspec(naked) std::uint8_t* __cdecl TitlesDisplay() EI_ORIGINAL(0x00500960)
+__declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
+__declspec(naked) void* __cdecl TitlesMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
+__declspec(naked) double __cdecl TitlesAtof(const char*) EI_ORIGINAL(0x006E911A)
+
+struct TitlesTokenizer {
+    int position;                    // -1 at the end
+    const mfc::CString* source;
+    const char* separator;
+    mfc::CString word;
+    // The current word, or null past the end (the original's `position != -1 ? word : 0`).
+    const char* WordOrNull() const { return position != -1 ? static_cast<const char*>(word) : nullptr; }
+};
+__declspec(naked) void __fastcall TitlesTokenStart(TitlesTokenizer*) EI_ORIGINAL(0x00445D20)
+__declspec(naked) const char* __fastcall TitlesTokenNext(TitlesTokenizer*) EI_ORIGINAL(0x00445D30)
+__declspec(naked) void** __stdcall TitlesInsertLine(void**, void*, const TitleLine*) EI_ORIGINAL(0x0062C090)
+
+mfc::CString* LineString(const char** field) { return reinterpret_cast<mfc::CString*>(field); }
+} // namespace
+
+void CCreditsScreen::Build() {
+    CInterface3D* ui = window.interface_;
+    const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
+    if (!fromGame_) {
+        TitlesLoadingStep(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
+        TitlesStopMusic(*reinterpret_cast<void**>(0x007AF760));
+    }
+    TitlesShowCursor(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
+    TitlesPlayMovies(mfc::operator+(name, GameText(0x00794040)), 1, 0, 0, 0);   // "<name>fin"
+    unknown_1CC = 0;
+    // (As the original: the field's address goes in as uiParam, so it is never written; then font
+    // smoothing is switched off.)
+    gameapi::SystemParametersInfoA(0x4A, static_cast<UINT>(reinterpret_cast<std::uintptr_t>(&fontSmoothing_)), nullptr,
+                                   0);   // SPI_GETFONTSMOOTHING
+    gameapi::SystemParametersInfoA(0x4B, 0, nullptr, 0);   // SPI_SETFONTSMOOTHING
+
+    // The script: one record per line, words separated by spaces.
+    auto* archive = reinterpret_cast<CMappedResource*>(archive_);
+    archive->OpenResource(mfc::operator+(*reinterpret_cast<const mfc::CString*>(0x0079BC94), GameText(0x00794034)),
+                          0);   // "outro.res"
+    std::uint32_t size = 0;
+    void* data = archive->GetFile(GameText(0x00794028), &size);   // "credits.scr"
+    if (!data) {
+        currentLine_ = lines_;
+    } else {
+        mfc::CString script;
+        TitlesMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
+        script.ReleaseBuffer(-1);
+        TitlesRemoveCr(&script);
+        TitlesTokenizer lines{0, &script, GameText(0x00784340)};   // "\n"
+        TitlesTokenStart(&lines);
+        while (lines.position != -1 && static_cast<const char*>(lines.word) != nullptr) {
+            mfc::CString line(static_cast<const char*>(lines.word));
+            TitlesTokenizer words{0, &line, GameText(0x0078DA40)};   // " "
+            TitlesTokenStart(&words);
+            TitleLine record = {};
+            record.text = reinterpret_cast<const char*>(EmptyStringData());
+            record.style = record.text;
+            {
+                mfc::CString first(words.WordOrNull());
+                record.scroll = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(first)),
+                                                 reinterpret_cast<const unsigned char*>(GameText(0x00794020))) ==
+                                0;   // "#scroll"
+            }
+            TitlesTokenNext(&words);
+            record.speed = static_cast<float>(TitlesAtof(words.word));
+            TitlesTokenNext(&words);
+            *LineString(&record.style) = words.WordOrNull();
+            TitlesTokenNext(&words);
+            *LineString(&record.text) = words.WordOrNull();
+            void* inserted;
+            TitlesInsertLine(&inserted, lines_, &record);   // push_back
+            LineString(&record.style)->~CString();
+            LineString(&record.text)->~CString();
+            TitlesTokenNext(&lines);
+        }
+        currentLine_ = *static_cast<void**>(lines_);   // the first line
+        archive->CloseFile(data);
+    }
+
+    // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
+    {
+        void* memory = gamecrt::operator_new(0x58);
+        RECT rect = {10, 0x96, 0x316, 0x1C2};
+        textSurface_ = window.AddSurface(memory ? TitlesScrollSurface(memory, nullptr, ui, &rect) : nullptr);
+        textSurface_->Freeze(0, 0);
+    }
+    {
+        void* memory = gamecrt::operator_new(0x38);
+        RECT rect = {10, 0x6E, 0x316, 0x8C};
+        headerSurface_ = window.AddSurface(memory ? TitlesPlainSurface(memory, nullptr, ui, &rect, 5) : nullptr);
+        headerSurface_->Freeze(0, 0);
+    }
+    if (fromGame_) Glue(0x007AFEA4)->SetServer(0);
+    std::uint32_t kept;
+    std::memcpy(&kept, TitlesDisplay() + 0x14, 4);
+    savedDisplay_ = static_cast<int>(kept);
+    Put<std::uint32_t>(TitlesDisplay(), 0x14, 0);
+    TitlesPlay(player_, nullptr,
+               mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), GameText(0x00784A4C)), name),
+                              GameText(0x00794018)),   // "<folder>Movies\<name>.bik"
+               0);
+    unknown_1F5 = false;
+}
+EI_REPLACE_METHOD(0x0062B7D0, CCreditsScreen::Build);

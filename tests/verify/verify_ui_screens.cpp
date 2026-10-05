@@ -438,6 +438,77 @@ static void __fastcall MessageBoxBuildVerify(CMessageBox* self, void*) {
 }
 EI_VERIFY(0x00634790, MessageBoxBuildVerify, 0, s_unused);
 
+// The difficulty question's Create (ui_layouts.cpp), ours only: one surface, six sprites (the
+// two check boxes, the hard one checked by its texture shift +0xCC, the shade, the frame, OK and
+// cancel), four regions (OK and cancel side by side on one row, the two check boxes one above the
+// other), easy_ 0. Reached by ui_main_menu (the main menu's region 0).
+static void __fastcall DifficultyBoxBuildVerify(CDifficultyBox* self, void*) {
+    int surfaces = self->surfaces_.size_;
+    int sprites = self->sceneObjects_.size_;
+    int regions = self->regions_.size_;
+    self->CDifficultyBox::Build();
+    bool ok = self->surfaces_.size_ == surfaces + 1 && self->sceneObjects_.size_ == sprites + 6 &&
+              self->regions_.size_ == regions + 4 && self->easy_ == 0;
+    if (ok) {
+        auto shift = [&](int i) {
+            std::uint32_t v;
+            std::memcpy(&v, reinterpret_cast<const std::uint8_t*>(self->sceneObjects_.data_[sprites + i]) + 0xCC, 4);
+            return v;
+        };
+        ok = shift(0) != 0xBDB80000u && shift(1) == 0xBDB80000u;
+        const CUiRegion* const* r = self->regions_.data_ + regions;
+        ok = ok && r[0]->enabled_ && r[1]->enabled_ && r[0]->bounds_.top == r[1]->bounds_.top &&
+             r[0]->bounds_.right < r[1]->bounds_.left && r[2]->bounds_.left == r[3]->bounds_.left &&
+             r[2]->bounds_.bottom < r[3]->bounds_.top && r[3]->bounds_.bottom < r[0]->bounds_.top;
+    }
+    ei::verify::Check("CDifficultyBox::Build", true, ok, "surfaces %d->%d sprites %d->%d regions %d->%d easy %d",
+                      surfaces, self->surfaces_.size_, sprites, self->sceneObjects_.size_, regions,
+                      self->regions_.size_, self->easy_);
+}
+EI_VERIFY(0x006337B0, DifficultyBoxBuildVerify, 0, s_unused);
+
+// The titles' Create (ui_layouts.cpp), ours only: two surfaces added and kept in +0x164 / +0x168,
+// the script's lines appended to the list (the current line its first new node; the sentinel when
+// nothing was read), every new line's speed finite, +0x1CC and +0x1F5 cleared and the display's
+// +0x14 zero. Reached by ui_main_menu (the main menu's region 4).
+static void __fastcall CreditsBuildVerify(CCreditsScreen* self, void*) {
+    auto countLines = [&]() {
+        int n = 0;
+        void* sentinel = self->lines_;
+        for (void* node = *static_cast<void**>(sentinel); node != sentinel && n < 100000; node = *static_cast<void**>(node))
+            ++n;
+        return n;
+    };
+    int surfaces = self->window.surfaces_.size_;
+    int before = countLines();
+    self->CCreditsScreen::Build();
+    int after = countLines();
+    const std::uint8_t* display = reinterpret_cast<std::uint8_t*(__cdecl*)()>(0x00500960)();
+    std::uint32_t display14;
+    std::memcpy(&display14, display + 0x14, 4);
+    bool ok = self->window.surfaces_.size_ == surfaces + 2 &&
+              self->textSurface_ == self->window.surfaces_.data_[surfaces] &&
+              self->headerSurface_ == self->window.surfaces_.data_[surfaces + 1] && self->unknown_1CC == 0 &&
+              !self->unknown_1F5 && display14 == 0;
+    if (after == before) {
+        ok = ok && self->currentLine_ == self->lines_;
+    } else {
+        // The first of the new nodes (the list was empty before in every opening seen).
+        void* node = *static_cast<void**>(self->lines_);
+        for (int i = 0; i < before; ++i) node = *static_cast<void**>(node);
+        ok = ok && (before != 0 || self->currentLine_ == node);
+        for (; node != self->lines_; node = *static_cast<void**>(node)) {
+            const auto* line = reinterpret_cast<const TitleLine*>(static_cast<const std::uint8_t*>(node) + 8);
+            std::uint32_t bits;
+            std::memcpy(&bits, &line->speed, 4);
+            ok = ok && (bits & 0x7F800000u) != 0x7F800000u;   // finite
+        }
+    }
+    ei::verify::Check("CCreditsScreen::Build", true, ok, "surfaces %d->%d lines %d->%d", surfaces,
+                      self->window.surfaces_.size_, before, after);
+}
+EI_VERIFY(0x0062B7D0, CreditsBuildVerify, 0, s_unused);
+
 static void __fastcall EscMessageVerify(CEscMenu* self, void*, int result) {
     CInterface3D* ui = self->window.interface_;
     bool closes = result == 0x100001 || result == 0x100002 || result == 0x110001;

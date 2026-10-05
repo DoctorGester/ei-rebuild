@@ -119,7 +119,7 @@ __declspec(naked) BOOL CUiWindow::DrawBase(int) EI_ORIGINAL(0x005FEB90)
 __declspec(naked) void UiRenderer::FlushBatchA() EI_ORIGINAL(0x004E7840)
 __declspec(naked) void UiRenderer::FlushBatchB() EI_ORIGINAL(0x004E7A40)
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
-__declspec(naked) void CHudQuickItems::ItemTip(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
+__declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
 __declspec(naked) void CUiRegion::SetTipText(const char*) EI_ORIGINAL(0x005FC690)
 __declspec(naked) void CHudSpellColumn::Click(int) EI_ORIGINAL(0x0063EC90)
 __declspec(naked) void CHudSpellColumn::ClickAlternate(int) EI_ORIGINAL(0x0063EF60)
@@ -238,7 +238,7 @@ void CHudQuickItems::Update() {
     for (unsigned i = 0; i < 4; ++i) {
         if (!unit_->GetQuickItem(i)) continue;
         if (!regions_.data_[i]->HasActiveTip()) continue;
-        ItemTip(i, &text);
+        ItemTipAt(i, &text);
         regions_.data_[i]->SetTipText(text);
     }
 }
