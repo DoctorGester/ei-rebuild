@@ -1,2 +1,4 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+005D2850 FearMode::Construct: differs from the original on every call; being fixed (X12, 2026-10-05)
+005CB700 AIBrain::UpdateMemory: its check fails 197 of 510756 ("0 reports"); being fixed (X12, 2026-10-05)
