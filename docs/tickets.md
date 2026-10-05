@@ -22,7 +22,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I5 (taken 2026-10-05) Next 3-5 live interface functions; candidates by size from ui.md Thirteenth pass: 00617A50, 006312C0, 00621B50, 00638B30.
+- I6 Next 3-5 live interface functions (ui.md Fourteenth pass; 00617A50 and 006312C0 need hero creation / global-map clicks, skip unless a scenario can reach them).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
@@ -30,7 +30,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S3 Next 3-5 live script runtime functions at 0x004B0000-0x004C0000 (see script.md "Runtime leftovers (ticket S2)"; 004BDE40 runs before the hooks, skip).
+- S3 (taken 2026-10-05) Next 3-5 live script runtime functions at 0x004B0000-0x004C0000 (see script.md "Runtime leftovers (ticket S2)"; 004BDE40 runs before the hooks, skip).
 
 ## Cleanup (docs/cleanup-plan.md)
 
