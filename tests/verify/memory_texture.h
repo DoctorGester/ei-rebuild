@@ -7,8 +7,20 @@
 // the original's run and is memory-only again afterwards. verify_texture_blank.cpp.
 
 struct CDXSurface;
+class CTexture;
+class CTextureManager;
 
 namespace memory_texture {
+
+// The game's count of surface holders (007AEE94).
+int HolderCount();
+// What is wrong with a texture the manager just made for the CPU (00691D80, the shadow textures
+// 00692010 / 00692140), or null: `width` x `height`, the device's format `formatId`, a holder of
+// `width` square in it (the holder count one above `holdersBefore`), the byte size 0, no block; in
+// the switch-over with "cpuwindows" only the new renderer's memory of that size and those channel
+// masks, otherwise a DirectDraw texture and no memory.
+const char* BlankTextureProblem(CTextureManager* manager, const CTexture* texture, int width, int height, int formatId,
+                                int holdersBefore);
 
 // The texture's holder (CTexture +0x5C), or null.
 CDXSurface* HolderOf(const void* texture);

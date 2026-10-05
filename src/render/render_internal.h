@@ -221,11 +221,15 @@ void DestroyBlits();
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);
 // The texture of `holder` made from CPU pixels (render::TexturePixels); it is not read from its
-// surface again until that changes.
+// surface again until that changes. Nothing for a holder with SurfaceMemory (read from there).
 bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
                        std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
-// The texture of `holder` decoded from .mmp file data (render::TextureFromMmp).
+// The texture of `holder` decoded from .mmp file data (render::TextureFromMmp), keyed by the holder:
+// for a holder with a DirectDraw surface until that surface changes, for one without (the
+// switch-over) until the holder goes.
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
+// The holder is gone (render::HolderGone): its textures and window texture are retired.
+void ForgetHolder(const void* holder);
 // A window surface (CUiSurface's holder) as one level, read now when its contents changed (from its
 // SurfaceMemory when it has some: a holder made in the switch-over has nothing else); texels equal
 // to `key` (the surface's pixel format) transparent when `keyed`.

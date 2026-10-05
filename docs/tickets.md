@@ -1,5 +1,12 @@
 # Ticket queue
 
+**FIRST after the next usage reset, before any other worker (user, 2026-10-05):** D1 trim the docs.
+docs/notes/*.md is 1.3 MB (ui.md 182 KB, units.md 119 KB, script.md 96 KB, ...) and workers read
+it on start. Rewrite each notes file as a current-state reference (what exists, layouts, rules,
+open items, skip lists), dropping per-ticket history, run logs and details the code already records
+(git history keeps them). Keep the rewrite guide and worker brief short. originals-report.md is
+generated: workers should not read it whole.
+
 From 2026-10-05 (user): workers own one area for about a usage session ("area tickets"), commit every
 3-5 functions with all checks green, and the coordinator merges the branch head periodically and runs
 the suite. Forwarder cleanup batches are 50.
