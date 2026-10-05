@@ -21,7 +21,7 @@ void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, voi
 namespace {
 
 // 00421800: STLport string constructor with room for n bytes, library.
-__declspec(naked) StringRep* __fastcall StringReserve(StringRep* /*s*/, void*, const void* /*alloc*/, std::size_t /*n*/) EI_ORIGINAL(0x00421800)
+inline StringRep* __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { return (StringRep*)StringReserveOriginal((void*)a0, nullptr, a2, a3); }
 // 00418530: fills the queued maps from the game flow (ServerSession::QueueMapList), through its address.
 __declspec(naked) void __fastcall ServerLoadList(ServerSession* /*server*/) EI_ORIGINAL(0x00418530)
 

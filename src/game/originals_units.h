@@ -80,3 +80,10 @@ __declspec(naked) inline int __fastcall UnitAddWeaponOriginal(void* /*unit*/, vo
 __declspec(naked) inline void __fastcall ControllerRepositionOriginal(void* /*controller*/) EI_ORIGINAL(0x00554450)
 // 00557E70: destructor of the animation-step array / controller list (ECX = object, plain RET, no result).
 __declspec(naked) inline void __fastcall AnimationStepsDestroyOriginal(void* /*steps*/) EI_ORIGINAL(0x00557E70)
+
+// C3h. 005300D0: unit.SetController(player) (RET 4, EAX not a result).
+__declspec(naked) inline void __fastcall UnitSetControllerOriginal(void* /*unit*/, void*, void* /*player*/)
+    EI_ORIGINAL(0x005300D0)
+// 00530280: the ground (or water surface) height under (x, y) for the unit, in ST0 (RET 8).
+__declspec(naked) inline double __fastcall UnitGroundHeightOriginal(void* /*unit*/, void*, float /*x*/, float /*y*/)
+    EI_ORIGINAL(0x00530280)

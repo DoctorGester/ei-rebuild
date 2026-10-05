@@ -50,7 +50,7 @@ __declspec(naked) void __fastcall AttachedBaseConstruct(AttachedMap* /*tree*/, v
 __declspec(naked) void __fastcall AttachedEmpty(AttachedMap* /*tree*/) EI_ORIGINAL(0x0043A760)
 __declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
 __declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
-__declspec(naked) void* __fastcall NodeAllocate(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
+inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
 __declspec(naked) FreedBatch** __fastcall FreedPushDefault(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
 // Reset's container teardown.

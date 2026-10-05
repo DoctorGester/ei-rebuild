@@ -146,7 +146,7 @@ char* SpellPrototypeOf(void* spell) { return static_cast<CSpell*>(spell)->GetPro
 namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 00530280. CUnit: the height of the ground (or water surface) under (x, y) for the unit, in ST0.
-__declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
+inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
 // 00557B80. CArray::SetSize of an AnimationSteps list.
 // 00455950. The world an object lives in.
 // Rewritten elsewhere, called through their game addresses (ST0 results kept unrounded):

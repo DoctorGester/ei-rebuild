@@ -26,7 +26,7 @@ LogStream* LogStream::Apply(void* manipulator) { return static_cast<LogStream*>(
 namespace {
 
 // 0040C770: STLport string destructor; 00426450: the string allocator's deallocate(p, n).
-__declspec(naked) void __fastcall StringDeallocate(void* /*allocator*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
+inline void __fastcall StringDeallocate(void*, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 // 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
 
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }

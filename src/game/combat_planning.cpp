@@ -50,7 +50,7 @@ constexpr int kSlotSize = 0xF0 / 4;               // ST0 ()
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
-__declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
+inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00531A10)
 __declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag

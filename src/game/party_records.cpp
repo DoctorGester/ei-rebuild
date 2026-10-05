@@ -152,7 +152,7 @@ __declspec(naked) void __fastcall TemplatesBuildOrig(void*, void*, unsigned) EI_
 __declspec(naked) void __fastcall RecordsBeginRedeploy(void*, void*, void*) EI_ORIGINAL(0x004A6050)
 __declspec(naked) void __fastcall RecordsEndRedeploy(void*, void*, void*) EI_ORIGINAL(0x004A6360)
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
-__declspec(naked) void __fastcall PartyReset(void*, void*, int, int) EI_ORIGINAL(0x00661700)
+inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 // 004A91B0: hash_map<int, Party>::operator[] (inserts a default party for a new key).
 __declspec(naked) void* __fastcall PartyMapAt(void*, void*, const int*) EI_ORIGINAL(0x004A91B0)
 

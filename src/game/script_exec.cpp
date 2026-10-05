@@ -16,6 +16,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "originals_gameplay.h"
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
@@ -93,7 +94,7 @@ __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, S
     EI_ORIGINAL(0x004B4030)
 __declspec(naked) void __fastcall BindCallOrig(ScriptDefinition*, void*, const SSCCmd*) EI_ORIGINAL(0x004BB6A0)
 // CArray<ScriptObjectRef> (groups): Copy 004C1290, RemoveAt 004C2200.
-__declspec(naked) void __fastcall GroupCopy(ScriptGroup*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C1290)
+inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) void __fastcall GroupRemoveAt(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2200)
 // CList<ScriptDefinition> AddHead (CScript +0x140; despite the AddTail-like shape it links the new
 // node before the head): returns the new node.
@@ -288,7 +289,7 @@ struct Unit {
 __declspec(naked) void Unit::SetHostileMask(std::uint32_t) EI_ORIGINAL(0x0052E970)
 __declspec(naked) void Unit::SetSide(int) EI_ORIGINAL(0x00530120)
 __declspec(naked) void Unit::AddHostileMask(std::uint32_t) EI_ORIGINAL(0x0052E940)
-__declspec(naked) void Unit::SetController(void*) EI_ORIGINAL(0x005300D0)
+void Unit::SetController(void* player) { UnitSetControllerOriginal(this, nullptr, player); }
 __declspec(naked) void Unit::GiveQuestItem(void*) EI_ORIGINAL(0x00531220)
 __declspec(naked) void Unit::RemoveQuestItem(int) EI_ORIGINAL(0x005313B0)
 __declspec(naked) void Unit::AddSpell(void*) EI_ORIGINAL(0x00531820)
@@ -381,7 +382,7 @@ struct Party {
     int AddItem(void* item, int a, int b);              // 00661DB0
     void RemoveItem(void* item, int a);                  // 00661F30
 };
-__declspec(naked) int Party::AddItem(void*, int, int) EI_ORIGINAL(0x00661DB0)
+int Party::AddItem(void* item, int a, int b) { return (int)PartyAddItemOriginal(this, nullptr, item, a, b); }
 __declspec(naked) void Party::RemoveItem(void*, int) EI_ORIGINAL(0x00661F30)
 
 struct Diplomacy {
@@ -507,7 +508,7 @@ struct ItemList {     // list of items given to a player (0x1C)
 };
 __declspec(naked) ItemList* ItemList::Construct(int) EI_ORIGINAL(0x004C98C0)
 __declspec(naked) void ItemList::AddTail(void*) EI_ORIGINAL(0x004C98F0)
-__declspec(naked) void ItemList::Destruct() EI_ORIGINAL(0x00427830)
+void ItemList::Destruct() { PtrListDestructOriginal(this); }
 struct PartyArray {   // CArray of 40-byte party slots (0x14)
     PartyArray* Construct();                             // 004BB000
     void Destruct();                                     // 004BB020

@@ -111,7 +111,7 @@ std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(
 
 // --- Not rewritten yet ---------------------------------------------------------------------------
 // 004DA5C0: the growing buffer makes room for `size` bytes.
-__declspec(naked) void __fastcall GameBufferGrow(GameBuffer* /*buffer*/, void*, std::uint32_t /*size*/) EI_ORIGINAL(0x004DA5C0)
+inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 

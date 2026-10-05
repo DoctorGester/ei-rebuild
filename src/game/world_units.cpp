@@ -155,7 +155,7 @@ __declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObj
 __declspec(naked) bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*) EI_ORIGINAL(0x005BA790)
 void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
 // The unit's setup.
-__declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void* /*player*/) EI_ORIGINAL(0x005300D0)
+inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitSet780(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x0052E9B0)
 __declspec(naked) void __fastcall UnitRefreshStats(CEngineObject*, void*) EI_ORIGINAL(0x0050F080)
 __declspec(naked) void __fastcall UnitAfterStats(CEngineObject*, void*) EI_ORIGINAL(0x005315B0)

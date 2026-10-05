@@ -38,7 +38,7 @@ constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
 // Growing buffers.
 __declspec(naked) void __fastcall GameBufferAssign(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/) EI_ORIGINAL(0x004DAA80)
-__declspec(naked) void __fastcall GameBufferGrow(GameBuffer*, void*, std::uint32_t) EI_ORIGINAL(0x004DA5C0)
+inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 
 // STLport containers (library): the servers list (004436C0 end, 004437A0 insert of a counted
 // pointer, 004436D0 erase), the waiting addresses (0041FCD0 end, 00421AF0 insert, 004437D0
