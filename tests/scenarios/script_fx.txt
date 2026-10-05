@@ -1,0 +1,46 @@
+# Script effects (src/game/script_effects.cpp): point lights, particle sources, sound (FX) sources
+# and lightning bolts made by world script commands, then saved into a new slot through the escape
+# menu (the effect savers, against the original) and loaded back (the loaders, record / replay).
+# The creators' verify wrappers check every new effect. The game runs ~5.5x faster.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"fx.x",GetX(GetLeader())) GSSetVar(0,"fx.y",GetY(GetLeader())) GSSetVar(0,"fx.z",GetZ(GetLeader()))
+
+# Particle sources: by id, with an automatic id (negative), an unknown type (nothing made), the
+# same id again (the old source's effect dropped), then a move with the source kept at the end.
+console @CreateParticleSource(41,Add(GSGetVar(0,"fx.x"),3),GSGetVar(0,"fx.y"),GSGetVar(0,"fx.z"),1,"CampFire")
+console @CreateParticleSource(-1,Sub(GSGetVar(0,"fx.x"),3),GSGetVar(0,"fx.y"),GSGetVar(0,"fx.z"),1,"Smoke")
+console @CreateParticleSource(42,GSGetVar(0,"fx.x"),Add(GSGetVar(0,"fx.y"),3),GSGetVar(0,"fx.z"),1,"NoSuchParticles")
+console @CreateParticleSource(41,Add(GSGetVar(0,"fx.x"),4),GSGetVar(0,"fx.y"),GSGetVar(0,"fx.z"),2,"Fire")
+console @MoveParticleSource(41,Add(GSGetVar(0,"fx.x"),8),Add(GSGetVar(0,"fx.y"),1),GSGetVar(0,"fx.z"),40,0)
+console @MoveParticleSource(49,GSGetVar(0,"fx.x"),GSGetVar(0,"fx.y"),GSGetVar(0,"fx.z"),10,1)
+
+# Lightning between two points, by id and with an automatic id.
+console @CreateLightning(43,GSGetVar(0,"fx.x"),GSGetVar(0,"fx.y"),Add(GSGetVar(0,"fx.z"),3),Add(GSGetVar(0,"fx.x"),4),Add(GSGetVar(0,"fx.y"),4),GSGetVar(0,"fx.z"),1)
+console @CreateLightning(-5,Sub(GSGetVar(0,"fx.x"),4),GSGetVar(0,"fx.y"),Add(GSGetVar(0,"fx.z"),3),GSGetVar(0,"fx.x"),Sub(GSGetVar(0,"fx.y"),4),GSGetVar(0,"fx.z"),2)
+
+# A one-off sound, a point light and a randomized sound source (kept in the FX source list).
+console @CreateFX(GSGetVar(0,"fx.x"),GSGetVar(0,"fx.y"),GSGetVar(0,"fx.z"),60,150,"nature\thunder\1.wav")
+console @CreatePointLight(44,GSGetVar(0,"fx.x"),GSGetVar(0,"fx.y"),3,6,255,200,120) MovePointLight(44,Add(GSGetVar(0,"fx.x"),2),GSGetVar(0,"fx.y"),3,200,0)
+console @CreateRandomizedFXSource(45,GSGetVar(0,"fx.x"),GSGetVar(0,"fx.y"),GSGetVar(0,"fx.z"),60,150,20,40,3,"nature\thunder\1.wav")
+wait 1000
+
+# Escape menu, Save: OK saves into a new folder (rectangles as in ui_saveload); then load it.
+key esc
+wait 1000
+click 395 120
+wait 1500
+clickregion 0
+waitline 15 Saved save1
+wait 500
+load save1
+waitfor 20 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit

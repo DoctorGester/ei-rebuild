@@ -1000,3 +1000,39 @@ change the world (timed removal), so running the original first on a copy would 
 Flags with bit 0 set are passed through unchecked (the element is freed). Forwarders added:
 004B5EF0, 004BD540, 004BF7E0, 004BF640 (script_destroy.cpp). The bodies keep their exception frames
 (they stay original); the wrappers have none.
+
+# Area ticket A-S (2026-10-05): script effects, ...
+
+Layouts added to `script.h` for this ticket: `MfcList<T>` (MFC CList, nodes next / prev / element),
+the whole `CScript` (0x1F8 bytes, every field named, offsets asserted; the old accessors now return
+members) and the effect elements `ScriptPointLight` (0x20), `ScriptParticleSource` (0x24),
+`ScriptFxSource` (0x34: a sound source; +0x18 / +0x1C become the sound's volume / radius, +0x20
+`idle`: the tick skips a source with it set, +0x24 the random placement radius, +0x28 / +0x2C /
++0x30 delays and countdown), `ScriptLightning` (8) and the particle type table 0078B120
+(`ScriptParticleType`: name, CEffectParticle type, lifetime; 64 entries).
+
+## Effect savers and loaders (004B1940, 004B1A80, 004B1C50, 004B1DB0, 004B18B0, 004B1B40)
+
+Code: `src/game/script_effects.cpp`. None is in config/library.csv, config/dead_code.csv or
+docs/rebirth-patched-functions.txt; neither are the callees (CBaseManager::FindObject 00403F40 and
+CStream::ReadString 00461190, both rewritten and called directly). The savers are called from
+CScript::Save (004C0F90), the point light loader from CScript::Load (004C0D00, every slot), the FX
+source loader from the FX list loader 004CA5D0; all callers go through the original addresses.
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004B1940 | 161 | ScriptPointLightSave | against the original: both into capture streams, bytes and write sizes (verify_script_save.cpp) | every save (256 slots): newgame's autosave, script_fx |
+| 004B1A80 | 182 | ScriptParticleSourceSave | as above | saves with particle sources: script_fx |
+| 004B1C50 | 272 | ScriptFxSourceSave | as above | saves with FX sources: script_fx (CreateRandomizedFXSource) |
+| 004B1DB0 | 85 | ScriptLightningSave | as above | saves with lightning: script_fx |
+| 004B18B0 | 130 | ScriptPointLightLoad | record / replay (verify_script_load.cpp): the original into a zeroed scratch slot, ours replays into the real one; the 0x20 bytes compared; the scratch's reference released | every load: world_load, script_copy, script_fx |
+| 004B1B40 | 264 | ScriptFxSourceLoad | record / replay: scratch element (empty name), all fields and the name's text compared | loads with FX sources: script_fx |
+
+Format: the effect object's id (-1 when none), then the element's fields in order, each as one
+Write / Read (the step vector and an FX source's position as one 12-byte piece; an FX source's name
+with its terminator, its length from strlen). Loading looks the id up in the world's effect manager
+(`CWorld::manager48_`, 007AFFA8) and raises the found object's reference count inline.
+
+New scenario `tests/scenarios/script_fx.txt`: particle sources (by id, automatic id, unknown type,
+same id again, moved), lightning, a one-off sound, a point light and a randomized FX source, then a
+save into a new slot through the escape menu (as ui_saveload) and `load save1`.
