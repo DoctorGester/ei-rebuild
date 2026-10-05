@@ -10,84 +10,56 @@ resulting state.
 
 ## Structures
 
-- **CWorldServer** (vtable 0073F928, 42 slots, global 007AFF60) and **CWorldClient** (0073F41C, 43 slots,
-  global 007AF5B8) share a base whose methods live at 0055E000-0055FFFF: slot 20 (0055EB50) the player
-  list at +0x38, slot 40 FindObject (server 00593AA0, client 0055FAE0), 0055FB00 FindObject restricted to
-  units (class id 0x50), 0055FC10 IsNight (tick +0x64 x seconds per tick +0x20 + base +0x1C modulo the day
-  length: before 6 or from 22 h). Slot 27 ground height (server 00594220 from its coarse grid, client
-  00563F70 from the terrain), slot 28 surface height (client 00564070 = `TerrainOwner::SurfaceHeight`;
-  TerrainOwner is CWorldClient), slots 29 / 30 (005618E0 / 00561930) combine platforms with ground / surface height.
-- Globals: 0079B5D8 multiplayer client session, 0079B5DC game server (+4 bit 31 = inactive), 007AF61C /
-  007AFCA8 game clock (whole ticks / fraction), 007AFFC4 server tick, 007AFFC8 stamp written by 00675CA0,
-  007AFE20 the game flow, 007AFEA4 / 007AFEA5 the interface / client glue object, 007AFFB4 item manager,
-  007AFFA8 effect manager (`manager48_`), 007AF788 briefing texts, 007C7D50 quest log.
-- **Player list**: reference-counted object with an MFC list head at +0x38 (node data +8), walked with
-  00404920 (begin; takes a count) / 00404960 (next); `PlayerIterator` mirrors that.
-- **WorldPlayer**: +0x24 player number (0 = local), +0xA0 / +0xA4 mercenary records (0x784 bytes, unit id at
-  +0x1C), +0xC0 gold, +0xC4 named float variables (00460AF0 Get, 00460EE0 Set; "gtime" ...), +0xD8 name,
-  +0x110 last tick seen, +0x130 dirty flags (bits 2 / 4 / 8: weather-like settings, time, a 0..1 value set by
-  0058EE20; 0x20 countdowns).
-- **ObjectIdMap**: STLport `hash_map<unsigned, T*>` (0x14) followed by the highest key (+0x14). The server has
-  +0x104 (units to update; inserting sets unit +0x174 to `((unit >> 5) & 15) + 0x80`), +0x12D70 (every object
-  by id), +0x12DA0 (map objects saved with the zone), +0x12DB8 (non-unit map objects), +0x12DD0 (named
-  objects), +0x12D88, +0x12DE8 (timed objects: spells / effects stamped with the tick at +0x94). Set is
-  005999E0 / 00599BD0 (two instantiations); `stlp::hash_map::operator[]` reproduces the inlined insert.
-  RemoveObjectFromServer erases from +0x12D70, +0x12DD0, +0x12D88, +0x12DA0, +0x12DB8.
-- **Shared-object list** (+0x12E60, CList of 0x20-byte {id, player, value, CArray<CRefPtr>}; a second list +0x12E64
-  of {id, player index (-1 = everyone)}): from a multiplayer client's corpse loot (0066F4C0).
-- **Zone exits**: 0x3C-byte records, server +0xF0 / +0xF4 (CArray at +0xEC), client +0x90 / +0x94; rectangle at
-  +0x14, rotation +0x24 (004E59F0 Contains), target zone CString +0x28 ("none" = no exit), entrance number +0x2C.
-- **Coarse height grid** (server): rows +0x280C, width / height +0x2810 / +0x2814, 9-byte cells with a u16
-  height at +4 divided by the float at +0x290; cell = fistp(2v - 0.5) through a float.
-- **Platforms** (client +0x1D4 `PlatformSet`): record list (MFC style, +0x1F0 .. +0x204; 0x54-byte nodes from
-  00573000, 0x4C `Platform` records: bounding circle, origin, u / v axes, normal, extents). `SurfaceHeight`
-  projects the point onto each plane along z and keeps the highest z (margin 0.5), `Contains` tests (x, y)
-  (margin 0.1). `AddBox` rotates the eight box corners (moved by pivot +0x2C then offset +4, rows summed `(m2 z + m1 y) + m0
-  x`) and the six face normals (`(m2 nz + m0 nx) + m1 ny`); face i is `AddFace(corner i+1, corner i, corner i+2, normal i)`; only
-  faces with normal z >= 0.8 are kept.
-- **CWorldClient** fields: +0x180 Terrain, +0x184 zone name, +0x20C session (+0x20 the local view; view +0x1C
-  local WorldPlayer, +0x20 mode, +0x50D8 / +0x50DC unit id array). Maps: +0xB4 list of counted pointers to
-  text-key heroes, +0xB8 list of every object, +0xBC MFC list of objects answering slot 29 with +0xD8 a
-  hash_map id -> node, +0x120 / +0x150 sector grids, +0xF0 screen entries (id, RECT), +0xF4 the picker's vector,
-  +0x1F0 MFC list of ids, +0x7BC list of 0x0C-byte nodes.
-- **Sector grids** (+0x120 objects, +0x150 second): +0 list storage, +4 rows, +0x10 / +0x14 width / height in
-  cells; cells are 16 x 16 world units (cell = FISTP shifted right by 4 as unsigned, so negatives land outside),
-  each an STLport list of counted object pointers (+4 count, slot 4 releases). Slot 41 (005618A0) moves an
-  object in +0x120, slot 42 (005618C0) in +0x150. The grid at 007AF6D8 (moved by 0067BEF0 / 0067CEF0) holds
-  hundreds of entries per cell near effects.
-- **Alarms** (+0x8C, five 16-byte `WorldAlarm`: active, tick, x, y; read at 007AFFEC), **+0x294 CSectorMap**
-  (`sector_map.h`; 005C0930 returns sector (x, y)'s unit list at Sector + 0x20; `WakeUnitsAround` uses its own
-  `SpiralCache` at 007AFF08), +0x138 game result, +0x160 enables the first command queue, +0x6C paused,
-  +0x12D64 game kind (1 single player, 3 no range test, 4 network), +0x12D68 / +0x12D6C `.mob` / map name.
+- **CWorldServer** (vtable 0073F928, 42 slots, global 007AFF60) and **CWorldClient** (0073F41C, 43 slots, global 007AF5B8) share a base whose methods
+  live at 0055E000-0055FFFF: slot 20 (0055EB50) the player list at +0x38, slot 40 FindObject (server 00593AA0, client 0055FAE0), 0055FB00 FindObject
+  restricted to units (class id 0x50), 0055FC10 IsNight (tick +0x64 x seconds per tick +0x20 + base +0x1C modulo the day length: before 6 or from 22 h).
+  Slot 27 ground height (server 00594220 from its coarse grid, client 00563F70 from the terrain), slot 28 surface height (client 00564070 =
+  `TerrainOwner::SurfaceHeight`; TerrainOwner is CWorldClient), slots 29 / 30 (005618E0 / 00561930) combine platforms with ground / surface height.
+- Globals: 0079B5D8 multiplayer client session, 0079B5DC game server (+4 bit 31 = inactive), 007AF61C / 007AFCA8 game clock, 007AFFC4 server tick,
+  007AFE20 the game flow, 007AFEA4 / 007AFEA5 interface / client glue, 007AFFB4 item manager, 007AFFA8 effect manager, 007AF788 briefing texts.
+- **Player list**: reference-counted, MFC list head at +0x38 (node data +8), walked with 00404920 (begin; takes a count) / 00404960 (next).
+  **WorldPlayer**: +0x24 player number (0 = local), +0xA0 / +0xA4 mercenary records (0x784 bytes, unit id at +0x1C), +0xC0 gold, +0xC4 named float
+  variables (00460AF0 Get, 00460EE0 Set; "gtime" ...), +0xD8 name, +0x110 last tick seen, +0x130 dirty flags (bits 2 / 4 / 8: weather-like settings,
+  time, a 0..1 value set by 0058EE20; 0x20 countdowns).
+- **ObjectIdMap**: STLport `hash_map<unsigned, T*>` (0x14) followed by the highest key (+0x14). Server: +0x104 units to update (inserting sets unit +0x174
+  to `((unit >> 5) & 15) + 0x80`), +0x12D70 every object by id, +0x12DA0 map objects saved with the zone, +0x12DB8 non-unit map objects, +0x12DD0 named
+  objects, +0x12D88, +0x12DE8 timed objects (spells / effects stamped with the tick at +0x94). `RemoveObjectFromServer` erases from +0x12D70, +0x12DD0,
+  +0x12D88, +0x12DA0, +0x12DB8. Shared-object list +0x12E60 (CList of 0x20-byte {id, player, value, CArray<CRefPtr>}, from a multiplayer client's corpse
+  loot 0066F4C0) and +0x12E64 ({id, player index (-1 = everyone)}).
+- **Zone exits**: 0x3C-byte records, server CArray at +0xEC, client +0x90 / +0x94; rectangle +0x14, rotation +0x24 (004E59F0 Contains), target zone
+  CString +0x28 ("none" = no exit), entrance number +0x2C. **Platforms** (client +0x1D4 `PlatformSet`): record list +0x1F0..+0x204 (0x54-byte nodes
+  from 00573000, 0x4C `Platform` records); `SurfaceHeight` projects the point onto each plane along z and keeps the highest z (margin 0.5), `Contains`
+  tests (x, y) (margin 0.1); `AddBox` rotates the eight box corners and six face normals and `AddFace`s only faces with normal z >= 0.8.
+- **CWorldClient** fields: +0x180 Terrain, +0x184 zone name, +0x20C session (+0x20 the local view; view +0x1C local WorldPlayer, +0x20 mode, +0x50D8 /
+  +0x50DC unit id array), +0xB4 text-key heroes, +0xB8 every object, +0xBC objects answering slot 29 (+0xD8 hash_map id -> node), +0xF0 screen entries
+  (id, RECT), +0xF4 the picker's vector. **Sector grids** (+0x120 objects, +0x150 second; slot 41 005618A0 moves an object in the first, slot 42
+  005618C0 in the second): rows of cells 16 x 16 world units (cell = FISTP shifted right by 4 as unsigned, so negatives land outside), each an STLport
+  list of counted object pointers; the grid at 007AF6D8 (moved by 0067BEF0 / 0067CEF0) holds hundreds of entries per cell near effects.
+- Server: alarms +0x8C (five 16-byte `WorldAlarm`: active, tick, x, y; read at 007AFFEC), +0x294 `CSectorMap` (005C0930 returns sector (x, y)'s unit list
+  at Sector + 0x20; `WakeUnitsAround` uses its own `SpiralCache` at 007AFF08), +0x138 game result, +0x160 enables the first command queue, +0x6C paused,
+  +0x12D64 game kind (1 single player, 3 no range test, 4 network), +0x12D68 / +0x12D6C `.mob` / map name, coarse height grid +0x280C (9-byte cells, u16
+  height at +4 divided by the float at +0x290).
 
 ## Server update path
 
-`Update` (slot 6, 0058DFF0, once per world tick): drop disconnected players; for every party unit
-`WakeUnitsAround(unit + 0x1C, max(perception * factor, minimum) * 2 + 20)`; accept new players (0058DAF0);
-unless +0x6C is set each player's 00665DE0 and `Tick(0)`; each player's 0066E130; rebuild the "Heroes" script
-group; each player's `SyncPlayer` 0058B750 (0 disconnects).
+`Update` (slot 6, 0058DFF0, once per world tick): drop disconnected players; for every party unit `WakeUnitsAround(unit + 0x1C, max(perception * factor,
+minimum) * 2 + 20)`; accept new players (0058DAF0); unless +0x6C is set each player's 00665DE0 and `Tick(0)`; each player's 0066E130; rebuild the "Heroes"
+script group; each player's `SyncPlayer` 0058B750 (0 disconnects).
 
-`Tick` (0058DCD0): `++tick_` (+0x64, clock 007AFFC4); every 64 ticks (tick & 63 == 3) `UpdateWeather` 0058CCD0
-(rain, lightning strikes via `ShowBolt` 00578E30 (a script line on the queue 007C29CC, one time in four only a
-thunder sound), day-time value +0x84); timed objects +0x12DE8 (walk in STLport iterator order calling slot 6;
-an object returning 0 is released and its id erased after the walk); time wheel 005C9530 (+0x2838, 1024 x 16);
-countdowns 006D44E0 (+0x70; any running sets dirty bit 0x20 for every player); missiles (+0x12E28, MFC list of
-0xA8-byte objects from 0058E670; 0067E6D0 moves one, 0 unlinks and frees); script command queues (+0x12874
-only while +0x160 is set or `force`, +0x12A6C always; 004BF000); 0058D670 `UpdateUnits` (the units in the update
-map; Rebirth's FixSpellEffectsOverflow #0 lives here).
-The inline map insertions of `WakeUnitsAround` / `InvokeAlarm` are `AddToUpdateMap`. `Tick`'s local
-`list<unsigned>` reproduces the original's node pool traffic (head allocated before the walk, one 12-byte node
-per finished object, hash nodes freed in the erase pass, the head freed last).
+`Tick` (0058DCD0): `++tick_` (+0x64); every 64 ticks (tick & 63 == 3) `UpdateWeather` 0058CCD0 (rain, lightning via `ShowBolt` 00578E30: a script line on the
+queue 007C29CC, one time in four only a thunder sound, day-time value +0x84); timed objects +0x12DE8 (walk in STLport iterator order calling slot 6; an
+object returning 0 is released and its id erased after the walk); time wheel 005C9530 (+0x2838, 1024 x 16); countdowns 006D44E0 (+0x70; any running sets
+dirty bit 0x20 for every player); missiles (+0x12E28, MFC list of 0xA8-byte objects from 0058E670; 0067E6D0 moves one, 0 unlinks and frees); script command
+queues (+0x12874 only while +0x160 is set or `force`, +0x12A6C always; 004BF000); 0058D670 `UpdateUnits` (Rebirth's FixSpellEffectsOverflow #0 lives here).
+The inline map insertions of `WakeUnitsAround` / `InvokeAlarm` are `AddToUpdateMap`; `Tick`'s local `list<unsigned>` reproduces the original's node pool
+traffic (head allocated before the walk, one 12-byte node per finished object, hash nodes freed in the erase pass, the head freed last).
 
-**Per-player sync** (`SyncPlayer`): zone (`SendZone` 0058C890), weather, time, wind, countdowns when dirty; then
-the map objects the player should see (camera range from 0073F91C, own units, named objects, the units its units
-can hear: max(perception * factor, minimum) * 0073F910 + 0073BF34 via the sector map) and the timed objects
-whose reach covers the camera, compared with what it was sent (0047B1F0) in function statics 007AFF18-007AFF48
-(guards 007AFF58, atexit destructors 0058C470-0058C4D0). `world_object_sets.cpp`: the server collects objects into
-aligned pointer arrays ({data, size, capacity, growBy}, blocks from 0047B940): 0047ADF0 sort-unique (byte-wise
-radix sort, four passes of 0047B120), `DiffObjectSets` 0047B1F0 (new objects get a reference, gone ones are
-released through slot 4), SetSize variants 0047B770 / 0047B880. `world_sync.cpp` names the outputs added / kept /
-removed; the original order is added / gone / same.
+**Per-player sync** (`SyncPlayer`): zone (`SendZone` 0058C890), weather, time, wind, countdowns when dirty; then the map objects the player should see (camera
+range from 0073F91C, own units, named objects, the units its units can hear: max(perception * factor, minimum) * 0073F910 + 0073BF34 via the sector map) and
+the timed objects whose reach covers the camera, compared with what it was sent (0047B1F0) in function statics 007AFF18-007AFF48. The server collects objects
+into aligned pointer arrays (`world_object_sets.cpp`: 0047ADF0 sort-unique by a byte-wise radix sort of four passes of 0047B120, `DiffObjectSets` 0047B1F0:
+new objects get a reference, gone ones are released through slot 4; the original names the outputs added / gone / same, `world_sync.cpp` added / kept /
+removed).
 
 ## Zone loading, saving, loading, game flow
 
@@ -134,26 +106,21 @@ removed; the original order is added / gone / same.
   saves\current and lets the world catch up (one Tick per elapsed gtime unit since zt.<zone>, at most 1000, waking units
   within 70 of the entrance), else loads it fresh (NewZone, gz6g frozen / thawed map, time 4); then scripts and exits.
   `LeaveZone` 0057A780 the way out; `StartNetworkZone` 0057BDF0 the network counterpart.
-- **Multiplayer start**: `BeginMultiplayerGame` 0057F280 (start zone bz1mpg..bz4mpg by game type via 0057E6B0; a lone
-  outside party gets unit id 0x3B9AF5CE and "z.MPGame1"), `UpdateMultiplayerVariable` 0057F190 (each network step),
-  `ReturnLocalParty` 0057F0F0, `RecreateClientSession` 0057F390, `CloseSessions` 00581660 (sessions' refcount is the
-  low word at +4), `StartServer` 0057E740, `PickZones` 0057F850 (groups in game-heap arrays instead of STLport lists;
-  same order and random draws), `AcceptNewPlayers` 0058DAF0.
+- **Multiplayer start**: `BeginMultiplayerGame` 0057F280 (start zone bz1mpg..bz4mpg by game type via 0057E6B0; a lone outside party gets unit id
+  0x3B9AF5CE and "z.MPGame1"), `UpdateMultiplayerVariable` 0057F190 (each network step), `CloseSessions` 00581660 (sessions' refcount is the low word at
+  +4), `StartServer` 0057E740, `PickZones` 0057F850 (groups in game-heap arrays instead of STLport lists; same order and random draws).
 - **Party between zones**: `CollectParty` 00590A40 / `StoreParty` 0058FD90 on leaving, `Redeploy` 00590700 on arrival:
   `RestorePlayerItems` 00590460 gives back fresh copies (`CopyItem` 00594CE0 = world slot 24) of the carried items (all
   on a client; in single player the quest items of this zone, `TakeZoneQuestItems` 005901E0), units are created at the
   target exit's centre (player +0xDC picks the exit of zone +0xD8; a lost game goes back to exit 0) facing away from the
   map centre (FPATAN) unless the exit has a heading; the first command queue runs 5x.
-- **Briefings** (client): the speaker is the second word of the first "#show" line of section "briefing <name>" in the
-  briefing texts that is not "Hero" (0057FC90); its variable is "b.<speaker>.<name>" or "b.elder.<name>" (0057FDE0);
-  `MarkBriefing` 0057FF40 sets it (loading the zone's quests first for "<zone>_N" names, 005809D0), `ForgetBriefing`
-  00580040 removes it; `OnVariableChanged` 00580840 passes "q." variables to the quest log. Server: `CompleteBriefing`
-  00592090 -> `ApplyMercBriefing` 00591DE0 (b.mercN.n8 cleared, n10 / n2 the mercenary leaves (n10 also removes its
-  unit), n1 / n3 hired: amerc_N = 2 and added to the party), `UpdateMercBriefings` 00591800.
-- **Player data guard** 005790E0 (from WinMain on (de)activation): with `plain` 0 the players' gold (+0xC0), party
-  records (0x704 bytes from +0x20 of each 0x784 record) and, on the server, units' controller stats (0x704 bytes from
-  +0x1E0) are XORed with a new random key (007AFECC), with 1 XORed back (also the party outside a game, 007C82B0; state
-  0079026C); 005791C0 one player list.
+- **Briefings**: the client's speaker is the second word of the first "#show" line of section "briefing <name>" that is not "Hero" (0057FC90); the variable
+  is "b.<speaker>.<name>" or "b.elder.<name>" (0057FDE0); `MarkBriefing` 0057FF40 / `ForgetBriefing` 00580040 set / remove it (loading the zone's quests first
+  for "<zone>_N" names, 005809D0); `OnVariableChanged` 00580840 passes "q." variables to the quest log. Server: `CompleteBriefing` 00592090 ->
+  `ApplyMercBriefing` 00591DE0 (b.mercN.n8 cleared, n10 / n2 the mercenary leaves (n10 also removes its unit), n1 / n3 hired: amerc_N = 2 and added to the party).
+- **Player data guard** 005790E0 (from WinMain on (de)activation): with `plain` 0 the players' gold, party records (0x704 bytes from +0x20 of each 0x784 record)
+  and, on the server, units' controller stats (0x704 bytes from +0x1E0) are XORed with a new random key (007AFECC), with 1 XORed back; 005791C0 one player list.
+
 ## World client frame
 
 Draw path `Render` 00569E40 -> `DrawPass` 0056AFE0 (rewritten with Rebirth's LandscapeDrawRadius / ObjectsDrawRadius
@@ -260,56 +227,47 @@ vtable 0073D0C4).
   from 0057ABA0 / 0057B3B0), 004A64B0, 004A6050 / 004A6360 (copy a party between records through a memory stream),
   004A5AF0, the constructor / destructor pieces 004A5700-004A5A30, 004A6580 / 004A66C0 / 004A6A90 / 004A6DF0-004A6F60,
   and the STLport instantiations at 004A8B70-004AFFF0.
+
 ## Rewritten
 
-Verify column: pure = side by side; differential = original into a scratch / copy, ours into the real one; ours only =
-state checks (the function allocates, frees or changes shared state).
+Verify column: pure = side by side; differential = original into a scratch / copy, ours into the real one; ours only = state checks (the function
+allocates, frees or changes shared state). All in the `world_*.cpp` / `figure_mesh*.cpp` files named at the top.
 
 | Group | Addresses and names | Verify |
 |---|---|---|
 | Server lookups | 00593AA0 FindObject, 00594180 GetPlayer, 00594220 GridHeight, 00591740 CountLivingMercs, 005949D0 IsObjectShared, 00594A30 CollectSharedObjects, 0058E4C0 GetZoneExit, 00578A90 LocalPlayerName | pure; differential for outputs |
-| Server setters | 0058B6D0, 0058CC70, 0058CC80, 0058EE00, 005942C0 (`CompareSetter`: ours, snapshot +0x6C / +0xDC..+0xE8 and players' dirty flags, restore, original, compare) | snapshot |
+| Server setters | 0058B6D0 MarkPlayersDirty, 0058CC70 SetUnknownE0, 0058CC80 SetUnknownDC, 0058EE00 SetUnknownE4E8, 005942C0 SetUnknown6C (`CompareSetter`: ours, snapshot +0x6C / +0xDC..+0xE8 and players' dirty flags, restore, original, compare) | snapshot |
 | Server maps | 0058E520 AddTimedObject, 0058E5D0 RemoveTimedObject (80 callers), 0058D5D0 AddToUpdateMap, 005999E0 / 00599BD0 ObjectIdMap::Set | ours only: entry, count, max id, flags |
-| Server tick | 0058DCD0 Tick, 0058D3D0 WakeUnitsAround (original first with its map entries recorded and the map put back), 00593FC0 InvokeAlarm, 0058DC90, 0058DFF0 Update, 0058D280, 0058D670 UpdateUnits (+ TickSleepingEffects), 0058CCD0 UpdateWeather, 00578E30 ShowBolt, 0058E850 CastSpell, 0058E670 CreateMissile | ours only (missile list links, alarms, update map, ShowBolt draws exactly two random numbers) |
-| Server zone and save | 005915E0, 005910A0, 00596030, 00595AB0, 00596C60, 00596730, 00595C70, 0058B250, 0058B600, 005957E0, 005951A0, 00596E70, 00596900, 005956E0, 00596140 ReadAIGraph, 00596350 | ours only; ReadAIGraph into a scratch stream |
-| Server save, sync | 00597BD0 SaveWorld (original writes a scratch CMemoryStream first, bytes compared; the random generator is restored because 00661C10 XORs gold with a fresh word), 00589CA0 LoadSharedObject, 005947E0, 0058B750 SyncPlayer, 0058C890, 0047ADF0 / 0047B120 / 0047B1F0 / 0047B770 / 0047B880 | differential / ours only |
-| Server units, party | 0058EF20, 0058ECE0, 005927C0 CreateObject (FixAddMapObject), 005935C0 RemoveObject (FixRemoveMapObject), 00591800, 00592090, 00591DE0, 005911C0, 00590C70, 0058FD90, 00590A40, 00590700, 00590460, 005901E0 (original on a copy into a scratch list), 00594CE0, 00594AB0 / 00594BC0, 00594F30 (the original must find the item and change nothing), 005942D0, 00593D60, 0058DAF0 | ours only / logged / counted |
-| Game flow | 0057B3B0, 00581610, 0057A060, 0057BDF0, 0057A780, 0057AA80, 0057AAB0, 00579B80 / 00579830, 00579E60, 005810A0, 005814C0, 0057F190 (ours, then the original must leave "z.MPGame1" as ours set it), 0057E6B0, 0057F280, 0057F0F0, 0057F150, 0057F390, 00581660, 00581630, 005816C0-00581760, 0057E740, 0057EE10, 0057F850, 0057F820, 0057FC90 / 0057FDE0 (original into a scratch string), 0057FF40, 00580040, 00580840, 00580F10, 0057FB60, 0057ABA0 LoadGame, 0057BD10 StartNewGame, 0057C700 ProcessRequest, 0057C460 StartZone, 0057EB10, 005800C0, 00662FB0 | ours only (state, name, +0x78 as asked) / differential for string outputs / logged where the effects are in original code |
-| Guard | 005790E0, 005791C0 (involution: ours, then the original with the same key must restore every guarded dword, then ours again) | |
-| Client lookups | 00563F70, 00560F00 SurfaceHeight, 00561050, 00560E10, 005640A0, 00564AF0, 005699F0 LocalView (69 callers), 00566EC0, 00566EF0, 00567440, 005674C0, 0056D9F0, 0057F440 (77 callers), 00578B40, 00578BA0 (77), 00578B50 / 00578BE0, 00573A60 DepthLess, 00574300 UnitOrderLess, 00589580, 00573EE0 | pure, float bits |
-| Client frame | 0056A990 CollectVisible (ours only: every visible entry flagged and in its class's lists in order), 0056BF30 / 0056C350, sorts 005740D0 / 00574390 / 00573D50 / 00573F10 (original on a copy of the range; null, model-less or NaN-depth ranges go to the original alone), 00569E40 / 0056AFE0 (ours only: lists emptied, matrix stacks as before), 005641F0, 00595080 SelectLoadingMovie (FixProgressNames) | differential / ours only |
-| Client maps | 00570860 / 00570BB0 SectorGrid::Move (sampled differential: the first 256 calls then every 32nd; the full check was too slow near effects), 00571D50, 00571800 / 005718B0, 0056FC60, 0056E400 / 0056E440, 005647E0, 00564BE0, 00564E70, 005726B0, 00565790 / 005659D0, 00566F70, 0056DAF0, 00563290, 00561E50, 00560650 AddFace / 00560820 AddBox (floats within 8 ULPs), 00559E60 (recording streams), 0055A190 (recorder / replay) | differential / ours only |
-| Figure meshes | 005A18E0, 005A2500 LoadFig, 005A5C70, 005A3800, 005A4D60 (original on a copy whose arrays start empty; colour arrays by shape only: the loaders size them without writing), 005AAE60 / 005AB9A0, 0059FDF0, 005A4B30 / 005A4BF0 (ours, the original must undo it, ours again), 005A6E70, 005A6D40, 005A0B10, 005A0CD0, 0059F0F0, 0059F510, 0059F710 / 0059F8F0, 005ACE80 | differential on copies / ours only |
+| Server tick | 0058DCD0 Tick, 0058D3D0 WakeUnitsAround (original first with its map entries recorded and the map put back), 00593FC0 InvokeAlarm, 0058DC90 SetGameResult, 0058DFF0 Update, 0058D280 UpdatePlayerTimes, 0058D670 UpdateUnits (+ TickSleepingEffects), 0058CCD0 UpdateWeather, 00578E30 ShowBolt, 0058E850 CastSpell, 0058E670 CreateMissile | ours only (missile list links, alarms, update map, ShowBolt draws exactly two random numbers) |
+| Server zone and save | 005915E0 SetZoneExits, 005910A0 AddUnitToServer, 00596030 LoadMapObjects, 00595AB0 LoadMobFile, 00596C60 ClearMapObjects, 00596730 SaveMapObjects, 00595C70 LoadMap, 0058B250 ResetZone, 0058B600 ResetState, 005957E0 TeardownZone, 005951A0 SendFreshObjects, 00596E70 LoadSave, 00596900 LoadSavedMapObjects, 005956E0 PrepareSave, 00596140 ReadAIGraph, 00596350 LoadZoneScripts | ours only; ReadAIGraph into a scratch stream |
+| Server save, sync | 00597BD0 SaveWorld (original writes a scratch CMemoryStream first, bytes compared; the random generator is restored because 00661C10 XORs gold with a fresh word), 00589CA0 LoadSharedObject, 005947E0 AddSharedObject, 0058B750 SyncPlayer, 0058C890 SendZone, 0047ADF0 sort-unique, 0047B120 radix pass, 0047B1F0 DiffObjectSets, 0047B770 / 0047B880 SetSize | differential / ours only |
+| Server units, party | 0058EF20 CreateUnits, 0058ECE0 UseQuickItem, 005927C0 CreateObject (FixAddMapObject), 005935C0 RemoveObject (FixRemoveMapObject), 00591800 UpdateMercBriefings, 00592090 CompleteBriefing, 00591DE0 ApplyMercBriefing, 005911C0 AwardExperience, 00590C70 SyncPartyRecords, 0058FD90 StoreParty, 00590A40 CollectParty, 00590700 Redeploy, 00590460 RestorePlayerItems, 005901E0 TakeZoneQuestItems (original on a copy into a scratch list), 00594CE0 CopyItem, 00594AB0 / 00594BC0 CreateItemNamed / CreateSpellNamed, 00594F30 AddCounted (the original must find the item and change nothing), 005942D0 Loot, 00593D60 LootDeadUnits, 0058DAF0 AcceptNewPlayers | ours only / logged / counted |
+| Game flow | 0057B3B0 SaveGame, 00581610 SaveGameThunk, 0057A060 EnterZone, 0057BDF0 StartNetworkZone, 0057A780 LeaveZone, 0057AA80 ZoneNameInto, 0057AAB0 ClearSaveFolder, 00579B80 / 00579830 SaveFileWrite / Read, 00579E60 LoadMission, 005810A0 RegisterQuests, 005814C0 SessionMapNameInto, 0057F190 UpdateMultiplayerVariable (ours, then the original must leave "z.MPGame1" as ours set it), 0057E6B0 MultiplayerZoneInto, 0057F280 BeginMultiplayerGame, 0057F0F0 ReturnLocalParty, 0057F150 UpdateAndAcknowledge, 0057F390 RecreateClientSession, 00581660 CloseSessions, 00581630 RequestZone, 005816C0-00581760 request setters, 0057E740 StartServer, 0057EE10 SwitchMultiplayerZone, 0057F850 PickZones, 0057F820 NameInList, 0057FC90 / 0057FDE0 BriefingSpeakerInto / VariableInto (original into a scratch string), 0057FF40 MarkBriefing, 00580040 ForgetBriefing, 00580840 OnVariableChanged, 00580F10 UnloadQuestTexts, 0057FB60 RequestBriefing, 0057ABA0 LoadGame, 0057BD10 StartNewGame, 0057C700 ProcessRequest, 0057C460 StartZone, 0057EB10 AfterServerStart, 005800C0 UpdateFromServer, 00662FB0 SavedPartyList::Reload | ours only (state, name, +0x78 as asked) / differential for string outputs / logged where the effects are in original code |
+| Player guard | 005790E0 GuardPlayerData, 005791C0 GuardPlayers (involution: ours, then the original with the same key must restore every guarded dword, then ours again) | |
+| Client lookups | 00563F70 ClampedGroundHeight, 00560F00 PlatformSet::SurfaceHeight, 00561050 Contains, 00560E10 MatrixRows::Transform, 005640A0 NearestVisibleUnit, 00564AF0 ListItem, 005699F0 LocalView (69 callers), 00566EC0 IsLocalViewMode2, 00566EF0 IsLocalPlayerIdle, 00567440 FindExitAt, 005674C0 ExitCentre, 0056D9F0 EnvironmentFlags, 0057F440 IsMultiplayerClient (77 callers), 00578B40 GameTime, 00578BA0 LocalPlayerData (77), 00578B50 / 00578BE0 LocalPlayerVariable / PlayerZeroVariable, 00573A60 DepthLess, 00574300 UnitOrderLess, 00589580 EntryIdLess, 00573EE0 ModelUseLess | pure, float bits |
+| Client frame | 0056A990 CollectVisible (ours only: every visible entry flagged and in its class's lists in order), 0056BF30 PickGround / 0056C350 PickSurface, sorts 005740D0 IntroSortByModel / 00574390 FinalSortByModel / 00573D50 / 00573F10 by model use (original on a copy of the range; null, model-less or NaN-depth ranges go to the original alone), 00569E40 Render / 0056AFE0 DrawPass (ours only: lists emptied, matrix stacks as before), 005641F0 Segment, 00595080 SelectLoadingMovie (FixProgressNames) | differential / ours only |
+| Client maps | 00570860 / 00570BB0 SectorGrid::Move / Move2 (sampled differential: the first 256 calls then every 32nd; the full check was too slow near effects), 00571D50 MarkWithinRadius, 00571800 / 005718B0 CollectWindowsAt / At2, 0056FC60 PendingMapLookup, 0056E400 / 0056E440 RecordAt50 / AtB4, 005647E0 AddObject, 00564BE0 RemoveObject, 00564E70 ClearMaps, 005726B0 ReleaseIfIdentified, 00565790 / 005659D0 PickAt / PickAt2, 00566F70 CreatePartyUnits, 0056DAF0 ObjectsInRange, 00563290 Teardown, 00561E50 Setup, 00560650 AddFace / 00560820 AddBox (floats within 8 ULPs), 00559E60 UnitSet::Write (recording streams), 0055A190 ReadUnitLooks (recorder / replay) | differential / ours only |
+| Figure meshes | 005A18E0 LoadBounds, 005A2500 LoadFig, 005A5C70 LoadFigShared, 005A3800 LoadOld, 005A4D60 LoadOldShared (original on a copy whose arrays start empty; colour arrays by shape only: the loaders size them without writing), 005AAE60 / 005AB9A0 MorphFigureBounds / 6, 0059FDF0 ExtendWorldBox, 005A4B30 / 005A4BF0 MirrorX / Y (ours, the original must undo it, ours again), 005A6E70 Resize, 005A6D40 RefreshBuffers, 005A0B10 SetOffsets, 005A0CD0 DrawOffset, 0059F0F0 CopyFrom, 0059F510 SetPose, 0059F710 / 0059F8F0 SaveToFile / LoadFromFile, 005ACE80 LoadMenuRects | differential on copies / ours only |
+
 ## Original bugs and oddities kept
 
-- `CountLivingMercs` returns living - 1 (and 0 when the player is missing, so -1 for a player with no living units).
-- `RemoveTimedObject` looks the id up again after Release and removes whatever it finds; `Tick` reads a timed object's
-  `next` after its slot 6 and Release ran; the missile walk saves `next` before Update (an Update removing the next
-  missile breaks the walk in both).
-- `NearestVisibleUnit`, `LocalPlayerData`, `LocalPlayerName`, `LocalPlayerVariable` do not null-check the session /
-  view; `DepthLess` asks each object's IsDead up to three times.
-- `InvokeAlarm` stops at the first map entry with a null object and does not check the controller for null;
-  `InvokeAlarm(0, ..., force)` clears all five alarms including padding.
-- `ClearMapObjects` / `SaveMapObjects` stop at the first null map entry; `LoadMapObjects` / `LoadMobFile` return what
-  `FatalError` returns on failure (LoadMobFile treats non-zero as success); `SetZoneExits` re-reads the source size each
-  iteration; the SEH frames of the loaders are not reproduced.
-- `LoadSave`: shared-object elements are copied from a local whose first three dwords are never written; the player
-  list iterator is read from the heap (`operator_new(8)`), as `SaveWorld`. `LoadSavedMapObjects` marks every part
-  changed when any change was saved (tests `1 << i`, not `changed & bit`) and uses the object before its null test.
-- `SyncPlayer` passes 0066EC10 a dword whose upper bytes are the dirty flags (only the low byte is used). `CreateUnits`
-  places a unit near the requested position, not near its line position.
-- CastSpell / Loot / CreateMissile / record syncs / RecreateClientSession / CopyItem write +4 (the count) of a new
-  allocation before testing it for null; `Update` reuses one player iterator; `AwardExperience`'s solo branch needs the
-  player list's +0x2C non-zero; `AddSharedObject`'s second argument is unused; `LootDeadUnits` does not stop at an empty
-  map entry and calls Loot / RemoveObject on the global server, not `this`; `MultiplayerZoneInto` maps game types above
-  3 (unsigned) to bz1mpg.
-- Figure meshes: 005A4D60 does not test the loaded flag; `DrawOffset`'s shared buffer grows without copying and
-  allocates an empty block for 0 vertices; the old-format loader rounds the box minimum differently for class 0x41 and
-  0x42; plain float copies through FLD / FSTP quiet a signalling NaN in the original (ours may copy bits).
-- Client: `CollectVisible`'s first pass takes the deferred list's reference through a temporary (SEH frame not
-  reproduced); the picking runs 100 + 100 height queries when |dz| never drops to 0.01; `ObjectsInRange`'s dz is the
-  point's z minus itself.
-- `AddFace` copies 0x4C bytes of uninitialised stack over the new record first (every word is written afterwards).
+- `CountLivingMercs` returns living - 1 (0 when the player is missing, so -1 with no living units). `RemoveTimedObject` looks the id up again after Release;
+  `Tick` reads a timed object's `next` after its slot 6 and Release ran; the missile walk saves `next` before Update. `NearestVisibleUnit`, `LocalPlayer*`
+  do not null-check the session / view; `DepthLess` asks each object's IsDead up to three times.
+- `InvokeAlarm` stops at the first map entry with a null object and does not check the controller for null; `InvokeAlarm(0, ..., force)` clears all five alarms
+  including padding. `ClearMapObjects` / `SaveMapObjects` stop at the first null map entry; `LoadMapObjects` / `LoadMobFile` return what `FatalError` returns
+  on failure (LoadMobFile treats non-zero as success); `SetZoneExits` re-reads the source size each iteration; SEH frames of the loaders are not reproduced.
+- `LoadSave`: shared-object elements are copied from a local whose first three dwords are never written; the player list iterator comes from the heap
+  (`operator_new(8)`), as in `SaveWorld`. `LoadSavedMapObjects` marks every part changed when any change was saved (tests `1 << i`, not `changed & bit`) and
+  uses the object before its null test. `SyncPlayer` passes 0066EC10 a dword whose upper bytes are the dirty flags. `CreateUnits` places a unit near the
+  requested position, not near its line position.
+- CastSpell / Loot / CreateMissile / record syncs / RecreateClientSession / CopyItem write +4 (the count) of a new allocation before testing it for null;
+  `AwardExperience`'s solo branch needs the player list's +0x2C non-zero; `AddSharedObject`'s second argument is unused; `LootDeadUnits` does not stop at an
+  empty map entry and calls Loot / RemoveObject on the global server, not `this`; `MultiplayerZoneInto` maps game types above 3 (unsigned) to bz1mpg.
+- Figure meshes: 005A4D60 does not test the loaded flag; `DrawOffset`'s shared buffer grows without copying and allocates an empty block for 0 vertices; the
+  old-format loader rounds the box minimum differently for class 0x41 and 0x42; FLD / FSTP copies quiet a signalling NaN (ours may copy bits). `AddFace` copies
+  0x4C bytes of uninitialised stack over the new record first. Client: picking runs 100 + 100 height queries when |dz| never drops to 0.01; `ObjectsInRange`'s dz
+  is the point's z minus itself.
 - With every flag off the Rebirth-patched rewrites keep the vanilla behaviour (`rebirth.md`).
 
 ## Floating point
