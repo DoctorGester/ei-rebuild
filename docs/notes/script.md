@@ -1150,3 +1150,27 @@ Not taken: 004BAEC0 (party records of a "party name": CString Find / Mid with th
 which mfc.h does not declare yet; it also rewrites the caller's name), 004C9C90 (the quest table's
 STLport hash_map lookup), the array destructors 004BE250 / 004BE2E0 / 004BE430 / 004BE410 (only
 reached from the arrays' scalar deleting destructors 004C1A00-004C1A60 and unwind funclets).
+
+## Unit mode constructors (004BA1C0, 004BA360, 004BA450, 004BA610, 004BA710, 004BA830, 004BA920, 004BA1A0)
+
+Code: `src/game/script_unit_modes.cpp` (declarations at the end of unit_ai.h, the vtables named in
+`aimode::`); verify: `tests/verify/verify_script_unit_modes.cpp`. Every one is compared with the
+original: the original constructs a copy of the object's current bytes (fresh operator new memory,
+partly unwritten), ours the object; all bytes and both returned pointers equal (Follow: the leader's
+count raised by one in each run, the original's taken back). Reached by script_exec (Follow, Guard,
+Sentry, UMSentry / UMGuard / UMFollow / UMAggression / UMRevenge / UMSuspection / UMCorpseWatcher),
+unit_ai (UM* modes, UMPatrolLook), movement (Follow). Not library, dead or Rebirth-patched; the
+Guard / Sentry setters 005D0B70 / 005D1B50 are rewritten and called directly.
+
+| Address | Size | Constructs |
+|---|---|---|
+| 004BA1C0 | 85 | GuardMode (vtable 0073D128), then GuardMode::Set(point, radius, wander) |
+| 004BA360 | 73 | SentryMode (0073D190), then SentryMode::Set(point) |
+| 004BA450 | 78 | FollowMode: base vtable 0073D15C, leader null, then the leader referenced and stored, vtable 0073D1C4 |
+| 004BA610 | 9 | SuspectionMode: vtable 0073D1F8 only |
+| 004BA710 | 27 | AggressionMode (0073D260): no enemy / chosen, part -1, not fixed |
+| 004BA830 | 33 | the same with `fixed` = the argument's low byte (UMRevenge) |
+| 004BA920 | 9 | CorpseWatcherMode: vtable 0073D294 only |
+| 004BA1A0 | 32 | AILook {angle, time, wait, stop first (low byte)} (UMPatrolLook) |
+
+None of them sets the reference count (+4): the commands write 0 there after operator new.

@@ -159,6 +159,17 @@ struct AIMode {
 };
 static_assert(sizeof(AIMode) == 8);
 
+// The modes' vtables as their constructors install them (the script's 004BA1C0-004BA920).
+namespace aimode {
+inline void* const kBaseVtable = reinterpret_cast<void*>(0x0073D15C);
+inline void* const kGuardVtable = reinterpret_cast<void*>(0x0073D128);
+inline void* const kSentryVtable = reinterpret_cast<void*>(0x0073D190);
+inline void* const kFollowVtable = reinterpret_cast<void*>(0x0073D1C4);
+inline void* const kSuspectionVtable = reinterpret_cast<void*>(0x0073D1F8);
+inline void* const kAggressionVtable = reinterpret_cast<void*>(0x0073D260);
+inline void* const kCorpseWatcherVtable = reinterpret_cast<void*>(0x0073D294);
+} // namespace aimode
+
 // Shared slot implementations of the simple modes (registered once, used by several vtables).
 namespace aimode {
 // 005D0A80. Slot 4 of Guard, Sentry, Follow and the abstract base: always 50.
@@ -512,3 +523,17 @@ static_assert(offsetof(AIBrain, corpses) == 0x148);
 static_assert(offsetof(AIBrain, reports) == 0x164);
 static_assert(offsetof(AIBrain, seesEnemy) == 0x18C);
 static_assert(sizeof(AIBrain) == 0x190);
+
+// The mode constructors the script's UM* commands call after operator new (script_unit_modes.cpp;
+// __thiscall, each returns the mode). 004BA1C0 Guard (point, radius, wander: GuardMode::Set),
+// 004BA360 Sentry (SentryMode::Set), 004BA450 Follow (the leader referenced), 004BA610 Suspection,
+// 004BA710 Aggression (no enemy, part -1), 004BA830 Revenge (Aggression, `fixed` from the argument),
+// 004BA920 CorpseWatcher; 004BA1A0 a patrol point's look entry.
+GuardMode* __fastcall ScriptGuardModeConstruct(GuardMode* mode, void* edx, const Vector3* point, float radius, float wander);
+SentryMode* __fastcall ScriptSentryModeConstruct(SentryMode* mode, void* edx, const Vector3* point);
+FollowMode* __fastcall ScriptFollowModeConstruct(FollowMode* mode, void* edx, CEngineObject* leader);
+SuspectionMode* __fastcall ScriptSuspectionModeConstruct(SuspectionMode* mode);
+AggressionMode* __fastcall ScriptAggressionModeConstruct(AggressionMode* mode);
+AggressionMode* __fastcall ScriptRevengeModeConstruct(AggressionMode* mode, void* edx, int fixed);
+CorpseWatcherMode* __fastcall ScriptCorpseWatcherModeConstruct(CorpseWatcherMode* mode);
+AILook* __fastcall ScriptAILookConstruct(AILook* look, void* edx, float angle, float time, float wait, int stopFirst);
