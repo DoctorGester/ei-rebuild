@@ -58,46 +58,24 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 
 ## Original bugs and oddities kept on purpose
 
-- Think's "new motivation" message prints an empty name for mode type 9 or above 10.
-- `IsNearPath` sets only AL on its first "near" return (AH holds the FPU status); callers test AL.
-  The clamp of the segment parameter keeps NaN.
-- `AttackTarget` passes the player's order check (0054C8B0) an order whose point (+0x0C..+0x17)
-  the original leaves uninitialised; ours zeroes it.
-- Guard's Execute counts failed searches near its point; after 100 it also searches around the unit,
-  on every tick until one search succeeds (only success resets the count).
-- Patrol with no points calls FatalError "Unit %i has no patrol points, switching to guard" and
-  adds a point at the unit (it does not switch to Guard).
-- Suspection's Execute computes the "near the point" distance only while a move is under way; its
-  level drops by 5 per tick near the point, by 50 in combat.
-- Aggression's Execute asks for the current attack twice in a row (two 005CF220 calls, same result).
-- Player's CommandCast passes Cast a third argument whose upper bytes are the mode pointer's (only
-  the low byte, the run flag, is read); ours passes the zero-extended flag.
-- Save functions write scalars from stack copies (`WriteCopy`), which only matters to a capturing
-  stream.
+- Think's "new motivation" message prints an empty name for mode type 9 or above 10. `IsNearPath` sets only AL on its first "near" return (callers test AL) and keeps NaN in the clamp of the segment parameter.
+  `AttackTarget` passes the player's order check (0054C8B0) an order whose point (+0x0C..+0x17) the original leaves uninitialised (ours zeroes it). Player's CommandCast passes Cast a third argument whose upper bytes
+  are the mode pointer's (ours passes the zero-extended run flag). The Save functions write scalars from stack copies (`WriteCopy`), which only matters to a capturing stream.
+- Guard's Execute counts failed searches near its point; after 100 it also searches around the unit, on every tick until one succeeds (only success resets the count). Patrol with no points calls FatalError "Unit %i has
+  no patrol points, switching to guard" and adds a point at the unit (it does not switch). Suspection's Execute computes the "near the point" distance only while a move is under way; its level drops by 5 per tick near
+  the point, by 50 in combat. Aggression's Execute asks for the current attack twice in a row (two 005CF220 calls).
 
 ## Skipped and why
 
-- Large float/path code: 005D0030 target choice (2.6 KB), 005D2960 / 005D30A0 Fear Evaluate /
-  Execute, 005D4170 Player combat, 005D6F90 UpdateFollow, 005D5B40 PlanLooks, 005D7F80
-  FindStandPoint, 005D6630 / 005D6D20 alarm assembly. Next candidates: 005D5B40 and 005D7F80 with
-  an offline harness.
-- 005D4860 StaysWithParty: walks the player's unit hash map through iterator helpers (00455830 /
-  00455890 / 004558B0) with an unclear frame.
-- 005D5F60 AddMode, 005D4DF0 ClearModes, 005D4E80 / 005D4F70 reset/init, 005D1930 / 005D1A40 Patrol
-  Load / Save (Ghidra garbles the frames; arrays resized through template code), 005D0F90 /
-  005D2880 clones, destructors: allocation-heavy bookkeeping, rare.
-- 005D1E60 Follow Load, 005D2770 Aggression Load, 005D4CD0 Player Load (loads a ScriptGroup for
-  versions 0x46..0x5D): counted references by id; only on game load.
-- 005D7F40 (seen object is an ally): leaves the caller's EAX upper bytes in the result.
-- 005D1210 / 005D2920 (GetType of Patrol / Fear) and other constant slots: trivial.
+- Large float / path code: 005D0030 target choice (2.6 KB), 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D4170 Player combat, 005D6F90 UpdateFollow, 005D5B40 PlanLooks, 005D7F80 FindStandPoint, 005D6630 /
+  005D6D20 alarm assembly; next candidates 005D5B40 and 005D7F80 with an offline harness. 005D4860 StaysWithParty walks the player's unit hash map through iterator helpers (00455830 / 00455890 / 004558B0) with an
+  unclear frame.
+- Allocation-heavy bookkeeping, rare: 005D5F60 AddMode, 005D4DF0 ClearModes, 005D4E80 / 005D4F70 reset / init, 005D1930 / 005D1A40 Patrol Load / Save (Ghidra garbles the frames), 005D0F90 / 005D2880 clones,
+  destructors; 005D1E60 Follow Load, 005D2770 Aggression Load, 005D4CD0 Player Load (a ScriptGroup for versions 0x46..0x5D) run only on game load; 005D7F40 (seen object is an ally) leaves the caller's EAX upper bytes in the
+  result; 005D1210 / 005D2920 (GetType of Patrol / Fear) and other constant slots are trivial.
 
 ## Risks
 
-- Most are verified "ours only" with consistency checks: a wrong branch that leaves a consistent
-  state would pass; the scenario (patrol, guard, sentry, follow, aggression) is the behavioural check.
-- Think writes the "new motivation" line through the console ostream 007C54E8 like the original; the
-  scenario does not `expect` it (the stream may not be the in-game console).
-- Floats: `double` locals for values the original keeps on the FPU stack, `volatile float` where it
-  stores to a float; equal under the game's single-precision control word except at exponent
-  extremes.
-- `AIMode::refs` is a 16-bit count (INC word); a 32-bit increment would corrupt the padding.
+- Most are verified "ours only" with consistency checks: a wrong branch that leaves a consistent state would pass; the scenario (patrol, guard, sentry, follow, aggression) is the behavioural check. Think writes the "new
+  motivation" line through the console ostream 007C54E8 like the original; the scenario does not `expect` it (the stream may not be the in-game console). Floats: `double` locals for values the original keeps on the FPU
+  stack, `volatile float` where it stores to a float. `AIMode::refs` is a 16-bit count (INC word); a 32-bit increment would corrupt the padding.
