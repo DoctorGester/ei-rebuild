@@ -140,18 +140,36 @@ __declspec(naked) void __fastcall LeaveToZoneOriginal(void* /*connection*/, void
     EI_ORIGINAL(0x0066F310)
 
 constexpr std::uintptr_t kServerWorld = 0x007AFF60;
-constexpr std::uintptr_t kLocalPlayerId = 0x007AFFBC;   // the server world's +0x5C
+// The server world's +0x5C, which the flow passes to the client world's SetPlayer (00566CE0). It is
+// not the server's player number: the first X9 run found no player with it (logged by the steps).
+constexpr std::uintptr_t kWorld5C = 0x007AFFBC;
+// The single-player hero's player number in the server world: world players' +0x24 is 0 for the
+// local player, and the world script commands that act on "the player" (GSSetVar(0, ...),
+// LeaveToZone(0, ...); script_exec.cpp case 0x8A: TheWorld()->GetPlayer(Ftol(f[0])) and its +0x20)
+// use 0.
+constexpr int kLocalPlayer = 0;
 constexpr std::uintptr_t kCampaignMode = 0x007C2CC4;    // 1 battle, 2 main menu, 3 base, 4 edge
 constexpr std::uintptr_t kMapDatabase = 0x0079BF00;
 constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
-// The local player's server connection (the world player's +0x20, a CPlayerServer in single player)
-// or null; its +0x20 is the connection's state (1 in the world, 3 leaving the zone).
+// The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
+void* LocalWorldPlayer() { return WorldGetPlayer(reinterpret_cast<void*>(kServerWorld), nullptr, kLocalPlayer); }
+// Its server connection (the world player's +0x20, a CPlayerServer in single player; StateOf in
+// script_exec.cpp) or null; the connection's +0x20 is its state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
-    void* player = WorldGetPlayer(reinterpret_cast<void*>(kServerWorld), nullptr, *reinterpret_cast<int*>(kLocalPlayerId));
+    void* player = LocalWorldPlayer();
     return player ? *reinterpret_cast<void**>(static_cast<char*>(player) + 0x20) : nullptr;
 }
 int ConnectionState(void* connection) { return *reinterpret_cast<int*>(static_cast<char*>(connection) + 0x20); }
+// What the zone steps read, for the log and failure messages.
+std::string DescribeLocalPlayer() {
+    void* player = LocalWorldPlayer();
+    void* connection = LocalConnection();
+    char text[200];
+    std::snprintf(text, sizeof(text), "player %d -> %p, connection %p, state %d (world +0x5C = %d)", kLocalPlayer, player,
+                  connection, connection ? ConnectionState(connection) : -1, *reinterpret_cast<int*>(kWorld5C));
+    return text;
+}
 // The server world's zone (+0x120, the map database name NewZone 00595480 stores), or "".
 const char* ServerZoneName() {
     const char* name = *reinterpret_cast<const char* const*>(kServerWorld + 0x120);
@@ -1016,11 +1034,10 @@ void RunSteps() {
                 Now() - g_waitZoneStart, *reinterpret_cast<int*>(kCampaignMode));
             g_waitingZone = false;
         } else if (Now() >= g_waitZoneDeadline) {
-            void* connection = LocalConnection();
-            char what[200];
-            std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, state %d)",
+            char what[400];
+            std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, %s)",
                           g_waitZoneName.c_str(), ServerZoneName(), g_request.kind, *reinterpret_cast<int*>(kCampaignMode),
-                          connection ? ConnectionState(connection) : -1);
+                          DescribeLocalPlayer().c_str());
             Log("harness: %s", what);
             g_failures.push_back(what);
             g_waitingZone = false;
@@ -1087,18 +1104,19 @@ void RunSteps() {
             }
             const std::uint8_t* record = MapDatabaseFind(reinterpret_cast<void*>(kMapDatabase), nullptr, name);
             void* connection = LocalConnection();
+            Log("harness: zone %s: %s", name, DescribeLocalPlayer().c_str());
             if (!record) {
                 // StartZone would show a fatal error and go to the main menu.
                 g_failures.push_back(std::string("zone: no zone '") + name + "' in map.txt");
             } else if (!connection || ConnectionState(connection) != 1) {
-                g_failures.push_back(std::string("zone ") + name + ": the local player is not in the world (state " +
-                                     std::to_string(connection ? ConnectionState(connection) : -1) + ")");
+                g_failures.push_back(std::string("zone ") + name + ": the local player is not in the world (" + DescribeLocalPlayer() + ")");
             } else {
                 int kind = *reinterpret_cast<const int*>(record + kZoneRecordKind);
                 Log("harness: zone %s (map.txt type %s), exit %d", name, kind == 0 ? "game" : kind == 2 ? "brief" : "edge", exitIndex);
                 LeaveToZoneOriginal(connection, nullptr, name, exitIndex);
                 if (ConnectionState(connection) != 3)
-                    g_failures.push_back(std::string("zone ") + name + ": LeaveToZone did not leave (the leader dead or missing?)");
+                    g_failures.push_back(std::string("zone ") + name + ": LeaveToZone did not leave (the leader dead or missing?; " +
+                                         DescribeLocalPlayer() + ")");
             }
         } else if (s.verb == "waitzone") {
             char* rest = nullptr;
