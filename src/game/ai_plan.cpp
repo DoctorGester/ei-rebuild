@@ -76,7 +76,7 @@ __declspec(naked) bool __fastcall SearchBegin(void*, void*, CUnit*, int, int, in
 __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
 __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
-__declspec(naked) void __fastcall SearchReset(void*, void*) EI_ORIGINAL(0x005C35F0)
+void __fastcall SearchReset(void* a0, void*) { LocalSearchResetOriginal(a0); }
 // 005B16D0 (RET 8). The excluded regions' CArray<{int x, y}>::SetSize.
 inline void __fastcall ExcludedSetSize(void* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.

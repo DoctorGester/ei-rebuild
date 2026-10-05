@@ -17,8 +17,7 @@ namespace {
 // Sprite builders through their original addresses (005E70E0 and 005E7680 are Rebirth-patched):
 // 005E70E0 a textured rectangle (RET 0x28), 005E8450 a framed rectangle (RET 0x2C), 005E7680 a
 // rectangle of `count` repeated cells (RET 0x30).
-__declspec(naked) void __fastcall StripRectangle(CUiMesh*, void*, float /*depth*/, float /*scale*/, float, float, float,
-                                                 float, int, int, int, int) EI_ORIGINAL(0x005E70E0)
+void __fastcall StripRectangle(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11) { UiMeshRectangleOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 __declspec(naked) void __fastcall StripFrame(CUiMesh*, void*, float /*depth*/, float /*scale*/, float, float, float, float,
                                              float /*border*/, int, int, int, int) EI_ORIGINAL(0x005E8450)
 __declspec(naked) void __fastcall StripCells(CUiMesh*, void*, float /*depth*/, float /*scale*/, float, float, float, float,

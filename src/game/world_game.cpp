@@ -92,7 +92,7 @@ __declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORI
 // builder (00661050 constructs one, 006611D0 destroys it).
 __declspec(naked) void __fastcall PartyTake(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8890)
 __declspec(naked) void __fastcall PartyStore(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8880)
-__declspec(naked) void* __fastcall RecordsConstruct(void*, void*) EI_ORIGINAL(0x00661050)
+void* __fastcall RecordsConstruct(void* a0, void*) { return PartyRecordsConstructOriginal(a0); }
 __declspec(naked) void __fastcall RecordsDestruct(void*, void*) EI_ORIGINAL(0x006611D0)
 // 0045E850 (RET 4). CMapDatabase::FindMap: the zone record named `name`, or null.
 // 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).

@@ -84,8 +84,7 @@ __declspec(naked) void Sprite::Place(float, float, float) EI_ORIGINAL(0x005E6FA0
 __declspec(naked) void Sprite::SetScale(float) EI_ORIGINAL(0x005E7060)
 __declspec(naked) double Sprite::Scale() EI_ORIGINAL(0x005E70B0)
 __declspec(naked) void Sprite::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
-__declspec(naked) void Sprite::SetRectangle(float, float, float, float, float, float, int, int, int, int)
-    EI_ORIGINAL(0x005E70E0)
+void Sprite::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void Sprite::Draw(int) EI_ORIGINAL(0x005E6D90)
 Sprite* AsSprite(void* p) { return static_cast<Sprite*>(p); }
 

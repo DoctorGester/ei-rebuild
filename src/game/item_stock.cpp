@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -476,7 +477,7 @@ __declspec(naked) void __fastcall RecipePairDestroy(void*) EI_ORIGINAL(0x004AD64
 __declspec(naked) void __fastcall ModifierMapClear(void*) EI_ORIGINAL(0x004AB2B0)
 __declspec(naked) char* __fastcall ModifierMapAt(void*, void*, const void* /*pair*/) EI_ORIGINAL(0x0069D1E0)
 // The spell records by name (map 007C851C, operator[] 004ABD00: inserts a null for a new name).
-__declspec(naked) char** __fastcall SpellByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x004ABD00)
+char** __fastcall SpellByName(void* a0, void*, const void* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, a2); }
 void* const kSpellsByName = reinterpret_cast<void*>(0x007C851C);
 // The spell prototypes by name (thiscall on 007C8510, 00613920) and the spell manager's builder
 // (00689310, RET 8: prototype, modifier list; a new counted spell or null).

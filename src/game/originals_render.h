@@ -28,3 +28,6 @@ __declspec(naked) inline char* __fastcall AllocAligned32Original(int /*count*/) 
 // 004D9880: 4x4 matrix product out = a * b (ECX = out, RET 8, no result).
 __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, void*, const float* /*a*/,
                                                                 const float* /*b*/) EI_ORIGINAL(0x004D9880)
+// C3i. 004D9AA0: quaternion (ECX) into a 4x4 matrix `out` (RET 4, no result).
+__declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* /*quaternion*/, void*, float* /*out*/)
+    EI_ORIGINAL(0x004D9AA0)

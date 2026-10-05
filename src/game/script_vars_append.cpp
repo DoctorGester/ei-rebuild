@@ -143,7 +143,7 @@ EI_REPLACE(0x004C3DC0, ScriptGroupsAppend);
 
 namespace {
 
-__declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
+void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 // 004B5EF0: a group's destructor body (references released, array freed).
 __declspec(naked) void __fastcall GroupDestruct(ScriptGroup*) EI_ORIGINAL(0x004B5EF0)
 

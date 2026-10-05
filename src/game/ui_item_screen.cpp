@@ -30,7 +30,7 @@ struct CacheIterator {
     ItemObjectCache::Node* node;
     void Next();   // 0043DBE0
 };
-__declspec(naked) void CacheIterator::Next() EI_ORIGINAL(0x0043DBE0)
+void CacheIterator::Next() { TreeIncrementOriginal((void*)this); }
 __declspec(naked) void __fastcall EraseModel(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F3140)
 __declspec(naked) void __fastcall EraseTexture(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F32A0)
 
@@ -67,8 +67,7 @@ struct SpriteBuild {
     void Cells(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
                int v1, int count, int flag);   // 005E7680
 };
-__declspec(naked) void SpriteBuild::Rectangle(float, float, float, float, float, float, int, int, int, int)
-    EI_ORIGINAL(0x005E70E0)
+void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void SpriteBuild::Cells(float, float, float, float, float, float, int, int, int, int, int, int)
     EI_ORIGINAL(0x005E7680)
 

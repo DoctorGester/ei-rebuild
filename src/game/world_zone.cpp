@@ -20,6 +20,7 @@
 #include "originals_units.h"
 #include "originals_core.h"
 #include "originals_library.h"
+#include "originals_gameplay.h"
 
 namespace {
 
@@ -105,8 +106,8 @@ struct UnitRecordBuilder {
     void* Record() { return At<void*>(this, 0x30); }
 };
 static_assert(sizeof(UnitRecordBuilder) == 0x70);
-__declspec(naked) void* UnitRecordBuilder::Construct() EI_ORIGINAL(0x00661050)
-__declspec(naked) void UnitRecordBuilder::Fill(const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
+void* UnitRecordBuilder::Construct() { return PartyRecordsConstructOriginal((void*)this); }
+void UnitRecordBuilder::Fill(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
 __declspec(naked) void UnitRecordBuilder::Destruct() EI_ORIGINAL(0x006611D0)
 
 } // namespace

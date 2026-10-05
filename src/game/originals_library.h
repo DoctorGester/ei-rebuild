@@ -204,3 +204,22 @@ __declspec(naked) inline char* __fastcall StringInitRangeOriginal(void* /*string
 // 004DA5C0: the game buffer grows its storage to `size` bytes (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall GameBufferGrowOriginal(void* /*buffer*/, void*, std::uint32_t /*size*/)
     EI_ORIGINAL(0x004DA5C0)
+
+// C3i. 00405720: STLport hash_map erase(node) (RET 8: node, table; EAX not a result). 0043DBE0: red-black tree
+// iterator increment (ECX = the iterator, plain RET, EAX not a result). 0040C280: string append(first, last, tag)
+// (RET 0xC, returns this). 0041F550: string assign(const char*) (RET 4, returns this). 00700D73: CString::operator+=(char)
+// (RET 4, returns this). 006E8693: CRT `eh vector constructor iterator` (RET 0x14: array, size, count, ctor, dtor).
+// 006FE296: CArray<CString> DestructElements (RET 8: first, count).
+__declspec(naked) inline void __fastcall HashEraseOriginal(void* /*map*/, void*, void* /*node*/, const void* /*table*/)
+    EI_ORIGINAL(0x00405720)
+__declspec(naked) inline void __fastcall TreeIncrementOriginal(void* /*iterator*/) EI_ORIGINAL(0x0043DBE0)
+__declspec(naked) inline void* __fastcall StringAppendRangeOriginal(void* /*string*/, void*, const char* /*first*/,
+                                                                    const char* /*last*/, const void* /*tag*/)
+    EI_ORIGINAL(0x0040C280)
+__declspec(naked) inline void* __fastcall StringAssignCStrOriginal(void* /*string*/, void*, const char* /*text*/)
+    EI_ORIGINAL(0x0041F550)
+__declspec(naked) inline void* __fastcall CStringAppendCharOriginal(void* /*string*/, void*, char /*c*/)
+    EI_ORIGINAL(0x00700D73)
+__declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
+                                                                    void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
+__declspec(naked) inline void __stdcall CStringElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE296)

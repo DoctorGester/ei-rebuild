@@ -15,6 +15,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "originals_script.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -141,7 +142,7 @@ __declspec(naked) void TokenListAt::Destruct() EI_ORIGINAL(0x004CA260)
 
 // 006FE268 / 006FE296: ConstructElements / DestructElements for CString.
 __declspec(naked) void __stdcall ConstructStrings(mfc::CString*, int) EI_ORIGINAL(0x006FE268)
-__declspec(naked) void __stdcall DestructStrings(mfc::CString*, int) EI_ORIGINAL(0x006FE296)
+void __stdcall DestructStrings(mfc::CString* a0, int a1) { CStringElementsDestruct((void*)a0, a1); }
 
 // The #define helpers through their original addresses (script_parse.cpp).
 __declspec(naked) void __fastcall AddDefineAt(ScriptDefineList*, const ScriptDefine*) EI_ORIGINAL(0x004D34F0)

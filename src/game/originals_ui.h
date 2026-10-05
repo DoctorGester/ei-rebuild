@@ -52,3 +52,9 @@ __declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*windo
 // 00578D10: sets the world server's flag through the game state at 007AFEA4. A free function: one stack argument,
 // RET 4, ECX is not read (the callers' member `this` is the state but is ignored); EAX is not a result.
 __declspec(naked) inline void __stdcall SetServerFlagOriginal(int /*flag*/) EI_ORIGINAL(0x00578D10)
+
+// C3i. 005E70E0: CUiMesh sprite SetRectangle(depth, scale, left, top, right, bottom, u0, v0, u1, v1) (RET 0x28, EAX not a result).
+__declspec(naked) inline void __fastcall UiMeshRectangleOriginal(void* /*mesh*/, void*, float /*depth*/, float /*scale*/,
+                                                                 float /*left*/, float /*top*/, float /*right*/,
+                                                                 float /*bottom*/, int /*u0*/, int /*v0*/, int /*u1*/,
+                                                                 int /*v1*/) EI_ORIGINAL(0x005E70E0)

@@ -51,7 +51,7 @@ __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const St
 __declspec(naked) Node** __fastcall InsertHint(Tree*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
 void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall StringAppend(StringRep*, void*, const char* /*first*/, const char* /*last*/, int /*tag*/) EI_ORIGINAL(0x0040C280)
+void __fastcall StringAppend(StringRep* a0, void*, const char* a2, const char* a3, int a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 __declspec(naked) void __fastcall Erase(Tree*, void*, Node* /*position*/) EI_ORIGINAL(0x00445010)
 __declspec(naked) void __fastcall EraseSubtree(Tree*, void*, Node*) EI_ORIGINAL(0x00445310)
 __declspec(naked) void __fastcall PairDelete(void*, void*, unsigned) EI_ORIGINAL(0x004457F0)
@@ -157,7 +157,7 @@ __declspec(naked) void* __fastcall PanelConstruct(void*, void*, void* /*ui*/, RE
 __declspec(naked) void __fastcall PanelDestruct(void*) EI_ORIGINAL(0x005FD120)
 __declspec(naked) void __fastcall DcFillSolidRect(void*, void*, int, int, int, int, COLORREF) EI_ORIGINAL(0x0070BB04)
 __declspec(naked) int __fastcall DcSetBkMode(void*, void*, int) EI_ORIGINAL(0x007090C2)
-__declspec(naked) void __fastcall TreeIncrement(Node**) EI_ORIGINAL(0x0043DBE0)
+void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal((void*)a0); }
 __declspec(naked) void __fastcall PanelRedrawAt(void*) EI_ORIGINAL(0x00444D00)
 __declspec(naked) void __fastcall PanelShowAt(void*, void*, std::uint8_t) EI_ORIGINAL(0x00444F50)
 __declspec(naked) void __fastcall PanelSetRectAt(void*, void*, const RECT*) EI_ORIGINAL(0x00444C10)

@@ -22,7 +22,7 @@ struct TextString : mfc::CString {
     void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
 };
 __declspec(naked) void TextString::AssignChar(char) EI_ORIGINAL(0x006FD559)
-__declspec(naked) void TextString::AppendChar(char) EI_ORIGINAL(0x00700D73)
+void TextString::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
 TextString& Ops(mfc::CString& s) { return static_cast<TextString&>(s); }
 const TextString& Ops(const mfc::CString& s) { return static_cast<const TextString&>(s); }
 

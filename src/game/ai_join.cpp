@@ -21,7 +21,7 @@ namespace {
 __declspec(naked) void __fastcall SearchExpand(void*, void*) EI_ORIGINAL(0x005C2D40)
 __declspec(naked) void __fastcall SearchBest(void*, void*, int*, int*, int*) EI_ORIGINAL(0x005C3050)
 __declspec(naked) void __fastcall SearchPathTo(void*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005C3200)
-__declspec(naked) void __fastcall SearchResetAt(void*, void*) EI_ORIGINAL(0x005C35F0)
+void __fastcall SearchResetAt(void* a0, void*) { LocalSearchResetOriginal(a0); }
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
 __declspec(naked) void __fastcall ListFixUp(PathCellList*, void*) EI_ORIGINAL(0x005C6000)

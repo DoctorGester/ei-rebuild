@@ -14,6 +14,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "originals_engine.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -58,8 +59,8 @@ __declspec(naked) void* __fastcall FindWeapon(void*, void*, const char*) EI_ORIG
 __declspec(naked) void* __fastcall FindArmor(void*, void*, const char*) EI_ORIGINAL(0x004AB820)
 __declspec(naked) void** __fastcall QuickItemAt(void*, void*, const void*) EI_ORIGINAL(0x004ABBD0)
 __declspec(naked) void** __fastcall FourthKindAt(void*, void*, const void*) EI_ORIGINAL(0x004ABAA0)
-__declspec(naked) void** __fastcall SpellAt(void*, void*, const void*) EI_ORIGINAL(0x004ABD00)
-__declspec(naked) char* __fastcall ModifierFindOrInsert(void*, void*, const void*) EI_ORIGINAL(0x004ACC10)
+void** __fastcall SpellAt(void* a0, void*, const void* a2) { return SpellMapAtOriginal(a0, nullptr, a2); }
+char* __fastcall ModifierFindOrInsert(void* a0, void*, const void* a2) { return (char*)ModifierMapFindOrInsertOriginal(a0, nullptr, a2); }
 void* const kWeapons = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmors = reinterpret_cast<void*>(0x007C8718);
 void* const kQuickItemMap = reinterpret_cast<void*>(0x007C8744);

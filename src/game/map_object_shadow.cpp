@@ -106,7 +106,7 @@ __declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quat
 // 004D9880. 4x4 matrix: this = a * b.
 inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 // 004D9AA0. A quaternion into a 4x4 matrix.
-__declspec(naked) void __fastcall OrientationToMatrix(void*, void*, float*) EI_ORIGINAL(0x004D9AA0)
+void __fastcall OrientationToMatrix(void* a0, void*, float* a2) { QuaternionToMatrixOriginal((const void*)a0, nullptr, a2); }
 // 004545A0 / 004F65B0 / 00452E70. Aligned storage for 8-, 8- and 64-byte records.
 __declspec(naked) void* __fastcall AllocatePoints(int) EI_ORIGINAL(0x004545A0)
 __declspec(naked) void* __fastcall AllocatePixels(int) EI_ORIGINAL(0x004F65B0)

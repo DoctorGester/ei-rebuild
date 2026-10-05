@@ -33,3 +33,10 @@ __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, voi
     EI_ORIGINAL(0x00661700)
 __declspec(naked) inline void* __fastcall PartyAddItemOriginal(void* /*party*/, void*, void* /*item*/, int /*a*/,
                                                                int /*b*/) EI_ORIGINAL(0x00661DB0)
+
+// C3i. 00661050: party record builder / embedded party constructor (plain RET, returns this). 006628D0: adds a member record
+// (name, prototype, extra; RET 0xC, EAX is the new record).
+__declspec(naked) inline void* __fastcall PartyRecordsConstructOriginal(void* /*party*/) EI_ORIGINAL(0x00661050)
+__declspec(naked) inline void* __fastcall PartyAddMemberOriginal(void* /*party*/, void*, const char* /*name*/,
+                                                                 const char* /*prototype*/, const char* /*extra*/)
+    EI_ORIGINAL(0x006628D0)

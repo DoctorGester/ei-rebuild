@@ -237,7 +237,7 @@ struct DistanceNode {
     float distance;                  // +0x14
 };
 // 0043DBE0 (not rewritten): rb-tree iterator increment (thiscall on the iterator).
-__declspec(naked) void __fastcall TreeIncrement(DistanceNode** /*iterator*/) EI_ORIGINAL(0x0043DBE0)
+void __fastcall TreeIncrement(DistanceNode** a0) { TreeIncrementOriginal((void*)a0); }
 
 // Surfaces and sprites (not rewritten).
 struct SurfaceDraw {

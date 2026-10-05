@@ -271,7 +271,7 @@ __declspec(naked) void MfcList::RemoveAt(MfcNode*) EI_ORIGINAL(0x0056FDD0)
 // The id map +0xD8 (hash_map<unsigned, MfcNode*>, then the highest key at +0x14): operator[]
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
 __declspec(naked) void** __fastcall IdMapAt(void*, void*, const int*) EI_ORIGINAL(0x00406A10)
-__declspec(naked) void __fastcall IdMapErase(void*, void*, const void* /*node*/, const void* /*table*/) EI_ORIGINAL(0x00405720)
+void __fastcall IdMapErase(void* a0, void*, const void* a2, const void* a3) { HashEraseOriginal(a0, nullptr, (void*)a2, a3); }
 __declspec(naked) void __fastcall IdMapClear(void*) EI_ORIGINAL(0x00406E80)
 
 // Item `index` of an object's two item arrays [00564AF0, on the object]; a platform item added to

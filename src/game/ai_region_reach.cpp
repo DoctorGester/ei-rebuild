@@ -53,7 +53,7 @@ inline void __fastcall PointArraySetSize(PointArray* a, void*, int n, int g) { P
 __declspec(naked) void __fastcall SearchSetup(void*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005C2CF0)
 __declspec(naked) void __fastcall SearchFlood(void*, void*, int) EI_ORIGINAL(0x005C33F0)
 __declspec(naked) void __fastcall SearchSettle(void*, void*) EI_ORIGINAL(0x005C3530)
-__declspec(naked) void __fastcall SearchReset(void*, void*) EI_ORIGINAL(0x005C35F0)
+void __fastcall SearchReset(void* a0, void*) { LocalSearchResetOriginal(a0); }
 
 // LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
 // destroyed by 005B0360) and its second list at 007C2EF8 (bit 1, 005B0350).
@@ -104,7 +104,7 @@ BlockCostList::Node* AppendBlockCost(BlockCostList* list) {
 // preset to 1), the CRT's `eh vector constructor iterator` (array, size, count, ctor, dtor).
 __declspec(naked) void __fastcall ConstructSearchPart1(void*) EI_ORIGINAL(0x005B1470)
 __declspec(naked) void __fastcall ConstructSearchPart2(void*) EI_ORIGINAL(0x005B14C0)
-__declspec(naked) void __stdcall VectorConstruct(void*, unsigned, int, void*, void*) EI_ORIGINAL(0x006E8693)
+void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
 
 // 005C1EA0 (RET 8): the local search's set-up for a map (map, 0).
 __declspec(naked) void __fastcall SearchAttach(void*, void*, CAIMap*, int) EI_ORIGINAL(0x005C1EA0)

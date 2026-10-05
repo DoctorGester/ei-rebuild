@@ -45,3 +45,6 @@ __declspec(naked) inline void __fastcall MotionBuild(void*, void*, void* /*order
 __declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/, bool* /*turning*/, float* /*position*/, float* /*direction*/, float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
     EI_ORIGINAL(0x005C7430)
 __declspec(naked) inline void __fastcall PathShiftTime(void*, void*, int) EI_ORIGINAL(0x005C7CB0)
+
+// C3i. 005C35F0: CLocalSearch reset (plain RET, EAX not a result; the old `(void*, void*)` forms passed a dummy EDX).
+__declspec(naked) inline void __fastcall LocalSearchResetOriginal(void* /*search*/) EI_ORIGINAL(0x005C35F0)

@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -87,7 +88,7 @@ __declspec(naked) void __fastcall IdsClear(IdList*) EI_ORIGINAL(0x00405500)
 // The positions table: find, erase(iterator), operator[] (two copies), remove by key (returning the
 // value).
 __declspec(naked) MapIterator<PositionMap>* __fastcall PositionsFind(PositionMap*, void*, MapIterator<PositionMap>* /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405BB0)
-__declspec(naked) void __fastcall PositionsErase(PositionMap*, void*, PositionMap::Node* /*node*/, const PositionMap* /*table*/) EI_ORIGINAL(0x00405720)
+void __fastcall PositionsErase(PositionMap* a0, void*, PositionMap::Node* a2, const PositionMap* a3) { HashEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
 __declspec(naked) ObjectNode** __fastcall PositionAt(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)
 __declspec(naked) ObjectNode** __fastcall PositionAt2(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004056A0)
 __declspec(naked) ObjectNode* __fastcall PositionRemoveKey(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00405350)

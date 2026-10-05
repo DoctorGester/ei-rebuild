@@ -8,6 +8,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_render.h"
 
 #include <cstring>
 
@@ -130,7 +131,7 @@ __declspec(naked) void __fastcall UnitLayerAdd(CUnitLayer*, void*, CUnit*, void*
 __declspec(naked) void __fastcall UnitLayerRemove(CUnitLayer*, void*, CUnit*, int, int) EI_ORIGINAL(0x005B3890)
 
 // Object model helpers not rewritten yet.
-__declspec(naked) void __fastcall QuaternionToMatrix(const void*, void*, void*) EI_ORIGINAL(0x004D9AA0)
+void __fastcall QuaternionToMatrix(const void* a0, void*, void* a2) { QuaternionToMatrixOriginal(a0, nullptr, (float*)a2); }
 __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
     EI_ORIGINAL(0x00560E10)
 // CStringArray element by value (a CString constructed into `out`).

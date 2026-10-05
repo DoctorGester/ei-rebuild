@@ -15,6 +15,7 @@
 #include "originals_script.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -36,8 +37,8 @@ constexpr std::uintptr_t kSubCallsBaseVtable = 0x0073D418;
 
 // DestructElements (__stdcall (first, count)): CString (006FE296), ScriptObjectRef (004CC7D0,
 // each released), ScriptGroup (004CC980).
-__declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
-__declspec(naked) void __stdcall DestructRefs(void*, int) EI_ORIGINAL(0x004CC7D0)
+void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
+void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall DestructGroups(void*, int) EI_ORIGINAL(0x004CC980)
 // Element destructors (__thiscall (flags), 0 = in place): a group (004CE210, through 004B5EF0)
 // and a nested call (004CE230: its command destroyed with 004BF640 and deleted).

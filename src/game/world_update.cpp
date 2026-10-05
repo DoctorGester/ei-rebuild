@@ -74,7 +74,7 @@ __declspec(naked) ScriptGroup* __fastcall GroupsGetAt(void*, void*, ScriptGroup*
 __declspec(naked) mfc::CString* __fastcall NamesGetAt(void*, void*, mfc::CString* /*out*/, int) EI_ORIGINAL(0x004C2680)
 __declspec(naked) ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup*, void*, ScriptObjectRef* /*out*/, int)
     EI_ORIGINAL(0x004C21E0)
-__declspec(naked) void __stdcall RefsRelease(ScriptObjectRef*, int) EI_ORIGINAL(0x004CC7D0)
+void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
 __declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/) EI_ORIGINAL(0x004CE1E0)
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*, void*) EI_ORIGINAL(0x004B24B0)

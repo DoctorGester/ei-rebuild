@@ -350,7 +350,7 @@ struct PartyRecords {
     void RemoveUnit(int key);                            // 006620F0
 };
 __declspec(naked) void* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
-__declspec(naked) void PartyRecords::AddUnit(const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
+void PartyRecords::AddUnit(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
 __declspec(naked) void PartyRecords::RemoveUnit(int) EI_ORIGINAL(0x006620F0)
 struct PartyRecord {
     void CopyItemsFrom(void* source, void* records);     // 00660500

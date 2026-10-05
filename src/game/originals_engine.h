@@ -56,3 +56,9 @@ __declspec(naked) inline void __fastcall StreamResizeOriginal(void* /*stream*/, 
 // 0044C470: the game's debug message (cdecl, printf style, a bare RET; the caller's EAX comes back unchanged, and
 // bink_video.cpp masks it, so it is declared to return a value). src/lib/crt.cpp keeps its own copy.
 __declspec(naked) inline unsigned __cdecl DebugMessageOriginal(const char*, ...) EI_ORIGINAL(0x0044C470)
+
+// C3i. 004ABD00: spell name map operator[](key) (RET 4; inserts a null record for a missing name; EAX is the address of the
+// value slot). 004ACC10: modifier map find_or_insert(pair) (RET 4; EAX is the address of the value slot, node + 4).
+__declspec(naked) inline void** __fastcall SpellMapAtOriginal(void* /*map*/, void*, const void* /*key*/) EI_ORIGINAL(0x004ABD00)
+__declspec(naked) inline void* __fastcall ModifierMapFindOrInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
+    EI_ORIGINAL(0x004ACC10)

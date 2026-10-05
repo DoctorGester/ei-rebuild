@@ -132,7 +132,7 @@ namespace {
 // CRT eh vector constructor / destructor iterators (pointer, element size, count, [constructor,]
 // destructor); the segment's element constructor 00468900 and destructor 00468920; the engine
 // object's destructor body 00455930.
-__declspec(naked) void __stdcall VectorCtorIterator(void*, unsigned, int, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x006E8693)
+void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3, std::uintptr_t a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
 void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
 __declspec(naked) void __fastcall EngineObjectDestruct(CEngineObject*) EI_ORIGINAL(0x00455930)
 constexpr std::uintptr_t kSegmentConstruct = 0x00468900;

@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "originals_core.h"
 #include "originals_library.h"
+#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>
@@ -75,9 +76,9 @@ __declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE0
 // destructors (__thiscall (flags); 0 = destroy in place).
 __declspec(naked) void __stdcall ZeroFloats(void*, int) EI_ORIGINAL(0x004CC870)
 __declspec(naked) void __stdcall ConstructStrings(void*, int) EI_ORIGINAL(0x006FE268)
-__declspec(naked) void __stdcall DestructStrings(void*, int) EI_ORIGINAL(0x006FE296)
+void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)
-__declspec(naked) void __stdcall DestructRefs(void*, int) EI_ORIGINAL(0x004CC7D0)
+void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructGroups(void*, int) EI_ORIGINAL(0x004CC9B0)
 __declspec(naked) void __stdcall DestructGroups(void*, int) EI_ORIGINAL(0x004CC980)
 __declspec(naked) void __stdcall ConstructCmds(void*, int) EI_ORIGINAL(0x004CE920)

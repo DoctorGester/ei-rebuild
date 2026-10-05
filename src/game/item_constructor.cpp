@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "originals_engine.h"
 
 #include <cstring>
 #include <new>
@@ -474,8 +475,8 @@ __declspec(naked) void __fastcall PairConstruct(NamePair*, void*, const NameKey*
 __declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006AD670)
 __declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006A75E0)
 __declspec(naked) char** __fastcall QuickNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x004ABBD0)
-__declspec(naked) char** __fastcall SpellNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x004ABD00)
-__declspec(naked) char* __fastcall ModifierNameFindOrInsert(void*, void*, const NamePair*) EI_ORIGINAL(0x004ACC10)
+char** __fastcall SpellNameAt(void* a0, void*, const NameKey* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, (const void*)a2); }
+char* __fastcall ModifierNameFindOrInsert(void* a0, void*, const NamePair* a2) { return (char*)ModifierMapFindOrInsertOriginal(a0, nullptr, (const void*)a2); }
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 int TableIndex(const RecordTable& table, const char* record, int stride) {
