@@ -6,10 +6,13 @@
 // times; the lists are rebuilt from scratch).
 // DrawLists (006261A0) runs side by side on the surface's pixels and the price sprites: the
 // original draws, its pixels and the sprites' quads and texture coordinates are recorded and the
-// old pixels put back, ours draws (it drops the original's sprites first) and both must agree.
+// old pixels put back, ours draws (it drops the original's sprites first) and both must agree. On a
+// pixel difference the original's draw is settled first (pixel_settle.h, outside disturbance).
 #include "verify.h"
+#include "pixel_settle.h"
 
 #include "../../src/game/ui_camp.h"
+#include "../../src/hook/log.h"
 #include "../../src/lib/gameapi.h"
 
 #include <windows.h>
@@ -182,15 +185,34 @@ static void __fastcall TradeDrawListsVerify(CTradePanel* self) {
     if (pixels) pixels = AccessPixels(surface, expected, false) && AccessPixels(surface, before, true);
     self->DrawLists();
     int row = -1;
+    bool unstable = false;
     if (pixels) {
         Pixels actual;
         if (AccessPixels(surface, actual, false)) row = FirstDifferentRow(expected, actual);
+        if (row != -1) {
+            // Outside disturbance (ticket X11, as X5 / X8): redraw the original from the saved pixels
+            // until two redraws agree, then ours from the saved pixels against that settled draw. Both
+            // drop the sprites past the panel's four before drawing, so the redraws do not pile them up.
+            auto redraw = [&](Pixels* out) {
+                return AccessPixels(surface, before, true) && (s_drawLists(self), true) &&
+                       AccessPixels(surface, *out, false);
+            };
+            ei::verify::SettleOutcome settle = ei::verify::SettleOriginal(
+                expected, redraw, [](const Pixels& a, const Pixels& b) { return FirstDifferentRow(a, b) == -1 ? 0 : 1; });
+            Pixels again;
+            bool ok = AccessPixels(surface, before, true) && (self->DrawLists(), true) && AccessPixels(surface, again, false);
+            row = !ok ? -2 : settle.settled ? FirstDifferentRow(expected, again) : -1;
+            unstable = ok && !settle.settled;
+            ei::Log("verify CTradePanel::DrawLists: pixels differed; the original's redraws %s after %d tries; rerun row %d",
+                    settle.settled ? "settled" : "did not settle", settle.tries, row);
+        }
     }
     std::vector<std::uint8_t> actualSprites = SpriteBytes(self, 4);
     bool same = row == -1 && expectedCount == self->sceneObjects_.size_ && expectedSprites == actualSprites;
     ei::verify::Check("CTradePanel::DrawLists", true, same,
-                      "pixel row %d (compared: %d), scene objects %d/%d, sprite bytes %d/%d%s", row, pixels,
-                      expectedCount, self->sceneObjects_.size_, static_cast<int>(expectedSprites.size()),
+                      "pixel row %d (compared: %d%s), scene objects %d/%d, sprite bytes %d/%d%s", row,
+                      pixels && !unstable, unstable ? ", original unstable" : "", expectedCount,
+                      self->sceneObjects_.size_, static_cast<int>(expectedSprites.size()),
                       static_cast<int>(actualSprites.size()), expectedSprites == actualSprites ? "" : " differ");
 }
 EI_VERIFY(0x006261A0, TradeDrawListsVerify, 7, s_drawLists);

@@ -165,7 +165,8 @@ millisecond) was an outside event on the shared full-screen dgVoodoo desktop, no
 pixels, logs their bounding box and on a difference redraws the original from the recorded pixels until two draws in a
 row agree (`ei::verify::SettleOriginal`, `tests/verify/pixel_settle.h`: up to 5 tries, 10 ms * try apart, 150 ms total),
 then compares ours with that settled draw; if the original never settles the pixels are not compared. The item panel's
-`CompareDrawing` uses the same helper; these are the only wrappers that compare surface pixels.
+`CompareDrawing` and `CTradePanel::DrawLists` (X11: one "pixel row 720" in 320 calls) use the same helper; these are
+the only wrappers that compare surface pixels.
 
 Quirks kept: the console's Up key increases the command index, Down stops at -1; Delete with no selection at the end of
 the input does nothing. Harness: key names `grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar` (Enter

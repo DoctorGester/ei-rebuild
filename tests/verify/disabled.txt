@@ -1,4 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-00534B60 PlayStepSounds: its ours-only check fails on every call ("repeats -1"); being fixed (2026-10-05)
-00539160 CUnitClientSpecific::Level: 4 of 8 calls differ from the original; being fixed (2026-10-05)
