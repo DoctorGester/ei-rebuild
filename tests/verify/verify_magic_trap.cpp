@@ -8,6 +8,7 @@
 #include "unit_capture_stream.h"
 #include "../../src/game/engine_object.h"
 #include "../../src/game/magic_trap.h"
+#include "../../src/game/world.h"
 
 #include "ei/vcall.h"
 
@@ -295,3 +296,123 @@ static void __fastcall LoadTrapVerify(MagicTrap* self, void*, UnitStream* stream
                       static_cast<unsigned>(part), diff);
 }
 EI_VERIFY(0x0052ADC0, LoadTrapVerify, 0, s_unused);
+
+// --- Ticket U10: Create, Destroy, the update, firing, forgetting a removed object ----------------
+// All five change shared state (references, spells cast, allocations), so all are ours only.
+
+namespace {
+// Is the list of units inside well formed (links, tail, count)? Counts the entries for `object`.
+const char* ListProblem(const MagicTrap* trap, const CEngineObject* object, int* matches) {
+    using Node = MagicTrap::UnitList::Node;
+    int n = 0;
+    *matches = 0;
+    const Node* last = nullptr;
+    for (const Node* node = trap->inside.head; node; node = node->next) {
+        if (node->prev != last) return "broken link";
+        if (node->data == object) ++*matches;
+        last = node;
+        if (++n > 1000000) return "cycle";
+    }
+    if (trap->inside.tail != last || trap->inside.count != n) return "tail or count";
+    return nullptr;
+}
+
+bool ListEmpty(const MagicTrap* trap) {
+    return !trap->inside.head && !trap->inside.tail && trap->inside.count == 0 && !trap->inside.free &&
+           !trap->inside.blocks;
+}
+
+// The state Create and Destroy leave in common: no spell, the circles without storage, no points,
+// the list of units inside empty.
+const char* ClearedProblem(const MagicTrap* trap) {
+    if (trap->spell) return "spell";
+    if (trap->area.circles || trap->area.count != 0 || trap->area.maxCount != 0) return "circles";
+    if (trap->points.count != 0 || trap->points.maxCount != 0 || trap->points.points) return "points";
+    if (!ListEmpty(trap)) return "units inside";
+    return nullptr;
+}
+} // namespace
+
+// CreateTrap (0052A100, slot 2): afterwards sides -1, flags_ has 0x80040, period 10, countdown and
+// +0x28C 0, and the cleared state above. Reached by CBaseManager::CreateObject for every trap a
+// zone file or AddMob makes (magic_traps, zone_gz2g_traps) and for each trap of a loaded save.
+static int __fastcall CreateTrapVerify(MagicTrap* self) {
+    int result = self->CreateTrap();
+    const char* problem = ClearedProblem(self);
+    if (!problem && (self->sides != 0xFFFFFFFFu || (self->flags_ & 0x80040) != 0x80040)) problem = "sides / flags";
+    if (!problem && (self->period != 10 || self->countdown != 0 || self->singleTarget != 0))
+        problem = "period / countdown / single";
+    ei::verify::Check("MagicTrap::CreateTrap", true, problem == nullptr, "trap %d: %s", self->id_, problem ? problem : "");
+    return result;
+}
+EI_VERIFY(0x0052A100, CreateTrapVerify, 0, s_unused);
+
+// DestroyTrap (0052A200, slot 3): afterwards the cleared state above. Reached by the manager's
+// ReleaseObject / DestroyAll when traps are removed (the load of save1 in magic_traps).
+static void __fastcall DestroyTrapVerify(MagicTrap* self) {
+    self->DestroyTrap();
+    const char* problem = ClearedProblem(self);
+    ei::verify::Check("MagicTrap::DestroyTrap", true, problem == nullptr, "trap %d: %s", self->id_, problem ? problem : "");
+}
+EI_VERIFY(0x0052A200, DestroyTrapVerify, 0, s_unused);
+
+// UpdateTrap (0052AC20, slot 6): returns 1 (the map object's update); the list of units inside stays
+// well formed. With a spell and a period above 0 (on the server) the countdown went down by one
+// (not below 0) or, when the trap fired at someone, was set to the period; without a spell it is
+// unchanged. Every world update of every trap (magic_traps, zone_gz2g_traps).
+static int __fastcall UpdateTrapVerify(MagicTrap* self) {
+    int countdownBefore = self->countdown;
+    bool hadSpell = self->spell != nullptr;
+    bool server = static_cast<CWorld*>(self->ManagerContext())->IsServer() != 0;
+    int result = self->UpdateTrap();
+    int matches = 0;
+    const char* problem = result != 1 ? "result" : ListProblem(self, nullptr, &matches);
+    if (!problem && !hadSpell && self->countdown != countdownBefore) problem = "countdown changed without a spell";
+    if (!problem && !server && self->countdown != countdownBefore) problem = "countdown changed on the client";
+    if (!problem && server && hadSpell && self->period > 0) {
+        int down = countdownBefore > 0 ? countdownBefore - 1 : countdownBefore;
+        if (self->countdown != down && self->countdown != self->period) problem = "countdown";
+    }
+    ei::verify::Check("MagicTrap::UpdateTrap", true, problem == nullptr, "trap %d: %s (countdown %d -> %d, period %d)",
+                      self->id_, problem ? problem : "", countdownBefore, self->countdown, self->period);
+    return result;
+}
+EI_VERIFY(0x0052AC20, UpdateTrapVerify, 0, s_unused);
+
+// FireAtOccupants (0052AB30): the list of units inside is not touched (same head, tail and count);
+// the countdown is unchanged or, after a cast, the period. A disarmed trap changes nothing. Reached
+// from UpdateTrap when a trap with a period counts down to 0 (zone2's traps, if any has a period).
+static void __fastcall FireAtOccupantsVerify(MagicTrap* self) {
+    auto* headBefore = self->inside.head;
+    int countBefore = self->inside.count;
+    int countdownBefore = self->countdown;
+    bool armed = (self->flags_ & 0x80000) != 0;
+    self->FireAtOccupants();
+    const char* problem = nullptr;
+    if (self->inside.head != headBefore || self->inside.count != countBefore) problem = "units inside changed";
+    else if (self->countdown != countdownBefore && (!armed || self->countdown != self->period)) problem = "countdown";
+    ei::verify::Check("MagicTrap::FireAtOccupants", true, problem == nullptr, "trap %d: %s (countdown %d -> %d)",
+                      self->id_, problem ? problem : "", countdownBefore, self->countdown);
+}
+EI_VERIFY(0x0052AB30, FireAtOccupantsVerify, 0, s_unused);
+
+// ForgetObject (0052AC90, slot 56): every entry for the object is gone, the others stay, the list
+// is well formed (an emptied list has no blocks left), and it returns 0. Reached by the world
+// server's RemoveObject (005935C0), which tells every map object about each removed object (the
+// load of save1 in magic_traps; units removed in zone_gz2g_traps).
+static int __fastcall ForgetObjectVerify(MagicTrap* self, void*, CEngineObject* object) {
+    int before = 0;
+    const char* problem = ListProblem(self, object, &before);
+    int countBefore = self->inside.count;
+    int result = self->ForgetObject(object);
+    int after = 0;
+    if (!problem) problem = ListProblem(self, object, &after);
+    if (!problem && after != 0) problem = "entry kept";
+    if (!problem && self->inside.count != countBefore - before) problem = "count";
+    if (!problem && self->inside.count == 0 && before != 0 && !ListEmpty(self)) problem = "emptied list keeps blocks";
+    if (!problem && result != 0) problem = "result";
+    ei::verify::Check("MagicTrap::ForgetObject", true, problem == nullptr, "trap %d: %s (%d of %d entries)",
+                      self->id_, problem ? problem : "", before, countBefore);
+    return result;
+}
+EI_VERIFY(0x0052AC90, ForgetObjectVerify, 0, s_unused);

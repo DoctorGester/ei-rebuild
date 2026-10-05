@@ -116,7 +116,25 @@ static_assert(sizeof(StringArray) == 0x14);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
-    float timeBase_;                      // +0x1C
+    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Only slot
+    // 26 is called by name; 13-25 hold its place (the managers' getters, 24 the server's CopyItem;
+    // rewritten slots stay plain members, rewrite guide rule 4).
+    virtual void Slot13();
+    virtual void Slot14();
+    virtual void Slot15();
+    virtual void Slot16();
+    virtual void Slot17();
+    virtual void Slot18();
+    virtual void Slot19();
+    virtual void Slot20();
+    virtual void Slot21();
+    virtual void Slot22();
+    virtual void Slot23();
+    virtual void Slot24();
+    virtual void Slot25();
+    virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
+
+    float timeBase_;                     // +0x1C
     float secondsPerTick_;                // +0x20
     std::uint8_t unknown24_[12];          // +0x24 saved and loaded as they are
     std::uint32_t unknown30_;             // +0x30 saved and loaded

@@ -1,12 +1,13 @@
 // Magic traps: who is inside, and casting at newcomers (0052A680), the living units of the trap's
 // sides in its circles (0052A920), casting the spell (0052A4B0), set-up from the zone record
 // (0052A2C0), the constructor and destructor body (00529DD0 / 00529F90), Save and Load (0052B070 /
-// 0052ADC0). See magic_trap.h and
-// docs/notes/units.md ("Magic traps").
+// 0052ADC0), Create / Destroy (0052A100 / 0052A200), the update (0052AC20), firing (0052AB30) and
+// forgetting a removed object (0052AC90). See magic_trap.h and docs/notes/units.md ("Magic traps").
 #include "magic_trap.h"
 
 #include "engine_object.h"
 #include "unit.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -107,36 +108,36 @@ void Append(PtrList* list, CEngineObject* unit) {
 } // namespace
 
 void MagicTrap::UpdateVictims() {
-    VictimList* inside = &At<VictimList>(this, 0x268);
-    for (VictimNode* node = inside->head; node;) {
+    VictimList* victims = reinterpret_cast<VictimList*>(&inside);
+    for (VictimNode* node = victims->head; node;) {
         VictimNode* next = node->next;
         if (!StaysInside(this, node->unit)) {
             // CList::RemoveAt, inlined.
-            if (node == inside->head) inside->head = node->next;
+            if (node == victims->head) victims->head = node->next;
             else node->prev->next = node->next;
-            if (node == inside->tail) inside->tail = node->prev;
+            if (node == victims->tail) victims->tail = node->prev;
             else node->next->prev = node->prev;
-            VictimFreeNode(inside, nullptr, node);
+            VictimFreeNode(victims, nullptr, node);
         }
         node = next;
     }
 
-    if (!(At<std::uint32_t>(this, 0x08) & kArmed)) return;
+    if (!(flags_ & kArmed)) return;
     void* context = ManagerContextOf(this);
     PtrList found;
     PtrList newcomers;
-    FindVictims(context, &At<std::uint8_t>(this, 0x240), At<std::uint32_t>(this, 0x238), &found);
+    FindVictims(context, &area, sides, &found);
     for (PtrNode* node = found.head; node;) {
         PtrNode* next = node->next;
         CEngineObject* unit = node->data;
-        VictimNode* known = inside->head;
+        VictimNode* known = victims->head;
         while (known && known->unit != unit) known = known->next;
         if (!known) {
-            VictimNode* added = VictimNewNode(inside, nullptr, inside->tail, nullptr);
+            VictimNode* added = VictimNewNode(victims, nullptr, victims->tail, nullptr);
             ReferenceSet(&added->unit, nullptr, unit);
-            if (inside->tail) inside->tail->next = added;
-            else inside->head = added;
-            inside->tail = added;
+            if (victims->tail) victims->tail->next = added;
+            else victims->head = added;
+            victims->tail = added;
             Append(&newcomers, unit);
         }
         node = next;
@@ -234,45 +235,44 @@ constexpr int kSlotRelease = 0x10 / 4;        // a counted object's release
 // destructor all have it (each element's reference released and cleared, the list emptied, its
 // blocks freed).
 void ClearVictims(MagicTrap* trap) {
-    for (VictimNode* node = At<VictimNode*>(trap, 0x26C); node; node = node->next) {
-        if (node->unit) ei::VCall<void>(node->unit, kSlotRelease);
-        node->unit = nullptr;
+    MagicTrap::UnitList& inside = trap->inside;
+    for (MagicTrap::UnitList::Node* node = inside.head; node; node = node->next) {
+        if (node->data) node->data->Release();
+        node->data = nullptr;
     }
-    At<int>(trap, 0x274) = 0;           // count
-    At<void*>(trap, 0x278) = nullptr;   // free nodes
-    At<void*>(trap, 0x270) = nullptr;   // tail
-    At<void*>(trap, 0x26C) = nullptr;   // head
-    mfc::PlexFreeDataChain(At<mfc::CPlex*>(trap, 0x27C));
-    At<void*>(trap, 0x27C) = nullptr;
+    inside.count = 0;
+    inside.free = nullptr;
+    inside.tail = nullptr;
+    inside.head = nullptr;
+    mfc::PlexFreeDataChain(inside.blocks);
+    inside.blocks = nullptr;
 }
 } // namespace
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
-    At<std::uint32_t>(this, 0x238) = record->sides;
+    sides = record->sides;
     const char* text = record->spell;
     void* manager = ei::VCall<void*>(ManagerContextOf(this), kSlotSpellManager);
-    void* spell = CreateSpellFromText(manager, nullptr, text);
-    void* old = At<void*>(this, 0x23C);
-    At<void*>(this, 0x23C) = spell;
-    if (spell) ++At<int>(spell, 4);
-    if (old) ei::VCall<void>(old, kSlotRelease);
-    std::memcpy(&At<float>(this, 0x1C), record->position, sizeof(record->position));   // copied as dwords
+    auto* made = static_cast<CEngineObject*>(CreateSpellFromText(manager, nullptr, text));
+    CEngineObject* old = spell;
+    spell = made;
+    if (made) ++made->refCount_;
+    if (old) old->Release();
+    std::memcpy(&positionX, record->position, sizeof(record->position));   // copied as dwords
 
     // The loop bounds are read again on every pass, as in the original.
-    auto* area = &At<TrapArea>(this, 0x240);
-    CirclesSetSize(area, nullptr, record->area.count, -1);
+    CirclesSetSize(&area, nullptr, record->area.count, -1);
     for (int i = 0; i < record->area.count; ++i)
-        std::memcpy(&area->circles[i], &record->area.circles[i], sizeof(TrapCircle));
-    auto* points = &At<TrapPoints>(this, 0x254);
-    PointsSetSize(points, nullptr, record->points.count, -1);
+        std::memcpy(&area.circles[i], &record->area.circles[i], sizeof(TrapCircle));
+    PointsSetSize(&points, nullptr, record->points.count, -1);
     for (int i = 0; i < record->points.count; ++i)
-        std::memcpy(&points->points[2 * i], &record->points.points[2 * i], 2 * sizeof(float));
+        std::memcpy(&points.points[2 * i], &record->points.points[2 * i], 2 * sizeof(float));
 
     ClearVictims(this);
 
-    At<std::uint32_t>(this, 0x284) = record->period;
-    At<std::uint32_t>(this, 0x288) = 0;
-    At<int>(this, 0x28C) = record->singleTarget != 0 ? 1 : 0;
+    period = static_cast<int>(record->period);
+    countdown = 0;
+    singleTarget = record->singleTarget != 0 ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x0052A2C0, MagicTrap::SetUp);
 
@@ -320,11 +320,11 @@ void EmptyArray(void* array) {
 
 // The spell (+0x23C), a counted reference: the new one's count raised before the old one is
 // released.
-void SetSpell(MagicTrap* trap, void* spell) {
-    void* old = At<void*>(trap, 0x23C);
-    At<void*>(trap, 0x23C) = spell;
-    if (spell) ++At<int>(spell, 4);
-    if (old) ei::VCall<void>(old, kSlotRelease);
+void SetSpell(MagicTrap* trap, CEngineObject* spell) {
+    CEngineObject* old = trap->spell;
+    trap->spell = spell;
+    if (spell) ++spell->refCount_;
+    if (old) old->Release();
 }
 } // namespace
 
@@ -370,18 +370,17 @@ void MagicTrap::DestructBody() {
     ClearVictims(this);
     // The arrays' destructors (no element destructors; SetSize has already freed the storage).
     SetVtableAt(this, 0x254, kPointsBaseVtable);
-    if (void* points = At<void*>(this, 0x258)) gamecrt::operator_delete(points);
+    if (points.points) gamecrt::operator_delete(points.points);
     SetVtableAt(this, 0x240, kCirclesBaseVtable);
-    if (void* circles = At<void*>(this, 0x244)) gamecrt::operator_delete(circles);
-    if (void* spell = At<void*>(this, 0x23C)) ei::VCall<void>(spell, kSlotRelease);
+    if (area.circles) gamecrt::operator_delete(area.circles);
+    if (spell) spell->Release();
     DestructMapObjectAt(this);
 }
 EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
 
 void MagicTrap::SaveTrap(UnitStream* stream) {
     MapObjectSave(this, nullptr, stream);
-    void* spell = At<void*>(this, 0x23C);
-    std::int32_t value = spell ? At<std::int32_t>(spell, 0x0C) : -1;
+    std::int32_t value = spell ? spell->id_ : -1;
     stream->Write(&value, 4);
     value = At<int>(this, 0x248);
     stream->Write(&value, 4);
@@ -412,14 +411,114 @@ void MagicTrap::LoadTrap(UnitStream* stream) {
     stream->Read(&value, 4);
     SetSpell(this, value == -1 ? nullptr : ManagerFindObject(manager, nullptr, value));
     stream->Read(&value, 4);
-    auto* area = &At<TrapArea>(this, 0x240);
-    CirclesSetSize(area, nullptr, value, -1);
-    for (int i = 0; i < area->count; ++i) stream->Read(&area->circles[i], sizeof(TrapCircle));
+    CirclesSetSize(&area, nullptr, value, -1);
+    for (int i = 0; i < area.count; ++i) stream->Read(&area.circles[i], sizeof(TrapCircle));
     VictimListLoad(&At<VictimList>(this, 0x268), stream, ManagerContextOf(this));
     stream->Read(&value, 4);
-    auto* points = &At<TrapPoints>(this, 0x254);
-    PointsSetSize(points, nullptr, value, -1);
-    for (int i = 0; i < points->count; ++i) stream->Read(&points->points[2 * i], 2 * sizeof(float));
+    PointsSetSize(&points, nullptr, value, -1);
+    for (int i = 0; i < points.count; ++i) stream->Read(&points.points[2 * i], 2 * sizeof(float));
     for (int offset : kTailFields) stream->Read(&At<std::uint8_t>(this, offset), 4);
 }
 EI_REPLACE_METHOD(0x0052ADC0, MagicTrap::LoadTrap);
+
+// --- Create, Destroy, the update, firing, forgetting a removed object (ticket U10) ---------------
+
+namespace {
+// The trap's own code, called through its addresses so the verify wrappers see the calls: the units
+// inside updated [0052A680, MagicTrap::UpdateVictims]; firing at what is in it [0052AB30,
+// MagicTrap::FireAtOccupants].
+__declspec(naked) void __fastcall UpdateVictimsAt(MagicTrap*) EI_ORIGINAL(0x0052A680)
+__declspec(naked) void __fastcall FireAtOccupantsAt(MagicTrap*) EI_ORIGINAL(0x0052AB30)
+
+// The circles' SetSize(0, -1), inlined by Create and Destroy: the storage freed, count and
+// capacity 0 (in the original's order).
+void FreeCircles(TrapArea& area) {
+    if (area.circles) {
+        gamecrt::operator_delete(area.circles);
+        area.circles = nullptr;
+    }
+    area.maxCount = 0;
+    area.count = 0;
+}
+
+// The CPtrList's destructor on the stack, RemoveAll inlined (its elements need nothing): the list
+// emptied, then its blocks freed.
+void DestroyPtrList(PtrList& list) {
+    list.count = 0;
+    list.free = nullptr;
+    list.tail = nullptr;
+    list.head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list.blocks));
+}
+} // namespace
+
+int MagicTrap::CreateTrap() {
+    int result = MapObjectCreate(this);
+    sides = 0xFFFFFFFFu;
+    flags_ |= kTrapFlags;
+    SetSpell(this, nullptr);
+    FreeCircles(area);
+    PointsSetSize(&points, nullptr, 0, -1);
+    ClearVictims(this);
+    period = kDefaultPeriod;
+    countdown = 0;
+    singleTarget = 0;
+    return result;
+}
+EI_REPLACE_METHOD(0x0052A100, MagicTrap::CreateTrap);
+
+void MagicTrap::DestroyTrap() {
+    MapObjectDestroy(this);
+    SetSpell(this, nullptr);
+    FreeCircles(area);
+    PointsSetSize(&points, nullptr, 0, -1);
+    ClearVictims(this);
+}
+EI_REPLACE_METHOD(0x0052A200, MagicTrap::DestroyTrap);
+
+int MagicTrap::UpdateTrap() {
+    int result = CMapObject::Update();
+    auto* world = static_cast<CWorld*>(ManagerContextOf(this));
+    if (!world->IsServer() || !spell) return result;
+    if (period <= 0) {
+        UpdateVictimsAt(this);
+        return result;
+    }
+    if (countdown > 0) --countdown;
+    if (countdown <= 0) FireAtOccupantsAt(this);
+    return result;
+}
+EI_REPLACE_METHOD(0x0052AC20, MagicTrap::UpdateTrap);
+
+void MagicTrap::FireAtOccupants() {
+    void* context = ManagerContextOf(this);
+    PtrList found;
+    if (flags_ & kArmed) {
+        FindVictims(context, &area, sides, &found);
+        if (found.count) CastAtNewcomers(this, nullptr, &found);
+    }
+    DestroyPtrList(found);
+}
+EI_REPLACE_METHOD(0x0052AB30, MagicTrap::FireAtOccupants);
+
+int MagicTrap::ForgetObject(CEngineObject* object) {
+    for (UnitList::Node* node = inside.head; node;) {
+        UnitList::Node* next = node->next;
+        if (node->data == object) {
+            // CList::RemoveAt, inlined: unlinked, the reference released and cleared, the node
+            // freed; the last node empties the list as RemoveAll does.
+            if (node == inside.head) inside.head = node->next;
+            else node->prev->next = node->next;
+            if (node == inside.tail) inside.tail = node->prev;
+            else node->next->prev = node->prev;
+            if (node->data) node->data->Release();
+            node->data = nullptr;
+            node->next = inside.free;
+            inside.free = node;
+            if (--inside.count == 0) ClearVictims(this);
+        }
+        node = next;
+    }
+    return 0;
+}
+EI_REPLACE_METHOD(0x0052AC90, MagicTrap::ForgetObject);
