@@ -44,6 +44,15 @@ constexpr int kQuestItemSize = 0x78;
 constexpr int kSpellSize = 0x84;
 constexpr int kSpellModifierSize = 0x24;
 
+// A quick item prototype (potions, wands; kQuickItemSize bytes). Only the fields read through it.
+struct QuickItemRecord {
+    std::uint8_t unknown_00[0x80];
+    std::uint8_t attributeBonus[3];     // +0x80 per attribute (UnitStats::AttributeWithItems)
+    std::uint8_t unknown_83[kQuickItemSize - 0x83];
+};
+static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
+static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
+
 inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTable*>(0x007C86D8); }
 inline const RecordTable& Weapons() { return *reinterpret_cast<const RecordTable*>(0x007C86F8); }
 inline const RecordTable& Armors() { return *reinterpret_cast<const RecordTable*>(0x007C8718); }

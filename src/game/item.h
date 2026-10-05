@@ -119,7 +119,14 @@ public:
     mfc::CString FirstListName();   // 006A36A0
     mfc::CString FigureName();      // 006A3720
     mfc::CString PictureName();     // 006A37B0
+
+    // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
+    // first covered slot, [1] for the others.
+    float absorb_[2][7];            // +0x4C per damage type
+    std::uint32_t layerMask_[2];    // +0x84
 };
+static_assert(offsetof(CItemArmor, absorb_) == 0x4C);
+static_assert(offsetof(CItemArmor, layerMask_) == 0x84);
 
 // vtable 00743EAC, GetClassId 0x13 (potions, wands).
 class CItemQuick : public CItem {
