@@ -31,6 +31,10 @@
 //                             (00565E40) finds it in this frame; "ctrl" holds Ctrl (CInterface3D
 //                             +0x7C) around it. Fails when the unit is not drawn or always hidden
 //                             behind another object
+//   hudstate [minquick]       log the battle screen's pending action, the party's selection and
+//                             quick items, the quick item panel and the spell column; with
+//                             <minquick>, fail when the quick item panel shows fewer of its unit's
+//                             own quick items (ui_quick_items)
 //   screen <id> [constr]      ask the server for interface screen <id> as the global map's buttons
 //                             do (4 the global map, 5 the camp; the battle screen is left). For the
 //                             camp, <constr> (default 0: none) is the constructor / trader class it
@@ -1015,6 +1019,55 @@ std::string PostUnitMouse(const std::string& argument) {
     return "";
 }
 
+// --- hudstate [minquick] (ticket I9) ----------------------------------------------------------
+// Logs the battle screen's state (the window on top): the pending action (+0x17C, +0x180), each
+// party member's selection (flags_ 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
+// 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
+// column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
+// fewer than that many of its unit's own quick items (regions 0-3).
+__declspec(naked) void* __fastcall HarnessUnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)
+
+std::string HudState(const std::string& argument) {
+    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    auto* screen = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
+    if (!screen) return "hudstate: no window on top";
+    auto at = [](const void* base, int offset) {
+        return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(base) + offset);
+    };
+    auto* battle = reinterpret_cast<CBattleScreen*>(screen);
+    Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", screen, at(screen, 0x17C),
+        at(screen, 0x180), at(screen, 0x184), battle->partyCount_);
+    for (int i = 0; i < battle->partyCount_ && i < 8; ++i) {
+        CUnit* member = battle->party_[i];
+        if (!member) continue;
+        void* quick[4];
+        for (int s = 0; s < 4; ++s) quick[s] = HarnessUnitQuickItem(member, nullptr, s);
+        Log("harness: hudstate: member %d %p flags %08X, quick items %p %p %p %p", i, member,
+            at(member, 0x08), quick[0], quick[1], quick[2], quick[3]);
+    }
+    auto* quickPanel = *reinterpret_cast<CHudQuickItems**>(screen + 0x198);
+    int own = 0;
+    if (quickPanel) {
+        for (int r = 0; r < 4; ++r) {
+            int entry = quickPanel->regionItem_[r];
+            if (entry >= 0 && entry < quickPanel->entryCount_ && quickPanel->entries_[entry].own) ++own;
+        }
+        const int* items = quickPanel->regionItem_;
+        Log("harness: hudstate: quick panel unit %p, %d entries (%d own), highlight %d, regions %d %d %d %d %d %d %d %d",
+            quickPanel->unit_, quickPanel->entryCount_, own, quickPanel->selected_, items[0], items[1], items[2],
+            items[3], items[4], items[5], items[6], items[7]);
+    }
+    if (auto* spells = *reinterpret_cast<CHudSpellColumn**>(screen + 0x19C))
+        Log("harness: hudstate: spell column unit %p, %d spells, highlight %d", at(spells, 0x154), spells->count_,
+            spells->selected_);
+    if (!argument.empty()) {
+        int minimum = std::atoi(argument.c_str());
+        if (own < minimum) return "hudstate: the quick item panel shows " + std::to_string(own) + " own items, wanted " +
+                                  std::to_string(minimum);
+    }
+    return "";
+}
+
 // The steps that post input messages to the game window.
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
@@ -1189,6 +1242,12 @@ void RunSteps() {
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
+        } else if (s.verb == "hudstate") {
+            std::string error = HudState(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
         } else if (s.verb == "clickunit") {
             std::string error = PostUnitMouse(s.argument);
             if (!error.empty()) {
