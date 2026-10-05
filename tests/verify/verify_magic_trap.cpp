@@ -1,4 +1,4 @@
-// Checks for magic_trap.cpp: ours only (it releases and takes unit references and casts spells).
+// Checks for magic_trap.cpp. UpdateVictims: ours only (it releases and takes unit references and casts spells).
 // Afterwards the list of units inside is well formed (links, tail, count) and holds no unit twice;
 // when the trap is not armed (nothing was added and no spell cast, which could kill a newcomer at
 // once) every unit in it is alive and inside a circle by the trap's own test. Reached by magic traps of the zone files (none is known on zone1:
@@ -91,3 +91,48 @@ static void __fastcall FindVictimsVerify(void* context, const TrapArea* area, st
     expected.RemoveAll();
 }
 EI_VERIFY(0x0052A920, FindVictimsVerify, 7, s_findVictims);
+
+// CastAtUnits (0052A4B0) casts spells: ours only. Afterwards, when it had units and a spell, the
+// countdown (+0x288) equals the period (+0x284), except when +0x28C found no unit; with +0x28C on
+// the units path the list holds exactly one unit, one that was in it before; otherwise the list
+// is unchanged (same nodes). Without units or a spell nothing changes. Reached from UpdateVictims
+// when an armed trap takes in newcomers.
+static void __fastcall CastAtUnitsVerify(MagicTrap* trap, void*, mfc::CTypedPtrList<CEngineObject>* units) {
+    using UnitList = mfc::CTypedPtrList<CEngineObject>;
+    void* spell = Field<void*>(trap, 0x23C);
+    int countBefore = units->count;
+    UnitList::Node* headBefore = units->head;
+    std::uint32_t countdownBefore = Field<std::uint32_t>(trap, 0x288);
+    bool narrowing = countBefore != 0 && spell &&
+                     ((Field<std::uint32_t>(spell, 0x3C) & 0x10000000) != 0 || Field<int>(trap, 0x25C) == 0) &&
+                     Field<int>(trap, 0x28C) != 0;
+    // The units the list held, for the narrowing check (only the first 64 are remembered).
+    CEngineObject* before[64];
+    int remembered = 0;
+    for (UnitList::Node* node = units->head; node && remembered < 64; node = node->next) before[remembered++] = node->data;
+
+    trap->CastAtUnits(units);
+
+    const char* problem = nullptr;
+    std::uint32_t countdown = Field<std::uint32_t>(trap, 0x288);
+    if (countBefore == 0 || !spell) {
+        if (countdown != countdownBefore || units->count != countBefore) problem = "changed without units or spell";
+    } else if (narrowing) {
+        if (units->count == countBefore && units->head == headBefore && countdown == countdownBefore) {
+            // No unit closer than 1e30: nothing happened.
+        } else if (units->count != 1 || !units->head || units->head != units->tail) {
+            problem = "narrowed list not a single unit";
+        } else {
+            bool known = remembered < countBefore;   // more than 64 units: not checked
+            for (int i = 0; i < remembered && !known; ++i) known = before[i] == units->head->data;
+            if (!known) problem = "narrowed to a unit not in the list";
+            else if (countdown != Field<std::uint32_t>(trap, 0x284)) problem = "countdown not restarted";
+        }
+    } else {
+        if (units->count != countBefore || units->head != headBefore) problem = "list changed";
+        else if (countdown != Field<std::uint32_t>(trap, 0x284)) problem = "countdown not restarted";
+    }
+    ei::verify::Check("MagicTrap::CastAtUnits", true, problem == nullptr, "trap %d, %d units: %s",
+                      reinterpret_cast<CEngineObject*>(trap)->id_, countBefore, problem ? problem : "");
+}
+EI_VERIFY(0x0052A4B0, CastAtUnitsVerify, 0, s_unused);

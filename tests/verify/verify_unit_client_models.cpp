@@ -103,6 +103,45 @@ static bool __fastcall RemoveArmourModelVerify(CUnitClientSpecific* self, void*,
 }
 EI_VERIFY(0x005385A0, RemoveArmourModelVerify, 0, s_unused);
 
+namespace {
+// The original's read-only lookups: 005169A0 (the unit's first figure part of a name, or null),
+// 006A2B80 (a weapon's type by packed id).
+__declspec(naked) CEngineObject* __fastcall FindAnyPartOriginal(CUnit*, void*, const char*) EI_ORIGINAL(0x005169A0)
+__declspec(naked) int __fastcall WeaponTypeOriginal(std::uint32_t) EI_ORIGINAL(0x006A2B80)
+} // namespace
+
+// 00535590. Ours only (changes the figure): returns 1, the active weapon is `slot`, the byte +0x74
+// is clear and the weapon ids are untouched; with a weapon in the new slot, +0x75 is set exactly
+// when it is a bow whose figure has the part "rh3_arrow00", and that part then has flag 0x80;
+// without one +0x75 keeps its value. Reached when a party unit's active weapon changes (the
+// network state reader, a broken weapon dropped).
+static int __fastcall ChangeWeaponModelVerify(CUnitClientSpecific* self, void*, std::uint32_t slot) {
+    std::uint32_t weaponsBefore[4];
+    std::memcpy(weaponsBefore, self->weaponIds, sizeof(weaponsBefore));
+    std::uint8_t arrowBefore = reinterpret_cast<std::uint8_t*>(self)[0x75];
+    int result = self->ChangeWeaponModel(slot);
+    const std::uint8_t* bytes = reinterpret_cast<const std::uint8_t*>(self);
+    std::uint32_t next = slot < 4 ? self->weaponIds[slot] : 0xFFFFFFFFu;
+    const char* problem = nullptr;
+    if (result != 1) problem = "result";
+    else if (self->unit->activeWeapon != slot) problem = "active weapon";
+    else if (bytes[0x74] != 0) problem = "+0x74 not cleared";
+    else if (std::memcmp(weaponsBefore, self->weaponIds, sizeof(weaponsBefore)) != 0) problem = "weapon ids changed";
+    else if (next == 0xFFFFFFFFu) {
+        if (bytes[0x75] != arrowBefore) problem = "+0x75 changed without a weapon";
+    } else {
+        CEngineObject* arrow = WeaponTypeOriginal(next) == 5
+                                   ? FindAnyPartOriginal(self->unit, nullptr, reinterpret_cast<const char*>(0x0078FAF8))
+                                   : nullptr;
+        if (bytes[0x75] != (arrow ? 1 : 0)) problem = "+0x75";
+        else if (arrow && !(arrow->flags_ & 0x80)) problem = "arrow part not flagged";
+    }
+    ei::verify::Check("CUnitClientSpecific::ChangeWeaponModel", true, problem == nullptr, "unit %d slot %u weapon %08X: %s",
+                      self->unit->id_, slot, next, problem ? problem : "");
+    return result;
+}
+EI_VERIFY(0x00535590, ChangeWeaponModelVerify, 0, s_unused);
+
 // 00536670. Ours only (creates a texture): counted.
 static void* __fastcall ComposeSkinVerify(CUnitClientSpecific* self, void*, int detailed, void* target) {
     void* result = self->ComposeSkin(detailed, target);

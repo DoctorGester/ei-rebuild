@@ -723,6 +723,7 @@ Code: `src/game/unit_lever.cpp`, `src/game/lever.h` (new); verify wrappers:
 | Address | Function | Verify |
 | --- | --- | --- |
 | 0052B7A0 | Lever::SetState (RET 8; the script's lever commands) | ours only: state in range, shown position = state / (states - 1), 1 / duration stored for a timed move |
+| 0052BBE0 | Lever::UseSpots (slot 44; seventh round below) | output only, against the original |
 
 Fields: +0xA4 model name, +0xC8 shown position (0..1), +0x134 radius, +0x238 state, +0x23C state
 count, +0x240 cycling, +0x250 / +0x254 start / end position, +0x258 end tick, +0x25C 1 / duration,
@@ -1014,4 +1015,117 @@ GiveStartingEquipment on the map object manager with the unit and its prototype 
   verify counts show it).
 - 0052DA60's verify relies on loading being repeatable (fields found by id; the vectors emptied
   and refilled), as for the other two serialisers.
+
+# Seventh round (U5): lever use spots, the client's weapon model, trap casting, size classes
+
+Code: `src/game/unit_lever.cpp` / `lever.h` (UseSpots, LeverSpots), `src/game/unit_client_models.cpp`
+(ChangeWeaponModel; its AddPart forwarder now returns the part), `src/game/magic_trap.cpp`
+(CastAtUnits; UpdateVictims' forwarder renamed CastAtNewcomers), `src/game/unit_size_class.cpp`
+(new). Verify: `verify_unit_lever.cpp`, `verify_unit_client_models.cpp`, `verify_magic_trap.cpp`
+(one wrapper added to each), `verify_unit_size_class.cpp` (new). Shared headers, additive only:
+`unit.h` (CUnit::UpdateSizeClass), `unit_client_models.h` (ChangeWeaponModel), `magic_trap.h`
+(CastAtUnits), `lever.h` (now includes maths.h).
+
+After 0052BBE0, the largest live game-logic functions of the range not yet rewritten were taken in
+size order, skipping: 005218E0 / 0051E5D0 (STLport vector insert-overflow instantiations),
+0051F5B0 (vector<CString>::resize), 0053AD70 / 0053AF60 / 00539B20 / 00539E70 (destructors of the
+unit database's vectors and tables, element destructors and the node pool inlined), 00537D80
+(queues the client's speech, 005380D0 / 006B7C10: audio-adjacent like 005341A0), 00534590 (picks a
+footstep .wav name), 00504860 / 0050AAF0 / 0050B510 / 0050D600 (00500000-0050E000, animation and
+rendering), 00532860 (a point from the figure's part matrices, 005188B0), and the exclusions of the
+earlier rounds. That gave 00535590 (480 bytes), 0052A4B0 (452) and 00530570 (442).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0052BBE0 | Lever::UseSpots (lever slot 44, vtable 0073E740; RET 8: out, user radius) | output only: the original into an empty scratch CArray, ours into the caller's; same count, coordinates within 8 ULPs. From FindUseSpot (0054DF50) when a unit is ordered to use a lever; no lever on zone1 |
+| 00535590 | CUnitClientSpecific::ChangeWeaponModel (slot 25, RET 4; returns 1) | ours only: result 1, active weapon = slot, +0x74 clear, weapon ids untouched, +0x75 and the arrow part's flag as below (005169A0 / 006A2B80 as the original's lookups). From the network state reader when +0x26C changes, and DropBrokenEquipment |
+| 0052A4B0 | MagicTrap::CastAtUnits (RET 4: the newcomers' CPtrList) | ours only: countdown restarted unless nothing was cast; the +0x28C path leaves one unit that was in the list; otherwise the list is unchanged. From an armed trap's UpdateVictims; no magic trap on zone1 |
+| 00530570 | CUnit::UpdateSizeClass (no arguments) | differential: the original first, its size class / radius / standing height taken and the old values put back, then ours; class exact, floats within 4 ULPs. Combat code (several forwarders), every movement mode change |
+
+Renamed in Ghidra: 0052BBE0, 00535590, 00530570, 0052CB40 LeverTable::RecordByName, 0052CC50
+SpotArray::SetAtGrow (0052A4B0 already had its name).
+
+## Lever use spots (0052BBE0)
+
+The lever table (0079C1A0, lever_table.cpp) keeps one 0x2C-byte record per lever model, read from
+`Levers.ldb` by 00463030: +0 the name, +4 two spot offsets {along, across} (field 1, 0x10 bytes), +0x14
+the spot count, +0x18 a distance factor, +0x1C the default duration of a state change (SetState),
++0x20..+0x28 three CStrings. 0052CB40 finds a record by the lever's model name (+0xA4) through the
+map's operator[], so an unknown name adds a null record and gives none.
+UseSpots empties the output CArray<Vector3> (RemoveAll inlined: operator delete, size and capacity
+0), then for each offset: length = |offset|, the offset normalised when the length is above zero
+(FCOM; TEST AH,0x41), distance = ((1 - phase) + phase x factor) x length + the user's radius, where
+phase is the lever's +0xCC, and the spot = position + AxisX(orientation) x along x distance +
+AxisY x across x distance, appended with SetAtGrow (0052CC50). The count is re-read every time and
+not checked against the two offsets the record holds (a count above 2 would read the count and
+the factor as offsets). The user's radius is its slot 60 (+0x328, set by UpdateSizeClass below).
+Plain C++ (rule 7): FSQRT and the products at the game's 24-bit precision.
+
+## The client's weapon model (00535590)
+
+CUnitClientSpecific slot 25, the client side of a weapon change. The parts of the weapon in hand
+(weaponIds[activeWeapon], none for a slot beyond 3 or -1) come from 006A0FF0 (WeaponModelParts,
+item_parts.cpp, into a CStringArray it empties first) and are removed by name (005168F0: the first
+part of that name in either of the figure's lists). Then the unit's active weapon (+0x26C) becomes
+the new slot and the controller's byte +0x74 is cleared. A new weapon's parts are added from the
+unit's model (005AA5F0 by the prototype name, looked up before anything is removed; 00517240 with
+the unit's flags_ & 0x80), each new part taking up the figure's animation (00518820). For a bow
+(006A2B80 type 5) the part "rh3_arrow00" (0078FAF8, found by 005169A0) gets flag 0x80 and +0x75 is
+set; +0x75 is cleared first, but only when there is a new weapon. Last, the controller's slot 30.
+
+## Trap casting (0052A4B0)
+
+The cast's origin is the trap's position with z raised by the world's ground height at (x, y)
+(world slot 28, ST0, kept as a double until the store). Spells without flag 0x10000000 (prototype
++0x3C) and a trap with points (+0x258 / +0x25C, {x, y} pairs) are cast at each point {x, y, 0},
+the count re-read every time, with no target. Otherwise they are cast at each unit of the list
+(target the unit, point its position). With +0x28C the list is first narrowed to the last unit
+whose squared distance from the trap is below 0073E73C (1e30, so in practice the last unit; NaN
+counts as below): the list is emptied (RemoveAll inlined, after a walk to its end that does
+nothing) and that unit appended (AddTail through 0052CEF0; mfc::CTypedPtrList's AddTail is the
+same code). If no unit qualifies, nothing is cast and the countdown is not restarted. Every other
+path ends with +0x288 = +0x284 (copied as a dword). Casts go through the world server's 0058E850
+(007AFF60) with caster 0 and the last argument 0.
+
+## Size classes (00530570)
+
+The first round skipped this because of the controller's slot 45. That slot is the server's
+UpdateMoveFactors (005536B0, a recomputation from state) and empty (00533D10) on the client
+controller and the abstract base, so the function can run twice and the wrapper compares it
+differentially. With a server controller the size class is its CombatStats size class for the
+movement mode, read unsigned (mode 0: +0x24C = sizeClass20, mode 1: +0x24E = sizeClass60, else
++0x248 = sizeClass). The extent is the larger of +0x144 / +0x148 (the unit's half extents,
+UnitActionPoint's offsets), chosen by a bitwise select on FCOMP's C0 (+0x148 when +0x144 is below
+it or either is NaN); the standing height is 0.9 x extent, the radius (+0x328) 0.9 x extent +
+0.05, the height 0.9 x extent + 0.2 with a player, then at most 2 (the same select: 2 when below
+it or NaN). Size class 0 with a prototype (+0x18) whose +0x24 is above 1.5 stands at 0.01. Other
+controllers: size class 0 for movement kind 2 (on water), else 3, radius 0.75; the height is left
+alone.
+
+## Forwarders added (seventh round; the standalone build must replace these)
+
+- Not rewritten: 0052CB40 (the lever table's record by name), 0052CC50 (CArray<Vector3>::SetAtGrow),
+  005168F0 / 005169A0 / 00518820 (figure parts by name: remove, find; a new part's animation),
+  0058E850 (the world server's spell cast; also forwarded by combat_actions.cpp), 00455950.
+- Rewritten, called through their addresses: 006A0FF0 WeaponModelParts, 006A2B80 WeaponType,
+  0052A4B0 (this round, from UpdateVictims). Called directly: Quaternion::AxisX / AxisY
+  (core_maths.cpp). 00530570 was already called through its address by the combat files.
+
+## Original bugs and oddities kept (seventh round)
+
+- UseSpots trusts the record's spot count (two offsets are stored).
+- UpdateSizeClass reads the prototype's +0x24 without a range check: a prototype index out of
+  range reads address 0x24 (size class 0 only).
+- CastAtUnits returns without restarting the countdown when +0x28C finds no unit, and the +0x28C
+  path changes the caller's list (UpdateVictims then frees it).
+- ChangeWeaponModel leaves +0x75 as it was when the new slot holds no weapon.
+
+## Risks (seventh round)
+
+- UpdateSizeClass runs often and is compared with the original at every call; a mismatch shows at
+  once. Its verify runs the controller's slot 45 twice (idempotent, see above).
+- UseSpots and CastAtUnits are not reached on zone1 (no levers or magic traps there); UseSpots is
+  compared with the original when it is, CastAtUnits only checked for consistency.
+- ChangeWeaponModel is checked for consistency only; a wrong part name or a missed part would not
+  be caught by the wrapper (the figure would show it).
 

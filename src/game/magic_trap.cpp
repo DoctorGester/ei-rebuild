@@ -1,5 +1,6 @@
 // Magic traps: who is inside, and casting at newcomers (0052A680), the living units of the trap's
-// sides in its circles (0052A920). See magic_trap.h and docs/notes/units.md ("Magic traps").
+// sides in its circles (0052A920), casting the spell (0052A4B0). See magic_trap.h and
+// docs/notes/units.md ("Magic traps").
 #include "magic_trap.h"
 
 #include "engine_object.h"
@@ -51,7 +52,8 @@ struct PtrList {
 // The trap's map object context [00455940, rewritten in object.cpp]; the living units of the sides
 // `sides` in the circles of `area` (+0x240), appended to `out` after emptying it [0052A920, fastcall
 // with the context in ECX, RET 8; FindTrapVictims below, called through its address so its verify
-// wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0].
+// wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0, MagicTrap::CastAtUnits
+// below, called through its address for the same reason].
 __declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) void __fastcall FindVictims(void* /*context*/, void* /*area*/, std::uint32_t /*sides*/, PtrList* /*out*/)
     EI_ORIGINAL(0x0052A920)
@@ -62,7 +64,7 @@ __declspec(naked) void __fastcall SectorFind(void* /*sectors*/, void*, const flo
 constexpr int kSectorMap = 0x294;             // the world's sector map
 constexpr std::uintptr_t kPtrListVtable = 0x0073D454;
 constexpr int kPtrListBlockSize = 10;
-__declspec(naked) void __fastcall CastAtUnits(MagicTrap*, void*, PtrList* /*units*/) EI_ORIGINAL(0x0052A4B0)
+__declspec(naked) void __fastcall CastAtNewcomers(MagicTrap*, void*, PtrList* /*units*/) EI_ORIGINAL(0x0052A4B0)
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
@@ -133,7 +135,7 @@ void MagicTrap::UpdateVictims() {
         }
         node = next;
     }
-    if (newcomers.count) CastAtUnits(this, nullptr, &newcomers);
+    if (newcomers.count) CastAtNewcomers(this, nullptr, &newcomers);
     PtrRemoveAll(&newcomers);
     PtrRemoveAll(&found);
 }
@@ -160,3 +162,56 @@ void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32
     found.RemoveAll();
 }
 EI_REPLACE(0x0052A920, FindTrapVictims);
+
+namespace {
+// The object's world [00455950]; the world server (007AFF60) casts `spell` from `caster` at
+// `from` on `target` at `at` [0058E850 (spell, caster, from, target, at, 0), RET 0x18].
+__declspec(naked) void* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
+__declspec(naked) void __fastcall WorldCastSpell(void*, void*, void* /*spell*/, void* /*caster*/, const float* /*from*/,
+                                                 CEngineObject* /*target*/, const float* /*at*/, int)
+    EI_ORIGINAL(0x0058E850)
+void* const kWorldServer = reinterpret_cast<void*>(0x007AFF60);
+constexpr int kSlotGroundHeight = 0x70 / 4;          // world: (x, y) -> the ground height (ST0)
+constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // spell prototype +0x3C: cast at the units
+constexpr float kFar = 1e30f;                        // 0073E73C, a squared distance
+} // namespace
+
+void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
+    using UnitList = mfc::CTypedPtrList<CEngineObject>;
+    if (units->count == 0 || !At<void*>(this, 0x23C)) return;
+    const float* position = &At<float>(this, 0x1C);
+    float from[3] = {position[0], position[1], position[2]};
+    void* world = ObjectWorld(this);
+    from[2] = static_cast<float>(ei::VCall<double>(world, kSlotGroundHeight, from[0], from[1]) + from[2]);
+    if (!(At<std::uint32_t>(At<void*>(this, 0x23C), 0x3C) & kSpellAtUnits) && At<int>(this, 0x25C) != 0) {
+        for (int i = 0; i < At<int>(this, 0x25C); ++i) {
+            const float* point = At<const float*>(this, 0x258) + 2 * i;
+            float at[3] = {point[0], point[1], 0.0f};
+            WorldCastSpell(kWorldServer, nullptr, At<void*>(this, 0x23C), nullptr, from, nullptr, at, 0);
+        }
+    } else {
+        if (At<int>(this, 0x28C) != 0) {
+            if (!units->head) return;
+            CEngineObject* closest = nullptr;
+            for (UnitList::Node* node = units->head; node; node = node->next) {
+                CEngineObject* unit = node->data;
+                float dx = At<float>(unit, 0x1C) - position[0];
+                float dy = At<float>(unit, 0x20) - position[1];
+                float dz = At<float>(unit, 0x24) - position[2];
+                // FCOMP; TEST AH,1: taken when below, or NaN.
+                if (!(dz * dz + dy * dy + dx * dx >= kFar)) closest = unit;
+            }
+            if (!closest) return;
+            units->RemoveAll();
+            units->AddTail(closest);   // the original's AddTail calls the list's NewNode (0052CEF0)
+        }
+        for (UnitList::Node* node = units->head; node;) {
+            UnitList::Node* next = node->next;
+            CEngineObject* unit = node->data;
+            WorldCastSpell(kWorldServer, nullptr, At<void*>(this, 0x23C), nullptr, from, unit, &At<float>(unit, 0x1C), 0);
+            node = next;
+        }
+    }
+    At<std::uint32_t>(this, 0x288) = At<std::uint32_t>(this, 0x284);
+}
+EI_REPLACE_METHOD(0x0052A4B0, MagicTrap::CastAtUnits);

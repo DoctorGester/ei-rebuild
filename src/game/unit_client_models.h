@@ -70,6 +70,15 @@ public:
     // then too); true otherwise.
     bool RemoveArmourModel(std::uint32_t slot);
 
+    // 00535590. Virtual slot 25: the unit takes the weapon of weapon slot `slot` in hand. The
+    // figure parts of the weapon in hand (weaponIds[unit->activeWeapon], 006A0FF0) are removed by
+    // name (005168F0), the unit's active weapon becomes `slot` and the byte +0x74 is cleared; the
+    // new weapon's parts (none for an empty slot or a slot beyond 3) are added from the unit's
+    // model (00517240, each animated with the figure through 00518820), and for a bow (type 5) the
+    // part "rh3_arrow00" gets flag 0x80, which +0x75 records (+0x75 is left alone without a new
+    // weapon). Then slot 30. Returns 1.
+    int ChangeWeaponModel(std::uint32_t slot);
+
     // 00536300. The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour
     // slots; else two layers, armour slot 0 and the weapon in hand.
     void BuildSkinLayers(int detailed, SkinLayerArray* out);

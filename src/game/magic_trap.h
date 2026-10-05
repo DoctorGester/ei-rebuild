@@ -5,9 +5,9 @@
 // uses are known (magic_trap.cpp): +0x08 flags_ (0x80000: armed, the script's ActivateTrap), +0x1C
 // the position, +0x238 the sides that set it off (bit per unit side +0x250), +0x23C its spell
 // (null: none), +0x240 an MFC array of circles {x, y, radius} (data +0x244, count +0x248), +0x258
-// / +0x25C the points it casts at, +0x268 the units inside (an MFC CList of counted references:
-// head +0x26C, tail +0x270, count +0x274), +0x284 the period and +0x288 the countdown between
-// casts, +0x28C cast at one unit only. See docs/notes/units.md ("Magic traps").
+// / +0x25C the points it casts at ({x, y} pairs), +0x268 the units inside (an MFC CList of
+// counted references: head +0x26C, tail +0x270, count +0x274), +0x284 the period and +0x288 the
+// countdown between casts, +0x28C cast at one unit only. See docs/notes/units.md ("Magic traps").
 
 #include "lib/mfc.h"
 
@@ -22,6 +22,14 @@ struct MagicTrap {
     // takes in the living units of its sides found in its circles (0052A920) and casts its spell
     // (0052A4B0) when any of them is new.
     void UpdateVictims();
+
+    // 0052A4B0 (RET 4). Casts the trap's spell (the world server's 0058E850, no caster) from the
+    // trap's position raised by the ground height under it: at each of its points {x, y, 0} unless
+    // the spell has flag 0x10000000 or there are none; otherwise at each unit of `units` (target
+    // and point the unit), with +0x28C first narrowing `units` to the last one closer than 1e30
+    // (squared; NaN counts). Then the countdown starts again (+0x288 = +0x284). Nothing without
+    // units or a spell; nothing either (the countdown kept) when +0x28C finds none.
+    void CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units);
 };
 
 // A circle of a trap's area (0xC bytes).
