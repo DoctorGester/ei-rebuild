@@ -851,3 +851,36 @@ hard to verify against the original (both would free); the next candidates with 
 are the point light / particle / FX / lightning savers and loaders 004B1940, 004B1A80, 004B1C50,
 004B1DB0, 004B18B0, 004B1B40 (reached only when a save holds such sources) and 004B3D10 (string
 loader, a few instructions around 00461190).
+
+# Blocks, areas and temporaries (ticket S4: 004BF540, 004BF900, 004BCE10, 004B59F0, 004B5F70)
+
+Five small allocation helpers that the parser and evaluator call on every script load or object
+function; none in config/library.csv, config/dead_code.csv or docs/rebirth-patched-functions.txt,
+so they install in both launches. Code: `src/game/script_blocks.cpp` (free functions declared at
+the end of the loader block of `script.h`); every caller, rewritten or not, keeps calling them
+through their addresses (the member forwarders CScript::NewCommandList / NewWorldScript /
+FindArea / NewTempObject and SSCCmd::Clear stay), so the wrappers see every call. Verify:
+`tests/verify/verify_script_blocks.cpp`.
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BF540 | 213 | ScriptNewCommandList (CScript::NewCommandList) | against the original on a scratch CScript image holding an empty +0x70 list with the real count and block size (its node from a CPlex block of its own, freed after): the new ScriptDecl's 0x18 bytes and the count equal; ours only: node linked at the real tail | script_parse (every if-then pair and For body), script_exec, script_copy |
+| 004BF900 | 228 | ScriptNewWorldScript (CScript::NewWorldScript) | as above on the +0x178 list | script_parse (WorldScript), every mission script load |
+| 004BCE10 | 250 | ScriptFindArea (CScript::FindArea) | against the original on a scratch copy of the +0x194 array (own buffer, elements shared shallowly; the original may grow / free that buffer): returned index, vtable, size, capacity, growBy and all elements' bytes equal | script_exec (AddRectToArea / AddRoundToArea / IsInArea / DeleteArea) |
+| 004B59F0 | 229 | ScriptNewTempObject (CScript::NewTempObject) | against the original on a scratch +0x1CC list (as the blocks): the reference (null) and count equal; ours only: linking | every object function (CalcObject): script_exec, script_parse |
+| 004B5F70 | 108 | ScriptCmdClear (SSCCmd::Clear) | against the original on a deep copy of the command (CArray<SSCCmd>::Copy 004CC0C0 from a one-element view; the arrays' vtables and growBy copied over, which the assignment leaves out): the cleared 0x94 bytes equal; the copy destroyed with 004BF620 | script_parse (LoadFunction / LoadConditions / LoadCommands) |
+
+Findings: a command block's id is not a counter of its own: it is the list's count right after
+the append (the dword after the tail, +0x7C / +0x184), the WorldScript's with bit 31 set. The
+originals build an empty temporary element on the stack and copy it in (CArray::Copy 004CC0C0 /
+004CE2F0; kept, through the addresses) including its uninitialised +0x14 word, which the id then
+overwrites (not reproduced). The temporaries own nothing, so their destructors are left out.
+NewTempObject inlines CList::AddTail of a null reference: the free list refilled from a new CPlex
+block (006FE8EF) last node first, ConstructElements 004CC800, then the null assignment (Release
+through vtable slot 4 when set; never, the element was just zeroed). FindArea re-reads the size
+after SetSize to index the new slot, as kept.
+
+Forwarders added (`script_blocks.cpp`): 004CD6D0 (CList<ScriptDecl>::NewNode), 004CDB30 areas
+SetSize, 004CE2F0 parts Copy, 004CC800, the SSCCmd array SetSizes 004C2510 / 004C46F0 / 004C49F0 /
+004C4CE0 / 004C4FD0; 004CC0C0 from originals_library.h. Verify: 004CC0C0, 004BF620.
+The exception frames are not reproduced.

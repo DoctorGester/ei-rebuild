@@ -597,6 +597,22 @@ void __fastcall ScriptIfThenPairLoad(ScriptIfThen* pair, void* edx, ScriptStream
 // WorldScript blocks (+0x178), others in the command blocks (+0x70); null when absent.
 ScriptDecl* __fastcall ScriptFindBlock(const CScript* script, void* edx, int id);
 
+// ---- Block, area and temporary allocation (script_blocks.cpp, ticket S4) -------------------------
+// All __thiscall on the script (or the command), registered as free functions; callers keep going
+// through the original addresses (CScript::NewCommandList etc. above are forwarders).
+// 004BF540. A new empty command block at the end of the +0x70 list; its id is the list's count
+// after the append (+0x7C).
+ScriptDecl* __fastcall ScriptNewCommandList(CScript* script, void* edx);
+// 004BF900. The same in the WorldScript list (+0x178), id = count (+0x184) | 0x80000000.
+ScriptDecl* __fastcall ScriptNewWorldScript(CScript* script, void* edx);
+// 004BCE10. The parts of area `id` (+0x194), appending an empty area when it does not exist.
+MfcArray<ScriptAreaPart>* __fastcall ScriptFindArea(CScript* script, void* edx, int id);
+// 004B59F0. Appends a null object reference to the temporaries list (+0x1CC) and returns it.
+ScriptObjectRef* __fastcall ScriptNewTempObject(CScript* script, void* edx);
+// 004B5F70 (SSCCmd::Clear). id 0, every argument / binding / nested-call array emptied (nested
+// commands deleted; growBy kept), called script null.
+void __fastcall ScriptCmdClear(SSCCmd* cmd);
+
 // ---- Variable appends (script_vars_append.cpp) --------------------------------------------------
 
 // 004C2B70 / 004C2FE0 / 004C3450 / 004C3DC0 (__thiscall on this set's value array, the other set's
