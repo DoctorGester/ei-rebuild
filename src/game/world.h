@@ -141,11 +141,21 @@ public:
     // 0058A3D0 / 0058A3F0 call slots 27 / 28; client 005618E0 / 00561930 also clamp, 00560F00).
     virtual double GroundHeightAt(float x, float y);
     virtual double SurfaceHeightAt(float x, float y);
+    // 31 (world_time.cpp). 0055FB30: the time of day becomes `hours` (the base +0x1C is moved so
+    // that fmod(tick * secondsPerTick + base, 24) = hours). The server's 0058EEA0 also updates the
+    // players' times first (game kinds 1 and 3), marks them dirty (4) and updates the weather.
+    virtual void SetTime(float hours);
+    // 32 (world_time.cpp). 0055FB50: seconds per tick become 1 / speed (0: stopped; negative: the
+    // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
+    virtual void SetTimeSpeed(float speed);
+
+    // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
+    void SetWind(const Vector3* direction, float strength);
 
     float timeBase_;                     // +0x1C
     float secondsPerTick_;                // +0x20
-    std::uint8_t unknown24_[12];          // +0x24 saved and loaded as they are
-    std::uint32_t unknown30_;             // +0x30 saved and loaded
+    std::uint8_t unknown24_[12];          // +0x24 wind direction (three floats); saved and loaded as they are
+    std::uint32_t unknown30_;             // +0x30 wind strength (float bits, 0..1); saved and loaded
     void* unknown34_;                     // +0x34 (slot 23 returns it)
     CEngineObject* players_;              // +0x38 player list (vtable slot 20 returns it)
     CEngineObject* manager3C_;            // +0x3C (slot 15)
@@ -227,6 +237,12 @@ public:
     void CollectSharedObjects(ScriptGroup* group, int playerId);
     // 0058B6D0. ORs `mask` into every player's dirty flags.
     void MarkPlayersDirty(std::uint32_t mask);
+    // world_time.cpp. 0058EEA0 / 0058EEE0: slots 31 / 32 (see CWorld).
+    void SetTime(float hours) override;
+    void SetTimeSpeed(float speed) override;
+    // 0058EE20 (world_time.cpp; script and .mob weather). SetWind with the strength clamped to
+    // 0..1 (NaN: 0), then the players marked dirty (8).
+    void ChangeWind(const Vector3* direction, float strength);
     // 0058CC70 / 0058CC80 / 0058EE00 / 005942C0. Setters (weather and similar map settings).
     void SetUnknownE0(int value);
     void SetUnknownDC(int value);
@@ -834,6 +850,11 @@ struct UnitOrderLess {
 struct EntryIdLess {
     BOOL Less(const std::uint8_t* a, const std::uint8_t* b);
 };
+// world_stamp_sort.cpp. STLport's sort of the changed variables' nodes with EntryIdLess (the flow's
+// update 005800C0): 00589160 (RET 0xC) __introsort_loop, 00589240 (RET 4) __final_insertion_sort;
+// first in ECX, last in EDX, then a dummy value-type pointer, the depth limit and the comparator.
+void __fastcall StampIntroSort(void** first, void** last, int valueType, int depthLimit, const void* comp);
+void __fastcall StampInsertionSort(void** first, void** last, const void* comp);
 
 // Game interface glue (00578000-00580000): small free functions the scripts and menus call.
 // 0057F440. Whether a multiplayer client session (global at 0079B5D8) is active.
@@ -1019,6 +1040,8 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out);
 void __stdcall SelectLoadingMovie(const char* zone);
 
 CWorldServer* WorldServer();   // 007AFF60
+// 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
+inline int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 CWorldClient* WorldClient();   // 007AF5B8
 
 // 00589CA0 (thiscall on a shared-object entry, RET 4; world_save.cpp). Reads an entry of the

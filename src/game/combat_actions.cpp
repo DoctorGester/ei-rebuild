@@ -215,8 +215,7 @@ void __fastcall VoiceSay(void* a0, void*, int a2) { VoiceSayOriginal(a0, nullptr
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
 __declspec(naked) void __fastcall AIEventsDied(void*, void*, CUnitServer*) EI_ORIGINAL(0x005C97B0)
-__declspec(naked) void __fastcall AIEventsUpdateMemory(void*, void*, CUnitServer*, void*)
-    EI_ORIGINAL(0x005CAA00)
+void __fastcall AIEventsUpdateMemory(void* a0, void*, CUnitServer* a2, void* a3) { AiEventsUpdateMemoryOriginal(a0, nullptr, a2, a3); }
 // 005CBE90. Perception memory (controller + 0xA50): a party member `dead` died near `member`.
 __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
     EI_ORIGINAL(0x005CBE90)

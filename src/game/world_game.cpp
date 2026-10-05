@@ -1486,7 +1486,6 @@ constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
 constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
 
-int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 std::uint8_t& SessionsOpen() { return *reinterpret_cast<std::uint8_t*>(0x007C7DD8); }
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 
@@ -1978,7 +1977,7 @@ const TextOpsAt& Ops(const mfc::CString& s) { return static_cast<const TextOpsAt
 // The vector of changed variables (STLport vector<node*>): its allocator tag constructor
 // (00584720), insert overflow (00587700: position, value, count) and storage release (00584A90:
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
-// dummy, the depth limit and the comparator; 00589240 the final insertion sort).
+// dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
 struct NodeVector {
     void** start;
     void** finish;
@@ -1988,8 +1987,9 @@ __declspec(naked) void __fastcall NodeVectorConstruct(NodeVector*, void*, const 
 __declspec(naked) void __fastcall NodeVectorInsertOverflow(NodeVector*, void*, void**, void* const*, unsigned)
     EI_ORIGINAL(0x00587700)
 __declspec(naked) void __fastcall NodeVectorFree(void**, unsigned) EI_ORIGINAL(0x00584A90)
-__declspec(naked) void __fastcall StampIntroSort(void**, void**, int, int, const void*) EI_ORIGINAL(0x00589160)
-__declspec(naked) void __fastcall StampInsertionSort(void**, void**, const void*) EI_ORIGINAL(0x00589240)
+// The stamp sort (world_stamp_sort.cpp) through its addresses, so its verify wrappers see the calls.
+__declspec(naked) void __fastcall StampIntroSortAt(void**, void**, int, int, const void*) EI_ORIGINAL(0x00589160)
+__declspec(naked) void __fastcall StampInsertionSortAt(void**, void**, const void*) EI_ORIGINAL(0x00589240)
 
 // A local NamedFloatTable released the way the original's inlined destructor does.
 struct LocalVariables {
@@ -2117,8 +2117,8 @@ void GameFlow::UpdateFromServer() {
         if (changed.start != changed.finish) {
             int depth = 0;
             for (int n = static_cast<int>(changed.finish - changed.start); n != 1; n >>= 1) ++depth;
-            StampIntroSort(changed.start, changed.finish, 0, depth * 2, variables);
-            StampInsertionSort(changed.start, changed.finish, variables);
+            StampIntroSortAt(changed.start, changed.finish, 0, depth * 2, variables);
+            StampInsertionSortAt(changed.start, changed.finish, variables);
         }
         for (void** it = changed.start; it != changed.finish; ++it) FlowVariableChanged(*it, nullptr, *it);
         bool settled;

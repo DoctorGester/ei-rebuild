@@ -69,6 +69,9 @@ __declspec(naked) inline void __fastcall PathCellListFixUpOriginal(void* /*list*
 // 005C98C0: AI events noise(source, loudness, kind, at) (RET 0x10; a null `at` means the source's position; no result).
 __declspec(naked) inline void __fastcall AiEventsNoiseOriginal(void* /*events*/, void*, void* /*source*/, float /*loudness*/,
                                                                int /*kind*/, const void* /*at*/) EI_ORIGINAL(0x005C98C0)
+// 005CAA00: AI events update a controller's view into its perception memory (RET 8, no result).
+__declspec(naked) inline void __fastcall AiEventsUpdateMemoryOriginal(void* /*events*/, void*, void* /*controller*/,
+                                                                      void* /*memory*/) EI_ORIGINAL(0x005CAA00)
 // 005CB7F0: AI memory IsEnemy(unit, object) (RET 8, EAX 0/1).
 __declspec(naked) inline int __fastcall AiMemoryIsEnemyOriginal(void* /*memory*/, void*, void* /*unit*/, void* /*object*/)
     EI_ORIGINAL(0x005CB7F0)

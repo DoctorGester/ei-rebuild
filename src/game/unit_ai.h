@@ -319,6 +319,9 @@ struct CorpseWatcherMode : AIMode {
 
 // Fear (vtable 0073FF8C, 0x2C bytes): run from an enemy.
 struct FearMode : AIMode {
+    // 005D2850 (unit_ai_brain.cpp; after operator new). The vtable, distance from 0073FF00, 3, an
+    // unset point (x = -1312), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
+    FearMode* Construct(std::uint8_t flag);
     // 005D3650 (slot 6). Busy; drops action and target.
     void Enter(AIBrain* brain);
     // 005D3680 (slot 7). Clears busy.
@@ -394,6 +397,10 @@ struct AIRef {
     CEngineObject* object;
 };
 
+// 005CA050 (ECX = out, EDX = point; unit_ai_brain.cpp). Copies x and y of a point (the AI events'
+// and the heard calls' noticed points); returns `out`.
+float* __fastcall CopyPoint2(float* out, const float* point);
+
 // A call the perception memory heard (0x18 bytes; CallAllies sends kind 0x1A).
 struct AICallRecord {
     Vector3 point;                  // +0x00
@@ -406,6 +413,7 @@ static_assert(sizeof(AICallRecord) == 0x18);
 // CArray<AICallRecord> (brain + 0x178).
 struct AICallArray {
     void SetSize(int size, int growBy);             // 005CDD60
+    void Update(CUnit* unit, void* memory);         // 005CC9D0 (each tick, from UpdateMemory)
 
     void* vtable;
     AICallRecord* data;             // +0x04
@@ -414,6 +422,30 @@ struct AICallArray {
     int growBy;                     // +0x10
 };
 static_assert(sizeof(AICallArray) == 0x14);
+
+// An object the memory reported (8 bytes; the object is a counted reference).
+struct AIReport {
+    CEngineObject* object;
+    int what;
+};
+static_assert(sizeof(AIReport) == 8);
+
+// CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp).
+struct AIReportArray {
+    // 005CC620. Keeps the larger `what` of a listed object, else appends it (with a reference).
+    void Add(CEngineObject* object, int what);
+    // 005CC560. Whether `object` is listed (only AL is set).
+    bool Contains(CEngineObject* object);
+    void SetSize(int size, int growBy);             // 005CD670
+    void RemoveAt(int index, int count);            // 005CD800
+
+    void* vtable;
+    AIReport* data;                 // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(AIReportArray) == 0x14);
 
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
@@ -527,15 +559,33 @@ struct AIBrain {
     // for help (kind 0x1A) at `point`; the message text is formatted only while the console shows
     // filter bit 0.
     void CallAllies(const Vector3* point);
-    void LookAround(int unused);                                        // 005CFE40 on +0xA4
-    void CurrentAttack(int* partAndObject);                             // 005CF220 on +0xA4
+    // 005CFE40 (thiscall on the attention +0xA4 with the brain; unit_ai_attention.cpp). Chooses the
+    // best target in sight (005D0030 from the unit's position) and, when it differs from the current
+    // attack, attacks it (action 3; the player's order check may lift the flags to -1) or casts
+    // spell `part` at it (action 4 when the spell cannot be cast now).
+    void LookAround(int unused);
+    // 005CF220 (thiscall on +0xA4 with the brain; unit_ai_attention.cpp). The current attack as
+    // {part, object}: action 3 {-1, target}, action 4 {spell, target}, the object only when it is a
+    // unit; otherwise only the object is cleared.
+    void CurrentAttack(int* partAndObject);
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
     void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
     bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
-    void Perceive(UnitController* owner);                               // 005CB700 on +0xD0
-    void Notice(const Vector3* point, int level, int kind);             // 005CBBE0 on +0xD0
-    int IsEnemy(CUnit* self, CEngineObject* other);                     // 005CB7F0 on +0xD0
-    void Forget(CEngineObject* object);                                 // 005CC020 on +0xD0
+    void Perceive(UnitController* owner);       // 005CB700 through its address (UpdateMemory)
+    // 005CB700 (thiscall on +0xD0; unit_ai_brain.cpp). Ages the reports (one tick off each; an
+    // entry below 0 is dropped), updates the heard calls (005CC9D0) and the AI events' view
+    // (005CAA00 on 007B2798), then adds the noticed kind to the noticed level.
+    void UpdateMemory(UnitController* owner);
+    // 005CB7F0 (thiscall on +0xD0; unit_ai_brain.cpp). 1 when `other` has the unit's side or player or
+    // is in the +0x110 list, else 0.
+    int IsEnemy(CUnit* self, CEngineObject* other);
+    // 005CBBE0 (thiscall on +0xD0; unit_ai_brain.cpp). Takes over a noticed point of a higher
+    // `level`: 1 when the level rose by more than 100 or the point lies more than sqrt(10) away
+    // (with the point's own z, not a difference), else 0; 0 when the level is not higher.
+    int Notice(const Vector3* point, int level, int kind);
+    // 005CC020 (thiscall on +0xD0; unit_ai_brain.cpp). Drops `object` from the four memory lists
+    // and the reports (holding a reference meanwhile).
+    void Forget(CEngineObject* object);
     void Report(CEngineObject* object, int what);                       // 005CC620 on +0x164
     AIRef* PopCorpse(AIRef* out);                                       // 005D8D50 on +0x148
 
@@ -574,7 +624,7 @@ struct AIBrain {
     mfc::CTypedPtrList<CEngineObject> visible;  // +0x110 units in sight
     mfc::CTypedPtrList<CEngineObject> unknown_12C;  // +0x12C (elements are counted references)
     mfc::CTypedPtrList<CEngineObject> corpses;  // +0x148 (elements are counted references)
-    std::uint8_t reports[0x178 - 0x164];        // +0x164 CArray (005CD670 SetSize)
+    AIReportArray reports;                      // +0x164 objects reported to the alarm code
     AICallArray calls;                          // +0x178 calls heard (005CBBA0)
     std::uint8_t seesEnemy;         // +0x18C
     std::uint8_t unknown_18D[3];
