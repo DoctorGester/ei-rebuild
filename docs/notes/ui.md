@@ -2114,6 +2114,71 @@ docs/rebirth-patched-functions.txt); none is in config/library.csv or config/dea
   panel's release) stay: no scenario puts a wand or scroll in a quick slot or starts a spell
   target mode (a click on a spell button, then a target).
 
+## Seventeenth pass (ticket I8)
+
+Files: `tests/verify/harness.cpp` (new step `clickunit`), `src/game/ui_battle_commands.cpp` (two
+more commands), wrappers in `tests/verify/verify_ui_battle_commands.cpp`, scenarios
+`tests/scenarios/ui_battle_commands.txt` (the click grid replaced by `clickunit`) and new
+`tests/scenarios/ui_battle_spells.txt`. Shared header (additive): `ui_camp.h` (two
+CBattleScreenSetup members). ui_hud.cpp's SelectUnit calls 00637500 / 00637750 through their
+addresses, so the wrappers run.
+
+### Harness step `clickunit <name> [l|r|move] [ctrl]`
+
+- How the game picks: the client world (007AF5B8) keeps a list at +0xF0 (header pointer; node:
+  next +0, value +8 of 0x18 bytes with the object id at +0xC and a screen RECT at +0x10) of the
+  objects drawn this frame, the rectangles from their projected vertices (the object draw,
+  004E8900 / 005A7A70; renderer.md section 3). 00565E40 (thiscall, RET 4; the battle screen's
+  button release 00638B30 calls it with the message's own x, y) gathers the entries whose
+  rectangle holds the point (005718B0: PtInRect, then the object's +0x94 slot 24 finer test),
+  sorts them by depth (005659D0) and returns the first unit (type 0x50); the release then wants
+  flag 0x400000.
+- The step does not project the position itself: it takes the unit's id from its script name
+  (00461360, as GetObjectByName and AddUnitToServer), finds its rectangle in this frame's list,
+  and tries the centre and then a 9x9 grid inside it (middle outwards) with 00565E40 until the
+  game's own pick answers with that unit; it posts the click there (client coordinates as the
+  window procedure passes them on). So the click cannot land on a unit in front of it. It fails
+  the run when the unit is not in the list (off screen, not drawn yet) or hidden everywhere in its
+  rectangle, and logs the unit's flags (no 0x400000: the battle screen ignores it).
+- Assumption, unconfirmed until the first run: the posted client coordinates reach 00638B30
+  unchanged (the window procedure 00457970 passes them on as they are), so the step's own call of
+  00565E40 at that point is the one the release makes. The log line gives the point, the
+  rectangle and the client size.
+- `ctrl` posts Ctrl down (scan 0x1D, CInterface3D +0x7C) before and up after the click: SelectUnit's
+  +0x7C branch orders an attack on any living unit (00637190), hostile or not.
+
+### Spells and quick items on a target (00637500, 00637750)
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 00637500 | 592 | `CBattleScreenSetup::UseOnUnit` (RET 0xC) | ours only: each selected member the unit's own check allows (CanCastSpell / CanUseQuickItem with +0x180, asked before the call) nods (kind 1 / 2, delay not positive); nothing pending afterwards (+0x17C 0, +0x180 / +0x184 -1) and the three panels' +0x150 -1 | ui_battle_spells (a spell button, then `clickunit` on a wolf; mode 1) |
+| 00637750 | 656 | `CBattleScreenSetup::UseAtPoint` (RET 0x14) | as UseOnUnit | ui_battle_spells (mode 2: SelectUnit passes the clicked unit's position) |
+
+- 00637500 (target, quick, ctrl): per selected member, `quick` 0: the view's 0066AC70 (slot +0x180,
+  member, target, ctrl & 0xFF) then CanCastSpell (0052F820; its second argument, unused, is a copy
+  of the target's position); otherwise 0066AD40, the quick item panel's SetUnit (0063D2B0) and
+  CanUseQuickItem (0052F8B0). A 0 answer: the portrait nods after a random delay (the random word
+  only drawn then). SelectUnit passes the Ctrl byte as `quick` for a spell (mode 1) and 1 for a
+  quick item (mode 3); Rebirth's FixSpellSelfCasting passes 0 for the spell.
+- 00637750 (x, y, z, unit, quick): the same at the point (0066ACD0 / 0066ADD0 with &point and 0).
+  For the member that is `unit` the point moves by -AxisY(unit +0x34) * 0.1 (0073B850) first; the
+  original changes its own argument slots, so the moved point stays for later members.
+- Afterwards both drop the pending action: quick panel 0063CD20 (i, 0) for 8 slots and +0x150 -1;
+  00637500 resets the spell and action panels' sprites inline (005E7060 scale 1.0, +0xD8
+  0xFF000000, +0x150 walking along, then -1), 00637750 calls 0063E750 / 0063F730 (i, 0).
+- Spell buttons (for scenarios): 0063E4B0 puts the newest spell's region at (760, 470)-(800, 510)
+  and moves the older ones 40 up; CHudSpellColumn::Click (0063EC90) sets +0x180 the index, +0x17C 1
+  when the spell data's +0x3C has 0x10000000, else 2 (a click on the highlighted one cancels).
+- Forwarders added: 0066AC70, 0066AD40, 0066ACD0, 0066ADD0, 0052F820 / 0052F8B0 / 0063D2B0
+  (rewritten, through their addresses), 0063CD20, 0063E750, 0063F730, 005E7060. None of these nor
+  the two functions is Rebirth-patched.
+
+### Not done
+
+- Quick items on a target (mode 3, 00637500 with `quick` 1): needs a wand or scroll in one of the
+  hero's quick slots; the release on the quick item panel (0063DB20) then goes to 0063DD70 /
+  0063E020. 0063DB20 is not rewritten.
+
 ## Other zones in scenarios (X9)
 
 - Harness steps `zone <name> [exit]` and `waitzone <seconds> <name>` (tests/verify/harness.cpp).

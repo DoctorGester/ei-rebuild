@@ -116,8 +116,8 @@ EI_VERIFY(0x006379E0, ToggleMemberVerify, 0, s_toggleMember);
 
 // CBattleScreenSetup::AttackUnit (00637190): ours only. Reached from SelectUnit (00638EF0) for a
 // click on a hostile unit outside the party (the plain action), or on any live unit with Shift or
-// a modifier flag (+0x18D..); ui_battle_commands clicks around the hero with blocked wolves next
-// to it. Checked: every member selected before the call is nodding with a delay not positive.
+// a modifier flag (+0x18D..); ui_battle_commands clicks blocked wolves next to the hero
+// ("clickunit", plain and with Ctrl). Checked: every member selected before the call is nodding with a delay not positive.
 static void* s_attackUnit;
 static void __fastcall AttackUnitVerify(CBattleScreenSetup* self, void*, CUnit* target, int ctrl) {
     bool selected[kMaxParty] = {};
@@ -130,7 +130,7 @@ static void __fastcall AttackUnitVerify(CBattleScreenSetup* self, void*, CUnit* 
 EI_VERIFY(0x00637190, AttackUnitVerify, 0, s_attackUnit);
 
 // CBattleScreenSetup::OrderDeadUnit (006373A0): ours only. Reached from SelectUnit for a click on
-// a dead unit (the plain action; ui_battle_commands kills the wolves and clicks around again).
+// a dead unit (the plain action; ui_battle_commands kills the wolves and clicks their bodies).
 // Checked as AttackUnit.
 static void* s_orderDeadUnit;
 static void __fastcall OrderDeadUnitVerify(CBattleScreenSetup* self, void*, CUnit* target, int ctrl) {
@@ -191,3 +191,60 @@ static void __fastcall UnitSpeechVerify(CBattleScreenSetup* self, void*, int id,
                       lengthBefore, length, wrong);
 }
 EI_VERIFY(0x006366F0, UnitSpeechVerify, 0, s_unitSpeech);
+
+// The pending spell or quick item used (00637500 on a unit, 00637750 at a point): ours only (they
+// give orders through the network view and draw random numbers). Checked, from the state before
+// the call: each selected member that the unit's own check (CUnit::CanCastSpell 0052F820 for a
+// spell, CanUseQuickItem 0052F8B0 for a quick item, with the pending slot +0x180) allows is
+// nodding (kind 1 or 2) with a delay not positive; afterwards nothing is pending (+0x17C 0,
+// +0x180 / +0x184 -1) and the quick item, spell and action panels highlight nothing (+0x150 -1).
+namespace {
+using UnitCheckFn = int(__thiscall*)(CUnit*, int, const float*);
+void AllowedMembers(CBattleScreenSetup* self, bool quick, bool* allowed, int count) {
+    auto check = reinterpret_cast<UnitCheckFn>(quick ? 0x0052F8B0 : 0x0052F820);
+    const float none[3] = {};
+    for (int i = 0; i < count; ++i) {
+        CUnit* member = Member(self, i);
+        allowed[i] = member && (member->flags_ & 0x10) && check(member, self->unknown_180, none) == 0;
+    }
+}
+bool NothingPending(CBattleScreenSetup* self) {
+    return self->unknown_17C == 0 && self->unknown_180 == -1 && Get<int>(self, 0x184) == -1 &&
+           Get<int>(self->quickItems_, 0x150) == -1 && Get<int>(self->spellColumn_, 0x150) == -1 &&
+           Get<int>(self->actionColumn_, 0x150) == -1;
+}
+} // namespace
+
+// CBattleScreenSetup::UseOnUnit (00637500). Reached from SelectUnit (00638EF0) with a spell on a
+// unit pending (+0x17C 1; the "quick" argument is the Ctrl byte there) or a quick item (3);
+// scenario ui_battle_spells (a spell picked in the spell column, then "clickunit" on a wolf).
+static void* s_useOnUnit;
+static void __fastcall UseOnUnitVerify(CBattleScreenSetup* self, void*, CUnit* target, char quick, int ctrl) {
+    bool allowed[kMaxParty] = {};
+    int count = PartySize(self);
+    int slot = self->unknown_180;
+    AllowedMembers(self, quick != 0, allowed, count);
+    self->UseOnUnit(target, quick, ctrl);
+    int wrong = FirstNotNodding(self, allowed, count);
+    ei::verify::Check("CBattleScreenSetup::UseOnUnit", true, wrong < 0 && NothingPending(self),
+                      "target %p quick %d slot %d: member %d not nodding, pending %d/%d", target, quick, slot, wrong,
+                      self->unknown_17C, self->unknown_180);
+}
+EI_VERIFY(0x00637500, UseOnUnitVerify, 0, s_useOnUnit);
+
+// CBattleScreenSetup::UseAtPoint (00637750). Reached from SelectUnit with a spell on a point
+// pending (+0x17C 2 or 4); scenario ui_battle_spells (a point spell picked, then a ground click).
+// Checked as UseOnUnit.
+static void* s_useAtPoint;
+static void __fastcall UseAtPointVerify(CBattleScreenSetup* self, void*, float x, float y, float z, CUnit* unit, char quick) {
+    bool allowed[kMaxParty] = {};
+    int count = PartySize(self);
+    int slot = self->unknown_180;
+    AllowedMembers(self, quick != 0, allowed, count);
+    self->UseAtPoint(x, y, z, unit, quick);
+    int wrong = FirstNotNodding(self, allowed, count);
+    ei::verify::Check("CBattleScreenSetup::UseAtPoint", true, wrong < 0 && NothingPending(self),
+                      "unit %p quick %d slot %d: member %d not nodding, pending %d/%d", unit, quick, slot, wrong,
+                      self->unknown_17C, self->unknown_180);
+}
+EI_VERIFY(0x00637750, UseAtPointVerify, 0, s_useAtPoint);

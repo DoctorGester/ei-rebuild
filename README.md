@@ -61,6 +61,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
   `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
   window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
+  `clickunit <name> [l|r|move] [ctrl]` clicks the unit with that script name where the game's own
+  picking finds it this frame (`ui_battle_commands.txt`).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the
   global map, 5 the camp); the camp's Esc returns to the game.
 - `zone <name> [exit]` leaves the running zone as its exits do (the server's LeaveToZone for the

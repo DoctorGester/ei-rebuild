@@ -1,6 +1,7 @@
 // The battle screen's party commands: the member toggle (006379E0), the attack on a unit
-// (00637190), the order on a dead unit (006373A0) and a unit's speech event (006366F0, slot 32).
-// See docs/notes/ui.md ("Sixteenth pass").
+// (00637190), the order on a dead unit (006373A0), a unit's speech event (006366F0, slot 32) and
+// the pending spell or quick item used on a unit or a point (00637500, 00637750).
+// See docs/notes/ui.md ("Sixteenth pass", "Seventeenth pass").
 #include "maths.h"
 #include "originals_core.h"
 #include "originals_world.h"
@@ -15,6 +16,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -73,6 +75,63 @@ __declspec(naked) CTextManager* __fastcall TextTable(void*) EI_ORIGINAL(0x00578E
 __declspec(naked) void __fastcall LogAddLine(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065CF30)
 
 using SlotEvent = void(__thiscall*)(void*, int, int, int);
+
+// The local view's spell and quick item orders (thiscall, RET 0x10): on a unit 0066AC70 (spell) /
+// 0066AD40 (quick item) with (slot, member, target, ctrl), at a point 0066ACD0 / 0066ADD0 with
+// (slot, member, &point, 0).
+__declspec(naked) void __fastcall ViewSpellOnUnit(void*, void*, int, CUnit*, CUnit*, int) EI_ORIGINAL(0x0066AC70)
+__declspec(naked) void __fastcall ViewQuickOnUnit(void*, void*, int, CUnit*, CUnit*, int) EI_ORIGINAL(0x0066AD40)
+__declspec(naked) void __fastcall ViewSpellAtPoint(void*, void*, int, CUnit*, float*, int) EI_ORIGINAL(0x0066ACD0)
+__declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, float*, int) EI_ORIGINAL(0x0066ADD0)
+// CUnit::CanCastSpell (0052F820) / CanUseQuickItem (0052F8B0) (thiscall, RET 8; rewritten),
+// CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
+__declspec(naked) int __fastcall UnitCanCastSpellAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F820)
+__declspec(naked) int __fastcall UnitCanUseQuickItemAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F8B0)
+__declspec(naked) void __fastcall QuickItemsSetUnitAt(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)
+// The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
+// actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.
+__declspec(naked) void __fastcall QuickPanelSet(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063CD20)
+__declspec(naked) void __fastcall SpellPanelSet(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063E750)
+__declspec(naked) void __fastcall ActionPanelSet(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063F730)
+__declspec(naked) void __fastcall SpriteSetScale(void*, void*, std::uint32_t) EI_ORIGINAL(0x005E7060)
+constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
+constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
+constexpr int kQuickSlots = 8;
+
+// After a spell or quick item was used: no pending action and no highlighted slot in the quick
+// item panel (0063CD20 per slot). The spell and action panels: 00637500 resets each sprite inline
+// (scale 1, colour opaque, the highlight index walking along), 00637750 calls their setters.
+void DropPendingAction(CBattleScreenSetup* self, bool inlinePanels) {
+    CUiWindow* quick = self->quickItems_;
+    self->unknown_180 = -1;
+    self->unknown_17C = 0;
+    Field<int>(self, 0x184) = -1;
+    for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
+    Field<int>(quick, 0x150) = -1;
+    CUiWindow* const panels[2] = {self->spellColumn_, self->actionColumn_};
+    for (CUiWindow* panel : panels) {
+        for (int i = 0; i < Field<int>(panel, 0x14C); ++i) {
+            if (inlinePanels) {
+                void* sprite = Field<void**>(panel, 0x108)[i];
+                SpriteSetScale(sprite, nullptr, kScaleOne);
+                Field<std::uint32_t>(sprite, 0xD8) = kSpriteOpaque;
+                Field<int>(panel, 0x150) = i;
+            } else if (panel == self->spellColumn_) {
+                SpellPanelSet(panel, nullptr, i, 0);
+            } else {
+                ActionPanelSet(panel, nullptr, i, 0);
+            }
+        }
+        Field<int>(panel, 0x150) = -1;
+    }
+}
+
+// Member i's portrait nods after a random delay (as the orders' nod).
+void NodPortrait(CBattleScreenSetup* self, int i) {
+    float delay = PortraitDelay(UiRandom().Next());
+    static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleTime_ = delay;
+    static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleKind_ = 1;
+}
 
 } // namespace
 
@@ -182,6 +241,62 @@ void CBattleScreenSetup::OrderDeadUnit(CUnit* target, int ctrl) {
     if (units.data) gamecrt::operator_delete(units.data);
 }
 EI_REPLACE_METHOD(0x006373A0, CBattleScreenSetup::OrderDeadUnit);
+
+// --- 00637500 / 00637750: the pending spell or quick item used ---------------------------------
+
+void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
+    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
+    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    for (int i = 0; i < party->size_; ++i) {
+        CUnit* member = unitAt(i);
+        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        float position[3];   // the target's position, passed to the (unused) argument of the checks
+        std::memcpy(position, reinterpret_cast<std::uint8_t*>(target) + 0x1C, sizeof(position));
+        int refused;
+        if (quick == 0) {
+            ViewSpellOnUnit(LocalView(kWorld), nullptr, unknown_180, member, target, ctrl & 0xFF);
+            refused = UnitCanCastSpellAt(unitAt(i), nullptr, unknown_180, position);
+        } else {
+            ViewQuickOnUnit(LocalView(kWorld), nullptr, unknown_180, member, target, ctrl & 0xFF);
+            QuickItemsSetUnitAt(quickItems_, nullptr, unitAt(i));
+            refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, position);
+        }
+        if (refused == 0) NodPortrait(this, i);
+    }
+    DropPendingAction(this, true);
+}
+EI_REPLACE_METHOD(0x00637500, CBattleScreenSetup::UseOnUnit);
+
+void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
+    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
+    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    // The original works on its argument slots, so the shift below stays for the later members.
+    float point[3] = {x, y, z};
+    for (int i = 0; i < party->size_; ++i) {
+        CUnit* member = unitAt(i);
+        if (!member || !(member->flags_ & kFlagSelected)) continue;
+        if (member == unit) {
+            Vector3 axis;
+            reinterpret_cast<const Quaternion*>(reinterpret_cast<std::uint8_t*>(unit) + 0x34)->AxisY(&axis);
+            const float k = *reinterpret_cast<const volatile float*>(0x0073B850);   // 0.1
+            point[0] = point[0] + -axis.x * k;
+            point[1] = point[1] + -axis.y * k;
+            point[2] = point[2] + -axis.z * k;
+        }
+        int refused;
+        if (quick != 0) {
+            ViewQuickAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);
+            QuickItemsSetUnitAt(quickItems_, nullptr, unitAt(i));
+            refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, point);
+        } else {
+            ViewSpellAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);
+            refused = UnitCanCastSpellAt(unitAt(i), nullptr, unknown_180, point);
+        }
+        if (refused == 0) NodPortrait(this, i);
+    }
+    DropPendingAction(this, false);
+}
+EI_REPLACE_METHOD(0x00637750, CBattleScreenSetup::UseAtPoint);
 
 // --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
 
