@@ -250,9 +250,8 @@ in our runs) is still created and still used, because:
    rewritten there too and take the surface's description (for the surface-bytes total) from the
    memory in the switch-over. With that the windows' DirectDraw use in the switch-over is down to
    creating and releasing the surface itself (004EF7B0 / 004EFD20, and 004F0060 for the picture
-   holders, which get game-owned memory too since R2b, below). (00655550 / 00655D40 /
-   00656464 / 00656E10 lock the save / load screen's screenshot textures, not windows: they go
-   with the textures.) Scenario: render_present_cpuwindows (render_present plus the escape menu
+   holders, which get game-owned memory too since R2b, below). The save / load screen's picture
+   textures (locked by 00655550 / 00655D40 / 00656E10) get game-owned memory since R3 (section 11). Scenario: render_present_cpuwindows (render_present plus the escape menu
    over its greyed screen copy). Left: holders with no DirectDraw surface at all; and with the
    verify build's
    side-by-side text checks under cpuwindows the GDI batch must be flushed before they read
@@ -338,8 +337,8 @@ in our runs) is still created and still used, because:
    0049B320 is left): the device setup and texture management (004E5E50,
    004E68A0, 004EE*, 0068F860..00693C60), the movies' surfaces (005DA5AB / 005DA880 / 005DB603 / 005DB9E0), the
    software cursor's primary draws (005E5640 / 005E5690 / 005E6630), the holder helpers
-   (004EFA60, 004EFEA0; 004F0060 is rewritten), the save / load screen's screenshot locks and a
-   few interface draws (00600EF0, 00602BF0, 0060C870, 00622420, 00627C90, 00628F80, 00630670,
+   (004EFA60, 004EFEA0; 004F0060 is rewritten; the save / load screen's picture locks are done,
+   section 11) and a few interface draws (00600EF0, 00602BF0, 0060C870, 00622420, 00627C90, 00628F80, 00630670,
    00632A90, 006462A0, 0064D970, 00658E10). Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
    after 1-4; until then dgVoodoo keeps creating its device and swap chain (only never presented).
 7. **Window and display**: the child window rides on the game window; dgVoodoo's own swap chain
@@ -551,3 +550,55 @@ released. Other calls (error paths, an existing surface) ours only. Scenarios: r
 render_present_cpuwindows (the switch-over, direct fill), ui_camp and ui_screens (plain DirectDraw
 path, the comparison of the fill itself); render_cpuwindows has the option without the switch-over
 (the fill through Lock into the DIB).
+
+## 11. The save / load screen's pictures on game memory (ticket R3, 2026-10-05)
+
+The save / load window shows two 256x256 5:6:5 textures made by 005FF0B0 (texture manager
+00691D80 -> 0068F6C0: a managed DirectDraw texture in a holder made by 004EFA60, CTexture +0x5C):
+objects_[1], into which **00656E10** (ShowPicture) reads the selected save's shot.sav, and +0x184
+(named `dialog_` in ui.h from an earlier reading; it is the new save's picture), which **00655D40**
+(FillEntries) fills from the escape menu's 256x192 copy of the screen (interface +0x5C) and
+**00655550** (SaveGame) writes to shot.sav. All three are rewritten (`ui_saveload.cpp`).
+**00656464 is not a function**: it starts inside an instruction of 00655D40 (a false vtable entry,
+0074718C) and is that function's tail (the failed-Lock exit and the scroll bar part); 00655D40
+really ends at 0065663C. The autosave 006570E0 writes shot.sav from a window surface, not a texture.
+
+With `cpuwindows`: the window's Build (00653DD0) and FillEntries give each texture's holder
+game-owned memory (`CSaveLoadWindow::GivePictureMemory` -> `AttachTextureMemory`, dx_surface.cpp: a
+DIB section of the holder's size in the texture's pixel format, CTexture +0x3C; freed by 004EFD20;
+registered with `render::ClientSurface`). The DirectDraw texture stays (a managed texture cannot take
+client memory). Outside the switch-over the fills still Lock the texture (the old path draws it) and
+the 0x18000-byte block is copied into the memory before the Unlock; in the switch-over the fills and
+SaveGame's read use the memory only (`DirectPixels`: no Lock / Unlock). The new renderer draws these
+textures through mesh passes (the sprite +0x280), so the texture path (`SurfaceView`) now reads a
+holder with game-owned memory from that memory, again when it differs from a snapshot (a memcmp
+once a frame; separate snapshots from the window path), with box-filtered mips like a surface read.
+Without the option everything is the original's.
+
+Original details kept: the 0x18000 bytes are one block from the start of the pixels (pitch taken as
+512); the Locks use flags 0; a failed Lock whose report says stop leaves the device lock held (and
+SaveGame the busy cursor, FillEntries the scroll bar untouched); the entries' temporaries leave +8 /
++0x0C unset (stack bytes) where info.sav does not give them; the new folder is "save<n>" with n one
+more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid, not Right as library.csv says). The
+SavesPath Rebirth patch (call sites in all three) is disabled in this install and not reproduced.
+
+Forwarders added (file-local in ui_saveload.cpp): 00455A90 free space, 0057BC30 needed space,
+00581610 save thunk, 005E5200 cursor shape, 005F75B0 notice, 00634650 message box, 005F7350,
+00578B50 / 00578A90 player variable / zone, 0045E850 FindMap, 0065AFE0 scroll range, 006FE508
+CTime, 006E80D8 atoi, 0070133F CFile::Write, 006FE925, the stream header / string helpers 004A5340 /
+004A52D0 / 00461190 / 004E5840, the SaveEntry and vector helpers 00657C60 / 00656640 / 006538E0 /
+00656720 / 00653A50 / 00657D50 / 006579C0 / 006578F0 / 00657DF0 / 00657F10, CFileFind 006E6653 /
+006E661A / 006E6722 / 006E684B / 006E63E9 (MatchesMask through slot 14). Callers in rewritten code
+(Build, OnMouseDown, OnDialogResult) go through the original addresses (`Call*`) so the wrappers run.
+
+Verify (`verify_ui_saveload.cpp`): ShowPicture (6 stolen bytes) and FillEntries (7) run the original
+first on the real window and ours over it (both are safe to run twice, as the game does); compared:
+the sprite's shown flag and texture, and the picture block (the original's texture through a
+read-only Lock, scribbled over before ours runs; ours from the memory when it has some, which it
+must with `cpuwindows`, and from the texture outside the switch-over); for FillEntries every entry's
+strings, broken flag, game time (4 ULPs) and time (not where the original leaves them unset), the
+scroll bar's range / position / moved flag, the list position, the object count and the new save's
+picture. SaveGame ours only: a closing save has info.sav (header 0x111, 3) and shot.sav equal to
+the picture; otherwise the pending value is untouched. Scenario `ui_saveload` (render new,present:
+autosave, Save window, a save, Load window with captures); ui_hud reaches FillEntries / ShowPicture
+with the option off. Not checked in game yet (runs are central).
