@@ -46,6 +46,10 @@ constexpr int kInitialCountdown = 5;      // CMapObject::unknown_174
 
 CObject3D* AsObject3D(CMapObject* object) { return reinterpret_cast<CObject3D*>(object); }
 
+// 00515F70 (object3d_lifetime.cpp), called through its game address so its verify wrapper stays in
+// the path (this is its only caller besides the 3D object's vtable).
+__declspec(naked) int __fastcall CallCreate3D(CObject3D*) EI_ORIGINAL(0x00515F70)
+
 void DetachCompanion(CMapObject* object) {
     if (CEngineObject* companion = object->companion) {
         CompanionOwner(companion) = nullptr;
@@ -56,7 +60,7 @@ void DetachCompanion(CMapObject* object) {
 } // namespace
 
 int CMapObject::CreateMapObject() {
-    AsObject3D(this)->Create3D();
+    CallCreate3D(AsObject3D(this));
     DetachCompanion(this);
     PackedVitals()->Reset();
     unknown_178 = 1.0f;
