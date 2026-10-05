@@ -1672,3 +1672,105 @@ question's Create) also reached by ui_main_menu now.
   strips exist only with their constructor (leftover bytes otherwise), and the equipment panel's
   click (005EE310) calls slot 44 when it finds no item, e.g. an empty body slot clicked by
   ui_describe. The wrapper reads only the strips the page uses.
+
+## Thirteenth pass (ticket I4)
+
+Files: `src/game/ui_hud_tips.cpp` (new: the weapon bar's and the action column's units, a quick
+item's tip), `src/game/ui_layouts.cpp` (the difficulty question's and the titles' Creates);
+wrappers `tests/verify/verify_ui_hud_tips.cpp` (new), `verify_ui_screens.cpp`. Shared headers
+(additive): `ui.h` (CHudWeaponBar::SetUnit and labels +0x158/+0x15C; CHudQuickItems::ItemTip
+rewritten, ItemTipAt the forwarder its callers use, labels +0x18C/+0x190; CHudActionColumn::SetUnit,
+fields +0x150..+0x170; CDifficultyBox, 0x184 bytes), `ui_screens.h` (CCreditsScreen's fields and
+Build, TitleLine). The two callers of 0063CEE0 (0063D2B0, 0063D9D0, both rewritten) now call it
+through its address (ItemTipAt) so the wrapper runs.
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 006337B0 | 1554 | `CDifficultyBox::Build` (slot 25) | ours only: +1 surface, +6 sprites (the hard check box shifted by +0xCC 0xBDB80000, the easy one not), +4 regions (OK / cancel side by side, the check boxes one above the other above the buttons), easy_ 0 | ui_main_menu (region 0) |
+| 0062B7D0 | 1205 | `CCreditsScreen::Build` (slot 25) | ours only: +2 surfaces kept in +0x164 / +0x168, the script's lines appended (current line the first new node, the sentinel without a script), finite speeds, +0x1CC / +0x1F5 cleared, the display's +0x14 zero | ui_main_menu (region 4) |
+| 0063CEE0 | 970 | `CHudQuickItems::ItemTip` (RET 8) | side by side: the original into a copy of the caller's CString, ours into it; texts compared | every game scenario (the hero's potions; 0063D2B0 and the per-frame 0063D9D0) |
+| 0063C180 | 866 | `CHudWeaponBar::SetUnit` (RET 4) | side by side (as the spell column's): fields, sprites, regions and their tips | every game scenario (selection 00637DC0, battle update 00638280) |
+| 0063F800 | 738 | `CHudActionColumn::SetUnit` (RET 8) | side by side: the same plus the action array | every game scenario |
+
+5 functions, about 5.3 KB. None is Rebirth-patched; the Rebirth-patched callees 0063BCC0,
+0063C050, 0063F500, 005E70E0, 005E7D60, 005FDE20, 005F8340 and 005FC9E0 are called through their
+original addresses.
+
+### Battle panels' tips
+
+- Weapon bar (0063C180): per weapon (005318B0) the sprite (0063BCC0 with the item's slot 20 and
+  19 names), the texts (004E0150: name, description, kind; the tip is the name), "\n", then
+  "%s %d-%d %s\n" (labels[0], damage, damage + spread truncated, the "damage_<i>" text of the first
+  non-zero damage weight, "Unknown" when all are zero; a NaN weight counts as zero, FCOMP / TEST AH,
+  0x40), "%s %d  %s %d\n" (labels[1], the prototype's +0x6C, labels[2], the weapon's +0x58
+  truncated) and, with a spell (+0x44), "%s %s\n" (labels[3], the "spell <name>" text's first line
+  or "Unknown"). Tip id 0x26 + slot. Then +0x150 = the unit's +0x270 (-1 when not below the
+  count) and 0063C050 highlights it.
+- Quick item tip (0063CEE0): the item's name (description and kind into one scratch CString); a
+  category 5 item (wand) with a spell adds the level / charges line "%s %d/%d (%d)\n" (labels[0],
+  spell +0x40, item +0x2C, item +0x28), mana (labels[1]; labels[11] when the prototype's +0x7B is
+  0), duration (labels[2]; labels[7] below 1), range (labels[3], labels[9]), area pi r^2 (labels[4];
+  labels[8] with flag 0x10000000), time (labels[5]; labels[7] under 2 ticks, else seconds with
+  labels[10]) and labels[6] with +0x38; a category 8 item (scroll) adds mana and time only (formats
+  ending in "\n"). The same lines as the spell column's, with the labels table at +0x190.
+- Action column (0063F800): sprites, the action array (+0x158, CDWordArray) and six tips cleared;
+  the second argument's low byte adds a "skill0011" button (action -1, tip 0x290E with 0x1C); a unit
+  gets the science button ("skill0009", action 0) whose tip (id 0x1D) is the "perk Science" text,
+  "\n", "%s %d\n" (labels[0], the unit's byte +0x408) and the "tip 10511" text. The original wraps
+  this in a loop of one pass over a switch with two more buttons ("skill0008" action 1, "skill0010"
+  action 2) that never run.
+
+### Difficulty question (006337B0)
+
+- A message box's layout with the surface at 200..600 x 100..500: the title (font 2) and the
+  "tip option_difficulty" text (ReadToHash, trailing CR / LF trimmed, font 1; empty when missing)
+  measured, the block (heights + 0x6C) centred in 550; the two labels ("difficulty_easy",
+  "difficulty_hard", font 2) left-aligned at 430 - h, h = ((easy width + hard width) / 2 + 30) / 2,
+  rows 24 apart; the 21-pixel check boxes at 400 - h (depth 2.5); +0x180 = 0 (hard). The handler 00633DD0
+  moves the check mark (+0xCC) and copies +0x180 to 0079BEC0 on OK.
+
+### Titles (0062B7D0)
+
+- Opened from a game (+0x1F4 0): the loading screen steps (006B71C0 with 1) and the music stops;
+  from the menu (1): the server flag is cleared at the end. Then the cursor hidden (005E5270 0),
+  the movies listed under "Titlesfin" played (00458270), font smoothing read into nothing and
+  switched off for the session (SPI 0x4A / 0x4B), "<0079BC94>outro.res" opened into the archive
+  +0x170 and "credits.scr" parsed: CRs dropped, one TitleLine per "\n"-separated line from the
+  space-separated words: 1 compared with "#scroll" (_mbsicmp), 2 atof, 3 +0xC, 4 +8 (missing words
+  empty), appended to the list +0x1C8 (0062C090); +0x1D0 its first node. The file is closed, the
+  scrolling text surface (0065ED30, 10..790 x 150..450) and a plain one (10..790 x 110..140) added
+  and frozen, the display's +0x14 kept in +0x1F8 and cleared, and the player +0x1D8 starts
+  "<folder>Movies\Titles.bik".
+
+### Forwarders added (standalone build must replace)
+
+Tips: 004DEFC0, 004E0150, 0063BCC0 (Rebirth), 0063F500 (Rebirth), 0059C660, 0063CEE0 (ItemTipAt,
+through its address). Titles: 006B71C0, 006B4F70, 005E5270, 00458270, 004461E0, 0065ED30, 005FCDD0,
+00500960, 005DBA50, 006E79A0, 006E911A, 00445D20 / 00445D30 (the CString tokenizer), 0062C090
+(list insert).
+
+### Original quirks kept
+
+- The titles pass the address of +0x16C as SPI_GETFONTSMOOTHING's uiParam (pvParam null), so
+  nothing is read, and switch font smoothing off without restoring it here.
+- The weapon bar keeps one tip CString for all weapons (004E0150 overwrites it); the quick item tip
+  passes one CString as description and kind.
+- The action column's loop of one pass over three buttons.
+- The difficulty question writes its tip text even when "tip option_difficulty" is missing (an
+  empty string).
+
+### Not exercised by the scenarios
+
+The quick item tip's wand / scroll lines (the new game's hero carries potions only) and the weapon
+bar's spell line (no scenario equips a weapon with a spell); the titles opened from a game
+(+0x1F4 0, the end of the game). The side-by-side wrappers check those paths whenever a run
+reaches them.
+
+### Candidates in 005E0000-00640000 left
+
+Unchanged from the earlier passes: the briefing screen (00604C50, 00604130, 006064E0, 006024B0,
+006034A0, 00608450, 00605DE0, 00603D00, 006091C0, 00607360 ...), the renderer's draws (005E18E0,
+00628F80, 005E5690, 00627C90), 005E2A30 (multiplayer chat), 00612CF0 (no caller), 006284A0, the
+network screens (0062C250, 0062C9C0, 00618A10, 00616AC0, 006159E0), 006369D0 (quest notice),
+00611220 (camp deal button), 00620A50 (strip scroll animation, float-heavy). Next by size and
+reachable: 00617A50 (993, the hero screen's next), 006312C0 (989), 00621B50 (972), 00638B30 (946).

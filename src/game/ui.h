@@ -480,13 +480,22 @@ public:
     BOOL Draw(int pass);
     // 0063C050 (Rebirth-patched, not rewritten). Highlights slot `index` (or not).
     void Highlight(int index, int on);
+    // 0063C180 (RET 4; ui_hud_tips.cpp). Shows `unit`'s weapons: sprites dropped, the four
+    // regions' tips cleared; per weapon a sprite (0063BCC0, Rebirth-patched) and the tip of its
+    // region (id 0x26 + slot): the name, damage range and type, the prototype's +0x6C and the
+    // weapon's +0x58 and, for a weapon with a spell, the spell's name; then the unit's +0x270
+    // highlighted.
+    void SetUnit(CUnit* unit);
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C slots in use
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
+    void* labelsVtable_;             // +0x158 CStringArray: the tooltip's labels
+    char** labels_;                  // +0x15C
 };
 static_assert(offsetof(CHudWeaponBar, unit_) == 0x154);
+static_assert(offsetof(CHudWeaponBar, labels_) == 0x15C);
 
 // Quick items (constructor 0063C800, vtables 0074283C / 00742808): 2 rows of four 50x50 slots
 // at (520..720, 500..600).
@@ -498,8 +507,12 @@ public:
     BOOL Draw(int pass);                           // 0063CDC0
     // 0063D9D0 (slot 24, every frame). Fills the tooltip of each quick item slot that shows one.
     void Update();
-    // 0063CEE0 (not rewritten). The tooltip text of quick item `index` into `text` (a CString).
+    // 0063CEE0 (RET 8; ui_hud_tips.cpp). The tooltip text of quick item `index` into `text` (a
+    // CString): the item's name and, for a wand (category 5) or a scroll (8) with a spell, its
+    // numbers after labels_.
     void ItemTip(unsigned index, void* text);
+    // The same through the original's address (so the verify wrapper sees the call).
+    void ItemTipAt(unsigned index, void* text);
     // Item of the region at `index` (-1: empty). The original indexes this with the result of
     // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
@@ -530,8 +543,11 @@ public:
     int entryCapacity_;              // +0x164
     int entryGrowBy_;                // +0x168
     int regionItem_[8];              // +0x16C
+    void* labelsVtable_;             // +0x18C CStringArray: the tooltip's labels
+    char** labels_;                  // +0x190
 };
 static_assert(offsetof(CHudQuickItems, entries_) == 0x15C);
+static_assert(offsetof(CHudQuickItems, labels_) == 0x190);
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
 
 // Spell column on the right (constructor 0063E2A0, vtables 007428E4 / 007428B0;
@@ -573,11 +589,22 @@ public:
     BOOL Draw(int pass);                           // 0063FD50
     // 0063FB50 (not rewritten). Selects action `index`.
     void Select(int index);
+    // 0063F800 (RET 8; ui_hud_tips.cpp). Shows `unit`'s actions: sprites and the action array
+    // dropped, the six regions' tips cleared; with `extra` (its low byte) first a "skill0011"
+    // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
+    // the "perk Science" text, the unit's science level (+0x408) and the "tip 10511" text.
+    void SetUnit(CUnit* unit, int extra);
 
     CBattleScreen* owner_;           // +0x148
-    int count_;                      // +0x14C
+    int count_;                      // +0x14C buttons added
+    int selected_;                   // +0x150
+    CUnit* unit_;                    // +0x154
+    std::uint8_t actions_[0x14];     // +0x158 CDWordArray: the buttons' actions (0063F500 adds)
+    void* labelsVtable_;             // +0x16C CStringArray: the tooltip's labels
+    char** labels_;                  // +0x170
 };
 static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
+static_assert(offsetof(CHudActionColumn, labels_) == 0x170);
 
 // A portrait's state (0x78 bytes, array at CHudPortraits +0x158): the last hit points seen,
 // the face (rest orientation, current orientation and a random wobble), the face picture and
@@ -1240,3 +1267,21 @@ public:
 static_assert(offsetof(CMessageBox, title_) == 0x164);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
 static_assert(sizeof(CMessageBox) == 0x180);
+
+// The new game's difficulty question (vtables 0074225C / 00742228, 0x184 bytes; the main menu's
+// region 0): a message box ("option_difficulty", OK and cancel) with two check boxes. Its button
+// handler 00633DD0 (not rewritten) sets easy_ from the boxes (regions 2 / 3) and copies it to
+// 0079BEC0 on OK.
+class CDifficultyBox : public CMessageBox {
+public:
+    // 006337B0 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
+    // 200..600 x 100..500 with the title, the "tip option_difficulty" text and the
+    // "difficulty_easy" / "difficulty_hard" labels; the check boxes beside them (hard checked),
+    // the shade, frame and OK / cancel buttons as the message box's; regions OK (tip 0xC3B4),
+    // cancel (0xC3B5), easy, hard.
+    void Build();
+
+    int easy_;                       // +0x180 1 easy, 0 hard (the default)
+};
+static_assert(offsetof(CDifficultyBox, easy_) == 0x180);
+static_assert(sizeof(CDifficultyBox) == 0x184);
