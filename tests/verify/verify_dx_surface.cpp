@@ -4,6 +4,7 @@
 #include "verify.h"
 
 #include "../../src/game/dx_surface.h"
+#include "../../src/game/texture.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/render/render.h"
 
@@ -12,37 +13,56 @@
 #include <cstdint>
 #include <cstring>
 
-char* __fastcall DXSurfaceConstruct(char* holder, void*, char* device, int width, int height);
-void __fastcall DXSurfaceDestroy(char* holder);
+CDXSurface* __fastcall DXSurfaceConstruct(CDXSurface* holder, void*, CTextureDevice* device, int width, int height);
+void __fastcall DXSurfaceDestroy(CDXSurface* holder);
 void* __fastcall UiSurfaceGetDC(char* surface);
 void __fastcall UiSurfaceReleaseDC(char* surface);
 
+namespace {
+// The holder has its pixels: a DirectDraw surface, or (in the switch-over with "cpuwindows",
+// ticket R7) only the new renderer's memory of its size. A holder of 004EF7B0 / a system-memory
+// picture may have both only outside the switch-over (there the memory is the surface's).
+bool HasPixels(const CDXSurface* holder, bool systemMemory) {
+    const render::SurfaceMemory* memory = render::SurfaceMemoryOf(holder);
+    if (!holder->surface)
+        return memory && memory->width == holder->width && memory->height == holder->height &&
+               memory->bitsPerPixel == holder->bitsPerPixel;
+    bool memoryOnly = render::Presenting() && render::CpuWindows() && systemMemory;
+    return !(memoryOnly && memory);
+}
+} // namespace
+
 // 004EF7B0: returns the holder with its vtable, the device and a surface of the asked size (it
-// throws instead of returning without one).
+// throws instead of returning without one); in the switch-over with "cpuwindows" the new
+// renderer's memory of that size instead (no DirectDraw surface).
 static void* s_construct;
-static char* __fastcall DXSurfaceConstructVerify(char* holder, void*, char* device, int width, int height) {
-    char* result = DXSurfaceConstruct(holder, nullptr, device, width, height);
-    bool ok = result == holder && *reinterpret_cast<std::uintptr_t*>(holder) == 0x0073D774 &&
-              *reinterpret_cast<char**>(holder + 0xC) == device && *reinterpret_cast<void**>(holder + 0x10) != nullptr &&
-              *reinterpret_cast<int*>(holder + 0x14) == width && *reinterpret_cast<int*>(holder + 0x18) == height;
-    ei::verify::Check("DXSurfaceConstruct", true, ok, "%dx%d", width, height);
+static CDXSurface* __fastcall DXSurfaceConstructVerify(CDXSurface* holder, void*, CTextureDevice* device, int width,
+                                                       int height) {
+    CDXSurface* result = DXSurfaceConstruct(holder, nullptr, device, width, height);
+    bool ok = result == holder && reinterpret_cast<std::uintptr_t>(holder->vtable) == 0x0073D774 && holder->device == device &&
+              HasPixels(holder, true) && holder->width == width && holder->height == height;
+    ei::verify::Check("DXSurfaceConstruct", true, ok, "%dx%d, surface %p, memory %d", width, height, holder->surface,
+                      render::SurfaceMemoryOf(holder) ? 1 : 0);
     return result;
 }
 EI_VERIFY(0x004EF7B0, DXSurfaceConstructVerify, 0, s_construct);
 
 // 004EFC60: returns the holder with its vtable, the device and a surface of the picture's size
-// (+4 / +8 of the .mmp header); the holder count one higher.
-char* __fastcall DXSurfaceFromPicture(char* holder, void*, char* device, const void* picture, int flag);
+// (+4 / +8 of the .mmp header), or only the new renderer's memory as 004EF7B0; the holder count one
+// higher.
+CDXSurface* __fastcall DXSurfaceFromPicture(CDXSurface* holder, void*, CTextureDevice* device, const void* picture,
+                                            int flag);
 static void* s_fromPicture;
-static char* __fastcall DXSurfaceFromPictureVerify(char* holder, void*, char* device, const void* picture, int flag) {
+static CDXSurface* __fastcall DXSurfaceFromPictureVerify(CDXSurface* holder, void*, CTextureDevice* device,
+                                                         const void* picture, int flag) {
     int count = *reinterpret_cast<int*>(0x007AEE94);
-    char* result = DXSurfaceFromPicture(holder, nullptr, device, picture, flag);
+    CDXSurface* result = DXSurfaceFromPicture(holder, nullptr, device, picture, flag);
     const auto* header = static_cast<const int*>(picture);
-    bool ok = result == holder && *reinterpret_cast<std::uintptr_t*>(holder) == 0x0073D774 &&
-              *reinterpret_cast<char**>(holder + 0xC) == device && *reinterpret_cast<void**>(holder + 0x10) != nullptr &&
-              *reinterpret_cast<int*>(holder + 0x14) == header[1] && *reinterpret_cast<int*>(holder + 0x18) == header[2] &&
+    bool ok = result == holder && reinterpret_cast<std::uintptr_t>(holder->vtable) == 0x0073D774 && holder->device == device &&
+              HasPixels(holder, (flag & 0xFF) == 0) && holder->width == header[1] && holder->height == header[2] &&
               *reinterpret_cast<int*>(0x007AEE94) == count + 1;
-    ei::verify::Check("DXSurfaceFromPicture", true, ok, "%dx%d flag %d", header[1], header[2], flag);
+    ei::verify::Check("DXSurfaceFromPicture", true, ok, "%dx%d flag %d, surface %p", header[1], header[2], flag,
+                      holder->surface);
     return result;
 }
 EI_VERIFY(0x004EFC60, DXSurfaceFromPictureVerify, 0, s_fromPicture);
@@ -108,21 +128,23 @@ bool SamePixels(char* expected, char* actual, int rowBytes, int height, int* fir
 // 004F0060 (dx_surface.cpp): when it makes the surface (a holder without one, a device, an 8888
 // picture: the path 004EFC60 takes) against the original on a scratch copy of the holder: the
 // result, the holder's +8 / +0x14 / +0x18 / +0x1C and the pixels (the original's surface through a
-// read-only Lock; ours from its game-owned memory when it has some, else a Lock), then the scratch
-// surface is released. With "cpuwindows" a system-memory request must have got game-owned memory.
-// Other calls (errors, a holder with a surface: only the dead 004EFF30 / 004EFFF0) ours only.
-int __fastcall DXSurfaceLoadPicture(char* holder, void*, const void* data, int flag);
+// read-only Lock; ours from the new renderer's memory when it has some, else a Lock), then the
+// scratch surface is released. With "cpuwindows" a system-memory request must have got that memory,
+// and in the switch-over no DirectDraw surface besides it (ticket R7). Other calls (errors, a holder
+// with a surface: only the dead 004EFF30 / 004EFFF0) ours only.
+int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data, int flag);
 static void* s_loadPicture;
 static int __fastcall DXSurfaceLoadPictureVerify(char* holder, void*, const void* data, int flag) {
+    auto* surfaceHolder = reinterpret_cast<CDXSurface*>(holder);
     const auto* header = static_cast<const std::uint32_t*>(data);
     bool compare = header && header[4] == 0x8888 && !*reinterpret_cast<void**>(holder + 0x10) &&
-                   *reinterpret_cast<char**>(holder + 0xC);
-    if (!compare) return DXSurfaceLoadPicture(holder, nullptr, data, flag);
+                   !render::SurfaceMemoryOf(holder) && *reinterpret_cast<char**>(holder + 0xC);
+    if (!compare) return DXSurfaceLoadPicture(surfaceHolder, nullptr, data, flag);
     alignas(4) char scratch[0x20];
     std::memcpy(scratch, holder, sizeof(scratch));
     using Fn = int(__fastcall*)(char*, void*, const void*, int);
     int expected = reinterpret_cast<Fn>(s_loadPicture)(scratch, nullptr, data, flag);
-    int actual = DXSurfaceLoadPicture(holder, nullptr, data, flag);
+    int actual = DXSurfaceLoadPicture(surfaceHolder, nullptr, data, flag);
     auto field = [](const char* h, int offset) { return *reinterpret_cast<const std::uint32_t*>(h + offset); };
     bool fields = expected == actual && field(scratch, 8) == field(holder, 8) && field(scratch, 0x14) == field(holder, 0x14) &&
                   field(scratch, 0x18) == field(holder, 0x18) && field(scratch, 0x1C) == field(holder, 0x1C);
@@ -133,22 +155,24 @@ static int __fastcall DXSurfaceLoadPictureVerify(char* holder, void*, const void
                   SamePixels(scratch, holder, width * bytes, height, &firstRow);
     bool wantsClient = actual == 1 && (flag & 0xFF) == 0 && render::CpuWindows();
     bool client = ClientBitmap(holder) != nullptr;
-    ei::verify::Check("DXSurfaceLoadPicture", true, fields && pixels && (client || !wantsClient),
-                      "%dx%d flag %d: result %d/%d, bits %u/%u, pixels %s (row %d), game memory %d/%d", width, height,
-                      flag & 0xFF, expected, actual, field(scratch, 0x1C), field(holder, 0x1C), pixels ? "same" : "differ",
-                      firstRow, wantsClient ? 1 : 0, client ? 1 : 0);
+    bool memoryOnly = !(client && render::Presenting()) || !surfaceHolder->surface;
+    ei::verify::Check("DXSurfaceLoadPicture", true, fields && pixels && (client || !wantsClient) && memoryOnly,
+                      "%dx%d flag %d: result %d/%d, bits %u/%u, pixels %s (row %d), game memory %d/%d, surface %p", width,
+                      height, flag & 0xFF, expected, actual, field(scratch, 0x1C), field(holder, 0x1C),
+                      pixels ? "same" : "differ", firstRow, wantsClient ? 1 : 0, client ? 1 : 0, surfaceHolder->surface);
     if (void* surface = *reinterpret_cast<void**>(scratch + 0x10)) SurfaceCall(surface, 2);   // Release
     return actual;
 }
 EI_VERIFY(0x004F0060, DXSurfaceLoadPictureVerify, 6, s_loadPicture);
 
-// 004EFD20: the base vtable and no device afterwards; the holder count one lower.
+// 004EFD20: the base vtable and no device afterwards, no memory of the new renderer's left; the
+// holder count one lower.
 static void* s_destroy;
-static void __fastcall DXSurfaceDestroyVerify(char* holder) {
+static void __fastcall DXSurfaceDestroyVerify(CDXSurface* holder) {
     int count = *reinterpret_cast<int*>(0x007AEE94);
     DXSurfaceDestroy(holder);
-    bool ok = *reinterpret_cast<std::uintptr_t*>(holder) == 0x0073D768 && *reinterpret_cast<char**>(holder + 0xC) == nullptr &&
-              *reinterpret_cast<int*>(0x007AEE94) == count - 1;
+    bool ok = reinterpret_cast<std::uintptr_t>(holder->vtable) == 0x0073D768 && holder->device == nullptr &&
+              !render::SurfaceMemoryOf(holder) && *reinterpret_cast<int*>(0x007AEE94) == count - 1;
     ei::verify::Check("DXSurfaceDestroy", true, ok, "holder %p", static_cast<void*>(holder));
 }
 EI_VERIFY(0x004EFD20, DXSurfaceDestroyVerify, 0, s_destroy);
@@ -172,19 +196,27 @@ static void __fastcall UiSurfaceReleaseDCVerify(char* surface) {
 }
 EI_VERIFY(0x005FDC60, UiSurfaceReleaseDCVerify, 0, s_releaseDc);
 
-// 005FCC00 / 005FCDD0 (ui_surface_create.cpp): the vtable, a holder with a surface of the screen
-// rectangle's size, flag 4, nothing kept, the surface-bytes total up by height * pitch.
+// A holder's description: GetSurfaceDesc of its DirectDraw surface, or (a holder made in the
+// switch-over has none) of the new renderer's memory. False without either.
+static bool DescribeHolder(char* holder, std::uint32_t* desc) {
+    std::memset(desc, 0, 0x7C);
+    desc[0] = 0x7C;
+    void* surface = holder ? *reinterpret_cast<void**>(holder + 0x10) : nullptr;
+    if (!surface) return holder && ClientPixels(holder, desc);
+    return reinterpret_cast<long(__stdcall*)(void*, void*)>((*static_cast<void***>(surface))[22])(surface, desc) == 0;
+}
+
+// 005FCC00 / 005FCDD0 (ui_surface_create.cpp): the vtable, a holder with a surface (or only the new
+// renderer's memory) of the screen rectangle's size, flag 4, nothing kept, the surface-bytes total
+// up by height * pitch.
 char* __fastcall UiSurfaceConstruct(char* self, void*, void* ui, int left, int top, int right, int bottom, int format,
                                     char scale);
 char* __fastcall UiSurfaceConstructRect(char* self, void*, void* ui, const int* rect, int format);
 static void CheckWindowSurface(const char* name, char* self, std::uint32_t bytesBefore) {
     char* holder = *reinterpret_cast<char**>(self + 0x10);
     const int* rect = reinterpret_cast<const int*>(self + 0x24);
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    void* surface = holder ? *reinterpret_cast<void**>(holder + 0x10) : nullptr;
-    bool described = surface && reinterpret_cast<long(__stdcall*)(void*, void*)>((*static_cast<void***>(surface))[22])(
-                                    surface, desc) == 0;
+    std::uint32_t desc[0x1F];
+    bool described = DescribeHolder(holder, desc);
     std::uint32_t grown = *reinterpret_cast<std::uint32_t*>(0x007C7E78) - bytesBefore;
     bool ok = *reinterpret_cast<std::uintptr_t*>(self) == 0x00740F28 && holder && described &&
               *reinterpret_cast<int*>(self + 0x14) == rect[2] - rect[0] &&
@@ -214,13 +246,10 @@ static char* __fastcall UiSurfaceConstructRectVerify(char* self, void*, void* ui
 }
 EI_VERIFY(0x005FCDD0, UiSurfaceConstructRectVerify, 0, s_uiSurfaceRect);
 
-// The surface's height * pitch (GetSurfaceDesc); 0 without one.
+// The surface's height * pitch (DescribeHolder); 0 without one.
 static std::uint32_t SurfaceBytes(char* holder) {
-    void* surface = holder ? *reinterpret_cast<void**>(holder + 0x10) : nullptr;
-    if (!surface) return 0;
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    if (reinterpret_cast<long(__stdcall*)(void*, void*)>((*static_cast<void***>(surface))[22])(surface, desc) != 0) return 0;
+    std::uint32_t desc[0x1F];
+    if (!DescribeHolder(holder, desc)) return 0;
     return desc[2] * desc[4];
 }
 

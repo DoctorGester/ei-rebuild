@@ -13,16 +13,30 @@
 class CTextureDevice;
 struct CDXSurface;
 
-// The cursor's image (what +0x10 points at): its surface holder, size and a copy of its pixels.
+// The cursor's image (what +0x10 points at; made by 005E4EB0 for every cursor shape, from 005E63F0):
+// its surface holder (the picture: `frames` square frames side by side), a frame's size, the frame
+// shown, the hot spot and the mask.
 struct CursorImage {
+    // 005E4EB0 (RET 0x10): the image of the picture "<name>" (the file's name with ".mmp", from the
+    // texture manager; loaded into a holder by 004EFC60 with `flag`), the hot spot given in the
+    // 32-pixel layout. Returns this.
+    CursorImage* Construct(const char* name, int hotSpotX, int hotSpotY, int flag);
+
     CDXSurface* holder;              // +0x00 surface holder
-    LONG width;                      // +0x04
+    LONG width;                      // +0x04 a frame's width
     LONG height;                     // +0x08
-    std::uint8_t unknown_0C[0x1C - 0x0C];
-    std::uint8_t* saved;             // +0x1C the image's pixels (its full width)
+    int frames;                      // +0x0C frames side by side (the picture's width / height)
+    int frame;                       // +0x10 the frame shown (005E52E0 steps it every 125 ms)
+    int hotX;                        // +0x14 the hot spot, scaled to the cursor's size
+    int hotY;                        // +0x18
+    std::uint8_t* saved;             // +0x1C the mask over the whole picture (its pixel size): all
+                                     //       ones where the picture is black, else 0
 };
 static_assert(offsetof(CursorImage, width) == 0x04);
+static_assert(offsetof(CursorImage, frames) == 0x0C);
+static_assert(offsetof(CursorImage, hotX) == 0x14);
 static_assert(offsetof(CursorImage, saved) == 0x1C);
+static_assert(sizeof(CursorImage) == 0x20);
 
 class CCursor {
 public:

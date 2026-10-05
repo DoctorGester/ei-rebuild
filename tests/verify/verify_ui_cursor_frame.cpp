@@ -1,8 +1,11 @@
-// Checks for the software cursor's frame draw and its draws to the primary (ui_cursor_frame.cpp).
+// Checks for the software cursor's frame draw and its draws to the primary (ui_cursor_frame.cpp),
+// and the cursor images' constructor (ui_cursor.cpp).
 #include "verify.h"
 
+#include "../../src/game/dx_surface.h"
 #include "../../src/game/texture.h"
 #include "../../src/game/ui_cursor.h"
+#include "../../src/render/render.h"
 
 #include <windows.h>
 
@@ -63,3 +66,86 @@ static void __fastcall CursorSaveBackgroundVerify(CCursor* self, void*, char fro
     ei::verify::Check("CursorSaveBackground", true, ok, "rectangles changed");
 }
 EI_VERIFY(0x005E6630, CursorSaveBackgroundVerify, 0, s_saveBackground);
+
+// --- 005E4EB0 (ui_cursor.cpp, ticket R7) ------------------------------------------------------------
+
+namespace {
+
+template <typename... Args>
+long SurfaceSlot(void* surface, int slot, Args... args) {
+    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(surface))[slot])(surface, args...);
+}
+
+// The holder's pixels for reading, described in `desc`: the new renderer's memory, or a read-only
+// Lock of its surface (`locked` set; Unlock afterwards).
+const std::uint8_t* ReadPixels(CDXSurface* holder, std::uint32_t* desc, void** locked) {
+    *locked = nullptr;
+    if (!ClientPixels(holder, desc)) {
+        if (!holder->surface) return nullptr;
+        std::memset(desc, 0, 0x7C);
+        desc[0] = 0x7C;
+        // DDLOCK_WAIT | DDLOCK_READONLY
+        if (SurfaceSlot(holder->surface, 25, static_cast<RECT*>(nullptr), static_cast<void*>(desc), 0x11ul,
+                        static_cast<void*>(nullptr)) != 0)
+            return nullptr;
+        *locked = holder->surface;
+    }
+    return reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(desc[9]));
+}
+
+// The first pixel whose mask is not all ones exactly where its colour bits are 0; -1 when none.
+int FirstBadMask(const CursorImage* image, const std::uint8_t* pixels, std::uint32_t width, std::uint32_t height,
+                 std::uint32_t pitch, int bytes) {
+    std::uint32_t colourBits = bytes == 2 ? 0xFFFFu : 0xFFFFFFu, ones = bytes == 2 ? 0xFFFFu : 0xFFFFFFFFu;
+    for (std::uint32_t y = 0; y < height; ++y) {
+        for (std::uint32_t x = 0; x < width; ++x) {
+            std::uint32_t pixel = 0, mask = 0;
+            std::memcpy(&pixel, pixels + y * pitch + x * static_cast<std::uint32_t>(bytes), static_cast<std::size_t>(bytes));
+            std::memcpy(&mask, image->saved + (y * width + x) * static_cast<std::uint32_t>(bytes), static_cast<std::size_t>(bytes));
+            if (mask != ((pixel & colourBits) == 0 ? ones : 0u)) return static_cast<int>(y * width + x);
+        }
+    }
+    return -1;
+}
+
+} // namespace
+
+// 005E4EB0 loads a cursor image (the picture from the texture manager, its holder, the mask): ours
+// only (the original would make a second holder; it cannot read a holder without a DirectDraw
+// surface). Checked: the result is the image; its holder has pixels (a surface, or in the switch-over
+// with "cpuwindows" only the new renderer's memory); frames = the picture's width / height, a frame's
+// width = the width / frames, the height the picture's, frame 0; the hot spot scaled to the cursor's
+// size (007C7C90 / 94, from 32); the mask all ones exactly where the picture's colour bits are 0.
+// Every scenario (the cursor's shapes are loaded at startup: 005DAEA0 -> 005E63F0).
+static void* s_cursorImage;
+static CursorImage* __fastcall CursorImageVerify(CursorImage* self, void*, const char* name, int hotX, int hotY,
+                                                 int flag) {
+    CursorImage* result = self->Construct(name, hotX, hotY, flag);
+    CDXSurface* holder = self->holder;
+    bool ok = result == self && holder && (holder->surface || render::SurfaceMemoryOf(holder)) && self->frame == 0;
+    std::uint32_t desc[0x1F] = {};
+    int bad = -2;
+    if (ok) {
+        auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
+        ::EnterCriticalSection(lock);
+        void* locked = nullptr;
+        const std::uint8_t* pixels = ReadPixels(holder, desc, &locked);
+        std::uint32_t width = desc[3], height = desc[2];
+        int bytes = holder->bitsPerPixel / 8;
+        LONG cursorWidth = *reinterpret_cast<LONG*>(0x007C7C90), cursorHeight = *reinterpret_cast<LONG*>(0x007C7C94);
+        ok = pixels && height && self->frames == static_cast<int>(width / height) && self->frames > 0 &&
+             self->width == static_cast<LONG>(width / static_cast<std::uint32_t>(self->frames)) &&
+             self->height == static_cast<LONG>(height) && self->hotX == static_cast<int>(cursorWidth) * hotX / 32 &&
+             self->hotY == static_cast<int>(cursorHeight) * hotY / 32;
+        if (ok && (bytes == 2 || bytes == 4)) bad = FirstBadMask(self, pixels, width, height, desc[4], bytes);
+        else if (ok) bad = -1;
+        if (locked) SurfaceSlot(locked, 32, static_cast<RECT*>(nullptr));
+        ::LeaveCriticalSection(lock);
+    }
+    ei::verify::Check("CursorImage::Construct", true, ok && bad == -1,
+                      "%s: %ux%u, frames %d of width %ld, hot spot %d,%d, surface %p, mask pixel %d", name ? name : "",
+                      desc[3], desc[2], self->frames, static_cast<long>(self->width), self->hotX, self->hotY,
+                      holder ? holder->surface : nullptr, bad);
+    return result;
+}
+EI_VERIFY(0x005E4EB0, CursorImageVerify, 0, s_cursorImage);

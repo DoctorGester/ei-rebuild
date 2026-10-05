@@ -6,6 +6,7 @@
 // equal (ours is freed, the original's returned).
 #include "verify.h"
 
+#include "../../src/game/dx_surface.h"
 #include "../../src/game/ui.h"
 #include "../../src/game/texture.h"
 #include "../../src/game/ui_cursor.h"
@@ -28,6 +29,16 @@ IDirectDrawSurface7* DirectDrawSurface(CUiSurface* surface) {
     std::uint8_t* inner = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(surface) + 0x10);
     return inner ? *reinterpret_cast<IDirectDrawSurface7**>(inner + 0x10) : nullptr;
 }
+
+// The surface's holder.
+void* HolderOf(CUiSurface* surface) {
+    return *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(surface) + 0x10);
+}
+
+// The surface's holder has no DirectDraw surface (made in the switch-over with "cpuwindows", ticket
+// R7): its pixels are only in the new renderer's memory, and the originals (which lock the
+// DirectDraw surface) cannot run on it.
+bool MemoryOnly(CUiSurface* surface) { return HolderOf(surface) && !DirectDrawSurface(surface); }
 
 struct Pixels {
     int height = 0;
@@ -124,9 +135,45 @@ static void __fastcall CaptureScreenVerify(CUiSurface* self, void*) {
 }
 EI_VERIFY(0x005FD3D0, CaptureScreenVerify, 5, s_captureScreen);
 
-// 005FE440: SUB ESP,0xB8 (6).
+namespace {
+// The first pixel of the memory `desc` describes that is not grey as Greyscale makes it (5:6:5: red
+// and blue equal, green twice them; 5:5:5 and 8:8:8: the three equal), -1 when all are (or the
+// format is another).
+int FirstColouredPixel(const std::uint32_t* desc) {
+    std::uint32_t width = desc[3], height = desc[2], pitch = desc[4], bits = desc[0x15];
+    std::uint32_t red = desc[0x16], green = desc[0x17], blue = desc[0x18];
+    const auto* base = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(desc[9]));
+    for (std::uint32_t y = 0; y < height; ++y) {
+        for (std::uint32_t x = 0; x < width; ++x) {
+            const std::uint8_t* at = base + y * pitch + x * (bits / 8);
+            bool grey = true;
+            if (bits == 16) {
+                std::uint32_t p = static_cast<std::uint32_t>(at[0] | (at[1] << 8));
+                if (red == 0xF800 && green == 0x7E0 && blue == 0x1F)
+                    grey = (p >> 11) == (p & 0x1F) && ((p >> 5) & 0x3F) == 2 * (p & 0x1F);
+                else if (red == 0x7C00 && green == 0x3E0 && blue == 0x1F)
+                    grey = ((p >> 10) & 0x1F) == (p & 0x1F) && ((p >> 5) & 0x1F) == (p & 0x1F);
+            } else if (bits == 32 && red == 0xFF0000 && green == 0xFF00 && blue == 0xFF) {
+                grey = at[0] == at[1] && at[1] == at[2];
+            }
+            if (!grey) return static_cast<int>(y * width + x);
+        }
+    }
+    return -1;
+}
+} // namespace
+
+// 005FE440: SUB ESP,0xB8 (6). For a surface whose holder has no DirectDraw surface (the switch-over,
+// ticket R7) ours only: every pixel grey afterwards.
 static void(__thiscall* s_greyscale)(CUiSurface*);
 static void __fastcall GreyscaleVerify(CUiSurface* self, void*) {
+    if (MemoryOnly(self)) {
+        self->Greyscale();
+        std::uint32_t desc[0x1F];
+        int pixel = ClientPixels(HolderOf(self), desc) ? FirstColouredPixel(desc) : -2;
+        ei::verify::Check("CUiSurface::Greyscale", true, pixel == -1, "memory only: pixel %d not grey", pixel);
+        return;
+    }
     CompareDrawing("CUiSurface::Greyscale", self, [&] { s_greyscale(self); }, [&] { self->Greyscale(); });
 }
 EI_VERIFY(0x005FE440, GreyscaleVerify, 6, s_greyscale);
@@ -136,8 +183,9 @@ static std::uint16_t*(__thiscall* s_rgb565Copy)(CUiSurface*, int, int);
 static std::uint16_t* __fastcall Rgb565CopyVerify(CUiSurface* self, void*, int width, int height) {
     // In the switch-over with game-owned memory ours stretches on the CPU (ui_surface_pixels.cpp
     // StretchCopy), which can pick a neighbouring pixel where DirectDraw's Blt does not (ratios
-    // that are not whole numbers): nothing to compare with the original then.
-    if (render::Presenting() && render::CpuWindows()) return self->Rgb565Copy(width, height);
+    // that are not whole numbers): nothing to compare with the original then (nor for a holder with
+    // no DirectDraw surface, which the original cannot read).
+    if ((render::Presenting() && render::CpuWindows()) || MemoryOnly(self)) return self->Rgb565Copy(width, height);
     std::uint16_t* expected = s_rgb565Copy(self, width, height);
     std::uint16_t* actual = self->Rgb565Copy(width, height);
     int count = width * height;
@@ -158,10 +206,16 @@ static std::uint16_t* __fastcall Rgb565CopyVerify(CUiSurface* self, void*, int w
 }
 EI_VERIFY(0x005FD440, Rgb565CopyVerify, 6, s_rgb565Copy);
 
-// 005FD240: SUB ESP,0xB4 (6). Only reads: both run, the results must be equal.
+// 005FD240: SUB ESP,0xB4 (6). Only reads: both run, the results must be equal. A holder with no
+// DirectDraw surface (the switch-over, ticket R7): ours only, its result a colour (0x00RRGGBB).
 std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y);
 static std::uint32_t(__thiscall* s_pixelAt)(CUiSurface*, int, int);
 static std::uint32_t __fastcall PixelAtVerify(CUiSurface* self, void*, int x, int y) {
+    if (MemoryOnly(self)) {
+        std::uint32_t actual = SurfacePixelAt(self, nullptr, x, y);
+        ei::verify::Check("CUiSurface::PixelAt", true, (actual >> 24) == 0, "memory only (%d, %d): %08X", x, y, actual);
+        return actual;
+    }
     std::uint32_t expected = s_pixelAt(self, x, y);
     std::uint32_t actual = SurfacePixelAt(self, nullptr, x, y);
     ei::verify::Check("CUiSurface::PixelAt", true, expected == actual, "(%d, %d): %06X, ours %06X", x, y, expected, actual);
@@ -263,6 +317,16 @@ T Field(const void* p, int offset) {
     std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
     return v;
 }
+// The window's pixels as the game copies them (RawBytes), from the new renderer's memory when its
+// holder has no DirectDraw surface (ticket R7).
+bool WindowBytes(CUiSurface* surface, std::vector<std::uint8_t>& out) {
+    if (!MemoryOnly(surface)) return RawBytes(DirectDrawSurface(surface), out);
+    std::uint32_t desc[0x1F];
+    if (!ClientPixels(HolderOf(surface), desc)) return false;
+    const auto* base = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(desc[9]));
+    out.assign(base, base + static_cast<std::size_t>(desc[2]) * desc[4]);
+    return true;
+}
 } // namespace
 
 // 005FD7A0: PUSH -1; PUSH imm32 (7). Ours only (saving releases the surface, so it cannot run
@@ -275,7 +339,7 @@ static void __fastcall SwapContentsVerify(CUiSurface* self, void*, int restore) 
     std::uint32_t keptBefore = kept, surfaceBefore = surfaceBytes;
     if (!restore) {
         std::vector<std::uint8_t> raw;
-        bool had = DirectDrawSurface(self) != nullptr && RawBytes(DirectDrawSurface(self), raw);
+        bool had = HolderOf(self) != nullptr && WindowBytes(self, raw);
         self->SwapContents(restore);
         if (!had) return;
         const std::uint8_t* data = Field<const std::uint8_t*>(self, 0x1C);
@@ -293,7 +357,7 @@ static void __fastcall SwapContentsVerify(CUiSurface* self, void*, int restore) 
     if (data) keptCopy.assign(data, data + size);
     self->SwapContents(restore);
     std::vector<std::uint8_t> raw;
-    bool read = RawBytes(DirectDrawSurface(self), raw);
+    bool read = HolderOf(self) != nullptr && WindowBytes(self, raw);
     bool ok = read && Field<void*>(self, 0x10) != nullptr;
     if (data) {
         ok = ok && raw.size() >= size && std::memcmp(raw.data(), keptCopy.data(), size) == 0 &&

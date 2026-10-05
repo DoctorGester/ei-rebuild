@@ -3,8 +3,10 @@
 // converted to RGBA8 (any RGB mask layout, or DXT1-5) and kept as a sokol image; levels the surface
 // lacks are box-filtered. Later the
 // textures will come from the .mmp files directly; reading the surface keeps the first steps small.
-// A texture whose holder has game-owned memory ("cpuwindows", render::ClientSurface: the save /
-// load screen's pictures) is read from that memory instead, again when the memory changes.
+// Also here: the holders' pixels in memory the renderer owns ("cpuwindows", render::SurfaceMemory:
+// DIB sections the game code draws into). A texture whose holder has such memory (the save / load
+// screen's pictures) is read from it instead, again when the memory changes; so are window surfaces
+// (WindowSurfaceView), which in the switch-over have no DirectDraw surface at all.
 #include "render_internal.h"
 
 #include "../hook/log.h"
@@ -335,75 +337,73 @@ void ReadTexture(Texture& t, void* surface) {
     }
 }
 
-// Surfaces whose pixels live in game-owned memory ("cpuwindows", render::ClientSurface).
-struct Client {
-    void* bits;
-    int pitch, width, height, bitsPerPixel;
-    std::uint32_t red, green, blue, alpha;
-};
-std::unordered_map<const void*, Client> g_clients;   // by holder
-// The client memory as the window texture was last made from it: a window is converted again only
-// when its memory differs (the game's GDI drawing, Lock writes and the old path's Blt all land in
-// that memory, so a comparison sees every writer without DirectDraw's change counter).
+// The holders' pixels in memory the new renderer owns ("cpuwindows", render::NewSurfaceMemory).
+std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder
+// The memory as the window texture was last made from it: a window is converted again only when its
+// memory differs (the game's GDI drawing, its pixel code and, outside the switch-over, the old
+// path's Blt all land in that memory, so a comparison sees every writer without DirectDraw's change
+// counter).
 using Snapshots = std::unordered_map<const void*, std::vector<std::uint8_t>>;
 Snapshots g_snapshots;          // by holder: window surfaces
 Snapshots g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
 
-std::size_t ClientBytes(const Client& c) { return static_cast<std::size_t>(c.pitch) * static_cast<std::size_t>(c.height); }
-
-// The client memory of `holder` differs from its snapshot in `snapshots` (GdiFlush first: GDI may
-// still hold drawing for it).
-bool ClientChanged(const Snapshots& snapshots, const void* holder, const Client& c) {
-    GdiFlush();
-    auto it = snapshots.find(holder);
-    if (it == snapshots.end() || it->second.size() != ClientBytes(c)) return true;
-    return std::memcmp(it->second.data(), c.bits, it->second.size()) != 0;
+std::size_t MemoryBytes(const SurfaceMemory& m) {
+    return static_cast<std::size_t>(m.pitch) * static_cast<std::size_t>(m.height);
 }
 
-// Keeps the client memory of `holder` as its texture was just made from it (`made`), or forgets
-// it when the texture could not be made.
-void TakeSnapshot(Snapshots& snapshots, const void* holder, const Client& c, bool made) {
+// The memory of `holder` differs from its snapshot in `snapshots` (GdiFlush first: GDI may still
+// hold drawing for it).
+bool MemoryChanged(const Snapshots& snapshots, const void* holder, const SurfaceMemory& m) {
+    GdiFlush();
+    auto it = snapshots.find(holder);
+    if (it == snapshots.end() || it->second.size() != MemoryBytes(m)) return true;
+    return std::memcmp(it->second.data(), m.bits, it->second.size()) != 0;
+}
+
+// Keeps the memory of `holder` as its texture was just made from it (`made`), or forgets it when the
+// texture could not be made.
+void TakeSnapshot(Snapshots& snapshots, const void* holder, const SurfaceMemory& m, bool made) {
     if (!made) {
         snapshots.erase(holder);
         return;
     }
     auto& snapshot = snapshots[holder];
-    snapshot.resize(ClientBytes(c));
-    std::memcpy(snapshot.data(), c.bits, snapshot.size());
+    snapshot.resize(MemoryBytes(m));
+    std::memcpy(snapshot.data(), m.bits, snapshot.size());
 }
 
-// The client memory as a locked surface's description (after GdiFlush: GDI may still hold
-// drawing for it).
-DDSURFACEDESC2 ClientDesc(const Client& c) {
+// The memory as a locked surface's description (after GdiFlush: GDI may still hold drawing for
+// it).
+DDSURFACEDESC2 MemoryDesc(const SurfaceMemory& m) {
     GdiFlush();
     DDSURFACEDESC2 desc{};
     desc.dwSize = sizeof(desc);
-    desc.dwWidth = static_cast<DWORD>(c.width);
-    desc.dwHeight = static_cast<DWORD>(c.height);
-    desc.lPitch = c.pitch;
-    desc.lpSurface = c.bits;
+    desc.dwWidth = static_cast<DWORD>(m.width);
+    desc.dwHeight = static_cast<DWORD>(m.height);
+    desc.lPitch = m.pitch;
+    desc.lpSurface = m.bits;
     desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-    desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (c.alpha ? DDPF_ALPHAPIXELS : 0);
-    desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(c.bitsPerPixel);
-    desc.ddpfPixelFormat.dwRBitMask = c.red;
-    desc.ddpfPixelFormat.dwGBitMask = c.green;
-    desc.ddpfPixelFormat.dwBBitMask = c.blue;
-    desc.ddpfPixelFormat.dwRGBAlphaBitMask = c.alpha;
+    desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (m.alphaMask ? DDPF_ALPHAPIXELS : 0);
+    desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(m.bitsPerPixel);
+    desc.ddpfPixelFormat.dwRBitMask = m.redMask;
+    desc.ddpfPixelFormat.dwGBitMask = m.greenMask;
+    desc.ddpfPixelFormat.dwBBitMask = m.blueMask;
+    desc.ddpfPixelFormat.dwRGBAlphaBitMask = m.alphaMask;
     return desc;
 }
 
-// Reads a texture whose pixels are in game-owned memory (one level from the memory, the others
+// Reads a texture whose pixels are in the renderer's memory (one level from the memory, the others
 // box-filtered as ReadTexture does for a surface without them) into `t`. The game writes such a
 // texture without DirectDraw in the switch-over, so its surface's uniqueness value says nothing.
-void ReadClientTexture(Texture& t, const void* holder, const Client& c, void* surface) {
-    DDSURFACEDESC2 desc = ClientDesc(c);
+void ReadClientTexture(Texture& t, const void* holder, const SurfaceMemory& c, void* surface) {
+    DDSURFACEDESC2 desc = MemoryDesc(c);
     std::vector<std::uint8_t> pixels;
     bool ok = Convert(desc, pixels);
     TakeSnapshot(g_textureSnapshots, holder, c, ok);
     t.surface = surface;
     if (!ok) {
         if (g_failures++ < 10)
-            ei::Log("render: cannot read the game memory of texture surface %p (%d bits)", surface, c.bitsPerPixel);
+            ei::Log("render: cannot read the memory of texture holder %p (%d bits)", holder, c.bitsPerPixel);
         return;
     }
     std::vector<std::vector<std::uint8_t>> levels;
@@ -418,8 +418,8 @@ void ReadClientTexture(Texture& t, const void* holder, const Client& c, void* su
     }
 }
 
-// Reads a window surface (one level; keyed) into `t`: from its game-owned memory when it has
-// some, else through a Lock.
+// Reads a window surface (one level; keyed) into `t`: from its memory when it has some (a holder
+// made in the switch-over has no surface at all), else through a Lock.
 void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::uint32_t key) {
     auto* dd = static_cast<IDirectDrawSurface7*>(surface);
     DDSURFACEDESC2 desc{};
@@ -427,11 +427,11 @@ void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::
     std::vector<std::uint8_t> pixels;
     HRESULT hr = S_OK;
     bool ok = false;
-    auto client = g_clients.find(holder);
-    if (client != g_clients.end()) {
-        desc = ClientDesc(client->second);
+    auto memory = g_memory.find(holder);
+    if (memory != g_memory.end()) {
+        desc = MemoryDesc(memory->second);
         ok = Convert(desc, pixels, keyed, key);
-        TakeSnapshot(g_snapshots, holder, client->second, ok);
+        TakeSnapshot(g_snapshots, holder, memory->second, ok);
     } else {
         LockGameDevice();
         hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
@@ -444,8 +444,8 @@ void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::
     t.key = key;
     if (!ok) {
         if (g_failures++ < 10)
-            ei::Log("render: cannot read window surface %p (Lock %08lX, %lu bits)", surface, static_cast<unsigned long>(hr),
-                    static_cast<unsigned long>(desc.ddpfPixelFormat.dwRGBBitCount));
+            ei::Log("render: cannot read window holder %p (surface %p, Lock %08lX, %lu bits)", holder, surface,
+                    static_cast<unsigned long>(hr), static_cast<unsigned long>(desc.ddpfPixelFormat.dwRGBBitCount));
         return;
     }
     t.width = static_cast<int>(desc.dwWidth);
@@ -476,21 +476,21 @@ void* SurfaceOf(const void* holder) {
 
 sg_view SurfaceView(const void* holder) {
     void* surface = SurfaceOf(holder);
-    if (!surface) return White().view;
+    auto memory = g_memory.find(holder);
+    if (!surface && memory == g_memory.end()) return White().view;
     std::uint32_t frame = FrameNumber();
     Texture& t = g_textures[holder];
     t.usedFrame = frame;
     if (t.surface == surface && t.checkedFrame == frame) return t.view.id ? t.view : White().view;
-    // Textures are checked once a frame: ones in game-owned memory ("cpuwindows": the save / load
-    // screen's pictures) by comparing that memory with what they were made from, the others by
+    // Textures are checked once a frame: ones in the renderer's memory ("cpuwindows": the save /
+    // load screen's pictures) by comparing that memory with what they were made from, the others by
     // the surface's uniqueness value (without one, read once).
-    auto client = g_clients.find(holder);
-    if (client != g_clients.end()) {
-        bool reread = t.surface != surface || !t.view.id || ClientChanged(g_textureSnapshots, holder, client->second);
+    if (memory != g_memory.end()) {
+        bool reread = t.surface != surface || !t.view.id || MemoryChanged(g_textureSnapshots, holder, memory->second);
         t.checkedFrame = frame;
         if (reread) {
             Retire(t);
-            ReadClientTexture(t, holder, client->second, surface);
+            ReadClientTexture(t, holder, memory->second, surface);
         }
         return t.view.id ? t.view : White().view;
     }
@@ -655,14 +655,6 @@ bool PictureFromMmpData(const void* holder, const void* data) {
     return true;
 }
 
-bool ClientMemoryOf(const void* holder, ClientMemoryView* out) {
-    auto it = g_clients.find(holder);
-    if (it == g_clients.end()) return false;
-    const Client& c = it->second;
-    *out = ClientMemoryView{c.bits, c.pitch, c.width, c.height, c.bitsPerPixel, c.red, c.green, c.blue, c.alpha};
-    return true;
-}
-
 const Picture* PictureOf(const void* holder) {
     auto it = g_pictures.find(holder);
     return it == g_pictures.end() ? nullptr : &it->second;
@@ -677,17 +669,17 @@ sg_view TextureView(const void* texture) {
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height) {
     *width = *height = 0;
     void* surface = SurfaceOf(holder);
-    if (!surface) return sg_view{};
+    auto memory = g_memory.find(holder);
+    if (!surface && memory == g_memory.end()) return sg_view{};
     std::uint32_t frame = FrameNumber();
     Texture& t = g_windows[holder];
     t.usedFrame = frame;
     // Window surfaces are checked at every blit (the game may redraw one between two blits of a
-    // frame): ones in game-owned memory by comparing that memory with what they were made from,
+    // frame): ones in the renderer's memory by comparing that memory with what they were made from,
     // others by the surface's uniqueness value (without one, read once a frame).
     DWORD now = 0;
-    auto client = g_clients.find(holder);
-    bool changed = client != g_clients.end()
-                       ? ClientChanged(g_snapshots, holder, client->second)
+    bool changed = memory != g_memory.end()
+                       ? MemoryChanged(g_snapshots, holder, memory->second)
                        : Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
     bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) || changed;
     t.checkedFrame = frame;
@@ -803,17 +795,61 @@ void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
 
 namespace render {
 
-void ClientSurface(const void* holder, void* bits, int pitch, int width, int height, int bitsPerPixel,
-                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
-    if (!holder || !bits) return;
-    detail::g_clients[holder] = detail::Client{bits, pitch, width, height, bitsPerPixel, redMask, greenMask, blueMask,
-                                               alphaMask};
+const SurfaceMemory* NewSurfaceMemory(const void* holder, int width, int height, int bitsPerPixel, std::uint32_t redMask,
+                                      std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
+    if (!holder || width <= 0 || height <= 0 || (bitsPerPixel != 16 && bitsPerPixel != 32)) return nullptr;
+    FreeSurfaceMemory(holder);
+    // A top-down DIB section with the channels at the format's masks; rows are DWORD-aligned.
+    struct {
+        BITMAPINFOHEADER header;
+        DWORD masks[3];
+    } info{};
+    info.header.biSize = sizeof(BITMAPINFOHEADER);
+    info.header.biWidth = width;
+    info.header.biHeight = -height;
+    info.header.biPlanes = 1;
+    info.header.biBitCount = static_cast<WORD>(bitsPerPixel);
+    info.header.biCompression = BI_BITFIELDS;
+    info.masks[0] = redMask;
+    info.masks[1] = greenMask;
+    info.masks[2] = blueMask;
+    void* bits = nullptr;
+    HBITMAP bitmap = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&info), DIB_RGB_COLORS, &bits, nullptr, 0);
+    if (!bitmap || !bits) {
+        if (bitmap) DeleteObject(bitmap);
+        return nullptr;
+    }
+    SurfaceMemory m;
+    m.bits = bits;
+    m.bitmap = bitmap;
+    m.pitch = ((width * bitsPerPixel / 8) + 3) & ~3;
+    m.width = width;
+    m.height = height;
+    m.bitsPerPixel = bitsPerPixel;
+    m.redMask = redMask;
+    m.greenMask = greenMask;
+    m.blueMask = blueMask;
+    m.alphaMask = alphaMask;
+    return &(detail::g_memory[holder] = m);
 }
 
-void ClientSurfaceGone(const void* holder) {
-    detail::g_clients.erase(holder);
+const SurfaceMemory* SurfaceMemoryOf(const void* holder) {
+    auto it = detail::g_memory.find(holder);
+    return it == detail::g_memory.end() ? nullptr : &it->second;
+}
+
+void FreeSurfaceMemory(const void* holder) {
+    auto it = detail::g_memory.find(holder);
+    if (it != detail::g_memory.end()) {
+        DeleteObject(static_cast<HBITMAP>(it->second.bitmap));
+        detail::g_memory.erase(it);
+    }
     detail::g_snapshots.erase(holder);
     detail::g_textureSnapshots.erase(holder);
+}
+
+void HolderGone(const void* holder) {
+    FreeSurfaceMemory(holder);
     detail::g_pictures.erase(holder);
 }
 

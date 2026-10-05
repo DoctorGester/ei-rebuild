@@ -282,7 +282,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     if (!imageHolder || !mask || !Active() || !Started()) return;
     auto* dd = *reinterpret_cast<IDirectDrawSurface7* const*>(static_cast<const char*>(imageHolder) + 0x10);
     int w = from.right - from.left, h = from.bottom - from.top;
-    if (!dd || w <= 0 || h <= 0 || w > 256 || h > 256) return;
+    if (w <= 0 || h <= 0 || w > 256 || h > 256) return;
     FpuGuard fpu;
     std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * h * 4, 0);
     // The image loaded from its picture (004EFC60, render::PictureFromMmp): the colours from the
@@ -311,6 +311,9 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
         CursorBlit(rgba, w, h, to);
         return;
     }
+    // Otherwise read from the image's surface (a picture holder made in the switch-over has none:
+    // its colours always come from the picture above).
+    if (!dd) return;
     DDSURFACEDESC2 d{};
     d.dwSize = sizeof(d);
     LockGameDevice();

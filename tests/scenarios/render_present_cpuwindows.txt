@@ -5,7 +5,9 @@
 # a CPU stretch). Captures are the new frames; compare with render_present and frames_basic:
 #   python tools\compare_frames.py <render_present run>\frames <this run>\frames
 # The escape menu must show the greyed world behind its stones (not black, not the old frame).
-# ei_hook.log must not say "cpuwindows: client-memory surface ... refused". world / world_again
+# ei_hook.log must not say "cpuwindows: client-memory surface ... refused"; since R7 it says once
+# "cpuwindows: surface holders in the switch-over get no DirectDraw surface" (the windows, the
+# cursor's holders and images, the movies have only the new renderer's memory). world / world_again
 # must match.
 render new,present,cpuwindows
 reject Script error

@@ -56,7 +56,7 @@ src/game/device_mesh.cpp,10,0,1,0,0,0
 src/game/device_present.cpp,8,0,0,0,0,0
 src/game/device_shadow.cpp,6,0,1,0,0,0
 src/game/device_states.cpp,12,0,0,0,0,0
-src/game/dx_surface.cpp,64,2,0,0,4,0
+src/game/dx_surface.cpp,0,2,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0
 src/game/effects_weather.cpp,0,1,0,0,1,0
 src/game/engine_object.h,0,0,0,0,1,0

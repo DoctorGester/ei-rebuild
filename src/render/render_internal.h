@@ -215,8 +215,9 @@ void DestroyBlits();
 
 // The game texture `texture` (a CTexture) or a surface holder (CDXSurface, what CTexture +0x5C
 // points at) as a texture view for sampling, with its mip levels; re-read when the surface's
-// contents changed (IDirectDrawSurface7 uniqueness value). A white texture when it cannot be read
-// (render_textures.cpp). Valid until the next Present.
+// contents changed (IDirectDrawSurface7 uniqueness value; for a holder with SurfaceMemory, when that
+// memory changed). A white texture when it cannot be read (render_textures.cpp). Valid until the
+// next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);
 // The texture of `holder` made from CPU pixels (render::TexturePixels); it is not read from its
@@ -225,24 +226,18 @@ bool TextureFromPixels(const void* holder, const void* pixels, int width, int he
                        std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 // The texture of `holder` decoded from .mmp file data (render::TextureFromMmp).
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
-// A window surface (CUiSurface's holder) as one level, read now when its contents changed; texels
-// equal to `key` (the surface's pixel format) transparent when `keyed`.
+// A window surface (CUiSurface's holder) as one level, read now when its contents changed (from its
+// SurfaceMemory when it has some: a holder made in the switch-over has nothing else); texels equal
+// to `key` (the surface's pixel format) transparent when `keyed`.
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height);
 // A picture loaded into a surface holder (render::PictureFromMmp): level 0 as RGBA8, kept until
-// the holder goes (render::ClientSurfaceGone).
+// the holder goes (render::HolderGone).
 struct Picture {
     int width = 0, height = 0;
     std::vector<std::uint8_t> rgba;
 };
 bool PictureFromMmpData(const void* holder, const void* data);
 const Picture* PictureOf(const void* holder);
-// The game-owned memory of a surface holder (render::ClientSurface); false when it has none.
-struct ClientMemoryView {
-    void* bits;
-    int pitch, width, height, bitsPerPixel;
-    std::uint32_t red, green, blue, alpha;
-};
-bool ClientMemoryOf(const void* holder, ClientMemoryView* out);
 sg_sampler LinearSampler();
 sg_sampler StageSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a

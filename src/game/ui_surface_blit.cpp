@@ -6,7 +6,8 @@
 // device object +0x0C -> +0x18): with the matching source rectangle, or the whole surface stretched
 // when bit 2 is set; with the source colour key +0x34 when bit 1 is set. Nothing when the surface is
 // the render target itself. The new renderer (src/render) takes the same blit; with "nointerface"
-// the old blit is skipped. See docs/notes/renderer.md.
+// the old blit is skipped, as it is for a holder without a DirectDraw surface (made in the
+// switch-over: its pixels are only in the new renderer's memory). See docs/notes/renderer.md.
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -75,7 +76,8 @@ void __fastcall UiSurfaceBlit(char* surface) {
         render::Rect part{source.left, source.top, source.right, source.bottom};
         render::SurfaceBlit(holder, destination, sourceRect ? &part : nullptr, keyed, key);
     }
-    if (!render::DrawOldInterface()) return;
+    // The old path's blit (a holder made in the switch-over has no DirectDraw surface to blit).
+    if (!render::DrawOldInterface() || !sourceSurface) return;
 
     if (keyed) {
         BltFx fx{};

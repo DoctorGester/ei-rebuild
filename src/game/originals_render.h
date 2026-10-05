@@ -36,6 +36,12 @@ __declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* 
 // object, width, height; RET 0xC; returns `memory`).
 __declspec(naked) inline char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/,
                                                                       int /*width*/, int /*height*/) EI_ORIGINAL(0x004EF7B0)
+// 004EFC60 (rewritten as DXSurfaceFromPicture, dx_surface.cpp; called through its address so the wrapper runs):
+// the CDXSurface constructor on `memory` for an 8888 .mmp picture (thiscall: device object, the picture's file
+// data, flag (low byte: video memory); RET 0xC; returns `memory`, throws when the picture cannot be loaded).
+__declspec(naked) inline void* __fastcall DXSurfaceFromPictureOriginal(void* /*memory*/, void*, void* /*device*/,
+                                                                        const void* /*picture*/, int /*flag*/)
+    EI_ORIGINAL(0x004EFC60)
 // 004EFA60: the CDXSurface constructor on `memory` from a DDSURFACEDESC2 (thiscall: device object, description;
 // RET 8; returns `memory`).
 __declspec(naked) inline void* __fastcall DXSurfaceFromDescOriginal(void* /*memory*/, void*, void* /*device*/,
