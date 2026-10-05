@@ -32,9 +32,28 @@ bool HasPixels(const CDXSurface* holder, bool systemMemory) {
 }
 } // namespace
 
+namespace {
+// In the switch-over the screen's format comes from the display mode (dx_surface.cpp,
+// ReadScreenFormat): a memory-only holder's channels must be the primary surface's (the original's
+// source) while there still is one.
+bool PrimaryFormat(const CDXSurface* holder) {
+    const render::SurfaceMemory* memory = render::SurfaceMemoryOf(holder);
+    CDXSurface* primary = holder->device ? holder->device->primary_ : nullptr;
+    if (holder->surface || !memory || !primary || !primary->surface) return true;
+    std::uint32_t format[8] = {0x20};
+    using GetPixelFormat = long(__stdcall*)(void*, void*);
+    auto get = reinterpret_cast<GetPixelFormat>((*static_cast<void***>(primary->surface))[21]);
+    if (get(primary->surface, format) != 0) return true;
+    std::uint32_t alpha = (format[1] & 1) ? format[7] : 0;
+    return static_cast<std::uint32_t>(memory->bitsPerPixel) == format[3] && memory->redMask == format[4] &&
+           memory->greenMask == format[5] && memory->blueMask == format[6] && memory->alphaMask == alpha;
+}
+} // namespace
+
 // 004EF7B0: returns the holder with its vtable, the device and a surface of the asked size (it
 // throws instead of returning without one); in the switch-over with "cpuwindows" the new
-// renderer's memory of that size instead (no DirectDraw surface).
+// renderer's memory of that size instead (no DirectDraw surface), in the primary surface's format
+// (taken from the display mode there). Every scenario (the interface windows).
 static void* s_construct;
 static CDXSurface* __fastcall DXSurfaceConstructVerify(CDXSurface* holder, void*, CTextureDevice* device, int width,
                                                        int height) {
@@ -43,6 +62,7 @@ static CDXSurface* __fastcall DXSurfaceConstructVerify(CDXSurface* holder, void*
               HasPixels(holder, true) && holder->width == width && holder->height == height;
     ei::verify::Check("DXSurfaceConstruct", true, ok, "%dx%d, surface %p, memory %d", width, height, holder->surface,
                       render::SurfaceMemoryOf(holder) ? 1 : 0);
+    ei::verify::Check("DXSurfaceConstruct screen format", true, PrimaryFormat(holder), "%dx%d", width, height);
     return result;
 }
 EI_VERIFY(0x004EF7B0, DXSurfaceConstructVerify, 0, s_construct);

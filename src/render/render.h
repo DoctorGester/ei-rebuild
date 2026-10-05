@@ -24,8 +24,9 @@
 //              noobjects, nointerface, cpuwindows; movies too) and the new frame is copied into the
 //              game's render target before the old present shows it; captures write the new frame
 //              as frames\<name>.bmp. With cpuwindows the holders of 004EF7B0 / 004F0060 and the
-//              texture manager's CPU-written textures (00691D80) then have no DirectDraw surface
-//              at all, only that memory
+//              texture manager's textures then have no DirectDraw surface at all: the CPU-written,
+//              shadow and .bmp ones only that memory, the .mmp ones only the new renderer's
+//              decoded copy (TextureFromMmp)
 // Without "new" nothing here runs and the game draws exactly as before.
 
 #include <cstdint>
@@ -50,8 +51,9 @@ bool Active();
 // as the surface's memory; in the switch-over ("present") such a holder has no DirectDraw surface at
 // all. The new renderer reads a holder's (CDXSurface) pixels there wherever it draws it, instead of
 // locking a surface. Texture holders can have such memory too (the save / load screen's pictures
-// beside their DirectDraw texture; in the switch-over every texture of 00691D80 instead of one): a
-// mesh pass that binds one reads the memory, again whenever it changed.
+// beside their DirectDraw texture; in the switch-over the textures of 00691D80, the shadow and the
+// .bmp textures instead of one): a mesh pass that binds one reads the memory, again whenever it
+// changed.
 bool CpuWindows();
 // A surface holder's pixels: a zeroed top-down DIB section (GDI can draw into it through a memory
 // DC) of `width` x `height` pixels, 16 or 32 bits each, the channels at the given masks (`alphaMask`
@@ -126,12 +128,16 @@ struct MeshDraw {
 
 // A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
 // `mip` on (`levels` of them) that the game loads into the surface of `holder` (a CDXSurface). The
-// new renderer decodes them from the file instead of reading the surface back.
-void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
+// new renderer decodes them from the file instead of reading the surface back, keyed by the
+// holder: in the switch-over the holder has no DirectDraw surface at all and the decoded texture is
+// kept until the holder goes (HolderGone). False when it was not decoded (the sidecar is off, or
+// the format is not one it reads: the caller then gives the holder a DirectDraw texture).
+bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
 
 // The game made new pixels for a texture on the CPU (the shadow textures, 0051CE60) and copies
 // them into its surface (CDXSurface): the new renderer takes them from the buffer (`pitch` bytes
-// per row, `bitsPerPixel` 16 or 32, the channel masks of the surface's format).
+// per row, `bitsPerPixel` 16 or 32, the channel masks of the surface's format). Nothing for a holder
+// with SurfaceMemory (the switch-over's shadow textures): it is read from that memory.
 void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
                    std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 void BeginMesh(void* device, const MeshDraw& mesh);

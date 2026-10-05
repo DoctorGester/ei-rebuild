@@ -5,6 +5,7 @@
 #include "map_object_figures.h"
 #include "maths.h"
 #include "object.h"
+#include "texture.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -47,7 +48,6 @@ void* TextureStages() { return reinterpret_cast<void*>(0x007AF060); }
 AlignedRecordBuffer& Points() { return *reinterpret_cast<AlignedRecordBuffer*>(0x007AF1F8); }
 AlignedRecordBuffer& Pixels() { return *reinterpret_cast<AlignedRecordBuffer*>(0x007AF1E0); }
 AlignedRecordBuffer& Quads() { return *reinterpret_cast<AlignedRecordBuffer*>(0x007AF208); }
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 constexpr int kTypePointLight = 0x31;
 constexpr int kClassUnitObject = 0x50;
@@ -491,19 +491,13 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     std::memcpy(description.bits, pixels.data(), pixels.size());
     UnlockSurface(surface);
 
-    // Copy the surface into the shadow texture.
-    void* textureSurface = At<void*>(self->texture, 0x5C);
-    void* renderSurface = At<void*>(surface, 0x5C);
-    void* renderDevice = RenderDevice();
-    gameapi::EnterCriticalSection(DeviceLock());
-    void* d3d = At<void*>(renderDevice, 0x54);
-    using CopyRects = long(__stdcall*)(void*, void*, void*, void*, void*, void*);
-    auto copy = reinterpret_cast<CopyRects>((*static_cast<void***>(d3d))[0xAC / 4]);
-    At<long>(renderDevice, 8) = copy(d3d, At<void*>(textureSurface, 0x10), nullptr, At<void*>(renderSurface, 0x10),
-                                     nullptr, nullptr);
-    gameapi::LeaveCriticalSection(DeviceLock());
-    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format.
-    render::TexturePixels(textureSurface, pixels.data(), kTextureSize, kTextureSize, description.pitch,
+    // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
+    // new renderer's memory, texture_shadow.cpp).
+    auto* shadowTexture = static_cast<CTexture*>(self->texture);
+    shadowTexture->LoadPixelsFrom(static_cast<CTextureDevice*>(RenderDevice()), static_cast<const CTexture*>(surface));
+    // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
+    // texture in its memory is read from there instead).
+    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
                           description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
                           description.alphaMask);
 
