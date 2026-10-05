@@ -166,9 +166,27 @@ void* AllocAligned(std::size_t bytes);
 void FreeAligned(void* data);
 
 // The tooltip attached to a region (0x184 bytes, constructed by 0065E320).
+class CUiRegion;
 struct CUiTooltip {
-    void** vtable_;                  // slot 0: deleting destructor
-    std::uint8_t unknown_004[0x180 - 0x004];
+    // Slot 0: the deleting destructor (with 1: the memory is freed).
+    void Delete() {
+        using Fn = void(__thiscall*)(CUiTooltip*, int);
+        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+    }
+
+    void** vtable_;                  // 00742F64 (the window's; its input side 00742F30 at +0x94)
+    std::uint8_t unknown_004[0x148 - 0x004];   // the CUiWindow base
+    void* linesVtable_;              // +0x148 CStringArray: the text's lines (none for an empty text)
+    char** lines_;                   // +0x14C
+    int lineCount_;                  // +0x150
+    std::uint8_t unknown_154[0x164 - 0x154];
+    int flag_;                       // +0x164 the constructor's fourth argument (1 almost everywhere)
+    int extra_;                      // +0x168 its fifth (the HUD's slot tips: an index)
+    int unknown_16C;                 // +0x16C
+    CUiRegion* region_;              // +0x170 the region it belongs to
+    int width_;                      // +0x174 widest line + 12 (a text only)
+    int height_;                     // +0x178 the lines' heights + 8
+    int unknown_17C;                 // +0x17C 0
     int state_;                      // +0x180 0, 1: idle/hovered; other values: shown
     // 0065E580. Tracks the mouse (layout coordinates).
     void OnMouseMove(int x, int y);
@@ -180,6 +198,9 @@ struct CUiTooltip {
     bool Shown() const { return state_ != 1 && state_ != 0; }
 };
 static_assert(offsetof(CUiTooltip, state_) == 0x180);
+static_assert(offsetof(CUiTooltip, lines_) == 0x14C);
+static_assert(offsetof(CUiTooltip, flag_) == 0x164);
+static_assert(offsetof(CUiTooltip, region_) == 0x170);
 
 struct UiPoint {
     int x;
@@ -203,13 +224,17 @@ public:
     void AddPoint(int x, int y);
     // 005FC880. Updates the tooltip state for a mouse position and forwards it to the tooltip.
     void OnMouseMove(int x, int y);
-    // 005FC600 (not rewritten). Releases the tooltip and the vertex storage.
+    // 005FC600 (ui_region_tips.cpp). The destructor body: deletes the tooltip and frees the
+    // vertex storage (the fields are left as they are).
     void ReleaseContents();
-    // 005FC690 (not rewritten). Sets the tooltip's text (when there is a tooltip).
+    // 005FC690 (RET 4; ui_region_tips.cpp). Sets the tooltip's text (0065E540) when there is a
+    // tooltip.
     void SetTipText(const char* text);
-    // 005FC730 (not rewritten). Gives the region the tooltip with text "tip_<id>" (0: none).
+    // 005FC730 (RET 0xC; ui_region_tips.cpp). Replaces the tooltip by one with the text
+    // "tip <id>" (up to a '#'; the key itself when there is no such text) and (a, b); id 0 gives
+    // an empty tooltip with (1, 0).
     void SetTip(int textId, int a, int b);
-    // 005FC6B0 (not rewritten). Gives the region a tooltip showing `text`.
+    // 005FC6B0 (RET 0xC; ui_region_tips.cpp). Replaces the tooltip by one showing `text`.
     void SetTipString(const char* text, int a, int b);
     // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
     void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0

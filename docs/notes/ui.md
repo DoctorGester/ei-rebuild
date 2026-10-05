@@ -90,6 +90,7 @@ disappearing, 4 shown (0065E580, Rebirth-patched, advances them). The scale help
 | 005FD3A0, 005FE400, 005FC450 | `CUiSurface::SetRect`, `MoveTo`, `CUiModel::SetScreenPosition` | original on a copy |
 | 005FC8F0, 005FC660, 005FFCC0, 005FFD30 | `CUiRegion::HitTest`, `HasActiveTip`, `CUiWindow::RegionAt`, `ContainsPoint` | pure |
 | 005FC9E0, 005FCA40, 005FCA70, 005FC880, 005FEBF0, 006002A0 | `CUiRegion::SetRect`, `ClearShape`, `AddPoint`, `OnMouseMove`, `CUiWindow::UpdateRegionTips` (RET 4), `SetEnabled` | ours only, fields |
+| 005FC730, 005FC6B0, 005FC690, 005FC600 | `CUiRegion::SetTip` ("tip %d" up to '#'; a missing text shows the key), `SetTipString`, `SetTipText`, `ReleaseContents` (`ui_region_tips.cpp`) | ours only: a fresh tooltip (vtable 00742F64, its region, idle; the two arguments when it has lines); the fields after release |
 | 005FEDD0-005FF7D0, 005FFA90-005FFC50, 005FF830-005FFA20, 005FFD80, 005FFF40 | `AddObject`, `RemoveObject(At)`, `RemoveSceneObject(At)` (returns 1/0), `ClearSceneObjects`, `AddSurface` (returns its argument), `RemoveSurfaceAt`, `ClearSurfaces`, `AddRegion`, `RemoveRegionAt`, `ClearRegions`, `AddModel` (0 on allocation failure), `ClearModels` | ours only, array contents |
 | 006003D0, 006004E0, 00600730, 00600840, 00600950 | `UiPtrArray<T>::SetSize` (five identical copies) | ours only, size / capacity rule / kept prefix |
 
@@ -101,7 +102,7 @@ to 0 or 2, 2 to 4, 3 to 0), so the wrapper checks the final state is reachable f
 `AddRegion` leaves the new region's bounds uninitialised; the array append has a dead branch for `size == -1` that frees the storage and stores
 through the null array; removing by index does not check it (past the end the original's `REP MOVSD` count goes negative and faults; ours
 skips the move). Not rewritten: STLport / MFC template code (005F3000-005F4990, 005F9810-005FC010, 0060A320-0060BD70, 00613400-00613DF0,
-00619420-0061B220, 0062A390, ...), region tooltip creation 005FC730 / 005FC6B0 ("tip_%d" text lookup, 0x184 bytes).
+00619420-0061B220, 0062A390, ...).
 
 ### Window stack, screen construction, window base methods (all ours only unless noted)
 
