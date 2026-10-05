@@ -6,8 +6,16 @@ Ghidra left outside any function body, pseudo nodes split after every RET/JMP. E
 another node; fall-through into the next node; vtable -> its slots. Roots: the entry point, any
 pointer stored in .rdata/.data outside a known vtable, references from Rebirth's binaries.
 """
-import bisect, csv, os, re, struct
+import bisect, csv, os, re, struct, sys
 import capstone
+
+# It rewrites config/dead_code.csv from scratch, which drops rows added by hand (functions Ghidra
+# never made, coincidental pointers ruled out by reading). Refuse to run with any argument
+# (e.g. --help) so it is never run by accident.
+if len(sys.argv) > 1:
+    print(__doc__)
+    print('Takes no arguments. Warning: it rewrites config/dead_code.csv and drops hand-added rows.')
+    sys.exit(0)
 from capstone import x86
 
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
