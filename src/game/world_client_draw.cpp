@@ -1,6 +1,6 @@
 // CWorldClient's draw path: Render (00569E40) and DrawPass (0056AFE0), with Rebirth's
 // LandscapeDrawRadius and ObjectsDrawRadius behind their flags. See world.h and
-// docs/notes/world.md ("Map of the client frame").
+// docs/notes/world.md.
 //
 // Both talk to Direct3D 7 through the renderer (007AF080: +0x54 the IDirect3DDevice7, +0x08 the
 // last state block result) and to the render device's matrix stacks (007AF068), exactly as the

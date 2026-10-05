@@ -1,5 +1,5 @@
 // CWorldServer::Update (vtable slot 6, 0058DFF0): one world update. See world.h and
-// docs/notes/world.md ("World tick" and seventh round).
+// docs/notes/world.md.
 #include "world.h"
 
 #include "core_maths.h"

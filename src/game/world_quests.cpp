@@ -1,5 +1,5 @@
 // CWorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
-// variables "b.mercN.nK_N"). See world.h and docs/notes/world.md (seventh round).
+// variables "b.mercN.nK_N"). See world.h and docs/notes/world.md.
 #include "world.h"
 #include "game_strings.h"
 
