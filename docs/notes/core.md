@@ -76,16 +76,12 @@ File `engine_object.cpp`, `base_manager.cpp`, `hash_tables_400.cpp`. Verify `ver
 - Objects are never freed while the manager lives: RemoveObject turns them into spares of their type
   (id -1) and CreateObject takes a spare before asking slot 14. Ids are maxId + 1 while that fits the
   range, else `rand()` probing (100000 tries, then the fatal "CBaseManager::RegisterInstant" and id -1).
-- Rewritten: 00402B20 ConstructBase, 00402DF0 DestructBody, 00402DD0 / 00402D20 deleting destructors,
-  00402D40 CopyFrom, 00402CE0 / 00402CF0 name / description, 00403020 Create, 004031B0 Init, 004031E0
-  Destroy, 004034E0 DestroyAll, 00403730 CreateObject, 00404040 RemoveObject, 004039B0 Unregister,
-  00403BD0 RegisterInstant, 00404410 FreeRecords, 004046E0 / 00404760 Load / Save, 004047E0 /
-  00404860 LoadObjects / SaveObjects (end mark -0x521), 004048F0 ReleaseUnused, 00404920 / 00404960
-  `ObjectListIterator::First / Next`, 00403720 SetContext, the empty slots 00402D60 / 70 / 90 / A0 / B0,
-  the id tables' SetAt / RemoveKey / Lookup / operator[] (00404E80-00406AA0, `hash_tables_400.cpp`) and
-  the class registry 0079B270 (00408EA0, 00408D60). Verify: ours only with state checks, or side by
-  side on a scratch copy (ConstructBase: `BuiltCompare`). Several are reached only through vtables
-  (DestroyAll; Unregister / RegisterInstant by a derived manager around vtable 00743D10).
+- Rewritten: ConstructBase 00402B20, DestructBody 00402DF0, deleting destructors 00402DD0 / 00402D20, CopyFrom 00402D40, name / description 00402CE0 / 00402CF0, Create
+  00403020, Init 004031B0, Destroy 004031E0, DestroyAll 004034E0, CreateObject 00403730, RemoveObject 00404040, Unregister 004039B0, RegisterInstant 00403BD0, FreeRecords
+  00404410, Load / Save 004046E0 / 00404760, LoadObjects / SaveObjects 004047E0 / 00404860 (end mark -0x521), ReleaseUnused 004048F0, `ObjectListIterator::First / Next`
+  00404920 / 00404960, SetContext 00403720, the empty slots 00402D60 / 70 / 90 / A0 / B0, the id tables 00404E80-00406AA0 (`hash_tables_400.cpp`) and the class registry
+  0079B270 (00408EA0, 00408D60). Verify: ours only with state checks, or a scratch copy (ConstructBase: `BuiltCompare`); DestroyAll and Unregister / RegisterInstant (a derived
+  manager around vtable 00743D10) are reached only through vtables.
 - Not hookable (shorter than the 5-byte jump): 00402CC0, 00402CD0, 00402D00, 00402D10, 00402D80,
   00402DC0, 00403010 (RETs / `return 0` slots).
 - Verify fixes worth remembering: ConstructBase and the registry constructor copy uninitialised stack
@@ -175,17 +171,9 @@ is at 0079B2A8 (flags at 0079B2B0; 007AF7C8 points to it for the camera-file pla
 call is `CCamera::Update` from the game frame 00456440 (WinMain; Rebirth patches the caller).
 `CCamera` ("CCamera", class id 0x43, vtable 0073B9E0) derives from `CTransformObject`.
 
-Layout beyond the transform: +0x94 settings (`CameraSettings`: clearance +0xFC, limits +0x110 normal /
-+0x124 briefing, briefing pitch +0x134/+0x138, start focus / distance +0x104..+0x120, view records +0x178
-(4 x 0x18), pitch +0x1D8/+0x1DC in degrees), +0x98 pan velocity, +0xA4 its target, +0xB0 pan response,
-+0xB4..+0xBC turn rate / target / response, +0xC0..+0xC8 tilt, +0xCC..+0xD4 zoom, +0xE0 focus, +0xEC
-focus height, +0xF0 distance, +0xF4 heading quaternion, +0x104 pitch (degrees), +0x108 shake list
-(STLport list of {elapsed, duration, amplitude, decay}), +0x10C/+0x118 bounds circle, +0x11C target
-id, +0x120 eight saved views {distance, rotation, pitch}, +0x1E0 view stack (deque; push 00410E70 /
-pop 00410EF0, no Ghidra functions), +0x2E0..+0x2E8 near / far / fov (read by `renderer_init`), +0x2EC
-file name, +0x2F0 keys (0x24 bytes: time, ?, position, rotation), +0x2F4 count, +0x300 time offset,
-+0x304 key index. Flags: 0x8 follow the target, 0x10 file open (recording), 0x20 playing, 0x40 free
-placement, 0x100 bounded, 0x200 briefing limits.
+Layout is in `camera.h` (named members). Not obvious from it: flags 0x8 follow the target, 0x10 file open (recording), 0x20 playing, 0x40 free placement, 0x100
+bounded, 0x200 briefing limits; the view stack at +0x1E0 is a deque (push 00410E70 / pop 00410EF0, no Ghidra functions); keys at +0x2F0 are 0x24 bytes (time, ?,
+position, rotation); +0x2E0..+0x2E8 near / far / fov are read by `renderer_init`; pitch is kept in degrees (+0x104, settings +0x1D8 / +0x1DC).
 
 | Address | Name | Verify |
 |---|---|---|
