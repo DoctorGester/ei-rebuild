@@ -149,7 +149,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Objects | CollectVisible's per-class visible and shadow lists (client world 007AF5B4); per object the model matrix +0x54 and the figure state +0x98 | through the mesh draws below | drawn |
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed / animated by the game), the corners (position, colour, texture coordinate indices), colours / speculars as lit by the game (005A7A70 step 3; flag 4: the device's flat colour +0x150 and an alpha), texture coordinates and offsets; the matrix: the top of the pipeline's screen stack (+0x1C, the clip stack +0x24 times the viewport mapping, converted back to clip space for the full frame); the old device's distance fog switch +0x158 and range (transform object +0x34 / +0x3C) | DeviceDrawMesh 004E9010 / 004E9A50 -> `render::BeginMesh` | drawn |
 | Pass state | per pass of a mesh (the material's technique: one state block per pass, 004EB550; or the two textures of 004EB370): blend and factors, alpha test, depth test / write / function, culling, specular, fog and its colour, texture factor, two texture stages' colour / alpha operations and arguments, filters, addressing, and the bound surface holders (device +0x12C / +0x130) | DeviceDrawIndexed 004EB550 / DeviceDrawTwoTextures 004EB370 -> `render::MeshPass`, read back from the old device (the state blocks are opaque) | drawn; later the materials from the game's data |
-| Depth clears | the battle screen's before its panels (00636020), the hero preview's (005EC300: all to 0, its rectangles to 1) | `render::ClearDepth` | drawn; 00627390 (not rewritten) missing |
+| Depth clears | the battle screen's before its panels (00636020), the hero preview's (005EC300: all to 0, its rectangles to 1), the trade grid's (00627390), the hero equipment panel's (00622420: all to 0, the seven body slots to 1, all to 1), screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX slots 8 / 9 / 11 / 12 into a surface), ground quad 0056C750, drawn with 004EA4A0 | 004EA4A0 (rewritten) -> `render::BeginMesh` without corners (per-vertex positions, one colour pair, depth scale); the texture from the render surface right after 0051CE60 copies it (`render::TextureChanged`) | drawn |
 | Particles, ribbons, lightning, hit points, vision fog | the renderer's pre-transformed draws: sprites 00502CA0 -> 00503680 (particles, the vision fog's quads), ribbons 00501D90 -> 00502A20 (lightning), triangles 00501BB0 (rewritten, `renderer_triangles.cpp`: flying hit points); the line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`: debug lines) | `render::TlDraw` at the draws (vertices after the fog pass, the old device's state) | drawn; later: the particle data itself instead of its screen quads |
 | Weather | rain and snow quads built by 004E4240 / 004E4C80 (2.6 KB each, not rewritten; procedural placement) into pre-transformed vertices (+0x70, count +0x74, indices +0x84) and drawn with the device directly | the weather draw 004E5680 rewritten (`weather_draw.cpp`): after the rain / snow returns, its triangles go to `render::TlDraw` with the device state of that moment | drawn; the old draw stays (the two builders are not split yet) |
@@ -258,10 +258,11 @@ in our runs) is still created and still used, because:
    pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
    place that sets a render state, a texture stage state or applies a state block on the old device
-   also calls `render::state::Render / Stage / Block` with the same values (16 files so far:
+   also calls `render::state::Render / Stage / Block` with the same values (17 files so far:
    device_draw, device_states, renderer_init (and a reset at device creation), renderer_lines,
    renderer_rect, renderer_sprites, renderer_strip, terrain_draw, world_client_draw, ui_alpha_draws,
-   ui_camp, ui_create_screen, ui_hero_preview, ui_hud, ui_item_view, ui_objectives). The device records only four state blocks, at its creation
+   ui_camp, ui_container_draws, ui_create_screen, ui_hero_preview, ui_hud, ui_item_view,
+   ui_objectives). The device records only four state blocks, at its creation
    (004E6392..004E67BD, handles in 007AEDDC / D8 / D4 / D0), each a stage-0 setup; a material's
    technique is a list of those handles plus its blend factors and texture records:
    | handle | colour | alpha |
@@ -331,15 +332,17 @@ in our runs) is still created and still used, because:
    switch-over; the final form presents from the new renderer's own swap chain once dgVoodoo's is
    gone (point 6).
 6. **Old device calls still made**: 524 call sites in 143 functions; with no device every one needs
-   a guard or a rewrite. 241 of the sites are in functions rewritten by now (most of them already
-   skip the device call when the new renderer takes the draw); 88 functions with DirectDraw /
+   a guard or a rewrite. 248 of the sites are in functions rewritten by now (most of them already
+   skip the device call when the new renderer takes the draw); 83 functions with DirectDraw /
    Direct3D calls are not rewritten yet (the "state presets" are done, point 3; the dead line draw
    0049B320 is left): the device setup and texture management (004E5E50,
    004E68A0, 004EE*, 0068F860..00693C60), the movies' surfaces (005DA5AB / 005DA880 / 005DB603 / 005DB9E0), the
    software cursor's primary draws (005E5640 / 005E5690 / 005E6630), the holder helpers
    (004EFA60, 004EFEA0; 004F0060 is rewritten; the save / load screen's picture locks are done,
-   section 11) and a few interface draws (00600EF0, 00602BF0, 0060C870, 00622420, 00627C90, 00628F80, 00630670,
-   00632A90, 006462A0, 0064D970, 00658E10). Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
+   section 11) and a few interface draws (0060C870, 00627C90, 00628F80, 00630670, 006462A0,
+   00658E10; 00600EF0, 00602BF0, 00622420, 00632A90 and 0064D970 are done, section 12; 0060C870 is
+   the camp's 6.5 KB Build, whose only device use is GetCaps and, with sort-independent
+   antialiasing, SetRenderState(ANTIALIAS, 2) at its end: left for a rewrite of the whole Build). Creating the device (00500B70, `renderer_init.cpp`) can only be skipped
    after 1-4; until then dgVoodoo keeps creating its device and swap chain (only never presented).
 7. **Window and display**: the child window rides on the game window; dgVoodoo's own swap chain
    stays under it. With dgVoodoo in exclusive full screen a child window may not show (windowed
@@ -602,3 +605,32 @@ picture. SaveGame ours only: a closing save has info.sav (header 0x111, 3) and s
 the picture; otherwise the pending value is untouched. Scenario `ui_saveload` (render new,present:
 autosave, Save window, a save, Load window with captures); ui_hud reaches FillEntries / ShowPicture
 with the option off. Not checked in game yet (runs are central).
+
+## 12. Interface draws with old-device calls, first group (ticket R5, 2026-10-05)
+
+Rewritten in `src/game/ui_container_draws.cpp` (each keeps the original's device calls in the same
+order; states go to `render::state`, depth clears to `render::ClearDepth`):
+
+| Address | What | Device use | Hand-over |
+|---|---|---|---|
+| 00600EF0 | CUiContainer slot 20, the container windows' base draw (escape menu, save / load, options, battle screen, camp ...): with the interface's +0x30 set, state block 007AEDD8 (texture x diffuse), the window's sprites and models (005FEB90), every enabled child's slot 20 | ApplyStateBlock (result to the device object's +8) | `render::state::Block` |
+| 00602BF0 | slot 20 of screen 3 (the base / briefing screen, vtable 007405AC): 00578910 on 007AFEA5, a mouse move (0, x, y from 007C7C50 / 54) to the input side's slot 4, the depth clear, 00600EF0 | Clear (depth, stencil when present) to 1 | `render::ClearDepth` |
+| 00632A90 | slot 20 of screen 2 (vtable 00740688): the same without the mouse move | Clear to 1 | `render::ClearDepth` |
+| 00622420 | CHeroEquipPanel slot 20 (vtable 007418E0): the two highlight frames shown / placed (the owner's slot 51 gives the hero's lists: +0x730 / 34 quick items, +0x740 / 44 the right part, +0x750 / 54 armour, +0x774 the selected quick slot), the quick items' models (005ECA10, cells 100 apart at y 50, depth 12), and with the body (the camp) the armour models in the seven slots (centres 00741EC4 / 00741EE0, 70 x 70 layout rectangles scaled by 005F7CA0, depth 6) between three depth clears, each after a flush of the two batches | Clear to 0, Clear of the 7 rectangles to 1, Clear to 1 | `render::ClearDepth` (the models already hand over through 005ECA10 and the mesh draws) |
+| 0064D970 | slot 26 of vtable 007411BC: the alpha reference set to the window's +0x1EC; returns SetRenderState's HRESULT (not stored in +8) | SetRenderState(ALPHAREF) | `render::state::Render` |
+
+In the switch-over (`present`) the old device's clears are left out (+8 set to 0): nothing the
+old path still draws there reads its depth buffer. The older clear hand-overs (00636020, 005EC300,
+00627390) still clear the old device too; they could take the same guard. The state calls stay in
+both modes (the verify build reads the states back to check the mirror). The original's 64-bit FILD
+of the unsigned quick slot * 100 + 50 is `x87::FromUnsigned`.
+
+Verify (`verify_ui_container_draws.cpp`): ours only for the four draws (the original would draw
+everything twice): 00600EF0 result 1 and the children array unchanged (every ui_* / render_*
+scenario); 00622420 result 1, the highlight frames shown exactly when the original's conditions
+hold, and with the body the last clear's result a success (ui_camp, frames_basic, render_present,
+render_present_cpuwindows); 00602BF0 / 00632A90 result 1 (no scenario reaches screens 2 / 3: a
+"brief" zone or the server's screen 2 is needed). 0064D970 differential on the real device (the
+original through the trampoline, 6 stolen bytes, the alpha reference read back; then ours; results
+and states compared); its caller (slot 26 of 007411BC) is not identified, so it may not be reached.
+Not checked in game yet (runs are central).

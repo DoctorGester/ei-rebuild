@@ -842,7 +842,8 @@ public:
     double FrameTime();
     // 006010E0 (not rewritten). Base update (slot 24): updates the children.
     void UpdateBase();
-    // 00600EF0 (not rewritten). Base drawing (slot 20); returns 1.
+    // 00600EF0 (rewritten as a free function, ui_container_draws.cpp; this forwards to its address).
+    // Base drawing (slot 20); returns 1.
     BOOL DrawContainer(int pass);
     // 00601040 (not rewritten). Base slot 22 (redraws the window and its children).
     void RedrawContainer();
