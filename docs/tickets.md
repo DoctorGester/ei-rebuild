@@ -22,6 +22,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
+- A-U (taken 2026-10-05) Area ticket: units and combat 0x00500000-0x00540000 (notes trimmed by D1).
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## App and startup, 0x00440000-0x00480000
