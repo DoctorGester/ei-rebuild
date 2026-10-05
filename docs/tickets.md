@@ -14,7 +14,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- A-U (taken 2026-10-05) Area ticket: units and combat 0x00500000-0x00540000 (notes trimmed by D1).
+- A-U done 2026-10-05 (40 functions).
+- X11 (taken 2026-10-05) Fix A-U's two failures, now in tests/verify/disabled.txt: 00534B60 PlayStepSounds (its ours-only check fails on every call: "unit 2: time 0 (expected 0), repeats -1") and 00539160 Level (4 of 8 differ, all with experience 0: log(0)). Also CTradePanel::DrawLists' pixel check should use the shared settle helper (tests/verify/pixel_settle.h).
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
