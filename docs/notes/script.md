@@ -912,3 +912,47 @@ Forwarders added: `script_load.cpp` 00461190; `script_reset.cpp` 004C3980 and th
 Not taken: 004BFC60 (find a definition by name): only the dead dumper 004D41C0 calls it.
 004B3900 (ScriptVars::AppendFrom, four calls to the rewritten appends) is the next small one;
 004BE9D0 / 004BE090 / 004BF640 destructors still need a verification idea (both runs would free).
+
+# Destructors and AppendFrom (ticket S6: 004BE090, 004BE9D0, 004BF640, 004B3900)
+
+None is in config/library.csv, config/dead_code.csv or docs/rebirth-patched-functions.txt (nor any
+callee), so they install in both launches. Every caller (rewritten or not, the C++ unwind funclets
+included) calls them through their addresses. Code: `src/game/script_destroy.cpp` (destructors),
+`script_vars_append.cpp` (AppendFrom). Verify: `tests/verify/verify_script_destroy.cpp`.
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BE090 | 438 | ScriptVarsDestruct (ScriptVars destructor) | against the original on a deep copy (copy constructor 004CB7E0), see below | runs leaving the run list (004C82B0), the reset, CScript::Load's locals: script_exec, script_parse, script_copy, world_load |
+| 004BE9D0 | 295 | ScriptDefinitionDestruct | against the original on a deep copy (built like Load's local definition, assigned with 004CB460) | instances leaving the list (004C7A10), definitions SetSize (004CD770), Load's local definition: every script load |
+| 004BF640 | 285 | ScriptCmdDestruct (SSCCmd destructor) | against the original on a deep copy (CArray<SSCCmd>::Copy 004CC0C0 from a one-element view) | command blocks freed by the reset, Clear / Load / parser temporaries: script_parse, script_exec, world_load |
+| 004B3900 | 53 | ScriptVarsAppendFrom | ours only: all eight sizes as the appends set them (the four appends check the contents) | GlobalVars sections (script_exec, script_parse, zone scripts with GlobalVars) |
+
+Destructor verification (the idea asked for in S3 / S5): the original destroys a deep copy made
+with the game's own copy functions, ours the real object. Compared: (1) the words written: every
+dword the original changed in the copy must hold the same value in the real object, every other
+dword of the real object must be unchanged (only base vtables are written; data pointers, sizes and
+capacities stay); (2) the reference counts dropped: for each CString buffer (nRefs; the shared
+empty string skipped) and world object (refCount_) the real object holds, ours must drop it by the
+number of times it is held (an SSCCmd's nested commands included), and by as much as the original
+dropped it on the copy when the copy took exactly that many references. Counters ours drops to
+zero (buffer or object possibly freed) are not read after. The frees themselves are not checked.
+While the original runs on a copy, nested destructor calls (the copy's nested commands through
+004CE230) go straight to the original; nested calls made by ours are verified in turn, so a command
+tree of depth d is copied d times.
+
+Layouts: each inlined CArray destructor writes only the base vtable (the derived destructor's store
+is dropped), destroys the elements and frees the storage, members last to first. ScriptVars: name
+arrays 0073D2F8 (006FE296), groups 0073D310 (004CE210 per element), objects 0073D11C (004CC7D0),
+floats 0073D2EC. The definition's destructor calls the out-of-line array destructors instead
+(004C26A0 names, 004C2290 objects, 004C29C0 floats; groups inline with 004CC980, strings inline),
+then the if-then pairs (0073D3AC, freed, nothing per element), parameters and name (00700970); the
+index is left. SSCCmd: nested calls 0073D418 (004CE230 per element: the command destroyed through
+004BF640 and deleted), bindings 0073D40C, group / object argument pointers 0073D400 / 0073D3F4
+(storage only), strings, floats 0073D3E8; id and the called script are left.
+
+Forwarders added: `script_destroy.cpp` 006FE296, 004CC7D0, 004CC980, 004CE210, 004CE230, 004C26A0,
+004C2290, 004C29C0; `script_vars_append.cpp` the four appends through their addresses; verify:
+004CB7E0, 004C00D0, 004CB460, 004CC0C0. The exception frames are not reproduced.
+
+Not taken: the element destructors 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0 and
+004BF620 (small wrappers around these; the same deep-copy check would fit them).

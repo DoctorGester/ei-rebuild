@@ -208,3 +208,20 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
     NamesSetSizeOriginal(&vars->groupNames, nullptr, 0, -1);
 }
 EI_REPLACE(0x004C0020, ScriptVarsClear);
+
+namespace {
+// The four appends, called through their addresses as the original does (their wrappers run).
+__declspec(naked) void __fastcall FloatsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C2B70)
+__declspec(naked) void __fastcall StringsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C2FE0)
+__declspec(naked) void __fastcall ObjectsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C3450)
+__declspec(naked) void __fastcall GroupsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C3DC0)
+} // namespace
+
+// ScriptVars::AppendFrom (the loader's GlobalVars): floats, strings, objects, groups in that order.
+void __fastcall ScriptVarsAppendFrom(ScriptVars* vars, void*, const ScriptVars* other) {
+    FloatsAppendAt(&vars->floats, nullptr, &other->floats);
+    StringsAppendAt(&vars->strings, nullptr, &other->strings);
+    ObjectsAppendAt(&vars->objects, nullptr, &other->objects);
+    GroupsAppendAt(&vars->groups, nullptr, &other->groups);
+}
+EI_REPLACE(0x004B3900, ScriptVarsAppendFrom);
