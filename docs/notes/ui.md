@@ -239,6 +239,8 @@ probably CanEquip, hero creation (00617A50).
 | 0060E6B0, 0060FE40, 0060E3E0, 0060FCA0, 0060F9E0, 0060F980, 0060F6B0, 0060F710 / 0060F7A0, 0060F830 | `Close` (slot 26), `TakeOff`, the trade panel's destructor body, `PutOn`, `RefreshWeapons` (46), `RefreshStats` (47), `Update` (24; the hero preview's turn through `_CIfmod`), `NextHero` / `PreviousHero` (48 / 49), `ShowHero` | ours only |
 | 00610AD0, 00610920 | `MoveItem` (slot 42, RET 8), `PutOnFromStrip` (RET 4) | ours only: refused leaves both counts, mode 0 takes off, mode 1 puts a weapon on a hero with room |
 | 00623880, 006233C0, 00622DB0, 00622000, 00622A80 | `CHeroStatsPanel::DrawStats`, `ShowStats`, `Build` (slot 18), `CHeroEquipPanel::Build`, `CHeroQuickStrip::Build` | ours: state untouched (GDI text only); region / sprite / text counts |
+| 00624CB0, 00625690 | `CHeroStatsPanel::HoverInfo`, `CTradePanel::HoverInfo` (RET 0xC; `ui_camp_stats.cpp`) | side by side on a copy of the caller's record (all fields) |
+| 006232D0 | `CHeroStatsPanel::SetHero` (RET 8) | side by side: arrows' visibility, tips present, hero, title, +0x170 (height * 100 truncated: a rounding-edge height may differ at another precision) |
 | 006270A0, 006279E0, 006280C0, 00628CC0 | `CTradeGrid::Build`, `CRepairGrid::Build`, `CConstructorPage::BuildSpellMaker`, `BuildItemMaker` | ours: counts, textures, surface |
 | 00625880, 006261A0, 00624F10 | `CTradePanel::BuildLists`, `DrawLists`, `Build` (slot 18) | side by side: the four lists, experience, scroll positions; surface pixels, price sprites' quads; Build ours only |
 | 00610020, 006110F0 | `CCampScreen::BestPartySkill` (slot 45), `ShowPageTabs` (slot 44) | pure; ours: the three strips' tabs (only the strips the page uses) |

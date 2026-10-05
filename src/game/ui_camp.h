@@ -40,6 +40,19 @@ static_assert(offsetof(PersonTextNode, text) == 0x14);
 // starts a selection box (an interface option; 0 or less: never).
 inline int BoxSelectThreshold() { return *reinterpret_cast<const int*>(0x0079BDB0); }
 
+struct ItemHoverInfo;
+struct PartyUnitRecord;
+
+// Slot 51 (+0xCC) of the camp and the multiplayer hero screen: the record of the hero shown.
+inline PartyUnitRecord* ShownHero(CUiWindow* screen) {
+    using Fn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
+    return reinterpret_cast<Fn>(screen->vtable_[51])(screen);
+}
+// The statistics' names (pointer tables in the exe, also their text keys): the six skill schools
+// ("Melee", ...) followed by "Science"; the attributes ("Strength", ..., index 7 "Encumbrance").
+inline const char* const* SkillNames() { return reinterpret_cast<const char* const*>(0x00793BD4); }
+inline const char* const* AttributeNames() { return reinterpret_cast<const char* const*>(0x00793BF0); }
+
 // The in-game screen (CreateScreen id 1, vtables 00740764 / 00740730, 0x230 bytes). Its Create
 // (slot 25, 00635250) builds the HUD panels as children (ui_battle_setup.cpp). Children, in
 // order: weapon bar, quick items, spell column, action column, portraits, unit panel, map,
@@ -395,6 +408,12 @@ public:
     // from learnableTop_, each price in grey when it is over the experience, with a coin sprite
     // per price (the scene objects past the first four are dropped first).
     void DrawLists();
+    // 00625690 (RET 0xC). What the statistics under the screen point (x, y) are, for the
+    // description panel: nothing while the panel is hidden or off its rows; regions 4-9 the
+    // schools (kind 1), 10 science (kind 2), 11-33 the learnable perks and 34 up the held ones
+    // (kind 3: the perk's record name without its level digits, plus "0"; held ones with their
+    // level); the hero's statistics with it.
+    void HoverInfo(int x, int y, ItemHoverInfo* info);
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C the camp or the hero screen (slot 51: the hero record)
@@ -585,6 +604,16 @@ public:
     // 00622DB0 (slot 18). Builds the panel: the hero arrows' regions, a surface, the arrow,
     // frame and -/+ button sprites, and the texts (CStringArray at +0x15C).
     void Build();
+    // 00624CB0 (RET 0xC). What the statistics under the screen point (x, y) are, for the
+    // description panel (the hero's statistics always set): rows 2 up the attributes (pages 1 and
+    // 11; page 10 rows 2-4, row 14 the points left, row 5 the height); on page 0 rows 2-5 the body
+    // parts' armour, 6 / 7 the shown weapon's attack / defence, 8 the damage, 9 encumbrance, 10
+    // the magic skills.
+    void HoverInfo(int x, int y, ItemHoverInfo* info);
+    // 006232D0 (RET 8). Shows hero `heroIndex` of the owner (and `title` when not null): the
+    // hero arrows (scene objects 0, 1) and their regions' tooltips only for a party of more than
+    // one, +0x170 = the hero's height * 100 (truncated), then DrawStats (through its address).
+    void SetHero(int heroIndex, const char* title);
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C
@@ -594,7 +623,7 @@ public:
     std::uint8_t unknown_15C[4];
     char** texts_;                   // +0x160 CStringArray data: weapon labels, the points texts, ...
     std::uint8_t unknown_164[0x170 - 0x164];
-    int points_;                     // +0x170 skill points left (page 10)
+    int points_;                     // +0x170 skill points left (page 10); SetHero puts the height * 100 here
     int unknown_174_;                // +0x174 -1
     int unknown_178_;                // +0x178 0
 };

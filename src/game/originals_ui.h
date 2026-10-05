@@ -114,3 +114,7 @@ __declspec(naked) inline void* __fastcall VariableIteratorNextOriginal(void* /*i
 // C3l. 005F74F0: the interface closes its pending windows (ECX = the interface; walks the list at +0x34..+0x38, clears the five
 // flag bytes at +0x7C..+0x80; plain RET, EAX is not a result).
 __declspec(naked) inline void __fastcall InterfaceCloseAllOriginal(void* /*interface*/) EI_ORIGINAL(0x005F74F0)
+
+// 00623880 (rewritten as CHeroStatsPanel::DrawStats; called through its address so the wrapper runs): the
+// statistics column draws itself (ECX = panel, plain RET, no result).
+__declspec(naked) inline void __fastcall StatsPanelDrawStatsOriginal(void* /*panel*/) EI_ORIGINAL(0x00623880)
