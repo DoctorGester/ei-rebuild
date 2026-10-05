@@ -857,8 +857,10 @@ shared header was changed (`ui_camp.h` includes `ui.h`, `ui_screens.h` and `obje
   only where the map is the world's own screen (a "brief" zone).
 - `LeaveToZone(player, zone, exit)` (0066F310, server side) sends message 8; the client (00669EB0)
   sets the game request kind 4 and the main loop loads `zone` directly (0057C460). The zone's type in
-  map.txt decides the mode: `game` 0 (mode 1, the battle screen), `brief` 1 (mode 4, a base such as
-  bz1g, the briefing screen), `edge` 2 (mode 3). The global map is not shown on the way.
+  map.txt decides the mode: `game` kind 0 (mode 1, the battle screen), `brief` kind 2 (mode 3, a base
+  such as bz1g), `edge` kind 1 (mode 4). (Corrected by X9: the map loader 0045EA20 stores brief as 2
+  and edge as 1, see map_database.cpp; earlier this said brief 1 / mode 4.) The global map is not
+  shown on the way.
 - The harness's new `screen <id>` step does what the global map's buttons do (for 5 it first sets
   "constr.current" to 0, as 0062FE60 does) from the battle screen of zone1.
 
@@ -2111,3 +2113,44 @@ docs/rebirth-patched-functions.txt); none is in config/library.csv or config/dea
 - 00637500 / 00637750 (spells and quick items on a unit / a point) and 0063DB20 (the quick item
   panel's release) stay: no scenario puts a wand or scroll in a quick slot or starts a spell
   target mode (a click on a spell button, then a target).
+
+## Other zones in scenarios (X9)
+
+- Harness steps `zone <name> [exit]` and `waitzone <seconds> <name>` (tests/verify/harness.cpp).
+  `zone` looks the name up in the map database (0045E850; an unknown name would make StartZone show a
+  fatal error and go to the main menu, so the step fails instead), finds the local player (server
+  world 007AFF60, `GetPlayer` 00594180 with the local id 007AFFBC = world +0x5C) and calls
+  `LeaveToZone` (0066F310) on its connection (the world player's +0x20, a CPlayerServer), exactly
+  what a zone exit's handler (00670C20, after `GetZoneExit`) and the script command `LeaveToZone`
+  (0x8A) do. It needs the connection's state 1 (+0x20, in the world); in campaign mode 1 or 3 a dead
+  or missing leader loses the game instead (vtable slot 0x50), so the step fails unless the state is
+  3 afterwards. `waitzone` passes in a main loop pass once no game request is pending, the campaign
+  mode (007C2CC4) is not 2 (menu), the server world's zone name (+0x120, set by NewZone 00595480) is
+  `<name>` and the connection is back in state 1. The party's units appear a little later
+  (Redeploy), so scenarios follow it with `waitfor ... HP(GetLeader())`.
+- `exit`: LeaveToZone stores it in the world player's +0xDC (the target zone in +0xD8); Redeploy
+  (00590700, modes 1 and 3 only) creates the party at the centre of that exit's deploy rectangle
+  (exit +0x04..+0x10) of the target zone, facing away from the map centre unless the exit has a
+  `#deployangle`; an index outside the zone's exits leaves the party at (0, 0). The index counts the
+  zone's `#exit` blocks from 0, i.e. map.txt's `#exit n` minus 1 (the map database stores an exit's
+  target index as word 2 minus 1, and real exits pass it on unchanged).
+- Zones (map.txt in texts.res, read only): game `gz1g` (zone1) `gz2g` (zone2) `gz3g` (zone3obr)
+  `gz4g` `gz5g` (zone5_1) `gz6g` `gz7g` `gz8g` `gz9g` `gz10g` `gz11k`..`gz14k` (zone11..14)
+  `gz15h`..`gz19h` (zone15..19) `gz20g` (zone20) `gz21g`; brief `bz1g` (basegipat / basecam) `bz2g`
+  `bz3g`..`bz7g` `bz8k`..`bz11k` `bz13h`..`bz16h` `bz18h` (each `<name>.mpr/.mob`); edge zones are the
+  `<a>_<b>` ways between them (no `#res`: EnterZone loads nothing and the zone is the global map's
+  travel, mode 4; `waitzone` does not recognise them). In map.txt numbers, gz1g's #exit 1, gz4g's 5, bz4g's and bz13h's 1,
+  gz11k's 4, gz15h's 2..4 and gz20g's are `none 0` (one-way entrances: arriving is fine, leaving
+  through them is not possible).
+- Zones that need something: `gz21g` names zonemichel.mpr / .mob, which the install does not have:
+  NewZone fails (`_access`) and EnterZone returns 0 (expect a fatal error; untested). `gz6g` loads
+  zone6.mpr or, when `z.gz6g.frozen` is nonzero, its frozen map (EnterZone; kFrozenMap / kThawedMap),
+  so without quest state it is the thawed one. No zone needs quest state to load; the scripts read
+  their quest variables (`q.<zone>.*`, `b.*` briefings, zone flags) and with none set behave as on a
+  first visit (quests not started). Not tried: edge zones, `endofgame`, and leaving a zone other
+  than zone1 (a second `zone` step needs the leader alive and state 1, which waitzone ensures).
+- Scenarios: `zone_gz2g_traps` (gz2g exit 0: party at (67, 15), zone2's own traps 1324..1330 from
+  the zone loader, MTF4 armed with a wolf), `zone_base_bz1g` (the brief zone bz1g: mode 3, party at
+  (59.25, 54.25), the base's Smith), `zone_gz3g` (Foothills: party at (23, 138.5), the Pyramid trap
+  4515). Not run by the author; the first central run decides whether the position, trap and Smith
+  checks hold.
