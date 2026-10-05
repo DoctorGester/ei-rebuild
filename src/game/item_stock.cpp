@@ -1,4 +1,4 @@
-// The trader stock generation (0069AE20, 0069A110): see item_stock.h and docs/notes/items_spells.md
+// The trader stock generation (0069AE20, 0069A110, 00699810 / 006995E0 / 00699A40): see item_stock.h and docs/notes/items_spells.md
 // ("Trader stock"). The STLport containers are the original's: their allocating members are called
 // through the game, the pointer copies they inline are written out here.
 #include "item_stock.h"
@@ -363,3 +363,55 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     taken.finish = taken.start;
 }
 EI_REPLACE_METHOD(0x0069A110, ItemStock::GenerateMaterials);
+
+// ---- 00699810 / 006995E0 / 00699A40 ---------------------------------------------------------------
+
+namespace {
+
+// The common body of the three instruction generators: the source records are copied to the
+// scratch 007C8680, then each (except one named `skip`) becomes an item of kind 0x3007 with the
+// class-0x15 prototype named at `prototypeName`, no material, +0x54 the record's index in the table
+// whose vector starts at `table` (records of `recordSize` bytes) and +0x48 a random count.
+void GenerateInstructions(ItemStock* stock, const StockPtrVector& source, std::uintptr_t prototypeName, std::uintptr_t table,
+                          int recordSize, const char* skip, int minCount, int maxCount, StockList* out) {
+    Constructor* ctor = ei::VCall<Constructor*>(stock->context, 16);
+    void* manager = ei::VCall<void*>(stock->context, 18);
+    StockPtrVector& taken = TakenPrototypes();
+    taken.finish = taken.start;   // erase(begin, end)
+    if (&source != &taken) AssignPointers(taken, source);
+    char* prototype = FindTable15Named(kTable15, nullptr, Text(prototypeName));
+    for (char** p = taken.start; p != taken.finish; ++p) {
+        if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
+        ctor->SetManager(manager);
+        ctor->BeginCreateItem(0x3007, -1);
+        ctor->SetPrototype(prototype);
+        ctor->SetMaterial(nullptr);
+        char* item = ctor->EndCreateItem();
+        ctor->SetManager(nullptr);
+        std::intptr_t offset = reinterpret_cast<std::intptr_t>(*p) - *reinterpret_cast<const std::intptr_t*>(table);
+        At<int>(item, 0x54) = static_cast<int>(offset) / recordSize;
+        At<int>(item, 0x48) = RandomCount(minCount, maxCount);
+        AddReference(item);
+        Output(out, item);
+    }
+    taken.finish = taken.start;
+}
+
+} // namespace
+
+void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, StockList* out) {
+    GenerateInstructions(this, weapons, 0x00796370, 0x007C86F8, 0xB4, nullptr, minCount, maxCount, out);   // "instruction weapon"
+}
+EI_REPLACE_METHOD(0x00699810, ItemStock::GenerateWeaponInstructions);
+
+void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, StockList* out) {
+    GenerateInstructions(this, armors, 0x0079635C, 0x007C8718, 200, nullptr, minCount, maxCount, out);   // "instruction armor"
+}
+EI_REPLACE_METHOD(0x006995E0, ItemStock::GenerateArmorInstructions);
+
+// Quick items named "scroll" get no instruction.
+void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, StockList* out) {
+    GenerateInstructions(this, quickItems, 0x0079638C, 0x007C8738, 0x8C, Text(0x00796384), minCount, maxCount,
+                         out);   // "instruction quick item"
+}
+EI_REPLACE_METHOD(0x00699A40, ItemStock::GenerateQuickItemInstructions);

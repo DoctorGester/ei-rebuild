@@ -3,9 +3,10 @@
 // A class template's stock lists (0xB8 bytes, at ClassTemplate +0x11C "allowed" and +0x1D4 "magic";
 // see class_templates.h) and the trader stock generation over them (0069A110-0069B544), run when
 // the camp opens with the template's +0x38 flag set (004A6DF0, from the camp's 0060DD2E): weapons,
-// armors and quick items (0069AE20 through 0069B570 / 0069B550 / 0069B590), then materials
-// (0069A110). Each generated item goes to a list of raw CItem pointers (counted once). Names are
-// provisional; see docs/notes/items_spells.md ("Trader stock").
+// armors and quick items (0069AE20 through 0069B570 / 0069B550 / 0069B590), then their
+// instructions (00699810 / 006995E0 / 00699A40) and materials (0069A110). Each generated item goes to a
+// list of raw CItem pointers (counted once). Names are provisional; see docs/notes/items_spells.md
+// ("Trader stock").
 
 #include <cstddef>
 #include <cstdint>
@@ -75,6 +76,14 @@ struct ItemStock {
     // vector shuffled in place when there are more), each as a "material" item (kind 0x3007) of a
     // random stack size in the entry's range, into `out`.
     void GenerateMaterials(int minCount, int maxCount, StockList* out);
+
+    // 00699810 / 006995E0 / 00699A40 (RET 0xC). One instruction item (kind 0x3007, the class-0x15
+    // prototype "instruction weapon" / "instruction armor" / "instruction quick item") per weapon /
+    // armor / quick item record of the stock (quick items named "scroll" skipped), with +0x54 the
+    // record's index in its table and +0x48 a random count in [minCount, maxCount], into `out`.
+    void GenerateWeaponInstructions(int minCount, int maxCount, StockList* out);
+    void GenerateArmorInstructions(int minCount, int maxCount, StockList* out);
+    void GenerateQuickItemInstructions(int minCount, int maxCount, StockList* out);
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);
