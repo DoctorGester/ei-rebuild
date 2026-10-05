@@ -33,7 +33,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Verify checks
 
-- X9 (taken 2026-10-05) Harness step `zone <name> [exit]`: from a running zone1 game, call the server's LeaveToZone (0066F310; see ui.md "LeaveToZone") so the game loads another zone the normal way (game request kind 4 set in game, not from the menu, which crashes). Then scenarios for other zones: magic traps in their own zone (zone2), a base/brief zone, and zones with no intro block. Find which zones exist in map.txt and which need prior quest state.
+- X10 (taken 2026-10-05) First real bugs from other zones (X9 merged: zone/waitzone steps; zone_base_bz1g and zone_gz3g pass). In gz2g with hooks: `@AddUnitToServer("TrapWolf","WolfTutor",...)` creates no unit (passes with no hooks), and the ScriptRun::Execute command check mismatches on command 8 (2 of 17566).
 
 
 
