@@ -327,6 +327,21 @@ public:
 };
 static_assert(offsetof(CCreditsScreen, fromGame_) == 0x1F4);
 
+// --- Main menu ----------------------------------------------------------------------------------
+//
+// The main menu window (input vtable slot 2 at 0074065C).
+class CMainMenu {
+public:
+    // 00632D70 (input slot 2; ui_layouts.cpp). By region: 0 the difficulty question (a message
+    // box, vtables 0074225C / 00742228), 1 load (the save/load window), 2 the exit movie and quit,
+    // 3 options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status
+    // "reserved_04", the server flag, the hero screen); each window is built inline as the
+    // original does. Then the container's handler.
+    void OnLButtonDown(int buttons, int x, int y);
+
+    CUiWindow window;
+};
+
 // --- Exchange window ------------------------------------------------------------------------
 //
 // Trading between two players (xch_* texts; Create 0062C250 is its virtual slot 25).

@@ -380,6 +380,64 @@ static void __fastcall EscLButtonDownVerify(void* input, void*, int buttons, int
 }
 EI_VERIFY(0x0062AE90, EscLButtonDownVerify, 0, s_unused);
 
+// The main menu's clicks (ui_layouts.cpp), ours only: the window the region opens is on top of
+// the interface afterwards with its vtable (difficulty box 0074225C, save/load 00741388 as a load
+// window, options 00741FAC, titles 00740C3C, hero screen 0074214C); other points open nothing.
+// Region 2 quits (no scenario clicks it).
+static void __fastcall MainMenuLButtonDownVerify(void* input, void*, int buttons, int x, int y) {
+    auto* self = WindowFromInput<CMainMenu>(input);
+    CInterface3D* ui = self->window.interface_;
+    int region = self->window.RegionAt(x, y);
+    CUiWindow* top = ui->GetActiveWindow();
+    self->CMainMenu::OnLButtonDown(buttons, x, y);
+    CUiWindow* now = ui->GetActiveWindow();
+    auto vtableOf = [](CUiWindow* w) { return w ? reinterpret_cast<std::uintptr_t>(w->vtable_) : 0u; };
+    static const std::uintptr_t kOpened[6] = {0x0074225C, 0x00741388, 0, 0x00741FAC, 0x00740C3C, 0x0074214C};
+    bool ok;
+    if (region == 2)
+        ok = true;
+    else if (region >= 0 && region < 6)
+        ok = now != top && vtableOf(now) == kOpened[region] &&
+             (region != 1 || !reinterpret_cast<CSaveLoadWindow*>(now)->isSave_);
+    else
+        ok = now == top;
+    ei::verify::Check("CMainMenu::OnLButtonDown", true, ok, "(%d,%d) region %d top %p->%p", x, y, region, top, now);
+}
+EI_VERIFY(0x00632D70, MainMenuLButtonDownVerify, 0, s_unused);
+
+// The message box's Create (ui_layouts.cpp), ours only: one surface, the shade and frame sprites
+// and the buttons' (2 with flags 1 and 2, else 1), regions (2; 1 with flag 1 alone; else an empty
+// one and the cancel button), the button regions enabled (two on one row), and with flag 4 the
+// edit field as a child.
+static void __fastcall MessageBoxBuildVerify(CMessageBox* self, void*) {
+    int surfaces = self->surfaces_.size_;
+    int sprites = self->sceneObjects_.size_;
+    int regions = self->regions_.size_;
+    int children = self->children_.size_;
+    self->CMessageBox::Build();
+    std::uint32_t flags = self->flags_;
+    bool two = (flags & 2) && (flags & 1);
+    int buttons = two ? 2 : 1;
+    bool ok = self->surfaces_.size_ == surfaces + 1 && self->sceneObjects_.size_ == sprites + 2 + buttons &&
+              self->regions_.size_ == regions + 2 - ((flags & 3) == 1 ? 1 : 0);
+    if (ok) {
+        // The button regions (screen coordinates after the layout scaling): enabled rectangles,
+        // two of them side by side on one row.
+        const CUiRegion* last = self->regions_.data_[self->regions_.size_ - 1];
+        ok = last->enabled_ && last->bounds_.bottom > last->bounds_.top && last->bounds_.right > last->bounds_.left;
+        if (two) {
+            const CUiRegion* first = self->regions_.data_[self->regions_.size_ - 2];
+            ok = ok && first->enabled_ && first->bounds_.top == last->bounds_.top &&
+                 first->bounds_.right < last->bounds_.left;
+        }
+    }
+    if (flags & 4) ok = ok && self->edit_ && self->children_.size_ == children + 1;
+    ei::verify::Check("CMessageBox::Build", true, ok, "flags %X surfaces %d->%d sprites %d->%d regions %d->%d", flags,
+                      surfaces, self->surfaces_.size_, sprites, self->sceneObjects_.size_, regions,
+                      self->regions_.size_);
+}
+EI_VERIFY(0x00634790, MessageBoxBuildVerify, 0, s_unused);
+
 static void __fastcall EscMessageVerify(CEscMenu* self, void*, int result) {
     CInterface3D* ui = self->window.interface_;
     bool closes = result == 0x100001 || result == 0x100002 || result == 0x110001;

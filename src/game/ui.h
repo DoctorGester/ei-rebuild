@@ -1126,3 +1126,27 @@ static_assert(offsetof(COptionsWindow, rows_) == 0x384);
 static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
 static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
 static_assert(sizeof(COptionsWindow) == 0x418);
+
+// The message box (constructor 00634650: interface, title and text keys, result, flags, format;
+// vtables 00742348 / 00742314, 0x180 bytes; the new game's difficulty question 0074225C is built
+// on it with its own Create 006337B0). Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one
+// cancel button), 4 an edit field instead of the text (its initial text is the text key itself).
+class CMessageBox : public CUiContainer {
+public:
+    // 00634790 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
+    // 200..600 x 50..500 with the title and the text (or the edit field) centred vertically as a
+    // block, the dark shade and frame behind it and the buttons below (regions with tips
+    // 0xC3B4 OK / 0xC3B5 cancel).
+    void Build();
+
+    const char* title_;              // +0x164 CString (text of the title key)
+    const char* text_;               // +0x168 CString (text of the text key)
+    std::uint32_t result_;           // +0x16C 0xFFFF0000: the text in font 1, else 2
+    std::uint32_t flags_;            // +0x170
+    std::uint32_t format_;           // +0x174 added to the text's DrawText format
+    CUiWindow* edit_;                // +0x178 the edit field (flag 4)
+    const char* editText_;           // +0x17C
+};
+static_assert(offsetof(CMessageBox, title_) == 0x164);
+static_assert(offsetof(CMessageBox, edit_) == 0x178);
+static_assert(sizeof(CMessageBox) == 0x180);

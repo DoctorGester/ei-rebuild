@@ -1299,6 +1299,208 @@ void __fastcall CampPutOn(CCampPages* self, void*, std::uint8_t* item) { self->P
 } // namespace
 EI_REPLACE(0x0060FCA0, CampPutOn);
 
+// --- 00610920 / 00610AD0: moving an item between the camp's lists ------------------------------
+
+namespace {
+// PutOn through its address (its hook and wrapper see the call).
+struct PutOnAt {
+    void PutOn(std::uint8_t* item);
+};
+__declspec(naked) void PutOnAt::PutOn(std::uint8_t*) EI_ORIGINAL(0x0060FCA0)
+// PutOnFromStrip through its address, likewise.
+struct PutOnFromStripAt {
+    void PutOnFromStrip(std::uint8_t* item);
+};
+__declspec(naked) void PutOnFromStripAt::PutOnFromStrip(std::uint8_t*) EI_ORIGINAL(0x00610920)
+// Virtual slot 43 (+0xAC): CanEquip (AL).
+using CanEquipFn = bool(__thiscall*)(CCampPages*, std::uint8_t*, int);
+
+constexpr std::uintptr_t kSoundPutOn = 0x007937B0;    // "buttons\camp\put_on.wav"
+constexpr std::uintptr_t kSoundPutOff = 0x007937C8;   // "buttons\camp\put_off.wav"
+constexpr std::uintptr_t kSoundCancel = 0x007937E4;   // "buttons\messbox\cancel.wav"
+
+// The interface's Shift flag (+0x7D, set by its key handler 005F78C0).
+bool ShiftHeld(CInterface3D* ui) { return reinterpret_cast<const std::uint8_t*>(ui)[0x7D] != 0; }
+
+// An item made by a constructor: its record (+0x1C) has the +0x10 flag.
+bool IsMade(const std::uint8_t* item) {
+    const std::uint8_t* record = *reinterpret_cast<const std::uint8_t* const*>(item + 0x1C);
+    return record && record[0x10];
+}
+
+// Whether `list` (an ItemList) holds `item`.
+bool ListHolds(void* list, const std::uint8_t* item) {
+    ItemList* l = static_cast<ItemList*>(list);
+    for (int i = 0; i < l->count; ++i)
+        if (l->first[i] == static_cast<const void*>(item)) return true;
+    return false;
+}
+} // namespace
+
+void CCampPages::PutOnFromStrip(std::uint8_t* item) {
+    CampItems* items = reinterpret_cast<CampItems*>(this);
+    switch (page_) {
+    case 0:
+    case 1:
+        reinterpret_cast<PutOnAt*>(this)->PutOn(item);
+        return;
+    case 2:
+        items->Move(item, spellParts_[2], LocalPlayerData(), 8, 1, 0);
+        break;
+    case 3:
+        items->Move(item, spellResults_, LocalPlayerData(), 0, 0, 0);
+        break;
+    case 4:
+        items->Move(item, itemParts_[2], LocalPlayerData(), 8, 1, 0);
+        break;
+    case 5:
+        if (reinterpret_cast<CampKinds*>(this)->IsKindOne(item) && ShiftHeld(interface_)) {
+            // With Shift the whole stack (+0x48), one at a time while the slots accept it.
+            for (int n = *reinterpret_cast<int*>(item + 0x48); n > 0; --n) {
+                if (!reinterpret_cast<CanEquipFn>(vtable_[43])(this, item, 1)) break;
+                items->Move(item, itemResults_, LocalPlayerData(), 0, 0, 0);
+            }
+        } else {
+            items->Move(item, itemResults_, LocalPlayerData(), 0, 0, 0);
+        }
+        break;
+    case 6:
+        items->Move(item, itemExtra_, LocalPlayerData(), 0x10, 1, 0);
+        break;
+    default:
+        return;
+    }
+    interface_->PlaySound(GameText(kSoundPutOn), 0);
+}
+namespace {
+void __fastcall CampPutOnFromStrip(CCampPages* self, void*, std::uint8_t* item) { self->PutOnFromStrip(item); }
+} // namespace
+EI_REPLACE(0x00610920, CampPutOnFromStrip);
+
+void CCampPages::MoveItem(std::uint8_t* item, int mode) {
+    auto canEquip = reinterpret_cast<CanEquipFn>(vtable_[43]);   // slot 43 (+0xAC)
+    if (!canEquip(this, item, mode)) {
+        interface_->PlaySound(GameText(kSoundCancel), 0);
+        return;
+    }
+    CampItems* items = reinterpret_cast<CampItems*>(this);
+    CampKinds* kinds = reinterpret_cast<CampKinds*>(this);
+    // Back to the player's items and the item strip (from `list`).
+    auto toPlayer = [&](std::uint8_t* it, void* list) {
+        Panel(itemStrip_)->AddItem(items->Move(it, LocalPlayerData(), list, 0, 1, 0));
+    };
+    switch (mode) {
+    case 0:
+        Panel(itemStrip_)->AddItem(
+            reinterpret_cast<void*>(static_cast<std::intptr_t>(reinterpret_cast<TakeOffAt*>(this)->TakeOff(item))));
+        return;
+    case 1:
+        reinterpret_cast<PutOnFromStripAt*>(this)->PutOnFromStrip(item);
+        return;
+    case 2:
+        if (page_ == 2)
+            items->Move(item, spellParts_[1], spellParts_[0], 8, 1, 0);
+        else if (page_ == 3)
+            items->Move(item, spellResults_, spellParts_[0], 0, 0, 1);
+        interface_->PlaySound(GameText(kSoundPutOn), 0);
+        return;
+    case 3:
+        if (page_ == 4) {
+            items->Move(item, itemParts_[1], itemParts_[0], 8, 1, 0);
+        } else if (page_ == 5) {
+            if (kinds->IsKindOne(item) && ShiftHeld(interface_)) {
+                for (int n = *reinterpret_cast<int*>(item + 0x48); n > 0; --n) {
+                    if (!canEquip(this, item, 3)) break;
+                    items->Move(item, itemResults_, itemParts_[0], 0, 0, 1);
+                }
+            } else {
+                items->Move(item, itemResults_, itemParts_[0], 0, 0, 1);
+            }
+        }
+        interface_->PlaySound(GameText(kSoundPutOn), 0);
+        return;
+    case 4:
+        // Out of the spell constructor's sold or bought list.
+        if (ListHolds(spellParts_[1], item)) {
+            Panel(spellStrip_)->AddItem(items->Move(item, spellParts_[0], spellParts_[1], 0, 1, 0));
+        } else if (ListHolds(spellParts_[2], item)) {
+            toPlayer(item, spellParts_[2]);
+        } else {
+            return;
+        }
+        break;
+    case 5:
+        if (ListHolds(itemParts_[1], item)) {
+            Panel(partStrip_)->AddItem(items->Move(item, itemParts_[0], itemParts_[1], 0, 1, 0));
+        } else if (ListHolds(itemParts_[2], item)) {
+            toPlayer(item, itemParts_[2]);
+        } else {
+            return;
+        }
+        break;
+    case 6:
+        // A modifier leaves the spell maker's slots; anything else empties them.
+        if (kinds->IsModifier(item)) {
+            if (IsMade(item))
+                Panel(spellStrip_)->AddItem(items->Move(item, spellParts_[0], spellResults_, 0, 1, 0));
+            else
+                toPlayer(item, spellResults_);
+        } else {
+            TakeResults(this, spellResults_, spellParts_[0], spellStrip_);
+        }
+        break;
+    case 7:
+        if (kinds->IsSpellContainer(item)) {
+            if (IsMade(item))
+                Panel(partStrip_)->AddItem(items->Move(item, itemParts_[0], itemResults_, 0, 1, 0));
+            else
+                toPlayer(item, itemResults_);
+        } else if (kinds->IsKindOne(item)) {
+            if (IsMade(item))
+                Panel(partStrip_)->AddItem(items->Move(item, itemParts_[0], itemResults_, 0, 1, 0));
+            else
+                toPlayer(item, itemResults_);
+            // With Shift every other kind-one item goes too.
+            if (ShiftHeld(interface_)) {
+                for (int i = 0; i < static_cast<ItemList*>(itemResults_)->count; ++i) {
+                    if (!kinds->IsKindOne(static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i])))
+                        continue;
+                    auto* it = static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i]);
+                    if (IsMade(it))
+                        Panel(partStrip_)->AddItem(items->Move(it, itemParts_[0], itemResults_, 0, 1, 0));
+                    else
+                        toPlayer(it, itemResults_);
+                    --i;
+                }
+            }
+            // Then the first spell container left goes as well.
+            for (int i = 0; i < static_cast<ItemList*>(itemResults_)->count; ++i) {
+                if (!kinds->IsSpellContainer(static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i])))
+                    continue;
+                auto* it = static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i]);
+                if (IsMade(it))
+                    Panel(partStrip_)->AddItem(items->Move(it, itemParts_[0], itemResults_, 0, 1, 0));
+                else
+                    toPlayer(it, itemResults_);
+                break;
+            }
+        } else {
+            TakeResults(this, itemResults_, itemParts_[0], partStrip_);
+        }
+        break;
+    case 8:
+        toPlayer(item, itemExtra_);
+        break;
+    default:
+        return;
+    }
+    interface_->PlaySound(GameText(kSoundPutOff), 0);
+}
+namespace {
+void __fastcall CampMoveItem(CCampPages* self, void*, std::uint8_t* item, int mode) { self->MoveItem(item, mode); }
+} // namespace
+EI_REPLACE(0x00610AD0, CampMoveItem);
+
 // --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
 
 namespace {
