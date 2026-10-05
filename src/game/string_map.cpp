@@ -46,7 +46,7 @@ struct Tree {                    // the map at +4 of the table
 __declspec(naked) Node** __fastcall LowerBound(Tree*, void*, Node** /*out*/, const StringRep*) EI_ORIGINAL(0x004456E0)
 __declspec(naked) Node** __fastcall Find(Tree*, void*, Node** /*out*/, const StringRep*) EI_ORIGINAL(0x00445620)
 __declspec(naked) bool __fastcall Less(const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00445780)
-__declspec(naked) void __fastcall StringReserve(StringRep*, void*, const void* /*alloc*/, std::size_t) EI_ORIGINAL(0x00421800)
+inline void __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const StringRep*, const StringRep*) EI_ORIGINAL(0x00445170)
 __declspec(naked) Node** __fastcall InsertHint(Tree*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)

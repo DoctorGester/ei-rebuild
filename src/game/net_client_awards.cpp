@@ -12,6 +12,7 @@
 #include "ei/vcall.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -37,7 +38,7 @@ __declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/,
 __declspec(naked) ObjectList::Node* __fastcall CountedNewNode(ObjectList*, void*, ObjectList::Node* /*prev*/, ObjectList::Node* /*next*/) EI_ORIGINAL(0x00429EA0)
 __declspec(naked) void __fastcall CountedAssign(CEngineObject** /*slot*/, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
 __declspec(naked) void __fastcall CountedRemoveAll(ObjectList*) EI_ORIGINAL(0x00429E50)
-__declspec(naked) void __fastcall PtrListRemoveAll(ObjectList*) EI_ORIGINAL(0x00429F10)
+inline void __fastcall PtrListRemoveAll(ObjectList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
 
 // The game's _ftol (006E853C) on a value loaded from a float.
 __declspec(naked) int __cdecl GameFtol(double) {

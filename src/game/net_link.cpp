@@ -35,7 +35,7 @@ __declspec(naked) QueueNode** __fastcall QueueInsertDefault(QueueNode** /*list*/
 __declspec(naked) QueueNode** __fastcall QueueErase(QueueNode** /*list*/, void*, QueueNode** /*out*/, QueueNode* /*pos*/) EI_ORIGINAL(0x004790F0)
 __declspec(naked) void __fastcall QueueClear(QueueNode** /*list*/) EI_ORIGINAL(0x00479570)
 __declspec(naked) void __fastcall QueueInsertRange(QueueNode** /*list*/, void*, QueueNode* /*pos*/, QueueNode* /*first*/, QueueNode* /*last*/) EI_ORIGINAL(0x004795B0)
-__declspec(naked) void* __fastcall NodeAllocate(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
+inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 __declspec(naked) void __fastcall NodesDeallocate(QueueNode* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00479530)
 // 004A5250 (RET 4): writes a stream (its size as a 2- or 4-byte prefix, then its bytes) into the
@@ -44,8 +44,6 @@ __declspec(naked) void __fastcall StreamWriteSized(CStream* /*to*/, void*, CStre
 // 004A51C0 (RET 4): reads a stream written by 004A5250 (size prefix, then the bytes) from the
 // stream in ECX into `to`, which is emptied first (its slot 6).
 __declspec(naked) void __fastcall StreamReadSized(CStream* /*from*/, void*, CStream* /*to*/) EI_ORIGINAL(0x004A51C0)
-// CMemoryStream's Seek (004A5490, slot 3) called directly.
-__declspec(naked) void __fastcall MemoryStreamSeek(CMemoryStream* /*stream*/, void*, std::uint32_t /*position*/) EI_ORIGINAL(0x004A5490)
 // The game's memmove (006E79A0).
 
 bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
@@ -630,7 +628,7 @@ void DriverLink::Disconnect() {   // 00479810
     pending.Reset();
     TakeAll(&pending);
     if (pending.size_ != 0 && IsLive(player_)) {
-        MemoryStreamSeek(&pending, nullptr, pending.size_);
+        pending.Seek(pending.size_);
         std::uint32_t count = BufferFill(&player_->reliableIn_);
         CStream* stream = &pending;
         stream->Write(player_->reliableIn_.begin, count);

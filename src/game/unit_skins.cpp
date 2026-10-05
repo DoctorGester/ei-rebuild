@@ -88,9 +88,9 @@ __declspec(naked) void __fastcall StringsDeallocate(void*, void*, char*, int) EI
 __declspec(naked) void __fastcall StringCopyConstruct(char*, const void*) EI_ORIGINAL(0x004F5DF0)
 __declspec(naked) void __fastcall StringsInsertOverflow(void*, void*, char*, const void*, int) EI_ORIGINAL(0x004DCE90)
 __declspec(naked) void __fastcall StringsInsertRange(void*, void*, char*, const char*, const char*, int) EI_ORIGINAL(0x00575E50)
-__declspec(naked) char* __fastcall NodeAllocate(int) EI_ORIGINAL(0x00405950)
+inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 // STLport string members (as in figure_part_draw.cpp).
-__declspec(naked) void __fastcall StringInitRange(void*, void*, const char*, const char*, int) EI_ORIGINAL(0x0042A3D0)
+inline void __fastcall StringInitRange(void* a0, void*, const char* a2, const char* a3, int a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 void __fastcall StringEndOfStorage(void* a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal(a0, nullptr, a2, a3); }
 
 const std::uint8_t kAllocator = 0;

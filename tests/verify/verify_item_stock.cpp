@@ -11,6 +11,8 @@
 #include "verify.h"
 
 #include "../../src/game/item_stock.h"
+#include "../../src/lib/stlp.h"
+#include "ei/hook.h"
 
 #include <climits>
 #include <cstring>
@@ -164,3 +166,169 @@ static void __fastcall GenerateQuickItemInstructionsVerify(ItemStock* self, void
                       maxCount, out, &ItemStock::GenerateQuickItemInstructions);
 }
 EI_VERIFY(0x00699A40, GenerateQuickItemInstructionsVerify, 0, s_unusedQuickInstructions);
+
+// - FillSpellMaps (0069A480; ours only: it empties and refills the stock's own maps, so the
+//   original cannot run on the same object): the recipe map holds exactly the recipes for the
+//   stock's class whose spell is offered; every modifier key holds the modifier a replay of the
+//   rules picks (strongest per letter for a/d/e/m/r/t, the last per letter pair for f/i). The
+//   lookups only find keys ours already inserted.
+// - GenerateSpells (0069A780; ours only, it draws from ISAAC and builds spells): the output list
+//   gained at most one spell per recipe in the map, each null or counted.
+// Both are reached from GenerateItems (kinds 0 / 1 / 3) in scenario trader_stock.
+namespace {
+
+__declspec(naked) char** __fastcall SpellByNameForCheck(void*, void*, const void*) EI_ORIGINAL(0x004ABD00)
+__declspec(naked) char* __fastcall ModifierMapAtForCheck(void*, void*, const void*) EI_ORIGINAL(0x0069D1E0)
+
+using FillSpellMapsFn = void(__fastcall*)(ItemStock*, void*, const SpellRecipeVector*);
+FillSpellMapsFn s_unusedFillSpellMaps;
+using GenerateSpellsFn = void(__fastcall*)(ItemStock*, void*, StockList*, const float*, unsigned);
+GenerateSpellsFn s_unusedGenerateSpells;
+
+// The recipes in the stock's recipe hash_map (+0x50: buckets at +4 / +8; node +0 next, +0x10 the
+// list sentinel).
+std::size_t RecipeCount(ItemStock* self) {
+    char** buckets = *reinterpret_cast<char***>(self->spellMap + 4);
+    char** end = *reinterpret_cast<char***>(self->spellMap + 8);
+    std::size_t n = 0;
+    for (char** b = buckets; b != end; ++b)
+        for (char* node = *b; node; node = *reinterpret_cast<char**>(node))
+            n += ListSize(reinterpret_cast<const StockList*>(node + 0x10));
+    return n;
+}
+
+struct ModifierPair {
+    stlp::string key;
+    void* value = nullptr;
+    ModifierPair(const char* first, const char* last) : key(first, last) {}
+};
+
+char* ModifierAt(ItemStock* self, const char* key, std::size_t length) {
+    ModifierPair pair(key, key + length);
+    char* found = ModifierMapAtForCheck(self->modifierMap, nullptr, &pair);
+    return *reinterpret_cast<char**>(found + 0xC);
+}
+
+// The key length of a modifier kind: 1 for a/d/e/m/r/t, 2 for f/i, 0 for kinds left out.
+std::size_t KeyLength(char kind) {
+    if (kind != 0 && std::strchr("ademrt", kind)) return 1;
+    if (kind == 'f' || kind == 'i') return 2;
+    return 0;
+}
+
+} // namespace
+
+static void __fastcall FillSpellMapsVerify(ItemStock* self, void*, const SpellRecipeVector* recipes) {
+    self->ItemStock::FillSpellMaps(recipes);
+    std::size_t expected = 0;
+    for (char* r = recipes->start; r != recipes->finish; r += kSpellRecipeSize) {
+        if (!(*reinterpret_cast<const std::uint32_t*>(r + 0x30) & (1u << (self->classIndex & 31)))) continue;
+        char* spell = *SpellByNameForCheck(reinterpret_cast<void*>(0x007C851C), nullptr, r);
+        if (!spell) continue;
+        for (char** s = self->spells.start; s != self->spells.finish; ++s) {
+            if (*s == spell) {
+                ++expected;
+                break;
+            }
+        }
+    }
+    std::size_t recipeCount = RecipeCount(self);
+    bool ok = recipeCount == expected;
+
+    // Replay the modifier rules over (key, modifier) pairs.
+    struct Entry {
+        char key[2];
+        std::size_t length;
+        char* modifier;
+    };
+    constexpr std::size_t kMaxKeys = 128;
+    Entry entries[kMaxKeys];
+    std::size_t keys = 0;
+    for (char** p = self->modifiers.start; p != self->modifiers.finish; ++p) {
+        char* m = *p;
+        std::size_t length = KeyLength(m[4]);
+        if (length == 0) continue;
+        Entry* e = nullptr;
+        for (std::size_t i = 0; i < keys; ++i)
+            if (entries[i].length == length && std::memcmp(entries[i].key, m + 4, length) == 0) e = &entries[i];
+        if (!e) {
+            if (keys == kMaxKeys) continue;
+            e = &entries[keys++];
+            e->key[0] = m[4];
+            e->key[1] = m[5];
+            e->length = length;
+            e->modifier = nullptr;
+        }
+        bool replace = length == 2 || !e->modifier ||
+                       !(*reinterpret_cast<const float*>(e->modifier + 0x14) >= *reinterpret_cast<const float*>(m + 0x14));
+        if (replace) e->modifier = m;
+    }
+    for (std::size_t i = 0; i < keys; ++i)
+        if (ModifierAt(self, entries[i].key, entries[i].length) != entries[i].modifier) ok = false;
+    ei::verify::Check("ItemStock::FillSpellMaps", true, ok, "class %d: %u recipes (expected %u), %u modifier keys", self->classIndex,
+                      static_cast<unsigned>(recipeCount), static_cast<unsigned>(expected), static_cast<unsigned>(keys));
+}
+EI_VERIFY(0x0069A480, FillSpellMapsVerify, 0, s_unusedFillSpellMaps);
+
+static void __fastcall GenerateSpellsVerify(ItemStock* self, void*, StockList* out, const float* levels, unsigned threshold) {
+    std::size_t before = ListSize(out);
+    std::size_t recipes = RecipeCount(self);
+    self->ItemStock::GenerateSpells(out, levels, threshold);
+    std::size_t after = ListSize(out);
+    bool ok = after >= before && after - before <= recipes;
+    std::size_t i = 0;
+    for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
+        if (i < before) continue;
+        const char* spell = static_cast<const char*>(node->value);
+        if (spell && *reinterpret_cast<const int*>(spell + 4) < 1) ok = false;
+    }
+    ei::verify::Check("ItemStock::GenerateSpells", true, ok, "threshold %u, %u recipes: %u -> %u spells", threshold,
+                      static_cast<unsigned>(recipes), static_cast<unsigned>(before), static_cast<unsigned>(after));
+}
+EI_VERIFY(0x0069A780, GenerateSpellsVerify, 0, s_unusedGenerateSpells);
+
+// - LoadLists (0069B5B0; ours only: it reads the stream): every list only grew; the five pointer
+//   lists gained non-null records each not listed before (no duplicates); the material vector's
+//   entries before the call are unchanged. Reached when a save with class templates is loaded
+//   (004A6C40 from the party manager's load; world_load / ui_saveload expected, not confirmed).
+namespace {
+
+using LoadListsFn = void(__fastcall*)(ItemStock*, void*, void*);
+LoadListsFn s_unusedLoadLists;
+
+constexpr std::size_t kMaxListed = 1024;
+
+bool GrewUniquely(const StockPtrVector& list, std::size_t before) {
+    std::size_t size = list.size();
+    if (size < before) return false;
+    for (std::size_t i = before; i < size; ++i) {
+        if (!list.start[i]) return false;
+        for (std::size_t j = 0; j < i; ++j)
+            if (list.start[j] == list.start[i]) return false;
+    }
+    return true;
+}
+
+} // namespace
+
+static void __fastcall LoadListsVerify(ItemStock* self, void*, void* stream) {
+    StockPtrVector* lists[5] = {&self->armors, &self->weapons, &self->quickItems, &self->spells, &self->modifiers};
+    std::size_t sizes[5];
+    for (int i = 0; i < 5; ++i) sizes[i] = lists[i]->size();
+    std::size_t materialCount = self->materials.size();
+    StockMaterial materials[kMaxListed];
+    std::size_t kept = materialCount < kMaxListed ? materialCount : kMaxListed;
+    for (std::size_t i = 0; i < kept; ++i) materials[i] = self->materials.start[i];
+    self->ItemStock::LoadLists(stream);
+    bool ok = self->materials.size() >= materialCount;
+    for (int i = 0; i < 5; ++i) ok = ok && GrewUniquely(*lists[i], sizes[i]);
+    for (std::size_t i = 0; ok && i < kept; ++i)
+        ok = std::memcmp(&materials[i], &self->materials.start[i], sizeof(StockMaterial)) == 0;
+    ei::verify::Check("ItemStock::LoadLists", true, ok, "lists %u/%u/%u/%u/%u, materials %u -> %u/%u/%u/%u/%u, %u",
+                      static_cast<unsigned>(sizes[0]), static_cast<unsigned>(sizes[1]), static_cast<unsigned>(sizes[2]),
+                      static_cast<unsigned>(sizes[3]), static_cast<unsigned>(sizes[4]), static_cast<unsigned>(materialCount),
+                      static_cast<unsigned>(lists[0]->size()), static_cast<unsigned>(lists[1]->size()),
+                      static_cast<unsigned>(lists[2]->size()), static_cast<unsigned>(lists[3]->size()),
+                      static_cast<unsigned>(lists[4]->size()), static_cast<unsigned>(self->materials.size()));
+}
+EI_VERIFY(0x0069B5B0, LoadListsVerify, 0, s_unusedLoadLists);

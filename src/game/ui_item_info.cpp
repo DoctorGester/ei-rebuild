@@ -26,6 +26,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 
 #pragma float_control(precise, on)
 
@@ -300,8 +301,8 @@ struct ItemList {
     void Clear(int a, int b);               // 00661700
     int Add(CItem* item, int a, int b);    // 00661DB0
 };
-__declspec(naked) void ItemList::Clear(int, int) EI_ORIGINAL(0x00661700)
-__declspec(naked) int ItemList::Add(CItem*, int, int) EI_ORIGINAL(0x00661DB0)
+void ItemList::Clear(int a, int b) { PartyResetOriginal(this, nullptr, a, b); }
+int ItemList::Add(CItem* item, int a, int b) { return (int)PartyAddItemOriginal(this, nullptr, item, a, b); }
 
 } // namespace
 

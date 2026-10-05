@@ -2,6 +2,7 @@
 // objects), the script's AddUnitToServer, and writing the map objects into a save. See world.h and
 // docs/notes/world.md (fifth round).
 #include "world.h"
+#include "game_strings.h"
 
 #include "chunk_stream.h"
 #include "object_tables.h"
@@ -30,7 +31,6 @@ T& At(void* object, int offset) {
 // ---- Game data --------------------------------------------------------------------------------
 
 // The empty string the game compares against and passes as "no text" (a zero byte in .data).
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 constexpr const char* kNoExit = "none";   // 007846F0
 // Error texts (printf formats; the original passes these addresses to FatalError).
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
@@ -81,12 +81,6 @@ __declspec(naked) void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
 __declspec(naked) char** __fastcall ServerMapPath(CWorldServer*, void*, char** /*out*/, const char* /*name*/)
     EI_ORIGINAL(0x00595BA0)
-// 0042D160 (RET 8). Opens the root chunk's file. The path is a CString passed by value (the callee
-// destroys it): its one member, the data pointer, is passed here.
-__declspec(naked) int __fastcall RootChunkOpen(Chunk*, void*, char* /*path CString*/, unsigned /*flags*/)
-    EI_ORIGINAL(0x0042D160)
-// 0042D270. The root chunk's destructor (closes its CFile, restores the base vtable).
-__declspec(naked) void __fastcall RootChunkDestruct(Chunk*, void*) EI_ORIGINAL(0x0042D270)
 // 00481660 (RET 8). Reads the objects of an opened .mob file into the server (AL).
 __declspec(naked) bool __fastcall ReadMapObjectFile(Chunk*, void*, CWorldServer*, int /*keepIds*/)
     EI_ORIGINAL(0x00481660)
@@ -136,7 +130,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
     for (int i = 0; i < source->size; ++i) {
         const ZoneExit* from = &source->data[i];
         if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(from->target),
-                            reinterpret_cast<const unsigned char*>(EmptyText())) == 0)
+                            reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0)
             continue;   // leads nowhere
         if (from->entrance < 0 && gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(from->target),
                                                   reinterpret_cast<const unsigned char*>(kNoExit)) != 0)
@@ -159,7 +153,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
 void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position) {
     UnitRecordBuilder builder;
     builder.Construct();
-    builder.Fill(EmptyText(), prototype, name);
+    builder.Fill(game::EmptyText(), prototype, name);
     PtrArray records;
     records.vtable = reinterpret_cast<void*>(kPtrArrayVtable);
     records.data = nullptr;
@@ -182,22 +176,23 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     // The root chunk (vtable 0073FAD4) with its MFC CFile at +0x18, built in place as the
     // original's inlined constructor does.
     alignas(4) std::uint8_t storage[0x28];
-    auto* root = reinterpret_cast<Chunk*>(storage);
+    auto* root = reinterpret_cast<RootChunk*>(storage);
     root->Construct(nullptr);
-    void* fileObject = new (storage + 0x18) mfc::CFile();
+    new (&root->file_) mfc::CFile();
+    void* fileObject = &root->file_;
     ei::SetVtable(root, kMapObjectFileVtable);
 
-    char* path = nullptr;   // a CString, handed to (and destroyed by) the open call
-    ServerMapPath(this, nullptr, &path, file);
+    mfc::CString path;
+    ServerMapPath(this, nullptr, reinterpret_cast<char**>(&path), file);   // constructs the CString in place
     int result;
-    if (!RootChunkOpen(root, nullptr, path, 0x8020)) {
+    if (!root->Open(path, 0x8020)) {
         result = game::FatalError(Text(kCantOpenObjects), file);
     } else {
         bool read = ReadMapObjectFile(root, nullptr, this, keepIds);
         ei::VCall<void>(fileObject, kSlotFileClose);
         result = read ? 1 : game::FatalError(Text(kCantReadObjects), file);
     }
-    RootChunkDestruct(root, nullptr);
+    root->Destruct();
     return result;
 }
 

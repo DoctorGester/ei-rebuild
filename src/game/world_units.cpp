@@ -2,6 +2,7 @@
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md (seventh round).
 #include "world.h"
+#include "game_strings.h"
 
 #include "chunk_stream.h"
 #include "core_maths.h"
@@ -155,7 +156,7 @@ __declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObj
 __declspec(naked) bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*) EI_ORIGINAL(0x005BA790)
 void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
 // The unit's setup.
-__declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void* /*player*/) EI_ORIGINAL(0x005300D0)
+inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitSet780(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x0052E9B0)
 __declspec(naked) void __fastcall UnitRefreshStats(CEngineObject*, void*) EI_ORIGINAL(0x0050F080)
 __declspec(naked) void __fastcall UnitAfterStats(CEngineObject*, void*) EI_ORIGINAL(0x005315B0)
@@ -505,7 +506,6 @@ constexpr int kSlotFigureFlags = 18;       // figure (+0x48)
 constexpr int kTimedSound3D = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedOther = 0x4A;
 const char* const kCampfire = reinterpret_cast<const char*>(0x00790A54);
 const char* const kNoWaveName = reinterpret_cast<const char*>(0x00790A34);
-const char* const kEmpty = reinterpret_cast<const char*>(0x0079B298);
 constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
 void* const kUnitPrototypes = reinterpret_cast<void*>(0x007AF364);
 constexpr int kUnitPrototypeSize = 0x168;
@@ -642,7 +642,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     case 9: {   // map objects and units (5)
         CEngineObject* object = created();
         if (At<std::uint8_t>(m, 0x6C)) object->flags_ |= 0x20000;
-        if (gamecrt::mbscmp(At<const unsigned char*>(m, 0x4C), reinterpret_cast<const unsigned char*>(kEmpty)) != 0)
+        if (gamecrt::mbscmp(At<const unsigned char*>(m, 0x4C), reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0)
             object->flags_ |= 0x20000;
         if (!allowed(object)) return refuse(object);
         int id = object->id_;

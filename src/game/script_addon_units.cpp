@@ -10,6 +10,7 @@
 #include "originals_ai.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -24,7 +25,7 @@ void* GetPlayer(int number) { return WorldGetPlayer(reinterpret_cast<void*>(0x00
 
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).
-__declspec(naked) void __fastcall PtrListDestruct(mfc::CTypedPtrList<CEngineObject>*) EI_ORIGINAL(0x00427830)
+inline void __fastcall PtrListDestruct(mfc::CTypedPtrList<CEngineObject>* a0) { PtrListDestructOriginal((void*)a0); }
 void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
 
 // A unit's prototype record (00530930): +0 its name, +4 its race (char pointers).

@@ -15,6 +15,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 
 #include <cstdint>
 #include <cstring>
@@ -1136,7 +1137,7 @@ __declspec(naked) void HeroRecordAt::Remove3006(std::uint8_t*) EI_ORIGINAL(0x006
 __declspec(naked) void HeroRecordAt::Remove3008(std::uint8_t*) EI_ORIGINAL(0x00660FF0)
 
 // 00661DB0 (thiscall on the local player's data, RET 0xC): puts an item among the player's items.
-__declspec(naked) int __fastcall PlayerTakeItem(std::uint8_t*, void*, std::uint8_t*, int, int) EI_ORIGINAL(0x00661DB0)
+inline int __fastcall PlayerTakeItem(std::uint8_t* a0, void*, std::uint8_t* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, (void*)a2, a3, a4); }
 // 006A39E0 (thiscall on an armour item): its body part type. 00530840 (thiscall on a unit, RET
 // 4): takes off the armour of that type.
 __declspec(naked) int __fastcall ArmourType(std::uint8_t*) EI_ORIGINAL(0x006A39E0)

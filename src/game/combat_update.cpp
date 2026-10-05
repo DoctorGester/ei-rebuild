@@ -78,7 +78,7 @@ constexpr int kSlotPlayerUnitDied = 0x50 / 4; // the player's message object, sl
 __declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0052EAD0)
 __declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
 __declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x00530970)
-__declspec(naked) void __fastcall UnitSetPlayer(CUnit*, void*, char*) EI_ORIGINAL(0x005300D0)
+inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall UnitTurnUpTowards(CUnit*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
@@ -777,7 +777,7 @@ __declspec(naked) void __fastcall UnitCollectItems(CUnit*, void*, ItemList*, Ite
 __declspec(naked) CEngineObject* __fastcall UnitWeapon(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x005318B0)
 __declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
 __declspec(naked) void __fastcall ItemListBDestroy(ItemList*) EI_ORIGINAL(0x00558C50)
-__declspec(naked) void __fastcall ItemListADestroy(ItemList*) EI_ORIGINAL(0x00429F10)
+inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
 __declspec(naked) SpellEntry* __fastcall SpellNewNode(void*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
     EI_ORIGINAL(0x00558B10)
 __declspec(naked) void __fastcall SpellFreeNode(void*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)

@@ -6,6 +6,7 @@
 // there. The records and the database's containers are STLport objects handled through the
 // original members. Names provisional; see docs/notes/items_spells.md ("Quest database").
 #include "console.h"
+#include "game_strings.h"
 #include "registry.h"
 
 #include "../lib/mfc.h"
@@ -56,7 +57,6 @@ constexpr std::size_t kBriefingIndex = 0x2C;
 
 // The section and key names, by their original addresses.
 constexpr std::uintptr_t kName = 0x007967C4;           // "name"
-constexpr std::uintptr_t kEmpty = 0x0079B298;          // ""
 constexpr std::uintptr_t kQuest = 0x007967BC;          // "quest"
 constexpr std::uintptr_t kExp = 0x0079275C;            // "exp"
 constexpr std::uintptr_t kMoney = 0x00792760;          // "money"
@@ -138,7 +138,7 @@ __declspec(naked) void __fastcall BriefingFind(void*, void*, void**, const void*
 __declspec(naked) void __fastcall BriefingIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B30)
 __declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0780)
 __declspec(naked) void __fastcall BriefingIndexClear(void*) EI_ORIGINAL(0x006B0590)
-__declspec(naked) void** __fastcall BriefingIndexAt(void*, void*, const void*) EI_ORIGINAL(0x004297A0)
+inline void** __fastcall BriefingIndexAt(void* a0, void*, const void* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIGINAL(0x006B0600)
 // MFC: CString TrimLeft / TrimRight of one character [006FE1D3 / 006FE0DD]; the game's splitter of
 // a string at a separator into a CStringArray [004DBE40, __fastcall: text, out; separator]; atof.
@@ -167,7 +167,7 @@ void PushPlace(char* quest, float value) {
 void ReadQuest(Registry& reg, char* quest, console::CStringArray& places) {
     At<std::uint32_t>(quest, kQuestUnknown10) = 0;
     {
-        mfc::CString name = reg.GetString(Text(kQuest), Text(kName), Copy(Text(kEmpty)));
+        mfc::CString name = reg.GetString(Text(kQuest), Text(kName), Copy(game::EmptyText()));
         const char* text = name;
         StringAssignRange(quest, nullptr, text, text + std::strlen(text));
     }
@@ -226,7 +226,7 @@ void AddReceiveBriefing(char* db, const char* briefing) {
 // briefing) instead of the range one.
 void ReadBriefingHeader(Registry& reg, char* briefing, std::uintptr_t section, bool assignChars) {
     {
-        mfc::CString name = reg.GetString(Text(section), Text(kName), Copy(Text(kEmpty)));
+        mfc::CString name = reg.GetString(Text(section), Text(kName), Copy(game::EmptyText()));
         const char* text = name;
         if (assignChars) {
             StringAssign(briefing, nullptr, text);

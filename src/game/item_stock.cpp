@@ -7,9 +7,11 @@
 #include "random.h"
 
 #include "../lib/crt.h"
+#include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
 
 #include <cstring>
 
@@ -53,8 +55,8 @@ __declspec(naked) char* __fastcall FindTable15Named(void*, void*, const char*) E
 // 0069A480 (RET 4): fills the stock's spell and modifier maps from a spell table (007C8568 for
 // weapons, 007C855C for armors). 0069A780 (RET 0xC): random spells into a list of counted spell
 // pointers, from the maps, with the level per school (8 floats) and a percentage threshold.
-__declspec(naked) void __fastcall FillSpellMaps(ItemStock*, void*, void* /*table*/) EI_ORIGINAL(0x0069A480)
-__declspec(naked) void __fastcall GenerateSpells(ItemStock*, void*, StockList* /*out*/, const float* /*levels*/, unsigned /*threshold*/)
+__declspec(naked) void __fastcall CallFillSpellMaps(ItemStock*, void*, void* /*table*/) EI_ORIGINAL(0x0069A480)
+__declspec(naked) void __fastcall CallGenerateSpells(ItemStock*, void*, StockList* /*out*/, const float* /*levels*/, unsigned /*threshold*/)
     EI_ORIGINAL(0x0069A780)
 
 // vector<char*> members (thiscall): 0069E3F0 insert(position, first, last; a fourth unused
@@ -243,7 +245,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
     if (!ctor->MagicCapacity(&level, &power)) return;
     float levels[8];
     for (float& l : levels) l = level;
-    GenerateSpells(stock, nullptr, &spells, levels, 0);
+    CallGenerateSpells(stock, nullptr, &spells, levels, 0);
     unsigned count = 0;
     for (StockListNode* n = spells.head->next; n != spells.head; n = n->next) ++count;
     if (count == 0) return;
@@ -263,9 +265,9 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
     Constructor* ctor = ei::VCall<Constructor*>(context, 16);
     void* manager = ei::VCall<void*>(context, 18);
     if (kind == 0 || kind == 3)
-        FillSpellMaps(this, nullptr, kWeaponSpellTable);
+        CallFillSpellMaps(this, nullptr, kWeaponSpellTable);
     else if (kind == 1)
-        FillSpellMaps(this, nullptr, kArmorSpellTable);
+        CallFillSpellMaps(this, nullptr, kArmorSpellTable);
 
     int count = RandomCount(minCount, maxCount);
     StockPtrVector& taken = TakenPrototypes();
@@ -415,3 +417,342 @@ void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, StockL
                          out);   // "instruction quick item"
 }
 EI_REPLACE_METHOD(0x00699A40, ItemStock::GenerateQuickItemInstructions);
+
+// ---- 0069A480 / 0069A780 --------------------------------------------------------------------------
+
+namespace {
+
+// The spell recipe hash_map (+0x50, STLport hash_map<string, list<recipe*>>): clear 004AAEB0,
+// find-or-insert of a {name, list} pair 0069D130 (returns the node's pair: the list at +0xC),
+// begin 0069C160 (RET 4: the iterator by hidden pointer) and the first node of the next non-empty
+// bucket 0069D0E0 (thiscall on the iterator, still on the last node). Its list: constructor
+// 0069C680 (an allocator argument), destructor 0069C830, end 0069C2E0 (RET 4: the iterator by
+// hidden pointer), insert 0069C2F0 (result, position, &value); the pair: constructor 0069C1C0
+// (the record, whose name starts it, and &list), destructor 004AD640.
+__declspec(naked) void __fastcall RecipeMapClear(void*) EI_ORIGINAL(0x004AAEB0)
+__declspec(naked) char* __fastcall RecipeMapInsert(void*, void*, const void* /*pair*/) EI_ORIGINAL(0x0069D130)
+struct RecipeIterator {
+    char* node;     // +0 next, +4 key (string), +0x10 the list (its sentinel)
+    void* map;
+};
+__declspec(naked) void __fastcall RecipeMapBegin(void*, void*, RecipeIterator*) EI_ORIGINAL(0x0069C160)
+__declspec(naked) char* __fastcall RecipeMapNextBucket(RecipeIterator*) EI_ORIGINAL(0x0069D0E0)
+__declspec(naked) void __fastcall RecipeListConstruct(StockList*, void*, const void*) EI_ORIGINAL(0x0069C680)
+__declspec(naked) void __fastcall RecipeListDestroy(StockList*) EI_ORIGINAL(0x0069C830)
+__declspec(naked) void __fastcall RecipeListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069C2E0)
+__declspec(naked) void __fastcall RecipeListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)
+    EI_ORIGINAL(0x0069C2F0)
+__declspec(naked) void __fastcall RecipePairConstruct(void*, void*, const char* /*record*/, const StockList*)
+    EI_ORIGINAL(0x0069C1C0)
+__declspec(naked) void __fastcall RecipePairDestroy(void*) EI_ORIGINAL(0x004AD640)
+// The modifier map (+0x64, STLport map<string, modifier*>): clear 004AB2B0, operator[] with a
+// {key, null} pair 0069D1E0 (returns the node's pair: the value at +0xC).
+__declspec(naked) void __fastcall ModifierMapClear(void*) EI_ORIGINAL(0x004AB2B0)
+__declspec(naked) char* __fastcall ModifierMapAt(void*, void*, const void* /*pair*/) EI_ORIGINAL(0x0069D1E0)
+// The spell records by name (map 007C851C, operator[] 004ABD00: inserts a null for a new name).
+__declspec(naked) char** __fastcall SpellByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x004ABD00)
+void* const kSpellsByName = reinterpret_cast<void*>(0x007C851C);
+// The spell prototypes by name (thiscall on 007C8510, 00613920) and the spell manager's builder
+// (00689310, RET 8: prototype, modifier list; a new counted spell or null).
+__declspec(naked) char* __fastcall FindSpellPrototype(void*, void*, const char*) EI_ORIGINAL(0x00613920)
+void* const kSpellPrototypes = reinterpret_cast<void*>(0x007C8510);
+__declspec(naked) void* __fastcall BuildSpell(void*, void*, char* /*prototype*/, StockList* /*modifiers*/)
+    EI_ORIGINAL(0x00689310)
+// The modifier list (list<modifier*>): constructor 0069BF70 (an allocator argument), end 0068C500,
+// insert 0068C560 (result, position, &value), node free 0068C640 (fastcall: node, count).
+__declspec(naked) void __fastcall ModifierListConstruct(StockList*, void*, const void*) EI_ORIGINAL(0x0069BF70)
+__declspec(naked) void __fastcall ModifierListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0068C500)
+__declspec(naked) void __fastcall ModifierListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)
+    EI_ORIGINAL(0x0068C560)
+__declspec(naked) void __fastcall ModifierNodesFree(StockListNode*, int) EI_ORIGINAL(0x0068C640)
+// The output list of counted spells: end 0069BE60, insert 0069C410 (result, position, &value).
+__declspec(naked) void __fastcall SpellListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069BE60)
+__declspec(naked) void __fastcall SpellListInsert(StockList*, void*, StockListNode**, StockListNode*, void* const*)
+    EI_ORIGINAL(0x0069C410)
+
+// The modifier map's lookup pair: a copied key and a null value (0x10 bytes).
+struct ModifierKey {
+    stlp::string key;
+    void* value = nullptr;
+    explicit ModifierKey(const stlp::string& s) : key(s) {}
+};
+static_assert(sizeof(ModifierKey) == 0x10);
+
+// The modifier map's entry for `name` (created null when missing, as operator[] does).
+char*& ModifierSlot(ItemStock* stock, const stlp::string& name) {
+    ModifierKey pair(name);
+    char* found = ModifierMapAt(stock->modifierMap, nullptr, &pair);
+    return At<char*>(found, 0xC);
+}
+
+// A modifier record: +0x04 / +0x05 its kind letters, +0x10 the cost added, +0x14 the strength (a
+// cost factor for kind 'm'), +0x18 the level it adds.
+char ModifierKind(char* m) { return m[4]; }
+float ModifierCost(char* m) { return At<float>(m, 0x10); }
+float ModifierFactor(char* m) { return At<float>(m, 0x14); }
+int ModifierLevel(char* m) { return At<int>(m, 0x18); }
+
+struct StringVector {
+    const stlp::string* start;
+    const stlp::string* finish;
+    const stlp::string* eos;
+    unsigned size() const { return static_cast<unsigned>(finish - start); }
+};
+
+void AppendModifier(StockList& list, char* modifier) {
+    StockListNode* end;
+    ModifierListEnd(&list, nullptr, &end);
+    StockListNode* result;
+    ModifierListInsert(&list, nullptr, &result, end, &modifier);
+}
+
+void ClearModifierList(StockList& list) {
+    StockListNode* node = list.head->next;
+    while (node != list.head) {
+        StockListNode* next = node->next;
+        ModifierNodesFree(node, 1);
+        node = next;
+    }
+    list.head->next = list.head;
+    list.head->prev = list.head;
+}
+
+} // namespace
+
+// Original bug kept: the 004ABD00 lookup inserts a null entry into 007C851C for every recipe name
+// it does not know.
+void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
+    RecipeMapClear(spellMap);
+    ModifierMapClear(modifierMap);
+    for (char* r = recipes->start; r != recipes->finish; r += kSpellRecipeSize) {
+        if (!(At<std::uint32_t>(r, 0x30) & (1u << (classIndex & 31)))) continue;
+        char* spell = *SpellByName(kSpellsByName, nullptr, r);
+        if (!spell) continue;
+        bool offered = false;
+        for (char** s = spells.start; s != spells.finish; ++s) {
+            if (*s == spell) {
+                offered = true;
+                break;
+            }
+        }
+        if (!offered) continue;
+        char* value = r;
+        StockList list;
+        char allocator = 0;
+        RecipeListConstruct(&list, nullptr, &allocator);
+        alignas(4) std::uint8_t pair[0x10];
+        RecipePairConstruct(pair, nullptr, r, &list);
+        char* inserted = RecipeMapInsert(spellMap, nullptr, pair);
+        RecipePairDestroy(pair);
+        RecipeListDestroy(&list);
+        StockList* entries = reinterpret_cast<StockList*>(inserted + 0xC);
+        StockListNode* end;
+        RecipeListEnd(entries, nullptr, &end);
+        StockListNode* result;
+        RecipeListInsert(entries, nullptr, &result, end, &value);
+    }
+
+    for (char** p = modifiers.start; p != modifiers.finish; ++p) {
+        char* m = *p;
+        char letters[2] = {m[4], m[5]};
+        switch (ModifierKind(m)) {
+        case 'a': case 'd': case 'e': case 'm': case 'r': case 't': {
+            stlp::string key(letters, letters + 1);
+            char* held = ModifierSlot(this, key);
+            // FCOMP held+0x14 with m+0x14, TEST AH,1: replaced when less or unordered.
+            if (!held || !(ModifierFactor(held) >= ModifierFactor(m))) ModifierSlot(this, key) = m;
+            break;
+        }
+        case 'f': case 'i': {
+            stlp::string key(letters, letters + 2);
+            ModifierSlot(this, key) = m;
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+EI_REPLACE_METHOD(0x0069A480, ItemStock::FillSpellMaps);
+
+void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned threshold) {
+    void* spellManager = ei::VCall<void*>(context, 22);
+    StockList chosen;
+    char allocator = 0;
+    ModifierListConstruct(&chosen, nullptr, &allocator);
+    RecipeIterator it;
+    RecipeMapBegin(spellMap, nullptr, &it);
+    while (it.node) {
+        StockListNode* head = At<StockListNode*>(it.node, 0x10);
+        for (StockListNode* n = head->next; n != head; n = n->next) {
+            if (GlobalRandom().Next() % 101 < threshold) continue;
+            ClearModifierList(chosen);
+            int count = 0;
+            char* recipe = static_cast<char*>(n->value);
+            char* prototype = FindSpellPrototype(kSpellPrototypes, nullptr, At<stlp::string>(recipe, 0).data());
+            int level = At<int>(prototype, 0x44);
+            int budget = x87::fistp(levels[At<int>(prototype, 0x14)]);
+            float cost = At<float>(prototype, 0x18);
+            const StringVector& required = At<StringVector>(recipe, 0x0C);
+            for (unsigned i = 0; i < required.size(); ++i) {
+                char* m = ModifierSlot(this, required.start[i]);
+                if (!m) continue;
+                AppendModifier(chosen, m);
+                cost = Round(cost + ModifierCost(m));
+                ++count;
+                level += ModifierLevel(m);
+            }
+            if (budget < level || count > 8) continue;
+            const StringVector& optional = At<StringVector>(recipe, 0x18);
+            for (unsigned i = 0; i < optional.size() && count < 8; ++i) {
+                if (GlobalRandom().Next() % 101 < 50) continue;
+                char* m = ModifierSlot(this, optional.start[i]);
+                if (!m || budget < ModifierLevel(m) + level) continue;
+                AppendModifier(chosen, m);
+                cost = Round(cost + ModifierCost(m));
+                ++count;
+                level += ModifierLevel(m);
+            }
+            char* repeated = ModifierSlot(this, At<stlp::string>(recipe, 0x24));
+            if (repeated && budget >= ModifierLevel(repeated) + level) {
+                int reached = level;   // (the original keeps it in a register; `level` is not updated)
+                while (count < 8) {
+                    AppendModifier(chosen, repeated);
+                    ++count;
+                    reached += ModifierLevel(repeated);
+                    if (ModifierKind(repeated) == 'm') {
+                        cost = Round(ModifierFactor(repeated) * At<float>(prototype, 0x18) + cost + ModifierCost(repeated));
+                        if (!(cost > At<float>(prototype, 0x18))) break;
+                    } else {
+                        cost = Round(cost + ModifierCost(repeated));
+                    }
+                    if (budget < ModifierLevel(repeated) + reached) break;
+                }
+            }
+            void* spell = BuildSpell(spellManager, nullptr, prototype, &chosen);
+            if (spell) ++At<int>(spell, 4);
+            StockListNode* end;
+            SpellListEnd(out, nullptr, &end);
+            StockListNode* result;
+            SpellListInsert(out, nullptr, &result, end, &spell);
+            if (spell) ei::VCall<void>(spell, 4);
+        }
+        char* next = At<char*>(it.node, 0);
+        it.node = next ? next : RecipeMapNextBucket(&it);
+    }
+    ClearModifierList(chosen);
+    if (chosen.head) stlp::deallocate(chosen.head, sizeof(StockListNode));
+}
+EI_REPLACE_METHOD(0x0069A780, ItemStock::GenerateSpells);
+
+// ---- 0069B5B0 -------------------------------------------------------------------------------------
+
+namespace {
+
+// CStream::ReadString (00461190): a CString constructed at `out` from the bytes up to a zero; the
+// stream's Read is virtual slot 1.
+__declspec(naked) mfc::CString* __fastcall StreamReadString(void*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
+// The record lookups by name (thiscall on the tables; null when missing): armors 004AB820 on
+// 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
+// 007C86D8; the spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
+// they insert a null for a new name).
+__declspec(naked) char* __fastcall FindArmorNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB820)
+__declspec(naked) char* __fastcall FindWeaponNamed(void*, void*, const char*) EI_ORIGINAL(0x004AB720)
+__declspec(naked) char* __fastcall FindQuickItemNamed(void*, void*, const char*) EI_ORIGINAL(0x00613820)
+__declspec(naked) char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
+__declspec(naked) char** __fastcall ModifierByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x00684B20)
+// push_back of the pointer vectors (thiscall, &value): 0069BD30 (the three item lists), 0069BDC0
+// (spells), 0069BDF0 (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20 (position,
+// &value, count).
+__declspec(naked) void __fastcall PushItemRecord(StockPtrVector*, void*, char* const*) EI_ORIGINAL(0x0069BD30)
+__declspec(naked) void __fastcall PushSpellRecord(StockPtrVector*, void*, char* const*) EI_ORIGINAL(0x0069BDC0)
+__declspec(naked) void __fastcall PushModifierRecord(StockPtrVector*, void*, char* const*) EI_ORIGINAL(0x0069BDF0)
+__declspec(naked) void __fastcall MaterialInsertOverflow(StockMaterialVector*, void*, StockMaterial*, const StockMaterial*,
+                                                         std::size_t) EI_ORIGINAL(0x0069CC20)
+
+using PushFn = void(__fastcall*)(StockPtrVector*, void*, char* const*);
+using FindNamedFn = char*(__fastcall*)(void*, void*, const char*);
+using MapAtFn = char**(__fastcall*)(void*, void*, const void*);
+
+// The counts and the material values are read into locals the original reuses for every section,
+// so a failed read leaves the previous value.
+void ReadInt(void* stream, void* value) { ei::VCall<std::uint32_t>(stream, 1, value, 4u); }
+
+// The next string of the stream into `name` (through a temporary, as the original).
+void ReadName(void* stream, mfc::CString& name) {
+    alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
+    mfc::CString* read = StreamReadString(stream, nullptr, temporary);
+    name = *read;
+    read->~CString();
+}
+
+// std::find (0069E350..0069E3D0, one instantiation per list), then push_back when missing.
+void AddUnique(StockPtrVector& list, char* record, PushFn push) {
+    char** p = list.start;
+    while (p != list.finish && *p != record) ++p;
+    if (p == list.finish) push(&list, nullptr, &record);
+}
+
+// A record section: a count, then names lower-cased and looked up in `table`.
+void LoadRecords(void* stream, mfc::CString& name, unsigned& count, std::uintptr_t table, FindNamedFn find,
+                 StockPtrVector& list) {
+    ReadInt(stream, &count);
+    for (unsigned i = 0; i < count; ++i) {
+        ReadName(stream, name);
+        name.MakeLower();
+        char* record = find(reinterpret_cast<void*>(table), nullptr, name);
+        if (record) AddUnique(list, record, &PushItemRecord);
+    }
+}
+
+// A map section: a count, then names (as read) looked up in an STLport map by string.
+void LoadMapped(void* stream, mfc::CString& name, unsigned& count, std::uintptr_t map, MapAtFn at, StockPtrVector& list,
+                PushFn push) {
+    ReadInt(stream, &count);
+    for (unsigned i = 0; i < count; ++i) {
+        ReadName(stream, name);
+        char* record;
+        {
+            stlp::string key(static_cast<const char*>(name));
+            record = *at(reinterpret_cast<void*>(map), nullptr, &key);
+        }
+        if (record) AddUnique(list, record, push);
+    }
+}
+
+} // namespace
+
+// Original behaviour kept: a material entry is pushed even when its material is not found (null
+// record), and the two map lookups insert null entries for unknown names.
+void ItemStock::LoadLists(void* stream) {
+    ei::VCall<void*>(context, 22);   // (the spell and item managers, fetched and not used)
+    ei::VCall<void*>(context, 18);
+    mfc::CString name;
+    unsigned count = 0;
+    LoadRecords(stream, name, count, 0x007C8718, &FindArmorNamed, armors);
+    LoadRecords(stream, name, count, 0x007C86F8, &FindWeaponNamed, weapons);
+    LoadRecords(stream, name, count, 0x007C8738, &FindQuickItemNamed, quickItems);
+
+    ReadInt(stream, &count);
+    int values[3] = {0, 0, 0};
+    for (unsigned i = 0; i < count; ++i) {
+        ReadName(stream, name);
+        name.MakeLower();
+        StockMaterial entry;
+        for (int& v : values) ReadInt(stream, &v);
+        entry.record = FindMaterialNamed(reinterpret_cast<void*>(0x007C86D8), nullptr, name);
+        entry.minCount = values[0];
+        entry.maxCount = values[1];
+        entry.left = values[2];
+        if (materials.finish != materials.eos) {
+            if (materials.finish) *materials.finish = entry;
+            ++materials.finish;
+        } else {
+            MaterialInsertOverflow(&materials, nullptr, materials.finish, &entry, 1);
+        }
+    }
+
+    LoadMapped(stream, name, count, 0x007C851C, &SpellByName, spells, &PushSpellRecord);
+    LoadMapped(stream, name, count, 0x007C853C, &ModifierByName, modifiers, &PushModifierRecord);
+}
+EI_REPLACE_METHOD(0x0069B5B0, ItemStock::LoadLists);

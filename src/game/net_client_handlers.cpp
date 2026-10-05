@@ -14,6 +14,7 @@
 #include "originals_core.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -58,7 +59,7 @@ __declspec(naked) void** __fastcall PartiesInsert(void*, void*, void**, void*, c
 __declspec(naked) void** __fastcall TradesInsertDefault(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00424900)
 __declspec(naked) void __fastcall TradeRecordDestroy(void* /*record*/) EI_ORIGINAL(0x00424DB0)
 // Parties (00661050 class, outside this range).
-__declspec(naked) void __fastcall PartyReset(void* /*party*/, void*, int /*a*/, int /*b*/) EI_ORIGINAL(0x00661700)
+inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 // The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
 __declspec(naked) void __fastcall UiPlayersChanged(void* /*table*/, void*, int /*added*/) EI_ORIGINAL(0x005F82D0)
 __declspec(naked) void __fastcall UiChatLine(void* /*table*/, void*, const char* /*text*/, std::uint32_t /*number*/) EI_ORIGINAL(0x005F82F0)
@@ -67,7 +68,7 @@ __declspec(naked) void __fastcall FlowZoneOffered(void* /*flow*/, void*, const c
 __declspec(naked) void __fastcall FlowZoneWithdrawn(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x00580040)
 __declspec(naked) void __fastcall FlowVariablesChanged(void* /*flow*/) EI_ORIGINAL(0x005800C0)
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
-__declspec(naked) void __fastcall FlowLoadZoneQuests(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x005809D0)
+inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 __declspec(naked) void __fastcall FlowLoadMap(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x005810A0)
 // Message members.
 __declspec(naked) void __fastcall RefVectorConstruct(RefVector* /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FFF0)

@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
+#include "originals_script.h"
 
 #include <cstring>
 
@@ -42,7 +43,7 @@ constexpr std::uintptr_t kGTimeName = 0x0073F920;             // "gtime"
 constexpr std::uintptr_t kCantLoadMap = 0x00790BB8;           // "CWorldServer::LoadSave(): Can't load map..."
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 
-// Save format versions (WorldStream::version) at which fields were added.
+// Save format versions (WorldStream::version_) at which fields were added.
 constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
 constexpr int kVersionUnknown13C = 0x74;
 constexpr int kVersionCountdowns = 0x4E;
@@ -292,7 +293,7 @@ __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, 
 // 004C2030 / 004B3360 (RET 4) / 004C2290. A script group's constructor, Load and destructor.
 __declspec(naked) void __fastcall ScriptGroupConstruct(void*, void*) EI_ORIGINAL(0x004C2030)
 __declspec(naked) void __fastcall ScriptGroupLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004B3360)
-__declspec(naked) void __fastcall ScriptGroupDestruct(void*, void*) EI_ORIGINAL(0x004C2290)
+inline void __fastcall ScriptGroupDestruct(void* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 // 0066EF80 / 0066D260 (RET 4). The player state's refresh after a load and SetFlag70.
 __declspec(naked) void __fastcall PlayerStateRefresh(void*, void*) EI_ORIGINAL(0x0066EF80)
 __declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*/) EI_ORIGINAL(0x0066D260)
@@ -375,7 +376,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
         CEngineObject* object = ManagerFindObject(manager40_, nullptr, id);
-        if (stream->version >= kVersionMapObjectName) {
+        if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
             ei::VCall<void>(object, kSlotSetSecondName, static_cast<const char*>(name));
@@ -489,7 +490,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             ++object->refCount_;
         }
         stream->Read(&At<std::uint8_t>(player, kPlayer108), 1);
-        if (stream->version >= kVersionPlayerLists) {
+        if (stream->version_ >= kVersionPlayerLists) {
             auto& ids = At<DwordList>(player, kPlayerIds);
             int count = ReadValue<int>(stream);
             for (int i = 0; i < count; ++i) ids.AddTail(0);
@@ -499,8 +500,8 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
                 node = next;
             }
         }
-        if (stream->version < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
-        if (stream->version < kVersionPlayerGroup) {
+        if (stream->version_ < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
+        if (stream->version_ < kVersionPlayerGroup) {
             alignas(4) std::uint8_t group[0x14];
             ScriptGroupConstruct(group, nullptr);
             *reinterpret_cast<void**>(group) = reinterpret_cast<void*>(kScriptGroupVtable);
@@ -564,9 +565,9 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     stream->Read(&unknownE8_, 4);
     float time = ReadValue<float>(stream);
     float speed;
-    if (stream->version >= kVersionTimeSpeedFloat) {
+    if (stream->version_ >= kVersionTimeSpeedFloat) {
         stream->Read(&speed, 4);
-        if (stream->version >= kVersionUnknown13C) stream->Read(&unknown13C_, 4);
+        if (stream->version_ >= kVersionUnknown13C) stream->Read(&unknown13C_, 4);
     } else {
         speed = static_cast<float>(ReadValue<int>(stream));
     }
@@ -633,7 +634,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             DiplomacyRead(diplomacy_, nullptr, stream);
             stream->Read(&unknownDC_, 4);
             stream->Read(&unknownE0_, 4);
-            if (stream->version >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
+            if (stream->version_ >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
 
             // Counted references to items (added at the head of the list).
             for (;;) {
@@ -652,7 +653,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             stream->Read(&unknown6C_, 1);
 
             // The item manager's object records.
-            if (stream->version >= kVersionPlayerLists) {
+            if (stream->version_ >= kVersionPlayerLists) {
                 for (;;) {
                     int id = -1;
                     stream->Read(&id, 4);
@@ -681,7 +682,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 
             RelocateStrandedUnits(this);
 
-            if (stream->version >= kVersionMobFiles) {
+            if (stream->version_ >= kVersionMobFiles) {
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
@@ -693,7 +694,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 StringArraySetSize(&mobFiles_, nullptr, 0, -1);
             }
 
-            if (stream->version >= kVersionSharedObjects) {
+            if (stream->version_ >= kVersionSharedObjects) {
                 SharedObjectList& shared = SharedObjects(this);
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {

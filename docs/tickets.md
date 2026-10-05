@@ -24,7 +24,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H4 (taken 2026-10-05) Trader stock: no scenario reaches the stock generators (0069AE20, 0069A110, H3's 00699810 / 006995E0 / 00699A40 installed but 0 calls; ui_camp does not reach 004A6DF0). Find what calls 004A6DF0 and add a scenario; then 0069B5B0 (stock load), 0069A480 / 0069A780.
+- H5 (taken 2026-10-05) 0069AC20 (trader scrolls; the old branch worktree-agent-a66805191c86fe11f has a version) and the next 2-4 live functions in 0x00690000-0x006A0000 reached by trader_stock / ui_camp.
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
@@ -41,11 +41,11 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
   - (C2d camera merged 2026-10-05.)
-- C3b (top 10, C3c-C3e and C3f, the next 15 by site count each; C3g merged; C3h (taken 2026-10-05) next 15; 445 left per the regenerated report, continue with the next 15 by site count) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
+- C3b (top 10, C3c-C3e and C3f, the next 15 by site count each; C3g merged; C3h done on its branch, 434 left per the regenerated report, continue with the next 15 by site count) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
   group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
   shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
   0x0040C720, ...), then by area. C3 first part (shared headers, 38 void forwarders typed) merged 2026-10-05.
-- C4 Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
+- C4 (done on its branch 2026-10-05; left: UnitStream, SaveStream, other stream copies) Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.

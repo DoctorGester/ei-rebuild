@@ -183,3 +183,24 @@ __declspec(naked) inline void __fastcall ByteArraySetSizeOriginal(void* /*array*
 __declspec(naked) inline void* __fastcall OstreamPutLongOriginal(void* /*stream*/, void*, long /*value*/)
     EI_ORIGINAL(0x006FC9C6)
 __declspec(naked) inline void __fastcall PlexFreeDataChainOriginal(void* /*chain*/) EI_ORIGINAL(0x006FE90F)
+
+// C3h. 00405950: __node_alloc<true,0>::allocate(bytes) (ECX = bytes, plain RET, block or null).
+__declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
+// 00421800: STLport string constructor with room for n bytes (RET 8: allocator, n; returns `this`).
+__declspec(naked) inline void* __fastcall StringReserveOriginal(void* /*string*/, void*, const void* /*alloc*/,
+                                                                std::size_t /*n*/) EI_ORIGINAL(0x00421800)
+// 00426450: the string allocator's deallocate(p, n) (RET 8; ECX and EDX are not read, so the dummies are dropped).
+__declspec(naked) inline void __stdcall StringDeallocateOriginal(char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
+// 00427830: CPtrList destructor (plain RET); 00429F10: CPtrList::RemoveAll (plain RET). EAX is not a result.
+__declspec(naked) inline void __fastcall PtrListDestructOriginal(void* /*list*/) EI_ORIGINAL(0x00427830)
+__declspec(naked) inline void __fastcall PtrListRemoveAllNodesOriginal(void* /*list*/) EI_ORIGINAL(0x00429F10)
+// 004297A0: hash_map<string, ...>::operator[](key) (RET 4): the address of the value slot (node + 4 or the new node + 0xC).
+__declspec(naked) inline void* __fastcall MapRegistryFindOriginal(void* /*map*/, void*, const void* /*key*/)
+    EI_ORIGINAL(0x004297A0)
+// 0042A3D0: STLport string constructor from [first, last) (RET 0xC; the third argument is not read). EAX is the end pointer.
+__declspec(naked) inline char* __fastcall StringInitRangeOriginal(void* /*string*/, void*, const char* /*first*/,
+                                                                  const char* /*last*/, const void* /*tag*/)
+    EI_ORIGINAL(0x0042A3D0)
+// 004DA5C0: the game buffer grows its storage to `size` bytes (RET 4, EAX not a result).
+__declspec(naked) inline void __fastcall GameBufferGrowOriginal(void* /*buffer*/, void*, std::uint32_t /*size*/)
+    EI_ORIGINAL(0x004DA5C0)

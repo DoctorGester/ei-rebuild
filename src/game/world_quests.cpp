@@ -1,6 +1,7 @@
 // CWorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md (seventh round).
 #include "world.h"
+#include "game_strings.h"
 
 #include "console.h"
 
@@ -171,7 +172,7 @@ struct RawString {
     std::uint8_t bytes[12];
 };
 static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-__declspec(naked) std::uint8_t** __fastcall BriefingMapAt(void*, void*, const RawString*) EI_ORIGINAL(0x004297A0)
+inline std::uint8_t** __fastcall BriefingMapAt(void* a0, void*, const RawString* a2) { return (std::uint8_t**)MapRegistryFindOriginal(a0, nullptr, a2); }
 // 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
 // 0057FB60 (RET 4). The client asks the server to complete briefing `name` (ECX = 007AFE20).
 __declspec(naked) void __fastcall RequestBriefing(void*, void*, const char*) EI_ORIGINAL(0x0057FB60)
@@ -324,7 +325,6 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
 namespace {
 
 constexpr std::uintptr_t kHumanHero = 0x0078B0FC;   // "Human Hero"
-constexpr std::uintptr_t kEmptyText = 0x0079B298;   // ""
 
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
 // 00530930. The unit's prototype record; its first field is the prototype name.
@@ -375,7 +375,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         if (is(v.n1) || is(v.n3)) {
             StateSetVariable(state, nullptr, v.hired, 2.0f);
             const char* prototype = unit ? *UnitPrototype(unit, nullptr) : Text(kHumanHero);
-            PartyAddMember(party, nullptr, v.merc, prototype, Text(kEmptyText));
+            PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
         }
     }
     UpdateMercBriefingsAt(this, nullptr);
@@ -565,7 +565,7 @@ struct RecordArray {
     int growBy;
 };
 
-__declspec(naked) int __fastcall PartyAddItem(void* /*records*/, void*, void* /*item*/, int, int) EI_ORIGINAL(0x00661DB0)
+inline int __fastcall PartyAddItem(void* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
 __declspec(naked) void __fastcall RecordArraySetAtGrow(RecordArray*, void*, int, std::uint8_t*) EI_ORIGINAL(0x0059D2E0)
 // The unit record's lists: remove the first entry of quick items (00660E10), items (00660A50),
 // spells (00660FF0), worn items (00660C30); add an entry (006608D0, 00660C90, 00660AB0,
@@ -703,7 +703,7 @@ static_assert(sizeof(PlacementRecord) == 0x28);
 __declspec(naked) void __fastcall PlacementsSetAtGrow(void*, void*, int, const PlacementRecord*) EI_ORIGINAL(0x0059C510)
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
-__declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void*) EI_ORIGINAL(0x005300D0)
+inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordArray*, void*, void*) EI_ORIGINAL(0x0058FD90)
 // 00590160 (RET 8). The player's items into its party records before leaving.
 __declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, void* /*records*/) EI_ORIGINAL(0x00590160)

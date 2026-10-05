@@ -4,6 +4,7 @@
 #pragma float_control(precise, on)
 
 #include "net_messages.h"
+#include "game_strings.h"
 #include "net_connection.h"
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -23,7 +24,7 @@ namespace {
 
 // STLport strings and lists (library instantiations).
 __declspec(naked) StringRep* __fastcall StringPlusText(StringRep* /*out*/, const StringRep* /*a*/, const char* /*b*/) EI_ORIGINAL(0x00427D60)
-__declspec(naked) void __fastcall StringRangeInitTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042A3D0)
+inline void __fastcall StringRangeInitTag(StringRep* a0, void*, const char* a2, const char* a3, std::uint32_t a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 void __fastcall StringAllocProxy(char** a0, void*, const void* a2, char* const* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, (const void*)a3); }
 __declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
 __declspec(naked) char* __fastcall CopyTrivial(const char* /*first*/, const char* /*last*/, char* /*result*/) EI_ORIGINAL(0x004193D0)
@@ -33,18 +34,17 @@ __declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /
 __declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
 __declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
 __declspec(naked) void __fastcall FreeNode(void* /*node*/, std::size_t /*n*/) EI_ORIGINAL(0x00426920)
-__declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
+inline void __fastcall StringDeallocate(char**, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 // The pending awards (+0x25B4): push_back of {delay, award}.
 __declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00422F70)
 
 // The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
-__declspec(naked) void** __fastcall MapRegistryFind(void* /*registry*/, void*, const StringRep* /*name*/) EI_ORIGINAL(0x004297A0)
+inline void** __fastcall MapRegistryFind(void* a0, void*, const StringRep* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, (const void*)a2); }
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
 constexpr std::uintptr_t kMapSuffix = 0x00783D70;      // "_1"
 constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
-constexpr std::uintptr_t kEmptyText = 0x0079B298;      // ""
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
@@ -67,7 +67,7 @@ void EmptyAwardText(StringRep* s) {
     s->start = nullptr;
     s->finish = nullptr;
     s->eos = nullptr;
-    const char* first = Text(kEmptyText);
+    const char* first = game::EmptyText();
     const char* last = first + std::strlen(first);
     StringAllocateBlock(s, nullptr, static_cast<std::size_t>(last - first) + 1);
     char* end = CopyTrivial(first, last, s->start);
@@ -225,7 +225,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
             std::uint8_t allocator = 0;
             StringRep text0;
             StringInitWithAllocator(&text0, nullptr, &allocator);
-            const char* empty = Text(kEmptyText);
+            const char* empty = game::EmptyText();
             StringAssignSpan(&text0, nullptr, empty, empty + std::strlen(empty));
             QueueAward(connection, 0, award0, text0);
             StringRep text1;

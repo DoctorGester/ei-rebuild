@@ -105,6 +105,31 @@ public:
     // 004A5570. Size `size`, position 0; a larger buffer (exactly `size`) does not keep them.
     void SetSize(std::uint32_t size);
 
+    // The bit writer / reader of the delta code (net_delta.cpp).
+    // 0047DFC0. Appends one bit (a new byte is started after eight).
+    // Several writers have an inline copy of it (same effect).
+    void PutBit(bool bit);
+    // The readers' inline bit read: true when the next bit is set (reads a byte after eight).
+    bool GetBit();
+    // 004A5610: stores bits_, appends a zero byte for the next bits (not rewritten).
+    void StartByte();
+    // 004A5650: stores bits_, no pending byte (not rewritten).
+    void EndBits();
+    // 0047DA80 (RET 4). Writes the memory stream `from` into this stream (its slot 2): `from`'s
+    // pending bits stored first (EndBits), then its size times two, in one byte when that is below
+    // 0x100 (a signed compare), otherwise in four bytes with bit 0 set; then its bytes.
+    void WriteStream(CMemoryStream* from);
+    // 0047DAE0 (RET 4). Reads what WriteStream wrote (this stream's slot 1) into the memory stream
+    // `to`: resized to the length (SetSize), filled, back at position 0, ok set. 0 for a length
+    // over 100000 (nothing more read) or a short read, else 1.
+    int ReadStream(CMemoryStream* to);
+    // 0047D7F0 / 0047D970 (RET 8). The whole of this memory stream (a fixed view over its bytes)
+    // compressed / decompressed by `coder` (00430450 / 00430960) into a growing buffer, which then
+    // replaces `out`'s contents; `out` is left at position 0. The coder keeps its window from call
+    // to call (the client's and the server's message streams).
+    void CompressTo(CoderState* coder, CMemoryStream* out);
+    void DecompressTo(CoderState* coder, CMemoryStream* out);
+
     std::uint8_t bits_;             // +0x0C byte being assembled by the bit writer (+0x0D..0x0F unused)
     std::int32_t bitMask_;          // +0x10 bit of the last bit written (0x80: start a new byte)
     std::int32_t bitsIndex_;        // +0x14 where bits_ goes in the data (-1: nowhere yet)

@@ -12,6 +12,7 @@
 #include "lib/mfc.h"
 #include "engine_object.h"
 #include "originals_world.h"
+#include "originals_script.h"
 
 #include "ei/hook.h"
 
@@ -45,7 +46,7 @@ __declspec(naked) void __fastcall SubCallDestroy(void*, void*, int) EI_ORIGINAL(
 // Out-of-line CArray destructors (__thiscall): CString arrays (004C26A0), object references
 // (004C2290), the ScriptVars floats (004C29C0).
 __declspec(naked) void __fastcall NamesDestruct(void*) EI_ORIGINAL(0x004C26A0)
-__declspec(naked) void __fastcall RefArrayDestruct(void*) EI_ORIGINAL(0x004C2290)
+inline void __fastcall RefArrayDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29C0)
 
 // Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)

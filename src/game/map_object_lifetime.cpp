@@ -2,6 +2,7 @@
 // server / client companions and the server-side unit controller. See
 // docs/notes/map_objects.md ("Lifetime").
 #include "combat.h"
+#include "core_streams.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "unit.h"
@@ -38,9 +39,8 @@ constexpr std::uintptr_t kFrameArrayVtable = 0x0073DE40;
 constexpr std::uintptr_t kMapObjectVtable = 0x0073DAA0;
 constexpr std::uintptr_t kEffectArrayVtable = 0x0073DBA0;
 constexpr std::uintptr_t kRecordArrayVtable = 0x0073DB94;
-constexpr std::uintptr_t kStreamBaseVtable = 0x0073BDB0;
-constexpr std::uintptr_t kStreamVtable = 0x0073BD90;
-constexpr std::uintptr_t kMemoryStreamVtable = 0x0073C960;
+// CMemoryStream's second vtable (the network queue's streams, 0073C960).
+constexpr std::uintptr_t kQueueStreamVtable = 0x0073C960;
 constexpr std::uintptr_t kUnitVtable = 0x0073EA8C;
 constexpr std::uintptr_t kCarriedArrayVtable = 0x0073EB84;
 constexpr std::uintptr_t kCompanionBaseVtable = 0x0073DC54;
@@ -59,9 +59,6 @@ constexpr std::uint32_t kOne = 0x3F800000;
 // 0040CB00. Quaternion::SetIdentity.
 __declspec(naked) void* __fastcall SetIdentity(void*) EI_ORIGINAL(0x0040CB00)
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
-// 00468C20 / 0047A200. Memory stream reset and constructor.
-__declspec(naked) void __fastcall ResetMemoryStream(void*) EI_ORIGINAL(0x00468C20)
-__declspec(naked) void __fastcall ConstructStream(void*) EI_ORIGINAL(0x0047A200)
 // 0047FB70. The network record array and its streams: emptied.
 __declspec(naked) void __fastcall ResetNetRecords(void*) EI_ORIGINAL(0x0047FB70)
 // 00510340. A network record's destructor.
@@ -118,9 +115,9 @@ void InitEngineObject(void* object) {
 
 // A memory stream member (vtable 0073BD90 while it frees its buffer at +0x18, then its base's).
 void DestroyStream(void* stream) {
-    SetVtable(stream, kStreamVtable);
+    SetVtable(stream, kMemoryStreamVtable);
     if (void* buffer = At<void*>(stream, 0x18)) gamecrt::operator_delete(buffer);
-    SetVtable(stream, kStreamBaseVtable);
+    SetVtable(stream, kStreamVtable);
 }
 
 // A plain CArray member: its vtable, then its data freed.
@@ -212,16 +209,16 @@ CMapObject* CMapObject::Construct() {
     char* stream = records + 0x24;
     SetDword(stream, 0x08, kStreamLimit);
     At<std::uint8_t>(stream, 0x05) = 1;
-    SetVtable(stream, kStreamVtable);
-    SetDword(stream, 0x18, 0);
-    ResetMemoryStream(stream);
     SetVtable(stream, kMemoryStreamVtable);
+    SetDword(stream, 0x18, 0);
+    reinterpret_cast<CMemoryStream*>(stream)->Reset();
+    SetVtable(stream, kQueueStreamVtable);
     stream = records + 0x4C;
-    ConstructStream(stream);
-    SetVtable(stream, kStreamVtable);
-    SetDword(stream, 0x18, 0);
-    ResetMemoryStream(stream);
+    reinterpret_cast<CStream*>(stream)->ConstructBase();
     SetVtable(stream, kMemoryStreamVtable);
+    SetDword(stream, 0x18, 0);
+    reinterpret_cast<CMemoryStream*>(stream)->Reset();
+    SetVtable(stream, kQueueStreamVtable);
     ResetNetRecords(records);
     SetVtable(this, kMapObjectVtable);
     companion = nullptr;

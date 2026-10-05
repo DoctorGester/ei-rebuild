@@ -2,6 +2,7 @@
 // creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
 // See script.h and docs/notes/script.md ("CScript reset").
 #include "script.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -9,6 +10,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>
@@ -35,7 +37,7 @@ __declspec(naked) void* __fastcall TempObjectsRemoveTail(void*, void*, void* /*o
 __declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
 __declspec(naked) void __fastcall VarsDestruct(void*) EI_ORIGINAL(0x004BE090)
 __declspec(naked) void __fastcall DeclDestruct(void*) EI_ORIGINAL(0x004C54A0)
-__declspec(naked) void __fastcall GroupDestruct(void*) EI_ORIGINAL(0x004C2290)
+inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // Node element destructors (__thiscall (flags), 0 = in place): WorldScript block (0x18), FX
 // source (0x34), particle source (0x24); lightning DestructElements (__stdcall (first, count)).
 __declspec(naked) void __fastcall WorldBlockDestroy(void*, void*, int) EI_ORIGINAL(0x004CE2D0)
@@ -168,7 +170,7 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     GroupValuesSetSize(&vars.groups, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.groupNames, nullptr, 0, -1);
     definition->index = 0;
-    const char* empty = reinterpret_cast<const char*>(0x0079B298);
+    const char* empty = game::EmptyText();
     definition->params = empty;
     definition->name = empty;
 }

@@ -311,7 +311,7 @@ __declspec(naked) void __fastcall MessageListErase(void*, void*, void* /*out*/, 
 __declspec(naked) void __fastcall CopyCString(void*, void*, const void*) EI_ORIGINAL(0x007006E5)
 __declspec(naked) void __fastcall ConstructCString(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
 __declspec(naked) void __fastcall ConstructListHolder(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA340)
-__declspec(naked) void* __fastcall AllocateNodes(std::size_t) EI_ORIGINAL(0x00405950)
+inline void* __fastcall AllocateNodes(std::size_t a0) { return NodeAllocateOriginal(a0); }
 
 // A list header node of 12 bytes, linked to itself.
 void NewListHeader(std::uint8_t* at) {
