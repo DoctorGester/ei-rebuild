@@ -832,3 +832,45 @@ database; the overlapping copy is not reproduced).
 The thunks call 0069AE20 with the vectors +0x14 / +8 / +0x20 and kind 0 / 1 / 2. All reached by
 `trader_stock`. None is in library.csv, dead_code.csv or the Rebirth list. `unknown_78` is now
 `baseLevels`. No other functions taken. Not run in the harness (central).
+
+# Area ticket A-H (00640000-006C0000, 2026-10-05)
+
+One worker over the HUD / items / spells / effects range for a session; groups of 3-5 related
+functions, each committed green. The texture manager (0068F6C0..00693C60) and src/render belong
+to the renderer worker and are not touched.
+
+## Group 1: CWinRegistry (006972A0-006988A0)
+
+Code: `src/game/win_registry.h/.cpp`; verify: `tests/verify/verify_win_registry.cpp`. The class
+name and the worker names (SetDWordInt, SetBinInt, SetStringInt, GetDWordInt, GetBinInt,
+GetStringInt) come from its debug messages. The object is one HKEY (+0x00); each getter / setter
+opens `subkey` below it with KEY_ALL_ACCESS (getters RegOpenKeyExA, setters RegCreateKeyExA with
+class ""), reads or writes one value and closes it.
+
+| Address | Name | Verify |
+|---|---|---|
+| 006972A0 | Construct (returns this) | against the original on a scratch object |
+| 006972B0 / 006973A0 | Destroy / Close (the same code) | ours only: key null afterwards |
+| 00697340 | Open (RET 8; path, root HKEY) | ours on the object, the original on a closed scratch object (its key closed again): result and success compared |
+| 00697CA0 / 00697D40 | SetDWord / SetInt (REG_DWORD, same code) | both run (the same value written twice), results compared |
+| 00697E80 | SetFloat (4-byte REG_BINARY of the bits) | both run, results compared |
+| 00697460 | SetStringInt (REG_SZ, length + 1 bytes; CString by value) | both run, results compared |
+| 00697FC0 | SetString (copies its CString to 00697460) | both run, results compared |
+| 00698570 / 00698610 | GetDWord / GetInt (same code) | both run, compared |
+| 00698750 | GetFloat (REG_BINARY, FLD of the float in ST0; declared double) | both run, bits compared |
+| 006976B0 | GetStringInt (REG_SZ: a 256-byte stack buffer, malloc'ed when ERROR_MORE_DATA) | both run, text compared |
+| 006988A0 | GetString (copies its default to 006976B0) | both run, text compared |
+
+Reached by every scenario: the options loader (0045B210, rewritten in options.cpp, which calls
+these through their addresses) reads every setting at startup; the writer (0045C560) runs on exit.
+The writer's own wrapper records the RegCreateKeyExA / RegSetValueExA import slots for both of its
+runs; with these wrappers each setter writes twice in both runs, so its event lists still match.
+SetString / GetString call their workers through the workers' addresses so those wrappers run.
+
+Added to `src/lib/crt.h/.cpp`: `gamecrt::malloc` (006EABD1) and `gamecrt::free` (006EA8AD).
+
+Original quirks kept: GetFloat reads the value into the stack slot of `subkey`, so a binary value
+shorter than 4 bytes keeps the pointer's remaining bytes (reproduced); GetDWord's value local is
+uninitialised in the original (a REG_DWORD shorter than 4 bytes gives stack garbage; ours leaves
+an uninitialised local too, not the same bytes). Not taken: 00698E70..00698FB0 (static
+initialisers zeroing five 3-dword globals before WinMain).
