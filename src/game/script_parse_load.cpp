@@ -7,6 +7,7 @@
 // game), and in verify builds each callee then runs through its own wrapper. LoadFunction calls
 // itself directly (its verify wrapper would otherwise run the subtree twice at every level).
 #include "script.h"
+#include "game_strings.h"
 #include "script_parse.h"
 #include "script_addon.h"
 
@@ -312,8 +313,8 @@ void ClearDefinition(ScriptDefinition* decl) {
     static_cast<IfThenArray&>(decl->ifThen).SetSize(0, -1);
     Vars(&decl->vars)->Clear();
     decl->index = 0;
-    decl->params = GameText(0x0079B298);
-    decl->name = GameText(0x0079B298);
+    decl->params = game::EmptyText();
+    decl->name = game::EmptyText();
 }
 
 const char* kTypeLetter[] = {nullptr, GameText(0x0078BBD8), GameText(0x0078BBD4), GameText(0x0078BBD0), GameText(0x0078BBCC)};
@@ -825,8 +826,8 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             if (*p) *p++ = 0;
             line = start;
             if (Strncmp(start, keyword, std::strlen(keyword)) == 0) {
-                define.name = GameText(0x0079B298);
-                define.value = GameText(0x0079B298);
+                define.name = game::EmptyText();
+                define.value = game::EmptyText();
                 char* q = start + std::strlen(keyword);
                 while (*q && IsSpace(*q)) ++q;
                 char* name = q;
@@ -836,7 +837,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 while (*q && IsSpace(*q)) ++q;
                 define.value = q;
                 AddDefineAt(&defines, &define);
-                line = GameText(0x0079B298);
+                line = game::EmptyText();
             } else {
                 ApplyDefinesAt(&line, &defines);
             }

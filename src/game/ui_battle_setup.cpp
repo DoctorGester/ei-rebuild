@@ -5,6 +5,7 @@
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
 #include "ui_camp.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -330,7 +331,7 @@ void CBattleScreenSetup::Create() {
     reinterpret_cast<CreateFn>(movePanel_->vtable_[18])(movePanel_);   // slot 18 (+0x48)
 
     memory = gamecrt::operator_new(0x1C8);
-    messageLog_ = memory ? Raw(memory)->ConstructTextLog(interface_, reinterpret_cast<void*>(0x0079B298),
+    messageLog_ = memory ? Raw(memory)->ConstructTextLog(interface_, const_cast<char*>(game::EmptyText()),
                                                          RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
                          : nullptr;
     AddChild(messageLog_);

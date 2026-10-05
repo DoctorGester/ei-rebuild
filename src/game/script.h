@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "core_streams.h"
 #include "engine_object.h"
 #include "lib/mfc.h"
 
@@ -25,14 +26,9 @@ enum ScriptType : int {
     kScriptGroup = 4,
 };
 
-// Serialisation stream used by the save game code (vtable slot 1 reads, slot 2 writes). Only the
-// slots the script code calls are named; the class itself belongs to the save game system.
-class ScriptStream {
-public:
-    virtual void Slot0() = 0;
-    virtual void Read(void* buffer, unsigned size) = 0;          // 1
-    virtual void Write(const void* buffer, unsigned size) = 0;   // 2
-};
+// The serialisation stream of the script save code is the engine's CStream (core_streams.h;
+// slot 1 reads, slot 2 writes).
+using ScriptStream = CStream;
 
 // MFC 4.2 CArray<T, ARG> layout (0x14 bytes). The game's instantiations differ only in the vtable.
 template <typename T>

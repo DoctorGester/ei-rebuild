@@ -1,6 +1,7 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md (seventh round).
 #include "world.h"
+#include "game_strings.h"
 
 #include "console.h"
 
@@ -104,7 +105,7 @@ __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
 __declspec(naked) void __fastcall InputSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F85C0)
 __declspec(naked) void __fastcall InputAfterSave(void*, void*) EI_ORIGINAL(0x005F86D0)
-void __fastcall ScriptsReset(void* a0, void*, int a2) { StreamResizeOriginal(a0, nullptr, (std::uint32_t)a2); }
+void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
 __declspec(naked) void __fastcall StreamSaveScripts(CMemoryStream*, void*, void* /*scripts*/) EI_ORIGINAL(0x004A5250)
 __declspec(naked) void __fastcall GlobalsSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410C10)
 // 00579B80 (RET 8). Writes `data` to the file stream (ECX) under a header (magic in EDX, version).
@@ -241,10 +242,10 @@ int GameFlow::SaveGame(const char* slot) {
     } scenarioOwner{&scenario};
     PartySave(kParty, nullptr, &scenario);
     InputSave(kInput, nullptr, &scenario);
-    ScriptsReset(kScripts, nullptr, 0);
+    ScriptsReset(kScripts);
     InputAfterSave(kInput, nullptr);
     StreamSaveScripts(&scenario, nullptr, kScripts);
-    ScriptsReset(kScripts, nullptr, 0);
+    ScriptsReset(kScripts);
     GlobalsSave(kGlobals, nullptr, &scenario);
     WriteSaveFile(&file.stream, kMagicScenario, SaveVersion(), &scenario);
     file.Close();
@@ -302,7 +303,6 @@ constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 
 // The game's _ftol (006E853C): truncation, on the value as the FPU holds it.
 __declspec(naked) int __cdecl GameFtol(double) {
@@ -441,7 +441,7 @@ int __stdcall EnterZone(std::uint8_t* records) {
     }
 
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(At<const char*>(zoneRecord, kZoneMap)),
-                        reinterpret_cast<const unsigned char*>(EmptyText())) != 0) {
+                        reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) {
         const char* mapOverride = nullptr;
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
                              reinterpret_cast<const unsigned char*>(Text(kFrozenZone))) == 0) {
@@ -1023,9 +1023,6 @@ __declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
 __declspec(naked) void __fastcall CharVectorResize(CharVector*, void*, unsigned, const char*) EI_ORIGINAL(0x004D8EB0)
 __declspec(naked) void __fastcall ScriptDecode(ScriptDecoder*, void*, mfc::CString*) EI_ORIGINAL(0x004D8E10)
-// 004A5490 (RET 4). CMemoryStream::Seek. 00468C20: Reset.
-__declspec(naked) void __fastcall MemorySeek(CMemoryStream*, void*, std::uint32_t) EI_ORIGINAL(0x004A5490)
-__declspec(naked) void __fastcall MemoryReset(CMemoryStream*, void*) EI_ORIGINAL(0x00468C20)
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 int __fastcall QueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
@@ -1038,7 +1035,7 @@ struct LocalMemoryStream {
         s.ok_ = 1;
         ei::SetVtable(&s, kMemoryStreamVtable);
         s.data_ = nullptr;
-        MemoryReset(&s, nullptr);
+        s.Reset();
     }
     ~LocalMemoryStream() {
         ei::SetVtable(&s, kMemoryStreamVtable);
@@ -1075,7 +1072,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         std::memmove(decoder.in.begin, data, size);
         ScriptDecode(&decoder, nullptr, &script);
     } else if (StreamReadChunk(&scripts.s, nullptr, kScriptPlain, &text.s)) {
-        MemorySeek(&text.s, nullptr, text.s.size_);
+        text.s.Seek(text.s.size_);
         char zero = 0;
         ei::VCall<void>(&text.s, kSlotStreamWrite, &zero, 1u);
         script = reinterpret_cast<const char*>(text.s.data_);
@@ -1404,8 +1401,6 @@ __declspec(naked) void __fastcall GlobalsLoad(void*, void*, CMemoryStream*) EI_O
 __declspec(naked) void __fastcall InputLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F8420)
 // 004A51C0 (RET 4). A memory stream copies its remaining data into another.
 __declspec(naked) void __fastcall StreamCopyRest(CMemoryStream*, void*, void*) EI_ORIGINAL(0x004A51C0)
-// 004A54D0 (RET 4). A memory stream makes room for `size` bytes.
-void __fastcall StreamReserveAt(void* a0, void*, int a2) { StreamResizeOriginal(a0, nullptr, (std::uint32_t)a2); }
 // 00596E70 (RET 8). CWorldServer::LoadSave through its address.
 __declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
 
@@ -1421,7 +1416,7 @@ int __stdcall LoadMission(void* file) {
     if (version < kVersionGlobalsInMission) GlobalsLoad(reinterpret_cast<void*>(0x0079B2A8), nullptr, &mission.s);
     if (static_cast<int>(mission.s.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
-        StreamReserveAt(reinterpret_cast<void*>(0x007AFDF8), nullptr, 0);
+        reinterpret_cast<CMemoryStream*>(0x007AFDF8)->Resize(0);
         InputLoad(reinterpret_cast<void*>(0x007C7D50), nullptr, &mission.s);
         StreamCopyRest(&mission.s, nullptr, reinterpret_cast<void*>(0x007AFDF8));
         *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.version_;
@@ -1835,7 +1830,7 @@ int GameFlow::LoadGame(const char* slot) {
     PartyLoad(kParty, nullptr, &scenario);
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
-        ScriptsReset(kScripts, nullptr, 0);
+        ScriptsReset(kScripts);
         InputLoad(kInput, nullptr, &scenario);
         StreamLoadScripts(&scenario, nullptr, kScripts);
         version = static_cast<int>(scenario.version_);

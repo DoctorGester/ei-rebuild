@@ -4,6 +4,7 @@
 // pause of 120..180 s, a calm track; the briefing, constructor, main menu and credits states each
 // play one file. The themes come from music.reg (LoadThemes, 006B4710).
 #include "sound.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "registry.h"
@@ -21,7 +22,6 @@ namespace {
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 // The party's fight state, set by the world (2: fighting).
 int FightState() { return *reinterpret_cast<const volatile int*>(0x007AFC9C); }
-const char* EmptyString() { return reinterpret_cast<const char*>(0x0079B298); }
 // ".mp3" (the pointer at 00744094).
 const char* Mp3() { return *reinterpret_cast<const char* const*>(0x00744094); }
 
@@ -136,8 +136,8 @@ int CMusicSystem::LoadThemes() {
         return result;
     }
     const char* const common = Text(0x00796844);   // "Common"
-    credits = reg.GetString(common, Text(0x00790EF4), Copy(EmptyString()));    // "Credits"
-    mainMenu = reg.GetString(common, Text(0x007904EC), Copy(EmptyString()));   // "MainMenu"
+    credits = reg.GetString(common, Text(0x00790EF4), Copy(game::EmptyText()));    // "Credits"
+    mainMenu = reg.GetString(common, Text(0x007904EC), Copy(game::EmptyText()));   // "MainMenu"
     {
         console::CStringArray sections;
         reg.GetSectionNames(&sections);
@@ -147,8 +147,8 @@ int CMusicSystem::LoadThemes() {
             LocalTheme read;
             read.name = sections.data_[i];
             read.dungeon = 0;
-            read.briefing = reg.GetString(section, Text(0x00796830), Copy(EmptyString()));      // "Briefing"
-            read.constructor = reg.GetString(section, Text(0x00796824), Copy(EmptyString()));   // "Constructor"
+            read.briefing = reg.GetString(section, Text(0x00796830), Copy(game::EmptyText()));      // "Briefing"
+            read.constructor = reg.GetString(section, Text(0x00796824), Copy(game::EmptyText()));   // "Constructor"
             reg.GetStringArray(section, Text(0x00796818), &read.calm);     // "CalmOpen"
             reg.GetStringArray(section, Text(0x00796810), &read.combat);   // "Combat"
             AppendTheme(this, read);
@@ -175,7 +175,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
             calmDue = 1;
             sound::Manager()->StopStream(4);
             inCombat = 0;
-            combatTrack = EmptyString();
+            combatTrack = game::EmptyText();
             return;
         }
     }
@@ -281,13 +281,13 @@ int CMusicSystem::UpdateMusic() {
             calmDue = CalmDelay();
         }
     } else if (fighting == 1) {
-        if (Compare(current, combatTrack) != 0 || Compare(combatTrack, EmptyString()) == 0) {
+        if (Compare(current, combatTrack) != 0 || Compare(combatTrack, game::EmptyText()) == 0) {
             combatTrack = PickName(themes[theme].combat);
             combatTrack += Mp3();
         }
         snd->RequestStream(combatTrack, 3);
-    } else if (Compare(current, EmptyString()) == 0) {
-        combatTrack = EmptyString();
+    } else if (Compare(current, game::EmptyText()) == 0) {
+        combatTrack = game::EmptyText();
         if (calmDue == 0) {
             std::uint32_t r = GlobalRandom().Next();
             calmDue = gameapi::timeGetTime() + r % 60001 + 120000;

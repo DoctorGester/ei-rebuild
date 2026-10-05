@@ -1,6 +1,7 @@
 // CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md (seventh round).
 #include "world.h"
+#include "game_strings.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -15,7 +16,6 @@
 
 namespace {
 
-const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 
 // 005B5E10 / 005B8B30. CAIMap: forget the map / start collecting refreshes.
 __declspec(naked) void __fastcall AIMapReset(void*, void*) EI_ORIGINAL(0x005B5E10)
@@ -84,7 +84,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fr
         }
         if (failed) return 0;
         *reinterpret_cast<mfc::CString*>(&mapName_) = map;
-        *reinterpret_cast<mfc::CString*>(&mobName_) = EmptyText();
+        *reinterpret_cast<mfc::CString*>(&mobName_) = game::EmptyText();
     }
     ei::VCall<void>(graph, kSlotStreamSeek, 0);
     if (ei::VCall<unsigned>(graph, kSlotStreamSize) != 0 &&
@@ -219,8 +219,8 @@ void CWorldServer::ResetZone() {
     }
     ClearMissilePointers(this);
     EndTimedObjects(this);
-    *reinterpret_cast<mfc::CString*>(&mobName_) = EmptyText();
-    *reinterpret_cast<mfc::CString*>(&zoneName_) = EmptyText();
+    *reinterpret_cast<mfc::CString*>(&mobName_) = game::EmptyText();
+    *reinterpret_cast<mfc::CString*>(&zoneName_) = game::EmptyText();
     if (manager3C_) ManagerClear(manager3C_, nullptr);
     if (manager40_) ManagerClear(manager40_, nullptr);
     if (manager44_) ManagerClear(manager44_, nullptr);
@@ -375,7 +375,7 @@ void CWorldServer::SendFreshObjects() {
 
 void CWorldServer::ResetState() {
     ResetZoneAt(this, nullptr);
-    *reinterpret_cast<mfc::CString*>(&mapName_) = EmptyText();
+    *reinterpret_cast<mfc::CString*>(&mapName_) = game::EmptyText();
     DiplomacyReset(diplomacy_, nullptr);
     QueueReset(commandsA_, nullptr);
     QueueReset(commandsB_, nullptr);

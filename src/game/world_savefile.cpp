@@ -34,8 +34,6 @@ int& StreamVersion(void* stream) { return *reinterpret_cast<int*>(static_cast<st
 // 004A5340 (RET 8) / 004A52D0 (RET 0xC, AL). The file header: write (magic, version) / check.
 __declspec(naked) void __fastcall HeaderWrite(void*, void*, unsigned, int) EI_ORIGINAL(0x004A5340)
 __declspec(naked) bool __fastcall HeaderRead(void*, void*, unsigned, int, int) EI_ORIGINAL(0x004A52D0)
-// 004A54D0 (RET 4). The memory stream makes room for `size` bytes.
-void __fastcall StreamReserve(void* a0, void*, int a2) { StreamResizeOriginal(a0, nullptr, (std::uint32_t)a2); }
 // The growing buffer: constructor, destructor, Seek (grows to the position).
 inline void __fastcall BufferSeek(GameBuffer* a0, void*, int a2) { GameBufferGrowOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 // The coder.
@@ -142,7 +140,7 @@ bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum
     if (StreamVersion(file) <= CompressedSince()) {
         int start = ei::VCall<int>(file, kSlotTell);
         int size = ei::VCall<int>(file, kSlotSize) - start;
-        StreamReserve(out, nullptr, size);
+        reinterpret_cast<CMemoryStream*>(out)->Resize(size);
         ei::VCall<void>(file, kSlotRead, StreamData(out), static_cast<unsigned>(size));
         ei::VCall<void>(out, kSlotSeek, 0);
     } else {
@@ -168,7 +166,7 @@ bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum
             SeekTo(plain.b, size);
             ei::VCall<void>(file, kSlotRead, plain.b.begin, static_cast<unsigned>(size));
         }
-        StreamReserve(out, nullptr, Length(plain.b));
+        reinterpret_cast<CMemoryStream*>(out)->Resize(Length(plain.b));
         ei::VCall<void>(out, kSlotSeek, 0);
         ei::VCall<void>(out, kSlotWrite, plain.b.begin, static_cast<unsigned>(Length(plain.b)));
         ei::VCall<void>(out, kSlotSeek, 0);

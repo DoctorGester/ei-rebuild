@@ -8,6 +8,7 @@
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
 // operation order is kept and NaN compares stay as written.
 #include "ui.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -697,7 +698,7 @@ void CObjectivesWindow::Build() {
 
     // The quest log (left, below the list) and the list's scroll bar.
     void* memory = gamecrt::operator_new(0x1C8);
-    AddChild(memory ? ConstructTextLog(memory, nullptr, interface_, reinterpret_cast<const void*>(0x0079B298),
+    AddChild(memory ? ConstructTextLog(memory, nullptr, interface_, game::EmptyText(),
                                        RECT{60, 190, 384, 510}, 10.0f)
                     : nullptr);
     memory = gamecrt::operator_new(0x18C);

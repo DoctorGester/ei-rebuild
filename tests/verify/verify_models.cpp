@@ -1,4 +1,5 @@
 // Differential checks for model and resource loading (src/game/model.cpp, model_db.cpp).
+#include "fake_stream.h"
 #include "verify.h"
 
 #include "../../src/game/model.h"
@@ -14,11 +15,10 @@ void* s_unused;
 // ---- Streams (save/load) ------------------------------------------------------------------------
 
 // Captures what a save function writes, then forwards it in the same pieces.
-class CaptureStream : public ScriptStream {
+class CaptureStream : public FakeStream {
 public:
-    void Slot0() override {}
-    void Read(void*, unsigned) override {}
-    void Write(const void* buffer, unsigned size) override {
+    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
+    void Write(const void* buffer, std::uint32_t size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
         chunks.push_back(size);
@@ -35,16 +35,16 @@ public:
 };
 
 // Reads from the real stream and records the bytes.
-class RecordStream : public ScriptStream {
+class RecordStream : public FakeStream {
 public:
     explicit RecordStream(ScriptStream* real) : real_(real) {}
-    void Slot0() override {}
-    void Read(void* buffer, unsigned size) override {
-        real_->Read(buffer, size);
+    std::uint32_t Read(void* buffer, std::uint32_t size) override {
+        std::uint32_t result = real_->Read(buffer, size);
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
+        return result;
     }
-    void Write(const void*, unsigned) override {}
+    void Write(const void*, std::uint32_t) override {}
     std::vector<unsigned char> bytes;
 
 private:
@@ -52,14 +52,14 @@ private:
 };
 
 // Plays recorded bytes back.
-class ReplayStream : public ScriptStream {
+class ReplayStream : public FakeStream {
 public:
     explicit ReplayStream(const std::vector<unsigned char>& bytes) : bytes_(bytes) {}
-    void Slot0() override {}
-    void Read(void* buffer, unsigned size) override {
+    std::uint32_t Read(void* buffer, std::uint32_t size) override {
         for (unsigned i = 0; i < size; ++i) static_cast<unsigned char*>(buffer)[i] = pos_ < bytes_.size() ? bytes_[pos_++] : 0;
+        return size;
     }
-    void Write(const void*, unsigned) override {}
+    void Write(const void*, std::uint32_t) override {}
     bool Consumed() const { return pos_ == bytes_.size(); }
 
 private:
