@@ -96,12 +96,18 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
   and each model slot's +0x04 the skill level record's. Serialisers call the archive's field / CString field / enter / leave (004092B0 / 004093A0 / 004098D0 / 00409980)
   in the original's order (matters when writing; unused by the game); bytes 0x38..0x47 of a prototype and 0x128..0x137 / 0x144..0x14F of a model are not
   serialised. 0057DEE0 re-creates the database when the file changes (database.res <-> databaseLMP.res, multiplayer hero screens).
-- **Save / Load** (`SaveUnit` 005321C0 slot 10, `LoadUnit` 00531A80 slot 9): format in `unit_save.cpp`; Load resolves items in the world's item manager
-  (ManagerContext slot 18), moves the unit between players (00665B50 / 00665A70, MarkChanged(0xB), controller slot 18) and calls slot 32; prototype names from
-  version 0x4D (the second from 0x6A; before that looked up by the first name with 00514930).
-- **Network state** (DeltaState at +0x1C4; slots 49 / 50 and map objects 0050EC30 / 0050EAF0, free functions): field list in `net_state.cpp`; map object fields 0-3
-  (0x18 bytes at +0x17C, scale, hidden / position / orientation, effects), units add 4-13 (stats block +0x330, 11 equipment ids, move modes, packed flags, name, path,
-  masks / player, +0x4C8, +0x438). Verify lessons: compare only the bytes the reader writes of each effect (+0, +1, dword +4, +0x10) because the companion's slot 13
+- **Save / Load** (`SaveUnit` 005321C0 slot 10, `LoadUnit` 00531A80 slot 9) order: map object part (0050F7A0 / 0050F900), controller, name (+0x238), relations, player
+  id (-1), side, +0x254, +0x255, +0x258..+0x278 (active weapon among them), +0x27C sub-object (005C7860 / 005C79B0), +0x320, +0x324, +0x328, active weapon again,
+  weapons / quick items / spells / armour as item ids, +0x4C8 (0x14 bytes), +0x248, carried items, +0x32C, +0x438 (version 0x49), prototype names (version 0x4D; the
+  second from 0x6A, before that looked up by the first name with 00514930). Load resolves items in the world's item manager (ManagerContext slot 18), moves the unit
+  between players (00665B50 / 00665A70, MarkChanged(0xB), controller slot 18) and calls slot 32.
+- **Network state** (DeltaState at +0x1C4; slots 49 / 50 and map objects 0050EC30 / 0050EAF0, free functions): map object fields 0 the 0x18 bytes at +0x17C, 1 scale
+  +0xC4 (read: SetPosition 00517700), 2 hidden bit (flag 8), position +0x1C, orientation +0x34 (read: world slots 41 / 51), 3 effects (count byte, then per 0x14-byte effect
+  bytes +0, +1, word +4, byte +0x10; read: CArray::SetSize, then the companion +0x170's slot 13 with `first == 0` unless a unit). Units add 4 stats block +0x330 (read:
+  stat fractions before / after give controller slot 46 per changed stat, slot 31 when any changed, a hit point drop or flag 0x10 in +0x437 gives the companion's slot 16
+  with `_ftol(lost * max)`), 5 the 11 equipment ids (weapon -1 with flag 0x40000000; writing refreshes a class 0x3E controller, slot 29), 6 +0x264 / +0x268 / +0x26C (+0x270
+  = +0x26C, slot 25 on a change), 7 packed bits of +0x25C / +0x260 / +0x274 / +0x278, 8 +0x254, +0x255, +0x258, +0x256, 9 the CString +0x238, 10 path (005C7DB0 / 005C7FC0)
+  and motion speeds, 11 masks, +0x250, player id, 12 +0x4C8, 13 +0x438, then re-equip (slots 32 / 33) and refresh (25, 29). Verify lessons: compare only the bytes the reader writes of each effect (+0, +1, dword +4, +0x10) because the companion's slot 13
   changes the others and the original's second read runs it again; with `first == 0` the controller's slot 41 (00535850) can snap the orientation to the path by
   clearing byte +0x76, so the wrapper saves that byte before ours and puts it back before the original's read. The field 3 count is one byte read into a word.
 - **Unit points** (slots 52 / 53): `UnitActionPoint` (0052FDF0, RET 4) always returns `out` in EAX although Ghidra shows void (CUnitServer::ApproachTarget reads it;
