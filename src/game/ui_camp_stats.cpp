@@ -172,7 +172,7 @@ EI_REPLACE_METHOD(0x00624CB0, CHeroStatsPanel::HoverInfo);
 // --- 006232D0: the column's hero -----------------------------------------------------------------
 
 void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
-    bool party = reinterpret_cast<CParty*>(LocalPlayerData())->memberCount_ > 1;
+    bool party = reinterpret_cast<CParty*>(LocalPlayerData())->members_.size > 1;
     reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0])->visible_ = party ? 1 : 0;
     reinterpret_cast<CUiMesh*>(sceneObjects_.data_[1])->visible_ = party ? 1 : 0;
     regions_.data_[0]->SetTip(party ? kTipPreviousHero : 0, 1, 0);
