@@ -13,8 +13,16 @@ objects or units). The .mob object reader (00481F00) walks the children of the r
 (0xACCEECCB, read only by the zone loader) and the other chunks are not needed. The trimmed file is
 one 0xA000 root holding 0xD000 (keep zone1's diplomacy), zone2's 0xDDDDDDD1 (the reader still fills
 its local table from it, and a trap's side mask comes from that table, 005927C0 record type 7) and
-a 0xB000 with only the 0xBBAB0000 records, all copied byte for byte. Chunk = id, size (both u32,
-the size counting the 8-byte header), then the contents.
+a 0xB000 with only the 0xBBAB0000 records, copied byte for byte except their object ids.
+
+The ids: AddMob keeps each record's id (field 0xB002), and CBaseManager::CreateObject (00403730)
+given an id that is already taken simply overwrites the id map's entry. zone2's traps are
+0x52C..0x532, which zone1's own objects also use; the orphaned zone1 objects then make
+CWorldServer::RemoveObject (005935C0) dereference a missing map entry (0059362A) when save1 is
+loaded. The traps get 30001..30007 instead (zone1's ids end at 2008), so the scenario can also find
+them with GetObject(id): the zone loader does not register traps by name (005927C0, record type 7).
+
+Chunk = id, size (both u32, the size counting the 8-byte header), then the contents.
 """
 import argparse, os, struct, sys
 
@@ -23,6 +31,8 @@ NO_DIPLOMACY = 0xD000
 DIPLOMACY = 0xDDDDDDD1
 OBJECTS = 0xB000
 MAGIC_TRAP = 0xBBAB0000
+OBJECT_ID = 0xB002      # a record's object id (u32)
+FIRST_ID = 30001        # the traps get 30001..30007
 
 
 def chunks(data, start, end):
@@ -33,6 +43,16 @@ def chunks(data, start, end):
             raise ValueError(f'bad chunk at {off:#x}')
         yield cid, off, size
         off += size
+
+
+def renumber(data, off, size, new_id):
+    """The record at `off` with its object id (field 0xB002) set to `new_id`."""
+    record = bytearray(data[off:off + size])
+    fields = [(c, o - off) for c, o, s in chunks(data, off + 8, off + size) if c == OBJECT_ID]
+    if len(fields) != 1:
+        raise ValueError(f'record at {off:#x}: {len(fields)} id fields')
+    struct.pack_into('<I', record, fields[0][1] + 8, new_id)
+    return bytes(record)
 
 
 def chunk(cid, body):
@@ -52,7 +72,9 @@ def main():
         if cid == DIPLOMACY:
             diplomacy = data[off:off + size]
         elif cid == OBJECTS:
-            traps = [data[o:o + s] for c, o, s in chunks(data, off + 8, off + size) if c == MAGIC_TRAP]
+            for c, o, s in chunks(data, off + 8, off + size):
+                if c == MAGIC_TRAP:
+                    traps.append(renumber(data, o, s, FIRST_ID + len(traps)))
     if not diplomacy or not traps:
         sys.exit(f'{args.source}: no diplomacy chunk or no magic traps')
     out = chunk(ROOT_CHUNK, chunk(NO_DIPLOMACY, b'') + diplomacy + chunk(OBJECTS, b''.join(traps)))
