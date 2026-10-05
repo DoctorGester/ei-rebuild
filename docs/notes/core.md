@@ -1,208 +1,242 @@
-# Core engine utilities (00401000-00430000)
+# Engine base (0x00401000-0x00430000, quaternion / ISAAC at 0x0049E790-0x0049F810)
 
-Files: `src/game/core_maths.*`, `src/game/core_transform.*`, `src/game/core_refcount.*`,
-`tests/verify/verify_core_*.cpp`. Shared header touched: `src/game/maths.h` (declarations of the new
-`Vector3`/`Quaternion` members only).
+Maths, transforms, reference counting, the object manager, streams and chunked files, the camera,
+triangle clipping. Network code of the same address range is in `network.md`; the application layer
+(0x00440000-0x00470000) in `app.md`. How the classes are declared after the cleanup:
+`cleanup-engine-base.md`. Names are provisional (set in Ghidra). Unless a row says otherwise a
+function is reached by every scenario (startup databases, new game, save / load, exit).
 
-## Rewritten
+## Target binary
 
-| Address | Name | Verify |
-|---|---|---|
-| 0040CDC0 | `AddVectors` (operator+, `__fastcall` out/a in ECX/EDX, b on stack) | pure, side by side |
-| 00402200 | `NegateVector` | pure |
-| 00410770 | `ScaleVector` | pure |
-| 00410750 | `Vector3::AddInPlace` (returns the argument, as the original's EAX) | in place, scratch copy |
-| 004022D0 | `ClampUnit` (`__stdcall`, [-1, 1], NaN gives -1) | pure |
-| 0040CB00 | `Quaternion::SetIdentity` (returns this) | pure |
-| 004018A0 | `Quaternion::PreMultiply` (`*this = r * *this`) | in place, scratch copy |
-| 0040D940 / 0040F560 / 0040D6B0 | `Quaternion::AxisX/AxisY/AxisZ` (rotated basis vectors) | pure |
-| 0040E3D0 | `CubicSegment::SetBSpline` | writes its object only |
-| 0040E440 | `CubicSegment::Evaluate` | pure |
-| 00401490 | `CTransformObject::CopyTransform` (slot 13, returns this) | scratch copy |
-| 0040CB80 | `CTransformObject::CombineRotation` (slot 14) | scratch copy |
-| 0040CC30 | `CTransformObject::UpdateWorld` (slot 15) | original on a scratch copy (see below) |
-| 00401510 | `CTransformObject::SaveTransform` (slot 16) | recorded file calls |
-| 00401540 | `CTransformObject::LoadTransform` (slot 17) | recorded file calls |
-| 0040E810 | `CCamera::GroundPoint` | output only |
-| 0040F360 / 0040F3C0 | `CCamera::SetTurnRate` / `SetTiltRate` | scratch copy of the camera |
-| 0040F420 | `CCamera::SetUnknownD0` | scratch copy |
-| 0040D3B0 / 0040D420 | `CCamera::SetTarget` / `SetTargetId` | scratch copy |
-| 0040A3A0 | `CRefObject::Release` | dry run on stand-ins |
-| 00417DF0 | `CRefObject::Shutdown` | dry run |
-| 00419CD0 | `RefPtr::Assign` | dry run |
-| 00418BE0 | `RefPtr::Share` | dry run |
-| 00413270 | `RefPtr::Destroy` | dry run |
+- Target: `starter\Engine\game.exe` (GOG 1.06, Russian, built 2001-03-26, VC6 12.00.8966; PDB path
+  `D:\home\Allods3\Game\ReleaseRussian\Game.pdb`). The root-folder copy of the Rebirth install
+  differs in two bytes: the Large-Address-Aware flag (0x13E) and the disabled CD check
+  (`EB` instead of `74` at 00456BB5).
+- Linked in: MFC 4.2 (static), static CRT with old iostreams, STLport (version not identified). The game's own classes
+  have no RTTI: classes are recovered from vtables (`config/vtables.csv`). Bink, Miles (MSS), DirectX 7,
+  WSOCK32 by ordinal. `2DintMMX.dll` and `3DfpFPU.dll` (VC6, 2000) are loaded by name and are not
+  rebuilt.
 
-All names are provisional and set in Ghidra.
+## Maths and transforms
 
-### Classes
-
-- `CTransformObject` (vtable 0073BA38, abstract): CEngineObject plus local position (+0x1C), world
-  position (+0x28), local rotation (+0x34), world rotation (+0x44); 0x54 bytes. Slots 13-17 are the
-  five transform methods above; ~90 vtables share them. Slot 14 is overridden by 00516370 in the unit
-  classes (it writes only the world rotation). Slots 16/17 take an MFC `CFile*` and call its
-  slot 14 (Write) / slot 13 (Read).
-- `CCamera` ("CCamera", class id 0x43, vtable 0073B9E0) derives from it. Only the fields used here
-  are named.
-- `CRefObject`: the 8-byte header of the engine's reference-counted script objects (16-bit count at
-  +4, copy-on-share flag at +6 bit 0, detached flag at +7 bit 7; slot 0 deleting destructor, 2
-  shutdown, 3 clone). `RefPtr` is the one-dword owning pointer to it.
-
-### Floating point
-
-Order of operations follows the instruction sequence. Values the original rounds through a float
-temporary (FSTP to a float local, or float arguments to the Vector3 constructor) go through
-`StoreFloat` (a volatile store); values it keeps on the FPU stack are written inline, never as named
-float locals (doubling is written `* 2.0f`, exact like FADD ST0,ST0). `/fp:fast` distributed the
-1/6 factor in `SetBSpline` over the sum (different results in 24-bit precision), so that function is
-compiled under `#pragma float_control(precise, on)`.
-
-All 28 functions were also checked offline (not committed; scratch harness): game.exe mapped at
-0x400000 in a suspended child process, original and rewrite run side by side on random inputs
-(including NaN/inf/denormal bit patterns, aliased outputs) under x87 precision control 24, 53 and
-64 bits, linking the objects from `build/release`; then the verify wrappers themselves were run
-with installed trampolines. No mismatches.
-
-## Forwarders added
-
-None. Calls through original code: `UpdateWorld` calls slot 14 through the object's vtable; the
-transform save/load call the file's vtable; the refcount helpers call the objects' vtables; the
-camera reads the engine's zero vector at 0079B5C8 (set by a static initialiser at 0040C7E0).
-`UpdateWorld` calls our `AddVectors` directly (the original calls 0040CDC0 and 00401DE0).
-
-## Original bugs kept on purpose
-
-- `CRefObject::Release` / `RefPtr` helpers test the object pointer for null after already
-  decrementing through it (dead check; omitted, behaviour identical).
-- `RefPtr::Destroy` leaves the pointer set (it is the owner's destructor body).
-
-## Verify wrappers
-
-- Pure (maths): ours runs first into a scratch output (so an output aliasing an input is read
-  unchanged), then the original on the real output; output bytes and returned pointer compared.
-- `CopyTransform`, `CombineRotation`: ours on a scratch copy of the 0x54-byte transform, original on
-  the real object; whole 0x54 bytes compared.
-- `UpdateWorld`: the original runs on a scratch copy whose vtable is the base one (its slot 14 call
-  then cannot reach the real object), ours on the real object. World position and local position are
-  compared always, the world rotation only when the object's own slot 14 is 0040CB80.
-- `SaveTransform`/`LoadTransform`: the original against a recording stand-in file (Read fills
-  nothing, so the object is unchanged), ours against the real file through a recording proxy; the
-  sequence of (slot, offset from object, size) must match.
-- `GroundPoint`: output only, ours into scratch first.
-- Camera setters: the original on a copy of the first 0x120 bytes of the camera (they touch nothing
-  beyond), ours on the real one; the 0x120 bytes compared.
-- Refcount helpers: both the original and ours are dry-run on stand-ins (copies of the 8-byte headers
-  with a vtable that only records destructor/shutdown/clone calls); headers, call records, return
-  value and resulting pointer compared. Then ours runs on the real objects.
-
-## Skipped
-
-- STLport instantiations: vector/string storage release on the node allocator (0040C720, 0040C770,
-  00425040, 00424AF0, 00406590, 00421260), string construction/assign/append (0040C5A0, 0041F460,
-  00428DF0, 00428F10, 0042A2B0, 0042A3D0, 0042A4F0, 0042B700, 0041F4E0, 0040B3C0, 00426A80), hash
-  (004298D0), lower_bound/copy helpers (00408A50, 00408C20, 004193D0, 0042BE40), node allocator.
-- Functions that are a bare RET or `return 0` (00403010, 0040C760, 004128B0, 00424C00, 00402CC0,
-  00402CD0, ...): nothing to rewrite and too short for the 5-byte jump.
-- Base-destructor vtable stores (00413430, 004174E0, 0042BEF0, 00412720, 00419720, 0040CB70): wait
-  for the class hierarchies.
-- 004092B0, 004098D0, 00409980, 00409A60: a chunked data reader built on the iterator 00409070; needs
-  that class first.
-- 00401000/00401170/00401310/00401340: the game's own buffered archive (inline buffer fast path, slot
-  calls on overflow); worth doing together with the archive class (004DA170 etc.).
-- 0042BEC0..0042C580: a stream wrapper class (vtable 0073BE94); same.
-- 0040F230, 00401E50, 00402220, 0040F5C0: camera/transform functions calling not-yet-rewritten maths
-  (0049E790, 0049E800, 0040D9B0); good next candidates once those exist.
-
-## Camera (0040D9B0-004114F0)
-
-Files: `src/game/camera.cpp`, `tests/verify/verify_camera.cpp`, scenario `tests/scenarios/camera.txt`.
-Shared header changed: `src/game/core_transform.h` (CCamera's unknown blocks split into named
-fields, new methods, small types CameraLimits / CameraViewRecord / CameraSettings / CameraView /
-CameraShake / CameraKey / CubicCurve3, and the SampleTerrain declaration; nothing removed).
-
-The camera object is at 0079B2A8 (flags at 0079B2B0); 007AF7C8 points to it for the camera-file
-player (007AFEA5). The per-frame call is `CCamera::Update` from the game frame 00456440 (Rebirth
-patches that caller, not the camera).
+File: `core_maths.cpp`, `core_transform.cpp`, `core_transform_math.cpp`, `quaternion.cpp`,
+`random.cpp`. Verify: `verify_core_maths`, `verify_core_transform`, `verify_quaternion`,
+`verify_random_init`.
 
 | Address | Name | Verify |
 |---|---|---|
-| 0040FB30 | `CCamera::Update(dt)` (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes) | scratch copy (0x120); ours alone while shakes run |
-| 0040F8B0 | `CCamera::ApplyView` (position from focus, distance, heading, pitch; re-aims when 0040E4C0 lifted it) | scratch copy |
-| 0040D9B0 | `SampleTerrain` (`__stdcall`, 9 args: average / min / max surface height on a grid) | outputs: ours into scratch |
-| 0040F5C0 | `CCamera::SetFocus` (minimap clicks, scripts) | scratch copy |
-| 0040F230 | `CCamera::Pan` (scroll keys / border) | scratch copy |
-| 0040F430 | `CCamera::StopMotion` | scratch copy |
-| 004107A0 | `CCamera::ZoomBy` (mouse wheel; 1.05^steps through `_CIpow`) | scratch copy |
-| 00410860 / 004108D0 | `CCamera::SaveView` / `RestoreView` (F9-F12, with a modifier to save) | scratch copy (0x1E0) + settings record |
-| 00411470 | `CCamera::SetDistancePitch` | scratch copy |
-| 00410D70 / 00410D10 | `CCamera::ViewsToSettings` / `ViewsFromSettings` (axis-angle through `_CIacos`) | settings record restored between runs / scratch copy |
-| 004109E0 | `CCamera::SetHeading` | scratch copy |
-| 00410E50 / 00411060 / 00411360 | `CCamera::SetFree` / `LookFrom` / `SetBounds` | scratch copy |
-| 004113A0 | `CCamera::Shake` | original on a scratch camera with a private list (its node read and erased again), ours on the real list; new node compared |
-| 0040F1B0 / 0040EFB0 | `CCamera::PlaybackStart` / `PlaybackStep` (camera\*.cam paths, PlayCamera) | scratch copy (0x308) + result |
-| 0040E460 | `CubicCurve3::Evaluate` | output only |
+| 0040CDC0, 00402200, 00410770, 004022D0 | `AddVectors` (`__fastcall`: out ECX, a EDX, b stack), `NegateVector`, `ScaleVector`, `ClampUnit` (`__stdcall`, [-1, 1], NaN gives -1) | pure, side by side |
+| 00410750 | `Vector3::AddInPlace` (returns its argument) | scratch copy |
+| 0040CB00, 004018A0 | `Quaternion::SetIdentity` (returns this), `PreMultiply` (`*this = r * *this`) | pure / scratch copy |
+| 0040D940, 0040F560, 0040D6B0 | `Quaternion::AxisX/Y/Z` | pure |
+| 0049E790, 0049E800, 0049E870, 0049E950, 0049ED20 | `SetAngleAxis`, `SetAxisAngle`, `PreMultiplyConjugate`, `MultiplyByConjugate`, `Slerp` | pure / scratch copy |
+| 0040E3D0, 0040E440, 0040E460 | `CubicSegment::SetBSpline`, `Evaluate`; `CubicCurve3::Evaluate` | writes its object only / pure |
+| 00401490, 0040CB80, 0040CC30, 00401510, 00401540 | `CTransformObject` slots 13-17: CopyTransform, CombineRotation, UpdateWorld, SaveTransform, LoadTransform | scratch copy; UpdateWorld on a scratch copy with the base vtable; Save / Load against a recording file |
+| 00401570, 00401680, 00401940, 00401B50, 00401E50, 00401F00, 00402220 | `CTransformObject` WorldMatrix (4x4), TiltTowards (down axis a tenth of the way to a target), TurnTowards (forward axis onto a target), RollTowards, Rotate(axis, angle), TurnUpTowards, SetHeading (atan2 about +Z) | scratch copy, rotation / matrix bitwise |
+| 004667F0, 0049EE70, 0049F150 | `IsaacRandom::Next`, `Refill`, `Init` (the generator is at 007A9D40; seeding 0049F660 reads 1 KB of a random file from C:\ with the recursive CFileFind 0049F4B0, mixed with `rand()`; not rewritten) | Init: original on a scratch copy with the seed material replayed through a wrapper on 0049F660 |
 
-### Layout (CCamera, beyond the transform)
+- `CTransformObject` (vtable 0073BA38, abstract, 0x54 bytes): CEngineObject + local position (+0x1C),
+  world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
+  methods above, shared by ~90 vtables; slot 14 is overridden by 00516370 in the unit classes
+  (writes the world rotation only). Slots 16 / 17 take an MFC `CFile*` and call its slot 14 / 13.
+- Quaternion products in `ApplyView` / `Update` and `UpdateWorld`-style code add terms in different
+  orders; keep each written out separately.
+- Float rules: plain C++ (rule 7). `SetBSpline`'s 1/6 factor was distributed by `/fp:fast` and gave
+  different results at 24 bit, so that function keeps `float_control(precise, on)`. Values the
+  original rounds through a float temporary go through `StoreFloat`.
 
-+0x94 settings (CameraSettings: clearance +0xFC, limits +0x110 normal / +0x124 briefing (flag
-0x200), briefing pitch +0x134/+0x138, view records +0x178 (4 x 0x18), pitch +0x1D8/+0x1DC in
-degrees), +0x98 pan velocity, +0xA4 its target, +0xB0 pan response, +0xB4/+0xB8/+0xBC turn rate /
-target / response, +0xC0..+0xC8 tilt, +0xCC..+0xD4 zoom, +0xE0 focus, +0xEC focus height, +0xF0
-distance, +0xF4 heading quaternion, +0x104 pitch (degrees), +0x108 shake list (STLport list,
-nodes {elapsed, duration, amplitude, decay}), +0x10C/+0x118 bounds circle (flag 0x100), +0x11C
-target id, +0x120 eight saved views {distance, rotation, pitch}, +0x1E0 a view stack (deque;
-00410E70 push / 00410EF0 pop, not functions in Ghidra), +0x2EC file name, +0x2F0 keys
-(0x24 bytes: time, ?, position, rotation), +0x2F4 count, +0x300 time offset, +0x304 key index.
-Flags: 0x8 follow the target (behind it), 0x10 file open, 0x20 playing, 0x40 free placement,
-0x100 bounded, 0x200 briefing limits.
+## Reference counting
 
-### Floating point
+File `core_refcount.cpp`, `refptr_copies.cpp`, `deleting_destructors_400.cpp`.
 
-`camera.cpp` is compiled with `float_control(precise, on)`: values the original keeps on the FPU
-are `double`, stores go through `Store`. Constants the original multiplies at run time (pi, 1/180,
-90, the 1.05 zoom base, the 0 of StopMotion) are read from the exe through volatile reads so they
-are not folded. Calls whose float result the original uses unrounded (TerrainOwner::SurfaceHeight
-00564070, Vector3::Length 00401E20) go through naked forwarders declared `double`. The shake's
-`exp` is the original's inline FLDL2E / FRNDINT / F2XM1 / FSCALE sequence (naked `Exp`). The
-quaternion products in ApplyView and Update are written out separately: they add the terms in
-different orders.
+- `CRefCounted` (vtable 0073BB68: 16-bit count at +4, copy-on-share flag at +6 bit 0, detached flag at
+  +7 bit 7, slot 0 deleting destructor, slot 1 Serialize). `CRefObject` (0073BB58) derives from it
+  and adds slot 2 shutdown, slot 3 clone. The network sessions derive from the root because their
+  slot 2 is RemoveClient. `RefPtr` is the one-dword owning pointer.
+- Rewritten: 0040A3A0 `CRefObject::Release`, 00417DF0 `Shutdown`, 00419CD0 `RefPtr::Assign`, 00418BE0
+  `Share`, 00413270 `Destroy` (dry run on stand-in objects whose vtable records the destructor /
+  shutdown / clone calls: headers, call records, return value and pointer compared).
+- The compiler emitted ~100 out-of-line copies of these helpers all over 0x400000-0x480000 (21 of
+  `Destroy`, 21 of the 28-byte release, 9 `RefPtrShareReturn`, ...): all in `refptr_copies.cpp`, verified
+  with the same dry run. The release copies cannot have a trampoline (short jump at +4); one copy of
+  their identical 28-byte body is made when the DLL loads. 33 scalar deleting destructors that only
+  call their body share one template in `deleting_destructors_400.cpp`.
+- Kept: Release / RefPtr helpers test the pointer for null after already using it (omitted, same
+  behaviour); `Destroy` leaves the pointer set.
 
-### Forwarders added
+## Object manager (CEngineObject, CBaseManager)
 
-0040E4C0 `ClampAboveObjects` (lifts the camera over objects; STLport list of nearby objects),
-0040D710 `AlignToTarget`, 004110D0 `LookDirection` (asin / acos), 00401940 (transform: turn
-towards a direction), 0049E790 / 0049E800 quaternion from angle and axis (two argument orders),
-0049ED20 slerp, 006B9750 sound listener, 006FD026 `_hypot`, 006E7320 `_CIacos`, 006E81A0
-`_CIpow`, the shake list's STLport end / insert / erase (00411530 / 00411630 / 00411540),
-00564070 and 00401E20 (as `double`, see above).
+File `engine_object.cpp`, `base_manager.cpp`, `hash_tables_400.cpp`. Verify `verify_base_manager`.
 
-### Original behaviour kept
+- `CBaseManager` (vtable 0073B870, 25 slots) layout: +0x1C objects (STLport hash_map id -> object,
+  highest id at +0x30), +0x34 MFC CPtrList of registered objects, +0x50 id -> list position, +0x68 type
+  -> CPtrList* of spare objects, +0x80 type -> spare count (each table is followed by its highest
+  key), +0x98 / +0x9C id range [low, limit) for new ids, +0xA0 / +0xA4 (-1 constructed, 0 / 300 after
+  Create), +0xA8 last id, +0xAC context (Init / SetContext). Slots: 2 Create, 3 Destroy, 9 / 10
+  Load / Save, 13 Init, 14 NewObject, 15 DestroyAll, 23 CreateObject, 24 ReleaseObject.
+- Objects are never freed while the manager lives: RemoveObject turns them into spares of their type
+  (id -1) and CreateObject takes a spare before asking slot 14. Ids are maxId + 1 while that fits the
+  range, else `rand()` probing (100000 tries, then the fatal "CBaseManager::RegisterInstant" and id -1).
+- Rewritten: 00402B20 ConstructBase, 00402DF0 DestructBody, 00402DD0 / 00402D20 deleting destructors,
+  00402D40 CopyFrom, 00402CE0 / 00402CF0 name / description, 00403020 Create, 004031B0 Init, 004031E0
+  Destroy, 004034E0 DestroyAll, 00403730 CreateObject, 00404040 RemoveObject, 004039B0 Unregister,
+  00403BD0 RegisterInstant, 00404410 FreeRecords, 004046E0 / 00404760 Load / Save, 004047E0 /
+  00404860 LoadObjects / SaveObjects (end mark -0x521), 004048F0 ReleaseUnused, 00404920 / 00404960
+  `ObjectListIterator::First / Next`, 00403720 SetContext, the empty slots 00402D60 / 70 / 90 / A0 / B0,
+  the id tables' SetAt / RemoveKey / Lookup / operator[] (00404E80-00406AA0, `hash_tables_400.cpp`) and
+  the class registry 0079B270 (00408EA0, 00408D60). Verify: ours only with state checks, or side by
+  side on a scratch copy (ConstructBase: `BuiltCompare`). Several are reached only through vtables
+  (DestroyAll; Unregister / RegisterInstant by a derived manager around vtable 00743D10).
+- Not hookable (shorter than the 5-byte jump): 00402CC0, 00402CD0, 00402D00, 00402D10, 00402D80,
+  00402DC0, 00403010 (RETs / `return 0` slots).
+- Verify fixes worth remembering: ConstructBase and the registry constructor copy uninitialised stack
+  bytes into the hashtable functor bytes (+0x1C / +0x50 / +0x68 / +0x80); ours writes zeros, the wrapper
+  copies those bytes from ours before comparing.
+- Kept: DestroyAll and Destroy read a node's next pointer after Release may have freed the object (the
+  STLport pool keeps the memory); LoadObjects reads an id equal to the end mark as an object id when a
+  1 byte follows.
 
-- RestoreView sets distance and pitch only: the saved rotation goes to the settings record (and
-  back into the slots) but never to the heading.
-- SampleTerrain counts the centre sample once more than the grid (it is also on the grid when the
-  step divides the half size); its second and third arguments are unused.
-- StopMotion multiplies the view axes by 0 for the pan target (so it is (+-0, +-0, 0), NaN for a
-  NaN axis) and replaces the turn / tilt rate only when it is NaN (SetTurnRate(0) inlined).
-- PlaybackStep, called when the index already is at the last key, places the camera there but does
-  not clear the playing flag (the loop path does).
-- The script commands SetCameraPosition (0x13) and SetCameraOrientation (0x14) have no effect in
-  ScriptRun::Execute.
-- Update tracks a target only with flag 8 clear; panning clears the target and flag 8.
+## Streams, chunked files, archives
 
-### Skipped
+File `core_streams.cpp`, `chunk_stream.cpp`, `chunk_archive.cpp`, `net_coder.cpp` (GameBuffer).
+Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
 
-- 0040ECD0 camera file load (Rebirth-patched), 0040E910 / 0040EB60 / 0040ECB0 camera recording
-  (CFile / CString), 00410AB0 / 00410C10 camera to / from a save (slots 0073BA04 / 0073BA08).
-- 0040E4C0 (STLport list of nearby objects from 0056DAF0), 0040D710, 004110D0, 0040DB50 (2 KB, no
-  references: a spline camera path with 0040E460), 0040D470, 0040D1D0, 0040CE60 / 0040CFB0 /
-  0040D0A0 (camera construction / settings load).
-- 0040F640 / 0040F7B0 (focus moves with no references).
-- 00410E70 / 00410EF0: view stack push / pop (no Ghidra function; reached through a vtable).
+- `CStream` (vtable 0073BDB0): +4 direction byte, +5 ok, +8 limit / save format version (2000000000
+  when constructed). Slots 0 destructor, 1 Read, 2 Write, 3 Seek, 4 Size, 5 Position, 6 Clear (memory
+  streams empty, file streams rewind), 7 CopyFrom (004A4D40).
+- `CMemoryStream` (0073BD90; the queue variant 0073C960): +0xC byte being assembled, +0x10 mask of the
+  last bit (0x80: a new byte is due), +0x14 index of the byte the bits go to (-1: none), +0x1C
+  capacity. Slots 1 Read 004A5380, 2 Write 004A53F0 (grows to twice the need), 3 Seek 004A5490 (also stores
+  pending bits), 4 Size, 5 Position, 6 Clear 00417350, 7 CopyFrom 004A55D0. `Resize` 004A54D0 keeps the
+  contents (1.5x + 0x10), `SetSize` 004A5570 is exact and drops them.
+- `FileStream` (0073C8D8, 0x1C): a CStream over an MFC `CFile` at +0xC; each slot calls the CFile's own
+  virtual (MFC 4.2: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close). The
+  save code builds these on the stack. Defined in `net_link.h`.
+- `Chunk` (vtable 0073BE94, 0x18: vtable, id, consumed, size, start, parent; not the models'
+  `ChunkArchive`): slot 0 a handler called for every chunk `ForEachChild` reads (empty in the base),
+  slot 1 the file (base asks its parent). Sizes include the 8-byte header; every byte read or
+  written is counted in the chunk and all its parents. `RootChunk` (0073BE9C, CFile at +0x18; the .mob
+  loader uses vtable 0073FAD4) owns the file: Open 0042D160, constructor 0042D1C0, Destruct 0042D270.
+  `ChunkArchive` is a different format over two memory streams (below).
+- `ChunkArchive` (0x74, constructor 0053A7B0): +0 index stream, +0x28 data stream, +0x54 version (1),
+  +0x5C hash_map of loaded objects, +0x70 list of objects to save; class tables 0079B284 (class id ->
+  factory) and 0079B270 (vtable -> class id). A saved archive has three top-level chunks: 1 (scratch
+  data, read back on load), 0 (index: class id and key per object), 2 (data: one child 1 per object with
+  child 0 = key, child 1 = the object's fields). A loaded archive's Close gives every loaded object one
+  reference and takes it back.
+- `CoderState` (0x2828) and the LZ coder are in `network.md` (compression).
 
-### Scenario
+| Address | Name | Verify |
+|---|---|---|
+| 0041DD70, 004173D0 / 004790A0, 004173B0 / 004790D0, 00417350 | `CMemoryStream` Construct, Destruct (two copies), DeletingDestruct (two), Clear | scratch copy (buffer cleared where the original would free) |
+| 0047A200, 004174E0, 00417400 | `CStream` ConstructBase / DestructBase / DeletingDestruct | scratch copy |
+| 00412720 / 00413430, 00412730, 00419720, 00412700 | `CRefObject` / `RefValue` base destructors and deleting destructors | scratch copy |
+| 0047B940, 0047B620 | `AlignedPointerArrayAlloc`, `AlignedObjectArray::Clear` (32-byte aligned blocks, header pointer before the data) | ours only: alignment, emptied array |
+| 0042FCA0 | `CoderState::Construct` | scratch copy (0x2828 bytes) |
+| 0042BEC0-0042D0E0 (30) | `Chunk` Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write Float / Int / Byte / Vector3 / Quad / Quaternion / Bytes / Blob; 0042C580 ReadString, 0042C650 ReadEncodedString (content decoded by 004D8E10), 0042C820 WriteString, 0042CA20 / 0042CB80 Read / WriteStringArray; RootChunk Open / Destruct | recorded file (below); ForEachChild, strings through the recording proxy; ForEachChild ours only |
+| 00409070-0040A5A0 (24) | `ChunkArchive` NextChild, FindChild, CountChildrenOf, CountChunks, Field, EnterChunk, LeaveChunk, AppendChild, ResizeToCurrent, `Ref::Reset`, Read / Find / WriteStreamChunk, Open, Close, CStringField (004093A0), StringField (00409470), StreamField (00409640), SaveObjectRef (0040A440), ObjectRef (0040A5A0) | pure side by side; EnterChunk original first (chunk popped) then ours; others ours only + depth / size; loading fields: original into a scratch |
 
-`camera.txt`: walks the hero (Update / ApplyView / SampleTerrain every frame), pans with the
-arrow keys (Pan), F9-F12 (RestoreView), N, the two script camera commands, then PlayCamera on
-camera\bz3g.cam (PlaybackStart / PlaybackStep) until IsCameraPlaying is 0. Shake runs when an
-effect shakes the camera (the Mushroom effect, 00534B60, 00678EC0); ZoomBy needs the mouse wheel.
+- Recorded-file verify (chunks, FileStream, transform save / load): ours runs on the real object with
+  the embedded CFile's vtable swapped for a recorder (each call forwarded, then logged: slot, arguments,
+  result, bytes up to 64 KB); the original then runs on a byte copy whose CFile replays the log. Calls,
+  arguments, written bytes, chunk chains and outputs must match; a log over 256 calls / 256 KB skips the
+  comparison. Checks do not nest.
+- Memory streams are deep-copied only for the two CMemoryStream vtables; with any other stream class
+  the wrapper runs ours only.
+- Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1; `ReadVector3` copies x and z
+  through the FPU (a signalling NaN becomes quiet; `FpuCopyBits`), y as an integer; `ForEachChild` reads
+  the parent without a null check; `CMemoryStream::Destruct` leaves the freed pointer;
+  `SaveObjectRef` registers the object while loading and then searches the field without using it;
+  `ObjectRef` writes key 0 when saving; `LeaveChunk` (writing) takes the child's content pointer before
+  `AppendChild` resizes the stream; a failed `EnterChunk` while loading leaves the chunk pushed.
+- Not rewritten: 0042D260 (RootChunk::File), 004A5380-004A55D0 (the memory stream's own slots, 004A54D0
+  Resize, 004A5570 SetSize, 004A5610 / 004A5650 bit-stream start byte / end bits: forwarders).
+
+## Triangle clipping (0x0042D910-0x0042E6A0)
+
+File `clip.cpp`, `verify_clip`. `ClipTriangle` 0042D910 and the six plane clippers 0042DB70 (X below),
+0042DD00, 0042DE90, 0042E020, 0042E1B0, 0042E340 (Z above) and `LerpVertex` 0042E4D0 clip the mesh
+renderer's software path (meshes drawn through slot 17 of vtable 0073D93C, 00502CA0, whose triangles
+cross the viewport). Verified by ours first on the real data (index list, counts, appended vertices,
+work buffer, last ratio recorded), then the inputs are restored and the original runs; everything
+must match. The original `ClipTriangle` calls the clippers through their hooked addresses.
+Compiled with `float_control(precise, on)` (`(b - a) * t + a`); the intersection ratio is computed in
+a small naked helper (`StoreRatio`) because the original stores the float with FST while comparing
+the unrounded quotient with 1.
+Kept: a vertex exactly on a "keep above" plane is kept out but the t = 0 intersection is added; t above
+1, below 0 or NaN emits the edge's end vertex; the 32-index work buffer is not bounds-checked.
+0042E700 / 0042F4C0 / 0042F890 are dead polygon-clipping variants.
+
+## Camera (0x0040C8B0-0x004114F0)
+
+File `camera.cpp`, `camera_motion.cpp`, `camera_object.cpp`, header `camera.h`. Verify
+`verify_camera*.cpp`, scenario `camera.txt` (walks the hero, pans with arrows, F9-F12, the two script
+camera commands, then PlayCamera on `camera\bz3g.cam` until IsCameraPlaying is 0). The camera object
+is at 0079B2A8 (flags at 0079B2B0; 007AF7C8 points to it for the camera-file player). The per-frame
+call is `CCamera::Update` from the game frame 00456440 (WinMain; Rebirth patches the caller).
+`CCamera` ("CCamera", class id 0x43, vtable 0073B9E0) derives from `CTransformObject`.
+
+Layout beyond the transform: +0x94 settings (`CameraSettings`: clearance +0xFC, limits +0x110 normal /
++0x124 briefing, briefing pitch +0x134/+0x138, start focus / distance +0x104..+0x120, view records +0x178
+(4 x 0x18), pitch +0x1D8/+0x1DC in degrees), +0x98 pan velocity, +0xA4 its target, +0xB0 pan response,
++0xB4..+0xBC turn rate / target / response, +0xC0..+0xC8 tilt, +0xCC..+0xD4 zoom, +0xE0 focus, +0xEC
+focus height, +0xF0 distance, +0xF4 heading quaternion, +0x104 pitch (degrees), +0x108 shake list
+(STLport list of {elapsed, duration, amplitude, decay}), +0x10C/+0x118 bounds circle, +0x11C target
+id, +0x120 eight saved views {distance, rotation, pitch}, +0x1E0 view stack (deque; push 00410E70 /
+pop 00410EF0, no Ghidra functions), +0x2E0..+0x2E8 near / far / fov (read by `renderer_init`), +0x2EC
+file name, +0x2F0 keys (0x24 bytes: time, ?, position, rotation), +0x2F4 count, +0x300 time offset,
++0x304 key index. Flags: 0x8 follow the target, 0x10 file open (recording), 0x20 playing, 0x40 free
+placement, 0x100 bounded, 0x200 briefing limits.
+
+| Address | Name | Verify |
+|---|---|---|
+| 0040FB30, 0040F8B0 | `Update(dt)` (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes), `ApplyView` | scratch copy of the first 0x120 bytes; Update ours only while shakes run |
+| 0040D9B0 | `SampleTerrain` (`__stdcall`, 9 args: average / min / max surface height on a grid) | outputs into scratch |
+| 0040F5C0, 0040F230, 0040F430, 004107A0 | `SetFocus`, `Pan`, `StopMotion`, `ZoomBy` (mouse wheel, 1.05^steps via `_CIpow`) | scratch copy |
+| 0040E810, 0040F360 / 0040F3C0 / 0040F420, 0040D3B0 / 0040D420 | `GroundPoint`, `SetTurnRate` / `SetTiltRate` / `SetUnknownD0`, `SetTarget` / `SetTargetId` | output / scratch copy |
+| 00410860 / 004108D0, 00411470, 00410D70 / 00410D10, 004109E0, 00410E50 / 00411060 / 00411360, 004110D0, 0040D710, 0040E4C0 | `SaveView` / `RestoreView` (F9-F12; a modifier saves), `SetDistancePitch`, `ViewsToSettings` / `FromSettings` (`_CIacos`), `SetHeading`, `SetFree` / `LookFrom` / `SetBounds`, `LookDirection`, `AlignToTarget`, `ClampAboveObjects` | scratch copy (0x1E0 + settings record) |
+| 004113A0 | `Shake` (distance by `_hypot`, node added to the list at +0x108) | original on a scratch camera with a private list, ours on the real one; new node compared |
+| 0040F1B0 / 0040EFB0 | `PlaybackStart` / `PlaybackStep` (camera\*.cam, PlayCamera) | scratch copy (0x308) + result |
+| 0040C8B0 .. 0040FB20 (17) | constructor, destructors, class name / id, Create / Destroy, Init, GetRange, Anchor, engine-object / transform destructors | `BuiltCompare`, side by side |
+| 0040E910 / 0040EB60 / 0040ECB0, 00410AB0 / 00410C10 | OpenFile (`.\camera\` + name; an existing camera.cam renamed first) / RecordFrame / CloseFile; LoadState / SaveState (slots 0073BA04 / 08) | ours; recording only with camera recording on |
+| 00412120 | the recorded-path array allocation (36-byte records, 32-byte aligned) | |
+
+Float notes: `camera.cpp` and `camera_motion.cpp` use `float_control(precise, on)`; constants the
+original multiplies at run time (pi, 1/180, 90, 1.05, the 0 of `StopMotion`) are read from the exe
+through volatile reads; `TerrainOwner::SurfaceHeight` (00564070) and `Vector3::Length` (00401E20) are
+called through `double`-returning forwarders (ST0 unrounded); the shake's `exp` is the original's
+inline FLDL2E / FRNDINT / F2XM1 / FSCALE sequence (naked `Exp`).
+
+Kept: `RestoreView` sets distance and pitch only (the saved rotation goes to the settings record but
+never to the heading); `SampleTerrain` counts the centre sample once more than the grid and ignores its
+2nd / 3rd argument; `StopMotion` multiplies the view axes by 0 (so (+-0, +-0, 0), NaN for NaN) and
+replaces turn / tilt rate only when NaN; `PlaybackStep` at the last key places the camera without clearing
+the playing flag; `Update` tracks a target only with flag 8 clear and panning clears target and flag 8;
+`SetCameraPosition` (0x13) / `SetCameraOrientation` (0x14) script commands do nothing;
+`CameraOpenFile` reads each numbered file's number from the title past the fourth character, which is
+always 0, so an existing camera.cam always becomes camera0001.cam; `CameraRecordFrame` writes 4 stack
+bytes the original never sets (ours zero).
+Not hooked: 0040ECD0 (camera file load, Rebirth-patched, `CameraPatch`), 0040C7E0 (static initialiser),
+0040DB50 (2 KB spline camera path, no references).
+
+## Startup tables and dead code
+
+- 0042FAE0 (static initialiser from the .data list 007830C0) fills the coder tables 0079B6B0 /
+  0079B738 / 0079B7BC / 0079B844; rewritten in `net_coder.cpp` for the standalone build only (it runs
+  before the hooks are installed). The other static initialisers in the .data lists (00783038-007830D0,
+  007831F8, 007831FC) run before the hooks too and are not hookable.
+- Dead (config/dead_code.csv): 00431070-00432D20 (a RIPEMD-like key exchange and stream cipher),
+  00402310, 00402780 (radix sort), 0042E700 / 0042F4C0 / 0042F890, 0047A710-0047ACA0 (Huffman builder),
+  the 3DS readers at 004A0350-004A4800 and more found by scanning aligned starts after a RET. A
+  rerun of `tools/find_dead_code.py` drops hand-added rows that only coincidental dwords keep alive.
+
+## Open items
+
+- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are
+  reached through forwarders; the standalone build replaces them (`cleanup-plan.md`, phase 2).
+- Static initialisers and `WinMain` (00456440) cannot run through the hook; 004632A0 (lever table
+  constructor), 00444740 (debug panel), 00458870 (GameOptions) and 0045E820 are examples.
+- 00481660 / 00481F00 (the .mob object reader called from `LoadMapObjects`) and 0049BEA0 (median-cut
+  colour quantisation once per zone load, built on STLport list / hash_map / introsort instantiations:
+  reproducing it needs the game's node allocator and iteration order) are the largest live leftovers
+  of the neighbouring ranges.
