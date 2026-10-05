@@ -140,7 +140,11 @@ void __fastcall EncodeMatchVerify(CoderState* self, void*, std::int32_t at) {
     ei::verify::Check("CoderState::EncodeMatch", true, same, "at %d len %d", at, self->matchLen);
 }
 
-std::uintptr_t VtableOf(const GameBuffer* b) { return reinterpret_cast<std::uintptr_t>(b->vtable); }
+std::uintptr_t VtableOf(const GameBuffer* b) {
+    std::uintptr_t v;
+    std::memcpy(&v, b, sizeof(v));
+    return v;
+}
 bool KnownBuffer(const GameBuffer* b) {
     return VtableOf(b) == kGrowingBufferVtable || VtableOf(b) == kBufferViewVtable;
 }
@@ -166,7 +170,7 @@ bool SamePointer(const void* a, const std::uint8_t* baseA, const void* b, const 
 }
 
 bool SameOutput(const GameBuffer& a, const GameBuffer& b) {
-    return a.vtable == b.vtable && a.cur - a.begin == b.cur - b.begin && a.end - a.begin == b.end - b.begin &&
+    return VtableOf(&a) == VtableOf(&b) && a.cur - a.begin == b.cur - b.begin && a.end - a.begin == b.end - b.begin &&
            a.high - a.begin == b.high - b.begin && a.base == b.base && a.flags == b.flags &&
            std::memcmp(a.begin, b.begin, static_cast<std::size_t>(a.cur - a.begin)) == 0;
 }

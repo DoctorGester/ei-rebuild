@@ -6,6 +6,7 @@
 
 #include "core_maths.h"
 #include "core_streams.h"
+#include "net_link.h"
 #include "object.h"
 #include "object_tables.h"
 
@@ -42,9 +43,8 @@ constexpr std::uintptr_t kMissionFile = 0x007905C0;     // "mission.sav"
 constexpr std::uintptr_t kMainMenu = 0x007904EC;        // "MainMenu"
 constexpr std::uintptr_t kSaved = 0x00790604;           // "Saved "
 
-constexpr std::uintptr_t kFileStreamVtable = 0x0073C8D8;   // a CStream over an MFC CFile (+0x0C)
-constexpr unsigned kOpenWrite = 0x1001;                    // CFile::modeCreate | modeWrite
-constexpr unsigned kOpenRead = 0;
+constexpr unsigned kOpenWrite = netlink::FileStream::kOpenWrite;
+constexpr unsigned kOpenRead = netlink::FileStream::kOpenRead;
 constexpr std::uint32_t kStreamLimit = 2000000000;
 constexpr unsigned kMagicScenario = 0xDEAD;
 constexpr unsigned kMagicMission = 0x102;
@@ -69,16 +69,8 @@ constexpr int kZoneRecordSize = 0x5C;
 std::uint8_t* ZoneRecords() { return *reinterpret_cast<std::uint8_t**>(0x0079BF18); }
 int ZoneRecordCount() { return *reinterpret_cast<const int*>(0x0079BF1C); }
 
-// A CStream writing to a file (0x1C bytes: CStream header, then an MFC CFile at +0x0C).
-struct FileStream {
-    void* vtable;
-    std::uint8_t unknown_04;
-    std::uint8_t ok;              // +0x05
-    std::uint8_t unknown_06[2];
-    std::uint32_t limit;          // +0x08
-    alignas(4) std::uint8_t file[sizeof(mfc::CFile)];   // +0x0C
-};
-static_assert(sizeof(FileStream) == 0x1C);
+// A CStream over a file (net_link.h).
+using netlink::FileStream;
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
@@ -119,39 +111,27 @@ __declspec(naked) void* __fastcall OstreamPutString(void*, void*, const char*) E
 __declspec(naked) void* __fastcall OstreamPutChar(void*, void*, char) EI_ORIGINAL(0x006FC0B0)
 __declspec(naked) void* __fastcall OstreamManipulate(void*, void*, void*) EI_ORIGINAL(0x00434FE0)
 
-constexpr int kSlotFileOpen = 8;     // CFile slot 8 (+0x20): Open(path, flags, error), on the stream's CFile (+0x0C)
-constexpr int kSlotFileClose = 19;    // CFile slot 19 (+0x4C): Close
 
 // The record builder of the party (0x70 bytes; the variables table at +0x54, the zone at +0x68).
 constexpr std::size_t kRecordsSize = 0x70;
 constexpr int kRecordsVariables = 0x54;
 constexpr int kRecordsZone = 0x68;
 
+// A file stream local (zero-filled first, then built and torn down as the original inlines it).
 struct LocalFileStream {
     FileStream stream;
     LocalFileStream() {
-        std::memset(&stream, 0, sizeof(stream));
-        stream.vtable = reinterpret_cast<void*>(kStreamVtable);
-        stream.limit = kStreamLimit;
-        stream.ok = 1;
-        new (stream.file) mfc::CFile();
-        stream.vtable = reinterpret_cast<void*>(kFileStreamVtable);
+        std::memset(static_cast<void*>(&stream), 0, sizeof(stream));
+        stream.Construct();
     }
-    ~LocalFileStream() {
-        stream.vtable = reinterpret_cast<void*>(kFileStreamVtable);
-        reinterpret_cast<mfc::CFile*>(stream.file)->~CFile();
-    }
+    ~LocalFileStream() { stream.Destruct(); }
     LocalFileStream(const LocalFileStream&) = delete;
     LocalFileStream& operator=(const LocalFileStream&) = delete;
 
-    // Opens `path` (`reading`: the stream's +4 byte, 1 to read, 0 to write). The original calls
-    // the embedded CFile's virtual Open (its vtable at stream +0x0C, slot 8), not the stream's.
-    bool Open(const char* path, unsigned flags, std::uint8_t reading) {
-        stream.unknown_04 = reading;
-        stream.ok = ei::VCall<int>(stream.file, kSlotFileOpen, path, flags, nullptr) != 0;
-        return stream.ok != 0;
-    }
-    void Close() { ei::VCall<void>(stream.file, kSlotFileClose); }
+    // Opens `path` (`reading`: the stream's direction byte, 1 to read, 0 to write) through the
+    // embedded CFile's virtual Open, not the stream's.
+    bool Open(const char* path, unsigned flags, std::uint8_t reading) { return stream.Open(path, flags, reading); }
+    void Close() { stream.Close(); }
 };
 
 struct LocalRecords {
@@ -973,7 +953,6 @@ namespace {
 
 constexpr std::uintptr_t kGraphExtension = 0x00790BB0;   // ".grp"
 constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk in a .mob file
-constexpr int kSlotStreamCopyFrom = 7;                    // memory stream slot 7 (+0x1C): read a whole stream
 
 // 00595BA0 (RET 8, patched by Rebirth). The full path of a map file, constructed into `out`.
 __declspec(naked) mfc::CString* __fastcall MapPathInto(CWorldServer*, void*, void* /*out*/, const char*) EI_ORIGINAL(0x00595BA0)
@@ -1018,7 +997,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
             opened = graph.Open(path, kOpenRead, 1);
         }
         if (opened) {
-            ei::VCall<void>(out, kSlotStreamCopyFrom, &graph.stream);
+            static_cast<CStream*>(out)->CopyFrom(&graph.stream);
             found = 1;
             graph.Close();
         }

@@ -35,7 +35,7 @@ constexpr std::size_t kCoderSize = 0x2828;
 // through slot 3, else from memory (00401310).
 void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
     if (buffer->cur + size > buffer->high) BufferReadPastEnd(buffer, nullptr, to, size);
-    else if (buffer->cur + size > buffer->end) ei::VCall<int>(buffer, 3, to, size);
+    else if (buffer->cur + size > buffer->end) buffer->ReadMore(to, size);
     else BufferCopyOut(buffer, nullptr, to, size);
 }
 

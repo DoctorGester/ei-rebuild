@@ -31,9 +31,6 @@ T& ValueOf(Node* node) { return *reinterpret_cast<T*>(reinterpret_cast<std::uint
 Node* Sentinel(void* list) { return static_cast<Node*>(list); }
 ServerEntry* EntryOf(Node* node) { return ValueOf<ServerEntry*>(node); }
 
-constexpr int kBufferWriteMore = 4;
-constexpr int kBufferSeek = 6;
-constexpr int kSinkCommit = 2;
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
@@ -120,7 +117,7 @@ Query* FindQuery(QueryVector& v, const NetAddress* address) {
 // before `end`, otherwise through slot 4.
 void Put(GameBuffer* b, const void* from, unsigned size) {
     if (b->cur + size > b->end) {
-        ei::VCall<int>(b, kBufferWriteMore, from, size);
+        b->WriteMore(from, size);
         return;
     }
     b->flags |= 1;
@@ -136,7 +133,7 @@ void EndCursor(BufferCursor& c) {
     }
     if (c.sink) {
         c.sink->cur = c.p;
-        ei::VCall<int>(c.sink, kSinkCommit);
+        c.sink->Commit();
     }
 }
 
@@ -464,7 +461,7 @@ void ClientBase::SetQueries(const QueryVector* from) {
             BufferCursor c;
             c.Reset(nullptr, 0, 0);
             c.sink = nullptr;
-            ei::VCall<int>(&r, kBufferSeek, 0);
+            r.Seek(0);
             BufferUpdateHigh(&r);
             c.BeginRead(&r, r.base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(r.begin)) +
                                 static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(r.high)));
@@ -473,7 +470,7 @@ void ClientBase::SetQueries(const QueryVector* from) {
             FlushBitsAt(&c);
             if (c.sink) {
                 c.sink->cur = c.p;
-                ei::VCall<int>(c.sink, kSinkCommit);
+                c.sink->Commit();
             }
         } else {
             CreateEntry(&entry);
@@ -653,6 +650,7 @@ EI_REPLACE(0x00442AD0, ClientBaseTickHook);
 // The magic and the entry go through a cursor.
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     GameBuffer b;
+    GameBuffer* buffer = &b;   // slot 4 through the vtable
     GrowingBufferConstruct(&b);
     RefPtr entry{nullptr};
     Describe(&entry);
@@ -662,13 +660,13 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
             b.flags |= 1;
             BufferWriteRaw(&b, nullptr, &kind, 1);
         } else {
-            ei::VCall<int>(&b, kBufferWriteMore, &kind, 1u);
+            buffer->WriteMore(&kind, 1u);
         }
         if (b.cur + 4 <= b.end) {
             b.flags |= 1;
             BufferWriteRaw(&b, nullptr, &echo, 4);
         } else {
-            ei::VCall<int>(&b, kBufferWriteMore, &echo, 4u);
+            buffer->WriteMore(&echo, 4u);
         }
         BufferCursor c;
         c.p = nullptr;
