@@ -102,6 +102,45 @@ struct UnitBodyPart {
 };
 static_assert(sizeof(UnitBodyPart) == 0x1C);
 
+struct AIPath;       // ai_map.h
+struct UnitMotion;   // ai_motion.h
+
+// The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
+// vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
+// unit_client_models.h) for party units on the client; their abstract base has vtable 0073EDBC.
+// Only the slots the rewritten unit code calls are named. The controller classes do not derive
+// from this declaration (their rewritten slots are registered by address); CUnit::Controller()
+// reaches it. unit_ai.h's UnitController names fields of the same objects.
+class CUnitController : public CEngineObject {
+public:
+    virtual void Slot13();
+    virtual void Slot14();
+    virtual void Slot15();
+    virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
+    virtual void Slot17();
+    virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
+    virtual void Slot19();
+    virtual void Slot20();
+    virtual void Slot21();
+    virtual void Slot22();
+    virtual void Slot23();
+    virtual void Slot24();
+    virtual void Slot25();
+    virtual void Slot26();
+    virtual void Slot27();
+    virtual void Slot28();
+    virtual void Slot29();
+    virtual void Slot30();
+    virtual void Slot31();
+    virtual void Slot32();
+    virtual void Slot33();
+    virtual void Slot34();
+    virtual void Slot35();
+    virtual void Slot36();
+    virtual void Slot37();
+    virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
+};
+
 class CUnit : public CEngineObject {
 public:
     // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
@@ -369,6 +408,29 @@ public:
     // and a hero without the part make the original rotate uninitialised stack (see the notes).
     Vector3* EffectPoint(Vector3* out);
 
+    // unit_controller.cpp (A-U).
+    // 0052E970. Sets the hostile mask (relationsA), tells the controller (slot 38), sets flags_
+    // 0x80000 and marks part 11 changed.
+    void SetHostileMask(std::uint32_t mask);
+    // 0052E9D0. After the controller's path (slot 16) changed: the path forgets this unit as a
+    // tracked object (005C7C90), the motion (+0x27C) takes the movement speeds (GetMoveSpeeds:
+    // +0x3C / +0x40), its segment -1, and is rebuilt for the path (005C67D0); marks part 10.
+    void RefreshMotion();
+    // 005300D0. Moves the unit to `newPlayer` (nothing when it is the current one): the old
+    // player loses it (00665B50), the new one gains it (00665A70), part 11 is marked and the
+    // controller hears of it (slot 18).
+    void SetPlayer(char* newPlayer);
+    // 0052E740. Virtual slot 5 (the release): SetPlayer(null), the controller's slot 5, every
+    // item slot released and emptied (quick items, weapons, spells, armour), the carried items
+    // released (no null test) and their array freed (grow-by kept).
+    void ReleaseUnit();
+    // 0052E590. Virtual slot 3 (Destroy; another name so it is no override): the object's slot 5,
+    // the map object's Destroy (0050E840), then Reset.
+    void DestroyUnit();
+
+    CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
+    UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }
+
     // Not rewritten (forwarders):
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     void* World();
@@ -427,7 +489,8 @@ public:
     std::uint32_t activeWeapon;     // +0x26C slot of the weapon in use
     int unknown_270;
     int dead;                       // +0x274 (virtual slot 55 returns it; CUnitServer::SetDead)
-    std::uint8_t unknown_278[0x320 - 0x278];
+    std::uint32_t unknown_278;      // +0x278 ("large unit": slot 54 returns it)
+    std::uint8_t motion[0xA4];      // +0x27C the unit's UnitMotion (ai_motion.h): Motion()
     float heightOffset;             // +0x320 height above the water surface (PlaceOnGround)
     int sizeClass;                  // +0x324 selects the 4-bit passability field in each AI map cell
     std::uint8_t unknown_328[4];

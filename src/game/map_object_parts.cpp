@@ -1,0 +1,158 @@
+// The 3D object's figure parts by name, their removal and their place in the world, and its
+// animation database. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
+#include "map_object_figures.h"
+
+#include "base_manager.h"
+
+#include "lib/crt.h"
+#include "lib/mfc.h"
+
+#include "ei/hook.h"
+#include "originals_units.h"
+
+#include <cstring>
+
+namespace {
+constexpr int kClassUnit = 0x50;
+constexpr std::uint32_t kKindMask = 0x3C0000;         // FigureAnimation::key
+constexpr std::uint32_t kKindSkill = 0x40000;
+constexpr std::uint32_t kNumberMask = 0x3FC00000;
+constexpr int kNumberShift = 22;
+
+// Not rewritten, forwarder: 0050D350, the animation state forgets `part` (RET 4).
+__declspec(naked) int __fastcall AnimationRemovePart(void* /*animation*/, void*, FigurePart* /*part*/)
+    EI_ORIGINAL(0x0050D350)
+
+// The first of `parts` that `matches`, or null.
+template <typename Match>
+FigurePart* FirstPart(const AlignedPtrArray& parts, Match matches) {
+    for (int i = 0; i < parts.size; ++i) {
+        auto* part = static_cast<FigurePart*>(parts.data[i]);
+        if (matches(part)) return part;
+    }
+    return nullptr;
+}
+
+// Removes entry `index`, moving the ones after it down.
+void RemoveAt(AlignedPtrArray& parts, int index) {
+    int after = parts.size - index - 1;
+    if (after) std::memmove(&parts.data[index], &parts.data[index + 1], after * sizeof(void*));
+    --parts.size;
+}
+
+int IndexOf(const AlignedPtrArray& parts, const FigurePart* part) {
+    for (int i = 0; i < parts.size; ++i)
+        if (parts.data[i] == part) return i;
+    return -1;
+}
+} // namespace
+
+FigurePart* CObject3D::FindPartByPrefix(const char* prefix) {
+    // The original asks for the name twice; the parts return the same string both times.
+    auto startsWith = [prefix](FigurePart* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    if (FigurePart* part = FirstPart(parts, startsWith)) return part;
+    return FirstPart(pendingParts, startsWith);
+}
+EI_REPLACE_METHOD(0x00516A80, CObject3D::FindPartByPrefix);
+
+FigurePart* CObject3D::FindPart(const char* partName) {
+    auto named = [partName](FigurePart* part) { return std::strcmp(part->GetName(), partName) == 0; };
+    if (FigurePart* part = FirstPart(parts, named)) return part;
+    return FirstPart(pendingParts, named);
+}
+EI_REPLACE_METHOD(0x005169A0, CObject3D::FindPart);
+
+int CObject3D::RemovePart(FigurePart* part) {
+    if (attached) Specific()->OnPartRemoved(part);
+    int index = IndexOf(parts, part);
+    if (index >= 0) {
+        RemoveAt(parts, index);
+        FigurePartSetOwnerOriginal(part, nullptr, nullptr);
+    } else {
+        index = IndexOf(pendingParts, part);
+        if (index < 0) return 0;
+        RemoveAt(pendingParts, index);
+    }
+    if (animation) AnimationRemovePart(animation, nullptr, part);
+    part->Release();
+    return 1;
+}
+EI_REPLACE_METHOD(0x005167E0, CObject3D::RemovePart);
+
+FigurePart* CObject3D::RemovePartNamed(const char* partName) {
+    FigurePart* part = FindPart(partName);
+    if (!part) return nullptr;
+    RemovePart(part);
+    return part;
+}
+EI_REPLACE_METHOD(0x005168F0, CObject3D::RemovePartNamed);
+
+float* CObject3D::PartWorldPosition(float* out, const FigurePart* part) {
+    float scaleX, scaleY, scaleZ;
+    Specific()->GetScale(&scaleX, &scaleY, &scaleZ);
+    // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
+    const float w = orientation.w;
+    const float ux = orientation.x, uy = orientation.y, uz = orientation.z;
+    const float vx = part->position[0], vy = part->position[1], vz = part->position[2];
+    float twiceDot = 2.0f * ((uz * vz + uy * vy) + ux * vx);
+    float twiceW = w + w;
+    float crossX = uy * vz - uz * vy;
+    float crossY = uz * vx - vz * ux;
+    float crossZ = ux * vy - uy * vx;
+    float along = w * w - (ux * ux + uy * uy + uz * uz);
+    float x = (along * vx + twiceW * crossX) + twiceDot * ux;
+    float y = (along * vy + twiceW * crossY) + twiceDot * uy;
+    float z = (along * vz + twiceW * crossZ) + twiceDot * uz;
+    out[0] = x * scaleX + position[0];
+    out[1] = y * scaleY + position[1];
+    out[2] = z * scaleZ + position[2];
+    return out;
+}
+EI_REPLACE_METHOD(0x005188B0, CObject3D::PartWorldPosition);
+
+// --- The animation database -------------------------------------------------------------------
+
+AnimationDatabase* CObject3D::Animations() {
+    if (!animations && owner_) {
+        mfc::CString file(name);
+        file += ".adb";
+        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file, nullptr));
+    }
+    return animations;
+}
+EI_REPLACE_METHOD(0x00518CA0, CObject3D::Animations);
+
+FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
+    if (!Animations()) return nullptr;
+    std::uint32_t index = key & 0xFF;
+    return index < animations->count ? &animations->animations[index] : nullptr;
+}
+EI_REPLACE_METHOD(0x00518F80, CObject3D::AnimationAt);
+
+FigureAnimation* CObject3D::FindSkillAnimation(int number) {
+    if (!Animations()) return nullptr;
+    std::uint32_t wanted = static_cast<std::uint32_t>(number) << kNumberShift;
+    for (int i = 0; i < static_cast<int>(animations->count); ++i) {
+        std::uint32_t key = animations->animations[i].key;
+        if ((key & kKindMask) == kKindSkill && (key & kNumberMask) == wanted) return &animations->animations[i];
+    }
+    return nullptr;
+}
+EI_REPLACE_METHOD(0x00518FC0, CObject3D::FindSkillAnimation);
+
+double CObject3D::AnimationFactor(float time) {
+    if (GetClassId() != kClassUnit || !Animations()) return 1.0;
+    const AnimationDatabase& db = *animations;
+    if (!(db.length < 0.0f || db.length > 0.0f)) return 1.0;   // 0 or NaN
+    return ((static_cast<double>(db.end) - db.start) * time + db.start) / db.length;
+}
+EI_REPLACE_METHOD(0x00518D30, CObject3D::AnimationFactor);
+
+int CObject3D::FindPartIndex(const char* partName) {
+    for (int i = 0; i < partNameCount; ++i)
+        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(partNames[i]),
+                            reinterpret_cast<const unsigned char*>(partName)) == 0)
+            return i;
+    return -1;
+}
+EI_REPLACE_METHOD(0x00517990, CObject3D::FindPartIndex);
