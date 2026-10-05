@@ -1,0 +1,22 @@
+# Another game zone: the Foothills gz3g (zone3obr.mpr / .mob, the largest .mob of the first allod;
+# ticket X9). From the new game in zone1 the "zone" step calls the server's LeaveToZone (0066F310);
+# exit 0 is gz3g's "#exit 1" (To Ruins), deploy rectangle 20 130 26 147, so Redeploy (00590700) puts
+# the party at (23, 138.5). The zone has one magic trap of its own, "Pyramid" (id 4515, a lightning
+# trap at 194.9, 72.4), and 213 units (orcs, toads, wolves, ...). No quest state: the zone's scripts
+# read q.gz3g.*, ZT17..ZT22, cave1, pyramid, goblinbodycount, all unset (0).
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+zone gz3g 0
+waitzone 25 gz3g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+check IsLess(DistanceUnitPoint(GetLeader(),23,138.5),8)
+check IsEqual(GetObjectID(GetObject(4515)),4515)
+wait 3000
+check IsAlive(GetLeader())
+report
+quit

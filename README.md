@@ -63,6 +63,11 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the
   global map, 5 the camp); the camp's Esc returns to the game.
+- `zone <name> [exit]` leaves the running zone as its exits do (the server's LeaveToZone for the
+  local player) for map.txt zone `<name>` (`gz2g`, `bz1g`, ...), the party arriving at that zone's
+  exit `<exit>` (from 0: map.txt's `#exit n` minus 1); `waitzone <seconds> <name>` waits until it is
+  loaded. Starting a zone from the main menu crashes the game, so scenarios start with `newgame`
+  and change zones from zone1 (`zone_gz2g_traps.txt`; zone list in `docs/notes/ui.md`, X9).
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;

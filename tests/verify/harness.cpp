@@ -27,6 +27,12 @@
 //                             placed with the game's own scaling, so Rebirth's widescreen layout too)
 //   screen <id>               ask the server for interface screen <id> as the global map's buttons
 //                             do (4 the global map, 5 the camp; the battle screen is left)
+//   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
+//                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
+//                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
+//                             1; default 0). Needs the hero alive and in the world; fails otherwise
+//   waitzone <seconds> <name> wait until zone <name> is loaded and the local player is in its world
+//                             again (game and brief zones; the party's units come a little later)
 //   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
@@ -86,6 +92,8 @@
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/game/ui.h"
+#include "../../src/game/originals_engine.h"
+#include "../../src/game/originals_world.h"
 #include "../../src/render/render.h"
 
 #include <windows.h>
@@ -120,6 +128,36 @@ __declspec(naked) void __stdcall RequestScreen(int) EI_ORIGINAL(0x00578B00)
 // 00578560: sets player 0's "constr_current" (the constructor the camp opens with; 0 none).
 __declspec(naked) void __stdcall SetCurrentConstructor(float) EI_ORIGINAL(0x00578560)
 
+// 0066F310 (RET 8): CPlayerServer::LeaveToZone(zone, exit), what a zone exit (00670C20) and the
+// LeaveToZone script command (0x8A) do. Only in state 1 (+0x20: in the world); in campaign mode 1 or 3
+// a dead or missing leader loses the game instead. The party is stored, the world player's +0xD8 /
+// +0xDC become the zone and the exit, the state 3, and message 8 goes to the client (00669EB0: game
+// request 4, carried out by the main loop through 0057C460). `exit` indexes the target zone's exits
+// in map.txt order from 0 (its "#exit n" minus 1, as the map database stores the exits' targets);
+// Redeploy (00590700) puts the party at the centre of that exit's deploy rectangle, or at (0, 0)
+// when the zone has no such exit.
+__declspec(naked) void __fastcall LeaveToZoneOriginal(void* /*connection*/, void*, const char* /*zone*/, int /*exit*/)
+    EI_ORIGINAL(0x0066F310)
+
+constexpr std::uintptr_t kServerWorld = 0x007AFF60;
+constexpr std::uintptr_t kLocalPlayerId = 0x007AFFBC;   // the server world's +0x5C
+constexpr std::uintptr_t kCampaignMode = 0x007C2CC4;    // 1 battle, 2 main menu, 3 base, 4 edge
+constexpr std::uintptr_t kMapDatabase = 0x0079BF00;
+constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
+
+// The local player's server connection (the world player's +0x20, a CPlayerServer in single player)
+// or null; its +0x20 is the connection's state (1 in the world, 3 leaving the zone).
+void* LocalConnection() {
+    void* player = WorldGetPlayer(reinterpret_cast<void*>(kServerWorld), nullptr, *reinterpret_cast<int*>(kLocalPlayerId));
+    return player ? *reinterpret_cast<void**>(static_cast<char*>(player) + 0x20) : nullptr;
+}
+int ConnectionState(void* connection) { return *reinterpret_cast<int*>(static_cast<char*>(connection) + 0x20); }
+// The server world's zone (+0x120, the map database name NewZone 00595480 stores), or "".
+const char* ServerZoneName() {
+    const char* name = *reinterpret_cast<const char* const*>(kServerWorld + 0x120);
+    return name ? name : "";
+}
+
 struct Step {
     std::string verb;
     std::string argument;
@@ -153,6 +191,11 @@ std::string g_waitLineText;
 DWORD g_waitLineDeadline = 0;
 std::size_t g_waitLineFrom = 0;   // waitline: 0 (any time); waitexpect: since the last expect
 bool g_waitLineIsExpect = false;
+// A pending "waitzone": the zone and when to give up.
+bool g_waitingZone = false;
+std::string g_waitZoneName;
+DWORD g_waitZoneDeadline = 0;
+DWORD g_waitZoneStart = 0;
 bool g_waitingFor = false;
 bool g_waitForPending = false;
 std::string g_waitForExpr;
@@ -958,6 +1001,33 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingZone) {
+        // Done in a main loop pass only (steps also run in the pump that window switches call while
+        // the zone loads): no request pending, not the main menu, the server world holds the zone
+        // and the local player is back in the world (state 1; LeaveToZone left it at 3).
+        bool ready = false;
+        if (g_inputLoop && g_request.kind == 0 && *reinterpret_cast<int*>(kCampaignMode) != 2 &&
+            _stricmp(ServerZoneName(), g_waitZoneName.c_str()) == 0) {
+            void* connection = LocalConnection();
+            ready = connection && ConnectionState(connection) == 1;
+        }
+        if (ready) {
+            Log("harness: waitzone %s done after %lu ms (campaign mode %d)", g_waitZoneName.c_str(),
+                Now() - g_waitZoneStart, *reinterpret_cast<int*>(kCampaignMode));
+            g_waitingZone = false;
+        } else if (Now() >= g_waitZoneDeadline) {
+            void* connection = LocalConnection();
+            char what[200];
+            std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, state %d)",
+                          g_waitZoneName.c_str(), ServerZoneName(), g_request.kind, *reinterpret_cast<int*>(kCampaignMode),
+                          connection ? ConnectionState(connection) : -1);
+            Log("harness: %s", what);
+            g_failures.push_back(what);
+            g_waitingZone = false;
+        } else {
+            return;
+        }
+    }
     while (g_next < g_steps.size()) {
         if (Now() < g_waitUntil) return;
         Step s = g_steps[g_next++];
@@ -1007,6 +1077,38 @@ void RunSteps() {
             int id = std::atoi(s.argument.c_str());
             if (id == 5) SetCurrentConstructor(0.0f);
             RequestScreen(id);
+        } else if (s.verb == "zone") {
+            // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
+            char name[64] = "";
+            int exitIndex = 0;
+            if (sscanf_s(s.argument.c_str(), "%63s %d", name, unsigned(sizeof(name)), &exitIndex) < 1) {
+                g_failures.push_back("zone needs <name> [exit]");
+                continue;
+            }
+            const std::uint8_t* record = MapDatabaseFind(reinterpret_cast<void*>(kMapDatabase), nullptr, name);
+            void* connection = LocalConnection();
+            if (!record) {
+                // StartZone would show a fatal error and go to the main menu.
+                g_failures.push_back(std::string("zone: no zone '") + name + "' in map.txt");
+            } else if (!connection || ConnectionState(connection) != 1) {
+                g_failures.push_back(std::string("zone ") + name + ": the local player is not in the world (state " +
+                                     std::to_string(connection ? ConnectionState(connection) : -1) + ")");
+            } else {
+                int kind = *reinterpret_cast<const int*>(record + kZoneRecordKind);
+                Log("harness: zone %s (map.txt type %s), exit %d", name, kind == 0 ? "game" : kind == 2 ? "brief" : "edge", exitIndex);
+                LeaveToZoneOriginal(connection, nullptr, name, exitIndex);
+                if (ConnectionState(connection) != 3)
+                    g_failures.push_back(std::string("zone ") + name + ": LeaveToZone did not leave (the leader dead or missing?)");
+            }
+        } else if (s.verb == "waitzone") {
+            char* rest = nullptr;
+            unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+            while (rest && *rest == ' ') ++rest;
+            g_waitingZone = true;
+            g_waitZoneName = rest ? rest : "";
+            g_waitZoneStart = Now();
+            g_waitZoneDeadline = g_waitZoneStart + seconds * 1000;
+            return;
         } else if (s.verb == "check") {
             g_checking = true;
             g_checkExpr = s.argument;

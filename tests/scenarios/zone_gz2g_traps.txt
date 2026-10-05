@@ -1,0 +1,36 @@
+# Zone change and zone2's own magic traps (ticket X9; src/game/magic_trap.cpp). From the new game in
+# zone1 (gz1g) the harness's "zone" step calls the server's LeaveToZone (0066F310) as a zone exit
+# does: the party is stored, message 8 makes the client request zone gz2g (game request 4) and the
+# main loop starts it (0057C460 StartZone, 0057A060 EnterZone, NewZone 00595480 loading zone2.mpr /
+# zone2.mob with its scripts). Exit 0 is gz2g's "#exit 1" (To Ruins), deploy rectangle 60 13 74 17:
+# Redeploy (00590700) puts the party at its centre (67, 15). The zone's seven magic traps come from
+# zone2.mob with their own ids (MTF1..4 1324..1327, MTFW 1328, MTLW 1329, MTPF 1330; see
+# tools/make_trap_mob.py for the fields), through the factory (Construct 00529DD0) and SetUp
+# (0052A2C0) as the zone loader makes them, not through AddMob as in magic_traps.txt. MTF4 (a
+# lightning trap, one circle of radius 3 at 43, 104) is armed with a wolf placed in it.
+# No quest state: gz2g's scripts read Rune, Tr1Act/Tr2Act, WitchKey and q.gz2g.q6g, all unset (0).
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+# Leave once zone1's intro script has started (it blocks the hero), so the moment is the same in
+# every run (ui_order_move.txt).
+waitfor 15 IsUnitBlocked(GetLeader())
+zone gz2g 0
+waitzone 20 gz2g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+check IsLess(DistanceUnitPoint(GetLeader(),67,15),8)
+check IsEqual(GetObjectID(GetObject(1324)),1324)
+check IsEqual(GetObjectID(GetObject(1327)),1327)
+check IsEqual(GetObjectID(GetObject(1328)),1328)
+check IsEqual(GetObjectID(GetObject(1330)),1330)
+console @AddUnitToServer("TrapWolf","WolfTutor","TrapWolf",43,104,0)
+waitfor 5 IsAlive(GetObjectByName("TrapWolf"))
+console @ActivateTrap(GetObject(1327),1)
+wait 3000
+check IsEqual(GetObjectID(GetObject(1327)),1327)
+check IsAlive(GetLeader())
+report
+quit

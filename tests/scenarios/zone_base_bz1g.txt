@@ -1,0 +1,24 @@
+# A "brief" zone: the Gipat base bz1g (ticket X9). From the new game in zone1 the "zone" step calls
+# the server's LeaveToZone (0066F310) as zone1's exit to the base (gz1g "#exit 2": "bz1g 1") does.
+# map.txt type brief is the map record's kind 2 (loader 0045EA20), which StartZone (0057C460) turns
+# into campaign mode 3 (the base); EnterZone (0057A060) loads basegipat.mpr / basecam.mob and, for
+# kind 2 only, the zone's scripts from the .mob (WorldLoadZoneScripts). Redeploy (00590700) runs in
+# modes 1 and 3, so the party is in the base's world, at the centre of bz1g's only exit's deploy
+# rectangle 56 52 62.5 56.5: (59.25, 54.25). The base's people come from basecam.mob ("Smith").
+# No quest state: the base scripts read FirstComing, b.elder.*, b.smith.* ... all unset (0), as on
+# a first visit.
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsLess(DistanceUnitPoint(GetLeader(),59.25,54.25),8)
+check IsAlive(GetObjectByName("Smith"))
+wait 2000
+check IsAlive(GetLeader())
+report
+quit
