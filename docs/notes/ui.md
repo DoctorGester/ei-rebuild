@@ -2008,3 +2008,27 @@ earlier list (briefing screen, network screens, global map path search 006312C0,
   the server side of the order too). Next step: a bisect run with 00636F10 and then 00637DC0 in
   tests/verify/disabled.txt (copied next to the DLL). If it still fails, the bug predates I6 and ui_order_move is the
   first scenario that checks a click moves the hero.
+
+### X7: ui_order_move's lost order was a scenario race, not a rewrite
+
+- The order path was read end to end: OrderAt 00636F10 -> 0066A7D0 writes 0x30, count, ids
+  (+0x0C), ctrl, point (12) into CPlayerClient +0x5C; 00667810 compresses it (0047D7F0 ->
+  00430450, coder +0x88) and sends it on the loopback link (00478220); the server's 0066D270
+  takes it off (00478270), decompresses it (0047D970 -> 00430960, coder +0x28B0) into 007C83D0 and
+  dispatches by the first byte through its table (built in 0066C9A0; 0x30 -> 0066FFF0, original).
+  0066FFF0 reads the same fields, keeps each id whose object (0055FB00) is a unit WITHOUT flag
+  0x800000 (blocked, script BlockUnit / IsUnitBlocked), then FindPlayerMode 005D5E60 and
+  CommandWalk 005D39E0 per unit. Every rewritten step on the way (CompressTo / DecompressTo,
+  Compress / Decompress, EncodeMatch, the cursors, the loopback Send / Receive) has a wrapper
+  that compares with the original, and all showed 0 mismatches in the failing runs.
+- The failing runs had OrderAt 2 calls but FindPlayerMode and CommandWalk 0: the server dropped
+  the hero as blocked. A full-hook vanilla run passed (10:09) and a full-hook Rebirth run failed
+  (10:10) with the same timings to the click; the difference is the zone's intro script (its
+  first events: SendText0D, SetVariableMax "q.gz1g...", PlayJingle) that blocks the hero for
+  ~37 s. In the passing run it ran before the `waitfor HP(GetLeader())` was met (so the scenario's
+  BlockUnit(...,0) lifted it); in the failing one it ran 0.3 s after, re-blocking the hero. The
+  script's first tick and the hero's creation are not ordered; the verify build under parallel
+  load makes the gap larger, hence "passes without hooks" and the noisy bisect. Scripted moves
+  (MoveToPoint) ignore the flag, so the other scenarios that unblock the same way never noticed.
+- ui_order_move now waits for the intro's block (`waitfor 15 IsUnitBlocked(GetLeader())`) before
+  lifting it and checks the hero is not blocked before each click. No code changed.
