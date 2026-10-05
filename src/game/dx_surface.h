@@ -44,3 +44,10 @@ bool AttachTextureMemory(void* holder, int width, int height, const std::uint32_
 // writers use DirectPixels, the old path's SetTexture binds no texture for it. Null otherwise
 // (outside the switch-over, or no memory: then the caller makes the DirectDraw texture).
 CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat);
+
+// In the switch-over with "cpuwindows": a texture holder as 004EFA60 makes one (as above: vtable,
+// device, width, height, the bits of `pixelFormat`, a DDPIXELFORMAT; the holder count one higher)
+// with no DirectDraw surface and no memory: for a texture the new renderer decodes from its file
+// (the texture manager's .mmp textures, 00690430: render::TextureFromMmp keyed by the holder).
+// Nothing of the game writes or locks such a texture. Null outside the switch-over.
+CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat);

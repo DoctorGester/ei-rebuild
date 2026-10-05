@@ -8,10 +8,9 @@
 // dx_surface.cpp), which the writers fill through DirectPixels (ui_item_view.cpp, ui_global_map.cpp,
 // ui_saveload.cpp) and the new renderer reads. The old path's SetTexture then binds no texture for
 // them (004EB300 / 004EBAF0 / 00501AF0 pass the holder's null surface), and the texture manager
-// touches their surface nowhere else: SetPriority (00691B00, 00691BF0, 00693C60) is only called on
-// loaded textures (flag 8), which these never are. The shadow textures keep their DirectDraw
-// textures (0051CE60 copies the shadow into them with the device). See docs/notes/renderer.md
-// (section 15).
+// touches their surface nowhere else (SetPriority in the cache, texture_cache.cpp, is left out for a
+// holder without a surface). The shadow textures (00692010 / 00692140, texture_shadow.cpp) are
+// memory-only there too since R8's second part. See docs/notes/renderer.md (sections 15, 16).
 #include "texture.h"
 
 #include "dx_surface.h"

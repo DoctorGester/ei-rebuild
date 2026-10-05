@@ -106,6 +106,13 @@ struct MmpHeader {
     // 006908E0. Offset of mip level `mip`'s pixels after the header: the extra block plus the
     // sizes of the larger levels (a geometric sum computed in 32-bit integers).
     std::uint32_t MipOffset(unsigned mip) const;
+    // What 0068FA10 returns when it fills a texture surface of `surfaceFormat` from this file
+    // (texture_mmp.cpp; the texture cache counts it as the texture's size, CTexture +0x28): per
+    // level of the surface (from `mip`, `levels` of them, no further than the file's last) width x
+    // height times the bits it writes, / 8: the file's own bits when it copies (00690970: DXT into
+    // the same DXT format, any other format), the surface's for 8888 converted to 16 bits
+    // (00690B30), 16 for DXT decoded to 16 bits (00690D30); 32-bit arithmetic.
+    std::uint32_t FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const;
 };
 static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
@@ -121,6 +128,9 @@ struct ChannelLayout {
     std::uint32_t greenMask, greenBits, greenShift;   // +0x1C
     std::uint32_t blueMask, blueBits, blueShift;      // +0x28
     int Split(const void* format);
+    // 004EDC00's conversion (texture_bmp.cpp; 004EDC00 itself is not hooked): an A8R8G8B8 colour
+    // into a pixel of this layout, each channel's top bits at its shift.
+    std::uint32_t ToNative(std::uint32_t argb) const;
 };
 static_assert(sizeof(ChannelLayout) == 0x34);
 

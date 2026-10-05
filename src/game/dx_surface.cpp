@@ -72,6 +72,7 @@ enum : int { kFlags = 1, kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kFor
 int g_clientFailures = 0;
 bool g_memoryOnlyLogged = false;
 bool g_memoryTexturesLogged = false;
+bool g_decodedTexturesLogged = false;
 
 // Memory of the new renderer's for `holder` in the format `desc` gives (16 or 32-bit RGB): its pitch
 // and address go into the description as the surface's client memory. False when there is none.
@@ -196,11 +197,12 @@ bool AttachTextureMemory(void* holder, int width, int height, const std::uint32_
     return true;
 }
 
-CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
-    if (!device || !render::Presenting() || !render::CpuWindows()) return nullptr;
+namespace {
+
+// A texture holder as 004EFA60 starts one (vtable, device, no surface yet), on the game's heap.
+CDXSurface* StartTextureHolder(CTextureDevice* device) {
     auto* holder = static_cast<CDXSurface*>(gamecrt::operator_new(sizeof(CDXSurface)));
     if (!holder) return nullptr;
-    // As 004EFA60 starts a holder.
     holder->refCount = 0;
     holder->result = 0;
     holder->device = device;
@@ -209,6 +211,39 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
     holder->height = 0;
     holder->bitsPerPixel = 0;
     SetHolderVtable(holder);
+    return holder;
+}
+
+// The holder stands for a texture made as requested: described by the request, the creation
+// counted as done (the device's result 0, the holder count one higher).
+void FinishTextureHolder(CDXSurface* holder, int width, int height, int bitsPerPixel) {
+    holder->device->lastLoadResult_ = 0;
+    holder->width = width;
+    holder->height = height;
+    holder->bitsPerPixel = bitsPerPixel;
+    ++HolderCount();
+}
+
+} // namespace
+
+CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
+    if (!device || !render::Presenting() || !render::CpuWindows()) return nullptr;
+    CDXSurface* holder = StartTextureHolder(device);
+    if (!holder) return nullptr;
+    if (!g_decodedTexturesLogged) {
+        g_decodedTexturesLogged = true;
+        ei::Log("cpuwindows: the texture manager's .mmp textures in the switch-over get no DirectDraw texture, only "
+                "the new renderer's decoded copy");
+    }
+    // (A DDPIXELFORMAT: its bit count, as a surface of that format reports it.)
+    FinishTextureHolder(holder, width, height, static_cast<int>(pixelFormat[kBits - kFormat]));
+    return holder;
+}
+
+CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat) {
+    if (!device || !render::Presenting() || !render::CpuWindows()) return nullptr;
+    CDXSurface* holder = StartTextureHolder(device);
+    if (!holder) return nullptr;
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
     desc[kFlags] = kDescFlags;
@@ -227,12 +262,8 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
         ei::Log("cpuwindows: the texture manager's CPU-written textures in the switch-over get no DirectDraw "
                 "texture, only the new renderer's memory");
     }
-    // The memory is the surface: described by the request, the creation counted as done.
-    device->lastLoadResult_ = 0;
-    holder->width = width;
-    holder->height = height;
-    holder->bitsPerPixel = static_cast<int>(desc[kBits]);
-    ++HolderCount();
+    // The memory is the surface.
+    FinishTextureHolder(holder, width, height, static_cast<int>(desc[kBits]));
     return holder;
 }
 
