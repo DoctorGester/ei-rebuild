@@ -540,9 +540,9 @@ __declspec(naked) BOOL __fastcall ReaderNextContentLine(CTextManager*) EI_ORIGIN
 __declspec(naked) BOOL __fastcall ReaderNextLine(CTextManager*, void*, int) EI_ORIGINAL(0x004DF030)
 __declspec(naked) int __fastcall ReaderSplit(CTextManager*, void*, CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
 __declspec(naked) BOOL __fastcall ReaderClose(CTextManager*) EI_ORIGINAL(0x004DF020)
-// The quest log (the window's first child) [thiscall]: clear [0065D450], set the text [0065CFE0].
+// The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
+// [0065CFE0, LogSetTextOriginal].
 __declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)
-__declspec(naked) void __fastcall LogSetText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065CFE0)
 // 0064EA80 [thiscall on the window]: fills the quest places (+0x1CC) of quest `name`.
 __declspec(naked) void __fastcall FillQuestPlaces(CObjectivesWindow*, void*, const char*) EI_ORIGINAL(0x0064EA80)
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
@@ -645,7 +645,7 @@ void CObjectivesWindow::ShowQuest() {
         text += GameText(0x007946A4);
     }
     ReaderClose(texts);
-    LogSetText(children_.data_[0], nullptr, text);
+    LogSetTextOriginal(children_.data_[0], nullptr, text);
 
     // The quest's places on the zone picture: a red marker and a region each, after the exits'.
     ZoneView* map = FindZone(shownZone_);

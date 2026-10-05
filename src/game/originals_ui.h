@@ -100,6 +100,9 @@ __declspec(naked) inline void __fastcall ActionPanelSetOriginal(void* /*panel*/,
 __declspec(naked) inline void __fastcall ActionPanelClearOriginal(void* /*panel*/) EI_ORIGINAL(0x0063F7A0)
 // 0065CF30: appends a line to a log window (RET 4, no result).
 __declspec(naked) inline void __fastcall LogAddTextOriginal(void* /*window*/, void*, const char* /*text*/) EI_ORIGINAL(0x0065CF30)
+// 0065CFE0: replaces a log window's text (a CUiScrollText: tokens freed, `text` tokenised, the
+// layout redone, scrolled to the top; RET 4, no result).
+__declspec(naked) inline void __fastcall LogSetTextOriginal(void* /*window*/, void*, const char* /*text*/) EI_ORIGINAL(0x0065CFE0)
 // 005EE050 / 005EE080 / 005EE0D0: item record is a spell / modifier / part (RET 4, AL; free functions, ECX is not read, so the
 // members that forwarded them ignored their `this`).
 __declspec(naked) inline bool __stdcall ItemKindIsSpellOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE050)

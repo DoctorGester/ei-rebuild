@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CItem;   // item.h
 struct UnitStats;
 struct UnitParams;
 struct DamageInfo;   // spell.h
@@ -45,20 +46,44 @@ struct UnitEffect {
 static_assert(sizeof(UnitEffect) == 0x14);
 
 // The record the player keeps for each unit of the party (0x784 bytes, found by unit id through
-// 006621B0); only the item lists are read here.
+// 006621B0); only the item lists are read here. Each list is an aligned pointer array (data,
+// count, capacity, grow-by; AlignedPtrArray's layout) of the record's own copies of the items.
 struct PartyUnitRecord {
+    // 006608D0 / 00660AB0 / 00660C90 / 00660E70 (RET 4; party_items.cpp). A copy of `item` (its
+    // Clone with the world's spell manager), counted and appended to the weapons / quick items /
+    // armour / spells; returns the copy.
+    CItem* AddWeapon(CItem* item);
+    CItem* AddQuickItem(CItem* item);
+    CItem* AddArmor(CItem* item);
+    CItem* AddSpell(CItem* item);
+    // 00660A50 / 00660C30 / 00660E10 / 00660FF0 (RET 4). Releases `entry` and takes it out of the
+    // list (nothing when it is not there).
+    void RemoveWeapon(CItem* entry);
+    void RemoveQuickItem(CItem* entry);
+    void RemoveArmor(CItem* entry);
+    void RemoveSpell(CItem* entry);
+
     std::uint8_t unknown_000[0x730];
     CEngineObject** weapons;        // +0x730
     std::uint32_t weaponCount;      // +0x734
-    std::uint8_t unknown_738[8];
+    int weaponCapacity;             // +0x738
+    int weaponGrowBy;               // +0x73C
     CEngineObject** quickItems;     // +0x740 (an entry counts only with +0x48 > 0)
     std::uint32_t quickItemCount;   // +0x744
-    std::uint8_t unknown_748[0x18];
+    int quickItemCapacity;          // +0x748
+    int quickItemGrowBy;            // +0x74C
+    CEngineObject** armor;          // +0x750
+    std::uint32_t armorCount;       // +0x754
+    int armorCapacity;              // +0x758
+    int armorGrowBy;                // +0x75C
     CEngineObject** spells;         // +0x760
     std::uint32_t spellCount;       // +0x764
+    int spellCapacity;              // +0x768
+    int spellGrowBy;                // +0x76C
 };
 static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
 static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
+static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
 static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 
 // The player's list of party unit records (player + 0x70).
@@ -66,6 +91,16 @@ struct PartyRecords {
     // 006621B0. The record of the unit with id `unitId`, or null (not rewritten).
     PartyUnitRecord* Find(int unitId);
 };
+
+// One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
+// part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).
+struct UnitBodyPart {
+    int state;                      // +0x00
+    std::int16_t durability;        // +0x04
+    std::uint16_t maxDurability;    // +0x06
+    std::uint8_t unknown_08[0x1C - 0x08];
+};
+static_assert(sizeof(UnitBodyPart) == 0x1C);
 
 class CUnit : public CEngineObject {
 public:
@@ -362,7 +397,8 @@ public:
     std::int16_t hitPoints;         // +0x17E
     std::int16_t maxHitPoints;      // +0x180
     std::uint16_t mana;             // +0x182
-    std::uint8_t unknown_184[0x198 - 0x184];
+    std::uint16_t maxMana;          // +0x184
+    std::uint8_t unknown_186[0x198 - 0x186];
     UnitEffect* effects;            // +0x198
     int effectCount;                // +0x19C
     std::uint8_t unknown_1A0[0x1B4 - 0x1A0];
@@ -401,7 +437,9 @@ public:
     std::uint8_t movementKind;      // +0x33F 2: moves on the water surface
     std::uint8_t modeSpeeds[4];     // +0x340 speed bytes of movement modes 3 (and 2's backward), 2, 1, 0
     std::uint8_t baseSpeed;         // +0x344
-    std::uint8_t unknown_345[0x438 - 0x345];
+    std::uint8_t unknown_345[0x374 - 0x345];
+    UnitBodyPart bodyParts[6];      // +0x374 as the unit panel shows them (00647B70)
+    std::uint8_t unknown_41C[0x438 - 0x41C];
     int unknown_438;                // +0x438
     std::uint32_t unknown_43C;
     CEngineObject* weapons[4];      // +0x440
@@ -425,6 +463,8 @@ static_assert(offsetof(CUnit, above) == 0x144);
 static_assert(offsetof(CUnit, partBoxes) == 0x160);
 static_assert(offsetof(CUnit, hitPoints) == 0x17E);
 static_assert(offsetof(CUnit, mana) == 0x182);
+static_assert(offsetof(CUnit, maxMana) == 0x184);
+static_assert(offsetof(CUnit, bodyParts) == 0x374);
 static_assert(offsetof(CUnit, effects) == 0x198);
 static_assert(offsetof(CUnit, sectorCellX) == 0x1B8);
 static_assert(offsetof(CUnit, changedParts) == 0x1DC);

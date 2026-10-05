@@ -874,3 +874,89 @@ shorter than 4 bytes keeps the pointer's remaining bytes (reproduced); GetDWord'
 uninitialised in the original (a REG_DWORD shorter than 4 bytes gives stack garbage; ours leaves
 an uninitialised local too, not the same bytes). Not taken: 00698E70..00698FB0 (static
 initialisers zeroing five 3-dword globals before WinMain).
+
+## Group 2: HUD panel displays (00647B70-0064A320)
+
+Code: `src/game/ui_hud_panels.cpp`; verify: `tests/verify/verify_ui_hud_panels.cpp`. Scenario:
+`ui_hud` (the unit panel shows the hero every frame; the top panel's page buttons and sling; the
+movement panel's inner button), and every scenario with a battle screen for the unit panel.
+
+| Address | Name | Verify |
+|---|---|---|
+| 006477E0 | CHudUnitPanel::ShowHealth (RET 4; from the panel draw 006462A0) | side by side from the same spoiled sprites 10-13 (visible, quad edge, uvs), compared (floats within 4 ULPs); unwritten fields put back |
+| 00647B70 | CHudUnitPanel::ShowParts (RET 4) | the same over sprites 14-25 (also the colour row +0xD0) |
+| 00649810 | CHudMovePanel::ToggleFlag | ours only (orders through the local view): flag 0 / 1, every selected party unit's +0x438 equal to it, the button's frame |
+| 0064A320 | CHudTopPanel::ShowPage | original, button tints spoiled, ours: tints and the message log's position / maximum / moved flag compared |
+| 00649E20 | CHudTopPanel::Layout | original, positions and region offsets spoiled, ours: the five placed sprites' positions (4 ULPs), the log's rect, the region offsets |
+
+ShowHealth: sprite 11 shown; with max HP and HP > 0 the bar (sprite 10) is filled to HP / max
+(clamped to 1, nothing when not above 0): its quad's right edge (x[2], x[3]) ratio - 0.5, its
+right texels (ratio * 100 + 64) / 256 + 1/512 between rows 0.396484375 / 0.376953125; the HP
+number ("%d", 0 when negative) at (130, 185)-(160, 200). For a party member also sprite 13 and the
+mana bar (sprite 12, rows 0.369140625 / 0.349609375) and number at (130, 200)-(160, 215).
+ShowParts: for each of the unit's six body part records (+0x374, 0x1C bytes: state, durability,
+maximum) with a state: sprite 15 + 2i shown; state 3 with durability fills bar 14 + 2i (width 50,
+rows 0.505859375 / 0.486328125), else the bar is hidden; its colour row +0xD0 is 0 above 2/3,
+-0.02734375 above 1/3, else -0.0546875 (ratio 0 when not filled); the part's name (the unit
+model's slot name, "skull" / "torso" / "leg" / "arm" replaced by the panel's labels +0x1B4) at the
+part's label position (tables 00742434 / 0074244C), red for state 1. The texts go through the
+panel surface's DrawText (005FDE20, Rebirth-patched, through its address).
+
+ToggleFlag: the click sound; the selected (flag 0x10) party members' common +0x438 (-1 none, -2
+mixed); all get 0 when it is 1, else 1, through the local view's order 0066AF30 (forwarder,
+not rewritten); +0x150 and the button's frame (+0xCC 0.3359375 for 0, 0 for 1; the original's
+third value 0.48046875 is unreachable). ShowPage: buttons 3 / 4 tinted 1 / 0.5; the message log
+(the battle screen's child 9) gets page 0's text (+0x164) and scrolls to the end (slot 25 with
+its maximum, moved flag set) or page 1's (+0x168) at the top. Layout: Place (005E6FA0,
+Rebirth-patched, through its address) of sprites 0, 1, 3, 4, 5 at y 57.5 / 10 / 10 / 10 / 47.5
+minus the slide offset, the log's slot 26 (SetRect) with (190, 25 - offset, 610, 89 - offset),
+regions 1.. offset (0, -offset).
+
+Header changes (additive): `ui.h` CUiMesh `uOffset_` / `vOffset_` (+0xCC / +0xD0) and `tint_`
+(+0x224), CBattleScreen `children_` (+0x148), CHudUnitPanel `partLabels_` (+0x1B4) and the two
+methods, CHudTopPanel `pageTexts_` (+0x164), CUiScrollbar::CallSetRect (slot 26), the
+`Call*` members (through the addresses: ui_hud.cpp's ToggleFlag / ShowPage forwarders and
+ui_hud_frame.cpp's Layout forwarder renamed, so their callers still run the verify wrappers);
+`unit.h` CUnit `maxMana` (+0x184) and `bodyParts` (+0x374, `UnitBodyPart`). The 0065CFE0
+forwarder moved from ui_objectives.cpp to `originals_ui.h` (`LogSetTextOriginal`).
+Forwarder added: 0066AF30 (the local view's +0x438 order). None of the rewritten functions is
+on the Rebirth list (their caller 006462A0 is).
+
+## Group 3: item copies and item lists (0069FF70, 0069FFC0, 006608D0-00661F30)
+
+Code: `src/game/party_items.cpp`, `src/game/party.h` (new: CParty, the item list part);
+verify: `tests/verify/verify_party_items.cpp`. All are stateful (they create, release and move
+counted objects): ours only, with checks of the copies' values and of the lists' counts and order.
+Scenarios: ui_camp (the camp's item moves: 0060FCA0 / 0060FE40 / 0060E900 call the record lists,
+00661DB0 / 00661F30 take items in and out of the party), trader_stock (004A6F60 hands the
+magic stock's items to 00661DB0), party_records (0058FD90 / 00590C70 rebuild the records through
+the record list adds and removes), items.
+
+| Address | Name | Verify |
+|---|---|---|
+| 0069FF70 | CItem::Clone (RET 4: spell manager) | ours only: null, or a new item of the kind with the same id and values +0x20..+0x40, count 1, a spell when the source has one |
+| 0069FFC0 | CItem::CopyTo (RET 8; slot 15's base body) | ours only: 0 for another kind; else 1 and the target's values as above |
+| 00661DB0 | CParty::AddItem (RET 0xC; flags read as bytes) | ours only: null for null; a merge leaves the list as it was and returns a listed item; else the copy appended with the count |
+| 00661F30 | CParty::RemoveItem (RET 8) | ours only: a returned item is the argument and the list is unchanged; else the list without it |
+| 006608D0 / 00660AB0 / 00660C90 / 00660E70 | PartyUnitRecord::AddWeapon / AddQuickItem / AddArmor / AddSpell (RET 4) | ours only: a copy with the item's values appended to the list (+0x730 / +0x740 / +0x750 / +0x760) |
+| 00660A50 / 00660C30 / 00660E10 / 00660FF0 | PartyUnitRecord::RemoveWeapon / ... (RET 4) | ours only: the list without the entry |
+
+Clone: the owning manager's CreateObject(kind, -1) (slot 23), then the source's slot 15 (CopyTo,
+overridden by every item class, which calls 0069FFC0 first) with the spell manager; when that
+fails the new item gets a reference and is released (slot 4). CopyTo: the target is destroyed
+(slot 3), gets +0x18 and the dwords +0x20..+0x40, a clone of the attached spell (CSpell::Clone
+0068B410, counted; the old one released) or none, and +0x48 = 1. The record adds clone the item
+with the world's spell manager (the item's manager context, CWorld slot 22 `SpellManager`,
+0055EBA0: +0x4C), count it and append it; the removes release the entry and close the gap. The
+party's adds: with `merge` an item the list holds that is the same (slot 14) gets the count;
+otherwise the party's slot 24 (0055E940: the item factory makes a new item and the source copies
+itself into it) gives the copy, which gets the count, the end of the list and a reference. The
+inlined array growth is AlignedPtrArray::SetSize (00519D70, rewritten) with size + 1.
+
+Header changes (additive): `item.h` CItem virtual slots 13-15 (`InitFromRecordSlot`,
+`IsSameAsSlot`, `CopyToSlot`; the rewritten bodies stay plain members) and Clone / CopyTo;
+`unit.h` PartyUnitRecord's list capacities, grow-bys, the armour list (+0x750) and the eight
+methods; `world.h` CWorld slot 22 named `SpellManager` (was the placeholder `Slot22`, unused).
+The callers' forwarders (originals_gameplay.h PartyAddItemOriginal / PartyRemoveItemOriginal /
+Record*EntryOriginal, ui_camp.cpp, script_exec.cpp, ui_item_info.cpp) stay: they reach these
+through their addresses, so the wrappers run.
