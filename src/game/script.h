@@ -839,3 +839,15 @@ void __fastcall ScriptCreateFx(CScript* script, void* edx, const SSCCmd* cmd);
 // lightning_ (a negative or NaN id takes nextParticleId_, others are truncated; existing ids are
 // not looked up).
 void __fastcall ScriptCreateLightning(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BD540 (__thiscall). The FX source element's destructor body: the sound dropped as above, then
+// the name destroyed.
+void __fastcall ScriptFxSourceDestruct(ScriptFxSource* source);
+// 004BD9A0. CreateParticleSource(id, x, y, z, size, type name): the type looked up by name
+// (case-insensitive) in ScriptParticleTypes(), nothing for an unknown one; the id (FISTP; negative:
+// nextParticleId_) finds an existing source, whose effect is dropped, or a new one at the tail; a new
+// CEffectParticle (class 0x4A) with the type, position and size; the source not moving, the type's
+// lifetime.
+void __fastcall ScriptCreateParticleSource(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BDBB0. MoveParticleSource(id, x, y, z, steps, delete when done): the source with the id (FISTP)
+// starts moving; step = (point - position) / steps.
+void __fastcall ScriptMoveParticleSource(CScript* script, void* edx, const SSCCmd* cmd);

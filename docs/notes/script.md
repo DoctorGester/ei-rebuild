@@ -1058,3 +1058,26 @@ The four destructors are the same 38 bytes (one per element type). CreateFX keep
 the sound lives as a timed object only (not looping: it ends after its first tick). CreateLightning
 appends without looking the id up (two bolts can share an id; DeleteLightning removes the first),
 and its id test is `FCOMP 0; TEST AH,1` (negative or NaN: automatic) followed by `_ftol` (truncation).
+
+## Particle sources and the FX source destructor (004BD9A0, 004BDBB0, 004BD540)
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BD9A0 | 471 | ScriptCreateParticleSource (CreateParticleSource) | ours only: unknown type name: nothing changed (count, nextParticleId_, the manager's lastId_); else the source with the id (automatic for a negative FISTP id) holds the newest effect (class 0x4A, the table's type, position and size bits, count >= 2), not moving, the type's lifetime; the list grew by one exactly when the id was new (then at the tail) | effects, particles, script_fx |
+| 004BDBB0 | 214 | ScriptMoveParticleSource (MoveParticleSource) | against the original: the original moves the real source, its result is kept, the source restored, ours runs; flags and steps equal, the step with CheckNear | script_fx |
+| 004BD540 | 102 | ScriptFxSourceDestruct (FX source element body) | ours only: object slot cleared, count down by 1 or 2 | the element destructor 004CE2B0 (the reset), the list's RemoveAt 004C6370 (DeleteFXSource), 004BEB00 |
+
+CreateParticleSource: the type name is copied into a CString first and compared with the game's
+stricmp (table name first); the table is read from the exe's memory (0078B120, 64 entries of name,
+type, lifetime). The id is FISTP (rounded), unlike CreateLightning's truncation. For a new id the
+original copies a stack temporary (only its first word set) into the new node; every field is
+written afterwards, so ours just links the node. MoveParticleSource's step is
+(point - position) * (1 / steps), the reciprocal rounded to float first (plain C++ now; the
+original keeps the x difference on the FPU).
+
+Not taken: 004BD310 (CreateFXSource / CreateRandomizedFXSource). For CreateFXSource (command 0x16)
+of a new id the original leaves spread, minimum / maximum delay and countdown (+0x24..+0x30) as the
+stack garbage of a temporary it copies into the node, and the tick then uses them (respawn delay,
+DIV by max - min + 1, placement radius). Rewriting it means choosing values the original never
+had (zero would replace the sound every tick); left original. 004BD120 / 004BDB80 (the same 38-byte
+body as the element destructors above) are only called from C++ unwind funclets.

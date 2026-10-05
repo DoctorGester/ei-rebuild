@@ -9,7 +9,9 @@
 #include "world_effect.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 
+#include <cmath>
 #include <cstring>
 
 namespace {
@@ -61,6 +63,11 @@ void __fastcall ScriptLightningDestruct(ScriptLightning* bolt) { DropEffect(&bol
 void __fastcall ScriptParticleSourceDestruct(ScriptParticleSource* source) { DropEffect(&source->object); }
 // 004B1880 (the name is the caller's to destroy)
 void __fastcall ScriptFxSourceDropSound(ScriptFxSource* source) { DropEffect(&source->object); }
+// 004BD540: the FX source's destructor body (the sound dropped, then the name).
+void __fastcall ScriptFxSourceDestruct(ScriptFxSource* source) {
+    DropEffect(&source->object);
+    source->name.~CString();
+}
 
 // ---- Commands -----------------------------------------------------------------------------------------
 
@@ -100,6 +107,85 @@ void __fastcall ScriptCreateLightning(CScript* script, void*, const SSCCmd* cmd)
     Vector3 from{f[1], f[2], f[3]};
     bolt->SetEnds(&from, &to, f[7]);
     WorldServer()->AddTimedObject(bolt);
+}
+
+// 004BD9A0: CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
+// negative id takes the next automatic one; an existing source with the id gets the new effect.
+void __fastcall ScriptCreateParticleSource(CScript* script, void*, const SSCCmd* cmd) {
+    mfc::CString name(cmd->stringArgs.data[0]);
+    const ScriptParticleType* type = nullptr;
+    for (int i = 0; i < kScriptParticleTypeCount; ++i) {
+        if (gamecrt::stricmp(ScriptParticleTypes()[i].name, name) == 0) {
+            type = &ScriptParticleTypes()[i];
+            break;
+        }
+    }
+    if (!type || type->type == 0) return;
+    int particleType = type->type;
+    int lifetime = type->lifetime;
+
+    const float* f = cmd->floatArgs.data;
+    int id = static_cast<int>(std::lrint(f[0]));
+    if (id < 0) id = script->nextParticleId_--;
+
+    MfcList<ScriptParticleSource>& list = script->particles_;
+    ScriptParticleSource* source = nullptr;
+    for (auto* node = list.head; node; node = node->next) {
+        if (node->data.id == id) {
+            source = &node->data;
+            break;
+        }
+    }
+    if (source) {
+        DropEffect(&source->object);
+    } else {
+        // The original copies a temporary whose fields are all written below.
+        auto* node = static_cast<MfcList<ScriptParticleSource>::Node*>(
+            ScriptParticleListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
+        node->data.object = nullptr;
+        if (list.tail) list.tail->next = node;
+        else list.head = node;
+        list.tail = node;
+        source = &node->data;
+    }
+
+    auto* particles = static_cast<CEffectParticle*>(EffectManager()->CreateObject(kClassParticles, -1));
+    particles->type_ = particleType;
+    particles->localPosition_ = {f[1], f[2], f[3]};
+    ++particles->refCount_;
+    std::memcpy(&particles->size_, &f[4], 4);
+    WorldServer()->AddTimedObject(particles);
+
+    source->object = particles;
+    source->id = id;
+    source->deleteAfterMove = 0;
+    source->moving = 0;
+    source->steps = 0;
+    source->step[0] = source->step[1] = source->step[2] = 0.0f;
+    source->lifetime = lifetime;
+}
+
+// 004BDBB0: MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
+// point in `steps` equal steps (one per tick); nothing when no source has the id.
+void __fastcall ScriptMoveParticleSource(CScript* script, void*, const SSCCmd* cmd) {
+    const float* f = cmd->floatArgs.data;
+    int id = static_cast<int>(std::lrint(f[0]));
+    ScriptParticleSource* source = nullptr;
+    for (auto* node = script->particles_.head; node; node = node->next) {
+        if (node->data.id == id) {
+            source = &node->data;
+            break;
+        }
+    }
+    if (!source) return;
+    source->moving = 1;
+    source->deleteAfterMove = static_cast<int>(std::lrint(f[5]));
+    source->steps = static_cast<int>(std::lrint(f[4]));
+    const Vector3& at = static_cast<CEffectParticle*>(source->object)->localPosition_;
+    float inverse = 1.0f / static_cast<float>(source->steps);
+    source->step[0] = (f[1] - at.x) * inverse;
+    source->step[1] = (f[2] - at.y) * inverse;
+    source->step[2] = (f[3] - at.z) * inverse;
 }
 
 // ---- Saving ---------------------------------------------------------------------------------------
@@ -188,3 +274,6 @@ EI_REPLACE(0x004B1850, ScriptParticleSourceDestruct);
 EI_REPLACE(0x004B1880, ScriptFxSourceDropSound);
 EI_REPLACE(0x004BD260, ScriptCreateFx);
 EI_REPLACE(0x004BCFF0, ScriptCreateLightning);
+EI_REPLACE(0x004BD540, ScriptFxSourceDestruct);
+EI_REPLACE(0x004BD9A0, ScriptCreateParticleSource);
+EI_REPLACE(0x004BDBB0, ScriptMoveParticleSource);
