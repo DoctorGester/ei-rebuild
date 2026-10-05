@@ -37,6 +37,10 @@ struct Quaternion {
     Quaternion* SetAxisAngle(const Vector3& axis, float angle);     // 0049E800: returns this
     void PreMultiplyConjugate(const Quaternion& r); // 0049E870: *this = conj(r) * *this
     void Slerp(float t, const Quaternion& a, const Quaternion& b);  // 0049ED20: shortest arc
+
+    // 004D9AA0 (matrix_math.cpp, RET 4). The rotation part of the row-major 4x4 matrix `out`
+    // (elements 0-2, 4-6, 8-10; the others are left as they are).
+    void ToMatrix(float* out) const;
 };
 static_assert(sizeof(Quaternion) == 16);
 

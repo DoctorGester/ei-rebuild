@@ -24,9 +24,6 @@ std::uint32_t Word(const std::uint8_t* p) {
 }
 } // namespace
 
-__declspec(naked) void CMemoryStream::StartByte() EI_ORIGINAL(0x004A5610)
-__declspec(naked) void CMemoryStream::EndBits() EI_ORIGINAL(0x004A5650)
-
 void CMemoryStream::PutBit(bool bit) {
     bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
     if (bitMask_ > 0x80) StartByte();   // sets bitMask_ to 1

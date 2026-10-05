@@ -29,9 +29,6 @@ constexpr std::uint32_t kWindowMask = 0x3FF;
 
 // --- BufferCursor ---------------------------------------------------------------------------------
 
-__declspec(naked) void BufferCursor::BeginRead(GameBuffer*, std::int32_t) EI_ORIGINAL(0x004DA450)
-__declspec(naked) void BufferCursor::BeginWrite(GameBuffer*, std::int32_t) EI_ORIGINAL(0x004DA490)
-
 void BufferCursor::PutBits(std::uint32_t value, std::uint8_t count) {
     if (bits == 0) {
         bytePtr = p;
@@ -439,6 +436,7 @@ EI_REPLACE(0x0047D930, BufferViewSeek);
 
 void __fastcall BufferViewDestruct(GameBuffer* self) { SetVtable(self, kBufferViewBaseVtable); }
 EI_REPLACE(0x0047D960, BufferViewDestruct);
+EI_REPLACE(0x004DA850, BufferViewDestruct);   // byte-identical copy (reached when unwinding)
 
 void* __fastcall BufferViewDeletingDestructor(GameBuffer* self, void*, unsigned flags) {
     BufferViewDestruct(self);

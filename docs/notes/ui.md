@@ -90,6 +90,7 @@ disappearing, 4 shown (0065E580, Rebirth-patched, advances them). The scale help
 | 005FD3A0, 005FE400, 005FC450 | `CUiSurface::SetRect`, `MoveTo`, `CUiModel::SetScreenPosition` | original on a copy |
 | 005FC8F0, 005FC660, 005FFCC0, 005FFD30 | `CUiRegion::HitTest`, `HasActiveTip`, `CUiWindow::RegionAt`, `ContainsPoint` | pure |
 | 005FC9E0, 005FCA40, 005FCA70, 005FC880, 005FEBF0, 006002A0 | `CUiRegion::SetRect`, `ClearShape`, `AddPoint`, `OnMouseMove`, `CUiWindow::UpdateRegionTips` (RET 4), `SetEnabled` | ours only, fields |
+| 005FC730, 005FC6B0, 005FC690, 005FC600 | `CUiRegion::SetTip` ("tip %d" up to '#'; a missing text shows the key), `SetTipString`, `SetTipText`, `ReleaseContents` (`ui_region_tips.cpp`) | ours only: a fresh tooltip (vtable 00742F64, its region, idle; the two arguments when it has lines); the fields after release |
 | 005FEDD0-005FF7D0, 005FFA90-005FFC50, 005FF830-005FFA20, 005FFD80, 005FFF40 | `AddObject`, `RemoveObject(At)`, `RemoveSceneObject(At)` (returns 1/0), `ClearSceneObjects`, `AddSurface` (returns its argument), `RemoveSurfaceAt`, `ClearSurfaces`, `AddRegion`, `RemoveRegionAt`, `ClearRegions`, `AddModel` (0 on allocation failure), `ClearModels` | ours only, array contents |
 | 006003D0, 006004E0, 00600730, 00600840, 00600950 | `UiPtrArray<T>::SetSize` (five identical copies) | ours only, size / capacity rule / kept prefix |
 
@@ -101,7 +102,7 @@ to 0 or 2, 2 to 4, 3 to 0), so the wrapper checks the final state is reachable f
 `AddRegion` leaves the new region's bounds uninitialised; the array append has a dead branch for `size == -1` that frees the storage and stores
 through the null array; removing by index does not check it (past the end the original's `REP MOVSD` count goes negative and faults; ours
 skips the move). Not rewritten: STLport / MFC template code (005F3000-005F4990, 005F9810-005FC010, 0060A320-0060BD70, 00613400-00613DF0,
-00619420-0061B220, 0062A390, ...), region tooltip creation 005FC730 / 005FC6B0 ("tip_%d" text lookup, 0x184 bytes).
+00619420-0061B220, 0062A390, ...).
 
 ### Window stack, screen construction, window base methods (all ours only unless noted)
 
@@ -230,12 +231,17 @@ probably CanEquip, hero creation (00617A50).
 | Address | Name | Verify |
 |---|---|---|
 | 0062D350, 0062F050 | `CGlobalMap::Create` (slot 25, 6.7 KB), `Update` | ours: marker / sprite / region counts, links point at zones; bob time, w >= 0 after a turn |
+| 00631110, 00631030, 00630F50 | `CGlobalMap::AllodTitle`, `ZoneTitle`, `QuestTitle` (`ui_global_map_places.cpp`) | side by side: the text (scratch string) |
+| 00630E00, 00630CC0 | `CGlobalMap::ZonePosition`, `QuestPosition` | side by side when found (CheckNear); the original leaves uninitialised stack in `out` when map.txt has no entry, ours leaves `out` |
+| 00630860, 0062EE90 | `CGlobalMap::SelectZone` (RET 8, flag is a byte), `SetWeather` | side by side: markers' texture, flags, tint, plain colour; display +0x14; weather +4..+0xC |
 | 00635250 | `CBattleScreenSetup::Create` (every scenario) | ours: 11 panels in order with vtables and owner, 2 input handlers, hero id |
 | 00611930, 006100E0 | `CCampPages::UpdateAction`, `CanEquip` (slot 43, AL) | side by side (ours releases what it made) |
 | 0060E9E0, 0060F050, 00612600, 00612290 | `ShowPage`, `Draw` (slot 20), `CanMakeItem`, `CanMakeSpell` | ours: the page's panels exactly enabled, strip slots; Draw returns 1; result iff an item / container is held |
 | 0060E6B0, 0060FE40, 0060E3E0, 0060FCA0, 0060F9E0, 0060F980, 0060F6B0, 0060F710 / 0060F7A0, 0060F830 | `Close` (slot 26), `TakeOff`, the trade panel's destructor body, `PutOn`, `RefreshWeapons` (46), `RefreshStats` (47), `Update` (24; the hero preview's turn through `_CIfmod`), `NextHero` / `PreviousHero` (48 / 49), `ShowHero` | ours only |
 | 00610AD0, 00610920 | `MoveItem` (slot 42, RET 8), `PutOnFromStrip` (RET 4) | ours only: refused leaves both counts, mode 0 takes off, mode 1 puts a weapon on a hero with room |
 | 00623880, 006233C0, 00622DB0, 00622000, 00622A80 | `CHeroStatsPanel::DrawStats`, `ShowStats`, `Build` (slot 18), `CHeroEquipPanel::Build`, `CHeroQuickStrip::Build` | ours: state untouched (GDI text only); region / sprite / text counts |
+| 00624CB0, 00625690 | `CHeroStatsPanel::HoverInfo`, `CTradePanel::HoverInfo` (RET 0xC; `ui_camp_stats.cpp`) | side by side on a copy of the caller's record (all fields) |
+| 006232D0 | `CHeroStatsPanel::SetHero` (RET 8) | side by side: arrows' visibility, tips present, hero, title, +0x170 (height * 100 truncated: a rounding-edge height may differ at another precision) |
 | 006270A0, 006279E0, 006280C0, 00628CC0 | `CTradeGrid::Build`, `CRepairGrid::Build`, `CConstructorPage::BuildSpellMaker`, `BuildItemMaker` | ours: counts, textures, surface |
 | 00625880, 006261A0, 00624F10 | `CTradePanel::BuildLists`, `DrawLists`, `Build` (slot 18) | side by side: the four lists, experience, scroll positions; surface pixels, price sprites' quads; Build ours only |
 | 00610020, 006110F0 | `CCampScreen::BestPartySkill` (slot 45), `ShowPageTabs` (slot 44) | pure; ours: the three strips' tabs (only the strips the page uses) |
@@ -304,10 +310,12 @@ the Rebirth-patched callees 005E70E0, 005E7680, 005E7D60, 005FDE20, 005F8340, 00
 | 0063D2B0, 0063E820, 0063C180, 0063F800 | `CHudQuickItems::SetUnit`, `CHudSpellColumn::SetUnit`, `CHudWeaponBar::SetUnit`, `CHudActionColumn::SetUnit` (RET 8) | side by side: fields, entries, sprites, regions, tooltip lines | every game scenario (via 00637DC0) |
 | 0063CEE0, 00639EF0 | `CHudQuickItems::ItemTip` (RET 8), `CBattleScreen::HoverUnit` (RET 0xC) | side by side (ItemTip into a copy of the caller's CString; HoverUnit: cursor shape and hover unit) | every game scenario (the draw sends a mouse move every frame) |
 | 00639D60, 0063B920, 00638B30 | `OnMouseMove` (slot 4, RET 0xC), `UnitName` (RET 8), `OnLButtonUp` (slot 3, RET 0xC) | side by side (cursor shape, handled flag, +0x1C1, box +0x1CC, hover unit; UnitName into a scratch CString); ours only: press on the view consumed | every game scenario; ui_hud, world_client, ui_describe |
+| 00638A40 | `OnLButtonDown` (slot 2, RET 0xC) | ours only: press on the view started (point, no drag) unless a panel took it | every click on the battle screen |
 | 00637DC0 | `RefreshSelection` | ours only: the panels' unit +0x154 and the unit panel's +0x14C (the original stores the first selected unit before testing: 00637EE5), pending action cleared | every game scenario (slots 28 / 29 / 30, ToggleMember, a box drag, a network party change end with it) |
 | 00636F10, 006379E0, 00637190, 006373A0 | `OrderAt` (RET 0x14), `ToggleMember` (RET 4), `AttackUnit`, `OrderDeadUnit` (RET 8) | ours only: members nod (+0x38 1, or 2) with a non-positive delay; exit flag +0x18C / +0x188; markers and flag 0x10 for the toggle | ui_order_move, ui_hud, ui_battle_commands |
 | 006366F0, 006369D0 | `OnUnitSpeech` (slot 32, RET 0xC), `OnQuestVariable` (slot 33, RET 8) | ours only: the top panel's text only grows; faces / shake by event; quest line, clock pulse | any unit speaking; ui_quest_notice |
 | 00637500, 00637750 | `UseOnUnit` (RET 0xC), `UseAtPoint` (RET 0x14) | ours only: each member the unit's own check allows (CanCastSpell 0052F820 / CanUseQuickItem 0052F8B0) nods; nothing pending afterwards | ui_battle_spells, ui_quick_items |
+| 0063CD20, 0063E750, 0063F730, 0063E7C0, 0063F7A0, 005E7060 | `CHudQuickItems::Highlight`, `CHudSpellColumn` / `CHudActionColumn::Highlight` (RET 8), their `ClearHighlights`, `CUiMesh::SetScale` (RET 4; `ui_hud_highlight.cpp`; rewritten callers use `HighlightAt` / `SpriteSetScaleOriginal`) | side by side: sprites' scale and colour, +0x150 | every game scenario (SetPendingAction, SetUnit) |
 | 0063DB20, 0063EC90, 0063FB50, 0063DD70 | `CHudQuickItems::OnMouseUp` (RET 0xC), `CHudSpellColumn::Click`, `CHudActionColumn::Select`, `CHudQuickItems::Pick` (RET 4) | OnMouseUp ours only (capture, handled flag, pending mode); the rest side by side: pending action, panels' +0x150, button sprites | ui_battle_spells, ui_quick_items; 0063A560's spell keys call them by address |
 
 How they chain (the code has the details):

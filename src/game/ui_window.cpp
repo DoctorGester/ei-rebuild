@@ -165,8 +165,6 @@ __declspec(naked) void CUiTooltip::OnMouseMove(int, int) EI_ORIGINAL(0x0065E580)
 
 // --- CUiRegion -------------------------------------------------------------------------------
 
-__declspec(naked) void CUiRegion::ReleaseContents() EI_ORIGINAL(0x005FC600)
-
 BOOL CUiRegion::HitTest(int x, int y) const {
     x -= offsetX_;
     y -= offsetY_;

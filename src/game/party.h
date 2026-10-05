@@ -42,7 +42,11 @@ public:
     // and removed, and the result is null (also when it is not in the list).
     CItem* RemoveItem(CItem* item, int all);   // `all` read as a byte
 
-    std::uint8_t unknown_1C[0x40 - 0x1C];
+    std::uint8_t unknown_1C[0x30 - 0x1C];
+    struct PartyUnitRecord* members_;   // +0x30 the party unit records (0x784 bytes each; 006621B0 finds one)
+    int memberCount_;                // +0x34
+    std::uint8_t unknown_38[0x40 - 0x38];
     AlignedPtrArray items_;          // +0x40 CItem*
 };
+static_assert(offsetof(CParty, memberCount_) == 0x34);
 static_assert(offsetof(CParty, items_) == 0x40);

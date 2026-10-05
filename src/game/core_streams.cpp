@@ -87,11 +87,7 @@ mfc::CString* CStream::ReadString(void* out) {
 }
 EI_REPLACE_METHOD(0x00461190, CStream::ReadString);
 
-// --- CMemoryStream -----------------------------------------------------------------------------
-
-void CMemoryStream::Seek(std::uint32_t a0) { StreamSeekOriginal((void*)this, nullptr, a0); }
-void CMemoryStream::Resize(std::uint32_t a2) { StreamResizeOriginal((void*)this, nullptr, a2); }
-__declspec(naked) void CMemoryStream::SetSize(std::uint32_t) EI_ORIGINAL(0x004A5570)
+// --- CMemoryStream (its slots 1-3 and 7, Resize and SetSize are in core_memory_stream.cpp) --------
 
 CMemoryStream* CMemoryStream::Construct() {
     version_ = kDefaultVersion;
@@ -156,6 +152,7 @@ void** __fastcall AlignedPointerArrayAlloc(int count) {
     return reinterpret_cast<void**>(aligned);
 }
 EI_REPLACE(0x0047B940, AlignedPointerArrayAlloc);
+EI_REPLACE(0x004D9ED0, AlignedPointerArrayAlloc);   // byte-identical copy
 
 void AlignedObjectArray::Clear() {
     // The size is read again after every call (a release may change the array).

@@ -166,9 +166,27 @@ void* AllocAligned(std::size_t bytes);
 void FreeAligned(void* data);
 
 // The tooltip attached to a region (0x184 bytes, constructed by 0065E320).
+class CUiRegion;
 struct CUiTooltip {
-    void** vtable_;                  // slot 0: deleting destructor
-    std::uint8_t unknown_004[0x180 - 0x004];
+    // Slot 0: the deleting destructor (with 1: the memory is freed).
+    void Delete() {
+        using Fn = void(__thiscall*)(CUiTooltip*, int);
+        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+    }
+
+    void** vtable_;                  // 00742F64 (the window's; its input side 00742F30 at +0x94)
+    std::uint8_t unknown_004[0x148 - 0x004];   // the CUiWindow base
+    void* linesVtable_;              // +0x148 CStringArray: the text's lines (none for an empty text)
+    char** lines_;                   // +0x14C
+    int lineCount_;                  // +0x150
+    std::uint8_t unknown_154[0x164 - 0x154];
+    int flag_;                       // +0x164 the constructor's fourth argument (1 almost everywhere)
+    int extra_;                      // +0x168 its fifth (the HUD's slot tips: an index)
+    int unknown_16C;                 // +0x16C
+    CUiRegion* region_;              // +0x170 the region it belongs to
+    int width_;                      // +0x174 widest line + 12 (a text only)
+    int height_;                     // +0x178 the lines' heights + 8
+    int unknown_17C;                 // +0x17C 0
     int state_;                      // +0x180 0, 1: idle/hovered; other values: shown
     // 0065E580. Tracks the mouse (layout coordinates).
     void OnMouseMove(int x, int y);
@@ -180,6 +198,9 @@ struct CUiTooltip {
     bool Shown() const { return state_ != 1 && state_ != 0; }
 };
 static_assert(offsetof(CUiTooltip, state_) == 0x180);
+static_assert(offsetof(CUiTooltip, lines_) == 0x14C);
+static_assert(offsetof(CUiTooltip, flag_) == 0x164);
+static_assert(offsetof(CUiTooltip, region_) == 0x170);
 
 struct UiPoint {
     int x;
@@ -203,13 +224,17 @@ public:
     void AddPoint(int x, int y);
     // 005FC880. Updates the tooltip state for a mouse position and forwards it to the tooltip.
     void OnMouseMove(int x, int y);
-    // 005FC600 (not rewritten). Releases the tooltip and the vertex storage.
+    // 005FC600 (ui_region_tips.cpp). The destructor body: deletes the tooltip and frees the
+    // vertex storage (the fields are left as they are).
     void ReleaseContents();
-    // 005FC690 (not rewritten). Sets the tooltip's text (when there is a tooltip).
+    // 005FC690 (RET 4; ui_region_tips.cpp). Sets the tooltip's text (0065E540) when there is a
+    // tooltip.
     void SetTipText(const char* text);
-    // 005FC730 (not rewritten). Gives the region the tooltip with text "tip_<id>" (0: none).
+    // 005FC730 (RET 0xC; ui_region_tips.cpp). Replaces the tooltip by one with the text
+    // "tip <id>" (up to a '#'; the key itself when there is no such text) and (a, b); id 0 gives
+    // an empty tooltip with (1, 0).
     void SetTip(int textId, int a, int b);
-    // 005FC6B0 (not rewritten). Gives the region a tooltip showing `text`.
+    // 005FC6B0 (RET 0xC; ui_region_tips.cpp). Replaces the tooltip by one showing `text`.
     void SetTipString(const char* text, int a, int b);
     // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
     void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0
@@ -618,9 +643,12 @@ public:
     // its spell has flag 0x10000000 (on a unit), 4 (at a point), 0 without a spell. Other
     // categories change nothing.
     void Pick(int slot);
-    // 0063CD20 (RET 8, not rewritten). Highlights the sprite shown in region `slot` (bottom row
-    // scale 0.65 / 0.55, top row 1.0 / 0.85; with `on` also selected_ = slot).
+    // 0063CD20 (RET 8; ui_hud_highlight.cpp). Highlights the sprite shown in region `slot` when
+    // it shows one (bottom row, slots 0-3: scale 0.65 / 0.55; top row 1.0 / 0.85; colour
+    // 0xFF404040 / 0xFF000000; with `on` also selected_ = slot).
     void Highlight(int slot, int on);
+    // The same through the original's address (so the verify wrapper sees the call).
+    void HighlightAt(int slot, int on);
     // Item of the region at `index` (-1: empty). The original indexes this with the result of
     // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
@@ -678,9 +706,12 @@ public:
     // 0063EF60 (not rewritten). Click with key flag +0x7F (or the key handler's Ctrl / Alt): the
     // spell is cast at once.
     void ClickAlternate(int index);
-    // 0063E750 (RET 8, not rewritten). Button `index` highlighted (scale 1.15, colour 0xFF404040)
-    // or not (1.0, 0xFF000000); selected_ = index either way.
+    // 0063E750 (RET 8; ui_hud_highlight.cpp). Button `index` highlighted (scale 1.15, colour
+    // 0xFF404040) or not (1.0, 0xFF000000); selected_ = index either way.
     void Highlight(int index, int on);
+    void HighlightAt(int index, int on);   // through the original's address
+    // 0063E7C0 (ui_hud_highlight.cpp). Every button unhighlighted, then selected_ = -1.
+    void ClearHighlights();
     // 0063E820 (RET 4; ui_spell_column.cpp). Shows `unit`'s spells: sprites and regions dropped;
     // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
     // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
@@ -714,8 +745,11 @@ public:
     void Select(int index);
     // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
     void SelectAt(int index);
-    // 0063F730 (RET 8, not rewritten). As CHudSpellColumn::Highlight.
+    // 0063F730 (RET 8; ui_hud_highlight.cpp). As CHudSpellColumn::Highlight.
     void Highlight(int index, int on);
+    void HighlightAt(int index, int on);   // through the original's address
+    // 0063F7A0 (ui_hud_highlight.cpp). As CHudSpellColumn::ClearHighlights.
+    void ClearHighlights();
     // 0063F800 (RET 8; ui_hud_tips.cpp). Shows `unit`'s actions: sprites and the action array
     // dropped, the six regions' tips cleared; with `extra` (its low byte) first a "skill0011"
     // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
@@ -820,11 +854,16 @@ public:
                       int u1, int v1);
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
+    // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
+    // EAX is left holding them, callers do not read it).
+    void SetScale(float scale);
 
-    std::uint8_t unknown_000[0xCC];
+    std::uint8_t unknown_000[0x08];
+    std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
+    std::uint8_t unknown_00C[0xCC - 0x0C];
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
-    std::uint8_t unknown_0D4[0xD8 - 0xD4];
+    std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
     std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
     std::uint8_t unknown_0DC[0x1C0 - 0xDC];
     UiQuadBlock* quads_;             // +0x1C0
@@ -849,6 +888,8 @@ public:
     float scaleY_;                   // +0x250
     std::uint8_t unknown_254[0x264 - 0x254];
     float scaleZ_;                   // +0x264
+    std::uint8_t unknown_268[0x280 - 0x268];
+    CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };
 static_assert(offsetof(CUiMesh, colour_) == 0xD8);
 static_assert(offsetof(CUiMesh, scaleX_) == 0x23C);
@@ -860,6 +901,9 @@ static_assert(offsetof(CUiMesh, uvs_) == 0x210);
 static_assert(offsetof(CUiMesh, visible_) == 0x220);
 static_assert(offsetof(CUiMesh, uOffset_) == 0xCC);
 static_assert(offsetof(CUiMesh, tint_) == 0x224);
+static_assert(offsetof(CUiMesh, flags_) == 0x08);
+static_assert(offsetof(CUiMesh, plainColour_) == 0xD4);
+static_assert(offsetof(CUiMesh, texture_) == 0x280);
 
 // A growable array of 2D points with the interface arrays' 32-byte alignment.
 struct UiPointF {

@@ -1147,11 +1147,6 @@ __declspec(naked) void __fastcall UnitUnequipArmour(std::uint8_t*, void*, int) E
 // layers / adds one (RET 4).
 __declspec(naked) void __fastcall StatsClearOuterLayers(std::uint8_t*) EI_ORIGINAL(0x005232B0)
 __declspec(naked) void __fastcall StatsAddLayer(std::uint8_t*, void*, void*) EI_ORIGINAL(0x005230C0)
-// 00623880: the statistics panel's drawing, through its address.
-struct StatsPanelAt {
-    void DrawStats();
-};
-__declspec(naked) void StatsPanelAt::DrawStats() EI_ORIGINAL(0x00623880)
 
 template <typename T>
 T& CampField(void* p, int offset) {
@@ -1215,7 +1210,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     default:
         break;
     }
-    reinterpret_cast<StatsPanelAt*>(statsPanel_)->DrawStats();
+    StatsPanelDrawStatsOriginal(statsPanel_);
     return result;
 }
 namespace {
@@ -1295,7 +1290,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
         return;
     }
     PlayerDropItem(GlueAt(0x007AFEA5)->PlayerData(), nullptr, item, 0);
-    reinterpret_cast<StatsPanelAt*>(statsPanel_)->DrawStats();
+    StatsPanelDrawStatsOriginal(statsPanel_);
 }
 namespace {
 void __fastcall CampPutOn(CCampPages* self, void*, std::uint8_t* item) { self->PutOn(item); }
@@ -1552,7 +1547,7 @@ void CCampPages::RefreshStats() {
         UnitTakeStats(heroes_[hero_], nullptr, hero + 0x20);
         FigureCall(heroes_[hero_], 31);
     }
-    reinterpret_cast<StatsPanelAt*>(statsPanel_)->DrawStats();
+    StatsPanelDrawStatsOriginal(statsPanel_);
 }
 namespace {
 void __fastcall CampRefreshStats(CCampPages* self, void*) { self->RefreshStats(); }

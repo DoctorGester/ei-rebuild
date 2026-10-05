@@ -63,7 +63,10 @@ struct PartyUnitRecord {
     void RemoveArmor(CItem* entry);
     void RemoveSpell(CItem* entry);
 
-    std::uint8_t unknown_000[0x730];
+    std::uint8_t unknown_000[0x20];
+    std::uint8_t stats[0x724 - 0x20];   // +0x20 the unit's statistics (UnitStats)
+    std::uint8_t unknown_724[0x72C - 0x724];
+    float height;                   // +0x72C the hero's height (0.7 by default; the hero screen shows it * 100)
     CEngineObject** weapons;        // +0x730
     std::uint32_t weaponCount;      // +0x734
     int weaponCapacity;             // +0x738
@@ -80,7 +83,11 @@ struct PartyUnitRecord {
     std::uint32_t spellCount;       // +0x764
     int spellCapacity;              // +0x768
     int spellGrowBy;                // +0x76C
+    std::uint8_t unknown_770[4];
+    std::uint32_t weaponIndex;      // +0x774 the weapon shown in the camp (-1 none)
 };
+static_assert(offsetof(PartyUnitRecord, stats) == 0x20);
+static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
 static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
 static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
 static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
