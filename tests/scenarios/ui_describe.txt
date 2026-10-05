@@ -87,6 +87,18 @@ wait 300
 move 700 550
 wait 300
 
+# Clicks move items (the camp's slot 42, 00610AD0): a strip item goes on the hero (mode 1,
+# 00610920 -> PutOn on page 0), then the body slots give back what is worn there (the equipment
+# panel's mode 0, TakeOff into the strip).
+click 100 550
+wait 500
+click 200 550
+wait 500
+click 250 300
+wait 500
+click 550 250
+wait 500
+
 # Page 1 (level up): the trade panel's skills (x 215..385, kind 1), the school row (kind 2), the
 # perk lists (kind 3) and the statistics panel's attributes (kind 0).
 clickregion 5

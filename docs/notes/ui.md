@@ -1575,3 +1575,100 @@ creates the birds), 0065F9B0 (CParty load: only when a save is loaded), 00651940
 00649AF0 (window builders and layouts), 0065C610 (the edit control's keys: no scenario types into
 one), 006570E0 (the autosave: the picture from a window surface, renderer.md). Not looked at:
 0065D150, 0065C930 and the rest below 800 bytes.
+
+## Twelfth pass (ticket I3)
+
+Files: `src/game/ui_camp.cpp` (PutOnFromStrip, MoveItem), `src/game/ui_layouts.cpp` (the main
+menu's click, the message box's Create); wrappers `tests/verify/verify_ui_camp.cpp`,
+`verify_ui_screens.cpp`; new scenario `tests/scenarios/ui_main_menu.txt`, clicks added to
+`ui_describe.txt`. Shared headers: `ui_camp.h` (CCampPages::PutOnFromStrip / MoveItem), `ui.h`
+(CMessageBox, 0x180 bytes), `ui_screens.h` (CMainMenu).
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 00610AD0 | 1530 | `CCampPages::MoveItem` (virtual slot 42, RET 8) | ours only: on pages 0 / 1 (CanEquip only reads there) the hero's weapons and armour: refused leaves both counts, mode 0 takes the item off, mode 1 puts a weapon on a hero with room; elsewhere the page stays | ui_describe (strip and body clicks) |
+| 00610920 | 398 | `CCampPages::PutOnFromStrip` (RET 4) | ours only: page 0 / 1 with a weapon and room: on the hero afterwards | ui_describe (via MoveItem mode 1) |
+| 00634790 | 1377 | `CMessageBox::Build` (slot 25) | ours only: +1 surface, +2 sprites + one per button, regions (2; 1 for OK only; an empty one and cancel), the button regions enabled and two on one row, the edit field as a child with flag 4 | ui_screens (the Esc menu's quit box) |
+| 00632D70 | 1200 | `CMainMenu::OnLButtonDown` (input slot 2) | ours only: the window the region opens is on top with its vtable (0074225C, 00741388 as a load window, 00741FAC, 00740C3C, 0074214C); other points open nothing; region 2 (quit) not checked | ui_main_menu (regions 3, 1, 0, 4), ui_screens (5) |
+
+4 functions, about 4.5 KB. None is Rebirth-patched; the Rebirth-patched callees 005FDE20, 005F8340,
+005E70E0, 005E7D60 and 005FC9E0 are called through their original addresses.
+
+### Camp item moves (00610AD0 / 00610920)
+
+- The item strips (forwarding subclass 006212A0) and the equipment panels (005EE310) call the
+  camp's slot 42 with their action mode. Slot 43 (CanEquip) first; refused: the cancel sound.
+- Field map (the decompiler's word indices): +0x1B4 / +0x1B8 / +0x1BC itemParts_, +0x1C0
+  itemResults_, +0x1C4 itemExtra_, +0x1C8 / +0x1CC / +0x1D0 spellParts_, +0x1D4 spellResults_.
+  Lists hold their items as an array at +0x40, count +0x44. Moves go through 005EE1B0 (item, to,
+  from, kind, ...; it reads the interface's Shift flag +0x7D itself) and the result into a strip
+  (00621570): items whose record +0x10 flag is set (made by a constructor) back to the constructor's
+  parts list and its strip (spellStrip_ +0x1EC / partStrip_ +0x1F0), the others to the local player
+  (00578BA0) and the item strip +0x1E0. Mode 6 / 7 with an item the slots do not take apart empty
+  the makers' slots (the same loop as ShowPage's TakeResults).
+- PutOnFromStrip: pages 0 / 1 PutOn (through its address); 2-6 from the player into the page's
+  slots with kinds 8, 0, 8, 0, 0x10.
+
+### Message box (00634790)
+
+- Constructor 00634650 (interface, title key, text key, result +0x16C, flags +0x170, format
+  +0x174): +0x164 / +0x168 the texts (CStrings); flag 4: +0x17C keeps the text key itself (the edit
+  field's text), +0x178 the edit field (0065C010, 0x17C bytes).
+- The title and the text are measured with DT_CALCRECT (0x411) on the new surface; with flag 4 the
+  text's height is one line of the font (005F8340 of "A"). The block (heights + 60) is centred in 550
+  pixels (signed halving); the title is drawn 35 above its top (font 2, 0x31B3FF), the text 20
+  above the title's end (font 1 when the result is 0xFFFF0000, else 2; 0xA7D7E4; format | 0x10).
+  The shade (0xA0000000) and the frame (Frame helper) around it, buttons 26..74 below: OK + cancel
+  at 263 / 463, OK alone or cancel alone at 363 (cancel alone adds an empty region 0 first, so
+  cancel is region 1 in both layouts).
+- The new game's difficulty question (vtables 0074225C / 00742228) is a message box with its own
+  Create 006337B0 (not rewritten) and button handler 00633DD0 (0 OK, 1 cancel, 2 / 3 the choice).
+
+### Main menu click (00632D70)
+
+- Region 0 the difficulty question (message box 0x184 bytes: "option_difficulty", "", 0x20000,
+  3, 1); 1 the save/load window as a load window (0x194; the Esc menu's inline constructor, both
+  flags 0); 2 "Movies\Exit.bik" in the game folder (005DB3F0 with 0, 0, 0, 1, 1, 1), then 00455F20(0);
+  3 options (0x418, not sliding); 4 the titles (00578920(0) / 00578940 on 007AFEA5, the menu's
+  surfaces cleared, 0x1FC: CMappedResource +0x170, vector +0x1C8 (00634300), CString "Titles"
+  +0x1D4, 005DB340 +0x1D8, +0x1F4 = 1; pushed with a = 0); 5 the hero screen (status text
+  "reserved_04", server flag 1; 0x220: item screen base caches 00633F50 / 00633FF0, lists 0053F4F0
+  +0x1C8 / +0x1D4, CString +0x1F4, vectors 006342A0 +0x1F8 / +0x204). Every window except 4 is
+  pushed with (1, 1). The original passes uninitialised stack bytes as the containers'
+  allocators; ours pass 0.
+
+## Forwarders added (standalone build must replace)
+
+Camp: 00610920 / 0060FCA0 through their addresses (hooked). Message box: 005FDC00 / 005FDE20
+(Rebirth) / 005FDC60, 005F8340 (Rebirth), 0065C010 / 0065C1A0 / 0065C290 (edit field). Main menu:
+00578DC0, 00578E20, 004E0020, 00578D10, 00578920, 00578940, 005F75B0, 005DB3F0, 00455F20, 00671280,
+00634300, 005DB340, 00633F50, 00633FF0, 0053F4F0, 006342A0.
+
+## Original quirks kept
+
+- The main menu's load and options windows and the message box's edit field are written to
+  without checking the allocation (as the Esc menu's).
+- The message box with neither button flag shows a cancel button behind an empty region 0.
+
+## Skipped in this pass
+
+00611220 (1312, the camp's deal button): only pages 0 and 1 exist without a constructor record, and
+there the button needs a hero who can level up (page 1) or the item constructor (page 0); no
+scenario reaches it. 0062B7D0 is not the main menu's setup but the titles window's Create
+(slot 25 of 00740C3C; the Titles script parsing, movie / sound player); now reached by
+ui_main_menu, left for a later pass (heavy STLport and parser code). 006337B0 (the difficulty
+question's Create) also reached by ui_main_menu now.
+
+### Fixes after the first in-game run
+
+- `CUiWindow::AddSurface` (005FFA90, an earlier rewrite) returned nothing; the original leaves its
+  argument in EAX, and the titles' Create (0062B7D0) freezes the new surface through that result
+  (crash in 005FD760 reading 0000000D when ui_main_menu opened the titles). It now returns the
+  surface; its wrapper checks that.
+- The hero record keeps a clone of a weapon put on (006608D0 copies the item), so PutOn's and the
+  new wrappers' "the item is among the weapons" checks were wrong; they compare weapon (armour)
+  counts now.
+- ShowPageTabsVerify (006110F0, camp slot 44) read all three strips' tabs; the spell and part
+  strips exist only with their constructor (leftover bytes otherwise), and the equipment panel's
+  click (005EE310) calls slot 44 when it finds no item, e.g. an empty body slot clicked by
+  ui_describe. The wrapper reads only the strips the page uses.

@@ -351,6 +351,19 @@ public:
     // item (at most 4) or a 0x3008 item (at most 8); then the player's items lose it (00661F30)
     // and the stats panel is redrawn. Other kinds and full slots do nothing.
     void PutOn(std::uint8_t* item);
+    // 00610920 (RET 4; MoveItem's mode 1, a click on an item strip). Pages 0 / 1 put the item on
+    // the hero (PutOn); the other pages move it from the player's items into the page's slots
+    // (spellParts_[2], spellResults_, itemParts_[2], itemResults_ (with Shift and a kind-one item
+    // the whole stack while slot 43 accepts it with mode 1), itemExtra_). Sound put_on.
+    void PutOnFromStrip(std::uint8_t* item);
+    // 00610AD0 (virtual slot 42, RET 8; what an item strip or a panel calls with its action mode).
+    // Refused by CanEquip (slot 43): the cancel sound. 0 takes the item off the hero into the item
+    // strip, 1 PutOnFromStrip, 2 / 3 into the spell / item constructor's slots (put_on), 4 / 5 out
+    // of a constructor's trade lists, 6 / 7 out of the makers' slots (a modifier, a container or a
+    // kind-one item alone, with Shift all kind-one items and then the first container; anything
+    // else empties them), 8 out of itemExtra_; made items (record +0x10) go back to the
+    // constructor's parts and strip, the others to the player and the item strip (put_off).
+    void MoveItem(std::uint8_t* item, int mode);
     // 0060F9E0 (slot 46). Re-arms the current hero's unit: its figure's weapon reset (-1), the
     // four weapon slots cleared (005310D0), the record's weapons given (00531070), 00531110, the
     // chosen weapon shown (figure slot 25 with +0x774, slot 30); then slot 47.
