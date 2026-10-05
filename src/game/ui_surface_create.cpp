@@ -6,9 +6,10 @@
 // (004EF7B0), add height * pitch to the surface-bytes total 007C7E78, clear the surface to 0 with a
 // colour-fill Blt and set flag 4 of +0x0C.
 //
-// With game-owned memory ("cpuwindows", dx_surface.cpp) the surface is already zero (a new DIB
-// section) and the colour fill is left out; in the switch-over ("present") its description comes
-// from that memory too, so making a window asks DirectDraw for nothing but the surface itself.
+// With the new renderer's memory ("cpuwindows", dx_surface.cpp) the surface is already zero (a new
+// DIB section) and the colour fill is left out; in the switch-over ("present") its description comes
+// from that memory too, and the holder has no DirectDraw surface at all (ticket R7), so making a
+// window asks DirectDraw for nothing.
 // The surface descriptions 005FCF80 / 005FD120 take for the surface-bytes total come from that
 // memory too in the switch-over, for picture windows as well: their holders (004EFC60 -> 004F0060,
 // a system-memory picture surface) get game-owned memory like the others. (005FCF80 itself has
@@ -129,7 +130,6 @@ void ReleaseHolderReference(char* holder) {
 }
 
 void __fastcall DropHolder(char* a0) { SurfaceHolderReleaseOriginal((void*)a0); }
-__declspec(naked) char* __fastcall PictureHolder(void*, void*, void*, const void*, int) EI_ORIGINAL(0x004EFC60)
 
 } // namespace
 
@@ -170,7 +170,9 @@ char* __fastcall UiSurfaceFromPicture(char* self, void*, void* ui, mfc::CString 
         picture = ei::VCall<void*>(manager, 19, *reinterpret_cast<const char* const*>(&file), 0);
     }
     void* memory = GameNew(0x20);
-    char* made = memory ? PictureHolder(memory, nullptr, At<void*>(At<char*>(self, 4), 8), picture, 0) : nullptr;
+    char* made = memory ? static_cast<char*>(DXSurfaceFromPictureOriginal(memory, nullptr, At<void*>(At<char*>(self, 4), 8),
+                                                                          picture, 0))
+                        : nullptr;
     char* previous = At<char*>(self, 0x10);
     At<char*>(self, 0x10) = made;
     if (made) ++At<int>(made, 4);

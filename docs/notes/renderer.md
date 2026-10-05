@@ -26,7 +26,9 @@ game's screen copy comes from the new frame. Checked in game: terrain, meshes, i
 (`render_scene`, section 8). Also handed over: every pre-transformed draw of the renderer
 (particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points) and the
 weather (after its builders draw). Movies (Bink) are handed over, the players outside the frame too (section 13); the trade grid's depth clears too (00627390 rewritten).
-The switch-over mode `present` exists (section 5, "Switch-over").
+The switch-over mode `present` exists (section 5, "Switch-over"); in it the interface windows', the
+cursor's and the movies' surface holders have no DirectDraw surface, only memory the new renderer
+owns (section 14).
 
 ## 1. The switch (EI_RENDER)
 
@@ -41,7 +43,7 @@ comma-separated list:
 | `noterrain` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) |
 | `noobjects` | ... the meshes drawn inside the world view (figures, map objects, the sky) and the flat geometry there (004EA4A0: shadows, ground decals) |
 | `nointerface` | ... the meshes drawn outside the world view (the interface's sprites and 3D previews) and the window surfaces' blits |
-| `cpuwindows` | the surfaces of 004EF7B0 (interface windows, software cursor, movies) and the system-memory picture surfaces of 004F0060 (the cursor's images, picture windows) keep their pixels in game-owned memory (DIB sections) the new renderer reads directly; on with `present`, `nocpuwindows` turns it off |
+| `cpuwindows` | the surfaces of 004EF7B0 (interface windows, software cursor, movies) and the system-memory picture surfaces of 004F0060 (the cursor's images, picture windows) keep their pixels in memory the new renderer owns (DIB sections, `render::SurfaceMemory`) and reads directly; on with `present`, `nocpuwindows` turns it off. With `present` these holders have no DirectDraw surface at all (section 14) |
 | `present` | the switch-over: everything handed over is off in the old path (`noterrain,noobjects,nointerface`, movie blits too; `cpuwindows` on) and at the old present (004EF610) the new frame is copied into the game's render target, which the old Flip / BltFast then shows; captures write the new frame as `frames\<name>.bmp`. Scenario `render_present` (frames_basic in this mode). A first version showed the frame in the child window instead: under dgVoodoo's full screen the second swap chain made the game window inactive (WM_ACTIVATE inactive: the game's frame function then draws nothing and the window minimises itself), so no frame was drawn at all. `show` / `split` have the same problem in full screen; use them windowed |
 
 Without `new` nothing in `src/render` runs; the old path draws as before. The harness has the steps
@@ -169,7 +171,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | 4. Shadows | done: the CPU-rasterised shadow textures and their ground geometry through the flat draw, with the selection markers and light decals. Later: GPU shadows | (done) |
 | 5. Particles and effects | sprites (sorted back to front as the game sorts them), ribbons, lightning, flying hit points, weather | 1.5-2 weeks |
 | 6. Native interface | the window surfaces drawn by the new renderer instead of uploaded (estimate below) | 5-7 weeks |
-| 7. Movies | done: the decoded frame's surface as a window-surface blit. Later: BinkCopyToBuffer into a CPU buffer (no DirectDraw surface) | (done) |
+| 7. Movies | done: BinkCopyToBuffer into a CPU buffer for the new renderer; in the switch-over the movies' holders have no DirectDraw surface (R7) | (done) |
 | 8. Switch-over | first step done: `present` (below). Left: the blockers below | see below |
 
 About 8-11 weeks to a complete new frame with the overlay interface (steps 1-5, 7, 8), plus the
@@ -226,7 +228,7 @@ in our runs) is still created and still used, because:
    DirectDraw's GetDC (an empty Lock / Unlock afterwards tells DirectDraw the memory changed, for
    the old path's Blt). Lock users (the console, the description panels, Greyscale ...) work on
    the same memory unchanged. The new renderer reads such a surface's memory directly
-   (`render::ClientSurface`; GdiFlush first), not through a Lock. Checked offline: Windows'
+   (`render::SurfaceMemoryOf`, since R7 the renderer's own memory; GdiFlush first), not through a Lock. Checked offline: Windows'
    DirectDraw takes a DIB section as a system-memory surface's memory, and GDI through a memory DC
    on the DIB and through the surface's DC both land in it (dgVoodoo not checked: the fallback
    covers a refusal; if it caches client memory and misses GDI writes, the old path's windows
@@ -252,8 +254,11 @@ in our runs) is still created and still used, because:
    creating and releasing the surface itself (004EF7B0 / 004EFD20, and 004F0060 for the picture
    holders, which get game-owned memory too since R2b, below). The save / load screen's picture
    textures (locked by 00655550 / 00655D40 / 00656E10) get game-owned memory since R3 (section 11). Scenario: render_present_cpuwindows (render_present plus the escape menu
-   over its greyed screen copy). Left: holders with no DirectDraw surface at all; and with the
-   verify build's
+   over its greyed screen copy). Since R7 (section 14) the holders of 004EF7B0 and the
+   system-memory pictures of 004F0060 have no DirectDraw surface at all in the switch-over (the
+   memory is the new renderer's, `render::SurfaceMemory`). Left: the texture holders (004EFA60
+   through the texture manager: the save / load pictures, the global map's weather texture, the
+   item pictures), which go with R8; and with the verify build's
    side-by-side text checks under cpuwindows the GDI batch must be flushed before they read
    pixels (not done: expect false mismatches there with the option on).
 3. **Pass state** (decided: fed by the game code). `src/render/render_state.h`: every rewritten
@@ -315,7 +320,7 @@ in our runs) is still created and still used, because:
    render surface for the old path's texture load. Bink decodes each frame into a CPU buffer too
    (BinkCopyToBuffer's 32-bit R, G, B, X type 4, checked offline against the 5:6:5 decode of a game
    movie) for the new renderer (`render::MovieFrame / MovieBlit`); with `present` the video's
-   DirectDraw surface is not filled at all. The software cursor's images come from 8888 pictures
+   DirectDraw surface is not filled at all (and with `cpuwindows`, since R7, not even made). The software cursor's images come from 8888 pictures
    loaded into surfaces by 004EFC60 (rewritten, `dx_surface.cpp`; 004F0060 makes and fills the
    surface): the new renderer decodes the picture from the file data (`render::PictureFromMmp`)
    and `render::Cursor` takes its colours from there, with the mask (005E4EB0: all ones where the
@@ -508,7 +513,7 @@ With `cpuwindows` a system-memory request gets a DIB section as the surface's me
 does for windows (DDSD_LPSURFACE | DDSD_PITCH, and DDSD_PIXELFORMAT with the primary's format, the
 one DirectDraw picks without it; refused -> the original's plain surface and the log line
 "cpuwindows: client-memory surface WxH refused (hr) for a picture; a plain one instead"; the memory
-goes to `g_memory` and `render::ClientSurface`, the destructor body 004EFD20 frees it). Outside the
+is the new renderer's since R7, `render::NewSurfaceMemory`; the destructor body 004EFD20 frees it). Outside the
 switch-over the fill still goes through Lock / Unlock, which on a client-memory surface returns that
 memory (the verify build reads the DIB itself, not the lock, so it checks the pixels landed there).
 In the switch-over (`present`) the fill writes straight into the memory: no GetPixelFormat on the
@@ -568,7 +573,7 @@ really ends at 0065663C. The autosave 006570E0 writes shot.sav from a window sur
 With `cpuwindows`: the window's Build (00653DD0) and FillEntries give each texture's holder
 game-owned memory (`CSaveLoadWindow::GivePictureMemory` -> `AttachTextureMemory`, dx_surface.cpp: a
 DIB section of the holder's size in the texture's pixel format, CTexture +0x3C; freed by 004EFD20;
-registered with `render::ClientSurface`). The DirectDraw texture stays (a managed texture cannot take
+since R7 made by the new renderer, `render::NewSurfaceMemory`). The DirectDraw texture stays (a managed texture cannot take
 client memory). Outside the switch-over the fills still Lock the texture (the old path draws it) and
 the 0x18000-byte block is copied into the memory before the Unlock; in the switch-over the fills and
 SaveGame's read use the memory only (`DirectPixels`: no Lock / Unlock). The new renderer draws these
@@ -685,7 +690,101 @@ in every scenario with a new game; 005E5690 runs in every scenario (it draws onl
 software cursor display option, which no scenario sets; 005E5640 likewise). Not checked in game
 yet (runs are central).
 
-Left of R6-R8: R7 holders with no DirectDraw surface at all (the movies' holders are still made by
-004EF7B0 / 004EFA60, and the cursor's surfaces); R8 device setup and texture management, and with it
-the presentation itself (the old Flip / BltFast that `present` still goes through, and the cursor
-between frames once there is no primary).
+Left of R6-R8: R7 holders with no DirectDraw surface at all (done for the windows, the cursor and
+the movies: section 14); R8 device setup and texture management, and with it the presentation
+itself (the old Flip / BltFast that `present` still goes through, and the cursor between frames
+once there is no primary).
+
+## 14. Holders with no DirectDraw surface (ticket R7, 2026-10-05)
+
+In the switch-over with `cpuwindows` (`present`, which turns it on unless `nocpuwindows`) the
+holders 004EF7B0 makes (the interface windows: 005FCC00 / 005FCDD0 / 005FD7A0; the software
+cursor's background and composition surfaces: 005E60B0; the movies' decode surfaces: 005DA400,
+005DB3F0, 005DBA50) and the system-memory picture holders of 004F0060 (the cursor's images through
+004EFC60 from 005E4EB0; the dead picture windows) have no DirectDraw surface at all:
+`CDXSurface::surface` stays null and the pixels are only in memory the new renderer owns. Without
+`present`, or with `nocpuwindows`, every holder gets its DirectDraw surface as before (the old path
+is kept behind the flag).
+
+**The memory moved into the new renderer**: `render::NewSurfaceMemory / SurfaceMemoryOf /
+FreeSurfaceMemory / HolderGone` (render.h, render_textures.cpp): one zeroed top-down DIB section per
+holder (GDI draws into it through a memory DC) with its pitch, size, bit count and channel masks
+(`render::SurfaceMemory`). It replaces both dx_surface.cpp's own map of DIB sections and their
+registration with the renderer (`ClientSurface` / `ClientSurfaceGone` are gone): one record per
+holder, made by the holder code, used by the game code (`ClientBitmap`, `ClientPixels`,
+`DirectPixels`) and read by the renderer (window blits, textures, the screen copies). Outside the
+switch-over the same memory is still given to DirectDraw as the surface's client memory.
+
+| Address / file | Change |
+|---|---|
+| 004EF7B0 `DXSurfaceConstruct`, 004F0060 `DXSurfaceLoadPicture` (dx_surface.cpp) | in the switch-over, once the memory is made: no CreateSurface (the device object's +8 set to 0, as after a successful creation), the holder's +0x14 / +0x18 / +0x1C from the request and the screen's pixel format (still GetPixelFormat of the primary: the windows keep the screen's format because the game computes their colour keys in it); no memory -> a DirectDraw surface as before. Logged once: "cpuwindows: surface holders in the switch-over get no DirectDraw surface, only the new renderer's memory". The file now uses CDXSurface / CTextureDevice members instead of offsets (CTextureDevice +0x4C `converter_` added, texture.h) |
+| `DirectPixels` (dx_surface.h) | also true outside the switch-over for a holder without a surface, so the pixel code never asks DirectDraw for one (see the failure case below) |
+| 005E4EB0 `CursorImage::Construct` (ui_cursor.cpp, new) | a cursor image: the picture from the texture manager (slots 19 / 20 as the declared virtuals GetFile / CloseFile), the holder (004EFC60 through its address), frames = the picture's width / height, a frame's width = width / frames, the hot spot * the cursor's size (007C7C90 / 94) / 32 (signed, towards zero), and the mask (16 bits: all ones where the pixel is 0; 32 bits: where its low 24 bits are 0) built under the device lock from GetSurfaceDesc + Lock / Unlock, or with `DirectPixels` from the memory. CursorImage's +0x0C..+0x18 named (frames, frame, hot spot) |
+| 005DBA50 `CBinkVideo::Open` (bink_video.cpp, new) | the frame player's open (the titles' Titles.bik): the previous Bink closed (its handle left in +0x18 when movies are off), movies off -> 0, the loading step, Miles, BinkOpen (failure: "Can't open (or bad format) video file %s.", 0), the cursor hidden, the holder (NewMovieHolder), BinkDDSurfaceType only for a holder with a surface (else 4, the CPU copy's type), the rectangle (mode 1 centred at the movie's size; else the screen's width, height trunc(h / w * screen width), centred vertically) |
+| 005DBD80, 005DB3F0, 005DA400 (bink_video.cpp) | `OldPathDraws(holder)`: Lock / BinkCopyToBuffer / Unlock and the Blt only outside the switch-over and with a surface; `SurfaceType` instead of BinkDDSurfaceType on a null surface |
+| 005E54A0, 005E5690, 005E6630 (ui_cursor_frame.cpp) | `OldPathDraws(cursor)`: the old blits only outside the switch-over and with the cursor's surfaces; the composition 005E5C40 only with the image's surface |
+| 005FDA80 (ui_surface_blit.cpp), 005FDC60 (ui_surface_dc.cpp), 005FD3D0 / 005FD440 (ui_surface_pixels.cpp) | the old Blt, the empty Lock / Unlock after GDI and the screen / stretch Blts only with DirectDraw surfaces |
+| the new renderer | `WindowSurfaceView`, `SurfaceView`, `CopyFrameTo` and `Cursor` work for a holder with memory and no surface (the cursor's colours come from the picture's file data as before; a surface is only needed for the fallback read) |
+
+The rest of the window code (005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 / 005FD7A0 / 005FD240 /
+005FE440, GDI through 005FDC00 / 005FDC60) needed no change: it already works on the memory in the
+switch-over (sections 5 and 10). A scan of game.exe for surface calls through a holder's +0x10 and
+for every function with both Lock and Unlock (or GetDC and ReleaseDC) found no other user of these
+holders' surfaces: 005E4EB0 and 005DBA50 were the only ones not rewritten. The others are textures
+(0062F050's weather texture, 005EC020, 005FFFB0, the save / load pictures, the texture manager
+0068F6C0..00693C60), the device's own surfaces (004E6C30, 004EEE30, 004EF610, 006D6D40), the shadow
+render surface (004EA4A0) and dead code (005DA880, 004EF510; 0052EF90 is a false hit, a unit's
+network state).
+
+Left: the texture holders (004EFA60 through the texture manager): the save / load pictures keep a
+DirectDraw texture beside their memory (R3), the other CPU-written textures (0062F050, 005EC020,
+005FFFB0) have only the texture. Making them memory-only needs the texture management (the
+material setter's SetTexture, the texture manager's SetPriority / restore / release paths,
+0068F6C0..00693C60): R8. The screen's pixel format is still read from the primary at every holder
+creation (the primary goes with R8 too).
+
+If the new renderer fails after holders were made without a surface (a sokol panic, or no Direct3D
+11 device at the first frame: `Presenting()` turns false and the old path takes over), the old path
+cannot draw those holders: its blits and copies skip them (the guards above), so the interface,
+cursor and movies made before then stay missing, but nothing crashes, and the game code keeps
+working on the memory (`DirectPixels`).
+
+Original details kept: 005E4EB0's GetSurfaceDesc and Lock failures are reported and ignored (it
+reads on); its mask buffer is bits * height * width / 8 bytes; the frame and hot spot fields as
+above. 005DBA50 leaves a closed Bink handle in +0x18 when movies are off; the two zero offsets of
+its centring are left out. Not reproduced: both functions' unwinding when 004EFC60 / 004EF7B0 throw
+(the throw ends the game), 005DBA50's catch that falls back to 004EF7B0 when the video-memory holder
+of 004EFA60 throws (only with 00784756 0, never set; as R6).
+
+Forwarders: 004EFC60 moved into originals_render.h (`DXSurfaceFromPictureOriginal`, used by
+ui_surface_create.cpp and ui_cursor.cpp). No new ones.
+
+Verify:
+- 004EF7B0 / 004EFC60 (ours only): as before, and the holder's pixels: a surface, or in the
+  switch-over the memory of the holder's size and bit count (never both there).
+- 004F0060 (against the original on a scratch holder, unchanged): additionally no surface beside the
+  memory in the switch-over; no comparison for a holder that already has memory.
+- 004EFD20 (ours only): additionally no memory left.
+- 005FCC00 / 005FCDD0 / 005FD120 / 005FCF80 (ours only): the description from the memory for a
+  holder without a surface.
+- 005E4EB0 (new, ours only: the original would make a second holder and cannot read one without a
+  surface): the result, a holder with pixels, frames / a frame's width / the height from the
+  picture's description, frame 0, the hot spot, and the whole mask against the pixels (the memory,
+  or a read-only Lock). Every scenario (the cursor's shapes are loaded at startup, 005DAEA0 ->
+  005E63F0).
+- 005DBA50 (new, ours only: it opens a file): the result 0 / 1 (0 with movies off); when it plays a
+  holder of the movie's size with pixels (only memory in the switch-over) and the rectangle (mode 1
+  the movie's size, else the screen's width). ui_main_menu (region 4, the old path) and
+  render_titles_present.
+- 005FE440 Greyscale / 005FD240 PixelAt (the originals lock the surface): for a holder without one
+  ours only; Greyscale then checks every pixel grey in the 5:6:5, 5:5:5 and 8:8:8 layouts, PixelAt
+  that the result is a 0x00RRGGBB colour. 005FD440 Rgb565Copy ours only then (as already in the
+  switch-over); 005FD7A0 SwapContents reads the window's bytes from the memory.
+
+Scenarios: render_present and render_present_cpuwindows (the windows, the cursor's holders and
+images, the escape menu's screen copy / grey / stretch, the camp), render_movie_present (005DB3F0
+and 005DA400 with movie holders without surfaces), ui_saveload (`new,present`: the save / load
+windows; their textures are unchanged), render_titles_present (new: the main menu's titles, i.e.
+005DBA50 / 005DBD80 in the switch-over); render_cpuwindows (the option outside the switch-over: the
+memory is DirectDraw's client memory, as before) and render_movie (the old path). Not checked in
+game yet (runs are central).

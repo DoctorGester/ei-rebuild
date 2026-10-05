@@ -4,9 +4,10 @@
 // drawing (005F5320, Rebirth-patched) runs all three when the menu opens. See docs/notes/ui.md,
 // "Surface pixels".
 //
-// In the switch-over ("present" with "cpuwindows") these work on the surfaces' game-owned memory
-// directly (DirectPixels), without DirectDraw: no Lock, the screen copy from the new renderer's frame
-// only, the stretched copy on the CPU.
+// In the switch-over ("present" with "cpuwindows") these work on the surfaces' memory (the new
+// renderer's; the holders have no DirectDraw surface then) directly (DirectPixels), without
+// DirectDraw: no Lock, the screen copy from the new renderer's frame only, the stretched copy on the
+// CPU.
 #include "ui.h"
 
 #include "dx_surface.h"
@@ -126,8 +127,9 @@ void CUiSurface::CaptureScreen() {
     if (!holder) return;
     SurfaceHolder* screen = *reinterpret_cast<SurfaceHolder**>(holder->device + 0x18);
     if (screen->surface == holder->surface) return;
-    // In the switch-over the old render target does not hold the frame being drawn: no copy from it.
-    if (!render::Presenting()) {
+    // In the switch-over the old render target does not hold the frame being drawn: no copy from it
+    // (and a holder made in the switch-over has no DirectDraw surface to copy into).
+    if (!render::Presenting() && holder->surface) {
         gameapi::EnterCriticalSection(DeviceLock());
         long hr = Blt(holder->surface, nullptr, screen->surface, &rect_, 0, nullptr);
         gameapi::LeaveCriticalSection(DeviceLock());
@@ -154,7 +156,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     long hr = 0;
     if (DirectPixels(from, fromDesc) && DirectPixels(to, toDesc)) {
         StretchCopy(toDesc, fromDesc);
-    } else {
+    } else if (from->surface && to->surface) {
         gameapi::EnterCriticalSection(DeviceLock());
         hr = Blt(to->surface, nullptr, from->surface, nullptr, kBltWait, nullptr);
         gameapi::LeaveCriticalSection(DeviceLock());

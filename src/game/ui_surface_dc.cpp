@@ -1,8 +1,9 @@
 // A window surface's device context (CUiSurface; 005FDC00 gets it, 005FDC60 releases it): the
 // device lock is held from one to the other and the HDC kept in the surface's +8. With the new
-// renderer's "cpuwindows" option a surface whose pixels are in game-owned memory (dx_surface.cpp)
-// is drawn through a memory DC on that DIB section instead of DirectDraw's GetDC: the GDI drawing
-// lands in the same memory without DirectDraw. See docs/notes/renderer.md ("Interface windows").
+// renderer's "cpuwindows" option a surface whose pixels are in the new renderer's memory
+// (dx_surface.cpp, a DIB section) is drawn through a memory DC on it instead of DirectDraw's GetDC:
+// the GDI drawing lands in the same memory without DirectDraw (in the switch-over the holder has no
+// DirectDraw surface at all). See docs/notes/renderer.md ("Interface windows", section 14).
 #include "dx_surface.h"
 
 #include "ei/hook.h"
@@ -80,11 +81,12 @@ void __fastcall UiSurfaceReleaseDC(char* surface) {
             g_memoryDcs.erase(it);
             At<long>(holder, 8) = 0;
             // DirectDraw did not see this drawing: an empty Lock / Unlock tells it the memory changed
-            // (for the old path's Blt; the new renderer reads the memory itself).
-            if (render::DrawOldInterface()) {
+            // (for the old path's Blt; the new renderer reads the memory itself). A holder made in
+            // the switch-over has no DirectDraw surface.
+            void* dd = At<void*>(holder, 0x10);
+            if (render::DrawOldInterface() && dd) {
                 std::uint32_t desc[0x1F] = {};
                 desc[0] = 0x7C;
-                void* dd = At<void*>(holder, 0x10);
                 gameapi::EnterCriticalSection(DeviceLock());
                 if (ComCall(dd, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockWait,
                             static_cast<void*>(nullptr)) == 0)

@@ -3,6 +3,7 @@
 
 #include "../../src/game/bink_video.h"
 #include "../../src/game/texture.h"
+#include "../../src/render/render.h"
 
 #include <windows.h>
 
@@ -78,3 +79,35 @@ static void __fastcall ShowLoadingMovieVerify(int progress) {
     ei::verify::Check("ShowLoadingMovie", true, ok, "holder %p, frame %u of %d, progress %d", holder, frame, frames, progress);
 }
 EI_VERIFY(0x005DA400, ShowLoadingMovieVerify, 0, s_loadingMovie);
+
+// 005DBA50 opens a movie (Bink, a surface holder): ours only (ticket R7). Checked: the result's low
+// byte 0 or 1, 0 with movies off (0079BCBC 0); when it plays, the Bink handle and a holder of the
+// movie's size with pixels (a DirectDraw surface; in the switch-over with "cpuwindows" only the new
+// renderer's memory, and no surface), and the screen rectangle: mode 1 the movie's size, otherwise the
+// screen's width (device object +0x24). Reached by the titles (ui_main_menu region 4,
+// render_titles_present).
+static void* s_binkOpen;
+static char __fastcall BinkVideoOpenVerify(CBinkVideo* self, void*, const char* name, char loadingStep) {
+    int mode = *reinterpret_cast<int*>(0x0079BCBC);
+    char result = self->Open(name, loadingStep);
+    bool ok = result == 0 || result == 1;
+    if (mode == 0) ok = ok && result == 0;
+    const CDXSurface* holder = self->holder;
+    const BinkHeader* bink = self->bink;
+    if (result == 1) {
+        const auto* device = *reinterpret_cast<CTextureDevice* const*>(0x007AF080);
+        bool memoryOnly = render::Presenting() && render::CpuWindows();
+        int width = self->to.right - self->to.left, height = self->to.bottom - self->to.top;
+        ok = ok && bink && holder && holder->width == static_cast<int>(bink->width) &&
+             holder->height == static_cast<int>(bink->height) &&
+             (holder->surface ? !(memoryOnly && render::SurfaceMemoryOf(holder)) : render::SurfaceMemoryOf(holder) != nullptr) &&
+             (mode == 1 ? width == static_cast<int>(bink->width) && height == static_cast<int>(bink->height)
+                        : self->to.left == 0 && width == device->screen_.right - device->screen_.left);
+    }
+    ei::verify::Check("CBinkVideo::Open", true, ok, "%s: result %d, mode %d, holder %p (surface %p), rectangle %ld,%ld-%ld,%ld",
+                      name ? name : "", result, mode, static_cast<const void*>(holder), holder ? holder->surface : nullptr,
+                      static_cast<long>(self->to.left), static_cast<long>(self->to.top), static_cast<long>(self->to.right),
+                      static_cast<long>(self->to.bottom));
+    return result;
+}
+EI_VERIFY(0x005DBA50, BinkVideoOpenVerify, 0, s_binkOpen);

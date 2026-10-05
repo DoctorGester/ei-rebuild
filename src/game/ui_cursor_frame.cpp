@@ -14,7 +14,8 @@
 // only by the new renderer, in every frame it presents (render::Cursor above): the thread, the
 // background saves and the frame draw's old blits into the render target (which the new frame
 // overwrites at the present) are left out. Between frames (loading, movies) the cursor then does
-// not move; the movie players hide it anyway.
+// not move; the movie players hide it anyway. The cursor's holders made in the switch-over have no
+// DirectDraw surface at all (ticket R7): the old path's draws need one (OldPathDraws).
 #include "ui_cursor.h"
 #include "texture.h"
 
@@ -77,6 +78,12 @@ void LockedBlt(CDXSurface* target, RECT* to, CDXSurface* source, RECT* from) {
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
+// The old path draws the cursor: outside the switch-over, with the cursor's DirectDraw surfaces
+// (its holders made in the switch-over have none, only the new renderer's memory: ticket R7).
+bool OldPathDraws(const CCursor* self) {
+    return !render::Presenting() && self->under_->surface && self->target_->surface;
+}
+
 } // namespace
 
 // 005E5640 (thiscall on the destination holder, RET 0x14): Blt from `source`'s surface (rectangles,
@@ -96,26 +103,26 @@ void __fastcall CursorDrawFrame(CCursor* self) {
     UpdatePosition(self);
     RECT* rect = &self->rect_;
     if (gameapi::IsRectEmpty(rect)) return;
-    bool presenting = render::Presenting();
+    bool oldPath = OldPathDraws(self);
     RECT local = Local(*rect);
     if (self->imageShown_ != 0) {
         CDXSurface* under = self->under_;
         CDXSurface* screen = RenderTarget(under);
-        if (!presenting && screen->surface != under->surface)
+        if (oldPath && screen->surface != under->surface)
             HolderBltAt(under, nullptr, &local, screen, rect, kBltWaitAsync, nullptr);
         local = Local(*rect);
         CursorImage* image = self->image_;
-        if (!presenting) CursorBlit(self, nullptr, image, &local, &self->from_);
+        if (oldPath && image->holder->surface) CursorBlit(self, nullptr, image, &local, &self->from_);
         if (render::Active()) render::Cursor(image->holder, image->saved, ToRender(self->from_), ToRender(*rect));
         local = Local(*rect);
         CDXSurface* composed = self->target_;
         CDXSurface* target = RenderTarget(composed);
-        if (!presenting && target->surface != composed->surface)
+        if (oldPath && target->surface != composed->surface)
             HolderBltAt(target, nullptr, rect, composed, &local, kBltWaitAsync, nullptr);
         self->drawn_ = *rect;
         return;
     }
-    if (self->mode_ != 2 || presenting) return;
+    if (self->mode_ != 2 || !oldPath) return;
     CDXSurface* under = self->under_;
     CDXSurface* primary = Primary(under);
     if (primary->surface == under->surface) return;
@@ -140,7 +147,7 @@ void __fastcall CursorThread(CCursor* self) {
     *drawn = *rect;
     RECT whole{0, 0, CursorWidth(), CursorHeight()};
     CDXSurface* primary = Primary(self->under_);
-    if (!render::Presenting() && primary->surface != self->under_->surface)
+    if (OldPathDraws(self) && primary->surface != self->under_->surface)
         HolderBltAt(self->under_, nullptr, &whole, primary, drawn, kBltWaitAsync, nullptr);
     gameapi::LeaveCriticalSection(&self->lock_);
     DWORD last = gameapi::timeGetTime();
@@ -153,10 +160,10 @@ void __fastcall CursorThread(CCursor* self) {
         last = now;
         if (!SoftwareCursor()) continue;
         // With "present" the new renderer draws the cursor in its frames; nothing goes to the primary.
-        if (render::Presenting()) continue;
+        if (!OldPathDraws(self)) continue;
         gameapi::EnterCriticalSection(&self->lock_);
         char moved = UpdatePosition(self);
-        if (self->imageShown_ == 0 || moved == 0) {
+        if (self->imageShown_ == 0 || moved == 0 || !self->image_->holder->surface) {
             gameapi::LeaveCriticalSection(&self->lock_);
             continue;
         }
@@ -226,7 +233,7 @@ void __fastcall CursorSaveBackground(CCursor* self, void*, char fromPrimary) {
     if (!gameapi::IntersectRect(&part, &self->drawn_, &self->bounds_)) return;
     // With "present" nothing draws from the background (the thread and the frame draw's old blits
     // are left out).
-    if (render::Presenting()) return;
+    if (!OldPathDraws(self)) return;
     RECT local = Local(part);
     CDXSurface* under = self->under_;
     CDXSurface* screen = fromPrimary ? Primary(under) : RenderTarget(under);

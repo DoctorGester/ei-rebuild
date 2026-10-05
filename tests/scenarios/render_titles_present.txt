@@ -1,0 +1,34 @@
+# The titles in the switch-over ("render new,present"; ticket R7, docs/notes/renderer.md section 14):
+# the main menu's region 4 opens the titles (0062B7D0), whose player opens Titles.bik through
+# 005DBA50 (rewritten: in the switch-over the movie's holder, made by 004EF7B0, has no DirectDraw
+# surface and BinkDDSurfaceType is not asked) and steps it every frame (005DBD80: the frame goes
+# from a CPU buffer to the new renderer, nothing is decoded into the holder). The titles' text
+# surfaces and the menu's windows have no DirectDraw surfaces either, nor do the cursor's holders
+# and its images (005E4EB0 builds their masks from the new renderer's memory). Captures are the new
+# frames: the main menu, the titles (the movie's frame and the scrolling text must both show), the
+# main menu again. ei_hook.log says once "cpuwindows: surface holders in the switch-over get no
+# DirectDraw surface".
+render new,present
+reject Script error
+wait 6000
+
+# The main menu.
+move 400 20
+wait 500
+freeze
+capture menu
+unfreeze
+
+# The titles; a click ends them.
+clickregion 4
+wait 2500
+freeze
+capture titles
+unfreeze
+click 400 300
+wait 3000
+freeze
+capture menu_again
+unfreeze
+report
+quit

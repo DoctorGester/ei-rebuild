@@ -17,13 +17,14 @@
 //   nointerface  ...nor the interface (window surfaces, sprites, 3D previews)
 //   cpuwindows the off-screen surfaces of 004EF7B0 (interface windows, cursor, movies) and the
 //              system-memory picture surfaces of 004F0060 (cursor images, picture windows) keep
-//              their pixels in game-owned memory the new renderer reads directly, as do the save /
-//              load screen's picture textures (off by default, on with "present"); "nocpuwindows"
-//              turns it off
+//              their pixels in memory the new renderer owns (SurfaceMemory) and reads directly, as
+//              do the save / load screen's picture textures (off by default, on with "present");
+//              "nocpuwindows" turns it off
 //   present    the switch-over: the old path draws nothing that is handed over (implies noterrain,
 //              noobjects, nointerface, cpuwindows; movies too) and the new frame is copied into the
 //              game's render target before the old present shows it; captures write the new frame
-//              as frames\<name>.bmp
+//              as frames\<name>.bmp. With cpuwindows the holders of 004EF7B0 / 004F0060 then have
+//              no DirectDraw surface at all, only that memory
 // Without "new" nothing here runs and the game draws exactly as before.
 
 #include <cstdint>
@@ -44,15 +45,31 @@ bool Active();
 
 // "cpuwindows": the off-screen surfaces the game makes through 004EF7B0 (interface windows, the
 // software cursor, movies) and 004F0060 (system-memory pictures) keep their pixels in memory the
-// game code owns (a DIB section given to DirectDraw as the surface's memory). ClientSurface tells
-// the new renderer where a holder's (CDXSurface) pixels are, so it reads them there instead of
-// locking the surface; ClientSurfaceGone when the holder is destroyed. Texture holders can have
-// such memory too (the save / load screen's pictures, beside their DirectDraw texture): a mesh
-// pass that binds one reads the memory, again whenever it changed.
+// new renderer owns (NewSurfaceMemory). Outside the switch-over that memory is given to DirectDraw
+// as the surface's memory; in the switch-over ("present") such a holder has no DirectDraw surface at
+// all. The new renderer reads a holder's (CDXSurface) pixels there wherever it draws it, instead of
+// locking a surface. Texture holders can have such memory too (the save / load screen's pictures,
+// beside their DirectDraw texture): a mesh pass that binds one reads the memory, again whenever it
+// changed.
 bool CpuWindows();
-void ClientSurface(const void* holder, void* bits, int pitch, int width, int height, int bitsPerPixel,
-                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
-void ClientSurfaceGone(const void* holder);
+// A surface holder's pixels: a zeroed top-down DIB section (GDI can draw into it through a memory
+// DC) of `width` x `height` pixels, 16 or 32 bits each, the channels at the given masks (`alphaMask`
+// 0 without alpha). The game code writes it (GDI, pixel code) and the new renderer reads it.
+struct SurfaceMemory {
+    void* bits = nullptr;
+    void* bitmap = nullptr;   // the DIB section (HBITMAP)
+    int pitch = 0, width = 0, height = 0, bitsPerPixel = 0;
+    std::uint32_t redMask = 0, greenMask = 0, blueMask = 0, alphaMask = 0;
+};
+// Makes the memory of `holder` (replacing any it had); null when it cannot be made. The pointer
+// stays valid until the memory is freed.
+const SurfaceMemory* NewSurfaceMemory(const void* holder, int width, int height, int bitsPerPixel, std::uint32_t redMask,
+                                      std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
+// The memory of `holder`, or null.
+const SurfaceMemory* SurfaceMemoryOf(const void* holder);
+void FreeSurfaceMemory(const void* holder);
+// The holder is destroyed (004EFD20): its memory freed, what the renderer kept for it forgotten.
+void HolderGone(const void* holder);
 // A holder whose surface was loaded from an 8888 .mmp picture (004EFC60: the software cursor's
 // images): the new renderer keeps the picture's pixels from the file data.
 void PictureFromMmp(const void* holder, const void* data);
@@ -175,8 +192,9 @@ void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
 
 // Copies the new frame's `source` rectangle (screen pixels, as drawn so far this frame) into the
 // DirectDraw surface of `holder` (a CDXSurface), stretched to its size: the screen copies of
-// 005FD3D0 (the escape menu's background, the save game's picture). False when the sidecar is off
-// or the copy failed.
+// 005FD3D0 (the escape menu's background, the save game's picture). In the switch-over, and for a
+// holder with no DirectDraw surface, into its SurfaceMemory. False when the sidecar is off or the
+// copy failed.
 bool CopyFrameTo(const void* holder, const Rect& source);
 
 // The end of the game's frame: draws what was handed over since the last present into the

@@ -31,10 +31,13 @@ public:
     std::uint8_t flags_;        // +0x20 bit 0: full screen (the present flips)
     std::uint8_t unknown_21[3];
     RECT screen_;               // +0x24 the screen rectangle
-    std::uint8_t unknown_34[0x54 - 0x34];
+    std::uint8_t unknown_34[0x4C - 0x34];
+    void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
+    std::uint8_t unknown_50[4];
     void* d3dDevice_;           // +0x54 IDirect3DDevice7*
 };
 static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
+static_assert(offsetof(CTextureDevice, converter_) == 0x4C);
 static_assert(offsetof(CTextureDevice, primary_) == 0x14);
 static_assert(offsetof(CTextureDevice, renderTarget_) == 0x18);
 static_assert(offsetof(CTextureDevice, flags_) == 0x20);

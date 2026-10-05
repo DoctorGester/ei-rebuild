@@ -14,6 +14,10 @@
 // one step per call). With the new renderer they hand each frame over as a frame of its own
 // (render::MovieFrame / MovieBlit, then the old present 004EF610 with "present", or render::Present);
 // with "present" their surfaces are not filled and nothing is drawn to the primary.
+//
+// And the frame player's open (005DBA50, ticket R7). In the switch-over with "cpuwindows" the
+// movies' holders (004EF7B0) have no DirectDraw surface at all: nothing decodes into them and
+// BinkDDSurfaceType is not asked (OldPathDraws, SurfaceType).
 #include "bink_video.h"
 #include "texture.h"
 
@@ -133,6 +137,16 @@ void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
 
+// The old path draws the movie: outside the switch-over, into the holder's DirectDraw surface (a
+// holder made in the switch-over has none, only the new renderer's memory: ticket R7).
+bool OldPathDraws(const CDXSurface* holder) { return !render::Presenting() && holder->surface; }
+
+// BinkDDSurfaceType of the holder's surface; without one (made in the switch-over) the type of the
+// CPU copy the new renderer gets (nothing decodes into the holder then).
+unsigned SurfaceType(const CDXSurface* holder) {
+    return holder->surface ? BinkDDSurfaceType()(holder->surface) : kBinkSurface32R;
+}
+
 } // namespace
 
 // 005DBD80.
@@ -149,7 +163,7 @@ unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
             CopyFrame(bink, &frame);
             render::MovieFrame(self, frame.data(), static_cast<int>(bink->width), static_cast<int>(bink->height));
         }
-        if (render::Presenting()) {
+        if (!OldPathDraws(self->holder)) {
             BinkNextFrame()(bink);
         } else {
             CDXSurface* holder = self->holder;
@@ -181,7 +195,7 @@ unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
     CDXSurface* target = toPrimary ? holder->device->primary_ : holder->device->renderTarget_;
     if (target->surface != holder->surface) {
         if (render::Active()) render::MovieBlit(self, ToRender(self->to));
-        if (!render::Presenting()) Blt(target, &self->to, holder, &source);
+        if (OldPathDraws(holder)) Blt(target, &self->to, holder, &source);
     }
     header = self->bink;
     return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
@@ -298,7 +312,8 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     RECT screen;
     gameapi::CopyRect(&screen, &DeviceObject()->screen_);
     CDXSurface* holder = NewMovieHolder(DeviceObject(), width, height);
-    unsigned surfaceType = BinkDDSurfaceType()(holder->surface);
+    unsigned surfaceType = SurfaceType(holder);
+    bool oldPath = OldPathDraws(holder);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
@@ -354,7 +369,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
             CopyFrame(bink, &frame);
             render::MovieFrame(&g_movieKey, frame.data(), width, height);
         }
-        if (!presenting && !CopyFrameToSurface(&holder, bink, surfaceType)) break;
+        if (oldPath && !CopyFrameToSurface(&holder, bink, surfaceType)) break;
         RECT source{0, 0, width, height};
         CDXSurface* primary = holder->device->primary_;
         if (primary->surface != holder->surface) {
@@ -363,7 +378,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
                 render::MovieBlit(&g_movieKey, ToRender(to));
                 PresentMovieFrame();
             }
-            if (!presenting) Blt(primary, &to, holder, &source);
+            if (oldPath) Blt(primary, &to, holder, &source);
         }
         if (bink->lastFrame != bink->frames) BinkNextFrame()(bink);
         start = now;
@@ -386,7 +401,6 @@ void __fastcall ShowLoadingMovie(int progress) {
     LoadingMovie& movie = Loading();
     if (movie.off) return;
     CursorShowOriginal(Cursor(), nullptr, 0);
-    bool presenting = render::Presenting();
     if (!movie.holder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
         std::string path = GameFolder();
@@ -408,7 +422,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         CDXSurface* old = movie.holder;
         movie.holder = holder;
         if (old) old->Release();
-        movie.surfaceType = BinkDDSurfaceType()(holder->surface);
+        movie.surfaceType = SurfaceType(holder);
         movie.screen = screen;
         CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
     }
@@ -426,7 +440,7 @@ void __fastcall ShowLoadingMovie(int progress) {
             CopyFrame(bink, &frame);
             decoded = true;
         }
-        if (!presenting && !CopyFrameToSurface(&movie.holder, movie.bink, movie.surfaceType)) return;
+        if (OldPathDraws(movie.holder) && !CopyFrameToSurface(&movie.holder, movie.bink, movie.surfaceType)) return;
         bink = movie.bink;
         BinkGoto()(bink, bink->frameNum + 1, 0);
         bink = movie.bink;
@@ -444,9 +458,55 @@ void __fastcall ShowLoadingMovie(int progress) {
             render::MovieBlit(key, ToRender(movie.screen));
             PresentMovieFrame();
         }
-        if (!presenting) Blt(primary, &movie.screen, holder, &source);
+        if (OldPathDraws(holder)) Blt(primary, &movie.screen, holder, &source);
     }
     CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
     CursorUnlockOriginal(Cursor());
 }
 EI_REPLACE(0x005DA400, ShowLoadingMovie);
+
+// --- Opening a movie for the frame's player (005DBA50) ----------------------------------------------
+
+// 005DBA50 (thiscall, RET 8; the titles' Create 0062B7D0 starts Titles.bik with it). The movie open
+// before is closed (its handle stays in +0x18 when movies are off), the loading screen steps when
+// asked, Bink gets the Miles driver when movie sound is on; then the movie is opened, the cursor
+// hidden (005E5270 0), the decode surface's holder made (NewMovieHolder: in the switch-over with
+// "cpuwindows" one without a DirectDraw surface, so BinkDDSurfaceType is not asked then) and the
+// screen rectangle set: movies mode 1 centred at the movie's size, otherwise stretched to the screen's
+// width with the height trunc(height / width * screen width), centred vertically (divisions by 2
+// round towards zero). The original adds two zero offsets to the centring (kept out).
+char CBinkVideo::Open(const char* name, char loadingStep) {
+    // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
+    if (bink) BinkClose()(bink);
+    if (!MoviesMode()) return 0;
+    if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
+    bink = BinkOpen()(name, 0);
+    if (!bink) {
+        DebugMessageOriginal(Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
+        return 0;
+    }
+    CursorShowOriginal(Cursor(), nullptr, 0);
+    int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
+    RECT screen;
+    gameapi::CopyRect(&screen, &DeviceObject()->screen_);
+    CDXSurface* made = NewMovieHolder(DeviceObject(), width, height);
+    CDXSurface* previous = holder;
+    holder = made;
+    if (previous) previous->Release();
+    surfaceType = SurfaceType(holder);
+    if (MoviesMode() == 1) {
+        int x = (screen.right - width - screen.left) / 2;
+        int y = (screen.bottom - height - screen.top) / 2;
+        to = RECT{x, y, width + x, height + y};
+    } else {
+        int screenWidth = screen.right - screen.left;
+        int shown = static_cast<int>(static_cast<double>(height) / static_cast<double>(width) * static_cast<double>(screenWidth));
+        to.left = 0;
+        to.right = screenWidth;
+        to.top = (screen.bottom - screen.top - shown) / 2;
+        to.bottom = to.top + shown;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x005DBA50, CBinkVideo::Open);

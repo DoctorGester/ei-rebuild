@@ -11,7 +11,7 @@
 //
 // With the new renderer's "cpuwindows" option both textures also keep their pixels in game-owned
 // memory (GivePictureMemory: a DIB section per holder, dx_surface.cpp), which the new renderer
-// reads (render::ClientSurface). Outside the switch-over the pixels still go through a Lock of
+// owns and reads (render::SurfaceMemory). Outside the switch-over the pixels still go through a Lock of
 // the DirectDraw texture, which the old path draws, and the filled block is copied into the
 // memory; in the switch-over ("present") they are written into and read from the memory only,
 // with no Lock (DirectPixels). Without the option everything is as the original.
