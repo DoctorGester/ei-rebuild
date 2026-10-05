@@ -2,7 +2,7 @@
 
 // The engine's byte streams (CStream, CMemoryStream), the constructors and destructors of the
 // reference-counted base classes, and two small allocation helpers (00410000-00430000,
-// 00470000-00480000). See docs/notes/unmapped_410_470.md. Names are provisional.
+// 00470000-00480000). See docs/notes/core.md. Names are provisional.
 //
 // Class map (vtables):
 //   0073BB68  CRefObject root: slot 0 deleting destructor, slot 1 empty (RET 4). Its destructor

@@ -4,7 +4,7 @@
 // path (slot 17 of vtable 0073D93C, 00502CA0) for triangles whose vertices fall outside the
 // viewport. Vertices are Direct3D TL vertices; the clipped polygon is re-triangulated as a fan
 // into the caller's index list, and new vertices are appended to the caller's vertex array.
-// Names provisional; see docs/notes/unmapped_410_470.md.
+// Names provisional; see docs/notes/core.md.
 
 #include <cstddef>
 #include <cstdint>

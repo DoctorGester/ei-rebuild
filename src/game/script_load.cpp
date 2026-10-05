@@ -1,7 +1,7 @@
 // Loading the mission script from a savegame (CScript::Load 004C0D00) and the loaders of its parts
 // in this range: the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
 // arrays, the four kinds of variables, script instances and runs. The mirror image of
-// script_save.cpp; see script.h and docs/notes/script.md ("Savegame reader").
+// script_save.cpp; see script.h and docs/notes/script.md.
 //
 // Every piece is read through the stream's Read (vtable slot 1) in the original's order and in the
 // original's pieces. The original inlines CArray::SetSize(n, -1) and CList::AddTail into most

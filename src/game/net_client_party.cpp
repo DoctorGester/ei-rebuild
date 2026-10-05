@@ -1,6 +1,6 @@
 // The client's trade offer (0041DA50, called by the party screens after a change): one member
 // message per party member, kept in our PartyMessage at +0x260C. See net_messages.h and
-// docs/notes/unmapped_410_470.md ("Seventh round").
+// docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 

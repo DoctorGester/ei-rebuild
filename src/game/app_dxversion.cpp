@@ -4,7 +4,7 @@
 // 0x200 (DX2), 0x300 (DX3), 0x500 (DX5), 0x600, 0x601, 0x700 or 0x800. As in the SDK sample, some
 // interfaces are never released and some failures leave a library loaded; kept as is. The
 // interface ids and class ids are the game's own (00744900 ... 00745CB0). See
-// docs/notes/unmapped_410_470.md ("Ninth round").
+// docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 

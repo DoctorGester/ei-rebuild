@@ -2,7 +2,7 @@
 // (00462C10) and saved (00462DF0). The tables are the ones FindCommandByKey (object_tables.cpp)
 // reads: the bound key of each command slot (0x200 signed bytes at 0079BF70), the commands
 // (0x48-byte entries at 007857B0: slot, name, the key's display text) and the key names (0x10-byte
-// entries at 00787070: code, name). See docs/notes/unmapped_410_470.md ("Ninth round").
+// entries at 00787070: code, name). See docs/notes/app.md.
 #include "console.h"
 
 #include "ei/hook.h"

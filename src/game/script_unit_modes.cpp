@@ -1,7 +1,7 @@
 // The constructors of the unit AI modes the script's UM* commands create (Guard, Sentry, Follow,
 // Suspection, Aggression / Revenge, CorpseWatcher) and of a patrol point's look entry. The command
 // allocates the mode (operator new) and constructs it here; the layouts are in unit_ai.h. See
-// docs/notes/script.md ("Unit mode constructors").
+// docs/notes/script.md.
 #include "unit_ai.h"
 
 #include "ei/hook.h"

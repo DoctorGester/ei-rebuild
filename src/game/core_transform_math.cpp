@@ -1,6 +1,6 @@
 // CTransformObject's rotation helpers (00401570-00402280): the world matrix, turning the local
 // rotation towards a direction (three variants), rotating about an axis and setting a heading.
-// See core_transform.h and docs/notes/unmapped_410_470.md ("Sixth round").
+// See core_transform.h and docs/notes/core.md.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float (including the floats it pushes to the Vector3

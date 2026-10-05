@@ -3,7 +3,7 @@
 Code: `object.*` (CEngineObject helpers, CTransformObject / CHoover constructor bodies, unit and figure getters, CMemoryStream), `object_diplomacy.*`, `object_maths.*`, `object_tables.*`, `lightning*.cpp`,
 `scene_*.cpp` (fake unit scenes), `fake_unit.cpp`, `figure_slots.cpp`, `aligned_arrays.cpp`, `options*.cpp`, `app.*`, `map_database.*`, `map_spec*.cpp`, `unit_record.*`, `hoover_loot.cpp`,
 `player_messages.*`, `party.h`. Verify: `tests/verify/verify_<file>.cpp`. Scenarios: `objects_more.txt` (lightning bolts, power 5 / 0 / -7, then the lightning spell on a wolf); every other scenario loads zone1,
-which reaches scene, options, map database, unit record and (via 0058B750 every world tick) player message code. Network, table and application functions of the range also appear in `unmapped_410_470.md`.
+which reaches scene, options, map database, unit record and (via 0058B750 every world tick) player message code. Network, table and application functions of the range are in `network.md`, `app.md` and `core.md`.
 Names are provisional.
 
 ## Address map
@@ -67,7 +67,7 @@ Names are provisional.
 | 004554B0, 00455630, 00455660, 004557C0, 004557F0, 004554E0, 00455680 | CDiplomacy Reset, GetRelation, GetHostileMask, ReadFrom, WriteTo, SetRelation, OnAttack | object_diplomacy.cpp | copy / pure / recorded stream calls; SetRelation: table against the original without the unit pass, with applyToUnits every unit has the other's bit exactly when relation is 2; OnAttack ours only |
 | 004489D0, 0044A230, 0044CC10, 00448A10, 004679B0, 004679D0 | CrossProduct, SubtractVectors (2D 0044CC10), ScaleVector copy (identical to 00410770), Vector3::DivideInPlace, Vector4::FromPoint | object_maths.cpp | pure / copy |
 | 00461360, 004613A0, 0045E850, 0045E910, 00460AF0, 00462F70 | TextKeyFromName, IsTextKey, CMapDatabase FindMap / FindAllod, NamedFloatTable::Get, FindCommandByKey | object_tables.cpp | pure (Get needs the game's CRT heap: in game only) |
-| 00460BC0, 00460DB0, 00460EE0, 00460FE0, 00461260 | NamedFloatTable Set, Remove, CopyPrefixed, Load, Save (`unmapped_410_470.md`) | object_tables.cpp | `verify_named_float_table.cpp` |
+| 00460BC0, 00460DB0, 00460EE0, 00460FE0, 00461260 | NamedFloatTable Set, Remove, CopyPrefixed, Load, Save (`core.md`) | object_tables.cpp | `verify_named_float_table.cpp` |
 | 00466190, 004662C0, 00466CE0, 00466820, 00466FD0, 00467150, 004672E0, 00467E10 | NoiseKey::Randomize, LightningSegment SampleNoise / Animate / Init, CLightning ExpandBounds / UpdateBounds / Animate / SetEndpoints | lightning.cpp | original on a copy (random state saved and restored; deep copies with own point buffers where it allocates); fields, points, generator, global curves compared (SetEndpoints points / bounds only when no uninitialised elements are possible) |
 | 00466EA0, 00468790, 00468940 | CLightning Register, Reset; DrawAll | lightning.cpp | ours only (list / reference counts, textures cleared, power 1; DrawAll returns 1 and the new-bolt list is empty) |
 | 004680D0, 00468680, 00468810, 00467AD0, 00467590 | CLightning start (power, branches, textures "SmtgLight" / "Lightning" or "DemonLight" / "DemonLightning" via 00500A00), factory, destructor body, draw, glow | lightning_start.cpp, lightning_draw.cpp | `verify_lightning_start / _draw` |

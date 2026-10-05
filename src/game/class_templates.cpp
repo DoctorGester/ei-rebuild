@@ -1,6 +1,6 @@
 // The class templates a new game builds (004A7630) and the item and spell lists each template
-// gets from the databases (004A7080). See class_templates.h and docs/notes/range_490.md
-// ("Class templates").
+// gets from the databases (004A7080). See class_templates.h and docs/notes/world.md
+// ("Party records and class templates").
 //
 // The templates live in a vector of counted pointers at +0x38 of the object at 007AA5A0 (its +0x24
 // holds the parties). 004A88A0 builds five templates, 004A88C0 (from 0057F280) four.

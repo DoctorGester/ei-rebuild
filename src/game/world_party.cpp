@@ -1,5 +1,5 @@
 // CWorldServer: the party arriving in a zone (Redeploy 00590700) and the quest items it brings
-// back (00590460, 005901E0). See world.h and docs/notes/world.md (seventh round).
+// back (00590460, 005901E0). See world.h and docs/notes/world.md.
 #include "world.h"
 
 #include "chunk_stream.h"

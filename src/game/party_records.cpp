@@ -1,6 +1,6 @@
 // The named party records of the object at 007AA5A0 (+0x24): reset at new game (004A5BD0), and
 // the script commands' helpers to find (004A5E10), add (004A5E90) and remove (004A5FA0) a record
-// by name. See party_records.h and docs/notes/range_490.md ("Party records").
+// by name. See party_records.h and docs/notes/world.md ("Party records and class templates").
 #include "party_records.h"
 #include "game_strings.h"
 

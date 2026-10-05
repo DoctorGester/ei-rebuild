@@ -1,7 +1,7 @@
 // Clearing parts of a CScript while the world runs: dropping references to deleted world objects
 // (after every object removal), and the zone reset when the party enters a zone (instances and runs
 // dropped, effects removed, globals zeroed, the WorldScript blocks started again). See script.h and
-// docs/notes/script.md ("Purge and zone reset").
+// docs/notes/script.md.
 #include "script.h"
 
 #include "lib/crt.h"

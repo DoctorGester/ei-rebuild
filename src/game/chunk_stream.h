@@ -5,7 +5,7 @@
 // (header included), followed by its content; chunks nest. A Chunk object tracks one chunk being
 // read or written and passes every byte it consumes up to its parent. The file is reached through
 // virtual slot 1: a chunk asks its parent, and the root (RootChunk) returns the MFC CFile it
-// embeds. Names provisional; see docs/notes/unmapped_410_470.md.
+// embeds. Names provisional; see docs/notes/core.md.
 //
 // Chunks are built by the game's constructor bodies (or Construct below), which store the game's
 // vtables; the classes are __declspec(novtable), so a Chunk local or member is plain storage until

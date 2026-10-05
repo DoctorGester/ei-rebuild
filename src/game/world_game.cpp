@@ -1,5 +1,5 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
-// saving a game into saves\<slot>, entering a zone. See docs/notes/world.md (seventh round).
+// saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "world.h"
 #include "game_strings.h"
 

@@ -3,7 +3,7 @@
 // The tagged-chunk serialisation archive (00409070-0040A5A0) the databases of database.res are stored
 // in. Constructed by 0053A7B0, opened by Open (00409AE0). Reading and writing go through the same
 // Serialize functions; loading_ selects the direction. Names provisional; see
-// docs/notes/unmapped_410_470.md ("Fourth round").
+// docs/notes/core.md.
 //
 // A chunk's content is a run of children, each an id byte, a length byte (len << 1) or, when bit 0
 // is set, a dword (len << 1 | 1), and len bytes. A stream holding an archive has three top-level

@@ -1,7 +1,7 @@
 #pragma once
 
 // The multiplayer session classes and the message base (00412000-00444000). Names are
-// provisional; see docs/notes/unmapped_410_470.md ("Third round: sessions and messages") and
+// provisional; see docs/notes/network.md and
 // docs/notes/cleanup-network.md.
 //
 // Class map (vtables):

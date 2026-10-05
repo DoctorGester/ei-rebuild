@@ -1,6 +1,6 @@
 // CWorldServer::CreateUnits (0058EF20): creates units from unit records (script AddUnitToServer,
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
-// adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md (seventh round).
+// adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "world.h"
 #include "game_strings.h"
 

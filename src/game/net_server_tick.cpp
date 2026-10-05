@@ -1,6 +1,6 @@
 // The game server's tick (004182E0, slot 14) and a player state query (00417E40, called by the
 // file chunk sender at 00479EF4). Float maths in plain C++ (rewrite-guide rule 7). See
-// net_classes.h and docs/notes/unmapped_410_470.md ("Eighth round").
+// net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "game_strings.h"
 #include "core_refcount.h"

@@ -2229,7 +2229,7 @@ addresses, so the wrappers run.
   hooks frames are slower and a world update could come first, so the poll never saw it alive).
   The scenario now disarms MTF4 before placing the wolf, checks it alive a second later, arms the
   trap and waits for the wolf to die. (2) The "command 8" mismatches were a verify bug: 004C7C90
-  adds a script instance at the head of the list, not the tail (docs/notes/script.md, X10).
+  adds a script instance at the head of the list, not the tail (docs/notes/script.md, "Runtime").
 
 ## Eighteenth pass (ticket I9)
 

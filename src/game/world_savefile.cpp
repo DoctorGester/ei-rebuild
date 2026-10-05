@@ -1,6 +1,6 @@
 // The save files (scenario.sav, mission.sav, saves\current\<zone>.sav): 00579B80 writes a memory
 // stream to a file stream under a header, LZ-compressed (and checked by decompressing it again),
-// 00579830 reads one back. See net_coder.h for the coder and docs/notes/world.md (seventh round).
+// 00579830 reads one back. See net_coder.h for the coder and docs/notes/world.md.
 #include "world.h"
 
 #include "core_streams.h"

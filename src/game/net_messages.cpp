@@ -1,8 +1,7 @@
 // The network message classes (net_messages.h) and the message base helpers: for each class its
 // factory, constructor body, slots 2-5 (reset, clone, write, read) and destructor body; the same for
 // the lobby's server entry (0073BB28, net_classes.h; no factory). The scalar deleting destructors
-// are in deleting_destructors_400.cpp. See docs/notes/unmapped_410_470.md ("Third round",
-// "Eighth round") and docs/notes/cleanup-network.md.
+// are in deleting_destructors_400.cpp. See docs/notes/network.md and docs/notes/cleanup-network.md.
 //
 // The original inlines several STLport copies of the same string and vector code (copy
 // construction from [first, last) into a fresh block of length + 1 bytes, the 8-byte empty string,

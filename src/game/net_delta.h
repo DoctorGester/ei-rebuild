@@ -6,7 +6,7 @@
 // The object's serialiser (a virtual slot; 0050EAF0 for one family) calls BeginField(i) for each
 // dirty field and writes its values with WriteDelta: a bit per 4-byte word says "unchanged", and
 // only the changed words follow. Reading (the client) mirrors it through two globals set by
-// BeginField in the read modes. Names provisional; see docs/notes/unmapped_410_470.md.
+// BeginField in the read modes. Names provisional; see docs/notes/network.md.
 
 #include "core_streams.h"
 #include "maths.h"

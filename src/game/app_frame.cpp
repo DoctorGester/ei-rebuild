@@ -1,8 +1,7 @@
 // WinMain's frame step (00458010: the interface and the game ticked, the frame drawn and flipped,
 // a screenshot per frame while recording a movie) and the intro movies (00458270: the list read
 // from an .ini file, each played, the screen cleared through the primary surface's Blt). Every
-// callee is reached through its original address. See docs/notes/unmapped_410_470.md
-// ("Ninth round").
+// callee is reached through its original address. See docs/notes/app.md.
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"

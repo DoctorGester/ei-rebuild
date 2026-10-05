@@ -4,7 +4,7 @@
 // and the armour pieces' "<model><item>.mmp"), registered as "mo<n>p" / "prot<n>p", then the head
 // and weapon textures ("mo<n>s" / "prot<n>s"); for every other unit (second list, 0x3C-byte records)
 // the list of its textures goes to the figure maker (+0x34, slot 3). Names provisional; see
-// docs/notes/world.md ("Unit skins").
+// docs/notes/world.md.
 #include "console.h"
 
 #include "../lib/crt.h"

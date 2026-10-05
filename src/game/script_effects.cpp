@@ -1,6 +1,6 @@
 // The effects a mission script places in the world: point lights, particle sources, sound (FX)
 // sources and lightning bolts (CScript::pointLights_, particles_, fxSources_, lightning_). Saving
-// and loading them with the savegame. See script.h and docs/notes/script.md ("Script effects").
+// and loading them with the savegame. See script.h and docs/notes/script.md.
 #include "script.h"
 
 #include "base_manager.h"

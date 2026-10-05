@@ -6,7 +6,7 @@
 //    the compiler inlined from the hashtable's.
 // The tables' own resize, node allocation and erase steps (library) are called through their
 // original addresses; each instantiation has its own copies of them. See
-// docs/notes/unmapped_410_470.md ("Eighth round").
+// docs/notes/core.md.
 #include "hash_tables_400.h"
 
 #include "ei/hook.h"

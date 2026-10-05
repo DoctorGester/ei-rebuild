@@ -1,7 +1,7 @@
 // The sessions' UDP socket driver (net_classes.h, SocketDriver: the socket and the host's broadcast
 // addresses), address parsing and formatting, and the TCP link to the master server (0x40 bytes:
 // an outgoing and an incoming growing buffer, the socket, a state). Winsock (WSOCK32) is called
-// through the game's import thunks. See docs/notes/unmapped_410_470.md ("Ninth round").
+// through the game's import thunks. See docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"
 #include "lib/crt.h"

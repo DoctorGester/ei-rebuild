@@ -3,7 +3,7 @@
 // lines (shadowed, 15 pixels apart) into a panel surface of the interface at most twice a second.
 // 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
 // constructor (00444740) runs from a static initialiser before the hooks are installed and is not
-// rewritten. See docs/notes/unmapped_410_470.md ("Ninth round").
+// rewritten. See docs/notes/app.md.
 //   +0x10 the interface, +0x14 the panel surface (0x38 bytes), +0x18 the font (CFont),
 //   +0x1C the rectangle on screen, +0x2C the rectangle asked for (+0x34 / +0x38 its corner),
 //   +0x3C shown, +0x40 the tick of the last drawing.

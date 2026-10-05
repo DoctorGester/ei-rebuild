@@ -2,7 +2,7 @@
 
 // Message links over streams (00477E60-0047BC10): the endpoints a player's messages go through,
 // and the pump that keeps a driver link per remote player (00479E30 / 0047A080). Names are
-// provisional; see docs/notes/unmapped_410_470.md ("Ninth round", "Tenth round") and
+// provisional; see docs/notes/network.md and
 // docs/notes/cleanup-network.md.
 //
 // Class map (vtables):

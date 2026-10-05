@@ -1,7 +1,7 @@
 // The game client's destructor (0041CA10), scalar deleting destructor (0041C8B0, slot 0) and its
 // base layer's destructor body (0041C530). The members are torn down in reverse order through
 // their STLport destructors and the counted pointers' releases, then the session base. See
-// net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round", "Eighth round").
+// net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "core_refcount.h"
 

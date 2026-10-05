@@ -1,5 +1,5 @@
 // The network session base class (vtable 0073BF5C): construction, the message type registry and
-// the handler tables. See net_classes.h and docs/notes/unmapped_410_470.md ("Third round").
+// the handler tables. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 
 #include "core_refcount.h"

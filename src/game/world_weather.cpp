@@ -1,6 +1,6 @@
 // CWorldServer::UpdateWeather (0058CCD0, every 64 ticks from Tick): the day-time value, rain
 // starting and stopping, lightning strikes and the lightning bolts during a storm. See world.h and
-// docs/notes/world.md (seventh round).
+// docs/notes/world.md.
 #include "world.h"
 
 #include "core_maths.h"

@@ -1,6 +1,6 @@
 // The game client's tick (0041CCD0, slot 14) and its award handling (0041CD80): timers count down,
 // and received awards (+0x2608) are applied to the local player. See net_classes.h and
-// docs/notes/unmapped_410_470.md ("Seventh round").
+// docs/notes/network.md.
 #pragma float_control(precise, on)
 
 #include "net_messages.h"

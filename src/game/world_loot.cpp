@@ -1,5 +1,5 @@
 // CWorldServer::Loot (005942D0): a player takes what a dead body or a container holds. See
-// world.h and docs/notes/world.md (seventh round).
+// world.h and docs/notes/world.md.
 #include "world.h"
 
 #include "lib/crt.h"
