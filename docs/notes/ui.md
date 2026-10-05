@@ -2119,7 +2119,9 @@ docs/rebirth-patched-functions.txt); none is in config/library.csv or config/dea
 - Harness steps `zone <name> [exit]` and `waitzone <seconds> <name>` (tests/verify/harness.cpp).
   `zone` looks the name up in the map database (0045E850; an unknown name would make StartZone show a
   fatal error and go to the main menu, so the step fails instead), finds the local player (server
-  world 007AFF60, `GetPlayer` 00594180 with the local id 007AFFBC = world +0x5C) and calls
+  world 007AFF60, `GetPlayer` 00594180 with player number 0, as the script commands that act on the
+  player use; world +0x5C (007AFFBC), which the flow hands to the client world, is not that number:
+  the first run found no player with it, state -1) and calls
   `LeaveToZone` (0066F310) on its connection (the world player's +0x20, a CPlayerServer), exactly
   what a zone exit's handler (00670C20, after `GetZoneExit`) and the script command `LeaveToZone`
   (0x8A) do. It needs the connection's state 1 (+0x20, in the world); in campaign mode 1 or 3 a dead
