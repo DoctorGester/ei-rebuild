@@ -456,6 +456,12 @@ public:
     // a click would do (exit 15, the flags +0x18D.. 16+i, attack 1, cast 2 / can't 0x17, use 4,
     // no 0xD, order 0x18), by the pending action +0x17C as SelectUnit reads it.
     void HoverUnit(CUnit* unit, int x, int y);
+    // 00636F10 (RET 0x14; ui_hud.cpp). Orders the selected party units to the point (x, y, z):
+    // a point on a zone exit whose "z.<zone>" variable is not 1 is remembered (+0x18C, +0x188 the
+    // exit); each selected member's portrait nods after a random delay and the local view gets
+    // the order (0066A7D0, or 0066A720 when the low byte of `mode` is set) with the low byte of
+    // `ctrl`. SelectUnit calls it for a click on the ground (mode 0) or with a modifier (mode 1).
+    void OrderAt(float x, float y, float z, int mode, int ctrl);
 
     std::uint8_t unknown_148[0x16C - 0x148];
     CUnit** party_;                  // +0x16C the player's units shown as portraits

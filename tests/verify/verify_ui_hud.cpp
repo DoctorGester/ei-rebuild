@@ -432,3 +432,48 @@ static void __fastcall SelectUnitVerify(CBattleScreen* self, void*, CUnit* unit,
                       before, after, field(0x180), field(0x184));
 }
 EI_VERIFY(0x00638EF0, SelectUnitVerify, 0, s_unused);
+
+// 00636F10 (CBattleScreen::OrderAt) gives the selected units an order through the local view and
+// draws random numbers for the portraits: ours only. Reached by a click on the ground with party
+// members selected (SelectUnit's plain action without a unit or a targetable object under the
+// point: ui_order_move, probably world_client's clicks beside the hero), and with the modifier flags or
+// Shift (mode 1). Checked: every member selected before the call has its portrait nodding (record
+// +0x38 = 1, or 2 when the order made the unit answer at once through slot 32) with a delay that
+// is not positive (+0x3C); the zone-exit flag (+0x18C) is 0 or 1 and,
+// when set, +0x188 is the exit the point lies on (00578A00).
+static void __fastcall OrderAtVerify(CBattleScreen* self, void*, float x, float y, float z, int mode, int ctrl) {
+    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
+    bool selected[64] = {};
+    int count = self->partyCount_ < 64 ? self->partyCount_ : 64;
+    for (int i = 0; i < count; ++i) {
+        CUnit* member = self->party_[i];
+        selected[i] = member && (member->flags_ & 0x10);
+    }
+    self->OrderAt(x, y, z, mode, ctrl);
+    std::uint8_t* records = *reinterpret_cast<std::uint8_t**>(*reinterpret_cast<std::uint8_t**>(bytes + 0x1A4) + 0x158);
+    int wrong = -1;
+    for (int i = 0; i < count && wrong < 0; ++i) {
+        if (!selected[i]) continue;
+        int kind;
+        float delay;
+        std::memcpy(&kind, records + i * 0x78 + 0x38, 4);
+        std::memcpy(&delay, records + i * 0x78 + 0x3C, 4);
+        if ((kind != 1 && kind != 2) || delay > 0.0f) wrong = i;
+    }
+    std::uint8_t flag = bytes[0x18C];
+    bool exitOk = flag == 0;
+    if (flag == 1) {
+        float point[3] = {x, y, z};
+        int exit = -1;
+        using ExitAtFn = int(__thiscall*)(void*, const float*, int*);
+        int found = reinterpret_cast<ExitAtFn>(0x00578A00)(reinterpret_cast<void*>(0x007AFEA5), point, &exit);
+        int saved;
+        std::memcpy(&saved, bytes + 0x188, 4);
+        exitOk = found != 0 && exit == saved;
+    }
+    ei::verify::Check("CBattleScreen::OrderAt", true, wrong < 0 && exitOk,
+                      "(%g, %g, %g) mode %d: portrait %d not nodding, exit flag %d (+0x188 %d)", static_cast<double>(x),
+                      static_cast<double>(y), static_cast<double>(z), mode & 0xFF, wrong, flag,
+                      *reinterpret_cast<int*>(bytes + 0x188));
+}
+EI_VERIFY(0x00636F10, OrderAtVerify, 0, s_unused);

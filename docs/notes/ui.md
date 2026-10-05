@@ -1912,3 +1912,82 @@ counted with CFileFind, the hero records array 007C82A0..007C82AC) and no scenar
 map's path search, recursive over the zone links with an STLport map<int, float>): reached only from
 the global map's click 0062F950 on a zone or link, which no scenario does (and a link starts the
 travel). Both stay for a pass that adds those scenarios.
+
+## Fifteenth pass (ticket I6)
+
+Files: `src/game/ui_item_strip.cpp` (the strip's per-frame scroll), `src/game/ui_battle_update.cpp`
+(the selection's refresh), `src/game/ui_hud.cpp` (the order to a point); wrappers in
+`tests/verify/verify_ui_item_strip.cpp`, `verify_ui_battle_update.cpp`, `verify_ui_hud.cpp`; new
+scenario `tests/scenarios/ui_order_move.txt`. Shared headers (additive): `ui_screens.h`
+(CUiItemStrip::Update), `ui_camp.h` (CBattleScreenSetup::RefreshSelection), `ui.h`
+(CBattleScreen::OrderAt). The update's and the button release's forwarder to 00637DC0 is now
+`RefreshSelectionAt` (still through the address, so the wrapper runs).
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 00620A50 | 946 | `CUiItemStrip::Update` (slot 24 of 0074197C, 00741A1C, 00741BF4) | side by side: the original first, its scroll fields (+0x150..+0x17C) recorded and put back, then ours; floats within 4 ULPs, tab / arrow and the visible count exactly | ui_camp, ui_describe, frames_basic, render_present (the camp's strips, every frame), ui_hero_screen (the inventory strip) |
+| 00637DC0 | 510 | `CBattleScreenSetup::RefreshSelection` | ours only: the four panels' unit (+0x154) the one living selected unit or none, the unit panel's +0x14C the first selected (else unchanged), pending action and highlights cleared | every game scenario: the screen's slot 29 (006361B0, a unit joins the party: the new game's hero, a loaded party) ends with it; also slots 28 (items picked up, 00636150) and 30 (a member leaves, 006364E0), the member toggle 006379E0, a box drag (00638B30) and a network client's party change (00638280) |
+| 00636F10 | 640 | `CBattleScreen::OrderAt` (RET 0x14) | ours only: each member selected before is nodding (+0x38 1, or 2 when it answered at once) with a non-positive delay; the exit flag +0x18C 0 / 1, when 1 +0x188 the exit at the point (00578A00) | ui_order_move (new: two ground clicks, the hero must walk; a click that lands on a targetable object would go elsewhere, so check the call count), probably world_client's ground clicks |
+
+3 functions, about 2.1 KB. None is Rebirth-patched, and none of their callees is.
+
+### Strip scroll (00620A50)
+
+- dt = the frame time (00600270) stored as a float. A held arrow (+0x154 1 left, 2 right): a timer
+  (+0x158) of 0 (or NaN) gives one slot at once and becomes 0.001; otherwise it grows by dt and
+  each whole 0.1 s (00741EC0) beyond gives a slot; the slots go into the pending scroll (+0x174,
+  subtracted for the left arrow).
+- A pending scroll (not 0 or NaN) farther than 0.5 (00741EB4): the speed (+0x178) accelerates by
+  15 dt (00741EBC) towards it, capped at 7 (00741EB0); the frame's speed is the average of the new
+  speed and min(speed, (pending - 0.5) / dt) (for a negative pending max(speed, (pending + 0.5) /
+  dt); NaN picks the speed, as the original's branch-free FNSTSW selects). Within 0.5: sqrt(0.5 |p|)
+  / 0.25 with the pending's sign. The step is speed * dt, or the whole pending when that is
+  shorter; it moves the current tab's position. Then the position settles on the whole slot below
+  when within 0.01 (0073C548) above it, or the one above when beyond 0.99 (00741F0C), in both cases
+  only with less than 0.02 (0073CCD8) still pending (which is then dropped).
+- No pending scroll: speed 0. Then slot 26 (the list rebuild) and the position clamped to
+  [0, count - 7] (either clamp also stops the scroll).
+
+### Selection refresh (00637DC0)
+
+- See the comment in ui_camp.h. The selection is the party members with flag 0x10; a single one
+  whose slot 55 (dead) is 0 goes to the weapon bar 0063C180, quick items 0063D2B0, spells 0063E820
+  and actions 0063F800 (all rewritten, called through their addresses so their wrappers run), else
+  they get null; the action column's second argument is "anyone selected" (the original's empty
+  case pushes EDX after SETG DL, so its upper bytes are whatever EDX held: the party loop leaves 0
+  there, an empty party the caller's EDX; 0063F800 reads the low byte only).
+- The quick item highlights 0..7 (0063CD20), the spell column's +0x14C (0063E750) and the action
+  column's +0x14C (0063F730) highlights are cleared with (index, 0), each panel's +0x150 = -1.
+
+### Order to a point (00636F10)
+
+- The point is passed by value (three floats) and the original passes the address of its argument
+  slots on; ours a local copy. 00578A00 (the exit at the point) runs whether or not anyone is
+  selected; the exit test is the hover's (00639EF0): the exit's zone name not "none" and the
+  "z." + name player variable not 1 (FCOMP / TEST AH,0x40: NaN counts as 1).
+- The units go into a stack CArray (vtable 007402AC, SetSize 005EBDB0), each one's portrait gets
+  wobble kind 1 with the random delay (IsaacRandom 004667F0 times the double 00742760, as
+  SelectUnit's flash), and the local view (005699F0) gets 0066A7D0 (mode 0) or 0066A720; the
+  array's data is freed with operator delete.
+
+### Forwarders added (standalone build must replace)
+
+Strip: 00600270 (frame time). Selection: 0063CD20, 0063E750, 0063F730. Order: 00578A00, 00578A40,
+005EBDB0, 0066A7D0, 0066A720.
+
+### Not exercised by the scenarios
+
+The order's mode 1 (Shift or the modifier flags +0x18D..: the harness cannot hold Shift during a
+click) and the exit flag (a click on a zone exit; no scenario clicks one). The selection refresh
+with several units selected (needs a second party member and a box drag).
+
+### Candidates left
+
+006379E0 (the member toggle, 636; reached by a click on a party member's portrait or body, or the
+member keys of 0063A560 - no scenario does either yet), 00637190 / 006373A0 / 00637500 / 00637750
+(the other battle commands: attack a unit, a dead unit, spells on a unit / a point; a scenario
+clicking a hostile unit next to the hero would reach 00637190), 006366F0 (the screen's slot 32,
+a unit's speech event: plays a phrase and nods or turns the portrait; called through the vtable),
+0063DB20 (the quick item panel's button release; ui_hud only moves over that panel), and the
+earlier list (briefing screen, network screens, global map path search 006312C0, hero creation
+00617A50).

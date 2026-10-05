@@ -1,5 +1,6 @@
 // The battle screen's every-frame update (00638280, slot 24), its left button release (00638B30),
-// its quest variable notice (006369D0, slot 33) and the quick item panel's unit (0063D2B0). See docs/notes/ui.md ("Ninth pass", "Fourteenth
+// its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
+// item panel's unit (0063D2B0). See docs/notes/ui.md ("Ninth pass", "Fourteenth pass", "Fifteenth
 // pass").
 #include "originals_world.h"
 #include "text_reader.h"
@@ -7,6 +8,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -192,7 +194,7 @@ __declspec(naked) void __fastcall PortraitsRebuild(CUiWindow*, void*, int) EI_OR
 // 0040D420 (thiscall on the camera 0079B2A8, RET 4): follows the unit with an id. 00637DC0
 // (thiscall on the battle screen): the selection's refresh.
 __declspec(naked) void __fastcall CameraFollow(void*, void*, int) EI_ORIGINAL(0x0040D420)
-__declspec(naked) void __fastcall RefreshSelection(CBattleScreenSetup*) EI_ORIGINAL(0x00637DC0)
+__declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORIGINAL(0x00637DC0)
 
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
 // next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
@@ -328,7 +330,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
         PortraitsRebuild(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->unknown_210 != ids.camera) {
             CameraFollow(reinterpret_cast<void*>(0x0079B2A8), nullptr, ids.camera);
-            RefreshSelection(screen);
+            RefreshSelectionAt(screen);
         }
         IdsAssign(&screen->partyWithUnit_, nullptr, &ids.withUnit);
         screen->unknown_210 = ids.camera;
@@ -561,7 +563,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
             reinterpret_cast<EventFn>(vtable_[0x80 / 4])(this, id, 0, 0);
         }
     }
-    RefreshSelection(this);
+    RefreshSelectionAt(this);
     unknown_1C1 = false;
     FreeListNodes(&inside);
     if (inside.header) NodeFree(inside.header, 0xC);
@@ -686,3 +688,63 @@ void __fastcall BattleScreenQuestVariable(CBattleScreenSetup* self, void*, const
 }
 } // namespace
 EI_REPLACE(0x006369D0, BattleScreenQuestVariable);
+
+// --- 00637DC0: the selection's refresh --------------------------------------------------------
+
+namespace {
+
+// The panels' highlights (thiscall, RET 8; each called with (index, 0)): quick item slot
+// 0063CD20, spell 0063E750, action 0063F730.
+__declspec(naked) void __fastcall QuickSlotHighlight(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063CD20)
+__declspec(naked) void __fastcall SpellHighlight(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063E750)
+__declspec(naked) void __fastcall ActionHighlight(CUiWindow*, void*, int, int) EI_ORIGINAL(0x0063F730)
+constexpr int kSlotIsDead = 55;   // object slot 55 (+0xDC): non-zero for a dead unit
+
+} // namespace
+
+void CBattleScreenSetup::RefreshSelection() {
+    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
+    CUnit* first = nullptr;
+    int selected = 0;
+    for (int i = 0; i < party->size_; ++i) {
+        auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i]));
+        if (!unit || !(At<std::uint32_t>(unit, 8) & 0x10)) continue;
+        if (!first) first = unit;
+        ++selected;
+    }
+    // Exactly one living unit selected: the panels show it; otherwise they are emptied. The action
+    // column's extra button stays while anyone is selected (the original pushes SETG DL there with
+    // EDX's upper bytes left over; the callee reads the low byte only).
+    CUnit* shown = (first && ei::VCall<int>(first, kSlotIsDead) == 0 && selected == 1) ? first : nullptr;
+    WeaponBarSetUnit(weaponBar_, nullptr, shown);
+    QuickItemsSetUnit(quickItems_, nullptr, shown);
+    SpellsSetUnit(spellColumn_, nullptr, shown);
+    ActionsSetUnit(actionColumn_, nullptr, shown, selected > 0 ? 1 : 0);
+
+    // The unit panel shows the first selected unit (also a dead one, or the first of several).
+    CUiWindow* panel = unitPanel_;
+    if (first != At<CUnit*>(panel, 0x14C)) {
+        At<CUnit*>(panel, 0x14C) = first;
+        if (first) {
+            At<int>(panel, 0x15C) = At<int>(UnitPrototype(first), 0x20);
+            At<int>(panel, 0x154) = At<int>(UnitPrototype(At<CUnit*>(panel, 0x14C)), 0x24);
+            ShowPanelUnit(At<CBattleScreenSetup*>(panel, 0x148), nullptr, At<CUnit*>(panel, 0x14C),
+                          &At<std::uint8_t>(panel, 0x164));
+        }
+    }
+
+    // No pending action; every highlight cleared.
+    unknown_180 = -1;
+    unknown_17C = 0;
+    At<int>(this, 0x184) = -1;
+    CUiWindow* quick = quickItems_;
+    for (int i = 0; i < 8; ++i) QuickSlotHighlight(quick, nullptr, i, 0);
+    At<int>(quick, 0x150) = -1;
+    CUiWindow* spells = spellColumn_;
+    for (int i = 0; i < At<int>(spells, 0x14C); ++i) SpellHighlight(spells, nullptr, i, 0);
+    At<int>(spells, 0x150) = -1;
+    CUiWindow* actions = actionColumn_;
+    for (int i = 0; i < At<int>(actions, 0x14C); ++i) ActionHighlight(actions, nullptr, i, 0);
+    At<int>(actions, 0x150) = -1;
+}
+EI_REPLACE_METHOD(0x00637DC0, CBattleScreenSetup::RefreshSelection);

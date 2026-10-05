@@ -65,6 +65,15 @@ public:
     // unless +0x160, the message log; the clock pulses, +0x1FC becomes at least the value (1 for
     // a failure, 3 for a completed quest).
     void OnQuestVariable(const char* name, float value);
+    // 00637DC0 (ui_battle_update.cpp; called when a unit joins (slot 29) or leaves (slot 30) the
+    // party, after items are picked up (slot 28), by the member toggle 006379E0, a box drag and a
+    // network client's party change). The selection changed: with exactly one living party unit
+    // selected the weapon bar, quick items, spell and action columns show it, otherwise they are
+    // emptied (the action column keeps its extra button while anyone is selected); the unit panel
+    // (+0x14C, +0x15C / +0x154 from the prototype's +0x20 / +0x24, 0063B920) shows the first
+    // selected unit when it changed; the pending action (+0x17C 0, +0x180 / +0x184 -1) and every
+    // panel highlight are cleared.
+    void RefreshSelection();
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
