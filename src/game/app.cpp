@@ -4,7 +4,6 @@
 // Every callee is reached through its original address (several are patched by Rebirth:
 // 0057C700, 00595480, FatalError 00480080; 004D36F0 is rewritten and has a verify wrapper).
 #include "app.h"
-#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -307,7 +306,7 @@ int __cdecl StartFirstMap() {
     mfc::CString map;
     map = Length(cmdMap) != 0 ? cmdMap : Global<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
-                        reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0) {
+                        reinterpret_cast<const unsigned char*>(0x0079B298)) == 0) {
         MenuPrepare(reinterpret_cast<void*>(0x007AFE20));
         MenuOpen(reinterpret_cast<void*>(0x007AFE20));
         return 1;

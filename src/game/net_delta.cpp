@@ -16,6 +16,11 @@
 // --- BitStream ---------------------------------------------------------------------------------
 
 namespace {
+constexpr int kSlotRead = 1;
+constexpr int kSlotWrite = 2;
+constexpr int kSlotSeek = 3;
+constexpr int kSlotSize = 4;
+constexpr int kSlotPosition = 5;
 
 std::uint32_t Word(const std::uint8_t* p) {
     std::uint32_t w;
@@ -24,23 +29,32 @@ std::uint32_t Word(const std::uint8_t* p) {
 }
 } // namespace
 
-__declspec(naked) void CMemoryStream::StartByte() EI_ORIGINAL(0x004A5610)
-__declspec(naked) void CMemoryStream::EndBits() EI_ORIGINAL(0x004A5650)
+std::uint32_t BitStream::Read(void* data, std::uint32_t size) { return ei::VCall<std::uint32_t>(this, kSlotRead, data, size); }
+void BitStream::Write(const void* data, std::uint32_t size) { ei::VCall<void>(this, kSlotWrite, data, size); }
+void BitStream::Seek(std::uint32_t position) { ei::VCall<void>(this, kSlotSeek, position); }
+std::uint32_t BitStream::Size() { return ei::VCall<std::uint32_t>(this, kSlotSize); }
+std::uint32_t BitStream::Position() { return ei::VCall<std::uint32_t>(this, kSlotPosition); }
 
-void CMemoryStream::PutBit(bool bit) {
-    bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
-    if (bitMask_ > 0x80) StartByte();   // sets bitMask_ to 1
-    if (bit) bits_ |= static_cast<std::uint8_t>(bitMask_);
+__declspec(naked) void BitStream::StartByte() EI_ORIGINAL(0x004A5610)
+__declspec(naked) void BitStream::EndBits() EI_ORIGINAL(0x004A5650)
+void BitStream::Resize(std::uint32_t a2) { StreamResizeOriginal((void*)this, nullptr, a2); }
+__declspec(naked) void BitStream::SetSize(std::uint32_t) EI_ORIGINAL(0x004A5570)
+__declspec(naked) void* BitStream::ReadString(void*) EI_ORIGINAL(0x00461190)
+
+void BitStream::PutBit(bool bit) {
+    mask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(mask_) << 1);
+    if (mask_ > 0x80) StartByte();   // sets mask_ to 1
+    if (bit) bits_ |= static_cast<std::uint8_t>(mask_);
 }
-EI_REPLACE_METHOD(0x0047DFC0, CMemoryStream::PutBit);
+EI_REPLACE_METHOD(0x0047DFC0, BitStream::PutBit);
 
-bool CMemoryStream::GetBit() {
-    bitMask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(bitMask_) << 1);
-    if (bitMask_ > 0x80) {
-        bitMask_ = 1;
+bool BitStream::GetBit() {
+    mask_ = static_cast<std::int32_t>(static_cast<std::uint32_t>(mask_) << 1);
+    if (mask_ > 0x80) {
+        mask_ = 1;
         Read(&bits_, 1);
     }
-    return (bitMask_ & static_cast<std::int8_t>(bits_)) != 0;
+    return (mask_ & static_cast<std::int8_t>(bits_)) != 0;
 }
 
 // --- Whole streams: length-prefixed copies and the message compression ------------------------
@@ -78,7 +92,7 @@ void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderS
 }
 } // namespace
 
-void CMemoryStream::WriteStream(BitStream* from) {
+void BitStream::WriteStream(BitStream* from) {
     from->EndBits();
     std::int32_t header = static_cast<std::int32_t>(from->Size() << 1);
     if (header < 0x100) {
@@ -90,9 +104,9 @@ void CMemoryStream::WriteStream(BitStream* from) {
     std::uint8_t* data = from->data_;
     Write(data, from->Size());
 }
-EI_REPLACE_METHOD(0x0047DA80, CMemoryStream::WriteStream);
+EI_REPLACE_METHOD(0x0047DA80, BitStream::WriteStream);
 
-int CMemoryStream::ReadStream(BitStream* to) {
+int BitStream::ReadStream(BitStream* to) {
     std::uint32_t length = 0;
     Read(&length, 1);
     if (length & 1) Read(reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
@@ -104,13 +118,13 @@ int CMemoryStream::ReadStream(BitStream* to) {
     to->ok_ = 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x0047DAE0, CMemoryStream::ReadStream);
+EI_REPLACE_METHOD(0x0047DAE0, BitStream::ReadStream);
 
-void CMemoryStream::CompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
-EI_REPLACE_METHOD(0x0047D7F0, CMemoryStream::CompressTo);
+void BitStream::CompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
+EI_REPLACE_METHOD(0x0047D7F0, BitStream::CompressTo);
 
-void CMemoryStream::DecompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
-EI_REPLACE_METHOD(0x0047D970, CMemoryStream::DecompressTo);
+void BitStream::DecompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
+EI_REPLACE_METHOD(0x0047D970, BitStream::DecompressTo);
 
 // --- Channel writers ---------------------------------------------------------------------------
 

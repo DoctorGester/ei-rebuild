@@ -6,9 +6,28 @@
 //    empty. (The class registry is built before the hooks are installed and destroyed at exit.)
 #include "verify.h"
 
-#include "../../src/game/hash_tables_400.h"
-
 #include <cstdint>
+
+namespace hash400 {
+struct Table {
+    std::uint8_t functors[4];
+    void** buckets;
+    void** bucketsEnd;
+    void** bucketsEos;
+    std::uint32_t count;
+    std::int32_t maxKey;
+};
+void __fastcall ObjectsSetAt(Table* t, void*, const std::int32_t* key, const std::uint32_t* value);
+std::uint32_t __fastcall ObjectsRemoveKey(Table* t, void*, const std::uint32_t* key);
+int __fastcall ObjectsLookup(Table* t, void*, const std::uint32_t* key, std::uint32_t* value);
+std::uint32_t __fastcall PositionsRemoveKey(Table* t, void*, const std::uint32_t* key);
+std::uint32_t* __fastcall ObjectsFind(Table* t, void*, const std::uint32_t* key);
+std::uint32_t* __fastcall PositionAt(Table* t, void*, const std::int32_t* key);
+std::uint32_t* __fastcall SpareCountAt(Table* t, void*, const std::int32_t* key);
+void* __fastcall ClassRegistryConstruct(Table* self);
+void __fastcall ClassRegistryDestruct(Table* self);
+void __fastcall TypeRegistryDestruct(Table* self);
+} // namespace hash400
 
 namespace misc400 {
 void* __fastcall AlignedWords(int count);
@@ -27,7 +46,7 @@ std::uint32_t* Slot(const Table* t, std::uint32_t key) {
         if (reinterpret_cast<std::uintptr_t>(node[1]) == key) return reinterpret_cast<std::uint32_t*>(&node[2]);
     return nullptr;
 }
-Table* Second(Table* t) { return reinterpret_cast<Table*>(reinterpret_cast<std::uint8_t*>(t) + sizeof(stlp::hash_map<int, int, stlp::IntHash>)); }
+Table* Second(Table* t) { return reinterpret_cast<Table*>(reinterpret_cast<std::uint8_t*>(t) + 0x14); }
 
 void __fastcall SetAtVerify(Table* t, void*, const std::int32_t* key, const std::uint32_t* value) {
     std::int32_t k = *key;
@@ -81,20 +100,17 @@ std::uint32_t* __fastcall SpareCountAtVerify(Table* t, void*, const std::int32_t
     ei::verify::Check("SpareCountAt", true, result == Slot(t, static_cast<std::uint32_t>(k)) && t->maxKey >= k, "key %d", k);
     return result;
 }
-void* __fastcall ClassRegistryConstructVerify(ChunkArchive::ClassRegistry* registry) {
-    Table* self = hash400::AsTable(&registry->classIds);
-    void* result = hash400::ClassRegistryConstruct(registry);
-    ei::verify::Check("ClassRegistryConstruct", true, result == registry && self->count == 0 && Second(self)->count == 0, "");
+void* __fastcall ClassRegistryConstructVerify(Table* self) {
+    void* result = hash400::ClassRegistryConstruct(self);
+    ei::verify::Check("ClassRegistryConstruct", true, result == self && self->count == 0 && Second(self)->count == 0, "");
     return result;
 }
-void __fastcall ClassRegistryDestructVerify(ChunkArchive::ClassRegistry* registry) {
-    Table* self = hash400::AsTable(&registry->classIds);
-    hash400::ClassRegistryDestruct(registry);
+void __fastcall ClassRegistryDestructVerify(Table* self) {
+    hash400::ClassRegistryDestruct(self);
     ei::verify::Check("ClassRegistryDestruct", true, self->count == 0 && Second(self)->count == 0, "");
 }
-void __fastcall TypeRegistryDestructVerify(net::TypeRegistry* registry) {
-    Table* self = hash400::AsTable(&registry->byVtable);
-    hash400::TypeRegistryDestruct(registry);
+void __fastcall TypeRegistryDestructVerify(Table* self) {
+    hash400::TypeRegistryDestruct(self);
     ei::verify::Check("TypeRegistryDestruct", true, self->count == 0 && Second(self)->count == 0, "");
 }
 bool Aligned(void* start) {

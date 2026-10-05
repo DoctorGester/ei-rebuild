@@ -1,6 +1,5 @@
 // CIniFile: .ini settings through GetPrivateProfile* / WritePrivateProfileString (ini_file.h).
 #include "ini_file.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "ei/hook.h"
@@ -16,6 +15,7 @@
 namespace {
 
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+const char* const kEmpty = Text(0x0079B298);         // ""
 const char* const kDoubleFormat = Text(0x0078DA68);  // "%g"
 const char* const kIntFormat = Text(0x0078EEEC);     // "%d"
 const char* const kUIntFormat = Text(0x0079614C);    // "%u"
@@ -279,7 +279,7 @@ mfc::CString CIniFile::GetString(const char* section, const char* key, const cha
 EI_REPLACE_METHOD(0x00696030, CIniFile::GetString);
 
 BOOL CIniFile::GetList(const char* section, const char* key, console::CStringArray* out, char separator) {
-    mfc::CString value = ReadString(this, section, key, game::EmptyText());
+    mfc::CString value = ReadString(this, section, key, kEmpty);
     mfc::CString item;
     if (console::Length(value) == 0) return 0;
     Ops(value).AppendChar(separator);

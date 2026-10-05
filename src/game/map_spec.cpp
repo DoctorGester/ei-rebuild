@@ -2,7 +2,6 @@
 // (map_spec.h), and the quaternion rotation the editor uses (0046A4B0). Plain float maths
 // (rule 7). See docs/notes/objects.md ("Sixth round").
 #include "map_spec.h"
-#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -160,7 +159,7 @@ ObjectSpec* __fastcall ObjectSpecConstruct(ObjectSpec* self) {
     mfc::CString none(Text(0x007846F0));
     self->base.kind = 1;
     self->parentId = 0;
-    self->model = game::EmptyText();
+    self->model = Text(0x0079B298);
     self->texture = none;
     self->primaryTexture = none;
     self->player = -1;
@@ -656,7 +655,7 @@ std::int32_t* __fastcall DiplomacyConstruct(std::int32_t* self) {
     for (int i = 0; i < 0x400; ++i) self[i] = 1;
     for (int i = 0; i < 32; ++i) self[i * 33] = 0;
     for (int i = 0; i < 32; ++i) {
-        StringArraySetAtGrow(names, nullptr, names->size, game::EmptyText());
+        StringArraySetAtGrow(names, nullptr, names->size, Text(0x0079B298));
         names->data[i].Format(Text(0x00787E44), i);   // "Player-%i"
     }
     return self;

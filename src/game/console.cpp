@@ -1,7 +1,6 @@
 // The developer console: output streambuf, command executor, tokenizer and script lines.
 // game.exe 0x005DC150-0x005DD91F and 0x004DC200. See docs/notes/console.md.
 #include "console.h"
-#include "game_strings.h"
 
 #include "../lib/crt.h"
 
@@ -150,7 +149,7 @@ int ConsoleStreambuf::Sync() {
     using OverflowFn = int(__thiscall*)(ConsoleStreambuf*, int);
     reinterpret_cast<OverflowFn>(vtable_[7])(this, -1);
     Interface()->AddConsoleLine(line_);
-    Line() = game::EmptyText();   // ""
+    Line() = GameText(0x0079B298);   // ""
     return 0;
 }
 EI_REPLACE_METHOD(0x005DC1B0, ConsoleStreambuf::Sync);

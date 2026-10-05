@@ -7,7 +7,6 @@
 // is loaded: the world is new); otherwise ours runs alone on the real stream and only the shape is
 // checked. Command blocks, definitions and runs are compared through their savers (bytes written).
 // Nested loaders run through their own wrappers in both runs. CScript::Load itself runs ours only.
-#include "fake_stream.h"
 #include "verify.h"
 
 #include "../../src/game/script.h"
@@ -85,10 +84,11 @@ private:
     bool mismatch_ = false;
 };
 
-class CaptureStream : public FakeStream {
+class CaptureStream : public ScriptStream {
 public:
-    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
-    void Write(const void* buffer, std::uint32_t size) override {
+    void Slot0() override {}
+    void Read(void*, unsigned) override {}
+    void Write(const void* buffer, unsigned size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
     }

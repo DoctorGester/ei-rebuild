@@ -7,8 +7,6 @@
 // The tables' own resize, node allocation and erase steps (library) are called through their
 // original addresses; each instantiation has its own copies of them. See
 // docs/notes/unmapped_410_470.md ("Eighth round").
-#include "hash_tables_400.h"
-
 #include "ei/hook.h"
 
 #include <cstddef>
@@ -16,6 +14,17 @@
 #include "originals_library.h"
 
 namespace hash400 {
+
+// STLport hashtable (0x14 bytes); the id tables add the highest key inserted.
+struct Table {
+    std::uint8_t functors[4];   // +0x00 hasher / key_equal / select1st (empty)
+    void** buckets;             // +0x04
+    void** bucketsEnd;          // +0x08
+    void** bucketsEos;          // +0x0C
+    std::uint32_t count;        // +0x10
+    std::int32_t maxKey;        // +0x14 the id tables only
+};
+static_assert(offsetof(Table, count) == 0x10);
 
 struct Node {
     Node* next;
@@ -148,14 +157,13 @@ std::uint32_t* __fastcall SpareCountAt(Table* t, void*, const std::int32_t* key)
 // 00408EA0: the chunk archive's class registry (0079B270: vtable -> class id, then at +0x14 class
 // id -> factory), built by the static initialiser 00408D30 before the hooks are installed. The
 // empty functors are copied from an uninitialised stack byte in the original (0 here).
-void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry) {
-    Table* self = AsTable(&registry->classIds);
+void* __fastcall ClassRegistryConstruct(Table* self) {
     std::uint8_t functors = 0;
     self->functors[0] = self->functors[1] = self->functors[2] = functors;
     ClassIdsBucketsConstruct(&self->buckets, nullptr, &functors);
     self->count = 0;
     ClassIdsInitBuckets(self, nullptr, 100);
-    Table* factories = AsTable(&registry->factories);
+    Table* factories = reinterpret_cast<Table*>(reinterpret_cast<std::uint8_t*>(self) + 0x14);
     factories->functors[0] = factories->functors[2] = factories->functors[1] = functors;
     FactoriesBucketsConstruct(&factories->buckets, nullptr, &functors);
     factories->count = 0;
@@ -164,18 +172,18 @@ void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry) {
     void* none = nullptr;
     FactoriesBucketsFill(&factories->buckets, nullptr, factories->bucketsEnd, n, &none);
     factories->count = 0;
-    return registry;
+    return self;
 }
 // 00408D60: its destructor (registered with atexit by 00408D30): the factories, then the class ids.
-void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry) {
-    Destroy(AsTable(&registry->factories), FactoriesFreeNode);
-    Destroy(AsTable(&registry->classIds), ByVtableFreeNode);
+void __fastcall ClassRegistryDestruct(Table* self) {
+    Destroy(reinterpret_cast<Table*>(reinterpret_cast<std::uint8_t*>(self) + 0x14), FactoriesFreeNode);
+    Destroy(self, ByVtableFreeNode);
 }
 // 004368F0: the session type registry's destructor (reached from the session constructor's unwind
 // funclets): byType (+0x14), then byVtable.
-void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry) {
-    Destroy(AsTable(&registry->byType), ByTypeFreeNode);
-    Destroy(AsTable(&registry->byVtable), ByVtableFreeNode);
+void __fastcall TypeRegistryDestruct(Table* self) {
+    Destroy(reinterpret_cast<Table*>(reinterpret_cast<std::uint8_t*>(self) + 0x14), ByTypeFreeNode);
+    Destroy(self, ByVtableFreeNode);
 }
 
 } // namespace hash400

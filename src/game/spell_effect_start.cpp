@@ -4,7 +4,6 @@
 // lights and sound sequences and go to state 2, the instant ones (lightning, the light strike,
 // buffs, charm) deal or apply their effect here. See docs/notes/items_spells.md.
 #include "spell_effect_internal.h"
-#include "game_strings.h"
 
 using namespace spellfx;
 
@@ -182,7 +181,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     float radius = e->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
-    e->CreateSoundSequence(&centre, &kZeroVector, game::EmptyText(), GameString(0x007955EC), -1, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, GameString(0x0079B298), GameString(0x007955EC), -1, kVolume, kHearing);
     return Next::Set;
 }
 
@@ -221,7 +220,7 @@ Next StartFirework(CSpellEffect* e) {
     float size = Power(e);
     e->CreateParticle(1, 0x2009, &centre, size, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, PrototypeRange(e), &kZeroVector);
-    e->CreateSoundSequence(&centre, &kZeroVector, game::EmptyText(), GameString(0x007955A4), 5, kVolume, kHearing);
+    e->CreateSoundSequence(&centre, &kZeroVector, GameString(0x0079B298), GameString(0x007955A4), 5, kVolume, kHearing);
     e->position = centre;
     return Next::Set;
 }

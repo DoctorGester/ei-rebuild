@@ -8,7 +8,6 @@
 // only the changed words follow. Reading (the client) mirrors it through two globals set by
 // BeginField in the read modes. Names provisional; see docs/notes/unmapped_410_470.md.
 
-#include "core_streams.h"
 #include "maths.h"
 
 #include <cstddef>
@@ -16,9 +15,61 @@
 
 struct CoderState;   // net_coder.h
 
-// The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
-// WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).
-using BitStream = CMemoryStream;
+// A CMemoryStream (object.h) as the bit writer / reader of this code. Same layout; object.h names
+// +0xC, +0x10 and +0x14 by their use elsewhere (its growBy_ is this mask).
+struct BitStream {
+    void* vtable_;
+    std::uint8_t unknown_4;
+    std::uint8_t ok_;               // +0x05
+    std::uint8_t unknown_6[2];
+    std::uint32_t limit_;           // +0x08
+    std::uint8_t bits_;             // +0x0C byte being assembled
+    std::uint8_t unknown_D[3];
+    std::int32_t mask_;             // +0x10 bit of the last bit written (0x80: start a new byte)
+    std::int32_t bitsIndex_;        // +0x14 where bits_ goes in the data (-1: nowhere yet)
+    std::uint8_t* data_;            // +0x18
+    std::uint32_t capacity_;        // +0x1C
+    std::uint32_t position_;        // +0x20
+    std::uint32_t size_;            // +0x24
+
+    // Virtual slots (CMemoryStream: 004A5380, 004A53F0, 004A5490, 00417390, 004173A0).
+    std::uint32_t Read(void* data, std::uint32_t size);          // slot 1
+    void Write(const void* data, std::uint32_t size);            // slot 2
+    void Seek(std::uint32_t position);                           // slot 3 (also flushes bits_)
+    std::uint32_t Size();                                        // slot 4
+    std::uint32_t Position();                                    // slot 5
+
+    // 0047DFC0. Appends one bit (a new byte is started after eight).
+    // Several writers have an inline copy of it (same effect).
+    void PutBit(bool bit);
+    // The readers' inline bit read: true when the next bit is set (reads a byte after eight).
+    bool GetBit();
+
+    // 0047DA80 (RET 4). Writes the memory stream `from` into this stream (its slot 2): `from`'s
+    // pending bits stored first (EndBits), then its size times two, in one byte when that is below
+    // 0x100 (a signed compare), otherwise in four bytes with bit 0 set; then its bytes.
+    void WriteStream(BitStream* from);
+    // 0047DAE0 (RET 4). Reads what WriteStream wrote (this stream's slot 1) into the memory stream
+    // `to`: resized to the length (SetSize), filled, back at position 0, ok set. 0 for a length
+    // over 100000 (nothing more read) or a short read, else 1.
+    int ReadStream(BitStream* to);
+    // 0047D7F0 / 0047D970 (RET 8). The whole of this memory stream (a fixed view over its bytes)
+    // compressed / decompressed by `coder` (00430450 / 00430960) into a growing buffer, which then
+    // replaces `out`'s contents; `out` is left at position 0. The coder keeps its window from call
+    // to call (the client's and the server's message streams).
+    void CompressTo(CoderState* coder, BitStream* out);
+    void DecompressTo(CoderState* coder, BitStream* out);
+
+    // Not rewritten (004A5000-004A6000).
+    void StartByte();                       // 004A5610: stores bits_, appends a zero byte for the next bits
+    void EndBits();                         // 004A5650: stores bits_, no pending byte
+    void Resize(std::uint32_t size);        // 004A54D0: size = size, position 0 (grows the buffer)
+    void SetSize(std::uint32_t size);       // 004A5570: size = size, position 0 (grows to exactly that)
+    void* ReadString(void* cstring);        // 00461190: CString up to a zero byte
+};
+static_assert(offsetof(BitStream, mask_) == 0x10);
+static_assert(offsetof(BitStream, data_) == 0x18);
+static_assert(sizeof(BitStream) == 0x28);
 
 namespace delta {
 

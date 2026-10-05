@@ -6,7 +6,6 @@
 // are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
 // the rest still run original code or their own replacement's verify wrapper.
 #include "script.h"
-#include "game_strings.h"
 #include "script_addon.h"
 
 #include "ei/hook.h"
@@ -578,7 +577,7 @@ ParticleEntry* FindParticle(CScript* script, int id) {
 
 // The quest objective commands' text argument when they take none: an empty CString.
 void QuestObjectiveNoText(int id, float value) {
-    mfc::CString text(game::EmptyText());
+    mfc::CString text(reinterpret_cast<const char*>(0x0079B298));
     QuestObjective(id, &text, value);
 }
 
@@ -1509,7 +1508,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             auto* records = static_cast<PartyRecords*>(PartyRecordsFor(player, &name));
             if (records) {
                 if (cmd->id == 0x86)
-                    records->AddUnit(name, Text(cmd, 1), game::EmptyText());
+                    records->AddUnit(name, Text(cmd, 1), reinterpret_cast<const char*>(0x0079B298));
                 else
                     records->RemoveUnit(TextKeyFromName(name));
             }

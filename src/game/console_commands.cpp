@@ -1,7 +1,6 @@
 // Console command handlers (game.exe 0x005DD920-0x005E0A8B). Each gets the command's arguments,
 // already lower-cased, in ECX. See docs/notes/console.md.
 #include "ei/x87.h"
-#include "game_strings.h"
 #include "console.h"
 
 #include "../lib/crt.h"
@@ -498,7 +497,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
             return;
         }
     }
-    if (count != 1 || ArgIs(args, 0, game::kEmptyTextAddress)) return;   // "" does nothing
+    if (count != 1 || ArgIs(args, 0, 0x0079B298)) return;   // "" does nothing
     mfc::CString name((*args)[0]);
     const char* text = name;
     if (text[0] == '"' && text[Length(name) - 1] == '"') name = Ops(name).Mid(1, Length(name) - 2);

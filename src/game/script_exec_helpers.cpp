@@ -2,7 +2,6 @@
 // lights (CreatePointLight, MovePointLight, DeletePointLight). See script.h and
 // docs/notes/script.md ("Command execution and runtime").
 #include "script.h"
-#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -363,6 +362,6 @@ void __fastcall ScriptQuestFinish(CScript* script) {
     }
     text += Text(0x0078B928);   // "WorldScript( Su0() )\n"
     LoadOrig(script, nullptr, &text, 1);
-    QuestName() = game::EmptyText();   // the empty string constant
+    QuestName() = Text(0x0079B298);   // the empty string constant
 }
 EI_REPLACE(0x004BAAB0, ScriptQuestFinish);

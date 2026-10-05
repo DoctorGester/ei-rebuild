@@ -1,7 +1,6 @@
 // The multiplayer hero screen's left button (00617050, input slot 2). See docs/notes/ui.md
 // ("Ninth pass").
 #include "ui_screens.h"
-#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -20,6 +19,7 @@ constexpr std::uintptr_t kSoundCancel = 0x007937E4;   // buttons\messbox_cancel.
 constexpr std::uintptr_t kSoundTurn = 0x00793764;     // the rotate arrows
 constexpr std::uintptr_t kSoundSelect = 0x00793A60;   // buttons\save_select.wav
 // An empty CString object of the game (the new hero's name).
+void* const kNoName = reinterpret_cast<void*>(0x0079B298);
 
 // The hero screen's own methods (thiscall on the window): 00615D30 the mode (RET 4;
 // Rebirth-patched), 006186F0 create the hero, 00617A50 the statistics page's next, 006183B0
@@ -160,8 +160,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             char* hero = Hero();
             for (int offset = 0x2C; offset <= 0x40; offset += 4) At<float>(hero, offset) = 25.0f;
             At<float>(hero, 0x72C) = 0.7f;
-            EditSetText(nameEdit_, nullptr, game::EmptyText());
-            StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
+            EditSetText(nameEdit_, nullptr, kNoName);
+            StatsSetHero(statsPanel_, nullptr, 0, kNoName);
             Refresh();
             return;
         }
@@ -187,7 +187,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // The new hero's statistics page.
         if (region == 0) {
             uiorig::PlayUiSound(window.interface_, GameText(kSoundCancel), 0);
-            StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
+            StatsSetHero(statsPanel_, nullptr, 0, kNoName);
             auto* surface = reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0]);
             surface->Begin();
             reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Clear();
@@ -244,13 +244,13 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A new hero.
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         VirtualAt<StoreFn>(this, 52)(this, *defaults_);
-        StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
+        StatsSetHero(statsPanel_, nullptr, 0, kNoName);
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Begin();
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Clear();
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->End();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
-        EditSetText(nameEdit_, nullptr, game::EmptyText());
+        EditSetText(nameEdit_, nullptr, kNoName);
         return;
     case 6:
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);

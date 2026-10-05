@@ -226,33 +226,3 @@ ui_saveload.cpp), 00700AA9 / 00700970 (net_*.cpp), `CIacos` (core_transform_math
 quaternion.cpp) and `CIpow` (ui_hud_map.cpp, ui_item_info.cpp inline asm), `NodeFreeList` (4 files);
 item_constructor.cpp / options.cpp call 006FDA6D `Right`, the camera's use shows it takes the
 characters after the first N (Mid); 007AF738 is the terrain here but `LightManager()` elsewhere.
-
-## Ticket C4: stream duplicates merged (2026-10-05)
-
-Behaviour unchanged; every EI_REPLACE / EI_VERIFY address kept (BitStream's methods keep their
-hooks, now as CMemoryStream members).
-
-- `BitStream` (net_delta.h) is `using BitStream = CMemoryStream`. PutBit / GetBit / WriteStream /
-  ReadStream / CompressTo / DecompressTo (net_delta.cpp, hooks 0047DFC0 / 0047DA80 / 0047DAE0 /
-  0047D7F0 / 0047D970) and the not-rewritten StartByte (004A5610) / EndBits (004A5650) are
-  declared in core_streams.h. Its own slot forwarders and `mask_` (now `bitMask_`) are gone.
-- `ScriptStream` (script.h) and `WorldStream` (world.h) are `using ... = CStream` (`version` is
-  `version_`). The tests' fake streams derive from the new tests/verify/fake_stream.h `FakeStream`.
-- `CMemoryStream::Seek` has a definition (naked forwarder to 004A5490), so a direct call on a
-  stream object links; the forwarders in net_link.cpp, world_game.cpp (Seek, Reset, Resize),
-  world_savefile.cpp, map_object_lifetime.cpp, net_session_pump.cpp (Reset, ConstructBase) are
-  calls of the members. world_zone.cpp's LoadMapObjects builds a `RootChunk` and calls `Open` /
-  `Destruct` instead of the two forwarders.
-- base_manager.cpp: `MapIterator<Map>` is `Map::Iterator`, `ObjectPair` / `CountPair` are the
-  tables' `Pair`.
-- hash_tables_400.h: `Table` is declared once (the verify file had its own copy); the registry
-  functions take `ChunkArchive::ClassRegistry*` / `net::TypeRegistry*` and reach the two tables
-  by member instead of `+ 0x14`.
-- game_strings.h: `game::EmptyText()` / `kEmptyTextAddress` for 0079B298; the ~40 literal uses and
-  the per-file copies (EmptyText, EmptyString, kEmpty, kNoName, ...) are gone.
-- map_object_lifetime.cpp's local `kStreamVtable` (0073BD90) / `kMemoryStreamVtable` (0073C960) /
-  `kStreamBaseVtable` (0073BDB0) now use core_streams.h's names (same values); 0073C960 is
-  `kQueueStreamVtable`.
-
-Left: the other streams with their own layouts (UnitStream, SaveStream, FileStream, the unit_ai
-stream, verify_magic_trap's wrapper), and the remaining `Text(0x...)` copies for other strings.

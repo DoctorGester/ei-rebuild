@@ -43,7 +43,7 @@ constexpr std::uintptr_t kGTimeName = 0x0073F920;             // "gtime"
 constexpr std::uintptr_t kCantLoadMap = 0x00790BB8;           // "CWorldServer::LoadSave(): Can't load map..."
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 
-// Save format versions (WorldStream::version_) at which fields were added.
+// Save format versions (WorldStream::version) at which fields were added.
 constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
 constexpr int kVersionUnknown13C = 0x74;
 constexpr int kVersionCountdowns = 0x4E;
@@ -376,7 +376,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
         CEngineObject* object = ManagerFindObject(manager40_, nullptr, id);
-        if (stream->version_ >= kVersionMapObjectName) {
+        if (stream->version >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
             ei::VCall<void>(object, kSlotSetSecondName, static_cast<const char*>(name));
@@ -490,7 +490,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             ++object->refCount_;
         }
         stream->Read(&At<std::uint8_t>(player, kPlayer108), 1);
-        if (stream->version_ >= kVersionPlayerLists) {
+        if (stream->version >= kVersionPlayerLists) {
             auto& ids = At<DwordList>(player, kPlayerIds);
             int count = ReadValue<int>(stream);
             for (int i = 0; i < count; ++i) ids.AddTail(0);
@@ -500,8 +500,8 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
                 node = next;
             }
         }
-        if (stream->version_ < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
-        if (stream->version_ < kVersionPlayerGroup) {
+        if (stream->version < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
+        if (stream->version < kVersionPlayerGroup) {
             alignas(4) std::uint8_t group[0x14];
             ScriptGroupConstruct(group, nullptr);
             *reinterpret_cast<void**>(group) = reinterpret_cast<void*>(kScriptGroupVtable);
@@ -565,9 +565,9 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     stream->Read(&unknownE8_, 4);
     float time = ReadValue<float>(stream);
     float speed;
-    if (stream->version_ >= kVersionTimeSpeedFloat) {
+    if (stream->version >= kVersionTimeSpeedFloat) {
         stream->Read(&speed, 4);
-        if (stream->version_ >= kVersionUnknown13C) stream->Read(&unknown13C_, 4);
+        if (stream->version >= kVersionUnknown13C) stream->Read(&unknown13C_, 4);
     } else {
         speed = static_cast<float>(ReadValue<int>(stream));
     }
@@ -634,7 +634,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             DiplomacyRead(diplomacy_, nullptr, stream);
             stream->Read(&unknownDC_, 4);
             stream->Read(&unknownE0_, 4);
-            if (stream->version_ >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
+            if (stream->version >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
 
             // Counted references to items (added at the head of the list).
             for (;;) {
@@ -653,7 +653,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             stream->Read(&unknown6C_, 1);
 
             // The item manager's object records.
-            if (stream->version_ >= kVersionPlayerLists) {
+            if (stream->version >= kVersionPlayerLists) {
                 for (;;) {
                     int id = -1;
                     stream->Read(&id, 4);
@@ -682,7 +682,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 
             RelocateStrandedUnits(this);
 
-            if (stream->version_ >= kVersionMobFiles) {
+            if (stream->version >= kVersionMobFiles) {
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
@@ -694,7 +694,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 StringArraySetSize(&mobFiles_, nullptr, 0, -1);
             }
 
-            if (stream->version_ >= kVersionSharedObjects) {
+            if (stream->version >= kVersionSharedObjects) {
                 SharedObjectList& shared = SharedObjects(this);
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {

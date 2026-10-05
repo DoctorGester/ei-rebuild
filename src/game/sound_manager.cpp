@@ -8,7 +8,6 @@
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
 // operation order is kept (/fp:fast may reassociate) and NaN compares stay as written.
 #include "sound.h"
-#include "game_strings.h"
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
@@ -69,6 +68,7 @@ float HalfPi() { return *reinterpret_cast<const volatile float*>(0x007C8808); }
 std::uint32_t FadeStepBits() { return *reinterpret_cast<const volatile std::uint32_t*>(0x007440E4); }
 // StopStream's fade-out step (007440E8), loaded and tested as a float.
 float StopFadeStep() { return *reinterpret_cast<const volatile float*>(0x007440E8); }
+const char* EmptyString() { return reinterpret_cast<const char*>(0x0079B298); }
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
@@ -926,7 +926,7 @@ void CSoundManager::StopStream(int mode) {
                 streamFile = nullptr;
             }
             streamState = 0;
-            streamName = game::EmptyText();
+            streamName = EmptyString();
             float step = StopFadeStep();
             musicFader.mode = 2;
             musicFader.finished = 0;
@@ -944,7 +944,7 @@ void CSoundManager::StopStream(int mode) {
                 musicFader.level = level > 0x7F ? 0x7F : (level < 0 ? 0 : level);
             }
         } else {
-            RequestStream(game::EmptyText(), mode);
+            RequestStream(EmptyString(), mode);
         }
     }
     gameapi::LeaveCriticalSection(lock);

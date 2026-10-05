@@ -4,7 +4,6 @@
 #pragma float_control(precise, on)
 
 #include "net_messages.h"
-#include "game_strings.h"
 #include "net_connection.h"
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -45,6 +44,7 @@ constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
 constexpr std::uintptr_t kMapSuffix = 0x00783D70;      // "_1"
 constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
+constexpr std::uintptr_t kEmptyText = 0x0079B298;      // ""
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
@@ -67,7 +67,7 @@ void EmptyAwardText(StringRep* s) {
     s->start = nullptr;
     s->finish = nullptr;
     s->eos = nullptr;
-    const char* first = game::EmptyText();
+    const char* first = Text(kEmptyText);
     const char* last = first + std::strlen(first);
     StringAllocateBlock(s, nullptr, static_cast<std::size_t>(last - first) + 1);
     char* end = CopyTrivial(first, last, s->start);
@@ -225,7 +225,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
             std::uint8_t allocator = 0;
             StringRep text0;
             StringInitWithAllocator(&text0, nullptr, &allocator);
-            const char* empty = game::EmptyText();
+            const char* empty = Text(kEmptyText);
             StringAssignSpan(&text0, nullptr, empty, empty + std::strlen(empty));
             QueueAward(connection, 0, award0, text0);
             StringRep text1;

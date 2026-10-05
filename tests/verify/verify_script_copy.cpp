@@ -2,7 +2,6 @@
 // reference objects, so ours runs alone; the source is captured first (it may be the destination)
 // and the destination must then equal it: saved bytes (the game's savers, through their
 // addresses) plus the members the savers do not write; floats as FLD / FSTP leave them.
-#include "fake_stream.h"
 #include "verify.h"
 
 #include "../../src/game/script.h"
@@ -17,10 +16,11 @@
 namespace {
 void* s_unused;
 
-class CaptureStream : public FakeStream {
+class CaptureStream : public ScriptStream {
 public:
-    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
-    void Write(const void* buffer, std::uint32_t size) override {
+    void Slot0() override {}
+    void Read(void*, unsigned) override {}
+    void Write(const void* buffer, unsigned size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
     }

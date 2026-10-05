@@ -2,7 +2,6 @@
 // file chunk sender at 00479EF4). Float maths in plain C++ (rewrite-guide rule 7). See
 // net_classes.h and docs/notes/unmapped_410_470.md ("Eighth round").
 #include "net_messages.h"
-#include "game_strings.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -26,6 +25,7 @@ __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/
 constexpr std::uintptr_t kZero = 0x0073B858;             // 0.0f
 constexpr std::uintptr_t kAnnouncePeriod = 0x0073BB20;   // seconds between announcements
 constexpr std::uintptr_t kMasterHost = 0x0079BED8;       // char*: the master server's host name
+constexpr std::uintptr_t kEmptyText = 0x0079B298;
 
 float GameFloat(std::uintptr_t address) {
     float value;
@@ -71,7 +71,7 @@ void ServerSession::Tick(double dt) {
     if (!(announceTimer_ >= GameFloat(kZero))) {   // run out (or NaN)
         std::memcpy(&announceTimer_, reinterpret_cast<const void*>(kAnnouncePeriod), 4);
         const auto* host = *reinterpret_cast<const unsigned char* const*>(kMasterHost);
-        if (gamecrt::mbscmp(host, reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) ServerAnnounceToMaster(this);
+        if (gamecrt::mbscmp(host, reinterpret_cast<const unsigned char*>(kEmptyText)) != 0) ServerAnnounceToMaster(this);
     }
 }
 namespace {

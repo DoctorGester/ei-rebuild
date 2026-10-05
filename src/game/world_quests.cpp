@@ -1,7 +1,6 @@
 // CWorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md (seventh round).
 #include "world.h"
-#include "game_strings.h"
 
 #include "console.h"
 
@@ -325,6 +324,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
 namespace {
 
 constexpr std::uintptr_t kHumanHero = 0x0078B0FC;   // "Human Hero"
+constexpr std::uintptr_t kEmptyText = 0x0079B298;   // ""
 
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
 // 00530930. The unit's prototype record; its first field is the prototype name.
@@ -375,7 +375,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         if (is(v.n1) || is(v.n3)) {
             StateSetVariable(state, nullptr, v.hired, 2.0f);
             const char* prototype = unit ? *UnitPrototype(unit, nullptr) : Text(kHumanHero);
-            PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
+            PartyAddMember(party, nullptr, v.merc, prototype, Text(kEmptyText));
         }
     }
     UpdateMercBriefingsAt(this, nullptr);

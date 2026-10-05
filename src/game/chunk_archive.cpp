@@ -2,7 +2,6 @@
 // fields, whole archives over a stream. 00409070-0040A5A0. See docs/notes/unmapped_410_470.md
 // ("Fourth round").
 #include "chunk_archive.h"
-#include "game_strings.h"
 
 #include "core_refcount.h"
 
@@ -55,6 +54,8 @@ __declspec(naked) ChunkArchive::Factory* __fastcall FactoryAt(FactoryMap* /*map*
 // 0040A770: a counted pointer from a raw pointer (adds a reference).
 __declspec(naked) CRefObject** __fastcall CountedFromRaw(CRefObject** /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x0040A770)
 
+// 0079B298: the exe's empty string, which the text readers fall back to.
+const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
 
 // The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
 Ref* PushRecordChunk(ChunkArchive* a) {
@@ -241,7 +242,7 @@ void ChunkArchive::CStringField(int id, mfc::CString* s) {
     }
     Ref child;
     if (FindField(this, id, &child)) *s = reinterpret_cast<const char*>(Data() + child.offset);
-    else *s = game::EmptyText();
+    else *s = EmptyText();
 }
 EI_REPLACE_METHOD(0x004093A0, ChunkArchive::CStringField);
 
@@ -254,7 +255,7 @@ void ChunkArchive::StringField(int id, stlp::string* s) {
     }
     Ref child;
     if (FindField(this, id, &child)) AssignText(s, reinterpret_cast<const char*>(Data() + child.offset));
-    else AssignText(s, game::EmptyText());
+    else AssignText(s, EmptyText());
 }
 EI_REPLACE_METHOD(0x00409470, ChunkArchive::StringField);
 

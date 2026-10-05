@@ -44,6 +44,8 @@ __declspec(naked) void __fastcall StreamWriteSized(CStream* /*to*/, void*, CStre
 // 004A51C0 (RET 4): reads a stream written by 004A5250 (size prefix, then the bytes) from the
 // stream in ECX into `to`, which is emptied first (its slot 6).
 __declspec(naked) void __fastcall StreamReadSized(CStream* /*from*/, void*, CStream* /*to*/) EI_ORIGINAL(0x004A51C0)
+// CMemoryStream's Seek (004A5490, slot 3) called directly.
+__declspec(naked) void __fastcall MemoryStreamSeek(CMemoryStream* /*stream*/, void*, std::uint32_t /*position*/) EI_ORIGINAL(0x004A5490)
 // The game's memmove (006E79A0).
 
 bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
@@ -628,7 +630,7 @@ void DriverLink::Disconnect() {   // 00479810
     pending.Reset();
     TakeAll(&pending);
     if (pending.size_ != 0 && IsLive(player_)) {
-        pending.Seek(pending.size_);
+        MemoryStreamSeek(&pending, nullptr, pending.size_);
         std::uint32_t count = BufferFill(&player_->reliableIn_);
         CStream* stream = &pending;
         stream->Write(player_->reliableIn_.begin, count);

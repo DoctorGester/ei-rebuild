@@ -2,7 +2,6 @@
 // creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
 // See script.h and docs/notes/script.md ("CScript reset").
 #include "script.h"
-#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -170,7 +169,7 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     GroupValuesSetSize(&vars.groups, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.groupNames, nullptr, 0, -1);
     definition->index = 0;
-    const char* empty = game::EmptyText();
+    const char* empty = reinterpret_cast<const char*>(0x0079B298);
     definition->params = empty;
     definition->name = empty;
 }

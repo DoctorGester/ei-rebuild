@@ -94,7 +94,7 @@ static int __fastcall LoadSaveVerify(CWorldServer* self, void*, WorldStream* str
     bool ok = result == 1 && self->loaded_ == 1 && (!memory || ms->ok_) && MapObjectsRegistered(self);
     ei::verify::Check("CWorldServer::LoadSave", true, ok, "result %d loaded %d stream ok %d at %u of %u, version %d", result,
                       self->loaded_, memory ? ms->ok_ : -1, memory ? ms->position_ : 0u, memory ? ms->size_ : 0u,
-                      stream->version_);
+                      stream->version);
     return result;
 }
 EI_VERIFY(0x00596E70, LoadSaveVerify, 0, s_unused);

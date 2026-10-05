@@ -41,6 +41,8 @@ __declspec(naked) void __fastcall BufferUpdateHigh(GameBuffer*) EI_ORIGINAL(0x00
 __declspec(naked) bool __fastcall ManagerHasPlayer(void*, void*, void*) EI_ORIGINAL(0x00417E40)
 // 00413250 (__fastcall size): operator new with the reference count cleared.
 __declspec(naked) void* __fastcall AllocRefObject(std::size_t) EI_ORIGINAL(0x00413250)
+// 00468C20: the memory stream's fields reset.
+__declspec(naked) void __fastcall ResetMemoryStream(CMemoryStream*) EI_ORIGINAL(0x00468C20)
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
@@ -124,7 +126,7 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
         stream.ConstructBase();
         ei::SetVtable(&stream, kMemoryStreamVtable);
         stream.data_ = nullptr;
-        stream.Reset();
+        ResetMemoryStream(&stream);
         ei::SetVtable(&stream, kNodeStreamVtable);
         driver->Receive(&stream);
         ei::SetVtable(&stream, kMemoryStreamVtable);
