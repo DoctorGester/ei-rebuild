@@ -55,7 +55,7 @@ __declspec(naked) void __stdcall ThrowException(void*, const void*) EI_ORIGINAL(
 const void* ErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
 constexpr int kRelease = 2, kGetPixelFormat = 21, kGetSurfaceDesc = 22, kLock = 25, kUnlock = 32;   // IDirectDrawSurface7
-constexpr int kCreateSurface = 6;                                          // IDirectDraw7
+constexpr int kCreateSurface = 6, kGetDisplayMode = 12;                    // IDirectDraw7
 constexpr std::uint32_t kDescFlags = 0x1007;    // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT
 constexpr std::uint32_t kPixelFormatFlag = 0x1000;   // DDSD_PIXELFORMAT
 constexpr std::uint32_t kClientMemory = 0x808;  // DDSD_LPSURFACE | DDSD_PITCH
@@ -135,8 +135,24 @@ bool ReadSize(CDXSurface* holder) {
     return true;
 }
 
-// The screen's pixel format (the device's primary surface) into `format` (a DDPIXELFORMAT).
+// The display mode's pixel format into `format` (a DDPIXELFORMAT; IDirectDraw7::GetDisplayMode).
+// False when DirectDraw does not give an RGB one.
+bool ReadDisplayModeFormat(CTextureDevice* device, std::uint32_t* format) {
+    if (!device->ddraw_) return false;
+    std::uint32_t mode[0x1F] = {};
+    mode[0] = 0x7C;
+    if (ComCall(device->ddraw_, kGetDisplayMode, static_cast<void*>(mode)) != 0 || !(mode[kFormat + 1] & kRgb))
+        return false;
+    std::memcpy(format, &mode[kFormat], 8 * sizeof(std::uint32_t));
+    return true;
+}
+
+// The screen's pixel format (the device's primary surface) into `format` (a DDPIXELFORMAT). In the
+// switch-over the display mode's instead (ticket R8, towards a device without a primary surface):
+// the primary is in the display mode's format (full screen and windowed), so the holders get the
+// same format, and nothing of theirs needs the primary surface.
 void ReadScreenFormat(CTextureDevice* device, std::uint32_t* format) {
+    if (render::Presenting() && ReadDisplayModeFormat(device, format)) return;
     CDXSurface* primary = device->primary_;
     format[0] = 0x20;
     long hr = ComCall(primary->surface, kGetPixelFormat, static_cast<void*>(format));
