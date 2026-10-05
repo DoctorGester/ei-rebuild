@@ -10,8 +10,9 @@
 // surface's DC, the pixel code through Lock and the old path's Blt all work on that memory, and the
 // new renderer reads it directly instead of locking the surface (render::ClientSurface). Picture
 // surfaces (004F0060) get the same memory when they are asked for in system memory; in the
-// switch-over ("present") the picture is written into it without DirectDraw. See
-// docs/notes/renderer.md ("Interface windows").
+// switch-over ("present") the picture is written into it without DirectDraw. The save / load
+// screen's picture textures get such memory beside their DirectDraw texture (AttachTextureMemory,
+// ui_saveload.cpp). See docs/notes/renderer.md ("Interface windows", section 11).
 #include "dx_surface.h"
 
 #include "ei/hook.h"
@@ -139,7 +140,10 @@ HBITMAP ClientBitmap(const void* holder) {
 }
 
 bool DirectPixels(const void* holder, std::uint32_t* desc) {
-    if (!render::Presenting()) return false;
+    return render::Presenting() && ClientPixels(holder, desc);
+}
+
+bool ClientPixels(const void* holder, std::uint32_t* desc) {
     auto it = g_memory.find(holder);
     if (it == g_memory.end()) return false;
     const ClientMemory& m = it->second;
@@ -153,6 +157,28 @@ bool DirectPixels(const void* holder, std::uint32_t* desc) {
     desc[kSurface] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(m.bits));
     std::memcpy(&desc[kFormat], m.format, sizeof(m.format));
     desc[kCapsWord] = kCaps;
+    return true;
+}
+
+bool AttachTextureMemory(void* holder, int width, int height, const std::uint32_t* pixelFormat) {
+    if (!holder || !render::CpuWindows()) return false;
+    if (g_memory.count(holder)) return true;
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    desc[kFlags] = kDescFlags;
+    desc[kWidth] = static_cast<std::uint32_t>(width);
+    desc[kHeight] = static_cast<std::uint32_t>(height);
+    std::memcpy(&desc[kFormat], pixelFormat, 8 * sizeof(std::uint32_t));
+    ClientMemory memory{};
+    if (!AttachClientMemory(desc, &memory)) {
+        if (g_clientFailures++ < 5)
+            ei::Log("cpuwindows: no game memory for a %dx%d texture (format flags %08X, %u bits); it stays in "
+                    "DirectDraw only", width, height, desc[kFormat + 1], desc[kBits]);
+        return false;
+    }
+    g_memory[holder] = memory;
+    render::ClientSurface(holder, memory.bits, static_cast<int>(desc[kPitch]), width, height, static_cast<int>(desc[kBits]),
+                          desc[kRed], desc[kGreen], desc[kBlue], (desc[kFormat + 1] & 1) ? desc[kAlpha] : 0);
     return true;
 }
 

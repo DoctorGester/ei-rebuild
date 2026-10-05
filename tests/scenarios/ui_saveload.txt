@@ -1,0 +1,58 @@
+# The save / load screen's pictures in the switch-over ("render new,present": cpuwindows on;
+# docs/notes/renderer.md section 11): after the new game's autosave (savea, with info.sav and
+# shot.sav), the escape menu's Save window (the new save's picture, made by FillEntries from the
+# escape menu's copy of the screen, read from game memory by the new renderer), a save into it
+# (SaveGame writes shot.sav from that memory), then the Load window (ShowPicture reads a shot.sav
+# into the picture texture's memory). Captures are the new frames: the picture frame (right
+# upper box) must show the greyed world, not black. Verify wrappers: ShowPicture / FillEntries
+# against the original, SaveGame ours only (files read back). For the side-by-side check of the
+# old and new frames use "render new,cpuwindows" instead (the old path then draws the textures).
+render new,present
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+wait 1000
+
+# Escape menu, Save (rectangles from menus.reg): the new save's entry is selected.
+key esc
+wait 1000
+click 395 120
+wait 1500
+move 400 20
+wait 300
+freeze
+capture save
+unfreeze
+# OK (region 0) saves into a new folder and closes the windows.
+clickregion 0
+waitline 15 Saved save1
+wait 1500
+
+# Escape menu, Load: the first save is selected and its picture shown; then the second.
+key esc
+wait 1000
+click 395 187
+wait 1500
+move 400 20
+wait 300
+freeze
+capture load
+unfreeze
+clickregion 4
+wait 500
+freeze
+capture load2
+unfreeze
+# Cancel (region 1), then Esc closes the menu.
+clickregion 1
+wait 800
+key esc
+wait 1000
+check IsAlive(GetLeader())
+report
+quit
