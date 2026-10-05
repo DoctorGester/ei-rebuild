@@ -21,15 +21,19 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I6 Next 3-5 live interface functions (ui.md Fourteenth pass; 00617A50 and 006312C0 need hero creation / global-map clicks, skip unless a scenario can reach them).
+- I6 (taken 2026-10-05) Next 3-5 live interface functions (ui.md Fourteenth pass; 00617A50 and 006312C0 need hero creation / global-map clicks, skip unless a scenario can reach them).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H3 (taken 2026-10-05) Trader stock leftovers: 0069A480 / 0069A780 (spell maps, random spells), 0069B5B0 (stock load), 00699810 / 006995E0 / 00699A40 (other stock generators).
+- H4 Trader stock: no scenario reaches the stock generators (0069AE20, 0069A110, H3's 00699810 / 006995E0 / 00699A40 installed but 0 calls; ui_camp does not reach 004A6DF0). Find what calls 004A6DF0 and add a scenario; then 0069B5B0 (stock load), 0069A480 / 0069A780.
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S3 (taken 2026-10-05) Next 3-5 live script runtime functions at 0x004B0000-0x004C0000 (see script.md "Runtime leftovers (ticket S2)"; 004BDE40 runs before the hooks, skip).
+- S4 Next script runtime functions (script.md "Savegame parts (ticket S3)" lists candidates).
+
+## Verify checks
+
+- X5 (taken 2026-10-05) DrawWrappedText still mismatches after X4's rerun (ui_saveload, 1 in ~11000): "872 pixels differed in 336,32-435,74; the original's redraw differs from its first draw in 872; rerun: 872 differ". The original's own second draw differs from its first, so some state alternates between calls (caret blink? a callee toggling?). Find it.
 
 ## Cleanup (docs/cleanup-plan.md)
 
@@ -37,7 +41,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
   - (C2d camera merged 2026-10-05.)
-- C3b (taken 2026-10-05, top 10 only) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
+- C3b (top 10 merged 2026-10-05; C3c (taken 2026-10-05) = the next 15 by site count) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
   group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
   shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
   0x0040C720, ...), then by area. C3 first part (shared headers, 38 void forwarders typed) merged 2026-10-05.
