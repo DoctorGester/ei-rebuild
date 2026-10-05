@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "core_streams.h"
 #include "engine_object.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -168,15 +169,8 @@ struct ProjectileList {
 static_assert(sizeof(ProjectileList) == 0x1C);
 
 // The stream the world's save and load code reads and writes (the CMemoryStream holding
-// mission.sav): slot 1 Read, slot 2 Write; +0x08 the save format version.
-struct WorldStream {
-    virtual void Slot0() = 0;
-    virtual int Read(void* buffer, unsigned size) = 0;          // 1
-    virtual void Write(const void* buffer, unsigned size) = 0;   // 2
-
-    int unknown_04;
-    int version;            // +0x08
-};
+// mission.sav) is the engine's CStream (core_streams.h); version_ is the save format version.
+using WorldStream = CStream;
 
 // The game rules side (vtable 0073F928).
 class CWorldServer : public CWorld {

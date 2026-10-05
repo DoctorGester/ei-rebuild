@@ -3,6 +3,7 @@
 // capture stream, the bytes and the pieces (the size of every Write) must match, and the
 // original's pieces are then written to the real stream. Nested savers run through their own
 // wrappers in both runs.
+#include "fake_stream.h"
 #include "verify.h"
 
 #include "../../src/game/script.h"
@@ -12,11 +13,10 @@
 
 namespace {
 
-class CaptureStream : public ScriptStream {
+class CaptureStream : public FakeStream {
 public:
-    void Slot0() override {}
-    void Read(void*, unsigned) override {}
-    void Write(const void* buffer, unsigned size) override {
+    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
+    void Write(const void* buffer, std::uint32_t size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
         chunks.push_back(size);

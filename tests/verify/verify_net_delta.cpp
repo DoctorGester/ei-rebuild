@@ -136,7 +136,7 @@ void __fastcall PutBitVerify(BitStream* self, void*, int bit) {
     StreamCopy expected(self);
     s_putBit(&expected.stream, nullptr, bit);
     self->PutBit((bit & 0xFF) != 0);
-    ei::verify::Check("BitStream::PutBit", true, SameStream(&expected.stream, self), "mask %d", self->mask_);
+    ei::verify::Check("BitStream::PutBit", true, SameStream(&expected.stream, self), "mask %d", self->bitMask_);
 }
 
 // --- Channel writers ---------------------------------------------------------------------------------
