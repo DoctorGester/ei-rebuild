@@ -14,6 +14,7 @@ class CSectorMap;
 class CUnit;
 struct AIPath;
 struct PathCellList;
+struct Vector3;
 
 __declspec(naked) inline void __fastcall AnimateOriginal(char*, void*, std::uint32_t) EI_ORIGINAL(0x005A7160)
 __declspec(naked) inline void __fastcall FinishDraw(char*, void*, void* /*renderer*/) EI_ORIGINAL(0x005A7290)
@@ -35,6 +36,9 @@ __declspec(naked) inline void __fastcall SectorMapFindUnitsInRadius(void* /*sect
                                                                     void* /*list*/, float /*radius*/)
     EI_ORIGINAL(0x005C0BD0)
 __declspec(naked) inline bool __fastcall SectorMapAdd(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
+// 005C11D0 CSectorMap::Move (patched by Rebirth's FixMoveObject, so called through its address; RET 8, AL).
+__declspec(naked) inline bool __fastcall SectorMapMove(void* /*sectors*/, void*, CEngineObject*, const Vector3*)
+    EI_ORIGINAL(0x005C11D0)
 __declspec(naked) inline bool __fastcall SectorMapRemove(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 __declspec(naked) inline int __fastcall SearchCost(void*, void*, int, int) EI_ORIGINAL(0x005C3090)
 __declspec(naked) inline void __fastcall SearchFinish(void*, void*) EI_ORIGINAL(0x005C30E0)

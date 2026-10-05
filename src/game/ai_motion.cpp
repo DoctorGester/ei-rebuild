@@ -228,13 +228,12 @@ void AIPath::Clear() {
     failed = false;
     flag6E = false;
     flag6F = true;
-    void*& buffer = *reinterpret_cast<void**>(unknown_70 + 4);     // +0x74
-    if (buffer) {
-        gamecrt::operator_delete(buffer);
-        buffer = nullptr;
+    if (points) {
+        gamecrt::operator_delete(points);
+        points = nullptr;
     }
-    *reinterpret_cast<std::uint32_t*>(unknown_70 + 0xC) = 0;        // +0x7C
-    *reinterpret_cast<std::uint32_t*>(unknown_70 + 8) = 0;          // +0x78
+    pointMax = 0;
+    pointCount = 0;
     smoothing = 0;
 }
 EI_REPLACE_METHOD(0x005B23A0, AIPath::Clear);

@@ -192,8 +192,8 @@ void AIBrain::Init() {
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;
     unknown_37 = 0;
-    unknown_068 = 0;
-    unknown_06C = 0;
+    standCooldown = 0;
+    followTimer = 0;
     previousPosition = Vector3{0.0f, 0.0f, 0.0f};
 }
 EI_REPLACE_METHOD(0x005D4F70, AIBrain::Init);

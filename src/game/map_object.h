@@ -204,6 +204,63 @@ constexpr int kScaleEffectChanged = 33;   // 0x84 (argument: a scale effect was 
 constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for units)
 } // namespace mapslot
 
+struct Vector3;
+
+// The map objects' virtual slots past CEngineObject's, as callers reach them through the vtable
+// (CMapObject 0073DAA0, CUnit 0073EA8C, ...). The rewritten slot bodies stay plain members of the
+// classes; this only declares the dispatch. Unnamed slots are placeholders for the order.
+class CMapObjectVirtuals : public CEngineObject {
+public:
+    virtual void Slot13() = 0;
+    virtual void Slot14() = 0;
+    virtual void Slot15() = 0;
+    virtual void Slot16() = 0;
+    virtual void Slot17() = 0;
+    virtual void Slot18() = 0;
+    virtual void Slot19() = 0;
+    virtual void Slot20() = 0;
+    virtual void Slot21() = 0;
+    virtual void Slot22() = 0;
+    virtual void Slot23() = 0;
+    virtual void Slot24() = 0;
+    virtual void Slot25() = 0;
+    virtual void Slot26() = 0;
+    virtual void Slot27() = 0;
+    virtual void Slot28() = 0;
+    virtual void Slot29() = 0;
+    virtual void Slot30() = 0;
+    virtual void Slot31() = 0;
+    virtual void Slot32() = 0;
+    virtual void Slot33() = 0;
+    virtual void Slot34() = 0;
+    virtual void Slot35() = 0;
+    virtual void Slot36() = 0;
+    virtual void Slot37() = 0;
+    virtual void Slot38() = 0;
+    virtual void Slot39() = 0;
+    virtual void Slot40() = 0;
+    virtual void Slot41() = 0;
+    virtual void Slot42() = 0;
+    virtual void Slot43() = 0;
+    virtual void Slot44() = 0;
+    virtual void Slot45() = 0;
+    virtual void Slot46() = 0;
+    virtual void Slot47() = 0;
+    virtual void Slot48() = 0;
+    virtual void Slot49() = 0;
+    virtual void Slot50() = 0;
+    virtual void Slot51() = 0;
+    // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
+    // ignore the time, GetPosition). Returns `out`.
+    virtual Vector3* PositionAt(Vector3* out, int time) = 0;
+    virtual Vector3* AimPoint(Vector3* out) = 0;        // 53 (0xD4)
+    virtual int Slot54() = 0;                           // 54 (0xD8)
+    virtual int IsDead() = 0;                           // 55 (0xDC): non-zero when dead or gone
+};
+
+// An object seen through its virtual slots.
+inline CMapObjectVirtuals* ObjectSlots(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
+
 // The companion's back pointer (+0x1C of CMapObjectServer / CMapObjectClientSpecific).
 inline CMapObject*& CompanionOwner(CEngineObject* companion) {
     return *reinterpret_cast<CMapObject**>(reinterpret_cast<char*>(companion) + 0x1C);

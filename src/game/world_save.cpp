@@ -535,7 +535,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             PlayerClear(player, nullptr);
         }
     }
-    AIMapBeginRefresh(AIMap(this), nullptr);
+    AIMapBeginRefresh(AIMap(), nullptr);
     loaded_ = 0;
     AIMapUpdates(this) = 0;
 
@@ -673,7 +673,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             ei::VCall<void>(this, kSlotSetTimeSpeed, speed);
             ei::VCall<void>(this, kSlotSetTime, time);
             loaded_ = 1;
-            AIMapEndRefresh(AIMap(this), nullptr);
+            AIMapEndRefresh(AIMap(), nullptr);
             AIMapUpdates(this) = 1;
 
             RelocateStrandedUnits(this);
