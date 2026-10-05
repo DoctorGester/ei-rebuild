@@ -29,7 +29,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S5 Next script runtime functions (script.md "Blocks, areas and temporaries").
+- S5 (taken 2026-10-05; 004C00D0, 004D3320, 004B3D10, 004B6330) Next script runtime functions (script.md "Blocks, areas and temporaries").
 
 ## Verify checks
 

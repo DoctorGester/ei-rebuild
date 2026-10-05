@@ -613,6 +613,20 @@ ScriptObjectRef* __fastcall ScriptNewTempObject(CScript* script, void* edx);
 // commands deleted; growBy kept), called script null.
 void __fastcall ScriptCmdClear(SSCCmd* cmd);
 
+// ---- Constructor, reset and small loaders (ticket S5) ---------------------------------------------
+// Callers keep going through the original addresses, so the wrappers see every call.
+// 004C00D0 (ScriptVars constructor, __thiscall; script_copy.cpp): the eight arrays empty with
+// their vtables; returns the set.
+ScriptVars* __fastcall ScriptVarsConstruct(ScriptVars* vars);
+// 004D3320 (ScriptDefinition reset, __thiscall; script_reset.cpp): if-then pairs freed, every
+// variable array SetSize(0), index 0, parameters and name empty.
+void __fastcall ScriptDefinitionReset(ScriptDefinition* definition);
+// 004B3D10 (__fastcall; script_load.cpp): reads a string (00461190) into a temporary and assigns it.
+void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream);
+// 004B6330 (__thiscall on a nested call element; script_load.cpp): type, argument index, then
+// SSCCmd::Load into the element's command.
+void __fastcall ScriptSubCallLoad(ScriptSubCall* call, void* edx, ScriptStream* stream);
+
 // ---- Variable appends (script_vars_append.cpp) --------------------------------------------------
 
 // 004C2B70 / 004C2FE0 / 004C3450 / 004C3DC0 (__thiscall on this set's value array, the other set's
