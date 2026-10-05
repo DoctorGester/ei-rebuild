@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 
 #include <cstring>
 #include <new>
@@ -58,8 +59,9 @@ void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
 __declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) EI_ORIGINAL(0x005AA5F0)
 // 00516A80. 3D object: its figure part named `name`, or null.
 __declspec(naked) CEngineObject* __fastcall FindPart(CUnit*, void*, const char*) EI_ORIGINAL(0x00516A80)
-// 00517240. 3D object: adds the figure part `name` of `model`.
-__declspec(naked) void __fastcall AddPart(CUnit*, void*, const char*, void*, std::uint32_t) EI_ORIGINAL(0x00517240)
+// 00517240. 3D object: adds the figure part `name` of `model`; returns it (null when the model has
+// no such part).
+__declspec(naked) CEngineObject* __fastcall AddPart(CUnit*, void*, const char*, void*, std::uint32_t) EI_ORIGINAL(0x00517240)
 // 005167E0. 3D object: removes figure part `part`.
 __declspec(naked) void __fastcall RemovePart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x005167E0)
 // 00539580. SkinLayerArray::SetSize.
@@ -194,6 +196,70 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     return true;
 }
 EI_REPLACE_METHOD(0x005385A0, CUnitClientSpecific::RemoveArmourModel);
+
+namespace {
+// Not rewritten: 005168F0 (3D object: removes its first figure part named `name`, returning it),
+// 005169A0 (3D object: its first figure part named `name` in either part list, or null), 00518820
+// (3D object: a new part takes up the figure's current animation, when there is one).
+__declspec(naked) CEngineObject* __fastcall RemovePartNamed(CUnit*, void*, const char*) EI_ORIGINAL(0x005168F0)
+__declspec(naked) CEngineObject* __fastcall FindAnyPart(CUnit*, void*, const char*) EI_ORIGINAL(0x005169A0)
+__declspec(naked) void* __fastcall AnimateNewPart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00518820)
+// Rewritten in item_parts.cpp / item.cpp, called through their addresses: 006A0FF0 the figure part
+// names of a weapon prototype (replacing the array's contents), 006A2B80 a weapon's type by
+// packed id.
+__declspec(naked) void __fastcall WeaponPartNames(std::uint32_t, console::CStringArray*) EI_ORIGINAL(0x006A0FF0)
+__declspec(naked) int __fastcall WeaponTypeOf(std::uint32_t) EI_ORIGINAL(0x006A2B80)
+
+constexpr int kSlotWeaponChanged = 0x78 / 4;   // the controller's slot 30, after the change
+constexpr int kWeaponBow = 5;
+constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
+const char* const kBowArrow = Text(0x0078FAF8);   // "rh3_arrow00"
+
+std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
+    return slot < 4 ? self->weaponIds[slot] : kNone;
+}
+
+// The controller's bytes +0x74 (cleared by a weapon change) and +0x75 (the bow's arrow part was
+// flagged).
+std::uint8_t& ByteAt(CUnitClientSpecific* self, int offset) { return reinterpret_cast<std::uint8_t*>(self)[offset]; }
+constexpr int kByte74 = 0x74;
+constexpr int kArrowFlagged = 0x75;
+} // namespace
+
+int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
+    std::uint32_t previous = WeaponIdOf(this, unit->activeWeapon);
+    std::uint32_t next = WeaponIdOf(this, slot);
+    console::CStringArray names;
+    void* model;
+    {
+        stlp::string name(unit->prototypeName);
+        model = FindModel(FigureManager(), nullptr, &name);
+    }
+    if (previous != kNone) {
+        WeaponPartNames(previous >> 16, &names);
+        for (int i = 0; i < names.GetSize(); ++i) RemovePartNamed(unit, nullptr, names[i]);
+    }
+    unit->activeWeapon = slot;
+    ByteAt(this, kByte74) = 0;
+    if (next != kNone) {
+        WeaponPartNames(next >> 16, &names);
+        for (int i = 0; i < names.GetSize(); ++i) {
+            CEngineObject* part = AddPart(unit, nullptr, names[i], model, FiguresFlag(unit));
+            if (part) AnimateNewPart(unit, nullptr, part);
+        }
+        ByteAt(this, kArrowFlagged) = 0;
+        std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
+        if (hand != kNone && WeaponTypeOf(hand) == kWeaponBow) {
+            if (CEngineObject* arrow = FindAnyPart(unit, nullptr, kBowArrow)) {
+                arrow->flags_ |= kArrowPartFlag;
+                ByteAt(this, kArrowFlagged) = 1;
+            }
+        }
+    }
+    ei::VCall<void>(this, kSlotWeaponChanged);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00535590, CUnitClientSpecific::ChangeWeaponModel);
 
 void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,

@@ -502,13 +502,32 @@ public:
         return reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(this) + 0x16C)[index];
     }
 
+    // 0063D2B0 (RET 4; ui_battle_update.cpp). Shows `unit`'s quick items: the sprites, tooltips and
+    // entries are dropped; for each of the unit's four quick items (00531920) a sprite (0063CAE0,
+    // Rebirth-patched) in the bottom row, an entry and its tooltip (0063CEE0); then, when the unit
+    // is the local player's (00665440), up to four of the player's 0x3009 items in the top row.
+    void SetUnit(CUnit* unit);
+
+    // An item shown (12 bytes, MFC CArray at +0x158).
+    struct Entry {
+        bool own;                    // +0 one of the unit's quick items (else the player's)
+        std::uint8_t unknown_1[3];
+        int id;                      // +4 the item's +0xC
+        CEngineObject* item;         // +8
+    };
+
     CBattleScreen* owner_;           // +0x148
-    int unknown_14C;                 // +0x14C
+    int unknown_14C;                 // +0x14C sprites added (the shown entries)
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
-    std::uint8_t unknown_158[0x16C - 0x158];
+    void* entriesVtable_;            // +0x158 CArray<Entry>
+    Entry* entries_;                 // +0x15C
+    int entryCount_;                 // +0x160
+    int entryCapacity_;              // +0x164
+    int entryGrowBy_;                // +0x168
     int regionItem_[8];              // +0x16C
 };
+static_assert(offsetof(CHudQuickItems, entries_) == 0x15C);
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
 
 // Spell column on the right (constructor 0063E2A0, vtables 007428E4 / 007428B0;

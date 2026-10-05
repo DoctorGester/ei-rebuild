@@ -1,11 +1,14 @@
-// A lever's state change (0052B7A0). See docs/notes/units.md ("Levers").
+// A lever's state change (0052B7A0) and the spots it is used from (0052BBE0). See
+// docs/notes/units.md ("Levers").
 #include "lever.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -147,3 +150,67 @@ void Lever::SetState(int state, float duration) {
 }
 
 EI_REPLACE_METHOD(0x0052B7A0, Lever::SetState);
+
+namespace {
+
+// A model's record in the lever table (0079C1A0: 0x2C bytes, read from Levers.ldb by 00463030,
+// whose field ids are given): the spot offsets are in the lever's own frame (along its facing's
+// X and Y axes).
+struct LeverRecord {
+    void* name;                 // +0x00 CString (field 0)
+    float spots[2][2];          // +0x04 (field 1) {along, across}
+    std::uint32_t spotCount;    // +0x14 (2)
+    float farScale;             // +0x18 (3) the spots' distance factor at +0xCC = 1
+    std::uint32_t duration;     // +0x1C (4) a state change's default ticks (SetState)
+    void* texts[3];             // +0x20 CStrings (5-7)
+};
+static_assert(sizeof(LeverRecord) == 0x2C);
+
+// The lever table's record by model name [0052CB40, thiscall on the table: operator[] of its map
+// at +0xC, so an unknown name gets a null record]; the spots' SetAtGrow [0052CC50 (index, value)].
+__declspec(naked) const LeverRecord* __fastcall LeverRecordByName(void* /*table*/, void*, const char*)
+    EI_ORIGINAL(0x0052CB40)
+__declspec(naked) void __fastcall SpotsSetAtGrow(LeverSpots*, void*, int, const Vector3*) EI_ORIGINAL(0x0052CC50)
+
+void* const kLeverTable = reinterpret_cast<void*>(0x0079C1A0);
+
+} // namespace
+
+void Lever::UseSpots(LeverSpots* out, float userRadius) {
+    // CArray::RemoveAll, inlined.
+    if (out->data) {
+        gamecrt::operator_delete(out->data);
+        out->data = nullptr;
+    }
+    out->capacity = 0;
+    out->size = 0;
+    const LeverRecord* record = LeverRecordByName(kLeverTable, nullptr, At<const char*>(this, 0xA4));
+    if (!record || record->spotCount == 0) return;
+    const Quaternion& orientation = At<Quaternion>(this, 0x34);
+    // The count is read again each time; a count above 2 reads on into the record (sic).
+    for (std::uint32_t i = 0; i < record->spotCount; ++i) {
+        const float* spot = &record->spots[0][0] + 2 * i;
+        Vector3 at{At<float>(this, 0x1C), At<float>(this, 0x20), At<float>(this, 0x24)};
+        float along = spot[0];
+        float across = spot[1];
+        float length = std::sqrt(across * across + along * along);
+        // FCOM 0.0; TEST AH,0x41: normalised only for a length above zero.
+        if (length > 0.0f) {
+            along = along / length;
+            across = across / length;
+        }
+        float phase = At<float>(this, 0xCC);
+        float distance = ((1.0f - phase) + phase * record->farScale) * length + userRadius;
+        Vector3 axis;
+        orientation.AxisX(&axis);
+        at.x = axis.x * along * distance + at.x;
+        at.y = axis.y * along * distance + at.y;
+        at.z = axis.z * along * distance + at.z;
+        orientation.AxisY(&axis);
+        at.x = axis.x * across * distance + at.x;
+        at.y = axis.y * across * distance + at.y;
+        at.z = axis.z * across * distance + at.z;
+        SpotsSetAtGrow(out, nullptr, out->size, &at);
+    }
+}
+EI_REPLACE_METHOD(0x0052BBE0, Lever::UseSpots);

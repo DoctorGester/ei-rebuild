@@ -77,6 +77,10 @@ comes from a bug we already hit.
    expected: say so in the wrapper and the notes rather than copying the FPU sequence. Rounding mode
    still matters: FISTP rounds to nearest (use `x87::fistp` or `std::lrint`), a C++ cast truncates,
    `_ftol` truncates. The existing hand-copied helpers stay until the cleanup removes them.
+   Under `/fp:fast` a `static_cast<float>` or a float local does NOT round: MSVC keeps the value
+   unrounded on the FPU stack. Where the original stores an intermediate to a float (FSTP dword)
+   and uses it again, round it with a volatile float store helper (ticket X3: unrounded atan2
+   angles flipped a facing quaternion's sign at 180 degrees, 1 call in 300k).
    The rules below about NaN tests and unsigned conversion still apply: they are about getting the
    same results at all, not the last bit. (Earlier text kept for the existing code:) the build is
    `/arch:IA32 /fp:fast` (x87, like VC6); the old rule was to keep the original's order of operations

@@ -286,6 +286,15 @@ public:
     // twice), items as ids (-1 for none), the prototype names as zero-terminated strings.
     void SaveUnit(UnitStream* stream);
 
+    // unit_size_class.cpp (U5).
+    // 00530570. After the controller's slot 45 (a server controller's movement factors): with a
+    // server controller (class 0x3E), the size class of the movement mode (its +0x24C in mode 0,
+    // +0x24E in mode 1, else +0x248), the standing height 0.9 x the larger of +0x144 / +0x148 (plus
+    // 0.2 with a player, at most 2; 0.01 for size class 0 when the prototype's +0x24 is above 1.5)
+    // and the radius +0x328 = 0.9 x that extent + 0.05. Other controllers: size class 0 for movement
+    // kind 2, else 3, radius 0.75.
+    void UpdateSizeClass();
+
     // Not rewritten (forwarders):
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     void* World();
