@@ -821,10 +821,12 @@ public:
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
 
-    std::uint8_t unknown_000[0xCC];
+    std::uint8_t unknown_000[0x08];
+    std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
+    std::uint8_t unknown_00C[0xCC - 0x0C];
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
-    std::uint8_t unknown_0D4[0xD8 - 0xD4];
+    std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
     std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
     std::uint8_t unknown_0DC[0x1C0 - 0xDC];
     UiQuadBlock* quads_;             // +0x1C0
@@ -849,6 +851,8 @@ public:
     float scaleY_;                   // +0x250
     std::uint8_t unknown_254[0x264 - 0x254];
     float scaleZ_;                   // +0x264
+    std::uint8_t unknown_268[0x280 - 0x268];
+    CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };
 static_assert(offsetof(CUiMesh, colour_) == 0xD8);
 static_assert(offsetof(CUiMesh, scaleX_) == 0x23C);
@@ -860,6 +864,9 @@ static_assert(offsetof(CUiMesh, uvs_) == 0x210);
 static_assert(offsetof(CUiMesh, visible_) == 0x220);
 static_assert(offsetof(CUiMesh, uOffset_) == 0xCC);
 static_assert(offsetof(CUiMesh, tint_) == 0x224);
+static_assert(offsetof(CUiMesh, flags_) == 0x08);
+static_assert(offsetof(CUiMesh, plainColour_) == 0xD4);
+static_assert(offsetof(CUiMesh, texture_) == 0x280);
 
 // A growable array of 2D points with the interface arrays' 32-byte alignment.
 struct UiPointF {

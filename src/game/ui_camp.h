@@ -244,6 +244,34 @@ public:
     // STLport containers at +0x1D0 and +0x1E0, the identity turn; returns this.
     CGlobalMap* Construct(CInterface3D* ui);
 
+    // 00631110 / 00631030 / 00630F50 (RET 8; `this` is not read). The text "allod <name>",
+    // "zone <name>" or "quest <name>" (empty when there is none) constructed into `out`; returns
+    // `out` (ui_global_map_places.cpp).
+    mfc::CString* AllodTitle(mfc::CString* out, const char* allod);
+    mfc::CString* ZoneTitle(mfc::CString* out, const char* zone);
+    mfc::CString* QuestTitle(mfc::CString* out, const char* quest);
+    // 00630E00 / 00630CC0 (RET 8; `this` is not read). Where a zone or quest lies on the map model:
+    // the line after "#zone <name>"'s "#position" line, or after "#quest <name>", in map.txt
+    // (three numbers, missing ones 0). Returns `out`; not found leaves `out` as it is (the
+    // original writes its uninitialised locals there).
+    Vector3* ZonePosition(Vector3* out, const char* zone);
+    Vector3* QuestPosition(Vector3* out, const char* quest);
+    // The lookup behind them (`format` "#zone %s" or "#quest %s"; `positionLine` looks for
+    // "#position" after it); false when map.txt has no such entry.
+    static bool ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine);
+    // 00630860 (RET 8). Shows `index` as the selected zone (`isLink` false) or link (true): each
+    // zone's marker gets texture 2 (state 0) or 0 and the tint 1 (state 1) or 0.5 (state 2), the
+    // selected one the allod's colour +0x280 (halved for state 2); the links' markers the colour
+    // or 1. On gipat a zone and its link are selected together. -1 selects nothing.
+    void SelectZone(int index, bool isLink);
+    // 0062EE90. Applies weather entry +0x260: 0-3 the display's colour +0x14 from table entries
+    // 0-3, 4-7 / 8-11 / 12-15 the three layers' plain colours from entries 4-15 (each ARGB from
+    // four ints, alpha last), 16 and up the weather object's ramp from entries 16 and 17.
+    void SetWeather();
+    // The marker sprites: the scene objects after the arrow, the base and the island (zones,
+    // then quests, then links, then the three layers).
+    CUiMesh* Marker(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + index]); }
+
     std::uint8_t unknown_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
     int questCount_;                 // +0x168

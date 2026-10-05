@@ -21,3 +21,8 @@ __declspec(naked) inline void __fastcall ObjectMarkNewOriginal(void* /*object*/)
 // the light's +0x1C; EAX is not a result).
 __declspec(naked) inline void __fastcall LightMoveOriginal(void* /*lights*/, void*, CEngineObject* /*light*/,
                                                            const float* /*delta*/) EI_ORIGINAL(0x006CA830)
+
+// 0049A010: the weather object's alpha ramp (thiscall, RET 0xC: start and width as ints, an exponent; stores them at
+// +4..+0xC and fills its 256-entry table at +0x10; no result).
+__declspec(naked) inline void __fastcall WeatherSetRampOriginal(void* /*weather*/, void*, int /*start*/, int /*width*/,
+                                                                float /*exponent*/) EI_ORIGINAL(0x0049A010)

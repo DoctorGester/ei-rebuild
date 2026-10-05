@@ -46,6 +46,10 @@ wait 3000
 waitfor 15 IsGreater(HP(GetLeader()),0)
 
 # The global map (screen 4): its Create (0062D350) and every-frame update; regions 0/1 turn it.
+# A held quest (zone1's intro gives q0g; set here so the map's quest title and position,
+# 00630F50 / 00630CC0, surely run): "#quest q0g" is in map.txt.
+console @GSSetVar(0,"q.gz1g.q0g",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
 screen 4
 wait 4000
 clickregion 0

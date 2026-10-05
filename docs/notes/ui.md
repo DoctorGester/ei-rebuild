@@ -230,6 +230,9 @@ probably CanEquip, hero creation (00617A50).
 | Address | Name | Verify |
 |---|---|---|
 | 0062D350, 0062F050 | `CGlobalMap::Create` (slot 25, 6.7 KB), `Update` | ours: marker / sprite / region counts, links point at zones; bob time, w >= 0 after a turn |
+| 00631110, 00631030, 00630F50 | `CGlobalMap::AllodTitle`, `ZoneTitle`, `QuestTitle` (`ui_global_map_places.cpp`) | side by side: the text (scratch string) |
+| 00630E00, 00630CC0 | `CGlobalMap::ZonePosition`, `QuestPosition` | side by side when found (CheckNear); the original leaves uninitialised stack in `out` when map.txt has no entry, ours leaves `out` |
+| 00630860, 0062EE90 | `CGlobalMap::SelectZone` (RET 8, flag is a byte), `SetWeather` | side by side: markers' texture, flags, tint, plain colour; display +0x14; weather +4..+0xC |
 | 00635250 | `CBattleScreenSetup::Create` (every scenario) | ours: 11 panels in order with vtables and owner, 2 input handlers, hero id |
 | 00611930, 006100E0 | `CCampPages::UpdateAction`, `CanEquip` (slot 43, AL) | side by side (ours releases what it made) |
 | 0060E9E0, 0060F050, 00612600, 00612290 | `ShowPage`, `Draw` (slot 20), `CanMakeItem`, `CanMakeSpell` | ours: the page's panels exactly enabled, strip slots; Draw returns 1; result iff an item / container is held |
