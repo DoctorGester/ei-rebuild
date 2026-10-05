@@ -1,5 +1,5 @@
 // The session's receive step (00437370, slot 14), its packet handlers, sends and destruction,
-// and the byte buffer helpers they use. See net_classes.h and docs/notes/unmapped_410_470.md.
+// and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_connection.h"
 

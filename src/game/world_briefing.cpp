@@ -1,7 +1,6 @@
 // The briefing variables of the client (0057FC90, 0057FDE0, 0057FF40): which mercenary speaks a
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
-// seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md
-// (seventh round).
+// seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "world.h"
 #include "game_strings.h"
 

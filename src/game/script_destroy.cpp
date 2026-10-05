@@ -1,6 +1,5 @@
 // Destructors of the script runtime's structures (ticket S6): ScriptVars (004BE090), ScriptDefinition
-// (004BE9D0) and SSCCmd (004BF640). See script.h and docs/notes/script.md ("Destructors and
-// AppendFrom").
+// (004BE9D0) and SSCCmd (004BF640). See script.h and docs/notes/script.md.
 //
 // The compiler inlined each array's destructor: the derived CArray destructor's vtable store is
 // dropped, so only the base vtable is written, then the elements are destroyed and the storage

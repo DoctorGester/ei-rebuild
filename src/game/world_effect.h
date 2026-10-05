@@ -4,7 +4,7 @@
 // lightning bolts and missiles. They are engine objects in the world's object list; the server
 // ticks them (slot 6) and sends their state to the clients as a DeltaField (slots 21 / 22), and the
 // client side starts or moves the actual sound, light or particle source (slot 23). Class names are
-// the game's GetClassName strings; method names are provisional. See docs/notes/range_660.md.
+// the game's GetClassName strings; method names are provisional. See docs/notes/effects.md.
 //
 // Virtual slots shared by every effect (CEngineObject 0-12, CTransformObject 13-17):
 //   2 Create (00675D10: Reset, then a full state write), 3 Destroy (00675D40: Reset),

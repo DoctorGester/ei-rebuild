@@ -547,7 +547,7 @@ Scenario lessons:
   into 007C83D0 and dispatches by the first byte through the table built in 0066C9A0, 0x30 -> 0066FFF0) has a wrapper at every rewritten step.
 - **Armed traps.** gz2g starts its magic traps armed (its scripts disarm them from triggers), so MTF4 strikes a placed wolf at the next world update:
   the scenario disarms it before placing the wolf, checks the wolf alive, arms it and waits for it to die. The "command 8" mismatches there were a
-  verify bug: 004C7C90 adds a script instance at the head of the list (script.md).
+  verify bug: 004C7C90 adds a script instance at the head of the list (script.md, "Runtime").
 - **Quick items.** No script command puts an item in a quick slot (GiveItem adds to the player's list); use `campputon 3006 2` (at most four go on the
   hero: MoveItem -> PutOnFromStrip -> PutOn 0060FCA0); "wand 1".."wand N" are category 5 prototypes (items.idb tag 0x15, e.g. `wand 3.iron[lightning]`;
   potions are category 8); the quick item panel's regions 0-3 are the bottom row from the right (x 670..720 down to 520..570, y 550..600), 4-7 the row

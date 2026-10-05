@@ -1,130 +1,146 @@
-# Weather, fog and particles (0x004E1770-0x004E5000; particles in 0x00480000-0x00490000)
+# Weather, fog, particle helpers and effect objects (004E1770-004E5000; particle pieces in 00480000-00490000; effect objects 00675B40-0067E170)
 
-Code: `src/game/effects.h` (layouts), `src/game/effects.cpp` (particle callbacks and source
-setters), `src/game/effects_weather.cpp` (rain/snow fade, visibility fog). Verify wrappers:
-`tests/verify/verify_effects.cpp`. Scenario: `tests/scenarios/effects.txt`. Shared header touched:
-`src/game/random.h` (declaration of `IsaacRandom::Range` only). Names are provisional and set in
-Ghidra.
+Code: `src/game/effects.h` (layouts and class overview), `effects.cpp` (particle callbacks and
+setters), `effects_weather.cpp` (rain/snow fade, fog). Verify: `tests/verify/verify_effects.cpp`.
+Scenario: `tests/scenarios/effects.txt` (cannot check particles directly; relies on the verify
+totals; rain/snow and fog only run where the map has weather / the fog is active). The rest of the
+particle source (Create, Tick, Draw, other callbacks) is in `particles.md` and `particle_*.cpp`.
 
-## Map
+## Facts
 
-### Particles
-
-- **CParticleSource** (vtable 0073CFD0, class id 0xC, 0x1F0 bytes, allocated by 004981B0). Slot 2
-  (00485540, `Create`) fills the per-type parameters by `type_` (0x2000-0x2052; the script names
-  are the table at 0078B120: name, type, ?) and stores three callbacks: +0x1E0 emit one particle
-  (`(Particle*, int index)`), +0x1E4 update one particle (`(Particle*)`, 0 drops it), +0x1E8 update
-  one element of the source's array at +0x154 (0x38-byte elements). All are `__thiscall` on the
-  source. Slot 6 (00496EB0, `Tick`, not rewritten; outside the range) computes the source motion,
-  runs the element callback for every element, the update callback for every particle (saving and
-  restoring the "prev" fields around it), tracks the bounding box, and emits up to
-  `max(emitCount, distance moved / emitSpacing)` particles with `emitChance`% each.
-- **Particle** (0x64 bytes, pooled by 00498870 / 004987C0): position, size, previous position and
-  size, a type-specific velocity / drift, frame, frame timer, life, state, colour, dead flag.
-- 00678EC0 is the world's script particle source (created by `CreateParticleSource`, id 0x4A): on
-  its first tick it creates the CParticleSource (00498400); every tick it copies the position and
-  calls `ScaleSize(size / baseSize)`.
-- Callbacks by type (from 00485540): CampFire/Fire/Smoke/0x2010 use 0048E9E0/0048EC20 (0x2010 also
-  0048EE20); PoisonFog (0x2007/0x2008) 0048B080/0048B570; Tornado (0x200A) and CurseHolder
-  (0x2050) 00489F70/0048A310; Nuke (0x200C) 00489190/004892E0; Mushroom/Transform 00488F00; the
-  spheres (0x2014-0x2017) and Antimagic (0x201A) 0048E7C0; 0x2034-0x2037 0048F670. Many more
-  callbacks are labels inside Ghidra's function bodies (0048C800, 0048CAD0, ...), up to 0x00496xxx.
-
-### Weather and fog
-
-- **CRainSnow** (the world's rain/snow layer): 004E3FC0 starts a fade towards a mode (1 rain with
-  the `nature\rain_circle.wav` loop, 2 snow), 004E40B0 advances it, 004E4050 ends it, 004E41F0
-  sets the wind (from the `SetWind` command through 00564190), 004E4240 / 004E4C80 build and draw
-  the rain / snow vertices (Direct3D; not rewritten), 004E5680 is the per-frame entry, 004E3C20
-  allocates the buffers, 004E3980 builds a smoothed random curve with rand() (setup).
-- **CVisibilityFog** (vtable 0073D6B4, "CVisibilityFog", id 0x5F, 0x6C bytes, created by
-  004E2290): a `hash_map<uint32, FogCell>` at +0x54 keyed by `(y << 16) + x` of the map square.
-  004E1C60 marks the visible squares (adding cells), 004E1AB0 (slot 6) fades them per frame and
-  drops the transparent ones, 004E1770 computes the culling bounds, 004E1EB0 renders (not
-  rewritten), 004E2990 builds the 4x4 texture tile table at 007ABA58. 004E2A70..004E3630 are the
-  STLport hashtable/vector instantiations (begin, next bucket, find, insert, erase, resize).
+- 00678EC0 is the world's script particle source (`CreateParticleSource`, id 0x4A): creates the
+  CParticleSource (00498400) on its first tick, then copies the position and calls
+  `ScaleSize(size / baseSize)` every tick.
+- CRainSnow: 004E3FC0 starts a fade (mode 1 rain with the `nature\rain_circle.wav` loop, 2 snow),
+  004E41F0 is reached from the `SetWind` command via 00564190, 004E5680 is the per-frame entry
+  (`weather_draw.cpp`, draws through forwarders 004E4240 rain / 004E4C80 snow).
+- CVisibilityFog: cell map keyed `(y << 16) + x` of the map square; 004E2990 builds the 4x4 texture
+  tile table at 007ABA58; 004E2A70..004E3630 are STLport hashtable/vector instantiations.
 
 ## Rewritten
 
 | Address | Name | Verify |
 |---|---|---|
-| 0048F670 | `CParticleSource::UpdateFalling` | both, state compared (source, particle, generator) |
-| 0048B570 | `CParticleSource::UpdateCloud` | both, state compared |
-| 0048EC20 | `CParticleSource::UpdateSmoke` | both, state compared |
-| 0048E9E0 | `CParticleSource::EmitSmoke` | both, state compared |
-| 00489190 | `CParticleSource::UpdateDebris` | both, state compared |
-| 0048E7C0 | `CParticleSource::UpdateOrbit` | both, state compared |
-| 004892E0 | `CParticleSource::TickNuke` | both, state compared (element) |
-| 0048EE20 | `CParticleSource::TickTendril` | both, state compared |
-| 00488F00 | `CParticleSource::TickMushroom` | both, state compared; the camera-shake tick ours only |
-| 00485480 | `CParticleSource::ScaleSize` | ours on a scratch copy, 0x1F0 bytes compared |
-| 00485440 / 00485450 | `CParticleSource::StopEmitting` / `StartEmitting` | scratch copy, flags compared |
-| 00485360 | `CParticleSource::Stop` (flags, detach) | ours only: flags and attachment checked |
-| 00488940 | `DivideVector` (`__fastcall`) | pure, ours into scratch first |
+| 0048F670, 0048B570 | `CParticleSource::UpdateFalling`, `UpdateCloud` | both, state compared |
+| 0048EC20, 0048E9E0 | `UpdateSmoke`, `EmitSmoke` | both, state compared |
+| 00489190, 0048E7C0 | `UpdateDebris`, `UpdateOrbit` | both, state compared |
+| 004892E0, 0048EE20 | `TickNuke` (element), `TickTendril` | both, state compared |
+| 00488F00 | `TickMushroom` | both, state compared; camera-shake tick ours only |
+| 00485480, 00485440, 00485450 | `ScaleSize`, `StopEmitting`, `StartEmitting` | ours on a scratch copy, object/flags compared |
+| 00485360 | `Stop` | ours only: flags and attachment |
+| 00488940 | `DivideVector` (`__fastcall`) | pure |
 | 00488970 | `IsaacRandom::Range` | both, result bits and generator compared |
-| 004E40B0 | `CRainSnow::UpdateFade` | original on a copy without the sound, ours on the real one; mode, density, fade compared |
-| 004E4050 | `CRainSnow::FinishFade` | same |
-| 004E41F0 | `CRainSnow::SetWind` | ours on a scratch copy, whole object compared |
-| 004E1770 | `CVisibilityFog::ComputeBounds` | original on a scratch copy (map shared read-only), 0x6C bytes compared |
-| 004E1AB0 | `CVisibilityFog::UpdateCells` (slot 6) | ours only: count, threshold, dropped keys gone, result |
-| 004E1C60 | `CVisibilityFog::Reveal` | ours only: exactly the grid's visible squares marked, keys match squares, count |
+| 004E40B0, 004E4050 | `CRainSnow::UpdateFade`, `FinishFade` | original on a copy without the sound, ours on the real one |
+| 004E41F0 | `CRainSnow::SetWind` | ours on a scratch copy, object compared |
+| 004E1770 | `CVisibilityFog::ComputeBounds` | original on a scratch copy, 0x6C bytes compared |
+| 004E1AB0 | `CVisibilityFog::UpdateCells` (slot 6) | ours only: count, threshold, dropped keys, result |
+| 004E1C60 | `CVisibilityFog::Reveal` | ours only: exactly the visible squares marked, keys, count |
 
-"Both, state compared": ours runs first; the source (0x1F0 bytes), the particle (0x64) or element
-(0x38) and the ISAAC generator (007A9D40, 0x814 bytes) are captured, restored, the original runs,
-and everything plus the return value is compared. The original's results stand.
+"Both, state compared": ours runs first; source, particle (0x64) / element (0x38) and the ISAAC
+generator (007A9D40, 0x814 bytes) are captured and restored, the original runs, all plus the return
+value are compared; the original's results stand.
 
 ## Floating point
 
-Each function's generated x87 code was compared with the original (`cl /FAs` with the build's
-flags). Under `/fp:fast` the compiler drops `static_cast<float>` roundings and reuses register
-values after a store, so:
-- values the original rounds through a float temporary go through `StoreFloat`;
-- values the original stores and then reads back from memory are read through `Load` (a volatile
-  read) where the compiler would otherwise reuse the unrounded register (fog bounds, fog alpha
-  test, smoke emit velocities, the fog cell centre passed to the ground height);
-- values the original keeps on the FPU stack across a store (the smoke's risen z, the debris's
-  vertical speed, the orbit's x base, the smoke growth push) are written as repeated expressions or
-  kept in registers, and the listing confirms they are not spilled.
-Remaining differences only at 64-bit precision control: x87::fcos / fsqrt and the game's _ftol
-receive a double (the original passes the 80-bit value; same convention as the rest of the repo).
+Where the original stores a value to a float and reads it back (fog bounds, fog alpha test, smoke
+emit velocities, the fog cell centre) the code goes through `StoreFloat` / `Load` (volatile); values
+it keeps on the FPU stack across a store are repeated expressions (see the comments in
+`effects.cpp`, `effects_weather.cpp`).
 
-## Forwarders and original calls
+## Calls to originals
 
-- 004849F0 `CParticleSource::Attach` (forwarder), 004113A0 camera shake (on the camera 0079B2A8),
-  006E853C the game's `_ftol`, 0044A230 `SubtractVectors` and 00401DE0 `Vector3::Construct`
-  (rewritten elsewhere, not patched).
-- 006B9100 / 006B94A0 the sound manager's set-volume / stop (on *007AF784).
-- 00455950 `CEngineObject::World`, world vtable slot 30 (ground height at x, y).
-- The fog's static dead-key vector at 007ABB58 (guard bit 007ABB64) with the original constructor
-  004E2BA0, insert-overflow 004E2FA0 and atexit 006E727B (destructor 004E1C50); the cell map's
-  insert 004E2E90 and erase-by-key 004E2F00. Iteration and find use `stlp::hash_map` (same order).
-- None of the callees is on the Rebirth patch list.
+`Attach` 004849F0, camera shake 004113A0 (camera 0079B2A8), sound manager set-volume / stop
+006B9100 / 006B94A0 (on *007AF784), `CEngineObject::World` 00455950. The fog's static dead-key
+vector 007ABB58 uses the original constructor 004E2BA0, insert-overflow 004E2FA0 and atexit
+006E727B; the cell map's insert 004E2E90 / erase 004E2F00 are forwarded, iteration and find use
+`stlp::hash_map` (same order). None is Rebirth-patched.
 
 ## Original bugs kept on purpose
 
 - `UpdateCloud` raises the alpha byte with `(step * 255 + alpha) << 24`, which wraps; particles die
   once the byte is at most 9.
-- `Reveal` initialises a new cell by an overlapping `REP MOVSD` from its key, so the padding bytes
-  of the cell hold key bytes; kept by filling the template the same way.
+- `Reveal` initialises a new cell by an overlapping `REP MOVSD` from its key, so the cell's padding
+  holds key bytes; the template is filled the same way.
 - `UpdateCells` calls `World()` and ignores the result.
-- The random-range constants 0073C468 (~2^-32) and 0073CDA0 (~2^-33) carry a stray mantissa bit
-  (0x3DF0000000100000, 0x3DE0000000100000); used as is.
+- Random-range constants 0073C468 (~2^-32) and 0073CDA0 (~2^-33) carry a stray mantissa bit; used
+  as is.
 
-## Skipped
+## Skipped and risks
 
-- Particle emitters with heavy float/random code not yet done: 00489F70 / 0048A310 (Tornado),
-  0048B080 (PoisonFog emit: terrain height, list insert), 0048B630, 0048BD50, 0048C590, 0048CED0,
-  0048DE30, 0048E070, 0048EEA0, 0048F6F0, 0048FDB0 and the label callbacks; good next candidates
-  (same pattern: thiscall on the source, state compare in verify).
-- 00485540 `Create` (13 KB switch of constants; setup), 00484710 / 004847E0 (reset), 00484C00
-  (attachment point lookup through the unit's figure), 00485280 (attachment offset).
-- Rain/snow vertex building 004E4240 / 004E4C80 and the fog renderer 004E1EB0: they build vertex
-  buffers and call Direct3D; 004E3980 / 004E3C20 setup.
-- 0x00480000-0x00485000: error reporting, DirectX names, configuration, containers (not effects).
+- Rain / snow vertex building (forwarders 004E4240 / 004E4C80), fog renderer 004E1EB0, 004E3FC0
+  (start fade), 004E3980 (random curve setup): Direct3D vertex building or setup.
+- 0x00480000-0x00485000 apart from the particle source: error reporting, DirectX names,
+  configuration, containers.
+- `Reveal` / `UpdateCells` are checked only for consistency, not against the original.
 
-## Risks
+## Effect objects (00675B40-0067E170)
 
-- `Reveal` and `UpdateCells` are verified only for consistency, not against the original.
-- The camera-shake tick of the Mushroom is not compared.
-- The scenario cannot check particles directly; it relies on the verify totals in the report.
-  Rain/snow fading and the fog only run where the map has weather / the fog is active.
+Code: `world_effect.h` (class map, slots, layouts), `world_effect_internal.h`, `world_effect.cpp` (base,
+sounds), `world_effect_visual.cpp` (light, particles, wall, lightning). Verify:
+`tests/verify/verify_world_effect.cpp`. Scenarios: `effects.txt` (CreateParticleSource: CEffectParticle
+Unpack / Start / Spawn / Tick / Pack / setters; DeleteParticleSource: Reset), `spells.txt` (casts create sounds,
+sound sequences, lights, particles, the fire wall and lightning through 0067F170-0067F7C0), probably
+`sandbox_actions.txt` (healing spell). Save / Load of effects runs only when a game with live effects is saved
+or loaded (no scenario does).
+
+- Classes (vtable / id): CEffectSound 007433EC / 0x48, CEffectSoundSeq 0074344C / 99, CEffectAmbientSound
+  0074350C / 0x49, CEffectPointLight 0074356C / 0x4B, CEffectParticle 007435D0 / 0x4A, CEffectWall 00743630 /
+  0x5A, CEffectLightning 00743690 / 0x4D; not rewritten: CEffectArrow (0x6C0 bytes, embeds a particle, a light
+  and a sound; missiles), CEffectArrowFigure ("arrow01", "efar1"), CEffectShowVisibility, CEffectMoshka
+  (birds, "bird00", "unmobi"), CEffectTornado ("nature\tornado\circle.wav"), up to 0067E000. The effect
+  factory is 0067E170 (class id 0x48..0x5B). CSpellEffect (vtable 0074399C, 0067E510-0067F870) is in
+  `items_spells.md`.
+- Every effect: +0x94 start tick, +0x98 velocity, +0xA4 "moving" (NaN components count as zero), +0xA8
+  replicated state (`DeltaField`, net_delta.h), +0x148 change stamp (007AFFC8, -1 after Reset). The server
+  ticks (slot 6; 0 removes) and Packs (slot 22) into the DeltaField (SendFull / SendDelta 00675B40 / 00675B70);
+  the client Unpacks (slot 21 via Receive 00675BA0) and Starts (slot 23: 0 creates the sound / light /
+  particle source, else moves it). Load / Save (slots 9 / 10) use the save stream's slot 1 / 2 and +8 version
+  (fields added at versions 0x43, 0x58, 0x5C, 0x67, 0x6D, 100). Slot 19 is a radius (100 by default), slot 20
+  the position used for visibility.
+- Particle types 0x2002, 0x2006, 0x200B-0x200F, 0x2018, 0x2019, 0x201B-0x2026, 0x2030-0x2033, 0x203F-0x2043 are
+  one-shot: the tick removes them 60 ticks after the start (0x2019: 120) and their first spawn catches up all
+  ticks since the start (other types at most 30). Types 0x2002 and 0x2030 leave a scorch mark (0056D4C0 on the
+  world client 007AF5B8), 0x2030 also shakes the camera. A fire wall (0x2010) leaves a scorch mark.
+- Calls through game addresses: sound system (*007AF784) 006B8600 / 006B92F0 / 006B94A0 / 006BA5E0 / 006BA7C0 /
+  006B9950 / 006B9A30 / 006B9AA0; light manager (*007AF738) 006CA720 / 006CA5D0 / 006CA830, CLight 0068D010;
+  particle sources 00498400 (*007AF754), 00485480, 004849F0, 00485360; bolts (*007AF758 slot 23) 004680D0,
+  00467E10. None is on the Rebirth list.
+
+### Rewritten (world_effect*.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00675B40, 00675B70, 00675BA0, 00675BE0, 00675D10, 00675D40 | CEffect SendFull, SendDelta, Receive, ResetBase, CreateEffect, DestroyEffect | ours only (Pack is checked itself) |
+| 00675CA0, 00675D50 | CEffect::MarkChanged, SetVelocity | ours, object restored, original, bytes compared |
+| 00675FA0, 006768F0, 00676050, 00676930, 00677690, 00677F70 | Position, radius getters (slot 19) | pure |
+| 00676200, 00676B10, 00677870, 006780C0, 00678A90, 00679AF0, 0067A1B0 | Reset (slot 18) of sound, sequence, ambient, light, particle, wall, lightning | ours only: the fields Reset sets |
+| 006762F0, 00677250 | Tick of sound / sequence | ours, restore, original (moving a playing sound twice is harmless) |
+| 006781B0, 0067A8F0 | CEffectPointLight::Tick, CEffectLightning::Tick | ours only |
+| 006795C0 | CEffectParticle::Tick (also the wall's) | ours, restore, original: object, the source's position bytes, result |
+| 006763A0, 00677950, 006782D0, 00678CF0, 0067A370 | Start (slot 23) | ours only (light: flag 0x400 matches the range's sign) |
+| 00678EC0, 00679350 | CEffectParticle::Spawn, Attach | ours only |
+| 00676430, 006779D0, 00678520, 00678D30, 00679C70, 0067A490 | Unpack (slot 21) | ours only (consume the reader, start things): result 0 or 1 |
+| 00676550, 00677180, 00677B20, 00678610, 006791A0, 00679DB0, 0067A600 | Pack (slot 22) | ours into the field, streams saved, restored, original, compared (skipped when ours grew a buffer) |
+| 006766D0, 00677430, 00677C60, 00678740, 006794E0, 00679ED0, 0067A7F0 | SaveState (slot 10) | original against a recording stand-in, ours through a forwarding recorder: bytes compared |
+| 006765F0, 00678690, 006793E0, 00679EA0, 0067A770 | LoadState (slot 9) | original on a scratch copy against a stand-in that reads nothing, ours through a recorder: (offset, size) of every read compared |
+| 006772D0, 00677BF0 | LoadState of sequence / ambient | ours only (the string-array readers use more of the stream) |
+| 00678BA0, 00679280, 006792B0, 006792E0, 00679310, 00679C30, 0067A890, 0067A8C0, 0067A6B0 | particle Position and setters (SetAttachedTo, SetSize, SetColors, SetTarget, SetDirection, SetObjects, SetFlag, SetEnds) | ours, restore, original, bytes compared |
+
+x87: ticks and starts follow the original's operation order; small naked helpers repeat the original
+instructions where the compiler could not be trusted: `StepFraction` (particle speed / distance ratio),
+`SetLightRange` (range, range^2 with FST, 1 / range^2 from the unrounded square), `WallScorchShape` (FPATAN and
+the length sum), `RandomAngle` (FILD qword of the random value: a dword FILD plus 2^32 would round at 24-bit
+precision); floats the original copies with FLD / FSTP go through `CopyThroughFpu`; scalar float bits passed to
+callees are read with `Bits(const float&)`.
+
+Original quirks kept: CEffectSound / SoundSeq Tick move the sound when the handle is not 0, so a stopped (-1)
+sound is moved too; Sound Reset stops a sound only when it loops; CEffectAmbientSound::Unpack reads the name
+count into the low byte of the stack slot of its `field` argument; CEffectParticle::Attach reads the source's
+position through a null source when there is none.
+
+Skipped: effect constructors / destructors (00675DD0, 006760A0, 00676760, 00676980, 00677510, 006776E0,
+00677D30, 00677FC0, 006787B0, 00678990, 006797E0, 006799E0, 00679FC0, 0067A0B0) and the factory 0067E170 (EH
+frames; later with the effect manager); CEffectSoundSeq::Start 00676C00 and Unpack 00676FD0 (CStringArray
+temporaries, random picks 00676DD0..00676F90 passed as callbacks); CEffectArrow / ArrowFigure / ShowVisibility /
+Moshka / Tornado (0067AAB0-0067E000); dead code 00675CC0 (UpdateMoving), 0067A2C0 (UpdateEnds); STLport
+instantiations.

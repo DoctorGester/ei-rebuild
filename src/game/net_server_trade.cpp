@@ -1,7 +1,7 @@
 // The game server's trades between players: offers arrive as replicated objects (created, updated,
 // removed: 0041B7A0, 0041B970, 0041BA30), two matching offers make a trade (a TradeMessage,
 // 0041ACF0 finds it), and 0041B720 drops a removed file request. The offers are PartyMessages
-// (net_messages.h). See docs/notes/unmapped_410_470.md ("Seventh round").
+// (net_messages.h). See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 

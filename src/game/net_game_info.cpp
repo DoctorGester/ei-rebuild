@@ -1,5 +1,5 @@
 // The game announcement record (00401000 / 00401170) and the byte buffer's read helpers
-// (00401310 / 00401340). See net_classes.h and docs/notes/unmapped_410_470.md ("Sixth round").
+// (00401310 / 00401340). See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 
 #include "ei/hook.h"

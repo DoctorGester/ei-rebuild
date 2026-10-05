@@ -1,5 +1,5 @@
 // CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
-// EnterZone). See world.h and docs/notes/world.md (seventh round).
+// EnterZone). See world.h and docs/notes/world.md.
 #include "world.h"
 #include "game_strings.h"
 

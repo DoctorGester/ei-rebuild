@@ -1,6 +1,5 @@
 // 005ACE80: the main menu's and the escape menu's button rectangles from "menus.reg" (each entry
-// four integers; a missing or malformed one is a fatal error). See docs/notes/world.md (later
-// additions).
+// four integers; a missing or malformed one is a fatal error). See docs/notes/world.md.
 #include "ei/hook.h"
 #include "ei/vcall.h"
 

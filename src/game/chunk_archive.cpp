@@ -1,6 +1,5 @@
 // The tagged-chunk archive (chunk_archive.h): the chunk primitives, entering and leaving chunks,
-// fields, whole archives over a stream. 00409070-0040A5A0. See docs/notes/unmapped_410_470.md
-// ("Fourth round").
+// fields, whole archives over a stream. 00409070-0040A5A0. See docs/notes/core.md.
 #include "chunk_archive.h"
 #include "game_strings.h"
 

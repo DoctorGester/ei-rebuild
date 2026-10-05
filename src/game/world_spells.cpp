@@ -1,5 +1,5 @@
 // CWorldServer: casting spells into the world (CastSpell 0058E850) and the missile that carries
-// one (CreateMissile 0058E670). See world.h and docs/notes/world.md (seventh round).
+// one (CreateMissile 0058E670). See world.h and docs/notes/world.md.
 #include "world.h"
 
 #include "core_maths.h"

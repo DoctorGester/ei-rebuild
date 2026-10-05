@@ -4,7 +4,7 @@
 // that type on `channel`, and the prototype is released. The instantiations inline the class
 // constructors; the prototypes here come from the classes' factories (net_messages.cpp),
 // which allocate the same blocks in the same order and set the same vtable. Only the vtable of the
-// prototype is read. See docs/notes/unmapped_410_470.md ("Eighth round").
+// prototype is read. See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 

@@ -1,7 +1,6 @@
 // CWorldServer: keeping each player's view of the world up to date (single player too: the local
 // player is a client of the server). SyncPlayer runs once per world update for every player
-// (0058DFF0); SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md
-// (seventh round).
+// (0058DFF0); SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
 #include "world.h"
 
 #include "core_maths.h"

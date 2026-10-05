@@ -2,7 +2,7 @@
 
 // The network message classes (vtables 0073BBF8 ... 0073BDD0, 0x18 apart; message types 1..17 as
 // SessionBase::RegisterMessageTypes registers their factories). Names provisional; see
-// docs/notes/cleanup-network.md and docs/notes/unmapped_410_470.md ("Eighth round").
+// docs/notes/cleanup-network.md and docs/notes/network.md.
 //
 // Every class has, besides its slots, a factory (the type registry's, a static Create), a
 // constructor body (Construct; only for the classes whose constructor is a function of its own,

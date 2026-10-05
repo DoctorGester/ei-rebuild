@@ -1,7 +1,7 @@
 // A connection's construction, reset, clone and destruction (00432DA0, 00433320, 00433060, 004334E0,
 // 004334C0), the id pools' copy and the replica entries' slots.
 // The containers are STLport instantiations (library), called through their original addresses.
-// See net_connection.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// See net_connection.h and docs/notes/network.md.
 #include "net_connection.h"
 
 #include "core_streams.h"

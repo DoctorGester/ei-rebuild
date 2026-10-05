@@ -1,6 +1,5 @@
 // Byte-buffer cursors, the LZ coder (save games, map transfers, network messages) and the fixed
-// buffer view's slots. See net_coder.h and docs/notes/unmapped_410_470.md, "Compression" and
-// "Twelfth round".
+// buffer view's slots. See net_coder.h and docs/notes/network.md.
 #include "net_coder.h"
 
 #include "ei/hook.h"

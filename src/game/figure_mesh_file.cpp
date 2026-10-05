@@ -1,6 +1,6 @@
 // CFigureMesh's own file format (vtable slots; no direct calls in the game): 0059F710 writes the
 // mesh to an MFC CFile, 0059F8F0 reads it back. The name, then every array as a count and its
-// elements, then the bounding values. See figure_mesh.h and docs/notes/world.md (seventh round).
+// elements, then the bounding values. See figure_mesh.h and docs/notes/world.md.
 #include "figure_mesh.h"
 
 #include "core_maths.h"

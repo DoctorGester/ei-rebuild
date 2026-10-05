@@ -1,6 +1,6 @@
 // Zone exits (world.h ZoneExit, 0x3C bytes) and the map database's zone records that hold them
 // (eight CStrings, then a CArray<ZoneExit> at +0x48): their destructors. See
-// docs/notes/unmapped_410_470.md ("Ninth round").
+// docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"

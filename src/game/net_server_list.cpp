@@ -1,6 +1,5 @@
 // The server list reply (0041D600): a compressed run of {address, GameInfoRecord} turned into the
-// client base's server entries. See net_classes.h and docs/notes/unmapped_410_470.md
-// ("Seventh round").
+// client base's server entries. See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 
 #include "ei/hook.h"

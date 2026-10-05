@@ -1,6 +1,6 @@
 // The game server's command messages (0041B2A0, CommandMessage) and the file requests a client
 // hands in (0041B690), with the host check they use (00419F90). See net_messages.h and
-// docs/notes/unmapped_410_470.md ("Eighth round").
+// docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 

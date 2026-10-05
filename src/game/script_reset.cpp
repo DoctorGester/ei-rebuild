@@ -1,6 +1,6 @@
 // CScript reset (004BE6E0): empties a script before a zone's mission script is loaded (world
 // creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
-// See script.h and docs/notes/script.md ("CScript reset").
+// See script.h and docs/notes/script.md.
 #include "script.h"
 #include "game_strings.h"
 

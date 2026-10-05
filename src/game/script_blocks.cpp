@@ -1,7 +1,7 @@
 // Small allocation helpers of the script runtime (ticket S4): the parser's new command blocks
 // (004BF540) and WorldScript block (004BF900), the area lookup that creates missing areas
 // (004BCE10), the temporary object references of the evaluator (004B59F0) and SSCCmd::Clear
-// (004B5F70). See script.h and docs/notes/script.md ("Blocks, areas and temporaries").
+// (004B5F70). See script.h and docs/notes/script.md.
 //
 // The original inlines CList::AddTail / NewNode and builds a temporary element on its stack that it
 // copies into the new node or array slot. Both temporaries are empty, so the copies (the

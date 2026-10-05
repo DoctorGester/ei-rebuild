@@ -1,5 +1,5 @@
 // The game server's chat and system lines (0041A310, 0041A490): kept on +0x2594 for the clients,
-// at most 50. See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// at most 50. See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"

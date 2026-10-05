@@ -1,428 +1,194 @@
-# Models and resource loading (004F0000-00500000, 006D0000-006E0000)
+# Models, resources, the 3D device layer and terrain sectors
 
-Files: `src/game/model.h`, `src/game/model.cpp` (3D library side of figures), `src/game/model_db.cpp`
-(databases, water level changes), `tests/verify/verify_models.cpp`, scenario
-`tests/scenarios/models.txt`. Shared headers: none changed (`model.h` includes `script.h` for
-`MfcArray` and `ScriptStream`).
+Code: `src/game/model.h/.cpp` (3D library side of figures), `model_db.cpp` (databases, water level
+changes), `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `device_mesh.cpp`,
+`device_draw.cpp`, `device_shadow.cpp`, `figure_*.cpp`, `unit_skins.cpp`. Algorithms are described in
+each file's header comment. Verify: `tests/verify/verify_models.cpp` and one `verify_<file>.cpp` per
+file. Scenario: `tests/scenarios/models.txt` (the draw functions run in every scenario; ribbons and
+sprites in `spells` / `spells_cast`). Names are provisional.
 
 ## Map
 
 ### 004F0000-00500000: the 3D transform library
 
-- 004F0B90: constructor of the FPU transform library object: loads `3DfpFPU.dll`, calls its
-  `GetTLPipeline` (throws on failure; contains CPUID). Called once from 00500540.
-- 004F68C0 (Rebirth-patched): constructor of `CLinkFigureLoader` (vtable 0073D808, created at startup
-  by 00563710 from 00456440); opens `figures.res` and `menus.res` through 004F6D30.
-- 004F77C0: loads a `.lnk` link file ("Can't find link file for ...") and each part's figure:
-  004F7F00 for "FIG8" (8 morph components, trilinear morph of the vertex data) and other "FIG"
-  versions, 004F87D0 for the rest; both build the mesh through 004F4B90 / 004F30F0 and upload the
-  vertices through the device (slot 7). Reached only through the loader's vtable (slots 4, 5, 7:
-  004F7150, 004F7080, 004F75E0); which game action uses it is not known.
-- 004F16A0: frustum classification of a figure part's bounds (cube, then box). Callers all over the
-  renderer (00467AD0, 004976B0, 004E1EB0, 0051E300, 0056A990, 005A7640, ...).
-- 004F1330 (Rebirth-patched), 004F1370, 004F13F0, 004F0E80, 004F1440/004F15C0: matrix builders
-  (Rebirth patches the 004F1330 one; probably its aspect handling).
-- 004F57B0: resize of a triangle index buffer (3 x uint16 per triangle, 32-byte aligned), used when
-  figures load (004F30F0, 005A6C80, 0059F8F0).
-- 004F93A0: `ClipBounds::SetBox`, called by the figure manager (005AAE60, 005AB9A0, 005A18E0) for
-  every figure part it loads.
-- 004FA000-00500000: STLport list/map/string instantiations for the loader, the D3D state-block
-  manager (004FCA60, 004FD2A0, 004FD9D0: "Can't register default effect", "Can't delete state
-  block") and the effect manager.
+004F0B90 loads `3DfpFPU.dll` / `GetTLPipeline` (once, from 00500540); 004F68C0 (Rebirth-patched) is the `CLinkFigureLoader` constructor (vtable 0073D808; opens `figures.res` and `menus.res` through 004F6D30);
+004F77C0 loads a `.lnk` file and each part's figure (004F7F00 "FIG8" with 8 morph components and other "FIG", 004F87D0 the rest; meshes through 004F4B90 / 004F30F0), reached only through the loader's vtable (slots
+4, 5, 7: 004F7150, 004F7080, 004F75E0); 004F16A0 frustum classification of a part's bounds (callers all over the renderer); 004F1330 (Rebirth-patched), 004F1370, 004F13F0, 004F0E80, 004F1440 / 004F15C0 matrix
+builders; 004F57B0 triangle index buffer resize; 004F93A0 `ClipBounds::SetBox` (called by the figure manager for every part it loads); 004FA000-00500000 STLport instantiations, the D3D state-block manager
+(004FCA60, 004FD2A0, 004FD9D0) and the effect manager.
 
 ### 006D0000-006E0000: databases and bitmaps
 
-- 006D0630 (Rebirth-patched): loads `prints.db` from `database.res` into three vectors (records
-  0x28, 0x34, 0x28 bytes) and their name maps. 006D7620 (Rebirth-patched): loads `acks.db` (records
-  0x1C4, 0x5C, 0x38 bytes). Both run once at startup (00456440) through a `ChunkArchive` over a
-  memory stream.
-- `ChunkArchive` (constructor 0053A7B0, open 00409AE0, close 0040A000): two `CMemoryStream`s (chunk
-  index and data, data buffer at +0x40), a list of open chunks at +0x50 (the last node is the
-  current chunk; its +0x14 picks the occurrence the next EnterChunk looks for), loading flag at
-  +0x58. Serialize functions read and write through the same code.
-  Quirk: a failed EnterChunk when loading still pushes a chunk (the callers never pop it).
-- 006D1000-006D3C00, 006D9000-006E0000: STLport hash_map / vector instantiations for the database
-  maps (resize, insert, erase, copy, destructors).
-- 006D4400-006D49C0: the world's water level changes (`TweenArray`, a `CArray` of 16-byte entries
-  at 007AFF60 + 0x70): SetTarget (script `SetWaterLevel(index, level, time)` through 00593FA0), Tick
-  (every world update from 0058DCD0), Save, Load (applies each level through 006CC7F0), RemoveAll,
-  SetSize.
-- 006D4A60-006D6AB0: a `CDib` class (vtable 00744288; 0x3C bytes): BMP from a mapped file
-  (006D4D40, "Empty bitmap file" / "Invalid bitmap file"), from a `CFile` (006D5910), from an `.mmp`
-  texture with DXT1-5 decoding and 4444 to 1555 conversion (006D5BF0, "wrong level for mipmap"),
-  palette creation, GDI drawing, writing (006D5AC0), creation from a surface (006D6D40, "Driver
-  can't do compression" nearby). It is only used for loose `textures\*.bmp` overrides (0068FBF0),
-  the movie capture screenshots (00458010) and code with no callers (006D6800 calls the .mmp
-  reader). Not rewritten: none of it runs in a normal game, so no verify run would cover it.
+006D0630 (Rebirth-patched) loads `prints.db` from `database.res` (records 0x28, 0x34, 0x28 bytes), 006D7620 (Rebirth-patched) `acks.db` (0x1C4, 0x5C, 0x38), both once at startup (00456440) through a `ChunkArchive` over
+a memory stream. `ChunkArchive` (ctor 0053A7B0, open 00409AE0, close 0040A000): two `CMemoryStream`s (index and data, data buffer +0x40), open chunk list +0x50 (last node = current chunk; its +0x14 picks the occurrence the
+next EnterChunk looks for), loading flag +0x58; Serialize functions read and write through the same code; a failed EnterChunk when loading still pushes a chunk (callers never pop it). 006D4400-006D49C0: the world's
+water level changes (`TweenArray`, 16-byte entries at 007AFF60 + 0x70): SetTarget (script `SetWaterLevel` via 00593FA0), Tick (every world update from 0058DCD0), Save, Load (applies each level through 006CC7F0).
+006D4A60-006D6AB0 `CDib` (vtable 00744288): BMP / `.mmp` readers, drawing, writing; used only for loose `textures\*.bmp` overrides (0068FBF0), movie capture screenshots (00458010) and unreferenced code; not rewritten.
 
-## Rewritten
+## 3D library and databases: rewritten
 
 | Address | Name | Verify |
 |---|---|---|
 | 004F16A0 | `CTransformPipeline::ClipTest` | pure, side by side |
 | 004F93A0 | `ClipBounds::SetBox` (returns the flags) | original on a scratch copy of the 0x2C bytes |
-| 004F1370 | `ViewportMatrix` (`__stdcall`, returns out) | ours into a scratch matrix, compare 64 bytes |
-| 004F13F0 | `ShearMatrix` (`__stdcall`) | same |
-| 004F0E80 | `ProjectionMatrix` (`__stdcall`) | same |
+| 004F1370, 004F13F0, 004F0E80 | `ViewportMatrix`, `ShearMatrix`, `ProjectionMatrix` (`__stdcall`, return out) | ours into a scratch matrix, 64 bytes compared |
 | 004F57B0 | `TriangleIndexArray::Resize` | original on a copy with its own buffer; sizes and kept triangles |
-| 004F6D30 | `CLinkFigureLoader::AddArchive` | ours only; the list must (not) hold the archive afterwards |
-| 006D23A0 / 006D25F0 | `ChunkArchive::SerializePrints` / `SerializePrints2` | ours only; loaded count = record chunks counted beforehand |
+| 004F6D30 | `CLinkFigureLoader::AddArchive` | ours only: the list must (not) hold the archive |
+| 006D23A0 / 006D25F0 | `ChunkArchive::SerializePrints` / `2` | ours only: loaded count = record chunks counted beforehand |
 | 006DB430 / 006DB680 / 006DB8D0 | `ChunkArchive::SerializeAcks` / `2` / `3` | same |
-| 006D41D0 / 006D4270 | `PrintRecord::Serialize` / `PrintRecord2::Serialize` | loading: original into a scratch record, compare fields and name; saving: ours only |
-| 006D43E0 | `TweenArray::RemoveAll` | original on a copy |
-| 006D4840 | `TweenArray::SetSize` | original on a copy with its own buffer |
-| 006D4410 | `TweenArray::SetTarget` | same |
-| 006D44E0 | `TweenArray::Tick` (returns bool in AL) | same, plus the result |
+| 006D41D0 / 006D4270 | `PrintRecord::Serialize` / `PrintRecord2::Serialize` | loading: original into a scratch record, fields and name compared; saving: ours only |
+| 006D43E0, 006D4840, 006D4410, 006D44E0 | `TweenArray::RemoveAll`, `SetSize`, `SetTarget`, `Tick` (bool in AL) | original on a copy (own buffer), result too |
 | 006D4570 / 006D47E0 | `TweenArray::Save` (identical copies) | both into capture streams |
-| 006D45D0 | `TweenArray::Load` | original for real (it applies water levels), recording the stream; ours reads the bytes into a copy |
+| 006D45D0 | `TweenArray::Load` | original for real (applies water levels), recording the stream; ours reads the bytes into a copy |
 | 006D4660 | `TweenArray::LoadEntries` | original on a copy from the real stream, ours from the recorded bytes |
 
-All names are provisional (set in the code; not renamed in Ghidra).
-
-### Floating point
-
-- `ClipTest`: the corner coordinates (centre +- radius, centre + box corner) stay on the FPU stack
-  and are recomputed in each product; the four transformed values, 2W, X+W and Y+W are stored to
-  float (`StoreFloat`). The sums are evaluated ((a + b) + c) + d; /fp:fast regrouped them as
-  (a + b) + (c + d), so the function is compiled with `float_control(precise)` (checked in the
-  object code). Compare bits are `!(a >= b)` (less or unordered, as FCOMP/C0).
-- `ProjectionMatrix`: also `float_control(precise)`. sin and cos go through `x87::fsin/fcos`; the
-  sine is kept as a double (the original keeps it on the FPU stack): identical while the FPU runs
-  at 24 or 53-bit precision.
-- `TweenArray::Tick`'s removal test is "value == 0 or unordered" (FCOMP / TEST AH,0x40), written
-  `!(v < 0) && !(v > 0)`.
-
-## Forwarders added
-
-ChunkArchive 004098D0, 00409980, 004092B0, 00409470, 00409A60; record destructors 006D29A0,
-006D29E0, 006DC390, 006DC920, 006DCAF0; vector resize 006D26E0, 006D2830, 006DB9C0, 006DBBD0,
-006DBE20; acks record Serialize 006E3780, 006E3FD0, 006E3DC0; water level apply 006CC7F0; the link
-loader's list insert 004FB2E0 and erase 004FAE00; CMMIOResource constructor 006721D0. prints.db
-records are serialised through their vtable. None of these is Rebirth-patched.
-
-## Original bugs kept on purpose
-
-- `CLinkFigureLoader::AddArchive` leaks the `CMMIOResource` when opening fails, and its log call
-  passes the `stlp::string` by value to `"%s"` (the three words go on the stack).
-- `TweenArray::Load` reads the count into its stream argument's stack slot; `LoadEntries` into an
-  uninitialised local (our version starts from 0). Both only matter for a stream that writes
-  nothing; the game's `CMemoryStream` zero-fills short reads.
-- `ShearMatrix` sets m[10] to 0 after zero-filling.
-- `TweenArray::SetTarget` appends an uninitialised entry before overwriting all of its fields.
-
-## Verify notes and risks
-
-- The vector serialisers only check the record count. The record contents are checked by the
-  record Serialize wrappers (prints) or not at all (acks records, not rewritten).
-- Running the original record Serialize on the side when loading can push failed chunks;
-  `RestoreTop` pops the chunk stack back before ours runs (loading LeaveChunk only pops).
-- Under Rebirth the database loaders (006D0630, 006D7620) and the link loader constructor (004F68C0)
-  are patched; whether the patched code still calls the rewritten functions is unknown.
-- `CLinkFigureLoader::AddArchive` is called twice at startup; its verify check is weak (list
-  contents only).
-
-## Skipped
-
-- FIG / link file loading (004F77C0, 004F7F00, 004F87D0, 004F7B10, 004F7D20 ...): build meshes
-  through not-yet-mapped mesh code and upload to the device; no way to run them twice. Worth doing
-  together with the mesh class (004F30F0, 004F4B90).
-- 004F0B90 (TL library loading): constructor with C++ throws and CPUID; once per run.
-- 004F1440 / 004F15C0 (shadow matrix with asin/acos), 004F1330 (Rebirth-patched).
-- The CDib class (see the map): never runs in a normal game.
-- prints.db / acks.db loaders themselves (Rebirth-patched) and the STLport instantiations.
+`ClipTest` and `ProjectionMatrix` are compiled with `float_control(precise)` (/fp:fast regrouped the corner sums); `TweenArray::Tick`'s removal test is "value == 0 or unordered", written `!(v < 0) && !(v > 0)`.
 
 ## Renderer (00500B70-005053FF)
 
-Files: `src/game/renderer_init.cpp`, `src/game/renderer_strip.cpp`, `src/game/renderer_sprites.cpp`,
-`src/game/device_mesh.cpp`, `src/game/figure_part_draw.cpp`, `tests/verify/verify_renderer_init.cpp`,
-`verify_renderer_strip.cpp`, `verify_renderer_sprites.cpp`, `verify_device_mesh.cpp`,
-`verify_figure_part_draw.cpp`.
-Shared headers: none changed (`clip.h` gives `TLVertex` and the clipper).
+The renderer is the global at 007AF060 (vtable 0073D93C). +8 the transform pipeline (matrix stacks as
+aligned arrays of 64-byte matrices: data/count at +0x14, +0x1C, +0x24, +0x3C, +0x44, +0x4C, +0x54; +0xC
+the transform object, whose slots project and clip vertices), +0x20 the counted device holder
+(004E5E50: +8 last HRESULT, +0xC DirectDraw, +0x14 primary surface, +0x18 render target (+0x14 width,
++0x18 height), +0x54 IDirect3DDevice7, +0xAC the pipeline again (its transform object's slot 35 sees
+every vertex batch when +0x158 is set), +0x150 override colour of the mesh draws, +0xE0 vertices sent
+to vertex buffers, +0x16C / +0x170 / +0x174 vertex, triangle and call counters), +0x24 the counted
+state-block helper (004FCA60). Device draws hold the lock 007AEE78 and store the HRESULT at +8.
 
-The renderer is the global at 007AF060 (vtable 0073D93C). +8 is the transform pipeline (matrix
-stacks as aligned arrays of 64-byte matrices: data/count at +0x14, +0x1C, +0x24, +0x3C, +0x44,
-+0x4C, +0x54; +0xC the transform object, whose slots project and clip vertices), +0x20 the counted
-device holder (004E5E50: +8 the last HRESULT, +0xC DirectDraw, +0x14 the primary surface, +0x18 the
-render target (+0x14 width, +0x18 height), +0x54 the IDirect3DDevice7, +0xAC the pipeline again
-(its transform object's slot 35 sees every vertex batch when +0x158 is set), +0x150 the override
-colour of the mesh draws, +0xE0 vertices sent to vertex buffers, +0x16C / +0x170 / +0x174 vertex,
-triangle and call counters), +0x24 the counted state-block helper (004FCA60).
+Shared buffers of the mesh / flat draws: 007AEDE0 clip output, 007AEE00 TL vertices, 007AEE10
+projected vertices (16 bytes each), 007AEE20 corner outcodes, 007AEE30 vertex outcode bytes (all
+..007AEE3C); the vertex buffer path 004E7820 is dead (always returns null). Ribbon / sprite buffers are
+function-local statics (007AF000..007AF05C, 007AEF60..007AEFF8).
 
 ### Rewritten
 
 | Address | Name | Verify |
 |---|---|---|
-| 00500B70 | `RendererCreate` (slot 2, RET 8) | ours only; holder, helper, projection stack entry and flag 2 of +4 set |
-| 00501D90 | `DrawRibbon` (slot 16, RET 0x18) | ours only; result 0 / 1 and whole quads in the index list |
-| 00502A20 | `DrawTlTriangles` (holder thiscall) | ours only; call counter + 1 |
+| 00500B70 | `RendererCreate` (slot 2, RET 8) | ours only: holder, helper, projection stack entry, flag 2 of +4 |
+| 00501D90 | `DrawRibbon` (slot 16, RET 0x18) | ours only: result 0 / 1, whole quads in the index list |
+| 00502A20, 00503680 | `DrawTlTriangles`, `DrawIndexed` (holder thiscall; RET 0x1C) | ours only: call counter + 1 |
 | 00502AC0 | `EmitSection` (naked transcription) | original into scratch vertices, 64 bytes compared |
 | 00502B90 | `StripDirection` | pure, both compared |
-| 00502CA0 | `DrawSprites` (slot 17, RET 0xC) | ours only; result 0 / 1, the last batch's corners back to front |
-| 00503680 | `DrawIndexed` (holder thiscall, RET 0x1C) | ours only; call counter + 1 |
-| 00503710 | `SpriteRadixPass` | original into a scratch list, lists compared |
-| 005037D0 | `SpriteMergePass` | same |
-| 004E9010 | `DeviceDrawMesh` (device thiscall, RET 0x48) | ours only; drawn vertices are the corners (position, colours, plain uv), or clipped: the corners' outcodes copied |
-| 004E9A50 | `DeviceDrawMesh2` (two textures, RET 0x50) | same |
-| 005A7A70 | `DrawFigurePart` (node thiscall, RET 0x1C) | ours only, after the (pure) clip test: result 1; hidden or outside the view: not marked drawn; else lit unless flat |
+| 00502CA0 | `DrawSprites` (slot 17, RET 0xC) | ours only: result 0 / 1, last batch's corners back to front |
+| 00503710 / 005037D0 | `SpriteRadixPass` / `SpriteMergePass` | original into a scratch list, lists compared |
+| 004E9010 / 004E9A50 | `DeviceDrawMesh` (device thiscall, RET 0x48) / `DeviceDrawMesh2` (two textures, RET 0x50) | ours only: drawn vertices are the corners, or clipped: outcodes copied |
+| 004EA4A0 | `DeviceDrawFlat` (RET 0x24) | ours only: result 0 / 2; with one vertex per position every vertex carries the colour pair |
+| 004EB550 / 004EB370 | `DeviceDrawIndexed` (RET 0x1C) / `DeviceDrawTwoTextures` (RET 0x24) | ours only: result 1; counters grow once per pass / two calls, second surface stays on stage 0 |
+| 005A7A70 | `DrawFigurePart` (node thiscall, RET 0x1C) | ours only, after the (pure) clip test: result 1; hidden or outside: not marked drawn; else lit unless flat |
+| 005A7640 | plain `DrawFigurePart` (RET 0x18) | ours only: flag consistency |
+| 005A7290 | clip-box lines (finishing call of both draws) | differential through a stand-in renderer recording the line list |
+| 005A0E80 | `RasteriseFigureMesh` | differential through a stand-in rasteriser |
+| 00568800 | `BuildUnitSkins` (zone client thiscall, RET 8) | ours only (texture cache and figure maker side effects): the two record vectors unchanged |
 
-All run in every game: 00500B70 once at start-up; 00502CA0 / 00503680 / 00503710 / 005037D0 for
-particles (004976B0: spell effects, fires; scenarios `spells_cast`, `spells`); 00501D90 and its
-helpers for ribbons (lightning-type spell effects, `spells_cast`); 004E9010 / 004E9A50 for every
-figure and 3D-library mesh on screen (any scenario). Names are provisional.
+Facts that are not in the code comments:
+- **Renderer creation**: the helper's flag argument is pushed as EDX with only DL set; the upper bytes
+  are what the game's operator new left in EDX, reproduced by capturing EDX after the same
+  allocation. The depth range call takes two arguments (settings +0x264, +0x1E4).
+- **Mesh draws**: callers are figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...);
+  flag 4 overwrites the mesh's own colour and specular arrays with the device's +0x150 colour / alpha
+  << 24; `DeviceDrawFlat` is used by shadows (0051CE60), the renderer (00503A40) and 006CEDE0.
+- **Figure parts**: mesh +8 flags 0x40 drawn (cleared first), 0x80 hidden (nothing more, not even the
+  finishing call), 0x10 lit, 0x100 flat colours; +0x98 owner (CObject3D, its figure at +0xF0 draws the
+  mesh when present), +0x15C mesh type (13..16 animated), +0x188 clip bounds. With 0079BD28 set the
+  mesh named "crown" has every colour pulled halfway to the average. The plain variant (005A7640)
+  clears the drawn flag only after the hidden test, has its own moved-positions static (007C2E60,
+  guard 007C2E70, freed by 005A7A50) and sets the drawn flag whenever the draw did not return 2.
+- **Material draw**: the device's current material (+0x14C): +8 blend flag, +0xC / +0x10 source / destination blend, +0x14 technique (+8 / +0xC state block handles per pass), +0x18 stage records (0x14 bytes: coordinate
+  index, texture name, +0x10 counted texture looked up through 00693C60 on first use).
+- **Unit skins** (`BuildUnitSkins`): called by the zone load 00567AB0 (Rebirth-patched for its map paths; this function is not); `this` +0x18C the texture cache, +0x34 the figure maker; prototype table 007AF358, model
+  table 007AF398 (+0xE8 texture prefix). See also world.md ("Unit skins").
 
-### Creation (00500B70)
+### Figure models, factory, loading (all ours only: they read resources, allocate or free)
 
-Driver from the settings (+0x2C index, else the first hardware driver; none: fatal error "no
-driver" and exit), the device object (004E5E50), the pipeline's matrix stacks (projection from the
-camera settings' near / far / field of view with aspect 4/3, the viewport matrix of the holder's
-rectangle, the fixed axis swap 004F1330 and their products; the transposed projection to the
-transform object's slot 4), the viewport size and depth range, render states, the texture stage
-filters for every stage the device can use at once (settings +0x74 point / linear, +0x70 mipmaps,
-cleared when the driver caps lack bit 0x400000 of +0x16C), a default white light at (5, 5, -8),
-ambient grey 50, and the helper (+0x24). The helper's flag argument is pushed as EDX with only DL
-set: the upper bytes are what the game's operator new left in EDX, reproduced by capturing EDX after
-the same allocation.
+| Address | Name | Notes |
+|---|---|---|
+| 005AA5F0 | `FindFigureModel` | the manager's hash_map<string, model*> (+0xBC); opens `<name>.mod / .bon / .anm` through slot 19, nothing without the .mod |
+| 005A9C90, 005A9A50 | `DestroyFigureModel`, `ConstructFigureModel` | map ctor inlined as STLport's (buckets: first listed prime not below 100); three 0x6C-byte parts via 006721D0 |
+| 005AA8E0 | `CreateFigureObject` | class ids 0x41-0x44, 0x300B-0x300D; +0x10 gets the id |
+| 005AC880 | `LoadSkeletonLinks` | `<name>.lnk`: (child, parent) pairs to 0050CC60, then 0050D2E0 |
+| 005ACB80 | `LoadFigureBones` | `<name>.bon`: 0x48 bytes to 0050BC00, other sizes to 0050B8C0; data not released |
+| 005AC010 | `LoadFigureBounds` | `<name>.fig`: "FIG" headers to 005AAE60, others to 005AB9A0 |
+| 005ACCF0, 005A9EF0, 005AA1C0 | `SetFigureAnimation`, `FindModelAnimation`, `DestroyFigureManager` | |
 
-Fixed after the in-game crash at start-up: the depth range call (transform object slot 5) takes two
-arguments, settings +0x264 and +0x1E4; the first rewrite passed only the first, so the callee's
-RET 8 popped one dword too many and the function returned through a wrong stack (the crash showed up
-later as a jump to 007AF064).
+## Original bugs and quirks kept on purpose
 
-### Ribbons (00501D90)
+- `CLinkFigureLoader::AddArchive` leaks the `CMMIOResource` when opening fails and passes the `stlp::string` by value to `"%s"`. `TweenArray::Load` reads the count into its stream argument's stack slot, `LoadEntries` into an
+  uninitialised local (ours starts from 0; only matters for a stream that writes nothing, the game's `CMemoryStream` zero-fills short reads); `SetTarget` appends an uninitialised entry before overwriting all of it;
+  `ShearMatrix` sets m[10] to 0 after zero-filling.
+- `DrawFigurePart`: without a rectangle the device path never sets the drawn flag; a singular (or NaN) model matrix leaves the original's inverse in uninitialised stack slots, ours uses the previous call's inverse.
+  `DrawSprites` (00502CA0): without a primary surface (holder +0x14 null) the clip path uses two uninitialised stack slots for the screen size (ours keeps the last values; not reachable while the device draws); a failed draw
+  returns 0 without restoring the blend states; the 16-byte array at 007AEFA0 is sized to 0x200 every call and never used; the sort writes a dropped sprite's key into the next free record. `DrawRibbon`: the index array is
+  sized for the ribbon and freed at once before the indices are added.
 
-A polyline of world points (16 bytes each) projected by the transform object (mode 0: slot 13 with
-the stack at +0x1C; mode 1: slot 8 with the stack at +0x24 and an outcode per point, 2 = all off
-screen) becomes a strip of cross sections, each two TL vertices offset across the screen direction by
-width * rhw * 15 / |direction|; u runs from 0 (0.875 when the length compares equal to 0, NaN
-included) in steps of length / (n - 1), v from vStart over vSize. The ends are transparent. Mode 1
-skips segments whose both points are flagged and restarts the strip after them. Drawn additively
-(source alpha, one) with the states restored afterwards. Mode 2 only sizes the buffers. The x87
-sequences of 00502AC0 and of the first cross section (inlined at the first point) are naked
-transcriptions (the hypot result divides an unrounded product).
+## Verify notes and risks
 
-### Sprites (00502CA0)
+- The vector serialisers check only the record count; record contents are checked by the record Serialize wrappers (prints) or not at all (acks records, not rewritten); the original record Serialize run on the side when
+  loading can push failed chunks (`RestoreTop` pops them back). `AddArchive` runs twice at startup; its check is weak. Under Rebirth the database loaders (006D0630, 006D7620) and the link loader constructor (004F68C0) are
+  patched; whether the patched code still calls the rewritten functions is unknown.
+- The creation / ribbon / sprite draws run once or are state-dependent, so they are checked by invariants; the radix and merge passes compare only for batches over 128 (radix) / 2..128 (merge) visible particles. Naked
+  transcriptions where the original keeps unrounded values on the FPU stack: `EmitSection`, the ribbon's first cross section, `AddOffset` of the mesh draws, the light / sun transforms and crown blend of `DrawFigurePart`;
+  `DrawSprites` copies the view matrix's upper triangle through FLD / FSTP (`ThroughFpu`, an sNaN would come out quiet) and loads the clip limits as zero-extended qwords.
 
-Points (x, y, z, size) and sprites (colour, pointer to a u0 v0 u1 v1 rectangle) in batches of up to
-511: four TL vertices per sprite (colour, black specular, corners (u0,v0) (u1,v0) (u1,v1) (u0,v1)),
-then the transform object's slot 24 (the stack top at +0x24 transposed, points, vertices, outcodes,
-count) places the corners and returns 0 (all on screen), 1 (some off) or else (nothing to draw).
-The batch is sorted back to front on the first corner's z bits (negative z dropped): four radix
-passes (00503710, bytes 0, 8, 16, 24, bucket order alternating ascending / descending, buckets
-filled last-in-first) above 128 sprites, else merge passes (005037D0) with run widths from the
-largest power of two below the count down to 1. Both give larger keys first. Then two triangles per
-sprite, (0, 2, 1) and (0, 3, 2), each through the screen clipper (0042D910) when the transform said
-so. With the additive flag the blend is source alpha + one for the call.
+## Skipped
 
-### Mesh draws (004E9010, 004E9A50)
+- FIG / link file loading (004F77C0, 004F7F00, 004F87D0, 004F7B10, 004F7D20 ...): build meshes through
+  not-yet-mapped mesh code and upload to the device; cannot run twice. Do with the mesh class (004F30F0,
+  004F4B90).
+- 004F0B90 (TL library loading: C++ throws, CPUID, once per run), 004F1440 / 004F15C0 (shadow matrix
+  with asin/acos), 004F1330 (Rebirth-patched).
+- The `CDib` class (never runs); the prints.db / acks.db loaders themselves (Rebirth-patched) and the
+  STLport instantiations.
 
-Identical code; 004E9A50 has two texture arguments in front and draws through 004EB370 instead of
-004EB550. The positions come in blocks of four vertices (64 bytes, x x x x y y y y ...); the
-transform object projects them into 007AEE10 (16 bytes per vertex: slot 14 with the stack top at
-+0x1C, or with flag 2 slot 9 with the stack at +0x24 and an outcode byte per vertex in 007AEE30) and
-returns 0 (on screen), 1 (crossing an edge) or 2 (nothing visible: returned as is). Flag 4 first
-overwrites the mesh's colours with the device's +0x150 and its speculars with the alpha byte << 24
-(4 * colourCount entries each: the mesh's own arrays change). Each corner (three words: position,
-colour, texture coordinate) becomes a TL vertex in 007AEE00; the texture coordinate is moved by the
-u / v offsets unless both compare equal to 0 (NaN counts as equal). On screen: flag 1 collects the
-screen bounds (004E8900), the slot 35 observer, then the draw. Crossing: buffers for ten times the
-corners and indices, the corners' outcodes (007AEE20), the clipper (slot 37: vertices, outcodes,
-indices in, 007AEDE0 out, both counts), nothing more when either count is 0, else the counts set, the
-vertices projected (slot 34), the observer, flag 1 bounds of the clipped vertices (004E86B0), the
-draw. The vertex buffer path (004E7820) is dead: it always returns null. Returns 1 when drawn on
-screen, else the transform's result.
+## Terrain sectors, lighting, prints (006BE3A0-006CFEA0)
 
-### Figure parts (005A7A70)
+Code: `terrain_sector.h/.cpp` (`terrain::SectorData` / `TerrainFields` are views of terrain.h's `TerrainSector` / `Terrain`; the sector file format is in the code), `terrain.cpp` (PlaneHeight, VertexAt, HeightAt),
+`terrain_draw.cpp` (`DrawSectorPage`, algorithm in its header). Verify: `verify_terrain_sector.cpp`, `verify_terrain_draw.cpp`. Reached by every scenario (zone1 loads several sectors, water sectors only where the map
+has water; the terrain pass draws every visible page each frame). Sound parts of the range are in `sound.md`.
 
-Thiscall on a figure part's scene node (+8 flags, +0x1C the CFigureMesh, +0x20 its screen
-rectangle) with the device, the lights ({data, count}), the material (+8 flag 0x10, +0x50 a
-vector), an alpha byte, an optional RECT* and two textures (+0x5C each). The mesh's +8 flags: 0x40
-drawn (cleared first), 0x80 hidden (nothing more, not even the finishing call), 0x10 lit, 0x100
-flat colours; +0x98 the owner (CObject3D), whose figure (+0xF0) draws the mesh when there is one;
-+0xCC / +0xD0 the texture offsets, +0xD4 / +0xD8 the flat colour and specular, +0x128 / +0x12C
-per-vertex offsets, +0x138 / +0x148 the colour and specular arrays (4 per normal packet), +0x15C
-the mesh type, +0x188 the clip bounds.
-
-1. The clip test (004F16A0 on the device's pipeline); 2 = outside: return.
-2. Types 13..16: the node's flags take 00790C0C and 005A7160 animates it to ticks + fraction.
-3. Flat meshes: the figure's slot 7 (name, colour, specular, the arrays) or both arrays sized and
-   filled. Unlit meshes: the inverse of the model matrix (the pipeline's stack at +0x2C) moves each
-   light's position (+0x1C -> +0x28) and the sun's (007AF07C) negated direction (+0xD4 -> +0x108)
-   into the mesh's space; 0068D280 sets each light's colours for the material; the sun goes to
-   the transform object (slot 2); the figure (slot 8) or the transform object (slot 40) lights the
-   mesh. With 0079BD28 set the mesh named "crown" has every colour pulled halfway to the average.
-   The speculars become alpha << 24 unless the material has flag 0x10; the mesh is marked lit.
-4. Draw flags: 2 crossing the view, 1 rectangle wanted, 8 the material's flag 0x10. With a figure:
-   slot 11 / 9 (with the offsets array) or 12 / 10, textured first, each with the mesh's name as
-   an STLport string; the rectangle from the figure's piece of that name; drawn (0x40) unless the
-   slot returns 2. Without: the offsets are added into a copy of the positions (007C2E48), then
-   004E9A50 (both textures) or 004E9010; with a rectangle: empty when the draw returned 2, else the
-   device's +0x15C, and only then the drawn flag.
-5. 005A7290 with the renderer.
-
-Quirks kept: without a rectangle the device path never sets the drawn flag; the string members
-are called with the original's allocator and tag arguments. A singular (or NaN) model matrix leaves
-the original's inverse in uninitialised stack slots: ours uses the previous call's inverse, which is
-what those slots usually hold.
-
-### Floating point
-
-- 005A7A70: the inverse, the light and sun transforms, the crown blend (the red sum reaches the
-  first colour unrounded, the others reload it rounded) and the offset adds are naked
-  transcriptions; their x87 sequences were compared with the original's instruction by instruction
-  (same opcodes and register operands). The time is FILD ticks + fraction, rounded once.
-- 004E9010 / 004E9A50: positions and texture coordinates are copied with FILD / FISTP qword (exact,
-  memcpy here); the offset add is FLD offset, FADD coordinate, FSTP (`AddOffset`, naked so that the
-  operand order and the offset's own bits are kept).
-- 00502AC0 and the ribbon's first cross section: naked transcriptions (see above).
-- 00501D90: the u step is a double division rounded once to float; the "length equals 0" test is
-  `!(a < 0) && !(a > 0)` (FCOMP / C3 semantics, NaN counts as equal).
-- 00502CA0: the view matrix's upper triangle goes through FLD / FSTP (an sNaN would come out quiet,
-  `ThroughFpu`), the lower as dwords; the clip limits are the render target's size loaded as
-  zero-extended qwords (`x87::FromUnsigned`) and rounded to float once. Corners and colours are
-  copied as dwords.
-- 00500B70: the ambient grey is three FISTPs of 50.0f; the projection aspect is the float bits
-  0x3FAAAAAB.
-
-### Original quirks kept
-
-- 00502CA0: without a primary surface (holder +0x14 null) the clip path uses two stack slots the
-  original never initialises for the screen size; ours keeps the last values, 0 at first. The
-  surface exists whenever the device draws, so this should not be reachable.
-- 00502CA0: when a draw fails it returns 0 without restoring the blend states. The vertex buffer's
-  resize to the batch drops the contents if it ever has to grow (it never does: it is reserved for
-  0x2000 vertices first). The 16-byte array at 007AEFA0 is sized to 0x200 every call and never used.
-- 00502CA0: the sort writes the key of a dropped sprite into the next free record.
-- 00501D90: the index array is sized for the ribbon and freed at once before the indices are added.
-
-### Verify notes and risks
-
-- The draws themselves (00500B70, 00501D90, 00502CA0) can only run once, so they are checked by
-  invariants, not side by side; the pure helpers are compared with the original.
-- 00502CA0's radix and merge passes compare only when a batch has more than 128 (radix) or 2..128
-  (merge) visible particles; a big fire or a long spell gives both.
-
-## Unit skins (00568800)
-
-Files: `src/game/unit_skins.cpp`, `tests/verify/verify_unit_skins.cpp`. Shared files: none.
+Map (R = Direct3D / renderer calls, left original): 006BF5F0 / 006BF8A0 `SectorData` ctor / dtor (0x394 bytes); 006C13A0 `Load` (`<zone>XXXYYY.sec`, magic CF4BF774); 006C1C00 (+ chunk 006C29BD) `Build`; 006C30E0
+`ApplyWaterLevels`; 006C3DD0 `Ensure` (build 2 / light 4 on demand); 006C53C0 `TileUv`; vertex lighting 006C31C0 / 006C36B0 / 006C3A00 (3A00 switches the FPU to chop rounding with `_controlfp(0x300, 0x300)`; 36B0 tests
+shadows through 006C92C0); landscape object (vtable 0073F6A8): per-frame Update 006CB1E0 (light countdown 006C8ED0, animated tiles, ambience 006CB390, frame counter +0x218); draw passes 006C6230 / 006C6330 / 006C6460 /
+006C66E0 (from the renderer 00569E40, Rebirth-patched) (R) -> `DrawSectorPage` 006BFF40; 006C68B0 map loader (Rebirth-patched, not rewritten); 006C8140 `Terrain::SectorAt` sector cache (grid +0x1F8, LRU list
++0x200 / +0x204, 240-frame age limit; not rewritten); 006C85A0 / 006C8680 `VertexAt` / `HeightAt`; 006C8930 `GroundAndWaterDepth`; 006C8D40 `SurfaceClass` (texture class under a point: footprints, blood, effects);
+006CA5D0-006CAC10 point lights register with the vertices they reach (pooled 16-byte LightRef nodes, blocks of 1000 at 007C8840); 006CB020 point test (8 callers); 006CF370-006CFEA0 foot / blood / fire prints.
 
 | Address | Name | Verify |
 |---|---|---|
-| 00568800 | `BuildUnitSkins` (thiscall on the zone client object, RET 8: others, dressed) | ours only (texture cache and figure maker side effects): the two record vectors are left as they were |
+| 006C1C00 | SectorData::Build | original on a scratch sector (random generator and the owner's water row restored), ours on the real one; every written field and array compared |
+| 006C13A0 | SectorData::Load | ours on the real sector, original on a scratch copy with emptied arrays; header, vertices, water tiles compared |
+| 006C30E0 | SectorData::ApplyWaterLevels | snapshot, original, restore, ours, compare |
+| 006C3DD0 | SectorData::Ensure | ours only: result and built flags (calls Build through its original address) |
+| 006C53C0, 006C8D40, 006C8930 | TileUv, SurfaceClass, GroundAndWaterDepth | pure / side by side / outputs |
+| 006BFF40 | DrawSectorPage (`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused) | ours only: result 0 / 1, vertex buffer size within capacity and a multiple of 4 |
 
-Called by the zone load 00567AB0 (Rebirth-patched for its map paths; this function is not), so by
-every zone load. `this` +0x18C is the texture cache, +0x34 the figure maker.
+Facts: terrain_sector.cpp is compiled with `float_control(precise, on)` (running x / y, heights in flight and bounding box intermediates are doubles; constants read from the exe; HeightAt taken unrounded through a
+double-returning forwarder to 006C8680). `DrawSectorPage` returns 1 at once when sector +0x60 is 2; its function-local statics (guard byte 007C88A0: vertex buffer 007C8890, index CWordArray 007C8878, clipped indices
+007C8860, per-vertex CByteArray 007C8848; clipped-vertex arrays 007C88B8 / 007C88A8, guard 007C88C8; exit handlers 006C1370 / 006C1360 / 006C1350 / 006C1340 / 006C1320 / 006C1300) are built on first use and the last two
+arrays do not keep their contents when they grow; level-of-detail tables 0079699C / 007969A8 are read from the exe, an out-of-range level reads past them as the original does; the vertex buffer's element is 32 bytes, so
+it is four times larger than needed (as in the original); render state 0x1D goes through `*007AF080 + 0x54`. Quirks kept: Load passes the error message to FatalError as its format string; Build's texture class index
+is compared against perPage * pages (not 16) before falling back to 15; Load picks a vertex's water material by lowest priority, Build the first found.
 
-- Dressed units (the second argument, 0x24-byte records: +0 the prototype index into 007AF358
-  (0x120 bytes, +8 the model index into 007AF398, 0x168 bytes, +0xE8 its texture prefix), +4 the
-  item ids (7 dwords: 0 head, 1 / 2 the weapons, 3..6 the armour), +0x10 / +0x1C a weapon list and
-  an index byte, +0x20 the unit number or -1): the texture records (005683D0 with 1) are copied
-  into the set's byte array (SetSize inlined), the names are "<prefix>skin_NN.mmp" (NN the
-  prototype's +0xC; "skin_00" without a prototype), each armour piece and the weapons
-  "<prefix><item>.mmp" (006A3480; the weapon whose armour record +0xB8 is lower first when both
-  are there), and the set (size 256) is composed by the cache (00693180, name "mo<n>p" or
-  "prot<prototype>p") and registered (00693F10, kind 1); then the records again with 0, the head
-  item and the extra weapon (weapon 0056E440 and material 0056E400 records, 006A0BF0), size 128,
-  "mo<n>s" / "prot<n>s", kind 2. The names are built with the original's inlined strcpy / strcat
-  into 256-byte buffers.
-- Other units (the first argument, 0x3C-byte records): their texture names (from the prototype,
-  00535CB0, when the record's name list +0x30 is empty, else the record's names appended to a
-  vector<string> after an inlined reserve) are joined with the second list (00575E50) and given
-  to the figure maker's slot 3 with the model prefix and the record's +0x24 / +0x28 / +0x2C.
+Skipped: the other draw functions (R above); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); 006C8140 `SectorAt` (stateful cache, next candidate with invariant checks), vertex lighting (chop rounding), point light
+registration 006CAC10 (global node pool), 006C3E80 animated tiles; dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 / 006C4C90; STLport / MFC instantiations (006B01F0-006B4230,
+006BDDD0-006BE300, 006CD540-006CEA10). Risks: the animated-tile path draws from the game's random generator (a mistake would shift later draws); `DrawSectorPage` runs every frame, so a mistake shows at once. Lesson:
+Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48 (a plain minimum select on the comparison status); check the raw bytes when a listing's addresses skip.
 
-## Flat geometry draw (004EA4A0)
+## Resources and the sound file reader (00671280-00675B40)
 
-Files: `src/game/device_shadow.cpp`, `tests/verify/verify_device_shadow.cpp`.
+Code: `resource_stream.h/.cpp`; earlier resource work (CMappedResource, CMMIOResource methods, CResourceManager slots 16-22, CMappedFile) is in `resource.cpp` / `resource_manager.cpp`. Verify: `verify_resource_stream.cpp`.
+Every scenario reaches it (archives open at startup, the sound file reader at every sound).
 
-| Address | Name | Verify |
-|---|---|---|
-| 004EA4A0 | `DeviceDrawFlat` (device thiscall, RET 0x24) | ours only: result 0 / 2; with one vertex per position every vertex carries the colour pair |
-
-Callers: the object shadows (0051CE60), the renderer (00503A40), 006CEDE0. Arguments: positions
-(blocks of four), one (u, v) per vertex, the block count, indices and their count, the colour and
-specular of every vertex, a value for the projection, a z scale. The projection is the pipeline's
-004F2650 (projected vertices into 007AEE10, sized ten times the vertex count, outcodes into
-007AEE30). On screen: the vertices (projected position, the colour pair, the texture coordinate,
-all copied as qwords) go to the vertex buffer (004E7820, always null) or to 007AEE00, z is scaled
-(FLD scale, FMUL z) unless the scale compares equal to 1 (NaN too), and 004EB550 draws them.
-Crossing: buffers for ten times the vertices and indices, the outcodes copied to 007AEE20, the
-transform object's clipper (slot 37), the counts set (kept contents), slot 34, then the scale and
-the draw unless a count is 0. Returns 2 when nothing is visible, else 0.
-
-## Material draw (004EB550, 004EB370)
-
-Files: `src/game/device_draw.cpp`, `tests/verify/verify_device_draw.cpp`.
+CMappedResource (vtable 007432E0), CMMIOResource (00743300), CResourceBase (00743324), CResourceManager (00743338, ctor 00674D90, dtor 00674DF0 / 00674DD0, slot 3 00674F40); FindEntry 00674850, accelerator 006748F0 / 00674910,
+ListFiles 00674AC0, WildcardMatch 00674CE0. The sound system's file reader (vtable 00743320, 0x34 bytes, created by 006B6040): CResourceBase fields plus +0x24 archive HMMIO, +0x28 entry offset (1 loose file, 0 nothing open),
++0x2C entry size, +0x30 loose file HMMIO; OpenFile tries a readable loose file first, then the archive's entry; the archive part is dead code (Open 00674310 and 006745C0 have no callers, so +0x14 / +0x18 stay null).
 
 | Address | Name | Verify |
 |---|---|---|
-| 004EB550 | `DeviceDrawIndexed` (device thiscall, RET 0x1C) | ours only: result 1; the call, vertex and triangle counters grow once per pass |
-| 004EB370 | `DeviceDrawTwoTextures` (RET 0x24) | ours only: result 1; two calls; the second surface stays on stage 0 |
+| 00674790, 00674810, 006747C0, 00674A90 | CResourceBase Construct / Destruct / deleting / FreeAccelTable | Construct: original into scratch memory, bytes compared; others ours only |
+| 00674280, 006742C0, 006742A0, 00674430, 006744C0, 006746B0, 006746F0 | CResourceStream ctor / dtor / deleting, Close, OpenFile, Read, Seek | ours only (fields consistent, Read not above the request) |
+| 00674CE0, 00674AC0 | WildcardMatch, CMappedResource::ListFiles | pure / original into a scratch CStringArray, names compared |
+| 006721D0, 006722F0, 006722D0, 00674D90, 00674DF0, 00674DD0, 00674F40 | CMMIOResource ctor / dtor / deleting; CResourceManager ctor / dtor / deleting / slot 3 | ours only |
 
-004EB550 takes DrawIndexedPrimitive's arguments (used by 004E9010 and 004EA4A0). The device's
-current material (+0x14C): +8 blend flag, +0xC / +0x10 source / destination blend, +0x14 the
-technique (+8 / +0xC a vector of state block handles, one per pass; +0x14 the first pass's stage
-count), +0x18 the stage records (0x14 bytes: texture coordinate index, the texture name as an STLport
-string, +0x10 the texture, counted, looked up through the texture manager 00693C60 on first use).
-- No material: one draw.
-- Blend flag: alpha blending on with the material's factors; otherwise, with at most one pass,
-  blending off.
-- One pass: state block 0, then per stage the coordinate index (and D3DTTFF_COUNT2 when it is a
-  generated one, above 0xFFFF), the texture's surface through 004EB300; a stage without texture or
-  name unbinds the device's stage texture (+0x12C) once (flush 004E7840, SetTexture, +0x178).
-- Several passes: the three blend states are saved, blending set from the material, state block 0
-  and every first-pass stage (here the transform flags come before the index, and a texture found
-  by name goes through 004EBE60 and 004EBAF0), a draw; then each further pass applies its state
-  block, puts stage record `stageCount + pass - 1` on stage 0 and draws again; the blend states are
-  restored.
-
-Each draw holds the device lock 007AEE78, stores the HRESULT at +8 and adds the vertices, indices / 3
-and one call to +0x16C / +0x170 / +0x174. 004EB370 (004E9A50's draw): the first surface on stage 0
-(as 004EB300 does it, inline), a draw, then source alpha / inverse source alpha with blending on,
-the second surface, texture coordinate index 0 (HRESULT kept), a second draw.
-
-
-## Plain figure part draw and the bounds box (005A7640, 005A7290)
-
-005A7640 (figure_part_draw_plain.cpp) is 005A7A70 without the lighting, the figure slots and
-the textures: hidden (0x80) returns before anything else (the drawn flag is cleared only after
-that, unlike 005A7A70); its own moved-positions static (007C2E60, guard 007C2E70, freed by
-005A7A50); flat meshes fill the colour and specular arrays at their current sizes; an unlit mesh
-(no 0x10) gets draw flag 4 (the device lights it); arguments 2-4 are not read. The drawn flag is
-set whenever the draw did not return 2, rectangle or not. Verify: ours only, flag consistency.
-
-005A7290 (figure_part_bounds.cpp), the finishing call of both draws: with the owning manager's
-context flag 0x4000 the mesh's clip box (origin +0x18C, extents +0x19C / +0x1A8) goes to the
-renderer's slot 15 as a line list of 16 points (8 edges, colour 0xFFFF0000; the list's 64-byte
-blocks are appended by 0049B140). Verify: differential through a stand-in renderer that records
-the line list.
-
-
-## Figure models, factory and shadow rasterisation (005AA5F0, 005A9C90, 005AA8E0, 005A0E80)
-
-- 005AA5F0 FindFigureModel (figure_models.cpp): the manager's hash_map<string, model*> (+0xBC);
-  a new model opens <name>.mod / .bon / .anm through slot 19, nothing without the .mod. Verify:
-  ours only, the cache agrees with the result.
-- 005A9C90 DestroyFigureModel (figure_model_destroy.cpp): deletes the mapped objects, clears the
-  map, releases and deletes the three parts, then the map's inline destructor. Verify: ours only.
-- 005AA8E0 CreateFigureObject (figure_factory.cpp): class ids 0x41-0x44, 0x300B-0x300D; +0x10
-  gets the id. Verify: ours only (id and vtables).
-- 005A0E80 RasteriseFigureMesh (figure_rasterise.cpp): texture coordinates scaled into its own
-  static array, triangles to the rasteriser's slot 8 / 9. Verify: differential through a
-  stand-in rasteriser.
-
-
-## Figure loading (005AC880, 005AC010, 005ACCF0, 005ACB80, 005A9EF0, 005AA1C0)
-
-- 005AC880 LoadSkeletonLinks (figure_links.cpp): "<name>.lnk" or the model's part; pairs of
-  (child, parent) names to the figure's 0050CC60, then 0050D2E0.
-- 005ACB80 LoadFigureBones (figure_links.cpp): "<dir><name>.bon" or the model's bones part; 0x48
-  bytes to 0050BC00, other sizes to 0050B8C0; the data is not released.
-- 005AC010 LoadFigureBounds (figure_load_bounds.cpp): "<dir><name>.fig" or the model's part;
-  "FIG" headers to 005AAE60, others to 005AB9A0.
-- 005ACCF0 SetFigureAnimation (figure_animation.cpp), 005A9EF0 FindModelAnimation and 005AA1C0
-  DestroyFigureManager (figure_models.cpp / figure_model_destroy.cpp).
-
-All verified ours only (they read resources, allocate or free).
-
-- 005A9A50 ConstructFigureModel (figure_models.cpp): the animation map built as STLport's
-  hashtable constructor inlines it (buckets for the first listed prime not below 100), then the
-  three parts (0x6C bytes each, 006721D0). Verify: ours only.
+`CMMIOResource::Destroy` calls our `CMappedResource::Destroy` directly (the original has an inline copy of that destructor, not a call to the Rebirth-patched 006714A0). Quirks kept: `CResourceStream::Seek` treats "from the
+current position" of a loose file as "from the start", "from the end" of an archive entry uses +0x2C, which OpenFile never sets; OpenFile leaks the `_findfirst` handle; `ListFiles` copies a name into a 1 KB buffer without a
+length check. Dead code: 00674310, 00674910, 006748F0, 006745C0, 00674670. Skipped: STLport instantiations (006713C0-00674070, 00675560-00675690).

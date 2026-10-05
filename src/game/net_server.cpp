@@ -1,5 +1,5 @@
 // The game server session (vtable 0073BB70, server base 0073BBB4; pointer at 0079B5DC). See
-// net_classes.h and docs/notes/unmapped_410_470.md ("Third round").
+// net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
 #include "net_connection.h"

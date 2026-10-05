@@ -1,7 +1,6 @@
 // CWorldServer: the world part of a save (mission.sav): SaveWorld writes it, LoadSave reads it
 // back, LoadSavedMapObjects restores the map objects SaveMapObjects wrote, and UpdatePlayerTimes
-// brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md
-// (seventh round).
+// brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "world.h"
 
 #include "core_streams.h"

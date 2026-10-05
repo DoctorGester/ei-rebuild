@@ -2,7 +2,7 @@
 // (ScriptNamedValues), single CString / reference / group arrays, and the ScriptRun destructor.
 // The compiler inlined the CArray destructors: each writes only its base vtable, destroys the
 // elements and frees the storage; data pointers, sizes and capacities are left as they were. See
-// script.h and docs/notes/script.md ("Variable array constructors and destructors").
+// script.h and docs/notes/script.md.
 #include "script.h"
 
 #include "lib/crt.h"

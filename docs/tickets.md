@@ -22,6 +22,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
+- A-U (taken 2026-10-05) Area ticket: units and combat 0x00500000-0x00540000 (notes trimmed by D1).
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## App and startup, 0x00440000-0x00480000
@@ -41,7 +42,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (taken 2026-10-05): scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S3 (taken 2026-10-05): scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks

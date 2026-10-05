@@ -1,7 +1,7 @@
 // Appending one variable set's values to another, one type at a time (004C2B70 floats, 004C2FE0
 // strings, 004C3450 objects, 004C3DC0 groups); ScriptVars::AppendFrom (004B3900) calls the four.
 // The loader uses it to add a file's GlobalVars to the globals. See script.h and
-// docs/notes/script.md ("Variable appends").
+// docs/notes/script.md.
 //
 // Each grows the values by the other set's value count (the inlined CArray::SetSize), the names
 // to old size + the other set's name count, then copies, for every one of the other set's names,

@@ -3,7 +3,7 @@
 // before (0047B1F0), giving the objects new to the player (referenced once more), the objects gone
 // (released through slot 4) and the objects still there; the sent set then becomes the new one.
 // The arrays are the original's aligned pointer arrays ({data, size, capacity, growBy}, blocks
-// from 0047B940) and their two SetSize variants. See docs/notes/world.md ("Object sets").
+// from 0047B940) and their two SetSize variants. See docs/notes/world.md.
 #include "core_streams.h"
 
 #include "ei/hook.h"

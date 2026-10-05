@@ -1,6 +1,6 @@
 // The game server's map change (004186F0). A literal transcription: the helpers it calls are game
 // code outside this file (or STLport strings) and are reached through their original addresses.
-// See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 

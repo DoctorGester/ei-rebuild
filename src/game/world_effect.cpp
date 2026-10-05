@@ -1,5 +1,5 @@
 // The effect base (CEffect) and the sound effects: CEffectSound, CEffectSoundSeq,
-// CEffectAmbientSound. See world_effect.h for the class map and docs/notes/range_660.md.
+// CEffectAmbientSound. See world_effect.h for the class map and docs/notes/effects.md.
 
 #include "world_effect_internal.h"
 

@@ -2,7 +2,7 @@
 
 // The byte buffers, the bit cursors over them and the LZ coder used to compress save games
 // (00579B80 / 00579830), multiplayer map transfers (00662AC0) and network messages (0047D7F0 /
-// 0047D970, 0041D600). See docs/notes/unmapped_410_470.md, "Compression". Names provisional.
+// 0047D970, 0041D600). See docs/notes/network.md, "Compression". Names provisional.
 
 #include "ei/vcall.h"
 

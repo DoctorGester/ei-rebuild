@@ -1,7 +1,7 @@
 // The game server's handlers of the login message (0073BBF8, registered by the server constructor):
 // a client joined (0041ADB0: a player record and a connection binding for it), its record changed
 // (0041AD80) or it left (0041B0C0).
-// See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
 #include "net_connection.h"
 #include "core_refcount.h"
