@@ -1,5 +1,13 @@
 // .mmp textures: creating a texture's Direct3D surfaces from the file data (00690430), the mip
 // offsets (006908E0) and the file's extra block (006928C0).
+//
+// In the switch-over ("present" with "cpuwindows", ticket R8) an .mmp texture has no DirectDraw
+// texture: the new renderer decodes the levels the game would load from the file data (keyed by the
+// holder, render::TextureFromMmp) and the holder has no surface and no memory
+// (NewDecodedTextureHolder, dx_surface.cpp); no staging surface, fill (0068FA10), Load or priority.
+// The byte size the texture cache counts is what the fill would have returned
+// (MmpHeader::FilledBytes). A format the new renderer does not decode keeps its DirectDraw texture.
+// See docs/notes/renderer.md (section 16).
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -8,7 +16,10 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
+#include "dx_surface.h"
 #include "originals_render.h"
+
+#include "../hook/log.h"
 
 #include <cstring>
 
@@ -144,6 +155,44 @@ void ResizeDiscard(AlignedBuffer& buffer, int size) {
     }
 }
 
+// The alpha kind from the file (texture flags 0x4000..0x20000), and the texture loaded.
+void MarkLoaded(CTexture* texture, const MmpHeader* header) {
+    texture->flags_ &= 0xFFFC3FFF;
+    switch (header->alphaKind) {
+    case 0: texture->flags_ |= 0x4000; break;
+    case 1: texture->flags_ |= 0x8000; break;
+    case 4: texture->flags_ |= 0x10000; break;
+    case 8: texture->flags_ |= 0x20000; break;
+    default: break;
+    }
+    texture->flags_ |= kTextureLoaded;
+}
+
+constexpr std::uint32_t kDxtTag = 0x545844;          // "DXT" (the format's low three bytes)
+constexpr std::uint32_t kFormat8888 = 0x8888;
+constexpr std::uint32_t kPixelFormatFourCC = 0x4;   // DDPIXELFORMAT flags
+
+bool g_undecodedLogged = false;
+
+// In the switch-over ("present" with "cpuwindows", ticket R8): a holder with no DirectDraw texture
+// for the levels the new renderer decoded from the file (keyed by the holder). Null outside the
+// switch-over, or when the new renderer did not decode them (then the DirectDraw texture as before).
+CDXSurface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const void* data, unsigned mip,
+                          unsigned levels) {
+    CDXSurface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width_),
+                                                 static_cast<int>(texture->height_), texture->format_.words);
+    if (!holder) return nullptr;
+    if (render::TextureFromMmp(holder, data, mip, levels)) return holder;
+    if (!g_undecodedLogged) {
+        g_undecodedLogged = true;
+        ei::Log("cpuwindows: an .mmp texture the new renderer does not decode (format %08X) gets a DirectDraw texture",
+                static_cast<const MmpHeader*>(data)->format);
+    }
+    ++holder->refCount;
+    holder->Release();   // (004EFD20 counts it out again)
+    return nullptr;
+}
+
 } // namespace
 
 // --- MmpHeader -----------------------------------------------------------------------------------
@@ -156,6 +205,24 @@ std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
     return larger + extraSize;
 }
 EI_REPLACE_METHOD(0x006908E0, MmpHeader::MipOffset);
+
+std::uint32_t MmpHeader::FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const {
+    std::uint32_t bits = bitsPerPixel;
+    if ((format & 0xFFFFFF) == kDxtTag) {
+        if (!(surfaceFormat.words[1] & kPixelFormatFourCC) || format != surfaceFormat.words[2]) bits = 16;
+    } else if (format == kFormat8888 && surfaceFormat.words[3] != 32) {
+        bits = surfaceFormat.words[3];
+    }
+    std::uint32_t w = width >> (mip & 31);
+    std::uint32_t h = height >> (mip & 31);
+    std::uint32_t total = 0;
+    for (unsigned m = mip; m < mipCount && m < mip + levels; ++m) {
+        total += (bits * h * w) >> 3;
+        w >>= 1;
+        h >>= 1;
+    }
+    return total;
+}
 
 // --- CTexture ------------------------------------------------------------------------------------
 
@@ -176,11 +243,25 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
         levels = header->mipCount - mip;
     }
     if (!MipmapsEnabled()) levels = 1;
+    height_ = height;
+    width_ = width;
+
+    // In the switch-over the new renderer decodes the levels from the file and the holder has no
+    // DirectDraw texture: no staging surface, fill, Load or priority.
+    if (CDXSurface* decoded = DecodedHolder(device, this, data, mip, levels)) {
+        CDXSurface* previous = surface_;
+        surface_ = decoded;
+        ++decoded->refCount;
+        if (previous) ReleaseSurface(previous);
+        uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
+        MarkLoaded(this, header);
+        ResizeKeep(extra_, static_cast<int>(header->extraSize));
+        std::memcpy(extra_.data, header + 1, header->extraSize);
+        return 1;
+    }
 
     // A system-memory surface that receives the file's pixels.
     std::uint32_t desc[kDescWords];
-    height_ = height;
-    width_ = width;
     FillDescription(desc, this, width, height, levels, 0x1800, 0);   // TEXTURE | SYSTEMMEMORY
     CDXSurface* staging = NewSurface(device, desc);
     if (staging) ++staging->refCount;
@@ -205,16 +286,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
                                   staging->surface, static_cast<void*>(nullptr), 0u);
     gameapi::LeaveCriticalSection(DeviceLock());
 
-    // Alpha kind from the file.
-    flags_ &= 0xFFFC3FFF;
-    switch (header->alphaKind) {
-    case 0: flags_ |= 0x4000; break;
-    case 1: flags_ |= 0x8000; break;
-    case 4: flags_ |= 0x10000; break;
-    case 8: flags_ |= 0x20000; break;
-    default: break;
-    }
-    flags_ |= kTextureLoaded;
+    MarkLoaded(this, header);
     Com(surface_->surface, kSurfaceSetPriority, 100u);
 
     ResizeKeep(extra_, static_cast<int>(header->extraSize));

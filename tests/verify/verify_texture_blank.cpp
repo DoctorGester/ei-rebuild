@@ -21,8 +21,6 @@
 namespace {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-int HolderCount() { return *reinterpret_cast<const int*>(0x007AEE94); }
-
 // The memory's rows into the surface (`toSurface`) or back. False when the surface cannot be locked.
 bool CopyRows(IDirectDrawSurface7* surface, const std::uint32_t* memory, bool toSurface) {
     DDSURFACEDESC2 desc{};
@@ -119,14 +117,45 @@ void LendNewTextures::Made(CDXSurface* holder) {
     if (g_lent && Lend(holder)) g_lent->push_back(Lent{holder, holder->surface});
 }
 
+const char* BlankTextureProblem(CTextureManager* manager, const CTexture* texture, int width, int height, int formatId,
+                                int holdersBefore) {
+    if (!texture) return "no texture";
+    if (texture->width_ != static_cast<std::uint32_t>(width) || texture->height_ != static_cast<std::uint32_t>(height))
+        return "size";
+    PixelFormat format{};
+    if (!manager->device_->FindFormat(formatId, &format) || std::memcmp(&format, &texture->format_, sizeof(format)) != 0)
+        return "format";
+    const CDXSurface* holder = texture->surface_;
+    if (!holder || holder->refCount < 1 || holder->device != manager->device_) return "holder";
+    if (holder->width != width || holder->height != width || holder->bitsPerPixel != static_cast<int>(format.words[3]))
+        return "holder size";
+    if (texture->uploadResult_ != 0 || texture->block_) return "byte size / block";
+    if (HolderCount() != holdersBefore + 1) return "holder count";
+    const render::SurfaceMemory* memory = render::SurfaceMemoryOf(holder);
+    if (render::Presenting() && render::CpuWindows()) {
+        if (holder->surface) return "a DirectDraw texture in the switch-over";
+        if (!memory || memory->width != width || memory->height != width || memory->bitsPerPixel != holder->bitsPerPixel)
+            return "no memory of its size";
+        std::uint32_t alpha = (format.words[1] & DDPF_ALPHAPIXELS) ? format.words[7] : 0;
+        if (memory->redMask != format.words[4] || memory->greenMask != format.words[5] ||
+            memory->blueMask != format.words[6] || memory->alphaMask != alpha)
+            return "memory format";
+    } else if (!holder->surface || memory) {
+        return "not a plain DirectDraw texture";
+    }
+    return nullptr;
+}
+
+int HolderCount() { return *reinterpret_cast<const int*>(0x007AEE94); }
+
 } // namespace memory_texture
 
 // --- 0068F6C0 ----------------------------------------------------------------------------------------
 
 // Ours only (it makes a DirectDraw texture): 1, a holder with a DirectDraw surface of header->width
-// square in the texture's format, no block left, the byte size 0 (the original's). Its callers here
-// are the shadow textures (00692010 / 00692140 from 0051CE60): scenarios with object shadows
-// (render_scene, render_present, frames_basic).
+// square in the texture's format, no block left, the byte size 0 (the original's). Not reached any
+// more: its three callers (00691D80, the shadow textures 00692010 / 00692140) are rewritten and call
+// its body (MakeBlank) directly; their wrappers check the same (verify_texture_shadow.cpp).
 static void* s_createBlank;
 static int __fastcall CreateBlankVerify(CTexture* self, void*, CTextureDevice* device, const MmpHeader* header) {
     int result = self->CreateBlank(device, header);
@@ -155,37 +184,6 @@ int FormatIdOfKind(int kind) {
     }
 }
 
-// What is wrong with a texture of a known kind, or null.
-const char* NewTextureProblem(CTextureManager* manager, const CTexture* texture, int width, int height, int kind,
-                              int holdersBefore) {
-    if (!texture) return "no texture";
-    if (texture->width_ != static_cast<std::uint32_t>(width) || texture->height_ != static_cast<std::uint32_t>(height))
-        return "size";
-    PixelFormat format{};
-    if (!manager->device_->FindFormat(FormatIdOfKind(kind), &format) ||
-        std::memcmp(&format, &texture->format_, sizeof(format)) != 0)
-        return "format";
-    const CDXSurface* holder = texture->surface_;
-    if (!holder || holder->refCount < 1 || holder->device != manager->device_) return "holder";
-    if (holder->width != width || holder->height != width || holder->bitsPerPixel != static_cast<int>(format.words[3]))
-        return "holder size";
-    if (texture->uploadResult_ != 0 || texture->block_) return "byte size / block";
-    if (HolderCount() != holdersBefore + 1) return "holder count";
-    const render::SurfaceMemory* memory = render::SurfaceMemoryOf(holder);
-    if (render::Presenting() && render::CpuWindows()) {
-        if (holder->surface) return "a DirectDraw texture in the switch-over";
-        if (!memory || memory->width != width || memory->height != width || memory->bitsPerPixel != holder->bitsPerPixel)
-            return "no memory of its size";
-        std::uint32_t alpha = (format.words[1] & DDPF_ALPHAPIXELS) ? format.words[7] : 0;
-        if (memory->redMask != format.words[4] || memory->greenMask != format.words[5] ||
-            memory->blueMask != format.words[6] || memory->alphaMask != alpha)
-            return "memory format";
-    } else if (!holder->surface || memory) {
-        return "not a plain DirectDraw texture";
-    }
-    return nullptr;
-}
-
 } // namespace
 
 // Ours only (it registers a texture with the manager). For the kinds the game uses (0x1E, 0x20,
@@ -197,11 +195,11 @@ const char* NewTextureProblem(CTextureManager* manager, const CTexture* texture,
 // weather 0x21, item pictures 0x20), render_present / render_present_cpuwindows (the switch-over).
 static void* s_newTexture;
 static CTexture* __fastcall NewTextureVerify(CTextureManager* self, void*, int width, int height, int kind) {
-    int holders = HolderCount();
+    int holders = memory_texture::HolderCount();
     CTexture* texture = self->NewTexture(width, height, kind);
     const char* problem = nullptr;
     if (FormatIdOfKind(kind)) {
-        problem = NewTextureProblem(self, texture, width, height, kind, holders);
+        problem = memory_texture::BlankTextureProblem(self, texture, width, height, FormatIdOfKind(kind), holders);
         ei::verify::Check("CTextureManager::NewTexture", true, problem == nullptr, "%dx%d kind %X: %s", width, height,
                           kind, problem ? problem : "ok");
     }

@@ -106,6 +106,13 @@ struct MmpHeader {
     // 006908E0. Offset of mip level `mip`'s pixels after the header: the extra block plus the
     // sizes of the larger levels (a geometric sum computed in 32-bit integers).
     std::uint32_t MipOffset(unsigned mip) const;
+    // What 0068FA10 returns when it fills a texture surface of `surfaceFormat` from this file
+    // (texture_mmp.cpp; the texture cache counts it as the texture's size, CTexture +0x28): per
+    // level of the surface (from `mip`, `levels` of them, no further than the file's last) width x
+    // height times the bits it writes, / 8: the file's own bits when it copies (00690970: DXT into
+    // the same DXT format, any other format), the surface's for 8888 converted to 16 bits
+    // (00690B30), 16 for DXT decoded to 16 bits (00690D30); 32-bit arithmetic.
+    std::uint32_t FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const;
 };
 static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
@@ -121,6 +128,9 @@ struct ChannelLayout {
     std::uint32_t greenMask, greenBits, greenShift;   // +0x1C
     std::uint32_t blueMask, blueBits, blueShift;      // +0x28
     int Split(const void* format);
+    // 004EDC00's conversion (texture_bmp.cpp; 004EDC00 itself is not hooked): an A8R8G8B8 colour
+    // into a pixel of this layout, each channel's top bits at its shift.
+    std::uint32_t ToNative(std::uint32_t argb) const;
 };
 static_assert(sizeof(ChannelLayout) == 0x34);
 
@@ -141,6 +151,24 @@ public:
     // CreateBlank's body; with `memoryOnly` the holder gets no DirectDraw surface in the switch-over,
     // only the new renderer's memory (NewMemoryTextureHolder, dx_surface.h).
     int MakeBlank(CTextureDevice* device, const MmpHeader* header, bool memoryOnly);
+    // 00690FC0 (texture_shadow.cpp). Locks the surface for writing (waiting) and enters the device
+    // lock, which stays held until UnlockPixels: `desc` (a DDSURFACEDESC2 as dwords) receives the
+    // pitch, the pixels and the pixel format. A holder with only the new renderer's memory is
+    // described from it (DirectPixels). 1; 0 without a holder (no lock); a failed Lock: the DirectX
+    // report's result (the lock still held).
+    int LockPixels(std::uint32_t* desc);
+    // 00691030 (texture_shadow.cpp). Leaves the device lock and unlocks the surface (the failure
+    // reported); nothing without a holder.
+    void UnlockPixels();
+    // 0051CE60's copy of the shadow's render surface into its texture (texture_shadow.cpp): the
+    // device's Load of `source`'s surface into this one, the result in the device's
+    // lastLoadResult_; when both have only the new renderer's memory, its rows copied.
+    void LoadPixelsFrom(CTextureDevice* device, const CTexture* source);
+    // 0068FBF0 (texture_bmp.cpp). Loads a 24-bit .bmp (`path`) and, when `alphaPath` is an 8-bit
+    // .bmp, its alpha into a texture of the .bmp's size in the texture's format (format_). 1 (also
+    // when already loaded); 0 when the .bmp cannot be opened or the surface locked or unlocked and
+    // the report says stop.
+    int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);
 
     char* name_;                // +0x1C CString
     std::uint32_t width_;       // +0x20
@@ -179,12 +207,35 @@ public:
     // with "cpuwindows" the surface is only the new renderer's memory. Null when CreateBlank fails;
     // FatalError's result when the device has no such format.
     CTexture* NewTexture(int width, int height, int kind);
+    // 00692010 (texture_shadow.cpp). A new 64x64 4:4:4:4 texture for an object's shadow (kind 0x25,
+    // flag 0x200); in the switch-over with "cpuwindows" only the new renderer's memory. Null when
+    // its surface cannot be made; FatalError's result when the device has no 4:4:4:4 format.
+    CTexture* NewShadowTexture();
+    // 00692140 (texture_shadow.cpp). The texture the shadows are rendered into (shadowSurface_, made
+    // on first use as NewShadowTexture's, but flag 0x400: in system memory).
+    CTexture* ShadowRenderSurface();
+    // 24: 00691B00 (texture_cache.cpp). A texture without references leaves the manager: a
+    // registered one with a flag of 0x38 goes into the cache (cache_, cachedBytes_; its surface's
+    // priority 0), any other is destroyed and kept as a spare. Returns 0.
+    int ReleaseObject(CEngineObject* object) override;
+    // 00691BF0 (texture_cache.cpp). The cached texture of `type` named `name`, taken out of the
+    // cache and registered again (its surface's priority 100); null when there is none.
+    CTexture* TakeFromCache(int type, const char* name);
+    // 00693C60 (texture_cache.cpp). The registered texture named `name`, else a cached one taken
+    // back as TakeFromCache does (but cachedBytes_ is not lowered); null.
+    CTexture* FindTexture(const char* name);
 
-    std::uint8_t unknown_BC[0x28];
+    mfc::CTypedPtrList<CTexture> cache_;   // +0xBC released textures kept for reuse (vtable 00743D18)
+    int cachedBytes_;           // +0xD8 the cached textures' byte sizes (CTexture::uploadResult_)
+    std::uint32_t unknown_DC;
+    CTexture* shadowRenderSurface_;   // +0xE0 the shadows' render surface (00692140; counted)
     CTextureDevice* device_;    // +0xE4
     std::uint16_t mipLevel_;    // +0xE8 first mip level to load (texture quality setting)
     std::uint16_t unknown_EA;
     int limitTo512_;            // +0xEC nonzero: textures are loaded at most 511 pixels wide and high
 };
+static_assert(offsetof(CTextureManager, cache_) == 0xBC);
+static_assert(offsetof(CTextureManager, cachedBytes_) == 0xD8);
+static_assert(offsetof(CTextureManager, shadowRenderSurface_) == 0xE0);
 static_assert(offsetof(CTextureManager, device_) == 0xE4);
 static_assert(offsetof(CTextureManager, limitTo512_) == 0xEC);
