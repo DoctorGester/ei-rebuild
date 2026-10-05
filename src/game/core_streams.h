@@ -56,6 +56,20 @@ public:
     // returns `out`.
     mfc::CString* ReadString(void* out);
 
+    // 004A51C0 (RET 4). Reads a block WriteSized wrote (a two-byte size word, two more bytes when
+    // its bit 0 is set; the size is the word / 2) into `to`: `to` cleared (slot 6), sought to 0,
+    // then given the block (slot 2).
+    void ReadSized(CStream* to);
+    // 004A5250 (RET 4). Writes all of `from` with its size in front: size * 2 in two bytes, or
+    // size * 2 + 1 in four bytes above 30000 (a signed compare). `from` is sought to 0 and read.
+    void WriteSized(CStream* from);
+    // 004A52D0 (RET 0xC, AL). Reads the magic number and the version (four bytes each, into one
+    // variable); true and version_ set when the magic matches and oldest <= version <= newest
+    // (signed).
+    bool ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion);
+    // 004A5340 (RET 8). Writes the magic number and the version; version_ = version.
+    void WriteHeader(std::uint32_t magic, std::uint32_t version);
+
     // Back to the start for reading (inlined by the chunk archive): ok_ set, Seek(0), reading_ set.
     void Rewind() {
         ok_ = 1;
@@ -82,8 +96,8 @@ public:
 
     ~CMemoryStream() override {}                                        // 0: 004173B0 (deleting destructor)
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 004A5380 (a short read zero-fills, clears ok_)
-    void Write(const void* buffer, std::uint32_t size) override;       // 2: 004A53F0 (grows to twice what is needed)
-    void Seek(std::uint32_t position) override;                        // 3: 004A5490
+    void Write(const void* buffer, std::uint32_t size) override;       // 2: 004A53F0 (grows to (capacity + size) * 2)
+    void Seek(std::uint32_t position) override;                        // 3: 004A5490 (then EndBits)
     std::uint32_t Size() override;                                     // 4: 00417390 (size_)
     std::uint32_t Position() override;                                 // 5: 004173A0 (position_)
     void Clear() override;                                             // 6: 00417350
@@ -100,9 +114,12 @@ public:
     // 00468C20. Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old
     // buffer (Clear, slot 6, is the same with the free).
     void Reset();
-    // 004A54D0. Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents.
+    // 004A54D0. Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents
+    // (the old size's bytes) and gets the pending bits byte (EndBits). Within the capacity the bits
+    // state is left alone.
     void Resize(std::uint32_t size);
-    // 004A5570. Size `size`, position 0; a larger buffer (exactly `size`) does not keep them.
+    // 004A5570. Size `size`, position 0; a larger buffer (exactly `size`) does not keep them and
+    // only bitMask_ is reset (bitsIndex_ stays).
     void SetSize(std::uint32_t size);
 
     // The bit writer / reader of the delta code (net_delta.cpp).
@@ -111,9 +128,9 @@ public:
     void PutBit(bool bit);
     // The readers' inline bit read: true when the next bit is set (reads a byte after eight).
     bool GetBit();
-    // 004A5610: stores bits_, appends a zero byte for the next bits (not rewritten).
+    // 004A5610: stores bits_, appends a zero byte for the next bits (slot 2), bitMask_ = 1.
     void StartByte();
-    // 004A5650: stores bits_, no pending byte (not rewritten).
+    // 004A5650: stores bits_, no pending byte, bitMask_ = 0x80.
     void EndBits();
     // 0047DA80 (RET 4). Writes the memory stream `from` into this stream (its slot 2): `from`'s
     // pending bits stored first (EndBits), then its size times two, in one byte when that is below

@@ -181,6 +181,18 @@ be unchanged, and reference counts must drop by the number of times held); *ours
 | Effects (`script_effects.cpp`) | 004BD260 CreateFX, 004BCFF0 CreateLightning, 004BD9A0 CreateParticleSource, 004BDBB0 MoveParticleSource, savers / loaders as above | ours only (class 0x48 / 0x4D / 0x4A object registered with the arguments' bits; ids); MoveParticleSource against the original (the step with CheckNear) |
 | Text reader (`text_reader.cpp`) | 004DF030, 004DFCB0, 004DF8D0, 004DF510, 004DF770, 004DFB80, 004DF6E0, 004DEFC0 (GetFile runs twice; the archive raises the file's count twice), 004DF4E0, 004DF020 | original first, state recorded and restored, then ours; result, cursor and strings compared; CharCode pure |
 
+## Leftovers outside the script engine (A-S3)
+
+Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to other subsystems.
+
+| Area (file) | Addresses and names | Verify |
+|---|---|---|
+| Memory stream (`core_memory_stream.cpp`, `core_streams.h`) | 004A5380 / 004A53F0 / 004A5490 / 004A55D0 `CMemoryStream` slots Read / Write / Seek / CopyFrom, 004A54D0 Resize, 004A5570 SetSize, 004A5610 StartByte, 004A5650 EndBits; 004A4D40 `CStream::CopyFrom` (slot 7), 004A51C0 / 004A5250 ReadSized / WriteSized, 004A52D0 / 004A5340 ReadHeader / WriteHeader | original on a 0x28-byte copy of the stream (`verify_memory_stream.cpp` says how each shares or clones the buffer); both CopyFroms and the sized helpers on other stream classes ours only. Reached by every save / load and network message (`world_load`, `newgame`) |
+
+- Memory stream facts: Write grows to (capacity + size) * 2 copying the old capacity's bytes; Resize grows to
+  size * 1.5 + 0x10 copying the old size's bytes and flushes the pending bits byte only when it grows; SetSize
+  resets only bitMask_ (bitsIndex_ stays); a short Read zero-fills the whole request before copying what is left.
+
 ## Original bugs and oddities kept
 
 - NaN: `IsEqual` and `Not` treat NaN as equal, `IsLess` as less; `IsInSquare`, `UnitInSquare`, `IsInArea` the same mixed
