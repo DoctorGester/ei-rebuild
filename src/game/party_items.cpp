@@ -1,4 +1,5 @@
-// Item copies and item lists: CItem::Clone / CopyTo (0069FF70, 0069FFC0), the party's item list
+// Item copies and item lists: CItem::Clone / CopyTo (0069FF70, 0069FFC0) and the subclasses' CopyTo
+// (006A0730, 006A3140, 006A3C50, 006A4540, 006A4B50, 006A57F0), the party's item list
 // (00661DB0, 00661F30) and the party unit records' four item lists (006608D0-00661000). See
 // party.h, item.h, unit.h and docs/notes/items_spells.md ("Area ticket A-H").
 #include "base_manager.h"
@@ -90,6 +91,58 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     return 1;
 }
 EI_REPLACE_METHOD(0x0069FFC0, CItem::CopyTo);
+
+__declspec(naked) BOOL CItem::CallCopyTo(CItem*, CSpellManager*) EI_ORIGINAL(0x0069FFC0)
+
+// The subclasses' slot 15: the base copy (through its address), then their own dwords.
+BOOL CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CallCopyTo(target, spells)) return 0;
+    auto* weapon = static_cast<CItemWeapon*>(target);
+    std::memcpy(&weapon->unknown_4C, &unknown_4C, sizeof(CItemWeapon) - offsetof(CItemWeapon, unknown_4C));
+    return 1;
+}
+EI_REPLACE_METHOD(0x006A0730, CItemWeapon::CopyTo);
+
+BOOL CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CallCopyTo(target, spells)) return 0;
+    auto* armor = static_cast<CItemArmor*>(target);
+    std::memcpy(armor->absorb_, absorb_, sizeof(absorb_));
+    armor->layerMask_[0] = layerMask_[0];
+    armor->layerMask_[1] = layerMask_[1];
+    return 1;
+}
+EI_REPLACE_METHOD(0x006A3140, CItemArmor::CopyTo);
+
+BOOL CItemQuick::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CallCopyTo(target, spells)) return 0;
+    static_cast<CItemQuick*>(target)->unknown_4C = unknown_4C;
+    return 1;
+}
+EI_REPLACE_METHOD(0x006A3C50, CItemQuick::CopyTo);
+
+BOOL CItemQuest::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CallCopyTo(target, spells)) return 0;
+    static_cast<CItemQuest*>(target)->unknown_4C = unknown_4C;
+    return 1;
+}
+EI_REPLACE_METHOD(0x006A4540, CItemQuest::CopyTo);
+
+BOOL CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CallCopyTo(target, spells)) return 0;
+    auto* loot = static_cast<CItemLoot*>(target);
+    loot->kind_ = kind_;
+    loot->recordType_ = recordType_;
+    loot->index_ = index_;
+    return 1;
+}
+EI_REPLACE_METHOD(0x006A4B50, CItemLoot::CopyTo);
+
+BOOL CItemSpell::CopyTo(CItem* target, CSpellManager* spells) {
+    if (!CallCopyTo(target, spells)) return 0;
+    static_cast<CItemSpell*>(target)->unknown_4C = unknown_4C;
+    return 1;
+}
+EI_REPLACE_METHOD(0x006A57F0, CItemSpell::CopyTo);
 
 // --- The party's items --------------------------------------------------------------------------
 

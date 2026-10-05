@@ -960,3 +960,38 @@ methods; `world.h` CWorld slot 22 named `SpellManager` (was the placeholder `Slo
 The callers' forwarders (originals_gameplay.h PartyAddItemOriginal / PartyRemoveItemOriginal /
 Record*EntryOriginal, ui_camp.cpp, script_exec.cpp, ui_item_info.cpp) stay: they reach these
 through their addresses, so the wrappers run.
+
+## Group 4: the item classes' CopyTo and the armour model name
+
+Code: `src/game/party_items.cpp` (CopyTo), `src/game/item_model_names.cpp` (new); verify:
+`tests/verify/verify_party_items.cpp`.
+
+| Address | Name | Verify |
+|---|---|---|
+| 006A0730 / 006A3140 / 006A3C50 / 006A4540 / 006A4B50 / 006A57F0 | CItemWeapon / CItemArmor / CItemQuick / CItemQuest / CItemLoot / CItemSpell::CopyTo (slot 15, RET 8) | ours only (the target is destroyed and refilled): 0 for another kind, else 1 with the base values and the class's own dwords equal |
+| 006A3480 | ArmorModelName (fastcall out, armour index; RET 4: material index) | pure: the original into a scratch CString, compared |
+
+The overrides call the base CopyTo (0069FFC0) through its address (`CItem::CallCopyTo`), so its
+wrapper runs, then copy their dwords: the weapon +0x4C..+0x58, the armour absorb_ and layerMask_
+(+0x4C..+0x88), the loot kind_ / recordType_ / index_, the others +0x4C (now `unknown_4C` members
+of CItemQuick / CItemQuest / CItemSpell). Reached by every Clone (the record list adds and the
+party's copies; scenarios as group 3).
+
+ArmorModelName: CString::Empty on `out`, then, when both the material and the armour record exist,
+Format("%s_%.2d.%s.%d", code, number +0x18, material name +0x08, variant +0x1C). The original
+copies the type's code ("hl", "pl", "lg", "sh", "pt", "bt", "gl"; type compared unsigned with 6)
+into the stack slot of its material index argument and formats that slot, so a type without a code
+gives the index's own bytes; reproduced. Callers (unit skins 00536670 / 00568800 / 005685E0;
+unit_client_models.cpp and unit_skins.cpp through the originals_gameplay.h forwarder) reach it in
+units, models and ui_camp. `item_db.h` gained `ItemRecordHead` (+0x0C type, +0x18 number, +0x1C
+variant) and `MaterialRecordHead` (+0x08 name) so the new file reads no offsets.
+
+## Session summary (A-H, 2026-10-05)
+
+38 functions in four groups: CWinRegistry (14), HUD panel displays (5), item copies and lists (12),
+the item classes' CopyTo and the armour model name (7). Not run in the harness here (runs are
+central). Candidates for the next session in this area: the CParty constructor / destructor and
+serialisation (00661050, 006611D0, 00661300, 006618C0, 00661C10, 00661700 reset, 00661640),
+DeltaField's empty (00675F70, 19 callers) and the effect constructors / destructors around it, the
+item database records' assignment and destructors (006A8F20 (24 callers), 006A8FB0, 006A88F0..),
+the top panel's text refresh 0064A7A0, the objectives window's 0064D9B0.
