@@ -1,0 +1,243 @@
+# The battle screen's party commands (docs/notes/ui.md, "Sixteenth pass"). A click on the hero's
+# portrait goes through SelectUnit (00638EF0) to the member toggle (006379E0), which makes the
+# hero speak (slot 32, 006366F0). Then three wolves stand blocked next to the blocked hero (it
+# stays where the camera put it, so ground clicks do not move the view) and a grid of clicks
+# around the screen centre lands on them: a click on a hostile unit is the attack order
+# (00637190). Then the wolves die and the same grid lands on the bodies: a click on a dead unit
+# is 006373A0. Clicks that hit the ground give move orders (00636F10) the blocked hero ignores.
+# The report's call counts for CBattleScreenSetup::AttackUnit / OrderDeadUnit show whether a
+# click hit a wolf (the grid's spacing is a guess; no harness step clicks a world position).
+# Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @GodMode(GetLeader(),1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+
+# The hero's portrait (centred at x 400): the toggle keeps it selected.
+click 400 560
+wait 300
+check IsAlive(GetLeader())
+
+console @AddUnitToServer("CmdWolf1","WolfTutor","CmdWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("CmdWolf2","WolfTutor","CmdWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+console @AddUnitToServer("CmdWolf3","WolfTutor","CmdWolf3",Sub(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("CmdWolf1"))
+waitfor 10 IsAlive(GetObjectByName("CmdWolf2"))
+waitfor 10 IsAlive(GetObjectByName("CmdWolf3"))
+console @BlockUnit(GetObjectByName("CmdWolf1"),1)
+console @BlockUnit(GetObjectByName("CmdWolf2"),1)
+console @BlockUnit(GetObjectByName("CmdWolf3"),1)
+wait 500
+
+# The grid: x 310..490, y 210..390, 30 apart (not the centre, where the hero stands).
+click 310 210
+wait 60
+click 340 210
+wait 60
+click 370 210
+wait 60
+click 400 210
+wait 60
+click 430 210
+wait 60
+click 460 210
+wait 60
+click 490 210
+wait 60
+click 310 240
+wait 60
+click 340 240
+wait 60
+click 370 240
+wait 60
+click 400 240
+wait 60
+click 430 240
+wait 60
+click 460 240
+wait 60
+click 490 240
+wait 60
+click 310 270
+wait 60
+click 340 270
+wait 60
+click 370 270
+wait 60
+click 400 270
+wait 60
+click 430 270
+wait 60
+click 460 270
+wait 60
+click 490 270
+wait 60
+click 310 300
+wait 60
+click 340 300
+wait 60
+click 370 300
+wait 60
+click 430 300
+wait 60
+click 460 300
+wait 60
+click 490 300
+wait 60
+click 310 330
+wait 60
+click 340 330
+wait 60
+click 370 330
+wait 60
+click 400 330
+wait 60
+click 430 330
+wait 60
+click 460 330
+wait 60
+click 490 330
+wait 60
+click 310 360
+wait 60
+click 340 360
+wait 60
+click 370 360
+wait 60
+click 400 360
+wait 60
+click 430 360
+wait 60
+click 460 360
+wait 60
+click 490 360
+wait 60
+click 310 390
+wait 60
+click 340 390
+wait 60
+click 370 390
+wait 60
+click 400 390
+wait 60
+click 430 390
+wait 60
+click 460 390
+wait 60
+click 490 390
+wait 60
+wait 500
+check IsAlive(GetLeader())
+
+# The wolves die; the same grid on their bodies.
+console @InflictDamage(GetObjectByName("CmdWolf1"),5000)
+console @InflictDamage(GetObjectByName("CmdWolf2"),5000)
+console @InflictDamage(GetObjectByName("CmdWolf3"),5000)
+waitfor 10 IsLess(HP(GetObjectByName("CmdWolf1")),1)
+wait 1000
+click 310 210
+wait 60
+click 340 210
+wait 60
+click 370 210
+wait 60
+click 400 210
+wait 60
+click 430 210
+wait 60
+click 460 210
+wait 60
+click 490 210
+wait 60
+click 310 240
+wait 60
+click 340 240
+wait 60
+click 370 240
+wait 60
+click 400 240
+wait 60
+click 430 240
+wait 60
+click 460 240
+wait 60
+click 490 240
+wait 60
+click 310 270
+wait 60
+click 340 270
+wait 60
+click 370 270
+wait 60
+click 400 270
+wait 60
+click 430 270
+wait 60
+click 460 270
+wait 60
+click 490 270
+wait 60
+click 310 300
+wait 60
+click 340 300
+wait 60
+click 370 300
+wait 60
+click 430 300
+wait 60
+click 460 300
+wait 60
+click 490 300
+wait 60
+click 310 330
+wait 60
+click 340 330
+wait 60
+click 370 330
+wait 60
+click 400 330
+wait 60
+click 430 330
+wait 60
+click 460 330
+wait 60
+click 490 330
+wait 60
+click 310 360
+wait 60
+click 340 360
+wait 60
+click 370 360
+wait 60
+click 400 360
+wait 60
+click 430 360
+wait 60
+click 460 360
+wait 60
+click 490 360
+wait 60
+click 310 390
+wait 60
+click 340 390
+wait 60
+click 370 390
+wait 60
+click 400 390
+wait 60
+click 430 390
+wait 60
+click 460 390
+wait 60
+click 490 390
+wait 60
+wait 500
+check IsAlive(GetLeader())
+report
+quit
