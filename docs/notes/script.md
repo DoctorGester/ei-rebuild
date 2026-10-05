@@ -1036,3 +1036,141 @@ with its terminator, its length from strlen). Loading looks the id up in the wor
 New scenario `tests/scenarios/script_fx.txt`: particle sources (by id, automatic id, unknown type,
 same id again, moved), lightning, a one-off sound, a point light and a randomized FX source, then a
 save into a new slot through the escape menu (as ui_saveload) and `load save1`.
+
+## Effect element destructors, CreateFX, CreateLightning (004B17F0, 004B1820, 004B1850, 004B1880, 004BD260, 004BCFF0)
+
+Code: `src/game/script_effects.cpp`; verify: `tests/verify/verify_script_effects.cpp`. Not library,
+dead or Rebirth-patched; the callees (CBaseManager::CreateObject slot 23 on the effect manager,
+CWorldServer::AddTimedObject / RemoveTimedObject 0058E520 / 0058E5D0, CEffectLightning::SetEnds
+0067A6B0, all rewritten) are called directly; the list's NewNode 004CD620 is library (forwarder,
+now shared in originals_library.h with 004CD540 / 004CD5B0, which script_load.cpp used).
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004B17F0 | 38 | ScriptPointLightDestruct (point light slot) | ours only: slot cleared, count down by 1 or 2 (read when > 2 before) | the slot array's deleting destructor 0059DD70 / Serialize 004C5E60 (world teardown) |
+| 004B1820 | 38 | ScriptLightningDestruct | as above | CreateLightning's temporary (script_fx), the list's RemoveAll 0059C1F0, 004BEB00 |
+| 004B1850 | 38 | ScriptParticleSourceDestruct | as above | the particle list's RemoveAll 0059C1A0 (world teardown) |
+| 004B1880 | 38 | ScriptFxSourceDropSound (FX element, the object only) | as above | CreateFXSource's temporary (script_fx) |
+| 004BD260 | 167 | ScriptCreateFx (CreateFX) | ours only: the effect manager registered a new object (lastId_), class 0x48, position / volume / radius bits and name as the arguments, not looping | sound, script_fx |
+| 004BCFF0 | 304 | ScriptCreateLightning (CreateLightning) | ours only: one more node at the tail; id (automatic for a negative or NaN argument, nextParticleId_ counted down; else truncated); the bolt is the newest effect, class 0x4D, count >= 2, ends and width bits as the arguments | script_fx |
+
+The four destructors are the same 38 bytes (one per element type). CreateFX keeps no reference:
+the sound lives as a timed object only (not looping: it ends after its first tick). CreateLightning
+appends without looking the id up (two bolts can share an id; DeleteLightning removes the first),
+and its id test is `FCOMP 0; TEST AH,1` (negative or NaN: automatic) followed by `_ftol` (truncation).
+
+## Particle sources and the FX source destructor (004BD9A0, 004BDBB0, 004BD540)
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BD9A0 | 471 | ScriptCreateParticleSource (CreateParticleSource) | ours only: unknown type name: nothing changed (count, nextParticleId_, the manager's lastId_); else the source with the id (automatic for a negative FISTP id) holds the newest effect (class 0x4A, the table's type, position and size bits, count >= 2), not moving, the type's lifetime; the list grew by one exactly when the id was new (then at the tail) | effects, particles, script_fx |
+| 004BDBB0 | 214 | ScriptMoveParticleSource (MoveParticleSource) | against the original: the original moves the real source, its result is kept, the source restored, ours runs; flags and steps equal, the step with CheckNear | script_fx |
+| 004BD540 | 102 | ScriptFxSourceDestruct (FX source element body) | ours only: object slot cleared, count down by 1 or 2 | the element destructor 004CE2B0 (the reset), the list's RemoveAt 004C6370 (DeleteFXSource), 004BEB00 |
+
+CreateParticleSource: the type name is copied into a CString first and compared with the game's
+stricmp (table name first); the table is read from the exe's memory (0078B120, 64 entries of name,
+type, lifetime). The id is FISTP (rounded), unlike CreateLightning's truncation. For a new id the
+original copies a stack temporary (only its first word set) into the new node; every field is
+written afterwards, so ours just links the node. MoveParticleSource's step is
+(point - position) * (1 / steps), the reciprocal rounded to float first (plain C++ now; the
+original keeps the x difference on the FPU).
+
+Not taken: 004BD310 (CreateFXSource / CreateRandomizedFXSource). For CreateFXSource (command 0x16)
+of a new id the original leaves spread, minimum / maximum delay and countdown (+0x24..+0x30) as the
+stack garbage of a temporary it copies into the node, and the tick then uses them (respawn delay,
+DIV by max - min + 1, placement radius). Rewriting it means choosing values the original never
+had (zero would replace the sound every tick); left original. 004BD120 / 004BDB80 (the same 38-byte
+body as the element destructors above) are only called from C++ unwind funclets.
+
+## Variable array constructors and destructors (004BC690-004BCAE0)
+
+Code: `src/game/script_arrays.cpp`; verify: `tests/verify/verify_script_destroy.cpp`. The compiler-
+generated constructors and destructors of `ScriptNamedValues<T>` (one type's values and names), of
+single CString / reference / group arrays, and the ScriptRun destructor. None is library, dead or
+Rebirth-patched (their library siblings 004C26A0, 004C2290, 004CC980, 004CC7D0 are; those stay
+forwarders, now shared in originals_library.h where script_destroy.cpp / script_load.cpp had their
+own). The vtables they write are named in `script.h` (`scriptvtable::`).
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BC690 / 004BC740 / 004BC870 / 004BC950 | 42 each | ScriptFloats / Strings / Objects / GroupsConstruct | against the original: original into a 0xCC scratch, ours into the real set; all 0x28 bytes and the returned pointers | the original LoadCommands (004D1330, Rebirth-patched: the Rebirth launch's script_parse, script_exec), the CScript constructor (before the hooks), the list Serialize instantiations |
+| 004BC6C0 / 004BC770 / 004BC8A0 | 126 / 147 / 175 | ScriptFloats / Strings / ObjectsDestruct | against the original on a deep copy (the game's copy constructors 004CBB80 / 004CBCA0 / 004CBDB0), S6's rules: the words each writes and the reference counts each drops | the instance / run lists' RemoveHead (004C7A10 / 004C82B0: the reset, every new game and zone load), the definition list's destructor, the original LoadCommands (Rebirth) |
+| 004BC810 | 88 | ScriptNamesDestruct (CString array) | as above, the copy by 004CBA00 | the CString array's deleting destructor 004C1860 |
+| 004BC9A0 | 118 | ScriptRefArrayDestruct | ours only: only the vtable word changes (to 0073D11C), every held reference drops by its multiplicity | the reference array's deleting destructor 004C1840 |
+| 004BCA20 | 182 | ScriptGroupArrayDestruct | ours only: as above (0073D310), the members' references | the group array's deleting destructor 004C18A0 |
+| 004BCAE0 | 380 | ScriptRunDestruct | against the original on a copy (the first five words, the variables by 004CB7E0) | every finished run (the run list's FreeNode 004CDAB0), DestructElements<ScriptRun> 004CEC80: script_exec, script_parse, console |
+
+The groups' references in 004BCA20 are reset with 004B5AE0 (the copy of ScriptObjectRef::Reset).
+004BCAE0 destroys the run's variables as ScriptVarsDestruct (004BE090) does, except that the group
+elements go through DestructElements<ScriptGroup> (004CC980) and the float names through the
+out-of-line CString array destructor (004C26A0), as the original calls them.
+
+## Purge and zone reset (004BED90, 004BE490, 004BEB00)
+
+Code: `src/game/script_cleanup.cpp`; verify: `tests/verify/verify_script_cleanup.cpp`. Not library,
+dead or Rebirth-patched. The callers (the world's RemoveObject 005935C0 for both scripts, Rebirth-
+patched; EnterZone 0057A060) go through the original addresses (`CommandQueuePurge` in
+world_server.cpp, `ScriptsResetZone` in world_game.cpp).
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BED90 | 616 | ScriptPurgeDeletedObjects | ours only: every run's, instance's and the global variable set loses exactly its deleted objects (deleted object variables become null; groups keep their other members in order); outside For loops the temporaries are down to one entry each | every removal of a world object: world_load, unit_create, combat, script_exec |
+| 004BE490 | 582 | ScriptDropInstancesAndRuns | ours only: both lists empty | the zone reset (called through its address) |
+| 004BEB00 | 370 | ScriptResetZone | ours only: no instances; one run per WorldScript block, at its start (index 0, ticks 0, no kill flag); For depth 0; point light slots zero; FX / particle / lightning lists empty; global floats 0, strings empty, objects null, groups empty | every zone entry: newgame (zone1) and all zone scenarios |
+
+The purge is ScriptVars::RemoveDeletedObjects (004B3940) for each run, instance and the globals,
+then FreeTemporaries; the original calls 004B2570 / 004B3110 for the runs and inlines both for the
+instances and the globals (the same release-if-deleted and remove-null-slots loop, DestructElements
+of one reference and a memmove). The instance and run destruction in 004BE490 calls the element
+array destructors one by one (004C26A0, 004C3B20, the named-value destructors 004BC8A0 / 004BC770 /
+004BC6C0 rewritten above, 004C5AF0, the two CStrings; for runs the object references inline). The
+zone reset releases each point light's object without clearing its slot and then zeroes the array.
+
+Forwarders now shared in originals_library.h: 004C3B20, 004C5AF0, 004C7A10, 004C82B0 (script_reset.cpp
+used its own for the last two); originals_script.h: 004BE490.
+
+## Quest construction (004BAA40, 004BAE10, 004BAEB0)
+
+Code: `src/game/script_quest.cpp`; verify: `tests/verify/verify_script_quest.cpp`; scenario
+script_quest. The quest under construction is `ScriptQuestName()` (CString 007AA61C) and
+`ScriptQuestObjectives()` (CArray at 007AA608 of {type, text, value}, 12 bytes), now declared in
+script.h (script_exec_helpers.cpp keeps its own view for QFinish).
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004BAA40 | 99 | ScriptQuestStart (QStart; __fastcall, the name in ECX) | ours only: no objectives (data null, size and capacity 0), the name set |
+| 004BAE10 | 159 | ScriptQuestAddObjective (QObj*; __fastcall (type, text), the value on the stack, RET 4) | against the original: the original appends, its element is kept aside and taken back (text destroyed, size restored), ours appends; size, type, text and value bits equal |
+| 004BAEB0 | 8 | ScriptQuestObjectiveDestruct (`ADD ECX,4; JMP ~CString`) | ours only: the element's words unchanged, a shared text buffer down one reference |
+
+QStart sets size and capacity to 0 even when there was no array. The objective's text goes
+through a temporary (constructed empty, assigned, assigned into the element, destroyed), as kept.
+004CDF40 (the array's SetSize, library) is a forwarder in script_quest.cpp.
+
+Not taken: 004BAEC0 (party records of a "party name": CString Find / Mid with three arguments,
+which mfc.h does not declare yet; it also rewrites the caller's name), 004C9C90 (the quest table's
+STLport hash_map lookup), the array destructors 004BE250 / 004BE2E0 / 004BE430 / 004BE410 (only
+reached from the arrays' scalar deleting destructors 004C1A00-004C1A60 and unwind funclets).
+
+## Unit mode constructors (004BA1C0, 004BA360, 004BA450, 004BA610, 004BA710, 004BA830, 004BA920, 004BA1A0)
+
+Code: `src/game/script_unit_modes.cpp` (declarations at the end of unit_ai.h, the vtables named in
+`aimode::`); verify: `tests/verify/verify_script_unit_modes.cpp`. Every one is compared with the
+original: the original constructs a copy of the object's current bytes (fresh operator new memory,
+partly unwritten), ours the object; all bytes and both returned pointers equal (Follow: the leader's
+count raised by one in each run, the original's taken back). Reached by script_exec (Follow, Guard,
+Sentry, UMSentry / UMGuard / UMFollow / UMAggression / UMRevenge / UMSuspection / UMCorpseWatcher),
+unit_ai (UM* modes, UMPatrolLook), movement (Follow). Not library, dead or Rebirth-patched; the
+Guard / Sentry setters 005D0B70 / 005D1B50 are rewritten and called directly.
+
+| Address | Size | Constructs |
+|---|---|---|
+| 004BA1C0 | 85 | GuardMode (vtable 0073D128), then GuardMode::Set(point, radius, wander) |
+| 004BA360 | 73 | SentryMode (0073D190), then SentryMode::Set(point) |
+| 004BA450 | 78 | FollowMode: base vtable 0073D15C, leader null, then the leader referenced and stored, vtable 0073D1C4 |
+| 004BA610 | 9 | SuspectionMode: vtable 0073D1F8 only |
+| 004BA710 | 27 | AggressionMode (0073D260): no enemy / chosen, part -1, not fixed |
+| 004BA830 | 33 | the same with `fixed` = the argument's low byte (UMRevenge) |
+| 004BA920 | 9 | CorpseWatcherMode: vtable 0073D294 only |
+| 004BA1A0 | 32 | AILook {angle, time, wait, stop first (low byte)} (UMPatrolLook) |
+
+None of them sets the reference count (+4): the commands write 0 there after operator new.

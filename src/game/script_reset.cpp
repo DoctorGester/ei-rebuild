@@ -28,8 +28,8 @@ T& Field(void* object, std::size_t offset) {
 
 // CList::RemoveHead / RemoveTail instantiations (__thiscall, the element returned through a
 // hidden pointer: copy-constructed into `out`, the node freed).
-__declspec(naked) void* __fastcall InstancesRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C7A10)
-__declspec(naked) void* __fastcall RunsRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C82B0)
+void* __fastcall InstancesRemoveHead(void* a0, void*, void* a2) { return ScriptInstancesRemoveHeadOriginal(a0, nullptr, a2); }
+void* __fastcall RunsRemoveHead(void* a0, void*, void* a2) { return ScriptRunsRemoveHeadOriginal(a0, nullptr, a2); }
 __declspec(naked) void* __fastcall BlocksRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C69B0)
 void* __fastcall TempGroupsRemoveTail(void* a0, void*, void* a2) { return TempGroupsRemoveTailOriginal(a0, nullptr, a2); }
 void* __fastcall TempObjectsRemoveTail(void* a0, void*, void* a2) { return TempObjectsRemoveTailOriginal(a0, nullptr, a2); }
