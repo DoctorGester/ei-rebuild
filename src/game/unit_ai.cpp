@@ -142,21 +142,14 @@ __declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 namespace {
 struct AIMemory {
     void Update(UnitController* owner);                 // 005CB700
-    void Notice(const Vector3* point, int level, int kind); // 005CBBE0
     int IsEnemy(CUnit* self, CEngineObject* other);     // 005CB7F0
-    void Forget(CEngineObject* object);                 // 005CC020
+    // 005CC020 (AIBrain::Forget, unit_ai_brain.cpp), called through its address so its verify
+    // wrapper sees OnObjectDeleted's calls.
+    void Forget(CEngineObject* object);
 };
 __declspec(naked) void AIMemory::Update(UnitController*) EI_ORIGINAL(0x005CB700)
-void AIMemory::Notice(const Vector3* a0, int a1, int a2) { AiMemoryNoticeOriginal((void*)this, nullptr, (const void*)a0, a1, a2); }
 int AIMemory::IsEnemy(CUnit* a0, CEngineObject* a1) { return AiMemoryIsEnemyOriginal((void*)this, nullptr, (void*)a0, (void*)a1); }
 __declspec(naked) void AIMemory::Forget(CEngineObject*) EI_ORIGINAL(0x005CC020)
-
-struct AIReports {
-    void Add(CEngineObject* object, int what);          // 005CC620
-    bool Contains(CEngineObject* object);               // 005CC560
-};
-__declspec(naked) void AIReports::Add(CEngineObject*, int) EI_ORIGINAL(0x005CC620)
-__declspec(naked) bool AIReports::Contains(CEngineObject*) EI_ORIGINAL(0x005CC560)
 
 // The brain's attention at +0xA4.
 struct AIAttention {
@@ -183,14 +176,10 @@ AIMemory* MemoryOf(AIBrain* brain) { return reinterpret_cast<AIMemory*>(brain->m
 } // namespace
 
 void AIBrain::Perceive(UnitController* who) { MemoryOf(this)->Update(who); }
-void AIBrain::Notice(const Vector3* point, int level, int kind) { MemoryOf(this)->Notice(point, level, kind); }
 int AIBrain::IsEnemy(CUnit* self, CEngineObject* other) { return MemoryOf(this)->IsEnemy(self, other); }
-void AIBrain::Forget(CEngineObject* object) { MemoryOf(this)->Forget(object); }
-void AIBrain::Report(CEngineObject* object, int what) {
-    reinterpret_cast<AIReports*>(reports)->Add(object, what);
-}
+void AIBrain::Report(CEngineObject* object, int what) { reports.Add(object, what); }
 AIRef* AIBrain::PopCorpse(AIRef* out) { return reinterpret_cast<AICorpses*>(&corpses)->PopHead(out); }
-bool AIBrain::IsReported(CEngineObject* object) { return reinterpret_cast<AIReports*>(reports)->Contains(object); }
+bool AIBrain::IsReported(CEngineObject* object) { return reports.Contains(object); }
 void AIBrain::LookAround(int unused) { AttentionOf(this)->LookAround(this, unused); }
 void AIBrain::CurrentAttack(int* partAndObject) { AttentionOf(this)->Current(this, partAndObject); }
 void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
@@ -446,7 +435,7 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
     }
     if (target == object && target) ReleaseRef(target);
     if (seen == object && seen) ReleaseRef(seen);
-    Forget(object);
+    MemoryOf(this)->Forget(object);
 }
 EI_REPLACE_METHOD(0x005D58D0, AIBrain::OnObjectDeleted);
 

@@ -415,6 +415,30 @@ struct AICallArray {
 };
 static_assert(sizeof(AICallArray) == 0x14);
 
+// An object the memory reported (8 bytes; the object is a counted reference).
+struct AIReport {
+    CEngineObject* object;
+    int what;
+};
+static_assert(sizeof(AIReport) == 8);
+
+// CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp).
+struct AIReportArray {
+    // 005CC620. Keeps the larger `what` of a listed object, else appends it (with a reference).
+    void Add(CEngineObject* object, int what);
+    // 005CC560. Whether `object` is listed (only AL is set).
+    bool Contains(CEngineObject* object);
+    void SetSize(int size, int growBy);             // 005CD670
+    void RemoveAt(int index, int count);            // 005CD800
+
+    void* vtable;
+    AIReport* data;                 // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(AIReportArray) == 0x14);
+
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
     // Actions (`action`).
@@ -533,9 +557,14 @@ struct AIBrain {
     void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
     bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
     void Perceive(UnitController* owner);                               // 005CB700 on +0xD0
-    void Notice(const Vector3* point, int level, int kind);             // 005CBBE0 on +0xD0
     int IsEnemy(CUnit* self, CEngineObject* other);                     // 005CB7F0 on +0xD0
-    void Forget(CEngineObject* object);                                 // 005CC020 on +0xD0
+    // 005CBBE0 (thiscall on +0xD0; unit_ai_brain.cpp). Takes over a noticed point of a higher
+    // `level`: 1 when the level rose by more than 100 or the point lies more than sqrt(10) away
+    // (with the point's own z, not a difference), else 0; 0 when the level is not higher.
+    int Notice(const Vector3* point, int level, int kind);
+    // 005CC020 (thiscall on +0xD0; unit_ai_brain.cpp). Drops `object` from the four memory lists
+    // and the reports (holding a reference meanwhile).
+    void Forget(CEngineObject* object);
     void Report(CEngineObject* object, int what);                       // 005CC620 on +0x164
     AIRef* PopCorpse(AIRef* out);                                       // 005D8D50 on +0x148
 
@@ -574,7 +603,7 @@ struct AIBrain {
     mfc::CTypedPtrList<CEngineObject> visible;  // +0x110 units in sight
     mfc::CTypedPtrList<CEngineObject> unknown_12C;  // +0x12C (elements are counted references)
     mfc::CTypedPtrList<CEngineObject> corpses;  // +0x148 (elements are counted references)
-    std::uint8_t reports[0x178 - 0x164];        // +0x164 CArray (005CD670 SetSize)
+    AIReportArray reports;                      // +0x164 objects reported to the alarm code
     AICallArray calls;                          // +0x178 calls heard (005CBBA0)
     std::uint8_t seesEnemy;         // +0x18C
     std::uint8_t unknown_18D[3];

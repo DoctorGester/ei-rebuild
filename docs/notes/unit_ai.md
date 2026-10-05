@@ -61,6 +61,9 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005D6230, 005D64E0 | AIBrain::StandardGuard, StandardSentry (script Guard / Sentry) | ours only: exactly the five modes in order, point, fear / aggression fields; scenario `script_exec` |
 | 005D6300, 005D63B0, 005D63F0, 005D6440, 005D6480, 005D65B0 | AddGuardMode, AddSuspectionMode, AddAggressionMode, AddCorpseWatcherMode, AddFearMode, AddSentryMode | ours only: last mode's type and fields (their only callers are the two above, so the wrappers do not run in practice) |
 | 005D5990 | AIBrain::CallAllies | ours only: the same sector-map query first; every ally in range has the call (point, kind 0x1A) as its last heard record |
+| 005CBBE0 | AIBrain::Notice (memory) | differential: original first, noticed fields put back, ours; result and fields compared (reached through Fear's Evaluate and spell effects; our modes call it directly) |
+| 005CC020 | AIBrain::Forget (memory) | ours only: the object is in no memory list nor the reports (OnObjectDeleted calls it through its address) |
+| 005CC620, 005CC560 | AIReportArray::Add, Contains (+0x164) | Add ours only (listed once, what kept at the maximum); Contains pure (AL); reached through 005D0030 |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
 
 None is in `docs/rebirth-patched-functions.txt`; the only patched callee is FatalError, called
@@ -72,6 +75,8 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 - The mode adders (005D6300-005D65B0) write the new mode's +4 before testing the allocation and pass a failed one to AddMode,
   which calls its GetType (ours tests first, then also passes null). A new Suspection mode's point and level and a new Fear
   mode's +0x14..+0x20 stay uninitialised. CallAllies formats its message only for the console filter but always builds it.
+- Notice measures the distance with the new point's own z (the memory keeps no z); Forget compares the report entries with
+  its argument and the list elements with its own counted copy (the same pointer).
 
 - Think's "new motivation" message prints an empty name for mode type 9 or above 10. `IsNearPath` sets only AL on its first "near" return (callers test AL) and keeps NaN in the clamp of the segment parameter.
   `AttackTarget` passes the player's order check (0054C8B0) an order whose point (+0x0C..+0x17) the original leaves uninitialised (ours zeroes it). Player's CommandCast passes Cast a third argument whose upper bytes

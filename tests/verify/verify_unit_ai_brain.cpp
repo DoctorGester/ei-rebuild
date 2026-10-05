@@ -226,3 +226,76 @@ static void __fastcall CallAlliesVerify(AIBrain* self, void*, const Vector3* poi
     ei::verify::Check("AIBrain::CallAllies", true, ok, "brain %p: %d allies", self, allies);
 }
 EI_VERIFY(0x005D5990, CallAlliesVerify, 0, s_unused);
+
+// ---- Perception memory ----------------------------------------------------------------------------
+
+namespace {
+AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
+
+// The noticed point, level and kind (+0xE0..+0xEF).
+struct Noticed {
+    float x, y;
+    int level, kind;
+};
+Noticed NoticedOf(const AIBrain* brain) { return {brain->noticedX, brain->noticedY, brain->noticedLevel, brain->noticedKind}; }
+void Restore(AIBrain* brain, const Noticed& n) {
+    brain->noticedX = n.x;
+    brain->noticedY = n.y;
+    brain->noticedLevel = n.level;
+    brain->noticedKind = n.kind;
+}
+} // namespace
+
+// 005CBBE0 Notice: MOV EAX,[ECX+0x18]; SUB ESP,0xC (6 bytes). Differential: the original runs first
+// (its result and the noticed fields kept), the fields are put back, ours runs; both compared.
+static int(__fastcall* s_notice)(std::uint8_t*, void*, const Vector3*, int, int);
+static int __fastcall NoticeVerify(std::uint8_t* memory, void*, const Vector3* point, int level, int kind) {
+    AIBrain* brain = BrainOfMemory(memory);
+    Noticed before = NoticedOf(brain);
+    int expected = s_notice(memory, nullptr, point, level, kind);
+    Noticed theirs = NoticedOf(brain);
+    Restore(brain, before);
+    int actual = brain->Notice(point, level, kind);
+    Noticed ours = NoticedOf(brain);
+    ei::verify::Check("AIBrain::Notice", expected, actual, "brain %p level %d -> %d", brain, before.level, level);
+    ei::verify::Check("AIBrain::Notice fields", theirs, ours, "brain %p level %d -> %d", brain, before.level, level);
+    return expected;
+}
+EI_VERIFY(0x005CBBE0, NoticeVerify, 6, s_notice);
+
+// 005CC020 Forget: ours only; the object is in none of the four lists nor the reports.
+static void __fastcall ForgetVerify(std::uint8_t* memory, void*, CEngineObject* object) {
+    AIBrain* brain = BrainOfMemory(memory);
+    brain->Forget(object);
+    bool ok = !brain->unknown_0F4.Find(object) && !brain->visible.Find(object) && !brain->unknown_12C.Find(object) &&
+              !brain->corpses.Find(object) && !brain->reports.Contains(object);
+    ei::verify::Check("AIBrain::Forget", true, ok || object == nullptr, "brain %p object %p", brain, object);
+}
+EI_VERIFY(0x005CC020, ForgetVerify, 0, s_unused);
+
+// 005CC620 AIReportArray::Add: ours only; a non-null object is listed exactly once with at least
+// `what`.
+static void __fastcall ReportAddVerify(AIReportArray* self, void*, CEngineObject* object, int what) {
+    self->Add(object, what);
+    int found = 0;
+    bool ok = true;
+    for (int i = 0; i < self->size; ++i) {
+        if (self->data[i].object != object) continue;
+        ++found;
+        ok = ok && self->data[i].what >= what;
+    }
+    ei::verify::Check("AIReportArray::Add", true, object == nullptr || (ok && found == 1), "array %p object %p what %d", self,
+                      object, what);
+}
+EI_VERIFY(0x005CC620, ReportAddVerify, 0, s_unused);
+
+// 005CC560 AIReportArray::Contains: MOV EDX,[ECX+8]; XOR EAX,EAX (5 bytes). Pure (AL compared).
+static std::uint32_t(__fastcall* s_contains)(AIReportArray*, void*, CEngineObject*);
+static std::uint32_t __fastcall ContainsVerify(AIReportArray* self, void*, CEngineObject* object) {
+    std::uint32_t expected = s_contains(self, nullptr, object);
+    bool actual = self->Contains(object);
+    ei::verify::Check("AIReportArray::Contains", static_cast<bool>(expected & 0xFF), actual, "array %p object %p", self,
+                      object);
+    return expected;
+}
+EI_VERIFY(0x005CC560, ContainsVerify, 5, s_contains);

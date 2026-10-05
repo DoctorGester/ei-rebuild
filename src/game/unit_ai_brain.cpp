@@ -36,6 +36,8 @@ AIPerception* PerceptionOf(AIBrain* brain) { return reinterpret_cast<AIPerceptio
 } // namespace
 
 __declspec(naked) void AICallArray::SetSize(int, int) EI_ORIGINAL(0x005CDD60)
+__declspec(naked) void AIReportArray::SetSize(int, int) EI_ORIGINAL(0x005CD670)
+__declspec(naked) void AIReportArray::RemoveAt(int, int) EI_ORIGINAL(0x005CD800)
 
 namespace {
 AIBrain* BrainOf(CUnit* unit) {
@@ -64,10 +66,8 @@ RefPtr* AsRefPtr(AIMode** element) { return reinterpret_cast<RefPtr*>(element); 
 // CArray::SetSize instantiations of the brain's arrays (thiscall, RET 8).
 struct AIRecordArray {
     void SetAlarmRecordsSize(int size, int growBy);     // 005D9840 (0x4C-byte alarm records, +0x90)
-    void SetReportsSize(int size, int growBy);          // 005CD670 (+0x164)
 };
 __declspec(naked) void AIRecordArray::SetAlarmRecordsSize(int, int) EI_ORIGINAL(0x005D9840)
-__declspec(naked) void AIRecordArray::SetReportsSize(int, int) EI_ORIGINAL(0x005CD670)
 AIRecordArray* AsArray(std::uint8_t* array) { return reinterpret_cast<AIRecordArray*>(array); }
 
 // The inlined CList RemoveAll of the mode list, each element released first.
@@ -206,7 +206,7 @@ void AIBrain::ResetMemory() {
     noticedY = 0.0f;
     noticedLevel = 0;
     unknown_0F0 = 0;
-    AsArray(reports)->SetReportsSize(0, -1);
+    reports.SetSize(0, -1);
     calls.SetSize(0, -1);
     noticedKind = 0;
 }
@@ -321,3 +321,94 @@ void AIBrain::CallAllies(const Vector3* point) {
     units.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005D5990, AIBrain::CallAllies);
+
+// --- Perception memory ----------------------------------------------------------------------------
+
+namespace {
+// The memory's methods take the memory (brain + 0xD0) as `this`.
+AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
+
+// The inlined RemoveAt of a memory list: unlink, release the element, free the node.
+void RemoveObjectNode(mfc::CTypedPtrList<CEngineObject>& list, mfc::CTypedPtrList<CEngineObject>::Node* node) {
+    if (node == list.head) list.head = node->next;
+    else node->prev->next = node->next;
+    if (node == list.tail) list.tail = node->prev;
+    else node->next->prev = node->prev;
+    if (node->data) node->data->Release();
+    node->data = nullptr;
+    list.FreeNode(node);
+}
+
+// Removes every element holding `object` (each time searching again from the head).
+void RemoveAllOf(mfc::CTypedPtrList<CEngineObject>& list, CEngineObject* object) {
+    while (auto* node = list.Find(object)) RemoveObjectNode(list, node);
+}
+} // namespace
+
+int AIBrain::Notice(const Vector3* point, int level, int kind) {
+    if (level <= noticedLevel) return 0;
+    int changed = 1;
+    if (static_cast<int>(static_cast<unsigned>(level) - static_cast<unsigned>(noticedLevel)) <= 100) {
+        double dx = point->x - noticedX;
+        double dy = point->y - noticedY;
+        double z = point->z;
+        // TEST AH,0x41: farther than the limit, NaN not.
+        changed = z * z + dy * dy + dx * dx > 10.0 ? 1 : 0;
+    }
+    noticedLevel = level;
+    noticedX = point->x;
+    noticedY = point->y;
+    noticedKind = kind;
+    return changed;
+}
+
+int __fastcall NoticeHook(std::uint8_t* memory, void*, const Vector3* point, int level, int kind) {
+    return BrainOfMemory(memory)->Notice(point, level, kind);
+}
+EI_REPLACE(0x005CBBE0, NoticeHook);
+
+void AIBrain::Forget(CEngineObject* object) {
+    AIRef held{nullptr};
+    held.Assign(object);
+    RemoveAllOf(unknown_0F4, held.object);
+    RemoveAllOf(visible, held.object);
+    RemoveAllOf(unknown_12C, held.object);
+    RemoveAllOf(corpses, held.object);
+    for (int i = 0; i < reports.size; ++i) {
+        if (reports.data[i].object == object) reports.RemoveAt(i--, 1);
+    }
+    held.Reset();
+}
+
+void __fastcall ForgetHook(std::uint8_t* memory, void*, CEngineObject* object) { BrainOfMemory(memory)->Forget(object); }
+EI_REPLACE(0x005CC020, ForgetHook);
+
+void AIReportArray::Add(CEngineObject* object, int what) {
+    if (!object) return;
+    for (int i = 0; i < size; ++i) {
+        if (data[i].object == object) {
+            if (data[i].what <= what) data[i].what = what;
+            return;
+        }
+    }
+    ++object->refCount_;    // the temporary counted reference of the original
+    int index = size;
+    SetSize(index + 1, -1);
+    AIReport& entry = data[index];
+    if (entry.object != object) {
+        if (entry.object) entry.object->Release();
+        entry.object = nullptr;
+        ++object->refCount_;
+        entry.object = object;
+    }
+    entry.what = what;
+    object->Release();
+}
+EI_REPLACE_METHOD(0x005CC620, AIReportArray::Add);
+
+bool AIReportArray::Contains(CEngineObject* object) {
+    for (int i = 0; i < size; ++i)
+        if (data[i].object == object) return true;
+    return false;
+}
+EI_REPLACE_METHOD(0x005CC560, AIReportArray::Contains);
