@@ -23,7 +23,6 @@ namespace {
 
 // STLport strings and lists (library instantiations).
 __declspec(naked) StringRep* __fastcall StringPlusText(StringRep* /*out*/, const StringRep* /*a*/, const char* /*b*/) EI_ORIGINAL(0x00427D60)
-__declspec(naked) void __fastcall StringDestroyA(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
 __declspec(naked) void __fastcall StringRangeInitTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042A3D0)
 __declspec(naked) void __fastcall StringAllocProxy(char** /*eos*/, void*, const void* /*alloc*/, char* const* /*value*/) EI_ORIGINAL(0x00425080)
 __declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
@@ -203,7 +202,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     StringRep key;
     StringPlusText(&key, zone, Text(kRewardSuffix));
     auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &key));
-    StringDestroyA(&key);
+    StringRepDestroy(&key);
     if (entry) {
         void* clients = &clients_;
         int count = 0;

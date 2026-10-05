@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -35,8 +36,6 @@ __declspec(naked) bool __fastcall HeaderRead(void*, void*, unsigned, int, int) E
 // 004A54D0 (RET 4). The memory stream makes room for `size` bytes.
 __declspec(naked) void __fastcall StreamReserve(void*, void*, int) EI_ORIGINAL(0x004A54D0)
 // The growing buffer: constructor, destructor, Seek (grows to the position).
-__declspec(naked) void __fastcall BufferConstruct(GameBuffer*, void*) EI_ORIGINAL(0x004DA7F0)
-__declspec(naked) void __fastcall BufferDestruct(GameBuffer*, void*) EI_ORIGINAL(0x004DA910)
 __declspec(naked) void __fastcall BufferSeek(GameBuffer*, void*, int) EI_ORIGINAL(0x004DA5C0)
 // The coder.
 __declspec(naked) void __fastcall CoderConstruct(CoderState*, void*) EI_ORIGINAL(0x0042FCA0)
@@ -82,8 +81,8 @@ struct LocalCoder {
 
 struct LocalBuffer {
     GameBuffer b;
-    LocalBuffer() { BufferConstruct(&b, nullptr); }
-    ~LocalBuffer() { BufferDestruct(&b, nullptr); }
+    LocalBuffer() { GrowingBufferConstruct(&b); }
+    ~LocalBuffer() { GrowingBufferDestruct(&b); }
     LocalBuffer(const LocalBuffer&) = delete;
     LocalBuffer& operator=(const LocalBuffer&) = delete;
 };

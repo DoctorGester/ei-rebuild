@@ -167,10 +167,9 @@ struct NameVector {
 struct RawString {
     std::uint8_t bytes[12];
 };
-__declspec(naked) RawString* __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
+static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) std::uint8_t** __fastcall BriefingMapAt(void*, void*, const RawString*) EI_ORIGINAL(0x004297A0)
 // 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
-__declspec(naked) void __fastcall Split(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 // 0057FB60 (RET 4). The client asks the server to complete briefing `name` (ECX = 007AFE20).
 __declspec(naked) void __fastcall RequestBriefing(void*, void*, const char*) EI_ORIGINAL(0x0057FB60)
 // 00591DE0 (RET 8). CWorldServer: the player's part of completing a briefing.
@@ -284,12 +283,12 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, std::uint8_t*
 void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     if (IsMultiplayerClient()) {
         console::CStringArray parts;
-        Split(name, &parts, '.');
+        StringSplit(name, &parts, '.');
         if (parts.GetSize() == 3) RequestBriefing(reinterpret_cast<void*>(0x007AFE20), nullptr, parts[2]);
         return;
     }
     console::CStringArray parts;
-    Split(name, &parts, '.');
+    StringSplit(name, &parts, '.');
     std::uint8_t* record = nullptr;
     if (parts.GetSize() == 3) {
         RawString key;
@@ -328,9 +327,8 @@ constexpr std::uintptr_t kHumanHero = 0x0078B0FC;   // "Human Hero"
 constexpr std::uintptr_t kEmptyText = 0x0079B298;   // ""
 
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
-__declspec(naked) CEngineObject* __fastcall FindUnitByKey(CWorldServer*, void*, unsigned) EI_ORIGINAL(0x0055FB00)
 // 00530930. The unit's prototype record; its first field is the prototype name.
-__declspec(naked) const char** __fastcall UnitPrototype(CEngineObject*, void*) EI_ORIGINAL(0x00530930)
+static const char** UnitPrototype(CEngineObject* object, void*) { return static_cast<const char**>(::UnitPrototypeOf(object)); }
 // 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
 // (name, prototype, extra), remove the member with a text key.
 __declspec(naked) void __fastcall PartyAddMember(void*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
@@ -364,7 +362,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         v.n9.Format(Text(kVarN9), static_cast<const char*>(v.merc), slot);
         v.n10.Format(Text(kVarN10), static_cast<const char*>(v.merc), slot);
         v.hired.Format(Text(kVarHired), slot);
-        CEngineObject* unit = FindUnitByKey(this, nullptr, key);
+        CEngineObject* unit = WorldFindUnit(this, nullptr, key);
 
         if (is(v.n8)) StateSetVariable(state, nullptr, v.n8, 0.0f);
         // n10: the mercenary leaves the party and the world; n2: the party.
@@ -424,7 +422,6 @@ __declspec(naked) ShareNode* __fastcall ShareListNewNode(ShareList*, void*, Shar
     EI_ORIGINAL(0x0059D5F0)
 __declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGINAL(0x0059D5C0)
 __declspec(naked) void __fastcall IdArraySetSize(IdArray*, void*, int, int) EI_ORIGINAL(0x0059C660)
-__declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int) EI_ORIGINAL(0x0055FB00)
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 __declspec(naked) void __fastcall RecordGainExperience(void*, void*, float) EI_ORIGINAL(0x00523960)
@@ -715,7 +712,6 @@ __declspec(naked) void __fastcall StateBeforeZoneChange(void*, void*) EI_ORIGINA
 // 0065F740. The unit record's destructor body.
 __declspec(naked) void __fastcall UnitRecordDestruct(void*, void*) EI_ORIGINAL(0x0065F740)
 __declspec(naked) void __fastcall RecordArraySetSize(RecordArray*, void*, int, int) EI_ORIGINAL(0x005719B0)
-__declspec(naked) void* __cdecl GameMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.

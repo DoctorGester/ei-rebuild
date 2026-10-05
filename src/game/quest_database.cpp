@@ -144,7 +144,6 @@ __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIG
 // a string at a separator into a CStringArray [004DBE40, __fastcall: text, out; separator]; atof.
 __declspec(naked) void __fastcall TrimLeftChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE1D3)
 __declspec(naked) void __fastcall TrimRightChar(mfc::CString*, void*, char) EI_ORIGINAL(0x006FE0DD)
-__declspec(naked) void __fastcall Split(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 // An allocator argument: the members read at most a byte through it.
 const std::uint8_t kAllocator = 0;
@@ -182,7 +181,7 @@ void ReadQuest(Registry& reg, char* quest, console::CStringArray& places) {
         console::CStringArray parts;
         TrimLeftChar(&places[i], nullptr, '{');
         TrimRightChar(&places[i], nullptr, '}');
-        Split(places[i], &parts, ';');
+        StringSplit(places[i], &parts, ';');
         if (parts.GetSize() == 2) {
             float x = static_cast<float>(GameAtof(parts[0]));
             PushPlace(quest, x);

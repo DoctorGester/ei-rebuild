@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -54,7 +55,7 @@ __declspec(naked) void __fastcall GroupsClear(void*) EI_ORIGINAL(0x004C1760)
 struct World {
     void RemoveTimedObject(int id);       // 0058E5D0
 };
-__declspec(naked) void World::RemoveTimedObject(int) EI_ORIGINAL(0x0058E5D0)
+void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
 ScriptList& ListAt(CScript* script, std::size_t offset) { return Field<ScriptList>(script, offset); }

@@ -10,6 +10,8 @@
 #include "ei/vcall.h"
 #include "originals_core.h"
 #include "originals_engine.h"
+#include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -92,7 +94,7 @@ inline std::uint32_t BelowOneOrOne(const float& value) {
 // 00455940 (originals_engine.h). The owning manager's context.
 inline void* ManagerContext(const void* object) { return ManagerContextOf(object); }
 // 0055FB00 (world). A unit by id, or null.
-__declspec(naked) inline void* __fastcall FindUnit(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x0055FB00)
+inline void* FindUnit(void* world, void*, int id) { return ::WorldFindUnit(world, nullptr, id); }
 // 00403F40 (originals_core.h). An object of a manager by id, or null.
 inline void* FindObject(void* manager, void*, int id) { return ManagerFindObject(manager, nullptr, id); }
 // 00532860 (unit). A point of the unit (its effect origin); returns `out`.
@@ -160,7 +162,6 @@ inline void WriteCopy(void* stream, const void* field) {
 
 // --- MFC strings --------------------------------------------------------------------------------
 
-__declspec(naked) inline void __fastcall StringArraySetSize(EffectStringArray*, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x006FE9B8)
 // 006773A0: reads a count and that many CStrings from a save stream, appending them (ECX array, EDX stream).
 __declspec(naked) inline void __fastcall ReadStringArray(EffectStringArray*, void* /*stream*/) EI_ORIGINAL(0x006773A0)
 // 004E5840: reads a CString from a save stream (thiscall on the stream).

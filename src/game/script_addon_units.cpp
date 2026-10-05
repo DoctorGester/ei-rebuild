@@ -9,6 +9,7 @@
 #include "random.h"
 #include "originals_ai.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 #include <cstdint>
 
@@ -19,7 +20,6 @@ namespace scriptaddon {
 namespace {
 
 // The world (007AFF60): the player with a number (00594180).
-__declspec(naked) void* __fastcall WorldGetPlayer(void*, void*, int) EI_ORIGINAL(0x00594180)
 void* GetPlayer(int number) { return WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, number); }
 
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
@@ -28,7 +28,7 @@ __declspec(naked) void __fastcall PtrListDestruct(mfc::CTypedPtrList<CEngineObje
 void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
 
 // A unit's prototype record (00530930): +0 its name, +4 its race (char pointers).
-__declspec(naked) char* __fastcall UnitPrototype(void*) EI_ORIGINAL(0x00530930)
+static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 

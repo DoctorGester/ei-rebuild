@@ -75,7 +75,7 @@ struct RawString {
     char* finish;
     char* eos;
 };
-__declspec(naked) RawString* __fastcall StringFromChars(RawString*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
+static RawString* StringFromChars(RawString* s, void*, const char* text, const void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):

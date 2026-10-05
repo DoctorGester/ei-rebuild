@@ -38,7 +38,6 @@ __declspec(naked) void __fastcall List25D8Clear(void* /*list*/) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall List25D8FreeNode(void* /*node*/, int /*n*/) EI_ORIGINAL(0x00426960)
 __declspec(naked) void __fastcall Vector25ACDestruct(void* /*vector*/) EI_ORIGINAL(0x0041F7F0)
 __declspec(naked) void __fastcall List25A8Destruct(void* /*list*/) EI_ORIGINAL(0x00421A50)
-__declspec(naked) void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)
 
 // A list destroyed as the destructor inlines it: cleared, then its sentinel node freed.
 template <typename Clear, typename Free>

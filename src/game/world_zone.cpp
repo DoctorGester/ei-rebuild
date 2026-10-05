@@ -16,6 +16,7 @@
 #include <cstring>
 #include <new>
 #include "originals_world.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -95,7 +96,7 @@ __declspec(naked) void* __fastcall CountedPtrDestroy(void** /*slot*/, void*, uns
 // 006D43E0. Clears the countdown array (CWorldServer + 0x70): frees it, size and capacity 0.
 __declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
 // 00530930. CUnit::GetPrototype: the unit's prototype record (its name first).
-__declspec(naked) char** __fastcall UnitPrototype(CEngineObject*, void*) EI_ORIGINAL(0x00530930)
+static char** UnitPrototype(CEngineObject* object, void*) { return static_cast<char**>(::UnitPrototypeOf(object)); }
 
 // The unit record AddUnitToServer builds on its stack (0x70 bytes; a pointer to the 0x784-byte
 // unit record CreateUnits takes at +0x30).

@@ -51,8 +51,6 @@ constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 const void* SelectTimeout() { return reinterpret_cast<const void*>(0x0079B928); }
 
-__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer*) EI_ORIGINAL(0x004DA7F0)
-__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer*) EI_ORIGINAL(0x004DA910)
 __declspec(naked) void __fastcall GameBufferGrow(GameBuffer*, void*, std::uint32_t) EI_ORIGINAL(0x004DA5C0)
 // STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n), the out_of_range
 // thrower of basic_string::substr.

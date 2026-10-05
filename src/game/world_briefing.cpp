@@ -34,7 +34,6 @@ constexpr std::uintptr_t kEmpty = 0x0079B298;             // ""
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
 // current line into words.
 void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
-__declspec(naked) int __fastcall TextsOpenSection(void*, void*, const char*) EI_ORIGINAL(0x004DEFC0)
 __declspec(naked) int __fastcall TextsFindTag(void*, void*, const char*) EI_ORIGINAL(0x004DF030)
 __declspec(naked) int __fastcall TextsReadWords(void*, void*, console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
 

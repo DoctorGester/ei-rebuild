@@ -13,6 +13,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 
 #include <cstring>
 #include <new>
@@ -46,7 +47,6 @@ __declspec(naked) void __fastcall StreamReadSized(CStream* /*from*/, void*, CStr
 // CMemoryStream's Seek (004A5490, slot 3) called directly.
 __declspec(naked) void __fastcall MemoryStreamSeek(CMemoryStream* /*stream*/, void*, std::uint32_t /*position*/) EI_ORIGINAL(0x004A5490)
 // The game's memmove (006E79A0).
-__declspec(naked) void* __cdecl GameMemmove(void* /*to*/, const void* /*from*/, std::size_t /*n*/) EI_ORIGINAL(0x006E79A0)
 
 bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 

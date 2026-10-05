@@ -59,7 +59,7 @@ __declspec(naked) void NewObjectMark::Apply() EI_ORIGINAL(0x00675CA0)
 struct WorldBase {
     CEngineObject* FindUnit(unsigned id);
 };
-__declspec(naked) CEngineObject* WorldBase::FindUnit(unsigned) EI_ORIGINAL(0x0055FB00)
+CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, nullptr, static_cast<int>(id)); }
 
 // RemoveObject's callees (not rewritten).
 // 00599A80 (RET 4). An id map's erase(key).

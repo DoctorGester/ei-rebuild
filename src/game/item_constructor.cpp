@@ -438,7 +438,6 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // 006E80D8 atoi.
 
 // 004DBE40 (ECX text, EDX array, separator on the stack). Splits `text` at `separator`.
-__declspec(naked) void __fastcall SplitItemName(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 // Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
 // 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
@@ -472,8 +471,7 @@ struct NamePair {
     NameKey name;
     void* record;
 };
-__declspec(naked) NameKey* __fastcall KeyFromChars(NameKey*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
-__declspec(naked) void __fastcall KeyDestroyB(NameKey*) EI_ORIGINAL(0x0040C770)
+static NameKey* KeyFromChars(NameKey* s, void*, const char* text, const void* alloc) { return static_cast<NameKey*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) void __fastcall PairConstruct(NamePair*, void*, const NameKey*, void* const*) EI_ORIGINAL(0x00689950)
 __declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006AD670)
 __declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006A75E0)
@@ -522,7 +520,7 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
             ModifierNameFindOrInsert(reinterpret_cast<void*>(0x007C853C), nullptr, &pair) + 0xC);
         StlStringDestroy(&pair.name);
         record = *slot;
-        KeyDestroyB(&key);
+        StringRepDestroy(&key);
         return TableIndex(SpellModifiers(), record, kSpellModifierSize);
     }
     default:
@@ -548,7 +546,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         text = text.Left(bracket);
         AsText(text).TrimSpaceRight();
     }
-    SplitItemName(text, &parts, '.');
+    StringSplit(text, &parts, '.');
     for (int i = 0; i < parts.size_; ++i) parts.data_[i].MakeLower();
 
     // "spell container[spell text]": a scroll holding that spell.

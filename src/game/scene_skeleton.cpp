@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_render.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,7 +32,6 @@ constexpr std::size_t kNodePivot = 0x70;       // Vector3: the first rotation ke
 constexpr std::size_t kNodeRotation = 0x7C;    // Quaternion
 constexpr std::size_t kNodeFrames = 0xF8;      // CArray of 40-byte records (vtable at +0xF8)
 
-__declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
 // 00449030 (below), through its address: the index of the root node (-1 when there is none).
 __declspec(naked) int __fastcall FindRootNodeAt(VtArray* /*nodes*/) EI_ORIGINAL(0x00449030)
 // CArray<node*>::SetSize (00453790, library): the node's children (+0x10C).
@@ -161,13 +161,13 @@ EI_REPLACE(0x00449030, FindRootNode);
 
 // ECX: the unit's meshes (CArray, 0x18C each; slot 7 of a mesh is its name), EDX: the nodes;
 // `frames` (its low word counts), `skin`. 1, or 0 without a root node; a first rotation key not
-// at frame 0 is a fatal error (FatalError's result is returned if it comes back).
+// at frame 0 is a fatal error (FatalErrorOriginal's result is returned if it comes back).
 int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* skin) {
     for (int i = 0; i < nodes->body.size; ++i) {
         char* node = static_cast<char*>(nodes->body.data) + i * node::kSize;
         const char* rotationKey = At<char*>(node, node::kRotKeys + 4);
         if (At<std::uint16_t>(rotationKey, 0) != 0)
-            return FatalError(reinterpret_cast<const char*>(0x007843AC));   // "ResolveNodesAMF. ..."
+            return FatalErrorOriginal(reinterpret_cast<const char*>(0x007843AC));   // "ResolveNodesAMF. ..."
         At<Vector3>(node, kNodePivot) = At<Vector3>(rotationKey, 8);
         const char* positionKey = At<char*>(node, node::kPosKeys + 4);
         if (At<std::uint16_t>(positionKey, 0) != 0) continue;
@@ -181,7 +181,7 @@ int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* 
     }
     int root = FindRootNodeAt(nodes);
     if (root == -1) {
-        FatalError(reinterpret_cast<const char*>(0x007843F0));   // "Can't find top-level object in hierarchy"
+        FatalErrorOriginal(reinterpret_cast<const char*>(0x007843F0));   // "Can't find top-level object in hierarchy"
         return 0;
     }
 

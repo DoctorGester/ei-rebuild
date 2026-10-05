@@ -1154,7 +1154,6 @@ namespace {
 // STLport string members (the instantiations the original calls).
 __declspec(naked) void __fastcall StringAssignTagged(void*, void*, const char*, const char*, int /*tag*/) EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) void __fastcall StringCopy(void*, void*, const void*) EI_ORIGINAL(0x004A8930)
-__declspec(naked) void __fastcall StringDestroyOther(void*) EI_ORIGINAL(0x0040C770)
 // The cache map (CSoundManager + 0x870): find [out iterator, key], find-or-insert of a pair
 // [returns the pair], erase by key; the pair's constructor [key, value].
 struct CacheIter {
@@ -1296,7 +1295,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
         int size = 0;
         for (WaveSourceNode* n = waveSources;;) {
             if (n == nullptr) {
-                StringDestroyOther(key);
+                StringRepDestroy(key);
                 return 0;
             }
             WaveSourceNode* current = n;
@@ -1312,7 +1311,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             int ok = AilDecompressAsi()(data, size, Mp3Suffix(), &decoded, &decodedSize, DecompressCallback());
             SourceFree(source, data);
             if (ok == 0) {
-                StringDestroyOther(key);
+                StringRepDestroy(key);
                 return 0;
             }
             size = decodedSize;

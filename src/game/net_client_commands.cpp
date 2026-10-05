@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -31,7 +32,6 @@ __declspec(naked) void __fastcall StringReserve(StringRep* /*s*/, void*, const v
 __declspec(naked) void __fastcall StringAssignRange(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00426A80)
 __declspec(naked) void __fastcall StringErase(StringRep* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
 __declspec(naked) void __fastcall StringAppendTag(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const void* /*tag*/) EI_ORIGINAL(0x0040C280)
-__declspec(naked) void* __cdecl GameMemmove(void* /*to*/, const void* /*from*/, std::size_t /*n*/) EI_ORIGINAL(0x006E79A0)
 __declspec(naked) void __fastcall ServerEntryConstructBase(ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)
 
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;

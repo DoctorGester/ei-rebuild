@@ -12,6 +12,9 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
+#include "originals_engine.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -154,13 +157,13 @@ __declspec(naked) void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*) E
 __declspec(naked) void __fastcall SpellsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063E820)
 __declspec(naked) void __fastcall ActionsSetUnit(CUiWindow*, void*, CUnit*, int) EI_ORIGINAL(0x0063F800)
 // 00530930 (__fastcall on a unit): its prototype record.
-__declspec(naked) std::uint8_t* __fastcall UnitPrototype(CUnit*) EI_ORIGINAL(0x00530930)
+static std::uint8_t* UnitPrototype(CUnit* unit) { return static_cast<std::uint8_t*>(::UnitPrototypeOf(unit)); }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
 __declspec(naked) void __fastcall ShowPanelUnit(CBattleScreenSetup*, void*, CUnit*, void*) EI_ORIGINAL(0x0063B920)
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
-__declspec(naked) CUnit* __fastcall FindUnit(void*, void*, int) EI_ORIGINAL(0x0055FB00)
+static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUnit*>(::WorldFindUnit(world, nullptr, id)); }
 __declspec(naked) void __fastcall WorldControl(void*, void*, CUnit*) EI_ORIGINAL(0x00566030)
 __declspec(naked) void __fastcall UnitsInBox(void*, void*, const void*, void*) EI_ORIGINAL(0x005656A0)
 constexpr std::uintptr_t kWorld = 0x007AF5B8;
@@ -187,7 +190,6 @@ __declspec(naked) bool __fastcall PartyIdsEqual(const PartyIds*, void*, const Pa
 __declspec(naked) void __fastcall PartySetSize(UiDwordArray*, void*, int, int) EI_ORIGINAL(0x005EBDB0)
 __declspec(naked) void __fastcall PartySetAtGrow(UiDwordArray*, void*, int, CUnit*) EI_ORIGINAL(0x0060AD50)
 __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
-__declspec(naked) void* __cdecl GameMemmove(void*, const void*, std::size_t) EI_ORIGINAL(0x006E79A0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
 __declspec(naked) void __fastcall PortraitsRebuild(CUiWindow*, void*, int) EI_ORIGINAL(0x006407E0)
@@ -590,8 +592,6 @@ struct TextGlue {
     CTextManager* Table();
 };
 __declspec(naked) CTextManager* TextGlue::Table() EI_ORIGINAL(0x00578E20)
-__declspec(naked) int __fastcall TextGetString(CTextManager*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
-__declspec(naked) void __fastcall SplitText(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 __declspec(naked) void __fastcall LogAddText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065CF30)
 
@@ -607,7 +607,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     console::CStringArray parts;
     mfc::CString text;
     mfc::CString title;
-    SplitText(name, &parts, '.');
+    StringSplit(name, &parts, '.');
     const float complete = GameFloatAt(0x0073CDB8);   // 2
     const float failed = GameFloatAt(0x0073BAA4);     // 3
     if (parts.size_ == 3) {
@@ -621,7 +621,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         } else {
             key = GameText(0x00794378);   // "combat_get_quest"
         }
-        TextGetString(texts, nullptr, key, &title);
+        TextsGetString(texts, nullptr, key, &title);
         text.Empty();
         BOOL found;
         {
@@ -649,7 +649,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         } else {
             key = GameText(0x0079432C);   // "combat_get_subobj"
         }
-        TextGetString(texts, nullptr, key, &title);
+        TextsGetString(texts, nullptr, key, &title);
         text.Empty();
         bool found = false;
         {

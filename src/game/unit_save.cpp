@@ -8,6 +8,7 @@
 #include "lib/mfc.h"
 #include "originals_core.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -83,7 +84,7 @@ struct RawString {
 };
 } // namespace
 
-__declspec(naked) void* RawString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
+void* RawString::InitFrom(const char* text, void* alloc) { return ::StringInitFromChars(this, nullptr, text, alloc); }
 
 // unit_items.cpp: 00514930, the prototype table's record named `name`.
 char* __fastcall FindUnitPrototype(const void* table, void*, const char* name);
@@ -107,7 +108,6 @@ __declspec(naked) char** __fastcall PrototypeNameMapAt(void* /*map*/, void*, con
 // Rewritten elsewhere, called through their game addresses: 00594180 CWorldServer::GetPlayer
 // (world_server.cpp), 00523550 UnitParams::Reset (unit_stats_pack.cpp), 00403F40
 // CBaseManager::FindObject (base_manager.cpp).
-__declspec(naked) void* __fastcall WorldGetPlayerAt(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x00594180)
 __declspec(naked) void __fastcall UnitParamsResetAt(void* /*params*/) EI_ORIGINAL(0x00523550)
 
 // Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
@@ -192,7 +192,7 @@ void SetCarriedSize(CUnit* unit, int size) {
 void* PlayerById(CUnit* unit, int id) {
     void* player = nullptr;
     if (ei::VCall<int>(unit->ManagerContext(), kContextClassId) == kWorldServerClassId)
-        player = WorldGetPlayerAt(unit->ManagerContext(), nullptr, id);
+        player = WorldGetPlayer(unit->ManagerContext(), nullptr, id);
     return player;
 }
 

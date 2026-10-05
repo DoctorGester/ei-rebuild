@@ -2,6 +2,7 @@
 #include "unit_record.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -47,7 +48,6 @@ __declspec(naked) void* Factory::CreateSpell(std::uint32_t, std::uint32_t) EI_OR
 Factory* TheFactory() { return *reinterpret_cast<Factory**>(0x007AFFB4); }
 std::uint32_t SpellOwner() { return *reinterpret_cast<const std::uint32_t*>(0x007AFFAC); }
 
-__declspec(naked) void* __cdecl memmove(void*, const void*, unsigned) EI_ORIGINAL(0x006E79A0)
 
 // FLD + FSTP of a float (a signalling NaN comes out quiet).
 __declspec(naked) std::uint32_t __cdecl FpuCopyBits(const void* /*value*/) {
@@ -144,7 +144,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     std::memcpy(controller + 0x24C, &b39, 2);
     std::memcpy(controller + 0x24E, &b39, 2);
     for (const auto& c : kControllerCopies2) SetDword(controller, c[1], Dword(r, c[0]));
-    memmove(controller + 0x270, r + field::kBytes54, 7);
+    GameMemmove(controller + 0x270, r + field::kBytes54, 7);
 
     // Seven model values scaled by the record's byte, each stored twice.
     for (std::size_t k = 0; k < 7; ++k) {
@@ -162,7 +162,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
         SetDword(controller, 0x2C0 + i * 8, v);
         SetDword(controller, 0x2C4 + i * 8, v);
     }
-    memmove(controller + 0x8A8, r + field::kBytesA4, 3);
+    GameMemmove(controller + 0x8A8, r + field::kBytesA4, 3);
 
     for (int i = 0; i < Count(r, field::kSpells); ++i) unit->AddSpell(factory->CreateSpell(Ids(r, field::kSpells)[i], SpellOwner()));
     AddItems(r, unit, factory);

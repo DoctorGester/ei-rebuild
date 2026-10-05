@@ -26,7 +26,6 @@ void __fastcall RegisterTradeHandler(SessionBase* self, void*, int channel, void
 namespace {
 
 // 004DA7F0: the growing byte buffer's constructor (net_coder.h, GameBuffer).
-__declspec(naked) void* __fastcall GameBufferConstruct(void* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
 // 00661050: the unit record builder's constructor (world.md).
 __declspec(naked) UnitRecordBuilder* __fastcall UnitRecordBuilderConstruct(UnitRecordBuilder* /*b*/) EI_ORIGINAL(0x00661050)
 // 0041F460: an empty STLport string (library).
@@ -69,7 +68,7 @@ ClientSession* ClientSession::Construct() {
     char allocator = 0;   // the lists' (empty) allocator argument
     SessionBase::Construct();
     host_ = NetAddress{};
-    GameBufferConstruct(&joinData_);
+    GrowingBufferConstruct(&joinData_);
     ListConstruct41F8B0(&servers_, nullptr, &allocator);
     ClientVectorConstruct(&queries_);
     ListConstruct41FB10(&waiting_, nullptr, &allocator);

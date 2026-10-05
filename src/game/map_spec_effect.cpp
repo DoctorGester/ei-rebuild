@@ -12,6 +12,7 @@
 #include <new>
 #include "originals_core.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 namespace mapspec {
 
@@ -69,10 +70,7 @@ constexpr std::uintptr_t kLightVtable = 0x0073C788;
 constexpr std::uintptr_t kSoundVtable = 0x0073C7B8;
 constexpr int kSlotApply = 7;
 
-__declspec(naked) void __fastcall StringArrayDestruct(StringArray*) EI_ORIGINAL(0x006FE958)
-__declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGINAL(0x005927C0)
-__declspec(naked) void __fastcall WorldRemoveEffect(void*, void*, int /*id*/) EI_ORIGINAL(0x0058E5D0)
 __declspec(naked) double __fastcall TerrainHeight(void*, void*, float /*x*/, float /*y*/, int /*zero*/) EI_ORIGINAL(0x006C8680)
 __declspec(naked) void __fastcall EffectRestart(void*) EI_ORIGINAL(0x00675CA0)
 // 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
@@ -429,7 +427,7 @@ void __fastcall SoundSpecApply(SoundSpec* self) {
         return;
     }
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1C, &b.position, 12);
-    if (self->effect.effect) WorldRemoveEffect(World(), nullptr, b.id);
+    if (self->effect.effect) WorldRemoveTimed(World(), nullptr, b.id);
     if (self->sounds.size > 0) MakeEffect(&self->effect);
     else self->effect.effect = nullptr;
 }

@@ -10,6 +10,7 @@
 #include "originals_gameplay.h"
 #include "originals_script.h"
 #include "originals_world.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -150,7 +151,6 @@ __declspec(naked) void* __fastcall SharedObjectDestruct(void*, void*, unsigned) 
 __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
 __declspec(naked) void __stdcall CountedRangeRelease(void*, int) EI_ORIGINAL(0x0059C890)
-__declspec(naked) void __fastcall StringArraySetSize(void*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
 __declspec(naked) void __fastcall PlayerClear(WorldPlayer*, void*) EI_ORIGINAL(0x00665200)
 // 0047B670. The object map's clear (every object id hash map; nodes freed).

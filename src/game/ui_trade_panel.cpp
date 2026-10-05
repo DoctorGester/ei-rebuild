@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "originals_engine.h"
 
 namespace {
 
@@ -33,9 +34,7 @@ struct TextGlue {
     void* Table();   // 00578E20
 };
 __declspec(naked) void* TextGlue::Table() EI_ORIGINAL(0x00578E20)
-__declspec(naked) int __fastcall TextHasKey(void*, void*, const char*) EI_ORIGINAL(0x004DEFC0)
 __declspec(naked) int __fastcall TextReadLine(void*, void*, mfc::CString*, int) EI_ORIGINAL(0x004DF8D0)
-__declspec(naked) int __fastcall TextGetString(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
 
 // vector<TradeRow> pieces (library): 0062A310 copy-constructs a row (thiscall, RET 4), 0062A7C0
 // destroys one (and frees it with flag 1; RET 4), 00629E60 the insert that reallocates (RET 0xC).
@@ -98,12 +97,12 @@ void Clear(TradeRows* rows) {
 int HasPerkText(void* table, const mfc::CString& name) {
     mfc::CString prefix(GameText(0x00792FC8));   // "perk "
     mfc::CString key = prefix + name;
-    return TextHasKey(table, nullptr, key);
+    return TextsOpenSection(table, nullptr, key);
 }
 int HasPerkText(void* table, const char* name) {
     mfc::CString prefix(GameText(0x00792FC8));
     mfc::CString key = prefix + name;
-    return TextHasKey(table, nullptr, key);
+    return TextsOpenSection(table, nullptr, key);
 }
 
 // A perk record's text key: its name (+4) without trailing level digits, plus "0".
@@ -159,7 +158,7 @@ void CTradePanel::BuildLists() {
 
     mfc::CString text;
     mfc::CString perkLevel;
-    TextGetString(table, nullptr, GameText(0x00793E70), &perkLevel);   // "perk_level"
+    TextsGetString(table, nullptr, GameText(0x00793E70), &perkLevel);   // "perk_level"
 
     // The perks held: the skill records come in groups of three levels; the group's level byte.
     for (unsigned group = 0; group < 0x6C; group += 3) {
@@ -396,11 +395,11 @@ void CTradePanel::Build() {
         mfc::CString text;
         void* titles = &textsVtable_;
         auto* size = reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(this) + 0x1AC);
-        TextGetString(table, nullptr, GameText(0x00793E58), &text);   // "skills"
+        TextsGetString(table, nullptr, GameText(0x00793E58), &text);   // "skills"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
-        TextGetString(table, nullptr, GameText(0x00793E50), &text);   // "perks"
+        TextsGetString(table, nullptr, GameText(0x00793E50), &text);   // "perks"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
-        TextGetString(table, nullptr, GameText(0x00793E44), &text);   // "perks_av"
+        TextsGetString(table, nullptr, GameText(0x00793E44), &text);   // "perks_av"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
 
         // One statistics record per party member (the vector emptied first; the records hold no

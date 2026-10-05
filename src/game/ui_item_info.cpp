@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "originals_engine.h"
 
 #pragma float_control(precise, on)
 
@@ -255,11 +256,11 @@ struct Texts {
     BOOL GetString(const char* name, mfc::CString* out); // 004E0020
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
-__declspec(naked) BOOL Texts::Open(const char*) EI_ORIGINAL(0x004DEFC0)
+BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 __declspec(naked) BOOL Texts::NextLine() EI_ORIGINAL(0x004DF510)
 __declspec(naked) BOOL Texts::ReadLine(mfc::CString*, BOOL) EI_ORIGINAL(0x004DF8D0)
 __declspec(naked) BOOL Texts::ReadToHash(mfc::CString*, BOOL) EI_ORIGINAL(0x004DFB80)
-__declspec(naked) BOOL Texts::GetString(const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
+BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 __declspec(naked) BOOL Texts::ItemTexts(CItem*, mfc::CString*, mfc::CString*, mfc::CString*) EI_ORIGINAL(0x004E0150)
 Texts* TextManager() { return *reinterpret_cast<Texts**>(0x007AF788); }
 

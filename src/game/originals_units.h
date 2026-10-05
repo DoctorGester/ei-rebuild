@@ -35,6 +35,8 @@ __declspec(naked) inline int __fastcall HoverHostileTo(CUnit*, void*, CUnit*) EI
 __declspec(naked) inline char* __fastcall UnitFindAnimation(CUnit*, void*, std::uint32_t, int) EI_ORIGINAL(0x005301B0)
 __declspec(naked) inline char* __fastcall UnitAnimationEntry(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530240)
 __declspec(naked) inline double __fastcall UnitSize(CUnit*) EI_ORIGINAL(0x00530560)
+// 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
+__declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
 __declspec(naked) inline void __fastcall UnitUpdateSizeClass(CUnit*) EI_ORIGINAL(0x00530570)
 __declspec(naked) inline void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 __declspec(naked) inline void __fastcall PlanReset(OrderPlan*) EI_ORIGINAL(0x00544FD0)

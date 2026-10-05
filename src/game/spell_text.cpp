@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_library.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -31,7 +32,6 @@ struct TextOps : mfc::CString {
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 
 // 004DBE40: splits `text` at `separator` into `out` (__fastcall, separator on the stack).
-__declspec(naked) void __fastcall Split(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
 // 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
@@ -74,7 +74,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
     Ops(inner).TrimLeft();
     Ops(inner).TrimRight('}');
     Ops(inner).TrimLeft();
-    Split(inner, &codes, ';');
+    StringSplit(inner, &codes, ';');
     text = text.Left(brace);
     Ops(text).TrimRight();
     Ops(text).TrimLeft();

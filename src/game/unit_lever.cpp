@@ -14,6 +14,7 @@
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_units.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -27,9 +28,8 @@ T& At(void* object, int offset) {
 struct RawString {
     void* words[3];
 };
-__declspec(naked) RawString* __fastcall StringFromChars(RawString*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
+static RawString* StringFromChars(RawString* s, void*, const char* text, const void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) void** __fastcall LeverRecordAt(void*, void*, const RawString*) EI_ORIGINAL(0x00464750)
-__declspec(naked) void __fastcall StringDestroy(RawString*) EI_ORIGINAL(0x0040C770)
 // The object's world [00455950]; the sector map's units in a radius [005C0BD0: position, list,
 // radius], Remove [005C1010], Add [005C0DF0]; the AI map's refresh [005B8B30 / 005B8B80], cell
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
@@ -77,7 +77,7 @@ void Lever::SetState(int state, float duration) {
         char allocator;
         StringFromChars(&key, nullptr, At<const char*>(this, 0xA4), &allocator);
         void* record = *LeverRecordAt(reinterpret_cast<void*>(0x0079C1AC), nullptr, &key);
-        StringDestroy(&key);
+        StringRepDestroy(&key);
         duration = record ? static_cast<float>(static_cast<std::int64_t>(At<std::uint32_t>(record, 0x1C))) : 10.0f;
     }
     int& current = At<int>(this, 0x238);

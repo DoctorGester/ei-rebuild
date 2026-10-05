@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -28,7 +29,6 @@ template <typename T> T Get(const void* base, int offset) {
 CTextManager* Texts() { return *reinterpret_cast<CTextManager* const*>(0x007AF788); }
 
 // 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
-__declspec(naked) int __fastcall OpenText(CTextManager*, void*, const char*) EI_ORIGINAL(0x004DEFC0)
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's name, description and kind.
 __declspec(naked) BOOL __fastcall ItemTexts(CTextManager*, void*, CEngineObject*, mfc::CString*, mfc::CString*,
                                             mfc::CString*) EI_ORIGINAL(0x004E0150)
@@ -113,7 +113,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // A weapon with a spell: the spell's name ("spell <name>").
         if (void* spell = weapon->spell_) {
             description = GameText(0x0078DDEC);   // "Unknown"
-            int found = OpenText(Texts(), nullptr,
+            int found = TextsOpenSection(Texts(), nullptr,
                                  mfc::operator+(mfc::CString(GameText(0x0078DE58)),   // "spell "
                                                 *reinterpret_cast<const mfc::CString*>(SpellPrototype(spell) + 4)));
             if (found) Texts()->ReadLine(&description, 1);
@@ -228,10 +228,10 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     mfc::CString hint;
     AddActionButton(this, nullptr, GameText(0x0079457C), GameText(0x00794558), 0);   // "skill0009"
     title = GameText(0x00793C60);   // "Science"
-    int found = OpenText(Texts(), nullptr, mfc::operator+(mfc::CString(GameText(0x00792FC8)), title));   // "perk "
+    int found = TextsOpenSection(Texts(), nullptr, mfc::operator+(mfc::CString(GameText(0x00792FC8)), title));   // "perk "
     if (found) Texts()->ReadLine(&tip, 1);
     title.Format(GameText(0x00793044), labels_[0], Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
-    if (OpenText(Texts(), nullptr, GameText(0x0079454C)) != 0) Texts()->ReadToHash(&hint, 1);   // "tip 10511"
+    if (TextsOpenSection(Texts(), nullptr, GameText(0x0079454C)) != 0) Texts()->ReadToHash(&hint, 1);   // "tip 10511"
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, GameText(0x00784340)), title), hint);   // "\n"
     regions_.data_[count_ - 1]->SetTipString(tip, 1, 0x1D);
 }

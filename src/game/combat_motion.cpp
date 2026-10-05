@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 #include <bit>
 #include <cstdint>
@@ -85,7 +86,6 @@ __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, co
 __declspec(naked) void* __fastcall CellListConstruct(void*, void*, int /*blockSize*/) EI_ORIGINAL(0x00556D10)
 __declspec(naked) void __fastcall CellListRemoveAll(void*) EI_ORIGINAL(0x00556D40)
 // The world server's timed objects (world_server.cpp).
-__declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINAL(0x0058E5D0)
 // The AI: 005D5E90 the brain's leader (unit_ai.cpp), 005D4F70 the brain's reset, 005AEA40 the
 // alarm's reset.
 __declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)

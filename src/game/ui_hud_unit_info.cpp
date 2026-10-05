@@ -42,12 +42,11 @@ constexpr int kLevelDifferenceLimit = 25;
 
 // The panel surface's text draw [005FDE20, Rebirth-patched: text, rectangle, 0, colour, 0, 1].
 // The text manager (007AF788): the text of a key [004E0020: key, out].
-__declspec(naked) int __fastcall GetText(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
 // CUnit [thiscall]: the move speed of a mode [0052FAF0] or the current one [0052FA20] (in ST0),
 // the prototype [00530930], the level [00532D40].
 __declspec(naked) double __fastcall MoveSpeedFor(void*, void*, int) EI_ORIGINAL(0x0052FAF0)
 __declspec(naked) double __fastcall MoveSpeed(void*) EI_ORIGINAL(0x0052FA20)
-__declspec(naked) char* __fastcall UnitPrototype(void*) EI_ORIGINAL(0x00530930)
+static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) int __fastcall UnitLevel(void*) EI_ORIGINAL(0x00532D40)
 // The world (007AF5B8): the time of day [0055FC50, ST0].
 __declspec(naked) double __fastcall WorldDayTime(void*) EI_ORIGINAL(0x0055FC50)
@@ -149,7 +148,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     std::uint8_t moveBonus = At<std::uint8_t>(stats, 0xF);
     if (moveBonus > 1) {
         panel.text.Format(kMoveKey, moveBonus - 1);
-        GetText(texts, nullptr, panel.text, &suffix);
+        TextsGetString(texts, nullptr, panel.text, &suffix);
     } else {
         suffix.Empty();
     }
@@ -172,7 +171,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.DrawLine();
     if (combat.damageType < 7) {
         panel.text.Format(kDamageKey, combat.damageType);
-        GetText(texts, nullptr, panel.text, &suffix);   // else the move text stays
+        TextsGetString(texts, nullptr, panel.text, &suffix);   // else the move text stays
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
@@ -204,7 +203,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
             } else {
                 suffix.Format(kWeaker, -difference);
             }
-            GetText(texts, nullptr, suffix, &suffix);
+            TextsGetString(texts, nullptr, suffix, &suffix);
             panel.text.Format(kTwoTexts, static_cast<const char*>(panel.labels[16]), static_cast<const char*>(suffix));
             panel.DrawLine();
         }
@@ -213,7 +212,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     }
 
     if (IsNetworkClientOriginal() && !outside) {
-        GetText(texts, nullptr, kCampExp, &suffix);
+        TextsGetString(texts, nullptr, kCampExp, &suffix);
         panel.text.Format(kValue, static_cast<const char*>(suffix), At<int>(stats, 8));
         panel.DrawLine();
     }

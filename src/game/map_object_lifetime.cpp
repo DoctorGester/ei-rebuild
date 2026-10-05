@@ -58,8 +58,6 @@ constexpr std::uint32_t kOne = 0x3F800000;
 // 0040CB00. Quaternion::SetIdentity.
 __declspec(naked) void* __fastcall SetIdentity(void*) EI_ORIGINAL(0x0040CB00)
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
-__declspec(naked) void __fastcall DestroyStringArray(void*) EI_ORIGINAL(0x006FE958)
-__declspec(naked) void __fastcall SetStringArraySize(void*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 // 00468C20 / 0047A200. Memory stream reset and constructor.
 __declspec(naked) void __fastcall ResetMemoryStream(void*) EI_ORIGINAL(0x00468C20)
 __declspec(naked) void __fastcall ConstructStream(void*) EI_ORIGINAL(0x0047A200)
@@ -171,7 +169,7 @@ void CObject3D::DestructBody() {
     SetVtable(this, kObject3DVtable);
     ReleaseParts(this);
     DestroyArray(reinterpret_cast<char*>(this) + 0x15C, kFrameArrayVtable);
-    DestroyStringArray(reinterpret_cast<char*>(this) + 0x110);
+    StringArrayDestruct(reinterpret_cast<char*>(this) + 0x110);
     if (CEngineObject* current = figure) {
         if (--current->refCount_ == 0 && current) ei::VCall<void>(current, 0, 1);
     }
@@ -378,9 +376,9 @@ void CMapObjectServer::DestructBody() {
     SetVtable(this, kServerCompanionVtable);
     ResetVitals(reinterpret_cast<char*>(this) + 0x20);
     char* names = reinterpret_cast<char*>(this) + 0x80;
-    SetStringArraySize(names, nullptr, 0, -1);
+    StringArraySetSize(names, nullptr, 0, -1);
     SetDword(this, 0x1C, 0);
-    DestroyStringArray(names);
+    StringArrayDestruct(names);
     At<mfc::CString>(this, 0x7C).~CString();
     At<mfc::CString>(this, 0x78).~CString();
     SetVtable(this, kCompanionBaseVtable);

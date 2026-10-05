@@ -7,6 +7,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -22,7 +23,7 @@ struct TextReader {
     int Split(console::CStringArray* words, int flag);         // 004DFCB0: the current line's words
     mfc::BOOL Close();                                         // 004DF020
 };
-__declspec(naked) mfc::BOOL TextReader::Open(const char*) EI_ORIGINAL(0x004DEFC0)
+mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 __declspec(naked) mfc::BOOL TextReader::NextLine(int) EI_ORIGINAL(0x004DF030)
 __declspec(naked) int TextReader::Split(console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
 __declspec(naked) mfc::BOOL TextReader::Close() EI_ORIGINAL(0x004DF020)

@@ -14,6 +14,7 @@
 #include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_gameplay.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -79,7 +80,6 @@ inline const char* GameString(std::uintptr_t address) { return reinterpret_cast<
 
 // The world server's timed objects (world_server.cpp; thiscall on the world).
 __declspec(naked) inline void __fastcall WorldAddTimed(void* /*world*/, void*, CEngineObject*) EI_ORIGINAL(0x0058E520)
-__declspec(naked) inline void __fastcall WorldRemoveTimed(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x0058E5D0)
 // Effect setters (world_effect*.cpp).
 __declspec(naked) inline void __fastcall EffectSetVelocity(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00675D50)
 __declspec(naked) inline void __fastcall ParticleSetAttachedTo(CEngineObject*, void*, int /*id*/) EI_ORIGINAL(0x00679280)

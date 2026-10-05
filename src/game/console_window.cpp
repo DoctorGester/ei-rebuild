@@ -3,6 +3,7 @@
 #include "console.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -27,7 +28,6 @@ __declspec(naked) void WindowAt::Show(bool) EI_ORIGINAL(0x005E3FD0)
 __declspec(naked) void WindowAt::Redraw() EI_ORIGINAL(0x005E4800)
 
 // 004DBE40: splits `text` at `separator` into `out`.
-__declspec(naked) void __fastcall Split(const char*, CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 WindowAt* At(ConsoleWindow* w) { return static_cast<WindowAt*>(w); }
 
@@ -77,7 +77,7 @@ EI_REPLACE_METHOD(0x005E3F90, ConsoleWindow::SetHistory);
 // back stays on the same lines. Keeps the last history_ lines.
 void ConsoleWindow::AddText(const char* text) {
     CStringArray pieces;
-    Split(text, &pieces, '\n');
+    StringSplit(text, &pieces, '\n');
     if (lines_.GetSize() != 0)
         lines_[lines_.GetSize() - 1] += *pieces.data_;   // the original reads piece 0 unchecked
     else

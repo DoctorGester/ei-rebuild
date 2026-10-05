@@ -30,7 +30,6 @@ void* const kCamera = reinterpret_cast<void*>(0x007AFEA5);        // the camera 
 void* const kNetwork = reinterpret_cast<void*>(0x007AFE20);
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
 
-__declspec(naked) void* __fastcall WorldGetPlayer(void*, void*, int) EI_ORIGINAL(0x00594180)
 // 005911C0: the world's experience award to a player (null: the multiplayer path).
 __declspec(naked) void __fastcall WorldAwardExperience(void*, void*, void* /*player*/, float) EI_ORIGINAL(0x005911C0)
 // 005942D0 (Loot: the player takes what the body holds) and 005935C0 (removes an object by id).
@@ -61,7 +60,7 @@ __declspec(naked) void __fastcall BrainSelect(void*, void*, void*, int) EI_ORIGI
 // mark changed (0050E9F0). Items: the prototype (006A0110), the weapon type (006A07F0).
 __declspec(naked) int __fastcall UnitAddWeapon(void*, void*, void*) EI_ORIGINAL(0x00531070)
 __declspec(naked) void* __fastcall UnitEquipArmour(void*, void*, void*) EI_ORIGINAL(0x00530730)
-__declspec(naked) char* __fastcall UnitPrototype(void*) EI_ORIGINAL(0x00530930)
+static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) char* __fastcall ItemPrototype(void*) EI_ORIGINAL(0x006A0110)
 __declspec(naked) int __fastcall ItemWeaponType(void*) EI_ORIGINAL(0x006A07F0)
 

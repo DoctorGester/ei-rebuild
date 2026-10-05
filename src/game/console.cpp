@@ -30,8 +30,8 @@ __declspec(naked) void Str::TrimLeft(char) EI_ORIGINAL(0x006FE1D3)
 __declspec(naked) void Str::TrimRight(char) EI_ORIGINAL(0x006FE0DD)
 
 CStringArray::CStringArray() { StringArrayConstruct(this); }
-__declspec(naked) CStringArray::~CStringArray() EI_ORIGINAL(0x006FE958)
-__declspec(naked) void CStringArray::SetSize(int, int) EI_ORIGINAL(0x006FE9B8)
+CStringArray::~CStringArray() { StringArrayDestruct(this); }
+void CStringArray::SetSize(int count, int growBy) { StringArraySetSize(this, nullptr, count, growBy); }
 __declspec(naked) void CStringArray::SetAtGrow(int, const mfc::CString&) EI_ORIGINAL(0x006FEBFA)
 __declspec(naked) void CStringArray::SetAtGrow(int, const char*) EI_ORIGINAL(0x006FEBCE)
 __declspec(naked) void CStringArray::RemoveAt(int, int) EI_ORIGINAL(0x006FED3C)

@@ -14,6 +14,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_script.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -36,8 +37,6 @@ constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
 // Growing buffers.
-__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer*) EI_ORIGINAL(0x004DA7F0)
-__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer*) EI_ORIGINAL(0x004DA910)
 __declspec(naked) void __fastcall GameBufferAssign(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/) EI_ORIGINAL(0x004DAA80)
 __declspec(naked) void __fastcall GameBufferGrow(GameBuffer*, void*, std::uint32_t) EI_ORIGINAL(0x004DA5C0)
 

@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,7 +30,6 @@ __declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const 
 // a key.
 __declspec(naked) BOOL __fastcall SpellTexts(void*, void*, CEngineObject*, mfc::CString*, mfc::CString*, mfc::CString*)
     EI_ORIGINAL(0x004E0150)
-__declspec(naked) BOOL __fastcall SpellTextString(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
 __declspec(naked) std::uint8_t* __fastcall SpellPrototypeOf(void*) EI_ORIGINAL(0x0068BA20)
 
@@ -84,7 +84,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
             line = GameText(0x0078DDEC);   // "Unknown"
             description.Format(GameText(0x00792F50), Get<int>(SpellPrototypeOf(data), 0x10));   // "school_%d"
-            SpellTextString(TextManager(), nullptr, description, &line);
+            TextsGetString(TextManager(), nullptr, description, &line);
             line = mfc::operator+(mfc::operator+(mfc::operator+(*reinterpret_cast<const mfc::CString*>(&labels[1]),
                                                                 GameText(0x0078DA40)),   // " "
                                                  line),

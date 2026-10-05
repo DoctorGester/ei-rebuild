@@ -7,6 +7,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -52,7 +53,6 @@ struct TextGlue {
     void* Table();   // 00578E20
 };
 __declspec(naked) void* TextGlue::Table() EI_ORIGINAL(0x00578E20)
-__declspec(naked) int __fastcall TextGetString(void*, void*, const char*, mfc::CString*) EI_ORIGINAL(0x004E0020)
 __declspec(naked) void __fastcall EndSession(void*) EI_ORIGINAL(0x0057ED00)
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
@@ -225,7 +225,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     case 0: {
         // Back to the main menu.
         mfc::CString text;
-        TextGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
+        TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
         ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
         uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
         EndSession(reinterpret_cast<void*>(0x007AFE20));

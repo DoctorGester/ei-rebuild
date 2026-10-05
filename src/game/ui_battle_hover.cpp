@@ -59,7 +59,7 @@ __declspec(naked) const char* __fastcall HoverExitZone(void*, void*, int) EI_ORI
 // Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
 // 00531920 the quick item (RET 4); 006A4230 an item's category.
-__declspec(naked) std::uint8_t* __fastcall HoverPrototype(CUnit*) EI_ORIGINAL(0x00530930)
+static std::uint8_t* HoverPrototype(CUnit* unit) { return static_cast<std::uint8_t*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) int __fastcall HoverCanCast(CUnit*, void*, int, const float*) EI_ORIGINAL(0x0052F820)
 __declspec(naked) int __fastcall HoverCanUseQuick(CUnit*, void*, int, const float*) EI_ORIGINAL(0x0052F8B0)
 __declspec(naked) void* __fastcall HoverQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)

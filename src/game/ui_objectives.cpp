@@ -24,6 +24,7 @@
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -105,7 +106,7 @@ struct UiTexts {
     // 004DEFC0 (not rewritten). Finds text `key`; non-zero when found (the cursor at its start).
     int Find(const char* key);
 };
-__declspec(naked) int UiTexts::Find(const char*) EI_ORIGINAL(0x004DEFC0)
+int UiTexts::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 int FindText(const char* key) { return reinterpret_cast<UiTexts*>(Texts())->Find(key); }
 
 // The quest the window last selected (a global CString).
@@ -127,7 +128,6 @@ __declspec(naked) void __fastcall ConstructTable(NamedFloatTable*, void*, int /*
 // 00460BA0 (STLport __stl_hash_string, not rewritten).
 __declspec(naked) std::uint32_t __fastcall HashName(const char*) EI_ORIGINAL(0x00460BA0)
 // 004DBE40 (not rewritten): splits `text` at `separator` into `out`.
-__declspec(naked) void __fastcall Split(const char*, CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 // A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
 class VariableTable {
@@ -471,7 +471,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         StringVector found = {nullptr, nullptr, nullptr};
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             if (node->value == 0.0f || x87::IsNaN(node->value)) continue;
-            Split(node->key, &parts, '.');
+            StringSplit(node->key, &parts, '.');
             if (parts.GetSize() == 3) PushBack(&found, parts[2]);
         }
         shownQuest_ = -1;
@@ -794,7 +794,7 @@ void CObjectivesWindow::Build() {
         auto* zones = reinterpret_cast<StringVector*>(&zonesBegin_);
         const char* interfaceQuest = *reinterpret_cast<char* const*>(reinterpret_cast<std::uint8_t*>(interface_) + 0xAC);
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            Split(node->key, &parts, '.');
+            StringSplit(node->key, &parts, '.');
             if (parts.GetSize() != 3) continue;
             if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(interfaceQuest),
                                  reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts[2]))) == 0)

@@ -27,7 +27,6 @@ TextString& Ops(mfc::CString& s) { return static_cast<TextString&>(s); }
 const TextString& Ops(const mfc::CString& s) { return static_cast<const TextString&>(s); }
 
 // 004DBE40 (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
-__declspec(naked) void __fastcall SplitText(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBE40)
 
 // The functions of this file and 004E0000 / 004DF4E0, called through their addresses where the
 // original calls them (their verify wrappers run).
@@ -268,7 +267,7 @@ BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
         }
         return 0;
     }
-    SplitText(key, &keyWords, ' ');
+    StringSplit(key, &keyWords, ' ');
     if (keyWords.size_ <= 1) {
         // One word: the line whose first word is the key.
         while (PeekWordCall(self, nullptr, &word)) {
