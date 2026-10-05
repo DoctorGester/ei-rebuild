@@ -7,8 +7,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R6 merged 2026-10-05 (movies, software cursor); clean-code fix for bink_video.cpp / ui_cursor_frame.cpp in progress.
-- R7 Holders with no DirectDraw surface at all (after R2/R3).
+- R7 (taken 2026-10-05) Holders with no DirectDraw surface at all (after R2/R3).
 - R8 Device setup and texture management (last).
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
