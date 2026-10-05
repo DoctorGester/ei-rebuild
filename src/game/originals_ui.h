@@ -52,3 +52,15 @@ __declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*windo
 // 00578D10: sets the world server's flag through the game state at 007AFEA4. A free function: one stack argument,
 // RET 4, ECX is not read (the callers' member `this` is the state but is ignored); EAX is not a result.
 __declspec(naked) inline void __stdcall SetServerFlagOriginal(int /*flag*/) EI_ORIGINAL(0x00578D10)
+// The cursor object 007C7BD8: 005E5270 shows / hides it (thiscall, RET 4: +0x0C = `show` under its lock +0xA0);
+// 005E65F0 / 005E6610 enter / leave its lock +0xA0 in mode 2 (ECX, plain RET).
+__declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/) EI_ORIGINAL(0x005E5270)
+__declspec(naked) inline void __fastcall CursorLockOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E65F0)
+__declspec(naked) inline void __fastcall CursorUnlockOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E6610)
+// 006B71C0: the loading screen's step (thiscall on [007AF784], RET 4).
+__declspec(naked) inline void __fastcall LoadingStepOriginal(void* /*loading*/, void*, int /*step*/) EI_ORIGINAL(0x006B71C0)
+// 005E6630 (rewritten as CursorSaveBackground, ui_cursor_frame.cpp; called through its address so the wrapper
+// runs): the cursor saves the screen under its drawn rectangle into its background surface, from the primary
+// (`fromPrimary`) or the render target (thiscall, RET 4).
+__declspec(naked) inline void __fastcall CursorSaveBackgroundOriginal(void* /*cursor*/, void*, char /*fromPrimary*/)
+    EI_ORIGINAL(0x005E6630)

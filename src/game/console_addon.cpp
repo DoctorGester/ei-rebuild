@@ -35,8 +35,6 @@ namespace {
 // 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded).
 __declspec(naked) void __fastcall ScriptsRun(void*) EI_ORIGINAL(0x004BF000)
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
-// 005E5270 (on the renderer 007C7BD8): shows or hides the mouse cursor.
-__declspec(naked) void __fastcall RendererShowCursor(void*, void*, int) EI_ORIGINAL(0x005E5270)
 // 006FDC12. CString::FormatV(format, arguments).
 struct FormatVAt : mfc::CString {
     void FormatV(const char* format, va_list arguments);
@@ -184,7 +182,7 @@ void __fastcall NoGui(CStringArray* args) {
     g_guiShown = mode == 0;
     g_applyGui = true;
     SayFormat("GUI: %s, cursor: %s", g_guiShown ? "show" : "hide", g_cursorShown ? "show" : "hide");
-    RendererShowCursor(kRenderer, nullptr, g_cursorShown ? 1 : 0);
+    CursorShowOriginal(kRenderer, nullptr, g_cursorShown ? 1 : 0);
 }
 
 void Register(CommandMap* map, const char* name, CommandHandler handler) {

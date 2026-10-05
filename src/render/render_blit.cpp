@@ -269,6 +269,15 @@ namespace {
 void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to);
 } // namespace
 
+void Fill(const Rect& to, std::uint32_t colour) {
+    if (!Active() || !Started() || to.right <= to.left || to.bottom <= to.top) return;
+    FpuGuard fpu;
+    // One texel stretched over the rectangle (D3DCOLOR is B, G, R, A in memory).
+    std::vector<std::uint8_t> rgba{static_cast<std::uint8_t>(colour >> 16), static_cast<std::uint8_t>(colour >> 8),
+                                   static_cast<std::uint8_t>(colour), 255};
+    CursorBlit(rgba, 1, 1, to);
+}
+
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
     if (!imageHolder || !mask || !Active() || !Started()) return;
     auto* dd = *reinterpret_cast<IDirectDrawSurface7* const*>(static_cast<const char*>(imageHolder) + 0x10);

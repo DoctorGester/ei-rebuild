@@ -1,0 +1,24 @@
+# render_movie in the switch-over ("render new,present"; ticket R6): the movie players outside the
+# frame fill no DirectDraw surface and draw nothing to the primary; each movie frame is a frame of
+# the new renderer (the movie's texture, the black fill) shown by the old present (004EF610). The
+# cursor thread (005E5690) and the background saves (005E6630) draw nothing either; the cursor is
+# in the new frames (005E54A0 -> render::Cursor). Compare after_movie with render_movie's:
+#   python tools\compare_frames.py <render_movie run>\frames\after_movie.bmp <this run>\frames\after_movie.bmp
+# (not deterministic: expect small differences).
+render new,present
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @PlayMovie("crdtfin.bik")
+wait 1000
+move 400 60
+wait 1000
+freeze
+capture after_movie
+unfreeze
+report
+quit
