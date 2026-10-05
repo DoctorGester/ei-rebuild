@@ -144,10 +144,7 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
 }
 EI_REPLACE_METHOD(0x004377D0, SessionBase::AddHandler);
 
-void SessionBase::AddHandlerFor(std::size_t size, Message* (__fastcall* construct)(Message*), int channel,
-                                void* handler) {
-    auto* memory = static_cast<Message*>(NewRefObject(size));
-    Message* prototype = memory ? construct(memory) : nullptr;
+void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, void* handler) {
     RefPtr ref;
     RefPtrShareReturn(&ref, nullptr, prototype);
     int type = types_.TypeOf(reinterpret_cast<const std::uint32_t*>(ref.ptr));

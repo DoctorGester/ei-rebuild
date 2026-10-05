@@ -3,7 +3,7 @@
 // docs/notes/unmapped_410_470.md ("Seventh round").
 #pragma float_control(precise, on)
 
-#include "net_classes.h"
+#include "net_messages.h"
 #include "core_refcount.h"
 
 #include "lib/mfc.h"
@@ -91,16 +91,19 @@ void ClientSession::ApplyAwards() {
     if (!player) return;
     for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;
          node = static_cast<void**>(node[0])) {
-        auto* award = static_cast<std::uint8_t*>(node[2]);
-        const char* name = At<const char*>(award, 0x18);
-        switch (At<std::uint32_t>(award, 0x10)) {
-        case 0:
-            AwardExperience(World(), nullptr, nullptr, At<std::uint32_t>(award, 0x14));
+        auto* award = static_cast<AwardMessage*>(node[2]);
+        const char* name = award->text_.start;
+        switch (award->kind_) {
+        case 0: {
+            std::uint32_t bits;
+            std::memcpy(&bits, &award->value_, 4);
+            AwardExperience(World(), nullptr, nullptr, bits);
             break;
+        }
         case 1: {
             ObjectList none;
             InitList(none, kPtrListVtable);
-            At<std::int32_t>(player, kPlayerGold) += GameFtol(At<float>(award, 0x14));
+            At<std::int32_t>(player, kPlayerGold) += GameFtol(award->value_);
             PlayerGiveItems(player, nullptr, &none, 0);
             none.vtable = reinterpret_cast<void*>(kPtrListVtable);
             PtrListRemoveAll(&none);
@@ -158,7 +161,7 @@ void ClientSession::ApplyAwards() {
         node = static_cast<void**>(node[0]);
         if (auto* award = static_cast<CRefObject*>(current[2])) {
             --award->refs_;
-            if (award->refs_ == 0) ei::VCall<void>(award, 0, 1);
+            if (award->refs_ == 0) delete award;
         }
         if (current) {
             current[0] = NodeFreeList();

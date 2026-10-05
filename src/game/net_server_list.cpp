@@ -1,7 +1,7 @@
 // The server list reply (0041D600): a compressed run of {address, GameInfoRecord} turned into the
 // client base's server entries. See net_classes.h and docs/notes/unmapped_410_470.md
 // ("Seventh round").
-#include "net_classes.h"
+#include "net_messages.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -26,9 +26,8 @@ __declspec(naked) void __fastcall CoderConstruct(void* /*coder*/) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall CoderDecompress(void* /*coder*/, void*, GameBuffer* /*in*/, GameBuffer* /*out*/) EI_ORIGINAL(0x00430960)
 __declspec(naked) std::uint32_t __fastcall CursorEnd(BufferCursor* /*cursor*/) EI_ORIGINAL(0x0041D930)
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
-__declspec(naked) void __fastcall ServerEntryConstructBase(void* /*entry*/) EI_ORIGINAL(0x004413E0)
-__declspec(naked) void __fastcall ClientAddServer(void* /*client*/, void*, void* /*entry*/) EI_ORIGINAL(0x004428A0)
-constexpr std::uintptr_t kServerEntryVtable = 0x0073BB28;
+__declspec(naked) void __fastcall ServerEntryConstructBase(ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)
+__declspec(naked) void __fastcall ClientAddServer(void* /*client*/, void*, ServerEntry* /*entry*/) EI_ORIGINAL(0x004428A0)
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::size_t kCoderSize = 0x2828;
 
@@ -48,8 +47,8 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 } // namespace
 
 // 0041D600: reads a server list reply from `in` (rewound): its size, then the LZ-compressed list.
-// Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry (vtable 0073BB28)
-// with the record's player counts, two flag bytes and texts, added to the client. A wrong size or
+// Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry with the record's
+// player counts, kind, password flag and texts, added to the client. A wrong size or
 // a short record ends the reading (the entry being filled is not added).
 void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
     alignas(4) std::uint8_t recordBytes[sizeof(GameInfoRecord)];
@@ -78,35 +77,28 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
                 complete = true;
                 break;
             }
-            auto* entry = static_cast<std::uint8_t*>(gamecrt::operator_new(0x48));
-            std::uint32_t zero = 0;
-            std::memcpy(entry + 4, &zero, 4);
+            auto* entry = NewMessageMemory<ServerEntry>();
             if (entry) {
                 ServerEntryConstructBase(entry);
-                auto* name = reinterpret_cast<StringRep*>(entry + 0x28);
-                auto* description = reinterpret_cast<StringRep*>(entry + 0x38);
-                StringConstruct(name);
-                StringConstruct(description);
-                std::uintptr_t vtable = kServerEntryVtable;
-                std::memcpy(entry, &vtable, 4);
-                StringAssignText(name, nullptr, reinterpret_cast<const char*>(kEmptyText));
-                std::uint32_t four = 4;
-                std::memcpy(entry + 0x34, &four, 4);
-                StringAssignText(description, nullptr, reinterpret_cast<const char*>(kEmptyText));
-                entry[0x44] = 0;
-                entry[0x45] = 0;
-                entry[0x46] = 0;
+                StringConstruct(&entry->name_);
+                StringConstruct(&entry->description_);
+                ei::SetVtable(entry, ServerEntry::kVtableAddress);
+                StringAssignText(&entry->name_, nullptr, reinterpret_cast<const char*>(kEmptyText));
+                entry->kind_ = 4;
+                StringAssignText(&entry->description_, nullptr, reinterpret_cast<const char*>(kEmptyText));
+                entry->players_ = 0;
+                entry->maxPlayers_ = 0;
+                entry->password_ = 0;
             }
-            ReadBytes(&buffer, entry + 8, 0x10);
+            ReadBytes(&buffer, &entry->address_, 0x10);
             if (!record->Read(&buffer)) break;
-            std::uint32_t kind = record->unknown_1A;
-            std::memcpy(entry + 0x34, &kind, 4);
-            entry[0x46] = record->unknown_1B;
-            entry[0x45] = record->maxPlayers;
-            entry[0x44] = record->players;
-            auto* name = reinterpret_cast<StringRep*>(entry + 0x28);
+            entry->kind_ = record->unknown_1A;
+            entry->password_ = record->unknown_1B;
+            entry->maxPlayers_ = record->maxPlayers;
+            entry->players_ = record->players;
+            StringRep* name = &entry->name_;
             if (&record->name != name) StringAssign(name, nullptr, record->name.start, record->name.finish, entry);
-            auto* description = reinterpret_cast<StringRep*>(entry + 0x38);
+            StringRep* description = &entry->description_;
             if (&record->description != description)
                 StringAssign(description, nullptr, record->description.start, record->description.finish, entry);
             ClientAddServer(client, nullptr, entry);

@@ -6,13 +6,13 @@
 //  - ClientApplyParty: ours only (it creates objects and fills a party).
 #include "net_verify.h"
 
-#include "../../src/game/net_classes.h"
+#include "../../src/game/net_messages.h"
 #include "../../src/game/core_refcount.h"
 
 #include <cstring>
 
 namespace net {
-RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, Message* message, std::uint32_t unused);
+RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessage* message, std::uint32_t unused);
 void __fastcall ClientPublishParty(ClientSession* self);
 void* __fastcall ClientFindParty(ClientSession* self);
 void __fastcall ClientApplyParty(ClientSession* self);
@@ -23,8 +23,8 @@ namespace {
 void* s_unused;
 
 // 00429FC0: PUSH ECX, PUSH EBX, PUSH EBP (1 each), MOV EBP,ECX (2).
-RefPtr*(__fastcall* s_find)(RefPtr*, RefPtr*, net::Message*, std::uint32_t);
-RefPtr* __fastcall FindVerify(RefPtr* first, RefPtr* last, net::Message* message, std::uint32_t unused) {
+RefPtr*(__fastcall* s_find)(RefPtr*, RefPtr*, net::PartyMemberMessage*, std::uint32_t);
+RefPtr* __fastcall FindVerify(RefPtr* first, RefPtr* last, net::PartyMemberMessage* message, std::uint32_t unused) {
     RefPtr* expected = s_find(first, last, message, unused);
     RefPtr* actual = net::FindSameMessage(first, last, message, unused);
     ei::verify::Check("FindSameMessage", expected, actual, "");
@@ -33,7 +33,7 @@ RefPtr* __fastcall FindVerify(RefPtr* first, RefPtr* last, net::Message* message
 
 void __fastcall PublishPartyVerify(net::ClientSession* self) {
     net::ClientPublishParty(self);
-    auto* state = reinterpret_cast<const std::uint8_t*>(self->party_.ptr);
+    auto* state = static_cast<const net::PartyMessage*>(self->party_.ptr);
     if (!state) {
         ei::verify::Check("ClientPublishParty", true, true, "");
         return;
@@ -41,12 +41,8 @@ void __fastcall PublishPartyVerify(net::ClientSession* self) {
     const std::uint8_t* base = reinterpret_cast<const std::uint8_t*>(self);
     std::int32_t members;
     std::memcpy(&members, base + 0x2664, 4);
-    RefPtr* start;
-    RefPtr* finish;
-    std::memcpy(&start, state + 0xC, 4);
-    std::memcpy(&finish, state + 0x10, 4);
-    std::int32_t messages = static_cast<std::int32_t>(finish - start);
-    ei::verify::Check("ClientPublishParty", true, messages == (members > 0 ? members : 0) && state[0x1C] == 0,
+    std::int32_t messages = static_cast<std::int32_t>(state->members_.finish - state->members_.start);
+    ei::verify::Check("ClientPublishParty", true, messages == (members > 0 ? members : 0) && state->accepted_ == 0,
                       "members %d, messages %d", members, messages);
 }
 

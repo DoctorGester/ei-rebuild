@@ -1,7 +1,7 @@
 // The game server's tick (004182E0, slot 14) and a player state query (00417E40, called by the
 // file chunk sender at 00479EF4). Float maths in plain C++ (rewrite-guide rule 7). See
 // net_classes.h and docs/notes/unmapped_410_470.md ("Eighth round").
-#include "net_classes.h"
+#include "net_messages.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -27,10 +27,6 @@ constexpr std::uintptr_t kAnnouncePeriod = 0x0073BB20;   // seconds between anno
 constexpr std::uintptr_t kMasterHost = 0x0079BED8;       // char*: the master server's host name
 constexpr std::uintptr_t kEmptyText = 0x0079B298;
 
-template <typename T>
-T& F(void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 float GameFloat(std::uintptr_t address) {
     float value;
     std::memcpy(&value, reinterpret_cast<const void*>(address), sizeof(value));
@@ -48,8 +44,9 @@ void CountDown(void*& list, Erase erase, float dt) {
     while (node != list) {
         void** current = node;
         node = static_cast<void**>(node[0]);
-        float left = F<float>(current, 8) - dt;
-        F<float>(current, 8) = left;
+        float& seconds = *reinterpret_cast<float*>(&current[2]);
+        float left = seconds - dt;
+        seconds = left;
         if (!(left >= GameFloat(kZero))) {
             void* next;
             erase(&list, nullptr, &next, current);
@@ -82,18 +79,18 @@ void __fastcall ServerTickHook(ServerSession* self, void*, double dt) { self->Se
 } // namespace
 EI_REPLACE(0x004182E0, ServerTickHook);
 
-// 00417E40: whether the player bound to `connection` (its first binding) is in state 3 (its +0x24).
+// 00417E40: whether the player bound to `connection` (its first binding) is in state 3.
 // False for a dead connection, binding or player.
 bool ServerSession::PlayerStateIs3(void* connection) {
     if (!Live(connection)) return false;
     void** sentinel = static_cast<void**>(bindings_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
-        if (F<void*>(node[2], 0x10) != connection) continue;
-        void* binding = node[2];
+        auto* binding = static_cast<BindingMessage*>(node[2]);
+        if (binding->ConnectionRef().ptr != connection) continue;
         if (!Live(binding)) return false;
-        void* player = F<void*>(binding, 0xC);
+        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
         if (!Live(player)) return false;
-        return F<std::uint32_t>(player, 0x24) == 3;
+        return player->state_ == 3;
     }
     return false;
 }

@@ -3,7 +3,7 @@
 // use (004263F0). See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #pragma float_control(precise, on)
 
-#include "net_classes.h"
+#include "net_messages.h"
 #include "net_connection.h"
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -29,7 +29,7 @@ __declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, s
 __declspec(naked) char* __fastcall CopyTrivial(const char* /*first*/, const char* /*last*/, char* /*result*/) EI_ORIGINAL(0x004193D0)
 __declspec(naked) void __fastcall StringErase(StringRep* /*s*/, void*, char* /*first*/, char* /*last*/) EI_ORIGINAL(0x0040B3C0)
 __declspec(naked) void __fastcall StringAppend(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042AFB0)
-__declspec(naked) void __fastcall MessageStringConstruct(void* /*string*/) EI_ORIGINAL(0x0041F460)
+__declspec(naked) void __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219E0)
 __declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
 __declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
@@ -57,19 +57,9 @@ constexpr std::uintptr_t kMapSuffix = 0x00783D70;      // "_1"
 constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
 constexpr std::uintptr_t kEmptyText = 0x0079B298;      // ""
 
-
-constexpr std::uintptr_t kAwardVtable = 0x0073BD48;
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
 const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
-void Put32(void* p, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &v, 4); }
-template <typename T>
-T* GetPtr(const void* p, std::size_t offset) {
-    T* v;
-    std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, 4);
-    return v;
-}
-void SetVtable(void* p, std::uintptr_t v) { std::memcpy(p, &v, 4); }
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
 // RefPtr::Destroy as the callers inline it: the release is not null-checked after the shutdown.
@@ -106,29 +96,27 @@ RefPtr* __fastcall RefPtrCopyConstruct(RefPtr* self, void*, const RefPtr* other)
 EI_REPLACE(0x004263F0, RefPtrCopyConstruct);
 EI_REPLACE(0x004250A0, RefPtrCopyConstruct);   // byte-identical copy
 
-// 00419D90: queues an award message (vtable 0073BD48, 0x24 bytes: +0xC the connection (counted),
-// +0x10 kind, +0x14 value, +0x18 text) on the pending awards (+0x25B4) with a 60 second delay.
-// `text` is the caller's string, destroyed here.
+// 00419D90: queues an award message for `connection` on the pending awards (+0x25B4) with a 60
+// second delay. `text` is the caller's string, destroyed here.
 void ServerSession::QueueAward(CRefObject* connection, int kind, float value, StringRep text) {
-    auto* award = static_cast<std::uint8_t*>(gamecrt::operator_new(0x24));
-    Put32(award, 4, 0);
+    auto* award = NewMessageMemory<AwardMessage>();
     if (award) {
         RefValueConstructBase(award);
-        SetVtable(award, kMessageVtable);
-        Put32(award, 8, 1);
-        Put32(award, 0xC, 0);
-        MessageStringConstruct(award + 0x18);
-        SetVtable(award, kAwardVtable);
+        ei::SetVtable(award, kMessageVtable);
+        award->version_ = 1;
+        award->connection_.ptr = nullptr;
+        MessageStringConstruct(&award->text_);
+        ei::SetVtable(award, AwardMessage::kVtableAddress);
     }
-    CRefObject* previous = GetPtr<CRefObject>(award, 0xC);
-    std::memcpy(award + 0xC, &connection, 4);
+    CRefObject* previous = award->connection_.ptr;
+    award->connection_.ptr = connection;
     if (connection) ++connection->refs_;
     if (previous) previous->Release();
-    Put32(award, 0x10, static_cast<std::uint32_t>(kind));
-    std::memcpy(award + 0x14, &value, 4);
+    award->kind_ = static_cast<std::uint32_t>(kind);
+    std::memcpy(&award->value_, &value, 4);
 
     // The text, assigned in place (string::operator= inlined).
-    auto* to = reinterpret_cast<StringRep*>(award + 0x18);
+    StringRep* to = &award->text_;
     const char* first = text.start;
     const char* last = text.finish;
     char* d = to->start;
@@ -150,7 +138,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
     }
 
     RefPtr shared;
-    shared.Share(reinterpret_cast<CRefObject*>(award));
+    shared.Share(award);
     struct {
         std::uint32_t delay;
         RefPtr award;
@@ -171,12 +159,12 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
     void** node = static_cast<void**>(sentinel[0]);
     for (;;) {
         if (node == sentinel) return;
-        auto* binding = static_cast<std::uint8_t*>(node[2]);
-        auto* player = GetPtr<CRefObject>(binding, 0xC);
-        if (Live(player) && reinterpret_cast<std::uint8_t*>(player)[0x28]) break;
+        auto* binding = static_cast<BindingMessage*>(node[2]);
+        auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
+        if (Live(player) && player->host_) break;
         node = static_cast<void**>(node[0]);
     }
-    auto* connection = GetPtr<CRefObject>(node[2], 0x10);
+    CRefObject* connection = static_cast<BindingMessage*>(node[2])->ConnectionRef().ptr;
     if (!Live(connection)) return;
 
     char** const* items = reinterpret_cast<char** const*>(entry + 0x14);   // start, finish
@@ -296,8 +284,7 @@ void ServerSession::LeaveZone() {
         CStringDestroy(&title);
 
         StringRep key;
-        StringPlusText(&key, reinterpret_cast<const StringRep*>(reinterpret_cast<std::uint8_t*>(holder->ptr) + 0xC),
-                       Text(kMapSuffix));
+        StringPlusText(&key, &static_cast<MapMessage*>(holder->ptr)->text_, Text(kMapSuffix));
         const char* keyText = key.start;
         StringRep lookup;
         std::uint8_t allocator = 0;

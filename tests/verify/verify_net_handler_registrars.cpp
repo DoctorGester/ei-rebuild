@@ -3,7 +3,7 @@
 // with `handler` (channels outside 0..2 add nothing).
 #include "net_verify.h"
 
-#include "../../src/game/net_classes.h"
+#include "../../src/game/net_messages.h"
 
 #include <cstdint>
 
@@ -39,15 +39,15 @@ void Run(const char* name, Register fn, std::uint32_t vtable, net::SessionBase* 
     void __fastcall fn##Verify(net::SessionBase* self, void*, int channel, void* handler) {                \
         Run(#fn, net::fn, vtable, self, channel, handler);                                                 \
     }
-EI_REGISTER_VERIFY(RegisterRequestHandler, 0x0073BC58)
-EI_REGISTER_VERIFY(RegisterPartyHandler, 0x0073BDD0)
-EI_REGISTER_VERIFY(RegisterMemberHandler, 0x0073BD78)
-EI_REGISTER_VERIFY(RegisterMapHandler, 0x0073BD00)
-EI_REGISTER_VERIFY(RegisterVariableHandler, 0x0073BCE8)
-EI_REGISTER_VERIFY(RegisterFileHandler, 0x0073BD18)
-EI_REGISTER_VERIFY(RegisterChunkHandler, 0x0073BD30)
-EI_REGISTER_VERIFY(RegisterAwardHandler, 0x0073BD48)
-EI_REGISTER_VERIFY(RegisterTradeHandler, 0x0073BD60)
+EI_REGISTER_VERIFY(RegisterRequestHandler, net::FileRequestMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterPartyHandler, net::PartyMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterMemberHandler, net::PartyMemberMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterMapHandler, net::MapMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterVariableHandler, net::VariableMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterFileHandler, net::FileMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterChunkHandler, net::FileChunkMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterAwardHandler, net::AwardMessage::kVtableAddress)
+EI_REGISTER_VERIFY(RegisterTradeHandler, net::TradeMessage::kVtableAddress)
 #undef EI_REGISTER_VERIFY
 } // namespace
 

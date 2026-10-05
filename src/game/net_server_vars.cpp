@@ -1,9 +1,9 @@
 // The game server's script variables (+0x25B0): named floats the script reads and writes in a
-// network game (00419570 .. 00419940), replicated to the clients as 0073BCE8 objects. See
-// net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
+// network game (00419570 .. 00419940), replicated to the clients as VariableMessages. See
+// net_messages.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #pragma float_control(precise, on)
 
-#include "net_classes.h"
+#include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 
@@ -27,25 +27,12 @@ __declspec(naked) void** __fastcall VariablesInsert(void* /*list*/, void*, void*
 __declspec(naked) void** __fastcall VariablesErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00420290)
 __declspec(naked) RefPtr* __fastcall VariableRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427FD0)
 
-constexpr std::uintptr_t kVariableVtable = 0x0073BCE8;
-
-// A script variable (0x20 bytes).
-struct ScriptVariable {
-    void* vtable;
-    std::uint32_t refHeader;   // +0x04
-    std::uint32_t version;     // +0x08 1 when made, bumped on every change
-    StringRep name;            // +0x0C
-    float value;               // +0x18
-    std::uint32_t serial;      // +0x1C from 0079B608
-};
-static_assert(sizeof(ScriptVariable) == 0x20);
-
 std::uint32_t& VariableCounter() { return *reinterpret_cast<std::uint32_t*>(0x0079B608); }
 float GameFloat(std::uintptr_t a) { return *reinterpret_cast<const volatile float*>(a); }
 // FCOMP then TEST AH,0x40 (C3): equal, or unordered.
 bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
 
-ScriptVariable* VariableAt(void** node) { return static_cast<ScriptVariable*>(node[2]); }
+VariableMessage* VariableAt(void** node) { return static_cast<VariableMessage*>(node[2]); }
 
 // The search the original inlines in each function: the first node whose variable's name has the
 // same bytes as `name`, else the sentinel.
@@ -53,7 +40,7 @@ void** FindNode(void** sentinel, const StringRep* name) {
     const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
     void** node = static_cast<void**>(sentinel[0]);
     for (; node != sentinel; node = static_cast<void**>(node[0])) {
-        const StringRep& other = VariableAt(node)->name;
+        const StringRep& other = VariableAt(node)->name_;
         if (static_cast<std::size_t>(other.finish - other.start) == length && std::memcmp(other.start, name->start, length) == 0)
             break;
     }
@@ -78,7 +65,7 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
     void* variables = &variables_;
     void** node = static_cast<void**>(static_cast<void**>(variables_)[0]);
     while (node != variables_) {
-        if (StringEquals(&VariableAt(node)->name, name)) break;
+        if (StringEquals(&VariableAt(node)->name_, name)) break;
         node = static_cast<void**>(node[0]);
     }
     if (node != variables_) {
@@ -86,16 +73,13 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
         return out;
     }
 
-    auto* variable = static_cast<ScriptVariable*>(gamecrt::operator_new(sizeof(ScriptVariable)));
-    variable->refHeader = 0;
+    auto* variable = NewMessageMemory<VariableMessage>();
     if (variable) {
         RefValueConstructBase(variable);
-        std::uintptr_t vtable = kMessageVtable;
-        std::memcpy(variable, &vtable, 4);
-        variable->version = 1;
-        StringConstruct(&variable->name);
-        vtable = kVariableVtable;
-        std::memcpy(variable, &vtable, 4);
+        ei::SetVtable(variable, kMessageVtable);
+        variable->version_ = 1;
+        StringConstruct(&variable->name_);
+        ei::SetVtable(variable, VariableMessage::kVtableAddress);
     }
     RefPtr ref;
     const RefPtr* value = VariableRefFromRaw(&ref, variable);
@@ -106,7 +90,7 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
     void** first = static_cast<void**>(static_cast<void**>(variables_)[0]);
 
     // The name, assigned in place (string::operator= inlined).
-    StringRep* to = &VariableAt(first)->name;
+    StringRep* to = &VariableAt(first)->name_;
     if (name != to) {
         const char* from = name->start;
         const char* last = name->finish;
@@ -135,11 +119,11 @@ void ServerSession::SetVariable(const StringRep* name, float value) {
     if (!EqualOrUnordered(value, GameFloat(0x0073B858))) {
         void* found;
         FindOrAddVariable(&found, name);
-        ScriptVariable* variable = VariableAt(static_cast<void**>(found));
-        std::memcpy(&variable->value, &value, 4);
-        variable->serial = VariableCounter();
+        VariableMessage* variable = VariableAt(static_cast<void**>(found));
+        std::memcpy(&variable->value_, &value, 4);
+        variable->serial_ = VariableCounter();
         ++VariableCounter();
-        ++variable->version;
+        ++variable->version_;
         return;
     }
     void* found;
@@ -152,8 +136,8 @@ void ServerSession::SetVariable(const StringRep* name, float value) {
 void ServerSession::RaiseVariable(const StringRep* name, float value) {
     void* found;
     FindOrAddVariable(&found, name);
-    ScriptVariable* variable = VariableAt(static_cast<void**>(found));
-    float current = variable->value;
+    VariableMessage* variable = VariableAt(static_cast<void**>(found));
+    float current = variable->value_;
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);
     std::memcpy(&valueBits, &value, 4);
@@ -161,11 +145,11 @@ void ServerSession::RaiseVariable(const StringRep* name, float value) {
     float selected;
     std::memcpy(&selected, &bits, 4);
     volatile double loaded = selected;   // FLD / FSTP
-    VariableAt(static_cast<void**>(found))->value = static_cast<float>(loaded);
-    VariableAt(static_cast<void**>(found))->serial = VariableCounter();
+    VariableAt(static_cast<void**>(found))->value_ = static_cast<float>(loaded);
+    VariableAt(static_cast<void**>(found))->serial_ = VariableCounter();
     ++VariableCounter();
-    ++VariableAt(static_cast<void**>(found))->version;
-    if (EqualOrUnordered(VariableAt(static_cast<void**>(found))->value, GameFloat(0x0073B858))) {
+    ++VariableAt(static_cast<void**>(found))->version_;
+    if (EqualOrUnordered(VariableAt(static_cast<void**>(found))->value_, GameFloat(0x0073B858))) {
         void** node = FindNode(static_cast<void**>(variables_), name);
         if (node != variables_) Erase(variables_, node);
     }
@@ -180,7 +164,7 @@ void ServerSession::RemoveVariable(const StringRep* name) {
 // 00419940: the variable's value, 0 when missing (returned unrounded in ST0).
 double ServerSession::GetVariable(const StringRep* name) {
     void** node = FindNode(static_cast<void**>(variables_), name);
-    if (node != variables_) return VariableAt(node)->value;
+    if (node != variables_) return VariableAt(node)->value_;
     return GameFloat(0x0073B858);
 }
 

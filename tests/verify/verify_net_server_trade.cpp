@@ -4,15 +4,15 @@
 //  - The four handlers: ours only (they change the lists and allocate).
 #include "net_verify.h"
 
-#include "../../src/game/net_classes.h"
+#include "../../src/game/net_messages.h"
 #include "../../src/game/core_refcount.h"
 
 namespace net {
 RefPtr* __fastcall RefPtrCopyPlain(RefPtr* self, void*, const RefPtr* other);
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message);
-void __fastcall ServerOnTradeOffer(ServerSession* self, Message* message);
-void __fastcall ServerOnTradeUpdate(ServerSession* self, Message* message);
-void __fastcall ServerOnTradeCancel(ServerSession* self, Message* message);
+void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message);
+void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message);
+void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message);
 }
 
 namespace {
@@ -37,15 +37,15 @@ void __fastcall ObjectRemovedVerify(net::ServerSession* self, net::Message* mess
     net::ServerOnObjectRemoved(self, message);
     ei::verify::Check("ServerOnObjectRemoved", true, true, "");
 }
-void __fastcall TradeOfferVerify(net::ServerSession* self, net::Message* message) {
+void __fastcall TradeOfferVerify(net::ServerSession* self, net::PartyMessage* message) {
     net::ServerOnTradeOffer(self, message);
     ei::verify::Check("ServerOnTradeOffer", true, true, "");
 }
-void __fastcall TradeUpdateVerify(net::ServerSession* self, net::Message* message) {
+void __fastcall TradeUpdateVerify(net::ServerSession* self, net::PartyMessage* message) {
     net::ServerOnTradeUpdate(self, message);
     ei::verify::Check("ServerOnTradeUpdate", true, true, "");
 }
-void __fastcall TradeCancelVerify(net::ServerSession* self, net::Message* message) {
+void __fastcall TradeCancelVerify(net::ServerSession* self, net::PartyMessage* message) {
     net::ServerOnTradeCancel(self, message);
     ei::verify::Check("ServerOnTradeCancel", true, true, "");
 }

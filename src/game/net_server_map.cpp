@@ -1,7 +1,7 @@
 // The game server's map change (004186F0). A literal transcription: the helpers it calls are game
 // code outside this file (or STLport strings) and are reached through their original addresses.
 // See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
-#include "net_classes.h"
+#include "net_messages.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -32,12 +32,11 @@ __declspec(naked) void __fastcall StringDestroyB(StringRep* /*s*/) EI_ORIGINAL(0
 
 // The queued message (vtable 0073BCD0, built by 00418C30) and its string member assignment, the
 // counted pointer helpers, the list push_back.
-__declspec(naked) void __fastcall MessageStringAssign(void* /*string*/, void*, const StringRep* /*from*/) EI_ORIGINAL(0x0041F4E0)
+__declspec(naked) void __fastcall MessageStringAssign(StringRep* /*string*/, void*, const StringRep* /*from*/) EI_ORIGINAL(0x0041F4E0)
 __declspec(naked) void* __fastcall RefFromRaw(void* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427D50)
 __declspec(naked) void __fastcall RefClear(void* /*ref*/) EI_ORIGINAL(0x00421360)
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
-__declspec(naked) void __fastcall MessageStringConstruct(void* /*string*/) EI_ORIGINAL(0x0041F460)
-constexpr std::uintptr_t kMapMessageVtable = 0x0073BD00;
+__declspec(naked) void __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
 __declspec(naked) void __fastcall WorldLoadMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x005810A0)
@@ -58,7 +57,6 @@ __declspec(naked) void __fastcall NamesFree(StringRep* /*p*/, std::size_t /*n*/)
 __declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
 __declspec(naked) void __fastcall NodeFree(void* /*node*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
 __declspec(naked) void __fastcall StringDestruct(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
-constexpr std::uintptr_t kQueuedMapVtable = 0x0073BCD0;   // 0x18 bytes
 constexpr std::uintptr_t kFinishSuffix = 0x00783D84;      // "_3"
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
@@ -102,31 +100,27 @@ void ServerSession::SetMap(const StringRep* name) {
 
     StringRep messageName;
     StringPlusText(&messageName, name, Text(kMapSuffix));
-    auto* memory = static_cast<Message*>(NewRefObject(0x18));
-    Message* message = memory ? ConstructMessage73BCD0(memory) : nullptr;
-    MessageStringAssign(reinterpret_cast<std::uint8_t*>(message) + 0xC, nullptr, &messageName);
+    auto* memory = static_cast<ZoneMessage*>(NewRefObject(sizeof(ZoneMessage)));
+    ZoneMessage* message = memory ? memory->Construct() : nullptr;
+    MessageStringAssign(&message->text_, nullptr, &messageName);
     void* ref;
     List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
     RefClear(&ref);
     StringDestroyA(&messageName);
 
-    auto* mapMessage = static_cast<std::uint8_t*>(gamecrt::operator_new(0x18));
-    std::uint32_t zero = 0;
-    std::memcpy(mapMessage + 4, &zero, 4);
+    auto* mapMessage = NewMessageMemory<MapMessage>();
     if (mapMessage) {
-        MessageConstructBase(reinterpret_cast<Message*>(mapMessage));
-        MessageStringConstruct(mapMessage + 0xC);
-        std::uintptr_t vtable = kMapMessageVtable;
-        std::memcpy(mapMessage, &vtable, 4);
+        MessageConstructBase(mapMessage);
+        MessageStringConstruct(&mapMessage->text_);
+        ei::SetVtable(mapMessage, MapMessage::kVtableAddress);
     }
     RefPtr* holder = &map_;
-    if (reinterpret_cast<CRefObject*>(mapMessage) != holder->ptr) {
+    if (mapMessage != holder->ptr) {
         holder->Destroy();
-        holder->Share(reinterpret_cast<CRefObject*>(mapMessage));
+        holder->Share(mapMessage);
     }
-    auto* current = reinterpret_cast<std::uint8_t*>(holder->ptr);
-    if (name != reinterpret_cast<const StringRep*>(current + 0xC))
-        StringAssign(reinterpret_cast<StringRep*>(current + 0xC), nullptr, name->start, name->finish, mapMessage);
+    auto* current = static_cast<MapMessage*>(holder->ptr);
+    if (name != &current->text_) StringAssign(&current->text_, nullptr, name->start, name->finish, mapMessage);
     if (name != &mapName_) StringAssign(&mapName_, nullptr, name->start, name->finish, mapMessage);
 
     void* world = reinterpret_cast<void*>(kWorld);
@@ -153,12 +147,12 @@ void ServerSession::SetMap(const StringRep* name) {
         StringRangeInit(&resourceName, nullptr, variableName, variableName + std::strlen(variableName));
         void* added;
         FindOrAddVariable(&added, &resourceName);
-        auto* record = *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(added) + 8);
+        auto* record = static_cast<VariableMessage*>(static_cast<void**>(added)[2]);
         const std::uint32_t one = 0x3F800000;   // 1.0f
-        std::memcpy(record + 0x18, &one, 4);
-        std::memcpy(record + 0x1C, VariableCounter(), 4);
+        std::memcpy(&record->value_, &one, 4);
+        record->serial_ = *VariableCounter();
         ++*VariableCounter();
-        ++*reinterpret_cast<std::int32_t*>(record + 8);
+        ++record->version_;
         StringDestroyB(&resourceName);
     }
 
@@ -209,16 +203,13 @@ void ServerSession::QueueMapList() {
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
         StringRep key;
         StringPlusText(&key, zone, Text(kMapSuffix));
-        auto* message = static_cast<std::uint8_t*>(gamecrt::operator_new(0x18));
-        std::uint32_t zero = 0;
-        std::memcpy(message + 4, &zero, 4);
+        auto* message = NewMessageMemory<ZoneMessage>();
         if (message) {
-            MessageConstructBase(reinterpret_cast<Message*>(message));
-            MessageStringConstruct(message + 0xC);
-            std::uintptr_t vtable = kQueuedMapVtable;
-            std::memcpy(message, &vtable, 4);
+            MessageConstructBase(message);
+            MessageStringConstruct(&message->text_);
+            ei::SetVtable(message, ZoneMessage::kVtableAddress);
         }
-        MessageStringAssign(message + 0xC, nullptr, &key);
+        MessageStringAssign(&message->text_, nullptr, &key);
         void* ref;
         List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
         RefClear(&ref);
@@ -235,7 +226,7 @@ bool ServerSession::FinishMap(const StringRep* name) {
     auto* holder = &map_;
     CRefObject* map = holder->ptr;
     if (!map || (map->flags7_ & CRefObject::kDetached)) return false;
-    const StringRep* held = reinterpret_cast<const StringRep*>(reinterpret_cast<std::uint8_t*>(map) + 0xC);
+    const StringRep* held = &static_cast<MapMessage*>(map)->text_;
     const std::size_t length = static_cast<std::size_t>(held->finish - held->start);
     if (length != static_cast<std::size_t>(name->finish - name->start) || std::memcmp(held->start, name->start, length) != 0)
         return false;
@@ -259,16 +250,13 @@ bool ServerSession::FinishMap(const StringRep* name) {
 
     StringRep messageName;
     StringPlusText(&messageName, name, Text(kFinishSuffix));
-    auto* message = static_cast<std::uint8_t*>(gamecrt::operator_new(0x18));
-    std::uint32_t zero = 0;
-    std::memcpy(message + 4, &zero, 4);
+    auto* message = NewMessageMemory<ZoneMessage>();
     if (message) {
-        MessageConstructBase(reinterpret_cast<Message*>(message));
-        MessageStringConstruct(message + 0xC);
-        std::uintptr_t vtable = kQueuedMapVtable;
-        std::memcpy(message, &vtable, 4);
+        MessageConstructBase(message);
+        MessageStringConstruct(&message->text_);
+        ei::SetVtable(message, ZoneMessage::kVtableAddress);
     }
-    MessageStringAssign(message + 0xC, nullptr, &messageName);
+    MessageStringAssign(&message->text_, nullptr, &messageName);
     void* ref;
     List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
     RefClear(&ref);
