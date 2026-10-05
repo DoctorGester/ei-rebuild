@@ -35,8 +35,7 @@ constexpr std::int32_t kChunkSize = 0x40;
 void SetVtable(void* p, std::uintptr_t v) { std::memcpy(p, &v, 4); }
 
 // The file message.
-struct FileMessage {
-    Message header;
+struct __declspec(novtable) FileMessage : Message {
     std::uint16_t chunkCount;   // +0x0C
     std::uint16_t padding;
     std::int32_t size;          // +0x10
@@ -67,9 +66,9 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     }
 
     auto* file = static_cast<FileMessage*>(gamecrt::operator_new(sizeof(FileMessage)));
-    file->header.refHeader = 0;
+    std::memset(reinterpret_cast<std::uint8_t*>(file) + 4, 0, 4);   // before the null check, as the original
     if (file) {
-        MessageConstructBase(&file->header);
+        MessageConstructBase(file);
         StringConstruct(&file->name);
         std::uint8_t allocator = 0;
         ChunkVectorConstruct(&file->chunks, nullptr, &allocator);
@@ -130,9 +129,6 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     ref.ptr = nullptr;
     ref.Destroy();
 }
-namespace {
-void __fastcall ShareFileHook(ServerSession* self, void*, const StringRep* name, GameBuffer* data) { self->ShareFile(name, data); }
-} // namespace
-EI_REPLACE(0x00419A00, ShareFileHook);
+EI_REPLACE_METHOD(0x00419A00, ServerSession::ShareFile);
 
 } // namespace net

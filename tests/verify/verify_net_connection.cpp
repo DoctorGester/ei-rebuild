@@ -37,7 +37,7 @@ std::uint16_t __fastcall AllocateVerify(IdPool* self) {
 // 00434C20: PUSH ECX (1), MOV EDX,ECX (2), PUSH EBX (1), PUSH EBP (1).
 void(__fastcall* s_writeAcks)(Connection*, void*, std::uint8_t**);
 void __fastcall WriteAcksVerify(Connection* self, void*, std::uint8_t** p) {
-    std::size_t n = static_cast<std::size_t>(self->receivedEnd - self->received);
+    std::size_t n = static_cast<std::size_t>(self->receivedEnd_ - self->received_);
     if (n > 256) {   // more than ever kept: ours alone
         self->WriteAcks(p);
         return;
@@ -45,20 +45,20 @@ void __fastcall WriteAcksVerify(Connection* self, void*, std::uint8_t** p) {
     alignas(4) std::uint8_t header[0x20];
     std::memcpy(header, self, sizeof(header));
     std::int32_t values[256];
-    if (n) std::memcpy(values, self->received, n * 4);
+    if (n) std::memcpy(values, self->received_, n * 4);
     auto* fake = reinterpret_cast<Connection*>(header);
-    fake->received = values;
-    fake->receivedEnd = values + n;
-    fake->receivedEos = values + 256;
+    fake->received_ = values;
+    fake->receivedEnd_ = values + n;
+    fake->receivedEos_ = values + 256;
     std::uint8_t output[8] = {};
     std::uint8_t* q = output;
     s_writeAcks(fake, nullptr, &q);
     std::uint8_t* before = *p;
     self->WriteAcks(p);
-    std::size_t kept = static_cast<std::size_t>(self->receivedEnd - self->received);
+    std::size_t kept = static_cast<std::size_t>(self->receivedEnd_ - self->received_);
     bool same = q - output == *p - before && std::memcmp(output, before, 6) == 0 &&
-                kept == static_cast<std::size_t>(fake->receivedEnd - values) &&
-                (kept == 0 || std::memcmp(values, self->received, kept * 4) == 0);
+                kept == static_cast<std::size_t>(fake->receivedEnd_ - values) &&
+                (kept == 0 || std::memcmp(values, self->received_, kept * 4) == 0);
     ei::verify::Check("Connection::WriteAcks", true, same, "%u sequences", unsigned(n));
 }
 
@@ -67,9 +67,9 @@ Message*(__fastcall* s_create)(TypeRegistry*, void*, std::uint32_t);
 Message* __fastcall TypeCreateVerify(TypeRegistry* self, void*, std::uint32_t type) {
     Message* expected = s_create(self, nullptr, type);
     Message* actual = self->Create(type);
-    bool same = (expected == nullptr) == (actual == nullptr) && (!expected || expected->vtable == actual->vtable);
+    bool same = (expected == nullptr) == (actual == nullptr) && (!expected || *reinterpret_cast<std::uintptr_t*>(expected) == *reinterpret_cast<std::uintptr_t*>(actual));
     ei::verify::Check("TypeRegistry::Create", true, same, "type %u", type);
-    if (expected) ei::VCall<void*>(expected, 0, 1);
+    if (expected) delete expected;
     return actual;
 }
 
@@ -77,30 +77,23 @@ Message* __fastcall TypeCreateVerify(TypeRegistry* self, void*, std::uint32_t ty
 void __fastcall AttachRecordVerify(Connection* self, void*, CRefObject* object, std::uint32_t type, std::int32_t key) {
     self->AttachRecord(object, type, key);
     // Walk the tree from the root for the object (keys compare unsigned).
-    auto* header = static_cast<std::uint8_t*>(self->attached.header);
-    auto* node = *reinterpret_cast<std::uint8_t**>(header + 4);
-    while (node && *reinterpret_cast<CRefObject**>(node + 0x10) != object)
-        node = *reinterpret_cast<std::uint8_t**>(node + (reinterpret_cast<std::uintptr_t>(object) <
-                                                                 *reinterpret_cast<std::uintptr_t*>(node + 0x10)
-                                                             ? 8
-                                                             : 0xC));
-    bool ok = node && *reinterpret_cast<std::uint16_t*>(node + 0x14) == static_cast<std::uint16_t>(key) &&
-              node[0x16] == static_cast<std::uint8_t>(type);
+    auto* node = self->attached_.header->parent;
+    while (node && node->key != object)
+        node = reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(node->key) ? node->left : node->right;
+    bool ok = node && node->value.id == static_cast<std::uint16_t>(key) && node->value.type == static_cast<std::uint8_t>(type);
     ei::verify::Check("Connection::AttachRecord", true, ok, "key %08X", key);
 }
 
 // 00434990: ours only. Afterwards a chunk is queued and none waits longer than the front one.
 void __fastcall QueueHeaderVerify(Connection* self, void*, int budget) {
     self->QueueHeader(budget);
-    auto* head = *static_cast<HeaderNode**>(self->headers);
+    HeaderNode* head = self->headers_;
     HeaderNode* front = head->next;
     bool ok = front != head;
     if (ok) {
-        std::uint16_t frontSeq;
-        std::memcpy(&frontSeq, front->data, 2);
+        std::uint16_t frontSeq = front->data.Sequence();
         for (HeaderNode* n = front->next; n != head; n = n->next) {
-            std::uint16_t seq;
-            std::memcpy(&seq, n->data, 2);
+            std::uint16_t seq = n->data.Sequence();
             ok &= static_cast<std::uint16_t>(seq - frontSeq) <= 0x8000;
         }
     }
@@ -128,11 +121,11 @@ bool __fastcall ReadRecordVerify(Connection* self, void*, BufferCursor* cursor, 
 
 // 00434110: ours only. A live object ends up tracked (byObject holds at most one more entry).
 void __fastcall TrackVerify(Connection* self, void*, Replicated* item) {
-    std::uint32_t before = self->byObject.count;
-    auto* object = static_cast<CRefObject*>(item->object);
+    std::uint32_t before = self->byObject_.count;
+    CRefObject* object = item->object;
     bool live = object && !(object->flags7_ & CRefObject::kDetached);
     self->Track(item);
-    std::uint32_t after = self->byObject.count;
+    std::uint32_t after = self->byObject_.count;
     ei::verify::Check("Connection::Track", true, live ? (after == before || after == before + 1) : after == before, "");
 }
 
@@ -142,7 +135,7 @@ void __fastcall CollectChangesVerify(Connection* self) {
     self->CollectChanges();
     auto* items = reinterpret_cast<ReplicatedVector*>(0x0079B8D0);
     ei::verify::Check("Connection::CollectChanges", true,
-                      self->byObject.count <= static_cast<std::uint32_t>(items->end - items->begin), "");
+                      self->byObject_.count <= static_cast<std::uint32_t>(items->end - items->begin), "");
 }
 
 // 004357C0: MOV EAX,ECX (2), MOV CL,[EAX+0xC] (3). The original on a copy of the cursor first (it
@@ -192,7 +185,7 @@ namespace {
 // cleared again afterwards.
 bool __fastcall TickVerify(net::Connection* self, void*, double dt) {
     bool alive = self->Tick(dt);
-    ei::verify::Check("Connection::Tick", true, *reinterpret_cast<void**>(0x0079B924) == nullptr, "");
+    ei::verify::Check("Connection::Tick", true, CurrentConnection() == nullptr, "");
     return alive;
 }
 void* s_unusedTick;
@@ -217,7 +210,7 @@ void __fastcall ReadAcksVerify(net::Connection* self, void*, BufferCursor* curso
 }
 bool __fastcall AcceptVerify(net::Connection* self, void*, std::uint32_t sequence) {
     bool accepted = self->Accept(sequence);
-    ei::verify::Check("Connection::Accept", true, !accepted || self->lastReceived >= sequence, "seq %u", sequence);
+    ei::verify::Check("Connection::Accept", true, !accepted || self->lastReceived_ >= sequence, "seq %u", sequence);
     return accepted;
 }
 void __fastcall ProcessHeadersVerify(net::Connection* self) {
@@ -226,7 +219,7 @@ void __fastcall ProcessHeadersVerify(net::Connection* self) {
 }
 bool __fastcall ReadUpdateVerify(net::Connection* self, void*, BufferCursor* cursor) {
     bool ok = self->ReadUpdate(cursor);
-    ei::verify::Check("Connection::ReadUpdate", true, *reinterpret_cast<void**>(0x0079B924) == nullptr, "");
+    ei::verify::Check("Connection::ReadUpdate", true, CurrentConnection() == nullptr, "");
     return ok;
 }
 void* s_unusedReceive;
@@ -242,30 +235,27 @@ namespace {
 // 00436620: ours only (it runs handlers and releases objects); the first record is empty afterwards.
 void __fastcall CloseVerify(net::Connection* self) {
     self->Close();
-    void* first = static_cast<void**>(self->records.header)[2];
-    bool empty = first == self->records.header || static_cast<net::RecordNode*>(first)->object == nullptr;
+    net::Connection::RecordMap::Node* first = self->records_.Begin();
+    bool empty = first == self->records_.header || first->value.object.ptr == nullptr;
     ei::verify::Check("Connection::Close", true, empty, "");
 }
 void* s_unusedClose;
 } // namespace
 EI_VERIFY(0x00436620, CloseVerify, 0, s_unusedClose);
 
-namespace net {
-Connection* __fastcall ConnectionDeletingDestructor(Connection* self, void*, unsigned flags);
-}
 namespace {
 // 00432DA0 / 00433320 / 004334E0 / 004334C0: ours only (they allocate and free the containers).
 net::Connection* __fastcall ConnectionConstructVerify(net::Connection* self, void*, std::uint32_t id) {
     net::Connection* result = self->Construct(id);
     ei::verify::Check("Connection::Construct", true,
-                      result == self && self->connectionId == id && self->updateBudget == 0xDC &&
+                      result == self && self->id_ == id && self->updateBudget_ == 0xDC &&
                           *reinterpret_cast<std::uintptr_t*>(self) == 0x0073BF38,
                       "id %u", id);
     return result;
 }
 void __fastcall ConnectionResetVerify(net::Connection* self) {
-    self->Reset();
-    ei::verify::Check("Connection::Reset", true, self->connectionId == 0, "");
+    self->Connection::OnShutdown();
+    ei::verify::Check("Connection::Reset", true, self->id_ == 0, "");
 }
 void __fastcall ConnectionDestructVerify(net::Connection* self) {
     self->Destruct();
@@ -273,7 +263,7 @@ void __fastcall ConnectionDestructVerify(net::Connection* self) {
 }
 net::Connection* __fastcall ConnectionDeleteVerify(net::Connection* self, void*, unsigned flags) {
     ei::verify::Check("ConnectionDeletingDestructor", true, true, "");
-    return net::ConnectionDeletingDestructor(self, nullptr, flags);
+    return self->DeletingDestruct(flags);
 }
 void* s_unusedLife;
 } // namespace
@@ -284,11 +274,11 @@ EI_VERIFY(0x004334C0, ConnectionDeleteVerify, 0, s_unusedLife);
 
 namespace {
 // 00433060: ours only (it allocates); the copy has the same id, address and budget.
-net::Connection* __fastcall ConnectionCloneVerify(const net::Connection* self) {
-    net::Connection* copy = self->Clone();
+net::Connection* __fastcall ConnectionCloneVerify(net::Connection* self) {
+    net::Connection* copy = self->Connection::Clone();
     ei::verify::Check("Connection::Clone", true,
-                      !copy || (copy->connectionId == self->connectionId && copy->updateBudget == self->updateBudget &&
-                                std::memcmp(copy->address, self->address, 16) == 0),
+                      !copy || (copy->id_ == self->id_ && copy->updateBudget_ == self->updateBudget_ &&
+                                std::memcmp(&copy->address_, &self->address_, 16) == 0),
                       "");
     return copy;
 }
@@ -296,12 +286,6 @@ void* s_unusedClone;
 } // namespace
 EI_VERIFY(0x00433060, ConnectionCloneVerify, 0, s_unusedClone);
 
-namespace net {
-ReplicaEntry* __fastcall ReplicaEntryClone(const ReplicaEntry* self);
-void __fastcall ReplicaEntryReset(ReplicaEntry* self);
-void __fastcall ReplicaEntryDestruct(ReplicaEntry* self);
-ReplicaEntry* __fastcall ReplicaEntryDeletingDestructor(ReplicaEntry* self, void*, unsigned flags);
-}
 namespace {
 // 00433A30 / 004343C0 / 00434430 / 004344C0 / 004344A0: ours only (allocation, references).
 net::IdPool* __fastcall IdPoolCopyVerify(net::IdPool* self, void*, const net::IdPool* other) {
@@ -311,23 +295,23 @@ net::IdPool* __fastcall IdPoolCopyVerify(net::IdPool* self, void*, const net::Id
     ei::verify::Check("IdPool::CopyFrom", true, result == self && same, "");
     return result;
 }
-net::ReplicaEntry* __fastcall EntryCloneVerify(const net::ReplicaEntry* self) {
-    net::ReplicaEntry* copy = net::ReplicaEntryClone(self);
+net::ReplicaEntry* __fastcall EntryCloneVerify(net::ReplicaEntry* self) {
+    net::ReplicaEntry* copy = self->ReplicaEntry::Clone();
     ei::verify::Check("ReplicaEntryClone", true,
-                      !copy || (copy->object == self->object && copy->id == self->id && copy->flags == self->flags), "");
+                      !copy || (copy->object_.ptr == self->object_.ptr && copy->id_ == self->id_ && copy->flags_ == self->flags_), "");
     return copy;
 }
 void __fastcall EntryResetVerify(net::ReplicaEntry* self) {
-    net::ReplicaEntryReset(self);
-    ei::verify::Check("ReplicaEntryReset", true, self->object == nullptr && self->id == 0, "");
+    self->ReplicaEntry::OnShutdown();
+    ei::verify::Check("ReplicaEntryReset", true, self->object_.ptr == nullptr && self->id_ == 0, "");
 }
 void __fastcall EntryDestructVerify(net::ReplicaEntry* self) {
-    net::ReplicaEntryDestruct(self);
+    self->Destruct();
     ei::verify::Check("ReplicaEntryDestruct", true, true, "");
 }
 net::ReplicaEntry* __fastcall EntryDeleteVerify(net::ReplicaEntry* self, void*, unsigned flags) {
     ei::verify::Check("ReplicaEntryDeletingDestructor", true, true, "");
-    return net::ReplicaEntryDeletingDestructor(self, nullptr, flags);
+    return self->DeletingDestruct(flags);
 }
 void* s_unusedEntry;
 } // namespace

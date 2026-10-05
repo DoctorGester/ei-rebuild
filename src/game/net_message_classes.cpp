@@ -59,7 +59,6 @@ T& F(void* object, std::size_t offset) {
 }
 StringRep* S(void* object, std::size_t offset) { return &F<StringRep>(object, offset); }
 void SetVtable(void* object, std::uintptr_t v) { F<std::uintptr_t>(object, 0) = v; }
-void* Connection() { return *reinterpret_cast<void**>(0x0079B924); }
 
 // A message's memory: the reference count cleared before the null check (as the original).
 std::uint8_t* NewMessage(std::size_t size) {
@@ -142,9 +141,9 @@ void TakeString(char** cursor, StringRep* s) {
     StringAssignRange(s, nullptr, text, text + length);
     *cursor += length + 1;
 }
-void PutObject(char** cursor, void* object) { ConnWriteObjectRef(Connection(), nullptr, cursor, object); }
+void PutObject(char** cursor, void* object) { ConnWriteObjectRef(CurrentConnection(), nullptr, cursor, object); }
 void TakeObject(char** cursor, void* self, std::size_t offset) {
-    AssignCounted(self, offset, static_cast<CRefObject*>(ConnReadObjectRef(Connection(), nullptr, cursor)));
+    AssignCounted(self, offset, static_cast<CRefObject*>(ConnReadObjectRef(CurrentConnection(), nullptr, cursor)));
 }
 
 } // namespace
@@ -904,7 +903,7 @@ void __fastcall MessageRead73BDD0(Message* self, void*, char** cursor) {   // 00
     RefsResize(objects::List(self), nullptr, static_cast<std::size_t>(count));
     for (std::int32_t i = 0; i < count; ++i) {
         RefPtr* slot = objects::List(self)->start + i;
-        AssignCounted(slot, 0, static_cast<CRefObject*>(ConnReadObjectRef(Connection(), nullptr, cursor)));
+        AssignCounted(slot, 0, static_cast<CRefObject*>(ConnReadObjectRef(CurrentConnection(), nullptr, cursor)));
     }
     F<std::uint32_t>(self, 0x18) = Take<std::uint32_t>(cursor);
     F<std::uint8_t>(self, 0x1C) = Take<std::uint8_t>(cursor);

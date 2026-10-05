@@ -87,24 +87,26 @@ void AssignText(StringRep* to, const char* text, const void* tag) {
 } // namespace
 
 // 0041D1A0: keeps `object` on the timers list for `seconds` (shared into the entry).
-void __fastcall ClientAddTimed(ClientSession* self, void*, CRefObject* object, std::uint32_t seconds) {
+void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
+    ClientSession* self = this;
     RefPtr raw;
     RefPtrFromRaw(&raw, object);
     TimedEntry entry;
     entry.seconds = seconds;
     entry.object.Share(raw.ptr);
-    void* timers = &self->list_2604;
+    void* timers = &self->timers_;
     void* end;
     TimersEnd(timers, nullptr, &end);
     void* inserted;
     TimersInsert(timers, nullptr, &inserted, end, &entry);
     DestroyInline(&entry.object);
 }
-EI_REPLACE(0x0041D1A0, ClientAddTimed);
+EI_REPLACE_METHOD(0x0041D1A0, ClientSession::AddTimed);
 
 // 0041D260: sends the server a command (0073BC40: +0xC kind, +0x10 text), kept 60 seconds on the
 // timers list.
-void __fastcall ClientSendCommand(ClientSession* self, void*, int kind, const char* text) {
+void ClientSession::SendCommand(int kind, const char* text) {
+    ClientSession* self = this;
     auto* command = static_cast<std::uint8_t*>(gamecrt::operator_new(0x1C));
     std::uint32_t zero = 0;
     std::memcpy(command + 4, &zero, 4);
@@ -130,16 +132,16 @@ void __fastcall ClientSendCommand(ClientSession* self, void*, int kind, const ch
     TimedEntry entry;
     entry.seconds = kCommandLifetime;
     RefPtrCopyConstruct(&entry.object, nullptr, &raw);
-    TimersPushBack(&self->list_2604, nullptr, &entry);
+    TimersPushBack(&self->timers_, nullptr, &entry);
     entry.object.Destroy();
     raw.ptr = nullptr;
     raw.Destroy();
 }
-EI_REPLACE(0x0041D260, ClientSendCommand);
+EI_REPLACE_METHOD(0x0041D260, ClientSession::SendCommand);
 
 // 0041D420 (slot 16): makes `*out` an empty server entry (0073BB28: no name or description, kind
 // 4, no players).
-void __fastcall ClientDescribe(ClientSession* self, void*, RefPtr* out) {
+void ClientSession::CreateEntry(RefPtr* out) {
     auto* entry = static_cast<std::uint8_t*>(gamecrt::operator_new(0x48));
     std::uint32_t zero = 0;
     std::memcpy(entry + 4, &zero, 4);
@@ -171,22 +173,24 @@ void __fastcall ClientDescribe(ClientSession* self, void*, RefPtr* out) {
         entry[0x45] = 0;
         entry[0x46] = 0;
     }
-    (void)self;
     if (reinterpret_cast<CRefObject*>(entry) == out->ptr) return;
     if (CRefObject* old = out->ptr) {
         if (old->refs_ != 1) {
             old->flags7_ |= CRefObject::kDetached;
             ++old->refs_;
-            ei::VCall<int>(old, 2);   // shutdown
+            old->OnShutdown();
             --old->refs_;
         }
         CRefObject* held = out->ptr;
         --held->refs_;
-        if (held->refs_ == 0 && held) ei::VCall<void>(held, 0, 1);
+        if (held->refs_ == 0 && held) delete held;
     }
     out->Share(reinterpret_cast<CRefObject*>(entry));
 }
-EI_REPLACE(0x0041D420, ClientDescribe);
+namespace {
+void __fastcall ClientDescribeHook(ClientSession* self, void*, RefPtr* out) { self->ClientSession::CreateEntry(out); }
+} // namespace
+EI_REPLACE(0x0041D420, ClientDescribeHook);
 
 
 namespace {
@@ -195,8 +199,11 @@ __declspec(naked) void __fastcall FlowBeginMultiplayerGame(void* /*flow*/) EI_OR
 } // namespace
 
 // 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
-void __fastcall ClientBeginGame(ClientSession*) { FlowBeginMultiplayerGame(reinterpret_cast<void*>(0x007AFE20)); }
-EI_REPLACE(0x0041D410, ClientBeginGame);
+void ClientSession::OnJoined() { FlowBeginMultiplayerGame(reinterpret_cast<void*>(0x007AFE20)); }
+namespace {
+void __fastcall ClientBeginGameHook(ClientSession* self) { self->ClientSession::OnJoined(); }
+} // namespace
+EI_REPLACE(0x0041D410, ClientBeginGameHook);
 
 // 0041D9A0 (called with the client by the transfer screen 0061E4E0): a buffer's stream size (its
 // base plus the highest written position, from `begin`) over the dword at its start (1 when 0),

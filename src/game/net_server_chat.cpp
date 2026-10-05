@@ -99,13 +99,7 @@ void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player)
     CStringDestroy(&line);
 }
 
-namespace {
-void __fastcall AnnounceHook(ServerSession* self, void*, const char* text, CRefObject* player) { self->Announce(text, player); }
-void __fastcall AnnounceTextHook(ServerSession* self, void*, int kind, const char* text, CRefObject* player) {
-    self->AnnounceText(kind, text, player);
-}
-} // namespace
-EI_REPLACE(0x0041A310, AnnounceHook);
-EI_REPLACE(0x0041A490, AnnounceTextHook);
+EI_REPLACE_METHOD(0x0041A310, ServerSession::Announce);
+EI_REPLACE_METHOD(0x0041A490, ServerSession::AnnounceText);
 
 } // namespace net

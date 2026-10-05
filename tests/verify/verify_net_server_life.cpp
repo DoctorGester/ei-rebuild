@@ -4,8 +4,6 @@
 #include "../../src/game/net_classes.h"
 
 namespace net {
-ServerSession* __fastcall ServerDeletingDestructor(ServerSession* self, void*, unsigned flags);
-void __fastcall ServerBaseDestruct(ServerSession* self);
 }
 
 namespace {
@@ -17,10 +15,10 @@ void __fastcall DestructVerify(net::ServerSession* self) {
 }
 net::ServerSession* __fastcall DeleteVerify(net::ServerSession* self, void*, unsigned flags) {
     ei::verify::Check("ServerDeletingDestructor", true, true, "");
-    return net::ServerDeletingDestructor(self, nullptr, flags);
+    return self->DeletingDestruct(flags);
 }
 void __fastcall BaseDestructVerify(net::ServerSession* self) {
-    net::ServerBaseDestruct(self);
+    self->DestructBase();
     ei::verify::Check("ServerBaseDestruct", true, true, "");
 }
 } // namespace

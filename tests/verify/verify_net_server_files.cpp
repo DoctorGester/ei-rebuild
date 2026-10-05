@@ -17,7 +17,7 @@ void __fastcall ShareFileVerify(net::ServerSession* self, void*, const net::Stri
     if (fits) std::memcpy(copy, name->start, length);
     self->ShareFile(name, data);
     bool found = !fits;
-    void** sentinel = static_cast<void**>(self->list_2598);
+    void** sentinel = static_cast<void**>(self->files_);
     for (void** node = static_cast<void**>(sentinel[0]); !found && node != sentinel; node = static_cast<void**>(node[0])) {
         auto* other = reinterpret_cast<const net::StringRep*>(static_cast<std::uint8_t*>(node[2]) + 0x14);
         found = static_cast<std::size_t>(other->finish - other->start) == length && std::memcmp(other->start, copy, length) == 0;

@@ -688,10 +688,10 @@ void __fastcall DriverDisconnect(DriverLink* self) {
     FramedTakeAll(&self->base, nullptr, &pending);
     if (pending.size_ != 0 && Alive(self->player)) {
         MemoryStreamSeek(&pending, nullptr, pending.size_);
-        unsigned count = BufferFill(&ConnectionOf(self->player)->reliableIn);
-        ei::VCall<void>(&pending, kStreamWrite, static_cast<const void*>(ConnectionOf(self->player)->reliableIn.begin), count);
-        ei::VCall<int>(&ConnectionOf(self->player)->reliableIn, kBufferSeek, 0);
-        BufferPut(&ConnectionOf(self->player)->reliableIn, pending.data_, pending.size_);
+        unsigned count = BufferFill(&ConnectionOf(self->player)->reliableIn_);
+        ei::VCall<void>(&pending, kStreamWrite, static_cast<const void*>(ConnectionOf(self->player)->reliableIn_.begin), count);
+        ei::VCall<int>(&ConnectionOf(self->player)->reliableIn_, kBufferSeek, 0);
+        BufferPut(&ConnectionOf(self->player)->reliableIn_, pending.data_, pending.size_);
     }
     CRefObject* player = self->player;
     self->player = nullptr;
@@ -765,7 +765,7 @@ EI_REPLACE(0x00479780, DriverConnected);
 void __fastcall DriverPump(DriverLink* self) {
     CRefObject* player = self->player;
     if (!Alive(player)) return;
-    GameBuffer* in = &ConnectionOf(player)->reliableIn;
+    GameBuffer* in = &ConnectionOf(player)->reliableIn_;
     unsigned count = BufferFill(in);
     FramedAppend(&self->base, nullptr, in->begin, count);
     in->flags = 6;
@@ -778,9 +778,9 @@ EI_REPLACE(0x004797A0, DriverPump);
 // stream (when the player is alive); whether the player is (still) alive.
 int __fastcall DriverSendBytes(DriverLink* self, void*, const void* data, unsigned size) {
     if (Alive(self->player)) {
-        unsigned fill = BufferFill(&ConnectionOf(self->player)->reliableOut);
-        ei::VCall<int>(&ConnectionOf(self->player)->reliableOut, kBufferSeek, fill);
-        BufferPut(&ConnectionOf(self->player)->reliableOut, data, size);
+        unsigned fill = BufferFill(&ConnectionOf(self->player)->reliableOut_);
+        ei::VCall<int>(&ConnectionOf(self->player)->reliableOut_, kBufferSeek, fill);
+        BufferPut(&ConnectionOf(self->player)->reliableOut_, data, size);
     }
     return Alive(self->player) ? 1 : 0;
 }

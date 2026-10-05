@@ -30,8 +30,8 @@ void Run(const char* name, Register fn, std::uint32_t vtable, net::SessionBase* 
         ei::verify::Check(name, true, true, "");
         return;
     }
-    auto type = static_cast<std::uint32_t>(self->types.TypeOf(&vtable));
-    const net::HandlerVector& v = self->handlers[channel][type & 0xFF];
+    auto type = static_cast<std::uint32_t>(self->types_.TypeOf(&vtable));
+    const net::HandlerVector& v = self->handlers_[channel][type & 0xFF];
     ei::verify::Check(name, true, v.end && v.end != v.begin && v.end[-1] == handler, "channel %d type %u", channel, type);
 }
 

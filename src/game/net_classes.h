@@ -112,6 +112,9 @@ public:
 };
 static_assert(sizeof(Message) == 12);
 
+// The message base vtable under the name the message code uses.
+constexpr std::uintptr_t kMessageVtable = Message::kVtableAddress;
+
 using MessageFactory = Message* (*)();
 
 // 00413250. operator new(size) with the CRefObject count cleared. No null check (as the original).
@@ -200,6 +203,8 @@ struct QueryVector {
     void Serialize(ChunkArchive* archive);
 };
 static_assert(sizeof(QueryVector) == 0x10);
+// 0041C420 (net_client.cpp). The queries' constructor: an empty vector and a zero dword. Returns self.
+QueryVector* __fastcall ClientVectorConstruct(QueryVector* self);
 
 // ---- The session base ---------------------------------------------------------------------------
 

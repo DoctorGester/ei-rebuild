@@ -97,9 +97,8 @@ void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
 // names (inline, through FindOrAddVariable) and for two paths built from the map name
 // (SetVariable), and queues the host's item awards (004191C0, without the final award).
 void ServerSession::SetMap(const StringRep* name) {
-    std::uint8_t* self = reinterpret_cast<std::uint8_t*>(this);
-    ClearList(self + 0x25AC, Element25ACDestroy, List25ACFreeNode);
-    ClearList(self + 0x25B0, Element25B0Destroy, List25B0FreeNode);
+    ClearList(&queuedMaps_, Element25ACDestroy, List25ACFreeNode);
+    ClearList(&variables_, Element25B0Destroy, List25B0FreeNode);
 
     StringRep messageName;
     StringPlusText(&messageName, name, Text(kMapSuffix));
@@ -107,7 +106,7 @@ void ServerSession::SetMap(const StringRep* name) {
     Message* message = memory ? ConstructMessage73BCD0(memory) : nullptr;
     MessageStringAssign(reinterpret_cast<std::uint8_t*>(message) + 0xC, nullptr, &messageName);
     void* ref;
-    List25ACPushBack(self + 0x25AC, nullptr, RefFromRaw(&ref, message));
+    List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
     RefClear(&ref);
     StringDestroyA(&messageName);
 
@@ -120,7 +119,7 @@ void ServerSession::SetMap(const StringRep* name) {
         std::uintptr_t vtable = kMapMessageVtable;
         std::memcpy(mapMessage, &vtable, 4);
     }
-    auto* holder = reinterpret_cast<RefPtr*>(self + 0x25A8);
+    RefPtr* holder = &map_;
     if (reinterpret_cast<CRefObject*>(mapMessage) != holder->ptr) {
         holder->Destroy();
         holder->Share(reinterpret_cast<CRefObject*>(mapMessage));
@@ -277,13 +276,8 @@ bool ServerSession::FinishMap(const StringRep* name) {
     return true;
 }
 
-namespace {
-bool __fastcall FinishMapHook(ServerSession* self, void*, const StringRep* name) { return self->FinishMap(name); }
-void __fastcall QueueMapListHook(ServerSession* self) { self->QueueMapList(); }
-void __fastcall SetMapHook(ServerSession* self, void*, const StringRep* name) { self->SetMap(name); }
-} // namespace
-EI_REPLACE(0x004186F0, SetMapHook);
-EI_REPLACE(0x00418530, QueueMapListHook);
-EI_REPLACE(0x004193F0, FinishMapHook);
+EI_REPLACE_METHOD(0x004186F0, ServerSession::SetMap);
+EI_REPLACE_METHOD(0x00418530, ServerSession::QueueMapList);
+EI_REPLACE_METHOD(0x004193F0, ServerSession::FinishMap);
 
 } // namespace net

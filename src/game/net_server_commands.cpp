@@ -39,7 +39,7 @@ enum CommandKind : std::uint32_t {
     kBanBySerial = 5,
 };
 
-void* CurrentConnectionObject() { return *reinterpret_cast<void**>(0x0079B924); }
+void* CurrentConnectionObject() { return CurrentConnection(); }
 std::size_t StringNpos() { return *reinterpret_cast<const std::size_t*>(0x0073BDE8); }
 
 bool Is(const StringRep& s, std::uintptr_t text) {
@@ -148,10 +148,7 @@ void __fastcall ServerOnCommand(ServerSession* self, Message* message) {
     }
 }
 
-namespace {
-bool __fastcall IsHostConnectionHook(ServerSession* self, void*, void* connection) { return self->IsHostConnection(connection); }
-} // namespace
-EI_REPLACE(0x00419F90, IsHostConnectionHook);
+EI_REPLACE_METHOD(0x00419F90, ServerSession::IsHostConnection);
 EI_REPLACE(0x0041B690, ServerOnObjectAdded);
 EI_REPLACE(0x0041B2A0, ServerOnCommand);
 

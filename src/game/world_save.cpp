@@ -950,8 +950,8 @@ void __fastcall LoadSharedObject(void* entryArg, void*, WorldStream* stream) {
 void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, void* objectsArg) {
     // The entry's player: the session player record's +0x30 in a multiplayer game, else -1.
     int player = -1;
-    auto* session = static_cast<std::uint8_t*>(net::GameServerSession());
-    if (session && !(At<std::uint32_t>(session, 4) & net::kSessionInactive))
+    net::ServerSession* session = net::GameServer();
+    if (session && !(session->flags7_ & CRefCounted::kDetached))
         if (std::uint8_t* record = SessionFindPlayer(session, nullptr, id)) player = At<int>(record, 0x30);
 
     // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the

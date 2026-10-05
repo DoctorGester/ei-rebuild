@@ -22,7 +22,7 @@ namespace {
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The client base tick (00442AD0) and the timers list erase (library).
-__declspec(naked) void __fastcall ClientBaseTick(ClientSession* /*self*/, void*, double /*dt*/) EI_ORIGINAL(0x00442AD0)
+__declspec(naked) void __fastcall ClientBaseTick(ClientBase* /*self*/, void*, double /*dt*/) EI_ORIGINAL(0x00442AD0)
 __declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004246E0)
 
 // The world (0x7AFF60) and its players (outside this range).
@@ -85,10 +85,11 @@ void InitList(ObjectList& list, std::uintptr_t vtable) {
 // (+0xC0, the value truncated), then an empty item list given; 2: the item named by the text,
 // given; 3: the first item of the player's list that the named item's slot 14 accepts (returns 0)
 // is removed; 4: the party's items are reset and every quest item (class 0x14) removed.
-void __fastcall ClientApplyAwards(ClientSession* self) {
+void ClientSession::ApplyAwards() {
+    ClientSession* self = this;
     std::uint8_t* player = WorldGetPlayer(World(), nullptr, 0);
     if (!player) return;
-    for (void** node = static_cast<void**>(static_cast<void**>(self->list_2608)[0]); node != self->list_2608;
+    for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;
          node = static_cast<void**>(node[0])) {
         auto* award = static_cast<std::uint8_t*>(node[2]);
         const char* name = At<const char*>(award, 0x18);
@@ -152,7 +153,7 @@ void __fastcall ClientApplyAwards(ClientSession* self) {
     }
 
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
-    for (void** node = static_cast<void**>(static_cast<void**>(self->list_2608)[0]); node != self->list_2608;) {
+    for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;) {
         void** current = node;
         node = static_cast<void**>(node[0]);
         if (auto* award = static_cast<CRefObject*>(current[2])) {
@@ -164,18 +165,19 @@ void __fastcall ClientApplyAwards(ClientSession* self) {
             NodeFreeList() = current;
         }
     }
-    static_cast<void**>(self->list_2608)[0] = self->list_2608;
-    static_cast<void**>(self->list_2608)[1] = self->list_2608;
+    static_cast<void**>(self->awards_)[0] = self->awards_;
+    static_cast<void**>(self->awards_)[1] = self->awards_;
 }
-EI_REPLACE(0x0041CD80, ClientApplyAwards);
+EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
 
 // 0041CCD0 (slot 14): the client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
 // mode 3 when player 0 exists with its +0x20 object's +0x20 at 1 and 007B00BC is set.
-void __fastcall ClientTick(ClientSession* self, void*, double dt) {
+void ClientSession::Tick(double dt) {
+    ClientSession* self = this;
     ClientBaseTick(self, nullptr, dt);
-    void* timers = &self->list_2604;
-    void** sentinel = static_cast<void**>(self->list_2604);
+    void* timers = &self->timers_;
+    void** sentinel = static_cast<void**>(self->timers_);
     void** node = static_cast<void**>(sentinel[0]);
     if (node != sentinel) {
         const float step = static_cast<float>(dt);
@@ -189,14 +191,17 @@ void __fastcall ClientTick(ClientSession* self, void*, double dt) {
                 void* erased;
                 TimersErase(timers, nullptr, &erased, current);
             }
-        } while (node != self->list_2604);
+        } while (node != self->timers_);
     }
-    void** awards = static_cast<void**>(self->list_2608);
+    void** awards = static_cast<void**>(self->awards_);
     if (awards[0] == awards || GameMode() != 3) return;
     std::uint8_t* player = WorldGetPlayer(World(), nullptr, 0);
     if (!player || At<std::int32_t>(At<void*>(player, 0x20), 0x20) != 1 || !Unknown7B00BC()) return;
-    ClientApplyAwards(self);
+    ApplyAwards();
 }
-EI_REPLACE(0x0041CCD0, ClientTick);
+namespace {
+void __fastcall ClientTickHook(ClientSession* self, void*, double dt) { self->ClientSession::Tick(dt); }
+} // namespace
+EI_REPLACE(0x0041CCD0, ClientTickHook);
 
 } // namespace net

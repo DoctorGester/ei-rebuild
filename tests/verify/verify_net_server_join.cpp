@@ -73,7 +73,7 @@ void __fastcall PlayerGoneVerify(net::ServerSession* self, net::Message* message
     void* player = live ? Ptr(binding, 0xC) : nullptr;
     bool playerLive = live && Live(player);
     net::ServerOnPlayerGone(self, message);
-    bool ok = !live || (!Listed(self->list_25A4, binding) && (!playerLive || !Listed(self->list_2590, player)));
+    bool ok = !live || (!Listed(self->bindings_, binding) && (!playerLive || !Listed(self->players_, player)));
     ei::verify::Check("ServerOnPlayerGone", true, ok, "");
 }
 } // namespace

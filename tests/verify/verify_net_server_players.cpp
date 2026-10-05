@@ -49,7 +49,7 @@ void* __fastcall PlayerVerify(net::ServerSession* self, void*, int id) {
 }
 
 bool __fastcall AdmitVerify(net::ServerSession* self, void*, std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
-    bool result = self->Admit(address, password, reason);
+    bool result = self->ServerSession::Admit(address, password, reason);
     ei::verify::Check("ServerSession::Admit", true, result ? *reason == 1 : (*reason >= 1 && *reason <= 3), "");
     return result;
 }
@@ -57,7 +57,7 @@ bool __fastcall AdmitVerify(net::ServerSession* self, void*, std::uint32_t addre
 void __fastcall SetPasswordVerify(net::ServerSession* self, void*, const char* text) {
     self->SetPassword(text);
     ei::verify::Check("ServerSession::SetPassword", true,
-                      std::strncmp(reinterpret_cast<const char*>(self->unknown_25E8), text, 0x14) == 0, "");
+                      std::strncmp(reinterpret_cast<const char*>(self->password_), text, 0x14) == 0, "");
 }
 
 void __fastcall AnnounceToGuestsVerify(net::ServerSession* self, void*, int kind, const char* text) {

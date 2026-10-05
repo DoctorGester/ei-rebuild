@@ -163,7 +163,7 @@ void RemoveCounted(void* list, EraseFn erase, Message* message) {
 
 // The owner's release of the party description (+0x260C) as the handlers inline it, then null.
 void DropParty(ClientSession* self) {
-    auto* state = static_cast<CRefObject*>(self->unknown_260C);
+    auto* state = static_cast<CRefObject*>(self->party_.ptr);
     if (!state) return;
     if (state->refs_ != 1) {
         state->flags7_ |= CRefObject::kDetached;
@@ -171,23 +171,23 @@ void DropParty(ClientSession* self) {
         ei::VCall<int>(state, 2);
         --state->refs_;
     }
-    auto* held = static_cast<CRefObject*>(self->unknown_260C);
+    auto* held = static_cast<CRefObject*>(self->party_.ptr);
     --held->refs_;
     if (held->refs_ == 0 && held) ei::VCall<void>(held, 0, 1);
-    self->unknown_260C = nullptr;
+    self->party_.ptr = nullptr;
 }
 
 // The trade records emptied inline: each record destroyed, its node freed.
 void ClearTradeRecords(ClientSession* self) {
-    void* first = static_cast<void**>(self->list_2614)[0];
-    for (void** node = static_cast<void**>(first); node != self->list_2614;) {
+    void* first = static_cast<void**>(self->tradeRecords_)[0];
+    for (void** node = static_cast<void**>(first); node != self->tradeRecords_;) {
         void** current = node;
         node = static_cast<void**>(node[0]);
         TradeRecordDestroy(current + 2);
         if (current) gamecrt::operator_delete(current);
     }
-    static_cast<void**>(self->list_2614)[0] = self->list_2614;
-    static_cast<void**>(self->list_2614)[1] = self->list_2614;
+    static_cast<void**>(self->tradeRecords_)[0] = self->tradeRecords_;
+    static_cast<void**>(self->tradeRecords_)[1] = self->tradeRecords_;
 }
 
 const char* Text(Message* message, std::size_t offset) { return F<const char*>(message, offset); }
@@ -202,21 +202,21 @@ const char* Text(Message* message, std::size_t offset) { return F<const char*>(m
 void __fastcall ClientRecordTrade(ClientSession* self, void*, const void* party) {
     auto* remote = static_cast<std::uint8_t*>(ClientFindParty(self));
     if (!remote) return;
-    if (!self->unknown_260C) return;
-    F<std::uint8_t>(self->unknown_260C, 0x1C) = 1;
-    F<std::uint32_t>(self->unknown_260C, 0x20) = F<std::uint32_t>(remote, 0x24);
-    ++F<std::uint32_t>(self->unknown_260C, 8);
-    std::uint32_t a = F<std::uint32_t>(self->unknown_260C, 0x20);
-    std::uint32_t b = F<std::uint32_t>(self->unknown_260C, 0x24);
-    void** sentinel = static_cast<void**>(self->list_2614);
+    if (!self->party_.ptr) return;
+    F<std::uint8_t>(self->party_.ptr, 0x1C) = 1;
+    F<std::uint32_t>(self->party_.ptr, 0x20) = F<std::uint32_t>(remote, 0x24);
+    ++F<std::uint32_t>(self->party_.ptr, 8);
+    std::uint32_t a = F<std::uint32_t>(self->party_.ptr, 0x20);
+    std::uint32_t b = F<std::uint32_t>(self->party_.ptr, 0x24);
+    void** sentinel = static_cast<void**>(self->tradeRecords_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
         if (F<std::uint32_t>(node, 0xC) == b && F<std::uint32_t>(node, 8) == a) return;
     void* inserted;
-    TradesInsertDefault(&self->list_2614, nullptr, &inserted, self->list_2614);
-    void* last = static_cast<void**>(self->list_2614)[1];   // the node just added
+    TradesInsertDefault(&self->tradeRecords_, nullptr, &inserted, self->tradeRecords_);
+    void* last = static_cast<void**>(self->tradeRecords_)[1];   // the node just added
     auto* record = static_cast<std::uint8_t*>(last) + 8;
-    F<std::uint32_t>(record, 0) = F<std::uint32_t>(self->unknown_260C, 0x20);
-    F<std::uint32_t>(record, 4) = F<std::uint32_t>(self->unknown_260C, 0x24);
+    F<std::uint32_t>(record, 0) = F<std::uint32_t>(self->party_.ptr, 0x20);
+    F<std::uint32_t>(record, 4) = F<std::uint32_t>(self->party_.ptr, 0x24);
     auto* base = reinterpret_cast<std::uint8_t*>(self);
     PartyCopyFrom(record + 8, nullptr, base + 0x2620);
     PartyCopyFrom(record + 0x78, nullptr, base + 0x2690);
@@ -227,7 +227,7 @@ EI_REPLACE(0x0041E0A0, ClientRecordTrade);
 // 0041E270: starts a party description (0073BDD0) when the binding (+0x25F0) and its player are
 // live: kept at +0x260C, the player at its +0x28 and `partner` at its +0x2C.
 void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner) {
-    auto* binding = static_cast<std::uint8_t*>(self->ref_25F0);
+    auto* binding = reinterpret_cast<std::uint8_t*>(self->binding_);
     if (!Live(binding)) return;
     if (!Live(F<void*>(binding, 0xC))) return;
     auto* party = static_cast<std::uint8_t*>(gamecrt::operator_new(0x34));
@@ -247,7 +247,7 @@ void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner
         F<std::uint32_t>(party, 0x18) = 0;
         party[0x30] = 0;
     }
-    auto* holder = reinterpret_cast<RefPtr*>(&self->unknown_260C);
+    auto* holder = &self->party_;
     if (reinterpret_cast<CRefObject*>(party) != holder->ptr) {
         if (CRefObject* old = holder->ptr) {
             if (old->refs_ != 1) {
@@ -258,8 +258,8 @@ void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner
         }
         holder->Share(reinterpret_cast<CRefObject*>(party));
     }
-    AssignRef(static_cast<std::uint8_t*>(self->unknown_260C) + 0x28, F<CRefObject*>(self->ref_25F0, 0xC));
-    AssignRef(static_cast<std::uint8_t*>(self->unknown_260C) + 0x2C, partner);
+    AssignRef(reinterpret_cast<std::uint8_t*>(self->party_.ptr) + 0x28, F<CRefObject*>(self->binding_, 0xC));
+    AssignRef(reinterpret_cast<std::uint8_t*>(self->party_.ptr) + 0x2C, partner);
 }
 EI_REPLACE(0x0041E270, ClientStartParty);
 
@@ -270,59 +270,59 @@ EI_REPLACE(0x0041E3E0, ClientDropParty);
 // --- Handlers ----------------------------------------------------------------------------------
 
 // The binding of this client (0073BCB8): kept at +0x25F0 (0041E430), dropped (0041E460).
-void __fastcall ClientOnBinding(ClientSession* self, Message* message) { AssignRef(&self->ref_25F0, reinterpret_cast<CRefObject*>(message)); }
-void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->ref_25F0); }
+void __fastcall ClientOnBinding(ClientSession* self, Message* message) { AssignRef(&self->binding_, reinterpret_cast<CRefObject*>(message)); }
+void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players (0073BC70) on +0x25D8, with the interface's player list refreshed.
 void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {   // 0041E490
-    AppendRaw(&self->list_25D8, PlayersEnd, PlayersInsert, message);
+    AppendRaw(&self->players_, PlayersEnd, PlayersInsert, message);
     UiPlayersChanged(TextTable(), nullptr, 1);
 }
 void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { UiPlayersChanged(TextTable(), nullptr, 0); }   // 0041E510
 void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {   // 0041E520
-    RemoveCounted(&self->list_25D8, PlayersErase, message);
+    RemoveCounted(&self->players_, PlayersErase, message);
     UiPlayersChanged(TextTable(), nullptr, 1);
 }
 // The chat lines (0073BC88) on +0x25DC, each shown with its number.
 void __fastcall ClientOnLine(ClientSession* self, Message* message) {   // 0041E5D0
-    AppendCounted(&self->list_25DC, LinesEnd, LinesInsert, message);
+    AppendCounted(&self->lines_, LinesEnd, LinesInsert, message);
     UiChatLine(TextTable(), nullptr, Text(message, 0x10), F<std::uint32_t>(message, 0xC));
 }
-void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(&self->list_25DC, LinesErase, message); }   // 0041E690
+void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(&self->lines_, LinesErase, message); }   // 0041E690
 // The 0073BCA0 record kept at +0x25EC.
-void __fastcall ClientOnInfo(ClientSession* self, Message* message) { AssignRef(&self->ref_25EC, reinterpret_cast<CRefObject*>(message)); }   // 0041E730
-void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->ref_25EC); }   // 0041E760
+void __fastcall ClientOnInfo(ClientSession* self, Message* message) { AssignRef(&self->info_, reinterpret_cast<CRefObject*>(message)); }   // 0041E730
+void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }   // 0041E760
 // The zones offered (0073BCD0) on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, Message* message) {   // 0041E790
-    AppendCounted(&self->list_25F8, ZonesEnd, ZonesInsert, message);
+    AppendCounted(&self->zones_, ZonesEnd, ZonesInsert, message);
     FlowZoneOffered(Flow(), nullptr, Text(message, 0xC));
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, Message* message) {   // 0041E850
-    RemoveCounted(&self->list_25F8, ZonesErase, message);
+    RemoveCounted(&self->zones_, ZonesErase, message);
     FlowZoneWithdrawn(Flow(), nullptr, Text(message, 0xC));
 }
 // The current map (0073BD00) at +0x25F4; without a server of our own the flow loads it.
 void __fastcall ClientOnMap(ClientSession* self, Message* message) {   // 0041E900
-    AssignRef(&self->ref_25F4, reinterpret_cast<CRefObject*>(message));
-    auto* server = *reinterpret_cast<CRefObject**>(0x0079B5DC);
+    AssignRef(&self->map_, reinterpret_cast<CRefObject*>(message));
+    auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(Flow(), nullptr, Text(message, 0xC));
     FlowLoadMap(Flow(), nullptr, Text(message, 0xC));
 }
-void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->ref_25F4); }   // 0041E960
+void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables (0073BCE8) on +0x25FC; the flow is told of every change.
 void __fastcall ClientOnVariable(ClientSession* self, Message* message) {   // 0041E990
-    AppendRaw(&self->list_25FC, VariablesEnd, VariablesInsert, message);
+    AppendRaw(&self->variables_, VariablesEnd, VariablesInsert, message);
     FlowVariablesChanged(Flow());
 }
 void __fastcall ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(Flow()); }   // 0041EA10
 void __fastcall ClientOnVariableGone(ClientSession* self, Message* message) {   // 0041EA20
-    RemoveRaw(&self->list_25FC, VariablesErase, message);
+    RemoveRaw(&self->variables_, VariablesErase, message);
     FlowVariablesChanged(Flow());
 }
 // The shared files (0073BD18) on +0x25E0; for a file the flow lacks, a request (0073BC58 holding
 // the file) goes on +0x25E8.
 void __fastcall ClientOnFile(ClientSession* self, Message* message) {   // 0041EAC0
-    AppendRaw(&self->list_25E0, FilesEnd, FilesInsert, message);
+    AppendRaw(&self->files_, FilesEnd, FilesInsert, message);
     if (FlowHasFile(Flow(), nullptr, Text(message, 0x14))) return;
     auto* request = static_cast<std::uint8_t*>(gamecrt::operator_new(0x14));
     F<std::uint32_t>(request, 4) = 0;
@@ -335,12 +335,12 @@ void __fastcall ClientOnFile(ClientSession* self, Message* message) {   // 0041E
         F<std::uintptr_t>(request, 0) = kRequestVtable;
     }
     AssignRef(request + 0xC, reinterpret_cast<CRefObject*>(message));
-    AppendRaw(&self->list_25E8, RequestsEnd, RequestsInsert, reinterpret_cast<Message*>(request));
+    AppendRaw(&self->fileRequests_, RequestsEnd, RequestsInsert, reinterpret_cast<Message*>(request));
 }
 void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0041EBF0
-    RemoveRaw(&self->list_25E0, FilesErase, message);
-    void* requests = &self->list_25E8;
-    void** sentinel = static_cast<void**>(self->list_25E8);
+    RemoveRaw(&self->files_, FilesErase, message);
+    void* requests = &self->fileRequests_;
+    void** sentinel = static_cast<void**>(self->fileRequests_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
         void** next = static_cast<void**>(node[0]);
         if (F<Message*>(node[2], 0xC) == message) {
@@ -351,12 +351,12 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0
     }
 }
 // The file chunks (0073BD30) on +0x25E4 (the channel 0 handler 0041ECC0, which stores them, is Rebirth's).
-void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(&self->list_25E4, ObjectsErase, message); }   // 0041EF10
+void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(&self->chunks_, ObjectsErase, message); }   // 0041EF10
 // The awards (0073BD48) on +0x2608 (applied by the tick).
-void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(&self->list_2608, AwardsEnd, AwardsInsert, message); }   // 0041EF90
+void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(&self->awards_, AwardsEnd, AwardsInsert, message); }   // 0041EF90
 // The party descriptions (0073BDD0) on +0x2610; the one paired with ours rebuilds the party.
 void __fastcall ClientOnParty(ClientSession* self, Message* message) {   // 0041EFF0
-    AppendRaw(&self->list_2610, PartiesEnd, PartiesInsert, message);
+    AppendRaw(&self->offers_, PartiesEnd, PartiesInsert, message);
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);
     ClientApplyParty(self);
@@ -366,7 +366,7 @@ void __fastcall ClientOnPartyChanged(ClientSession* self, Message* message) {   
     ClientCommitParty(self);
     ClientApplyParty(self);
 }
-void __fastcall ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(&self->list_2610, PartiesErase, message); }   // 0041F0D0
+void __fastcall ClientOnPartyGone(ClientSession* self, Message* message) { RemoveRaw(&self->offers_, PartiesErase, message); }   // 0041F0D0
 // Party members (0073BD78), every channel: the description committed and the party rebuilt.
 void __fastcall ClientOnMember(ClientSession* self, Message*) {   // 0041F150 / 0041F180 / 0041F1B0
     ClientCommitParty(self);
@@ -374,24 +374,24 @@ void __fastcall ClientOnMember(ClientSession* self, Message*) {   // 0041F150 / 
 }
 // The trade (0073BD60) at +0x2618: a new one empties the trade records and resets both parties.
 void __fastcall ClientOnTrade(ClientSession* self, Message* message) {   // 0041F1E0
-    AssignRef(&self->unknown_2618, reinterpret_cast<CRefObject*>(message));
+    AssignRef(&self->trade_, reinterpret_cast<CRefObject*>(message));
     ClearTradeRecords(self);
-    PartyReset(&self->records[0], nullptr, 1, 0);
-    PartyReset(&self->records[1], nullptr, 1, 0);
+    PartyReset(&self->parties_[0], nullptr, 1, 0);
+    PartyReset(&self->parties_[1], nullptr, 1, 0);
 }
 // A finished trade (done, and ours): the record of the two sides' values is shown, then the trade,
 // the party description and the records are dropped.
 void __fastcall ClientOnTradeChanged(ClientSession* self, Message* message) {   // 0041F270
-    if (!F<std::uint8_t>(message, 0x1C) || message != self->unknown_2618) return;
+    if (!F<std::uint8_t>(message, 0x1C) || message != self->trade_) return;
     std::uint32_t a, b;
-    if (F<void*>(message, 0x14) == self->unknown_260C) {
+    if (F<void*>(message, 0x14) == self->party_.ptr) {
         b = F<std::uint32_t>(message, 0x20);
         a = F<std::uint32_t>(message, 0x24);
     } else {
         b = F<std::uint32_t>(message, 0x24);
         a = F<std::uint32_t>(message, 0x20);
     }
-    void** sentinel = static_cast<void**>(self->list_2614);
+    void** sentinel = static_cast<void**>(self->tradeRecords_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
         if (F<std::uint32_t>(node, 0xC) == b && F<std::uint32_t>(node, 8) == a) {
             auto* record = reinterpret_cast<std::uint8_t*>(node) + 8;
@@ -399,13 +399,13 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, Message* message) {   
             break;
         }
     }
-    ClearRef(&self->unknown_2618);
+    ClearRef(&self->trade_);
     DropParty(self);
     ClearTradeRecords(self);
 }
 void __fastcall ClientOnTradeGone(ClientSession* self, Message* message) {   // 0041F3A0
-    if (self->unknown_2618 != message) return;
-    ClearRef(&self->unknown_2618);
+    if (self->trade_ != message) return;
+    ClearRef(&self->trade_);
     DropParty(self);
     ClearTradeRecords(self);
 }

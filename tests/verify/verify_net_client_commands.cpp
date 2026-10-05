@@ -17,18 +17,14 @@
 #include <cstring>
 
 namespace net {
-void __fastcall ClientAddTimed(ClientSession* self, void*, CRefObject* object, std::uint32_t seconds);
-void __fastcall ClientSendCommand(ClientSession* self, void*, int kind, const char* text);
-void __fastcall ClientDescribe(ClientSession* self, void*, RefPtr* out);
 double __fastcall ClientBufferRatio(ClientSession* self, void*, GameBuffer* buffer);
-void __fastcall ClientBeginGame(ClientSession* self);
 }
 
 namespace {
 void* s_unused;
 
 std::uint8_t* LastTimed(net::ClientSession* self, std::uint32_t* seconds) {
-    void** sentinel = static_cast<void**>(self->list_2604);
+    void** sentinel = static_cast<void**>(self->timers_);
     auto** last = static_cast<void**>(sentinel[1]);
     if (last == sentinel) return nullptr;
     std::memcpy(seconds, &last[2], 4);
@@ -36,7 +32,7 @@ std::uint8_t* LastTimed(net::ClientSession* self, std::uint32_t* seconds) {
 }
 
 void __fastcall AddTimedVerify(net::ClientSession* self, void*, CRefObject* object, std::uint32_t seconds) {
-    net::ClientAddTimed(self, nullptr, object, seconds);
+    self->AddTimed(object, seconds);
     std::uint32_t stored = 0;
     LastTimed(self, &stored);
     ei::verify::Check("ClientAddTimed", true, stored == seconds, "");
@@ -47,7 +43,7 @@ void __fastcall SendCommandVerify(net::ClientSession* self, void*, int kind, con
     std::size_t length = std::strlen(text);
     bool fits = length < sizeof(copy);
     if (fits) std::memcpy(copy, text, length);
-    net::ClientSendCommand(self, nullptr, kind, text);
+    self->SendCommand(kind, text);
     std::uint32_t seconds = 0;
     std::uint8_t* command = LastTimed(self, &seconds);
     bool ok = command != nullptr && seconds == 0x42700000u;
@@ -62,7 +58,7 @@ void __fastcall SendCommandVerify(net::ClientSession* self, void*, int kind, con
 }
 
 void __fastcall DescribeVerify(net::ClientSession* self, void*, RefPtr* out) {
-    net::ClientDescribe(self, nullptr, out);
+    self->ClientSession::CreateEntry(out);
     bool ok = out->ptr != nullptr;
     if (ok) {
         std::uint32_t kind;
@@ -91,7 +87,7 @@ double __fastcall BufferRatioVerify(net::ClientSession* self, void*, GameBuffer*
     return actual;
 }
 void __fastcall BeginGameVerify(net::ClientSession* self) {
-    net::ClientBeginGame(self);
+    self->ClientSession::OnJoined();
     ei::verify::Check("ClientBeginGame", true, true, "");
 }
 } // namespace

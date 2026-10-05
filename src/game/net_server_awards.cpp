@@ -4,6 +4,7 @@
 #pragma float_control(precise, on)
 
 #include "net_classes.h"
+#include "net_connection.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 
@@ -241,9 +242,9 @@ void ServerSession::CompleteZone(const StringRep* zone) {
         float award0 = static_cast<float>(value0 / divisor);
         float award1 = static_cast<float>(value1 / divisor);
 
-        void** sentinel = static_cast<void**>(clients_);
-        for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
-            auto* connection = static_cast<CRefObject*>(node[2]);
+        ClientNode* sentinel = clients_;
+        for (ClientNode* node = sentinel->next; node != sentinel;) {
+            CRefObject* connection = node->connection;
             std::uint8_t allocator = 0;
             StringRep text0;
             StringWithAlloc(&text0, nullptr, &allocator);
@@ -254,8 +255,8 @@ void ServerSession::CompleteZone(const StringRep* zone) {
             StringWithAlloc(&text1, nullptr, &allocator);
             StringRangeInitTag(&text1, nullptr, empty, empty + std::strlen(empty), static_cast<std::uint32_t>(share));
             QueueAward(connection, 1, award1, text1);
-            node = static_cast<void**>(node[0]);
-            sentinel = static_cast<void**>(clients_);
+            node = node->next;
+            sentinel = clients_;
         }
         AwardHost(entry, true);
     }
@@ -335,19 +336,9 @@ void ServerSession::LeaveZone() {
     WorldPrepareMap(reinterpret_cast<void*>(kWorld), nullptr, nullptr);
 }
 
-namespace {
-void __fastcall LeaveZoneHook(ServerSession* self) { self->LeaveZone(); }
-void __fastcall QueueAwardHook(ServerSession* self, void*, CRefObject* connection, int kind, float value, StringRep text) {
-    self->QueueAward(connection, kind, value, text);
-}
-void __fastcall AwardHostHook(ServerSession* self, void*, const std::uint8_t* entry, bool withFinal) {
-    self->AwardHost(entry, withFinal);
-}
-void __fastcall CompleteZoneHook(ServerSession* self, void*, const StringRep* zone) { self->CompleteZone(zone); }
-} // namespace
-EI_REPLACE(0x00419D90, QueueAwardHook);
-EI_REPLACE(0x004191C0, AwardHostHook);
-EI_REPLACE(0x00418ED0, CompleteZoneHook);
-EI_REPLACE(0x00418CC0, LeaveZoneHook);
+EI_REPLACE_METHOD(0x00419D90, ServerSession::QueueAward);
+EI_REPLACE_METHOD(0x004191C0, ServerSession::AwardHost);
+EI_REPLACE_METHOD(0x00418ED0, ServerSession::CompleteZone);
+EI_REPLACE_METHOD(0x00418CC0, ServerSession::LeaveZone);
 
 } // namespace net

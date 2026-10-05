@@ -221,10 +221,7 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, Message* message) {
     ReleaseInline(removing.ptr);
 }
 
-namespace {
-void* __fastcall FindTradeHook(ServerSession* self, void*, void* offer, void* other) { return self->FindTrade(offer, other); }
-} // namespace
-EI_REPLACE(0x0041ACF0, FindTradeHook);
+EI_REPLACE_METHOD(0x0041ACF0, ServerSession::FindTrade);
 EI_REPLACE(0x0041B720, ServerOnObjectRemoved);
 EI_REPLACE(0x0041B7A0, ServerOnTradeOffer);
 EI_REPLACE(0x0041B970, ServerOnTradeUpdate);

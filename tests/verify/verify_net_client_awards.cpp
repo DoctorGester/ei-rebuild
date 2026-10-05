@@ -8,23 +8,21 @@
 #include <cstring>
 
 namespace net {
-void __fastcall ClientApplyAwards(ClientSession* self);
-void __fastcall ClientTick(ClientSession* self, void*, double dt);
 }
 
 namespace {
 void* s_unused;
 
 void __fastcall ApplyAwardsVerify(net::ClientSession* self) {
-    net::ClientApplyAwards(self);
-    void** awards = static_cast<void**>(self->list_2608);
+    self->ApplyAwards();
+    void** awards = static_cast<void**>(self->awards_);
     ei::verify::Check("ClientApplyAwards", true, awards[0] == awards && awards[1] == awards, "");
 }
 
 void __fastcall TickVerify(net::ClientSession* self, void*, double dt) {
-    net::ClientTick(self, nullptr, dt);
+    self->ClientSession::Tick(dt);
     bool ok = true;
-    void** sentinel = static_cast<void**>(self->list_2604);
+    void** sentinel = static_cast<void**>(self->timers_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
         float seconds;
         std::memcpy(&seconds, &node[2], 4);

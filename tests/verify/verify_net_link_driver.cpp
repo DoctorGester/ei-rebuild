@@ -354,11 +354,11 @@ void __fastcall DriverPumpVerify(DriverLink* self) {
     LinkCopy copy(&self->base);
     std::memcpy(g_player, self->player, sizeof(g_player));
     copy.Driver()->player = reinterpret_cast<CRefObject*>(g_player);
-    GameBuffer& in = ConnectionOf(self->player)->reliableIn;
+    GameBuffer& in = ConnectionOf(self->player)->reliableIn_;
     unsigned before = static_cast<unsigned>(in.cur - in.begin);
     s_pump(copy.Driver());
     DriverPump(self);
-    const GameBuffer& expectedIn = reinterpret_cast<net::Connection*>(g_player)->reliableIn;
+    const GameBuffer& expectedIn = reinterpret_cast<net::Connection*>(g_player)->reliableIn_;
     bool same = SameStream(&copy.Link()->inbox, &self->base.inbox) && SameBufferFields(expectedIn, in);
     ei::verify::Check("DriverPump", true, same, "%u bytes", before);
 }
@@ -372,13 +372,13 @@ int __fastcall DriverSendBytesVerify(DriverLink* self, void*, const void* data, 
         ei::verify::Check("DriverSendBytes", expected, actual, "no player");
         return actual;
     }
-    GameBuffer& out = ConnectionOf(self->player)->reliableOut;
+    GameBuffer& out = ConnectionOf(self->player)->reliableOut_;
     if (VtableOf(&out) != kGrowingBufferVtable) return DriverSendBytes(self, nullptr, data, size);
     alignas(8) std::uint8_t copy[sizeof(DriverLink)];
     std::memcpy(copy, self, sizeof(copy));
     std::memcpy(g_player, self->player, sizeof(g_player));
     reinterpret_cast<DriverLink*>(copy)->player = reinterpret_cast<CRefObject*>(g_player);
-    GameBuffer& scratch = reinterpret_cast<net::Connection*>(g_player)->reliableOut;
+    GameBuffer& scratch = reinterpret_cast<net::Connection*>(g_player)->reliableOut_;
     GameBufferCopy(&scratch, nullptr, &out);
     scratch.base = out.base;
 
@@ -409,7 +409,7 @@ void __fastcall DriverDisconnectVerify(DriverLink* self) {
     std::uint32_t unread = self->base.inbox.size_;
     std::uint32_t incoming = 0;
     if (checkStream) {
-        GameBuffer& in = ConnectionOf(player)->reliableIn;
+        GameBuffer& in = ConnectionOf(player)->reliableIn_;
         const std::uint8_t* high = in.cur > in.high ? in.cur : in.high;
         incoming = static_cast<std::uint32_t>(in.base + (high - in.begin));
         checkStream = in.base == 0 && unread <= kKeep && incoming <= kKeep;
@@ -421,7 +421,7 @@ void __fastcall DriverDisconnectVerify(DriverLink* self) {
     DriverDisconnect(self);
     bool ok = self->player == nullptr && self->base.inbox.size_ == 0;
     if (ok && checkStream) {
-        GameBuffer& in = ConnectionOf(player)->reliableIn;
+        GameBuffer& in = ConnectionOf(player)->reliableIn_;
         ok = static_cast<std::uint32_t>(in.cur - in.begin) == unread + incoming && std::memcmp(in.begin, g_unread, unread) == 0 &&
              std::memcmp(in.begin + unread, g_incoming, incoming) == 0;
     }

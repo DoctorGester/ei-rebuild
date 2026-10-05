@@ -20,14 +20,13 @@ namespace {
 using namespace net;
 
 // 0041C420: PUSH ECX (1), MOV DL,[ESP+3] (4).
-void*(__fastcall* s_vector)(std::uint32_t*);
-void* __fastcall VectorVerify(std::uint32_t* self) {
-    std::uint32_t scratch[4];
-    std::memcpy(scratch, self, sizeof(scratch));
-    void* expectedRet = s_vector(scratch);
-    void* actualRet = ClientVectorConstruct(self);
+QueryVector*(__fastcall* s_vector)(QueryVector*);
+QueryVector* __fastcall VectorVerify(QueryVector* self) {
+    QueryVector scratch = *self;
+    QueryVector* expectedRet = s_vector(&scratch);
+    QueryVector* actualRet = ClientVectorConstruct(self);
     ei::verify::Check("ClientVectorConstruct", true,
-                      expectedRet == scratch && actualRet == self && std::memcmp(scratch, self, sizeof(scratch)) == 0, "");
+                      expectedRet == &scratch && actualRet == self && std::memcmp(&scratch, self, sizeof(scratch)) == 0, "");
     return actualRet;
 }
 
@@ -43,18 +42,19 @@ ClientSession* __fastcall ClientConstructVerify(ClientSession* self) {
     netverify::BuiltCompare cmp{scratch, actual, kSize};
     cmp.Range(0, kSize, {0x54});
     netverify::CompareSessionTables(cmp, scratch, actual);
-    cmp.Nested(reinterpret_cast<ClientSession*>(scratch)->player, self->player, 0x34, "player record");
+    cmp.Nested(reinterpret_cast<ClientSession*>(scratch)->player_.ptr, self->player_.ptr, 0x34, "player record");
     ei::verify::Check("ClientSession::Construct", true,
                       cmp.ok && expectedRet == reinterpret_cast<ClientSession*>(scratch) && actualRet == self, "%s",
                       cmp.detail);
-    ei::VCall<void*>(scratch, 0, 1);   // deleting destructor
+    delete reinterpret_cast<ClientSession*>(scratch);   // the deleting destructor (slot 0)
     return actualRet;
 }
 
 // 0041D050: SUB ESP,8 (3), PUSH EBX (1), PUSH EBP (1).
 void(__fastcall* s_collect)(ClientSession*, void*, ReplicatedVector**);
 void __fastcall ClientCollectVerify(ClientSession* self, void*, ReplicatedVector** out) {
-    netverify::CheckCollect("ClientCollectReplicated", self, out, ClientCollectReplicated, s_collect);
+    auto ours = [](ClientSession* session, void*, ReplicatedVector** to) { session->ClientSession::CollectReplicated(to); };
+    netverify::CheckCollect("ClientCollectReplicated", self, out, ours, s_collect);
 }
 
 } // namespace

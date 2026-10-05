@@ -14,7 +14,7 @@ void* s_unused;
 const float* ValueOf(net::ServerSession* self, const net::StringRep* name) {
     void* found;
     self->FindVariable(&found, name);
-    if (found == self->list_25B0) return nullptr;
+    if (found == self->variables_) return nullptr;
     return reinterpret_cast<const float*>(static_cast<std::uint8_t*>(static_cast<void**>(found)[2]) + 0x18);
 }
 
@@ -41,7 +41,7 @@ void** __fastcall FindOrAddVerify(net::ServerSession* self, void*, void** out, c
     void** result = self->FindOrAddVariable(out, name);
     void* found;
     self->FindVariable(&found, name);
-    ei::verify::Check("ServerSession::FindOrAddVariable", true, result == out && *out == found && found != self->list_25B0, "");
+    ei::verify::Check("ServerSession::FindOrAddVariable", true, result == out && *out == found && found != self->variables_, "");
     return result;
 }
 

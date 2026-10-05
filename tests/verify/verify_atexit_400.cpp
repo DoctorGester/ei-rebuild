@@ -22,7 +22,6 @@ void __cdecl DestroyGlobalBuffer2();
 void __cdecl DestroyGlobalVector();
 }
 namespace net {
-int __fastcall ConnectionSilent(const Connection* self);
 IdPool* __fastcall IdPoolConstruct(IdPool* self);
 void* __fastcall HandlerVectorConstruct(HandlerVector* self);
 }
@@ -49,7 +48,7 @@ EI_EXIT_VERIFY(DestroyGlobalVector)
 int(__fastcall* s_silent)(const net::Connection*);
 int __fastcall SilentVerify(const net::Connection* self) {
     int expected = s_silent(self);
-    int actual = net::ConnectionSilent(self);
+    int actual = self->Silent();
     ei::verify::Check("ConnectionSilent", expected, actual, "");
     return actual;
 }

@@ -184,21 +184,11 @@ double ServerSession::GetVariable(const StringRep* name) {
     return GameFloat(0x0073B858);
 }
 
-namespace {
-void** __fastcall FindVariableHook(ServerSession* self, void*, void** out, const StringRep* name) { return self->FindVariable(out, name); }
-void** __fastcall FindOrAddVariableHook(ServerSession* self, void*, void** out, const StringRep* name) {
-    return self->FindOrAddVariable(out, name);
-}
-void __fastcall SetVariableHook(ServerSession* self, void*, const StringRep* name, float value) { self->SetVariable(name, value); }
-void __fastcall RaiseVariableHook(ServerSession* self, void*, const StringRep* name, float value) { self->RaiseVariable(name, value); }
-void __fastcall RemoveVariableHook(ServerSession* self, void*, const StringRep* name) { self->RemoveVariable(name); }
-double __fastcall GetVariableHook(ServerSession* self, void*, const StringRep* name) { return self->GetVariable(name); }
-} // namespace
-EI_REPLACE(0x00419570, FindVariableHook);
-EI_REPLACE(0x004195D0, FindOrAddVariableHook);
-EI_REPLACE(0x00419730, SetVariableHook);
-EI_REPLACE(0x004197D0, RaiseVariableHook);
-EI_REPLACE(0x004198D0, RemoveVariableHook);
-EI_REPLACE(0x00419940, GetVariableHook);
+EI_REPLACE_METHOD(0x00419570, ServerSession::FindVariable);
+EI_REPLACE_METHOD(0x004195D0, ServerSession::FindOrAddVariable);
+EI_REPLACE_METHOD(0x00419730, ServerSession::SetVariable);
+EI_REPLACE_METHOD(0x004197D0, ServerSession::RaiseVariable);
+EI_REPLACE_METHOD(0x004198D0, ServerSession::RemoveVariable);
+EI_REPLACE_METHOD(0x00419940, ServerSession::GetVariable);
 
 } // namespace net

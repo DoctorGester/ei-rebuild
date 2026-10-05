@@ -61,64 +61,60 @@ void ReleaseInline(void* slot) {
 // 0041CA10: the destructor body. The client's own vtable is not restored first (the original does
 // not either).
 void ClientSession::Destruct() {
-    PartyDestruct(&records[1]);
-    PartyDestruct(&records[0]);
-    if (unknown_2618) static_cast<CRefObject*>(unknown_2618)->Release();
-    List2614Destruct(&list_2614);
-    List2610Destruct(&list_2610);
-    reinterpret_cast<RefPtr*>(&unknown_260C)->Destroy();
-    DestroyList(list_2608, List2608Clear, List2608Free);
-    DestroyList(list_2604, List2604Clear, List2604Free);
-    if (auto* local = static_cast<CRefObject*>(player)) {
+    PartyDestruct(&parties_[1]);
+    PartyDestruct(&parties_[0]);
+    if (trade_) static_cast<CRefObject*>(trade_)->Release();
+    List2614Destruct(&tradeRecords_);
+    List2610Destruct(&offers_);
+    party_.Destroy();
+    DestroyList(awards_, List2608Clear, List2608Free);
+    DestroyList(timers_, List2604Clear, List2604Free);
+    if (auto* local = player_.ptr) {
         if (local->refs_ != 1) {
             local->flags7_ |= CRefObject::kDetached;
             local->Shutdown();
         }
-        static_cast<CRefObject*>(player)->Release();
+        player_.ptr->Release();
     }
-    DestroyList(list_25FC, List25FCClear, List25FCFree);
-    DestroyList(list_25F8, List25F8Clear, List25F8Free);
-    ReleaseInline(ref_25F4);
-    ReleaseInline(ref_25F0);
-    ReleaseInline(ref_25EC);
-    DestroyList(list_25E8, List25E8Clear, List25E8Free);
-    DestroyList(list_25E4, List25E4Clear, List25E4Free);
-    DestroyList(list_25E0, List25E0Clear, List25E0Free);
-    DestroyList(list_25DC, List25DCClear, List25DCFree);
-    List25D8Clear(&list_25D8);
-    List25D8FreeNode(list_25D8, 1);
-    List25BCClear(&list_25BC);
-    Vector25ACDestruct(vector_25AC);
-    List25A8Destruct(&list_25A8);
-    GrowingBufferDestruct(buffer);
-    base.Destruct();
+    DestroyList(variables_, List25FCClear, List25FCFree);
+    DestroyList(zones_, List25F8Clear, List25F8Free);
+    ReleaseInline(map_);
+    ReleaseInline(binding_);
+    ReleaseInline(info_);
+    DestroyList(fileRequests_, List25E8Clear, List25E8Free);
+    DestroyList(chunks_, List25E4Clear, List25E4Free);
+    DestroyList(files_, List25E0Clear, List25E0Free);
+    DestroyList(lines_, List25DCClear, List25DCFree);
+    List25D8Clear(&players_);
+    List25D8FreeNode(players_, 1);
+    List25BCClear(&waiting_);
+    Vector25ACDestruct(&queries_);
+    List25A8Destruct(&servers_);
+    GrowingBufferDestruct(&joinData_);
+    SessionBase::Destruct();
 }
-
-namespace {
-void __fastcall ClientDestructHook(ClientSession* self) { self->Destruct(); }
-} // namespace
-EI_REPLACE(0x0041CA10, ClientDestructHook);
+EI_REPLACE_METHOD(0x0041CA10, ClientSession::Destruct);
 
 // 0041C530: the destructor body of the client's base layer (vtable 0073BE30; reached from its
 // scalar deleting destructor 0041C450 and the constructor's unwind funclets): the list +0x25BC,
 // the vector of buffers +0x25AC, the list +0x25A8, the buffer +0x2578, then the session base. The
 // original inlines the three container destructors (with the same element destructors and node
 // frees as the out-of-line ones called here, which ClientSession::Destruct uses too).
-void __fastcall ClientBaseDestruct(ClientSession* self) {
-    List25BCClear(&self->list_25BC);
-    Vector25ACDestruct(self->vector_25AC);
-    List25A8Destruct(&self->list_25A8);
-    GrowingBufferDestruct(self->buffer);
-    self->base.Destruct();
+void ClientBase::DestructBase() {
+    List25BCClear(&waiting_);
+    Vector25ACDestruct(&queries_);
+    List25A8Destruct(&servers_);
+    GrowingBufferDestruct(&joinData_);
+    SessionBase::Destruct();
 }
-EI_REPLACE(0x0041C530, ClientBaseDestruct);
+EI_REPLACE_METHOD(0x0041C530, ClientBase::DestructBase);
 
 // 0041C8B0 (slot 0): the destructor body, then the memory freed when bit 0 of `flags` is set.
-ClientSession* __fastcall ClientDeletingDestructor(ClientSession* self, void*, unsigned flags) {
-    self->Destruct();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+ClientSession* ClientSession::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0041C8B0, ClientDeletingDestructor);
+EI_REPLACE_METHOD(0x0041C8B0, ClientSession::DeletingDestruct);
 
 } // namespace net

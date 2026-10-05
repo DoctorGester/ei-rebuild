@@ -34,7 +34,7 @@ RefPtr* __fastcall CopyVerify(RefPtr* self, void*, const RefPtr* other) {
 void __fastcall QueueAwardVerify(net::ServerSession* self, void*, CRefObject* connection, int kind, float value,
                                  net::StringRep text) {
     self->QueueAward(connection, kind, value, text);
-    void** sentinel = static_cast<void**>(self->list_25B4);
+    void** sentinel = static_cast<void**>(self->awards_);
     auto** last = static_cast<void**>(sentinel[1]);
     std::uint32_t delay;
     std::memcpy(&delay, &last[2], 4);
@@ -57,15 +57,15 @@ void __fastcall AwardHostVerify(net::ServerSession* self, void*, const std::uint
 
 void __fastcall CompleteZoneVerify(net::ServerSession* self, void*, const net::StringRep* zone) {
     self->CompleteZone(zone);
-    void** messages = static_cast<void**>(self->list_25AC);
+    void** messages = static_cast<void**>(self->queuedMaps_);
     ei::verify::Check("ServerSession::CompleteZone", true, messages[0] == messages && messages[1] == messages, "");
 }
 
 void __fastcall LeaveZoneVerify(net::ServerSession* self) {
     self->LeaveZone();
-    void** messages = static_cast<void**>(self->list_25AC);
+    void** messages = static_cast<void**>(self->queuedMaps_);
     ei::verify::Check("ServerSession::LeaveZone", true,
-                      messages[0] == messages && messages[1] == messages && self->unknown_25A8 == 0, "");
+                      messages[0] == messages && messages[1] == messages && self->map_.ptr == nullptr, "");
 }
 } // namespace
 
