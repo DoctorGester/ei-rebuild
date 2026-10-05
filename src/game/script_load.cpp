@@ -35,6 +35,9 @@ __declspec(naked) void __fastcall CmdLoad(SSCCmd*, void*, ScriptStream*) EI_ORIG
 __declspec(naked) void __fastcall IfThenPairLoad(ScriptIfThen*, void*, ScriptStream*) EI_ORIGINAL(0x004BB590)
 // 004B3D10 (__fastcall): reads a string (00461190: bytes up to a zero) and assigns it.
 __declspec(naked) void __fastcall StringLoad(mfc::CString*, ScriptStream*) EI_ORIGINAL(0x004B3D10)
+// 00461190 (__thiscall on the stream, RET 4; rewritten in core_streams.cpp, called through its
+// address): bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
+__declspec(naked) mfc::CString* __fastcall StreamReadString(ScriptStream*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 // 004BF540 CScript::NewCommandList: a new empty command block in the +0x70 list.
 __declspec(naked) ScriptDecl* __fastcall NewCommandList(CScript*) EI_ORIGINAL(0x004BF540)
 // 004BFA50 CScript::FindBlock (rewritten below; SSCCmd::Load calls it out of line).
@@ -357,6 +360,23 @@ void __fastcall ScriptCmdLoad(SSCCmd* cmd, void*, ScriptStream* stream) {
     cmd->calledScript = FindBlockOrig(SavedScript(), nullptr, ReadInt(stream));
 }
 EI_REPLACE(0x004B5FE0, ScriptCmdLoad);
+
+// One nested call element (SSCCmd::Load calls it per element): type, argument index, then the
+// element's command through SSCCmd::Load's address.
+void __fastcall ScriptSubCallLoad(ScriptSubCall* call, void*, ScriptStream* stream) {
+    stream->Read(&call->type, 4);
+    stream->Read(&call->argIndex, 4);
+    CmdLoad(call->cmd, nullptr, stream);
+}
+EI_REPLACE(0x004B6330, ScriptSubCallLoad);
+
+// A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
+void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
+    alignas(4) unsigned char temporary[sizeof(mfc::CString)];
+    *out = *StreamReadString(stream, nullptr, temporary);
+    reinterpret_cast<mfc::CString*>(temporary)->~CString();
+}
+EI_REPLACE(0x004B3D10, ScriptStringLoad);
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 

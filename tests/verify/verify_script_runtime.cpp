@@ -1,12 +1,14 @@
 // Checks for QFinish (src/game/script_exec_helpers.cpp), the CScript reset (script_reset.cpp) and
-// ScriptDefinition::AddParameter (script_vars.cpp).
+// ScriptDefinition::AddParameter (script_vars.cpp) and the ScriptDefinition reset (script_reset.cpp).
 #include "verify.h"
 
 #include "../../src/game/script.h"
 
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include <string>
+#include <vector>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -134,8 +136,66 @@ BOOL __fastcall AddParameterVerify(ScriptDefinition* self, void*, const mfc::CSt
     return result;
 }
 
+// ---- ScriptDefinition reset ---------------------------------------------------------------------------
+
+__declspec(naked) void __fastcall VarsConstructAt(void*) EI_ORIGINAL(0x004C00D0)
+__declspec(naked) void __fastcall DefinitionAssign(void*, void*, const void*) EI_ORIGINAL(0x004CB460)
+__declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
+
+template <typename T>
+bool SameEmptied(const MfcArray<T>& a, const MfcArray<T>& b) {
+    return a.vtable == b.vtable && a.data == b.data && a.size == b.size && a.maxSize == b.maxSize;
+}
+
+// The growBy words of the nine arrays (SetSize(0, -1) keeps them; the scratch's are its own).
+std::vector<int> GrowBys(const ScriptDefinition& d) {
+    const ScriptVars& v = d.vars;
+    return {d.ifThen.growBy, v.floats.growBy, v.floatNames.growBy, v.strings.growBy, v.stringNames.growBy,
+            v.objects.growBy, v.objectNames.growBy, v.groups.growBy, v.groupNames.growBy};
+}
+
+// 004D3320: PUSH EBX; PUSH ESI; MOV ESI,ECX; PUSH EDI (5 bytes). Against the original: a scratch
+// definition is built as CScript::Load builds its local one (empty strings, the if-then vtable
+// 0073D430, the ScriptVars constructor) and assigned from the real one (004CB460, a deep copy);
+// the original resets the scratch, ours the real one. Compared: index, name, parameters and every
+// array's vtable, data, size and capacity (all written by the reset); the real one's growBy words
+// unchanged. The scratch is destroyed with 004BE9D0.
+void(__fastcall* s_definitionReset)(ScriptDefinition*);
+void __fastcall DefinitionResetVerify(ScriptDefinition* self) {
+    alignas(ScriptDefinition) unsigned char raw[sizeof(ScriptDefinition)];
+    auto* scratch = reinterpret_cast<ScriptDefinition*>(raw);
+    new (&scratch->name) mfc::CString;
+    new (&scratch->params) mfc::CString;
+    scratch->ifThen.vtable = reinterpret_cast<void*>(0x0073D430);
+    scratch->ifThen.data = nullptr;
+    scratch->ifThen.size = 0;
+    scratch->ifThen.maxSize = 0;
+    scratch->ifThen.growBy = 0;
+    VarsConstructAt(&scratch->vars);
+    scratch->index = 0;
+    DefinitionAssign(scratch, nullptr, self);
+    int pairs = self->ifThen.size;
+    std::vector<int> growBys = GrowBys(*self);
+
+    s_definitionReset(scratch);
+    ScriptDefinitionReset(self);
+
+    const ScriptVars& a = scratch->vars;
+    const ScriptVars& b = self->vars;
+    bool ok = scratch->index == self->index && std::strcmp(scratch->name, self->name) == 0 &&
+              std::strcmp(scratch->params, self->params) == 0 && SameEmptied(scratch->ifThen, self->ifThen) &&
+              SameEmptied(a.floats, b.floats) && SameEmptied(a.floatNames, b.floatNames) &&
+              SameEmptied(a.strings, b.strings) && SameEmptied(a.stringNames, b.stringNames) &&
+              SameEmptied(a.objects, b.objects) && SameEmptied(a.objectNames, b.objectNames) &&
+              SameEmptied(a.groups, b.groups) && SameEmptied(a.groupNames, b.groupNames) && GrowBys(*self) == growBys;
+    ei::verify::Check("ScriptDefinitionReset", true, ok, "definition with %d pairs: name \"%s\" params \"%s\"", pairs,
+                      static_cast<const char*>(self->name), static_cast<const char*>(self->params));
+    DefinitionDestruct(scratch);
+}
+
 } // namespace
 
+EI_VERIFY(0x004D3320, DefinitionResetVerify, 5, s_definitionReset);
 EI_VERIFY(0x004BAAB0, QuestFinishVerify, 6, s_questFinish);
 EI_VERIFY(0x004BE6E0, ResetVerify, 0, s_unused);
 EI_VERIFY(0x004BB800, AddParameterVerify, 0, s_unused);

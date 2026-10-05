@@ -227,6 +227,23 @@ ScriptSubCall* __fastcall SubCallCopyAtVerify(const MfcArray<ScriptSubCall>* sel
     return out;
 }
 
+// 004C00D0: PUSH -1; PUSH 0x718C7E (7 bytes). The ScriptVars constructor writes every one of the
+// 0xA0 bytes (vtables and zeroes, no allocation): the original into a scratch filled with 0xCC,
+// ours into the real set; all bytes and the returned pointers compared.
+ScriptVars*(__fastcall* s_varsConstruct)(ScriptVars*);
+ScriptVars* __fastcall VarsConstructVerify(ScriptVars* self) {
+    alignas(ScriptVars) unsigned char raw[sizeof(ScriptVars)];
+    std::memset(raw, 0xCC, sizeof(raw));
+    auto* scratch = reinterpret_cast<ScriptVars*>(raw);
+    ScriptVars* expected = s_varsConstruct(scratch);
+    ScriptVars* actual = ScriptVarsConstruct(self);
+    bool ok = expected == scratch && actual == self && std::memcmp(raw, self, sizeof(ScriptVars)) == 0;
+    std::size_t at = 0;
+    while (at < sizeof(ScriptVars) && raw[at] == reinterpret_cast<const unsigned char*>(self)[at]) ++at;
+    ei::verify::Check("ScriptVarsConstruct", true, ok, "first difference at +0x%X", unsigned(at));
+    return actual;
+}
+
 } // namespace
 
 EI_VERIFY(0x004CB7E0, VarsCopyVerify, 0, s_unused);
@@ -240,3 +257,4 @@ EI_VERIFY(0x004CB570, RunAssignVerify, 0, s_unused);
 EI_VERIFY(0x004C6BC0, CmdAssignVerify, 0, s_unused);
 EI_VERIFY(0x004CB2D0, DeclAssignVerify, 0, s_unused);
 EI_VERIFY(0x004CB220, FxAssignVerify, 0, s_unused);
+EI_VERIFY(0x004C00D0, VarsConstructVerify, 7, s_varsConstruct);

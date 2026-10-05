@@ -318,6 +318,16 @@ bool NullSlots(const MfcArray<T*>& a) {
     return true;
 }
 
+// A loaded command (`b`, ours) against the original's (`a`): SSCCmd::Save's bytes, every array's
+// size and capacity, null object / group slots and the called block pointer.
+bool SameLoadedCmd(const SSCCmd& a, const SSCCmd& b) {
+    return SameShape(a.floatArgs, b.floatArgs) && SameShape(a.stringArgs, b.stringArgs) &&
+           SameShape(a.objectArgs, b.objectArgs) && SameShape(a.groupArgs, b.groupArgs) &&
+           SameShape(a.localBindings, b.localBindings) && SameShape(a.globalBindings, b.globalBindings) &&
+           SameShape(a.subCalls, b.subCalls) && NullSlots(b.objectArgs) && NullSlots(b.groupArgs) &&
+           a.calledScript == b.calledScript && Saved(CmdSave, &a) == Saved(CmdSave, &b);
+}
+
 // 004B5FE0: SUB ESP,0xC; PUSH EBX; MOV EBX,[ESP+0x14] (8 bytes). The original reads into a fresh
 // scratch command (constructed with 004D0A50); compared: SSCCmd::Save's bytes (id, floats, strings,
 // argument counts, bindings, the nested trees, the called block's id), every array's size and
@@ -337,16 +347,48 @@ void __fastcall CmdLoadVerify(SSCCmd* self, void*, ScriptStream* stream) {
     s_cmd(scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
     ScriptCmdLoad(self, nullptr, replay.AsScript());
-    bool ok = SameShape(scratch->floatArgs, self->floatArgs) && SameShape(scratch->stringArgs, self->stringArgs) &&
-              SameShape(scratch->objectArgs, self->objectArgs) && SameShape(scratch->groupArgs, self->groupArgs) &&
-              SameShape(scratch->localBindings, self->localBindings) &&
-              SameShape(scratch->globalBindings, self->globalBindings) && SameShape(scratch->subCalls, self->subCalls) &&
-              NullSlots(self->objectArgs) && NullSlots(self->groupArgs) && scratch->calledScript == self->calledScript &&
-              Saved(CmdSave, scratch) == Saved(CmdSave, self);
+    bool ok = SameLoadedCmd(*scratch, *self);
     char what[64];
     std::snprintf(what, sizeof(what), "command %d vs %d", scratch->id, self->id);
     Report("ScriptCmdLoad", ok, replay, record, what);
     CmdDestruct(scratch);
+}
+
+// 004B6330: PUSH ESI; MOV ESI,[ESP+8]; PUSH EDI (6 bytes). One nested call element (SSCCmd::Load
+// calls it per element). The original reads into a scratch element whose command is fresh (built
+// with 004D0A50), ours replays into the real one; type, argument index and the two commands
+// compared as in ScriptCmdLoad. Both command loads run through the 004B5FE0 wrapper.
+void(__fastcall* s_subCall)(ScriptSubCall*, void*, ScriptStream*);
+void __fastcall SubCallLoadVerify(ScriptSubCall* self, void*, ScriptStream* stream) {
+    alignas(SSCCmd) unsigned char raw[sizeof(SSCCmd)];
+    ScriptSubCall scratch{0, 0, CmdConstruct(raw)};
+    RecordStream record(stream);
+    s_subCall(&scratch, nullptr, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptSubCallLoad(self, nullptr, replay.AsScript());
+    bool ok = scratch.type == self->type && scratch.argIndex == self->argIndex && self->cmd &&
+              SameLoadedCmd(*scratch.cmd, *self->cmd);
+    char what[96];
+    std::snprintf(what, sizeof(what), "type %d arg %d vs type %d arg %d", scratch.type, scratch.argIndex, self->type,
+                  self->argIndex);
+    Report("ScriptSubCallLoad", ok, replay, record, what);
+    CmdDestruct(scratch.cmd);
+}
+
+// 004B3D10: PUSH -1; PUSH 0x717EB8 (7 bytes). A string (every name and string value of a loaded
+// save): the original reads into a scratch empty CString, ours replays into the real one; the
+// texts compared.
+void(__fastcall* s_string)(mfc::CString*, ScriptStream*);
+void __fastcall StringLoadVerify(mfc::CString* self, ScriptStream* stream) {
+    mfc::CString scratch;
+    RecordStream record(stream);
+    s_string(&scratch, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptStringLoad(self, replay.AsScript());
+    char what[96];
+    std::snprintf(what, sizeof(what), "\"%.32s\" vs \"%.32s\"", static_cast<const char*>(scratch),
+                  static_cast<const char*>(*self));
+    Report("ScriptStringLoad", SameString(scratch, *self), replay, record, what);
 }
 
 // ---- Command blocks and if-then pairs -------------------------------------------------------------------
@@ -545,6 +587,8 @@ EI_VERIFY(0x004C3200, StringsLoadVerify, 7, s_strings);
 EI_VERIFY(0x004C36B0, ObjectsLoadVerify, 5, s_objects);
 EI_VERIFY(0x004C40D0, GroupsLoadVerify, 5, s_groups);
 EI_VERIFY(0x004B5FE0, CmdLoadVerify, 8, s_cmd);
+EI_VERIFY(0x004B6330, SubCallLoadVerify, 6, s_subCall);
+EI_VERIFY(0x004B3D10, StringLoadVerify, 7, s_string);
 EI_VERIFY(0x004B3AD0, VarsLoadVerify, 8, s_vars);
 EI_VERIFY(0x004BB590, PairLoadVerify, 6, s_pair);
 EI_VERIFY(0x004BFA50, FindBlockVerify, 10, s_findBlock);

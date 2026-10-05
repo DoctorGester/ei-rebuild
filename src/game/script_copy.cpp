@@ -338,3 +338,18 @@ ScriptVars* __fastcall ScriptVarsCopyConstruct(ScriptVars* self, void*, const Sc
     return self;
 }
 EI_REPLACE(0x004CB7E0, ScriptVarsCopyConstruct);
+
+// ScriptVars' default constructor (004C00D0): each array's base constructor (004C24F0 / 004C2030 /
+// 004C3960: fields 0, base vtable) then its derived vtable, in member order; returns the set.
+ScriptVars* __fastcall ScriptVarsConstruct(ScriptVars* self) {
+    InitArray(&self->floats, kVarFloatsVtable);
+    InitArray(&self->floatNames, kStringsVtable);
+    InitArray(&self->strings, kStringsVtable);
+    InitArray(&self->stringNames, kStringsVtable);
+    InitArray(&self->objects, kRefsVtable);
+    InitArray(&self->objectNames, kStringsVtable);
+    InitArray(&self->groups, kGroupsVtable);
+    InitArray(&self->groupNames, kStringsVtable);
+    return self;
+}
+EI_REPLACE(0x004C00D0, ScriptVarsConstruct);

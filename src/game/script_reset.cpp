@@ -4,7 +4,9 @@
 #include "script.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 #include "originals_world.h"
 #include "originals_library.h"
 
@@ -43,7 +45,13 @@ __declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGIN
 // CArray::SetSize (__thiscall (size, growBy)): areas, definitions; a temporary group.
 __declspec(naked) void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
 __declspec(naked) void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770)
+<<<<<<< HEAD
 void __fastcall GroupSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
+=======
+__declspec(naked) void __fastcall GroupSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2050)
+// 004C3980: the group values' SetSize (the definition reset).
+__declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
+>>>>>>> 7925664
 // Rewritten, called through their addresses (their verify wrappers run).
 __declspec(naked) void __fastcall RefReset(void*) EI_ORIGINAL(0x004B24B0)
 __declspec(naked) void __fastcall RefAssign(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B24D0)
@@ -142,3 +150,30 @@ void __fastcall ScriptReset(CScript* script) {
     }
 }
 EI_REPLACE(0x004BE6E0, ScriptReset);
+
+// ScriptDefinition reset (004D3320; CScript::Load calls it before each `Script` section): the if-then
+// pairs freed inline (no element destructor), each variable array through its instantiation's
+// SetSize(0, -1) in member order, then index 0 and the parameters and name assigned the empty
+// string constant 0079B298 (in that order).
+void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
+    if (definition->ifThen.data) {
+        gamecrt::operator_delete(definition->ifThen.data);
+        definition->ifThen.data = nullptr;
+    }
+    definition->ifThen.maxSize = 0;
+    definition->ifThen.size = 0;
+    ScriptVars& vars = definition->vars;
+    FloatsSetSize(&vars.floats, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars.floatNames, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars.strings, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars.stringNames, nullptr, 0, -1);
+    GroupSetSize(&vars.objects, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars.objectNames, nullptr, 0, -1);
+    GroupValuesSetSize(&vars.groups, nullptr, 0, -1);
+    NamesSetSizeOriginal(&vars.groupNames, nullptr, 0, -1);
+    definition->index = 0;
+    const char* empty = reinterpret_cast<const char*>(0x0079B298);
+    definition->params = empty;
+    definition->name = empty;
+}
+EI_REPLACE(0x004D3320, ScriptDefinitionReset);

@@ -884,3 +884,31 @@ Forwarders added (`script_blocks.cpp`): 004CD6D0 (CList<ScriptDecl>::NewNode), 0
 SetSize, 004CE2F0 parts Copy, 004CC800, the SSCCmd array SetSizes 004C2510 / 004C46F0 / 004C49F0 /
 004C4CE0 / 004C4FD0; 004CC0C0 from originals_library.h. Verify: 004CC0C0, 004BF620.
 The exception frames are not reproduced.
+
+# Constructor, reset and small loaders (ticket S5: 004C00D0, 004D3320, 004B3D10, 004B6330)
+
+None is in config/library.csv, config/dead_code.csv or docs/rebirth-patched-functions.txt, so they
+install in both launches. Every caller (rewritten or not) calls them through their addresses, so
+the wrappers see every call.
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004C00D0 | 203 | ScriptVarsConstruct (ScriptVars constructor, `script_copy.cpp`) | against the original (verify_script_copy.cpp): the original into a 0xCC-filled scratch, ours into the real set; all 0xA0 bytes (every one is written: vtables and zeroes, no allocation) and both returned pointers | CScript::Load (004D23A0's local definition: every script load), the instance loader (world_load) |
+| 004D3320 | 182 | ScriptDefinitionReset (`script_reset.cpp`) | against the original (verify_script_runtime.cpp): a scratch definition built like Load's local one and assigned from the real one with 004CB460 (deep copy); the original resets the scratch, ours the real one; index, name, parameters, every array's vtable / data / size / capacity, and the real growBy words unchanged; scratch destroyed with 004BE9D0 | CScript::Load before every `Script` section: script_parse, script_exec, script_copy, console |
+| 004B3D10 | 86 | ScriptStringLoad (`script_load.cpp`) | record / replay against the original (verify_script_load.cpp): the original into a scratch empty CString, ours replays into the real one; texts compared | every name and string of a loaded save (world_load, script_copy) |
+| 004B6330 | 45 | ScriptSubCallLoad (`script_load.cpp`) | record / replay against the original: the original into a scratch element with a fresh command (004D0A50), ours into the real one; type, argument index and the commands as ScriptCmdLoad compares them (`SameLoadedCmd`); scratch command destroyed with 004BF640 | SSCCmd::Load of a command with nested calls (world_load, script_copy) |
+
+The constructor writes each array's base-constructor state (004C24F0 / 004C2030 / 004C3960: zeroes
+and the base vtable) and then the derived vtable; ours writes the end state directly (InitArray).
+The reset frees the if-then pairs inline (no element destructor; the pairs only point at blocks the
+CScript owns), runs the eight variable arrays' SetSize(0, -1) in member order (004C2880, 004C2510,
+004C2050, 004C3980), then index 0, parameters and name assigned 0079B298 (read from the exe).
+004B3D10 is __fastcall (ECX the string, EDX the stream): 00461190 (rewritten, called through its
+address) constructs the temporary, CString::operator= assigns it.
+
+Forwarders added: `script_load.cpp` 00461190; `script_reset.cpp` 004C3980 and the library header's
+004C2880 / 004C2510; verify: 004CB460 (ScriptDefinition operator=), 004BE9D0, 004C00D0.
+
+Not taken: 004BFC60 (find a definition by name): only the dead dumper 004D41C0 calls it.
+004B3900 (ScriptVars::AppendFrom, four calls to the rewritten appends) is the next small one;
+004BE9D0 / 004BE090 / 004BF640 destructors still need a verification idea (both runs would free).
