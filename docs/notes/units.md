@@ -1222,3 +1222,17 @@ C++ member is named CreateUnit: Create would override CEngineObject's virtual (r
   (PickLocation differentially, including the random draw).
 - TakeRandomItem (stealing) and TorchCreate (torch zones) may not be reached by any scenario; the
   verify counts show it. TorchCreate and CreateUnit are checked for consistency only.
+
+## X2: unit database vector code classified
+
+Library (config/library.csv): 0053F530 / 0053FCC0 / 0053F950 / 00520FA0 / 00521220 are
+vector<T>::_M_fill_insert for 0x120 / 0x168 / 0x60 / 0x18 / 0x44-byte records, 0053E2A0 is
+vector<0x120 record>::resize, 00521C70 is the 0x18-byte-record copy loop, 0051F790 is
+vector<CString>::_M_insert_overflow. Not library: 0051FB50 (destructor of an object holding a
+vector<0x44 record> and a vector<0x18 record>), 00539CE0 (vector<0x60 record> plus a hash table),
+0053A050 (the database's destructor, ~10 member vectors): these are the game's own class
+destructors and stay in the rewrite queue. 0051FF40 (perks.pdb saver) has no references (no
+rel32 call/jmp, no dword in game.exe, addon.dll, EI_Plugin.asi; tools/find_dead_code.py keeps it
+live only through the coincidental dword 0051FFE8 inside 006DE120), appended to dead_code.csv.
+No address of the ticket is registered in src/ or tests/ (0051F790 is only an EI_ORIGINAL call
+in ui_objectives.cpp).

@@ -523,3 +523,4 @@ address,size,name,evidence
 006D6A70,49,FUN_006d6a70,"no references at all (no call/jmp, no absolute pointer in code or data)"
 006E36E0,64,FUN_006e36e0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 006E3720,79,FUN_006e3720,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0051FF40,736,FUN_0051ff40,"X2 review: no CALL/JMP rel32 in game.exe .text and no dword 0051FF40 in game.exe, addon.dll or EI_Plugin.asi; only coincidental aligned dword 0051FFE8 inside 006DE120 (E8 FF 51 00 bytes of a call) (perks.pdb saver)"
