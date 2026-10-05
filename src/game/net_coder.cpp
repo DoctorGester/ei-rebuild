@@ -1,9 +1,11 @@
-// Byte-buffer cursors and the LZ coder (save games, map transfers, network messages). See
-// net_coder.h and docs/notes/unmapped_410_470.md, "Compression".
+// Byte-buffer cursors, the LZ coder (save games, map transfers, network messages) and the fixed
+// buffer view's slots. See net_coder.h and docs/notes/unmapped_410_470.md, "Compression" and
+// "Twelfth round".
 #include "net_coder.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 
 #include <cstring>
 
@@ -427,3 +429,32 @@ void CoderState::Decompress(GameBuffer* in, GameBuffer* outBuffer) {
     reader.End();
 }
 EI_REPLACE_METHOD(0x00430960, CoderState::Decompress);
+
+// --- The fixed view (0073CA64) and its base (0073CA48) --------------------------------------------
+
+namespace {
+void SetVtable(GameBuffer* b, std::uintptr_t vtable) { b->vtable = reinterpret_cast<void*>(vtable); }
+} // namespace
+
+std::uint8_t* __fastcall BufferViewSeek(GameBuffer* self, void*, std::int32_t position) {
+    self->cur = self->begin + position;
+    return self->cur;
+}
+EI_REPLACE(0x0047D930, BufferViewSeek);
+
+void __fastcall BufferViewDestruct(GameBuffer* self) { SetVtable(self, kBufferViewBaseVtable); }
+EI_REPLACE(0x0047D960, BufferViewDestruct);
+
+void* __fastcall BufferViewDeletingDestructor(GameBuffer* self, void*, unsigned flags) {
+    BufferViewDestruct(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+EI_REPLACE(0x0047D940, BufferViewDeletingDestructor);
+
+void* __fastcall BufferViewBaseDeletingDestructor(GameBuffer* self, void*, unsigned flags) {
+    SetVtable(self, kBufferViewBaseVtable);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+EI_REPLACE(0x0047D910, BufferViewBaseDeletingDestructor);

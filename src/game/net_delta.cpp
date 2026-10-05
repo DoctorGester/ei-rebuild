@@ -2,6 +2,7 @@
 #include "net_delta.h"
 
 #include "core_maths.h"
+#include "net_coder.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -35,6 +36,7 @@ std::uint32_t BitStream::Position() { return ei::VCall<std::uint32_t>(this, kSlo
 __declspec(naked) void BitStream::StartByte() EI_ORIGINAL(0x004A5610)
 __declspec(naked) void BitStream::EndBits() EI_ORIGINAL(0x004A5650)
 __declspec(naked) void BitStream::Resize(std::uint32_t) EI_ORIGINAL(0x004A54D0)
+__declspec(naked) void BitStream::SetSize(std::uint32_t) EI_ORIGINAL(0x004A5570)
 __declspec(naked) void BitStream::ReadString(void*) EI_ORIGINAL(0x00461190)
 
 void BitStream::PutBit(bool bit) {
@@ -52,6 +54,76 @@ bool BitStream::GetBit() {
     }
     return (mask_ & static_cast<std::int8_t>(bits_)) != 0;
 }
+
+// --- Whole streams: length-prefixed copies and the message compression ------------------------
+
+namespace {
+// ReadStream refuses longer streams.
+constexpr std::uint32_t kMaxStreamLength = 100000;
+
+// The growing buffer's constructor and destructor (not rewritten).
+__declspec(naked) void __fastcall GrowingBufferConstruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
+__declspec(naked) void __fastcall GrowingBufferDestruct(GameBuffer* /*buffer*/) EI_ORIGINAL(0x004DA910)
+
+// The number of bytes in a buffer, its high-water mark raised to the cursor first (inlined).
+std::uint32_t BufferLength(GameBuffer& b) {
+    if (b.cur > b.high) b.high = b.cur;
+    return static_cast<std::uint32_t>(b.base - reinterpret_cast<std::intptr_t>(b.begin) + reinterpret_cast<std::intptr_t>(b.high));
+}
+
+// 0047D7F0 / 0047D970: a fixed view over `self`'s bytes run through the coder into a growing
+// buffer, whose bytes then replace `out`'s (Resize, Seek 0, Write, Seek 0). The view is destroyed
+// (its base vtable) before the buffer.
+void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
+    GameBuffer result;
+    GrowingBufferConstruct(&result);
+    std::uint8_t* data = self->data_;
+    std::uint8_t* last = data + self->Size();
+    GameBuffer view{reinterpret_cast<void*>(kBufferViewVtable), data, data, last, last, 0, 2};
+    (coder->*code)(&view, &result);
+    out->Resize(BufferLength(result));
+    out->Seek(0);
+    std::uint32_t length = BufferLength(result);
+    out->Write(result.begin, length);
+    out->Seek(0);
+    view.vtable = reinterpret_cast<void*>(kBufferViewBaseVtable);
+    GrowingBufferDestruct(&result);
+}
+} // namespace
+
+void BitStream::WriteStream(BitStream* from) {
+    from->EndBits();
+    std::int32_t header = static_cast<std::int32_t>(from->Size() << 1);
+    if (header < 0x100) {
+        Write(&header, 1);
+    } else {
+        header |= 1;
+        Write(&header, 4);
+    }
+    std::uint8_t* data = from->data_;
+    Write(data, from->Size());
+}
+EI_REPLACE_METHOD(0x0047DA80, BitStream::WriteStream);
+
+int BitStream::ReadStream(BitStream* to) {
+    std::uint32_t length = 0;
+    Read(&length, 1);
+    if (length & 1) Read(reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
+    length >>= 1;
+    if (length > kMaxStreamLength) return 0;
+    to->SetSize(length);
+    if (Read(to->data_, length) != length) return 0;
+    to->Seek(0);
+    to->ok_ = 1;
+    return 1;
+}
+EI_REPLACE_METHOD(0x0047DAE0, BitStream::ReadStream);
+
+void BitStream::CompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
+EI_REPLACE_METHOD(0x0047D7F0, BitStream::CompressTo);
+
+void BitStream::DecompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
+EI_REPLACE_METHOD(0x0047D970, BitStream::DecompressTo);
 
 // --- Channel writers ---------------------------------------------------------------------------
 
@@ -246,6 +318,15 @@ void* DeltaField::ReadString(void* cstring) {
     return cstring;
 }
 EI_REPLACE_METHOD(0x0047E310, DeltaField::ReadString);
+
+void DeltaField::WriteStreamBoth(BitStream* from) {
+    out[0].WriteStream(from);
+    out[1].WriteStream(from);
+}
+EI_REPLACE_METHOD(0x0047E190, DeltaField::WriteStreamBoth);
+
+int DeltaField::ReadStream(BitStream* to) { return delta::Reader()->ReadStream(to); }
+EI_REPLACE_METHOD(0x0047E240, DeltaField::ReadStream);
 
 // --- Readers ------------------------------------------------------------------------------------
 

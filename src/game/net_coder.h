@@ -12,7 +12,11 @@
 //             for n more bytes to read / write (004DA630 / 004DA6B0: a new block of
 //             (base - begin + cur + n) * 2 + 0x40 bytes), slot 2 commit (empty), slot 6 Seek
 //             (004DA860, grows when needed).
-//   0073CA64  fixed view over memory owned elsewhere: slots 0 / 1 / 2 empty, 6 Seek (0047D930).
+//   0073CA64  fixed view over memory owned elsewhere: slots 0 / 1 / 2 empty, 5 deleting destructor
+//             (0047D940, body 0047D960), 6 Seek (0047D930). Its base 0073CA48 has only slot 2
+//             (empty, 0047D900) and slot 5 (deleting destructor 0047D910); the views live on the
+//             stack and are destroyed by setting the base's vtable (inlined, or 0047D960 when
+//             unwinding).
 struct GameBuffer {
     void* vtable;
     std::uint8_t* begin;       // +0x04
@@ -26,6 +30,17 @@ static_assert(sizeof(GameBuffer) == 0x1C);
 
 constexpr std::uintptr_t kGrowingBufferVtable = 0x0073D624;
 constexpr std::uintptr_t kBufferViewVtable = 0x0073CA64;
+constexpr std::uintptr_t kBufferViewBaseVtable = 0x0073CA48;
+
+// The fixed view's own slots (free functions registered at their addresses, rewrite-guide rule 4).
+// 0047D930 (slot 6, RET 4): the cursor moved to `position` bytes from the start; returns it.
+std::uint8_t* __fastcall BufferViewSeek(GameBuffer* self, void*, std::int32_t position);
+// 0047D960: the base's vtable left (the view owns nothing).
+void __fastcall BufferViewDestruct(GameBuffer* self);
+// 0047D940 (slot 5, RET 4) and the base's 0047D910 (slot 5 of 0073CA48, RET 4): deleting
+// destructors (the base's vtable left; freed when bit 0 of `flags` is set). Return `self`.
+void* __fastcall BufferViewDeletingDestructor(GameBuffer* self, void*, unsigned flags);
+void* __fastcall BufferViewBaseDeletingDestructor(GameBuffer* self, void*, unsigned flags);
 
 // A cursor over a GameBuffer (0x18 bytes) that reads and writes bytes and LSB-first bit fields.
 // Bits are collected in `acc`; a byte is reserved at `bytePtr` when a field starts in a new
