@@ -2230,3 +2230,52 @@ addresses, so the wrappers run.
   The scenario now disarms MTF4 before placing the wolf, checks it alive a second later, arms the
   trap and waits for the wolf to die. (2) The "command 8" mismatches were a verify bug: 004C7C90
   adds a script instance at the head of the list, not the tail (docs/notes/script.md, X10).
+
+## Eighteenth pass (ticket I9)
+
+Files: `src/game/ui_hud.cpp` (CHudQuickItems::OnMouseUp), `tests/verify/verify_ui_hud.cpp`, new
+scenario `tests/scenarios/ui_quick_items.txt`. Shared header (additive): `ui.h` (the declaration).
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 0063DB20 | 592 | `CHudQuickItems::OnMouseUp` (input slot, RET 0xC) | ours only: capture released when taken, handled flag when the region has an entry; a unit's quick item (region < 4, entry +0 set): the pending mode afterwards 0, unchanged, or (without key +0x7F) 3 / 4 with +0x180 the region; a player's item: mode 6 with +0x180 the region and +0x184 the entry's id, or (the highlighted one) mode 0, +0x180 / +0x184 -1; the spell and action panels' +0x150 -1 (and the quick panel's when cancelled) | ui_quick_items (the four quick slots) |
+
+- 0063DB20: only after its own button press (capture, as the other panels); the slot lookup uses
+  RegionAt's result unchecked (as OnMouseDown). A unit's quick item goes to 0063DD70 (pick: a
+  wand, category 5, or a scroll / potion, category 8, with a spell starts mode 4, or 3 when the
+  spell has flag 0x10000000; the highlighted one or a missing item cancels), with key +0x7F
+  (`keyCtrl_`) to 0063E020 (use now: on the nearest visible unit for an offensive spell, else on
+  the unit itself). A player's item (the top row, 0x3009 items) starts mode 6 with the 12 bytes of
+  the item's slot 21 at the screen's +0x220; clicking the highlighted one cancels.
+- Forwarders added: 0063DD70, 0063E020 (not rewritten). None of these is Rebirth-patched.
+
+### Spell kinds (spells.sdb)
+
+- The spell prototypes come from `spells.sdb` in `Res\database.res` (tagged records: tag byte,
+  length * 2, value). Tag 0x0B is the kind letter at prototype +0x30: 'u' (flag 0x10000000, the
+  spell column's mode 1, a unit target) for arrow, lightning, acid_ray, the protections, eagle_sight,
+  infravision, detect_life, invisibility, silence, lichdom, stench, possession, vision_fog, healing,
+  antimagic, strength, regeneration, feeblemind, speed, comprehend, charm, enlarge, shrink,
+  rick_magic, curse_magic; 't' (flag 0x20000000, mode 2, a point) for fireball, inv_lit,
+  acid_column, firewall, litnwall, acid_fog, fireworks, clairvoyence, teleport, campfire; 's' for
+  shapechange.
+- So ui_battle_spells' firewall and fireball should give mode 2, yet its runs show UseOnUnit twice
+  and UseAtPoint never. Not explained: the order of the column's buttons or which click
+  cancelled is not known (CHudSpellColumn::SetUnit leaves the last button highlighted, through
+  0063E4B0, so the first click on it cancels). ui_quick_items gives the hero only the fireball and
+  clicks its button and the ground twice, so one of the two is mode 2 whatever the highlight.
+
+### Quick items in a scenario
+
+- No script command puts an item in a quick slot (GiveItem adds to the player's list). The camp's
+  page 0 does: a click on an item strip slot puts a quick item (0x3006) on the hero (MoveItem ->
+  PutOnFromStrip -> PutOn 0060FCA0, at most four). The strip's tab buttons are regions 2-7 (tab =
+  region - 2; tab 3 the quick items, region 5 at 770..800 x 505..535). Item names: "wand 1".."wand
+  N" are quick item prototypes of category 5 (items.idb tag 0x15; potions are category 8), e.g.
+  `wand 3.iron[lightning]`.
+- The hero's quick items come from its party record (+0x740) for the client unit (00531920); the
+  quick item panel's regions 0-3 are the bottom row from the right (x 670..720 down to 520..570, y
+  550..600), 4-7 the row above.
+- Unconfirmed until the first run: whether the hero starts with quick items in the sack (they
+  would be listed before the wands in the quick tab), and whether the portrait click after the
+  camp still selects the hero.

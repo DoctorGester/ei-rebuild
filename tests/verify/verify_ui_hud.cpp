@@ -201,6 +201,60 @@ static void __fastcall ActionColumnMouseUpVerify(void* input, void*, int buttons
 EI_VERIFY(0x0063F260, SpellColumnMouseUpVerify, 0, s_unused);
 EI_VERIFY(0x0063FDE0, ActionColumnMouseUpVerify, 0, s_unused);
 
+// Quick item panel button-up (0063DB20): capture and handled flag, and the battle screen's pending
+// action (+0x17C mode, +0x180 slot, +0x184 item id) and the panels' highlights (+0x150) as the
+// original's branches leave them. A unit's quick item goes to original code (0063DD70: mode 3 / 4
+// for a wand or scroll with a spell, 0 when it cancels or the item is gone, else unchanged; with
+// key +0x7F 0063E020: 0 or unchanged).
+static int& ScreenInt(CBattleScreen* screen, int offset) {
+    return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(screen) + offset);
+}
+static int PanelSelected(CBattleScreen* screen, int offset) {
+    return *reinterpret_cast<int*>(*reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(screen) + offset) +
+                                   0x150);
+}
+static void __fastcall QuickItemsMouseUpVerify(void* input, void*, int buttons, int x, int y) {
+    auto* w = FromInput<CHudQuickItems>(input);
+    void* capture = w->interface_->mouseCapture_;
+    bool captured = capture == input;
+    bool handled = w->inputHandled_;
+    int region = w->RegionAt(x, y);
+    int entry = captured ? w->RegionItem(region) : -1;
+    bool own = entry >= 0 && region < 4 && w->entries_[entry].own;
+    bool ctrl = w->interface_->keyCtrl_;
+    int selected = w->selected_;
+    int id = entry >= 0 ? w->entries_[entry].id : 0;
+    CBattleScreen* screen = w->owner_;
+    int mode = ScreenInt(screen, 0x17C);
+    w->CHudQuickItems::OnMouseUp(buttons, x, y);
+    int modeAfter = ScreenInt(screen, 0x17C);
+    bool ok = CaptureReleased(captured, capture, w->interface_->mouseCapture_) &&
+              w->inputHandled_ == (entry >= 0 ? true : handled);
+    const char* path = "none";
+    if (entry < 0) {
+        ok = ok && modeAfter == mode;
+    } else if (own) {
+        path = ctrl ? "use" : "pick";
+        if (ctrl)
+            ok = ok && (modeAfter == 0 || modeAfter == mode);
+        else
+            ok = ok && (modeAfter == 0 || modeAfter == mode ||
+                        ((modeAfter == 3 || modeAfter == 4) && ScreenInt(screen, 0x180) == region));
+    } else {
+        bool cancel = selected == region;
+        path = cancel ? "cancel" : "object";
+        ok = ok && PanelSelected(screen, 0x19C) == -1 && PanelSelected(screen, 0x1A0) == -1;
+        if (cancel)
+            ok = ok && modeAfter == 0 && ScreenInt(screen, 0x180) == -1 && ScreenInt(screen, 0x184) == -1 &&
+                 PanelSelected(screen, 0x198) == -1;
+        else
+            ok = ok && modeAfter == 6 && ScreenInt(screen, 0x180) == region && ScreenInt(screen, 0x184) == id;
+    }
+    ei::verify::Check("CHudQuickItems::OnMouseUp", true, ok, "(%d,%d) region %d entry %d %s mode %d->%d", x, y, region,
+                      entry, path, mode, modeAfter);
+}
+EI_VERIFY(0x0063DB20, QuickItemsMouseUpVerify, 0, s_unused);
+
 static int ActiveMode(CUiWindow* w) {
     return static_cast<CBattleScreen*>(w->interface_->GetActiveWindow())->portraitMode_;
 }
