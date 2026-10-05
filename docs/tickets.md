@@ -33,7 +33,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Verify checks
 
-- X6 (taken 2026-10-05) Combat flakes: combat, combat_more and sound fail now and then under 16 parallel runs with "waitfor IsLess(HP(GetLeader()),GSGetVar(0,\"hp0\")) timed out" (the wolf never hits the leader). Make the scenarios deterministic enough (placement, aggression, longer wait) without weakening what they check.
 
 ## Cleanup (docs/cleanup-plan.md)
 
