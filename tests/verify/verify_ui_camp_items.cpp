@@ -108,11 +108,14 @@ static CItem* __fastcall MoveItemVerify(CItemScreen* self, void*, CItem* item, C
 }
 EI_VERIFY(0x005EE1B0, MoveItemVerify, 0, s_unused);
 
+// `to` is only read when `from` holds something, as the original does: leaving the camp without a
+// constructor returns the empty parts lists to the constructor's lists, which are null (X13).
 static CItem* __fastcall ReturnAllVerify(CItemScreen* self, void*, CParty* to, CParty* from) {
     int fromBefore = from->items_.size;
     CItem* moved = self->CItemScreen::ReturnAll(to, from);
     bool ok = from->items_.size == 0 && (fromBefore == 0 ? !moved : moved && Contains(to, moved));
-    ei::verify::Check("CItemScreen::ReturnAll", true, ok, "from %d to %d", fromBefore, to->items_.size);
+    ei::verify::Check("CItemScreen::ReturnAll", true, ok, "from %d to %d", fromBefore,
+                      fromBefore ? to->items_.size : -1);
     return moved;
 }
 EI_VERIFY(0x005EE2C0, ReturnAllVerify, 0, s_unused);

@@ -276,6 +276,9 @@ Hazards and facts (the code has the rest):
   / +0x196 (item), their second pages also `!+0x254` ("i.noconstr"); money below the cost disables an action button. MoveItem: slot 43 (CanEquip) first,
   refused = the cancel sound; moves go through 005EE1B0 (it reads the interface's Shift flag +0x7D itself); items whose record +0x10 flag is set (made by a
   constructor) go back to the constructor's parts list and strip (+0x1EC / +0x1F0), the others to the local player (00578BA0) and the item strip (+0x1E0).
+  Leaving (page 7) without a constructor still calls ReturnAll (005EE2C0) with the null constructor lists +0x1C8 / +0x1B4 as `to` and
+  their empty source lists as `from`; ReturnAll reads `to` only when `from` holds something, and so must its wrapper (X13: the wrapper's
+  log message read `to`'s count and faulted at 0x44).
   A hero record keeps a clone of a weapon put on (006608D0 copies the item): compare counts, not identity. Hero skills (`HeroSchoolSkill`,
   `HeroManaUnits`): 00527EB0's result is stored as float then FISTP; the mana maximum (00523F50) is stored as float, divided by the period (00523CD0,
   unrounded) and truncated (`StoreFloat`: under /fp:fast the compiler drops the float store). The sound system (005F7E60) gets the game's own string
