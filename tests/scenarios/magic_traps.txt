@@ -1,7 +1,9 @@
 # Magic traps (src/game/magic_trap.cpp, tickets U3 / U7 / U8). zone1 has none, and AddMob of the
 # whole zone2.mob stalls the original (one of zone2's other objects), so before the run
 # tools/make_trap_mob.py writes traps.mob into the run's harness_saves: zone2's seven magic traps
-# (MTF1..4, MTFW, MTLW, MTPF) and nothing else (see the tool). AddMob (LoadMobFile 00595AB0) takes
+# (MTF1..4, MTFW, MTLW, MTPF) and nothing else, renumbered 30001..30007 so they do not take the ids
+# of zone1's own objects (a clash crashes the original when save1 loads; see the tool). The zone
+# loader does not register traps by name, so the checks find them with GetObject(id). AddMob (LoadMobFile 00595AB0) takes
 # a name relative to <game root>maps\ (00595BA0 / 0055E990), so "..\saves\traps.mob" opens
 # <game root>saves\traps.mob, which the harness redirects to harness_saves. The traps go through
 # the factory (Construct 00529DD0) and SetUp (0052A2C0); zone2's map is smaller, so their
@@ -21,11 +23,11 @@ console @BlockUnit(GetLeader(),0)
 console @GodMode(0,1)
 
 console @AddMob("..\saves\traps.mob")
-waitfor 10 IsGreater(GetObjectID(GetObjectByName("MTF4")),0)
-check IsGreater(GetObjectID(GetObjectByName("MTF1")),0)
-check IsGreater(GetObjectID(GetObjectByName("MTPF")),0)
+waitfor 10 IsEqual(GetObjectID(GetObject(30004)),30004)
+check IsEqual(GetObjectID(GetObject(30001)),30001)
+check IsEqual(GetObjectID(GetObject(30007)),30007)
 console @AddUnitToServer("TrapWolf","WolfTutor","TrapWolf",43,104,0)
-console @ActivateTrap(GetObjectByName("MTF4"),1)
+console @ActivateTrap(GetObject(30004),1)
 wait 2000
 
 # Escape menu, Save (as ui_saveload.txt): OK (region 0) saves into save1.
@@ -41,7 +43,7 @@ waitfor 5 IsAlive(GetObjectByName("TrapMarker"))
 
 load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("TrapMarker"))),IsGreater(HP(GetLeader()),0))
-check IsGreater(GetObjectID(GetObjectByName("MTF4")),0)
-check IsGreater(GetObjectID(GetObjectByName("MTF1")),0)
+check IsEqual(GetObjectID(GetObject(30004)),30004)
+check IsEqual(GetObjectID(GetObject(30001)),30001)
 report
 quit

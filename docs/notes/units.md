@@ -1416,7 +1416,14 @@ name) and the name.
   AddMob("..\saves\traps.mob"). The file is one 0xA000 root holding 0xD000 (the reader 00481F00
   then leaves zone1's diplomacy alone), zone2's 0xDDDDDDD1 diplomacy table (the reader's local copy
   gives each trap its side mask in 005927C0) and a 0xB000 with only the seven 0xBBAB0000 records,
-  copied byte for byte (7206 bytes; the same from both installs' zone2.mob). Untested in the game.
+  copied byte for byte (7206 bytes; the same from both installs' zone2.mob) except their ids.
+  With zone2's own ids (0x52C..0x532) the original crashed loading save1 at 0059362A: AddMob keeps
+  record ids, CBaseManager::CreateObject with a taken id just overwrites the id map's entry, and
+  zone1 has objects 0x52C..0x532, so CWorldServer::RemoveObject (005935C0) later looked one up in
+  the world's id map (+0x12D70) and dereferenced the missing entry. The tool now renumbers the
+  traps 30001..30007 (zone1's ids end at 2008). The zone loader registers traps in no name map
+  (005927C0, record type 7), so GetObjectByName never finds them; the scenario uses GetObject(id)
+  (00593AA0, the same +0x12D70 map).
 - LoadTrap's check passes through a recording stream that forwards slots 0..2; a loader that used
   another stream slot would fail there (none does in 0050F7A0 / 0052AF20 or the string reader
   00461190; the companion's Load, 0050F7A0's first call, was not inspected).
