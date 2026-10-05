@@ -17,7 +17,9 @@ Rules:
   ours only, and which scenario reaches it.
 - Forwarders: use the shared declarations in src/game/originals_<area>.h (rewrite guide rule 5);
   build.cmd's check_forwarders fails on new duplicates.
-- Shared headers: small additive changes only.
+- Write clean code (rewrite guide, "Clean code"): members not offsets, virtual calls not VCall,
+  named globals; build.cmd's check_cleanup fails when a file's counts go up.
+- Shared headers: small additive changes only (adding members a port needs is fine).
 - Build `build.cmd verify` and `build.cmd release` (your worktree's, by full path) with no errors
   or warnings; `python tools/check_stolen.py`, `python tools/check_x87.py`, `tools\check_signatures.cmd`
   and check_thunks (run by build.cmd) at 0 problems.

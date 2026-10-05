@@ -124,6 +124,21 @@ comes from a bug we already hit.
 10. **Keep the original's bugs** (leaks, odd messages) and note them under "Original bugs kept on
     purpose" in your notes file.
 
+## Clean code
+
+New and changed code is written the way the cleanup plan (docs/cleanup-plan.md) wants it, so it
+does not need a second pass:
+- fields are members of the class's one declaration (in its header, with `static_assert`s on
+  offsets), not `At<>`/`Field<>` offsets or `*At` view structs; add the members you need;
+- virtual calls go through declared virtual functions, not `VCall`;
+- game globals are named (`constexpr` address in one header, or an accessor), not literal
+  addresses in the code; hook registrations (`EI_REPLACE`, `EI_ORIGINAL`, `EI_VERIFY`) keep theirs;
+- no `__asm`, no `#pragma float_control` (rule 7);
+- forwarders come from `src/game/originals_<area>.h` (rule 5).
+`build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
+(config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
+`python tools/check_cleanup.py --update`.
+
 ## Verification
 
 Every replacement gets a verify wrapper in `tests/verify/`, registered with
