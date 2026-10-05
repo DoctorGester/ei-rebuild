@@ -294,6 +294,50 @@ public:
 };
 static_assert(sizeof(CUiModel) == 4);
 
+// An input side: a window's own at +0x94 ({vtable, interface, handled flag}), or a separate handler
+// a container keeps in its list (+0x158; e.g. the battle camera's keys, constructed by 005EACB0).
+// The interface hands each event to the top window's side (00457970 -> 005F76A0..005F7BE0) through
+// a slot, thiscall: 1 deactivate (no arguments; the window loses the top, 005F7350); 2 / 3 left
+// button down / up, 4 mouse move, 5 / 6 right button down / up, 7 / 8 left / right double click
+// (button flags, x, y in screen pixels); 9 key down, 10 character (WM_CHAR), 11 key up (key,
+// repeat, scan code and flags); 12 wheel (key flags, delta, x, y).
+struct UiInputSide {
+    enum Slot : int {
+        kDeactivate = 1,
+        kLeftDown = 2,
+        kLeftUp = 3,
+        kMouseMove = 4,
+        kRightDown = 5,
+        kRightUp = 6,
+        kLeftDouble = 7,
+        kRightDouble = 8,
+        kKeyDown = 9,
+        kChar = 10,
+        kKeyUp = 11,
+        kWheel = 12,
+    };
+    // Slot 1.
+    void Deactivate() {
+        using Fn = void(__thiscall*)(UiInputSide*);
+        reinterpret_cast<Fn>(vtable_[kDeactivate])(this);
+    }
+    // Slots 2-11: (buttons, x, y) or (key, repeat, flags).
+    void Event(int slot, int a, int b, int c) {
+        using Fn = void(__thiscall*)(UiInputSide*, int, int, int);
+        reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
+    }
+    // Slot 12.
+    void Wheel(int flags, int delta, int x, int y) {
+        using Fn = void(__thiscall*)(UiInputSide*, int, int, int, int);
+        reinterpret_cast<Fn>(vtable_[kWheel])(this, flags, delta, x, y);
+    }
+
+    void** vtable_;
+    void* owner_;                    // +0x04 the interface for a window's own side
+    bool handled_;                   // +0x08 set by a handler that used the event
+};
+static_assert(offsetof(UiInputSide, handled_) == 0x08);
+
 // Base of the interface windows (constructor 005FE700, vtables 00740F60 and 00740F2C at +0x94).
 // It derives from the engine's transform object, which is kept opaque here.
 class CUiWindow {
@@ -352,6 +396,7 @@ public:
     // = window + 0x94. Slots: 2 button down, 3 button up, 4 mouse move, 7 double click, 9 key
     // down, 12 wheel; each takes (buttons or key, x, y) in screen pixels.
     void* InputSide() { return &inputVtable_; }
+    UiInputSide* Input() { return reinterpret_cast<UiInputSide*>(&inputVtable_); }
     // Takes the mouse for the next button-up (what every button-down handler does).
     void CaptureMouse() { interface_->mouseCapture_ = InputSide(); }
     // Button-up handlers act only when they took the mouse; they release it first.
@@ -402,6 +447,7 @@ public:
     UiPtrArray<CUiRegion> regions_;           // +0x128
     UiPtrArray<CUiModel> models_;             // +0x138
 };
+static_assert(offsetof(CUiWindow, inputVtable_) == 0x94);
 static_assert(offsetof(CUiWindow, interface_) == 0x98);
 static_assert(offsetof(CUiWindow, inputHandled_) == 0x9C);
 static_assert(sizeof(CUiWindow) == 0x148);
@@ -999,11 +1045,40 @@ public:
     void AddChild(CUiWindow* child);
 
     UiPtrArray<CUiWindow> children_;          // +0x148
-    void** inputsBegin_;                      // +0x158 extra input sides (STLport vector)
-    void** inputsEnd_;                        // +0x15C
-    void** inputsCapacity_;                   // +0x160
+    UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)
+    UiInputSide** inputsEnd_;                 // +0x15C
+    UiInputSide** inputsCapacity_;            // +0x160
 };
+static_assert(offsetof(CUiContainer, children_) == 0x148);
+static_assert(offsetof(CUiContainer, inputsBegin_) == 0x158);
 static_assert(sizeof(CUiContainer) == 0x164);
+
+// A container's own input side (window + 0x94, input vtable 00740FD4; most screens keep some of
+// these handlers in their own input vtables). An event goes to the extra input sides (+0x158) in
+// order, then to the enabled children (for the mouse events only those whose rectangle holds the
+// point, CUiWindow::ContainsPoint), each with its handled flag cleared first, until one sets it;
+// that sets the container's own flag. ui_container.cpp.
+struct UiContainerInput : UiInputSide {
+    CUiContainer* Container() {
+        return reinterpret_cast<CUiContainer*>(reinterpret_cast<char*>(this) - offsetof(CUiWindow, inputVtable_));
+    }
+    void OnDeactivate();                                // 00601A60: every side and child, no flags
+    void OnLeftDown(int buttons, int x, int y);         // 00601110
+    void OnLeftUp(int buttons, int x, int y);           // 006011F0
+    void OnMouseMove(int buttons, int x, int y);        // 006012D0
+    void OnRightDown(int buttons, int x, int y);        // 006013B0
+    void OnRightUp(int buttons, int x, int y);          // 00601490
+    void OnLeftDouble(int buttons, int x, int y);       // 00601570
+    void OnRightDouble(int buttons, int x, int y);      // 00601650
+    void OnKeyDown(int key, int repeat, int flags);     // 00601820
+    void OnChar(int key, int repeat, int flags);        // 006018E0
+    void OnKeyUp(int key, int repeat, int flags);       // 006019A0
+    int OnWheel(int flags, int delta, int x, int y);    // 00601730 (RET 0x10; returns 1)
+
+    // The shared loop: `slot` of every side and child; `atPoint` limits the children to those
+    // holding (b, c).
+    void Dispatch(int slot, int a, int b, int c, bool atPoint);
+};
 
 // The default handlers of a container's input side (`input` = window + 0x94).
 void __fastcall UiContainerMouseDown(void* input, void* unused, int buttons, int x, int y);    // 00601110
