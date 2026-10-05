@@ -146,6 +146,20 @@ public:
     // the side half's GetScale and moved to the object's position. Returns `out`.
     float* PartWorldPosition(float* out, const FigurePart* part);
 
+    // 00518CA0. The animation database (+0xA0), loaded on first use through the owner's GetFile
+    // ("<name>.adb"; nothing without an owner). Null when there is none.
+    AnimationDatabase* Animations();
+    // 00518F80. Animation `key & 0xFF` of the database, or null (no database, or beyond its count).
+    FigureAnimation* AnimationAt(std::uint32_t key);
+    // 00518FC0. The first animation of kind 0x40000 whose number (key bits 22-29) is `number`, or
+    // null (the hero preview asks for 0x21, 00616E20; the interface's models 005FC3B0).
+    FigureAnimation* FindSkillAnimation(int number);
+    // 00518D30. For units (class id 0x50) with an animation database whose length is neither 0
+    // nor NaN: (start + (end - start) * time) / length, else 1. In ST0, unrounded.
+    double AnimationFactor(float time);
+    // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
+    int FindPartIndex(const char* partName);
+
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
 

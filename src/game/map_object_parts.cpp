@@ -1,6 +1,11 @@
-// The 3D object's figure parts by name, their removal and their place in the world. See
-// map_object_figures.h and docs/notes/map_objects.md ("Figures").
+// The 3D object's figure parts by name, their removal and their place in the world, and its
+// animation database. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "map_object_figures.h"
+
+#include "base_manager.h"
+
+#include "lib/crt.h"
+#include "lib/mfc.h"
 
 #include "ei/hook.h"
 #include "originals_units.h"
@@ -8,6 +13,12 @@
 #include <cstring>
 
 namespace {
+constexpr int kClassUnit = 0x50;
+constexpr std::uint32_t kKindMask = 0x3C0000;         // FigureAnimation::key
+constexpr std::uint32_t kKindSkill = 0x40000;
+constexpr std::uint32_t kNumberMask = 0x3FC00000;
+constexpr int kNumberShift = 22;
+
 // Not rewritten, forwarder: 0050D350, the animation state forgets `part` (RET 4).
 __declspec(naked) int __fastcall AnimationRemovePart(void* /*animation*/, void*, FigurePart* /*part*/)
     EI_ORIGINAL(0x0050D350)
@@ -98,3 +109,50 @@ float* CObject3D::PartWorldPosition(float* out, const FigurePart* part) {
     return out;
 }
 EI_REPLACE_METHOD(0x005188B0, CObject3D::PartWorldPosition);
+
+// --- The animation database -------------------------------------------------------------------
+
+AnimationDatabase* CObject3D::Animations() {
+    if (!animations && owner_) {
+        mfc::CString file(name);
+        file += ".adb";
+        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file, nullptr));
+    }
+    return animations;
+}
+EI_REPLACE_METHOD(0x00518CA0, CObject3D::Animations);
+
+FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
+    if (!Animations()) return nullptr;
+    std::uint32_t index = key & 0xFF;
+    return index < animations->count ? &animations->animations[index] : nullptr;
+}
+EI_REPLACE_METHOD(0x00518F80, CObject3D::AnimationAt);
+
+FigureAnimation* CObject3D::FindSkillAnimation(int number) {
+    if (!Animations()) return nullptr;
+    std::uint32_t wanted = static_cast<std::uint32_t>(number) << kNumberShift;
+    for (int i = 0; i < static_cast<int>(animations->count); ++i) {
+        std::uint32_t key = animations->animations[i].key;
+        if ((key & kKindMask) == kKindSkill && (key & kNumberMask) == wanted) return &animations->animations[i];
+    }
+    return nullptr;
+}
+EI_REPLACE_METHOD(0x00518FC0, CObject3D::FindSkillAnimation);
+
+double CObject3D::AnimationFactor(float time) {
+    if (GetClassId() != kClassUnit || !Animations()) return 1.0;
+    const AnimationDatabase& db = *animations;
+    if (!(db.length < 0.0f || db.length > 0.0f)) return 1.0;   // 0 or NaN
+    return ((static_cast<double>(db.end) - db.start) * time + db.start) / db.length;
+}
+EI_REPLACE_METHOD(0x00518D30, CObject3D::AnimationFactor);
+
+int CObject3D::FindPartIndex(const char* partName) {
+    for (int i = 0; i < partNameCount; ++i)
+        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(partNames[i]),
+                            reinterpret_cast<const unsigned char*>(partName)) == 0)
+            return i;
+    return -1;
+}
+EI_REPLACE_METHOD(0x00517990, CObject3D::FindPartIndex);

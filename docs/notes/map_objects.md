@@ -81,6 +81,8 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 00516A80, 005169A0 | CObject3D::FindPartByPrefix (strstr at the name's start, case-sensitive), FindPart (strcmp); parts, then pending parts | pure |
 | 005167E0, 005168F0 | RemovePart (side half's slot 15 first; a placed part forgets its owner; animation 0050D350; released), RemovePartNamed | ours only: list one shorter, next entry moved down, result |
 | 005188B0 | PartWorldPosition (part position turned by the orientation, times the side half's slot 18 scale, plus the position) | output, CheckNear |
+| 00518CA0, 00518F80, 00518FC0 | Animations ("<name>.adb" through the owner's GetFile on first use, +0xA0), AnimationAt (key & 0xFF), FindSkillAnimation (kind 0x40000, number in bits 22-29) | pure once loaded (00518F80 through a stub repeating its first three instructions) |
+| 00518D30, 00517990 | AnimationFactor (units only: (start + (end - start) t) / length, 1 for a 0 / NaN length), FindPartIndex (_mbscmp over +0x114) | pure (CheckNear) |
 | 0051CE60, 0051B7E0 | DrawShadow, Draw | ours only: result 1; Draw: scene matrix stacks as deep as before |
 | 0050ACD0 | AnimationTrack::Evaluate | ours, values restored, original, compared |
 | 0050B8C0, 0050BC00 | CageInterpolator::InterpolateCube, Prism | ours, point and stream restored, original, compared |
