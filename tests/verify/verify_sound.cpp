@@ -20,6 +20,7 @@
 #include "../../src/lib/gameapi.h"
 
 #include <cstring>
+#include <new>
 
 namespace {
 void* s_unused;
@@ -561,7 +562,61 @@ static void __fastcall SetZoneModeVerify(CMusicSystem* self, void*, const char* 
 }
 EI_VERIFY(0x006B4E30, SetZoneModeVerify, 0, s_unusedZone);
 
-#define MUSIC_STATE_VERIFY(Method, addr, expectedState)                                              \
+// 006B4710 (Create, once at startup): ours on the real object, then (when ours succeeded and the
+// object had no themes before) the original into a scratch music system with an empty theme array
+// and empty strings; the strings and every theme compared. Reading music.reg has no side effects.
+// The scratch's themes are freed with the array's own SetSize(0).
+namespace {
+using LoadThemesFn = int(__fastcall*)(CMusicSystem*, void*);
+LoadThemesFn s_loadThemes;
+__declspec(naked) void __fastcall ScratchThemesSetSize(void*, void*, int, int) EI_ORIGINAL(0x006B59A0)
+
+bool SameNames(const SoundNameArray& a, const SoundNameArray& b) {
+    if (a.size != b.size) return false;
+    for (int i = 0; i < a.size; ++i)
+        if (std::strcmp(a.data[i], b.data[i]) != 0) return false;
+    return true;
+}
+} // namespace
+static int __fastcall LoadThemesVerify(CMusicSystem* self, void*) {
+    bool wasEmpty = self->themes == nullptr && self->themeCount == 0;
+    alignas(4) std::uint8_t scratchBytes[sizeof(CMusicSystem)];
+    std::memcpy(scratchBytes, self, sizeof(scratchBytes));
+    int actual = self->CMusicSystem::LoadThemes();
+    if (actual != 1 || !wasEmpty) {
+        ei::verify::Check("CMusicSystem::LoadThemes", true, actual != 1 || self->themeCount % 2 == 0, "result %d, %d themes",
+                          actual, self->themeCount);
+        return actual;
+    }
+    CMusicSystem* scratch = reinterpret_cast<CMusicSystem*>(scratchBytes);
+    scratch->themes = nullptr;
+    scratch->themeCount = 0;
+    scratch->themeMax = 0;
+    new (&scratch->credits) mfc::CString();
+    new (&scratch->mainMenu) mfc::CString();
+    int expected = s_loadThemes(scratch, nullptr);
+    bool ok = expected == actual && std::strcmp(scratch->credits, self->credits) == 0 &&
+              std::strcmp(scratch->mainMenu, self->mainMenu) == 0 && scratch->themeCount == self->themeCount;
+    int bad = -1;
+    for (int i = 0; ok && i < self->themeCount; ++i) {
+        const MusicTheme& a = scratch->themes[i];
+        const MusicTheme& b = self->themes[i];
+        if (std::strcmp(a.name, b.name) != 0 || a.dungeon != b.dungeon || std::strcmp(a.briefing, b.briefing) != 0 ||
+            std::strcmp(a.constructor, b.constructor) != 0 || !SameNames(a.calm, b.calm) || !SameNames(a.combat, b.combat)) {
+            ok = false;
+            bad = i;
+        }
+    }
+    ei::verify::Check("CMusicSystem::LoadThemes", true, ok, "result %d/%d, themes %d/%d, first difference %d", expected, actual,
+                      scratch->themeCount, self->themeCount, bad);
+    ScratchThemesSetSize(&scratch->themesVtable, nullptr, 0, -1);
+    scratch->credits.~CString();
+    scratch->mainMenu.~CString();
+    return actual;
+}
+EI_VERIFY(0x006B4710, LoadThemesVerify, 7, s_loadThemes);
+
+#define MUSIC_STATE_VERIFY(Method, addr, expectedState)                                            \
     static MusicFn s_unused##Method;                                                                 \
     static void __fastcall Method##Verify(CMusicSystem* self, void*) {                               \
         self->CMusicSystem::Method();                                                                \

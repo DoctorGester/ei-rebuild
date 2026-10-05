@@ -312,6 +312,11 @@ struct CMusicSystem {
     std::int32_t jinglePlaying;         // +0x50
     std::uint32_t calmDue;              // +0x54 timeGetTime() for the next calm track (0: not chosen)
 
+    // 006B4710 (vtable slot 2, the engine object's Create): reads music.reg from the text path
+    // (007AF45C): Common\Credits and Common\MainMenu, then for every other section an open land
+    // theme (CalmOpen) and a dungeon theme (CalmDungeon), both with the section's Briefing,
+    // Constructor and Combat. Returns 1, or FatalError's result when the file cannot be opened.
+    int LoadThemes();
     void SetZoneMode(const char* allod, int dungeon);  // 006B4E30
     void Stop();                                       // 006B4F70
     void PlayBriefing(const char* allod);              // 006B4F90
