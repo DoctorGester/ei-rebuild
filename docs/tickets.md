@@ -15,7 +15,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U8 (taken 2026-10-05) Magic trap family: Save 0052B070, Load 0052ADC0, constructor 00529DD0, destructor 00529F90; model record destructor 0053EE70.
+- U8 merged 2026-10-05; its scenario magic_traps is being reworked (AddMob of zone2 hangs the original game too).
 
 ## App and startup, 0x00440000-0x00480000
 
@@ -38,7 +38,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
   - (C2d camera merged 2026-10-05.)
-- C3b The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
+- C3b (taken 2026-10-05, top 10 only) The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
   group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
   shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
   0x0040C720, ...), then by area. C3 first part (shared headers, 38 void forwarders typed) merged 2026-10-05.
@@ -46,4 +46,3 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
-- X4 (taken 2026-10-05) CUiSurface::DrawWrappedText: 1 mismatch in 9378 (ui_hud, Rebirth): "'...' lines 1/1 pixels 0" — lines and pixels agree, so find which compared value differs (return value? width?) and fix the check or ours.
