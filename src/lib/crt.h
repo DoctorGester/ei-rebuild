@@ -13,6 +13,8 @@ namespace gamecrt {
 
 void* __cdecl operator_new(std::size_t size);   // 007005AF
 void __cdecl operator_delete(void* p);          // 007005D8
+void* __cdecl malloc(std::size_t size);         // 006EABD1
+void __cdecl free(void* p);                     // 006EA8AD
 
 int __cdecl rand();                             // 006E77F7
 int __cdecl tolower(int c);                     // 006EBA53
