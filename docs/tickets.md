@@ -17,12 +17,16 @@ Mark a ticket taken by adding the date; remove it when merged.
 - A-U (taken 2026-10-05) Area ticket: units and combat 0x00500000-0x00540000 (notes trimmed by D1).
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
+## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
+
+- A-W (taken 2026-10-05) Area ticket: 0x00540000-0x005E0000.
+
 ## App and startup, 0x00440000-0x00480000
 
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I (cut off by the usage limit; 12 functions merged). A-I2 (taken 2026-10-05): interface 0x005E0000-0x00640000.
+- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions).
 
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
