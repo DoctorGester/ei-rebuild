@@ -123,13 +123,23 @@ trader_stock (004A6F60 into 00661DB0), party_records (0058FD90 / 00590C70).
 | 0065F740, 0065F860 | PartyUnitRecord::Destruct, ClearItems | ours only: lists empty, defaults set |
 | 00663FA0 | PartyMemberArray::SetSize (CParty +0x2C, MFC CArray<PartyUnitRecord>, vtable 00742FF4) | ours only: size, capacity, new records constructed |
 | 00663960, 00663AD0, 00663C00, 00663D30 | byte-identical copies of AlignedPtrArray::SetSize (00519D70) | ours only: size, alignment |
+| 00661050, 006A5AB0, 00683FF0 | CParty, CItemConstructor, CSpellConstructor::Construct | original on a scratch copy seeded with the real bytes; all bytes (the party's variable map: bucket count and emptiness) |
+| 00688840 | CSpellManager::Construct (CResourceManager's, an empty map of 193 buckets at +0xBC) | ours only |
+| 006611D0, 00661190, 006614F0, 00661640, 00661700 | CParty::DestructBody, DeletingDestruct (slot 0), CreateParty (slot 2), DestroyParty (slot 3), Clear (RET 8) | ours only: managers, arrays, zone name, variables as each leaves them |
 
 A constructed record has seven empty strings, empty lists, +0x724 0.8, +0x728 0.2, height 1.0, +0x770 2, +0x774 0,
 +0x778 0, +0x77C -1, +0x780 1 (the destructor sets the same). Every new game reaches them: the party record reset
 adds the hero (006628D0 builds a record on the stack, grows the array, destroys the stack record).
 
-Candidates next: CParty constructor / destructor / serialisation (00661050, 006611D0, 00661300, 006618C0,
-00661C10, 00661700, 00661640), DeltaField's empty (00675F70, 19 callers) with the effect constructors /
+CParty (0x70): +0x1C item manager (0xBC, CResourceManager with vtable 0073F25C), +0x20 item constructor, +0x24 spell
+manager (0xD4), +0x28 spell constructor (getters: slots 18, 16, 22, 17), +0x2C records, +0x40 items, +0x50, +0x54
+hash_map<CString, float> variables, +0x68 zone name, +0x6C. Create attaches both managers to the party (slot 13), so
+the party is the context of its items (CItem::LoadItem's slot 22 finds the party's spell manager). Clear(1, 0) after
+Create re-attaches the spell manager; DestroyParty drops the four objects by count and deletes them whatever the count
+(kept). The constructor copies an uninitialised stack byte into the map's three functor bytes (not reproduced).
+
+Candidates next: CParty serialisation (00661300, 006618C0, 00661C10, 006613C0), the record's Load / Save /
+CopyItemsFrom (0065F9B0, 0065FDE0, 00660500), DeltaField's empty (00675F70, 19 callers) with the effect constructors /
 destructors, item database record assignment and destructors (006A8F20 with 24 callers, 006A8FB0, 006A88F0..),
 the HUD top panel's text refresh 0064A7A0, the objectives window 0064D9B0.
 

@@ -6,12 +6,23 @@
 //   lists are empty, so nothing is allocated or released).
 // - Destruct, ClearItems, the record array's SetSize and the four AlignedPtrArray::SetSize copies
 //   release items or allocate: ours only, the state afterwards checked.
+// - CParty::Construct: the original on a scratch copy seeded with the real bytes; all bytes
+//   compared except the variable map's (functor bytes from the stack, bucket storage), whose
+//   bucket count and emptiness are compared instead. The item and spell constructors' constructors
+//   likewise (whole object). The spell manager's constructor allocates: ours only.
+// - CParty's destructor, slot 0, Create, Destroy and Clear make, release or delete objects: ours
+//   only, the state afterwards checked (slot 0 runs without the free, which the wrapper does).
+//   Parties are made, cleared and destroyed by every new game (the named party records, the player's
+//   inventory), the camp's lists (ui_camp, trader_stock) and local parties of the server code.
 #include "verify.h"
 
+#include "../../src/game/item.h"
 #include "../../src/game/party.h"
+#include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/lib/crt.h"
 
+#include <cstdint>
 #include <cstring>
 
 namespace {
@@ -93,6 +104,137 @@ void __fastcall ListSetSizeVerify(AlignedPtrArray* self, void*, int size, int gr
     ei::verify::Check("AlignedPtrArray::SetSize (record list copy)", true, ok, "size %d", size);
 }
 
+// --- CParty and the managers it makes -----------------------------------------------------------
+
+std::uintptr_t VtableOf(const void* object) {
+    std::uintptr_t vtable;
+    std::memcpy(&vtable, object, sizeof(vtable));
+    return vtable;
+}
+
+// An empty map with NextPrime(100) = 193 buckets.
+template <typename Map>
+bool EmptyMap(const Map& map) {
+    bool ok = map.BucketCount() == 193 && map.Size() == 0;
+    for (std::size_t b = 0; ok && b < map.BucketCount(); ++b) ok = map.Bucket(b) == nullptr;
+    return ok;
+}
+
+// The original constructor on scratch memory seeded with the object's bytes, ours on the object;
+// all bytes compared, except [skipFrom, skipTo).
+template <typename T>
+int ConstructBoth(T*(__fastcall* original)(T*), T* self, T** expected, T** actual, std::size_t skipFrom, std::size_t skipTo,
+                  T** scratchOut) {
+    auto* scratch = static_cast<T*>(gamecrt::operator_new(sizeof(T)));
+    std::memcpy(scratch, self, sizeof(T));
+    *expected = original(scratch);
+    *actual = self->Construct();
+    *scratchOut = scratch;
+    auto* x = reinterpret_cast<const unsigned char*>(scratch);
+    auto* y = reinterpret_cast<const unsigned char*>(self);
+    for (std::size_t i = 0; i < sizeof(T); ++i)
+        if ((i < skipFrom || i >= skipTo) && x[i] != y[i]) return static_cast<int>(i);
+    return -1;
+}
+
+// 00661050, 006A5AB0 (MOV EAX,ECX; XOR ECX,ECX; MOV [EAX+4],ECX), 00683FF0: 7 bytes each.
+CParty*(__fastcall* s_partyConstruct)(CParty*);
+CItemConstructor*(__fastcall* s_itemConstructorConstruct)(CItemConstructor*);
+CSpellConstructor*(__fastcall* s_spellConstructorConstruct)(CSpellConstructor*);
+
+CParty* __fastcall PartyConstructVerify(CParty* self) {
+    CParty *expected, *actual, *scratch;
+    int diff = ConstructBoth(s_partyConstruct, self, &expected, &actual, offsetof(CParty, variables_),
+                             offsetof(CParty, zone_), &scratch);
+    bool ok = diff < 0 && expected == scratch && actual == self && EmptyMap(self->variables_) && EmptyMap(scratch->variables_);
+    ei::verify::Check("CParty::Construct", true, ok, "party %p: first difference at +0x%X", self, diff);
+    scratch->variables_.Destroy();
+    gamecrt::operator_delete(scratch);
+    return actual;
+}
+
+CItemConstructor* __fastcall ItemConstructorConstructVerify(CItemConstructor* self) {
+    CItemConstructor *expected, *actual, *scratch;
+    int diff = ConstructBoth(s_itemConstructorConstruct, self, &expected, &actual, 0, 0, &scratch);
+    ei::verify::Check("CItemConstructor::Construct", true, diff < 0 && expected == scratch && actual == self,
+                      "%p: first difference at +0x%X", self, diff);
+    gamecrt::operator_delete(scratch);
+    return actual;
+}
+
+CSpellConstructor* __fastcall SpellConstructorConstructVerify(CSpellConstructor* self) {
+    CSpellConstructor *expected, *actual, *scratch;
+    int diff = ConstructBoth(s_spellConstructorConstruct, self, &expected, &actual, 0, 0, &scratch);
+    ei::verify::Check("CSpellConstructor::Construct", true, diff < 0 && expected == scratch && actual == self,
+                      "%p: first difference at +0x%X", self, diff);
+    gamecrt::operator_delete(scratch);
+    return actual;
+}
+
+CSpellManager* __fastcall SpellManagerConstructVerify(CSpellManager* self) {
+    CSpellManager* result = self->Construct();
+    bool ok = result == self && VtableOf(self) == CSpellManager::kVtableAddress && EmptyMap(self->objects_) &&
+              self->unknown_D0 == 0 && self->refCount_ == 0 && self->owner_ == nullptr;
+    ei::verify::Check("CSpellManager::Construct", true, ok, "%p", self);
+    return result;
+}
+
+bool ArraysEmpty(const CParty* party) {
+    return party->items_.data == nullptr && party->items_.size == 0 && party->members_.data == nullptr &&
+           party->members_.size == 0;
+}
+
+// What the destructor body leaves.
+bool PartyDestructed(const CParty* party) {
+    return VtableOf(party) == CEngineObject::kVtableAddress && party->owner_ == nullptr && ArraysEmpty(party) &&
+           party->itemManager_ == nullptr && party->spellManager_ == nullptr && party->itemConstructor_ == nullptr &&
+           party->spellConstructor_ == nullptr && party->variables_.Size() == 0 &&
+           VtableOf(&party->members_) == PartyMemberArray::kVtableAddress;
+}
+
+void __fastcall PartyDestructVerify(CParty* self) {
+    self->DestructBody();
+    ei::verify::Check("CParty::DestructBody", true, PartyDestructed(self), "party %p", self);
+}
+
+CParty* __fastcall PartyDeletingVerify(CParty* self, void*, unsigned flags) {
+    CParty* result = self->DeletingDestruct(flags & ~1u);
+    ei::verify::Check("CParty::DeletingDestruct", true, result == self && PartyDestructed(self), "party %p flags %u", self,
+                      flags);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return result;
+}
+
+bool Counted(const CEngineObject* object, std::uintptr_t vtable) {
+    return object != nullptr && object->refCount_ >= 1 && VtableOf(object) == vtable;
+}
+
+BOOL __fastcall PartyCreateVerify(CParty* self) {
+    BOOL result = self->CreateParty();
+    bool ok = result == 1 && Counted(self->itemManager_, CItemManager::kVtableAddress) &&
+              Counted(self->spellManager_, CSpellManager::kVtableAddress) &&
+              Counted(self->itemConstructor_, CItemConstructor::kVtableAddress) &&
+              Counted(self->spellConstructor_, CSpellConstructor::kVtableAddress) && ArraysEmpty(self) &&
+              self->zone_.GetLength() == 0 && self->variables_.Size() == 0;
+    ei::verify::Check("CParty::CreateParty", true, ok, "party %p", self);
+    return result;
+}
+
+void __fastcall PartyDestroyVerify(CParty* self) {
+    self->DestroyParty();
+    bool ok = ArraysEmpty(self) && self->itemManager_ == nullptr && self->spellManager_ == nullptr &&
+              self->itemConstructor_ == nullptr && self->spellConstructor_ == nullptr;
+    ei::verify::Check("CParty::DestroyParty", true, ok, "party %p", self);
+}
+
+void __fastcall PartyClearVerify(CParty* self, void*, int clearVariables, int keepSpells) {
+    std::size_t variables = self->variables_.Size();
+    self->Clear(clearVariables, keepSpells);
+    bool ok = ArraysEmpty(self) && self->zone_.GetLength() == 0 && self->unknown_50 == 0 && self->unknown_6C == 0 &&
+              self->variables_.Size() == (clearVariables != 0 ? 0 : variables);
+    ei::verify::Check("CParty::Clear", true, ok, "party %p (%d, %d)", self, clearVariables, keepSpells);
+}
+
 } // namespace
 
 EI_VERIFY(0x0065F5F0, ConstructVerify, 7, s_construct);
@@ -104,3 +246,12 @@ EI_VERIFY(0x00663960, ListSetSizeVerify, 0, s_unused);
 EI_VERIFY(0x00663AD0, ListSetSizeVerify, 0, s_unused);
 EI_VERIFY(0x00663C00, ListSetSizeVerify, 0, s_unused);
 EI_VERIFY(0x00663D30, ListSetSizeVerify, 0, s_unused);
+EI_VERIFY(0x00661050, PartyConstructVerify, 7, s_partyConstruct);
+EI_VERIFY(0x006A5AB0, ItemConstructorConstructVerify, 7, s_itemConstructorConstruct);
+EI_VERIFY(0x00683FF0, SpellConstructorConstructVerify, 7, s_spellConstructorConstruct);
+EI_VERIFY(0x00688840, SpellManagerConstructVerify, 0, s_unused);
+EI_VERIFY(0x006611D0, PartyDestructVerify, 0, s_unused);
+EI_VERIFY(0x00661190, PartyDeletingVerify, 0, s_unused);
+EI_VERIFY(0x006614F0, PartyCreateVerify, 0, s_unused);
+EI_VERIFY(0x00661640, PartyDestroyVerify, 0, s_unused);
+EI_VERIFY(0x00661700, PartyClearVerify, 0, s_unused);

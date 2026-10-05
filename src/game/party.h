@@ -16,8 +16,11 @@
 #include <cstddef>
 #include <cstdint>
 
+using BOOL = int;
+
 class CItem;
 class CItemConstructor;
+class CResourceManager;
 class CSpellConstructor;
 class CSpellManager;
 struct PartyUnitRecord;   // unit.h
@@ -47,9 +50,17 @@ struct PartyMemberArray {
 };
 static_assert(sizeof(PartyMemberArray) == 0x14);
 
+// The party's named variables (the script's "gtime" and the like): an STLport hash_map<CString,
+// float>. Its hash is not needed by the code here (declared only).
+struct PartyVariableHash;
+using PartyVariableMap = stlp::hash_map<mfc::CString, float, PartyVariableHash>;
+static_assert(sizeof(PartyVariableMap) == 0x14);
+
 class CParty : public CEngineObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743000);
+    // The base class's vtable, which the constructor stores first.
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0074306C);
 
     virtual void Slot13();
     virtual void Slot14();
@@ -78,9 +89,44 @@ public:
     // and removed, and the result is null (also when it is not in the list).
     CItem* RemoveItem(CItem* item, int all);   // `all` read as a byte
 
-    std::uint8_t unknown_1C[0x2C - 0x1C];
-    PartyMemberArray members_;      // +0x2C
-    AlignedPtrArray items_;         // +0x40 CItem*
+    // 00661050 (party_lifetime.cpp). Constructor body: CEngineObject's fields, empty record and
+    // item arrays, an empty variable map with NextPrime(100) buckets (its functor bytes are the
+    // original's uninitialised stack byte, left alone here), an empty zone name, no managers; the
+    // base vtable first, then the party's. +0x50 and +0x6C are left as they are. Returns this.
+    CParty* Construct();
+    // 006611D0. Destructor body: Clear(1, 1), DestroyParty, then the members' destructors (zone
+    // name, variable map, the item array's storage, the record array) and CEngineObject's.
+    void DestructBody();
+    // 00661190 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CParty* DeletingDestruct(unsigned flags);
+    // 006614F0 (slot 2). Makes and counts the party's own item manager and spell manager
+    // (attached with slot 13 to this party), item constructor and spell constructor (slot 2),
+    // then Clear(1, 0). Returns 1.
+    BOOL CreateParty();
+    // 00661640 (slot 3). Empties the record array, releases the items and frees their storage,
+    // then drops (count, delete) the item constructor, spell constructor, item manager and spell
+    // manager.
+    void DestroyParty();
+    // 00661700 (RET 8). Releases the items and frees their storage, empties the item manager
+    // (slot 15) and the spell manager (slot 3; attached again with slot 13 unless `keepSpells`),
+    // empties the record array, the variables (with `clearVariables`) and the zone name, and
+    // clears +0x50 and +0x6C.
+    void Clear(int clearVariables, int keepSpells);
+
+    CResourceManager* itemManager_;         // +0x1C (CItemManager's vtable; slot 18 returns it)
+    CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
+    CSpellManager* spellManager_;           // +0x24 (slot 22)
+    CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)
+    PartyMemberArray members_;              // +0x2C
+    AlignedPtrArray items_;                 // +0x40 CItem*
+    std::uint32_t unknown_50;               // +0x50 cleared by Clear
+    PartyVariableMap variables_;            // +0x54
+    mfc::CString zone_;                     // +0x68 the zone name ("gz1g" after a new game)
+    std::uint32_t unknown_6C;               // +0x6C cleared by Clear
 };
+static_assert(offsetof(CParty, itemManager_) == 0x1C);
 static_assert(offsetof(CParty, members_) == 0x2C);
 static_assert(offsetof(CParty, items_) == 0x40);
+static_assert(offsetof(CParty, variables_) == 0x54);
+static_assert(offsetof(CParty, zone_) == 0x68);
+static_assert(sizeof(CParty) == 0x70);
