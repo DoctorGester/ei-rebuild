@@ -69,7 +69,7 @@ constexpr float kNoWander = -1.0f;                                      // 0xBF8
 constexpr float kStandRadius = 5.0f;                                    // 0x40A00000
 constexpr float kArrivedSq = std::bit_cast<float>(0x3E4CCCCDu);         // 0073BAD4 (0.2)
 constexpr float kCloseSq = 25.0f;                                       // 0073E124
-constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1312: no position yet
+constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1313: no position yet
 constexpr int kRemarkIdle = 1;
 
 // The idle remark every mode's Execute starts with (1 in 1001).

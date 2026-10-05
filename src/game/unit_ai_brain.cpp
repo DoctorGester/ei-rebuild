@@ -250,7 +250,7 @@ FearMode* FearMode::Construct(std::uint8_t newFlag) {
     std::uint32_t bits = FearDistanceBits();
     std::memcpy(&distance, &bits, sizeof(bits));
     unknown_0C = 3.0f;
-    unknown_10.x = -1312.0f;    // unset
+    unknown_10.x = -1313.0f;    // unset (0xC4A42000)
     unknown_1C.z = 0.0f;
     flag = newFlag;
     return this;

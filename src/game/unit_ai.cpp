@@ -407,7 +407,7 @@ EI_REPLACE_METHOD(0x005D50E0, AIBrain::IsNearPath);
 std::uint32_t AIBrain::SetOwner(UnitController* newOwner) {
     if (newOwner == owner) return reinterpret_cast<std::uint32_t>(newOwner);
     owner = newOwner;
-    constexpr std::uint32_t kUnset = 0xC4A42000u;      // -1312.0
+    constexpr std::uint32_t kUnset = 0xC4A42000u;      // -1313.0
     std::memcpy(&position.x, &kUnset, 4);
     std::memcpy(&previousPosition.x, &kUnset, 4);
     std::memset(&position.y, 0, 4);

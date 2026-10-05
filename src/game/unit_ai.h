@@ -320,7 +320,7 @@ struct CorpseWatcherMode : AIMode {
 // Fear (vtable 0073FF8C, 0x2C bytes): run from an enemy.
 struct FearMode : AIMode {
     // 005D2850 (unit_ai_brain.cpp; after operator new). The vtable, distance from 0073FF00, 3, an
-    // unset point (x = -1312), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
+    // unset point (x = -1313), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
     FearMode* Construct(std::uint8_t flag);
     // 005D3650 (slot 6). Busy; drops action and target.
     void Enter(AIBrain* brain);
@@ -332,7 +332,7 @@ struct FearMode : AIMode {
 
     float distance;                 // +0x08 (10)
     float unknown_0C;               // +0x0C (3)
-    Vector3 unknown_10;             // +0x10 (x = -1312: unset)
+    Vector3 unknown_10;             // +0x10 (x = -1313: unset)
     Vector3 unknown_1C;             // +0x1C
     std::uint8_t flag;              // +0x28
     std::uint8_t unknown_29[3];
@@ -481,7 +481,7 @@ struct AIBrain {
     // 005D50E0. Is `point` within `radius` of the segment from the previous to the current position
     // (both 2D)? The original sets only AL in one path; callers test AL.
     bool IsNearPath(const Vector3* point, float radius);
-    // 005D5080. Sets the owner; on a change both remembered positions become "unset" (-1312, 0, 0).
+    // 005D5080. Sets the owner; on a change both remembered positions become "unset" (-1313, 0, 0).
     // Returns what the original leaves in EAX.
     std::uint32_t SetOwner(UnitController* newOwner);
     // 005D58D0. An object is being deleted: tell every mode, drop it as target or seen object and
@@ -574,7 +574,8 @@ struct AIBrain {
     void Perceive(UnitController* owner);       // 005CB700 through its address (UpdateMemory)
     // 005CB700 (thiscall on +0xD0; unit_ai_brain.cpp). Ages the reports (one tick off each; an
     // entry below 0 is dropped), updates the heard calls (005CC9D0) and the AI events' view
-    // (005CAA00 on 007B2798), then adds the noticed kind to the noticed level.
+    // (005CAA00 on 007B2798), then adds the noticed kind to the noticed level. Both callees may
+    // set the noticed point, level and kind inline first (900 / -3, 800 / -3, 1000 / -2).
     void UpdateMemory(UnitController* owner);
     // 005CB7F0 (thiscall on +0xD0; unit_ai_brain.cpp). 1 when `other` has the unit's side or player or
     // is in the +0x110 list, else 0.
