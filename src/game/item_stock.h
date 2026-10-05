@@ -49,6 +49,17 @@ struct StockList {
     StockListNode* head;
 };
 
+// A vector of spell recipes (0x34-byte records inline; 007C8568 for weapons, 007C855C for armors):
+// +0x00 the spell's name (STLport string), +0x0C / +0x18 the required / optional modifier names
+// (vectors of strings), +0x24 the modifier repeated while it fits, +0x30 the classes it suits (bit
+// per ItemStock::classIndex).
+constexpr int kSpellRecipeSize = 0x34;
+struct SpellRecipeVector {
+    char* start;
+    char* finish;
+    char* eos;
+};
+
 struct ItemStock {
     void* context;                  // +0x00 the template's party object: slot 16 the item constructor,
                                     //   slot 18 the item manager
@@ -59,8 +70,8 @@ struct ItemStock {
     StockMaterialVector materials;  // +0x2C
     StockPtrVector spells;          // +0x38
     StockPtrVector modifiers;       // +0x44
-    std::uint8_t spellMap[0x14];    // +0x50 spells by record (0069A480)
-    std::uint8_t modifierMap[0x14]; // +0x64 modifiers by type key (0069A480)
+    std::uint8_t spellMap[0x14];    // +0x50 recipes by spell name (STLport hash_map<string, list>, 0069A480)
+    std::uint8_t modifierMap[0x14]; // +0x64 modifiers by kind key (STLport map<string, modifier*>, 0069A480)
     std::uint8_t unknown_78[0xB8 - 0x78];
 
     // 0069AE20 (RET 0x14). Up to a random count in [minCount, maxCount] of the prototypes (all of
@@ -84,6 +95,31 @@ struct ItemStock {
     void GenerateWeaponInstructions(int minCount, int maxCount, StockList* out);
     void GenerateArmorInstructions(int minCount, int maxCount, StockList* out);
     void GenerateQuickItemInstructions(int minCount, int maxCount, StockList* out);
+
+    // 0069A480 (RET 4). Refills the recipe map (+0x50) with the recipes for this class whose spell
+    // (007C851C by name) is offered (+0x38), under their names; then the modifier map (+0x64) with
+    // the offered modifiers (+0x44) under their kind letter: kinds a, d, e, m, r, t keep the
+    // strongest (+0x14; a later one replaces unless the held one is at least as strong), f and i
+    // are keyed by both letters (the last one wins), other kinds are left out.
+    void FillSpellMaps(const SpellRecipeVector* recipes);
+
+    // 0069A780 (RET 0xC). For each recipe in the map, unless an ISAAC draw % 101 is below
+    // `threshold`: the spell's prototype (007C8510) with its required modifiers (those missing
+    // from the modifier map left out), kept only when their level is within the budget (the
+    // prototype school's entry of `levels`, rounded) and they are at most 8; then each optional
+    // modifier, while fewer than 8, half the time (ISAAC) when it fits the budget; then the
+    // repeated modifier while it fits and fewer than 8 (a kind 'm' one scales the cost and stops
+    // once the cost is not above the base cost). The spell built from them (00689310, may be null)
+    // is appended, counted, to `out`.
+    void GenerateSpells(StockList* out, const float* levels, unsigned threshold);
+
+    // 0069B5B0 (RET 4; from the class template serializer 004A6C40 when loading). Reads five
+    // counted name lists from `stream` (a CStream) and appends the records they name, unless
+    // already listed: armors (+8, 004AB820), weapons (+0x14, 004AB720), quick items (+0x20,
+    // 00613820), names lower-cased, unknown ones skipped; then material entries (+0x2C: name
+    // lower-cased (0069D290, kept even when unknown) and the three ints), then spells (+0x38) and
+    // modifiers (+0x44) by name as read (maps 007C851C / 007C853C).
+    void LoadLists(void* stream);
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);

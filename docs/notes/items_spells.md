@@ -642,9 +642,16 @@ created goes to FatalError (the image block leaks, as in the original). Callers:
 
 ## Trader stock (0069A110-0069B544, ticket H2)
 
-Files: `src/game/item_stock.h/.cpp`, `tests/verify/verify_item_stock.cpp`. Scenario: `ui_camp` (the
-first camp opening after a new game: the template's constructor sets its +0x38 flag, so the camp's
-0060DD2E calls 004A6DF0, which generates the stock of the template's +0x1D4 lists).
+Files: `src/game/item_stock.h/.cpp`, `tests/verify/verify_item_stock.cpp`. Scenario:
+`trader_stock` (ticket H4). The camp's Create (0060C870; the tail Ghidra splits off as 0060DD2E)
+calls 004A6DF0 only when the camp has a constructor record (+0x198: "constr.current" > 0, found
+with ClassTemplatesFind 004A74F0) whose +0x38 flag is set (by the template's constructor, and again
+by quest completion 004A88E0); it clears the flag after generating. `ui_camp` opens the camp with
+"constr.current" 0 (as the global map's camp button does), so it never reached the generators. In
+the game a base's dialogue answer "constrN" (006064E0) sets "constr.current" = N (00578560) and
+asks for screen 5; the harness step `screen 5 <N>` does the same from zone1 (failing when there is
+no template N). A new game has templates 1, 3, 4, 5 ("b.smith.constr.1", "b.Shopper.constr.3",
+"b.kuzn.constr.4", "b.golem.constr.5" in 005800C0), and the scenario opens the camp with each.
 
 | Address | Name | Verify |
 |---|---|---|
@@ -704,18 +711,66 @@ size (signed; tables 007C86F8 / 0xB4, 007C8718 / 200, 007C8738 / 0x8C)
 and +0x48 = the RandomCount draw (one rand() per item,
 none when min >= max), counts it and appends it to the list. The quick item version skips records
 whose name (+8) is "scroll" (_mbscmp). Nothing is drawn for the number of instructions: every record
-gets one. The scratch is emptied at the end. Scenario: `ui_camp` (the same 004A6DF0 call as the
+gets one. The scratch is emptied at the end. Scenario: `trader_stock` (the same 004A6DF0 call as the
 other generators). The verify checks ours only because the functions draw from rand and create
 items; both fields it compares are written unconditionally.
 
-Left: 0069A480 (fills the spell / modifier maps; STLport hash_map / map members throughout),
-0069A780 (random spells from those maps), 0069B5B0 (the stock's load from a save: five counted
-lists read from the stream as CStrings, upper-cased, looked up by name (004AB820 / 004AB720 /
-00613820, the material table 0069D290, the spell / modifier string maps 004ABD00 / 00684B20) and
-pushed unless already present (find 0069E350.., push_back 0069BD30 / 0069BDC0 / 0069BDF0); the
-material entries also read three ints; probably reached by any `load` of a save, e.g. world_load, through
-the class template's serializer 004A6C40). Skipped in H3 for size: each needs a dozen STLport /
-CString forwarders and a stream-position-restoring verify.
+### Spell maps, spells and the stock's load (ticket H4)
+
+| Address | Name | Verify |
+|---|---|---|
+| 0069A480 | `ItemStock::FillSpellMaps` (RET 4) | ours only: the recipe map holds exactly the qualifying recipes (counted over its buckets); each modifier key holds what a replay of the rules picks (lookups of keys ours inserted) |
+| 0069A780 | `ItemStock::GenerateSpells` (RET 0xC) | ours only: the output gained at most one spell per recipe in the map, each null or counted |
+| 0069B5B0 | `ItemStock::LoadLists` (RET 4) | ours only: lists only grew, new pointer records non-null and not listed before, earlier material entries unchanged |
+
+FillSpellMaps (from GenerateItems with the weapon / armor recipe vector 007C8568 / 007C855C;
+0x34-byte recipes: +0 spell name, +0xC / +0x18 required / optional modifier names, +0x24 the
+repeated modifier, +0x30 class mask): clears the recipe hash_map (+0x50, 004AAEB0) and the
+modifier map (+0x64, 004AB2B0); a recipe whose class bit is set and whose spell (007C851C by name,
+004ABD00) is in the stock's spells (+0x38) joins the list under its name (pair 0069C1C0, insert
+0069D130, list push 0069C2E0 / 0069C2F0). Each offered modifier (+0x44) by its kind letter (+4;
+switch table 0069A760 / 0069A76C): a, d, e, m, r, t under the one letter, replacing the held one
+unless that is at least as strong (+0x14; FCOMP, TEST AH,1: less or unordered replaces); f and i
+under both letters (+4, +5), the last wins; the rest are left out. The key string is built empty
+and pushed back a character at a time in the original (00425080 / 00428F10 / 0069BF10); ours
+constructs it from the letters (stlp::string), same contents.
+
+GenerateSpells (from GenerateItems with 8 equal levels and threshold 0; also 0069AC20, not
+rewritten): for each recipe of the map (begin 0069C160, next bucket 0069D0E0), skipped when ISAAC
+% 101 < threshold: the modifier list is emptied, the prototype found by name (00613920 on
+007C8510), level = prototype +0x44, budget = levels[prototype +0x14] rounded (FISTP), cost =
+prototype +0x18. Required modifiers present in the map are added (cost += +0x10, stored; level +=
++0x18; count); the recipe is dropped when budget < level or count > 8. Optional ones while count <
+8: ISAAC % 101 < 50 skips one, else added when budget >= its level + level. The repeated one (+0x24),
+when budget >= its level + level: added while count < 8; kind 'm' makes cost = factor (+0x14) x base
+cost + cost + added (stored) and stops when not above the base cost; the level reached is kept in a
+register (the stored level is not updated), the loop stops when budget < its level + reached.
+00689310 (spell manager, context slot 22) builds the spell; counted, pushed to `out` (0069BE60 /
+0069C410, which counts it again), released (slot 4). The modifier list's nodes go back with
+0068C640, its sentinel to the node pool.
+
+LoadLists: see the header. The count and the three material ints live in locals the original
+reuses for every section (a failed read leaves the previous value; ours does the same, starting at
+0). std::find (0069E350..0069E3D0) is written out; the push_backs (0069BD30 for all three item
+lists, 0069BDC0, 0069BDF0) and the material overflow (0069CC20) are called. Context slots 22 and 18
+are called and their results unused, as in the original. Reached by loading a save with class
+templates (004A6C40); which scenario reaches it is not confirmed yet (world_load / ui_saveload
+expected).
+
+Forwarders added (all through their original addresses): 004AAEB0, 004AB2B0, 0069D130, 0069C160,
+0069D0E0, 0069C680, 0069C830, 0069C2E0, 0069C2F0, 0069C1C0, 004AD640, 0069D1E0, 004ABD00,
+00613920, 00689310, 0069BF70, 0068C500, 0068C560, 0068C640, 0069BE60, 0069C410 (spells), 00461190,
+004AB820, 004AB720, 00613820, 0069D290, 00684B20, 0069BD30, 0069BDC0, 0069BDF0, 0069CC20 (load). None
+is on the Rebirth list. An older unmerged branch (worktree-agent-a66805191c86fe11f) had versions of
+these three in `trader_goods.cpp`; this port follows the disassembly and main's `ItemStock` layout
+(its FPU helper for the 'm' cost is plain C++ here).
+
+Original bugs kept: the 004ABD00 / 00684B20 lookups insert a null entry for every unknown name;
+a material entry with an unknown material is loaded with a null record.
+
+Not rewritten: 0069AC20 (the scrolls generator, "spell container" items, from 004A6F60, which the
+camp calls just before 004A6DF0, so `trader_stock` reaches it too; the old branch has a version),
+004A6DF0 / 004A6F60 / 004A6DC0 themselves.
 
 ## Weapon base figure (006A0CC0)
 
