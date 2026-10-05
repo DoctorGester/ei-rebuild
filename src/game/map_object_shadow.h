@@ -11,6 +11,7 @@
 #include <cstdint>
 
 class CObject3D;
+struct FigurePart;   // map_object_figures.h
 
 // The draw call's context: the scene (+0x08: its matrix stack) and the device (+0x0C).
 struct ShadowDrawContext {
@@ -56,11 +57,20 @@ public:
     // a fatal error's result.
     int Draw(ShadowDrawContext* context, void* dirty);
 
+    // unit_client_update.cpp (A-U). 0051B6D0 / 0051B6F0. Walk the drawn parts (+0x38): the first
+    // (cursor 0; with none the cursor is -1) / the next (the cursor moves on); null at the end.
+    FigurePart* FirstDrawnPart();
+    FigurePart* NextDrawnPart();
+
     CObject3D* object;              // +0x1C
     CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the
                                     //       first of the two part sets Draw walks (+0x24 the
                                     //       second)
-    std::uint8_t unknown_24[0x4C - 0x24];
+    std::uint8_t unknown_24[0x38 - 0x24];
+    FigurePart** drawnParts;        // +0x38 the parts a unit's fade-in reaches (FirstDrawnPart)
+    int drawnPartCount;             // +0x3C
+    std::uint8_t unknown_40[0x48 - 0x40];
+    int drawnPartCursor;            // +0x48 the iteration's index, -1 when there are none
     void* vertices;                 // +0x4C \ the projected shadow (0056C750 fills them,
     int vertexCount;                // +0x50 |  004EA4A0 draws them)
     std::uint8_t unknown_54[0x5C - 0x54];

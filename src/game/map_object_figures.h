@@ -33,7 +33,9 @@ static_assert(sizeof(AlignedPtrArray) == 0x10);
 // reads: its position relative to the object, the piece's offset and box in the figure.
 struct FigurePart : CEngineObject {
     float position[3];              // +0x01C
-    std::uint8_t unknown_028[0x18C - 0x28];
+    std::uint8_t unknown_028[0x2C - 0x28];
+    float alpha;                    // +0x02C (a unit's fade-in, CUnitClientSpecific +0x78)
+    std::uint8_t unknown_030[0x18C - 0x30];
     float offset[3];                // +0x18C the piece's place in the figure
     float unknown_198;              // +0x198
     float boxMin[3];                // +0x19C
@@ -59,8 +61,13 @@ static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 struct FigureAnimation {
     std::uint8_t unknown_00[0x14];
     std::uint32_t key;              // +0x14 animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
-    std::uint8_t unknown_18[0x58 - 0x18];
+    std::uint32_t flags;            // +0x18 bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
+    std::uint8_t unknown_1C[0x28 - 0x1C];
+    std::uint32_t arrowFrom;        // +0x28
+    std::uint32_t arrowTo;          // +0x2C
+    std::uint8_t unknown_30[0x58 - 0x30];
 };
+static_assert(offsetof(FigureAnimation, arrowFrom) == 0x28);
 static_assert(sizeof(FigureAnimation) == 0x58);
 
 // A figure's animation database: the data of "<figure name>.adb" as the object's manager
@@ -100,7 +107,15 @@ class CObject3D;
 class CFigureAnimationState : public CEngineObject {
 public:
     CObject3D* owner;               // +0x1C
+    std::uint8_t unknown_20[0x40 - 0x20];
+    FigureAnimation* current;       // +0x40 the animation playing, or null
+    std::uint8_t unknown_44[0x50 - 0x44];
+    int unknown_50;                 // +0x50 (the client update asks for below 3)
+    std::uint8_t unknown_54[0x60 - 0x54];
+    float time;                     // +0x60 the frame reached
 };
+static_assert(offsetof(CFigureAnimationState, current) == 0x40);
+static_assert(offsetof(CFigureAnimationState, time) == 0x60);
 
 // A counted reference: the pointer slot is the `this` of 00519580.
 struct CountedRef {

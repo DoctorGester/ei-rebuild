@@ -14,7 +14,27 @@
 #include <cstdint>
 
 class CUnit;
+struct AIPath;    // ai_map.h
 struct Vector3;   // maths.h
+
+// An entry of a client controller's speech queue (0x14 bytes; the value of a node of the STLport
+// list at +0x9C; 005380D0 plays one).
+struct ClientSpeech {
+    int id;                         // +0x00 (005380D0 compares it with the last speech, +0x94)
+    int kind;                       // +0x04 2 / 0x1C: not over a speech that still plays (+0x90)
+    int delay;                      // +0x08 ticks until it plays; negative: playing
+    int sound;                      // +0x0C its sound handle (-1 none)
+    std::uint8_t talking;           // +0x10 the server unit has flag 0x800000 while it plays
+    std::uint8_t unknown_11[3];
+};
+static_assert(sizeof(ClientSpeech) == 0x14);
+
+struct ClientSpeechNode {
+    ClientSpeechNode* next;
+    ClientSpeechNode* prev;
+    ClientSpeech value;             // +0x08
+};
+static_assert(sizeof(ClientSpeechNode) == 0x1C);
 
 // The figure part names of the three armour groups (0073EC24: seven char[4] each): a body
 // armour covers "bd" and the arm pieces, trousers "hp" and the legs, a helmet the hair "hr" and
@@ -97,13 +117,62 @@ public:
     // animation has no such node (`out` untouched).
     bool WeaponPoint(Vector3* out);
 
+    // unit_client_update.cpp (A-U).
+    // 005341A0. Virtual slot 6, the per-tick update on the client: the motion order's times
+    // shift by one tick while +0x260 is 1, +0x258 counts while +0x25C is 1, the weapon in hand is
+    // hidden during animations whose key has no low 15 bits (ShowWeaponParts); flags_ 8 (not
+    // drawn) for a unit dead for more than 50 ticks past +0x254 or without an animation, or in
+    // one of movement bits 0x30000 that is not a mode transition (0x240000); the fade-in
+    // (+0x78) goes to the drawn parts and grows by 1/15 up to 1; the colour flash countdown (+0x7C);
+    // the blink (+0xD0: every 2..9 ticks 00538ED0 or 00539010); the bow's arrow (00538C20);
+    // the step sounds (00534B60); the speech queue (+0x9C); for +0x255 == -2 with animation
+    // state +0x50 below 3, 00535480(0). Returns 1.
+    int UpdateClient();
+    // 00537CB0. Hides (`hidden`) or shows the figure parts of the weapon in hand (flags_ 0x80;
+    // its part names from 006A0FF0, the parts found by FindPart) unless +0x74 already says so;
+    // +0x74 and +0x75 take the new state.
+    void ShowWeaponParts(bool hidden);
+    // 00538C20. For heroes with a bow in hand: the arrow part "rh3_arrow00" shows (flags_ 0x80
+    // cleared, +0x75 = 0) when the animation (flag 1 in its +0x18) passes its frame +0x28, and
+    // is hidden again (+0x75 = 1) outside the window up to frame +0x2C, or always for animations
+    // without the flag.
+    void UpdateArrow();
+
+    AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motionOrder); }
+
     CUnit* unit;                    // +0x1C
-    std::uint8_t unknown_020[0xA0 - 0x20];
+    std::uint8_t unknown_020[0x2C - 0x20];
+    float lastAnimationTime;        // +0x2C the animation state's time (+0x60) at the last update
+    std::uint8_t unknown_030[0x38 - 0x30];
+    std::uint8_t motionOrder[0x20]; // +0x38 the order part of a path (AIPath; slot 16): MotionOrder()
+    std::uint8_t unknown_058[0x74 - 0x58];   // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
+    std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
+    std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
+    std::uint8_t unknown_076[2];
+    float fadeIn;                   // +0x78 1 when fully shown; the drawn parts take it as alpha
+    int flashCountdown;             // +0x7C the drawn parts get their colours back (0051C9F0 with 0) at 0
+    std::uint8_t unknown_080[0x90 - 0x80];
+    int speechSound;                // +0x90 the sound of the last speech that waits (-1 none)
+    std::uint8_t unknown_094[0x9C - 0x94];   // +0x94 last speech id, +0x98 its time (005380D0)
+    ClientSpeechNode* speech;       // +0x9C the speech queue (STLport list header node)
     std::uint32_t armourIds[7];     // +0xA0 packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];     // +0xBC
+    std::uint8_t unknown_0CC[0xD0 - 0xCC];   // +0xCC the face texture the blink changes
+    std::uint8_t blinks;            // +0xD0
+    std::uint8_t unknown_0D1[3];
+    int blinkTimer;                 // +0xD4 ticks to the next blink change
+    int eyesClosed;                 // +0xD8 00538ED0 sets it, 00539010 clears it
 };
+static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
+static_assert(offsetof(CUnitClientSpecific, motionOrder) == 0x38);
+static_assert(offsetof(CUnitClientSpecific, weaponHidden) == 0x74);
+static_assert(offsetof(CUnitClientSpecific, fadeIn) == 0x78);
+static_assert(offsetof(CUnitClientSpecific, speechSound) == 0x90);
+static_assert(offsetof(CUnitClientSpecific, speech) == 0x9C);
 static_assert(offsetof(CUnitClientSpecific, armourIds) == 0xA0);
 static_assert(offsetof(CUnitClientSpecific, weaponIds) == 0xBC);
+static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
+static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
 
 struct AttackParams;   // combat.h
 

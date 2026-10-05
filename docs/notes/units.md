@@ -126,6 +126,11 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
   trousers "hp", "rl1".."ll3"; helmet "hr" ("hr.<nn>" with the prototype's +0x10) and "hd"; armour slots 0 / 1 / 2 use rows 2 / 0 / 1; slots 3-6 have no parts);
   skin composition through the texture manager (007AF744, 00693180): layers 0x32 skin, 0x3005 armour, 0x3004 weapon, names "mo<id>p" / "prot<prototype>p" (...s for
   two layers). `ClientGetAttackParams` (00538960, slot 50; HUD info and hero panels) reuses 005285D0, a byte-for-byte copy of 00523D30 registered with the same function.
+- Client controller fields (unit_client_models.h): +0x2C last animation time, +0x38 motion order (slot 16), +0x74 / +0x75 weapon /
+  arrow hidden, +0x78 fade-in (new units fade in over 15 ticks), +0x7C colour flash countdown, +0x90 waiting speech sound, +0x9C speech
+  queue (STLport list of ClientSpeech; a speech's delay counts down, plays at 0, is erased once its sound ended; kinds 2 / 0x1C skip
+  while the previous one plays; `talking` sets the server unit's flag 0x800000), +0xD0..+0xD8 blink (every 2..9 ticks, rand()).
+  A unit dead for more than 50 ticks past its +0x254 byte is not drawn (flags_ 8).
 - **Levers**: lever table 0079C1A0 (`lever_table.cpp`), records from `Levers.ldb` (00463030), found by model name through 0052CB40 (unknown names add a null record).
   `SetState` (0052B7A0): a negative (or NaN) duration takes the model's default (map 0079C1AC) or 10; a negative state is the next (wraps when cycling); with a live
   world units within radius + 0.5 leave the sector map around the move, the end tick is (tick + duration) + 1, MarkChanged(5), lifted units that cannot stay go to
@@ -182,6 +187,9 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 0052FCC0, 0052FDF0, 00535850 | UnitPredictPosition, UnitActionPoint, ClientPlaceOnPath | unit_points.cpp, unit_client_path.cpp | differential within 8 ULPs (quaternion strict) |
 | 0052E400, 0052BFC0 | CUnit::CreateUnit, TorchCreate | map_object_create.cpp | ours only (result 1, 14 / 5 network fields, mode idle) |
 | 0052E970, 0052E9D0, 005300D0 | SetHostileMask, RefreshMotion (path forgets the unit, motion +0x27C takes GetMoveSpeeds and is rebuilt; part 10), SetPlayer | unit_controller.cpp | ours only (mask / speeds / player owns the unit; parts marked) |
+| 005341A0 | CUnitClientSpecific::UpdateClient (slot 6: motion order shift, weapon hidden by key, flags_ 8, fade-in, colour flash, blink, arrow, step sounds, speech queue, special idle) | unit_client_update.cpp | ours only (result 1, flags_ 8 by the rule, fade <= 1, blink timer 0..9) |
+| 00537CB0, 00538C20 | ShowWeaponParts, UpdateArrow (bow arrow "rh3_arrow00" between the animation's frames +0x28 / +0x2C) | unit_client_models.cpp | ours only (+0x74 / +0x75; part flag agrees) |
+| 0051B6D0, 0051B6F0 | CObject3DClientSpecific::FirstDrawnPart / NextDrawnPart (+0x38 / +0x3C, cursor +0x48) | unit_client_update.cpp | result and cursor compared |
 | 0052E740, 0052E590 | ReleaseUnit (slot 5: SetPlayer(null), controller slot 5, item slots, carried items), DestroyUnit (slot 3) | unit_controller.cpp | ours only (no player, empty slots; no controller) |
 | 00535590, 00535CB0, 00536300, 00536670, 005381B0, 005385A0 | ChangeWeaponModel, CollectArmourPartNames, BuildSkinLayers, ComposeSkin, WearArmourModel, RemoveArmourModel | unit_client_models.cpp | ours only / output |
 | 0052B7A0, 0052BBE0 | Lever::SetState, UseSpots | unit_lever.cpp | ours only / output (coordinates within 8 ULPs) |
@@ -223,7 +231,7 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 - 0052EA40 (SetMotionSpeeds with given speeds): only the multiplayer client calls it (00669FA0).
 - Large or stateful, next candidates: 005316F0, 0052EB70 and 0050E9B0 (slot 34:
   pack stack copies that 005136D0 fills, stack garbage), 0052FC40, 00526860 / 005271E0 (skill / attack builders), 00522AE0 / 00522B20 (results depend on leftover register halves), record
-  destructors 0053EBC0 and others, 00535B30 / 005341A0 / 00537D80 / 00534590 (client timers, speech, footsteps: audio-adjacent), 00538C20 / 00538ED0 / 00539010 / 005352B0 / 00533980 / 00533EA0 (client arrow
+  destructors 0053EBC0 and others, 00535B30 / 00537D80 / 00534590 (client timers, speech, footsteps: audio-adjacent), 00538ED0 / 00539010 / 005352B0 / 00533980 / 00533EA0 (client arrow
   part, figure, animation code, destructor), 0053A8E0 (counts each model's .wav files), 005190C0 / 00519380 (random animations; forwarded locally).
 - Not unit logic: 00500000-0050E000 (`map_objects.md`), figure loading, bounds and wound textures (005179E0, 00516DA0, 0051C3D0, 005370F0, 00536EA0), map object effect visuals (00510B80, 005112A0,
   005114D0, 00511A00), 00529B80 (class 0x3010's update: a script CreateParticleSource), 0051FF40 (writes "perks.pdb", no references: dead), unit database STLport code (library: 0053F530, 0053FCC0,
