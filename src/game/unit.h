@@ -295,6 +295,18 @@ public:
     // kind 2, else 3, radius 0.75.
     void UpdateSizeClass();
 
+    // unit_steal.cpp (U6).
+    // 00531400. Stealing: takes the first carried item (the rest move down), or else a random
+    // filled quick item slot (one IsaacRandom draw) is emptied; marks part 5 changed. Returns the
+    // item, null when there is none (nothing changes then).
+    CEngineObject* TakeRandomItem();
+
+    // map_object_create.cpp (U6).
+    // 0052E400. Virtual slot 2 (Create; a different name so it is no override): the map object's
+    // Create (0050E770), Reset, then 14 network fields (the DeltaState at +0x1C4, SetSize 0050FA30
+    // inlined). Returns 1.
+    int CreateUnit();
+
     // Not rewritten (forwarders):
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     void* World();
@@ -697,6 +709,12 @@ struct UnitStats {
     // sum of the known skill levels, a byte), rounded to one significant digit, or two when the
     // first digit is below 4; a price of 10 or less with a first digit below 4 is rounded up.
     int SkillPrice(const char* record);
+    // unit_hit_location.cpp (U6). 00525B20. The hit location an attack aimed at `location` lands
+    // on: `location` while its slot works (kind 3; read without a range check), else the first
+    // working neighbour (head: 1, 2, 3; body: 0, 2-5; hands 2 / 3: the other hand, then the body;
+    // legs 4 / 5: the other leg, then the body), else a random working slot (one IsaacRandom
+    // draw), else 1.
+    int PickLocation(int location);
 
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.

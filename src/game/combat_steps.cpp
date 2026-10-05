@@ -122,7 +122,8 @@ namespace {
 __declspec(naked) char* __fastcall UnitFindAnimation(CUnit*, void*, std::uint32_t, int) EI_ORIGINAL(0x005301B0)
 // 00530240. CUnit: animation entry `index` (only its low byte counts), or null.
 __declspec(naked) char* __fastcall UnitAnimationEntry(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530240)
-// 00525B20. UnitStats: a body part near `location` that can still be hit.
+// 00525B20. UnitStats: a body part near `location` that can still be hit (UnitStats::PickLocation,
+// unit_hit_location.cpp; called through its address).
 __declspec(naked) int __fastcall StatsPickLocation(void*, void*, int) EI_ORIGINAL(0x00525B20)
 // 00530560. CUnit: its height (2 * +0x14C), in ST0.
 __declspec(naked) double __fastcall UnitHeight(CUnit*) EI_ORIGINAL(0x00530560)

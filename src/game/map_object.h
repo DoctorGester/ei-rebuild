@@ -189,3 +189,9 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 inline CMapObject*& CompanionOwner(CEngineObject* companion) {
     return *reinterpret_cast<CMapObject**>(reinterpret_cast<char*>(companion) + 0x1C);
 }
+
+// map_object_create.cpp (U6). 0052BFC0, virtual slot 2
+// (Create) of CTorchObject (class id 0x3A, 0x23C bytes, vtable 0073E834, constructor 0052BEE0):
+// the map object's Create (0050E770), the object at +0x238 released and cleared, 5 network fields
+// (the DeltaState at +0x1C4, SetSize 0050FA30 inlined), then DeltaState::Reset. Returns 1.
+int __fastcall TorchCreate(CMapObject* torch);
