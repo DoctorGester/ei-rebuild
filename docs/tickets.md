@@ -21,7 +21,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I8 AttackUnit 00637190 has 0 calls (ui_battle_commands' click grid misses the wolves): needs a way to click a unit (a harness step that clicks a unit's projected screen position?). Then 00637500 / 00637750 / 0063DB20 (spells and quick items on targets).
+- I8 (taken 2026-10-05) AttackUnit 00637190 has 0 calls (ui_battle_commands' click grid misses the wolves): needs a way to click a unit (a harness step that clicks a unit's projected screen position?). Then 00637500 / 00637750 / 0063DB20 (spells and quick items on targets).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
@@ -29,7 +29,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S6 (taken 2026-10-05) Next script runtime functions (script.md "Constructor, reset and small loaders (ticket S5)": 004B3900 AppendFrom; destructors 004BE9D0 / 004BE090 / 004BF640 need a verify approach).
+- S7 Script element-destructor wrappers 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004BF620 (S6's deep-copy check fits).
 
 ## Verify checks
 
