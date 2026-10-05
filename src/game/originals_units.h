@@ -151,3 +151,14 @@ __declspec(naked) inline void __fastcall UnitSetHostileMaskOriginal(void* /*unit
 // constructor (plain RET, returns `this`).
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
 __declspec(naked) inline void* __fastcall StepsConstructOriginal(void* /*steps*/) EI_ORIGINAL(0x00557B60)
+
+// U11. Figure methods of map objects (the 3D object base). 00518F80: animation entry `key & 0xFF` of the figure's
+// animation set (0x58-byte entries from set + 0x2C, the set loaded on first use by 00518CA0; RET 4, EAX the entry or
+// null). 00517990: the index of the part named `name` (_mbscmp, the names at +0x114 / +0x118; RET 4, -1 when
+// none); it indexes the part boxes at +0x160. 005188B0: a part's position in the world (RET 8: out, part; returns out).
+__declspec(naked) inline char* __fastcall ObjectAnimationEntryOriginal(const void* /*object*/, void*, std::uint32_t /*key*/)
+    EI_ORIGINAL(0x00518F80)
+__declspec(naked) inline int __fastcall ObjectFindPartIndexOriginal(const void* /*object*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00517990)
+__declspec(naked) inline float* __fastcall ObjectPartPositionOriginal(const void* /*object*/, void*, float* /*out*/,
+                                                                      void* /*part*/) EI_ORIGINAL(0x005188B0)

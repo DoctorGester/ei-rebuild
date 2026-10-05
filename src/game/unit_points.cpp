@@ -7,6 +7,7 @@
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_core.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,7 +23,6 @@ T& At(void* object, int offset) {
 // turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
-__declspec(naked) std::uint8_t* __fastcall AnimationEntry(void*, void*, std::uint32_t) EI_ORIGINAL(0x00518F80)
 __declspec(naked) float* __fastcall AxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
 float* __fastcall AxisY(const void* a0, void*, float* a2) { return QuaternionAxisY(a0, nullptr, a2); }
 __declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
@@ -81,7 +81,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out) {
     }
     std::uint8_t index = At<std::uint8_t>(unit, 0x254);
     float offset[3] = {0.0f, 0.0f, 0.0f};
-    std::uint8_t* entry = AnimationEntry(unit, nullptr, index);
+    auto* entry = reinterpret_cast<std::uint8_t*>(ObjectAnimationEntryOriginal(unit, nullptr, index));
     if (!entry) {
         DebugMessageOriginal(kNoEntry, static_cast<unsigned>(index), At<const char*>(unit, 0xA4));
     } else if ((At<std::uint32_t>(entry, 0x14) & 0x3C0000) == 0x1C0000) {

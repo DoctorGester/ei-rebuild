@@ -1544,3 +1544,79 @@ MagicTrap__Update, 0052AB30 MagicTrap__FireAtOccupants, 0052AC90 MagicTrap__Forg
 - Adding virtuals to CWorld changes no layout (CEngineObject already has the vtable pointer); a
   later non-virtual CWorldServer / CWorldClient member named IsServer or SlotNN would silently
   become an override (check_thunks catches it if it is hooked).
+
+# Thirteenth round (U11): animation lookups, the body's extent, ground height, the effect point
+
+Code: `src/game/unit_figure_queries.cpp` (new). Verify: `tests/verify/verify_unit_figure_queries.cpp`
+(new; all five compare against the original). Shared headers, additive except one rename:
+`unit.h` (five CUnit methods; members orientation +0x34, the bounds +0x124..+0x14C and partBoxes
++0x160; the old `speedFlags` / `speed130` / `speed134` / `speed14C` were the figure's bounds, now
+`boundsFlags` / `center[2]` / `radius` / `above[2]`, used only by BaseSpeed in unit.cpp),
+`world.h` (CWorld virtual slots 27-30: Slot27, Slot28 placeholders, GroundHeightAt 29,
+SurfaceHeightAt 30), `unit_client_models.h` (CUnitClientSpecific::WeaponPoint, a forwarder),
+`originals_units.h` (shared forwarders 00518F80, 00517990, 005188B0; the local ones in
+unit_points.cpp, ai_footprint.cpp and world_client_draw.cpp now use them).
+
+Picked from the live unit functions the combat code forwards to (combat.md, third round: "Unit
+range: 005301B0 / 00530240 animation lookup / entry, ... 00530280 ground height") and the effect
+code (00532860). None is in library.csv, dead_code.csv or the Rebirth list, nor is any callee:
+005190C0 / 00519380 (random animation of a key / of a kind, forwarded locally), 00518F80, 00517990,
+00516A80, 005188B0 (figure methods, shared forwarders), 00535770 (CUnitClientSpecific, forwarded),
+00455940 / 00455950 (ManagerContext rewritten, World forwarded), 0044C470 (DebugLog, a bare RET),
+world slots 26 / 29 / 30 (declared virtuals). Skipped on the way: 0052E970 SetHostileMask,
+0052E9D0 (path speeds) and 005300D0 SetController, which call the controller's virtual slots 38,
+16 and 18; the controllers (CUnitServer, CUnitClientSpecific, base vtable 0073EDBC) have no
+declared virtual interface yet, and adding one under them means checking every EI_REPLACE_METHOD
+of their slot members against check_thunks. Next candidates once that exists.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 005301B0 | CUnit::FindAnimation (RET 8: key, byte flag; EAX entry or null) | differential: rand() / ISAAC state saved, the original, state put back, ours; same entry and the same generator state after. Animation queue and orders of every unit (units, combat, unit_ai, movement) |
+| 00530240 | CUnit::AnimationEntry (RET 4: key; EAX entry or null) | differential, pure (the message goes to the DebugLog stub); same entry. Same callers |
+| 005304A0 | CUnit::BodyExtent (no arguments; ST0) | differential, pure, CheckNear. CUnitServer slot 23 (00552FB0) for every server unit |
+| 00530280 | CUnit::GroundHeight (RET 8: x, y; ST0) | differential through a copy of the original's whole body (98 bytes, made at DLL load; its CALL 00455950 displacement recomputed): the first instructions are too short for a 5-byte trampoline. CheckNear. Sight and planning (combat_sight, combat_planning, combat_steps), client path placement, script expressions |
+| 00532860 | CUnit::EffectPoint (RET 4: out; returns out) | output only: the original into a scratch vector, ours into out; CheckNear per coordinate, skipped where the original rotates uninitialised stack (see below). Client lightning / particle effects at a unit (spells_cast, effects) |
+
+Renamed in Ghidra: 005301B0 CUnit__FindAnimation, 00530240 CUnit__AnimationEntry, 005304A0
+CUnit__BodyExtent, 00530280 CUnit__GroundHeight, 00532860 CUnit__EffectPoint, 00535770
+CUnitClientSpecific__WeaponPoint.
+
+## Details
+
+- FindAnimation works only for type_ 0x32..0x34. It tries the key, the key's kind (low 15 bits
+  cleared), and for movement bits 0x8000 alone (of 0x38000) the kind without movement bits and the
+  kind with 0x10000 in place of 0x8000, each through 005190C0 (a random entry: kind equal, variant
+  bits a superset of the key's, or none for a key without, and accepted by the unit's slot 18).
+  With the flag (callers pass 1 or 0; only the low byte is read) 00519380 picks any entry of the
+  kind. 005190C0 / 00519380 draw with rand() and load the animation set on first use (+0xA0).
+- AnimationEntry passes the whole key to 00518F80 (which masks it to the low byte) and logs
+  `key & 0xFF` and the prototype name ("Can't find animation entry index\n %i\n for \"%s\".\n",
+  0078F918; our copy of the text) when there is no entry.
+- BodyExtent: part "bd", else "chest" (00517990, by name); without either 0. The part's box record
+  (+0x160, 0x38 bytes: FootprintPart) gives sqrt(maxY^2 + maxX^2) times 1, or 2 for type_ 0x33 named
+  "unmosp". The combat notes call it the unit's load (CUnitServer::UpdateSizeClasses).
+- GroundHeight: the world's slot 29 (ground) unless the unit moves on the water surface (+0x33F 2):
+  then slot 30 plus positionZ for a server unit (controller class 0x3E) or heightOffset (+0x320).
+- EffectPoint: on a client world (slot 26 of ManagerContext() = 0), a hero's (type_ 0x32) part
+  "rh3" world position (005188B0); for other units the controller's 00535770 (the weapon-in-hand
+  node's +0x74 in the figure animation), turned by the orientation quaternion (+0x34, w first) as
+  2(u.v)u + (s^2 - u.u)v + 2s(u x v) and added to the position; without that node the position plus
+  the bounds centre (+0x128).
+
+## Original bugs and oddities kept (thirteenth round)
+
+- EffectPoint on a server world, and for a hero whose figure has no "rh3", turns a vector the
+  original never wrote (stack garbage) and adds it to the position. Not reproducible: ours turns a
+  zero vector (the position comes out). The verify wrapper does not compare those calls; the
+  callers are client effects, so the server path should not occur.
+- FindAnimation's last fallback (00519380) gets the kind without the movement substitution.
+
+## Risks (thirteenth round)
+
+- The CUnit field rename (speed* -> bounds) touches a shared header; branches that use the old
+  names need the new ones (only unit.cpp's BaseSpeed did).
+- GroundHeight's verify depends on the copied body: when 00530280's bytes are not the expected ones
+  (another patch), the copy is not made and the calls are not compared (only ours runs).
+- New CWorld virtual names (Slot27, Slot28, GroundHeightAt, SurfaceHeightAt): a later non-virtual
+  CWorldServer / CWorldClient member of one of these names would silently override (check_thunks
+  catches it when hooked).

@@ -6,6 +6,7 @@
 
 #include "engine_object.h"
 #include "item_db.h"
+#include "maths.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,6 +14,7 @@
 struct UnitStats;
 struct UnitParams;
 struct DamageInfo;   // spell.h
+struct FootprintPart;   // ai_map.h
 
 // The stream the game's Load / Save slots read and write (the same interface as unit_ai.h's
 // AIStream): slot 1 reads, slot 2 writes; +0x08 is the format version of a stream being loaded.
@@ -130,7 +132,8 @@ public:
     // 005302F0. The base speed (BaseSpeed) scaled by the movement mode: x0.2 when standing or
     // inactive, x0.7 in mode 1.
     double ModeSpeed();
-    // 00530370. 1.8 * +0x14C when flag 2 of +0x124 is set, else 0.7 * +0x134 + +0x130.
+    // 00530370. 1.8 * above[2] (+0x14C) when bit 1 of boundsFlags is set, else 0.7 * radius + center[2]
+    // (a height from the figure's bounds, despite the name).
     double BaseSpeed();
 
     // 005307B0. Sum of +0x34 (weight) over all carried items.
@@ -307,6 +310,30 @@ public:
     // inlined). Returns 1.
     int CreateUnit();
 
+    // unit_figure_queries.cpp (U11).
+    // 005301B0. An animation entry of the unit's figure for `key` (bits as docs/notes/combat.md
+    // lists them), only for units (type_ 0x32..0x34; null otherwise): a random entry matching the
+    // key (005190C0), else one matching the key without its low 15 bits, else for movement bits
+    // 0x8000 (alone among 0x38000) one without movement bits or with 0x10000 in place of 0x8000;
+    // then, when `anyOfKind`, a random entry of the key's kind (00519380). Null when none.
+    char* FindAnimation(std::uint32_t key, bool anyOfKind);
+    // 00530240. The figure's animation entry `key & 0xFF` (00518F80; the key is passed whole). When
+    // there is none, logs "Can't find animation entry index" through the DebugLog stub. Null then.
+    char* AnimationEntry(std::uint32_t key);
+    // 005304A0. The horizontal extent of the body: the box maximum's (x, y) length of the figure
+    // part "bd" (else "chest"), doubled for the mosquito (type_ 0x33, prototype "unmosp"); 0 when
+    // the figure has neither part. Returned in ST0 unrounded.
+    double BodyExtent();
+    // 00530280. The height of the ground at (x, y) (the world's slot 29); for units moving on the
+    // water surface (movementKind 2) the surface height (slot 30) plus the unit's z (server units,
+    // controller class 0x3E) or its heightOffset. Returned in ST0 unrounded.
+    double GroundHeight(float x, float y);
+    // 00532860. Where effects (lightning, particles) start from the unit: on a client, a hero's
+    // right hand (part "rh3"), another unit's weapon point (the controller's 00535770) turned by
+    // the orientation, or else its position plus the bounding box centre. Returns `out`. The server
+    // and a hero without the part make the original rotate uninitialised stack (see the notes).
+    Vector3* EffectPoint(Vector3* out);
+
     // Not rewritten (forwarders):
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     void* World();
@@ -316,18 +343,22 @@ public:
     float positionX;                // +0x01C
     float positionY;                // +0x020
     float positionZ;                // +0x024
-    std::uint8_t unknown_028[0xA4 - 0x28];
+    std::uint8_t unknown_028[0x34 - 0x28];
+    Quaternion orientation;         // +0x034
+    std::uint8_t unknown_044[0xA4 - 0x44];
     const char* prototypeName;      // +0x0A4 e.g. "unhuma"
     std::uint8_t unknown_0A8[0xCC - 0xA8];
     float animationCC;              // +0x0CC an animation time
     std::uint8_t unknown_0D0[0x124 - 0xD0];
-    std::uint8_t speedFlags;        // +0x124 bit 1: use speed14C
-    std::uint8_t unknown_125[0x130 - 0x125];
-    float speed130;                 // +0x130
-    float speed134;                 // +0x134
-    std::uint8_t unknown_138[0x14C - 0x138];
-    float speed14C;                 // +0x14C
-    std::uint8_t unknown_150[0x17E - 0x150];
+    // The figure parts' bounding box as CObject3D keeps it (map_object_figures.h, 00518310).
+    std::uint32_t boundsFlags;      // +0x124 bits 1 and 2: the bounds are valid
+    float center[3];                // +0x128 relative to the position
+    float radius;                   // +0x134
+    float below[3];                 // +0x138 box minimum - centre
+    float above[3];                 // +0x144 box maximum - centre
+    std::uint8_t unknown_150[0x160 - 0x150];
+    FootprintPart* partBoxes;       // +0x160 per figure part (the index 00517990 finds by name)
+    std::uint8_t unknown_164[0x17E - 0x164];
     std::int16_t hitPoints;         // +0x17E
     std::int16_t maxHitPoints;      // +0x180
     std::uint16_t mana;             // +0x182
@@ -386,8 +417,12 @@ public:
     std::uint8_t unknown_4C8[0x4DC - 0x4C8];
 };
 static_assert(offsetof(CUnit, prototypeName) == 0xA4);
-static_assert(offsetof(CUnit, speedFlags) == 0x124);
-static_assert(offsetof(CUnit, speed14C) == 0x14C);
+static_assert(offsetof(CUnit, orientation) == 0x34);
+static_assert(offsetof(CUnit, boundsFlags) == 0x124);
+static_assert(offsetof(CUnit, center) == 0x128);
+static_assert(offsetof(CUnit, radius) == 0x134);
+static_assert(offsetof(CUnit, above) == 0x144);
+static_assert(offsetof(CUnit, partBoxes) == 0x160);
 static_assert(offsetof(CUnit, hitPoints) == 0x17E);
 static_assert(offsetof(CUnit, mana) == 0x182);
 static_assert(offsetof(CUnit, effects) == 0x198);
