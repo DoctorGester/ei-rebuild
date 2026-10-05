@@ -25,7 +25,7 @@ software cursor, and the depth clears in the middle of the frame; the escape men
 game's screen copy comes from the new frame. Checked in game: terrain, meshes, interface
 (`render_scene`, section 8). Also handed over: every pre-transformed draw of the renderer
 (particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points) and the
-weather (after its builders draw). Movies (Bink) are handed over; the trade grid's depth clears too (00627390 rewritten).
+weather (after its builders draw). Movies (Bink) are handed over, the players outside the frame too (section 13); the trade grid's depth clears too (00627390 rewritten).
 The switch-over mode `present` exists (section 5, "Switch-over").
 
 ## 1. The switch (EI_RENDER)
@@ -156,7 +156,7 @@ Checked statically (scan of every `TEST [reg+8],0x20` reader and of the draw pat
 | Sky | the sky object (004D96E0: a model at the camera, turning with time) | the figure path | with objects |
 | Interface surfaces | CUiSurface (0x38 bytes): +0x0C flags (1 colour key, 2 whole surface stretched, 4 shown), +0x10 the surface holder, +0x24 the screen rectangle, +0x34 the colour key; the DirectDraw surface's pixels (read with a read-only Lock when its uniqueness value changed) | the blit 005FDA80 (rewritten: `ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn (overlay) |
 | Rectangle fills | renderer slot 19 (005041F0): a translucent black quad (alpha argument) and optionally its outline | 005041F0 rewritten (`renderer_rect.cpp`) -> `render::ScreenDraw` (pre-transformed triangles, line strip) | drawn |
-| Cursor | the cursor object 007C7BD8 (shape 005E5200; hardware cursor normally; the display option's software cursor is drawn into locked surfaces by 005E5690 / 005E5C40 after the capture point) | the frame draw 005E54A0 rewritten (`ui_cursor_frame.cpp`) -> `render::Cursor` (image from its picture's file data, 004EFC60 -> `render::PictureFromMmp`, and mask; texels with a mask left out) | drawn; the cursor thread's draws between frames are not (they go to the primary) |
+| Cursor | the cursor object 007C7BD8 (shape 005E5200; hardware cursor normally; the display option's software cursor is drawn into locked surfaces by 005E5690 / 005E5C40 after the capture point) | the frame draw 005E54A0 rewritten (`ui_cursor_frame.cpp`) -> `render::Cursor` (image from its picture's file data, 004EFC60 -> `render::PictureFromMmp`, and mask; texels with a mask left out) | drawn; the cursor thread's draws between frames go to the primary (005E5690 rewritten); with `present` they, the background saves and the frame draw's old blits are left out (section 13) |
 | Movies | Bink frames: BinkCopyToBuffer into the video's locked surface (CBinkVideo: 005DBA50 opens, 005DBD80 steps a frame and blits it into its letterboxed rectangle of the render target or the primary; called by the movie screen's draw 0062BD80 inside the frame) | 005DBD80 rewritten (`bink_video.cpp`) -> `render::SurfaceBlit` (the surface read when the decode changed it) | drawn; with `present` the old blit is skipped |
 
 ## 5. Order of work and estimates (one developer)
@@ -336,8 +336,7 @@ in our runs) is still created and still used, because:
    skip the device call when the new renderer takes the draw); 83 functions with DirectDraw /
    Direct3D calls are not rewritten yet (the "state presets" are done, point 3; the dead line draw
    0049B320 is left): the device setup and texture management (004E5E50,
-   004E68A0, 004EE*, 0068F860..00693C60), the movies' surfaces (005DA5AB / 005DA880 / 005DB603 / 005DB9E0), the
-   software cursor's primary draws (005E5640 / 005E5690 / 005E6630), the holder helpers
+   004E68A0, 004EE*, 0068F860..00693C60), the holder helpers
    (004EFA60, 004EFEA0; 004F0060 is rewritten; the save / load screen's picture locks are done,
    section 11) and a few interface draws (0060C870, 00627C90, 00628F80, 00630670, 006462A0,
    00658E10; 00600EF0, 00602BF0, 00622420, 00632A90 and 0064D970 are done, section 12; 0060C870 is
@@ -634,3 +633,59 @@ render_present_cpuwindows); 00602BF0 / 00632A90 result 1 (no scenario reaches sc
 original through the trampoline, 6 stolen bytes, the alpha reference read back; then ours; results
 and states compared); its caller (slot 26 of 007411BC) is not identified, so it may not be reached.
 Not checked in game yet (runs are central).
+
+## 13. Movies and the software cursor outside the frame (ticket R6, 2026-10-05)
+
+Rewritten (old device calls kept, behind `render::Presenting()`):
+
+| Address | What | With the new renderer |
+|---|---|---|
+| 005DB3F0 (`bink_video.cpp`, `PlayMovie`; fastcall name, frame time, 5 stack arguments, RET 0x14) | the blocking movie player: intro, titles, the script's PlayMovie (callers 00458270, 0057A060, 004B89B8, 00602190, 00632940, 00634D20, 00634E60, the main menu). Its own message loop (PeekMessageA, formerly returning to 005DB788: Esc / Space end it or skip a frame, WM_PAINT dispatched), frames timed by BinkWait or the fixed frame time, decoded into the movie's surface and blitted into the letterboxed rectangle of the primary; the screen filled black first (005DB9E0) and the renderer's clear (00501A40) when asked | each decoded frame to `render::MovieFrame` (BinkCopyToBuffer's 32-bit type 4), then the frame `render::Fill` (black, with the fill flag) + `render::MovieBlit` and presented: with `present` through the old present 004EF610 (the new frame copied into the render target, then Flip / BltFast); otherwise `render::Present` ends the sidecar's frame and the old path draws as before. With `present` no Lock / Unlock of the movie's surface, no fill or clear, no Blt to the primary |
+| 005DB9E0 (`HolderFill`, thiscall, RET 8) | a colour fill (DDBLT_COLORFILL) of a holder's surface under the device lock | only called outside `present` |
+| 005DA400 (`ShowLoadingMovie`, fastcall progress, plain RET) | the loading screen's movie (00791EE0's file: progres*.bik, chosen per zone by 00595080), opened once into 007C5550 / holder 007C551C / type 007C5554 / screen rectangle 007C5520, decoded up to the progress frame (BinkGoto) and stretched over the primary | the last decoded frame (`render::MovieFrame`, key 007C551C) blitted over the screen and presented as above; with `present` the surface is not filled and nothing goes to the primary |
+| 005E5640 (`HolderBlt`, `ui_cursor_frame.cpp`, thiscall, RET 0x14) | Blt between two holders under the device lock | (unchanged; its callers skip it with `present`) |
+| 005E5690 (`CursorThread`, thiscall, plain RET; started through 005E52A0) | the cursor thread: every 41 ms with the software cursor bit and an image, when the cursor moved, restores the old background, saves the new one, composes (005E5C40) and blits to the primary (one union blit when the rectangles overlap), WaitForVerticalBlank before showing | with `present` the thread draws nothing (neither its first background save nor the per-tick redraws): the new renderer draws the cursor in each frame (005E54A0 -> `render::Cursor`); between frames (loading, movies) the cursor does not move |
+| 005E6630 (`CursorSaveBackground`, thiscall, RET 4) | the drawn rectangle (+0x20) inside +0x50 copied from the primary (1) or the render target (0) into the background surface +0x60 (the movie players after their blits) | nothing with `present` (nobody draws from the background then) |
+| 005E54A0 (`CursorDrawFrame`, changed) | | with `present` its old blits (background from the render target, the composition 005E5C40, back into the render target, mode 2's save from the primary) are left out: the new frame overwrites the render target at the present anyway; `render::Cursor` as before |
+
+Not rewritten: **005DA880** is dead (a thread procedure started only by 005DAD50, which has no caller;
+config/dead_code.csv); 005DA5AB / 005DB603 are not functions but the catch blocks of 005DA400 /
+005DB3F0 (the fallback to 004EF7B0 when the video-memory surface of 004EFA60 throws). That branch
+runs only with 00784756 0, which the exe never sets (it is 1, R2b), so the rewrites keep the
+video-memory branch without the catch.
+
+New in the renderer: `render::Fill(rect, colour)` (a stretched one-texel blit of the frame).
+Forwarders moved into the shared headers (rule 5): 004EF7B0 `DXSurfaceConstructOriginal`, 004EFA60
+`DXSurfaceFromDescOriginal` (texture_mmp.cpp uses it), 00501A40 `RendererClearOriginal`, 004EF610
+`DevicePresentOriginal` (app_frame.cpp uses it) in originals_render.h; 005E5270 `CursorShowOriginal`
+(console_addon.cpp, ui_layouts.cpp), 005E65F0 / 005E6610 `CursorLockOriginal` / `CursorUnlockOriginal`
+(app_frame.cpp), 006B71C0 `LoadingStepOriginal` (ui_layouts.cpp, world_game.cpp), 005E6630
+`CursorSaveBackgroundOriginal` in originals_ui.h. 00455F10 (sets the byte 00784751 from CL) and
+004E6BA0 (a holder's release) are written inline; 00694120 is an empty function and not called.
+
+Original details kept: a failed Lock whose error report says go on skips the copy and leaves the
+device lock held (both players); a failed Unlock whose report says stop ends the movie (005DB3F0) or
+returns before the blit and the cursor calls (005DA400); 005DA400 hides the cursor (005E5270 0) on
+every call and never shows it again (the caller does); the fifth stack argument of 005DB3F0 is
+never read; mode 2's height is trunc(screen width * (height / width)); the progress movie's path is
+the CString 007AF460 + "Movies\" + the name.
+
+The harness: its input steps wait for PeekMessageA calls from the main loop or the movie player,
+recognised by return address; the rewritten player's call no longer returns to 005DB788, so input
+steps (Esc to end a movie) are not posted inside it. No scenario sends input to a movie (the harness
+empties movie.ini's lists); harness.cpp is unchanged.
+
+Verify: 005DB3F0 ours only (result 0 / 1, 1 with movies off, 00784751 set again); 005DB9E0
+differential (6 stolen bytes, Blt results); 005DA400 ours only (the movie open has its holder, the
+frame reached or the movie at its end); 005E5640 differential (8 stolen bytes, results); 005E5690
+ours only (returns only when asked to stop); 005E6630 ours only (+0x20 / +0x50 unchanged).
+Scenarios: render_movie (`render new`: PlayMovie("crdtfin.bik") after a new game, the old path and
+the new frames; 005DB9E0 there) and render_movie_present (`new,present`); 005DA400 and 005E6630
+in every scenario with a new game; 005E5690 runs in every scenario (it draws only with the
+software cursor display option, which no scenario sets; 005E5640 likewise). Not checked in game
+yet (runs are central).
+
+Left of R6-R8: R7 holders with no DirectDraw surface at all (the movies' holders are still made by
+004EF7B0 / 004EFA60, and the cursor's surfaces); R8 device setup and texture management, and with it
+the presentation itself (the old Flip / BltFast that `present` still goes through, and the cursor
+between frames once there is no primary).

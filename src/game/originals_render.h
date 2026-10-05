@@ -31,3 +31,18 @@ __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, 
 // C3i. 004D9AA0: quaternion (ECX) into a 4x4 matrix `out` (RET 4, no result).
 __declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* /*quaternion*/, void*, float* /*out*/)
     EI_ORIGINAL(0x004D9AA0)
+// 004EF7B0 (rewritten as DXSurfaceConstruct, dx_surface.cpp; called through its address so the wrapper runs):
+// the CDXSurface constructor on `memory` for an off-screen surface of the screen's format (thiscall: device
+// object, width, height; RET 0xC; returns `memory`).
+__declspec(naked) inline char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/,
+                                                                      int /*width*/, int /*height*/) EI_ORIGINAL(0x004EF7B0)
+// 004EFA60: the CDXSurface constructor on `memory` from a DDSURFACEDESC2 (thiscall: device object, description;
+// RET 8; returns `memory`).
+__declspec(naked) inline void* __fastcall DXSurfaceFromDescOriginal(void* /*memory*/, void*, void* /*device*/,
+                                                                     const std::uint32_t* /*desc*/) EI_ORIGINAL(0x004EFA60)
+// 00501A40: the renderer's clear of the render target (and depth) with its colour +0x14 (ECX = the renderer
+// 007AF060, plain RET, EAX 1).
+__declspec(naked) inline int __fastcall RendererClearOriginal(void* /*renderer*/) EI_ORIGINAL(0x00501A40)
+// 004EF610 (rewritten as DevicePresent, device_present.cpp): the device object's present (ECX = device object
+// 007AF080, plain RET, the DirectDraw result).
+__declspec(naked) inline int __fastcall DevicePresentOriginal(void* /*device*/) EI_ORIGINAL(0x004EF610)

@@ -1391,8 +1391,6 @@ constexpr unsigned kMagicMissionFile = 0x102;
 constexpr int kVersionGlobalsInMission = 0x52;   // below: the globals (0079B2A8) come from mission.sav
 constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C7D50) too
 
-// 006B71C0 (RET 4). The loading screen (007AF784) steps.
-__declspec(naked) void __fastcall LoadingStep(void*, void*, int) EI_ORIGINAL(0x006B71C0)
 // 00579830 (RET 0xC). SaveFileRead through its address.
 __declspec(naked) bool __fastcall SaveFileReadAt(void*, unsigned, int, int, void*) EI_ORIGINAL(0x00579830)
 // 00410AB0 (RET 4) / 005F8420 (RET 4). The globals / the input state read from a stream.
@@ -1406,7 +1404,7 @@ __declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const 
 } // namespace
 
 int __stdcall LoadMission(void* file) {
-    LoadingStep(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
+    LoadingStepOriginal(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
     LocalMemoryStream mission;
     if (!SaveFileReadAt(&mission.s, kMagicMissionFile, *reinterpret_cast<const int*>(0x00790260),
                         *reinterpret_cast<const int*>(0x00790268), file))

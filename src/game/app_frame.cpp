@@ -9,6 +9,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "originals_render.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -51,8 +52,6 @@ CursorLock CursorLockAtCallSite() {
     return reinterpret_cast<CursorLock>(kCall + 5 + rel);
 }
 __declspec(naked) void __fastcall ScreenDraw(void*) EI_ORIGINAL(0x005E54A0)
-__declspec(naked) int __fastcall RendererFlip(void*) EI_ORIGINAL(0x004EF610)
-__declspec(naked) void __fastcall ScreenEnd(void*) EI_ORIGINAL(0x005E6610)
 __declspec(naked) void* __fastcall CaptureSurface(void* /*surface*/, const std::uint32_t* /*rect*/) EI_ORIGINAL(0x006D6D40)
 __declspec(naked) void __fastcall BitmapWrite(void* /*bitmap*/, void*, mfc::CFile*) EI_ORIGINAL(0x006D5AC0)
 
@@ -110,8 +109,8 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(Screen());
     ScreenDraw(Screen());
-    if (RendererFlip(Renderer())) game::FatalError(Text(0x00784A30));   // "Can't flip render surface"
-    ScreenEnd(Screen());
+    if (DevicePresentOriginal(Renderer())) game::FatalError(Text(0x00784A30));   // "Can't flip render surface"
+    CursorUnlockOriginal(Screen());
     if (!Global<std::uint8_t>(0x0079BC54)) return;
     char path[256];
     gamecrt::sprintf(path, Text(0x00784A20), Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));

@@ -67,3 +67,15 @@ __declspec(naked) inline void __fastcall UiMeshCellsOriginal(void* /*mesh*/, voi
                                                              float /*bottom*/, int /*u0*/, int /*v0*/, int /*u1*/,
                                                              int /*v1*/, int /*count*/, int /*flag*/)
     EI_ORIGINAL(0x005E7680)
+// The cursor object 007C7BD8: 005E5270 shows / hides it (thiscall, RET 4: +0x0C = `show` under its lock +0xA0);
+// 005E65F0 / 005E6610 enter / leave its lock +0xA0 in mode 2 (ECX, plain RET).
+__declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/) EI_ORIGINAL(0x005E5270)
+__declspec(naked) inline void __fastcall CursorLockOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E65F0)
+__declspec(naked) inline void __fastcall CursorUnlockOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E6610)
+// 006B71C0: the loading screen's step (thiscall on [007AF784], RET 4).
+__declspec(naked) inline void __fastcall LoadingStepOriginal(void* /*loading*/, void*, int /*step*/) EI_ORIGINAL(0x006B71C0)
+// 005E6630 (rewritten as CursorSaveBackground, ui_cursor_frame.cpp; called through its address so the wrapper
+// runs): the cursor saves the screen under its drawn rectangle into its background surface, from the primary
+// (`fromPrimary`) or the render target (thiscall, RET 4).
+__declspec(naked) inline void __fastcall CursorSaveBackgroundOriginal(void* /*cursor*/, void*, char /*fromPrimary*/)
+    EI_ORIGINAL(0x005E6630)

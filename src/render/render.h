@@ -154,6 +154,10 @@ void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height);
 void MovieBlit(const void* key, const Rect& to);
 
+// A solid rectangle `to` in `colour` (D3DCOLOR; alpha ignored): the movie player's fill of the screen
+// (005DB9E0) before its first frame.
+void Fill(const Rect& to, std::uint32_t colour);
+
 // The software cursor (005E54A0): the part `from` of the cursor image's surface (holder) with its
 // mask (`mask`: the image's full width, the surface's pixel format; the old path draws
 // (background & mask) | image) at the screen rectangle `to`. Texels whose mask is not zero are left

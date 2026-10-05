@@ -8,6 +8,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
+#include "originals_render.h"
 
 #include <cstring>
 
@@ -31,9 +32,6 @@ template <typename... Args> long Com(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>(fn)(object, args...);
 }
 
-// 004EFA60: CDXSurface constructor on `memory` (thiscall: device, surface description).
-__declspec(naked) CDXSurface* __fastcall ConstructSurface(void*, void*, CTextureDevice*, const std::uint32_t*)
-    EI_ORIGINAL(0x004EFA60)
 // 0068FA10: fills `surface` with the .mmp pixels from level `mip` on (thiscall on the texture).
 __declspec(naked) int __fastcall FillSurface(CTexture*, void*, CDXSurface*, const void*, unsigned)
     EI_ORIGINAL(0x0068FA10)
@@ -43,7 +41,7 @@ __declspec(naked) std::uint32_t __fastcall CallMipOffset(const MmpHeader*, void*
 // A new surface for `desc`, or null when the allocation fails.
 CDXSurface* NewSurface(CTextureDevice* device, const std::uint32_t* desc) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    return memory ? ConstructSurface(memory, nullptr, device, desc) : nullptr;
+    return memory ? static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc)) : nullptr;
 }
 
 // Drops a reference; the last one deletes the surface (slot 0, the deleting destructor).

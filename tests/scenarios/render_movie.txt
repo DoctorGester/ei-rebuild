@@ -1,0 +1,25 @@
+# The movie players outside the game's frame with the new renderer beside the old path ("render
+# new"; ticket R6, docs/notes/renderer.md): the loading movie (005DA400) during the new game's load,
+# and the blocking player (005DB3F0: its message loop, formerly at 005DB788, and the screen fill
+# 005DB9E0) through the script's PlayMovie with a short movie (crdtfin.bik, 27 frames at 15 fps).
+# The old path draws the movies to the screen as before; every movie frame is also a frame of the
+# new renderer (render::Present). Captures cannot be taken inside the movie (the console step that
+# starts it runs it to its end); the capture after it checks the game's frames still come.
+# render_movie_present is the same in the switch-over.
+render new
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @PlayMovie("crdtfin.bik")
+wait 1000
+move 400 60
+wait 1000
+freeze
+capture after_movie
+unfreeze
+report
+quit

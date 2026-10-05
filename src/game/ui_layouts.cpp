@@ -708,9 +708,7 @@ namespace {
 // format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
 // a separator; 0062C090 (RET 0xC, ECX unused) inserts a copy of a TitleLine before a list node.
-__declspec(naked) void __fastcall TitlesLoadingStep(void*, void*, int) EI_ORIGINAL(0x006B71C0)
 __declspec(naked) void __fastcall TitlesStopMusic(void*) EI_ORIGINAL(0x006B4F70)
-__declspec(naked) void __fastcall TitlesShowCursor(void*, void*, int) EI_ORIGINAL(0x005E5270)
 __declspec(naked) void __fastcall TitlesPlayMovies(const char*, int, int, int, int) EI_ORIGINAL(0x00458270)
 __declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x004461E0)
 __declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
@@ -739,10 +737,10 @@ void CCreditsScreen::Build() {
     CInterface3D* ui = window.interface_;
     const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
     if (!fromGame_) {
-        TitlesLoadingStep(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
+        LoadingStepOriginal(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
         TitlesStopMusic(*reinterpret_cast<void**>(0x007AF760));
     }
-    TitlesShowCursor(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
+    CursorShowOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
     TitlesPlayMovies(mfc::operator+(name, GameText(0x00794040)), 1, 0, 0, 0);   // "<name>fin"
     unknown_1CC = 0;
     // (As the original: the field's address goes in as uiParam, so it is never written; then font
