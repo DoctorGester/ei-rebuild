@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <algorithm>
 #include <vector>
 
 namespace {
@@ -84,6 +85,13 @@ std::uint32_t __fastcall ReadVerify(CMemoryStream* self, void*, void* buffer, st
     std::vector<unsigned char> expectedBytes(size ? size : 1);
     std::uint32_t expectedRet = s_read(expected.get(), nullptr, expectedBytes.data(), size);
     std::uint32_t actualRet = self->CMemoryStream::Read(buffer, size);
+    // Callers may read into the stream object itself (a field of a derived stream); the original
+    // wrote those bytes into expectedBytes, so put them into the copy before comparing the objects.
+    auto* at = static_cast<unsigned char*>(buffer);
+    auto* object = reinterpret_cast<unsigned char*>(self);
+    if (at >= object && at < object + kStreamBytes)
+        std::memcpy(expected.bytes + (at - object), expectedBytes.data(),
+                    std::min<std::size_t>(size, kStreamBytes - (at - object)));
     bool same = expectedRet == actualRet && expected.Same(self) &&
                 (size == 0 || std::memcmp(expectedBytes.data(), buffer, size) == 0);
     ei::verify::Check("CMemoryStream::Read", true, same, "size %u pos %u end %u ret %u/%u", size, self->position_,
