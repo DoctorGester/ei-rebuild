@@ -33,6 +33,8 @@ struct Texture {
     bool keyed = false;              // window surfaces: the colour key it was converted with
     std::uint32_t key = 0;
     int width = 0, height = 0;
+    bool owned = false;              // decoded for a holder with no DirectDraw surface and no memory (the
+                                     // switch-over's .mmp textures): the only copy, kept until the holder goes
 };
 
 std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures with mip levels
@@ -477,8 +479,14 @@ void* SurfaceOf(const void* holder) {
 sg_view SurfaceView(const void* holder) {
     void* surface = SurfaceOf(holder);
     auto memory = g_memory.find(holder);
-    if (!surface && memory == g_memory.end()) return White().view;
     std::uint32_t frame = FrameNumber();
+    if (!surface && memory == g_memory.end()) {
+        // Nothing to read: what was decoded for the holder (its .mmp file), if anything.
+        auto decoded = holder ? g_textures.find(holder) : g_textures.end();
+        if (decoded == g_textures.end() || !decoded->second.view.id) return White().view;
+        decoded->second.usedFrame = frame;
+        return decoded->second.view;
+    }
     Texture& t = g_textures[holder];
     t.usedFrame = frame;
     if (t.surface == surface && t.checkedFrame == frame) return t.view.id ? t.view : White().view;
@@ -506,12 +514,15 @@ sg_view SurfaceView(const void* holder) {
     return t.view.id ? t.view : White().view;
 }
 
-// The entry of `holder` from decoded levels; it stands for the surface as it is now and is read
-// from the surface again only when something writes to it later (its uniqueness value changes).
+// The entry of `holder` from decoded levels, keyed by the holder. With a DirectDraw surface it
+// stands for the surface as it is now and is read from the surface again only when something writes
+// to it later (its uniqueness value changes); without one (the switch-over's .mmp textures) it is
+// the texture until the holder goes (HolderGone). Not for a holder with memory of the renderer's:
+// that memory is what the texture shows.
 bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                   const char* label) {
+    if (!holder || g_memory.count(holder)) return false;
     void* surface = SurfaceOf(holder);
-    if (!surface) return false;
     Texture& t = g_textures[holder];
     t.usedFrame = FrameNumber();
     Retire(t);
@@ -523,8 +534,9 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
     }
     t.surface = surface;
     t.checkedFrame = FrameNumber();
+    t.owned = !surface;
     DWORD now = 0;
-    Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
+    if (surface) Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
     t.uniqueness = now;
     return t.view.id != 0;
 }
@@ -533,6 +545,7 @@ bool TextureFromPixels(const void* holder, const void* pixels, int width, int he
                        std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
     int bytes = bitsPerPixel / 8;
     if (width <= 0 || height <= 0 || (bytes != 2 && bytes != 4) || pitch < width * bytes) return false;
+    if (g_memory.count(holder)) return false;   // read from its memory (SurfaceView)
     Channel r = MakeChannel(redMask), g = MakeChannel(greenMask), b = MakeChannel(blueMask), a = MakeChannel(alphaMask);
     std::vector<std::uint8_t> rgba(static_cast<std::size_t>(width) * height * 4);
     for (int y = 0; y < height; ++y) {
@@ -603,8 +616,7 @@ int g_mmpFailures = 0;
 } // namespace
 
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels) {
-    void* surface = SurfaceOf(holder);
-    if (!surface || !data) return false;
+    if (!holder || !data) return false;
     const auto& h = *static_cast<const MmpFile*>(data);
     const auto* base = static_cast<const std::uint8_t*>(data) + sizeof(MmpFile);
     if (h.width == 0 || h.height == 0 || h.width > 8192 || h.height > 8192 || h.mipCount == 0 || h.mipCount > 16) {
@@ -746,7 +758,8 @@ void RetireTextures() {
     std::uint32_t frame = FrameNumber();
     for (auto* map : {&g_textures, &g_windows}) {
         for (auto it = map->begin(); it != map->end();) {
-            if (frame - it->second.usedFrame > kUnusedFrames) {
+            // (A texture decoded for a holder with nothing to read again stays until the holder goes.)
+            if (!it->second.owned && frame - it->second.usedFrame > kUnusedFrames) {
                 if (it->second.image.id) {
                     sg_destroy_view(it->second.view);
                     sg_destroy_image(it->second.image);
@@ -756,6 +769,15 @@ void RetireTextures() {
                 ++it;
             }
         }
+    }
+}
+
+void ForgetHolder(const void* holder) {
+    for (auto* map : {&g_textures, &g_windows}) {
+        auto it = map->find(holder);
+        if (it == map->end()) continue;
+        Retire(it->second);
+        map->erase(it);
     }
 }
 
@@ -785,10 +807,10 @@ void DestroyTextures() {
 
 namespace render {
 
-void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
-    if (!holder || !data || !Active() || !detail::Started()) return;
+bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels) {
+    if (!holder || !data || !Active() || !detail::Started()) return false;
     detail::FpuGuard fpu;
-    detail::TextureFromMmpData(holder, data, mip, levels);
+    return detail::TextureFromMmpData(holder, data, mip, levels);
 }
 
 } // namespace render
@@ -851,6 +873,9 @@ void FreeSurfaceMemory(const void* holder) {
 void HolderGone(const void* holder) {
     FreeSurfaceMemory(holder);
     detail::g_pictures.erase(holder);
+    // What the renderer made for it (a later holder at the same address starts afresh; a texture
+    // decoded for a holder without a surface would otherwise outlive it).
+    detail::ForgetHolder(holder);
 }
 
 void PictureFromMmp(const void* holder, const void* data) {

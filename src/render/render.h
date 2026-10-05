@@ -126,12 +126,16 @@ struct MeshDraw {
 
 // A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
 // `mip` on (`levels` of them) that the game loads into the surface of `holder` (a CDXSurface). The
-// new renderer decodes them from the file instead of reading the surface back.
-void TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
+// new renderer decodes them from the file instead of reading the surface back, keyed by the
+// holder: in the switch-over the holder has no DirectDraw surface at all and the decoded texture is
+// kept until the holder goes (HolderGone). False when it was not decoded (the sidecar is off, or
+// the format is not one it reads: the caller then gives the holder a DirectDraw texture).
+bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
 
 // The game made new pixels for a texture on the CPU (the shadow textures, 0051CE60) and copies
 // them into its surface (CDXSurface): the new renderer takes them from the buffer (`pitch` bytes
-// per row, `bitsPerPixel` 16 or 32, the channel masks of the surface's format).
+// per row, `bitsPerPixel` 16 or 32, the channel masks of the surface's format). Nothing for a holder
+// with SurfaceMemory (the switch-over's shadow textures): it is read from that memory.
 void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
                    std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
 void BeginMesh(void* device, const MeshDraw& mesh);

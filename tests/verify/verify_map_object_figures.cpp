@@ -8,9 +8,12 @@
 
 #include "../../src/game/map_object_figures.h"
 #include "../../src/game/map_object_shadow.h"
+#include "../../src/game/texture.h"
+#include "../../src/render/render.h"
 
 #include <bit>
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -117,11 +120,37 @@ EI_VERIFY(0x00519D70, SetSizeVerify, 0, s_unused);
 
 // --- The shadow (map_object_shadow.cpp) ---------------------------------------------------------
 
+namespace {
+CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager**>(0x007AF744); }
+
+// The pixels of a texture whose holder has only the new renderer's memory (the switch-over), or
+// empty.
+std::vector<std::uint8_t> MemoryOf(const CEngineObject* object) {
+    const auto* texture = static_cast<const CTexture*>(object);
+    const CDXSurface* holder = texture ? texture->surface_ : nullptr;
+    const render::SurfaceMemory* memory = holder && !holder->surface ? render::SurfaceMemoryOf(holder) : nullptr;
+    if (!memory) return {};
+    const auto* bits = static_cast<const std::uint8_t*>(memory->bits);
+    return std::vector<std::uint8_t>(bits, bits + static_cast<std::size_t>(memory->pitch) * memory->height);
+}
+} // namespace
+
 // 0051CE60. Ours only (renders into textures and draws): returns 1 (the failure paths end in a
-// fatal error).
+// fatal error). In the switch-over with "cpuwindows" (render_present, render_present_cpuwindows)
+// the shadow's render surface and texture are memory-only (texture_shadow.cpp): when the call
+// rendered the shadow (the render surface's memory changed), the texture's memory equals it.
 static int __fastcall DrawShadowVerify(CObject3DClientSpecific* self, void*, ShadowDrawContext* context) {
+    CTextureManager* manager = TextureManager();
+    std::vector<std::uint8_t> before = MemoryOf(manager ? manager->shadowRenderSurface_ : nullptr);
     int result = self->DrawShadow(context);
     ei::verify::Check("CObject3DClientSpecific::DrawShadow", 1, result, "flags %X", self->flags_);
+    std::vector<std::uint8_t> rendered = MemoryOf(manager ? manager->shadowRenderSurface_ : nullptr);
+    if (!rendered.empty() && rendered != before) {
+        std::vector<std::uint8_t> texture = MemoryOf(self->texture);
+        ei::verify::Check("CObject3DClientSpecific::DrawShadow copy", true, texture == rendered,
+                          "texture %p: %u bytes, render surface %u bytes", static_cast<const void*>(self->texture),
+                          static_cast<unsigned>(texture.size()), static_cast<unsigned>(rendered.size()));
+    }
     return result;
 }
 EI_VERIFY(0x0051CE60, DrawShadowVerify, 0, s_unused);
