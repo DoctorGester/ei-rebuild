@@ -24,7 +24,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H4 (taken 2026-10-05) Trader stock: no scenario reaches the stock generators (0069AE20, 0069A110, H3's 00699810 / 006995E0 / 00699A40 installed but 0 calls; ui_camp does not reach 004A6DF0). Find what calls 004A6DF0 and add a scenario; then 0069B5B0 (stock load), 0069A480 / 0069A780.
+- H5 (taken 2026-10-05) 0069AC20 (trader scrolls; the old branch worktree-agent-a66805191c86fe11f has a version) and the next 2-4 live functions in 0x00690000-0x006A0000 reached by trader_stock / ui_camp.
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
