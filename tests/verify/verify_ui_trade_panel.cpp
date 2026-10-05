@@ -194,3 +194,45 @@ static void __fastcall TradeDrawListsVerify(CTradePanel* self) {
                       static_cast<int>(actualSprites.size()), expectedSprites == actualSprites ? "" : " differ");
 }
 EI_VERIFY(0x006261A0, TradeDrawListsVerify, 7, s_drawLists);
+
+// Build (00624F10, the panel's layout, once per camp / hero screen) runs ours only: it adds a
+// surface, regions, sprites and titles. Checked afterwards: the rectangle, one more surface, 44
+// more regions (the first the held perks' up arrow, the last the bottom held row), four more scene
+// objects, three more titles, one statistics record per party member (+0x150 the last one's
+// index) and +0x19C / +0x1A0. Reached when the camp opens (ui_camp, ui_describe) and from the
+// hero screen's Create (ui_hero_screen).
+static void* s_tradeBuild;
+static void __fastcall TradeBuildVerify(CTradePanel* self) {
+    int surfaces = self->surfaces_.size_;
+    int regions = self->regions_.size_;
+    int objects = self->sceneObjects_.size_;
+    auto titleCount = [self] { return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(self) + 0x1AC); };
+    int titles = titleCount();
+    self->Build();
+    const char* name = "CTradePanel::Build";
+    using DataFn = std::uint8_t*(__thiscall*)(void*);
+    int party = *reinterpret_cast<int*>(reinterpret_cast<DataFn>(0x00578BA0)(reinterpret_cast<void*>(0x007AFEA5)) + 0x34);
+    RECT expectedRect = {200, 100, 600, 500};
+    ei::verify::Check(name, 0, std::memcmp(&expectedRect, &self->rect_, sizeof(RECT)), "rect (%d,%d,%d,%d)",
+                      self->rect_.left, self->rect_.top, self->rect_.right, self->rect_.bottom);
+    ei::verify::Check(name, surfaces + 1, self->surfaces_.size_, "surfaces");
+    ei::verify::Check(name, regions + 44, self->regions_.size_, "regions");
+    ei::verify::Check(name, objects + 4, self->sceneObjects_.size_, "scene objects");
+    ei::verify::Check(name, titles + 3, titleCount(), "titles");
+    if (self->regions_.size_ == regions + 44) {
+        RECT first = self->regions_.data_[regions]->bounds_;
+        RECT last = self->regions_.data_[regions + 43]->bounds_;
+        RECT expectedFirst = {360, 320, 380, 330};
+        RECT expectedLast = {215, 465, 385, 480};
+        ei::verify::Check(name, 0, std::memcmp(&first, &expectedFirst, sizeof(RECT)), "first region (%d,%d,%d,%d)",
+                          first.left, first.top, first.right, first.bottom);
+        ei::verify::Check(name, 0, std::memcmp(&last, &expectedLast, sizeof(RECT)), "last region (%d,%d,%d,%d)",
+                          last.left, last.top, last.right, last.bottom);
+    }
+    int records = static_cast<int>(self->records_.end - self->records_.begin);
+    ei::verify::Check(name, party, records, "records");
+    if (party > 0) ei::verify::Check(name, party - 1, self->recordIndex_, "record index");
+    ei::verify::Check(name, -1, self->unknown_19C, "+0x19C");
+    ei::verify::Check(name, 0, self->unknown_1A0, "+0x1A0");
+}
+EI_VERIFY(0x00624F10, TradeBuildVerify, 0, s_tradeBuild);

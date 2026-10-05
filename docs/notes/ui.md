@@ -1407,3 +1407,89 @@ so multiplayer only, no scenario); the briefing screen (00604C50, 00604130, 0060
 00622420, 00627C90; 005E18E0, 005E5690); 00612CF0 (the camp's debug fill, slot 39, no caller found);
 006284A0 (the spell maker page's draw, slot 20; constructor pages only); the exchange window and
 lobby screens (0062C250, 0062C9C0, 00618A10 ...; network session).
+
+## Tenth pass (ticket I2)
+
+Files: `src/game/ui_battle_hover.cpp`, `src/game/ui_spell_column.cpp`, `src/game/ui_item_strip.cpp`,
+`src/game/ui_trade_panel.cpp` (Build added); wrappers `tests/verify/verify_ui_battle_hover.cpp`,
+`verify_ui_spell_column.cpp`, `verify_ui_item_strip.cpp`, `verify_ui_trade_panel.cpp` (Build added).
+Shared headers: `ui.h` (CBattleScreen::HoverUnit documented; CHudSpellColumn::SetUnit and its
+fields +0x150..+0x15C), `ui_camp.h` (CTradePanel::Build, TradeRecord / TradeRecords at +0x190,
++0x150 / +0x19C / +0x1A0 named), `ui_screens.h` (CUiItemStrip::Build). The forwarder of 00639EF0
+in ui_hud.cpp is gone (the portraits' mouse move now calls ours directly).
+
+| Address | Size | Name | Verify | Scenario |
+|---|---|---|---|---|
+| 00639EF0 | 1602 | `CBattleScreen::HoverUnit` (RET 0xC) | side by side: ours, cursor shape put back, original; cursor shape and the panel's hover unit | every scenario with a game (the battle screen's draw sends a mouse move every frame) |
+| 00624F10 | 1299 | `CTradePanel::Build` (__fastcall, window slot 18) | ours only: rectangle, +1 surface, +44 regions (first and last checked), +4 sprites, +3 titles, a record per party member, +0x150 / +0x19C / +0x1A0 | ui_camp, ui_describe, ui_hero_screen |
+| 00620380 | 1493 | `CUiItemStrip::Build` (RET 4) | side by side: original, its regions and sprites recorded and removed again, ours; fields, rectangles, sprite flags / placement / colour / quads | ui_camp, ui_describe, ui_hero_screen |
+| 0063E820 | 1127 | `CHudSpellColumn::SetUnit` (RET 4) | side by side: fields, sprites, regions and each tooltip's lines, size and arguments | every scenario with a game (selection refresh 00637DC0, battle update) |
+
+4 functions, about 5.5 KB. None is Rebirth-patched; the Rebirth-patched callees 005E70E0, 005E7680
+and 0063E4B0 are called through their original addresses.
+
+### Mouse-over (00639EF0)
+
+- The unit panel (+0x1A8) has a second unit block for the hover: +0x150 the unit, +0x160 / +0x158
+  the prototype's +0x20 / +0x24, 0063B920 (on the panel's +0x148) with block +0x168. A unit without
+  flag 0x400000 counts as no unit; a dead one empties the block but is still passed on.
+- With selected party members: interface flag +0x7E: exit cursor 15 over a zone exit; the screen's
+  flags +0x18D..+0x192: cursor 16 + the first set one; +0x7C: attack 1. Then by the action +0x17C:
+  0 a dead unit 4, a hostile one (to the first party unit) 1, an object (slot 38 and not 39, one
+  selected) 4, else over a zone exit 15 unless the player's "z.<zone>" is 1 ("none" never shows it);
+  1 / 2 / 4 cast 2 when CanCastSpell / CanUseQuickItem (0 = can) allows, else 0x17; 3 the same with
+  a wand only on the user itself; 5 / 6 use 4 or 0xD; 7 follow 15 or 0xD; 8 a non-member 0x18,
+  an object 4, else 0xD.
+
+### Spell column (0063E820)
+
+- Tooltip per spell: the name (004E0150), then, when the spell has its data (+0x44): " \n" and seven
+  lines formatted with the labels of the panel's CStringArray (+0x158): level (+0x40), "school_%d"
+  text, mana or labels[12] (prototype +0x7B), duration (+0x30; labels[8] below 1), range
+  (+0x34, labels[10]), area pi r^2 (+0x28; labels[9] with flag 0x10000000), time (+0x20 ticks / 15;
+  labels[8] below 2), the last (+0x38). Truncations are _ftol (C++ casts).
+
+### Trade panel layout (00624F10)
+
+- Regions: 0-3 the scroll arrows, 4-5 school rows, an empty region, three more rows (two skipped),
+  the science row (215, 165), 23 learnable rows from (415, 135), 10 held rows from (215, 330);
+  four arrow sprites; titles "skills", "perks", "perks_av" into the CStringArray +0x1A4; one 0x3C
+  record per unit record of the local player (00626F10 fills record +0x150).
+
+### Item strip layout (00620380)
+
+- `top`: y 0 and scale 8, else y 500 and scale 4 (+0x180 / +0x184; floats stored as dwords). Nine
+  regions (arrows 30..50 / 750..770, the tab buttons 0..30 / 770..800 in three rows, the items
+  50..750), sprites: the ends (depth scale * 0.8), six tab buttons (scale * 0.6), the highlight
+  frame (scale * 0.9, plain 0xFF8B8B37), eight background cells (scale * 2, 005E7680) and eight
+  frames (005E8450) per 100 pixels; tab 5 through SetTab; hovered -1. The float constants are read
+  from the exe (0073CCA8, 0073BAB0, 0073CDE0, 0073BF34, 007403E0, 00741350, 00741F08, 0073CD70,
+  0074023C, 0073D618, 0073B84C, 007423F8, 00740544).
+
+## Forwarders added (standalone build must replace)
+
+Hover: 005E5200, 005659D0, 0056C350, 00567440, 00578A40, 00578B50, 00530930, 00530150, 0052F820,
+0052F8B0, 00531920, 006A4230, 0063B920. Spell column: 005319A0, 0063E4B0 (Rebirth), 004E0150,
+004E0020, 0068BA20. Trade panel: 0062A0B0 (vector insert overflow), 00626F10, 00578BA0, 006FEBFA.
+Item strip: 005E70E0 (Rebirth), 005E8450, 005E7680 (Rebirth).
+
+## Original quirks kept
+
+- The spell column sets the tooltip of region `index` for spell slot `index`, although the regions
+  are added per spell shown (a gap in the spells shifts them; a spell past the last region would
+  index past the array).
+- The trade panel's Build pushes records of uninitialised stack bytes; 00626F10 leaves +0x2B and
+  +0x39..+0x3B of each unwritten. Ours are 0.
+- HoverUnit passes a dead unit with flag 0x400000 on to the action checks (only the panel block is
+  emptied).
+
+## Skipped in this pass
+
+Larger than the four above but left: 006337B0 (1554, the new game's difficulty window's slot 25:
+opened from the main menu's region 0, which the harness's `newgame` bypasses; no scenario);
+00610AD0 (1530, the camp's put on / take off of a clicked item; no scenario moves items);
+00634790 (1377, a "saveload"-textured window's layout, vtables 00741E3C / 007423AC, mostly text
+drawing); 006369D0 (1336, the battle screen's quest notice (a vtable slot at 007407E8): needs a quest event in a
+scenario); 00611220 (1312, the camp's deal button; not clicked by any scenario); 0062B7D0 (1205,
+the main menu's setup: movies, system parameters); 00632D70 (1200, the main menu's click, which
+inlines five screens' constructors). Earlier skips (I1) unchanged.

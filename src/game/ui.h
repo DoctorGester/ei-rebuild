@@ -450,8 +450,12 @@ public:
     // 8 order on an object) or the interface's modifier keys; with nobody selected it selects the
     // clicked member. Rebirth's FixSpellSelfCasting #1 drops the Ctrl flag of a spell on a unit.
     void SelectUnit(CUnit* unit, int x, int y);
-    // 00639EF0 (not rewritten). Shows the unit under the mouse in the unit panel.
-    void HoverUnit(CUnit* unit, int a, int b);
+    // 00639EF0 (RET 0xC; ui_battle_hover.cpp). The mouse is over `unit` (or, without one, at
+    // screen point x, y): a live unit with flag 0x400000 goes into the unit panel's hover block
+    // (+0x150), otherwise the block is emptied; with party members selected the cursor shows what
+    // a click would do (exit 15, the flags +0x18D.. 16+i, attack 1, cast 2 / can't 0x17, use 4,
+    // no 0xD, order 0x18), by the pending action +0x17C as SelectUnit reads it.
+    void HoverUnit(CUnit* unit, int x, int y);
 
     std::uint8_t unknown_148[0x16C - 0x148];
     CUnit** party_;                  // +0x16C the player's units shown as portraits
@@ -542,11 +546,22 @@ public:
     // 0063EC90 / 0063EF60 (not rewritten). Click on spell `index`, without / with key flag +0x7F.
     void Click(int index);
     void ClickAlternate(int index);
+    // 0063E820 (RET 4; ui_spell_column.cpp). Shows `unit`'s spells: sprites and regions dropped;
+    // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
+    // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
+    // its data (+0x44), seven lines of numbers each after a label of labels_ (some numbers
+    // replaced by labels when absent: an area for flag 0x10000000, a time under 2 ticks).
+    void SetUnit(CUnit* unit);
 
     CBattleScreen* owner_;           // +0x148
-    int count_;                      // +0x14C
+    int count_;                      // +0x14C sprites added
+    int selected_;                   // +0x150
+    CUnit* unit_;                    // +0x154
+    void* labelsVtable_;             // +0x158 CStringArray: the tooltip's labels
+    char** labels_;                  // +0x15C
 };
 static_assert(offsetof(CHudSpellColumn, count_) == 0x14C);
+static_assert(offsetof(CHudSpellColumn, labels_) == 0x15C);
 
 // Action column on the left (constructor 0063F300, vtables 00742980 / 0074294C; six 40x40
 // buttons at 0..40 x 270..510).
