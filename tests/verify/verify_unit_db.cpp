@@ -1,5 +1,5 @@
-// Checks for unit_db.cpp, the units database records' serialisers (startup: units.udb is loaded by
-// 0053A200 in every scenario).
+// Checks for unit_db.cpp, the units database records' serialisers: prototypes, models and NPCs
+// (startup: units.udb is loaded by 0053A200 in every scenario).
 //
 // Loading reads fields by id and leaves the archive as it was, so reading twice gives the same
 // record: ours reads into the real record, its fields are taken (the bytes with the CString and
@@ -93,3 +93,16 @@ static void __fastcall ModelSerializeVerify(UnitModelRecord* self, void*, ChunkA
     SerializeVerify("UnitModelRecord::Serialize", s_modelSerialize, self, ar, kModelLayout);
 }
 EI_VERIFY(0x0052DC70, ModelSerializeVerify, 8, s_modelSerialize);
+
+namespace {
+constexpr int kNpcStrings[] = {0x00};
+constexpr int kNpcVectors[] = {0x24, 0x30, 0x3C, 0x48};
+constexpr Layout kNpcLayout{sizeof(UnitNpcRecord), kNpcStrings, 1, kNpcVectors, 4};
+} // namespace
+
+// 0052DA60: PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,[ESP+0x10] (7 bytes).
+static void(__fastcall* s_npcSerialize)(UnitNpcRecord*, void*, ChunkArchive*);
+static void __fastcall NpcSerializeVerify(UnitNpcRecord* self, void*, ChunkArchive* ar) {
+    SerializeVerify("UnitNpcRecord::Serialize", s_npcSerialize, self, ar, kNpcLayout);
+}
+EI_VERIFY(0x0052DA60, NpcSerializeVerify, 7, s_npcSerialize);

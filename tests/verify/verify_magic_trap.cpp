@@ -64,3 +64,30 @@ static void __fastcall UpdateVictimsVerify(MagicTrap* trap, void*) {
                       reinterpret_cast<CEngineObject*>(trap)->id_, problem ? problem : "", n, count);
 }
 EI_VERIFY(0x0052A680, UpdateVictimsVerify, 0, s_unused);
+
+// FindTrapVictims (0052A920) only fills its output list (the sector map query and the units'
+// slot 55 are read-only): the original runs into an empty scratch list, ours into the caller's;
+// the two must hold the same units in the same order. The caller keeps ours (the scratch list is
+// freed). Reached from UpdateVictims of an armed trap only.
+// 0052A920: PUSH -1; PUSH 0x71E550 (7 bytes).
+static void(__fastcall* s_findVictims)(void*, const TrapArea*, std::uint32_t, mfc::CTypedPtrList<CEngineObject>*);
+static void __fastcall FindVictimsVerify(void* context, const TrapArea* area, std::uint32_t sides,
+                                         mfc::CTypedPtrList<CEngineObject>* out) {
+    using UnitList = mfc::CTypedPtrList<CEngineObject>;
+    UnitList expected{reinterpret_cast<void*>(0x0073D454), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    s_findVictims(context, area, sides, &expected);
+    FindTrapVictims(context, area, sides, out);
+    int position = 0;
+    const UnitList::Node* a = expected.head;
+    const UnitList::Node* b = out->head;
+    while (a && b && a->data == b->data) {
+        a = a->next;
+        b = b->next;
+        ++position;
+    }
+    bool same = !a && !b && expected.count == out->count;
+    ei::verify::Check("FindTrapVictims", true, same, "sides %08X, %d circles: %d vs %d units, first difference at %d",
+                      sides, area->count, expected.count, out->count, position);
+    expected.RemoveAll();
+}
+EI_VERIFY(0x0052A920, FindVictimsVerify, 7, s_findVictims);

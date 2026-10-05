@@ -62,18 +62,52 @@ struct UnitPrototypeRecord {
     std::uint32_t unknown_D8[4];    // chunk 0x1C (0052D6A0: fields 0..3)
     CStringVector unknown_E8;       // 0x1D
     float skills3to5[3];            // +0xF4 0x1E
-    CStringVector unknown_100;      // 0x1F
-    CStringVector unknown_10C;      // 0x20
-    mfc::CString unknown_118;       // 0x21
-    mfc::CString unknown_11C;       // 0x2A
+    // The starting equipment 005141F0 gives a new unit (unit_equipment.cpp): spells for every
+    // unit; armour pieces and two weapons (item names, may be empty) for units of type 0x32.
+    CStringVector spellNames;       // +0x100 0x1F
+    CStringVector armourNames;      // +0x10C 0x20
+    mfc::CString weaponName;        // +0x118 0x21 (its slot becomes the unit's +0x270)
+    mfc::CString secondWeaponName;  // +0x11C 0x2A
 };
 static_assert(offsetof(UnitPrototypeRecord, unknown_34) == 0x34);
 static_assert(offsetof(UnitPrototypeRecord, hitPoints) == 0x48);
 static_assert(offsetof(UnitPrototypeRecord, naturalWeapon) == 0x78);
 static_assert(offsetof(UnitPrototypeRecord, valuesB0) == 0x98);
 static_assert(offsetof(UnitPrototypeRecord, unknown_E8) == 0xE8);
-static_assert(offsetof(UnitPrototypeRecord, unknown_118) == 0x118);
+static_assert(offsetof(UnitPrototypeRecord, spellNames) == 0x100);
+static_assert(offsetof(UnitPrototypeRecord, armourNames) == 0x10C);
+static_assert(offsetof(UnitPrototypeRecord, weaponName) == 0x118);
 static_assert(sizeof(UnitPrototypeRecord) == 0x120);
+
+// A named creature's statistics (0x60 bytes, the NPC table 007AF378, found by the prototype name
+// through 005145D0). unit_create_stats.cpp reads the experience, stats, attribute and skill bytes
+// and the skill names.
+struct UnitNpcRecord {
+    // 0052DA60 (RET 4). Reads (archive loading) or writes the record's fields.
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString name;              // +0x00 field 0 (the prototype's name)
+    std::uint32_t unknown_04;       // 1
+    float experience;               // +0x08 2
+    float stats[3];                 // +0x0C 3, 4, 5 (strength, dexterity, intelligence)
+    std::uint8_t attributes[3];     // +0x18 6 (three bytes)
+    std::uint8_t skills[8];         // +0x1B 7 (eight bytes)
+    std::uint8_t unknown_23;        // not serialised
+    CStringVector skillNames;       // +0x24 8 (the skill level records it learns)
+    CStringVector unknown_30;       // 9
+    CStringVector unknown_3C;       // 10
+    CStringVector unknown_48;       // 11
+    std::uint32_t unknown_54;       // 12
+    std::uint32_t unknown_58;       // 13
+    std::uint8_t unknown_5C;        // 14 (one byte)
+    std::uint8_t unknown_5D[3];
+};
+static_assert(offsetof(UnitNpcRecord, attributes) == 0x18);
+static_assert(offsetof(UnitNpcRecord, skills) == 0x1B);
+static_assert(offsetof(UnitNpcRecord, skillNames) == 0x24);
+static_assert(offsetof(UnitNpcRecord, unknown_54) == 0x54);
+static_assert(offsetof(UnitNpcRecord, unknown_5C) == 0x5C);
+static_assert(sizeof(UnitNpcRecord) == 0x60);
 
 // One of a model's six body slots (0x10 bytes; 0052D6F0 serialises it as fields 0..3 of chunk
 // 0x0C + slot): the skill level record's name, its index (0053A200 resolves the name), the slot's

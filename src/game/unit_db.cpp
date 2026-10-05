@@ -1,4 +1,5 @@
-// The units database records' serialisers: unit prototypes (0052D740) and unit models (0052DC70).
+// The units database records' serialisers: unit prototypes (0052D740), unit models (0052DC70) and NPCs
+// (0052DA60).
 // See unit_db.h and docs/notes/units.md ("Database records").
 #include "unit_db.h"
 
@@ -20,8 +21,35 @@ __declspec(naked) void __fastcall ArchiveLeave(ChunkArchive*) EI_ORIGINAL(0x0040
 __declspec(naked) void __fastcall ArchiveStrings(ChunkArchive*, void*, int /*id*/, CStringVector*, ChunkArchive*) EI_ORIGINAL(0x0052DF40)
 __declspec(naked) void __fastcall FourDwords(std::uint32_t*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
 __declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6F0)
+// The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
+// chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
+// resizing it [0051F5B0].
+__declspec(naked) int __fastcall ArchiveCount(ChunkArchive*, void*, int /*id*/) EI_ORIGINAL(0x00409A60)
+__declspec(naked) void __fastcall StringsClear(CStringVector*) EI_ORIGINAL(0x0052E010)
+__declspec(naked) void __fastcall StringsResize(CStringVector*, void*, std::uint32_t /*count*/) EI_ORIGINAL(0x0051F5B0)
 
 void Dword(ChunkArchive* ar, int id, void* data) { ArchiveField(ar, nullptr, id, data, 4); }
+
+// A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC serialiser
+// inlines it: loading empties the vector (0052E010; 0052DF40 erases the range through 0051F970
+// instead, with the same result) and resizes it to the count of fields 1; each string is the
+// next occurrence of field 1 (the current chunk's occurrence, set before each).
+void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
+    if (!ArchiveEnter(ar, nullptr, id)) return;
+    int count;
+    if (ar->loading_) {
+        StringsClear(strings);
+        count = ArchiveCount(ar, nullptr, 1);
+        StringsResize(strings, nullptr, static_cast<std::uint32_t>(count));
+    } else {
+        count = static_cast<int>(strings->end - strings->begin);
+    }
+    for (int i = 0; i < count; ++i) {
+        ar->stack_->prev->occurrence = i + 1;
+        ArchiveString(ar, nullptr, 1, &strings->begin[i]);
+    }
+    ArchiveLeave(ar);
+}
 
 } // namespace
 
@@ -63,9 +91,9 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     }
     ArchiveStrings(ar, nullptr, 0x1D, &unknown_E8, ar);
     ArchiveField(ar, nullptr, 0x1E, skills3to5, sizeof(skills3to5));
-    ArchiveStrings(ar, nullptr, 0x1F, &unknown_100, ar);
-    ArchiveStrings(ar, nullptr, 0x20, &unknown_10C, ar);
-    ArchiveString(ar, nullptr, 0x21, &unknown_118);
+    ArchiveStrings(ar, nullptr, 0x1F, &spellNames, ar);
+    ArchiveStrings(ar, nullptr, 0x20, &armourNames, ar);
+    ArchiveString(ar, nullptr, 0x21, &weaponName);
     Dword(ar, 0x22, &unknown_20);
     Dword(ar, 0x23, &unknown_24);
     Dword(ar, 0x24, &combat[2]);
@@ -74,7 +102,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x27, &unknown_7C);
     Dword(ar, 0x28, &unknown_30);
     Dword(ar, 0x29, &unknown_50);
-    ArchiveString(ar, nullptr, 0x2A, &unknown_11C);
+    ArchiveString(ar, nullptr, 0x2A, &secondWeaponName);
     Dword(ar, 0x2B, &unknown_54);
 }
 EI_REPLACE_METHOD(0x0052D740, UnitPrototypeRecord::Serialize);
@@ -121,3 +149,22 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x32, &unknown_164);
 }
 EI_REPLACE_METHOD(0x0052DC70, UnitModelRecord::Serialize);
+
+void UnitNpcRecord::Serialize(ChunkArchive* ar) {
+    ArchiveString(ar, nullptr, 0, &name);
+    Dword(ar, 1, &unknown_04);
+    Dword(ar, 2, &experience);
+    Dword(ar, 3, &stats[0]);
+    Dword(ar, 4, &stats[1]);
+    Dword(ar, 5, &stats[2]);
+    ArchiveField(ar, nullptr, 6, attributes, sizeof(attributes));
+    ArchiveField(ar, nullptr, 7, skills, sizeof(skills));
+    ArchiveStrings(ar, nullptr, 8, &skillNames, ar);
+    InlineStrings(ar, 9, &unknown_30);
+    InlineStrings(ar, 10, &unknown_3C);
+    InlineStrings(ar, 11, &unknown_48);
+    Dword(ar, 12, &unknown_54);
+    Dword(ar, 13, &unknown_58);
+    ArchiveField(ar, nullptr, 14, &unknown_5C, 1);
+}
+EI_REPLACE_METHOD(0x0052DA60, UnitNpcRecord::Serialize);
