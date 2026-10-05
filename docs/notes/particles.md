@@ -26,16 +26,12 @@ game.exe for the callbacks.
   FeebleMind, 0x204A / B FeetCloud, 0x2051 StartTrans; 0x2039-0x203B are unnamed. 00678EC0 is the world's script
   particle source (class 0x4A, `CreateParticleSource`): its first tick creates the `CParticleSource` (00498400), every tick
   copies the position and calls `ScaleSize(size / baseSize)`.
-- Address map: 00490130-00496990 per-type callbacks (many are labels, not Ghidra functions); 00496A20-00497EB0
-  AddParticle, Tick, Draw and helpers (shared arrays 007A9BD0 / 007A9BE0); 00497EB0-00498E80 element allocator, manager
-  pieces (00498400 create source, 13 callers; 00498480 / 00498630 save / load-ish; 00498940 draw all sources, depth sort
-  through 00499200 / 00499380 / 004994E0 / 00499C20 / 00499CD0, an STLport introsort on a `vector<float, source*>` at
-  007A9C54); 00499DC0-0049B140 global-map helpers (0062Exxx callers) and a procedural-texture class (vtable 007420D4:
-  0049A090 / 0049A220); 0049B140-0049E790 the renderer's line list (0x20 bytes, `LineList` in `figure_part_bounds.cpp`:
-  0049B140 appends a point (17 callers), 0049B780 draws it, 0049B4B0 draws the strip: rewritten in `renderer_lines.cpp`,
-  see `renderer.md`) and 0049BEA0 (median-cut colour quantisation, once per zone load from 00481660); 0049EE70-0049F810
-  ISAAC; 0049F810-004A4800 static initialisers, a keyframe track evaluator (0049F890, from 0044875A) and a 3DS loader
-  with its readers (no callers: dead).
+- Address map: 00490130-00496990 per-type callbacks (many are labels, not Ghidra functions); 00496A20-00497EB0 AddParticle, Tick, Draw (shared
+  arrays 007A9BD0 / 007A9BE0); 00497EB0-00498E80 element allocator and manager pieces (00498400 create source, 13 callers; 00498480 / 00498630
+  save / load-ish; 00498940 draw all sources: depth sort through 00499200 / 00499380 / 004994E0 / 00499C20 / 00499CD0, an STLport introsort on a
+  `vector<float, source*>` at 007A9C54); 00499DC0-0049B140 global-map helpers (0062Exxx callers) and a procedural-texture class (vtable 007420D4);
+  0049B140-0049E790 the renderer's line list (`renderer_lines.cpp`, see `renderer.md`) and 0049BEA0 (median-cut colour quantisation, once per zone
+  load from 00481660); 0049F810-004A4800 static initialisers, a keyframe track evaluator (0049F890, from 0044875A) and a dead 3DS loader.
 
 ## Rewritten
 
@@ -52,7 +48,7 @@ fills the element array is also compared against the original on a scratch sourc
 | 00484710, 004847E0, 00484AE0, 00485540 | `Clear` (ours only), `Reset` (original on a scratch copy), `WorldPosition`, `CreateForType` (13 KB switch; original first on a scratch source with the element array seeded from ours) | all 0x1F0 bytes and elements compared |
 | 00490130 EmitModifier, 004923B0 EmitLightning, 00495A30, 00492D30, 004957E0 | emitters | both (Modifier / Lightning: first emission against the original on a scratch source) |
 | 00494770, 00494930, 00496990, 004934F0, 00493280, 00494CD0, 004933F0 | UpdatePortal, TickPortal, TickStartTrans (ours only when it detaches), TickGroundPlane, UpdateGlow, UpdateSparks, UpdateGroundDust | both |
-| Emit / Update / Tick triples (callbacks of one effect): Mushroom 004889D0 / 00488DB0; Nuke 00488F90; CastRing 00489320 / 00489A50 / 00489B40; Banshee 00489BE0 / 00489EF0 / 00489F30; Tornado 00489F70 / 0048A310 / 0048A560; Geyser 0048A8F0 / 0048ADA0 / 0048AEC0; PoisonFog 0048B080; Healing 0048B630 / 0048BBE0 / 0048BCE0; Vulkan 0048BD50 / 0048C010; Blast 0048C090 / 0048C590 / 0048C760; FireBall 0048C800 / 0048CAD0; ArrowSmoke 0048CBA0 / 0048CED0; AcidRay 0048D050 / 0048D330; Stench 0048D420 / 0048D7F0; Link 0048D8D0 / 0048DE30 / 0048E040; Orbit 0048E070; Tendril 0048ED60; Shower 0048EEA0 / 0048F300 / 0048F380; Falling 0048F3B0 / 0048F6F0; ClayRing 0048F7F0 / 0048FAB0 / 0048FBE0; Teleport 0048FDB0 / 00490060 / 00490110; Modifier 00490990 / 00490B00; CastSwirl 00490C10 / 00491230 / 00491390; Column 00491420 / 00491830 / 004918D0; Casting 004918E0 / 00492030 / 004921D0; Lightning 00492B80 / 00492CC0; ZoneExit 00492F40; Glow 00492FC0 / 004932F0; Bag 00493560 / 00493770 / 004938C0; PortalStar 00493D10 / 00493D50; Cylinder 00493DE0 / 00494170 / 00494340; Portal 00494470; FireStar 00494950 / 004949B0; Sparks 00494A10; VisionStar 00494E00 / 00494F30; Regeneration 004950B0 / 00495120; Silence 00495320 / 004955D0; FeebleMind 00495950; FeetCloud 00495C80 / 00495E00; Stun 00495FB0 / 004961B0; CurseStars 00496270 / 004964B0; StartTrans 004965E0 / 00496840 | both; Setup for Mushroom, CastRing, Banshee, Healing, Stench, Link, Orbit, Column, Casting, Glow; PoisonFog emit ours only (moves particles from the shared pool: nothing emitted, the new disc inside the bounds); TickShower ours only from the fifth tick and TickFalling from the second (they detach); Stun / CurseStars ours only without a carrier or once the stun is over (Attach) |
+| 00484710-00496990 | the per-type `Emit*` / `Update*` / `Tick*` callbacks of ~50 effects (Mushroom, Nuke, CastRing, Banshee, Tornado, Geyser, PoisonFog, Healing, Vulkan, Blast, FireBall, ArrowSmoke, AcidRay, Stench, Link, Orbit, Tendril, Shower, Falling, ClayRing, Teleport, Modifier, CastSwirl, Column, Casting, Lightning, ZoneExit, Glow, GroundDust, Bag, PortalStar, Cylinder, Portal, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, FeetCloud, Stun, CurseStars, StartTrans, ...): one function per address with its address tag in `particle_callbacks.cpp` | both; Setup for Mushroom, CastRing, Banshee, Healing, Stench, Link, Orbit, Column, Casting, Glow; PoisonFog emit ours only (moves particles from the shared pool: nothing emitted, the new disc inside the bounds); TickShower ours only from the fifth tick and TickFalling from the second (they detach); Stun / CurseStars ours only without a carrier or once the stun is over (Attach) |
 
 Only the `RET 4` / `RET 8` no-op stubs 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310,
 004957D0, 00495A20, 00496260, 004965D0 are not rewritten. Callbacks that let the source go (`Attach`) and the
