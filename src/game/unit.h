@@ -724,6 +724,28 @@ struct UnitStats {
     // 005232B0. Clears layers 1 and 2 of every slot. Returns 0 (EAX).
     int ClearOuterLayers();
 
+    // unit_armour_layers.cpp (U9).
+    // 005230C0. Adds the armour piece `armour` (a CItemArmor) to the slots its type covers (up to
+    // three, table 0073E048; 7 none): for each covered slot that is used, layer GetTypeGroup()
+    // gains the piece's absorb values (+0x4C for the first, +0x68 for the others), its +0x00
+    // the piece's mask (+0x84 / +0x88) and its state 3.
+    void AddArmourLayer(CEngineObject* armour);
+    // 00523300. Zeroes layers 1 and 2 of every slot, then adds each piece `unit` wears whose
+    // +0x20 (a float) rounds above 0.
+    void RebuildArmourLayers(CUnit* unit);
+    // 00523020. out[1..7]: each damage type's protection (vitals' current value) plus the body
+    // slot's layers that are there (state >= 2; layers 2, 1, 0 for text-key units, else layer 0),
+    // rounded to nearest. out[0] is left alone.
+    void PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::int16_t* out);
+    // 00525E90. Attribute `index` for skill checks: the attribute byte for units without a text
+    // key; otherwise the attribute with its stat bonus (stat - 25; 0 for other indices) plus the
+    // largest bonus (prototype +0x80 + index) of the unit's quick items. Unrounded (ST0).
+    double AttributeWithItems(int index, CUnit* unit);
+    // 00527EB0. The skill for spell school `school` (4 counts as 3, 6 and 7 as 5): skill byte 3
+    // (schools 0-2), 4 (3-4) or 5 (5-7), plus the level value of skill school + 7, plus
+    // intelligence - 25. Unrounded (ST0).
+    double SpellSchoolSkill(int school);
+
     std::uint32_t unknown_000;
     float experience;               // +0x004
     float spentExperience;          // +0x008
