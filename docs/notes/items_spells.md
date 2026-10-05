@@ -686,9 +686,36 @@ written out (the original inlines them).
 Original bugs kept: the prototype and material vectors of the template are shuffled in place; an
 item whose build fails (EndCreateItem null) is dereferenced.
 
+### Instructions (ticket H3)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00699810 | `ItemStock::GenerateWeaponInstructions` (RET 0xC) | ours only: one new item per weapon record, in order, counted, +0x54 the record's index, +0x48 in [min, max]; scratch empty |
+| 006995E0 | `ItemStock::GenerateArmorInstructions` (RET 0xC) | ours only: the same over the armor records |
+| 00699A40 | `ItemStock::GenerateQuickItemInstructions` (RET 0xC) | ours only: the same over the quick item records, those named "scroll" skipped |
+
+004A6DF0 calls them with (1, 3) after the three item generators and before the materials. Each
+copies the stock's weapons (+0x14) / armors (+8) / quick items (+0x20) into the scratch 007C8680
+(erase, then the inlined vector operator=, `AssignPointers`), finds the class-0x15 prototype
+"instruction weapon" (00796370) / "instruction armor" (0079635C) / "instruction quick item"
+(0079638C) with 0069D380, and for each record builds a kind-0x3007 item with that prototype and no
+material; after EndCreateItem / SetManager(null) it writes +0x54 = (record - table start) / record
+size (signed; tables 007C86F8 / 0xB4, 007C8718 / 200, 007C8738 / 0x8C)
+and +0x48 = the RandomCount draw (one rand() per item,
+none when min >= max), counts it and appends it to the list. The quick item version skips records
+whose name (+8) is "scroll" (_mbscmp). Nothing is drawn for the number of instructions: every record
+gets one. The scratch is emptied at the end. Scenario: `ui_camp` (the same 004A6DF0 call as the
+other generators). The verify checks ours only because the functions draw from rand and create
+items; both fields it compares are written unconditionally.
+
 Left: 0069A480 (fills the spell / modifier maps; STLport hash_map / map members throughout),
-0069A780 (random spells from those maps), 0069B5B0 (the stock's load from a save), 00699810 /
-006995E0 / 00699A40 (the other three generators 004A6DF0 calls).
+0069A780 (random spells from those maps), 0069B5B0 (the stock's load from a save: five counted
+lists read from the stream as CStrings, upper-cased, looked up by name (004AB820 / 004AB720 /
+00613820, the material table 0069D290, the spell / modifier string maps 004ABD00 / 00684B20) and
+pushed unless already present (find 0069E350.., push_back 0069BD30 / 0069BDC0 / 0069BDF0); the
+material entries also read three ints; probably reached by any `load` of a save, e.g. world_load, through
+the class template's serializer 004A6C40). Skipped in H3 for size: each needs a dozen STLport /
+CString forwarders and a stream-position-restoring verify.
 
 ## Weapon base figure (006A0CC0)
 

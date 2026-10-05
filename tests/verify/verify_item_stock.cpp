@@ -13,6 +13,7 @@
 #include "../../src/game/item_stock.h"
 
 #include <climits>
+#include <cstring>
 
 namespace {
 
@@ -87,3 +88,79 @@ static void __fastcall GenerateMaterialsVerify(ItemStock* self, void*, int minCo
                       static_cast<unsigned>(size), static_cast<unsigned>(added));
 }
 EI_VERIFY(0x0069A110, GenerateMaterialsVerify, 0, s_unusedMaterials);
+
+// - GenerateWeaponInstructions / GenerateArmorInstructions / GenerateQuickItemInstructions
+//   (00699810 / 006995E0 / 00699A40; ours only, they draw from rand and create items): the output
+//   list gained one item per record of the stock's weapons / armors / quick items (quick items named
+//   "scroll" skipped), in order, each counted, with +0x54 the record's index in its table and +0x48
+//   within [minCount, maxCount] (maxCount when minCount >= maxCount); the scratch vector is empty.
+//   Both fields are written for every item, so they are no leftover heap bytes.
+namespace {
+
+const StockPtrVector& TakenPrototypes() { return *reinterpret_cast<const StockPtrVector*>(0x007C8680); }
+
+using GenerateInstructionsFn = void(__fastcall*)(ItemStock*, void*, int, int, StockList*);
+GenerateInstructionsFn s_unusedWeaponInstructions;
+GenerateInstructionsFn s_unusedArmorInstructions;
+GenerateInstructionsFn s_unusedQuickInstructions;
+
+bool IsScroll(const char* record) {
+    const char* name = *reinterpret_cast<const char* const*>(record + 8);
+    return std::strcmp(name, reinterpret_cast<const char*>(0x00796384)) == 0;   // "scroll"
+}
+
+constexpr std::size_t kMaxRecords = 512;
+
+void CheckInstructions(const char* name, ItemStock* self, const StockPtrVector& source, std::uintptr_t table, int recordSize,
+                       bool skipScrolls, int minCount, int maxCount, StockList* out,
+                       void (ItemStock::*generate)(int, int, StockList*)) {
+    std::size_t before = ListSize(out);
+    // The expected record indices, in order (the function does not change the source vector).
+    int indices[kMaxRecords];
+    std::size_t expected = 0;
+    for (char** p = source.start; p != source.finish; ++p) {
+        if (skipScrolls && IsScroll(*p)) continue;
+        std::intptr_t offset = reinterpret_cast<std::intptr_t>(*p) - *reinterpret_cast<const std::intptr_t*>(table);
+        if (expected < kMaxRecords) indices[expected] = static_cast<int>(offset) / recordSize;
+        ++expected;
+    }
+    (self->*generate)(minCount, maxCount, out);
+    std::size_t added = ListSize(out) - before;
+    int lo = minCount < maxCount ? minCount : maxCount;
+    bool ok = added == expected && TakenPrototypes().start == TakenPrototypes().finish;
+    std::size_t i = 0;
+    for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
+        if (i < before) continue;
+        const char* item = static_cast<const char*>(node->value);
+        if (!item || *reinterpret_cast<const int*>(item + 4) < 1) {
+            ok = false;
+            break;
+        }
+        int count = *reinterpret_cast<const int*>(item + 0x48);
+        if (count < lo || count > maxCount) ok = false;
+        std::size_t k = i - before;
+        if (k < kMaxRecords && *reinterpret_cast<const int*>(item + 0x54) != indices[k]) ok = false;
+    }
+    ei::verify::Check(name, true, ok, "%d..%d, %u records: %u items", minCount, maxCount, static_cast<unsigned>(expected),
+                      static_cast<unsigned>(added));
+}
+
+} // namespace
+
+static void __fastcall GenerateWeaponInstructionsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckInstructions("ItemStock::GenerateWeaponInstructions", self, self->weapons, 0x007C86F8, 0xB4, false, minCount, maxCount,
+                      out, &ItemStock::GenerateWeaponInstructions);
+}
+EI_VERIFY(0x00699810, GenerateWeaponInstructionsVerify, 0, s_unusedWeaponInstructions);
+
+static void __fastcall GenerateArmorInstructionsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckInstructions("ItemStock::GenerateArmorInstructions", self, self->armors, 0x007C8718, 200, false, minCount, maxCount, out,
+                      &ItemStock::GenerateArmorInstructions);
+}
+EI_VERIFY(0x006995E0, GenerateArmorInstructionsVerify, 0, s_unusedArmorInstructions);
+
+static void __fastcall GenerateQuickItemInstructionsVerify(ItemStock* self, void*, int minCount, int maxCount, StockList* out) {
+    CheckInstructions("ItemStock::GenerateQuickItemInstructions", self, self->quickItems, 0x007C8738, 0x8C, true, minCount,
+                      maxCount, out, &ItemStock::GenerateQuickItemInstructions);
+}
+EI_VERIFY(0x00699A40, GenerateQuickItemInstructionsVerify, 0, s_unusedQuickInstructions);
