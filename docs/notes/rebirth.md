@@ -18,7 +18,8 @@ and the two mss32.dll versions, checked against `addon.log`.
   single-player behaviour.
 - **EI_Plugin.asi** (multiplayer plugin) loads in Miles' `AIL_startup`, after WinMain, so its ~30 sites (NPlayers, Pause, NewMaster,
   Briefings, Fixes: all multiplayer) are not in the patched-functions list.
-- game.exe itself differs from GOG's by one byte (00456BB5, the CD check). 00443080 is FixProcessLogin (an unlogged JMP at 004433D6);
+- The root-folder game.exe of the Rebirth install differs from `starter\Engine\game.exe` (the one we target) by two bytes: the Large-Address-Aware
+  flag and the disabled CD check (00456BB5). 00443080 is FixProcessLogin (an unlogged JMP at 004433D6);
   005F7DA0 / 005F7E00 / 005F7E30 lie inside WideScreen #93 (194 bytes from 005F7D9E).
 
 ## How Rebirth gets into the process
