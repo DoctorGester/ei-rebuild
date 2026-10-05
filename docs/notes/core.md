@@ -39,8 +39,7 @@ File: `core_maths.cpp`, `core_transform.cpp`, `core_transform_math.cpp`, `quater
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
   methods above, shared by ~90 vtables; slot 14 is overridden by 00516370 in the unit classes
   (writes the world rotation only). Slots 16 / 17 take an MFC `CFile*` and call its slot 14 / 13.
-- Quaternion products in `ApplyView` / `Update` and `UpdateWorld`-style code add terms in different
-  orders; keep each written out separately.
+- The camera's quaternion products in `ApplyView` and `Update` add the terms in different orders; each is written out separately.
 - Float rules: plain C++ (rule 7). `SetBSpline`'s 1/6 factor was distributed by `/fp:fast` and gave
   different results at 24 bit, so that function keeps `float_control(precise, on)`. Values the
   original rounds through a float temporary go through `StoreFloat`.
