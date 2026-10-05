@@ -1429,3 +1429,64 @@ name) and the name.
   00461190; the companion's Load, 0050F7A0's first call, was not inspected).
 - Construct and DestructBody are checked for state only; leftover heap bytes cannot show, since
   the original never runs beside ours.
+
+# Eleventh round (U9): armour layers, body protection, two skill values
+
+Code: `src/game/unit_armour_layers.cpp` (new). Verify: `tests/verify/verify_unit_armour_layers.cpp`
+(new). Shared header, additive only: `unit.h` (five UnitStats methods). None of the five is in
+library.csv, dead_code.csv or the Rebirth list, nor is any callee (004613A0 IsTextKey, 00531920
+GetQuickItem, 006A0110 GetPrototype, 006A39E0 / 006A31A0 CItemArmor type / group, 005267E0
+SkillLevelValue: all rewritten, called directly; 00530830 is `armor[i]`, inlined).
+
+Picked from the unported game code of the range that is not library, rendering or audio and that
+the notes named as next candidates (the "armour layers" and "skill builders" of the second round).
+Skipped on the way: 005225E0 / 00522480 (uninitialized_fill_n / copy of the 0x44-byte skill level
+records) and 00522010 (vector<CString>::operator=): library, for a cleanup ticket; 0053EBC0 (a
+database record's destructor); 00538C20 / 00538ED0 / 00539010 / 005352B0 / 00533980 / 00533EA0
+(the client's arrow part, figure and animation code, its destructor); 0052AC90 (MagicTrap vtable
+slot at 0073E71C: removes a unit's references from the victim list; next candidate in that family).
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 005230C0 | UnitStats::AddArmourLayer (RET 4: the armour item) | differential: the original on a scratch copy of the 0x704-byte statistics, ours on the real ones; every byte equal. The camp's statistics panel (ui_camp.txt) and every RebuildArmourLayers |
+| 00523300 | UnitStats::RebuildArmourLayers (RET 4: the unit) | differential as above (the original's 005230C0 calls go through that wrapper on the scratch). CUnitServer slot 27 (0073EFA4, 005535C0), called by CUnit::UnequipArmour 00530840 |
+| 00523020 | UnitStats::PackBodyProtection (RET 0xC: unit, vitals, short out[8]) | output only: the original into a copy of out, ours into out; all eight shorts equal. CUnitServer slot 22 (00553500 -> 00553450), the stat refresh: every scenario with units |
+| 00525E90 | UnitStats::AttributeWithItems (RET 8: index, unit; ST0) | pure, CheckNear. UseSkill (science / stealing) and TryTame only; probably no scenario |
+| 00527EB0 | UnitStats::SpellSchoolSkill (RET 4: school; ST0) | pure, CheckNear. OrderCast / OrderCastAt, the camp's BestPartySkill, the hero screen and item info (ui_camp, ui_hero_screen, ui_battle_spells) |
+
+Renamed in Ghidra: 005230C0 UnitStats__AddArmourLayer, 00523300 UnitStats__RebuildArmourLayers,
+00523020 UnitStats__PackBodyProtection, 00525E90 UnitStats__AttributeWithItems, 00527EB0
+UnitStats__SpellSchoolSkill.
+
+## Armour layers (005230C0, 00523300)
+
+Table 0073E048 gives three body slots per armour type (7: none). For each covered slot whose kind
+is not 0 (unused), layer GetTypeGroup() (2 for types 0-2, else 1) adds the piece's seven absorb
+floats (+0x4C for the first covered slot, +0x68 for the others), ORs the piece's mask (+0x84 /
++0x88) into the layer's +0x00 and sets its state to 3. RebuildArmourLayers zeroes layers 1 and 2
+of every slot whole (0x90 bytes, state included; ClearOuterLayers 005232B0 keeps +0x3C..+0x47) and
+adds each worn piece whose +0x20 (a float: CItem::unknown_20) rounds (FISTP) above 0.
+
+## Body protection (00523020)
+
+out[1 + k] = round-to-nearest of the vitals' current protection for damage type k plus the absorb
+values of the body slot's layers whose state is at least 2, taken from layer 2 down to 0 for
+text-key units (only layer 0 otherwise); the sum is stored as a float first. out[0] is the attack
+value the caller writes afterwards.
+
+## Skill values (00525E90, 00527EB0)
+
+AttributeWithItems: for a unit without a text key the attribute byte (+0x6C8 + index, any index);
+otherwise the largest +0x80 + index byte of the prototypes of the four quick items, plus for index
+0 / 1 (dexterity - 25) + the attribute byte, for 2 (intelligence - 25) + the byte, else 0.
+SpellSchoolSkill: school 4 -> 3, 6 / 7 -> 5; skill byte +0x6CE (0-2), +0x6CF (3-4), +0x6D0 (5-7),
+else 0; plus the level value of skill school + 7 (the byte +0x6DA + school; exactly
+SkillLevelValue's lookup), plus intelligence - 25.
+
+## Risks (eleventh round)
+
+- AttributeWithItems is probably not reached by any scenario (skills are used only from player
+  orders; no taming scenario).
+- The existing forwarders to 00525E90 / 00527EB0 / 005230C0 (combat_actions, combat_taming,
+  combat_orders, ui_screens, ui_camp, ui_item_info) still call through the address, so they go
+  through the verify wrappers; the cleanup can switch them to direct calls.
