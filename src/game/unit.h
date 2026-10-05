@@ -134,15 +134,15 @@ public:
     virtual void Slot23();
     virtual void Slot24();
     virtual void Slot25();
-    virtual void Slot26();
-    virtual void Slot27();
+    virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
+    virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
     virtual void Slot28();
     virtual void Slot29();
     virtual void Slot30();
     virtual void Slot31();
     virtual void Slot32();
     virtual void Slot33();
-    virtual void Slot34();
+    virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
     virtual void Slot35();
     virtual void Slot36();
     virtual void Slot37();

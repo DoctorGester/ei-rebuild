@@ -140,6 +140,27 @@ public:
     // without the flag.
     void UpdateArrow();
 
+    // unit_client_equipment.cpp (A-U).
+    // 00536100. Virtual slot 29 (equipment changed): for heroes the composed skins are renewed:
+    // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read
+    // unchecked) and the simple one (ComposeSkin(0)) into the second's (+0x24, skipped when
+    // missing). A texture takes the new name and is reloaded (flags_ 8 cleared, its manager's
+    // LoadTexture) when ComposeSkin returned non-zero or the name differs. Returns 1.
+    int RefreshSkins();
+    // 00536220. Virtual slot 30 (weapon changed): the simple skin only. Returns 1.
+    int RefreshSimpleSkin();
+    // 00538140. Virtual slot 32: every armour slot taken off (slot 27), the ids cleared, then the
+    // first min(count, 7) of `ids` put on (slot 26).
+    void SetArmourModels(const std::uint32_t* ids, int count);
+    // 00538860. Virtual slot 33: the weapon ids cleared, then the first min(count, 4) of `ids`
+    // added (slot 34).
+    void SetWeaponModels(const std::uint32_t* ids, int count);
+    // 005388C0. Virtual slot 34: `id` (packed; neither half 0xFFFF) goes to the first free weapon
+    // slot. False (AL) for an invalid id or no free slot.
+    bool AddWeaponModel(std::uint32_t id);
+    // 00538920. Virtual slot 35: the weapon slot holding `id` is emptied. False (AL) when none does.
+    bool RemoveWeaponModel(std::uint32_t id);
+
     // unit_client_sounds.cpp (A-U).
     // 00534B60. The sounds of the animation playing (state +0x40) between the last update's frame
     // (+0x2C; 0 when the animation changed) and now: attacks (stop the idle sound; at the action's
