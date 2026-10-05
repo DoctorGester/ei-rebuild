@@ -97,57 +97,29 @@ the resulting state.
 
 ## Original bugs and oddities kept on purpose
 
-- FindPath computes the fractional part of the snapped target twice from `targetX` (the second was
-  presumably meant to be `targetY`), then picks the smaller of two equal values; it stores odd values
-  in the second dword of single-cell path entries (the unit's y in half-cells minus 0.5 in one branch,
-  min(|dx|, |dy|) in the other) before overwriting the low half with 0x200; its local-search branch
-  re-checks whether the unit is in the target cell.
-- MarkFootprint resets the scratch sets' buckets only when `hashed` is set, and nothing clears it.
-  The new-cell record of AddTop / AddBottom has an uninitialised padding byte (ours 0; verify skips it);
-  the wall / cloud shapes leave byte 0x13 and `next` as stack garbage (ours 0 and -1).
-- CanStandAtFromHere reads the unit's own cell without a bounds check. LevelForSizeClass sets only AL
-  for a class outside 0..7.
-- SnapTarget divides 0/0 (NaN steps) when the unit already stands in the target cell with
-  sameRegion; the NaN propagates as in the original (FCOMPP / FCOM treat NaN as "less").
-- LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the table when none did,
-  four times over. LargestStepAlong returns 1.0 for a NaN length like for zero (FCOMP sets C3).
-- DominantRegion counts in a temporary CList in the original, ours in a local array of at most nine
-  entries (heap traffic differs, not the result). ReachesRegion's 3x3 block list is a static CArray
-  (007C2EE0) freed with plain delete every call. LabelRegions calls the out-of-line SetSize 005B16D0
-  instead of the inlined one.
-- Sample kind 3 and SamplePath normalise angles with `while` loops that never end on NaN.
-  UnitMotion::Build reads the first trajectory point even for a path with no steps. SamplePath
-  compares the time with |turn / rate| twice (the inner test cannot fail).
-- SetStepSpeeds and StandsOnCheapCell ask the unit for its movement speeds (0052F920) and never use
-  them; the getter has no side effects, so ours skips it.
-- CUnitLayer::Add copies an uninitialised stack element into each new node and Remove passes its
-  callback a record with an uninitialised first dword (ours zeros). Small / large layer Set / Merge
-  check only the block's first cell against the map size and write all 16.
+- FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to be `targetY`), stores odd values in the second dword of single-cell path entries (the unit's y in
+  half-cells minus 0.5 in one branch, min(|dx|, |dy|) in the other) before overwriting the low half with 0x200, and re-checks whether the unit is in the target cell in its local-search branch. SnapTarget divides 0/0
+  (NaN steps) when the unit already stands in the target cell with sameRegion; the NaN propagates as in the original (FCOMPP / FCOM treat NaN as "less").
+- MarkFootprint resets the scratch sets' buckets only when `hashed` is set, and nothing clears it; the new-cell record of AddTop / AddBottom has an uninitialised padding byte (ours 0; verify skips it), the wall / cloud
+  shapes leave byte 0x13 and `next` as stack garbage (ours 0 and -1). CanStandAtFromHere reads the unit's own cell without a bounds check; LevelForSizeClass sets only AL for a class outside 0..7.
+- LimitSteepCells clears the neighbour that broke the scan, or entry 4 of the table when none did, four times over. LargestStepAlong returns 1.0 for a NaN length like for zero (FCOMP sets C3). DominantRegion counts in a
+  temporary CList in the original, ours in a local array of at most nine entries (heap traffic differs, not the result); ReachesRegion's 3x3 block list is a static CArray (007C2EE0) freed with plain delete every call;
+  LabelRegions calls the out-of-line SetSize 005B16D0 instead of the inlined one.
+- Sample kind 3 and SamplePath normalise angles with `while` loops that never end on NaN; UnitMotion::Build reads the first trajectory point even for a path with no steps; SamplePath compares the time with |turn / rate|
+  twice (the inner test cannot fail); SetStepSpeeds and StandsOnCheapCell ask the unit for its movement speeds (0052F920) and never use them (ours skips the call). CUnitLayer::Add copies an uninitialised stack element
+  into each new node and Remove passes its callback a record with an uninitialised first dword (ours zeros); small / large layer Set / Merge check only the block's first cell against the map size and write all 16.
 
 ## Skipped and why
 
-- Large, stateful, left as forwarders (next candidates): the local search and path smoothing
-  (005C2420, 005C25D0, 005C2CF0, 005C35F0, 005C46C0), 005B89F0 (area application) and 005AFEE0 (region
-  update) called by RefreshArea, 005BD200 AddPathCell, 005C8D40 VisibilityGrid::Include (grid
-  growth), 005BCCB0 and the shape cache helpers (005BE320, 005BE450, 005BE730 ...).
-- 005B43C0 CAIMap::Load (Rebirth-patched). 005BF8F0 / 005BF5F0 (spiral table constructor) run from the
-  static initializer 005BF8E0, before the hooks are installed. 005C6E30 (waypoint constructor) is
-  inlined.
-- 005A0000-005AF000 (AI helpers of other systems: voice, groups); 005C8xxx / 005C9xxx above 005C8D40
-  (time wheel, misc containers) are not movement code.
+- Large, stateful, left as forwarders (next candidates): the local search and path smoothing (005C2420, 005C25D0, 005C2CF0, 005C35F0, 005C46C0), 005B89F0 (area application) and 005AFEE0 (region update) called by
+  RefreshArea, 005BD200 AddPathCell, 005C8D40 VisibilityGrid::Include, 005BCCB0 and the shape cache helpers (005BE320, 005BE450, 005BE730 ...).
+- 005B43C0 CAIMap::Load (Rebirth-patched). 005BF8F0 / 005BF5F0 (spiral table constructor) run from the static initializer 005BF8E0, before the hooks are installed. 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
+  (AI helpers of other systems: voice, groups) and 005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
 
 ## Risks
 
-- Float order follows the instruction order; intermediates are `double` where the original keeps them
-  on the FPU stack, which is identical at 24 or 53-bit precision but could differ in the last bit at
-  64-bit (Rebirth may raise it). `CollectFootprint` (every face of every part) is the most sensitive;
-  its verify compares the full collected sets. The deep-copy trajectory verifies compare every float
-  bit.
-- MarkFootprint's verify depends on the ApplyFootprint / ApplyBridges hooks seeing the original's call
-  (capture keyed on the map and set addresses); AddTop / AddBottom deep copies slow object stamping in
-  the verify build.
-- `Sample` kind 3 calls the world's slot 0xA0/4 and the tracked object's slot 0xD0/4 or 0xD4/4 twice in
-  the verify build; assumed free of side effects.
-- Unit layers, `ForgetObject`, `SetStepSpeeds`, FindPath / PlanLongPath are verified only by
-  consistency checks; `UnitShape`'s create path follows the original's helper calls one by one and the
-  verify compares only the returned object.
+- Float order follows the instruction order; intermediates are `double` where the original keeps them on the FPU stack (identical at 24 or 53-bit precision, could differ in the last bit at 64-bit). `CollectFootprint` (every
+  face of every part) is the most sensitive; its verify compares the full collected sets. MarkFootprint's verify depends on the ApplyFootprint / ApplyBridges hooks seeing the original's call (capture keyed on the map and
+  set addresses); the AddTop / AddBottom deep copies slow object stamping in the verify build.
+- `Sample` kind 3 calls the world's slot 0xA0/4 and the tracked object's slot 0xD0/4 or 0xD4/4 twice in the verify build (assumed free of side effects). Unit layers, `ForgetObject`, `SetStepSpeeds`, FindPath /
+  PlanLongPath are verified by consistency checks only; `UnitShape`'s create path follows the original's helper calls one by one and the verify compares only the returned object.
