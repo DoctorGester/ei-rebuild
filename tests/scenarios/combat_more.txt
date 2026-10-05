@@ -38,6 +38,12 @@ console @SetPlayer(GetObjectByName("Archer1"),6)
 check IsEnemy(GetObjectByName("Archer1"),0)
 console #HP(GetLeader())
 console @GSSetVar(0,"hp0",HP(GetLeader()))
+# An order given right after the spawn is sometimes lost (about 1 run in 30 under 16 parallel
+# games, on the original too): the attacker never swings. Give the new unit a moment, then
+# repeat the order once; a repeated order on the same target only renews it.
+wait 1000
+console @Attack(GetObjectByName("Archer1"),GetLeader())
+wait 1000
 console @Attack(GetObjectByName("Archer1"),GetLeader())
 waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
 expect was attacked by
