@@ -10,11 +10,16 @@ console thingamabob
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
+# The zone's intro script blocks the hero (flags 0x800000, IsUnitBlocked) for ~37 s, and the
+# server's order handler (0066FFF0) skips blocked units. The script can start after the hero
+# exists (under load it ran 0.3 s after the HP check): wait for its block, then lift it.
+waitfor 15 IsUnitBlocked(GetLeader())
 console @BlockUnit(GetLeader(),0)
 wait 1000
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 
+check Not(IsUnitBlocked(GetLeader()))
 move 560 260
 wait 300
 click 560 260
@@ -24,6 +29,7 @@ waitfor 15 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"
 # A second order back towards the start.
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
+check Not(IsUnitBlocked(GetLeader()))
 move 260 340
 wait 300
 click 260 340
