@@ -21,7 +21,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I6 (taken 2026-10-05) Next 3-5 live interface functions (ui.md Fourteenth pass; 00617A50 and 006312C0 need hero creation / global-map clicks, skip unless a scenario can reach them).
+- I7 Next 3-5 live interface functions (ui.md Fifteenth pass: 006379E0, 00637190 and the other battle commands, 006366F0, 0063DB20).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
@@ -29,9 +29,12 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S4 Next script runtime functions (script.md "Savegame parts (ticket S3)" lists candidates).
+- S5 Next script runtime functions (script.md "Blocks, areas and temporaries").
 
 ## Verify checks
+
+- X7 (taken 2026-10-05) ui_order_move: a ground click doesn't move the hero with hooks (passes with no hooks). OrderAt/SelectUnit/OnLButtonUp agree; suspect the client order message 0x30 path (0066A7D0 -> net layer -> server handler). Bisect hints: culprits on both sides of 00443590; lower side within 0042BEF0..00435820.
+- X8 Pixel-comparing wrappers other than DrawWrappedText (CItemInfoPanel::DescribeStats in verify_ui_item_info.cpp) hit the same outside-disturbance pattern X5 found: 2 mismatches at the same millisecond in two processes. Share X5's settle-and-recompare helper with them.
 
 
 ## Cleanup (docs/cleanup-plan.md)
