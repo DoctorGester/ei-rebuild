@@ -8,8 +8,7 @@
 #include <cstring>
 
 // ---- ChunkArchive -------------------------------------------------------------------------------
-// EnterChunk / LeaveChunk / Field / CountChunks are in chunk_archive.cpp.
-
+// The rest of the archive is in chunk_archive.cpp.
 
 namespace {
 
@@ -22,7 +21,7 @@ struct RawVector {
 
 using RecordFn = void(__fastcall*)(void* record, void*);                       // destructor body
 using ResizeFn = void(__fastcall*)(void* vector, void*, unsigned count);        // vector::resize
-using SerializeFn = void(__fastcall*)(void* record, void*, ChunkArchive* ar);
+using SerializeFn = void (*)(void* record, ChunkArchive* ar);
 
 // Element destructors (release the records' strings) and vector::resize of each record type.
 __declspec(naked) void __fastcall DestroyPrint(void*, void*) EI_ORIGINAL(0x006D29A0)
@@ -40,11 +39,13 @@ __declspec(naked) void __fastcall SerializeAck(void*, void*, ChunkArchive*) EI_O
 __declspec(naked) void __fastcall SerializeAck2(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3FD0)
 __declspec(naked) void __fastcall SerializeAck3(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3DC0)
 
-// prints.db records are serialised through their vtable (slot 0).
-void __fastcall SerializeVirtual(void* record, void*, ChunkArchive* ar) {
-    auto fn = *static_cast<SerializeFn*>(*static_cast<void**>(record));
-    fn(record, nullptr, ar);
-}
+// How each instantiation serialises a record: prints.db records through their vtable, acks.db
+// records by a direct call.
+void SerializePrint(void* record, ChunkArchive* ar) { static_cast<PrintRecord*>(record)->Serialize(ar); }
+void SerializePrint2(void* record, ChunkArchive* ar) { static_cast<PrintRecord2*>(record)->Serialize(ar); }
+void SerializeAckRecord(void* record, ChunkArchive* ar) { SerializeAck(record, nullptr, ar); }
+void SerializeAck2Record(void* record, ChunkArchive* ar) { SerializeAck2(record, nullptr, ar); }
+void SerializeAck3Record(void* record, ChunkArchive* ar) { SerializeAck3(record, nullptr, ar); }
 
 // The body shared by the vector serialisers (one template instantiation per record type in the
 // original). Loading destroys the old records, resizes to the number of record chunks and reads
@@ -64,34 +65,50 @@ void SerializeArray(ChunkArchive* ar, int id, RawVector* v, int size, RecordFn d
         count = static_cast<int>(v->finish - v->start) / size;
     }
     for (int i = 0; i < count; ++i) {
-        ar->stack_->prev->occurrence = i + 1;
+        ar->Current()->occurrence = i + 1;
         char* record = v->start + i * size;
         if (ar->EnterChunk(1)) {
-            serialize(record, nullptr, ar);
+            serialize(record, ar);
             ar->LeaveChunk();
         }
     }
     ar->LeaveChunk();
 }
 
+// Fields 1-3 of chunk `id`, four bytes each, if the chunk is present.
+void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) {
+    if (!ar->EnterChunk(id)) return;
+    ar->Field(1, &values[0], 4);
+    ar->Field(2, &values[1], 4);
+    ar->Field(3, &values[2], 4);
+    ar->LeaveChunk();
+}
+
+// The hooks of the records' slot 0 (a virtual: registered through these shims).
+void __fastcall PrintSerializeHook(PrintRecord* self, void*, ChunkArchive* ar) { self->PrintRecord::Serialize(ar); }
+void __fastcall Print2SerializeHook(PrintRecord2* self, void*, ChunkArchive* ar) { self->PrintRecord2::Serialize(ar); }
+
+// 006CC7F0: the terrain's water level `index` is set to `level` (thiscall on the world).
+__declspec(naked) void __fastcall ApplyWaterLevel(void* /*world*/, void*, int /*index*/, float /*level*/) EI_ORIGINAL(0x006CC7F0)
+
 } // namespace
 
 void ChunkArchive::SerializePrints(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord), DestroyPrint, ResizePrints,
-                   SerializeVirtual);
+                   SerializePrint);
 }
 void ChunkArchive::SerializePrints2(int id, void* records, void*) {
     SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord2), DestroyPrint2, ResizePrints2,
-                   SerializeVirtual);
+                   SerializePrint2);
 }
 void ChunkArchive::SerializeAcks(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x1C4, DestroyAck, ResizeAcks, SerializeAck);
+    SerializeArray(this, id, static_cast<RawVector*>(records), 0x1C4, DestroyAck, ResizeAcks, SerializeAckRecord);
 }
 void ChunkArchive::SerializeAcks2(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x5C, DestroyAck2, ResizeAcks2, SerializeAck2);
+    SerializeArray(this, id, static_cast<RawVector*>(records), 0x5C, DestroyAck2, ResizeAcks2, SerializeAck2Record);
 }
 void ChunkArchive::SerializeAcks3(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x38, DestroyAck3, ResizeAcks3, SerializeAck3);
+    SerializeArray(this, id, static_cast<RawVector*>(records), 0x38, DestroyAck3, ResizeAcks3, SerializeAck3Record);
 }
 EI_REPLACE_METHOD(0x006D23A0, ChunkArchive::SerializePrints);
 EI_REPLACE_METHOD(0x006D25F0, ChunkArchive::SerializePrints2);
@@ -101,23 +118,11 @@ EI_REPLACE_METHOD(0x006DB8D0, ChunkArchive::SerializeAcks3);
 
 // ---- prints.db records ----------------------------------------------------------------------------
 
-namespace {
-// Fields 1-3 of chunk `id`, four bytes each, if the chunk is present.
-void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) {
-    if (!ar->EnterChunk(id)) return;
-    ar->Field(1, &values[0], 4);
-    ar->Field(2, &values[1], 4);
-    ar->Field(3, &values[2], 4);
-    ar->LeaveChunk();
-}
-} // namespace
-
 void PrintRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
     TripleChunk(ar, 2, values2);
     TripleChunk(ar, 3, values3);
 }
-EI_REPLACE_METHOD(0x006D41D0, PrintRecord::Serialize);
 
 void PrintRecord2::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
@@ -125,14 +130,11 @@ void PrintRecord2::Serialize(ChunkArchive* ar) {
     TripleChunk(ar, 3, values3);
     TripleChunk(ar, 10, values10);
 }
-EI_REPLACE_METHOD(0x006D4270, PrintRecord2::Serialize);
+
+EI_REPLACE(0x006D41D0, PrintSerializeHook);
+EI_REPLACE(0x006D4270, Print2SerializeHook);
 
 // ---- TweenArray ---------------------------------------------------------------------------------
-
-namespace {
-// 006CC7F0: the terrain's water level `index` is set to `level` (thiscall on the world).
-__declspec(naked) void __fastcall ApplyWaterLevel(void* /*world*/, void*, int /*index*/, float /*level*/) EI_ORIGINAL(0x006CC7F0)
-} // namespace
 
 void TweenArray::RemoveAll() {
     if (data) {

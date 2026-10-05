@@ -3,7 +3,7 @@
 // Shared pieces of the world objects (00440000-00470000): small engine objects defined in this
 // range and the trivial virtual getters of units and figures. Names are provisional. See
 // docs/notes/objects.md for the class map. (CEngineObject: engine_object.h; the object list
-// iterator: base_manager.h.)
+// iterator: base_manager.h; CMemoryStream: core_streams.h.)
 
 #include "ai_map.h"
 #include "base_manager.h"
@@ -66,26 +66,3 @@ public:
     // 00461C80. Destructor body: restores its vtable, then CEngineObject::DestructBase.
     void Destruct();
 };
-
-// A growable memory stream (vtable 0073BD90: slot 1 Read, slot 2 Write). Name provisional.
-struct CMemoryStream {
-    void* vtable_;
-    std::uint8_t unknown_4;
-    std::uint8_t ok_;               // +0x05 cleared when a read runs past the end
-    std::uint8_t unknown_6[2];
-    std::uint32_t unknown_8;        // set to 2000000000 by the creators
-    std::uint32_t unknown_C;
-    std::int32_t growBy_;           // +0x10
-    std::int32_t unknown_14;
-    std::uint8_t* data_;            // +0x18
-    std::uint32_t unknown_1C;
-    std::uint32_t position_;        // +0x20 read position
-    std::uint32_t size_;            // +0x24 end of the data
-
-    // 00468C20. Empties the stream: ok_ = 1, no buffer, growBy_ = 0x80, unknown_14 = -1. Does not
-    // free the old buffer.
-    void Reset();
-};
-static_assert(offsetof(CMemoryStream, growBy_) == 0x10);
-static_assert(offsetof(CMemoryStream, size_) == 0x24);
-static_assert(sizeof(CMemoryStream) == 0x28);

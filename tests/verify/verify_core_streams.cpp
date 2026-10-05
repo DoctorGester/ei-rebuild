@@ -42,7 +42,8 @@ using DeleteFn = void*(__fastcall*)(void*, void*, unsigned);
 
 // 00412720 / 00413430 / 004174E0: MOV [ECX],imm32 (6).
 VoidFn s_refDestruct1, s_refDestruct2, s_streamDestruct;
-void CheckVoid(const char* name, VoidFn original, VoidFn ours, void* self) {
+template <typename Ours>
+void CheckVoid(const char* name, VoidFn original, Ours ours, void* self) {
     Scratch<4> expected(self);
     original(expected.get());
     ours(self);
@@ -61,13 +62,13 @@ void __fastcall RefDestruct3Verify(void* self) {
 void __fastcall RefDestruct4Verify(void* self) {
     CheckVoid("RefObjectDestructBase@004368C0", s_refDestruct4, RefObjectDestructBase, self);
 }
-void __fastcall StreamDestructVerify(void* self) {
-    CheckVoid("StreamDestructBase", s_streamDestruct, StreamDestructBase, self);
+void __fastcall StreamDestructVerify(CStream* self) {
+    CheckVoid("CStream::DestructBase", s_streamDestruct, [](void* p) { static_cast<CStream*>(p)->DestructBase(); }, self);
 }
 
 // 00419720 / 0047A200: MOV EAX,ECX (2), MOV [EAX],imm32 (6).
-template <std::size_t N>
-void* CheckCtor(const char* name, CtorFn original, CtorFn ours, void* self) {
+template <std::size_t N, typename Ours>
+void* CheckCtor(const char* name, CtorFn original, Ours ours, void* self) {
     Scratch<N> expected(self);
     void* expectedRet = original(expected.get());
     void* actualRet = ours(self);
@@ -79,13 +80,14 @@ CtorFn s_refValueCtor, s_streamCtor;
 void* __fastcall RefValueCtorVerify(void* self) {
     return CheckCtor<4>("RefValueConstructBase", s_refValueCtor, RefValueConstructBase, self);
 }
-void* __fastcall StreamCtorVerify(void* self) {
-    return CheckCtor<0xC>("StreamConstructBase", s_streamCtor, StreamConstructBase, self);
+void* __fastcall StreamCtorVerify(CStream* self) {
+    return CheckCtor<0xC>("CStream::ConstructBase", s_streamCtor, [](void* p) -> void* { return static_cast<CStream*>(p)->ConstructBase(); },
+                          self);
 }
 
 // 00412730 / 00417400: MOV AL,[ESP+4] (4), PUSH ESI (1). The original runs without the delete flag.
-template <std::size_t N>
-void* CheckDelete(const char* name, DeleteFn original, DeleteFn ours, void* self, unsigned flags) {
+template <std::size_t N, typename Ours>
+void* CheckDelete(const char* name, DeleteFn original, Ours ours, void* self, unsigned flags) {
     Scratch<N> expected(self);
     void* expectedRet = original(expected.get(), nullptr, flags & ~1u);
     // Compare before ours runs: with the flag set ours frees the object.
@@ -100,8 +102,9 @@ DeleteFn s_refDelete, s_streamDelete;
 void* __fastcall RefDeleteVerify(void* self, void*, unsigned flags) {
     return CheckDelete<4>("RefObjectDeletingDestructor", s_refDelete, RefObjectDeletingDestructor, self, flags);
 }
-void* __fastcall StreamDeleteVerify(void* self, void*, unsigned flags) {
-    return CheckDelete<4>("StreamDeletingDestructor", s_streamDelete, StreamDeletingDestructor, self, flags);
+void* __fastcall StreamDeleteVerify(CStream* self, void*, unsigned flags) {
+    return CheckDelete<4>("CStream::DeletingDestruct", s_streamDelete,
+                          [](void* p, void*, unsigned f) -> void* { return static_cast<CStream*>(p)->DeletingDestruct(f); }, self, flags);
 }
 
 // 00412700: PUSH ESI, MOV ESI,ECX, then a CALL: no trampoline. Same check against a stand-in that
@@ -123,9 +126,9 @@ CMemoryStream*(__fastcall* s_msCtor)(CMemoryStream*);
 CMemoryStream* __fastcall MemoryStreamCtorVerify(CMemoryStream* self) {
     Scratch<kStreamBytes> expected(self);
     CMemoryStream* expectedRet = s_msCtor(expected.as<CMemoryStream>());
-    CMemoryStream* actualRet = MemoryStreamConstruct(self);
+    CMemoryStream* actualRet = self->Construct();
     bool same = expectedRet == expected.as<CMemoryStream>() && actualRet == self && expected.Same(self);
-    ei::verify::Check("MemoryStreamConstruct", true, same, "");
+    ei::verify::Check("CMemoryStream::Construct", true, same, "");
     return actualRet;
 }
 
@@ -136,11 +139,11 @@ void CheckMsDestruct(const char* name, MsFn original, CMemoryStream* self) {
     Scratch<kStreamBytes> expected(self);
     expected.as<CMemoryStream>()->data_ = nullptr;
     original(expected.as<CMemoryStream>());
-    MemoryStreamDestruct(self);
+    self->Destruct();
     ei::verify::Check(name, true, SameButData(expected.bytes, self), "");
 }
-void __fastcall MsDestruct1Verify(CMemoryStream* self) { CheckMsDestruct("MemoryStreamDestruct@004173D0", s_msDestruct1, self); }
-void __fastcall MsDestruct2Verify(CMemoryStream* self) { CheckMsDestruct("MemoryStreamDestruct@004790A0", s_msDestruct2, self); }
+void __fastcall MsDestruct1Verify(CMemoryStream* self) { CheckMsDestruct("CMemoryStream::Destruct@004173D0", s_msDestruct1, self); }
+void __fastcall MsDestruct2Verify(CMemoryStream* self) { CheckMsDestruct("CMemoryStream::Destruct@004790A0", s_msDestruct2, self); }
 
 // 004173B0 / 004790D0: PUSH ESI, MOV ESI,ECX, then a CALL: no trampoline. Ours runs on a scratch
 // copy without the flag and must leave what the destructor body leaves.
@@ -148,26 +151,36 @@ void* CheckMsDelete(const char* name, CMemoryStream* self, unsigned flags) {
     Scratch<kStreamBytes> actual(self);
     actual.as<CMemoryStream>()->data_ = nullptr;
     Scratch<kStreamBytes> expected(actual.bytes);
-    MemoryStreamDestruct(expected.as<CMemoryStream>());
-    void* ret = MemoryStreamDeletingDestructor(actual.as<CMemoryStream>(), nullptr, flags & ~1u);
+    expected.as<CMemoryStream>()->Destruct();
+    void* ret = actual.as<CMemoryStream>()->DeletingDestruct(flags & ~1u);
     ei::verify::Check(name, true, ret == actual.get() && expected.Same(actual.bytes), "flags %u", flags);
-    return MemoryStreamDeletingDestructor(self, nullptr, flags);
+    return self->DeletingDestruct(flags);
 }
 void* __fastcall MsDelete1Verify(CMemoryStream* self, void*, unsigned flags) {
-    return CheckMsDelete("MemoryStreamDeletingDestructor@004173B0", self, flags);
+    return CheckMsDelete("CMemoryStream::DeletingDestruct@004173B0", self, flags);
 }
 void* __fastcall MsDelete2Verify(CMemoryStream* self, void*, unsigned flags) {
-    return CheckMsDelete("MemoryStreamDeletingDestructor@004790D0", self, flags);
+    return CheckMsDelete("CMemoryStream::DeletingDestruct@004790D0", self, flags);
 }
 
-// 00417350: PUSH ESI (1), MOV ESI,ECX (2), PUSH EDI (1), XOR EDI,EDI (2).
+// 00417350 (slot 6): PUSH ESI (1), MOV ESI,ECX (2), PUSH EDI (1), XOR EDI,EDI (2). Ours is called
+// qualified (a virtual call would come back here).
 MsFn s_msClear;
 void __fastcall MsClearVerify(CMemoryStream* self) {
     Scratch<kStreamBytes> expected(self);
     expected.as<CMemoryStream>()->data_ = nullptr;
     s_msClear(expected.as<CMemoryStream>());
-    MemoryStreamClear(self);
-    ei::verify::Check("MemoryStreamClear", true, expected.Same(self), "");
+    self->CMemoryStream::Clear();
+    ei::verify::Check("CMemoryStream::Clear", true, expected.Same(self), "");
+}
+
+// 00468C20: XOR EAX,EAX (2), MOV byte [ECX+5],1 (4).
+MsFn s_msReset;
+void __fastcall MsResetVerify(CMemoryStream* self) {
+    Scratch<kStreamBytes> expected(self);
+    s_msReset(expected.as<CMemoryStream>());
+    self->Reset();
+    ei::verify::Check("CMemoryStream::Reset", true, expected.Same(self), "");
 }
 
 // --- Aligned arrays (allocate / free: ours only) -------------------------------------------------
@@ -219,6 +232,7 @@ EI_VERIFY(0x004790A0, MsDestruct2Verify, 6, s_msDestruct2);
 EI_VERIFY(0x004173B0, MsDelete1Verify, 0, s_unused);
 EI_VERIFY(0x004790D0, MsDelete2Verify, 0, s_unused);
 EI_VERIFY(0x00417350, MsClearVerify, 6, s_msClear);
+EI_VERIFY(0x00468C20, MsResetVerify, 6, s_msReset);
 EI_VERIFY(0x0047B940, AlignedAllocVerify, 0, s_unused);
 EI_VERIFY(0x0047B620, AlignedClearVerify, 0, s_unused);
 EI_VERIFY(0x0042FCA0, CoderCtorVerify, 5, s_coderCtor);

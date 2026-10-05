@@ -177,7 +177,7 @@ CRefObject* __fastcall SessionStart(Session* self, void*, CRefObject* player) {
     ei::VCall<void>(driver, 10);
     while (ei::VCall<bool>(driver, 6)) {
         alignas(4) std::uint8_t stream[0x28];
-        StreamConstructBase(stream);
+        reinterpret_cast<CStream*>(stream)->ConstructBase();
         SetVtable(stream, kMemoryStreamVtable);
         At<std::uint32_t>(stream, 0x18) = 0;
         ResetMemoryStream(stream);

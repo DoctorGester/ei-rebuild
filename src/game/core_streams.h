@@ -1,21 +1,26 @@
 #pragma once
 
-// Constructors and destructors of the engine's stream and reference-counted base classes, and two
-// small allocation helpers (00410000-00430000, 00470000-00480000). See docs/notes/unmapped_410_470.md.
-// Names are provisional.
+// The engine's byte streams (CStream, CMemoryStream), the constructors and destructors of the
+// reference-counted base classes, and two small allocation helpers (00410000-00430000,
+// 00470000-00480000). See docs/notes/unmapped_410_470.md. Names are provisional.
 //
 // Class map (vtables):
 //   0073BB68  CRefObject root: slot 0 deleting destructor, slot 1 empty (RET 4). Its destructor
 //             body only restores this vtable (two identical copies, 00412720 and 00413430).
 //   0073BB58  abstract reference-counted value (adds pure slots 2 and 3, see core_refcount.h);
 //             constructor body 00419720, deleting destructor 00412700.
-//   0073BDB0  CStream (below): abstract byte stream (slots 1-3 pure).
-//   0073BD90  CMemoryStream (object.h): slot 1 Read 004A5380, 2 Write 004A53F0, 3 Seek 004A5490,
-//             4 Size (+0x24), 5 Position (+0x20), 6 Clear 00417350, 7 004A55D0. 0073C960 is a
-//             second vtable with the same slots 1-7 and another copy of the destructor (004790D0).
+//   0073BDB0  CStream (below): abstract byte stream (slots 1-6 pure).
+//   0073BD90  CMemoryStream (below). 0073C960 is a second vtable with the same slots 1-7 and
+//             another copy of the deleting destructor (004790D0); the network queue's streams use it.
+//
+// Streams are built and torn down by the game's constructor and destructor bodies (or the
+// rewrites of them below, called explicitly where the original inlines them), which store the
+// game's vtables. The classes are __declspec(novtable) and their C++ destructors are empty, so C++
+// never stores a vtable of its own: a CMemoryStream local or member is plain storage until one of
+// those bodies runs, as in the original.
 
+#include "engine_object.h"
 #include "net_coder.h"
-#include "object.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -24,32 +29,101 @@ namespace mfc {
 class CString;
 }
 
-constexpr std::uintptr_t kRefObjectRootVtable = 0x0073BB68;
-constexpr std::uintptr_t kRefValueVtable = 0x0073BB58;
-constexpr std::uintptr_t kStreamVtable = 0x0073BDB0;
-constexpr std::uintptr_t kMemoryStreamVtable = 0x0073BD90;
-
-// The engine's abstract byte stream (vtable 0073BDB0; slots 1-3 pure). The save game, the network
-// messages and the chunk archives are memory streams behind it (CMemoryStream, object.h).
-class CStream {
+// The engine's abstract byte stream (vtable 0073BDB0). The save game, the network messages and the
+// chunk archives are memory streams behind it; the message recordings are file streams
+// (net_link.h).
+class __declspec(novtable) CStream {
 public:
-    virtual ~CStream();                                                 // 0: 00417400
+    static constexpr std::uintptr_t kVtableAddress = 0x0073BDB0;
+
+    virtual ~CStream() {}                                               // 0: 00417400 (deleting destructor)
     virtual std::uint32_t Read(void* buffer, std::uint32_t size) = 0;   // 1: returns the bytes read
     virtual void Write(const void* buffer, std::uint32_t size) = 0;     // 2
     virtual void Seek(std::uint32_t position) = 0;                      // 3
+    virtual std::uint32_t Size() = 0;                                   // 4
+    virtual std::uint32_t Position() = 0;                               // 5
+    virtual void Clear() = 0;                                           // 6: memory streams empty, file streams rewind
+    virtual void CopyFrom(CStream* source);                             // 7: 004A4D40 (all of `source`, 1 KB at a time)
+
+    // 0047A200. Constructor body: the vtable, version_ = 2000000000, ok_ = 1. Returns this.
+    CStream* ConstructBase();
+    // 004174E0. Destructor body: restores the vtable.
+    void DestructBase();
+    // 00417400 (slot 0). DestructBase, then operator delete when bit 0 of `flags` is set.
+    CStream* DeletingDestruct(unsigned flags);
 
     // 00461190. Reads bytes up to a zero or a failed read into a CString constructed at `out`;
     // returns `out`.
     mfc::CString* ReadString(void* out);
 
-    std::uint8_t unknown_4;
+    // Back to the start for reading (inlined by the chunk archive): ok_ set, Seek(0), reading_ set.
+    void Rewind() {
+        ok_ = 1;
+        Seek(0);
+        reading_ = 1;
+    }
+
+    std::uint8_t reading_;          // +0x04 1 reading, 0 writing (CopyFrom clears it)
     std::uint8_t ok_;               // +0x05 cleared when a read runs past the end
     std::uint8_t unknown_6[2];
     std::uint32_t version_;         // +0x08 format version (the save game's); 2000000000 when constructed
 };
+static_assert(offsetof(CStream, reading_) == 0x04);
 static_assert(offsetof(CStream, ok_) == 0x05);
 static_assert(offsetof(CStream, version_) == 0x08);
 static_assert(sizeof(CStream) == 0x0C);
+
+// A growable memory stream that can also pack bits (vtable 0073BD90). The bit writer (net_delta.h)
+// assembles bits in bits_ and stores the byte at data_[bitsIndex_] when a new one starts; Seek,
+// Resize and SetSize flush and reset that state.
+class __declspec(novtable) CMemoryStream : public CStream {
+public:
+    static constexpr std::uintptr_t kVtableAddress = 0x0073BD90;
+
+    ~CMemoryStream() override {}                                        // 0: 004173B0 (deleting destructor)
+    std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 004A5380 (a short read zero-fills, clears ok_)
+    void Write(const void* buffer, std::uint32_t size) override;       // 2: 004A53F0 (grows to twice what is needed)
+    void Seek(std::uint32_t position) override;                        // 3: 004A5490
+    std::uint32_t Size() override;                                     // 4: 00417390 (size_)
+    std::uint32_t Position() override;                                 // 5: 004173A0 (position_)
+    void Clear() override;                                             // 6: 00417350
+    void CopyFrom(CStream* source) override;                           // 7: 004A55D0 (one Read into a resized buffer)
+
+    // 0041DD70. Constructor body: CStream's fields, the vtable, an empty stream (Reset's fields).
+    // Fields +4, +6, +7 and +0xC are left as they are. Returns this.
+    CMemoryStream* Construct();
+    // 004173D0, 004790A0. Destructor body: frees the buffer (the pointer is left dangling), then
+    // CStream's vtable.
+    void Destruct();
+    // 004173B0, 004790D0 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
+    CMemoryStream* DeletingDestruct(unsigned flags);
+    // 00468C20. Empties the stream: ok_ = 1, no buffer, no pending bits. Does not free the old
+    // buffer (Clear, slot 6, is the same with the free).
+    void Reset();
+    // 004A54D0. Size `size`, position 0; a larger buffer (1.5 x size + 0x10) keeps the contents.
+    void Resize(std::uint32_t size);
+    // 004A5570. Size `size`, position 0; a larger buffer (exactly `size`) does not keep them.
+    void SetSize(std::uint32_t size);
+
+    std::uint8_t bits_;             // +0x0C byte being assembled by the bit writer (+0x0D..0x0F unused)
+    std::int32_t bitMask_;          // +0x10 bit of the last bit written (0x80: start a new byte)
+    std::int32_t bitsIndex_;        // +0x14 where bits_ goes in the data (-1: nowhere yet)
+    std::uint8_t* data_;            // +0x18
+    std::uint32_t capacity_;        // +0x1C bytes allocated
+    std::uint32_t position_;        // +0x20 read / write position
+    std::uint32_t size_;            // +0x24 end of the data
+};
+static_assert(offsetof(CMemoryStream, bits_) == 0x0C);
+static_assert(offsetof(CMemoryStream, bitMask_) == 0x10);
+static_assert(offsetof(CMemoryStream, data_) == 0x18);
+static_assert(offsetof(CMemoryStream, size_) == 0x24);
+static_assert(sizeof(CMemoryStream) == 0x28);
+
+constexpr std::uintptr_t kRefObjectRootVtable = 0x0073BB68;
+constexpr std::uintptr_t kRefValueVtable = 0x0073BB58;
+// The stream vtables under the names the world_* and net_* code uses.
+constexpr std::uintptr_t kStreamVtable = CStream::kVtableAddress;
+constexpr std::uintptr_t kMemoryStreamVtable = CMemoryStream::kVtableAddress;
 
 // CRefObject root (vtable 0073BB68).
 void __fastcall RefObjectDestructBase(void* self);                                 // 00412720, 00413430
@@ -57,17 +131,6 @@ void* __fastcall RefObjectDeletingDestructor(void* self, void* edx, unsigned fla
 // Abstract reference-counted value (vtable 0073BB58).
 void* __fastcall RefValueConstructBase(void* self);                                // 00419720, returns this
 void* __fastcall RefValueDeletingDestructor(void* self, void* edx, unsigned flags);  // 00412700 (slot 0)
-
-// CStream (vtable 0073BDB0).
-void* __fastcall StreamConstructBase(void* self);                                  // 0047A200, returns this
-void __fastcall StreamDestructBase(void* self);                                    // 004174E0
-void* __fastcall StreamDeletingDestructor(void* self, void* edx, unsigned flags);    // 00417400 (slot 0)
-
-// CMemoryStream (vtable 0073BD90).
-CMemoryStream* __fastcall MemoryStreamConstruct(CMemoryStream* self);              // 0041DD70, returns this
-void __fastcall MemoryStreamDestruct(CMemoryStream* self);                         // 004173D0, 004790A0
-void* __fastcall MemoryStreamDeletingDestructor(CMemoryStream* self, void* edx, unsigned flags); // 004173B0, 004790D0
-void __fastcall MemoryStreamClear(CMemoryStream* self);                            // 00417350 (slot 6)
 
 // 0047B940. Allocates room for `count` pointers on a 32-byte boundary; the block returned by
 // operator new is stored just before the aligned pointer (freed through it by 0047B620).

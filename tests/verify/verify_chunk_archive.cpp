@@ -11,17 +11,11 @@
 //    child / the stack shrinks by one.
 #include "verify.h"
 
-#include "../../src/game/model.h"
-#include "../../src/game/object.h"
+#include "../../src/game/chunk_archive.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/lib/stlp.h"
 
 #include <cstring>
-
-void __fastcall ChunkRefReset(ChunkArchive::Ref* r);                                        // chunk_archive.cpp
-bool __fastcall ReadStreamChunk(void* in, char* id, CMemoryStream* to);
-bool __fastcall FindStreamChunk(void* in, int id, CMemoryStream* to, int occurrence);
-bool __fastcall WriteStreamChunk(void* out, int id, CMemoryStream* from);
 
 namespace {
 
@@ -29,12 +23,9 @@ using Ref = ChunkArchive::Ref;
 
 void* s_unused;
 
-__declspec(naked) void* __fastcall StackEraseOriginal(void*, void*, void**, void*) EI_ORIGINAL(0x0040A920)
-
-Ref* Top(ChunkArchive* a) { return reinterpret_cast<Ref*>(reinterpret_cast<std::uint8_t*>(a->stack_->prev) + 8); }
 int Depth(ChunkArchive* a) {
     int n = 0;
-    for (ChunkNode* p = a->stack_->next; p != a->stack_; p = p->next) ++n;
+    for (ChunkArchive::StackNode* p = a->stack_->next; p != a->stack_; p = p->next) ++n;
     return n;
 }
 
@@ -83,10 +74,10 @@ int __fastcall CountChunksVerify(ChunkArchive* self, void*, int id) {
 void(__fastcall* s_resize)(ChunkArchive*);
 void __fastcall ResizeVerify(ChunkArchive* self) {
     s_resize(self);
-    unsigned char header[0x28];
-    std::memcpy(header, self->streams_ + 0x28, sizeof(header));
+    unsigned char header[sizeof(CMemoryStream)];
+    std::memcpy(header, &self->dataStream_, sizeof(header));
     self->ResizeToCurrent();
-    ei::verify::Check("ChunkArchive::ResizeToCurrent", true, std::memcmp(header, self->streams_ + 0x28, sizeof(header)) == 0, "");
+    ei::verify::Check("ChunkArchive::ResizeToCurrent", true, std::memcmp(header, &self->dataStream_, sizeof(header)) == 0, "");
 }
 
 // 004092B0: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1).
@@ -99,11 +90,11 @@ void __fastcall FieldVerify(ChunkArchive* self, void*, int id, void* data, unsig
         ei::verify::Check("ChunkArchive::Field", true, std::memcmp(scratch, data, size) == 0, "id %d size %u", id, size);
         return;
     }
-    std::int32_t before = Top(self)->size;
+    std::int32_t before = self->Current()->size;
     bool writing = !self->loading_;
     self->Field(id, data, size);
     if (writing)
-        ei::verify::Check("ChunkArchive::Field", Top(self)->size - before,
+        ei::verify::Check("ChunkArchive::Field", self->Current()->size - before,
                           static_cast<std::int32_t>(size + (size * 2 >= 0x100 ? 5 : 2)), "id %d size %u", id, size);
 }
 
@@ -112,13 +103,12 @@ bool(__fastcall* s_enter)(ChunkArchive*, void*, int);
 bool __fastcall EnterVerify(ChunkArchive* self, void*, int id) {
     int depth = Depth(self);
     bool expected = s_enter(self, nullptr, id);
-    Ref pushed = *Top(self);
-    void* after;
-    StackEraseOriginal(&self->stack_, nullptr, &after, self->stack_->prev);
+    Ref pushed = *self->Current();
+    self->PopChunk();
     bool actual = self->EnterChunk(id);
     // Field by field: the three bytes after `id` are never written (the default Ref is built in an
     // uninitialised stack slot of which only the id byte is set), so they differ between calls.
-    const Ref* ours = Top(self);
+    const Ref* ours = self->Current();
     const char* field = expected != actual                 ? "result"
                         : pushed.id != ours->id            ? "id"
                         : pushed.offset != ours->offset    ? "offset"
@@ -152,31 +142,31 @@ void(__fastcall* s_reset)(Ref*);
 void __fastcall RefResetVerify(Ref* self) {
     Ref copy = *self;
     s_reset(&copy);
-    ChunkRefReset(self);
-    ei::verify::Check("ChunkRefReset", true, std::memcmp(&copy, self, sizeof(Ref)) == 0, "");
+    self->Reset();
+    ei::verify::Check("ChunkArchive::Ref::Reset", true, std::memcmp(&copy, self, sizeof(Ref)) == 0, "");
 }
 
 // Whole-archive functions: ours only (they read / write the streams and create objects).
-bool __fastcall ReadStreamChunkVerify(void* in, char* id, CMemoryStream* to) {
+bool __fastcall ReadStreamChunkVerify(CStream* in, char* id, CMemoryStream* to) {
     bool result = ReadStreamChunk(in, id, to);
     ei::verify::Check("ReadStreamChunk", true, !result || to->size_ <= 10000000u, "");
     return result;
 }
-bool __fastcall FindStreamChunkVerify(void* in, int id, CMemoryStream* to, int occurrence) {
+bool __fastcall FindStreamChunkVerify(CStream* in, int id, CMemoryStream* to, int occurrence) {
     bool result = FindStreamChunk(in, id, to, occurrence);
     ei::verify::Check("FindStreamChunk", true, true, "id %d", id);
     return result;
 }
-bool __fastcall WriteStreamChunkVerify(void* out, int id, CMemoryStream* from) {
+bool __fastcall WriteStreamChunkVerify(CStream* out, int id, CMemoryStream* from) {
     bool result = WriteStreamChunk(out, id, from);
     ei::verify::Check("WriteStreamChunk", true, result, "");
     return result;
 }
-void __fastcall OpenVerify(ChunkArchive* self, void*, void* stream, int loading, int version) {
+void __fastcall OpenVerify(ChunkArchive* self, void*, CStream* stream, int loading, int version) {
     self->Open(stream, loading, version);
     ei::verify::Check("ChunkArchive::Open", 1, Depth(self), "loading %d", loading & 0xFF);
 }
-void __fastcall CloseVerify(ChunkArchive* self, void*, void* stream) {
+void __fastcall CloseVerify(ChunkArchive* self, void*, CStream* stream) {
     self->Close(stream);
     ei::verify::Check("ChunkArchive::Close", 0, Depth(self), "");
 }
@@ -195,10 +185,10 @@ void __fastcall CStringVerify(ChunkArchive* self, void*, int id, mfc::CString* s
         ei::verify::Check("ChunkArchive::CStringField", true, std::strcmp(scratch, *s) == 0, "id %d", id);
         return;
     }
-    std::int32_t before = Top(self)->size;
+    std::int32_t before = self->Current()->size;
     std::uint32_t size = static_cast<std::uint32_t>(std::strlen(*s) + 1);
     self->CStringField(id, s);
-    ei::verify::Check("ChunkArchive::CStringField", Grown(size), Top(self)->size - before, "id %d", id);
+    ei::verify::Check("ChunkArchive::CStringField", Grown(size), self->Current()->size - before, "id %d", id);
 }
 
 // 00409470: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1). Loading: the original on a copy of the
@@ -212,10 +202,10 @@ void __fastcall StringVerify(ChunkArchive* self, void*, int id, stlp::string* s)
         ei::verify::Check("ChunkArchive::StringField", true, scratch == *s, "id %d", id);
         return;
     }
-    std::int32_t before = Top(self)->size;
+    std::int32_t before = self->Current()->size;
     std::uint32_t size = static_cast<std::uint32_t>(std::strlen(s->data()) + 1);
     self->StringField(id, s);
-    ei::verify::Check("ChunkArchive::StringField", Grown(size), Top(self)->size - before, "id %d", id);
+    ei::verify::Check("ChunkArchive::StringField", Grown(size), self->Current()->size - before, "id %d", id);
 }
 
 // 00409640 / 0040A440: ours only (they write the archive or the stream); the chunk stack keeps its
@@ -226,25 +216,25 @@ void __fastcall StreamFieldVerify(ChunkArchive* self, void*, int id, CMemoryStre
     int after = Depth(self);
     ei::verify::Check("ChunkArchive::StreamField", true, after == depth || (self->loading_ && after == depth + 1), "id %d", id);
 }
-void __fastcall SaveObjectRefVerify(ChunkArchive* self, void*, int id, void* object) {
-    std::int32_t before = Top(self)->size;
+void __fastcall SaveObjectRefVerify(ChunkArchive* self, void*, int id, CRefObject* object) {
+    std::int32_t before = self->Current()->size;
     self->SaveObjectRef(id, object);
-    ei::verify::Check("ChunkArchive::SaveObjectRef", true, self->loading_ || Top(self)->size - before == 6, "id %d", id);
+    ei::verify::Check("ChunkArchive::SaveObjectRef", true, self->loading_ || self->Current()->size - before == 6, "id %d", id);
 }
 
 // 0040A5A0: SUB ESP,0x18 (3), PUSH EBX (1), PUSH EBP (1). Loading (a pure lookup): side by side.
 // Writing: ours only.
-void*(__fastcall* s_objectRef)(ChunkArchive*, void*, int);
-void* __fastcall ObjectRefVerify(ChunkArchive* self, void*, int id) {
+CRefObject*(__fastcall* s_objectRef)(ChunkArchive*, void*, int);
+CRefObject* __fastcall ObjectRefVerify(ChunkArchive* self, void*, int id) {
     if (self->loading_) {
-        void* expected = s_objectRef(self, nullptr, id);
-        void* actual = self->ObjectRef(id);
+        CRefObject* expected = s_objectRef(self, nullptr, id);
+        CRefObject* actual = self->ObjectRef(id);
         ei::verify::Check("ChunkArchive::ObjectRef", true, expected == actual, "id %d", id);
         return actual;
     }
-    std::int32_t before = Top(self)->size;
-    void* actual = self->ObjectRef(id);
-    ei::verify::Check("ChunkArchive::ObjectRef", 6, Top(self)->size - before, "id %d", id);
+    std::int32_t before = self->Current()->size;
+    CRefObject* actual = self->ObjectRef(id);
+    ei::verify::Check("ChunkArchive::ObjectRef", 6, self->Current()->size - before, "id %d", id);
     return actual;
 }
 

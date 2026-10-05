@@ -57,8 +57,8 @@ static void __fastcall SaveWorldVerify(CWorldServer* self, void*, WorldStream* s
 
     auto* real = reinterpret_cast<CMemoryStream*>(stream);
     alignas(4) std::uint8_t storage[sizeof(CMemoryStream)];
-    auto* scratch = MemoryStreamConstruct(reinterpret_cast<CMemoryStream*>(storage));
-    scratch->unknown_8 = real->unknown_8;   // the save version
+    auto* scratch = reinterpret_cast<CMemoryStream*>(storage)->Construct();
+    scratch->version_ = real->version_;   // the save version
     s_originalSaveWorld(self, nullptr, reinterpret_cast<WorldStream*>(scratch));
     std::memcpy(randomAfterOriginal, random, kRandomSize);
     std::memcpy(random, randomBefore, kRandomSize);
@@ -81,7 +81,7 @@ static void __fastcall SaveWorldVerify(CWorldServer* self, void*, WorldStream* s
     ei::verify::Check("CWorldServer::SaveWorld", true, sameSize && firstDifference == 0xFFFFFFFFu,
                       "original %u bytes, ours %u, first difference at %d", scratch->position_, written,
                       static_cast<int>(firstDifference));
-    MemoryStreamDestruct(scratch);
+    scratch->Destruct();
 }
 EI_VERIFY(0x00597BD0, SaveWorldVerify, 7, s_originalSaveWorld);
 
@@ -198,7 +198,7 @@ ReadAIGraphFn s_originalReadAIGraph;
 static int __fastcall ReadAIGraphVerify(CWorldServer* self, void*, const char* map, const char* mob, void* out) {
     if (!IsMemoryStream(out)) return self->ReadAIGraph(map, mob, out);
     alignas(4) std::uint8_t storage[sizeof(CMemoryStream)];
-    auto* scratch = MemoryStreamConstruct(reinterpret_cast<CMemoryStream*>(storage));
+    auto* scratch = reinterpret_cast<CMemoryStream*>(storage)->Construct();
     auto* real = static_cast<CMemoryStream*>(out);
     int expected = s_originalReadAIGraph(self, nullptr, map, mob, scratch);
     std::uint32_t before = real->size_;
@@ -208,7 +208,7 @@ static int __fastcall ReadAIGraphVerify(CWorldServer* self, void*, const char* m
               (size == 0 || std::memcmp(real->data_ + before, scratch->data_, size) == 0);
     ei::verify::Check("CWorldServer::ReadAIGraph", true, ok, "%s / %s -> %d (original %d), %u bytes (original %u)",
                       map ? map : "", mob ? mob : "", result, expected, size, scratch->size_);
-    MemoryStreamDestruct(scratch);
+    scratch->Destruct();
     return result;
 }
 EI_VERIFY(0x00596140, ReadAIGraphVerify, 7, s_originalReadAIGraph);

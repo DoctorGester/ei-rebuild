@@ -4,6 +4,7 @@
 // databases read at startup (prints.db, acks.db; 006D0000-006E0000). See docs/notes/models.md.
 // Names are provisional.
 
+#include "chunk_archive.h"
 #include "maths.h"
 #include "script.h"   // MfcArray, ScriptStream
 
@@ -94,94 +95,28 @@ static_assert(offsetof(CLinkFigureLoader, archives_) == 0x0C);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------
 
-struct CMemoryStream;
-
-// A chunk of a ChunkArchive being read or written; the archive keeps a stack of them in a list.
-struct ChunkNode {
-    ChunkNode* next;
-    ChunkNode* prev;
-    std::uint8_t unknown_08[0x0C];
-    int occurrence;         // +0x14 which occurrence of a chunk id the next EnterChunk looks for
-};
-
-// The tagged-chunk serialisation archive the databases are stored in (constructed by 0053A7B0,
-// opened by 00409AE0): an index stream of chunk headers and a data stream. Reading and writing go
-// through the same Serialize functions; loading_ selects the direction.
-namespace mfc { class CString; }
-
-class ChunkArchive {
-public:
-    // More fields (chunk_archive.cpp). Writing appends; reading takes the current chunk's
-    // occurrence of the child (missing: empty text, zero key).
-    void CStringField(int id, mfc::CString* s);       // 004093A0 (written with its terminator)
-    void StreamField(int id, CMemoryStream* s);       // 00409640: chunk `id` {1: size, 2: bytes}
-    void SaveObjectRef(int id, void* object);         // 0040A440: object pointer, object kept for Close
-    void* ObjectRef(int id);                          // 0040A5A0: the object a saved key stands for
-    bool EnterChunk(int id);                          // 004098D0
-    void LeaveChunk();                                // 00409980
-    void Field(int id, void* data, unsigned size);    // 004092B0 (missing fields read as zero)
-    void StringField(int id, stlp::string* s);        // 00409470
-    int CountChunks(int id);                          // 00409A60 (in the current chunk)
-
-    // Chunk primitives (chunk_archive.cpp). A chunk's content is a run of children, each an id
-    // byte, a length byte (len << 1) or, when bit 0 is set, a dword (len << 1 | 1), and len bytes.
-    struct Ref {
-        std::uint8_t id;
-        std::uint8_t unknown_01[3];
-        std::int32_t offset;     // of the content in the data buffer (+0x40)
-        std::int32_t size;
-        std::int32_t occurrence;
-    };
-    bool NextChild(const Ref* parent, std::int32_t* cursor, Ref* out);           // 00409070
-    bool AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size);  // 00409110
-    bool FindChild(const Ref* parent, int id, Ref* out, int occurrence);         // 004091C0
-    int CountChildrenOf(const Ref* parent, int id);                              // 00409230
-    void ResizeToCurrent();                                                      // 00409A40
-    // 00409AE0. Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the
-    // object records from `stream`, a CStream) or a save (`version` kept for Close).
-    void Open(void* stream, int loading, int version);
-    // 0040A000. Ends a save: writes the saved objects' records, the version (field 2) and the index
-    // and data chunks to `stream`; or, after a load, drops the loaded objects. Clears everything.
-    void Close(void* stream);
-
-    // Database arrays. Each is a vector of records serialised as chunk `id` holding one chunk 1
-    // per record (`occurrence` selects the record); loading replaces the vector's contents.
-    // The third argument (the callers pass the database file's data) is unused but popped: RET 0xC.
-    void SerializePrints(int id, void* records, void* unused);      // 006D23A0 vector<PrintRecord>
-    void SerializePrints2(int id, void* records, void* unused);     // 006D25F0 vector<PrintRecord2>
-    void SerializeAcks(int id, void* records, void* unused);        // 006DB430 (0x1C4-byte records)
-    void SerializeAcks2(int id, void* records, void* unused);       // 006DB680 (0x5C-byte records)
-    void SerializeAcks3(int id, void* records, void* unused);       // 006DB8D0 (0x38-byte records)
-
-    std::uint8_t streams_[0x50];   // two CMemoryStreams (index, data); the data buffer is at +0x40
-    ChunkNode* stack_;             // +0x50 list sentinel; stack_->prev is the current chunk
-    std::uint32_t unknown_54;
-    bool loading_;                 // +0x58
-};
-static_assert(offsetof(ChunkArchive, stack_) == 0x50);
-static_assert(offsetof(ChunkArchive, loading_) == 0x58);
-
-// A record of prints.db (terrain footprints). vtable 00744264 (one slot, Serialize). 0x28 bytes.
+// A record of prints.db (terrain footprints). vtable 00744264. 0x28 bytes. The records are
+// constructed and destroyed by the game's vector code.
 struct PrintRecord {
-    void* vtable;
+    virtual void Serialize(ChunkArchive* ar);   // 0: 006D41D0
+
     stlp::string name;           // +0x04
     std::uint32_t values2[3];    // +0x10 chunk 2
     std::uint32_t values3[3];    // +0x1C chunk 3
-
-    void Serialize(ChunkArchive* ar);   // 006D41D0
 };
+static_assert(offsetof(PrintRecord, name) == 0x04);
 static_assert(sizeof(PrintRecord) == 0x28);
 
 // The second record type of prints.db. vtable 00744268. 0x34 bytes.
 struct PrintRecord2 {
-    void* vtable;
+    virtual void Serialize(ChunkArchive* ar);   // 0: 006D4270
+
     stlp::string name;           // +0x04
     std::uint32_t values2[3];    // +0x10 chunk 2
     std::uint32_t values3[3];    // +0x1C chunk 3
     std::uint32_t values10[3];   // +0x28 chunk 10
-
-    void Serialize(ChunkArchive* ar);   // 006D4270
 };
+static_assert(offsetof(PrintRecord2, name) == 0x04);
 static_assert(sizeof(PrintRecord2) == 0x34);
 
 // ---- Water level changes (006D4400) ---------------------------------------------------------------

@@ -147,6 +147,16 @@ public:
         Key key;
         Value value;
     };
+    // value_type and iterator as STLport lays them out, for owners that call the game's own
+    // instantiations (insert(pair), find, begin, ++) through their original addresses.
+    struct Pair {
+        Key key;
+        Value value;
+    };
+    struct Iterator {
+        Node* node;
+        const hash_map* table;
+    };
 
     // Construction happens in the owner's constructor via InitBuckets (STLport has no default bucket count).
     hash_map() = default;

@@ -66,7 +66,7 @@ bool IsMemoryStream(const void* s) {
 void CloneStream(CMemoryStream* dst, const CMemoryStream* src) {
     std::memcpy(dst, src, sizeof(CMemoryStream));
     if (!src->data_) return;
-    std::uint32_t bytes = src->unknown_1C > src->size_ ? src->unknown_1C : src->size_;
+    std::uint32_t bytes = src->capacity_ > src->size_ ? src->capacity_ : src->size_;
     if (bytes == 0) bytes = 1;
     dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
     std::memset(dst->data_, 0, bytes);
@@ -445,8 +445,8 @@ void* __fastcall DriverDeletingDestructorVerify(DriverLink* self, void*, unsigne
 
 // An empty inbox as the driver's constructor leaves it.
 bool FreshInbox(const CMemoryStream& s) {
-    return VtableOf(&s) == 0x0073BD90 && s.ok_ == 1 && s.unknown_8 == 2000000000u && s.growBy_ == 0x80 && s.unknown_14 == -1 &&
-           s.data_ == nullptr && s.unknown_1C == 0 && s.position_ == 0 && s.size_ == 0;
+    return VtableOf(&s) == 0x0073BD90 && s.ok_ == 1 && s.version_ == 2000000000u && s.bitMask_ == 0x80 && s.bitsIndex_ == -1 &&
+           s.data_ == nullptr && s.capacity_ == 0 && s.position_ == 0 && s.size_ == 0;
 }
 
 // 00479C10: ours only; afterwards a fresh driver with the same count, flags and +9.

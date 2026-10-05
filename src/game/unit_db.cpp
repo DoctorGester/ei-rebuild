@@ -45,7 +45,7 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
         count = static_cast<int>(strings->end - strings->begin);
     }
     for (int i = 0; i < count; ++i) {
-        ar->stack_->prev->occurrence = i + 1;
+        ar->Current()->occurrence = i + 1;
         ArchiveString(ar, nullptr, 1, &strings->begin[i]);
     }
     ArchiveLeave(ar);

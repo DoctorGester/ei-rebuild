@@ -240,21 +240,21 @@ int GameFlow::SaveGame(const char* slot) {
     // scenario.sav: the party, the input state, the scripts and the globals.
     CMemoryStream scenario;
     std::memset(&scenario, 0, sizeof(scenario));
-    scenario.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&scenario, kMemoryStreamVtable);
     scenario.data_ = nullptr;
-    scenario.unknown_1C = 0;
+    scenario.capacity_ = 0;
     scenario.position_ = 0;
     scenario.size_ = 0;
     scenario.ok_ = 1;
-    scenario.growBy_ = 0x80;
-    scenario.unknown_14 = -1;
-    scenario.unknown_8 = static_cast<std::uint32_t>(SaveVersion());
+    scenario.bitMask_ = 0x80;
+    scenario.bitsIndex_ = -1;
+    scenario.version_ = static_cast<std::uint32_t>(SaveVersion());
     struct ScenarioOwner {   // frees the buffer on the way out (CMemoryStream's inlined destructor)
         CMemoryStream* s;
         ~ScenarioOwner() {
-            s->vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+            ei::SetVtable(s, kMemoryStreamVtable);
             if (s->data_) gamecrt::operator_delete(s->data_);
-            s->vtable_ = reinterpret_cast<void*>(kStreamVtable);
+            ei::SetVtable(s, kStreamVtable);
         }
     } scenarioOwner{&scenario};
     PartySave(kParty, nullptr, &scenario);
@@ -277,15 +277,15 @@ int GameFlow::SaveGame(const char* slot) {
         if (!opened) return 0;
         CMemoryStream mission;
         std::memset(&mission, 0, sizeof(mission));
-        mission.unknown_8 = kStreamLimit;
+        mission.version_ = kStreamLimit;
         mission.ok_ = 1;
-        mission.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        ei::SetVtable(&mission, kMemoryStreamVtable);
         mission.data_ = nullptr;
         mission.Reset();
-        mission.unknown_8 = static_cast<std::uint32_t>(SaveVersion());
+        mission.version_ = static_cast<std::uint32_t>(SaveVersion());
         SaveWorldAt(reinterpret_cast<void*>(0x007AFF60), nullptr, &mission);
         WriteSaveFile(&file.stream, kMagicMission, SaveVersion(), &mission);
-        mission.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        ei::SetVtable(&mission, kMemoryStreamVtable);
         if (mission.data_) gamecrt::operator_delete(mission.data_);
         file.Close();
     }
@@ -385,17 +385,17 @@ int RestoreZone(std::uint8_t* records, std::uint8_t* zoneRecord, const mfc::CStr
     }
     CMemoryStream data;
     std::memset(&data, 0, sizeof(data));
-    data.unknown_8 = kStreamLimit;
+    data.version_ = kStreamLimit;
     data.ok_ = 1;
-    data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&data, kMemoryStreamVtable);
     data.data_ = nullptr;
     data.Reset();
     struct DataOwner {
         CMemoryStream* s;
         ~DataOwner() {
-            s->vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+            ei::SetVtable(s, kMemoryStreamVtable);
             if (s->data_) gamecrt::operator_delete(s->data_);
-            s->vtable_ = reinterpret_cast<void*>(kStreamVtable);
+            ei::SetVtable(s, kStreamVtable);
         }
     } owner{&data};
     if (!ReadSaveFile(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
@@ -611,19 +611,19 @@ int __stdcall StartNetworkZone(const char* zone) {
     if (opened) {
         CMemoryStream data;
         std::memset(&data, 0, sizeof(data));
-        data.unknown_8 = kStreamLimit;
+        data.version_ = kStreamLimit;
         data.ok_ = 1;
-        data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        ei::SetVtable(&data, kMemoryStreamVtable);
         data.data_ = nullptr;
         data.Reset();
         bool loaded = ReadSaveFile(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268),
                                    &file.stream) &&
                       LoadSaveAt(World(), nullptr, &data, nullptr) != 0;
         if (loaded) file.Close();
-        data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        ei::SetVtable(&data, kMemoryStreamVtable);
         if (data.data_) gamecrt::operator_delete(data.data_);
         if (!loaded) {
-            data.vtable_ = reinterpret_cast<void*>(kStreamVtable);
+            ei::SetVtable(&data, kStreamVtable);
             return 0;
         }
     } else {
@@ -726,12 +726,12 @@ int __stdcall LeaveZone(std::uint8_t* records) {
     WorldBeforeSave(World(), nullptr);
     CMemoryStream data;
     std::memset(&data, 0, sizeof(data));
-    data.unknown_8 = kStreamLimit;
+    data.version_ = kStreamLimit;
     data.ok_ = 1;
-    data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&data, kMemoryStreamVtable);
     data.data_ = nullptr;
     data.Reset();
-    data.unknown_8 = static_cast<std::uint32_t>(SaveVersion());
+    data.version_ = static_cast<std::uint32_t>(SaveVersion());
     SaveWorldAt(World(), nullptr, &data);
     WriteSaveFile(&file.stream, kMagicMission, SaveVersion(), &data);
     file.Close();
@@ -748,9 +748,9 @@ int __stdcall LeaveZone(std::uint8_t* records) {
         mfc::CString variable = prefix + zone;
         VariableSetAt(variables, nullptr, variable, now);
     }
-    data.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&data, kMemoryStreamVtable);
     if (data.data_) gamecrt::operator_delete(data.data_);
-    data.vtable_ = reinterpret_cast<void*>(kStreamVtable);
+    ei::SetVtable(&data, kStreamVtable);
     return 1;
 }
 
@@ -1066,16 +1066,16 @@ struct LocalMemoryStream {
     CMemoryStream s;
     LocalMemoryStream() {
         std::memset(&s, 0, sizeof(s));
-        s.unknown_8 = kStreamLimit;
+        s.version_ = kStreamLimit;
         s.ok_ = 1;
-        s.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        ei::SetVtable(&s, kMemoryStreamVtable);
         s.data_ = nullptr;
         MemoryReset(&s, nullptr);
     }
     ~LocalMemoryStream() {
-        s.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+        ei::SetVtable(&s, kMemoryStreamVtable);
         if (s.data_) gamecrt::operator_delete(s.data_);
-        s.vtable_ = reinterpret_cast<void*>(kStreamVtable);
+        ei::SetVtable(&s, kStreamVtable);
     }
     LocalMemoryStream(const LocalMemoryStream&) = delete;
     LocalMemoryStream& operator=(const LocalMemoryStream&) = delete;
@@ -1453,14 +1453,14 @@ int __stdcall LoadMission(void* file) {
     if (!SaveFileReadAt(&mission.s, kMagicMissionFile, *reinterpret_cast<const int*>(0x00790260),
                         *reinterpret_cast<const int*>(0x00790268), file))
         return 0;
-    int version = static_cast<int>(mission.s.unknown_8);
+    int version = static_cast<int>(mission.s.version_);
     if (version < kVersionGlobalsInMission) GlobalsLoad(reinterpret_cast<void*>(0x0079B2A8), nullptr, &mission.s);
-    if (static_cast<int>(mission.s.unknown_8) < kVersionInputInMission) {
+    if (static_cast<int>(mission.s.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         StreamReserveAt(reinterpret_cast<void*>(0x007AFDF8), nullptr, 0);
         InputLoad(reinterpret_cast<void*>(0x007C7D50), nullptr, &mission.s);
         StreamCopyRest(&mission.s, nullptr, reinterpret_cast<void*>(0x007AFDF8));
-        *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.unknown_8;
+        *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.version_;
     }
     return LoadSaveAt(reinterpret_cast<void*>(0x007AFF60), nullptr, &mission.s, nullptr);
 }
@@ -1854,17 +1854,17 @@ int GameFlow::LoadGame(const char* slot) {
     // scenario.sav: the party, then (by version) the input, the scripts and the globals.
     CMemoryStream scenario;
     std::memset(&scenario, 0, sizeof(scenario));
-    scenario.unknown_8 = kStreamLimit;
+    scenario.version_ = kStreamLimit;
     scenario.ok_ = 1;
-    scenario.vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+    ei::SetVtable(&scenario, kMemoryStreamVtable);
     scenario.data_ = nullptr;
     scenario.Reset();
     struct ScenarioOwner {   // the buffer freed on the way out (the inlined destructor)
         CMemoryStream* s;
         ~ScenarioOwner() {
-            s->vtable_ = reinterpret_cast<void*>(kMemoryStreamVtable);
+            ei::SetVtable(s, kMemoryStreamVtable);
             if (s->data_) gamecrt::operator_delete(s->data_);
-            s->vtable_ = reinterpret_cast<void*>(kStreamVtable);
+            ei::SetVtable(s, kStreamVtable);
         }
     } scenarioOwner{&scenario};
     if (!ReadSaveFile(&scenario, kMagicScenario, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
@@ -1873,12 +1873,12 @@ int GameFlow::LoadGame(const char* slot) {
         return 0;
     }
     PartyLoad(kParty, nullptr, &scenario);
-    int version = static_cast<int>(scenario.unknown_8);
+    int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(kScripts, nullptr, 0);
         InputLoad(kInput, nullptr, &scenario);
         StreamLoadScripts(&scenario, nullptr, kScripts);
-        version = static_cast<int>(scenario.unknown_8);
+        version = static_cast<int>(scenario.version_);
         LoadedScriptsVersion() = version;
     }
     if (version >= kScenarioGlobalsVersion) GlobalsLoad(kGlobals, nullptr, &scenario);

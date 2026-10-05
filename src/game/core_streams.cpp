@@ -1,6 +1,6 @@
 // Stream and reference-counted base classes: constructor and destructor bodies, the stream's string
-// read, the memory stream's Clear, the aligned pointer arrays and the coder state constructor. See
-// core_streams.h.
+// read, the memory stream's Clear and Reset, the aligned pointer arrays and the coder state
+// constructor. See core_streams.h.
 #include "core_streams.h"
 
 #include "ei/hook.h"
@@ -22,6 +22,13 @@ void* DeleteIf(void* self, unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }
+
+// operator+(const CString&, char) (AFXAPI, 006FD56E).
+__declspec(naked) mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
+
+// The hook of CMemoryStream's slot 6 (a virtual: registered through this shim).
+void __fastcall MemoryStreamClearHook(CMemoryStream* self) { self->CMemoryStream::Clear(); }
+
 } // namespace
 
 // --- CRefObject root / reference-counted value -------------------------------------------------
@@ -53,28 +60,23 @@ EI_REPLACE(0x00412700, RefValueDeletingDestructor);
 
 // --- CStream -----------------------------------------------------------------------------------
 
-void* __fastcall StreamConstructBase(void* self) {
-    auto* stream = static_cast<CStream*>(self);
-    SetVtable(stream, kStreamVtable);
-    stream->version_ = kDefaultVersion;
-    stream->ok_ = 1;
-    return self;
+CStream* CStream::ConstructBase() {
+    SetVtable(this, kVtableAddress);
+    version_ = kDefaultVersion;
+    ok_ = 1;
+    return this;
 }
-EI_REPLACE(0x0047A200, StreamConstructBase);
+EI_REPLACE_METHOD(0x0047A200, CStream::ConstructBase);
 
-void __fastcall StreamDestructBase(void* self) { SetVtable(self, kStreamVtable); }
-EI_REPLACE(0x004174E0, StreamDestructBase);
+void CStream::DestructBase() { SetVtable(this, kVtableAddress); }
+EI_REPLACE_METHOD(0x004174E0, CStream::DestructBase);
 
-void* __fastcall StreamDeletingDestructor(void* self, void*, unsigned flags) {
-    SetVtable(self, kStreamVtable);
-    return DeleteIf(self, flags);
+CStream* CStream::DeletingDestruct(unsigned flags) {
+    SetVtable(this, kVtableAddress);
+    DeleteIf(this, flags);
+    return this;
 }
-EI_REPLACE(0x00417400, StreamDeletingDestructor);
-
-namespace {
-// operator+(const CString&, char) (AFXAPI, 006FD56E).
-__declspec(naked) mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
-} // namespace
+EI_REPLACE_METHOD(0x00417400, CStream::DeletingDestruct);
 
 mfc::CString* CStream::ReadString(void* out) {
     mfc::CString text;
@@ -86,51 +88,62 @@ EI_REPLACE_METHOD(0x00461190, CStream::ReadString);
 
 // --- CMemoryStream -----------------------------------------------------------------------------
 
-// Fields +4, +6, +7 and +0xC are left as they are.
-CMemoryStream* __fastcall MemoryStreamConstruct(CMemoryStream* self) {
-    self->unknown_8 = kDefaultVersion;
-    SetVtable(self, kMemoryStreamVtable);
-    self->data_ = nullptr;
-    self->unknown_1C = 0;
-    self->position_ = 0;
-    self->size_ = 0;
-    self->ok_ = 1;
-    self->growBy_ = 0x80;
-    self->unknown_14 = -1;
-    return self;
-}
-EI_REPLACE(0x0041DD70, MemoryStreamConstruct);
+__declspec(naked) void CMemoryStream::Resize(std::uint32_t) EI_ORIGINAL(0x004A54D0)
+__declspec(naked) void CMemoryStream::SetSize(std::uint32_t) EI_ORIGINAL(0x004A5570)
 
-// The buffer pointer is left dangling (the object is going away).
-void __fastcall MemoryStreamDestruct(CMemoryStream* self) {
-    SetVtable(self, kMemoryStreamVtable);
-    if (self->data_) gamecrt::operator_delete(self->data_);
-    SetVtable(self, kStreamVtable);
+CMemoryStream* CMemoryStream::Construct() {
+    version_ = kDefaultVersion;
+    SetVtable(this, kVtableAddress);
+    data_ = nullptr;
+    capacity_ = 0;
+    position_ = 0;
+    size_ = 0;
+    ok_ = 1;
+    bitMask_ = 0x80;
+    bitsIndex_ = -1;
+    return this;
 }
-EI_REPLACE(0x004173D0, MemoryStreamDestruct);
-EI_REPLACE(0x004790A0, MemoryStreamDestruct);   // byte-identical copy (vtable 0073C960)
+EI_REPLACE_METHOD(0x0041DD70, CMemoryStream::Construct);
+
+void CMemoryStream::Destruct() {
+    SetVtable(this, kVtableAddress);
+    if (data_) gamecrt::operator_delete(data_);
+    SetVtable(this, CStream::kVtableAddress);
+}
+EI_REPLACE_METHOD(0x004173D0, CMemoryStream::Destruct);
+EI_REPLACE_METHOD(0x004790A0, CMemoryStream::Destruct);   // byte-identical copy (vtable 0073C960)
 
 // The originals call their own copy of the destructor body out of line.
-void* __fastcall MemoryStreamDeletingDestructor(CMemoryStream* self, void*, unsigned flags) {
-    MemoryStreamDestruct(self);
-    return DeleteIf(self, flags);
+CMemoryStream* CMemoryStream::DeletingDestruct(unsigned flags) {
+    Destruct();
+    DeleteIf(this, flags);
+    return this;
 }
-EI_REPLACE(0x004173B0, MemoryStreamDeletingDestructor);
-EI_REPLACE(0x004790D0, MemoryStreamDeletingDestructor);
+EI_REPLACE_METHOD(0x004173B0, CMemoryStream::DeletingDestruct);
+EI_REPLACE_METHOD(0x004790D0, CMemoryStream::DeletingDestruct);
 
-// Slot 6: frees the buffer and empties the stream (CMemoryStream::Reset at 00468C20 is the same
-// without the free).
-void __fastcall MemoryStreamClear(CMemoryStream* self) {
-    if (self->data_) gamecrt::operator_delete(self->data_);
-    self->data_ = nullptr;
-    self->unknown_1C = 0;
-    self->position_ = 0;
-    self->size_ = 0;
-    self->ok_ = 1;
-    self->growBy_ = 0x80;
-    self->unknown_14 = -1;
+void CMemoryStream::Clear() {
+    if (data_) gamecrt::operator_delete(data_);
+    data_ = nullptr;
+    capacity_ = 0;
+    position_ = 0;
+    size_ = 0;
+    ok_ = 1;
+    bitMask_ = 0x80;
+    bitsIndex_ = -1;
 }
-EI_REPLACE(0x00417350, MemoryStreamClear);
+EI_REPLACE(0x00417350, MemoryStreamClearHook);
+
+void CMemoryStream::Reset() {
+    ok_ = 1;
+    data_ = nullptr;
+    capacity_ = 0;
+    position_ = 0;
+    size_ = 0;
+    bitMask_ = 0x80;
+    bitsIndex_ = -1;
+}
+EI_REPLACE_METHOD(0x00468C20, CMemoryStream::Reset);
 
 // --- Aligned pointer arrays --------------------------------------------------------------------
 

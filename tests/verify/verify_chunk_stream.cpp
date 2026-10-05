@@ -16,6 +16,9 @@
 #include "verify.h"
 
 #include "../../src/game/chunk_stream.h"
+#include "../../src/game/console.h"   // CStringArray
+
+using console::CStringArray;
 
 #include "ei/vcall.h"
 
@@ -148,10 +151,10 @@ constexpr int kMaxDepth = 32;
 
 std::uintptr_t VtableOf(const Chunk* c) {
     std::uintptr_t v;
-    std::memcpy(&v, &c->vtable_, sizeof(v));
+    std::memcpy(&v, c, sizeof(v));
     return v;
 }
-void SetVtable(Chunk* c, const void* vtable) { std::memcpy(&c->vtable_, &vtable, sizeof(vtable)); }
+void SetVtable(Chunk* c, const void* vtable) { std::memcpy(c, &vtable, sizeof(vtable)); }
 
 // The chain from a chunk up to its root.
 // With `toFileOwner` the chain ends at the first chunk whose slot 1 is not the base one (0042BF40):
@@ -209,7 +212,7 @@ bool g_busy;   // file checks do not nest (ForEachChild runs ours only)
 template <typename Ours, typename Original>
 bool RunRecorded(const char* name, Chunk* self, Ours ours, Original original) {
     Chain chain(self, true);
-    void* file = chain.depth && !g_busy ? ei::VCall<void*>(chain.Root(), 1) : nullptr;
+    void* file = chain.depth && !g_busy ? chain.Root()->File() : nullptr;
     if (!file) {
         ours();
         return false;
@@ -285,12 +288,13 @@ void __fastcall AdvanceVerify(Chunk* self, void*, int bytes) {
     delete copy;
 }
 
-// 0042BF40: MOV ECX,[ECX+0x14] (3), TEST ECX,ECX (2). Pure.
+// 0042BF40 (slot 1): MOV ECX,[ECX+0x14] (3), TEST ECX,ECX (2). Pure. Ours is called qualified (a
+// virtual call would come back here).
 void*(__fastcall* s_file)(Chunk*);
 void* __fastcall FileVerify(Chunk* self) {
     void* expected = s_file(self);
-    void* actual = ChunkFile(self);
-    ei::verify::Check("ChunkFile", expected, actual, "");
+    void* actual = self->Chunk::File();
+    ei::verify::Check("Chunk::File", expected, actual, "");
     return actual;
 }
 
@@ -484,48 +488,45 @@ void __fastcall WriteStringVerify(Chunk* self, void*, std::uint32_t id, mfc::CSt
                 [&](Chunk* c) { s_writeString(c, nullptr, id, text); });
 }
 
-// CStringArray (MFC): vtable, data, size, capacity, grow-by. SetSize(0, -1) frees a scratch one.
-struct StringArray {
-    void* vtable;
-    mfc::CString* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-__declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
-
-// 0042CA20: MOV EAX,FS:[0] (6). The original fills an empty scratch array; the elements must match.
-void(__fastcall* s_readStringArray)(Chunk*, void*, StringArray*);
-void __fastcall ReadStringArrayVerify(Chunk* self, void*, StringArray* array) {
-    StringArray scratch{array->vtable, nullptr, 0, 0, array->growBy};
+// 0042CA20: MOV EAX,FS:[0] (6). The original fills an empty scratch array (same vtable and grow-by,
+// freed again with SetSize(0, -1)); the elements must match.
+void(__fastcall* s_readStringArray)(Chunk*, void*, CStringArray*);
+void __fastcall ReadStringArrayVerify(Chunk* self, void*, CStringArray* array) {
+    alignas(CStringArray) std::uint8_t raw[sizeof(CStringArray)];
+    auto* scratch = reinterpret_cast<CStringArray*>(raw);
+    scratch->vtable_ = array->vtable_;
+    scratch->data_ = nullptr;
+    scratch->size_ = 0;
+    scratch->maxSize_ = 0;
+    scratch->growBy_ = array->growBy_;
     if (RunRecorded("Chunk::ReadStringArray", self, [&] { self->ReadStringArray(array); },
-                    [&](Chunk* c) { s_readStringArray(c, nullptr, &scratch); })) {
-        bool same = scratch.size == array->size;
-        for (int i = 0; same && i < array->size; ++i)
-            same = scratch.data[i].GetLength() == array->data[i].GetLength() &&
-                   std::memcmp(static_cast<const char*>(scratch.data[i]), static_cast<const char*>(array->data[i]),
-                               array->data[i].GetLength()) == 0;
-        ei::verify::Check("Chunk::ReadStringArray elements", true, same, "%d / %d", scratch.size, array->size);
-        StringArraySetSize(&scratch, nullptr, 0, -1);
+                    [&](Chunk* c) { s_readStringArray(c, nullptr, scratch); })) {
+        bool same = scratch->GetSize() == array->GetSize();
+        for (int i = 0; same && i < array->GetSize(); ++i)
+            same = (*scratch)[i].GetLength() == (*array)[i].GetLength() &&
+                   std::memcmp(static_cast<const char*>((*scratch)[i]), static_cast<const char*>((*array)[i]),
+                               (*array)[i].GetLength()) == 0;
+        ei::verify::Check("Chunk::ReadStringArray elements", true, same, "%d / %d", scratch->GetSize(), array->GetSize());
+        scratch->SetSize(0, -1);
     }
 }
 
 // 0042CB80: SUB ESP,0xC (3), PUSH EBX (1), PUSH EBP (1). Both write the same array.
-void(__fastcall* s_writeStringArray)(Chunk*, void*, std::uint32_t, StringArray*);
-void __fastcall WriteStringArrayVerify(Chunk* self, void*, std::uint32_t id, StringArray* array) {
+void(__fastcall* s_writeStringArray)(Chunk*, void*, std::uint32_t, CStringArray*);
+void __fastcall WriteStringArrayVerify(Chunk* self, void*, std::uint32_t id, CStringArray* array) {
     RunRecorded("Chunk::WriteStringArray", self, [&] { self->WriteStringArray(id, array); },
                 [&](Chunk* c) { s_writeStringArray(c, nullptr, id, array); });
 }
 
 // The root: ours only (opening a file and destroying it cannot run twice).
-int __fastcall RootOpenVerify(Chunk* self, void*, mfc::CString path, unsigned flags) {
-    int result = ChunkRootOpen(self, nullptr, path, flags);
-    ei::verify::Check("ChunkRootOpen", true, true, "");
+int __fastcall RootOpenVerify(RootChunk* self, void*, mfc::CString path, unsigned flags) {
+    int result = self->Open(path, flags);
+    ei::verify::Check("RootChunk::Open", true, true, "");
     return result;
 }
-void __fastcall RootDestructVerify(Chunk* self) {
-    ChunkRootDestruct(self);
-    ei::verify::Check("ChunkRootDestruct", kChunkVtable, VtableOf(self), "");
+void __fastcall RootDestructVerify(RootChunk* self) {
+    self->Destruct();
+    ei::verify::Check("RootChunk::Destruct", Chunk::kVtableAddress, VtableOf(self), "");
 }
 
 } // namespace

@@ -134,17 +134,6 @@ const char* __fastcall FakeFigureNameVerify(const CEngineObject* figure) {
     return expected;
 }
 
-// --- CMemoryStream ------------------------------------------------------------------------------
-
-// 00468C20: XOR EAX,EAX (2), MOV byte [ECX+5],1 (4).
-void(__fastcall* s_streamReset)(CMemoryStream*);
-void __fastcall StreamResetVerify(CMemoryStream* self) {
-    Scratch<sizeof(CMemoryStream)> expected(self);
-    s_streamReset(expected.as<CMemoryStream>());
-    self->Reset();
-    ei::verify::Check("CMemoryStream::Reset", true, expected.Same(self), "");
-}
-
 // --- Vector helpers -----------------------------------------------------------------------------
 // Ours runs first into a scratch output (an output aliasing an input is then read unchanged by
 // both), the original on the real output.
@@ -294,7 +283,6 @@ EI_VERIFY(0x00446890, UnitFlag278Verify, 6, s_unitFlag278);
 EI_VERIFY(0x004468A0, UnitValue328Verify, 6, s_unitValue328);
 EI_VERIFY(0x00453440, FigureNameVerify, 6, s_figureName);
 EI_VERIFY(0x004547C0, FakeFigureNameVerify, 6, s_fakeFigureName);
-EI_VERIFY(0x00468C20, StreamResetVerify, 6, s_streamReset);
 EI_VERIFY(0x004489D0, CrossVerify, 7, s_cross);
 EI_VERIFY(0x0044A230, SubtractVerify, 5, s_subtract);
 EI_VERIFY(0x0044CC10, Subtract2Verify, 5, s_subtract2);
