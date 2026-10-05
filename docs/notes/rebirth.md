@@ -82,26 +82,20 @@ the CSV. *Disabled here* = addon logs it as disabled in this install.
 
 - **AllowScriptArgsInLoops**: the recursive call of `CScript::LoadCommands` for a For / ForIf body passes the enclosing locals instead of 0.
 - **AllowScriptsInMainMenu**: starting the main menu zone (in 0057C460) also sets CWorldServer+0x160 so Tick runs the first command queue.
-- **AddNewScriptCommands** (25 sites): the command table (0078BCA0, 0x12C commands) is copied and extended with 69 commands (GiveUnitWeapon,
-  Str*, Rand*, Random, NearestUnit, GiveExp, ResetTarget, GameOver, GetDexterity, ShowAllUnits, PauseGame, SetWeather, AddMobEx,
-  IsFileExists, ConsoleString, StartCameraSave ...). A name already in the table keeps its id and gets the record's signature (Add, Mul,
-  Random, IsAlive, IsDead, ConsoleString, ResetTarget: ids 73, 75, 95, 99, 100, 126, 232), a new name gets id 300 + its index; the 15
-  references to 0078BCA0 point at the new table. Context hooks look the id up before the game's switch in CalcFloat (004B425A), CalcObject
-  (004B572F), CalcGroup (004B5BAF), `ScriptRun::Execute` (004B684E) and CalcString (004B56AD, the game's dead string evaluator, which the
-  patched CalcParameters calls for string arguments). `LoadFunction` (004D02CC) handles the signature letters `?` (optional rest) and `+`
-  (repeat the previous type); `ClassifyToken` (004CF6F0) rejects a keyword match starting with a letter when the text goes on with a
-  letter, digit, `_` or `#` (so "Orc1" is an identifier); `ScriptError` (004CF4A2) copies the error to addon.log. Kept from addon:
-  `DistancePointPoint`'s signature has two floats but it reads four; `Random` with one argument declines (the game's runs); `And` / `Or`
-  truncate; `Max` / `Min` let NaN through; `FloatToStr` cuts trailing zeros without looking at index 0 ("100" with 0 decimals gives "1");
-  `StrMid` with a negative count leaves the result untouched; `StrLower` / `StrUpper` use the user's code page; `Say` only talks in a
-  network game; `GSListPlayerVars` and `GiveExp` do not check the player; the stat override of GiveUnitWeapon / Armor is refused for
-  text-key ids; `ShowAllUnits(0)` / `PauseGame(0)` pass 1. Not exact: `AddMobEx` pushes its byte flag as a dword with leftover upper
-  bytes; `IsFileExists` looks in addon's mod folder (here the starter's "AddonPath", read once); sin, cos, pow are the modern CRT's.
-- **PersistentGlobalVars**: `gvar.*` variables survive where the game empties a variable table, all in multiplayer paths (the party outside
-  a game 0057EB10, the client's update 005800C0, the saved parties' list 00662FB0). addon copies every `gvar.` entry into an MSVC 2010
-  `std::unordered_map<std::string, float>` (FNV-1 over every (length / 10 + 1)-th character, 8 buckets, a load factor above 1 multiplies
-  them by 8 and reinserts in list order), clears the table (00461540) and sets the entries again (00460BC0) in that list's order, which
-  decides their order in the game's hash chains (reproduced in `persistent_globals.cpp`).
+- **AddNewScriptCommands** (25 sites; install, hooks and handlers are documented in `script_addon.h` / `script_addon.cpp`): the command table
+  (0078BCA0, 0x12C commands) is copied and extended with 69 commands (GiveUnitWeapon, Str*, Rand*, Random, NearestUnit, GiveExp, ResetTarget, GameOver, GetDexterity,
+  ShowAllUnits, PauseGame, SetWeather, AddMobEx, IsFileExists, ConsoleString, StartCameraSave ...), seven replacing a game command (ids 73, 75, 95, 99, 100, 126, 232), the
+  parser gets the signature letters `?` (optional rest) and `+` (repeat the previous type) and a stricter keyword match ("Orc1" is an identifier), and the evaluators
+  look the id up before the game's switch (CalcFloat, CalcObject, CalcGroup, `ScriptRun::Execute`, and CalcString, the game's dead string evaluator, which the patched
+  CalcParameters now calls for string arguments). Kept from addon: `DistancePointPoint`'s signature has two floats but it reads four; `Random` with one argument
+  declines (the game's runs); `And` / `Or` truncate; `Max` / `Min` let NaN through; `FloatToStr` cuts trailing zeros without looking at index 0 ("100" with 0 decimals gives
+  "1"); `StrMid` with a negative count leaves the result untouched; `StrLower` / `StrUpper` use the user's code page; `Say` only talks in a network game; `GSListPlayerVars` and
+  `GiveExp` do not check the player; the stat override of GiveUnitWeapon / Armor is refused for text-key ids; `ShowAllUnits(0)` / `PauseGame(0)` pass 1. Not exact:
+  `AddMobEx` pushes its byte flag as a dword with leftover upper bytes; `IsFileExists` looks in addon's mod folder (here the starter's "AddonPath", read once); sin, cos,
+  pow are the modern CRT's.
+- **PersistentGlobalVars**: `gvar.*` variables survive where the game empties a variable table, all in multiplayer paths (the party outside a game 0057EB10, the client's
+  update 005800C0, the saved parties' list 00662FB0). addon keeps them in an MSVC 2010 `std::unordered_map<std::string, float>` and sets them again in that container's
+  order, which decides their order in the game's hash chains (reproduced in `persistent_globals.cpp`).
 - **NewStringEvents** (005F8070): "gameover" plays buttons\gameover.wav and shows a game over window with the event's title and text.
 - **AddNewConsoleCommands**: each console execution (005DC620, hook at 005DD565) registers, after the cheat word, help extensions, addon,
   execs (loads a script file into 007C27D4 and runs it), listgvar, drawall (0079BE6C = argument == 0) and nogui 0|1|2 (GUI and cursor
@@ -169,18 +163,12 @@ lines) and listed in `harness_report.txt`. Returning ST0 results as `double` sta
 
 ### The flags
 
-`include/ei/rebirth.h` declares `ei::rebirth::Patch`, one enumerator per patch named exactly as addon.log names it (52) plus one per
-EI_Plugin feature (`EiPluginInit`, `EiPluginNPlayers`, ...), from `include/ei/rebirth_patches.inc`. Rewritten code tests
-`ei::rebirth::Enabled(Patch::FixRepairPrice)` and runs the patched behaviour when it is on. Every flag is off by default (the original
-1.06); with a flag off the code behaves exactly as the original, bugs included. They are set once, before any rewritten code runs
-(`ei::rebirth::LoadSettings`, `src/lib/rebirth.cpp`, called by the hook installer at WinMain):
-1. `ei_rebirth.ini` next to ei_hook.dll (the standalone exe will read it next to itself): `[Rebirth] Default=0|1`, `<PatchName>=0|1`,
-   `FollowAddon=0|1`. 2. The `EI_REBIRTH` environment variable (`ei_launch --rebirth <spec>`, `harness.cmd ... --rebirth`): `all`, `none`, or
-   names separated by commas, each optionally `=0` / `=1`. 3. A harness scenario's `rebirthflags <spec>` line.
-4. In a Rebirth launch with `FollowAddon=1` (the default) every flag is then set to whether addon.dll applied that patch (any of its sites
-   differs from game.exe on disk at WinMain; import slots count only when they point into addon.dll) or EI_Plugin.asi will apply that
-   feature. The log lists "Rebirth: addon.dll applied: ..." and "Rebirth flags on: ...".
-The flags are plain data in `src/lib`; only the detection (`src/hook/rebirth_hook.cpp`) belongs to the hook DLL.
+`include/ei/rebirth.h` (header comment) documents the flags: one `ei::rebirth::Patch` enumerator per patch named as addon.log names it (52) plus one per EI_Plugin
+feature, `ei::rebirth::Enabled(Patch::X)` in rewritten code, all off by default (with a flag off the code behaves exactly as the original, bugs included). Sources, in
+order: `ei_rebirth.ini` next to ei_hook.dll, the `EI_REBIRTH` environment variable (`ei_launch --rebirth <spec>`, `harness.cmd ... --rebirth`), a scenario's `rebirthflags`
+line; in a Rebirth launch with `FollowAddon=1` (the default) every flag then follows what addon.dll applied (any of its sites differs from game.exe on disk at WinMain;
+import slots count only when they point into addon.dll) or EI_Plugin.asi will apply. The detection (`src/hook/rebirth_hook.cpp`) belongs to the hook DLL, the flags
+(`src/lib/rebirth.cpp`) are plain data the standalone exe reuses.
 
 ### Installing and verifying flagged rewrites
 
