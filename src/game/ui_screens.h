@@ -31,6 +31,8 @@ struct UiInput {
     void BaseLButtonUp(int flags, int x, int y);     // 006011F0
     void BaseMouseMove(int flags, int x, int y);     // 006012D0
     void BaseKeyDown(int key, int repeat, int flags);   // 00601820
+    void BaseKeyUp(int key, int repeat, int flags);     // 006019A0
+    int BaseWheel(int flags, int delta, int x, int y);  // 00601730 (RET 0x10; returns 1)
 };
 
 // The window an input sub-object belongs to, and back.

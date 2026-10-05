@@ -84,6 +84,8 @@ __declspec(naked) void UiInput::BaseLButtonDown(int, int, int) EI_ORIGINAL(0x006
 __declspec(naked) void UiInput::BaseLButtonUp(int, int, int) EI_ORIGINAL(0x006011F0)
 __declspec(naked) void UiInput::BaseMouseMove(int, int, int) EI_ORIGINAL(0x006012D0)
 __declspec(naked) void UiInput::BaseKeyDown(int, int, int) EI_ORIGINAL(0x00601820)
+__declspec(naked) void UiInput::BaseKeyUp(int, int, int) EI_ORIGINAL(0x006019A0)
+__declspec(naked) int UiInput::BaseWheel(int, int, int, int) EI_ORIGINAL(0x00601730)
 
 __declspec(naked) void UiItemArray::SetSize(int, int) EI_ORIGINAL(0x0062A390)
 

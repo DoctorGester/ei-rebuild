@@ -33,12 +33,15 @@ wait 300
 clickregion 1
 wait 1500
 
-# A game: a right click on the battle screen, then keys and the wheel on the escape menu.
+# A game: a right click and a double click on the battle screen, then keys and the wheel on the escape menu.
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 rclick 400 300
+wait 500
+# A double click on the view: the battle screen's own handler (00638AD0) starts a press there.
+dblclick 400 300
 wait 500
 key esc
 wait 1000

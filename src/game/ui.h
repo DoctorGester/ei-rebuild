@@ -605,6 +605,10 @@ static_assert(offsetof(CUiWindow, models_) == 0x138);
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
 inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
 
+// The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
+// (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
+inline const signed char* KeyActions() { return reinterpret_cast<const signed char*>(0x0079BF70); }
+
 class CUiRootWindow : public CUiWindow {
 public:
     std::uint8_t unknown_148[4];

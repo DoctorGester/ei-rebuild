@@ -375,7 +375,7 @@ void CBattleScreenSetup::Create() {
     reinterpret_cast<PartyArray*>(partyArray_)->SetSize(0, -1);
     unknown_1C0 = false;
     unknown_1C1 = false;
-    std::memset(unknown_18D, 0, 6);   // +0x18D dword and +0x191 word
+    std::memset(orderKeys_, 0, 6);   // +0x18D dword and +0x191 word
     unknown_1FC = 0;
 
     // The "pers <name>" texts: one line per person, by the person's text key.

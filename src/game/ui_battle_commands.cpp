@@ -202,7 +202,7 @@ void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
     auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
     int kind = 0;
-    while (kind < 6 && unknown_18D[kind] == 0) ++kind;
+    while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
     OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size_; ++i) {
