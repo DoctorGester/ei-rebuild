@@ -33,7 +33,6 @@ __declspec(naked) int __cdecl Mbscmp(const char*, const char*) EI_ORIGINAL(0x006
 
 __declspec(naked) StringOps* StringOps::InitN(const char*, int) EI_ORIGINAL(0x006FD4DE)
 __declspec(naked) mfc::CString StringOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
-__declspec(naked) mfc::CString StringOps::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString StringOps::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) int StringOps::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
 __declspec(naked) char* StringOps::LockBuffer() EI_ORIGINAL(0x00700E6A)

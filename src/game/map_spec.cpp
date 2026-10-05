@@ -9,6 +9,8 @@
 
 #include <cstring>
 #include <new>
+#include "originals_ai.h"
+#include "originals_library.h"
 
 namespace mapspec {
 
@@ -31,7 +33,6 @@ constexpr int kFileRead = 13;   // CFile
 constexpr int kFileWrite = 14;
 
 // MFC CStringArray (library).
-__declspec(naked) void __fastcall StringArrayConstruct(StringArray*) EI_ORIGINAL(0x006FE925)
 __declspec(naked) void __fastcall StringArrayDestruct(StringArray*) EI_ORIGINAL(0x006FE958)
 __declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) int __fastcall StringArrayAppend(StringArray*, void*, const StringArray*) EI_ORIGINAL(0x006FEB61)
@@ -47,8 +48,6 @@ __declspec(naked) void __fastcall WorldRemoveObject(void* /*world*/, void*, int 
 __declspec(naked) void __fastcall WorldMakeObject(void* /*world*/, void*, Spec* /*spec*/) EI_ORIGINAL(0x005927C0)
 __declspec(naked) void __fastcall SelectionLock(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall SelectionUnlock(void*) EI_ORIGINAL(0x005B8B80)
-__declspec(naked) void __fastcall ListsDetach(void*, void*, void* /*object*/) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall ListsAttach(void*, void*, void* /*object*/) EI_ORIGINAL(0x005C0DF0)
 __declspec(naked) void __fastcall ObjectSetScale(void* /*object*/, void*, const float* /*scale*/) EI_ORIGINAL(0x00517700)
 __declspec(naked) void __fastcall ObjectRefresh(void* /*object*/, void*, int /*what*/) EI_ORIGINAL(0x0050E9F0)
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
@@ -328,7 +327,7 @@ void __fastcall ObjectSpecApply(ObjectSpec* self) {
         return;
     }
     SelectionLock(Selection());
-    ListsDetach(Lists(), nullptr, self->base.object);
+    SectorMapRemove(AsSectorMap(Lists()), nullptr, AsEngineObject(self->base.object));
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x1C, &self->base.position, 12);
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x34, &self->base.rotation, 16);
     ObjectSetScale(self->base.object, nullptr, self->scale);
@@ -339,7 +338,7 @@ void __fastcall ObjectSpecApply(ObjectSpec* self) {
     else flags &= ~8u;
     ObjectRefresh(self->base.object, nullptr, 2);
     ObjectRefresh(self->base.object, nullptr, 1);
-    ListsAttach(Lists(), nullptr, self->base.object);
+    SectorMapAdd(AsSectorMap(Lists()), nullptr, AsEngineObject(self->base.object));
     SelectionUnlock(Selection());
 }
 EI_REPLACE(0x0046AFB0, ObjectSpecApply);

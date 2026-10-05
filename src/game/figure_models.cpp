@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 
 namespace {
 
@@ -34,8 +35,7 @@ __declspec(naked) void __fastcall MapFind(void*, void*, Iterator*, const RawStri
 __declspec(naked) char* __fastcall MapIndex(void*, void*, const RawString*) EI_ORIGINAL(0x004FBBD0)
 // STLport string copy constructor (RET 4) and two destructor instantiations.
 __declspec(naked) void __fastcall StringCopy(RawString*, void*, const RawString*) EI_ORIGINAL(0x004A8930)
-__declspec(naked) void __fastcall StringDestroyA(RawString*) EI_ORIGINAL(0x0040C770)
-__declspec(naked) void __fastcall StringDestroyB(RawString*) EI_ORIGINAL(0x0040C720)
+__declspec(naked) void __fastcall StringDestroyA(void*) EI_ORIGINAL(0x0040C770)
 // 005A9A50: the model's constructor; returns this.
 __declspec(naked) void* __fastcall ConstructModel(void*) EI_ORIGINAL(0x005A9A50)
 
@@ -69,7 +69,7 @@ void* OpenPart(void* manager, const RawString* name, std::uintptr_t suffix) {
     return ei::VCall<void*>(manager, kSlotOpenResource, static_cast<const char*>(path), 0);
 }
 
-void* ModelSlot(void* map, const RawString* name, void (__fastcall* destroy)(RawString*)) {
+void* ModelSlot(void* map, const RawString* name, void (__fastcall* destroy)(void*)) {
     RawString key;
     StringCopy(&key, nullptr, name);
     char* pair = MapIndex(map, nullptr, &key);
@@ -94,7 +94,7 @@ void* __fastcall FindFigureModel(char* manager, void*, const void* nameIn) {
     void* model = gamecrt::operator_new(0x20);
     if (model) model = ConstructModel(model);
     *static_cast<void**>(ModelSlot(map, name, &StringDestroyA)) = model;
-    void** parts = *static_cast<void***>(ModelSlot(map, name, &StringDestroyB));
+    void** parts = *static_cast<void***>(ModelSlot(map, name, &StlStringDestroy));
     ei::VCall<void>(parts[0], kSlotLoad, mesh);
     if (bones) ei::VCall<void>(parts[1], kSlotLoad, bones);
     if (animation) ei::VCall<void>(parts[2], kSlotLoad, animation);

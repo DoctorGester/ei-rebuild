@@ -9,6 +9,8 @@
 #include <cstdint>
 
 class CAIMap;
+class CEngineObject;
+class CSectorMap;
 class CUnit;
 struct AIPath;
 struct PathCellList;
@@ -22,6 +24,13 @@ __declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, i
     EI_ORIGINAL(0x005B9C90)
 __declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/, float /*minDistance*/)
     EI_ORIGINAL(0x005BB350)
+// 005C0DF0 / 005C1010 (rewritten as CSectorMap::Add / Remove): put an object into / take it out of the
+// sector grid cell of its position; AL = whether it was done.
+// The sector map of a world / AI map held as raw memory.
+inline CSectorMap* AsSectorMap(void* map) { return static_cast<CSectorMap*>(map); }
+inline CEngineObject* AsEngineObject(const void* object) { return static_cast<CEngineObject*>(const_cast<void*>(object)); }
+__declspec(naked) inline bool __fastcall SectorMapAdd(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
+__declspec(naked) inline bool __fastcall SectorMapRemove(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
 __declspec(naked) inline int __fastcall SearchCost(void*, void*, int, int) EI_ORIGINAL(0x005C3090)
 __declspec(naked) inline void __fastcall SearchFinish(void*, void*) EI_ORIGINAL(0x005C30E0)
 __declspec(naked) inline void __fastcall ListAppend(PathCellList*, void*, PathCellList*) EI_ORIGINAL(0x005C5DA0)

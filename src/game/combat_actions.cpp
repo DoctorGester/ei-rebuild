@@ -17,6 +17,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
 
@@ -220,8 +221,6 @@ __declspec(naked) void __fastcall AIEventsUpdateMemory(void*, void*, CUnitServer
 __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
     EI_ORIGINAL(0x005CBE90)
 // 005C1010 / 005C0DF0. CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map (+0x294).
-__declspec(naked) void __fastcall UnitMapRemove(void*, void*, CUnit*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall UnitMapAdd(void*, void*, CUnit*) EI_ORIGINAL(0x005C0DF0)
 // 0050F5B0. Map object base: drops all effects (+0x198), marks the object changed.
 __declspec(naked) void __fastcall UnitClearEffects(CUnit*) EI_ORIGINAL(0x0050F5B0)
 // 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists.
@@ -682,9 +681,9 @@ void CUnitServer::SetDead(int dead) {
     auto* world = static_cast<CWorldServer*>(ManagerContext());
     if (DeadFlag(unit) == dead) return;
     void* units = reinterpret_cast<char*>(world) + 0x294;
-    UnitMapRemove(units, nullptr, unit);
+    SectorMapRemove(AsSectorMap(units), nullptr, unit);
     DeadFlag(unit) = dead;
-    UnitMapAdd(units, nullptr, unit);
+    SectorMapAdd(AsSectorMap(units), nullptr, unit);
     if (dead && effectObject) {
         world->RemoveTimedObject(effectObject->id_);
         CEngineObject* old = effectObject;

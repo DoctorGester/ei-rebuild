@@ -14,13 +14,13 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 
 namespace {
 
 CRefObject*& Patch() { return *reinterpret_cast<CRefObject**>(0x007C2F64); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F68); }
 
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 // The unit layer's Add / Remove through their original addresses (ai_unit_layer.cpp).
 __declspec(naked) void __fastcall LayerAdd(void*, void*, int, void*, int, int) EI_ORIGINAL(0x005B36B0)
 __declspec(naked) void __fastcall LayerRemove(void*, void*, int, int, int) EI_ORIGINAL(0x005B3890)

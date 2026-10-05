@@ -547,13 +547,11 @@ namespace {
 // CString by value, see ui_text.cpp) and the edit field: constructor 0065C010 (RET 0x14: the
 // interface and a RECT by value), its fonts and colours 0065C1A0 (RET 0x18), its text 0065C290.
 struct BoxSurfaceAt {
-    void* Begin();                                                                     // 005FDC00
+    void* Begin() { return SurfaceGetDC(this); }                                                                     // 005FDC00
     int Text(const char* text, RECT* rect, int font, COLORREF colour, int format, int flag);   // 005FDE20
-    void End();                                                                       // 005FDC60
+    void End() { SurfaceReleaseDC(this); }                                                                       // 005FDC60
 };
-__declspec(naked) void* BoxSurfaceAt::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) int BoxSurfaceAt::Text(const char*, RECT*, int, COLORREF, int, int) EI_ORIGINAL(0x005FDE20)
-__declspec(naked) void BoxSurfaceAt::End() EI_ORIGINAL(0x005FDC60)
 
 struct BoxMetricsAt {
     SIZE TextExtentRaw(char* text, int font);

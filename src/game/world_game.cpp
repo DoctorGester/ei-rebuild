@@ -959,7 +959,6 @@ __declspec(naked) mfc::CString* __fastcall MapPathInto(CWorldServer*, void*, voi
 __declspec(naked) bool __fastcall StreamReadChunk(void*, void*, std::uint32_t, void* /*out*/) EI_ORIGINAL(0x004A4A90)
 // 006FDBB7 (RET 4). CString::ReverseFind(char).
 __declspec(naked) int __fastcall StringReverseFind(const mfc::CString*, void*, char) EI_ORIGINAL(0x006FDBB7)
-__declspec(naked) mfc::CString* __fastcall StringLeftInto(const mfc::CString*, void*, void* /*out*/, int) EI_ORIGINAL(0x006FDAE9)
 
 } // namespace
 
@@ -983,10 +982,8 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
     mfc::CString* base = MapPathInto(this, nullptr, storage, map);
     int dot = StringReverseFind(base, nullptr, '.');
     if (dot > 0) {
-        alignas(mfc::CString) std::uint8_t left[sizeof(mfc::CString)];
-        mfc::CString* cut = StringLeftInto(base, nullptr, left, dot);
-        *base = *cut;
-        cut->~CString();
+        mfc::CString cut = base->Left(dot);
+        *base = cut;
     }
     {
         LocalFileStream graph;
@@ -1648,7 +1645,6 @@ constexpr std::uintptr_t kAutoplay = 0x00790670;          // "autoplay.apl"
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
               kStateNetworkZone = 6;
 
-__declspec(naked) int __cdecl FlowAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) int __stdcall LeaveZoneAt(std::uint8_t*) EI_ORIGINAL(0x0057A780)
 __declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x0057BDF0)
 __declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
@@ -1697,7 +1693,7 @@ void GameFlow::ProcessRequest() {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
         new (&LastResources()) mfc::CString(Text(kResourcesSingle));
-        FlowAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
     }
     {
         mfc::CString wanted(Text(network ? kResourcesNetwork : kResourcesSingle));
@@ -1991,11 +1987,9 @@ __declspec(naked) void __fastcall FlowUpdateMultiplayerVariable(GameFlow*, void*
 __declspec(naked) mfc::CString* __stdcall BriefingVariableAt(mfc::CString*, const char*) EI_ORIGINAL(0x0057FDE0)
 // CString members.
 struct TextOpsAt : mfc::CString {
-    mfc::CString Left(int count) const;    // 006FDAE9
     mfc::CString Right(int count) const;   // 006FDA6D
     int Find(const char* text) const;      // 006FDBD9
 };
-__declspec(naked) mfc::CString TextOpsAt::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString TextOpsAt::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) int TextOpsAt::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
 const TextOpsAt& Ops(const mfc::CString& s) { return static_cast<const TextOpsAt&>(s); }
@@ -2105,7 +2099,7 @@ void GameFlow::UpdateFromServer() {
         mfc::CString name(At<const char*>(NodeRecord(node), 0xC));
         bool quest;
         {
-            mfc::CString prefix = Ops(name).Left(2);
+            mfc::CString prefix = name.Left(2);
             quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
                                     reinterpret_cast<const unsigned char*>(Text(kQuestVariablePrefix))) == 0;
         }
@@ -2113,7 +2107,7 @@ void GameFlow::UpdateFromServer() {
         mfc::CString rest = Ops(name).Right(console::Length(name) - 2);
         int dot = Ops(rest).Find(Text(kDot));
         if (dot > 0) {
-            mfc::CString folder = Ops(rest).Left(dot);
+            mfc::CString folder = rest.Left(dot);
             FlowRegisterQuests(this, nullptr, folder);
         }
     }

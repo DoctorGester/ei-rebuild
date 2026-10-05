@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include "originals_ai.h"
+#include "originals_engine.h"
 
 namespace {
 
@@ -32,10 +34,7 @@ __declspec(naked) void __fastcall StringDestroy(RawString*) EI_ORIGINAL(0x0040C7
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
 // animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
 // [00554450, on +0x240].
-__declspec(naked) std::uint8_t* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
 __declspec(naked) void __fastcall UnitsInRadius(void*, void*, const float*, void*, float) EI_ORIGINAL(0x005C0BD0)
-__declspec(naked) void __fastcall SectorRemove(void*, void*, void*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall SectorAdd(void*, void*, void*) EI_ORIGINAL(0x005C0DF0)
 __declspec(naked) void __fastcall MapBeginRefresh(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall MapEndRefresh(void*) EI_ORIGINAL(0x005B8B80)
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, void*) EI_ORIGINAL(0x005BA830)
@@ -96,7 +95,7 @@ void Lever::SetState(int state, float duration) {
         current = chosen <= 0 ? 0 : chosen;
     }
 
-    std::uint8_t* world = ObjectWorld(this);
+    std::uint8_t* world = static_cast<std::uint8_t*>(ObjectWorld(this));
     if (!ei::VCall<int>(world, kSlotWorldActive)) return;
     PtrList around;
     void* sectors = world + 0x294;
@@ -104,13 +103,13 @@ void Lever::SetState(int state, float duration) {
     UnitsInRadius(sectors, nullptr, &At<float>(this, 0x1C), &around, radius);
     for (PtrNode* node = around.head; node;) {
         PtrNode* next = node->next;
-        SectorRemove(sectors, nullptr, node->data);
+        SectorMapRemove(AsSectorMap(sectors), nullptr, AsEngineObject(node->data));
         node = next;
     }
     std::uint8_t* map = world + 0x170;
     map[2] = At<std::uint8_t>(this, 0x261);
     MapBeginRefresh(map);
-    SectorRemove(sectors, nullptr, this);
+    SectorMapRemove(AsSectorMap(sectors), nullptr, AsEngineObject(this));
 
     states = At<int>(this, 0x23C);
     float position = states > 1 ? static_cast<float>(static_cast<double>(At<int>(this, 0x238)) / (states - 1)) : 0.0f;
@@ -129,7 +128,7 @@ void Lever::SetState(int state, float duration) {
     At<float>(this, 0xC8) = position;
     FigureAnimate(this, nullptr, At<const char*>(this, 0xA4));
     MarkChanged(this, nullptr, 5);
-    SectorAdd(sectors, nullptr, this);
+    SectorMapAdd(AsSectorMap(sectors), nullptr, AsEngineObject(this));
     MapEndRefresh(map);
     map[2] = 1;
 
@@ -143,7 +142,7 @@ void Lever::SetState(int state, float duration) {
             std::memcpy(at, free, sizeof(free));
             ControllerResync(At<void*>(unit, 0x240));
         }
-        SectorAdd(sectors, nullptr, unit);
+        SectorMapAdd(AsSectorMap(sectors), nullptr, AsEngineObject(unit));
         node = next;
     }
     around.RemoveAll();

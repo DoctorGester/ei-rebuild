@@ -45,7 +45,6 @@ float& CurrentU() { return *reinterpret_cast<float*>(0x007AF05C); }
 float& TopV() { return *reinterpret_cast<float*>(0x007AF058); }
 float& BottomV() { return *reinterpret_cast<float*>(0x007AF054); }
 
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) char* __fastcall Alloc16(int) EI_ORIGINAL(0x00468F70)
 __declspec(naked) char* __fastcall AllocBytes(int) EI_ORIGINAL(0x004ECB50)
 // The index array's SetAtGrow (00452FC0) and Add (00504E50).

@@ -19,7 +19,6 @@ namespace console {
 
 __declspec(naked) mfc::CString Str::Mid(int) const EI_ORIGINAL(0x006FD9B4)
 __declspec(naked) mfc::CString Str::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
-__declspec(naked) mfc::CString Str::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) void Str::AppendChar(char) EI_ORIGINAL(0x00700D73)
 __declspec(naked) void Str::AppendText(const char*) EI_ORIGINAL(0x00700D4C)
 __declspec(naked) void Str::AssignChar(char) EI_ORIGINAL(0x006FD559)
@@ -29,7 +28,7 @@ __declspec(naked) void Str::MakeLower() EI_ORIGINAL(0x00700EFE)
 __declspec(naked) void Str::TrimLeft(char) EI_ORIGINAL(0x006FE1D3)
 __declspec(naked) void Str::TrimRight(char) EI_ORIGINAL(0x006FE0DD)
 
-__declspec(naked) CStringArray::CStringArray() EI_ORIGINAL(0x006FE925)
+CStringArray::CStringArray() { StringArrayConstruct(this); }
 __declspec(naked) CStringArray::~CStringArray() EI_ORIGINAL(0x006FE958)
 __declspec(naked) void CStringArray::SetSize(int, int) EI_ORIGINAL(0x006FE9B8)
 __declspec(naked) void CStringArray::SetAtGrow(int, const mfc::CString&) EI_ORIGINAL(0x006FEBFA)

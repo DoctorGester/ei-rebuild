@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_ai.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -81,7 +82,6 @@ __declspec(naked) void __fastcall ExcludedSetSize(void*, void*, int, int) EI_ORI
 // 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.
 __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005B9A20)
 // 006E727B. atexit, for the function-local spiral cache.
-__declspec(naked) int __cdecl GameAtexit(void (*)()) EI_ORIGINAL(0x006E727B)
 
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
 std::uint8_t& SpiralGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F60); }
@@ -130,7 +130,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         At<std::uint32_t>(Spiral(), 4) = 0xBF800000;   // radius -1
         SpiralGuard() |= 1;
         At<int>(Spiral(), 0) = 0;
-        GameAtexit(reinterpret_cast<void (*)()>(0x005BA3F0));
+        GameAtExit(reinterpret_cast<void (*)()>(0x005BA3F0));
     }
     int sizeClass = At<int>(unit, 0x324);
     ListRemoveAll(&path->cells, nullptr);

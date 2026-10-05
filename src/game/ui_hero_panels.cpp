@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
+#include "originals_ui.h"
 
 #pragma float_control(precise, on)
 
@@ -68,15 +69,13 @@ __declspec(naked) void StatsRows::Row(RECT*, const char*, int, int) EI_ORIGINAL(
 __declspec(naked) void StatsRows::Part(RECT*, const char*, int) EI_ORIGINAL(0x00624590)
 
 struct SurfaceDraw {
-    void* Begin();                                                                   // 005FDC00
+    void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
     void Clear();                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End();                                                                     // 005FDC60
+    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void* SurfaceDraw::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 __declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
-__declspec(naked) void SurfaceDraw::End() EI_ORIGINAL(0x005FDC60)
 
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
 

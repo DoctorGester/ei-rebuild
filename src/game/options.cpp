@@ -78,11 +78,9 @@ void SetString(RegistryKey& key, const char* subkey, const char* name, const mfc
 // CString members used here.
 struct Text : mfc::CString {
     int FindChar(int c) const;            // 00700E91 Find(TCHAR)
-    mfc::CString Left(int count) const;   // 006FDAE9
     mfc::CString Right(int count) const;  // 006FDA6D
 };
 __declspec(naked) int Text::FindChar(int) const EI_ORIGINAL(0x00700E91)
-__declspec(naked) mfc::CString Text::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString Text::Right(int) const EI_ORIGINAL(0x006FDA6D)
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
@@ -445,7 +443,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
         resolution = GetString(key, l.Key(field::kKeyVideo), GameText(0x007854DC), resolution);
         int x = Ops(resolution).FindChar('x');
         if (x != -1) {
-            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(GameAtoi(Ops(resolution).Left(x))));
+            l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(GameAtoi(resolution.Left(x))));
             l.SetBits(field::kResolutionY,
                       static_cast<std::uint32_t>(GameAtoi(Ops(resolution).Right(Length(resolution) - x - 1))));
         }

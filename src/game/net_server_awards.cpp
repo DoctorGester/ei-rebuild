@@ -38,13 +38,11 @@ __declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /
 __declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
 __declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
 __declspec(naked) void __fastcall FreeNode(void* /*node*/, std::size_t /*n*/) EI_ORIGINAL(0x00426920)
-__declspec(naked) void __fastcall StringDestroyB(StringRep* /*s*/) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
 // The pending awards (+0x25B4): push_back of {delay, award}.
 __declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00422F70)
 
 // The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
-__declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 __declspec(naked) void** __fastcall MapRegistryFind(void* /*registry*/, void*, const StringRep* /*name*/) EI_ORIGINAL(0x004297A0)
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
@@ -287,7 +285,7 @@ void ServerSession::LeaveZone() {
         StringWithAlloc(&lookup, nullptr, &allocator);
         StringRangeInit(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
         auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &lookup));
-        StringDestroyB(&lookup);
+        StlStringDestroy(&lookup);
         StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
         if (entry) AwardHost(entry, true);
     }

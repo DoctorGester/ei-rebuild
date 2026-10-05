@@ -16,6 +16,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
 
@@ -113,7 +114,6 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->
 namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 00455950 the object's world; 0066D6E0 party messages; 00552780 the unit shouts.
-__declspec(naked) void* __fastcall TickWorld(const void*) EI_ORIGINAL(0x00455950)
 __declspec(naked) void __fastcall TickMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
 __declspec(naked) void __fastcall ControllerShout(CUnitServer*, void*, int) EI_ORIGINAL(0x00552780)
 // CUnitServer helpers: 0054A150 follow the path (true while moving), 00550F30 the idle animation
@@ -151,8 +151,6 @@ __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORI
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
 __declspec(naked) std::uint8_t __fastcall MapCellFlag80(void*, void*, const float*) EI_ORIGINAL(0x005BBC70)
-__declspec(naked) void __fastcall SectorRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall SectorAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 __declspec(naked) void __fastcall WorldRemoveTimed(void*, void*, int) EI_ORIGINAL(0x0058E5D0)
 __declspec(naked) void* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) int __fastcall MemoryIsEnemy(void*, void*, CUnit*, CEngineObject*) EI_ORIGINAL(0x005CB7F0)
@@ -336,7 +334,7 @@ void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = CtlIdleAnimation(self);
     if (!QueueHolds(&At<char>(self, 0x24), nullptr, idle)) {
         if (At<int>(self, 0x2C) == 0 && At<int>(self, 0x38) == -1) {
-            int now = At<int>(TickWorld(self), 0x64);
+            int now = At<int>(ObjectWorld(self), 0x64);
             idle->extra = now - static_cast<int>(Random().Next() % 0x33);
         }
         TickPlayIdle(self, nullptr, idle);
@@ -396,7 +394,7 @@ bool CUnitServer::StartMove() {
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorAdd(static_cast<char*>(world) + 0x294, nullptr, current->data);
+        SectorMapAdd(AsSectorMap(static_cast<char*>(world) + 0x294), nullptr, current->data);
     }
     bool arrived = false;
     if (action.unknown_1C) {
@@ -503,7 +501,7 @@ bool CUnitServer::StartQueuedOrder() {
         steps.vtable = kAnimationStepsVtable;
         int duration;
         TickOrderSteps(this, nullptr, &steps, &duration, kOrderSkill, 0);
-        int now = At<int>(TickWorld(this), 0x64);
+        int now = At<int>(ObjectWorld(this), 0x64);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
         PlanTake(reinterpret_cast<OrderPlan*>(&At<char>(this, 0xC4)), nullptr, copy, now, duration);
@@ -668,7 +666,7 @@ bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
 } // namespace
 
 void CUnitServer::ExecuteOrder() {
-    int now = At<int>(TickWorld(this), 0x64);
+    int now = At<int>(ObjectWorld(this), 0x64);
     At<std::uint8_t>(this, 0x18E) = 0;
     if (At<int>(this, 0x184) > now && action.kind == kOrderAttack) {
         CallApproachTarget();
@@ -768,7 +766,7 @@ double HalfScale() { return static_cast<double>(kOne) * kHalf; }
 } // namespace
 
 void CUnitServer::ApproachTarget() {
-    int now = At<int>(TickWorld(this), 0x64);
+    int now = At<int>(ObjectWorld(this), 0x64);
     At<int>(unit, 0x43C) = 1;
     CEngineObject* target = action.target;
 
@@ -925,7 +923,7 @@ void CUnitServer::ApproachTarget() {
     double ax = static_cast<double>(unit->positionX) - goal[0];
     if (!(ax * ax + ay * ay > kPointOne)) return;   // (sic: the path flag stays cleared)
 
-    SectorRemove(kSectorMap, nullptr, chased);
+    SectorMapRemove(AsSectorMap(kSectorMap), nullptr, chased);
     volatile float far = static_cast<float>(static_cast<double>(goal[1]) * kShort);
     double nearX = static_cast<double>(goal[0]) * kShort;
     volatile float unitY = static_cast<float>(static_cast<double>(unit->positionY) * kLong);
@@ -935,7 +933,7 @@ void CUnitServer::ApproachTarget() {
     point[2] = goal[2];
     if (!TickPathTo(this, nullptr, point, std::bit_cast<std::uint32_t>(static_cast<float>(patience))))
         At<std::uint8_t>(this, 0x145) = 1;
-    SectorAdd(kSectorMap, nullptr, chased);
+    SectorMapAdd(AsSectorMap(kSectorMap), nullptr, chased);
 
     double h = HalfScale();
     volatile float headX = static_cast<float>(h * At<float>(this, 0x94));
@@ -946,7 +944,7 @@ void CUnitServer::ApproachTarget() {
         // The way leads elsewhere: stop, face along, and chase from here.
         void* motion = &At<char>(this, 0x3C);
         PathClear(motion);
-        int time = At<int>(TickWorld(this), 0x64);
+        int time = At<int>(ObjectWorld(this), 0x64);
         Vector3 axis;
         reinterpret_cast<const Quaternion*>(&At<float>(unit, 0x34))->AxisY(&axis);
         Vector3 back;

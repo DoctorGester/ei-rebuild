@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
 
@@ -148,7 +149,6 @@ namespace {
 __declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
 // 00557B80. CArray::SetSize of an AnimationSteps list.
 // 00455950. The world an object lives in.
-__declspec(naked) void* __fastcall ObjectWorld(const void*) EI_ORIGINAL(0x00455950)
 // Rewritten elsewhere, called through their game addresses (ST0 results kept unrounded):
 // 00530370 CUnit::BaseSpeed (the eye height here), 005302F0 CUnit::ModeSpeed, 0054C070
 // CUnitServer::ActionDistance, 005BC3E0 CAIMap::LineOfSight.

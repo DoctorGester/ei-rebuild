@@ -15,6 +15,7 @@
 #include "render/render.h"
 
 #include <cstdint>
+#include "originals_ui.h"
 
 namespace {
 
@@ -43,15 +44,13 @@ struct ItemCell {
 __declspec(naked) void __fastcall DrawItemModel(void*, void*, int /*pass*/, ItemCell*) EI_ORIGINAL(0x005ECA10)
 // The window's surface text helpers (Rebirth patches 005FDE20).
 struct SurfaceText {
-    void* Begin();
+    void* Begin() { return SurfaceGetDC(this); }
     void Clear();
     int Draw(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);
-    void End();
+    void End() { SurfaceReleaseDC(this); }
 };
-__declspec(naked) void* SurfaceText::Begin() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void SurfaceText::Clear() EI_ORIGINAL(0x005FE2F0)
 __declspec(naked) int SurfaceText::Draw(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
-__declspec(naked) void SurfaceText::End() EI_ORIGINAL(0x005FDC60)
 
 template <typename... Args>
 long ComCall(void* object, int slot, Args... args) {

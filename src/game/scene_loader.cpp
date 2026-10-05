@@ -718,11 +718,9 @@ namespace {
 // CString members used only here, called on existing strings through this view (no extra data).
 struct Text : mfc::CString {
     int Find(const char* sub) const;      // 006FDBD9
-    mfc::CString Left(int count) const;   // 006FDAE9
     mfc::CString Right(int count) const;  // 006FDA6D
 };
 __declspec(naked) int Text::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
-__declspec(naked) mfc::CString Text::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) mfc::CString Text::Right(int) const EI_ORIGINAL(0x006FDA6D)
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
@@ -916,7 +914,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
                 s.path = GameText(kIniDirText) + Ops(s.path).Right(Length(s.path) - 7);
                 --ext;
             }
-            s.path = Ops(s.path).Left(ext) + GameText(kRegExtText);
+            s.path = s.path.Left(ext) + GameText(kRegExtText);
         } else {
             s.path = mfc::CString(registryName);
         }
@@ -985,7 +983,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
                                     reinterpret_cast<const unsigned char*>(GameText(kBmpExtText))) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);
-            *At<mfc::CString>(texture, kTextureName) = static_cast<const char*>(Ops(name).Left(Length(name) - 4));
+            *At<mfc::CString>(texture, kTextureName) = static_cast<const char*>(name.Left(Length(name) - 4));
         } else {
             *At<mfc::CString>(texture, kTextureName) = static_cast<const char*>(s.textureNames.Name(t));
         }

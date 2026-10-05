@@ -47,7 +47,6 @@ std::uint8_t& BlocksGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2EF4
 
 __declspec(naked) void __fastcall PointArrayConstruct(PointArray*, void*) EI_ORIGINAL(0x00557230)
 __declspec(naked) void __fastcall PointArraySetSize(PointArray*, void*, int, int) EI_ORIGINAL(0x005B16D0)
-__declspec(naked) int __cdecl GameAtExit(void (*)()) EI_ORIGINAL(0x006E727B)
 
 // The local search at +0x98: set up over a window (size class, x0, y0, x1, y1 exclusive, start
 // x, y), flood (RET 4), finish, settle, the cost of a cell (0x7FFFFFFF unreached), reset.

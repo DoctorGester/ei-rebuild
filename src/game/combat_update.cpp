@@ -17,6 +17,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_ai.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
 
@@ -69,7 +70,6 @@ constexpr int kSlotPlayerUnitDied = 0x50 / 4; // the player's message object, sl
 
 // 00455940 the owning manager's context (the world server); 00455950 the object's world.
 __declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
-__declspec(naked) void* __fastcall WorldOf(const void*) EI_ORIGINAL(0x00455950)
 // CUnit (unit.cpp and the unit range): 0050E9F0 MarkChanged, 0052EA90 the animation bytes
 // (+0x254..+0x256, time +0x258), 0052EAD0 / 0052EAF0 the dwords +0x25C / +0x260, 00530570 the
 // size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
@@ -103,8 +103,6 @@ __declspec(naked) int __fastcall PlayerHasUnit(void*, void*, CUnit*) EI_ORIGINAL
 // 00679280 CEffectParticle::SetAttachedTo (world_effect_visual.cpp).
 __declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_ORIGINAL(0x00679280)
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
-__declspec(naked) void __fastcall SectorRemove(void*, void*, CUnit*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall SectorAdd(void*, void*, CUnit*) EI_ORIGINAL(0x005C0DF0)
 // The motion (+0x3C, an AIPath; ai_motion.cpp): 005C7CB0 ShiftTime, 005B23A0 Clear, 005C7B00
 // Start, and 005C7430 UnitMotion::Sample on CUnit + 0x27C.
 __declspec(naked) bool __fastcall PathStart(void*, void*, const float* /*position*/, const float* /*direction*/,
@@ -155,7 +153,7 @@ void* Motion(CUnitServer* self) { return reinterpret_cast<char*>(self) + 0x3C; }
 
 // A queue that has no start time yet starts now.
 void StartQueueIfUnset(CUnitServer* self) {
-    if (QueueTime(self) == -1) QueueTime(self) = At<int>(WorldOf(self), 0x64);
+    if (QueueTime(self) == -1) QueueTime(self) = At<int>(ObjectWorld(self), 0x64);
 }
 
 // The effect object (+0x17C, referenced) leaves the world.
@@ -180,9 +178,9 @@ void SetStandingFlag(CUnitServer* self, int standing) {
     int& flag = At<int>(unit, 0x278);
     if (flag == standing) return;
     void* sectors = static_cast<char*>(world) + 0x294;
-    SectorRemove(sectors, nullptr, unit);
+    SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
     At<int>(self->unit, 0x278) = standing;
-    SectorAdd(sectors, nullptr, self->unit);
+    SectorMapAdd(AsSectorMap(sectors), nullptr, self->unit);
     UnitMarkChanged(self->unit, nullptr, 7);
 }
 
@@ -520,7 +518,7 @@ EI_REPLACE_METHOD(0x005467B0, CUnitServer::SetStanding);
 
 void CUnitServer::StandStill() {
     PathClear(Motion(this));
-    int now = At<int>(WorldOf(this), 0x64);
+    int now = At<int>(ObjectWorld(this), 0x64);
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     const float* q = &At<float>(unit, 0x34);
     float x = q[0], y = q[1], z = q[2], w = q[3];
@@ -544,7 +542,7 @@ void CUnitServer::PlayHitReaction() {
     CtlDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
     int duration = TotalDuration(reaction.steps);
     if (action.kind == kOrderAttack && state == kStateTurning &&
-        At<int>(WorldOf(this), 0x64) + duration > At<int>(this, 0x184))
+        At<int>(ObjectWorld(this), 0x64) + duration > At<int>(this, 0x184))
         return;
     keepHitDirection = 1;
     StepsAppend(&SavedQueue(this), nullptr, &Queue(this));
@@ -664,7 +662,7 @@ void CUnitServer::TickAction() {
         DropEffectObject(this);
     }
     PathClear(Motion(this));
-    int time = At<int>(WorldOf(this), 0x64);
+    int time = At<int>(ObjectWorld(this), 0x64);
     float axis[3];
     QuaternionAxisY(&At<float>(unit, 0x34), nullptr, axis);
     float backwards[3] = {-axis[0], -axis[1], -axis[2]};

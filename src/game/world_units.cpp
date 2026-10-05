@@ -13,6 +13,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
@@ -128,7 +129,6 @@ struct RawString {
     std::uint8_t bytes[12];
 };
 __declspec(naked) RawString* __fastcall RawStringInit(RawString*, void*, const char*, void* /*allocator*/) EI_ORIGINAL(0x0040C5A0)
-__declspec(naked) void __fastcall RawStringDestroy(void*, void*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
 __declspec(naked) std::uint8_t* __fastcall NameMapInsert(void* /*map*/, void*, const void* /*pair*/) EI_ORIGINAL(0x00514880)
@@ -152,8 +152,6 @@ __declspec(naked) void __fastcall BrainStopAction(void*, void*) EI_ORIGINAL(0x00
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E60)
 __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)
 // Placement on the maps.
-__declspec(naked) void __fastcall SectorMapRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall SectorMapAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 __declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3*, Vector3*)
     EI_ORIGINAL(0x005BA9D0)
 __declspec(naked) bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*) EI_ORIGINAL(0x005BA790)
@@ -206,9 +204,9 @@ void FillHeroParts(std::uint8_t* message, const char* prototypeName, mfc::CStrin
     alignas(4) std::uint8_t pair[0x10];
     NamePairBuild(pair, nullptr, &key, &none);
     std::uint8_t* stored = NameMapInsert(reinterpret_cast<void*>(0x007AF364), nullptr, pair);
-    RawStringDestroy(pair, nullptr);
+    StlStringDestroy(pair);
     std::uint8_t* prototype = At<std::uint8_t*>(stored, 0xC);
-    RawStringDestroy(&key, nullptr);
+    StlStringDestroy(&key);
     int hairStyle = prototype ? At<int>(prototype, 0x10) : 1;
 
     void* parts = message + 0x78;
@@ -363,12 +361,12 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         At<std::uint32_t>(memory, 4) = 0;   // written before the null test
         BrainAddMode(brain, nullptr, memory ? PlayerModeConstruct(memory, nullptr) : nullptr);
         BrainStopAction(brain, nullptr);
-        SectorMapRemove(sectorMap_, nullptr, unit);
+        SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &At<Vector3>(unit, 0x1C), sizeof(free));
         AIMapFindFreeCellNear(aiMap_, nullptr, unit, position, &free);
         std::memcpy(&At<Vector3>(unit, 0x1C), &free, sizeof(free));
-        SectorMapAdd(sectorMap_, nullptr, unit);
+        SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
         UnitSetController(unit, nullptr, player);
         ei::VCall<void>(unit, kSlotUnitController, At<std::uint32_t>(record, kRecordController));
@@ -617,7 +615,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         At<int>(object, 0x174) = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
-        SectorMapAdd(sectorMap_, nullptr, object);
+        SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
         if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
         return result;
@@ -683,7 +681,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
                 KeyDefault(key, nullptr, &allocator);
                 KeyAssign(key, nullptr, prototypeName, prototypeName + std::strlen(prototypeName));
                 prototype = *UnitPrototypeAt(kUnitPrototypes, nullptr, key);
-                RawStringDestroy(key, nullptr);
+                StlStringDestroy(key);
             }
             std::uint8_t* begin = *reinterpret_cast<std::uint8_t**>(0x007AF398);
             std::uint8_t* end = *reinterpret_cast<std::uint8_t**>(0x007AF39C);
@@ -723,7 +721,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        SectorMapAdd(sectorMap_, nullptr, object);
+        SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
         if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
         if (type >= 8 && type <= 9) {

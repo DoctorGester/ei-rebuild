@@ -7,6 +7,8 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_effects.h"
+#include "originals_engine.h"
+#include "originals_library.h"
 
 #include <bit>
 #include <cstring>
@@ -48,7 +50,6 @@ __declspec(naked) void __fastcall SoundSetVolume(void* /*manager*/, void*, int /
     EI_ORIGINAL(0x006B9100)
 
 // The game's atexit (006E727B).
-__declspec(naked) int __cdecl GameAtexit(void (*)()) EI_ORIGINAL(0x006E727B)
 
 // vector<uint32> as the fog's static list of cells to drop (007ABB58), with the original's
 // constructor (004E2BA0) and insert-overflow (004E2FA0).
@@ -133,7 +134,7 @@ EI_REPLACE_METHOD(0x004E41F0, CRainSnow::SetWind);
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
-__declspec(naked) void* CVisibilityFog::World() EI_ORIGINAL(0x00455950)
+void* CVisibilityFog::World() { return ObjectWorld(this); }
 
 // The bounding box (0.5 larger than the cell centres) and sphere of all cells, for culling.
 void CVisibilityFog::ComputeBounds() {
@@ -188,7 +189,7 @@ int CVisibilityFog::UpdateCells() {
         DeadCellsGuard() |= 1;
         char allocator;
         dead.Construct(&allocator);
-        GameAtexit(reinterpret_cast<void (*)()>(kDeadCellsDestructor));
+        GameAtExit(reinterpret_cast<void (*)()>(kDeadCellsDestructor));
     }
     dead.finish = dead.begin;
     World();   // called and ignored, as in the original

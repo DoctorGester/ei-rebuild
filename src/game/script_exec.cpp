@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_library.h"
 #include "originals_script.h"
 #include "originals_ui.h"
 
@@ -403,14 +404,12 @@ struct StlString {
     void AssignRange(const char* first, const char* last);   // 00428F10
     void Destroy();                                      // 00425040
     void* InitFrom(const char* text, void* allocator);    // 0040C5A0
-    void Destroy2();                                     // 0040C720
     std::uint32_t data[4];
 };
 __declspec(naked) void StlString::InitEmpty(void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void StlString::AssignRange(const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void StlString::Destroy() EI_ORIGINAL(0x00425040)
 __declspec(naked) void* StlString::InitFrom(const char*, void*) EI_ORIGINAL(0x0040C5A0)
-__declspec(naked) void StlString::Destroy2() EI_ORIGINAL(0x0040C720)
 struct StlAllocator {
     StlAllocator* Init();                                // 0041F770
     void Destroy();                                      // 0040C760
@@ -726,7 +725,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
     text.InitFrom(Text(cmd, 0), allocator.Init());
     if (setMax) ServerPointer()->SetVarMax(&text, cmd->floatArgs.data[1]);
     else ServerPointer()->DelVar(&text);
-    text.Destroy2();
+    StlStringDestroy(&text);
     allocator.Destroy();
 }
 

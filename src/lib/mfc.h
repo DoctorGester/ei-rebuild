@@ -32,6 +32,7 @@ public:
     void TrimRight(const char* targets);          // 006FE08A TrimRight(LPCTSTR)
     const CString& operator+=(const CString& s);  // 00700D88
     const CString& operator+=(const char* s);     // 00700D4C
+    CString Left(int count) const;                // 006FDAE9 (RET 8: result slot, count)
 
     operator const char*() const { return data_; }
 

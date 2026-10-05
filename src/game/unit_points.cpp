@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_ai.h"
+#include "originals_engine.h"
 
 #include <cstdint>
 #include <cstring>
@@ -20,7 +21,6 @@ T& At(void* object, int offset) {
 // turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
-__declspec(naked) std::uint8_t* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
 __declspec(naked) std::uint8_t* __fastcall AnimationEntry(void*, void*, std::uint32_t) EI_ORIGINAL(0x00518F80)
 __declspec(naked) float* __fastcall AxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
 __declspec(naked) float* __fastcall AxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
@@ -105,7 +105,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out) {
             for (int i = 0; i < 3; ++i) offset[i] = -axis[i] * reach;
         }
     }
-    std::uint8_t* world = ObjectWorld(unit);
+    std::uint8_t* world = static_cast<std::uint8_t*>(ObjectWorld(unit));
     if (ei::VCall<int>(world, kSlotWorldActive)) {
         float point[3] = {offset[0] + At<float>(unit, 0x1C), offset[1] + At<float>(unit, 0x20),
                           offset[2] + At<float>(unit, 0x24)};

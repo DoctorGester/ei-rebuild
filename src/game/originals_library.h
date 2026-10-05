@@ -12,6 +12,8 @@
 struct AnimationSteps;
 struct RefPtr;
 
+// STLport std::string destructor (frees the buffer back to the node allocator unless it is the inline one).
+__declspec(naked) inline void __fastcall StlStringDestroy(void* /*string*/) EI_ORIGINAL(0x0040C720)
 __declspec(naked) inline void** __fastcall PartiesEnd(void*, void*, void**) EI_ORIGINAL(0x004208A0)
 __declspec(naked) inline void __fastcall List25BCClear(void* /*list*/) EI_ORIGINAL(0x00421CD0)
 __declspec(naked) inline void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/)
@@ -40,6 +42,7 @@ __declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const v
 __declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x006E6100)
 __declspec(naked) inline char* __cdecl GameStrncpy(char* /*to*/, const char* /*from*/, std::size_t /*n*/)
     EI_ORIGINAL(0x006E7E80)
+__declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 __declspec(naked) inline void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
@@ -49,6 +52,10 @@ __declspec(naked) inline int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
 __declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
 __declspec(naked) inline void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
+// MFC CStringArray constructor (006FE925; also console::CStringArray). Returns `this`.
+__declspec(naked) inline void* __fastcall StringArrayConstruct(void* /*array*/) EI_ORIGINAL(0x006FE925)
+// mfc::CString::~CString (00700970) on a string given as raw memory.
+inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString(); }
 __declspec(naked) inline int __stdcall AfxMessageBox(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)
 
 // STLport std::list constructor for a list of pointers on the 12-byte node allocator (RET 4).

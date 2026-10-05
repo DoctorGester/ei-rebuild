@@ -33,7 +33,6 @@ struct AlignedArray {         // the engine's aligned array: data (32-byte align
 AlignedArray& MovedPositions() { return *reinterpret_cast<AlignedArray*>(0x007C2E60); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E70); }
 
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) char* __fastcall Alloc64(int) EI_ORIGINAL(0x00452E70)
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 __declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)

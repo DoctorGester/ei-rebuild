@@ -34,7 +34,6 @@ struct PointArray {           // the engine's aligned array: data, size, capacit
 PointArray& TexturePoints() { return *reinterpret_cast<PointArray*>(0x007C2E00); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E10); }
 
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 // 004F65B0: aligned storage for `count` 8-byte records.
 __declspec(naked) IntPoint* __fastcall Alloc8(int) EI_ORIGINAL(0x004F65B0)
 

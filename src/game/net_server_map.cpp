@@ -28,7 +28,6 @@ __declspec(naked) StringRep* __fastcall StringWithAlloc(StringRep* /*s*/, void*,
 __declspec(naked) void __fastcall StringRangeInit(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) void __fastcall StringDestroyA(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
-__declspec(naked) void __fastcall StringDestroyB(StringRep* /*s*/) EI_ORIGINAL(0x0040C720)
 
 // The queued message (vtable 0073BCD0, built by 00418C30) and its string member assignment, the
 // counted pointer helpers, the list push_back.
@@ -40,7 +39,6 @@ __declspec(naked) StringRep* __fastcall MessageStringConstruct(StringRep* /*stri
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
 __declspec(naked) void __fastcall WorldLoadMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x005810A0)
-__declspec(naked) void __fastcall CStringDestroy(void* /*s*/) EI_ORIGINAL(0x00700970)
 __declspec(naked) void** __fastcall MapRegistryFind(void* /*registry*/, void*, const StringRep* /*name*/) EI_ORIGINAL(0x004297A0)
 // The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): unloading the quest texts,
 // picking the zones that follow, loading a zone's quests.
@@ -150,7 +148,7 @@ void ServerSession::SetMap(const StringRep* name) {
         record->serial_ = *VariableCounter();
         ++*VariableCounter();
         ++record->version_;
-        StringDestroyB(&resourceName);
+        StlStringDestroy(&resourceName);
     }
 
     std::uint32_t alloc;
@@ -160,10 +158,10 @@ void ServerSession::SetMap(const StringRep* name) {
     StringPlusText(&b, &a, Text(kPathMiddle));
     StringPlusString(&path, &b, name);
     SetVariable(&path, 1.0f);
-    StringDestroyB(&path);
-    StringDestroyB(&b);
-    StringDestroyB(&a);
-    StringDestroyB(&prefix);
+    StlStringDestroy(&path);
+    StlStringDestroy(&b);
+    StlStringDestroy(&a);
+    StlStringDestroy(&prefix);
 
     StringRep prefix2, a2, b2, c2, path2;
     StringFromText(&prefix2, nullptr, Text(kPathPrefix), &alloc);
@@ -172,11 +170,11 @@ void ServerSession::SetMap(const StringRep* name) {
     StringPlusString(&c2, &b2, name);
     StringPlusText(&path2, &c2, Text(kPathSuffix));
     SetVariable(&path2, 1.0f);
-    StringDestroyB(&path2);
-    StringDestroyB(&c2);
-    StringDestroyB(&b2);
-    StringDestroyB(&a2);
-    StringDestroyB(&prefix2);
+    StlStringDestroy(&path2);
+    StlStringDestroy(&c2);
+    StlStringDestroy(&b2);
+    StlStringDestroy(&a2);
+    StlStringDestroy(&prefix2);
 
     AwardHost(entry, false);
 }

@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 
 #include <bit>
 #include <cstring>
@@ -68,7 +69,7 @@ std::uintptr_t RemoveFromSlots(CUnit* unit, CEngineObject** slots, std::uint32_t
 }
 } // namespace
 
-__declspec(naked) void* CUnit::World() EI_ORIGINAL(0x00455950)
+void* CUnit::World() { return ObjectWorld(this); }
 __declspec(naked) double CUnit::AnimationFactor(float) EI_ORIGINAL(0x00518D30)
 __declspec(naked) PartyUnitRecord* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
 

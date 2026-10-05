@@ -16,6 +16,7 @@ struct ParticleElement;
 __declspec(naked) inline void __fastcall DiplomacyOnAttack(void*, void*, CEngineObject*, CEngineObject*, int)
     EI_ORIGINAL(0x00455680)
 __declspec(naked) inline char __fastcall QuitGame(int) EI_ORIGINAL(0x00455F20)
+__declspec(naked) inline void* __fastcall ObjectWorld(const void* /*object*/) EI_ORIGINAL(0x00455950)
 __declspec(naked) inline void __cdecl PumpMessagesOriginal() EI_ORIGINAL(0x00458220)
 __declspec(naked) inline std::uint8_t* __fastcall MapDatabaseFind(void*, void*, const char*) EI_ORIGINAL(0x0045E850)
 __declspec(naked) inline void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)

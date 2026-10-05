@@ -58,7 +58,6 @@ constexpr std::uint32_t kOne = 0x3F800000;
 // 0040CB00. Quaternion::SetIdentity.
 __declspec(naked) void* __fastcall SetIdentity(void*) EI_ORIGINAL(0x0040CB00)
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
-__declspec(naked) void __fastcall ConstructStringArray(void*) EI_ORIGINAL(0x006FE925)
 __declspec(naked) void __fastcall DestroyStringArray(void*) EI_ORIGINAL(0x006FE958)
 __declspec(naked) void __fastcall SetStringArraySize(void*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
 // 00468C20 / 0047A200. Memory stream reset and constructor.
@@ -152,7 +151,7 @@ CObject3D* CObject3D::Construct() {
     std::memset(&parts, 0, sizeof(parts));
     std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
-    ConstructStringArray(reinterpret_cast<char*>(this) + 0x110);
+    StringArrayConstruct(reinterpret_cast<char*>(this) + 0x110);
     std::memset(&boundsFlags, 0, 0xE * 4);
     SetDword(this, 0x15C, kFrameArrayVtable);
     SetDword(this, 0x160, 0);
@@ -367,7 +366,7 @@ CMapObjectServer* CMapObjectServer::Construct() {
     SetDword(this, 0x1C, 0);
     SetEmptyString(this, 0x78);
     SetEmptyString(this, 0x7C);
-    ConstructStringArray(reinterpret_cast<char*>(this) + 0x80);
+    StringArrayConstruct(reinterpret_cast<char*>(this) + 0x80);
     SetVtable(this, kServerCompanionVtable);
     SetDword(this, 0x1C, 0);
     ResetVitals(reinterpret_cast<char*>(this) + 0x20);

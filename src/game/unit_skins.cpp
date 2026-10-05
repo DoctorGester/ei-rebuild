@@ -11,6 +11,7 @@
 #include "../lib/mfc.h"
 #include "ei/hook.h"
 #include "originals_gameplay.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -82,7 +83,6 @@ __declspec(naked) void __fastcall PrototypeTextures(const char*, const char*, co
 __declspec(naked) void __fastcall StringsConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053BB80)
 __declspec(naked) char* __fastcall StringsCopy(void*, void*, int, const char*, const char*) EI_ORIGINAL(0x0053D7F0)
 __declspec(naked) void __fastcall StringDestroyFlag(void*, void*, int) EI_ORIGINAL(0x004DDC90)
-__declspec(naked) void __fastcall StringDestroyB(void*) EI_ORIGINAL(0x0040C720)
 __declspec(naked) void __fastcall StringsFree(char*, int) EI_ORIGINAL(0x00426860)
 __declspec(naked) void __fastcall StringsDeallocate(void*, void*, char*, int) EI_ORIGINAL(0x0053BF40)
 __declspec(naked) void __fastcall StringCopyConstruct(char*, const void*) EI_ORIGINAL(0x004F5DF0)
@@ -351,7 +351,7 @@ void FigureUnit(char* self, const char* record) {
                    At<std::uint32_t>(record, 0x28), At<std::uint32_t>(record, 0x2C), 0);
     StringDestroy(name);
 
-    for (char* s = second.begin; s != second.end; s += 12) StringDestroyB(s);
+    for (char* s = second.begin; s != second.end; s += 12) StlStringDestroy(s);
     StringsDeallocate(&second.storageEnd, nullptr, second.begin, Count12(second.begin, second.storageEnd));
     for (char* s = first.begin; s != first.end; s += 12) StringDestroyFlag(s, nullptr, 0);
     StringsDeallocate(&first.storageEnd, nullptr, first.begin, Count12(first.begin, first.storageEnd));

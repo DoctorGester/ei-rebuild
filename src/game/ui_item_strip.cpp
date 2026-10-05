@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ui.h"
 
 namespace {
 
@@ -39,15 +40,13 @@ __declspec(naked) void StripOwner::DrawItem(int, ItemCell*) EI_ORIGINAL(0x005ECA
 // A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
 // Rebirth-patched).
 struct StripSurface {
-    void* GetDC();
+    void* GetDC() { return SurfaceGetDC(this); }
     void Clear();
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);
-    void ReleaseDC();
+    void ReleaseDC() { SurfaceReleaseDC(this); }
 };
-__declspec(naked) void* StripSurface::GetDC() EI_ORIGINAL(0x005FDC00)
 __declspec(naked) void StripSurface::Clear() EI_ORIGINAL(0x005FE2F0)
 __declspec(naked) int StripSurface::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
-__declspec(naked) void StripSurface::ReleaseDC() EI_ORIGINAL(0x005FDC60)
 
 // The owner's virtual slots 43 (whether the strip's mode takes the item; AL) and 54 (a number
 // shown under the item for mode `mode`).

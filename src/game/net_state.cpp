@@ -9,6 +9,7 @@
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -141,7 +142,6 @@ namespace {
 // The object's position setter [00517700], its world [00455950], the effect array's
 // CArray::SetSize [0050FE70, on +0x194 (size, grow by)].
 __declspec(naked) void __fastcall SetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
-__declspec(naked) std::uint8_t* __fastcall ObjectWorld(void*) EI_ORIGINAL(0x00455950)
 __declspec(naked) void __fastcall EffectsSetSize(void*, void*, int, int) EI_ORIGINAL(0x0050FE70)
 
 constexpr int kSlotAppearanceChanged = 0xE8 / 4;   // object: ()
@@ -190,7 +190,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         float position[3];
         field->ReadDelta(position, 0xC);
         field->ReadDelta(object + 0x34, 0x10);
-        std::uint8_t* world = ObjectWorld(object);
+        std::uint8_t* world = static_cast<std::uint8_t*>(ObjectWorld(object));
         ei::VCall<void>(world, kSlotMoveObject, object, position);
         ei::VCall<void>(object, kSlotSetHeading, At<std::uint32_t>(object, 0x24));
         complete &= SnapshotConsumed();
@@ -234,7 +234,6 @@ __declspec(naked) void __fastcall PlayerAddUnit(void*, void*, void*) EI_ORIGINAL
 __declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
 __declspec(naked) void __fastcall CStringAssign(void*, void*, const void*) EI_ORIGINAL(0x00700AA9)
-__declspec(naked) void __fastcall CStringDestroy(void*) EI_ORIGINAL(0x00700970)
 
 constexpr int kSlotIsRemote = 0xDC / 4;          // unit: () -> non-zero skips the stat reactions
 constexpr int kSlotStatChanged = 0xB8 / 4;       // controller: (stat, change, flags)

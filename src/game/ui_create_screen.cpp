@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -32,7 +33,7 @@ __declspec(naked) void __fastcall Member5C1760(void*) EI_ORIGINAL(0x005C1760)
 __declspec(naked) void __fastcall Member5F8F30(void*) EI_ORIGINAL(0x005F8F30)
 __declspec(naked) void __fastcall Member5F6080(void*) EI_ORIGINAL(0x005F6080)
 __declspec(naked) void __fastcall Member5F5F90(void*) EI_ORIGINAL(0x005F5F90)
-__declspec(naked) void __fastcall StringArrayConstruct(void*) EI_ORIGINAL(0x006FE925)   // CStringArray
+   // CStringArray
 __declspec(naked) void __fastcall Member5FAF80(void*) EI_ORIGINAL(0x005FAF80)
 // STLport containers taking an allocator (by address; empty).
 __declspec(naked) void __fastcall Member5F90E0(void*, void*, const void*) EI_ORIGINAL(0x005F90E0)
@@ -309,7 +310,6 @@ namespace {
 __declspec(naked) void __fastcall MessageListErase(void*, void*, void* /*out*/, void* /*node*/) EI_ORIGINAL(0x005F8E50)
 __declspec(naked) void __fastcall CopyCString(void*, void*, const void*) EI_ORIGINAL(0x007006E5)
 __declspec(naked) void __fastcall ConstructCString(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
-__declspec(naked) void __fastcall ConstructStringArrayAt(void*) EI_ORIGINAL(0x006FE925)
 __declspec(naked) void __fastcall ConstructListHolder(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA340)
 __declspec(naked) void* __fastcall AllocateNodes(std::size_t) EI_ORIGINAL(0x00405950)
 
@@ -355,7 +355,7 @@ void CInterface3D::ShowMessage(int force) {
         std::memcpy(&message, self + 0xA4, 4);
         ConstructCString(win + 0x168, nullptr, message);
         SetDword(win, 0x16C, *reinterpret_cast<const std::uint32_t*>(0x00796E48));   // empty CString
-        ConstructStringArrayAt(win + 0x170);
+        StringArrayConstruct(win + 0x170);
         SetDword(win, 0x184, value);
         // The original passes a stack slot and a zeroed local; the holder keeps the zero.
         std::uint32_t junk = 0, zero = 0;
@@ -446,7 +446,7 @@ void CInterface3D::OpenHelp(int flag) {
         win[0x164] = 0;
         ConstructCString(win + 0x168, nullptr, topic);
         SetDword(win, 0x16C, *reinterpret_cast<const std::uint32_t*>(0x00796E48));   // empty CString
-        ConstructStringArrayAt(win + 0x170);
+        StringArrayConstruct(win + 0x170);
         SetDword(win, 0x184, static_cast<std::uint32_t>(seen));
         // The original passes its argument slot as the list's allocator.
         int slot = flag;
@@ -496,7 +496,6 @@ __declspec(naked) void* __fastcall Screen8Member170(void*) EI_ORIGINAL(0x0067128
 __declspec(naked) void __fastcall Screen8Member170Destruct(void*) EI_ORIGINAL(0x006714A0)
 __declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
 __declspec(naked) void __fastcall ConstructCStringFrom(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
-__declspec(naked) void __fastcall DestructCString(void*) EI_ORIGINAL(0x00700970)
 
 std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 
@@ -548,7 +547,7 @@ EI_REPLACE(0x005F6D50, Screen8Construct);
 // CStrings at +0x10 / +0x14) back to the node allocator, then the container base.
 void __fastcall Screen8Destroy(void* self) {
     Screen8Member1D8Destruct(Bytes(self) + 0x1D8);
-    DestructCString(Bytes(self) + 0x1D4);
+    CStringDestroy(Bytes(self) + 0x1D4);
     std::uint8_t* list = Bytes(self) + 0x1C8;
     auto headerOf = [list] {
         std::uint8_t* h;
@@ -560,8 +559,8 @@ void __fastcall Screen8Destroy(void* self) {
     while (node != headerOf()) {
         std::uint8_t* next;
         std::memcpy(&next, node, 4);
-        DestructCString(node + 0x14);
-        DestructCString(node + 0x10);
+        CStringDestroy(node + 0x14);
+        CStringDestroy(node + 0x10);
         if (node) FreeNode18(node);
         node = next;
     }

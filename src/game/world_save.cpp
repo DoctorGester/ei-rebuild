@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
 #include "originals_world.h"
@@ -300,8 +301,6 @@ __declspec(naked) double __fastcall VariableGet(void* /*table*/, void*, const ch
 __declspec(naked) CEngineObject* __fastcall WorldFindUnit(CWorldServer*, void*, int /*id*/) EI_ORIGINAL(0x0055FB00)
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
-__declspec(naked) void __fastcall SectorMapRemove(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) void __fastcall SectorMapAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 // 00554450. The unit controller's reposition after a move.
 __declspec(naked) void __fastcall ControllerReposition(void*, void*) EI_ORIGINAL(0x00554450)
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: original address.
@@ -392,7 +391,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         MapObjectMarkChanged(object, nullptr, -1);
         if (object->type_ != 0x3B) {
             MapObjectSetupFigure(object, nullptr, At<const char*>(object, 0xA4));
-            SectorMapAdd(SectorMap(this), nullptr, object);
+            SectorMapAdd(AsSectorMap(SectorMap(this)), nullptr, object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -453,7 +452,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (int i = 0; i < stranded.size; ++i) {
         CEngineObject* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
-            SectorMapRemove(SectorMap(world), nullptr, unit);
+            SectorMapRemove(AsSectorMap(SectorMap(world)), nullptr, unit);
             Vector3& position = At<Vector3>(unit, 0x1C);
             Vector3 from;
             Vector3 to;
@@ -461,7 +460,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             std::memcpy(&to, &position, sizeof(Vector3));
             AIMapFindFreeCellNear(AIMap(world), nullptr, unit, &from, &to);
             std::memcpy(&position, &to, sizeof(Vector3));
-            SectorMapAdd(SectorMap(world), nullptr, unit);
+            SectorMapAdd(AsSectorMap(SectorMap(world)), nullptr, unit);
             ControllerReposition(At<void*>(unit, 0x240), nullptr);
         } else {
             ServerRemoveObject(world, nullptr, stranded.data[i]);

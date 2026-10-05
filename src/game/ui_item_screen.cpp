@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -258,7 +259,6 @@ namespace {
 // goes back to the allocator's free list 0079B234).
 __declspec(naked) void __fastcall FreeTextureHeaderAt(ItemObjectCache*) EI_ORIGINAL(0x005FA090)
 __declspec(naked) void __fastcall FreeModelHeaderAt(ItemObjectCache*) EI_ORIGINAL(0x005FA060)
-__declspec(naked) void __fastcall CStringDestruct(void*) EI_ORIGINAL(0x00700970)
 
 // STLport's node allocator for small blocks (free lists at 0079B224 by 8-byte size class; larger
 // blocks go back to the heap), inlined by the original.
@@ -291,7 +291,7 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     std::uint8_t* capacity;
     std::memcpy(&begin, bytes + 0x1AC, 4);
     std::memcpy(&end, bytes + 0x1B0, 4);
-    for (std::uint8_t* at = begin; at != end; at += 4) CStringDestruct(at);
+    for (std::uint8_t* at = begin; at != end; at += 4) CStringDestroy(at);
     std::memcpy(&begin, bytes + 0x1AC, 4);
     std::memcpy(&capacity, bytes + 0x1B4, 4);
     std::uint32_t entries = static_cast<std::uint32_t>(static_cast<int>(capacity - begin) >> 2);

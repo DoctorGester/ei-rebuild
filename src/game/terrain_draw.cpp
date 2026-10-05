@@ -51,7 +51,6 @@ std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007C88A0); }
 std::uint8_t& ClipGuards() { return *reinterpret_cast<std::uint8_t*>(0x007C88C8); }
 
 // The statics' constructors and exit handlers.
-__declspec(naked) int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) void __fastcall WordArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FEE9A)
 __declspec(naked) void __fastcall ByteArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FF5EA)
 __declspec(naked) void __fastcall WordArraySetSize(MfcArray*, void*, int, int) EI_ORIGINAL(0x006FEEFA)

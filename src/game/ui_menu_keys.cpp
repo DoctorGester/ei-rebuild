@@ -127,7 +127,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             cursor_ = 0;
         }
         if (cursor_ > 0) {
-            name = console::Ops(name).Left(cursor_ - 1) + console::Ops(name).Mid(cursor_);
+            name = name.Left(cursor_ - 1) + console::Ops(name).Mid(cursor_);
             --cursor_;
         }
         break;
@@ -137,7 +137,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
             name.Empty();
             cursor_ = 0;
         }
-        if (cursor_ < name.GetLength()) name = console::Ops(name).Left(cursor_) + console::Ops(name).Mid(cursor_ + 1);
+        if (cursor_ < name.GetLength()) name = name.Left(cursor_) + console::Ops(name).Mid(cursor_ + 1);
         break;
     case kKeyEnd:
     case kKeyHome:

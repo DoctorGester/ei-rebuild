@@ -12,6 +12,7 @@
 
 #include <bit>
 #include <cstring>
+#include "originals_library.h"
 
 #pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
@@ -116,7 +117,6 @@ struct CandidateList {
     void Construct(int blockSize);                  // 004C96A0
 };
 __declspec(naked) void CandidateList::Construct(int) EI_ORIGINAL(0x004C96A0)
-__declspec(naked) int __cdecl GameAtexit(void*) EI_ORIGINAL(0x006E727B)
 constexpr std::uintptr_t kCandidates = 0x007C54C8;
 constexpr std::uintptr_t kCandidatesGuard = 0x007C54E4;
 constexpr std::uintptr_t kCandidatesDestructor = 0x005D2570;
@@ -450,7 +450,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     if (!(*guard & 1)) {
         *guard |= 1;
         reinterpret_cast<CandidateList*>(kCandidates)->Construct(10);
-        GameAtexit(reinterpret_cast<void*>(kCandidatesDestructor));
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kCandidatesDestructor));
     }
     CUnit* self = brain->owner->unit;
     brain->CollectEnemies(self, reinterpret_cast<void*>(kCandidates));
