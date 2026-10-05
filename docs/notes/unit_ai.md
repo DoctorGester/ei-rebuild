@@ -67,6 +67,7 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005CB700 | AIBrain::UpdateMemory (memory, each Think; Think calls it through its address) | ours only: no report below 0, noticed level grew by the kind |
 | 005CB7F0 | AIBrain::IsEnemy (memory) | pure |
 | 005CF220, 005CFE40 | AIBrain::CurrentAttack, LookAround (`unit_ai_attention.cpp`; `this` the attention +0xA4, brain passed) | CurrentAttack output (original into a seeded scratch pair); LookAround ours only (attack action has a target); reached through 005D0030, 005D4170 and the Guard / Patrol / Sentry Execute |
+| 005D2850, 005CA050 | FearMode::Construct (script UMFear / UMAg, alarm assembly), CopyPoint2 (events, heard calls) | output: the original on a copy, all bytes and the returned pointer compared |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
 
 None is in `docs/rebirth-patched-functions.txt`; the only patched callee is FatalError, called

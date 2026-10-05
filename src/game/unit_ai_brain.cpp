@@ -245,16 +245,21 @@ EI_REPLACE_METHOD(0x005D63F0, AIBrain::AddAggressionMode);
 void AIBrain::AddCorpseWatcherMode() { AddMode(NewMode<CorpseWatcherMode>(aimode::kCorpseWatcherVtable)); }
 EI_REPLACE_METHOD(0x005D6440, AIBrain::AddCorpseWatcherMode);
 
+FearMode* FearMode::Construct(std::uint8_t newFlag) {
+    vtable = aimode::kFearVtable;
+    std::uint32_t bits = FearDistanceBits();
+    std::memcpy(&distance, &bits, sizeof(bits));
+    unknown_0C = 3.0f;
+    unknown_10.x = -1312.0f;    // unset
+    unknown_1C.z = 0.0f;
+    flag = newFlag;
+    return this;
+}
+EI_REPLACE_METHOD(0x005D2850, FearMode::Construct);
+
 void AIBrain::AddFearMode(std::uint8_t flag) {
     auto* mode = NewMode<FearMode>(aimode::kFearVtable);
-    if (mode) {
-        mode->unknown_1C.z = 0.0f;
-        mode->flag = flag;
-        std::uint32_t distance = FearDistanceBits();
-        std::memcpy(&mode->distance, &distance, sizeof(distance));
-        mode->unknown_0C = 3.0f;
-        mode->unknown_10.x = -1312.0f;      // unset
-    }
+    if (mode) mode->Construct(flag);    // inlined by the original
     AddMode(mode);
 }
 EI_REPLACE_METHOD(0x005D6480, AIBrain::AddFearMode);
@@ -345,6 +350,15 @@ void RemoveAllOf(mfc::CTypedPtrList<CEngineObject>& list, CEngineObject* object)
     while (auto* node = list.Find(object)) RemoveObjectNode(list, node);
 }
 } // namespace
+
+float* __fastcall CopyPoint2(float* out, const float* point) {
+    float x = point[0];
+    float y = point[1];
+    out[0] = x;
+    out[1] = y;
+    return out;
+}
+EI_REPLACE(0x005CA050, CopyPoint2);
 
 int AIBrain::Notice(const Vector3* point, int level, int kind) {
     if (level <= noticedLevel) return 0;

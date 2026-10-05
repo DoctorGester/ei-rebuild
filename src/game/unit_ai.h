@@ -319,6 +319,9 @@ struct CorpseWatcherMode : AIMode {
 
 // Fear (vtable 0073FF8C, 0x2C bytes): run from an enemy.
 struct FearMode : AIMode {
+    // 005D2850 (unit_ai_brain.cpp; after operator new). The vtable, distance from 0073FF00, 3, an
+    // unset point (x = -1312), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
+    FearMode* Construct(std::uint8_t flag);
     // 005D3650 (slot 6). Busy; drops action and target.
     void Enter(AIBrain* brain);
     // 005D3680 (slot 7). Clears busy.
@@ -393,6 +396,10 @@ struct AIRef {
 
     CEngineObject* object;
 };
+
+// 005CA050 (ECX = out, EDX = point; unit_ai_brain.cpp). Copies x and y of a point (the AI events'
+// and the heard calls' noticed points); returns `out`.
+float* __fastcall CopyPoint2(float* out, const float* point);
 
 // A call the perception memory heard (0x18 bytes; CallAllies sends kind 0x1A).
 struct AICallRecord {

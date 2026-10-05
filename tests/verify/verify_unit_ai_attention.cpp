@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace {
 void* s_unused;
@@ -59,3 +60,30 @@ static int __fastcall IsEnemyVerify(std::uint8_t* memory, void*, CUnit* self, CE
     return expected;
 }
 EI_VERIFY(0x005CB7F0, IsEnemyVerify, 8, s_isEnemy);
+
+// 005CA050 CopyPoint2: FLD [EDX+4]; FLD [EDX] (5 bytes). Output only: the original into a scratch
+// pair, ours into `out`; both pairs and the returned pointers compared.
+static float*(__fastcall* s_copyPoint2)(float*, const float*);
+static float* __fastcall CopyPoint2Verify(float* out, const float* point) {
+    float theirs[2];
+    float* returned = s_copyPoint2(theirs, point);
+    float* result = CopyPoint2(out, point);
+    bool ok = std::memcmp(theirs, out, sizeof(theirs)) == 0 && returned == theirs && result == out;
+    ei::verify::Check("CopyPoint2", true, ok, "%f %f", point[0], point[1]);
+    return result;
+}
+EI_VERIFY(0x005CA050, CopyPoint2Verify, 5, s_copyPoint2);
+
+// 005D2850 FearMode::Construct: MOV DL,[ESP+4]; MOV EAX,ECX (6 bytes). Output only: the original on
+// a copy of the 0x2C bytes, ours on the mode; all bytes and the returned pointer compared.
+static FearMode*(__fastcall* s_fearConstruct)(FearMode*, void*, std::uint8_t);
+static FearMode* __fastcall FearConstructVerify(FearMode* self, void*, std::uint8_t flag) {
+    FearMode copy;
+    std::memcpy(&copy, self, sizeof(copy));
+    FearMode* returned = s_fearConstruct(&copy, nullptr, flag);
+    FearMode* result = self->Construct(flag);
+    bool ok = std::memcmp(&copy, self, sizeof(copy)) == 0 && returned == &copy && result == self;
+    ei::verify::Check("FearMode::Construct", true, ok, "mode %p flag %d", self, flag);
+    return result;
+}
+EI_VERIFY(0x005D2850, FearConstructVerify, 6, s_fearConstruct);
