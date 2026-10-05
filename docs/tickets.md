@@ -15,8 +15,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
-- U6 (taken 2026-10-05) Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips; prefer ones a
-  scenario reaches: combat, movement, units, map_objects).
+- U7 Next 3-5 largest live game-logic functions in 0x00500000-0x00540000 (same skips).
 
 ## App and startup, 0x00440000-0x00480000
 
@@ -30,7 +29,9 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
-  - C2c (taken 2026-10-05) Network sessions, connections and messages (net_*).
+  - C2e (taken 2026-10-05) Network message classes, one class per message (net_message_classes.cpp,
+    net_messages.cpp, message offsets in net_server_* / net_client_*); docs/notes/cleanup-network.md.
+  - C2f Network links (net_link.*, net_session_pump.cpp): VCalls, duplicate layouts, FileStream from CStream.
   - C2d Camera.
 - C3 Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
   identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
@@ -39,3 +40,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
+- X2 (taken 2026-10-05) Classify as library: the unit database's STLport vector code 0053F530, 0053FCC0,
+  0053F950, 0053E2A0, 00520FA0, 00521220, 00521C70, 0051F790, 0051FB50, 00539CE0, 0053A050; 0051FF40
+  (perks.pdb saver, unreferenced) to dead_code.csv after checking references.
