@@ -1902,7 +1902,7 @@ scenario `tests/scenarios/ui_order_move.txt`. Shared headers (additive): `ui_scr
 | Address | Size | Name | Verify | Scenario |
 |---|---|---|---|---|
 | 00620A50 | 946 | `CUiItemStrip::Update` (slot 24 of 0074197C, 00741A1C, 00741BF4) | side by side: the original first, its scroll fields (+0x150..+0x17C) recorded and put back, then ours; floats within 4 ULPs, tab / arrow and the visible count exactly | ui_camp, ui_describe, frames_basic, render_present (the camp's strips, every frame), ui_hero_screen (the inventory strip) |
-| 00637DC0 | 510 | `CBattleScreenSetup::RefreshSelection` | ours only: the four panels' unit (+0x154) the one living selected unit or none, the unit panel's +0x14C the first selected (else unchanged), pending action and highlights cleared | every game scenario: the screen's slot 29 (006361B0, a unit joins the party: the new game's hero, a loaded party) ends with it; also slots 28 (items picked up, 00636150) and 30 (a member leaves, 006364E0), the member toggle 006379E0, a box drag (00638B30) and a network client's party change (00638280) |
+| 00637DC0 | 510 | `CBattleScreenSetup::RefreshSelection` | ours only: the four panels' unit (+0x154) the one living selected unit or none, the unit panel's +0x14C the first selected unit or null (the original clears it when nobody is selected), pending action and highlights cleared | every game scenario: the screen's slot 29 (006361B0, a unit joins the party: the new game's hero, a loaded party) ends with it; also slots 28 (items picked up, 00636150) and 30 (a member leaves, 006364E0), the member toggle 006379E0, a box drag (00638B30) and a network client's party change (00638280) |
 | 00636F10 | 640 | `CBattleScreen::OrderAt` (RET 0x14) | ours only: each member selected before is nodding (+0x38 1, or 2 when it answered at once) with a non-positive delay; the exit flag +0x18C 0 / 1, when 1 +0x188 the exit at the point (00578A00) | ui_order_move (new: two ground clicks, the hero must walk; a click that lands on a targetable object would go elsewhere, so check the call count), probably world_client's ground clicks |
 
 3 functions, about 2.1 KB. None is Rebirth-patched, and none of their callees is.
@@ -1967,3 +1967,20 @@ a unit's speech event: plays a phrase and nods or turns the portrait; called thr
 0063DB20 (the quick item panel's button release; ui_hud only moves over that panel), and the
 earlier list (briefing screen, network screens, global map path search 006312C0, hero creation
 00617A50).
+
+### After the first integration run (I6)
+
+- RefreshSelection's wrapper mismatched 3 of 142 calls (ui_camp, rebirth_flags) with nobody
+  selected: the original stores the first selected unit (null) into the unit panel's +0x14C
+  before testing it (00637EE5), so the panel is emptied, as ours does. The check expected it
+  unchanged; it now expects the first selected unit or null.
+- ui_order_move failed with hooks (the hero did not move) and passed without. OrderAt was
+  re-checked against 00636F10 instruction by instruction, also in the compiled DLL: the exit test,
+  the unit array (vtable 007402AC, SetSize 005EBDB0, data freed), the portrait nods, and the order
+  call (ECX = 005699F0's view; stack: array, point, ctrl & 0xFF; 0066A7D0 for mode 0, 0066A720
+  otherwise; RET 0x14) all match. The order message 0066A7D0 writes (0x30, unit count, ids, ctrl,
+  point) gets the same bytes. No difference was found, so the cause may be elsewhere in the hooked
+  click or move path (the button release 00638B30 and SelectUnit 00638EF0 are older rewrites;
+  the server side of the order too). Next step: a bisect run with 00636F10 and then 00637DC0 in
+  tests/verify/disabled.txt (copied next to the DLL). If it still fails, the bug predates I6 and ui_order_move is the
+  first scenario that checks a click moves the hero.

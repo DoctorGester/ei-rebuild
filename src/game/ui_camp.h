@@ -71,8 +71,8 @@ public:
     // selected the weapon bar, quick items, spell and action columns show it, otherwise they are
     // emptied (the action column keeps its extra button while anyone is selected); the unit panel
     // (+0x14C, +0x15C / +0x154 from the prototype's +0x20 / +0x24, 0063B920) shows the first
-    // selected unit when it changed; the pending action (+0x17C 0, +0x180 / +0x184 -1) and every
-    // panel highlight are cleared.
+    // selected unit (null with nobody selected) when it changed; the pending action (+0x17C 0,
+    // +0x180 / +0x184 -1) and every panel highlight are cleared.
     void RefreshSelection();
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
