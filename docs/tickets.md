@@ -7,13 +7,13 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R6 (taken 2026-10-05) Movie surfaces and the software cursor's draws to the primary surface.
+- R6 merged 2026-10-05 (movies, software cursor); clean-code fix for bink_video.cpp / ui_cursor_frame.cpp in progress.
 - R7 Holders with no DirectDraw surface at all (after R2/R3).
 - R8 Device setup and texture management (last).
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- U10 (taken 2026-10-05) Next 3-5 live unit functions; units.md "Eleventh round (U9)": 0052AC90 (magic trap vtable entry) and others reached by magic_traps / zone_gz2g_traps / combat.
+- U11 Next unit functions (units.md "Twelfth round (U10)").
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## App and startup, 0x00440000-0x00480000
@@ -21,6 +21,8 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
+
+- I10 (taken 2026-10-05) Next 3-5 live interface functions (ui.md latest passes), written clean (members, no offsets).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
