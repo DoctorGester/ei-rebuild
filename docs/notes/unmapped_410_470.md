@@ -1057,3 +1057,107 @@ Game code: 004A51C0 (a stream read from another, size prefix first), the CMemory
 004A5490 (Seek), 004A54D0 (Resize), 004A5570 (SetSize); the game's memmove 006E79A0. Virtual
 calls: the memory streams' slots 1-6, the file stream's slots 4 / 5, the CFile's Open / Close,
 GameBuffer's slots 4 / 6, a link's slots 11 / 13.
+
+## Twelfth round: the rest of 0047BB80-0047E340 (ticket A4)
+
+Files: `src/game/net_delta.h/.cpp` (the whole-stream functions, as BitStream / DeltaField members),
+`src/game/net_coder.h/.cpp` (the fixed buffer view's slots), verify
+`tests/verify/verify_net_streams.cpp`; `config/dead_code.csv` 15 rows. Shared headers: net_delta.h
+gained the declarations below, `BitStream::SetSize` (004A5570 forwarder) and a forward declaration
+of CoderState; net_coder.h gained `kBufferViewBaseVtable` and the view's four functions.
+
+The range turned out to hold, besides the dead 0073CA00 / 0073CA0C / 0073CA10 driver family, only
+the stream helpers of the message code and the fixed buffer view: no live driver code is left in it.
+
+### Classes
+
+- The fixed buffer view (0073CA64, a GameBuffer over memory owned elsewhere; net_coder.h): slots 0 /
+  1 / 3 / 4 are 004DA580-004DA5B0 (outside the range), 2 the shared empty 0047D900, 5 the deleting
+  destructor 0047D940 (body 0047D960), 6 Seek 0047D930. Its base 0073CA48 has only slots 2 and 5
+  (0047D910); the rest are pure. Views live on the stack; their destruction (the base's vtable) is
+  inlined, 0047D960 runs only while unwinding (the funclets of 0047D7F0 / 0047D970 and 007233D1).
+  The deleting destructors have no caller (only the vtables).
+- 0073CA0C: a one-slot base (deleting destructor 0047C9C0, body 0047CA70) of the dead 0073CA08
+  class; only dead code installs either.
+
+### What runs when
+
+- 0047D7F0 / 0047D970 (`BitStream::CompressTo` / `DecompressTo`): every frame of every game. The
+  client's send (00667810) compresses its message stream (+0x5C) with its coder (+0x88) into a stack
+  stream for the link's Send; the server's flush (0066D100) does the same with +0x48; the receivers
+  (00667A30 / 0066D270) decompress what the link delivered with the coder at +0x28B0 into +0x34 /
+  the global stream 007C83D0. In single player these go over the loopback pair, so every new-game
+  scenario reaches them (sandbox_actions.txt counted ~820 coder calls, almost all from here).
+- 0047DAE0 (`BitStream::ReadStream`): the client's world message (00669010, on every new game and
+  load) and the handlers 006690F0 / 006691C0.
+- 0047DA80 (`BitStream::WriteStream`): the server's sends (CPlayerServer::SendState02, 2 calls in
+  sandbox_actions.txt; 0066E430 / 0066E7D0).
+- 0047E190 / 0047E240 (`DeltaField::WriteStreamBoth` / `ReadStream`): only CEffectShowVisibility's
+  replication (slots at 00743874 / 00743870: 0067C7A0 writes a stream built by 005C8CC0, 0067C6B0
+  reads it back), i.e. the vision fog spell (spell effect 0x17). spells_cast.txt casts vision fog
+  from a script; without a caster it ends at once, so whether it replicates there is not known.
+- The view's Seek (0047D930) only if a cursor seeks a view; the other view slots in practice never.
+
+### Rewritten
+
+| Address | Name | Verify |
+|---|---|---|
+| 0047D7F0 / 0047D970 | BitStream::CompressTo / DecompressTo | original on a copy of the coder writing into a deep copy of the output stream, ours on the real ones; the outputs compared, and the coders but for the output cursor's three pointers into the freed result buffer (same offsets from the cursor's start) |
+| 0047DA80 / 0047DAE0 | BitStream::WriteStream / ReadStream | original on deep copies of both streams; result and both streams compared |
+| 0047E190 | DeltaField::WriteStreamBoth | original on a copy of the field (both outputs deep-copied) and a copy of `from` |
+| 0047E240 | DeltaField::ReadStream | the reader global pointed at a deep copy for the original's run; result, reader and target compared |
+| 0047D930 / 0047D960 | BufferViewSeek / BufferViewDestruct | side by side on a copy of the 0x1C bytes |
+| 0047D910 | BufferViewBaseDeletingDestructor | side by side on a copy when it does not free, else ours only |
+| 0047D940 | BufferViewDeletingDestructor | ours only (a CALL at +3) |
+
+Only memory streams (the two CMemoryStream vtables) are deep-copied (deltasnap::CloneStream);
+with any other stream ours runs alone. Inside our versions the coder (00430450 / 00430960) and
+BitStream::WriteStream / ReadStream are called directly (rewritten; not Rebirth-patched); the
+originals reach the coder through its hook, so its own wrapper runs there.
+
+### Original behaviour kept
+
+- WriteStream compares size * 2 with 0x100 signed: a stream of 0x40000000 bytes or more would get
+  a one-byte header. The size is read twice (after EndBits) through the stream's slot 4.
+- ReadStream reads the first header byte into a zeroed dword and tests only bit 0 of it; a length
+  over 100000 returns 0 without reading the body; a short read returns 0 after SetSize (the target
+  keeps the new size and the bytes read so far).
+- The compression functions recompute the result's length (the high-water mark raised again)
+  before the write; the view's vtable is set to its base before the result buffer is destroyed.
+
+### Skipped
+
+- Static initialisers (run before the hooks are installed): 0047C300 (WSAStartup(0x101) and the
+  atexit 0047C330; from the .data list at 007831F8) and 0047D7D0 (zeroes 007A9788 / 007A978C /
+  007A9790; 007831FC). Neither is a Ghidra function.
+- 0047C330 (not a Ghidra function): the atexit handler: waits (Sleep 1000) while 007A9774 is
+  nonzero, then WSACleanup. Only dead code (0047C3A0's thread 0047C3E0) changes 007A9774, so in
+  practice it only cleans up winsock at exit. Live but reached only at process exit; left for the
+  standalone build.
+- 0047D900 (RET): slot 2 of three buffer vtables, shorter than the jump.
+- Library rows 0047C220 / 0047C250 (config/library.csv): now known to be called only from the dead
+  0047BC10 / 0047BE80.
+
+### Dead code found (config/dead_code.csv)
+
+Not Ghidra functions, no references from anywhere (game.exe, addon.dll, EI_Plugin.asi,
+mp3dec.asi; three coincidental dwords in the Rebirth modules checked: instruction bytes and float
+constants): 0047BC10 (620 bytes, a 0x2014-byte stack frame, timeGetTime, the lists at +0x50 /
++0x70), 0047BE80 (390), 0047C070 (114), 0047C0F0 (226), 0047C360 (18, installs 0073CA00), 0047C4B0
+(99), 0047C550 (255), 0047D190 (445, the caller of 0047CFA0), 0047D350 (34), 0047D380 (342).
+Referenced only from dead code: 0047C3E0 (the thread 0047C3A0 starts), 0047D500 (an STLport list
+erase called from 0047D190), 0047CA70 and 0047D550 (from unwind funclets of 0047CA00 / 0047CAA0 /
+0047CFA0), 0047C9C0 (slot 0 of 0073CA0C, which only dead code installs).
+
+### Forwarders added (the standalone build must replace)
+
+004A5570 (CMemoryStream SetSize, as BitStream::SetSize), the growing buffer's constructor /
+destructor 004DA7F0 / 004DA910 (another copy in net_delta.cpp). Virtual calls: the memory streams'
+slots 1-4.
+
+### Notes for other files
+
+- player_messages.cpp declares its forwarder of 0047DA80 as `StreamWriteState(BitStream*, void*,
+  int value)`: the argument is the memory stream to copy (same stack size, so harmless).
+- net_delta.h's comment gives its range as 0047D7F0-0047FE90; the functions before 0047DB70 are the
+  ones of this round.

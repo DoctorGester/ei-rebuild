@@ -13,6 +13,8 @@
 #include <cstddef>
 #include <cstdint>
 
+struct CoderState;   // net_coder.h
+
 // A CMemoryStream (object.h) as the bit writer / reader of this code. Same layout; object.h names
 // +0xC, +0x10 and +0x14 by their use elsewhere (its growBy_ is this mask).
 struct BitStream {
@@ -43,10 +45,26 @@ struct BitStream {
     // The readers' inline bit read: true when the next bit is set (reads a byte after eight).
     bool GetBit();
 
+    // 0047DA80 (RET 4). Writes the memory stream `from` into this stream (its slot 2): `from`'s
+    // pending bits stored first (EndBits), then its size times two, in one byte when that is below
+    // 0x100 (a signed compare), otherwise in four bytes with bit 0 set; then its bytes.
+    void WriteStream(BitStream* from);
+    // 0047DAE0 (RET 4). Reads what WriteStream wrote (this stream's slot 1) into the memory stream
+    // `to`: resized to the length (SetSize), filled, back at position 0, ok set. 0 for a length
+    // over 100000 (nothing more read) or a short read, else 1.
+    int ReadStream(BitStream* to);
+    // 0047D7F0 / 0047D970 (RET 8). The whole of this memory stream (a fixed view over its bytes)
+    // compressed / decompressed by `coder` (00430450 / 00430960) into a growing buffer, which then
+    // replaces `out`'s contents; `out` is left at position 0. The coder keeps its window from call
+    // to call (the client's and the server's message streams).
+    void CompressTo(CoderState* coder, BitStream* out);
+    void DecompressTo(CoderState* coder, BitStream* out);
+
     // Not rewritten (004A5000-004A6000).
     void StartByte();                       // 004A5610: stores bits_, appends a zero byte for the next bits
     void EndBits();                         // 004A5650: stores bits_, no pending byte
     void Resize(std::uint32_t size);        // 004A54D0: size = size, position 0 (grows the buffer)
+    void SetSize(std::uint32_t size);       // 004A5570: size = size, position 0 (grows to exactly that)
     void ReadString(void* cstring);         // 00461190: CString up to a zero byte
 };
 static_assert(offsetof(BitStream, mask_) == 0x10);
@@ -113,6 +131,11 @@ struct DeltaField {
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
     // 0047E310. Reads a CString from the reader; returns `cstring`.
     void* ReadString(void* cstring);
+    // 0047E190 (RET 4). BitStream::WriteStream of `from` into both outputs (inlined twice; the
+    // pending bits stored before each).
+    void WriteStreamBoth(BitStream* from);
+    // 0047E240 (RET 4). BitStream::ReadStream from the reader into `to` (inlined; `this` unused).
+    int ReadStream(BitStream* to);
     // 0047E3A0. Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
     // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float and FISTP.
     void WritePosition(const Vector3* position);

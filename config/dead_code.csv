@@ -138,18 +138,28 @@ address,size,name,evidence
 0047AAF0,60,FUN_0047aaf0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047AB30,50,FUN_0047ab30,referenced only from dead code 0047A710 0047A8B0 0047AAF0
 0047ACA0,80,FUN_0047aca0,referenced only from dead code 0047A8B0 0047A980
+0047BC10,620,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0047BE80,390,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0047C010,93,FUN_0047c010,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0047C070,114,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0047C0F0,226,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0047C1E0,62,FUN_0047c1e0,referenced only from dead code 0047C151 0047C18B
 0047C280,121,FUN_0047c280,referenced only from dead code 0047BE1B
+0047C360,18,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi); installs vtable 0073CA00, which only dead code uses"
 0047C380,30,FUN_0047c380,referenced only from vtable(s) installed only by dead code 0073CA00
 0047C3A0,57,FUN_0047c3a0,referenced only from dead code 0047C380
+0047C3E0,63,(no Ghidra function),"referenced only from dead code 0047C3BF (the thread procedure 0047C3A0 starts with _beginthread)"
 0047C420,131,FUN_0047c420,"slot 13 of vtable 0073CA10, which only dead code installs (constructors 0047CAA0 / 0047CFA0; the script reaches 0047CAA0 only through the coincidental dword 0047CBE8 at 00426BF0, the bytes of a CALL)"
+0047C4B0,99,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0047C520,34,FUN_0047c520,"slot 11 of vtable 0073CA10 (only dead code installs it: see 0047C420)"
+0047C550,255,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0047C650,38,FUN_0047c650,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047C680,607,FUN_0047c680,referenced only from dead code 0047C8E0 004E72A0
 0047C8E0,210,FUN_0047c8e0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0047C9C0,32,FUN_0047c9c0,"slot 0 (deleting destructor) of vtable 0073CA0C, which only dead code installs (0047C8E0, 0047CA00, and its own destructors 0047C9C0 / 0047CA70)"
 0047C9E0,30,FUN_0047c9e0,referenced only from vtable(s) installed only by dead code 0073CA08
 0047CA00,100,FUN_0047ca00,referenced only from dead code 0047C9E0
+0047CA70,7,FUN_0047ca70,"destructor body of vtable 0073CA0C's class: reached only from the unwind funclet 007160F0 of dead code 0047CA00"
 0047CAA0,335,FUN_0047caa0,"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0047CBF0,64,FUN_0047cbf0,"referenced only from dead code 0047CAA0"
 0047CC30,45,FUN_0047cc30,"referenced only from dead code 0047CAA0"
@@ -161,7 +171,12 @@ address,size,name,evidence
 0047CEB0,167,FUN_0047ceb0,"destructor body of vtable 0073CA10's class, called only from its slot 0 0047CE90"
 0047CF60,57,FUN_0047cf60,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0047CFA0,453,FUN_0047cfa0,referenced only from dead code 0047D1DB
+0047D190,445,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0047D350,34,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
+0047D380,342,(no Ghidra function),"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0047D4E0,9,FUN_0047d4e0,referenced only from dead code 0047CFA0
+0047D500,52,(no Ghidra function),"referenced only from dead code 0047D1D2 0047D33A (an STLport list erase)"
+0047D550,7,FUN_0047d550,"reached only from the unwind funclets 0071611B / 007161EB of dead code 0047CAA0 / 0047CFA0"
 0047D560,62,FUN_0047d560,referenced only from dead code 0047D500
 0047D7A0,15,FUN_0047d7a0,"referenced only from dead code 0047CAA0 and 0047CFA0"
 0047DB70,91,FUN_0047db70,"no references at all (no call/jmp, no absolute pointer in code or data)"
