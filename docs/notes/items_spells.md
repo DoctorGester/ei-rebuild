@@ -56,7 +56,14 @@ non-zero weight (6 if none).
 | 0069FCA0, 006A2F20 | CItem::Construct, CItemArmor::Construct (`item_lifetime.cpp`) | original on scratch memory seeded with the real bytes, whole object compared |
 | 006A0540, 006A3AD0, 006A43A0, 006A49A0, 006A56E0 | Construct of weapon, quick, quest, loot, scroll (a CALL within 5 bytes: no trampoline) | ours only: CItem's fields, vtable, the weapon's -1.0 floats |
 | 0069FE20, 0069FE50 | CItem::CreateItem / DestroyItem (slots 2 / 3, every class) | ours only: count 1, spell and link (+0x1C) gone |
+| 0069FD70, 006A05B0, 006A2FC0, 006A3B30, 006A4420, 006A4A00, 006A5740 / 0069FD30, 006A0590, 006A2FA0, 006A3B10, 006A4400, 006A49E0, 006A5720 | CItem::DestructBody / DeletingDestruct (slot 0), one copy per class | ours only (slot 0 without the free, the wrapper frees): CEngineObject vtable, no owner, spell or link |
+| 006A0270 / 006A0360; 006A2E60 / 006A2EB0, 006A3A70 / 006A3AA0, 006A3C80 / 006A3CA0 (quick and scroll), 006A4570 / 006A4590, 006A5630 / 006A5680 | Load / Save (slots 9 / 10) of CItem, weapon, armour, quick, quest, loot (`item_save.cpp`) | Save side by side into capture streams; Load ours through a recording stream, then the class's original Save must write back exactly the bytes read |
 
+The seven destructor bodies are byte-identical (each stores CItem's vtable; the subclasses add nothing), as are the
+seven slot 0s. Load / Save: the base writes +0x18, +0x20..+0x3C, the spell's id (-1 none; Load looks it up in the
+context's spell manager), +0x48, +0x40; armour adds its two absorption rows (not layerMask_). The loot's Load reads
+kind_ / recordType_ through the stack slot of its stream argument, CItem's the spell id likewise (kept). Scenarios:
+Save every new game's autosave, Load world_load and ui_saveload.
 Constructors leave +0x40 (CItem) and the quick, quest, loot and scroll fields (+0x4C..) as they are; +0x20..+0x3C
 start at -1.0. The link at +0x1C is a CRefCounted (16-bit count) that Destroy deletes at 0.
 IsSameAs compares the base floats (+0x20..+0x2C, +0x34..+0x3C) as "equal or unordered" (FCOMP, TEST AH,40h) and

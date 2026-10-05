@@ -4,6 +4,7 @@
 // to eight modifiers, and the spell effects that turn them into damage. Class names come from the
 // game's own GetClassName strings where there is one; field names are provisional.
 
+#include "base_manager.h"
 #include "engine_object.h"
 #include "item_db.h"
 #include "maths.h"
@@ -271,9 +272,9 @@ static_assert(offsetof(CSpellContainer, modifiers_) == 0x20);
 static_assert(offsetof(CSpellContainer, spell_) == 0x30);
 static_assert(sizeof(CSpellContainer) == 0x90);
 
-// The spell manager (GetClassName "CSpellManager", vtable 00743A14; a CBaseManager). Only what
-// the construction code uses.
-class CSpellManager : public CEngineObject {
+// The spell manager (GetClassName "CSpellManager", vtable 00743A14). Only what the construction
+// code uses; the context (context_, +0xAC) gives the spell constructor (its slot 17).
+class CSpellManager : public CBaseManager {
 public:
     // 00688EB0. A new CSpellContainer (manager slot 23 with class 0x3003, key -1).
     CSpellContainer* NewContainer();
@@ -292,11 +293,8 @@ public:
     // unknown name is added to the map with a null record. Returns the new spell, or a fatal
     // error's result.
     CSpell* CreateSpellFromText(const char* text);
-
-    std::uint8_t unknown_1C[0xAC - 0x1C];
-    CEngineObject* context_;        // +0xAC its slot 17 gives the spell constructor
 };
-static_assert(offsetof(CSpellManager, context_) == 0xAC);
+static_assert(sizeof(CSpellManager) == 0xB0);
 
 // The spell constructor (GetClassName "CSpellConstructor", vtable 007439C8, 0x24 bytes).
 class CSpellConstructor : public CEngineObject {
