@@ -1,5 +1,12 @@
 # Ticket queue
 
+**FIRST after the next usage reset, before any other worker (user, 2026-10-05):** D1 trim the docs.
+docs/notes/*.md is 1.3 MB (ui.md 182 KB, units.md 119 KB, script.md 96 KB, ...) and workers read
+it on start. Rewrite each notes file as a current-state reference (what exists, layouts, rules,
+open items, skip lists), dropping per-ticket history, run logs and details the code already records
+(git history keeps them). Keep the rewrite guide and worker brief short. originals-report.md is
+generated: workers should not read it whole.
+
 From 2026-10-05 (user): workers own one area for about a usage session ("area tickets"), commit every
 3-5 functions with all checks green, and the coordinator merges the branch head periodically and runs
 the suite. Forwarder cleanup batches are 50.
@@ -22,17 +29,19 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
+- A-I (taken 2026-10-05) Area ticket: interface 0x005E0000-0x00640000.
+
 
 - I11 Next interface functions (ui.md "Nineteenth pass (ticket I10)"); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H (taken 2026-10-05) Area ticket: HUD, items, spells, effects, 0x00640000-0x006C0000.
+- A-H done 2026-10-05 (38 functions). A-H2 next session (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S (taken 2026-10-05) Area ticket: script runtime and scripts, 0x00480000-0x00500000.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (taken 2026-10-05): scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks

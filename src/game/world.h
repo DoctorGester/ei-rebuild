@@ -19,6 +19,7 @@ using BOOL = int;
 
 struct ScriptGroup;
 class CBaseManager;
+class CSpellManager;   // spell.h
 class Terrain;
 struct Float4;   // chunk_stream.h: four floats passed by value
 
@@ -128,7 +129,7 @@ public:
     virtual void Slot19();
     virtual void Slot20();
     virtual void Slot21();
-    virtual void Slot22();
+    virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
     virtual void Slot23();
     virtual void Slot24();
     virtual void Slot25();

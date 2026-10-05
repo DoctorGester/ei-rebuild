@@ -10,6 +10,7 @@
 #include "../lib/mfc.h"
 
 class CSpell;
+class CSpellManager;
 
 // CEngineObject::type_ of an item: which database its prototype lives in.
 enum ItemKind : int {
@@ -27,6 +28,23 @@ inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0
 // Base of every item (vtable 00743DA4).
 class CItem : public CEngineObject {
 public:
+    // Virtual slots 13-15 after CEngineObject's (vtable 00743DA4; the subclasses override 13 and
+    // 15 and call CItem's first). Rewritten bodies are the plain members below (rule 4).
+    virtual void InitFromRecordSlot(const char* record);    // 13: 006A0490 InitFromRecord
+    virtual BOOL IsSameAsSlot(CItem* other);                 // 14: 0069FE90 IsSameAs
+    virtual BOOL CopyToSlot(CItem* target, CSpellManager* spells);   // 15: 0069FFC0 CopyTo
+
+    // 0069FF70 (RET 4; party_items.cpp). A new item of the same kind from the owning manager
+    // (slot 23), given this one's values through slot 15 with the spell manager `spells`; when
+    // that fails the new item is released and the result is null.
+    CItem* Clone(CSpellManager* spells);
+    // 0069FFC0 (RET 8; slot 15's base body; party_items.cpp). Gives `target`, when it is of the
+    // same kind, this item's packed id and values +0x20..+0x40 (after its Destroy, slot 3), a copy
+    // of the attached spell (CSpell::Clone with `spells`; or none) and a count (+0x48) of 1.
+    // Returns 0 for another kind, else 1.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
+    BOOL CallCopyTo(CItem* target, CSpellManager* spells);   // through 0069FFC0 (its verify wrapper)
+
     // 006A0110. The prototype record for the item's kind and index; null for spell containers,
     // other kinds and indices out of range.
     char* GetPrototype();
@@ -97,6 +115,9 @@ public:
     mfc::CString FigureName();      // 006A2750
     mfc::CString PictureName();     // 006A27E0
 
+    // 006A0730 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C..+0x58.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
+
     std::uint32_t unknown_4C;
     float damage_;          // +0x50 prototype +0x90
     float damageSpread_;    // +0x54 prototype +0x94
@@ -120,6 +141,9 @@ public:
     mfc::CString FigureName();      // 006A3720
     mfc::CString PictureName();     // 006A37B0
 
+    // 006A3140 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then absorb_ and layerMask_.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
+
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
     float absorb_[2][7];            // +0x4C per damage type
@@ -136,13 +160,22 @@ public:
     mfc::CString FigureName();
     // 006A4040. Slot 20: "initqi<number>item".
     mfc::CString PictureName();
+    // 006A3C50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
+
+    std::uint32_t unknown_4C;
 };
+static_assert(sizeof(CItemQuick) == 0x50);
 
 // vtable 00743F04, GetClassId 0x14.
 class CItemQuest : public CItem {
 public:
     mfc::CString FigureName();      // 006A45C0 "quitem<number>"
     mfc::CString PictureName();     // 006A47B0 "initqu<number>item"
+    // 006A4540 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
+
+    std::uint32_t unknown_4C;
 };
 
 // vtable 00743FB4, GetClassId 0x16: a scroll (spell container).
@@ -150,6 +183,10 @@ class CItemSpell : public CItem {
 public:
     // 006A5820. Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
     mfc::CString FigureName();
+    // 006A57F0 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
+
+    std::uint32_t unknown_4C;
 };
 
 // vtable 00743F5C, GetClassId 0x15.
@@ -167,6 +204,8 @@ public:
     // "initqi1item" for spells and modifiers, "initlimt<index>item" for materials,
     // "initlitr<number>item" for the loot itself.
     mfc::CString PictureName();
+    // 006A4B50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then kind_, recordType_, index_.
+    BOOL CopyTo(CItem* target, CSpellManager* spells);
 
     std::uint32_t kind_;        // +0x4C 0 own price, 1 material, 2 record of recordType_
     std::uint32_t recordType_;  // +0x50 0 weapon, 1 armor, 2 quick item, 3 spell, 4 spell modifier
@@ -189,6 +228,12 @@ float __fastcall WeaponStat88(std::uint32_t packedId);      // 006A2D90
 // with the prototype's number as "%.2d" appended, "basearrow00" / "basearrow01" for types 5 / 6,
 // else "baser_hand3". False (only AL set) for index -1 or out of range.
 bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
+
+// 006A3480 (RET 4; item_model_names.cpp). The armour model name "<type>_<number>.<material
+// name>.<variant>" of armour prototype `armorIndex` in material `materialIndex` into `out` (emptied
+// first; left empty when either is out of range). The type code is copied into the stack slot of
+// `materialIndex`, so for a type without a code the index's own bytes are the code.
+void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
 
 // 006A3200. Armor prototype field +0xB8 by prototype index; 0 if out of range.
 int __fastcall ArmorFieldB8(std::uint32_t index);

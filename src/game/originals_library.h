@@ -223,6 +223,18 @@ __declspec(naked) inline void* __fastcall CStringAppendCharOriginal(void* /*stri
 __declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
                                                                     void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
 __declspec(naked) inline void __stdcall CStringElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE296)
+// 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
+// (vtable 0073D2F8; plain RET, EAX not a result).
+__declspec(naked) inline void __stdcall ScriptGroupElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC980)
+__declspec(naked) inline void __fastcall CStringArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C26A0)
+// 004C3B20 / 004C5AF0: CArray<ScriptGroup> / CArray<ScriptIfThen>::~CArray (plain RET). 004C7A10 / 004C82B0:
+// RemoveHead of the script instance / run lists, the element copy-constructed into `out` (RET 4, returns out).
+__declspec(naked) inline void __fastcall ScriptGroupArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C3B20)
+__declspec(naked) inline void __fastcall ScriptIfThenArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C5AF0)
+__declspec(naked) inline void* __fastcall ScriptInstancesRemoveHeadOriginal(void* /*list*/, void*, void* /*out*/)
+    EI_ORIGINAL(0x004C7A10)
+__declspec(naked) inline void* __fastcall ScriptRunsRemoveHeadOriginal(void* /*list*/, void*, void* /*out*/)
+    EI_ORIGINAL(0x004C82B0)
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
 // 004A8930: string copy constructor (RET 4, returns this). 004C96A0: pointer list constructor with a block size (RET 4,
@@ -278,6 +290,14 @@ __declspec(naked) inline void* __fastcall ScriptBlockListNewNodeOriginal(void* /
     EI_ORIGINAL(0x004CD6D0)
 __declspec(naked) inline void* __fastcall ScriptRunListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x004CDA30)
+// CList::NewNode(prev, next) of the script's particle source (004CD540), FX source (004CD5B0) and lightning
+// (004CD620) lists (RET 8, the node in EAX; the element zeroed, an FX source's name constructed empty).
+__declspec(naked) inline void* __fastcall ScriptParticleListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
+                                                                            void* /*next*/) EI_ORIGINAL(0x004CD540)
+__declspec(naked) inline void* __fastcall ScriptFxListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
+                                                                      void* /*next*/) EI_ORIGINAL(0x004CD5B0)
+__declspec(naked) inline void* __fastcall ScriptLightningListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/,
+                                                                             void* /*next*/) EI_ORIGINAL(0x004CD620)
 // 005588A0: CPtrList::FreeNode(node) (RET 4, EAX not a result). 00558C50: CPtrList::RemoveAll (plain RET).
 __declspec(naked) inline void __fastcall UnitListFreeNodeOriginal(void* /*list*/, void*, void* /*node*/)
     EI_ORIGINAL(0x005588A0)
