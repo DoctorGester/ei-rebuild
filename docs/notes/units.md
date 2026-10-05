@@ -1405,7 +1405,11 @@ name) and the name.
 
 - magic_traps.txt is the first scenario that loads another zone's .mob into zone1 (AddMob of
   zone2: seven traps and all of zone2's units and objects). A crash or timeout there may come from
-  zone2's objects, not the traps; the run happens at integration.
+  zone2's objects, not the traps; the run happens at integration. AddMob's name is relative to the
+  maps folder (00595BA0 prefixes the game folder + "maps\" from 0055E990): the first version of the
+  scenario passed "maps/zone2.mob", the file was not found, and LoadMapObjects' FatalError hung
+  vanilla (a message box) and returned 0 under Rebirth, the same without hooks. It now passes
+  "zone2.mob".
 - LoadTrap's check passes through a recording stream that forwards slots 0..2; a loader that used
   another stream slot would fail there (none does in 0050F7A0 / 0052AF20 or the string reader
   00461190; the companion's Load, 0050F7A0's first call, was not inspected).
