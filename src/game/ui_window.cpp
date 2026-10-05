@@ -361,9 +361,12 @@ void CUiWindow::ClearSceneObjects() {
 }
 EI_REPLACE_METHOD(0x005FF7D0, CUiWindow::ClearSceneObjects);
 
-void CUiWindow::AddSurface(CUiSurface* surface) {
-    if (!surface) return;
+// Returns `surface` (the original leaves its argument in EAX; the titles' Create 0062B7D0 freezes
+// the surface through the result).
+CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
+    if (!surface) return nullptr;
     surfaces_.Append(surface);
+    return surface;
 }
 EI_REPLACE_METHOD(0x005FFA90, CUiWindow::AddSurface);
 

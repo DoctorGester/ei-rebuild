@@ -462,8 +462,8 @@ static int __fastcall CampTakeOffVerify(CCampPages* self, void*, std::uint8_t* i
 }
 EI_VERIFY(0x0060FE40, CampTakeOffVerify, 0, s_unused);
 
-// 0060FCA0: ours only (it moves the item). A weapon put on a hero with room must be among the
-// hero's weapons afterwards.
+// 0060FCA0: ours only (it moves the item). A weapon put on a hero with room adds one weapon to
+// the hero (a copy: the record clones it).
 static void __fastcall CampPutOnVerify(CCampPages* self, void*, std::uint8_t* item) {
     int kind;
     std::memcpy(&kind, item + 0x10, 4);
@@ -473,21 +473,18 @@ static void __fastcall CampPutOnVerify(CCampPages* self, void*, std::uint8_t* it
     std::memcpy(&before, hero + 0x734, 4);
     self->PutOn(item);
     if (kind != 0x3004 || before >= 4) return;
-    int count;
-    std::uint8_t** weapons;
+    // The hero record keeps a copy of the weapon (006608D0 clones it), so the count is checked.
+    unsigned count;
     std::memcpy(&count, hero + 0x734, 4);
-    std::memcpy(&weapons, hero + 0x730, 4);
-    bool found = false;
-    for (int i = 0; i < count; ++i)
-        if (weapons[i] == item) found = true;
-    ei::verify::Check("CCampPages::PutOn", true, found, "weapons %u -> %d", before, count);
+    ei::verify::Check("CCampPages::PutOn", true, count == before + 1, "weapons %u -> %u", before, count);
 }
 EI_VERIFY(0x0060FCA0, CampPutOnVerify, 0, s_unused);
 
 // 00610920 / 00610AD0: ours only (they move items between lists). On the equipment and level-up
 // pages (0 / 1), where CanEquip only reads, the hero's equipment is checked: a weapon put on a
-// hero with room is among its weapons, an item taken off (mode 0) is neither among its weapons
-// nor its armour, a refused move leaves both counts alone. Other pages: the page stays.
+// hero with room adds one weapon (the record keeps a clone, so counts are compared), a weapon or
+// armour taken off (mode 0) removes one, a refused move leaves both counts alone. Other pages:
+// the page stays.
 namespace {
 struct HeroGear {
     int weapons, armour;
@@ -522,7 +519,7 @@ static void __fastcall CampPutOnFromStripVerify(CCampPages* self, void*, std::ui
     int kind = KindOf(item);
     self->PutOnFromStrip(item);
     bool ok = self->page_ == page;
-    if (equipPage && kind == 0x3004 && before.weapons < 4) ok = ok && GearOf(self, item).holds;
+    if (equipPage && kind == 0x3004 && before.weapons < 4) ok = ok && GearOf(self, item).weapons == before.weapons + 1;
     ei::verify::Check("CCampPages::PutOnFromStrip", true, ok, "page %d kind %X weapons %d", page, kind, before.weapons);
 }
 EI_VERIFY(0x00610920, CampPutOnFromStripVerify, 0, s_unused);
@@ -543,10 +540,12 @@ static void __fastcall CampMoveItemVerify(CCampPages* self, void*, std::uint8_t*
         HeroGear after = GearOf(self, item);
         if (!accepted)
             ok = ok && after.weapons == before.weapons && after.armour == before.armour;
-        else if (mode == 0 && (kind == 0x3004 || kind == 0x3005))
-            ok = ok && !after.holds;
+        else if (mode == 0 && kind == 0x3004)
+            ok = ok && after.weapons == before.weapons - 1;
+        else if (mode == 0 && kind == 0x3005)
+            ok = ok && after.armour == before.armour - 1;
         else if (mode == 1 && kind == 0x3004 && before.weapons < 4)
-            ok = ok && after.holds;
+            ok = ok && after.weapons == before.weapons + 1;
     }
     ei::verify::Check("CCampPages::MoveItem", true, ok, "page %d mode %d kind %X accepted %d", page, mode, kind,
                       accepted);

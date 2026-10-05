@@ -454,12 +454,14 @@ static void __fastcall ClearSceneObjectsVerify(CUiWindow* self) {
 }
 EI_VERIFY(0x005FF7D0, ClearSceneObjectsVerify, 0, s_unused);
 
-static void __fastcall AddSurfaceVerify(CUiWindow* self, void*, CUiSurface* surface) {
+static CUiSurface* __fastcall AddSurfaceVerify(CUiWindow* self, void*, CUiSurface* surface) {
     ArraySnapshot before;
     before.Take(self->surfaces_);
-    self->CUiWindow::AddSurface(surface);
-    bool ok = surface ? AppendedCorrectly(before, self->surfaces_, surface) : self->surfaces_.size_ == before.size;
+    CUiSurface* result = self->CUiWindow::AddSurface(surface);
+    bool ok = (surface ? AppendedCorrectly(before, self->surfaces_, surface) : self->surfaces_.size_ == before.size) &&
+              result == surface;
     ei::verify::Check("CUiWindow::AddSurface", true, ok, "surface %p size %d", surface, before.size);
+    return result;
 }
 EI_VERIFY(0x005FFA90, AddSurfaceVerify, 0, s_unused);
 

@@ -1658,3 +1658,17 @@ scenario reaches it. 0062B7D0 is not the main menu's setup but the titles window
 (slot 25 of 00740C3C; the Titles script parsing, movie / sound player); now reached by
 ui_main_menu, left for a later pass (heavy STLport and parser code). 006337B0 (the difficulty
 question's Create) also reached by ui_main_menu now.
+
+### Fixes after the first in-game run
+
+- `CUiWindow::AddSurface` (005FFA90, an earlier rewrite) returned nothing; the original leaves its
+  argument in EAX, and the titles' Create (0062B7D0) freezes the new surface through that result
+  (crash in 005FD760 reading 0000000D when ui_main_menu opened the titles). It now returns the
+  surface; its wrapper checks that.
+- The hero record keeps a clone of a weapon put on (006608D0 copies the item), so PutOn's and the
+  new wrappers' "the item is among the weapons" checks were wrong; they compare weapon (armour)
+  counts now.
+- ShowPageTabsVerify (006110F0, camp slot 44) read all three strips' tabs; the spell and part
+  strips exist only with their constructor (leftover bytes otherwise), and the equipment panel's
+  click (005EE310) calls slot 44 when it finds no item, e.g. an empty body slot clicked by
+  ui_describe. The wrapper reads only the strips the page uses.

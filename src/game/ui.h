@@ -322,7 +322,7 @@ public:
     void ClearSceneObjects();
 
     // 005FFA90 / 005FFBF0 / 005FFC50. Surfaces the window owns.
-    void AddSurface(CUiSurface* surface);
+    CUiSurface* AddSurface(CUiSurface* surface);   // returns `surface`
     void RemoveSurfaceAt(int index);
     void ClearSurfaces();
 

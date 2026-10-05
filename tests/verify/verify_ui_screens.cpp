@@ -500,8 +500,14 @@ static bool __fastcall CanEquipVerify(CMpHeroScreen* self, void*, char* item, in
 }
 EI_VERIFY(0x006188E0, CanEquipVerify, 6, s_canEquip);
 
+// Only the strips the page uses are read: the spell and part strips exist only with their
+// constructor (otherwise the fields hold leftover bytes), and the equipment panel calls this slot
+// (44) with other values when a click finds no item.
 static void __fastcall ShowPageTabsVerify(CCampScreen* self, void*, int page, int unused) {
-    CUiItemStrip* strips[3] = {self->itemStrip_, self->spellStrip_, self->partStrip_};
+    bool used[3] = {(page >= 1 && page <= 10) || page == 16 || (page >= 13 && page <= 15) || (page >= 19 && page <= 21),
+                    page >= 19 && page <= 21, page >= 13 && page <= 15};
+    CUiItemStrip* strips[3] = {used[0] ? self->itemStrip_ : nullptr, used[1] ? self->spellStrip_ : nullptr,
+                               used[2] ? self->partStrip_ : nullptr};
     int expected[3];
     for (int i = 0; i < 3; ++i) expected[i] = strips[i] ? strips[i]->tab_ : -1;
     if (TabKeys()) {
