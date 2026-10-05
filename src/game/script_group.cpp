@@ -17,8 +17,7 @@ __declspec(naked) CEngineObject* ObjectRegistry::FindObject(int) EI_ORIGINAL(0x0
 ObjectRegistry* Registry() { return reinterpret_cast<ObjectRegistry*>(0x007AFF60); }
 
 // The game's CRT.
-__declspec(naked) void __cdecl GameQsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*))
-    EI_ORIGINAL(0x006E88FC)
+void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { GameQsortOriginal(a0, a1, a2, a3); }
 
 constexpr int kClassUnit = 0x50;          // CEngineObject::GetClassId() of units
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world

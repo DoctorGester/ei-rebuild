@@ -277,7 +277,7 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 // 004D23A0 CScript::Load (rewritten; through its address so its verify wrapper runs).
 BOOL __fastcall LoadOrig(CScript* a0, void*, mfc::CString* a2, BOOL a3) { return (BOOL)ScriptLoadLine((void*)a0, nullptr, (const mfc::CString*)a2, (int)a3); }
 // 00700B9F operator+(const CString&, const CString&), constructing the result in `out`.
-__declspec(naked) mfc::CString* __stdcall ConcatString(mfc::CString* /*out*/, const mfc::CString*, const mfc::CString*) EI_ORIGINAL(0x00700B9F)
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
 // operator+'s result, destroyed with the holder.
 class Sum {

@@ -10,6 +10,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -102,10 +103,10 @@ __declspec(naked) void __fastcall UnitMemorySave(void*, void*, UnitStream*) EI_O
 // CString at `out` and returns it.
 __declspec(naked) mfc::CString* __fastcall StreamReadString(UnitStream*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 // 00665B50 / 00665A70. The player loses / gains the unit.
-__declspec(naked) void __fastcall PlayerRemoveUnit(void* /*player*/, void*, CUnit*) EI_ORIGINAL(0x00665B50)
-__declspec(naked) void __fastcall PlayerAddUnit(void* /*player*/, void*, CUnit*) EI_ORIGINAL(0x00665A70)
+void __fastcall PlayerRemoveUnit(void* a0, void*, CUnit* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
+void __fastcall PlayerAddUnit(void* a0, void*, CUnit* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
 // 005335E0. hash_map<string, record*>::operator[] (inserts a null entry for an unknown name).
-__declspec(naked) char** __fastcall PrototypeNameMapAt(void* /*map*/, void*, const RawString* /*key*/) EI_ORIGINAL(0x005335E0)
+char** __fastcall PrototypeNameMapAt(void* a0, void*, const RawString* a2) { return (char**)PrototypeMapAtOriginal(a0, nullptr, a2); }
 // Rewritten elsewhere, called through their game addresses: 00594180 CWorldServer::GetPlayer
 // (world_server.cpp), 00523550 UnitParams::Reset (unit_stats_pack.cpp), 00403F40
 // CBaseManager::FindObject (base_manager.cpp).

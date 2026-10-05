@@ -18,7 +18,7 @@ constexpr int kSlotFileRead = 13;    // CFile slot 13 (+0x34): Read(buffer, coun
 constexpr int kSlotFileWrite = 14;   // CFile slot 14 (+0x38): Write(buffer, count)
 
 // 00700E17 (RET 4). CString::GetBufferSetLength.
-__declspec(naked) char* __fastcall StringBufferSetLength(void*, void*, int) EI_ORIGINAL(0x00700E17)
+char* __fastcall StringBufferSetLength(void* a0, void*, int a2) { return CStringGetBufferSetLengthOriginal(a0, nullptr, a2); }
 
 void Write(void* file, const void* data, int size) { ei::VCall<void>(file, kSlotFileWrite, data, static_cast<unsigned>(size)); }
 void Read(void* file, void* data, int size) { ei::VCall<unsigned>(file, kSlotFileRead, data, static_cast<unsigned>(size)); }

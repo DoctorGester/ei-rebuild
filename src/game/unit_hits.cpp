@@ -76,7 +76,7 @@ struct UnitLogStream {
     UnitLogStream* Apply(void* manipulator);   // 00434FE0: manipulator(*this)
 };
 UnitLogStream* UnitLogStream::Put(const char* text) { return static_cast<UnitLogStream*>(OstreamPutString(this, nullptr, text)); }
-__declspec(naked) UnitLogStream* UnitLogStream::Put(double) EI_ORIGINAL(0x006FC7FA)
+UnitLogStream* UnitLogStream::Put(double v) { return static_cast<UnitLogStream*>(OstreamPutDoubleOriginal(this, nullptr, v)); }
 UnitLogStream* UnitLogStream::PutChar(int c) { return static_cast<UnitLogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
 UnitLogStream* UnitLogStream::Apply(void* manipulator) { return static_cast<UnitLogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 

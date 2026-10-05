@@ -324,3 +324,84 @@ __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, 
 __declspec(naked) inline void __fastcall CStringVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x0051F5B0)
 __declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
+
+// C3l. MSVC 6 ostream members on the game's streams; all return the stream (`this`): 006FC14E operator<<(unsigned) (format "%u",
+// RET 4), 006FC91C operator<<(long) (format "%ld", RET 4; 006FC9C6 above is the "%d" one), 006FC7FA operator<<(double) (RET 8: the
+// double is passed on the stack).
+__declspec(naked) inline void* __fastcall OstreamPutUnsignedOriginal(void* /*stream*/, void*, unsigned /*value*/)
+    EI_ORIGINAL(0x006FC14E)
+__declspec(naked) inline void* __fastcall OstreamPutSignedLongOriginal(void* /*stream*/, void*, long /*value*/)
+    EI_ORIGINAL(0x006FC91C)
+__declspec(naked) inline void* __fastcall OstreamPutDoubleOriginal(void* /*stream*/, void*, double /*value*/)
+    EI_ORIGINAL(0x006FC7FA)
+// MFC CString operator+(const CString&, const CString&) 00700B9F / (const CString&, const char*) 00700C05 (__stdcall, RET 0xC:
+// the result slot, left, right; EAX = the result slot). src/lib/mfc.cpp keeps its operator+ members.
+__declspec(naked) inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/,
+                                                                       const mfc::CString* /*right*/)
+    EI_ORIGINAL(0x00700B9F)
+__declspec(naked) inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/,
+                                                                           const char* /*right*/)
+    EI_ORIGINAL(0x00700C05)
+// 006FD4DE: CString(const char*, int count) (RET 8, returns this). 006FE1D3: CString::TrimLeft(char) (RET 4, no result).
+__declspec(naked) inline void* __fastcall CStringConstructCountOriginal(void* /*string*/, void*, const char* /*text*/,
+                                                                        int /*count*/) EI_ORIGINAL(0x006FD4DE)
+__declspec(naked) inline void __fastcall CStringTrimLeftCharOriginal(void* /*string*/, void*, char /*c*/)
+    EI_ORIGINAL(0x006FE1D3)
+// Instances of std::list<int> on the node pool (the list's head node is at +0): 004049D0 end() (RET 4: out; *out = the head
+// node; EAX = out), 00404A40 insert(out, pos, value) (RET 0xC; EAX = out), 00404A70 constructor (RET 4: the allocator tag;
+// returns this). 0068C560 is insert(out, pos, value) of a list of pointers (RET 0xC; EAX = out).
+__declspec(naked) inline void** __fastcall ListEnd4049D0Original(const void* /*list*/, void*, void** /*out*/)
+    EI_ORIGINAL(0x004049D0)
+__declspec(naked) inline void** __fastcall ListInsert404A40Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
+                                                                    const void* /*value*/) EI_ORIGINAL(0x00404A40)
+__declspec(naked) inline void* __fastcall ListConstruct404A70Original(void* /*list*/, void*, const void* /*alloc*/)
+    EI_ORIGINAL(0x00404A70)
+__declspec(naked) inline void** __fastcall ListInsert68C560Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
+                                                                    const void* /*value*/) EI_ORIGINAL(0x0068C560)
+// SetAtGrow(index, value) of two 4-byte element arrays (the same code, one copy per instantiation): 00460500 (dwords) and
+// 0059D2E0 (pointers to party member records); both RET 8, EAX is not a result.
+__declspec(naked) inline void __fastcall DwordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/,
+                                                                     std::uint32_t /*value*/) EI_ORIGINAL(0x00460500)
+__declspec(naked) inline void __fastcall RecordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, void* /*record*/)
+    EI_ORIGINAL(0x0059D2E0)
+// 004E2FA0: vector<dword>::_M_insert_overflow(position, value, count) on the node allocator (ECX = vector; RET 0xC; EAX is not a
+// result).
+__declspec(naked) inline void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
+                                                                           const void* /*value*/, std::uint32_t /*count*/)
+    EI_ORIGINAL(0x004E2FA0)
+// Counted objects (virtual slot 4 releases): 005703C0 clear() of their list (ECX = list; each node's object is released and the
+// node goes back to the node pool; plain RET, no result); 00573290 the same list's NewNode(prev, next) (RET 8, EAX = the node,
+// its data cleared; a CPtrList instance); 0059A100 the pointer array's destructor (releases every element, frees the buffer;
+// plain RET, no result); 0059C890 releases `count` elements from `first` (stdcall, RET 8, no result).
+__declspec(naked) inline void __fastcall CountedListClearOriginal(void* /*list*/) EI_ORIGINAL(0x005703C0)
+__declspec(naked) inline void* __fastcall PtrListNewNode573290Original(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
+    EI_ORIGINAL(0x00573290)
+__declspec(naked) inline void __fastcall CountedPtrArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x0059A100)
+__declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
+// MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
+// result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
+// 006E6722 GetFilePath(out) (RET 4, EAX = out). src/lib/mfc.cpp keeps its CFileFind members.
+__declspec(naked) inline void* __fastcall CFileFindConstructOriginal(void* /*find*/) EI_ORIGINAL(0x006E6370)
+__declspec(naked) inline void __fastcall CFileFindDestructOriginal(void* /*find*/) EI_ORIGINAL(0x006E63AD)
+__declspec(naked) inline void __fastcall CFileFindCloseOriginal(void* /*find*/) EI_ORIGINAL(0x006E63E9)
+__declspec(naked) inline int __fastcall CFileFindFindFileOriginal(void* /*find*/, void*, const char* /*name*/,
+                                                                  unsigned long /*flags*/) EI_ORIGINAL(0x006E6433)
+__declspec(naked) inline mfc::CString* __fastcall CFileFindPathOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
+    EI_ORIGINAL(0x006E6722)
+// 006E88FC: the CRT's qsort (cdecl, plain RET, no result).
+__declspec(naked) inline void __cdecl GameQsortOriginal(void* /*base*/, std::size_t /*count*/, std::size_t /*size*/,
+                                                        int(__cdecl* /*compare*/)(const void*, const void*))
+    EI_ORIGINAL(0x006E88FC)
+// 006FF29A: SetSize(count, growBy) of a dword array (RET 8, no result). 00700D4C: CString::operator+=(const char*) (RET 4, returns
+// this). 00700E17: CString::GetBufferSetLength(length) (RET 4, EAX = the buffer). src/lib/mfc.cpp keeps its CString members.
+__declspec(naked) inline void __fastcall UIntArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
+    EI_ORIGINAL(0x006FF29A)
+__declspec(naked) inline void* __fastcall CStringAppendTextOriginal(void* /*string*/, void*, const char* /*text*/)
+    EI_ORIGINAL(0x00700D4C)
+__declspec(naked) inline char* __fastcall CStringGetBufferSetLengthOriginal(void* /*string*/, void*, int /*length*/)
+    EI_ORIGINAL(0x00700E17)
+// MFC CDC (output DC at +4, attribute DC at +8): 007090C2 SetBkMode(mode) (RET 4, EAX = the previous mode), 0070BB04
+// FillSolidRect(x, y, cx, cy, colour) (RET 0x14, no result).
+__declspec(naked) inline int __fastcall DcSetBkModeOriginal(void* /*dc*/, void*, int /*mode*/) EI_ORIGINAL(0x007090C2)
+__declspec(naked) inline void __fastcall DcFillSolidRectOriginal(void* /*dc*/, void*, int /*x*/, int /*y*/, int /*cx*/,
+                                                                 int /*cy*/, std::uint32_t /*colour*/) EI_ORIGINAL(0x0070BB04)

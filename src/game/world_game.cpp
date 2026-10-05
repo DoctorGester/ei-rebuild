@@ -1427,12 +1427,12 @@ namespace {
 
 // MFC CFileFind (0x1C bytes) members, and the Win32 calls through game.exe's import slots (harness
 // runs redirect those to harness_saves).
-__declspec(naked) void __fastcall FinderConstruct(void*, void*) EI_ORIGINAL(0x006E6370)
-__declspec(naked) void __fastcall FinderDestruct(void*, void*) EI_ORIGINAL(0x006E63AD)
-__declspec(naked) int __fastcall FinderFindFile(void*, void*, const char*, unsigned long) EI_ORIGINAL(0x006E6433)
-__declspec(naked) int __fastcall FinderNext(void*, void*) EI_ORIGINAL(0x006E6653)
-__declspec(naked) mfc::CString* __fastcall FinderPath(void*, void*, void* /*out*/) EI_ORIGINAL(0x006E6722)
-__declspec(naked) void __fastcall FinderClose(void*, void*) EI_ORIGINAL(0x006E63E9)
+void __fastcall FinderConstruct(void* a0, void*) { CFileFindConstructOriginal(a0); }
+void __fastcall FinderDestruct(void* a0, void*) { CFileFindDestructOriginal(a0); }
+int __fastcall FinderFindFile(void* a0, void*, const char* a2, unsigned long a3) { return CFileFindFindFileOriginal(a0, nullptr, a2, a3); }
+int __fastcall FinderNext(void* a0, void*) { return CFileFindNext((mfc::CFileFind*)a0); }
+mfc::CString* __fastcall FinderPath(void* a0, void*, void* a2) { return CFileFindPathOriginal(a0, nullptr, (mfc::CString*)a2); }
+void __fastcall FinderClose(void* a0, void*) { CFileFindCloseOriginal(a0); }
 constexpr std::uintptr_t kAllFiles = 0x007905B4;   // "*.*"
 using CreateDirectoryFn = BOOL(__stdcall*)(const char*, void*);
 using DeleteFileFn = BOOL(__stdcall*)(const char*);
@@ -1634,7 +1634,7 @@ __declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
 __declspec(naked) void __fastcall BeginMultiplayerGameAt(GameFlow*, void*) EI_ORIGINAL(0x0057F280)
 // 005F74F0 (the interface 007C7D50): closes its windows for the zone change.
-__declspec(naked) void __fastcall InterfaceCloseAll(void*) EI_ORIGINAL(0x005F74F0)
+void __fastcall InterfaceCloseAll(void* a0) { InterfaceCloseAllOriginal(a0); }
 // 0057CB50 (ECX name): switches the resource database.
 __declspec(naked) void __fastcall SwitchResources(const char*) EI_ORIGINAL(0x0057CB50)
 // The client world (007AF5B8): its tick (005641F0), a zone check (00566D80, AL); the server's
@@ -1957,7 +1957,7 @@ unsigned& AppliedStamp() { return *reinterpret_cast<unsigned*>(0x007AFED4); }  /
 // The quest text files (007AFDD0, 12-byte strings) and the briefing texts (007AF788).
 __declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
 // Local NamedFloatTable copies: 00581790 an empty one (100 buckets), 00580900 a copy.
-__declspec(naked) void __fastcall VariablesConstruct(NamedFloatTable*) EI_ORIGINAL(0x00581790)
+void __fastcall VariablesConstruct(NamedFloatTable* a0) { NamedTableConstructOriginal(a0); }
 __declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const NamedFloatTable*) EI_ORIGINAL(0x00580900)
 __declspec(naked) void __fastcall VariablesClearAt(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).

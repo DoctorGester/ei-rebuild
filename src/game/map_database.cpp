@@ -38,7 +38,7 @@ __declspec(naked) void __stdcall DestructMaps(void*, int) EI_ORIGINAL(0x004607B0
 __declspec(naked) void __stdcall ConstructExits(void*, int) EI_ORIGINAL(0x004606A0)
 __declspec(naked) void __stdcall DestructExits(void*, int) EI_ORIGINAL(0x00460670)
 // CDWordArray::SetAtGrow (the allod's map list).
-__declspec(naked) void __fastcall SetAtGrowDword(void* /*array*/, void*, int /*index*/, std::uint32_t /*value*/) EI_ORIGINAL(0x00460500)
+void __fastcall SetAtGrowDword(void* a0, void*, int a2, std::uint32_t a3) { DwordArraySetAtGrowOriginal(a0, nullptr, a2, a3); }
 
 // *out = float(GameAtof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).

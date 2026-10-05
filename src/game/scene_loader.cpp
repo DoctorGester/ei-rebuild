@@ -15,6 +15,7 @@
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_render.h"
 
 #include <cstring>
 
@@ -168,7 +169,7 @@ __declspec(naked) void __fastcall DestroyPointBlock(ArrayBody*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall SetSizeHelpers(VtArray*, void*, int, int) EI_ORIGINAL(0x00453550)
 
 // MFC.
-__declspec(naked) void __fastcall SetSizeDwordArray(VtArray*, void*, int, int) EI_ORIGINAL(0x006FF29A)
+void __fastcall SetSizeDwordArray(VtArray* a0, void*, int a2, int a3) { UIntArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 // Vtables of the record's local arrays.
 constexpr std::uintptr_t kPointArrayVtable = 0x0073C860;      // A
@@ -797,7 +798,7 @@ __declspec(naked) void __fastcall PrepareMeshes2(VtArray*) EI_ORIGINAL(0x0044CFF
 __declspec(naked) void __fastcall PrepareMesh(void*) EI_ORIGINAL(0x0044E8A0)
 __declspec(naked) void* __fastcall FindTexture(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051B2F0)
 __declspec(naked) void* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
-__declspec(naked) int __fastcall RegisterTexture(void*, void*, void*, std::uint32_t) EI_ORIGINAL(0x0068EAF0)
+int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return MaterialRegisterOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall FinishFigure(void*) EI_ORIGINAL(0x005A6D40)
 __declspec(naked) void __fastcall AddFigure(void*, void*, void*) EI_ORIGINAL(0x005164B0)
 __declspec(naked) int __fastcall BindSkin(void*, void*, void*) EI_ORIGINAL(0x00508BF0)

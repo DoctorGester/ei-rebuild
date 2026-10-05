@@ -62,8 +62,7 @@ struct KeyVector {
     void InsertOverflow(std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count);
 };
 __declspec(naked) void KeyVector::Construct(const char*) EI_ORIGINAL(0x004E2BA0)
-__declspec(naked) void KeyVector::InsertOverflow(std::uint32_t*, const std::uint32_t*, std::uint32_t)
-    EI_ORIGINAL(0x004E2FA0)
+void KeyVector::InsertOverflow(std::uint32_t* a0, const std::uint32_t* a1, std::uint32_t a2) { DwordVectorInsertOverflowOriginal(this, nullptr, a0, a1, a2); }
 
 KeyVector& DeadCells() { return *reinterpret_cast<KeyVector*>(0x007ABB58); }
 std::uint8_t& DeadCellsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007ABB64); }

@@ -316,7 +316,7 @@ void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) {
 
 void IdArray::SetSize(int n, int g) { DwordArraySetSizeOriginal(this, nullptr, n, g); }
 __declspec(naked) void ObjectPtrArray::Construct() EI_ORIGINAL(0x005985C0)
-__declspec(naked) void ObjectPtrArray::Destruct() EI_ORIGINAL(0x0059A100)
+void ObjectPtrArray::Destruct() { CountedPtrArrayDestructOriginal(this); }
 __declspec(naked) void SharedObject::CopyFrom(const SharedObject*) EI_ORIGINAL(0x0059B510)
 __declspec(naked) void SharedObject::Load(WorldStream*) EI_ORIGINAL(0x00589CA0)
 __declspec(naked) SharedObjectNode* SharedObjectList::NewNode(SharedObjectNode*, SharedObjectNode*) EI_ORIGINAL(0x0059CA60)
@@ -908,7 +908,7 @@ __declspec(naked) void __fastcall ObjectPtrArrayCopy(ObjectPtrArray*, void*, con
 // in LoadSharedObject.
 __declspec(naked) void __fastcall ObjectPtrArraySetSize(ObjectPtrArray*, void*, int, int) EI_ORIGINAL(0x0059C8C0)
 // 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
-__declspec(naked) void __stdcall CountedRangeRelease(CEngineObject**, int) EI_ORIGINAL(0x0059C890)
+void __stdcall CountedRangeRelease(CEngineObject** a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
 // 00403F40 (RET 4). The item manager's (007AFFB4) object by id, or null.
 
 constexpr std::uintptr_t kObjectPtrArrayVtable = 0x0073FAC8;

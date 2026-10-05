@@ -20,7 +20,7 @@ namespace net {
 // The network log's inserters (library), declared in net_classes.h.
 LogStream* LogStream::Put(const char* text) { return static_cast<LogStream*>(OstreamPutString(this, nullptr, text)); }
 LogStream* LogStream::PutChar(char c) { return static_cast<LogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-__declspec(naked) LogStream* LogStream::PutInt(int) EI_ORIGINAL(0x006FC14E)
+LogStream* LogStream::PutInt(int a0) { return static_cast<LogStream*>(OstreamPutUnsignedOriginal(this, nullptr, static_cast<unsigned>(a0))); }
 LogStream* LogStream::Apply(void* manipulator) { return static_cast<LogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
 namespace {

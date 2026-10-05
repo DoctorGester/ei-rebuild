@@ -107,7 +107,7 @@ void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a
 __declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
 __declspec(naked) void __fastcall NamesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x004CE5F0)
 // 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.
-__declspec(naked) mfc::CString* __stdcall ConcatString(mfc::CString* /*out*/, const mfc::CString*, const mfc::CString*) EI_ORIGINAL(0x00700B9F)
+mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
 // The type letters (0078BBD8 "f", 0078BBD4 "s", 0078BBD0 "o", 0078BBCC "g").
 const char* Letter(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }

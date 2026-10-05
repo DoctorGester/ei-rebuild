@@ -9,6 +9,7 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -113,7 +114,7 @@ __declspec(naked) void __fastcall WordsSetAtGrow(AlignedArray*, void*, int, int)
 __declspec(naked) void __fastcall DwordsSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x00452EB0)
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.
-__declspec(naked) void __cdecl GameQsort(void*, unsigned, unsigned, int(__cdecl*)(const void*, const void*)) EI_ORIGINAL(0x006E88FC)
+void __cdecl GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { GameQsortOriginal(a0, a1, a2, a3); }
 auto* const kCompareRecords = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF00);
 auto* const kComparePairs = reinterpret_cast<int(__cdecl*)(const void*, const void*)>(0x0044CF60);
 

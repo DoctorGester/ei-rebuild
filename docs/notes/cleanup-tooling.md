@@ -328,3 +328,59 @@ originals_{library,units,render,engine,script,ai}.h, each with a comment giving 
 
 Verify and release builds, check_stolen, check_x87, check_signatures, check_returns and check_forwarders pass (0 problems). Behaviour
 unchanged; nothing was run in the game.
+
+## C3l (next 50 by site count): one declaration each
+
+Same method as C3b-C3k; the "differ" count is 261 after this (it was 283). The "not yet ported" and "library code" groups held only 74
+differing addresses at the start (the other 209 differing ones are already rewritten and stay with the direct-call work), and most of
+those have a site in a `ui_*` file, which this ticket did not touch (I10 works there). So the 50 taken are the next ones by site count
+(then address) that have at least one site outside `ui_*`, `src/lib`, `src/render`, dx_surface.cpp, bink_video.cpp and harness.cpp,
+plus the five remaining ones with no such restriction (006FF29A, 00700D4C, 00700E17, 007090C2, 0070BB04) because nothing else was left:
+55 addresses, 51 new shared declarations (006E6653, 00700AA9, 00665470 and 005E5270 already had one; their other sites became wrappers).
+Decided from the game.exe disassembly (capstone: RET n, the code before each RET, callers' use of EAX through the `check_returns` logic
+over every call site); every other site is a one-line wrapper (members plain definitions) over the shared forwarder, generated and then
+built. Declarations are in originals_{library,units,engine,ui,render,effects,gameplay}.h, each with a comment giving RET n and EAX. Changes
+of note:
+
+- Streams (originals_library.h): 006FC14E `OstreamPutUnsignedOriginal` (format "%u"), 006FC91C `OstreamPutSignedLongOriginal` ("%ld"),
+  006FC7FA `OstreamPutDoubleOriginal` (RET 8: the double is on the stack); all RET n and return the stream. `Ostream::PutInt(int)` is the
+  unsigned one and `PutLong(unsigned long)` / `GameOStream::operator<<(int)` the long one, so the wrappers cast. 006FC9C6 (declared in
+  C3g as `OstreamPutLongOriginal`) is the "%d" one.
+- CString: 00700B9F / 00700C05 `operator+` (stdcall, RET 0xC, EAX = the result slot; `CStringConcatOriginal` / `CStringConcatTextOriginal`),
+  006FD4DE `CString(const char*, int)` (RET 8, returns this), 006FE1D3 TrimLeft(char), 00700D4C `+=(const char*)` (returns this), 00700E17
+  GetBufferSetLength (EAX = the buffer). `src/lib/mfc.cpp` keeps its own copies of the operators and members.
+- Containers: 004049D0 / 00404A40 / 00404A70 (`list<int>` end, insert, constructor; the insert returns `out`, the constructor `this`), 0068C560
+  (insert on a list of pointers, returns `out`), 00573290 (a CPtrList instance's NewNode, `PtrListNewNode573290Original`), 00460500 and 0059D2E0
+  (SetAtGrow, RET 8, no result), 004E2FA0 (`vector<dword>::_M_insert_overflow(pos, value, count)`, RET 0xC), 006FF29A (dword array SetSize), 005703C0 /
+  0059A100 / 0059C890 (clear of a list of counted objects, the pointer array's destructor, release of a range; none leaves a result).
+  006E88FC is the CRT qsort (`GameQsortOriginal`, cdecl).
+- CFileFind (006E6370 constructor returns this, 006E63AD destructor, 006E63E9 Close, 006E6433 FindFile(name, flags) EAX 1 or 0, 006E6722
+  GetFilePath(out) EAX = out) and CDC (007090C2 SetBkMode EAX = the previous mode, 0070BB04 FillSolidRect RET 0x14).
+- Unit record lists (originals_gameplay.h): 006608D0 / 00660AB0 / 00660C90 / 00660E70 add an entry to the quick (+0x730), belt (+0x740), worn
+  (+0x750) and spell (+0x760) lists and return it; 00660A50 / 00660C30 / 00660E10 / 00660FF0 remove an entry of the same four lists. The
+  removers in world_quests.cpp carried the names of the other lists (`RecordRemoveQuick` was the worn list's, `RecordRemoveWorn` the belt's,
+  `RecordRemoveItem` the quick list's); they are renamed to match, and `SyncRecord` / `StoreRecord` call the same functions with the same
+  arguments as before.
+- 00661F30 returns the item when it only lowered the stack count (else 0); 006620F0, 00665780 return 1 / 0; 00665440 is `int` 0/1 (the unit
+  belongs to the player); 00665A70 / 00665B50 leave no result. 0066D490 `PlayerPathMessageOriginal` takes the limit as raw dword bits
+  (`std::bit_cast` in combat_planning.cpp, which passed a float); 0066D7F0 returns 1 every time (`int`, nobody reads it).
+- 005335E0 `PrototypeMapAtOriginal` (hash map operator[], returns the address of the value slot), 0051FE80 `SkillIndexOfOriginal` (index or -1),
+  00581790 `NamedTableConstructOriginal` (returns this), 0068EAF0 `MaterialRegisterOriginal` (EAX 1, or 0 for a null record), 006CA830
+  `LightMoveOriginal(lights, light, delta)` (map_object_companion's `AimLight` and world_effect_visual's `MoveLight` are the same call),
+  005F74F0 `InterfaceCloseAllOriginal`, 005E5270 (`Renderer::SetActive` in app.cpp is the cursor's Show: `CursorShowOriginal`).
+- Plain-RET functions whose old `(T*, void*)` forms passed a dummy EDX: 0059A100 (world_map) and the CFileFind ones in world_game (006E6370,
+  006E63AD, 006E63E9, 006E6653).
+- Still a forwarder in a `ui_*` file (27 of the 55; the shared declaration exists, so each is a one-line wrapper to write once I10 is merged):
+  004049D0 / 00404A40 / 00404A70 / 004E2FA0 / 0059D2E0 / 00665440 (ui_battle_update.cpp:231, 233, 230, 181, 217, 39), 00460500 (ui_battle_commands.cpp:51),
+  0051FE80 (ui_item_info.cpp:349), 005335E0 (ui_item_view.cpp:544), 00581790 (ui_global_map.cpp:184), 005F74F0 (ui_create_screen.cpp:236),
+  006608D0 / 00660A50 / 00660AB0 / 00660C30 / 00660C90 / 00660E10 / 00660E70 / 00660FF0 / 00661F30 (ui_camp.cpp:1237, 1135, 1238, 1137, 1240, 1136, 1239,
+  1138, 1244), 0068EAF0 (ui_window.cpp:527), 006E63E9 / 006E6653 / 006E6722 (ui_saveload.cpp:158, 154, 156), 006FC7FA (ui_hud.cpp:614), 007090C2 /
+  0070BB04 (ui_console_window.cpp:424, 423). Only 0059D2E0 and 006FC7FA no longer count as "differ" in the report: their ui site differs from
+  the shared declaration by the helper name alone.
+- What is left in the group (261): 209 already rewritten, and of the 52 others 41 wait for a `ui_*` site (15 of them have no shared declaration yet:
+  005EBDB0, 005EE110, 005F7E60, 005F8F10, 005FC730, 005FD760, 00601110, 006232D0, 006255A0, 0065AFE0, 0065C290, 0065CC00, and 007005AF / 007006E5 /
+  007009DE, which also have a `src/lib` or dx_surface.cpp site) and 11 keep a `src/lib` copy (0044C470, 006E6370, 006E63AD, 006E6433, 006FE90F,
+  00700AA9, 00700AF9, 00700B9F, 00700C05, 00700D4C, 00700E17; lib cannot include game headers).
+
+Verify and release builds, check_stolen, check_x87, check_signatures, check_returns and check_forwarders pass (0 problems). Behaviour
+unchanged; nothing was run in the game.
