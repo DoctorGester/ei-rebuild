@@ -201,7 +201,7 @@ __declspec(naked) inline void* __fastcall MapRegistryFindOriginal(void* /*map*/,
 __declspec(naked) inline char* __fastcall StringInitRangeOriginal(void* /*string*/, void*, const char* /*first*/,
                                                                   const char* /*last*/, const void* /*tag*/)
     EI_ORIGINAL(0x0042A3D0)
-// 004DA5C0: the game buffer grows its storage to `size` bytes (RET 4, EAX not a result).
+// 004DA5C0: the game buffer moves to a block of size * 2 + 0x40 bytes (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall GameBufferGrowOriginal(void* /*buffer*/, void*, std::uint32_t /*size*/)
     EI_ORIGINAL(0x004DA5C0)
 

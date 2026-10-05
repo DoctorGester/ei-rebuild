@@ -188,10 +188,14 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 | Area (file) | Addresses and names | Verify |
 |---|---|---|
 | Memory stream (`core_memory_stream.cpp`, `core_streams.h`) | 004A5380 / 004A53F0 / 004A5490 / 004A55D0 `CMemoryStream` slots Read / Write / Seek / CopyFrom, 004A54D0 Resize, 004A5570 SetSize, 004A5610 StartByte, 004A5650 EndBits; 004A4D40 `CStream::CopyFrom` (slot 7), 004A51C0 / 004A5250 ReadSized / WriteSized, 004A52D0 / 004A5340 ReadHeader / WriteHeader | original on a 0x28-byte copy of the stream (`verify_memory_stream.cpp` says how each shares or clones the buffer); both CopyFroms and the sized helpers on other stream classes ours only. Reached by every save / load and network message (`world_load`, `newgame`) |
+| Growing byte buffer (`game_buffer.cpp`, `net_coder.h`) | 004DA7F0 ConstructGrowing, 004DA9E0 ConstructCopy, 004DAA80 AssignFrom, 004DA910 DestructGrowing, 004DA8F0 deleting destructor, 004DA5C0 Grow, 004DA630 / 004DA6B0 Reserve (slots 0 / 1), 004DA740 WriteMore, 004DA860 Seek, 004DA170 ReadPastEnd, 004DA450 / 004DA490 `BufferCursor::BeginRead` / `BeginWrite`; 004DA5A0 / 004DA5B0 / 004DA730 slots returning 0, 004DA850 (= 0047D960) | original on a 0x1C-byte copy, with a cloned block where it frees one; grown buffers compared by offsets and the copied bytes. Save-game compression (`world_load`, `newgame`) reaches construct / destruct / Reserve / Begin*; Copy, Assign, Grow, WriteMore mainly multiplayer |
 
 - Memory stream facts: Write grows to (capacity + size) * 2 copying the old capacity's bytes; Resize grows to
   size * 1.5 + 0x10 copying the old size's bytes and flushes the pending bits byte only when it grows; SetSize
   resets only bitMask_ (bitsIndex_ stays); a short Read zero-fills the whole request before copying what is left.
+- Growing buffer facts: every growth makes a block of 2 * (needed end, counted from the stream start `base`) + 0x40 bytes
+  and copies the old capacity's bytes; Reserve and WriteMore grow without testing the room (callers test); Seek returns
+  the new capacity in EAX when it grew.
 
 ## Original bugs and oddities kept
 
