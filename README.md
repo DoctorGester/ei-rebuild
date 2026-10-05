@@ -35,7 +35,7 @@ The log is written next to the DLL: `build\<config>\ei_hook.log`.
 - `tests/verify/` differential wrappers compiled into the `verify` build.
 - `tools/` launcher, Ghidra export (`export_functions.py`), PE inspection (`pe.py`).
 - `config/functions.csv` every function in game.exe with kind (game/lib/eh/thunk) and status.
-- `docs/` survey and notes.
+- `docs/` cleanup plan, rewrite guide, ticket queue and per-area notes (`docs/notes/`).
 
 ### Vanilla (no Rebirth)
 
