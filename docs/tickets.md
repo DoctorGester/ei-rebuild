@@ -37,10 +37,11 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
-  - C2d Camera.
-- C3 (first part done 2026-10-05; the 504 differing signatures and the member-style ones are the second part) Merge duplicate forwarders using docs/originals-report.md (tools/gen_originals.py): the 80
-  identical and 125 helper-name-only duplicates into shared declarations first; the 461 that
-  differ need a decision per address. Routine for the first part (cheaper model).
+  - C2d (taken 2026-10-05) Camera.
+- C3b The 504 forwarders whose declarations differ between files (docs/originals-report.md "differ"
+  group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
+  shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
+  0x0040C720, ...), then by area. C3 first part (shared headers, 38 void forwarders typed) merged 2026-10-05.
 - C4 Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
