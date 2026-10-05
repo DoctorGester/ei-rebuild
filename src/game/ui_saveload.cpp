@@ -90,7 +90,6 @@ constexpr int kSlotMatchesMask = 14;                 // CFileFind::MatchesMask
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
 
 // 004800E0 (cdecl): DirectX error report; nonzero to go on.
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 // 00455A90 (fastcall): the free space on the drive of `path` (0 when unknown).
 __declspec(naked) double __fastcall DiskFreeSpace(const char* /*path*/) EI_ORIGINAL(0x00455A90)
 // 0057BC30 (thiscall on the game flow): the space a save needs.
@@ -219,7 +218,7 @@ public:
         long hr = ComCall(At<void*>(holder_, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc_), 0ul,
                           static_cast<void*>(nullptr));
         At<long>(holder_, 8) = hr;
-        return hr == 0 || DirectXError(hr, Text(kCantLock)) != 0;
+        return hr == 0 || FatalDirectX(hr, Text(kCantLock)) != 0;
     }
     std::uint8_t* Bits() const { return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc_[9])); }
     void Mirror() const {
@@ -233,7 +232,7 @@ public:
         if (direct_) return;
         long hr = ComCall(At<void*>(holder_, 0x10), kUnlock, static_cast<void*>(nullptr));
         At<long>(holder_, 8) = hr;
-        if (hr != 0) DirectXError(hr, Text(kCantUnlock));
+        if (hr != 0) FatalDirectX(hr, Text(kCantUnlock));
     }
 
 private:

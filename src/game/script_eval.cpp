@@ -15,6 +15,7 @@
 #include "lib/stlp.h"
 #include "random.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -207,7 +208,7 @@ __declspec(naked) bool WaterMap::IsInWater(const float*) EI_ORIGINAL(0x005BBC70)
 struct Network {
     bool IsMultiplayer();   // 0057F440
 };
-__declspec(naked) bool Network::IsMultiplayer() EI_ORIGINAL(0x0057F440)
+bool Network::IsMultiplayer() { return IsNetworkClientOriginal(); }
 
 struct GameServer {
     float GetVar(const stlp::string* name);   // 00419940

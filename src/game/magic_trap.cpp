@@ -14,6 +14,8 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ai.h"
+#include "originals_core.h"
 #include "originals_engine.h"
 
 namespace {
@@ -60,13 +62,10 @@ struct PtrList {
 // with the context in ECX, RET 8; FindTrapVictims below, called through its address so its verify
 // wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0, MagicTrap::CastAtUnits
 // below, called through its address for the same reason].
-__declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) void __fastcall FindVictims(void* /*context*/, void* /*area*/, std::uint32_t /*sides*/, PtrList* /*out*/)
     EI_ORIGINAL(0x0052A920)
 // The sector map's units within `radius` of `point` into `list` (emptied first) [005C0BD0, rewritten
 // in sector_map.cpp].
-__declspec(naked) void __fastcall SectorFind(void* /*sectors*/, void*, const float* /*point*/, void* /*list*/, float /*radius*/)
-    EI_ORIGINAL(0x005C0BD0)
 constexpr int kSectorMap = 0x294;             // the world's sector map
 constexpr std::uintptr_t kPtrListVtable = 0x0073D454;
 constexpr int kPtrListBlockSize = 10;
@@ -122,7 +121,7 @@ void MagicTrap::UpdateVictims() {
     }
 
     if (!(At<std::uint32_t>(this, 0x08) & kArmed)) return;
-    void* context = ManagerContext(this);
+    void* context = ManagerContextOf(this);
     PtrList found;
     PtrList newcomers;
     FindVictims(context, &At<std::uint8_t>(this, 0x240), At<std::uint32_t>(this, 0x238), &found);
@@ -156,7 +155,7 @@ void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32
     for (int i = 0; i < area->count; ++i) {
         const TrapCircle& circle = area->circles[i];
         float point[3] = {circle.x, circle.y, 0.0f};
-        SectorFind(sectors, nullptr, point, &found, circle.radius);
+        SectorMapFindUnitsInRadius(sectors, nullptr, point, &found, circle.radius);
         for (UnitList::Node* node = found.head; node;) {
             CEngineObject* unit = node->data;
             node = node->next;
@@ -250,7 +249,7 @@ void ClearVictims(MagicTrap* trap) {
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     At<std::uint32_t>(this, 0x238) = record->sides;
     const char* text = record->spell;
-    void* manager = ei::VCall<void*>(ManagerContext(this), kSlotSpellManager);
+    void* manager = ei::VCall<void*>(ManagerContextOf(this), kSlotSpellManager);
     void* spell = CreateSpellFromText(manager, nullptr, text);
     void* old = At<void*>(this, 0x23C);
     At<void*>(this, 0x23C) = spell;
@@ -295,7 +294,6 @@ __declspec(naked) void __fastcall MapObjectSave(void*, void*, UnitStream*) EI_OR
 // [00403F40, rewritten in base_manager.cpp].
 __declspec(naked) void __fastcall CountedRefSave(CEngineObject**, void*, UnitStream*) EI_ORIGINAL(0x0050E290)
 __declspec(naked) void __fastcall VictimListLoad(VictimList*, UnitStream*, void* /*context*/) EI_ORIGINAL(0x0052AF20)
-__declspec(naked) void* __fastcall ManagerFindObject(void*, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
 
 constexpr std::uintptr_t kTrapVtable = 0x0073E63C;
 constexpr std::uintptr_t kCirclesVtable = 0x0073C68C;        // while constructed
@@ -406,7 +404,7 @@ EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
 
 void MagicTrap::LoadTrap(UnitStream* stream) {
     MapObjectLoad(this, nullptr, stream);
-    void* manager = ei::VCall<void*>(ManagerContext(this), kSlotSpellManager);
+    void* manager = ei::VCall<void*>(ManagerContextOf(this), kSlotSpellManager);
     // The original reads the id and the two counts into its argument's stack slot: a read that
     // fails leaves the previous value there (at first the stream pointer itself).
     auto value = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(stream));
@@ -416,7 +414,7 @@ void MagicTrap::LoadTrap(UnitStream* stream) {
     auto* area = &At<TrapArea>(this, 0x240);
     CirclesSetSize(area, nullptr, value, -1);
     for (int i = 0; i < area->count; ++i) stream->Read(&area->circles[i], sizeof(TrapCircle));
-    VictimListLoad(&At<VictimList>(this, 0x268), stream, ManagerContext(this));
+    VictimListLoad(&At<VictimList>(this, 0x268), stream, ManagerContextOf(this));
     stream->Read(&value, 4);
     auto* points = &At<TrapPoints>(this, 0x254);
     PointsSetSize(points, nullptr, value, -1);

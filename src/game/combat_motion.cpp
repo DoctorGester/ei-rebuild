@@ -56,10 +56,8 @@ constexpr int kSlotRelease = 4;
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
-__declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
 // CUnit: 0050E9F0 MarkChanged, 0052EA90 the animation bytes, 00530570 the size class, 005301B0
 // the animation entry for a key (combat_steps.cpp), 0052E9D0 the path speeds.
-__declspec(naked) void __fastcall UnitMarkChanged(CUnit*, void*, int) EI_ORIGINAL(0x0050E9F0)
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 __declspec(naked) float* __fastcall QuaternionAxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
 // UnitStats (unit_vitals.cpp / unit_stats_pack.cpp): 005241C0 the stamina state for a movement
@@ -73,8 +71,6 @@ __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGI
 __declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA5A0)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
 // 005C0BD0 FindUnitsInRadius.
-__declspec(naked) void __fastcall SectorFind(void*, void*, const float*, void* /*list*/, float /*radius*/)
-    EI_ORIGINAL(0x005C0BD0)
 // 004B3330 ScriptGroup::Contains (script_group.cpp).
 __declspec(naked) int __fastcall GroupContains(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B3330)
 // The motion (+0x3C, an AIPath; ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005C7B00 Start,
@@ -319,7 +315,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     float back[3] = {-axis[0], -axis[1], -axis[2]};
     if (PathStart(Motion(self), nullptr, &self->unit->positionX, back, now)) UnitPathSpeeds(self->unit);
     // Standing 0 (005467B0 inlined).
-    void* world = ContextOf(self);
+    void* world = ManagerContextOf(self);
     int& standing = At<int>(self->unit, 0x278);
     if (standing != 0) {
         void* sectors = static_cast<char*>(world) + 0x294;
@@ -495,7 +491,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         CtlPlaySteps(this, nullptr, &IdleSteps(this));
     }
     state = kStateActing;
-    At<int>(this, 0x180) = At<int>(ContextOf(this), 0x64) + 10;
+    At<int>(this, 0x180) = At<int>(ManagerContextOf(this), 0x64) + 10;
     if (plan.targetId == -1) {
         int now = At<int>(ObjectWorld(this), 0x64);
         PathTurn(Motion(this), nullptr, now, unit, plan.direction, plan.endTime, plan.startTime);
@@ -505,7 +501,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         PathFollow(Motion(this), nullptr, now, unit, plan.targetId, until, plan.startTime);
     }
     UnitPathSpeeds(unit);
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     if (At<int>(unit, 0x278) == 0) return;
     void* sectors = static_cast<char*>(world) + 0x294;
     SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
@@ -518,7 +514,7 @@ EI_REPLACE_METHOD(0x005494D0, CUnitServer::StartAction);
 // --- Movement modes -----------------------------------------------------------------------------
 
 void CUnitServer::UpdateSneak() {
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     int running = StatsMovementState(&stats, nullptr, 1);
     if (running != 0 && moveMode2.wasMode3 != 0) {
         // Out of breath: back from the second mode's mode 3, with a remark.
@@ -633,13 +629,13 @@ EI_REPLACE_METHOD(0x0054A150, CUnitServer::ChangeMoveMode);
 // --- Paths --------------------------------------------------------------------------------------
 
 bool CUnitServer::PathTo(const float* point, float range) {
-    ContextOf(this);
+    ManagerContextOf(this);
     CtlUpdateSneak(this);
     At<std::uint8_t>(this, 0x146) = 0;
     At<std::uint8_t>(this, 0x145) = 0;
     PathClear(Motion(this));
     std::uint32_t keep = At<std::uint32_t>(unit, 0x43C);
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     At<std::uint8_t>(this, 0xAA) = unit->player ? 0 : 1;   // the path's +0x6E
     std::uint32_t before = At<std::uint32_t>(unit, 0x43C);
     At<std::uint32_t>(unit, 0x43C) = keep;
@@ -690,7 +686,7 @@ EI_REPLACE_METHOD(0x00548700, CUnitServer::PathTo);
 
 void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     auto* list = static_cast<UnitList*>(listIn);
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     char* player = unit->player;
     // RemoveAll.
     for (UnitList::Node* node = list->head; node; node = node->next) {
@@ -709,7 +705,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     float dz = point[2] - unit->positionZ;
     if ((dz * dz + dy * dy) + dx * dx > *reinterpret_cast<const float*>(0x0073CA98)) {
         void* sectors = static_cast<char*>(world) + 0x294;
-        SectorFind(sectors, nullptr, point, list, 4.0f);
+        SectorMapFindUnitsInRadius(sectors, nullptr, point, list, 4.0f);
         void* group = At<char*>(player, 0x20) + 0x510C;
         for (UnitList::Node* node = list->head; node;) {
             UnitList::Node* current = node;

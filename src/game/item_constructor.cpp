@@ -473,8 +473,6 @@ struct NamePair {
     void* record;
 };
 __declspec(naked) NameKey* __fastcall KeyFromChars(NameKey*, void*, const char*, const void*) EI_ORIGINAL(0x0040C5A0)
-__declspec(naked) void __fastcall KeyDefault(NameKey*, void*, const void*) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void __fastcall KeyAssign(NameKey*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall KeyDestroyB(NameKey*) EI_ORIGINAL(0x0040C770)
 __declspec(naked) void __fastcall PairConstruct(NamePair*, void*, const NameKey*, void* const*) EI_ORIGINAL(0x00689950)
 __declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006AD670)
@@ -509,14 +507,14 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
         StlStringDestroy(&key);
         return TableIndex(QuickItems(), record, kQuickItemSize);
     case 3:
-        KeyDefault(&key, nullptr, allocator);
-        KeyAssign(&key, nullptr, name, name + std::strlen(name));
+        StringInitWithAllocator(&key, nullptr, allocator);
+        StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
         record = *SpellNameAt(reinterpret_cast<void*>(0x007C851C), nullptr, &key);
         StlStringDestroy(&key);
         return TableIndex(Spells(), record, kSpellSize);
     case 4: {
-        KeyDefault(&key, nullptr, allocator);
-        KeyAssign(&key, nullptr, name, name + std::strlen(name));
+        StringInitWithAllocator(&key, nullptr, allocator);
+        StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
         void* none = nullptr;
         NamePair pair;
         PairConstruct(&pair, nullptr, &key, &none);

@@ -10,7 +10,10 @@
 #include <cstring>
 #include <new>
 #include "originals_ai.h"
+#include "originals_core.h"
 #include "originals_library.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 namespace mapspec {
 
@@ -43,13 +46,10 @@ __declspec(naked) void __stdcall ConstructTargets(void* /*first*/, int /*count*/
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
 // (007B01F4); the world object's own updates.
-__declspec(naked) void* __fastcall ManagerFind(void* /*manager*/, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
-__declspec(naked) void __fastcall WorldRemoveObject(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
 __declspec(naked) void __fastcall WorldMakeObject(void* /*world*/, void*, Spec* /*spec*/) EI_ORIGINAL(0x005927C0)
 __declspec(naked) void __fastcall SelectionLock(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall SelectionUnlock(void*) EI_ORIGINAL(0x005B8B80)
 __declspec(naked) void __fastcall ObjectSetScale(void* /*object*/, void*, const float* /*scale*/) EI_ORIGINAL(0x00517700)
-__declspec(naked) void __fastcall ObjectRefresh(void* /*object*/, void*, int /*what*/) EI_ORIGINAL(0x0050E9F0)
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Selection() { return reinterpret_cast<void*>(0x007B00D0); }
 void* Lists() { return reinterpret_cast<void*>(0x007B01F4); }
@@ -134,7 +134,7 @@ void __fastcall SpecRefresh(Spec* self) { ei::VCall<void>(self, kSlotApply); }
 EI_REPLACE(0x00469E00, SpecRefresh);
 
 // 00469F20 (slot 2): the object with the record's id.
-void* __fastcall SpecWorldObject(Spec* self) { return ManagerFind(*reinterpret_cast<void**>(0x007AF5F8), nullptr, self->id); }
+void* __fastcall SpecWorldObject(Spec* self) { return ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, self->id); }
 EI_REPLACE(0x00469F20, SpecWorldObject);
 
 // 00469F40 (slot 5): moves the record, then slot 7.
@@ -314,7 +314,7 @@ EI_REPLACE(0x0046AF70, ObjectSpecRemove);
 
 // 0046AFA0 (slot 8).
 void __fastcall ObjectSpecRefresh(ObjectSpec* self) {
-    if (self->base.object) ObjectRefresh(self->base.object, nullptr, 2);
+    if (self->base.object) UnitMarkChanged(self->base.object, nullptr, 2);
 }
 EI_REPLACE(0x0046AFA0, ObjectSpecRefresh);
 
@@ -336,8 +336,8 @@ void __fastcall ObjectSpecApply(ObjectSpec* self) {
     std::uint32_t& flags = At<std::uint32_t>(self->base.object, 8);
     if (!self->visible) flags |= 8;
     else flags &= ~8u;
-    ObjectRefresh(self->base.object, nullptr, 2);
-    ObjectRefresh(self->base.object, nullptr, 1);
+    UnitMarkChanged(self->base.object, nullptr, 2);
+    UnitMarkChanged(self->base.object, nullptr, 1);
     SectorMapAdd(AsSectorMap(Lists()), nullptr, AsEngineObject(self->base.object));
     SelectionUnlock(Selection());
 }

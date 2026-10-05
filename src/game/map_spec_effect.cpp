@@ -10,6 +10,7 @@
 
 #include <cstring>
 #include <new>
+#include "originals_core.h"
 #include "originals_library.h"
 
 namespace mapspec {
@@ -70,7 +71,6 @@ constexpr int kSlotApply = 7;
 
 __declspec(naked) void __fastcall StringArrayDestruct(StringArray*) EI_ORIGINAL(0x006FE958)
 __declspec(naked) void __fastcall StringArraySetSize(StringArray*, void*, int, int) EI_ORIGINAL(0x006FE9B8)
-__declspec(naked) void* __fastcall ManagerFind(void*, void*, int) EI_ORIGINAL(0x00403F40)
 __declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGINAL(0x005927C0)
 __declspec(naked) void __fastcall WorldRemoveEffect(void*, void*, int /*id*/) EI_ORIGINAL(0x0058E5D0)
 __declspec(naked) double __fastcall TerrainHeight(void*, void*, float /*x*/, float /*y*/, int /*zero*/) EI_ORIGINAL(0x006C8680)
@@ -115,7 +115,7 @@ void Notify(void* self, std::uintptr_t kind, std::uintptr_t family) {
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
     WorldMakeObject(World(), nullptr, &self->base);
-    self->effect = ManagerFind(Effects(), nullptr, self->base.id);
+    self->effect = ManagerFindObject(Effects(), nullptr, self->base.id);
 }
 
 } // namespace
@@ -152,7 +152,7 @@ EI_REPLACE(0x0046DA00, LightSpecDelete);
 
 // 0046D3D0 (slot 2): effects are managed under -3001 - id.
 void* __fastcall EffectSpecWorldObject(EffectSpec* self) {
-    return ManagerFind(*reinterpret_cast<void**>(0x007AF5F8), nullptr, -3001 - self->base.id);
+    return ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, -3001 - self->base.id);
 }
 EI_REPLACE(0x0046D3D0, EffectSpecWorldObject);
 

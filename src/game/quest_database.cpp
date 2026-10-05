@@ -107,7 +107,6 @@ __declspec(naked) mfc::BOOL Registry::GetStringArray(const char*, const char*, c
 
 // STLport string members: default constructor [0041F460], assign a range [00426A80], assign a
 // C string [0041F550].
-__declspec(naked) void* __fastcall StringConstruct(void*) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignRange(void*, void*, const char*, const char*) EI_ORIGINAL(0x00426A80)
 __declspec(naked) void __fastcall StringAssign(void*, void*, const char*) EI_ORIGINAL(0x0041F550)
 // The quest places: vector<float> constructor [006AFB00, allocator] and insert-overflow [006ADD50:
@@ -258,10 +257,10 @@ void ReadListInline(Registry& reg, std::uintptr_t section, int list, char* brief
 }
 
 void ConstructBriefing(char* briefing) {
-    StringConstruct(briefing);
+    StringInitEmpty(briefing);
     FirstListConstruct(List(briefing, 0), nullptr, &kAllocator);
     for (int i = 1; i < 6; ++i) ListConstruct(List(briefing, i), nullptr, &kAllocator);
-    StringConstruct(briefing + kBriefingString5C);
+    StringInitEmpty(briefing + kBriefingString5C);
 }
 
 // "briefing receive": the lists read inline (the first three erased over their range, the others
@@ -303,9 +302,9 @@ bool __fastcall QuestDatabaseLoad(char* db, void*, const void* image) {
     }
 
     alignas(4) char quest[kQuestSize];
-    StringConstruct(quest);
+    StringInitEmpty(quest);
     PlacesConstruct(quest + kQuestPlaces, nullptr, &kAllocator);
-    StringConstruct(quest + kQuestString2C);
+    StringInitEmpty(quest + kQuestString2C);
     {
         console::CStringArray places;
         ReadQuest(reg, quest, places);

@@ -15,7 +15,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssignText(StringRep* /*s*/, void*, const char* /*text*/) EI_ORIGINAL(0x0041F550)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) void __fastcall RecordDestroy(GameInfoRecord* /*record*/) EI_ORIGINAL(0x0041AC30)
@@ -53,8 +52,8 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
     alignas(4) std::uint8_t recordBytes[sizeof(GameInfoRecord)];
     auto* record = reinterpret_cast<GameInfoRecord*>(recordBytes);
-    StringConstruct(&record->name);
-    StringConstruct(&record->description);
+    StringInitEmpty(&record->name);
+    StringInitEmpty(&record->description);
     GameBuffer buffer;
     GrowingBufferConstruct(&buffer);
     alignas(4) std::uint8_t coder[kCoderSize];   // CoderState
@@ -80,8 +79,8 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
             auto* entry = NewMessageMemory<ServerEntry>();
             if (entry) {
                 ServerEntryConstructBase(entry);
-                StringConstruct(&entry->name_);
-                StringConstruct(&entry->description_);
+                StringInitEmpty(&entry->name_);
+                StringInitEmpty(&entry->description_);
                 ei::SetVtable(entry, ServerEntry::kVtableAddress);
                 StringAssignText(&entry->name_, nullptr, reinterpret_cast<const char*>(kEmptyText));
                 entry->kind_ = 4;

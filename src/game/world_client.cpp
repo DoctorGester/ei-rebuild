@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_engine.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -219,7 +220,6 @@ __declspec(naked) void __fastcall SessionDisconnect(void*) EI_ORIGINAL(0x00665A1
 __declspec(naked) int __fastcall PendingLookup(void*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(void*, void*, void*) EI_ORIGINAL(0x005704A0)
 __declspec(naked) void __fastcall PendingRemoveKey(void*, void*, const int*) EI_ORIGINAL(0x00405350)
-__declspec(naked) bool __fastcall FlowIsRunning(void*) EI_ORIGINAL(0x0057F440)
 __declspec(naked) void __fastcall HudTick(void*, void*, char) EI_ORIGINAL(0x00498480)
 __declspec(naked) void __fastcall EffectListErase0(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572550)
 __declspec(naked) void __fastcall EffectListErase1(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572580)
@@ -307,7 +307,7 @@ int CWorldClient::Segment() {
             ei::VCall<void>(object, kSlotUpdate);
         if (void* p = Slot<void*>(self, 0x1B0)) ei::VCall<void>(p, kSlotUpdate);
     }
-    if (FlowIsRunning(kGameFlow)) {
+    if (IsNetworkClientOriginal()) {
         std::uintptr_t first = *reinterpret_cast<std::uintptr_t*>(0x007C7D84);
         std::uintptr_t last = *reinterpret_cast<std::uintptr_t*>(0x007C7D88);
         if (static_cast<int>((last - first) & ~3u) > 4) {

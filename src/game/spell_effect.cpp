@@ -11,6 +11,7 @@
 #include "lib/mfc.h"
 
 #include <cstring>
+#include "originals_ai.h"
 
 #pragma float_control(precise, on)
 
@@ -25,8 +26,6 @@ using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
 // 005C0BD0 CSectorMap::FindUnitsInRadius (rewritten in sector_map.cpp; through its address so its
 // verify wrapper sees the call).
-__declspec(naked) void __fastcall FindUnitsInRadius(CSectorMap*, void*, const Vector3*, UnitList*, float)
-    EI_ORIGINAL(0x005C0BD0)
 // 0068B4C0 CSpell::CanAffect (rewritten in spell.cpp), through its address. Returns AL.
 __declspec(naked) bool __fastcall SpellCanAffect(CSpell*, void*, const CEngineObject*, CEngineObject*)
     EI_ORIGINAL(0x0068B4C0)
@@ -80,7 +79,7 @@ void CSpellEffect::HitUnitsInRadius() {
     InitList(list);
     DamageInfo hit;
     CallGetDamage(&hit);
-    FindUnitsInRadius(SectorMapOf(this), nullptr, &position, &list, radius);
+    SectorMapFindUnitsInRadius(SectorMapOf(this), nullptr, &position, &list, radius);
     for (UnitList::Node* node = list.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;
@@ -107,7 +106,7 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    FindUnitsInRadius(SectorMapOf(this), nullptr, &position, &list, radius);
+    SectorMapFindUnitsInRadius(SectorMapOf(this), nullptr, &position, &list, radius);
     for (UnitList::Node* node = list.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;

@@ -75,7 +75,7 @@ struct SurfaceDraw {
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
 __declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
 

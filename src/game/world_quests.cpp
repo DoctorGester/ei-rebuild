@@ -336,7 +336,6 @@ __declspec(naked) const char** __fastcall UnitPrototype(CEngineObject*, void*) E
 __declspec(naked) void __fastcall PartyAddMember(void*, void*, const char*, const char*, const char*) EI_ORIGINAL(0x006628D0)
 __declspec(naked) void __fastcall PartyRemoveMember(void*, void*, unsigned) EI_ORIGINAL(0x006620F0)
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
-__declspec(naked) void __fastcall RemoveObjectAt(CWorldServer*, void*, unsigned) EI_ORIGINAL(0x005935C0)
 __declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)
 
 // One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
@@ -371,7 +370,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         // n10: the mercenary leaves the party and the world; n2: the party.
         if (is(v.n10)) {
             PartyRemoveMember(party, nullptr, key);
-            RemoveObjectAt(this, nullptr, key);
+            WorldRemoveObject(this, nullptr, key);
         }
         if (is(v.n2)) PartyRemoveMember(party, nullptr, key);
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
@@ -708,7 +707,6 @@ __declspec(naked) void __fastcall PlacementsSetAtGrow(void*, void*, int, const P
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 __declspec(naked) void __fastcall UnitSetController(CEngineObject*, void*, void*) EI_ORIGINAL(0x005300D0)
-__declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, int) EI_ORIGINAL(0x005935C0)
 __declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordArray*, void*, void*) EI_ORIGINAL(0x0058FD90)
 // 00590160 (RET 8). The player's items into its party records before leaving.
 __declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, void* /*records*/) EI_ORIGINAL(0x00590160)
@@ -786,7 +784,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
                                 &entry);
         }
         if (!ei::VCall<int>(unit, kSlotIsDead) || IsMultiplayerClient()) StoreRecord(this, partyRecords, record, unit);
-        if (!ei::VCall<int>(unit, kSlotIsDead)) ServerRemoveObject(this, nullptr, unit->id_);
+        if (!ei::VCall<int>(unit, kSlotIsDead)) WorldRemoveObject(this, nullptr, unit->id_);
         else UnitSetController(unit, nullptr, nullptr);
     }
 }

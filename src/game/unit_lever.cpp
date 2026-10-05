@@ -13,6 +13,7 @@
 #include <cstring>
 #include "originals_ai.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -34,13 +35,11 @@ __declspec(naked) void __fastcall StringDestroy(RawString*) EI_ORIGINAL(0x0040C7
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
 // animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
 // [00554450, on +0x240].
-__declspec(naked) void __fastcall UnitsInRadius(void*, void*, const float*, void*, float) EI_ORIGINAL(0x005C0BD0)
 __declspec(naked) void __fastcall MapBeginRefresh(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall MapEndRefresh(void*) EI_ORIGINAL(0x005B8B80)
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, void*) EI_ORIGINAL(0x005BA830)
 __declspec(naked) bool __fastcall MapFindFreeCellNear(void*, void*, void*, const float*, float*) EI_ORIGINAL(0x005BA9D0)
 __declspec(naked) void __fastcall FigureAnimate(void*, void*, const char*) EI_ORIGINAL(0x005179E0)
-__declspec(naked) void __fastcall MarkChanged(void*, void*, int) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) void __fastcall ControllerResync(void*) EI_ORIGINAL(0x00554450)
 
 constexpr int kSlotWorldActive = 0x68 / 4;   // world: () -> non-zero when the map is live
@@ -100,7 +99,7 @@ void Lever::SetState(int state, float duration) {
     PtrList around;
     void* sectors = world + 0x294;
     float radius = At<float>(this, 0x134) + 0.5f;
-    UnitsInRadius(sectors, nullptr, &At<float>(this, 0x1C), &around, radius);
+    SectorMapFindUnitsInRadius(sectors, nullptr, &At<float>(this, 0x1C), &around, radius);
     for (PtrNode* node = around.head; node;) {
         PtrNode* next = node->next;
         SectorMapRemove(AsSectorMap(sectors), nullptr, AsEngineObject(node->data));
@@ -127,7 +126,7 @@ void Lever::SetState(int state, float duration) {
     }
     At<float>(this, 0xC8) = position;
     FigureAnimate(this, nullptr, At<const char*>(this, 0xA4));
-    MarkChanged(this, nullptr, 5);
+    UnitMarkChanged(this, nullptr, 5);
     SectorMapAdd(AsSectorMap(sectors), nullptr, AsEngineObject(this));
     MapEndRefresh(map);
     map[2] = 1;

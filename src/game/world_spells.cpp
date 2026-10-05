@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 
@@ -41,8 +42,6 @@ constexpr int kSpellFlags = 0x3C;
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
-__declspec(naked) void __fastcall SectorMapUnitsInRadius(void*, void*, const void* /*center*/, UnitList*, float)
-    EI_ORIGINAL(0x005C0BD0)
 __declspec(naked) void __fastcall UnitListRemoveAll(UnitList*, void*) EI_ORIGINAL(0x0052CA10)
 __declspec(naked) UnitList::Node* __fastcall UnitListNewNode(UnitList*, void*, UnitList::Node* /*prev*/,
                                                            UnitList::Node* /*next*/) EI_ORIGINAL(0x0052CEF0)
@@ -173,7 +172,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     Vector3 center;
     std::memcpy(&center, caster ? &At<Vector3>(caster, 0x1C) : from, sizeof(center));
     float radius = At<float>(const_cast<void*>(spell), kSpellRadius);
-    SectorMapUnitsInRadius(sectorMap_, nullptr, &center, &units, radius);
+    SectorMapFindUnitsInRadius(sectorMap_, nullptr, &center, &units, radius);
     if (target && target->GetClassId() == world::kClassUnit) {
         UnitList::Node* found = nullptr;
         for (UnitList::Node* node = units.head; node; node = node->next)

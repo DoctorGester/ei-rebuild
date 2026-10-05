@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "originals_world.h"
 
 namespace {
 
@@ -31,7 +32,6 @@ __declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORI
 __declspec(naked) void __fastcall CountedRemoveAt(mfc::CTypedPtrList<CEngineObject>*, void*,
                                                   mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x0059A050)
 // 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
-__declspec(naked) void __fastcall ServerRemoveObject(CWorldServer*, void*, unsigned /*id*/) EI_ORIGINAL(0x005935C0)
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
 __declspec(naked) void __fastcall ServerReplace60(CWorldServer*, void*) EI_ORIGINAL(0x0055F410)
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
@@ -318,7 +318,7 @@ void CWorldServer::UpdateUnits() {
     for (int i = 0; i < SleepingIds().size; ++i) {
         if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);
     }
-    for (int i = 0; i < RemovedIds().size; ++i) ServerRemoveObject(this, nullptr, RemovedIds().data[i]);
+    for (int i = 0; i < RemovedIds().size; ++i) WorldRemoveObject(this, nullptr, RemovedIds().data[i]);
 }
 
 void CWorldServer::TickSleepingEffects() {

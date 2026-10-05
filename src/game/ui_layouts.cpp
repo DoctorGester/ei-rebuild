@@ -551,7 +551,7 @@ struct BoxSurfaceAt {
     int Text(const char* text, RECT* rect, int font, COLORREF colour, int format, int flag);   // 005FDE20
     void End() { SurfaceReleaseDC(this); }                                                                       // 005FDC60
 };
-__declspec(naked) int BoxSurfaceAt::Text(const char*, RECT*, int, COLORREF, int, int) EI_ORIGINAL(0x005FDE20)
+int BoxSurfaceAt::Text(const char* text, RECT* rect, int format, COLORREF colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 struct BoxMetricsAt {
     SIZE TextExtentRaw(char* text, int font);

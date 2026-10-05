@@ -50,7 +50,6 @@ constexpr int kSlotSize = 0xF0 / 4;               // ST0 ()
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
-__declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) double __fastcall UnitGroundHeight(CUnit*, void*, float, float) EI_ORIGINAL(0x00530280)
 __declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00531A10)
 __declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
@@ -282,7 +281,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         if (!(sy * sy + sx * sx >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
         float from[3] = {position[0], position[1], position[2]};
         from[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position[0], position[1]) + sight.eyeHeight);
-        double visible = MapLineOfSight(static_cast<char*>(ContextOf(this)) + 0x170, nullptr, from, sight.point);
+        double visible = MapLineOfSight(static_cast<char*>(ManagerContextOf(this)) + 0x170, nullptr, from, sight.point);
         if (!(visible < *reinterpret_cast<const float*>(0x0073EEC0))) break;
         t += 5.0f;
     }
@@ -351,7 +350,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
                 PathFlag() = 0;
                 SectorMapRemove(AsSectorMap(kSectorMap), nullptr, target);
             }
-            void* world = ContextOf(this);
+            void* world = ManagerContextOf(this);
             path.bytes[0x6E] = unit->player == nullptr ? 1 : 0;
             std::uint32_t saved43C = At<std::uint32_t>(unit, 0x43C);
             At<std::uint32_t>(unit, 0x43C) = 1;
@@ -382,7 +381,7 @@ EI_REPLACE_METHOD(0x0054E600, CUnitServer::PlanOrderRoute);
 // --- A party unit's move -----------------------------------------------------------------------
 
 void CUnitServer::PlanMove(const float* point, int moving, int run, float range) {
-    void* world = ContextOf(this);
+    void* world = ManagerContextOf(this);
     LocalPath path;
     UnitPtrList lifted{reinterpret_cast<void*>(0x0073D454), nullptr, nullptr, 0, nullptr, nullptr, 10};
     CtlLiftNearby(this, nullptr, &lifted, point, moving);
@@ -399,7 +398,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         SectorMapAdd(AsSectorMap(sectors), nullptr, unit);
     }
     std::uint32_t flag = MapCellFlag80(map, nullptr, &unit->positionX);
-    void* world2 = ContextOf(this);
+    void* world2 = ManagerContextOf(this);
     path.bytes[0x6E] = unit->player == nullptr ? 1 : 0;
     std::uint32_t saved43C = At<std::uint32_t>(unit, 0x43C);
     At<std::uint32_t>(unit, 0x43C) = flag & 0xFF;

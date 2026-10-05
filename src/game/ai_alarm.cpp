@@ -7,6 +7,8 @@
 #include "ei/hook.h"
 
 #include <cstdint>
+#include "originals_engine.h"
+#include "originals_library.h"
 
 namespace {
 
@@ -22,15 +24,15 @@ struct AiLogStream {
     AiLogStream* Put(int c);                // 006FC0B0
     AiLogStream* Apply(void* manipulator);  // 00434FE0
 };
-__declspec(naked) AiLogStream* AiLogStream::Write(const char*) EI_ORIGINAL(0x006FC31D)
+AiLogStream* AiLogStream::Write(const char* text) { return static_cast<AiLogStream*>(OstreamPutString(this, nullptr, text)); }
 __declspec(naked) AiLogStream* AiLogStream::Write(long) EI_ORIGINAL(0x006FC9C6)
-__declspec(naked) AiLogStream* AiLogStream::Put(int) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) AiLogStream* AiLogStream::Apply(void*) EI_ORIGINAL(0x00434FE0)
+AiLogStream* AiLogStream::Put(int c) { return static_cast<AiLogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
+AiLogStream* AiLogStream::Apply(void* manipulator) { return static_cast<AiLogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 AiLogStream* AiLog() { return *reinterpret_cast<AiLogStream**>(0x007C2EB8); }
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 00455940: the owner's manager context (the world). 0058D340 (RET 8): the object says a remark.
-__declspec(naked) std::uint8_t* __fastcall ManagerContextAt(void*) EI_ORIGINAL(0x00455940)
+static inline std::uint8_t* ManagerContextAt(void* object) { return static_cast<std::uint8_t*>(ManagerContextOf(object)); }
 __declspec(naked) void __fastcall SayRemark(void*, void*, void*, int) EI_ORIGINAL(0x0058D340)
 
 struct AlarmState {

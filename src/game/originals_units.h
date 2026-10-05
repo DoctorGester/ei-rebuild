@@ -27,6 +27,10 @@ __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0
 __declspec(naked) inline void __fastcall UnitPathSpeeds(CUnit*) EI_ORIGINAL(0x0052E9D0)
 __declspec(naked) inline void __fastcall UnitSetAnimation(CUnit*, void*, int /*animation*/, int /*variant*/, int /*time*/, int /*flags*/)
     EI_ORIGINAL(0x0052EA90)
+// 0050E9F0 (rewritten as CUnit::MarkChanged; RET 4): sets the changed bit of a part (-1: none) and the
+// object's dirty flag. EAX on return is the object's world (null when there is none), which tail-calling
+// rewrites hand on.
+__declspec(naked) inline void* __fastcall UnitMarkChanged(void* /*unit*/, void*, int /*part*/) EI_ORIGINAL(0x0050E9F0)
 __declspec(naked) inline int __fastcall HoverHostileTo(CUnit*, void*, CUnit*) EI_ORIGINAL(0x00530150)
 __declspec(naked) inline char* __fastcall UnitFindAnimation(CUnit*, void*, std::uint32_t, int) EI_ORIGINAL(0x005301B0)
 __declspec(naked) inline char* __fastcall UnitAnimationEntry(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530240)

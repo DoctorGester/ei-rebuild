@@ -30,7 +30,6 @@ __declspec(naked) void* __fastcall GameBufferConstruct(void* /*buffer*/) EI_ORIG
 // 00661050: the unit record builder's constructor (world.md).
 __declspec(naked) UnitRecordBuilder* __fastcall UnitRecordBuilderConstruct(UnitRecordBuilder* /*b*/) EI_ORIGINAL(0x00661050)
 // 0041F460: an empty STLport string (library).
-__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 
 // STLport list constructors, list(const allocator&), one per element type (library).
 __declspec(naked) void* __fastcall ListConstruct41F8B0(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041F8B0)
@@ -104,8 +103,8 @@ ClientSession* ClientSession::Construct() {
     auto* record = NewMessageMemory<LoginMessage>();
     if (record) {
         MessageConstructBase(record);
-        StringConstruct(&record->name_);
-        StringConstruct(&record->text_);
+        StringInitEmpty(&record->name_);
+        StringInitEmpty(&record->text_);
         record->binding_.ptr = nullptr;   // 0041FFE0
         ei::SetVtable(record, LoginMessage::kVtableAddress);
         record->host_ = 0;

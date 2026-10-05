@@ -15,6 +15,7 @@
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_library.h"
 #include "originals_units.h"
 
 #include <bit>
@@ -162,11 +163,11 @@ __declspec(naked) void __fastcall WorldAwardKill(void*, void*, char*, int) EI_OR
 // 005D7E90. The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 __declspec(naked) void __fastcall RememberAttacker(void*, void*, CUnit*) EI_ORIGINAL(0x005D7E90)
 
-__declspec(naked) GameOstream* GameOstream::Put(const char*) EI_ORIGINAL(0x006FC31D)
+GameOstream* GameOstream::Put(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
 __declspec(naked) GameOstream* GameOstream::Put(long) EI_ORIGINAL(0x006FC9C6)
 __declspec(naked) GameOstream* GameOstream::Put(double) EI_ORIGINAL(0x006FC7FA)
-__declspec(naked) GameOstream* GameOstream::PutChar(int) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) GameOstream* GameOstream::Apply(void*) EI_ORIGINAL(0x00434FE0)
+GameOstream* GameOstream::PutChar(int c) { return static_cast<GameOstream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
+GameOstream* GameOstream::Apply(void* manipulator) { return static_cast<GameOstream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
 namespace {
 

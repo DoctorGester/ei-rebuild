@@ -10,6 +10,7 @@
 
 #include <bit>
 #include <cstring>
+#include "originals_library.h"
 
 // Keep the original's order of float operations (/fp:fast would reassociate constants).
 #pragma float_control(precise, on)
@@ -46,9 +47,9 @@ struct GameOstream {
     GameOstream* Put(int c);                        // 006FC0B0 (operator<<(char))
     GameOstream* Apply(void* manipulator);          // 00434FE0
 };
-__declspec(naked) GameOstream* GameOstream::Write(const char*) EI_ORIGINAL(0x006FC31D)
-__declspec(naked) GameOstream* GameOstream::Put(int) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) GameOstream* GameOstream::Apply(void*) EI_ORIGINAL(0x00434FE0)
+GameOstream* GameOstream::Write(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
+GameOstream* GameOstream::Put(int c) { return static_cast<GameOstream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
+GameOstream* GameOstream::Apply(void* manipulator) { return static_cast<GameOstream*>(OstreamManipulate(this, nullptr, manipulator)); }
 constexpr std::uintptr_t kFlushManipulator = 0x00435000;
 
 // The world (007AFF60): 00593FC0 raises an alarm of `kind` at `position`.

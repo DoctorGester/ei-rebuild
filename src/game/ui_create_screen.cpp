@@ -14,6 +14,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -141,7 +142,6 @@ CursorAt* Cursor() { return reinterpret_cast<CursorAt*>(0x007C7BD8); }
 __declspec(naked) void __fastcall GameState458010(char, char) EI_ORIGINAL(0x00458010)
 // 00458220: the message pump.
 // 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
-__declspec(naked) int __fastcall IsClientAt(void*) EI_ORIGINAL(0x0057F440)
 
 struct GlueAt {
     char ServerFlag();               // 00578D00 (on 007AFEA4)
@@ -201,7 +201,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
                                                      reinterpret_cast<std::uintptr_t>(stackBegin_));
     if ((bytes & ~3u) == 4) {
         self[0x60] = static_cast<std::uint8_t>(Glue()->ServerFlag());
-        if ((IsClientAt(reinterpret_cast<void*>(0x007AFE20)) & 0xFF) == 0) Glue()->SetServerFlag(1);
+        if (!IsNetworkClientOriginal()) Glue()->SetServerFlag(1);
         if (first && second) {
             SetDword(self, 0x50, 1);
             GameState458010(0, 1);

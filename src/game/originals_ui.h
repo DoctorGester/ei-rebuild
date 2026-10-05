@@ -11,6 +11,7 @@
 class CInterface3D;
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
+struct tagRECT;
 
 __declspec(naked) inline void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
 __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
@@ -28,6 +29,11 @@ __declspec(naked) inline void __fastcall EmptyTextureMap(void*) EI_ORIGINAL(0x00
 // without a DirectDraw surface) and the matching release. The surface is a CUiSurface.
 __declspec(naked) inline ui_gdi::GameDC* __fastcall SurfaceGetDC(void* /*surface*/) EI_ORIGINAL(0x005FDC00)
 __declspec(naked) inline void __fastcall SurfaceReleaseDC(void* /*surface*/) EI_ORIGINAL(0x005FDC60)
+// CUiSurface::DrawText (RET 0x18; the surface is `this`): text into a rectangle with a format, colour and
+// two more ints. Returns the DrawText result (0 without a DirectDraw surface). RECT is `tagRECT`.
+__declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*, const char* /*text*/, tagRECT* /*rect*/,
+                                                        int /*format*/, std::uint32_t /*colour*/, int, int)
+    EI_ORIGINAL(0x005FDE20)
 __declspec(naked) inline void __fastcall WindowSetEnabled(void*, void*, int, int) EI_ORIGINAL(0x006002A0)
 __declspec(naked) inline void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) inline void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)

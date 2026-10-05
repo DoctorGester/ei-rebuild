@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 #include "originals_script.h"
 
 #include <cstring>
@@ -15,7 +16,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, const char* /*tag*/) EI_ORIGINAL(0x0042A4F0)
 // STLport vector<RefPtr> (library): constructor with an allocator, erase(first, last),
 // insert(pos, n, value).
@@ -51,7 +51,7 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     auto* file = NewMessageMemory<FileMessage>();
     if (file) {
         MessageConstructBase(file);
-        StringConstruct(&file->name_);
+        StringInitEmpty(&file->name_);
         std::uint8_t allocator = 0;
         ChunkVectorConstruct(&file->chunks_, nullptr, &allocator);
         ei::SetVtable(file, FileMessage::kVtableAddress);

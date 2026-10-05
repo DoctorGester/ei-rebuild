@@ -11,6 +11,7 @@
 #include "ei/vcall.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
+#include "originals_library.h"
 #include "originals_script.h"
 #include "originals_world.h"
 
@@ -78,10 +79,7 @@ __declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned
 __declspec(naked) void __fastcall GroupSetSize(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2050)
 __declspec(naked) void __fastcall RefReset(ScriptObjectRef*, void*) EI_ORIGINAL(0x004B24B0)
 // The network log's ostream (007C56B0).
-__declspec(naked) void* __fastcall OstreamPutString(void*, void*, const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) void* __fastcall OstreamPutLong(void*, void*, long) EI_ORIGINAL(0x006FC9C6)
-__declspec(naked) void* __fastcall OstreamPutChar(void*, void*, char) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) void* __fastcall OstreamManipulate(void*, void*, void*) EI_ORIGINAL(0x00434FE0)
 
 constexpr int kSlotPlayers = 20;
 constexpr int kSlotConnected = 4;

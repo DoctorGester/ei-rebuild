@@ -46,7 +46,7 @@ struct StripSurface {
     void ReleaseDC() { SurfaceReleaseDC(this); }
 };
 __declspec(naked) void StripSurface::Clear() EI_ORIGINAL(0x005FE2F0)
-__declspec(naked) int StripSurface::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+int StripSurface::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // The owner's virtual slots 43 (whether the strip's mode takes the item; AL) and 54 (a number
 // shown under the item for mode `mode`).

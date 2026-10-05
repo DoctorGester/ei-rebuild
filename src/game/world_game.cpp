@@ -113,9 +113,6 @@ __declspec(naked) void __fastcall WriteSaveFile(FileStream*, unsigned /*magic*/,
 // 00597BD0. CWorldServer::SaveWorld (world_save.cpp), through its address.
 __declspec(naked) void __fastcall SaveWorldAt(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00597BD0)
 // The console's ostream.
-__declspec(naked) void* __fastcall OstreamPutString(void*, void*, const char*) EI_ORIGINAL(0x006FC31D)
-__declspec(naked) void* __fastcall OstreamPutChar(void*, void*, char) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) void* __fastcall OstreamManipulate(void*, void*, void*) EI_ORIGINAL(0x00434FE0)
 
 // The record builder of the party (0x70 bytes; the variables table at +0x54, the zone at +0x68).
 constexpr std::size_t kRecordsSize = 0x70;
@@ -524,9 +521,7 @@ __declspec(naked) int __fastcall WorldLoadMobFile(CWorldServer*, void*, const ch
 // assigns a string from a range) and the message 0041A500(8, zone).
 __declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
 __declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
-__declspec(naked) void __fastcall RawStringDestruct(void*, void*) EI_ORIGINAL(0x00425040)
 __declspec(naked) void __fastcall HostRecordConstruct(void*, void*) EI_ORIGINAL(0x004186E0)
-__declspec(naked) void* __fastcall HostStringConstruct(void*, void*) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall CountedDestroy(void* /*slot*/, void*) EI_ORIGINAL(0x00413270)
 __declspec(naked) void __fastcall HostStringAssign(void*, void*, const char* /*first*/, const char* /*last*/)
     EI_ORIGINAL(0x00426A80)
@@ -542,14 +537,14 @@ void AnnounceHost(const char* zone) {
     AddressInit(address, nullptr, host, kHostPort);
     alignas(4) std::uint8_t text[12];
     mfc::CString formatted(*AddressFormat(address, nullptr, text));
-    RawStringDestruct(text, nullptr);
+    StringBufferFree(text);
     void* memory = gamecrt::operator_new(0x24);
     At<std::uint32_t>(memory, 4) = 0;   // written before the null test
     void* record = nullptr;
     if (memory) {
         HostRecordConstruct(memory, nullptr);
-        HostStringConstruct(static_cast<std::uint8_t*>(memory) + 0xC, nullptr);
-        HostStringConstruct(static_cast<std::uint8_t*>(memory) + 0x18, nullptr);
+        StringInitEmpty(static_cast<std::uint8_t*>(memory) + 0xC);
+        StringInitEmpty(static_cast<std::uint8_t*>(memory) + 0x18);
         *static_cast<void**>(memory) = reinterpret_cast<void*>(kHostRecordVtable);
         record = memory;
     }

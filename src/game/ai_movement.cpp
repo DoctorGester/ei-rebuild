@@ -9,12 +9,11 @@
 #include "lib/mfc.h"
 
 #include <cstring>
+#include "originals_ai.h"
 
 namespace {
 // The sector map through its original address (rewritten in sector_map.cpp), so the verify build's
 // wrapper sees the call.
-__declspec(naked) void __fastcall FindUnitsInRadius(void*, void*, const Vector3*,
-                                                    mfc::CTypedPtrList<CEngineObject>*, float) EI_ORIGINAL(0x005C0BD0)
 
 // A handle into the cache of unit occupancy shapes (the global at 007C2F70), keyed by standing
 // height rounded to 0.1. 16x16 signed levels start at shape + 8.
@@ -55,7 +54,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
     nearby.vtable = reinterpret_cast<void*>(0x0073D454);
     nearby.blockSize = 10;
     float unitHeight = unit->standingHeight;
-    FindUnitsInRadius(reinterpret_cast<char*>(this) + 0x124, nullptr, position, &nearby, 10.0f);
+    SectorMapFindUnitsInRadius(reinterpret_cast<char*>(this) + 0x124, nullptr, position, &nearby, 10.0f);
 
     CUnit* blocker = nullptr;
     for (auto* node = nearby.head; node;) {

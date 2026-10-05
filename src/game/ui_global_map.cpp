@@ -21,6 +21,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 
@@ -168,7 +169,7 @@ struct SurfaceDraw {
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) int SurfaceDraw::Text(const char*, RECT*, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDE20)
+int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 SurfaceDraw* Draw(CUiSurface* surface) { return reinterpret_cast<SurfaceDraw*>(surface); }
 
 // The local player's variables, copied by name prefix into a hash_map<CString, float>.
@@ -720,7 +721,6 @@ struct WeatherDraw {
 __declspec(naked) void WeatherDraw::Draw(void*, float) EI_ORIGINAL(0x00499F10)
 
 // 004800E0 (cdecl): a fatal DirectX error with its message.
-__declspec(naked) int __cdecl FatalDirectX(long, const char*) EI_ORIGINAL(0x004800E0)
 
 struct CursorAt {
     int SetShape(int shape);   // 005E5200 (on 007C7BD8)

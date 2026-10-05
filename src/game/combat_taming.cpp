@@ -27,7 +27,6 @@ constexpr int kStatTaming = 2;
 constexpr int kModeTamed = 8;              // the brain mode removed when the taming is undone
 
 // Forwarders (thiscall as __fastcall with the unused EDX).
-__declspec(naked) void* __fastcall ContextOf(const void*) EI_ORIGINAL(0x00455940)
 // 00525E90 UnitStats: a skill's value (combat_actions.cpp uses it too).
 __declspec(naked) double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00525E90)
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
@@ -91,7 +90,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
-        DiplomacyOnAttack(static_cast<char*>(ContextOf(this)) + 0x12C64, nullptr, tamer, unit, 10);
+        DiplomacyOnAttack(static_cast<char*>(ManagerContextOf(this)) + 0x12C64, nullptr, tamer, unit, 10);
         return 0;
     }
     char* tamerPlayer = tamer->player;

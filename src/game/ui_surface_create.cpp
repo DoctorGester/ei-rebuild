@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_engine.h"
 
 namespace {
 
@@ -48,7 +49,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 
 __declspec(naked) void* __cdecl GameNew(unsigned) EI_ORIGINAL(0x007005AF)
 __declspec(naked) char* __fastcall ConstructHolder(void*, void*, void*, int, int) EI_ORIGINAL(0x004EF7B0)
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 
 // 005F7CA0 (thiscall on the interface, RET 4).
 struct ScaleAt {
@@ -80,7 +80,7 @@ char* Finish(char* self, bool scale) {
     if (!DirectPixels(holder, desc)) {
         long hr = ComCall(At<void*>(holder, 0x10), kGetSurfaceDesc, static_cast<void*>(desc));
         At<long>(holder, 8) = hr;
-        if (hr != 0) DirectXError(hr, Text(0x0078E6C4));   // "Can't get surface description"
+        if (hr != 0) FatalDirectX(hr, Text(0x0078E6C4));   // "Can't get surface description"
     }
     SurfaceBytesTotal() += desc[2] * desc[4];   // height * pitch
     if (!ClientBitmap(holder)) {
@@ -117,7 +117,7 @@ void Describe(char* holder, std::uint32_t* desc) {
     if (DirectPixels(holder, desc)) return;
     long hr = ComCall(At<void*>(holder, 0x10), kGetSurfaceDesc, static_cast<void*>(desc));
     At<long>(holder, 8) = hr;
-    if (hr != 0) DirectXError(hr, Text(0x0078E6C4));   // "Can't get surface description"
+    if (hr != 0) FatalDirectX(hr, Text(0x0078E6C4));   // "Can't get surface description"
 }
 
 void ReleaseHolderReference(char* holder) {

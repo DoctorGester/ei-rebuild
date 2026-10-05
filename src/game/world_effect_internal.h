@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_core.h"
 #include "originals_engine.h"
 
 #include <cstdint>
@@ -88,12 +89,12 @@ inline std::uint32_t BelowOneOrOne(const float& value) {
 
 // --- Engine objects ------------------------------------------------------------------------------
 
-// 00455940 (rewritten in object.cpp). The owning manager's context.
-__declspec(naked) inline void* __fastcall ManagerContext(const void*) EI_ORIGINAL(0x00455940)
+// 00455940 (originals_engine.h). The owning manager's context.
+inline void* ManagerContext(const void* object) { return ManagerContextOf(object); }
 // 0055FB00 (world). A unit by id, or null.
 __declspec(naked) inline void* __fastcall FindUnit(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x0055FB00)
-// 00403F40 (rewritten in base_manager.cpp). An object of a manager by id, or null.
-__declspec(naked) inline void* __fastcall FindObject(void* /*manager*/, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
+// 00403F40 (originals_core.h). An object of a manager by id, or null.
+inline void* FindObject(void* manager, void*, int id) { return ManagerFindObject(manager, nullptr, id); }
 // 00532860 (unit). A point of the unit (its effect origin); returns `out`.
 __declspec(naked) inline Vector3* __fastcall UnitEffectPoint(void* /*unit*/, void*, Vector3* /*out*/) EI_ORIGINAL(0x00532860)
 // 004B3330 (rewritten in script_group.cpp). Whether the group holds the object.

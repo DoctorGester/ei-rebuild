@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_ai.h"
 #include "originals_gameplay.h"
 
 #include <cstdint>
@@ -99,9 +100,6 @@ __declspec(naked) inline char* __fastcall SpellPrototype(CSpell*) EI_ORIGINAL(0x
 __declspec(naked) inline BOOL __fastcall EffectGetDamage(CSpellEffect*, void*, DamageInfo*) EI_ORIGINAL(0x00683950)
 __declspec(naked) inline void __fastcall EffectHitUnit(CSpellEffect*, void*, DamageInfo*, CEngineObject*) EI_ORIGINAL(0x006835B0)
 __declspec(naked) inline int __fastcall IsAreaSpellTarget(CEngineObject*) EI_ORIGINAL(0x00681B80)
-// 005C0BD0 CSectorMap::FindUnitsInRadius (sector_map.cpp).
-__declspec(naked) inline void __fastcall FindUnitsInRadius(void* /*sectors*/, void*, const Vector3*, void* /*list*/, float)
-    EI_ORIGINAL(0x005C0BD0)
 // CPtrList constructor (block size) and destructor.
 __declspec(naked) inline void* __fastcall PtrListConstruct(void*, void*, int) EI_ORIGINAL(0x004C96A0)
 __declspec(naked) inline void __fastcall PtrListDestruct(void*) EI_ORIGINAL(0x004C96F0)
@@ -601,7 +599,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     PtrListConstruct(&units, nullptr, kPtrListBlockSize);
     DamageInfo hit;
     EffectGetDamage(e, nullptr, &hit);
-    FindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
+    SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
     for (auto* node = units.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;

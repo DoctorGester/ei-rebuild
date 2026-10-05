@@ -156,7 +156,6 @@ __declspec(naked) std::uint8_t* __fastcall UnitPrototype(CUnit*) EI_ORIGINAL(0x0
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
 __declspec(naked) void __fastcall ShowPanelUnit(CBattleScreenSetup*, void*, CUnit*, void*) EI_ORIGINAL(0x0063B920)
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
-__declspec(naked) bool __fastcall IsNetworkClient(void*) EI_ORIGINAL(0x0057F440)
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
 __declspec(naked) CUnit* __fastcall FindUnit(void*, void*, int) EI_ORIGINAL(0x0055FB00)
@@ -384,7 +383,7 @@ void CBattleScreenSetup::Update() {
         }
     }
 
-    if (IsNetworkClient(reinterpret_cast<void*>(0x007AFE20))) RebuildClientParty(this);
+    if (IsNetworkClientOriginal()) RebuildClientParty(this);
 
     UpdateChildren(this);
     ShowNextMessage(interface_, nullptr, 0);
@@ -500,7 +499,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     }
     unknown_1C0 = false;
     void* world = reinterpret_cast<void*>(kWorld);
-    if (!unknown_1C1 || IsNetworkClient(reinterpret_cast<void*>(0x007AFE20))) {
+    if (!unknown_1C1 || IsNetworkClientOriginal()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};
         CUnit* unit = UnitAtPoint(world, nullptr, point);
@@ -632,7 +631,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         mfc::CString colour(GameText(0x00794370));   // colour code 0x31E3EE43 and a space
         text = colour + title + GameText(0x0078DA40) + text;
     } else if (parts.size_ == 4) {
-        if (!IsNetworkClient(reinterpret_cast<void*>(0x007AFE20))) {
+        if (!IsNetworkClientOriginal()) {
             const char* dot = GameText(0x00783D78);
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = HoverPlayerVariable(reinterpret_cast<void*>(0x007AFEA5), nullptr, variable);

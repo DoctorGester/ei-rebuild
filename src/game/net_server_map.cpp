@@ -24,8 +24,6 @@ namespace {
 __declspec(naked) StringRep* __fastcall StringPlusText(StringRep* /*out*/, const StringRep* /*a*/, const char* /*b*/) EI_ORIGINAL(0x00427D60)
 __declspec(naked) StringRep* __fastcall StringPlusString(StringRep* /*out*/, const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427E80)
 __declspec(naked) StringRep* __fastcall StringFromText(StringRep* /*s*/, void*, const char* /*text*/, const void* /*alloc*/) EI_ORIGINAL(0x0040C5A0)
-__declspec(naked) StringRep* __fastcall StringWithAlloc(StringRep* /*s*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x004217E0)
-__declspec(naked) void __fastcall StringRangeInit(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) void __fastcall StringDestroyA(StringRep* /*s*/) EI_ORIGINAL(0x0040C770)
 
@@ -35,7 +33,6 @@ __declspec(naked) void __fastcall MessageStringAssign(StringRep* /*string*/, voi
 __declspec(naked) void* __fastcall RefFromRaw(void* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427D50)
 __declspec(naked) void __fastcall RefClear(void* /*ref*/) EI_ORIGINAL(0x00421360)
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
-__declspec(naked) StringRep* __fastcall MessageStringConstruct(StringRep* /*string*/) EI_ORIGINAL(0x0041F460)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
 __declspec(naked) void __fastcall WorldLoadMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x005810A0)
@@ -51,7 +48,6 @@ __declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, cons
 __declspec(naked) void __fastcall NamesFree(StringRep* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426860)
 __declspec(naked) void __fastcall StringDeallocate(char** /*eos proxy*/, void*, char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
 __declspec(naked) void __fastcall NodeFree(void* /*node*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
-__declspec(naked) void __fastcall StringDestruct(StringRep* /*s*/) EI_ORIGINAL(0x00425040)
 constexpr std::uintptr_t kFinishSuffix = 0x00783D84;      // "_3"
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
@@ -106,7 +102,7 @@ void ServerSession::SetMap(const StringRep* name) {
     auto* mapMessage = NewMessageMemory<MapMessage>();
     if (mapMessage) {
         MessageConstructBase(mapMessage);
-        MessageStringConstruct(&mapMessage->text_);
+        StringInitEmpty(&mapMessage->text_);
         ei::SetVtable(mapMessage, MapMessage::kVtableAddress);
     }
     RefPtr* holder = &map_;
@@ -138,8 +134,8 @@ void ServerSession::SetMap(const StringRep* name) {
         const char* variableName = *it;
         StringRep resourceName;
         std::uint32_t alloc;
-        StringWithAlloc(&resourceName, nullptr, &alloc);
-        StringRangeInit(&resourceName, nullptr, variableName, variableName + std::strlen(variableName));
+        StringInitWithAllocator(&resourceName, nullptr, &alloc);
+        StringAssignSpan(&resourceName, nullptr, variableName, variableName + std::strlen(variableName));
         void* added;
         FindOrAddVariable(&added, &resourceName);
         auto* record = static_cast<VariableMessage*>(static_cast<void**>(added)[2]);
@@ -201,7 +197,7 @@ void ServerSession::QueueMapList() {
         auto* message = NewMessageMemory<ZoneMessage>();
         if (message) {
             MessageConstructBase(message);
-            MessageStringConstruct(&message->text_);
+            StringInitEmpty(&message->text_);
             ei::SetVtable(message, ZoneMessage::kVtableAddress);
         }
         MessageStringAssign(&message->text_, nullptr, &key);
@@ -248,14 +244,14 @@ bool ServerSession::FinishMap(const StringRep* name) {
     auto* message = NewMessageMemory<ZoneMessage>();
     if (message) {
         MessageConstructBase(message);
-        MessageStringConstruct(&message->text_);
+        StringInitEmpty(&message->text_);
         ei::SetVtable(message, ZoneMessage::kVtableAddress);
     }
     MessageStringAssign(&message->text_, nullptr, &messageName);
     void* ref;
     List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
     RefClear(&ref);
-    StringDestruct(&messageName);
+    StringBufferFree(&messageName);
     return true;
 }
 

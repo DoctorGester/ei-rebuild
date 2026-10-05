@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_world.h"
 
 namespace {
 
@@ -184,7 +185,6 @@ namespace {
 // 005942D0 / 005935C0 (RET 4, patched by Rebirth): called on the global server (007AFF60), not
 // on `this`.
 __declspec(naked) bool __fastcall LootAt(CWorldServer*, void*, CEngineObject*, WorldPlayer*) EI_ORIGINAL(0x005942D0)
-__declspec(naked) void __fastcall RemoveObjectAt(CWorldServer*, void*, unsigned) EI_ORIGINAL(0x005935C0)
 
 // STLport list<unsigned> on the game's node pool (12-byte nodes {next, prev, value}); the
 // constructor (00404A70) allocates the head node, the destructor frees the nodes (00404D10) and
@@ -256,7 +256,7 @@ void CWorldServer::LootDeadUnits() {
         node = objects_.map.After(node);
         object = node ? node->value : nullptr;
     }
-    for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) RemoveObjectAt(WorldServer(), nullptr, id->value);
+    for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) WorldRemoveObject(WorldServer(), nullptr, id->value);
 }
 
 EI_REPLACE_METHOD(0x005942D0, CWorldServer::Loot);

@@ -13,6 +13,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include "originals_library.h"
 
 #pragma float_control(precise, on)
 
@@ -74,10 +75,10 @@ struct UnitLogStream {
     UnitLogStream* PutChar(int c);             // 006FC0B0
     UnitLogStream* Apply(void* manipulator);   // 00434FE0: manipulator(*this)
 };
-__declspec(naked) UnitLogStream* UnitLogStream::Put(const char*) EI_ORIGINAL(0x006FC31D)
+UnitLogStream* UnitLogStream::Put(const char* text) { return static_cast<UnitLogStream*>(OstreamPutString(this, nullptr, text)); }
 __declspec(naked) UnitLogStream* UnitLogStream::Put(double) EI_ORIGINAL(0x006FC7FA)
-__declspec(naked) UnitLogStream* UnitLogStream::PutChar(int) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) UnitLogStream* UnitLogStream::Apply(void*) EI_ORIGINAL(0x00434FE0)
+UnitLogStream* UnitLogStream::PutChar(int c) { return static_cast<UnitLogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
+UnitLogStream* UnitLogStream::Apply(void* manipulator) { return static_cast<UnitLogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
 namespace {
 UnitLogStream* HitLog() { return *reinterpret_cast<UnitLogStream**>(0x007AF284); }

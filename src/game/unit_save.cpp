@@ -6,6 +6,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_core.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -108,7 +109,6 @@ __declspec(naked) char** __fastcall PrototypeNameMapAt(void* /*map*/, void*, con
 // CBaseManager::FindObject (base_manager.cpp).
 __declspec(naked) void* __fastcall WorldGetPlayerAt(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x00594180)
 __declspec(naked) void __fastcall UnitParamsResetAt(void* /*params*/) EI_ORIGINAL(0x00523550)
-__declspec(naked) CEngineObject* __fastcall FindObjectAt(void* /*manager*/, void*, int /*id*/) EI_ORIGINAL(0x00403F40)
 
 // Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
 void ReadStringInto(UnitStream* stream, mfc::CString& target) {
@@ -135,7 +135,7 @@ CEngineObject* ReadItem(CUnit* unit, UnitStream* stream) {
     int id;
     stream->Read(&id, 4);
     if (id == -1) return nullptr;
-    CEngineObject* item = FindObjectAt(manager, nullptr, id);
+    CEngineObject* item = ManagerFindObject(manager, nullptr, id);
     if (item) ++item->refCount_;
     return item;
 }

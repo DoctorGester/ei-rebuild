@@ -67,12 +67,9 @@ __declspec(naked) int __fastcall DrawMesh2(char*, void*, std::uint32_t, std::uin
 // STLport string members: 004217E0 string(allocator), 00425080 the end-of-storage member from an
 // allocator and a value, 00428F10 assign(first, last), 0042A3D0 range initialisation (first, last,
 // tag), destructors 00425040 and 0040C770 (two instantiations).
-__declspec(naked) void __fastcall StringDefault(RawString*, void*, const void*) EI_ORIGINAL(0x004217E0)
 __declspec(naked) void __fastcall StringEndOfStorage(char**, void*, const void*, const void*) EI_ORIGINAL(0x00425080)
-__declspec(naked) void __fastcall StringAssign(RawString*, void*, const char*, const char*) EI_ORIGINAL(0x00428F10)
 __declspec(naked) void __fastcall StringInitRange(RawString*, void*, const char*, const char*, const void*)
     EI_ORIGINAL(0x0042A3D0)
-__declspec(naked) void __fastcall StringDestroy(RawString*) EI_ORIGINAL(0x00425040)
 __declspec(naked) void __fastcall StringDestroyB(RawString*) EI_ORIGINAL(0x0040C770)
 // 005197B0: map<string, piece>::find on a figure's piece map (figure + 0x14): the node to *out.
 __declspec(naked) void __fastcall FindPiece(void*, void*, char**, const RawString*) EI_ORIGINAL(0x005197B0)
@@ -575,12 +572,12 @@ void FlatColours(Part& part) {
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
         RawString s;
-        StringDefault(&s, nullptr, Allocator(part));
-        StringAssign(&s, nullptr, name, name + std::strlen(name));
+        StringInitWithAllocator(&s, nullptr, Allocator(part));
+        StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
         char* mesh = part.Mesh();
         ThisCall<void>(part.figure, kFigureFlatColours, &s, At<std::uint32_t>(mesh, 0xD4), At<std::uint32_t>(mesh, 0xD8),
                        &part.Colours(), &part.Speculars());
-        StringDestroy(&s);
+        StringBufferFree(&s);
         return;
     }
     Resize(part.Colours(), At<int>(part.Mesh(), 0xA8) * 4, &Alloc4);
@@ -620,8 +617,8 @@ void Light(Part& part) {
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
         RawString s;
-        StringDefault(&s, nullptr, Allocator(part));
-        StringAssign(&s, nullptr, name, name + std::strlen(name));
+        StringInitWithAllocator(&s, nullptr, Allocator(part));
+        StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
         ThisCall<void>(part.figure, kFigureLight, &s, part.lights, part.material, part.alpha, &part.Colours(),
                        &part.Speculars());
         StringDestroyB(&s);
@@ -697,14 +694,14 @@ void DrawThroughFigure(Part& part) {
     const char* name = MeshName(mesh);
     RawString s;
     if (moved || part.Textured()) {
-        StringDefault(&s, nullptr, Allocator(part));
+        StringInitWithAllocator(&s, nullptr, Allocator(part));
         StringInitRange(&s, nullptr, name, name + std::strlen(name), part.material);
     } else {
         s.start = nullptr;
         s.finish = nullptr;
         int zero = 0;
         StringEndOfStorage(&s.eos, nullptr, Allocator(part), &zero);
-        StringAssign(&s, nullptr, name, name + std::strlen(name));
+        StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
     }
     mesh = part.Mesh();
     std::uint32_t u = At<std::uint32_t>(mesh, 0xCC);
@@ -724,7 +721,7 @@ void DrawThroughFigure(Part& part) {
     } else {
         result = ThisCall<int>(part.figure, kFigureDraw, &s, part.drawFlags, colours, speculars, u, v);
     }
-    StringDestroy(&s);
+    StringBufferFree(&s);
 
     if (part.rect) {
         const char* pieceName = MeshName(part.Mesh());
@@ -733,12 +730,12 @@ void DrawThroughFigure(Part& part) {
         key.finish = nullptr;
         int zero = 0;
         StringEndOfStorage(&key.eos, nullptr, Allocator(part), &zero);
-        StringAssign(&key, nullptr, pieceName, pieceName + std::strlen(pieceName));
+        StringAssignSpan(&key, nullptr, pieceName, pieceName + std::strlen(pieceName));
         char* node = nullptr;
         FindPiece(static_cast<char*>(part.figure) + 0x14, nullptr, &node, &key);
         RECT* own = &At<RECT>(part.node, 0x20);
         gameapi::CopyRect(own, &At<RECT>(node, 0x5C));
-        StringDestroy(&key);
+        StringBufferFree(&key);
         *part.rect = *own;
     }
     if (result != 2) At<std::uint32_t>(part.Mesh(), 8) |= 0x40;

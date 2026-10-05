@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include "originals_engine.h"
 
 namespace {
 
@@ -32,7 +33,6 @@ constexpr unsigned long kLockWait = 1;                       // DDLOCK_WAIT
 constexpr long kWasStillDrawing = static_cast<long>(0x8876021C);   // DDERR_WASSTILLDRAWING
 
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 // 00708D79: MFC's CDC::FromHandle (static, stdcall).
 __declspec(naked) void* __stdcall CdcFromHandle(HDC) EI_ORIGINAL(0x00708D79)
 
@@ -53,7 +53,7 @@ void* __fastcall UiSurfaceGetDC(char* surface) {
         dc = CreateCompatibleDC(nullptr);
         if (dc) g_memoryDcs[dc] = gameapi::SelectObject(dc, bitmap);
         At<long>(holder, 8) = dc ? 0 : -1;
-        if (!dc && !DirectXError(-1, Text(0x00793290))) return nullptr;   // "Can't get surface's DC"
+        if (!dc && !FatalDirectX(-1, Text(0x00793290))) return nullptr;   // "Can't get surface's DC"
         return CdcFromHandle(dc);
     }
     long hr;
@@ -61,7 +61,7 @@ void* __fastcall UiSurfaceGetDC(char* surface) {
         hr = ComCall(At<void*>(holder, 0x10), kGetDC, &dc);
         At<long>(holder, 8) = hr;
     } while (hr == kWasStillDrawing);
-    if (hr != 0 && !DirectXError(hr, Text(0x00793290))) return nullptr;
+    if (hr != 0 && !FatalDirectX(hr, Text(0x00793290))) return nullptr;
     return CdcFromHandle(dc);
 }
 EI_REPLACE(0x005FDC00, UiSurfaceGetDC);
@@ -94,7 +94,7 @@ void __fastcall UiSurfaceReleaseDC(char* surface) {
         } else {
             long hr = ComCall(At<void*>(holder, 0x10), kReleaseDC, dc);
             At<long>(holder, 8) = hr;
-            if (hr != 0) DirectXError(hr, Text(0x007932AC));   // "Can't release surface's DC"
+            if (hr != 0) FatalDirectX(hr, Text(0x007932AC));   // "Can't release surface's DC"
         }
     }
     At<HDC>(surface, 8) = nullptr;

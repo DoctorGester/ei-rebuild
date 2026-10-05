@@ -17,6 +17,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_engine.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -635,7 +636,6 @@ __declspec(naked) std::uint8_t* __fastcall NewManagedTexture(void*, void*, int, 
 __declspec(naked) std::uint8_t* __fastcall FindImage(void*, void*, const char*) EI_ORIGINAL(0x00691CF0)
 
 // 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 
 template <typename... Args>
 void VirtualCall(void* object, int slot, Args... args) {
@@ -692,7 +692,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(holder->surface))[25])(holder->surface, nullptr, desc,
                                                                                            0, nullptr);
     holder->result = hr;
-    if (hr != 0 && DirectXError(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && FatalDirectX(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         VirtualCall(texture, 4);
@@ -722,7 +722,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     using UnlockFn = long(__stdcall*)(void**, RECT*);
     hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(holder->surface))[32])(holder->surface, nullptr);
     holder->result = hr;
-    if (hr != 0 && DirectXError(hr, GameText(0x0078E2F4)) == 0) {   // "Can't unlock surface"
+    if (hr != 0 && FatalDirectX(hr, GameText(0x0078E2F4)) == 0) {   // "Can't unlock surface"
         VirtualCall(texture, 4);
         return nullptr;
     }
@@ -759,7 +759,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(holder->surface))[25])(holder->surface, nullptr, desc,
                                                                                            0, nullptr);
     holder->result = hr;
-    if (hr != 0 && DirectXError(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && FatalDirectX(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         return 0;
@@ -788,7 +788,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     using UnlockFn = long(__stdcall*)(void**, RECT*);
     hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(holder->surface))[32])(holder->surface, nullptr);
     holder->result = hr;
-    if (hr != 0) DirectXError(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
+    if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
     VirtualCall(TextureManager(), 22);
     return image != nullptr;
 }

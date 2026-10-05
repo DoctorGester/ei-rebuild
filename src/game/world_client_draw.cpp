@@ -146,7 +146,6 @@ __declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI
 __declspec(naked) void __fastcall QuaternionAxisY(const void*, void*, float*) EI_ORIGINAL(0x0040F560)
 __declspec(naked) void __fastcall QuaternionAxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
 __declspec(naked) void __fastcall MarkerBegin(void*, void*, int, int) EI_ORIGINAL(0x00501AF0)
-__declspec(naked) CEngineObject* __fastcall ManagerFind(void*, void*, int) EI_ORIGINAL(0x00403F40)
 __declspec(naked) void* __fastcall ObjectFindPart(CEngineObject*, void*, const char*) EI_ORIGINAL(0x00516A80)
 __declspec(naked) float* __fastcall ObjectPartPosition(CEngineObject*, void*, float*, void*) EI_ORIGINAL(0x005188B0)
 __declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, const float*, const float*)
@@ -591,7 +590,7 @@ int CWorldClient::DrawPass() {
         ListNode* head = Head(selected);
         for (ListNode* node = head->next; node != head;) {
             ListNode* next = node->next;
-            CEngineObject* object = ManagerFind(manager, nullptr, Field<int>(node, 8));
+            CEngineObject* object = ManagerFindObject(manager, nullptr, Field<int>(node, 8));
             if (object) {
                 if (ei::VCall<int>(object, 0xDC / 4) == 0) {
                     float point[3];

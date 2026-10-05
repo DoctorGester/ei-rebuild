@@ -8,6 +8,7 @@
 #include "ei/rebirth.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -42,11 +43,11 @@ __declspec(naked) mfc::BOOL CStdioFile::ReadString(mfc::CString&) EI_ORIGINAL(0x
 __declspec(naked) void CStdioFile::WriteString(const char*) EI_ORIGINAL(0x00701E23)
 __declspec(naked) void CStdioFile::Close() EI_ORIGINAL(0x00701FE0)
 
-__declspec(naked) GameOStream& GameOStream::operator<<(const char*) EI_ORIGINAL(0x006FC31D)
-__declspec(naked) GameOStream& GameOStream::operator<<(char) EI_ORIGINAL(0x006FC0B0)
+GameOStream& GameOStream::operator<<(const char* text) { return *static_cast<GameOStream*>(OstreamPutString(this, nullptr, text)); }
+GameOStream& GameOStream::operator<<(char c) { return *static_cast<GameOStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
 __declspec(naked) GameOStream& GameOStream::operator<<(int) EI_ORIGINAL(0x006FC91C)
 __declspec(naked) GameOStream& GameOStream::operator<<(double) EI_ORIGINAL(0x006FC7FA)
-__declspec(naked) GameOStream& GameOStream::Apply(void*) EI_ORIGINAL(0x00434FE0)
+GameOStream& GameOStream::Apply(void* manipulator) { return *static_cast<GameOStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
 __declspec(naked) CommandHandler* CommandMap::Index(const mfc::CString&) EI_ORIGINAL(0x005E0B20)
 
@@ -75,8 +76,7 @@ inline InterfaceAt* Interface() { return reinterpret_cast<InterfaceAt*>(0x007C7D
 
 // 0057F440 (called with the game at 007AFE20 in ECX): a network game is running (server object
 // 0079B5D8 present and active).
-__declspec(naked) int __fastcall NetworkGameAt(void*) EI_ORIGINAL(0x0057F440)
-bool NetworkGame() { return (NetworkGameAt(reinterpret_cast<void*>(0x007AFE20)) & 0xFF) != 0; }
+bool NetworkGame() { return IsNetworkClientOriginal(); }
 
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
 

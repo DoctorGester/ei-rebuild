@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -36,7 +37,7 @@ __declspec(naked) SIZE TextMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x00
 struct SurfaceTextAt {
     int Text(const char* text, RECT* rect, int font, COLORREF colour, int format, int flag);
 };
-__declspec(naked) int SurfaceTextAt::Text(const char*, RECT*, int, COLORREF, int, int) EI_ORIGINAL(0x005FDE20)
+int SurfaceTextAt::Text(const char* text, RECT* rect, int format, COLORREF colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // The character at `p` as the original compares it: a lead byte shifted left by 8 (sign-extended)
 // plus the next byte (sign-extended), otherwise the byte itself.

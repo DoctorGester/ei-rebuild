@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "originals_engine.h"
 
 namespace {
 
@@ -46,7 +47,6 @@ long ComCall(void* object, int slot, Args... args) {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
-__declspec(naked) int __cdecl DirectXError(long, const char*) EI_ORIGINAL(0x004800E0)
 // 0044C470 (cdecl): an error message; returns a value whose low byte the caller clears.
 __declspec(naked) unsigned __cdecl ErrorMessage(const char*) EI_ORIGINAL(0x0044C470)
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
@@ -80,7 +80,7 @@ unsigned __fastcall BinkVideoFrame(void* self, void*, char toPrimary) {
             long hr = ComCall(At<void*>(holder, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                               static_cast<void*>(nullptr));
             At<long>(holder, 8) = hr;
-            if (hr != 0 && !DirectXError(hr, Text(0x0078E30C))) {   // "Can't lock surface"
+            if (hr != 0 && !FatalDirectX(hr, Text(0x0078E30C))) {   // "Can't lock surface"
                 // The original leaves the device lock held here.
                 return ErrorMessage(Text(0x0079234C)) & 0xFFFFFF00u;
             }
@@ -91,7 +91,7 @@ unsigned __fastcall BinkVideoFrame(void* self, void*, char toPrimary) {
             gameapi::LeaveCriticalSection(DeviceLock());
             hr = ComCall(At<void*>(holder, 0x10), kUnlock, static_cast<void*>(nullptr));
             At<long>(holder, 8) = hr;
-            if (hr != 0 && !DirectXError(hr, Text(0x0078E2F4)))   // "Can't unlock surface"
+            if (hr != 0 && !FatalDirectX(hr, Text(0x0078E2F4)))   // "Can't unlock surface"
                 return ErrorMessage(Text(0x00792324)) & 0xFFFFFF00u;
             BinkNextFrame()(bink);
         }

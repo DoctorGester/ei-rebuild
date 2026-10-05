@@ -18,7 +18,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) StringRep* __fastcall StringConstruct(StringRep* /*s*/) EI_ORIGINAL(0x0041F460)
 __declspec(naked) void __fastcall StringAssign(StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/, void* /*tag*/) EI_ORIGINAL(0x0042A4F0)
 // Counted pointers from a raw pointer without a reference (the list insert adds one).
 __declspec(naked) RefPtr* __fastcall PlayerRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428040)
@@ -56,8 +55,8 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* player = NewMessageMemory<PlayerMessage>();
     if (player) {
         MessageConstructBase(player);
-        StringConstruct(&player->name_);
-        StringConstruct(&player->text_);
+        StringInitEmpty(&player->name_);
+        StringInitEmpty(&player->text_);
         ei::SetVtable(player, PlayerMessage::kVtableAddress);
         player->host_ = 0;
         player->state_ = 1;
