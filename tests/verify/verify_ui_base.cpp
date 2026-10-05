@@ -9,10 +9,12 @@
 #include "../../src/game/console.h"
 #include "../../src/game/ui.h"
 #include "../../src/lib/gameapi.h"
+#include "../../src/hook/log.h"
 
 #include <windows.h>
 #include <ddraw.h>
 
+#include <algorithm>
 #include <cstring>
 #include <functional>
 #include <string>
@@ -238,9 +240,38 @@ bool CopySurfaceDC(HDC dc, int width, int height, GdiPixels* read, const GdiPixe
     return ok;
 }
 
+// The pixels that differ and their bounding box (for the mismatch line); -1 if not comparable.
+struct PixelDiff {
+    int count = 0, left = 0, top = 0, right = -1, bottom = -1;
+};
+PixelDiff DiffPixels(const GdiPixels& a, const GdiPixels& b, int width) {
+    PixelDiff d;
+    if (a.bits.size() != b.bits.size() || width <= 0) {
+        d.count = -1;
+        return d;
+    }
+    for (std::size_t i = 0; i < a.bits.size(); ++i) {
+        if (a.bits[i] == b.bits[i]) continue;
+        int x = static_cast<int>(i % width), y = static_cast<int>(i / width);
+        if (d.count++ == 0) {
+            d.left = d.right = x;
+            d.top = d.bottom = y;
+        }
+        d.left = (std::min)(d.left, x);
+        d.right = (std::max)(d.right, x);
+        d.top = (std::min)(d.top, y);
+        d.bottom = (std::max)(d.bottom, y);
+    }
+    return d;
+}
+
 // 005FDFA0: PUSH -1; PUSH imm32 (7). Side by side: the surface's pixels are recorded, the
 // original draws, its pixels are recorded and the old ones put back, ours draws; the line counts
-// and the pixels are compared.
+// and the pixels are compared. Both draw through the same game callees (005F8340, 005FDE20), so
+// the pixels can only differ if the surface changed underneath. That was seen about once in 5000
+// calls, in two parallel game processes at the same millisecond, so it was an outside event
+// (e.g. a DirectDraw surface loss while other runs start or stop). On a pixel difference the
+// pair runs once more from the recorded pixels; only a difference that repeats is a mismatch.
 int(__thiscall* s_drawWrapped)(CUiSurface*, const char*, const RECT*, int, int, COLORREF, int, int);
 int __fastcall DrawWrappedVerify(CUiSurface* self, void*, const char* text, const RECT* rect, int maxLines, int font,
                                  COLORREF colour, int format, int flag) {
@@ -256,10 +287,31 @@ int __fastcall DrawWrappedVerify(CUiSurface* self, void*, const char* text, cons
     if (pixels) pixels = CopySurfaceDC(dc, width, height, &expected, nullptr) && CopySurfaceDC(dc, width, height, nullptr, &before);
     rectCopy = *rect;
     int mine = self->DrawWrappedText(copy.c_str(), &rectCopy, maxLines, font, colour, format, flag);
-    bool same = true;
-    if (pixels && CopySurfaceDC(dc, width, height, &actual, nullptr)) same = expected.bits == actual.bits;
-    ei::verify::Check("CUiSurface::DrawWrappedText", true, result == mine && same, "'%.80s' lines %d/%d pixels %d",
-                      copy.c_str(), result, mine, same);
+    PixelDiff diff;
+    if (pixels && CopySurfaceDC(dc, width, height, &actual, nullptr)) diff = DiffPixels(expected, actual, width);
+    bool rerun = diff.count != 0;
+    if (rerun) {
+        // Once more from the recorded pixels: original, put back, ours (left on the surface).
+        PixelDiff first = diff;
+        GdiPixels expected2, actual2;
+        rectCopy = *rect;
+        bool again = CopySurfaceDC(dc, width, height, nullptr, &before);
+        s_drawWrapped(self, copy.c_str(), &rectCopy, maxLines, font, colour, format, flag);
+        again = again && CopySurfaceDC(dc, width, height, &expected2, nullptr) &&
+                CopySurfaceDC(dc, width, height, nullptr, &before);
+        rectCopy = *rect;
+        self->DrawWrappedText(copy.c_str(), &rectCopy, maxLines, font, colour, format, flag);
+        again = again && CopySurfaceDC(dc, width, height, &actual2, nullptr);
+        diff = again ? DiffPixels(expected2, actual2, width) : PixelDiff{-1};
+        int drift = again ? DiffPixels(expected, expected2, width).count : -1;
+        ei::Log("verify CUiSurface::DrawWrappedText: '%.80s' %d pixels differed in %d,%d-%d,%d of %dx%d; the "
+                "original's redraw differs from its first draw in %d; rerun: %d differ",
+                copy.c_str(), first.count, first.left, first.top, first.right, first.bottom, width, height, drift,
+                diff.count);
+    }
+    ei::verify::Check("CUiSurface::DrawWrappedText", true, result == mine && diff.count == 0,
+                      "'%.80s' lines %d/%d, %d pixels differ in %d,%d-%d,%d%s", copy.c_str(), result, mine, diff.count,
+                      diff.left, diff.top, diff.right, diff.bottom, rerun ? " (after a rerun)" : "");
     return result;
 }
 EI_VERIFY(0x005FDFA0, DrawWrappedVerify, 7, s_drawWrapped);

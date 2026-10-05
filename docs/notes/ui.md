@@ -727,7 +727,7 @@ fields +0x08..+0x2C and +0x78/+0x79 named, four method declarations).
 | Address | Size | Name | Verify |
 |---|---|---|---|
 | 005F57C0 | 748 | `CInterface3D::Update` (every frame) | ours only: the mouse copy (+0x68/+0x6C from 007C7C50) |
-| 005FDFA0 | 838 | `CUiSurface::DrawWrappedText` | side by side: line count and the surface's pixels through GDI (the caller holds the DC): recorded, the original's result recorded and the old pixels put back, ours compared |
+| 005FDFA0 | 838 | `CUiSurface::DrawWrappedText` | side by side: line count and the surface's pixels through GDI (the caller holds the DC): recorded, the original's result recorded and the old pixels put back, ours compared; a pixel difference is rerun once (outside surface changes, ticket X4) |
 | 005E4A10 | 789 | `ConsoleWindow::DrawInput` | side by side: caret/anchor clamp and the surface's pixels (DirectDraw lock); before ours the pixels are put back with the input strip's rows inverted, so anything ours leaves undrawn shows |
 | 005E4180 | 709 | `ConsoleWindow::OnKeyDown` | side by side: input text, caret, anchor, command index, scroll, Ctrl/Shift (restored between the runs) |
 | 005E4800 | 524 | `ConsoleWindow::DrawLines` | as DrawInput (rows above the input strip); runs on every console message (without a surface: the scroll clamp only) |
@@ -772,6 +772,25 @@ server flag 00578D10, activation 005F71C0/005F7350, close-all 005F8C50, message 
 - The console's Up key increases the command index; Down stops at -1. Delete with no selection at the end
   of the input does nothing (no redraw).
 - DrawWrappedText stores a word that did not fit before a '\n' on a line of its own (even an empty one).
+
+## Ticket X4: DrawWrappedText pixel mismatch (2026-10-05)
+
+- The old line "lines 1/1 pixels 0" printed the boolean `same`, so `pixels 0` meant the pixel buffers
+  differed. The line counts agreed.
+- I re-checked ours against the disassembly of 005FDFA0: the same walk (`_ismbblead` 006E99F2 with an
+  unsigned byte, sign-extended `lead << 8 + next`, `isleadbyte` 006E9A6C with a sign-extended byte,
+  `_mbsinc`), the same `line + word` extent test against `right - left`, `line = word + " "`, and the same
+  SetAtGrow order on '\n'. Every helper and callee is the game's own, called through its address
+  (005F8340, 005FDE20, the CString ops). Ours cannot draw different pixels for any input, Cyrillic or
+  high-byte text included.
+- The two logged mismatches (ui_describe-vanilla and ui_hud-rebirth, both on a short Cyrillic word) came
+  from two separate game processes at the same millisecond (08:32:21.121/.122), while other parallel runs
+  were starting and stopping. It was an outside event on the shared desktop, not an input. Most likely a
+  DirectDraw surface loss or a GDI change between the GDI readbacks.
+- The check now counts the differing pixels and logs their bounding box. When the pixels differ it runs the
+  pair once more from the recorded pixels: original, put back, ours. Only a difference that repeats is a
+  mismatch. Each rerun logs the first difference and how far the original's own redraw moved from its first
+  draw, so a real difference would still show.
 
 ## Skipped
 
