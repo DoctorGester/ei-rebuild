@@ -533,6 +533,12 @@ void __fastcall ScriptObjectsSave(const ScriptNamedValues<ScriptObjectRef>* vars
 void __fastcall ScriptGroupsSave(const ScriptNamedValues<ScriptGroup>* vars, void* edx, ScriptStream* stream);
 // 004CAEC0 (__fastcall). The areas: count, then per area its id, part count and parts (0x14 bytes).
 void __fastcall ScriptAreasSave(const MfcArray<ScriptArea>* areas, ScriptStream* stream);
+// 004BBFE0 (__thiscall). A definition or instance: +0, name and parameter string (terminators
+// included), the if-then pairs (block ids), then its variables.
+void __fastcall ScriptDefinitionSave(const ScriptDefinition* definition, void* edx, ScriptStream* stream);
+// 004BB320 (__thiscall). A run: block id, index, ticks, sleep start, the index of its instance in
+// the saving script's (007AA620) instance list (-1 when absent), then its variables.
+void __fastcall ScriptRunSave(const ScriptRun* run, void* edx, ScriptStream* stream);
 
 // ---- Loading (script_load.cpp) ------------------------------------------------------------------
 
@@ -582,6 +588,14 @@ void __fastcall ScriptLightningLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptWorldBlocksLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptInstancesLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptRunsLoad(ScriptList* list, ScriptStream* stream);
+// 004B3AD0 (ScriptVars::Load, __thiscall). The four kinds of variables, each as count, values and
+// names resized, then per variable its value and name (the variable loaders' format).
+void __fastcall ScriptVarsLoad(ScriptVars* vars, void* edx, ScriptStream* stream);
+// 004BB590 (__thiscall). One if-then pair of an instance: two block ids resolved as FindBlock does.
+void __fastcall ScriptIfThenPairLoad(ScriptIfThen* pair, void* edx, ScriptStream* stream);
+// 004BFA50 (CScript::FindBlock, __thiscall). The command block with `id`: negative ids in the
+// WorldScript blocks (+0x178), others in the command blocks (+0x70); null when absent.
+ScriptDecl* __fastcall ScriptFindBlock(const CScript* script, void* edx, int id);
 
 // ---- Variable appends (script_vars_append.cpp) --------------------------------------------------
 

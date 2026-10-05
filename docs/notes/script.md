@@ -810,3 +810,44 @@ vtables 0x73D388 / 0x73D37C / 0x73D370 / 0x73D364 (blocks and WorldScript blocks
 0x73D340, block size 10, definitions 0x73D358, areas 0x73D334, globals 004BC690 / 004BC740 /
 004BC870 / 004BC950, one temporary group and one null reference added (004C8CE0 / 004C9210), the
 error text empty, then the reset).
+
+# Savegame parts (ticket S3: 004BBFE0, 004BB320, 004B3AD0, 004BB590, 004BFA50)
+
+Live script runtime functions of 0x004B0000-0x004C0000 that the scenarios reach, none in
+config/library.csv, config/dead_code.csv or docs/rebirth-patched-functions.txt (no
+config/rebirth_patches.csv site inside them), so they install in both launches. All are pieces of
+the savegame writer and reader above that were still forwarders.
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004BBFE0 | 527 | ScriptDefinitionSave (`script_save.cpp`) | against the original (verify_script_save.cpp): both into capture streams, bytes and write sizes compared | every save (the new game's autosave): newgame, world_load, script_copy |
+| 004BB320 | 505 | ScriptRunSave (`script_save.cpp`) | as above | saves with waiting runs (world_load, script_copy) |
+| 004B3AD0 | 574 | ScriptVarsLoad (ScriptVars::Load, `script_load.cpp`) | record / replay against the original (verify_script_load.cpp): the original into a scratch set built by 004C00D0, ours replays into the real (empty) set; all eight arrays' sizes and capacities, float bits, strings, object pointers, group members / capacity / growBy, names; scratch destroyed with 004BE090. Ours only (counts) when the set is not empty on entry | every save load: definitions and runs (world_load, script_copy) |
+| 004BB590 | 204 | ScriptIfThenPairLoad (`script_load.cpp`) | record / replay against the original into a scratch pair; both block pointers compared | instances of a loaded save (world_load, script_copy) |
+| 004BFA50 | 71 | ScriptFindBlock (CScript::FindBlock, `script_load.cpp`) | pure, against the original | SSCCmd::Load (every command of a loaded save) |
+
+The definition and run savers inline the float, string and object savers (the same pieces; ours
+calls ScriptFloatsSave / ScriptStringsSave directly, objects through ScriptObjectRef::Save 004B25F0)
+and call the group saver 004C4330. A missing name is written as one zero byte (a stack variable
+the original zeroes first). The run saver finds the run's instance by comparing its kill flag
+pointer with each node's data in the +0x140 list of 007AA620 (-1 when absent; the WorldScript's
+runs). Neither null-checks the blocks (pairs, run block).
+
+ScriptVars::Load is the four variable loaders' format written out with the arrays' out-of-line
+SetSize (004C2880, 004C2510 for strings and names, 004C2050 for the object array, 004C3980),
+objects assigned with 004B24D0 after FindObject (00593AA0) and group members read with
+ScriptObjectRef::Load (004B2590), then Sort. One stack variable holds the float count and index
+and then receives every object id and group size (never reset in between); kept as such.
+
+FindBlock: SSCCmd::Load now calls 004BFA50 through its address (on 007C27D4) as the original does;
+the loaders that inline the lookup (if-then pairs, runs) call ScriptFindBlock directly.
+
+Forwarders added: `script_save.cpp` 004B25F0; `script_load.cpp` 004BFA50, 004B2590, 004C3980 (the
+rewritten ones through their addresses so their wrappers run); verify 004C00D0. The savers
+004BBFE0 / 004BB320 and loaders 004B3AD0 / 004BB590 keep being called through their addresses.
+
+Not taken: 004BE9D0 (definition destructor) and 004BE090 (ScriptVars destructor): destructors are
+hard to verify against the original (both would free); the next candidates with the same pattern
+are the point light / particle / FX / lightning savers and loaders 004B1940, 004B1A80, 004B1C50,
+004B1DB0, 004B18B0, 004B1B40 (reached only when a save holds such sources) and 004B3D10 (string
+loader, a few instructions around 00461190).

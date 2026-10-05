@@ -102,8 +102,23 @@ void __fastcall AreasSaveVerify(const MfcArray<ScriptArea>* self, ScriptStream* 
     expected.Forward(stream);
 }
 
+// 004BBFE0: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC] (6 bytes). Reached by every save of a script
+// with definitions or instances (the new game's autosave, script_copy's save).
+void(__fastcall* s_definitionSave)(const ScriptDefinition*, void*, ScriptStream*);
+void __fastcall DefinitionSaveVerify(const ScriptDefinition* self, void*, ScriptStream* stream) {
+    SaveVerify("ScriptDefinitionSave", s_definitionSave, &ScriptDefinitionSave, self, stream);
+}
+
+// 004BB320: SUB ESP,8; PUSH EBX; PUSH ESI (5 bytes). Reached by saves with waiting runs.
+void(__fastcall* s_runSave)(const ScriptRun*, void*, ScriptStream*);
+void __fastcall RunSaveVerify(const ScriptRun* self, void*, ScriptStream* stream) {
+    SaveVerify("ScriptRunSave", s_runSave, &ScriptRunSave, self, stream);
+}
+
 } // namespace
 
+EI_VERIFY(0x004BBFE0, DefinitionSaveVerify, 6, s_definitionSave);
+EI_VERIFY(0x004BB320, RunSaveVerify, 5, s_runSave);
 EI_VERIFY(0x004C0F90, SaveVerifyScript, 7, s_save);
 EI_VERIFY(0x004C1230, DeclSaveVerify, 8, s_declSave);
 EI_VERIFY(0x004C2EF0, FloatsSaveVerify, 8, s_floatsSave);

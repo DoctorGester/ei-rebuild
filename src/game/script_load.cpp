@@ -24,9 +24,9 @@ namespace {
 
 // ---- Original code called by the loaders ---------------------------------------------------------
 
-// Loaders of the 004B range (not rewritten), __thiscall with the stream.
-// 004B18B0 point light (0x20 slot), 004B1B40 FX source (list node data), 004B3AD0 ScriptVars,
-// 004B5FE0 SSCCmd, 004BB590 one if-then pair of an instance (ids resolved like ifThen below).
+// Loaders of the 004B range, __thiscall with the stream. 004B18B0 point light (0x20 slot) and
+// 004B1B40 FX source (list node data): not rewritten. 004B3AD0 ScriptVars, 004B5FE0 SSCCmd and
+// 004BB590 one if-then pair of an instance: rewritten below, called through their addresses.
 __declspec(naked) void __fastcall PointLightLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B18B0)
 __declspec(naked) void __fastcall FxSourceLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1B40)
 __declspec(naked) void __fastcall VarsLoad(ScriptVars*, void*, ScriptStream*) EI_ORIGINAL(0x004B3AD0)
@@ -36,6 +36,11 @@ __declspec(naked) void __fastcall IfThenPairLoad(ScriptIfThen*, void*, ScriptStr
 __declspec(naked) void __fastcall StringLoad(mfc::CString*, ScriptStream*) EI_ORIGINAL(0x004B3D10)
 // 004BF540 CScript::NewCommandList: a new empty command block in the +0x70 list.
 __declspec(naked) ScriptDecl* __fastcall NewCommandList(CScript*) EI_ORIGINAL(0x004BF540)
+// 004BFA50 CScript::FindBlock (rewritten below; SSCCmd::Load calls it out of line).
+__declspec(naked) ScriptDecl* __fastcall FindBlockOrig(const CScript*, void*, int) EI_ORIGINAL(0x004BFA50)
+// ScriptObjectRef::Load (rewritten in script_group.cpp) and the group values' SetSize.
+__declspec(naked) void __fastcall RefLoad(ScriptObjectRef*, void*, ScriptStream*) EI_ORIGINAL(0x004B2590)
+__declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
@@ -215,19 +220,12 @@ CEngineObject* AcquireById(int id) {
     return object;
 }
 
-// The command block with id `id` of the world's first script (007C27D4 = world +0x12874, the only
-// script a savegame holds): WorldScript blocks (+0x178 list) for negative ids, else the command
-// blocks (+0x70 list). Null when absent.
-ScriptDecl* FindBlock(int id) {
-    constexpr std::uintptr_t kSavedScript = 0x007C27D4;
-    std::uintptr_t list = kSavedScript + (id < 0 ? 0x178 : 0x70);
-    for (ListNode* node = reinterpret_cast<RawList*>(list)->head; node;) {
-        auto* block = reinterpret_cast<ScriptDecl*>(node->Data());
-        node = node->next;
-        if (block->id == id) return block;
-    }
-    return nullptr;
-}
+// The world's first script (007C27D4 = world +0x12874, the only script a savegame holds): block
+// ids resolve in its lists whatever script is loaded.
+const CScript* SavedScript() { return reinterpret_cast<const CScript*>(0x007C27D4); }
+
+// CScript::FindBlock on the saved script, as the loaders inline it.
+ScriptDecl* FindBlock(int id) { return ScriptFindBlock(SavedScript(), nullptr, id); }
 
 // The loaders of this file, called from each other through their addresses (verify wrappers run).
 __declspec(naked) void __fastcall FloatsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C2D40)
@@ -329,8 +327,8 @@ EI_REPLACE(0x004C40D0, ScriptGroupsLoad);
 
 // The mirror of SSCCmd::Save (004B6360). Object and group arguments are saved as counts only: the
 // slots are made and left null (the original inlines the object array's SetSize, not the group
-// array's). The called block resolves like FindBlock (the original calls 004BFA50, the same
-// lookup in the lists of 007C27D4; -1, an unset block, finds a WorldScript block with id -1 if any).
+// array's). The called block is found with 004BFA50 in the lists of 007C27D4 (-1, an unset block,
+// finds a WorldScript block with id -1 if any).
 void __fastcall ScriptCmdLoad(SSCCmd* cmd, void*, ScriptStream* stream) {
     stream->Read(&cmd->id, 4);
 
@@ -356,7 +354,7 @@ void __fastcall ScriptCmdLoad(SSCCmd* cmd, void*, ScriptStream* stream) {
     SubCallsSetSize(&cmd->subCalls, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < cmd->subCalls.size; ++i) SubCallLoad(&cmd->subCalls.data[i], nullptr, stream);
 
-    cmd->calledScript = FindBlock(ReadInt(stream));
+    cmd->calledScript = FindBlockOrig(SavedScript(), nullptr, ReadInt(stream));
 }
 EI_REPLACE(0x004B5FE0, ScriptCmdLoad);
 
@@ -385,6 +383,85 @@ void __fastcall ScriptIfThenLoad(MfcArray<ScriptIfThen>* pairs, ScriptStream* st
     }
 }
 EI_REPLACE(0x004CA000, ScriptIfThenLoad);
+
+// One pair of an instance (the instance loader calls it per pair): as ScriptIfThenLoad's loop.
+void __fastcall ScriptIfThenPairLoad(ScriptIfThen* pair, void*, ScriptStream* stream) {
+    int id = -1;
+    stream->Read(&id, 4);
+    pair->conditions = FindBlock(id);
+    stream->Read(&id, 4);   // the same variable: keeps the first id when the read leaves it
+    pair->commands = FindBlock(id);
+}
+EI_REPLACE(0x004BB590, ScriptIfThenPairLoad);
+
+// The block lists are MFC CLists of ScriptDecl; the id is compared as the block's +0x14.
+ScriptDecl* __fastcall ScriptFindBlock(const CScript* script, void*, int id) {
+    std::size_t offset = id < 0 ? 0x178 : 0x70;
+    const auto* list = reinterpret_cast<const RawList*>(reinterpret_cast<const char*>(script) + offset);
+    for (ListNode* node = list->head; node;) {
+        auto* block = reinterpret_cast<ScriptDecl*>(node->Data());
+        node = node->next;
+        if (block->id == id) return block;
+    }
+    return nullptr;
+}
+EI_REPLACE(0x004BFA50, ScriptFindBlock);
+
+// ---- ScriptVars::Load ------------------------------------------------------------------------------
+
+// The variable loaders' format for all four kinds, with the arrays' out-of-line SetSize (004C2880,
+// 004C2510, 004C2050, 004C3980), objects assigned through 004B24D0 and group members read with
+// ScriptObjectRef::Load. One stack variable holds the float count and index and then receives every
+// object id and group size (it is never reset in between); the other counts start at 0.
+void __fastcall ScriptVarsLoad(ScriptVars* vars, void*, ScriptStream* stream) {
+    int slot = 0;
+    stream->Read(&slot, 4);
+    FloatsSetSize(&vars->floats, nullptr, slot, -1);
+    NamesSetSizeOriginal(&vars->floatNames, nullptr, slot, -1);
+    for (slot = 0; slot < vars->floats.size; ++slot) {
+        stream->Read(&vars->floats.data[slot], 4);
+        StringLoad(&vars->floatNames.data[slot], stream);
+    }
+
+    int count = 0;
+    stream->Read(&count, 4);
+    NamesSetSizeOriginal(&vars->strings, nullptr, count, -1);
+    NamesSetSizeOriginal(&vars->stringNames, nullptr, count, -1);
+    for (int i = 0; i < vars->strings.size; ++i) {
+        StringLoad(&vars->strings.data[i], stream);
+        StringLoad(&vars->stringNames.data[i], stream);
+    }
+
+    count = 0;
+    stream->Read(&count, 4);
+    GroupSetSize(static_cast<ScriptGroup*>(static_cast<void*>(&vars->objects)), nullptr, count, -1);
+    NamesSetSizeOriginal(&vars->objectNames, nullptr, count, -1);
+    for (int i = 0; i < vars->objects.size; ++i) {
+        ScriptObjectRef* ref = &vars->objects.data[i];
+        stream->Read(&slot, 4);
+        if (slot == -1) {
+            RefReset(ref);
+            ref->object = nullptr;
+        } else {
+            RefAssign(ref, nullptr, WorldFindObject(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
+        }
+        StringLoad(&vars->objectNames.data[i], stream);
+    }
+
+    count = 0;
+    stream->Read(&count, 4);
+    GroupValuesSetSize(&vars->groups, nullptr, count, -1);
+    NamesSetSizeOriginal(&vars->groupNames, nullptr, count, -1);
+    for (int i = 0; i < vars->groups.size; ++i) {
+        ScriptGroup* group = &vars->groups.data[i];
+        stream->Read(&slot, 4);
+        GroupSetSize(group, nullptr, slot, -1);
+        for (int k = 0; k < slot; ++k) RefLoad(&group->data[k], nullptr, stream);
+        GroupSort(group);
+        StringLoad(&vars->groupNames.data[i], stream);
+    }
+}
+EI_REPLACE(0x004B3AD0, ScriptVarsLoad);
 
 // ---- Lists ---------------------------------------------------------------------------------------
 // Each list loader reads the count, appends that many default nodes, then reads every node of the
