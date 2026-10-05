@@ -177,6 +177,12 @@ int __fastcall WeaponDamageType(std::uint32_t packedId);    // 006A2C60 first no
 float __fastcall WeaponStat84(std::uint32_t packedId);      // 006A2D40
 float __fastcall WeaponStat88(std::uint32_t packedId);      // 006A2D90
 
+// 006A0CC0 (item_names.cpp). The base figure (skeleton) a weapon prototype (by index) is animated
+// with, into `out` (emptied first): "basesword", "baseaxe", "basedagger", "basepike", "baseclub"
+// with the prototype's number as "%.2d" appended, "basearrow00" / "basearrow01" for types 5 / 6,
+// else "baser_hand3". False (only AL set) for index -1 or out of range.
+bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
+
 // 006A3200. Armor prototype field +0xB8 by prototype index; 0 if out of range.
 int __fastcall ArmorFieldB8(std::uint32_t index);
 

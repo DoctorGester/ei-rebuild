@@ -58,3 +58,19 @@ EI_VERIFY(0x006A47B0, CItemQuestPictureNameVerify, 7, s_CItemQuestPictureName);
 EI_VERIFY(0x006A5820, CItemSpellFigureNameVerify, 7, s_CItemSpellFigureName);
 EI_VERIFY(0x006A4B90, CItemLootFigureNameVerify, 7, s_CItemLootFigureName);
 EI_VERIFY(0x006A5030, CItemLootPictureNameVerify, 7, s_CItemLootPictureName);
+
+// 006A0CC0 (the weapon's base figure; reached from the unit effect point 00532860, scenarios effects
+// and spells_cast): the original into the caller's CString, ours into a non-empty local; the
+// results (AL) and the texts compared. Stolen bytes: SUB ESP,0x24; PUSH EBX; PUSH ESI (5).
+using WeaponBaseFigureFn = bool(__fastcall*)(std::uint32_t, mfc::CString*);
+static WeaponBaseFigureFn s_weaponBaseFigure;
+static bool __fastcall WeaponBaseFigureVerify(std::uint32_t index, mfc::CString* out) {
+    bool expected = s_weaponBaseFigure(index, out);
+    mfc::CString actual("?");
+    bool result = WeaponBaseFigure(index, &actual);
+    ei::verify::Check("WeaponBaseFigure", true, expected == result && std::strcmp(*out, actual) == 0,
+                      "index %u: %d \"%.40s\" vs %d \"%.40s\"", index, expected, static_cast<const char*>(*out), result,
+                      static_cast<const char*>(actual));
+    return expected;
+}
+EI_VERIFY(0x006A0CC0, WeaponBaseFigureVerify, 5, s_weaponBaseFigure);

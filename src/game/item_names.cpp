@@ -8,6 +8,8 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 
+#include <cstring>
+
 using namespace itemdb;
 
 namespace {
@@ -130,6 +132,42 @@ mfc::CString CItemArmor::PictureName() {
     return PictureNameOf(Armors(), kArmorSize, kArmorCodes, kArmorPicture, unknown_18);
 }
 EI_REPLACE_METHOD(0x006A37B0, CItemArmor::PictureName);
+
+// 006A0CC0. The original formats the number into a 4-byte buffer just before the name buffer; a
+// number above 999 would overrun it (none in the database; the overlapping strcat that would
+// follow is not reproduced).
+bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
+    out->Empty();
+    if (index == 0xFFFFFFFFu) return false;
+    const char* prototype = Weapons().At(index, kWeaponSize);
+    if (!prototype) return false;
+    char block[0x24];
+    char* number = block;
+    char* name = block + 4;
+    gamecrt::sprintf(number, Text(0x00796454), Field<int>(prototype, kRecordNumber));   // "%.2d"
+    static const std::uintptr_t kBases[5] = {
+        0x00796448,   // "basesword"
+        0x00796440,   // "baseaxe"
+        0x00796434,   // "basedagger"
+        0x00796428,   // "basepike"
+        0x0079641C,   // "baseclub"
+    };
+    auto copy = [](char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); };
+    std::uint32_t type = static_cast<std::uint32_t>(Field<int>(prototype, field::kItemType));
+    if (type < 5) {
+        copy(name, Text(kBases[type]));
+        copy(name + std::strlen(name), number);
+    } else if (type == 5) {
+        copy(name, Text(0x00796410));   // "basearrow00"
+    } else if (type == 6) {
+        copy(name, Text(0x00796404));   // "basearrow01"
+    } else {
+        copy(name, Text(0x007963F8));   // "baser_hand3"
+    }
+    *out = name;
+    return true;
+}
+EI_REPLACE(0x006A0CC0, WeaponBaseFigure);
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 

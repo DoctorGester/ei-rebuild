@@ -467,8 +467,8 @@ Code: `src/game/item_parts.cpp`, `item_constructor.cpp`, `item_names.cpp`, `spel
 
 ## Skipped
 
-- 006AE8E0 (quest database load), 0069AE20 / 0069A780 / 006995E0.. (trader and random loot
-  generation over STLport containers and rand), 00693180 / 00693970 (write .mmp caches to disk),
+- 006AE8E0 (quest database load), 0069A780 / 006995E0.. (trader and random loot
+  generation over STLport containers and rand; 0069AE20 / 0069A110 done, see "Trader stock"), 00693180 / 00693970 (write .mmp caches to disk),
   0069B5B0 (save load), 00690970 / 00690B30 (surface lock copies), the STLport vector instantiations
   in 006A6xxx-006ACxxx, CWinRegistry (006972A0-006990E0, plain Win32 registry wrappers: next candidate).
 - Rebirth-patched: 00691500, 006A67A0, 006AC970, 006AE3A0.
@@ -639,3 +639,64 @@ converted to 16 bits by the pixel converter 007AF06C (slot 2 [out, in, kind, cou
 4444, 2 for 5551, 0 for 5650, else -1) and halved by slot 7 [out, in, width]. A file that cannot be
 created goes to FatalError (the image block leaks, as in the original). Callers: 00536670 /
 005370F0 (party unit skins), 00568800 (unit skins at zone load).
+
+## Trader stock (0069A110-0069B544, ticket H2)
+
+Files: `src/game/item_stock.h/.cpp`, `tests/verify/verify_item_stock.cpp`. Scenario: `ui_camp` (the
+first camp opening after a new game: the template's constructor sets its +0x38 flag, so the camp's
+0060DD2E calls 004A6DF0, which generates the stock of the template's +0x1D4 lists).
+
+| Address | Name | Verify |
+|---|---|---|
+| 0069AE20 | `ItemStock::GenerateItems` (RET 0x14; via 0069B570 weapons kind 0, 0069B550 armors kind 1, 0069B590 quick items kind 2) | ours only: at most min(maxCount, prototypes) new items, each counted, kinds 0x3004..0x3006; candidate scratch empty; no material units below zero |
+| 0069A110 | `ItemStock::GenerateMaterials` (RET 0xC) | ours only: as many new items as entries taken (within the clipped [min, max]), each counted; scratch empty |
+
+The stock lists (`ItemStock`, 0xB8 bytes, ClassTemplate +0x11C / +0x1D4): +0 the template's party
+object (slot 16 the item constructor, slot 18 the item manager), +4 the class bit, vectors of record
+pointers at +8 armors / +0x14 weapons / +0x20 quick items / +0x38 spells / +0x44 modifiers, +0x2C
+the material entries (16 bytes: record, stack count min, max, units left), +0x50 / +0x64 the spell
+and modifier maps 0069A480 fills.
+
+GenerateItems: the count is min + (rand() * range / 0x7FFF) % range (max when min >= max). With
+more prototypes than that the prototype vector itself is shuffled (STLport random_shuffle on rand())
+and its first `count` copied into the scratch 007C8680, else the whole vector is assigned to it.
+For each one except "wand": BeginCreateItem(slot 0 of the record, -1) and the prototype; if its
+material class (+0x10) is not "none", the candidates (scratch 007C8650) are the entries of that class
+with at least the prototype's units (+0x4C) left. Each candidate is drawn with a chance by its
+quality q (material +0x10) against the price p (+0x34): 10% when q < 2p/7 - p/5 or q > p/5, else
+trunc(110 - |(q - p/7) / (p/7 - p/5)| x 100)% (one rand() per candidate, roll 1..100). Without a
+pick: class "none" gets no material, no candidates cancels the item (Cancel, SetManager(null)),
+otherwise the candidates are shuffled and the first taken. The taken entry loses the units. Kinds
+0, 1 (and 3) then, when ISAAC % 101 < 50 and 006A6480 allows magic (level / power from prototype
+and material), 0069A780 generates spells for that level in all 8 schools and one is picked at random
+(ISAAC) and attached unless its +0x40 exceeds the power. The item (EndCreateItem, SetManager(null),
+count + 1; category 8 quick items get a stack of 20 + rand-based 0..29) goes to the output list.
+
+GenerateMaterials: the same count, the material entries shuffled in place / copied to 007C8640, each
+a "material" prototype (class-0x15 table 007C8778, 0069D380) item of kind 0x3007 with the entry's
+material and a stack size in [min, max] (constructor +0x30).
+
+Forwarders added: the item constructor members 006A5C00 / 006A5C50 / 006A5CC0 / 006A5CD0 / 006A5CE0 /
+006A5CF0 / 006A5D30 and 006A6480 (magic capacity), 006A4230 (category), 0069D380, 0069A480 /
+0069A780 (spell maps / spell generation, not rewritten), the vector members 0069E3F0 / 0069D9A0 /
+0069D470 / 0069C990 (pointers) and 0069ECD0 / 0069DB00 / 0069C9D0 (material entries), the list
+insert 0069C3D0 and the spell list constructor 0069C440. The vectors' operator= and erase are
+written out (the original inlines them).
+
+Original bugs kept: the prototype and material vectors of the template are shuffled in place; an
+item whose build fails (EndCreateItem null) is dereferenced.
+
+Left: 0069A480 (fills the spell / modifier maps; STLport hash_map / map members throughout),
+0069A780 (random spells from those maps), 0069B5B0 (the stock's load from a save), 00699810 /
+006995E0 / 00699A40 (the other three generators 004A6DF0 calls).
+
+## Weapon base figure (006A0CC0)
+
+| Address | Name | Verify |
+|---|---|---|
+| 006A0CC0 | `WeaponBaseFigure` (fastcall index, CString*; AL) | against the original: result and text |
+
+In `item_names.cpp`. Reached through the weapon's 006A0F50 (index = id >> 16) from the unit effect
+point 00532860 (effects, lightning; scenarios effects / spells_cast). The number is "%.2d" of +0x18;
+the original's 4-byte number buffer would overrun into the name for numbers above 999 (not in the
+database; the overlapping copy is not reproduced).

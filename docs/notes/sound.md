@@ -173,8 +173,8 @@ called through game.exe's import table (0073B750..0073B808). `mfc::CString::oper
   open / close / fill (006BAAC0, 006BAC90, 006BB3A0 Rebirth-patched), the stream and MIDI thread
   loops (006BB910, 006BBCB0), MIDI (006BBB80, 006BBC70), voice allocation and starting
   (006B7D10, 006B8250, 006B8600, 006B89F0: the wave cache with ASI decompression).
-- CMusicSystem Create 006B4710 (music.reg parsing, CStringArray / CArray heavy), constructor /
-  destructor / Serialize (006B4350, 006B44B0, 006B5770).
+- CMusicSystem constructor / destructor / Serialize (006B4350, 006B44B0, 006B5770). (Create
+  006B4710 is done: "LoadThemes" below.)
 - The map's ambient sounds 006C68B0 (Rebirth-patched) and 006CB390 (terrain material ambience,
   2 KB): good next candidates together with the terrain owner.
 - STLport hash_map / list instantiations 006BBF30-006BDDB0.
@@ -243,3 +243,21 @@ the shared tail (StartLoaded).
   AIL_set_named_sample_file; an MP3 keeps the decoded buffer, goes to the back and is given with
   AIL_set_sample_file(sample, data, size). Then the length (006B96E0).
 - Either way the voice's name, playing flag and a new handle (+0x268) are set; no archive: 0.
+
+## LoadThemes, the music system's Create (006B4710, ticket H2)
+
+| Address | Name | Verify |
+|---|---|---|
+| 006B4710 | `CMusicSystem::LoadThemes` (vtable slot 2, Create; returns 1) | against the original: ours on the real object, then (ours succeeded, no themes before) the original into a scratch music system with an empty theme array; credits, main menu and every theme compared; the scratch's themes freed with 006B59A0 |
+
+Runs once at startup (every scenario; `sound` uses the themes). Opens `<text path 007AF45C>music.reg`
+(the "music.reg" pointer at 00744090) through the registry (forwarders to 00694520 / 00694540 /
+006945A0 / 00694880 / 00694D20 / 006958E0, so the registry's wrappers stay in the path). Failure:
+FatalError with "CMusicSystem::Create()\nUnable to open file \"music.reg\"" as the format string
+(the path is not named; original), its result returned. Otherwise Common\Credits and
+Common\MainMenu, then for every section other than "common" (case-insensitive): a theme (name, open
+land, Briefing, Constructor, CalmOpen, Combat) appended, then the same with dungeon 1 and
+CalmDungeon. Appending uses the theme array's SetSize(n + 1, -1) 006B59A0 and the element assignment
+006B4D40 (forwarders; the original inlines one SetSize and one assignment identically). Named
+`LoadThemes` because `Create` is a CEngineObject virtual (rewrite-guide rule 4); the struct declares
+no virtuals, so the member pointer is the function itself.
