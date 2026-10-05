@@ -1,6 +1,6 @@
 # Ticket queue
 
-**FIRST after the next usage reset, before any other worker (user, 2026-10-05):** D1 trim the docs.
+**D1 (taken 2026-10-05, three workers by file group) — first after the usage reset, before any other worker (user):** trim the docs.
 docs/notes/*.md is 1.3 MB (ui.md 182 KB, units.md 119 KB, script.md 96 KB, ...) and workers read
 it on start. Rewrite each notes file as a current-state reference (what exists, layouts, rules,
 open items, skip lists), dropping per-ticket history, run logs and details the code already records
