@@ -5,7 +5,7 @@
 // buffers kept between calls (function-local statics at 007C8848..007C88C8); quarters crossing the
 // view are clipped first (the clipper's slot 37), the unused vertices dropped and the indices
 // renumbered; then the draw context's clipper transforms the vertices (slot 34) and the context
-// draws them (slot 12) with render state 0x1D on. See docs/notes/range_6b0.md.
+// draws them (slot 12) with render state 0x1D on. See docs/notes/models.md.
 #include "terrain_sector.h"
 
 #include "ei/hook.h"

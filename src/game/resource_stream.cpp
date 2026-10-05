@@ -1,6 +1,6 @@
 // The rest of the resource code: CResourceBase, the sound system's file reader, the archive name
 // listing, and the CMMIOResource constructors and destructors (CResourceManager's are in
-// resource_manager.cpp). See resource_stream.h and docs/notes/range_660.md.
+// resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
 #include "resource_stream.h"
 

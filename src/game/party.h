@@ -4,7 +4,7 @@
 // 006611D0): the local player's party data: the items it owns (+0x40), the party unit records,
 // and a second interface at +0x2C. Its virtual slots 13-26 are the manager getters CWorld has
 // too (24: 0055E940 makes the party's own copy of an item). Only what the item list uses is
-// declared. See docs/notes/range_660.md.
+// declared. See docs/notes/objects.md.
 
 #include "engine_object.h"
 #include "map_object_figures.h"

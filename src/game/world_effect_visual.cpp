@@ -1,5 +1,5 @@
 // The visible effects: CEffectPointLight, CEffectParticle, CEffectWall, CEffectLightning. See
-// world_effect.h and docs/notes/range_660.md.
+// world_effect.h and docs/notes/effects.md.
 
 #include "world_effect_internal.h"
 #include "originals_effects.h"

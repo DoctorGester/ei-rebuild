@@ -1,5 +1,5 @@
 // CPlayerServer's message writers and the party record lookup. See player_messages.h and
-// docs/notes/range_660.md.
+// docs/notes/objects.md.
 
 #include "player_messages.h"
 
