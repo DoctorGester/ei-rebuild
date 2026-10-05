@@ -168,7 +168,7 @@ vtable entry 00747E2C in config/vtables.csv).
 
 ## 6. Interface windows and holders on game memory (`cpuwindows`)
 
-**Memory** (lives in the new renderer since R7): `render::NewSurfaceMemory / SurfaceMemoryOf /
+**Memory** (owned by the new renderer): `render::NewSurfaceMemory / SurfaceMemoryOf /
 FreeSurfaceMemory / HolderGone` (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws
 into it through a memory DC) with pitch, size, bit count and channel masks. Made by the holder code, used by
 game code (`ClientBitmap`, `ClientPixels`, `DirectPixels` in `dx_surface.h`) and read by the renderer after
@@ -342,7 +342,7 @@ window (dgVoodoo's gone, no DirectDraw device at all):
 
 Other open items: the fog colour and range come from the old device state (not game data yet); weather's two
 builders (004E4240 / 004E4C80) are not split from their draws; GPU shadows; the in-game check of several
-steps (R3, R5, R6, R7, R8 were verified offline and by harness scenarios, run centrally).
+steps (holders, saved pictures, interface draws, movies, textures: verified by wrappers and harness scenarios, never by a person in game; runs are central).
 
 ## 10. The old boundary (reference)
 
