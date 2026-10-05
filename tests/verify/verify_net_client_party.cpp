@@ -33,7 +33,7 @@ RefPtr* __fastcall FindVerify(RefPtr* first, RefPtr* last, net::Message* message
 
 void __fastcall PublishPartyVerify(net::ClientSession* self) {
     net::ClientPublishParty(self);
-    auto* state = static_cast<const std::uint8_t*>(self->unknown_260C);
+    auto* state = reinterpret_cast<const std::uint8_t*>(self->party_.ptr);
     if (!state) {
         ei::verify::Check("ClientPublishParty", true, true, "");
         return;
@@ -67,7 +67,7 @@ void __fastcall ApplyPartyVerify(net::ClientSession* self) {
 // 0041E180: MOV EAX,[ECX+0x260C] (6). Side by side on a copy of the description's 0x30 bytes.
 void(__fastcall* s_commit)(net::ClientSession*);
 void __fastcall CommitVerify(net::ClientSession* self) {
-    auto* state = static_cast<std::uint8_t*>(self->unknown_260C);
+    auto* state = reinterpret_cast<std::uint8_t*>(self->party_.ptr);
     if (!state) {
         s_commit(self);
         net::ClientCommitParty(self);

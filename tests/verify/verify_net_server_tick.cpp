@@ -10,8 +10,6 @@
 #include <cstring>
 
 namespace net {
-void __fastcall ServerTick(ServerSession* self, void*, double dt);
-bool __fastcall ServerPlayerStateIs3(ServerSession* self, void*, void* connection);
 }
 
 namespace {
@@ -28,15 +26,15 @@ bool AllRunning(void* list) {
 }
 
 void __fastcall TickVerify(net::ServerSession* self, void*, double dt) {
-    net::ServerTick(self, nullptr, dt);
-    ei::verify::Check("ServerTick", true, AllRunning(self->list_25C0) && AllRunning(self->list_25B4), "");
+    self->ServerSession::Tick(dt);
+    ei::verify::Check("ServerTick", true, AllRunning(self->finishedTrades_) && AllRunning(self->awards_), "");
 }
 
 // 00417E40: MOV EDX,[ESP+4] (4), TEST EDX,EDX (2).
 bool(__fastcall* s_stateIs3)(net::ServerSession*, void*, void*);
 bool __fastcall StateIs3Verify(net::ServerSession* self, void*, void* connection) {
     bool expected = s_stateIs3(self, nullptr, connection);
-    bool actual = net::ServerPlayerStateIs3(self, nullptr, connection);
+    bool actual = self->PlayerStateIs3(connection);
     ei::verify::Check("ServerPlayerStateIs3", expected, actual, "");
     return actual;
 }

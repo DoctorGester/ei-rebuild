@@ -27,7 +27,7 @@ bool __fastcall IsHostVerify(net::ServerSession* self, void*, void* connection) 
 
 void __fastcall ObjectAddedVerify(net::ServerSession* self, net::Message* message) {
     net::ServerOnObjectAdded(self, message);
-    void** sentinel = static_cast<void**>(self->list_259C);
+    void** sentinel = static_cast<void**>(self->fileRequests_);
     void* last = static_cast<void**>(sentinel[1])[2];
     void* held;
     std::memcpy(&held, reinterpret_cast<const std::uint8_t*>(message) + 0x10, 4);

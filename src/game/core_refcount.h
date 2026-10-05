@@ -4,19 +4,31 @@
 
 class ChunkArchive;
 
-// Reference-counted objects of the engine core (script values, network records and messages, AI
-// shapes; vtable 0073BB58 and its descendants). Names provisional. The header and the slots below
-// are what the engine's helpers use; the original code mostly inlines these helpers, the
-// out-of-line copies are rewritten here.
-class CRefObject {
+// The root of the reference-counted classes (vtable 0073BB68): the count and the flags, slot 0 the
+// scalar deleting destructor, slot 1 Serialize (empty, RET 4). The network sessions (net_classes.h)
+// derive from it directly; everything else through CRefObject below.
+class CRefCounted {
 public:
     enum : std::uint8_t {
         kCopyOnShare = 0x01,    // flags6_: sharing makes a copy (the copy is marked too)
         kDetached = 0x80,       // flags7_: shut down by its owner; not shared any more
     };
 
-    virtual ~CRefObject();                  // 0: scalar deleting destructor (1 when the last reference goes)
+    virtual ~CRefCounted();                 // 0: scalar deleting destructor (1 when the last reference goes)
     virtual void Serialize(ChunkArchive* ar);   // 1: empty in the root class (RET 4); chunk_archive.h
+
+    std::int16_t refs_;         // +0x04
+    std::uint8_t flags6_;       // +0x06
+    std::uint8_t flags7_;       // +0x07
+};
+static_assert(sizeof(CRefCounted) == 8);
+
+// Reference-counted objects of the engine core (script values, network records and messages, AI
+// shapes; vtable 0073BB58 and its descendants). Names provisional. The header and the slots below
+// are what the engine's helpers use; the original code mostly inlines these helpers, the
+// out-of-line copies are rewritten here.
+class CRefObject : public CRefCounted {
+public:
     virtual int OnShutdown() = 0;           // 2: the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // 3: the copy handed out when a kCopyOnShare object is shared
 
@@ -25,10 +37,6 @@ public:
     // 00417DF0. Calls OnShutdown with an extra reference held, so it cannot destroy itself
     // meanwhile. Returns OnShutdown's EAX.
     int Shutdown();
-
-    std::int16_t refs_;         // +0x04
-    std::uint8_t flags6_;       // +0x06
-    std::uint8_t flags7_;       // +0x07
 };
 static_assert(sizeof(CRefObject) == 8);
 

@@ -115,7 +115,7 @@ EI_REPLACE(0x00429FC0, FindSameMessage);
 void __fastcall ClientPublishParty(ClientSession* self) {
     auto* base = reinterpret_cast<std::uint8_t*>(self);
     // Read again at each use, as the original does.
-    auto state = [self] { return static_cast<PartyState*>(self->unknown_260C); };
+    auto state = [self] { return reinterpret_cast<PartyState*>(self->party_.ptr); };
     if (!state()) return;
     RefVector* messages = &state()->messages;
 
@@ -181,9 +181,9 @@ EI_REPLACE(0x0041DA50, ClientPublishParty);
 // 0041E220: the received party description (list +0x2610) that pairs with ours (+0x260C): its
 // +0x2C equals our +0x28 and its +0x28 our +0x2C, and it is live. Null without one.
 void* __fastcall ClientFindParty(ClientSession* self) {
-    auto* ours = static_cast<PartyState*>(self->unknown_260C);
+    auto* ours = reinterpret_cast<PartyState*>(self->party_.ptr);
     if (!ours) return nullptr;
-    void** sentinel = static_cast<void**>(self->list_2610);
+    void** sentinel = static_cast<void**>(self->offers_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
         auto* other = static_cast<PartyState*>(node[2]);
         if (other->idB != ours->idA || other->idA != ours->idB) continue;
@@ -196,10 +196,10 @@ EI_REPLACE(0x0041E220, ClientFindParty);
 // 0041E180: a changed party description (dirty) is marked clean with its version moved on, so it
 // is sent again.
 void __fastcall ClientCommitParty(ClientSession* self) {
-    auto* state = static_cast<PartyState*>(self->unknown_260C);
+    auto* state = reinterpret_cast<PartyState*>(self->party_.ptr);
     if (!state || !state->dirty) return;
     state->dirty = 0;
-    ++static_cast<PartyState*>(self->unknown_260C)->version;
+    ++reinterpret_cast<PartyState*>(self->party_.ptr)->version;
 }
 EI_REPLACE(0x0041E180, ClientCommitParty);
 
@@ -262,9 +262,9 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
     for (std::uint32_t i = 0; i < count(); ++i) PartyAdd(party, nullptr, members.start[i], 1, 1);
 
-    void* entries = &self->list_2614;
+    void* entries = &self->tradeRecords_;
     std::int32_t rebuilds = static_cast<std::int32_t>(remote->rebuilds);
-    void** sentinel = static_cast<void**>(self->list_2614);
+    void** sentinel = static_cast<void**>(self->tradeRecords_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
         void** next = static_cast<void**>(node[0]);
         if (reinterpret_cast<std::intptr_t>(node[2]) < rebuilds) {

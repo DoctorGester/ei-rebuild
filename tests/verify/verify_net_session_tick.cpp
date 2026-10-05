@@ -1,25 +1,14 @@
 // Checks for net_session_tick.cpp.
 //  - BufferUpdateHigh: the original on a copy of the buffer header, ours on the real one; same header.
-//  - AddressString, SessionBase::Receive: ours only (they allocate / receive datagrams and run
+//  - NetAddress::ToString, SessionBase::Tick: ours only (they allocate / receive datagrams and run
 //    handlers); the string is filled, the frame counted and the current session cleared again.
+// The virtual slots are called qualified, so they never dispatch back into these wrappers.
 #include "net_verify.h"
 
 #include "../../src/game/net_classes.h"
 #include "../../src/game/net_connection.h"
 
 #include <cstring>
-
-namespace net {
-void** __fastcall SessionFindClient(SessionBase* self, void*, void** out, const void* address);
-void __fastcall SessionRemoveClient(SessionBase* self, void*, void* node);
-bool __fastcall SessionOnUpdate(SessionBase* self, void*, const void* from, BufferCursor* cursor);
-void __fastcall SessionOnLeave(SessionBase* self, void*, const void* from, BufferCursor* cursor);
-GameBuffer* __fastcall BufferWriteRaw(GameBuffer* buffer, void*, const void* from, unsigned size);
-unsigned __fastcall BufferWrite(GameBuffer* buffer, void*, const void* from, unsigned size);
-bool __fastcall SessionSend(SessionBase* self, void*, const void* address, GameBuffer* buffer);
-std::uint32_t __fastcall SessionRateFor(SessionBase* self, void*, const void* address);
-void __fastcall SessionSendLeave(SessionBase* self, void*, const void* address, std::uint32_t id);
-} // namespace net
 
 namespace {
 
@@ -36,45 +25,39 @@ void __fastcall UpdateHighVerify(GameBuffer* buffer) {
     ei::verify::Check("BufferUpdateHigh", true, std::memcmp(&copy, buffer, sizeof(copy)) == 0, "");
 }
 
-StringRep* __fastcall AddressStringVerify(const void* address, void*, StringRep* out) {
-    StringRep* result = AddressString(address, nullptr, out);
-    ei::verify::Check("AddressString", true, result == out && out->start && out->finish > out->start, "");
+StringRep* __fastcall AddressStringVerify(const NetAddress* address, void*, StringRep* out) {
+    StringRep* result = address->ToString(out);
+    ei::verify::Check("NetAddress::ToString", true, result == out && out->start && out->finish > out->start, "");
     return result;
 }
 
 void __fastcall ReceiveVerify(SessionBase* self, void*, double dt) {
-    std::uint32_t frame = self->frame;
-    self->Receive(dt);
-    ei::verify::Check("SessionBase::Receive", true, self->frame == frame + 1 && CurrentSession() == nullptr, "");
-}
-
-int ClientCount(SessionBase* s) {
-    int n = 0;
-    for (void* p = *static_cast<void**>(s->clients); p != s->clients; p = *static_cast<void**>(p)) ++n;
-    return n;
+    std::uint32_t frame = self->frame_;
+    self->SessionBase::Tick(dt);
+    ei::verify::Check("SessionBase::Tick", true, self->frame_ == frame + 1 && CurrentSession() == nullptr, "");
 }
 
 // The session slots: ours only (they change the clients list, read packets, log).
-void** __fastcall FindClientVerify(SessionBase* self, void*, void** out, const void* address) {
-    void** result = SessionFindClient(self, nullptr, out, address);
-    ei::verify::Check("SessionFindClient", true, result == out, "");
+ClientNode** __fastcall FindClientVerify(SessionBase* self, void*, ClientNode** out, const NetAddress* address) {
+    ClientNode** result = self->FindClient(out, address);
+    ei::verify::Check("SessionBase::FindClient", true, result == out, "");
     return result;
 }
-void __fastcall RemoveClientVerify(SessionBase* self, void*, void* node) {
-    int before = ClientCount(self);
-    bool present = node != self->clients;
-    SessionRemoveClient(self, nullptr, node);
-    ei::verify::Check("SessionRemoveClient", before - (present ? 1 : 0), ClientCount(self), "");
+void __fastcall RemoveClientVerify(SessionBase* self, void*, ClientNode* node) {
+    std::uint32_t before = self->ClientCount();
+    bool present = node != self->clients_;
+    self->SessionBase::RemoveClient(node);
+    ei::verify::Check("SessionBase::RemoveClient", static_cast<int>(before) - (present ? 1 : 0), static_cast<int>(self->ClientCount()), "");
 }
-bool __fastcall OnUpdateVerify(SessionBase* self, void*, const void* from, BufferCursor* cursor) {
-    bool known = SessionOnUpdate(self, nullptr, from, cursor);
-    ei::verify::Check("SessionOnUpdate", true, true, "");
+bool __fastcall OnUpdateVerify(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
+    bool known = self->SessionBase::OnUpdate(from, cursor);
+    ei::verify::Check("SessionBase::OnUpdate", true, true, "");
     return known;
 }
-void __fastcall OnLeaveVerify(SessionBase* self, void*, const void* from, BufferCursor* cursor) {
+void __fastcall OnLeaveVerify(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* before = cursor->p;
-    SessionOnLeave(self, nullptr, from, cursor);
-    ei::verify::Check("SessionOnLeave", 4, static_cast<int>(cursor->p - before), "");
+    self->SessionBase::OnLeave(from, cursor);
+    ei::verify::Check("SessionBase::OnLeave", 4, static_cast<int>(cursor->p - before), "");
 }
 
 // 00436C30: MOV EDX,[ESP+8] (4), MOV EAX,ECX (2). The original on a copy of the header first (it
@@ -100,23 +83,23 @@ unsigned __fastcall WriteVerify(GameBuffer* buffer, void*, const void* from, uns
 }
 
 // 00436F80: MOV EAX,[ESP+4] (4), ADD ECX,0x54 (3). Side by side.
-std::uint32_t(__fastcall* s_rate)(SessionBase*, void*, const void*);
-std::uint32_t __fastcall RateVerify(SessionBase* self, void*, const void* address) {
+std::uint32_t(__fastcall* s_rate)(SessionBase*, void*, const NetAddress*);
+std::uint32_t __fastcall RateVerify(SessionBase* self, void*, const NetAddress* address) {
     std::uint32_t expected = s_rate(self, nullptr, address);
-    std::uint32_t actual = SessionRateFor(self, nullptr, address);
-    ei::verify::Check("SessionRateFor", expected, actual, "");
+    std::uint32_t actual = self->RateFor(address);
+    ei::verify::Check("SessionBase::RateFor", expected, actual, "");
     return actual;
 }
 
 // 00436F60 / 00436FA0: ours only (they send).
-bool __fastcall SendVerify(SessionBase* self, void*, const void* address, GameBuffer* buffer) {
-    bool sent = SessionSend(self, nullptr, address, buffer);
-    ei::verify::Check("SessionSend", true, true, "");
+bool __fastcall SendVerify(SessionBase* self, void*, const NetAddress* address, GameBuffer* buffer) {
+    bool sent = self->Send(address, buffer);
+    ei::verify::Check("SessionBase::Send", true, true, "");
     return sent;
 }
-void __fastcall SendLeaveVerify(SessionBase* self, void*, const void* address, std::uint32_t id) {
-    SessionSendLeave(self, nullptr, address, id);
-    ei::verify::Check("SessionSendLeave", true, true, "");
+void __fastcall SendLeaveVerify(SessionBase* self, void*, const NetAddress* address, std::uint32_t id) {
+    self->SendLeave(address, id);
+    ei::verify::Check("SessionBase::SendLeave", true, true, "");
 }
 
 } // namespace
@@ -134,33 +117,27 @@ EI_VERIFY(0x00419CC0, UpdateHighVerify, 6, s_updateHigh);
 EI_VERIFY(0x00435010, AddressStringVerify, 0, s_unused);
 EI_VERIFY(0x00437370, ReceiveVerify, 0, s_unused);
 
-namespace net {
-SessionBase* __fastcall SessionDeletingDestructor(SessionBase* self, void*, unsigned flags);
-}
 namespace {
 // 00436A50 / 004368D0: ours only (they send leave packets and free the session's tables).
 void __fastcall SessionDestructVerify(net::SessionBase* self) {
     self->Destruct();
-    ei::verify::Check("SessionBase::Destruct", true, self->vtable == reinterpret_cast<void*>(0x0073BB68), "");
+    ei::verify::Check("SessionBase::Destruct", true, *reinterpret_cast<std::uintptr_t*>(self) == 0x0073BB68, "");
 }
 net::SessionBase* __fastcall SessionDeleteVerify(net::SessionBase* self, void*, unsigned flags) {
-    ei::verify::Check("SessionDeletingDestructor", true, true, "");
-    return net::SessionDeletingDestructor(self, nullptr, flags);
+    ei::verify::Check("SessionBase::DeletingDestruct", true, true, "");
+    return self->DeletingDestruct(flags);
 }
 void* s_unusedDtor;
 } // namespace
 EI_VERIFY(0x00436A50, SessionDestructVerify, 0, s_unusedDtor);
 EI_VERIFY(0x004368D0, SessionDeleteVerify, 0, s_unusedDtor);
 
-namespace net {
-void __fastcall SessionAddClient(SessionBase* self, void*, const std::uint8_t* address, std::uint32_t id, int rate);
-}
 namespace {
 // 00436DD0: ours only (it creates a connection); the newest client has the address.
-void __fastcall AddClientVerify(net::SessionBase* self, void*, const std::uint8_t* address, std::uint32_t id, int rate) {
-    net::SessionAddClient(self, nullptr, address, id, rate);
-    auto* added = static_cast<net::Connection*>(static_cast<void**>(static_cast<void**>(self->clients)[1])[2]);
-    ei::verify::Check("SessionAddClient", true, std::memcmp(added->address, address, 16) == 0, "");
+void __fastcall AddClientVerify(net::SessionBase* self, void*, const net::NetAddress* address, std::uint32_t id, int rate) {
+    self->AddClient(address, id, rate);
+    net::Connection* added = self->clients_->prev->connection;
+    ei::verify::Check("SessionBase::AddClient", true, std::memcmp(&added->address_, address, 16) == 0, "");
 }
 void* s_unusedAdd;
 } // namespace

@@ -97,9 +97,8 @@ void ClearList(void* list, DestroyElement destroy, FreeNode freeNode) {
 // names (inline, through FindOrAddVariable) and for two paths built from the map name
 // (SetVariable), and queues the host's item awards (004191C0, without the final award).
 void ServerSession::SetMap(const StringRep* name) {
-    std::uint8_t* self = reinterpret_cast<std::uint8_t*>(this);
-    ClearList(self + 0x25AC, Element25ACDestroy, List25ACFreeNode);
-    ClearList(self + 0x25B0, Element25B0Destroy, List25B0FreeNode);
+    ClearList(&queuedMaps_, Element25ACDestroy, List25ACFreeNode);
+    ClearList(&variables_, Element25B0Destroy, List25B0FreeNode);
 
     StringRep messageName;
     StringPlusText(&messageName, name, Text(kMapSuffix));
@@ -107,7 +106,7 @@ void ServerSession::SetMap(const StringRep* name) {
     Message* message = memory ? ConstructMessage73BCD0(memory) : nullptr;
     MessageStringAssign(reinterpret_cast<std::uint8_t*>(message) + 0xC, nullptr, &messageName);
     void* ref;
-    List25ACPushBack(self + 0x25AC, nullptr, RefFromRaw(&ref, message));
+    List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
     RefClear(&ref);
     StringDestroyA(&messageName);
 
@@ -120,7 +119,7 @@ void ServerSession::SetMap(const StringRep* name) {
         std::uintptr_t vtable = kMapMessageVtable;
         std::memcpy(mapMessage, &vtable, 4);
     }
-    auto* holder = reinterpret_cast<RefPtr*>(self + 0x25A8);
+    RefPtr* holder = &map_;
     if (reinterpret_cast<CRefObject*>(mapMessage) != holder->ptr) {
         holder->Destroy();
         holder->Share(reinterpret_cast<CRefObject*>(mapMessage));
@@ -128,7 +127,7 @@ void ServerSession::SetMap(const StringRep* name) {
     auto* current = reinterpret_cast<std::uint8_t*>(holder->ptr);
     if (name != reinterpret_cast<const StringRep*>(current + 0xC))
         StringAssign(reinterpret_cast<StringRep*>(current + 0xC), nullptr, name->start, name->finish, mapMessage);
-    if (name != &string_25D4) StringAssign(&string_25D4, nullptr, name->start, name->finish, mapMessage);
+    if (name != &mapName_) StringAssign(&mapName_, nullptr, name->start, name->finish, mapMessage);
 
     void* world = reinterpret_cast<void*>(kWorld);
     WorldLoadMap(world, nullptr, name->start);
@@ -206,7 +205,7 @@ void ServerSession::QueueMapList() {
     StringRep* none = nullptr;
     std::uint8_t allocator = 0;
     NamesProxyConstruct(&zones.eos, nullptr, &allocator, &none);
-    FlowPickZones(flow, nullptr, &zones, unknown_25E4, string_25D4.start);
+    FlowPickZones(flow, nullptr, &zones, kind_, mapName_.start);
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
         StringRep key;
         StringPlusText(&key, zone, Text(kMapSuffix));
@@ -221,7 +220,7 @@ void ServerSession::QueueMapList() {
         }
         MessageStringAssign(message + 0xC, nullptr, &key);
         void* ref;
-        List25ACPushBack(&list_25AC, nullptr, RefFromRaw(&ref, message));
+        List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
         RefClear(&ref);
         StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
         FlowLoadZoneQuests(flow, nullptr, zone->start);
@@ -233,7 +232,7 @@ void ServerSession::QueueMapList() {
 // 004193F0: when the held map message names `name`: drops it, empties the queued messages
 // (+0x25AC) and queues a map message "name" + "_3". Returns whether it did.
 bool ServerSession::FinishMap(const StringRep* name) {
-    auto* holder = reinterpret_cast<RefPtr*>(&unknown_25A8);
+    auto* holder = &map_;
     CRefObject* map = holder->ptr;
     if (!map || (map->flags7_ & CRefObject::kDetached)) return false;
     const StringRep* held = reinterpret_cast<const StringRep*>(reinterpret_cast<std::uint8_t*>(map) + 0xC);
@@ -249,14 +248,14 @@ bool ServerSession::FinishMap(const StringRep* name) {
         holder->ptr->Release();
         holder->Share(nullptr);
     }
-    for (void** node = static_cast<void**>(static_cast<void**>(list_25AC)[0]); node != list_25AC;) {
+    for (void** node = static_cast<void**>(static_cast<void**>(queuedMaps_)[0]); node != queuedMaps_;) {
         void** current = node;
         node = static_cast<void**>(node[0]);
         reinterpret_cast<RefPtr*>(current + 2)->Destroy();
         if (current) NodeFree(current, 0xC);
     }
-    static_cast<void**>(list_25AC)[0] = list_25AC;
-    static_cast<void**>(list_25AC)[1] = list_25AC;
+    static_cast<void**>(queuedMaps_)[0] = queuedMaps_;
+    static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
 
     StringRep messageName;
     StringPlusText(&messageName, name, Text(kFinishSuffix));
@@ -271,19 +270,14 @@ bool ServerSession::FinishMap(const StringRep* name) {
     }
     MessageStringAssign(message + 0xC, nullptr, &messageName);
     void* ref;
-    List25ACPushBack(&list_25AC, nullptr, RefFromRaw(&ref, message));
+    List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
     RefClear(&ref);
     StringDestruct(&messageName);
     return true;
 }
 
-namespace {
-bool __fastcall FinishMapHook(ServerSession* self, void*, const StringRep* name) { return self->FinishMap(name); }
-void __fastcall QueueMapListHook(ServerSession* self) { self->QueueMapList(); }
-void __fastcall SetMapHook(ServerSession* self, void*, const StringRep* name) { self->SetMap(name); }
-} // namespace
-EI_REPLACE(0x004186F0, SetMapHook);
-EI_REPLACE(0x00418530, QueueMapListHook);
-EI_REPLACE(0x004193F0, FinishMapHook);
+EI_REPLACE_METHOD(0x004186F0, ServerSession::SetMap);
+EI_REPLACE_METHOD(0x00418530, ServerSession::QueueMapList);
+EI_REPLACE_METHOD(0x004193F0, ServerSession::FinishMap);
 
 } // namespace net

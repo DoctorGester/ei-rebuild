@@ -69,19 +69,19 @@ void Erase(void*& list, void** node) {
 
 // 00419570: the variable named `name` (its list node), or the sentinel.
 void** ServerSession::FindVariable(void** out, const StringRep* name) {
-    *out = FindNode(static_cast<void**>(list_25B0), name);
+    *out = FindNode(static_cast<void**>(variables_), name);
     return out;
 }
 
 // 004195D0: the variable named `name`, made (value 0) at the front of the list when missing.
 void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
-    void* variables = &list_25B0;
-    void** node = static_cast<void**>(static_cast<void**>(list_25B0)[0]);
-    while (node != list_25B0) {
+    void* variables = &variables_;
+    void** node = static_cast<void**>(static_cast<void**>(variables_)[0]);
+    while (node != variables_) {
         if (StringEquals(&VariableAt(node)->name, name)) break;
         node = static_cast<void**>(node[0]);
     }
-    if (node != list_25B0) {
+    if (node != variables_) {
         *out = node;
         return out;
     }
@@ -103,7 +103,7 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
     VariablesBegin(variables, nullptr, &begin);
     void* inserted;
     VariablesInsert(variables, nullptr, &inserted, begin, value);
-    void** first = static_cast<void**>(static_cast<void**>(list_25B0)[0]);
+    void** first = static_cast<void**>(static_cast<void**>(variables_)[0]);
 
     // The name, assigned in place (string::operator= inlined).
     StringRep* to = &VariableAt(first)->name;
@@ -144,7 +144,7 @@ void ServerSession::SetVariable(const StringRep* name, float value) {
     }
     void* found;
     FindVariable(&found, name);
-    if (found != list_25B0) Erase(list_25B0, static_cast<void**>(found));
+    if (found != variables_) Erase(variables_, static_cast<void**>(found));
 }
 
 // 004197D0: raises the variable to `value` (the larger of the two; `value` when either is NaN),
@@ -166,39 +166,29 @@ void ServerSession::RaiseVariable(const StringRep* name, float value) {
     ++VariableCounter();
     ++VariableAt(static_cast<void**>(found))->version;
     if (EqualOrUnordered(VariableAt(static_cast<void**>(found))->value, GameFloat(0x0073B858))) {
-        void** node = FindNode(static_cast<void**>(list_25B0), name);
-        if (node != list_25B0) Erase(list_25B0, node);
+        void** node = FindNode(static_cast<void**>(variables_), name);
+        if (node != variables_) Erase(variables_, node);
     }
 }
 
 // 004198D0: removes the variable when it exists.
 void ServerSession::RemoveVariable(const StringRep* name) {
-    void** node = FindNode(static_cast<void**>(list_25B0), name);
-    if (node != list_25B0) Erase(list_25B0, node);
+    void** node = FindNode(static_cast<void**>(variables_), name);
+    if (node != variables_) Erase(variables_, node);
 }
 
 // 00419940: the variable's value, 0 when missing (returned unrounded in ST0).
 double ServerSession::GetVariable(const StringRep* name) {
-    void** node = FindNode(static_cast<void**>(list_25B0), name);
-    if (node != list_25B0) return VariableAt(node)->value;
+    void** node = FindNode(static_cast<void**>(variables_), name);
+    if (node != variables_) return VariableAt(node)->value;
     return GameFloat(0x0073B858);
 }
 
-namespace {
-void** __fastcall FindVariableHook(ServerSession* self, void*, void** out, const StringRep* name) { return self->FindVariable(out, name); }
-void** __fastcall FindOrAddVariableHook(ServerSession* self, void*, void** out, const StringRep* name) {
-    return self->FindOrAddVariable(out, name);
-}
-void __fastcall SetVariableHook(ServerSession* self, void*, const StringRep* name, float value) { self->SetVariable(name, value); }
-void __fastcall RaiseVariableHook(ServerSession* self, void*, const StringRep* name, float value) { self->RaiseVariable(name, value); }
-void __fastcall RemoveVariableHook(ServerSession* self, void*, const StringRep* name) { self->RemoveVariable(name); }
-double __fastcall GetVariableHook(ServerSession* self, void*, const StringRep* name) { return self->GetVariable(name); }
-} // namespace
-EI_REPLACE(0x00419570, FindVariableHook);
-EI_REPLACE(0x004195D0, FindOrAddVariableHook);
-EI_REPLACE(0x00419730, SetVariableHook);
-EI_REPLACE(0x004197D0, RaiseVariableHook);
-EI_REPLACE(0x004198D0, RemoveVariableHook);
-EI_REPLACE(0x00419940, GetVariableHook);
+EI_REPLACE_METHOD(0x00419570, ServerSession::FindVariable);
+EI_REPLACE_METHOD(0x004195D0, ServerSession::FindOrAddVariable);
+EI_REPLACE_METHOD(0x00419730, ServerSession::SetVariable);
+EI_REPLACE_METHOD(0x004197D0, ServerSession::RaiseVariable);
+EI_REPLACE_METHOD(0x004198D0, ServerSession::RemoveVariable);
+EI_REPLACE_METHOD(0x00419940, ServerSession::GetVariable);
 
 } // namespace net

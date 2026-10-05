@@ -27,34 +27,23 @@ int __fastcall TypeOfVerify(const TypeRegistry* self, void*, const std::uint32_t
     return actual;
 }
 
-const TypeNode* FindNode(const HashTable& table, std::uint32_t key) {
-    std::size_t n = static_cast<std::size_t>(table.bucketsEnd - table.buckets);
-    for (auto* node = static_cast<const TypeNode*>(table.buckets[key % n]); node; node = node->next)
-        if (node->key == key) return node;
-    return nullptr;
-}
-
 // 0042A890: ours only. The type must map to the factory, and some vtable to the type.
 void __fastcall RegisterVerify(TypeRegistry* self, void*, std::uint32_t type, MessageFactory factory) {
     self->Register(type, factory);
-    const TypeNode* byType = FindNode(self->byType, type);
+    const TypeRegistry::ByType::Node* byType = self->byType.Find(type);
     bool found = false;
-    std::size_t n = static_cast<std::size_t>(self->byVtable.bucketsEnd - self->byVtable.buckets);
-    for (std::size_t b = 0; b < n && !found; ++b)
-        for (auto* node = static_cast<const TypeNode*>(self->byVtable.buckets[b]); node; node = node->next)
-            found |= node->value == type;
-    ei::verify::Check("TypeRegistry::Register", true,
-                      byType && byType->value == reinterpret_cast<std::uint32_t>(factory) && found, "type %u", type);
+    self->byVtable.ForEach([&](const TypeRegistry::ByVtable::Node* node) { found |= node->value == type; });
+    ei::verify::Check("TypeRegistry::Register", true, byType && byType->value == factory && found, "type %u", type);
 }
 
 // 004377D0: ours only. The vector must have grown by the handler.
 void __fastcall AddHandlerVerify(SessionBase* self, void*, int channel, std::uint32_t type, void* handler) {
     bool valid = channel >= 0 && channel < kChannels;
-    std::size_t before = valid ? self->handlers[channel][type & 0xFF].end - self->handlers[channel][type & 0xFF].begin : 0;
+    std::size_t before = valid ? self->handlers_[channel][type & 0xFF].end - self->handlers_[channel][type & 0xFF].begin : 0;
     self->AddHandler(channel, type, handler);
     bool ok = true;
     if (valid) {
-        const HandlerVector& v = self->handlers[channel][type & 0xFF];
+        const HandlerVector& v = self->handlers_[channel][type & 0xFF];
         ok = static_cast<std::size_t>(v.end - v.begin) == before + 1 && v.end[-1] == handler;
     }
     ei::verify::Check("SessionBase::AddHandler", true, ok, "channel %d type %u", channel, type);
@@ -64,7 +53,7 @@ void __fastcall AddHandlerVerify(SessionBase* self, void*, int channel, std::uin
 void __fastcall RegisterTypesVerify(SessionBase* self) {
     self->RegisterMessageTypes();
     bool ok = true;
-    for (std::uint32_t t = 1; t <= 17; ++t) ok &= self->typeFlags[t] == 0 && FindNode(self->types.byType, t) != nullptr;
+    for (std::uint32_t t = 1; t <= 17; ++t) ok &= self->reliable_[t] == 0 && self->types_.byType.Find(t) != nullptr;
     ei::verify::Check("SessionBase::RegisterMessageTypes", true, ok, "");
 }
 

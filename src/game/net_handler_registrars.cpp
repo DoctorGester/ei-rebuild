@@ -32,7 +32,7 @@ void RegisterHandler(SessionBase* self, int channel, void* handler, Message* (__
     prototype.Share(reinterpret_cast<CRefObject*>(factory()));
     std::uint32_t vtable;
     std::memcpy(&vtable, prototype.ptr, sizeof(vtable));   // read before any null check, as the original
-    int type = self->types.TypeOf(&vtable);
+    int type = self->types_.TypeOf(&vtable);
     self->AddHandler(channel, static_cast<std::uint32_t>(type), handler);
     prototype.Destroy();
 }

@@ -60,15 +60,14 @@ __declspec(naked) void __fastcall AddressesInsertOverflow(void* /*vector*/, void
 __declspec(naked) void __fastcall ThrowOutOfRange(void*) EI_ORIGINAL(0x004410A0)
 __declspec(naked) int __cdecl GameAtoi(const char*) EI_ORIGINAL(0x006E80D8)
 
-template <typename T>
-T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset); }
-
-struct Addresses {   // SocketDriver +4: vector<sockaddr_in>
-    std::uint8_t* begin;
-    std::uint8_t* end;
-    std::uint8_t* eos;
-};
-Addresses& AddressesOf(SocketDriver* d) { return *reinterpret_cast<Addresses*>(&d->addresses); }
+// A hostent's first address (h_addr_list[0]).
+std::uint32_t FirstAddress(const void* host) {
+    auto* entry = static_cast<const std::uint8_t*>(host);
+    const std::uint32_t* const* list;
+    std::memcpy(&list, entry + 0xC, sizeof(list));
+    return **list;
+}
+unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->addressesEnd - d->addresses); }
 
 std::int32_t Length(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
@@ -80,13 +79,12 @@ std::int32_t Length(GameBuffer* b) {
 
 // ---- Addresses --------------------------------------------------------------------------------------
 
-// 00440440: `out` from "host[:port]" (an IPv4 number or a host name looked up); `port` unless the
-// text names one. False when the host is unknown.
-bool __fastcall AddressParse(std::uint8_t* out, void*, const char* text, int port) {
-    std::memset(out, 0, 16);
-    *reinterpret_cast<std::uint16_t*>(out) = 2;
+bool NetAddress::Parse(const char* text, int defaultPort) {
+    std::memset(this, 0, sizeof(*this));
+    family = 2;
     stlp::string s(text, text + std::strlen(text));
     const std::size_t npos = *reinterpret_cast<const std::size_t*>(0x0073BDE8);
+    int number = defaultPort;
     std::size_t colon = npos;
     if (s.size() != 0) {
         for (const char* p = s.data(); p != s.data() + s.size(); ++p) {
@@ -102,42 +100,40 @@ bool __fastcall AddressParse(std::uint8_t* out, void*, const char* text, int por
         std::size_t n = s.size() - first;
         if (n >= npos) n = npos;
         {
-            stlp::string number(s.data() + first, s.data() + first + n);
-            port = GameAtoi(number.data());
+            stlp::string digits(s.data() + first, s.data() + first + n);
+            number = GameAtoi(digits.data());
         }
         std::size_t m = s.size() < colon ? s.size() : colon;
         stlp::string host(s.data(), s.data() + m);
         s.Assign(host.data(), host.data() + host.size());
     }
-    std::uint32_t ip = WsInetAddr(s.data());
-    std::memcpy(out + 4, &ip, 4);
+    ip = WsInetAddr(s.data());
     if (ip == 0xFFFFFFFFu) {
         void* h = WsGetHostByName(s.data());
         if (!h) return false;
-        std::uint32_t found = **At<std::uint32_t**>(h, 0xC);
-        std::memcpy(out + 4, &found, 4);
+        ip = FirstAddress(h);
     }
-    *reinterpret_cast<std::uint16_t*>(out + 2) = WsHtons(static_cast<std::uint16_t>(port));
+    port = WsHtons(static_cast<std::uint16_t>(number));
     return true;
 }
-EI_REPLACE(0x00440440, AddressParse);
+EI_REPLACE_METHOD(0x00440440, NetAddress::Parse);
 
-// 00440690: "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) as an
-// STLport string in `out`. The look-up is given the whole sockaddr, as the original does.
-StringRep* __fastcall AddressFormat(const std::uint8_t* address, void*, StringRep* out, int resolve) {
+// The look-up is given the whole sockaddr, as the original does.
+StringRep* NetAddress::Format(StringRep* out, int resolve) const {
     char text[0x400];
     bool named = false;
     if (static_cast<std::uint8_t>(resolve)) {
-        void* h = WsGetHostByAddr(address, 0x10, 2);
+        void* h = WsGetHostByAddr(this, 0x10, 2);
         if (h && *static_cast<char**>(h)) {
-            std::uint16_t port = WsNtohs(*reinterpret_cast<const std::uint16_t*>(address + 2));
-            gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784054), *static_cast<char**>(h), port & 0xFFFF);
+            std::uint16_t value = WsNtohs(port);
+            gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784054), *static_cast<char**>(h), value & 0xFFFF);
             named = true;
         }
     }
     if (!named) {
-        std::uint16_t port = WsNtohs(*reinterpret_cast<const std::uint16_t*>(address + 2));
-        gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784044), address[4], address[5], address[6], address[7], port & 0xFFFF);
+        std::uint16_t value = WsNtohs(port);
+        auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
+        gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784044), bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     }
     out->start = nullptr;
     out->finish = nullptr;
@@ -152,95 +148,86 @@ StringRep* __fastcall AddressFormat(const std::uint8_t* address, void*, StringRe
     *out->finish = 0;
     return out;
 }
-EI_REPLACE(0x00440690, AddressFormat);
+EI_REPLACE_METHOD(0x00440690, NetAddress::Format);
 
 // ---- The UDP driver ---------------------------------------------------------------------------------
 
-// 004407F0: starts Winsock and notes the broadcast address of the host's first address (by its
-// class: A, B or C).
-SocketDriver* __fastcall DriverConstruct(SocketDriver* self) {
-    Addresses& list = AddressesOf(self);
-    list.begin = nullptr;
-    list.end = nullptr;
-    list.eos = nullptr;
+// The broadcast address is the host's first address with the host part (by its class: A, B or C)
+// set to 0xFF.
+SocketDriver* SocketDriver::Construct() {
+    addresses = nullptr;
+    addressesEnd = nullptr;
+    addressesEos = nullptr;
     alignas(4) std::uint8_t wsa[0x190];
     WsStartup(0x101, wsa);
-    self->socket = kNoSocket;
+    socket = kNoSocket;
     char name[1000];
-    if (WsGetHostName(name, 1000) != 0) return self;
+    if (WsGetHostName(name, 1000) != 0) return this;
     void* h = WsGetHostByName(name);
-    if (!h) return self;
-    std::uint8_t a[16] = {};
-    a[0] = 2;
-    std::uint32_t ip = **At<std::uint32_t**>(h, 0xC);
-    if (ip == 0) return self;
-    std::memcpy(a + 4, &ip, 4);
+    if (!h) return this;
+    NetAddress a{};
+    a.family = 2;
+    std::uint32_t ip = FirstAddress(h);
+    if (ip == 0) return this;
+    a.ip = ip;
+    auto* bytes = reinterpret_cast<std::uint8_t*>(&a.ip);
     std::uint8_t first = static_cast<std::uint8_t>(ip);
-    if (first >= 1 && first <= 0x7E) a[5] = a[6] = a[7] = 0xFF;
-    if (first >= 0x80 && first <= 0xBF) a[6] = a[7] = 0xFF;
-    if (first >= 0xC0 && first <= 0xDF) a[7] = 0xFF;
-    if (list.end != list.eos) {
-        if (list.end) std::memcpy(list.end, a, 16);
-        list.end += 16;
+    if (first >= 1 && first <= 0x7E) bytes[1] = bytes[2] = bytes[3] = 0xFF;
+    if (first >= 0x80 && first <= 0xBF) bytes[2] = bytes[3] = 0xFF;
+    if (first >= 0xC0 && first <= 0xDF) bytes[3] = 0xFF;
+    if (addressesEnd != addressesEos) {
+        if (addressesEnd) *addressesEnd = a;
+        ++addressesEnd;
     } else {
-        AddressesInsertOverflow(&list, nullptr, list.end, a, 1);
+        AddressesInsertOverflow(&addresses, nullptr, addressesEnd, &a, 1);
     }
-    return self;
+    return this;
 }
-EI_REPLACE(0x004407F0, DriverConstruct);
+EI_REPLACE_METHOD(0x004407F0, SocketDriver::Construct);
 
-// 00440940: closes the socket, stops Winsock, frees the addresses.
-void __fastcall DriverDestruct(SocketDriver* self) {
-    if (self->socket != kNoSocket) WsCloseSocket(self->socket);
-    self->socket = kNoSocket;
+void SocketDriver::Destruct() {
+    if (socket != kNoSocket) WsCloseSocket(socket);
+    socket = kNoSocket;
     WsCleanup();
-    Addresses& list = AddressesOf(self);
-    if (list.begin) stlp::deallocate(list.begin, static_cast<std::size_t>((list.eos - list.begin) >> 4 << 4));
+    if (addresses) stlp::deallocate(addresses, static_cast<std::size_t>(addressesEos - addresses) * sizeof(NetAddress));
 }
-EI_REPLACE(0x00440940, DriverDestruct);
+EI_REPLACE_METHOD(0x00440940, SocketDriver::Destruct);
 
-// 004409A0: a new non-blocking broadcast UDP socket, bound to `port` when positive.
-bool __fastcall DriverOpen(SocketDriver* self, void*, int port) {
-    if (self->socket != kNoSocket) WsCloseSocket(self->socket);
-    self->socket = kNoSocket;
-    self->socket = WsSocket(2, 2, 0x11);
-    if (self->socket == kNoSocket) return false;
-    std::uint8_t a[16] = {};
-    a[0] = 2;
-    *reinterpret_cast<std::uint16_t*>(a + 2) = WsHtons(static_cast<std::uint16_t>(port));
-    if (port > 0 && WsBind(self->socket, a, 0x10) != 0) {
-        WsCloseSocket(self->socket);
-        self->socket = kNoSocket;
+bool SocketDriver::Open(int port) {
+    if (socket != kNoSocket) WsCloseSocket(socket);
+    socket = kNoSocket;
+    socket = WsSocket(2, 2, 0x11);
+    if (socket == kNoSocket) return false;
+    NetAddress a{};
+    a.family = 2;
+    a.port = WsHtons(static_cast<std::uint16_t>(port));
+    if (port > 0 && WsBind(socket, &a, 0x10) != 0) {
+        WsCloseSocket(socket);
+        socket = kNoSocket;
         return false;
     }
     std::uint32_t one = 1;
-    WsIoctlSocket(self->socket, kNonBlocking, &one);
-    WsSetSockOpt(self->socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
+    WsIoctlSocket(socket, kNonBlocking, &one);
+    WsSetSockOpt(socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
     return true;
 }
-EI_REPLACE(0x004409A0, DriverOpen);
+EI_REPLACE_METHOD(0x004409A0, SocketDriver::Open);
 
-// 00440A90: the `index`th broadcast address with `port`; false past the last.
-bool __fastcall DriverBroadcast(SocketDriver* self, void*, std::uint8_t* out, unsigned index, int port) {
-    Addresses& list = AddressesOf(self);
-    if (index >= static_cast<unsigned>((list.end - list.begin) >> 4)) return false;
-    std::memcpy(out, list.begin + index * 16, 16);
-    *reinterpret_cast<std::uint16_t*>(out + 2) = WsHtons(static_cast<std::uint16_t>(port));
+bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
+    if (index >= AddressCount(this)) return false;
+    *out = addresses[index];
+    out->port = WsHtons(static_cast<std::uint16_t>(port));
     return true;
 }
-EI_REPLACE(0x00440A90, DriverBroadcast);
+EI_REPLACE_METHOD(0x00440A90, SocketDriver::Broadcast);
 
-// 00440AF0: whether `address` is the loopback or within the network of a broadcast address (its
-// trailing 0xFF bytes are the host part).
-bool __fastcall DriverIsLocal(SocketDriver* self, void*, const std::uint8_t* address) {
-    std::uint32_t ip;
-    std::memcpy(&ip, address + 4, 4);
+// A broadcast address's trailing 0xFF bytes are the host part.
+bool SocketDriver::IsLocal(const NetAddress* address) {
+    std::uint32_t ip = address->ip;
     if (ip == 0x0100007Fu) return true;
-    Addresses& list = AddressesOf(self);
-    if (((list.end - list.begin) >> 4) == 0) return false;
-    for (unsigned i = 0; i < static_cast<unsigned>((list.end - list.begin) >> 4); ++i) {
-        std::uint32_t broadcast;
-        std::memcpy(&broadcast, list.begin + i * 16 + 4, 4);
+    if (AddressCount(this) == 0) return false;
+    for (unsigned i = 0; i < AddressCount(this); ++i) {
+        std::uint32_t broadcast = addresses[i].ip;
         std::uint32_t host = 0;
         for (int shift = 24; shift >= 0; shift -= 8) {
             std::uint32_t byte = 0xFFu << shift;
@@ -252,30 +239,29 @@ bool __fastcall DriverIsLocal(SocketDriver* self, void*, const std::uint8_t* add
     }
     return false;
 }
-EI_REPLACE(0x00440AF0, DriverIsLocal);
+EI_REPLACE_METHOD(0x00440AF0, SocketDriver::IsLocal);
 
-// 00440B90: sends the buffer's contents to `address`; true when all of it went.
-bool __fastcall DriverSendTo(SocketDriver* self, void*, const void* address, GameBuffer* buffer) {
+bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
     std::int32_t length = Length(buffer);
-    return WsSendTo(self->socket, buffer->begin, length, 0, address, 0x10) == length;
+    return WsSendTo(socket, buffer->begin, length, 0, address, 0x10) == length;
 }
-EI_REPLACE(0x00440B90, DriverSendTo);
+EI_REPLACE_METHOD(0x00440B90, SocketDriver::SendTo);
 
-// 00440BE0: the next datagram (up to 0x800 bytes) into `buffer` (rewound), its sender into `from`.
-bool __fastcall DriverReceive(SocketDriver* self, void*, std::uint8_t* from, GameBuffer* buffer) {
+// The buffer is first sought (its slot 6) to room for 0x800 bytes.
+bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
     ei::VCall<int>(buffer, 6, 0x800);
     int fromLength = 0x10;
-    int n = WsRecvFrom(self->socket, buffer->begin, 0x800, 0, from, &fromLength);
+    int n = WsRecvFrom(socket, buffer->begin, 0x800, 0, from, &fromLength);
     if (n >= 0) {
-        *reinterpret_cast<std::uint16_t*>(from) = 2;
-        std::memset(from + 8, 0, 8);
+        from->family = 2;
+        std::memset(from->zero, 0, sizeof(from->zero));
         buffer->cur = buffer->begin;
         buffer->high = buffer->begin + n;
         if (buffer->high > buffer->end) GameBufferGrow(buffer, nullptr, static_cast<std::uint32_t>(n));
     }
     return n >= 0;
 }
-EI_REPLACE(0x00440BE0, DriverReceive);
+EI_REPLACE_METHOD(0x00440BE0, SocketDriver::Receive);
 
 // ---- The master server link ----------------------------------------------------------------------
 

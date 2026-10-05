@@ -10,7 +10,7 @@ namespace {
 void* s_unused;
 
 bool LastLineIs(net::ServerSession* self, const char* text, std::size_t length, std::uint32_t number) {
-    void** sentinel = static_cast<void**>(self->list_2594);
+    void** sentinel = static_cast<void**>(self->lines_);
     std::uint32_t count = 0;
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) ++count;
     auto* line = static_cast<const std::uint8_t*>(static_cast<void**>(sentinel[1])[2]);
@@ -26,15 +26,15 @@ void __fastcall AnnounceVerify(net::ServerSession* self, void*, const char* text
     std::size_t length = std::strlen(text);
     bool fits = length < sizeof(copy);
     if (fits) std::memcpy(copy, text, length);
-    std::uint32_t number = self->unknown_258C;
+    std::uint32_t number = self->nextLine_;
     self->Announce(text, player);
     ei::verify::Check("ServerSession::Announce", true, !fits || LastLineIs(self, copy, length, number), "");
 }
 
 void __fastcall AnnounceTextVerify(net::ServerSession* self, void*, int kind, const char* text, CRefObject* player) {
-    std::uint32_t number = self->unknown_258C;
+    std::uint32_t number = self->nextLine_;
     self->AnnounceText(kind, text, player);
-    ei::verify::Check("ServerSession::AnnounceText", true, self->unknown_258C == number + 1, "");
+    ei::verify::Check("ServerSession::AnnounceText", true, self->nextLine_ == number + 1, "");
 }
 } // namespace
 

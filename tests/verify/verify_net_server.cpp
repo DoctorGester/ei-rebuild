@@ -42,7 +42,8 @@ ServerSession* __fastcall ServerConstructVerify(ServerSession* self, void*, std:
 // 00417EB0: SUB ESP,0x10 (3), PUSH EBX (1), PUSH EBP (1).
 void(__fastcall* s_collect)(ServerSession*, void*, ReplicatedVector**);
 void __fastcall ServerCollectVerify(ServerSession* self, void*, ReplicatedVector** out) {
-    netverify::CheckCollect("ServerCollectReplicated", self, out, ServerCollectReplicated, s_collect);
+    auto ours = [](ServerSession* session, void*, ReplicatedVector** to) { session->ServerSession::CollectReplicated(to); };
+    netverify::CheckCollect("ServerCollectReplicated", self, out, ours, s_collect);
 }
 
 } // namespace
@@ -56,8 +57,8 @@ void __fastcall SetMapVerify(net::ServerSession* self, void*, const net::StringR
     self->SetMap(name);
     std::size_t n = static_cast<std::size_t>(name->finish - name->start);
     ei::verify::Check("ServerSession::SetMap", true,
-                      static_cast<std::size_t>(self->string_25D4.finish - self->string_25D4.start) == n &&
-                          std::memcmp(self->string_25D4.start, name->start, n) == 0,
+                      static_cast<std::size_t>(self->mapName_.finish - self->mapName_.start) == n &&
+                          std::memcmp(self->mapName_.start, name->start, n) == 0,
                       "");
 }
 void* s_unusedSetMap;
@@ -69,11 +70,11 @@ EI_VERIFY(0x004186F0, SetMapVerify, 0, s_unusedSetMap);
 namespace {
 void __fastcall QueueMapListVerify(net::ServerSession* self) {
     std::uint32_t before = 0;
-    void** sentinel = static_cast<void**>(self->list_25AC);
+    void** sentinel = static_cast<void**>(self->queuedMaps_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) ++before;
     self->QueueMapList();
     std::uint32_t after = 0;
-    sentinel = static_cast<void**>(self->list_25AC);
+    sentinel = static_cast<void**>(self->queuedMaps_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) ++after;
     ei::verify::Check("ServerSession::QueueMapList", true, after >= before, "");
 }
@@ -86,7 +87,7 @@ EI_VERIFY(0x00418530, QueueMapListVerify, 0, s_unusedQueueMapList);
 namespace {
 bool __fastcall FinishMapVerify(net::ServerSession* self, void*, const net::StringRep* name) {
     bool result = self->FinishMap(name);
-    ei::verify::Check("ServerSession::FinishMap", true, !result || self->unknown_25A8 == 0, "");
+    ei::verify::Check("ServerSession::FinishMap", true, !result || self->map_.ptr == nullptr, "");
     return result;
 }
 void* s_unusedFinishMap;

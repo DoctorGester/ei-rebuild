@@ -3,6 +3,7 @@
 // (0041AD80) or it left (0041B0C0).
 // See net_classes.h and docs/notes/unmapped_410_470.md ("Seventh round").
 #include "net_classes.h"
+#include "net_connection.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -52,19 +53,18 @@ void* LastObject(void* list) {
     void** sentinel = *static_cast<void***>(list);
     return static_cast<void**>(sentinel[1])[2];
 }
+// 0079B60C: the serial the next player record gets.
 std::uint32_t& PlayerCounter() { return *reinterpret_cast<std::uint32_t*>(0x0079B60C); }
-CRefObject* LocalClient() { return *reinterpret_cast<CRefObject**>(0x0079B5D8); }
 
 } // namespace
 
 // 0041ADB0: a client joined (`message`: name +0xC, second text +0x18, host flag byte +0x24, +0x28,
 // +0x2C, binding slot +0x30). Appends a player record (vtable 0073BC70: the texts and values, the
-// lowest free player number at +0x34, the next serial at +0x30, the server's +0x258C at +0x38) and
-// a binding (vtable 0073BCB8: player and connection 0079B924) the message keeps. The player is the
+// lowest free player number at +0x34, the next serial at +0x30, the server's next line number at
+// +0x38) and a binding (vtable 0073BCB8: player and the current connection) the message keeps. The player is the
 // host when the message says so (with a local client) or when it is the only binding. Announces
 // the player's name.
 void __fastcall ServerOnJoin(ServerSession* self, Message* message) {
-    std::uint8_t* base = reinterpret_cast<std::uint8_t*>(self);
     auto* msg = reinterpret_cast<std::uint8_t*>(message);
 
     auto* player = static_cast<std::uint8_t*>(gamecrt::operator_new(0x3C));
@@ -80,7 +80,7 @@ void __fastcall ServerOnJoin(ServerSession* self, Message* message) {
         Put32(player, 0x34, 0xFFFFFFFFu);
         Put32(player, 0x30, 0xFFFFFFFFu);
     }
-    void* players = base + 0x2590;
+    void* players = &self->players_;
     RefPtr ref;
     const RefPtr* value = PlayerRefFromRaw(&ref, player);
     void* end;
@@ -99,7 +99,7 @@ void __fastcall ServerOnJoin(ServerSession* self, Message* message) {
         RefNullB(binding + 0x10);
         SetVtable(binding, kBindingVtable);
     }
-    void* bindings = base + 0x25A4;
+    void* bindings = &self->bindings_;
     value = BindingRefFromRaw(&ref, binding);
     BindingsEnd(bindings, nullptr, &end);
     BindingsInsert(bindings, nullptr, &inserted, end, value);
@@ -136,12 +136,12 @@ void __fastcall ServerOnJoin(ServerSession* self, Message* message) {
     Put32(record, 0x34, static_cast<std::uint32_t>(number));
     Put32(record, 0x30, PlayerCounter());
     ++PlayerCounter();
-    Put32(record, 0x38, Get32(base, 0x258C));
+    Put32(record, 0x38, self->nextLine_);
     reinterpret_cast<RefPtr*>(bound + 0xC)->Assign(reinterpret_cast<CRefObject*>(record));
-    reinterpret_cast<RefPtr*>(bound + 0x10)->Assign(*reinterpret_cast<CRefObject**>(0x0079B924));
+    reinterpret_cast<RefPtr*>(bound + 0x10)->Assign(CurrentConnection());
     reinterpret_cast<RefPtr*>(msg + 0x30)->Assign(reinterpret_cast<CRefObject*>(bound));
 
-    CRefObject* client = LocalClient();
+    ClientSession* client = GameClient();
     bool host;
     if (client && !(client->flags7_ & CRefObject::kDetached)) {
         host = msg[0x24] != 0;
@@ -206,20 +206,20 @@ void __fastcall ServerOnPlayerGone(ServerSession* self, Message* message) {
     void* player = At(binding, 0xC);
     if (Live(player)) {
         std::uint8_t wasHost = static_cast<std::uint8_t*>(player)[0x28];
-        EraseValue(&self->list_2590, PlayersErase, player);
+        EraseValue(&self->players_, PlayersErase, player);
         if (wasHost) {
             std::uint32_t count = 0;
-            void** sentinel = static_cast<void**>(self->list_2590);
+            void** sentinel = static_cast<void**>(self->players_);
             CountPlayers(&count, nullptr, sentinel[0], sentinel);
             if (count > 0) {
-                void* first = static_cast<void**>(static_cast<void**>(self->list_2590)[0])[2];
+                void* first = static_cast<void**>(static_cast<void**>(self->players_)[0])[2];
                 static_cast<std::uint8_t*>(first)[0x28] = 1;
-                first = static_cast<void**>(static_cast<void**>(self->list_2590)[0])[2];
+                first = static_cast<void**>(static_cast<void**>(self->players_)[0])[2];
                 Put32(first, 8, Get32(first, 8) + 1);
             }
         }
     }
-    EraseValue(&self->list_25A4, BindingsErase, At(message, 0x30));
+    EraseValue(&self->bindings_, BindingsErase, At(message, 0x30));
 }
 EI_REPLACE(0x0041B0C0, ServerOnPlayerGone);
 

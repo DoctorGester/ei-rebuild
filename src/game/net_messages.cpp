@@ -58,14 +58,14 @@ EI_REPLACE(0x00413250, NewRefObject);
 
 Message* __fastcall MessageConstructBase(Message* self) {
     SetVtable(self, kMessageVtable);
-    self->kind = 1;
+    self->version_ = 1;
     return self;
 }
 EI_REPLACE(0x004186E0, MessageConstructBase);
 
 // 0041C870 (0x14 bytes): two dwords, both 0.
 Message* __fastcall ConstructMessage73BCB8(Message* self) {
-    self->kind = 1;
+    self->version_ = 1;
     Field(self, 0xC) = 0;
     Field(self, 0x10) = 0;
     SetVtable(self, 0x0073BCB8);
@@ -142,7 +142,7 @@ EI_REPLACE(0x00413C90, ConstructMessage73BC40);
 
 // 004140B0 (0x14 bytes): two counted pointers, both null.
 Message* __fastcall ConstructMessage73BC58(Message* self) {
-    self->kind = 1;
+    self->version_ = 1;
     Field(self, 0xC) = 0;
     Field(self, 0x10) = 0;
     SetVtable(self, 0x0073BC58);
