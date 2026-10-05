@@ -111,6 +111,7 @@ static_assert(sizeof(UnitBodyPart) == 0x1C);
 
 struct AIPath;       // ai_map.h
 struct UnitMotion;   // ai_motion.h
+class CObject3D;     // map_object_figures.h
 
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
@@ -436,6 +437,8 @@ public:
     void DestroyUnit();
 
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
+    // The unit as the 3D object it starts with (map_object_figures.h; CUnit repeats its fields).
+    CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
     UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }
 
     // Not rewritten (forwarders):

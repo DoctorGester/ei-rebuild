@@ -38,7 +38,7 @@ struct UnitPrototypeRecord {
     std::uint32_t unknown_28;       // 0x25
     std::uint32_t unknown_2C;       // 0x26
     std::uint32_t unknown_30;       // 0x28
-    mfc::CString unknown_34;        // 8
+    mfc::CString soundFolder;       // +0x34 8 (when set, the action sounds come from here, not the model's)
     std::uint8_t unknown_38[0x10];  // not serialised
     float hitPoints;                // +0x48 9
     float mana;                     // +0x4C 10
@@ -69,7 +69,7 @@ struct UnitPrototypeRecord {
     mfc::CString weaponName;        // +0x118 0x21 (its slot becomes the unit's +0x270)
     mfc::CString secondWeaponName;  // +0x11C 0x2A
 };
-static_assert(offsetof(UnitPrototypeRecord, unknown_34) == 0x34);
+static_assert(offsetof(UnitPrototypeRecord, soundFolder) == 0x34);
 static_assert(offsetof(UnitPrototypeRecord, hitPoints) == 0x48);
 static_assert(offsetof(UnitPrototypeRecord, naturalWeapon) == 0x78);
 static_assert(offsetof(UnitPrototypeRecord, valuesB0) == 0x98);
@@ -152,12 +152,15 @@ struct UnitModelRecord {
     std::uint8_t unknown_11C;       // 0x2D (one byte)
     std::uint8_t unknown_11D[3];
     std::uint32_t unknown_120;      // 0x2E
-    mfc::CString unknown_124;       // 0x22
+    mfc::CString soundFolder;       // +0x124 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
     std::uint8_t unknown_128[0x10]; // not serialised
     CStringVector soundNames;       // +0x138 0x23 (0053A8E0 counts the .wav files of each)
-    std::uint8_t unknown_144[0xC];  // a vector of the counts; not serialised
-    std::uint32_t unknown_150;      // 0x25
-    std::uint32_t unknown_154;      // 0x26
+    std::uint8_t unknown_144[0xC];  // a vector of the counts; not serialised (SoundCounts())
+
+    // The number of sound files of each soundNames entry (counted at startup, 0053A8E0).
+    const std::uint32_t* SoundCounts() const { return *reinterpret_cast<std::uint32_t* const*>(unknown_144); }
+    std::uint32_t idleSoundChance;  // +0x150 0x25 percent
+    std::uint32_t attackSoundChance;    // +0x154 0x26 percent
     std::uint32_t unknown_158;      // 0x2F
     std::uint32_t unknown_15C;      // 0x30
     std::uint32_t unknown_160;      // 0x31
@@ -167,6 +170,7 @@ static_assert(offsetof(UnitModelRecord, damageWeights) == 0x50);
 static_assert(offsetof(UnitModelRecord, slots) == 0x88);
 static_assert(offsetof(UnitModelRecord, unknown_E8) == 0xE8);
 static_assert(offsetof(UnitModelRecord, height) == 0x104);
-static_assert(offsetof(UnitModelRecord, unknown_124) == 0x124);
+static_assert(offsetof(UnitModelRecord, soundFolder) == 0x124);
+static_assert(offsetof(UnitModelRecord, idleSoundChance) == 0x150);
 static_assert(offsetof(UnitModelRecord, soundNames) == 0x138);
 static_assert(sizeof(UnitModelRecord) == 0x168);

@@ -3,6 +3,7 @@
 #include "unit_client_models.h"
 
 #include "item_db.h"
+#include "map_object_figures.h"
 #include "unit.h"
 
 #include "lib/crt.h"
@@ -10,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
 
@@ -261,6 +263,65 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00535590, CUnitClientSpecific::ChangeWeaponModel);
+
+// --- The weapon in hand and the bow's arrow during animations (A-U) ------------------------------
+
+void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
+    if (weaponHidden == static_cast<std::uint8_t>(hidden)) return;
+    std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
+    console::CStringArray names;
+    if (hand != kNone) WeaponPartNames(hand >> 16, &names);
+    for (int i = 0; i < names.GetSize(); ++i) {
+        if (CEngineObject* part = FindAnyPart(unit, nullptr, names[i])) {
+            if (hidden) part->flags_ |= kArrowPartFlag;
+            else part->flags_ &= ~kArrowPartFlag;
+        }
+    }
+    weaponHidden = hidden;
+    arrowHidden = hidden;
+}
+EI_REPLACE_METHOD(0x00537CB0, CUnitClientSpecific::ShowWeaponParts);
+
+namespace {
+// The bow's arrow part of a hero holding a bow, or null.
+CEngineObject* BowArrow(CUnitClientSpecific* self) {
+    std::uint32_t hand = WeaponIdOf(self, self->unit->activeWeapon);
+    if (hand == kNone || WeaponTypeOf(hand) != kWeaponBow) return nullptr;
+    return FindAnyPart(self->unit, nullptr, kBowArrow);
+}
+
+// The original's x87 tests: `frame` was passed between the last update and now (not when the
+// last time was unordered; a NaN time counts as passed).
+bool Passed(std::uint32_t frame, float last, float now) {
+    double at = x87::FromUnsigned(frame);
+    return at > last && !(at > now);
+}
+} // namespace
+
+void CUnitClientSpecific::UpdateArrow() {
+    if (unit->type_ != kUnitTypeHero) return;
+    const CFigureAnimationState* state = unit->Object3D()->animation;
+    const FigureAnimation* current = state->current;
+    if (current && (current->flags & 1)) {
+        float now = state->time;
+        if (!(now < lastAnimationTime || now > lastAnimationTime)) return;   // the same time, or NaN
+        if (Passed(current->arrowFrom, lastAnimationTime, now)) {
+            if (!arrowHidden) return;
+            if (CEngineObject* arrow = BowArrow(this)) {
+                arrow->flags_ &= ~kArrowPartFlag;
+                arrowHidden = 0;
+            }
+            return;
+        }
+        if (!Passed(current->arrowTo, lastAnimationTime, now)) return;
+    }
+    if (arrowHidden == 1) return;
+    if (CEngineObject* arrow = BowArrow(this)) {
+        arrow->flags_ |= kArrowPartFlag;
+        arrowHidden = 1;
+    }
+}
+EI_REPLACE_METHOD(0x00538C20, CUnitClientSpecific::UpdateArrow);
 
 void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
