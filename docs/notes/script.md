@@ -700,12 +700,55 @@ by Open), 004DECE0 (no callers), 004DED20 (locale setup), the thunks 004DEDB0 / 
 - Dead code: 004C01A0, 004C0520, 004C06F0, 004C09F0 (quest script builders) and the script dumper
   004D53C0 -> 004D39D0 / 004D50C0 -> 004D41C0 (Rebirth patches it) / 004D4E80 / 004D5310, plus
   004D38B0: no code or data reference in the exe.
-- Game code not rewritten: compiler-generated copy members of the script structs (SSCCmd copy
-  constructor 004CE750, ScriptSubCall copy 004CCAA0, ScriptDefinition copy / operator= 004CB460 /
-  004CB7E0 and the per-type copy constructors 004CBA00 / 004CBB80 / 004CBCA0 / 004CBDB0 / 004CBEF0;
-  all only reached from CList RemoveHead / GetAt instantiations or dead code), element destructors
+- Game code not rewritten: compiler-generated copy members of the script structs (ScriptDefinition
+  copy 004CB460 and the float / string named-value copy constructors 004CBB80 / 004CBCA0; the
+  others are rewritten since, see "Copy constructors" below; all only reached from CList
+  RemoveHead / GetAt instantiations or dead code), element destructors
   (004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004C5480, 004C17E0, 004C81B0,
   004C9AF0), the ScriptVars constructor 004C00D0, the quest table lookup 004C9C90 and 004CC600
   (called from 006B1C90).
 - 004D8000-004DEFFF belongs to other subsystems (renderer and AI map helpers, the text manager's
   archive list, STLport instantiations); apart from the line reader above, not touched.
+
+# Copy constructors (ticket S1: 004CB7E0, 004CBA00, 004CBDB0, 004CBEF0, 004CE750, 004CCAA0)
+
+What was left of the script runtime in 0x004C0000-0x004D8000 that is live, not library, not dead
+and not Rebirth-patched is small: the largest such functions were these compiler-generated copy
+constructors (the 004D6E90-004D7BD0 functions above 400 bytes are geometry/clipping code, not
+script; 004D41C0 is the dead, Rebirth-patched dumper). Code: `src/game/script_copy.cpp`
+(declarations in `script.h`). Verify: `tests/verify/verify_script_copy.cpp`. Scenario:
+`tests/scenarios/script_copy.txt` (a live instance with all four parameter types and a sleeping
+run, then `load savea`; script_parse / script_exec / console reach the two GetAt bodies while
+parsing, world_load reaches the reset ones when the zone's mission script has instances or runs).
+
+Each array is built as the original does: the base constructor (fields 0, base vtable; written
+inline, as only the derived vtable stays), the derived vtable, the instantiation's out-of-line
+SetSize to the source's size, then an element loop: floats through the FPU (the existing FLD /
+FSTP helper; a signalling NaN becomes quiet), strings by GetAt (004C2680) into a temporary and
+CString assignment, references by GetAt (004C21E0) and Reset / Construct (004B24B0 / 004B2500) or
+the same written inline where the original inlines it, groups by GetAt (004C3B00).
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004CB7E0 | 544 | ScriptVarsCopyConstruct (reached from the instance list's RemoveHead 004C7A10 via the definition copy) | ours only: source captured as in ScriptVarsAssign (savers' bytes, float bits after FLD / FSTP, object and member pointers); the copy must match; the eight arrays' vtables |
+| 004CCAA0 | 528 | ScriptSubCallCopyAt (body of CArray<ScriptSubCall>::GetAt 004C7510: type, arg index, the command deep-copied into operator new(0x94); null when new fails) | ours only: type and index equal, a new command whose SSCCmd image (Save bytes, floats, strings, pointer args, bindings, called script) equals the source's; array vtables |
+| 004CE750 | 464 | ScriptCmdCopyAt (body of CArray<SSCCmd>::GetAt 004CD450) | ours only: as the nested call's command |
+| 004CBEF0 | 464 | ScriptGroupsCopyConstruct (group values and names; run list RemoveHead 004C82B0) | ours only: every group's members, names, vtables |
+| 004CBDB0 | 320 | ScriptObjectsCopyConstruct (object values and names; run list RemoveHead) | ours only: objects, names, vtables |
+| 004CBA00 | 192 | ScriptNamesCopyConstruct (CStringArray; storage for exactly the source's size, ConstructElements 006FE268) | ours only: names, size == capacity, growBy 0, no storage when empty |
+
+SSCCmd's copy constructor is inlined into both GetAt bodies (ScriptSubCallCopyAt's version calls
+the float array's base constructor 004CD080 instead of inlining it; same end state): id, float
+arguments (SetSize 004C4410), strings (004C2510), object / group argument pointers (004C46F0 /
+004C49F0, copied as words), both binding arrays and the nested calls through the library copy
+constructors 004CCCB0 / 004CCD90 (the latter calls 004C7510, so nested trees recurse through
+ScriptSubCallCopyAt), and the called script pointer.
+
+Forwarders added in `script_copy.cpp`: 004C2510, 004C3980, 004C2050 SetSize; 004C2680, 004C21E0,
+004C3B00 GetAt; 004B24B0 / 004B2500 (rewritten, through their addresses), 004CE1E0 reference
+destructor, 004C2290 group destructor, 006FE268 CString ConstructElements, 004CCCB0 / 004CCD90
+array copy constructors, 004CBA00 (ours, through its address from ScriptVarsCopyConstruct).
+
+Differences and quirks: the C++ exception frames (unwinding on a throwing operator new) are not
+reproduced; kept: a failed operator new in ScriptSubCallCopyAt leaves the copy's command null, as the
+original does.

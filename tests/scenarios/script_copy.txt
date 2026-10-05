@@ -1,0 +1,29 @@
+# Script copy constructors (src/game/script_copy.cpp): leaves a live script instance with a
+# parameter of every type and a sleeping run (a copy of its variables) in the console's mission
+# script, then loads the autosave. Destroying the old world's scripts copies every instance out of
+# its list (ScriptVars 004CB7E0, names 004CBA00), every run (object / group values 004CBDB0 /
+# 004CBEF0) and every command block (SSCCmd 004CE750, nested calls 004CCAA0). Parsing the console
+# lines copies commands with nested calls too.
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitline 15 Saved savea
+console @BlockUnit(GetLeader(),0)
+
+# The instance's pair runs once (zc.once), then its run sleeps; the instance is never killed.
+console @) Script ZcHold(n:float, s:string, u:object, w:group)( if(IsEqual(GSGetVar(0,"zc.once"),0)) then( GSSetVar(0,"zc.once",n) GSSetVar(0,"zc.g",GroupSize(w)) Sleep(100000) ConsoleString(s) ) ) EndMarkerZ(
+expect Script error: Unexpected 'EndMarkerZ'
+console @ZcHold(3,"zc never",GetLeader(),GetPlayerUnits(GetPlayer(GetLeader())))
+waitfor 10 IsEqual(GSGetVar(0,"zc.once"),3)
+check IsEqual(GSGetVar(0,"zc.g"),GroupSize(GetPlayerUnits(GetPlayer(GetLeader()))))
+reject Script error
+reject zc never
+wait 500
+
+load savea
+waitfor 20 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit
