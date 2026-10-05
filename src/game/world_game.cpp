@@ -1486,7 +1486,6 @@ constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
 constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
 
-int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 std::uint8_t& SessionsOpen() { return *reinterpret_cast<std::uint8_t*>(0x007C7DD8); }
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 
