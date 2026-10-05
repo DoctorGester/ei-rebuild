@@ -29,7 +29,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- S7 Script element-destructor wrappers 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004BF620 (S6's deep-copy check fits).
+- S7 (taken 2026-10-05) Script element-destructor wrappers 004CE1E0, 004CE210, 004CE230, 004CE270, 004CE2B0, 004CE2D0, 004BF620 (S6's deep-copy check fits).
 
 ## Verify checks
 
