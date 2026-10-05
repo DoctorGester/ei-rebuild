@@ -30,6 +30,7 @@ __declspec(naked) int CTextureDevice::ParseMmpHeader(const void*, PixelFormat*) 
 __declspec(naked) int CTextureDevice::FindFormat(int, PixelFormat*) EI_ORIGINAL(0x004E7DA0)
 __declspec(naked) int CTexture::CallCreateFromMmp(CTextureDevice*, const void*, unsigned) EI_ORIGINAL(0x00690430)
 __declspec(naked) int CTexture::LoadBmp(CTextureDevice*, const char*) EI_ORIGINAL(0x00690260)
+__declspec(naked) int ChannelLayout::Split(const void*) EI_ORIGINAL(0x004EDAA0)
 
 int CTextureManager::LoadTexture(CTexture* texture) {
     if (!texture) {

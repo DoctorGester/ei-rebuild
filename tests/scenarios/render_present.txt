@@ -4,7 +4,9 @@
 # path:
 #   python tools\compare_frames.py <frames_basic run>\frames <render_present run>\frames
 # (weather is not in the new frame yet; the runs are not deterministic, so expect small differences
-# anyway). world / world_again must match.
+# anyway). world / world_again must match. Since R8 (docs/notes/renderer.md section 15) the
+# texture manager's CPU-written textures (the battle screen's, the camp's item and face pictures,
+# the global map's weather) have no DirectDraw texture here; ei_hook.log says so once.
 render new,present
 reject Script error
 wait 6000

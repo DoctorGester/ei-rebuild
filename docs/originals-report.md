@@ -117,7 +117,7 @@ Rewritten as `RefValueConstructBase` (src/game/core_streams.cpp).
 
 ### 0x00419CD0: 5 files, 5 sites, signatures differ
 Rewritten as `RefPtr::Assign` (src/game/core_refcount.cpp).
-- `src/game/ui_item_view.cpp:165`: `void RefSlot::Assign(void*)`
+- `src/game/ui_item_view.cpp:166`: `void RefSlot::Assign(void*)`
 - `src/game/world_game.cpp:1191`: `void __fastcall SessionRefAssign(void*, void*, void*)`
 - `src/game/world_quests.cpp:589`: `void __fastcall RefPtrAssign(void*, void*, void*)`
 - `src/game/world_save.cpp:271`: `void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/)`
@@ -278,7 +278,7 @@ Rewritten as `TextKeyFromName` (src/game/object_tables.cpp).
 ### 0x004667F0: 4 files, 4 sites, signatures differ
 Rewritten as `IsaacRandom::Next` (src/game/random.cpp).
 - `src/game/script_exec_run.cpp:93`: `std::uint32_t Random::Next()`
-- `src/game/ui_item_view.cpp:171`: `std::uint32_t Isaac::Next()`
+- `src/game/ui_item_view.cpp:172`: `std::uint32_t Isaac::Next()`
 - `src/game/world_effect_visual.cpp:34`: `std::uint32_t __fastcall RandomNext(void* /*random*/)`
 - `src/game/world_game.cpp:1326`: `std::uint32_t __fastcall RandomNext(void*, void*)`
 
@@ -290,7 +290,7 @@ Rewritten as `FatalError` (src/game/app.cpp).
 ### 0x0049E800: 2 files, 2 sites, signatures differ
 Rewritten as `Quaternion::SetAxisAngle` (src/game/quaternion.cpp).
 - `src/game/ui_hero_preview.cpp:63`: `Quat* Quat::FromAxisAngle(const Vec3*, float)`
-- `src/game/ui_item_view.cpp:274`: `Quaternion4* Quaternion4::FromAxisAngle(const float*, float)`
+- `src/game/ui_item_view.cpp:275`: `Quaternion4* Quaternion4::FromAxisAngle(const float*, float)`
 
 ### 0x004A8880: 2 files, 2 sites, signatures differ
 Rewritten as `PartyManagerEndRedeploy` (src/game/party_records.cpp).
@@ -1001,7 +1001,7 @@ Rewritten as `MeshFramed` (src/game/ui_mesh_build.cpp).
 Rewritten as `CItemScreen::DrawItem` (src/game/ui_item_view.cpp).
 - `src/game/ui_container_draws.cpp:90`: `void DrawItemAt::DrawItem(int, ItemCell*)`
 - `src/game/ui_item_strip.cpp:37`: `void StripOwner::DrawItem(int, ItemCell*)`
-- `src/game/ui_item_view.cpp:516`: `void DrawItemAt::DrawItem(int, ItemCell*)`
+- `src/game/ui_item_view.cpp:517`: `void DrawItemAt::DrawItem(int, ItemCell*)`
 - `src/game/ui_trade_grid_draw.cpp:44`: `void __fastcall DrawItemModel(void*, void*, int /*pass*/, ItemCell*)`
 
 ### 0x005F71C0: 2 files, 2 sites, identical
@@ -1315,7 +1315,7 @@ Rewritten as `CItemManager::CreateItem` (src/game/item_constructor.cpp).
 
 ### 0x006B4F70: 2 files, 2 sites, signatures differ
 Rewritten as `CMusicSystem::Stop` (src/game/sound_music.cpp).
-- `src/game/ui_global_map.cpp:236`: `void SoundMixer::ResetMusic()`
+- `src/game/ui_global_map.cpp:237`: `void SoundMixer::ResetMusic()`
 - `src/game/ui_layouts.cpp:712`: `void __fastcall TitlesStopMusic(void*)`
 
 ### 0x006B7740: 2 files, 2 sites, signatures differ
@@ -1414,7 +1414,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x004614C0: 2 files, 2 sites, same signature, names differ
 - `src/game/console_commands.cpp:120`: `void VariableTableAt::Begin(VariableIterator*)`
-- `src/game/ui_global_map.cpp:194`: `void BeginAt::Begin(VariableIterator*)`
+- `src/game/ui_global_map.cpp:195`: `void BeginAt::Begin(VariableIterator*)`
 
 ### 0x00461540: 3 files, 4 sites, same signature, names differ
 - `src/game/object_tables.cpp:83`: `void __fastcall TableClearAt(NamedFloatTable*)`
@@ -1483,7 +1483,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x00581790: 2 files, 2 sites, signatures differ
 - `src/game/originals_engine.h:98`: `void* __fastcall NamedTableConstructOriginal(void* /*table*/)`
-- `src/game/ui_global_map.cpp:184`: `void TableAt::Construct()`
+- `src/game/ui_global_map.cpp:185`: `void TableAt::Construct()`
 
 ### 0x0059C7A0: 2 files, 2 sites, identical
 - `src/game/world_save.cpp:269`: `ProjectileList::Node* __fastcall ProjectileNewNode(ProjectileList*, void*, ProjectileList::Node* /*prev*/, ProjectileList::Node* /*next*/)`
@@ -1601,7 +1601,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/terrain_draw.cpp:55`: `void __fastcall ByteArrayConstruct(MfcArray*)`
 
 ### 0x007005AF: 3 files, 3 sites, signatures differ
-- `src/game/dx_surface.cpp:49`: `void* __cdecl GameNew(unsigned)`
+- `src/game/dx_surface.cpp:52`: `void* __cdecl GameNew(unsigned)`
 - `src/game/ui_surface_create.cpp:52`: `void* __cdecl GameNew(unsigned)`
 - `src/lib/crt.cpp:7`: `void* __cdecl operator_new(std::size_t)`
 
@@ -1682,7 +1682,7 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/ui_interface_frame.cpp:213`: `void __fastcall SplitWords(const char*, console::CStringArray*, char)`
 
 ### 0x004EDAA0: 2 files, 2 sites, same signature, names differ
-- `src/game/dx_surface.cpp:291`: `int ChannelLayout::Split(const void*)`
+- `src/game/texture.cpp:33`: `int ChannelLayout::Split(const void*)`
 - `src/game/ui_surface_pixels.cpp:83`: `int PixelConverter::Init(const void*)`
 
 ### 0x0050E770: 2 files, 2 sites, identical
@@ -1699,7 +1699,7 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 
 ### 0x005335E0: 2 files, 2 sites, signatures differ
 - `src/game/originals_units.h:159`: `void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)`
-- `src/game/ui_item_view.cpp:544`: `char** __fastcall UnitPrototypeAt(void*, void*, const stlp::string*)`
+- `src/game/ui_item_view.cpp:545`: `char** __fastcall UnitPrototypeAt(void*, void*, const stlp::string*)`
 
 ### 0x00566030: 2 files, 2 sites, same signature, names differ
 - `src/game/ui_battle_commands.cpp:57`: `void __fastcall WorldControlUnit(void*, void*, CUnit*)`
@@ -1711,14 +1711,14 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 
 ### 0x005786A0: 2 files, 2 sites, identical
 - `src/game/ui_battle_setup.cpp:110`: `void GameObjects::ResetView(int, int)`
-- `src/game/ui_global_map.cpp:228`: `void GameObjects::ResetView(int, int)`
+- `src/game/ui_global_map.cpp:229`: `void GameObjects::ResetView(int, int)`
 
 ### 0x00578A40: 2 files, 2 sites, same signature, names differ
 - `src/game/ui_battle_hover.cpp:59`: `const char* __fastcall HoverExitZone(void*, void*, int)`
 - `src/game/ui_hud.cpp:945`: `const char* __fastcall GlueExitZone(void*, void*, int)`
 
 ### 0x00578B70: 2 files, 2 sites, identical
-- `src/game/ui_global_map.cpp:180`: `void LocalPlayerAt::CopyVariables(const char*, NamedFloatTable*)`
+- `src/game/ui_global_map.cpp:181`: `void LocalPlayerAt::CopyVariables(const char*, NamedFloatTable*)`
 - `src/game/ui_objectives.cpp:122`: `void LocalPlayerAt::CopyVariables(const char*, NamedFloatTable*)`
 
 ### 0x00578DC0: 2 files, 2 sites, same signature, names differ
@@ -1726,9 +1726,9 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/ui_layouts.cpp:414`: `const mfc::CString* MenuGlue::Directory()`
 
 ### 0x005E7010: 3 files, 3 sites, same signature, names differ
-- `src/game/ui_global_map.cpp:164`: `void SpriteOps::Position(float*, float*, float*)`
+- `src/game/ui_global_map.cpp:165`: `void SpriteOps::Position(float*, float*, float*)`
 - `src/game/ui_hud_portraits.cpp:100`: `void SpriteQuery::Position(float*, float*, float*)`
-- `src/game/ui_item_view.cpp:87`: `void Sprite::Position(float*, float*, float*)`
+- `src/game/ui_item_view.cpp:88`: `void Sprite::Position(float*, float*, float*)`
 
 ### 0x005EE110: 2 files, 2 sites, signatures differ
 - `src/game/ui_camp.cpp:251`: `bool CampKinds::IsKindOne(const std::uint8_t*)`

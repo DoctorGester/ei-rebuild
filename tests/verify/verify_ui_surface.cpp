@@ -5,6 +5,7 @@
 // pixel sets must be equal. Rgb565Copy runs twice on the same surface and the two blocks must be
 // equal (ours is freed, the original's returned).
 #include "verify.h"
+#include "memory_texture.h"
 
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/ui.h"
@@ -77,6 +78,42 @@ bool AccessSurface(IDirectDrawSurface7* dd, Pixels& pixels, bool write, RECT* re
     }
     gameapi::LeaveCriticalSection(SurfaceLock());
     return ok;
+}
+
+// The same on the new renderer's memory of `holder` (a texture holder with no DirectDraw surface in
+// the switch-over, ticket R8). False without such memory or for a rectangle outside it.
+bool AccessMemory(const void* holder, Pixels& pixels, bool write, const RECT* rect = nullptr) {
+    std::uint32_t desc[0x1F];
+    if (!holder || !ClientPixels(holder, desc)) return false;
+    int bytes = static_cast<int>(desc[0x15] / 8), pitch = static_cast<int>(desc[4]);
+    RECT area = {0, 0, static_cast<LONG>(desc[3]), static_cast<LONG>(desc[2])};
+    if (rect) {
+        if (rect->left < 0 || rect->top < 0 || rect->right > area.right || rect->bottom > area.bottom ||
+            rect->left >= rect->right || rect->top >= rect->bottom)
+            return false;
+        area = *rect;
+    }
+    auto* base = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc[9])) + area.top * pitch +
+                 area.left * bytes;
+    int rowBytes = static_cast<int>(area.right - area.left) * bytes;
+    int height = static_cast<int>(area.bottom - area.top);
+    if (!write) {
+        pixels.height = height;
+        pixels.rowBytes = rowBytes;
+        pixels.bytes.resize(static_cast<std::size_t>(rowBytes) * height);
+        for (int y = 0; y < height; ++y) std::memcpy(&pixels.bytes[y * rowBytes], base + y * pitch, rowBytes);
+    } else if (pixels.rowBytes == rowBytes && pixels.height == height) {
+        for (int y = 0; y < height; ++y) std::memcpy(base + y * pitch, &pixels.bytes[y * rowBytes], rowBytes);
+    }
+    return true;
+}
+
+// A texture's pixels: its holder's DirectDraw surface, or the memory of a holder without one.
+bool ReadTexture(const void* texture, Pixels& pixels) {
+    CDXSurface* holder = memory_texture::HolderOf(texture);
+    if (!holder) return false;
+    if (holder->surface) return AccessSurface(static_cast<IDirectDrawSurface7*>(holder->surface), pixels, false);
+    return AccessMemory(holder, pixels, false);
 }
 
 bool AccessPixels(CUiSurface* surface, Pixels& pixels, bool write) {
@@ -225,16 +262,17 @@ EI_VERIFY(0x005FD240, PixelAtVerify, 6, s_pixelAt);
 
 // 005EC020: PUSH -1; PUSH imm32 (7). Both make a texture of the same name; their surfaces' pixels
 // must be equal. Ours is released (its slot 4, as the original does on failure), the original's
-// returned.
+// returned. In the switch-over the texture manager's textures have only the new renderer's memory
+// (ticket R8): the original's is lent a DirectDraw texture while it runs (LendNewTextures, its
+// pixels then moved into the memory), ours writes the memory; both are read from the memory.
 static void*(__fastcall* s_figureTexture)(const char*);
 static void* __fastcall FigureTextureVerify(const char* name) {
-    void* expected = s_figureTexture(name);
+    void* expected;
+    {
+        memory_texture::LendNewTextures lend;
+        expected = s_figureTexture(name);
+    }
     void* actual = ItemFigureTexture(name);
-    auto surfaceOf = [](void* texture) -> IDirectDrawSurface7* {
-        if (!texture) return nullptr;
-        std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(texture) + 0x5C);
-        return holder ? *reinterpret_cast<IDirectDrawSurface7**>(holder + 0x10) : nullptr;
-    };
     int row = -3;
     if ((expected == nullptr) != (actual == nullptr)) {
         row = -4;
@@ -251,7 +289,7 @@ static void* __fastcall FigureTextureVerify(const char* name) {
             std::memcpy(&height, image + 8, 4);
         }
         Pixels a, b;
-        if (AccessSurface(surfaceOf(expected), a, false) && AccessSurface(surfaceOf(actual), b, false)) {
+        if (ReadTexture(expected, a) && ReadTexture(actual, b)) {
             row = a.bytes.size() == b.bytes.size() && a.rowBytes == b.rowBytes ? -1 : -2;
             for (int y = a.height - height; row == -1 && y < a.height; ++y)
                 if (y >= 0 && std::memcmp(&a.bytes[y * a.rowBytes], &b.bytes[y * b.rowBytes], width * 2 < a.rowBytes ? width * 2 : a.rowBytes) != 0) row = y;
@@ -370,23 +408,30 @@ static void __fastcall SwapContentsVerify(CUiSurface* self, void*, int restore) 
 EI_VERIFY(0x005FD7A0, SwapContentsVerify, 7, s_swapContents);
 
 // 005FFFB0: PUSH -1; PUSH imm32 (7). Side by side on the written rectangle of the texture's surface
-// and the result.
+// and the result. A texture with only the new renderer's memory (the switch-over, ticket R8) is lent
+// a DirectDraw texture holding the memory's pixels for the original's run (the memory itself keeps
+// the pixels from before), then ours writes the memory.
 static int(__thiscall* s_copyImage)(CUiWindow*, CEngineObject*, const char*, int, int, int, int, int, int, int, int);
 static int __fastcall CopyImageVerify(CUiWindow* self, void*, CEngineObject* texture, const char* name, int imageWidth,
                                       int imageHeight, int width, int height, int x, int y, int unused1, int unused2) {
-    std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(texture) + 0x5C);
-    IDirectDrawSurface7* dd = holder ? *reinterpret_cast<IDirectDrawSurface7**>(holder + 0x10) : nullptr;
+    CDXSurface* holder = memory_texture::HolderOf(texture);
+    bool lent = memory_texture::Lend(holder);
+    if (!lent && memory_texture::MemoryOnly(holder))   // DirectDraw refused (logged): the original cannot run
+        return self->CopyImage(texture, name, imageWidth, imageHeight, width, height, x, y, unused1, unused2);
+    IDirectDrawSurface7* dd = holder ? static_cast<IDirectDrawSurface7*>(holder->surface) : nullptr;
     RECT area = {x, y, x + width, y + height};
     Pixels before;
     bool pixels = width > 0 && height > 0 && AccessSurface(dd, before, false, &area);
     int expected = s_copyImage(self, texture, name, imageWidth, imageHeight, width, height, x, y, unused1, unused2);
     Pixels expectedPixels;
     if (pixels) pixels = AccessSurface(dd, expectedPixels, false, &area) && AccessSurface(dd, before, true, &area);
+    if (lent) memory_texture::TakeBack(holder, false);
     int actual = self->CopyImage(texture, name, imageWidth, imageHeight, width, height, x, y, unused1, unused2);
     int row = -1;
     if (pixels) {
         Pixels actualPixels;
-        if (AccessSurface(dd, actualPixels, false, &area)) row = FirstDifferentRow(expectedPixels, actualPixels);
+        bool read = lent ? AccessMemory(holder, actualPixels, false, &area) : AccessSurface(dd, actualPixels, false, &area);
+        if (read) row = FirstDifferentRow(expectedPixels, actualPixels);
     }
     ei::verify::Check("CUiWindow::CopyImage", true, row == -1 && expected == actual,
                       "%s at (%d, %d) %dx%d: pixel row %d (compared %d), result %d/%d", name, x, y, width, height, row,
