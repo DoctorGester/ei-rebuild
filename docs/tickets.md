@@ -22,17 +22,19 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
+- A-I (taken 2026-10-05) Area ticket: interface 0x005E0000-0x00640000.
+
 
 - I11 Next interface functions (ui.md "Nineteenth pass (ticket I10)"); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H (taken 2026-10-05) Area ticket: HUD, items, spells, effects, 0x00640000-0x006C0000.
+- A-H done 2026-10-05 (38 functions). A-H2 next session (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S (taken 2026-10-05) Area ticket: script runtime and scripts, 0x00480000-0x00500000.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (taken 2026-10-05): scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks
