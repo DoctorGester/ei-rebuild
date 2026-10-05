@@ -25,7 +25,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I1 (taken 2026-10-05) Next 3-8 largest live non-rendering interface functions (the briefing screen excluded).
+- I2 Next 3-8 largest live non-rendering interface functions (the briefing screen excluded).
 
 ## Cleanup (docs/cleanup-plan.md)
 
@@ -43,3 +43,6 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
   hash_tables_400.cpp, and the ~40 literal uses of 0079B298.
+- X3 ClientPlaceOnPath (00535850): 1 mismatch in 314,727 calls, a quaternion sign flip at a 180-degree
+  turn ("q0 -0.707107 vs 0.707107", ui_hud): follow the original's branch for that edge case (plain
+  C++ picks the other sign) or, if it's a rounding edge, document it; q and -q are the same rotation.
