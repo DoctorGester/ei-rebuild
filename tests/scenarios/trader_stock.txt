@@ -1,0 +1,53 @@
+# Trader stock (ticket H4; docs/notes/items_spells.md, "Trader stock"). The stock generators run
+# from the camp's Create (0060C870 -> 004A6DF0) only when the camp opens with a constructor class
+# ("constr.current" > 0) whose template still has its +0x38 "new stock" flag (set by the template's
+# constructor and by quest completion 004A88E0, cleared once generated). In the game a base's
+# dialogue answer "constrN" (006064E0) sets constr.current = N and asks for screen 5; the harness's
+# `screen 5 <N>` does the same from zone1's battle screen. A new game has templates 1, 3, 4, 5, so
+# each first opening generates that template's stock: 0069B570 / 0069B550 / 0069B590 ->
+# GenerateItems 0069AE20 (and the spells 0069A780 for magic items), the instructions 00699810 /
+# 006995E0 / 00699A40, the materials 0069A110. Pages 2 and 4 (regions 6 and 8) are the trade pages
+# showing it. Esc (page 7) leaves the camp and the game goes on.
+reject Script error
+wait 6000
+console thingamabob
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+screen 5 1
+wait 2500
+clickregion 6
+wait 400
+clickregion 8
+wait 400
+key esc
+wait 2000
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+screen 5 3
+wait 2500
+clickregion 6
+wait 400
+key esc
+wait 2000
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+screen 5 4
+wait 2500
+clickregion 8
+wait 400
+key esc
+wait 2000
+waitfor 10 IsGreater(HP(GetLeader()),0)
+
+screen 5 5
+wait 2500
+key esc
+wait 2000
+waitfor 10 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit
