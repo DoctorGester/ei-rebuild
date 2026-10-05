@@ -252,3 +252,114 @@ void __fastcall ScriptDeletePointLight(CScript* script, void*, const SSCCmd* cmd
     }
 }
 EI_REPLACE(0x004BD920, ScriptDeletePointLight);
+
+// ---- QFinish ------------------------------------------------------------------------------------
+
+namespace {
+
+// One objective added by the QObj* commands (004BAE10; CArray at 007AA608, data 007AA60C,
+// count 007AA610): the command id (0xD7-0xDD), its string argument, its float argument.
+struct QuestObjective {
+    int type;
+    mfc::CString text;
+    float value;
+};
+static_assert(sizeof(QuestObjective) == 12);
+
+QuestObjective* QuestObjectives() { return *reinterpret_cast<QuestObjective**>(0x007AA60C); }
+int QuestObjectiveCount() { return *reinterpret_cast<int*>(0x007AA610); }
+mfc::CString& QuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C); }   // QStart's name
+const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+
+// 004D23A0 CScript::Load (rewritten; through its address so its verify wrapper runs).
+__declspec(naked) BOOL __fastcall LoadOrig(CScript*, void*, mfc::CString*, BOOL) EI_ORIGINAL(0x004D23A0)
+// 00700B9F operator+(const CString&, const CString&), constructing the result in `out`.
+__declspec(naked) mfc::CString* __stdcall ConcatString(mfc::CString* /*out*/, const mfc::CString*, const mfc::CString*) EI_ORIGINAL(0x00700B9F)
+
+// operator+'s result, destroyed with the holder.
+class Sum {
+public:
+    Sum(const mfc::CString& a, const mfc::CString& b) { ConcatString(Get(), &a, &b); }
+    ~Sum() { Get()->~CString(); }
+    Sum(const Sum&) = delete;
+    Sum& operator=(const Sum&) = delete;
+    mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(raw_); }
+
+private:
+    alignas(mfc::CString) unsigned char raw_[sizeof(mfc::CString)];
+};
+
+} // namespace
+
+// The text, per objective i (0-based; the quest name is q, N objectives):
+//   DeclareScript Su0() .. SuN()                      (one line each)
+//   Script Sui(if(\n<condition>\n)then(\nKillScript()\nSu<i+1>()\nGSSetVar(0,"q.q.q.<i+1>",2)\n
+//     then GSSetVar(0,"q.q.q.<i+2>",1)\n)\n)\n, or )\n)\n for the last objective
+//   Script SuN(if()then(KillScript()\nQuestComplete(0,"q")\nGSSetVar(0,"q.q.q", 2)\n)\n)\n
+//   WorldScript( Su0() )
+// The conditions by objective (%f of the float, %s of the string): QObjArea, QObjSeeObject,
+// QObjSeeUnit, QObjKillUnit, QObjKillGroup, QObjUse, QObjGetItem; another id leaves it empty.
+void __fastcall ScriptQuestFinish(CScript* script) {
+    mfc::CString text;
+    for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
+        mfc::CString line;
+        line.Format(Text(0x0078BB00), i);   // "DeclareScript Su%i()\n"
+        text += line;
+    }
+    for (int i = 0; i < QuestObjectiveCount(); ++i) {
+        mfc::CString head;
+        mfc::CString condition;
+        mfc::CString then;
+        mfc::CString tail;
+        const char* quest = QuestName();
+        head.Format(Text(0x0078BAEC), i);                              // "Script Su%i(if(\n"
+        then.Format(Text(0x0078BAB4), i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
+        if (i == QuestObjectiveCount() - 1) {
+            tail = Text(0x0078BAAC);                                   // ")\n)\n"
+        } else {
+            quest = QuestName();
+            tail.Format(Text(0x0078BA8C), quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
+        }
+        const QuestObjective& objective = QuestObjectives()[i];
+        const char* argument = objective.text;
+        switch (objective.type) {
+        case 0xD7:   // QObjArea
+            condition.Format(Text(0x0078BA58), static_cast<double>(objective.value));
+            break;
+        case 0xD8:   // QObjSeeObject
+            condition.Format(Text(0x0078BA1C), argument);
+            break;
+        case 0xD9:   // QObjSeeUnit
+            condition.Format(Text(0x0078BA08), argument);
+            break;
+        case 0xDA:   // QObjKillUnit
+            condition.Format(Text(0x0078B9F0), argument);
+            break;
+        case 0xDB:   // QObjKillGroup
+            condition.Format(Text(0x0078B9D0), argument);
+            break;
+        case 0xDC:   // QObjUse
+            condition.Format(Text(0x0078B9AC), argument, static_cast<double>(objective.value));
+            break;
+        case 0xDD:   // QObjGetItem
+            condition.Format(Text(0x0078B998), static_cast<double>(objective.value));
+            break;
+        default:
+            break;
+        }
+        Sum first(head, condition);
+        Sum second(*first.Get(), then);
+        Sum third(*second.Get(), tail);
+        text += *third.Get();
+    }
+    {
+        mfc::CString last;
+        const char* quest = QuestName();
+        last.Format(Text(0x0078B940), QuestObjectiveCount(), quest, quest, quest);
+        text += last;
+    }
+    text += Text(0x0078B928);   // "WorldScript( Su0() )\n"
+    LoadOrig(script, nullptr, &text, 1);
+    QuestName() = Text(0x0079B298);   // the empty string constant
+}
+EI_REPLACE(0x004BAAB0, ScriptQuestFinish);

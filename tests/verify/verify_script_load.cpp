@@ -248,6 +248,54 @@ void __fastcall GroupsLoadVerify(ScriptNamedValues<ScriptGroup>* self, void*, Sc
         });
 }
 
+// ---- SSCCmd::Load ---------------------------------------------------------------------------------------
+
+__declspec(naked) SSCCmd* __fastcall CmdConstruct(void*) EI_ORIGINAL(0x004D0A50)
+__declspec(naked) void __fastcall CmdDestruct(void*) EI_ORIGINAL(0x004BF640)
+__declspec(naked) void __fastcall CmdSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B6360)
+
+bool EmptyCmd(const SSCCmd& c) {
+    return Empty(c.floatArgs) && Empty(c.stringArgs) && Empty(c.objectArgs) && Empty(c.groupArgs) &&
+           Empty(c.localBindings) && Empty(c.globalBindings) && Empty(c.subCalls);
+}
+template <typename T>
+bool NullSlots(const MfcArray<T*>& a) {
+    for (int i = 0; i < a.size; ++i)
+        if (a.data[i]) return false;
+    return true;
+}
+
+// 004B5FE0: SUB ESP,0xC; PUSH EBX; MOV EBX,[ESP+0x14] (8 bytes). The original reads into a fresh
+// scratch command (constructed with 004D0A50); compared: SSCCmd::Save's bytes (id, floats, strings,
+// argument counts, bindings, the nested trees, the called block's id), every array's size and
+// capacity, null object / group slots, the called block pointer. Nested commands load through
+// this wrapper again (004B6330 calls it) in both runs.
+void(__fastcall* s_cmd)(SSCCmd*, void*, ScriptStream*);
+void __fastcall CmdLoadVerify(SSCCmd* self, void*, ScriptStream* stream) {
+    if (!EmptyCmd(*self)) {
+        ScriptCmdLoad(self, nullptr, stream);
+        ei::verify::Check("ScriptCmdLoad", true, NullSlots(self->objectArgs) && NullSlots(self->groupArgs),
+                          "ours only: command %d", self->id);
+        return;
+    }
+    alignas(SSCCmd) unsigned char raw[sizeof(SSCCmd)];
+    SSCCmd* scratch = CmdConstruct(raw);
+    RecordStream record(stream);
+    s_cmd(scratch, nullptr, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptCmdLoad(self, nullptr, replay.AsScript());
+    bool ok = SameShape(scratch->floatArgs, self->floatArgs) && SameShape(scratch->stringArgs, self->stringArgs) &&
+              SameShape(scratch->objectArgs, self->objectArgs) && SameShape(scratch->groupArgs, self->groupArgs) &&
+              SameShape(scratch->localBindings, self->localBindings) &&
+              SameShape(scratch->globalBindings, self->globalBindings) && SameShape(scratch->subCalls, self->subCalls) &&
+              NullSlots(self->objectArgs) && NullSlots(self->groupArgs) && scratch->calledScript == self->calledScript &&
+              Saved(CmdSave, scratch) == Saved(CmdSave, self);
+    char what[64];
+    std::snprintf(what, sizeof(what), "command %d vs %d", scratch->id, self->id);
+    Report("ScriptCmdLoad", ok, replay, record, what);
+    CmdDestruct(scratch);
+}
+
 // ---- Command blocks and if-then pairs -------------------------------------------------------------------
 
 // 004C57C0: SUB ESP,0x10; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7 bytes).
@@ -416,6 +464,7 @@ EI_VERIFY(0x004C2D40, FloatsLoadVerify, 6, s_floats);
 EI_VERIFY(0x004C3200, StringsLoadVerify, 7, s_strings);
 EI_VERIFY(0x004C36B0, ObjectsLoadVerify, 5, s_objects);
 EI_VERIFY(0x004C40D0, GroupsLoadVerify, 5, s_groups);
+EI_VERIFY(0x004B5FE0, CmdLoadVerify, 8, s_cmd);
 EI_VERIFY(0x004C57C0, DeclCommandsVerify, 7, s_declCommands);
 EI_VERIFY(0x004CA000, IfThenVerify, 5, s_ifThen);
 EI_VERIFY(0x004CA480, ParticlesVerify, 7, s_particles);

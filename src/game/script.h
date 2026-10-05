@@ -482,6 +482,22 @@ void __fastcall ScriptDeleteArea(CScript* script, void* edx, int id);
 void __fastcall ScriptCreatePointLight(CScript* script, void* edx, const SSCCmd* cmd);
 void __fastcall ScriptMovePointLight(CScript* script, void* edx, const SSCCmd* cmd);
 void __fastcall ScriptDeletePointLight(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BAAB0 (QFinish, __fastcall on the script). Builds a script text from the quest under
+// construction (QStart's name at 007AA61C, the objectives at 007AA60C / count 007AA610): one
+// declared script per objective chaining to the next, then loads it with the WorldScript started
+// (CScript::Load 004D23A0) and empties the quest name.
+void __fastcall ScriptQuestFinish(CScript* script);
+
+// 004BE6E0 (CScript reset, __thiscall). Clears the loaded flag, file count and error state
+// (text "Unknown error"), frees instances, runs, WorldScript and command blocks, definitions,
+// globals, areas, the FX / particle / lightning lists and the point lights' objects (the slots
+// stay, zeroed), shrinks the temporaries to their one empty entry and sets +0x68 / +0x6C to -2.
+void __fastcall ScriptReset(CScript* script);
+
+// 004BB800 (ScriptDefinition::AddParameter, __thiscall). Adds variable `name` of `type` (1..4)
+// to the definition's variables and its letter (f s o g) to `params`; 0 when a variable of that
+// type has the name. Another type adds nothing and returns the name's address (nonzero).
+BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void* edx, const mfc::CString* name, int type);
 
 // ---- Saving (script_save.cpp) -------------------------------------------------------------------
 
@@ -531,6 +547,10 @@ void __fastcall ScriptFloatsLoad(ScriptNamedValues<float>* vars, void* edx, Scri
 void __fastcall ScriptStringsLoad(ScriptNamedValues<mfc::CString>* vars, void* edx, ScriptStream* stream);
 void __fastcall ScriptObjectsLoad(ScriptNamedValues<ScriptObjectRef>* vars, void* edx, ScriptStream* stream);
 void __fastcall ScriptGroupsLoad(ScriptNamedValues<ScriptGroup>* vars, void* edx, ScriptStream* stream);
+// 004B5FE0 (SSCCmd::Load, __thiscall). Reads what SSCCmd::Save wrote: id, float and string
+// arguments, the object / group argument counts (slots null, re-bound when run), both binding
+// arrays, the nested calls (004B6330 each) and the called block's id (resolved like FindBlock).
+void __fastcall ScriptCmdLoad(SSCCmd* cmd, void* edx, ScriptStream* stream);
 // 004C57C0 (__fastcall). A command block's commands (count, SSCCmd::Load each); the caller reads the id.
 void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream);
 // 004CA000 (__fastcall). A definition's if-then pairs: per pair two block ids, resolved in the

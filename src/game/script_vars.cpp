@@ -97,6 +97,92 @@ void ScriptVars::RemoveDeletedObjects() {
 }
 EI_REPLACE_METHOD(0x004B3940, ScriptVars::RemoveDeletedObjects);
 
+// ---- ScriptDefinition::AddParameter -------------------------------------------------------------
+
+namespace {
+// CArray template members (out of line), __thiscall (size, growBy) / (index, element).
+__declspec(naked) void __fastcall FloatValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
+__declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
+__declspec(naked) void __fastcall RefsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2050)
+__declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
+__declspec(naked) void __fastcall NamesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x004CE5F0)
+// 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.
+__declspec(naked) mfc::CString* __stdcall ConcatString(mfc::CString* /*out*/, const mfc::CString*, const mfc::CString*) EI_ORIGINAL(0x00700B9F)
+
+// The type letters (0078BBD8 "f", 0078BBD4 "s", 0078BBD0 "o", 0078BBCC "g").
+const char* Letter(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+} // namespace
+
+// The new name goes in through a temporary CString: SetAtGrow at the end of the names for floats,
+// strings and objects; for groups the names are grown with SetSize and the slot assigned.
+BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mfc::CString* name, int type) {
+    ScriptVars& vars = definition->vars;
+    mfc::CString letter;
+    BOOL result;
+    const char* text = *name;
+    switch (type) {
+    case kScriptFloat:
+        if (FindName(vars.floatNames, text) >= 0) {
+            result = 0;
+        } else {
+            FloatValuesSetSize(&vars.floats, nullptr, vars.floats.size + 1, -1);
+            mfc::CString temp(text);
+            NamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
+            result = 1;
+        }
+        letter = Letter(0x0078BBD8);
+        break;
+    case kScriptString:
+        if (FindName(vars.stringNames, text) >= 0) {
+            result = 0;
+        } else {
+            NamesSetSize(&vars.strings, nullptr, vars.strings.size + 1, -1);
+            mfc::CString temp(text);
+            NamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
+            result = 1;
+        }
+        letter = Letter(0x0078BBD4);
+        break;
+    case kScriptObject:
+        if (FindName(vars.objectNames, text) >= 0) {
+            result = 0;
+        } else {
+            RefsSetSize(&vars.objects, nullptr, vars.objects.size + 1, -1);
+            mfc::CString temp(text);
+            NamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
+            result = 1;
+        }
+        letter = Letter(0x0078BBD0);
+        break;
+    case kScriptGroup:
+        if (FindName(vars.groupNames, text) >= 0) {
+            result = 0;
+        } else {
+            GroupValuesSetSize(&vars.groups, nullptr, vars.groups.size + 1, -1);
+            mfc::CString temp(text);
+            int at = vars.groupNames.size;
+            NamesSetSize(&vars.groupNames, nullptr, at + 1, -1);
+            vars.groupNames.data[at] = temp;
+            result = 1;
+        }
+        letter = Letter(0x0078BBCC);
+        break;
+    default:
+        // The original leaves the name argument in the result register: nonzero, and `params`
+        // gets the empty letter appended.
+        result = static_cast<BOOL>(reinterpret_cast<std::uintptr_t>(name));
+        break;
+    }
+    if (result) {
+        alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
+        mfc::CString* sum = ConcatString(reinterpret_cast<mfc::CString*>(raw), &definition->params, &letter);
+        definition->params = *sum;
+        sum->~CString();
+    }
+    return result;
+}
+EI_REPLACE(0x004BB800, ScriptAddParameter);
+
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
 void SSCCmd::SetParameters(const MfcArray<ScriptBinding>* bindings, ScriptVars* vars) {

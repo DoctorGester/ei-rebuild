@@ -752,3 +752,61 @@ array copy constructors, 004CBA00 (ours, through its address from ScriptVarsCopy
 Differences and quirks: the C++ exception frames (unwinding on a throwing operator new) are not
 reproduced; kept: a failed operator new in ScriptSubCallCopyAt leaves the copy's command null, as the
 original does.
+
+# Runtime leftovers (ticket S2: 004B5FE0, 004BAAB0, 004BE6E0, 004BB800)
+
+None of the four is library code, dead, or touched by Rebirth (no site of config/rebirth_patches.csv
+falls inside them; not in docs/rebirth-patched-functions.txt), so they install in both launches.
+(Earlier sections listed 004B5FE0 as "MFC template code": it is the game's own SSCCmd::Load.)
+
+| Address | Size | Name | Verification | Reached by |
+|---|---|---|---|---|
+| 004B5FE0 | 837 | ScriptCmdLoad (SSCCmd::Load, `script_load.cpp`) | record / replay against the original (verify_script_load.cpp): the original reads into a fresh command built by 004D0A50, ours replays the reads; SSCCmd::Save bytes, every array's size and capacity, null object / group slots and the called block pointer compared; ours only (shape) when the command is not empty on entry | world_load, script_copy (`load savea`) |
+| 004BAAB0 | 825 | ScriptQuestFinish (QFinish, `script_exec_helpers.cpp`) | against the original (verify_script_runtime.cpp): the original runs first with its CScript::Load skipped (the 004D23A0 wrapper in verify_script_parse.cpp only copies the text when `scriptverify::g_loadSkip` is set), the quest name it empties is restored, then ours runs and loads; the two texts must be equal and the name empty | script_quest (new) |
+| 004BE6E0 | 737 | ScriptReset (CScript reset, `script_reset.cpp`) | ours only: flags, error text "Unknown error" (0078BBDC) and line, the seven lists empty with no blocks, globals empty, For depth 0, one empty temporary group and one null temporary reference, point light slots zeroed, areas and definitions empty, +0x68 / +0x6C = -2 | every new game and zone load (newgame, world_load, ...) |
+| 004BB800 | 731 | ScriptAddParameter (ScriptDefinition::AddParameter, `script_vars.cpp`) | ours only: before/after counts; a new name gets one more value and name of its type, the name last, the letter appended to `params`; an existing name changes nothing and returns 0 | script_parse, script_exec, script_copy (scripts with parameters) |
+
+SSCCmd::Load mirrors SSCCmd::Save: id, floats (004C4410 SetSize, a 4-byte read each), strings
+(004C2510, 004B3D10 each), the object argument count (SetSize inlined, 004CCA10 zeroing; slots
+nulled), the group argument count (004C49F0; slots nulled), both binding arrays (004C4CE0, 12 bytes
+each), the nested calls (004C4FD0, then 004B6330 per element: type, argument index, SSCCmd::Load into
+the element's command) and the called block id, resolved with the FindBlock copy of
+`script_load.cpp` (the original calls 004BFA50, the same lookup in 007C27D4's lists). Nested
+commands reload through the wrapper in both runs, so a tree of depth d is read 2^d times in the
+verify build (script trees are shallow).
+
+QFinish text (quest name q from QStart, N objectives of the CArray at 007AA608 {id, CString, float}):
+`DeclareScript Su0()` .. `SuN()`, then per objective `Script Sui(if(` condition `)then(KillScript()
+Sui+1() GSSetVar(0,"q.q.q.i+1",2)` and, except for the last, `GSSetVar(0,"q.q.q.i+2",1)`, the
+closing script `SuN` (QuestComplete, GSSetVar "q.q.q" 2) and `WorldScript( Su0() )`; loaded with the
+WorldScript started; then the quest name is emptied (the objectives stay; QStart frees them). The
+pieces are joined with operator+ (00700B9F) and += as the original does.
+
+CScript reset order: +0x1A8 / +0x1AC = 0, error text, +0x1F4 = 0 (the error code +0x1F0 is left),
+instances (RemoveHead 004C7A10, destructor 004BE9D0), runs (004C82B0, ScriptVars destructor at +0x14),
+WorldScript blocks (RemoveAll inlined, 004CE2D0 per element), the four global clears (rewritten,
+through their addresses), For depth, the temporaries (RemoveTail 004C8AF0 / 004C9100 down to one
+entry; the last group SetSize(0), the last reference Assign(null)), point lights (each object's timed
+entry removed (0058E5D0) and released; the slots zeroed, the array kept), FX / particle / lightning
+lists (RemoveAll inlined; 004CE2B0 / 004CE270 / 004CD690), areas SetSize(0) 004CDB30, +0x68 /
++0x6C = -2, definitions SetSize(0) 004CD770, command blocks (004C69B0, destructor 004C54A0).
+
+AddParameter quirk kept: a type outside 1..4 returns the name argument's address (nonzero, as the
+original leaves it in ESI) and appends an empty letter (params rebuilt through operator+). The
+loader only passes 1..4.
+
+Forwarders added: `script_load.cpp` 004CCA10, 004C4410, 004C49F0, 004C4CE0, 004C4FD0, 004B6330;
+`script_vars.cpp` 004C2880, 004C2510, 004C2050, 004C3980, 004CE5F0 (names SetAtGrow), 00700B9F;
+`script_exec_helpers.cpp` 004D23A0 (CScript::Load, through its address), 00700B9F; `script_reset.cpp`
+the list RemoveHead / RemoveTail and element destructors named above, 004CDB30, 004CD770,
+004C2050, 0058E5D0, and the rewritten 004B24B0 / 004B24D0 / 004C1650-004C1760 through their
+addresses. The exception frames of QFinish, AddParameter and the reset are not reproduced.
+
+Skipped: 004BDE40 (CScript constructor). Its only caller is the world's constructor 00589ED0, run
+by the CRT static initialiser at 00589BE0 for the global world 007AFF60, i.e. before WinMain and the
+hook installation: a replacement could never run or be verified in the hooked game. It is needed
+for the standalone build (layout: lights CArray 0x73D394 resized to 256 zeroed slots, the lists'
+vtables 0x73D388 / 0x73D37C / 0x73D370 / 0x73D364 (blocks and WorldScript blocks) / 0x73D34C /
+0x73D340, block size 10, definitions 0x73D358, areas 0x73D334, globals 004BC690 / 004BC740 /
+004BC870 / 004BC950, one temporary group and one null reference added (004C8CE0 / 004C9210), the
+error text empty, then the reset).

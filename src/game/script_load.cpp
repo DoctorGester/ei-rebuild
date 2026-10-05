@@ -77,6 +77,17 @@ __declspec(naked) void __stdcall ConstructIfThen(void*, int) EI_ORIGINAL(0x004CD
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
 __declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
 __declspec(naked) void __fastcall CmdDestroy(void*, void*, int) EI_ORIGINAL(0x004BF620)
+// 004CCA10: ConstructElements of the pointer arrays (zeroes).
+__declspec(naked) void __stdcall ZeroPointers(void*, int) EI_ORIGINAL(0x004CCA10)
+
+// SSCCmd's argument arrays (out of line), __thiscall (size, growBy): floats, group pointers,
+// bindings (both arrays), nested calls (a new SSCCmd per element).
+__declspec(naked) void __fastcall FloatArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4410)
+__declspec(naked) void __fastcall GroupArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
+__declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
+__declspec(naked) void __fastcall SubCallsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4FD0)
+// 004B6330 (__thiscall on the element): type, argument index, then SSCCmd::Load into its command.
+__declspec(naked) void __fastcall SubCallLoad(ScriptSubCall*, void*, ScriptStream*) EI_ORIGINAL(0x004B6330)
 
 } // namespace
 
@@ -100,6 +111,7 @@ const ElementKind kRefs{4, ConstructRefs, DestroyEach<RefDestroy, 4>, DestroyRan
 const ElementKind kGroups{0x14, ConstructGroups, DestroyEach<GroupDestroy, 0x14>, DestroyRange<DestructGroups>};
 const ElementKind kCmds{0x94, ConstructCmds, DestroyEach<CmdDestroy, 0x94>, DestroyEach<CmdDestroy, 0x94>};
 const ElementKind kIfThen{8, ConstructIfThen, nullptr, nullptr};
+const ElementKind kPointers{4, ZeroPointers, nullptr, nullptr};
 
 // CArray<T>::SetSize(n, -1) as the loaders inline it.
 void InlineSetSize(RawArray* a, int n, const ElementKind& kind) {
@@ -312,6 +324,41 @@ void __fastcall ScriptGroupsLoad(ScriptNamedValues<ScriptGroup>* vars, void*, Sc
     }
 }
 EI_REPLACE(0x004C40D0, ScriptGroupsLoad);
+
+// ---- SSCCmd::Load -----------------------------------------------------------------------------------
+
+// The mirror of SSCCmd::Save (004B6360). Object and group arguments are saved as counts only: the
+// slots are made and left null (the original inlines the object array's SetSize, not the group
+// array's). The called block resolves like FindBlock (the original calls 004BFA50, the same
+// lookup in the lists of 007C27D4; -1, an unset block, finds a WorldScript block with id -1 if any).
+void __fastcall ScriptCmdLoad(SSCCmd* cmd, void*, ScriptStream* stream) {
+    stream->Read(&cmd->id, 4);
+
+    FloatArgsSetSize(&cmd->floatArgs, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < cmd->floatArgs.size; ++i) stream->Read(&cmd->floatArgs.data[i], 4);
+
+    NamesSetSize(&cmd->stringArgs, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < cmd->stringArgs.size; ++i) StringLoad(&cmd->stringArgs.data[i], stream);
+
+    int objects = ReadInt(stream);
+    InlineSetSize(Raw(&cmd->objectArgs), objects, kPointers);
+    for (int i = 0; i < objects; ++i) cmd->objectArgs.data[i] = nullptr;
+
+    int groups = ReadInt(stream);
+    GroupArgsSetSize(&cmd->groupArgs, nullptr, groups, -1);
+    for (int i = 0; i < groups; ++i) cmd->groupArgs.data[i] = nullptr;
+
+    BindingsSetSize(&cmd->localBindings, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < cmd->localBindings.size; ++i) stream->Read(&cmd->localBindings.data[i], 12);
+    BindingsSetSize(&cmd->globalBindings, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < cmd->globalBindings.size; ++i) stream->Read(&cmd->globalBindings.data[i], 12);
+
+    SubCallsSetSize(&cmd->subCalls, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < cmd->subCalls.size; ++i) SubCallLoad(&cmd->subCalls.data[i], nullptr, stream);
+
+    cmd->calledScript = FindBlock(ReadInt(stream));
+}
+EI_REPLACE(0x004B5FE0, ScriptCmdLoad);
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 
