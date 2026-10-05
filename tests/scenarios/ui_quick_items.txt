@@ -105,7 +105,7 @@ wait 200
 hudstate
 click 90 320
 wait 300
-clickunit QuickWolf3
+# (QuickWolf3 is often not drawn here by now; the fourth slot is empty with two wands)
 wait 500
 
 # The fireball spell at a point, twice (the first click may only cancel the highlight).

@@ -20,11 +20,9 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- I9 (taken 2026-10-05) UseAtPoint 00637750 has 0 calls (ui_battle_spells: the spells chosen all target units?); quick items on a target (mode 3) and 0063DB20 need a scenario with a wand or scroll in a quick slot.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- H6 Small leftovers in 0x00690000-0x006A0000: 00699410, GenerateItems thunks 0069B570 / 0069B550 / 0069B590 (H5 notes).
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
@@ -45,7 +43,7 @@ or 3-8 related functions. Mark a ticket taken by adding the date; remove it when
   group): decide per address which declaration is right (RET n, callers, Ghidra), keep one in the
   shared originals_<area>.h header. Start with the top 10 by site count (0x006E727B, 0x00455950,
   0x0040C720, ...), then by area. C3 first part (shared headers, 38 void forwarders typed) merged 2026-10-05.
-- C4 (merge reverted 2026-10-05: BitStream as CMemoryStream broke all Pack/Send byte checks; the worker is fixing on its branch) Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
+- C5 C4 leftovers: UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the other per-file Text(0x...) helpers (docs/notes/cleanup-engine-base.md).
 - C4 (done on its branch 2026-10-05; left: UnitStream, SaveStream, other stream copies) Merge the stream duplicates C2b listed: BitStream (net_delta.h, same layout as CMemoryStream),
   ScriptStream / WorldStream, the CMemoryStream and root-chunk forwarders in net_link.cpp,
   world_game.cpp, world_zone.cpp, MapIterator / ObjectPair in base_manager.cpp, the registry view in
