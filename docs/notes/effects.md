@@ -1,4 +1,4 @@
-# Weather, fog and particle helpers (0x004E1770-0x004E5000; particle pieces in 0x00480000-0x00490000)
+# Weather, fog, particle helpers and effect objects (004E1770-004E5000; particle pieces in 00480000-00490000; effect objects 00675B40-0067E170)
 
 Code: `src/game/effects.h` (layouts and class overview), `effects.cpp` (particle callbacks and
 setters), `effects_weather.cpp` (rain/snow fade, fog). Verify: `tests/verify/verify_effects.cpp`.
