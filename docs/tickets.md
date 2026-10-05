@@ -27,14 +27,14 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions).
+- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 (taken 2026-10-05).
 
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 (taken 2026-10-05) (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 queued. (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
