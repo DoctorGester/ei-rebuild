@@ -463,6 +463,42 @@ ScriptDecl* __fastcall FindBlockVerify(const CScript* self, void*, int id) {
     return expected;
 }
 
+// ---- Effects (src/game/script_effects.cpp) -------------------------------------------------------------
+// A loaded save with point lights or FX sources (script_fx): the original reads into a zeroed scratch
+// element, ours replays into the real one; all fields compared (an FX source's name as text); the
+// scratch's object reference dropped again.
+
+// 004B18B0: PUSH EBX; PUSH ESI; MOV ESI,[ESP+0xC] (6 bytes).
+void(__fastcall* s_pointLight)(ScriptPointLight*, void*, ScriptStream*);
+void __fastcall PointLightLoadVerify(ScriptPointLight* self, void*, ScriptStream* stream) {
+    ScriptPointLight scratch{};
+    RecordStream record(stream);
+    s_pointLight(&scratch, nullptr, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptPointLightLoad(self, nullptr, replay.AsScript());
+    char what[64];
+    std::snprintf(what, sizeof(what), "light %d vs %d", scratch.id, self->id);
+    Report("ScriptPointLightLoad", std::memcmp(&scratch, self, sizeof(scratch)) == 0, replay, record, what);
+    Release(scratch.object);
+}
+
+// 004B1B40: PUSH -1; PUSH 0x717E98 (7 bytes).
+void(__fastcall* s_fxSource)(ScriptFxSource*, void*, ScriptStream*);
+void __fastcall FxSourceLoadVerify(ScriptFxSource* self, void*, ScriptStream* stream) {
+    ScriptFxSource scratch{};
+    RecordStream record(stream);
+    s_fxSource(&scratch, nullptr, record.AsScript());
+    ReplayStream replay(stream, record);
+    ScriptFxSourceLoad(self, nullptr, replay.AsScript());
+    bool same = scratch.object == self->object && scratch.id == self->id && SameString(scratch.name, self->name) &&
+                std::memcmp(scratch.position, self->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position)) == 0;
+    char what[96];
+    std::snprintf(what, sizeof(what), "source %d vs %d, \"%.32s\"", scratch.id, self->id,
+                  static_cast<const char*>(self->name));
+    Report("ScriptFxSourceLoad", same, replay, record, what);
+    Release(scratch.object);
+}
+
 // ---- Lists ------------------------------------------------------------------------------------------------
 
 using ListLoadFn = void(__fastcall*)(ScriptList*, ScriptStream*);
@@ -602,3 +638,5 @@ EI_VERIFY(0x004CA720, LightningVerify, 6, s_lightning);
 EI_VERIFY(0x004CA810, WorldBlocksVerify, 7, s_worldBlocks);
 EI_VERIFY(0x004CA980, InstancesVerify, 6, s_instances);
 EI_VERIFY(0x004CAC00, RunsVerify, 6, s_runs);
+EI_VERIFY(0x004B18B0, PointLightLoadVerify, 6, s_pointLight);
+EI_VERIFY(0x004B1B40, FxSourceLoadVerify, 7, s_fxSource);
