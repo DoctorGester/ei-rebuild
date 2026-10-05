@@ -337,7 +337,7 @@ void __fastcall ScriptCmdLoad(SSCCmd* cmd, void*, ScriptStream* stream) {
     FloatArgsSetSize(&cmd->floatArgs, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < cmd->floatArgs.size; ++i) stream->Read(&cmd->floatArgs.data[i], 4);
 
-    NamesSetSize(&cmd->stringArgs, nullptr, ReadInt(stream), -1);
+    NamesSetSizeOriginal(&cmd->stringArgs, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < cmd->stringArgs.size; ++i) StringLoad(&cmd->stringArgs.data[i], stream);
 
     int objects = ReadInt(stream);
