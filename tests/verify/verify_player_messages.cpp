@@ -4,6 +4,7 @@
 // had to grow the stream's buffer). The variable table they also update is set to the same value
 // twice. SetVariableMax (reads the variable it sets), SendState73 and WriteTo (call into other
 // objects' writers) run ours only. The party record lookup is pure.
+#include "fake_stream.h"
 #include "verify.h"
 
 #include "../../src/game/player_messages.h"
@@ -21,14 +22,14 @@ struct MessageState {
     std::uint8_t flag70;
     std::uint32_t dirty;
     explicit MessageState(CPlayerServer* p) {
-        header = p->out_;
+        RawCopy(&header, &p->out_);
         if (p->out_.data_) bytes.assign(p->out_.data_, p->out_.data_ + p->out_.capacity_);
         std::memcpy(head, reinterpret_cast<char*>(p) + 0x1C, sizeof(head));
         flag70 = p->flag70_;
         dirty = p->player_ ? *reinterpret_cast<std::uint32_t*>(p->player_ + 0x130) : 0;
     }
     void Restore(CPlayerServer* p) const {
-        p->out_ = header;
+        RawCopy(&p->out_, &header);
         if (!bytes.empty()) std::memcpy(p->out_.data_, bytes.data(), bytes.size());
         std::memcpy(reinterpret_cast<char*>(p) + 0x1C, head, sizeof(head));
         p->flag70_ = flag70;

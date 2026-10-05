@@ -6,6 +6,12 @@
 
 #include "../../src/game/core_streams.h"
 
+#include <cstring>
+
+// Copies a memory stream byte for byte (vtable pointer and padding included). Assigning one
+// stream to another with `=` would skip the vtable pointer, which the game stores in the object.
+inline void RawCopy(CMemoryStream* to, const CMemoryStream* from) { std::memcpy(to, from, sizeof(CMemoryStream)); }
+
 class FakeStream : public CStream {
 public:
     FakeStream() {
