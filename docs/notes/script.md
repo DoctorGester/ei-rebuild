@@ -1128,3 +1128,25 @@ zone reset releases each point light's object without clearing its slot and then
 
 Forwarders now shared in originals_library.h: 004C3B20, 004C5AF0, 004C7A10, 004C82B0 (script_reset.cpp
 used its own for the last two); originals_script.h: 004BE490.
+
+## Quest construction (004BAA40, 004BAE10, 004BAEB0)
+
+Code: `src/game/script_quest.cpp`; verify: `tests/verify/verify_script_quest.cpp`; scenario
+script_quest. The quest under construction is `ScriptQuestName()` (CString 007AA61C) and
+`ScriptQuestObjectives()` (CArray at 007AA608 of {type, text, value}, 12 bytes), now declared in
+script.h (script_exec_helpers.cpp keeps its own view for QFinish).
+
+| Address | Size | Name | Verification |
+|---|---|---|---|
+| 004BAA40 | 99 | ScriptQuestStart (QStart; __fastcall, the name in ECX) | ours only: no objectives (data null, size and capacity 0), the name set |
+| 004BAE10 | 159 | ScriptQuestAddObjective (QObj*; __fastcall (type, text), the value on the stack, RET 4) | against the original: the original appends, its element is kept aside and taken back (text destroyed, size restored), ours appends; size, type, text and value bits equal |
+| 004BAEB0 | 8 | ScriptQuestObjectiveDestruct (`ADD ECX,4; JMP ~CString`) | ours only: the element's words unchanged, a shared text buffer down one reference |
+
+QStart sets size and capacity to 0 even when there was no array. The objective's text goes
+through a temporary (constructed empty, assigned, assigned into the element, destroyed), as kept.
+004CDF40 (the array's SetSize, library) is a forwarder in script_quest.cpp.
+
+Not taken: 004BAEC0 (party records of a "party name": CString Find / Mid with three arguments,
+which mfc.h does not declare yet; it also rewrites the caller's name), 004C9C90 (the quest table's
+STLport hash_map lookup), the array destructors 004BE250 / 004BE2E0 / 004BE430 / 004BE410 (only
+reached from the arrays' scalar deleting destructors 004C1A00-004C1A60 and unwind funclets).

@@ -899,3 +899,24 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script);
 // point lights' objects dropped and their slots zeroed, the FX / particle / lightning lists emptied
 // (their effects dropped), global values reset (004B35E0), each WorldScript block run again (004BCC60).
 void __fastcall ScriptResetZone(CScript* script);
+
+// ---- Quest construction (script_quest.cpp) --------------------------------------------------------
+// The quest QStart starts: its name and the objectives the QObj* commands add (QFinish 004BAAB0 turns
+// them into a script).
+struct ScriptQuestObjective {
+    int type;               // the QObj* command's id (0xD7-0xDD)
+    mfc::CString text;      // its string argument (empty for QObjArea / QObjGetItem)
+    float value;            // its float argument
+};
+static_assert(sizeof(ScriptQuestObjective) == 12);
+inline MfcArray<ScriptQuestObjective>& ScriptQuestObjectives() {
+    return *reinterpret_cast<MfcArray<ScriptQuestObjective>*>(0x007AA608);
+}
+inline mfc::CString& ScriptQuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C); }
+// 004BAEB0 (__thiscall). An objective's destructor.
+void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective);
+// 004BAA40 (QStart; __fastcall). The objectives destroyed and freed (size and capacity 0), the quest
+// named `name`.
+void __fastcall ScriptQuestStart(const char* name);
+// 004BAE10 (__fastcall, the value on the stack). Appends {type, text, value} to the objectives.
+void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value);
