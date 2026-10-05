@@ -859,3 +859,159 @@ No magic trap is known on zone1; the verify count shows whether a scenario reach
   any scenario; UnitParams::WeaponSkillBonus only when the interface shows a party unit holding a
   weapon.
 
+# Sixth round (U4): NPC records, the client's attack figures, skill prices, trap victims, starting equipment
+
+Code: `src/game/unit_db.h/.cpp` (UnitNpcRecord added; the prototype record's +0x100..+0x11C named),
+`src/game/unit_client_attack.cpp`, `src/game/unit_skill_price.cpp`, `src/game/unit_equipment.cpp`
+(new), `src/game/magic_trap.h/.cpp` (FindTrapVictims added). Verify: `verify_unit_db.cpp` (one
+wrapper added), `verify_unit_client_attack.cpp`, `verify_unit_skill_price.cpp`,
+`verify_unit_equipment.cpp` (new), `verify_magic_trap.cpp` (one wrapper added). Shared headers,
+additive only: `unit.h` (UnitStats::SkillPrice), `unit_client_models.h` (ClientGetAttackParams),
+`unit_create.h` (CMapObjectManager::GiveStartingEquipment). `config/library.csv`: 006E7F7E is
+`floor` (control word 0x173F, round down), 006E8B1F `ceil` (0x1B3F); both were unidentified.
+
+After the two the ticket names, the largest live game-logic functions of the range not yet
+rewritten were 00528050 (544 bytes), 0052A920 (519), 0052BBE0 (490) and 005141F0 (488). Skipped on
+the way: 005179E0 / 00516DA0 / 0051C3D0 / 005370F0 / 00518100 / 00517240 / 00516B50 (figure
+loading, bounds, parts, wound textures), 00536EA0 (the wound levels 005370F0 turns into textures),
+005190C0 (picks a random animation of a figure), 0050C230 and the rest of 00500000-0050E000
+(animation nodes, rendering), 005112A0 (effect sounds), 0053A200 / 00520220 (Rebirth-patched),
+0053E730 / 0053E520 / 0053E9B0 / 0053B130 / 00521630 (STLport vector resize / destroy / insert
+instantiations), the ticket's exclusions, and 0052BBE0. That one is a lever slot (vtable entry
+0073E7F0) that builds the points around the lever from a name-keyed shape table (0052CB40) and the
+facing's axes; it is the next candidate. 005141F0 was taken instead: it is two bytes smaller and
+runs at every zone load.
+
+| Address | Function | Verify |
+| --- | --- | --- |
+| 0052DA60 | UnitNpcRecord::Serialize (RET 4) | as the other serialisers: loading, ours then the original into the same record; bytes (CString / vector slots left out) and a digest of the strings. Writing: ours only. Startup, every scenario |
+| 00538960 | ClientGetAttackParams (CUnitClientSpecific slot 50, RET 4; a free function) | output only: the original into a copy of the caller's record, ours into it; integers exact, floats within 4 ULPs; the record keeps the original's figures. Reached when the interface shows a party unit's figures (the HUD info panel for the unit under the cursor, the hero panels) |
+| 005285D0 | ScaleDamageByEffects again (EI_REPLACE of the 00523D30 function) | pure, CheckNear. From 00538960 only |
+| 00528050 | UnitStats::SkillPrice (RET 4) | pure, the ints compared exactly (see below). From the interface's skill pages (005F1590, 00625880) |
+| 0052A920 | FindTrapVictims (fastcall, RET 8) | output only: the original into an empty scratch CPtrList, ours into the caller's; same units in the same order. From an armed trap's UpdateVictims |
+| 005141F0 | CMapObjectManager::GiveStartingEquipment (RET 8) | ours only (makes items): result 1 exactly with a prototype; spell slots min(8, before + names); type 0x32: weapons min(4, before + named weapons), armour not fewer, +0x270 a filled slot. Every unit added from a zone file (newgame) |
+
+Renamed in Ghidra: 0052DA60, 00528050, 005285D0, 005141F0, 006E7F7E floor, 006E8B1F ceil.
+
+## The NPC records (0052DA60)
+
+0x60 bytes (unit_db.h): +0x00 the name (the prototype it belongs to; field 0), +0x04 (1), +0x08
+experience (2), +0x0C three stats (3-5), +0x18 three attribute bytes (6), +0x1B eight skill bytes
+(7), +0x24 the skill level names it learns (8, through 0052DF40), three more vector<CString>s at
++0x30 / +0x3C / +0x48 (9-11), +0x54 / +0x58 (12, 13), +0x5C a byte (14). Fields 9-11 inline the
+vector code of 0052DF40, emptying the vector with 0052E010 (vector<CString>::clear) instead of
+0051F970's erase: the same result. Ours calls the same pieces (00409A60 count, 0052E010,
+0051F5B0 resize) and sets the chunk occurrence before each string as the original does.
+
+## The client's attack figures (00538960)
+
+The client-side counterpart of CUnitServer::GetAttackParams (combat.cpp), from the packed
+parameters (CUnit + 0x330) and the controller's weapon ids (+0xBC):
+- A text-key unit with a weapon in hand (weaponIds[activeWeapon], slot below 4, id not -1):
+  - damage min / max, type, damage type and speed come from the weapon functions of item.cpp
+    (the speed +0x08 is 006A2BD0, the weapon's attack times its material's);
+  - attack = _ftol(weapon +0x84 + (float) UnitParams::WeaponSkillBonus(type, weapon record));
+  - defence is the same with +0x88.
+- Otherwise:
+  - damage = the parameters' damage byte, max = damage + spread bytes;
+  - attack / defence / speed are the combat bytes 1 / 3 / 4;
+  - with a weapon, its type and damage type; else type 8 and the first of the prototype model's
+    seven damage weights (+0x50) that is not zero (NaN counts as zero; none leaves the field
+    alone).
+- Then, for both:
+  - bows and crossbows (types 5, 6) get defence 0;
+  - the damage max, then min, is scaled by the unit's strengthen / weaken effects (005285D0, at
+    least 1);
+  - the attack spread is combat byte 2;
+  - 0052E0D0 scales attack and defence by the difficulty unless the unit has a text key.
+
+005285D0 is a byte-for-byte copy of 00523D30 (ScaleDamageByEffects): thiscall on the parameters,
+which it never reads, RET 8. It is registered with the same function. WeaponSkillBonus and
+005285D0 are called through their addresses, so their wrappers count these calls (00527850 has no
+other caller).
+
+## Skill prices (00528050)
+
+UnitStats::SkillPrice(record) is the experience a skill level costs, shown by the interface's
+skill pages:
+1. index = 0051FF00(record) (its position among the level records 007AF274). The level's worth is
+   1.61 ^ (record +0x30 / 007C5480) * 007C547C (RaiseSkill's curve). When index % 3 > 0 the cost
+   is _ftol(worth - the worth of the record before it: the level below, read unchecked), else
+   _ftol(worth - the worth of 0). It is stored to a float.
+2. price = 007C5484 ^ (the byte sum of the 0x24 skill level bytes +0x6D3..+0x6F6) * cost.
+3. p = 10 ^ floor(log10(price)) (a float), r = price / p.
+   - r >= 4: the result is floor(r + 0.5) * p, truncated.
+   - r < 4 (or NaN, a price of 0): a p of 10 or less gives ceil(price). A larger p is first
+     multiplied by 0.1f, then the result is as above.
+   So the price keeps one significant digit, or two when the first is 1-3; small prices are
+   rounded up.
+
+Plain C++ (rule 7): std::pow / log10 / floor / ceil. MSVC turns log10 into FLDLG2; FYL2X and
+pow(10, n) into its _CIpow. The original's 10 ^ n is exact for |n| <= 10 even at 24-bit
+precision: 2 ^ frac = 10 ^ n / 2 ^ int fits 24 bits, and the rounding error of frac stays below
+half an ULP. So p matches. The remaining risk is a worth difference that lands within an ULP or
+so of a whole number before it is truncated: there the original's 24-bit _CIpow and ours may round
+to different sides. That is rare; the wrapper reports it.
+
+## Trap victims (0052A920)
+
+FindTrapVictims(context, area, sides, out):
+1. Empties `out` (CPtrList RemoveAll, inlined).
+2. For each circle of the trap's area, asks the world's sector map (context + 0x294, 005C0BD0,
+   which empties its list first) for the units within the radius of {x, y, 0}, into a CPtrList of
+   its own (vtable 0073D454, blocks of 10).
+3. Appends to `out` (AddTail, inlined) each living one (slot 55 returns 0) whose side bit is in
+   `sides` (`1 << side`, the shift count taken mod 32 as SHL by CL).
+4. Empties its own list.
+
+mfc::CTypedPtrList's AddTail / RemoveAll are the same MFC code. UpdateVictims still calls it
+through its address.
+
+## Starting equipment (005141F0)
+
+After ApplyPrototype (00513B60), the world's zone loader (005927C0, record kind 5) calls
+GiveStartingEquipment on the map object manager with the unit and its prototype name:
+1. The world (+0xAC of the manager) gives the spell owner (slot 22, asked first) and the item
+   manager (slot 18).
+2. The prototype record comes from 005144D0 (which inserts unknown names). Without one:
+   FatalError "Can't find prototype" and 0.
+3. A unit of type 0x32 gets:
+   - each armour name of +0x10C, made (006AC970; Rebirth's FixCreateItem runs) and equipped
+     (EquipArmour);
+   - the weapon +0x118 unless it is "none" (007846F0, _mbscmp) or empty (AddWeapon; the slot goes
+     to +0x270 unless it is -1);
+   - the second weapon +0x11C (AddWeapon).
+4. Every unit gets each spell name of +0x100 (006AD1E0 with the spell owner, then AddSpell).
+5. A piece that cannot be made gets FatalError "Can't create armor / weapon / spell". Returns 1.
+
+## Forwarders added (sixth round; the standalone build must replace these)
+
+- Not rewritten: 0052E010 (vector<CString>::clear), 0051F5B0 (vector<CString>::resize), 0052E0D0
+  (attack / defence times the difficulty), 0051FF00 (a level record's index), 006AD1E0 (the item
+  manager's spell by name).
+- Rewritten, called through their addresses: 00409A60 CountChunks, 00527850
+  UnitParams::WeaponSkillBonus, 005285D0 (this round), 0052A920 (this round, from UpdateVictims),
+  005C0BD0 the sector map query, 005144D0 the prototype lookup, 006AC970 CreateItem (Rebirth),
+  00480080 FatalError (Rebirth), CUnit 00530730 / 00531070 / 00531820.
+- Globals by address: 007C547C / 007C5480 / 007C5484 (worth scale, divisor, price growth), the
+  weapon table 007C86F8, the skill tables 007AF268 / 007AF274, the prototype table 007AF358, the
+  texts 007846F0 and 0078F2B4..0078F330.
+
+## Original bugs and oddities kept (sixth round)
+
+- GiveStartingEquipment adds a weapon that could not be made: AddWeapon(null) returns 0, and the
+  first weapon's slot +0x270 becomes 0.
+- A unit in two of a trap's circles is found twice.
+- The client's attack figures leave the damage type alone for a unit without a weapon whose model
+  weighs no damage type.
+
+## Risks (sixth round)
+
+- The NPC serialiser runs for every NPC record at startup and GiveStartingEquipment for every unit
+  of a zone: a mistake shows at once (the serialiser differentially; the equipment by its counts).
+- SkillPrice may show a rare off-by-one at a truncation edge (rule 7).
+- ClientGetAttackParams, SkillPrice and FindTrapVictims may not be reached by any scenario (the
+  verify counts show it).
+- 0052DA60's verify relies on loading being repeatable (fields found by id; the vectors emptied
+  and refilled), as for the other two serialisers.
+

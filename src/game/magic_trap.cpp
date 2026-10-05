@@ -1,5 +1,5 @@
-// Magic traps: who is inside, and casting at newcomers (0052A680). See magic_trap.h and
-// docs/notes/units.md ("Magic traps").
+// Magic traps: who is inside, and casting at newcomers (0052A680), the living units of the trap's
+// sides in its circles (0052A920). See magic_trap.h and docs/notes/units.md ("Magic traps").
 #include "magic_trap.h"
 
 #include "engine_object.h"
@@ -50,10 +50,18 @@ struct PtrList {
 
 // The trap's map object context [00455940, rewritten in object.cpp]; the living units of the sides
 // `sides` in the circles of `area` (+0x240), appended to `out` after emptying it [0052A920, fastcall
-// with the context in ECX, RET 8]; casting the spell at the newcomers `units` [0052A4B0].
+// with the context in ECX, RET 8; FindTrapVictims below, called through its address so its verify
+// wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0].
 __declspec(naked) void* __fastcall ManagerContext(void*) EI_ORIGINAL(0x00455940)
 __declspec(naked) void __fastcall FindVictims(void* /*context*/, void* /*area*/, std::uint32_t /*sides*/, PtrList* /*out*/)
     EI_ORIGINAL(0x0052A920)
+// The sector map's units within `radius` of `point` into `list` (emptied first) [005C0BD0, rewritten
+// in sector_map.cpp].
+__declspec(naked) void __fastcall SectorFind(void* /*sectors*/, void*, const float* /*point*/, void* /*list*/, float /*radius*/)
+    EI_ORIGINAL(0x005C0BD0)
+constexpr int kSectorMap = 0x294;             // the world's sector map
+constexpr std::uintptr_t kPtrListVtable = 0x0073D454;
+constexpr int kPtrListBlockSize = 10;
 __declspec(naked) void __fastcall CastAtUnits(MagicTrap*, void*, PtrList* /*units*/) EI_ORIGINAL(0x0052A4B0)
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
@@ -130,3 +138,25 @@ void MagicTrap::UpdateVictims() {
     PtrRemoveAll(&found);
 }
 EI_REPLACE_METHOD(0x0052A680, MagicTrap::UpdateVictims);
+
+void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
+                                mfc::CTypedPtrList<CEngineObject>* out) {
+    using UnitList = mfc::CTypedPtrList<CEngineObject>;
+    out->RemoveAll();
+    void* sectors = static_cast<std::uint8_t*>(context) + kSectorMap;
+    UnitList found{reinterpret_cast<void*>(kPtrListVtable), nullptr, nullptr, 0, nullptr, nullptr, kPtrListBlockSize};
+    for (int i = 0; i < area->count; ++i) {
+        const TrapCircle& circle = area->circles[i];
+        float point[3] = {circle.x, circle.y, 0.0f};
+        SectorFind(sectors, nullptr, point, &found, circle.radius);
+        for (UnitList::Node* node = found.head; node;) {
+            CEngineObject* unit = node->data;
+            node = node->next;
+            if (ei::VCall<int>(unit, kSlotDead) != 0) continue;
+            int side = At<int>(unit, 0x250);
+            if (sides & (1u << (side & 31))) out->AddTail(unit);   // SHL by CL: the count is taken mod 32
+        }
+    }
+    found.RemoveAll();
+}
+EI_REPLACE(0x0052A920, FindTrapVictims);

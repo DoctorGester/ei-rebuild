@@ -8,6 +8,13 @@
 // / +0x25C the points it casts at, +0x268 the units inside (an MFC CList of counted references:
 // head +0x26C, tail +0x270, count +0x274), +0x284 the period and +0x288 the countdown between
 // casts, +0x28C cast at one unit only. See docs/notes/units.md ("Magic traps").
+
+#include "lib/mfc.h"
+
+#include <cstdint>
+
+class CEngineObject;
+
 struct MagicTrap {
     // 0052A680. Called from the trap's update (slot 6, 0052AC20) while the world is live, it has
     // a spell and its period is not positive. The units inside that left every circle
@@ -24,3 +31,22 @@ struct TrapCircle {
     float radius;
 };
 static_assert(sizeof(TrapCircle) == 0xC);
+
+// A trap's area (+0x240): an MFC CArray of circles.
+struct TrapArea {
+    void* vtable;
+    TrapCircle* circles;    // +0x04
+    int count;              // +0x08
+    int maxCount;
+    int growBy;
+};
+static_assert(sizeof(TrapArea) == 0x14);
+
+// 0052A920 (__fastcall, RET 8). Empties `out` (an MFC CPtrList, RemoveAll inlined), then for each
+// circle of `area` asks the sector map (`context` + 0x294, 005C0BD0) for the units within its
+// radius of {x, y, 0} into a CPtrList of its own (vtable 0073D454, blocks of 10) and appends to
+// `out` (AddTail inlined) each one alive (slot 55 returns 0) whose side (+0x250) has its bit in
+// `sides`; a unit in two circles is appended twice. `context` is the trap's map object context
+// (the world). See docs/notes/units.md ("Sixth round").
+void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
+                                mfc::CTypedPtrList<CEngineObject>* out);

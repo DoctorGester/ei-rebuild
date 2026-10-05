@@ -77,11 +77,20 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
 // prototype or model.
 int __stdcall PrototypeObjectClass(const char* name);
 
-// The map object manager ("map_objects", vtable 0073DCD8). Only its object factory.
+// The map object manager ("map_objects", vtable 0073DCD8). Only its object factory and the
+// starting equipment; +0xAC is its map object context (the world).
 struct CMapObjectManager {
     // 00512730. Virtual slot 14: a new object of class id `classId` (0x32..0x34 units, 0x35..0x3C
     // the other map objects, 0x300D, 0x3010), constructed; null for other ids.
     CEngineObject* CreateObject(int classId);
+    // 005141F0 (RET 8; unit_equipment.cpp). Gives `unit` the starting equipment of prototype
+    // `name` (unit_db.h), made by the world's item manager (world slot 18; spells also take what
+    // slot 22 returns, asked first): a unit of type 0x32 equips each armour piece and gets the
+    // weapon (unless named "none" or empty; the slot it lands in becomes +0x270) and the second
+    // weapon; every unit gets each spell. A piece that cannot be made gets a FatalError message
+    // (a weapon is added even then: AddWeapon(null) returns 0, so +0x270 becomes 0). Without the
+    // prototype a FatalError message and 0; else 1.
+    int GiveStartingEquipment(CUnit* unit, const char* name);
 };
 
 namespace unitdb {

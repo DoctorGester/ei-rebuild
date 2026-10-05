@@ -51,7 +51,8 @@ address,name,library,signature,notes
 006E95AA,_CI2arg_6E95AA,CRT,double (ST1 ST0),two-argument x87 intrinsic (fmod or atan2): to identify
 006E7320,_CIasin_or_acos_A,CRT,double (ST0),one-argument intrinsic with |x|<1 domain check: to identify
 006E83C0,_CIasin_or_acos_B,CRT,double (ST0),one-argument intrinsic with |x|<1 domain check: to identify
-006E7F7E,ceil_or_floor,CRT,double __cdecl(double),rounds with a modified control word: to identify
+006E7F7E,floor,CRT,double __cdecl(double),rounds with control word 0x173F (round down; 007975F0)
+006E8B1F,ceil,CRT,double __cdecl(double),rounds with control word 0x1B3F (round up; 00797620)
 006E60E2,htons,WSOCK32,u_short __stdcall(u_short),import thunk
 006E60E8,gethostbyname,WSOCK32,,import thunk
 006E6112,closesocket,WSOCK32,,import thunk

@@ -682,6 +682,12 @@ struct UnitStats {
     // named "none" or empty, no known level of the same skill id (+0x10) in another skill, and the
     // record's own level (by its name, +0x04) above the one known. 0/1 in EAX.
     BOOL CanLearn(const void* database, const char* record);
+    // unit_skill_price.cpp. 00528050. The experience learning skill level `record` (of the level
+    // records 007AF274) costs: what its +0x30 is worth over the level below's (1.61 ^ (value /
+    // 007C5480) * 007C547C, truncated; the first level of a skill over 0), times 007C5484 ^ (the
+    // sum of the known skill levels, a byte), rounded to one significant digit, or two when the
+    // first digit is below 4; a price of 10 or less with a first digit below 4 is rounded up.
+    int SkillPrice(const char* record);
 
     // unit_stats_pack.cpp.
     // 00522CE0. The rounded values into `params`. The first argument is not used.

@@ -88,6 +88,19 @@ public:
 static_assert(offsetof(CUnitClientSpecific, armourIds) == 0xA0);
 static_assert(offsetof(CUnitClientSpecific, weaponIds) == 0xBC);
 
+struct AttackParams;   // combat.h
+
+// 00538960 (unit_client_attack.cpp). Virtual slot 50 (thiscall, RET 4; registered as a free
+// function, rewrite-guide rule 4): the attack figures the interface shows for a party unit. A
+// text-key unit with a weapon in hand (weaponIds[activeWeapon]) takes damage, type, damage type
+// and speed from the weapon and attack / defence from the weapon's +0x84 / +0x88 plus
+// UnitParams::WeaponSkillBonus (truncated); otherwise they come from the packed parameters
+// (CUnit + 0x330), with the weapon's type and damage type, or type 8 and the model's first
+// weighted damage type. Bows and crossbows have no defence; the damage is scaled by the unit's
+// effects (005285D0, max first), the attack spread is the parameters' byte, and 0052E0D0 scales
+// attack and defence by the difficulty for units without a text key.
+void __fastcall ClientGetAttackParams(CUnitClientSpecific* self, void* unused, AttackParams* out);
+
 // 00535CB0 (__fastcall). The figure part names a unit of prototype `prototype` shows with the
 // armour pieces `armourIds` (appended to `names`: "<part>.armor<number>", the hair as
 // "hr.<hair>.armor<number>" unless the prototype has no hair, +0x10 = -1), the parts of the
