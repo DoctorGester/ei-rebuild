@@ -3,6 +3,8 @@
 // converted to RGBA8 (any RGB mask layout, or DXT1-5) and kept as a sokol image; levels the surface
 // lacks are box-filtered. Later the
 // textures will come from the .mmp files directly; reading the surface keeps the first steps small.
+// A texture whose holder has game-owned memory ("cpuwindows", render::ClientSurface: the save /
+// load screen's pictures) is read from that memory instead, again when the memory changes.
 #include "render_internal.h"
 
 #include "../hook/log.h"
@@ -343,17 +345,77 @@ std::unordered_map<const void*, Client> g_clients;   // by holder
 // The client memory as the window texture was last made from it: a window is converted again only
 // when its memory differs (the game's GDI drawing, Lock writes and the old path's Blt all land in
 // that memory, so a comparison sees every writer without DirectDraw's change counter).
-std::unordered_map<const void*, std::vector<std::uint8_t>> g_snapshots;   // by holder
+using Snapshots = std::unordered_map<const void*, std::vector<std::uint8_t>>;
+Snapshots g_snapshots;          // by holder: window surfaces
+Snapshots g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
 
 std::size_t ClientBytes(const Client& c) { return static_cast<std::size_t>(c.pitch) * static_cast<std::size_t>(c.height); }
 
-// The client memory of `holder` differs from its snapshot (GdiFlush first: GDI may still hold
-// drawing for it).
-bool ClientChanged(const void* holder, const Client& c) {
+// The client memory of `holder` differs from its snapshot in `snapshots` (GdiFlush first: GDI may
+// still hold drawing for it).
+bool ClientChanged(const Snapshots& snapshots, const void* holder, const Client& c) {
     GdiFlush();
-    auto it = g_snapshots.find(holder);
-    if (it == g_snapshots.end() || it->second.size() != ClientBytes(c)) return true;
+    auto it = snapshots.find(holder);
+    if (it == snapshots.end() || it->second.size() != ClientBytes(c)) return true;
     return std::memcmp(it->second.data(), c.bits, it->second.size()) != 0;
+}
+
+// Keeps the client memory of `holder` as its texture was just made from it (`made`), or forgets
+// it when the texture could not be made.
+void TakeSnapshot(Snapshots& snapshots, const void* holder, const Client& c, bool made) {
+    if (!made) {
+        snapshots.erase(holder);
+        return;
+    }
+    auto& snapshot = snapshots[holder];
+    snapshot.resize(ClientBytes(c));
+    std::memcpy(snapshot.data(), c.bits, snapshot.size());
+}
+
+// The client memory as a locked surface's description (after GdiFlush: GDI may still hold
+// drawing for it).
+DDSURFACEDESC2 ClientDesc(const Client& c) {
+    GdiFlush();
+    DDSURFACEDESC2 desc{};
+    desc.dwSize = sizeof(desc);
+    desc.dwWidth = static_cast<DWORD>(c.width);
+    desc.dwHeight = static_cast<DWORD>(c.height);
+    desc.lPitch = c.pitch;
+    desc.lpSurface = c.bits;
+    desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+    desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (c.alpha ? DDPF_ALPHAPIXELS : 0);
+    desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(c.bitsPerPixel);
+    desc.ddpfPixelFormat.dwRBitMask = c.red;
+    desc.ddpfPixelFormat.dwGBitMask = c.green;
+    desc.ddpfPixelFormat.dwBBitMask = c.blue;
+    desc.ddpfPixelFormat.dwRGBAlphaBitMask = c.alpha;
+    return desc;
+}
+
+// Reads a texture whose pixels are in game-owned memory (one level from the memory, the others
+// box-filtered as ReadTexture does for a surface without them) into `t`. The game writes such a
+// texture without DirectDraw in the switch-over, so its surface's uniqueness value says nothing.
+void ReadClientTexture(Texture& t, const void* holder, const Client& c, void* surface) {
+    DDSURFACEDESC2 desc = ClientDesc(c);
+    std::vector<std::uint8_t> pixels;
+    bool ok = Convert(desc, pixels);
+    TakeSnapshot(g_textureSnapshots, holder, c, ok);
+    t.surface = surface;
+    if (!ok) {
+        if (g_failures++ < 10)
+            ei::Log("render: cannot read the game memory of texture surface %p (%d bits)", surface, c.bitsPerPixel);
+        return;
+    }
+    std::vector<std::vector<std::uint8_t>> levels;
+    levels.push_back(std::move(pixels));
+    t.image = MakeImage(c.width, c.height, std::move(levels), "ei-client-texture");
+    t.view = MakeTextureView(t.image);
+    if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {
+        if (t.view.id) sg_destroy_view(t.view);
+        if (t.image.id) sg_destroy_image(t.image);
+        t.image = sg_image{};
+        t.view = sg_view{};
+    }
 }
 
 // Reads a window surface (one level; keyed) into `t`: from its game-owned memory when it has
@@ -367,27 +429,9 @@ void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::
     bool ok = false;
     auto client = g_clients.find(holder);
     if (client != g_clients.end()) {
-        const Client& c = client->second;
-        GdiFlush();   // GDI may still hold drawing for the memory
-        desc.dwWidth = static_cast<DWORD>(c.width);
-        desc.dwHeight = static_cast<DWORD>(c.height);
-        desc.lPitch = c.pitch;
-        desc.lpSurface = c.bits;
-        desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-        desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (c.alpha ? DDPF_ALPHAPIXELS : 0);
-        desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(c.bitsPerPixel);
-        desc.ddpfPixelFormat.dwRBitMask = c.red;
-        desc.ddpfPixelFormat.dwGBitMask = c.green;
-        desc.ddpfPixelFormat.dwBBitMask = c.blue;
-        desc.ddpfPixelFormat.dwRGBAlphaBitMask = c.alpha;
+        desc = ClientDesc(client->second);
         ok = Convert(desc, pixels, keyed, key);
-        if (ok) {
-            auto& snapshot = g_snapshots[holder];
-            snapshot.resize(ClientBytes(c));
-            std::memcpy(snapshot.data(), c.bits, snapshot.size());
-        } else {
-            g_snapshots.erase(holder);
-        }
+        TakeSnapshot(g_snapshots, holder, client->second, ok);
     } else {
         LockGameDevice();
         hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
@@ -437,7 +481,19 @@ sg_view SurfaceView(const void* holder) {
     Texture& t = g_textures[holder];
     t.usedFrame = frame;
     if (t.surface == surface && t.checkedFrame == frame) return t.view.id ? t.view : White().view;
-    // Textures are checked once a frame; without uniqueness values they are read once.
+    // Textures are checked once a frame: ones in game-owned memory ("cpuwindows": the save / load
+    // screen's pictures) by comparing that memory with what they were made from, the others by
+    // the surface's uniqueness value (without one, read once).
+    auto client = g_clients.find(holder);
+    if (client != g_clients.end()) {
+        bool reread = t.surface != surface || !t.view.id || ClientChanged(g_textureSnapshots, holder, client->second);
+        t.checkedFrame = frame;
+        if (reread) {
+            Retire(t);
+            ReadClientTexture(t, holder, client->second, surface);
+        }
+        return t.view.id ? t.view : White().view;
+    }
     DWORD now = 0;
     bool changed = Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
     bool reread = t.surface != surface || changed;
@@ -631,7 +687,7 @@ sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int
     DWORD now = 0;
     auto client = g_clients.find(holder);
     bool changed = client != g_clients.end()
-                       ? ClientChanged(holder, client->second)
+                       ? ClientChanged(g_snapshots, holder, client->second)
                        : Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, t.checkedFrame != frame);
     bool reread = t.surface != surface || !t.view.id || t.keyed != keyed || (keyed && t.key != key) || changed;
     t.checkedFrame = frame;
@@ -757,6 +813,7 @@ void ClientSurface(const void* holder, void* bits, int pitch, int width, int hei
 void ClientSurfaceGone(const void* holder) {
     detail::g_clients.erase(holder);
     detail::g_snapshots.erase(holder);
+    detail::g_textureSnapshots.erase(holder);
     detail::g_pictures.erase(holder);
 }
 

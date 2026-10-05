@@ -77,10 +77,8 @@ __declspec(naked) bool UiSpinValue::GetValue(int*) EI_ORIGINAL(0x0065BEB0)
 __declspec(naked) void UiSpinValue::SetValue(int) EI_ORIGINAL(0x0065BEE0)
 __declspec(naked) void CSaveLoadWindow::Confirm() EI_ORIGINAL(0x00655290)
 __declspec(naked) void CSaveLoadWindow::AskDelete() EI_ORIGINAL(0x00655380)
-__declspec(naked) void CSaveLoadWindow::SaveGame() EI_ORIGINAL(0x00655550)
 __declspec(naked) void CSaveLoadWindow::DeleteSave() EI_ORIGINAL(0x00655B20)
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
-__declspec(naked) void CSaveLoadWindow::ShowPicture() EI_ORIGINAL(0x00656E10)
 __declspec(naked) void COptionsWindow::RefreshRows() EI_ORIGINAL(0x00651350)
 __declspec(naked) void COptionsWindow::ShowGroup(int) EI_ORIGINAL(0x00651D70)
 __declspec(naked) void COptionsWindow::CommitBinding() EI_ORIGINAL(0x00652000)
@@ -120,7 +118,7 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
                     TakeSelectedTitle();
                 }
                 RefreshList();
-                ShowPicture();
+                CallShowPicture();
             }
         }
         break;
@@ -187,7 +185,7 @@ void CSaveLoadWindow::OnDialogResult(int result) {
     if (result == kResultDelete)
         DeleteSave();
     else if (result == kResultOverwrite)
-        SaveGame();
+        CallSaveGame();
     else if (result == kResultLoad)
         interface_->SetPendingValue(kCloseSaveLoadLoad);
 }

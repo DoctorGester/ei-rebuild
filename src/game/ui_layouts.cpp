@@ -36,7 +36,6 @@ __declspec(naked) void CUiMesh::SetRectangle(float, float, float, float, float, 
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
 __declspec(naked) CUiScrollbar* CUiScrollbar::Construct(CInterface3D*, RECT, float, int, float) EI_ORIGINAL(0x0065AEA0)
-__declspec(naked) void CSaveLoadWindow::FillEntries() EI_ORIGINAL(0x00655D40)
 __declspec(naked) void CUiRegion::SetTipString(const char*, int, int) EI_ORIGINAL(0x005FC6B0)
 __declspec(naked) void COptionsWindow::BuildSettings() EI_ORIGINAL(0x00651940)
 __declspec(naked) void COptionsWindow::LoadSettings() EI_ORIGINAL(0x00652200)
@@ -126,7 +125,8 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
 void CSaveLoadWindow::Build() {
     rect_ = RECT{0, 0, 800, 600};
     LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
-    CreateTexture(0x100, 0x100, 0x1E);
+    // The selected save's picture (5:6:5; game-owned memory with "cpuwindows", ui_saveload.cpp).
+    GivePictureMemory(CreateTexture(0x100, 0x100, 0x1E));
 
     // The three buttons' faces: OK (left), cancel (right), delete (middle).
     AddSprite(0)->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
@@ -173,7 +173,7 @@ void CSaveLoadWindow::Build() {
 
     dialog_ = nullptr;
     if (sliding_) slide_ = 0.0f;
-    FillEntries();
+    CallFillEntries();
     if (isSave_) {
         // Saving: the first save is selected and its title offered as the name.
         selected_ = 0;
@@ -186,7 +186,7 @@ void CSaveLoadWindow::Build() {
         selected_ = EntryCount() != 0 ? 0 : -1;
     }
     RefreshList();
-    ShowPicture();
+    CallShowPicture();
     if (!sliding_) interface_->ShowHelp(0);
 }
 EI_REPLACE_METHOD(0x00653DD0, CSaveLoadWindow::Build);

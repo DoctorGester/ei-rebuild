@@ -1,0 +1,259 @@
+// Checks for the save / load window's pictures and list (src/game/ui_saveload.cpp).
+//
+// ShowPicture and FillEntries run the original first on the real window: both can run twice (the
+// original's results are taken, ours then replaces them, as the game does when it calls them
+// again). ShowPicture's texture is scribbled over between the two runs, so ours has to write the
+// picture itself. SaveGame saves the game, so only ours runs and the files it wrote are read back.
+//
+// A picture texture's pixels are compared as the game writes them: the first 0x18000 bytes of
+// the DirectDraw texture (a Lock) or of its game-owned memory ("cpuwindows"). With game-owned
+// memory ours must have written the memory, and outside the switch-over the texture too; in the
+// switch-over ("present") ours does not touch the texture (the original's run here still locks
+// it: it is the reference).
+#include "verify.h"
+
+#include "../../src/game/dx_surface.h"
+#include "../../src/game/ui.h"
+#include "../../src/lib/mfc.h"
+#include "../../src/render/render.h"
+
+#include <windows.h>
+
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include <vector>
+
+namespace {
+void* s_unused;
+
+constexpr std::uint32_t kShotBytes = 0x18000;
+
+template <typename... Args>
+long SurfaceCall(void* surface, int slot, Args... args) {
+    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(surface))[slot])(surface, args...);
+}
+
+CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
+
+char* HolderOf(CEngineObject* texture) {
+    return texture ? *reinterpret_cast<char**>(reinterpret_cast<char*>(texture) + 0x5C) : nullptr;
+}
+
+// The texture's first 0x18000 bytes through a Lock (`write`: filled with `value` instead).
+bool SurfaceBlock(char* holder, std::vector<std::uint8_t>* out, bool write = false, std::uint8_t value = 0) {
+    void* surface = holder ? *reinterpret_cast<void**>(holder + 0x10) : nullptr;
+    if (!surface) return false;
+    std::uint32_t desc[0x1F] = {};
+    desc[0] = 0x7C;
+    ::EnterCriticalSection(DeviceLock());
+    // DDLOCK_WAIT | DDLOCK_WRITEONLY or DDLOCK_READONLY
+    bool ok = SurfaceCall(surface, 25, static_cast<RECT*>(nullptr), static_cast<void*>(desc), write ? 0x21ul : 0x11ul,
+                          static_cast<void*>(nullptr)) == 0;
+    auto* bits = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc[9]));
+    ok = ok && bits && desc[2] * desc[4] >= kShotBytes;
+    if (ok) {
+        if (write)
+            std::memset(bits, value, kShotBytes);
+        else
+            out->assign(bits, bits + kShotBytes);
+    }
+    if (desc[9]) SurfaceCall(surface, 32, static_cast<RECT*>(nullptr));
+    ::LeaveCriticalSection(DeviceLock());
+    return ok;
+}
+
+// The same from the game-owned memory; false without.
+bool MemoryBlock(char* holder, std::vector<std::uint8_t>* out, bool write = false, std::uint8_t value = 0) {
+    std::uint32_t desc[0x1F] = {};
+    if (!holder || !ClientPixels(holder, desc) || desc[2] * desc[4] < kShotBytes) return false;
+    auto* bits = reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc[9]));
+    if (write)
+        std::memset(bits, value, kShotBytes);
+    else
+        out->assign(bits, bits + kShotBytes);
+    return true;
+}
+
+// Ours' pixels against `picture`: the memory when there is some (it must be there with
+// "cpuwindows"), the texture outside the switch-over or without memory.
+const char* CheckOurs(char* holder, const std::vector<std::uint8_t>& picture) {
+    std::vector<std::uint8_t> pixels;
+    bool memory = MemoryBlock(holder, &pixels);
+    if (render::CpuWindows() && !memory) return "no game memory";
+    if (memory && pixels != picture) return "memory differs";
+    if (!memory || !render::Presenting()) {
+        if (!SurfaceBlock(holder, &pixels)) return "texture not readable";
+        if (pixels != picture) return "texture differs";
+    }
+    return nullptr;
+}
+
+struct SpriteState {
+    int shown;
+    CEngineObject* texture;
+    bool operator==(const SpriteState& o) const { return shown == o.shown && texture == o.texture; }
+};
+SpriteState SpriteOf(CEngineObject* sprite) {
+    auto* p = reinterpret_cast<char*>(sprite);
+    return SpriteState{*reinterpret_cast<int*>(p + 0x220), *reinterpret_cast<CEngineObject**>(p + 0x280)};
+}
+void PutSprite(CEngineObject* sprite, const SpriteState& s) {
+    auto* p = reinterpret_cast<char*>(sprite);
+    *reinterpret_cast<int*>(p + 0x220) = s.shown;
+    *reinterpret_cast<CEngineObject**>(p + 0x280) = s.texture;
+}
+
+std::string Text(const char* s) { return s ? s : ""; }
+
+} // namespace
+
+// 00656E10: MOV EAX,FS:[0] (6 bytes). The original on the window, its sprite state and (when it
+// read a shot.sav into objects_[1]) the picture taken; the texture (and its memory) scribbled
+// over, the sprite put back, ours run: the same sprite state and picture.
+static void(__fastcall* s_showPicture)(CSaveLoadWindow*, void*);
+static void __fastcall ShowPictureVerify(CSaveLoadWindow* self, void*) {
+    CEngineObject* sprite = self->sceneObjects_.data_[3];
+    SpriteState before = SpriteOf(sprite);
+    CEngineObject* texture = self->objects_.size_ > 1 ? self->objects_.data_[1] : nullptr;
+    char* holder = HolderOf(texture);
+    s_showPicture(self, nullptr);
+    SpriteState expected = SpriteOf(sprite);
+    std::vector<std::uint8_t> picture;
+    bool read = holder && expected.shown == 1 && expected.texture == texture && SurfaceBlock(holder, &picture);
+    if (read) {
+        SurfaceBlock(holder, nullptr, true, 0xA5);
+        MemoryBlock(holder, nullptr, true, 0xA5);
+    }
+    PutSprite(sprite, before);
+    self->CSaveLoadWindow::ShowPicture();
+    SpriteState actual = SpriteOf(sprite);
+    const char* pixels = read ? CheckOurs(holder, picture) : nullptr;
+    ei::verify::Check("CSaveLoadWindow::ShowPicture", true, expected == actual && !pixels,
+                      "selected %d save %d: shown %d/%d texture %p/%p, picture %s", self->selected_, self->isSave_,
+                      expected.shown, actual.shown, static_cast<void*>(expected.texture),
+                      static_cast<void*>(actual.texture), read ? (pixels ? pixels : "same") : "not read");
+}
+EI_VERIFY(0x00656E10, ShowPictureVerify, 6, s_showPicture);
+
+namespace {
+
+struct EntryState {
+    std::string title, folder, map, zone;
+    std::int32_t savedAt;
+    float gameTime;
+    bool broken;
+};
+
+struct ListState {
+    std::vector<EntryState> entries;
+    int firstVisible, maxPosition, position, objects;
+    bool moved, shot;
+};
+
+ListState StateOf(CSaveLoadWindow* w) {
+    ListState s{};
+    for (SaveEntry* e = w->entriesBegin_; e != w->entriesEnd_; ++e)
+        s.entries.push_back(EntryState{Text(e->title_), Text(e->folder_), Text(e->map_), Text(e->zone_), e->savedAt_,
+                                       e->gameTime_, e->broken_});
+    s.firstVisible = w->firstVisible_;
+    s.maxPosition = w->scrollbar_->maxPosition_;
+    s.position = w->scrollbar_->position_;
+    s.moved = w->scrollbar_->moved_;
+    s.objects = w->objects_.size_;
+    s.shot = w->dialog_ != nullptr;
+    return s;
+}
+
+// The first entry that differs (-1: none). What the original leaves unwritten is not compared:
+// the time and game time of a broken save (and of a save whose info.sav header did not fit: a
+// mismatch there is expected), the time of a save window's new save.
+int FirstDifference(const ListState& a, const ListState& b, bool save) {
+    if (a.entries.size() != b.entries.size()) return static_cast<int>(a.entries.size() < b.entries.size() ? a.entries.size() : b.entries.size());
+    for (std::size_t i = 0; i < a.entries.size(); ++i) {
+        const EntryState& x = a.entries[i];
+        const EntryState& y = b.entries[i];
+        bool same = x.title == y.title && x.folder == y.folder && x.map == y.map && x.zone == y.zone && x.broken == y.broken;
+        if (!x.broken) {
+            same = same && ei::verify::NearlyEqual(x.gameTime, y.gameTime, 4, 1e-6f);
+            if (!(save && i == 0)) same = same && x.savedAt == y.savedAt;
+        }
+        if (!same) return static_cast<int>(i);
+    }
+    return -1;
+}
+
+} // namespace
+
+// 00655D40: PUSH -1; PUSH 0x72F30F (7 bytes). The original on the window, its list taken (every
+// entry's strings and fields, the scroll bar's range, position and moved flag, the list's scroll
+// position, the object count, the new save's picture); ours run over it: the same.
+static void(__fastcall* s_fillEntries)(CSaveLoadWindow*, void*);
+static void __fastcall FillEntriesVerify(CSaveLoadWindow* self, void*) {
+    s_fillEntries(self, nullptr);
+    ListState expected = StateOf(self);
+    std::vector<std::uint8_t> picture;
+    bool shot = expected.shot && SurfaceBlock(HolderOf(self->dialog_), &picture);
+    self->CSaveLoadWindow::FillEntries();
+    ListState actual = StateOf(self);
+    int entry = FirstDifference(expected, actual, self->isSave_);
+    bool same = entry < 0 && expected.firstVisible == actual.firstVisible && expected.maxPosition == actual.maxPosition &&
+                expected.position == actual.position && expected.moved == actual.moved &&
+                expected.objects == actual.objects && expected.shot == actual.shot;
+    const char* pixels = shot ? CheckOurs(HolderOf(self->dialog_), picture) : nullptr;
+    ei::verify::Check("CSaveLoadWindow::FillEntries", true, same && !pixels,
+                      "save %d: entries %u/%u (first difference %d), range %d/%d position %d/%d, picture %s",
+                      self->isSave_, static_cast<unsigned>(expected.entries.size()),
+                      static_cast<unsigned>(actual.entries.size()), entry, expected.maxPosition, actual.maxPosition,
+                      expected.position, actual.position, shot ? (pixels ? pixels : "same") : "none");
+}
+EI_VERIFY(0x00655D40, FillEntriesVerify, 7, s_fillEntries);
+
+namespace {
+// The first `size` bytes of saves\<folder>\<file> (the game's MFC CFile, so harness runs read
+// harness_saves); false when the file cannot be read.
+bool ReadSaveFile(const std::string& folder, const char* file, std::vector<std::uint8_t>* out, unsigned size) {
+    char path[MAX_PATH];
+    std::snprintf(path, sizeof(path), "%ssaves\\%s\\%s", *reinterpret_cast<char* const*>(0x007AF460), folder.c_str(), file);
+    mfc::CFile f;
+    if (!f.Open(path, 0, nullptr)) return false;
+    out->assign(size, 0);
+    unsigned got = f.GetLength() >= size ? f.Read(out->data(), size) : 0;
+    f.Close();
+    return got == size;
+}
+} // namespace
+
+// 00655550: ours only (it saves the game). A save that closes the window (pending value 0x100002)
+// has written info.sav (header 0x111, version 3) and, with a picture, shot.sav holding it; a save
+// stopped by the disc-full message box leaves the pending value alone.
+static void __fastcall SaveGameVerify(CSaveLoadWindow* self, void*) {
+    int selected = self->selected_;
+    bool valid = selected >= 0 && selected < self->EntryCount();
+    std::string folder = valid ? Text(self->entriesBegin_[selected].folder_) : std::string();
+    CInterface3D* ui = self->interface_;
+    std::uint32_t pendingValue = ui->pendingValue_;
+    bool pendingFlag = ui->pendingFlag_;
+    self->CSaveLoadWindow::SaveGame();
+    bool closed = ui->pendingFlag_ && ui->pendingValue_ == 0x100002;
+    bool untouched = ui->pendingValue_ == pendingValue && ui->pendingFlag_ == pendingFlag;
+    const char* problem = nullptr;
+    if (!valid || !closed) {
+        if (!untouched) problem = "pending value changed";
+    } else {
+        std::vector<std::uint8_t> info;
+        if (!ReadSaveFile(folder, "info.sav", &info, 8))
+            problem = "no info.sav";
+        else if (info[0] != 0x11 || info[1] != 0x01 || info[2] || info[3] || info[4] != 3 || info[5] || info[6] || info[7])
+            problem = "info.sav header";
+        if (!problem && self->dialog_) {
+            std::vector<std::uint8_t> shot;
+            if (!ReadSaveFile(folder, "shot.sav", &shot, kShotBytes)) problem = "no shot.sav";
+            else problem = CheckOurs(HolderOf(self->dialog_), shot);
+        }
+    }
+    ei::verify::Check("CSaveLoadWindow::SaveGame", true, problem == nullptr, "selected %d folder %s closed %d: %s", selected,
+                      folder.c_str(), closed, problem ? problem : "ok");
+}
+EI_VERIFY(0x00655550, SaveGameVerify, 0, s_unused);

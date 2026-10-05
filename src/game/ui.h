@@ -872,14 +872,24 @@ struct UiSpin {
     UiSpinValue* value_;             // +0x0C
 };
 
-// A saved game in the save/load list (0x44 bytes, STLport vector at +0x164).
+// A saved game in the save/load list (0x44 bytes, STLport vector at +0x164). Copy construction
+// 00656640 (and 00657C60), assignment 006538E0, destructor 00656720 (not rewritten). The fields
+// after the folder come from the save's info.sav (ui_saveload.cpp).
 struct SaveEntry {
     char* title_;                    // +0x00 CString shown in the list
     char* folder_;                   // +0x04 CString folder name under saves\ ("saveq" quick save,
-                                     //       "savea"/"saveb" automatic saves)
-    std::uint8_t unknown_08[0x44 - 0x08];
+                                     //       "savea"/"saveb" automatic saves, "save<n>")
+    std::int32_t savedAt_;           // +0x08 time() when it was saved (info.sav version 2 and up)
+    float gameTime_;                 // +0x0C the "gtime" variable
+    char* map_;                      // +0x10 CString: the map of the zone
+    char* zone_;                     // +0x14 CString: the zone
+    std::uint8_t stringArrays_[0x28];   // +0x18 two CStringArrays (+0x18, +0x2C), copied with the entry
+    bool broken_;                    // +0x40 no info.sav: titled "Error Save", no picture
+    std::uint8_t unknown_41[3];
 };
 static_assert(sizeof(SaveEntry) == 0x44);
+static_assert(offsetof(SaveEntry, zone_) == 0x14);
+static_assert(offsetof(SaveEntry, broken_) == 0x40);
 
 // The save/load window (vtables 00741388 / 00741354, 0x194 bytes, opened from the Esc menu).
 // Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
@@ -895,11 +905,28 @@ public:
     // Not rewritten.
     void Confirm();          // 00655290 OK: asks before overwriting, or loads
     void AskDelete();        // 00655380
-    void SaveGame();         // 00655550
     void DeleteSave();       // 00655B20 deletes the selected save's folder
     void RefreshList();      // 006567A0 (Rebirth-patched)
-    void ShowPicture();      // 00656E10 the selected save's picture
-    void FillEntries();      // 00655D40 reads the saves into the entry list
+
+    // ui_saveload.cpp. The window's two picture textures (256x256, 5:6:5): objects_[1] shows the
+    // selected save's shot.sav, dialog_ the game for a new save. The Call* forms go through the
+    // original addresses (the verify build's wrappers run there).
+    // 00655550. Saves into the selected entry's folder (the game flow's save, then info.sav from
+    // the new save's entry and shot.sav from dialog_'s pixels); a message box when the disc is full.
+    void SaveGame();
+    // 00656E10. The picture sprite shows the selected save's shot.sav (read into objects_[1]), or
+    // dialog_ for the new save of a save window; hidden for none or a broken save.
+    void ShowPicture();
+    // 00655D40 (00656464 is its tail, not a function). Reads saves\save*\info.sav into the entry
+    // list, sorts it, puts the new save's entry first in a save window (with dialog_ made from the
+    // escape menu's 256x192 copy of the screen) and sets the scroll bar's range.
+    void FillEntries();
+    void CallSaveGame();
+    void CallShowPicture();
+    void CallFillEntries();
+    // "cpuwindows": game-owned memory for a picture texture of the window (beside its DirectDraw
+    // texture; the new renderer reads it). Nothing without the option or a texture.
+    static void GivePictureMemory(CEngineObject* texture);
     // 00653DD0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
 
@@ -917,7 +944,9 @@ public:
     std::uint8_t unknown_17A[2];
     float slide_;                    // +0x17C 0..1
     CUiScrollbar* scrollbar_;        // +0x180
-    CEngineObject* dialog_;          // +0x184 open message box (released through slot 4)
+    CEngineObject* dialog_;          // +0x184 the save window's picture of the game for the new save
+                                     //        (a texture made by FillEntries; released by slot 26.
+                                     //        The name is from an earlier reading.)
     char* name_;                     // +0x188 CString: the save name being edited
     bool nameTyped_;                 // +0x18C
     std::uint8_t unknown_18D[3];
