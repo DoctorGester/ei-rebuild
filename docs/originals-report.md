@@ -416,7 +416,7 @@ Rewritten as `DeviceDrawIndexed` (src/game/device_draw.cpp).
 
 ### 0x004EF7B0: 3 files, 3 sites, signatures differ
 Rewritten as `DXSurfaceConstruct` (src/game/dx_surface.cpp).
-- `src/game/originals_render.h:39`: `<<<<<<< HEAD inline char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/, int /*width*/, int /*height*/)`
+- `src/game/originals_render.h:38`: `char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/, int /*width*/, int /*height*/)`
 - `src/game/ui_surface_create.cpp:52`: `char* __fastcall ConstructHolder(void*, void*, void*, int, int)`
 - `src/game/ui_surface_pixels.cpp:280`: `SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int)`
 
@@ -1991,7 +1991,7 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 
 ### 0x005E5270: 2 files, 2 sites, signatures differ
 - `src/game/app.cpp:85`: `void Renderer::SetActive(int)`
-- `src/game/originals_ui.h:73`: `<<<<<<< HEAD inline void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/)`
+- `src/game/originals_ui.h:72`: `void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/)`
 
 ### 0x005E7010: 3 files, 3 sites, same signature, names differ
 - `src/game/ui_global_map.cpp:164`: `void SpriteOps::Position(float*, float*, float*)`
