@@ -239,3 +239,76 @@ __declspec(naked) inline void __fastcall GameDisconnectOriginal(void* /*game*/) 
 // session; otherwise the local view, 0066B140; RET 4).
 __declspec(naked) inline void __fastcall GameLeaveThroughExitOriginal(void* /*glue*/, void*, int /*exit*/)
     EI_ORIGINAL(0x00578AC0)
+
+// A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp, called through their address so
+// the wrappers run): 005EE6C0 Describe(item), 005F2910 ShowHelp(topic), 005F1590 DescribeStats(info) (each RET 4).
+__declspec(naked) inline void __fastcall InfoPanelDescribeOriginal(void* /*panel*/, void*, void* /*item*/)
+    EI_ORIGINAL(0x005EE6C0)
+__declspec(naked) inline void __fastcall InfoPanelShowHelpOriginal(void* /*panel*/, void*, int /*topic*/)
+    EI_ORIGINAL(0x005F2910)
+__declspec(naked) inline void __fastcall InfoPanelDescribeStatsOriginal(void* /*panel*/, void*, void* /*info*/)
+    EI_ORIGINAL(0x005F1590)
+// 00625690 / 00624CB0 (rewritten as CTradePanel::HoverInfo / CHeroStatsPanel::HoverInfo): what the statistics under
+// (x, y) are (RET 0xC). 00625530 / 00625560: the trade panel's experience to spend / the cost of what was bought since the
+// panel's record was made (plain RET, EAX).
+__declspec(naked) inline void __fastcall TradePanelHoverInfoOriginal(void* /*panel*/, void*, int, int, void* /*info*/)
+    EI_ORIGINAL(0x00625690)
+__declspec(naked) inline void __fastcall StatsPanelHoverInfoOriginal(void* /*panel*/, void*, int, int, void* /*info*/)
+    EI_ORIGINAL(0x00624CB0)
+__declspec(naked) inline int __fastcall TradePanelExperienceOriginal(void* /*panel*/) EI_ORIGINAL(0x00625530)
+__declspec(naked) inline int __fastcall TradePanelPurchaseCostOriginal(void* /*panel*/) EI_ORIGINAL(0x00625560)
+// 005EC300 (rewritten as CUiWindow::DrawHeroPreview): the hero preview (RET 0x14: pass, model, turn, depth, wide).
+__declspec(naked) inline void __fastcall WindowDrawHeroPreviewOriginal(void* /*window*/, void*, int /*pass*/,
+                                                                       void* /*model*/, float /*turn*/,
+                                                                       float /*depth*/, int /*wide*/)
+    EI_ORIGINAL(0x005EC300)
+// 0065B090 (rewritten as CUiScrollbar::TakePosition): the position, 1 when it moved since the last call (RET 4).
+__declspec(naked) inline int __fastcall ScrollbarTakePositionOriginal(void* /*scrollbar*/, void*, int* /*position*/)
+    EI_ORIGINAL(0x0065B090)
+// The multiplayer hero screen (thiscall, plain RET): 006167C0 draws the hero list, 00616560 the voice list.
+__declspec(naked) inline void __fastcall HeroScreenDrawListOriginal(void* /*screen*/) EI_ORIGINAL(0x006167C0)
+// 005789E0: the client glue (007AFEA5, not read) hands a record array (CArray of unit records) to the client world
+// (00567400 on 007AF5B8; RET 4). 006632B0: the multiplayer heroes (007C82A0) save themselves (plain RET).
+__declspec(naked) inline void __fastcall GameTakeUnitRecordsOriginal(void* /*glue*/, void*, void* /*records*/)
+    EI_ORIGINAL(0x005789E0)
+__declspec(naked) inline void __fastcall MpHeroesSaveOriginal(void* /*heroes*/) EI_ORIGINAL(0x006632B0)
+// The camp's item helpers (rewritten in ui_screens.cpp / ui_item_screen.cpp; called through their address so the wrappers
+// run). 005EE0B0 / 005EE130: the item is a spell container (all of EAX) / can be taken apart (AL) (free functions, RET 4;
+// ECX not read). 005EE2C0: CItemScreen::ReturnAll(to, from) (RET 8, the last item moved). 005EE1B0: MoveItem(item, to,
+// from, limit, merge, turning) (RET 0x18, what `to` now holds).
+__declspec(naked) inline int __stdcall ItemKindIsSpellContainerOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE0B0)
+__declspec(naked) inline bool __stdcall ItemKindIsBuildableOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE130)
+__declspec(naked) inline CItem* __fastcall ItemScreenReturnAllOriginal(void* /*screen*/, void*, void* /*to*/, void* /*from*/)
+    EI_ORIGINAL(0x005EE2C0)
+__declspec(naked) inline CItem* __fastcall ItemScreenMoveItemOriginal(void* /*screen*/, void*, CItem* /*item*/, void* /*to*/,
+                                                                      void* /*from*/, int /*limit*/, int /*merge*/,
+                                                                      int /*turning*/) EI_ORIGINAL(0x005EE1B0)
+// 006255A0: the trade panel settles its deal (thiscall, RET 8: two flags read as bytes; EAX a result).
+__declspec(naked) inline int __fastcall TradePanelSettleOriginal(void* /*panel*/, void*, int /*a*/, int /*all*/)
+    EI_ORIGINAL(0x006255A0)
+// STLport containers' storage (library code): 006344C0 / 00520F60 give `count` entries of 8 / 4 bytes back to the node
+// pool (__fastcall: block, count); 00520F20 the same for 4-byte entries through an allocator proxy (thiscall, RET 8: block,
+// count). 00634160 / 00634200: the hero screen's model / texture map destroyed (nodes erased, header freed; ECX).
+__declspec(naked) inline void __fastcall FreeBlock8Original(void* /*block*/, int /*count*/) EI_ORIGINAL(0x006344C0)
+__declspec(naked) inline void __fastcall FreeBlock4Original(void* /*block*/, int /*count*/) EI_ORIGINAL(0x00520F60)
+__declspec(naked) inline void __fastcall FreeBlock4ProxyOriginal(void* /*proxy*/, void*, void* /*block*/, int /*count*/)
+    EI_ORIGINAL(0x00520F20)
+__declspec(naked) inline void __fastcall DestroyModelMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634160)
+__declspec(naked) inline void __fastcall DestroyTextureMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634200)
+// 00578980: the client glue (007AFEA5, not read) finds the unit with id `id` in the client world (0055FB00 on 007AF5B8;
+// RET 4; EAX the unit or null). 00662F80: the multiplayer heroes (007C82A0) make `hero` the current one (RET 4).
+__declspec(naked) inline void* __fastcall GameUnitByIdOriginal(void* /*glue*/, void*, std::uint32_t /*id*/)
+    EI_ORIGINAL(0x00578980)
+__declspec(naked) inline void __fastcall MpHeroesSelectOriginal(void* /*heroes*/, void*, void* /*hero*/) EI_ORIGINAL(0x00662F80)
+// 00616E20 (thiscall on the hero screen, RET 4): the preview's unit made for the local player's first record.
+__declspec(naked) inline void __fastcall HeroScreenMakePreviewOriginal(void* /*screen*/, void*, int /*flag*/)
+    EI_ORIGINAL(0x00616E20)
+// 00616910 / 00616560 (rewritten as CMpHeroScreen::ShowHero (RET 4) / DrawVoices; plain RET).
+__declspec(naked) inline void __fastcall HeroScreenShowHeroOriginal(void* /*screen*/, void*, int /*index*/)
+    EI_ORIGINAL(0x00616910)
+__declspec(naked) inline void __fastcall HeroScreenDrawVoicesOriginal(void* /*screen*/) EI_ORIGINAL(0x00616560)
+// The trade panel (rewritten in ui_trade_panel.cpp; through their address so the wrappers run; ECX, plain RET):
+// 00625880 BuildLists, 006261A0 DrawLists, 00626D70 ClampScroll.
+__declspec(naked) inline void __fastcall TradePanelBuildListsOriginal(void* /*panel*/) EI_ORIGINAL(0x00625880)
+__declspec(naked) inline void __fastcall TradePanelDrawListsOriginal(void* /*panel*/) EI_ORIGINAL(0x006261A0)
+__declspec(naked) inline void __fastcall TradePanelClampScrollOriginal(void* /*panel*/) EI_ORIGINAL(0x00626D70)

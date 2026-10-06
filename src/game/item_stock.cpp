@@ -483,7 +483,7 @@ char** __fastcall SpellByName(void* a0, void*, const void* a2) { return (char**)
 void* const kSpellsByName = reinterpret_cast<void*>(0x007C851C);
 // The spell prototypes by name (thiscall on 007C8510, 00613920) and the spell manager's builder
 // (00689310, RET 8: prototype, modifier list; a new counted spell or null).
-__declspec(naked) char* __fastcall FindSpellPrototype(void*, void*, const char*) EI_ORIGINAL(0x00613920)
+char* FindSpellPrototype(void* table, void*, const char* name) { return SpellPrototypeByNameOriginal(table, nullptr, name); }
 void* const kSpellPrototypes = reinterpret_cast<void*>(0x007C8510);
 __declspec(naked) void* __fastcall BuildSpell(void*, void*, char* /*prototype*/, StockList* /*modifiers*/)
     EI_ORIGINAL(0x00689310)

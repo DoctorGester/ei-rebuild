@@ -1,0 +1,30 @@
+# The statistics panel's -/+ buttons on the multiplayer hero screen's new hero (00624790 click,
+# 00624A60 the held repeat; docs/notes/ui.md, section 5). The panel's page 10 regions (ShowStats):
+# 6-9 the minus column (x 140..160) and 10-13 the plus column (x 160..180) at y 165, 180, 195 and
+# 225 (strength, dexterity, intelligence, height). Nothing is created or sent.
+reject Script error
+wait 6000
+
+# Main menu region 5: the hero list; its region 5: a new hero (mode 10, the panel on page 10).
+clickregion 5
+wait 2000
+clickregion 5
+wait 1500
+# Strength down, then up again; dexterity down; height up and down.
+click 150 172
+wait 600
+click 170 172
+wait 600
+click 150 187
+wait 600
+click 170 232
+wait 400
+click 150 232
+wait 400
+# Esc: back to the list, Esc: the main menu.
+key esc
+wait 1500
+key esc
+wait 3000
+report
+quit
