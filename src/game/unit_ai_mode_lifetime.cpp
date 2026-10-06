@@ -98,24 +98,24 @@ AIMode* __fastcall aimode::ConstructActionBase(AIMode* mode) {
 }
 EI_REPLACE(0x005D6D10, aimode::ConstructActionBase);
 
-void PatrolPointArray::Destruct() {
-    vtable = aimode::kPatrolPointsBaseVtable;
-    if (!data) return;
-    for (int i = 0; i < size; ++i) {
-        AILookArray& looks = data[i].looks;
+void __fastcall PatrolPointsDestruct(PatrolPointArray* points) {
+    points->vtable = aimode::kPatrolPointsBaseVtable;
+    if (!points->data) return;
+    for (int i = 0; i < points->size; ++i) {
+        AILookArray& looks = points->data[i].looks;
         looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
         if (looks.data) gamecrt::operator_delete(looks.data);
     }
-    gamecrt::operator_delete(data);
+    gamecrt::operator_delete(points->data);
 }
-EI_REPLACE_METHOD(0x005D8CF0, PatrolPointArray::Destruct);
+EI_REPLACE(0x005D8CF0, PatrolPointsDestruct);
 
-PatrolPointArray* PatrolPointArray::DeletingDestruct(int flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
+PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags) {
+    PatrolPointsDestruct(points);
+    if (flags & 1) gamecrt::operator_delete(points);
+    return points;
 }
-EI_REPLACE_METHOD(0x005D8CD0, PatrolPointArray::DeletingDestruct);
+EI_REPLACE(0x005D8CD0, PatrolPointsDeletingDestruct);
 
 void __stdcall ZeroAttackOptions(AIAttackOption* first, int count) {
     std::memset(first, 0, sizeof(AIAttackOption) * static_cast<unsigned>(count));

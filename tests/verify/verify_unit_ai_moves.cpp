@@ -35,7 +35,7 @@ static void __fastcall PlanLooksVerify(AIBrain* brain, void*, AIMoveOrder* order
     AIMoveOrder copy = *order;
     copy.looks.data = nullptr;
     copy.looks.size = 0;
-    copy.looks.max = 0;
+    copy.looks.maxSize = 0;
     s_planLooks(brain, nullptr, &copy, direction, wander, far);
     theirs.Save();
     before.Restore();

@@ -260,7 +260,7 @@ src/game/ui_window.cpp,0,0,1,0,0,0,0,1,0
 src/game/unit.cpp,9,3,0,1,0,0,0,0,0
 src/game/unit.h,0,0,0,0,0,0,18,0,0
 src/game/unit_ai.cpp,0,1,0,1,4,0,0,3,0
-src/game/unit_ai.h,0,0,0,0,2,0,1,0,4
+src/game/unit_ai.h,0,0,0,0,2,0,1,0,0
 src/game/unit_ai_modes.cpp,0,1,1,1,3,0,0,4,0
 src/game/unit_client_attack.cpp,1,0,0,0,0,0,0,1,0
 src/game/unit_client_models.cpp,13,1,0,0,0,0,0,0,0
