@@ -182,7 +182,7 @@ be unchanged, and reference counts must drop by the number of times held); *ours
 | Effects (`script_effects.cpp`) | 004BD260 CreateFX, 004BCFF0 CreateLightning, 004BD9A0 CreateParticleSource, 004BDBB0 MoveParticleSource, savers / loaders as above | ours only (class 0x48 / 0x4D / 0x4A object registered with the arguments' bits; ids); MoveParticleSource against the original (the step with CheckNear) |
 | Text reader (`text_reader.cpp`) | 004DF030, 004DFCB0, 004DF8D0, 004DF510, 004DF770, 004DFB80, 004DF6E0, 004DEFC0 (GetFile runs twice; the archive raises the file's count twice), 004DF4E0, 004DF020 | original first, state recorded and restored, then ours; result, cursor and strings compared; CharCode pure |
 
-## Leftovers outside the script engine (A-S3)
+## Leftovers outside the script engine
 
 Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to other subsystems.
 
@@ -263,7 +263,7 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
   the `zone_gz2g_traps` scenario reaches command 8 (`KillScript() VTriger#0#n( this )`) from a killed instance, which is why the
   Execute observer reads the instance list's head (+0x144), not the tail.
 
-## A-S4 (2026-10-06): live leftovers of 0x00480000-0x00500000
+## Live leftovers of 0x00480000-0x00500000 (mob reader, stream helpers, particles, clouds)
 
 | Area (file) | Addresses and names | Verify |
 |---|---|---|
@@ -298,10 +298,9 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
   difference can only matter on an exact multiple of 16 (SetRamp's wrapper would show it). Draw's blend is
   trunc((step + phase) / 16 * 254 + 1); the original's third SetRamp argument is the fade speed.
 
-## A-S5 (2026-10-07): the rest of 0x004C0000-0x00500000
+## Decals, matrices, text archive list, zone exit; what is left of 0x004C0000-0x00500000
 
-Classification of what was left (363 functions, 90.6 KB, before this ticket; config/functions.csv `game` minus
-library, dead and EI_REPLACE):
+Classification of what was left at the time of the sweep (363 functions, 90.6 KB; config/functions.csv `game` minus library, dead and EI_REPLACE):
 
 | Kind | Functions | Decision |
 |---|---|---|
@@ -329,23 +328,12 @@ with a clear sign inside); the vertex arrays are 4-vertex SoA packets (x[4], y[4
 the packets by triangles * 3 / 4 + 1 + the vertex count (not count / 4: over-reserves, kept); `Finish` pads the last
 packet with copies of vertex 0. The statics' guard bits and empty atexit handlers are not reproduced. A triangle
 whose corner lies on a clipping edge can come out differently if a distance rounds across zero (rule 7).
-X17 (2026-10-07): ClipPlane / AddTriangle / AddTerrainTriangle mismatched on vertex contents (counts equal). The stage
-pipeline is the same as the original's (checked against 004D7BD0 / 004D74B0 / 004D71D0: same order, same buffer reuse);
-the cause is `/fp:fast` summing the projections (u, v, plane distance) as (z + y) + (x + offset) where the original does
-((z + y) + x) + offset. The sums cancel to small values, so they differ by ULPs of the largest product, which the
-appended-vertex check's 4 ULP / 1e-6 missed (e.g. a fully inside terrain triangle, "0 -> 3 / 3", differs only in u / v).
-The wrapper now compares appended vertices within 1e-3 + 1e-5 relative (`NearClipped`); ours unchanged (rule 7).
-X18 (2026-10-07): 12 of 37M AddTerrainTriangle calls still differ by whole triangles or a corner > 0.05. Read against
-the disassembly again: 004D8490 is AddTriangle's code (corner u / v as ((z + y) + x) + offset, one triangle at 007AA6D0,
-then 004D7BD0); 004D7BD0 / 004D71D0 clip plane -> u -> v -> 1 - u -> 1 - v (1 - u as FLD 1.0; FSUB, so u = 1 gives +0,
-inside), second triangles in the per-stage buffers, the same depth-first order as `ClipStage`; 004D6E90's inside test
-is NOT; SHR 31 on the bits, as ours. No real difference found. Note that in the verify build the original 004D8490 calls
-the hooked 004D7BD0 (whose wrapper ends with ours), so the AddTerrainTriangle check compares only the corners' u / v
-rounding: a corner within rounding of u or v = 0 / 1, or an edge lying along a clip line (both ends near 0, so
-Interpolate divides by a tiny dq - dp), can come out on the other side and change the triangles that follow (rule 7).
-The wrapper now logs the first 4 counted mismatches ("AddTerrainTriangle mismatch N": the decal's axes, offsets and
-plane, each corner with its exact plane distance and u / v, both outputs with x y z u v and indices); disabled until a
-run shows the case.
+Verify lessons (rule 7): `/fp:fast` sums the projections (u, v, plane distance) as (z + y) + (x + offset) where the original does ((z + y) + x) + offset; the sums
+cancel to small values and differ by ULPs of the largest product, so the wrapper compares appended vertices within 1e-3 + 1e-5 relative (`NearClipped`) and ours is unchanged. The stage
+order and buffer reuse were checked against 004D7BD0 / 004D74B0 / 004D71D0 / 004D8490 (clip plane -> u -> v -> 1 - u -> 1 - v; 1 - u as FLD 1.0; FSUB, so u = 1 gives +0, inside;
+004D6E90's inside test is NOT; SHR 31 on the bits). In the verify build the original 004D8490 calls the hooked 004D7BD0 (ending with ours), so AddTerrainTriangle compares only the
+corners' u / v rounding: a corner within rounding of u or v = 0 / 1, or an edge along a clip line (Interpolate dividing by a tiny dq - dp), can land on the other side and change the
+triangles that follow (about 12 of 37M calls). The wrapper logs the first 4 counted mismatches ("AddTerrainTriangle mismatch N"; disabled until a run shows the case).
 
 ### View and light matrices (`view_matrices.cpp`, `view_matrices.h`)
 
@@ -382,7 +370,7 @@ Contains: a zero or NaN angle tests the rectangle as is (x1 > x, x > x2, y1 > y,
 the point is turned by -angle about the centre (centre x and the x offset kept unrounded, as the original keeps
 them on the FPU stack) and a NaN turned x is outside.
 
-## A-S6 (2026-10-07): the rest of 0x004C0000-0x00500000, continued
+## Buffered file streams and link figures
 
 ### Buffered file streams (`buffered_file.cpp`, `buffered_file.h`)
 
@@ -437,13 +425,12 @@ Original bug kept: `RemovePart` lowers the later parts' starts by the removed pa
 right for the first part), and picks the later parts by their index start alone.
 Not ported: slots 7-14 (004F3870 ... 004F4850): part draws through the D3D device (renderer direction).
 
-X19 (2026-10-07): `AddPart` 004F30F0 returns a bool in AL, not an int: its success path ends `MOV EDI,EAX` (004F4CE0's
-value pointer) then `MOV AL,1`, so EAX's upper bytes are that pointer. The wrapper read the trampoline's result as int,
-so `expected == actual` failed on every call (the port itself matched). `AddPart` and the trampoline are now `bool`;
-the AddPart and loader checks name the first differing field ("result", "vertex count", ..., "vertex", "normals", ...,
-"ranges", "bounds", "cursor or header"). Removed from disabled.txt.
+Verify lessons: `AddPart` 004F30F0 returns a bool in AL, not an int (its success path ends `MOV EDI,EAX` then `MOV AL,1`, so EAX's upper bytes are 004F4CE0's value pointer); the wrapper
+and trampoline are `bool`, and the AddPart / loader checks name the first differing field. `corners_` is `lib::AlignedArray<IndexTriangle>` (6-byte elements): `AppendedDiff` must
+compare in triangle units (a `* 3` offset in 6-byte units read past the block and crashed in SameBytes), with a capacity guard ("array bounds") and static_asserts on the CLinkMesh
+array offsets and element sizes.
 
-### A-S6 leftovers (next ticket)
+### Next candidates in this range
 
 Loader slots and members 004F77C0 (load a .lnk), 004F7B10 / 004F7D20 / 004F7150 / 004F7080 / 004F75E0 / 004F7480 /
 004F7370 (cache multimap +0x28 of meshes by name and morph; strings and refcounts with EH paths), the mesh constructor /
@@ -452,12 +439,3 @@ destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the l
 map members around 004F4CD0-004F5F00 (classify as library); rain / snow draws 004E4240 / 004E4C80 (build vertices then
 draw through the device: coordinate with the renderer), the fog object's slots 004E2290-004E24E0 (never reached in the
 current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004D6BA0, the .mob decoder 004D8E10.
-
-X20 (2026-10-07): the link figure checks after D3. corners_ became lib::AlignedArray<IndexTriangle>
-(6-byte elements; before it was a uint16_t* array indexed per index), and link_figure.cpp was
-converted to triangle indexing, but AppendedDiff still compared `corners_.data + before.corners * 3`
-over `added.corners * 3` elements: three times the offset and length in 6-byte units, so every call
-"differed" and reading past the block crashed (C0000005 in SameBytes<IndexTriangle>). Fixed the check
-to triangle units, added a capacity guard before the element comparisons ("array bounds"), and
-static_asserts on the CLinkMesh array offsets and element sizes. 004F30F0 / 004F7F00 / 004F87D0
-re-enabled.
