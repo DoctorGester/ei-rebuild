@@ -9,16 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// MFC CArray<T> layout (0x14 bytes); the game's template instantiations do the resizing.
-template <typename T>
-struct GameArray {
-    void* vtable;
-    T* data;        // +0x04
-    int size;       // +0x08
-    int capacity;   // +0x0C
-    int growBy;     // +0x10 0 = an eighth of the size, clamped to 4..1024
-};
-static_assert(sizeof(GameArray<int>) == 0x14);
+// GameArray (the MFC CArray<T> layout) is in ai_map.h.
 
 // The first 0x20 bytes of AIPath: what the unit is told to do. Kinds:
 //   0 stand at (x, y) facing `angle` (set by Start / Reset),

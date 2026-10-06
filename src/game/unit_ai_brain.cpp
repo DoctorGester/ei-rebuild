@@ -399,7 +399,48 @@ void __fastcall ForgetHook(std::uint8_t* memory, void*, CEngineObject* object) {
 EI_REPLACE(0x005CC020, ForgetHook);
 
 
-__declspec(naked) void AICallArray::Update(CUnit*, void*) EI_ORIGINAL(0x005CC9D0)
+void AICallRecord::Destruct() { reinterpret_cast<mfc::CString*>(&text)->~CString(); }
+EI_REPLACE_METHOD(0x00558D00, AICallRecord::Destruct);
+
+std::uintptr_t UnitController::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
+EI_REPLACE_METHOD(0x00552CF0, UnitController::AddHostileMask);
+
+void AICallArray::Update(CUnit* unit, void* memoryArg) {
+    AIBrain* brain = BrainOfMemory(static_cast<std::uint8_t*>(memoryArg));
+    for (int i = 0; i < size; ++i) {
+        AICallRecord& call = data[i];
+        if (--call.kind >= 0) continue;
+        if (call.unknown_10 != 0) {
+            console::GameOStream* log = &(*AiLog() << "Unit ");
+            log = static_cast<console::GameOStream*>(OstreamPutLongOriginal(log, nullptr, unit->id_));
+            console::EndLine(*log << " hear delayed sound: " << call.text);
+            ControllerAddHostileMaskOriginal(unit->controller, nullptr, static_cast<std::uint32_t>(call.unknown_10));
+        } else if (brain->noticedLevel < 900) {
+            // The inlined Notice of level 900: logged when the level rises by more than 100 or the
+            // point is more than sqrt(10) away (TEST AH,0x41: NaN is near).
+            bool changed = true;
+            if (900 - brain->noticedLevel <= 100) {
+                float dx = call.point.x - brain->noticedX;
+                float dy = call.point.y - brain->noticedY;
+                float dz = call.point.z - 0.0f;
+                changed = dz * dz + dy * dy + dx * dx > 10.0f;
+            }
+            float copy[2];
+            const float* point = CopyPoint2Original(copy, &call.point.x);
+            brain->noticedX = point[0];
+            brain->noticedLevel = 900;
+            brain->noticedY = point[1];
+            brain->noticedKind = -3;
+            if (changed) console::EndLine(*AiLog() << "Delayed sound: " << call.text);
+        }
+        call.Destruct();
+        int after = size - i - 1;
+        if (after != 0) GameMemmove(&data[i], &data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
+        --size;
+        --i;
+    }
+}
+EI_REPLACE_METHOD(0x005CC9D0, AICallArray::Update);
 
 void AIBrain::UpdateMemory(UnitController* who) {
     for (int i = 0; i < reports.size; ++i) {
@@ -413,7 +454,7 @@ void AIBrain::UpdateMemory(UnitController* who) {
         --reports.size;
         --i;
     }
-    calls.Update(who->unit, memory);
+    AiCallsUpdateOriginal(&calls, nullptr, who->unit, memory);
     // The AI events are the world server's +0x2838 (007B2798).
     AiEventsUpdateMemoryOriginal(WorldServer()->timeWheel_, nullptr, who, memory);
     noticedLevel += noticedKind;
