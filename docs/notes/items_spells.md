@@ -39,6 +39,16 @@ Weapon stats as the unit stats code (00538960) combines them: min damage = weapo
 max = (spread + damage) x material damage, attack = weapon attack x material attack, damage type = first
 non-zero weight (6 if none).
 
+Record values (item_db_records.cpp, A-H6; ours only, every run: the vectors grow while the databases load): 006A8F20
+ItemRecordHead::Assign (three strings, +0x0C, +0x14..+0x1C, +0x34..+0x4C, byte +0x68, CStringArray::Copy of +0x20; the
++0x50 array, +0x64 and +0x6C are not copied) and the five kinds' uninitialized_copy / uninitialized_fill_n (__fastcall, RET 8,
+the second stack argument an unused tag): weapons 006AB9C0 / 006ABB50 (vtable 00744068; own bytes +0x6C..+0x83, +0x8C..+0xB4),
+armour 006ABCD0 / 006ABE20 (00744064; +0x6C..+0xB4), quick 006ABF60 / 006AC0D0 (0074405C; +0x70 and +0x80..+0x8A, the string
++0x7C constructed empty, the category not copied), the 0x7C kind 006AC240 / 006AC3B0 (00744058; +0x6C, its zone vector +0x70
+left empty), the 0x78 kind 006AC520 / 006AC640 (00744054; +0x6C..+0x77). Kept: the copies drop the fields listed as not
+copied. Not ported (not reached while loading: the vectors start empty): the kinds' operator= (006A8FB0 ...) and destructors
+(006A88F0, 006A8950, 006A89D0, 006A8A50, 006A8AE0, 006A8BD0).
+
 ## Item rules (scenario items)
 
 | Address | Name | Verify |
@@ -145,9 +155,7 @@ for +0x50). Record Load: the original Save gives back the bytes read. LoadParty 
 (items registered under their ids; the copy equals the source). Global 007C8344 = the party being loaded
 (LoadingParty). StatsLoad / StatsSave moved to originals_units.h.
 
-Candidates next: DeltaField's empty (00675F70, 19 callers) with the effect constructors /
-destructors, item database record assignment and destructors (006A8F20 with 24 callers, 006A8FB0, 006A88F0..),
-
+Candidates next: 
 
 Unit records (party_members.cpp, A-H6; all ours only, scenario party_records): 006628D0 AddMember (Create when no item
 manager; a stack record constructed, assigned to the new entry, destroyed; name / key / prototype / extra), 006621F0
