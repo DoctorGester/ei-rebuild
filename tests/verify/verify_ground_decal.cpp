@@ -48,26 +48,26 @@ bool NearClippedVertex(const DecalVertex& a, const DecalVertex& b) {
 
 // A deep copy of an aligned array: the same header with its own buffer of the same capacity.
 template <typename T>
-void CloneArray(AlignedArray<T>* to, const AlignedArray<T>* from) {
+void CloneArray(lib::AlignedArray<T>* to, const lib::AlignedArray<T>* from) {
     *to = *from;
     if (from->data) {
-        to->data = AlignedArray<T>::Allocate(from->capacity);
+        to->data = lib::AlignedArray<T>::Allocate(from->capacity);
         std::memcpy(to->data, from->data, static_cast<std::size_t>(from->capacity) * sizeof(T));
     }
 }
 template <typename T>
-void FreeArray(AlignedArray<T>* a) {
-    if (a->data) AlignedArray<T>::Free(a->data);
+void FreeArray(lib::AlignedArray<T>* a) {
+    if (a->data) lib::AlignedArray<T>::Free(a->data);
 }
 
 struct BuilderCopy {
     DecalBuilder builder;
-    AlignedArray<VertexPacket> points{};
-    AlignedArray<DecalTexCoord> texCoords{};
-    AlignedArray<std::uint16_t> indices{};
+    lib::AlignedArray<VertexPacket> points{};
+    lib::AlignedArray<DecalTexCoord> texCoords{};
+    lib::AlignedArray<std::uint16_t> indices{};
 
-    BuilderCopy(const DecalBuilder& real, AlignedArray<VertexPacket>* p, AlignedArray<DecalTexCoord>* t,
-                AlignedArray<std::uint16_t>* i) {
+    BuilderCopy(const DecalBuilder& real, lib::AlignedArray<VertexPacket>* p, lib::AlignedArray<DecalTexCoord>* t,
+                lib::AlignedArray<std::uint16_t>* i) {
         std::memcpy(&builder, &real, sizeof(DecalBuilder));
         if (p) CloneArray(&points, p);
         if (t) CloneArray(&texCoords, t);
@@ -84,11 +84,11 @@ struct BuilderCopy {
 };
 
 template <typename T>
-bool SameShape(const AlignedArray<T>& a, const AlignedArray<T>& b) {
+bool SameShape(const lib::AlignedArray<T>& a, const lib::AlignedArray<T>& b) {
     return a.size == b.size && a.capacity == b.capacity && a.growBy == b.growBy && (a.data == nullptr) == (b.data == nullptr);
 }
 
-DecalVertex VertexAt(const AlignedArray<VertexPacket>& points, const AlignedArray<DecalTexCoord>* texCoords, int i) {
+DecalVertex VertexAt(const lib::AlignedArray<VertexPacket>& points, const lib::AlignedArray<DecalTexCoord>* texCoords, int i) {
     const VertexPacket& p = points.data[i / 4];
     DecalVertex v = {p.block[0][i & 3], p.block[1][i & 3], p.block[2][i & 3], 0.0f, 0.0f};
     if (texCoords) {
@@ -310,11 +310,11 @@ DecalBuilder* __fastcall ConstructVerify(DecalBuilder* self) {
 // ---- Reallocating functions: the original on a deep copy ---------------------------------------
 
 template <typename T>
-bool SameElements(const AlignedArray<T>& a, const AlignedArray<T>& b, int count) {
+bool SameElements(const lib::AlignedArray<T>& a, const lib::AlignedArray<T>& b, int count) {
     return count <= 0 || std::memcmp(a.data, b.data, static_cast<std::size_t>(count) * sizeof(T)) == 0;
 }
 
-bool SameVertices(const AlignedArray<VertexPacket>& a, const AlignedArray<VertexPacket>& b, int count) {
+bool SameVertices(const lib::AlignedArray<VertexPacket>& a, const lib::AlignedArray<VertexPacket>& b, int count) {
     for (int i = 0; i < count; ++i) {
         DecalVertex x = VertexAt(a, nullptr, i), y = VertexAt(b, nullptr, i);
         if (std::memcmp(&x, &y, sizeof(x)) != 0) return false;
@@ -340,8 +340,8 @@ void __fastcall ReserveVerify(DecalBuilder* self, void*, int triangles) {
 // 004D89A0: SUB ESP,0x10 (3), PUSH EBX, PUSH EBP.
 void(__fastcall* s_finish)(DecalBuilder*);
 void __fastcall FinishVerify(DecalBuilder* self) {
-    AlignedArray<VertexPacket>* points = self->points_;
-    AlignedArray<std::uint16_t>* indices = self->indices_;
+    lib::AlignedArray<VertexPacket>* points = self->points_;
+    lib::AlignedArray<std::uint16_t>* indices = self->indices_;
     BuilderCopy copy(*self, points, self->texCoords_, indices);
     s_finish(&copy.builder);
     self->Finish();
@@ -354,10 +354,10 @@ void __fastcall FinishVerify(DecalBuilder* self) {
 }
 
 // 004D8000: PUSH EBP, MOV EBP,ESP (2), SUB ESP,0x30 (3): 6.
-void(__fastcall* s_begin)(DecalBuilder*, void*, AlignedArray<VertexPacket>*, AlignedArray<DecalTexCoord>*,
-                          AlignedArray<std::uint16_t>*, float* const*, const Vector3*, const Vector3*, float);
-void __fastcall BeginVerify(DecalBuilder* self, void*, AlignedArray<VertexPacket>* points,
-                            AlignedArray<DecalTexCoord>* texCoords, AlignedArray<std::uint16_t>* indices,
+void(__fastcall* s_begin)(DecalBuilder*, void*, lib::AlignedArray<VertexPacket>*, lib::AlignedArray<DecalTexCoord>*,
+                          lib::AlignedArray<std::uint16_t>*, float* const*, const Vector3*, const Vector3*, float);
+void __fastcall BeginVerify(DecalBuilder* self, void*, lib::AlignedArray<VertexPacket>* points,
+                            lib::AlignedArray<DecalTexCoord>* texCoords, lib::AlignedArray<std::uint16_t>* indices,
                             float* const* corners, const Vector3* direction, const Vector3* point, float depth) {
     BuilderCopy copy(*self, points, texCoords, indices);
     s_begin(&copy.builder, nullptr, &copy.points, &copy.texCoords, &copy.indices, corners, direction, point, depth);

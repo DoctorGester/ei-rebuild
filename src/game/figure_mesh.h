@@ -7,31 +7,10 @@
 #include "maths.h"
 #include "model.h"
 
+#include "lib/containers.h"
+
 #include <cstddef>
 #include <cstdint>
-
-// The 32-byte aligned growable arrays of the mesh (the operator_new block pointer is stored just
-// before the data). 16 bytes; the same template as TriangleIndexArray (004F57B0) and 005A6E70.
-template <typename T>
-struct AlignedArray {
-    T* data;        // +0x00
-    int size;       // +0x04
-    int capacity;   // +0x08
-    int growBy;     // +0x0C 0 = size / 8 clamped to 4..1024
-
-    // Resizes to `count` elements keeping the contents; 0 frees the buffer. This is the code the
-    // original inlines in every loader (and 005A6E70 / 0044FA90 / 004F57B0 out of line with a
-    // growBy argument, -1 = keep).
-    void SetSize(int count);
-    // 005A6E70 for uint32 (the colour arrays): SetSize with a new growth step (-1 = keep). RET 8.
-    void Resize(int count, int newGrowBy) {
-        if (newGrowBy != -1) growBy = newGrowBy;
-        SetSize(count);
-    }
-
-    static T* Allocate(int count);
-    static void Free(T* data);
-};
 
 // Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the
 // loaders set w to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2 (005A0CD0).
@@ -141,9 +120,9 @@ public:
     std::uint8_t unknown_028[0x9C - 0x28];
     MeshBuffers buffers_;               // +0x09C
     std::uint8_t unknown_0CC[0x128 - 0xCC];
-    AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
-    AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
-    AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
+    lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
+    lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
+    lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
     std::uint32_t unknown_158;          // +0x158 from the file header
     std::uint32_t unknown_15C;          // +0x15C from the file header
     Vector3 center_;                    // +0x160
@@ -152,13 +131,13 @@ public:
     float radius_;                      // +0x184
     ClipBounds bounds_;                 // +0x188
     std::uint8_t unknown_1B4[0x1C0 - 0x1B4];
-    AlignedArray<VertexPacket> vertices_;     // +0x1C0
-    AlignedArray<NormalPacket> normals_;    // +0x1D0
+    lib::AlignedArray<VertexPacket> vertices_;     // +0x1C0
+    lib::AlignedArray<NormalPacket> normals_;    // +0x1D0
     // Class 0x41 ends here (0x1E0 bytes).
-    AlignedArray<MeshCorner> corners_;  // +0x1E0
-    AlignedArray<std::uint32_t> words_;     // +0x1F0
-    AlignedArray<std::uint16_t> indices_;    // +0x200
-    AlignedArray<TexCoord> texCoords_;       // +0x210
+    lib::AlignedArray<MeshCorner> corners_;  // +0x1E0
+    lib::AlignedArray<std::uint32_t> words_;     // +0x1F0
+    lib::AlignedArray<std::uint16_t> indices_;    // +0x200
+    lib::AlignedArray<TexCoord> texCoords_;       // +0x210
 };
 static_assert(offsetof(CFigureMesh, flags_) == 0x08);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
@@ -196,59 +175,3 @@ void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, fl
 // 005AB9A0. The same for figure parts without a FIG header: 6 corner versions of each value,
 // blended as the bones are. RET 0x14.
 void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u);
-
-// ---- AlignedArray -------------------------------------------------------------------------------
-
-#include "lib/crt.h"
-
-#include <cstring>
-
-template <typename T>
-T* AlignedArray<T>::Allocate(int count) {
-    char* block = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(count * static_cast<int>(sizeof(T)) + 0x24)));
-    T* data = reinterpret_cast<T*>(reinterpret_cast<std::uintptr_t>(block + 0x23) & ~std::uintptr_t(0x1F));
-    reinterpret_cast<char**>(data)[-1] = block;
-    return data;
-}
-
-template <typename T>
-void AlignedArray<T>::Free(T* p) {
-    gamecrt::operator_delete(reinterpret_cast<char**>(p)[-1]);
-}
-
-template <typename T>
-void AlignedArray<T>::SetSize(int count) {
-    if (count == 0) {
-        if (data) {
-            Free(data);
-            data = nullptr;
-        }
-        capacity = 0;
-        size = 0;
-        return;
-    }
-    if (!data) {
-        data = Allocate(count);
-        capacity = count;
-        size = count;
-        return;
-    }
-    if (count <= capacity) {
-        size = count;
-        return;
-    }
-    int step = growBy;
-    if (step == 0) {
-        step = size / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int newCapacity = step + capacity;
-    if (count >= newCapacity) newCapacity = count;
-    T* fresh = Allocate(newCapacity);
-    std::memcpy(fresh, data, static_cast<std::size_t>(size) * sizeof(T));
-    Free(data);
-    data = fresh;
-    size = count;
-    capacity = newCapacity;
-}

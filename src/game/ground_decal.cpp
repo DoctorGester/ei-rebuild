@@ -33,9 +33,9 @@ float Project(const Vector3& axis, const float* p, float offset) {
 // Keeps the buffer and sets the size to 0; a missing buffer is allocated for 0 elements (the
 // growth branch for a negative capacity is the template's, never taken).
 template <typename T>
-void EmptyKeepingBuffer(AlignedArray<T>* a) {
+void EmptyKeepingBuffer(lib::AlignedArray<T>* a) {
     if (!a->data) {
-        a->data = AlignedArray<T>::Allocate(0);
+        a->data = lib::AlignedArray<T>::Allocate(0);
         a->capacity = 0;
         a->size = 0;
         return;
@@ -52,8 +52,8 @@ void EmptyKeepingBuffer(AlignedArray<T>* a) {
     }
     int capacity = step + a->capacity;
     if (capacity <= 0) capacity = 0;
-    T* fresh = AlignedArray<T>::Allocate(capacity);
-    AlignedArray<T>::Free(a->data);
+    T* fresh = lib::AlignedArray<T>::Allocate(capacity);
+    lib::AlignedArray<T>::Free(a->data);
     a->data = fresh;
     a->size = 0;
     a->capacity = capacity;
@@ -139,8 +139,8 @@ DecalBuilder* DecalBuilder::Construct() {
     return this;
 }
 
-void DecalBuilder::Begin(AlignedArray<VertexPacket>* points, AlignedArray<DecalTexCoord>* texCoords,
-                         AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
+void DecalBuilder::Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
+                         lib::AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                          const Vector3* point, float depth) {
     std::memcpy(&direction_, direction, sizeof(Vector3));
     std::memcpy(&point_, point, sizeof(Vector3));
@@ -211,7 +211,7 @@ void DecalBuilder::Reserve(int triangles) {
     int corners = triangles * 3;
     texCoords_->SetSize(corners + vertexCount_);
     points_->SetSize(corners / 4 + 1 + vertexCount_);
-    indices_->Resize(indexCount_ + corners, -1);
+    indices_->SetSize(indexCount_ + corners, -1);
 }
 
 std::uint16_t DecalBuilder::AddVertex(const DecalVertex* v) {
@@ -282,8 +282,8 @@ void DecalBuilder::AddTerrainTriangle(const Vector3* a, const Vector3* b, const 
 }
 
 void DecalBuilder::Finish() {
-    AlignedArray<VertexPacket>* points = points_;
-    AlignedArray<std::uint16_t>* indices = indices_;
+    lib::AlignedArray<VertexPacket>* points = points_;
+    lib::AlignedArray<std::uint16_t>* indices = indices_;
     points->SetSize((vertexCount_ + 3) / 4);
     indices->SetSize(indexCount_);
     for (int i = vertexCount_; i < points->size * 4; ++i) {

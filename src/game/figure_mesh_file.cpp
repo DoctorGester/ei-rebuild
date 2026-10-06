@@ -74,13 +74,13 @@ void CFigureMesh::LoadFromFile(void* file) {
     Read(file, texCoords_.data, count * 8);
     ReadCount(file);   // the 0 the writer puts here
     count = ReadCount(file);
-    corners_.Resize(count, -1);
+    corners_.SetSize(count, -1);
     Read(file, corners_.data, count * 6);
     count = ReadCount(file);
-    words_.Resize(count, -1);
+    words_.SetSize(count, -1);
     Read(file, words_.data, count * 4);
     count = ReadCount(file);
-    indices_.Resize(count, -1);
+    indices_.SetSize(count, -1);
     Read(file, indices_.data, count * 2);
     Read(file, &center_, 12);
     Read(file, &boxMin_, 12);

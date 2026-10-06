@@ -86,14 +86,14 @@ std::uint8_t* __fastcall AllocateBlocks32(int count) {
     struct Block32 {
         std::uint8_t bytes[32];
     };
-    return reinterpret_cast<std::uint8_t*>(AlignedArray<Block32>::Allocate(count));
+    return reinterpret_cast<std::uint8_t*>(lib::AlignedArray<Block32>::Allocate(count));
 }
 
 std::uint8_t* __fastcall AllocateBlocks8(int count) {
     struct Block8 {
         std::uint8_t bytes[8];
     };
-    return reinterpret_cast<std::uint8_t*>(AlignedArray<Block8>::Allocate(count));
+    return reinterpret_cast<std::uint8_t*>(lib::AlignedArray<Block8>::Allocate(count));
 }
 
 } // namespace view
