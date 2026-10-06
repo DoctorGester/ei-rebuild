@@ -145,3 +145,8 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   Kept: Score's group bonus counts the group minus one for kinds 1 and 4..7, the whole group for 2 and 3; kind 3 multiplies
   by (effect / 4) / 2; the weapons are only scored when `alliesOnly` is off; the order checked for a target off the path
   has an uninitialised point (ours zero).
+- `unit_ai_memory.cpp`: 005CB260 FindEnemies, 005CB480 FindEnemiesNear, 005CB670 NearestEnemy, 005CBC80 ForceSee ("is forced to
+  see unit"), 005CD500 AddCountedTail. Verify: the two list queries output (the original into an empty scratch list, element
+  sequences compared), NearestEnemy pure, ForceSee and AddCountedTail ours only (list deltas). Kept: FindEnemiesNear asks the
+  visible unit's IsHostileTo(self) where the others ask the unit's; ForceSee's "sight" test compares the observer's ranges as
+  the original does (forced when at or beyond either of them, or when the object attacks the unit).

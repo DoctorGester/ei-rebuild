@@ -57,7 +57,9 @@ struct UnitController {
     std::uint8_t unknown_1C0[0x1E0 - 0x1C0];
     UnitStats stats;                // +0x1E0
     std::uint16_t protection[8];    // +0x8E4 what an attack's damage words are measured against (00522AE0)
-    std::uint8_t unknown_8F4[0x980 - 0x8F4];
+    std::uint8_t unknown_8F4[4];
+    float moveFactors[4];           // +0x8F8 (CUnitServer::moveFactors)
+    std::uint8_t unknown_908[0x980 - 0x908];
     std::uint8_t brain[0x190];      // +0x980 the AIBrain (Brain())
 
     AIBrain* Brain();
@@ -575,6 +577,10 @@ static_assert(sizeof(AIAttention) == 0x2C);
 // 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
 
+// 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
+// holding a reference; returns the node.
+AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void* edx, CEngineObject* object);
+
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
     // Actions (`action`).
@@ -705,6 +711,23 @@ struct AIBrain {
     void CurrentAttack(int* partAndObject);
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
     void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
+
+    // unit_ai_memory.cpp (thiscall on the memory +0xD0 in the original; the modes call them
+    // through their addresses).
+    // 005CB260 (RET 8). `out` emptied, then the visible units hostile to the unit (its
+    // IsHostileTo), alive and not reported, in visible-list order (no references taken).
+    void FindEnemies(CUnit* self, AIObjectList* out);
+    // 005CB480 (RET 0x10). The same with the visible unit's own IsHostileTo(self); one at or beyond
+    // `radius` of `point` (3D; all of them for a radius <= 0) only when it has an aggression mode
+    // (not a fixed one without an enemy) whose enemy is none, not a unit, or a unit of a side the
+    // unit's side is allied with, and its brain sees an enemy.
+    void FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius);
+    // 005CB670 (RET 4). The nearest (3D) visible unit hostile to the unit and alive, or null.
+    CUnit* NearestEnemy(CUnit* self);
+    // 005CBC80 (RET 8). Forces `object` into sight when it is not visible and attacks the unit or
+    // stands at or beyond one of the two sight ranges: a corpse joins +0x12C (and the corpses
+    // when allied), a living unit the visible list's head (both counted); each logged.
+    void ForceSee(CUnit* self, CEngineObject* object);
     bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
     void Perceive(UnitController* owner);       // 005CB700 through its address (UpdateMemory)
     // 005CB700 (thiscall on +0xD0; unit_ai_brain.cpp). Ages the reports (one tick off each; an
