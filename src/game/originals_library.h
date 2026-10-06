@@ -135,6 +135,11 @@ __declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORI
 // tag 0042A4F0 (RET 0xC, returns this); the end-of-storage proxy 00425080 (RET 8, returns this).
 __declspec(naked) inline void* __fastcall StringAssignRangeOriginal(void* /*string*/, void*, const char* /*first*/,
                                                                     const char* /*last*/) EI_ORIGINAL(0x00426A80)
+// 0040C2A0: STLport string range append as assign(first, last) inlines it (the fourth argument is the
+// string again or the range's end; not read for this iterator kind). No result used.
+__declspec(naked) inline void __fastcall StringAppendTailOriginal(void* /*string*/, void*, const char* /*first*/,
+                                                                  const char* /*last*/, const void* /*tag*/)
+    EI_ORIGINAL(0x0040C2A0)
 __declspec(naked) inline char* __fastcall StringEraseOriginal(void* /*string*/, void*, char* /*first*/, char* /*last*/)
     EI_ORIGINAL(0x0040B3C0)
 __declspec(naked) inline void* __fastcall StringAssignTaggedOriginal(void* /*string*/, void*, const char* /*first*/,
