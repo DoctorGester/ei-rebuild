@@ -135,6 +135,8 @@ bool Destroyed(const CEffectSoundSeq* e) { return DestroyedBase(e) && e->sound_ 
 bool Destroyed(const CEffectPointLight* e) { return DestroyedBase(e) && e->light_ == nullptr; }
 bool Destroyed(const CEffectParticle* e) { return DestroyedBase(e) && e->source_ == nullptr && e->attachedTo_ == -1; }
 bool Destroyed(const CEffectLightning* e) { return DestroyedBase(e) && e->bolt_ == nullptr && e->toObject_ == -1; }
+bool Destroyed(const CEffectArrow* e);
+bool Destroyed(const CEffectShowVisibility* e);
 
 // A destructor body called directly (only slot 0 calls them).
 template <typename T>
@@ -179,7 +181,66 @@ CEffectLightning* __fastcall LightningDeleteVerify(CEffectLightning* self, void*
     return DeleteOurs("CEffectLightning::DeletingDestruct", self, flags);
 }
 
+// CEffectArrow (world_effect_missile.cpp; scenario spells): the three parts destroyed as well.
+CEffectArrow*(__fastcall* s_arrowCtor)(CEffectArrow*);
+CEffectArrow* __fastcall ArrowCtorVerify(CEffectArrow* self) { return ConstructBoth("CEffectArrow::Construct", s_arrowCtor, self); }
+bool Destroyed(const CEffectArrow* e) {
+    return DestroyedBase(e) && Destroyed(&e->Particle()) && Destroyed(&e->Light()) && Destroyed(&e->Sound()) &&
+           e->targetId_ == -1;
+}
+void __fastcall ArrowDestructVerify(CEffectArrow* self) { DestructOurs("CEffectArrow::Destruct", self); }
+CEffectArrow* __fastcall ArrowDeleteVerify(CEffectArrow* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectArrow::DeletingDestruct", self, flags);
+}
+
+// CEffectShowVisibility (world_effect_visibility.cpp; scenario spells_cast): both allocate the
+// grid's cells and rows, so those two pointers are compared by shape (rows[0] == cells) and the
+// original's blocks are freed with its scratch.
+CEffectShowVisibility*(__fastcall* s_visibilityCtor)(CEffectShowVisibility*);
+CEffectShowVisibility* __fastcall VisibilityCtorVerify(CEffectShowVisibility* self) {
+    auto* scratch = static_cast<CEffectShowVisibility*>(gamecrt::operator_new(sizeof(CEffectShowVisibility)));
+    std::memcpy(scratch, self, sizeof(CEffectShowVisibility));
+    CEffectShowVisibility* expected = s_visibilityCtor(scratch);
+    CEffectShowVisibility* actual = self->Construct();
+    bool shape = scratch->grid_.rows[0] == scratch->grid_.cells && self->grid_.rows[0] == self->grid_.cells;
+    gamecrt::operator_delete(scratch->grid_.cells);
+    gamecrt::operator_delete(scratch->grid_.rows);
+    scratch->grid_.cells = self->grid_.cells;
+    scratch->grid_.rows = self->grid_.rows;
+    int diff = FirstDifference(scratch, self, sizeof(CEffectShowVisibility));
+    ei::verify::Check("CEffectShowVisibility::Construct", true, diff < 0 && shape && expected == scratch && actual == self,
+                      "object %p: first difference at +0x%X", self, diff);
+    gamecrt::operator_delete(scratch);
+    return actual;
+}
+bool Destroyed(const CEffectShowVisibility* e) {
+    return DestroyedBase(e) && e->fog_ == nullptr && e->seerId_ == -1 && e->observerId_ == -1;
+}
+void __fastcall VisibilityDestructVerify(CEffectShowVisibility* self) {
+    DestructOurs("CEffectShowVisibility::Destruct", self);
+}
+CEffectShowVisibility* __fastcall VisibilityDeleteVerify(CEffectShowVisibility* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectShowVisibility::DeletingDestruct", self, flags);
+}
+
+// The factory (every effect created; scenarios spells, effects): ours only (it allocates). A new
+// object reports the requested class id (slot 12) and carries it in type_.
+CEngineObject* __fastcall EffectNewObjectVerify(CBaseManager* manager, void*, int type) {
+    CEngineObject* object = EffectNewObject(manager, nullptr, type);
+    bool ok = object == nullptr || (object->type_ == type && object->GetClassId() == type);
+    ei::verify::Check("EffectNewObject", true, ok, "type %X object %p", type, object);
+    return object;
+}
+
 } // namespace
+
+EI_VERIFY(0x0067E170, EffectNewObjectVerify, 0, s_unused);
+EI_VERIFY(0x0067C340, VisibilityCtorVerify, 7, s_visibilityCtor);
+EI_VERIFY(0x0067C490, VisibilityDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067C470, VisibilityDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0067AE30, ArrowCtorVerify, 7, s_arrowCtor);
+EI_VERIFY(0x0067B1C0, ArrowDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067B1A0, ArrowDeleteVerify, 0, s_unused);
 
 EI_VERIFY(0x0066C4F0, QueueStreamVerify, 11, s_queueStream);
 EI_VERIFY(0x00677EC0, FieldCtorVerify, 5, s_fieldCtor);

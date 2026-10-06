@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CMemoryStream;   // core_streams.h
+
 // One particle (0x64 bytes, allocated by the source's pool 00498870). The source's tick saves the
 // "prev" fields before calling the update callback and restores them when it returns 0. The
 // meaning of +0x20..+0x40 depends on the source type; the comments name the types rewritten here.
@@ -411,13 +413,19 @@ static_assert(sizeof(FogCell) == 0x18);
 
 // The squares currently seen: rows of bytes, nonzero = visible.
 struct FogGrid {
+    // World-side members (not rewritten; called through their addresses).
+    void Clear();                         // 005C8B60: no origin (0x7FFFFFFF), 1 x 1, zeroed
+    void Read(CMemoryStream* stream);     // 005C8BF0
+    void Write(CMemoryStream* stream);    // 005C8CC0
+
     int x0;                         // +0x00
     int y0;                         // +0x04
-    int unknown_08;
-    std::uint8_t** rows;            // +0x0C
+    std::uint8_t* cells;            // +0x08 width * height bytes (operator new)
+    std::uint8_t** rows;            // +0x0C one pointer per row into cells (operator new)
     int width;                      // +0x10
     int height;                     // +0x14
 };
+static_assert(sizeof(FogGrid) == 0x18);
 
 class CVisibilityFog {
 public:
