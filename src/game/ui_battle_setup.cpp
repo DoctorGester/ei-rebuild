@@ -63,7 +63,10 @@ __declspec(naked) CUiWindow* RawPanel::ConstructQuickItems(CInterface3D*, CUiWin
 __declspec(naked) CUiWindow* RawPanel::ConstructSpellColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063E2A0)
 __declspec(naked) CUiWindow* RawPanel::ConstructActionColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063F300)
 __declspec(naked) CUiWindow* RawPanel::ConstructPortraits(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063FE70)
-__declspec(naked) CUiWindow* RawPanel::ConstructTextLog(CInterface3D*, void*, RECT, float) EI_ORIGINAL(0x0065CC00)
+CUiWindow* RawPanel::ConstructTextLog(CInterface3D* ui, void* font, RECT rect, float speed) {
+    return static_cast<CUiWindow*>(ScrollTextConstructOriginal(this, nullptr, ui, static_cast<const char*>(font), rect.left,
+                                                               rect.top, rect.right, rect.bottom, speed));
+}
 __declspec(naked) CUiWindow* RawPanel::ConstructWindow(CInterface3D*) EI_ORIGINAL(0x005FE700)
 __declspec(naked) void RawPanel::BuildUnitPanel(int, std::uint8_t) EI_ORIGINAL(0x006456E0)
 __declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x00641F20)
@@ -71,7 +74,7 @@ __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
 __declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
 void RawPanel::ShowTopPanelPage() { TopPanelShowPageOriginal(this); }
 void RawPanel::AddLogText(const char* a0) { LogAddTextOriginal((void*)this, nullptr, a0); }
-__declspec(naked) void* RawPanel::ConstructViewInput(CInterface3D*) EI_ORIGINAL(0x005EACB0)
+void* RawPanel::ConstructViewInput(CInterface3D* ui) { return ViewInputConstructOriginal(this, nullptr, ui); }
 
 RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 
