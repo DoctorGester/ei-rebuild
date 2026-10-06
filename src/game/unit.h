@@ -520,7 +520,8 @@ public:
     Quaternion orientation;         // +0x034
     std::uint8_t unknown_044[0xA4 - 0x44];
     const char* prototypeName;      // +0x0A4 e.g. "unhuma"
-    std::uint8_t unknown_0A8[0xCC - 0xA8];
+    std::uint8_t unknown_0A8[0xC8 - 0xA8];
+    float build;                    // +0x0C8 the figure's build (HUD faces: below 0.2 thin, above 0.8 fat)
     float animationCC;              // +0x0CC an animation time
     std::uint8_t unknown_0D0[0xF4 - 0xD0];
     float modelHeight[3];           // +0x0F4 (0, the model record's height, 0); set by the client's 00667EC0
@@ -600,6 +601,7 @@ public:
     float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
 static_assert(offsetof(CUnit, prototypeName) == 0xA4);
+static_assert(offsetof(CUnit, build) == 0xC8);
 static_assert(offsetof(CUnit, modelHeight) == 0xF4);
 static_assert(offsetof(CUnit, orientation) == 0x34);
 static_assert(offsetof(CUnit, boundsFlags) == 0x124);

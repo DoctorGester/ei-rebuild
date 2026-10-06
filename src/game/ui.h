@@ -996,13 +996,25 @@ struct HudPortraitSlot {
     float build_;                    // +0x58 the unit's build the model was chosen for
     Quaternion wobbleTarget_;        // +0x5C
     float wobbleSpeed_;              // +0x6C
-    bool hasPlayer_;                 // +0x70
+    bool hasPlayer_;                 // +0x70 a multiplayer player without a unit here (no bars)
     std::uint8_t unknown_71[3];
-    int playerId_;                   // +0x74
+    int playerId_;                   // +0x74 that player's serial (PlayerMessage +0x30), else -1
+
+    // The three CString members.
+    mfc::CString& FaceName() { return *reinterpret_cast<mfc::CString*>(&faceName_); }
+    mfc::CString& ModelPrefix() { return *reinterpret_cast<mfc::CString*>(&modelPrefix_); }
+    mfc::CString& ModelSuffix() { return *reinterpret_cast<mfc::CString*>(&modelSuffix_); }
 };
 static_assert(sizeof(HudPortraitSlot) == 0x78);
 static_assert(offsetof(HudPortraitSlot, wobbleKind_) == 0x38);
 static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
+
+// A figure prototype (the records of the map at 007AF3A4); only the model name the faces use.
+struct FigurePrototypeRecord {
+    std::uint8_t unknown_000[0xE8];
+    const char* model;               // +0xE8 e.g. "unhuma", "unhufe"
+};
+static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
 
 // Party portraits (constructor 0063FE70, vtables 00742A18 / 007429E4; 250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
@@ -1013,8 +1025,23 @@ public:
     // 00641080 (slot 24, every frame): health and mana bars, the hit flash, the face picture and
     // model, the face's wobble and the selection marker (ui_hud_portraits.cpp).
     void Update();
-    // 00640670 (not rewritten). Draws face picture `state` for portrait `index`.
+    // 00640670 (RET 8; ui_hud_portrait_setup.cpp). Copies face picture `state` of portrait `index`
+    // (the slot's face name plus "a" 1, "c" 2, "b" 3; the plain name when there is no such image)
+    // into quarter index % 4 of texture objects_[index / 4 + 1].
     void ShowFace(int index, int state);
+    void ShowFaceAt(int index, int state);   // through the original's address
+    // 006407E0 (RET 4; ui_hud_portrait_setup.cpp). Rebuilds the portraits: sprites, regions and
+    // textures but the first dropped, the selection marker, then one portrait per party unit (face
+    // names from its prototype and build, tip the unit's name) and, in a multiplayer client, one per
+    // player without a live unit. `wide` goes to AddPortrait.
+    void Rebuild(int wide);
+    // 00640060 (RET 0x10; ui_hud_portrait_setup.cpp). Appends portrait count_: a slot, the face
+    // picture `picture` into a quarter of the current face texture (a new 256x256 one every fourth
+    // portrait), the face model `model` (a plain picture sprite without one), the two bars, the
+    // frame, the flash and the region; 56 wide (multiplayer: 40, or 56 with the low byte of `wide`
+    // for the first). The low byte of `hasPlayer` marks a player's portrait (half tint, no bars).
+    void AddPortrait(const char* model, const char* picture, int wide, int hasPlayer);
+    void AddPortraitAt(const char* model, const char* picture, int wide, int hasPlayer);
     // 005FF460 (CUiWindow::ReplaceSceneObject, called through its address). Replaces scene
     // object `object` with a model loaded by `name` (keeping its placement); returns the new
     // object or 0.
@@ -1079,7 +1106,9 @@ public:
 
     std::uint8_t unknown_000[0x08];
     std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
-    std::uint8_t unknown_00C[0xCC - 0x0C];
+    std::uint8_t unknown_00C[0x34 - 0x0C];
+    Quaternion orientation_;         // +0x34 (the HUD's face models turn with it)
+    std::uint8_t unknown_044[0xCC - 0x44];
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
     std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
@@ -1122,6 +1151,7 @@ static_assert(offsetof(CUiMesh, visible_) == 0x220);
 static_assert(offsetof(CUiMesh, uOffset_) == 0xCC);
 static_assert(offsetof(CUiMesh, tint_) == 0x224);
 static_assert(offsetof(CUiMesh, flags_) == 0x08);
+static_assert(offsetof(CUiMesh, orientation_) == 0x34);
 static_assert(offsetof(CUiMesh, plainColour_) == 0xD4);
 static_assert(offsetof(CUiMesh, texture_) == 0x280);
 static_assert(offsetof(CUiMesh, material_) == 0x27C);
