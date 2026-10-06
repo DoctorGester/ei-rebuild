@@ -839,9 +839,22 @@ public:
     // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
     // regions and the four body pictures (textures camp1..camp4).
     void Build(bool body);
+    // 006229E0 (RET 4; ui_equip_panels.cpp). The hero's shown weapon (+0x774) becomes `weapon`'s
+    // place in the hero's weapon list (+0x730), or -1.
+    void ShowWeapon(CItem* weapon);
+    // 00622A30 (RET 4). selected_ becomes `item`'s place in the hero's +0x740 list, or -1.
+    void ShowArmour(CItem* item);
+    // 00622960 (input slot 5, RET 0xC). On the camp's body (body_) while enabled: a right click on
+    // one of the first four weapon slots the hero fills plays "change" and shows that weapon; the
+    // owner's slot 46 (the weapons refreshed) on any region. The event is not marked used.
+    void OnRightDown(int buttons, int x, int y);
+    // 00622860 (slot 25, RET 0xC). The item under (x, y) with its help topic: regions 0-3 the
+    // weapons (topic 2), 4-7 the +0x740 list from its end (3), on the body regions 8-14 the armour
+    // worn at body part region - 8 (topic region - 4); null elsewhere or while disabled (topic 0).
+    CItem* ItemAt(int x, int y, int* topic);
 
     int unknown_148;                 // +0x148 0
-    std::uint8_t unknown_14C[4];
+    CUiWindow* owner_;               // +0x14C the camp or the hero screen
     bool body_;                      // +0x150
     std::uint8_t unknown_151[3];
     int selected_;                   // +0x154 -1
@@ -897,6 +910,12 @@ public:
     // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
     void Build(bool top);
+    // 00622BC0 (RET 4; ui_equip_panels.cpp). selected_ becomes `item`'s place in the hero's +0x760
+    // list, or -1.
+    void ShowEntry(CItem* item);
+    // 00622D40 (slot 25, RET 0xC). The hero's +0x760 entry under (x, y) (regions 0-7, topic 1), or
+    // null (topic 0 off the cells or while disabled).
+    CItem* ItemAt(int x, int y, int* topic);
     // 00622C10 (slot 20, RET 4; ui_panel_draws.cpp). The highlight frame (scene object 0) on the
     // selected cell when it holds one of the hero's spell list (+0x760) entries, else hidden; each
     // entry's model in its cell; then the window's sprites and models. Returns 1.
