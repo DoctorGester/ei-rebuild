@@ -19,7 +19,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
 
-- A-W done 2026-10-05 (33 functions; leftovers listed in unit_ai.md / world.md). A-W2 cut off (4 merged). A-W3 cut off (nothing committed). A-W4 (taken 2026-10-06): 0x005A0000-0x005E0000 (paths, world client) plus A-W's leftovers.
+- A-W done 2026-10-05 (33 functions; leftovers listed in unit_ai.md / world.md). A-W2 cut off (4 merged). A-W3 cut off (nothing committed). A-W4 done (36). A-W5 queued: 0x005A0000-0x005E0000 (paths, world client) plus A-W's leftovers.
 
 ## App and startup, 0x00440000-0x00480000
 
@@ -33,7 +33,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 queued (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 (taken 2026-10-06) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
