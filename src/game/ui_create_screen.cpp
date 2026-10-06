@@ -138,8 +138,6 @@ struct CursorAt {
 int CursorAt::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
 CursorAt* Cursor() { return reinterpret_cast<CursorAt*>(0x007C7BD8); }
 
-// 00458010 (__fastcall with two byte arguments).
-__declspec(naked) void __fastcall GameState458010(char, char) EI_ORIGINAL(0x00458010)
 // 00458220: the message pump.
 // 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
 
@@ -147,7 +145,7 @@ struct GlueAt {
     char ServerFlag();               // 00578D00 (on 007AFEA4)
     void SetServerFlag(char flag);   // 00578D10
 };
-__declspec(naked) char GlueAt::ServerFlag() EI_ORIGINAL(0x00578D00)
+char GlueAt::ServerFlag() { return ServerFlagOriginal(); }
 void GlueAt::SetServerFlag(char f) { SetServerFlagOriginal(f); }
 GlueAt* Glue() { return reinterpret_cast<GlueAt*>(0x007AFEA4); }
 
@@ -194,7 +192,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     bool second = static_cast<std::uint8_t>(b) != 0;
     if (first && !second) {
         SetDword(self, 0x50, 3);
-        GameState458010(0, 1);
+        FrameStepOriginal(0, 1);
     }
     // One window open (the byte difference with its low two bits cleared is 4).
     std::uint32_t bytes = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stackEnd_) -
@@ -204,7 +202,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
         if (!IsNetworkClientOriginal()) Glue()->SetServerFlag(1);
         if (first && second) {
             SetDword(self, 0x50, 1);
-            GameState458010(0, 1);
+            FrameStepOriginal(0, 1);
         }
     }
     self[0x7C] = 0;

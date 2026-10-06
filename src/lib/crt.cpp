@@ -18,6 +18,7 @@ __declspec(naked) char* __cdecl strncpy(char*, const char*, std::size_t) EI_ORIG
 __declspec(naked) int __cdecl isalpha(int) EI_ORIGINAL(0x006E92FB)
 __declspec(naked) int __cdecl sprintf(char*, const char*, ...) EI_ORIGINAL(0x006E8715)
 __declspec(naked) int __cdecl mbsicmp(const unsigned char*, const unsigned char*) EI_ORIGINAL(0x006E8767)
+__declspec(naked) int __cdecl access(const char*, int) EI_ORIGINAL(0x006EAF20)
 __declspec(naked) static int __cdecl MbscmpOriginal(const char*, const char*) EI_ORIGINAL(0x006E848B)
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) {
     return MbscmpOriginal(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));

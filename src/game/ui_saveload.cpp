@@ -21,6 +21,8 @@
 #include "dx_surface.h"
 #include "item_db_text.h"
 #include "net_link.h"
+#include "object_tables.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -307,6 +309,50 @@ void CSaveLoadWindow::ShowPicture() {
 }
 EI_REPLACE_METHOD(0x00656E10, CSaveLoadWindow::ShowPicture);
 
+// --- 00653A50 ------------------------------------------------------------------------------------
+
+namespace {
+constexpr std::uintptr_t kQuickFolder = std::uintptr_t(0x007933AC);     // "saveq"
+constexpr std::uintptr_t kAutoFolderA = std::uintptr_t(0x007942E8);     // "savea"
+constexpr std::uintptr_t kAutoFolderB = std::uintptr_t(0x007940F0);     // "saveb"
+constexpr std::uintptr_t kQuickTitle = std::uintptr_t(0x00794924);      // "save_quick"
+constexpr std::uintptr_t kAutoEnterTitle = std::uintptr_t(0x00794914);  // "save_auto_enter"
+constexpr std::uintptr_t kAutoExitTitle = std::uintptr_t(0x00794904);   // "save_auto_exit"
+constexpr std::uintptr_t kPlainFormat = std::uintptr_t(0x0079190C);     // "%s"
+
+// 00653BD0 (RET 4): the entry's zone name ("zone" + zone_ in the texts, else "save_camp"), a
+// CString constructed at `out`.
+__declspec(naked) mfc::CString* __fastcall EntryZoneTitle(SaveEntry*, void*, void* /*out*/) EI_ORIGINAL(0x00653BD0)
+
+bool SameFolder(const char* folder, std::uintptr_t name) {
+    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(Text(name))) == 0;
+}
+} // namespace
+
+void SaveEntry::MakeTitle(int) {
+    mfc::CString quick;
+    mfc::CString autoEnter;
+    mfc::CString autoExit;
+    Texts()->GetString(Text(kQuickTitle), &quick);
+    Texts()->GetString(Text(kAutoEnterTitle), &autoEnter);
+    Texts()->GetString(Text(kAutoExitTitle), &autoExit);
+    mfc::CString& title = Str(title_);
+    if (SameFolder(folder_, kQuickFolder)) {
+        title.Format(Text(kPlainFormat), static_cast<const char*>(quick));
+    } else if (SameFolder(folder_, kAutoFolderA)) {
+        title.Format(Text(kPlainFormat), static_cast<const char*>(autoEnter));
+    } else if (SameFolder(folder_, kAutoFolderB)) {
+        title.Format(Text(kPlainFormat), static_cast<const char*>(autoExit));
+    } else {
+        alignas(mfc::CString) unsigned char zone[sizeof(mfc::CString)];
+        EntryZoneTitle(this, nullptr, zone);
+        auto* name = reinterpret_cast<mfc::CString*>(zone);
+        title.Format(Text(kPlainFormat), static_cast<const char*>(*name));
+        name->~CString();
+    }
+}
+EI_REPLACE_METHOD(0x00653A50, SaveEntry::MakeTitle);
+
 // --- 00655550 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::SaveGame() {
@@ -521,3 +567,94 @@ void CSaveLoadWindow::FillEntries() {
     firstVisible_ = 0;
 }
 EI_REPLACE_METHOD(0x00655D40, CSaveLoadWindow::FillEntries);
+
+// --- 006570E0 / 006575B0: quick and automatic saves ----------------------------------------------
+
+namespace {
+constexpr std::uintptr_t kNotifyLoading = std::uintptr_t(0x007949F8);   // "notify_loading"
+constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout rectangle (immediates)
+constexpr int kShotWidth = 256, kShotHeight = 192;
+
+CInterface3D* Interface() { return static_cast<CInterface3D*>(kInterface); }
+GameFlow* Flow() { return static_cast<GameFlow*>(kFlow); }
+
+// The save folder saves\<slot>\ under the game's folder.
+mfc::CString SlotFolder(const char* slot) {
+    mfc::CString folder;
+    folder.Format(Text(kSlotFolder), GameFolder(), slot);
+    return folder;
+}
+} // namespace
+
+void __fastcall QuickSave(const char* slot, char stepFrame) {
+    if (IsMultiplayerClient()) return;
+    double space = DiskFreeSpace(GameFolder());
+    // 0 means unknown: no check (the original tests C3 alone, so a NaN counts as 0).
+    if ((space < 0.0 || space > 0.0) && static_cast<double>(SaveSpaceNeeded(kFlow)) > space) return;
+    if (stepFrame) FrameStepOriginal(0, 1);
+    // A null surface (no memory) is used all the same, as in the original.
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    CUiSurface* surface = memory != nullptr
+                              ? static_cast<CUiSurface*>(memory)->Construct(Interface(), 0, 0, kScreenWidth,
+                                                                            kScreenHeight, 4, 1)
+                              : nullptr;
+    surface->CaptureScreen();
+    CursorSetShape(kCursor, nullptr, 3);
+    Interface()->serverFlag_ = static_cast<std::uint8_t>(ServerFlagOriginal());
+    mfc::CString notice;
+    Texts()->GetString(Text(kNotifySaving), &notice);
+    ShowStatusText(kInterface, nullptr, notice);
+    SaveGameAt(kFlow, nullptr, slot);
+
+    // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
+    mfc::CString title;
+    mfc::CString map;
+    mfc::CString zone;
+    std::int32_t now;
+    const std::int32_t savedAt = *CurrentTime(&now);
+    const float gameTime = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, Text(kGameTime)));
+    {
+        alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+        mfc::CString* current = PlayerZone(kGlue, nullptr, storage);
+        zone = *current;
+        current->~CString();
+    }
+    if (auto* record = reinterpret_cast<const MapRecord*>(MapDatabaseFind(kMapDatabase, nullptr, zone)))
+        map = *reinterpret_cast<const mfc::CString*>(&record->allod);
+    mfc::CString folder = SlotFolder(slot);
+    LocalFileStream info;
+    info.Open(folder + Text(kInfoFile), kOpenWrite, 0);
+    StreamWriteHeader(&info.s, nullptr, kInfoMagic, kInfoVersion);
+    info.Write(&gameTime, 4);
+    info.WriteText(map);
+    info.WriteText(zone);
+    info.Write(&savedAt, 4);
+    info.WriteText(title);
+    info.Close();
+
+    // shot.sav: the copied screen at 256x192.
+    std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
+    mfc::CFile shot;
+    shot.Open(folder + Text(kShotFile), kOpenWrite, nullptr);
+    FileWrite(&shot, nullptr, pixels, kShotBytes);
+    shot.Close();
+    gamecrt::operator_delete(pixels);
+    if (surface != nullptr) {
+        surface->ReleaseContents();
+        gamecrt::operator_delete(surface);
+    }
+    CursorSetShape(kCursor, nullptr, 0);
+}
+EI_REPLACE(0x006570E0, QuickSave);
+
+void __fastcall QuickLoad(const char* slot) {
+    if (IsMultiplayerClient()) return;
+    mfc::CString folder = SlotFolder(slot);
+    if (gamecrt::access(folder, 0) == -1) return;
+    mfc::CString notice;
+    Texts()->GetString(Text(kNotifyLoading), &notice);
+    ShowStatusText(kInterface, nullptr, notice);
+    MenuSetOriginal(1);
+    Flow()->RequestLoad(slot, 0);
+}
+EI_REPLACE(0x006575B0, QuickLoad);

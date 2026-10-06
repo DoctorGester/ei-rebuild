@@ -15,13 +15,18 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include "originals_library.h"
 #include "originals_ui.h"
+
+#include <cstring>
 
 namespace {
 // Virtual-key codes.
 constexpr int kKeyBack = 0x08, kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22;
 constexpr int kKeyEnd = 0x23, kKeyHome = 0x24, kKeyLeft = 0x25, kKeyUp = 0x26, kKeyRight = 0x27, kKeyDown = 0x28;
-constexpr int kKeyDelete = 0x2E;
+constexpr int kKeyDelete = 0x2E, kKeyTab = 0x09;
+constexpr int kMaxNameLength = 60;       // characters of a typed save name
+constexpr int kMaxNameWidth = 0xB2;      // its width limit in pixels (font 1)
 constexpr int kScanEsc = 1;              // the scan code that gives up a key binding
 
 // Strings of game.exe, by address (rewrite-guide rule 9).
@@ -163,6 +168,59 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     inputHandled_ = true;
 }
 
+// --- 00655050 ------------------------------------------------------------------------------------
+
+namespace {
+// The width of `text` in interface font `font` (005F8340, through its address: it takes the
+// CString by value, so a counted copy's data is handed over and released by the callee).
+int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
+    mfc::CString copy(text);
+    char* data;
+    std::memcpy(&data, &copy, sizeof(data));
+    mfc::CString empty;
+    std::memcpy(&copy, &empty, sizeof(data));   // `copy` now owns nothing
+    SIZE size;
+    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    return size.cx;
+}
+} // namespace
+
+void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
+    if (!isSave_) return;
+    switch (key) {
+    case kKeyBack:
+    case kKeyTab:
+    case kKeyEnter:
+    case kKeyEsc:
+        break;
+    default: {
+        int selected = selected_;
+        if (selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(EntryCount()) &&
+            !IsReservedSave(selected) && !nameTyped_) {
+            nameTyped_ = true;
+            Str(name_).Empty();
+            cursor_ = 0;
+        }
+        mfc::CString& name = Str(name_);
+        if (!interface_->ctrlDown_ && name.GetLength() < kMaxNameLength) {
+            mfc::CString tail = console::Ops(name).Mid(cursor_);
+            mfc::CString typed;
+            {
+                mfc::CString head = name.Left(cursor_);
+                typed = PlusChar(head, static_cast<char>(key)) + tail;
+            }
+            if (TextWidth(interface_, typed, 1) < kMaxNameWidth) {
+                name = typed;
+                ++cursor_;
+            }
+        }
+        RefreshList();
+        break;
+    }
+    }
+    InputOf(this)->BaseChar(key, repeat, flags);
+}
+
 // --- 00650E40 ------------------------------------------------------------------------------------
 
 void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
@@ -292,6 +350,9 @@ namespace {
 void __fastcall SaveLoadKeyDown(void* input, void*, int key, int repeat, int flags) {
     WindowFromInput<CSaveLoadWindow>(input)->OnKeyDown(key, repeat, flags);
 }
+void __fastcall SaveLoadChar(void* input, void*, int key, int repeat, int flags) {
+    WindowFromInput<CSaveLoadWindow>(input)->OnChar(key, repeat, flags);
+}
 void __fastcall OptionsKeyDown(void* input, void*, int key, int repeat, int flags) {
     WindowFromInput<COptionsWindow>(input)->OnKeyDown(key, repeat, flags);
 }
@@ -299,5 +360,6 @@ void __fastcall OptionsKeyDown(void* input, void*, int key, int repeat, int flag
 
 EI_REPLACE(0x006548A0, SaveLoadKeyDown);
 EI_REPLACE(0x00650E40, OptionsKeyDown);
+EI_REPLACE(0x00655050, SaveLoadChar);
 EI_REPLACE_METHOD(0x00655430, CSaveLoadWindow::ShowSelection);
 EI_REPLACE_METHOD(0x00657820, CSaveLoadWindow::IsReservedSave);

@@ -1511,6 +1511,11 @@ struct UiSpin {
 // 00656640 (and 00657C60), assignment 006538E0, destructor 00656720 (not rewritten). The fields
 // after the folder come from the save's info.sav (ui_saveload.cpp).
 struct SaveEntry {
+    // 00653A50 (RET 4, the argument unused; ui_saveload.cpp). The title: the texts "save_quick",
+    // "save_auto_enter" / "save_auto_exit" for the folders "saveq", "savea" / "saveb", otherwise
+    // the zone's name (00653BD0).
+    void MakeTitle(int unused);
+
     char* title_;                    // +0x00 CString shown in the list
     char* folder_;                   // +0x04 CString folder name under saves\ ("saveq" quick save,
                                      //       "savea"/"saveb" automatic saves, "save<n>")
@@ -1525,6 +1530,18 @@ struct SaveEntry {
 static_assert(sizeof(SaveEntry) == 0x44);
 static_assert(offsetof(SaveEntry, zone_) == 0x14);
 static_assert(offsetof(SaveEntry, broken_) == 0x40);
+
+// ui_saveload.cpp. 006570E0 (__fastcall: the save folder's name, `stepFrame` in DL; plain RET):
+// the quick and automatic saves. Nothing for a multiplayer client or when the disc lacks the
+// space a save needs (0 free space: not checked). With `stepFrame` a frame step (00458010(0, 1));
+// the screen copied into an 800x600 surface, the busy cursor, the server flag kept in the
+// interface, "notify_saving" shown, the game saved (00581610), then info.sav (the "gtime"
+// variable, the zone's map, the zone, the time, an empty title) and shot.sav (the surface as
+// 256x192 5:6:5 pixels); the surface freed and the cursor back.
+void __fastcall QuickSave(const char* slot, char stepFrame);
+// 006575B0 (__fastcall, plain RET). Unless a multiplayer client: when saves\<slot>\ exists,
+// "notify_loading" is shown, 00578920(1) and the game flow is asked to load it (flag 0).
+void __fastcall QuickLoad(const char* slot);
 
 // The save/load window (vtables 00741388 / 00741354, 0x194 bytes, opened from the Esc menu).
 // Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
@@ -1575,6 +1592,11 @@ public:
     // save's name (the first edit of a save that is not a quick or automatic one takes over its
     // title, Backspace / Delete starting from an empty name).
     void OnKeyDown(int key, int repeat, int flags);
+    // 00655050 (input side, RET 0xC). A typed character in a save window: the first one for an
+    // ordinary save starts an empty name; without Ctrl, a name under 60 characters takes the
+    // character at the caret when the text stays under 178 pixels (font 1); the list is redrawn.
+    // Backspace, Tab, Enter and Esc only go to the base handler, which every character reaches.
+    void OnChar(int key, int repeat, int flags);
     // 00655430. Clamps the selection to the list, scrolls it into view (16 rows), takes its
     // title as the name, redraws the list and shows its picture.
     void ShowSelection();

@@ -517,4 +517,17 @@ Second part (the link, given items, units):
 Kept: HasLoot reads +0x4C of every carried item whatever its class; ReleaseTamedUnits (like Clear's sibling walks)
 goes on from the node of a unit that SetPlayer has just erased, reading the freed node as the original does.
 Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test.
-| 00664B70 | PlayerMessageError (__fastcall format, previous in DL, type; RET 4) | ours only (FatalError, through 00480080) |
+Also 00664B70, PlayerMessageError (__fastcall: format, previous type in DL, type; RET 4): ours only (FatalError through 00480080).
+
+## Save screen pieces (A-H12)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00653A50 | SaveEntry::MakeTitle (RET 4, unused argument; ui_saveload.cpp) | original first, then ours: same title |
+| 00655050 | CSaveLoadWindow::OnChar (input side, RET 0xC; ui_menu_keys.cpp) | ours only: name grew at the caret, kept or restarted |
+| 006570E0 | QuickSave (__fastcall slot, DL frame step; ui_saveload.cpp) | ours only: info.sav header and shot.sav read back; newgame's savea |
+| 006575B0 | QuickLoad (__fastcall slot) | ours only: the flow's request is 2 when the folder exists |
+
+Moved to shared headers: 006EAF20 _access (gamecrt::access), 00578D00 (ServerFlagOriginal) and 00458010
+(FrameStepOriginal, originals_ui.h), 005F8340 (InterfaceTextExtentOriginal). Not rewritten: 00653BD0 (the zone title).
+Kept: QuickSave uses the surface even when its allocation failed.

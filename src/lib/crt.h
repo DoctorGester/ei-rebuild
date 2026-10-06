@@ -33,6 +33,7 @@ long __cdecl lseek(int fd, long offset, int origin);          // 006EB284
 int __cdecl read(int fd, void* buffer, unsigned count);       // 006EB046
 int __cdecl write(int fd, const void* buffer, unsigned count);// 006EB642
 int __cdecl close(int fd);                                    // 006EAF66
+int __cdecl access(const char* path, int mode);               // 006EAF20 _access
 
 // Stream I/O (the game's FILE is opaque here).
 struct CrtFile;

@@ -15,6 +15,7 @@
 
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/ui.h"
+#include "../../src/game/world.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/render/render.h"
 
@@ -275,3 +276,50 @@ static void __fastcall SaveGameVerify(CSaveLoadWindow* self, void*) {
                       folder.c_str(), closed, problem ? problem : "ok");
 }
 EI_VERIFY(0x00655550, SaveGameVerify, 0, s_unused);
+
+// 00653A50: the entry's title (FillEntries for entries without one; ui_saveload: the autosave
+// "savea"). The original runs first on the real entry, its title is kept, then ours; the titles
+// must be the same text.
+static void(__fastcall* s_makeTitle)(SaveEntry*, void*, int);
+static void __fastcall MakeTitleVerify(SaveEntry* self, void*, int unused) {
+    s_makeTitle(self, nullptr, unused);
+    std::string expected = self->title_;
+    self->SaveEntry::MakeTitle(unused);
+    ei::verify::Check("SaveEntry::MakeTitle", true, expected == self->title_, "folder %s: \"%s\" vs \"%s\"",
+                      self->folder_, expected.c_str(), self->title_);
+}
+EI_VERIFY(0x00653A50, MakeTitleVerify, 7, s_makeTitle);
+
+// 006570E0 (the autosaves "savea" / "saveb" and the quick save; every newgame saves "savea"): ours
+// only (it saves the game); info.sav (header 0x111, version 3) and a full shot.sav are read back.
+// A disc too full for a save leaves nothing, which shows as a mismatch here.
+static void __fastcall QuickSaveVerify(const char* slot, char stepFrame) {
+    bool client = IsMultiplayerClient() != 0;
+    QuickSave(slot, stepFrame);
+    const char* problem = nullptr;
+    if (!client) {
+        std::vector<std::uint8_t> info;
+        std::vector<std::uint8_t> shot;
+        if (!ReadSaveFile(slot, "info.sav", &info, 8))
+            problem = "no info.sav";
+        else if (info[0] != 0x11 || info[1] != 0x01 || info[2] || info[3] || info[4] != 3 || info[5] || info[6] || info[7])
+            problem = "info.sav header";
+        else if (!ReadSaveFile(slot, "shot.sav", &shot, kShotBytes))
+            problem = "no shot.sav";
+    }
+    ei::verify::Check("QuickSave", true, problem == nullptr, "slot %s client %d: %s", slot, client,
+                      problem ? problem : "ok");
+}
+EI_VERIFY(0x006570E0, QuickSaveVerify, 0, s_unused);
+
+// 006575B0 (the quick load; no scenario): ours only. With the folder present (and not a client)
+// the game flow's request (+0) is a load (2).
+static void __fastcall QuickLoadVerify(const char* slot) {
+    bool client = IsMultiplayerClient() != 0;
+    std::vector<std::uint8_t> info;
+    bool present = ReadSaveFile(slot, "info.sav", &info, 0);
+    QuickLoad(slot);
+    int request = *reinterpret_cast<const int*>(std::uintptr_t(0x007AFE20));
+    ei::verify::Check("QuickLoad", true, client || !present || request == 2, "slot %s request %d", slot, request);
+}
+EI_VERIFY(0x006575B0, QuickLoadVerify, 0, s_unused);
