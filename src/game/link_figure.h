@@ -128,12 +128,12 @@ public:
     LinkStringMap headers_;           // +0x14 map<string, LinkPartHeader>
     RECT screenRect_;                 // +0x20
     float morph_[3];                  // +0x30 the coefficients the figure was loaded with
-    AlignedArray<VertexPacket> vertices_;   // +0x3C
-    AlignedArray<NormalPacket> normals_;    // +0x4C
-    AlignedArray<TexCoord> texCoords_;      // +0x5C
+    lib::AlignedArray<VertexPacket> vertices_;   // +0x3C
+    lib::AlignedArray<NormalPacket> normals_;    // +0x4C
+    lib::AlignedArray<TexCoord> texCoords_;      // +0x5C
     TriangleIndexArray corners_;            // +0x6C 6-byte triangle corners (MeshCorner)
-    AlignedArray<std::uint32_t> words_;     // +0x7C
-    AlignedArray<std::uint16_t> indices_;   // +0x8C
+    lib::AlignedArray<std::uint32_t> words_;     // +0x7C
+    lib::AlignedArray<std::uint16_t> indices_;   // +0x8C
     LinkStringMap ranges_;            // +0x9C map<string, LinkPartRanges>
     CLinkFigureLoader* loader_;       // +0xA8
     ITransformPipeline* pipeline_;    // +0xAC
