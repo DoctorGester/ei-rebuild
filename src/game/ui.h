@@ -681,6 +681,7 @@ static_assert(sizeof(UiRecordTable) == 8);
 // Coordinates below are the 800x600 layout of the original (Rebirth moves some panels).
 
 class CUnit;
+class CItem;
 class CHudQuickItems;
 class CHudSpellColumn;
 class CHudActionColumn;
@@ -1325,6 +1326,19 @@ public:
     // 00635E00 (ui_hud_destroy.cpp; slot 0 00635DE0 calls it). Destructor body: the two page
     // texts (page 1 first), then the window base's (005FE930).
     void DestroyBody();
+    // 00649AF0 (RET 8; ui_hud_top_panel.cpp). Sets the panel up over 180..620 x 0..100, slid in
+    // when the low byte of `shown` is set: the two page buttons' and the slide button's regions
+    // with their tips (0x27D9 / 0x27DA with 0x32 / 0x33, 0x27D8) and the whole panel's, two plain
+    // backgrounds, the "in25arrow" slide arrow, the two page buttons and the frame; then page
+    // `page` is shown and the panel laid out (both through their addresses).
+    void Build(int page, int shown);
+    // 0064A4E0 (RET 8; ui_hud_top_panel.cpp). Appends "<combat_picked_up or, with the low byte of
+    // `crippled`, combat_crippled> <item name>" and a newline to page 0's text, and to the message log when
+    // page 0 is up.
+    void AddPickedUp(CItem* item, int crippled);
+    // 0064A630 (RET 4; ui_hud_top_panel.cpp). The same with the money ("format_money"), for money > 0.
+    void AddMoney(int money);
+    mfc::CString& PageText(int page) { return *reinterpret_cast<mfc::CString*>(&pageTexts_[page]); }
 
     CBattleScreen* owner_;           // +0x148
     int sliding_;                    // +0x14C

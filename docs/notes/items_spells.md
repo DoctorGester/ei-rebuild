@@ -419,31 +419,33 @@ entries to library.csv: 90 with the same instructions as an existing entry (data
 same callee or to library code: STLport copy / fill / list / hashtable helpers, aligned buffer and counted pointer
 destructors) and 25 reviewed quest database container instantiations (006AF4D0..006B3E60: vector reserve /
 insert_overflow / fill_insert / copy / uninitialized_copy of the 0x38- and 0x6C-byte records, their compiler-made
-copy constructors, operator= and destructors). Left: 841 functions, 179.6 KB (the texture manager's 6 KB is the
-renderer's). Bytes per group (R = in docs/rebirth-patched-functions.txt):
+copy constructors, operator= and destructors). Left after the later sweeps and ports below (UI_INPUT_HANDLER /
+UI_WHEEL_HANDLER registrations counted as rewritten): 756 functions, 147.4 KB (the texture manager's 6 KB is the
+renderer's; 00646C25 is a tail of 006462A0 that Ghidra splits off). Bytes per group (R = in
+docs/rebirth-patched-functions.txt):
 
 | Range | Group | Functions | Bytes | R bytes | Largest |
 |---|---|---|---|---|---|
-| 640000-64B000 | HUD battle screen panels | 44 | 23502 | 13275 | 00641F20, 006462A0, 006456E0, 006407E0 |
-| 64B000-64EA80 | HUD helpers, objectives window | 22 | 3689 | 0 | 0064E330, 0064B3A0 |
-| 64EA80-651000 | quest log, map text | 17 | 5132 | 0 | 0064EA80, 0064F650 |
-| 651000-653000 | options and keyboard screens | 14 | 6576 | 0 | 00651940, 00651350 |
-| 653000-65A000 | save / load screen, tutorial | 50 | 18772 | 5945 | 00659420, 006567A0, 006570E0 |
-| 65A000-65F000 | interface widgets (lists, scrollbars, text scroll), DirectInput mouse, rich edit | 75 | 13135 | 1494 | 0065B8B0, 0065D150 |
-| 65F000-664B00 | party, party records | 48 | 5742 | 0 | 006625B0, 00662AC0 |
-| 664B00-666000 | players | 26 | 4446 | 0 | 00664E20, 00664BF0 |
-| 666000-672000 | client / server player messages | 93 | 14526 | 76 | 0066F4C0, 00670310, 00667230 |
-| 672000-67E000 | world effects | 44 | 2360 | 0 | 006776E0, 00677510 |
-| 67E000-684000 | spell effects (save / load, constructors) | 13 | 2521 | 0 | 00683B80, 0067E7D0 |
-| 684000-68D000 | spell database, spell manager | 91 | 21209 | 1174 | 00684550, 00685BE0, 006850D0 |
-| 68D000-68F6C0 | lights, materials | 34 | 4977 | 681 | 0068E640, 0068D5A0 |
-| 68F6C0-693C60 | texture manager (renderer's) | 36 | 5996 | 298 | 00690B30, 0068FA10 |
-| 693C60-699000 | registry, ini | 11 | 860 | 0 | 00694300 |
-| 699000-69F000 | trader stock | 28 | 3859 | 0 | 0069BAC0, 0069EF50 |
-| 69F000-6A6000 | items | 33 | 2419 | 0 | 0069FB60, 006A0AA0 |
-| 6A6000-6AE000 | item database | 75 | 21615 | 1141 | 006A67A0, 006A9420 |
-| 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740 |
-| 6B4000-6C0000 | sound (Miles codec, wave markers), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80 |
+| 640000-64B000 | HUD battle screen panels | 17 | 15190 | 13275 | 00641F20, 006462A0, 006456E0, 00646C25 |
+| 64B000-64EA80 | HUD helpers, objectives window | 21 | 3216 | 0 | 0064E330, 0064BB50, 0064B9B0, 0064E5A0 |
+| 64EA80-651000 | quest log, map text | 17 | 5132 | 0 | 0064EA80, 0064F650, 0064FEA0, 006500B0 |
+| 651000-653000 | options and keyboard screens | 14 | 6576 | 0 | 00651940, 00651350, 00651600, 00652200 |
+| 653000-65A000 | save / load screen, tutorial | 50 | 18772 | 5945 | 00659420, 006567A0, 006570E0, 00658E10 |
+| 65A000-65F000 | interface widgets (lists, scrollbars, text scroll), DirectInput mouse, rich edit | 75 | 13135 | 1494 | 0065B8B0, 0065D150, 0065E580, 0065C2E0 |
+| 65F000-664B00 | party, party records | 48 | 5742 | 0 | 006625B0, 00662AC0, 006641D0, 0065F2D0 |
+| 664B00-666000 | players | 26 | 4446 | 0 | 00664E20, 00664BF0, 00665200, 00665640 |
+| 666000-672000 | client / server player messages | 93 | 14526 | 76 | 0066F4C0, 00670310, 00667230, 0066C9A0 |
+| 672000-67E000 | world effects | 44 | 2360 | 0 | 006776E0, 00677510, 0067B050, 00675560 |
+| 67E000-684000 | spell effects | 13 | 2521 | 0 | 00683B80, 0067E7D0, 00683D40, 0067E960 |
+| 684000-68D000 | spell database, spell manager | 59 | 8505 | 1174 | 00684550, 00684390, 00688990, 00688B40 |
+| 68D000-68F6C0 | lights, materials | 34 | 4977 | 681 | 0068E640, 0068D5A0, 0068DE30, 0068D310 |
+| 68F6C0-693C60 | texture manager (renderer) | 36 | 5996 | 298 | 00690B30, 0068FA10, 00690260, 00690970 |
+| 693C60-699000 | registry, ini | 11 | 860 | 0 | 00694300, 00694020, 00693F60, 00693F10 |
+| 699000-69F000 | trader stock | 28 | 3859 | 0 | 0069BAC0, 0069EF50, 0069C1C0, 0069D6B0 |
+| 69F000-6A6000 | items | 33 | 2419 | 0 | 0069FB60, 006A0AA0, 0069F700, 0069F620 |
+| 6A6000-6AE000 | item database | 50 | 10965 | 1141 | 006A67A0, 006AD900, 006A6E50, 006A6570 |
+| 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740, 006AE220, 006AE0F0 |
+| 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
 
 Later: 25 more for the item database's record vectors (resize, fill_insert, insert_overflow, copy, uninitialized
 copy / fill of the 0x50 / 0x78 / 0x7C / 0x8C / 0xB4 / 0xC8 kinds) and the portrait slot vector's four; the kinds'
@@ -463,3 +465,19 @@ indexes the column's frame and restB_ by count % 6. The multiplayer branch (play
 name maps' find_or_insert directly (00514880 / 0053D340, one temporary string less than the original). Not
 reached by a harness scenario. 006407E0 holds EI_Plugin Fixes sites (rebirth.md), so the installer keeps the original under Rebirth. 0064AB20 / 0064AD40 / 0064B3A0 / 0064ACD0 (the slot vector) are library entries.
 CUnit +0xC8 is now `build`, CUiMesh +0x34 `orientation_`.
+
+### HUD top panel (ui_hud_top_panel.cpp, A-H11)
+
+| Address | Name | Verify (ours only) |
+|---|---|---|
+| 00649AF0 | CHudTopPanel::Build (RET 8: page, shown) | rectangle, 4 regions, 8 sprites, page and slide state; every newgame |
+| 0064A4E0, 0064A630 | AddPickedUp (RET 8), AddMoney (RET 4) | page 0's text grew by a line ending in "\n"; from OnItemsPicked 00636150 (no scenario known) |
+
+The original builds each line with CString operator+ temporaries (kind + " " + name + "\n"); ours appends to one
+CString (same text). ShowPage / Layout are called through their addresses so their wrappers run.
+
+Next candidates (A-H11 left): the players group 00664BF0..00665D20 (CPlayer constructor / destructor, three identical
+resets 00665010 / 006650E0 / 00665380, Clear 00665200, item list adds / removes 00665470 / 00665550 / 00665780 /
+00665870, connection set 00665950, object list 00665BE0 / 00665CC0, unit sweeps 00665640 / 00665D20; every new game,
+but the connection's virtual slots +0x10..+0x58 need declaring first); the save screen's 006570E0 / 006575B0 /
+00655050 / 00653A50; the client / server message handlers 0066F4C0, 00670310, 00667230.
