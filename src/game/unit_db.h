@@ -35,8 +35,8 @@ struct UnitPrototypeRecord {
     float scale[3];                 // +0x14 5, 6, 7
     std::uint32_t unknown_20;       // 0x22
     std::uint32_t unknown_24;       // 0x23
-    std::uint32_t unknown_28;       // 0x25
-    std::uint32_t unknown_2C;       // 0x26
+    float viewDistance;             // +0x28 0x25 how far before the unit a dialogue's camera may stand (00607BB0)
+    float viewHeight;               // +0x2C 0x26 the height of its eyes for a dialogue's camera (00607BB0)
     float shake;                    // +0x30 0x28 the camera shake of its steps and attacks
     mfc::CString soundFolder;       // +0x34 8 (when set, the action sounds come from here, not the model's)
     std::uint8_t unknown_38[0x10];  // not serialised

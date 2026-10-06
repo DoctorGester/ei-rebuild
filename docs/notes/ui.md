@@ -357,6 +357,15 @@ their places +0x1B0.. and directions +0x1D4..), 00602C90 (slot 29), 00607720, th
 Original quirks kept: the mouse move's exit check names the zone of exit_ (+0x164), not of the exit under the mouse; the key handler builds
 the objectives window inline and calls its setup even when the allocation failed.
 
+A-I11 (`ui_briefing_dialogue.cpp`; `verify_ui_briefing_dialogue.cpp`, `player_out_mark.h`): 00608210 `StartPhrases` (ours only: state 0, or
+savedCamera_ / lookAt_ against the camera), 00607A60 `PlaySpeakerAnimation` (ours only: the controller's +0x978 callback 006023F0), 00607BB0
+`ViewSpeaker` (side by side on the bytes of message 0x0F, the stream put back between runs). Fields: speakers +0x1A8 / +0x1AC, places_
++0x1B0 / directions_ +0x1D4 ([0] person, [1] leader, [2] third), +0x244 firstPhrase_, +0x248 dialogueText_; WorldPlayer::server (+0x20),
+UnitController::actionDone (+0x978), the prototype's viewDistance / viewHeight (+0x28 / +0x2C). Forwarders: 0066F840, 006B4E10, 0066EDA0
+(originals_ui.h), 00555840 / 00555700 (originals_units.h; script_exec's member now calls it). ui_base_dialogue waits 4 s after the topic.
+player_messages.h cannot be included next to ui_briefing.h (three MfcArray templates), hence the forwarder and the helper file.
+Next: 00607EC0 (camera presets, calls ViewSpeaker), 006062C0, 00602C90, 00607720, 006023F0 (not a Ghidra function).
+
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
 Files: `ui_battle_setup.cpp` (Create, Update), `ui_battle_update.cpp`, `ui_battle_hover.cpp`, `ui_battle_commands.cpp`,

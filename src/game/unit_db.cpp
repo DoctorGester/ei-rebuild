@@ -98,8 +98,8 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x22, &unknown_20);
     Dword(ar, 0x23, &unknown_24);
     Dword(ar, 0x24, &combat[2]);
-    Dword(ar, 0x25, &unknown_28);
-    Dword(ar, 0x26, &unknown_2C);
+    Dword(ar, 0x25, &viewDistance);
+    Dword(ar, 0x26, &viewHeight);
     Dword(ar, 0x27, &hitSoundKind);
     Dword(ar, 0x28, &shake);
     Dword(ar, 0x29, &unknown_50);

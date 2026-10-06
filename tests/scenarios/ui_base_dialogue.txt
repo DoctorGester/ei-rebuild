@@ -22,7 +22,8 @@ wait 1500
 clickunit Smith
 wait 1500
 clickregion 0
-wait 1500
+# the people walk to their places (state 2) before the phrases start (00608210)
+wait 4000
 click 400 300
 wait 800
 click 400 300

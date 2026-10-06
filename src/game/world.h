@@ -19,6 +19,7 @@ using BOOL = int;
 
 struct ScriptGroup;
 class CAIMap;       // ai_map.h
+class CPlayerServer;   // player_messages.h
 class CBaseManager;
 struct CSoundManager;   // sound.h
 class CSectorMap;   // sector_map.h
@@ -32,7 +33,9 @@ constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
 
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
-    std::uint8_t unknown_000[0x24];
+    std::uint8_t unknown_000[0x20];
+    CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
+
     int id;                              // +0x024 player number (0 = the local player)
     std::uint8_t unknown_028[0xA0 - 0x28];
     std::uint8_t* mercs;                 // +0x0A0 0x784-byte records, unit id at +0x1C
@@ -47,6 +50,7 @@ struct WorldPlayer {
     std::uint8_t unknown_114[0x130 - 0x114];
     std::uint32_t dirty;                 // +0x130 changes still to send to this player
 };
+static_assert(offsetof(WorldPlayer, server) == 0x20);
 static_assert(offsetof(WorldPlayer, mercs) == 0xA0);
 static_assert(offsetof(WorldPlayer, variables) == 0xC4);
 static_assert(offsetof(WorldPlayer, items) == 0xE0);

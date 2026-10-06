@@ -14,6 +14,7 @@ namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
 struct tagRECT;
+struct Vector3;
 
 __declspec(naked) inline void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
 __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
@@ -346,6 +347,16 @@ __declspec(naked) inline void __fastcall BriefingOpenTopicsOriginal(void* /*scre
 __declspec(naked) inline void __fastcall BriefingDrawTopicsOriginal(void* /*screen*/) EI_ORIGINAL(0x006071E0)
 __declspec(naked) inline void __fastcall BriefingFindTopicsOriginal(void* /*screen*/, void*, int /*personId*/)
     EI_ORIGINAL(0x00607360)
+// A-I11. 0066F840 (CPlayerServer, RET 8): message 0x19, a dialogue event (byte `what`: 3 the phrases start, 2 a
+// person leaves the dialogue) and a dword (a unit id, or 0). 006B4E10 (on the music system [007AF760], ECX not read):
+// the sound manager's stream fades out (006BAFA0).
+__declspec(naked) inline void __fastcall PlayerSendDialogueEventOriginal(void* /*server*/, void*, int /*what*/, int /*value*/)
+    EI_ORIGINAL(0x0066F840)
+__declspec(naked) inline void __fastcall MusicFadeOutOriginal(void* /*music*/) EI_ORIGINAL(0x006B4E10)
+// 0066EDA0 (rewritten as CPlayerServer::SendPosition0F; RET 0xC): message 0x0F, a camera position `at`, the point it
+// looks at and a flag byte.
+__declspec(naked) inline void __fastcall PlayerSendViewOriginal(void* /*server*/, void*, const Vector3* /*at*/,
+                                                                const Vector3* /*point*/, int /*flag*/) EI_ORIGINAL(0x0066EDA0)
 // 00578C40: the client glue (007AFEA4, not read) copies the local player's variables whose names start with `prefix`
 // into `out` (a NamedFloatTable; emptied when there is no player; RET 8).
 __declspec(naked) inline void __fastcall GameCopyVariablesOriginal(void* /*glue*/, void*, const char* /*prefix*/,

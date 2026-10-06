@@ -274,7 +274,7 @@ struct UnitServer {
     void StopQueued();                                   // 00555200
     void Reposition();                                   // 00554450
 };
-__declspec(naked) void UnitServer::PlayAnimation(const char*) EI_ORIGINAL(0x00555700)
+void UnitServer::PlayAnimation(const char* name) { ControllerPlayAnimationOriginal(this, nullptr, name); }
 __declspec(naked) void UnitServer::SetMoveStyle(int) EI_ORIGINAL(0x00555270)
 __declspec(naked) void UnitServer::StopQueued() EI_ORIGINAL(0x00555200)
 void UnitServer::Reposition() { ControllerRepositionOriginal((void*)this); }

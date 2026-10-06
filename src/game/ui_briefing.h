@@ -10,6 +10,7 @@
 // walking to their places), 3 phrases, 4 rewards.
 
 #include "console.h"
+#include "maths.h"
 #include "object_tables.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -145,6 +146,25 @@ public:
     // (lowercased; "constr..." topics share "briefing constr"), empty without one.
     mfc::CString* TopicTitle(mfc::CString* out, const char* topic);
 
+    // The dialogue (ui_briefing_dialogue.cpp).
+    // 00608210. The phrases start: the voice still playing stops, the music fades out; without a
+    // text "briefing <topic_>" back to state 0. Otherwise the server hears dialogue event 3, the
+    // camera position is kept (savedCamera_) with a point one unit along its rotation's z axis
+    // (lookAt_), the dialogue text and the text window are emptied, state 3, firstPhrase_, and the
+    // first phrase (00604C50 with 0).
+    void StartPhrases();
+    // 00607A60 (RET 0xC). `unit` (a client unit) plays a dialogue animation: talking 3 for a third
+    // speaker, else a random one of 1, 6, 7, 8 for a human ("unhuma") and 1 for others; listening
+    // a random one of 2, 0xA, 0xC, 0xD for a human and 2 for others (skill animations, 00518FC0).
+    // Its server unit's controller drops its action first (00555840) and calls 006023F0 when the
+    // animation has finished.
+    void PlaySpeakerAnimation(CUnit* unit, bool talking, bool third);
+    // 00607BB0 (RET 0x10). The camera views `unit`: from its eyes (its place, or its position, plus
+    // its facing times the prototype's viewDistance, at viewHeight) around the facing turned by
+    // `angle`, `distance` away and `height` above; without a unit the middle of the first two
+    // places, looked at across them. Sent to the server as message 0x0F (camera position, point).
+    void ViewSpeaker(CUnit* unit, float angle, float distance, float height);
+
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
     std::uint8_t unknown_169[3];
@@ -155,10 +175,19 @@ public:
     bool briefingStarted_;           // +0x18C a dialogue started by itself (602C90)
     std::uint8_t unknown_18D[3];
     UiDwordArray party_;             // +0x190 the party's units (CArray, SetSize 005EBDB0)
-    CUnit* leader_;                  // +0x1A4 the unit the camera follows
-    std::uint8_t unknown_1A8[0x240 - 0x1A8];
+    CUnit* leader_;                  // +0x1A4 the unit the camera follows (the hero speaker)
+    CUnit* person_;                  // +0x1A8 the person the dialogue is with
+    CUnit* third_;                   // +0x1AC a third speaker, or null
+    // +0x1B0 the speakers' places and +0x1D4 their facings: [0] person_, [1] leader_, [2] third_.
+    Vector3 places_[3];
+    Vector3 directions_[3];
+    Vector3 savedCamera_;            // +0x1F8 the camera position when the phrases started
+    Vector3 lookAt_;                 // +0x204 position + the camera rotation's z axis then
+    std::uint8_t unknown_210[0x240 - 0x210];
     BriefingMover* movers_;          // +0x240 the people walking to their places (list header)
-    std::uint8_t unknown_244[0x24C - 0x244];
+    bool firstPhrase_;               // +0x244 set when the phrases start (the first one lasts a second longer)
+    std::uint8_t unknown_245[3];
+    mfc::CString dialogueText_;      // +0x248 the dialogue's text so far (shown whole when skipped)
     float phraseTime_;               // +0x24C time left of a phrase without a voice
     int voice_;                      // +0x250 the phrase's voice (sound id), -1 none
     CUnit* rewardUnit_;              // +0x254
@@ -183,7 +212,14 @@ static_assert(offsetof(CBriefingScreen, topic_) == 0x184);
 static_assert(offsetof(CBriefingScreen, hoveredTopic_) == 0x188);
 static_assert(offsetof(CBriefingScreen, party_) == 0x190);
 static_assert(offsetof(CBriefingScreen, leader_) == 0x1A4);
+static_assert(offsetof(CBriefingScreen, person_) == 0x1A8);
+static_assert(offsetof(CBriefingScreen, places_) == 0x1B0);
+static_assert(offsetof(CBriefingScreen, directions_) == 0x1D4);
+static_assert(offsetof(CBriefingScreen, savedCamera_) == 0x1F8);
+static_assert(offsetof(CBriefingScreen, lookAt_) == 0x204);
 static_assert(offsetof(CBriefingScreen, movers_) == 0x240);
+static_assert(offsetof(CBriefingScreen, firstPhrase_) == 0x244);
+static_assert(offsetof(CBriefingScreen, dialogueText_) == 0x248);
 static_assert(offsetof(CBriefingScreen, phraseTime_) == 0x24C);
 static_assert(offsetof(CBriefingScreen, text_) == 0x25C);
 static_assert(offsetof(CBriefingScreen, topicTop_) == 0x264);
