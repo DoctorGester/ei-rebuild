@@ -329,6 +329,12 @@ with a clear sign inside); the vertex arrays are 4-vertex SoA packets (x[4], y[4
 the packets by triangles * 3 / 4 + 1 + the vertex count (not count / 4: over-reserves, kept); `Finish` pads the last
 packet with copies of vertex 0. The statics' guard bits and empty atexit handlers are not reproduced. A triangle
 whose corner lies on a clipping edge can come out differently if a distance rounds across zero (rule 7).
+X17 (2026-10-07): ClipPlane / AddTriangle / AddTerrainTriangle mismatched on vertex contents (counts equal). The stage
+pipeline is the same as the original's (checked against 004D7BD0 / 004D74B0 / 004D71D0: same order, same buffer reuse);
+the cause is `/fp:fast` summing the projections (u, v, plane distance) as (z + y) + (x + offset) where the original does
+((z + y) + x) + offset. The sums cancel to small values, so they differ by ULPs of the largest product, which the
+appended-vertex check's 4 ULP / 1e-6 missed (e.g. a fully inside terrain triangle, "0 -> 3 / 3", differs only in u / v).
+The wrapper now compares appended vertices within 1e-3 + 1e-5 relative (`NearClipped`); ours unchanged (rule 7).
 
 ### View and light matrices (`view_matrices.cpp`, `view_matrices.h`)
 

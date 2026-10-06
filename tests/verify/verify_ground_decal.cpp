@@ -8,8 +8,9 @@
 //   ClipFromV, ClipFromUMax) only write vertices and indices past the counts (the buffers are
 //   reserved beforehand) and the triangle they are given: the original runs first, the counts,
 //   the new vertices and indices are recorded and the counts and triangle put back, then ours
-//   runs; counts must match, positions and texture coordinates nearly, indices exactly. A
-//   triangle on a clipping edge can come out differently (a sign test of a float sum, rule 7).
+//   runs; counts must match, positions and texture coordinates nearly (NearClipped: the
+//   projections are summed in another order), indices exactly. A triangle on a clipping edge can
+//   come out differently (a sign test of a float sum, rule 7).
 // - Begin, Reserve, Finish reallocate: the original runs on a deep copy of the builder and its
 //   arrays (buffers from the game's heap, freed afterwards), ours on the real ones; array sizes,
 //   capacities and the used elements compared, Begin's fields nearly.
@@ -17,6 +18,7 @@
 
 #include "../../src/game/ground_decal.h"
 
+#include <cmath>
 #include <cstring>
 #include <vector>
 
@@ -26,6 +28,19 @@ bool Near(float a, float b) { return ei::verify::NearlyEqual<float>(a, b, 4, 1e-
 
 bool NearVertex(const DecalVertex& a, const DecalVertex& b) {
     return Near(a.x, b.x) && Near(a.y, b.y) && Near(a.z, b.z) && Near(a.u, b.u) && Near(a.v, b.v);
+}
+
+// The appended vertices: u, v and the plane distance are sums of products of world coordinates
+// that cancel to small values, and /fp:fast adds them in another order than the original
+// ((z + y) + (x + offset) instead of ((z + y) + x) + offset, rule 7). They differ by a few ULPs of
+// the largest product, not of the result, and the clipped corners inherit that; so a few ULPs, or
+// 1e-3 plus 1e-5 relative (a thousandth of the decal in texture space).
+bool NearClipped(float a, float b) {
+    return Near(a, b) || std::fabs(a - b) <= 1e-3f + 1e-5f * std::fabs(a);
+}
+bool NearClippedVertex(const DecalVertex& a, const DecalVertex& b) {
+    return NearClipped(a.x, b.x) && NearClipped(a.y, b.y) && NearClipped(a.z, b.z) && NearClipped(a.u, b.u) &&
+           NearClipped(a.v, b.v);
 }
 
 // A deep copy of an aligned array: the same header with its own buffer of the same capacity.
@@ -108,7 +123,7 @@ void CompareAppend(const char* name, DecalBuilder* self, DecalVertex* tri, Origi
     ours();
     Appended actual = Record(*self, vertexCount, indexCount);
     bool ok = expected.vertexCount == actual.vertexCount && expected.indexCount == actual.indexCount;
-    for (std::size_t i = 0; ok && i < expected.vertices.size(); ++i) ok = NearVertex(expected.vertices[i], actual.vertices[i]);
+    for (std::size_t i = 0; ok && i < expected.vertices.size(); ++i) ok = NearClippedVertex(expected.vertices[i], actual.vertices[i]);
     ok = ok && expected.indices == actual.indices;
     ei::verify::Check(name, true, ok, "vertices %d -> %d / %d, indices %d -> %d / %d", vertexCount, expected.vertexCount,
                       actual.vertexCount, indexCount, expected.indexCount, actual.indexCount);
