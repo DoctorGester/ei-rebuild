@@ -158,6 +158,10 @@ public:
     // empties it (data, size, capacity). The second argument is unread.
     void FreeArray(void* array, int unused);
 
+    // unit_vision.cpp (A-U3). 0050F170 (RET 4): slot 47 with mode 0 for `level` 0 (or NaN), 1 for
+    // 1, else 2. Returns slot 47's EAX.
+    int SetVisibilityLevel(float level);
+
     // The object as the CObject3D it derives from in the original (map_object_figures.h).
     CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
 
@@ -272,7 +276,7 @@ public:
     virtual void Slot44() = 0;
     virtual void Slot45() = 0;
     virtual void Slot46() = 0;
-    virtual void Slot47() = 0;
+    virtual int SetVisibilityMode(int mode) = 0;    // 47 (0xBC): 004467C0 hands it to the companion
     virtual Vector3* EyePoint(Vector3* out) = 0;        // 48 (0xC0): where the object sees from; returns `out`
     virtual void Slot49() = 0;
     virtual void Slot50() = 0;

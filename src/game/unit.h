@@ -194,12 +194,19 @@ public:
     virtual void Slot36();
     virtual void Slot37();
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
+    virtual void Slot39();
+    virtual void AdvanceTime(float time);   // 40: client 00535B30
 };
 
 class CUnit : public CEngineObject {
 public:
     // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
     void OnLeftSectorMap();
+
+    // unit_vision.cpp (A-U3). 0052FC40, virtual slot 25: the world time moved on to `time`. The
+    // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
+    // (0056D740): its VisionRange at the world's daylight (0055FC50), around its position.
+    void AdvanceUnitTime(float time);
 
     // 0050E9F0. Records that part `part` (0..15; negative: none) of the object changed, marks it
     // dirty (flags_ bit 1) and stamps it with the world's change counter. Returns what the original
@@ -656,7 +663,8 @@ struct UnitParams {
     std::uint8_t damageSpread;      // +0x1E (truncated)
     std::uint8_t naturalWeapon;     // +0x1F
     std::int16_t unknown_20;        // +0x20 7 after Reset
-    std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current
+    std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current ([0] / [1]: the sight range by night / the
+                                    //       percentage of it by day, VisionRange)
     std::uint8_t valuesE0[6];       // +0x28 UnitStats::valuesE0[i].current
     std::uint8_t unknown_2E[2];
     UnitParamsSlot slots[6];        // +0x30
@@ -664,6 +672,10 @@ struct UnitParams {
     std::uint8_t skills[8];         // +0xDB
     std::uint8_t skillLevels[0x24]; // +0xE3
     std::uint8_t flags;             // +0x107 (UnitStats::flags, low byte)
+
+    // unit_vision.cpp (A-U3). 005271E0 (RET 4): the sight range at `daylight` (0 night .. 1 day):
+    // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). ST0, unrounded.
+    double VisionRange(float daylight);
 };
 static_assert(offsetof(UnitParams, attackRate) == 0x0E);
 static_assert(offsetof(UnitParams, combat) == 0x18);

@@ -124,7 +124,9 @@ struct WeaponRecord : ItemRecordHead {
     // Its own fields copied: +0x6C..+0x83 and +0x8C..+0xB4 (+0x84..+0x8B are not).
     void CopyOwn(const WeaponRecord* source);
 
-    std::uint8_t unknown_70[0x8C - 0x70];
+    std::uint8_t unknown_70[0x7B - 0x70];
+    std::uint8_t skillBonus[2];         // +0x7B the wielder's weapon skill bonus (skill 0 / 1)
+    std::uint8_t unknown_7D[0x8C - 0x7D];
     std::uint32_t value8C;              // +0x8C item +0x58
     float damage;                       // +0x90 field::kWeaponDamage
     float damageSpread;                 // +0x94 field::kWeaponDamageSpread
