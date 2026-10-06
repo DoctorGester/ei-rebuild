@@ -107,8 +107,6 @@ void RestorePrevious(Particle* p) {
 
 } // namespace
 
-__declspec(naked) Vector3* CParticleSource::AttachmentPoint(Vector3*, void*) EI_ORIGINAL(0x00484C00)
-
 // --- Particle pool --------------------------------------------------------------------------------
 
 // 00498870. The head of the free list, or a fresh 0x64-byte particle when it is empty.

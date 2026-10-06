@@ -262,3 +262,21 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
   0x269EC3`, each byte XORed with `x >> 16`) start every magic trap armed and disarm them from triggers (`ActivateTrap(MTF1..4, 0)`);
   the `zone_gz2g_traps` scenario reaches command 8 (`KillScript() VTriger#0#n( this )`) from a killed instance, which is why the
   Execute observer reads the instance list's head (+0x144), not the tail.
+
+## A-S4 (2026-10-06): live leftovers of 0x00480000-0x00500000
+
+| Area (file) | Addresses and names | Verify |
+|---|---|---|
+| .mob reader (`mob_reader.cpp`, `map_spec.h`) | 00481F00 `ReadMobChunks` (scripts, weather, records, players), 00481660 `LoadMobFile` (relations applied, traps get their hostile mask and origin, units their alarm records 005D6D20, records deleted, scripts loaded unless keepIds) | ours only (records keyed by id, count, maxId; result). Every zone load (`newgame`, `world_load`, `zone_*`) |
+| Particle attachment (`particle_attach.cpp`) | 004849F0 `CParticleSource::Attach`, 00484C00 `AttachmentPoint`, 00484B40 `PartPoint`, 00485280 `AttachmentOffset`, 00485380 `StopAndClear` (+ `ReleaseAllParticles`, shared with Clear) | PartPoint / AttachmentPoint / AttachmentOffset against the original (CheckNear; a unit's effect point, attachPoint 0, not compared: 00532860 can read uninitialised stack); Attach / StopAndClear ours only (attachedTo, listed in the object's sources, origin = the original's attachment point or the position). `particles`, `spells_cast` |
+
+- Attachment facts: attachPoint 1-7 = "hd", "hd" + 1 in z, "lh2", "rh2", "ll2", "rl2", "bd"; 8-12 = "body00".."body04";
+  every part falls back to "bd", then to the position raised by the bounds' upper z extent. Not a unit or attachPoint > 12:
+  position raised by radius * 1.6 (bounds bit 0) or the box height. Attach recurses through Add/RemoveEffectSource.
+- .mob facts: the .mob wind strength is clamped by the float at 0079BE58, which nothing writes (0), so ChangeWind gets
+  at most 0; the weather chunk's last two floats are read and unused. 00481660's branch under 0079BCF4 (the colour
+  quantisation 0049BEA0 and its STLport map / list / introsort helpers 00482640, 00483540, 004825A0, 00482AA0, 0049BB70,
+  0049C5A0, 0049D*, ...) never runs: nothing in game.exe, addon.dll or EI_Plugin.asi writes 0079BCF4 (bss, a byte search
+  finds its address only in the test at 00481704). Not reproduced; the 78 functions only that branch reaches (callers
+  closed over Ghidra's xrefs, no Unwind or unnamed callers) are in config/dead_code.csv.
+- Original bugs kept: 00481660 deletes every record while the hash_map still holds the pointers (freed with the map).

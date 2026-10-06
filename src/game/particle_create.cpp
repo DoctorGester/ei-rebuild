@@ -901,15 +901,7 @@ EI_REPLACE_METHOD(0x004847E0, CParticleSource::Reset);
 // 00484710 (vtable slot 3). Returns every particle to the pool, releases the texture, detaches
 // from the object the source follows, then resets.
 void CParticleSource::Clear() {
-    while (particles.count != 0) {
-        auto* node = particles.head;
-        Particle* p = node->data;
-        particles.head = node->next;
-        if (particles.head) particles.head->prev = nullptr;
-        else particles.tail = nullptr;
-        particles.FreeNode(node);
-        static_cast<ParticlePool*>(owner_)->Release(p);
-    }
+    ReleaseAllParticles();
     void* held = texture;
     texture = nullptr;
     if (held) (*static_cast<void (__fastcall***)(void*, void*)>(held))[4](held, nullptr);
