@@ -38,22 +38,15 @@ inline CParty*& LoadingParty() { return *reinterpret_cast<CParty**>(std::uintptr
 // memory zeroed, then each record constructed.
 void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
 
-// A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable 00742FF4).
-struct PartyMemberArray {
-    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00742FF4);
-
-    // 00663FA0 (RET 8; party_lifetime.cpp). CArray::SetSize: new records are zeroed and
-    // constructed, dropped ones destroyed; growing past the capacity moves the records to a new
-    // block (grow-by 0: an eighth of the size, 4..1024); `growBy` replaces the grow-by unless -1.
-    void SetSize(int newSize, int newGrowBy);
-
-    void* vtable;
-    PartyUnitRecord* data;          // +0x04
-    int size;                       // +0x08
-    int capacity;                   // +0x0C
-    int growBy;                     // +0x10
+// ConstructElements / DestructElements of the records: 00664880, and each record's Destruct.
+struct PartyUnitRecordElements {
+    static void Construct(PartyUnitRecord* records, int count) { ConstructPartyUnitRecords(records, count); }
+    static void Destruct(PartyUnitRecord* records, int count);   // party_lifetime.cpp
 };
-static_assert(sizeof(PartyMemberArray) == 0x14);
+// A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable 00742FF4). Its SetSize
+// (00663FA0, RET 8) is registered on the template (party_lifetime.cpp).
+using PartyMemberArray = mfc::CArray<PartyUnitRecord, PartyUnitRecordElements>;
+constexpr std::uintptr_t kPartyMemberArrayVtable = std::uintptr_t(0x00742FF4);
 
 // The party's named variables (the script's "gtime" and the like): an STLport hash_map<CString,
 // float>. Its hash is not needed by the code here (declared only).

@@ -50,7 +50,7 @@ src/game/console_addon.cpp,0,0,0,0,0,1,0,1,0
 src/game/console_commands.cpp,13,0,0,0,34,9,0,1,0
 src/game/console_window.cpp,0,0,0,0,0,2,0,0,0
 src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0
-src/game/core_streams.h,0,0,0,0,4,0,0,0,1
+src/game/core_streams.h,0,0,0,0,4,0,0,0,0
 src/game/core_transform.cpp,0,4,0,0,0,0,0,0,0
 src/game/core_transform.h,0,0,0,0,1,0,0,0,0
 src/game/core_transform_math.cpp,0,0,8,1,1,0,0,0,0
@@ -86,7 +86,6 @@ src/game/item_parts.cpp,2,0,0,0,0,0,0,0,0
 src/game/item_stock.cpp,36,19,0,0,17,0,0,0,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0
 src/game/lightning.cpp,0,0,0,1,0,0,0,1,0
-src/game/lightning.h,0,0,0,0,0,0,0,0,1
 src/game/lightning_draw.cpp,0,7,0,0,0,0,0,0,0
 src/game/lightning_start.cpp,0,3,0,0,4,0,0,0,0
 src/game/magic_trap.cpp,55,5,0,0,7,0,0,0,0
@@ -100,7 +99,7 @@ src/game/map_object_companion.cpp,0,5,0,1,0,0,0,7,0
 src/game/map_object_create.cpp,1,0,0,0,0,0,0,0,0
 src/game/map_object_draw.cpp,24,3,0,1,0,0,0,0,0
 src/game/map_object_figures.cpp,0,8,0,1,0,0,0,1,0
-src/game/map_object_figures.h,0,0,0,0,0,0,14,0,1
+src/game/map_object_figures.h,0,0,0,0,0,0,14,0,0
 src/game/map_object_lifetime.cpp,24,2,0,0,19,0,0,30,0
 src/game/map_object_shadow.cpp,25,9,1,1,0,0,0,1,0
 src/game/map_spec.cpp,1,8,0,0,9,0,0,3,0
@@ -110,7 +109,6 @@ src/game/map_spec_unit.cpp,2,3,0,0,9,0,0,2,0
 src/game/menu_rects.cpp,0,1,0,0,36,0,0,0,0
 src/game/misc_400.cpp,0,0,0,0,1,0,0,0,0
 src/game/model.cpp,0,0,0,4,0,0,0,0,0
-src/game/model.h,0,0,0,0,0,0,0,0,1
 src/game/net_classes.h,0,0,0,0,8,0,0,0,0
 src/game/net_client.cpp,0,2,0,0,0,0,0,0,0
 src/game/net_client_awards.cpp,8,5,1,1,4,0,0,0,0
@@ -154,7 +152,7 @@ src/game/particle_draw.cpp,0,0,0,1,0,0,0,0,0
 src/game/particle_emitters.cpp,0,0,1,1,1,0,0,1,0
 src/game/particle_render.cpp,0,0,1,1,1,0,0,0,0
 src/game/particle_tick.cpp,0,0,0,1,0,0,0,0,0
-src/game/party.h,0,0,0,0,0,0,9,0,1
+src/game/party.h,0,0,0,0,0,0,9,0,0
 src/game/party_records.cpp,0,2,0,0,0,0,0,0,0
 src/game/player_client.cpp,0,0,0,0,0,0,1,0,0
 src/game/player_messages.cpp,0,3,1,0,0,0,0,2,0

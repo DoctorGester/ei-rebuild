@@ -40,7 +40,6 @@ __declspec(naked) void __fastcall DrawGlowAt(CLightning*, void*, void* /*device*
 // allocation of 16-byte points 00468F70; atexit 006E727B.
 void __fastcall SpriteArrayConstruct(void* a0) { SpriteArrayConstructOriginal(a0); }
 __declspec(naked) void __stdcall ConstructSprites(void*, int) EI_ORIGINAL(0x00468F90)
-void* __fastcall AllocPoints16(int a0) { return (void*)AllocAligned16(a0); }
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 float GameFloat(std::uintptr_t address) {
@@ -53,59 +52,18 @@ struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     std::uint32_t colour;
     const float* rect;
 };
-using SpriteArray = mfc::CArray<SpriteRecord>;   // vtable 0073C584, at 0079C1E0
+struct SpriteElements {
+    static void Construct(SpriteRecord* records, int count) { ConstructSprites(records, count); }
+    static void Destruct(SpriteRecord*, int) {}
+};
+using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;   // vtable 0073C584, at 0079C1E0
 SpriteArray& Sprites() { return *reinterpret_cast<SpriteArray*>(0x0079C1E0); }
 LightningPointArray& GlowPoints() { return *reinterpret_cast<LightningPointArray*>(0x0079C1D0); }
 std::uint8_t& GlowGuards() { return *reinterpret_cast<std::uint8_t*>(0x0079C1F4); }
 
-int GrowStep(int grow, int size) {
-    if (grow != 0) return grow;
-    int g = size / 8;
-    return g < 4 ? 4 : g > 0x400 ? 0x400 : g;
-}
-
-// The two static arrays' SetSize(8), as inlined.
-void SizeSprites() {
-    SpriteArray& a = Sprites();
-    if (!a.data) {
-        a.data = static_cast<SpriteRecord*>(gamecrt::operator_new(0x40));
-        ConstructSprites(a.data, 8);
-        a.maxSize = 8;
-        a.size = 8;
-    } else if (a.maxSize >= 8) {
-        if (a.size < 8) ConstructSprites(a.data + a.size, 8 - a.size);
-        a.size = 8;
-    } else {
-        int capacity = a.maxSize + GrowStep(a.growBy, a.size);
-        if (capacity <= 8) capacity = 8;
-        auto* data = static_cast<SpriteRecord*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 8));
-        std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 8);
-        ConstructSprites(data + a.size, 8 - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = 8;
-        a.maxSize = capacity;
-    }
-}
-void SizePoints() {
-    LightningPointArray& a = GlowPoints();
-    if (!a.data) {
-        a.data = static_cast<LightningPoint*>(AllocPoints16(8));
-        a.capacity = 8;
-        a.size = 8;
-    } else if (a.capacity >= 8) {
-        a.size = 8;
-    } else {
-        int capacity = a.capacity + GrowStep(a.growBy, a.size);
-        if (capacity <= 8) capacity = 8;
-        auto* data = static_cast<LightningPoint*>(AllocPoints16(capacity));
-        std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 16);
-        gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
-        a.data = data;
-        a.size = 8;
-        a.capacity = capacity;
-    }
-}
+// The two static arrays' SetSize(8), as inlined (the sprites' new records constructed by 00468F90).
+void SizeSprites() { Sprites().SetSize(8); }
+void SizePoints() { GlowPoints().SetSize(8); }
 
 // A segment step's length, summed in the original's order.
 float LengthXZY(const Vector3& v) { return std::sqrt((v.x * v.x + v.z * v.z) + v.y * v.y); }

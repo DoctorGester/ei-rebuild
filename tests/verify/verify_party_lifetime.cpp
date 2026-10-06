@@ -90,11 +90,11 @@ void __fastcall ClearItemsVerify(PartyUnitRecord* self) {
 void __fastcall MemberSetSizeVerify(PartyMemberArray* self, void*, int newSize, int newGrowBy) {
     int before = self->size;
     self->SetSize(newSize, newGrowBy);
-    bool ok = self->size == newSize && self->capacity >= newSize && (newSize == 0) == (self->data == nullptr) &&
+    bool ok = self->size == newSize && self->maxSize >= newSize && (newSize == 0) == (self->data == nullptr) &&
               (newGrowBy == -1 || self->growBy == newGrowBy);
     for (int i = before; ok && i < newSize; ++i) ok = ItemsCleared(self->data[i]) && Defaults(self->data[i]);
     ei::verify::Check("PartyMemberArray::SetSize", true, ok, "%d -> %d records (capacity %d)", before, newSize,
-                      self->capacity);
+                      self->maxSize);
 }
 
 void __fastcall ListSetSizeVerify(AlignedPtrArray* self, void*, int size, int growBy) {
@@ -189,7 +189,7 @@ bool PartyDestructed(const CParty* party) {
     return VtableOf(party) == CEngineObject::kVtableAddress && party->owner_ == nullptr && ArraysEmpty(party) &&
            party->itemManager_ == nullptr && party->spellManager_ == nullptr && party->itemConstructor_ == nullptr &&
            party->spellConstructor_ == nullptr && party->variables_.Size() == 0 &&
-           VtableOf(&party->members_) == PartyMemberArray::kVtableAddress;
+           VtableOf(&party->members_) == kPartyMemberArrayVtable;
 }
 
 void __fastcall PartyDestructVerify(CParty* self) {

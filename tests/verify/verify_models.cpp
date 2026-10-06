@@ -319,7 +319,7 @@ static void(__fastcall* s_setTarget)(TweenArray*, void*, int, float, int);
 static void __fastcall SetTargetVerify(TweenArray* self, void*, int key, float target, int steps) {
     TweenArray scratch = Clone(*self);
     s_setTarget(&scratch, nullptr, key, target, steps);
-    self->SetTarget(key, target, steps);
+    TweenSetTarget(self, nullptr, key, target, steps);
     ei::verify::Check("TweenArray::SetTarget", true, Same(scratch, *self), "key %d target %g steps %d", key, target, steps);
     Free(scratch);
 }
@@ -330,7 +330,7 @@ static bool(__fastcall* s_tick)(TweenArray*, void*);
 static bool __fastcall TickVerify(TweenArray* self, void*) {
     TweenArray scratch = Clone(*self);
     bool expected = s_tick(&scratch, nullptr);
-    bool actual = self->Tick();
+    bool actual = TweenTick(self);
     ei::verify::Check("TweenArray::Tick", true, expected == actual && Same(scratch, *self), "size %d", self->size);
     Free(scratch);
     return expected;
@@ -343,7 +343,7 @@ static void SaveVerify(void(__fastcall* original)(const TweenArray*, void*, Scri
                        ScriptStream* stream) {
     CaptureStream expected, actual;
     original(self, nullptr, &expected);
-    self->Save(&actual);
+    TweenSave(self, nullptr, &actual);
     ei::verify::Check("TweenArray::Save", true, expected.bytes == actual.bytes && expected.chunks == actual.chunks, "size %d",
                       self->size);
     expected.Forward(stream);
@@ -364,7 +364,7 @@ static void __fastcall LoadVerify(TweenArray* self, void*, ScriptStream* stream,
     RecordStream record(stream);
     s_load(self, nullptr, &record, world);
     ReplayStream replay(record.bytes);
-    scratch.ReadEntries(&replay, reinterpret_cast<int>(&record));
+    TweenReadEntries(scratch, &replay, reinterpret_cast<int>(&record));
     ei::verify::Check("TweenArray::Load", true, Same(scratch, *self) && replay.Consumed(), "size %d", self->size);
     Free(scratch);
 }
@@ -378,7 +378,7 @@ static void __fastcall LoadEntriesVerify(TweenArray* self, void*, ScriptStream* 
     RecordStream record(stream);
     s_loadEntries(&scratch, nullptr, &record);
     ReplayStream replay(record.bytes);
-    self->LoadEntries(&replay);
+    TweenLoadEntries(self, nullptr, &replay);
     ei::verify::Check("TweenArray::LoadEntries", true, Same(scratch, *self) && replay.Consumed(), "size %d", self->size);
     Free(scratch);
 }
