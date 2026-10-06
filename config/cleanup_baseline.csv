@@ -77,9 +77,9 @@ src/game/figure_mesh_file.cpp,13,3,3,2,0,0,0,4,0
 src/game/figure_model_destroy.cpp,0,3,0,0,1,0,0,0,0
 src/game/figure_models.cpp,0,6,0,0,0,0,0,0,0
 src/game/figure_part_bounds.cpp,5,0,0,2,0,0,0,0,1
-src/game/figure_part_draw.cpp,57,0,6,0,0,0,0,1,2
-src/game/figure_part_draw_plain.cpp,22,0,2,0,0,0,0,0,1
-src/game/figure_rasterise.cpp,8,0,0,2,0,0,0,0,1
+src/game/figure_part_draw.cpp,57,0,6,0,0,0,0,1,1
+src/game/figure_part_draw_plain.cpp,22,0,2,0,0,0,0,0,0
+src/game/figure_rasterise.cpp,8,0,0,2,0,0,0,0,0
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0
 src/game/hoover_loot.cpp,15,1,0,0,0,0,0,0,1
 src/game/ini_file.h,0,0,0,0,0,0,0,0,2
@@ -186,11 +186,11 @@ src/game/resource.h,0,0,0,0,0,0,2,0,0
 src/game/resource_manager.h,0,0,0,0,1,0,0,0,0
 src/game/resource_stream.cpp,0,0,0,0,4,0,0,0,0
 src/game/scene_bone_frames.cpp,16,0,0,0,0,0,0,0,0
-src/game/scene_bones.cpp,51,0,1,0,0,0,0,0,2
+src/game/scene_bones.cpp,51,0,1,0,0,0,0,0,0
 src/game/scene_loader.cpp,48,4,1,0,23,0,0,0,5
 src/game/scene_loader.h,0,0,0,0,0,0,0,0,1
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,1
-src/game/scene_meshes.cpp,10,0,0,0,3,0,0,0,2
+src/game/scene_meshes.cpp,10,0,0,0,0,0,0,0,0
 src/game/scene_normals.cpp,13,0,0,0,0,0,0,0,0
 src/game/scene_registry.cpp,19,0,1,0,2,0,0,0,0
 src/game/scene_skeleton.cpp,34,1,0,0,0,0,0,0,0

@@ -9,6 +9,7 @@
 // figure's own slots; the screen rectangle goes to the node (+0x20) and to `rect`. See
 // docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_ai.h"
@@ -30,11 +31,9 @@ struct LightList {            // {data, count}: light objects
     int count;
 };
 
-struct AlignedArray {         // the engine's aligned array: data (32-byte aligned), size, capacity, growth
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
+// A block of four vertex positions (x[4], y[4], z[4], w[4]; 64 bytes).
+struct PositionBlock {
+    float v[16];
 };
 
 // STLport string (start, finish, end of storage), handled through the original members.
@@ -44,15 +43,13 @@ struct RawString {
     char* eos;
 };
 
-// The positions with the offsets added (007C2E48, 64 bytes per block of four vertices; a
-// function-local static, guard 007C2E58 bit 1, freed at exit by 005A8AE0).
-AlignedArray& MovedPositions() { return *reinterpret_cast<AlignedArray*>(0x007C2E48); }
+// The positions with the offsets added (007C2E48, a lib::AlignedArray; a function-local static,
+// guard 007C2E58 bit 1, freed at exit by 005A8AE0).
+lib::AlignedArray<PositionBlock>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<PositionBlock>*>(0x007C2E48); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E58); }
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-__declspec(naked) char* __fastcall Alloc4(int) EI_ORIGINAL(0x00406B50)
-__declspec(naked) char* __fastcall Alloc64(int) EI_ORIGINAL(0x00452E70)
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 __declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 // 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
@@ -476,69 +473,13 @@ __declspec(naked) void __fastcall TickTime(float* /*out*/) {
 
 // --- Arrays --------------------------------------------------------------------------------------
 
-int GrowthStep(const AlignedArray& a) {
-    if (a.growBy != 0) return a.growBy;
-    int step = a.size / 8;
-    if (step < 4) return 4;
-    if (step > 0x400) return 0x400;
-    return step;
-}
+// The colour arrays (the figure mesh's lib::AlignedArray<uint32_t> at +0x138 / +0x148) are sized
+// with the inlined SetSize that drops the contents (SetSizeDiscard; allocator 00406B50), the moved
+// positions with the one that keeps them (SetSize; allocator 00452E70).
+using ColourArray = lib::AlignedArray<std::uint32_t>;
 
-// SetSize without keeping the contents (the colour arrays).
-void Resize(AlignedArray& a, int size, char* (__fastcall* alloc)(int)) {
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-// SetSize keeping the contents; 0 frees the block (the moved positions, 64-byte blocks).
-void SetSize64(AlignedArray& a, int size) {
-    if (size == 0) {
-        if (a.data) {
-            GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = Alloc64(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = Alloc64(capacity);
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 64);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-void Fill(AlignedArray& a, std::uint32_t value) {
-    auto* p = reinterpret_cast<std::uint32_t*>(a.data);
-    for (int i = 0; i < a.size; ++i) p[i] = value;
+void Fill(ColourArray& a, std::uint32_t value) {
+    for (int i = 0; i < a.size; ++i) a.data[i] = value;
 }
 
 // --- The part --------------------------------------------------------------------------------------
@@ -556,8 +497,8 @@ struct Part {
     int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 material flag 0x10
 
     char* Mesh() const { return At<char*>(node, 0x1C); }
-    AlignedArray& Colours() const { return At<AlignedArray>(Mesh(), 0x138); }
-    AlignedArray& Speculars() const { return At<AlignedArray>(Mesh(), 0x148); }
+    ColourArray& Colours() const { return At<ColourArray>(Mesh(), 0x138); }
+    ColourArray& Speculars() const { return At<ColourArray>(Mesh(), 0x148); }
     bool Textured() const { return textureA && textureB; }
 };
 
@@ -578,8 +519,8 @@ void FlatColours(Part& part) {
         StringBufferFree(&s);
         return;
     }
-    Resize(part.Colours(), At<int>(part.Mesh(), 0xA8) * 4, &Alloc4);
-    Resize(part.Speculars(), At<int>(part.Mesh(), 0xA8) * 4, &Alloc4);
+    part.Colours().SetSizeDiscard(At<int>(part.Mesh(), 0xA8) * 4);
+    part.Speculars().SetSizeDiscard(At<int>(part.Mesh(), 0xA8) * 4);
     Fill(part.Colours(), At<std::uint32_t>(part.Mesh(), 0xD4));
     Fill(part.Speculars(), At<std::uint32_t>(part.Mesh(), 0xD8));
 }
@@ -640,12 +581,12 @@ void Light(Part& part) {
 
 // The positions with the per-vertex offsets (+0x128, +0x12C of them) added, in 007C2E48.
 const void* MovedPositionsOf(char* mesh) {
-    AlignedArray& moved = MovedPositions();
-    SetSize64(moved, At<int>(mesh, 0xA0));
+    lib::AlignedArray<PositionBlock>& moved = MovedPositions();
+    moved.SetSize(At<int>(mesh, 0xA0));
     std::memcpy(moved.data, At<void*>(mesh, 0x9C), static_cast<std::size_t>(At<int>(mesh, 0xA0)) * 64);
     for (int i = 0; i < At<int>(mesh, 0x12C); ++i) {
         const float* offset = reinterpret_cast<const float*>(At<char*>(mesh, 0x128)) + i * 3;
-        float* x = reinterpret_cast<float*>(moved.data) + (i >> 2) * 16 + (i & 3);
+        float* x = moved.data[i >> 2].v + (i & 3);
         AddOffset(&offset[0], &x[0]);
         AddOffset(&offset[1], &x[4]);
         AddOffset(&offset[2], &x[8]);
@@ -755,7 +696,7 @@ int __fastcall DrawFigurePart(char* node, void*, char* device, const void* light
               owner ? At<void*>(owner, 0xF0) : nullptr, 0};
     if (!(Guard() & 1)) {
         Guard() |= 1;
-        MovedPositions() = AlignedArray{};
+        MovedPositions() = lib::AlignedArray<PositionBlock>{};
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A8AE0));
     }
 

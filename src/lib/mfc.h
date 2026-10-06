@@ -373,6 +373,56 @@ struct CList {
 };
 static_assert(sizeof(CList<int>) == 0x1C);
 
+// CMap<K, ARG_K, V, ARG_V> (0x1C bytes): vtable, hash table, table size, count, free
+// associations, CPlex blocks, block size. An association is next, hash, key, value (dword packed,
+// so a 64-bit key sits at +8). Hashing and the association pool stay with each instantiation's own
+// GetAssocAt / InitHashTable / NewAssoc (called through their addresses); the walk and RemoveAll,
+// which the game inlines, are written here.
+#pragma pack(push, 4)
+template <typename K, typename V>
+struct CMapAssoc {
+    CMapAssoc* next;
+    std::uint32_t hash;
+    K key;
+    V value;
+};
+#pragma pack(pop)
+
+template <typename K, typename V>
+struct CMap {
+    using Assoc = CMapAssoc<K, V>;
+
+    void* vtable;
+    Assoc** table;          // +0x04
+    std::uint32_t hashSize; // +0x08 (17 until InitHashTable)
+    int count;              // +0x0C
+    Assoc* freeList;        // +0x10
+    CPlex* blocks;          // +0x14
+    int blockSize;          // +0x18
+
+    // GetNextAssoc as inlined: the association after `assoc` (the next in its chain, else the head
+    // of a later bucket), or null; null starts at the first bucket.
+    Assoc* Next(const Assoc* assoc) const {
+        if (assoc && assoc->next) return assoc->next;
+        for (std::uint32_t b = assoc ? assoc->hash + 1 : 0; b < hashSize; ++b)
+            if (table[b]) return table[b];
+        return nullptr;
+    }
+
+    // RemoveAll for elements without destructors: the table deleted (even when null), the pool
+    // and the blocks freed.
+    void RemoveAll() {
+        gamecrt::operator_delete(table);
+        table = nullptr;
+        count = 0;
+        freeList = nullptr;
+        PlexFreeDataChain(blocks);
+        blocks = nullptr;
+    }
+};
+static_assert(sizeof(CMap<int, int>) == 0x1C);
+static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
+
 // CTypedPtrList<CPtrList, T*>: a CPtrList (the non-template list of void*, same layout) with typed
 // elements. The game inlines its operations; they are CList<T*>'s (a new node's data is zeroed,
 // nothing destroyed).

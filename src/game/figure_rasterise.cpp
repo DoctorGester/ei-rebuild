@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "lib/containers.h"
 
 #include <cstdint>
 #include <cstring>
@@ -26,46 +27,11 @@ T& At(void* object, int offset) {
 struct IntPoint {
     int x, y;
 };
-struct PointArray {           // the engine's aligned array: data, size, capacity, growth
-    IntPoint* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using PointArray = lib::AlignedArray<IntPoint>;   // its inlined SetSize allocates through 004F65B0
 PointArray& TexturePoints() { return *reinterpret_cast<PointArray*>(0x007C2E00); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E10); }
 
-// 004F65B0: aligned storage for `count` 8-byte records.
-IntPoint* __fastcall Alloc8(int a0) { return (IntPoint*)AllocAligned32Of8Original(a0); }
-
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-
-// SetSize without keeping the contents.
-void Resize(PointArray& a, int size) {
-    if (!a.data) {
-        a.data = Alloc8(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int step = a.growBy;
-    if (step == 0) {
-        step = a.size / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int capacity = a.capacity + step;
-    if (!(size < capacity)) capacity = size;
-    IntPoint* data = Alloc8(capacity);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.capacity = capacity;
-    a.data = data;
-    a.size = size;
-}
 
 } // namespace
 
@@ -79,7 +45,7 @@ int __fastcall RasteriseFigureMesh(char* mesh, void*, void* rasteriser, const vo
         uv = PointArray{};
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A1170));
     }
-    Resize(uv, At<int>(mesh, 0xB0));
+    uv.SetSizeDiscard(At<int>(mesh, 0xB0));
     float scale = GameFloat(0x0073C370);
     for (int i = 0; i < At<int>(mesh, 0xB0); ++i) {
         const float* source = At<float*>(mesh, 0xAC) + i * 2;
