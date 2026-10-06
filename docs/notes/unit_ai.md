@@ -165,3 +165,7 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   destructor / deleting destructor, 005D2950 / 005D2930 Fear's, 005D1210 / 005D2920 GetType (1, 7), 005D0A90 the abstract base's
   Execute (remark, LookAround). Verify: constructors output on a copy (the fields they write), GetType pure, the rest ours only.
   Kept: Patrol's destructor leaves the point array's pointer and count behind (freed).
+- Also there: 005D8850 / 005D6D10 the abstract bases' constructors (vtables 0073D15C / 0073D22C), 005D8CF0 / 005D8CD0 the
+  patrol point array's destructors (`PatrolPointArray`), 005D9E10 ZeroAttackOptions (ConstructElements), 005D9830 ListGetNext
+  (CList::GetNext). Verify (`verify_unit_ai_templates.cpp`): constructors and GetNext against the original on copies, the rest
+  ours only.

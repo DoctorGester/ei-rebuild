@@ -1,12 +1,16 @@
 // The unit AI modes' lifetime and constant slots: the Player and Patrol constructors (005D3760,
 // 005D0F60), the Patrol and Fear destructors (005D1240 / 005D1220, 005D2950 / 005D2930), their
-// GetType slots (005D1210, 005D2920) and the abstract base's Execute (005D0A90).
+// GetType slots (005D1210, 005D2920), the abstract base's Execute (005D0A90), the abstract bases'
+// constructors (005D8850, 005D6D10), the patrol point array's destructors (005D8CF0, 005D8CD0) and
+// two list / array template helpers (005D9830, 005D9E10).
 #include "unit_ai.h"
 
 #include "random.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+
+#include <cstring>
 
 namespace {
 constexpr int kRemarkIdle = 1;
@@ -81,3 +85,46 @@ FearMode* FearMode::DeletingDestruct(int flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x005D2930, FearMode::DeletingDestruct);
+
+AIMode* __fastcall aimode::ConstructModeBase(AIMode* mode) {
+    mode->vtable = kBaseVtable;
+    return mode;
+}
+EI_REPLACE(0x005D8850, aimode::ConstructModeBase);
+
+AIMode* __fastcall aimode::ConstructActionBase(AIMode* mode) {
+    mode->vtable = kActionBaseVtable;
+    return mode;
+}
+EI_REPLACE(0x005D6D10, aimode::ConstructActionBase);
+
+void PatrolPointArray::Destruct() {
+    vtable = aimode::kPatrolPointsBaseVtable;
+    if (!data) return;
+    for (int i = 0; i < size; ++i) {
+        AILookArray& looks = data[i].looks;
+        looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+        if (looks.data) gamecrt::operator_delete(looks.data);
+    }
+    gamecrt::operator_delete(data);
+}
+EI_REPLACE_METHOD(0x005D8CF0, PatrolPointArray::Destruct);
+
+PatrolPointArray* PatrolPointArray::DeletingDestruct(int flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x005D8CD0, PatrolPointArray::DeletingDestruct);
+
+void __stdcall ZeroAttackOptions(AIAttackOption* first, int count) {
+    std::memset(first, 0, sizeof(AIAttackOption) * static_cast<unsigned>(count));
+}
+EI_REPLACE(0x005D9E10, ZeroAttackOptions);
+
+void* __stdcall ListGetNext(void** position) {
+    auto* node = static_cast<AIObjectList::Node*>(*position);
+    *position = node->next;
+    return &node->data;
+}
+EI_REPLACE(0x005D9830, ListGetNext);

@@ -259,6 +259,11 @@ inline void* const kPatrolVtable = reinterpret_cast<void*>(0x0073FF40);
 inline void* const kPatrolPointsVtable = reinterpret_cast<void*>(0x0073FF74);
 inline void* const kPatrolPointsBaseVtable = reinterpret_cast<void*>(0x0073FF80);
 inline void* const kPlayerVtable = reinterpret_cast<void*>(0x0073F0F8);
+inline void* const kActionBaseVtable = reinterpret_cast<void*>(0x0073D22C);
+// 005D8850 / 005D6D10 (unit_ai_mode_lifetime.cpp). The abstract bases' constructors: the vtable
+// 0073D15C / 0073D22C only; return the mode.
+AIMode* __fastcall ConstructModeBase(AIMode* mode);
+AIMode* __fastcall ConstructActionBase(AIMode* mode);
 } // namespace aimode
 
 // Guard (vtable 0073D128, 0x20 bytes): stay near a point.
@@ -285,6 +290,21 @@ struct PatrolPoint {
     AILookArray looks;              // +0x0C
 };
 static_assert(sizeof(PatrolPoint) == 0x20);
+
+// CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
+struct PatrolPointArray {
+    // 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
+    void Destruct();
+    // 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
+    PatrolPointArray* DeletingDestruct(int flags);
+
+    void* vtable;
+    PatrolPoint* data;              // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(PatrolPointArray) == 0x14);
 
 // Patrol (vtable 0073FF40, 0x20 bytes): walk a list of points.
 struct PatrolMode : AIMode {
@@ -633,6 +653,13 @@ struct AIViewer {
 };
 static_assert(offsetof(AIViewer, facing) == 0x14);
 static_assert(offsetof(AIViewer, ready) == 0x28);
+
+// 005D9E10 (__stdcall, RET 8; unit_ai_mode_lifetime.cpp). ConstructElements of `count` attack
+// options: zero bytes.
+void __stdcall ZeroAttackOptions(AIAttackOption* first, int count);
+// 005D9830 (__stdcall, RET 4). CList::GetNext of the AI's pointer lists: the address of the node's
+// data slot (node + 8); `position` (a node) moves on to the next.
+void* __stdcall ListGetNext(void** position);
 
 // 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
