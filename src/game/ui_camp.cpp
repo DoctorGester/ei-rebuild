@@ -252,7 +252,7 @@ bool CampKinds::IsSpellContainer(const std::uint8_t* item) {
 bool CampKinds::IsSpell(const std::uint8_t* a0) { return ItemKindIsSpellOriginal((const void*)a0); }
 bool CampKinds::IsModifier(const std::uint8_t* a0) { return ItemKindIsModifierOriginal((const void*)a0); }
 bool CampKinds::IsPart(const std::uint8_t* a0) { return ItemKindIsPartOriginal((const void*)a0); }
-__declspec(naked) bool CampKinds::IsKindOne(const std::uint8_t*) EI_ORIGINAL(0x005EE110)
+bool CampKinds::IsKindOne(const std::uint8_t* item) { return ItemKindIsKindOneOriginal(item); }
 bool CampKinds::IsBlueprint(const std::uint8_t* item) { return ItemKindIsBuildableOriginal(item); }
 
 // 0068B7C0 (thiscall on the spell): the spell has a cast-flag modifier.

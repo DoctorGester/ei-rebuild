@@ -914,10 +914,35 @@ public:
     // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
     // (constritem1..4) and a highlight frame.
     void BuildItemMaker(void* slots);
+    // 006284A0 (slot 20 of the spell maker, RET 4; ui_panel_draws.cpp). The slots' items (a spell
+    // container at (250, 300), the spell at (350, 300), the modifiers down the 2 x 4 grid from
+    // (450, 150)); the cost lines on the surface: "<text 0> <best skill> (<needed>)" and "<text 1>
+    // <most mana> (<the larger of the summed and the last spell's mana>)" with a spell, else the
+    // two texts; the window's sprites and models; then, without a container, the pulsing highlight
+    // (scene object 4, its plain colour from cos(5 * pulse_)) on the empty grid cells (with a
+    // spell) or on the container and spell slots. Returns 1.
+    BOOL DrawSpellMaker(int pass);
+    // 00628F80 (slot 20 of the item maker, RET 4). The window's sprites and models first; the
+    // blueprint (250, 300) and the part (350, 250) drawn between depth clears of their slots, a
+    // spell container at (350, 350), the materials down the grid; then, without a blueprint or a
+    // container, the pulsing highlight on the blueprint and part slots (no part), the grid cells
+    // the part has room for beyond the materials, or the container slot (none left). Returns 1.
+    BOOL DrawItemMaker(int pass);
 
-    int kind_;                       // +0x148 6 spell maker, 7 item maker
-    std::uint8_t unknown_14C[4];
-    void* slots_;                    // +0x150
-    int selected_;                   // +0x154 0
+    int kind_;                       // +0x148 6 spell maker, 7 item maker (the cells' mode)
+    CUiWindow* owner_;               // +0x14C the camp
+    void* slots_;                    // +0x150 an item list (0x70 bytes, 00661050)
+    float pulse_;                    // +0x154 the highlight's time (0 when built)
 };
 static_assert(offsetof(CConstructorPage, slots_) == 0x150);
+static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
+// The spell maker's cost texts ("infoitem_35", "infoitem_36"): a CStringArray at +0x158.
+class CSpellMakerPage : public CConstructorPage {
+public:
+    void* textsVtable_;              // +0x158
+    const char** texts_;             // +0x15C CString data
+    int textCount_;                  // +0x160
+    std::uint8_t unknown_164[0x16C - 0x164];
+};
+static_assert(offsetof(CSpellMakerPage, texts_) == 0x15C);
+static_assert(sizeof(CSpellMakerPage) == 0x16C);

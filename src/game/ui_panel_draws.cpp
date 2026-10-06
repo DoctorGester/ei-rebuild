@@ -1,9 +1,10 @@
 // Drawing slots (20) of the camp's and the hero screen's panels: the quick strip 00622C10, the
-// repair grid 00627C90. See docs/notes/ui.md, section 5. The trade grid's (00627390) is in
+// repair grid 00627C90, the constructors' spell maker 006284A0 and item maker 00628F80. See docs/notes/ui.md, section 5. The trade grid's (00627390) is in
 // ui_trade_grid_draw.cpp.
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "item.h"
+#include "item_db.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -12,6 +13,7 @@
 #include "originals_ui.h"
 #include "render/render.h"
 
+#include <cmath>
 #include <cstdint>
 
 namespace {
@@ -29,6 +31,7 @@ constexpr std::uint32_t kClearStencil = 4;       // D3DCLEAR_STENCIL
 constexpr std::uint32_t kCapsStencil = 0x4000;
 
 const char* NumberFormat() { return reinterpret_cast<const char*>(0x0078EEEC); }   // "%d"
+const char* CostFormat() { return reinterpret_cast<const char*>(0x00793F1C); }     // "%s %d (%d)"
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 005ECA10 (rewritten, ui_item_view.cpp; through its address so its wrapper runs): the owner screen
@@ -49,17 +52,21 @@ struct SurfaceText {
     void End() { SurfaceReleaseDC(this); }
 };
 
-// The depth buffer (and the stencil when the device has one) cleared over `rect` to `z` under the
-// device lock, as the original inlines it; the new renderer gets the clear too.
+// The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of
+// it) to `z` under the device lock, as the original inlines it; the new renderer gets the clear too.
 void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
     std::uint32_t flags = (renderer->caps_ & kCapsStencil) && renderer->stencil_ ? kClearZBuffer | kClearStencil
                                                                                     : kClearZBuffer;
     using ClearFn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, RECT*, std::uint32_t, std::uint32_t, float,
                                      std::uint32_t);
     gameapi::EnterCriticalSection(DeviceLock());
-    renderer->result_ = reinterpret_cast<ClearFn>(renderer->device_->vtable_[kD3DClear])(renderer->device_, 1, rect,
+    renderer->result_ = reinterpret_cast<ClearFn>(renderer->device_->vtable_[kD3DClear])(renderer->device_, rect ? 1 : 0, rect,
                                                                                         flags, 0, z, 0);
     gameapi::LeaveCriticalSection(DeviceLock());
+    if (!rect) {
+        render::ClearDepth(z, nullptr, 0);
+        return;
+    }
     render::Rect r{rect->left, rect->top, rect->right, rect->bottom};
     render::ClearDepth(z, &r, 1);
 }
@@ -145,3 +152,254 @@ namespace {
 BOOL __fastcall RepairGridDraw(CRepairGrid* self, void*, int pass) { return self->Draw(pass); }
 } // namespace
 EI_REPLACE(0x00627C90, RepairGridDraw);
+
+// --- 006284A0 / 00628F80: the constructors' second pages ----------------------------------------
+
+namespace {
+
+// Rounds to float, as the original's FSTP into a float local does (/fp:fast drops a plain cast).
+float StoreFloat(double value) {
+    volatile float stored = static_cast<float>(value);
+    return stored;
+}
+
+int Channel(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
+
+std::uint32_t Colour(int alpha, int red, int blue) {
+    return static_cast<std::uint32_t>(((Channel(alpha) << 8 | Channel(red)) << 8 | Channel(red)) << 8 | Channel(blue));
+}
+
+// The highlight's pulse: the page's time advanced by the frame time (stored as float, the sum kept
+// unrounded), (cos(5 t) + 1) / 2 stored as float; then the colour's three values, truncated: the
+// alpha 130 (1 - p) + 240 p, `low` 80 (1 - p) and `high` 160 p + 80 (1 - p).
+struct Pulse {
+    int alpha;
+    int low;
+    int high;
+};
+Pulse Advance(CConstructorPage* page) {
+    double t = WindowFrameTimeOriginal(page) + page->pulse_;
+    page->pulse_ = static_cast<float>(t);
+    float p = StoreFloat((std::cos(t * 5.0) + 1.0) * 0.5);
+    double a = 1.0 - p;
+    double low = a * 80.0;
+    return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
+}
+
+bool IsSpellContainer(const void* item) { return static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item)) != 0; }
+
+void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
+    sprite->Place(x, y, 3.0f);
+    SpriteDrawOriginal(sprite, nullptr, pass);
+}
+
+CUiMesh* Highlight(CUiWindow* window) { return static_cast<CUiMesh*>(static_cast<void*>(window->sceneObjects_.data_[4])); }
+
+struct SlotList {
+    std::uint8_t unknown_00[0x40];
+    CItem** items;                   // +0x40
+    int count;                       // +0x44
+};
+
+} // namespace
+
+BOOL CConstructorPage::DrawSpellMaker(int pass) {
+    auto* self = static_cast<CSpellMakerPage*>(this);
+    auto* slots = static_cast<SlotList*>(slots_);
+    int needed = 0;
+    float manaSum = 0.0f;
+    float lastMana = 0.0f;
+    int school = 0;
+    bool hasContainer = false;
+    bool hasSpell = false;
+    int row = 0;
+    int column = 0;
+    for (int i = 0; i < slots->count; ++i) {
+        CItem* item = slots->items[i];
+        ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, kind_};
+        if (IsSpellContainer(item)) {
+            cell.x = 250.0f;
+            cell.y = 300.0f;
+            DrawItem(owner_, pass, &cell);
+            hasContainer = true;
+        } else if (ItemKindIsSpellOriginal(item)) {
+            // A record out of range is read through null, as in the original.
+            auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
+                itemdb::Spells().At(reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellSize));
+            needed += spell->skill;
+            manaSum = StoreFloat(static_cast<double>(manaSum) + spell->mana);
+            lastMana = spell->mana;
+            school = spell->school;
+            cell.x = 350.0f;
+            cell.y = 300.0f;
+            DrawItem(owner_, pass, &cell);
+            hasSpell = true;
+        } else if (ItemKindIsModifierOriginal(item)) {
+            auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(itemdb::SpellModifiers().At(
+                reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellModifierSize));
+            manaSum = StoreFloat(static_cast<double>(manaSum) + modifier->mana);
+            needed += modifier->skill;
+            cell.x = static_cast<float>(column) + 450.0f;
+            cell.y = static_cast<float>(row * 100) + 150.0f;
+            DrawItem(owner_, pass, &cell);
+            if (++row > 3) {
+                row = 0;
+                column += 100;
+            }
+        }
+    }
+    int skill = 0;
+    int mana = 0;
+    if (hasSpell) {
+        using BestFn = void(__thiscall*)(CUiWindow*, int, int*, int*);   // slot 45: the party's best
+        reinterpret_cast<BestFn>(owner_->vtable_[45])(owner_, school, &skill, &mana);
+    }
+    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data_[0]);
+    surface->Begin();
+    surface->Clear();
+    if (hasSpell) {
+        mfc::CString text;
+        text.Format(CostFormat(), self->texts_[0], skill, needed);
+        RECT first{10, 0, 200, 20};
+        surface->Draw(text, &first, 1, 0);
+        // The larger of the two (the last spell's when the sum is smaller or unordered).
+        float shown = !(manaSum >= lastMana) ? lastMana : manaSum;
+        text.Format(CostFormat(), self->texts_[1], mana, static_cast<int>(shown));
+        RECT second{10, 20, 200, 40};
+        surface->Draw(text, &second, 1, 0);
+    } else {
+        RECT first{10, 0, 200, 20};
+        surface->Draw(self->texts_[0], &first, 1, 0);
+        RECT second{10, 20, 200, 40};
+        surface->Draw(self->texts_[1], &second, 1, 0);
+    }
+    surface->End();
+    DrawBase(pass);
+
+    CUiMesh* highlight = Highlight(this);
+    highlight->visible_ = 1;
+    Pulse pulse = Advance(this);
+    if (!hasContainer) {
+        if (hasSpell) {
+            highlight->plainColour_ = Colour(pulse.alpha, pulse.low, pulse.high);
+            for (int x = 450; x < 650; x += 100)
+                for (int y = 150; y < 550; y += 100) DrawSprite(highlight, pass, static_cast<float>(x), static_cast<float>(y));
+        } else {
+            highlight->plainColour_ = Colour(pulse.alpha, pulse.high, pulse.low);
+            DrawSprite(highlight, pass, 250.0f, 300.0f);
+            DrawSprite(highlight, pass, 350.0f, 300.0f);
+        }
+    }
+    highlight->visible_ = 0;
+    return 1;
+}
+namespace {
+BOOL __fastcall SpellMakerDraw(CConstructorPage* self, void*, int pass) { return self->DrawSpellMaker(pass); }
+} // namespace
+EI_REPLACE(0x006284A0, SpellMakerDraw);
+
+namespace {
+// A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
+// model, then the screen to 1 again.
+void DrawInSlot(CConstructorPage* page, int pass, ItemCell* cell, RECT slot) {
+    CInterface3D* ui = page->interface_;
+    FlushBatches(ui);
+    ui->CallScaleRectToScreen(&slot);
+    RECT inside = slot;
+    ClearDepth(ui->renderer_, nullptr, 0.0f);
+    ClearDepth(ui->renderer_, &inside, 1.0f);
+    DrawItem(page->owner_, pass, cell);
+    FlushBatches(page->interface_);
+    ClearDepth(page->interface_->renderer_, nullptr, 1.0f);
+    FlushBatches(page->interface_);
+}
+
+// A part's prototype by its record type (weapons, armour, quick items), or null.
+const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
+    switch (part->recordType_) {
+    case 0: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Weapons().At(part->index_, itemdb::kWeaponSize));
+    case 1: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Armors().At(part->index_, itemdb::kArmorSize));
+    case 2:
+        return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::QuickItems().At(part->index_, itemdb::kQuickItemSize));
+    default: return nullptr;
+    }
+}
+} // namespace
+
+BOOL CConstructorPage::DrawItemMaker(int pass) {
+    DrawBase(pass);
+    auto* slots = static_cast<SlotList*>(slots_);
+    bool hasBlueprint = false;   // or a spell container
+    bool hasPart = false;
+    const itemdb::ItemRecordHead* part = nullptr;
+    int materials = 0;
+    int row = 0;
+    int column = 0;
+    for (int i = 0; i < slots->count; ++i) {
+        CItem* item = slots->items[i];
+        ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, kind_};
+        if (ItemKindIsBuildableOriginal(item)) {
+            cell.x = 250.0f;
+            cell.y = 300.0f;
+            DrawInSlot(this, pass, &cell, RECT{215, 265, 285, 335});
+            hasBlueprint = true;
+        } else if (ItemKindIsPartOriginal(item)) {
+            cell.x = 350.0f;
+            cell.y = 250.0f;
+            DrawInSlot(this, pass, &cell, RECT{315, 215, 385, 285});
+            hasPart = true;
+            // Another record type keeps the part found before.
+            auto* loot = reinterpret_cast<const CItemLoot*>(item);
+            if (loot->recordType_ <= 2) part = PartRecord(loot);
+        } else if (IsSpellContainer(item)) {
+            cell.x = 350.0f;
+            cell.y = 350.0f;
+            DrawItem(owner_, pass, &cell);
+            hasBlueprint = true;
+        } else if (ItemKindIsKindOneOriginal(item)) {
+            ++materials;
+            cell.x = static_cast<float>(column) + 450.0f;
+            cell.y = static_cast<float>(row * 100) + 150.0f;
+            DrawItem(owner_, pass, &cell);
+            if (++row > 3) {
+                row = 0;
+                column += 100;
+            }
+        }
+    }
+    CUiMesh* highlight = Highlight(this);
+    highlight->visible_ = 1;
+    Pulse pulse = Advance(this);
+    highlight->plainColour_ = Colour(pulse.alpha, pulse.high, pulse.low);
+    if (!hasBlueprint) {
+        if (!hasPart) {
+            DrawSprite(highlight, pass, 250.0f, 300.0f);
+            DrawSprite(highlight, pass, 350.0f, 250.0f);
+        } else if (part) {
+            // The grid cells the part has room for (+0x4C) beyond the materials in it.
+            int room = static_cast<int>(part->unknown_4C);
+            int cellIndex = 0;
+            bool none = true;
+            for (int x = 450; x < 650; x += 100) {
+                for (int y = 150; y < 550; y += 100) {
+                    ++cellIndex;
+                    if (cellIndex > materials && cellIndex <= room) {
+                        DrawSprite(highlight, pass, static_cast<float>(x), static_cast<float>(y));
+                        none = false;
+                    }
+                }
+            }
+            if (none) {
+                // Full: the container slot, with the colour's values the other way round.
+                highlight->plainColour_ = Colour(pulse.alpha, pulse.low, pulse.high);
+                DrawSprite(highlight, pass, 350.0f, 350.0f);
+            }
+        }
+    }
+    highlight->visible_ = 0;
+    return 1;
+}
+namespace {
+BOOL __fastcall ItemMakerDraw(CConstructorPage* self, void*, int pass) { return self->DrawItemMaker(pass); }
+} // namespace
+EI_REPLACE(0x00628F80, ItemMakerDraw);

@@ -349,7 +349,7 @@ static void __fastcall SpellMakerBuildVerify(CConstructorPage* self, void*, void
     int textsAfter = *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self) + 0x160);
     bool ok = after.regions == before.regions + 12 && after.sceneObjects == before.sceneObjects + 5 &&
               after.surfaces == before.surfaces + 1 && after.objects >= before.objects + 4 && textsAfter == texts + 2 &&
-              self->kind_ == 6 && self->slots_ == slots && self->selected_ == 0;
+              self->kind_ == 6 && self->slots_ == slots && self->pulse_ == 0.0f;
     ei::verify::Check("CConstructorPage::BuildSpellMaker", true, ok, "regions %d->%d sprites %d->%d", before.regions,
                       after.regions, before.sceneObjects, after.sceneObjects);
 }
@@ -360,7 +360,7 @@ static void __fastcall ItemMakerBuildVerify(CConstructorPage* self, void*, void*
     self->BuildItemMaker(slots);
     Counts after = CountsOf(self);
     bool ok = after.regions == before.regions + 11 && after.sceneObjects == before.sceneObjects + 5 &&
-              after.objects >= before.objects + 4 && self->kind_ == 7 && self->slots_ == slots && self->selected_ == 0;
+              after.objects >= before.objects + 4 && self->kind_ == 7 && self->slots_ == slots && self->pulse_ == 0.0f;
     ei::verify::Check("CConstructorPage::BuildItemMaker", true, ok, "regions %d->%d sprites %d->%d", before.regions,
                       after.regions, before.sceneObjects, after.sceneObjects);
 }

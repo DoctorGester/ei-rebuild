@@ -561,7 +561,7 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
     AddMakerPictures(this);
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 450, 400, 490, 5, 1) : nullptr);
-    selected_ = 0;
+    pulse_ = 0.0f;
     // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
     CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
     auto* array = reinterpret_cast<console::CStringArray*>(reinterpret_cast<std::uint8_t*>(this) + 0x158);
@@ -587,6 +587,6 @@ void CConstructorPage::BuildItemMaker(void* slots) {
     AddRect(this, RECT{300, 300, 400, 400});
     BuildMakerPage(this);
     AddMakerPictures(this);
-    selected_ = 0;
+    pulse_ = 0.0f;
 }
 EI_REPLACE_METHOD(0x00628CC0, CConstructorPage::BuildItemMaker);

@@ -34,3 +34,29 @@ static BOOL __fastcall RepairGridDrawVerify(CRepairGrid* self, void*, int pass) 
     return result;
 }
 EI_VERIFY(0x00627C90, RepairGridDrawVerify, 0, s_unused);
+
+// 006284A0 / 00628F80, ours only: return 1, the highlight (scene object 4) is hidden again and the
+// pulse time did not go back (CheckNear is not needed: the time only grows by the frame time). The
+// constructor pages need a constructor record (`screen 5 <N>` with a constructor class; not in a
+// scenario yet).
+static void CheckMakerDraw(const char* name, CConstructorPage* self, BOOL result, float pulse) {
+    auto* highlight = static_cast<CUiMesh*>(static_cast<void*>(self->sceneObjects_.data_[4]));
+    ei::verify::Check(name, true, result == 1 && highlight->visible_ == 0 && !(self->pulse_ < pulse),
+                      "result %d, highlight %d, pulse %f -> %f", result, highlight->visible_, pulse, self->pulse_);
+}
+
+static BOOL __fastcall SpellMakerDrawVerify(CConstructorPage* self, void*, int pass) {
+    float pulse = self->pulse_;
+    BOOL result = self->DrawSpellMaker(pass);
+    CheckMakerDraw("CConstructorPage::DrawSpellMaker", self, result, pulse);
+    return result;
+}
+EI_VERIFY(0x006284A0, SpellMakerDrawVerify, 0, s_unused);
+
+static BOOL __fastcall ItemMakerDrawVerify(CConstructorPage* self, void*, int pass) {
+    float pulse = self->pulse_;
+    BOOL result = self->DrawItemMaker(pass);
+    CheckMakerDraw("CConstructorPage::DrawItemMaker", self, result, pulse);
+    return result;
+}
+EI_VERIFY(0x00628F80, ItemMakerDrawVerify, 0, s_unused);
