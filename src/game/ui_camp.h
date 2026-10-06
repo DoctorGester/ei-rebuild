@@ -10,6 +10,7 @@
 #include "ui_screens.h"
 
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -332,6 +333,12 @@ public:
     virtual GlobalMapWeather* DeletingDestruct(int flags) = 0;  // 2: 0062EDA0 (00499E90, then delete)
 };
 
+// A zone on the way of the global map's way search: the map entry and the exit taken (8 bytes).
+struct GlobalMapStep {
+    MapRecord* zone;
+    int exit;
+};
+
 class CGlobalMap : public CUiWindow {
 public:
     // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
@@ -371,6 +378,19 @@ public:
     // 0-3, 4-7 / 8-11 / 12-15 the three layers' plain colours from entries 4-15 (each ARGB from
     // four ints, alpha last), 16 and up the weather object's ramp from entries 16 and 17.
     void SetWeather();
+    // 00630670 (called by Update while selectPending_ is set). Renders the pick picture: the zone
+    // markers alone in plain colours 0xFF181818 + 0x101010 * i (flat shading, no dither, the
+    // display colour cleared, both surfaces hidden) through a frame step (00458010(0, 0)), copies
+    // the screen into the backdrop (005FD3D0), then shows everything again but the last two
+    // scene objects and the second surface, and selects nothing (00630860(-1, 0)). The click
+    // (0062F950) reads the zone back from the backdrop's pixel. Nothing without a backdrop.
+    void RefreshSelection();
+    // 006312C0 (RET 4). The way search, recursive: for each exit of `from` whose zone exists,
+    // a zone named target_ records its arrival exit's time in arrivals_ (the first time, or a
+    // smaller one) and, once, searches on beyond it; then, unless the zone is already on the way,
+    // the way goes on through it when the player may pass ("z.<zone>" 2 for a game zone, not 1
+    // for an edge, not 0 for a brief zone), pathTime_ growing by the exit's "#passtime".
+    void FindPaths(MapRecord* from);
     // Input side (ui_global_map_input.cpp; `this` the window). The right button turns the map by
     // dragging: 0062FF60 (slot 5, RET 0xC) starts the drag (dragging_, turning_ 0, the point
     // in layout coordinates (005F7E00) and the angle kept, the mouse motion cleared, the cursor held
@@ -393,7 +413,11 @@ public:
     void Close();
     // The marker sprites: the scene objects after the arrow, the base and the island (zones,
     // then quests, then links, then the three layers).
-    CUiMesh* Marker(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + index]); }
+    CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }
+    CUiMesh* SceneMesh(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); }
+    // RefreshSelection's helper: scene objects 0..2 and those after the zone markers shown (1) or
+    // hidden (0) through visible_.
+    void ShowAllButZones(int visible);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
@@ -407,7 +431,16 @@ public:
     mfc::CArray<GlobalMapZone> zones_;  // +0x18C
     mfc::CArray<GlobalMapPlace> links_; // +0x1A0
     mfc::CArray<GlobalMapPlace> quests_;   // +0x1B4
-    std::uint8_t unknown_1C8[0x1EC - 0x1C8];
+    // The way search (006312C0) from the current zone to `target_`: the zones on the way so far,
+    // their summed "#passtime", and per exit of the target the party may arrive at the shortest
+    // time found (-1 when the target is next to the current zone).
+    stlp::vector<GlobalMapStep> path_;  // +0x1C8
+    float pathTime_;                 // +0x1D4
+    char* target_;                   // +0x1D8 CString
+    bool found_;                     // +0x1DC a way reached the target
+    bool beyondTarget_;              // +0x1DD the search goes on through the target zone itself
+    std::uint8_t unknown_1DE[2];
+    stlp::map<int, float> arrivals_; // +0x1E0 target exit -> time
     float turn_[4];                  // +0x1EC the model's orientation (a quaternion)
     float angle_;                    // +0x1FC the model's turn about z (mod 007C8020)
     float depth_;                    // +0x200 10
@@ -436,6 +469,9 @@ static_assert(offsetof(CGlobalMap, allodTitle_) == 0x17C);
 static_assert(offsetof(CGlobalMap, zones_) == 0x18C);
 static_assert(offsetof(CGlobalMap, links_) == 0x1A0);
 static_assert(offsetof(CGlobalMap, quests_) == 0x1B4);
+static_assert(offsetof(CGlobalMap, path_) == 0x1C8);
+static_assert(offsetof(CGlobalMap, target_) == 0x1D8);
+static_assert(offsetof(CGlobalMap, arrivals_) == 0x1E0);
 static_assert(offsetof(CGlobalMap, turn_) == 0x1EC);
 static_assert(offsetof(CGlobalMap, depth_) == 0x200);
 static_assert(offsetof(CGlobalMap, backdrop_) == 0x210);

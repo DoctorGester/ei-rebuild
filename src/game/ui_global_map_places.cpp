@@ -13,6 +13,8 @@
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "originals_ui.h"
+#include "render/render_state.h"
 
 #include <cstdint>
 #include <new>
@@ -51,6 +53,16 @@ std::uint32_t Argb(const int* entry) {
     c = c << 8 | static_cast<std::uint32_t>(entry[1]);
     c = c << 8 | static_cast<std::uint32_t>(entry[2]);
     return c;
+}
+
+// IDirect3DDevice7::SetRenderState (slot 20; stdcall, the interface first), recorded for the
+// frame capture.
+constexpr int kShadeMode = 9;          // D3DRENDERSTATE_SHADEMODE: 1 flat, 2 Gouraud
+constexpr int kDitherEnable = 0x1A;    // D3DRENDERSTATE_DITHERENABLE
+void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
+    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t);
+    reinterpret_cast<Fn>(device->vtable_[20])(device, state, value);
+    render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
 } // namespace
@@ -133,6 +145,44 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
     }
 }
 EI_REPLACE_METHOD(0x00630860, CGlobalMap::SelectZone);
+
+// --- 00630670: the pick picture ------------------------------------------------------------------
+
+// Scene objects 0..2 (arrow, base, island) and everything after the zone markers (quests, links,
+// layers and the rest) shown or hidden.
+void CGlobalMap::ShowAllButZones(int visible) {
+    for (int i = 0; i < 3; ++i) SceneMesh(i)->visible_ = visible;
+    for (int i = zoneCount_ + 3; i < sceneObjects_.size; ++i) SceneMesh(i)->visible_ = visible;
+}
+
+void CGlobalMap::RefreshSelection() {
+    if (!backdrop_) return;
+    for (int i = 0; i < zoneCount_; ++i) {
+        CUiMesh* marker = Marker(i);
+        std::uint32_t level = 0x18u + 0x10u * static_cast<std::uint32_t>(i);
+        marker->texture_ = nullptr;
+        marker->plainColour_ = ((((level | 0xFFFFFF00u) << 8) | level) << 8) | level;
+        marker->flags_ |= 0x100u;
+    }
+    surfaces_.data[1]->Freeze(0, 0);
+    surfaces_.data[0]->Freeze(0, 0);
+    ShowAllButZones(0);
+    SetRenderState(interface_->renderer_->device_, kShadeMode, 1);
+    SetRenderState(interface_->renderer_->device_, kDitherEnable, 0);
+    std::uint32_t colour = Display()->colour;
+    Display()->colour = 0;
+    FrameStepOriginal(0, 0);
+    Display()->colour = colour;
+    SetRenderState(interface_->renderer_->device_, kShadeMode, 2);
+    SetRenderState(interface_->renderer_->device_, kDitherEnable, 1);
+    surfaces_.data[1]->Freeze(1, 0);
+    ShowAllButZones(1);
+    SceneMesh(markerCount_ + 6)->visible_ = 0;
+    SceneMesh(markerCount_ + 7)->visible_ = 0;
+    backdrop_->CaptureScreen();
+    GlobalMapSelectZoneOriginal(this, nullptr, -1, 0);
+}
+EI_REPLACE_METHOD(0x00630670, CGlobalMap::RefreshSelection);
 
 // --- 0062EE90: the weather -----------------------------------------------------------------------
 

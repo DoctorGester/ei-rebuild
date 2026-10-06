@@ -248,6 +248,7 @@ probably CanEquip, hero creation (00617A50).
 | 00631110, 00631030, 00630F50 | `CGlobalMap::AllodTitle`, `ZoneTitle`, `QuestTitle` (`ui_global_map_places.cpp`) | side by side: the text (scratch string) |
 | 00630E00, 00630CC0 | `CGlobalMap::ZonePosition`, `QuestPosition` | side by side when found (CheckNear); the original leaves uninitialised stack in `out` when map.txt has no entry, ours leaves `out` |
 | 00630860, 0062EE90 | `CGlobalMap::SelectZone` (RET 8, flag is a byte), `SetWeather` | side by side: markers' texture, flags, tint, plain colour; display +0x14; weather +4..+0xC |
+| 00630670, 006312C0 | `CGlobalMap::RefreshSelection` (the pick picture: zone markers alone in colours 0xFF181818 + 0x101010 i, flat, through a frame step 00458010(0, 0), copied into the backdrop; the click reads the zone back from the pixel), `FindPaths` (RET 4, recursive way search to `target_`; `arrivals_` = stlp::map<int, float> arrival exit -> shortest "#passtime" sum, insert 006316E0 forwarded; `ui_global_map_paths.cpp`) | RefreshSelection ours only (pick colours, visibility, surfaces, display colour; ui_camp). FindPaths side by side from an empty result map (the original's own recursion passes through the wrapper to the original; the map emptied with 00631710 between runs); not reached by a scenario (zone / link click) |
 | 00635250 | `CBattleScreenSetup::Create` (every scenario) | ours: 11 panels in order with vtables and owner, 2 input handlers, hero id |
 | 0062FF60, 0062FFC0, 0062FF10, 00630580, 0062EE30, 0062EDD0 | `CGlobalMap::OnRightDown` / `OnRightUp` (input slots 5 / 6, the right-button drag), `OnDeactivate` (input 1), `OnKeyDown` (input 9: Esc the escape menu built inline, actions '5' / '6' quick save / load "saveq"), `OnMessageResult` (27), `Close` (26) (`ui_global_map_input.cpp`) | drag handlers side by side (drag fields, the mouse-drag motion 007C7C60, the cursor's held byte); the rest ours only: escape menu on top; no drag; weather and backdrop gone. ui_camp (rclick on the map, Esc, Esc); Close not reached |
 | 0060F470, 0060F5B0, 0060F600, 0060E900, 0060E980 | `CCampPages::OnLButtonDown` / `OnLButtonUp` / `OnKeyDown` (input 2 / 3 / 9), `OnMessageResult` (27: 0x10001 takes the first weapon back), `HelpTopic` (41) (`ui_camp_input.cpp`; `turning_` +0x25C) | HelpTopic side by side; the rest ours only: turning and capture, the page shown, Esc used, one weapon fewer (ui_camp, ui_describe; 27 not known to be reached) |
@@ -319,7 +320,7 @@ target's first `limit` items, and then gives no turning state; a turning move ma
 uninitialised and whose count is written before the allocation is checked, and faults on a null AddItem result (kept).
 ScrollToItem (the camp's "AddItem" call sites) does not update `count_`; its second loop inlines the array's SetSize.
 
-Original quirks kept: the global map's marker array templates have uninitialised numbers (overwritten right after; ours 0); the camp Draw passes hover info
+Original quirks kept: `FindPaths` leaves `beyondTarget_` (+0x1DD) set when the target zone it went beyond is already on the way; the global map's marker array templates have uninitialised numbers (overwritten right after; ours 0); the camp Draw passes hover info
 to 005F1590 with uninitialised bytes +4..+0x13 unless a panel fills them (ours zeroes); `CanMakeSpell` keeps the modifiers in an 8-entry stack array
 without a bound; `CanEquip` on page 1 reads the container's spell (+0x44) without a null check; `CanMakeItem`'s item type stays unset without a part;
 `SpellTab` / `ArmorTab` read the record through null when the record index is out of range; `ClampVoiceSelection` with an empty voice list reads the entry
@@ -328,7 +329,7 @@ the last record reads the next record's name through null), `DrawLists` leaves t
 each record unwritten.
 
 Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable) (the trade grid draw 00627390 is in `ui_trade_grid_draw.cpp`, renderer.md),
-0062CF70, 006312C0 (the global map's path search, reached only from the click 0062F950), 00617A50 (creates the hero:
+0062CF70, 00617A50 (creates the hero:
 .mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...) need a network session, no scenario.
 
 ### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`; `verify_ui_briefing*.cpp`)

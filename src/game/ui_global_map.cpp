@@ -121,7 +121,6 @@ struct MapScreen {
     mfc::CString* ZoneTitle(mfc::CString* out, const char* zone);       // 00631030
     mfc::CString* QuestTitle(mfc::CString* out, const char* quest);     // 00630F50
     Vector3* QuestPosition(Vector3* out, const char* quest);            // 00630CC0
-    void SelectZone(int zone, int flag);                                 // 00630860
     void SetWeather();                                                   // 0062EE90 (entry +0x260)
 };
 __declspec(naked) mfc::CString* MapScreen::AllodTitle(mfc::CString*, const char*) EI_ORIGINAL(0x00631110)
@@ -129,7 +128,6 @@ __declspec(naked) Vector3* MapScreen::ZonePosition(Vector3*, const char*) EI_ORI
 __declspec(naked) mfc::CString* MapScreen::ZoneTitle(mfc::CString*, const char*) EI_ORIGINAL(0x00631030)
 __declspec(naked) mfc::CString* MapScreen::QuestTitle(mfc::CString*, const char*) EI_ORIGINAL(0x00630F50)
 __declspec(naked) Vector3* MapScreen::QuestPosition(Vector3*, const char*) EI_ORIGINAL(0x00630CC0)
-__declspec(naked) void MapScreen::SelectZone(int, int) EI_ORIGINAL(0x00630860)
 __declspec(naked) void MapScreen::SetWeather() EI_ORIGINAL(0x0062EE90)
 
 // The marker arrays (MFC CArray instantiations) and their elements' assignment.
@@ -665,7 +663,7 @@ void CGlobalMap::Create() {
         gipat_ = true;
 
     selectPending_ = 1;
-    Screen(this)->SelectZone(-1, 0);
+    GlobalMapSelectZoneOriginal(this, nullptr, -1, 0);
     dragging_ = false;
     reinterpret_cast<GameObjects*>(0x007AFEA6)->ResetView(0, 0);
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();

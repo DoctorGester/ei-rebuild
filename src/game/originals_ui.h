@@ -51,6 +51,9 @@ __declspec(naked) inline int __fastcall CursorSetShapeOriginal(void* /*cursor*/,
 __declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*memory*/, void*, CInterface3D*,
                                                                       const char*, const char*, int, int, int)
     EI_ORIGINAL(0x00634650)
+// 00630860: CGlobalMap::SelectZone(index, isLink) (RET 8; the flag is a byte; rewritten in ui_global_map_places.cpp).
+__declspec(naked) inline void __fastcall GlobalMapSelectZoneOriginal(void* /*map*/, void*, int /*index*/, int /*isLink*/)
+    EI_ORIGINAL(0x00630860)
 // 00600270: CUiWindow's frame time in seconds, unrounded in ST0 (ECX = window, plain RET).
 __declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*window*/) EI_ORIGINAL(0x00600270)
 // 00578D10: sets the world server's flag through the game state at 007AFEA4. A free function: one stack argument,
