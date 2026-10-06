@@ -224,7 +224,7 @@ Rewritten as `ShortArraySetAtGrow` (src/game/aligned_arrays.cpp).
 Rewritten as `QwordArraySetSize` (src/game/aligned_arrays.cpp).
 - `src/game/scene_loader.cpp:116`: `void TexCoordArray::SetSize(int, int)`
 - `src/game/scene_weld.cpp:35`: `void __fastcall CoordsSetSize(ArrayBody*, void*, int, int)`
-- `src/game/ui_hud_map.cpp:446`: `void UiPointArray::SetSize(int, int)`
+- `src/game/ui_hud_map.cpp:446`: `void __fastcall UiPointsSetSize(UiPointArray*, void*, int, int)`
 
 ### 0x004538D0: 2 files, 2 sites, signatures differ
 Rewritten as `DwordArraySetAtGrow` (src/game/aligned_arrays.cpp).
@@ -316,7 +316,7 @@ Rewritten as `ScriptVarsDestruct` (src/game/script_destroy.cpp).
 
 ### 0x004BE9D0: 2 files, 2 sites, signatures differ
 Rewritten as `ScriptDefinitionDestruct` (src/game/script_destroy.cpp).
-- `src/game/script_parse_load.cpp:126`: `void DefinitionAt::Destruct()`
+- `src/game/script_parse_load.cpp:114`: `void DefinitionAt::Destruct()`
 - `src/game/script_reset.cpp:37`: `void __fastcall DefinitionDestruct(void*)`
 
 ### 0x004BF000: 4 files, 4 sites, signatures differ
