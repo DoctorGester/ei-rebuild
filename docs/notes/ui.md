@@ -351,6 +351,9 @@ its server controller's command is 0 or 0xB and the next one 9 (or it has none).
 00608D10 (slot 35, `MOV AL,1; RET`, 3 bytes) is too short to hook. Shared helpers: `BriefingVariables` (00578C40 into a 100-bucket table,
 00581790; walked with 005E0DB0), `BriefingPlayerName` (00578A90); forwarders added to originals_ui.h (the screen's 006064E0 / 00604C50 /
 00608450 / 00608B60 / 006071E0 / 00607360, 00578C40, 0063B5D0, 0064BE40) and originals_world.h (00578A40); `MapRecord::allod` added.
+Next (mapped, not ported): 00608210 the phrases' start (camera saved to +0x1F8, look-at +0x204 = position + the rotation's z axis,
+0066F840(3, 0) to the server, state 3, +0x244 1), 00607BB0 / 00607A60 / 006062C0 (speakers +0x1A4 hero, +0x1A8 person, +0x1AC third,
+their places +0x1B0.. and directions +0x1D4..), 00602C90 (slot 29), 00607720, then 006064E0 / 00604C50 / 00608450, Create and Update.
 Original quirks kept: the mouse move's exit check names the zone of exit_ (+0x164), not of the exit under the mouse; the key handler builds
 the objectives window inline and calls its setup even when the allocation failed.
 
