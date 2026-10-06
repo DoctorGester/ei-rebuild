@@ -352,6 +352,17 @@ public:
     void Destroy();
     // The level-up and experience lines of the statistics page (inlined by Draw).
     void DrawExperience();
+    // 00618060 (ui_hero_screen_click.cpp). Region 6 of the list: the rename edit window enabled and
+    // editing; its text is the selected hero's name after its "|" (left-trimmed; empty without one),
+    // and surface 3 shows the name before it (right-trimmed) plus " | ". Nothing without a selection.
+    void Rename();
+    // 00619150. The hero's voice: the sound playing stopped, then the voice (hero text 6) looked up
+    // as a unit prototype (007AF364), the prototype's name in the sound sets (007C8A6C); one of the
+    // set's entries with flags 0x2282 and a name, from a random one on, played (voiceSound_).
+    void PlayVoice();
+    // 006183B0. Enter / region 1 of the list: with a hero selected the heroes are saved and the
+    // connection screen opened on top (built inline); otherwise a message box ("lmp_..." texts).
+    void Continue();
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
@@ -401,6 +412,47 @@ static_assert(offsetof(CMpHeroScreen, voices_) == 0x210);
 static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
 static_assert(offsetof(CMpHeroScreen, voiceLists_) == 0x1F8);
 static_assert(sizeof(CMpHeroScreen) == 0x220);
+
+// An entry of a sound set (0x2C bytes; the sets are the values of the map 007C8A6C, keyed by a
+// unit prototype's name; the set's entries are an STLport vector at +0x1AC).
+struct UnitSoundEntry {
+    const char* name;              // +0x00
+    const char* sound;             // +0x04 what the interface plays
+    std::uint8_t unknown_08[0x28 - 0x08];
+    std::uint32_t flags;           // +0x28 (the hero screen's voice takes entries with 0x2282 set)
+};
+static_assert(sizeof(UnitSoundEntry) == 0x2C);
+struct UnitSoundSet {
+    std::uint8_t unknown_000[0x1AC];
+    UnitSoundEntry* entries;       // +0x1AC
+    UnitSoundEntry* entriesEnd;    // +0x1B0
+};
+static_assert(offsetof(UnitSoundSet, entries) == 0x1AC);
+
+// The multiplayer connection screen (0x260 bytes, vtables 00741CD0 / 00741C9C; configddrbook.ini),
+// as the hero screen's Continue builds it inline. Only what that construction writes.
+class CMpConnectScreen : public CUiContainer {
+public:
+    static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741CD0)); }
+    static void** InputVtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741C9C)); }
+
+    std::uint8_t unknown_164[4];
+    int unknown_168;               // +0x168 0
+    int unknown_16C;               // +0x16C 0
+    int unknown_170;               // +0x170 0
+    std::uint8_t unknown_174[4];
+    int unknown_178[4];            // +0x178..+0x184 0
+    std::uint8_t unknown_188[0x224 - 0x188];
+    char* text_;                   // +0x224 CString (empty)
+    std::uint8_t strings_[0x14];   // +0x228 CStringArray
+    std::uint8_t unknown_23C[4];
+    std::uint8_t moreStrings_[0x14];   // +0x240 CStringArray
+    std::uint8_t unknown_254[0x260 - 0x254];
+};
+static_assert(offsetof(CMpConnectScreen, unknown_178) == 0x178);
+static_assert(offsetof(CMpConnectScreen, text_) == 0x224);
+static_assert(offsetof(CMpConnectScreen, moreStrings_) == 0x240);
+static_assert(sizeof(CMpConnectScreen) == 0x260);
 
 // The multiplayer heroes (records of 0x74 bytes; +0x30 CString name, +0x70 CString file).
 inline const RecordTable& MpHeroes() { return *reinterpret_cast<const RecordTable*>(0x007C82A4); }
