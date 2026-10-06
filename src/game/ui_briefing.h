@@ -282,6 +282,22 @@ public:
     // with the leader; a dialogue that started by itself (briefingStarted_) puts the camera on the
     // leader (message 0x04) and frees it, otherwise it goes back to savedCamera_ / lookAt_.
     void FinishDialogue();
+    // 006089D0 (RET 0x28; ui_briefing_people.cpp). `unit` (a client unit) goes to (x, y) at its
+    // server unit's height (`z` is not read), facing (dx, dy, dz): `immediate` puts the server
+    // unit there at once (sector map, both units turned, the controller repositioned); otherwise,
+    // unless the server unit is blocked (0x800000), a mover is put first in movers_ (walking,
+    // `waited`) and the server unit's brain walks there (`run`).
+    void MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited, bool immediate,
+                    int run);
+    // 00605DE0 (RET 0xC; ui_briefing_people.cpp). "#show <name>": a person `name` joins the
+    // speakers (moved to the end; the server hears event 1; the leader's server unit gets flag
+    // 0x40000000; its controller's actionDone the speakers' callback 006023F0). Anything else with
+    // `index` >= 0 is a loot item ("_" read as " ", lowercased, the loot table's name index): an
+    // item of that name shown already goes (006062C0), then slot `index` % 7 (x 300, 500, 200,
+    // 400, 600, 75, 725; y 300 or 500) gets a backdrop and frame for the first seven, the item's
+    // figure "initqu<n>item" (tinted from index 8) with its image "quitem<n>" in a new texture,
+    // turned over about x; it goes first in shown_. The third argument is not read.
+    void ShowItem(const char* name, int index, int unused);
     // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
     // (inlined in 00608450 and 00604C50).
     void ClearShownItems();

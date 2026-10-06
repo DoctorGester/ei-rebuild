@@ -395,6 +395,12 @@ meshes hidden but for state 1's topic list; skipped when the frame left the zone
 005EACB0 moved to originals_ui.h (ui_battle_setup.cpp and ui_objectives.cpp use them), 00578A20 too (ui_battle_update.cpp),
 00607720 added. Left out: Update's sort / unique of the marked ids (only membership is used). Original quirks kept: Create
 reads the map record's camera circle without a null check; the people walk stops at an entry with a null object.
+Then (`ui_briefing_people.cpp`; `verify_ui_briefing_people.cpp`): 006089D0 `MovePerson` (ours only: no mover when placed
+at once, else at most one new first mover with the arguments) and 00605DE0 `ShowItem` ("#show"; ours only: a person last
+in speakers_ once; an item shown once, first). Forwarders 0060AC20 (loot name index find-or-insert, library), 0060AB00 /
+0060A660 (speaker vector copy / insert_overflow). Quirks kept: the new speaker's flag byte is uninitialised in the original
+(ours false); the third argument of ShowItem is not read (so "#show .. weapon" shows the item twice); the server player 0
+is not null-checked; the leader's server unit gets flag 0x40000000 when the leader is shown.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
