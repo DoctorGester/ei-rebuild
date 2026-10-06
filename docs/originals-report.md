@@ -33,7 +33,7 @@ Rewritten as `CBaseManager::ConstructBase` (src/game/base_manager.cpp).
 ### 0x00404410: 2 files, 2 sites, signatures differ
 Rewritten as `CBaseManager::FreeSpares` (src/game/base_manager.cpp).
 - `src/game/world_client_maps.cpp:286`: `void __fastcall ManagerFreeRecords(void*)`
-- `src/game/world_map.cpp:162`: `void __fastcall ManagerClear(CEngineObject*, void*)`
+- `src/game/world_map.cpp:160`: `void __fastcall ManagerClear(CEngineObject*, void*)`
 
 ### 0x00404920: 4 files, 4 sites, signatures differ
 Rewritten as `ObjectListIterator::First` (src/game/base_manager.cpp).
@@ -839,7 +839,7 @@ Rewritten as `CWorldServer::CreateObject` (src/game/world_units.cpp).
 - `src/game/map_spec.cpp:48`: `void __fastcall WorldMakeObject(void* /*world*/, void*, Spec* /*spec*/)`
 - `src/game/map_spec_effect.cpp:74`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
 - `src/game/map_spec_unit.cpp:111`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
-- `src/game/originals_world.h:31`: `void __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)`
+- `src/game/originals_world.h:34`: `void __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)`
 - `src/game/world_units.cpp:128`: `int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/)`
 
 ### 0x00593AA0: 3 files, 3 sites, signatures differ
@@ -1782,7 +1782,7 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/ui_global_map.cpp:229`: `void GameObjects::ResetView(int, int)`
 
 ### 0x00578A40: 3 files, 3 sites, same signature, names differ
-- `src/game/originals_world.h:102`: `const char* __fastcall GameExitZoneOriginal(void* /*glue*/, void*, int /*exit*/)`
+- `src/game/originals_world.h:105`: `const char* __fastcall GameExitZoneOriginal(void* /*glue*/, void*, int /*exit*/)`
 - `src/game/ui_battle_hover.cpp:59`: `const char* __fastcall HoverExitZone(void*, void*, int)`
 - `src/game/ui_hud.cpp:943`: `const char* __fastcall GlueExitZone(void*, void*, int)`
 
