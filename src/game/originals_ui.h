@@ -213,3 +213,7 @@ __declspec(naked) inline void __fastcall TopPanelPickedUpOriginal(void* /*panel*
     EI_ORIGINAL(0x0064A4E0)
 __declspec(naked) inline void __fastcall TopPanelMoneyOriginal(void* /*panel*/, void*, int /*money*/) EI_ORIGINAL(0x0064A630)
 __declspec(naked) inline void __fastcall TopPanelShowPageOriginal(void* /*panel*/) EI_ORIGINAL(0x0064A7A0)
+// 006575B0: loads the saved game `name` (ECX; plain RET; not on a network client).
+__declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*name*/) EI_ORIGINAL(0x006575B0)
+// 005F7E90: the interface stops sound `id` (thiscall, the interface not read; -1 none; RET 4).
+__declspec(naked) inline void __fastcall InterfaceStopSoundOriginal(CInterface3D*, void*, int /*id*/) EI_ORIGINAL(0x005F7E90)

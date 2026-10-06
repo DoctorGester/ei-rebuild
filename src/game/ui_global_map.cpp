@@ -675,7 +675,7 @@ void CGlobalMap::Create() {
             weather->Construct(0x100);
             *reinterpret_cast<std::uintptr_t*>(weather) = 0x007420D4;
         }
-        weather_ = weather;
+        weather_ = reinterpret_cast<GlobalMapWeather*>(weather);
         weather->Start();
     }
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
@@ -853,7 +853,7 @@ void CGlobalMap::Update() {
             if (hr != 0) FatalDirectX(hr, GameText(0x0078E30C));   // "Can't lock surface"
         }
         float seconds = Store(FrameTime(this));
-        static_cast<WeatherDraw*>(weather_)->Draw(reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
+        reinterpret_cast<WeatherDraw*>(weather_)->Draw(reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
         gameapi::LeaveCriticalSection(lock);
         if (!direct) {
             using UnlockFn = long(__stdcall*)(void*, RECT*);

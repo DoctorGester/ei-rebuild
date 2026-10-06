@@ -1773,5 +1773,12 @@ public:
 static_assert(offsetof(CDifficultyBox, easy_) == 0x180);
 static_assert(sizeof(CDifficultyBox) == 0x184);
 
+// The mouse (007C7C50: the position in screen pixels; 007C7C60: the motion a right-button drag
+// accumulates, read and cleared by the drag's mouse-move handlers 00630010 / 005EB210).
+inline int& MouseScreenX() { return *reinterpret_cast<int*>(0x007C7C50); }
+inline int& MouseScreenY() { return *reinterpret_cast<int*>(0x007C7C54); }
+inline int& MouseDragX() { return *reinterpret_cast<int*>(0x007C7C60); }
+inline int& MouseDragY() { return *reinterpret_cast<int*>(0x007C7C64); }
+
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
 inline int& GameDifficulty() { return *reinterpret_cast<int*>(0x0079BEC0); }

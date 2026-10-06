@@ -58,7 +58,11 @@ clickregion 1
 wait 300
 moveregion 2
 wait 300
-# Esc opens the escape menu over the map, Esc closes it.
+# The right button turns the map by dragging (0062FF60 / 0062FFC0).
+rclick 400 300
+wait 300
+# Esc opens the escape menu over the map (00630580; the map's input slot 1 0062FF10), Esc closes it
+# (the map's slot 27, 0062EE30).
 key esc
 wait 1000
 key esc
