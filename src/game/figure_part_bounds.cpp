@@ -16,9 +16,9 @@ T& At(void* object, int offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
 }
 
-// The renderer's line list (0x20 bytes): positions in 64-byte blocks of four points (x4, y4, z4,
+// The renderer's line batch (0x20 bytes): positions in 64-byte blocks of four points (x4, y4, z4,
 // w4), the point count at +0x14, the colour at +0x18.
-struct LineList {
+struct LineBatch {
     int unknown_00;           // -1
     char* data;
     int size;
@@ -28,11 +28,11 @@ struct LineList {
     std::uint32_t colour;     // 0xFFFF0000
     int unknown_1C;
 };
-static_assert(sizeof(LineList) == 0x20);
+static_assert(sizeof(LineBatch) == 0x20);
 
 // 00455940 the owning manager's context (object.cpp). 0049B140 (RET 4) appends a point.
 static inline char* ManagerContextAt(void* object) { return static_cast<char*>(ManagerContextOf(object)); }
-__declspec(naked) void __fastcall AddPoint(LineList*, void*, const float*) EI_ORIGINAL(0x0049B140)
+__declspec(naked) void __fastcall AddPoint(LineBatch*, void*, const float*) EI_ORIGINAL(0x0049B140)
 
 constexpr std::uint32_t kShowBounds = 0x4000;
 constexpr int kSlotDrawLines = 15;
@@ -43,7 +43,7 @@ constexpr int kSlotDrawLines = 15;
 
 void __fastcall DrawPartBounds(char* node, void*, void* renderer) {
     if (!(At<std::uint32_t>(ManagerContextAt(node), 8) & kShowBounds)) return;
-    LineList lines{-1, nullptr, 0, 0, 0, 0, 0xFFFF0000u, 0};
+    LineBatch lines{-1, nullptr, 0, 0, 0, 0, 0xFFFF0000u, 0};
     char* mesh = At<char*>(node, 0x1C);
     const float* origin = &At<float>(mesh, 0x18C);
     const float* nearExtent = &At<float>(mesh, 0x19C);
@@ -57,7 +57,7 @@ void __fastcall DrawPartBounds(char* node, void*, void* renderer) {
     }
     static const int kOrder[16] = {3, 1, 0, 2, 6, 4, 0, 1, 5, 4, 5, 7, 6, 7, 3, 2};
     for (int index : kOrder) AddPoint(&lines, nullptr, corner[index]);
-    using DrawLinesFn = void(__fastcall*)(void*, void*, LineList*);
+    using DrawLinesFn = void(__fastcall*)(void*, void*, LineBatch*);
     reinterpret_cast<DrawLinesFn>((*static_cast<void***>(renderer))[kSlotDrawLines])(renderer, nullptr, &lines);
     if (lines.data) GameDelete(reinterpret_cast<void**>(lines.data)[-1]);
 }

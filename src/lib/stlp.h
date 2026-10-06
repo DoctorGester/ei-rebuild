@@ -113,6 +113,12 @@ public:
         if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
     }
 
+    // The three pointers by reference, for code that inlines the original's own vector operations
+    // (reserve, push_back through the instantiation's _M_insert_overflow) on the same object.
+    T*& Start() { return start_; }
+    T*& Finish() { return finish_; }
+    T*& EndOfStorage() { return eos_; }
+
     // erase(pos): shift the tail down by assignment, destroy the last element.
     void erase(T* pos) {
         for (T* p = pos; p + 1 != finish_; ++p) p->AssignFrom(p[1]);
@@ -126,42 +132,40 @@ private:
     T* eos_ = nullptr;
 };
 
-// list<T> (4 bytes): the sentinel node, allocated by the owner's constructor (its next is the
-// first node, its prev the last). Nodes {next, prev, value}. Walking and clear are written here;
-// inserting stays with each instantiation's own code.
+// list<T>: one pointer to the sentinel node the constructor allocates (its next is the first
+// element, its prev the last; an empty list's sentinel points at itself). Nodes are next, prev,
+// then the element, from the node allocator. The game's instantiations keep their own insert /
+// erase / clear (reached through their addresses), so only the layout and the walk are here.
 template <typename T>
-class list {
-public:
+struct list {
     struct Node {
         Node* next;
         Node* prev;
-        T value;
+        T data;
     };
 
-    list() = default;
-    list(const list&) = delete;
+    Node* head;   // the sentinel
 
-    Node* begin() const { return node_->next; }
-    Node* end() const { return node_; }
+    Node* First() const { return head->next; }
+    Node* End() const { return head; }
+    bool Empty() const { return head->next == head; }
 
-    // clear() as STLport writes it: each node's value destroyed by `destroy(&value)` (the
-    // instantiation's own element destructor), the node returned to the pool, the sentinel linked
-    // to itself.
+    // clear() as STLport writes it, for an instantiation the original inlines: each element
+    // destroyed by `destroy(&data)` (its own destructor), the node returned to the pool, the
+    // sentinel linked to itself.
     template <typename F> void ClearWith(F destroy) {
-        Node* cur = node_->next;
-        while (cur != node_) {
+        Node* cur = head->next;
+        while (cur != head) {
             Node* node = cur;
             cur = cur->next;
-            destroy(&node->value);
+            destroy(&node->data);
             deallocate(node, sizeof(Node));
         }
-        node_->next = node_;
-        node_->prev = node_;
+        head->next = head;
+        head->prev = head;
     }
-
-private:
-    Node* node_ = nullptr;
 };
+static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
 
 // map<K, V> (_Rb_tree, 0xC bytes): the header node (allocated by the owner's constructor; its
 // parent is the root, its left / right children the leftmost / rightmost node), the element count,

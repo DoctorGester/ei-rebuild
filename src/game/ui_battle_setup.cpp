@@ -30,7 +30,7 @@
 
 using console::CStringArray;
 
-void UiDwordArray::SetSize(int n, int g) { DwordArraySetSizeOriginal(this, nullptr, n, g); }
+void __fastcall UiDwordsSetSize(UiDwordArray* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
 
 namespace {
 
@@ -164,8 +164,8 @@ void CBattleScreenSetup::Create() {
         stream->Seek(0);
         int count;
         stream->Read(&count, 4);
-        heroes_.SetSize(count, -1);
-        for (int i = 0; i < heroes_.size_; ++i) stream->Read(&heroes_.data_[i], 4);
+        UiDwordsSetSize(&heroes_, nullptr, count, -1);
+        for (int i = 0; i < heroes_.size; ++i) stream->Read(&heroes_.data[i], 4);
         stream->Read(&mapZoom, 4);
         std::uint8_t serverFlag;
         stream->Read(&serverFlag, 1);
@@ -187,11 +187,11 @@ void CBattleScreenSetup::Create() {
         // A new game: the local player's first hero.
         if (*reinterpret_cast<const int*>(LocalPlayerData() + 0x34) > 0) {
             std::uint8_t* player = LocalPlayerData();
-            int index = heroes_.size_;
+            int index = heroes_.size;
             std::uint32_t hero;
             std::memcpy(&hero, *reinterpret_cast<std::uint8_t**>(player + 0x30) + 0x1C, 4);
-            heroes_.SetSize(index + 1, -1);
-            heroes_.data_[index] = hero;
+            UiDwordsSetSize(&heroes_, nullptr, index + 1, -1);
+            heroes_.data[index] = hero;
             hasHero_ = true;
         }
     }

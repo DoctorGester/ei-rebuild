@@ -156,23 +156,20 @@ struct TweenEntry {
 };
 static_assert(sizeof(TweenEntry) == 16);
 
-// CArray<TweenEntry> of the world (at 007AFF60 + 0x70). MFC SetSize semantics; new entries are
-// zero-filled, never constructed.
-struct TweenArray : mfc::CArray<TweenEntry> {
-    void RemoveAll();                                  // 006D43E0
-    void SetSize(int count, int newGrowBy);            // 006D4840
-    void SetTarget(int key, float target, int steps);  // 006D4410 (reached via 00593FA0)
-    bool Tick();                                       // 006D44E0: true while any entry moves
-    void Save(ScriptStream* stream) const;             // 006D4570 (006D47E0 is identical)
-    // 006D45D0. Reads the array and applies each entry's value to `world` (006CC7F0).
-    void Load(ScriptStream* stream, void* world);
-    // 006D4660. Reads the array only (the inlined SetSize of another CArray instantiation).
-    void LoadEntries(ScriptStream* stream);
-    // The read part of both loads: the count (the original reads it into a slot that still holds
-    // `unread` if the stream writes nothing), SetSize, then the entries.
-    void ReadEntries(ScriptStream* stream, int unread);
-};
-static_assert(sizeof(TweenArray) == 0x14);
+// CArray<TweenEntry> of the world (at 007AFF60 + 0x70): new entries zero-filled, never
+// constructed. RemoveAll 006D43E0 and SetSize 006D4840 are registered on the template
+// (model_db.cpp); the rest are thiscall functions on the array.
+using TweenArray = mfc::CArray<TweenEntry>;
+void __fastcall TweenSetTarget(TweenArray* tweens, void*, int key, float target, int steps);   // 006D4410 (via 00593FA0)
+bool __fastcall TweenTick(TweenArray* tweens);              // 006D44E0: true while any entry moves
+void __fastcall TweenSave(const TweenArray* tweens, void*, ScriptStream* stream);   // 006D4570 (006D47E0 identical)
+// 006D45D0. Reads the array and applies each entry's value to `world` (006CC7F0).
+void __fastcall TweenLoad(TweenArray* tweens, void*, ScriptStream* stream, void* world);
+// 006D4660. Reads the array only (the inlined SetSize of another CArray instantiation).
+void __fastcall TweenLoadEntries(TweenArray* tweens, void*, ScriptStream* stream);
+// The read part of both loads: the count (the original reads it into a slot that still holds
+// `unread` if the stream writes nothing), SetSize, then the entries.
+void TweenReadEntries(TweenArray& tweens, ScriptStream* stream, int unread);
 
 // model_names.cpp (A-S4). 004DBCA0 (__fastcall: ECX out, EDX cursor): a length-prefixed name (a
 // four-byte length, then the characters) at *cursor into `out` (emptied for length 0), the

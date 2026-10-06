@@ -57,10 +57,10 @@ BOOL CCreditsScreen::Draw(int pass) {
         nextLineAt_ = 0.0f;
         textSurface_->Freeze(0, 0);
         headerSurface_->Freeze(0, 0);
-        if (currentLine_ == lines_.end()) {
+        if (currentLine_ == lines_.End()) {
             finished_ = true;
         } else {
-            const TitleLine& line = currentLine_->value;
+            const TitleLine& line = currentLine_->data;
             textSurface_->Load(archive_, line.style);
             textSurface_->Start(0.0f, 0);
             if (line.scroll) {

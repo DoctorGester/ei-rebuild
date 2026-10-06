@@ -90,11 +90,11 @@ public:
     // (one per normal).
     void RefreshBuffers();
     // 005A0B10: copies `offsets` (any {Vector3* data; int count} pair) into offsets_. RET 4.
-    struct OffsetList {
+    struct OffsetSpan {
         const Vector3* data;
         int count;
     };
-    void SetOffsets(const OffsetList* offsets);
+    void SetOffsets(const OffsetSpan* offsets);
     // 005A0CD0: draws through `pipelineOwner` (+0xC: the transform pipeline, slot 29) with the
     // vertices moved by offsets_ when there are any (into the shared buffer at 007C2E18). Returns
     // the vertex count (4 per packet). RET 0x10.

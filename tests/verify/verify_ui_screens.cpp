@@ -209,7 +209,7 @@ EI_VERIFY(0x00621530, CycleTabVerify, 0, s_unused);
 static void __fastcall RebuildListVerify(CUiItemStrip* self, void*) {
     self->CUiItemStrip::RebuildList();
     // The list must be the source items whose tab (by the original classifiers) is the current one.
-    bool ok = self->count_ == self->list_.size_;
+    bool ok = self->count_ == self->list_.size;
     int n = 0;
     for (int i = 0; ok && i < self->source_->size; ++i) {
         char* item = self->source_->data[i];
@@ -225,11 +225,11 @@ static void __fastcall RebuildListVerify(CUiItemStrip* self, void*) {
             }
             keep = tab == self->tab_;
         }
-        if (keep) ok = n < self->list_.size_ && self->list_.data_[n++] == item;
+        if (keep) ok = n < self->list_.size && self->list_.data[n++] == item;
     }
-    ok = ok && n == self->list_.size_;
+    ok = ok && n == self->list_.size;
     ei::verify::Check("CUiItemStrip::RebuildList", true, ok, "filter %d tab %d source %d list %d", self->filter_,
-                      self->tab_, self->source_->size, self->list_.size_);
+                      self->tab_, self->source_->size, self->list_.size);
 }
 EI_VERIFY(0x006212F0, RebuildListVerify, 0, s_unused);
 
@@ -475,7 +475,7 @@ static void __fastcall CreditsBuildVerify(CCreditsScreen* self, void*) {
     using Node = stlp::list<TitleLine>::Node;
     auto countLines = [&]() {
         int n = 0;
-        for (Node* node = self->lines_.begin(); node != self->lines_.end() && n < 100000; node = node->next) ++n;
+        for (Node* node = self->lines_.First(); node != self->lines_.End() && n < 100000; node = node->next) ++n;
         return n;
     };
     int surfaces = self->window.surfaces_.size;
@@ -492,15 +492,15 @@ static void __fastcall CreditsBuildVerify(CCreditsScreen* self, void*) {
               self->headerSurface_ == self->window.surfaces_.data[surfaces + 1] && nextLineBits == 0 &&
               !self->finished_ && display14 == 0;
     if (after == before) {
-        ok = ok && self->currentLine_ == self->lines_.end();
+        ok = ok && self->currentLine_ == self->lines_.End();
     } else {
         // The first of the new nodes (the list was empty before in every opening seen).
-        Node* node = self->lines_.begin();
+        Node* node = self->lines_.First();
         for (int i = 0; i < before; ++i) node = node->next;
         ok = ok && (before != 0 || self->currentLine_ == node);
-        for (; node != self->lines_.end(); node = node->next) {
+        for (; node != self->lines_.End(); node = node->next) {
             std::uint32_t bits;
-            std::memcpy(&bits, &node->value.speed, 4);
+            std::memcpy(&bits, &node->data.speed, 4);
             ok = ok && (bits & 0x7F800000u) != 0x7F800000u;   // finite
         }
     }

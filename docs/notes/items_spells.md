@@ -464,7 +464,7 @@ the same instructions as an existing entry (STLport copy / fill / list / hashtab
 reviewed quest database container instantiations (006AF4D0..006B3E60), plus 25 for the item database's record vectors (resize, fill_insert,
 insert_overflow, copy, uninitialized copy / fill of the 0x50 / 0x78 / 0x7C / 0x8C / 0xB4 / 0xC8 kinds) and the portrait slot vector's four, and 32 for the
 spell database (vectors of the 0x24 modifier, 0x34 and 0x84 spell records and strings, 00684D60..00688470). Game code that stays: the item kinds'
-operator= (006A8FB0 ...) and serialisers 006A7940..006A7E10, the spell serialisers 00684C50 / 00684EF0 / 00684FE0; 006B4000-006C0000 is not reviewed.
+operator= (006A8FB0 ...) and serialisers 006A7940..006A7E10, the spell serialisers 00684C50 / 00684EF0 / 00684FE0; 006B4000-006C0000 was reviewed in A-H13 (26 library, 1 dead; `sound.md`).
 Remaining by group (R = bytes of Rebirth-patched functions, docs/rebirth-patched-functions.txt; sizes as of this sweep, 756 functions, 147.4 KB; the
 texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Ghidra splits off):
 
@@ -491,5 +491,5 @@ texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Gh
 | 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740, 006AE220, 006AE0F0 |
 | 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
 
-Next candidates: 0066F4C0, 00670310 and the other message handlers (`objects.md`); the party's 006629D0 / 00662AC0 / 00662DD0; 00667EC0, 0067CEF0,
+Next candidates: the other server message handlers 0066F890..00671060 (`objects.md`; 0066F4C0 / 00670310 done in A-H13); the party's 006629D0 / 00662AC0 / 00662DD0; 00667EC0, 0067CEF0,
 00661FB0 / 00661FE0 (party item resets; no scenario is known to reach them).

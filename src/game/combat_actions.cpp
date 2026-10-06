@@ -4,6 +4,7 @@
 // docs/notes/combat.md.
 #include "combat.h"
 #include "combat_internal.h"
+#include "combat_plan.h"
 
 #include "base_manager.h"
 #include "item.h"
@@ -149,19 +150,6 @@ CUnit* FirstOtherPartyMember(char* player, const CUnit* self) {
     return nullptr;
 }
 
-// The death animation: a CArray of 0xC-byte entries (vtable 0073F01C over the base 0073EF2C)
-// plus a dword the copy constructor leaves out. Passed by value to 00548DE0, which destroys it.
-struct AnimationList {
-    void* vtable;
-    void* data;
-    int size;
-    int capacity;
-    int growBy;
-    int extra;
-};
-static_assert(sizeof(AnimationList) == 0x18);
-void* const kAnimationListVtable = reinterpret_cast<void*>(0x0073F01C);
-void* const kAnimationListBaseVtable = reinterpret_cast<void*>(0x0073EF2C);
 void* const kPtrListVtable = reinterpret_cast<void*>(0x0073BE80);   // CPtrList
 
 // What science (skill 0) passes the studied object: three ints, the third raised by the skill.
@@ -215,11 +203,11 @@ __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CU
 __declspec(naked) void __fastcall UnitClearEffects(CUnit*) EI_ORIGINAL(0x0050F5B0)
 // 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists.
 UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, UnitListNode* a3) { return (UnitListNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-// 00557B60 / 00556870. AnimationList's base constructor and copy constructor.
-AnimationList* __fastcall AnimationListConstruct(AnimationList* a0) { return (AnimationList*)StepsConstructOriginal((void*)a0); }
-AnimationList* __fastcall AnimationListCopy(AnimationList* a0, void*, const AnimationList* a2) { return (AnimationList*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
+// 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
+AnimationSteps* __fastcall AnimationListConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
+AnimationSteps* __fastcall AnimationListCopy(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 // 00548DE0. CUnitServer: plays `animation` (taken by value and destroyed).
-__declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, AnimationList)
+__declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, AnimationSteps)
     EI_ORIGINAL(0x00548DE0)
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
@@ -533,14 +521,14 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     CallSetDead(1);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" damaged to death")->PutChar(10)->Apply(kLogEndLine);
 
-    AnimationList animation;
+    AnimationSteps animation;
     AnimationListConstruct(&animation);
-    animation.vtable = kAnimationListVtable;
+    animation.vtable = kAnimationStepsVtable;
     std::uint32_t direction = CallHitDirection(attacker, hitKind);
     CallBuildDeathAnimation(&animation, direction, 1, 0);
     unknown_021 = 0;
     unknown_020 = 0;
-    AnimationList copy;
+    AnimationSteps copy;
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
     ControllerPlayAnimation(this, nullptr, copy);
@@ -550,8 +538,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             MemoryPartyMemberDied(ControllerOf(member)->brain + kBrainMemory, nullptr, member, unit);
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
-    animation.vtable = kAnimationListBaseVtable;
-    if (animation.data) gamecrt::operator_delete(animation.data);
+    animation.vtable = kAnimationStepsBaseVtable;
+    if (animation.steps) gamecrt::operator_delete(animation.steps);
 }
 EI_REPLACE_METHOD(0x00553AC0, CUnitServer::OnDamaged);
 

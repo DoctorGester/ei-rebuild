@@ -26,7 +26,7 @@ T& At(void* object, int offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
 }
 
-struct LightList {            // {data, count}: light objects
+struct LightSpan {            // {data, count}: light objects
     char** data;
     int count;
 };
@@ -487,7 +487,7 @@ void Fill(ColourArray& a, std::uint32_t value) {
 struct Part {
     char* node;               // this
     char* device;
-    const LightList* lights;
+    const LightSpan* lights;
     char* material;           // +8 flag 0x10: keep the speculars, draw flag 8; +0x50 a vector
     int alpha;
     RECT* rect;
@@ -692,7 +692,7 @@ int __fastcall DrawFigurePart(char* node, void*, char* device, const void* light
     At<std::uint32_t>(mesh, 8) &= ~0x40u;
     if (At<std::uint32_t>(At<char*>(node, 0x1C), 8) & 0x80) return 1;
     void* owner = At<void*>(At<char*>(node, 0x1C), 0x98);
-    Part part{node, device, static_cast<const LightList*>(lights), material, alpha, rect, textureA, textureB,
+    Part part{node, device, static_cast<const LightSpan*>(lights), material, alpha, rect, textureA, textureB,
               owner ? At<void*>(owner, 0xF0) : nullptr, 0};
     if (!(Guard() & 1)) {
         Guard() |= 1;

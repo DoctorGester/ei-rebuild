@@ -114,8 +114,8 @@ static void* s_battleUpdate;
 static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
     const UiDwordArray* party = reinterpret_cast<const UiDwordArray*>(self->partyArray_);
     bool client = reinterpret_cast<bool(__thiscall*)(void*)>(0x0057F440)(reinterpret_cast<void*>(0x007AFE20));
-    std::uint32_t* partyData = party->data_;
-    int partySize = party->size_;
+    std::uint32_t* partyData = party->data;
+    int partySize = party->size;
     bool savedFlag = self->savedFlag_ != 0;
     CUiWindow* top = self->interface_->GetActiveWindow();
 
@@ -127,18 +127,18 @@ static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
                           "zone exit asked without a new window");
     }
     if (!client) {
-        ei::verify::Check("CBattleScreenSetup::Update", true, party->data_ == partyData && party->size_ == partySize,
-                          "single player party changed (%d -> %d)", partySize, party->size_);
+        ei::verify::Check("CBattleScreenSetup::Update", true, party->data == partyData && party->size == partySize,
+                          "single player party changed (%d -> %d)", partySize, party->size);
     }
     if (self->unknown_1C1) {
         std::vector<std::uintptr_t> inside = UnitsInBox(&self->selectionBox_);
         int wrong = -1;
-        for (int i = 0; i < party->size_ && wrong < 0; ++i) {
-            void* unit = reinterpret_cast<void*>(static_cast<std::uintptr_t>(party->data_[i]));
+        for (int i = 0; i < party->size && wrong < 0; ++i) {
+            void* unit = reinterpret_cast<void*>(static_cast<std::uintptr_t>(party->data[i]));
             std::uint32_t flags = Get<std::uint32_t>(unit, 8);
             if (flags & 0x10) continue;
             bool listed = false;
-            for (std::uintptr_t u : inside) listed |= u == party->data_[i];
+            for (std::uintptr_t u : inside) listed |= u == party->data[i];
             if (((flags & 0x100) != 0) != listed) wrong = i;
         }
         ei::verify::Check("CBattleScreenSetup::Update", -1, wrong, "party unit %d marked wrongly", wrong);
@@ -208,8 +208,8 @@ static void __fastcall RefreshSelectionVerify(CBattleScreenSetup* self) {
     const UiDwordArray* party = reinterpret_cast<const UiDwordArray*>(self->partyArray_);
     void* first = nullptr;
     int selected = 0;
-    for (int i = 0; i < party->size_; ++i) {
-        void* unit = reinterpret_cast<void*>(static_cast<std::uintptr_t>(party->data_[i]));
+    for (int i = 0; i < party->size; ++i) {
+        void* unit = reinterpret_cast<void*>(static_cast<std::uintptr_t>(party->data[i]));
         if (!unit || !(Get<std::uint32_t>(unit, 8) & 0x10)) continue;
         if (!first) first = unit;
         ++selected;

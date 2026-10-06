@@ -8,14 +8,8 @@
 
 namespace scriptarray {
 
-// Any CArray (0x14 bytes) seen as bytes.
-struct RawArray {
-    void* vtable;
-    char* data;     // +0x04
-    int size;       // +0x08
-    int maxSize;    // +0x0C
-    int growBy;     // +0x10
-};
+// Any CArray (0x14 bytes) seen as bytes; the element size comes from its ElementKind.
+using RawArray = mfc::CArray<char>;
 template <typename T>
 RawArray* Raw(mfc::CArray<T>* a) { return reinterpret_cast<RawArray*>(a); }
 

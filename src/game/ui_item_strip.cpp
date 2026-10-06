@@ -166,7 +166,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     auto* right = reinterpret_cast<std::uint8_t*>(sprites[1]);
     *reinterpret_cast<std::uint32_t*>(left + 0xCC) = position_[tab_] > GameFloat(0x0073B858) ? dim : 0u;
     *reinterpret_cast<std::uint32_t*>(right + 0xCC) =
-        static_cast<float>(list_.size_ - 7) > position_[tab_] ? dim : 0u;
+        static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0u;
 
     reinterpret_cast<CUiMesh*>(sprites[9])->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
@@ -178,13 +178,13 @@ BOOL CUiItemStrip::Draw(int pass) {
     char* shown[8];
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
-        if (index < 0 || index >= list_.size_) {
+        if (index < 0 || index >= list_.size) {
             shown[i] = nullptr;
             continue;
         }
         ItemCell cell;
-        cell.item = reinterpret_cast<CItem*>(list_.data_[index]);
-        shown[i] = list_.data_[index];
+        cell.item = reinterpret_cast<CItem*>(list_.data[index]);
+        shown[i] = list_.data[index];
         cell.size = 100.0f;
         cell.mode = actionMode_;
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;

@@ -29,9 +29,9 @@ void ListConstruct(StockList* list) {
 void HandOverAndFree(StockList* list, CParty* party) {
     StockListNode* head = list->head;
     for (StockListNode* node = head->next; node != head; node = node->next) {
-        auto* item = static_cast<CItem*>(node->value);
+        auto* item = static_cast<CItem*>(node->data);
         party->AddItem(item, 1, 1);
-        static_cast<CEngineObject*>(node->value)->Release();
+        static_cast<CEngineObject*>(node->data)->Release();
     }
     for (StockListNode* node = head->next; node != head;) {
         StockListNode* next = node->next;

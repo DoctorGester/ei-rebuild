@@ -144,8 +144,8 @@ void CCamera::ClampAboveObjects() {
     ListConstruct411850(&list, nullptr, &alloc);
     WorldClient()->ObjectsInRange(reinterpret_cast<const float*>(p), 16.0f, &list);
     float best = 0.0f;
-    for (NearbyNode* node = list.header->next; node != list.header; node = node->next) {
-        const CObject3D* object = node->object;
+    for (NearbyNode* node = list.head->next; node != list.head; node = node->next) {
+        const CObject3D* object = node->data;
         const float limit = CAM_OBJECT_EXTENT_LIMIT;
         if (object->above[0] > limit || object->above[1] > limit || object->above[2] > limit ||
             object->center[2] > limit)
@@ -181,7 +181,7 @@ void CCamera::ClampAboveObjects() {
     }
     p->z = raised;
     // The list's destructor, inlined: every node and the sentinel back to the node pool.
-    for (NearbyNode* node = list.header->next; node != list.header;) {
+    for (NearbyNode* node = list.head->next; node != list.head;) {
         NearbyNode* next = node->next;
         if (node) {
             node->next = static_cast<NearbyNode*>(camera::NodeFreeList());
@@ -189,11 +189,11 @@ void CCamera::ClampAboveObjects() {
         }
         node = next;
     }
-    list.header->next = list.header;
-    list.header->prev = list.header;
-    if (list.header) {
-        list.header->next = static_cast<NearbyNode*>(camera::NodeFreeList());
-        camera::NodeFreeList() = list.header;
+    list.head->next = list.head;
+    list.head->prev = list.head;
+    if (list.head) {
+        list.head->next = static_cast<NearbyNode*>(camera::NodeFreeList());
+        camera::NodeFreeList() = list.head;
     }
 }
 EI_REPLACE_METHOD(0x004110D0, CCamera::LookDirection);

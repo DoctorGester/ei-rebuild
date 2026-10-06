@@ -57,7 +57,7 @@ StepFn s_step;
 static PathCellList::Node* __fastcall AddHeadVerify(PathCellList* self, void*, const PathCell* cell) {
     std::vector<std::uint64_t> expected = Cells(self);
     expected.insert(expected.begin(), Bits(cell));
-    PathCellList::Node* node = self->AddHead(cell);
+    PathCellList::Node* node = self->AddHead(*cell);
     bool ok = Cells(self) == expected && node == self->head && Linked(self);
     ei::verify::Check("PathCellList::AddHead", true, ok, "%d cells", self->count);
     return node;
@@ -68,7 +68,7 @@ EI_VERIFY(0x005BD200, AddHeadVerify, 0, s_unusedHead);
 static PathCellList::Node* __fastcall AddTailVerify(PathCellList* self, void*, const PathCell* cell) {
     std::vector<std::uint64_t> expected = Cells(self);
     expected.push_back(Bits(cell));
-    PathCellList::Node* node = self->AddTail(cell);
+    PathCellList::Node* node = self->AddTail(*cell);
     bool ok = Cells(self) == expected && node == self->tail && Linked(self);
     ei::verify::Check("PathCellList::AddTail", true, ok, "%d cells", self->count);
     return node;
@@ -78,13 +78,13 @@ EI_VERIFY(0x005BD2A0, AddTailVerify, 0, s_unusedTail);
 // 005C5DA0: ours only; the other list's cells follow (a list appended to itself never ends, as in
 // the original, so that case is not modelled).
 static void __fastcall AppendListVerify(PathCellList* self, void*, const PathCellList* other) {
-    if (other == self) return self->AppendList(other);
+    if (other == self) return PathCellsAppend(self, nullptr, other);
     std::vector<std::uint64_t> expected = Cells(self);
     std::vector<std::uint64_t> added = Cells(other);
     expected.insert(expected.end(), added.begin(), added.end());
-    self->AppendList(other);
+    PathCellsAppend(self, nullptr, other);
     bool ok = Cells(self) == expected && Linked(self);
-    ei::verify::Check("PathCellList::AppendList", true, ok, "%d cells", self->count);
+    ei::verify::Check("PathCellsAppend", true, ok, "%d cells", self->count);
 }
 EI_VERIFY(0x005C5DA0, AppendListVerify, 0, s_unusedAppend);
 
@@ -94,10 +94,10 @@ static PathCellList* __fastcall ReversedVerify(const PathCellList* self, void*, 
     s_reversed(self, nullptr, &scratch);
     std::vector<std::uint64_t> expected = Cells(&scratch);
     mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(scratch.blocks));
-    PathCellList* result = self->Reversed(out);
+    PathCellList* result = PathCellsReversed(self, nullptr, out);
     bool ok = result == out && Cells(out) == expected && out->blockSize == scratch.blockSize &&
               out->vtable == scratch.vtable && Linked(out);
-    ei::verify::Check("PathCellList::Reversed", true, ok, "%d cells (original %d)", out->count,
+    ei::verify::Check("PathCellsReversed", true, ok, "%d cells (original %d)", out->count,
                       static_cast<int>(expected.size()));
     return result;
 }
@@ -113,9 +113,9 @@ static void __fastcall RemoveRepeatsVerify(PathCellList* self, void*) {
         lastY = n->data.y;
         if (!repeat) expected.push_back(Bits(&n->data));
     }
-    self->RemoveRepeats();
+    PathCellsRemoveRepeats(self);
     bool ok = Cells(self) == expected && Linked(self) && (self->count != 0 || self->blocks == nullptr);
-    ei::verify::Check("PathCellList::RemoveRepeats", true, ok, "%d cells (expected %d)", self->count,
+    ei::verify::Check("PathCellsRemoveRepeats", true, ok, "%d cells (expected %d)", self->count,
                       static_cast<int>(expected.size()));
 }
 EI_VERIFY(0x005C6000, RemoveRepeatsVerify, 0, s_unusedRepeats);

@@ -22,7 +22,7 @@ int Refs(const char* text) { return reinterpret_cast<const int*>(text)[-3]; }
 // CCreditsScreen::Draw (0062BD80).
 static BOOL __fastcall CreditsDrawVerify(CCreditsScreen* self, void*, int pass) {
     auto* line = self->currentLine_;
-    auto* next = line == self->lines_.end() ? line : line->next;
+    auto* next = line == self->lines_.End() ? line : line->next;
     bool finished = self->finished_;
     BOOL result = self->CCreditsScreen::Draw(pass);
     ei::verify::Check("CCreditsScreen::Draw", true,
@@ -38,9 +38,9 @@ static void __fastcall CreditsCloseVerify(CCreditsScreen* self, void*) {
     self->CCreditsScreen::OnClose();
     std::uint32_t colour = *reinterpret_cast<const std::uint32_t*>(static_cast<std::uint8_t*>(DisplayObject()) + 0x14);
     ei::verify::Check("CCreditsScreen::OnClose", true,
-                      self->lines_.begin() == self->lines_.end() &&
+                      self->lines_.First() == self->lines_.End() &&
                           colour == static_cast<std::uint32_t>(self->savedDisplay_) && InterfaceHasScreen(),
-                      "lines empty %d colour %08X / %08X", self->lines_.begin() == self->lines_.end() ? 1 : 0, colour,
+                      "lines empty %d colour %08X / %08X", self->lines_.First() == self->lines_.End() ? 1 : 0, colour,
                       static_cast<std::uint32_t>(self->savedDisplay_));
 }
 EI_VERIFY(0x0062BD00, CreditsCloseVerify, 0, s_unused);

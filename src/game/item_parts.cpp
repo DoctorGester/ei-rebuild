@@ -35,15 +35,15 @@ constexpr PartName kCrossbow[] = {
     {"arrows", false, ""},
 };
 
-struct PartList {
+struct PartSpan {
     const PartName* parts;
     int count;
 };
 
-template <int N> constexpr PartList List(const PartName (&parts)[N]) { return {parts, N}; }
+template <int N> constexpr PartSpan List(const PartName (&parts)[N]) { return {parts, N}; }
 
 // By weapon type (prototype +0x0C); other types have no parts.
-constexpr PartList kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  List(kPike),
+constexpr PartSpan kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  List(kPike),
                                      List(kClub),  List(kBow),  List(kCrossbow)};
 
 // Calls add(name) for each part of the weapon prototype `record` (not null), in the original's order.
@@ -52,7 +52,7 @@ template <typename Add> void ForEachPart(const char* record, Add add) {
     gamecrt::sprintf(number, "%.2d", Field<int>(record, field::kItemNumber));
     std::uint32_t type = Field<std::uint32_t>(record, field::kItemType);
     if (type >= sizeof(kPartsByType) / sizeof(kPartsByType[0])) return;
-    const PartList& list = kPartsByType[type];
+    const PartSpan& list = kPartsByType[type];
     for (int i = 0; i < list.count; ++i) {
         const PartName& part = list.parts[i];
         if (!part.numbered) {

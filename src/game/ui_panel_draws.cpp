@@ -19,7 +19,7 @@
 namespace {
 
 // The items of a camp item list (its +0x40 part; the list is 0x70 bytes, 00661050).
-struct CampItemList {
+struct CampItemSlots {
     void** first;                    // +0x00
     int count;                       // +0x04
 };
@@ -118,7 +118,7 @@ BOOL CRepairGrid::Draw(int pass) {
     auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
-    auto* list = static_cast<CampItemList*>(items_);
+    auto* list = static_cast<CampItemSlots*>(items_);
     for (int i = 0; i < list->count; ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
@@ -195,7 +195,7 @@ void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
 
 CUiMesh* Highlight(CUiWindow* window) { return static_cast<CUiMesh*>(static_cast<void*>(window->sceneObjects_.data[4])); }
 
-struct SlotList {
+struct SpellSlots {
     std::uint8_t unknown_00[0x40];
     CItem** items;                   // +0x40
     int count;                       // +0x44
@@ -205,7 +205,7 @@ struct SlotList {
 
 BOOL CConstructorPage::DrawSpellMaker(int pass) {
     auto* self = static_cast<CSpellMakerPage*>(this);
-    auto* slots = static_cast<SlotList*>(slots_);
+    auto* slots = static_cast<SpellSlots*>(slots_);
     int needed = 0;
     float manaSum = 0.0f;
     float lastMana = 0.0f;
@@ -328,7 +328,7 @@ const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
 
 BOOL CConstructorPage::DrawItemMaker(int pass) {
     DrawBase(pass);
-    auto* slots = static_cast<SlotList*>(slots_);
+    auto* slots = static_cast<SpellSlots*>(slots_);
     bool hasBlueprint = false;   // or a spell container
     bool hasPart = false;
     const itemdb::ItemRecordHead* part = nullptr;

@@ -748,7 +748,7 @@ void CCreditsScreen::Build() {
     std::uint32_t size = 0;
     void* data = archive->GetFile(GameText(0x00794028), &size);   // "credits.scr"
     if (!data) {
-        currentLine_ = lines_.end();
+        currentLine_ = lines_.End();
     } else {
         mfc::CString script;
         GameMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
@@ -776,12 +776,12 @@ void CCreditsScreen::Build() {
             TitlesTokenNext(&words);
             *LineString(&record.text) = words.WordOrNull();
             void* inserted;
-            TitlesInsertLine(&inserted, lines_.end(), &record);   // push_back
+            TitlesInsertLine(&inserted, lines_.End(), &record);   // push_back
             LineString(&record.style)->~CString();
             LineString(&record.text)->~CString();
             TitlesTokenNext(&lines);
         }
-        currentLine_ = lines_.begin();
+        currentLine_ = lines_.First();
         archive->CloseFile(data);
     }
 

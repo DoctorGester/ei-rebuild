@@ -55,7 +55,7 @@ void AIBrain::FindEnemies(CUnit* self, AIObjectList* out) {
     out->RemoveAll();
     for (auto* node = visible.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
-        if (!self->IsHostileTo(other) || IsDead(other) || reports.Contains(other)) continue;
+        if (!self->IsHostileTo(other) || IsDead(other) || ReportsContains(&reports, nullptr, other)) continue;
         out->AddTail(other);
     }
 }
@@ -70,7 +70,7 @@ void AIBrain::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* poi
     float radius2 = radius > kZero ? RoundToFloat(static_cast<double>(radius) * radius) : -1.0f;
     for (auto* node = visible.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
-        if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
+        if (!other->IsHostileTo(self) || IsDead(other) || ReportsContains(&reports, nullptr, other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
             AIBrain* theirs = ControllerOf(other)->Brain();
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));

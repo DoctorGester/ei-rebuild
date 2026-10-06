@@ -36,14 +36,14 @@ EI_REPLACE_METHOD(0x0063E460, CHudSpellColumn::DestroyBody);
 
 void CHudActionColumn::DestroyBody() {
     StringArrayDestruct(&labelsVtable_);
-    actions_.vtable_ = DwordArrayVtable();
-    if (actions_.data_) gamecrt::operator_delete(actions_.data_);
+    actions_.vtable = DwordArrayVtable();
+    if (actions_.data) gamecrt::operator_delete(actions_.data);
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0063F490, CHudActionColumn::DestroyBody);
 
 void CHudMap::DestroyBody() {
-    if (visibleArea_.data_) FreeAligned(visibleArea_.data_);
+    if (visibleArea_.data) FreeAligned(visibleArea_.data);
     if (viewPolygon_) FreeAligned(viewPolygon_);
     DestroyBase();
 }

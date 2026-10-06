@@ -29,8 +29,8 @@ static AILookArray* __fastcall InitVerify(AILookArray* self) {
     AILookArray scratch;
     std::memset(&scratch, 0xCD, sizeof(scratch));
     AILookArray* theirs = s_init(&scratch);
-    AILookArray* ours = self->Init();
-    ei::verify::Check("AILookArray::Init", true, theirs == &scratch && ours == self && std::memcmp(&scratch, self, sizeof(scratch)) == 0,
+    AILookArray* ours = LooksInit(self);
+    ei::verify::Check("LooksInit", true, theirs == &scratch && ours == self && std::memcmp(&scratch, self, sizeof(scratch)) == 0,
                       "array %p", self);
     return ours;
 }
@@ -42,22 +42,22 @@ static void __fastcall ResizeVerify(AILookArray* self, void*, int size, int grow
     int kept = size < self->size ? size : self->size;
     std::vector<AILook> before(self->data ? self->data : nullptr, self->data ? self->data + kept : nullptr);
     int step = growBy == -1 ? self->growBy : growBy;
-    self->Resize(size, growBy);
-    bool ok = self->size == size && self->growBy == step && self->max >= size && (size == 0) == (self->data == nullptr) &&
-              (size == 0 || self->max >= 1);
+    self->SetSize(size, growBy);
+    bool ok = self->size == size && self->growBy == step && self->maxSize >= size && (size == 0) == (self->data == nullptr) &&
+              (size == 0 || self->maxSize >= 1);
     if (ok && kept > 0) ok = std::memcmp(self->data, before.data(), sizeof(AILook) * kept) == 0;
     if (ok && size > kept) ok = LooksZero(self->data + kept, size - kept);
-    ei::verify::Check("AILookArray::Resize", true, ok, "array %p: size %d (max %d, step %d), asked %d", self, self->size, self->max,
+    ei::verify::Check("AILookArray::SetSize", true, ok, "array %p: size %d (max %d, step %d), asked %d", self, self->size, self->maxSize,
                       self->growBy, size);
 }
 EI_VERIFY(0x005D8EE0, ResizeVerify, 0, s_unused);
 
 // 005D8B60 CopyFrom: ours only; the same size and elements as the source afterwards.
 static void __fastcall CopyFromVerify(AILookArray* self, void*, const AILookArray* other) {
-    self->CopyFrom(other);
-    bool ok = self->size == other->size && self->max >= self->size &&
+    self->Copy(*other);
+    bool ok = self->size == other->size && self->maxSize >= self->size &&
               (other->size <= 0 || std::memcmp(self->data, other->data, sizeof(AILook) * other->size) == 0);
-    ei::verify::Check("AILookArray::CopyFrom", true, ok, "array %p from %p: size %d vs %d", self, other, self->size, other->size);
+    ei::verify::Check("AILookArray::Copy", true, ok, "array %p from %p: size %d vs %d", self, other, self->size, other->size);
 }
 EI_VERIFY(0x005D8B60, CopyFromVerify, 0, s_unused);
 
@@ -67,8 +67,8 @@ static AILook*(__fastcall* s_elementAt)(const AILookArray*, void*, AILook*, int)
 static AILook* __fastcall ElementAtVerify(const AILookArray* self, void*, AILook* out, int index) {
     AILook scratch;
     AILook* theirs = s_elementAt(self, nullptr, &scratch, index);
-    AILook* ours = self->ElementAt(out, index);
-    ei::verify::Check("AILookArray::ElementAt", true, theirs == &scratch && ours == out && std::memcmp(&scratch, out, sizeof(AILook)) == 0,
+    AILook* ours = LooksElementAt(self, nullptr, out, index);
+    ei::verify::Check("LooksElementAt", true, theirs == &scratch && ours == out && std::memcmp(&scratch, out, sizeof(AILook)) == 0,
                       "array %p index %d", self, index);
     return ours;
 }
@@ -81,7 +81,7 @@ static void __fastcall ClearMoveVerify(AIMoveOrder* self) {
     int step = self->looks.growBy;
     self->Clear();
     bool ok = self->point.x == 0.0f && self->point.y == 0.0f && self->point.z == 0.0f && !self->looks.data && self->looks.size == 0 &&
-              self->looks.max == 0 && self->looks.vtable == vtable && self->looks.growBy == step;
+              self->looks.maxSize == 0 && self->looks.vtable == vtable && self->looks.growBy == step;
     ei::verify::Check("AIMoveOrder::Clear", true, ok, "order %p", self);
 }
 EI_VERIFY(0x00545B20, ClearMoveVerify, 0, s_unused);

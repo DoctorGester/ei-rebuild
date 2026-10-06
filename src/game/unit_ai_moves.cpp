@@ -126,7 +126,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
         gamecrt::operator_delete(planned.data);
         planned.data = nullptr;
     }
-    planned.max = 0;
+    planned.maxSize = 0;
     planned.size = 0;
 
     IsaacRandom* random = GameRandom();

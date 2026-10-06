@@ -650,14 +650,11 @@ void __fastcall ReadUnitLooks(void* stream, void* first, void* second);
 
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
-struct SectorListNode {
-    SectorListNode* next;
-    SectorListNode* prev;
-    CEngineObject* value;
-};
+using SectorList = stlp::list<CEngineObject*>;
+using SectorListNode = SectorList::Node;
 struct SectorGrid {
-    SectorListNode** cells_;              // +0x00 the lists (a head pointer each)
-    SectorListNode*** rows_;              // +0x04 row y: its lists
+    SectorList* cells_;                   // +0x00 the lists
+    SectorList** rows_;                   // +0x04 row y: its lists
     int unknown08_, unknown0C_;           // +0x08 (00572450 resizes when they change)
     std::uint32_t width_;                 // +0x10 cells along x
     std::uint32_t height_;                // +0x14 cells along y
@@ -995,7 +992,7 @@ struct GameFlow {
 
 // The saved multiplayer parties: +0 the folder (CString), +4 an STLport vector of 0x74-byte entries
 // (the party records and the file name).
-struct SavedPartyList {
+struct SavedParties {
     // 00662FB0 (world_game.cpp). Rebuilds the list from the folder's "*.mp" files: each is read
     // into party records (00662DD0); a loaded one has its variables emptied and, with records +0x34
     // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.

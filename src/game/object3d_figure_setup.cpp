@@ -231,11 +231,7 @@ CEngineObject* FigureManagerOf(const CObject3D* object) {
 }
 } // namespace
 
-int AlignedPtrArray::Add(void* value) {
-    int index = size;
-    SetAtGrow(index, value);
-    return index;
-}
+// 00519A10: Add (SetAtGrow at the size; RET 4).
 EI_REPLACE_METHOD(0x00519A10, AlignedPtrArray::Add);
 
 FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {

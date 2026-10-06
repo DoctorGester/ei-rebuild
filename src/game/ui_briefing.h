@@ -71,11 +71,7 @@ static_assert(sizeof(BriefingShownItem) == 0x18);
 // A briefing's record (0x6C bytes; the quest database's briefings, by topic in the hash_map at
 // 007C87D4, read by quest_database.cpp): its rewards as NextPhrase lists them.
 struct BriefingRecord {
-    struct NameList {                // an STLport vector<CString>
-        mfc::CString* begin;
-        mfc::CString* end;
-        mfc::CString* capacity;
-    };
+    using NameList = stlp::vector<mfc::CString>;
     std::uint8_t unknown_00[0x0C];
     float experience;                // +0x0C
     float gold;                      // +0x10

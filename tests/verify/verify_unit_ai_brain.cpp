@@ -268,7 +268,7 @@ static void __fastcall ForgetVerify(std::uint8_t* memory, void*, CEngineObject* 
     AIBrain* brain = BrainOfMemory(memory);
     brain->Forget(object);
     bool ok = !brain->unknown_0F4.Find(object) && !brain->visible.Find(object) && !brain->unknown_12C.Find(object) &&
-              !brain->corpses.Find(object) && !brain->reports.Contains(object);
+              !brain->corpses.Find(object) && !ReportsContains(&brain->reports, nullptr, object);
     ei::verify::Check("AIBrain::Forget", true, ok || object == nullptr, "brain %p object %p", brain, object);
 }
 EI_VERIFY(0x005CC020, ForgetVerify, 0, s_unused);
@@ -276,7 +276,7 @@ EI_VERIFY(0x005CC020, ForgetVerify, 0, s_unused);
 // 005CC620 AIReportArray::Add: ours only; a non-null object is listed exactly once with at least
 // `what`.
 static void __fastcall ReportAddVerify(AIReportArray* self, void*, CEngineObject* object, int what) {
-    self->Add(object, what);
+    ReportsAdd(self, nullptr, object, what);
     int found = 0;
     bool ok = true;
     for (int i = 0; i < self->size; ++i) {
@@ -293,7 +293,7 @@ EI_VERIFY(0x005CC620, ReportAddVerify, 0, s_unused);
 static std::uint32_t(__fastcall* s_contains)(AIReportArray*, void*, CEngineObject*);
 static std::uint32_t __fastcall ContainsVerify(AIReportArray* self, void*, CEngineObject* object) {
     std::uint32_t expected = s_contains(self, nullptr, object);
-    bool actual = self->Contains(object);
+    bool actual = ReportsContains(self, nullptr, object);
     ei::verify::Check("AIReportArray::Contains", static_cast<bool>(expected & 0xFF), actual, "array %p object %p", self,
                       object);
     return expected;

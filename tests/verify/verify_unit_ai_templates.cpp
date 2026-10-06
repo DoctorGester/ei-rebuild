@@ -35,13 +35,13 @@ EI_VERIFY(0x005D6D10, ActionBaseVerify, 8, s_actionBase);
 // 005D8CF0 / 005D8CD0 the patrol point array's destructors: free memory, so ours only: the base
 // vtable afterwards / `this` returned.
 static void __fastcall PointsDestructVerify(PatrolPointArray* self) {
-    self->Destruct();
+    PatrolPointsDestruct(self);
     ei::verify::Check("PatrolPointArray::Destruct", aimode::kPatrolPointsBaseVtable, self->vtable, "array %p", self);
 }
 EI_VERIFY(0x005D8CF0, PointsDestructVerify, 0, s_unused);
 
 static PatrolPointArray* __fastcall PointsDeleteVerify(PatrolPointArray* self, void*, int flags) {
-    PatrolPointArray* result = self->DeletingDestruct(flags);
+    PatrolPointArray* result = PatrolPointsDeletingDestruct(self, nullptr, flags);
     ei::verify::Check("PatrolPointArray::DeletingDestruct", static_cast<void*>(self), static_cast<void*>(result), "flags %d", flags);
     return result;
 }

@@ -42,8 +42,8 @@ EI_VERIFY(0x004BF7E0, DeclDestructVerify, 0, s_declDestruct);
 
 static void (__fastcall* s_defineListDestruct)(ScriptDefineList*);
 static void __fastcall DefineListDestructVerify(ScriptDefineList* list) {
-    list->Destruct();
-    ei::verify::Check("ScriptDefineList::Destruct", true,
+    ScriptDefinesDestruct(list);
+    ei::verify::Check("ScriptDefinesDestruct", true,
                       !list->head && !list->tail && !list->count && !list->free && !list->blocks, "emptied");
 }
 EI_VERIFY(0x004D6340, DefineListDestructVerify, 0, s_defineListDestruct);

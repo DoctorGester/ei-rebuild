@@ -85,97 +85,14 @@ float Sum3(float a, float b, float c) { return static_cast<float>((static_cast<d
 // Ordered and different (FCOMP; TEST AH,0x40 clear).
 bool Differs(float a, float b) { return a < b || a > b; }
 
-// 32-byte aligned storage for `count` pointers; the block itself is kept just before it.
-void** AllocateAligned(int count) {
-    auto* block = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 4 + 0x24));
-    auto* data = reinterpret_cast<void**>((reinterpret_cast<std::uintptr_t>(block) + 0x23) & ~std::uintptr_t{0x1F});
-    data[-1] = block;
-    return data;
-}
-void FreeAligned(void** data) { gamecrt::operator_delete(data[-1]); }
-
-// The grow-by when none is set: an eighth of the size, 4..1024.
-int DefaultGrowBy(int size) {
-    int grow = size / 8;
-    if (grow < 4) return 4;
-    if (grow > 0x400) return 0x400;
-    return grow;
-}
 } // namespace
 
 // --- AlignedPtrArray --------------------------------------------------------------------------
 
-void AlignedPtrArray::SetAtGrow(int index, void* value) {
-    if (size <= index) {
-        int newSize = index + 1;
-        if (newSize == 0) {
-            if (data) {
-                FreeAligned(data);
-                data = nullptr;
-            }
-            capacity = 0;
-            size = 0;
-            // The original then stores through the null array (data[-1]).
-            *(*static_cast<void** volatile*>(&data) + index) = value;
-            return;
-        }
-        if (!data) {
-            data = AllocateAligned(newSize);
-            capacity = newSize;
-            size = newSize;
-            data[index] = value;
-            return;
-        }
-        if (newSize <= capacity) {
-            size = newSize;
-            data[index] = value;
-            return;
-        }
-        int grow = growBy != 0 ? growBy : DefaultGrowBy(size);
-        int newCapacity = grow + capacity;
-        if (newCapacity <= newSize) newCapacity = newSize;
-        void** fresh = AllocateAligned(newCapacity);
-        std::memcpy(fresh, data, static_cast<std::size_t>(size & 0x3FFFFFFF) * 4);
-        FreeAligned(data);
-        data = fresh;
-        size = index + 1;
-        capacity = newCapacity;
-    }
-    data[index] = value;
-}
+// 00519E80 / 00519D70: SetAtGrow / SetSize (RET 8). The original's SetAtGrow(-1) stores through
+// the null array it has just freed; ours does too (data[-1] of null), both fault.
 EI_REPLACE_METHOD(0x00519E80, AlignedPtrArray::SetAtGrow);
 
-void AlignedPtrArray::SetSize(int newSize, int newGrowBy) {
-    if (newGrowBy != -1) growBy = newGrowBy;
-    if (newSize == 0) {
-        if (data) {
-            FreeAligned(data);
-            data = nullptr;
-        }
-        capacity = 0;
-        size = 0;
-        return;
-    }
-    if (!data) {
-        data = AllocateAligned(newSize);
-        capacity = newSize;
-        size = newSize;
-        return;
-    }
-    if (newSize <= capacity) {
-        size = newSize;
-        return;
-    }
-    int grow = growBy != 0 ? growBy : DefaultGrowBy(size);
-    int newCapacity = grow + capacity;
-    if (newCapacity <= newSize) newCapacity = newSize;
-    void** fresh = AllocateAligned(newCapacity);
-    std::memcpy(fresh, data, static_cast<std::size_t>(size & 0x3FFFFFFF) * 4);
-    FreeAligned(data);
-    data = fresh;
-    size = newSize;
-    capacity = newCapacity;
-}
 EI_REPLACE_METHOD(0x00519D70, AlignedPtrArray::SetSize);
 
 // --- Bounds -----------------------------------------------------------------------------------

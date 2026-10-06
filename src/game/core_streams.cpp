@@ -154,18 +154,13 @@ void** __fastcall AlignedPointerArrayAlloc(int count) {
 EI_REPLACE(0x0047B940, AlignedPointerArrayAlloc);
 EI_REPLACE(0x004D9ED0, AlignedPointerArrayAlloc);   // byte-identical copy
 
-void AlignedObjectArray::Clear() {
+void __fastcall AlignedObjectsClear(lib::AlignedArray<CEngineObject*>* objects) {
     // The size is read again after every call (a release may change the array).
-    CEngineObject** element = data;
-    for (int i = 0; i < size; ++i) (*element++)->Release();
-    if (data) {
-        gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]);
-        data = nullptr;
-    }
-    capacity = 0;
-    size = 0;
+    CEngineObject** element = objects->data;
+    for (int i = 0; i < objects->size; ++i) (*element++)->Release();
+    objects->RemoveAll();
 }
-EI_REPLACE_METHOD(0x0047B620, AlignedObjectArray::Clear);
+EI_REPLACE(0x0047B620, AlignedObjectsClear);
 
 // --- Coder state -------------------------------------------------------------------------------
 

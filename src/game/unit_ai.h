@@ -116,6 +116,12 @@ struct AIOrder {
     void MakeAttack(CEngineObject* object);
     // 005CF780 (RET 8). Clear, then a cast (5) of `spell` at `object` (referenced).
     void MakeCast(int spell, CEngineObject* object);
+    // 00670760 (RET 8; player_server_handlers.cpp). Clear, then a use (6) of `object` (referenced)
+    // with `what`.
+    void MakeUse(CEngineObject* object, int what);
+    // 006707D0 (RET 4). Where the order aims: the object's AimPoint (slot 53), or `point` without
+    // an object. Returns `out`.
+    Vector3* AimPoint(Vector3* out) const;
 
     int kind;                       // +0x00
     int what;                       // +0x04 6 for an attack, the spell for a cast
@@ -136,34 +142,20 @@ struct AILook {
 };
 static_assert(sizeof(AILook) == 0x10);
 
-// CArray<AILook> (0x14 bytes; vtable 0073D4B4, base 0073D460). The modes call the template code
-// through its addresses (Construct, SetSize, Copy, GetAt) so the verify wrappers see their calls;
-// the rewritten bodies are Init, Resize, CopyFrom and ElementAt (unit_ai_looks.cpp).
-struct AILookArray {
-    void Construct();                               // 005573F0 (base vtable, empty)
-    void SetSize(int size, int growBy);             // 005D8EE0
-    void Copy(const AILookArray* other);            // 005D8B60
-    void Destroy();                                 // 004CB770 (base vtable, frees the data)
-    void GetAt(AILook* out, int index) const;       // 005D9DE0
-
-    // 005573F0. Base vtable, no data, growth step 0. Returns this.
-    AILookArray* Init();
-    // 005D8EE0. CArray::SetSize: growBy -1 keeps the step; new elements are zeroed (also when they
-    // fit the capacity); a shrink only lowers the size. Growing past the capacity adds the step
-    // (0: an eighth of the size, 4..1024) or exactly what is needed, whichever is more.
-    void Resize(int size, int growBy);
-    // 005D8B60. CArray::Copy: Resize to the other's size (keeping the step), then its elements.
-    void CopyFrom(const AILookArray* other);
-    // 005D9DE0. CArray::GetAt returning by value (into `out`, which EAX returns).
-    AILook* ElementAt(AILook* out, int index) const;
-
-    void* vtable;
-    AILook* data;                   // +0x04
-    int size;                       // +0x08
-    int max;                        // +0x0C
-    int growBy;                     // +0x10
-};
-static_assert(sizeof(AILookArray) == 0x14);
+// CArray<AILook> (0x14 bytes; vtable 0073D4B4, base 0073D460). SetSize 005D8EE0 (new elements
+// zeroed) and Copy 005D8B60 are registered on the template (unit_ai_looks.cpp). The modes call the
+// template code through its addresses (the ...At forwarders, unit_ai.cpp) so the verify wrappers
+// see their calls.
+using AILookArray = mfc::CArray<AILook>;
+void __fastcall LooksConstructAt(AILookArray* looks);                                // 005573F0
+void __fastcall LooksSetSizeAt(AILookArray* looks, void*, int size, int growBy);    // 005D8EE0
+void __fastcall LooksCopyAt(AILookArray* looks, void*, const AILookArray* other);   // 005D8B60
+void __fastcall LooksDestroyAt(AILookArray* looks);                                  // 004CB770 (base vtable, frees the data)
+void __fastcall LooksGetAt(const AILookArray* looks, void*, AILook* out, int index);  // 005D9DE0
+// 005573F0 (unit_ai_looks.cpp). Base vtable, no data, growth step 0. Returns `looks`.
+AILookArray* __fastcall LooksInit(AILookArray* looks);
+// 005D9DE0. CArray::GetAt returning by value (into `out`, which EAX returns).
+AILook* __fastcall LooksElementAt(const AILookArray* looks, void*, AILook* out, int index);
 constexpr std::uintptr_t kLookArrayVtable = 0x0073D4B4;
 constexpr std::uintptr_t kLookArrayBaseVtable = 0x0073D460;
 
@@ -296,19 +288,11 @@ struct PatrolPoint {
 static_assert(sizeof(PatrolPoint) == 0x20);
 
 // CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
-struct PatrolPointArray {
-    // 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
-    void Destruct();
-    // 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
-    PatrolPointArray* DeletingDestruct(int flags);
-
-    void* vtable;
-    PatrolPoint* data;              // +0x04
-    int size;                       // +0x08
-    int max;                        // +0x0C
-    int growBy;                     // +0x10
-};
-static_assert(sizeof(PatrolPointArray) == 0x14);
+using PatrolPointArray = mfc::CArray<PatrolPoint>;
+// 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
+void __fastcall PatrolPointsDestruct(PatrolPointArray* points);
+// 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns `points`.
+PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags);
 
 // Patrol (vtable 0073FF40, 0x20 bytes): walk a list of points.
 struct PatrolMode : AIMode {
@@ -529,23 +513,15 @@ struct AICallRecord {
 };
 static_assert(sizeof(AICallRecord) == 0x18);
 
-// CArray<AICallRecord> (brain + 0x178).
-struct AICallArray {
-    void SetSize(int size, int growBy);             // 005CDD60
-    // 005CC9D0 (RET 8; unit_ai_brain.cpp; each tick, from UpdateMemory). Counts every call down;
-    // one that runs out is dropped after it is heard: with a hostility mask (+0x10) the unit's
-    // controller takes the mask (logged "hear delayed sound"), else, when the memory's noticed
-    // level is below 900, the call's point becomes the noticed point (900, kind -3; logged when the
-    // level rose by more than 100 or the point lies more than sqrt(10) away).
-    void Update(CUnit* unit, void* memory);
-
-    void* vtable;
-    AICallRecord* data;             // +0x04
-    int size;                       // +0x08
-    int max;                        // +0x0C
-    int growBy;                     // +0x10
-};
-static_assert(sizeof(AICallArray) == 0x14);
+// CArray<AICallRecord> (brain + 0x178). Its SetSize stays the instantiation's (005CDD60).
+using AICallArray = mfc::CArray<AICallRecord, mfc::RawElements<AICallRecord>>;
+void __fastcall CallsSetSizeAt(AICallArray* calls, void*, int size, int growBy);   // 005CDD60
+// 005CC9D0 (RET 8; unit_ai_brain.cpp; each tick, from UpdateMemory). Counts every call down;
+// one that runs out is dropped after it is heard: with a hostility mask (+0x10) the unit's
+// controller takes the mask (logged "hear delayed sound"), else, when the memory's noticed
+// level is below 900, the call's point becomes the noticed point (900, kind -3; logged when the
+// level rose by more than 100 or the point lies more than sqrt(10) away).
+void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory);
 
 // An object the memory reported (8 bytes; the object is a counted reference).
 struct AIReport {
@@ -554,22 +530,15 @@ struct AIReport {
 };
 static_assert(sizeof(AIReport) == 8);
 
-// CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp).
-struct AIReportArray {
-    // 005CC620. Keeps the larger `what` of a listed object, else appends it (with a reference).
-    void Add(CEngineObject* object, int what);
-    // 005CC560. Whether `object` is listed (only AL is set).
-    bool Contains(CEngineObject* object);
-    void SetSize(int size, int growBy);             // 005CD670
-    void RemoveAt(int index, int count);            // 005CD800
-
-    void* vtable;
-    AIReport* data;                 // +0x04
-    int size;                       // +0x08
-    int max;                        // +0x0C
-    int growBy;                     // +0x10
-};
-static_assert(sizeof(AIReportArray) == 0x14);
+// CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp). Its SetSize and
+// RemoveAt stay the instantiation's (005CD670 / 005CD800).
+using AIReportArray = mfc::CArray<AIReport, mfc::RawElements<AIReport>>;
+// 005CC620. Keeps the larger `what` of a listed object, else appends it (with a reference).
+void __fastcall ReportsAdd(AIReportArray* reports, void*, CEngineObject* object, int what);
+// 005CC560. Whether `object` is listed (only AL is set).
+bool __fastcall ReportsContains(AIReportArray* reports, void*, CEngineObject* object);
+void __fastcall ReportsSetSizeAt(AIReportArray* reports, void*, int size, int growBy);     // 005CD670
+void __fastcall ReportsRemoveAtAt(AIReportArray* reports, void*, int index, int count);    // 005CD800
 
 // One way the unit can attack or help (0x28 bytes): a weapon (part -1) or a spell.
 struct AIAttackOption {

@@ -17,7 +17,9 @@ BOOL CTextManager::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadL
 __declspec(naked) BOOL CTextManager::ReadToHash(mfc::CString*, BOOL) EI_ORIGINAL(0x004DFB80)
 __declspec(naked) BOOL __fastcall ReplaceChar(mfc::CString*, char, char) EI_ORIGINAL(0x004DC400)
 __declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x004DEAB0)
-__declspec(naked) TextSourceList::Node* TextSourceList::CreateNode(const void*) EI_ORIGINAL(0x004E15C0)
+// 004E15C0 (RET 4): allocates a node and copy-constructs the pair.
+__declspec(naked) TextSourceNode* __fastcall TextSourcesCreateNode(TextSourceList*, void*, const TextSource*)
+    EI_ORIGINAL(0x004E15C0)
 
 namespace {
 
@@ -41,9 +43,9 @@ constexpr const char kLineEnd[] = "\r\n";
 // The text lookup the original inlines (or calls as 004DEBC0): the first archive that has `key`;
 // the archive writes the text's size to length_.
 const char* FindText(CTextManager* self, const char* key) {
-    for (CTextManager::SourceNode* node = self->sources_->next; node != self->sources_; node = node->next) {
+    for (CTextManager::SourceNode* node = self->sources_.head->next; node != self->sources_.head; node = node->next) {
         // CMappedResource vtable slot 5, GetFile(name, size): the file's data or null.
-        if (const char* text = ei::VCall<const char*>(node->source, 5, key, &self->length_)) return text;
+        if (const char* text = ei::VCall<const char*>(node->data.source, 5, key, &self->length_)) return text;
     }
     return nullptr;
 }
@@ -260,15 +262,16 @@ BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
 }
 EI_REPLACE_METHOD(0x004E13E0, CTextManager::FormatItemName);
 
-void TextSourceList::Begin(CTextManager::SourceNode** out) { *out = sentinel->next; }
-EI_REPLACE_METHOD(0x004E1530, TextSourceList::Begin);
+void __fastcall TextSourcesBegin(TextSourceList* list, void*, TextSourceNode** out) { *out = list->head->next; }
+EI_REPLACE(0x004E1530, TextSourcesBegin);
 
-TextSourceList::Node** TextSourceList::Erase(Node** out, Node* pos) {
+TextSourceNode** __fastcall TextSourcesErase(TextSourceList*, void*, TextSourceNode** out, TextSourceNode* pos) {
+    using Node = TextSourceNode;
     Node* next = pos->next;
     Node* prev = pos->prev;
     prev->next = next;
     next->prev = prev;
-    FreeStringStorage(&pos->nameBegin);
+    FreeStringStorage(&pos->data.name);
     if (pos) {   // the original checks only here, after using the node (always true)
         // The inlined STLport node deallocation: push on the 0x18-byte free list.
         auto*& freeList = *reinterpret_cast<Node**>(0x0079B22C);
@@ -278,10 +281,11 @@ TextSourceList::Node** TextSourceList::Erase(Node** out, Node* pos) {
     *out = next;
     return out;
 }
-EI_REPLACE_METHOD(0x004E1550, TextSourceList::Erase);
+EI_REPLACE(0x004E1550, TextSourcesErase);
 
-TextSourceList::Node** TextSourceList::Insert(Node** out, Node* pos, const void* value) {
-    Node* node = CreateNode(value);
+TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextSourceNode** out, TextSourceNode* pos,
+                                              const TextSource* value) {
+    TextSourceNode* node = TextSourcesCreateNode(list, nullptr, value);
     node->next = pos;
     node->prev = pos->prev;
     pos->prev->next = node;
@@ -289,7 +293,7 @@ TextSourceList::Node** TextSourceList::Insert(Node** out, Node* pos, const void*
     *out = node;
     return out;
 }
-EI_REPLACE_METHOD(0x004E1590, TextSourceList::Insert);
+EI_REPLACE(0x004E1590, TextSourcesInsert);
 
 void TextSourceIterator::CopyTo(CTextManager::SourceNode** out) { *out = node; }
 EI_REPLACE_METHOD(0x004E1540, TextSourceIterator::CopyTo);

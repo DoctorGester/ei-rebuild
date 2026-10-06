@@ -116,6 +116,27 @@ public:
     // brain then knows all of it; otherwise partyUnits_ becomes a copy of group50F8_ and +0x24 -1.
     void UpdatePartyUnits();
 
+    // player_server_handlers.cpp (A-H13).
+    // 0066F4C0 (slot 20). The player's leader died. Outside a network game (IsMultiplayerClient):
+    // message 0x09, then 0x0B (the hero's id, 0xFF) when the first record's unit exists. In one,
+    // a party of one hero is revived: it loses a share (007C5490) of the money, which goes with the
+    // player's given items into a shared object (AddSharedObject, the old id, then TakeAllItems);
+    // the record gets a new id (the old one, plus 1000000 when below 1001000000, then the first
+    // id from there that no world object has), the slots restored and a share (007C5494) of its experience above its NPC record's floor taken off.
+    // The party collected (when deployed, flag70_) and sent (SendParty), lastPosition_.z
+    // -1313, redeployed (Redeploy with scripts) and the new hero's brain gets the units (class
+    // 0x50) the old one knew (+0x12C) and the old hero, each once and counted.
+    void OnLeaderDied();
+    // 00670310 (message 0x36, from the client's ViewOrderTarget 0066AA20 / dead-unit order
+    // 0066AB80). Unit ids (a count, then the ids; units missing or blocked, flag 0x800000, are
+    // left out), a flag, a kind, a value and the target object's id. With two units or more the
+    // one nearest to the order's aim point (UseOrderDistanceSquared) is asked first: the first
+    // whose controller accepts the use order (CheckOrder) or would accept it from where its
+    // path ends (CheckOrderAt; its position without a path) does it, the rest are dropped one by
+    // one; when none does, the nearest is chosen. With one unit that unit. The chosen unit's
+    // brain's Player mode then runs CommandUse(object, kind, value, flag != 0). Returns 1.
+    int OnUseOrder();
+
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
     void* vtable_;
@@ -136,7 +157,7 @@ public:
     Vector3 lastPosition_;          // +0x38 sent with 0x04 / 0x0F
     int unknown_44;                 // +0x44 -1 after Create
     BitStream out_;                 // +0x48 messages to the client (CMemoryStream)
-    std::uint8_t flag70_;           // +0x70
+    std::uint8_t flag70_;           // +0x70 OnLeaderDied collects the party when set, redeploys it when clear
     std::uint8_t unknown_71[3];
     // +0x74 the unit placements (an MFC CArray; SetSize 0059C3D0, ConstructElements 004CEE20).
     mfc::CArray<UnitPlacement> placements_;
@@ -161,6 +182,9 @@ static_assert(offsetof(CPlayerServer, flag70_) == 0x70);
 static_assert(offsetof(CPlayerServer, handlers_) == 0x28);
 static_assert(offsetof(CPlayerServer, placements_) == 0x74);
 
+// 00670670 (__fastcall). |a - b| squared, unrounded in ST0 (the use order's nearest-unit test).
+double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
+
 // A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
 // or CPlayerClient (00743180). Neither class derives from this declaration (their slot bodies are
 // registered by address); it names the slots after CEngineObject's that the player calls.
@@ -174,7 +198,9 @@ public:
     virtual void ItemsGiven(const mfc::CTypedPtrList<CEngineObject>* items, int flag);
     virtual void ItemsTaken();              // 18: server 0066EA10 (message 0x17); client empty
     virtual void ItemTaken(CEngineObject* item);   // 19: server 0066EA30 (message 0x0A); client empty
-    virtual void PartyChanged();            // 20: server 0066F4C0; client empty
+    // 20: server 0066F4C0 (CPlayerServer::OnLeaderDied; CUnitServer::UpdateServer calls it when
+    // the dying unit is the player's leader); client empty.
+    virtual void LeaderDied();
     virtual void TickDone();                // 21: server 0066D090 (empties +0x50F8); client empty
     virtual void ItemUsed(CEngineObject* item);    // 22: server 0066EB40 (message 0x14); client empty
     virtual int Receive();                  // 23: server 0066D270, client 00667A30
