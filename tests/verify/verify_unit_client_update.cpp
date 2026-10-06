@@ -86,7 +86,7 @@ static void __fastcall UpdateArrowVerify(CUnitClientSpecific* self) {
     self->UpdateArrow();
     bool ok = true;
     if (self->arrowHidden != before) {
-        const FigurePart* arrow = self->unit->Object3D()->FindPart("rh3_arrow00");
+        const FigurePart* arrow = self->unit->Object3D()->FindPart("rh3.arrow00");
         ok = arrow && ((arrow->flags_ & 0x80) != 0) == (self->arrowHidden != 0);
     }
     ei::verify::Check("CUnitClientSpecific::UpdateArrow", true, ok, "unit %d arrow hidden %d -> %d", self->unit->id_,

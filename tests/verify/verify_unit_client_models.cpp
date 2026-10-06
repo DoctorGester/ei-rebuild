@@ -112,7 +112,7 @@ __declspec(naked) int __fastcall WeaponTypeOriginal(std::uint32_t) EI_ORIGINAL(0
 
 // 00535590. Ours only (changes the figure): returns 1, the active weapon is `slot`, the byte +0x74
 // is clear and the weapon ids are untouched; with a weapon in the new slot, +0x75 is set exactly
-// when it is a bow whose figure has the part "rh3_arrow00", and that part then has flag 0x80;
+// when it is a bow whose figure has the part "rh3.arrow00", and that part then has flag 0x80;
 // without one +0x75 keeps its value. Reached when a party unit's active weapon changes (the
 // network state reader, a broken weapon dropped).
 static int __fastcall ChangeWeaponModelVerify(CUnitClientSpecific* self, void*, std::uint32_t slot) {

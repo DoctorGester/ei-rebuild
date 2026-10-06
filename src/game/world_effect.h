@@ -392,6 +392,81 @@ public:
 static_assert(offsetof(CEffectShowVisibility, grid_) == 0x158);
 static_assert(sizeof(CEffectShowVisibility) == 0x170);
 
+// The bird of the client world (class id 100, vtable 0074387C, "CEffectMoshka"; CWorldClient keeps
+// one at +0x1B0, made and told whom to follow by 00565380 / 00566C20). It perches near the followed
+// object (+0x154, usually the leader), flies to it when it comes close, circles it and flies off
+// to a perch again; the client's draw pass moves it every frame (Update with the animation time).
+// Its figure object (class 0x38, model "unmobi", texture "bird00") carries a particle source
+// (0x203C). Nothing is sent or saved (Load / Save are the base's, Pack / Start do nothing).
+// 0x16C bytes. world_effect_moshka.cpp.
+class CEffectMoshka : public CEffect {
+public:
+    // The constructor and destructor reset (the destructor twice: inline, then slot 18).
+    CEffectMoshka* Construct();                   // 0067C950
+    void Destruct();                              // 0067CAF0
+    CEffectMoshka* DeletingDestruct(unsigned flags);  // 0067CAD0 (slot 0)
+    static std::uintptr_t Vtable();               // 0074387C
+    void Reset();                                 // 0067CC90 (slot 18): the figure out of the maps, both released
+    int Tick();                                   // 0067CD70 (slot 6): Update(game tick), returns 0
+    // 0067CD90 (RET 8; `this` unused). A perch seen from 1.5 above `from`: random directions at
+    // distance 50 (then 5 less each try, at least 4) and height 30 (3 more each try) until the
+    // AI map's line of sight to it is above 0.5. Returns out.
+    Vector3* FindPerch(Vector3* out, const Vector3* from);
+    // 0067CEF0 (RET 4). The frame's step: `now` is the animation time (frames).
+    void Update(float now);
+    // 0067D420 (RET 4). Follows object `objectId`: when it exists, a new figure at a perch near it
+    // (filed in the client's maps) with its source, perched (state 0) for 200 frames.
+    void Follow(int objectId);
+    int Unpack(int update, DeltaField* field);    // 0067D640 (slot 21): 1
+
+    CParticleSource* Source() { return reinterpret_cast<CParticleSource*>(source_); }
+
+    CEngineObject* bird_;      // +0x14C the figure object (a CObject3D, counted), null: none
+    CEngineObject* source_;    // +0x150 its CParticleSource (counted), null: none
+    int followedId_;           // +0x154 world object id, -1: none
+    float lastTime_;           // +0x158 Update's last `now`
+    float timer_;              // +0x15C frames left in the state
+    float angle_;              // +0x160 circling: the angle at time 0 (radians)
+    float height_;             // +0x164 circling: the height above the bird where it looks for a perch
+    int state_;                // +0x168 0 perched, 1 circling, 2 flying to position_ (the perch)
+};
+static_assert(offsetof(CEffectMoshka, bird_) == 0x14C);
+static_assert(offsetof(CEffectMoshka, state_) == 0x168);
+static_assert(sizeof(CEffectMoshka) == 0x16C);
+
+// A tornado crossing the map (class id 0x65, vtable 007438F8, "CEffectTornado"; the server weather
+// 0058CCD0 launches it). It moves in a straight line for framesLeft_ ticks, carries a particle
+// source (0x200A) and the looping sound "nature\tornado\circle.wav"; on the server every 8th tick
+// (while more than 20 remain) the units within 5 take a hit of 5 (damage type 6). The source stops
+// emitting for the last 110 ticks. 0x15C bytes. world_effect_tornado.cpp.
+class CEffectTornado : public CEffect {
+public:
+    // The constructor resets inline (as Reset); the destructor resets twice (inline, slot 18).
+    CEffectTornado* Construct();                  // 0067D670
+    void Destruct();                              // 0067D800
+    CEffectTornado* DeletingDestruct(unsigned flags); // 0067D7E0 (slot 0)
+    static std::uintptr_t Vtable();               // 007438F8
+    void Reset();                                 // 0067D970 (slot 18): source cleared and released, sound stopped
+    // 0067DA50 (RET 8). From `from` towards `to` at a random speed 0.096 .. 0.216 per tick; the
+    // ticks to go are the distance over the speed (rounded, at least 0; 0 when the points meet).
+    void Launch(const Vector3* from, const Vector3* to);
+    int Tick();                                   // 0067DBD0 (slot 6): 0 once the ticks are used up
+    int Unpack(int update, DeltaField* field);    // 0067DDD0 (slot 21)
+    void Pack(DeltaField* field);                 // 0067DEB0 (slot 22)
+    void Start(int update);                       // 0067DF10 (slot 23)
+    void LoadState(void* stream);                 // 0067E020 (slot 9)
+    void SaveState(void* stream);                 // 0067E070 (slot 10)
+
+    CParticleSource* Source() { return reinterpret_cast<CParticleSource*>(source_); }
+
+    CEngineObject* source_;    // +0x14C client: the CParticleSource (counted), null: none
+    int sound_;                // +0x150 client: the looping sound's handle, -1: none
+    int framesLeft_;           // +0x154 ticks still to move
+    int launchTick_;           // +0x158 the world's tick at Launch (Start catches the source up, at most 30)
+};
+static_assert(offsetof(CEffectTornado, source_) == 0x14C);
+static_assert(sizeof(CEffectTornado) == 0x15C);
+
 class CBaseManager;   // base_manager.h
 
 // 0067E170 (world_effect_lifetime.cpp). The effect manager's slot 14 (NewObject, RET 4): a new

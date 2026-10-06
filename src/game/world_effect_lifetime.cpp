@@ -248,8 +248,6 @@ namespace {
 
 // Constructor bodies not rewritten yet (ECX = the memory; they return it).
 __declspec(naked) CEngineObject* __fastcall ConstructAmbientSound(void*) EI_ORIGINAL(0x00677510)
-__declspec(naked) CEngineObject* __fastcall ConstructMoshka(void*) EI_ORIGINAL(0x0067C950)
-__declspec(naked) CEngineObject* __fastcall ConstructTornado(void*) EI_ORIGINAL(0x0067D670)
 
 template <typename T>
 CEngineObject* NewEffect() {
@@ -277,8 +275,8 @@ CEngineObject* __fastcall EffectNewObject(CBaseManager*, void*, int type) {
     case 0x5B: object = NewEffect<CEffectArrowFigure>(); break;
     case 0x5E: object = NewEffect<CEffectShowVisibility>(); break;
     case 99: object = NewEffect<CEffectSoundSeq>(); break;
-    case 100: object = NewEffect(0x16C, &ConstructMoshka); break;
-    case 0x65: object = NewEffect(0x15C, &ConstructTornado); break;
+    case 100: object = NewEffect<CEffectMoshka>(); break;
+    case 0x65: object = NewEffect<CEffectTornado>(); break;
     default: return nullptr;
     }
     if (object != nullptr) object->type_ = type;
