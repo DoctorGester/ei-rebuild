@@ -445,8 +445,9 @@ renderer's). Bytes per group (R = in docs/rebirth-patched-functions.txt):
 | 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740 |
 | 6B4000-6C0000 | sound (Miles codec, wave markers), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80 |
 
-Not yet reviewed for library code: the item database's record containers (006A6E50..006AB890 look like vector
-instantiations of the item record kinds) and the 006B4000-006C0000 block.
+Later: 25 more for the item database's record vectors (resize, fill_insert, insert_overflow, copy, uninitialized
+copy / fill of the 0x50 / 0x78 / 0x7C / 0x8C / 0xB4 / 0xC8 kinds) and the portrait slot vector's four; the kinds'
+operator= (006A8FB0 ...) and the serialisers 006A7940..006A7E10 stay game code. Not reviewed: 006B4000-006C0000.
 
 ### HUD portraits setup (ui_hud_portrait_setup.cpp, A-H11)
 
