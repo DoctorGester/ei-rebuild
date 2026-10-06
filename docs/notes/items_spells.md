@@ -447,7 +447,7 @@ renderer's). Bytes per group (R = in docs/rebirth-patched-functions.txt):
 
 Later: 25 more for the item database's record vectors (resize, fill_insert, insert_overflow, copy, uninitialized
 copy / fill of the 0x50 / 0x78 / 0x7C / 0x8C / 0xB4 / 0xC8 kinds) and the portrait slot vector's four; the kinds'
-operator= (006A8FB0 ...) and the serialisers 006A7940..006A7E10 stay game code. Not reviewed: 006B4000-006C0000.
+operator= (006A8FB0 ...) and the serialisers 006A7940..006A7E10 stay game code; 32 for the spell database (vectors of the 0x24 modifier, 0x34 and 0x84 spell records and of strings, 00684D60..00688470; the serialisers 00684C50 / 00684EF0 / 00684FE0 stay). Not reviewed: 006B4000-006C0000.
 
 ### HUD portraits setup (ui_hud_portrait_setup.cpp, A-H11)
 
@@ -461,5 +461,5 @@ Kept: the sex letter ("m" / "f") keeps the previous portrait's value for a figur
 "unhufe"; AddPortrait's count % 4 switch leaves the texel offsets uninitialised for a negative count (ours 0) and
 indexes the column's frame and restB_ by count % 6. The multiplayer branch (players without a live unit) uses the
 name maps' find_or_insert directly (00514880 / 0053D340, one temporary string less than the original). Not
-reached by a harness scenario. 0064AB20 / 0064AD40 / 0064B3A0 / 0064ACD0 (the slot vector) are library entries.
+reached by a harness scenario. 006407E0 holds EI_Plugin Fixes sites (rebirth.md), so the installer keeps the original under Rebirth. 0064AB20 / 0064AD40 / 0064B3A0 / 0064ACD0 (the slot vector) are library entries.
 CUnit +0xC8 is now `build`, CUiMesh +0x34 `orientation_`.
