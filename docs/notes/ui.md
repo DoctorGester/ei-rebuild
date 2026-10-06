@@ -147,6 +147,7 @@ Rebirth-patched), 005F7B40, the sprite draw 005E6D90 (the sprite shape builders 
 
 | Address | Name | Verify |
 |---|---|---|
+| 005EB090, 005EAD00, 005EAD50, 005EB580, 005EB540 | `CCameraInput::OnKeyUp` (slot 11), `OnRightDown` / `OnRightUp` (5 / 6: turning with the cursor held), `OnDeactivate` (1), `OnWheel` (12, returns 1) (the battle camera's input side, `ui_camera_keys.h`, `ui_camera_input.cpp`) | side by side: the input object, camera bytes +4..+0x1E0, the drag motion and the cursor's held byte, floats within 4 ULPs (ui_hud: keys, wheel and right click on the view; ui_screens: the escape menu deactivates it) |
 | 005F57C0 | `CInterface3D::Update` (every frame) | ours only: the mouse copy (+0x68 / +0x6C from 007C7C50) |
 | 005FDFA0 | `CUiSurface::DrawWrappedText` | side by side: line count and the surface's pixels through GDI (rule below) |
 | 005E4A10, 005E4800 | `ConsoleWindow::DrawInput`, `DrawLines` | side by side: caret / anchor clamp and the surface's pixels (DirectDraw lock; before ours the pixels are put back with the input strip's rows inverted so anything ours leaves undrawn shows); DrawLines runs on every console message |
