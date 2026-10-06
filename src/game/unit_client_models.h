@@ -21,8 +21,14 @@ struct Vector3;   // maths.h
 
 // An entry of a client controller's speech queue (0x14 bytes; the value of a node of the STLport
 // list at +0x9C; 005380D0 plays one).
+// What a unit says (the record slot 51 is given): its sound file name at +0x04.
+struct SpeechRecord {
+    std::uint8_t unknown_00[4];
+    const char* soundName;          // +0x04
+};
+
 struct ClientSpeech {
-    int id;                         // +0x00 (005380D0 compares it with the last speech, +0x94)
+    const SpeechRecord* id;         // +0x00 (005380D0 compares it with the last speech, +0x94)
     int kind;                       // +0x04 2 / 0x1C: not over a speech that still plays (+0x90)
     int delay;                      // +0x08 ticks until it plays; negative: playing
     int sound;                      // +0x0C its sound handle (-1 none)
@@ -30,6 +36,17 @@ struct ClientSpeech {
     std::uint8_t unknown_11[3];
 };
 static_assert(sizeof(ClientSpeech) == 0x14);
+
+// What the speech queue's filters compare (slot 51 builds one for each walk; unit_client_speech.cpp).
+struct SpeechFilter {
+    int unitId;                     // +0x00 SpeechFinished: the unit whose talking flag ends
+    int kind;                       // +0x04 SpeechReplaced: the new speech's kind
+};
+// 00537F60. Does a speech of the filter's kind replace `queued`? (EAX 1 / 0; RET 4.)
+int __fastcall SpeechReplaced(const SpeechFilter* filter, void* unused, const ClientSpeech* queued);
+// 00537FD0. Has `queued`'s sound ended (it had one)? A talking speech then clears the server
+// unit's flag 0x800000 (the filter's unit id). AL; RET 4.
+bool __fastcall SpeechFinished(const SpeechFilter* filter, void* unused, const ClientSpeech* queued);
 
 struct ClientSpeechNode {
     ClientSpeechNode* next;
@@ -172,6 +189,44 @@ public:
     // plays it (`play`) or queues it.
     void StartIdleAnimation(std::uint8_t play);
 
+    // unit_client_effects.cpp (A-U2).
+    // 00537500. Virtual slot 46, a hit on body location `location` (0 head .. 5 right leg) of
+    // strength `amount`; nothing for flag 8 or an amount up to 0.0001. The hit sound
+    // "weapons\<class>\<material>\1.wav" (class by the attacker's weapon, UnitParams +0x20: a
+    // kind below 0x10, else the prototype's hitSoundKind; material: the model's hitMaterial, for
+    // heroes the first armour worn over the location (0073EC78) as "stone" (crystal, bone, stone),
+    // "Metal" or "leather") plays at 1000 from the unit; for a location's part ("hd", "bd", "lh2",
+    // "rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F,
+    // 0x2031..0x2033) attach to the unit, and blood kinds 1..4 leave a decal near the part (two
+    // rand() offsets within the unit's size, a rand() variant; 0056CE90).
+    void HitEffect(int location, float amount, std::uint32_t flags);
+    // 00537C00. Virtual slot 47 (the argument is not read): sparks (particles 0x2043, 10 alpha)
+    // attach to the unit, sized by its radius; the parts flash (0051C9F0 with 1) unless they are
+    // already, and the flash lasts at least 4 more ticks.
+    void SparkEffect(int unused);
+    // 005373D0. Virtual slot 48 (death): the companion's light goes out (005119B0); blood kinds
+    // 1..4 leave a decal under the body part "bd" (or the unit, sized 0.75 x its smaller extent).
+    void DeathEffect();
+    // 00534140. Virtual slot 18 (the unit's player changed): with a player the companion shows the
+    // party light (colour 0079BEA0, alpha 1, radius 0079BEAC; 00511830).
+    void OwnerPlayerChanged(void* player);
+
+    // unit_client_speech.cpp (A-U2).
+    // 00537D80. Virtual slot 51: the unit says `speech` (nothing for null), a speech of `kind`.
+    // Queued speeches the new kind replaces (SpeechReplaced) and finished ones (SpeechFinished)
+    // leave the queue; unless the queue is empty or the kind is one of 0x1D-0x1F, 0x23-0x26, 0x2A
+    // nothing more happens. The speech (delay 3; `talking` for kind 0x2B) joins the queue's end;
+    // into an empty queue it plays at once (delay 0; a talking one sets the server unit's flag
+    // 0x800000; kinds 2 / 0x1C only when the last waiting speech sound has ended, and their
+    // sound becomes +0x90).
+    void Say(const SpeechRecord* speech, int kind);
+    // 00538040. Virtual slot 52: every queued speech's sound stops (talking ones clear the server
+    // unit's flag 0x800000) and the queue is emptied.
+    void StopSpeech();
+    // 005380D0. Plays `speech`'s sound (2D, priority 1, volume 100, as speech) into its +0x0C and
+    // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
+    bool Speak(ClientSpeech* speech);
+
     // unit_client_equipment.cpp (A-U).
     // 00536100. Virtual slot 29 (equipment changed): for heroes the composed skins are renewed:
     // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read
@@ -239,7 +294,8 @@ public:
     int idleSound;                  // +0x88 the idle animation's sound handle
     std::uint8_t unknown_08C[4];
     int speechSound;                // +0x90 the sound of the last speech that waits (-1 none)
-    std::uint8_t unknown_094[0x9C - 0x94];   // +0x94 last speech id, +0x98 its time (005380D0)
+    const SpeechRecord* lastSpeech; // +0x94 the speech played last (005380D0)
+    std::uint32_t lastSpeechTime;   // +0x98 when (timeGetTime)
     ClientSpeechNode* speech;       // +0x9C the speech queue (STLport list header node)
     std::uint32_t armourIds[7];     // +0xA0 packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];     // +0xBC

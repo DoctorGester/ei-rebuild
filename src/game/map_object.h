@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
 struct UnitVitalsPacked;    // unit.h
 
@@ -136,6 +137,15 @@ public:
     // 0050E840. Virtual slot 3 (Destroy): the effects emptied (SetSize 0050FE70 to 0), the
     // companion detached and released, then the 3D object's Destroy (00516080).
     void DestroyMapObject();
+
+    // map_object_save.cpp (A-U2).
+    // 0050F7A0. Virtual slot 9 (Load): the companion's Load, then +0x178, the position, the
+    // orientation, the name, the scale, the effects (count, then MapEffect::Load 00688550 each),
+    // flags_, the second name and, from version 0x4F, the base scale.
+    void LoadMapObject(CStream* stream);
+    // 0050F900. Virtual slot 10 (Save): the same fields (names with their terminators; the base
+    // scale always).
+    void SaveMapObject(CStream* stream);
 
     // The packed vitals (+0x17C) and the network state (+0x1C4).
     UnitVitalsPacked* PackedVitals() { return reinterpret_cast<UnitVitalsPacked*>(packedVitals); }

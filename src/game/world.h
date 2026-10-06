@@ -20,6 +20,7 @@ using BOOL = int;
 struct ScriptGroup;
 class CAIMap;       // ai_map.h
 class CBaseManager;
+struct CSoundManager;   // sound.h
 class CSectorMap;   // sector_map.h
 class CSpellManager;   // spell.h
 class Terrain;
@@ -839,7 +840,9 @@ public:
     std::uint8_t unknown_0E4[0x180 - 0xE4];
     Terrain* terrain_;                    // +0x180
     char* zoneName_;                      // +0x184 CString
-    std::uint8_t unknown_188[0x1D4 - 0x188];
+    std::uint8_t unknown_188[0x1CC - 0x188];
+    CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
+    std::uint8_t unknown_1D0[4];
     PlatformSet platforms_;               // +0x1D4
     std::uint8_t unknown_1F8[0x20C - 0x1F8];
     std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view

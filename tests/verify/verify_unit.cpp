@@ -465,7 +465,7 @@ EI_VERIFY(0x005271C0, PeriodVerify, 6, s_period);
 static BOOL(__fastcall* s_serverIsDead)(CMapObjectServer*);
 static BOOL __fastcall ServerIsDeadVerify(CMapObjectServer* self) {
     BOOL expected = s_serverIsDead(self);
-    ei::verify::Check("CMapObjectServer::IsDead", expected, self->IsDead(), "hp %g", self->hitPoints);
+    ei::verify::Check("CMapObjectServer::IsDead", expected, self->IsDead(), "hp %g", self->vitals.hitPoints);
     return expected;
 }
 EI_VERIFY(0x005156A0, ServerIsDeadVerify, 6, s_serverIsDead);
@@ -474,8 +474,8 @@ EI_VERIFY(0x005156A0, ServerIsDeadVerify, 6, s_serverIsDead);
 static BOOL(__fastcall* s_serverOverkilled)(CMapObjectServer*);
 static BOOL __fastcall ServerOverkilledVerify(CMapObjectServer* self) {
     BOOL expected = s_serverOverkilled(self);
-    ei::verify::Check("CMapObjectServer::IsOverkilled", expected, self->IsOverkilled(), "hp %g max %g", self->hitPoints,
-                      self->maxHitPoints);
+    ei::verify::Check("CMapObjectServer::IsOverkilled", expected, self->IsOverkilled(), "hp %g max %g", self->vitals.hitPoints,
+                      self->vitals.maxHitPoints);
     return expected;
 }
 EI_VERIFY(0x005156C0, ServerOverkilledVerify, 9, s_serverOverkilled);

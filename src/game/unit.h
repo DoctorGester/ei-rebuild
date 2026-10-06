@@ -1050,11 +1050,26 @@ public:
     // effects and gets flags_ bit 1. Returns 1 (0 if 00524FE0 refuses).
     BOOL TakeHit(const void* hit);
 
-    std::uint8_t unknown_1C[0x28 - 0x1C];
-    float hitPoints;        // +0x28
-    float maxHitPoints;     // +0x2C
+    // map_object_save.cpp (A-U2). 005159D0 / 00515AC0, virtual slots 9 / 10 (Load / Save): the
+    // vitals block (+0x20, 0x58 bytes), the two names and the string array (a count, then each
+    // string with its terminator; Load appends to the array).
+    void LoadServer(CStream* stream);
+    void SaveServer(CStream* stream);
+
+    std::uint8_t unknown_1C[0x20 - 0x1C];   // +0x1C the map object (map_object.h CompanionOwner)
+    UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
+    mfc::CString name78;    // +0x78
+    mfc::CString name7C;    // +0x7C
+    void* stringsVtable;    // +0x80 (MFC CStringArray: vtable, data, size, capacity, grow-by)
+    mfc::CString* strings;  // +0x84
+    int stringCount;        // +0x88
+    int stringCapacity;     // +0x8C
+    int stringGrowBy;       // +0x90
 };
-static_assert(offsetof(CMapObjectServer, hitPoints) == 0x28);
+static_assert(offsetof(CMapObjectServer, name78) == 0x78);
+static_assert(offsetof(CMapObjectServer, stringCount) == 0x88);
+static_assert(sizeof(CMapObjectServer) == 0x94);
+static_assert(offsetof(CMapObjectServer, vitals) == 0x20);
 
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific", vtable
 // 0073DBEC); +0x1C is the object it belongs to (a unit for these two).
