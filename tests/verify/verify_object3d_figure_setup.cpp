@@ -5,6 +5,13 @@
 //   set, and the bounds recomputed here from the boxes (heroes: x / y -0.5..0.5) agree (CheckNear).
 // Reached by: the zone loader (005927C0) for every animated object and unit of a zone, so every
 // scenario that starts a game (units, unit_create, world_load); levers (Lever::SetState) too.
+// - AlignedPtrArray::Add (00519A10): ours only; the result is the old size, the array one longer
+//   with `value` last. Reached through LoadPart (below) for each new part.
+// - LoadPart (00517240): ours only; null, or a part listed in the parts with box flag 4 and its
+//   pivot at its position. Reached by the client unit models (WearArmourModel, ChangeWeaponModel:
+//   units with equipment, combat, unit_create) and by LoadParts.
+// - LoadParts (00517110): ours only; returns 1 and the object's model name is `model`. Reached by
+//   00516DA0 (an object's figure built from part names: client objects of every zone load).
 #include "verify.h"
 
 #include "../../src/game/ai_map.h"
@@ -12,9 +19,13 @@
 
 #include <cfloat>
 #include <cmath>
+#include <cstring>
 
 namespace {
 void* s_unusedSetUp;
+void* s_unusedAdd;
+void* s_unusedLoadPart;
+void* s_unusedLoadParts;
 
 bool Near(float a, float b) { return ei::verify::NearlyEqual(a, b, 8, 1e-5f); }
 } // namespace
@@ -59,3 +70,36 @@ static void __fastcall SetUpAnimatedFigureVerify(CObject3D* self, void*, const c
                       parts, self->center[0], self->center[1], self->center[2]);
 }
 EI_VERIFY(0x005179E0, SetUpAnimatedFigureVerify, 0, s_unusedSetUp);
+
+static int __fastcall AddVerify(AlignedPtrArray* self, void*, void* value) {
+    int size = self->size;
+    int index = self->Add(value);
+    bool ok = index == size && self->size == size + 1 && self->data[index] == value;
+    ei::verify::Check("AlignedPtrArray::Add", true, ok, "size %d -> %d, index %d", size, self->size, index);
+    return index;
+}
+EI_VERIFY(0x00519A10, AddVerify, 0, s_unusedAdd);
+
+static FigurePart* __fastcall LoadPartVerify(CObject3D* self, void*, const char* partName, void* model,
+                                             std::uint32_t arg) {
+    FigurePart* part = self->LoadPart(partName, model, arg);
+    bool ok = true;
+    if (part) {
+        bool listed = false;
+        for (int i = 0; i < self->parts.size; ++i) listed = listed || self->parts.data[i] == part;
+        ok = listed && (part->boxFlags & 4) != 0 && part->boxPivot[0] == part->position[0] &&
+             part->boxPivot[1] == part->position[1] && part->boxPivot[2] == part->position[2];
+    }
+    ei::verify::Check("CObject3D::LoadPart", true, ok, "%s: %p", partName ? partName : "-", static_cast<void*>(part));
+    return part;
+}
+EI_VERIFY(0x00517240, LoadPartVerify, 0, s_unusedLoadPart);
+
+static int __fastcall LoadPartsVerify(CObject3D* self, void*, const char* model, const void* partList,
+                                      std::uint32_t arg) {
+    int result = self->LoadParts(model, partList, arg);
+    bool ok = result == 1 && self->name && model && std::strcmp(self->name, model) == 0;
+    ei::verify::Check("CObject3D::LoadParts", true, ok, "%s: result %d", model ? model : "-", result);
+    return result;
+}
+EI_VERIFY(0x00517110, LoadPartsVerify, 0, s_unusedLoadParts);

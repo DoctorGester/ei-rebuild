@@ -291,6 +291,11 @@ A-U4 (2026-10-07):
 | 005179E0 | CObject3D::SetUpAnimatedFigure (part boxes, part names, bounds of an animated figure; zone loader, levers) | object3d_figure_setup.cpp | ours only: box / name counts, state's parts released, bounds recomputed from the boxes (CheckNear) |
 | 0053A8E0 | UnitDatabase::CountSoundFiles (model sound names lower-cased, "*.wav" files counted by prefix) | unit_sound_counts.cpp | ours, then the original recounts; counts compared |
 | 005316F0 | CUnit::CollectItems (items and their spells into two lists; armour spell refresh 005528F0) | unit_item_lists.cpp | output (scratch lists) |
+| 0052EB70 | CUnit::PackPrototypeStats (slot 34: fresh vitals / stats from the prototype, packed to +0x17C / +0x330) | unit_prototype_stats.cpp | differential (both packed blocks) |
+| 00517240, 00517110, 00519A10 | CObject3D::LoadPart (one part object, piece box, BASE / CROWN / EMPTY flags), LoadParts (model name + parts by name), AlignedPtrArray::Add | object3d_figure_setup.cpp | ours only (part listed, flag 4, pivot = position / result 1, name / index, size) |
 Inlined: 00519FC0 (zero part boxes), 0069FB60 (list AddTail pair), STLport vector<int>::resize (004FE0C0). Ghidra calls
 00700EFE MakeUpper; it is MakeLower (_mbslwr at 006EC8A8, misnamed _mbsupr). Shared forwarders added to
-originals_units.h (0050D7C0, 0050D320, 0050C990, 005AA5F0, 005AC010, 006B7110).
+originals_units.h (0050D7C0, 0050D320, 0050C990, 0050D0E0, 005AA5F0, 005AC010, 005AC2B0, 006B7110, 00517240).
+Kept: LoadPart returns null for a part the figure has no piece of without releasing the new part object (leak).
+Skipped: 0050E9B0 (CMapObject slot 34) packs vitals the builder never writes when the prototype exists (005136D0 returns
+before touching them without a stats block): uninitialised stack in the original, cannot be compared.

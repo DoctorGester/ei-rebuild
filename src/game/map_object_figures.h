@@ -24,6 +24,9 @@ struct AlignedPtrArray {
     // 00519D70. Resizes to `size` (0 frees the storage); `growBy` replaces the grow-by unless -1.
     // New elements are not cleared.
     void SetSize(int size, int growBy);
+    // 00519A10 (object3d_figure_setup.cpp, A-U4). Appends `value` (SetAtGrow at the size).
+    // Returns its index.
+    int Add(void* value);
 
     void** data;
     int size;
@@ -58,11 +61,18 @@ struct FigurePart : CEngineObject {
     FigurePartAnimator* animator;   // +0x050 counted; made on first use (Animator())
     std::uint8_t unknown_054[0x74 - 0x54];
     float pivot[3];                 // +0x074 copied to the object's part box (FootprintPart::pivot)
-    std::uint8_t unknown_080[0x18C - 0x80];
+    std::uint8_t unknown_080[0x158 - 0x80];
+    std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240)
+    std::uint32_t piece15C;         // +0x15C from its +0x1C
+    std::uint8_t unknown_160[0x188 - 0x160];
+    // +0x188..+0x1C0: the part's box, laid out as a FootprintPart (ai_map.h); copied whole from
+    // the piece record (FigurePieceRecord::boxFlags on).
+    std::uint32_t boxFlags;         // +0x188 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"
     float offset[3];                // +0x18C the piece's place in the figure
     float unknown_198;              // +0x198
     float boxMin[3];                // +0x19C
     float boxMax[3];                // +0x1A8
+    float boxPivot[3];              // +0x1B4 the part's position when it was loaded
 };
 static_assert(offsetof(FigurePart, position) == 0x1C);
 static_assert(offsetof(FigurePart, tint) == 0x40);
@@ -70,15 +80,22 @@ static_assert(offsetof(FigurePart, animator) == 0x50);
 static_assert(offsetof(FigurePart, offset) == 0x18C);
 static_assert(offsetof(FigurePart, boxMin) == 0x19C);
 static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
+static_assert(offsetof(FigurePart, piece158) == 0x158);
+static_assert(offsetof(FigurePart, boxFlags) == 0x188);
+static_assert(offsetof(FigurePart, boxPivot) == 0x1B4);
 
 // A node of the figure's piece map (an STLport map<string, piece> at figure + 0x14: the key at
 // +0x10, the piece from +0x1C); offsets are from the node. Only these fields reach the parts.
 struct FigurePieceRecord {
-    std::uint8_t unknown_00[0x28];
+    std::uint8_t unknown_00[0x1C];
+    std::uint32_t unknown_1C;       // +0x1C -> part +0x15C (00517240)
+    std::uint32_t unknown_20;       // +0x20 -> part +0x158
+    std::uint32_t boxFlags;         // +0x24 -> part +0x188 (0x38 bytes copied from here)
     float offset[3];                // +0x28 -> part +0x18C
     float unknown_34;               // +0x34 -> part +0x198
     float boxMin[3];                // +0x38 -> part +0x19C
     float boxMax[3];                // +0x44 -> part +0x1A8
+    float pivot[3];                 // +0x50 -> part +0x1B4
 };
 static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 
@@ -189,6 +206,22 @@ static_assert(offsetof(CFigureAnimationState, time) == 0x60);
 static_assert(offsetof(CFigureAnimationState, onEnd) == 0x64);
 static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
 
+// The figure an object holds at +0xF0 (counted; slot 0 deletes; class not identified). Only what
+// CObject3D::LoadPart uses.
+class CFigureInstance {
+public:
+    virtual void DeletingDestructor(unsigned flags);   // 0
+    virtual void Slot1();
+    virtual void Slot2();
+    virtual void Slot3();
+    virtual bool HasPiece(const void* name);   // 4: the piece map (+0x14) holds `name` (an stlp::string)
+
+    int refCount;                   // +0x04
+    std::uint8_t unknown_08[0x14 - 0x08];
+    std::uint8_t pieces[0x10];      // +0x14 STLport map<string, FigurePieceRecord> (find 005197B0)
+};
+static_assert(offsetof(CFigureInstance, pieces) == 0x14);
+
 // A counted reference: the pointer slot is the `this` of 00519580.
 struct CountedRef {
     // 00519580 (object3d_lifetime.cpp). object = `value`: the new object gains a reference, the
@@ -274,6 +307,18 @@ public:
     // every box's pivot + min / max + offset (heroes, type_ 0x32: x and y -0.5..0.5); without an
     // animation state the box stays empty (FLT_MAX). Returns nothing.
     void SetUpAnimatedFigure(const char* model);
+    // 00517240 (RET 0xC). A part object for the figure part `partName` (the figure manager's
+    // 005AC2B0 with the object's model name, `model`, the scale, `arg` and flags_ & 0x1000; none:
+    // "Can't load figure" logged, null). With a figure (+0xF0) the part must be one of its pieces
+    // (else null, the part kept unreleased) and takes the piece record's box (0x38 bytes at
+    // +0x188) and +0x158 / +0x15C. Name prefixes "BASE" / "CROWN" / "EMPTY" add box flags 0x400 /
+    // 0x90 / 0x890. A new part joins the parts (referenced; owner, animation state and side half
+    // told as AddPart does); the box pivot is the part's position and flag 4 is set. Returns it.
+    FigurePart* LoadPart(const char* partName, void* model, std::uint32_t arg);
+    // 00517110 (RET 0xC). The object's figure becomes `model` (+0xA4) and each name of the
+    // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
+    // Without a figure manager: FatalError. Returns 1.
+    int LoadParts(const char* model, const void* partList, std::uint32_t arg);
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
 

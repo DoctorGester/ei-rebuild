@@ -52,7 +52,7 @@ __declspec(naked) void __fastcall BuildPart(void*, void*, FigurePart*, void*, st
 // 0059F3D0. Part: remembers its owner.
 void __fastcall SetPartOwner(FigurePart* a0, void*, CObject3D* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 0050D0E0. Animation state: a part was added.
-__declspec(naked) void __fastcall AnimationAddPart(void*, void*, FigurePart*) EI_ORIGINAL(0x0050D0E0)
+void AnimationAddPart(void* state, void*, FigurePart* part) { AnimationStateAddPartOriginal(state, nullptr, part); }
 // 0050D7C0. Animation state: rescale to x, y, z given as float bits.
 void AnimationSetScale(void* state, void*, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
     AnimationStateSetScaleOriginal(state, nullptr, x, y, z);

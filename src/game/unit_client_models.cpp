@@ -65,7 +65,9 @@ __declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) 
 CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return ObjectFindPartOriginal((void*)a0, nullptr, a2); }
 // 00517240. 3D object: adds the figure part `name` of `model`; returns it (null when the model has
 // no such part).
-__declspec(naked) CEngineObject* __fastcall AddPart(CUnit*, void*, const char*, void*, std::uint32_t) EI_ORIGINAL(0x00517240)
+CEngineObject* __fastcall AddPart(CUnit* unit, void*, const char* name, void* model, std::uint32_t arg) {
+    return static_cast<CEngineObject*>(Object3DLoadPartOriginal(unit, nullptr, name, model, arg));
+}
 // 005167E0. 3D object: removes figure part `part`.
 __declspec(naked) void __fastcall RemovePart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x005167E0)
 // 00539580. SkinLayerArray::SetSize.
