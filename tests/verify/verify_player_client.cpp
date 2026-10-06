@@ -126,8 +126,23 @@ int __fastcall ItemRemovedVerify(CPlayerClient* self) {
     return CheckHandler("CPlayerClient::OnItemRemoved", self, [&] { return self->OnItemRemoved(); });
 }
 
+int __fastcall QuestItemsVerify(CPlayerClient* self) {
+    int result = self->OnQuestItemsChanged();
+    ei::verify::Check("CPlayerClient::OnQuestItemsChanged", 1, result, "client %p", self);
+    return result;
+}
+int __fastcall ExperienceAllVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnExperienceAll", self, [&] { return self->OnExperienceAll(); });
+}
+int __fastcall ExperienceVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnExperience", self, [&] { return self->OnExperience(); });
+}
+
 } // namespace
 
+EI_VERIFY(0x00669350, QuestItemsVerify, 0, s_unused);
+EI_VERIFY(0x0066A480, ExperienceAllVerify, 0, s_unused);
+EI_VERIFY(0x0066A5A0, ExperienceVerify, 0, s_unused);
 EI_VERIFY(0x00669010, ZoneVerify, 0, s_unused);
 EI_VERIFY(0x006690F0, WorldBlock3Verify, 0, s_unused);
 EI_VERIFY(0x006691C0, WorldBlock5Verify, 0, s_unused);

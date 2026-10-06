@@ -151,3 +151,9 @@ installed, and runs that copy as the original (`stolenBytes` 0). Constructors al
   screenshot), 00458270 (startup movies; the harness empties the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
 - Players: the rest of the player classes (packet dispatchers, compression and sending, party records with CString / CArray / hash_map members, the client's handlers; mostly multiplayer); next candidates 0066E130
   and 0066F310; 0066D730 (message 0x12) writes one uninitialised stack byte and cannot be reproduced exactly; STLport instantiations 006632B0-00664D00.
+
+A-H8 later: 00669350 0x17 (00665550, quest log refresh), 0066A480 / 0066A5A0 0x15 / 0x18 experience numbers (amount *
+0073E128 ^ (unit +0x33E - 25) through a float, FISTP; std::pow for _CIpow, so a value on a .5 edge may round apart):
+ours only. SendTimedChanged's 310 central mismatches were a wrapper artifact: CEffect::SendDelta leaves flags_ bit 1
+set, so the original's second run packed the effects again against the snapshots ours had just updated; the wrapper
+now saves and restores the changed effects' four state streams (0066E020 back on).

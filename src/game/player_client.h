@@ -57,6 +57,13 @@ public:
     // 00669290 (0x0A). The player drops an item (id); the quest log is refreshed with an empty
     // list.
     int OnItemRemoved();
+    // 00669350 (0x17). The player's 00665550, then the quest log refreshed with an empty list.
+    int OnQuestItemsChanged();
+    // 0066A480 (0x15) / 0066A5A0 (0x18). Experience shown over each of the player's units / over
+    // one unit (id): the amount (a float) times 0073E128 ^ (the unit's +0x33E - 25), rounded
+    // through a float to the nearest integer, kind 8 (the client world's 0056CE40).
+    int OnExperienceAll();
+    int OnExperience();
 
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
