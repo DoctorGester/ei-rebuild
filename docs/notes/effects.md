@@ -196,3 +196,8 @@ sequence id (kept). The chooser takes the number of sounds started so far in EDX
 SoundSequence::PlayNext (sound_manager.cpp) left EDX undefined, so a sequence with a first name could skip it;
 it now passes it (C++ fastcall, the naked CallChooser removed). Verify: ours only (Start: an id or -1; Unpack
 result).
+
+Next candidates (A-H7 left): class 0x5B (CEffectArrowFigure, vtable 007437B8, 0067BAA0..0067C290; bow shots from
+DeliverAttack 0054F450, no scenario shoots a bow yet); the Moshka (100, 0067C950..0067D660; the client world keeps one at
++0x1B0 and draws it every frame through 0067CEF0, which only runs with a followed object); Tornado (0x65, 0067D670..0067E070,
+from the server weather 0058CCD0); CPlayerServer sync (0066D100..0066F080, forwarded by world_sync.cpp, live every tick).
