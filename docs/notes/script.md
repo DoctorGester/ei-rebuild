@@ -436,3 +436,13 @@ old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
 Original bug kept: `RemovePart` lowers the later parts' starts by the removed part's starts, not its counts (only
 right for the first part), and picks the later parts by their index start alone.
 Not ported: slots 7-14 (004F3870 ... 004F4850): part draws through the D3D device (renderer direction).
+
+### A-S6 leftovers (next ticket)
+
+Loader slots and members 004F77C0 (load a .lnk), 004F7B10 / 004F7D20 / 004F7150 / 004F7080 / 004F75E0 / 004F7480 /
+004F7370 (cache multimap +0x28 of meshes by name and morph; strings and refcounts with EH paths), the mesh constructor /
+destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the length-prefixed string reader 004DB9C0
+(keeps the old string for length 0), 004F2650 / 004F29F0, 004F9E50-004FAB00 (004FAB00 finds an archive), the STLport
+map members around 004F4CD0-004F5F00 (classify as library); rain / snow draws 004E4240 / 004E4C80 (build vertices then
+draw through the device: coordinate with the renderer), the fog object's slots 004E2290-004E24E0 (never reached in the
+current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004D6BA0, the .mob decoder 004D8E10.
