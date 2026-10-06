@@ -293,6 +293,7 @@ A-U4 (2026-10-07):
 | 005316F0 | CUnit::CollectItems (items and their spells into two lists; armour spell refresh 005528F0) | unit_item_lists.cpp | output (scratch lists) |
 | 0052EB70 | CUnit::PackPrototypeStats (slot 34: fresh vitals / stats from the prototype, packed to +0x17C / +0x330) | unit_prototype_stats.cpp | differential (both packed blocks) |
 | 00516DA0 | CObject3D::MakeFigure (figure from the cache: whole for an animated object without names, slot 4; else from the piece names, slot 3; then LoadParts, bounds, flags_ 0x80) | object3d_figure_setup.cpp | ours only (result 1, name, flag 0x80 rule) |
+| 005190C0, 00519380, 0051A010, 0051A190 | CObject3D::RandomAnimation (variant bits, chance +0x1C narrowing, rand()), RandomAnimationOfKind; the candidate list's SetAtGrow / SetSize copies (registered with AlignedPtrArray's members) | object3d_animations.cpp | rand state saved: original vs ours (entry, generator after) / ours only |
 | 00517240, 00517110, 00519A10 | CObject3D::LoadPart (one part object, piece box, BASE / CROWN / EMPTY flags), LoadParts (model name + parts by name), AlignedPtrArray::Add | object3d_figure_setup.cpp | ours only (part listed, flag 4, pivot = position / result 1, name / index, size) |
 Inlined: 00519FC0 (zero part boxes), 0069FB60 (list AddTail pair), STLport vector<int>::resize (004FE0C0). Ghidra calls
 00700EFE MakeUpper; it is MakeLower (_mbslwr at 006EC8A8, misnamed _mbsupr). Shared forwarders added to

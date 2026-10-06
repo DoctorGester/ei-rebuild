@@ -104,7 +104,7 @@ struct FigureAnimation {
     char name[0x14];                // +0x00 (the figure manager's 005ACCF0 takes the entry as its name)
     std::uint32_t key;              // +0x14 animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
     std::uint32_t flags;            // +0x18 bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
-    std::uint8_t unknown_1C[4];
+    std::uint32_t chance;           // +0x1C percent (005190C0 drops entries below a random percent)
     std::uint32_t frameCount;       // +0x20 the animation's length in frames
     std::uint8_t unknown_24[0x28 - 0x24];
     std::uint32_t arrowFrom;        // +0x28
@@ -310,6 +310,17 @@ public:
     // 00518FC0. The first animation of kind 0x40000 whose number (key bits 22-29) is `number`, or
     // null (the hero preview asks for 0x21, 00616E20; the interface's models 005FC3B0).
     FigureAnimation* FindSkillAnimation(int number);
+    // object3d_animations.cpp (A-U4).
+    // 005190C0 (RET 4). A random animation for `key`: the database's entries whose key has the
+    // same bits above 0x7FFF and all of key's low 15 bits (none when key has none) and that the
+    // object's slot 18 accepts (collected with 0051A010); one is returned as it is, several are
+    // narrowed to those whose chance (+0x1C) is at least a rand() percent and one of them is
+    // picked with rand() (the pick made before narrowing when none is left). Null without a
+    // database or a match.
+    FigureAnimation* RandomAnimation(std::uint32_t key);
+    // 00519380 (RET 4). As RandomAnimation for the entries whose key's bits above 0x7FFF equal
+    // key's (grown with 0051A190), one picked with rand(); no chance narrowing.
+    FigureAnimation* RandomAnimationOfKind(std::uint32_t key);
     // 00518D30. For units (class id 0x50) with an animation database whose length is neither 0
     // nor NaN: (start + (end - start) * time) / length, else 1. In ST0, unrounded.
     double AnimationFactor(float time);
