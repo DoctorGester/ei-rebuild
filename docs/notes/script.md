@@ -340,3 +340,16 @@ whose corner lies on a clipping edge can come out differently if a distance roun
 | 004E5710 | `view::AllocateBlocks32` (as 00452DA0) | ours only: alignment, stored block pointer |
 
 Scenarios: every frame (`newgame`, `world_load`); shadows for the light pair; unit motion for the cubic.
+
+### Text archive list (`text_sources.cpp`; declarations in `item_db_text.h`)
+
+| Address | Name | Verify |
+|---|---|---|
+| 004DE930, 004DEAF0, 004DEB60 | `TextSourceList::Add`, `Remove`, `Clear` | ours only: list shape (Add: listed name gives 1 and no change, else one node more at the end with that name and an archive; Remove: the name gone, one node fewer; Clear: empty) |
+| 004DEDB0, 004DEDD0, 004DED40 | `CTextManager::AddSource`, `RemoveSource`, `ClearSources` (list at +0x1C; 004DED40 is slot 3 of vtable 0073F6F0) | same checks on the manager's list |
+
+Add keeps a failed archive in the list (unlike `CLinkFigureLoader::AddArchive`) and returns OpenResource's result;
+nodes go back to the node allocator's 0x18-byte list through `stlp::deallocate` (the original inlines the push).
+Not ported: 004DEBC0 (`Find`, only called by the original GetItemTexts, which is rewritten and inlines the lookup),
+004DEC40 (Rebirth) and its 21-byte forwarder 004DEFA0, 004DED20 (setlocale / _setmbcp, slot 2). Scenarios: `newgame`
+(client start adds the text archives, briefings add / remove zone texts), `world_load`.
