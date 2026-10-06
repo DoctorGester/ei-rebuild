@@ -111,3 +111,34 @@ static void __fastcall HeroKeyDownVerify(void* input, void*, int key, int repeat
                       self->mode_, self->heroIndex_, self->voiceIndex_);
 }
 EI_VERIFY(0x00618A10, HeroKeyDownVerify, 0, s_unused);
+
+// Rename (00618060), ours only: with a hero selected the edit window ends up editing (+0x179) and
+// enabled; without one nothing changes. Region 6 of the list (not in a scenario yet).
+static void __fastcall HeroRenameVerify(CMpHeroScreen* self) {
+    bool valid = self->heroIndex_ >= 0 && self->heroIndex_ < HeroCount();
+    std::uint8_t editing = self->renameEdit_[0x179];
+    self->Rename();
+    bool ok = valid ? self->renameEdit_[0x179] != 0 : self->renameEdit_[0x179] == editing;
+    ei::verify::Check("CMpHeroScreen::Rename", true, ok, "hero %d, editing %d", self->heroIndex_,
+                      self->renameEdit_[0x179]);
+}
+EI_VERIFY(0x00618060, HeroRenameVerify, 0, s_unused);
+
+// The voice (00619150), ours only (it plays a sound): the sound handle is -1 or a handle the
+// interface gave. Reached by the new hero's voice rows and Up / Down there (ui_hero_screen).
+static void __fastcall HeroPlayVoiceVerify(CMpHeroScreen* self) {
+    self->PlayVoice();
+    ei::verify::Check("CMpHeroScreen::PlayVoice", true, self->voiceSound_ >= -1, "sound %d", self->voiceSound_);
+}
+EI_VERIFY(0x00619150, HeroPlayVoiceVerify, 0, s_unused);
+
+// Continue (006183B0), ours only: the window on top is the connection screen (vtable 00741CD0)
+// with a hero selected, else another window (the message box). Enter or region 1 of the list.
+static void __fastcall HeroContinueVerify(CMpHeroScreen* self) {
+    bool valid = self->heroIndex_ >= 0 && self->heroIndex_ < HeroCount();
+    self->Continue();
+    CUiWindow* top = self->window.interface_->GetActiveWindow();
+    bool connect = top && top->vtable_ == CMpConnectScreen::Vtable();
+    ei::verify::Check("CMpHeroScreen::Continue", valid, connect, "top window %p", static_cast<void*>(top));
+}
+EI_VERIFY(0x006183B0, HeroContinueVerify, 0, s_unused);

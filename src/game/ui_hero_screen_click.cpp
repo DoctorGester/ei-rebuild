@@ -6,11 +6,15 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "originals_units.h"
+#include "console.h"
+#include "unit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,9 +33,9 @@ constexpr std::uintptr_t kSoundSelect = 0x00793A60;   // buttons\save_select.wav
 __declspec(naked) void __fastcall SetMode(CMpHeroScreen*, void*, int) EI_ORIGINAL(0x00615D30)
 __declspec(naked) void __fastcall CreateHero(CMpHeroScreen*) EI_ORIGINAL(0x006186F0)
 __declspec(naked) void __fastcall StatsNext(CMpHeroScreen*) EI_ORIGINAL(0x00617A50)
-__declspec(naked) void __fastcall Continue(CMpHeroScreen*) EI_ORIGINAL(0x006183B0)
-__declspec(naked) void __fastcall Rename(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
-__declspec(naked) void __fastcall PlayVoice(CMpHeroScreen*) EI_ORIGINAL(0x00619150)
+__declspec(naked) void __fastcall ContinueAt(CMpHeroScreen*) EI_ORIGINAL(0x006183B0)
+__declspec(naked) void __fastcall RenameAt(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
+__declspec(naked) void __fastcall PlayVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619150)
 // 006167C0: the hero list drawn again (plain RET).
 // 00618FF0 / 00619090 (rewritten as ClampHeroSelection / ClampVoiceSelection; through their address so the
 // wrappers run; plain RET).
@@ -202,7 +206,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
         if (renaming)
             FinishRename();
         else if (mode_ == kModeList)
-            Continue(this);
+            ContinueAt(this);
         else if (mode_ == kModeStats)
             StatsNext(this);
         else if (mode_ == kModeNewHero)
@@ -250,7 +254,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         voiceIndex_ += voiceStep;
         ClampVoiceAt(this);
-        PlayVoice(this);
+        PlayVoiceAt(this);
     } else {
         return;
     }
@@ -311,7 +315,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         voiceIndex_ = index;
         const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(voices[0] + index * 8);
         *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
-        PlayVoice(this);
+        PlayVoiceAt(this);
         CallDrawVoices();
         return;
     }
@@ -346,7 +350,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         BackToMainMenu(ui);
         return;
     case 1:
-        Continue(this);
+        ContinueAt(this);
         return;
     case 2:
         rotate(1);
@@ -368,7 +372,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         return;
     case 6:
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
-        Rename(this);
+        RenameAt(this);
         return;
     case 7: {
         // Delete: asks first ("lmp_deletepers").
@@ -412,3 +416,133 @@ void __fastcall MpHeroKeyDown(void* input, void*, int key, int repeat, int flags
 }
 } // namespace
 EI_REPLACE(0x00618A10, MpHeroKeyDown);
+
+// --- 00618060: rename ---------------------------------------------------------------------------
+
+namespace {
+// The rename's title on surface 3: 130 x 16 pixels.
+constexpr RECT kRenameTitle = {0, 0, 0x82, 0x10};
+constexpr std::uint32_t kBright = 0xA7D7E4;
+} // namespace
+
+void CMpHeroScreen::Rename() {
+    if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
+    WindowSetEnabled(renameEdit_, nullptr, 1, 1);
+    EditActivate(renameEdit_, nullptr, 1);
+    mfc::CString name(*reinterpret_cast<const mfc::CString*>(MpHeroes().begin + heroIndex_ * kMpHeroSize + kNameOffset));
+    int bar = CStringFindTextOriginal(&name, nullptr, RenameBar());
+    if (bar < 0) {
+        EditSetText(renameEdit_, nullptr, game::EmptyText());
+    } else {
+        mfc::CString typed = console::Ops(name).Mid(bar + 1);
+        CStringTrimLeftOriginal(&typed);
+        EditSetText(renameEdit_, nullptr, static_cast<const char*>(typed));
+        name = name.Left(bar);
+        CStringTrimRightOriginal(&name);
+    }
+    auto* surface = reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[3]);
+    SurfaceFreeze(surface, nullptr, 1, 0);
+    surface->Begin();
+    surface->Clear();
+    RECT rect = kRenameTitle;
+    SurfaceDrawText(surface, nullptr, name + RenameSeparator(), &rect, 1, kBright, 2, 1);
+    surface->End();
+}
+namespace {
+void __fastcall MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
+} // namespace
+EI_REPLACE(0x00618060, MpHeroRename);
+
+// --- 00619150: the voice's sound ----------------------------------------------------------------
+
+namespace {
+// 00619FB0 (RET 4): the sound sets' hash_map<string, UnitSoundSet*>::operator[] (inserts a null
+// entry for an unknown name); EAX = the value slot.
+__declspec(naked) UnitSoundSet** __fastcall SoundSetAt(void* /*map*/, void*, const stlp::string* /*key*/)
+    EI_ORIGINAL(0x00619FB0)
+void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }
+void* SoundSets() { return reinterpret_cast<void*>(0x007C8A6C); }
+constexpr std::uint32_t kVoiceFlags = 0x2282;
+
+bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) == kVoiceFlags && entry.name; }
+} // namespace
+
+void CMpHeroScreen::PlayVoice() {
+    InterfaceStopSoundOriginal(window.interface_, nullptr, voiceSound_);
+    voiceSound_ = -1;
+    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+    char* prototype;
+    {
+        stlp::string key(static_cast<const char*>(hero->texts[6]));
+        prototype = static_cast<char*>(*PrototypeMapAtOriginal(UnitPrototypes(), nullptr, &key));
+    }
+    if (!prototype) return;
+    UnitSoundSet* set;
+    {
+        stlp::string key(*reinterpret_cast<const char* const*>(prototype));
+        set = *SoundSetAt(SoundSets(), nullptr, &key);
+    }
+    if (!set) return;
+    // The original gathers the voice entries in a temporary vector; here they are counted and
+    // found again by their rank (no allocation).
+    int count = 0;
+    for (const UnitSoundEntry* e = set->entries; e != set->entriesEnd; ++e)
+        if (IsVoice(*e)) ++count;
+    if (count == 0) return;
+    auto nth = [&](int rank) -> const UnitSoundEntry* {
+        for (const UnitSoundEntry* e = set->entries; e != set->entriesEnd; ++e)
+            if (IsVoice(*e) && rank-- == 0) return e;
+        return nullptr;
+    };
+    int index = gamecrt::rand() * count / 0x7FFF % count;
+    for (int tries = 0; tries < count && voiceSound_ == -1; ++tries) {
+        voiceSound_ = window.interface_->PlaySound(nth(index)->sound, 0);
+        index = (index + 1) % count;
+    }
+}
+namespace {
+void __fastcall MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
+} // namespace
+EI_REPLACE(0x00619150, MpHeroPlayVoice);
+
+// --- 006183B0: continue -------------------------------------------------------------------------
+
+namespace {
+const char* SoundOk() { return GameText(0x00793A88); }   // "buttons\messbox\ok.wav"
+void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
+char* EmptyCStringData() { return *reinterpret_cast<char**>(0x00796E48); }
+
+CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
+    auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
+    if (!screen) return nullptr;
+    ConstructContainerAt(screen, nullptr, ui);
+    screen->unknown_168 = 0;
+    screen->unknown_16C = 0;
+    screen->unknown_170 = 0;
+    for (int& v : screen->unknown_178) v = 0;
+    screen->text_ = EmptyCStringData();
+    StringArrayConstruct(screen->strings_);
+    StringArrayConstruct(screen->moreStrings_);
+    screen->vtable_ = CMpConnectScreen::Vtable();
+    screen->inputVtable_ = CMpConnectScreen::InputVtable();
+    return screen;
+}
+} // namespace
+
+void CMpHeroScreen::Continue() {
+    CInterface3D* ui = window.interface_;
+    ui->PlaySound(SoundOk(), 0);
+    if (heroIndex_ >= 0 && static_cast<unsigned>(heroIndex_) < static_cast<unsigned>(HeroCount())) {
+        MpHeroesSaveOriginal(MpHeroesObject());
+        InterfacePushWindowOriginal(ui, nullptr, BuildConnectScreen(ui), 1, 1);
+        return;
+    }
+    void* memory = gamecrt::operator_new(0x180);
+    void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, GameText(0x00793AA8), GameText(0x00793AB4), 0x20000, 1, 1)
+                       : nullptr;
+    InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+}
+namespace {
+void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
+} // namespace
+EI_REPLACE(0x006183B0, MpHeroContinue);
