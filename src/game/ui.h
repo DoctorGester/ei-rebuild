@@ -602,6 +602,12 @@ public:
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
+    // Slot 25 (+0x64) of the item panels and strips: the item under the screen point (x, y), or
+    // null; a panel may set a help topic instead.
+    std::uint8_t* VirtualItemAt(int x, int y, int* topic) {
+        using Fn = std::uint8_t*(__thiscall*)(CUiWindow*, int, int, int*);
+        return reinterpret_cast<Fn>(vtable_[25])(this, x, y, topic);
+    }
     // Slot 19 (+0x4C): show or hide the window's surfaces (and a container's children).
     void VirtualShow(int show) {
         using Fn = void(__thiscall*)(CUiWindow*, int);

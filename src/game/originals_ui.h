@@ -239,3 +239,36 @@ __declspec(naked) inline void __fastcall GameDisconnectOriginal(void* /*game*/) 
 // session; otherwise the local view, 0066B140; RET 4).
 __declspec(naked) inline void __fastcall GameLeaveThroughExitOriginal(void* /*glue*/, void*, int /*exit*/)
     EI_ORIGINAL(0x00578AC0)
+
+// A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp, called through their address so
+// the wrappers run): 005EE6C0 Describe(item), 005F2910 ShowHelp(topic), 005F1590 DescribeStats(info) (each RET 4).
+__declspec(naked) inline void __fastcall InfoPanelDescribeOriginal(void* /*panel*/, void*, void* /*item*/)
+    EI_ORIGINAL(0x005EE6C0)
+__declspec(naked) inline void __fastcall InfoPanelShowHelpOriginal(void* /*panel*/, void*, int /*topic*/)
+    EI_ORIGINAL(0x005F2910)
+__declspec(naked) inline void __fastcall InfoPanelDescribeStatsOriginal(void* /*panel*/, void*, void* /*info*/)
+    EI_ORIGINAL(0x005F1590)
+// 00625690 / 00624CB0 (rewritten as CTradePanel::HoverInfo / CHeroStatsPanel::HoverInfo): what the statistics under
+// (x, y) are (RET 0xC). 00625530 / 00625560: the trade panel's experience to spend / the cost of what was bought since the
+// panel's record was made (plain RET, EAX).
+__declspec(naked) inline void __fastcall TradePanelHoverInfoOriginal(void* /*panel*/, void*, int, int, void* /*info*/)
+    EI_ORIGINAL(0x00625690)
+__declspec(naked) inline void __fastcall StatsPanelHoverInfoOriginal(void* /*panel*/, void*, int, int, void* /*info*/)
+    EI_ORIGINAL(0x00624CB0)
+__declspec(naked) inline int __fastcall TradePanelExperienceOriginal(void* /*panel*/) EI_ORIGINAL(0x00625530)
+__declspec(naked) inline int __fastcall TradePanelPurchaseCostOriginal(void* /*panel*/) EI_ORIGINAL(0x00625560)
+// 005EC300 (rewritten as CUiWindow::DrawHeroPreview): the hero preview (RET 0x14: pass, model, turn, depth, wide).
+__declspec(naked) inline void __fastcall WindowDrawHeroPreviewOriginal(void* /*window*/, void*, int /*pass*/,
+                                                                       void* /*model*/, float /*turn*/,
+                                                                       float /*depth*/, int /*wide*/)
+    EI_ORIGINAL(0x005EC300)
+// 0065B090 (rewritten as CUiScrollbar::TakePosition): the position, 1 when it moved since the last call (RET 4).
+__declspec(naked) inline int __fastcall ScrollbarTakePositionOriginal(void* /*scrollbar*/, void*, int* /*position*/)
+    EI_ORIGINAL(0x0065B090)
+// The multiplayer hero screen (thiscall, plain RET): 006167C0 draws the hero list, 00616560 the voice list.
+__declspec(naked) inline void __fastcall HeroScreenDrawListOriginal(void* /*screen*/) EI_ORIGINAL(0x006167C0)
+// 005789E0: the client glue (007AFEA5, not read) hands a record array (CArray of unit records) to the client world
+// (00567400 on 007AF5B8; RET 4). 006632B0: the multiplayer heroes (007C82A0) save themselves (plain RET).
+__declspec(naked) inline void __fastcall GameTakeUnitRecordsOriginal(void* /*glue*/, void*, void* /*records*/)
+    EI_ORIGINAL(0x005789E0)
+__declspec(naked) inline void __fastcall MpHeroesSaveOriginal(void* /*heroes*/) EI_ORIGINAL(0x006632B0)

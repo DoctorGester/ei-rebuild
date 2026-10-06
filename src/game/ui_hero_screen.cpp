@@ -1,0 +1,206 @@
+// The multiplayer hero screen's per-frame draw (006159E0) and update (00617820), its close
+// (00615850), and the trade panel's experience figures it shows (00625530 / 00625560).
+// See docs/notes/ui.md, section 5.
+#include "ui_screens.h"
+#include "ui_camp.h"
+#include "ui_item_info.h"
+
+#include "item_db_text.h"
+#include "unit.h"
+#include "world.h"
+
+#include "ei/hook.h"
+#include "ei/x87.h"
+#include "lib/crt.h"
+#include "lib/mfc.h"
+#include "originals_engine.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+
+#include <cmath>
+#include <cstdint>
+
+namespace {
+
+const char* const kLevelUpKey = reinterpret_cast<const char*>(0x0079386C);       // "camp_level_up"
+const char* const kSignedFormat = reinterpret_cast<const char*>(0x00793818);     // "%+d"
+const char* const kCurrentExpKey = reinterpret_cast<const char*>(0x00793858);    // "camp_current_exp"
+const char* const kLabelFormat = reinterpret_cast<const char*>(0x00792F14);      // "%s %d"
+const char* const kSelectVoiceKey = reinterpret_cast<const char*>(0x00793A10);   // "lmp_select_voice"
+
+// The points a new hero's three attributes must add up to before it can be created.
+float NewHeroPoints() { return *reinterpret_cast<const volatile float*>(0x00741C98); }
+// The preview's full turn (2 pi), the modulus of its angle.
+float FullTurn() { return *reinterpret_cast<const volatile float*>(0x007C7F10); }
+// The multiplayer heroes object (its vector at +4 is MpHeroes()).
+void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
+// The client glue the record hand-over is called on (not read).
+void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
+// CArray<record*> (the party's records handed to the client world).
+void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
+
+constexpr int kModeList = 9;
+constexpr int kModeNewHero = 10;
+constexpr int kModeStats = 11;
+constexpr int kFirstVoiceRegion = 9;
+constexpr int kVoiceRegionEnd = 20;
+constexpr int kVoiceHintKind = 7;            // a plain text for the description panel
+constexpr int kCreateButton = 9;             // scene object of the create button
+constexpr float kListDepth = 553.0f;
+constexpr float kNewHeroDepth = 400.0f;
+constexpr std::uint32_t kWhite = 0xFFFFFF;
+constexpr int kTextFormat = 1;
+
+UnitStats* StatsOf(char* hero) { return reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(hero)->stats); }
+
+struct RecordArray {
+    void* vtable;
+    std::uint8_t** data;
+    int size;
+    int capacity;
+    int growBy;
+};
+
+} // namespace
+
+// --- 00625530 / 00625560: the trade panel's experience figures ------------------------------------
+
+int CTradePanel::Experience() const {
+    const TradeRecord& record = Record();
+    return static_cast<int>(static_cast<double>(record.pendingExperience) + record.experience - record.spentExperience);
+}
+EI_REPLACE_METHOD(0x00625530, CTradePanel::Experience);
+
+int CTradePanel::PurchaseCost() {
+    using HeroFn = char*(__thiscall*)(CUiWindow*);
+    char* hero = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_);
+    return static_cast<int>(static_cast<double>(StatsOf(hero)->spentExperience) - Record().spentExperience);
+}
+EI_REPLACE_METHOD(0x00625560, CTradePanel::PurchaseCost);
+
+// --- 006159E0: Draw (slot 20) ------------------------------------------------------------------
+
+void CMpHeroScreen::DrawExperience() {
+    CUiSurface* surface = window.surfaces_.data_[2];
+    mfc::CString text;
+    mfc::CString line;
+    SurfaceGetDC(surface);
+    SurfaceClearOriginal(surface);
+    TextsGetString(GameTexts(), nullptr, kLevelUpKey, &text);
+    RECT title = {0, 130, 200, 150};
+    SurfaceDrawText(surface, nullptr, text, &title, kTextFormat, kWhite, 1, 1);
+    text.Format(kSignedFormat, -TradePanelPurchaseCostOriginal(tradePanel_));
+    RECT cost = {0, 150, 200, 170};
+    SurfaceDrawText(surface, nullptr, text, &cost, kTextFormat, kWhite, 1, 1);
+    TextsGetString(GameTexts(), nullptr, kCurrentExpKey, &text);
+    line.Format(kLabelFormat, static_cast<const char*>(text), TradePanelExperienceOriginal(tradePanel_));
+    RECT current = {0, 110, 200, 130};
+    SurfaceDrawText(surface, nullptr, line, &current, kTextFormat, kWhite, 1, 1);
+    SurfaceReleaseDC(surface);
+}
+
+BOOL CMpHeroScreen::Draw(int pass) {
+    if (mode_ == kModeStats) DrawExperience();
+    int x = MouseScreenX();
+    int y = MouseScreenY();
+    hoveredItem_ = nullptr;
+    int topic = 0;
+    hoveredItem_ = static_cast<CUiWindow*>(weaponPanel_)->VirtualItemAt(x, y, &topic);
+    if (!hoveredItem_ && topic == 0) hoveredItem_ = static_cast<CUiWindow*>(spellPanel_)->VirtualItemAt(x, y, &topic);
+
+    if (hoveredItem_) {
+        if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
+    } else if (topic != 0) {
+        if (descPanel_) InfoPanelShowHelpOriginal(descPanel_, nullptr, topic);
+    } else {
+        // The original sets only the kind; the other fields stay as the stack had them (ours 0).
+        ItemHoverInfo info = {};
+        info.kind = -1;
+        auto* trade = static_cast<CUiWindow*>(tradePanel_);
+        auto* stats = static_cast<CUiWindow*>(statsPanel_);
+        if (!trade->enabled_ || (TradePanelHoverInfoOriginal(trade, nullptr, x, y, &info), info.kind < 0)) {
+            if (stats->enabled_) StatsPanelHoverInfoOriginal(stats, nullptr, x, y, &info);
+            if (info.kind < 0 && mode_ == kModeNewHero) {
+                int region = window.RegionAt(x, y);
+                if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
+                    info.kind = kVoiceHintKind;
+                    info.text = kSelectVoiceKey;
+                }
+            }
+        }
+        if (descPanel_) InfoPanelDescribeStatsOriginal(descPanel_, nullptr, &info);
+    }
+
+    reinterpret_cast<CUiContainer*>(&window)->DrawContainer(pass);
+    if (mode_ == kModeList && heroIndex_ >= 0)
+        WindowDrawHeroPreviewOriginal(&window, nullptr, pass, previewModel_, turn_, kListDepth, 0);
+    else if (mode_ == kModeNewHero)
+        WindowDrawHeroPreviewOriginal(&window, nullptr, pass, previewModel_, turn_, kNewHeroDepth, 0);
+    return 1;
+}
+namespace {
+BOOL __fastcall HeroScreenDraw(CMpHeroScreen* self, void*, int pass) { return self->Draw(pass); }
+} // namespace
+EI_REPLACE(0x006159E0, HeroScreenDraw);
+
+// --- 00617820: Update (slot 24) ----------------------------------------------------------------
+
+void CMpHeroScreen::Update() {
+    UiUpdateChildrenOriginal(&window);
+    if (rotating_ == 1 || rotating_ == 2) {
+        double step = WindowFrameTimeOriginal(&window);
+        step += step;
+        double angle = rotating_ == 1 ? step + turn_ : turn_ - step;
+        turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(FullTurn())));
+    }
+    int position;
+    if (ScrollbarTakePositionOriginal(heroScroll_, nullptr, &position)) {
+        heroTop_ = position;
+        HeroScreenDrawListOriginal(this);
+    }
+    if (ScrollbarTakePositionOriginal(voiceScroll_, nullptr, &position)) {
+        voiceTop_ = position;
+        if (mode_ != kModeNewHero) return;
+        DrawVoices();
+    }
+    if (mode_ != kModeNewHero) return;
+
+    mfc::CString name(static_cast<CUiEditField*>(nameEdit_)->text_);
+    const UnitStats* stats = StatsOf(Hero());
+    double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
+    // FCOMP; TEST AH,0x40: equal, or unordered.
+    float target = NewHeroPoints();
+    bool equal = x87::IsNaN(static_cast<float>(points)) || x87::IsNaN(target) || points == target;
+    bool ready = equal && name.GetLength() != 0;
+    float shade = ready ? 1.0f : 0.5f;
+    auto* button = reinterpret_cast<CUiMesh*>(window.sceneObjects_.data_[kCreateButton]);
+    button->tint_[0] = shade;
+    button->tint_[1] = shade;
+    button->tint_[2] = shade;
+}
+namespace {
+void __fastcall HeroScreenUpdate(CMpHeroScreen* self, void*) { self->Update(); }
+} // namespace
+EI_REPLACE(0x00617820, HeroScreenUpdate);
+
+// --- 00615850: Close (slot 26) -----------------------------------------------------------------
+
+void CMpHeroScreen::Close() {
+    MpHeroesSaveOriginal(MpHeroesObject());
+    RecordArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    auto* party = reinterpret_cast<PartyRecords*>(LocalPlayerData());
+    for (int i = 0; i < party->count; ++i) {
+        auto* record = reinterpret_cast<std::uint8_t*>(&party->records[i]);
+        int size = records.size;
+        RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+        records.data[size] = record;
+    }
+    GameTakeUnitRecordsOriginal(ClientGlue(), nullptr, &records);
+    previewModel_ = nullptr;
+    InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
+    if (records.data) gamecrt::operator_delete(records.data);
+}
+namespace {
+void __fastcall HeroScreenClose(CMpHeroScreen* self, void*) { self->Close(); }
+} // namespace
+EI_REPLACE(0x00615850, HeroScreenClose);

@@ -33,7 +33,7 @@ __declspec(naked) void __fastcall Continue(CMpHeroScreen*) EI_ORIGINAL(0x006183B
 __declspec(naked) void __fastcall Rename(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
 __declspec(naked) void __fastcall PlayVoice(CMpHeroScreen*) EI_ORIGINAL(0x00619150)
 // 006167C0: the hero list drawn again (plain RET).
-__declspec(naked) void __fastcall DrawHeroList(CMpHeroScreen*) EI_ORIGINAL(0x006167C0)
+void DrawHeroList(CMpHeroScreen* screen) { HeroScreenDrawListOriginal(screen); }
 // 00618FF0 / 00619090 (rewritten as ClampHeroSelection / ClampVoiceSelection; through their address so the
 // wrappers run; plain RET).
 __declspec(naked) void __fastcall ClampHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00618FF0)

@@ -481,9 +481,9 @@ struct TradeRecord {
     std::uint8_t schools[6];         // +0x01 stats +0x6CB..
     std::uint8_t perks[36];          // +0x07 stats +0x6D3..
     std::uint8_t unknown_2B;         // +0x2B not written
-    int unknown_2C;                  // +0x2C stats +0x04
-    int unknown_30;                  // +0x30 stats +0x08
-    int unknown_34;                  // +0x34 stats +0x700
+    float experience;                // +0x2C stats +0x04
+    float spentExperience;           // +0x30 stats +0x08
+    float pendingExperience;         // +0x34 stats +0x700
     std::uint8_t unknown_38;         // +0x38 0
     std::uint8_t unknown_39[3];      // not written
 };
@@ -520,6 +520,14 @@ public:
     // (kind 3: the perk's record name without its level digits, plus "0"; held ones with their
     // level); the hero's statistics with it.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
+    // 00625530 (ui_hero_screen.cpp). The experience the shown hero can spend, from its record:
+    // pending plus earned minus spent, truncated.
+    int Experience() const;
+    // 00625560. What the hero (owner's slot 51) has spent since its record was made (the cost of the
+    // perks bought on the panel), truncated.
+    int PurchaseCost();
+    // The record of the hero shown (recordIndex_).
+    const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C the camp or the hero screen (slot 51: the hero record)

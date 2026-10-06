@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CItemInfoPanel;
+
 // Offset of the input sub-object (the second vtable) inside every window.
 constexpr std::ptrdiff_t kUiInputOffset = 0x94;
 
@@ -296,13 +298,33 @@ public:
     void ShowHero(int index);           // 00616910
     void DrawVoices();                  // 00616560
 
+    // 006159E0 (slot 20, RET 4; ui_hero_screen.cpp). On the statistics page (11) the experience
+    // lines on surface 2; then what is under the mouse for the description panel (the equipment
+    // panels' item or help topic, the trade panel's or the statistics' entry, on the new hero's
+    // page the voice rows' "lmp_select_voice"), the children drawn and the hero previewed (list
+    // with a hero selected at depth 553, new hero at 400). Returns 1.
+    BOOL Draw(int pass);
+    // 00617820 (slot 24). The children's update; a held rotate arrow turns the preview by twice the
+    // frame time (modulo 007C7F10); the two scroll bars' moves redraw the hero list and the voices;
+    // on the new hero's page the create button (scene object 9) is bright only when the three
+    // attributes add up to 00741C98's points and the name is not empty.
+    void Update();
+    // 00615850 (slot 26). The heroes saved (006632B0 on 007C82A0), the local player's unit records
+    // handed to 005789E0, the preview cleared and the description panel emptied.
+    void Close();
+    // The level-up and experience lines of the statistics page (inlined by Draw).
+    void DrawExperience();
+
     CUiWindow window;
-    std::uint8_t unknown_148[0x190 - 0x148];
+    std::uint8_t unknown_148[0x164 - 0x148];
+    CItemInfoPanel* descPanel_; // +0x164 the description panel
+    std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
+    std::uint8_t unknown_16C[0x190 - 0x16C];
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     void* heroScroll_;          // +0x198 scroll bar of the hero list
     int heroTop_;               // +0x19C first row shown
-    std::uint8_t unknown_1A0[4];
+    std::uint8_t* previewModel_;// +0x1A0 the hero's figure shown by the preview (005EC300)
     char* weapon_;              // +0x1A4
     char* armor_;               // +0x1A8
     char* spellContainer_;      // +0x1AC
@@ -325,6 +347,8 @@ public:
     int voiceSound_;            // +0x21C
 };
 static_assert(offsetof(CMpHeroScreen, rotating_) == 0x1E4);
+static_assert(offsetof(CMpHeroScreen, descPanel_) == 0x164);
+static_assert(offsetof(CMpHeroScreen, previewModel_) == 0x1A0);
 static_assert(offsetof(CMpHeroScreen, renameEdit_) == 0x1E8);
 static_assert(offsetof(CMpHeroScreen, tradePanel_) == 0x1C4);
 static_assert(offsetof(CMpHeroScreen, mode_) == 0x190);

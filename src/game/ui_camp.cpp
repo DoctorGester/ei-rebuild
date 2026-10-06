@@ -38,7 +38,7 @@ struct CampPanel {
     int SettleTrade(char a, char all);           // 006255A0 (trade panel)
     void AddItem(void* item);                    // 00621570 (an item strip)
 };
-__declspec(naked) void CampPanel::ShowHelp(int) EI_ORIGINAL(0x005F2910)
+void CampPanel::ShowHelp(int topic) { InfoPanelShowHelpOriginal(this, nullptr, topic); }
 __declspec(naked) void CampPanel::ShowStats(int) EI_ORIGINAL(0x006233C0)
 __declspec(naked) void CampPanel::SelectTrade(int) EI_ORIGINAL(0x00625860)
 __declspec(naked) int CampPanel::SettleTrade(char, char) EI_ORIGINAL(0x006255A0)
@@ -508,16 +508,16 @@ struct TradeAt {
     int Experience();      // 00625530
 };
 __declspec(naked) bool TradeAt::CanLevelUp() EI_ORIGINAL(0x00625510)
-__declspec(naked) int TradeAt::LevelUpCost() EI_ORIGINAL(0x00625560)
-__declspec(naked) int TradeAt::Experience() EI_ORIGINAL(0x00625530)
+int TradeAt::LevelUpCost() { return TradePanelPurchaseCostOriginal(this); }
+int TradeAt::Experience() { return TradePanelExperienceOriginal(this); }
 
 // The help panel: 005EE6C0 describes an item (null: nothing), 005F2910 shows "camphelp<topic>".
 struct HelpAt {
     void Describe(const void* item);
     void ShowHelp(int topic);
 };
-__declspec(naked) void HelpAt::Describe(const void*) EI_ORIGINAL(0x005EE6C0)
-__declspec(naked) void HelpAt::ShowHelp(int) EI_ORIGINAL(0x005F2910)
+void HelpAt::Describe(const void* item) { InfoPanelDescribeOriginal(this, nullptr, const_cast<void*>(item)); }
+void HelpAt::ShowHelp(int topic) { InfoPanelShowHelpOriginal(this, nullptr, topic); }
 
 // Whether the constructors can make something from their slots (they also set spellMade_ /
 // itemMade_; thiscall on the camp, AL).
@@ -717,10 +717,14 @@ struct HoverAt {
     void Describe(HoverInfo* info);                   // 005F1590 (description panel)
     void DrawHero(int pass, void* hero, std::uint32_t turn, float depth, int flag);   // 005EC300 (the camp)
 };
-__declspec(naked) void HoverAt::TradeInfo(int, int, HoverInfo*) EI_ORIGINAL(0x00625690)
-__declspec(naked) void HoverAt::StatsInfo(int, int, HoverInfo*) EI_ORIGINAL(0x00624CB0)
-__declspec(naked) void HoverAt::Describe(HoverInfo*) EI_ORIGINAL(0x005F1590)
-__declspec(naked) void HoverAt::DrawHero(int, void*, std::uint32_t, float, int) EI_ORIGINAL(0x005EC300)
+void HoverAt::TradeInfo(int x, int y, HoverInfo* info) { TradePanelHoverInfoOriginal(this, nullptr, x, y, info); }
+void HoverAt::StatsInfo(int x, int y, HoverInfo* info) { StatsPanelHoverInfoOriginal(this, nullptr, x, y, info); }
+void HoverAt::Describe(HoverInfo* info) { InfoPanelDescribeStatsOriginal(this, nullptr, info); }
+void HoverAt::DrawHero(int pass, void* hero, std::uint32_t turn, float depth, int flag) {
+    float turnValue;
+    std::memcpy(&turnValue, &turn, sizeof turnValue);
+    WindowDrawHeroPreviewOriginal(this, nullptr, pass, hero, turnValue, depth, flag);
+}
 
 // A panel's or strip's item under (x, y) (slot 25, +0x64); also gives a help topic.
 std::uint8_t* ItemUnder(void* panel, int x, int y, int* topic) {
@@ -1005,14 +1009,14 @@ struct GameGlue {
 };
 void GameGlue::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
 __declspec(naked) std::uint8_t* GameGlue::PlayerData() EI_ORIGINAL(0x00578BA0)
-__declspec(naked) void GameGlue::TakeRecords(CloseRecordArray*) EI_ORIGINAL(0x005789E0)
+void GameGlue::TakeRecords(CloseRecordArray* records) { GameTakeUnitRecordsOriginal(this, nullptr, records); }
 GameGlue* GlueAt(std::uintptr_t address) { return reinterpret_cast<GameGlue*>(address); }
 
 // The description panels' Describe (005EE6C0) through its address.
 struct DescribeAt {
     void Describe(void* item);
 };
-__declspec(naked) void DescribeAt::Describe(void*) EI_ORIGINAL(0x005EE6C0)
+void DescribeAt::Describe(void* item) { InfoPanelDescribeOriginal(this, nullptr, item); }
 
 constexpr int kRecordSize = 0x784;
 constexpr std::uint32_t kRecordBias = 100000000;

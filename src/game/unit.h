@@ -138,7 +138,12 @@ static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 struct PartyRecords {
     // 006621B0. The record of the unit with id `unitId`, or null (not rewritten).
     PartyUnitRecord* Find(int unitId);
+
+    std::uint8_t unknown_00[0x30];
+    PartyUnitRecord* records;        // +0x30
+    int count;                       // +0x34
 };
+static_assert(offsetof(PartyRecords, records) == 0x30);
 
 // One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
 // part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).

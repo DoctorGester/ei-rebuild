@@ -50,7 +50,7 @@ __declspec(naked) void __fastcall CancelExchange(void*) EI_ORIGINAL(0x0041E3E0)
 // 005FC730: a region's tooltip (text "tip_<id>").
 __declspec(naked) void __fastcall SetRegionTip(CUiRegion*, void*, int, int, int) EI_ORIGINAL(0x005FC730)
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
-__declspec(naked) BOOL __fastcall TakeScrollPos(void*, void*, int*) EI_ORIGINAL(0x0065B090)
+BOOL TakeScrollPos(void* bar, void*, int* position) { return ScrollbarTakePositionOriginal(bar, nullptr, position); }
 // The hero screen's equipment panels.
 
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
