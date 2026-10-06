@@ -73,8 +73,7 @@ __declspec(naked) void* __fastcall ConstructUnit2CC(void*) EI_ORIGINAL(0x0052E23
 __declspec(naked) void __fastcall ConstructUnitMemory(void*) EI_ORIGINAL(0x005C6270)
 // 0050E840. CMapObject's Destroy (slot 3), called directly.
 __declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840)
-// 005121B0. The client companion's particle array: SetSize.
-__declspec(naked) void __fastcall SetParticleCount(void*, void*, int, int) EI_ORIGINAL(0x005121B0)
+inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (007AF748 + 0xD4): erases the entries with id *id.
 __declspec(naked) void __fastcall EraseLightId(void*, void*, const int*) EI_ORIGINAL(0x00511FB0)
@@ -412,7 +411,6 @@ void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, kClientCompanionVtable);
     SetDword(this, 0x20, 0);
     SetDword(this, 0x24, 0);
-    char* particles = reinterpret_cast<char*>(this) + 0x28;
     SetParticleCount(particles, nullptr, 0, -1);
     auto*& light = At<CEngineObject*>(this, 0x50);
     if (light) {

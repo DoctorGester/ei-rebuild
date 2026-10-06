@@ -96,6 +96,8 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0050CA50, 0050CBA0, 0050D600, 0050D5E0 | CFigureAnimationState Play, Queue, SetTime, Advance (map_object_animation_state.cpp; A-U2) | SetTime: original vs ours on +0x40..+0x78 when the animation does not end, else ours only; the rest ours only |
 | 00516370, 005161E0, 00516D50, 00515E90, 00516460, 00516420, 00516490 | CObject3D slots 14 CombineRotation3D (0040CB80's body), 20 CopyFigure, 19 AttachSpecific, 5 RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (object3d_slots.cpp; A-U2) | 14: original vs ours (CheckNear); the rest ours only |
 | 0050F7A0, 0050F900, 005159D0, 00515AC0 | CMapObject LoadMapObject / SaveMapObject, CMapObjectServer LoadServer / SaveServer (slots 9 / 10; map_object_save.cpp; A-U2) | save: both into capture streams; load: ours through a recorder, round trip through the original Save |
+| 005157C0, 005157E0, 0050E460, 005391B0, 005391E0 | CMapObjectServer CreateServer / DestroyServer (slots 2 / 3), CMapObject::CompanionQuery (31), CUnitClientSpecific HasWeaponModels / HasArmourModels (36 / 37) (object_small_slots.cpp; A-U2) | create / destroy ours only; the rest pure |
+| 0050F0F0, 0050F120, 00510770, 00533E80 | CMapObject ApplyScience (41: logs, false) / FreeArray (44), CMapObjectClientSpecific::CreateClientCompanion (2), CUnitClientSpecific::DeleteClient (0) (object_small_slots.cpp; A-U2) | ours only |
 | 0051CC20, 0051CCD0 | CObject3DClientSpecific InvisiblePulse / StunnedPulse (unit_client_animation.cpp) | original, parts put back, ours; CheckNear |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
@@ -130,8 +132,7 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 
 ## Skipped and why
 
-- Companion Create / Destroy (00510770, 005107B0, 005157C0, 005157E0), CArray Serialize/SetSize
-  instantiations: container members, exception frames.
+- The client companion's Destroy (005107B0: light removal) and CArray Serialize / SetSize instantiations.
 - 0050F170 (fade mode from a float, slot 47): small, next candidate.
 - Client effect visuals (00510B80, 005112A0, 005114D0) and light helpers (00511830, 00511950,
   005119B0, 00511A00): large, many callees; next candidates.

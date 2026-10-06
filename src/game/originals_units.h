@@ -202,3 +202,9 @@ __declspec(naked) inline bool __fastcall ClientSpeakOriginal(CUnitClientSpecific
 __declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** /*queue*/, void*,
                                                              ClientSpeechNode** /*out*/, ClientSpeechNode* /*at*/)
     EI_ORIGINAL(0x005392F0)
+// 005121B0: the client companion's particle array (CMapObjectClientSpecific +0x28): SetSize(count, growBy) (RET 8, no
+// result). 00533EA0: the client controller's destructor body (plain RET).
+__declspec(naked) inline void __fastcall CompanionParticlesSetSizeOriginal(void* /*array*/, void*, int /*count*/,
+                                                                           int /*growBy*/) EI_ORIGINAL(0x005121B0)
+__declspec(naked) inline void __fastcall ClientDestructBodyOriginal(CUnitClientSpecific* /*controller*/)
+    EI_ORIGINAL(0x00533EA0)

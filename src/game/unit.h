@@ -1055,6 +1055,11 @@ public:
     // string with its terminator; Load appends to the array).
     void LoadServer(CStream* stream);
     void SaveServer(CStream* stream);
+    // object_small_slots.cpp (A-U2). 005157C0, virtual slot 2 (Create): no map object, the vitals
+    // reset (00523370). Returns 1. 005157E0, slot 3 (Destroy): the vitals reset, the string array
+    // emptied, no map object.
+    int CreateServer();
+    void DestroyServer();
 
     std::uint8_t unknown_1C[0x20 - 0x1C];   // +0x1C the map object (map_object.h CompanionOwner)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
@@ -1086,9 +1091,20 @@ public:
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.
     BOOL IsOverkilled();
 
+    // object_small_slots.cpp (A-U2). 00510770, virtual slot 2 (Create): no light state (+0x20 /
+    // +0x24), the particle array emptied (005121B0), no end sound (+0x54 = -1), no map object.
+    // Returns 1.
+    int CreateClientCompanion();
+
     // 00510890 (map_object_companion.cpp). Virtual slot 6, the client's per-tick update: effect
     // countdown and end sounds, looping effect sounds, the light following the object. Returns 1.
     int Update();
 
     CUnit* object;          // +0x1C
+    std::uint32_t unknown_20;   // +0x20 cleared by Create and Destroy
+    std::uint32_t unknown_24;
+    std::uint8_t particles[0x3C - 0x28];   // +0x28 MFC CArray of the effect particles (0x10 each; SetSize 005121B0)
+    std::uint8_t unknown_3C[0x54 - 0x3C];  // +0x3C the looping sounds (CArray), +0x50 the light
+    int endSound;           // +0x54 the end sound's handle (-1 none)
 };
+static_assert(offsetof(CMapObjectClientSpecific, endSound) == 0x54);
