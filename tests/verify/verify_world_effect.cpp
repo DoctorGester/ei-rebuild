@@ -746,3 +746,18 @@ static int __fastcall VisibilityTickVerify(CEffectShowVisibility* self) {
     return result;
 }
 EI_VERIFY(0x0067C840, VisibilityTickVerify, 0, s_unused);
+
+// --- CEffectSoundSeq Start / Unpack (world_effect_sequence.cpp; scenario spells: the fireball's
+// sequence) -------------------------------------------------------------------------------------------
+
+EI_UNPACK_VERIFY(0x00676FD0, CEffectSoundSeq, "CEffectSoundSeq::Unpack");
+EI_VERIFY(0x00676FD0, UnpackVerify_CEffectSoundSeq, 0, s_unused);
+
+// Ours only (starts the sequence): a new start leaves an id (generation << 8 | slot) or -1.
+static void __fastcall SoundSeqStartVerify(CEffectSoundSeq* self, void*, int update) {
+    int before = self->sound_;
+    self->Start(update);
+    bool ok = update != 0 ? self->sound_ == before : (self->sound_ == -1 || self->sound_ >= 0x100);
+    ei::verify::Check("CEffectSoundSeq::Start", true, ok, "object %p update %d sound %X", self, update, self->sound_);
+}
+EI_VERIFY(0x00676C00, SoundSeqStartVerify, 0, s_unused);

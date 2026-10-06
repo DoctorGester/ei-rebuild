@@ -188,3 +188,11 @@ Not rewritten: 0067C5D0 (FogGrid free, unwind only), 0067C450 / 0067C460 (class 
 The effect factory 0067E170 (EffectNewObject, the effect manager's slot 14, RET 4; world_effect_lifetime.cpp): operator new
 of the class size and its constructor body, type_ = class id; the ambient sound, class 0x5B, Moshka (100) and Tornado
 (0x65) constructors through their addresses. Verify: ours only, the object's slot 12 and type_ equal the request.
+
+CEffectSoundSeq Start 00676C00 / Unpack 00676FD0 (world_effect_sequence.cpp): the first name (when not empty) and
+the others go into a stack CStringArray handed to CSoundManager::AddSequence with a chooser for their count (ten
+small ISAAC pickers, 00676DD0..00676F90, now ours); an update moves the sequence through SetSoundPosition with the
+sequence id (kept). The chooser takes the number of sounds started so far in EDX: the rewritten
+SoundSequence::PlayNext (sound_manager.cpp) left EDX undefined, so a sequence with a first name could skip it;
+it now passes it (C++ fastcall, the naked CallChooser removed). Verify: ours only (Start: an id or -1; Unpack
+result).

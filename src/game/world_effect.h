@@ -117,6 +117,8 @@ public:
     static std::uintptr_t Vtable();               // 0074344C
     void Reset();                                 // 00676B10 (slot 18)
     int Tick();                                   // 00677250 (slot 6)
+    void Start(int update);                       // 00676C00 (slot 23; world_effect_sequence.cpp)
+    int Unpack(int update, DeltaField* field);    // 00676FD0 (slot 21)
     void Pack(DeltaField* field);                 // 00677180 (slot 22)
     void LoadState(void* stream);                 // 006772D0 (slot 9)
     void SaveState(void* stream);                 // 00677430 (slot 10)
