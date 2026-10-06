@@ -111,6 +111,9 @@
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/game/ui.h"
+#include "../../src/game/item.h"
+#include "../../src/game/spell.h"
+#include "../../src/game/unit.h"
 #include "../../src/game/originals_engine.h"
 #include "../../src/game/originals_world.h"
 #include "../../src/render/render.h"
@@ -1074,8 +1077,20 @@ std::string HudState(const std::string& argument) {
             items[3], items[4], items[5], items[6], items[7]);
     }
     if (auto* spells = *reinterpret_cast<CHudSpellColumn**>(screen + 0x19C))
+    {
         Log("harness: hudstate: spell column unit %p, %d spells, highlight %d", at(spells, 0x154), spells->count_,
             spells->selected_);
+        // Each spell slot of the column's unit: the spell's prototype index and target flags.
+        if (CUnit* unit = spells->unit_) {
+            for (unsigned s = 0; s < 8; ++s) {
+                auto* item = static_cast<CItem*>(unit->GetSpell(s));
+                if (!item) continue;
+                auto* spell = static_cast<CSpell*>(item->spell_);
+                Log("harness: hudstate: spell slot %u item %p, prototype %d, flags %08X", s, item,
+                    spell ? spell->prototypeIndex_ : -1, spell ? spell->targetFlags_ : 0);
+            }
+        }
+    }
     if (!argument.empty()) {
         int minimum = std::atoi(argument.c_str());
         if (own < minimum) return "hudstate: the quick item panel shows " + std::to_string(own) + " own items, wanted " +

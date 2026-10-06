@@ -213,3 +213,12 @@ the two given ones: the column probably holds a spell the hero already had, shif
 gives "arrow{e2}" (damage, as spells.txt), uses all three buttons of a three-spell column and waits for either wolf to
 lose hit points. Note: CSpellEffect::Update calls Start / UpdateMissile directly, so their wrappers never count, and the
 factory constructs effects directly (constructor wrappers stay at 0); Tick / Pack / Unpack go through the vtables.
+
+A-H9: spells_hero fixed. GiveUnitSpell never reached the hero's column: CUnit::AddSpell (00531820) fills the unit's own
+slots, but a party unit's spells come from its player's party record (GetSpell 005319A0), so the column showed the
+hero's own healing (0x18) and 0x0C. The scenario now gives "spell container[...]" items (GiveItem) and puts them on in
+the camp's magic page (page 1; CanEquip 006100E0 wants the school skill, hence GiveSkill). "Or" is a Rebirth addon
+function (vanilla's "Parameter of type float expected"). hudstate logs the column unit's spell slots (prototype index).
+Calls in one run (both installs): CEffectArrow Reset 4, Tick 8, Unpack 1 (Pack none); CEffectMissile::SetTarget 1;
+CEffectShowVisibility SetUnits 1, Reset 4, Tick 105, Pack 51, Unpack 52. ui_battle_spells also uses GiveUnitSpell, so
+its column holds only the hero's two spells.
