@@ -1,0 +1,156 @@
+<title>Evil Islands Rebuild Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: a working dashboard. Summary strip, then per-area table with bars, then history charts in a two-column grid. */
+:root {
+  --bg: #f3f4f2; --panel: #ffffff; --ink: #1d2422; --muted: #5d6a66; --line: #d9dedb;
+  --accent: #b5652a; --accent-soft: #f1dfd0; --track: #e6e9e7; --good: #3d7a52;
+  --sans: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --display: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #151a19; --panel: #1d2423; --ink: #e5ebe8; --muted: #93a19c; --line: #2e3836;
+  --accent: #e08a4a; --accent-soft: #3b2a1e; --track: #2a3331; --good: #6fbf8a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #151a19; --panel: #1d2423; --ink: #e5ebe8; --muted: #93a19c; --line: #2e3836;
+  --accent: #e08a4a; --accent-soft: #3b2a1e; --track: #2a3331; --good: #6fbf8a; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5 }
+main { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 28px }
+header { display: grid; gap: 4px }
+h1 { font-family: var(--display); font-weight: 600; font-size: 28px; margin: 0; letter-spacing: .01em; text-wrap: balance }
+h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0 0 12px; letter-spacing: .01em }
+.sub { color: var(--muted); margin: 0 }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 2px; min-width: 0 }
+.stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
+.stat .value { font-family: var(--mono); font-size: 26px; font-weight: 500 }
+.stat .note { font-size: 12px; color: var(--muted) }
+.stat.lead .value { color: var(--accent) }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px 18px 14px; min-width: 0 }
+.tablewrap { overflow-x: auto }
+table { width: 100%; border-collapse: collapse; font-size: 13px }
+th { text-align: left; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line) }
+td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle }
+td.r, th.r { text-align: right }
+.bar { position: relative; height: 10px; background: var(--track); border-radius: 2px; min-width: 120px }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 2px }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px }
+.chart { min-width: 0 }
+.chart h3 { font-size: 13px; font-weight: 600; margin: 0 0 2px }
+.chart p { font-size: 12px; color: var(--muted); margin: 0 0 6px }
+svg { width: 100%; height: auto; display: block }
+svg text { fill: var(--muted); font-family: var(--mono); font-size: 10px }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted) }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c) }
+footer { color: var(--muted); font-size: 12px }
+#error { color: var(--accent) }
+</style>
+
+<main>
+  <header>
+    <h1>Evil Islands Rebuild Progress</h1>
+    <p class="sub">game.exe 1.06 rebuilt as C++ in a hook DLL. Ported share counts game code only: library code and dead code are excluded. <span id="asof" class="mono"></span></p>
+  </header>
+  <div class="summary" id="summary"></div>
+  <section>
+    <h2>Ported game code by area</h2>
+    <div class="tablewrap"><table id="areas"><thead><tr><th>Area</th><th class="mono">Range</th><th>Bytes ported</th><th class="r">%</th><th class="r">Functions</th><th class="r">KB left</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <section>
+    <h2>Over time</h2>
+    <div class="charts" id="charts"></div>
+  </section>
+  <footer>Numbers come from <span class="mono">tools/dashboard_data.py</span>, which reads every sampled commit on main. <span id="error"></span></footer>
+</main>
+
+<script>
+const fmt = n => n.toLocaleString('en-US');
+const pct = (a, b) => b ? (100 * a / b) : 0;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function stat(label, value, note, lead) {
+  return `<div class="stat${lead ? ' lead' : ''}"><span class="label">${label}</span><span class="value">${value}</span><span class="note">${note}</span></div>`;
+}
+
+function lineChart(points, series, opts) {
+  const W = 520, H = 200, L = 52, R = 12, T = 10, B = 26;
+  const xs = points.map(p => new Date(p.date).getTime());
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let ymax = 0; series.forEach(s => points.forEach(p => { const v = s.get(p); if (v != null) ymax = Math.max(ymax, v); }));
+  if (opts.max) ymax = opts.max;
+  const step = niceStep(ymax / 4); ymax = Math.ceil(ymax / step) * step || 1;
+  const X = t => L + (W - L - R) * (x1 === x0 ? 0 : (t - x0) / (x1 - x0));
+  const Y = v => T + (H - T - B) * (1 - v / ymax);
+  let g = '';
+  for (let v = 0; v <= ymax + 1e-9; v += step) {
+    g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${css('--line')}" stroke-width="1"/>`;
+    g += `<text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${opts.unit === '%' ? v + '%' : fmtShort(v)}</text>`;
+  }
+  const days = []; const d0 = new Date(x0); d0.setHours(0,0,0,0);
+  for (let d = d0.getTime() + 864e5; d <= x1; d += 864e5) days.push(d);
+  days.forEach(d => { g += `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${new Date(d).toISOString().slice(5,10)}</text>`; });
+  series.forEach(s => {
+    const pts = points.map((p, i) => [X(xs[i]), s.get(p)]).filter(q => q[1] != null).map(q => [q[0], Y(q[1])]);
+    if (!pts.length) return;
+    const d = pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ');
+    if (s.area) g += `<path d="${d} L${pts[pts.length-1][0]} ${Y(0)} L${pts[0][0]} ${Y(0)} Z" fill="${s.color}" fill-opacity="0.12" stroke="none"/>`;
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+    const e = pts[pts.length - 1]; g += `<circle cx="${e[0]}" cy="${e[1]}" r="3" fill="${s.color}"/>`;
+  });
+  const legend = series.length > 1 ? `<div class="legend">${series.map(s => `<span style="--c:${s.color}">${s.name}</span>`).join('')}</div>` : '';
+  return `<div class="chart"><h3>${opts.title}</h3><p>${opts.note}</p><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.title}">${g}</svg>${legend}</div>`;
+}
+function niceStep(raw) { if (raw <= 0) return 1; const m = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / m; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * m; }
+function fmtShort(v) { return v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'k' : String(Math.round(v)); }
+
+function render(data) {
+  const c = data.current, h = data.history.concat([c]);
+  document.getElementById('asof').textContent = 'As of ' + new Date(c.date).toISOString().slice(0, 16).replace('T', ' ') + ' UTC.';
+  const loc = Object.entries(c.loc);
+  const src = loc.filter(([k]) => k.startsWith('src/')).reduce((a, [, v]) => a + v, 0);
+  const tests = loc.filter(([k]) => k.startsWith('tests/')).reduce((a, [, v]) => a + v, 0);
+  const first = data.history[0];
+  document.getElementById('summary').innerHTML =
+    stat('Game code ported', pct(c.ported_bytes, c.bytes).toFixed(1) + '%', `${fmt(Math.round(c.ported_bytes / 1024))} of ${fmt(Math.round(c.bytes / 1024))} KB`, true) +
+    stat('Functions ported', fmt(c.ported_functions), `of ${fmt(c.functions)} game functions`) +
+    stat('Source lines', fmt(src), `src/, plus ${fmt(tests)} in tests/`) +
+    stat('Verify wrappers', fmt(c.cleanup.verify_wrappers || 0), `${c.cleanup.scenarios || 0} in-game scenarios`) +
+    stat('Forwarders left', fmt(c.cleanup.forwarder_sites), `${fmt(c.cleanup.forwarded_from_several_files)} duplicated across files`);
+  const tb = document.querySelector('#areas tbody');
+  tb.innerHTML = c.areas.map(a => {
+    const p = pct(a.ported_bytes, a.bytes);
+    return `<tr><td>${a.name}</td><td class="mono">${a.range}</td><td><div class="bar"><i style="width:${p.toFixed(1)}%"></i></div></td>` +
+      `<td class="r num">${p.toFixed(1)}</td><td class="r num">${fmt(a.ported_functions)} / ${fmt(a.functions)}</td>` +
+      `<td class="r num">${fmt(Math.round((a.bytes - a.ported_bytes) / 1024))}</td></tr>`;
+  }).join('');
+  const accent = css('--accent'), good = css('--good'), muted = css('--muted');
+  const areaColors = ['#b5652a', '#3d7a52', '#4a6fa5', '#8a5aa0', '#a5793a', '#3a8a8a', '#a54a5a', '#6a7a3a', '#7a7a7a'];
+  document.getElementById('charts').innerHTML =
+    lineChart(h, [{ name: 'Ported', color: accent, area: true, get: p => pct(p.ported_bytes, p.bytes) }],
+      { title: 'Game code ported', note: 'Share of game code bytes with a rewrite hooked in.', unit: '%', max: 100 }) +
+    lineChart(h, c.areas.map((a, i) => ({ name: a.name, color: areaColors[i % areaColors.length],
+      get: p => { const x = (p.areas || []).find(q => q.range === a.range); return x ? pct(x.ported_bytes, x.bytes) : null; } })),
+      { title: 'Ported by area', note: 'Share of each address range.', unit: '%', max: 100 }) +
+    lineChart(h, [{ name: 'src/game', color: accent, get: p => p.loc['src/game'] },
+                  { name: 'tests/verify', color: good, get: p => p.loc['tests/verify'] },
+                  { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] }],
+      { title: 'Lines of code', note: 'Line counts of the main source trees.' }) +
+    lineChart(h, [{ name: 'Forwarder sites', color: accent, get: p => p.cleanup.forwarder_sites },
+                  { name: 'Offset accesses (At<>/Field<>)', color: '#4a6fa5', get: p => p.cleanup.offset_access },
+                  { name: 'VCall slot calls', color: good, get: p => p.cleanup.vcall }],
+      { title: 'Cleanup artefacts', note: 'Hook-era patterns the cleanup removes. Lower is better.' }) +
+    lineChart(h, [{ name: 'Duplicated forwarders', color: accent, get: p => p.cleanup.forwarded_from_several_files },
+                  { name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
+                  { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
+      { title: 'Cleanup: smaller counts', note: 'Functions forwarded from several files, inline assembly, x87 precision pragmas.' }) +
+    lineChart(h, [{ name: 'Verify wrappers', color: good, get: p => p.cleanup.verify_wrappers },
+                  { name: 'Scenarios × 10', color: accent, get: p => (p.cleanup.scenarios || 0) * 10 }],
+      { title: 'Test coverage', note: 'Checks comparing rewrites with the original, and in-game scenarios.' });
+}
+
+fetch('data.json').then(r => r.json()).then(render).catch(e => {
+  document.getElementById('error').textContent = 'Could not load data.json: ' + e.message;
+});
+</script>

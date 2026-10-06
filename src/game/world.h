@@ -135,7 +135,7 @@ public:
     // the server's CopyItem; rewritten slots stay plain members, rewrite guide rule 4).
     virtual void Slot13();
     virtual void Slot14();
-    virtual void Slot15();
+    virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
     virtual void Slot16();
     virtual void Slot17();
     virtual void Slot18();
@@ -170,6 +170,9 @@ public:
     virtual void Slot39();
     // 40: the world object with this id, or null (server 00593AA0 FindObject, client 0055FAE0).
     virtual CEngineObject* ObjectWithId(int id);
+    // 41: `object` moves to `position` (sector map, network state; net_state.cpp and
+    // unit_client_path.cpp reach it through VCall).
+    virtual void MoveObject(CEngineObject* object, const float* position);
 
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);

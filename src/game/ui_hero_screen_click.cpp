@@ -1,5 +1,5 @@
-// The multiplayer hero screen's left button (00617050, input slot 2). See docs/notes/ui.md
-// ("Ninth pass").
+// The multiplayer hero screen's left button (00617050, input slot 2) and keys (00618A10, slot 9).
+// See docs/notes/ui.md, section 5.
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -9,6 +9,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 #include "originals_world.h"
 
 #include <cstdint>
@@ -31,6 +32,12 @@ __declspec(naked) void __fastcall StatsNext(CMpHeroScreen*) EI_ORIGINAL(0x00617A
 __declspec(naked) void __fastcall Continue(CMpHeroScreen*) EI_ORIGINAL(0x006183B0)
 __declspec(naked) void __fastcall Rename(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
 __declspec(naked) void __fastcall PlayVoice(CMpHeroScreen*) EI_ORIGINAL(0x00619150)
+// 006167C0: the hero list drawn again (plain RET).
+__declspec(naked) void __fastcall DrawHeroList(CMpHeroScreen*) EI_ORIGINAL(0x006167C0)
+// 00618FF0 / 00619090 (rewritten as ClampHeroSelection / ClampVoiceSelection; through their address so the
+// wrappers run; plain RET).
+__declspec(naked) void __fastcall ClampHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00618FF0)
+__declspec(naked) void __fastcall ClampVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619090)
 // The panels: 006232D0 the statistics' hero (index, name; RET 8), 006255A0 the trade panel's
 // (RET 8), 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
@@ -123,7 +130,133 @@ void* BuildCamp(CInterface3D* ui, const int* flags) {
     return camp;
 }
 
+// Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
+void BackToMainMenu(CInterface3D* ui) {
+    mfc::CString text;
+    TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
+    ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
+    uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
+    EndSession(reinterpret_cast<void*>(0x007AFE20));
+    ui->SetPendingValue(0);
+}
+
+// The heroes' map transfer (sent after a rename).
+int HeroesTransfer() { return *reinterpret_cast<const int*>(0x007C82A0); }
+const char* RenameSeparator() { return GameText(0x00793AA0); }   // " | "
+const char* RenameBar() { return GameText(0x00793AA4); }         // "|"
+
+constexpr int kModeList = 9;
+constexpr int kModeNewHero = 10;
+constexpr int kModeStats = 11;
+constexpr int kNameOffset = 0x30;   // a hero record's CString name
+
 } // namespace
+
+void CMpHeroScreen::CloseRenameEdit() {
+    SurfaceFreeze(window.surfaces_.data_[3], nullptr, 0, 0);
+    WindowSetEnabled(renameEdit_, nullptr, 0, 1);
+    EditActivate(renameEdit_, nullptr, 0);
+}
+
+void CMpHeroScreen::BackToNewHero() {
+    uiorig::PlayUiSound(window.interface_, GameText(kSoundCancel), 0);
+    StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
+    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Begin();
+    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Clear();
+    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->End();
+    TradeSetHero(tradePanel_, nullptr, 0, 0);
+    SetMode(this, nullptr, kModeNewHero);
+    EditSetText(nameEdit_, nullptr, *reinterpret_cast<void**>(Hero()));
+}
+
+void CMpHeroScreen::FinishRename() {
+    mfc::CString typed(reinterpret_cast<CUiEditField*>(renameEdit_)->text_);
+    CStringTrimLeftOriginal(&typed);
+    CStringTrimRightOriginal(&typed);
+    if (typed.GetLength() != 0) typed = mfc::CString(RenameSeparator()) + typed;
+    auto& name = *reinterpret_cast<mfc::CString*>(MpHeroes().begin + heroIndex_ * kMpHeroSize + kNameOffset);
+    mfc::CString title(name);
+    mfc::CString base;
+    int bar = CStringFindTextOriginal(&title, nullptr, RenameBar());
+    if (bar >= 0)
+        base = title.Left(bar);
+    else
+        base = title;
+    CStringTrimLeftOriginal(&base);
+    CStringTrimRightOriginal(&base);
+    typed = base + typed;
+    name = typed;
+    PartySendTransferOriginal(MpHeroes().begin + heroIndex_ * kMpHeroSize, nullptr, HeroesTransfer());
+    CloseRenameEdit();
+    ShowHero(heroIndex_);
+}
+
+void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
+    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    if (UiHandled(this)) return;
+    CInterface3D* ui = window.interface_;
+    bool renaming = renameEdit_[0x179] != 0;
+    int heroStep = 0;
+    int voiceStep = 0;
+    switch (key) {
+    case VK_RETURN:
+        if (renaming)
+            FinishRename();
+        else if (mode_ == kModeList)
+            Continue(this);
+        else if (mode_ == kModeStats)
+            StatsNext(this);
+        else if (mode_ == kModeNewHero)
+            CreateHero(this);
+        UiHandled(this) = true;
+        return;
+    case VK_ESCAPE:
+        if (renaming) {
+            CloseRenameEdit();
+            DrawHeroList(this);
+        } else if (mode_ == kModeList) {
+            BackToMainMenu(ui);
+        } else if (mode_ == kModeStats) {
+            BackToNewHero();
+        } else if (mode_ == kModeNewHero) {
+            uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
+            SetMode(this, nullptr, kModeList);
+        }
+        UiHandled(this) = true;
+        return;
+    case VK_PRIOR:
+        heroStep = -10;
+        voiceStep = -11;
+        break;
+    case VK_NEXT:
+        heroStep = 10;
+        voiceStep = 11;
+        break;
+    case VK_UP:
+        heroStep = -1;
+        voiceStep = -1;
+        break;
+    case VK_DOWN:
+        heroStep = 1;
+        voiceStep = 1;
+        break;
+    default:
+        return;
+    }
+    if (mode_ == kModeList) {
+        uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
+        heroIndex_ += heroStep;
+        ClampHeroAt(this);
+    } else if (mode_ == kModeNewHero) {
+        uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
+        voiceIndex_ += voiceStep;
+        ClampVoiceAt(this);
+        PlayVoice(this);
+    } else {
+        return;
+    }
+    UiHandled(this) = true;
+}
 
 void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (renameEdit_[0x179]) return;
@@ -187,15 +320,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (mode_ == 11) {
         // The new hero's statistics page.
         if (region == 0) {
-            uiorig::PlayUiSound(window.interface_, GameText(kSoundCancel), 0);
-            StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
-            auto* surface = reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0]);
-            surface->Begin();
-            reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Clear();
-            reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->End();
-            TradeSetHero(tradePanel_, nullptr, 0, 0);
-            SetMode(this, nullptr, 10);
-            EditSetText(nameEdit_, nullptr, *reinterpret_cast<void**>(Hero()));
+            BackToNewHero();
         } else if (region == 1) {
             StatsNext(this);
         } else if (region == 4) {
@@ -216,22 +341,11 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (mode_ != 9) return;
     // The hero list. A click while a hero is being renamed ends the renaming first (only reached
     // when the base handler started it: the handler returns at once while renaming).
-    if (region >= 0 && renameEdit_[0x179]) {
-        SurfaceFreeze(window.surfaces_.data_[3], nullptr, 0, 0);
-        WindowSetEnabled(renameEdit_, nullptr, 0, 1);
-        EditActivate(renameEdit_, nullptr, 0);
-    }
+    if (region >= 0 && renameEdit_[0x179]) CloseRenameEdit();
     switch (region) {
-    case 0: {
-        // Back to the main menu.
-        mfc::CString text;
-        TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
-        ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
-        uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
-        EndSession(reinterpret_cast<void*>(0x007AFE20));
-        ui->SetPendingValue(0);
+    case 0:
+        BackToMainMenu(ui);
         return;
-    }
     case 1:
         Continue(this);
         return;
@@ -292,3 +406,10 @@ void __fastcall MpHeroLButtonDown(void* input, void*, int flags, int x, int y) {
 }
 } // namespace
 EI_REPLACE(0x00617050, MpHeroLButtonDown);
+
+namespace {
+void __fastcall MpHeroKeyDown(void* input, void*, int key, int repeat, int flags) {
+    WindowFromInput<CMpHeroScreen>(input)->OnKeyDown(key, repeat, flags);
+}
+} // namespace
+EI_REPLACE(0x00618A10, MpHeroKeyDown);
