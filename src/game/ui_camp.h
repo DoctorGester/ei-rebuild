@@ -527,6 +527,10 @@ public:
     // 00626F10 (__fastcall). Record recordIndex_ (when >= 0) from the party member's statistics:
     // science, the six schools, 36 perk levels, the experience values; bought cleared.
     void SnapshotRecord();
+    // 00626FA0 (__fastcall). The reverse: record recordIndex_ (when >= 0) back into the party
+    // member's statistics, bought cleared; when the hit point maximum (00523E80) was and is above
+    // 1, the slots are healed (00525800) by what keeps the hit points (005259B0) in proportion.
+    void RestoreRecord();
     // 006255A0 (RET 8; both flags read as bytes). With `all`, every bought record is kept
     // (SnapshotRecord, with `keep`) or undone (00626FA0 puts the hero's statistics back), then
     // recordIndex_ is put back; otherwise only the current record when bought, then BuildLists.

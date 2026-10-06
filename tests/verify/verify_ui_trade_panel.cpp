@@ -288,6 +288,40 @@ static void __fastcall TradeSnapshotVerify(CTradePanel* self) {
 }
 EI_VERIFY(0x00626F10, TradeSnapshotVerify, 7, s_snapshotRecord);
 
+// 00626FA0, side by side: the hero's statistics (0x704 bytes) and the record are copied, the
+// original restores, its result is kept and the copies put back, then ours; both compared dword by
+// dword (a dword that differs must be within a few ULPs as a float: the slots' healed hit points).
+// Reached by Settle with keep 0 on a bought record: ui_trade_restore (a school bought on the camp's
+// page 1, then Esc).
+static void(__fastcall* s_restoreRecord)(CTradePanel*);
+static void __fastcall TradeRestoreVerify(CTradePanel* self) {
+    if (self->recordIndex_ < 0) {
+        s_restoreRecord(self);
+        return;
+    }
+    constexpr int kStatsSize = sizeof(PartyUnitRecord::stats);
+    std::uint8_t* stats = reinterpret_cast<CParty*>(LocalPlayerData())->members_.data[self->recordIndex_].stats;
+    TradeRecord& record = self->records_.begin[self->recordIndex_];
+    std::vector<std::uint8_t> before(stats, stats + kStatsSize);
+    TradeRecord recordBefore = record;
+    s_restoreRecord(self);
+    std::vector<std::uint8_t> expected(stats, stats + kStatsSize);
+    TradeRecord recordExpected = record;
+    std::memcpy(stats, before.data(), kStatsSize);
+    record = recordBefore;
+    self->RestoreRecord();
+    ei::verify::Check("CTradePanel::RestoreRecord", 0, std::memcmp(&recordExpected, &record, sizeof(record)), "record %d",
+                      self->recordIndex_);
+    for (int at = 0; at < kStatsSize; at += 4) {
+        if (std::memcmp(&expected[at], stats + at, 4) == 0) continue;
+        float a, b;
+        std::memcpy(&a, &expected[at], 4);
+        std::memcpy(&b, stats + at, 4);
+        ei::verify::CheckNear("CTradePanel::RestoreRecord", a, b, "stats +0x%X", at);
+    }
+}
+EI_VERIFY(0x00626FA0, TradeRestoreVerify, 10, s_restoreRecord);
+
 // 00625430, ours only: one record per party member, recordIndex_ at the last. Not in a scenario
 // (called by the hero screen's 006186F0 / 00617A50 and the lobby).
 static void __fastcall TradeResetRecordsVerify(CTradePanel* self) {

@@ -81,7 +81,9 @@ static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 
 // One animation of a figure's animation database (0x58 bytes).
 struct FigureAnimation {
-    char name[0x14];                // +0x00 (the figure manager's 005ACCF0 takes the entry as its name)
+    char name[0x10];                // +0x00 (the figure manager's 005ACCF0 takes the entry as its name)
+    std::uint8_t index;             // +0x10 its index in the database (a unit keeps it at +0x254 / +0x255)
+    std::uint8_t unknown_11[3];
     std::uint32_t key;              // +0x14 animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
     std::uint32_t flags;            // +0x18 bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
     std::uint8_t unknown_1C[4];

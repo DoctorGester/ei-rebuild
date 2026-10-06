@@ -320,6 +320,14 @@ public:
     // cleared, its weapons given, the equipment sent, the chosen weapon shown); the turn reset and
     // the list redrawn.
     void ShowHero(int index);
+    // 00616E20 (RET 4; ui_hero_screen.cpp). The preview cleared; the local player (given a "Hero" of
+    // "Human Hero" when it has no record) hands its first record to the client world (00566F70
+    // with `flag`); the preview becomes the client unit with that record's id, its prototype
+    // index stored; when there is one: skill animation 0x21 (if any) set to start at a random
+    // frame (timeGetTime at 15 frames a second minus random % 51), the figure shows no weapon,
+    // refreshed, its animation restarted at the current frame - 1, the record's statistics set
+    // and the controller's slot 31 called.
+    void MakePreview(int flag);
     // 00616560. The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop_,
     // the selection frame (scene object 2) on the chosen one.
     void DrawVoices();

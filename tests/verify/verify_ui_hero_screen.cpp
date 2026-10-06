@@ -4,6 +4,8 @@
 #include "verify.h"
 
 #include "../../src/game/originals_ui.h"
+#include "../../src/game/party.h"
+#include "../../src/game/world.h"
 #include "../../src/game/ui_camp.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/game/ui_screens.h"
@@ -156,3 +158,17 @@ static void __fastcall ShowHeroVerify(CMpHeroScreen* self, void*, int index) {
                       "index %d -> %d", index, self->heroIndex_);
 }
 EI_VERIFY(0x00616910, ShowHeroVerify, 0, s_unused);
+
+// 00616E20, ours only (it hands records to the client world, draws a random number and restarts
+// the figure's animation): the local player has a record, and the preview is the client unit with
+// that record's id (the original's own lookup 00578980). Reached by ShowHero (ui_hero_screen).
+static void __fastcall MakePreviewVerify(CMpHeroScreen* self, void*, int flag) {
+    self->MakePreview(flag);
+    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    bool ok = player->members_.size > 0;
+    void* unit = ok ? GameUnitByIdOriginal(reinterpret_cast<void*>(0x007AFEA5), nullptr, player->members_.data->unknown_01C)
+                    : nullptr;
+    ei::verify::Check("CMpHeroScreen::MakePreview", true, ok && unit == self->previewModel_, "members %d, preview %p, unit %p",
+                      player->members_.size, static_cast<void*>(self->previewModel_), unit);
+}
+EI_VERIFY(0x00616E20, MakePreviewVerify, 0, s_unused);

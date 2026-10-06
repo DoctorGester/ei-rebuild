@@ -302,7 +302,12 @@ __declspec(naked) inline void __fastcall DestroyTextureMapOriginal(void* /*map*/
 __declspec(naked) inline void* __fastcall GameUnitByIdOriginal(void* /*glue*/, void*, std::uint32_t /*id*/)
     EI_ORIGINAL(0x00578980)
 __declspec(naked) inline void __fastcall MpHeroesSelectOriginal(void* /*heroes*/, void*, void* /*hero*/) EI_ORIGINAL(0x00662F80)
-// 00616E20 (thiscall on the hero screen, RET 4): the preview's unit made for the local player's first record.
+// 005789C0: the client glue (007AFEA5, not read) hands a record array to the client world with a flag (00566F70 on
+// 007AF5B8; RET 8).
+__declspec(naked) inline void __fastcall GameTakeUnitRecordsFlagOriginal(void* /*glue*/, void*, void* /*records*/, int /*flag*/)
+    EI_ORIGINAL(0x005789C0)
+// 00616E20 (rewritten as CMpHeroScreen::MakePreview; thiscall, RET 4): the preview's unit made for the local player's
+// first record (through its address so the wrapper runs).
 __declspec(naked) inline void __fastcall HeroScreenMakePreviewOriginal(void* /*screen*/, void*, int /*flag*/)
     EI_ORIGINAL(0x00616E20)
 // 00616910 / 00616560 (rewritten as CMpHeroScreen::ShowHero (RET 4) / DrawVoices; plain RET).
