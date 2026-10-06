@@ -6,15 +6,19 @@
 #include "core_maths.h"
 #include "item_db_text.h"
 #include "map_object_figures.h"
+#include "object_tables.h"
 #include "random.h"
 #include "sound.h"
 #include "unit.h"
 #include "unit_ai.h"
+#include "unit_client_models.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/stlp.h"
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -158,7 +162,8 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         y = facing.y;
     }
     double length = std::sqrt(y * y + x * x);
-    if (!(length == 0.0)) {
+    // FCOM with zero, TEST AH,0x40: a NaN length is left alone too.
+    if (!(length == 0.0) && !x87::IsNaN(static_cast<float>(length))) {
         double inverse = 1.0 / length;
         x *= inverse;
         y *= inverse;
@@ -173,3 +178,147 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     PlayerSendViewOriginal(LocalServerPlayer()->server, nullptr, &at, &eye, 1);
 }
 EI_REPLACE_METHOD(0x00607BB0, CBriefingScreen::ViewSpeaker);
+
+// --- 00607EC0 -----------------------------------------------------------------------------------
+
+namespace {
+
+void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
+void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
+
+constexpr float kPi = 3.14159274f;          // 007410D0
+constexpr float kSixth = 0.166666672f;      // 0073CE40 (and -: 00741440)
+constexpr float kTwelfth = 0.0833333358f;   // 00741438 (and -: 00741430)
+constexpr float kQuarter = 0.25f;           // 0073C3B0 (and -: 0073CDA8)
+constexpr float kSunk = -100.0f;
+
+// A speaker who is not in the picture is moved below the ground.
+void Sink(CUnit* unit) {
+    if (unit) GameSetUnitHeightOriginal(UnitGlue(), nullptr, unit->id_, kSunk);
+}
+
+} // namespace
+
+void CBriefingScreen::ViewPreset(int preset) {
+    double dx = static_cast<double>(places_[kLeaderPlace].x) - places_[kPersonPlace].x;
+    double dy = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
+    float apart = StoreFloat(static_cast<float>(std::sqrt(dy * dy + dx * dx)));
+    auto view = [this](CUnit* unit, float angle, float distance, float height) {
+        BriefingViewSpeakerOriginal(this, nullptr, unit, StoreFloat(angle), StoreFloat(distance), height);
+    };
+    switch (preset) {
+    case 1:
+        view(nullptr, 0.0f, apart * 3.0f, 1.5f);
+        break;
+    case 2:
+        Sink(person_);
+        if (leader_) view(leader_, kPi * -kSixth, 4.0f, 1.5f);
+        break;
+    case 3:
+        Sink(leader_);
+        if (person_) view(person_, kPi * kSixth, 4.0f, 1.5f);
+        break;
+    case 4:
+        if (third_) view(third_, 0.0f, 4.0f, 1.5f);
+        break;
+    case 5:
+        view(nullptr, kPi * kTwelfth, apart * 2.7f, 3.0f);
+        break;
+    case 6:
+        Sink(person_);
+        if (leader_) view(leader_, kPi * -kQuarter, 3.5f, 3.0f);
+        break;
+    case 7:
+        Sink(leader_);
+        if (person_) view(person_, kPi * kQuarter, 3.5f, 3.0f);
+        break;
+    case 8:
+        if (third_) view(third_, kPi * kTwelfth, 3.5f, 3.0f);
+        break;
+    case 9:
+        view(nullptr, kPi * -kTwelfth, apart * 2.4f, 3.0f);
+        break;
+    case 10:
+        if (leader_) view(leader_, kPi * -kTwelfth, 3.0f, 1.0f);
+        break;
+    case 11:
+        if (person_) view(person_, kPi * kTwelfth, 3.0f, 1.0f);
+        break;
+    case 12:
+        Sink(person_);
+        Sink(leader_);
+        if (third_) view(third_, kPi * -kTwelfth, 3.0f, 1.0f);
+        break;
+    default:
+        break;
+    }
+}
+EI_REPLACE_METHOD(0x00607EC0, CBriefingScreen::ViewPreset);
+
+// --- 006062C0 -----------------------------------------------------------------------------------
+
+namespace {
+
+constexpr int kEventLeaves = 2;
+
+// 00609A80 inlined: the node unlinked, its name destroyed, the node back to the pool.
+void EraseShown(BriefingShownItem* node) {
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+    node->name.~CString();
+    stlp::deallocate(node, sizeof(BriefingShownItem));
+}
+
+} // namespace
+
+void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
+    auto* person = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, TextKeyFromName(name)));
+    if (!person) {
+        for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
+            if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(node->name)),
+                                reinterpret_cast<const unsigned char*>(name)) != 0)
+                continue;
+            if (node->item) {
+                RemoveObject(node->item->texture_);
+                RemoveSceneObject(reinterpret_cast<CEngineObject*>(node->item));
+            }
+            if (node->back) RemoveSceneObject(node->back);
+            if (node->frame) RemoveSceneObject(node->frame);
+            EraseShown(node);
+            return;
+        }
+        return;
+    }
+    BriefingSpeaker* entry = speakers_;
+    while (entry != speakersEnd_ && entry->unit != person) ++entry;
+    if (entry != speakersEnd_) {
+        void* server = LocalServerPlayer()->server;
+        if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventLeaves, person->id_);
+        auto* model = reinterpret_cast<CUnitClientSpecific*>(person->controller);
+        model->blinks = 0;
+        model->BlinkOpen(true);
+        if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, person->id_))) {
+            serverUnit->SetFlag40000000Off(true);
+            GameSetUnitHeightOriginal(UnitGlue(), nullptr, person->id_, 0.0f);
+            auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
+            controller->actionDone = nullptr;
+            ControllerStopActionOriginal(controller);
+            // (The original then looks for the person among the party's first members; the result
+            // is not used.)
+        }
+        // vector::erase (0060B490, then the last entry's destructor 0060AC00).
+        for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {
+            p->unit = p[1].unit;
+            p->name = p[1].name;
+            p->unknown_08 = p[1].unknown_08;
+        }
+        --speakersEnd_;
+        speakersEnd_->name.~CString();
+    }
+    if (person == third_) {
+        BriefingMovePersonOriginal(this, nullptr, person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
+                                   thirdDirection_.y, thirdDirection_.z, 0, immediate, time);
+        third_ = nullptr;
+    }
+}
+EI_REPLACE_METHOD(0x006062C0, CBriefingScreen::HideSpeaker);

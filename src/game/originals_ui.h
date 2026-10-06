@@ -353,6 +353,18 @@ __declspec(naked) inline void __fastcall BriefingFindTopicsOriginal(void* /*scre
 __declspec(naked) inline void __fastcall PlayerSendDialogueEventOriginal(void* /*server*/, void*, int /*what*/, int /*value*/)
     EI_ORIGINAL(0x0066F840)
 __declspec(naked) inline void __fastcall MusicFadeOutOriginal(void* /*music*/) EI_ORIGINAL(0x006B4E10)
+// 00578760 (the client glue 007AFEA6, not read; RET 8): the server unit with id `id` is moved to height `z` (its
+// sector map entry updated, part 2 marked) unless it is there already. 006089D0 (the briefing screen; RET 0x28): `unit`
+// walks to a place (x, y, z) and turns to a direction (x, y, z); `waited` (byte) makes the dialogue wait for it,
+// `immediate` (byte) places it at once instead, `time` the walk's time argument.
+__declspec(naked) inline void __fastcall GameSetUnitHeightOriginal(void* /*glue*/, void*, int /*id*/, float /*z*/)
+    EI_ORIGINAL(0x00578760)
+__declspec(naked) inline void __fastcall BriefingMovePersonOriginal(void* /*screen*/, void*, void* /*unit*/, float, float, float,
+                                                                    float, float, float, int /*waited*/, int /*immediate*/,
+                                                                    int /*time*/) EI_ORIGINAL(0x006089D0)
+// 00607BB0 (rewritten as CBriefingScreen::ViewSpeaker; through its address so the wrapper runs; RET 0x10).
+__declspec(naked) inline void __fastcall BriefingViewSpeakerOriginal(void* /*screen*/, void*, void* /*unit*/, float /*angle*/,
+                                                                     float /*distance*/, float /*height*/) EI_ORIGINAL(0x00607BB0)
 // 0066EDA0 (rewritten as CPlayerServer::SendPosition0F; RET 0xC): message 0x0F, a camera position `at`, the point it
 // looks at and a flag byte.
 __declspec(naked) inline void __fastcall PlayerSendViewOriginal(void* /*server*/, void*, const Vector3* /*at*/,

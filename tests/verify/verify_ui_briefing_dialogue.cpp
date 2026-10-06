@@ -2,9 +2,11 @@
 //
 // ViewSpeaker only writes message 0x0F to the local player's connection: side by side (ours, the
 // bytes it wrote kept, the stream put back, the original, its bytes compared: the two points as
-// floats with CheckNear, the type and flag bytes exactly). StartPhrases and PlaySpeakerAnimation
-// start the phrases / an animation (sound, server orders, random numbers): ours only, with the
-// state they leave checked. Scenario ui_base_dialogue (a topic of Smith's, then its phrases).
+// floats with CheckNear, the type and flag bytes exactly); ViewPreset the same way. StartPhrases,
+// PlaySpeakerAnimation and HideSpeaker start the phrases / an animation / take a person out
+// (sound, server orders, random numbers, meshes): ours only, with the state they leave checked.
+// Scenario ui_base_dialogue (a topic of Smith's, then its phrases; presets and "#hide" only when
+// the dialogue's text has them).
 #include "player_out_mark.h"
 #include "verify.h"
 
@@ -13,6 +15,8 @@
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_ai.h"
 #include "../../src/game/world.h"
+#include "../../src/game/object_tables.h"
+#include "../../src/game/originals_ui.h"
 #include "../../src/game/originals_world.h"
 
 #include <cstring>
@@ -21,8 +25,10 @@
 namespace {
 void* s_unused;
 void* s_viewSpeaker;
+void* s_viewPreset;
 
 void* SpeakerActionDone() { return reinterpret_cast<void*>(0x006023F0); }
+void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 
 void* LocalServer() {
     auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, 0));
@@ -33,6 +39,40 @@ float FloatAt(const std::vector<std::uint8_t>& bytes, std::size_t offset) {
     float v;
     std::memcpy(&v, bytes.data() + offset, 4);
     return v;
+}
+
+// The messages two runs wrote: the same bytes, the 0x0F message's points compared as floats.
+void CompareViews(const char* name, const std::vector<std::uint8_t>& expected, const std::vector<std::uint8_t>& actual,
+                  int argument) {
+    constexpr std::size_t kMessageSize = 1 + 12 + 12 + 1;
+    bool shape = expected.size() == actual.size() &&
+                 (expected.empty() || (expected.size() == kMessageSize && expected[0] == actual[0] &&
+                                       expected[kMessageSize - 1] == actual[kMessageSize - 1]));
+    ei::verify::Check(name, true, shape, "argument %d: %u / %u bytes", argument, static_cast<unsigned>(expected.size()),
+                      static_cast<unsigned>(actual.size()));
+    if (!shape || expected.empty()) return;
+    for (std::size_t i = 0; i < 6; ++i)
+        ei::verify::CheckNear(name, FloatAt(expected, 1 + 4 * i), FloatAt(actual, 1 + 4 * i), "argument %d, value %u",
+                              argument, static_cast<unsigned>(i));
+}
+
+// Runs ours, keeps what it wrote, puts the stream back, runs the original and compares.
+template <typename Ours, typename Original>
+void CompareMessageRuns(const char* name, int argument, Ours ours, Original original) {
+    void* server = LocalServer();
+    if (!server) {
+        ours();
+        return;
+    }
+    PlayerOutMark mark = PlayerOutTake(server);
+    ours();
+    std::vector<std::uint8_t> actual;
+    if (!PlayerOutSince(server, mark, &actual)) return;   // ours grew the buffer: no second run
+    PlayerOutRestore(server, mark);
+    original();
+    std::vector<std::uint8_t> expected;
+    if (!PlayerOutSince(server, mark, &expected)) return;
+    CompareViews(name, expected, actual, argument);
 }
 } // namespace
 
@@ -75,28 +115,32 @@ EI_VERIFY(0x00607A60, SpeakerAnimationVerify, 0, s_unused);
 static void __fastcall ViewSpeakerVerify(CBriefingScreen* self, void*, CUnit* unit, float angle, float distance,
                                          float height) {
     using Fn = void(__fastcall*)(CBriefingScreen*, void*, CUnit*, float, float, float);
-    void* server = LocalServer();
-    if (!server) {
-        self->ViewSpeaker(unit, angle, distance, height);
-        return;
-    }
-    PlayerOutMark mark = PlayerOutTake(server);
-    self->ViewSpeaker(unit, angle, distance, height);
-    std::vector<std::uint8_t> actual;
-    if (!PlayerOutSince(server, mark, &actual)) return;   // ours grew the buffer: no second run
-    PlayerOutRestore(server, mark);
-    reinterpret_cast<Fn>(s_viewSpeaker)(self, nullptr, unit, angle, distance, height);
-    std::vector<std::uint8_t> expected;
-    if (!PlayerOutSince(server, mark, &expected)) return;
-    constexpr std::size_t kMessageSize = 1 + 12 + 12 + 1;
-    bool shape = expected.size() == kMessageSize && actual.size() == kMessageSize && expected[0] == actual[0] &&
-                 expected[kMessageSize - 1] == actual[kMessageSize - 1];
-    ei::verify::Check("CBriefingScreen::ViewSpeaker", true, shape, "unit %p: %u / %u bytes", unit,
-                      static_cast<unsigned>(expected.size()), static_cast<unsigned>(actual.size()));
-    if (!shape) return;
-    for (int i = 0; i < 6; ++i)
-        ei::verify::CheckNear("CBriefingScreen::ViewSpeaker point", FloatAt(expected, 1 + 4 * i), FloatAt(actual, 1 + 4 * i),
-                              "unit %p, angle %g, value %d", unit, angle, i);
+    CompareMessageRuns(
+        "CBriefingScreen::ViewSpeaker", unit ? unit->id_ : 0, [&] { self->ViewSpeaker(unit, angle, distance, height); },
+        [&] { reinterpret_cast<Fn>(s_viewSpeaker)(self, nullptr, unit, angle, distance, height); });
 }
 // 00607BB0: SUB ESP,0x4C; FLD dword [ESP+0x54] (3 + 4 bytes).
 EI_VERIFY(0x00607BB0, ViewSpeakerVerify, 7, s_viewSpeaker);
+
+// ViewPreset: side by side as ViewSpeaker (sinking a speaker, 00578760, does nothing the second time).
+static void __fastcall ViewPresetVerify(CBriefingScreen* self, void*, int preset) {
+    using Fn = void(__fastcall*)(CBriefingScreen*, void*, int);
+    CompareMessageRuns("CBriefingScreen::ViewPreset", preset, [&] { self->ViewPreset(preset); },
+                       [&] { reinterpret_cast<Fn>(s_viewPreset)(self, nullptr, preset); });
+}
+// 00607EC0: PUSH ECX; PUSH ESI; MOV ESI,ECX; MOV EAX,[ESP+0xC] (1 + 1 + 2 + 4 bytes).
+EI_VERIFY(0x00607EC0, ViewPresetVerify, 8, s_viewPreset);
+
+// HideSpeaker: ours only (server orders, units moved, meshes released): the person is neither
+// among the speakers nor the third speaker afterwards.
+static void __fastcall HideSpeakerVerify(CBriefingScreen* self, void*, const char* name, int immediate, int time) {
+    auto* person = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, TextKeyFromName(name)));
+    self->HideSpeaker(name, immediate, time);
+    bool ok = true;
+    if (person) {
+        for (BriefingSpeaker* p = self->speakers_; p != self->speakersEnd_; ++p) ok = ok && p->unit != person;
+        ok = ok && self->third_ != person;
+    }
+    ei::verify::Check("CBriefingScreen::HideSpeaker", true, ok, "%s", name);
+}
+EI_VERIFY(0x006062C0, HideSpeakerVerify, 0, s_unused);
