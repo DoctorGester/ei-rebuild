@@ -218,11 +218,7 @@ EI_REPLACE_METHOD(0x006064E0, CBriefingScreen::StartDialogue);
 
 // --- 00608450 -----------------------------------------------------------------------------------
 
-void CBriefingScreen::FinishDialogue() {
-    if (voice_ != -1) sound::Manager()->StopSound(voice_);
-    voice_ = -1;
-    MusicFadeInOriginal(MusicSystem());
-
+void CBriefingScreen::ClearShownItems() {
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
         if (node->item) {
             RemoveObject(node->item->texture_);
@@ -240,6 +236,13 @@ void CBriefingScreen::FinishDialogue() {
     }
     shown_->next = shown_;
     shown_->prev = shown_;
+}
+
+void CBriefingScreen::FinishDialogue() {
+    if (voice_ != -1) sound::Manager()->StopSound(voice_);
+    voice_ = -1;
+    MusicFadeInOriginal(MusicSystem());
+    ClearShownItems();
 
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {
         CUnit* unit = speaker->unit;
@@ -261,7 +264,7 @@ void CBriefingScreen::FinishDialogue() {
     // vector::clear (0060AB60, then the entries' destructor 0060AC00).
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();
     speakersEnd_ = speakers_;
-    rewardUnit_ = nullptr;
+    speaking_ = nullptr;
 
     if (leader_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, leader_->id_, 0.0f);
     if (person_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, person_->id_, 0.0f);

@@ -383,6 +383,15 @@ __declspec(naked) inline void __fastcall GameRequestScreenOriginal(void* /*glue*
 // (rewritten as CPlayerServer::SendPosition04; through its address so the wrapper runs; RET 0xC): message 0x04, a
 // position and two dwords. 00592090 (rewritten as CWorldServer::CompleteBriefing; through its address so the wrapper
 // runs; RET 8): briefing variable `name` is complete for player `playerId`.
+// 00605DE0 (the briefing screen; RET 0xC): "#show": a dialogue item `name` shown (index, flag). Through their address so
+// the wrappers run: 00607A60 PlaySpeakerAnimation (RET 0xC), 00607EC0 ViewPreset (RET 4), 006062C0 HideSpeaker (RET 0xC).
+__declspec(naked) inline void __fastcall BriefingShowItemOriginal(void* /*screen*/, void*, const char* /*name*/, int /*index*/,
+                                                                  int /*flag*/) EI_ORIGINAL(0x00605DE0)
+__declspec(naked) inline void __fastcall BriefingSpeakerAnimationOriginal(void* /*screen*/, void*, void* /*unit*/, int /*talking*/,
+                                                                          int /*third*/) EI_ORIGINAL(0x00607A60)
+__declspec(naked) inline void __fastcall BriefingViewPresetOriginal(void* /*screen*/, void*, int /*preset*/) EI_ORIGINAL(0x00607EC0)
+__declspec(naked) inline void __fastcall BriefingHideSpeakerOriginal(void* /*screen*/, void*, const char* /*name*/, int /*immediate*/,
+                                                                     int /*time*/) EI_ORIGINAL(0x006062C0)
 __declspec(naked) inline void __fastcall MusicFadeInOriginal(void* /*music*/) EI_ORIGINAL(0x006B4E20)
 __declspec(naked) inline int __fastcall PlayerSendPosition04Original(void* /*server*/, void*, const Vector3* /*at*/,
                                                                      std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066ED30)

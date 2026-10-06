@@ -381,7 +381,13 @@ Right). Movers erased inline (00609A40, pool 0x30). Forwarders 00608210, 0057856
 them now). 00608450 `FinishDialogue` (ours only: state 0, speakers / shown items empty, no third or reward unit,
 briefingStarted_ off; the "b.*.<topic>" variable completes through 00592090's address). Forwarders 006B4E20 (music fade in),
 0066ED30, 00592090 (originals_ui.h). Its unused party search (00578BA0) is left out, as in HideSpeaker.
-Next: 00604C50, Create and Update.
+00604C50 `NextPhrase(skip)` (`ui_briefing_phrases.cpp`; ours only: state kept or 4, the text only grows, firstPhrase_ off;
+skipped to the end no shown items and no speaker). `BriefingRecord` (0x6C: exp, gold, four name lists, specials +0x68) added
+to ui_briefing.h; +0x254 is speaking_ (the phrase's speaker), text_ a CUiScrollText. Forwarders 00605DE0 (#show, not ported),
+00607A60 / 00607EC0 / 006062C0 (through their address). Original quirks kept: "#show .. weapon" shows the item twice (flag
+0, then 1); the camera / animation loops compare the speakers with the last split line's second word unchecked.
+ui_base_dialogue: a second Esc takes the rewards.
+Next: Create 006024B0 and Update 00604130.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 

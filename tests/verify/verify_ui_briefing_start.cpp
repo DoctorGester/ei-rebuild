@@ -3,7 +3,8 @@
 // StartDialogue moves people (server orders, movers), may open the camp or start the phrases: ours
 // only. Afterwards the state is 0, 2 or 3; with a dialogue there is a person, and the three facings
 // are flat, of length 1 (or 0), the first two along the line between the first two places, the
-// third towards their middle. FinishDialogue: ours only, the state it leaves. Scenario
+// third towards their middle. FinishDialogue and NextPhrase (ui_briefing_phrases.cpp): ours
+// only, the state they leave. Scenario
 // ui_base_dialogue (a topic of Smith's, its phrases, then the rewards).
 #include "verify.h"
 
@@ -49,7 +50,22 @@ EI_VERIFY(0x006064E0, StartDialogueVerify, 0, s_unused);
 static void __fastcall FinishDialogueVerify(CBriefingScreen* self, void*) {
     self->FinishDialogue();
     bool ok = self->state_ == 0 && self->speakers_ == self->speakersEnd_ && self->shown_->next == self->shown_ &&
-              self->shown_->prev == self->shown_ && !self->third_ && !self->rewardUnit_ && !self->briefingStarted_;
+              self->shown_->prev == self->shown_ && !self->third_ && !self->speaking_ && !self->briefingStarted_;
     ei::verify::Check("CBriefingScreen::FinishDialogue", true, ok, "state %d", self->state_);
 }
 EI_VERIFY(0x00608450, FinishDialogueVerify, 0, s_unused);
+
+// NextPhrase (text cursor, sounds, server orders, the camera): ours only. Afterwards the state is
+// the same or 4 (rewards), the dialogue text only grew and firstPhrase_ is off; skipped to the
+// end, the shown items are gone and nobody speaks.
+static void __fastcall NextPhraseVerify(CBriefingScreen* self, void*, bool skip) {
+    int state = self->state_;
+    int length = self->dialogueText_.GetLength();
+    self->NextPhrase(skip);
+    bool ok = (self->state_ == state || self->state_ == 4) && self->dialogueText_.GetLength() >= length &&
+              !self->firstPhrase_;
+    if (skip && self->state_ == 4 && state != 4)
+        ok = ok && self->shown_->next == self->shown_ && !self->speaking_;
+    ei::verify::Check("CBriefingScreen::NextPhrase", true, ok, "skip %d, state %d -> %d", skip, state, self->state_);
+}
+EI_VERIFY(0x00604C50, NextPhraseVerify, 0, s_unused);

@@ -63,6 +63,28 @@ struct BriefingShownItem {
 };
 static_assert(sizeof(BriefingShownItem) == 0x18);
 
+// A briefing's record (0x6C bytes; the quest database's briefings, by topic in the hash_map at
+// 007C87D4, read by quest_database.cpp): its rewards as NextPhrase lists them.
+struct BriefingRecord {
+    struct NameList {                // an STLport vector<CString>
+        mfc::CString* begin;
+        mfc::CString* end;
+        mfc::CString* capacity;
+    };
+    std::uint8_t unknown_00[0x0C];
+    float experience;                // +0x0C
+    float gold;                      // +0x10
+    NameList giveItems;              // +0x14 item names
+    NameList removeItems;            // +0x20
+    NameList giveQuests;             // +0x2C variables "a.b.<quest>"
+    NameList completeQuests;         // +0x38
+    std::uint8_t unknown_44[0x68 - 0x44];
+    int specials;                    // +0x68 "brief_get_specials_<n>" when above 0
+};
+static_assert(offsetof(BriefingRecord, giveItems) == 0x14);
+static_assert(offsetof(BriefingRecord, completeQuests) == 0x38);
+static_assert(sizeof(BriefingRecord) == 0x6C);
+
 // The local player's name (its zone): 00578A90 copy-constructs it into raw storage, destroyed at
 // the end of the scope.
 class BriefingPlayerName {
@@ -230,6 +252,19 @@ public:
     // with the leader; a dialogue that started by itself (briefingStarted_) puts the camera on the
     // leader (message 0x04) and frees it, otherwise it goes back to savedCamera_ / lookAt_.
     void FinishDialogue();
+    // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
+    // (inlined in 00608450 and 00604C50).
+    void ClearShownItems();
+
+    // 00604C50 (RET 4; ui_briefing_phrases.cpp). The next phrase of the current text: its lines up
+    // to the next "#phrase <speaker> [voice]" are carried out ("#nolips", "#show", "#hide",
+    // "#animation n", "#camera n [angle distance height]"); the phrase (up to the next '#') goes,
+    // headed by the speaker's name, into dialogueText_ and (unless `skip`) the text window, with
+    // its voice "<t|s>\briefing\<topic>\<n>.mp3" and phraseTime_. After the last phrase: state 4
+    // and the briefing record's rewards as lines (experience, gold, items given and lost, quests).
+    // The camera then views the phrase's speaker, who talks (an animation, blinking unless
+    // "#nolips") while the others listen; skipping to the end shows the whole text at once.
+    void NextPhrase(bool skip);
 
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
@@ -259,9 +294,9 @@ public:
     mfc::CString dialogueText_;      // +0x248 the dialogue's text so far (shown whole when skipped)
     float phraseTime_;               // +0x24C time left of a phrase without a voice
     int voice_;                      // +0x250 the phrase's voice (sound id), -1 none
-    CUnit* rewardUnit_;              // +0x254 (FinishDialogue clears it)
+    CUnit* speaking_;                // +0x254 the speaker of the current phrase (NextPhrase), or null
     std::uint8_t unknown_258[4];
-    CUiWindow* text_;                // +0x25C the dialogue text (a CUiScrollText)
+    CUiScrollText* text_;            // +0x25C the dialogue text
     CUiScrollbar* topicBar_;         // +0x260 the topic list's scroll bar
     int topicTop_;                   // +0x264 first topic row shown
     float savedEdgeFade_;            // +0x268 the map edge fade (0079BD34) Create replaced
