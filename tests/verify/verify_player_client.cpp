@@ -214,3 +214,17 @@ EI_VERIFY(0x00667810, SendToServerVerify, 0, s_unused);
 EI_VERIFY(0x00667970, DispatchVerify, 0, s_unused);
 EI_VERIFY(0x00667A30, ReceiveVerify, 0, s_unused);
 EI_VERIFY(0x00667680, PumpVerify, 0, s_unused);
+
+// 00667230 (the client's Create; every newgame): ours only (it allocates the table). 256 handlers,
+// the 40 known types set (spot checks: 0x00 00667DA0, 0x40 00667EC0, 0x83 00669C90), type 0x10 empty,
+// state 0 and empty streams.
+BOOL __fastcall CreateClientVerify(CPlayerClient* self) {
+    BOOL result = self->CreateClient();
+    auto at = [self](int type) { return reinterpret_cast<std::uintptr_t>(self->handlers_[type]); };
+    bool ok = result == 1 && self->state_ == 0 && self->handlers_.size == 0x100 && at(0x00) == 0x00667DA0u &&
+              at(0x40) == 0x00667EC0u && at(0x83) == 0x00669C90u && at(0x10) == 0 && at(0xFF) == 0 &&
+              self->in_.size_ == 0 && self->out_.size_ == 0;
+    ei::verify::Check("CPlayerClient::CreateClient", true, ok, "client %p: %d handlers", self, self->handlers_.size);
+    return result;
+}
+EI_VERIFY(0x00667230, CreateClientVerify, 0, s_unused);

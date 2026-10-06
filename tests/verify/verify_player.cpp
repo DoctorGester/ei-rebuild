@@ -12,6 +12,7 @@
 
 #include "../../src/game/party.h"
 #include "../../src/game/player_messages.h"
+#include "../../src/game/unit.h"
 
 #include "ei/vcall.h"
 
@@ -53,6 +54,16 @@ bool Destroyed(const CPlayer* p) {
            p->unknown_104 == 0;
 }
 } // namespace
+
+int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type);
+
+// 00664B70: ours only (FatalError may end the game); counted before it runs. No scenario (a broken
+// message stream).
+static int __fastcall PlayerMessageErrorVerify(const char* format, std::uint32_t previous, std::uint32_t type) {
+    ei::verify::Check("PlayerMessageError", true, format != nullptr, "prev %02X type %02X", previous & 0xFF, type & 0xFF);
+    return PlayerMessageError(format, previous, type);
+}
+EI_VERIFY(0x00664B70, PlayerMessageErrorVerify, 0, s_unused);
 
 const char* __fastcall PlayerClassName(CPlayer*);
 int __fastcall PlayerClassId(CPlayer*);
@@ -132,3 +143,126 @@ static void __fastcall PlayerSetIdVerify(CPlayer* self, void*, int id) {
     ei::verify::Check("CPlayer::SetPlayerId", id, self->playerId_, "player %p", self);
 }
 EI_VERIFY(0x00665A60, PlayerSetIdVerify, 0, s_unused);
+
+// --- The link, the given items and the units (all newgame / zone changes unless said) ---------------
+// - Connect (00665990): the new link kept, cleared lists and maps. Disconnect (00665A10): no link,
+//   cleared. ForgetKnownObjects (006651D0, from 0066FAA0): known maps empty.
+// - IsLeader (00665440) and HasLoot (00665640) read only: compared with the original.
+// - GiveItems (00665470): the list grew by the given count; TakeAllItems (00665550): empty;
+//   TakeLoot / TakeItem (00665780 / 00665870): the count dropped by the result.
+// - AddUnit / RemoveUnit (00665A70 / 00665B50, from CUnit::SetPlayer): the unit is / is not in
+//   units_. ItemUsed (00665BE0): the id is in the recharge list. AssignParty (00665CC0): returns
+//   the party, the recharge list empty. ReleaseTamedUnits (00665D20, taming): every unit left
+//   still has this player.
+
+namespace {
+using IsLeaderFn = BOOL(__fastcall*)(CPlayer*, void*, const CEngineObject*);
+using HasLootFn = BOOL(__fastcall*)(CPlayer*, void*, int);
+IsLeaderFn s_isLeader;
+HasLootFn s_hasLoot;
+} // namespace
+
+static void __fastcall PlayerConnectVerify(CPlayer* self, void*, netlink::NetLink* link) {
+    self->Connect(link);
+    ei::verify::Check("CPlayer::Connect", true, self->link_ == link && Cleared(self), "player %p link %p", self, link);
+}
+EI_VERIFY(0x00665990, PlayerConnectVerify, 0, s_unused);
+
+static void __fastcall PlayerDisconnectVerify(CPlayer* self) {
+    self->Disconnect();
+    ei::verify::Check("CPlayer::Disconnect", true, self->link_ == nullptr && Cleared(self), "player %p", self);
+}
+EI_VERIFY(0x00665A10, PlayerDisconnectVerify, 0, s_unused);
+
+static void __fastcall PlayerForgetKnownVerify(CPlayer* self) {
+    self->ForgetKnownObjects();
+    bool ok = self->knownObjects_.Size() == 0 && self->knownTimed_.Size() == 0 && self->maxObjectId_ == 0 &&
+              self->maxTimedId_ == 0 && self->unknown_130 == -1;
+    ei::verify::Check("CPlayer::ForgetKnownObjects", true, ok, "player %p", self);
+}
+EI_VERIFY(0x006651D0, PlayerForgetKnownVerify, 0, s_unused);
+
+static BOOL __fastcall PlayerIsLeaderVerify(CPlayer* self, void*, const CEngineObject* unit) {
+    BOOL expected = s_isLeader(self, nullptr, unit);
+    ei::verify::Check("CPlayer::IsLeader", expected, self->IsLeader(unit), "player %p unit %p", self, unit);
+    return expected;
+}
+EI_VERIFY(0x00665440, PlayerIsLeaderVerify, 6, s_isLeader);
+
+static BOOL __fastcall PlayerHasLootVerify(CPlayer* self, void*, int kind) {
+    BOOL expected = s_hasLoot(self, nullptr, kind);
+    ei::verify::Check("CPlayer::HasLoot", expected, self->HasLoot(kind), "player %p kind %d", self, kind);
+    return expected;
+}
+EI_VERIFY(0x00665640, PlayerHasLootVerify, 6, s_hasLoot);
+
+static void __fastcall PlayerGiveItemsVerify(CPlayer* self, void*, const mfc::CTypedPtrList<CEngineObject>* items,
+                                             int flag) {
+    const int before = self->items_.count;
+    self->GiveItems(items, flag);
+    ei::verify::Check("CPlayer::GiveItems", before + items->count, self->items_.count, "player %p", self);
+}
+EI_VERIFY(0x00665470, PlayerGiveItemsVerify, 0, s_unused);
+
+static void __fastcall PlayerTakeAllItemsVerify(CPlayer* self) {
+    self->TakeAllItems();
+    ei::verify::Check("CPlayer::TakeAllItems", true, ListEmpty(self->items_), "player %p", self);
+}
+EI_VERIFY(0x00665550, PlayerTakeAllItemsVerify, 0, s_unused);
+
+static BOOL __fastcall PlayerTakeLootVerify(CPlayer* self, void*, int kind) {
+    const int before = self->items_.count;
+    BOOL result = self->TakeLoot(kind);
+    ei::verify::Check("CPlayer::TakeLoot", before - result, self->items_.count, "player %p kind %d", self, kind);
+    return result;
+}
+EI_VERIFY(0x00665780, PlayerTakeLootVerify, 0, s_unused);
+
+static BOOL __fastcall PlayerTakeItemVerify(CPlayer* self, void*, int id) {
+    const int before = self->items_.count;
+    BOOL result = self->TakeItem(id);
+    ei::verify::Check("CPlayer::TakeItem", before - result, self->items_.count, "player %p id %d", self, id);
+    return result;
+}
+EI_VERIFY(0x00665870, PlayerTakeItemVerify, 0, s_unused);
+
+static void __fastcall PlayerAddUnitVerify(CPlayer* self, void*, CUnit* unit) {
+    self->AddUnit(unit);
+    bool ok = unit == nullptr || self->units_.Find(unit->id_) != nullptr;
+    ei::verify::Check("CPlayer::AddUnit", true, ok, "player %p unit %p", self, unit);
+}
+EI_VERIFY(0x00665A70, PlayerAddUnitVerify, 0, s_unused);
+
+static void __fastcall PlayerRemoveUnitVerify(CPlayer* self, void*, CUnit* unit) {
+    // The unit may be freed by its release; only its id is read before.
+    const int id = unit != nullptr ? unit->id_ : 0;
+    self->RemoveUnit(unit);
+    bool ok = unit == nullptr || self->units_.Find(id) == nullptr;
+    ei::verify::Check("CPlayer::RemoveUnit", true, ok, "player %p unit %p", self, unit);
+}
+EI_VERIFY(0x00665B50, PlayerRemoveUnitVerify, 0, s_unused);
+
+static void __fastcall PlayerItemUsedVerify(CPlayer* self, void*, CEngineObject* item) {
+    self->ItemUsed(item);
+    void* id = reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_));
+    ei::verify::Check("CPlayer::ItemUsed", true, self->objects_.Find(id) != nullptr, "player %p item %p", self, item);
+}
+EI_VERIFY(0x00665BE0, PlayerItemUsedVerify, 0, s_unused);
+
+static CParty* __fastcall PlayerAssignPartyVerify(CPlayer* self, void*, CParty* source) {
+    CParty* result = self->AssignParty(source);
+    ei::verify::Check("CPlayer::AssignParty", true, result == self->Party() && ListEmpty(self->objects_),
+                      "player %p source %p", self, source);
+    return result;
+}
+EI_VERIFY(0x00665CC0, PlayerAssignPartyVerify, 0, s_unused);
+
+static void __fastcall PlayerReleaseTamedVerify(CPlayer* self) {
+    self->ReleaseTamedUnits();
+    bool ok = true;
+    for (auto* node = self->units_.First(); node != nullptr && node->value != nullptr; node = self->units_.After(node))
+        ok = ok && static_cast<CUnit*>(node->value)->player == reinterpret_cast<char*>(self);
+    ei::verify::Check("CPlayer::ReleaseTamedUnits", true, ok, "player %p units %u", self,
+                      static_cast<unsigned>(self->units_.Size()));
+}
+EI_VERIFY(0x00665D20, PlayerReleaseTamedVerify, 0, s_unused);

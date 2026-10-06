@@ -1,9 +1,11 @@
 // A world player (CPlayer, vtable 00743104; 00664BF0-00665D20): constructor and destructor,
-// Create / Destroy, Clear and the connection. See player_messages.h and docs/notes/items_spells.md
+// Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h and docs/notes/items_spells.md
 // ("Players").
 #include "player_messages.h"
 
+#include "item.h"
 #include "net_link.h"
+#include "originals_engine.h"
 #include "originals_world.h"
 #include "party.h"
 #include "unit.h"
@@ -93,6 +95,16 @@ CPlayer* CPlayer::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00664E00, CPlayer::DeletingDestruct);
 
+// 00664B70 (__fastcall, RET 4). The message dispatchers' fatal error: `format` ("... prevID=%x
+// curID=%x") with the previous and the current message type (their low bytes; the callers set
+// only DL) raises FatalError (00480080, patched by Rebirth: through its address); its result.
+int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
+    mfc::CString text;
+    text.Format(format, previous & 0xFF, type & 0xFF);
+    return FatalErrorOriginal(text);
+}
+EI_REPLACE(0x00664B70, PlayerMessageError);
+
 // 00664DE0 / 00664DF0: slots 11 and 12.
 const char* __fastcall PlayerClassName(CPlayer*) { return reinterpret_cast<const char*>(0x00794CA4); }
 EI_REPLACE(0x00664DE0, PlayerClassName);
@@ -164,3 +176,155 @@ EI_REPLACE_METHOD(0x00665950, CPlayer::SetConnection);
 
 void CPlayer::SetPlayerId(int id) { playerId_ = id; }
 EI_REPLACE_METHOD(0x00665A60, CPlayer::SetPlayerId);
+
+namespace {
+
+// The link released the way the player's code inlines it: the field cleared first.
+void DropLink(netlink::NetLink*& link) {
+    netlink::NetLink* old = link;
+    link = nullptr;
+    if (old != nullptr) old->Release();
+}
+
+// The data word every item class keeps at +0x4C (CItemLoot::kind_ for loot).
+std::uint32_t ItemWord4C(CEngineObject* item) { return static_cast<CItemLoot*>(item)->kind_; }
+
+} // namespace
+
+void CPlayer::Connect(netlink::NetLink* link) {
+    if (link_ != nullptr) connection_->Leave();
+    Clear();
+    if (link_ != nullptr) link_->Disconnect();
+    DropLink(link_);
+    link_ = link;
+    if (link != nullptr) ++link->refs_;
+    connection_->ResetState();
+}
+EI_REPLACE_METHOD(0x00665990, CPlayer::Connect);
+
+void CPlayer::Disconnect() {
+    if (link_ != nullptr) connection_->Leave();
+    Clear();
+    if (link_ != nullptr) link_->Disconnect();
+    DropLink(link_);
+}
+EI_REPLACE_METHOD(0x00665A10, CPlayer::Disconnect);
+
+void CPlayer::ForgetKnownObjects() {
+    ObjectMapClearOriginal(&knownTimed_);
+    ObjectMapClearOriginal(&knownObjects_);
+    if (connection_ != nullptr) connection_->ForgetSentObjects();
+    unknown_130 = -1;
+}
+EI_REPLACE_METHOD(0x006651D0, CPlayer::ForgetKnownObjects);
+
+BOOL CPlayer::IsLeader(const CEngineObject* unit) {
+    const PartyMemberArray& members = Party()->members_;
+    if (members.size == 0 || unit == nullptr) return 0;
+    return static_cast<std::uint32_t>(unit->id_) == members.data[0].unknown_01C;
+}
+EI_REPLACE_METHOD(0x00665440, CPlayer::IsLeader);
+
+void CPlayer::GiveItems(const mfc::CTypedPtrList<CEngineObject>* items, int flag) {
+    connection_->ItemsGiven(items, flag);
+    for (auto* node = items->head; node != nullptr;) {
+        CEngineObject* item = node->data;
+        node = node->next;
+        ++item->refCount_;
+        items_.AddTail(item);
+    }
+}
+EI_REPLACE_METHOD(0x00665470, CPlayer::GiveItems);
+
+void CPlayer::TakeAllItems() {
+    connection_->ItemsTaken();
+    while (items_.count != 0) items_.RemoveHead()->Release();
+    items_.RemoveAll();
+}
+EI_REPLACE_METHOD(0x00665550, CPlayer::TakeAllItems);
+
+BOOL CPlayer::HasLoot(int kind) {
+    for (auto* node = items_.head; node != nullptr; node = node->next)
+        if (node->data->type_ == kItemLoot && ItemWord4C(node->data) == static_cast<std::uint32_t>(kind)) return 1;
+    for (ObjectMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
+        auto* unit = static_cast<CUnit*>(node->value);
+        for (int i = 0; i < unit->carriedCount; ++i)
+            if (ItemWord4C(unit->carried[i]) == static_cast<std::uint32_t>(kind)) return 1;
+    }
+    return 0;
+}
+EI_REPLACE_METHOD(0x00665640, CPlayer::HasLoot);
+
+namespace {
+
+// The first given item `match` accepts: the connection's slot 19, its node removed, the item
+// released. 1, or 0 when there is none.
+template <typename Match>
+BOOL TakeFirst(CPlayer* player, Match match) {
+    auto* node = player->items_.head;
+    while (node != nullptr && !match(node->data)) node = node->next;
+    if (node == nullptr) return 0;
+    CEngineObject* item = node->data;
+    player->connection_->ItemTaken(item);
+    player->items_.RemoveAt(node);
+    item->Release();
+    return 1;
+}
+
+} // namespace
+
+BOOL CPlayer::TakeLoot(int kind) {
+    return TakeFirst(this, [kind](CEngineObject* item) {
+        return item->type_ == kItemLoot && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
+    });
+}
+EI_REPLACE_METHOD(0x00665780, CPlayer::TakeLoot);
+
+BOOL CPlayer::TakeItem(int id) {
+    return TakeFirst(this, [id](CEngineObject* item) { return item->id_ == id; });
+}
+EI_REPLACE_METHOD(0x00665870, CPlayer::TakeItem);
+
+void CPlayer::AddUnit(CUnit* unit) {
+    if (unit == nullptr) return;
+    const int id = unit->id_;
+    if (units_.Find(id) != nullptr) return;
+    ++unit->refCount_;
+    if (maxUnitId_ < id) maxUnitId_ = id;
+    units_[id] = unit;
+    connection_->UnitChanged(unit);
+}
+EI_REPLACE_METHOD(0x00665A70, CPlayer::AddUnit);
+
+void CPlayer::RemoveUnit(CUnit* unit) {
+    if (unit == nullptr) return;
+    ObjectMap::Node* node = units_.Find(unit->id_);
+    if (node == nullptr) return;
+    units_.Erase(node);
+    unit->Release();
+    connection_->UnitChanged(unit);
+}
+EI_REPLACE_METHOD(0x00665B50, CPlayer::RemoveUnit);
+
+void CPlayer::ItemUsed(CEngineObject* item) {
+    void* id = reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_));
+    if (objects_.Find(id) == nullptr) objects_.AddTail(id);
+    connection_->ItemUsed(item);
+}
+EI_REPLACE_METHOD(0x00665BE0, CPlayer::ItemUsed);
+
+CParty* CPlayer::AssignParty(CParty* source) {
+    objects_.RemoveAll();
+    return Party()->Assign(source);
+}
+EI_REPLACE_METHOD(0x00665CC0, CPlayer::AssignParty);
+
+void CPlayer::ReleaseTamedUnits() {
+    // The walk goes on from the node of a unit that has just left (and been erased), as the
+    // original's does.
+    for (ObjectMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
+        auto* unit = static_cast<CUnit*>(node->value);
+        if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);
+    }
+}
+EI_REPLACE_METHOD(0x00665D20, CPlayer::ReleaseTamedUnits);

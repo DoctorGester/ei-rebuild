@@ -34,6 +34,7 @@ struct UiInput {
     void BaseMouseMove(int flags, int x, int y);     // 006012D0
     void BaseKeyDown(int key, int repeat, int flags);   // 00601820
     void BaseKeyUp(int key, int repeat, int flags);     // 006019A0
+    void BaseChar(int key, int repeat, int flags);      // 006018E0
     int BaseWheel(int flags, int delta, int x, int y);  // 00601730 (RET 0x10; returns 1)
 };
 

@@ -91,6 +91,32 @@ static void __fastcall SaveLoadKeyDownVerify(void* input, void*, int key, int re
 }
 EI_VERIFY(0x006548A0, SaveLoadKeyDownVerify, 0, s_unused);
 
+// 00655050 (typing a save name; no scenario types one): ours only. A load window, Backspace / Tab /
+// Enter / Esc and Ctrl leave the name alone; otherwise the name grew by the character at the caret
+// (the caret one further) or stayed as it was (too long or too wide), unless it was restarted empty.
+static void __fastcall SaveLoadCharVerify(void* input, void*, int key, int repeat, int flags) {
+    auto* w = FromInput<CSaveLoadWindow>(input);
+    int cursor = w->cursor_;
+    std::string name = Chars(w->name_);
+    bool fixed = !w->isSave_ || key == 8 || key == 9 || key == 0x0D || key == 0x1B;
+    bool ctrl = w->interface_->ctrlDown_;
+    w->CSaveLoadWindow::OnChar(key, repeat, flags);
+    std::string now = Chars(w->name_);
+    bool ok;
+    if (fixed) {
+        ok = now == name && w->cursor_ == cursor;
+    } else {
+        bool grew = w->cursor_ >= 1 && static_cast<std::size_t>(w->cursor_) <= now.size() &&
+                    now[w->cursor_ - 1] == static_cast<char>(key) && now.size() <= 60;
+        bool kept = now == name && w->cursor_ == cursor;
+        bool restarted = now.empty() && w->cursor_ == 0;
+        ok = grew || kept || restarted || (ctrl && (kept || restarted));
+    }
+    ei::verify::Check("CSaveLoadWindow::OnChar", true, ok, "key %X cursor %d->%d length %d->%d", key, cursor,
+                      w->cursor_, static_cast<int>(name.size()), static_cast<int>(now.size()));
+}
+EI_VERIFY(0x00655050, SaveLoadCharVerify, 0, s_unused);
+
 // --- Options window --------------------------------------------------------------------------------
 
 static void __fastcall OptionsKeyDownVerify(void* input, void*, int key, int repeat, int flags) {

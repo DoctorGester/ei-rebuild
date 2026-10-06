@@ -30,6 +30,11 @@ class NetLink;  // net_link.h
 // 32-byte boundary (0047B940), size, capacity, grow-by.
 using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
 
+// A unit placement (0x28 bytes; built by 004CEE20, not read by the rewritten code).
+struct UnitPlacement {
+    std::uint8_t bytes[0x28];
+};
+
 class CPlayerServer {
 public:
     // Variables and state.
@@ -118,15 +123,23 @@ public:
     std::uint8_t* player_;          // +0x1C the world player (+0xC4 variables, +0x100, +0x130 dirty bits)
     int state_;                     // +0x20
     std::uint32_t unknown24_;       // +0x24 sent with message 0x60
-    // +0x28 the message handlers by type (thiscall, 0: refused), built by 0066C9A0; +0x2C their count.
-    int(__fastcall** handlers_)(CPlayerServer*, void*);
-    int handlerCount_;              // +0x2C
-    std::uint8_t unknown_30[0x38 - 0x30];
+    // 0066C9A0 (slot 2; player_messages.cpp). The outgoing messages emptied, both sent-object
+    // arrays released and freed, state 0, the last position 0 and +0x44 -1, both unit groups
+    // emptied, +0x24 -1, no refresh pending, +0x70 0, the placements emptied (0059C3D0), both
+    // coders reset, the next party refresh in 900..1800 updates (ISAAC), then the handler table:
+    // 256 entries, zeroed, and the 25 handlers by message type (their game addresses). Returns 1.
+    BOOL CreateServer();
+
+    // +0x28 the message handlers by type (thiscall, 0: refused), built by 0066C9A0 (256 of them).
+    using Handler = int(__fastcall*)(CPlayerServer*, void*);
+    lib::AlignedArray<Handler> handlers_;
     Vector3 lastPosition_;          // +0x38 sent with 0x04 / 0x0F
-    std::uint32_t unknown_44;
+    int unknown_44;                 // +0x44 -1 after Create
     BitStream out_;                 // +0x48 messages to the client (CMemoryStream)
     std::uint8_t flag70_;           // +0x70
-    std::uint8_t unknown_71[0x88 - 0x71];
+    std::uint8_t unknown_71[3];
+    // +0x74 the unit placements (an MFC CArray; SetSize 0059C3D0, ConstructElements 004CEE20).
+    mfc::CArray<UnitPlacement> placements_;
     CoderState compressor_;         // +0x88 for the messages sent (Flush)
     CoderState decompressor_;       // +0x28B0 for the messages received
     PlayerObjectArray sentObjects_; // +0x50D8 map objects the client has (counted)
@@ -145,6 +158,8 @@ static_assert(offsetof(CPlayerServer, decompressor_) == 0x28B0);
 static_assert(offsetof(CPlayerServer, lastPosition_) == 0x38);
 static_assert(offsetof(CPlayerServer, out_) == 0x48);
 static_assert(offsetof(CPlayerServer, flag70_) == 0x70);
+static_assert(offsetof(CPlayerServer, handlers_) == 0x28);
+static_assert(offsetof(CPlayerServer, placements_) == 0x74);
 
 // A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
 // or CPlayerClient (00743180). Neither class derives from this declaration (their slot bodies are
@@ -201,6 +216,44 @@ public:
     void SetConnection(CPlayerConnection* connection);
     // 00665A60 (RET 4).
     void SetPlayerId(int id);
+    // 00665990 (RET 4). With a link the connection leaves (slot 16); Clear; the link disconnected
+    // (slot 11) and released; `link` taken (counted); then the connection's slot 15.
+    void Connect(netlink::NetLink* link);
+    // 00665A10. As Connect without the new link and the slot 15 call.
+    void Disconnect();
+    // 006651D0. Both known-object maps cleared (0047B670), the connection's slot 13, +0x130 -1.
+    void ForgetKnownObjects();
+
+    // 00665440 (RET 4). Whether `unit` is the party's leader: there are records and its id is the
+    // first record's key (+0x1C). 0 for null.
+    BOOL IsLeader(const CEngineObject* unit);
+    // 00665470 (RET 8). The connection's slot 17 with both arguments, then every item of `items`
+    // counted and appended to the given items.
+    void GiveItems(const mfc::CTypedPtrList<CEngineObject>* items, int flag);
+    // 00665550. The connection's slot 18, then every given item taken off the head and released.
+    void TakeAllItems();
+    // 00665640 (RET 4). 1 when a given loot item (0x3009) has `kind` (CItemLoot::kind_), or an item
+    // a unit of the player carries has it at +0x4C (any class; the walk stops at a null unit).
+    BOOL HasLoot(int kind);
+    // 00665780 / 00665870 (RET 4). The first given loot item of `kind` / item with id `id`: the
+    // connection's slot 19, out of the list, released; 1, or 0 when there is none.
+    BOOL TakeLoot(int kind);
+    BOOL TakeItem(int id);
+    // 00665A70 (RET 4). A unit not yet in units_ is counted, raises the max id and is put in;
+    // then the connection's slot 14. Nothing for null or a known unit.
+    void AddUnit(CUnit* unit);
+    // 00665B50 (RET 4). A unit in units_ is erased, released (slot 4) and given to the
+    // connection's slot 14.
+    void RemoveUnit(CUnit* unit);
+    // 00665BE0 (RET 4). The item's id joins the recharge list unless there; the connection's
+    // slot 22.
+    void ItemUsed(CEngineObject* item);
+    // 00665CC0 (RET 4). The recharge list emptied, then the party assigned from `source`
+    // (CParty::Assign, whose result is returned).
+    CParty* AssignParty(CParty* source);
+    // 00665D20. Every unit at a taming stage (its controller's slot 39) leaves the player
+    // (CUnit::SetPlayer(null)); the walk stops at a null entry.
+    void ReleaseTamedUnits();
 
     // 00665DE0. Ticks the objects in the list at +0x114 (slot 6; looked up by id through the
     // party's slot 18 manager) and drops the ones that are gone or whose tick returned 0, then runs

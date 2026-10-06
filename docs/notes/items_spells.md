@@ -501,3 +501,45 @@ moved to originals_world.h (ObjectMapClearOriginal).
 
 Kept: Clear's unit loop stops at the first map entry without a unit (the rest stay); the constructor's maps keep
 their uninitialised functor bytes.
+
+Second part (the link, given items, units):
+
+| Address | Name | Verify |
+|---|---|---|
+| 00665990, 00665A10, 006651D0 | Connect (RET 4), Disconnect, ForgetKnownObjects | ours only: link, cleared lists / maps |
+| 00665440, 00665640 | IsLeader (RET 4, BOOL), HasLoot (RET 4, BOOL) | against the original (6 stolen bytes each) |
+| 00665470, 00665550 | GiveItems (RET 8), TakeAllItems | ours only: item count |
+| 00665780, 00665870 | TakeLoot / TakeItem (RET 4, BOOL) | ours only: count dropped by the result |
+| 00665A70, 00665B50 | AddUnit / RemoveUnit (RET 4; from CUnit::SetPlayer) | ours only: unit in / out of units_ |
+| 00665BE0, 00665CC0 | ItemUsed (RET 4), AssignParty (RET 4, returns CParty::Assign's result) | ours only |
+| 00665D20 | ReleaseTamedUnits (CUnitController slot 39 is now TamingStage) | ours only: units left keep the player |
+
+Kept: HasLoot reads +0x4C of every carried item whatever its class; ReleaseTamedUnits (like Clear's sibling walks)
+goes on from the node of a unit that SetPlayer has just erased, reading the freed node as the original does.
+Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test.
+Also 00664B70, PlayerMessageError (__fastcall: format, previous type in DL, type; RET 4): ours only (FatalError through 00480080).
+
+## Save screen pieces (A-H12)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00653A50 | SaveEntry::MakeTitle (RET 4, unused argument; ui_saveload.cpp) | original first, then ours: same title |
+| 00655050 | CSaveLoadWindow::OnChar (input side, RET 0xC; ui_menu_keys.cpp) | ours only: name grew at the caret, kept or restarted |
+| 006570E0 | QuickSave (__fastcall slot, DL frame step; ui_saveload.cpp) | ours only: info.sav header and shot.sav read back; newgame's savea |
+| 006575B0 | QuickLoad (__fastcall slot) | ours only: the flow's request is 2 when the folder exists |
+
+Moved to shared headers: 006EAF20 _access (gamecrt::access), 00578D00 (ServerFlagOriginal) and 00458010
+(FrameStepOriginal, originals_ui.h), 005F8340 (InterfaceTextExtentOriginal). Not rewritten: 00653BD0 (the zone title).
+Kept: QuickSave uses the surface even when its allocation failed.
+
+## Player connections: the handler tables (A-H12)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00667230 | CPlayerClient::CreateClient (slot 2; player_client.cpp) | ours only: 256 handlers, spot entries, state 0, empty streams |
+| 0066C9A0 | CPlayerServer::CreateServer (slot 2; player_messages.cpp) | ours only: 256 handlers, spot entries, sent arrays empty, timer 900..1800 |
+
+Both tables store the handlers' game addresses (40 client types, 25 server types), so rewritten handlers run
+through their hooks. handlers_ is now a lib::AlignedArray on both classes (their allocators 0066BE00 / 00671240 are
+AllocAligned32). CPlayerServer +0x44 is an int (-1 after Create), +0x74 the unit placements (mfc::CArray<UnitPlacement>,
+SetSize 0059C3D0 now PlacementsSetSizeOriginal in originals_gameplay.h, also used by world_party.cpp).

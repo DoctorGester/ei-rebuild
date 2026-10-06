@@ -56,6 +56,10 @@ __declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*windo
 // 00578D10: sets the world server's flag through the game state at 007AFEA4. A free function: one stack argument,
 // RET 4, ECX is not read (the callers' member `this` is the state but is ignored); EAX is not a result.
 __declspec(naked) inline void __stdcall SetServerFlagOriginal(int /*flag*/) EI_ORIGINAL(0x00578D10)
+// 00578D00: the flag's byte (007AFFCC) in AL; plain RET, ECX not read.
+__declspec(naked) inline char __cdecl ServerFlagOriginal() EI_ORIGINAL(0x00578D00)
+// 00458010 (__fastcall, two byte arguments in CL and DL; rewritten as FrameStep, app_frame.cpp): a frame step.
+__declspec(naked) inline void __fastcall FrameStepOriginal(char, char) EI_ORIGINAL(0x00458010)
 
 // C3i. 005E70E0: CUiMesh sprite SetRectangle(depth, scale, left, top, right, bottom, u0, v0, u1, v1) (RET 0x28, EAX not a result).
 __declspec(naked) inline void __fastcall UiMeshRectangleOriginal(void* /*mesh*/, void*, float /*depth*/, float /*scale*/,
@@ -146,6 +150,11 @@ __declspec(naked) inline void __fastcall ConsoleOnKeyUpOriginal(void* /*console*
 __declspec(naked) inline void __fastcall InterfacePushWindowOriginal(CInterface3D*, void*, void* /*window*/, int, int)
     EI_ORIGINAL(0x005F7350)
 __declspec(naked) inline void __fastcall InterfaceResetSavedStateOriginal(CInterface3D*) EI_ORIGINAL(0x005F51F0)
+// 005F8340 (Rebirth-patched; thiscall, RET 0xC): the extent (a SIZE written to `out`, returned) of a text in interface
+// font `font`. The text is a CString taken by value: its data pointer is handed over and the callee releases it.
+__declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface3D*, void*, void* /*out SIZE*/,
+                                                                      char* /*text, owned*/, int /*font*/)
+    EI_ORIGINAL(0x005F8340)
 __declspec(naked) inline void __fastcall ContainerAddInputOriginal(void* /*container*/, void*, void* /*input*/)
     EI_ORIGINAL(0x00600CC0)
 // 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).

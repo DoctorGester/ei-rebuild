@@ -14,7 +14,6 @@
 namespace {
 
 // CRT and MFC routines of the game.
-__declspec(naked) int __cdecl Access(const char* /*path*/, int /*mode*/) EI_ORIGINAL(0x006EAF20)
 // _findfirst: the game never closes the handle it returns.
 __declspec(naked) long __cdecl FindFirst(const char* /*path*/, void* /*findData*/) EI_ORIGINAL(0x006EB832)
 __declspec(naked) void __cdecl SplitPath(const char* /*path*/, char* /*drive*/, char* /*dir*/, char* /*name*/,
@@ -152,7 +151,7 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     // A readable loose file comes first.
-    if (Access(name, 4) == 0) {
+    if (gamecrt::access(name, 4) == 0) {
         FindData data;
         FindFirst(name, &data);
         file_ = gameapi::mmioOpenA(const_cast<char*>(name), nullptr, MMIO_DENYWRITE);
