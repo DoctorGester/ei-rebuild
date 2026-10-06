@@ -58,28 +58,34 @@ bool SameBytes(const T* expected, const T* actual, int count) {
 }
 
 // The scratch's whole arrays against the real mesh's elements from `before` on; vertices nearly.
-bool SameAppended(const CLinkMesh* expected, const CLinkMesh* actual, const Sizes& before, int* badVertex) {
+// Returns the first field that differs (nullptr when none); `badVertex` is the differing vertex.
+const char* AppendedDiff(const CLinkMesh* expected, const CLinkMesh* actual, const Sizes& before, int* badVertex) {
     *badVertex = -1;
     Sizes added(expected);
     Sizes after(actual);
-    if (after.vertices - before.vertices != added.vertices || after.normals - before.normals != added.normals ||
-        after.texCoords - before.texCoords != added.texCoords || after.corners - before.corners != added.corners ||
-        after.words - before.words != added.words || after.indices - before.indices != added.indices)
-        return false;
+    if (after.vertices - before.vertices != added.vertices) return "vertex count";
+    if (after.normals - before.normals != added.normals) return "normal count";
+    if (after.texCoords - before.texCoords != added.texCoords) return "texcoord count";
+    if (after.corners - before.corners != added.corners) return "corner count";
+    if (after.words - before.words != added.words) return "word count";
+    if (after.indices - before.indices != added.indices) return "index count";
     for (int i = 0; i < added.vertices; ++i) {
         const float* e = &expected->vertices_.data[i].block[0][0];
         const float* a = &actual->vertices_.data[before.vertices + i].block[0][0];
         for (int k = 0; k < 16; ++k)
             if (!Near(e[k], a[k])) {
                 *badVertex = i;
-                return false;
+                return "vertex";
             }
     }
-    return SameBytes(expected->normals_.data, actual->normals_.data + before.normals, added.normals) &&
-           SameBytes(expected->texCoords_.data, actual->texCoords_.data + before.texCoords, added.texCoords) &&
-           SameBytes(expected->corners_.data, actual->corners_.data + before.corners * 3, added.corners * 3) &&
-           SameBytes(expected->words_.data, actual->words_.data + before.words, added.words) &&
-           SameBytes(expected->indices_.data, actual->indices_.data + before.indices, added.indices);
+    if (!SameBytes(expected->normals_.data, actual->normals_.data + before.normals, added.normals)) return "normals";
+    if (!SameBytes(expected->texCoords_.data, actual->texCoords_.data + before.texCoords, added.texCoords))
+        return "texcoords";
+    if (!SameBytes(expected->corners_.data, actual->corners_.data + before.corners * 3, added.corners * 3))
+        return "corners";
+    if (!SameBytes(expected->words_.data, actual->words_.data + before.words, added.words)) return "words";
+    if (!SameBytes(expected->indices_.data, actual->indices_.data + before.indices, added.indices)) return "indices";
+    return nullptr;
 }
 
 bool SameRanges(CLinkMesh* mesh, const stlp::string* name, const Sizes& before, const Sizes& added) {
@@ -100,31 +106,35 @@ bool SameBounds(const ClipBounds& e, const ClipBounds& a) {
     return true;
 }
 
-// 004F30F0: SUB ESP,0x3C (3), MOV EAX,[ESP+0x40] (4).
-int(__fastcall* s_addPart)(CLinkMesh*, void*, const stlp::string*, const VertexPacket*, int, const NormalPacket*, int,
-                           const TexCoord*, int, const MeshCorner*, int, const std::uint32_t*, int, const std::uint16_t*, int);
-int __fastcall AddPartVerify(CLinkMesh* self, void*, const stlp::string* name, const VertexPacket* vertices, int vertexCount,
-                             const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
-                             const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
-                             const std::uint16_t* indices, int indexCount) {
+// 004F30F0: SUB ESP,0x3C (3), MOV EAX,[ESP+0x40] (4). The result is AL only: on success the original
+// leaves 004F4CE0's pointer in EAX's upper bytes (MOV EDI,EAX; MOV AL,1).
+bool(__fastcall* s_addPart)(CLinkMesh*, void*, const stlp::string*, const VertexPacket*, int, const NormalPacket*, int,
+                            const TexCoord*, int, const MeshCorner*, int, const std::uint32_t*, int, const std::uint16_t*, int);
+bool __fastcall AddPartVerify(CLinkMesh* self, void*, const stlp::string* name, const VertexPacket* vertices,
+                              int vertexCount, const NormalPacket* normals, int normalCount, const TexCoord* texCoords,
+                              int texCoordCount, const MeshCorner* corners, int cornerCount, const std::uint32_t* words,
+                              int wordCount, const std::uint16_t* indices, int indexCount) {
     bool present = HasPart(self, name);
     Sizes before(self);
-    int actual = self->AddPart(name, vertices, vertexCount, normals, normalCount, texCoords, texCoordCount, corners,
-                               cornerCount, words, wordCount, indices, indexCount);
-    bool same;
+    bool actual = self->AddPart(name, vertices, vertexCount, normals, normalCount, texCoords, texCoordCount, corners,
+                                cornerCount, words, wordCount, indices, indexCount);
+    const char* diff = nullptr;
     int bad = -1;
     if (present) {
-        same = actual == 0 && Sizes(self) == before;
+        if (actual) diff = "result";
+        else if (!(Sizes(self) == before)) diff = "sizes";
     } else {
         ScratchMesh scratch(self);
-        int expected = s_addPart(scratch.mesh, nullptr, name, vertices, vertexCount, normals, normalCount, texCoords,
-                                 texCoordCount, corners, cornerCount, words, wordCount, indices, indexCount);
-        same = expected == actual && actual == 1 && SameAppended(scratch.mesh, self, before, &bad) &&
-               SameRanges(self, name, before, Sizes(scratch.mesh));
+        bool expected = s_addPart(scratch.mesh, nullptr, name, vertices, vertexCount, normals, normalCount, texCoords,
+                                  texCoordCount, corners, cornerCount, words, wordCount, indices, indexCount);
+        if (expected != actual || !actual) diff = "result";
+        if (!diff) diff = AppendedDiff(scratch.mesh, self, before, &bad);
+        if (!diff && !SameRanges(self, name, before, Sizes(scratch.mesh))) diff = "ranges";
     }
-    ei::verify::Check("CLinkMesh::AddPart", true, same, "\"%.*s\" present %d result %d counts %d %d %d %d %d %d vertex %d",
-                      static_cast<int>(name->size()), name->data(), present, actual, vertexCount, normalCount, texCoordCount, cornerCount, wordCount,
-                      indexCount, bad);
+    ei::verify::Check("CLinkMesh::AddPart", true, diff == nullptr,
+                      "\"%.*s\" %s differs: present %d result %d counts %d %d %d %d %d %d vertex %d",
+                      static_cast<int>(name->size()), name->data(), diff ? diff : "nothing", present, actual,
+                      vertexCount, normalCount, texCoordCount, cornerCount, wordCount, indexCount, bad);
     return actual;
 }
 
@@ -146,13 +156,14 @@ void LoadVerify(const char* what, LoadFn original, OursFn ours, int vertexCount,
     const LinkPartHeader* a = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
     bool same = *cursor == expectedCursor && e->unknown_00 == a->unknown_00 && e->unknown_04 == a->unknown_04;
     int bad = -1;
-    if (!present) {
-        same = same && (vertexCount <= 0 || SameBounds(e->bounds, a->bounds)) &&
-               SameAppended(scratch.mesh, mesh, before, &bad);
+    const char* diff = same ? nullptr : "cursor or header";
+    if (!diff && !present) {
+        if (vertexCount > 0 && !SameBounds(e->bounds, a->bounds)) diff = "bounds";
+        else diff = AppendedDiff(scratch.mesh, mesh, before, &bad);
     }
-    ei::verify::Check(what, true, same, "\"%.*s\" present %d vertices %d read %d / %d bad vertex %d",
-                      static_cast<int>(name->size()), name->data(),
-                      present, vertexCount, static_cast<int>(expectedCursor - start), static_cast<int>(*cursor - start), bad);
+    ei::verify::Check(what, true, diff == nullptr, "\"%.*s\" %s differs: present %d vertices %d read %d / %d vertex %d",
+                      static_cast<int>(name->size()), name->data(), diff ? diff : "nothing", present, vertexCount,
+                      static_cast<int>(expectedCursor - start), static_cast<int>(*cursor - start), bad);
 }
 
 // 004F7F00 / 004F87D0: PUSH -1 (2), PUSH imm32 (5).

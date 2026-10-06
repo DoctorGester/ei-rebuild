@@ -58,13 +58,13 @@ void SetW(VertexPacket& packet) {
 
 // ---- CLinkMesh ------------------------------------------------------------------------------------
 
-int CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount,
-                       const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
-                       const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
-                       const std::uint16_t* indices, int indexCount) {
+bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount,
+                        const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
+                        const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
+                        const std::uint16_t* indices, int indexCount) {
     void* found;
     LinkRangeMapFindOriginal(&ranges_, nullptr, &found, name);
-    if (found != ranges_.header) return 0;
+    if (found != ranges_.header) return false;
 
     LinkPartRanges ranges{};
     ranges.vertices = {Append(vertices_, vertices, vertexCount), vertexCount};
@@ -81,7 +81,7 @@ int CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, i
     ranges.indices = {Append(indices_, indices, indexCount), indexCount};
 
     *LinkRangeMapAtOriginal(&ranges_, nullptr, name) = ranges;
-    return 1;
+    return true;
 }
 EI_REPLACE_METHOD(0x004F30F0, CLinkMesh::AddPart);
 

@@ -116,9 +116,9 @@ public:
     // 004F2F90 (RET 0xC). Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
 
-    // 004F30F0 (RET 0x34). Appends a part: false (0) when `name` is already a part; otherwise each
-    // array grows by its count and gets the elements, and the part's ranges are recorded. Returns 1.
-    int AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount, const NormalPacket* normals,
+    // 004F30F0 (RET 0x34, AL). Appends a part: false when `name` is already a part; otherwise each
+    // array grows by its count and gets the elements, and the part's ranges are recorded; true.
+    bool AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount, const NormalPacket* normals,
                 int normalCount, const TexCoord* texCoords, int texCoordCount, const MeshCorner* corners,
                 int cornerCount, const std::uint32_t* words, int wordCount, const std::uint16_t* indices,
                 int indexCount);
