@@ -234,13 +234,7 @@ void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the 12-byte nodes
 
 // An MFC CArray<void*> as the update builds them on the stack (vtable 0073FAA4).
-struct PtrArray {
-    void* vtable;
-    void** data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using PtrArray = mfc::CArray<void*>;
 
 template <typename T>
 T& At(void* p, int offset) {

@@ -6,6 +6,7 @@
 #include "map_object_figures.h"
 #include "unit.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -144,12 +145,7 @@ EI_REPLACE_METHOD(0x005381B0, CUnitClientSpecific::WearArmourModel);
 namespace {
 // The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
 // data[-1]), as SkinRequest's layers.
-struct PartArray {
-    CEngineObject** data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using PartArray = lib::AlignedArray<CEngineObject*>;
 // 00516B50 (not rewritten). 3D object: every figure part named `name`, into `out`.
 __declspec(naked) void __fastcall FindParts(CUnit*, void*, const char*, PartArray*) EI_ORIGINAL(0x00516B50)
 

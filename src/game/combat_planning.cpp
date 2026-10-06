@@ -160,13 +160,7 @@ struct LocalUnitMotion {
 };
 
 // A CArray<Vector3> (vtable 0073C120) of the spots a use order may go to.
-struct SpotArray {
-    void* vtable;
-    float (*data)[3];
-    int size;
-    int capacity;
-    int growBy;
-};
+using SpotArray = mfc::CArray<float[3]>;
 
 // A CPtrList on the stack (vtable 0073D454, blocks of 10).
 struct UnitPtrList {

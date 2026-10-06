@@ -430,13 +430,13 @@ TrapSpec* __fastcall TrapSpecConstruct(TrapSpec* self) {
     self->diplomacy = -1;
     new (&self->spell) mfc::CString();
     self->areas.data = nullptr;
-    self->areas.grow = 0;
-    self->areas.max = 0;
+    self->areas.growBy = 0;
+    self->areas.maxSize = 0;
     self->areas.size = 0;
     SetVtable(&self->areas, kAreasVtable);
     self->targets.data = nullptr;
-    self->targets.grow = 0;
-    self->targets.max = 0;
+    self->targets.growBy = 0;
+    self->targets.maxSize = 0;
     self->targets.size = 0;
     SetVtable(&self->targets, kTargetsVtable);
     self->interval = 15;
@@ -502,23 +502,23 @@ void SizeTargets(PlainArray& a, int n) {
             gamecrt::operator_delete(a.data);
             a.data = nullptr;
         }
-        a.max = 0;
+        a.maxSize = 0;
         a.size = 0;
     } else if (!a.data) {
         a.data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(n) * 8));
         std::memset(a.data, 0, static_cast<std::size_t>(n) * 8);
-        a.max = n;
+        a.maxSize = n;
         a.size = n;
-    } else if (n <= a.max) {
+    } else if (n <= a.maxSize) {
         if (n > a.size) ConstructTargets(a.data + a.size * 8, n - a.size);
         a.size = n;
     } else {
-        int grow = a.grow;
+        int grow = a.growBy;
         if (grow == 0) {
             grow = a.size / 8;
             grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
         }
-        int capacity = a.max + grow;
+        int capacity = a.maxSize + grow;
         if (n >= capacity) capacity = n;
         auto* data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 8));
         std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 8);
@@ -526,7 +526,7 @@ void SizeTargets(PlainArray& a, int n) {
         gamecrt::operator_delete(a.data);
         a.data = data;
         a.size = n;
-        a.max = capacity;
+        a.maxSize = capacity;
     }
 }
 } // namespace

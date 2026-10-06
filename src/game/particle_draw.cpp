@@ -182,44 +182,6 @@ void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int)
 EI_REPLACE(0x004994E0, FinalSortByDepth);
 
 // 00499200. MFC CArray::SetAtGrow: grows the array (new entries zeroed) to hold `index`.
-void ParticleDepthArray::SetAtGrow(int index, const ParticleDepth& entry) {
-    if (index >= size) {
-        const int n = index + 1;
-        if (n == 0) {
-            if (data) {
-                gamecrt::operator_delete(data);
-                data = nullptr;
-            }
-            max = 0;
-            size = 0;
-        } else if (!data) {
-            data = static_cast<ParticleDepth*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(ParticleDepth)));
-            std::memset(data, 0, static_cast<std::size_t>(n) * sizeof(ParticleDepth));
-            max = n;
-            size = n;
-        } else if (n <= max) {
-            if (n > size) std::memset(data + size, 0, static_cast<std::size_t>(n - size) * sizeof(ParticleDepth));
-            size = n;
-        } else {
-            int grow = growBy;
-            if (grow == 0) {
-                grow = size / 8;
-                if (grow < 4) grow = 4;
-                else if (grow > 1024) grow = 1024;
-            }
-            int capacity = max + grow;
-            if (!(n < capacity)) capacity = n;
-            auto* grown = static_cast<ParticleDepth*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(ParticleDepth)));
-            std::memcpy(grown, data, static_cast<std::size_t>(size) * sizeof(ParticleDepth));
-            std::memset(grown + size, 0, static_cast<std::size_t>(n - size) * sizeof(ParticleDepth));
-            gamecrt::operator_delete(data);
-            data = grown;
-            size = n;
-            max = capacity;
-        }
-    }
-    data[index] = entry;
-}
 EI_REPLACE_METHOD(0x00499200, ParticleDepthArray::SetAtGrow);
 
 // 00484AE0. The attachment point plus the local position, or the local position alone.
@@ -251,7 +213,7 @@ int ParticlePool::DrawAll(void* renderer) {
         gamecrt::operator_delete(order.data);
         order.data = nullptr;
     }
-    order.max = 0;
+    order.maxSize = 0;
     order.size = 0;
     Vector3 axis;
     CameraRotation().AxisZ(&axis);

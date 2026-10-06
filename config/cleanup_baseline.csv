@@ -1,6 +1,6 @@
 file,offset access (At<>/Field<>),VCall slot call,__asm block,float_control pragma,raw game address (0x004..0x007 literal),*At view struct,placeholder virtual (SlotNN),byte offset arithmetic,per-file container struct
 src/game/ai_alarm.cpp,14,0,0,0,10,0,0,0,0
-src/game/ai_area_lists.cpp,0,0,0,0,6,0,0,1,1
+src/game/ai_area_lists.cpp,0,0,0,0,6,0,0,1,0
 src/game/ai_footprint.cpp,15,3,0,0,0,0,0,1,0
 src/game/ai_footprint_shapes.cpp,0,0,0,2,3,0,0,0,0
 src/game/ai_join.cpp,0,0,0,0,1,0,0,0,0
@@ -16,11 +16,10 @@ src/game/ai_path_save.cpp,0,2,0,0,0,0,0,0,0
 src/game/ai_path_stand.cpp,0,0,1,2,0,0,0,2,0
 src/game/ai_plan.cpp,8,0,0,0,2,0,0,2,1
 src/game/ai_refresh.cpp,14,0,1,2,6,0,0,0,1
-src/game/ai_region_reach.cpp,72,0,0,0,1,0,0,12,1
+src/game/ai_region_reach.cpp,72,0,0,0,1,0,0,12,0
 src/game/ai_shape_cache.cpp,0,1,0,2,0,0,0,0,0
 src/game/ai_unit_layer.cpp,0,2,0,0,0,0,0,0,0
 src/game/ai_water_patch.cpp,0,0,0,2,1,0,0,0,0
-src/game/aligned_arrays.cpp,0,0,0,0,0,0,0,0,1
 src/game/app_device_list.cpp,0,0,0,0,0,0,0,3,0
 src/game/app_frame.cpp,8,1,0,0,1,0,0,1,0
 src/game/app_registry.cpp,0,2,0,0,0,0,0,0,0
@@ -39,7 +38,7 @@ src/game/combat_actions.cpp,1,11,1,1,0,0,0,6,2
 src/game/combat_internal.h,0,0,0,0,0,0,0,2,0
 src/game/combat_motion.cpp,88,7,0,0,0,0,0,9,1
 src/game/combat_orders.cpp,3,3,1,1,0,0,0,2,0
-src/game/combat_planning.cpp,12,5,0,0,0,0,0,6,2
+src/game/combat_planning.cpp,12,5,0,0,0,0,0,6,1
 src/game/combat_save.cpp,31,1,0,0,0,0,0,0,0
 src/game/combat_sight.cpp,3,8,3,1,4,0,0,1,0
 src/game/combat_steps.cpp,0,3,1,1,1,0,0,1,0
@@ -64,7 +63,6 @@ src/game/device_shadow.cpp,6,0,1,0,0,0,0,0,0
 src/game/device_states.cpp,12,0,0,0,0,0,0,0,0
 src/game/dx_surface.cpp,0,2,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0
-src/game/effects.h,0,0,0,0,0,0,0,0,3
 src/game/effects_weather.cpp,0,1,0,0,1,0,0,0,0
 src/game/engine_object.h,0,0,0,0,1,0,2,0,0
 src/game/fake_unit.cpp,7,4,0,0,5,0,0,0,1
@@ -93,7 +91,7 @@ src/game/item_stock.h,0,0,0,0,0,0,0,0,1
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0
 src/game/lightning.cpp,0,0,0,1,0,0,0,1,0
 src/game/lightning.h,0,0,0,0,0,0,0,0,1
-src/game/lightning_draw.cpp,0,7,0,0,0,0,0,0,1
+src/game/lightning_draw.cpp,0,7,0,0,0,0,0,0,0
 src/game/lightning_start.cpp,0,3,0,0,4,0,0,0,0
 src/game/magic_trap.cpp,55,5,0,0,7,0,0,0,1
 src/game/map_database.cpp,0,0,1,0,27,0,0,0,0
@@ -104,16 +102,16 @@ src/game/map_object_cage.cpp,0,0,0,1,0,0,0,0,0
 src/game/map_object_client_effects.cpp,0,0,0,0,0,0,1,0,0
 src/game/map_object_companion.cpp,0,5,0,1,0,0,0,7,0
 src/game/map_object_create.cpp,1,0,0,0,0,0,0,0,0
-src/game/map_object_draw.cpp,24,3,0,1,0,0,0,0,1
+src/game/map_object_draw.cpp,24,3,0,1,0,0,0,0,0
 src/game/map_object_figures.cpp,0,8,0,1,0,0,0,1,0
 src/game/map_object_figures.h,0,0,0,0,0,0,14,0,1
 src/game/map_object_lifetime.cpp,24,2,0,0,19,0,0,30,0
 src/game/map_object_shadow.cpp,25,9,1,1,0,0,0,1,0
 src/game/map_spec.cpp,1,8,0,0,9,0,0,3,0
-src/game/map_spec.h,0,0,0,0,0,0,1,0,1
+src/game/map_spec.h,0,0,0,0,0,0,1,0,0
 src/game/map_spec_effect.cpp,0,1,0,0,7,0,0,3,0
-src/game/map_spec_unit.cpp,2,3,0,0,9,0,0,2,1
-src/game/menu_rects.cpp,0,1,0,0,36,0,0,0,1
+src/game/map_spec_unit.cpp,2,3,0,0,9,0,0,2,0
+src/game/menu_rects.cpp,0,1,0,0,36,0,0,0,0
 src/game/misc_400.cpp,0,0,0,0,1,0,0,0,0
 src/game/model.cpp,0,0,0,4,0,0,0,0,0
 src/game/model.h,0,0,0,0,0,0,0,0,1
@@ -157,7 +155,7 @@ src/game/options.cpp,0,0,4,0,126,0,0,0,0
 src/game/originals_library.h,0,0,13,0,3,0,0,0,0
 src/game/particle_callbacks.cpp,0,0,1,1,6,0,0,11,0
 src/game/particle_common.h,0,0,5,0,1,0,0,0,0
-src/game/particle_create.cpp,0,0,1,1,89,0,0,1,1
+src/game/particle_create.cpp,0,0,1,1,89,0,0,1,0
 src/game/particle_draw.cpp,0,0,0,1,0,0,0,0,0
 src/game/particle_emitters.cpp,0,0,1,1,1,0,0,1,0
 src/game/particle_render.cpp,0,0,1,1,1,0,0,0,0
@@ -211,7 +209,7 @@ src/game/script_save.cpp,9,0,0,0,0,0,0,1,1
 src/game/script_vars.cpp,0,0,1,0,0,0,0,1,0
 src/game/script_vars_append.cpp,0,0,1,0,0,0,0,0,0
 src/game/sector_map.cpp,0,0,0,0,0,0,0,4,0
-src/game/sound.h,0,0,0,0,0,0,0,0,2
+src/game/sound.h,0,0,0,0,0,0,0,0,1
 src/game/sound_manager.cpp,0,0,1,1,0,0,0,1,0
 src/game/spell.cpp,4,0,0,0,0,0,0,0,0
 src/game/spell_cast.cpp,0,11,2,1,2,0,0,0,0
@@ -230,10 +228,10 @@ src/game/ui_alpha_draws.cpp,5,0,0,0,0,0,0,0,0
 src/game/ui_battle_commands.cpp,15,0,0,0,0,0,0,3,0
 src/game/ui_battle_hover.cpp,23,7,0,0,0,0,0,0,0
 src/game/ui_battle_setup.cpp,0,2,0,0,2,0,0,5,1
-src/game/ui_battle_update.cpp,49,1,0,0,1,0,0,4,2
+src/game/ui_battle_update.cpp,49,1,0,0,1,0,0,4,1
 src/game/ui_briefing.h,0,0,0,0,0,0,0,0,1
 src/game/ui_camera_keys.cpp,0,0,0,1,0,0,0,0,0
-src/game/ui_camp.cpp,0,0,3,3,21,17,0,4,2
+src/game/ui_camp.cpp,0,0,3,3,21,17,0,4,1
 src/game/ui_camp.h,0,0,0,0,0,0,2,0,0
 src/game/ui_console_window.cpp,0,0,0,0,3,3,0,0,0
 src/game/ui_container_draws.cpp,32,3,0,0,1,1,0,0,0
@@ -274,14 +272,13 @@ src/game/ui_trade_grid_draw.cpp,18,1,0,0,0,0,0,0,0
 src/game/ui_trade_panel.cpp,0,0,0,0,1,0,0,1,0
 src/game/ui_window.cpp,0,0,1,0,0,0,0,1,0
 src/game/unit.cpp,9,3,0,1,0,0,0,0,0
-src/game/unit.h,0,0,0,0,0,0,19,0,2
+src/game/unit.h,0,0,0,0,0,0,19,0,0
 src/game/unit_ai.cpp,0,1,0,1,4,0,0,3,0
 src/game/unit_ai.h,0,0,0,0,2,0,1,0,4
 src/game/unit_ai_brain.cpp,0,0,0,0,0,0,0,0,1
 src/game/unit_ai_modes.cpp,0,1,1,1,3,0,0,4,1
 src/game/unit_client_attack.cpp,1,0,0,0,0,0,0,1,0
-src/game/unit_client_models.cpp,13,1,0,0,0,0,0,0,1
-src/game/unit_client_models.h,0,0,0,0,0,0,0,0,1
+src/game/unit_client_models.cpp,13,1,0,0,0,0,0,0,0
 src/game/unit_client_path.cpp,21,1,0,0,0,0,0,0,0
 src/game/unit_controller.cpp,0,0,0,0,0,0,2,0,0
 src/game/unit_create.cpp,1,4,0,0,1,0,0,0,0

@@ -22,14 +22,7 @@
 namespace mapspec {
 
 // An MFC CArray of plain elements (0x14 bytes).
-struct PlainArray {
-    void* vtable;
-    std::uint8_t* data;
-    int size;
-    int max;
-    int grow;
-};
-static_assert(sizeof(PlainArray) == 0x14);
+using PlainArray = mfc::CArray<std::uint8_t>;
 
 // The base record (vtable 0073C5C4, 0x4C bytes).
 struct Spec {

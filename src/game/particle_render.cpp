@@ -50,7 +50,6 @@ float TickFraction() { return *reinterpret_cast<const volatile float*>(0x007AFCA
 
 constexpr int kReserve = 0x1000;
 
-ParticleVertex* __fastcall AllocateVertices(int a0) { return (ParticleVertex*)AllocAligned16(a0); }
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { SpriteArrayConstructOriginal((void*)a0); }
 __declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
@@ -62,44 +61,6 @@ __declspec(naked) int __cdecl GameFtol(double) {
         call eax
         ret
     }
-}
-
-// The vertex array's SetSize, inlined twice by the original: no constructor, so the new elements
-// keep whatever the allocation held; the copy keeps the old ones.
-void SetVertexCount(ParticleVertexArray& a, int count) {
-    if (count == 0) {
-        if (a.data) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
-            a.data = nullptr;
-        }
-        a.max = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = AllocateVertices(count);
-        a.max = count;
-        a.size = count;
-        return;
-    }
-    if (count <= a.max) {
-        a.size = count;
-        return;
-    }
-    int grow = a.growBy;
-    if (grow == 0) {
-        grow = a.size / 8;
-        if (grow < 4) grow = 4;
-        else if (grow > 1024) grow = 1024;
-    }
-    int capacity = grow + a.max;
-    if (!(count < capacity)) capacity = count;
-    ParticleVertex* data = AllocateVertices(capacity);
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * sizeof(ParticleVertex));
-    gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = count;
-    a.max = capacity;
 }
 
 // The arrays are function-local statics in the original (guard bits 1 and 2 of 007A9BF4, the
@@ -114,7 +75,7 @@ void ConstructArrays() {
         Vertices().data = nullptr;
         ArraysConstructed() |= 2;
         Vertices().growBy = 0;
-        Vertices().max = 0;
+        Vertices().capacity = 0;
         Vertices().size = 0;
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x00497D10));
     }
@@ -156,45 +117,6 @@ int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** hold
 EI_REPLACE(0x00497CE0, BindParticleTexture);
 
 // 00497D50. CArray::SetSize for the 8-byte sprites: new elements are zeroed.
-void ParticleSpriteArray::SetSize(int count, int newGrowBy) {
-    if (newGrowBy != -1) growBy = newGrowBy;
-    if (count == 0) {
-        if (data) {
-            gamecrt::operator_delete(data);
-            data = nullptr;
-        }
-        max = 0;
-        size = 0;
-        return;
-    }
-    if (!data) {
-        data = static_cast<ParticleSprite*>(gamecrt::operator_new(static_cast<std::size_t>(count) * sizeof(ParticleSprite)));
-        std::memset(data, 0, static_cast<std::size_t>(count) * sizeof(ParticleSprite));
-        max = count;
-        size = count;
-        return;
-    }
-    if (count <= max) {
-        if (count > size) std::memset(data + size, 0, static_cast<std::size_t>(count - size) * sizeof(ParticleSprite));
-        size = count;
-        return;
-    }
-    int grow = growBy;
-    if (grow == 0) {
-        grow = size / 8;
-        if (grow < 4) grow = 4;
-        else if (grow > 1024) grow = 1024;
-    }
-    int capacity = grow + max;
-    if (!(count < capacity)) capacity = count;
-    auto* fresh = static_cast<ParticleSprite*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(ParticleSprite)));
-    std::memcpy(fresh, data, static_cast<std::size_t>(size) * sizeof(ParticleSprite));
-    std::memset(fresh + size, 0, static_cast<std::size_t>(count - size) * sizeof(ParticleSprite));
-    gamecrt::operator_delete(data);
-    size = count;
-    data = fresh;
-    max = capacity;
-}
 EI_REPLACE_METHOD(0x00497D50, ParticleSpriteArray::SetSize);
 
 // 004976B0. Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
@@ -211,9 +133,9 @@ int CParticleSource::Draw(void* renderer) {
     ConstructArrays();
     float t = Interpolation();
     Sprites().SetSize(kReserve, -1);
-    SetVertexCount(Vertices(), kReserve);
+    Vertices().SetSize(kReserve);   // SetSize inlined by the original
     Sprites().SetSize(particles.count, -1);
-    SetVertexCount(Vertices(), particles.count);
+    Vertices().SetSize(particles.count);
     if (!BindParticleTexture(renderer, nullptr, 0, &texture)) return 0;
 
     ParticleSprite* sprite = Sprites().data;

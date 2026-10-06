@@ -15,6 +15,7 @@
 
 #include "maths.h"
 
+#include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -85,15 +86,7 @@ struct ParticleDepth {
 };
 
 // 007A9C50: the draw order, an MFC CArray<ParticleDepth> (vtable, data, size, max, grow by).
-struct ParticleDepthArray {
-    void SetAtGrow(int index, const ParticleDepth& entry);     // 00499200
-
-    void* vtable;
-    ParticleDepth* data;
-    int size;
-    int max;
-    int growBy;
-};
+using ParticleDepthArray = mfc::CArray<ParticleDepth>;   // SetAtGrow 00499200 is the template's
 
 // The draw order's sort: STLport's introsort on [first, last) with "greater depth first"
 // (far sources first), as instantiated in game.exe. All __fastcall (first, last in registers).
@@ -364,22 +357,9 @@ struct ParticleSprite {
     int frame;                      // texture frame index (+ the source's base +0x1D0)
 };
 // 007A9BD0: data 32-byte aligned (00468F70), the block address below it.
-struct ParticleVertexArray {
-    ParticleVertex* data;
-    int size;
-    int max;
-    int growBy;
-};
+using ParticleVertexArray = lib::AlignedArray<ParticleVertex>;
 // 007A9BE0: an MFC-style array with a vtable (0073C584, constructor 00468D60).
-struct ParticleSpriteArray {
-    void SetSize(int count, int growBy);            // 00497D50 (-1 keeps the grow step)
-
-    void* vtable;
-    ParticleSprite* data;
-    int size;
-    int max;
-    int growBy;
-};
+using ParticleSpriteArray = mfc::CArray<ParticleSprite>;   // SetSize 00497D50 is the template's
 
 // 00497D40. The list position's particle, advancing the position (MFC GetNext); __thiscall on the
 // list, which it does not use.

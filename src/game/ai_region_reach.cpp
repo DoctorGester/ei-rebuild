@@ -35,13 +35,7 @@ struct BlockPoint {
 
 // The function-local static CArray<{int x, y}> at 007C2EE0 (data +4, size +8, capacity +0xC),
 // guard bit 0 of 007C2EF4, constructed by 00557230, destroyed at exit by 005B0AE0.
-struct PointArray {
-    void* vtable;
-    BlockPoint* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using PointArray = mfc::CArray<BlockPoint>;
 PointArray& Blocks() { return *reinterpret_cast<PointArray*>(0x007C2EE0); }
 std::uint8_t& BlocksGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2EF4); }
 
@@ -238,7 +232,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, void* ma
         GameDelete(blocks.data);
         blocks.data = nullptr;
     }
-    blocks.capacity = 0;
+    blocks.maxSize = 0;
     blocks.size = 0;
     for (int yy = by - 1; yy < by + 2; ++yy) {
         if (yy < 0 || yy >= At<int>(this, kBlocksHigh)) continue;
@@ -756,7 +750,7 @@ void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, 
             GameDelete(next->data);
             next->data = nullptr;
         }
-        next->capacity = 0;
+        next->maxSize = 0;
         next->size = 0;
         // Every open edge (word >= 0) of a frontier block leads to a neighbour; an unlabelled one
         // takes the label and joins the next frontier.
