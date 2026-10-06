@@ -29,7 +29,8 @@ comes from a bug we already hit.
   original address. Classes mirror the original memory layout exactly, with `static_assert`s on sizes
   and offsets. Unknown bytes are `unknown_XXX` fields.
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
-  functions, file I/O), `mfc.h` (CString, CFile, CFileFind, CTypedPtrList, CPlex), `stlp.h` (STLport
+  functions, file I/O), `mfc.h` (CString, CFile, CFileFind, CArray, CList, CTypedPtrList, CPlex),
+  `containers.h` (the engine's aligned arrays), `stlp.h` (STLport
   string/vector/hash_map on the game's node allocator), `gameapi.h` (Win32 through the game's import
   table; generated). Add to these only when needed, in small separate additions.
 - `tests/verify/verify_<area>.cpp`: verify wrappers. `tests/verify/verified.txt` is updated centrally.
@@ -136,7 +137,14 @@ does not need a second pass:
 - game globals are named (`constexpr` address in one header, or an accessor), not literal
   addresses in the code; hook registrations (`EI_REPLACE`, `EI_ORIGINAL`, `EI_VERIFY`) keep theirs;
 - no `__asm`, no `#pragma float_control` (rule 7);
-- forwarders come from `src/game/originals_<area>.h` (rule 5).
+- forwarders come from `src/game/originals_<area>.h` (rule 5);
+- containers use the shared templates: `mfc::CArray<T>`, `mfc::CList<T>`, `mfc::CTypedPtrList<T>`
+  (`src/lib/mfc.h`), `lib::AlignedArray<T>` (the engine's 32-byte aligned arrays,
+  `src/lib/containers.h`) and `stlp::` (`src/lib/stlp.h`). Do not declare a container layout per
+  file (`struct FooArray { void* vtable; T* data; int size; ... }`, `struct ListNode { next, prev }`)
+  and do not hand-inline SetSize / RemoveAt / Add: call the template's member, or forward to the
+  original instantiation with the template as its parameter type. Which original addresses belong
+  to which template: `docs/notes/core.md`, "Shared containers".
 `build.cmd` runs `tools/check_cleanup.py`: per file, the counts of these patterns may only go down
 (config/cleanup_baseline.csv; a new file starts at zero). After a cleanup ticket lowers them, run
 `python tools/check_cleanup.py --update`.

@@ -22,7 +22,13 @@ PATTERNS = {
     # named slot, and byte arithmetic on a pointer with a literal offset instead of a member.
     'placeholder virtual (SlotNN)': re.compile(r'\bSlot\d+\s*\('),
     'byte offset arithmetic': re.compile(r'(?:char|uint8_t|byte)\s*\*\s*>\s*\([^()]*(?:\([^()]*\))?[^()]*\)\s*\+\s*0x'),
+    # A container layout declared in a game file (struct FooArray { ... }, struct BarList : ...)
+    # instead of the shared templates in src/lib (mfc::CArray / CList, lib::AlignedArray, stlp::).
+    # Definitions only; src/lib itself is not counted.
+    'per-file container struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Array|List)\b(?=\s*[:{])'),
 }
+# Patterns not counted under these directories.
+EXEMPT = {'per-file container struct': 'src/lib/'}
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
 REGISTRATION = re.compile(r'EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|VERIFY|REBIRTH_IMPLEMENTS)\s*\(\s*$')
@@ -43,6 +49,9 @@ def counts():
         row = {}
         for name, rx in PATTERNS.items():
             n = 0
+            if name in EXEMPT and rel.startswith(EXEMPT[name]):
+                row[name] = 0
+                continue
             for m in rx.finditer(text):
                 if name.startswith('raw game address') and REGISTRATION.search(text[max(0, m.start() - 40):m.start()]):
                     continue
@@ -55,9 +64,14 @@ def counts():
 def main(argv):
     now = counts()
     base = {}
+    header = []
     if os.path.exists(BASELINE):
-        for r in csv.DictReader(open(BASELINE, newline='')):
+        reader = csv.DictReader(open(BASELINE, newline=''))
+        header = reader.fieldnames or []
+        for r in reader:
             base[r['file']] = {k: int(r[k]) for k in PATTERNS if r.get(k) not in (None, '')}
+    # A pattern the baseline has no column for yet is seeded from the current counts of every file.
+    seeded = [k for k in PATTERNS if k not in header]
     if '--update' in argv:
         with open(BASELINE, 'w', newline='') as f:
             w = csv.writer(f, lineterminator='\n')
@@ -68,7 +82,7 @@ def main(argv):
                     old = base.get(rel, {})
                     row = {k: min(row[k], old.get(k, row[k])) for k in PATTERNS}
                 else:
-                    row = {k: 0 for k in PATTERNS}
+                    row = {k: row[k] if k in seeded else 0 for k in PATTERNS}
                 if any(row.values()):
                     w.writerow([rel] + [row[k] for k in PATTERNS])
         print(f'wrote {os.path.relpath(BASELINE, ROOT)}')
