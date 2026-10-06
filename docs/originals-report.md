@@ -1436,23 +1436,23 @@ Rewritten as `TweenArray::RemoveAll` (src/game/model_db.cpp).
 STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 2).
 
 ### 0x004049D0: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:384`: `void** __fastcall ListEnd4049D0Original(const void* /*list*/, void*, void** /*out*/)`
+- `src/game/originals_library.h:389`: `void** __fastcall ListEnd4049D0Original(const void* /*list*/, void*, void** /*out*/)`
 - `src/game/ui_battle_update.cpp:230`: `ListNode** __fastcall IndexListEnd(List*, void*, ListNode**)`
 
 ### 0x00404A40: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:386`: `void** __fastcall ListInsert404A40Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/)`
+- `src/game/originals_library.h:391`: `void** __fastcall ListInsert404A40Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/)`
 - `src/game/ui_battle_update.cpp:232`: `ListNode** __fastcall IndexListInsert(List*, void*, ListNode**, ListNode*, const int*)`
 
 ### 0x00404A70: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:388`: `void* __fastcall ListConstruct404A70Original(void* /*list*/, void*, const void* /*alloc*/)`
+- `src/game/originals_library.h:393`: `void* __fastcall ListConstruct404A70Original(void* /*list*/, void*, const void* /*alloc*/)`
 - `src/game/ui_battle_update.cpp:229`: `void __fastcall IndexListConstruct(List*, void*, const void*)`
 
 ### 0x00404D70: 2 files, 2 sites, same signature, names differ
-- `src/game/originals_library.h:146`: `void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/)`
+- `src/game/originals_library.h:151`: `void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/)`
 - `src/lib/stlp.cpp:13`: `void __fastcall NodeDeallocate(void*, std::size_t)`
 
 ### 0x00405950: 2 files, 2 sites, same signature, names differ
-- `src/game/originals_library.h:198`: `void* __fastcall NodeAllocateOriginal(std::size_t /*bytes*/)`
+- `src/game/originals_library.h:203`: `void* __fastcall NodeAllocateOriginal(std::size_t /*bytes*/)`
 - `src/lib/stlp.cpp:12`: `void* __fastcall NodeAllocate(std::size_t)`
 
 ### 0x00411850: 2 files, 2 sites, signatures differ
@@ -1489,7 +1489,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/net_connection_tick.cpp:36`: `FreedBatch** __fastcall FreedInsert(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/)`
 
 ### 0x00460500: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:394`: `void __fastcall DwordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, std::uint32_t /*value*/)`
+- `src/game/originals_library.h:399`: `void __fastcall DwordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, std::uint32_t /*value*/)`
 - `src/game/ui_battle_commands.cpp:51`: `void __fastcall ChosenSetAtGrow(UiDwordArray*, void*, int, std::uint32_t)`
 
 ### 0x004614C0: 2 files, 2 sites, same signature, names differ
@@ -1554,7 +1554,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/script_reset.cpp:48`: `void __fastcall AreasSetSize(void*, void*, int, int)`
 
 ### 0x004E2FA0: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:401`: `void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, std::uint32_t /*count*/)`
+- `src/game/originals_library.h:406`: `void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, std::uint32_t /*count*/)`
 - `src/game/ui_battle_update.cpp:181`: `void __fastcall IdsInsertOverflow(IdVector*, void*, int*, const int*, int)`
 
 ### 0x00581790: 2 files, 2 sites, signatures differ
@@ -1566,7 +1566,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/world_spells.cpp:68`: `ProjectileList::Node* __fastcall ProjectileNewNode(ProjectileList*, void*, ProjectileList::Node*, ProjectileList::Node*)`
 
 ### 0x0059D2E0: 2 files, 2 sites, same signature, names differ
-- `src/game/originals_library.h:396`: `void __fastcall RecordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, void* /*record*/)`
+- `src/game/originals_library.h:401`: `void __fastcall RecordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, void* /*record*/)`
 - `src/game/ui_battle_update.cpp:216`: `void __fastcall RecordsSetAtGrow(void*, void*, int, void*)`
 
 ### 0x005EBDB0: 5 files, 5 sites, signatures differ
@@ -1581,19 +1581,19 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/ui_create_screen.cpp:42`: `void __fastcall Member5F8F10(void*, void*, const void*)`
 
 ### 0x006E6370: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:414`: `void* __fastcall CFileFindConstructOriginal(void* /*find*/)`
+- `src/game/originals_library.h:419`: `void* __fastcall CFileFindConstructOriginal(void* /*find*/)`
 - `src/lib/mfc.cpp:37`: `CFileFind::CFileFind()`
 
 ### 0x006E63AD: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:415`: `void __fastcall CFileFindDestructOriginal(void* /*find*/)`
+- `src/game/originals_library.h:420`: `void __fastcall CFileFindDestructOriginal(void* /*find*/)`
 - `src/lib/mfc.cpp:38`: `CFileFind::~CFileFind()`
 
 ### 0x006E63E9: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:416`: `void __fastcall CFileFindCloseOriginal(void* /*find*/)`
+- `src/game/originals_library.h:421`: `void __fastcall CFileFindCloseOriginal(void* /*find*/)`
 - `src/game/ui_saveload.cpp:158`: `void FileFindOps::Close()`
 
 ### 0x006E6433: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:418`: `int __fastcall CFileFindFindFileOriginal(void* /*find*/, void*, const char* /*name*/, unsigned long /*flags*/)`
+- `src/game/originals_library.h:423`: `int __fastcall CFileFindFindFileOriginal(void* /*find*/, void*, const char* /*name*/, unsigned long /*flags*/)`
 - `src/lib/mfc.cpp:39`: `BOOL CFileFind::FindFile(const char*, unsigned long)`
 
 ### 0x006E6653: 2 files, 2 sites, signatures differ
@@ -1601,7 +1601,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/ui_saveload.cpp:154`: `BOOL FileFindOps::Next()`
 
 ### 0x006E6722: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:420`: `mfc::CString* __fastcall CFileFindPathOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)`
+- `src/game/originals_library.h:425`: `mfc::CString* __fastcall CFileFindPathOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)`
 - `src/game/ui_saveload.cpp:156`: `mfc::CString FileFindOps::FilePath() const`
 
 ### 0x006E7E80: 2 files, 2 sites, same signature, names differ
@@ -1630,7 +1630,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/lib/crt.cpp:15`: `int __cdecl strnicmp(const char*, const char*, std::size_t)`
 
 ### 0x006FC7FA: 2 files, 2 sites, same signature, names differ
-- `src/game/originals_library.h:366`: `void* __fastcall OstreamPutDoubleOriginal(void* /*stream*/, void*, double /*value*/)`
+- `src/game/originals_library.h:371`: `void* __fastcall OstreamPutDoubleOriginal(void* /*stream*/, void*, double /*value*/)`
 - `src/game/ui_hud.cpp:610`: `void* __fastcall StreamDouble(void*, void*, double)`
 
 ### 0x006FD559: 2 files, 2 sites, same signature, names differ
@@ -1647,7 +1647,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/script_parse.cpp:35`: `mfc::CString StringOps::Mid(int, int) const`
 
 ### 0x006FDBD9: 4 files, 4 sites, signatures differ
-- `src/game/originals_library.h:173`: `int __fastcall CStringFindTextOriginal(const void* /*string*/, void*, const char* /*text*/)`
+- `src/game/originals_library.h:178`: `int __fastcall CStringFindTextOriginal(const void* /*string*/, void*, const char* /*text*/)`
 - `src/game/scene_loader.cpp:724`: `int Text::Find(const char*) const`
 - `src/game/script_parse.cpp:36`: `int StringOps::Find(const char*) const`
 - `src/game/world_game.cpp:1974`: `int TextOpsAt::Find(const char*) const`
@@ -1659,17 +1659,17 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 ### 0x006FE11F: 4 files, 4 sites, signatures differ
 - `src/game/ini_file.cpp:192`: `void TextOps::TrimLeft()`
 - `src/game/item_constructor.cpp:435`: `void ItemText::TrimSpaceRight()`
-- `src/game/originals_library.h:174`: `void __fastcall CStringTrimRightOriginal(void* /*string*/)`
+- `src/game/originals_library.h:179`: `void __fastcall CStringTrimRightOriginal(void* /*string*/)`
 - `src/game/spell_text.cpp:57`: `void TextOps::TrimLeft()`
 
 ### 0x006FE216: 4 files, 4 sites, signatures differ
 - `src/game/ini_file.cpp:191`: `void TextOps::TrimRight()`
 - `src/game/item_constructor.cpp:434`: `void ItemText::TrimSpaceLeft()`
-- `src/game/originals_library.h:170`: `void __fastcall CStringTrimLeftOriginal(void* /*string*/)`
+- `src/game/originals_library.h:175`: `void __fastcall CStringTrimLeftOriginal(void* /*string*/)`
 - `src/game/spell_text.cpp:56`: `void TextOps::TrimRight()`
 
 ### 0x006FE90F: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:195`: `void __fastcall PlexFreeDataChainOriginal(void* /*chain*/)`
+- `src/game/originals_library.h:200`: `void __fastcall PlexFreeDataChainOriginal(void* /*chain*/)`
 - `src/lib/mfc.cpp:42`: `void __fastcall PlexFreeDataChain(CPlex*)`
 
 ### 0x006FEE9A: 2 files, 2 sites, identical
@@ -1700,23 +1700,23 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/lib/mfc.cpp:12`: `CString::CString(const char*)`
 
 ### 0x00700AA9: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:159`: `void* __fastcall CStringAssignOriginal(void* /*destination*/, void*, const void* /*source*/)`
+- `src/game/originals_library.h:164`: `void* __fastcall CStringAssignOriginal(void* /*destination*/, void*, const void* /*source*/)`
 - `src/lib/mfc.cpp:16`: `const CString& CString::operator=(const CString&)`
 
 ### 0x00700AF9: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:163`: `void* __fastcall CStringAssignTextOriginal(void* /*destination*/, void*, const char* /*text*/)`
+- `src/game/originals_library.h:168`: `void* __fastcall CStringAssignTextOriginal(void* /*destination*/, void*, const char* /*text*/)`
 - `src/lib/mfc.cpp:15`: `const CString& CString::operator=(const char*)`
 
 ### 0x00700B9F: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:371`: `mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/, const mfc::CString* /*right*/)`
+- `src/game/originals_library.h:376`: `mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/, const mfc::CString* /*right*/)`
 - `src/lib/mfc.cpp:46`: `CString __stdcall operator+(const CString&, const CString&)`
 
 ### 0x00700C05: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:374`: `mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/, const char* /*right*/)`
+- `src/game/originals_library.h:379`: `mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/, const char* /*right*/)`
 - `src/lib/mfc.cpp:44`: `CString __stdcall operator+(const CString&, const char*)`
 
 ### 0x00700D4C: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:430`: `void* __fastcall CStringAppendTextOriginal(void* /*string*/, void*, const char* /*text*/)`
+- `src/game/originals_library.h:435`: `void* __fastcall CStringAppendTextOriginal(void* /*string*/, void*, const char* /*text*/)`
 - `src/lib/mfc.cpp:28`: `const CString& CString::operator+=(const char*)`
 
 ### 0x00700DA0: 2 files, 2 sites, same signature, names differ
@@ -1728,7 +1728,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/lib/mfc.cpp:24`: `void CString::ReleaseBuffer(int)`
 
 ### 0x00700E17: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:432`: `char* __fastcall CStringGetBufferSetLengthOriginal(void* /*string*/, void*, int /*length*/)`
+- `src/game/originals_library.h:437`: `char* __fastcall CStringGetBufferSetLengthOriginal(void* /*string*/, void*, int /*length*/)`
 - `src/lib/mfc.cpp:22`: `char* CString::GetBufferSetLength(int)`
 
 ### 0x00700EFE: 3 files, 3 sites, same signature, names differ
@@ -1742,11 +1742,11 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/ui_saveload.cpp:115`: `void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned)`
 
 ### 0x007090C2: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:435`: `int __fastcall DcSetBkModeOriginal(void* /*dc*/, void*, int /*mode*/)`
+- `src/game/originals_library.h:440`: `int __fastcall DcSetBkModeOriginal(void* /*dc*/, void*, int /*mode*/)`
 - `src/game/ui_console_window.cpp:424`: `int GameDC::SetBkMode(int)`
 
 ### 0x0070BB04: 2 files, 2 sites, signatures differ
-- `src/game/originals_library.h:437`: `void __fastcall DcFillSolidRectOriginal(void* /*dc*/, void*, int /*x*/, int /*y*/, int /*cx*/, int /*cy*/, std::uint32_t /*colour*/)`
+- `src/game/originals_library.h:442`: `void __fastcall DcFillSolidRectOriginal(void* /*dc*/, void*, int /*x*/, int /*y*/, int /*cx*/, int /*cy*/, std::uint32_t /*colour*/)`
 - `src/game/ui_console_window.cpp:423`: `void GameDC::FillSolidRect(int, int, int, int, COLORREF)`
 
 ## Not yet ported (27)
