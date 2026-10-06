@@ -133,6 +133,16 @@ public:
     // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs and the six tab buttons' sprites
     // (scene objects 2..7) hidden.
     void SetupFigures(MpStringVector* names, char top, char noArrowTips);
+    // The figure strips' own slots (vtable 00741BF4; ui_item_strip_setup.cpp). 00629AF0 (slot 20,
+    // RET 4, returns 1): the end faces dimmed where it can scroll on, the background and cells
+    // placed by the current tab's fraction, the frame (scene object 8) on selected_ when it is in
+    // view, the window's sprites, then each visible name's hero face through the owner (005ED7B0).
+    // 00629AD0 (slot 26): count_ = the number of names. 00629DB0 (input slot 2, RET 0xC; the
+    // result is not read): the strip's own click, then on the items (region 8) the figure under
+    // the point (as ItemAt) picked: the "on_off" sound and the owner's slot 52 with its name.
+    BOOL DrawFigures(int pass);
+    void CountFigures();
+    void OnFigureClick(int buttons, int x, int y);
     // 00620380 (RET 4; ui_item_strip.cpp; from the camp's and the hero screen's strip setup
     // 00621160 / 00629A40). Lays the strip out along the top edge (`top`: y 0, scale 8) or the
     // bottom (y 500, scale 4): the scroll state cleared, nine regions (arrows, six tab buttons, the

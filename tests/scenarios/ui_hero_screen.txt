@@ -23,6 +23,11 @@ clickregion 10
 wait 800
 clickregion 2
 wait 300
+# The two figure strips (top: the defaults, bottom: the names; 00629DB0): a figure in each.
+click 250 50
+wait 500
+click 250 550
+wait 500
 # Region 4: the attributes back to their defaults.
 clickregion 4
 wait 500
