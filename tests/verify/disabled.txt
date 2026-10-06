@@ -1,2 +1,5 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
+004D7BD0 DecalBuilder::ClipPlane: mismatches (A-S5); X17 fixing (2026-10-07)
+004D85F0 DecalBuilder::AddTriangle: mismatches; X17
+004D8490 DecalBuilder::AddTerrainTriangle: mismatches; X17
