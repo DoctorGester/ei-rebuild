@@ -248,7 +248,9 @@ public:
     virtual void Slot15() = 0;
     virtual void Slot16() = 0;
     virtual void Slot17() = 0;
-    virtual void Slot18() = 0;
+    // 18 (0x48): whether the object may play the animation entry (FigureAnimation, map_object_figures.h);
+    // 0050E400 for CObject3D / CMapObject, CUnit 00532DA0 (AcceptsTarget: its flags +0x18 for heroes).
+    virtual bool AcceptsAnimation(const void* animation) = 0;
     virtual void Slot19() = 0;
     virtual void Slot20() = 0;
     virtual bool InvisibleSlot() = 0;   // 21 (0x54): 0050FA10 IsInvisible

@@ -144,7 +144,7 @@ public:
     virtual void Slot20();
     virtual void Slot21();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
-    virtual void Slot23();
+    virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
     virtual void Slot24();
     virtual void Slot25();
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)

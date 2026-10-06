@@ -155,10 +155,13 @@ struct UnitModelRecord {
     mfc::CString soundFolder;       // +0x124 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
     std::uint8_t unknown_128[0x10]; // not serialised
     CStringVector soundNames;       // +0x138 0x23 (0053A8E0 counts the .wav files of each)
-    std::uint8_t unknown_144[0xC];  // a vector of the counts; not serialised (SoundCounts())
+    // +0x144 the number of sound files of each soundNames entry (an STLport vector<int>; counted
+    // at startup, 0053A8E0; not serialised).
+    std::uint32_t* soundCounts;
+    std::uint32_t* soundCountsEnd;
+    std::uint32_t* soundCountsEndOfStorage;
 
-    // The number of sound files of each soundNames entry (counted at startup, 0053A8E0).
-    const std::uint32_t* SoundCounts() const { return *reinterpret_cast<std::uint32_t* const*>(unknown_144); }
+    const std::uint32_t* SoundCounts() const { return soundCounts; }
     std::uint32_t idleSoundChance;  // +0x150 0x25 percent
     std::uint32_t attackSoundChance;    // +0x154 0x26 percent
     // The eyes on the skin texture (in 256ths of its width; the blink, 00538ED0 / 00539010; read
@@ -176,3 +179,19 @@ static_assert(offsetof(UnitModelRecord, soundFolder) == 0x124);
 static_assert(offsetof(UnitModelRecord, idleSoundChance) == 0x150);
 static_assert(offsetof(UnitModelRecord, soundNames) == 0x138);
 static_assert(sizeof(UnitModelRecord) == 0x168);
+static_assert(offsetof(UnitModelRecord, soundCounts) == 0x144);
+
+// The unit database (global 007AF358): four 0x20-byte tables (prototypes, NPCs, models, ...;
+// unit_create.h / unit.h read them as their own tables). Only the models are named here.
+struct UnitDatabase {
+    // 0053A8E0 (unit_sound_counts.cpp, RET 4). Lists the "*.wav" files of the sound system
+    // `sounds` (006B7110), lower-cases them, then gives each model's sound names (lower-cased in
+    // place) the number of files whose name starts with it (soundCounts, resized to the names).
+    void CountSoundFiles(void* sounds);
+
+    std::uint8_t unknown_00[0x40];
+    UnitModelRecord* modelsBegin;   // +0x40
+    UnitModelRecord* modelsEnd;     // +0x44
+    UnitModelRecord* modelsEndOfStorage;
+};
+static_assert(offsetof(UnitDatabase, modelsBegin) == 0x40);
