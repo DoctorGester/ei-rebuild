@@ -398,6 +398,8 @@ they need the interface's key flag +0x7F during a click, or Ctrl / Alt held duri
 SetPendingAction plus an immediate 00637500 / 00637750 and `CSpell::IsOffensive` (0068B770, Rebirth-patched: call through its
 address).
 
+A-I6 quirks kept: `OnUnitJoined` appends a unit without a record but marks the portrait at the count of records matched; `OnMessageResult` (0x20001) writes the load window's flags without checking the allocation; the message box's OK copies the edit text into the caller's buffer without a length check; `CMpHeroScreen::OnKeyDown` leaves the paging keys unused outside modes 9 / 10.
+
 ## 7. Battle HUD panels
 
 Files: `ui_hud.cpp` (panel input and per-frame slots), `ui_hud_map.cpp`, `ui_hud_frame.cpp` (clock, top panel),
