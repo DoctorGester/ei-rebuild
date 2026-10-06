@@ -262,3 +262,13 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
   0x269EC3`, each byte XORed with `x >> 16`) start every magic trap armed and disarm them from triggers (`ActivateTrap(MTF1..4, 0)`);
   the `zone_gz2g_traps` scenario reaches command 8 (`KillScript() VTriger#0#n( this )`) from a killed instance, which is why the
   Execute observer reads the instance list's head (+0x144), not the tail.
+
+## A-S4 (2026-10-06): live leftovers of 0x00480000-0x00500000
+
+| Area (file) | Addresses and names | Verify |
+|---|---|---|
+| Particle attachment (`particle_attach.cpp`) | 004849F0 `CParticleSource::Attach`, 00484C00 `AttachmentPoint`, 00484B40 `PartPoint`, 00485280 `AttachmentOffset`, 00485380 `StopAndClear` (+ `ReleaseAllParticles`, shared with Clear) | PartPoint / AttachmentPoint / AttachmentOffset against the original (CheckNear; a unit's effect point, attachPoint 0, not compared: 00532860 can read uninitialised stack); Attach / StopAndClear ours only (attachedTo, listed in the object's sources, origin = the original's attachment point or the position). `particles`, `spells_cast` |
+
+- Attachment facts: attachPoint 1-7 = "hd", "hd" + 1 in z, "lh2", "rh2", "ll2", "rl2", "bd"; 8-12 = "body00".."body04";
+  every part falls back to "bd", then to the position raised by the bounds' upper z extent. Not a unit or attachPoint > 12:
+  position raised by radius * 1.6 (bounds bit 0) or the box height. Attach recurses through Add/RemoveEffectSource.

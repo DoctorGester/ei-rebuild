@@ -55,6 +55,7 @@ struct ParticleElement {
 static_assert(sizeof(ParticleElement) == 0x38);
 
 class CParticleSource;
+class CObject3D;
 
 // The particle manager (a CBaseManager; CParticleSource +0x14 points to it): it owns the sources
 // (the manager's object list at +0x34) and keeps a pool of free particles, an MFC list at +0xB0
@@ -237,7 +238,8 @@ public:
     int EmitStun(Particle* p, int index);           // 00495FB0 (Stun, 0x204D)
     int UpdateStun(Particle* p);                    // 004961B0
 
-    // Not rewritten (forwarder): offset and radius of the attachment's figure.
+    // particle_attach.cpp. Offset (0, 0, the bounds centre's z) and radius of the object followed
+    // (its bounds recomputed); (0, 0, 0) and 0.1 when there is none. Returns `out`.
     Vector3* AttachmentOffset(Vector3* out, float* radius);   // 00485280
 
     // --- per-element callbacks (+0x1E8) ---
@@ -251,9 +253,21 @@ public:
     void StartEmitting();                           // 00485450: flags bits 0 and 2 on
     void Stop();                                    // 00485360: bits 0 and 2 off, detach
 
-    // Not rewritten (forwarders).
+    // particle_attach.cpp. Follow `object` (a CObject3D, or null to let go): the old object
+    // drops the source (its point is folded into the local position), the new one adds it, and
+    // the emission point becomes the new attachment point (or the local position).
     void Attach(void* object);                      // 004849F0
+    // Where the source sits on `object` (a CObject3D): with flag 0x10 a unit's part chosen by
+    // attachPoint (0 the effect point, 1-7 head / hands / legs / body, 8-12 body00-04), else the
+    // top of its bounds; without flag 0x10 its position. Returns `out`.
     Vector3* AttachmentPoint(Vector3* out, void* object);   // 00484C00
+    // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else
+    // its position raised by the bounds' upper z extent. Returns `out` (`this` is not used).
+    Vector3* PartPoint(Vector3* out, CObject3D* object, const char* prefix);   // 00484B40
+    // Every particle back to the pool, emission off (flags 0 and 2), detached.
+    void StopAndClear();                            // 00485380
+    // The loop Clear and StopAndClear share: every particle unlinked and returned to the pool.
+    void ReleaseAllParticles();
 
     void* vtable_;                  // +0x000
     int refCount_;                  // +0x004

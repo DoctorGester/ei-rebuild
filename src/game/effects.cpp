@@ -92,8 +92,6 @@ constexpr int kTypeAntimagic = 0x201A;
 
 } // namespace
 
-void CParticleSource::Attach(void* a0) { ParticleSourceAttachOriginal((void*)this, nullptr, a0); }
-
 // --- Free helpers -------------------------------------------------------------------------------
 
 Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d) {

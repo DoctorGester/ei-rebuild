@@ -392,8 +392,6 @@ int CParticleSource::EmitLightning(Particle* p, int) {
 }
 EI_REPLACE_METHOD(0x004923B0, CParticleSource::EmitLightning);
 
-__declspec(naked) Vector3* CParticleSource::AttachmentOffset(Vector3*, float*) EI_ORIGINAL(0x00485280)
-
 // 00490130. Modifier1-12 (needs a carrier): on the first emission |size| * 10 points (at least
 // one) are scattered on a ring around the carrier. Then one particle per point while the fade has
 // not started (frame = the modifier's number), then drifting sparks between a random point and
