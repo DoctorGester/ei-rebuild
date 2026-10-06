@@ -108,7 +108,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     int ux = WorldToCell(from.x), uy = WorldToCell(from.y);
     int sizeClass = unit->sizeClass;
     int region = 0;
-    auto* marks = *reinterpret_cast<std::uint8_t***>(reinterpret_cast<char*>(this) + 0x26BC);
+    auto** markRows = reinterpret_cast<std::uint8_t**>(marks.rows);
     if (sameRegion) {
         region = Regions()->RegionAt(sizeClass, ux, uy);
         // Clear the reachability marks in the box spanned by the unit and the target (and a margin).
@@ -121,7 +121,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
         if (y0 < 0) y0 = 0;
         if (height < y1) y1 = height;
         for (int y = y0; y < y1; ++y) {
-            for (int x = x0; x < x1; ++x) marks[y][x] = 0;
+            for (int x = x0; x < x1; ++x) markRows[y][x] = 0;
         }
     }
 
@@ -165,7 +165,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
                 if (!CanStandAt(unit, cx, cy, &reason) || !IsCellPassable(this, unit, cx, cy)) continue;
             }
             if (sameRegion) {
-                std::uint8_t mark = marks[cy][cx];
+                std::uint8_t mark = markRows[cy][cx];
                 if (mark != 1) {
                     if (mark == 2) continue;
                     if (!Regions()->Reaches(sizeClass, cx, cy, region, reinterpret_cast<char*>(this) + 0x26B8)) continue;

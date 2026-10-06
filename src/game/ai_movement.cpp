@@ -105,12 +105,12 @@ EI_REPLACE_METHOD(0x005B7BB0, CAIMap::BlockingUnitAt);
 
 const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     std::uint32_t tenth = 0x3DCCCCCD;   // 0.1f
-    std::memcpy(&out->unknown_14, &tenth, sizeof(tenth));
-    std::memcpy(&out->unknown_0C, &tenth, sizeof(tenth));
+    std::memcpy(&out->forwardSpeed, &tenth, sizeof(tenth));
+    std::memcpy(&out->backwardSpeed, &tenth, sizeof(tenth));
     out->unknown_10 = 10.0f;
     out->shift = sizeClass * 4;
     const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
-    out->costs = reinterpret_cast<const int*>(unknown_014);
+    out->costs = passCosts;
     out->climb = climb.costs + climb.count / 2;
     return out->climb;
 }
@@ -122,8 +122,7 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
     int shift = unit->sizeClass * 4;
     const ClimbTable& climbTable = shift == 0 ? climbSmall : climbLarge;
     const int* climb = climbTable.costs + climbTable.count / 2;
-    const int* stepCosts = reinterpret_cast<const int*>(unknown_014 + 0x80);  // CAIMap + 0x94
-    PassCostContext context;
+        PassCostContext context;
     CostContext(unit->sizeClass, &context);
 
     PathCellList::Node* node = steps->head;

@@ -78,9 +78,9 @@ struct PassCostContext {
     const int* costs;       // CAIMap + 0x14: cost per passability nibble
     const int* climb;       // middle of the climb table of the size class
     int shift;              // size class * 4: the nibble in AIMapCell::passable
-    float unknown_0C;       // 0.1
+    float backwardSpeed;    // +0x0C 0.1, or the unit's (CostContextFor)
     float unknown_10;       // 10
-    float unknown_14;       // 0.1
+    float forwardSpeed;     // +0x14 0.1, or the unit's
 };
 static_assert(sizeof(PassCostContext) == 0x18);
 
@@ -300,6 +300,37 @@ struct LocalSearch {
     // 005C3200. The path from the start to map cell (x, y), walked back along the directions, into
     // `out` (emptied first; nothing when the cell is outside the window).
     void PathTo(int x, int y, PathCellList* out);
+    // 005C22A0. Places the window over map cells (x0, y0) and (x1, y1): less than 32 apart, both on
+    // the map; centred, both at least one cell inside. False (window unchanged) otherwise.
+    bool PlaceWindow(int x0, int y0, int x1, int y1);
+    // 005C21A0. Takes the unit's cost tables, size class and standing level.
+    void SetUnit(CUnit* unit);
+    // 005C2420. Starts a search for `unit` at (x0, y0) with the window over it and (x1, y1).
+    bool Begin(CUnit* unit, int x0, int y0, int x1, int y1);
+    // 005C24F0. Begin for a size class instead of a unit.
+    bool BeginForClass(int sizeClass, int x0, int y0, int x1, int y1);
+    // 005C2B10. Starts a search at (sx, sy) confined to the rectangle (x0, y0)-(x1, y1) (x0 <= x1,
+    // y0 <= y1, at most 28 apart): the row below and the column right of it are made unusable.
+    bool BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy);
+    // 005C2C90 / 005C2CF0. BeginInRect for a unit / a size class.
+    bool BeginInRectFor(CUnit* unit, int x0, int y0, int x1, int y1, int sx, int sy);
+    bool BeginInRectForClass(int sizeClass, int x0, int y0, int x1, int y1, int sx, int sy);
+    // 005C2A30. Copies the reached cells' directions into the map's marks (CAIMap::marks) where
+    // they are still 0.
+    void CommitDirections();
+    // 005C33F0. Saves the window's cell levels into `levels` (zeroing them in the map with `clear`).
+    void SaveLevels(bool clear);
+    // 005C3530. Puts the saved cell levels back.
+    void RestoreLevels();
+    // 005C1EA0 (RET 8). Attaches the search to `map`: a fresh 34 x 34 node grid (the border
+    // unusable) and the row table.
+    void Attach(CAIMap* map, bool backward);
+    // 005C25D0 (RET 0x14). Moves the window over (x0, y0)-(x1, y1) keeping what was searched: the
+    // nodes are shifted, then (with `settleInside`) the ones cheaper than the cheapest kept border
+    // node are settled and the rest queued, or (without) the settled stay and the reached are
+    // queued. False when the window cannot be placed (unchanged) or moved 31 cells or more (the
+    // window and row table are already moved, the nodes not).
+    bool Recenter(int x0, int y0, int x1, int y1, bool settleInside);
 
     bool active;                        // +0x00
     bool levelsSaved;                   // +0x01 the window's cell levels are in `levels`
@@ -439,6 +470,9 @@ public:
     // 005B9510. The passability cost tables for size class `sizeClass`; returns the climb table's
     // middle (EAX, as the original).
     const int* CostContext(int sizeClass, struct PassCostContext* out);
+    // 005B9580 (RET 8). CostContext for `unit`: its size class, its movement speeds (0052F920) in
+    // +0x14 / +0x0C, and the alternative cost table when CUnit::unknown_43C is set.
+    void CostContextFor(CUnit* unit, struct PassCostContext* out);
     // 005BA5A0. Is the cell under `unit` passable for it at a cost below 12000? (A cell with a
     // kind-3 occluder is evaluated at the size class's level through 005B8BA0.) Only AL is set
     // when the unit is outside the map.
@@ -498,7 +532,10 @@ public:
     std::uint8_t unknown_003;
     int dirtyMinX, dirtyMaxX;           // +0x004
     int dirtyMinY, dirtyMaxY;           // +0x00C
-    std::uint8_t unknown_014[0xD8 - 0x14];
+    int passCosts[16];                  // +0x014 cost per passability nibble (1/1024)
+    int passCostsAlt[16];               // +0x054 the same for units with CUnit::unknown_43C set
+    int stepCosts[16];                  // +0x094 step speeds per nibble (SetStepSpeeds)
+    std::uint8_t unknown_0D4[0xD8 - 0xD4];
     ClimbTable climbLarge;              // +0x0D8 size classes other than 0
     std::uint8_t unknown_0E0[0xEC - 0xE0];
     ClimbTable climbSmall;              // +0x0EC size class 0
@@ -530,7 +567,11 @@ public:
     int height;                         // +0x26A4
     std::uint32_t unknown_26A8;
     std::uint32_t** occluders;          // +0x26AC rows of per-cell occluder words (see LineOfSight)
+    std::uint8_t unknown_26B0[0x26B8 - 0x26B0];
+    SearchGrid<std::int8_t> marks;      // +0x26B8 per-cell marks: path directions (BuildCellsTo), reach answers
 };
+static_assert(offsetof(CAIMap, passCosts) == 0x14);
+static_assert(offsetof(CAIMap, stepCosts) == 0x94);
 static_assert(offsetof(CAIMap, climbLarge) == 0xD8);
 static_assert(offsetof(CAIMap, climbSmall) == 0xEC);
 static_assert(offsetof(CAIMap, bridgeHeights) == 0x10C);
@@ -545,6 +586,7 @@ static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
 static_assert(offsetof(CAIMap, lastFootprintOwner) == 0x2694);
 static_assert(offsetof(CAIMap, cells) == 0x269C);
 static_assert(offsetof(CAIMap, occluders) == 0x26AC);
+static_assert(offsetof(CAIMap, marks) == 0x26B8);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {
