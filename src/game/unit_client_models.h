@@ -234,6 +234,9 @@ public:
     // speech, flash, footprint or blink, every armour and weapon model -1, the face texture
     // released. Returns 1.
     int CreateClient();
+    // 00533E80. Virtual slot 0, the deleting destructor: the destructor body (00533EA0), then the
+    // memory freed for bit 0 of `flags`. Returns this.
+    CUnitClientSpecific* DeleteClient(std::uint32_t flags);
     // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
     // and are released, the face texture released; no blink.
     void DestroyClient();

@@ -60,3 +60,53 @@ static void __fastcall DestroyServerVerify(CMapObjectServer* self) {
                       "%d strings", self->stringCount);
 }
 EI_VERIFY(0x005157E0, DestroyServerVerify, 0, s_unusedDestroy);
+
+// --- Slots 41 / 44 of map objects, the client companion's Create, the controller's deleting
+// destructor (all ours only: they log, free or release). Reached by: slot 41 when a skill is used
+// on an object that is no unit (its callers are not traced; the counts show), slot 44 when such
+// arrays are freed, the client companion's Create with every object made on the client (units,
+// unit_create), the controller's deleting destructor when a client unit is released (unit_create's
+// remove, zone changes).
+namespace {
+void* s_unusedScience;
+void* s_unusedFreeArray;
+void* s_unusedCompanionCreate;
+void* s_unusedDelete;
+
+struct ArrayView {
+    void* vtable;
+    void* data;
+    int size;
+    int capacity;
+};
+} // namespace
+
+static bool __fastcall ApplyScienceVerify(CMapObject* self, void*, int first, int second) {
+    bool result = self->ApplyScience(first, second);
+    ei::verify::Check("CMapObject::ApplyScience", false, result, "object %d", self->id_);
+    return result;
+}
+EI_VERIFY(0x0050F0F0, ApplyScienceVerify, 0, s_unusedScience);
+
+static void __fastcall FreeArrayVerify(CMapObject* self, void*, void* array, int unused) {
+    self->FreeArray(array, unused);
+    const auto* view = static_cast<const ArrayView*>(array);
+    ei::verify::Check("CMapObject::FreeArray", true, !view->data && view->size == 0 && view->capacity == 0, "object %d",
+                      self->id_);
+}
+EI_VERIFY(0x0050F120, FreeArrayVerify, 0, s_unusedFreeArray);
+
+static int __fastcall CreateClientCompanionVerify(CMapObjectClientSpecific* self) {
+    int result = self->CreateClientCompanion();
+    ei::verify::Check("CMapObjectClientSpecific::CreateClientCompanion", true,
+                      result == 1 && self->endSound == -1 && !self->object, "result %d", result);
+    return result;
+}
+EI_VERIFY(0x00510770, CreateClientCompanionVerify, 0, s_unusedCompanionCreate);
+
+static CUnitClientSpecific* __fastcall DeleteClientVerify(CUnitClientSpecific* self, void*, std::uint32_t flags) {
+    CUnitClientSpecific* result = self->DeleteClient(flags);
+    ei::verify::Check("CUnitClientSpecific::DeleteClient", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x00533E80, DeleteClientVerify, 0, s_unusedDelete);

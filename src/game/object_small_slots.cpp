@@ -4,13 +4,60 @@
 #include "unit.h"
 #include "unit_client_models.h"
 
+#include "lib/crt.h"
+
 #include "ei/hook.h"
+#include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_units.h"
 
 namespace {
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
 constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
+constexpr int kNoSound = -1;
+
+// The MFC CArray layout slot 44 empties.
+struct RawArray {
+    void* vtable;
+    void* data;
+    int size;
+    int capacity;
+};
 } // namespace
+
+bool CMapObject::ApplyScience(int, int) {
+    DebugMessageOriginal("Science is applied on wrong object");
+    return false;
+}
+EI_REPLACE_METHOD(0x0050F0F0, CMapObject::ApplyScience);
+
+void CMapObject::FreeArray(void* array, int) {
+    auto* raw = static_cast<RawArray*>(array);
+    if (raw->data) {
+        gamecrt::operator_delete(raw->data);
+        raw->data = nullptr;
+    }
+    raw->capacity = 0;
+    raw->size = 0;
+}
+EI_REPLACE_METHOD(0x0050F120, CMapObject::FreeArray);
+
+int CMapObjectClientSpecific::CreateClientCompanion() {
+    unknown_20 = 0;
+    unknown_24 = 0;
+    CompanionParticlesSetSizeOriginal(particles, nullptr, 0, -1);
+    endSound = kNoSound;
+    object = nullptr;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
+
+CUnitClientSpecific* CUnitClientSpecific::DeleteClient(std::uint32_t flags) {
+    ClientDestructBodyOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00533E80, CUnitClientSpecific::DeleteClient);
 
 int CMapObjectServer::CreateServer() {
     CompanionOwner(this) = nullptr;
