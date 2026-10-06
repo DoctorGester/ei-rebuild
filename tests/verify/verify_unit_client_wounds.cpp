@@ -37,3 +37,18 @@ static int __fastcall ComposeWoundsTextureVerify(CUnitClientSpecific* self) {
     return result;
 }
 EI_VERIFY(0x005370F0, ComposeWoundsTextureVerify, 0, s_unusedComposeWounds);
+
+// - LoadFaceTexture (00538DB0): ours only; true with a face texture whose flags_ has bit 8, false
+//   without one. Reached by the client player's OnNewObject (00668330) for every new client unit
+//   (heroes on every game start) and by the client world's 0056DE80.
+namespace {
+void* s_unusedLoadFace;
+} // namespace
+
+static bool __fastcall LoadFaceTextureVerify(CUnitClientSpecific* self) {
+    bool result = self->LoadFaceTexture();
+    bool ok = result ? self->faceTexture && (self->faceTexture->flags_ & 8) : !self->faceTexture;
+    ei::verify::Check("CUnitClientSpecific::LoadFaceTexture", true, ok, "result %d", result ? 1 : 0);
+    return result;
+}
+EI_VERIFY(0x00538DB0, LoadFaceTextureVerify, 0, s_unusedLoadFace);

@@ -38,3 +38,20 @@ static void __fastcall DestroyClientVerify(CUnitClientSpecific* self) {
     ei::verify::Check("CUnitClientSpecific::DestroyClient", true, ok, "");
 }
 EI_VERIFY(0x005340C0, DestroyClientVerify, 0, s_unusedDestroy);
+
+// A-U4. DestructClientBody (00533EA0): ours only; afterwards no sources or face texture, the
+// list +0x58 empty, the unit cleared and the engine object's base state (vtable 0073B8E0, no
+// owner). Reached by DeleteClient (00533E80) when a party unit's controller goes (unit_create's
+// remove, zone changes, game exit).
+namespace {
+void* s_unusedDestructBody;
+} // namespace
+
+static void __fastcall DestructClientBodyVerify(CUnitClientSpecific* self) {
+    self->DestructClientBody();
+    bool ok = !self->sources[0] && !self->sources[1] && !self->sources[2] && !self->faceTexture &&
+              self->list58.count == 0 && !self->list58.head && !self->unit && !self->owner_ &&
+              *reinterpret_cast<std::uintptr_t*>(self) == CEngineObject::kVtableAddress;
+    ei::verify::Check("CUnitClientSpecific::DestructClientBody", true, ok, "");
+}
+EI_VERIFY(0x00533EA0, DestructClientBodyVerify, 0, s_unusedDestructBody);

@@ -61,3 +61,30 @@ void CUnitClientSpecific::DestroyClient() {
     blinks = 0;
 }
 EI_REPLACE_METHOD(0x005340C0, CUnitClientSpecific::DestroyClient);
+
+void CUnitClientSpecific::DestructClientBody() {
+    *reinterpret_cast<std::uintptr_t*>(this) = kVtableAddress;
+    for (CParticleSource*& source : sources) {
+        if (!source) continue;
+        source->Stop();
+        reinterpret_cast<CEngineObject*>(source)->Release();
+        source = nullptr;
+    }
+    ReleaseFace(this);   // 004EBE60 with null; the original's release test after it finds null
+    blinks = 0;
+    // The speech queue: every node, then the header (00539400), freed (005393B0; no destructors).
+    for (ClientSpeechNode* node = speech->next; node != speech;) {
+        ClientSpeechNode* next = node->next;
+        stlp::deallocate(node, sizeof(ClientSpeechNode));
+        node = next;
+    }
+    speech->next = speech;
+    speech->prev = speech;
+    stlp::deallocate(speech, sizeof(ClientSpeechNode));
+    list58.vtable = reinterpret_cast<void*>(kList58VtableAddress);
+    list58.RemoveAll();
+    *reinterpret_cast<std::uintptr_t*>(this) = kBaseVtableAddress;
+    unit = nullptr;
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x00533EA0, CUnitClientSpecific::DestructClientBody);

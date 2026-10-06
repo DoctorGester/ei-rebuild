@@ -103,6 +103,11 @@ static_assert(offsetof(SkinRequest, flags) == 0x24);
 
 class CUnitClientSpecific : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073ECD8);
+    // The controller base class's vtable (the destructor body ends with it) and the list +0x58's.
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073EDBC);
+    static constexpr std::uintptr_t kList58VtableAddress = std::uintptr_t(0x0073EDB0);
+
     // 005381B0. Virtual slot 26: the unit puts on armour piece `itemId` (packed: prototype index
     // in the high half, number in the low half). For a body armour, trousers or helmet not
     // already worn, each part of its group is replaced by "<part>.armor<number>" when the unit's
@@ -162,6 +167,12 @@ public:
     // eyesClosed becomes 1 / 0.
     void BlinkClose(bool force);
     void BlinkOpen(bool force);
+    // 00538DB0 (unit_client_wounds.cpp, A-U4). The face texture the blink uses (+0xCC), loaded
+    // once: the texture manager's texture of kind 0x3D named "<model>mouth_<skin, 2 digits>"
+    // (heroes, the prototype's +0x0C) or "<model>mouth", loaded (006922A0); one that did not load
+    // (flags_ bit 8 clear) is dropped and blinking stops. False (AL) without a prototype or a
+    // loaded face.
+    bool LoadFaceTexture();
     // 005344E0. Virtual slot 13 (figures loaded): the drawn parts take the fade-in as alpha.
     // Returns 1.
     int FiguresLoaded();
@@ -251,6 +262,11 @@ public:
     // 00533E80. Virtual slot 0, the deleting destructor: the destructor body (00533EA0), then the
     // memory freed for bit 0 of `flags`. Returns this.
     CUnitClientSpecific* DeleteClient(std::uint32_t flags);
+    // 00533EA0 (unit_client_lifetime.cpp, A-U4). The destructor body: the three particle sources
+    // stop and are released, the face texture released (no blink), the speech queue's nodes and
+    // header freed, the MFC list +0x58 emptied, then the base (vtable 0073EDBC, no unit) and
+    // CEngineObject's destructor body.
+    void DestructClientBody();
     // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
     // and are released, the face texture released; no blink.
     void DestroyClient();
@@ -331,7 +347,7 @@ public:
     const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
     float lastTime;                 // +0x34 the world time the unit was last advanced to (slot 40)
     std::uint8_t motionOrder[0x20]; // +0x38 the order part of a path (AIPath; slot 16): MotionOrder()
-    std::uint8_t unknown_058[0x74 - 0x58];   // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
+    mfc::CTypedPtrList<void> list58;        // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
     std::uint8_t snapHeading;       // +0x76 the next path placement turns the unit to the path at once (00535850)

@@ -7,11 +7,13 @@
 #include "item_db.h"
 #include "ui.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "originals_ui.h"
 #include "originals_units.h"
 
 #include <new>
@@ -122,3 +124,34 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
     return result;
 }
 EI_REPLACE_METHOD(0x005370F0, CUnitClientSpecific::ComposeWoundsTexture);
+
+// --- The face texture -------------------------------------------------------------------------
+
+namespace {
+constexpr int kFaceTextureKind = 0x3D;
+constexpr std::uint32_t kTextureLoaded = 8;            // a texture's flags_
+constexpr const char* kHeroFace = "%smouth_%.2d";      // 0078FC70
+constexpr const char* kFace = "%smouth";               // 0078FC68
+} // namespace
+
+bool CUnitClientSpecific::LoadFaceTexture() {
+    if (faceTexture) return true;
+    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+    if (!prototype) return false;
+    char name[0x400];
+    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->prototypeName, prototype->skin);
+    else gamecrt::sprintf(name, kFace, unit->prototypeName);
+    auto* texture = static_cast<CEngineObject*>(TextureNamedOriginal(UiTextureManager(), nullptr, kFaceTextureKind, name));
+    CEngineObject* old = faceTexture;
+    faceTexture = texture;
+    if (texture) ++texture->refCount_;
+    if (old) old->Release();
+    TextureLoadOriginal(UiTextureManager(), nullptr, faceTexture);
+    CEngineObject* face = faceTexture;
+    if (face->flags_ & kTextureLoaded) return true;
+    faceTexture = nullptr;
+    if (face) face->Release();
+    blinks = 0;
+    return false;
+}
+EI_REPLACE_METHOD(0x00538DB0, CUnitClientSpecific::LoadFaceTexture);
