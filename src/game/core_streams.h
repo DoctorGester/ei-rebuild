@@ -63,6 +63,16 @@ public:
     // 004A5250 (RET 4). Writes all of `from` with its size in front: size * 2 in two bytes, or
     // size * 2 + 1 in four bytes above 30000 (a signed compare). `from` is sought to 0 and read.
     void WriteSized(CStream* from);
+    // core_stream_diff.cpp (A-S4): the save game's difference coding. A difference is a run
+    // header byte (the run length, 0..255) followed by alternating runs: equal bytes (only the
+    // length) and changed bytes (the length and the new bytes), starting with an equal run; a
+    // full run (255) is followed by an empty run of the other kind; a zero byte ends it.
+    // 004A4DA0 (RET 8). Writes the difference from `base` to `current` (same size, else nothing);
+    // both are read from their start.
+    void WriteDiff(CStream* base, CStream* current);
+    // 004A50D0 (RET 8). Rebuilds into this stream (from its start) `base` with the difference read
+    // from `diff` (at its position), until base's size is reached or `diff` runs out.
+    void ApplyDiff(CStream* base, CStream* diff);
     // 004A52D0 (RET 0xC, AL). Reads the magic number and the version (four bytes each, into one
     // variable); true and version_ set when the magic matches and oldest <= version <= newest
     // (signed).
