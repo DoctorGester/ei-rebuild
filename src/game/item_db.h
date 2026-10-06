@@ -9,6 +9,8 @@
 // range reads near address 0 and crashes. Field() keeps that behaviour (a real read through the
 // null record) rather than inventing a default.
 
+#include "console.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -47,47 +49,90 @@ constexpr int kSpellModifierSize = 0x24;
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items).
 // The values +0x34..+0x48 go to the item (CItem::InitFromRecord), with the item offset noted.
 struct ItemRecordHead {
-    std::uint8_t unknown_00[0x0C];
+    // 006A8F20 (RET 4; item_db_records.cpp). operator= of the head: the three strings, +0x0C,
+    // +0x14..+0x1C, +0x34..+0x4C, the byte +0x68 and the string array +0x20 (CStringArray::Copy).
+    // +0x50, +0x64 and +0x6C are not copied. Returns this.
+    ItemRecordHead* Assign(const ItemRecordHead* source);
+    // What the kinds' copy constructors do first: empty strings and string arrays, +0x68 = 1,
+    // the kind's vtable.
+    void ConstructHead(std::uintptr_t vtableAddress);
+
+    void* vtable;                       // +0x00
+    mfc::CString text04;                // +0x04
+    mfc::CString text08;                // +0x08
     int type;                           // +0x0C field::kItemType
-    std::uint8_t unknown_10[0x18 - 0x10];
+    mfc::CString text10;                // +0x10
+    std::uint32_t unknown_14;           // +0x14
     int number;                         // +0x18 field::kItemNumber
     int variant;                        // +0x1C the model variant
-    std::uint8_t unknown_20[0x34 - 0x20];
+    console::CStringArray list20;       // +0x20
     float price;                        // +0x34 field::kItemPrice (item +0x38)
     std::uint32_t value38;              // +0x38 item +0x34 (weapons: attack)
     std::uint32_t value3C;              // +0x3C item +0x3C
     float charge;                       // +0x40 item charge and maximum
     std::uint32_t value44;              // +0x44 item +0x40
     float value48;                      // +0x48 item +0x20 and +0x24
-    std::uint8_t unknown_4C[0x6C - 0x4C];
+    std::uint32_t unknown_4C;           // +0x4C
+    console::CStringArray list50;       // +0x50
+    std::uint32_t unknown_64;           // +0x64
+    std::uint8_t unknown_68;            // +0x68
+    std::uint8_t unknown_69[3];
     std::uint32_t category;             // +0x6C field::kItemCategory (the loot item's kind)
 };
+static_assert(offsetof(ItemRecordHead, list20) == 0x20);
+static_assert(offsetof(ItemRecordHead, list50) == 0x50);
+static_assert(offsetof(ItemRecordHead, unknown_68) == 0x68);
 static_assert(offsetof(ItemRecordHead, number) == 0x18);
 static_assert(offsetof(ItemRecordHead, price) == 0x34);
 static_assert(offsetof(ItemRecordHead, value48) == 0x48);
 static_assert(sizeof(ItemRecordHead) == 0x70);
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
+// The record kinds' copy constructors, as STLport's uninitialized_copy (first, last, dest) and
+// uninitialized_fill_n (dest, n, x) of each vector inline them (item_db_records.cpp): empty strings
+// and string arrays, +0x68 = 1, the kind's vtable, the head's Assign, then the kind's own fields.
+// Records the original does not copy are left as constructed (or as they were, for bytes no
+// constructor sets).
+
+// A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744068);
+    // Its own fields copied: +0x6C..+0x83 and +0x8C..+0xB4 (+0x84..+0x8B are not).
+    void CopyOwn(const WeaponRecord* source);
+
     std::uint8_t unknown_70[0x8C - 0x70];
     std::uint32_t value8C;              // +0x8C item +0x58
     float damage;                       // +0x90 field::kWeaponDamage
     float damageSpread;                 // +0x94 field::kWeaponDamageSpread
+    std::uint8_t unknown_98[kWeaponSize - 0x98];
 };
 static_assert(offsetof(WeaponRecord, value8C) == 0x8C);
+static_assert(sizeof(WeaponRecord) == kWeaponSize);
 
 // An armour prototype (kArmorSize bytes): the two absorption rows CItemArmor takes.
 struct ArmorRecord : ItemRecordHead {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744064);
+    // +0x6C..+0xB4 (+0xB4..+0xC7 are not copied).
+    void CopyOwn(const ArmorRecord* source);
+
     std::uint32_t absorbFirst[7];       // +0x70 item absorb_[0]
     std::uint8_t unknown_8C[0x94 - 0x8C];
     std::uint32_t absorbOthers[7];      // +0x94 item absorb_[1]
+    std::uint8_t unknown_B0[kArmorSize - 0xB0];
 };
 static_assert(offsetof(ArmorRecord, absorbOthers) == 0x94);
+static_assert(sizeof(ArmorRecord) == kArmorSize);
 
 // A quick item prototype (potions, wands, scrolls; kQuickItemSize bytes).
 struct QuickItemRecord : ItemRecordHead {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0074405C);
+    // +0x70 and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
+    // copied (the string is constructed empty).
+    void CopyOwn(const QuickItemRecord* source);
+
     std::uint32_t value70;              // +0x70 item +0x4C
-    std::uint8_t unknown_74[0x80 - 0x74];
+    std::uint8_t unknown_74[0x7C - 0x74];
+    mfc::CString text7C;                // +0x7C
     std::uint8_t attributeBonus[3];     // +0x80 per attribute (UnitStats::AttributeWithItems)
     std::uint8_t unknown_83[kQuickItemSize - 0x83];
 };
@@ -95,12 +140,39 @@ static_assert(offsetof(QuickItemRecord, value70) == 0x70);
 static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
 static_assert(sizeof(QuickItemRecord) == kQuickItemSize);
 
+// The 0x7C-byte item prototype with a list of zone names (table 007C8758; QuestItemInfo 006A0110
+// reads the list).
+struct QuestItemRecord : ItemRecordHead {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744058);
+    // +0x6C only: the zone list is constructed empty, not copied.
+    void CopyOwn(const QuestItemRecord* source);
+
+    mfc::CString* zonesBegin;           // +0x70 STLport vector<CString>
+    mfc::CString* zonesEnd;             // +0x74
+    mfc::CString* zonesCapacity;        // +0x78
+};
+static_assert(sizeof(QuestItemRecord) == kLootSize);
+
 // The prototype of a CItemLoot (table 007C8778): kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744054);
+    // +0x6C..+0x77.
+    void CopyOwn(const LootItemRecord* source);
+
     std::uint32_t recordType;           // +0x70
     std::uint32_t index;                // +0x74
 };
 static_assert(offsetof(LootItemRecord, index) == 0x74);
+static_assert(sizeof(LootItemRecord) == kQuestItemSize);
+
+// 006AB9C0 / 006ABCD0 / 006ABF60 / 006AC240 / 006AC520 (__fastcall, RET 8): uninitialized_copy of
+// [first, last) to `dest`; 006ABB50 / 006ABE20 / 006AC0D0 / 006AC3B0 / 006AC640: uninitialized_fill_n
+// of `count` copies of `value`. The last argument is STLport's unused type tag. Null destinations
+// are skipped; the result is the end of the destination (item_db_records.cpp).
+template <typename R>
+R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int tag);
+template <typename R>
+R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
 
 // The start of a material record (kMaterialSize bytes).
 struct MaterialRecordHead {

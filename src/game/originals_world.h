@@ -9,6 +9,7 @@
 #include <cstdint>
 
 class CEngineObject;
+class CItem;
 class CUnit;
 class CWorldServer;
 struct ObjectIdMap;
@@ -81,3 +82,7 @@ __declspec(naked) inline void __fastcall FlowPartyStepOriginal(void* /*flow*/, v
 __declspec(naked) inline void __fastcall ShowBoltOriginal(void* /*glue*/, void*, float /*fromX*/, float /*fromY*/,
                                                           float /*fromZ*/, float /*toX*/, float /*toY*/, float /*toZ*/)
     EI_ORIGINAL(0x00578E30)
+
+// 0055E940 (CWorld's slot 24, called directly on the client world 007AF5B8; RET 4): a new item made like `item` by the
+// item factory and given its values; EAX is the copy.
+__declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/, void*, CItem* /*item*/) EI_ORIGINAL(0x0055E940)

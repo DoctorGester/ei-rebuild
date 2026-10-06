@@ -39,6 +39,16 @@ Weapon stats as the unit stats code (00538960) combines them: min damage = weapo
 max = (spread + damage) x material damage, attack = weapon attack x material attack, damage type = first
 non-zero weight (6 if none).
 
+Record values (item_db_records.cpp, A-H6; ours only, every run: the vectors grow while the databases load): 006A8F20
+ItemRecordHead::Assign (three strings, +0x0C, +0x14..+0x1C, +0x34..+0x4C, byte +0x68, CStringArray::Copy of +0x20; the
++0x50 array, +0x64 and +0x6C are not copied) and the five kinds' uninitialized_copy / uninitialized_fill_n (__fastcall, RET 8,
+the second stack argument an unused tag): weapons 006AB9C0 / 006ABB50 (vtable 00744068; own bytes +0x6C..+0x83, +0x8C..+0xB4),
+armour 006ABCD0 / 006ABE20 (00744064; +0x6C..+0xB4), quick 006ABF60 / 006AC0D0 (0074405C; +0x70 and +0x80..+0x8A, the string
++0x7C constructed empty, the category not copied), the 0x7C kind 006AC240 / 006AC3B0 (00744058; +0x6C, its zone vector +0x70
+left empty), the 0x78 kind 006AC520 / 006AC640 (00744054; +0x6C..+0x77). Kept: the copies drop the fields listed as not
+copied. Not ported (not reached while loading: the vectors start empty): the kinds' operator= (006A8FB0 ...) and destructors
+(006A88F0, 006A8950, 006A89D0, 006A8A50, 006A8AE0, 006A8BD0).
+
 ## Item rules (scenario items)
 
 | Address | Name | Verify |
@@ -145,9 +155,16 @@ for +0x50). Record Load: the original Save gives back the bytes read. LoadParty 
 (items registered under their ids; the copy equals the source). Global 007C8344 = the party being loaded
 (LoadingParty). StatsLoad / StatsSave moved to originals_units.h.
 
-Candidates next: the record's CopyItemsFrom (00660500), DeltaField's empty (00675F70, 19 callers) with the effect constructors /
-destructors, item database record assignment and destructors (006A8F20 with 24 callers, 006A8FB0, 006A88F0..),
-the HUD top panel's text refresh 0064A7A0, the objectives window 0064D9B0.
+Candidates next (A-H6 left): the party's 006629D0 / 00662AC0 / 00662DD0, then by size 00667EC0, 006407E0, 00640060,
+0067CEF0, 006570E0. 00661FB0 / 00661FE0 (party item resets) look simple, but no scenario is known to reach them.
+
+Unit records (party_members.cpp, A-H6; all ours only, scenario party_records): 006628D0 AddMember (Create when no item
+manager; a stack record constructed, assigned to the new entry, destroyed; name / key / prototype / extra), 006621F0
+FillFromPrototype (model text, NPC stats, scales, starting armour / weapons / spells cloned; the lists come straight from the
+prototype instead of through 005143E0's CStringArrays, same names in the same order), 00664950 Assign (shallow: the item list
+pointers are copied), 00660500 CopyItemsFrom (party slot 24 copies with the source counts), 006620F0 RemoveMember, and three
+more copies of AlignedPtrArray::SetAtGrow (00664490 / 006645D0 / 00664710). Kept: AddMember assigns the stack record's
+uninitialised statistics to the new record (BuildNpcStats then overwrites them).
 
 ## Item texts (004E0000-004E15C0; item_db_text, scenario items)
 
@@ -383,6 +400,14 @@ rewritten functions is on the Rebirth list (their caller 006462A0 is).
 | 0064A320, 00649E20 | CHudTopPanel::ShowPage, Layout | original with tints / positions spoiled, then ours: tints, message log position / maximum / moved flag; five sprites (4 ULPs), log rect, region offsets |
 
 Texts go through the panel surface's DrawText (005FDE20, Rebirth-patched) and Place (005E6FA0, Rebirth-patched),
-both through their addresses. ShowParts reads the unit's six body part records (+0x374, 0x1C bytes: state,
+both through their addresses.
+
+A-H6: 0064A7A0 CHudTopPanel::ShowItems (`this` is the top panel, ECX; Ghidra's decompile mislabels it) builds page 1's
+text: "format_money" with the local party's +0x50 when above 0, then the local player's item list (WorldPlayer +0xE0, a
+CPtrList) merged by kind (slot 14) into the client world's copies (0055E940, not rewritten), one FormatItemName line each,
+copies released; into the log when page 1 is up. Ours only (stateful): one line per kind plus the money line. Reached by
+every battle screen setup (00635250 / 00636150; scenario ui_hud). 0064D9B0 CObjectivesWindow::DrawQuestList
+(ui_objectives.cpp; via RefreshQuests 0064E8B0, scenario ui_hud's TAB): ours only, the five marks' and the cursor's
+visibility against the quests' states. ShowParts reads the unit's six body part records (+0x374, 0x1C bytes: state,
 durability, maximum) with label positions from tables 00742434 / 0074244C. In ToggleFlag the button frame's
 third value 0.48046875 is unreachable.
