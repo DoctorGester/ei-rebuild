@@ -110,6 +110,10 @@ handler table (00667230), +0x34 received stream, +0x5C requests, +0x85 send-part
 camera anchor as 0x40), 00667810 SendToServer, 00667970 DispatchMessages, 00667A30 ReceiveMessages (slot 21, one packet per
 call): ours only (`verify_player_client.cpp`). The login's two 64-byte text buffers are sent with uninitialised bytes after
 the texts in the original; ours zeroes them. Error formats via 00664B70 (PlayerMessageErrorOriginal, originals_gameplay.h).
+Client handlers: 00667D80 ReadText (side by side, stream restored), 00669850 0x81 set variable (ours; the variable
+reads back as sent), 00669960 0x82 delete variable, 00669EB0 0x08 zone change (GameFlow::RequestZoneChange), 00669F40
+0x0D jingle (CMusicSystem::PlayJingle): ours only, result 1 and the stream moved. The quest-variable notifications
+005F7FC0 / 00565380 moved to originals_world.h (shared with world_briefing.cpp).
 SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
 moved to party_record_lookup.h (unit.h declares a second one).
 

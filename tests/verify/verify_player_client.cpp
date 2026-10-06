@@ -8,7 +8,12 @@
 #include "verify.h"
 
 #include "../../src/game/net_link.h"
+#include "../../src/game/originals_engine.h"
+#include "../../src/game/party.h"
 #include "../../src/game/player_client.h"
+
+#include <cstring>
+#include <string>
 
 namespace {
 void* s_unused;
@@ -43,8 +48,69 @@ int __fastcall PumpVerify(CPlayerClient* self) {
     return result;
 }
 
+// 00667D80: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0Ch] (6). Only the stream's position and flags move:
+// ours, stream restored, original; text and position compared.
+void*(__fastcall* s_readText)(CPlayerClient*, void*, void*);
+void* __fastcall ReadTextVerify(CPlayerClient* self, void*, void* out) {
+    BitStream before;
+    std::memcpy(&before, &self->in_, sizeof(before));
+    alignas(4) unsigned char ours[sizeof(mfc::CString)];
+    self->ReadText(ours);
+    std::uint32_t oursPosition = self->in_.position_;
+    std::memcpy(&self->in_, &before, sizeof(before));
+    void* result = s_readText(self, nullptr, out);
+    auto* text = reinterpret_cast<mfc::CString*>(ours);
+    bool ok = result == out && oursPosition == self->in_.position_ &&
+              std::strcmp(*text, *static_cast<mfc::CString*>(out)) == 0;
+    ei::verify::Check("CPlayerClient::ReadText", true, ok, "client %p: position %u vs %u", self, self->in_.position_,
+                      oursPosition);
+    text->~CString();
+    return result;
+}
+
+// The handlers change the variables, the music or the zone: ours only. Each returns 1 and moves the
+// stream on; a set variable then reads back as the value sent.
+const char* PendingText(CPlayerClient* self) {
+    return reinterpret_cast<const char*>(self->in_.data_ + self->in_.position_);
+}
+
+int __fastcall SetVariableVerify(CPlayerClient* self) {
+    std::string name = PendingText(self);
+    std::uint32_t value;
+    std::memcpy(&value, PendingText(self) + name.size() + 1, 4);
+    int result = self->OnSetVariable();
+    float now = NamedTableGet(&self->Owner()->Party()->variables_, nullptr, name.c_str());
+    std::uint32_t bits;
+    std::memcpy(&bits, &now, 4);
+    ei::verify::Check("CPlayerClient::OnSetVariable", true, result == 1 && bits == value, "client %p: %s = %08X vs %08X",
+                      self, name.c_str(), value, bits);
+    return result;
+}
+
+template <typename Handler>
+int CheckHandler(const char* label, CPlayerClient* self, Handler handler) {
+    std::uint32_t position = self->in_.position_;
+    int result = handler();
+    ei::verify::Check(label, true, result == 1 && self->in_.position_ > position, "client %p", self);
+    return result;
+}
+int __fastcall DeleteVariableVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnDeleteVariable", self, [&] { return self->OnDeleteVariable(); });
+}
+int __fastcall ZoneChangeVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnZoneChange", self, [&] { return self->OnZoneChange(); });
+}
+int __fastcall JingleVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnJingle", self, [&] { return self->OnJingle(); });
+}
+
 } // namespace
 
+EI_VERIFY(0x00667D80, ReadTextVerify, 6, s_readText);
+EI_VERIFY(0x00669850, SetVariableVerify, 0, s_unused);
+EI_VERIFY(0x00669960, DeleteVariableVerify, 0, s_unused);
+EI_VERIFY(0x00669EB0, ZoneChangeVerify, 0, s_unused);
+EI_VERIFY(0x00669F40, JingleVerify, 0, s_unused);
 EI_VERIFY(0x00667810, SendToServerVerify, 0, s_unused);
 EI_VERIFY(0x00667970, DispatchVerify, 0, s_unused);
 EI_VERIFY(0x00667A30, ReceiveVerify, 0, s_unused);

@@ -4,10 +4,14 @@
 #include "player_client.h"
 
 #include "camera.h"
+#include "originals_engine.h"
+#include "originals_world.h"
 #include "net_link.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "party.h"
+#include "sound.h"
+#include "world.h"
 
 #include "ei/hook.h"
 
@@ -50,6 +54,23 @@ const char* TextHandlerFailed() { return reinterpret_cast<const char*>(0x00794D3
 const char* TextUnknownType() { return reinterpret_cast<const char*>(0x00794D18); }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
+
+// A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of
+// the scope.
+struct TextBuffer {
+    alignas(4) unsigned char bytes[sizeof(mfc::CString)];
+    ~TextBuffer() { Get()->~CString(); }
+    mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
+};
+
+GameFlow* Flow() { return reinterpret_cast<GameFlow*>(0x007AFE20); }
+CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem**>(0x007AF760); }
+void* QuestLog() { return reinterpret_cast<void*>(0x007C7D50); }
+const char* QuestPrefix() { return reinterpret_cast<const char*>(0x00783D7C); }   // "q."
+
+bool IsQuestVariable(const mfc::CString& name) {
+    return name.GetLength() > 2 && std::strncmp(name, QuestPrefix(), 2) == 0;
+}
 
 // A memory stream on the stack with the network queue's vtable, as the original builds and
 // destroys it inline.
@@ -145,6 +166,66 @@ int CPlayerClient::ReceiveMessages() {
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
+void* CPlayerClient::ReadText(void* out) {
+    in_.ReadString(out);
+    return out;
+}
+
+int CPlayerClient::OnSetVariable() {
+    mfc::CString name;
+    {
+        TextBuffer text;
+        in_.ReadString(text.bytes);
+        name = *text.Get();
+    }
+    std::uint32_t value;
+    in_.Read(&value, 4);
+    void* variables = &Owner()->Party()->variables_;
+    NamedTableGet(variables, nullptr, name);
+    NamedTableSet(variables, nullptr, name, value);
+    if (IsQuestVariable(name)) {
+        QuestLogUpdateOriginal(QuestLog(), nullptr, name, value);
+        ClientQuestUpdateOriginal(WorldClient(), nullptr, name, value);
+    }
+    return 1;
+}
+
+int CPlayerClient::OnDeleteVariable() {
+    mfc::CString name;
+    {
+        TextBuffer text;
+        in_.ReadString(text.bytes);
+        name = *text.Get();
+    }
+    VariableRemove(&Owner()->Party()->variables_, nullptr, name);
+    if (IsQuestVariable(name)) {
+        QuestLogUpdateOriginal(QuestLog(), nullptr, name, 0);
+        ClientQuestUpdateOriginal(WorldClient(), nullptr, name, 0);
+    }
+    return 1;
+}
+
+int CPlayerClient::OnZoneChange() {
+    TextBuffer zone;
+    ReadText(zone.bytes);
+    int entrance;
+    in_.Read(&entrance, 4);
+    Flow()->RequestZoneChange(*zone.Get(), entrance);
+    return 1;
+}
+
+int CPlayerClient::OnJingle() {
+    TextBuffer name;
+    in_.ReadString(name.bytes);
+    Music()->PlayJingle(*name.Get());
+    return 1;
+}
+
+EI_REPLACE_METHOD(0x00667D80, CPlayerClient::ReadText);
+EI_REPLACE_METHOD(0x00669850, CPlayerClient::OnSetVariable);
+EI_REPLACE_METHOD(0x00669960, CPlayerClient::OnDeleteVariable);
+EI_REPLACE_METHOD(0x00669EB0, CPlayerClient::OnZoneChange);
+EI_REPLACE_METHOD(0x00669F40, CPlayerClient::OnJingle);
 EI_REPLACE_METHOD(0x00667680, CPlayerClient::Pump);
 EI_REPLACE_METHOD(0x00667810, CPlayerClient::SendToServer);
 EI_REPLACE_METHOD(0x00667970, CPlayerClient::DispatchMessages);
