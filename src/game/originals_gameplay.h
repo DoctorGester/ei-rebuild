@@ -35,6 +35,8 @@ __declspec(naked) inline void __fastcall PlayerGiveItemsOriginal(void* /*player*
 // two flags are read as bytes; EAX is the item, or null).
 __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, void*, int /*a*/, int /*b*/)
     EI_ORIGINAL(0x00661700)
+// 00662AC0: a party (the multiplayer heroes' records too) sends its map transfer `transfer` (RET 4, no result).
+__declspec(naked) inline void __fastcall PartySendTransferOriginal(void* /*party*/, void*, int /*transfer*/) EI_ORIGINAL(0x00662AC0)
 __declspec(naked) inline void* __fastcall PartyAddItemOriginal(void* /*party*/, void*, void* /*item*/, int /*a*/,
                                                                int /*b*/) EI_ORIGINAL(0x00661DB0)
 

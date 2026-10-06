@@ -168,6 +168,9 @@ __declspec(naked) inline int __fastcall CStringFindCharOriginal(const void* /*st
 __declspec(naked) inline int __fastcall CStringFindCharFromOriginal(const void* /*string*/, void*, char /*c*/,
                                                                      int /*start*/) EI_ORIGINAL(0x00700E9F)
 __declspec(naked) inline void __fastcall CStringTrimLeftOriginal(void* /*string*/) EI_ORIGINAL(0x006FE216)
+// MFC CString::Find(LPCTSTR) 006FDBD9 (RET 4, index or -1).
+__declspec(naked) inline int __fastcall CStringFindTextOriginal(const void* /*string*/, void*, const char* /*text*/)
+    EI_ORIGINAL(0x006FDBD9)
 __declspec(naked) inline void __fastcall CStringTrimRightOriginal(void* /*string*/) EI_ORIGINAL(0x006FE11F)
 // MFC CPtrList::NewNode(prev, next) 004621A0 (RET 8, returns the node, data cleared); RemoveAll 0052CA10 (plain RET).
 __declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
